@@ -41,7 +41,7 @@ public slots:
   void UpdateWidgets();
 
 private:
-  void AddLayers(QList<Layer*> layers, const QString& cat_name, Layer* curLayer = NULL);
+  void AddLayers(QList<Layer*> layers, const QString& cat_name, Layer* activeLayer, Layer* curLayer = NULL);
   PanelLayer* SetCurrentPanel(const QString& layerType);
 
   Ui::PanelAllLayers *ui;

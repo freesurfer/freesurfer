@@ -38,6 +38,7 @@ PanelAllLayers::~PanelAllLayers()
   delete ui;
 }
 
+/*
 void PanelAllLayers::OnActiveLayerChanged(Layer *curlayer)
 {
   QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
@@ -49,17 +50,58 @@ void PanelAllLayers::OnActiveLayerChanged(Layer *curlayer)
       for (int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++)
       {
         QTreeWidgetItem* topItem = ui->treeWidgetLayers->topLevelItem(i);
+        bool bFound = false;
         for (int j = 0; j < topItem->childCount(); j++)
         {
           item = topItem->child(j);
           Layer* layer = qobject_cast<Layer*>(item->data(0, Qt::UserRole).value<QObject*>());
+          QFont fnt = item->font(0);
           if (layer == curlayer)
           {
             ui->treeWidgetLayers->setCurrentItem(item);
-            return;
+            bFound = true;
           }
+          fnt.setBold(layer == curlayer);
+          item->setFont(0, fnt);
         }
+        if (bFound)
+          return;
       }
+    }
+  }
+}
+*/
+
+void PanelAllLayers::OnActiveLayerChanged(Layer *curlayer)
+{
+  QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
+  if (item && curlayer)
+  {
+    QObject* sel = qobject_cast<QObject*>(item->data(0, Qt::UserRole).value<QObject*>());
+    QTreeWidgetItem* topItem = NULL;
+    for (int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++)
+    {
+      item = ui->treeWidgetLayers->topLevelItem(i);
+      if (item->data(0, Qt::UserRole).toString() == curlayer->GetPrimaryType())
+      {
+        topItem = item;
+        break;
+      }
+    }
+    if (topItem)
+    {
+        for (int j = 0; j < topItem->childCount(); j++)
+        {
+          item = topItem->child(j);
+          Layer* layer = qobject_cast<Layer*>(item->data(0, Qt::UserRole).value<QObject*>());
+          QFont fnt = item->font(0);
+          if (sel != curlayer && layer == curlayer)
+          {
+            ui->treeWidgetLayers->setCurrentItem(item);
+          }
+          fnt.setBold(layer == curlayer);
+          item->setFont(0, fnt);
+        }
     }
   }
 }
@@ -82,15 +124,15 @@ void PanelAllLayers::RefreshLayerList(Layer *curLayer)
   ui->treeWidgetLayers->clear();
   ui->treeWidgetLayers->blockSignals(false);
   MainWindow* wnd = MainWindow::GetMainWindow();
-  AddLayers(wnd->GetLayers("MRI"), "Volumes", layer);
-  AddLayers(wnd->GetLayers("Surface"), "Surfaces", layer);
-  AddLayers(wnd->GetLayers("ROI"), "ROIs", layer);
-  AddLayers(wnd->GetLayers("PointSet"), "Point Sets", layer);
-  AddLayers(wnd->GetLayers("CMAT"), "CMAT", layer);
-  AddLayers(wnd->GetLayers("Track"), "Track", layer);
+  AddLayers(wnd->GetLayers("MRI"), "Volumes", wnd->GetActiveLayer("MRI"), layer );
+  AddLayers(wnd->GetLayers("Surface"), "Surfaces", wnd->GetActiveLayer("Surface"), layer);
+  AddLayers(wnd->GetLayers("ROI"), "ROIs", wnd->GetActiveLayer("ROI"), layer);
+  AddLayers(wnd->GetLayers("PointSet"), "Point Sets", wnd->GetActiveLayer("PointSet"), layer);
+  AddLayers(wnd->GetLayers("CMAT"), "CMAT", wnd->GetActiveLayer("CMAT"), layer);
+  AddLayers(wnd->GetLayers("Track"), "Track", wnd->GetActiveLayer("Track"), layer);
 }
 
-void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, Layer* curLayer)
+void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, Layer* activeLayer, Layer* curLayer)
 {
   ui->treeWidgetLayers->blockSignals(true);
   QTreeWidgetItem* currentItem = NULL;
@@ -109,7 +151,15 @@ void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, L
       item->setFlags( item->flags() | Qt::ItemIsEditable );
       topItem->addChild(item);
       if (layers[i] == curLayer)
+      {
         currentItem = item;
+      }
+      if (layers[i] == activeLayer)
+      {
+        QFont fnt = item->font(0);
+        fnt.setBold(true);
+        item->setFont(0, fnt);
+      }
     }
     topItem->setExpanded(true);
   }

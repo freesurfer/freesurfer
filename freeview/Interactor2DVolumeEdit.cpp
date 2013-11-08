@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/28 20:35:34 $
- *    $Revision: 1.28 $
+ *    $Date: 2013/11/08 19:30:50 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,20 +66,28 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
     }
 
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( m_strLayerTypeName );
-    LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
-    if ( (!mri || !mri->IsVisible()) ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetSelectedLayers(m_strLayerTypeName);
+    if (layers.isEmpty())
+      layers << lc->GetActiveLayer();
+    QList<LayerVolumeBase*> mriLayers;
+    foreach (Layer* layer, layers)
+      mriLayers << qobject_cast<LayerVolumeBase*>(layer);
+
+    foreach (LayerVolumeBase* mri, mriLayers)
     {
-      emit Error( "Layer Not Visible", mri );
-    }
-    else if ( !mri->IsEditable() ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
-    {
-      emit Error( "Layer Not Editable", mri );
-    }
-    else if ( m_strLayerTypeName == "MRI" && ((LayerMRI*)mri)->IsTransformed() )
-    {
-      emit Error( "Layer Not Editable For Transformation", mri );
-    }
-    else
+      if ( (!mri || !mri->IsVisible()) ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
+      {
+        emit Error( "Layer Not Visible", mri );
+      }
+      else if ( !mri->IsEditable() ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
+      {
+        emit Error( "Layer Not Editable", mri );
+      }
+      else if ( m_strLayerTypeName == "MRI" && ((LayerMRI*)mri)->IsTransformed() )
+      {
+        emit Error( "Layer Not Editable For Transformation", mri );
+      }
+      else
     {
       m_nMousePosX = event->x();
       m_nMousePosY = event->y();
@@ -217,6 +225,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         return Interactor2D::ProcessMouseDownEvent( event, renderview );
       }
     }
+    }
 
     return false;
   }
@@ -235,14 +244,21 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         if ( m_dPolylinePoints.size() > 0 && m_nAction == EM_Polyline )
         {
           LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( m_strLayerTypeName );
-          LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
+          QList<Layer*> layers = MainWindow::GetMainWindow()->GetSelectedLayers(m_strLayerTypeName);
+          if (layers.isEmpty())
+            layers << lc->GetActiveLayer();
 
           double ras1[3] = { m_dPolylinePoints[0], m_dPolylinePoints[1], m_dPolylinePoints[2] };
           double ras2[3];
           view->GetCursor2D()->GetPosition( ras2 );
           view->GetCursor2D()->SetPosition2( ras2 );
           view->GetCursor2D()->SetPosition( ras1 );
-          mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !(event->modifiers() & Qt::ShiftModifier) );
+          foreach (Layer* layer, layers)
+          {
+            LayerVolumeBase* mri = qobject_cast<LayerVolumeBase*>(layer);
+            if (mri)
+              mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(), !(event->modifiers() & Qt::ShiftModifier) );
+          }
         }
         else
         {
@@ -297,14 +313,21 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
     int posY = event->y();
 
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( m_strLayerTypeName );
-    LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetSelectedLayers(m_strLayerTypeName);
+    if (layers.isEmpty())
+      layers << lc->GetActiveLayer();
+    QList<LayerVolumeBase*> mriLayers;
+    foreach (Layer* layer, layers)
+      mriLayers << qobject_cast<LayerVolumeBase*>(layer);
+
     if ( m_nAction == EM_Freehand )
     {
       double ras1[3], ras2[3];
       view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
       view->MousePositionToRAS( posX, posY, ras2 );
 
-      mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(),
+      foreach (LayerVolumeBase* mri, mriLayers)
+        mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(),
                           !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton) );
     }
     else if ( m_nAction == EM_Clone )
@@ -313,7 +336,8 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
       view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
       view->MousePositionToRAS( posX, posY, ras2 );
 
-      mri->CloneVoxelByRAS( ras1, ras2, view->GetViewPlane() );
+      foreach (LayerVolumeBase* mri, mriLayers)
+        mri->CloneVoxelByRAS( ras1, ras2, view->GetViewPlane() );
     }
     else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
     {
@@ -322,8 +346,9 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
       view->GetCursor2D()->SetPosition2( ras );
       if ( m_nAction == EM_Livewire )
       {
-        view->GetCursor2D()->SetInterpolationPoints(
-          mri->GetLiveWirePointsByRAS( ras,
+        foreach (LayerVolumeBase* mri, mriLayers)
+          view->GetCursor2D()->SetInterpolationPoints(
+            mri->GetLiveWirePointsByRAS( ras,
                                        view->GetCursor2D()->GetPosition(),
                                        view->GetViewPlane() ) );
       }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/25 20:32:36 $
- *    $Revision: 1.88 $
+ *    $Date: 2013/11/08 19:30:50 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -841,9 +841,12 @@ void PanelVolume::OnSliderOpacity( int nVal )
 void PanelVolume::OnSliderWindow( int nVal )
 {
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  LayerMRI* curLayer = GetCurrentLayer<LayerMRI*>();
+  if (!curLayer)
+    return;
+  double* r = curLayer->GetProperty()->GetWindowRange();
   foreach (LayerMRI* layer, layers)
   {
-    double* r = layer->GetProperty()->GetWindowRange();
     layer->GetProperty()->SetWindow( nVal / 100.0 * ( r[1] - r[0] ) + r[0] );
   }
 }
@@ -851,9 +854,12 @@ void PanelVolume::OnSliderWindow( int nVal )
 void PanelVolume::OnSliderLevel( int nVal )
 {
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  LayerMRI* curLayer = GetCurrentLayer<LayerMRI*>();
+  if (!curLayer)
+    return;
+  double* r = curLayer->GetProperty()->GetLevelRange();
   foreach (LayerMRI* layer, layers)
   {
-    double* r = layer->GetProperty()->GetLevelRange();
     layer->GetProperty()->SetLevel( nVal / 100.0 * ( r[1] - r[0] ) + r[0] );
   }
 }
@@ -861,12 +867,15 @@ void PanelVolume::OnSliderLevel( int nVal )
 void PanelVolume::OnSliderMin( int nVal )
 {
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  LayerMRI* curLayer = GetCurrentLayer<LayerMRI*>();
+  if (!curLayer)
+    return;
+  double fMin = curLayer->GetProperty()->GetMinValue();
+  double fMax = curLayer->GetProperty()->GetMaxValue();
+  double fScaleMin = fMin - (fMax-fMin)/4;
+  double fScaleMax = fMax + (fMax-fMin)/4;
   foreach (LayerMRI* layer, layers)
   {
-    double fMin = layer->GetProperty()->GetMinValue();
-    double fMax = layer->GetProperty()->GetMaxValue();
-    double fScaleMin = fMin - (fMax-fMin)/4;
-    double fScaleMax = fMax + (fMax-fMin)/4;
     switch ( layer->GetProperty()->GetColorMap() )
     {
     case LayerPropertyMRI::Grayscale:
@@ -888,10 +897,13 @@ void PanelVolume::OnSliderMin( int nVal )
 void PanelVolume::OnSliderMid( int nVal )
 {
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  LayerMRI* curLayer = GetCurrentLayer<LayerMRI*>();
+  if (!curLayer)
+    return;
+  double fMin = curLayer->GetProperty()->GetMinValue();
+  double fMax = curLayer->GetProperty()->GetMaxValue();
   foreach (LayerMRI* layer, layers)
   {
-    double fMin = layer->GetProperty()->GetMinValue();
-    double fMax = layer->GetProperty()->GetMaxValue();
     layer->GetProperty()->SetHeatScaleMidThreshold( nVal / 100.0 * ( fMax - fMin ) + fMin );
   }
 }
@@ -899,12 +911,15 @@ void PanelVolume::OnSliderMid( int nVal )
 void PanelVolume::OnSliderMax( int nVal )
 {
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  LayerMRI* curLayer = GetCurrentLayer<LayerMRI*>();
+  if (!curLayer)
+    return;
+  double fMin = curLayer->GetProperty()->GetMinValue();
+  double fMax = curLayer->GetProperty()->GetMaxValue();
+  double fScaleMin = fMin - (fMax-fMin)/4;
+  double fScaleMax = fMax + (fMax-fMin)/4;
   foreach (LayerMRI* layer, layers)
   {
-    double fMin = layer->GetProperty()->GetMinValue();
-    double fMax = layer->GetProperty()->GetMaxValue();
-    double fScaleMin = fMin - (fMax-fMin)/4;
-    double fScaleMax = fMax + (fMax-fMin)/4;
     switch ( layer->GetProperty()->GetColorMap() )
     {
     case LayerPropertyMRI::Grayscale:
@@ -926,9 +941,12 @@ void PanelVolume::OnSliderMax( int nVal )
 void PanelVolume::OnSliderOffset( int nVal )
 {
   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  LayerMRI* curLayer = GetCurrentLayer<LayerMRI*>();
+  if (!curLayer)
+    return;
+  double fMax = curLayer->GetProperty()->GetMaxValue();
   foreach (LayerMRI* layer, layers)
   {
-    double fMax = layer->GetProperty()->GetMaxValue();
     layer->GetProperty()->SetHeatScaleOffset( nVal / 100.0 * ( fMax + fMax ) - fMax );
   }
 }
@@ -1041,32 +1059,25 @@ void PanelVolume::OnLineEditOffset( const QString& text )
 
 void PanelVolume::OnSliderContourMin(int nval)
 {
-  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
-  foreach (LayerMRI* layer, layers)
-  {
-    if ( layer )
-    {
-      double fMin = layer->GetProperty()->GetMinValue();
-      double fMax = layer->GetProperty()->GetMaxValue();
-      ChangeLineEditNumber( ui->lineEditContourThresholdLow,
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if (!layer)
+    return;
+  double fMin = layer->GetProperty()->GetMinValue();
+  double fMax = layer->GetProperty()->GetMaxValue();
+  ChangeLineEditNumber( ui->lineEditContourThresholdLow,
                             nval / 100.0 * ( fMax - fMin ) + fMin );
-    }
-  }
 }
 
 void PanelVolume::OnSliderContourMax(int nval)
 {
-  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
-  foreach (LayerMRI* layer, layers)
-  {
-    if ( layer )
-    {
-      double fMin = layer->GetProperty()->GetMinValue();
-      double fMax = layer->GetProperty()->GetMaxValue();
-      ChangeLineEditNumber( ui->lineEditContourThresholdHigh,
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if (!layer)
+    return;
+
+  double fMin = layer->GetProperty()->GetMinValue();
+  double fMax = layer->GetProperty()->GetMaxValue();
+  ChangeLineEditNumber( ui->lineEditContourThresholdHigh,
                             nval / 100.0 * ( fMax - fMin ) + fMin );
-    }
-  }
 }
 
 void PanelVolume::OnSliderContourSmooth(int nval)
@@ -1158,17 +1169,14 @@ void PanelVolume::OnContourSave()
 
 void PanelVolume::OnSliderTrackVolumeMin(int nval)
 {
-  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
-  foreach (LayerMRI* layer, layers)
-  {
-    if ( layer && layer->IsTypeOf("VolumeTrack"))
-    {
+   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+   if ( layer && layer->IsTypeOf("VolumeTrack"))
+   {
       double fMin = layer->GetProperty()->GetMinValue();
       double fMax = layer->GetProperty()->GetMaxValue()/4;
       ChangeLineEditNumber( ui->lineEditTrackVolumeThresholdLow,
                             nval / 100.0 * ( fMax - fMin ) + fMin );
-    }
-  }
+   }
 }
 
 void PanelVolume::OnTrackVolumeThresholdChanged()
