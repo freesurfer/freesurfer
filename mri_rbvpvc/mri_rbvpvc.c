@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/07 23:13:00 $
- *    $Revision: 1.7 $
+ *    $Date: 2013/11/08 19:11:05 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.7 2013/11/07 23:13:00 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.8 2013/11/08 19:11:05 greve Exp $
 
 /*
   BEGINHELP
@@ -81,7 +81,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.7 2013/11/07 23:13:00 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.8 2013/11/08 19:11:05 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1047,7 +1047,7 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
   int c,r,s,nmask, nsegs,nthseg, mthseg, kthseg, segid, *segidlist,has0,segtt;
   double cStd,rStd,sStd,val;
   MRI *roimask=NULL,*roimasksm=NULL,*segttvol[10],*mritmp,*pvftt[10];
-  int nthtt,ndil=-1,nchanges;
+  int nthtt,ndil=3,nchanges;
 
   if(pvf == NULL) return(BuildGTM0(seg,mask,cFWHM,rFWHM,sFWHM,X));
 
@@ -1095,7 +1095,6 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
     }
   }
 
-  printf("Creating tissue type specific seg\n");
   // Create TT spec PVF MRI binarized/thresholded at 0.25
   for(nthtt = 0; nthtt < pvf->nframes; nthtt++){
     pvftt[nthtt] = fMRIframe(pvf, nthtt, NULL);
@@ -1110,6 +1109,8 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
       }
     }
   }
+
+  printf("Creating tissue type specific seg\n");
   // Alloc tissue type specific seg
   for(nthtt = 0; nthtt < pvf->nframes; nthtt++){
     segttvol[nthtt] = MRIalloc(seg->width,seg->height,seg->depth,MRI_INT);
@@ -1137,11 +1138,12 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
   if(ndil != 0){
     for(nthtt = 0; nthtt < pvf->nframes; nthtt++){
       printf("  TType %d -----------\n",nthtt);
-      if(nthtt != 2) // gm and wm
-	mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, pvftt[nthtt], &nchanges);
+      //if(nthtt != 2) // gm and wm
+      //mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, pvftt[nthtt], &nchanges);
       //mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, mask, &nchanges);
-      else // csf
-	mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, 3, NULL, &nchanges);
+      //else // csf
+      //mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, 3, NULL, &nchanges);
+      mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, mask, &nchanges);
       MRIfree(&segttvol[nthtt]);
       segttvol[nthtt] = mritmp;
       printf("  TType %d had  %d changes\n",nthtt,nchanges);
@@ -1154,6 +1156,7 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
   // would be the most in error if the PSF is not accurate.
   // This matches what I did int matlab, but I don't know why I did 
   // it in the first place. CSF PVF will include sulcal but the seg will not.
+  // Seems like thresholding should be done after smoothing, if at all
 
   // Alloc the ROI mask
   roimask = MRIconst(seg->width,seg->height,seg->depth,1,0.0,NULL);
