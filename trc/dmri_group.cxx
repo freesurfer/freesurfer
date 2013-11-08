@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/11/07 22:08:31 $
- *    $Revision: 1.5 $
+ *    $Date: 2013/11/08 20:11:46 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -361,7 +361,7 @@ int main(int argc, char **argv) {
   }
 
   // Write points of most representative path to file as RAS coords
-  filename = string(outBase) + ".median.label";
+  filename = string(outBase) + ".median.txt";
 
   cout << "Writing median path to " << filename << endl;
   pathfile.open(filename.c_str(), ios::out);
