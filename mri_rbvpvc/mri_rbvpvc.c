@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/08 19:11:05 $
- *    $Revision: 1.8 $
+ *    $Date: 2013/11/10 21:06:30 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.8 2013/11/08 19:11:05 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.9 2013/11/10 21:06:30 greve Exp $
 
 /*
   BEGINHELP
@@ -81,7 +81,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.8 2013/11/08 19:11:05 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.9 2013/11/10 21:06:30 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -412,6 +412,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--gtm-only")) GTMOnly = 1;
     else if (!strcasecmp(option, "--seg-test")) DoSegTest = 1;
+    else if (!strcasecmp(option, "--old-dil"))setenv("GTMDILATEOLD","1",1);
 
     else if(!strcasecmp(option, "--src") || !strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -1048,8 +1049,12 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
   double cStd,rStd,sStd,val;
   MRI *roimask=NULL,*roimasksm=NULL,*segttvol[10],*mritmp,*pvftt[10];
   int nthtt,ndil=3,nchanges;
+  int UseOld = 0;
 
   if(pvf == NULL) return(BuildGTM0(seg,mask,cFWHM,rFWHM,sFWHM,X));
+
+  if(getenv("GTMDILATEOLD")) sscanf(getenv("GTMDILATEOLD"),"%d",&UseOld);
+  if(UseOld) {printf("\nUsing old dilation method\n");fflush(stdout);}
 
   cStd = cFWHM/sqrt(log(256.0));
   rStd = rFWHM/sqrt(log(256.0));
@@ -1134,16 +1139,17 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
       }
     }
   }
-  printf("Dilating tissue type specific seg by %d\n",ndil);
+  printf("Dilating tissue type specific seg by %d (%d)\n",ndil,UseOld);
   if(ndil != 0){
     for(nthtt = 0; nthtt < pvf->nframes; nthtt++){
       printf("  TType %d -----------\n",nthtt);
-      //if(nthtt != 2) // gm and wm
-      //mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, pvftt[nthtt], &nchanges);
-      //mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, mask, &nchanges);
-      //else // csf
-      //mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, 3, NULL, &nchanges);
-      mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, mask, &nchanges);
+      if(UseOld){
+	if(nthtt != 2) // gm and wm
+	  mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, pvftt[nthtt], &nchanges);
+	else // csf
+	  mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, 3, NULL, &nchanges);
+      }
+      else mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, mask, &nchanges);
       MRIfree(&segttvol[nthtt]);
       segttvol[nthtt] = mritmp;
       printf("  TType %d had  %d changes\n",nthtt,nchanges);
