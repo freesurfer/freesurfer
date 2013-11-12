@@ -7,21 +7,19 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/22 23:00:01 $
- *    $Revision: 1.16 $
+ *    $Author: greve $
+ *    $Date: 2013/11/12 21:31:34 $
+ *    $Revision: 1.17.2.1 $
  *
- * Copyright (C) 2006-2008,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -162,7 +160,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mris_label2annot.c,v 1.16 2010/02/22 23:00:01 nicks Exp $";
+"$Id: mris_label2annot.c,v 1.17.2.1 2013/11/12 21:31:34 greve Exp $";
 
 
 static int dilate_label_into_unknown(MRI_SURFACE *mris, int annot) ;
@@ -194,6 +192,7 @@ char *labeldir=NULL;
 int labeldirdefault=0;
 int DoLabelThresh = 0;
 double LabelThresh = 0;
+char *surfname = "orig";
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -236,7 +235,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Read the surf
-  sprintf(tmpstr,"%s/%s/surf/%s.orig",SUBJECTS_DIR,subject,hemi);
+  sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
   printf("Loading %s\n",tmpstr);
   mris = MRISread(tmpstr);
   if (mris == NULL) exit(1);
@@ -397,7 +396,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       labeldir = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--a") || !strcmp(option, "--annot")) {
+    } 
+    else if (!strcmp(option, "--surf")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      surfname = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--a") || !strcmp(option, "--annot")) {
       if (nargc < 1) CMDargNErr(option,1);
       AnnotName = pargv[0];
       nargsused = 1;
@@ -444,6 +449,7 @@ static void print_usage(void) {
   printf("   --no-unknown : do not map unhit labels to index 0\n");
   printf("   --thresh thresh : threshold label by stats field\n");
   printf("   --maxstatwinner : keep label with highest 'stat' value\n");
+  printf("   --surf surfname : default is orig\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --noverbose turn off overlap and stat override messages\n");
