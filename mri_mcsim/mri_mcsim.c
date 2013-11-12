@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/10/30 14:41:57 $
- *    $Revision: 1.17.2.1 $
+ *    $Date: 2013/11/12 21:01:36 $
+ *    $Revision: 1.17.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.17.2.1 2013/10/30 14:41:57 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.17.2.2 2013/11/12 21:01:36 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -229,6 +229,7 @@ int main(int argc, char *argv[]) {
   searchspace = 0;
   nmask = 0;
   for(n=0; n < surf->nvertices; n++){
+    if(!mask) continue;
     if(mask && MRIgetVoxVal(mask,n,0,0,0) < 0.5) continue;
     searchspace += surf->vertices[n].area;
     nmask++;
@@ -561,6 +562,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-label")) {
       LabelFile = NULL;
     }
+    else if (!strcmp(option, "--sd")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      setenv("SUBJECTS_DIR",pargv[0],1);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--no-save-mask")) SaveMask = 0;
     else if (!strcasecmp(option, "--nreps")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -623,6 +629,7 @@ static void print_usage(void) {
   printf("   --stop stopfile : default is ourdir/mri_mcsim.stop \n");
   printf("   --save savefile : default is ourdir/mri_mcsim.save \n");
   printf("   --save-iter : save output after each iteration \n");
+  printf("   --sd SUBJECTS_DIR\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
