@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/10 21:06:30 $
- *    $Revision: 1.9 $
+ *    $Date: 2013/11/12 03:16:28 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.9 2013/11/10 21:06:30 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.10 2013/11/12 03:16:28 greve Exp $
 
 /*
   BEGINHELP
@@ -81,7 +81,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.9 2013/11/10 21:06:30 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.10 2013/11/12 03:16:28 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -107,6 +107,10 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
 		    double cFWHM, double rFWHM, double sFWHM, 
 		    MATRIX *X);
 MATRIX *Seg2TissueType(MRI *seg);
+int SegID2TissueType(int segid, MATRIX *SegTType);
+MRI **MRIdilateSegmentationTT(MRI *seg, MATRIX *SegTType, MRI *pvf, int nDils,
+			      double pvfthresh);
+int SegTTError(MRI *seg, MATRIX *SegTType);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -1045,11 +1049,12 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
 		    double cFWHM, double rFWHM, double sFWHM, 
 		    MATRIX *X)
 {
-  int c,r,s,nmask, nsegs,nthseg, mthseg, kthseg, segid, *segidlist,has0,segtt;
+  int c,r,s,nmask, nsegs,nthseg, mthseg, segid, *segidlist,has0,segtt;
   double cStd,rStd,sStd,val;
-  MRI *roimask=NULL,*roimasksm=NULL,*segttvol[10],*mritmp,*pvftt[10];
+  MRI *roimask=NULL,*roimasksm=NULL,*mritmp,*pvftt[10];
   int nthtt,ndil=3,nchanges;
   int UseOld = 0;
+  MRI **segttvol; //*segttvol[10]
 
   if(pvf == NULL) return(BuildGTM0(seg,mask,cFWHM,rFWHM,sFWHM,X));
 
@@ -1084,38 +1089,10 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
     return(NULL);
   }
   // Check that every segid in SegTType is in segidlist
-  for(nthseg=0; nthseg < nsegs; nthseg++){
-    segid = segidlist[nthseg];
-    if(segid == 0) continue;
-    segtt = -1;
-    for(kthseg=0; kthseg < nsegs; kthseg++){
-      if((int)SegTType->rptr[kthseg+1][1] == segid){
-	segtt = (int)SegTType->rptr[kthseg+1][2];
-	break;
-      }
-    }
-    if(segtt == -1){
-      printf("ERROR: cannot find a match for seg %d in SegTType\n",segid);
-      return(NULL);
-    }
-  }
-
-  // Create TT spec PVF MRI binarized/thresholded at 0.25
-  for(nthtt = 0; nthtt < pvf->nframes; nthtt++){
-    pvftt[nthtt] = fMRIframe(pvf, nthtt, NULL);
-    for(c=0; c < seg->width; c++){
-      for(r=0; r < seg->height; r++){
-	for(s=0; s < seg->depth; s++){
-	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
-	  val = MRIgetVoxVal(pvftt[nthtt],c,r,s,0);
-	  if(val < 0.25) MRIsetVoxVal(pvftt[nthtt],c,r,s,0,0.0);
-	  else           MRIsetVoxVal(pvftt[nthtt],c,r,s,0,1.0);
-	}
-      }
-    }
-  }
+  if(SegTTError(seg, SegTType)) return(NULL);
 
   printf("Creating tissue type specific seg\n");
+  if(0){
   // Alloc tissue type specific seg
   for(nthtt = 0; nthtt < pvf->nframes; nthtt++){
     segttvol[nthtt] = MRIalloc(seg->width,seg->height,seg->depth,MRI_INT);
@@ -1128,13 +1105,7 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
 	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
 	segid = MRIgetVoxVal(seg,c,r,s,0);
 	if(segid == 0) continue;
-        segtt = -1;
-	for(kthseg=0; kthseg < nsegs; kthseg++){
-	  if((int)SegTType->rptr[kthseg+1][1] == segid){
-	    segtt = (int)SegTType->rptr[kthseg+1][2];
-	    break;
-	  }
-	}
+        segtt = SegID2TissueType(segid, SegTType);
 	MRIsetVoxVal(segttvol[segtt],c,r,s,0,segid);
       }
     }
@@ -1145,17 +1116,18 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
       printf("  TType %d -----------\n",nthtt);
       if(UseOld){
 	if(nthtt != 2) // gm and wm
-	  mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, pvftt[nthtt], &nchanges);
+	  mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, pvftt[nthtt], 
+					 0, 0.25, &nchanges);
 	else // csf
-	  mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, 3, NULL, &nchanges);
+	  mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, 3, NULL, 0, 0, &nchanges);
       }
-      else mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, mask, &nchanges);
+      else mritmp = MRIdilateSegmentation(segttvol[nthtt], NULL, ndil, mask, 0, 0.5, &nchanges);
       MRIfree(&segttvol[nthtt]);
       segttvol[nthtt] = mritmp;
       printf("  TType %d had  %d changes\n",nthtt,nchanges);
     }
   }
-
+  }
   // Not sure why I threshold at 0.25 and do a fixed ndil=3 for CSF
   // Maybe there were so many voxels with very small PVF that they
   // overwhelmed the high PVF voxels. These would be the ones that
@@ -1163,6 +1135,9 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
   // This matches what I did int matlab, but I don't know why I did 
   // it in the first place. CSF PVF will include sulcal but the seg will not.
   // Seems like thresholding should be done after smoothing, if at all
+
+  segttvol = MRIdilateSegmentationTT(seg, SegTType, pvf, ndil, 0.0);
+
 
   // Alloc the ROI mask
   roimask = MRIconst(seg->width,seg->height,seg->depth,1,0.0,NULL);
@@ -1183,13 +1158,8 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
     if(segid == 0) continue;
 
     // Get the tissue type for this seg
-    segtt = -1;
-    for(kthseg=0; kthseg < nsegs; kthseg++){
-      if((int)SegTType->rptr[kthseg+1][1] == segid){
-	segtt = (int)SegTType->rptr[kthseg+1][2];
-	break;
-      }
-    }
+    segtt = SegID2TissueType(segid, SegTType);
+
     //printf("#@# %3d/%d %3d %d ---------\n",nthseg,nsegs,segid,segtt);
     if(Gdiag_no > 0) {
       printf("BuildGTM0(): #@# %3d/%d %3d ---\n",mthseg,nsegs-has0,segid); 
@@ -1234,4 +1204,88 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
   free(segidlist);
 
   return(X);
+}
+
+/*------------------------------------------------*/
+int SegID2TissueType(int segid, MATRIX *SegTType)
+{
+  int segtt = -1, kthseg;
+  for(kthseg=0; kthseg < SegTType->rows; kthseg++){
+    if((int)SegTType->rptr[kthseg+1][1] == segid){
+      segtt = (int)SegTType->rptr[kthseg+1][2];
+      break;
+    }
+  }
+  return(segtt);
+}
+/*---------------------------------------------------*/
+MRI **MRIdilateSegmentationTT(MRI *seg, MATRIX *SegTType, MRI *pvf, int nDils,
+			     double pvfthresh)
+{
+  int segid,nTT,nthtt,c,r,s,nchanges;
+  MRI **segtt, *mritmp;
+  int UseOld = 0;
+
+  if(getenv("GTMDILATEOLD")) sscanf(getenv("GTMDILATEOLD"),"%d",&UseOld);
+  if(UseOld) {printf("\nUsing old dilation method\n");fflush(stdout);}
+
+  nTT = pvf->nframes;
+  segtt = (MRI **) calloc(sizeof(MRI*),nTT);
+  for(nthtt=0; nthtt<nTT; nthtt++){
+    segtt[nthtt] = MRIallocSequence(seg->width, seg->height, seg->depth,seg->type, 1);
+    MRIcopyHeader(seg,segtt[nthtt]);
+  }
+
+  // Create a separate seg for each tissue type
+  for(s=0; s < seg->depth; s++){
+    for(c=0; c < seg->width; c++){
+      for(r=0; r < seg->height; r++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(segid == 0) continue;
+	nthtt = SegID2TissueType(segid,SegTType);
+	MRIsetVoxVal(segtt[nthtt],c,r,s,0, segid);
+      }
+    }
+  }
+
+  for(nthtt=0; nthtt<nTT; nthtt++){
+    if(UseOld){
+      if(nthtt != 2) // gm and wm
+	mritmp = MRIdilateSegmentation(segtt[nthtt], NULL, nDils, pvf,
+				       nthtt, pvfthresh, &nchanges);
+      else // csf
+	mritmp = MRIdilateSegmentation(segtt[nthtt], NULL,    3, NULL, 
+				       nthtt, 0, &nchanges);
+      MRIfree(&segtt[nthtt]);
+      segtt[nthtt] = mritmp;
+    }
+    else{
+      mritmp = MRIdilateSegmentation(segtt[nthtt],NULL,nDils,pvf,nthtt,pvfthresh,&nchanges);
+      MRIfree(&segtt[nthtt]);
+      segtt[nthtt] = mritmp;
+    }
+  }
+
+  return(segtt);
+}
+
+/*----------------------------------------------------------*/
+int SegTTError(MRI *seg, MATRIX *SegTType)
+{
+  int *segidlist, nsegs, nthseg, segid, segtt;
+  segidlist = MRIsegIdList(seg, &nsegs, 0);
+
+  // Check that every segid in SegTType is in segidlist
+  for(nthseg=0; nthseg < nsegs; nthseg++){
+    segid = segidlist[nthseg];
+    if(segid == 0) continue;
+    segtt = SegID2TissueType(segid, SegTType);
+    if(segtt == -1){
+      free(segidlist);
+      printf("ERROR: cannot find a match for seg %d in SegTType\n",segid);
+      return(1);
+    }
+  }
+  free(segidlist);
+  return(0);
 }
