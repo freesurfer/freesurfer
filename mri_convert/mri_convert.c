@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/10/04 18:33:25 $
- *    $Revision: 1.205 $
+ *    $Date: 2013/11/12 03:15:51 $
+ *    $Revision: 1.206 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.205 2013/10/04 18:33:25 greve Exp $",
+   "$Id: mri_convert.c,v 1.206 2013/11/12 03:15:51 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.205 2013/10/04 18:33:25 greve Exp $",
+      "$Id: mri_convert.c,v 1.206 2013/11/12 03:15:51 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1638,7 +1638,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.205 2013/10/04 18:33:25 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.206 2013/11/12 03:15:51 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -3114,7 +3114,7 @@ int main(int argc, char *argv[])
 	exit(1);
       }
     }
-    mri2 = MRIdilateSegmentation(mri, NULL, n_dil_seg, mritmp, &i);
+    mri2 = MRIdilateSegmentation(mri, NULL, n_dil_seg, mritmp, 0, 0.5, &i);
     if (mri2 == NULL) exit(1);
     MRIfree(&mri);
     mri = mri2;

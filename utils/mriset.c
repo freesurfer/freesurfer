@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/12/06 18:31:57 $
- *    $Revision: 1.86 $
+ *    $Date: 2013/11/12 03:15:51 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1059,7 +1059,8 @@ MRI *MRIerodeSegmentation(MRI *seg, MRI *out, int nErodes, int nDiffThresh)
   calls itself recursively until the output segmentation stops
   changing. If mask is set, then mask must be > 0.5
 */
-MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, int *pnchanges)
+MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, 
+			   int maskframe, double maskthresh, int *pnchanges)
 {
   int c,r,s,dc,dr,ds,segid0,segidD, n;
   int nNbrs, NbrId[6], segidMost, nOccurances,nchanges;
@@ -1070,7 +1071,8 @@ MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, int *pnchan
     printf("ERROR: MRIdilateSegmentation(): cannot be done in-place\n");
     return(NULL);
   }
-  if(!out) out = MRIallocSequence(seg->width, seg->height, seg->depth,seg->type, 1);
+  if(!out) out = MRIallocSequence(seg->width, seg->height, 
+				  seg->depth,seg->type, 1);
   if(MRIdimMismatch(seg, out, 0)){
     printf("ERROR: MRIdilateSegmentation(): seg/out dim mismatch\n");
     return(NULL);
@@ -1087,9 +1089,10 @@ MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, int *pnchan
     nchanges = 1;
     while(nchanges){
       n++;
-      out = MRIdilateSegmentation(seg2, out, 1, mask, &nchanges);
+      out = MRIdilateSegmentation(seg2, out, 1, mask, 
+				  maskframe, maskthresh, &nchanges);
       seg2 = MRIcopy(out,seg2);
-      printf("  MRIdilateSegmentation(): %2d %5d\n",n,nchanges);
+      //printf("  MRIdilateSegmentation(): %2d %5d\n",n,nchanges);
     }
     *pnchanges = n; // number of loops
     MRIfree(&seg2);
@@ -1099,7 +1102,8 @@ MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, int *pnchan
   // If nDils > 1, loop through progressive dilations
   n = nDils;
   while(n != 1) {
-    out = MRIdilateSegmentation(seg2, out, 1, mask, pnchanges);
+    out = MRIdilateSegmentation(seg2, out, 1, mask, maskframe, 
+				maskthresh, pnchanges);
     seg2 = MRIcopy(out,seg2);
     n--;
   }
@@ -1116,8 +1120,8 @@ MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, int *pnchan
 
 	// if it is not in the mask, skip it
 	if(mask){
-	  mval = MRIgetVoxVal(mask,c,r,s,0);
-	  if(mval < .5) continue;
+	  mval = MRIgetVoxVal(mask,c,r,s,maskframe);
+	  if(mval < maskthresh) continue;
 	}
 
 	// Get a list of nearest neighbors. Nearest = shares a face
