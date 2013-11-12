@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/10/09 15:55:32 $
- *    $Revision: 1.142 $
+ *    $Date: 2013/11/12 21:16:51 $
+ *    $Revision: 1.143 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3082,3 +3082,14 @@ void LayerMRI::UpdateSurfaceCorrelationData()
     emit ActorUpdated();
   }
 }
+
+double LayerMRI::GetHistoValueFromPercentile(double percentile)
+{
+  return m_volumeSource ? m_volumeSource->GetHistoValueFromPercentile(percentile, GetActiveFrame()) : 0;
+}
+
+double LayerMRI::GetHistoPercentileFromValue(double value)
+{
+  return m_volumeSource ? m_volumeSource->GetHistoPercentileFromValue(value, GetActiveFrame()) : 0;
+}
+

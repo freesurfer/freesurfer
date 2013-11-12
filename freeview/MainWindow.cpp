@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/10/03 15:47:27 $
- *    $Revision: 1.258 $
+ *    $Date: 2013/11/12 21:16:51 $
+ *    $Revision: 1.259 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1775,6 +1775,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if (subOption == "basis")
       {
         sup_data["Basis"] = subArgu.toInt();
+      }
+      else if (subOption == "percentile")
+      {
+        sup_data["Percentile"] = true;
       }
       else
       {
@@ -3821,6 +3825,8 @@ void MainWindow::LoadVolumeFile( const QString& filename,
 
   if (sup_data.contains("Basis"))
     layer->SetLayerIndex(sup_data["Basis"].toInt());
+  if (sup_data.contains("Percentile"))
+    layer->GetProperty()->SetUsePercentile(sup_data["Percentile"].toBool());
 
   m_threadIOWorker->LoadVolume( layer );
 }
@@ -5091,12 +5097,19 @@ void MainWindow::OnPreferences()
   m_dlgPreferences->show();
 }
 
-void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales )
+void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales_in )
 {
-  if ( GetLayerCollection( "MRI" )->GetActiveLayer() )
+  LayerMRI* layer = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
+  if ( layer )
   {
-    LayerPropertyMRI* p = ( (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer() )->GetProperty();
+    LayerPropertyMRI* p = layer->GetProperty();
     p->SetColorMap( (LayerPropertyMRI::ColorMapType) nColorMap );
+    QList<double> scales = scales_in;
+    if (p->GetUsePercentile())
+    {
+      for (int i = 0; i < scales.size(); i++)
+        scales[i] = layer->GetHistoValueFromPercentile(scales[i]/100.0);
+    }
     switch ( nColorMapScale )
     {
     case LayerPropertyMRI::Grayscale:

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/17 20:13:19 $
- *    $Revision: 1.85 $
+ *    $Date: 2013/11/12 21:16:51 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,7 @@ extern "C"
 #include "registerio.h"
 #include "transform.h"
 #include "utils.h"
+#include "macros.h"
 }
 
 using namespace std;
@@ -74,7 +75,9 @@ FSVolume::FSVolume( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_nInterpolationMethod( SAMPLE_NEAREST ),
   m_bConform( false ),
   m_bCrop( false ),
-  m_bCropToOriginal( false )
+  m_bCropToOriginal( false ),
+  m_histoCDF( NULL ),
+  m_nHistoFrame(0)
 {
   m_imageData = NULL;
   if ( ref )
@@ -123,6 +126,11 @@ FSVolume::~FSVolume()
   if ( m_ctabEmbedded )
   {
     ::CTABfree( &m_ctabEmbedded );
+  }
+
+  if (m_histoCDF)
+  {
+    ::HISTOfree(&m_histoCDF);
   }
 }
 
@@ -183,6 +191,7 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
   }
 
   MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
+  UpdateHistoCDF();
 
   return true;
 }
@@ -2730,3 +2739,54 @@ void FSVolume::SetCroppingBounds( double* bounds )
   m_bCrop = true;
 }
 
+void FSVolume::UpdateHistoCDF(int frame)
+{
+  HISTO *histo = HISTOinit(NULL, 1000, m_fMinValue, m_fMaxValue);
+
+  for (int x = 0 ; x < m_MRI->width; x++)
+  {
+    for (int y = 0 ; y < m_MRI->height; y++)
+    {
+      for (int z = 0 ; z < m_MRI->depth; z++)
+      {
+        float val = MRIgetVoxVal(m_MRI, x, y, z, frame) ;
+        if (!FZERO(val))
+          HISTOaddSample(histo, val, 0, 0) ;
+      }
+    }
+  }
+
+  m_histoCDF = HISTOmakeCDF(histo, NULL);
+  HISTOfree(&histo);
+}
+
+double FSVolume::GetHistoValueFromPercentile(double percentile, int frame)
+{
+  if (m_histoCDF)
+  {
+    if (m_nHistoFrame != frame)
+    {
+      UpdateHistoCDF(frame);
+      m_nHistoFrame = frame;
+    }
+    int bin = HISTOfindBinWithCount(m_histoCDF, (float)percentile);
+    return m_histoCDF->bins[bin];
+  }
+  else
+    return 0;
+}
+
+double FSVolume::GetHistoPercentileFromValue(double value, int frame)
+{
+  if (m_histoCDF)
+  {
+    if (m_nHistoFrame != frame)
+    {
+      UpdateHistoCDF(frame);
+      m_nHistoFrame = frame;
+    }
+    return HISTOgetCount(m_histoCDF, (float)value);
+  }
+  else
+    return 0;
+}

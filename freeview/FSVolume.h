@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/06/12 20:17:08 $
- *    $Revision: 1.38 $
+ *    $Date: 2013/11/12 21:16:51 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@
 extern "C"
 {
 #include "mri.h"
+#include "histo.h"
 #include "colortab.h"
 }
 
@@ -189,12 +190,17 @@ public:
 
   static MATRIX* LoadRegistrationMatrix(const QString &filename, MRI* target, MRI* src);
 
+  double GetHistoValueFromPercentile(double percentile, int frame = 0);
+
+  double GetHistoPercentileFromValue(double value, int frame = 0);
+
 Q_SIGNALS:
   void ProgressChanged( int n );
 
 protected:
   bool LoadMRI( const QString& filename, const QString& reg_filename );
   bool LoadRegistrationMatrix( const QString& filename );
+  void UpdateHistoCDF(int frame = 0);
   bool MapMRIToImage( );
   void CopyMRIDataToImage( MRI* mri, vtkImageData* image );
   void CopyMatricesFromMRI();
@@ -215,6 +221,8 @@ protected:
   MRI*      m_MRITemp;        // temp mri for saving
   MATRIX*   m_matReg;
   COLOR_TABLE*  m_ctabEmbedded;
+  HISTOGRAM*    m_histoCDF;
+  int       m_nHistoFrame;
 
   FSVolume* m_volumeRef;
 

@@ -28,7 +28,7 @@
      <x>0</x>
      <y>0</y>
      <width>311</width>
-     <height>1545</height>
+     <height>1573</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -572,14 +572,14 @@
       </item>
       <item row="21" column="1">
        <layout class="QGridLayout" name="gridLayout">
-        <item row="0" column="0">
+        <item row="1" column="0">
          <widget class="QCheckBox" name="checkBoxTruncate">
           <property name="text">
            <string>Truncate</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="2">
+        <item row="1" column="2">
          <spacer name="horizontalSpacer_2">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -592,24 +592,31 @@
           </property>
          </spacer>
         </item>
-        <item row="2" column="0" colspan="2">
+        <item row="3" column="0" colspan="2">
          <widget class="QCheckBox" name="checkBoxClearBackground">
           <property name="text">
            <string>Clear background</string>
           </property>
          </widget>
         </item>
-        <item row="0" column="1">
+        <item row="1" column="1">
          <widget class="QCheckBox" name="checkBoxInvert">
           <property name="text">
            <string>Invert</string>
           </property>
          </widget>
         </item>
-        <item row="1" column="0" colspan="2">
+        <item row="2" column="0" colspan="2">
          <widget class="QCheckBox" name="checkBoxClearHigher">
           <property name="text">
            <string>Clear higher values</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0" colspan="2">
+         <widget class="QCheckBox" name="checkBoxPercentile">
+          <property name="text">
+           <string>Use percentile</string>
           </property>
          </widget>
         </item>
@@ -1213,8 +1220,8 @@
    <slot>OnCheckShowContour(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>159</x>
-     <y>1177</y>
+     <x>157</x>
+     <y>1202</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1261,8 +1268,8 @@
    <slot>OnLineEditBrushValue(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>145</x>
-     <y>861</y>
+     <x>149</x>
+     <y>889</y>
     </hint>
     <hint type="destinationlabel">
      <x>37</x>
@@ -1277,8 +1284,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>395</y>
+     <x>247</x>
+     <y>396</y>
     </hint>
     <hint type="destinationlabel">
      <x>39</x>
@@ -1502,7 +1509,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1232</y>
+     <y>1260</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1518,7 +1525,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1265</y>
+     <y>1293</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1534,7 +1541,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1385</y>
+     <y>1413</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1550,7 +1557,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1232</y>
+     <y>1260</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1566,7 +1573,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1265</y>
+     <y>1293</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1582,7 +1589,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1385</y>
+     <y>1413</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1598,7 +1605,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>308</x>
-     <y>1237</y>
+     <y>1265</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1614,7 +1621,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>308</x>
-     <y>1270</y>
+     <y>1298</y>
     </hint>
     <hint type="destinationlabel">
      <x>288</x>
@@ -1630,7 +1637,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>308</x>
-     <y>1390</y>
+     <y>1418</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
@@ -1645,8 +1652,8 @@
    <slot>OnContourSave()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>193</x>
-     <y>1472</y>
+     <x>199</x>
+     <y>1500</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1710,7 +1717,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1116</y>
+     <y>1144</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1726,7 +1733,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>308</x>
-     <y>1121</y>
+     <y>1148</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1742,7 +1749,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1116</y>
+     <y>1144</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1773,12 +1780,12 @@
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>51</x>
-     <y>1501</y>
+     <x>49</x>
+     <y>1526</y>
     </hint>
     <hint type="destinationlabel">
-     <x>50</x>
-     <y>1150</y>
+     <x>48</x>
+     <y>1175</y>
     </hint>
    </hints>
   </connection>
@@ -1789,12 +1796,12 @@
    <slot>setHidden(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>97</x>
-     <y>1501</y>
+     <x>95</x>
+     <y>1526</y>
     </hint>
     <hint type="destinationlabel">
-     <x>95</x>
-     <y>1177</y>
+     <x>93</x>
+     <y>1202</y>
     </hint>
    </hints>
   </connection>
@@ -1805,12 +1812,12 @@
    <slot>setDisabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>73</x>
-     <y>1177</y>
+     <x>71</x>
+     <y>1202</y>
     </hint>
     <hint type="destinationlabel">
-     <x>75</x>
-     <y>1501</y>
+     <x>73</x>
+     <y>1526</y>
     </hint>
    </hints>
   </connection>
@@ -1821,8 +1828,8 @@
    <slot>OnShowExistingLabelsOnly(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>171</x>
-     <y>890</y>
+     <x>169</x>
+     <y>915</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1838,7 +1845,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>309</x>
-     <y>1205</y>
+     <y>1231</y>
     </hint>
     <hint type="destinationlabel">
      <x>-122</x>
@@ -1853,8 +1860,8 @@
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>173</x>
-     <y>1303</y>
+     <x>179</x>
+     <y>1331</y>
     </hint>
     <hint type="destinationlabel">
      <x>-88</x>
@@ -1869,8 +1876,8 @@
    <slot>OnContourValueChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>239</x>
-     <y>1303</y>
+     <x>245</x>
+     <y>1331</y>
     </hint>
     <hint type="destinationlabel">
      <x>-51</x>
@@ -1910,6 +1917,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>checkBoxPercentile</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>PanelVolume</receiver>
+   <slot>OnCheckUsePercentile(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>231</x>
+     <y>763</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>461</x>
+     <y>821</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnCheckShowContour(bool)</slot>
@@ -1945,5 +1968,6 @@
   <slot>OnCheckShowLabelContour(bool)</slot>
   <slot>OnComboMask(int)</slot>
   <slot>OnComboCorrelationSurface(int)</slot>
+  <slot>OnCheckUsePercentile(bool)</slot>
  </slots>
 </ui>

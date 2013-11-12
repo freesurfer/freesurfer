@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/07 02:20:32 $
- *    $Revision: 1.10 $
+ *    $Date: 2013/11/12 21:16:51 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -109,148 +109,6 @@ void PanelLayer::ConnectLayer( Layer* layer )
 {
   connect( layer, SIGNAL(Locked(bool)), treeWidgetLayers, SLOT(ForceUpdate()) );
 }
-
-/*
-void PanelLayer::OnLayerAdded( Layer* layer )
-{
-  QTreeWidget* t = treeWidgetPrivate;
-  for ( int i = 0; i < t->topLevelItemCount(); i++ )
-  {
-    QTreeWidgetItem* item = t->topLevelItem( i );
-    if ( item->data( 0, Qt::UserRole ).value<QObject*>() == layer )
-    {
-      t->setCurrentItem( item );
-      return;
-    }
-  }
-  t->blockSignals( true );
-  QTreeWidgetItem* item = new QTreeWidgetItem();
-  item->setData( 0, Qt::UserRole, QVariant::fromValue((QObject*)layer) );
-  item->setText( 0, layer->GetName() );
-  item->setCheckState( 0, layer->IsVisible() ? Qt::Checked : Qt::Unchecked );
-  item->setFlags( item->flags() | Qt::ItemIsEditable );
-  t->insertTopLevelItem( 0, item );
-  t->blockSignals( false );
-  t->setCurrentItem( item );
-}
-
-
-void PanelLayer::OnLayerNameChanged()
-{
-  QTreeWidget* t = treeWidgetPrivate;
-  for ( int i = 0; i < t->topLevelItemCount(); i++ )
-  {
-    QTreeWidgetItem* item = t->topLevelItem( i );
-    Layer* layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
-    if (layer)
-    {
-      item->setText(0, layer->GetName());
-    }
-  }
-}
-
-void PanelLayer::OnLayerRemoved( Layer *layer )
-{
-  QTreeWidget* t = treeWidgetPrivate;
-  for ( int i = 0; i < t->topLevelItemCount(); i++ )
-  {
-    QTreeWidgetItem* item = t->topLevelItem( i );
-    if ( item->data( 0, Qt::UserRole ).value<QObject*>() == layer )
-    {
-      t->takeTopLevelItem( i );
-      return;
-    }
-  }
-}
-
-void PanelLayer::OnLayerMoved(Layer *layer_in)
-{
-  QTreeWidget* t = treeWidgetPrivate;
-  t->blockSignals( true );
-  for ( int i = 0; i < t->topLevelItemCount(); i++ )
-  {
-    QTreeWidgetItem* item = t->topLevelItem( i );
-    Layer* layer = layerCollectionPrivate->GetLayer( i );
-    item->setData( 0, Qt::UserRole, QVariant::fromValue((QObject*)layer) );
-    item->setText( 0, layer->GetName() );
-    item->setCheckState( 0, layer->IsVisible() ? Qt::Checked : Qt::Unchecked );
-    if ( layer == layer_in )
-    {
-      t->setCurrentItem( item );
-    }
-  }
-  t->blockSignals( false );
-}
-
-void PanelLayer::OnActiveLayerChanged(Layer *layer_in)
-{
-  QTreeWidget* t = treeWidgetPrivate;
-  for ( int i = 0; i < t->topLevelItemCount(); i++ )
-  {
-    QTreeWidgetItem* item = t->topLevelItem( i );
-    if ( item->data( 0, Qt::UserRole ).value<QObject*>() == layer_in )
-    {
-      t->setCurrentItem( item );
-      break;
-    }
-  }
-}
-
-void PanelLayer::OnCurrentItemChanged(QTreeWidgetItem *item)
-{
-  if (item)
-  {
-    Layer* layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
-    if (layer)
-    {
-      layerCollectionPrivate->SetActiveLayer( layer );
-    }
-  }
-}
-
-void PanelLayer::OnItemSelectionChanged()
-{
-  // first disconnect all previous layer connections
-  for ( int i = 0; i < layerCollectionPrivate->GetNumberOfLayers(); i++ )
-  {
-        for ( int j = 0; j < allWidgets.size(); j++ )
-        {
-          layerCollectionPrivate->GetLayer( i )->disconnect( this );
-          layerCollectionPrivate->GetLayer( i )->GetProperty()->disconnect( this );
-          allWidgets[j]->disconnect( layerCollectionPrivate->GetLayer( i ) );
-          allWidgets[j]->disconnect( layerCollectionPrivate->GetLayer( i )->GetProperty() );
-        }
-  }
-
-  QList<Layer*> layers = this->GetSelectedLayers<Layer*>();
-  if (!layers.isEmpty())
-  {
-    foreach (Layer* l, layers)
-      ConnectLayer(l);
-  }
-}
-
-
-void PanelLayer::OnItemChanged( QTreeWidgetItem* item )
-{
-  Layer* layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
-  if ( layer )
-  {
-    layer->SetName( item->text(0) );
-    layer->SetVisible( item->checkState( 0 ) == Qt::Checked );
-  }
-}
-
-void PanelLayer::OnItemDoubleClicked(const QModelIndex &index)
-{
-  Layer* layer = qobject_cast<Layer*>(index.data(Qt::UserRole).value<QObject*>());
-  if (layer)
-  {
-    layerCollectionPrivate->MoveToTop(layer);
-    layerCollectionPrivate->SetActiveLayer(layer);
-  }
-}
-*/
 
 void PanelLayer::DisconnectAllLayers()
 {

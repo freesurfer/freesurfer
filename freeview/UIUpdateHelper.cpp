@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2013/11/12 21:16:51 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,9 @@ void UIUpdateHelper::ChangeLineEditText( QLineEdit* w, const QString& strg )
 
 void UIUpdateHelper::ChangeLineEditNumber( QLineEdit* w, double val )
 {
+  if (w->hasFocus())
+    return;
+
   bool bOK;
   double temp_val = w->text().toDouble(&bOK);
   if ( bOK && temp_val == val )
@@ -76,7 +79,7 @@ void UIUpdateHelper::ChangeLineEditNumber( QLineEdit* w, double val )
   }
   else
   {
-    strg = QString::number(val, 'f', (val>100?2:-1));
+    strg = QString::number(val, 'f', (val>1?2:-1));
     while (strg[strg.size()-1] == '0')
     {
       strg = strg.left(strg.size()-1);

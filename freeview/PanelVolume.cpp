@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/08 19:30:50 $
- *    $Revision: 1.89 $
+ *    $Date: 2013/11/12 21:16:51 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -302,6 +302,9 @@ void PanelVolume::DoUpdateWidgets()
   if ( layer )
   {
     nColorMap = layer->GetProperty()->GetColorMap();
+    bool bPercentile = layer->GetProperty()->GetUsePercentile();
+    ui->checkBoxPercentile->setChecked(bPercentile);
+    ui->checkBoxPercentile->setVisible(layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT);
     ui->sliderOpacity->setValue( (int)( layer->GetProperty()->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, layer->GetProperty()->GetOpacity() );
     ui->checkBoxClearBackground->setChecked( layer->GetProperty()->GetClearZero() );
@@ -361,17 +364,28 @@ void PanelVolume::DoUpdateWidgets()
     double* levelrange = layer->GetProperty()->GetLevelRange();
     ui->sliderWindow->setValue( (int)( ( dwindow - windowrange[0] ) / ( windowrange[1] - windowrange[0] ) * 100 ) );
     ui->sliderLevel->setValue( (int)( ( dlevel - levelrange[0] ) / ( levelrange[1] - levelrange[0] ) * 100 ) );
+
+    double dHeatMidTh = layer->GetProperty()->GetHeatScaleMidThreshold();
+    double dHeatOffset = layer->GetProperty()->GetHeatScaleOffset();
+    if (bPercentile)
+    {
+      dMaxTh = (layer->GetHistoPercentileFromValue(dMaxTh)*100);
+      dMinTh = (layer->GetHistoPercentileFromValue(dMinTh)*100);
+      dHeatMidTh = (layer->GetHistoPercentileFromValue(dHeatMidTh)*100);
+      range_min = 0;
+      range_max = 100;
+    }
     ChangeLineEditNumber( ui->lineEditMax, dMaxTh );
     ChangeLineEditNumber( ui->lineEditMin, dMinTh );
     ui->sliderMin->setValue( (int)( ( dMinTh - range_min ) / ( range_max - range_min ) * 100 ) );
     ui->sliderMax->setValue( (int)( ( dMaxTh - range_min ) / ( range_max - range_min ) * 100 ) );
 
-    ui->sliderMid->setValue( (int)( ( layer->GetProperty()->GetHeatScaleMidThreshold() - range_min ) /
+    ui->sliderMid->setValue( (int)( ( dHeatMidTh - range_min ) /
                                     ( range_max - range_min ) * 100 ) );
-    ui->sliderOffset->setValue( (int)( ( layer->GetProperty()->GetHeatScaleOffset() + range_max ) /
-                                       ( range_max + range_max ) * 100 ) );
-    ChangeLineEditNumber( ui->lineEditMid, layer->GetProperty()->GetHeatScaleMidThreshold() );
-    ChangeLineEditNumber( ui->lineEditOffset, layer->GetProperty()->GetHeatScaleOffset() );
+    ui->sliderOffset->setValue( (int)( ( dHeatOffset + dmaxvalue ) /
+                                       ( dmaxvalue + dmaxvalue ) * 100 ) );
+    ChangeLineEditNumber( ui->lineEditMid, dHeatMidTh );
+    ChangeLineEditNumber( ui->lineEditOffset, dHeatOffset );
     ui->checkBoxClearHigher->setChecked( layer->GetProperty()->GetHeatScaleClearHigh() );
     ui->checkBoxTruncate->setChecked( layer->GetProperty()->GetHeatScaleTruncate() );
     ui->checkBoxInvert->setChecked( layer->GetProperty()->GetHeatScaleInvert() );
@@ -879,15 +893,24 @@ void PanelVolume::OnSliderMin( int nVal )
     switch ( layer->GetProperty()->GetColorMap() )
     {
     case LayerPropertyMRI::Grayscale:
-      layer->GetProperty()->SetMinGrayscaleWindow( nVal /
+      if (layer->GetProperty()->GetUsePercentile())
+        layer->GetProperty()->SetMinGrayscaleWindow(layer->GetHistoValueFromPercentile(nVal/100.0));
+      else
+        layer->GetProperty()->SetMinGrayscaleWindow( nVal /
           100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
       break;
     case LayerPropertyMRI::Heat:
-      layer->GetProperty()->SetHeatScaleMinThreshold( nVal /
+      if (layer->GetProperty()->GetUsePercentile())
+        layer->GetProperty()->SetHeatScaleMinThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
+      else
+        layer->GetProperty()->SetHeatScaleMinThreshold( nVal /
           100.0 * ( fMax - fMin ) + fMin );
       break;
     default:
-      layer->GetProperty()->SetMinGenericThreshold( nVal /
+      if (layer->GetProperty()->GetUsePercentile())
+        layer->GetProperty()->SetMinGenericThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
+      else
+        layer->GetProperty()->SetMinGenericThreshold( nVal /
           100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
       break;
     }
@@ -904,7 +927,10 @@ void PanelVolume::OnSliderMid( int nVal )
   double fMax = curLayer->GetProperty()->GetMaxValue();
   foreach (LayerMRI* layer, layers)
   {
-    layer->GetProperty()->SetHeatScaleMidThreshold( nVal / 100.0 * ( fMax - fMin ) + fMin );
+    if (layer->GetProperty()->GetUsePercentile())
+      layer->GetProperty()->SetHeatScaleMidThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
+    else
+      layer->GetProperty()->SetHeatScaleMidThreshold( nVal / 100.0 * ( fMax - fMin ) + fMin );
   }
 }
 
@@ -923,15 +949,24 @@ void PanelVolume::OnSliderMax( int nVal )
     switch ( layer->GetProperty()->GetColorMap() )
     {
     case LayerPropertyMRI::Grayscale:
-      layer->GetProperty()->SetMaxGrayscaleWindow( nVal /
+      if (layer->GetProperty()->GetUsePercentile())
+        layer->GetProperty()->SetMaxGrayscaleWindow(layer->GetHistoValueFromPercentile(nVal/100.0));
+      else
+        layer->GetProperty()->SetMaxGrayscaleWindow( nVal /
           100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
       break;
     case LayerPropertyMRI::Heat:
-      layer->GetProperty()->SetHeatScaleMaxThreshold( nVal /
+      if (layer->GetProperty()->GetUsePercentile())
+        layer->GetProperty()->SetHeatScaleMaxThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
+      else
+        layer->GetProperty()->SetHeatScaleMaxThreshold( nVal /
           100.0 * ( fMax - fMin ) + fMin );
       break;
     default:
-      layer->GetProperty()->SetMaxGenericThreshold( nVal /
+      if (layer->GetProperty()->GetUsePercentile())
+        layer->GetProperty()->SetMaxGenericThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
+      else
+        layer->GetProperty()->SetMaxGenericThreshold( nVal /
           100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
       break;
     }
@@ -988,6 +1023,8 @@ void PanelVolume::OnLineEditMin( const QString& text )
     double dVal = text.toDouble( &bOK );
     if ( layer && bOK )
     {
+      if (layer->GetProperty()->GetUsePercentile())
+        dVal = layer->GetHistoValueFromPercentile(dVal/100.0);
       switch ( layer->GetProperty()->GetColorMap() )
       {
       case LayerPropertyMRI::Grayscale:
@@ -1011,8 +1048,10 @@ void PanelVolume::OnLineEditMid( const QString& text )
   {
     bool bOK;
     double dVal = text.toDouble( &bOK );
-    if ( layer && bOK && layer->GetProperty()->GetHeatScaleMidThreshold() != dVal )
+    if ( layer && bOK )
     {
+      if (layer->GetProperty()->GetUsePercentile())
+        dVal = layer->GetHistoValueFromPercentile(dVal/100.0);
       layer->GetProperty()->SetHeatScaleMidThreshold( dVal );
     }
   }
@@ -1027,6 +1066,8 @@ void PanelVolume::OnLineEditMax( const QString& text )
     double dVal = text.toDouble( &bOK );
     if ( layer && bOK )
     {
+      if (layer->GetProperty()->GetUsePercentile())
+        dVal = layer->GetHistoValueFromPercentile(dVal/100.0);
       switch ( layer->GetProperty()->GetColorMap() )
       {
       case LayerPropertyMRI::Grayscale:
@@ -1306,5 +1347,15 @@ void PanelVolume::OnComboCorrelationSurface(int nSel)
   if ( layer )
   {
     layer->SetCorrelationSurface(surf);
+  }
+}
+
+void PanelVolume::OnCheckUsePercentile(bool b)
+{
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    layer->GetProperty()->SetUsePercentile(b);
+    UpdateWidgets();
   }
 }

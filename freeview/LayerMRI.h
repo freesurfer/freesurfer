@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/10/01 16:53:30 $
- *    $Revision: 1.88 $
+ *    $Date: 2013/11/12 21:16:51 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -292,6 +292,10 @@ public:
   {
     return m_correlationSurface;
   }
+
+  double GetHistoValueFromPercentile(double percentile);
+
+  double GetHistoPercentileFromValue(double value);
 
 public slots:
   void SetActiveFrame( int nFrame );
