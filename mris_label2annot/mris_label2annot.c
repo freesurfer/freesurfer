@@ -7,9 +7,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.17 $
+ *    $Author: greve $
+ *    $Date: 2013/11/12 21:31:05 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -160,7 +160,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mris_label2annot.c,v 1.17 2011/03/02 00:04:32 nicks Exp $";
+"$Id: mris_label2annot.c,v 1.18 2013/11/12 21:31:05 greve Exp $";
 
 
 static int dilate_label_into_unknown(MRI_SURFACE *mris, int annot) ;
@@ -192,6 +192,7 @@ char *labeldir=NULL;
 int labeldirdefault=0;
 int DoLabelThresh = 0;
 double LabelThresh = 0;
+char *surfname = "orig";
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -234,7 +235,7 @@ int main(int argc, char *argv[]) {
   }
 
   // Read the surf
-  sprintf(tmpstr,"%s/%s/surf/%s.orig",SUBJECTS_DIR,subject,hemi);
+  sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
   printf("Loading %s\n",tmpstr);
   mris = MRISread(tmpstr);
   if (mris == NULL) exit(1);
@@ -395,7 +396,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       labeldir = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--a") || !strcmp(option, "--annot")) {
+    } 
+    else if (!strcmp(option, "--surf")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      surfname = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--a") || !strcmp(option, "--annot")) {
       if (nargc < 1) CMDargNErr(option,1);
       AnnotName = pargv[0];
       nargsused = 1;
@@ -442,6 +449,7 @@ static void print_usage(void) {
   printf("   --no-unknown : do not map unhit labels to index 0\n");
   printf("   --thresh thresh : threshold label by stats field\n");
   printf("   --maxstatwinner : keep label with highest 'stat' value\n");
+  printf("   --surf surfname : default is orig\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --noverbose turn off overlap and stat override messages\n");
