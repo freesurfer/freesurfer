@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/13 02:05:19 $
- *    $Revision: 1.87 $
+ *    $Date: 2013/11/13 18:12:39 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2743,7 +2743,17 @@ void FSVolume::UpdateHistoCDF(int frame)
 {
   float fMinValue, fMaxValue;
   MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
-  HISTO *histo = HISTOinit(NULL, 1000, fMinValue, fMaxValue);
+  if (fMinValue == fMaxValue)
+  {
+    qDebug() << "Could not create histogram because min value is equal to max value.";
+    return;
+  }
+  HISTO *histo = HISTOinit(NULL, 10000, fMinValue, fMaxValue);
+  if (!histo)
+  {
+    qDebug() << "Could not create HISTO";
+    return;
+  }
 
   for (int x = 0 ; x < m_MRI->width; x++)
   {
@@ -2759,6 +2769,8 @@ void FSVolume::UpdateHistoCDF(int frame)
   }
 
   m_histoCDF = HISTOmakeCDF(histo, NULL);
+  if (!m_histoCDF)
+    qDebug() << "Could not create HISTO";
   HISTOfree(&histo);
 }
 
