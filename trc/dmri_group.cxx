@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/11/12 01:48:49 $
- *    $Revision: 1.7 $
+ *    $Date: 2013/11/13 02:55:34 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -811,9 +811,11 @@ static void print_usage(void)
   << "     Reference volume for output path" << endl
   << "   --out <base>:" << endl
   << "     Base name of output text files" << endl
+  << endl
+  << "Optional arguments" << endl
   << "   --sec <num>:" << endl
   << "     Divide the pathway into a number of sections and output " << endl
-  << "     average measures for each section (optional)" << endl
+  << "     average measures for each section" << endl
   << endl
   << "Other options" << endl
   << "   --debug:     turn on debugging" << endl
