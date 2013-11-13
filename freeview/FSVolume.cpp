@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.86 $
+ *    $Date: 2013/11/13 02:05:19 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2741,7 +2741,9 @@ void FSVolume::SetCroppingBounds( double* bounds )
 
 void FSVolume::UpdateHistoCDF(int frame)
 {
-  HISTO *histo = HISTOinit(NULL, 1000, m_fMinValue, m_fMaxValue);
+  float fMinValue, fMaxValue;
+  MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
+  HISTO *histo = HISTOinit(NULL, 1000, fMinValue, fMaxValue);
 
   for (int x = 0 ; x < m_MRI->width; x++)
   {
