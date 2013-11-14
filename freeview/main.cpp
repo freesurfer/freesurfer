@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.37 $
+ *    $Date: 2013/11/14 21:06:02 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
 
   if (!w.ParseCommand(argc, argv, true))
   {
+    w.close();
     return false;
   }
 

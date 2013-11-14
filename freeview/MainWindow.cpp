@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.259 $
+ *    $Date: 2013/11/14 21:06:01 $
+ *    $Revision: 1.260 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -754,6 +754,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   }
 
   QStringList cmds;
+  bool bHasVolume = false;
   if ( floatingArgs.size() > 0 )
   {
     for ( int i = 0; i < floatingArgs.size(); i++ )
@@ -764,6 +765,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
         script += " r";
       }
       cmds << script;
+      bHasVolume = true;
     }
   }
 
@@ -779,6 +781,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
         script += " r";
       }
       cmds << script;
+      bHasVolume = true;
     }
   }
 
@@ -814,6 +817,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
         script += " r";
       }
       this->AddScript( script );
+      bHasVolume = true;
     }
   }
 
@@ -834,22 +838,31 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
 
   cmds.clear();
   nRepeats = m_cmdParser->GetNumberOfRepeats( "l" );
-  for ( int n = 0; n < nRepeats; n++ )
+  if (nRepeats > 0 && !bHasVolume)
   {
-    m_cmdParser->Found( "l", &sa, n );
-    for (int i = 0; i < sa.size(); i++ )
+    QString msg = "Can not load volume label without loading a volume first";
+    ShowNonModalMessage("Warning", msg);
+    std::cerr << qPrintable(msg) << std::endl;
+  }
+  else
+  {
+    for ( int n = 0; n < nRepeats; n++ )
     {
-      cmds << (QString("loadroi ") + sa[i]);
+      m_cmdParser->Found( "l", &sa, n );
+      for (int i = 0; i < sa.size(); i++ )
+      {
+        cmds << (QString("loadroi ") + sa[i]);
+      }
     }
+    if (bReverseOrder)
+    {
+      QStringList tempList;
+      for (int i = cmds.size()-1; i >= 0; i--)
+        tempList << cmds[i];
+      cmds = tempList;
+    }
+    AddScripts(cmds);
   }
-  if (bReverseOrder)
-  {
-    QStringList tempList;
-    for (int i = cmds.size()-1; i >= 0; i--)
-      tempList << cmds[i];
-    cmds = tempList;
-  }
-  AddScripts(cmds);
 
   cmds.clear();
   nRepeats = m_cmdParser->GetNumberOfRepeats( "f" );
@@ -4961,7 +4974,7 @@ void MainWindow::LoadSurfaceAnnotationFile( const QString& filename )
 void MainWindow::LoadSurfaceLabel()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select label file",
-                     m_strLastDir,
+                     AutoSelectLastDir( "label" ),
                      "Label files (*)");
   if ( !filename.isEmpty() )
   {

@@ -423,9 +423,6 @@
         </property>
        </widget>
       </item>
-      <item row="15" column="1">
-       <widget class="QComboBox" name="comboBoxLabel"/>
-      </item>
       <item row="17" column="0">
        <widget class="QLabel" name="labelLabelColor">
         <property name="text">
@@ -680,7 +677,7 @@
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>90</height>
+          <height>70</height>
          </size>
         </property>
         <property name="rootIsDecorated">
@@ -694,6 +691,13 @@
           <string notr="true">1</string>
          </property>
         </column>
+       </widget>
+      </item>
+      <item row="15" column="1">
+       <widget class="QPushButton" name="pushButtonLoadLabel">
+        <property name="text">
+         <string>Load Label</string>
+        </property>
        </widget>
       </item>
      </layout>
@@ -834,8 +838,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>269</x>
-     <y>243</y>
+     <x>268</x>
+     <y>98</y>
     </hint>
     <hint type="destinationlabel">
      <x>368</x>
@@ -851,7 +855,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>444</y>
+     <y>299</y>
     </hint>
     <hint type="destinationlabel">
      <x>349</x>
@@ -867,7 +871,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>248</x>
-     <y>471</y>
+     <y>326</y>
     </hint>
     <hint type="destinationlabel">
      <x>46</x>
@@ -883,7 +887,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>248</x>
-     <y>504</y>
+     <y>359</y>
     </hint>
     <hint type="destinationlabel">
      <x>78</x>
@@ -899,7 +903,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>329</x>
-     <y>476</y>
+     <y>331</y>
     </hint>
     <hint type="destinationlabel">
      <x>326</x>
@@ -915,7 +919,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>329</x>
-     <y>509</y>
+     <y>364</y>
     </hint>
     <hint type="destinationlabel">
      <x>332</x>
@@ -931,7 +935,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>541</y>
+     <y>396</y>
     </hint>
     <hint type="destinationlabel">
      <x>56</x>
@@ -947,7 +951,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>573</y>
+     <y>428</y>
     </hint>
     <hint type="destinationlabel">
      <x>350</x>
@@ -963,27 +967,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>604</y>
+     <y>459</y>
     </hint>
     <hint type="destinationlabel">
      <x>429</x>
      <y>686</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>comboBoxLabel</sender>
-   <signal>currentIndexChanged(int)</signal>
-   <receiver>PanelSurface</receiver>
-   <slot>OnComboLabel(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>330</x>
-     <y>664</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>60</x>
-     <y>627</y>
     </hint>
    </hints>
   </connection>
@@ -995,7 +983,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>778</y>
+     <y>710</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -1011,7 +999,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>942</y>
+     <y>874</y>
     </hint>
     <hint type="destinationlabel">
      <x>486</x>
@@ -1026,12 +1014,60 @@
    <slot>OnComboSpline(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>320</x>
-     <y>863</y>
+     <x>330</x>
+     <y>795</y>
     </hint>
     <hint type="destinationlabel">
      <x>398</x>
      <y>889</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>treeWidgetLabels</sender>
+   <signal>itemChanged(QTreeWidgetItem*,int)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnLabelItemChanged(QTreeWidgetItem*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>279</x>
+     <y>565</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>513</x>
+     <y>610</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>treeWidgetLabels</sender>
+   <signal>currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnCurrentLabelItemChanged(QTreeWidgetItem*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>228</x>
+     <y>567</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>663</x>
+     <y>566</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLoadLabel</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnButtonLoadLabel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>247</x>
+     <y>509</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>489</x>
+     <y>570</y>
     </hint>
    </hints>
   </connection>
@@ -1050,5 +1086,8 @@
   <slot>OnComboVector(int)</slot>
   <slot>OnEditPositionOffset()</slot>
   <slot>OnComboSpline(int)</slot>
+  <slot>OnLabelItemChanged(QTreeWidgetItem*)</slot>
+  <slot>OnCurrentLabelItemChanged(QTreeWidgetItem*)</slot>
+  <slot>OnButtonLoadLabel()</slot>
  </slots>
 </ui>

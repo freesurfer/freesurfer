@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/05 21:57:13 $
- *    $Revision: 1.38 $
+ *    $Date: 2013/11/14 21:06:01 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -335,29 +335,32 @@ bool Interactor2D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
         view->Zoom(0.95);
       }
   }
-  else if ( nKeyCode == Qt::Key_PageUp )
+  else if (event->modifiers() & Qt::ControlModifier )
+  {
+      if ( nKeyCode == Qt::Key_Up )
+      {
+        view->MoveUp();
+      }
+      else if ( nKeyCode == Qt::Key_Down )
+      {
+        view->MoveDown();
+      }
+      else if ( nKeyCode == Qt::Key_Left )
+      {
+        view->MoveLeft();
+      }
+      else if ( nKeyCode == Qt::Key_Right )
+      {
+        view->MoveRight();
+      }
+  }
+  else if ( nKeyCode == Qt::Key_PageUp || nKeyCode == Qt::Key_Up )
   {
     view->MoveSlice( 1 );
   }
-  else if ( nKeyCode == Qt::Key_PageDown )
+  else if ( nKeyCode == Qt::Key_PageDown || nKeyCode == Qt::Key_Down )
   {
     view->MoveSlice( -1 );
-  }
-  else if ( nKeyCode == Qt::Key_Up )
-  {
-    view->MoveUp();
-  }
-  else if ( nKeyCode == Qt::Key_Down )
-  {
-    view->MoveDown();
-  }
-  else if ( nKeyCode == Qt::Key_Left )
-  {
-    view->MoveLeft();
-  }
-  else if ( nKeyCode == Qt::Key_Right )
-  {
-    view->MoveRight();
   }
   else if ( nKeyCode == Qt::Key_3 /*|| nKeyCode == 'W' || nKeyCode == 'S'*/ || nKeyCode == Qt::Key_R || nKeyCode == Qt::Key_F )
   {

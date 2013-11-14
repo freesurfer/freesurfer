@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/14 19:32:55 $
- *    $Revision: 1.34 $
+ *    $Date: 2013/11/14 21:06:02 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -143,6 +143,7 @@ void ToolWindowEdit::UpdateReconMode()
   bool bReconEdit = wnd->GetRenderView(0)->GetInteractionMode() == RenderView::IM_ReconEdit;
   ui->checkBoxReconEditing->setChecked(bReconEdit);
   this->setWindowTitle(bReconEdit ? "Recon Edit" : "Voxel Edit");
+
 }
 
 void ToolWindowEdit::UpdateWidgets( )
@@ -392,9 +393,13 @@ void ToolWindowEdit::OnCheckReconEditing(bool bRecon)
         */
        bp->SetFillValue(255);
        bp->SetEraseValue(1);
+       bp->SetExcludeRangeEnabled(true);
+       bp->SetExcludeRange(5, 250);
     }
     else
     {
       bp->SetEraseValue(0);
+      bp->SetExcludeRangeEnabled(false);
+      bp->SetExcludeRange(0, 0);
     }
 }

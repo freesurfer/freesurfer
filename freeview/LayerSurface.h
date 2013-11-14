@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/27 17:27:35 $
- *    $Revision: 1.59 $
+ *    $Date: 2013/11/14 21:06:01 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -189,6 +189,7 @@ public:
   }
 
   void SetActiveLabel( int n );
+  void SetActiveLabel(SurfaceLabel* label);
 
   LayerMRI* GetRefVolume()
   {
@@ -229,6 +230,8 @@ public:
   }
 
   bool GetCorrelationOverlayDataAtVertex(int nVert, float* output, int nFrames);
+
+  bool IsInflated();
 
 public slots:
   void SetActiveSurface( int nSurfaceType );

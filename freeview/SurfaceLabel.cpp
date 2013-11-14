@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/05 20:25:29 $
- *    $Revision: 1.11 $
+ *    $Date: 2013/11/14 21:06:02 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -304,7 +304,7 @@ void SurfaceLabel::SetColor( double r, double g, double b )
 
   m_actorOutline->GetProperty()->SetColor(r, g, b);
 
-  emit SurfaceLabelChanged();
+//  emit SurfaceLabelChanged();
 }
 
 void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/05 20:25:29 $
- *    $Revision: 1.52 $
+ *    $Date: 2013/11/14 21:06:01 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui->toolbar->insertAction(ui->actionSurfaceMain, mainwnd->ui->actionCloseSurface);
   ui->toolbar->insertSeparator(ui->actionSurfaceMain);
 
-  ui->treeWidgetLabels->hide();
+//  ui->treeWidgetLabels->hide();
 
   m_widgetsSlope << ui->sliderSlope
                  << ui->lineEditSlope
@@ -74,7 +74,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
 
   m_widgetsLabel << ui->colorpickerLabelColor
                  << ui->labelLabelColor
-                 << ui->checkBoxLabelOutline;
+                 << ui->checkBoxLabelOutline
+                 << ui->treeWidgetLabels;
 
   m_widgetsSpline << ui->colorpickerSplineColor
                   << ui->labelSplineColor
@@ -126,6 +127,7 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
            this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( layer, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
            this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect( layer, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)), this, SLOT(UpdateWidgets()));
   connect( layer, SIGNAL(SurfaceCurvatureLoaded()), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(SurfaceVectorLoaded()), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(SurfaceOverlayAdded(SurfaceOverlay*)), this, SLOT(UpdateWidgets()) );
@@ -299,6 +301,7 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxAnnotation->setCurrentIndex( layer ? 1 + layer->GetActiveAnnotationIndex() : 0 );
 
   // update label controls
+  /*
   ui->comboBoxLabel->clear();
   if ( layer )
   {
@@ -320,12 +323,30 @@ void PanelSurface::DoUpdateWidgets()
   {
     ui->comboBoxLabel->setCurrentIndex( 0 );
   }
+  */
+
   if ( layer && layer->GetActiveLabel() )
   {
     double* rgb = layer->GetActiveLabel()->GetColor();
     ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
     ui->checkBoxLabelOutline->setChecked(layer->GetActiveLabel()->GetShowOutline());
   }
+
+  ui->treeWidgetLabels->clear();
+  if (layer)
+  {
+    for (int i = 0; i < layer->GetNumberOfLabels(); i++)
+    {
+      SurfaceLabel* label = layer->GetLabel(i);
+      QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidgetLabels);
+      item->setText(0, label->GetName());
+      item->setData(0, Qt::UserRole, QVariant::fromValue((QObject*)label));
+      item->setCheckState(0, label->IsVisible() ? Qt::Checked : Qt::Unchecked);
+      if (layer->GetActiveLabel() == label)
+        ui->treeWidgetLabels->setCurrentItem(item);
+    }
+  }
+
   if ( layer && layer->GetActiveAnnotation() )
   {
     ui->checkBoxAnnotationOutline->setChecked(layer->GetActiveAnnotation()->GetShowOutline());
@@ -468,6 +489,7 @@ void PanelSurface::OnComboAnnotation( int nSel_in )
   }
 }
 
+/*
 void PanelSurface::OnComboLabel( int nSel_in )
 {
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
@@ -484,6 +506,13 @@ void PanelSurface::OnComboLabel( int nSel_in )
     }
     UpdateWidgets();
   }
+}
+*/
+
+void PanelSurface::OnButtonLoadLabel()
+{
+  MainWindow::GetMainWindow()->LoadSurfaceLabel();
+  UpdateWidgets();
 }
 
 void PanelSurface::OnComboVector( int nSel )
@@ -552,6 +581,35 @@ void PanelSurface::OnEditPositionOffset()
     else
     {
       QMessageBox::information(this, "Error", "Please enter 3 values for position offset.");
+    }
+  }
+}
+
+void PanelSurface::OnLabelItemChanged(QTreeWidgetItem *item)
+{
+  SurfaceLabel* label = qobject_cast<SurfaceLabel*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+  if ( label )
+  {
+    label->SetVisible( item->checkState( 0 ) == Qt::Checked );
+  }
+}
+
+void PanelSurface::OnCurrentLabelItemChanged(QTreeWidgetItem *item)
+{
+  SurfaceLabel* label = qobject_cast<SurfaceLabel*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+  if ( label )
+  {
+    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+    if ( surf )
+    {
+      surf->SetActiveLabel(label);
+      double* rgb = label->GetColor();
+      ui->colorpickerLabelColor->blockSignals(true);
+      ui->checkBoxLabelOutline->blockSignals(true);
+      ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+      ui->checkBoxLabelOutline->setChecked(label->GetShowOutline());
+      ui->colorpickerLabelColor->blockSignals(false);
+      ui->checkBoxLabelOutline->blockSignals(false);
     }
   }
 }

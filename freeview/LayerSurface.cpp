@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/05 20:25:29 $
- *    $Revision: 1.95 $
+ *    $Date: 2013/11/14 21:06:01 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -181,6 +181,15 @@ bool LayerSurface::LoadSurfaceFromFile()
   InitializeActors();
 
   GetProperty()->SetSurfaceSource( m_surfaceSource );
+
+  if (IsInflated())
+  {
+    double pos[3] = { -45, 0, 0 };
+    if (GetHemisphere() == 1)
+      pos[0] = -pos[0];
+    GetProperty()->SetPosition(pos);
+    GetProperty()->SetEdgeThickness(0);
+  }
 
   return true;
 }
@@ -419,6 +428,7 @@ bool LayerSurface::LoadLabelFromFile( const QString& filename )
   }
 
   m_labels.push_back( label );
+  connect(label, SIGNAL(SurfaceLabelChanged()), this, SLOT(UpdateColorMap()));
 
   SetActiveLabel( m_labels.size() - 1 );
 
@@ -1531,6 +1541,7 @@ void LayerSurface::SetActiveLabel( int n )
   if ( n < (int)m_labels.size() && n != m_nActiveLabel )
   {
     m_nActiveLabel = n;
+    /*
     UpdateColorMap();
     for (int i = 0; i < m_labels.size(); i++)
     {
@@ -1538,8 +1549,22 @@ void LayerSurface::SetActiveLabel( int n )
     }
     if (n >= 0 && m_labels[n]->GetShowOutline())
       m_labels[n]->GetOutlineActor()->VisibilityOn();
-    emit ActiveLabelChanged( n );
+
     emit ActorUpdated();
+    */
+    emit ActiveLabelChanged( n );
+  }
+}
+
+void LayerSurface::SetActiveLabel(SurfaceLabel *label)
+{
+  for (int i = 0; i < m_labels.size(); i++)
+  {
+    if (label == m_labels[i])
+    {
+      SetActiveLabel(i);
+      return;
+    }
   }
 }
 
@@ -1684,4 +1709,9 @@ bool LayerSurface::GetCorrelationOverlayDataAtVertex(int nVert, float *output, i
     return overlay->GetDataAtVertex(nVert, output);
   }
   return false;
+}
+
+bool LayerSurface::IsInflated()
+{
+  return GetFileName().toLower().contains("inflated");
 }
