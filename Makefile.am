@@ -149,6 +149,7 @@ MRISUBDIRS=\
 	mri_distance_transform \
 	mri_transform \
 	mri_train \
+	mri_train_autoencoder \
 	mri_classify \
 	mri_twoclass \
 	mri_volcluster \
