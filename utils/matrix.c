@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/10/31 19:44:17 $
- *    $Revision: 1.135 $
+ *    $Date: 2013/11/14 16:17:17 $
+ *    $Revision: 1.136 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1091,6 +1091,43 @@ MatrixScalarMul( const MATRIX *mIn, const float val, MATRIX *mOut)
   {
     for (col = 1 ; col <= cols ; col++)
       mOut->rptr[row][col] = mIn->rptr[row][col] * val ;
+  }
+  return(mOut) ;
+}
+MATRIX *
+VectorZeroMean(const MATRIX *mIn, MATRIX *mOut)
+{
+  double mean ;
+
+  mean = VectorMean(mIn) ;
+  return(MatrixScalarAdd(mIn, -mean, mOut)) ;
+}
+
+MATRIX  *
+MatrixScalarAdd( const MATRIX *mIn, const float val, MATRIX *mOut)
+{
+  int  row, col, rows, cols ;
+
+  if (!mOut)
+  {
+    mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
+    if (!mOut)
+      return(NULL) ;
+  }
+
+  rows = mIn->rows ;
+  cols = mIn->cols ;
+
+  if ((rows != mOut->rows) || (cols != mOut->cols))
+    ErrorReturn(NULL,
+                (ERROR_BADPARM,
+                 "MatrixScalarMul: incompatable matrices %d x %d != %d x %d\n",
+                 rows, cols, mOut->rows, mOut->cols)) ;
+
+  for (row = 1 ; row <= rows ; row++)
+  {
+    for (col = 1 ; col <= cols ; col++)
+      mOut->rptr[row][col] = mIn->rptr[row][col] + val ;
   }
   return(mOut) ;
 }
@@ -3211,7 +3248,7 @@ double VectorRange(MATRIX *v, double *pVmin, double *pVmax)
 
 
 /*----------------------------------------------------------------*/
-double VectorSum(MATRIX *v)
+double VectorSum(const MATRIX *v)
 {
   double sum;
   int r,c;
@@ -3225,7 +3262,7 @@ double VectorSum(MATRIX *v)
 
 
 /*----------------------------------------------------------------*/
-double VectorMean(MATRIX *v)
+double VectorMean(const MATRIX *v)
 {
   double sum,mean;
 
