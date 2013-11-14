@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2013/08/15 18:03:37 $
- *    $Revision: 1.283 $
+ *    $Author: fischl $
+ *    $Date: 2013/11/14 16:16:08 $
+ *    $Revision: 1.284 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -21002,11 +21002,12 @@ gcamLabelToMRI(GCA_MORPH *gcam, MRI *mri, int label)
 }
 
 int
-GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam)
+GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri)
 {
   int             x, y, z ;
   GCA_MORPH_NODE *gcamn ;
   MRI            *mri_vent_dist, *mri_vent, *mri_vent_dist_grad ;
+  double          val, dist ;
 
   mri_vent = gcamLabelToMRI(gcam, NULL, Left_Lateral_Ventricle) ;
   gcamLabelToMRI(gcam, mri_vent, Right_Lateral_Ventricle) ;
@@ -21019,8 +21020,8 @@ GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam)
   mri_vent_dist_grad = MRIsobel(mri_vent_dist, NULL, NULL) ;
 
   MRIfree(&mri_vent) ;
-  MRIfree(&mri_vent_dist) ;
 
+#define IS_VENT_NBR(l)  (IS_CAUDATE(l) || IS_WHITE_CLASS(l) || IS_THALAMUS(l) || IS_WMSA(l) || IS_HIPPO(l))
   for (x = 0 ; x < gcam->width ; x++)
     for (y = 0 ; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
@@ -21030,7 +21031,9 @@ GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam)
           DiagBreak() ;
         }
         gcamn = &gcam->nodes[x][y][z] ;
-        if (IS_VENTRICLE(gcamn->label))
+	MRIsampleVolume(mri, gcamn->x, gcamn->y, gcamn->z, &val) ;
+	dist = MRIgetVoxVal(mri_vent_dist, x, y, z, 0) ;
+        if (IS_VENTRICLE(gcamn->label) || (IS_VENT_NBR(gcamn->label) && (val < 30) && (dist < 10)))
         {
           if (gcamn->label == Left_Lateral_Ventricle)
           {
@@ -21043,6 +21046,7 @@ GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam)
         }
       }
 
+  MRIfree(&mri_vent_dist) ;
   MRIfree(&mri_vent_dist_grad) ;
   return(NO_ERROR) ;
 }
@@ -21169,7 +21173,7 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     {
       GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, SAVED2_POSITIONS) ;
       gcamClearGradient(gcam) ;
-      GCAMcomputeVentricleExpansionGradient(gcam) ;
+      GCAMcomputeVentricleExpansionGradient(gcam, mri) ;
       gcamSmoothnessTerm(gcam, mri, parms->l_smoothness)  ;
       gcamLSmoothnessTerm(gcam, mri, parms->l_lsmoothness)  ;
       gcamSpringTerm(gcam, parms->l_spring, parms->ratio_thresh)  ;
