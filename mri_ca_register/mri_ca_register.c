@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/02/07 19:19:07 $
- *    $Revision: 1.86 $
+ *    $Date: 2013/11/14 16:15:12 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -237,7 +237,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.86 2013/02/07 19:19:07 fischl Exp $",
+           "$Id: mri_ca_register.c,v 1.87 2013/11/14 16:15:12 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1259,7 +1259,7 @@ main(int argc, char *argv[])
     parms.l_smoothness = .1 ;   // defaults to 10 when renormalizing by alignment
     parms.uncompress = 1 ;
     parms.ratio_thresh = .25;
-    parms.navgs = 256 ;
+    parms.navgs = 16*1024 ;
     parms.integration_type = GCAM_INTEGRATE_OPTIMAL ;
     parms.noneg = 0 ;
     printf("registering ventricular system...\n") ;
