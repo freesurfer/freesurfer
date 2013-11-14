@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/14 21:15:34 $
- *    $Revision: 1.79 $
+ *    $Date: 2013/11/14 21:29:30 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2150,9 +2150,9 @@ HISTOabs(HISTOGRAM *h, HISTOGRAM *habs)
 
   habs = HISTOrealloc(habs, nint(ceil((mx-mn)/h->bin_size)+1)) ;
   habs->bin_size = h->bin_size ;
-  habs->min = 0 ; habs->max = mx ;
+  habs->min = mn ; habs->max = mx ;
   for (b = 0 ; b < habs->nbins ; b++)
-    habs->bins[b] = b*habs->bin_size ;
+    habs->bins[b] = b*habs->bin_size+mn ;
 
   for (b = 0 ; b < h->nbins ; b++)
   {
