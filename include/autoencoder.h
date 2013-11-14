@@ -13,8 +13,8 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/03 19:56:13 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/11/14 16:17:33 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,15 +66,18 @@ typedef struct _AE
   MATRIX     *m_previous_step_hidden_to_output ;  // only needed for training
   MATRIX     *v_previous_step_hidden_bias ;       // only needed for training
   MATRIX     *v_previous_step_output_bias     ;   // only needed for training
+  struct _SAE *sae ;
 } AUTO_ENCODER, AE ;
 
-typedef struct
+typedef struct _SAE
 {
   MRI    *mri_inputs ;
   int    nencoders ;
   int    whalf ;
-  double scale ;  // the ratio of hidden to input nodes
-  AE  *first ;
+  double scale ;       // the ratio of hidden to input nodes
+  int    type ;        // focused or not
+  int    nlevels ;     // how many levels in the Gaussian pyramid for inputs
+  AE     *first ;
 } STACKED_AUTO_ENCODER, SAE ;
 
 /*
@@ -116,21 +119,25 @@ typedef struct
 #define INTEGRATE_ANNEALING          2
 #define INTEGRATE_CONJUGATE_GRADIENT 3
 
-SAE      *SAEalloc(int whalf, double scale) ;
+#define NORMAL_AUTOENCODER    0
+#define FOCUSED_AUTOENCODER   1
+
+SAE      *SAEalloc(int whalf, int nlevels, int type, double scale) ;
 void     SAEfree(SAE **psae) ;
 AE       *SAEaddLayer(SAE *sae, float scale) ;
-SAE      *SAEtrainLayer(SAE *sae, AE *layer, MRI *mri, double tol) ;
+SAE      *SAEtrainLayer(SAE *sae, AE *layer, MRI **mri, double tol) ;
 VECTOR   *SAEactivateLastHiddenLayer(SAE *sae, MRI *mri) ;
-double   SAEtrainFromMRI(SAE *sae, MRI *mri, SAE_INTEGRATION_PARMS *parms) ;
-MRI      *SAEvectorToMRI(VECTOR *v_input, int whalf, MRI *mri)  ;
+double   SAEtrainFromMRI(SAE *sae, MRI **mri, SAE_INTEGRATION_PARMS *parms) ;
+MRI      *SAEvectorToMRI(VECTOR *v_input, int nlevels, int whalf, MRI *mri)  ;
 VECTOR   *SAEactivateNetwork(SAE *sae) ;
 double   SAEcomputeRMS(SAE *sae) ;
-double   SAEcomputeTotalRMS(SAE *sae, MRI *mri) ;
+double   SAEcomputeTotalRMS(SAE *sae, MRI **mri) ;
 int      SAEwrite(SAE *sae, char *fname) ;
 SAE      *SAEread(char *fname) ;
 MRI *    SAEinputWeightsToMRI(SAE *sae, MRI *mri)  ;
 void     SAEdump(SAE *sae) ;
 void     AEdump(AE *ae) ;
-int      SAEfillInputVector(MRI *mri, int x, int y, int z, int whalf, VECTOR *v_input) ;
+VECTOR   *SAEfillInputVector(MRI **mri, int nlevels, int x, int y, int z, int whalf, VECTOR *v_input) ;
+AE       *SAEfindLastLayer(SAE *sae, AE *ae) ;
 
 #endif

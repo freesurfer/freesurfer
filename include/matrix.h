@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/10/31 19:44:28 $
- *    $Revision: 1.82 $
+ *    $Date: 2013/11/14 16:17:33 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -103,6 +103,8 @@ MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixAdd( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
 MATRIX  *MatrixSubtract( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
 MATRIX  *MatrixScalarMul( const MATRIX *mIn, const float val, MATRIX *mOut) ;
+MATRIX  *MatrixScalarAdd( const MATRIX *mIn, const float val, MATRIX *mOut) ;
+MATRIX  *VectorZeroMean(const MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixClear(MATRIX *mat) ;
 MATRIX  *MatrixSquareElts(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut) ;
@@ -269,8 +271,8 @@ MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m);
 MATRIX *MatrixDRand48ZeroMean(int rows, int cols, MATRIX *m) ;
 MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst);
 
-double VectorSum(MATRIX *v);
-double VectorMean(MATRIX *v);
+double VectorSum(const MATRIX *v);
+double VectorMean(const MATRIX *v);
 double VectorVar(MATRIX *v, double *pMean);
 double VectorStdDev(MATRIX *v, double *pMean);
 double VectorRange(MATRIX *v, double *pVmin, double *pVmax);
