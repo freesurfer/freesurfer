@@ -6,9 +6,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/12/08 21:34:09 $
- *    $Revision: 1.73 $
+ *    $Author: fischl $
+ *    $Date: 2013/11/15 00:58:06 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -157,6 +157,8 @@ int string_to_type(const char *string)
   // is this compressed?
   if (strcmp(ls, "gz") == 0)
     type = MRI_GZIPPED;
+  if ((strcmp(ls, "ae") == 0))
+    type = MGH_AUTOENCODER;
   if ((strcmp(ls, "m3z") == 0) || (strcmp(ls, "m3d") == 0))
     type = MGH_MORPH;
   if (strcmp(ls, "cor") == 0)
@@ -398,6 +400,7 @@ int mri_identify(const char *fname_passed)
   else if (is_nrrd(fname))    return(NRRD_FILE);
   else if (IDisCurv(fname))    return(MRI_CURV_FILE);
   else if (type == MGH_MORPH)  return(type) ;
+  else if (type == MGH_AUTOENCODER)  return(type) ;
   else return(MRI_VOLUME_TYPE_UNKNOWN);
 }  /*  end mri_identify()  */
 
