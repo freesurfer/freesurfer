@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/08 21:09:11 $
- *    $Revision: 1.16 $
+ *    $Date: 2013/11/15 17:52:20 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -621,16 +621,19 @@ void WindowConfigureOverlay::OnFrameChanged(int nFrame)
 
 void WindowConfigureOverlay::OnCurrentVertexChanged()
 {
-  if ( m_layerSurface && m_layerSurface->GetActiveOverlay() )
+  if ( m_layerSurface && m_layerSurface->GetActiveOverlay()
+      && m_layerSurface->GetActiveOverlay()->GetNumberOfFrames() > 1 )
   {
     int nVertex = m_layerSurface->GetVertexIndexAtTarget( m_layerSurface->GetSlicePosition(), NULL );
     if (nVertex >= 0 && ui->checkBoxAutoFrame->isChecked()
         && nVertex < m_layerSurface->GetActiveOverlay()->GetNumberOfFrames())
+    {
       OnFrameChanged(nVertex);
 
-    // even if not auto apply, still call apply
-    if (!ui->checkBoxAutoApply->isChecked())
-      OnApply();
+      // even if not auto apply, still call apply
+      if (!ui->checkBoxAutoApply->isChecked())
+        OnApply();
+    }
   }
 }
 

@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/08 21:09:11 $
- *    $Revision: 1.17 $
+ *    $Date: 2013/11/15 17:52:20 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -154,6 +154,10 @@ public slots:
   void UpdateSmooth(bool trigger_paired = true);
   void UpdateCorrelationCoefficient(double* pos = NULL);
   void OnCorrelationSourceDeleted(QObject* obj);
+  void EmitDataUpdated()
+  {
+    emit DataUpdated();
+  }
 
 private:
   float*        m_fData;
