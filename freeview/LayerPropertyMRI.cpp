@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.19 $
+ *    $Date: 2013/11/15 04:12:50 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,6 +38,7 @@
 #include "vtkPointData.h"
 #include "vtkImageData.h"
 #include "FSVolume.h"
+#include "LayerMRI.h"
 #include "StockColorMap.h"
 #include <QtGlobal>
 #include <QSettings>
@@ -170,6 +171,8 @@ void LayerPropertyMRI::RestoreSettings( const QString& filename )
 
 void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
 {
+  LayerMRI* mri = qobject_cast<LayerMRI*>(parent());
+  m_bUsePercentile = (map["UsePercentile"].toDouble() > 0);
   if ( map.contains("MinGrayscaleWindow") )
   {
     mMinGrayscaleWindow = map["MinGrayscaleWindow"].toDouble();
@@ -245,6 +248,44 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
     mbClearZero = map["ClearBackground"].toBool();
   }
 
+  if (m_bUsePercentile)
+  {
+      if ( map.contains("MinGrayscaleWindowInPercentile") )
+      {
+        mMinGrayscaleWindow = mri->GetHistoValueFromPercentile(map["MinGrayscaleWindowInPercentile"].toDouble());
+      }
+
+      if ( map.contains("MaxGrayscaleWindowInPercentile") )
+      {
+        mMaxGrayscaleWindow = mri->GetHistoValueFromPercentile(map["MaxGrayscaleWindowInPercentile"].toDouble());
+      }
+
+      if ( map.contains("HeatScaleMinThresholdInPercentile") )
+      {
+        mHeatScaleMinThreshold = mri->GetHistoValueFromPercentile(map["HeatScaleMinThresholdInPercentile"].toDouble());
+      }
+
+      if ( map.contains("HeatScaleMidThresholdInPercentile") )
+      {
+        mHeatScaleMidThreshold = mri->GetHistoValueFromPercentile(map["HeatScaleMidThresholdInPercentile"].toDouble());
+      }
+
+      if ( map.contains("HeatScaleMaxThresholdInPercentile") )
+      {
+        mHeatScaleMaxThreshold = mri->GetHistoValueFromPercentile(map["HeatScaleMaxThresholdInPercentile"].toDouble());
+      }
+
+      if ( map.contains("MinGenericThresholdInPercentile") )
+      {
+        mMinGenericThreshold = mri->GetHistoValueFromPercentile(map["MinGenericThresholdInPercentile"].toDouble());
+      }
+
+      if ( map.contains("MaxGenericThresholdInPercentile") )
+      {
+        mMaxGenericThreshold = mri->GetHistoValueFromPercentile(map["MaxGenericThresholdInPercentile"].toDouble());
+      }
+  }
+
   this->OnColorMapChanged();
 }
 
@@ -274,6 +315,7 @@ QVariantMap LayerPropertyMRI::GetSettings()
   map["RememberFrameSettings"] = m_bRememberFrameSettings;
   map["FrameSettings"] = m_frameSettings;
   map["ClearBackground"] = mbClearZero;
+  map["UsePercentile"] = m_bUsePercentile;
   return map;
 }
 
@@ -343,23 +385,40 @@ void LayerPropertyMRI::RestoreFullSettings(const QVariantMap &map)
 QVariantMap LayerPropertyMRI::GetActiveSettings()
 {
   QVariantMap map;
+  LayerMRI* mri = qobject_cast<LayerMRI*>(parent());
   switch (mColorMapType)
   {
   case Grayscale:
     map["MinGrayscaleWindow"] = mMinGrayscaleWindow;
     map["MaxGrayscaleWindow"] = mMaxGrayscaleWindow;
+    if (m_bUsePercentile)
+    {
+        map["MinGrayscaleWindowInPercentile"] = mri->GetHistoPercentileFromValue(mMinGrayscaleWindow);
+        map["MaxGrayscaleWindowInPercentile"] = mri->GetHistoPercentileFromValue(mMaxGrayscaleWindow);
+    }
     break;
   case Heat:
     map["HeatScaleMinThreshold"] = mHeatScaleMinThreshold;
     map["HeatScaleMidThreshold"] = mHeatScaleMidThreshold;
     map["HeatScaleMaxThreshold"] = mHeatScaleMaxThreshold;
     map["HeatScaleOffset"] = mHeatScaleOffset;
+    if (m_bUsePercentile)
+    {
+        map["HeatScaleMinThresholdInPercentile"] = mri->GetHistoPercentileFromValue(mHeatScaleMinThreshold);
+        map["HeatScaleMidThresholdInPercentile"] = mri->GetHistoPercentileFromValue(mHeatScaleMidThreshold);
+        map["HeatScaleMaxThresholdInPercentile"] = mri->GetHistoPercentileFromValue(mHeatScaleMaxThreshold);
+    }
     break;
   case Jet:
   case GEColor:
   case NIH:
     map["MinGenericThreshold"] = mMinGenericThreshold;
     map["MaxGenericThreshold"] = mMaxGenericThreshold;
+    if (m_bUsePercentile)
+    {
+        map["MinGenericThresholdInPercentile"] = mri->GetHistoPercentileFromValue(mMinGenericThreshold);
+        map["MaxGenericThresholdInPercentile"] = mri->GetHistoPercentileFromValue(mMaxGenericThreshold);
+    }
     break;
   }
   if (this->GetShowAsContour())
@@ -369,6 +428,7 @@ QVariantMap LayerPropertyMRI::GetActiveSettings()
       map["MinLabelContourRange"] = m_dLabelContourRange[0];
       map["MaxLabelContourRange"] = m_dLabelContourRange[1];
   }
+  map["UsePercentile"] = (m_bUsePercentile?1.0:0.0);
   return map;
 }
 
