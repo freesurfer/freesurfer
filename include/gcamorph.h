@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/01/13 14:05:16 $
- *    $Revision: 1.113 $
+ *    $Date: 2013/11/15 00:07:19 $
+ *    $Revision: 1.114 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -258,7 +258,7 @@ typedef struct
 MRI_SUBCORTCONN ;
 
 int GCAMdilateUseLikelihood(GCA_MORPH *gcam, int ndilations) ;
-int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam) ;
+int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri) ;
 GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
 int       GCAMcopy(GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst) ;
 int GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_comp);
