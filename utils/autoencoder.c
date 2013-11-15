@@ -13,8 +13,8 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/14 16:17:17 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/11/15 00:03:17 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -265,6 +265,7 @@ SAEaddLayer(SAE *sae, float scale)
 //  noutputs = sae->type == FOCUSED_AUTOENCODER ? 1 : last->v_hidden_bias->rows ;
   ae =  AEalloc(last, noutputs, nhidden, noutputs) ; 
   sae->nencoders++ ;
+  printf("%dth stacked layer added with %d hidden units\n", sae->nencoders-1, nhidden) ;
   return(ae) ;
 }
  
@@ -947,18 +948,19 @@ SAEvectorToMRI(VECTOR *v_input, int nlevels, int whalf, MRI *mri)
 MRI *
 SAEinputWeightsToMRI(SAE *sae, MRI *mri) 
 {
-  int  xk, yk, zk, i, wsize, frame ;
+  int  xk, yk, zk, i, wsize, frame, hidden, n ;
 
   wsize = (2*sae->whalf)+1 ;
 
   if (mri == NULL)
-    mri = MRIallocSequence(wsize, wsize, wsize, MRI_FLOAT, sae->first->v_hidden->rows) ;
+    mri = MRIallocSequence(wsize, wsize, wsize, MRI_FLOAT, sae->first->v_hidden->rows*sae->nlevels) ;
 
-  for (frame = 0 ; frame < mri->nframes ; frame++)
-    for (xk = 0, i = 1 ; xk < wsize ; xk++)
-      for (yk = 0 ; yk < wsize ; yk++)
-	for (zk = 0 ; zk < wsize ; zk++, i++)
-	  MRIsetVoxVal(mri, xk, yk, zk, frame, *MATRIX_RELT(sae->first->m_input_to_hidden, frame+1, i)) ;
+  for (frame = hidden = 0 ; hidden < sae->first->v_hidden->rows ; hidden++)
+    for(i = 1, n = 0 ; n < sae->nlevels ; n++, frame++)
+      for (xk = 0 ; xk < wsize ; xk++)
+	for (yk = 0 ; yk < wsize ; yk++)
+	  for (zk = 0 ; zk < wsize ; zk++, i++)
+	    MRIsetVoxVal(mri, xk, yk, zk, frame, *MATRIX_RELT(sae->first->m_input_to_hidden, hidden+1, i)) ;
 
   return(mri) ;
 }
