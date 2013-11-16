@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/16 19:38:50 $
- *    $Revision: 1.59 $
+ *    $Date: 2013/11/16 18:16:54 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,7 @@ LABEL ;
 
 LABEL *LabelToScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
 LABEL *LabelToVoxel(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
+LABEL *LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
 
 int     LabelIsCompletelyUnassigned(LABEL *area, int *unassigned);
 int     LabelFillUnassignedVertices(MRI_SURFACE *mris,

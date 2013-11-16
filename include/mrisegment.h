@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 20:31:40 $
- *    $Revision: 1.13 $
+ *    $Date: 2013/11/16 18:16:54 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,5 +82,7 @@ int              MRIsegmentMax(MRI_SEGMENTATION *mriseg) ;
 int              MRIsegmentClearIgnoreFlags(MRI_SEGMENTATION *mriseg) ;
 int              MRIfindMaxSegmentNumber(MRI_SEGMENTATION *mriseg) ;
 int              MRIsetSegmentValue(MRI *mri, MRI_SEGMENTATION *mriseg, int s, float val) ;
+#include "label.h"
+LABEL            *MRIsegmentToLabel(MRI_SEGMENTATION *mriseg, MRI *mri, int ind) ;
 
 #endif
