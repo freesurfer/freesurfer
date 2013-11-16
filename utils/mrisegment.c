@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/23 20:31:35 $
- *    $Revision: 1.26 $
+ *    $Date: 2013/11/16 18:16:41 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1069,7 +1069,7 @@ MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg, int min_voxels)
 int
 MRIeraseSmallSegments(MRI_SEGMENTATION *mriseg, MRI *mri_seg, int min_voxels)
 {
-  int         s, v, nerased = 0, x, y, z ;
+  int         s, v, nerased = 0, x, y, z, f ;
   MRI_SEGMENT *mseg ;
 
   if (DIAG_VERBOSE_ON && 0)
@@ -1086,7 +1086,8 @@ MRIeraseSmallSegments(MRI_SEGMENTATION *mriseg, MRI *mri_seg, int min_voxels)
 	  x = mseg->voxels[v].x ; y = mseg->voxels[v].y ; z = mseg->voxels[v].z ;
 	  if (x == Gx && y == Gy && z == Gz)
 	    printf("MRIeraseSmallSegments: erasing (%d, %d %d)\n", x, y, z) ;
-	  MRIsetVoxVal(mri_seg, x, y, z,0, 0) ;
+	  for (f = 0 ; f < mri_seg->nframes ; f++)
+	    MRIsetVoxVal(mri_seg, x, y, z, f, 0) ;
 	  nerased++ ;
 	}
     }
@@ -1298,3 +1299,28 @@ MRIsegmentFill(MRI_SEGMENTATION *mriseg, int s, MRI *mri, float fillval)
   return(mri) ;
 }
 
+#include "label.h"
+LABEL *
+MRIsegmentToLabel(MRI_SEGMENTATION *mriseg, MRI *mri, int ind)
+{
+  LABEL        *area ;
+  int          i ;
+  MRI_SEGMENT *mseg ;
+  double      xs, ys, zs ;
+
+  mseg = &mriseg->segments[ind] ;
+  area = LabelAlloc(mseg->nvoxels,  NULL, NULL) ;
+
+//  area->coords = LABEL_COORDS_VOXEL ;
+  for (i = 0 ; i < mseg->nvoxels ; i++)
+  {
+    MRIvoxelToSurfaceRAS(mri, mseg->voxels[i].x, mseg->voxels[i].y, mseg->voxels[i].z, &xs, &ys, &zs) ;
+    area->lv[i].x = xs ;  ; 
+    area->lv[i].y = ys ;  ; 
+    area->lv[i].z = zs ;  ; 
+    area->lv[i].vno = -1 ;
+  }
+  area->n_points = mseg->nvoxels ;
+//  sprintf(area->space, "voxel") ;
+  return(area) ;
+}

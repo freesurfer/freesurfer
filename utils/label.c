@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/16 19:38:22 $
- *    $Revision: 1.118 $
+ *    $Date: 2013/11/16 18:16:41 $
+ *    $Revision: 1.119 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3541,6 +3541,25 @@ LabelTransform(LABEL *lsrc, TRANSFORM *xform, MRI *mri, LABEL *ldst)
   }
   strncpy (ldst->space, "scanner", sizeof(ldst->space));
   
+  return(ldst) ;
+}
+
+LABEL *
+LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
+{
+  int i ;
+  double      xs, ys, zs ;
+
+  for (i = 0 ; i < lsrc->n_points ; i++)
+  {
+    MRIvoxelToSurfaceRAS(mri, lsrc->lv[i].x, lsrc->lv[i].y, lsrc->lv[i].z, &xs, &ys, &zs) ;
+    ldst->lv[i].x = xs ; ldst->lv[i].y = ys ;  ldst->lv[i].z = zs ;
+    ldst->lv[i].stat = lsrc->lv[i].stat ;
+    ldst->lv[i].vno = lsrc->lv[i].vno ;
+  }
+  strncpy (ldst->space, "voxel", sizeof(ldst->space));
+  ldst->coords = LABEL_COORDS_TKREG_RAS ;
+  strcpy(ldst->space, "TkReg");
   return(ldst) ;
 }
 
