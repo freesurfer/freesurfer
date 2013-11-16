@@ -13,8 +13,8 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/15 00:03:17 $
- *    $Revision: 1.3 $
+ *    $Date: 2013/11/16 18:24:08 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -265,7 +265,7 @@ SAEaddLayer(SAE *sae, float scale)
 //  noutputs = sae->type == FOCUSED_AUTOENCODER ? 1 : last->v_hidden_bias->rows ;
   ae =  AEalloc(last, noutputs, nhidden, noutputs) ; 
   sae->nencoders++ ;
-  printf("%dth stacked layer added with %d hidden units\n", sae->nencoders-1, nhidden) ;
+  printf("stacked layer #%d added with %d hidden units\n", sae->nencoders, nhidden) ;
   return(ae) ;
 }
  
@@ -494,7 +494,7 @@ SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms)
 	  DiagBreak() ;
 	}
       }
-      if (out_fname && ind && !(ind % MAX((nvox/50),2)))
+      if (out_fname && !(ind % MAX((nvox/50),2)))
       {
 	char   fname[STRLEN], path[STRLEN] ;
 
@@ -1039,11 +1039,14 @@ SAEread(char *fname)
 
   n = fscanf(fp, "%d %d %lf %d %d\n", &whalf, &nencoders, &scale, &type, &nlevels) ;
   sae = SAEalloc(whalf, nlevels, type, scale) ;
+  sae->nencoders = nencoders ;
   ae = sae->first = AEread(fp, NULL) ;
   for (i = 1 ; i < nencoders ; i++)
   {
     ae->next = AEread(fp, ae) ;
+    ae->next->prev = ae ;
     ae = ae->next ;
+    printf("layer %d read with %d hidden units\n", i+1, ae->v_hidden->rows) ;
   }
   fclose(fp) ;
   return(sae) ;
