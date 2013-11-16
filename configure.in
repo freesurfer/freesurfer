@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2013/11/03 19:57:28 $
-#    $Revision: 1.604 $
+#    $Date: 2013/11/16 18:15:33 $
+#    $Revision: 1.605 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3570,6 +3570,7 @@ AC_OUTPUT([Makefile
            mri_compute_structure_transforms/Makefile
            mri_make_bem_surfaces/Makefile
            mri_make_density_map/Makefile
+           mri_make_labels/Makefile
            mri_make_register/Makefile
            mri_make_template/Makefile
            mri_map_cpdat/Makefile
