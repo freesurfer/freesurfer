@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/12 21:31:34 $
- *    $Revision: 1.17.2.1 $
+ *    $Date: 2013/11/19 18:51:15 $
+ *    $Revision: 1.17.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,7 +62,8 @@ dilates <label> into bordering vertices labeled unknown
 --ldir labeldir
 
 When getting label file names from the ctab, find the actual label files
-in ldir. This has no effect on the files specified by --l.
+in ldir. If a label file based on the name in the ctab does not exist,
+it is skipped.
 
 --a annotname
 
@@ -160,7 +161,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mris_label2annot.c,v 1.17.2.1 2013/11/12 21:31:34 greve Exp $";
+"$Id: mris_label2annot.c,v 1.17.2.2 2013/11/19 18:51:15 greve Exp $";
 
 
 static int dilate_label_into_unknown(MRI_SURFACE *mris, int annot) ;
@@ -182,7 +183,7 @@ char *CTabFile;
 char *AnnotName=NULL, *AnnotPath=NULL;
 MRIS *mris;
 LABEL *label;
-COLOR_TABLE *ctab = NULL;
+COLOR_TABLE *ctab = NULL, *ctab2 = NULL;
 MRI *nhits;
 char *NHitsFile=NULL;
 MRI *maxstat;
@@ -193,7 +194,7 @@ int labeldirdefault=0;
 int DoLabelThresh = 0;
 double LabelThresh = 0;
 char *surfname = "orig";
-
+int IndexOffset=0;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, nthlabel, n, vtxno, ano, index, nunhit;
@@ -257,7 +258,7 @@ int main(int argc, char *argv[]) {
       printf("ERROR: reading %s\n",LabelFiles[nthlabel]);
       exit(1);
     }
-    index = nthlabel;
+    index = nthlabel+IndexOffset;
     if (MapUnhitToUnknown) index ++;
     ano = index_to_annotation(index);
     printf("%2d %2d %s\n",index,ano,index_to_name(index));
@@ -392,6 +393,17 @@ static int parse_commandline(int argc, char **argv) {
       DoLabelThresh = 1;
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--offset")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&IndexOffset);
+      DoLabelThresh = 1;
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--sd")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      setenv("SUBJECTS_DIR",pargv[0],1);
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--ldir")) {
       if (nargc < 1) CMDargNErr(option,1);
       labeldir = pargv[0];
@@ -441,6 +453,7 @@ static void print_usage(void) {
   printf("   --s subject : FreeSurfer subject \n");
   printf("   --h hemi : hemisphere (lh or rh)\n");
   printf("   --ctab ctabfile : colortable (like FreeSurferColorLUT.txt)\n");
+  printf("   --offset IndexOffset : add to label number to get CTAB index\n");
   printf("   --l label1 <--l label 2 ...> : label file(s)\n");
   printf("   --a annotname : output annotation file (hemi.annotname.annot)\n");
   printf("   --annot-path annotpath : full name/path of annotation file\n");
@@ -450,6 +463,7 @@ static void print_usage(void) {
   printf("   --thresh thresh : threshold label by stats field\n");
   printf("   --maxstatwinner : keep label with highest 'stat' value\n");
   printf("   --surf surfname : default is orig\n");
+  printf("   --sd SUBJECTS_DIR\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --noverbose turn off overlap and stat override messages\n");
@@ -465,79 +479,89 @@ static void print_usage(void) {
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
-  printf("\n");
-  printf("Converts a set of surface labels to an annotation file.\n");
-  printf("\n");
-  printf("--s subject\n");
-  printf("\n");
-  printf("Name of FreeSurfer subject.\n");
-  printf("\n");
-  printf("--h hemi\n");
-  printf("\n");
-  printf("Hemisphere (lh or rh).\n");
-  printf("\n");
-  printf("--ctab colortablefile\n");
-  printf("\n");
-  printf("File that defines the structure names, their indices, and their\n");
-  printf("color. This must have the same format as that found in\n");
-  printf("$FREESUFER_HOME/FreeSurferColorLUT.txt. This can be used to generate\n");
-  printf("the names of the label files (see --l below).\n");
-  printf("\n");
-  printf("--l labelfile1 <--l labelfile2 ...>\n");
-  printf("\n");
-  printf("List of label files. If no label files are specified, then the label\n");
-  printf("file name is constructed from the list in the ctab as\n");
-  printf("hemi.parcname.label.  The labels should be defined on the surface (eg,\n");
-  printf("with tksurfer). The first label will be mapped to index 1 in the color\n");
-  printf("table file. The next label will be mapped to index 2, etc. Verticies\n");
-  printf("that are not mapped to a label are assigned index 0. If --no-unknown\n");
-  printf("is specified, then the first label is mapped to index 0, etc, and\n");
-  printf("unhit vertices are not mapped.\n");
-  printf("\n");
-  printf("--ldir labeldir\n");
-  printf("\n");
-  printf("When getting label file names from the ctab, find the actual label files\n");
-  printf("in ldir. This has no effect on the files specified by --l.\n");
-  printf("\n");
-  printf("--a annotname\n");
-  printf("\n");
-  printf("Name of the annotation to create. The actual file will be called\n");
-  printf("hemi.annotname.annot, and it will be created in subject/label.\n");
-  printf("If this file exists, then mris_label2annot exits immediately\n");
-  printf("with an error message. It is then up to the user to manually\n");
-  printf("delete this file (this is so annotations are not accidentally\n");
-  printf("deleted, which could be a huge inconvenience).\n");
-  printf("\n");
-  printf("--nhits nhitsfile\n");
-  printf("\n");
-  printf("Overlay file with the number of labels for each vertex. Ideally, each\n");
-  printf("vertex would have only one label, but there is not constraint that\n");
-  printf("forces this. If there is more than one label for a vertex, the vertex\n");
-  printf("will be assigned to the last label as specified on the cmd line. This\n");
-  printf("can then be loaded as an overlay in tksurfer (set fthresh to 1.5). This\n");
-  printf("is mainly good for debugging.\n");
-  printf("\n");
-  printf("--no-unknown\n");
-  printf("\n");
-  printf("Start label numbering at index 0 instead of index 1. Do not map unhit\n");
-  printf("vertices (ie, vertices without a label) to 0.\n");
-  printf("\n");
-  printf("EXAMPLE:\n");
-  printf("\n");
-  printf("mris_label2annot --s bert --h lh --ctab aparc.annot.ctab \\\n");
-  printf("  --a myaparc --l lh.unknown.label --l lh.bankssts.label \\\n");
-  printf("  --l lh.caudalanteriorcingulate.label --nhits nhits.mgh\n");
-  printf("\n");
-  printf("This will create lh.myaparc.annot in bert/labels using the three \n");
-  printf("labels specified. Any vertices that have multiple labels will then \n");
-  printf("be stored in nhits.mgh (as a volume-encoded surface file). \n");
-  printf("\n");
-  printf("To view, run:\n");
-  printf("\n");
-  printf("tksurfer bert lh inflated -overlay nhits.mgh -fthresh 1.5\n");
-  printf("\n");
-  printf("Then File->Label->ImportAnnotation and select lh.myaparc.annot.\n");
-  printf("\n");
+printf("\n");
+printf("Converts a set of surface labels to an annotation file.\n");
+printf("\n");
+printf("--s subject\n");
+printf("\n");
+printf("Name of FreeSurfer subject.\n");
+printf("\n");
+printf("--h hemi\n");
+printf("\n");
+printf("Hemisphere (lh or rh).\n");
+printf("\n");
+printf("--ctab colortablefile\n");
+printf("\n");
+printf("File that defines the structure names, their indices, and their\n");
+printf("color. This must have the same format as that found in\n");
+printf("$FREESUFER_HOME/FreeSurferColorLUT.txt. This can be used to generate\n");
+printf("the names of the label files (see --l below).\n");
+printf("\n");
+printf("--l labelfile1 <--l labelfile2 ...>\n");
+printf("\n");
+printf("List of label files. If no label files are specified, then the label\n");
+printf("file name is constructed from the list in the ctab as\n");
+printf("hemi.parcname.label.  The labels should be defined on the surface (eg,\n");
+printf("with tksurfer). The first label will be mapped to index 1 in the color\n");
+printf("table file. The next label will be mapped to index 2, etc. Verticies\n");
+printf("that are not mapped to a label are assigned index 0. If --no-unknown\n");
+printf("is specified, then the first label is mapped to index 0, etc, and\n");
+printf("unhit vertices are not mapped.\n");
+printf("\n");
+printf("--dilate_into_unknown label\n");
+printf("\n");
+printf("dilates <label> into bordering vertices labeled unknown \n");
+printf("\n");
+printf("--ldir labeldir\n");
+printf("\n");
+printf("When getting label file names from the ctab, find the actual label files\n");
+printf("in ldir. If a label file based on the name in the ctab does not exist,\n");
+printf("it is skipped.\n");
+printf("\n");
+printf("--a annotname\n");
+printf("\n");
+printf("Name of the annotation to create. The actual file will be called\n");
+printf("hemi.annotname.annot, and it will be created in subject/label.\n");
+printf("If this file exists, then mris_label2annot exits immediately\n");
+printf("with an error message. It is then up to the user to manually\n");
+printf("delete this file (this is so annotations are not accidentally\n");
+printf("deleted, which could be a huge inconvenience).\n");
+printf("\n");
+printf("--nhits nhitsfile\n");
+printf("\n");
+printf("Overlay file with the number of labels for each vertex. Ideally, each\n");
+printf("vertex would have only one label, but there is not constraint that\n");
+printf("forces this. If there is more than one label for a vertex, the vertex\n");
+printf("will be assigned to the last label as specified on the cmd line. This\n");
+printf("can then be loaded as an overlay in tksurfer (set fthresh to 1.5). This\n");
+printf("is mainly good for debugging.\n");
+printf("\n");
+printf("--no-unknown\n");
+printf("\n");
+printf("Start label numbering at index 0 instead of index 1. Do not map unhit\n");
+printf("vertices (ie, vertices without a label) to 0.\n");
+printf("\n");
+printf("--thresh threshold\n");
+printf("\n");
+printf("Require that the stat field of the vertex in the label be greather \n");
+printf("than threshold.\n");
+printf("\n");
+printf("EXAMPLE:\n");
+printf("\n");
+printf("mris_label2annot --s bert --h lh --ctab aparc.annot.ctab \\\n");
+printf("  --a myaparc --l lh.unknown.label --l lh.bankssts.label \\\n");
+printf("  --l lh.caudalanteriorcingulate.label --nhits nhits.mgh\n");
+printf("\n");
+printf("This will create lh.myaparc.annot in bert/labels using the three\n");
+printf("labels specified. Any vertices that have multiple labels will then\n");
+printf("be stored in nhits.mgh (as a volume-encoded surface file).\n");
+printf("\n");
+printf("To view, run:\n");
+printf("\n");
+printf("tksurfer bert lh inflated -overlay nhits.mgh -fthresh 1.5\n");
+printf("\n");
+printf("Then File->Label->ImportAnnotation and select lh.myaparc.annot.\n");
+printf("\n");
   exit(1) ;
 }
 
@@ -602,12 +626,28 @@ static void check_options(void) {
       sprintf(tmpstr,"%s/%s/label",SUBJECTS_DIR,subject);
       labeldir = strcpyalloc(tmpstr);
     }
-    nlabels = ctab->nentries;
-    for (n=0; n<nlabels; n++) {
+    ctab2 = CTABalloc(ctab->nentries);
+    nlabels = 0;
+    for (n=0; n<ctab->nentries; n++) {
+      if(ctab->entries[n]->name == NULL) continue;
       sprintf(tmpstr,"%s/%s.%s.label",labeldir,hemi,ctab->entries[n]->name);
+      if(!fio_FileExistsReadable(tmpstr)) continue;
       printf("%2d %s\n",n,tmpstr);
-      LabelFiles[n] = strcpyalloc(tmpstr);
+      LabelFiles[nlabels] = strcpyalloc(tmpstr);
+      strcpy(ctab2->entries[nlabels]->name,ctab->entries[n]->name);
+      ctab2->entries[nlabels]->ri = ctab->entries[n]->ri;
+      ctab2->entries[nlabels]->gi = ctab->entries[n]->gi;
+      ctab2->entries[nlabels]->bi = ctab->entries[n]->bi;
+      ctab2->entries[nlabels]->ai = ctab->entries[n]->ai;
+      ctab2->entries[nlabels]->rf = ctab->entries[n]->rf;
+      ctab2->entries[nlabels]->gf = ctab->entries[n]->gf;
+      ctab2->entries[nlabels]->bf = ctab->entries[n]->bf;
+      ctab2->entries[nlabels]->af = ctab->entries[n]->af;
+      nlabels ++;
     }
+    CTABfree(&ctab);
+    ctab = ctab2;
+    //CTABwriteFileASCII(ctab, "new.ctab");
   }
   return;
 }
