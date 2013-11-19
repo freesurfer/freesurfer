@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.90 $
+ *    $Date: 2013/11/19 19:57:35 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -298,13 +298,14 @@ void PanelVolume::DoUpdateWidgets()
     }
   }
   int nColorMap = LayerPropertyMRI::NoColorMap;
+  int nMode = MainWindow::GetMainWindow()->GetMode();
   ui->lineEditFileName->clear();
   if ( layer )
   {
     nColorMap = layer->GetProperty()->GetColorMap();
     bool bPercentile = layer->GetProperty()->GetUsePercentile();
     ui->checkBoxPercentile->setChecked(bPercentile);
-    ui->checkBoxPercentile->setVisible(layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT);
+    ui->checkBoxPercentile->setVisible(layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT && layer->HasValidHistogram());
     ui->sliderOpacity->setValue( (int)( layer->GetProperty()->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, layer->GetProperty()->GetOpacity() );
     ui->checkBoxClearBackground->setChecked( layer->GetProperty()->GetClearZero() );
@@ -338,6 +339,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->comboBoxLookUpTable->setCurrentIndex( nSel >= 0 ? nSel : m_luts->GetCount() );
 
     ChangeLineEditNumber( ui->lineEditBrushValue, layer->GetFillValue() );
+    ui->lineEditBrushValue->setEnabled(nMode != RenderView::IM_ReconEdit);
     double dwindow = layer->GetProperty()->GetWindow();
     double dlevel  = layer->GetProperty()->GetLevel();
     ChangeLineEditNumber( ui->lineEditWindow, dwindow );

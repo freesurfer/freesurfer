@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/25 18:45:13 $
- *    $Revision: 1.137 $
+ *    $Date: 2013/11/19 19:57:35 $
+ *    $Revision: 1.138 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -204,6 +204,8 @@ public:
   }
 
   QList<Layer*> GetSelectedLayers(const QString& layerType);
+
+  int GetMode();
 
 Q_SIGNALS:
   void MainViewChanged( int n );

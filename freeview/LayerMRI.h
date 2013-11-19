@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.89 $
+ *    $Date: 2013/11/19 19:57:35 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -296,6 +296,8 @@ public:
   double GetHistoValueFromPercentile(double percentile);
 
   double GetHistoPercentileFromValue(double value);
+
+  bool HasValidHistogram();
 
 public slots:
   void SetActiveFrame( int nFrame );

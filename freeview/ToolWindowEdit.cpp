@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/14 21:06:02 $
- *    $Revision: 1.35 $
+ *    $Date: 2013/11/19 19:57:35 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -143,7 +143,6 @@ void ToolWindowEdit::UpdateReconMode()
   bool bReconEdit = wnd->GetRenderView(0)->GetInteractionMode() == RenderView::IM_ReconEdit;
   ui->checkBoxReconEditing->setChecked(bReconEdit);
   this->setWindowTitle(bReconEdit ? "Recon Edit" : "Voxel Edit");
-
 }
 
 void ToolWindowEdit::UpdateWidgets( )
@@ -166,6 +165,7 @@ void ToolWindowEdit::OnIdle()
   }
 
   MainWindow* mainwnd = MainWindow::GetMainWindow();
+  bool bReconEdit = mainwnd->GetRenderView(0)->GetInteractionMode() == RenderView::IM_ReconEdit;
   int nViewId = mainwnd->GetActiveViewId();
   if (nViewId > 2 )
   {
@@ -241,6 +241,12 @@ void ToolWindowEdit::OnIdle()
   ui->checkBoxConstrain->setChecked( bp->GetDrawConnectedOnly() );
   ui->checkBoxDrawRange->setChecked( bp->GetDrawRangeEnabled() );
   ui->checkBoxExcludeRange->setChecked( bp->GetExcludeRangeEnabled() );
+
+  if (bReconEdit)
+  {
+    ui->lineEditExcludeRangeLow->setEnabled(false);
+    ui->lineEditExcludeRangeHigh->setEnabled(false);
+  }
 
   m_bToUpdateWidgets = false;
 }

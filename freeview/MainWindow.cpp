@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/15 17:52:20 $
- *    $Revision: 1.261 $
+ *    $Date: 2013/11/19 19:57:35 $
+ *    $Revision: 1.262 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5069,6 +5069,11 @@ void MainWindow::SetMode( int nMode )
     RequestRedraw();
   }
   m_toolWindowEdit->UpdateReconMode();
+}
+
+int MainWindow::GetMode()
+{
+  return m_views[0]->GetInteractionMode();
 }
 
 void MainWindow::OnSetModeNavigate()

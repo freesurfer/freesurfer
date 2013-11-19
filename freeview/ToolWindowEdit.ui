@@ -733,12 +733,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>99</x>
-     <y>266</y>
+     <x>108</x>
+     <y>252</y>
     </hint>
     <hint type="destinationlabel">
-     <x>33</x>
-     <y>299</y>
+     <x>27</x>
+     <y>284</y>
     </hint>
    </hints>
   </connection>
@@ -749,12 +749,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>279</x>
-     <y>266</y>
+     <x>288</x>
+     <y>252</y>
     </hint>
     <hint type="destinationlabel">
-     <x>212</x>
-     <y>299</y>
+     <x>202</x>
+     <y>284</y>
     </hint>
    </hints>
   </connection>
@@ -765,12 +765,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>155</x>
-     <y>266</y>
+     <x>164</x>
+     <y>252</y>
     </hint>
     <hint type="destinationlabel">
-     <x>99</x>
-     <y>299</y>
+     <x>93</x>
+     <y>284</y>
     </hint>
    </hints>
   </connection>
@@ -781,12 +781,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>213</x>
-     <y>266</y>
+     <x>222</x>
+     <y>252</y>
     </hint>
     <hint type="destinationlabel">
-     <x>146</x>
-     <y>299</y>
+     <x>136</x>
+     <y>284</y>
     </hint>
    </hints>
   </connection>
@@ -797,12 +797,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>132</x>
-     <y>328</y>
+     <x>141</x>
+     <y>310</y>
     </hint>
     <hint type="destinationlabel">
-     <x>99</x>
-     <y>361</y>
+     <x>93</x>
+     <y>342</y>
     </hint>
    </hints>
   </connection>
@@ -813,12 +813,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>49</x>
-     <y>328</y>
+     <x>58</x>
+     <y>310</y>
     </hint>
     <hint type="destinationlabel">
-     <x>33</x>
-     <y>361</y>
+     <x>27</x>
+     <y>342</y>
     </hint>
    </hints>
   </connection>
@@ -829,12 +829,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>175</x>
-     <y>328</y>
+     <x>184</x>
+     <y>310</y>
     </hint>
     <hint type="destinationlabel">
-     <x>146</x>
-     <y>361</y>
+     <x>136</x>
+     <y>342</y>
     </hint>
    </hints>
   </connection>
@@ -845,12 +845,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>140</x>
-     <y>390</y>
+     <x>149</x>
+     <y>368</y>
     </hint>
     <hint type="destinationlabel">
-     <x>122</x>
-     <y>423</y>
+     <x>96</x>
+     <y>400</y>
     </hint>
    </hints>
   </connection>
@@ -861,12 +861,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>266</x>
-     <y>328</y>
+     <x>275</x>
+     <y>310</y>
     </hint>
     <hint type="destinationlabel">
-     <x>212</x>
-     <y>361</y>
+     <x>202</x>
+     <y>342</y>
     </hint>
    </hints>
   </connection>
@@ -877,12 +877,12 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>223</x>
-     <y>390</y>
+     <x>232</x>
+     <y>368</y>
     </hint>
     <hint type="destinationlabel">
-     <x>188</x>
-     <y>423</y>
+     <x>162</x>
+     <y>400</y>
     </hint>
    </hints>
   </connection>
@@ -893,8 +893,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnComboReference(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>288</x>
-     <y>133</y>
+     <x>278</x>
+     <y>130</y>
     </hint>
     <hint type="destinationlabel">
      <x>431</x>
@@ -909,8 +909,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnLineEditContourValue(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>163</x>
-     <y>195</y>
+     <x>143</x>
+     <y>190</y>
     </hint>
     <hint type="destinationlabel">
      <x>442</x>
@@ -925,8 +925,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnDrawRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>99</x>
-     <y>299</y>
+     <x>93</x>
+     <y>284</y>
     </hint>
     <hint type="destinationlabel">
      <x>427</x>
@@ -941,8 +941,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnDrawRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>212</x>
-     <y>299</y>
+     <x>202</x>
+     <y>284</y>
     </hint>
     <hint type="destinationlabel">
      <x>324</x>
@@ -957,8 +957,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnExcludeRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>99</x>
-     <y>361</y>
+     <x>93</x>
+     <y>342</y>
     </hint>
     <hint type="destinationlabel">
      <x>365</x>
@@ -973,8 +973,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnExcludeRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>212</x>
-     <y>361</y>
+     <x>202</x>
+     <y>342</y>
     </hint>
     <hint type="destinationlabel">
      <x>344</x>
@@ -989,8 +989,8 @@ Alt + L to turn on/off label outline display mode.</string>
    <slot>OnLineEditSmoothSD(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>188</x>
-     <y>423</y>
+     <x>162</x>
+     <y>400</y>
     </hint>
     <hint type="destinationlabel">
      <x>381</x>
@@ -1073,8 +1073,8 @@ Alt + L to turn on/off label outline display mode.</string>
      <y>56</y>
     </hint>
     <hint type="destinationlabel">
-     <x>148</x>
-     <y>88</y>
+     <x>143</x>
+     <y>100</y>
     </hint>
    </hints>
   </connection>
@@ -1123,6 +1123,86 @@ Alt + L to turn on/off label outline display mode.</string>
     <hint type="destinationlabel">
      <x>472</x>
      <y>177</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxReconEditing</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>checkBoxExcludeRange</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>302</x>
+     <y>58</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>159</x>
+     <y>298</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxReconEditing</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelExcludeRangeLow</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>266</x>
+     <y>65</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>18</x>
+     <y>328</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxReconEditing</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditExcludeRangeLow</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>265</x>
+     <y>60</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>64</x>
+     <y>328</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxReconEditing</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelExcludeRangeHigh</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>265</x>
+     <y>63</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>129</x>
+     <y>325</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxReconEditing</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditExcludeRangeHigh</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>262</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>181</x>
+     <y>326</y>
     </hint>
    </hints>
   </connection>

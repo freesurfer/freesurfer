@@ -42,7 +42,7 @@ void DialogLoadSurfaceOverlay::OnButtonOpen()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select overlay files",
                           m_strLastDir,
-                          "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
+                          "Overlay files (*)");
   if ( !filename.isEmpty() )
   {
     ui->lineEditFile->setText(filename);

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/13 18:12:39 $
- *    $Revision: 1.88 $
+ *    $Date: 2013/11/19 19:57:35 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,7 +77,8 @@ FSVolume::FSVolume( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_bCrop( false ),
   m_bCropToOriginal( false ),
   m_histoCDF( NULL ),
-  m_nHistoFrame(0)
+  m_nHistoFrame(0),
+  m_bValidHistogram(false)
 {
   m_imageData = NULL;
   if ( ref )
@@ -2745,7 +2746,8 @@ void FSVolume::UpdateHistoCDF(int frame)
   MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
   if (fMinValue == fMaxValue)
   {
-    qDebug() << "Could not create histogram because min value is equal to max value.";
+  //  qDebug() << "Could not create histogram because min value is equal to max value.";
+    m_bValidHistogram = false;
     return;
   }
   HISTO *histo = HISTOinit(NULL, 10000, fMinValue, fMaxValue);
@@ -2768,10 +2770,15 @@ void FSVolume::UpdateHistoCDF(int frame)
     }
   }
 
+  if (m_histoCDF)
+    HISTOfree(&m_histoCDF);
+
   m_histoCDF = HISTOmakeCDF(histo, NULL);
   if (!m_histoCDF)
     qDebug() << "Could not create HISTO";
+
   HISTOfree(&histo);
+  m_bValidHistogram = true;
 }
 
 double FSVolume::GetHistoValueFromPercentile(double percentile, int frame)

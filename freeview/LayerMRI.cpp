@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.143 $
+ *    $Date: 2013/11/19 19:57:35 $
+ *    $Revision: 1.144 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3091,5 +3091,10 @@ double LayerMRI::GetHistoValueFromPercentile(double percentile)
 double LayerMRI::GetHistoPercentileFromValue(double value)
 {
   return m_volumeSource ? m_volumeSource->GetHistoPercentileFromValue(value, GetActiveFrame()) : 0;
+}
+
+bool LayerMRI::HasValidHistogram()
+{
+  return m_volumeSource ? m_volumeSource->HasValidHistogram() : false;
 }
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.39 $
+ *    $Date: 2013/11/19 19:57:35 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -194,6 +194,11 @@ public:
 
   double GetHistoPercentileFromValue(double value, int frame = 0);
 
+  bool HasValidHistogram()
+  {
+    return m_bValidHistogram;
+  }
+
 Q_SIGNALS:
   void ProgressChanged( int n );
 
@@ -223,6 +228,7 @@ protected:
   COLOR_TABLE*  m_ctabEmbedded;
   HISTOGRAM*    m_histoCDF;
   int       m_nHistoFrame;
+  bool      m_bValidHistogram;
 
   FSVolume* m_volumeRef;
 
