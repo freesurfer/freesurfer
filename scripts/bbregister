@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/03/25 18:04:53 $
-#    $Revision: 1.49.2.3 $
+#    $Date: 2013/11/21 17:28:55 $
+#    $Revision: 1.49.2.4 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.49.2.3 2013/03/25 18:04:53 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.49.2.4 2013/11/21 17:28:55 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -35,6 +35,7 @@ set outfsl = ();
 set outlta = ();
 set InitFSL = 0;
 set InitSPM = 0;
+set InitRR = 0;
 set SPMUseNII = 0;
 set InitHeader = 0;
 set InitReg = ();
@@ -47,6 +48,7 @@ set DoAbs = 0;
 set SaveCurReg = 1;
 set featdir = ();
 set InitCostFile = ();
+set CostFailThresh = ();
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -60,6 +62,7 @@ set nPowellMax = 36;
 set DOF = 6;
 set FSLDOF = 6;
 set FSLSwapTrans = 0;
+set FSLBETMov = 0;
 set DoPass1 = 1;
 
 set WMProjAbs = 2;
@@ -149,8 +152,10 @@ if($#InitReg == 0) then
   endif
   if($InitFSL) then
     set cmd = (fslregister --s $subject --mov $regvol --reg $InitReg \
-      --niters 1 --maxangle 90 --nobetmov --tmp $tmpdir/fslregister \
+      --niters 1 --maxangle 90 --tmp $tmpdir/fslregister \
       --dof $FSLDOF --fsvol $fsvol.mgz)
+    if($FSLBETMov)   set cmd = ($cmd --betmov)
+    if(! $FSLBETMov) set cmd = ($cmd --nobetmov)
     if($FSLSwapTrans) set cmd = ($cmd --allow-swap --trans)
     if($nolog) set cmd = ($cmd --nolog)
     echo $cmd | tee -a $LF
@@ -162,6 +167,19 @@ if($#InitReg == 0) then
       --tmp $tmpdir/spmregister)
     if($nolog) set cmd = ($cmd --nolog)
     if($SPMUseNII) set cmd = ($cmd --nii)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+  if($InitRR) then
+    set rrlta = $tmpdir/rr.lta
+    set cmd = (mri_robust_register --mov $regvol \
+     --dst $SUBJECTS_DIR/$subject/mri/$fsvol.mgz \
+     --lta $rrlta --cost NMI --nosym);
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    set cmd = (tkregister2_cmdl --mov $regvol --s $subject --lta $rrlta --reg $InitReg)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -244,6 +262,8 @@ echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
+echo "MinCost: `cat $MinCostFile`" | tee -a $LF
+
 # Compute RMS wrt the initial reg (however it was created)
 if($#RMSFile) then
   set rmsdat = ();
@@ -318,6 +338,20 @@ else
 endif
 echo " "
 
+if($#CostFailThresh) then
+  set FinalCost = `cat  $MinCostFile | awk '{print $1}'`
+  set Fail = `echo "$FinalCost > $CostFailThresh" | bc -l`
+  if($Fail) then
+    echo "ERROR: bbregister ran to completion without error, but the " |& tee -a $LF
+    echo "  final cost ($FinalCost) exceed the given threshold ($CostFailThresh)." |& tee -a $LF
+    echo "  Manually check the registration. Look for gross misregistrations,"|& tee -a $LF
+    echo "  left-right flips, or different subject identities for mov and targ."|& tee -a $LF
+    echo "  A gross misregistration probably means the initialization failed."|& tee -a $LF
+    echo "  If the registration is ok, rerun with a higher or no threshold."|& tee -a $LF
+    echo " "
+    exit 1;
+  endif
+endif
 
 exit 0;
 ###############################################
@@ -341,6 +375,7 @@ while( $#argv != 0 )
       goto usage_exit;
       breaksw
 
+    case "--subject":
     case "--s":
       if ( $#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
@@ -420,9 +455,18 @@ while( $#argv != 0 )
       set outlta = $argv[1]; shift;
       breaksw
 
+    case "--init-rr":
+      set InitFSL = 0;
+      set InitSPM = 0;
+      set InitRR = 1;
+      set InitHeader = 0;
+      set InitReg = ();
+      breaksw
+ 
     case "--init-fsl":
       set InitFSL = 1;
       set InitSPM = 0;
+      set InitRR = 0;
       set InitHeader = 0;
       set InitReg = ();
       breaksw
@@ -434,6 +478,7 @@ while( $#argv != 0 )
     case "--init-spm":
       set InitFSL = 0;
       set InitSPM = 1;
+      set InitRR = 0;
       set InitHeader = 0;
       set InitReg = ();
       breaksw
@@ -551,6 +596,11 @@ while( $#argv != 0 )
       set OutVol = $argv[1]; shift;
       breaksw
 
+    case "--cost-fail":
+      if ( $#argv < 1) goto arg1err;
+      set CostFailThresh =  $argv[1]; shift;
+      breaksw
+
     case "--brute1max":
       if ( $#argv < 1) goto arg1err;
       set Brute1Max = $argv[1]; shift;
@@ -654,6 +704,13 @@ while( $#argv != 0 )
     case "--fsl-dof":
       if($#argv < 1) goto arg1err;
       set FSLDOF = $argv[1]; shift;
+      breaksw
+
+    case "--fsl-bet-mov":
+      set FSLBETMov = 1;
+      breaksw
+    case "--no-fsl-bet-mov":
+      set FSLBETMov = 0;
       breaksw
 
     case "--rms":
@@ -772,7 +829,7 @@ check_params:
     exit 1;
   endif
 
-  if(! $InitFSL && ! $InitSPM && ! $InitHeader && ! $#InitReg) then
+  if(! $InitFSL && ! $InitSPM && ! $InitRR && ! $InitHeader && ! $#InitReg) then
     echo "ERROR: must spec an init method"
     exit 1;
   endif
