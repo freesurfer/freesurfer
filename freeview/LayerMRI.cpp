@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/19 19:57:35 $
- *    $Revision: 1.144 $
+ *    $Date: 2013/11/21 03:57:46 $
+ *    $Revision: 1.145 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -760,7 +760,9 @@ void LayerMRI::UpdateColorMap()
 
   for ( int i = 0; i < 3; i++ )
   {
-    mColorMap[i]->SetLookupTable( GetProperty()->GetActiveLookupTable() );
+    mColorMap[i]->SetLookupTable( GetProperty()->GetActiveLookupTable() ); 
+    if (mColorMapMaxProjection[i].GetPointer() != NULL)
+      mColorMapMaxProjection[i]->SetLookupTable(GetProperty()->GetActiveLookupTable());
   }
 
   m_actorContour->GetMapper()->SetLookupTable( GetProperty()->GetActiveLookupTable() );
@@ -2909,6 +2911,7 @@ void LayerMRI::UpdateProjectionMap()
       mColorMapMaxProjection[i]->SetInput(reslice->GetOutput());
       mColorMapMaxProjection[i]->SetLookupTable(GetProperty()->GetActiveLookupTable());
       m_projectionMapActor[i]->SetInput(mColorMapMaxProjection[i]->GetOutput());
+      m_projectionMapActor[i]->InterpolateOff();
     }
   }
   SetVisible(IsVisible());
