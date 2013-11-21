@@ -55,7 +55,10 @@ SUMMARY FILE FORMAT
 
 The summary file is an ascii file in which the segmentation statistics are reported. This file will have some 'header' information. Each header line begins with a '#'. There will be a row for each segmentation reported. The number and meaning of the columns depends somewhat how the program was run. The indentity of each column is given in the header. The first col is the row number. The second col is the segmentation id. The third col is the number of voxels in the segmentation. The fourth col is the volume of the segmentation in mm. If a color table was specified, then the next column will be the segmentation name. If an input volume was specified, then the next five columns will be intensity min, max, range, average, and standard deviation measured across the voxels in the segmentation.</explanation>
       <argument>--annot  subject hemi parc</argument>
-      <explanation>Create a segmentation from hemi.parc.annot. If parc is aparc or aparc.a2005s, then the segmentation numbers will match those in $FREESURFER_HOME/FreeSurferColorLUT.txt (and so aparc+aseg.mgz). The numbering can also be altered with --segbase. If an input is used, it must be a surface ovelay with the same dimension as the parcellation. This functionality makes mri_segstats partially redundant with mris_anatomical_stats.</explanation>
+
+<explanation>Create a segmentation from hemi.parc.annot. If parc is
+aparc or aparc.a2005s, then the segmentation numbers will match those in $FREESURFER_HOME/FreeSurferColorLUT.txt (and so aparc+aseg.mgz). The numbering can also be altered with --segbase. If an input is used, it must be a surface ovelay with the same dimension as the parcellation. This functionality makes mri_segstats partially redundant with mris_anatomical_stats. If parc is a full path to an annotation, then that file is used instead. </explanation>
+
       <argument>--slabel subject hemi label</argument>
       <explanation>Create a segmentation from the given surface label. The points in the label are given a value of 1; 0 for outside.</explanation>
       <argument>--label-thresh threshold</argument>
