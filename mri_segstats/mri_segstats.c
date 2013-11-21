@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/08/20 15:52:54 $
- *    $Revision: 1.101 $
+ *    $Date: 2013/11/21 20:48:30 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,7 +113,7 @@ int CountEdits(char *subject, char *outfile);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.101 2013/08/20 15:52:54 greve Exp $";
+  "$Id: mri_segstats.c,v 1.102 2013/11/21 20:48:30 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -398,8 +398,9 @@ int main(int argc, char **argv)
     sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
     mris = MRISread(tmpstr);
     if (mris==NULL) exit(1);
-    sprintf(tmpstr,"%s/%s/label/%s.%s.annot",SUBJECTS_DIR,subject,hemi,annot);
-    printf("\nReading annotation\n");
+    if(fio_FileExistsReadable(annot))sprintf(tmpstr,"%s",annot);
+    else sprintf(tmpstr,"%s/%s/label/%s.%s.annot",SUBJECTS_DIR,subject,hemi,annot);
+    printf("\nReading annotation %s\n",tmpstr);
     err = MRISreadAnnotation(mris, tmpstr);
     if(err) {
       printf(" ... trying local annot\n");
@@ -1366,6 +1367,7 @@ int main(int argc, char **argv)
     {
       printf("Writing to %s\n",FrameAvgVolFile);
       famri = MRIallocSequence(nsegid,1,1,MRI_FLOAT,invol->nframes);
+      MRIcopyHeader(invol,famri);
       for (f=0; f < invol->nframes; f++){
         for (n=0; n < nsegid; n++)
           MRIsetVoxVal(famri,n,0,0,f,(float)favg[n][f]);
