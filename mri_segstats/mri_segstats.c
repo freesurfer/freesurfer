@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/21 20:48:30 $
- *    $Revision: 1.102 $
+ *    $Date: 2013/11/21 22:46:21 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,7 +113,7 @@ int CountEdits(char *subject, char *outfile);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.102 2013/11/21 20:48:30 greve Exp $";
+  "$Id: mri_segstats.c,v 1.103 2013/11/21 22:46:21 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -131,6 +131,7 @@ char *FrameAvgVolFile = NULL;
 char *SpatFrameAvgFile = NULL;
 int DoFrameAvg = 0;
 int DoFrameSum = 0;
+int RmFrameAvgMn = 0;
 int DoAccumulate = 0;
 int frame = 0;
 int synth = 0;
@@ -1332,6 +1333,7 @@ int main(int argc, char **argv)
 	favgmn[n] += favg[n][f];
       }
       favgmn[n] /= invol->nframes;
+      if(RmFrameAvgMn) for(f=0; f < invol->nframes; f++) favg[n][f] -= favgmn[n];
     }
     printf("\n");
 
@@ -1764,6 +1766,7 @@ static int parse_commandline(int argc, char **argv)
       DoFrameAvg = 1;
       nargsused = 1;
     }
+    else if ( !strcmp(option, "--avgwf-remove-mean") ) RmFrameAvgMn = 1;
     else if ( !strcmp(option, "--sumwf") )
     {
       if (nargc < 1) argnerr(option,1);

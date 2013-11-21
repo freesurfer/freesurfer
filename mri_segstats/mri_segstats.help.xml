@@ -155,6 +155,8 @@ For each segmentation, computes the average waveform across all the voxels in th
       <explanation>Same as --avgwf but computes the sum instead of average</explanation>
       <argument>--avgwfvol mrivol</argument>
       <explanation>Same as --avgwf except that the resulting waveforms are stored in a binary mri volume format (eg, analyze, nifti, mgh, etc) with number of columns equal to the number segmentations, number of rows = slices = 1, and the number of frames equal that of the input volume. This may be more convenient than saving as an ascii text file. The order of segmentations is the same order as in the summary file.</explanation>
+      <argument>--avgwf-remove-mean </argument>
+      <explanation>Remove temporal mean from avgwf and avgwfvol </explanation>
       <argument>--sfavg textfile</argument>
       <explanation>save mean across space and frame</explanation>
       <argument>--vox C R S</argument>
