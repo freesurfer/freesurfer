@@ -1,4 +1,4 @@
-function [vertices, label, colortable] = Read_Brain_Annotation(filename, varargin)
+function [vertices, label, colortable] = read_annotation(filename, varargin)
 %
 % NAME
 %
@@ -58,14 +58,20 @@ function [vertices, label, colortable] = Read_Brain_Annotation(filename, varargi
 %       o <colortable> will be an empty struct if not embedded in a
 %         FreeSurfer annotation file. 
 %       
+% EXAMPLE
+% [vertices label ctab] = read_annotation(fname);
+% stgctab = strmatch('superiortemporal',char(ctab.struct_names));
+% stgcode = ctab.table(stgctab,5);
+% indstg = find(label==stgcode)+1;
+% nstg = length(indstg);
 
 %
 % read_annotation.m
 % Original Author: Bruce Fischl
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:12 $
-%    $Revision: 1.7 $
+%    $Author: greve $
+%    $Date: 2013/11/21 21:38:35 $
+%    $Revision: 1.8 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
