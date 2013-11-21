@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/05 20:25:29 $
- *    $Revision: 1.71 $
+ *    $Date: 2013/11/21 21:31:19 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -929,7 +929,8 @@ bool RenderView3D::UpdateBounds()
 
   m_dBoundingTolerance = dMaxLength * 0.02;
   UpdateSliceFrames();
-  m_cursor3D->RebuildActor(dMaxLength/256);
+  if (dMaxLength > 0)
+    m_cursor3D->RebuildActor(dMaxLength/256);
 
   return true;
 }
@@ -1034,13 +1035,16 @@ void RenderView3D::UpdateScalarBar()
 void RenderView3D::TriggerContextMenu( QMouseEvent* event )
 {
   QMenu* menu = new QMenu(this);
-  menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSlices);
-  menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSliceFrames);
   bool bShowBar = this->GetShowScalarBar();
   MainWindow* mainwnd = MainWindow::GetMainWindow();
   QList<Layer*> layers = mainwnd->GetLayers("Surface");
   layers << mainwnd->GetLayers("MRI");
   layers << mainwnd->GetLayers("PointSet");
+  menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSlices);
+  if (!mainwnd->GetLayers("MRI").isEmpty())
+  {
+    menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSliceFrames);
+  }
   if (!layers.isEmpty())
   {
     QMenu* menu2 = menu->addMenu("Show Color Bar");

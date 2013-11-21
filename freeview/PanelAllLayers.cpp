@@ -4,6 +4,7 @@
 #include "MainWindow.h"
 #include "LayerCollection.h"
 #include <QDebug>
+#include <QSettings>
 
 PanelAllLayers::PanelAllLayers(QWidget *parent) :
   QScrollArea(parent),
@@ -31,10 +32,25 @@ PanelAllLayers::PanelAllLayers(QWidget *parent) :
     if (panel)
       panel->InitializeLayerTreeWidget(ui->treeWidgetLayers);
   }
+
+  QSettings s;
+  QVariant v = s.value("ControlPanel/SplitterState");
+  if (v.isValid())
+  {
+    ui->splitterControlPanel->restoreState( v.toByteArray());
+  }
+  else
+  {
+    QList<int> sizes;
+    sizes << 120 << ui->splitterControlPanel->size().height()-120;
+    ui->splitterControlPanel->setSizes(sizes);
+  }
 }
 
 PanelAllLayers::~PanelAllLayers()
 {
+  QSettings s;
+  s.setValue("ControlPanel/SplitterState", ui->splitterControlPanel->saveState());
   delete ui;
 }
 

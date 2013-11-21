@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/23 17:09:27 $
- *    $Revision: 1.65 $
+ *    $Date: 2013/11/21 21:31:18 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -127,11 +127,7 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
 
     mri->Append2DProps( m_renderer, m_nViewPlane );
 
-    // add annotation and cursor
-    if (!bForScreenShot || !setting.HideCursor)
-    {
-      m_cursor2D->AppendActor( m_renderer );
-    }
+    // add annotation
     if (!bForScreenShot || !setting.HideCoords)
     {
       m_annotation2D->AppendAnnotations( m_renderer );
@@ -140,6 +136,14 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
 
     // add scalar bar
     m_renderer->AddViewProp( m_actorScalarBar );
+  }
+
+  if (!mainwnd->IsEmpty())
+  {
+    if (!bForScreenShot || !setting.HideCursor)
+    {
+      m_cursor2D->AppendActor( m_renderer );
+    }
   }
 
   mainwnd->GetLayerCollection( "ROI" )->Append2DProps( m_renderer, m_nViewPlane );
