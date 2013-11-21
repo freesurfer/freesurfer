@@ -62,7 +62,7 @@ function [vertices, label, colortable] = read_annotation(filename, varargin)
 % [vertices label ctab] = read_annotation(fname);
 % stgctab = strmatch('superiortemporal',char(ctab.struct_names));
 % stgcode = ctab.table(stgctab,5);
-% indstg = find(label==stgcode)+1;
+% indstg = find(label==stgcode);
 % nstg = length(indstg);
 
 %
@@ -70,8 +70,8 @@ function [vertices, label, colortable] = read_annotation(filename, varargin)
 % Original Author: Bruce Fischl
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2013/11/21 21:38:35 $
-%    $Revision: 1.8 $
+%    $Date: 2013/11/21 21:50:53 $
+%    $Revision: 1.9 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
