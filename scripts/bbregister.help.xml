@@ -37,6 +37,8 @@
       <argument>--reg register.dat</argument>
       <explanation>Output FreeSurfer (tkregister-style) registration file (simple text).</explanation>
       <intro>Initialization Arguments (one required)</intro>
+      <argument>--init-rr</argument>
+      <explanation>Initialize using NMI as implemented in mri_robust_register.</explanation>
       <argument>--init-fsl</argument>
       <explanation>Initialize using FSL FLIRT (requires that FSL be installed).</explanation>
       <argument>--init-spm</argument>
@@ -131,10 +133,14 @@
       <explanation>save initial reg</explanation>
       <argument>--initcost initcostfile</argument>
       <explanation>save initial cost</explanation>
+      <argument>--cost-fail costvalue</argument>
+      <explanation>exit with error if the final cost exceeds costvalue </explanation>
       <argument>--spm-nii</argument>
       <explanation>Use NIFTI format as input to SPM when using --init-spm (spmregister). Ordinarily, it uses ANALYZE images to be compatible with older versions of SPM, but this has caused some left-right reversals in SPM8.</explanation>
       <argument>--feat featdir</argument>
       <explanation>FSL FEAT directory. Sets mov to featdir/example_func, uses --init-fsl, --bold, sets reg to featdir/reg/freesurfer/anat2exf.register.dat. This replaces reg-feat2anat.</explanation>
+      <argument>--fsl-bet-mov</argument>
+      <explanation> When using FSL, apply BET to mov volume (turned by default).</explanation>
       <argument>--tmp tmpdir</argument>
       <explanation>temporary dir (implies --nocleanup)</explanation>
       <argument>--nocleanup</argument>
