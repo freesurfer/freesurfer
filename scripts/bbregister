@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/03/25 18:04:29 $
-#    $Revision: 1.56 $
+#    $Date: 2013/11/21 17:28:08 $
+#    $Revision: 1.57 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.56 2013/03/25 18:04:29 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.57 2013/11/21 17:28:08 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -48,6 +48,7 @@ set DoAbs = 0;
 set SaveCurReg = 1;
 set featdir = ();
 set InitCostFile = ();
+set CostFailThresh = ();
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -261,6 +262,8 @@ echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
+echo "MinCost: `cat $MinCostFile`" | tee -a $LF
+
 # Compute RMS wrt the initial reg (however it was created)
 if($#RMSFile) then
   set rmsdat = ();
@@ -335,6 +338,20 @@ else
 endif
 echo " "
 
+if($#CostFailThresh) then
+  set FinalCost = `cat  $MinCostFile | awk '{print $1}'`
+  set Fail = `echo "$FinalCost > $CostFailThresh" | bc -l`
+  if($Fail) then
+    echo "ERROR: bbregister ran to completion without error, but the " |& tee -a $LF
+    echo "  final cost ($FinalCost) exceed the given threshold ($CostFailThresh)." |& tee -a $LF
+    echo "  Manually check the registration. Look for gross misregistrations,"|& tee -a $LF
+    echo "  left-right flips, or different subject identities for mov and targ."|& tee -a $LF
+    echo "  A gross misregistration probably means the initialization failed."|& tee -a $LF
+    echo "  If the registration is ok, rerun with a higher or no threshold."|& tee -a $LF
+    echo " "
+    exit 1;
+  endif
+endif
 
 exit 0;
 ###############################################
@@ -577,6 +594,11 @@ while( $#argv != 0 )
     case "--o":
       if ( $#argv < 1) goto arg1err;
       set OutVol = $argv[1]; shift;
+      breaksw
+
+    case "--cost-fail":
+      if ( $#argv < 1) goto arg1err;
+      set CostFailThresh =  $argv[1]; shift;
       breaksw
 
     case "--brute1max":
