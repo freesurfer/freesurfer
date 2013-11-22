@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/23 17:09:26 $
- *    $Revision: 1.21 $
+ *    $Date: 2013/11/22 18:15:07 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,12 +31,12 @@
 #include <QFile>
 #include <QTextStream>
 #include <vector>
+#include <QDebug>
 
 using namespace std;
 
 FSLabel::FSLabel( QObject* parent ) : QObject( parent ),
-  m_label( NULL ),
-  m_bTkReg( true )
+  m_label( NULL )
 {}
 
 FSLabel::~FSLabel()
@@ -59,25 +59,6 @@ bool FSLabel::LabelRead( const QString& filename )
   {
     cerr << "LabelRead failed\n";
     return false;
-  }
-
-  QFile file( filename );
-  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-  {
-    cerr << qPrintable(file.errorString()) << "\n";
-    return false;
-  }
-
-  QTextStream in(&file);
-  while (!in.atEnd())
-  {
-    QString line = in.readLine();
-    if ( line.contains( "vox2ras=" ) &&
-         !line.contains( "vox2ras=TkReg" ) )
-    {
-      m_bTkReg = false;
-      break;
-    }
   }
 
   return true;
@@ -224,6 +205,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
 
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
   m_label->n_points = nCount;
+  m_label->coords = LABEL_COORDS_TKREG_RAS;
   for ( int i = 0; i < nCount; i++ )
   {
     m_label->lv[i].x = values[i*4];
@@ -254,7 +236,11 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
     pos[0] = m_label->lv[i].x;
     pos[1] = m_label->lv[i].y;
     pos[2] = m_label->lv[i].z;
-    if ( m_bTkReg )
+    if ( m_label->coords == LABEL_COORDS_VOXEL )
+    {
+      MRIvoxelToWorld(ref_vol->GetMRI(), pos[0], pos[1], pos[2], pos, pos+1, pos+2);
+    }
+    else if (m_label->coords == LABEL_COORDS_TKREG_RAS)
     {
       ref_vol->TkRegToNativeRAS( pos, pos );
     }
@@ -294,7 +280,12 @@ void FSLabel::GetCentroidRASPosition(double* pos, FSVolume* ref_vol)
     pos[0] = x / m_label->n_points;
     pos[1] = y / m_label->n_points;
     pos[2] = z / m_label->n_points;
-    if ( m_bTkReg )
+
+    if ( m_label->coords == LABEL_COORDS_VOXEL )
+    {
+      MRIvoxelToWorld(ref_vol->GetMRI(), pos[0], pos[1], pos[2], pos, pos+1, pos+2);
+    }
+    else if (m_label->coords == LABEL_COORDS_TKREG_RAS)
     {
       ref_vol->TkRegToNativeRAS( pos, pos );
     }
