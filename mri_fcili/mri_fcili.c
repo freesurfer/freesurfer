@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/22 19:14:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2013/11/22 19:41:44 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_fcili.c,v 1.2 2013/11/22 19:14:06 greve Exp $
+// $Id: mri_fcili.c,v 1.3 2013/11/22 19:41:44 greve Exp $
 
 /*
   BEGINHELP
@@ -74,7 +74,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 MRI *MRIfcIntrinsicLI(MRI *lh, MRI *rh, double DenThresh);
 
-static char vcid[] = "$Id: mri_fcili.c,v 1.2 2013/11/22 19:14:06 greve Exp $";
+static char vcid[] = "$Id: mri_fcili.c,v 1.3 2013/11/22 19:41:44 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -113,14 +113,6 @@ int main(int argc, char *argv[]) {
   if (checkoptsonly) return(0);
   dump_options(stdout);
 
-  printf("Creating output directory %s\n",outdir);
-  err = mkdir(outdir,0777);
-  if (err != 0 && errno != EEXIST) {
-    printf("ERROR: creating directory %s\n",outdir);
-    perror(NULL);
-    exit(1);
-  }
-
   lh = MRIread(lhfile);
   if(lh == NULL) exit(1);
   rh = MRIread(rhfile);
@@ -141,6 +133,13 @@ int main(int argc, char *argv[]) {
   printf("nrois = %d\n",nrois);
   printf("nframes = %d\n",nframes);
   fflush(stdout);
+
+  err = mkdir(outdir,0777);
+  if (err != 0 && errno != EEXIST) {
+    printf("ERROR: creating directory %s\n",outdir);
+    perror(NULL);
+    exit(1);
+  }
 
   printf("Allocating\n");fflush(stdout);
   iLI = MRIalloc(nrois,nrois,1,MRI_FLOAT);
