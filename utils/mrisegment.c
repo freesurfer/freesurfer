@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/16 18:16:41 $
- *    $Revision: 1.27 $
+ *    $Date: 2013/11/22 19:41:07 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -950,6 +950,9 @@ MRIcompactSegments(MRI_SEGMENTATION *mriseg)
     if (mriseg->segments[s].nvoxels == 0)
       break;
   }
+  if (mriseg->nsegments == 0)
+    return(NO_ERROR) ;  // nothing left after compacting
+
   newseg = (MRI_SEGMENT *) realloc(mriseg->segments, s*sizeof(MRI_SEGMENT));
   if (newseg)
   {
@@ -961,8 +964,17 @@ MRIcompactSegments(MRI_SEGMENTATION *mriseg)
   }
   else
   {
-    ErrorExit(ERROR_NOMEMORY,
-              "MRIcompactSegments(): could not realloc mriseg") ;
+    MRI_SEGMENT *oldseg = mriseg->segments ;
+
+    newseg = (MRI_SEGMENT *) calloc(s, sizeof(MRI_SEGMENT));
+    if (newseg == NULL)
+      ErrorExit(ERROR_NOMEMORY,
+		"MRIcompactSegments(): could not alloc mriseg with %d segments",mriseg->nsegments) ;
+    memmove(newseg, oldseg, s*sizeof(MRI_SEGMENT)) ;
+    free(oldseg) ;
+    mriseg->segments = newseg;
+    mriseg->max_segments = s;
+    mriseg->nsegments = s;
   }
   return(NO_ERROR) ;
 }

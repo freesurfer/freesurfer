@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/11/12 03:15:51 $
- *    $Revision: 1.87 $
+ *    $Author: fischl $
+ *    $Date: 2013/11/22 19:41:07 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2724,7 +2724,8 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
     {
       for (x = 0 ; x < width ; x++)
       {
-        if (x == Gx && y == Gy && z == Gz) DiagBreak() ;
+        if (x == Gx && y == Gy && z == Gz) 
+	  DiagBreak() ;
         mask_val = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
         for (f = 0; f < nframes; f++)
         {
@@ -3944,6 +3945,35 @@ MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label)
   return(mean_min_dist) ;
 }
 
+int
+MRIcomputeCentroid(MRI *mri, double *pxc, double *pyc, double *pzc) 
+{
+  int    x, y, z ;
+  double xc, yc, zc, val, norm ;
+
+  for (xc = yc = zc = 0.0, norm = 0.0, x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	if (FZERO(val))
+	  continue ;
+	norm += val ;
+	xc += val*x; yc += val*y; zc += val*z;
+      }
+    }
+  }
+  
+  if (norm>0)
+  {
+    xc /= norm;  yc /= norm;  zc /= norm; 
+  }
+  *pxc = xc ; *pyc = yc ; *pzc = zc ;
+  
+  return(NO_ERROR) ;
+}
 int
 MRIcomputeLabelCentroid(MRI *mri_aseg, int label, 
 												double *pxc, double *pyc, double *pzc)
