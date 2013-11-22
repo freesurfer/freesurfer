@@ -13,8 +13,8 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/16 18:24:08 $
- *    $Revision: 1.4 $
+ *    $Date: 2013/11/22 19:42:15 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -431,8 +431,8 @@ SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms)
     ErrorExit(ERROR_NOMEMORY, "SAEtrainFromMRI: could not allocate permutation indices") ;
 
   ae_train = SAEfindLastLayer(sae, NULL) ;
-  last_total_rms = 0 ;
-  last_total_rms = SAEcomputeTotalRMS(sae, mri_pyramid) ;
+  last_total_rms = 1 ;
+//  last_total_rms = SAEcomputeTotalRMS(sae, mri_pyramid) ;
   printf("%3.3d: rms = %2.4f\n", iter, last_total_rms) ;
   if (Gx >= 0)
   {
@@ -507,7 +507,11 @@ SAEtrainFromMRI(SAE *sae, MRI **mri_pyramid, SAE_INTEGRATION_PARMS *parms)
 	}
       }
     }
+#if 0
     total_rms = SAEcomputeTotalRMS(sae, mri_pyramid) ;
+#else
+    total_rms /= visited ; last_total_rms = running_last_rms / visited ;
+#endif
     pct_decrease = 100 * (last_total_rms - total_rms) / (last_total_rms + total_rms) ;
     last_total_rms = total_rms ;
     printf("%3.3d: rms = %2.4f (%2.3f%%)\n", ++iter, total_rms, pct_decrease) ;
