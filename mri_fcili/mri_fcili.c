@@ -1,15 +1,15 @@
 /**
- * @file  dummy.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @file  mri_fcili.c
+ * @brief Computes intrinsic laterality index (iLI) based on supplied waveforms.
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/22 17:48:15 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/11/22 19:14:06 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_fcili.c,v 1.1 2013/11/22 17:48:15 greve Exp $
+// $Id: mri_fcili.c,v 1.2 2013/11/22 19:14:06 greve Exp $
 
 /*
   BEGINHELP
@@ -52,6 +52,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "macros.h"
 #include "utils.h"
@@ -60,6 +62,7 @@
 #include "cmdargs.h"
 #include "error.h"
 #include "diag.h"
+#include "mri.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -69,20 +72,28 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
+MRI *MRIfcIntrinsicLI(MRI *lh, MRI *rh, double DenThresh);
 
-static char vcid[] = "$Id: mri_fcili.c,v 1.1 2013/11/22 17:48:15 greve Exp $";
+static char vcid[] = "$Id: mri_fcili.c,v 1.2 2013/11/22 19:14:06 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
+char tmpstr[4000];
 
-char *TempVolFile=NULL;
-char *subject, *hemi, *SUBJECTS_DIR;
+char *outdir=NULL;
+char *lhfile=NULL, *rhfile=NULL;
+char *outfmt = "nii.gz";
+double DenThresh = 0.2;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs;
+  int nargs,err;
+  MRI *lh, *rh;
+  MRI *lhn, *rhn, *iLI, *vLL, *vLR, *vRL, *vRR;
+  int c,f, nrois, roi1, roi2, nframes;
+  double v,ss, v1,v2,den,num, LL, LR, RL, RR;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -102,22 +113,166 @@ int main(int argc, char *argv[]) {
   if (checkoptsonly) return(0);
   dump_options(stdout);
 
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if (SUBJECTS_DIR == NULL) {
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+  printf("Creating output directory %s\n",outdir);
+  err = mkdir(outdir,0777);
+  if (err != 0 && errno != EEXIST) {
+    printf("ERROR: creating directory %s\n",outdir);
+    perror(NULL);
     exit(1);
   }
 
-  return 0;
+  lh = MRIread(lhfile);
+  if(lh == NULL) exit(1);
+  rh = MRIread(rhfile);
+  if(rh == NULL) exit(1);
+
+  if(lh->nframes != rh->nframes){
+    printf("ERROR: mri_fcili: frame mismatch\n");
+    exit(1);
+  }
+  nframes = lh->nframes;
+
+  if(lh->width != rh->width){
+    printf("ERROR: mri_fcili: roi mismatch\n");
+    exit(1);
+  }
+  nrois = lh->width;
+
+  printf("nrois = %d\n",nrois);
+  printf("nframes = %d\n",nframes);
+  fflush(stdout);
+
+  printf("Allocating\n");fflush(stdout);
+  iLI = MRIalloc(nrois,nrois,1,MRI_FLOAT);
+  if(iLI == NULL){
+    printf("ERROR: mri_fcili: could not alloc %d\n",nrois);
+    exit(1);
+  }
+  vLL = MRIalloc(nrois,nrois,1,MRI_FLOAT);
+  if(vLL == NULL){
+    printf("ERROR: mri_fcili: could not alloc vLL %d\n",nrois);
+    exit(1);
+  }
+  vLR = MRIalloc(nrois,nrois,1,MRI_FLOAT);
+  if(vLR == NULL){
+    printf("ERROR: mri_fcili: could not alloc vLR %d\n",nrois);
+    exit(1);
+  }
+  vRL = MRIalloc(nrois,nrois,1,MRI_FLOAT);
+  if(vRL == NULL){
+    printf("ERROR: mri_fcili: could not alloc vRL %d\n",nrois);
+    exit(1);
+  }
+  vRR = MRIalloc(nrois,nrois,1,MRI_FLOAT);
+  if(vRR == NULL){
+    printf("ERROR: mri_fcili: could not alloc vRR %d\n",nrois);
+    exit(1);
+  }
+
+  // Temporal normalization
+  printf("Normalizing\n");fflush(stdout);
+  lhn = MRIcopy(lh,NULL);
+  rhn = MRIcopy(rh,NULL);
+  for(c=0; c < nrois; c++){
+    ss = 0;
+    for(f=0; f < nframes; f++){
+      v = MRIgetVoxVal(lh,c,0,0,f);
+      ss += (v*v);
+    }
+    ss = sqrt(ss);
+    for(f=0; f < nframes; f++){
+      v = MRIgetVoxVal(lh,c,0,0,f);
+      MRIsetVoxVal(lhn,c,0,0,f, v/ss);
+    }
+    ss = 0;
+    for(f=0; f < nframes; f++){
+      v = MRIgetVoxVal(rh,c,0,0,f);
+      ss += (v*v);
+    }
+    ss = sqrt(ss);
+    for(f=0; f < nframes; f++){
+      v = MRIgetVoxVal(rh,c,0,0,f);
+      MRIsetVoxVal(rhn,c,0,0,f, v/ss);
+    }
+  }
+  //MRIwrite(lhn,"lhn.nii");
+  //MRIwrite(rhn,"rhn.nii");
+
+  printf("Computing iLI\n");fflush(stdout);
+  for(roi1 = 0; roi1 < nrois; roi1++){
+    for(roi2 = 0; roi2 < nrois; roi2++){
+
+      LL = 0;
+      for(f=0; f < nframes; f++){
+	v1 = MRIgetVoxVal(lhn,roi1,0,0,f);
+	v2 = MRIgetVoxVal(lhn,roi2,0,0,f);
+	LL += (v1*v2);
+      }
+      LR = 0;
+      for(f=0; f < nframes; f++){
+	v1 = MRIgetVoxVal(lhn,roi1,0,0,f);
+	v2 = MRIgetVoxVal(rhn,roi2,0,0,f);
+	LR += (v1*v2);
+      }
+      RL = 0; // not the same as LR (matrices are transposes)
+      for(f=0; f < nframes; f++){
+	v1 = MRIgetVoxVal(rhn,roi1,0,0,f);
+	v2 = MRIgetVoxVal(lhn,roi2,0,0,f);
+	RL += (v1*v2);
+      }
+      RR = 0;
+      for(f=0; f < nframes; f++){
+	v1 = MRIgetVoxVal(rhn,roi1,0,0,f);
+	v2 = MRIgetVoxVal(rhn,roi2,0,0,f);
+	RR += (v1*v2);
+      }
+
+      num = ((LL-RL)-(RR-LR));
+      den = (fabs(LL)+fabs(LR)+fabs(RR)+fabs(RL));
+      if(den>DenThresh) v = num/den;
+      else              v = 0.0;
+      MRIsetVoxVal(iLI,roi1,roi2,0,0, v);
+      MRIsetVoxVal(vLL,roi1,roi2,0,0, LL);
+      MRIsetVoxVal(vLR,roi1,roi2,0,0, LR);
+      MRIsetVoxVal(vRL,roi1,roi2,0,0, RL);
+      MRIsetVoxVal(vRR,roi1,roi2,0,0, RR);
+
+    } // roi2
+  } // roi1
+
+  MRIfree(&lhn);
+  MRIfree(&rhn);
+
+  printf("Saving ...\n");fflush(stdout);
+  sprintf(tmpstr,"%s/iLI.%s",outdir,outfmt);
+  printf("writing iLI to %s\n",tmpstr);
+  err = MRIwrite(iLI,tmpstr);
+  if(err) exit(1);
+
+  sprintf(tmpstr,"%s/LL.%s",outdir,outfmt);
+  printf("writing LL to %s\n",tmpstr);
+  err = MRIwrite(vLL,tmpstr);
+  if(err) exit(1);
+
+  sprintf(tmpstr,"%s/LR.%s",outdir,outfmt);
+  printf("writing LR to %s\n",tmpstr);
+  err = MRIwrite(vLR,tmpstr);
+  if(err) exit(1);
+
+  sprintf(tmpstr,"%s/RL.%s",outdir,outfmt);
+  printf("writing RL to %s\n",tmpstr);
+  err = MRIwrite(vRL,tmpstr);
+  if(err) exit(1);
+
+  sprintf(tmpstr,"%s/RR.%s",outdir,outfmt);
+  printf("writing RR to %s\n",tmpstr);
+  err = MRIwrite(vRR,tmpstr);
+  if(err) exit(1);
+
+  printf("mri_fcili done\n");
+  exit(0);
 }
-/* ------ Doxygen markup starts on the line below ---- */
-/*!
-\fn int parse_commandline(int argc, char **argv)
-\brief Parses the command-line arguments
-\param argc - number of command line arguments
-\param argv - pointer to a character pointer
-*/
-/* ------ Doxygen markup ends on the line above ---- */
+/* ------------------------------------------------*/
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
@@ -141,11 +296,32 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
 
-    else if (!strcasecmp(option, "--temp-vol")) {
+    else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
-      TempVolFile = pargv[0];
+      outdir = pargv[0];
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcasecmp(option, "--fmt")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outfmt = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--den-thresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      scanf(pargv[0],"%ld",&DenThresh);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--lh")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      lhfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--rh")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      rhfile = pargv[0];
+      nargsused = 1;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -156,26 +332,36 @@ static int parse_commandline(int argc, char **argv) {
   }
   return(0);
 }
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
-/*!
-\fn static void usage_exit(void)
-\brief Prints usage and exits
-*/
-/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
+/*-----------------------------------------------------------*/
+static void check_options(void) {
+  if(outdir == NULL){
+    printf("ERROR: must spec output dir\n");
+    exit(1);
+  }
+  if(lhfile == NULL){
+    printf("ERROR: must spec lh time course file\n");
+    exit(1);
+  }
+  if(rhfile == NULL){
+    printf("ERROR: must spec rh time course file\n");
+    exit(1);
+  }
+  return;
+}
+/* ------------------------------------------------*/
 static void usage_exit(void) {
   print_usage() ;
   exit(1) ;
 }
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
-/*!
-\fn static void print_usage(void)
-\brief Prints usage and returns (does not exit)
-*/
-/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
+/*-----------------------------------------------------------*/
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --temp-vol volfile : template volume \n");
+  printf("   --o outputdir \n");
+  printf("   --lh lhtimecourses (nii, mgh, etc) \n");
+  printf("   --rh rhtimecourses (nii, mgh, etc) \n");
+  printf("   --den-thresh thesh : denominator threshold (%g) \n",DenThresh);
+  printf("   --fmt extension : output format (%s) \n",outfmt);
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -185,44 +371,23 @@ static void print_usage(void) {
   printf("%s\n", vcid) ;
   printf("\n");
 }
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
-/*!
-\fn static void print_help(void)
-\brief Prints help and exits
-*/
-/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
+/*-----------------------------------------------------------*/
 static void print_help(void) {
   print_usage() ;
-  printf("WARNING: this program is not yet tested!\n");
+  printf("This program computes the intrinsic laterality index (iLI)\n");
+  printf("based on left hemisphere and right hemisphere registered\n");
+  printf("waveforms. Based on Liu, et al, PNAS, 2009, vol 106\n");
+  printf("Evidence from intrinsic activity that asymmetry of the\n");
+  printf("human brain is controlled by multiple factors.\n");
+  printf("\n");
   exit(1) ;
 }
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
-/*!
-\fn static void print_version(void)
-\brief Prints version and exits
-*/
-/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
+/*-----------------------------------------------------------*/
 static void print_version(void) {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
-/*!
-\fn static void check_options(void)
-\brief Checks command-line options
-*/
-/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
-static void check_options(void) {
-  return;
-}
-
-/* -- Doxygen markup starts on the line below (this line not needed for Doxygen) -- */
-/*!
-\fn static void dump_options(FILE *fp)
-\brief Prints command-line options to the given file pointer
-\param FILE *fp - file pointer
-*/
-/* ------ Doxygen markup ends on the line above  (this line not needed for Doxygen) -- */
+/*-----------------------------------------------------------*/
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
   fprintf(fp,"%s\n",vcid);
@@ -232,6 +397,109 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
+  fprintf(fp,"lhfile   %s\n",lhfile);
+  fprintf(fp,"rhfile   %s\n",rhfile);
+  fprintf(fp,"outdir   %s\n",outdir);
+  fprintf(fp,"outfmt   %s\n",outfmt);
+  fprintf(fp,"DenThresh  %g\n",DenThresh);
 
   return;
 }
+
+/*-----------------------------------------------------------*/
+
+MRI *MRIfcIntrinsicLI(MRI *lh, MRI *rh, double DenThresh)
+{
+  MRI *lhn, *rhn, *iLI;
+  int c,f, nrois, roi1, roi2, nframes;
+  double v,ss, v1,v2,den,num, LL, LR, RL, RR;
+
+  if(lh->nframes != rh->nframes){
+    printf("ERROR: MRIfcIntrinsicLI(): frame mismatch\n");
+    return(NULL);
+  }
+  nframes = lh->nframes;
+
+  if(lh->width != rh->width){
+    printf("ERROR: MRIfcIntrinsicLI(): roi mismatch\n");
+    return(NULL);
+  }
+  nrois = lh->width;
+
+  iLI = MRIalloc(nrois,nrois,1,MRI_FLOAT);
+  if(iLI == NULL){
+    printf("ERROR: MRIfcIntrinsicLI(): could not alloc %d\n",nrois);
+    return(NULL);
+  }
+
+  lhn = MRIcopy(lh,NULL);
+  rhn = MRIcopy(rh,NULL);
+
+  for(c=0; c < nrois; c++){
+    ss = 0;
+    for(f=0; f < nframes; f++){
+      v = MRIgetVoxVal(lh,c,0,0,f);
+      ss += (v*v);
+    }
+    ss = sqrt(ss);
+    for(f=0; f < nframes; f++){
+      v = MRIgetVoxVal(lh,c,0,0,f);
+      MRIsetVoxVal(lhn,c,0,0,f, v/ss);
+    }
+    ss = 0;
+    for(f=0; f < nframes; f++){
+      v = MRIgetVoxVal(rh,c,0,0,f);
+      ss += (v*v);
+    }
+    ss = sqrt(ss);
+    for(f=0; f < nframes; f++){
+      v = MRIgetVoxVal(rh,c,0,0,f);
+      MRIsetVoxVal(rhn,c,0,0,f, v/ss);
+    }
+  }
+  //MRIwrite(lhn,"lhn.nii");
+  //MRIwrite(rhn,"rhn.nii");
+
+
+  for(roi1 = 0; roi1 < nrois; roi1++){
+    for(roi2 = 0; roi2 < nrois; roi2++){
+
+      LL = 0;
+      for(f=0; f < nframes; f++){
+	v1 = MRIgetVoxVal(lhn,roi1,0,0,f);
+	v2 = MRIgetVoxVal(lhn,roi2,0,0,f);
+	LL += (v1*v2);
+      }
+      LR = 0;
+      for(f=0; f < nframes; f++){
+	v1 = MRIgetVoxVal(lhn,roi1,0,0,f);
+	v2 = MRIgetVoxVal(rhn,roi2,0,0,f);
+	LR += (v1*v2);
+      }
+      RL = 0; // not the same as LR (matrices are transposes)
+      for(f=0; f < nframes; f++){
+	v1 = MRIgetVoxVal(rhn,roi1,0,0,f);
+	v2 = MRIgetVoxVal(lhn,roi2,0,0,f);
+	RL += (v1*v2);
+      }
+      RR = 0;
+      for(f=0; f < nframes; f++){
+	v1 = MRIgetVoxVal(rhn,roi1,0,0,f);
+	v2 = MRIgetVoxVal(rhn,roi2,0,0,f);
+	RR += (v1*v2);
+      }
+
+      num = ((LL-RL)-(RR-LR));
+      den = (fabs(LL)+fabs(LR)+fabs(RR)+fabs(RL));
+      if(den>DenThresh) v = num/den;
+      else              v = 0.0;
+      MRIsetVoxVal(iLI,roi1,roi2,0,0, v);
+
+    } // roi2
+  } // roi1
+
+  MRIfree(&lhn);
+  MRIfree(&rhn);
+  return(iLI);
+}
+
