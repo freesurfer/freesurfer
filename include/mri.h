@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/11/12 03:15:51 $
- *    $Revision: 1.456 $
+ *    $Author: fischl $
+ *    $Date: 2013/11/22 19:41:20 $
+ *    $Revision: 1.457 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1428,6 +1428,7 @@ double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref,
 double MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label) ;
 int MRIcomputeLabelCentroid(MRI *mri_aseg, int label, 
 														double *pxc, double *pyc, double *pzc) ;
+int MRIcomputeCentroid(MRI *mri, double *pxc, double *pyc, double *pzc) ;
 MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits);
 int MRIgeometryMatched(MRI *mri1, MRI *mri2) ;
 
