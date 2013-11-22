@@ -13,8 +13,8 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/14 17:55:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2013/11/22 19:41:39 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,6 +72,12 @@ static int nlevels = 4 ;
 
 static MRI *mri_train ;
 
+static int ras_point_set = 0 ;
+static double Gr = -1 ;
+static double Ga = -1 ;
+static double Gs = -1 ;
+static int read_flag = 0 ;
+
 int
 main(int argc, char *argv[]) {
   char   **av ;
@@ -86,7 +92,7 @@ main(int argc, char *argv[]) {
   AE           *ae_last ; // deepest layer
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_apply_autoencoder.c,v 1.1 2013/11/14 17:55:14 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_apply_autoencoder.c,v 1.2 2013/11/22 19:41:39 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -115,6 +121,94 @@ main(int argc, char *argv[]) {
   mri = MRIread(in_fname) ;
   if (mri == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read input volume from %s", Progname, in_fname) ;
+
+  if (ras_point_set >= 0)
+  {
+    double x, y, z ;
+    MRIsurfaceRASToVoxel(mri_train, Gr, Ga, Gs,&x, &y, &z) ;
+    Gx = nint(x) ; Gy = nint(y) ; Gz = nint(z) ;
+    printf("RAS point (%2.0f, %2.0f, %2.0f) maps to voxel (%d, %d, %d)\n", Gr, Ga, Gs, Gx, Gy, Gz) ;
+  }
+
+  if (read_flag)
+  {
+    LABEL *area ;
+    char   fname[STRLEN] ;
+//    HISTOGRAM *h, *hcdf ;
+    int        bin ;
+    double     thresh, xv, yv, zv ;
+    float      fmin, fmax ;
+    MRI        *mri_ae_p ;
+
+    sprintf(fname, "%s.AE.p.mgz", out_fname) ;
+    printf("reading AE p-val product from  %s\n", fname) ;
+    mri_ae_p = MRIread(fname) ;
+    if (mri_ae_p == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read precomputed AE p-value map from %s\n", Progname, fname) ;
+
+    in_fname = "cube.inputs.label" ;
+    out_fname = "cube.outputs.label" ;
+    if (FileExists(in_fname) == 0)
+    {
+      area = LabelAlloc(1, NULL, in_fname) ;
+      if (area == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not create label file %s\n", Progname,in_fname) ;
+      LabelToVoxel(area, mri_train, area) ;
+    }
+    else
+    {
+      area = LabelRead(NULL, in_fname) ;
+      if (area == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", Progname,in_fname) ;
+      area = LabelRealloc(area, area->n_points+1) ;
+    }
+
+    bin = area->n_points++ ;
+    area->lv[bin].vno = -1 ;
+    area->lv[bin].deleted = 0 ;
+    area->lv[bin].stat = 0 ;
+    area->lv[bin].x = Gx ;
+    area->lv[bin].y = Gy ;
+    area->lv[bin].z = Gz ;
+    printf("writing label file with %d points\n", area->n_points) ;
+    LabelWrite(area, in_fname) ;
+
+    if (FileExists(out_fname) == 0)
+    {
+      area = LabelAlloc(1, NULL, out_fname) ;
+      if (area == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not create label file %s\n", Progname, out_fname) ;
+      LabelToVoxel(area, mri_train, area) ;
+    }
+    else
+    {
+      area = LabelRead(NULL, out_fname) ;
+      if (area == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", Progname, out_fname) ;
+      area = LabelRealloc(area, area->n_points+1) ;
+    }
+
+#if 0
+    h = MRIhistogram(mri_ae_p, 100000) ;
+    hcdf = HISTOmakeCDF(h, NULL) ;
+    bin = HISTOfindBinWithCount(hcdf, .99999) ;
+    thresh = h->bins[bin] ;
+#endif
+    MRIvalRange(mri_ae_p, &fmin, &fmax) ;
+    thresh = fmax ;
+    MRIthreshold(mri_ae_p, mri_ae_p, thresh) ;
+    MRIcomputeCentroid(mri_ae_p, &xv, &yv, &zv) ;
+    printf("thresholding SAE output at %f, centroid at (%2.1f, %2.1f, %2.1f)\n", thresh, xv, yv, zv) ;
+    bin = area->n_points++ ;
+    area->lv[bin].deleted = 0 ;
+    area->lv[bin].stat = thresh ;
+    area->lv[bin].vno = -1 ;
+    area->lv[bin].x = xv ;
+    area->lv[bin].y = yv ;
+    area->lv[bin].z = zv ;
+    LabelWrite(area, out_fname) ;
+    exit(0) ;
+  }
 
   mri_orig = MRIcopy(mri, NULL) ;
   if (mri->type == MRI_UCHAR)
@@ -236,14 +330,14 @@ main(int argc, char *argv[]) {
     }
     sprintf(fname, "%s.dot.mgz", out_fname) ;
     printf("writing dot product to %s\n", fname) ;
-    MRIwrite(mri_dot_out, fname) ;
+//    MRIwrite(mri_dot_out, fname) ;
     sprintf(fname, "%s.p.mgz", out_fname) ;
     printf("writing p-val to %s\n", fname) ;
-    MRIwrite(mri_p, fname) ;
+//    MRIwrite(mri_p, fname) ;
 
     sprintf(fname, "%s.AE.mgz", out_fname) ;
     printf("writing AE dot product to %s\n", fname) ;
-    MRIwrite(mri_ae_out, fname) ;
+//    MRIwrite(mri_ae_out, fname) ;
     sprintf(fname, "%s.AE.p.mgz", out_fname) ;
     printf("writing AE p-val product to %s\n", fname) ;
     MRIwrite(mri_ae_p, fname) ;
@@ -309,7 +403,7 @@ main(int argc, char *argv[]) {
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  printf(" Training took %d minutes and %d seconds.\n", minutes, seconds) ;
+  printf("autoeencoder application took %d minutes and %d seconds.\n", minutes, seconds) ;
   exit(0) ;
   return(0) ;
 }
@@ -332,6 +426,15 @@ get_option(int argc, char *argv[]) {
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
   }
+  else if (!stricmp(option, "RAS"))
+  {
+    ras_point_set = 1 ;
+    Gr = atoi(argv[2]) ;
+    Ga = atoi(argv[3]) ;
+    Gs = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("applying SAE at TK RAS point (%2.1f, %2.1f, %2.1f)\n", Gr, Ga, Gs) ;
+  }
   else switch (toupper(*option)) {
     case 'T':
       mri_train = MRIread(argv[2]) ;
@@ -339,6 +442,10 @@ get_option(int argc, char *argv[]) {
 	ErrorExit(ERROR_NOFILE, "") ;
       printf("using training volume %s to compute similarity measures\n", argv[2]) ;
       nargs = 1 ;
+      break ;
+    case 'R':
+      read_flag = 1 ;
+      printf("reading in pre-computed results and creating labels\n") ;
       break ;
     case 'S':
       synthesize = 1 ;
