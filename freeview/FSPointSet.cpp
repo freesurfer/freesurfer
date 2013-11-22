@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/13 20:11:31 $
- *    $Revision: 1.10 $
+ *    $Date: 2013/11/22 19:39:48 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 #include <QDebug>
 
 FSPointSet::FSPointSet( QObject* parent ) : QObject( parent ),
-  m_label( NULL ), m_bRealRAS(true)
+  m_label( NULL )
 {}
 
 FSPointSet::~FSPointSet()
@@ -68,25 +68,6 @@ bool FSPointSet::ReadAsLabel( const QString& filename )
     return false;
   }
 
-  QFile file( filename );
-  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-  {
-    cerr << qPrintable(file.errorString()) << "\n";
-    return false;
-  }
-
-  QTextStream in(&file);
-  while (!in.atEnd())
-  {
-    QString line = in.readLine().toLower();
-    if ( line.contains( "vox2ras=" ) &&
-         line.contains( "vox2ras=tkreg" ) )
-    {
-      m_bRealRAS = false;
-      break;
-    }
-  }
-
   return true;
 }
 
@@ -115,6 +96,7 @@ bool FSPointSet::ReadFromStringAsControlPoints(const QString &content)
   QStringList ar = content.split("\n");
   int nCount = 0;
   QList<float> values;
+  bool bRealRAS = true;
   for ( int i = 0; i < ar.size(); i++ )
   {
     QStringList subs = ar[i].split(" ", QString::SkipEmptyParts );
@@ -128,11 +110,15 @@ bool FSPointSet::ReadFromStringAsControlPoints(const QString &content)
     }
     else if (subs.size() > 1 &&
              subs[0].toLower() == "userealras" && subs[1] == "0")
-      m_bRealRAS = false;
+      bRealRAS = false;
   }
 
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
   m_label->n_points = nCount;
+  if (bRealRAS)
+    m_label->coords = LABEL_COORDS_SCANNER_RAS;
+  else
+    m_label->coords = LABEL_COORDS_TKREG_RAS;
   for ( int i = 0; i < nCount; i++ )
   {
     m_label->lv[i].x = values[i*3];
@@ -154,6 +140,7 @@ bool FSPointSet::WriteAsLabel( const QString& filename )
   {
     cerr << "Way Points Write failed\n";
   }
+  /*
   else
   {
     // always writes in scanner coords
@@ -173,6 +160,7 @@ bool FSPointSet::WriteAsLabel( const QString& filename )
       file_out.close();
     }
   }
+  */
   return err == 0;
 }
 
@@ -220,6 +208,7 @@ void FSPointSet::UpdateLabel( PointSet& points_in, FSVolume* ref_vol )
   {
     ref_vol->TargetToRAS( points_in[i].pt, pos );
     ref_vol->RASToNativeRAS( pos, pos );
+    ref_vol->NativeRASToTkReg(pos, pos);
     values.push_back( pos[0] );
     values.push_back( pos[1] );
     values.push_back( pos[2] );
@@ -229,6 +218,7 @@ void FSPointSet::UpdateLabel( PointSet& points_in, FSVolume* ref_vol )
 
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
   m_label->n_points = nCount;
+  m_label->coords = LABEL_COORDS_TKREG_RAS;
   for ( int i = 0; i < nCount; i++ )
   {
     m_label->lv[i].x = values[i*4];
@@ -255,9 +245,13 @@ void FSPointSet::LabelToPointSet( PointSet& points_out, FSVolume* ref_vol )
     wp.pt[1] = m_label->lv[i].y;
     wp.pt[2] = m_label->lv[i].z;
     wp.value = m_label->lv[i].stat;
-    if ( !m_bRealRAS )
+    if ( m_label->coords == LABEL_COORDS_TKREG_RAS )
     {
       ref_vol->TkRegToNativeRAS( wp.pt, wp.pt );
+    }
+    else if (m_label->coords == LABEL_COORDS_VOXEL)
+    {
+      MRIvoxelToWorld(ref_vol->GetMRI(), wp.pt[0], wp.pt[1], wp.pt[2], wp.pt, wp.pt+1, wp.pt+2);
     }
     ref_vol->NativeRASToRAS( wp.pt, wp.pt );
     ref_vol->RASToTarget( wp.pt, wp.pt );
