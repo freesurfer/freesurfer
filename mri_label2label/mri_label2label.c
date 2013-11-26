@@ -39,9 +39,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/04/02 16:26:15 $
- *    $Revision: 1.40.2.2 $
+ *    $Author: fischl $
+ *    $Date: 2013/11/26 17:57:53 $
+ *    $Revision: 1.40.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,7 +90,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.40.2.2 2013/04/02 16:26:15 greve Exp $";
+  "$Id: mri_label2label.c,v 1.40.2.3 2013/11/26 17:57:53 fischl Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv,
-     "$Id: mri_label2label.c,v 1.40.2.2 2013/04/02 16:26:15 greve Exp $",
+     "$Id: mri_label2label.c,v 1.40.2.3 2013/11/26 17:57:53 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -532,6 +532,8 @@ int main(int argc, char **argv) {
       /* closest target vertex number */
       if (usehash) {
         trgvtxno = MHTfindClosestVertexNo(TrgHash,TrgSurfReg,srcvtx,&dmin);
+	if (trgvtxno == Gdiag_no)
+	  DiagBreak() ;
         if (trgvtxno < 0) {
           printf("ERROR: trgvtxno = %d < 0\n",trgvtxno);
           printf("srcvtxno = %d, dmin = %g\n",srcvtxno,dmin);
@@ -575,6 +577,8 @@ int main(int argc, char **argv) {
       printf("Performing mapping from target back to the source label %d\n",TrgSurf->nvertices);
       nrevhits = 0;
       for (trgvtxno = 0; trgvtxno < TrgSurf->nvertices; trgvtxno++) {
+	if (trgvtxno == Gdiag_no)
+	  DiagBreak() ;
 	trgvtx = &TrgSurf->vertices[trgvtxno] ;
 	if(trgvtx->ripflag) continue;
 
@@ -636,8 +640,8 @@ int main(int argc, char **argv) {
         trglabel->lv[nTrgLabel].stat = srclabel->lv[nSrcLabel].stat;
         trglabel->n_points ++;
 
-        if (trgvtxno == 53018 && 0) {
-          printf("trgvtxno = %d\n",trgvtxno);
+        if (trgvtxno == Gdiag_no) {
+          printf("trgvtxno = %d, lv[%d]\n",trgvtxno,nTrgLabel);
           printf("vtx xyz = %g, %g, %g\n",trgvtx->x,trgvtx->y,trgvtx->z);
           printf("dx = %g, dy = %g, dz = %g\n",dx,dy,dz);
         }
@@ -771,6 +775,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--sd")) {
       if (nargc < 1) argnerr(option,1);
       SUBJECTS_DIR = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--v")) {
+      if (nargc < 1) argnerr(option,1);
+      Gdiag_no = atoi(pargv[0]);
+      printf("debugging vertex %d\n", Gdiag_no) ;
       nargsused = 1;
     } else if (!strcmp(option, "--srcsubject")) {
       if (nargc < 1) argnerr(option,1);
