@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/16 18:16:41 $
- *    $Revision: 1.119 $
+ *    $Date: 2013/11/26 18:03:41 $
+ *    $Revision: 1.120 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1486,6 +1486,7 @@ LabelCompact(LABEL *lsrc, LABEL *ldst)
   for (i = n = 0 ; i < lsrc->n_points ; i++)
     if (lsrc->lv[i].deleted == 0)
     {
+      ldst->lv[n].deleted = 0 ;
       ldst->lv[n] .x = lsrc->lv[i].x ;
       ldst->lv[n] .y = lsrc->lv[i].y ;
       ldst->lv[n] .z = lsrc->lv[i].z ;
@@ -2826,6 +2827,7 @@ LABEL *LabelRealloc(LABEL *lb, int max_points)
   {
     return(lb);
   }
+  memset(lvtmp+lb->max_points, 0, (max_points-lb->max_points)*sizeof(LABEL_VERTEX)) ;
   lb->max_points = max_points;
   lb->lv = lvtmp;
 
