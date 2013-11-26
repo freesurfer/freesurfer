@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2013/05/06 17:19:18 $
- *    $Revision: 1.100.2.3 $
+ *    $Author: fischl $
+ *    $Date: 2013/11/26 17:58:12 $
+ *    $Revision: 1.100.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1376,6 +1376,8 @@ int LabelRemoveDuplicates(LABEL *area)
   for (n1 = 0 ; n1 < area->n_points ; n1++)
   {
     lv1 = &area->lv[n1] ;
+    if (lv1->vno == Gdiag_no)
+      DiagBreak() ;
     if(lv1->deleted)
     {
       continue ;
@@ -1386,6 +1388,8 @@ int LabelRemoveDuplicates(LABEL *area)
       lv2 = &area->lv[n2] ;
       if(lv1->vno >= 0 && lv2->vno >= 0 && lv1->vno == lv2->vno)
       {
+	if (lv2->vno == Gdiag_no)
+	  DiagBreak() ;
         deleted++ ;
         lv2->deleted = 1 ;
       }
@@ -1393,6 +1397,8 @@ int LabelRemoveDuplicates(LABEL *area)
       {
 	if (FEQUAL(lv1->x, lv2->x) && FEQUAL(lv1->y, lv2->y) && FEQUAL(lv1->z, lv2->z))
 	{
+	  if (lv2->vno == Gdiag_no)
+	    DiagBreak() ;
 	  deleted++ ;
 	  lv2->deleted = 1 ;
 	}
@@ -1461,6 +1467,7 @@ LabelCompact(LABEL *lsrc, LABEL *ldst)
   for (i = n = 0 ; i < lsrc->n_points ; i++)
     if (lsrc->lv[i].deleted == 0)
     {
+      ldst->lv[n] .deleted = 0 ;
       ldst->lv[n] .x = lsrc->lv[i].x ;
       ldst->lv[n] .y = lsrc->lv[i].y ;
       ldst->lv[n] .z = lsrc->lv[i].z ;
@@ -2801,6 +2808,7 @@ LABEL *LabelRealloc(LABEL *lb, int max_points)
   {
     return(lb);
   }
+  memset(lvtmp+lb->max_points, 0, (max_points-lb->max_points)*sizeof(LABEL_VERTEX)) ;
   lb->max_points = max_points;
   lb->lv = lvtmp;
 
