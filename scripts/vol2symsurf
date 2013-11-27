@@ -1,0 +1,357 @@
+#!/bin/tcsh -f
+# vol2symsurf
+
+set VERSION = '$Id: vol2symsurf,v 1.1 2013/11/27 21:18:04 greve Exp $';
+
+set outstem = ();
+set outfmt = ();
+set subject = ();
+set hemilist = ();
+set func = ();
+set projfrac = .5;
+set reg = ();
+set fwhm = ();
+set symsubject = fsaverage_sym
+set DoRegHeader = 0;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.vol2symsurf.$$
+  if(! -e /scratch) set tmpdir = $outdir/tmpdir.vol2symsurf.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outstem.vol2symsurf.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for vol2symsurf" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+
+foreach hemi (lh rh)
+
+  # Map func to self
+  set surffunc = $tmpdir/func.self.$hemi.mgh
+  set cmd = (mri_vol2surf --mov $func --hemi $hemi \
+      --projfrac $projfrac --o $surffunc --cortex)
+  if($#reg) set cmd = ($cmd --reg $reg)
+  if($DoRegHeader) set cmd = ($cmd --regheader $subject)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  # Map func self to sym subject. lh and rh are tricky!
+  set surffuncsym = $tmpdir/func.fsasym.lh.$hemi.mgh
+  # Always use lh.$symsubject.sphere.reg, change xhemi or not
+  if($hemi == lh) then
+    set srcreg = $SUBJECTS_DIR/$subject/surf/lh.$symsubject.sphere.reg
+  else
+    set srcreg = $SUBJECTS_DIR/$subject/xhemi/surf/lh.$symsubject.sphere.reg 
+  endif
+  set cmd = (mris_apply_reg --src $surffunc --trg $surffuncsym \
+    --streg $srcreg $trgreg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  set fname = $outstem.$hemi.$outfmt
+  if($#fwhm && $fwhm != 0) then
+    set cmd = (mris_fwhm --s $symsubject --hemi lh --so \
+       --fwhm $fwhm --i $surffuncsym --o $fname)
+  else
+    set cmd = (mri_convert $surffuncsym $fname)
+  endif
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+end # hemi
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Vol2symsurf-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "vol2symsurf Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outstem = $argv[1]; shift;
+      breaksw
+
+    case "--fmt":
+      if($#argv < 1) goto arg1err;
+      set ofmt = $argv[1]; shift;
+      breaksw
+
+    case "--fwhm":
+      if($#argv < 1) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "--projfrac":
+      if($#argv < 1) goto arg1err;
+      set projfrac = $argv[1]; shift;
+      breaksw
+
+    case "--regheader":
+    case "--reg-header":
+    case "--init-header":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      set DoRegHeader = 1;
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set reg = $argv[1]; shift;
+      if(! -e $reg) then
+        echo "ERROR: cannot find $reg"
+        exit 1;
+      endif
+      set subject = `head -n 1 $reg`
+      breaksw
+
+    case "--i":
+    case "--f":
+      if($#argv < 1) goto arg1err;
+      set func = $argv[1]; shift;
+      if(! -e $func) then
+        echo "ERROR: cannot find $func"
+        exit
+      endif
+      breaksw
+
+    case "--lh":
+      set hemilist = (lh)
+      breaksw
+
+    case "--rh":
+      set hemilist = (rh)
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#func == 0) then
+  echo "ERROR: must spec input volume"
+  exit 1;
+endif
+if($#reg == 0 && ! $DoRegHeader) then
+  echo "ERROR: must spec --reg or --regheader"
+  exit 1;
+endif
+if($#reg  && $DoRegHeader) then
+  echo "ERROR: cannot spec both --reg and --regheader"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+if($#fwhm == 0) set fwhm = 0;
+
+if($#outfmt == 0)  set outfmt = `fname2ext $func`
+if($#outstem == 0) then
+  set funcstem = `fname2stem $func`
+  set fwhmstr = `printf %02d $fwhm`
+  set outstem = $funcstem.$symsubject.sm$fwhmstr.lh
+endif
+set outdir = `dirname $outstem`
+
+set trgreg = $SUBJECTS_DIR/$symsubject/surf/lh.sphere.reg
+if(! -e $trgreg) then
+  echo "ERROR: cannot find $trgreg"
+  exit 1;
+endif
+set err = 0;
+set srcreg = $SUBJECTS_DIR/$subject/surf/lh.$symsubject.sphere.reg
+if(! -e $srcreg) then
+  echo "ERROR: cannot find $srcreg"
+  echo "You must run: surfreg --s $subject --t $symsubject --lh"
+  set err = 1;
+endif
+set srcreg = $SUBJECTS_DIR/$subject/xhemi/surf/lh.$symsubject.sphere.reg
+if(! -e $srcreg) then
+  echo "ERROR: cannot find $srcreg"
+  echo "You must run: surfreg --s $subject --t $symsubject --lh --xhemi"
+  set err = 1;
+endif
+if($err) exit 1;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "vol2symsurf --reg reg.dat --i vol.nii "
+  echo "  --fwhm FWHMmm : surface smooth by FWHMmm"
+  echo "  --o outstem (default instem.$symsubject.smFWHM.lh.hemi)"
+  echo "  --regheader subject"
+  echo "  --projfrac ProjFrac (default is $projfrac)"
+  echo ""
+  echo "  --help : get help"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program samples a volume onto the surface of the left-right
+symmetric subject (fsaverage_sym). The volume is first sampled onto
+the left and right surfaces of the native subject using a default
+projection fraction of 0.5. These surfaces are then mapped onto the
+left hemisphere of fsaverage_sym after which they will be in
+vertex-to-vertex alignment. Note that since fsaverage_sym is left-right
+symmetric, it does not matter whether data are sampled onto the left
+hemi or the right hemi.
+
+The source subject must have been surface registered to the symmetric
+subject with something like:
+
+surfreg --s $subject --t fsaverage_sym --lh
+surfreg --s $subject --t fsaverage_sym --lh --xhemi
+
+This will take a couple of hours but only needs to be done once.
+
+
+EXAMPLE:
+
+vol2symsurf --reg register.dat --i func.nii --fwhm 7
+
+Creates func.fsaverage_sym.sm07.lh.lh.nii and 
+        func.fsaverage_sym.sm07.lh.rh.nii
+
+
+
+
+
