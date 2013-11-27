@@ -227,6 +227,7 @@ UpdateNeeded \
 usbtree \
 vno_match_check \
 qt_setup \
+vol2symsurf \
 vsm-smooth \
 vtk_setup \
 wfilemask \
