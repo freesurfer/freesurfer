@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/11/07 22:01:37 $
-#    $Revision: 1.50 $
+#    $Date: 2013/11/27 00:06:23 $
+#    $Revision: 1.51 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.50 2013/11/07 22:01:37 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.51 2013/11/27 00:06:23 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -112,6 +112,7 @@ set subjlist = ()
 set runlist = ()
 set dcmroot = ()
 set dcmlist = ()
+set bveclist = ()
 set bvecfile = ()
 set bvalfile = ()
 set nb0 = ()
@@ -405,7 +406,11 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     echo "#"							 	>> $RCF
     echo "set dcmroot = ($dcmroot)"					>> $RCF
     echo "set dcmfile = ($dcmlist[$isubj])"				>> $RCF
-    echo "set bvecfile = ($bvecfile)"					>> $RCF
+    if ($#bveclist) then
+      echo "set bvecfile = ($bveclist[$isubj])"				>> $RCF
+    else
+      echo "set bvecfile = ($bvecfile)"					>> $RCF
+    endif
     echo "set bvalfile = ($bvalfile)"					>> $RCF
     echo "set nb0 = ($nb0)"						>> $RCF
     echo "set dob0 = ($dob0)"						>> $RCF
@@ -784,7 +789,11 @@ else				#--->>> Multiple time points for each subject
       else
         echo "set dcmfile = ()"						>> $RCF
       endif
-      echo "set bvecfile = ($bvecfile)"					>> $RCF
+      if ($#bveclist && $subj != $bsubj) then
+        echo "set bvecfile = ($bveclist[$itps[$iproc]])"		>> $RCF
+      else
+        echo "set bvecfile = ($bvecfile)"				>> $RCF
+      endif
       echo "set bvalfile = ($bvalfile)"					>> $RCF
       echo "set nb0 = ($nb0)"						>> $RCF
       echo "set dob0 = ($dob0)"						>> $RCF
@@ -1422,6 +1431,11 @@ check_params:
     if ($docorr) then
       if ($#dcmlist != $#subjlist) then
         echo "ERROR: must specify as many DWI dicoms as subjects"
+        exit 1
+      endif
+
+      if ($#bveclist > 0 && $#bveclist != $#subjlist) then
+        echo "ERROR: must specify as many gradient vector tables as subjects"
         exit 1
       endif
 
