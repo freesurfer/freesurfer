@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # vol2symsurf
 
-set VERSION = '$Id: vol2symsurf,v 1.1 2013/11/27 21:18:04 greve Exp $';
+set VERSION = '$Id: vol2symsurf,v 1.2 2013/11/28 20:13:50 greve Exp $';
 
 set outstem = ();
 set outfmt = ();
@@ -12,7 +12,10 @@ set projfrac = .5;
 set reg = ();
 set fwhm = ();
 set symsubject = fsaverage_sym
+set symhemi = lh
 set DoRegHeader = 0;
+set DoDiff = 1;
+set DoLI = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -84,12 +87,12 @@ foreach hemi (lh rh)
   if($status) goto error_exit;
 
   # Map func self to sym subject. lh and rh are tricky!
-  set surffuncsym = $tmpdir/func.fsasym.lh.$hemi.mgh
-  # Always use lh.$symsubject.sphere.reg, change xhemi or not
+  set surffuncsym = $tmpdir/func.fsasym.$symhemi.$hemi.mgh
+  # Always use $symhemi.$symsubject.sphere.reg, change xhemi or not
   if($hemi == lh) then
-    set srcreg = $SUBJECTS_DIR/$subject/surf/lh.$symsubject.sphere.reg
+    set srcreg = $SUBJECTS_DIR/$subject/surf/$symhemi.$symsubject.sphere.reg
   else
-    set srcreg = $SUBJECTS_DIR/$subject/xhemi/surf/lh.$symsubject.sphere.reg 
+    set srcreg = $SUBJECTS_DIR/$subject/xhemi/surf/$symhemi.$symsubject.sphere.reg 
   endif
   set cmd = (mris_apply_reg --src $surffunc --trg $surffuncsym \
     --streg $srcreg $trgreg)
@@ -99,8 +102,8 @@ foreach hemi (lh rh)
 
   set fname = $outstem.$hemi.$outfmt
   if($#fwhm && $fwhm != 0) then
-    set cmd = (mris_fwhm --s $symsubject --hemi lh --so \
-       --fwhm $fwhm --i $surffuncsym --o $fname)
+    set cmd = (mris_fwhm --s $symsubject --hemi $symhemi --so \
+       --fwhm $fwhm --i $surffuncsym --o $fname --cortex)
   else
     set cmd = (mri_convert $surffuncsym $fname)
   endif
@@ -109,6 +112,23 @@ foreach hemi (lh rh)
   if($status) goto error_exit;
 
 end # hemi
+
+if($DoDiff) then
+  set lhout = $outstem.lh.$outfmt
+  set rhout = $outstem.rh.$outfmt
+  if($DoLI) then
+    # LI = (LH-RH)/(LH+RH)
+    set diffout = $outstem.li.lh-rh.$outfmt
+    set cmd = (fscalc $lhout pctdiff $rhout div 200 -o $diffout)
+  else
+    # Simple difference
+    set diffout = $outstem.lh-rh.$outfmt
+    set cmd = (fscalc $lhout sub $rhout -o $diffout)
+  endif
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
 
 #========================================================
 
@@ -123,7 +143,7 @@ set tRunHours = `echo $tSecRun/3600|bc -l`
 set tRunHours = `printf %5.2f $tRunHours`
 echo "Started at $StartTime " |& tee -a $LF
 echo "Ended   at `date`" |& tee -a $LF
-echo "Vol2symsurf-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "vol2symsurf-Run-Time-Sec $tSecRun" |& tee -a $LF
 echo " " |& tee -a $LF
 echo "vol2symsurf Done" |& tee -a $LF
 exit 0
@@ -132,8 +152,12 @@ exit 0
 
 ############--------------##################
 error_exit:
-echo "ERROR:"
-
+echo "ERROR: $cmd" |& tee -a $LF
+echo ""|& tee -a $LF
+echo "If reporting to freesurfer@nmr.mgh.harvard.edu, make"|& tee -a $LF
+echo "sure to include the log file $LF"|& tee -a $LF
+echo ""|& tee -a $LF
+echo "vol2symsurf exited with errors" |& tee -a $LF
 exit 1;
 ###############################################
 
@@ -197,9 +221,26 @@ while( $#argv != 0 )
     case "--lh":
       set hemilist = (lh)
       breaksw
-
     case "--rh":
       set hemilist = (rh)
+      breaksw
+
+    case "--sym-lh":
+      set symhemi = lh
+      breaksw
+    case "--sym-rh":
+      set symhemi = rh
+      breaksw
+
+    case "--no-diff":
+      set DoDiff = 0;
+      breaksw
+
+    case "--li":
+      set DoLI = 1;
+      breaksw
+    case "--no-li":
+      set DoLI = 0;
       breaksw
 
     case "--log":
@@ -269,26 +310,29 @@ if($#outfmt == 0)  set outfmt = `fname2ext $func`
 if($#outstem == 0) then
   set funcstem = `fname2stem $func`
   set fwhmstr = `printf %02d $fwhm`
-  set outstem = $funcstem.$symsubject.sm$fwhmstr.lh
+  set outstem = $funcstem.$symsubject.sm$fwhmstr.$symhemi
 endif
 set outdir = `dirname $outstem`
 
-set trgreg = $SUBJECTS_DIR/$symsubject/surf/lh.sphere.reg
+set trgreg = $SUBJECTS_DIR/$symsubject/surf/$symhemi.sphere.reg
 if(! -e $trgreg) then
   echo "ERROR: cannot find $trgreg"
   exit 1;
 endif
 set err = 0;
-set srcreg = $SUBJECTS_DIR/$subject/surf/lh.$symsubject.sphere.reg
+set srcreg = $SUBJECTS_DIR/$subject/surf/$symhemi.$symsubject.sphere.reg
 if(! -e $srcreg) then
+  echo ""
   echo "ERROR: cannot find $srcreg"
-  echo "You must run: surfreg --s $subject --t $symsubject --lh"
+  echo "You must run: surfreg --s $subject --t $symsubject --$symhemi"
   set err = 1;
 endif
-set srcreg = $SUBJECTS_DIR/$subject/xhemi/surf/lh.$symsubject.sphere.reg
+set srcreg = $SUBJECTS_DIR/$subject/xhemi/surf/$symhemi.$symsubject.sphere.reg
 if(! -e $srcreg) then
+  echo ""
   echo "ERROR: cannot find $srcreg"
-  echo "You must run: surfreg --s $subject --t $symsubject --lh --xhemi"
+  echo "You must run: surfreg --s $subject --t $symsubject --$symhemi --xhemi"
+  echo ""
   set err = 1;
 endif
 if($err) exit 1;
@@ -311,9 +355,11 @@ usage_exit:
   echo ""
   echo "vol2symsurf --reg reg.dat --i vol.nii "
   echo "  --fwhm FWHMmm : surface smooth by FWHMmm"
-  echo "  --o outstem (default instem.$symsubject.smFWHM.lh.hemi)"
+  echo "  --o outstem (default instem.$symsubject.smFWHM.$symhemi.hemi)"
   echo "  --regheader subject"
   echo "  --projfrac ProjFrac (default is $projfrac)"
+  echo "  --no-diff : do not compute lh-rh difference"
+  echo "  --li : compute laterality index instead of simple difference"
   echo ""
   echo "  --help : get help"
   echo ""
@@ -333,7 +379,9 @@ projection fraction of 0.5. These surfaces are then mapped onto the
 left hemisphere of fsaverage_sym after which they will be in
 vertex-to-vertex alignment. Note that since fsaverage_sym is left-right
 symmetric, it does not matter whether data are sampled onto the left
-hemi or the right hemi.
+hemi or the right hemi. The lh-rh difference is also computed (unless 
+--no-diff is specified). If --li is used then the laterality index
+(LI) is computed as (lh-rh)/(lh+rh).
 
 The source subject must have been surface registered to the symmetric
 subject with something like:
@@ -349,9 +397,11 @@ EXAMPLE:
 vol2symsurf --reg register.dat --i func.nii --fwhm 7
 
 Creates func.fsaverage_sym.sm07.lh.lh.nii and 
-        func.fsaverage_sym.sm07.lh.rh.nii
+        func.fsaverage_sym.sm07.lh.rh.nii and
+        func.fsaverage_sym.sm07.lh.lh-rh.nii
 
+vol2symsurf --reg register.dat --i func.nii --fwhm 7 --li
 
-
+Same as above but creates func.fsaverage_sym.sm07.lh.li.lh-rh.nii
 
 
