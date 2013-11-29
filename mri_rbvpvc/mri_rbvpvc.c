@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/12 03:16:28 $
- *    $Revision: 1.10 $
+ *    $Date: 2013/11/29 22:59:24 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.10 2013/11/12 03:16:28 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.11 2013/11/29 22:59:24 greve Exp $
 
 /*
   BEGINHELP
@@ -81,7 +81,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.10 2013/11/12 03:16:28 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.11 2013/11/29 22:59:24 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -97,6 +97,7 @@ int DoSegTest=0;
 char tmpstr[5000];
 int niterations = 0;
 char *PVFFile=NULL, *SegTTypeFile=NULL;
+double ApplyFWHM=0;
 
 MATRIX *MatrixGetDiag(MATRIX *M, VECTOR *d);
 int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax);
@@ -162,6 +163,17 @@ int main(int argc, char *argv[])
     printf("Loading input %s\n",SrcVolFile);fflush(stdout);
     src = MRIread(SrcVolFile);
     if(src==NULL) exit(1);
+    if(ApplyFWHM > 0){
+      double cStdApply, rStdApply, sStdApply;
+      MRI *mritmp;
+      printf("Smoothing input by %g mm FWHM \n",ApplyFWHM);
+      cStdApply = ApplyFWHM/sqrt(log(256.0));
+      rStdApply = ApplyFWHM/sqrt(log(256.0));
+      sStdApply = ApplyFWHM/sqrt(log(256.0));
+      mritmp = MRIgaussianSmoothNI(src, cStdApply, rStdApply, sStdApply, NULL);
+      MRIfree(&src);
+      src = mritmp;
+    }
   } 
   else {
     printf("Using smoothed seg as input \n");
@@ -444,6 +456,12 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&psfFWHM);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--apply-fwhm")){
+      // apply to input for testing
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&ApplyFWHM);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--niters")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&niterations);
@@ -492,6 +510,7 @@ static void print_usage(void) {
   printf("   --src volfile : source data to PVC\n");
   printf("   --seg volfile : segmentation to define regions for RBV\n");
   printf("   --mask volfile : ignore areas outside of the mask\n");
+  printf("   --psf psfmm : scanner PSF FWHM in mm\n");
   printf("   --pvf pvffile segttype: Non-binary voxelwise PVF\n");
   printf("   --o  outvolfile : PVC'ed input\n");
   printf("   --gtm-means volfile : save ROI means in volume format\n");
