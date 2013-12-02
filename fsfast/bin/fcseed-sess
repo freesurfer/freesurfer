@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-sess,v 1.14 2012/12/11 18:18:38 greve Exp $';
+set VERSION    = '$Id: fcseed-sess,v 1.15 2013/12/02 22:51:07 greve Exp $';
 set cmdargs = ($argv);
 
 set fcconfig = ();
@@ -138,7 +138,10 @@ foreach sess ($SessList)
         if($WMErode > 0) set cmd = ($cmd --erode $WMErode)
         echo $cmd | tee -a $LLF
         $cmd | tee -a $LLF
-        if($status) exit 1;
+        if($status) then
+          echo "ERROR: mri_binarize" | tee -a $LLF
+          exit 1;
+        endif
         set segidlist = (1);
       else 
         set seganat = $SUBJECTS_DIR/$subject/mri/$segstem.mgz
@@ -351,7 +354,7 @@ check_params:
   set roicfg = `cat $fcconfig | awk '{if($1 == "roicfg") print $2}'`
   set tmp = `cat $fcconfig | awk '{if($1 == "segidlist") print $0}'`
   if($#tmp) set segidlist = ($tmp[2-$#tmp]);
-  set tmp = `cat $fcconfig | awk '{if($1 == "funcstem") print $0}'`
+  set tmp = `cat $fcconfig | awk '{if($1 == "funcstem") print $2}'`
   if($#tmp) set funcstem = $tmp;
 
   # Note: Imperfect for B0DC because label2vol cannot take a b0 map yet
