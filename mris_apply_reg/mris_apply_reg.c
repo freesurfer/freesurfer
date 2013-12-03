@@ -7,9 +7,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/01/27 23:40:09 $
- *    $Revision: 1.4.2.2 $
+ *    $Author: greve $
+ *    $Date: 2013/12/03 19:49:26 $
+ *    $Revision: 1.4.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_apply_reg.c,v 1.4.2.2 2013/01/27 23:40:09 nicks Exp $
+// $Id: mris_apply_reg.c,v 1.4.2.3 2013/12/03 19:49:26 greve Exp $
 
 /*
   BEGINHELP
@@ -64,6 +64,7 @@
 #include "resample.h"
 #include "pdf.h"
 #include "icosahedron.h"
+#include "mrisutils.h"
 
 
 static int  parse_commandline(int argc, char **argv);
@@ -77,7 +78,7 @@ void usage_message(FILE *stream);
 void usage(FILE *stream);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_apply_reg.c,v 1.4.2.2 2013/01/27 23:40:09 nicks Exp $";
+static char vcid[] = "$Id: mris_apply_reg.c,v 1.4.2.3 2013/12/03 19:49:26 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -94,13 +95,15 @@ int nsurfs = 0;
 int DoSynthRand = 0;
 int DoSynthOnes = 0;
 int SynthSeed = -1;
+char *AnnotFile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs,n;
+  int nargs,n,err;
   MRIS *SurfReg[100];
   MRI *SrcVal, *TrgVal;
   char *base;
+  COLOR_TABLE *ctab=NULL;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -120,23 +123,7 @@ int main(int argc, char *argv[]) {
   if (checkoptsonly) return(0);
   dump_options(stdout);
 
-  printf("Loading %s\n",SrcValFile);
-  SrcVal = MRIread(SrcValFile);
-  if(SrcVal==NULL) exit(1);
-
-  if(DoSynthRand) {
-    if (SynthSeed < 0) SynthSeed = PDFtodSeed();
-    printf("INFO: synthesizing, seed = %d\n",SynthSeed);
-    srand48(SynthSeed);
-    MRIrandn(SrcVal->width, SrcVal->height, SrcVal->depth,
-             SrcVal->nframes,0, 1, SrcVal);
-  }
-  if(DoSynthOnes != 0) {
-    printf("INFO: filling input with all 1s\n");
-    MRIconst(SrcVal->width, SrcVal->height, SrcVal->depth,
-             SrcVal->nframes, 1, SrcVal);
-  }
-
+  // Load in surface registrations
   for(n=0; n<nsurfs;n++){
     printf("%d Loading %s\n",n+1,SurfRegFile[n]);
     base = fio_basename(SurfRegFile[n],".tri");
@@ -151,11 +138,49 @@ int main(int argc, char *argv[]) {
     if(SurfReg[n]==NULL) exit(1);
   }
 
-  TrgVal = MRISapplyReg(SrcVal, SurfReg, nsurfs,ReverseMapFlag,DoJac,UseHash);
+  // Load in source data
+  SrcVal = NULL;
+  if(DoSynthRand) {
+    if (SynthSeed < 0) SynthSeed = PDFtodSeed();
+    printf("INFO: synthesizing, seed = %d\n",SynthSeed);
+    srand48(SynthSeed);
+    MRIrandn(SrcVal->width, SrcVal->height, SrcVal->depth,
+             SrcVal->nframes,0, 1, SrcVal);
+  }
+  else if(DoSynthOnes != 0) {
+    printf("INFO: filling input with all 1s\n");
+    MRIconst(SrcVal->width, SrcVal->height, SrcVal->depth,
+             SrcVal->nframes, 1, SrcVal);
+  }
+  else if(AnnotFile) {
+    printf("Loading annotation %s\n",AnnotFile);
+    err = MRISreadAnnotation(SurfReg[0], AnnotFile);
+    if(err) exit(1);
+    SrcVal = MRISannotIndex2Seg(SurfReg[0]);
+    ctab = CTABdeepCopy(SurfReg[0]->ct);
+  }
+  else {
+    printf("Loading %s\n",SrcValFile);
+    SrcVal = MRIread(SrcValFile);
+    if(SrcVal==NULL) exit(1);
+  }
+
+  // Apply registration to source
+  TrgVal = MRISapplyReg(SrcVal, SurfReg, nsurfs, ReverseMapFlag, DoJac, UseHash);
   if(TrgVal == NULL) exit(1);
 
-  printf("Writing %s\n",TrgValFile);
-  MRIwrite(TrgVal,TrgValFile);
+  // Save output
+  if(AnnotFile){
+    printf("Converting to target annot\n");
+    err = MRISseg2annot(SurfReg[nsurfs-1],TrgVal,ctab);
+    if(err) exit(1);
+    printf("Writing %s\n",TrgValFile);
+    MRISwriteAnnotation(SurfReg[nsurfs-1], TrgValFile);
+  } 
+  else{
+    printf("Writing %s\n",TrgValFile);
+    MRIwrite(TrgVal,TrgValFile);
+  }
   
   printf("mris_apply_reg done\n");
   return 0;
@@ -204,6 +229,17 @@ static int parse_commandline(int argc, char **argv) {
       }
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--sval-annot") || !strcasecmp(option, "--src-annot")){
+      if (nargc < 1) CMDargNErr(option,1);
+      AnnotFile = pargv[0];
+      if(!fio_FileExistsReadable(AnnotFile)){
+	printf("ERROR: %s does not exist or is not readable by you\n",AnnotFile);
+	exit(1);
+      }
+      DoJac = 0;
+      ReverseMapFlag = 0;
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--trg") || !strcasecmp(option, "--tval") 
 	     || !strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -247,6 +283,8 @@ static void print_usage(void) {
   printf("   --no-rev : do not do reverse mapping\n");
   printf("   --randn : replace input with WGN\n");
   printf("   --ones  : replace input with ones\n");
+  printf("   --src-annot annot  : use annotation as input\n");
+  printf("      Turns on --no-rev. \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -271,7 +309,7 @@ static void print_version(void) {
 /*--------------------------------------------------------------*/
 static void check_options(void) {
   int n;
-  if(SrcValFile == NULL){
+  if(SrcValFile == NULL && AnnotFile == NULL){
     printf("ERROR: need to specify source value file\n");
     exit(1);
   }
