@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/22 19:39:48 $
- *    $Revision: 1.11 $
+ *    $Date: 2013/12/03 17:48:27 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -140,27 +140,7 @@ bool FSPointSet::WriteAsLabel( const QString& filename )
   {
     cerr << "Way Points Write failed\n";
   }
-  /*
-  else
-  {
-    // always writes in scanner coords
-    QFile file( filename );
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text))
-    {
-      QTextStream in(&file);
-      QString all = in.readAll();
-      all.replace("TkReg", "Scanner", Qt::CaseInsensitive);
-      file.close();
 
-      QFile file_out(filename);
-      file_out.open(QIODevice::WriteOnly | QIODevice::Text);
-
-      QTextStream out(&file_out);
-      out << all;
-      file_out.close();
-    }
-  }
-  */
   return err == 0;
 }
 
@@ -190,7 +170,7 @@ QString FSPointSet::WriteAsControlPointsToString()
   {
     strg += QString("%1 %2 %3\n").arg(m_label->lv[i].x).arg(m_label->lv[i].y).arg(m_label->lv[i].z);
   }
-  strg += QString("info\nnumpoints %1\nuseRealRAS 1\n").arg( m_label->n_points );
+  strg += QString("info\nnumpoints %1\nuseRealRAS 0\n").arg( m_label->n_points );
   return strg;
 }
 
