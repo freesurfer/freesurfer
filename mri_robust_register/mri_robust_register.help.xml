@@ -193,7 +193,7 @@ Look at results with:
 freeview dstT1.mgz T2_to_T1.mgz T2_to_T1_weights.mgz:colormap=heat </example> 
   <example>Standard cross modal registration:
   
-mri_robust_register --mov movT2.mgz --dst dstT1.mgz --mapmov T2_to_T1.mgz --lta T2_to_T1.lta --cost MNI
+mri_robust_register --mov movT2.mgz --dst dstT1.mgz --mapmov T2_to_T1.mgz --lta T2_to_T1.lta --cost NMI
   
 Registers a T2 image to T1 using normalized mutual information (no outlier detection, Powell method is used for optimization). Here no saturation or intensity scaling is necessary. NMI or MI may be the prefered option for non-isotropic voxel where ROBENT has not been tested much.
 Look at results with:
