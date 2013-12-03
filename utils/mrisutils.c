@@ -7,8 +7,8 @@
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/03 21:28:35 $
- *    $Revision: 1.42 $
+ *    $Date: 2013/12/03 19:38:02 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1745,6 +1745,7 @@ int MRISseg2annot(MRIS *mris, MRI *surfseg, COLOR_TABLE *ctab)
   {
     segid = MRIgetVoxVal(surfseg,vtxno,0,0,0);
     ano = index_to_annotation(segid);
+    if(ano == -1) ano = 0;
     mris->vertices[vtxno].annotation = ano;
     //printf("%5d %2d %2d %s\n",vtxno,segid,ano,index_to_name(segid));
   }
