@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/10/29 23:14:52 $
-#    $Revision: 1.45 $
+#    $Date: 2013/12/04 17:02:25 $
+#    $Revision: 1.46 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.45 2013/10/29 23:14:52 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.46 2013/12/04 17:02:25 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -208,6 +208,15 @@ if ($docorr && ! $dolong) then
     endif
   endif
 
+  if (! -e $dwidir/dwi_orig.mghdti.bvecs) then
+    echo "ERROR: Must specify input table of gradient vectors"
+    goto error_exit
+  endif
+
+  set nvec = `wc -w $dwidir/dwi_orig.mghdti.bvecs | awk '{print $1}'`
+  set nvec = `echo "$nvec/3" | bc -l`
+  set nvec = `printf '%g' $nvec`
+
   if ($#bvalfile && $bvalfile != $dwidir/dwi_orig.mghdti.bvals) then
     set cmd = (cp $bvalfile $dwidir/dwi_orig.mghdti.bvals)
     echo $cmd |& tee -a $LF |& tee -a $CF
@@ -215,6 +224,69 @@ if ($docorr && ! $dolong) then
       $cmd |& tee -a $LF
       if ($status) goto error_exit
     endif
+  endif
+
+  if (! -e $dwidir/dwi_orig.mghdti.bvals) then
+    echo "ERROR: Must specify input table of b-values"
+    goto error_exit
+  endif
+
+  set nval = `wc -w $dwidir/dwi_orig.mghdti.bvals | awk '{print $1}'`
+
+  # Check if there is the same number of b-values and gradient vectors
+  if ($nval != $nvec) then
+    echo "ERROR: Found $nval b-values but $nvec gradient vectors"
+    goto error_exit
+  endif
+
+  # Check if gradient vectors are arranged in 3 rows or 3 columns
+  if (`awk '{print $1}' $dwidir/dwi_orig.mghdti.bvecs | wc -w` == 3) then
+    set vectype = rows
+  else if (`awk 'NR==1' $dwidir/dwi_orig.mghdti.bvecs | wc -w` == 3) then
+    set vectype = cols
+  else
+    echo "ERROR: Gradient vectors must be 3 rows or 3 columns of coordinates"
+    goto error_exit
+  endif
+
+  # Convert gradient vectors to 3-column format
+  if ($vectype == rows) then
+    set xx = `awk 'NR==1' $dwidir/dwi_orig.mghdti.bvecs`
+    set yy = `awk 'NR==2' $dwidir/dwi_orig.mghdti.bvecs`
+    set zz = `awk 'NR==3' $dwidir/dwi_orig.mghdti.bvecs`
+  else
+    set xx = `awk '{print $1}' $dwidir/dwi_orig.mghdti.bvecs`
+    set yy = `awk '{print $2}' $dwidir/dwi_orig.mghdti.bvecs`
+    set zz = `awk '{print $3}' $dwidir/dwi_orig.mghdti.bvecs`
+  endif
+
+  set blist = `cat $dwidir/dwi_orig.mghdti.bvals`
+
+  set cmd = (rm -f $dwidir/bvals.tmp $dwidir/bvecs.tmp)
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+
+  @ k = 1
+  while ($k <= $#blist)
+    echo $blist[$k] >> $dwidir/bvals.tmp
+    echo $xx[$k] $yy[$k] $zz[$k] >> $dwidir/bvecs.tmp
+    @ k = $k + 1
+  end
+
+  set cmd = (mv -f $dwidir/bvecs.tmp $dwidir/dwi_orig.mghdti.bvecs)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+
+  set cmd = (mv -f $dwidir/bvals.tmp $dwidir/dwi_orig.mghdti.bvals)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
   endif
 
   # Change orientation to make FSL happy
