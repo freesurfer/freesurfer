@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/11/27 00:06:23 $
-#    $Revision: 1.51 $
+#    $Date: 2013/12/04 11:54:32 $
+#    $Revision: 1.52 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.51 2013/11/27 00:06:23 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.52 2013/12/04 11:54:32 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -44,6 +44,7 @@ if ($hname == tensor || $hname == launchpad) then
 endif
 
 setenv FSLOUTPUTTYPE NIFTI_GZ
+setenv LANG en_US.UTF-8
 
 #------------ Set default options -----------------------------------------#
 
