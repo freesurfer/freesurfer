@@ -7,8 +7,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/08/13 19:27:51 $
- *    $Revision: 1.28 $
+ *    $Date: 2013/12/04 16:49:44 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,7 +55,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.28 2012/08/13 19:27:51 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.29 2013/12/04 16:49:44 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.28 2012/08/13 19:27:51 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.29 2013/12/04 16:49:44 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -175,11 +175,34 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  if(segbase == -1000){
+    // segbase has not been set with --segbase
+    if(!strcmp(annotation,"aparc")){
+      if(!strcmp(hemi,"lh")) segbase = 1000;
+      else                   segbase = 2000;
+    }
+    else if(!strcmp(annotation,"aparc.a2005s")){
+      if(!strcmp(hemi,"lh")) segbase = 1100;
+      else                   segbase = 2100;
+    }
+    else segbase = 0;
+  }
+  printf("Seg base %d\n",segbase);
+
   if(LobesFile){
     MRISaparc2lobes(Surf, (int) Ge_lobarDivision);
     MRISwriteAnnotation(Surf,LobesFile);
+    if(ctabfile != NULL){
+      Surf->ct->idbase = segbase;
+      CTABwriteFileASCII(Surf->ct,ctabfile);
+    }
     exit(0);
   }
+  if(ctabfile != NULL){
+    Surf->ct->idbase = segbase;
+    CTABwriteFileASCII(Surf->ct,ctabfile);
+  }
+
 
   if(borderfile || BorderAnnotFile){
     printf("Computing annot border\n");
@@ -206,24 +229,6 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
-  if(segbase == -1000){
-    // segbase has not been set with --segbase
-    if(!strcmp(annotation,"aparc")){
-      if(!strcmp(hemi,"lh")) segbase = 1000;
-      else                   segbase = 2000;
-    }
-    else if(!strcmp(annotation,"aparc.a2005s")){
-      if(!strcmp(hemi,"lh")) segbase = 1100;
-      else                   segbase = 2100;
-    }
-    else segbase = 0;
-  }
-  printf("Seg base %d\n",segbase);
-
-  if(ctabfile != NULL){
-    Surf->ct->idbase = segbase;
-    CTABwriteFileASCII(Surf->ct,ctabfile);
-  }
 
   if(segfile != NULL){
     printf("Converting to a segmentation\n");
