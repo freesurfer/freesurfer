@@ -7,20 +7,18 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/01/13 00:01:07 $
- *    $Revision: 1.22 $
+ *    $Date: 2013/12/04 16:50:18 $
+ *    $Revision: 1.26.2.1 $
  *
- * Copyright (C) 2002-2009,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -57,7 +55,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.22 2010/01/13 00:01:07 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.26.2.1 2013/12/04 16:50:18 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -84,6 +82,7 @@ int  nperannot[1000];
 char *segfile=NULL;
 MRI  *seg;
 int  segbase = -1000;
+char *ctabfile = NULL;
 
 char *borderfile=NULL;
 char *BorderAnnotFile=NULL;
@@ -92,6 +91,11 @@ char *StatFile=NULL;
 MRI  *Stat=NULL;
 static int label_index = -1 ;  // if >= 0 only extract this label
 
+// The global 'gi_lobarDivision' 
+typedef enum _lobarDivision {
+	e_default, e_strict
+} e_LOBARDIVISION;
+e_LOBARDIVISION Ge_lobarDivision = e_default;
 
 /*-------------------------------------------------*/
 /*-------------------------------------------------*/
@@ -102,7 +106,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.22 2010/01/13 00:01:07 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.26.2.1 2013/12/04 16:50:18 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -171,11 +175,34 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  if(segbase == -1000){
+    // segbase has not been set with --segbase
+    if(!strcmp(annotation,"aparc")){
+      if(!strcmp(hemi,"lh")) segbase = 1000;
+      else                   segbase = 2000;
+    }
+    else if(!strcmp(annotation,"aparc.a2005s")){
+      if(!strcmp(hemi,"lh")) segbase = 1100;
+      else                   segbase = 2100;
+    }
+    else segbase = 0;
+  }
+  printf("Seg base %d\n",segbase);
+
   if(LobesFile){
-    MRISaparc2lobes(Surf);
+    MRISaparc2lobes(Surf, (int) Ge_lobarDivision);
     MRISwriteAnnotation(Surf,LobesFile);
+    if(ctabfile != NULL){
+      Surf->ct->idbase = segbase;
+      CTABwriteFileASCII(Surf->ct,ctabfile);
+    }
     exit(0);
   }
+  if(ctabfile != NULL){
+    Surf->ct->idbase = segbase;
+    CTABwriteFileASCII(Surf->ct,ctabfile);
+  }
+
 
   if(borderfile || BorderAnnotFile){
     printf("Computing annot border\n");
@@ -202,21 +229,9 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
+
   if(segfile != NULL){
     printf("Converting to a segmentation\n");
-    if(segbase == -1000){
-      // segbase has not been set with --segbase
-      if(!strcmp(annotation,"aparc")){
-	if(!strcmp(hemi,"lh")) segbase = 1000;
-	else                   segbase = 2000;
-      }
-      else if(!strcmp(annotation,"aparc.a2005s")){
-	if(!strcmp(hemi,"lh")) segbase = 1100;
-	else                   segbase = 2100;
-      }
-      else segbase = 0;
-    }
-    printf("Seg base %d\n",segbase);
     seg = MRISannot2seg(Surf,segbase);
     MRIwrite(seg,segfile);
     exit(0);
@@ -252,8 +267,7 @@ int main(int argc, char **argv) {
 
     if (label_index >= 0 && ani != label_index)      continue ;
     if (nperannot[ani] == 0) {
-      if (DIAG_VERBOSE_ON)
-        printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
+      printf("%3d  %5d  empty --- skipping \n",ani,nperannot[ani]);
       continue;
     }
 
@@ -366,6 +380,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&segbase);
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--ctab")) {
+      if (nargc < 1) argnerr(option,1);
+      ctabfile = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--border")) {
       if (nargc < 1) argnerr(option,1);
       borderfile = pargv[0];
@@ -380,6 +399,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       LobesFile = pargv[0];
       nargsused = 1;
+      Ge_lobarDivision = e_default;
+    } 
+    else if (!strcmp(option, "--lobesStrict")) {
+      if (nargc < 1) argnerr(option,1);
+      LobesFile = pargv[0];
+      nargsused = 1;
+      Ge_lobarDivision = e_strict;
     } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -403,12 +429,23 @@ static void print_usage(void) {
   printf("\n");
   printf("   --subject    source subject\n");
   printf("   --hemi       hemisphere (lh or rh) (with surface)\n");
+  printf("   --lobes <LobesFile>\n");
+  printf("   	Create an annotation based on cortical lobes.\n");
+  printf("   	Note that the precentral and postcentral labels are not\n");
+  printf("   	included as part of the 'frontal' and 'parietal' lobes.\n");
+  printf("   	The lobar annotation is saved to <LobesFile>.\n");
+  printf("   --lobesStrict <LobesFile>\n");
+  printf("   	Use a slightly stricter lobe definition that adds the\n");
+  printf("   	precentral to the 'frontal' and includes the postcentral\n");
+  printf("   	with the 'parietal' lobe.\n");
+  printf("   	The lobar annotation is saved to <LobesFile>.\n");
   printf("\n");
   printf("Output options:\n");
   printf("   --labelbase  output will be base-XXX.label \n");
   printf("   --outdir dir :  output will be dir/hemi.name.label \n");
   printf("   --seg segfile : output will be a segmentation 'volume'\n");
   printf("   --segbase base : add base to the annotation number to get seg value\n");
+  printf("   --ctab colortable : colortable like FreeSurferColorLUT.txt\n");
   printf("   --border borderfile : output will be a binary overlay of the parc borders \n");
   printf("   --border-annot borderannot : default goes in subject/label\n");
   printf("\n");
@@ -565,7 +602,7 @@ static void check_options(void) {
     exit(1);
   }
   if(outdir == NULL && labelbase == NULL && segfile == NULL &&
-     borderfile == NULL && LobesFile == NULL ) {
+     borderfile == NULL && LobesFile == NULL && ctabfile == NULL) {
     fprintf(stderr,"ERROR: no output specified\n");
     exit(1);
   }
