@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/12/04 11:54:32 $
-#    $Revision: 1.52 $
+#    $Date: 2013/12/04 16:36:01 $
+#    $Revision: 1.53 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.52 2013/12/04 11:54:32 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.53 2013/12/04 16:36:01 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -242,13 +242,13 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
       endif
     endif
 
+    mkdir -p $dtdir/scripts
+
     # Check diffusion directory
     if (! -w $dtdir) then
       echo "ERROR: cannot write in $dtdir"
       exit 1
     endif
-
-    mkdir -p $dtdir/scripts
 
     #---------- Check build stamp -------------------------------------------#
     # This allows the user to require that the build stamp be
@@ -604,13 +604,13 @@ else				#--->>> Multiple time points for each subject
         endif
       endif
 
+      mkdir -p $dtdir/scripts
+
       # Check diffusion directory
       if (! -w $dtdir) then
         echo "ERROR: cannot write in $dtdir"
         exit 1
       endif
-
-      mkdir -p $dtdir/scripts
 
       #---------- Check build stamp -------------------------------------------#
       # This allows the user to require that the build stamp be
