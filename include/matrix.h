@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 15:29:50 $
- *    $Revision: 1.74.2.1 $
+ *    $Date: 2013/12/05 21:22:09 $
+ *    $Revision: 1.74.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,6 +76,8 @@ COMPLEX_FLOAT, *CPTR ;
 #define MATRIX_UPPER  1
 #define MATRIX_LOWER  2
 
+int     MatrixIsZero(MATRIX *m) ;
+int     MatrixIsIdentity(MATRIX *m) ;
 MATRIX  *MatrixReshape(MATRIX *m_src, MATRIX *m_dst, int rows, int cols) ;
 int     MatrixCheck(MATRIX *m) ;
 MATRIX  *MatrixInverse( const MATRIX *mIn, MATRIX *mOut) ;
@@ -85,6 +87,7 @@ MATRIX  *MatrixRightPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv) ;
 #define MatrixLeftPseudoInverse MatrixPseudoInverse
 MATRIX  *MatrixAlloc( const int rows, const int cols, const int type);
 int     MatrixFree(MATRIX **pmat) ;
+MATRIX  *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3); // use this one
 MATRIX  *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3) ;
 MATRIX  *MatrixCopy( const MATRIX *mIn, MATRIX *mOut );
 int     MatrixWriteTxt(const char *fname, MATRIX *mat) ;
@@ -100,6 +103,8 @@ MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixAdd( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
 MATRIX  *MatrixSubtract( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
 MATRIX  *MatrixScalarMul( const MATRIX *mIn, const float val, MATRIX *mOut) ;
+MATRIX  *MatrixScalarAdd( const MATRIX *mIn, const float val, MATRIX *mOut) ;
+MATRIX  *VectorZeroMean(const MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixClear(MATRIX *mat) ;
 MATRIX  *MatrixSquareElts(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixSignedSquareElts(MATRIX *mIn, MATRIX *mOut) ;
@@ -108,7 +113,7 @@ MATRIX  *MatrixDiag(MATRIX *mDiag, MATRIX *mOut) ;
 MATRIX  *MatrixMakeDiagonal(MATRIX *mSrc, MATRIX *mDst) ;
 MATRIX  *MatrixCopyRegion( const MATRIX *mSrc, MATRIX *mDst,
 			   const int start_row,
-			   const int start_col,
+			   const int startol,
 			   const int rows,
 			   const int cols,
 			   const int dest_row,
@@ -158,6 +163,9 @@ MATRIX *MatrixAsciiReadFrom(FILE *fp, MATRIX *m) ;
 int    MatrixAsciiWrite(const char *fname, MATRIX *m) ;
 MATRIX *MatrixAsciiRead(const char *fname, MATRIX *m) ;
 MATRIX *MatrixAsciiReadRaw(const char *fname, MATRIX *m) ;
+
+int    MatrixWriteInto(FILE *fp, MATRIX *m) ;
+MATRIX *MatrixReadFrom(FILE *fp, MATRIX *m) ;
 
 #define VectorAlloc(n, type)       MatrixAlloc(n, 1, type)
 #define RVectorAlloc(n, type)      MatrixAlloc(1, n, type)
@@ -248,7 +256,7 @@ MATRIX *MatrixNormalizeColScale(MATRIX *m, MATRIX *scale);
 MATRIX *MatrixAllocRotation(int n, float angle, int which) ;
 MATRIX *MatrixReallocRotation(int n, float angle, int which, MATRIX *m) ;
 MATRIX *MatrixAllocTranslation(int n, double *trans) ;
-#define MatrixClone(mat)   MatrixCopy(mat, NULL)
+#define MatrixClone(mat)   MatrixZero(0, 0, MatrixCopy(mat, NULL))
 #define VectorClone        MatrixClone
 
 float MatrixTrace(MATRIX *M);
@@ -260,10 +268,11 @@ MATRIX *MatrixZero(int rows, int cols, MATRIX *X);
 double  MatrixSumElts(MATRIX *m) ;
 MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum);
 MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m);
+MATRIX *MatrixDRand48ZeroMean(int rows, int cols, MATRIX *m) ;
 MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst);
 
-double VectorSum(MATRIX *v);
-double VectorMean(MATRIX *v);
+double VectorSum(const MATRIX *v);
+double VectorMean(const MATRIX *v);
 double VectorVar(MATRIX *v, double *pMean);
 double VectorStdDev(MATRIX *v, double *pMean);
 double VectorRange(MATRIX *v, double *pVmin, double *pVmax);
@@ -273,6 +282,10 @@ MATRIX *GaussianVector(int len, float mean, float std, int norm, MATRIX *g);
 MATRIX *MatrixReorderRows(MATRIX *X, int *NewRowOrder, MATRIX *XRO);
 int MatrixRandPermRows(MATRIX *X);
 int MatrixColsAreNotOrthog(MATRIX *X);
+#define VectorSSE(v1, v2)  MatrixSSE(v1, v2)
+#define VectorRMS(v1, v2)  MatrixRMS(v1, v2)
+double MatrixSSE(MATRIX *m1, MATRIX *m2) ;
+double MatrixRMS(MATRIX *m1, MATRIX *m2) ;
 int MatrixOrthonormalizeTransform(MATRIX *m_L) ;
 int MatrixToRigidParameters(MATRIX *m, double *pxr, double *pyr, double *pzr,
                             double *pxt, double *pyt, double *pzt);
@@ -284,6 +297,12 @@ double MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v) ;
 MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k);
 MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm);
 MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
+MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz);
+
+MATRIX *ANOVAOmnibus(int nLevels);
+MATRIX *ANOVASelectionVector(int nLevels, int Level);
+MATRIX *ANOVASummingVector(int nLevels);
+MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorList);
 
 #if defined(__cplusplus)
 };

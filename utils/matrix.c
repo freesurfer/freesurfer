@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/05/05 15:29:50 $
- *    $Revision: 1.125.2.1 $
+ *    $Date: 2013/12/05 21:22:09 $
+ *    $Revision: 1.125.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,7 @@
 #include "macros.h"
 #include "numerics.h"
 #include "evschutils.h"
+#include "fio.h"
 
 // private functions
 MATRIX *MatrixCalculateEigenSystemHelper( MATRIX *m,
@@ -389,8 +390,148 @@ MatrixFree(MATRIX **pmat)
 }
 
 
-MATRIX *
-MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+/*!
+  \fn MATRIX *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+  \brief Multiplies two matrices. The accumulation is done with double,
+   which is more accurate than MatrixMultiplyD() which uses float.
+*/
+MATRIX *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+{
+  int   col, row, i, rows, cols, m1_cols ;
+  float *r3 ;
+  register float *r1, *r2 ;
+  register double val;
+  MATRIX   *m_tmp1 = NULL, *m_tmp2 = NULL ;
+
+  if (!m1)
+    ErrorExit(ERROR_BADPARM,
+              "MatrixMultiply: m1 is null!\n") ;
+  if (!m2)
+    ErrorExit(ERROR_BADPARM,
+              "MatrixMultiply: m2 is null!\n") ;
+
+  if (m1->cols != m2->rows)
+    ErrorReturn(NULL,
+                (ERROR_BADPARM,
+                 "MatrixMultiply: m1 cols %d does not match m2 rows %d\n",
+                 m1->cols, m2->rows)) ;
+
+  if (!m3)
+  {
+    /* twitzel also did something here */
+    if ((m1->type == MATRIX_COMPLEX) || (m2->type == MATRIX_COMPLEX))
+      m3 = MatrixAlloc(m1->rows, m2->cols, MATRIX_COMPLEX);
+    else
+      m3 = MatrixAlloc(m1->rows, m2->cols, m1->type) ;
+    if (!m3)
+      return(NULL) ;
+  }
+  else if ((m3->rows != m1->rows) || (m3->cols != m2->cols))
+    ErrorReturn(NULL,
+                (ERROR_BADPARM,
+                 "MatrixMultiply: (%d x %d) * (%d x %d) != (%d x %d)\n",
+                 m1->rows, m1->cols, m2->rows, m2->cols, m3->rows, m3->cols)) ;
+
+  if (m3 == m2)
+  {
+    m_tmp1 = MatrixCopy(m2, NULL) ;
+    m2 = m_tmp1 ;
+  }
+  if (m3 == m1)
+  {
+    m_tmp2 = MatrixCopy(m1, NULL) ;
+    m1 = m_tmp2 ;
+  }
+  /*  MatrixClear(m3) ;*/
+  cols = m3->cols ;
+  rows = m3->rows ;
+  m1_cols = m1->cols ;
+
+  /* twitzel modified here */
+  if((m1->type == MATRIX_REAL) && (m2->type == MATRIX_REAL)) {
+    for(row = 1 ; row <= rows ; row++)  {
+      r3 = &m3->rptr[row][1] ;
+      for (col = 1 ; col <= cols ; col++){
+        val = 0.0 ;
+        r1 = &m1->rptr[row][1] ;
+        r2 = &m2->rptr[1][col] ;
+        for (i = 1 ; i <= m1_cols ; i++, r2 += cols)
+          val += *r1++ * *r2 ;
+        *r3++ = val ;
+      }
+    }
+  }
+  else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_COMPLEX))
+  {
+    for (row = 1 ; row <= rows ; row++)
+    {
+      for (col = 1 ; col <= cols ; col++)
+      {
+        for (i = 1 ; i <= m1->cols ; i++)
+        {
+          double a, b, c, d ;  /* a + ib and c + id */
+
+          a = MATRIX_CELT_REAL(m1,row,i) ;
+          b = MATRIX_CELT_IMAG(m1,row,i) ;
+          c = MATRIX_CELT_REAL(m2,i,col) ;
+          d = MATRIX_CELT_IMAG(m2,i,col) ;
+          MATRIX_CELT_REAL(m3,row,col) += a*c - b*d ;
+          MATRIX_CELT_IMAG(m3,row,col) += a*d + b*c ;
+        }
+      }
+    }
+  }
+  else if ((m1->type == MATRIX_REAL) && (m2->type == MATRIX_COMPLEX))
+  {
+    for (row = 1 ; row <= rows ; row++)
+    {
+      for (col = 1 ; col <= cols ; col++)
+      {
+        for (i = 1 ; i <= m1->cols ; i++)
+        {
+          double a, c, d ;  /* a + ib and c + id and b=0 here*/
+
+          a = *MATRIX_RELT(m1,row,i);
+          c = MATRIX_CELT_REAL(m2,i,col);
+          d = MATRIX_CELT_IMAG(m2,i,col);
+          MATRIX_CELT_REAL(m3,row,col) += a*c;
+          MATRIX_CELT_IMAG(m3,row,col) += a*d;
+        }
+      }
+    }
+  }
+  else if ((m1->type == MATRIX_COMPLEX) && (m2->type == MATRIX_REAL))
+  {
+    for (row = 1 ; row <= rows ; row++)
+    {
+      for (col = 1 ; col <= cols ; col++)
+      {
+        for (i = 1 ; i <= m1->cols ; i++)
+        {
+          double a, b, c ;  /* a + ib and c + id and d=0 here*/
+
+          a = MATRIX_CELT_REAL(m1,row,i);
+          b = MATRIX_CELT_IMAG(m1,row,i);
+          c = *MATRIX_RELT(m2,i,col);
+          MATRIX_CELT_REAL(m3,row,col) += a*c;
+          MATRIX_CELT_IMAG(m3,row,col) += b*c;
+        }
+      }
+    }
+  }
+  if (m_tmp1)
+    MatrixFree(&m_tmp1) ;
+  if (m_tmp2)
+    MatrixFree(&m_tmp2) ;
+  return(m3) ;
+}
+
+/*!
+  \fn MATRIX *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
+  \brief Multiplies two matrices. The accumulation is done with float. 
+   Consider using MatrixMultiplyD() which uses double.
+*/
+MATRIX *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
 {
   int   col, row, i, rows, cols, m1_cols ;
   float *r3 ;
@@ -553,7 +694,7 @@ int MatrixPrint(FILE *fp, const MATRIX *mat)
       switch (mat->type)
       {
       case MATRIX_REAL:
-        fprintf(fp, "% 2.3f", mat->rptr[row][col]) ;
+        fprintf(fp, "% 2.5f", mat->rptr[row][col]) ;
         break ;
       case MATRIX_COMPLEX:
         fprintf(fp, "% 2.3f + % 2.3f i",
@@ -950,6 +1091,43 @@ MatrixScalarMul( const MATRIX *mIn, const float val, MATRIX *mOut)
   {
     for (col = 1 ; col <= cols ; col++)
       mOut->rptr[row][col] = mIn->rptr[row][col] * val ;
+  }
+  return(mOut) ;
+}
+MATRIX *
+VectorZeroMean(const MATRIX *mIn, MATRIX *mOut)
+{
+  double mean ;
+
+  mean = VectorMean(mIn) ;
+  return(MatrixScalarAdd(mIn, -mean, mOut)) ;
+}
+
+MATRIX  *
+MatrixScalarAdd( const MATRIX *mIn, const float val, MATRIX *mOut)
+{
+  int  row, col, rows, cols ;
+
+  if (!mOut)
+  {
+    mOut = MatrixAlloc(mIn->rows, mIn->cols, mIn->type) ;
+    if (!mOut)
+      return(NULL) ;
+  }
+
+  rows = mIn->rows ;
+  cols = mIn->cols ;
+
+  if ((rows != mOut->rows) || (cols != mOut->cols))
+    ErrorReturn(NULL,
+                (ERROR_BADPARM,
+                 "MatrixScalarMul: incompatable matrices %d x %d != %d x %d\n",
+                 rows, cols, mOut->rows, mOut->cols)) ;
+
+  for (row = 1 ; row <= rows ; row++)
+  {
+    for (col = 1 ; col <= cols ; col++)
+      mOut->rptr[row][col] = mIn->rptr[row][col] + val ;
   }
   return(mOut) ;
 }
@@ -1693,6 +1871,8 @@ MatrixSVDInverse(MATRIX *m, MATRIX *m_inverse)
   int     row, rows, cols ;
   float   wmax, wmin ;
 
+  if (MatrixIsZero(m))
+    return(NULL) ;
   cols = m->cols ;
   rows = m->rows ;
   m_U = MatrixCopy(m, NULL) ;
@@ -1741,8 +1921,11 @@ MATRIX *
 MatrixAllocTranslation(int n, double *trans)
 {
   MATRIX *mat ;
+  int    i ;
 
-  mat = MatrixAlloc(n, n, MATRIX_REAL) ;
+  mat = MatrixIdentity(n, NULL) ;
+  for (i = 0 ; i < n-1 ; i++)
+    *MATRIX_RELT(mat, i+1, 4) = trans[i] ;
   return(mat) ;
 }
 
@@ -2147,6 +2330,73 @@ MatrixAsciiReadFrom(FILE *fp, MATRIX *m)
   return(m) ;
 }
 
+int
+MatrixWriteInto(FILE *fp, MATRIX *m)
+{
+  int row, col ;
+
+  fwriteInt(m->type, fp) ;
+  fwriteInt(m->rows, fp) ;
+  fwriteInt(m->cols, fp) ;
+
+  for (row = 1 ; row <= m->rows ; row++)
+  {
+    for (col = 1 ; col <= m->cols ; col++)
+    {
+      if (m->type == MATRIX_COMPLEX)
+      {
+	fwriteDouble(MATRIX_CELT_REAL(m,row,col), fp) ;
+	fwriteDouble(MATRIX_CELT_IMAG(m,row,col), fp) ;
+      }
+      else
+        fwriteDouble(m->rptr[row][col], fp) ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+
+MATRIX *
+MatrixReadFrom(FILE *fp, MATRIX *m)
+{
+  int row, col, rows, cols, type ;
+
+  type = freadInt(fp) ;
+  rows = freadInt(fp) ;
+  cols = freadInt(fp) ;
+
+  if (!m)
+  {
+    m = MatrixAlloc(rows, cols, type) ;
+    if (!m)
+      ErrorReturn(NULL,
+                  (ERROR_BADFILE, "MatrixReadFrom: could not allocate matrix")) ;
+  }
+  else
+  {
+    if (m->rows != rows || m->cols != cols || m->type != type)
+      ErrorReturn
+      (m,
+       (ERROR_BADFILE, "MatrixReadFrom: specified matrix does not match file"));
+  }
+
+  for (row = 1 ; row <= m->rows ; row++)
+  {
+    for (col = 1 ; col <= m->cols ; col++)
+    {
+      if (m->type == MATRIX_COMPLEX)
+      {
+	MATRIX_CELT_REAL(m,row,col) = freadDouble( fp) ;
+	MATRIX_CELT_IMAG(m,row,col) = freadDouble(fp) ;
+      }
+      else
+        m->rptr[row][col] = freadDouble(fp) ;
+    }
+  }
+
+  return(m) ;
+}
+
 
 /*
   calculate and return the Euclidean norm of the vector v.
@@ -2306,6 +2556,8 @@ MatrixSingular(MATRIX *m)
   int     row, rows, cols ;
   float   wmax, wmin, wi ;
 
+  if (MatrixIsZero(m))
+    return(1) ;
   cols = m->cols ;
   rows = m->rows ;
   m_U = MatrixCopy(m, NULL) ;
@@ -2339,6 +2591,26 @@ MatrixSingular(MATRIX *m)
 #endif
 }
 
+int
+MatrixIsZero(MATRIX *m)
+{
+  int row, col ;
+  double val ;
+
+  for (row = 1 ; row <= m->rows ; row++)
+    for (col = 1 ; col <= m->cols ; col++)
+    {
+      val = fabs(*MATRIX_RELT(m, row, col)) ;
+      if (val>1e-11)
+      {
+	if (val < 1e-10)
+	  DiagBreak() ;
+	return(0) ;
+      }
+    }
+
+  return(1) ;
+}
 
 /*
   calcluate the condition # of a matrix using svd
@@ -2351,6 +2623,8 @@ float MatrixConditionNumber(MATRIX *m)
   int     row, rows, cols ;
   float   wmax, wmin, wi ;
 
+  if (MatrixIsZero(m))
+    return(1e10) ;
   cols = m->cols ;
   rows = m->rows ;
   m_U = MatrixCopy(m, NULL) ;
@@ -2974,7 +3248,7 @@ double VectorRange(MATRIX *v, double *pVmin, double *pVmax)
 
 
 /*----------------------------------------------------------------*/
-double VectorSum(MATRIX *v)
+double VectorSum(const MATRIX *v)
 {
   double sum;
   int r,c;
@@ -2988,7 +3262,7 @@ double VectorSum(MATRIX *v)
 
 
 /*----------------------------------------------------------------*/
-double VectorMean(MATRIX *v)
+double VectorMean(const MATRIX *v)
 {
   double sum,mean;
 
@@ -3046,6 +3320,25 @@ MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m)
     for (c=1; c <= m->cols; c++)
     {
       m->rptr[r][c] = drand48();
+    }
+  }
+
+  return(m);
+}
+
+/*----------------------------------------------------------------*/
+MATRIX *MatrixDRand48ZeroMean(int rows, int cols, MATRIX *m)
+{
+  int r,c;
+
+  if (m==NULL) m = MatrixAlloc(rows,cols,MATRIX_REAL);
+  /* if m != NULL rows and cols are ignored */
+
+  for (r=1; r <= m->rows; r++)
+  {
+    for (c=1; c <= m->cols; c++)
+    {
+      m->rptr[r][c] = 2*drand48()-1.0;
     }
   }
 
@@ -3427,6 +3720,8 @@ MatrixSVDPseudoInverse(MATRIX *m, MATRIX *m_pseudo_inv)
     m_V = MatrixAlloc(cols, cols, MATRIX_REAL) ;
     v_S = VectorAlloc(cols, MATRIX_REAL) ;
 
+    if (MatrixIsZero(m))
+      return(NULL) ;
     OpenSvdcmp(m_U, v_S, m_V) ;
 
     for (r = 1 ; r <= v_S->rows ; r++)
@@ -3879,4 +4174,190 @@ MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude)
     q++;
   }
   return(Trg);
+}
+/*!
+  \fn int MatrixIsIdentity(MATRIX *m)
+  \brief returns 1 if matrix m is the identity matrix, 0 otherwise
+*/
+int
+MatrixIsIdentity(MATRIX *m)
+{
+  int  r, c ;
+
+  for (r = 1 ; r < m->rows ; r++)
+    for (c = 1 ; c < m->cols ; c++)
+    {
+      if (r == c)
+      {
+	if (FEQUAL(*MATRIX_RELT(m, r, c), 1) == 0)
+	  return(0) ;
+      }
+      else
+	if (FEQUAL(*MATRIX_RELT(m, r, c), 0.0) == 0)
+	  return(0) ;
+    }
+  return(1) ;
+}
+
+
+/*!
+  \fn MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz)
+  \brief Computes trapezoidal integration (like matlab cumtrapz)
+*/
+MATRIX *MatrixCumTrapZ(MATRIX *y, MATRIX *t, MATRIX *yz)
+{
+  if(yz==NULL) yz = MatrixAlloc(y->rows,y->cols,MATRIX_REAL);
+
+  int c, f;
+  double v, vprev, vsum, dt;
+
+  for(c=0; c < y->cols; c++){
+    yz->rptr[1][c+1] = 0;
+    vsum = 0;
+    vprev = y->rptr[1][c+1];
+    for(f=1; f < y->rows; f++){
+      dt = t->rptr[f+1][1] - t->rptr[f][1];
+      v = y->rptr[f+1][c+1];
+      vsum += (dt*((v+vprev)/2));
+      yz->rptr[f+1][c+1] = vsum;
+      vprev = v;
+    }
+  }
+  return(yz);
+}
+//---------------------------------------------------------
+/*!
+  \fn MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorList)
+  \brief Computes a contrast matrix to test an effect or interaction in an ANOVA.
+   FLevels is an array of length nFactors with the number of levels for each factor.
+     Number of levels must be >= 2 or else it is not a factor.
+   All factors must be discrete factors (ie, not continuous)
+   FactorList is an array of length nFactorList with the Factors to test.
+   Eg, FLevels = [2 2], FactorList = [1] tests for the main effect of Factor 1.
+   Eg, FLevels = [2 3], FactorList = [1 2] tests for the interaction between Factors 1 and 2
+   The Factors in the FactorList should be 1-based.
+   The regressors should have the following order 
+      (eg, if factors are gender, handedness, and diagnosis)
+   F1L1-F2L1-F3L1    M-L-N
+   F1L1-F2L1-F3L2    M-L-AD
+   F1L1-F2L2-F3L1    M-R-N
+   F1L1-F2L2-F3L2    M-R-AD
+   F1L2-F2L1-F3L1    F-L-N
+   F1L2-F2L1-F3L2    F-L-AD
+   F1L2-F2L2-F3L1    F-R-N
+   F1L2-F2L2-F3L2    F-R-AD
+
+   This should be general enough to handle any number of Factors with any number
+   of levels per factor. The number of levels does not need to be the same across
+   factors.
+
+   Woodward, J. A., Bonett, D. G., & Brecht, M-L. (1990). Introduction
+   to linear models and experimental design. San Diego, CA: Harcourt
+   Brace Jovanovich.
+
+*/
+MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorList)
+{
+  int n,nthFactor,InList;
+  MATRIX *M,*Mf,*K;
+
+  for(nthFactor = 0; nthFactor < nFactors;  nthFactor++){
+    if(FLevels[nthFactor] < 2){
+      printf("ERROR: ANOVAContrast: Factor %d has only %d levels.\n",
+	     nthFactor,FactorList[nthFactor]);
+      printf("       Must have at least 2 levels\n");
+      return(NULL);
+    }
+  }
+  for(nthFactor = 0; nthFactor < nFactorList;  nthFactor++){
+    if(FactorList[nthFactor] > nFactors){
+      printf("ERROR: ANOVAContrast: %d > %d\n",FactorList[nthFactor],nFactors);
+      return(NULL);
+    }
+    if(FactorList[nthFactor] < 1){
+      printf("ERROR: ANOVAContrast: Factor %d = %d < 1\n",nthFactor,FactorList[nthFactor]);
+      return(NULL);
+    }
+  }
+
+  M = MatrixConstVal(1,1,1,NULL);
+  for(nthFactor = 0; nthFactor < nFactors;  nthFactor++){
+    InList = 0;
+    for(n = 0; n < nFactorList;  n++){
+      if(nthFactor+1 == FactorList[n]) {
+	InList = 1;
+	break;
+      }
+    }
+    if(InList) Mf = ANOVAOmnibus(FLevels[nthFactor]);
+    else       Mf = ANOVASummingVector(FLevels[nthFactor]);
+    //printf("Mf %d --------------------\n",InList);
+    //MatrixPrint(stdout,Mf);
+    K = MatrixKron(M,Mf,NULL);
+    MatrixFree(&Mf);
+    MatrixFree(&M);
+    M = K;
+  }
+  return(M);
+}
+//---------------------------------------------------------
+/*!
+  \fn MATRIX *ANOVASummingVector(int nLevels)
+  \brief Summing vector for main effect of a factor. nLevels = number
+  of levels in the factor.
+*/
+MATRIX *ANOVASummingVector(int nLevels)
+{
+  MATRIX *S;
+  S = MatrixConstVal(1,1,nLevels,NULL);
+  return(S);
+}
+//---------------------------------------------------------
+/*!
+  \fn MATRIX *ANOVASelectionVector(int nLevels, int Level)
+  \brief Selects a given level of a given factor. nLevels = number of
+  levels in the factor, Level is the one-based level number to select.
+  Used to create a Simple Main Effect ANOVA matrix.
+*/
+MATRIX *ANOVASelectionVector(int nLevels, int Level)
+{
+  MATRIX *S;
+  S = MatrixConstVal(0,1,nLevels,NULL);
+  S->rptr[1][Level] = 1;
+  return(S);
+}
+//---------------------------------------------------------
+MATRIX *ANOVAOmnibus(int nLevels)
+{
+  MATRIX *O;
+  int r;
+  O = MatrixAlloc(nLevels-1,nLevels,MATRIX_REAL);
+  for(r=0; r< nLevels-1; r++){
+    O->rptr[r+1][r+1] = 1;
+    O->rptr[r+1][nLevels] = -1;
+  }
+  return(O);
+}
+double
+MatrixSSE(MATRIX *m1, MATRIX *m2) 
+{
+  int r, c ;
+  double sse, error ;
+
+  for (sse = 0.0, r = 1 ; r <= m1->rows ; r++)
+    for (c = 1 ; c <= m1->cols ; c++)
+    {
+      error = *MATRIX_RELT(m1, r, c) - *MATRIX_RELT(m2, r, c) ;
+      sse += SQR(error) ;
+    }
+  return(sse) ;
+}
+
+double
+MatrixRMS(MATRIX *m1, MATRIX *m2)
+{
+  double sse ;
+
+  sse = MatrixSSE(m1, m2) ;
+  return(sqrt(sse / (m1->rows*m1->cols))) ;
 }
