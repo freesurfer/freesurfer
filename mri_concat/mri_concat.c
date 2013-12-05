@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/06/01 20:10:23 $
- *    $Revision: 1.62 $
+ *    $Date: 2013/12/05 21:29:48 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.62 2012/06/01 20:10:23 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.63 2013/12/05 21:29:48 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -129,6 +129,7 @@ MRI *PruneMask = NULL;
 
 int DoRMS = 0; // compute root-mean-square on multi-frame input
 int DoCumSum = 0;
+int DoFNorm = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -518,6 +519,13 @@ int main(int argc, char **argv)
     MRIfree(&mriout);
     mriout = mritmp;
   }
+  if(DoFNorm)
+  {
+    printf("Normalizing across frames\n");
+    mritmp = MRIframeNorm(mriout,NULL,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
   if(DoTAR1)
   {
     printf("Computing temoral AR1 %d\n",mriout->nframes-TAR1DOFAdjust);
@@ -822,6 +830,10 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--abs"))
     {
       DoAbs = 1;
+    }
+    else if (!strcasecmp(option, "--fnorm"))
+    {
+      DoFNorm = 1;
     }
     else if (!strcasecmp(option, "--pos"))
     {
@@ -1146,6 +1158,7 @@ static void print_usage(void)
   printf("   --max-index-add val  : add val to non-zero max indices)\n");
   printf("   --min  : compute min of concatenated volumes\n");
   printf("   --rep N : replicate N times (over frame)\n");
+  printf("   --fnorm : normalize time series at each voxel (remove mean, divide by SSS)\n");
   printf("   --conjunct  : compute voxel-wise conjunction concatenated volumes\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
@@ -1300,5 +1313,6 @@ MATRIX *GroupedMeanMatrix(int ngroups, int ntotal)
   }
   return(M);
 }
+
 
 

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/23 19:36:27 $
- *    $Revision: 1.47 $
+ *    $Date: 2013/12/05 21:29:48 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -135,5 +135,6 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 MRI *fMRIcumSum(MRI *inmri, MRI *mask, MRI *outmri);
 MRI *fMRIcumTrapZ(MRI *y, MATRIX *t, MRI *mask, MRI *yz);
 MATRIX *HalfLife2Weight(double HalfLifeMin, MATRIX *tSec);
+MRI *MRIframeNorm(MRI *src, MRI *mask, MRI *fnorm);
 
 #endif

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/23 19:36:27 $
- *    $Revision: 1.74 $
+ *    $Date: 2013/12/05 21:29:48 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.74 2012/10/23 19:36:27 greve Exp $
+  $Id: fmriutils.c,v 1.75 2013/12/05 21:29:48 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -51,6 +51,7 @@ double round(double x);
 #include "diag.h"
 #include "utils.h"
 #include "pdf.h"
+#include "float.h"
 
 #ifdef X
 #undef X
@@ -60,7 +61,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.74 2012/10/23 19:36:27 greve Exp $");
+  return("$Id: fmriutils.c,v 1.75 2013/12/05 21:29:48 greve Exp $");
 }
 
 
@@ -2934,3 +2935,47 @@ MATRIX *HalfLife2Weight(double HalfLifeMin, MATRIX *tSec)
   return(w);
 }
 
+/*!
+  \fn MRI *MRIframeNorm(MRI *src, MRI *mask, MRI *fnorm)
+  \brief normalizes (ie, removes mean, divides by sqrt
+   of the sum of squares) the time course at each voxel.
+*/
+MRI *MRIframeNorm(MRI *src, MRI *mask, MRI *fnorm)
+{
+  MRI *mn, *var; 
+  int c,r,s,f;
+  double v,mnv,sss;
+
+  if(fnorm == NULL){
+    fnorm = MRIallocSequence(src->width, src->height, src->depth,
+			     MRI_FLOAT, src->nframes);
+    if (fnorm==NULL) {
+      printf("ERROR: fMRIframeNorm: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(src,fnorm);
+  }
+
+  mn = MRIframeMean(src, NULL);
+  var = fMRIcovariance(src, 0, -1, mask, NULL);
+
+  for(c=0; c < src->width; c++){
+    for(r=0; r < src->height; r++){
+      for(s=0; s < src->depth; s++){
+	if(mask && MRIgetVoxVal(mask, c, r, s, 0) < 0.5) continue;
+	mnv = MRIgetVoxVal(mn,c,r,s,0);
+	sss = sqrt(MRIgetVoxVal(var,c,r,s,0)*(src->nframes-1));
+	for(f=0; f < src->nframes; f++){
+	  v = MRIgetVoxVal(src,c,r,s,f);
+	  v = (v-mnv)/(sss+DBL_MIN);
+	  MRIsetVoxVal(fnorm,c,r,s,f, v);
+	}
+      }
+    }
+  }
+
+  MRIfree(&mn);
+  MRIfree(&var);
+
+  return(fnorm);
+}
