@@ -13,8 +13,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/02/16 22:17:10 $
-#    $Revision: 1.10 $
+#    $Date: 2013/12/05 22:59:18 $
+#    $Revision: 1.11 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -49,21 +49,34 @@ set runlist = (1 3)
 
 # Input diffusion DICOMs (file names relative to dcmroot)
 # If original DICOMs don't exist, these can be in other image format
-# but then bvecfile and bvalfile must be specified (see below)
+# but then the gradient table and b-value table must be specified (see below)
 #
 set dcmroot = /path/to/dicoms/of/ducks
 set dcmlist = (huey/day1/XXX-1.dcm dewey/day1/XXX-1.dcm louie/day2/XXX-1.dcm)
 
-# Diffusion gradient table
+# Diffusion gradient tables (if there is a different one for each subject)
 # Must be specified if inputs are not MGH DICOMs
-# Three-column format, one row for each volume in the diffusion data set
+# The tables must have either three columns, where each row is a gradient vector
+# or three rows, where each column is a gradient vector
+# There must be as many gradient vectors as volumes in the diffusion data set
+# Default: Read from DICOM header
+#
+set bveclist = (/path/to/huey/bvecs.txt \
+                /path/to/dewey/bvecs.txt \
+                /path/to/louie/bvecs.txt)
+
+# Diffusion gradient table (if using the same one for all subjects)
+# Must be specified if inputs are not MGH DICOMs
+# The table must have either three columns, where each row is a gradient vector
+# or three rows, where each column is a gradient vector
+# There must be as many gradient vectors as volumes in the diffusion data set
 # Default: Read from DICOM header
 #
 set bvecfile = /path/to/bvecs.txt
 
 # Diffusion b-value table
 # Must be specified if inputs are not MGH DICOMs
-# Single-column format, one value for each volume in the diffusion data set
+# There must be as many b-values as volumes in the diffusion data set
 # Default: Read from DICOM header
 #
 set bvalfile = /path/to/bvals.txt
