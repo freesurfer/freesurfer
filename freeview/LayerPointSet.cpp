@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/11 17:05:35 $
- *    $Revision: 1.8 $
+ *    $Date: 2013/12/05 21:06:10 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -536,6 +536,8 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
 
     SetModified();
 
+    emit PointAdded();
+
     return m_points.size() - 1;
   }
   else
@@ -602,6 +604,8 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
 
     RebuildActors();
 
+    emit PointAdded();
+
     return n;
   }
 }
@@ -623,6 +627,8 @@ bool LayerPointSet::RemovePoint( int nIndex )
   SetModified();
 
   RebuildActors();
+
+  emit PointRemoved();
 
   return true;
 }
@@ -711,5 +717,20 @@ std::vector<double> LayerPointSet::GetPoints()
   }
 
   return list;
+}
+
+void LayerPointSet::GetPoint(int nIndex, double *pt_out)
+{
+  if (nIndex < m_points.size())
+  {
+    pt_out[0] = m_points[nIndex].pt[0];
+    pt_out[1] = m_points[nIndex].pt[1];
+    pt_out[2] = m_points[nIndex].pt[2];
+  }
+}
+
+int LayerPointSet::GetNumberOfPoints()
+{
+  return m_points.size();
 }
 

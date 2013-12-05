@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/10/23 17:35:43 $
- *    $Revision: 1.6 $
+ *    $Date: 2013/12/05 21:06:10 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,10 +91,14 @@ public:
 
   std::vector<double> GetPoints();
 
+  void GetPoint(int nIndex, double* pt_out);
+
   FSPointSet* GetPointSetData()
   {
     return m_pointSetSource;
   }
+
+  int GetNumberOfPoints();
 
 protected slots:
   void UpdateColorMap();
@@ -103,6 +107,10 @@ protected slots:
   void UpdateSnapToVoxelCenter();  
   void UpdateSplineVisibility();
   void RebuildActors( bool bRebuild3D = true );
+
+signals:
+  void PointAdded();
+  void PointRemoved();
 
 protected:
   virtual void OnSlicePositionChanged( int nPlane );

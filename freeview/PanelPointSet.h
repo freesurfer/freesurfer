@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2013/12/05 21:06:10 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,6 +58,8 @@ protected slots:
   void OnLineEditRadius(const QString& text);
   void OnLineEditSplineRadius(const QString& text);
   void OnComboScalarMap(int nSel);
+  void OnSpinBoxGoToPoint(int val);
+  void OnButtonGoToPoint();
 
 private:
   Ui::PanelPointSet *ui;

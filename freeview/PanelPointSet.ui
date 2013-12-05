@@ -70,14 +70,14 @@
       <item row="0" column="1">
        <widget class="QLineEdit" name="lineEditFileName"/>
       </item>
-      <item row="1" column="0">
+      <item row="2" column="0">
        <widget class="QLabel" name="labelOpacity">
         <property name="text">
          <string>Opacity</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="1">
+      <item row="2" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QSlider" name="sliderOpacity">
@@ -107,14 +107,14 @@
         </item>
        </layout>
       </item>
-      <item row="6" column="0">
+      <item row="7" column="0">
        <widget class="QLabel" name="labelSplineColor">
         <property name="text">
          <string>Spline color</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="1">
+      <item row="7" column="1">
        <widget class="QComboBox" name="comboBoxSplineColor">
         <item>
          <property name="text">
@@ -128,24 +128,24 @@
         </item>
        </widget>
       </item>
-      <item row="8" column="0">
+      <item row="9" column="0">
        <widget class="QLabel" name="labelScalarMap">
         <property name="text">
          <string>Scalar map</string>
         </property>
        </widget>
       </item>
-      <item row="8" column="1">
+      <item row="9" column="1">
        <widget class="QComboBox" name="comboBoxScalarMap"/>
       </item>
-      <item row="9" column="0">
+      <item row="10" column="0">
        <widget class="QLabel" name="labelMin">
         <property name="text">
          <string>Min</string>
         </property>
        </widget>
       </item>
-      <item row="9" column="1">
+      <item row="10" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_9">
         <item>
          <widget class="QSlider" name="sliderMin">
@@ -175,14 +175,14 @@
         </item>
        </layout>
       </item>
-      <item row="10" column="0">
+      <item row="11" column="0">
        <widget class="QLabel" name="labelMid">
         <property name="text">
          <string>Mid</string>
         </property>
        </widget>
       </item>
-      <item row="10" column="1">
+      <item row="11" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_7">
         <item>
          <widget class="QSlider" name="sliderMid">
@@ -212,14 +212,14 @@
         </item>
        </layout>
       </item>
-      <item row="11" column="0">
+      <item row="12" column="0">
        <widget class="QLabel" name="labelMax">
         <property name="text">
          <string>Max</string>
         </property>
        </widget>
       </item>
-      <item row="11" column="1">
+      <item row="12" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_11">
         <item>
          <widget class="QSlider" name="sliderMax">
@@ -249,14 +249,14 @@
         </item>
        </layout>
       </item>
-      <item row="12" column="0">
+      <item row="13" column="0">
        <widget class="QLabel" name="labelOffset">
         <property name="text">
          <string>Offset</string>
         </property>
        </widget>
       </item>
-      <item row="12" column="1">
+      <item row="13" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_14">
         <item>
          <widget class="QSlider" name="sliderOffset">
@@ -286,14 +286,14 @@
         </item>
        </layout>
       </item>
-      <item row="13" column="0">
+      <item row="14" column="0">
        <widget class="QLabel" name="labelSplineRadius">
         <property name="text">
          <string>Spline radius</string>
         </property>
        </widget>
       </item>
-      <item row="13" column="1">
+      <item row="14" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
          <widget class="QLineEdit" name="lineEditSplineRadius">
@@ -320,14 +320,14 @@
         </item>
        </layout>
       </item>
-      <item row="3" column="0">
+      <item row="4" column="0">
        <widget class="QLabel" name="labelRadius">
         <property name="text">
          <string>Radius</string>
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="4" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
          <widget class="QLineEdit" name="lineEditRadius">
@@ -354,14 +354,14 @@
         </item>
        </layout>
       </item>
-      <item row="4" column="1">
+      <item row="5" column="1">
        <widget class="QCheckBox" name="checkBoxSnapToCenter">
         <property name="text">
          <string>Snap to voxel center</string>
         </property>
        </widget>
       </item>
-      <item row="5" column="1">
+      <item row="6" column="1">
        <widget class="QCheckBox" name="checkBoxShowSpline">
         <property name="text">
          <string>Show spline</string>
@@ -371,7 +371,7 @@
         </property>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="3" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QtColorPicker" name="colorpickerPointColor" native="true"/>
@@ -391,14 +391,14 @@
         </item>
        </layout>
       </item>
-      <item row="2" column="0">
+      <item row="3" column="0">
        <widget class="QLabel" name="labelColor_2">
         <property name="text">
          <string>Color</string>
         </property>
        </widget>
       </item>
-      <item row="7" column="1">
+      <item row="8" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
          <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
@@ -415,6 +415,60 @@
            </size>
           </property>
          </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelNumberOfPoints">
+        <property name="text">
+         <string># of points</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <item>
+         <widget class="QLabel" name="labelNumberTotal">
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_5">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButtonGoToPoint">
+          <property name="maximumSize">
+           <size>
+            <width>50</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Go to</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="spinBoxGoToPoint">
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>999</number>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -457,8 +511,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>251</x>
-     <y>216</y>
+     <x>250</x>
+     <y>104</y>
     </hint>
     <hint type="destinationlabel">
      <x>-22</x>
@@ -473,8 +527,8 @@
    <slot>OnLineEditRadius(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>108</x>
-     <y>261</y>
+     <x>148</x>
+     <y>163</y>
     </hint>
     <hint type="destinationlabel">
      <x>58</x>
@@ -490,7 +544,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>245</x>
-     <y>427</y>
+     <y>315</y>
     </hint>
     <hint type="destinationlabel">
      <x>46</x>
@@ -506,7 +560,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>245</x>
-     <y>460</y>
+     <y>348</y>
     </hint>
     <hint type="destinationlabel">
      <x>86</x>
@@ -522,7 +576,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>245</x>
-     <y>493</y>
+     <y>381</y>
     </hint>
     <hint type="destinationlabel">
      <x>87</x>
@@ -538,7 +592,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>245</x>
-     <y>526</y>
+     <y>414</y>
     </hint>
     <hint type="destinationlabel">
      <x>88</x>
@@ -553,8 +607,8 @@
    <slot>OnLineEditSplineRadius(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>119</x>
-     <y>564</y>
+     <x>148</x>
+     <y>452</y>
     </hint>
     <hint type="destinationlabel">
      <x>113</x>
@@ -569,8 +623,8 @@
    <slot>OnLineEditMin(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>293</x>
-     <y>422</y>
+     <x>311</x>
+     <y>320</y>
     </hint>
     <hint type="destinationlabel">
      <x>258</x>
@@ -585,8 +639,8 @@
    <slot>OnLineEditMid(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>264</x>
-     <y>460</y>
+     <x>311</x>
+     <y>353</y>
     </hint>
     <hint type="destinationlabel">
      <x>267</x>
@@ -601,8 +655,8 @@
    <slot>OnLineEditMax(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>280</x>
-     <y>498</y>
+     <x>311</x>
+     <y>386</y>
     </hint>
     <hint type="destinationlabel">
      <x>215</x>
@@ -617,8 +671,8 @@
    <slot>OnLineEditOffset(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>256</x>
-     <y>527</y>
+     <x>311</x>
+     <y>419</y>
     </hint>
     <hint type="destinationlabel">
      <x>234</x>
@@ -633,12 +687,44 @@
    <slot>OnComboScalarMap(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>310</x>
-     <y>400</y>
+     <x>312</x>
+     <y>288</y>
     </hint>
     <hint type="destinationlabel">
      <x>268</x>
      <y>254</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>spinBoxGoToPoint</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>PanelPointSet</receiver>
+   <slot>OnSpinBoxGoToPoint(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>286</x>
+     <y>64</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>378</x>
+     <y>154</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonGoToPoint</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelPointSet</receiver>
+   <slot>OnButtonGoToPoint()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>224</x>
+     <y>64</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>402</x>
+     <y>163</y>
     </hint>
    </hints>
   </connection>
@@ -656,5 +742,7 @@
   <slot>OnLineEditRadius(QString)</slot>
   <slot>OnLineEditSplineRadius(QString)</slot>
   <slot>OnComboScalarMap(int)</slot>
+  <slot>OnSpinBoxGoToPoint(int)</slot>
+  <slot>OnButtonGoToPoint()</slot>
  </slots>
 </ui>

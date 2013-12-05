@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/07 02:20:32 $
- *    $Revision: 1.7 $
+ *    $Date: 2013/12/05 21:06:10 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,6 +88,8 @@ void PanelPointSet::ConnectLayer( Layer* layer_in )
 
   LayerPropertyPointSet* p = layer->GetProperty();
   connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect( layer, SIGNAL(PointAdded()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  connect( layer, SIGNAL(PointRemoved()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->checkBoxShowSpline, SIGNAL(toggled(bool)), p, SLOT(SetShowSpline(bool)) );
   connect( ui->checkBoxSnapToCenter, SIGNAL(toggled(bool)), p, SLOT(SetSnapToVoxelCenter(bool)));
@@ -142,6 +144,8 @@ void PanelPointSet::DoUpdateWidgets()
     ui->lineEditFileName->setCursorPosition( ui->lineEditFileName->text().size() );
     ChangeLineEditNumber( ui->lineEditRadius, layer->GetProperty()->GetRadius() );
     ChangeLineEditNumber( ui->lineEditSplineRadius, layer->GetProperty()->GetSplineRadius() );
+    ui->labelNumberTotal->setText(QString("%1").arg(layer->GetNumberOfPoints()));
+    ui->spinBoxGoToPoint->setRange(1, layer->GetNumberOfPoints());
 
     nColorMap = layer->GetProperty()->GetColorMap();
     double fMin = layer->GetProperty()->GetScalarMinValue();
@@ -379,4 +383,20 @@ void PanelPointSet::LoadScalarValues()
     }
     UpdateWidgets();
   }
+}
+
+void PanelPointSet::OnSpinBoxGoToPoint(int val)
+{
+  LayerPointSet* layer = GetCurrentLayer<LayerPointSet*>();
+  if (layer)
+  {
+    double pt[3];
+    layer->GetPoint(val-1, pt);
+    MainWindow::GetMainWindow()->SetSlicePosition(pt);
+  }
+}
+
+void PanelPointSet::OnButtonGoToPoint()
+{
+  OnSpinBoxGoToPoint(ui->spinBoxGoToPoint->value());
 }
