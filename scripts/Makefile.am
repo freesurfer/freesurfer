@@ -233,6 +233,7 @@ vtk_setup \
 wfilemask \
 wm-anat-snr \
 wmedits2surf \
+xcorr\
 xfmrot \
 xhemireg \
 xhemi-tal \
