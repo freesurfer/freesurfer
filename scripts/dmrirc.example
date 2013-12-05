@@ -13,8 +13,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/12/05 22:59:18 $
-#    $Revision: 1.11 $
+#    $Date: 2013/12/05 23:08:54 $
+#    $Revision: 1.12 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -54,7 +54,7 @@ set runlist = (1 3)
 set dcmroot = /path/to/dicoms/of/ducks
 set dcmlist = (huey/day1/XXX-1.dcm dewey/day1/XXX-1.dcm louie/day2/XXX-1.dcm)
 
-# Diffusion gradient tables (if there is a different one for each subject)
+# Diffusion gradient tables (if there is a different one for each scan)
 # Must be specified if inputs are not MGH DICOMs
 # The tables must have either three columns, where each row is a gradient vector
 # or three rows, where each column is a gradient vector
@@ -65,7 +65,7 @@ set bveclist = (/path/to/huey/bvecs.txt \
                 /path/to/dewey/bvecs.txt \
                 /path/to/louie/bvecs.txt)
 
-# Diffusion gradient table (if using the same one for all subjects)
+# Diffusion gradient table (if using the same one for all scans)
 # Must be specified if inputs are not MGH DICOMs
 # The table must have either three columns, where each row is a gradient vector
 # or three rows, where each column is a gradient vector

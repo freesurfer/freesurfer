@@ -17,8 +17,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/12/05 22:59:18 $
-#    $Revision: 1.2 $
+#    $Date: 2013/12/05 23:08:54 $
+#    $Revision: 1.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -77,18 +77,21 @@ set dcmlist = ( huey/year1/dwi/XXX-1.dcm \
                 louie/year1/dwi/XXX-1.dcm \
                 louie/year2/dwi/XXX-1.dcm )
 
-# Diffusion gradient tables (if there is a different one for each subject)
+# Diffusion gradient tables (if there is a different one for each scan)
 # Must be specified if inputs are not MGH DICOMs
 # The tables must have either three columns, where each row is a gradient vector
 # or three rows, where each column is a gradient vector
 # There must be as many gradient vectors as volumes in the diffusion data set
 # Default: Read from DICOM header
 #
-set bveclist = (/path/to/huey/bvecs.txt \
-                /path/to/dewey/bvecs.txt \
-                /path/to/louie/bvecs.txt)
+set bveclist = (/path/to/huey/year1/bvecs.txt \
+                /path/to/huey/year2/bvecs.txt \
+                /path/to/dewey/year1/bvecs.txt \
+                /path/to/dewey/year2/bvecs.txt \
+                /path/to/louie/year1/bvecs.txt \
+                /path/to/louie/year2/bvecs.txt)
 
-# Diffusion gradient table (if using the same one for all subjects)
+# Diffusion gradient table (if using the same one for all scans)
 # Must be specified if inputs are not MGH DICOMs
 # The table must have either three columns, where each row is a gradient vector
 # or three rows, where each column is a gradient vector
