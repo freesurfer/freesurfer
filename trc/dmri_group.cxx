@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/11/13 02:55:34 $
- *    $Revision: 1.8 $
+ *    $Date: 2013/12/06 12:39:14 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -587,7 +587,7 @@ if (0) {
   }
 
   // Write points of mean path to file as RAS coords
-  filename = string(outBase) + ".mean.txt";
+  filename = string(outBase) + ".path.mean.txt";
 
   cout << "Writing mean path to " << filename << endl;
   pathfile.open(filename.c_str(), ios::out);
