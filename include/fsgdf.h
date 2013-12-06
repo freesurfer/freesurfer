@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/03/28 19:56:38 $
- *    $Revision: 1.23.2.2 $
+ *    $Date: 2013/12/06 16:26:30 $
+ *    $Revision: 1.23.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,34 @@ extern int fsgdf_AllowSubjRep;
 #define FSGDF_NVARS_MAX     128
 #define FSGDF_NINPUTS_MAX  2000
 
+#define FSGD_FACTOR_DISCRETE 1
+#define FSGD_FACTOR_CONTINUOUS 2
+
+#define FSGD_FACTOR_CONTRAST_MAIN 1
+#define FSGD_FACTOR_CONTRAST_INTERACTION 2
+
+typedef struct 
+{
+  char name[200]; // Factor name
+  int type; // discrete or continuous
+  int nLevels; // number of levels for discrete factor
+  char *Levels[100]; // level names for discrete factor
+  int nFactors;// number of dfactor names for continous factor interactions
+  char *FactorNames[100]; // dfactor names for continous factor interactions
+}
+FSGD_FACTOR;
+
+typedef struct 
+{
+  char name[200];
+  int type; // main, interaction
+  int nFactors; // number of factors in the contrast
+  char *FactorNames[100];
+  FSGD_FACTOR *Factors[100];
+}
+FSGD_FACTOR_CONTRAST;
+
+
 typedef struct
 {
   int version;
@@ -81,12 +109,25 @@ typedef struct
   double ClassVarMeans[FSGDF_NCLASSES_MAX][FSGDF_NVARS_MAX];
   char DesignMatFile[1000]; /* actual matlab4 mat file */
   char DesignMatMethod[100]; /* creation method */
+  char gd2mtx_method[5];  //dods or doss
   MATRIX *X, *T; /* design matrix, T = inv(X'*X)*X' */
   MRI *data;
   double ResFWHM;
   int LogY; // indicates whether nat log of y was used
   int DeMean; // remove mean from continuous variables
   int ReScale; // divide continuous variables by stddev
+  int nContrasts;
+  char *ContrastName[50];
+  int FContrastNSub[50];
+  char **FContrastSub[50];
+  int IsFContrast[50];
+  MATRIX *C[50];
+
+  FSGD_FACTOR *Factors[100];
+  int nFactors;
+  FSGD_FACTOR_CONTRAST *fc[100];
+  int nFC;
+  
 }
 GROUPDESCRIPTOR, FSGD;
 
