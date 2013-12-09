@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/03 18:37:24 $
- *    $Revision: 1.226 $
+ *    $Date: 2013/12/09 20:13:20 $
+ *    $Revision: 1.227 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.226 2013/11/03 18:37:24 greve Exp $";
+"$Id: mri_glmfit.c,v 1.227 2013/12/09 20:13:20 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -734,6 +734,7 @@ MRI *MRIconjunct3(MRI *sig1, MRI *sig2, MRI *sig3, MRI *mask, MRI *c123);
 
 int NSplits=0, SplitNo=0;
 int SplitMin, SplitMax, nPerSplit, RandSplit;
+int DoFisher = 0; 
 
 double GLMEfficiency(MATRIX *X, MATRIX *C);
 
@@ -851,6 +852,13 @@ int main(int argc, char **argv) {
     if(DoReshape && surf != NULL){
       printf("Forcing reshape to 1d\n");
       mritmp = mri_reshape(mriglm->y,nvoxels,1, 1, mriglm->y->nframes);
+      MRIfree(&mriglm->y);
+      mriglm->y = mritmp;
+    }
+    if(DoFisher){
+      printf("Computing fisher transform\n");      
+      mritmp = MRIfisherTransform(mriglm->y,NULL,NULL);
+      if(mritmp == NULL) exit(1);
       MRIfree(&mriglm->y);
       mriglm->y = mritmp;
     }
@@ -2297,7 +2305,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--fsgd-rescale")) fsgdReScale = 1; 
-    else if (!strcasecmp(option, "--rescale-x"))    ReScaleX = 1; 
+    else if (!strcasecmp(option, "--fisher"))      DoFisher = 1; 
+    else if (!strcasecmp(option, "--rescale-x"))   ReScaleX = 1; 
     else if (!strcasecmp(option, "--no-rescale-x")) ReScaleX = 0; 
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
     else if (!strcasecmp(option, "--no-tar1")) DoTemporalAR1 = 0;
@@ -2806,6 +2815,7 @@ printf("   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc
 printf("   --sim-sign signstring : abs, pos, or neg. Default is abs.\n");
 printf("   --uniform min max : use uniform distribution instead of gaussian\n");
 printf("\n");
+printf("   --fisher : compute fisher transform of the input\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
 printf("   --tar1 : compute and save temporal AR1 of residual\n");
 printf("   --save-yhat : flag to save signal estimate\n");
