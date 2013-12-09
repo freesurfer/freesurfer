@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/09/03 17:12:33 $
- *    $Revision: 1.41 $
+ *    $Date: 2013/12/09 20:03:10 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -118,7 +118,7 @@ MRI *MRImask_with_T2_and_aparc_aseg(MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI
 int *MRIsegmentationList(MRI *seg, int *pListLength);
 
   MATRIX *BuildGTM0(MRI *seg, MRI *mask, double cFWHM, double rFWHM, double sFWHM, MATRIX *X);
-
+  MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out);
 
 #if defined(__cplusplus)
 };

@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/09/09 13:00:58 $
- *    $Revision: 1.82 $
+ *    $Author: greve $
+ *    $Date: 2013/12/09 20:03:10 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3738,4 +3738,39 @@ MATRIX *BuildGTM0(MRI *seg, MRI *mask,
   free(segidlist);
 
   return(X);
+}
+
+/*!
+  \fn MRI *MRIfisherTransform(MRI *rho, MRI *out)
+  \brief Computes fisher transform. The input should be a correlation
+  coefficient with values between -1 and +1
+*/
+MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out)
+{
+  int c,r,s,f;
+  double v,ft;
+
+  if(out == NULL){
+    out = MRIallocSequence(rho->width,rho->height,rho->depth,MRI_FLOAT,rho->nframes);
+    if(out == NULL) return(NULL);
+    MRIcopyHeader(rho,out);
+  }
+
+  for(s=0; s < rho->depth; s++){
+    for(r=0; r < rho->height; r++){
+      for(c=0; c < rho->width; c++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5){
+	  for(f=0; f < rho->nframes; f++)
+	    MRIsetVoxVal(out,c,r,s,f, 0.0);
+	  continue;
+	}
+	for(f=0; f < rho->nframes; f++){
+	  v = MRIgetVoxVal(rho,c,r,s,f);
+	  ft = .5*log((1+v)/(1-v));
+	  MRIsetVoxVal(out,c,r,s,f, ft);
+	}
+      }
+    }
+  }
+  return(out);
 }
