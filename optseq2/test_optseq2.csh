@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.17.4.2 2013/05/31 19:49:26 zkaufman Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.17.4.3 2013/12/10 16:30:47 zkaufman Exp $'
 
 umask 002
 
@@ -34,23 +34,7 @@ gunzip -vc test_data.tar.gz | tar xvf -
 
 set EXPECTED=$WD/test_data
 cd $EXPECTED
-set PROC=`uname -p`
-if ($status) set PROC=`uname -m`
-echo $PROC | grep 64
-if (! $status) set PROC=(x86_64)
-set TEST_DATA=$EXPECTED/$PROC-emot.tar.gz
-# Mac OS has its own test data since it uses a different RNG
-set OS=`uname -s`
-if ("$OS" == "Darwin") then
-  if ("$PROC" == "x86_64") then 
-    set TEST_DATA=$EXPECTED/Darwin-x86_64-emot.tar.gz
-  else if ("$PROC" == "i386") then
-    set TEST_DATA=$EXPECTED/Darwin-i386-emot.tar.gz
-  else
-    echo "Failure: unknown data set for $PROC architecture."
-    exit 1
-  endif
-endif
+set TEST_DATA=$EXPECTED/emot_testdata.tar.gz
 
 if (! -e $TEST_DATA) then
   echo "Architecture-specific test data file $TEST_DATA does not exist"
