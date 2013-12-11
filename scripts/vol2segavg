@@ -1,0 +1,391 @@
+#!/bin/tcsh -f
+# vol2segavg
+
+set VERSION = '$Id: vol2segavg,v 1.1 2013/12/11 22:11:14 greve Exp $';
+
+set outfile = ();
+set subject = ();
+set reg = ();
+set segvol = ();
+set invol = ();
+set segidlist = ();
+set UseBoundingBox = 1;
+set MulVal = ();
+set RegHeader = 0;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set outdir = `dirname $outfile`
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.vol2segavg.$$
+  if(! -e /scratch) set tmpdir = $outdir/tmpdir.vol2segavg.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outfile.vol2segavg.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for vol2segavg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+
+# Determine if output is in a binary volume format
+fname2stem $outfile >& /dev/null
+if($status) then
+  set outfmt = txt
+else
+  set outfmt = vol
+endif
+echo "Output format = $outfmt" | tee -a $LF
+
+# If reg is not supplied, compute from header
+if($#reg == 0) then
+  set reg = $tmpdir/register.dat
+  set cmd = (tkregister2_cmdl --mov $invol --targ $segvol \
+    --regheader --noedit --reg $reg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+
+# Make a binary mask of the segmentation
+set binseg = $tmpdir/binseg.mgh
+set cmd = (mri_binarize --i $segvol --match $segidlist --o $binseg)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+if($UseBoundingBox) then
+  # Compute stats over binary segmentation in bounding box
+  # Overall, this produces the same value as not using the bounding box, but
+  # the use of the bounding box can be beneficial when the input has many time points
+
+  # Create a new binary segmentation volume that only includes
+  # a bounding box of the segmentation
+  set binsegsub = $tmpdir/binseg.sub.mgh
+  set cmd = (mri_mask -T .01 -bb 1 $binseg $binseg $binsegsub)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  # Registration from bounding box to original segmentation
+  set sub2seg = $tmpdir/sub2seg.reg.dat
+  set cmd = (tkregister2_cmdl --mov $binsegsub --targ $segvol \
+      --regheader --noedit --reg $sub2seg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  # Registration from input volume to bounding box
+  set vol2subseg = $tmpdir/vol2subseg.reg.dat
+  set cmd = (mri_matrix_multiply -im $reg -iim $sub2seg  -om $vol2subseg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  # Convert input to bounding box space
+  set involsubsegspace = $tmpdir/invol.in.segspace.mgh
+  set cmd = (mri_vol2vol --mov $invol --o $involsubsegspace --no-save-reg \
+    --targ $binsegsub --reg $vol2subseg --interp nearest)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  set cmd = (mri_segstats --id 1 --i $involsubsegspace --seg $binsegsub)
+  if($#MulVal) set cmd = ($cmd --mul $MulVal)
+  if($outfmt == txt) set cmd = ($cmd  --avgwf $outfile)
+  if($outfmt == vol) set cmd = ($cmd  --avgwfvol $outfile)
+
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+else
+  # Do not use a bounding box
+  set involsegspace = $tmpdir/invol.in.segspace.mgh
+  set cmd = (mri_vol2vol --mov $invol --o $involsegspace --no-save-reg \
+    --targ $binseg --reg $reg  --interp nearest)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  set cmd = (mri_segstats --id 1 --i $involsegspace --seg $binseg)
+  if($#MulVal) set cmd = ($cmd --mul $MulVal)
+  if($outfmt == txt) set cmd = ($cmd  --avgwf $outfile)
+  if($outfmt == vol) set cmd = ($cmd  --avgwfvol $outfile)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Vol2segavg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "vol2segavg Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+date | tee -a $LF
+echo "ERROR: $cmd" | tee -a $LF
+echo "vol2segavg exited with errors" | tee -a $LF
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set segvol = $argv[1]; shift;
+      breaksw
+
+    case "--segid":
+      if($#argv < 1) goto arg1err;
+      set segidlist = ($segidlist $argv[1]); shift;
+      breaksw
+
+    case "--mul":
+      if($#argv < 1) goto arg1err;
+      set MulVal = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "--aparc+aseg":
+      set segvol = aparc+aseg.mgz
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set reg = $argv[1]; shift;
+      breaksw
+
+    case "--regheader":
+    case "--reg-header":
+      set RegHeader = 1;
+      breaksw
+
+    case "--bb":
+      set UseBoundingBox = 1;
+      breaksw
+    case "--no-bb":
+      set UseBoundingBox = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#invol == 0) then
+  echo "ERROR: must spec input"
+  exit 1;
+endif
+if($#segvol == 0) then
+  echo "ERROR: must spec segmentation"
+  exit 1;
+endif
+if($#outfile == 0) then
+  echo "ERROR: must spec output"
+  exit 1;
+endif
+if(! -e $invol) then
+  echo "ERROR: cannot find $invol"
+  exit 1;
+endif
+if($#reg) then
+  set subject = `head -n 1 $reg`
+  if(! -e $invol) then
+    echo "ERROR: cannot find $invol"
+    exit 1;
+  endif
+else
+  if(! $RegHeader) then
+    echo "ERROR: must spec --reg or --regheader"
+    exit 1;
+  endif
+endif
+if(! -e $segvol) then
+  if($#subject == 0) then
+    echo "ERROR: cannot find $segvol and no subject/regfile given"
+    exit 1; 
+  endif
+  set segvol2 = $SUBJECTS_DIR/$subject/mri/$segvol
+  if(! -e $segvol2) then
+    echo "ERROR: cannot find $segvol or $segvol2"
+    exit 1;
+  endif
+  set segvol = $segvol2
+endif
+if($#segidlist == 0) set segidlist = 1;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "vol2segavg "
+  echo " --o out"
+  echo " --i vol.nii"
+  echo " --reg reg.dat or --regheader"
+  echo " --seg seg.mgz"
+  echo " --aparc+aseg"
+  echo " --s subject : may be needed if --reg not supplied"
+  echo " --segid id <--segid id2 ...> "
+  echo " --mul MulVal : multiply input by MulVal"
+  echo " --no-bb : do not use bounding box"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the average of a volume inside a given segment of a segmentation resampling
+the input volume to the segmentation space. The output can be a text file or a volume 
+format (eg, .mgh, .nii). If the volume has multiple time points, then the output
+will have multiple time points. If a segmentation id is not supplied, then 1 is assumed.
+By default, the binarized segmentation is reduced in size to a bounding box that
+covers the segmentation. This can be much more computationally efficient, especially
+when the input has many time points. This is basically a frontend for mri_segstats
+with the difference being that mri_segstats requires that the input volume and
+segmentation must be in the same space. mri_segstats will report on each segmentation
+and reduce certain segmentations into a single segmentation.
+
+
+EXAMPLE:
+
+# Compute the mean FA in corpus callosum
+vol2segavg  --segid 251 --segid 252 --segid 253 --segid 254 --segid 255 \
+  --aparc+aseg --reg register.dat --i fa.nii.gz --o cc.fa.dat
+
