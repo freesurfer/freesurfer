@@ -45,7 +45,7 @@
       <argument>-T threshold</argument>
       <explanation>threshold mask volume at threshold (i.e., all values &lt;= T considered as zero)</explanation>
       <argument>-bb npad</argument>
-      <explanation>Create and extract data from a bounding box around the mask. The bounding box is expanded by npad voxels in each direction.</explanation>
+      <explanation>Create and extract data from a bounding box around the mask. The bounding box is expanded by npad voxels in each direction. npad should be at least 1 to avoid clipping</explanation>
       <argument>-abs</argument>
       <explanation>take abs() before applying threshold</explanation>
       <argument>-transfer #</argument>
