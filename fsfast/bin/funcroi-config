@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/04/08 15:52:51 $
-#    $Revision: 1.11 $
+#    $Date: 2013/12/12 16:42:42 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -21,7 +21,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.11 2011/04/08 15:52:51 greve Exp $';
+set VERSION = '$Id: funcroi-config,v 1.12 2013/12/12 16:42:42 greve Exp $';
 
 set roiconfig = ();
 set label = ();
@@ -493,7 +493,7 @@ selxavg3-sess -sf sessidlist -analysis wm-sm5.mni305
 # aseg.mgz) with the area negatively activated above sig=2 in the
 # encode contrast. Below, "53" is the index of right hippocampus
 # in $FREESURFER_HOME/FreeSurferColorLUT.txt
-funcroi-config -annot aseg.mgz 53 
+funcroi-config -seg aseg.mgz 53 
   -analyisis wm-sm5.mni305 -c encode -thresh 2 -sign neg
   -roi right-hippo+encode.th2.neg.roicfg 
 # This instantly creates the file right-hippo+encode.th2.neg.roicfg 
