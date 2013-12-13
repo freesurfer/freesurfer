@@ -14,6 +14,7 @@ avi2talxfm \
 batchjobs \
 beta2sxa \
 bblabel \
+bbmask \
 bbregister \
 biasfield \
 bedpostx_mgh \
