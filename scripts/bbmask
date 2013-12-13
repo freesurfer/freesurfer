@@ -1,0 +1,303 @@
+#!/bin/tcsh -f
+# bbmask
+
+set VERSION = '$Id: bbmask,v 1.1 2013/12/13 22:11:32 greve Exp $';
+
+set inmask = ();
+set outmask = ();
+set srclist = ();
+set trglist = ();
+set srcreg = ();
+set subreg = ();
+set sub2srcreg = ();
+set npad = 0;
+set RegHeader = 0;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set outdir = `dirname $outmask`
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.bbmask.$$
+  if(! -e /scratch) set tmpdir = $outdir/tmpdir.bbmask.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $tmp/bbmask.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for bbmask" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+
+# Mask the mask down to the bouning box. 
+@ npad2 = $npad + 1
+set cmd = (mri_mask -T .01 -bb $npad2 $inmask $inmask $outmask)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Mask the sources down to the bouning box. 
+@ nthsrc = 0;
+foreach src ($srclist)
+  @ nthsrc = $nthsrc + 1;
+  set trg = $trglist[$nthsrc];
+  set cmd = (mri_mask -T .01 -bb $npad2 $src $inmask $trg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+end
+
+# Registration from bounding box to original segmentation
+if($#sub2srcreg == 0) set sub2srcreg = $tmpdir/sub2srcreg.dat
+set cmd = (tkregister2_cmdl --mov $outmask --targ $inmask \
+      --regheader --noedit --reg $sub2srcreg)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+
+if($#RegHeader) then
+  set cmd = (cp $sub2srcreg $subreg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+endif
+
+# Registration from source volume to bounding box
+if($#srcreg) then
+  set cmd = (mri_matrix_multiply  -im $sub2srcreg -im $srcreg  -om $subreg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "bbmask-Run-Time-Sec $tSecRun" |& tee -a $LF
+#echo "bbmask-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "bbmask Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--mask":
+      if($#argv < 2) goto arg2err;
+      set inmask = $argv[1]; shift;
+      set outmask = $argv[1]; shift;
+      if(! -e $inmask) then
+        echo "ERROR: cannot find $inmask"
+        exit 1;
+      endif
+      breaksw
+
+    case "--src":
+      if($#argv < 2) goto arg2err;
+      set src = $argv[1]; shift;
+      set trg = $argv[1]; shift;
+      if(! -e $src) then
+        echo "ERROR: cannot find $src"
+        exit 1;
+      endif
+      set srclist = ($srclist $src);
+      set trglist = ($trglist $trg);
+      breaksw
+
+    case "--sub2src":
+      if($#argv < 1) goto arg1err;
+      set sub2srcreg = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if($#argv < 2) goto arg2err;
+      set srcreg = $argv[1]; shift;
+      set subreg = $argv[1]; shift;
+      if(! -e $srcreg) then
+        echo "ERROR: cannot find $srcreg"
+        exit 1;
+      endif
+      breaksw
+
+    case "--regheader":
+      if($#argv < 1) goto arg1err;
+      set subreg = $argv[1]; shift;
+      set RegHeader = 1;
+      breaksw
+
+    case "--npad":
+      if($#argv < 1) goto arg1err;
+      set npad = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+if($#inmask == 0) then
+  echo "ERROR: must spec inmask"
+  exit 1;
+endif
+if($#srcreg && $RegHeader) then
+  echo "ERROR: cannot spec --reg and --regheader"
+  exit 1;
+endif
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "bbmask "
+  echo " --mask inputmask outputmask"
+  echo ""
+  echo " --src inputvol outputvol <--src inputvol outputvol>"
+  echo " --npad npad"
+  echo " --reg srcreg.dat subreg.dat : srcreg.dat is input, subreg.dat is output"
+  echo " --regheader subreg.dat : srcreg.dat is input, subreg.dat is output"
+  echo " --sub2src sub2src.reg.dat : output: sub-src  reg with mov=sub"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+The purpose of this program is to create a volume with a smaller field
+of view by creating a bounding box small enough to encompass a
+mask. The bounding box can be expanded by npad number of voxels. Other
+volumes that are the same size as the input mask can be reduced to the
+bounding box. If a registration file for the input mask is passed,
+then a new registration file is created that can be applied to the new
+field of view.
+
+EXAMPLES:
+
+# This just takes brain.mgz and produces a new mask volume in a tight
+# bounding box. It also creates a registration matrix between
+# the bounding box volume and the original brain.mgz
+bbmask --mask brain.mgz brain.bb.nii.gz --regheader reg.bb.dat
+tkregister2 --mov brain.bb.nii.gz --reg reg.bb.dat --targ brain.mgz
+
+bbmask --mask mask.nii.gz mask.bb.nii.gz --reg register.dat reg.bb.dat \
+   --src func1.nii.gz func1.bb.nii.gz --src func2.nii.gz func2.bb.nii.gz \
+   --npad 3
+tkregister2 --mov func1.bb.nii.gz --reg reg.bb.dat 
+
