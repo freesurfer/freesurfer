@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/29 22:59:24 $
- *    $Revision: 1.11 $
+ *    $Date: 2013/12/13 22:33:58 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.11 2013/11/29 22:59:24 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.12 2013/12/13 22:33:58 greve Exp $
 
 /*
   BEGINHELP
@@ -81,7 +81,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.11 2013/11/29 22:59:24 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.12 2013/12/13 22:33:58 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -280,6 +280,10 @@ int main(int argc, char *argv[])
   XtX = MatrixMultiplyD(Xt,X,NULL);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   iXtX = MatrixInverse(XtX,NULL);
+  if(iXtX==NULL){
+    printf("ERROR: matrix cannot be inverted\n");
+    exit(1);
+  }
   printf("Computing  Xty ... ");fflush(stdout); TimerStart(&mytimer) ;
   Xty = MatrixMultiplyD(Xt,y,NULL);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
