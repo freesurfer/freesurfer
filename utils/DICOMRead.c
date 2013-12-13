@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/03/12 20:43:47 $
- *    $Revision: 1.135.2.2 $
+ *    $Author: greve $
+ *    $Date: 2013/12/13 20:23:49 $
+ *    $Revision: 1.135.2.3 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1413,6 +1413,16 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
 
   //Use this when debugging (gdb) because it will not fork
   //return(SiemensAsciiTag(dcmfile, TagString, cleanup));
+
+#ifdef Darwin
+  // This routine calls the unix "strings" command which operates
+  // differently on mac vs linux, so use the old, slow version of this
+  // routine if it is a mac.
+  return(SiemensAsciiTag(dcmfile, TagString, cleanup));
+#endif
+
+  if(getenv("USE_SIEMENSASCIITAG"))
+    return(SiemensAsciiTag(dcmfile, TagString, cleanup));
 
   // cleanup section.  Make sure to set cleanup =1 at the final call
   // don't rely on TagString but the last flag only
