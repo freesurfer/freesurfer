@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/12/17 16:26:01 $
-#    $Revision: 1.58 $
+#    $Date: 2013/12/17 21:06:35 $
+#    $Revision: 1.59 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.58 2013/12/17 16:26:01 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.59 2013/12/17 21:06:35 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -149,7 +149,7 @@ if($DoInitBest) then
     set mincost = `cat $regB.mincost`
     echo "$init $mincost[1]" >> $tmpdir/mincost.dat
   end
-  cat $tmpdir/mincost.dat | sort -r -n -k 2 > $tmpdir/mincost.sort.dat
+  cat $tmpdir/mincost.dat | sort -n -k 2 > $tmpdir/mincost.sort.dat
   set winner = `head -n 1 $tmpdir/mincost.sort.dat | awk '{print $1}'`
   echo "MM mincost $winner -------------------------" | tee -a $LF
   cat $tmpdir/mincost.sort.dat| tee -a $LF
