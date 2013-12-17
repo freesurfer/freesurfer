@@ -36,6 +36,7 @@
       <explanation>"Moveable" volume. This is the template for the cross-modal volume. Eg, for fMRI, it is the volume used for motion correction.</explanation>
       <argument>--reg register.dat</argument>
       <explanation>Output FreeSurfer (tkregister-style) registration file (simple text).</explanation>
+
       <intro>Initialization Arguments (one required)</intro>
       <argument>--init-rr</argument>
       <explanation>Initialize using NMI as implemented in mri_robust_register.</explanation>
@@ -45,8 +46,19 @@
       <explanation>Initialize using SPM spm_coreg (requires that SPM and matlab be installed).</explanation>
       <argument>--init-header</argument>
       <explanation>Assume that the geometry information in the cross-modal and anatomical are sufficient to get a close voxel-to-voxel registration. This usually is only the case if they were acquired in the same session.</explanation>
+      <argument>--init-best</argument>
+      <explanation> Initialize using fsl, spm (matlab), header, and rr, and use the best one (ie, lowest BBR cost).</explanation>
+      <argument>--init-best-spm</argument>
+      <explanation> Include spm in the init-best list (matlab).</explanation>
+      <argument>--init-best-fsl</argument>
+      <explanation> Include fsl in the init-best list.</explanation>
+      <argument>--init-best-header</argument>
+      <explanation> Include header in the init-best list.</explanation>
+      <argument>--init-best-rr</argument>
+      <explanation> Include robust register NMI in the init-best list.</explanation>
       <argument>--init-reg initregfile</argument>
-      <explanation>Supply an initial registration matrix.</explanation>
+      <explanation>Supply an initial registration matrix (cannot be part of 'best' list).</explanation>
+
       <intro>Contrast Arguments (one required)</intro>
       <argument>--t1</argument>
       <explanation>Assume t1 contrast, ie, White Matter brighter than Grey Matter</explanation>
