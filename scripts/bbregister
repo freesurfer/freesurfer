@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/11/21 17:28:08 $
-#    $Revision: 1.57 $
+#    $Date: 2013/12/17 16:26:01 $
+#    $Revision: 1.58 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.57 2013/11/21 17:28:08 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.58 2013/12/17 16:26:01 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -91,6 +91,9 @@ set cleanup = 1;
 set PrintHelp = 0;
 set nolog = 0;
 
+set DoInitBest = 0;
+set InitBestList = ()
+
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e -version | wc -l`
 if($n != 0) then
@@ -129,6 +132,52 @@ echo ""|& tee -a $LF
 echo $VERSION |& tee -a $LF
 uname -a |& tee -a $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" |& tee -a $LF
+
+# Loop through init methods
+if($DoInitBest) then
+  echo "Finding best from init methods $InitBestList" | tee -a $LF
+  rm -f $tmpdir/mincost.dat
+  foreach init ($InitBestList)
+    echo "#I# $init `date`" | tee -a $LF
+    set outregbase = `basename $outreg`;
+    set regB = $tmpdir/init.$init/$outregbase
+    set cmd = (bbregister $inputargs --no-init-best --init-$init --reg $regB --nolog \
+      --tmpdir $tmpdir/init.$init/tmp.bbregister)
+    echo "$cmd" | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    set mincost = `cat $regB.mincost`
+    echo "$init $mincost[1]" >> $tmpdir/mincost.dat
+  end
+  cat $tmpdir/mincost.dat | sort -r -n -k 2 > $tmpdir/mincost.sort.dat
+  set winner = `head -n 1 $tmpdir/mincost.sort.dat | awk '{print $1}'`
+  echo "MM mincost $winner -------------------------" | tee -a $LF
+  cat $tmpdir/mincost.sort.dat| tee -a $LF
+  echo "MM mincost -------------------------" | tee -a $LF
+  set cmd = (cp $tmpdir/init.$winner/$outregbase"*" `dirname $outreg`)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  goto final;
+  set tSecEnd = `date '+%s'`;
+  @ tSecRun = $tSecEnd - $tSecStart;
+  echo "" | tee -a $LF
+  echo " " |& tee -a $LF
+  echo "Started at $StartTime " |& tee -a $LF
+  echo "Ended   at `date`" |& tee -a $LF
+  echo "BBR-Run-Time-Sec $tSecRun" |& tee -a $LF
+  echo " " |& tee -a $LF
+  echo "bbregister Done" |& tee -a $LF
+
+  echo "To check results, run:" |& tee -a $LF
+  if($#templateout) then
+    echo "tkregister2 --mov $templateout --reg $outreg --surf" |& tee -a $LF
+  else
+    echo "tkregister2 --mov $movvol --reg $outreg --surf" |& tee -a $LF
+  endif
+  echo " "
+  exit 0;
+endif
 
 # Create template
 if($#templateout) then
@@ -288,6 +337,8 @@ if($#RMSFile) then
   echo $rmsdat > $RMSFile
   echo Final RMS $rmsdat | tee -a $LF
 endif
+
+final:
 
 if($#outfsl) then
   set cmd = (tkregister2_cmdl --mov $movvol --reg $outreg \
@@ -753,6 +804,26 @@ while( $#argv != 0 )
       set SaveCurReg = 0;
       breaksw
 
+    case "--init-best":
+      set DoInitBest = 1;
+      breaksw
+    case "--no-init-best":
+      set DoInitBest = 0;
+      breaksw
+    case "--init-best-fsl":
+      set InitBestList = ($InitBestList fsl); 
+      #set DoInitBest = 1; Do not do this!
+      breaksw
+    case "--init-best-spm":
+      set InitBestList = ($InitBestList spm); 
+      breaksw
+    case "--init-best-header":
+      set InitBestList = ($InitBestList header); 
+      breaksw
+    case "--init-best-rr":
+      set InitBestList = ($InitBestList rr); 
+      breaksw
+
     case "--tmp":
     case "--tmpdir":
       if ( $#argv < 1) goto arg1err;
@@ -829,9 +900,21 @@ check_params:
     exit 1;
   endif
 
-  if(! $InitFSL && ! $InitSPM && ! $InitRR && ! $InitHeader && ! $#InitReg) then
-    echo "ERROR: must spec an init method"
-    exit 1;
+  if(! $DoInitBest) then
+    if(! $InitFSL && ! $InitSPM && ! $InitRR && ! $InitHeader && ! $#InitReg) then
+      echo "ERROR: must spec an init method"
+      exit 1;
+    endif
+  else
+    if($InitFSL || $InitSPM || $InitRR || $InitHeader || $#InitReg) then
+      echo "ERROR: cannot spec an init method with --init-best"
+      exit 1;
+    endif
+    if($#InitBestList == 0) set InitBestList = (fsl spm rr header)
+    if($#InitBestList == 1) then
+      echo "ERROR: must use more than one init method with --init-best"
+      exit 1;
+    endif
   endif
 
   if($?BBR_TEST_TOLERANCE) then
