@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/05 21:29:48 $
- *    $Revision: 1.63 $
+ *    $Date: 2013/12/18 03:52:11 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.63 2013/12/05 21:29:48 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.64 2013/12/18 03:52:11 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -1035,7 +1035,8 @@ static int parse_commandline(int argc, char **argv)
     }
     else if ( !strcmp(option, "--mul") ){
       if (nargc < 1)argnerr(option,1);
-      if(! isdigit(pargv[0][0]) && pargv[0][0] != '-' && pargv[0][0] != '+'){
+      if(! isdigit(pargv[0][0]) && pargv[0][0] != '-' && 
+	 pargv[0][0] != '+' && pargv[0][0] != '.'){
         printf("ERROR: value passed to the --mul flag must be a number\n");
         printf("       If you want to multiply two images, use fscalc\n");
         exit(1);
