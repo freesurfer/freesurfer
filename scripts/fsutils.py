@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.15 2013/01/31 19:22:45 greve Exp $
+# $Id: fsutils.py,v 1.16 2013/12/19 22:47:34 lzollei Exp $
 import os
 import logging
 import sys
@@ -22,6 +22,10 @@ aparclogger.addHandler(ch)
 tractlogger = logging.getLogger("tractstats2table")
 tractlogger.setLevel(logging.INFO)
 tractlogger.addHandler(ch)
+
+overlaplogger = logging.getLogger("overlap2table")
+overlaplogger.setLevel(logging.INFO)
+overlaplogger.addHandler(ch)
 
 class BadFileError(Exception):
     def __init__(self, filename):
@@ -337,3 +341,26 @@ class TractByvoxelStatsParser(StatsParser):
             line = self.fp.readline()
 
         return pthwy_subj, self.measure_value_map
+
+"""
+Overlap stats file parser ( for files created by mri_compute_overlap )
+Derived from StatsParser
+"""
+class OverlapStatsParser(StatsParser):
+    # this is a map of measure and its corresponding value in ...
+    measure_value_map = StableDict()
+    # map of measures needed and their corresponding column in byvoxel.stats file
+    measure_column_map = {'voldiff':1, 'dice':2, 'jacc':3 }
+
+    # we take in the measure we need..
+    def parse(self, measure):
+        self.measure_value_map = StableDict()
+        for line in self.fp:
+            # a valid line is a line without a '#'
+            if line.rfind('#') == -1:
+                strlist = line.split()
+                # for every label
+                labelid = strlist[0]
+                val = float(strlist[self.measure_column_map[measure]])
+                self.measure_value_map[labelid] = val
+        return self.measure_value_map
