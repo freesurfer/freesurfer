@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/17 18:25:08 $
- *    $Revision: 1.751 $
+ *    $Date: 2013/12/19 21:50:47 $
+ *    $Revision: 1.752 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -771,7 +771,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.751 2013/05/17 18:25:08 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.752 2013/12/19 21:50:47 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -3314,6 +3314,13 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
       }
       if (v->nsize >= nsize)
       {
+	switch (nsize)
+	{
+	case 1:  v->vtotal = v->vnum ; break ;
+	case 2:  v->vtotal = v->v2num ; break ;
+	case 3:  v->vtotal = v->v3num ; break ;
+	default: break ;
+	}
         continue ;
       }
       vnum = v->vtotal ;
@@ -75453,9 +75460,7 @@ MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris,
       DiagBreak() ;
     }
 
-    x = vertex->x ;
-    y = vertex->y ;
-    z = vertex->z ;
+    x = vertex->x ; y = vertex->y ; z = vertex->z ;
 
     sx = sy = sz = 0.0 ;
     n=0;
@@ -75464,17 +75469,13 @@ MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris,
       vn = &mris->vertices[vertex->v[m]] ;
       if (!vn->ripflag)
       {
-        sx += vn->x - x;
-        sy += vn->y - y;
-        sz += vn->z - z;
+        sx += vn->x - x; sy += vn->y - y; sz += vn->z - z;
         n++;
       }
     }
     if (n>0)
     {
-      sx = sx/n;
-      sy = sy/n;
-      sz = sz/n;
+      sx = sx/n; sy = sy/n; sz = sz/n;
     }
     scale = pow(fabs(vertex->K), gaussian_norm) ;
     if (!finite(scale))
@@ -75491,9 +75492,7 @@ MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris,
     sy *= scale ;
     sz *= scale ;
 
-    vertex->dx += sx ;
-    vertex->dy += sy ;
-    vertex->dz += sz ;
+    vertex->dx += sx ; vertex->dy += sy ; vertex->dz += sz ;
     if (vno == Gdiag_no)
       fprintf(stdout, "v %d Gaussian normal term:  (%2.3f, %2.3f, %2.3f)\n",
               vno, sx, sy, sz) ;
