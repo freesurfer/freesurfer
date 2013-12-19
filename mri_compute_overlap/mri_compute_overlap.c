@@ -7,9 +7,9 @@
 /*
  * Original Author: Nick S.?
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.17 $
+ *    $Author: lzollei $
+ *    $Date: 2013/12/19 21:31:47 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -73,7 +73,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_compute_overlap.c,v 1.17 2011/03/02 00:04:14 nicks Exp $",
+           "$Id: mri_compute_overlap.c,v 1.18 2013/12/19 21:31:47 lzollei Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -179,7 +179,7 @@ main(int argc, char *argv[]) {
       }
 #else
       nvox1 = MRIcopyLabel(mri1, mri1_label, lno) ;
-      nvox2 = MRIcopyLabel(mri2, mri1_label, lno) ;
+      nvox2 = MRIcopyLabel(mri2, mri2_label, lno) ;
       if (!nvox1 && !nvox2)
         continue ;
       correct = MRIlabelOverlap(mri1, mri2, lno) ;
@@ -201,7 +201,7 @@ main(int argc, char *argv[]) {
     }
     if (log_fp)
       fclose(log_fp) ;
-  } else {
+  } else { // using a user provided lable list
     
     for (i = 3 ; i < argc ; i++) {
       float volume_overlap, volume_diff, volume_overlap_jacc ;
@@ -210,10 +210,10 @@ main(int argc, char *argv[]) {
       // only counts number of lno label
       nvox1 = MRIvoxelsInLabel(mri1, lno) ;
       nvox2 = MRIvoxelsInLabel(mri2, lno) ;
-      nvox_mean = (float)(nvox1+nvox2)/2 ;
+      nvox_mean = (float)(nvox1+nvox2)/2.0f ;
       // if both mri1 and mri2 has the same label, count it.
       nshared = MRIlabelOverlap(mri1, mri2, lno) ;
-      nunion  = MRIlabelUnion(mri1, mri2, lno) ;
+      nunion  = (float) MRIlabelUnion(mri1, mri2, lno) ;
       volume_diff = 100.0f*(float)abs(nvox1-nvox2)/nvox_mean ;
       volume_overlap = 100.0f*(float)nshared/nvox_mean ;
       if(nunion>0.)
@@ -229,8 +229,9 @@ main(int argc, char *argv[]) {
                lno, nshared, nunion, volume_overlap_jacc) ;
       }
       if (log_fp) {
-        fprintf(log_fp, "%2.2f\t%2.2f\t%2.2f\n", volume_diff, volume_overlap, volume_overlap_jacc) ;
-        fclose(log_fp) ;
+        // fprintf(log_fp, "%2.2f\t%2.2f\t%2.2f\n", volume_diff, volume_overlap, volume_overlap_jacc) ;
+        fprintf(log_fp, "%d\t%2.2f\t%2.2f\t%2.2f\n", lno, volume_diff, volume_overlap, volume_overlap_jacc) ;
+        //fclose(log_fp) ;
       }
       total_nvox1 += nvox1 ;
       total_nvox2 += nvox2 ;
@@ -238,6 +239,8 @@ main(int argc, char *argv[]) {
       total_nunion += nunion ;
       nlabels++ ;
     }
+    if (log_fp)
+      fclose(log_fp) ;
   }
 
   if (nlabels > 1) {
