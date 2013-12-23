@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/05/23 12:42:34 $
- *    $Revision: 1.10 $
+ *    $Author: greve $
+ *    $Date: 2013/12/23 23:16:35 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,8 +67,10 @@ static double resolution = .5 ;
 static char *fmt = "mgz";
 MRI *add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
                                        int wm_val, int gm_val, int csf_val) ;
-int
-main(int argc, char *argv[]) {
+static char *wsurfname = "white";
+static char *psurfname = "pial";
+
+int main(int argc, char *argv[]) {
   char   **av, fname[STRLEN] ;
   int    ac, nargs ;
   char   *reg_fname, *in_fname, *out_stem, *cp ;
@@ -81,7 +83,7 @@ main(int argc, char *argv[]) {
   float       intensity, betplaneres, inplaneres ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.10 2013/05/23 12:42:34 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.11 2013/12/23 23:16:35 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -135,25 +137,25 @@ main(int argc, char *argv[]) {
   }
   printf("Format is %s\n",fmt);
     
-  sprintf(fname, "%s/%s/surf/lh.white", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/lh.%s", sdir, subject, wsurfname) ;
   printf("reading surface %s\n", fname) ;
   mris_lh_white = MRISread(fname) ;
   if (mris_lh_white == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load lh white surface from %s", Progname,fname) ;
 
-  sprintf(fname, "%s/%s/surf/rh.white", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/rh.%s", sdir, subject, wsurfname) ;
   printf("reading surface %s\n", fname) ;
   mris_rh_white = MRISread(fname) ;
   if (mris_rh_white == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load rh white surface from %s", Progname,fname) ;
 
-  sprintf(fname, "%s/%s/surf/lh.pial", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/lh.%s", sdir, subject,psurfname) ;
   printf("reading surface %s\n", fname) ;
   mris_lh_pial = MRISread(fname) ;
   if (mris_lh_pial == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load lh pial surface from %s", Progname,fname) ;
 
-  sprintf(fname, "%s/%s/surf/rh.pial", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/rh.%s", sdir, subject, psurfname) ;
   printf("reading surface %s\n", fname) ;
   mris_rh_pial = MRISread(fname) ;
   if (mris_rh_pial == NULL)
@@ -292,6 +294,16 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "nii.gz")) fmt = "nii.gz";
   else if (!stricmp(option, "mgh"))    fmt = "mgh";
   else if (!stricmp(option, "mgz"))    fmt = "mgz";
+  else if (!stricmp(option, "wsurf")){
+    wsurfname = argv[2] ;
+    printf("overriding wsurfname with %s\n", wsurfname) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "psurf")){
+    wsurfname = argv[2] ;
+    printf("overriding psurfname with %s\n", psurfname) ;
+    nargs = 1 ;
+  }
   else {
     switch (toupper(*option)) {
     case 'R':
@@ -331,13 +343,11 @@ usage_exit(int code) {
   printf("  -s    subject:  override entry of register.dat file\n") ;
   printf("  -r    resolution:  set resolution of internal volume for filling ribbon (def=0.5)\n") ;
   printf("  -nii, -nii.gz, -mgh, -mgz : format (default is mgz)\n");
+  printf("  -wsurf whitesurface (default is white)\n");
+  printf("  -psurf pialsurface (default is pial)\n");
   printf("\n");
   exit(code) ;
 }
-
-
-
-
 
 MRI *
 add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
