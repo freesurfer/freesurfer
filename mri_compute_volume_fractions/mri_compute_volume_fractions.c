@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/24 00:31:48 $
- *    $Revision: 1.12 $
+ *    $Date: 2013/12/24 05:21:40 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,9 +81,11 @@ int main(int argc, char *argv[]) {
     *mri_subcort_gm, *mri_wm, *mri_csf ;
   MATRIX      *m_regdat ;
   float       intensity, betplaneres, inplaneres ;
+  MATRIX *m_conformed_to_epi_vox2vox, *m_seg_to_conformed_vox2vox,
+    *m_seg_to_epi_vox2vox ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.12 2013/12/24 00:31:48 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.13 2013/12/24 05:21:40 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -135,7 +137,7 @@ int main(int argc, char *argv[]) {
     if (saved_subject)  // specified on cmdline
       subject = saved_subject ;
     m_regdat = regio_read_registermat(reg_fname) ;
-    if (m_regdat == NULL)
+    if(m_regdat == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load registration file from %s", Progname,reg_fname) ;
   }
   printf("Format is %s\n",fmt);
@@ -188,10 +190,7 @@ int main(int argc, char *argv[]) {
   mri_pial->c_r = mri_aseg->c_r ; mri_pial->c_a = mri_aseg->c_a ; mri_pial->c_s = mri_aseg->c_s ;
   MRIreInitCache(mri_pial) ; 
 
-  msec = TimerStop(&start) ;
-  seconds = nint((float)msec/1000.0f) ;
-  minutes = seconds / 60 ; seconds = seconds % 60 ;
-  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
 
   printf("filling interior of lh pial surface...\n") ;
   MRISfillInterior(mris_lh_pial, resolution, mri_pial) ;
@@ -199,33 +198,29 @@ int main(int argc, char *argv[]) {
     MRIwrite(mri_pial,"fill.lh.pial.mgh");
   mri_seg = MRIclone(mri_pial, NULL) ;
   mri_tmp = MRIclone(mri_pial, NULL) ;
-  msec = TimerStop(&start) ;
-  seconds = nint((float)msec/1000.0f) ;
-  minutes = seconds / 60 ; seconds = seconds % 60 ;
-  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
 
   printf("filling interior of rh pial surface...\n") ;
   MRISfillInterior(mris_rh_pial, resolution, mri_tmp) ;
   MRIcopyLabel(mri_tmp, mri_pial, 1) ;
   MRIclear(mri_tmp) ;
-  seconds = nint((float)msec/1000.0f) ;
-  minutes = seconds / 60 ; seconds = seconds % 60 ;
-  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
 
   printf("filling interior of lh white matter surface...\n") ;
   MRISfillWhiteMatterInterior(mris_lh_white, mri_aseg, mri_seg, resolution,
                               WM_VAL, SUBCORT_GM_VAL, CSF_VAL);
-  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
 
   printf("filling interior of rh white matter surface...\n") ;
   MRISfillWhiteMatterInterior(mris_rh_white, mri_aseg, mri_tmp, resolution,
                               WM_VAL, SUBCORT_GM_VAL, CSF_VAL);
-  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
   MRIcopyLabel(mri_tmp, mri_seg, WM_VAL) ;
   MRIcopyLabel(mri_tmp, mri_seg, SUBCORT_GM_VAL) ;
   MRIcopyLabel(mri_tmp, mri_seg, CSF_VAL) ;
   MRIfree(&mri_tmp) ;
   
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
   mri_ribbon = MRInot(mri_seg, NULL) ;
   MRIcopyLabel(mri_seg, mri_pial, CSF_VAL) ;
   MRIreplaceValuesOnly(mri_pial, mri_pial, CSF_VAL, 0) ;
@@ -235,37 +230,30 @@ int main(int argc, char *argv[]) {
   MRIreplaceValuesOnly(mri_seg, mri_seg, CSF_VAL, 0) ;
   add_aseg_structures_outside_ribbon(mri_seg, mri_aseg, mri_seg, WM_VAL, SUBCORT_GM_VAL, CSF_VAL) ;
 
-
-  {
-    MATRIX *m_conformed_to_epi_vox2vox, *m_seg_to_conformed_vox2vox,
-           *m_seg_to_epi_vox2vox ;
-
-    if (m_regdat == NULL)    // assume identity transform
-      m_seg_to_epi_vox2vox = MRIgetVoxelToVoxelXform(mri_seg, mri_in) ;
-    else
-    {
-      m_conformed_to_epi_vox2vox = MRIvoxToVoxFromTkRegMtx(mri_in, mri_aseg, m_regdat);
-      m_seg_to_conformed_vox2vox = MRIgetVoxelToVoxelXform(mri_seg, mri_aseg) ;
-      
-      m_seg_to_epi_vox2vox = MatrixMultiply(m_conformed_to_epi_vox2vox, m_seg_to_conformed_vox2vox, NULL) ;
-      MatrixFree(&m_regdat) ; MatrixFree(&m_conformed_to_epi_vox2vox) ; 
-      MatrixFree(&m_seg_to_conformed_vox2vox);
-
-    }
-    printf("seg to EPI vox2vox matrix:\n") ;
-    MatrixPrint(Gstdout, m_seg_to_epi_vox2vox) ;
-    mri_cortex = MRIalloc(mri_in->width, mri_in->height, mri_in->depth, MRI_FLOAT) ;
-    MRIcopyHeader(mri_in, mri_cortex) ;
-    mri_subcort_gm = MRIclone(mri_cortex, NULL) ;
-    mri_wm = MRIclone(mri_cortex, NULL) ;
-    mri_csf = MRIclone(mri_cortex, NULL) ;
-    printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
-    printf("computing partial volume fractions...\n") ;
-    MRIcomputePartialVolumeFractions(mri_in, m_seg_to_epi_vox2vox, mri_seg, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
-                                     WM_VAL, SUBCORT_GM_VAL, GM_VAL, 0) ;
+  if(m_regdat == NULL)    // assume identity transform
+    m_seg_to_epi_vox2vox = MRIgetVoxelToVoxelXform(mri_seg, mri_in) ;
+  else {
+    m_conformed_to_epi_vox2vox = MRIvoxToVoxFromTkRegMtx(mri_in, mri_aseg, m_regdat);
+    m_seg_to_conformed_vox2vox = MRIgetVoxelToVoxelXform(mri_seg, mri_aseg) ;
+    
+    m_seg_to_epi_vox2vox = MatrixMultiply(m_conformed_to_epi_vox2vox, m_seg_to_conformed_vox2vox, NULL) ;
+    MatrixFree(&m_conformed_to_epi_vox2vox) ; 
+    MatrixFree(&m_seg_to_conformed_vox2vox);
   }
+  printf("hires to input vox2vox matrix:\n") ;
+  MatrixPrint(stdout, m_seg_to_epi_vox2vox) ;
+  mri_cortex = MRIalloc(mri_in->width, mri_in->height, mri_in->depth, MRI_FLOAT) ;
+  MRIcopyHeader(mri_in, mri_cortex) ;
+  mri_subcort_gm = MRIclone(mri_cortex, NULL) ;
+  mri_wm = MRIclone(mri_cortex, NULL) ;
+  mri_csf = MRIclone(mri_cortex, NULL) ;
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
+  printf("computing partial volume fractions...\n") ;
+  MRIcomputePartialVolumeFractions(mri_in, m_seg_to_epi_vox2vox, mri_seg, mri_wm, 
+				   mri_subcort_gm, mri_cortex, mri_csf,
+				   WM_VAL, SUBCORT_GM_VAL, GM_VAL, 0) ;
   
-  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
   sprintf(fname, "%s.wm.%s", out_stem,fmt) ;
   printf("writing wm %% to %s\n", fname) ;
   MRIwrite(mri_wm, fname) ;
@@ -282,6 +270,7 @@ int main(int argc, char *argv[]) {
   printf("writing csf %% to %s\n", fname) ;
   MRIwrite(mri_csf, fname) ;
 
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
