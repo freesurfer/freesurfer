@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/23 23:16:35 $
- *    $Revision: 1.11 $
+ *    $Date: 2013/12/24 00:31:48 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
   float       intensity, betplaneres, inplaneres ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.11 2013/12/23 23:16:35 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.12 2013/12/24 00:31:48 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -109,6 +109,9 @@ int main(int argc, char *argv[]) {
   out_stem = argv[3] ; 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+
+  printf("Gdiag %lx\n",Gdiag);
+  printf("resolution %lf\n",resolution);
 
   TimerStart(&start) ;
 
@@ -185,20 +188,39 @@ int main(int argc, char *argv[]) {
   mri_pial->c_r = mri_aseg->c_r ; mri_pial->c_a = mri_aseg->c_a ; mri_pial->c_s = mri_aseg->c_s ;
   MRIreInitCache(mri_pial) ; 
 
+  msec = TimerStop(&start) ;
+  seconds = nint((float)msec/1000.0f) ;
+  minutes = seconds / 60 ; seconds = seconds % 60 ;
+  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
+
   printf("filling interior of lh pial surface...\n") ;
   MRISfillInterior(mris_lh_pial, resolution, mri_pial) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_pial,"fill.lh.pial.mgh");
   mri_seg = MRIclone(mri_pial, NULL) ;
   mri_tmp = MRIclone(mri_pial, NULL) ;
+  msec = TimerStop(&start) ;
+  seconds = nint((float)msec/1000.0f) ;
+  minutes = seconds / 60 ; seconds = seconds % 60 ;
+  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
+
   printf("filling interior of rh pial surface...\n") ;
   MRISfillInterior(mris_rh_pial, resolution, mri_tmp) ;
   MRIcopyLabel(mri_tmp, mri_pial, 1) ;
   MRIclear(mri_tmp) ;
+  seconds = nint((float)msec/1000.0f) ;
+  minutes = seconds / 60 ; seconds = seconds % 60 ;
+  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
+
   printf("filling interior of lh white matter surface...\n") ;
   MRISfillWhiteMatterInterior(mris_lh_white, mri_aseg, mri_seg, resolution,
                               WM_VAL, SUBCORT_GM_VAL, CSF_VAL);
+  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
+
   printf("filling interior of rh white matter surface...\n") ;
   MRISfillWhiteMatterInterior(mris_rh_white, mri_aseg, mri_tmp, resolution,
                               WM_VAL, SUBCORT_GM_VAL, CSF_VAL);
+  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
   MRIcopyLabel(mri_tmp, mri_seg, WM_VAL) ;
   MRIcopyLabel(mri_tmp, mri_seg, SUBCORT_GM_VAL) ;
   MRIcopyLabel(mri_tmp, mri_seg, CSF_VAL) ;
@@ -237,11 +259,13 @@ int main(int argc, char *argv[]) {
     mri_subcort_gm = MRIclone(mri_cortex, NULL) ;
     mri_wm = MRIclone(mri_cortex, NULL) ;
     mri_csf = MRIclone(mri_cortex, NULL) ;
+    printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
     printf("computing partial volume fractions...\n") ;
     MRIcomputePartialVolumeFractions(mri_in, m_seg_to_epi_vox2vox, mri_seg, mri_wm, mri_subcort_gm, mri_cortex, mri_csf,
                                      WM_VAL, SUBCORT_GM_VAL, GM_VAL, 0) ;
   }
   
+  printf("  t = %d minutes and %d seconds.\n", minutes, seconds) ;
   sprintf(fname, "%s.wm.%s", out_stem,fmt) ;
   printf("writing wm %% to %s\n", fname) ;
   MRIwrite(mri_wm, fname) ;
@@ -294,13 +318,15 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "nii.gz")) fmt = "nii.gz";
   else if (!stricmp(option, "mgh"))    fmt = "mgh";
   else if (!stricmp(option, "mgz"))    fmt = "mgz";
+  else if (!stricmp(option, "diag-write"))   Gdiag = Gdiag | DIAG_WRITE;
+  else if (!stricmp(option, "diag-verbose")) Gdiag = Gdiag | DIAG_VERBOSE;
   else if (!stricmp(option, "wsurf")){
     wsurfname = argv[2] ;
     printf("overriding wsurfname with %s\n", wsurfname) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "psurf")){
-    wsurfname = argv[2] ;
+    psurfname = argv[2] ;
     printf("overriding psurfname with %s\n", psurfname) ;
     nargs = 1 ;
   }
@@ -345,6 +371,8 @@ usage_exit(int code) {
   printf("  -nii, -nii.gz, -mgh, -mgz : format (default is mgz)\n");
   printf("  -wsurf whitesurface (default is white)\n");
   printf("  -psurf pialsurface (default is pial)\n");
+  printf("  -diag-write\n");
+  printf("  -diag-verbose\n");
   printf("\n");
   exit(code) ;
 }
