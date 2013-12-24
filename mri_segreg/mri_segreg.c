@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/10/27 18:36:43 $
- *    $Revision: 1.105 $
+ *    $Date: 2013/12/24 03:43:13 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.105 2011/10/27 18:36:43 greve Exp $";
+"$Id: mri_segreg.c,v 1.106 2013/12/24 03:43:13 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -364,13 +364,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.105 2011/10/27 18:36:43 greve Exp $",
+     "$Id: mri_segreg.c,v 1.106 2013/12/24 03:43:13 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.105 2011/10/27 18:36:43 greve Exp $",
+     "$Id: mri_segreg.c,v 1.106 2013/12/24 03:43:13 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1993,11 +1993,13 @@ int MRISbbrSurfs(char *subject)
     if(rhwm == NULL) exit(1);
     rhctx = MRISread(tmpstr);
     
-    printf("Loading rh.thickness\n");
-    sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
-    err = MRISreadCurvatureFile(rhwm, tmpstr);
-    if(err) exit(1);
-    err = MRISreadCurvatureFile(rhctx, tmpstr);
+    if(DoWMProjFrac){
+      printf("Loading rh.thickness\n");
+      sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
+      err = MRISreadCurvatureFile(rhwm, tmpstr);
+      if(err) exit(1);
+      err = MRISreadCurvatureFile(rhctx, tmpstr);
+    }
     
     printf("Projecting RH Surfs\n");
     for(n = 0; n < rhwm->nvertices; n++){
