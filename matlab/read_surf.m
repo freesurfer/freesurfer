@@ -1,4 +1,4 @@
-function [vertex_coords, faces] = read_surf(fname)
+function [vertex_coords, faces, magic] = read_surf(fname)
 %
 % [vertex_coords, faces] = read_surf(fname)
 % reads a the vertex coordinates and face lists from a surface file
@@ -14,9 +14,9 @@ function [vertex_coords, faces] = read_surf(fname)
 %
 % Original Author: Bruce Fischl
 % CVS Revision Info:
-%    $Author: fischl $
-%    $Date: 2011/09/29 14:20:17 $
-%    $Revision: 1.5 $
+%    $Author: greve $
+%    $Date: 2013/12/24 04:40:09 $
+%    $Revision: 1.6 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -72,6 +72,11 @@ elseif (magic == TRIANGLE_FILE_MAGIC_NUMBER)
     faces = fread(fid, fnum*3, 'int32') ;
     faces = reshape(faces, 3, fnum)' ;
   end
+else
+  fprintf('ERROR: magic number %d unknown\n',magic);
+  vertex_coords = [];
+  faces = [];
+  return;
 end
 
 vertex_coords = reshape(vertex_coords, 3, vnum)' ;
