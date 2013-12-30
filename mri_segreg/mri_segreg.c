@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/24 03:43:13 $
- *    $Revision: 1.106 $
+ *    $Date: 2013/12/30 02:01:06 $
+ *    $Revision: 1.107 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.106 2013/12/24 03:43:13 greve Exp $";
+"$Id: mri_segreg.c,v 1.107 2013/12/30 02:01:06 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -343,6 +343,7 @@ char *surfname = "white";
 int dof = 6; 
 char *RelCostFile = NULL;
 char *ParamFile = NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
@@ -364,13 +365,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.106 2013/12/24 03:43:13 greve Exp $",
+     "$Id: mri_segreg.c,v 1.107 2013/12/30 02:01:06 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.106 2013/12/24 03:43:13 greve Exp $",
+     "$Id: mri_segreg.c,v 1.107 2013/12/30 02:01:06 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1993,12 +1994,17 @@ int MRISbbrSurfs(char *subject)
     if(rhwm == NULL) exit(1);
     rhctx = MRISread(tmpstr);
     
-    if(DoWMProjFrac){
-      printf("Loading rh.thickness\n");
+    if(DoWMProjFrac) {
+      printf("Loading rh.thickness for WM\n");
       sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
       err = MRISreadCurvatureFile(rhwm, tmpstr);
       if(err) exit(1);
+    }
+    if(DoGMProjFrac){
+      printf("Loading rh.thickness for GM\n");
+      sprintf(tmpstr,"%s/%s/surf/rh.thickness",SUBJECTS_DIR,subject);
       err = MRISreadCurvatureFile(rhctx, tmpstr);
+      if(err) exit(1);
     }
     
     printf("Projecting RH Surfs\n");
