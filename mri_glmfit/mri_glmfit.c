@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/30 21:17:06 $
- *    $Revision: 1.228 $
+ *    $Date: 2013/12/30 21:22:54 $
+ *    $Revision: 1.229 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.228 2013/12/30 21:17:06 greve Exp $";
+"$Id: mri_glmfit.c,v 1.229 2013/12/30 21:22:54 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1553,6 +1553,12 @@ int main(int argc, char **argv) {
       OutStatTable->rownames[n] = strcpyalloc(StatTable->colnames[n]);
     for(n=0; n < nContrasts; n++)
       OutStatTable->colnames[n] = strcpyalloc(mriglm->glm->Cname[n]);
+    GammaStatTable = AllocStatTable(StatTable->ncols,nContrasts);
+    GammaStatTable->measure = strcpyalloc(StatTable->measure);
+    for(n=0; n < StatTable->ncols; n++)
+      GammaStatTable->rownames[n] = strcpyalloc(StatTable->colnames[n]);
+    for(n=0; n < nContrasts; n++)
+      GammaStatTable->colnames[n] = strcpyalloc(mriglm->glm->Cname[n]);
   }
 
   // Don't do sim --------------------------------------------------------
