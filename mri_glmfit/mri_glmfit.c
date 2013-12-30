@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/09 20:13:20 $
- *    $Revision: 1.227 $
+ *    $Date: 2013/12/30 21:17:06 $
+ *    $Revision: 1.228 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.227 2013/12/09 20:13:20 greve Exp $";
+"$Id: mri_glmfit.c,v 1.228 2013/12/30 21:17:06 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -694,7 +694,7 @@ int NoContrastsOK = 0;
 int ComputeFWHM = 1;
 
 int UseStatTable = 0;
-STAT_TABLE *StatTable=NULL, *OutStatTable=NULL;
+STAT_TABLE *StatTable=NULL, *OutStatTable=NULL, *GammaStatTable=NULL;
 int  UseCortexLabel = 1;
 
 char *SimDoneFile = NULL;
@@ -1982,6 +1982,7 @@ int main(int argc, char **argv) {
 	OutStatTable->data[m][n] = MRIgetVoxVal(sig,m,0,0,0);
 	if(mriglm->glm->C[n]->rows == 1)
 	  OutStatTable->data[m][n] *= SIGN(MRIgetVoxVal(mriglm->gamma[n],m,0,0,0));
+	GammaStatTable->data[m][n] = MRIgetVoxVal(mriglm->gamma[n],m,0,0,0);
       }
     }
 
@@ -2029,6 +2030,8 @@ int main(int argc, char **argv) {
     WriteStatTable(tmpstr, OutStatTable);
     sprintf(tmpstr,"%s/input.table.dat",GLMDir);
     WriteStatTable(tmpstr, StatTable);
+    sprintf(tmpstr,"%s/gamma.table.dat",GLMDir);
+    WriteStatTable(tmpstr, GammaStatTable);
   }
 
   if (usedti) {
