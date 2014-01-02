@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/05/12 13:43:39 $
- *    $Revision: 1.376 $
+ *    $Author: greve $
+ *    $Date: 2014/01/02 21:49:11 $
+ *    $Revision: 1.377 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1489,6 +1489,7 @@ MRI   *MRISaccentuate(MRI *mri_src,
 MRI *MRISfillInterior(MRI_SURFACE *mris,
                       double resolution,
                       MRI *mri_interior) ;
+int MRISfillInteriorRibbonTest(char *subject, int UseNew, FILE *fp);
 MRI   *MRISshell(MRI *mri_src,
                  MRI_SURFACE *mris,
                  MRI *mri_dst,

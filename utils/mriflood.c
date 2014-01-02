@@ -7,8 +7,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/02 03:41:34 $
- *    $Revision: 1.33 $
+ *    $Date: 2014/01/02 21:49:12 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.33 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.34 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -35,6 +35,7 @@ char *MRIFLOOD_VERSION = "$Revision: 1.33 $";
 #include "cma.h"
 #include "timer.h"
 #include "region.h"
+#include "fsenv.h"
 
 
 #define IMGSIZE 256
@@ -1682,8 +1683,12 @@ MRI *MRISfillInteriorOld(MRI_SURFACE *mris, double resolution, MRI *mri_interior
 
 /*!
 \fn MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
-\brief Fills in the interior of a surface. If USE_NEW_FILL_INTERIOR != 1 or
-is not set, then the "old" biased version of this routine is called by default.
+\brief Fills in the interior of a surface by creating a "watertight"
+shell and filling everything outside of the shell. This is much faster
+but slightly less accurate than a ray-tracing algorithm. If
+USE_NEW_FILL_INTERIOR != 1 or is not set, then the "old" biased
+version of this routine is called by default.  See also
+MRISfillInteriorRibbonTest().
 \param mris - input surface
 \param resolution - only used if mri_dst is NULL
 \param mri_dst - output
@@ -1901,3 +1906,92 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
 
   return(mri_dst);
 }
+
+/*!
+\fn int MRISfillInteriorRibbonTest(char *subject, int UseNew, FILE *fp)
+\brief Runs a test on MRISfillInterior() by comparing its results to
+the ribbon.mgz file.  The ribbon.mgz file is the gold standard
+generated using a ray tracing algorithm. Typical results are that the
+new MRISfillInterior() will overlap ribbon.mgz to better than 99.5%
+but is on the order of 20 times faster.
+*/
+int MRISfillInteriorRibbonTest(char *subject, int UseNew, FILE *fp)
+{
+  FSENV *fsenv;
+  char tmpstr[4000],*hemistr,*surfname;
+  MRI *ribbon;
+  int hemi, surftype, c, r, s, nfp, nfn, ntp, v, vrib, wmval, ctxval;
+  MRIS *surf;
+  MRI *mri;
+
+  if(UseNew) setenv("USE_NEW_FILL_INTERIOR","1",1);
+  else setenv("USE_NEW_FILL_INTERIOR","0",1);
+
+  fsenv = FSENVgetenv();
+
+  // ribbon.mgz is 3 or 42 if within the ribbon or 2 or 41 if within the wm surface
+  sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",fsenv->SUBJECTS_DIR,subject);
+  ribbon = MRIread(tmpstr);
+  if(ribbon == NULL){
+    printf("ERROR: cannot find %s\n",tmpstr);
+    return(1);
+  }
+
+  mri = MRIcopy(ribbon,NULL);
+
+  fprintf(fp,"%s   ",subject); 
+  for(surftype = 0; surftype < 2; surftype++){
+    if(surftype == 0) surfname = "white";
+    if(surftype == 1) surfname = "pial";
+
+    for(hemi = 0; hemi < 2; hemi++){
+      if(hemi == 0) {hemistr = "lh"; wmval =  2; ctxval =  3;}
+      if(hemi == 1) {hemistr = "rh"; wmval = 41; ctxval = 42;}
+
+      //printf("%s %s %s\n",subject,hemistr,surfname); fflush(stdout);
+      sprintf(tmpstr,"%s/%s/surf/%s.%s",fsenv->SUBJECTS_DIR,subject,hemistr,surfname);
+      surf = MRISread(tmpstr);
+      if(surf == NULL){
+	printf("ERROR: cannot load %s\n",tmpstr);
+	return(1);
+      }
+      MRIclear(mri);
+      MRISfillInterior(surf,1,mri); // resolution = 1
+
+      nfp = 0; // false positive - not in ribbon but in interior
+      nfn = 0; // false negative - in ribbon but not in interior
+      ntp = 0; // total number within the surface in ribbon.mgz
+      for(c=0; c < mri->width; c++){
+	for(r=0; r < mri->height; r++){
+	  for(s=0; s < mri->depth; s++){
+	    vrib = MRIgetVoxVal(ribbon,c,r,s,0);
+	    v = MRIgetVoxVal(mri,c,r,s,0);
+	    if(surftype == 0){ // white
+	      // only look for ribbon voxels that are wmval (2 or 41)
+	      if(vrib == wmval) ntp++;
+	      if(vrib == wmval && v == 1) continue;
+	      if(vrib != wmval && v == 1) nfp++;
+	      if(vrib == wmval && v == 0) nfn++;
+	    }
+	    if(surftype == 1){ // pial
+	      // look for ribbon voxels that are either wmval (2 or 41)
+	      // or cortex value (3 or 42)
+	      if(vrib == wmval  || vrib == ctxval) ntp++;
+	      if((vrib == wmval || vrib == ctxval) && v == 1) continue;
+	      if((vrib != wmval && vrib != ctxval) && v == 1) nfp++;
+	      if((vrib == wmval || vrib == ctxval) && v == 0) nfn++;
+	    }
+	  }
+	}
+      }
+      printf("#P# %s %s %s %3d %3d %6d\n",subject,hemistr,surfname,nfp,nfn,ntp);fflush(stdout);
+      fprintf(fp,"%4d %4d %6d   ",nfp,nfn,ntp);
+      
+    } // surf type
+  } // hemi
+  fprintf(fp,"\n");  fflush(fp);
+
+  MRIfree(&mri);
+  return(0);
+}
+
