@@ -6,9 +6,9 @@
 /*
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.32 $
+ *    $Author: greve $
+ *    $Date: 2014/01/02 03:41:34 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.32 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.33 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -33,6 +33,9 @@ char *MRIFLOOD_VERSION = "$Revision: 1.32 $";
 #include "mrisurf.h"
 #include "macros.h"
 #include "cma.h"
+#include "timer.h"
+#include "region.h"
+
 
 #define IMGSIZE 256
 
@@ -1588,8 +1591,9 @@ void MRIcorrecthippocampus(MRI *mri_masked,MRI *mri_dst)
   printf("After hippocampus check\n");
   printf("\tcortex became white : %8d\n",hippocount);
 }
-MRI *
-MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
+
+
+MRI *MRISfillInteriorOld(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
 {
   int    width, height, depth, x, y, z, val, saved_use_Real_RAS, interior_alloced ;
   MATRIX *m_vox2ras ;
@@ -1676,3 +1680,224 @@ MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
   return(mri_interior) ;
 }
 
+/*!
+\fn MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
+\brief Fills in the interior of a surface. If USE_NEW_FILL_INTERIOR != 1 or
+is not set, then the "old" biased version of this routine is called by default.
+\param mris - input surface
+\param resolution - only used if mri_dst is NULL
+\param mri_dst - output
+*/
+MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
+{
+  int col,row,slc,fno,numu,numv,u,v,nhits,width,height,depth ;
+  float x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax;
+  float px0,py0,pz0,px1,py1,pz1,px,py,pz;
+  double fcol,frow,fslc, dcol,drow,dslc,val,val2;
+  double vx,vy,vz, vlen, ux,uy,uz, cosa;
+  VERTEX *v_0,*v_1,*v_2;
+  FACE *f;
+  MATRIX *crs,*xyz=NULL,*vox2rastkr,*m_vox2ras ;
+  MRI *mri_cosa, *mri_vlen, *mri_shell, *shellbb, *outsidebb;
+  MRI_REGION *region;
+  struct timeb start ;
+
+  printf("Starting MRISfillInterior() \n");fflush(stdout);
+  if(getenv("USE_NEW_FILL_INTERIOR") == NULL || 
+     (getenv("USE_NEW_FILL_INTERIOR") != NULL && strcmp(getenv("USE_NEW_FILL_INTERIOR"),"1") != 0)){
+    printf("Using Old MRISfillInterior()\n");fflush(stdout);
+    mri_dst = MRISfillInteriorOld(mris, resolution, mri_dst);
+    return(mri_dst);
+  }
+  printf("Using New MRISfillInterior()\n");fflush(stdout);
+
+  TimerStart(&start) ;
+
+  MRIScomputeMetricProperties(mris) ;
+
+  if(!mri_dst){
+    // not sure this will work
+    width  = ceil((mris->xhi - mris->xlo)/resolution) ;
+    height = ceil((mris->yhi - mris->ylo)/resolution) ;
+    depth  = ceil((mris->zhi - mris->zlo)/resolution) ;
+    mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
+    MRIsetResolution(mri_dst, resolution, resolution, resolution) ;
+    m_vox2ras = MatrixIdentity(4, NULL) ;
+    *MATRIX_RELT(m_vox2ras, 1, 1) = resolution ;
+    *MATRIX_RELT(m_vox2ras, 2, 2) = resolution ;
+    *MATRIX_RELT(m_vox2ras, 3, 3) = resolution ;
+    *MATRIX_RELT(m_vox2ras, 1, 4) = mris->xlo+mris->vg.c_r ;
+    *MATRIX_RELT(m_vox2ras, 2, 4) = mris->ylo+mris->vg.c_a ;
+    *MATRIX_RELT(m_vox2ras, 3, 4) = mris->zlo+mris->vg.c_s ;
+    MRIsetVoxelToRasXform(mri_dst, m_vox2ras) ;
+  }
+  MRIclear(mri_dst) ;
+
+  dcol = mri_dst->xsize;
+  drow = mri_dst->ysize;
+  dslc = mri_dst->zsize;
+
+  vox2rastkr = MRIxfmCRS2XYZtkreg(mri_dst);
+  crs = MatrixAlloc(4,1,MATRIX_REAL);
+  crs->rptr[4][1] = 1;
+
+  mri_cosa = MRIconst(mri_dst->width, mri_dst->height, mri_dst->depth, 1, 0, NULL);
+  if(mri_cosa == NULL){
+    printf("ERROR: alloc fill interior cosa\n");
+    return(NULL);
+  }
+  MRIcopyHeader(mri_dst,mri_cosa);
+
+  mri_vlen = MRIconst(mri_dst->width, mri_dst->height, mri_dst->depth, 1, 10.0, NULL);
+  if(mri_vlen == NULL){
+    printf("ERROR: alloc fill interior vlen\n");
+    return(NULL);
+  }
+  MRIcopyHeader(mri_dst,mri_vlen);
+
+  printf("  creating shell\n");
+  mri_shell = MRIalloc(mri_dst->width, mri_dst->height, mri_dst->depth, MRI_INT);
+  if(mri_shell == NULL){
+    printf("ERROR: alloc fill interior shell\n");
+    return(NULL);
+  }
+  MRIcopyHeader(mri_dst,mri_shell);
+
+  /* Create a "watertight" shell of the surface by filling each face in MRI volume */
+  for (fno=0; fno<mris->nfaces; fno++){
+    f = &mris->faces[fno];
+    v_0 = &mris->vertices[f->v[0]];
+    v_1 = &mris->vertices[f->v[1]];
+    v_2 = &mris->vertices[f->v[2]];
+    if (f->v[0] == Gdiag_no || f->v[1] == Gdiag_no ||f->v[2] == Gdiag_no)
+      DiagBreak();
+    /* (x,y,z) for each vertex for face */
+    x0 = v_0->x;
+    y0 = v_0->y;
+    z0 = v_0->z;
+    x1 = v_1->x;
+    y1 = v_1->y;
+    z1 = v_1->z;
+    x2 = v_2->x;
+    y2 = v_2->y;
+    z2 = v_2->z;
+
+    /* Calculate triangle side lengths in voxels */
+    d0 = sqrt(SQR((x1-x0)/dcol)+SQR((y1-y0)/drow)+SQR((z1-z0)/dslc));
+    d1 = sqrt(SQR((x2-x1)/dcol)+SQR((y2-y1)/drow)+SQR((z2-z1)/dslc));
+    d2 = sqrt(SQR((x0-x2)/dcol)+SQR((y0-y2)/drow)+SQR((z0-z2)/dslc));
+
+    /* Divide space between sides into numv parallel lines */
+    dmax = (d0>=d1 && d0>=d2) ? d0 : (d1>=d0 && d1>=d2) ? d1 : d2;
+    numv = ceil(2*dmax);
+    numu = ceil(2*d0);
+    /* Fill each line in MRI volume */
+    for (v=0; v<=numv; v++) {
+      px0 = x0 + (x2-x0)*(float)v/(float)numv;
+      py0 = y0 + (y2-y0)*(float)v/(float)numv;
+      pz0 = z0 + (z2-z0)*(float)v/(float)numv;
+      px1 = x1 + (x2-x1)*(float)v/(float)numv;
+      py1 = y1 + (y2-y1)*(float)v/(float)numv;
+      pz1 = z1 + (z2-z1)*(float)v/(float)numv;
+      /* Fill each voxel on line in MRI volume */
+      for (u=0; u<=numu; u++){
+        px = px0 + (px1-px0)*(float)u/(float)numu;
+        py = py0 + (py1-py0)*(float)u/(float)numu;
+        pz = pz0 + (pz1-pz0)*(float)u/(float)numu;
+        MRISsurfaceRASToVoxelCached(mris, mri_dst,px,py,pz,&fcol,&frow,&fslc);
+        col=nint(fcol);
+        row=nint(frow);
+        slc=nint(fslc);
+	if(col >= 0 && col < mri_dst->width && 
+	   row >= 0 && row < mri_dst->height && 
+	   slc >= 0 && slc < mri_dst->depth){
+	  MRIsetVoxVal(mri_shell,col,row,slc,0, 255);
+	  /* Compute the cosine of the angle to determine whether the
+	  center of the voxel falls outside of the surface by
+	  computing the cosine of the angle of the normal and the
+	  vector that connects the center of the voxel to the closest
+	  point on the surface. This method is not perfect. It can
+	  fail when there is a sharp turn in the voxel.  These voxels
+	  must be part of the shell or else it will not be
+	  watertight. The "old" method was not able to remove any of
+	  these voxels and so the interior was biased to be too
+	  large. */
+	  crs->rptr[1][1] = col;
+	  crs->rptr[2][1] = row;
+	  crs->rptr[3][1] = slc;
+	  xyz = MatrixMultiply(vox2rastkr,crs,xyz); //xyz in tkrRAS space
+	  vx = xyz->rptr[1][1];
+	  vy = xyz->rptr[2][1];
+	  vz = xyz->rptr[3][1];
+	  vlen = sqrt(SQR(px-vx)+SQR(py-vy)+SQR(pz-vz));
+	  if(vlen > MRIgetVoxVal(mri_vlen,col,row,slc,0)) continue;// closest?
+	  ux = (px-vx)/vlen;
+	  uy = (py-vy)/vlen;
+	  uz = (pz-vz)/vlen;
+	  cosa = ux*f->nx + uy*f->ny + uz*f->nz;
+	  MRIsetVoxVal(mri_cosa,col,row,slc,0, cosa);
+	  MRIsetVoxVal(mri_vlen,col,row,slc,0, vlen);
+	}
+      }
+    }
+  }
+  printf("  shell done  t = %g\n",TimerStop(&start)/1000.0) ;
+  MatrixFree(&crs);
+  MatrixFree(&xyz);
+  MatrixFree(&vox2rastkr);
+  MRIfree(&mri_vlen);
+
+  // Reduce the volume size to speed things up
+  region = REGIONgetBoundingBox(mri_shell,2);
+  printf("  Bounding box around shell: ");
+  REGIONprint(stdout, region);
+
+  // Copy shell into bounding box
+  shellbb = MRIalloc(region->dx, region->dy, region->dz, MRI_UCHAR);
+  if(shellbb == NULL){
+    printf("ERROR: alloc fill shellbb\n");
+    return(NULL);
+  }
+  for(col=region->x; col < region->x+region->dx; col++) {
+    for(row=region->y; row < region->y+region->dy; row++) {
+      for (slc=region->z; slc < region->z+region->dz; slc++) {
+        val = MRIgetVoxVal(mri_shell,col,row,slc,0);
+        MRIsetVoxVal(shellbb,col-region->x,row-region->y,slc-region->z,0, val);
+      }
+    }
+  }
+  MRIfree(&mri_shell);
+
+  // Flood the outside (outside includes shell). This is the part that takes the longest.
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
+  printf("  flooding outside  ");fflush(stdout);
+  outsidebb = MRISfloodoutside(shellbb, NULL) ;
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ; fflush(stdout);
+
+  // Add the shell to the interior, remove voxels that are mostly on
+  // the outside of the surface
+  nhits = 0;
+  for(col=region->x; col < region->x+region->dx; col++) {
+    for(row=region->y; row < region->y+region->dy; row++) {
+      for (slc=region->z; slc < region->z+region->dz; slc++) {
+	val = MRIgetVoxVal(shellbb,col-region->x,row-region->y,slc-region->z,0);
+	val2 = MRIgetVoxVal(outsidebb,col-region->x,row-region->y,slc-region->z,0);
+	if(val < 0.5 && val2 > 0.5) continue; 
+	// Don't include if voxel is on the outside. Not perfect
+        cosa = MRIgetVoxVal(mri_cosa,col,row,slc,0);
+	if(cosa >= 0){
+	  MRIsetVoxVal(mri_dst,col,row,slc,0, 1);
+	  nhits ++;
+	}
+      }
+    }
+  }
+  MRIfree(&mri_cosa);
+  MRIfree(&shellbb);
+  MRIfree(&outsidebb);
+  printf("  found %d voxels in interior, volume = %g\n",nhits,
+	 nhits*mri_dst->xsize*mri_dst->ysize*mri_dst->zsize);
+  printf("  MRISfillInterior t = %g\n",TimerStop(&start)/1000.0) ;
+
+  return(mri_dst);
+}
