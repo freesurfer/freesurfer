@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/15 17:29:52 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/01/03 20:43:37 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -135,6 +135,7 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol,
 int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map);
 
 MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
-                 double fthresh, MRI **pvolhit);
+                 double fthresh, MRI **pvolhit,COLOR_TABLE *ct);
+
 
 #endif /* #ifndef RESAMPLE_H_INC */

@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/06/05 21:28:32 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/01/03 20:43:37 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1099,4 +1099,155 @@ double *ComputeBrainVolumeStats(char *subject)
 
   return(stats);
 }
+
+/*!
+  \fn MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt)
+  \brief Creates a segmentation volume where the segmentation is
+  that of tissue type (tissue type info in the ctab).
+*/
+MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt)
+{
+  int c,r,s,segid;
+
+  if(ct->ctabTissueType == NULL){
+    printf("ERROR: MRIseg2TissueType() ctab tissue type not set\n");
+    return(NULL);
+  }
+
+  tt = MRIcopy(seg,tt);
+  MRIclear(tt);
+
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(ct->entries[segid] == NULL){
+	  printf("ERROR: MRIseg2TTypeMap() no entry for seg %d\n",segid);
+	  return(NULL);
+	}
+	if(ct->entries[segid]->TissueType < 0){
+	  printf("ERROR: MRIseg2TTypeMap() tissue type for seg %d %s not set\n",
+		 segid,ct->entries[segid]->name);
+	  return(NULL);
+	}
+	MRIsetVoxVal(tt,c,r,s,0,ct->entries[segid]->TissueType);
+      }
+    }
+  }
+  return(tt);
+}
+
+/*!
+  \fn MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg)
+  \brief Creates a volume with only the segmentations in the given tissue type.
+  Tissue type info in the ctab.
+*/
+MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg)
+{
+  int c,r,s,segid;
+
+  if(ct->ctabTissueType == NULL){
+    printf("ERROR: MRIextractTissueTypeSeg() ctab tissue type not set\n");
+    return(NULL);
+  }
+  if(tt >= ct->ctabTissueType->nentries){
+    printf("ERROR: MRIextractTissueTypeSeg() tissue type %d exceeds or equals number of tissue types %d\n",
+	   tt,ct->ctabTissueType->nentries);
+    return(NULL);
+  }
+  ttseg = MRIcopy(seg,ttseg);
+  MRIclear(ttseg);
+
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(ct->entries[segid] == NULL){
+	  printf("ERROR: MRIseg2TTypeMap() no entry for seg %d\n",segid);
+	  return(NULL);
+	}
+	if(ct->entries[segid]->TissueType < 0){
+	  printf("ERROR: MRIseg2TTypeMap() tissue type for seg %d %s not set\n",
+		 segid,ct->entries[segid]->name);
+	  return(NULL);
+	}
+	if(ct->entries[segid]->TissueType == tt)
+	  MRIsetVoxVal(ttseg,c,r,s,0,segid);
+      }
+    }
+  }
+  return(ttseg);
+}
+
+/*!
+  \fn int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct)
+  \brief Make sure that the each segmentation has a tissue type.
+  Tissue type info in the ctab.
+  \return 0 if no error, 1 if error
+*/
+int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct)
+{
+  int c,r,s,segid,err;
+
+  err = 1;
+  if(ct->ctabTissueType == NULL){
+    printf("ERROR: CheckSegTissueType() ctab tissue type not set\n");
+    return(err);
+  }
+
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(ct->entries[segid] == NULL){
+	  printf("ERROR: CheckSegTissueType() no entry for seg %d\n",segid);
+	  return(err);
+	}
+	if(ct->entries[segid]->TissueType < 0){
+	  printf("ERROR: CheckSegTissueType() tissue type for seg %d %s not set\n",
+		 segid,ct->entries[segid]->name);
+	  return(err);
+	}
+      }
+    }
+  }
+  err = 0;
+  return(err);
+}
+
+/*!
+  \fn MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct)
+  \brief Returns an array of MRI structures of length equal to the number
+  of tissue types. Each MRI contains only the segmentation structures
+  of the given tissue type. The segmentations have been dilated to
+  fill in voxels from the masked out tissue types. This technique
+  is used for GTM partial volume correction. Tissue type info in the ctab.
+*/
+MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct)
+{
+  MRI **r;
+  MRI *segtt=NULL;
+  int nc,tt;
+  char tmpstr[1000];
+
+  if(ct->ctabTissueType == NULL){
+    printf("ERROR: MRIdilateSegWithinTT() ctab tissue type not set\n");
+    return(NULL);
+  }
+
+  r = (MRI **) calloc(sizeof(MRI*),ct->ctabTissueType->nentries-1);
+  for(tt = 1; tt < ct->ctabTissueType->nentries; tt++){
+    printf("tt = %d\n",tt);
+    segtt = MRIextractTissueTypeSeg(seg, ct, tt, segtt);
+    if(segtt == NULL) return(NULL);
+    r[tt-1] = MRIdilateSegmentation(segtt, NULL, nDils, NULL, 0, 0, &nc);
+    if(r[tt-1] == NULL) return(NULL);
+    sprintf(tmpstr,"seg.dil%d.tt%d.mgh",nDils,tt);
+    MRIwrite(r[tt-1],tmpstr);
+  }
+
+  MRIfree(&segtt);
+  return(r);
+}
+
 /* eof */

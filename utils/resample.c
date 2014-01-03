@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/04 17:51:00 $
- *    $Revision: 1.42 $
+ *    $Date: 2014/01/03 20:43:37 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,7 +92,7 @@ typedef struct
 ASEGVOLINDEX;
 
 static int CompareAVIndices(const void *i1, const void *i2);
-static int MostHitsInVolVox(ASEGVOLINDEX *avindsorted, int N, int *segidmost);
+static int MostHitsInVolVox(ASEGVOLINDEX *avindsorted, int N, int *segidmost, COLOR_TABLE *ct);
 
 /*---------------------------------------------------------
   interpolation_code(): gets a code that controls the
@@ -1805,7 +1805,7 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
 
   -------------------------------------------------------------*/
 MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
-                 double fthresh, MRI **pvolhit)
+                 double fthresh, MRI **pvolhit,COLOR_TABLE *ct)
 {
   int Na,inda,sa,ra,ca,cv,rv,sv,indv,n,segid,nhits,nhitsmost;
   int nmisses, nfilled;
@@ -1813,6 +1813,12 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
   ASEGVOLINDEX *avind;
   MRI *volaseg, *volhit;
 
+  if(ct != NULL){
+    if(ct->ctabTissueType == NULL){
+      printf("ERROR: MRIaeg2vol: if passing a ct it must have tissue type info\n");
+      return(NULL);
+    }
+  }
   segid=0;
 
   // Compute matrix to map from aseg CRS to vol CRS
@@ -1912,7 +1918,7 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
     while ((n+nhits < Na) && (indv == avind[n+nhits].volindex)) nhits++;
 
     // Determine which segid had the most hits
-    nhitsmost = MostHitsInVolVox(&avind[n], nhits, &segid);
+    nhitsmost = MostHitsInVolVox(&avind[n], nhits, &segid, ct);
     MRIsetVoxVal(volhit,avind[n].cv,avind[n].rv,avind[n].sv,0,nhitsmost);
 
     // Threshold (changed method on Jan 4, 2011)
@@ -1993,28 +1999,64 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
   given volume voxel. In this case, avindsorted points to the first
   entry of the given voxel, and there are N entries for that voxel.
   -----------------------------------------------------------------------*/
-static int MostHitsInVolVox(ASEGVOLINDEX *avindsorted, int N, int *segidmost)
+static int MostHitsInVolVox(ASEGVOLINDEX *avindsorted, int N, int *segidmost, COLOR_TABLE *ct)
 {
-  int n,nhits,nmost=0,segid;
+  int n,nhits,nmost=0,segid,nsegs;
+  static int segidlist[1000], ttypelist[1000], nhitslist[1000];
+  static int nPerTType[100], nPerTTypeMax, TTypeMax;
+
+  bzero(nPerTType,sizeof(int)*100);
 
   n=0;
-  while (n < N)
-  {
+  nsegs = 0;
+  while (n < N){
     segid = avindsorted[n].segid;
+    // count number of hits for this segid
     nhits = 0;
     while ( (n+nhits < N) && (segid == avindsorted[n+nhits].segid)) nhits++;
-    if (n==0)
-    {
+    if(n==0) {
+      // first segid
       *segidmost = segid;
       nmost = nhits;
     }
-    if (nmost < nhits)
-    {
+    if(nmost < nhits){
+      // update if needed
       *segidmost = segid;
       nmost = nhits;
     }
     n += nhits;
+    if(ct){
+      segidlist[nsegs] = segid;
+      nhitslist[nsegs] = nhits;
+      ttypelist[nsegs] = ct->entries[segid]->TissueType;
+      if(ct->entries[segid]->TissueType >= 0)
+	nPerTType[ct->entries[segid]->TissueType] += nhits;
+      if(ct->entries[segid]->TissueType == -2)
+	printf("WARNING: color table entry %d %s has not been assigned a tissue type\n",
+	       segid,ct->entries[segid]->name);
+    }
+    nsegs++; // keep count of number of segs
   }
+
+  if(ct && (float)nhits/N < 0.5){
+    // no clear winner, choose one from tissue type with most representation
+    nPerTTypeMax = 0;
+    for(n=0; n < ct->ctabTissueType->nentries; n++){
+      if(nPerTTypeMax < nPerTType[n]){
+	nPerTTypeMax = nPerTType[n];
+	TTypeMax = n;
+      }
+    }
+    *segidmost = segidlist[0];
+    nmost = 0;
+    for(n=0; n < nsegs; n++){
+      if(ttypelist[n] != TTypeMax) continue;
+      if(nmost > nhitslist[n]) continue;
+      nmost = nhitslist[n];
+      *segidmost = segidlist[n];
+    }
+  }
+
   return(nmost);
 }
 

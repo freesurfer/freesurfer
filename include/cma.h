@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/03/25 17:31:44 $
- *    $Revision: 1.68 $
+ *    $Author: greve $
+ *    $Date: 2014/01/03 20:43:37 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -626,7 +626,10 @@ int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg,
                             MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial,
                             int hemi) ;
 MRI *MRIlrswapAseg(MRI *aseg);
-
+MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt);
+int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct);
+MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg);
+MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct);
 
 #if defined(__cplusplus)
 };

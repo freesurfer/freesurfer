@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/09/14 15:44:27 $
- *    $Revision: 1.28 $
+ *    $Date: 2014/01/03 20:43:37 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,6 +42,7 @@ typedef struct
   char  name[STRLEN];  /* Structure name. */
   int   ri, gi, bi, ai;  /* 0-255 range. */
   float rf, gf, bf, af;   /* 0-1 range.  */
+  int TissueType;
 }
 COLOR_TABLE_ENTRY, CTE;
 
@@ -49,13 +50,15 @@ COLOR_TABLE_ENTRY, CTE;
    a color table index. The table can be sparse, there need not be an
    entry for every structure. An entry may be NULL if the entry
    doesn't exist in the table. */
-typedef struct
+typedef struct COLOR_TABLE
 {
   CTE   **entries;  /* Array of CTE ptrs; some may be NULL */
   int   nentries;  /* Size of entries array. */
   char  fname[STRLEN];  /* Original file name. */
   int   version;  /* Version number, if read from binary */
   int   idbase;   // Add this to structure number when writing
+  char  TissueTypeSchema[STRLEN];
+  struct COLOR_TABLE *ctabTissueType;
 }
 COLOR_TABLE, CT ;
 
@@ -171,3 +174,6 @@ int CTABunique(COLOR_TABLE *ct, int nmax);
 #define RGBToAnnot(r,g,b,annot)                                     \
   annot = ((r) & 0xff) | (((g) & 0xff) << 8) | (((b) & 0xff) << 16);
 #endif
+
+COLOR_TABLE *TissueTypeSchema(COLOR_TABLE *ct, char *schema);
+COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct);
