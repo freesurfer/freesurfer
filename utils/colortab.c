@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/03 20:43:37 $
- *    $Revision: 1.42 $
+ *    $Date: 2014/01/03 20:46:46 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1906,7 +1906,7 @@ depending upon the schema)
 */
 COLOR_TABLE *TissueTypeSchema(COLOR_TABLE *ct, char *schema)
 {
-  if(strcmp(schema,"default")==0){
+  if(strcmp(schema,"default-jan-2014")==0){
     ct = TissueTypeSchemaDefault(ct);
     return(ct);
   }
