@@ -14,8 +14,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/06/08 17:29:54 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/01/03 20:52:44 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,7 +77,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.39 2012/06/08 17:29:54 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.40 2014/01/03 20:52:44 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -133,6 +133,7 @@ int UseAParcPlusASeg = 0;
 int DoStatThresh = 0;
 double StatThresh = -1;
 int LabelCodeOffset = 0;
+COLOR_TABLE *ctTissueType=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -146,11 +147,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.39 2012/06/08 17:29:54 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.40 2014/01/03 20:52:44 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.39 2012/06/08 17:29:54 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.40 2014/01/03 20:52:44 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -262,7 +263,7 @@ int main(int argc, char **argv) {
       exit(1);
     }
     if (UseNewASeg2Vol) {
-      OutVol = MRIaseg2vol(ASeg, R,TempVol, FillThresh, &HitVol);
+      OutVol = MRIaseg2vol(ASeg, R,TempVol, FillThresh, &HitVol, ctTissueType);
       MRIaddCommandLine(OutVol, cmdline) ;
       err=MRIwrite(OutVol,OutVolId);
       if(err) exit(1);
@@ -484,6 +485,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--new-aseg2vol"))  UseNewASeg2Vol = 1;
     else if (!strcasecmp(option, "--no-new-aseg2vol"))  UseNewASeg2Vol = 0;
     else if (!strcasecmp(option, "--aparc+aseg"))  UseAParcPlusASeg = 1;
+    else if (!strcasecmp(option, "--ttype")) 
+      ctTissueType = TissueTypeSchema(NULL,"default-jan-2014");
 
     else if (!strcmp(option, "--surf")) {
       if (nargc < 1) argnerr(option,1);
