@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/06 01:24:09 $
- *    $Revision: 1.77 $
+ *    $Author: greve $
+ *    $Date: 2014/01/04 00:23:36 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -282,31 +282,24 @@ MRIhorizontalBoundingBoxHistogram(MRI *mri, int thresh)
   return(histo) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
+\fn int MRIcountAboveThreshold(MRI *mri, int thresh)
+\brief Returns the number of voxels above the given threshold
 ------------------------------------------------------*/
-int
-MRIcountAboveThreshold(MRI *mri, int thresh)
+int MRIcountAboveThreshold(MRI *mri, int thresh)
 {
   int     x, y, z, width, height, depth, count ;
-  BUFTYPE *psrc ;
+  double val;
 
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
 
-  for (count = y = 0 ; y < height ; y++)
-  {
-    for (z = 0 ; z < depth ; z++)
-    {
-      psrc = &MRIvox(mri, 0, y, z) ;
-      for (x = 0 ; x < width ; x++)
-      {
-        if (*psrc++ >= thresh)
-          count++ ;
+  count = 0;
+  for (y = 0 ; y < height ; y++) {
+    for (z = 0 ; z < depth ; z++) {
+      for (x = 0 ; x < width ; x++) {
+	val = MRIgetVoxVal(mri,x,y,z,0);
+        if (val >= thresh) count++ ;
       }
     }
   }
