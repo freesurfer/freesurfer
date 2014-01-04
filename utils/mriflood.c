@@ -7,8 +7,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/02 21:49:12 $
- *    $Revision: 1.34 $
+ *    $Date: 2014/01/04 16:29:20 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.34 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.35 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -1918,9 +1918,9 @@ but is on the order of 20 times faster.
 int MRISfillInteriorRibbonTest(char *subject, int UseNew, FILE *fp)
 {
   FSENV *fsenv;
-  char tmpstr[4000],*hemistr,*surfname;
+  char tmpstr[4000],*hemistr=NULL,*surfname=NULL;
   MRI *ribbon;
-  int hemi, surftype, c, r, s, nfp, nfn, ntp, v, vrib, wmval, ctxval;
+  int hemi, surftype, c, r, s, nfp, nfn, ntp, v, vrib, wmval=0, ctxval=0;
   MRIS *surf;
   MRI *mri;
 
