@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/03 20:54:13 $
- *    $Revision: 1.30 $
+ *    $Date: 2014/01/04 16:43:20 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -173,8 +173,9 @@ int CTABunique(COLOR_TABLE *ct, int nmax);
   b = (annot >> 16) & 0xff ;
 #define RGBToAnnot(r,g,b,annot)                                     \
   annot = ((r) & 0xff) | (((g) & 0xff) << 8) | (((b) & 0xff) << 16);
-#endif
 
 COLOR_TABLE *TissueTypeSchema(COLOR_TABLE *ct, char *schema);
 COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct);
 int CTABprintASCIItt(COLOR_TABLE *ct, FILE *fp);
+
+#endif
