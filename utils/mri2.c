@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/09 20:03:10 $
- *    $Revision: 1.83 $
+ *    $Date: 2014/01/04 00:58:46 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2611,6 +2611,40 @@ MRI *MRIcutEndSlices(MRI *mri, int ncut)
 
 /* ----------------------------------------------------------*/
 /*!
+  \fn int *MRIsegIdListExclude0(MRI *seg, int *pnlist, int frame)
+  \brief Returns a list of the unique segmentation ids in the volume
+   excluding segid=0 (if there). The number in the list is
+   *pnlist. The volume need not be an int or char, but it is probably
+   what it will be.
+*/
+int *MRIsegIdListExclude0(MRI *seg, int *pnlist, int frame)
+{
+  int *segidlist,*segidlist2,n,m,has0;
+
+  segidlist = MRIsegIdList(seg, pnlist, frame);
+  if(segidlist == NULL) return(NULL);
+  if(*pnlist == 0) return(NULL); // not sure this can happen
+
+  has0 = 0;
+  for(n=0; n < *pnlist; n++) if(segidlist[n] == 0) has0 = 1;
+  
+  if(!has0) return(segidlist);
+
+  segidlist2 = (int *) calloc(sizeof(int),*pnlist-1);
+  m = 0;
+  for(n=0; n < *pnlist; n++) {
+    if(segidlist[n] != 0){
+      segidlist2[m] = segidlist[n];
+      m++;
+    }
+  }
+  *pnlist = *pnlist - 1;
+  free(segidlist);
+  return(segidlist2);
+}
+
+/* ----------------------------------------------------------*/
+/*!
   \fn int *MRIsegIdList(MRI *seg, int *nlist, int frame)
   \brief Returns a list of the unique segmentation ids in
    the volume. The number in the list is *nlist. The volume need not
@@ -3769,6 +3803,31 @@ MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out)
 	  ft = .5*log((1+v)/(1-v));
 	  MRIsetVoxVal(out,c,r,s,f, ft);
 	}
+      }
+    }
+  }
+  return(out);
+}
+
+/*!
+  \fn MRI *MRIbinarizeMatch(MRI *seg, int match, int frame, MRI *out)
+  \brief Binarizes a volume based on the voxels values that match the match value.
+*/
+MRI *MRIbinarizeMatch(MRI *seg, int match, int frame, MRI *out)
+{
+  int c,r,s,m;
+
+  if(out == NULL){
+    out = MRIalloc(seg->width,seg->height,seg->depth,MRI_INT);
+    MRIcopyHeader(seg,out);
+  }
+  MRIclear(out);
+
+  for(s=0; s < seg->depth; s++){
+    for(c=0; c < seg->width; c++){
+      for(r=0; r < seg->height; r++){
+	m = MRIgetVoxVal(seg,c,r,s,frame);
+	if(m == match) MRIsetVoxVal(out,c,r,s,0, 1);
       }
     }
   }
