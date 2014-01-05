@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/03 20:43:37 $
- *    $Revision: 1.43 $
+ *    $Date: 2014/01/05 17:42:04 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2001,7 +2001,7 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
   -----------------------------------------------------------------------*/
 static int MostHitsInVolVox(ASEGVOLINDEX *avindsorted, int N, int *segidmost, COLOR_TABLE *ct)
 {
-  int n,nhits,nmost=0,segid,nsegs;
+  int n,nhits=0,nmost=0,segid,nsegs;
   static int segidlist[1000], ttypelist[1000], nhitslist[1000];
   static int nPerTType[100], nPerTTypeMax, TTypeMax;
 
