@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/04/27 13:50:13 $
- *    $Revision: 1.33 $
+ *    $Author: fischl $
+ *    $Date: 2014/01/07 22:45:02 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.33 2011/04/27 13:50:13 nicks Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.34 2014/01/07 22:45:02 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,6 +69,7 @@ static char *ohemi = NULL ;
 static char *osurf = NULL ;
 static char *orig_name = "white" ;
 static int segment = 0 ;  // not implemented yet
+static char *mask_name = NULL ;
 
 static int which_ic = 7 ;
 static char *sdir = NULL ;
@@ -92,10 +93,10 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.33 2011/04/27 13:50:13 nicks Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.34 2014/01/07 22:45:02 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.33 2011/04/27 13:50:13 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.34 2014/01/07 22:45:02 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -277,6 +278,22 @@ main(int argc, char *argv[])
                   "%s: could not read val file %s.\n",
                   Progname, fname);
       }
+      if (mask_name)
+      {
+	LABEL *area ;
+	sprintf(fname,"%s/%s/label/%s.%s", sdir, argv[i], hemi, mask_name) ;
+	area = LabelRead(NULL, fname) ;
+	if (!area)
+	  ErrorPrintf(ERROR_BADFILE,"%s: could not read label file %s for %s (%s).\n",
+		      Progname, mask_name, argv[i], fname);
+	else
+	{
+	  LabelDilate(area, mris, dilate) ;
+	  LabelSetVals(mris, area, 0) ;
+	  LabelFree(&area) ;
+	}
+      }
+
       MRIScopyValuesToCurvature(mris) ;
       if (threshold > 0)
       {
@@ -597,6 +614,12 @@ get_option(int argc, char *argv[])
     fprintf(stderr, "output hemisphere = %s\n", ohemi) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "lslope"))
+  {
+    logodds_slope = atof(argv[2]) ;
+    printf("using logodds slope = %2.2f\n", logodds_slope) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "ic"))
   {
     which_ic = atoi(argv[2]) ;
@@ -610,6 +633,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "dir"))
   {
     strcpy(dir, argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "mask"))
+  {
+    mask_name = argv[2] ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "prior"))
@@ -742,6 +770,7 @@ print_help(void)
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "-segment        only use largest connected component of label\n");
   fprintf(stderr, "-orig  <name>   use <name> as original surface position default=orig\n");
+  fprintf(stderr, "-o  <output subject name>   use <output subject> as the space to write the results in instead of the last subject given\n");
   fprintf(stderr, "-s <cond #>     generate summary statistics and write\n"
           "                them into sigavg<cond #>-<hemi>.w and\n"
           "                sigvar<cond #>-<hemi>.w.\n") ;
