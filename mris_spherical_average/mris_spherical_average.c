@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/07 22:45:02 $
- *    $Revision: 1.34 $
+ *    $Date: 2014/01/07 22:47:08 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.34 2014/01/07 22:45:02 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.35 2014/01/07 22:47:08 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -93,10 +93,10 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.34 2014/01/07 22:45:02 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.35 2014/01/07 22:47:08 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.34 2014/01/07 22:45:02 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.35 2014/01/07 22:47:08 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -769,6 +769,7 @@ print_help(void)
           "\nThis program will add a template into an average surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr, "-segment        only use largest connected component of label\n");
+  fprintf(stderr, "-n              normalize output so it can be interpreted as a probability\n") ;
   fprintf(stderr, "-orig  <name>   use <name> as original surface position default=orig\n");
   fprintf(stderr, "-o  <output subject name>   use <output subject> as the space to write the results in instead of the last subject given\n");
   fprintf(stderr, "-s <cond #>     generate summary statistics and write\n"
