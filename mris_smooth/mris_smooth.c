@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.28 $
+ *    $Author: fischl $
+ *    $Date: 2014/01/07 23:53:58 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_smooth.c,v 1.28 2011/03/02 00:04:34 nicks Exp $";
+  "$Id: mris_smooth.c,v 1.29 2014/01/07 23:53:58 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -49,6 +49,7 @@ static int  get_option(int argc, char *argv[]) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
+#define KTHRESH 1.5  // everything with kmin less than this will not move
 
 char *Progname ;
 
@@ -69,6 +70,9 @@ static int no_write = 0 ;
 // -g 20 8 works well for hippo
 static double gaussian_norm = 0 ;
 static int gaussian_avgs = 0 ;
+static double gaussian_thresh = 0 ;
+
+double MRISfindCurvatureThreshold(MRI_SURFACE *mris, double pct) ;
 int MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct) ;
 int MRISthresholdPrincipalCurvatures(MRI_SURFACE *mris, double thresh) ;
 int MRISthresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double low_thresh, double hi_thresh);
@@ -84,13 +88,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_smooth.c,v 1.28 2011/03/02 00:04:34 nicks Exp $",
+   "$Id: mris_smooth.c,v 1.29 2014/01/07 23:53:58 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_smooth.c,v 1.28 2011/03/02 00:04:34 nicks Exp $",
+           "$Id: mris_smooth.c,v 1.29 2014/01/07 23:53:58 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -133,6 +137,36 @@ main(int argc, char *argv[])
   MRIScomputeMetricProperties(mris) ;
   MRISstoreMetricProperties(mris) ;
   MRISsetNeighborhoodSize(mris, nbrs) ;
+  MRIScomputeSecondFundamentalForm(mris) ;
+  if (gaussian_thresh > 0)
+  {
+    double  kthresh ;
+    int     vno, count ;
+    VERTEX *v ;
+
+    MRISuseGaussianCurvature(mris) ;
+    MRISwriteCurvature(mris, "lh.K.mgz") ;
+    kthresh = MRISfindCurvatureThreshold(mris, gaussian_thresh) ;
+    printf("setting curvature threshold to %2.3f\n", kthresh) ;
+    MRISclearMarks(mris) ;
+    for (count = vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (fabs(v->K) >= kthresh)
+	v->marked = 1 ;
+
+    }
+    MRISdilateMarked(mris, nbrs) ;
+    MRISwriteMarked(mris, "lh.marked.mgz") ;
+    MRISinvertMarks(mris) ;
+    MRISsoapBubbleVertexPositions(mris, 1000) ;
+    printf("writing smoothed surface to %s\n", out_fname) ;
+    MRISwrite(mris, out_fname) ;
+
+    exit(1) ;
+  }
+  else
+    gaussian_thresh = KTHRESH ;
 #define DT 0.5
   if (gaussian_norm > 0)
   {
@@ -253,8 +287,7 @@ main(int argc, char *argv[])
         MRIScomputeMetricProperties(mris) ;
         MRIScomputeSecondFundamentalForm(mris) ;
         MRISsmoothSurfaceNormals(mris, 16) ;
-#define KTHRESH 1.5  // everything with kmin less than this will not move
-        MRISthresholdPrincipalCurvatures(mris, KTHRESH) ;
+        MRISthresholdPrincipalCurvatures(mris, gaussian_thresh) ;
         MRISspringTermWithGaussianCurvature(mris, gaussian_norm, l_spring) ;
         MRISaverageGradients(mris, gaussian_avgs) ;
         MRISmomentumTimeStep(mris, 0, 0.1, 1, gaussian_avgs) ;
@@ -362,6 +395,12 @@ get_option(int argc, char *argv[])
   {
     no_write = 1 ;
   }
+  else if (!stricmp(option, "gt"))
+  {
+    gaussian_thresh = atof(argv[2]) ; ;
+    nargs = 1 ;
+    printf("applying Gaussian smoothing to %2.5f%% of the surface\n", 100-100*gaussian_thresh) ;
+  }
   else if (!stricmp(option, "seed"))
   {
     setRandomSeed(atol(argv[2])) ;
@@ -457,13 +496,58 @@ print_version(void)
   exit(1) ;
 }
 
-#define NBINS 256
+#define NBINS 1000
+double
+MRISfindCurvatureThreshold(MRI_SURFACE *mris, double pct)
+{
+  HISTOGRAM  *h, *hcdf ;
+  double     K, kthresh, min_curv, max_curv ;
+  int        vno, bin ;
+  VERTEX     *v ;
+
+  min_curv = 1e10 ; max_curv = -min_curv ;
+  for (vno = 0 ;vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    if (vno == Gdiag_no)
+    {
+      DiagBreak() ;
+    }
+    K = fabs(v->K) ;
+    if (K > 100)
+      K = 100 ;
+    if (K < min_curv)
+      min_curv = K ;
+    if (K > max_curv)
+      max_curv = K ;
+  }
+  h = HISTOalloc(NBINS) ;
+  HISTOinit(h, NBINS, min_curv, max_curv) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    K = fabs(v->K) ;
+    HISTOaddSample(h, K, 0, 0) ;
+  }
+
+  hcdf = HISTOmakeCDF(h, NULL) ;
+  bin = HISTOfindBinWithCount(hcdf, pct) ;
+  kthresh = hcdf->bins[bin] ;  
+  return(kthresh) ;
+}
 int
 MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
 {
   HISTOGRAM  *h ;
   double     min_curv, max_curv, K, bin_size, total, mode = 0.0, mode_peak, mean, std, dmean,
-                                                     dmin, dmax, dsigma ;
+    dmin, dmax, dsigma ;
   int        vno, num, b, bin_no, bin_thresh = 0, vno_min, vno_max, skipped, nvertices ;
   VERTEX     *v ;
 
@@ -479,9 +563,8 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
 
     v = &mris->vertices[vno] ;
     if (v->ripflag)
-    {
       continue ;
-    }
+
     for (v->d = 0.0, n = 0 ; n < v->vtotal ; n++)
     {
       v->d += v->dist[n] ;
@@ -497,9 +580,8 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
-    {
       continue ;
-    }
+
     if (vno == Gdiag_no)
     {
       DiagBreak() ;
@@ -512,13 +594,11 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
     K = MIN(fabs(v->k1), fabs(v->k2)) ;
     K = fabs(v->K) ;
     if (K < min_curv)
-    {
       min_curv = K ;
-    }
+
     if (K > max_curv)
-    {
       max_curv = K ;
-    }
+
     mean += K ;
     std += K*K ;
   }
@@ -527,32 +607,32 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
   max_curv = MIN(max_curv, 1000) ;
   mean /= (float)nvertices ;
   std = sqrt(std/(float)nvertices - mean*mean) ;
-  bin_size = (max_curv - min_curv + 1) / NBINS ;
   h = HISTOalloc(NBINS) ;
+  HISTOinit(h, NBINS, min_curv, max_curv) ;
+#if 0
+  bin_size = (max_curv - min_curv + 1) / NBINS ;
   h->bin_size = bin_size ;
   for (b = 0 ; b < NBINS ; b++)
-  {
     h->bins[b] = (float)b*bin_size + min_curv ;
-  }
+#endif
+  bin_size = h->bin_size ;
+
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
-    {
       continue ;
-    }
+
     if (v->d < 0.01*dmean)
-    {
       continue ;
-    }
+
     K = MIN(fabs(v->k1), fabs(v->k2)) ;
     K = fabs(v->K) ;
     bin_no = (int)((float)(K - min_curv) / (float)bin_size) ;
     if (bin_no > NBINS-1 || bin_no < 0)
-    {
       bin_no = NBINS-1 ;
-    }
+
     h->counts[bin_no]++ ;
   }
 
@@ -669,7 +749,7 @@ MRIShistoThresholdGaussianCurvatureToMarked(MRI_SURFACE *mris, double pct)
     }
   }
 
-  HISTOfree(&h) ;
+  HISTOfree(&h) ; 
   return(NO_ERROR) ;
 }
 
