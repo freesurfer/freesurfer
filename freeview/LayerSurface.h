@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/14 21:06:01 $
- *    $Revision: 1.60 $
+ *    $Date: 2014/01/08 22:14:51 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -241,6 +241,11 @@ public slots:
     m_bLoadAll = bLoadAll;
   }
 
+  void SetLoadSupSurfaces(const QStringList& names)
+  {
+    m_listSupFiles = names;
+  }
+
   void SetActiveLabelColor(const QColor& c);
   void SetActiveLabelOutline(bool bOutline);
 
@@ -321,6 +326,7 @@ protected:
   bool        m_bUndoable;
   bool        m_bVector2DPendingUpdate;
   bool        m_bLoadAll;
+  QStringList m_listSupFiles;
 };
 
 #endif

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/08 21:09:11 $
- *    $Revision: 1.11 $
+ *    $Date: 2014/01/08 22:14:51 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -73,6 +73,7 @@ protected slots:
   void OnCheckComputeCorrelation(bool bChecked);
   void OnComboCorrelationVolume(int n);
   void OnCheckUsePercentile(bool bChecked);
+  void OnCustomColorScale();
 
 private:
   Ui::WindowConfigureOverlay *ui;
@@ -80,6 +81,7 @@ private:
   LineMarkers   m_markers;    // custom gradient markers
   LayerSurface* m_layerSurface;
   float*        m_fDataCache;
+  double        m_dSavedOffset;
 };
 
 #endif // WINDOWCONFIGUREOVERLAY_H

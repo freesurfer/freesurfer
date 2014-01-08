@@ -46,6 +46,7 @@ BUILT_SOURCES = \
   ui_DialogLoadConnectome.h \
   ui_PanelConnectomeMatrix.h \
   ui_PanelAllLayers.h \
+  ui_DialogLoadSurface.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -160,6 +161,7 @@ BUILT_SOURCES = \
   moc_PanelConnectomeMatrix.cpp \
   moc_PanelAllLayers.cpp \
   moc_Annotation2D.cpp \
+  moc_DialogLoadSurface.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -451,6 +453,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogLoadConnectome.h \
   PanelAllLayers.cpp \
   PanelAllLayers.h \
+  DialogLoadSurface.cpp \
+  DialogLoadSurface.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc

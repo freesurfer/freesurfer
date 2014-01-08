@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/08 19:30:50 $
- *    $Revision: 1.29 $
+ *    $Date: 2014/01/08 22:14:51 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -108,7 +108,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
           double dValue = ((LayerMRI*)mri)->GetVoxelValue( ras );
           if ( dValue != 0 )
           {
-            mri->SetFillValue( (float)dValue );
+            MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue( (float)dValue );
           }
         }
         m_bColorPicking = false;

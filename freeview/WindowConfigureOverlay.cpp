@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/15 17:52:20 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/01/08 22:14:51 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,7 +36,8 @@
 
 WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   QWidget(parent), UIUpdateHelper(),
-  ui(new Ui::WindowConfigureOverlay)
+  ui(new Ui::WindowConfigureOverlay),
+  m_dSavedOffset(0)
 {
   ui->setupUi(this);
   setWindowFlags( Qt::Tool );
@@ -152,6 +153,8 @@ void WindowConfigureOverlay::UpdateUI()
       ChangeLineEditNumber( ui->lineEditMid, p->GetMidPoint() );
       ChangeLineEditNumber( ui->lineEditMax, p->GetMaxPoint() );
     }
+    ChangeLineEditNumber( ui->lineEditOffset, p->GetOffset());
+    m_dSavedOffset = p->GetOffset();
 
     ui->radioButtonLinear        ->setChecked( p->GetColorMethod() == SurfaceOverlayProperty::CM_Linear );
     ui->radioButtonLinearOpaque  ->setChecked( p->GetColorMethod() == SurfaceOverlayProperty::CM_LinearOpaque );
@@ -292,6 +295,16 @@ bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
     return false;
   }
 
+  dValue = ui->lineEditOffset->text().toDouble(&bOK);
+  if ( bOK )
+  {
+    p->SetOffset( dValue );
+  }
+  else
+  {
+    return false;
+  }
+
   if ( ui->radioButtonHeat->isChecked() )
   {
     p->SetColorScale( SurfaceOverlayProperty::CS_Heat );
@@ -393,19 +406,19 @@ void WindowConfigureOverlay::UpdateGraph()
       {
         // rebuild marker lines for display
         LineMarker marker;
-        marker.position = p->GetMinPoint();
+        marker.position = p->GetMinPoint()+p->GetOffset();
         marker.color = QColor( 255, 0, 0 );
         marker.movable = true;
         markers.push_back( marker );
 
         if ( p->GetColorMethod() == SurfaceOverlayProperty::CM_Piecewise )
         {
-          marker.position = p->GetMidPoint();
+          marker.position = p->GetMidPoint()+p->GetOffset();
           marker.color = QColor( 0, 0, 255 );
           markers.push_back( marker );
         }
 
-        marker.position = p->GetMaxPoint();
+        marker.position = p->GetMaxPoint()+p->GetOffset();
         marker.color = QColor( 0, 215, 0 );
         markers.push_back( marker );
       }
@@ -440,6 +453,7 @@ void WindowConfigureOverlay::UpdateThresholdChanges()
     bool bOK;
     double dmin = ui->lineEditMin->text().trimmed().toDouble(&bOK);
     double dmax = ui->lineEditMax->text().trimmed().toDouble(&bOK);
+
     if ( bOK )
     {
       ui->lineEditMid->blockSignals(true);
@@ -452,6 +466,7 @@ void WindowConfigureOverlay::UpdateThresholdChanges()
 
 void WindowConfigureOverlay::OnHistogramMouseButtonPressed(int button, double value)
 {
+  value -= m_dSavedOffset;
   if (ui->checkBoxUsePercentile->isChecked())
     value = ui->widgetHistogram->PositionToPercentile(value);
 
@@ -486,25 +501,25 @@ void WindowConfigureOverlay::OnHistogramMarkerChanged()
       if (i == 0)
       {
         if (bUserPercentile)
-          ChangeLineEditNumber(ui->lineEditMin, ui->widgetHistogram->PositionToPercentile(markers[i].position));
+          ChangeLineEditNumber(ui->lineEditMin, ui->widgetHistogram->PositionToPercentile(markers[i].position-m_dSavedOffset));
         else
-          ChangeLineEditNumber(ui->lineEditMin, markers[i].position);
+          ChangeLineEditNumber(ui->lineEditMin, markers[i].position-m_dSavedOffset);
       }
       if (i == 1)
       {
         if (ui->radioButtonPiecewise->isChecked() && ui->radioButtonHeat->isChecked())
         {
           if (bUserPercentile)
-            ChangeLineEditNumber(ui->lineEditMid, ui->widgetHistogram->PositionToPercentile(markers[i].position));
+            ChangeLineEditNumber(ui->lineEditMid, ui->widgetHistogram->PositionToPercentile(markers[i].position-m_dSavedOffset));
           else
-            ChangeLineEditNumber(ui->lineEditMid, markers[i].position);
+            ChangeLineEditNumber(ui->lineEditMid, markers[i].position-m_dSavedOffset);
         }
       }
     }
     if (bUserPercentile)
-      ChangeLineEditNumber(ui->lineEditMax, ui->widgetHistogram->PositionToPercentile(markers[markers.size()-1].position));
+      ChangeLineEditNumber(ui->lineEditMax, ui->widgetHistogram->PositionToPercentile(markers[markers.size()-1].position-m_dSavedOffset));
     else
-      ChangeLineEditNumber(ui->lineEditMax, markers[markers.size()-1].position);
+      ChangeLineEditNumber(ui->lineEditMax, markers[markers.size()-1].position-m_dSavedOffset);
     UpdateThresholdChanges();
   }
 }
@@ -558,6 +573,10 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
   if (!ok)
     return;
 
+  double dOffset = ui->lineEditOffset->text().trimmed().toDouble(&ok);
+  if (!ok)
+    dOffset = m_dSavedOffset;
+
   LineMarkers markers = ui->widgetHistogram->GetMarkers();
   if (markers.isEmpty())
     return;
@@ -566,9 +585,9 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
   {
     LineMarker marker = markers.last();
     if (ui->checkBoxUsePercentile->isChecked())
-      marker.position = ui->widgetHistogram->PercentileToPosition(val);
+      marker.position = ui->widgetHistogram->PercentileToPosition(val)+dOffset;
     else
-      marker.position = val;
+      marker.position = val+dOffset;
     markers[markers.size()-1] = marker;
     double val2 = ui->lineEditMin->text().toDouble(&ok);
     if (markers.size() == 2 && ok)
@@ -580,15 +599,25 @@ void WindowConfigureOverlay::OnTextThresholdChanged(const QString &strg)
   {
     LineMarker marker = markers.first();
     if (ui->checkBoxUsePercentile->isChecked())
-      marker.position = ui->widgetHistogram->PercentileToPosition(val);
+      marker.position = ui->widgetHistogram->PercentileToPosition(val)+dOffset;
     else
-      marker.position = val;
+      marker.position = val+dOffset;
     markers[0] = marker;
     double val2 = ui->lineEditMax->text().toDouble(&ok);
     if (markers.size() == 2 && ok)
     {
       this->ChangeLineEditNumber(ui->lineEditMid, (val+val2)/2);
     }
+  }
+  else if (sender() == ui->lineEditOffset)
+  {
+    for (int i = 0; i < markers.size(); i++)
+    {
+      LineMarker marker = markers[i];
+      marker.position += (val - m_dSavedOffset);
+      markers[i] = marker;
+    }
+    m_dSavedOffset = val;
   }
   ui->widgetHistogram->SetMarkers(markers);
   UpdateGraph();
@@ -676,4 +705,9 @@ void WindowConfigureOverlay::OnCheckUsePercentile(bool bChecked)
     overlay->GetProperty()->SetUsePercentile(bChecked);
     ui->widgetHistogram->SetUsePercentile(bChecked);
   }
+}
+
+void WindowConfigureOverlay::OnCustomColorScale()
+{
+  ui->lineEditOffset->setText("0");
 }

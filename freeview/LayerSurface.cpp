@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/14 21:06:01 $
- *    $Revision: 1.96 $
+ *    $Date: 2014/01/08 22:14:51 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -170,7 +170,7 @@ bool LayerSurface::LoadSurfaceFromFile()
                                    m_sVectorFilename,
                                    m_sPatchFilename,
                                    m_sTargetFilename,
-                                   m_bLoadAll )
+                                   m_listSupFiles )
      )
   {
     return false;
@@ -980,11 +980,29 @@ bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras )
 
 void LayerSurface::SetActiveSurface( int nSurface )
 {
+  static int old_thickness = 0;
   if ( m_surfaceSource && m_surfaceSource->SetActiveSurface( nSurface ) )
   {
     if ( GetActiveVector() >= 0 )
     {
       UpdateVectorActor2D();
+    }
+
+    double pos[3] = { 0, 0, 0 };
+    if (IsInflated() || nSurface == FSSurface::SurfaceInflated)
+    {
+      pos[0] = (GetHemisphere() == 0 ? -45 : 45);
+      GetProperty()->SetPosition(pos);
+      int nThickness = GetProperty()->GetEdgeThickness();
+      if (nThickness > 0)
+        old_thickness = nThickness;
+      GetProperty()->SetEdgeThickness(0);
+    }
+    else
+    {
+      GetProperty()->SetPosition(pos);
+      if (old_thickness > 0)
+        GetProperty()->SetEdgeThickness(old_thickness);
     }
 
     emit ActorUpdated();

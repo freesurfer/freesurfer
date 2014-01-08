@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/10/24 17:20:26 $
- *    $Revision: 1.69 $
+ *    $Date: 2014/01/08 22:14:51 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -158,7 +158,7 @@ bool FSSurface::MRISRead( const QString& filename,
                           const QString& vector_filename,
                           const QString& patch_filename,
                           const QString& target_filename,
-                          bool bAllSurfaces )
+                          const QStringList& sup_files )
 {
   if ( m_MRIS )
   {
@@ -276,12 +276,16 @@ bool FSSurface::MRISRead( const QString& filename,
   SaveNormals ( m_MRIS, SurfaceMain );
   m_bSurfaceLoaded[SurfaceMain] = true;
 
-  if ( patch_filename.isEmpty() && bAllSurfaces )
+  if ( patch_filename.isEmpty() )
   {
-    LoadSurface ( "white",    SurfaceWhite );
-    LoadSurface ( "pial",     SurfacePial );
-    LoadSurface ( "orig",     SurfaceOriginal );
-    LoadSurface ( "inflated", SurfaceInflated );
+    if (sup_files.contains("white"))
+      LoadSurface ( "white",    SurfaceWhite );
+    if (sup_files.contains("pial"))
+      LoadSurface ( "pial",     SurfacePial );
+    if (sup_files.contains("orig"))
+      LoadSurface ( "orig",     SurfaceOriginal );
+    if (sup_files.contains("inflated"))
+      LoadSurface ( "inflated", SurfaceInflated );
   }
 
   RestoreVertices( m_MRIS, SurfaceMain );

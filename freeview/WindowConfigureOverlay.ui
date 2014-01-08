@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>485</width>
-    <height>771</height>
+    <height>800</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -337,8 +337,8 @@
       </item>
       <item>
        <widget class="QWidget" name="widgetHolderThreshold" native="true">
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
-         <item>
+        <layout class="QGridLayout" name="gridLayout_4">
+         <item row="0" column="0">
           <spacer name="horizontalSpacer_2">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -351,7 +351,7 @@
            </property>
           </spacer>
          </item>
-         <item>
+         <item row="0" column="1">
           <widget class="QLabel" name="labelMin">
            <property name="styleSheet">
             <string notr="true">color:red;</string>
@@ -359,9 +359,12 @@
            <property name="text">
             <string>Min</string>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
           </widget>
          </item>
-         <item>
+         <item row="0" column="2">
           <widget class="QLineEdit" name="lineEditMin">
            <property name="maximumSize">
             <size>
@@ -374,7 +377,7 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item row="0" column="3">
           <spacer name="horizontalSpacer_4">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -390,7 +393,7 @@
            </property>
           </spacer>
          </item>
-         <item>
+         <item row="0" column="4">
           <widget class="QLabel" name="labelMid">
            <property name="enabled">
             <bool>false</bool>
@@ -401,9 +404,12 @@
            <property name="text">
             <string>Mid</string>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
           </widget>
          </item>
-         <item>
+         <item row="0" column="5">
           <widget class="QLineEdit" name="lineEditMid">
            <property name="enabled">
             <bool>false</bool>
@@ -419,7 +425,7 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item row="0" column="6">
           <spacer name="horizontalSpacer_5">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -435,7 +441,7 @@
            </property>
           </spacer>
          </item>
-         <item>
+         <item row="0" column="7">
           <widget class="QLabel" name="labelMax">
            <property name="styleSheet">
             <string notr="true">color:green;</string>
@@ -443,9 +449,12 @@
            <property name="text">
             <string>Max</string>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
           </widget>
          </item>
-         <item>
+         <item row="0" column="8">
           <widget class="QLineEdit" name="lineEditMax">
            <property name="maximumSize">
             <size>
@@ -458,7 +467,7 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item row="0" column="9">
           <spacer name="horizontalSpacer_3">
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
@@ -470,6 +479,41 @@
             </size>
            </property>
           </spacer>
+         </item>
+         <item row="1" column="4">
+          <widget class="QLabel" name="labelOffset">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>Offset</string>
+           </property>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="5">
+          <widget class="QLineEdit" name="lineEditOffset">
+           <property name="enabled">
+            <bool>true</bool>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>80</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -728,7 +772,7 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>165</x>
+     <x>159</x>
      <y>191</y>
     </hint>
     <hint type="destinationlabel">
@@ -744,7 +788,7 @@
    <slot>OnSpinBoxOpacity(double)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>225</x>
+     <x>220</x>
      <y>196</y>
     </hint>
     <hint type="destinationlabel">
@@ -892,8 +936,8 @@
      <y>263</y>
     </hint>
     <hint type="destinationlabel">
-     <x>206</x>
-     <y>650</y>
+     <x>214</x>
+     <y>679</y>
     </hint>
    </hints>
   </connection>
@@ -904,8 +948,8 @@
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>89</x>
-     <y>650</y>
+     <x>92</x>
+     <y>679</y>
     </hint>
     <hint type="destinationlabel">
      <x>1</x>
@@ -920,8 +964,8 @@
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>206</x>
-     <y>650</y>
+     <x>214</x>
+     <y>679</y>
     </hint>
     <hint type="destinationlabel">
      <x>0</x>
@@ -936,8 +980,8 @@
    <slot>UpdateGraph()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>295</x>
-     <y>650</y>
+     <x>305</x>
+     <y>679</y>
     </hint>
     <hint type="destinationlabel">
      <x>472</x>
@@ -988,8 +1032,8 @@
      <y>263</y>
     </hint>
     <hint type="destinationlabel">
-     <x>206</x>
-     <y>650</y>
+     <x>214</x>
+     <y>679</y>
     </hint>
    </hints>
   </connection>
@@ -1005,7 +1049,7 @@
     </hint>
     <hint type="destinationlabel">
      <x>464</x>
-     <y>568</y>
+     <y>597</y>
     </hint>
    </hints>
   </connection>
@@ -1032,8 +1076,8 @@
    <slot>OnButtonAdd()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>366</x>
-     <y>568</y>
+     <x>367</x>
+     <y>597</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1160,11 +1204,11 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>317</x>
+     <x>315</x>
      <y>194</y>
     </hint>
     <hint type="destinationlabel">
-     <x>377</x>
+     <x>376</x>
      <y>196</y>
     </hint>
    </hints>
@@ -1176,7 +1220,7 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>317</x>
+     <x>315</x>
      <y>194</y>
     </hint>
     <hint type="destinationlabel">
@@ -1192,7 +1236,7 @@
    <slot>OnSmoothChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>317</x>
+     <x>315</x>
      <y>194</y>
     </hint>
     <hint type="destinationlabel">
@@ -1208,7 +1252,7 @@
    <slot>OnSmoothChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>377</x>
+     <x>376</x>
      <y>196</y>
     </hint>
     <hint type="destinationlabel">
@@ -1224,8 +1268,8 @@
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>164</x>
-     <y>527</y>
+     <x>155</x>
+     <y>525</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1240,8 +1284,8 @@
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>293</x>
-     <y>527</y>
+     <x>302</x>
+     <y>525</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1256,8 +1300,8 @@
    <slot>OnTextThresholdChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>425</x>
-     <y>527</y>
+     <x>436</x>
+     <y>525</y>
     </hint>
     <hint type="destinationlabel">
      <x>484</x>
@@ -1272,12 +1316,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>295</x>
-     <y>650</y>
+     <x>305</x>
+     <y>679</y>
     </hint>
     <hint type="destinationlabel">
-     <x>293</x>
-     <y>527</y>
+     <x>302</x>
+     <y>525</y>
     </hint>
    </hints>
   </connection>
@@ -1384,12 +1428,44 @@
    <slot>OnCheckUsePercentile(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>283</x>
-     <y>583</y>
+     <x>299</x>
+     <y>625</y>
     </hint>
     <hint type="destinationlabel">
-     <x>654</x>
+     <x>484</x>
      <y>586</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditOffset</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>WindowConfigureOverlay</receiver>
+   <slot>OnTextThresholdChanged(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>284</x>
+     <y>541</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>625</x>
+     <y>549</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonCustom</sender>
+   <signal>clicked()</signal>
+   <receiver>WindowConfigureOverlay</receiver>
+   <slot>OnCustomColorScale()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>262</x>
+     <y>246</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>615</x>
+     <y>231</y>
     </hint>
    </hints>
   </connection>
@@ -1409,5 +1485,6 @@
   <slot>OnCheckComputeCorrelation(bool)</slot>
   <slot>OnComboCorrelationVolume(int)</slot>
   <slot>OnCheckUsePercentile(bool)</slot>
+  <slot>OnCustomColorScale()</slot>
  </slots>
 </ui>

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/05 17:43:31 $
- *    $Revision: 1.42 $
+ *    $Date: 2014/01/08 22:14:51 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,7 @@
 #define FSSurface_h
 
 #include <QObject>
+#include <QStringList>
 #include "vtkSmartPointer.h"
 #include "vtkImageData.h"
 #include "vtkPolyData.h"
@@ -59,7 +60,7 @@ public:
                  const QString& vector_filename = QString(),
                  const QString& patch_filename = QString(),
                  const QString& target_filename = QString(),
-                 bool bAllSurfaces = false);
+                 const QStringList& sup_files = QStringList());
 
   bool MRISWrite( const QString& filename );
 

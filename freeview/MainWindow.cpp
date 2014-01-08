@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/19 19:57:35 $
- *    $Revision: 1.262 $
+ *    $Date: 2014/01/08 22:14:51 $
+ *    $Revision: 1.263 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -95,6 +95,7 @@
 #include "LayerLineProfile.h"
 #include "DialogLoadConnectome.h"
 #include "LayerConnectomeMatrix.h"
+#include "DialogLoadSurface.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -2417,6 +2418,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn_patch = "";
   QString fn_target = "";
   bool bLoadAll = false;
+  QStringList sup_files;
   bool bLabelOutline = false;
   QString labelColor;
   QString overlay_reg;
@@ -2630,6 +2632,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       {
         labelColor = subArgu;
       }
+      else if (subOption == "sup_files")
+      {
+        sup_files = subArgu.split(",",  QString::SkipEmptyParts);
+      }
       else if (subOption != "overlay_reg" && subOption != "overlay_method" && subOption != "overlay_threshold" &&
                subOption != "overlay_rh")
       {
@@ -2654,7 +2660,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         m_scripts.insert(i+1, QString("setsurfacelabelcolor ") + labelColor);
     }
   }
-  LoadSurfaceFile( fn, fn_patch, fn_target, bLoadAll );
+  LoadSurfaceFile( fn, fn_patch, fn_target, sup_files );
 }
 
 void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
@@ -2962,7 +2968,6 @@ void MainWindow::CommandGotoLabel(const QStringList &cmd)
   }
 }
 
-
 void MainWindow::CommandLoadSurfaceVector( const QStringList& cmd )
 {
   LoadSurfaceVectorFile( cmd[1] );
@@ -3056,7 +3061,6 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
   LoadWayPointsFile( fn );
 }
 
-
 void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
 {
   QStringList options = cmd[1].split(":");
@@ -3107,7 +3111,7 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
 }
 
 void MainWindow::CommandSetPointSetColor( const QStringList& cmd )
-{;
+{
   LayerPointSet* wp = (LayerPointSet*)GetLayerCollection( "PointSet" )->GetActiveLayer();
   if ( wp )
   {
@@ -3346,7 +3350,6 @@ void MainWindow::CommandSetSlice( const QStringList& cmd )
   }
 }
 
-
 void MainWindow::SetCurrentFile( const QString &fileName, int type )
 {
   QString key = "MainWindow/RecentVolumeFiles";
@@ -3446,7 +3449,6 @@ void MainWindow::UpdateRecentFileActions()
   bool bHasSurfaces = m_actionRecentSurfaces[0]->isVisible();
   ui->actionSurfaces->setVisible( bHasSurfaces );
 }
-
 
 void MainWindow::OnRecentVolumeFile()
 {
@@ -3983,7 +3985,6 @@ void MainWindow::SaveVolumeAsAndReload()
 
 }
 
-
 void MainWindow::OnLoadDTI()
 {
   DialogLoadDTI dlg(this);
@@ -4162,7 +4163,6 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const Q
     QMessageBox::warning( this, "Error", QString("Can not load ROI from %1").arg(fn) );
   }
 }
-
 
 void MainWindow::OnSaveROI()
 {
@@ -4487,10 +4487,19 @@ void MainWindow::OnLoadSurface()
       AddScript(QString("loadsurface ") + filenames[i]);
     }
   }
+  /*
+  DialogLoadSurface dlg(this);
+  if (dlg.exec() == QDialog::Accepted)
+  {
+    QString fn = dlg.GetFilename();
+    QStringList sup_files = dlg.GetSupFiles();
+    AddScript(QString("loadsurface %1:sup_files=%2").arg(fn).arg(sup_files.join(",")));
+  }
+  */
 }
 
 void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_patch, const QString& fn_target,
-                                  bool bAllSurfaces)
+                                  const QStringList& sup_files)
 {
   QFileInfo fi( filename );
   m_strLastDir = fi.absolutePath();
@@ -4504,7 +4513,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->SetFileName( fullpath );
   layer->SetPatchFileName( fn_patch );
   layer->SetTargetFileName( fn_target );
-  layer->SetLoadAllSurfaces(bAllSurfaces);
+  layer->SetLoadSupSurfaces(sup_files);
 
   m_threadIOWorker->LoadSurface( layer );
   m_statusBar->StartTimer();

@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/08 21:09:11 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/01/08 22:14:51 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,9 @@ public:
 
   void SetMaxPoint( double dValue );
   double GetMaxPoint();
+
+  void SetOffset(double dOffset);
+  double GetOffset();
 
   int GetColorMethod();
   void SetColorMethod( int n );
@@ -150,6 +153,7 @@ private:
   double      m_dMinPoint;
   double      m_dMidPoint;
   double      m_dMaxPoint;
+  double      m_dOffset;
   int         m_colorMin[3];
   int         m_colorMid[3];
   int         m_colorMax[3];

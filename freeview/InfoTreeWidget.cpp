@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/25 20:32:35 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/01/08 22:14:51 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -233,7 +233,6 @@ void InfoTreeWidget::UpdateAll()
           item = new QTreeWidgetItem(this);
           item->setText(1, QString("Curvature \t%1").arg(surf->GetCurvatureValue(nVertex)));
         }
-
 
         int nOverlays = surf->GetNumberOfOverlays();
         for ( int i = 0; i < nOverlays; i++ )
