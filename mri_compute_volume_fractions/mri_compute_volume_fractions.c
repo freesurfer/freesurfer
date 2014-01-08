@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/24 05:21:40 $
- *    $Revision: 1.13 $
+ *    $Date: 2014/01/08 16:58:55 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,8 @@ MRI *add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_ds
 static char *wsurfname = "white";
 static char *psurfname = "pial";
 
+static int ClearASeg=0;
+
 int main(int argc, char *argv[]) {
   char   **av, fname[STRLEN] ;
   int    ac, nargs ;
@@ -85,7 +87,7 @@ int main(int argc, char *argv[]) {
     *m_seg_to_epi_vox2vox ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.13 2013/12/24 05:21:40 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.14 2014/01/08 16:58:55 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -171,7 +173,11 @@ int main(int argc, char *argv[]) {
   mri_aseg = MRIread(fname) ;
   if (mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load aseg volume from %s", Progname,fname) ;
-
+  if(ClearASeg){
+    // Used for testing purposes
+    printf("Clearing ASeg\n");
+    MRIclear(mri_aseg);
+  }
   printf("reading movable volume %s\n", in_fname) ;
   mri_in = MRIread(in_fname) ;
   if (mri_in == NULL)
@@ -309,6 +315,8 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "mgz"))    fmt = "mgz";
   else if (!stricmp(option, "diag-write"))   Gdiag = Gdiag | DIAG_WRITE;
   else if (!stricmp(option, "diag-verbose")) Gdiag = Gdiag | DIAG_VERBOSE;
+  else if (!stricmp(option, "clear-aseg")) ClearASeg=1;
+  else if (!stricmp(option, "new-fill")) setenv("USE_NEW_FILL_INTERIOR","1",1);
   else if (!stricmp(option, "wsurf")){
     wsurfname = argv[2] ;
     printf("overriding wsurfname with %s\n", wsurfname) ;
@@ -362,6 +370,8 @@ usage_exit(int code) {
   printf("  -psurf pialsurface (default is pial)\n");
   printf("  -diag-write\n");
   printf("  -diag-verbose\n");
+  printf("  -new-fill : use new filling routine\n");
+  printf("  -clear-aseg : seg aseg=0 (for testing)\n");
   printf("\n");
   exit(code) ;
 }
