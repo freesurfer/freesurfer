@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/12/06 22:26:29 $
- *    $Revision: 1.38 $
+ *    $Date: 2014/01/08 18:41:34 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.38 2012/12/06 22:26:29 greve Exp $
+// $Id: mri_binarize.c,v 1.39 2014/01/08 18:41:34 greve Exp $
 
 /*
   BEGINHELP
@@ -192,7 +192,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.38 2012/12/06 22:26:29 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.39 2014/01/08 18:41:34 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -508,14 +508,15 @@ int main(int argc, char *argv[]) {
   // Save output
   if(OutVolFile) MRIwrite(OutVol,OutVolFile);
 
+  nvox = OutVol->width * OutVol->height * OutVol->depth;
+  voxvol = OutVol->xsize * OutVol->ysize * OutVol->zsize;
+  printf("Count: %d %lf %d %lf\n",nhits,nhits*voxvol,nvox,(double)100*nhits/nvox);
   if(CountFile){
     fp = fopen(CountFile,"w");
     if(fp == NULL){
       printf("ERROR: could not open %s\n",CountFile);
       exit(1);
     }
-    nvox = OutVol->width * OutVol->height * OutVol->depth;
-    voxvol = OutVol->xsize * OutVol->ysize * OutVol->zsize;
     fprintf(fp,"%d %lf %d %lf\n",nhits,nhits*voxvol,nvox,(double)100*nhits/nvox);
     fclose(fp);
   }
