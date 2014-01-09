@@ -14,8 +14,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/09 00:12:53 $
- *    $Revision: 1.41 $
+ *    $Date: 2014/01/09 18:07:03 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,7 @@
 #include "macros.h"
 #include "colortab.h"
 #include "cmdargs.h"
+#include "region.h"
 
 #define PROJ_TYPE_NONE 0
 #define PROJ_TYPE_ABS  1
@@ -77,7 +78,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.41 2014/01/09 00:12:53 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.42 2014/01/09 18:07:03 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -135,6 +136,7 @@ double StatThresh = -1;
 int LabelCodeOffset = 0;
 COLOR_TABLE *ctTissueType=NULL;
 int UpsampleFactor = 1;
+int DoSegBoundingBox = 1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -148,11 +150,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.41 2014/01/09 00:12:53 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.42 2014/01/09 18:07:03 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.41 2014/01/09 00:12:53 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.42 2014/01/09 18:07:03 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -263,6 +265,31 @@ int main(int argc, char **argv) {
       printf("ERROR: loading aseg %s\n",ASegFSpec);
       exit(1);
     }
+    if(DoSegBoundingBox){
+      MRI *mritmp;
+      MATRIX *R2,*M;
+      MRI_REGION *region;
+      region = REGIONgetBoundingBox(ASeg,2);
+      printf("Seg bounding box ");
+      REGIONprint(stdout, region);
+      mritmp = MRIextractRegion(ASeg, NULL, region);
+      if(mritmp == NULL) exit(1);
+      M = MRItkRegMtx(mritmp, ASeg, NULL);
+      R2 = MatrixMultiply(R,M,NULL);
+      if(Gdiag > 1){
+	printf("R--------------\n");
+	MatrixPrint(stdout,R);
+	printf("M--------------\n");
+	MatrixPrint(stdout,M);
+	printf("R2--------------\n");
+	MatrixPrint(stdout,R2);
+      }
+      MRIfree(&ASeg);
+      ASeg = mritmp;
+      MatrixFree(&R);
+      R = R2;
+      MatrixFree(&M);
+    }
     if(UpsampleFactor != 1){
       MRI *mritmp;
       MATRIX *R2,*M;
@@ -270,12 +297,14 @@ int main(int argc, char **argv) {
       mritmp = MRIupsampleN(ASeg, NULL, UpsampleFactor);
       M = MRItkRegMtx(mritmp, ASeg, NULL);
       R2 = MatrixMultiply(R,M,NULL);
-      printf("R--------------\n");
-      MatrixPrint(stdout,R);
-      printf("M--------------\n");
-      MatrixPrint(stdout,M);
-      printf("R2--------------\n");
-      MatrixPrint(stdout,R2);
+      if(Gdiag > 1){
+	printf("R--------------\n");
+	MatrixPrint(stdout,R);
+	printf("M--------------\n");
+	MatrixPrint(stdout,M);
+	printf("R2--------------\n");
+	MatrixPrint(stdout,R2);
+      }
       MRIfree(&ASeg);
       ASeg = mritmp;
       MatrixFree(&R);
@@ -539,6 +568,8 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&UpsampleFactor);
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--seg-bounding-box")) DoSegBoundingBox = 1;
+    else if (!strcmp(option, "--no-seg-bounding-box")) DoSegBoundingBox = 0;
     else if (!strcmp(option, "--temp")) {
       if (nargc < 1) argnerr(option,1);
       TempVolId = pargv[0];
@@ -663,6 +694,7 @@ static void print_usage(void) {
   printf("   --seg   segpath : segmentation\n");
   printf("     --upsample USFactor: upsample seg by factor\n");
   printf("     --ttype : use tissue type info for seg\n");
+  printf("     --no-seg-bounding-box : do not reduce seg FoV\n");
   printf("   --aparc+aseg  : use aparc+aseg.mgz in subjectdir as seg\n");
   printf("\n");
   printf("   --temp tempvolid : output template volume\n");
