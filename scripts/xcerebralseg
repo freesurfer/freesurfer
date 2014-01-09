@@ -1,11 +1,12 @@
 #!/bin/tcsh -f
 # xcerebralseg
 
-set VERSION = '$Id: xcerebralseg,v 1.1 2014/01/09 18:49:32 greve Exp $';
+set VERSION = '$Id: xcerebralseg,v 1.2 2014/01/09 20:56:43 greve Exp $';
 
 set xcseg = ();
 set subject = ();
-set ndil = 1;
+set ndil = 0;
+set binval = 257; # output segid value
 
 set tmpdir = ();
 set cleanup = 1;
@@ -80,7 +81,7 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 
-set cmd = (mri_binarize --i $bmask --min 0.5 --o $xcseg --mask $apasbinnot)
+set cmd = (mri_binarize --i $bmask --min 0.5 --o $xcseg --mask $apasbinnot --binval $binval)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -131,6 +132,7 @@ while( $#argv != 0 )
       set subject = $argv[1]; shift;
       breaksw
 
+    case "--dilate":
     case "--ndil":
       if($#argv < 1) goto arg1err;
       set ndil = $argv[1]; shift;
@@ -211,7 +213,7 @@ arg2err:
 usage_exit:
   echo ""
   echo "xcerebralseg --s subject --o xcseg"
-  echo "  --ndil ndils : dilate apas (default is $ndil)"
+  echo "  --dilate ndils : dilate apas (default is $ndil)"
   echo ""
 
   if(! $PrintHelp) exit 1;
