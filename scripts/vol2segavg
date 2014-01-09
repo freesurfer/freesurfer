@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # vol2segavg
 
-set VERSION = '$Id: vol2segavg,v 1.1 2013/12/11 22:11:14 greve Exp $';
+set VERSION = '$Id: vol2segavg,v 1.2 2014/01/09 19:39:55 greve Exp $';
 
 set outfile = ();
 set subject = ();
@@ -12,6 +12,8 @@ set segidlist = ();
 set UseBoundingBox = 1;
 set MulVal = ();
 set RegHeader = 0;
+set nerode = 0;
+set ndilate = 0;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -93,6 +95,8 @@ endif
 # Make a binary mask of the segmentation
 set binseg = $tmpdir/binseg.mgh
 set cmd = (mri_binarize --i $segvol --match $segidlist --o $binseg)
+if($nerode  != 0) set cmd = ($cmd --erode  $nerode);
+if($ndilate != 0) set cmd = ($cmd --dilate $ndilate);
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -210,6 +214,18 @@ while( $#argv != 0 )
     case "--segid":
       if($#argv < 1) goto arg1err;
       set segidlist = ($segidlist $argv[1]); shift;
+      breaksw
+
+    case "--erode":
+    case "--nerode":
+      if($#argv < 1) goto arg1err;
+      set nerode = $argv[1]; shift;
+      breaksw
+
+    case "--dilate":
+    case "--ndilate":
+      if($#argv < 1) goto arg1err;
+      set ndilate = $argv[1]; shift;
       breaksw
 
     case "--mul":
@@ -361,6 +377,8 @@ usage_exit:
   echo " --segid id <--segid id2 ...> "
   echo " --mul MulVal : multiply input by MulVal"
   echo " --no-bb : do not use bounding box"
+  echo " --erode nerode : erode segmentation"
+  echo " --dilate dilate : dilate segmentation"
   echo ""
 
   if(! $PrintHelp) exit 1;
