@@ -235,6 +235,7 @@ vtk_setup \
 wfilemask \
 wm-anat-snr \
 wmedits2surf \
+xcerebralseg\
 xcorr\
 xfmrot \
 xhemireg \
