@@ -1,0 +1,233 @@
+#!/bin/tcsh -f
+# xcerebralseg
+
+set VERSION = '$Id: xcerebralseg,v 1.1 2014/01/09 18:49:32 greve Exp $';
+
+set xcseg = ();
+set subject = ();
+set ndil = 1;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = /dev/null
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set outdir = `dirname $xcseg`
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.xcerebralseg.$$
+  if(! -e /scratch) set tmpdir = $outdir/tmpdir.xcerebralseg.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/xcerebralseg.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for xcerebralseg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+
+set bmask = $SUBJECTS_DIR/$subject/mri/brainmask.mgz
+set apas = $SUBJECTS_DIR/$subject/mri/aparc+aseg.mgz
+
+set apasbin = $tmpdir/apas.bin.mgh
+set cmd = (mri_binarize --i $apas --min 0.5 --dilate $ndil --o $apasbin)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+set apasbinnot = $tmpdir/apas.bin.not.mgh
+set cmd = (mri_binarize --i $apasbin --min 0.5 --inv --o $apasbinnot)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+set cmd = (mri_binarize --i $bmask --min 0.5 --o $xcseg --mask $apasbinnot)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "xcerebralseg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "xcerebralseg Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set xcseg = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--ndil":
+      if($#argv < 1) goto arg1err;
+      set ndil = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#xcseg == 0) then
+  echo "ERROR: must spec output"
+  exit 1;
+endif
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "xcerebralseg --s subject --o xcseg"
+  echo "  --ndil ndils : dilate apas (default is $ndil)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Creates a "segmenation" of extra-cerebral voxels by binarizing
+aparc+aseg, dilating it (default 1 dilation), and removing this mask
+from a mask of the brain (brain.mgz). This will more-or-less give a
+mask of the extra-cerebral CSF but may have other tissue in it (eg,
+dura, skull, eyes, vessels). The original purpose of this program was
+create regressors for fMRI using extra-cerebral CSF.
+
+
+
