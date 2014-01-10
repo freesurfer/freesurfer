@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/14 16:17:45 $
- *    $Revision: 1.145 $
+ *    $Date: 2014/01/10 18:51:39 $
+ *    $Revision: 1.146 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.145 2013/05/14 16:17:45 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.146 2014/01/10 18:51:39 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -266,13 +266,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.145 2013/05/14 16:17:45 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.146 2014/01/10 18:51:39 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.145 2013/05/14 16:17:45 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.146 2014/01/10 18:51:39 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1113,7 +1113,7 @@ main(int argc, char *argv[])
 
   if (mri_aseg) //update aseg using either generated or orig_white
   {
-    fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
+//    fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;   //moved to later
     if (write_aseg_fname)
     {
       edit_aseg_with_surfaces(mris, mri_aseg) ;
@@ -1247,6 +1247,8 @@ main(int argc, char *argv[])
     exit(0) ;
   }
 
+  if (mri_aseg) //update aseg using either generated or orig_white
+    fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
   //////////////////////////////////////////////////////////////////
   // pial surface
   //////////////////////////////////////////////////////////////////
@@ -3170,6 +3172,8 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
+      if (d > 0 && label == gm_label)
+	break ;  // cortical gray matter of this hemisphere - doesn't matter what is outside it
       if (label == contra_wm_label ||
           label == Left_Lateral_Ventricle ||
           label == Left_vessel ||
