@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/30 21:22:54 $
- *    $Revision: 1.229 $
+ *    $Date: 2014/01/10 00:44:12 $
+ *    $Revision: 1.230 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -555,7 +555,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.229 2013/12/30 21:22:54 greve Exp $";
+"$Id: mri_glmfit.c,v 1.230 2014/01/10 00:44:12 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -2733,7 +2733,13 @@ static int parse_commandline(int argc, char **argv) {
         gd2mtx_method = pargv[1];
         nargsused ++;
         if (gdfCheckMatrixMethod(gd2mtx_method)) exit(1);
-      } else gd2mtx_method = "dods";
+      } 
+      else {
+	if(strcmp(fsgd->DesignMatMethod,"DOSS") == 0 ||
+	   strcmp(fsgd->DesignMatMethod,"doss") == 0)
+	  gd2mtx_method = "doss";
+	else gd2mtx_method = "dods";
+      }
       printf("INFO: gd2mtx_method is %s\n",gd2mtx_method);
       strcpy(fsgd->DesignMatMethod,gd2mtx_method);
     } 
