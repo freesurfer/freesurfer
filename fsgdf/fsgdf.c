@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/03/28 19:54:42 $
- *    $Revision: 1.55 $
+ *    $Date: 2014/01/10 17:05:29 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1152,8 +1152,10 @@ MATRIX *gdfMatrixDODS(FSGD *gd, MATRIX *X) {
     X->rptr[r+1][c+1] = 1;
 
     for (v = 0; v < gd->nvariables; v++) {
-      if (gd->DeMean) mn = gd->ClassVarMeans[n][v];
-      else           mn = 0;
+      // Demean without regard to class
+      //if (gd->DeMean) mn = gd->ClassVarMeans[n][v];
+      if (gd->DeMean) mn = gd->VarMeans[v];
+      else            mn = 0;
       c += gd->nclasses;
       X->rptr[r+1][c+1] = gd->varvals[r][v] - mn;
       if(gd->ReScale) X->rptr[r+1][c+1] /= gd->VarStds[v];
