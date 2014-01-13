@@ -22,7 +22,8 @@ LayerConnectomeMatrix::LayerConnectomeMatrix(LayerMRI* ref, QObject *parent) :
   m_mriParcel(NULL),
   m_cmat(NULL),
   m_ctab(NULL),
-  m_bToAllLabels(false)
+  m_bToAllLabels(false),
+  m_bVisible(true)
 {
   this->m_strTypeNames << "CMAT";
   mProperty = new LayerPropertyConnectomeMatrix( this );
@@ -204,6 +205,9 @@ void LayerConnectomeMatrix::UpdateLabelActors()
     m_actorLabels[i]->VisibilityOff();
   }
 
+  if (!m_bVisible)
+    return;
+
   for (int i = 0; i < m_listFromLabelIndices.size(); i++)
     m_actorLabels[m_listFromLabelIndices[i]]->VisibilityOn();
 
@@ -228,7 +232,19 @@ bool LayerConnectomeMatrix::HasProp(vtkProp *prop)
 
 bool LayerConnectomeMatrix::IsVisible()
 {
+  return m_bVisible;
+}
 
+void LayerConnectomeMatrix::SetVisible(bool bVisible)
+{
+  m_bVisible = bVisible;
+  m_actorSplines->SetVisibility(bVisible?1:0);
+  for (int i = 0; i < 3; i++)
+    m_actorSlice[i]->SetVisibility(bVisible?1:0);
+
+  UpdateLabelActors();
+
+  Layer::SetVisible(bVisible);
 }
 
 void LayerConnectomeMatrix::OnSlicePositionChanged(int nPlane)

@@ -13,6 +13,9 @@
   <property name="windowTitle">
    <string>ScrollArea</string>
   </property>
+  <property name="frameShape">
+   <enum>QFrame::NoFrame</enum>
+  </property>
   <property name="widgetResizable">
    <bool>true</bool>
   </property>
@@ -21,8 +24,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>357</width>
-     <height>856</height>
+     <width>361</width>
+     <height>860</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">

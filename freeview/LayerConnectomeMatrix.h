@@ -62,6 +62,8 @@ public slots:
   void UpdateOpacity();
   void UpdateSplineColor();
 
+  void SetVisible(bool bVisible = true);
+
 private:
   void BuildLabelActors();
   void UpdateLabelActors();
@@ -79,6 +81,7 @@ private:
   vtkSmartPointer<vtkActor> m_actorSplines;
   vtkSmartPointer<vtkActor> m_actorSlice[3];
   QList< vtkSmartPointer<vtkActor> > m_actorLabels;
+  bool    m_bVisible;
 };
 
 #endif // LAYERCONNECTOMEMATRIX_H
