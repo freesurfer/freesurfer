@@ -12,9 +12,9 @@ function flacnew = flac_conmat(flac,nthcon)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:05 $
-%    $Revision: 1.5 $
+%    $Author: greve $
+%    $Date: 2014/01/13 17:35:00 $
+%    $Revision: 1.6 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -41,6 +41,22 @@ end
 
 con = flac.con(nthcon);
 nevs = length(flac.ev);
+
+nregtot = 0;
+for nthev = 1:nevs
+  nregtot = nregtot + flac.ev(nthev).nreg;
+end
+
+if(con.UseExtC)
+  % Use externally specified contrast matrix, task only
+  J = size(con.ContrastMtx_0,1);
+  C = zeros(J,nregtot);
+  indtask = flac_taskregind(flac);
+  C(:,indtask) = con.ContrastMtx_0;
+  flacnew = flac;
+  flacnew.con(nthcon).C = C;
+  return;
+end
 
 if(con.rmprestim)
   % Remove the prestimulus baseline, added on 4/8/09

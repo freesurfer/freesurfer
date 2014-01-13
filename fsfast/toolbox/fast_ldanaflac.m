@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2012/11/26 23:07:00 $
-%    $Revision: 1.66 $
+%    $Date: 2014/01/13 17:35:00 $
+%    $Revision: 1.67 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -506,6 +506,7 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
     flac.con(nthcon).evrw  = [];
     flac.con(nthcon).rmprestim = cspec.RmPreStim; % 4/8/09
     flac.con(nthcon).ContrastMtx_0 = cspec.ContrastMtx_0; % 4/3/09
+    flac.con(nthcon).UseExtC = 0;
     con_nthev = 0;
     % Actual contrast matrix is computed below
     for nthcondition = 1:cspec.NCond
@@ -516,6 +517,24 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
       flac.con(nthcon).ev(con_nthev).evrw = cspec.WDelay;
     end
   end % contrasts
+
+  % Get "external" contrasts
+  tmpstr = sprintf('%s/*.mtx',anadir);
+  clist = dir(tmpstr);
+  ncontrasts2 = length(clist);
+  for nthc = 1:ncontrasts2
+    nthcon = nthcon+1;
+    cname = clist(nthc).name;
+    fprintf('%2d %s\n',nthcon,cname);
+    tmpstr = sprintf('%s/%s',anadir,cname);
+    cspec = [];
+    cspec.name = cname(1:length(cname)-4);
+    cspec.ContrastMtx_0 = load(tmpstr);
+    flac.con(nthcon).name = cspec.name;
+    flac.con(nthcon).cspec = cspec;
+    flac.con(nthcon).ContrastMtx_0 = cspec.ContrastMtx_0;
+    flac.con(nthcon).UseExtC = 1;
+  end
 end
 
 % Contrast for task regressors
@@ -536,6 +555,7 @@ if(~isempty(taskregList))
     flac.con(nthcon).ContrastMtx_0 = [];
     flac.con(nthcon).ev(1).name = taskregevname;
     flac.con(nthcon).ev(1).evw  = 1;
+    flac.con(nthcon).UseExtC = 0;
     if(ntaskreg > 0)
       flac.con(nthcon).ev(1).evrw = ones(1,ntaskreg);
     else
@@ -543,12 +563,23 @@ if(~isempty(taskregList))
     end
   end
 end
+ncontrasts = nthcon;
 
 if(ncontrasts == 0) flac.ana.con = []; end
 
 % Check each contrast
 for nthcon = 1:ncontrasts
-
+  con = flac.con(nthcon);
+  if(con.UseExtC)
+    ntaskevs = length(flac_evtaskind(flac));
+    if(ntaskevs ~= size(con.ContrastMtx_0,2))
+      fprintf('ERROR: Contrast %s. Number of columns %d != number of task evs %d\n',...
+	      con.name, size(con.ContrastMtx_0,2), ntaskevs);
+      flac = [];
+      return;
+    end
+    continue;
+  end
   % Make sure that each EV in the contrast is an EV in the FLAC
   for nthev = 1:length(flac.con(nthcon).ev)
     evindex = flac_evindex(flac,flac.con(nthcon).ev(nthev).name);
@@ -576,86 +607,4 @@ for nthcon = 1:ncontrasts
 end
 
 return;
-
-
-%------------------ Old stuff ------------------------------
-if(0)
-%----------- Read in the analysis.cfg -------------------
-TER = flac.TR;
-PolyOrder = 0;
-extregList = '';
-nextregList = [];
-ncycles = [];
-period = [];
-delay = 0;
-timeoffset = 0;
-gammafit = 0;
-gamdelay = 0;
-gamtau = 0;
-gamexp = 2;
-spmhrffit = 0;
-nspmhrfderiv = 0;
-timewindow = 0;
-prestim = 0;
-cfg  = sprintf('%s/analysis.cfg',anadir);
-fp = fopen(cfg,'r');
-if(fp == -1)
-  fprintf('ERROR: could not open %s\n',info);
-  flac = [];
-  return;
-end
-nthline = 1;
-while(1)
-  % scroll through any blank lines or comments
-  while(1)
-    tline = fgetl(fp);
-    if(~isempty(tline) & tline(1) ~= '#') break; end
-  end
-  if(tline(1) == -1) break; end
-
-  key = sscanf(tline,'%s',1);
-  %fprintf('key = %s\n',key);
-  
-  switch(key)
-   case '-gammafit',   
-    gammafit = 1;
-    gamdelay = sscanf(tline,'%*s %f',1);
-    gamtau   = sscanf(tline,'%*s %*f %f',1);
-   case '-gammaexp',   gamexp       = sscanf(tline,'%*s %f',1);
-   case '-spmhrf',     
-    nspmhrfderiv = sscanf(tline,'%*s %d',1);
-    spmhrffit = 1;
-   case '-polyfit',    PolyOrder   = sscanf(tline,'%*s %f',1);
-   case '-TER',        TER         = sscanf(tline,'%*s %f',1);
-   case '-autostimdur',flac.autostimdur = 1;
-   case '-noautostimdur',flac.autostimdur = 0;
-   case '-extreg',     
-    extreg      = sscanf(tline,'%*s %s',1);
-    extregList = strvcat(extregList,extreg);
-    nextreg     = sscanf(tline,'%*s %*s %d',1);
-    nextregList = [nextregList nextreg];
-   case '-nextreg',    nextreg     = sscanf(tline,'%*s %d',1);
-   case '-rescale',    flac.inorm  = sscanf(tline,'%*s %f',1);
-   case '-nskip',      flac.nskip  = sscanf(tline,'%*s %d',1);
-   case '-prestim',    prestim     = sscanf(tline,'%*s %f',1);
-   case '-timewindow', timewindow  = sscanf(tline,'%*s %f',1);
-   case '-ncycles',    ncycles     = sscanf(tline,'%*s %f',1);
-   case '-period',     period      = sscanf(tline,'%*s %f',1);
-   case '-delay',      delay       = sscanf(tline,'%*s %f',1);
-   case '-timeoffset', timeoffset  = sscanf(tline,'%*s %f',1);
-   case '-fwhm',       sscanf(tline,'%*s %f',1); % dont worry about it
-   case '-acfbins',    flac.acfbins = sscanf(tline,'%*s %d',1);
-   case '-fix-acf',    flac.fixacf = 1; 
-   case '-no-fix-acf', flac.fixacf = 0;
-   case '-fsv3-st2fir',    flac.fsv3_st2fir = 1;
-   case '-no-fsv3-st2fir', flac.fsv3_st2fir = 0;
-   case '-fsv3-whiten',     flac.fsv3_whiten = 1;
-   case '-no-fsv3-whiten',  flac.fsv3_whiten = 0;
-   otherwise
-    fprintf('INFO: key %s unrecognized, line %d, skipping\n',key,nthline);
-  end
-  nthline = nthline + 1;
-end % while (1)
-fclose(fp);
-end
 
