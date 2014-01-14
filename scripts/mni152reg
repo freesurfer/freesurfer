@@ -1,11 +1,13 @@
 #!/bin/tcsh -f
 # mni152reg
 
-set VERSION = '$Id: mni152reg,v 1.7 2012/03/06 21:39:02 greve Exp $';
+set VERSION = '$Id: mni152reg,v 1.8 2014/01/14 18:51:15 greve Exp $';
 
 set subject = ();
 set res = 2;
 set outreg = ();
+set UseSym = 0;
+set SaveVol = 0;
 
 set cleanup = 1;
 set LF = ();
@@ -24,17 +26,21 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-
 goto parse_args;
 parse_args_return:
-
 goto check_params;
 check_params_return:
+
+set StartTime = `date`
 
 set sd = $SUBJECTS_DIR/$subject
 if($#outreg == 0) then
   set LF = $sd/scripts/mni152reg.log
-  set outreg = $sd/mri/transforms/reg.mni152.$res"mm.dat"
+  if($UseSym == 0) then
+    set outreg = $sd/mri/transforms/reg.mni152.$res"mm.dat"
+  else
+    set outreg = $sd/mri/transforms/reg.mni152.$res"mm.sym.dat"
+  endif
 else
   set LF = $outreg.log
 endif
@@ -61,16 +67,24 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
 
-if(-e $SUBJECTS_DIR/$subject/mri/) then
+if($SaveVol) then
   set orig = $SUBJECTS_DIR/$subject/mri/orig.mgz
-  set mni152orig = $SUBJECTS_DIR/$subject/mri/mni152.orig.mgz
-  set cmd = (mri_vol2vol --mov $mni152 --targ $orig --reg $outreg --inv --o $mni152orig)
+  if($UseSym == 0) then
+    set mni152orig = $SUBJECTS_DIR/$subject/mri/mni152.orig.mgz
+  else
+    set mni152orig = $SUBJECTS_DIR/$subject/mri/mni152.sym.orig.mgz
+  endif
+  set cmd = (mri_vol2vol --mov $mni152 --targ $orig --reg $outreg --inv \
+     --o $mni152orig --no-save-reg)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
 endif
 
-date  | tee -a $LF
+set EndTime = `date`
+
+echo "Started at $StartTime"  | tee -a $LF
+echo "Ended at $EndTime"  | tee -a $LF
 echo "mni152reg done" | tee -a $LF
 
 exit 0
@@ -104,6 +118,14 @@ while( $#argv != 0 )
       set res = 2;
       breaksw
 
+    case "--sym":
+      set UseSym = 1;
+      breaksw
+
+    case "--save-vol":
+      set SaveVol = 1;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1;
@@ -133,7 +155,11 @@ if(! -e $SUBJECTS_DIR/$subject) then
   exit 1;
 endif
 
-set mni152 = $FSLDIR/data/standard/MNI152_T1_$res"mm_brain.nii.gz"
+if(! $UseSym) then
+  set mni152 = $FSLDIR/data/standard/MNI152_T1_$res"mm_brain.nii.gz"
+else
+  set mni152 = $FSLDIR/data/standard/MNI152_T1_$res"mm_brain_symmetric.nii.gz"
+endif
 if(! -e $mni152) then
   echo "ERROR: cannot find $mni152"
   exit 1;
@@ -155,6 +181,8 @@ usage_exit:
   echo ""
   echo "  --1 : register to 1mm target (instead of 2mm)"
   echo "  --o outreg : explicity set output"
+  echo "  --sym : register to FSL symmetric target"
+  echo "  --save-vol : sample orig to output space"
   echo ""
 
   if(! $PrintHelp) exit 1;
