@@ -166,6 +166,7 @@ MRISUBDIRS=\
 	mri_warp_convert \
 	mri_watershed \
 	mri_wmfilter \
+	mri_xcorr \
 	mri_xvolavg \
 	mri_z2p \
 	mri_threshold \

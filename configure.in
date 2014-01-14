@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/11/22 17:48:31 $
-#    $Revision: 1.606 $
+#    $Date: 2014/01/14 21:28:51 $
+#    $Revision: 1.607 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3647,6 +3647,7 @@ AC_OUTPUT([Makefile
            mri_watershed/Makefile
            mri_watershed/brain_volume/Makefile
            mri_wmfilter/Makefile
+           mri_xcorr/Makefile
            mri_xvolavg/Makefile
            mri_z2p/Makefile
            mri_label_accuracy/Makefile
