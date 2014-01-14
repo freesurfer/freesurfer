@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/05 21:29:48 $
- *    $Revision: 1.75 $
+ *    $Date: 2014/01/14 21:02:56 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.75 2013/12/05 21:29:48 greve Exp $
+  $Id: fmriutils.c,v 1.76 2014/01/14 21:02:56 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -61,7 +61,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.75 2013/12/05 21:29:48 greve Exp $");
+  return("$Id: fmriutils.c,v 1.76 2014/01/14 21:02:56 greve Exp $");
 }
 
 
@@ -2978,4 +2978,61 @@ MRI *MRIframeNorm(MRI *src, MRI *mask, MRI *fnorm)
   MRIfree(&var);
 
   return(fnorm);
+}
+
+/*!
+  \fn MRI *fMRIxcorr(MRI *v1, MRI *v2, MRI *mask, MRI *xcorr)
+  \brief Computes voxelwise temporal correlation coefficient between
+  two volumes. If v2==NULL, then v2 is formed from v1 by left-right 
+  reversing the columns.
+*/
+MRI *fMRIxcorr(MRI *v1, MRI *v2, MRI *mask, MRI *xcorr)
+{
+  MRI *fnorm1, *fnorm2=NULL;
+  int c,c2,r,s,f;
+  double val1,val2,sum;
+
+  if(Gdiag_no > 0) printf("MRIxcorr(): starting\n");fflush(stdout);
+
+  if(xcorr == NULL){
+    xcorr = MRIallocSequence(v1->width,v1->height,v1->depth,MRI_FLOAT, 1);
+    if(xcorr==NULL) {
+      printf("ERROR: fMRIxcorr: could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(v1,xcorr);
+  }
+
+  if(Gdiag_no > 0) printf("MRIxcorr(): normalizing vol 1\n");fflush(stdout);
+  fnorm1 = MRIframeNorm(v1, mask, NULL);
+  
+  if(v2 != NULL) {
+    if(Gdiag_no > 0) printf("MRIxcorr(): normalizing vol 2\n");fflush(stdout);
+    fnorm2 = MRIframeNorm(v2, mask, NULL);
+  }
+  else  printf("MRIxcorr(): reversing columns\n");
+  fflush(stdout);
+
+  if(Gdiag_no > 0) printf("MRIxcorr(): computing xcorr\n");fflush(stdout);
+  for(c=0; c < v1->width; c++){
+    c2 = v1->width - c - 1; // for column reverse when v2=NULL
+    for(r=0; r < v1->height; r++){
+      for(s=0; s < v1->depth; s++){
+	if(mask && MRIgetVoxVal(mask, c, r, s, 0) < 0.5) continue;
+	sum = 0;
+	for(f=0; f < v1->nframes; f++){
+	  val1 = MRIgetVoxVal(fnorm1,c,r,s,f);
+	  if(v2 != NULL) val2 = MRIgetVoxVal(fnorm2,c,r,s,f);
+	  else           val2 = MRIgetVoxVal(fnorm1,c2,r,s,f);
+	  sum += val1*val2;
+	}
+	MRIsetVoxVal(xcorr,c,r,s,0, sum);
+      }
+    }
+  }
+
+  MRIfree(&fnorm1);
+  if(fnorm2) MRIfree(&fnorm2);
+  if(Gdiag_no > 0) printf("MRIxcorr(): done\n"); fflush(stdout);
+  return(xcorr);
 }
