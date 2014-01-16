@@ -101,7 +101,7 @@ void LayerFCD::Recompute()
   if (m_fcd)
   {
     qDebug() << QString("To recompute with threshold %1, sigma %2").arg(GetProperty()->GetThicknessThreshold()).arg(GetProperty()->GetSigma());
-    ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma());
+    ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), 10);
     UpdateRASImage(m_imageData);
     emit ActorUpdated();
   }
