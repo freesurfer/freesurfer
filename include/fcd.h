@@ -15,6 +15,12 @@ typedef struct
   MRI         *mri_aseg ;
   MRI         *mri_norm ;
   MRI         *mri_flair ;
+  MRI         *mri_thickness_increase ;
+  MRI         *mri_thickness_decrease ;
+  MRI         *lh_thickness_on_lh ;  // thickness of left hemi mapped to left hemi
+  MRI         *lh_thickness_on_rh ;  // thickness of left hemi mapped to right hemi
+  MRI         *rh_thickness_on_lh ;  // thickness of right hemi mapped to right hemi
+  MRI         *rh_thickness_on_rh ;  // thickness of right hemi mapped to right hemi
   double      thickness_threshold ;
   int         thickness_smooth_steps ;
   int         nlabels ;
@@ -24,6 +30,6 @@ typedef struct
 
 
 FCD_DATA   *FCDloadData(char *sdir, char *subject);
-int         FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma) ;
+int         FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, int size_thresh) ;
 
 #endif
