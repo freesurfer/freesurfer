@@ -96,6 +96,7 @@ libutils_main_SOURCES=\
 	dtk.fs.c \
 	error.c \
 	evschutils.c \
+	fcd.c \
 	fftutils.c \
 	field_code.c \
 	filter.c \

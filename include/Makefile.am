@@ -9,6 +9,7 @@ EXTRA_DIST=\
 	annotation.h \
 	art1.h \
 	artmap.h \
+	autoencoder.h \
 	aseg_edit_svm.h \
 	backprop.h \
 	bfileio.h \
@@ -24,6 +25,7 @@ EXTRA_DIST=\
 	class_array.h \
 	cluster.h \
 	cma.h \
+	cmat.h \
 	cmdargs.h \
 	colortab.h \
 	congraph.h \
@@ -42,6 +44,7 @@ EXTRA_DIST=\
 	error.h \
 	evschutils.h \
 	fastmarching.h \
+	fcd.h \
 	fexterns.h \
 	fftutils.h \
 	fgutil.h \
@@ -220,6 +223,7 @@ EXTRA_DIST=\
 	rescale.h \
 	retinotopy.h \
 	rfa.h \
+	rfutils.h \
 	rforest.h \
 	rfutils.h \
 	rgb_image.h \
