@@ -83,7 +83,7 @@
         </property>
        </column>
       </widget>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
         <property name="spacing">
          <number>1</number>
@@ -100,7 +100,7 @@
            <number>0</number>
           </property>
           <property name="currentIndex">
-           <number>5</number>
+           <number>6</number>
           </property>
           <widget class="PanelVolume" name="pageVolume"/>
           <widget class="PanelSurface" name="pageSurface"/>
@@ -108,6 +108,7 @@
           <widget class="PanelPointSet" name="pagePointSet"/>
           <widget class="PanelConnectomeMatrix" name="pageCMAT"/>
           <widget class="PanelTrack" name="pageTrack"/>
+          <widget class="PanelFCD" name="pageFCD"/>
          </widget>
         </item>
         <item>
@@ -170,6 +171,12 @@
    <class>LayerTreeWidget</class>
    <extends>QTreeWidget</extends>
    <header>LayerTreeWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PanelFCD</class>
+   <extends>QWidget</extends>
+   <header>PanelFCD.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

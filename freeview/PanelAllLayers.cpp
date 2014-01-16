@@ -13,7 +13,7 @@ PanelAllLayers::PanelAllLayers(QWidget *parent) :
   ui->setupUi(this);
   MainWindow* wnd = MainWindow::GetMainWindow();
   QStringList layer_types;
-  layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT" << "Track";
+  layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT" << "Track" << "FCD";
   foreach (QString type, layer_types)
   {
     connect(wnd->GetLayerCollection(type), SIGNAL(LayerAdded(Layer*)), this, SLOT(OnLayerAdded(Layer*)));
@@ -147,6 +147,7 @@ void PanelAllLayers::RefreshLayerList(Layer *curLayer)
   AddLayers(wnd->GetLayers("PointSet"), "Point Sets", wnd->GetActiveLayer("PointSet"), layer);
   AddLayers(wnd->GetLayers("CMAT"), "CMAT", wnd->GetActiveLayer("CMAT"), layer);
   AddLayers(wnd->GetLayers("Track"), "Track", wnd->GetActiveLayer("Track"), layer);
+  AddLayers(wnd->GetLayers("FCD"), "FCD", wnd->GetActiveLayer("FCD"), layer);
 }
 
 void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, Layer* activeLayer, Layer* curLayer)
@@ -361,7 +362,7 @@ QString PanelAllLayers::GetCurrentLayerType()
     if (layer)
     {
       QStringList layer_types;
-      layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT" << "Track";
+      layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT" << "Track" << "FCD";
       foreach (QString type, layer_types)
       {
         if (layer->IsTypeOf(type))

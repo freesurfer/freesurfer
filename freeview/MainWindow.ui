@@ -254,6 +254,9 @@
     <addaction name="actionLoadTrack"/>
     <addaction name="actionCloseTrack"/>
     <addaction name="separator"/>
+    <addaction name="actionLoadFCD"/>
+    <addaction name="actionCloseFCD"/>
+    <addaction name="separator"/>
     <addaction name="actionSaveScreenshot"/>
     <addaction name="actionSaveMovieFrames"/>
     <addaction name="separator"/>
@@ -1332,6 +1335,22 @@
    </property>
    <property name="toolTip">
     <string>Go To Centroid</string>
+   </property>
+  </action>
+  <action name="actionLoadFCD">
+   <property name="text">
+    <string>Load FCD...</string>
+   </property>
+   <property name="toolTip">
+    <string>Load FCD Data</string>
+   </property>
+  </action>
+  <action name="actionCloseFCD">
+   <property name="text">
+    <string>Close FCD</string>
+   </property>
+   <property name="toolTip">
+    <string>Close FCD Data</string>
    </property>
   </action>
  </widget>
@@ -2585,6 +2604,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionLoadFCD</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnLoadFCD()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionCloseFCD</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnCloseFCD()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2663,5 +2714,7 @@
   <slot>OnCycleSurfaceLabel()</slot>
   <slot>OnSetModeReconEdit()</slot>
   <slot>OnGoToROI()</slot>
+  <slot>OnLoadFCD()</slot>
+  <slot>OnCloseFCD()</slot>
  </slots>
 </ui>

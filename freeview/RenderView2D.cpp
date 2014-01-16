@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/21 21:31:18 $
- *    $Revision: 1.66 $
+ *    $Date: 2014/01/16 22:19:07 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,6 +147,7 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
   }
 
   mainwnd->GetLayerCollection( "ROI" )->Append2DProps( m_renderer, m_nViewPlane );
+  mainwnd->GetLayerCollection( "FCD" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "Surface" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "PointSet" )->Append2DProps( m_renderer, m_nViewPlane );
   mainwnd->GetLayerCollection( "Supplement" )->Append2DProps( m_renderer, m_nViewPlane );

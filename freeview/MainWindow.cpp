@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.263 $
+ *    $Date: 2014/01/16 22:18:12 $
+ *    $Revision: 1.264 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,6 +96,7 @@
 #include "DialogLoadConnectome.h"
 #include "LayerConnectomeMatrix.h"
 #include "DialogLoadSurface.h"
+#include "LayerFCD.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -117,6 +118,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_layerCollections["PointSet"] = new LayerCollection( "PointSet", this );
   m_layerCollections["Track"] = new LayerCollection( "Track", this );
   m_layerCollections["CMAT"] = new LayerCollection("CMAT", this);
+  m_layerCollections["FCD"] = new LayerCollection("FCD", this);
+
   // supplemental layers will not show on control panel
   m_layerCollections["Supplement"] = new LayerCollection( "Supplement", this);
   LayerLandmarks* landmarks = new LayerLandmarks(this);
@@ -866,6 +869,23 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   }
 
   cmds.clear();
+  nRepeats = m_cmdParser->GetNumberOfRepeats( "fcd" );
+  if (nRepeats > 0 && !bHasVolume)
+  {
+    QString msg = "Can not load FCD data without loading a volume first";
+    ShowNonModalMessage("Warning", msg);
+    std::cerr << qPrintable(msg) << std::endl;
+  }
+  else
+  {
+    if (m_cmdParser->Found("fcd", &sa))
+    {
+      QString script = QString("loadfcd ") + sa[0] + " " + sa[1];
+      this->AddScript( script );
+    }
+  }
+
+  cmds.clear();
   nRepeats = m_cmdParser->GetNumberOfRepeats( "f" );
   for ( int n = 0; n < nRepeats; n++ )
   {
@@ -1235,6 +1255,9 @@ void MainWindow::OnIdle()
   ui->actionLoadConnectome->setEnabled( !bBusy );  
   ui->actionCloseConnectome ->setEnabled( !bBusy && GetActiveLayer( "CMAT"));
 
+  ui->actionLoadFCD->setEnabled( !bBusy && layerVolume );
+  ui->actionCloseFCD->setEnabled( !bBusy && GetActiveLayer( "FCD"));
+
   ui->actionShowCoordinateAnnotation->setChecked(ui->viewAxial->GetShowCoordinateAnnotation());
   ui->actionShowColorScale->setChecked(view->GetShowScalarBar());
 
@@ -1384,6 +1407,10 @@ void MainWindow::RunScript()
   else if ( cmd == "loadconnectome" )
   {
     CommandLoadConnectomeMatrix( sa );
+  }
+  else if ( cmd == "loadfcd")
+  {
+    CommandLoadFCD( sa );
   }
   else if ( cmd == "loadroi" || sa[0] == "loadlabel" )
   {
@@ -4728,6 +4755,20 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
       }
     }
   }
+  else if (jobtype == ThreadIOWorker::JT_LoadFCD && layer->IsTypeOf("FCD"))
+  {
+    LayerFCD* fcd = qobject_cast<LayerFCD*>( layer );
+    LayerCollection* lc = GetLayerCollection( "FCD" );
+    LayerCollection* col_mri = GetLayerCollection("MRI");
+    if ( lc->IsEmpty() )
+    {
+      lc->SetWorldOrigin( col_mri->GetWorldOrigin() );
+      lc->SetWorldSize( col_mri->GetWorldSize() );
+      lc->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
+      lc->SetSlicePosition( col_mri->GetSlicePosition() );
+    }
+    lc->AddLayer( fcd );
+  }
   m_bProcessing = false;
 
   if ( jobtype == ThreadIOWorker::JT_SaveVolume)
@@ -5973,4 +6014,38 @@ void MainWindow::OnGoToROI()
   double pos[3];
   roi->GetCentroidPosition(pos);
   SetSlicePosition(pos);
+}
+
+void MainWindow::CommandLoadFCD(const QStringList& cmd )
+{
+  if (cmd.size() < 3)
+    return;
+
+  LoadFCD(cmd[1], cmd[2]);
+}
+
+void MainWindow::LoadFCD(const QString &subdir, const QString &subject)
+{
+  LayerFCD* layer = new LayerFCD(m_layerVolumeRef);
+  layer->SetName(subject);
+  QVariantMap map;
+  map["SubjectDir"] = subdir;
+  map["Subject"] = subject;
+  m_threadIOWorker->LoadFCD( layer, map );
+}
+
+void MainWindow::OnLoadFCD()
+{
+
+}
+
+void MainWindow::OnCloseFCD()
+{
+  LayerFCD* layer = (LayerFCD*)GetActiveLayer( "FCD" );
+  if ( !layer )
+  {
+    return;
+  }
+
+  GetLayerCollection( "FCD" )->RemoveLayer( layer );
 }

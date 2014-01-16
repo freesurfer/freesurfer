@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/28 18:54:13 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/01/16 22:18:13 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,7 +37,7 @@ public:
   explicit ThreadIOWorker(QObject *parent = 0);
 
   enum JobType { JT_LoadVolume = 0, JT_SaveVolume, JT_LoadSurface, JT_SaveSurface, JT_LoadSurfaceOverlay, JT_LoadTrack,
-                 JT_LoadConnectome };
+                 JT_LoadConnectome, JT_LoadFCD };
 
   void LoadVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
   void SaveVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
@@ -46,6 +46,7 @@ public:
   void LoadSurfaceOverlay( Layer* layer, const QVariantMap& args = QVariantMap() );
   void LoadTrack( Layer* layer, const QVariantMap& args = QVariantMap() );
   void LoadConnectomeMatrix( Layer* layer, const QVariantMap& args = QVariantMap() );
+  void LoadFCD(Layer* layer, const QVariantMap& args = QVariantMap());
 
 signals:
   void Progress( int n );

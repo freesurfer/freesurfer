@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/05 17:43:31 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/01/16 22:18:13 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,7 @@
 #include "LayerTrack.h"
 #include "LayerVolumeTrack.h"
 #include "LayerConnectomeMatrix.h"
+#include "LayerFCD.h"
 #include <QApplication>
 
 ThreadIOWorker::ThreadIOWorker(QObject *parent) :
@@ -91,6 +92,14 @@ void ThreadIOWorker::LoadConnectomeMatrix(Layer* layer, const QVariantMap& args)
 {
   m_layer = layer;
   m_nJobType = JT_LoadConnectome;
+  m_args = args;
+  start();
+}
+
+void ThreadIOWorker::LoadFCD(Layer* layer, const QVariantMap& args)
+{
+  m_layer = layer;
+  m_nJobType = JT_LoadFCD;
   m_args = args;
   start();
 }
@@ -257,6 +266,21 @@ void ThreadIOWorker::run()
       return;
   //  connect(layer, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
     if (!layer->LoadFromFile())
+    {
+      emit Error(m_layer, m_nJobType);
+    }
+    else
+    {
+      emit Finished(m_layer, m_nJobType);
+    }
+  }
+  else if (m_nJobType == JT_LoadFCD)
+  {
+    LayerFCD* layer = qobject_cast<LayerFCD*>(m_layer);
+    if (!layer)
+      return;
+  //  connect(layer, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
+    if (!layer->Load(m_args["SubjectDir"].toString(), m_args["Subject"].toString()))
     {
       emit Error(m_layer, m_nJobType);
     }

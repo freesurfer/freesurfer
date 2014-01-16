@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.139 $
+ *    $Date: 2014/01/16 22:18:12 $
+ *    $Revision: 1.140 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -278,6 +278,7 @@ protected:
   void LoadWayPointsFile        ( const QString& fn );
   void LoadControlPointsFile    ( const QString& fn );
   void LoadTrackFile            ( const QString& fn );
+  void LoadFCD        ( const QString& subdir, const QString& subject);
   void SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales );
   bool GetCursorRAS( double* ras_out, bool tkReg );
 
@@ -298,6 +299,7 @@ protected:
   void CommandLoadSurfaceLabel  ( const QStringList& cmd );
   void CommandLoadSurfaceSpline ( const QStringList& cmd );
   void CommandLoadConnectomeMatrix  ( const QStringList& cmd );
+  void CommandLoadFCD           ( const QStringList& cmd );
   void CommandLoadWayPoints     ( const QStringList& cmd );
   void CommandLoadControlPoints ( const QStringList& cmd );
   void CommandLoadPVolumes      ( const QStringList& cmd );
@@ -412,6 +414,8 @@ protected slots:
   void OnLineProfile();
   void OnCycleSurfaceLabel();
   void OnGoToROI();
+  void OnLoadFCD();
+  void OnCloseFCD();
 
   void OnLoadConnectomeMatrix();
   void OnCloseConnectomeMatrix();
