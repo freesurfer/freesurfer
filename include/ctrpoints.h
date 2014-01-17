@@ -6,9 +6,9 @@
 /*
  * Original Author: Y.Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.7 $
+ *    $Author: greve $
+ *    $Date: 2014/01/17 21:51:48 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,6 @@ int MRIwriteControlPoints(const MPoint *pointArray,
 // map control points using LTA (contains src and trg geometries):
 MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
                             MPoint *trgArray, LTA* lta);
-												
+MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI *vol);	
 
 #endif // inclusion guard

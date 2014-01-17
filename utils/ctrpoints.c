@@ -6,9 +6,9 @@
 /*
  * Original Author: Y. Tosa
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:46 $
- *    $Revision: 1.10 $
+ *    $Author: greve $
+ *    $Date: 2014/01/17 21:51:49 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -238,4 +238,45 @@ MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
 	MatrixFree(&p2);
 	
   return trgArray;
+}
+
+/*!
+  \fn MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI *vol)
+  \brief Converts control points from RAS to Voxel (col, row, slice)
+  in the given volume. The col, row slice remain floating point. 
+  Note: UseRealRAS has not really been tested.
+ */
+MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI *vol)
+{
+  MPoint *crs;
+  int n;
+  MATRIX *vox2ras, *ras2vox, *vras, *vcrs=NULL;
+
+  crs = (MPoint *)calloc(sizeof(MPoint),npoints);
+
+  if(UseRealRAS) vox2ras = MRIxfmCRS2XYZ(vol,0);
+  else           vox2ras = MRIxfmCRS2XYZtkreg(vol);
+  ras2vox = MatrixInverse(vox2ras,NULL);
+  MatrixFree(&vox2ras);
+
+  vras = MatrixAlloc(4,1,MATRIX_REAL);
+  vras->rptr[4][1] = 1;
+
+  for(n=0; n < npoints; n++){
+    vras->rptr[1][1] = ras[n].x;
+    vras->rptr[1][2] = ras[n].y;
+    vras->rptr[1][3] = ras[n].z;
+    vcrs = MatrixMultiply(ras2vox,vras,vcrs);
+    crs[n].x = vcrs->rptr[1][1];
+    crs[n].y = vcrs->rptr[2][1];
+    crs[n].z = vcrs->rptr[3][1];
+    //printf("%4.1f %4.1f %4.1f   %4.1f %4.1f %4.1f\n",
+    //	   ras[n].x,ras[n].y,ras[n].z,crs[n].x,crs[n].y,crs[n].z);
+  }
+
+  MatrixFree(&ras2vox);
+  MatrixFree(&vras);
+  MatrixFree(&vcrs);
+
+  return(crs);
 }
