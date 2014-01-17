@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/16 23:25:33 $
- *    $Revision: 1.2 $
+ *    $Date: 2014/01/17 01:40:17 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -79,6 +79,11 @@ FCDloadData(char *sdir, char *subject)
   if (fcd->mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
 
+  sprintf(fname, "%s/%s/mri/flair.reg.norm.mgz", sdir, subject) ;
+  fcd->mri_flair = MRIread(fname) ;
+  if (fcd->mri_flair == NULL)
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
+
   sprintf(fname, "%s/%s/mri/norm.mgz", sdir, subject) ;
   fcd->mri_norm = MRIread(fname) ;
   if (fcd->mri_norm == NULL)
@@ -116,9 +121,9 @@ int
 FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, int size_thresh) 
 {
   MRI    *mri_lh, *mri_rh, *mri_lh_diff, *mri_rh_diff ;
-  int    niter, vno, s ;
+  int    niter, vno, s, label ;
   VERTEX *v ;
-  double xv, yv, zv ;
+  double xv, yv, zv, xs, ys, zs, d  ;
   float  val;
   MRI_SEGMENTATION *mriseg ;
 
@@ -163,6 +168,19 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
       DiagBreak() ;
     val = MRIgetVoxVal(mri_lh_diff, vno, 0, 0, 0) ;
     MRISwhiteVertexToVoxel(fcd->mris_lh, v, fcd->mri_thickness_increase, &xv, &yv, &zv) ;
+
+    for (d = 0 ; d < 4 ; d += 0.1)
+    {
+      xs = v->x+d*v->nx ; 
+      ys = v->y+d*v->ny ; 
+      zs = v->z+d*v->nz ; 
+      MRISsurfaceRASToVoxel(fcd->mris_lh, fcd->mri_thickness_increase, xs, ys, zs, &xv, &yv, &zv) ;
+      xv = nint(xv) ; yv = nint(yv) ; zv = nint(zv) ;
+      label = MRIgetVoxVal(fcd->mri_aseg, xv, yv, zv, 0) ;
+      if (IS_WM(label) == 0)
+	break ;
+    }
+
     if (val >= thickness_thresh)
       MRIsetVoxVal(fcd->mri_thickness_increase, nint(xv), nint(yv), nint(zv), 0, val) ;
     else if (-val >= thickness_thresh)
@@ -178,6 +196,18 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
       DiagBreak() ;
     val = MRIgetVoxVal(mri_rh_diff, vno, 0, 0, 0) ;
     MRISwhiteVertexToVoxel(fcd->mris_rh, v, fcd->mri_thickness_increase, &xv, &yv, &zv) ;
+
+    for (d = 0 ; d < 4 ; d += 0.1)
+    {
+      xs = v->x+d*v->nx ; 
+      ys = v->y+d*v->ny ; 
+      zs = v->z+d*v->nz ; 
+      MRISsurfaceRASToVoxel(fcd->mris_lh, fcd->mri_thickness_increase, xs, ys, zs, &xv, &yv, &zv) ;
+      xv = nint(xv) ; yv = nint(yv) ; zv = nint(zv) ;
+      label = MRIgetVoxVal(fcd->mri_aseg, xv, yv, zv, 0) ;
+      if (IS_WM(label) == 0)
+	break ;
+    }
     if (val >= thickness_thresh)
       MRIsetVoxVal(fcd->mri_thickness_increase, nint(xv), nint(yv), nint(zv), 0, val) ;
     else if (-val >= thickness_thresh)
@@ -187,6 +217,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
   mriseg = MRIsegment(fcd->mri_thickness_increase, thickness_thresh, 1e10) ;
   MRIremoveSmallSegments(mriseg, size_thresh) ;
   printf("segmenting volume at threshold %2.1f yields %d segments\n", thickness_thresh, mriseg->nsegments) ;
+  fflush(stdout) ;
 
   fcd->nlabels = mriseg->nsegments ;
   for (s = 0 ; s < mriseg->nsegments ; s++)
@@ -196,6 +227,8 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
     fcd->labels[s] = MRIsegmentToLabel(mriseg, fcd->mri_thickness_increase, s) ;
     label = most_frequent_label(fcd->mri_aseg, &mriseg->segments[s]) ;
     sprintf(fcd->label_names[s], cma_label_to_name(label)) ;
+    printf("%s\n", fcd->label_names[s]) ;
+    fflush(stdout) ;
   }
   MRIfree(&mri_lh_diff) ; MRIfree(&mri_rh_diff) ;
   MRIsegmentFree(&mriseg) ;
