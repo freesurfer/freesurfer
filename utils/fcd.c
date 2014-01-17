@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/17 15:44:00 $
- *    $Revision: 1.5 $
+ *    $Date: 2014/01/17 22:57:34 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,10 @@
 #include <omp.h>
 #endif
 
+static int sort_labels(FCD_DATA *fcd)  ;
+static int most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg) ;
+static int compare_labels(const void *v1,const void *v2)  ;
+
 static int
 most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg)
 {
@@ -45,7 +49,8 @@ most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg)
   for (i = max_count = max_label = 0 ; i < mseg->nvoxels ; i++)
   {
     label = MRIgetVoxVal(mri_seg, mseg->voxels[i].x, mseg->voxels[i].y, mseg->voxels[i].z, 0) ;
-    label_counts[label]++ ;
+    if (IS_WM(label) == 0 && IS_UNKNOWN(label) == 0)
+      label_counts[label]++ ;
   }
   for (i = max_count = max_label = 0 ; i < MAX_CMA_LABELS ; i++)
   {
@@ -122,6 +127,30 @@ FCDloadData(char *sdir, char *subject)
   return(fcd) ;
 }
 
+static int
+sort_labels(FCD_DATA *fcd) 
+{
+  int i ;
+
+  qsort(fcd->labels,fcd->nlabels,sizeof(LABEL *),compare_labels);
+  for (i = 0 ; i <  fcd->nlabels ; i++)
+    strcpy(fcd->label_names[i], fcd->labels[i]->name) ;
+  return(NO_ERROR) ;
+}
+
+
+static int compare_labels(const void *v1,const void *v2) 
+{
+  LABEL *l1, *l2;
+
+  l1 = *((LABEL **)v1);
+  l2 = *((LABEL **)v2);
+  if (l1->avg_stat > l2->avg_stat) return(-1);
+  if (l1->avg_stat < l2->avg_stat) return(+1);
+  return(0); // equal
+}
+
+
 int
 FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, int size_thresh) 
 {
@@ -161,6 +190,8 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
 
   MRIclear(fcd->mri_thickness_increase) ;
   MRIclear(fcd->mri_thickness_decrease) ;
+
+  // process left hemisphere
 #if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for shared(fcd, mri_lh_diff, Gdiag_no, thickness_thresh) schedule(static,1)
@@ -169,45 +200,53 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
   for (vno = 0 ; vno < fcd->mris_lh->nvertices ; vno++)
   {
     double xs, ys, zs, d, xv, yv, zv  ;
-    float  val, val2;
-    int    label, xvi, yvi, zvi ;
+    float  val, val2, thickness;
+    int   label, xvi, yvi, zvi, base_label ;
     VERTEX *v ;
 
     v = &fcd->mris_lh->vertices[vno] ;
     if (v->ripflag)
       continue ;
+    thickness = MRIgetVoxVal(fcd->lh_thickness_on_lh, vno, 0, 0, 0) ;
     if (vno == Gdiag_no)
       DiagBreak() ;
     val = MRIgetVoxVal(mri_lh_diff, vno, 0, 0, 0) ;
     if (fabs(val) < thickness_thresh)
       continue ;
 
-    for (d = 0 ; d < 4 ; d += 0.1)
+    base_label = 0 ;
+    for (d = 0 ; d < thickness ; d += 0.25)
     {
-      xs = v->x+d*v->nx ; 
-      ys = v->y+d*v->ny ; 
-      zs = v->z+d*v->nz ; 
+      xs = v->x+d*v->nx ;  ys = v->y+d*v->ny ;  zs = v->z+d*v->nz ; 
       MRISsurfaceRASToVoxel(fcd->mris_lh, fcd->mri_thickness_increase, xs, ys, zs, &xv, &yv, &zv) ;
       xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
       label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
       if (IS_WM(label) == 0)
-	break ;
-    }
-
-    if (val >= 0)
-    {
-      val2 = MRIgetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0) ;
-      if (val > val2)  // another thread already populated this voxel
-	MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
-    }
-    else 
-    {
-      val2 = MRIgetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0) ;
-      if (val < val2)  // another thread already populated this voxel
-	MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
+      {
+	if (label != base_label)
+	{
+	  if (base_label)
+	    break ;
+	}
+	else
+	  base_label = label ;
+	if (val >= 0)
+	{
+	  val2 = MRIgetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0) ;
+	  if (val > val2)  // check another thread already populated this voxel
+	    MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
+	}
+	else 
+	{
+	  val2 = MRIgetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0) ;
+	  if (val < val2)   // check if another thread already populated this voxel
+	    MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
+	}
+      }
     }
   }
 
+  // now do right hemisphere
 #if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for shared(fcd, mri_rh_diff, Gdiag_no, thickness_thresh) schedule(static,1)
@@ -215,9 +254,9 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
 #endif
   for (vno = 0 ; vno < fcd->mris_rh->nvertices ; vno++)
   {
-    double xv, yv, zv, xs, ys, zs, d  ;
-    float  val, val2;
-    int   label, xvi, yvi, zvi ;
+    double xs, ys, zs, d, xv, yv, zv  ;
+    float  val, val2, thickness;
+    int   label, xvi, yvi, zvi, base_label ;
     VERTEX *v ;
 
     v = &fcd->mris_rh->vertices[vno] ;
@@ -228,35 +267,44 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
     val = MRIgetVoxVal(mri_rh_diff, vno, 0, 0, 0) ;
     if (fabs(val) < thickness_thresh)
       continue ;
+    thickness = MRIgetVoxVal(fcd->rh_thickness_on_rh, vno, 0, 0, 0) ;
 
-    for (d = 0 ; d < 4 ; d += 0.1)
+    base_label = 0 ;
+    for (d = 0 ; d < thickness ; d += 0.25)
     {
-      xs = v->x+d*v->nx ; 
-      ys = v->y+d*v->ny ; 
-      zs = v->z+d*v->nz ; 
-      MRISsurfaceRASToVoxel(fcd->mris_lh, fcd->mri_thickness_increase, xs, ys, zs, &xv, &yv, &zv) ;
+      xs = v->x+d*v->nx ;  ys = v->y+d*v->ny ; zs = v->z+d*v->nz ; 
+      MRISsurfaceRASToVoxel(fcd->mris_rh, fcd->mri_thickness_increase, xs, ys, zs, &xv, &yv, &zv) ;
       xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
       label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
       if (IS_WM(label) == 0)
-	break ;
-    }
-    if (val >= 0)
-    {
-      val2 = MRIgetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0) ;
-      if (val > val2)
-	MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
-    }
-    else 
-    {
-      val2 = MRIgetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0) ;
-      if (val < val2)
-	MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
+      {
+	if (label != base_label)
+	{
+	  if (base_label)
+	    break ;
+	}
+	else
+	  base_label = label ;
+
+	if (val >= 0)
+	{
+	  val2 = MRIgetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0) ;
+	  if (val > val2)
+	    MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
+	}
+	else 
+	{
+	  val2 = MRIgetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0) ;
+	  if (val < val2)
+	    MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
+	}
+      }
     }
   }
 
   mriseg = MRIsegment(fcd->mri_thickness_increase, thickness_thresh, 1e10) ;
   MRIremoveSmallSegments(mriseg, size_thresh) ;
-  printf("segmenting volume at threshold %2.1f yields %d segments\n", thickness_thresh, mriseg->nsegments) ;
+  printf("segmenting volume at threshold %2.1f with %d smoothing iters yields %d segments\n", thickness_thresh, niter,mriseg->nsegments) ;
   fflush(stdout) ;
 
   fcd->nlabels = mriseg->nsegments ;
@@ -266,8 +314,13 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
 
     fcd->labels[s] = MRIsegmentToLabel(mriseg, fcd->mri_thickness_increase, s) ;
     label = most_frequent_label(fcd->mri_aseg, &mriseg->segments[s]) ;
-    sprintf(fcd->label_names[s], cma_label_to_name(label)) ;
-    printf("%s\n", fcd->label_names[s]) ;
+    sprintf(fcd->labels[s]->name, cma_label_to_name(label)) ;
+  }
+  sort_labels(fcd) ;
+
+  for (s = 0 ; s < mriseg->nsegments ; s++)
+  {
+    printf("%s: %2.3fmm\n", fcd->label_names[s], fcd->labels[s]->avg_stat) ;
     fflush(stdout) ;
   }
   MRIfree(&mri_lh_diff) ; MRIfree(&mri_rh_diff) ;

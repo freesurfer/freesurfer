@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/16 23:25:33 $
- *    $Revision: 1.29 $
+ *    $Date: 2014/01/17 22:57:34 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1324,6 +1324,7 @@ MRIsegmentToLabel(MRI_SEGMENTATION *mriseg, MRI *mri, int ind)
   area = LabelAlloc(mseg->nvoxels,  NULL, NULL) ;
 
   area->coords = LABEL_COORDS_TKREG_RAS ;
+  area->avg_stat = 0 ;
   for (i = 0 ; i < mseg->nvoxels ; i++)
   {
     MRIvoxelToSurfaceRAS(mri, mseg->voxels[i].x, mseg->voxels[i].y, mseg->voxels[i].z, &xs, &ys, &zs) ;
@@ -1331,8 +1332,12 @@ MRIsegmentToLabel(MRI_SEGMENTATION *mriseg, MRI *mri, int ind)
     area->lv[i].y = ys ;  ; 
     area->lv[i].z = zs ;  ; 
     area->lv[i].vno = -1 ;
+    area->lv[i].stat = MRIgetVoxVal(mri, mseg->voxels[i].x, mseg->voxels[i].y, mseg->voxels[i].z, 0) ;
+    area->avg_stat += area->lv[i].stat ;
   }
   area->n_points = mseg->nvoxels ;
+  if (mseg->nvoxels > 0)
+    area->avg_stat /= mseg->nvoxels ;
   strcpy(area->space, "TkReg");
 
   return(area) ;
