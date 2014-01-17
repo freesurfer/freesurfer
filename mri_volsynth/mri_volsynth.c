@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/03/05 21:43:49 $
- *    $Revision: 1.50 $
+ *    $Date: 2014/01/17 21:52:37 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,7 @@
 #include "MRIio_old.h"
 #include "randomfields.h"
 #include "mri_circulars.h"
+#include "ctrpoints.h"
 double round(double);
 
 MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt);
@@ -63,7 +64,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.50 2012/03/05 21:43:49 greve Exp $";
+"$Id: mri_volsynth.c,v 1.51 2014/01/17 21:52:37 greve Exp $";
 
 char *Progname = NULL;
 
@@ -124,11 +125,13 @@ double HSCMin=0, HSCMax=0;
 int DoTNorm=0;
 int DoAbs=0;
 MRI *fMRIhsynth(MRI *res, MRI *mask, int DoTNorm);
+MPoint *ctrpoints=NULL, *crsctrpoints=NULL;
+int nctrpoints=0, CPUseRealRAS;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
 {
-  int c,r,s,f;
+  int c,r,s,f,n;
   double val,rval;
   FILE *fp;
   MRI *mritmp;
@@ -206,6 +209,11 @@ int main(int argc, char **argv)
              SpikeTP,mritemp->nframes);
       exit(1);
     }
+  }
+
+  if(nctrpoints > 0){
+    printf("Converting control points to voxel space\n");
+    crsctrpoints = ControlPoints2Vox(ctrpoints, nctrpoints, CPUseRealRAS, mritemp);
   }
 
   printf("Synthesizing\n");
@@ -355,6 +363,16 @@ int main(int argc, char **argv)
     mri=MRIcrs(mritemp,NULL);
     if(!mri) exit(1);
   } 
+  else if (strcmp(pdfname,"cp")==0) {
+    printf("Synthesizing control points volume \n");
+    mri = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+    for(n=0; n < nctrpoints; n++){
+      c = round(crsctrpoints[n].x);
+      r = round(crsctrpoints[n].y);
+      s = round(crsctrpoints[n].z);
+      MRIFseq_vox(mri,c,r,s,0) = 1;
+    }
+  }
   else {
     printf("ERROR: pdf %s unrecognized, must be gaussian, uniform,\n"
 	   "const, delta, checker\n", pdfname);
@@ -712,7 +730,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&SpikeTP);
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcmp(option, "--cp")) {
+      if (nargc < 1) argnerr(option,1);
+      printf("Reading control points from %s\n",pargv[0]);
+      ctrpoints = MRIreadControlPoints(pargv[0], &nctrpoints, &CPUseRealRAS);
+      printf("nctrpoints = %d, UseRealRAS=%d\n",nctrpoints, CPUseRealRAS);
+      pdfname = "cp";
+      nargsused = 1;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -774,6 +801,7 @@ static void print_usage(void) {
   printf("   --radius voxradius : radius (in voxels) for sphere\n");
   printf("   --hsc min max : multiply each frame by a random number bet min and max\n");
   printf("   --abs : compute absolute value\n");
+  printf("   --cp control.dat : set control point voxels = 1 \n");
   printf("\n");
   printf(" Other arguments\n");
   printf("   --spike tp : set all values at time point tp to 1e9\n");
@@ -1021,4 +1049,8 @@ MRI *fMRIhsynth(MRI *res, MRI *mask, int DoTNorm)
   if(DoTNorm) MRIfree(&tvar);
   return(hsynth);
 }
+
+
+
+
 
