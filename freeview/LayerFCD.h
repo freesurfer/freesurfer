@@ -40,6 +40,14 @@ public:
     return (LayerPropertyFCD*)mProperty;
   }
 
+  FCD_DATA* GetFCDData()
+  {
+    return m_fcd;
+  }
+
+signals:
+  void LabelsChanged();
+
 protected slots:
   void UpdateOpacity();
   void UpdateColorMap();

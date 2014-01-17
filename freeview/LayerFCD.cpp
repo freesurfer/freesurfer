@@ -74,6 +74,7 @@ LayerFCD::LayerFCD(LayerMRI* layerMRI, QObject *parent) : LayerVolumeBase(parent
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
   connect( p, SIGNAL(ThicknessThresholdChanged(double)), this, SLOT(Recompute()));
   connect( p, SIGNAL(SigmaChanged(double)), this, SLOT(Recompute()));
+  connect( p, SIGNAL(MinAreaChanged(double)), this, SLOT(Recompute()));
 }
 
 LayerFCD::~LayerFCD()
@@ -100,9 +101,10 @@ void LayerFCD::Recompute()
 {
   if (m_fcd)
   {
-    qDebug() << QString("To recompute with threshold %1, sigma %2").arg(GetProperty()->GetThicknessThreshold()).arg(GetProperty()->GetSigma());
-    ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), 10);
+ //   qDebug() << QString("To recompute with threshold %1, sigma %2, min area %3").arg(GetProperty()->GetThicknessThreshold()).arg(GetProperty()->GetSigma());
+    ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), GetProperty()->GetMinArea());
     UpdateRASImage(m_imageData);
+    emit LabelsChanged();
     emit ActorUpdated();
   }
 }

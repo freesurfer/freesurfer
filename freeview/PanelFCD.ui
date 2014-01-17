@@ -124,7 +124,62 @@
         </item>
        </layout>
       </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_5">
+        <property name="text">
+         <string>Min Area</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <item>
+         <widget class="QSlider" name="sliderMinArea">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditMinArea">
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
      </layout>
+    </item>
+    <item>
+     <widget class="QTreeWidget" name="treeWidgetLabels">
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="rootIsDecorated">
+       <bool>false</bool>
+      </property>
+      <property name="itemsExpandable">
+       <bool>false</bool>
+      </property>
+      <property name="expandsOnDoubleClick">
+       <bool>false</bool>
+      </property>
+      <attribute name="headerVisible">
+       <bool>false</bool>
+      </attribute>
+      <attribute name="headerStretchLastSection">
+       <bool>false</bool>
+      </attribute>
+      <column>
+       <property name="text">
+        <string notr="true">1</string>
+       </property>
+      </column>
+     </widget>
     </item>
     <item>
      <spacer name="verticalSpacer">
@@ -208,11 +263,45 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>lineEditMinArea</sender>
+   <signal>returnPressed()</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnTextMinAreaReturned()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>312</x>
+     <y>118</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>529</x>
+     <y>218</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderMinArea</sender>
+   <signal>sliderReleased()</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnSliderMinAreaReleased()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>101</x>
+     <y>123</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>603</x>
+     <y>334</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnSliderThresholdReleased()</slot>
   <slot>OnSliderSigmaReleased()</slot>
   <slot>OnTextThresholdReturned()</slot>
   <slot>OnTextSigmaReturned()</slot>
+  <slot>OnSliderMinAreaReleased()</slot>
+  <slot>OnTextMinAreaReturned()</slot>
  </slots>
 </ui>

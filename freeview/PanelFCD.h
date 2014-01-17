@@ -7,6 +7,8 @@ namespace Ui {
     class PanelFCD;
 }
 
+class LayerFCD;
+
 class PanelFCD : public PanelLayer
 {
     Q_OBJECT
@@ -20,6 +22,9 @@ public slots:
   void OnSliderSigmaReleased();
   void OnTextThresholdReturned();
   void OnTextSigmaReturned();
+  void OnSliderMinAreaReleased();
+  void OnTextMinAreaReturned();
+  void UpdateLabelList(LayerFCD* layer = NULL);
 
 protected:
   void DoUpdateWidgets();
