@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/16 18:16:54 $
- *    $Revision: 1.60 $
+ *    $Date: 2014/01/17 22:57:21 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,7 @@ typedef struct
   Transform         *linear_transform ;
   Transform         *inverse_linear_transform ;
   char   space[100];          /* space description of the coords */
+  double avg_stat ;
 }
 LABEL ;
 
