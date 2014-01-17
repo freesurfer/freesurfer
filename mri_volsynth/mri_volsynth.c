@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/17 21:52:37 $
- *    $Revision: 1.51 $
+ *    $Date: 2014/01/17 22:06:48 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,7 +64,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.51 2014/01/17 21:52:37 greve Exp $";
+"$Id: mri_volsynth.c,v 1.52 2014/01/17 22:06:48 greve Exp $";
 
 char *Progname = NULL;
 
@@ -370,7 +370,7 @@ int main(int argc, char **argv)
       c = round(crsctrpoints[n].x);
       r = round(crsctrpoints[n].y);
       s = round(crsctrpoints[n].z);
-      MRIFseq_vox(mri,c,r,s,0) = 1;
+      MRIFseq_vox(mri,c,r,s,0) += 1;
     }
   }
   else {
