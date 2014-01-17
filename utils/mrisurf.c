@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/12/19 21:50:47 $
- *    $Revision: 1.752 $
+ *    $Date: 2014/01/17 15:25:29 $
+ *    $Revision: 1.753 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,6 +64,9 @@
 #include "gifti_local.h"
 #include "mri_identify.h"
 #include "voxlist.h"
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #define DMALLOC 0
 
@@ -771,7 +774,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.752 2013/12/19 21:50:47 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.753 2014/01/17 15:25:29 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -6383,7 +6386,12 @@ int MRISprintCurvatureNames(FILE *fp)
 {
   int k;
   for(k=0; k < sizeof(curvature_names)/sizeof(curvature_names[0]); k++)
-    printf("%d %s\n",k,curvature_names[k]);
+  {
+    if (curvature_names[k])
+      printf("%d %s\n",k,curvature_names[k]);
+    else if (surface_names[k])
+      printf("%d %s (computed)\n",k,surface_names[k]);
+  }
   return(0);
 }
 
@@ -31266,19 +31274,26 @@ MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs)
 int
 MRISaverageVals(MRI_SURFACE *mris, int navgs)
 {
-  int    i, vno, vnb, *pnb, vnum ;
-  float  val, num ;
-  VERTEX *v, *vn ;
+  int i, vno ;
 
   for (i = 0 ; i < navgs ; i++)
   {
+
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for shared(mris, i) schedule(static,1)
+#endif
+#endif
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
+      int    vnb, *pnb, vnum ;
+      float  val, num ;
+      VERTEX *v, *vn ;
+
       v = &mris->vertices[vno] ;
       if (v->ripflag)
-      {
         continue ;
-      }
+
       val = v->val ;
       pnb = v->v ;
       vnum = v->vnum ;
@@ -31286,22 +31301,26 @@ MRISaverageVals(MRI_SURFACE *mris, int navgs)
       {
         vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
         if (vn->ripflag)
-        {
           continue ;
-        }
+
         num++ ;
         val += vn->val ;
       }
       num++ ;  /*  account for central vertex */
       v->tdx = val / num ;
     }
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for shared(mris, i) schedule(static,1)
+#endif
+#endif
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
+      VERTEX *v ;
       v = &mris->vertices[vno] ;
       if (v->ripflag)
-      {
         continue ;
-      }
+
       v->val = v->tdx ;
     }
   }

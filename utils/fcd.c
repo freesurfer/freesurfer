@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/17 01:40:17 $
- *    $Revision: 1.3 $
+ *    $Date: 2014/01/17 15:25:29 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,12 @@
 #include "error.h"
 #include "diag.h"
 #include "cma.h"
+#include "const.h"
+#include "macros.h"
 #include "mrisegment.h"
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 static int
 most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg)
@@ -89,8 +94,8 @@ FCDloadData(char *sdir, char *subject)
   if (fcd->mri_norm == NULL)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
 
-  fcd->mri_thickness_increase = MRIclone(fcd->mri_aseg, NULL) ;
-  fcd->mri_thickness_decrease = MRIclone(fcd->mri_aseg, NULL) ;
+  fcd->mri_thickness_increase = MRIcloneDifferentType(fcd->mri_aseg, MRI_FLOAT) ;
+  fcd->mri_thickness_decrease = MRIcloneDifferentType(fcd->mri_aseg, MRI_FLOAT) ;
 
   sprintf(fname, "%s/%s/surf/lh.rh.thickness.smooth0.mgz", sdir, subject) ;
   fcd->rh_thickness_on_lh = MRIread(fname) ;
@@ -121,10 +126,7 @@ int
 FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, int size_thresh) 
 {
   MRI    *mri_lh, *mri_rh, *mri_lh_diff, *mri_rh_diff ;
-  int    niter, vno, s, label ;
-  VERTEX *v ;
-  double xv, yv, zv, xs, ys, zs, d  ;
-  float  val;
+  int    niter, vno, s ;
   MRI_SEGMENTATION *mriseg ;
 
   niter = SIGMA_TO_SURFACE_SMOOTH_STEPS(sigma) ;
@@ -159,15 +161,26 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
 
   MRIclear(fcd->mri_thickness_increase) ;
   MRIclear(fcd->mri_thickness_decrease) ;
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for shared(fcd, mri_lh_diff, Gdiag_no, thickness_thresh) schedule(static,1)
+#endif
+#endif
   for (vno = 0 ; vno < fcd->mris_lh->nvertices ; vno++)
   {
+    double xs, ys, zs, d, xv, yv, zv  ;
+    float  val;
+    int    label, xvi, yvi, zvi ;
+    VERTEX *v ;
+
     v = &fcd->mris_lh->vertices[vno] ;
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
     val = MRIgetVoxVal(mri_lh_diff, vno, 0, 0, 0) ;
-    MRISwhiteVertexToVoxel(fcd->mris_lh, v, fcd->mri_thickness_increase, &xv, &yv, &zv) ;
+    if (fabs(val) < thickness_thresh)
+      continue ;
 
     for (d = 0 ; d < 4 ; d += 0.1)
     {
@@ -175,27 +188,38 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
       ys = v->y+d*v->ny ; 
       zs = v->z+d*v->nz ; 
       MRISsurfaceRASToVoxel(fcd->mris_lh, fcd->mri_thickness_increase, xs, ys, zs, &xv, &yv, &zv) ;
-      xv = nint(xv) ; yv = nint(yv) ; zv = nint(zv) ;
-      label = MRIgetVoxVal(fcd->mri_aseg, xv, yv, zv, 0) ;
+      xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+      label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
       if (IS_WM(label) == 0)
 	break ;
     }
 
-    if (val >= thickness_thresh)
-      MRIsetVoxVal(fcd->mri_thickness_increase, nint(xv), nint(yv), nint(zv), 0, val) ;
-    else if (-val >= thickness_thresh)
-      MRIsetVoxVal(fcd->mri_thickness_decrease, nint(xv), nint(yv), nint(zv), 0, val) ;
+    if (val >= 0)
+      MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
+    else 
+      MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
   }
 
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for shared(fcd, mri_rh_diff, Gdiag_no, thickness_thresh) schedule(static,1)
+#endif
+#endif
   for (vno = 0 ; vno < fcd->mris_rh->nvertices ; vno++)
   {
+    double xv, yv, zv, xs, ys, zs, d  ;
+    float  val;
+    int   label, xvi, yvi, zvi ;
+    VERTEX *v ;
+
     v = &fcd->mris_rh->vertices[vno] ;
     if (v->ripflag)
       continue ;
     if (vno == Gdiag_no)
       DiagBreak() ;
     val = MRIgetVoxVal(mri_rh_diff, vno, 0, 0, 0) ;
-    MRISwhiteVertexToVoxel(fcd->mris_rh, v, fcd->mri_thickness_increase, &xv, &yv, &zv) ;
+    if (fabs(val) < thickness_thresh)
+      continue ;
 
     for (d = 0 ; d < 4 ; d += 0.1)
     {
@@ -203,15 +227,15 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
       ys = v->y+d*v->ny ; 
       zs = v->z+d*v->nz ; 
       MRISsurfaceRASToVoxel(fcd->mris_lh, fcd->mri_thickness_increase, xs, ys, zs, &xv, &yv, &zv) ;
-      xv = nint(xv) ; yv = nint(yv) ; zv = nint(zv) ;
-      label = MRIgetVoxVal(fcd->mri_aseg, xv, yv, zv, 0) ;
+      xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+      label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
       if (IS_WM(label) == 0)
 	break ;
     }
-    if (val >= thickness_thresh)
-      MRIsetVoxVal(fcd->mri_thickness_increase, nint(xv), nint(yv), nint(zv), 0, val) ;
-    else if (-val >= thickness_thresh)
-      MRIsetVoxVal(fcd->mri_thickness_decrease, nint(xv), nint(yv), nint(zv), 0, val) ;
+    if (val >= 0)
+      MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
+    else 
+      MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
   }
 
   mriseg = MRIsegment(fcd->mri_thickness_increase, thickness_thresh, 1e10) ;
