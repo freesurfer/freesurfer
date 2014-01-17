@@ -2,6 +2,7 @@
 #include "ui_PanelFCD.h"
 #include "LayerFCD.h"
 #include "LayerPropertyFCD.h"
+#include "MainWindow.h"
 
 PanelFCD::PanelFCD(QWidget *parent) :
   PanelLayer("FCD", parent),
@@ -84,8 +85,11 @@ void PanelFCD::UpdateLabelList(LayerFCD *layer_in)
     FCD_DATA* fcd = layer->GetFCDData();
     for (int i = 0; i < fcd->nlabels; i++)
     {
-      QTreeWidgetItem* item = new QTreeWidgetItem( ui->treeWidgetLabels );
-      item->setText(0, QString("%1").arg(QString(fcd->label_names[i])));
+      if (fcd->labels[i]->n_points > 0)
+      {
+        QTreeWidgetItem* item = new QTreeWidgetItem( ui->treeWidgetLabels );
+        item->setText(0, QString("%1").arg(QString(fcd->label_names[i])));
+      }
     }
   }
 }
@@ -143,5 +147,17 @@ void PanelFCD::OnTextMinAreaReturned()
     LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
     if ( layer )
       layer->GetProperty()->SetMinArea(val);
+  }
+}
+
+void PanelFCD::OnCurrentItemChanged(QTreeWidgetItem *itemOld, QTreeWidgetItem *itemNew)
+{
+  int n = ui->treeWidgetLabels->indexOfTopLevelItem(itemNew);
+  LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
+  if (layer && n >= 0)
+  {
+    double pos[3];
+    layer->GetLabelCentroidPosition(n, pos);
+    MainWindow::GetMainWindow()->SetSlicePosition(pos);
   }
 }

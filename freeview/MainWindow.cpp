@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/16 22:18:12 $
- *    $Revision: 1.264 $
+ *    $Date: 2014/01/17 17:36:03 $
+ *    $Revision: 1.265 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -868,21 +868,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     AddScripts(cmds);
   }
 
-  cmds.clear();
-  nRepeats = m_cmdParser->GetNumberOfRepeats( "fcd" );
-  if (nRepeats > 0 && !bHasVolume)
+  if (m_cmdParser->Found("fcd", &sa))
   {
-    QString msg = "Can not load FCD data without loading a volume first";
-    ShowNonModalMessage("Warning", msg);
-    std::cerr << qPrintable(msg) << std::endl;
-  }
-  else
-  {
-    if (m_cmdParser->Found("fcd", &sa))
-    {
-      QString script = QString("loadfcd ") + sa[0] + " " + sa[1];
-      this->AddScript( script );
-    }
+    QString script = QString("loadfcd ") + sa[0] + " " + sa[1];
+    this->AddScript( script );
   }
 
   cmds.clear();

@@ -45,6 +45,8 @@ public:
     return m_fcd;
   }
 
+  void GetLabelCentroidPosition(int nLabelIndex, double* pos_out);
+
 signals:
   void LabelsChanged();
 

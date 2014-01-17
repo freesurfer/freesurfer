@@ -24,6 +24,7 @@
 #include "LayerPropertyMRI.h"
 #include "FSVolume.h"
 #include <QDebug>
+#include <QTimer>
 
 LayerFCD::LayerFCD(LayerMRI* layerMRI, QObject *parent) : LayerVolumeBase(parent),
   m_fcd(NULL)
@@ -93,6 +94,7 @@ bool LayerFCD::Load(const QString &subdir, const QString &subject)
 bool LayerFCD::LoadFromFile()
 {
   m_fcd = ::FCDloadData(m_sSubjectDir.toAscii().data(), m_sSubject.toAscii().data());
+  Recompute();
 
   return (m_fcd != NULL);
 }
@@ -101,7 +103,6 @@ void LayerFCD::Recompute()
 {
   if (m_fcd)
   {
- //   qDebug() << QString("To recompute with threshold %1, sigma %2, min area %3").arg(GetProperty()->GetThicknessThreshold()).arg(GetProperty()->GetSigma());
     ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), GetProperty()->GetMinArea());
     UpdateRASImage(m_imageData);
     emit LabelsChanged();
@@ -332,3 +333,35 @@ bool LayerFCD::HasProp( vtkProp* prop )
   return false;
 }
 
+void LayerFCD::GetLabelCentroidPosition(int nLabelIndex, double *pos)
+{
+  if (nLabelIndex >= m_fcd->nlabels)
+    return;
+
+  LABEL* label = m_fcd->labels[nLabelIndex];
+  if (label->n_points > 0)
+  {
+    double x = 0, y = 0, z = 0;
+    for ( int i = 0; i < label->n_points; i++ )
+    {
+      x += label->lv[i].x;
+      y += label->lv[i].y;
+      z += label->lv[i].z;
+    }
+    pos[0] = x / label->n_points;
+    pos[1] = y / label->n_points;
+    pos[2] = z / label->n_points;
+
+    FSVolume* ref_vol = m_layerSource->GetSourceVolume();
+    if ( label->coords == LABEL_COORDS_VOXEL )
+    {
+      MRIvoxelToWorld(ref_vol->GetMRI(), pos[0], pos[1], pos[2], pos, pos+1, pos+2);
+    }
+    else if (label->coords == LABEL_COORDS_TKREG_RAS)
+    {
+      ref_vol->TkRegToNativeRAS( pos, pos );
+    }
+    ref_vol->NativeRASToRAS( pos, pos );
+    m_layerSource->RASToTarget(pos, pos);
+  }
+}

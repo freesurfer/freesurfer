@@ -8,6 +8,7 @@ namespace Ui {
 }
 
 class LayerFCD;
+class QTreeWidgetItem;
 
 class PanelFCD : public PanelLayer
 {
@@ -25,6 +26,7 @@ public slots:
   void OnSliderMinAreaReleased();
   void OnTextMinAreaReturned();
   void UpdateLabelList(LayerFCD* layer = NULL);
+  void OnCurrentItemChanged(QTreeWidgetItem* itemOld, QTreeWidgetItem* itemNew);
 
 protected:
   void DoUpdateWidgets();

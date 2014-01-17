@@ -172,7 +172,7 @@
        <bool>false</bool>
       </attribute>
       <attribute name="headerStretchLastSection">
-       <bool>false</bool>
+       <bool>true</bool>
       </attribute>
       <column>
        <property name="text">
@@ -295,6 +295,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>treeWidgetLabels</sender>
+   <signal>currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnCurrentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>286</x>
+     <y>278</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>593</x>
+     <y>359</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnSliderThresholdReleased()</slot>
@@ -303,5 +319,6 @@
   <slot>OnTextSigmaReturned()</slot>
   <slot>OnSliderMinAreaReleased()</slot>
   <slot>OnTextMinAreaReturned()</slot>
+  <slot>OnCurrentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</slot>
  </slots>
 </ui>
