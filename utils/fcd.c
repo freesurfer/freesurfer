@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/17 15:25:29 $
- *    $Revision: 1.4 $
+ *    $Date: 2014/01/17 15:44:00 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -169,7 +169,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
   for (vno = 0 ; vno < fcd->mris_lh->nvertices ; vno++)
   {
     double xs, ys, zs, d, xv, yv, zv  ;
-    float  val;
+    float  val, val2;
     int    label, xvi, yvi, zvi ;
     VERTEX *v ;
 
@@ -195,9 +195,17 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
     }
 
     if (val >= 0)
-      MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
+    {
+      val2 = MRIgetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0) ;
+      if (val > val2)  // another thread already populated this voxel
+	MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
+    }
     else 
-      MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
+    {
+      val2 = MRIgetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0) ;
+      if (val < val2)  // another thread already populated this voxel
+	MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
+    }
   }
 
 #if 1
@@ -208,7 +216,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
   for (vno = 0 ; vno < fcd->mris_rh->nvertices ; vno++)
   {
     double xv, yv, zv, xs, ys, zs, d  ;
-    float  val;
+    float  val, val2;
     int   label, xvi, yvi, zvi ;
     VERTEX *v ;
 
@@ -233,9 +241,17 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
 	break ;
     }
     if (val >= 0)
-      MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
+    {
+      val2 = MRIgetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0) ;
+      if (val > val2)
+	MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
+    }
     else 
-      MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
+    {
+      val2 = MRIgetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0) ;
+      if (val < val2)
+	MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
+    }
   }
 
   mriseg = MRIsegment(fcd->mri_thickness_increase, thickness_thresh, 1e10) ;
