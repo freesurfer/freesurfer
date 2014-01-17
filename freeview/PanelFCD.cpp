@@ -83,12 +83,14 @@ void PanelFCD::UpdateLabelList(LayerFCD *layer_in)
   if (layer && layer->GetFCDData())
   {
     FCD_DATA* fcd = layer->GetFCDData();
+    QList<bool> flags = layer->GetLabelVisibility();
     for (int i = 0; i < fcd->nlabels; i++)
     {
-      if (fcd->labels[i]->n_points > 0)
+   //   if (fcd->labels[i]->n_points > 0)
       {
         QTreeWidgetItem* item = new QTreeWidgetItem( ui->treeWidgetLabels );
         item->setText(0, QString("%1").arg(QString(fcd->label_names[i])));
+        item->setCheckState(0, flags[i]?Qt::Checked:Qt::Unchecked);
       }
     }
   }
@@ -150,9 +152,9 @@ void PanelFCD::OnTextMinAreaReturned()
   }
 }
 
-void PanelFCD::OnCurrentItemChanged(QTreeWidgetItem *itemOld, QTreeWidgetItem *itemNew)
+void PanelFCD::OnLabelSelectionChanged()
 {
-  int n = ui->treeWidgetLabels->indexOfTopLevelItem(itemNew);
+  int n = ui->treeWidgetLabels->indexOfTopLevelItem(ui->treeWidgetLabels->currentItem());
   LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
   if (layer && n >= 0)
   {
@@ -161,3 +163,14 @@ void PanelFCD::OnCurrentItemChanged(QTreeWidgetItem *itemOld, QTreeWidgetItem *i
     MainWindow::GetMainWindow()->SetSlicePosition(pos);
   }
 }
+
+void PanelFCD::OnLabelItemChanged(QTreeWidgetItem *item)
+{
+  LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
+  if ( layer )
+  {
+    int n = ui->treeWidgetLabels->indexOfTopLevelItem(item);
+    layer->SetLabelVisible(n, item->checkState(0) == Qt::Checked);
+  }
+}
+

@@ -47,6 +47,13 @@ public:
 
   void GetLabelCentroidPosition(int nLabelIndex, double* pos_out);
 
+  QList<bool> GetLabelVisibility()
+  {
+    return m_labelVisibility;
+  }
+
+  void SetLabelVisible(int n, bool visible);
+
 signals:
   void LabelsChanged();
 
@@ -64,6 +71,7 @@ protected:
   FCD_DATA* m_fcd;
   vtkSmartPointer<vtkImageReslice>   mReslice[3];
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
+  QList<bool> m_labelVisibility;
 
   LayerMRI*  m_layerSource;
 

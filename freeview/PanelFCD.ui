@@ -45,6 +45,9 @@
           <property name="maximum">
            <number>100</number>
           </property>
+          <property name="pageStep">
+           <number>5</number>
+          </property>
           <property name="value">
            <number>100</number>
           </property>
@@ -71,7 +74,8 @@
       <item row="1" column="0">
        <widget class="QLabel" name="label_2">
         <property name="text">
-         <string>Threshold</string>
+         <string>Thickness
+Threshold</string>
         </property>
        </widget>
       </item>
@@ -79,6 +83,9 @@
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QSlider" name="sliderThreshold">
+          <property name="maximum">
+           <number>5</number>
+          </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -107,6 +114,9 @@
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QSlider" name="sliderSigma">
+          <property name="maximum">
+           <number>50</number>
+          </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -127,7 +137,8 @@
       <item row="3" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
-         <string>Min Area</string>
+         <string>Min # of 
+Voxels</string>
         </property>
        </widget>
       </item>
@@ -135,6 +146,15 @@
        <layout class="QHBoxLayout" name="horizontalLayout_5">
         <item>
          <widget class="QSlider" name="sliderMinArea">
+          <property name="maximum">
+           <number>50</number>
+          </property>
+          <property name="pageStep">
+           <number>1</number>
+          </property>
+          <property name="value">
+           <number>10</number>
+          </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -297,17 +317,33 @@
   </connection>
   <connection>
    <sender>treeWidgetLabels</sender>
-   <signal>currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</signal>
+   <signal>itemSelectionChanged()</signal>
    <receiver>PanelFCD</receiver>
-   <slot>OnCurrentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</slot>
+   <slot>OnLabelSelectionChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>286</x>
-     <y>278</y>
+     <x>252</x>
+     <y>316</y>
     </hint>
     <hint type="destinationlabel">
-     <x>593</x>
-     <y>359</y>
+     <x>452</x>
+     <y>626</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>treeWidgetLabels</sender>
+   <signal>itemChanged(QTreeWidgetItem*,int)</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnLabelItemChanged(QTreeWidgetItem*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>174</x>
+     <y>306</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>291</x>
+     <y>659</y>
     </hint>
    </hints>
   </connection>
@@ -319,6 +355,7 @@
   <slot>OnTextSigmaReturned()</slot>
   <slot>OnSliderMinAreaReleased()</slot>
   <slot>OnTextMinAreaReturned()</slot>
-  <slot>OnCurrentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</slot>
+  <slot>OnLabelSelectionChanged()</slot>
+  <slot>OnLabelItemChanged(QTreeWidgetItem*)</slot>
  </slots>
 </ui>

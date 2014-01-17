@@ -86,7 +86,10 @@ LayerFCD::~LayerFCD()
 bool LayerFCD::Load(const QString &subdir, const QString &subject)
 {
   m_sSubjectDir = subdir;
+  if (m_sSubjectDir[m_sSubjectDir.length()-1] == '/')
+    m_sSubjectDir.resize(m_sSubjectDir.size()-1);
   m_sSubject = subject;
+  SetFileName(m_sSubjectDir + "/" + m_sSubject);
 
   return LoadFromFile();
 }
@@ -104,6 +107,9 @@ void LayerFCD::Recompute()
   if (m_fcd)
   {
     ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), GetProperty()->GetMinArea());
+    m_labelVisibility.clear();
+    for (int i = 0; i < m_fcd->nlabels; i++)
+      m_labelVisibility << true;
     UpdateRASImage(m_imageData);
     emit LabelsChanged();
     emit ActorUpdated();
@@ -364,4 +370,37 @@ void LayerFCD::GetLabelCentroidPosition(int nLabelIndex, double *pos)
     ref_vol->NativeRASToRAS( pos, pos );
     m_layerSource->RASToTarget(pos, pos);
   }
+}
+
+void LayerFCD::SetLabelVisible(int nIndex, bool visible)
+{
+  LABEL* label = m_fcd->labels[nIndex];
+  FSVolume* ref_vol = m_layerSource->GetSourceVolume();
+  int n[3];
+  double pos[3];
+  int* dim = m_imageData->GetDimensions();
+  for ( int i = 0; i < label->n_points; i++ )
+  {
+    pos[0] = label->lv[i].x;
+    pos[1] = label->lv[i].y;
+    pos[2] = label->lv[i].z;
+    if ( label->coords == LABEL_COORDS_VOXEL )
+    {
+      MRIvoxelToWorld(ref_vol->GetMRI(), pos[0], pos[1], pos[2], pos, pos+1, pos+2);
+    }
+    else if (label->coords == LABEL_COORDS_TKREG_RAS)
+    {
+      ref_vol->TkRegToNativeRAS( pos, pos );
+    }
+    ref_vol->NativeRASToRAS( pos, pos );
+    ref_vol->RASToTargetIndex( pos, n );
+    if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
+         n[2] >= 0 && n[2] < dim[2] )
+    {
+      m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, visible?label->lv[i].vno:0 );
+    }
+  }
+  for (int i = 0; i < 3; i++)
+    mReslice[i]->Modified();
+  emit ActorUpdated();
 }

@@ -26,7 +26,8 @@ public slots:
   void OnSliderMinAreaReleased();
   void OnTextMinAreaReturned();
   void UpdateLabelList(LayerFCD* layer = NULL);
-  void OnCurrentItemChanged(QTreeWidgetItem* itemOld, QTreeWidgetItem* itemNew);
+  void OnLabelSelectionChanged();
+  void OnLabelItemChanged(QTreeWidgetItem* item);
 
 protected:
   void DoUpdateWidgets();
