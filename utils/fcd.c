@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/17 22:57:34 $
- *    $Revision: 1.6 $
+ *    $Date: 2014/01/18 19:18:24 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -185,7 +185,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
   MRISwriteFrameToValues(fcd->mris_rh, fcd->rh_thickness_on_rh, 0) ;
   MRISaverageVals(fcd->mris_rh, niter) ;
   MRISreadFrameFromValues(fcd->mris_rh, mri_rh, 0) ;
-  mri_rh_diff = MRIsubtract(mri_lh, mri_rh, NULL) ;  // lh minus rh on rh
+  mri_rh_diff = MRIsubtract(mri_rh, mri_lh, NULL) ;  // lh minus rh on rh
   MRIfree(&mri_lh); MRIfree(&mri_rh) ;
 
   MRIclear(fcd->mri_thickness_increase) ;
@@ -221,7 +221,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
       MRISsurfaceRASToVoxel(fcd->mris_lh, fcd->mri_thickness_increase, xs, ys, zs, &xv, &yv, &zv) ;
       xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
       label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
-      if (IS_WM(label) == 0)
+      if (IS_WM(label) == 0 && label >= MIN_CORTICAL_PARCELLATION && label != ctx_rh_unknown)
       {
 	if (label != base_label)
 	{
@@ -276,7 +276,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
       MRISsurfaceRASToVoxel(fcd->mris_rh, fcd->mri_thickness_increase, xs, ys, zs, &xv, &yv, &zv) ;
       xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
       label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
-      if (IS_WM(label) == 0)
+      if (IS_WM(label) == 0 && label >= MIN_CORTICAL_PARCELLATION && label != ctx_rh_unknown)
       {
 	if (label != base_label)
 	{
