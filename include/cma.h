@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/01/03 20:43:37 $
- *    $Revision: 1.69 $
+ *    $Author: fischl $
+ *    $Date: 2014/01/18 19:18:41 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -343,6 +343,8 @@ extern "C" {
 # Even further below are the color tables for aparc.a2005s and aparc.a2009s.
 
 */
+
+#define MIN_CORTICAL_PARCELLATION   1000
 
 #define    ctx_lh_unknown  1000 //                      25  5   25  0
 #define    ctx_lh_bankssts  1001 //                     25  100 40  0
