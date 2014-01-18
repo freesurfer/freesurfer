@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/17 22:57:34 $
- *    $Revision: 1.30 $
+ *    $Date: 2014/01/18 18:10:34 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -950,6 +950,8 @@ MRIcompactSegments(MRI_SEGMENTATION *mriseg)
     if (mriseg->segments[s].nvoxels == 0)
       break;
   }
+  mriseg->max_segments = s;
+  mriseg->nsegments = s;
   if (mriseg->nsegments == 0)
     return(NO_ERROR) ;  // nothing left after compacting
 
@@ -957,8 +959,6 @@ MRIcompactSegments(MRI_SEGMENTATION *mriseg)
   if (newseg)
   {
     mriseg->segments = newseg;
-    mriseg->max_segments = s;
-    mriseg->nsegments = s;
     if (DIAG_VERBOSE_ON && 0)
       fprintf(stdout, "\n        segments reduced to %d\n", s);
   }
@@ -973,8 +973,6 @@ MRIcompactSegments(MRI_SEGMENTATION *mriseg)
     memmove(newseg, oldseg, s*sizeof(MRI_SEGMENT)) ;
     free(oldseg) ;
     mriseg->segments = newseg;
-    mriseg->max_segments = s;
-    mriseg->nsegments = s;
   }
   return(NO_ERROR) ;
 }
@@ -1071,7 +1069,7 @@ MRIremoveSmallSegments(MRI_SEGMENTATION *mriseg, int min_voxels)
       if (mriseg->segments[s].voxels)
       {
         free(mriseg->segments[s].voxels);
-        mriseg->segments[s].voxels = 0;
+        mriseg->segments[s].voxels = NULL;
       }
       mriseg->segments[s].nvoxels = 0 ;
     }
