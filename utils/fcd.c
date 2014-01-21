@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/21 17:15:10 $
- *    $Revision: 1.8 $
+ *    $Date: 2014/01/21 18:32:21 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -316,7 +316,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
 
     fcd->labels[s] = MRIsegmentToLabel(mriseg, fcd->mri_thickness_increase, s) ;
     label = most_frequent_label(fcd->mri_aseg, &mriseg->segments[s]) ;
-    sprintf(fcd->labels[s]->name, cma_label_to_name(label)) ;
+    strcpy(fcd->labels[s]->name, cma_label_to_name(label)) ;
   }
   sort_labels(fcd) ;
 
