@@ -7,8 +7,8 @@
  * Original Author: Y. Tosa
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/21 21:19:34 $
- *    $Revision: 1.13 $
+ *    $Date: 2014/01/21 22:52:40 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -165,79 +165,81 @@ int MRIwriteControlPoints(const MPoint *pointArray,
 MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
                             MPoint *trgArray, LTA* lta)
 {
-	if (trgArray == NULL)
-     trgArray=(MPoint*) malloc(count* sizeof(MPoint));
-
+  if (trgArray == NULL)
+    trgArray=(MPoint*) malloc(count* sizeof(MPoint));
+  
   if (! lta->xforms[0].src.valid )
     ErrorExit(ERROR_BADPARM,"MRImapControlPoints LTA src geometry not valid!\n");
   if (! lta->xforms[0].dst.valid )
     ErrorExit(ERROR_BADPARM,"MRImapControlPoints LTA dst geometry not valid!\n");
-
+  
   // create face src and target mri from lta:
-	MRI* mri_src = MRIallocHeader(1,1,1,MRI_UCHAR,1);
-	useVolGeomToMRI(&lta->xforms[0].src,mri_src);
-	MRI* mri_trg = MRIallocHeader(1,1,1,MRI_UCHAR,1);
-	useVolGeomToMRI(&lta->xforms[0].dst,mri_trg);
-
+  MRI* mri_src = MRIallocHeader(1,1,1,MRI_UCHAR,1);
+  useVolGeomToMRI(&lta->xforms[0].src,mri_src);
+  MRI* mri_trg = MRIallocHeader(1,1,1,MRI_UCHAR,1);
+  useVolGeomToMRI(&lta->xforms[0].dst,mri_trg);
+  
   // set vox ras transforms depending on flag:
-  MATRIX * src_ras2vox, *trg_vox2ras;
+  MATRIX * src_ras2vox, *src_vox2ras, *trg_vox2ras;
   switch (useRealRAS)
   {
-    case 0:
-		{
-      MATRIX * src_vox2ras = MRIxfmCRS2XYZtkreg(mri_src);
-      src_ras2vox = MatrixInverse(src_vox2ras,NULL);	
-	  	MatrixFree(&src_vox2ras);
-      trg_vox2ras = MRIxfmCRS2XYZtkreg(mri_trg);
-      break;
-		}
-    case 1:
-		{
-      src_ras2vox = extract_r_to_i(mri_src);
-      trg_vox2ras = extract_i_to_r(mri_trg);
-      break;
-		}
-    default:
-      ErrorExit(ERROR_BADPARM,
-                "MRImapControlPoints has bad useRealRAS flag %d\n",
-                useRealRAS) ;
+  case 0:
+    src_vox2ras = MRIxfmCRS2XYZtkreg(mri_src);
+    src_ras2vox = MatrixInverse(src_vox2ras,NULL);	
+    MatrixFree(&src_vox2ras);
+    trg_vox2ras = MRIxfmCRS2XYZtkreg(mri_trg);
+    break;
+  case 1:
+    src_ras2vox = extract_r_to_i(mri_src);
+    trg_vox2ras = extract_i_to_r(mri_trg);
+    break;
+  default:
+    ErrorExit(ERROR_BADPARM,
+	      "MRImapControlPoints has bad useRealRAS flag %d\n",
+	      useRealRAS) ;
   }
-	
-	// make vox2vox:
-	lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
-
+  
+  // make vox2vox:
+  lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+  
   // concatenate transforms:
   MATRIX *M = NULL;
-	M = MatrixMultiply(lta->xforms[0].m_L, src_ras2vox, M);
-	M = MatrixMultiply(trg_vox2ras, M, M);
-	
-	// clenup some stuff:
-	MRIfree(&mri_src);
-	MRIfree(&mri_trg);
-	MatrixFree(&src_ras2vox);
-	MatrixFree(&trg_vox2ras);
-	
-	// map point array
+  M = MatrixMultiply(lta->xforms[0].m_L, src_ras2vox, M);
+  M = MatrixMultiply(trg_vox2ras, M, M);
+
+  if(Gdiag_no > 0){
+    printf("MRImapControlPoints(): M -------------------\n");
+    MatrixPrint(stdout,M);
+    printf("------------------\n");
+  }
+  
+  // clenup some stuff:
+  MRIfree(&mri_src);
+  MRIfree(&mri_trg);
+  MatrixFree(&src_ras2vox);
+  MatrixFree(&trg_vox2ras);
+  
+  // map point array
   VECTOR * p  = VectorAlloc(4,MATRIX_REAL);
-	VECTOR_ELT(p,4)=1.0;
+  VECTOR_ELT(p,4)=1.0;
   VECTOR * p2 = VectorAlloc(4,MATRIX_REAL);
-	int i;
-	for (i=0;i<count;i++)
-	{
-    VECTOR_ELT(p,1)=pointArray[i].x;
-		VECTOR_ELT(p,2)=pointArray[i].y;
-		VECTOR_ELT(p,3)=pointArray[i].z;
-		MatrixMultiply(M, p, p2) ;
-    trgArray[i].x=VECTOR_ELT(p2,1);
-    trgArray[i].y=VECTOR_ELT(p2,2);
-    trgArray[i].z=VECTOR_ELT(p2,3);
-	}
-	
-	// cleanup rest
-	MatrixFree(&M);
-	MatrixFree(&p);
-	MatrixFree(&p2);
-	
+  int i;
+  for (i=0;i<count;i++)
+    {
+      VECTOR_ELT(p,1)=pointArray[i].x;
+      VECTOR_ELT(p,2)=pointArray[i].y;
+      VECTOR_ELT(p,3)=pointArray[i].z;
+      MatrixMultiply(M, p, p2) ;
+      trgArray[i].x=VECTOR_ELT(p2,1);
+      trgArray[i].y=VECTOR_ELT(p2,2);
+      trgArray[i].z=VECTOR_ELT(p2,3);
+    }
+  
+  // cleanup rest
+  MatrixFree(&M);
+  MatrixFree(&p);
+  MatrixFree(&p2);
+  
   return trgArray;
 }
 
