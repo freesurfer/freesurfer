@@ -7,8 +7,8 @@
  * Original Author: Y. Tosa
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/21 20:56:01 $
- *    $Revision: 1.12 $
+ *    $Date: 2014/01/21 21:19:34 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -375,12 +375,12 @@ MATRIX *ControlPoints2TalMatrix(char *subject)
 }
 
 /*!
-  \fn MPoint *GetTalControlPoints(char **subjectlist, int nsubjects)
+  \fn MPoint *GetTalControlPoints(char **subjectlist, int nsubjects, int *pnctrtot)
   \brief Loads in the control points for each subject in the list and
   converts them to talairach (fsaverage) space. If a subject does not
   have a control.dat then it is skipped.
  */
-MPoint *GetTalControlPoints(char **subjectlist, int nsubjects)
+MPoint *GetTalControlPoints(char **subjectlist, int nsubjects, int *pnctrtot)
 {
   int nthsubject, nc, nctot, CPUseRealRAS,k;
   MPoint *subjctr, *fsactr, *ctr=NULL;
@@ -424,17 +424,17 @@ MPoint *GetTalControlPoints(char **subjectlist, int nsubjects)
   //for(nc = 0; nc < nctot; nc++)
   //printf("%g %g %g\n",ctr[nc].x,ctr[nc].y,ctr[nc].z);
   //MRIwriteControlPoints(ctr, nctot, 0, "mycontrol.dat");
-
+  *pnctrtot = nctot;
   return(ctr);
 }
 
 /*!
-  \fn MPoint *GetTalControlPointsSFile(char *subjectlistfile, int *pnsubjects)
+  \fn MPoint *GetTalControlPointsSFile(char *subjectlistfile, int *pnctrtot)
   \brief Loads in the control points for each subject in the file and
   converts them to talairach (fsaverage) space. If a subject does not
   have a control.dat then it is skipped.
  */
-MPoint *GetTalControlPointsSFile(char *subjectlistfile, int *pnsubjects)
+MPoint *GetTalControlPointsSFile(const char *subjectlistfile, int *pnctrtot)
 {
   MPoint *ctr;
   FILE *fp;
@@ -472,8 +472,7 @@ MPoint *GetTalControlPointsSFile(char *subjectlistfile, int *pnsubjects)
   }
   fclose(fp);
 
-  ctr = GetTalControlPoints(subjectlist, nsubjects);
-  *pnsubjects = nsubjects;
+  ctr = GetTalControlPoints(subjectlist, nsubjects, pnctrtot);
   free(subjectlist);
   return(ctr);
 }
