@@ -7,8 +7,8 @@
  * Original Author: Y.Tosa
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/17 21:51:48 $
- *    $Revision: 1.8 $
+ *    $Date: 2014/01/21 20:56:01 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,5 +54,10 @@ int MRIwriteControlPoints(const MPoint *pointArray,
 MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
                             MPoint *trgArray, LTA* lta);
 MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI *vol);	
+
+MATRIX *ControlPoints2TalMatrix(char *subject);
+MPoint *ControlPointsApplyMatrix(MPoint *srcctr, int nctrpoints, MATRIX *M, MPoint *outctr);
+MPoint *GetTalControlPoints(char **subjectlist, int nsubjects);
+MPoint *GetTalControlPointsSFile(char *subjectlistfile, int *pnsubjects);
 
 #endif // inclusion guard

@@ -7,8 +7,8 @@
  * Original Author: Y. Tosa
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/17 21:51:49 $
- *    $Revision: 1.11 $
+ *    $Date: 2014/01/21 20:56:01 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include "utils.h" //  fgetl
 #include "ctrpoints.h"
 #include "transform.h"
+#include "fio.h"
 
 extern char *cuserid(char *);
 
@@ -280,3 +281,200 @@ MPoint *ControlPoints2Vox(MPoint *ras, int npoints, int UseRealRAS, MRI *vol)
 
   return(crs);
 }
+
+
+/*!
+  \fn MPoint *ControlPointsApplyMatrix(MPoint *srcctr, int nctrpoints, MATRIX *M, MPoint *outctr)
+  \brief Multiplies the xyz of the control points by the given matrix
+ */
+MPoint *ControlPointsApplyMatrix(MPoint *srcctr, int nctrpoints, MATRIX *M, MPoint *outctr)
+{
+  int n;
+  MATRIX *srcras=NULL, *outras=NULL;
+
+  if(outctr == NULL)
+    outctr = (MPoint *)calloc(sizeof(MPoint),nctrpoints);
+
+  srcras = MatrixAlloc(4,1,MATRIX_REAL);
+  srcras->rptr[4][1] = 1;
+
+  for(n=0; n < nctrpoints; n++){
+    srcras->rptr[1][1] = srcctr[n].x;
+    srcras->rptr[1][2] = srcctr[n].y;
+    srcras->rptr[1][3] = srcctr[n].z;
+    outras = MatrixMultiply(M,srcras,outras);
+    outctr[n].x = outras->rptr[1][1];
+    outctr[n].y = outras->rptr[2][1];
+    outctr[n].z = outras->rptr[3][1];
+    //printf("%4.1f %4.1f %4.1f   %4.1f %4.1f %4.1f\n",
+    //	   srcctr[n].x,srcctr[n].y,srcctr[n].z,
+    //	   outctr[n].x,outctr[n].y,outctr[n].z);
+  }
+
+  return(outctr);
+}
+
+/*!
+  \fn MATRIX *ControlPoints2TalMatrix(char *subject)
+  \brief Computes the matrix that when multiplied by the control
+  points in control.dat bring the contol points into the "talairach"
+  (ie, fsaverage) space.
+ */
+MATRIX *ControlPoints2TalMatrix(char *subject)
+{
+  MATRIX *Ta, *Na, *Tv, *Nv, *invNa, *invTv, *XFM, *M;
+  char * SUBJECTS_DIR, tmpstr[2000];
+  MRI *fsa, *vol;
+  LTA *lta;
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+
+  sprintf(tmpstr,"%s/fsaverage/mri/orig.mgz",SUBJECTS_DIR);
+  printf("%s\n",tmpstr);
+  fsa = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+  if(fsa == NULL) return(NULL);
+  Na = MRIxfmCRS2XYZ(fsa,0);
+  Ta = MRIxfmCRS2XYZtkreg(fsa);
+  invNa = MatrixInverse(Na,NULL);
+
+  sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+  printf("%s\n",tmpstr);
+  vol = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+  if(vol == NULL) return(NULL);
+  Nv = MRIxfmCRS2XYZ(vol,0);
+  Tv = MRIxfmCRS2XYZtkreg(vol);
+  invTv = MatrixInverse(Tv,NULL);
+
+  sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",SUBJECTS_DIR,subject);
+  printf("%s\n",tmpstr);
+  lta = LTAreadEx(tmpstr);
+  if (lta == NULL) {
+    printf("ERROR: reading %s\n",tmpstr);
+    return(NULL);
+  }
+  XFM = MatrixCopy(lta->xforms[0].m_L,NULL);
+  LTAfree(&lta);
+
+  M = MatrixMultiply(Ta,invNa,NULL);
+  M = MatrixMultiply(M,XFM,M);
+  M = MatrixMultiply(M,Nv,M);
+  M = MatrixMultiply(M,invTv,M);
+
+  //printf("\n");  MatrixPrint(stdout,M);  printf("\n");
+
+  MatrixFree(&Ta);
+  MatrixFree(&Na);
+  MatrixFree(&Tv);
+  MatrixFree(&Nv);
+  MatrixFree(&invTv);
+  MatrixFree(&invNa);
+  MatrixFree(&XFM);
+  MRIfree(&fsa);
+  MRIfree(&vol);
+  return(M);
+}
+
+/*!
+  \fn MPoint *GetTalControlPoints(char **subjectlist, int nsubjects)
+  \brief Loads in the control points for each subject in the list and
+  converts them to talairach (fsaverage) space. If a subject does not
+  have a control.dat then it is skipped.
+ */
+MPoint *GetTalControlPoints(char **subjectlist, int nsubjects)
+{
+  int nthsubject, nc, nctot, CPUseRealRAS,k;
+  MPoint *subjctr, *fsactr, *ctr=NULL;
+  char *SUBJECTS_DIR,tmpstr[2000];
+  MATRIX *M;
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+
+  // First, count the total number of control points so structure can be allocated
+  nctot = 0;
+  for(nthsubject = 0; nthsubject < nsubjects; nthsubject ++){
+    sprintf(tmpstr,"%s/%s/tmp/control.dat",SUBJECTS_DIR,subjectlist[nthsubject]);
+    if(! fio_FileExistsReadable(tmpstr)) continue;
+    subjctr = MRIreadControlPoints(tmpstr, &nc, &CPUseRealRAS);
+    nctot += nc;
+    free(subjctr);
+  }
+  printf("  GetTalControlPoints(): nsubjects = %d, nctot = %d\n",nsubjects,nctot);
+  ctr = (MPoint *)calloc(sizeof(MPoint),nctot);
+
+  // Now load the control points for each subject and convert them "talairach", 
+  // ie, fsaverage space.
+  nctot = 0;
+  for(nthsubject = 0; nthsubject < nsubjects; nthsubject ++){
+    sprintf(tmpstr,"%s/%s/tmp/control.dat",SUBJECTS_DIR,subjectlist[nthsubject]);
+    if(! fio_FileExistsReadable(tmpstr)) continue;
+    subjctr = MRIreadControlPoints(tmpstr, &nc, &CPUseRealRAS);
+    M = ControlPoints2TalMatrix(subjectlist[nthsubject]);
+    fsactr = ControlPointsApplyMatrix(subjctr, nc, M, NULL);
+    for(k=0; k < nc; k++){
+      ctr[nctot+k].x = fsactr[k].x;
+      ctr[nctot+k].y = fsactr[k].y;
+      ctr[nctot+k].z = fsactr[k].z;
+    }
+    nctot += nc;
+    free(subjctr);
+    free(fsactr);
+    MatrixFree(&M);
+  }
+
+  //for(nc = 0; nc < nctot; nc++)
+  //printf("%g %g %g\n",ctr[nc].x,ctr[nc].y,ctr[nc].z);
+  //MRIwriteControlPoints(ctr, nctot, 0, "mycontrol.dat");
+
+  return(ctr);
+}
+
+/*!
+  \fn MPoint *GetTalControlPointsSFile(char *subjectlistfile, int *pnsubjects)
+  \brief Loads in the control points for each subject in the file and
+  converts them to talairach (fsaverage) space. If a subject does not
+  have a control.dat then it is skipped.
+ */
+MPoint *GetTalControlPointsSFile(char *subjectlistfile, int *pnsubjects)
+{
+  MPoint *ctr;
+  FILE *fp;
+  int nsubjects,r;
+  char tmpstr[2000], **subjectlist;
+
+  printf("  GetTalControlPointsSFile(): opening %s\n",subjectlistfile);
+  fp = fopen(subjectlistfile,"r");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",subjectlistfile);
+    return(NULL);
+  }
+  nsubjects = 0;
+  while (1) {
+    r = fscanf(fp,"%s",tmpstr);
+    if(r==EOF) break;
+    nsubjects++;
+  }
+  fclose(fp);
+
+  printf("   GetTalControlPointsSFile(): Found %d subjects\n",nsubjects);
+  if(nsubjects == 0){
+    printf(" ERROR: no subjects found in %s\n",subjectlistfile);
+    return(NULL);
+  }
+  subjectlist = (char **)calloc(sizeof(char*),nsubjects);
+
+  fp = fopen(subjectlistfile,"r");
+  nsubjects = 0;
+  while (1) {
+    r = fscanf(fp,"%s",tmpstr);
+    if(r==EOF) break;
+    subjectlist[nsubjects] = strcpyalloc(tmpstr);
+    nsubjects++;
+  }
+  fclose(fp);
+
+  ctr = GetTalControlPoints(subjectlist, nsubjects);
+  *pnsubjects = nsubjects;
+  free(subjectlist);
+  return(ctr);
+}
+
