@@ -4,6 +4,7 @@
 #include "LayerPropertyFCD.h"
 #include "MainWindow.h"
 
+
 PanelFCD::PanelFCD(QWidget *parent) :
   PanelLayer("FCD", parent),
   ui(new Ui::PanelFCD)
@@ -89,7 +90,8 @@ void PanelFCD::UpdateLabelList(LayerFCD *layer_in)
    //   if (fcd->labels[i]->n_points > 0)
       {
         QTreeWidgetItem* item = new QTreeWidgetItem( ui->treeWidgetLabels );
-        item->setText(0, QString("%1").arg(QString(fcd->label_names[i])));
+        item->setText(0, QString("%1   %2mm").arg(QString(fcd->label_names[i]))
+                      .arg(fcd->labels[i]->avg_stat, 0, 'g', 4));
         item->setCheckState(0, flags[i]?Qt::Checked:Qt::Unchecked);
       }
     }

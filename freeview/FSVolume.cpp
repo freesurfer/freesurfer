@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/19 19:57:35 $
- *    $Revision: 1.89 $
+ *    $Date: 2014/01/21 22:06:57 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,7 +78,8 @@ FSVolume::FSVolume( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_bCropToOriginal( false ),
   m_histoCDF( NULL ),
   m_nHistoFrame(0),
-  m_bValidHistogram(false)
+  m_bValidHistogram(false),
+  m_bSharedMRI(false)
 {
   m_imageData = NULL;
   if ( ref )
@@ -94,7 +95,7 @@ FSVolume::FSVolume( FSVolume* ref, QObject* parent ) : QObject( parent ),
 
 FSVolume::~FSVolume()
 {
-  if ( m_MRI )
+  if ( m_MRI && !m_bSharedMRI )
   {
     ::MRIfree( &m_MRI );
   }
@@ -197,6 +198,7 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
   return true;
 }
 
+
 bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 {
   ::SetProgressCallback(ProgressCallback, 0, 50);
@@ -231,6 +233,31 @@ bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
   {
     return false;
   }
+}
+
+bool FSVolume::CreateFromMRIData(MRI *mri)
+{
+  m_MRI = mri;
+  m_bSharedMRI = true;
+  MRIdircosToOrientationString( m_MRI, m_strOrientation );
+
+  MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
+  if (m_fMaxValue == m_fMinValue)
+    m_fMaxValue = m_fMinValue + 4;
+
+  UpdateHistoCDF();
+
+  this->CopyMatricesFromMRI();
+  if ( !this->MapMRIToImage() )
+  {
+    return false;
+  }
+
+  if ( m_volumeRef && m_volumeRef->m_MRIOrigTarget && !m_MRIOrigTarget )
+  {
+    m_MRIOrigTarget = CreateTargetMRI( m_MRI, m_volumeRef->m_MRIOrigTarget, false, m_bConform );
+  }
+  return true;
 }
 
 bool FSVolume::Restore( const QString& filename, const QString& reg_filename )
@@ -1361,7 +1388,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
   return mri;
 }
 
-bool FSVolume::MapMRIToImage( )
+bool FSVolume::MapMRIToImage( bool do_not_create_image )
 {
   // first create target MRI
   float bounds[6];
@@ -1661,7 +1688,7 @@ bool FSVolume::MapMRIToImage( )
   SetMRITarget( rasMRI );
   UpdateRASToRASMatrix();
 
-  if ( !CreateImage( rasMRI ) )
+  if ( !do_not_create_image && !CreateImage( rasMRI ) )
   {
     return false;
   }
@@ -2236,6 +2263,63 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
       emit ProgressChanged( nProgress );
     }
   }
+}
+
+void FSVolume::UpdateMRIToImage()
+{
+  vtkImageData* image = m_imageData;
+  MRI* mri = m_MRI;
+  int zFrames = mri->nframes;
+  int* dim = image->GetDimensions();
+  int zX = dim[0];
+  int zY = dim[1];
+  int zZ = dim[2];
+
+  int nTuple = 0;
+  vtkDataArray *scalars = image->GetPointData()->GetScalars();
+  scalars->Reset();
+  for ( int nZ = 0; nZ < zZ; nZ++ )
+  {
+    for ( int nY = 0; nY < zY; nY++ )
+    {
+      for ( int nX = 0; nX < zX; nX++ )
+      {
+        for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
+        {
+          switch ( mri->type )
+          {
+          case MRI_UCHAR:
+            scalars->SetComponent( nTuple, nFrame,
+                                   MRIseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          case MRI_INT:
+            scalars->SetComponent( nTuple, nFrame,
+                                   MRIIseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          case MRI_LONG:
+            scalars->SetComponent( nTuple, nFrame,
+                                   MRILseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          case MRI_FLOAT:
+            scalars->SetComponent( nTuple, nFrame,
+                                   MRIFseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          case MRI_SHORT:
+            scalars->SetComponent( nTuple, nFrame,
+                                   MRISseq_vox( mri, nX, nY, nZ, nFrame ) );
+            break;
+          default:
+            break;
+          }
+        }
+        nTuple++;
+      }
+    }
+  }
+
+  MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
+
+  m_imageData->Modified();
 }
 
 vtkImageData* FSVolume::GetImageOutput()

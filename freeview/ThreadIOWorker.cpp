@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/16 22:18:13 $
- *    $Revision: 1.11 $
+ *    $Date: 2014/01/21 22:06:58 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -286,7 +286,14 @@ void ThreadIOWorker::run()
     }
     else
     {
+      /*
+      QList<LayerMRI*> mri_layers = layer->GetMRILayers();
+      foreach (LayerMRI* mri, mri_layers)
+        emit Finished(mri, JT_LoadVolume);
+
       emit Finished(m_layer, m_nJobType);
+      */
+      emit FCDLoadFinished(layer);
     }
   }
   disconnect(qApp, SIGNAL(GlobalProgress(int)), this, SIGNAL(Progress(int)));

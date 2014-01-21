@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/17 17:36:03 $
- *    $Revision: 1.265 $
+ *    $Date: 2014/01/21 22:06:58 $
+ *    $Revision: 1.266 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -97,6 +97,7 @@
 #include "LayerConnectomeMatrix.h"
 #include "DialogLoadSurface.h"
 #include "LayerFCD.h"
+#include "LayerPropertyFCD.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -383,6 +384,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_threadIOWorker = new ThreadIOWorker( this );
   connect( m_threadIOWorker, SIGNAL(Error(Layer*, int)), this, SLOT(OnIOError(Layer*, int)), Qt::QueuedConnection );
   connect( m_threadIOWorker, SIGNAL(Finished(Layer*, int )), this, SLOT(OnIOFinished(Layer*, int)), Qt::QueuedConnection );
+  connect( m_threadIOWorker, SIGNAL(FCDLoadFinished(LayerFCD*)), this, SLOT(OnFCDLoadFinished(LayerFCD*)), Qt::QueuedConnection);
   connect( m_threadIOWorker, SIGNAL(started()), this, SLOT(SetProcessing()));
 
   connect( m_threadIOWorker, SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)) );
@@ -4776,6 +4778,16 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
   }
 }
 
+void MainWindow::OnFCDLoadFinished(LayerFCD *fcd)
+{
+  QList<LayerMRI*> mri_layers = fcd->GetMRILayers();
+  foreach (LayerMRI* mri, mri_layers)
+  {
+    OnIOFinished(mri, ThreadIOWorker::JT_LoadVolume);
+  }
+  OnIOFinished(fcd, ThreadIOWorker::JT_LoadFCD);
+}
+
 bool MainWindow::UpdateSurfaceCorrelation(LayerSurface *layer)
 {
   QList<Layer*> layers = GetLayerCollection("Surface")->GetLayers();
@@ -6017,6 +6029,7 @@ void MainWindow::LoadFCD(const QString &subdir, const QString &subject)
 {
   LayerFCD* layer = new LayerFCD(m_layerVolumeRef);
   layer->SetName(subject);
+  layer->SetMRILayerBufferCTAB(m_luts->GetColorTable(0));
   QVariantMap map;
   map["SubjectDir"] = subdir;
   map["Subject"] = subject;

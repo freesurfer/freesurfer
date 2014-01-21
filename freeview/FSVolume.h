@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/19 19:57:35 $
- *    $Revision: 1.40 $
+ *    $Date: 2014/01/21 22:06:58 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,7 @@ public:
   virtual ~FSVolume();
 
   bool Create( FSVolume* src, bool bCopyVoxelData, int data_type );
+  bool CreateFromMRIData( MRI* mri);
 
   bool MRIRead( const QString& filename, const QString& reg_filename );
   bool MRIWrite( const QString& filename, int nSampleMethod = SAMPLE_NEAREST, bool resample = true );
@@ -199,14 +200,18 @@ public:
     return m_bValidHistogram;
   }
 
+  bool MapMRIToImage( bool do_not_create_image = false );
+
 Q_SIGNALS:
   void ProgressChanged( int n );
+
+public slots:
+  void UpdateMRIToImage();
 
 protected:
   bool LoadMRI( const QString& filename, const QString& reg_filename );
   bool LoadRegistrationMatrix( const QString& filename );
   void UpdateHistoCDF(int frame = 0);
-  bool MapMRIToImage( );
   void CopyMRIDataToImage( MRI* mri, vtkImageData* image );
   void CopyMatricesFromMRI();
   bool CreateImage( MRI* mri );
@@ -255,6 +260,8 @@ protected:
   double    m_dBounds[6];
   bool      m_bCrop;
   bool      m_bCropToOriginal;
+
+  bool      m_bSharedMRI;
 };
 
 #endif

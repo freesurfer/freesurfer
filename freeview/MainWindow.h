@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/16 22:18:12 $
- *    $Revision: 1.140 $
+ *    $Date: 2014/01/21 22:06:58 $
+ *    $Revision: 1.141 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,7 @@ class DialogLabelStats;
 class VolumeFilterWorkerThread;
 class VolumeFilter;
 class DialogLineProfile;
+class LayerFCD;
 
 #define MAX_RECENT_FILES    10
 
@@ -369,6 +370,7 @@ protected slots:
   void OnCloseTrack();
   void OnIOError( Layer* layer, int ntype );
   void OnIOFinished( Layer* layer, int ntype );
+  void OnFCDLoadFinished(LayerFCD* layer);
   void OnCycleLayer();
   void OnReverseCycleLayer();
   void OnSetModeNavigate();

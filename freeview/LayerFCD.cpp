@@ -27,7 +27,9 @@
 #include <QTimer>
 
 LayerFCD::LayerFCD(LayerMRI* layerMRI, QObject *parent) : LayerVolumeBase(parent),
-  m_fcd(NULL)
+  m_fcd(NULL),
+  m_mri_increase(NULL),
+  m_mri_decrease(NULL)
 {
   m_strTypeNames.push_back( "FCD" );
   m_sPrimaryType = "FCD";
@@ -44,10 +46,32 @@ LayerFCD::LayerFCD(LayerMRI* layerMRI, QObject *parent) : LayerVolumeBase(parent
   mProperty = new LayerPropertyFCD( this );
 
   m_layerSource = layerMRI;
-  GetProperty()->SetLookupTable(layerMRI->GetProperty()->GetLUTTable());
-  m_imageDataRef = layerMRI->GetImageData();
+  if (m_layerSource)
+    InitializeData();
+
+  LayerPropertyFCD* p = GetProperty();
+  connect( p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) );
+  connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
+  connect( p, SIGNAL(ThicknessThresholdChanged(double)), this, SLOT(Recompute()));
+  connect( p, SIGNAL(SigmaChanged(double)), this, SLOT(Recompute()));
+  connect( p, SIGNAL(MinAreaChanged(double)), this, SLOT(Recompute()));
+
+  for (int i = 0; i < 6; i++)
+    m_bufferMRIs << (new LayerMRI(NULL));
+}
+
+LayerFCD::~LayerFCD()
+{
+  if (m_fcd)
+    FCDfree(&m_fcd);
+}
+
+void LayerFCD::InitializeData()
+{
   if ( m_layerSource )
   {
+    GetProperty()->SetLookupTable(m_layerSource->GetProperty()->GetLUTTable());
+    m_imageDataRef = m_layerSource->GetImageData();
     SetWorldOrigin( m_layerSource->GetWorldOrigin() );
     SetWorldVoxelSize( m_layerSource->GetWorldVoxelSize() );
     SetWorldSize( m_layerSource->GetWorldSize() );
@@ -69,18 +93,6 @@ LayerFCD::LayerFCD(LayerMRI* layerMRI, QObject *parent) : LayerVolumeBase(parent
     memset( ptr, 0, m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
     InitializeActors();
   }
-
-  LayerPropertyFCD* p = GetProperty();
-  connect( p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) );
-  connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
-  connect( p, SIGNAL(ThicknessThresholdChanged(double)), this, SLOT(Recompute()));
-  connect( p, SIGNAL(SigmaChanged(double)), this, SLOT(Recompute()));
-  connect( p, SIGNAL(MinAreaChanged(double)), this, SLOT(Recompute()));
-}
-
-LayerFCD::~LayerFCD()
-{
-  //if (m_fcd) ;
 }
 
 bool LayerFCD::Load(const QString &subdir, const QString &subject)
@@ -97,9 +109,114 @@ bool LayerFCD::Load(const QString &subdir, const QString &subject)
 bool LayerFCD::LoadFromFile()
 {
   m_fcd = ::FCDloadData(m_sSubjectDir.toAscii().data(), m_sSubject.toAscii().data());
-  Recompute();
+  if (m_fcd)
+  {
+    if (!m_fcd->mri_norm)
+    {
+      cerr << "Did not find norm volume for FCD data" << endl;
+      return false;
+    }
+    MakeMRILayers();
+    Recompute();
+  }
 
   return (m_fcd != NULL);
+}
+
+void LayerFCD::MakeMRILayers()
+{
+  if (true)
+  {
+    LayerMRI* mri = PopMRIfromBuffer();
+    mri->SetName(GetName() + "_norm");
+    mri->SetFileName(m_fcd->mri_norm->fname);
+    if ( mri->CreateFromMRIData((void*)m_fcd->mri_norm) )
+    {
+      if (!m_layerSource)
+      {
+        m_layerSource = mri;
+        InitializeData();
+      }
+    //  mri->GetProperty()->SetLUTCTAB(m_layerSource->GetProperty()->GetLUTCTAB());
+      m_listMRIs << mri;
+    }
+    else
+    {
+      cerr << "Failed to create norm layer" << endl;
+      delete mri;
+    }
+  }
+
+  if (m_fcd->mri_flair)
+  {
+    LayerMRI* mri = PopMRIfromBuffer();
+    mri->SetName(GetName() + "_flair");
+    mri->SetFileName(m_fcd->mri_flair->fname);
+    if ( mri->CreateFromMRIData((void*)m_fcd->mri_flair) )
+    {
+      m_listMRIs << mri;
+    }
+    else
+      delete mri;
+  }
+
+  if (m_fcd->mri_aseg)
+  {
+    LayerMRI* mri = PopMRIfromBuffer();
+    mri->SetName(GetName() + "_aseg");
+    mri->SetFileName(m_fcd->mri_aseg->fname);
+    if ( mri->CreateFromMRIData((void*)m_fcd->mri_aseg) )
+    {
+      mri->GetProperty()->SetColorMap(LayerPropertyMRI::LUT);
+      m_listMRIs << mri;
+    }
+    else
+      delete mri;
+  }
+
+  if (m_fcd->mri_thickness_increase)
+  {
+    LayerMRI* mri = PopMRIfromBuffer();
+    mri->SetName(GetName() + "_thickness_increase");
+    mri->SetFileName(m_fcd->mri_thickness_increase->fname);
+    if ( mri->CreateFromMRIData((void*)m_fcd->mri_thickness_increase) )
+    {
+      mri->GetProperty()->SetColorMap(LayerPropertyMRI::Heat);
+      m_listMRIs << mri;
+      m_mri_increase = mri;
+    }
+    else
+      delete mri;
+  }
+
+  if (m_fcd->mri_thickness_decrease)
+  {
+    LayerMRI* mri = PopMRIfromBuffer();
+    mri->SetName(GetName() + "_thickness_decrease");
+    mri->SetFileName(m_fcd->mri_thickness_decrease->fname);
+    if ( mri->CreateFromMRIData((void*)m_fcd->mri_thickness_decrease) )
+    {
+      mri->GetProperty()->SetColorMap(LayerPropertyMRI::Heat);
+      m_listMRIs << mri;
+      m_mri_decrease = mri;
+    }
+    else
+      delete mri;
+  }
+
+  for (int i = 0; i < m_bufferMRIs.size(); i++)
+    delete m_bufferMRIs[i];
+  m_bufferMRIs.clear();
+}
+
+
+LayerMRI* LayerFCD::PopMRIfromBuffer()
+{
+  LayerMRI* mri = m_bufferMRIs[0];
+  m_bufferMRIs.removeFirst();
+  if (m_layerSource)
+    mri->SetRefVolume(m_layerSource->GetSourceVolume());
+  return mri;
 }
 
 void LayerFCD::Recompute()
@@ -111,6 +228,16 @@ void LayerFCD::Recompute()
     for (int i = 0; i < m_fcd->nlabels; i++)
       m_labelVisibility << true;
     UpdateRASImage(m_imageData);
+
+    if (m_mri_increase)
+    {
+      m_mri_increase->UpdateMRIToImage();
+    }
+    if (m_mri_decrease)
+    {
+      m_mri_decrease->UpdateMRIToImage();
+    }
+
     emit LabelsChanged();
     emit ActorUpdated();
   }
@@ -403,4 +530,10 @@ void LayerFCD::SetLabelVisible(int nIndex, bool visible)
   for (int i = 0; i < 3; i++)
     mReslice[i]->Modified();
   emit ActorUpdated();
+}
+
+void LayerFCD::SetMRILayerBufferCTAB(COLOR_TABLE *ctab)
+{
+  foreach (LayerMRI* mri, m_bufferMRIs)
+    mri->GetProperty()->SetLUTCTAB(ctab);
 }

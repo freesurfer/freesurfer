@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/16 22:18:13 $
- *    $Revision: 1.8 $
+ *    $Date: 2014/01/21 22:06:58 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,7 @@
 #include <QVariantMap>
 
 class Layer;
+class LayerFCD;
 
 class ThreadIOWorker : public QThread
 {
@@ -52,6 +53,7 @@ signals:
   void Progress( int n );
   void Error( Layer*, int jobtype );
   void Finished( Layer*, int jobtype );
+  void FCDLoadFinished(LayerFCD*);
 
 public slots:
 

@@ -29,6 +29,18 @@
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>5</number>
+    </property>
     <item>
      <layout class="QGridLayout" name="gridLayout">
       <item row="0" column="0">
@@ -188,6 +200,9 @@ Voxels</string>
       <property name="expandsOnDoubleClick">
        <bool>false</bool>
       </property>
+      <property name="columnCount">
+       <number>1</number>
+      </property>
       <attribute name="headerVisible">
        <bool>false</bool>
       </attribute>
@@ -196,7 +211,7 @@ Voxels</string>
       </attribute>
       <column>
        <property name="text">
-        <string notr="true">1</string>
+        <string notr="true">name</string>
        </property>
       </column>
      </widget>

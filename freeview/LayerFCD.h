@@ -6,6 +6,7 @@
 
 extern "C"
 {
+#include "colortab.h"
 #include "fcd.h"
 }
 
@@ -54,8 +55,16 @@ public:
 
   void SetLabelVisible(int n, bool visible);
 
+  QList<LayerMRI*> GetMRILayers()
+  {
+    return m_listMRIs;
+  }
+
+  void SetMRILayerBufferCTAB(COLOR_TABLE* ctab);
+
 signals:
   void LabelsChanged();
+  void LayerMRICreated(LayerMRI* mri);
 
 protected slots:
   void UpdateOpacity();
@@ -63,8 +72,11 @@ protected slots:
   void Recompute();
 
 protected:
+  void InitializeData();
   void InitializeActors();
   void UpdateRASImage(vtkImageData* rasImage);
+  LayerMRI* PopMRIfromBuffer();
+  void MakeMRILayers();
 
   virtual void OnSlicePositionChanged( int nPlane );
 
@@ -74,6 +86,10 @@ protected:
   QList<bool> m_labelVisibility;
 
   LayerMRI*  m_layerSource;
+  QList<LayerMRI*>  m_listMRIs;
+  QList<LayerMRI*>  m_bufferMRIs;     // workaround for a strange thread bug
+  LayerMRI*   m_mri_increase;
+  LayerMRI*   m_mri_decrease;
 
   vtkSmartPointer<vtkImageActor>  m_sliceActor2D[3];
   vtkSmartPointer<vtkImageActor>  m_sliceActor3D[3];

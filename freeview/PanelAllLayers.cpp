@@ -301,7 +301,9 @@ void PanelAllLayers::OnItemSelectionChanged()
     if (!layers.isEmpty())
     {
       foreach (Layer* l, layers)
+      {
         panel->ConnectLayer(l);
+      }
     }
   }
 }

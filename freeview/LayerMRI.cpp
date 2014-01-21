@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/21 03:57:46 $
- *    $Revision: 1.145 $
+ *    $Date: 2014/01/21 22:06:58 $
+ *    $Revision: 1.146 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -253,6 +253,33 @@ bool LayerMRI::LoadVolumeFromFile( )
   {
     return false;
   }
+
+  ParseSubjectName(m_sFilename);
+  InitializeVolume();
+  InitializeActors();
+
+  GetProperty()->SetVolumeSource( m_volumeSource );
+  GetProperty()->RestoreSettings( m_sFilename );
+
+  if (m_nGotoLabelOrientation >= 0)
+    m_nGotoLabelSlice = this->GoToLabel(m_nGotoLabelOrientation, m_strGotoLabelName);
+
+  return true;
+}
+
+bool LayerMRI::CreateFromMRIData(void *mri_ptr)
+{
+  MRI* mri = (MRI*)mri_ptr;
+  if ( m_volumeSource )
+  {
+    delete m_volumeSource;
+  }
+  m_volumeSource = new FSVolume( m_volumeRef );
+  m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
+  m_volumeSource->SetConform( m_bConform );
+  m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
+  if (!m_volumeSource->CreateFromMRIData(mri))
+    return false;
 
   ParseSubjectName(m_sFilename);
   InitializeVolume();
@@ -3101,3 +3128,11 @@ bool LayerMRI::HasValidHistogram()
   return m_volumeSource ? m_volumeSource->HasValidHistogram() : false;
 }
 
+void LayerMRI::UpdateMRIToImage()
+{
+  m_volumeSource->MapMRIToImage(true);
+  GetProperty()->SetVolumeSource(m_volumeSource);
+  for (int i = 0; i < 3; i++)
+    mReslice[i]->Modified();
+  emit ActorUpdated();
+}
