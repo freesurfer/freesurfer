@@ -31,5 +31,6 @@ typedef struct
 
 FCD_DATA   *FCDloadData(char *sdir, char *subject);
 int         FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, int size_thresh) ;
+int         FCDfree(FCD_DATA **pfcd) ;
 
 #endif
