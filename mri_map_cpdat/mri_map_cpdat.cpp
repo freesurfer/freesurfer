@@ -7,8 +7,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/21 21:21:29 $
- *    $Revision: 1.5 $
+ *    $Date: 2014/01/21 23:07:41 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,20 +47,26 @@ struct Parameters
   string cpout;
   string lta;
   string subjectlistfile;
+  string subject;
+  int ToMNI305;
+  int FromMNI305;
 };
 static struct Parameters P =
-  { "","",""};
+  { "","","","","",0,0};
 
 static int get_option(int argc, char *argv[], Parameters & P) ;
 static void  usage_exit(int code) ;
 
 static char vcid[] =
-  "$Id: mri_map_cpdat.cpp,v 1.5 2014/01/21 21:21:29 greve Exp $";
+  "$Id: mri_map_cpdat.cpp,v 1.6 2014/01/21 23:07:41 greve Exp $";
 char *Progname = NULL;
+static LTA *LTAloadTalairachXFM(const char *subject);
+static LTA *LTAloadTalairachXFMInv(const char *subject);
 
 int main(int argc, char *argv[])
 {
   int    nargs;
+  LTA* lta=NULL;
 
   // Default initialization
   nargs = handle_version_option(argc, argv,vcid,"$Name:  $");
@@ -81,18 +87,29 @@ int main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if( (P.cpout == "" || P.cpin == "" || P.lta == "") &&
-      (P.cpout == "" || P.subjectlistfile == ""))
-  {
-    usage_exit(0) ;
+  if(P.cpout == ""){
+    printf("ERROR: need to specify an output control file\n");
+    usage_exit(1) ;
   }
 
   if(P.subjectlistfile != ""){
     int nctrtot;
     MPoint *ctr;
     ctr = GetTalControlPointsSFile(P.subjectlistfile.c_str(), &nctrtot);
+    if(ctr == NULL) exit(1);
+    printf("Found %d control points total\n",nctrtot);
     MRIwriteControlPoints(ctr, nctrtot, 0, P.cpout.c_str());
     exit(0);
+  }
+
+  if(P.cpin == ""){
+    printf("ERROR: need to specify an input control file\n");
+    usage_exit(1) ;
+  }
+
+  if(P.lta == "" && P.subject == ""){
+    printf("ERROR: need to specify an LTA file\n");
+    usage_exit(1) ;
   }
 
   int count = 0;
@@ -100,9 +117,19 @@ int main(int argc, char *argv[])
 
   // read ctrl points
   MPoint *pArray = MRIreadControlPoints(P.cpin.c_str(), &count, &useRealRAS);
+  if(pArray == NULL) exit(1);
+
   // read lta
   cout << "Reading LTA" << endl;
-  LTA* lta = LTAread(P.lta.c_str());
+  if(P.subject == "") lta = LTAread(P.lta.c_str());
+  else{
+    if(P.ToMNI305)   lta = LTAloadTalairachXFM(P.subject.c_str());
+    if(P.FromMNI305) lta = LTAloadTalairachXFMInv(P.subject.c_str());
+  }
+
+  if(lta == NULL) exit(1);
+  LTAprint(stdout, lta);
+
   // map ctrl points
   cout << "Mapping control points..." << endl;
   MPoint *mappedArray = MRImapControlPoints(pArray,count,useRealRAS,NULL,lta);
@@ -148,11 +175,21 @@ get_option(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--lta: Using "<< P.lta << " as transform." << endl;
   }
-  else if (!strcmp(option, "SL"))
+  else if (!strcmp(option, "SLF"))
   {
     P.subjectlistfile = string(argv[1]);
     nargs = 1;
-    cout << "--sl: Using "<< P.subjectlistfile << " as subjectlist." << endl;
+    cout << "--slf: Using "<< P.subjectlistfile << " as subjectlist." << endl;
+  }
+  else if (!strcmp(option, "TOMNI305")) {
+    P.subject = string(argv[1]);
+    P.ToMNI305 = 1;
+    nargs = 1;
+  }
+  else if (!strcmp(option, "FROMMNI305")) {
+    P.subject = string(argv[1]);
+    P.FromMNI305 = 1;
+    nargs = 1;
   }
   else
   {
@@ -172,7 +209,63 @@ usage_exit(int code)
   printf("  -in  <file>      input  control point txt file\n");
   printf("  -out <file>      output control point txt file\n");
   printf("  -lta <file>      lta transform file to be applied\n");
-  printf("  -sl subjectlistfile : maps all control points from all subjects listed in the text/ascii subjectlistfile to talairach space\n");
+  printf("  -tomni305 <subject>  get lta from talairach.xfm\n");
+  printf("  -frommni305 <subject>  get lta from talairach.xfm\n");
+  printf("  -slf subjectlistfile : maps all control points from all subjects listed in the text/ascii subjectlistfile to mni305 (talairach) space\n");
   printf("  \n");
   exit(code);
 }
+
+static LTA *LTAloadTalairachXFM(const char *subject)
+{
+  LTA *lta;
+  char tmpstr[2000];
+  MRI *fsaorig, *orig;
+
+  sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",getenv("SUBJECTS_DIR"),subject);
+  lta = LTAread(tmpstr);
+  if(lta == NULL) return(NULL);
+
+  sprintf(tmpstr,"%s/%s/mri/orig.mgz",getenv("SUBJECTS_DIR"),subject);
+  orig = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+  if(orig == NULL) return(NULL);
+
+  sprintf(tmpstr,"%s/fsaverage/mri/orig.mgz",getenv("SUBJECTS_DIR"));
+  fsaorig = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+  if(fsaorig == NULL) return(NULL);
+
+  LTAsetVolGeom(lta, orig, fsaorig);
+
+  MRIfree(&orig);
+  MRIfree(&fsaorig);
+
+  return(lta);
+}
+
+static LTA *LTAloadTalairachXFMInv(const char *subject)
+{
+  LTA *lta;
+  char tmpstr[2000];
+  MRI *fsaorig, *orig;
+
+  sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",getenv("SUBJECTS_DIR"),subject);
+  lta = LTAread(tmpstr);
+  if(lta == NULL) return(NULL);
+  lta->xforms[0].m_L = MatrixInverse(lta->xforms[0].m_L,lta->xforms[0].m_L);
+
+  sprintf(tmpstr,"%s/%s/mri/orig.mgz",getenv("SUBJECTS_DIR"),subject);
+  orig = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+  if(orig == NULL) return(NULL);
+
+  sprintf(tmpstr,"%s/fsaverage/mri/orig.mgz",getenv("SUBJECTS_DIR"));
+  fsaorig = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+  if(fsaorig == NULL) return(NULL);
+
+  LTAsetVolGeom(lta, fsaorig, orig);
+
+  MRIfree(&orig);
+  MRIfree(&fsaorig);
+
+  return(lta);
+}
+
