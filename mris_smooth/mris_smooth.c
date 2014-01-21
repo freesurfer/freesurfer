@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/07 23:53:58 $
- *    $Revision: 1.29 $
+ *    $Date: 2014/01/21 18:48:21 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_smooth.c,v 1.29 2014/01/07 23:53:58 fischl Exp $";
+  "$Id: mris_smooth.c,v 1.30 2014/01/21 18:48:21 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,6 +58,8 @@ static int normalize_flag = 0 ;
 static char curvature_fname[STRLEN] = "curv" ;
 static char area_fname[STRLEN] = "area" ;
 static int nbrs = 2 ;
+static int dilates = 5 ;
+static int npasses = 1 ;
 static int normalize_area = 0 ;
 static int navgs = 10 ;
 static int niterations = 10 ;
@@ -88,13 +90,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_smooth.c,v 1.29 2014/01/07 23:53:58 fischl Exp $",
+   "$Id: mris_smooth.c,v 1.30 2014/01/21 18:48:21 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_smooth.c,v 1.29 2014/01/07 23:53:58 fischl Exp $",
+           "$Id: mris_smooth.c,v 1.30 2014/01/21 18:48:21 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -141,29 +143,45 @@ main(int argc, char *argv[])
   if (gaussian_thresh > 0)
   {
     double  kthresh ;
-    int     vno, count ;
+    int     vno, count, n ;
     VERTEX *v ;
 
     MRISuseGaussianCurvature(mris) ;
-    MRISwriteCurvature(mris, "lh.K.mgz") ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRISwriteCurvature(mris, "lh.K.mgz") ;
     kthresh = MRISfindCurvatureThreshold(mris, gaussian_thresh) ;
     printf("setting curvature threshold to %2.3f\n", kthresh) ;
-    MRISclearMarks(mris) ;
-    for (count = vno = 0 ; vno < mris->nvertices ; vno++)
-    {
-      v = &mris->vertices[vno] ;
-      if (fabs(v->K) >= kthresh)
-	v->marked = 1 ;
 
+    for (n = 0 ; n < npasses ; n++)
+    {
+      MRISclearMarks(mris) ;
+      MRIScomputeSecondFundamentalForm(mris) ;
+      MRISuseGaussianCurvature(mris) ;
+      for (count = vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+	v = &mris->vertices[vno] ;
+	if (fabs(v->K) >= kthresh)
+	{
+	  count++ ;
+	  v->marked = 1 ;
+	}
+      }
+      printf("smoothing %d marked vertices\n", count) ;
+      MRISdilateMarked(mris, dilates) ;
+      if (Gdiag & DIAG_WRITE)
+      {
+	char   fname[STRLEN] ;
+	sprintf(fname, "%s.marked.%2.2d.mgz",
+		mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", n) ;
+	MRISwriteMarked(mris, fname) ;
+      }
+      MRISinvertMarks(mris) ;
+      MRISsoapBubbleVertexPositions(mris, 1000) ;
     }
-    MRISdilateMarked(mris, nbrs) ;
-    MRISwriteMarked(mris, "lh.marked.mgz") ;
-    MRISinvertMarks(mris) ;
-    MRISsoapBubbleVertexPositions(mris, 1000) ;
     printf("writing smoothed surface to %s\n", out_fname) ;
     MRISwrite(mris, out_fname) ;
 
-    exit(1) ;
+    exit(0) ;
   }
   else
     gaussian_thresh = KTHRESH ;
@@ -427,6 +445,11 @@ get_option(int argc, char *argv[])
              gaussian_norm, gaussian_avgs) ;
       nargs = 2 ;
       break ;
+    case 'D':
+      dilates = atoi(argv[2]) ;
+      printf("dilating smoothing neighborhood %d times before smoothing\n", dilates) ;
+      nargs = 1 ;
+      break ;
     case 'V':
       Gdiag_no = atoi(argv[2]) ;
       printf("debugging vertex %d\n", Gdiag_no) ;
@@ -459,6 +482,11 @@ get_option(int argc, char *argv[])
     case 'N':
       niterations = atoi(argv[2]) ;
       fprintf(stderr, "smoothing for %d iterations\n", niterations) ;
+      nargs = 1 ;
+      break ;
+    case 'P':
+      npasses = atoi(argv[2]) ;
+      fprintf(stderr, "smoothing for %d passes\n", npasses) ;
       nargs = 1 ;
       break ;
     case 'A':
