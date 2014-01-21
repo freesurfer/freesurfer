@@ -6,9 +6,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:22 $
- *    $Revision: 1.4 $
+ *    $Author: greve $
+ *    $Date: 2014/01/21 21:21:29 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@ struct Parameters
   string cpin;
   string cpout;
   string lta;
+  string subjectlistfile;
 };
 static struct Parameters P =
   { "","",""};
@@ -54,7 +55,7 @@ static int get_option(int argc, char *argv[], Parameters & P) ;
 static void  usage_exit(int code) ;
 
 static char vcid[] =
-  "$Id: mri_map_cpdat.cpp,v 1.4 2011/03/02 00:04:22 nicks Exp $";
+  "$Id: mri_map_cpdat.cpp,v 1.5 2014/01/21 21:21:29 greve Exp $";
 char *Progname = NULL;
 
 int main(int argc, char *argv[])
@@ -80,9 +81,18 @@ int main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (P.cpin == "" || P.cpout== "" || P.lta == "")
+  if( (P.cpout == "" || P.cpin == "" || P.lta == "") &&
+      (P.cpout == "" || P.subjectlistfile == ""))
   {
     usage_exit(0) ;
+  }
+
+  if(P.subjectlistfile != ""){
+    int nctrtot;
+    MPoint *ctr;
+    ctr = GetTalControlPointsSFile(P.subjectlistfile.c_str(), &nctrtot);
+    MRIwriteControlPoints(ctr, nctrtot, 0, P.cpout.c_str());
+    exit(0);
   }
 
   int count = 0;
@@ -138,6 +148,12 @@ get_option(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--lta: Using "<< P.lta << " as transform." << endl;
   }
+  else if (!strcmp(option, "SL"))
+  {
+    P.subjectlistfile = string(argv[1]);
+    nargs = 1;
+    cout << "--sl: Using "<< P.subjectlistfile << " as subjectlist." << endl;
+  }
   else
   {
     cerr << endl << endl << "ERROR: Option: " 
@@ -156,6 +172,7 @@ usage_exit(int code)
   printf("  -in  <file>      input  control point txt file\n");
   printf("  -out <file>      output control point txt file\n");
   printf("  -lta <file>      lta transform file to be applied\n");
+  printf("  -sl subjectlistfile : maps all control points from all subjects listed in the text/ascii subjectlistfile to talairach space\n");
   printf("  \n");
   exit(code);
 }
