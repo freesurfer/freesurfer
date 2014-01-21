@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/18 19:18:24 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/01/21 17:15:10 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@
 static int sort_labels(FCD_DATA *fcd)  ;
 static int most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg) ;
 static int compare_labels(const void *v1,const void *v2)  ;
+static int fcdFreeLabels(FCD_DATA *fcd)  ;
 
 static int
 most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg)
@@ -158,6 +159,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
   int    niter, vno, s ;
   MRI_SEGMENTATION *mriseg ;
 
+  fcdFreeLabels(fcd) ;  // free old ones if they exist
   niter = SIGMA_TO_SURFACE_SMOOTH_STEPS(sigma) ;
 
   // do LH
@@ -329,4 +331,51 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
   return(fcd->nlabels) ;
 }
 
+static int
+fcdFreeLabels(FCD_DATA *fcd) 
+{
+  int  s ;
+
+  for (s = 0 ; s < fcd->nlabels ; s++)
+    if (fcd->labels[s])
+      LabelFree(&fcd->labels[s]) ;
+  fcd->nlabels = 0 ;
+  return(NO_ERROR) ;
+}
+
+
+int
+FCDfree(FCD_DATA **pfcd) 
+{
+  FCD_DATA *fcd ;
+
+  fcd = *pfcd ;
+  *pfcd = NULL ;
+  if (fcd->mris_lh) 
+    MRISfree(&fcd->mris_lh) ;
+  if (fcd->mris_rh) 
+    MRISfree(&fcd->mris_rh) ;
+  if (fcd->mri_aseg)
+    MRIfree(&fcd->mri_aseg) ;
+  if (fcd->mri_norm)
+    MRIfree(&fcd->mri_norm) ;
+  if (fcd->mri_flair)
+    MRIfree(&fcd->mri_flair) ;
+  if (fcd->mri_thickness_increase)
+    MRIfree(&fcd->mri_thickness_increase) ;
+  if (fcd->mri_thickness_decrease)
+    MRIfree(&fcd->mri_thickness_decrease) ;
+  if (fcd->lh_thickness_on_lh)
+    MRIfree(&fcd->lh_thickness_on_lh) ;
+  if (fcd->lh_thickness_on_rh)
+    MRIfree(&fcd->lh_thickness_on_rh) ;
+  if (fcd->rh_thickness_on_lh)
+    MRIfree(&fcd->rh_thickness_on_lh) ;
+  if (fcd->rh_thickness_on_rh)
+    MRIfree(&fcd->rh_thickness_on_rh) ;
+
+  fcdFreeLabels(fcd) ;
+  free(fcd) ;
+  return(NO_ERROR) ;
+}
 
