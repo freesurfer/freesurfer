@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/09 17:50:39 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/01/22 23:47:38 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.14 2014/01/09 17:50:39 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.15 2014/01/22 23:47:38 greve Exp $
 
 /*
   BEGINHELP
@@ -84,7 +84,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.14 2014/01/09 17:50:39 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.15 2014/01/22 23:47:38 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -101,6 +101,7 @@ int niterations = 0;
 char *PVFFile=NULL, *SegTTypeFile=NULL;
 double ApplyFWHM=0;
 char *Xfile=NULL;
+char *VRFStatsFile=NULL;
 
 MATRIX *MatrixGetDiag(MATRIX *M, VECTOR *d);
 int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax);
@@ -123,6 +124,9 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
 MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask, 
 		    double cFWHM, double rFWHM, double sFWHM, 
 		    MATRIX *X);
+int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask);
+int WriteVRFStats(char *fname, MRI *seg, COLOR_TABLE *ct, MATRIX *iXtX, MATRIX *gtm, MRI *mask);
+
 COLOR_TABLE *ctSeg=NULL;
 
 /*---------------------------------------------------------------*/
@@ -297,16 +301,24 @@ int main(int argc, char *argv[])
   printf("Computing  XtX ... ");fflush(stdout); TimerStart(&mytimer) ;
   XtX = MatrixMultiplyD(Xt,X,NULL);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+  if(OutXtXFile){
+    printf("Writing XtX to %s\n",OutXtXFile);
+    if(err) exit(1);
+    err=MatrixWriteTxt(OutXtXFile, XtX);
+  }
+
   iXtX = MatrixInverse(XtX,NULL);
   if(iXtX==NULL){
     printf("ERROR: matrix cannot be inverted\n");
     exit(1);
   }
+
   printf("Computing  Xty ... ");fflush(stdout); TimerStart(&mytimer) ;
   Xty = MatrixMultiplyD(Xt,y,NULL);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
 
   beta = MatrixMultiplyD(iXtX,Xty,NULL);
+  if(VRFStatsFile) WriteVRFStats(VRFStatsFile, seg, ctSeg, iXtX, beta, mask);
 
   XtXcond = MatrixConditionNumber(XtX);
   VRFStats(iXtX, &vrfmean, &vrfmin, &vrfmax);
@@ -314,11 +326,6 @@ int main(int argc, char *argv[])
   printf("VRF  Mean/Min/Max  %8.3f %8.3f %8.3f \n",vrfmean,vrfmin,vrfmax);
   fflush(stdout);
 
-  if(OutXtXFile){
-    printf("Writing XtX to %s\n",OutXtXFile);
-    if(err) exit(1);
-    err=MatrixWriteTxt(OutXtXFile, XtX);
-  }
 
   MatrixFree(&y);
   MatrixFree(&Xt);
@@ -478,10 +485,9 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--pvf")) {
-      if (nargc < 2) CMDargNErr(option,1);
+      if (nargc < 1) CMDargNErr(option,1);
       PVFFile = pargv[0];
-      SegTTypeFile = pargv[1];
-      nargsused = 2;
+      nargsused = 1;
     } 
     else if (!strcasecmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -535,6 +541,11 @@ static int parse_commandline(int argc, char **argv) {
       OutXtXFile = pargv[0];
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--vrf")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      VRFStatsFile = pargv[0];
+      nargsused = 1;
+    } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -563,6 +574,7 @@ static void print_usage(void) {
   printf("   --o  outvolfile : PVC'ed input\n");
   printf("   --gtm-means volfile : save ROI means in volume format\n");
   printf("   --xtx xtx.mtx : save X'*X into xtx.mtx\n");
+  printf("   --vrf vrfstatsfile\n");
   printf("   --niters N : use iterative method instead of GTM\n");
   printf("   --seg-test : replace input with seg smoothed by psf\n");
   printf("   --X Xfile : save X matrix (it will be big)\n");
@@ -1447,6 +1459,7 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
   maxFWHM = MAX(cFWHM/seg->xsize,MAX(rFWHM/seg->ysize,sFWHM/seg->zsize));
   printf("maxFWHM = %g (voxels)\n",maxFWHM);
   nDils = ceil(3*maxFWHM);
+  //nDils = 2;
 
   printf("Dilating segmentation nDils=%d\n",nDils);
   segttdil = MRIdilateSegWithinTT(seg, nDils, ct);
@@ -1461,15 +1474,8 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
     region  = REGIONgetBoundingBox(segmask,nDils+1);
     pvfbb   = MRIextractRegion(pvfmask, NULL, region) ;
     pvfbbsm = MRIgaussianSmoothNI(pvfbb, cStd, rStd, sStd, NULL);
-    printf("%3d %4d %d  (%3d,%3d,%3d) (%3d,%3d,%3d)\n",nthseg,segid,tt,
+    if(Gdiag_no > 1) printf("%3d %4d %d  (%3d,%3d,%3d) (%3d,%3d,%3d)\n",nthseg,segid,tt,
 	   region->x,region->y,region->z,region->dx,region->dy,region->dz);
-    if(0 && segid == 1010){
-      MRIwrite(segttdil[tt-1],"pp.segdil.mgh");
-      MRIwrite(segmask,"pp.segmask.mgh");
-      MRIwrite(segmask,"pp.pvfmask.mgh");
-      MRIwrite(pvfbb,"pp.pvfbb.mgh");
-      MRIwrite(pvfbbsm,"pp.pvfbbsm.mgh");
-    }
     // Fill X
     // Creating X in this order makes it consistent with matlab
     // Note: y must be ordered in the same way.
@@ -1504,5 +1510,57 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
   free(segidlist);
 
   return(X);
+}
+
+int WriteVRFStats(char *fname, MRI *seg, COLOR_TABLE *ct, MATRIX *iXtX, MATRIX *gtm, MRI *mask)
+{
+  int n, nsegs, *segidlist, segid, nvox;
+  double vrf;
+  FILE *fp;
+  CTE *cte;
+  CT *ttctab;
+
+  ttctab = ct->ctabTissueType;
+
+  fp = fopen(fname,"w");
+
+  segidlist = MRIsegIdListExclude0(seg, &nsegs, 0); // excluding 0
+  for(n=0; n < iXtX->rows; n++){
+    segid = segidlist[n];
+    nvox = MRIcountMatches(seg, segid, 0, mask);
+    vrf = (double) 1.0/iXtX->rptr[n+1][n+1];
+    cte = ct->entries[segid];
+    fprintf(fp,"%3d %4d %-31s %-13s %6d %8.3f",n+1,segid,cte->name,
+	    ttctab->entries[cte->TissueType]->name,nvox,vrf);
+    printf("%3d %4d %-31s %-13s %6d %8.3f",n+1,segid,cte->name,
+	    ttctab->entries[cte->TissueType]->name,nvox,vrf);
+    if(gtm){
+      fprintf(fp,"   %10.3f",gtm->rptr[n+1][1]);
+      printf("   %10.3f",gtm->rptr[n+1][1]);
+    }
+    fprintf(fp,"\n");
+    printf(" \n");
+  }
+  fclose(fp);
+  fflush(stdout);
+
+  free(segidlist);
+  return(0);
+}
+
+int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask)
+{
+  int nMatches = 0;
+  int c, r, s;
+
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	if(MRIgetVoxVal(seg,c,r,s,frame) == MatchVal) nMatches++;
+      }
+    }
+  }
+  return(nMatches);
 }
 
