@@ -11,7 +11,10 @@ extern "C"
 }
 
 class LayerPropertyFCD;
+class QThread;
 class LayerMRI;
+class LayerSurface;
+class LayerFCDWorkerThread;
 class vtkImageReslice;
 class vtkImageMapToColors;
 class vtkImageActor;
@@ -20,6 +23,8 @@ class vtkProp;
 
 class LayerFCD : public LayerVolumeBase
 {
+  friend class LayerFCDWorkerThread;
+
   Q_OBJECT
 public:
   LayerFCD(LayerMRI* mri, QObject* parent = NULL);
@@ -55,28 +60,34 @@ public:
 
   void SetLabelVisible(int n, bool visible);
 
-  QList<LayerMRI*> GetMRILayers()
-  {
-    return m_listMRIs;
-  }
+  QList<LayerMRI*> GetMRILayers();
+  QList<LayerSurface*> GetSurfaceLayers();
 
-  void SetMRILayerBufferCTAB(COLOR_TABLE* ctab);
+  void SetMRILayerCTAB(COLOR_TABLE* ctab);
+
+  bool IsBusy();
+
+  QThread* GetWorkerThread();
 
 signals:
   void LabelsChanged();
+  void StatusChanged();
   void LayerMRICreated(LayerMRI* mri);
+
+public slots:
+  void Recompute();
 
 protected slots:
   void UpdateOpacity();
   void UpdateColorMap();
-  void Recompute();
+  void OnLayerDestroyed();
 
 protected:
+  void DoCompute(bool resetProgress = true);
   void InitializeData();
   void InitializeActors();
   void UpdateRASImage(vtkImageData* rasImage);
-  LayerMRI* PopMRIfromBuffer();
-  void MakeMRILayers();
+  void MakeAllLayers();
 
   virtual void OnSlicePositionChanged( int nPlane );
 
@@ -85,17 +96,22 @@ protected:
   vtkSmartPointer<vtkImageMapToColors>  mColorMap[3];
   QList<bool> m_labelVisibility;
 
-  LayerMRI*  m_layerSource;
-  QList<LayerMRI*>  m_listMRIs;
-  QList<LayerMRI*>  m_bufferMRIs;     // workaround for a strange thread bug
+  LayerMRI*   m_layerSource;
+  LayerMRI*   m_mri_norm;
+  LayerMRI*   m_mri_flair;
+  LayerMRI*   m_mri_aseg;
   LayerMRI*   m_mri_increase;
   LayerMRI*   m_mri_decrease;
+  LayerSurface* m_surf_lh;
+  LayerSurface* m_surf_rh;
 
   vtkSmartPointer<vtkImageActor>  m_sliceActor2D[3];
   vtkSmartPointer<vtkImageActor>  m_sliceActor3D[3];
 
   QString   m_sSubjectDir;
   QString   m_sSubject;
+
+  LayerFCDWorkerThread* m_worker;
 };
 
 #endif // LAYERFCD_H

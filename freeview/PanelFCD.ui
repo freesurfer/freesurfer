@@ -96,7 +96,7 @@ Threshold</string>
         <item>
          <widget class="QSlider" name="sliderThreshold">
           <property name="maximum">
-           <number>5</number>
+           <number>50</number>
           </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -217,6 +217,30 @@ Voxels</string>
      </widget>
     </item>
     <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_4">
+      <item>
+       <spacer name="horizontalSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>5</width>
+          <height>5</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButtonRecompute">
+        <property name="text">
+         <string>Recompute</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
      <spacer name="verticalSpacer">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -241,8 +265,8 @@ Voxels</string>
    <slot>OnSliderThresholdReleased()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>150</x>
-     <y>60</y>
+     <x>141</x>
+     <y>51</y>
     </hint>
     <hint type="destinationlabel">
      <x>495</x>
@@ -362,6 +386,86 @@ Voxels</string>
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>sliderThreshold</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnSliderThresholdChanged(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>184</x>
+     <y>48</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>557</x>
+     <y>186</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderSigma</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnSliderSigmaChanged(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>245</x>
+     <y>86</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>314</x>
+     <y>523</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderMinArea</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnSliderMinAreaChanged(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>195</x>
+     <y>119</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>243</x>
+     <y>551</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sliderOpacity</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnSliderOpacityChanged(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>164</x>
+     <y>13</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>273</x>
+     <y>515</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRecompute</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnButtonRecompute()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>312</x>
+     <y>352</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>323</x>
+     <y>574</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnSliderThresholdReleased()</slot>
@@ -372,5 +476,10 @@ Voxels</string>
   <slot>OnTextMinAreaReturned()</slot>
   <slot>OnLabelSelectionChanged()</slot>
   <slot>OnLabelItemChanged(QTreeWidgetItem*)</slot>
+  <slot>OnSliderMinAreaChanged(int)</slot>
+  <slot>OnSliderSigmaChanged(int)</slot>
+  <slot>OnSliderThresholdChanged(int)</slot>
+  <slot>OnSliderOpacityChanged(int)</slot>
+  <slot>OnButtonRecompute()</slot>
  </slots>
 </ui>

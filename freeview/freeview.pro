@@ -148,7 +148,9 @@ SOURCES += \
     DialogLoadSurface.cpp \
     LayerFCD.cpp \
     LayerPropertyFCD.cpp \
-    PanelFCD.cpp
+    PanelFCD.cpp \
+    LayerFCDWorkerThread.cpp \
+    DialogLoadFCD.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -286,7 +288,9 @@ HEADERS  += \
     DialogLoadSurface.h \
     LayerFCD.h \
     LayerPropertyFCD.h \
-    PanelFCD.h
+    PanelFCD.h \
+    LayerFCDWorkerThread.h \
+    DialogLoadFCD.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -330,7 +334,8 @@ FORMS    += MainWindow.ui \
     PanelConnectomeMatrix.ui \
     PanelAllLayers.ui \
     DialogLoadSurface.ui \
-    PanelFCD.ui
+    PanelFCD.ui \
+    DialogLoadFCD.ui
 
 RESOURCES += \
     freeview.qrc

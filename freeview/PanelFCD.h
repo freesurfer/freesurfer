@@ -29,6 +29,13 @@ public slots:
   void OnLabelSelectionChanged();
   void OnLabelItemChanged(QTreeWidgetItem* item);
 
+  void OnSliderOpacityChanged(int);
+  void OnSliderThresholdChanged(int);
+  void OnSliderSigmaChanged(int);
+  void OnSliderMinAreaChanged(int);
+
+  void OnButtonRecompute();
+
 protected:
   void DoUpdateWidgets();
   void DoIdle();

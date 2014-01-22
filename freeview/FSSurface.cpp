@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.70 $
+ *    $Date: 2014/01/22 21:45:18 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,8 @@ FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_bCurvatureLoaded( false ),
   m_nActiveSurface( SurfaceMain ),
   m_volumeRef( ref ),
-  m_nActiveVector( -1 )
+  m_nActiveVector( -1 ),
+  m_bSharedMRIS(false)
 {
   m_polydata = vtkSmartPointer<vtkPolyData>::New();
   m_polydataVector = vtkSmartPointer<vtkPolyData>::New();
@@ -119,7 +120,7 @@ FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
 
 FSSurface::~FSSurface()
 {
-  if ( m_MRIS )
+  if ( m_MRIS && !m_bSharedMRIS )
   {
     ::MRISfree( &m_MRIS );
   }
@@ -172,7 +173,22 @@ bool FSSurface::MRISRead( const QString& filename,
     cerr << "MRISread failed\n";
     return false;
   }
+  else
+    return InitializeData(vector_filename, patch_filename, target_filename, sup_files);
+}
 
+bool FSSurface::CreateFromMRIS(MRIS *mris)
+{
+  m_MRIS = mris;
+  m_bSharedMRIS = true;
+  return InitializeData();
+}
+
+bool FSSurface::InitializeData(const QString &vector_filename,
+                               const QString &patch_filename,
+                               const QString &target_filename,
+                               const QStringList &sup_files)
+{
   if ( !patch_filename.isEmpty() )
   {
     if ( ::MRISreadPatch( m_MRIS, patch_filename.toAscii().data() ) != 0 )
@@ -301,7 +317,7 @@ bool FSSurface::MRISRead( const QString& filename,
     LoadVectors ( vector_filename );
   }
 
-  QFileInfo fi(filename);
+  QFileInfo fi(m_MRIS->fname);
   if (QFileInfo(fi.absoluteDir(), fi.completeBaseName() + ".curv").exists())
     LoadCurvature();
 

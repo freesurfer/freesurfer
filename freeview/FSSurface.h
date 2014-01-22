@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.43 $
+ *    $Date: 2014/01/22 21:45:18 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,8 @@ public:
                  const QString& patch_filename = QString(),
                  const QString& target_filename = QString(),
                  const QStringList& sup_files = QStringList());
+
+  bool CreateFromMRIS(MRIS* mris);
 
   bool MRISWrite( const QString& filename );
 
@@ -211,6 +213,10 @@ public:
   }
 
 protected:
+  bool InitializeData(const QString& vector_filename = QString(),
+                  const QString& patch_filename = QString(),
+                  const QString& target_filename = QString(),
+                  const QStringList& sup_files = QStringList());
   void UpdatePolyData();
   void UpdatePolyData( MRIS* mris, vtkPolyData* polydata,
                        vtkPolyData* polydata_verts = NULL,
@@ -299,6 +305,8 @@ protected:
   int      m_nActiveVector;
 
   bool     m_bValidVolumeGeometry;
+
+  bool      m_bSharedMRIS;
 };
 
 #endif

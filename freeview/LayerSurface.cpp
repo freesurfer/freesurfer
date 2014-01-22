@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.97 $
+ *    $Date: 2014/01/22 21:45:18 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -132,7 +132,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
            this, SLOT(UpdateROIPosition(double, double, double)));
 
   if (m_volumeRef)
-    connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()));
+    connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()), Qt::UniqueConnection);
 }
 
 LayerSurface::~LayerSurface()
@@ -158,6 +158,13 @@ LayerSurface::~LayerSurface()
   }
 }
 
+void LayerSurface::SetRefVolume(LayerMRI *ref)
+{
+  m_volumeRef = ref;
+  if (m_volumeRef)
+    connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()), Qt::UniqueConnection);
+}
+
 bool LayerSurface::LoadSurfaceFromFile()
 {
   if ( m_surfaceSource )
@@ -176,6 +183,13 @@ bool LayerSurface::LoadSurfaceFromFile()
     return false;
   }
 
+  InitializeData();
+
+  return true;
+}
+
+void LayerSurface::InitializeData()
+{
   ParseSubjectName(m_sFilename);
   InitializeSurface();
   InitializeActors();
@@ -190,7 +204,18 @@ bool LayerSurface::LoadSurfaceFromFile()
     GetProperty()->SetPosition(pos);
     GetProperty()->SetEdgeThickness(0);
   }
+}
 
+bool LayerSurface::CreateFromMRIS(void *mris_ptr)
+{
+  MRIS* mris = (MRIS*)mris_ptr;
+  m_surfaceSource = new FSSurface( m_volumeRef ? m_volumeRef->GetSourceVolume() : NULL );
+  if ( !m_surfaceSource->CreateFromMRIS(mris) )
+  {
+    return false;
+  }
+  SetFileName(mris->fname);
+  InitializeData();
   return true;
 }
 

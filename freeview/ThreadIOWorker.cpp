@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/21 22:06:58 $
- *    $Revision: 1.12 $
+ *    $Date: 2014/01/22 21:45:18 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -264,7 +264,6 @@ void ThreadIOWorker::run()
     LayerConnectomeMatrix* layer = qobject_cast<LayerConnectomeMatrix*>(m_layer);
     if (!layer)
       return;
-  //  connect(layer, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
     if (!layer->LoadFromFile())
     {
       emit Error(m_layer, m_nJobType);
@@ -279,20 +278,12 @@ void ThreadIOWorker::run()
     LayerFCD* layer = qobject_cast<LayerFCD*>(m_layer);
     if (!layer)
       return;
-  //  connect(layer, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)), Qt::UniqueConnection);
     if (!layer->Load(m_args["SubjectDir"].toString(), m_args["Subject"].toString()))
     {
       emit Error(m_layer, m_nJobType);
     }
     else
     {
-      /*
-      QList<LayerMRI*> mri_layers = layer->GetMRILayers();
-      foreach (LayerMRI* mri, mri_layers)
-        emit Finished(mri, JT_LoadVolume);
-
-      emit Finished(m_layer, m_nJobType);
-      */
       emit FCDLoadFinished(layer);
     }
   }

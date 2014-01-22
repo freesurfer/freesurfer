@@ -30,6 +30,7 @@ void PanelFCD::ConnectLayer(Layer *layer_in)
   LayerPropertyFCD* p = layer->GetProperty();
   connect(p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect(layer, SIGNAL(LabelsChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  connect(layer, SIGNAL(StatusChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
 }
 
 void PanelFCD::DoUpdateWidgets()
@@ -62,13 +63,25 @@ void PanelFCD::DoUpdateWidgets()
   if ( layer )
   {
     ui->sliderSigma->setValue((int)(layer->GetProperty()->GetSigma()));
-    ui->sliderThreshold->setValue((int)(layer->GetProperty()->GetThicknessThreshold()));
+    ui->sliderThreshold->setValue((int)(layer->GetProperty()->GetThicknessThreshold()*10));
+    ui->sliderMinArea->setValue(layer->GetProperty()->GetMinArea());
+    ui->sliderOpacity->setValue((int)(layer->GetProperty()->GetOpacity()*100));
+    ui->spinBoxOpacity->setValue(layer->GetProperty()->GetOpacity());
 
     ChangeLineEditNumber(ui->lineEditSigma, layer->GetProperty()->GetSigma());
     ChangeLineEditNumber(ui->lineEditThreshold, layer->GetProperty()->GetThicknessThreshold());
     ChangeLineEditNumber(ui->lineEditMinArea, layer->GetProperty()->GetMinArea());
 
-    UpdateLabelList(layer);
+    ui->sliderSigma->setEnabled(!layer->IsBusy());
+    ui->sliderThreshold->setEnabled(!layer->IsBusy());
+    ui->sliderMinArea->setEnabled(!layer->IsBusy());
+    ui->lineEditSigma->setEnabled(!layer->IsBusy());
+    ui->lineEditThreshold->setEnabled(!layer->IsBusy());
+    ui->lineEditMinArea->setEnabled(!layer->IsBusy());
+    ui->pushButtonRecompute->setEnabled(!layer->IsBusy());
+
+    if (!layer->IsBusy())
+      UpdateLabelList(layer);
   }
 
   BlockAllSignals( false );
@@ -103,19 +116,47 @@ void PanelFCD::DoIdle()
 
 }
 
+void PanelFCD::OnSliderOpacityChanged(int)
+{
+  LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
+  if ( layer )
+    layer->GetProperty()->SetOpacity(ui->sliderOpacity->value()/100.0);
+}
+
 void PanelFCD::OnSliderThresholdReleased()
 {
-
+  LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
+  if ( layer )
+    layer->GetProperty()->SetThicknessThreshold(ui->sliderThreshold->value()/10.0);
 }
 
 void PanelFCD::OnSliderSigmaReleased()
 {
-
+  LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
+  if ( layer )
+    layer->GetProperty()->SetSigma(ui->sliderSigma->value());
 }
 
 void PanelFCD::OnSliderMinAreaReleased()
 {
+  LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
+  if ( layer )
+    layer->GetProperty()->SetMinArea(ui->sliderMinArea->value());
+}
 
+void PanelFCD::OnSliderThresholdChanged(int)
+{
+  ChangeLineEditNumber(ui->lineEditThreshold, ui->sliderThreshold->value()/10.0);
+}
+
+void PanelFCD::OnSliderSigmaChanged(int)
+{
+  ChangeLineEditNumber(ui->lineEditSigma, ui->sliderSigma->value());
+}
+
+void PanelFCD::OnSliderMinAreaChanged(int)
+{
+  ChangeLineEditNumber(ui->lineEditMinArea, ui->sliderMinArea->value());
 }
 
 void PanelFCD::OnTextSigmaReturned()
@@ -176,3 +217,28 @@ void PanelFCD::OnLabelItemChanged(QTreeWidgetItem *item)
   }
 }
 
+void PanelFCD::OnButtonRecompute()
+{
+  LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
+  if ( layer )
+  {
+    layer->GetProperty()->blockSignals(true);
+    double val;
+    int nval;
+    bool ok;
+    val = ui->lineEditThreshold->text().trimmed().toDouble(&ok);
+    if (ok && val != layer->GetProperty()->GetThicknessThreshold())
+      layer->GetProperty()->SetThicknessThreshold(val);
+
+    val = ui->lineEditSigma->text().trimmed().toDouble(&ok);
+    if (ok && val != layer->GetProperty()->GetSigma())
+      layer->GetProperty()->SetSigma(val);
+
+    nval = ui->lineEditMinArea->text().trimmed().toInt(&ok);
+    if (ok && nval != layer->GetProperty()->GetMinArea())
+      layer->GetProperty()->SetMinArea(nval);
+
+    layer->GetProperty()->blockSignals(false);
+    layer->Recompute();
+  }
+}

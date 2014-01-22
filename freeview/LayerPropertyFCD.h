@@ -29,9 +29,9 @@ public:
     return m_dSigma;
   }
 
-  double GetMinArea()
+  int GetMinArea()
   {
-    return m_dMinArea;
+    return m_nMinArea;
   }
 
   void SetLookupTable(vtkRGBAColorTransferFunction* lut);
@@ -40,21 +40,21 @@ signals:
   void ThicknessThresholdChanged(double);
   void SigmaChanged(double);
   void OpacityChanged( double opacity );
-  void MinAreaChanged(double);
+  void MinAreaChanged(int);
   void ColorMapChanged();
 
 public slots:
   void SetThicknessThreshold(double dThreshold);
   void SetSigma(double dSigma);
   void SetOpacity(double val);
-  void SetMinArea(double val);
+  void SetMinArea(int val);
 
 private:
   void SetColorMapChanged();
 
   double m_dThreshold;
   double m_dSigma;
-  double m_dMinArea;
+  int m_nMinArea;
   vtkSmartPointer<vtkRGBAColorTransferFunction> mLUTTable;
   double mOpacity;
 };

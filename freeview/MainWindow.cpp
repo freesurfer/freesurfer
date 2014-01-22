@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/21 22:06:58 $
- *    $Revision: 1.266 $
+ *    $Date: 2014/01/22 21:45:18 $
+ *    $Revision: 1.267 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1204,6 +1204,7 @@ void MainWindow::OnIdle()
   ui->actionLoadPointSet    ->setEnabled( !bBusy && layerVolume );
   ui->actionLoadSurface     ->setEnabled( !bBusy );
   ui->actionLoadTrackVolume ->setEnabled( !bBusy );
+  ui->actionLoadTrack       ->setEnabled( !bBusy );
   ui->actionNewVolume       ->setEnabled( layerVolume );
   ui->actionNewROI          ->setEnabled( layerVolume );
   ui->actionNewPointSet     ->setEnabled( layerVolume );
@@ -1246,7 +1247,7 @@ void MainWindow::OnIdle()
   ui->actionLoadConnectome->setEnabled( !bBusy );  
   ui->actionCloseConnectome ->setEnabled( !bBusy && GetActiveLayer( "CMAT"));
 
-  ui->actionLoadFCD->setEnabled( !bBusy && layerVolume );
+  ui->actionLoadFCD->setEnabled( !bBusy );
   ui->actionCloseFCD->setEnabled( !bBusy && GetActiveLayer( "FCD"));
 
   ui->actionShowCoordinateAnnotation->setChecked(ui->viewAxial->GetShowCoordinateAnnotation());
@@ -4785,6 +4786,11 @@ void MainWindow::OnFCDLoadFinished(LayerFCD *fcd)
   {
     OnIOFinished(mri, ThreadIOWorker::JT_LoadVolume);
   }
+  QList<LayerSurface*> surf_layers = fcd->GetSurfaceLayers();
+  foreach (LayerSurface* surf, surf_layers)
+  {
+    OnIOFinished(surf, ThreadIOWorker::JT_LoadSurface);
+  }
   OnIOFinished(fcd, ThreadIOWorker::JT_LoadFCD);
 }
 
@@ -6028,8 +6034,11 @@ void MainWindow::CommandLoadFCD(const QStringList& cmd )
 void MainWindow::LoadFCD(const QString &subdir, const QString &subject)
 {
   LayerFCD* layer = new LayerFCD(m_layerVolumeRef);
+  connect( layer->GetWorkerThread(), SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)));
+  connect( layer->GetWorkerThread(), SIGNAL(started()), m_statusBar, SLOT(ShowProgress()));
+  connect( layer->GetWorkerThread(), SIGNAL(finished()), m_statusBar, SLOT(HideProgress()));
   layer->SetName(subject);
-  layer->SetMRILayerBufferCTAB(m_luts->GetColorTable(0));
+  layer->SetMRILayerCTAB(m_luts->GetColorTable(0));
   QVariantMap map;
   map["SubjectDir"] = subdir;
   map["Subject"] = subject;
@@ -6038,7 +6047,16 @@ void MainWindow::LoadFCD(const QString &subdir, const QString &subject)
 
 void MainWindow::OnLoadFCD()
 {
-
+  QString subject_dir = QFileDialog::getExistingDirectory(this, "Select Subject", m_strLastDir);
+  if (!subject_dir.isEmpty())
+  {
+    m_strLastDir = subject_dir;
+    QDir dir(subject_dir);
+    QString subject = dir.dirName();
+    dir.cdUp();
+    subject_dir = dir.absolutePath();
+    AddScript(QString("loadfcd ") + subject_dir + " " + subject);
+  }
 }
 
 void MainWindow::OnCloseFCD()

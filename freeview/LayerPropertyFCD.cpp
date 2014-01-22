@@ -5,7 +5,7 @@ LayerPropertyFCD::LayerPropertyFCD(QObject *parent) :
   LayerProperty(parent),
   m_dThreshold(2),
   m_dSigma(10),
-  m_dMinArea(10),
+  m_nMinArea(10),
   mOpacity(0.8)
 {
   mLUTTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -59,11 +59,11 @@ void LayerPropertyFCD::SetSigma(double dSigma)
   }
 }
 
-void LayerPropertyFCD::SetMinArea(double val)
+void LayerPropertyFCD::SetMinArea(int val)
 {
-  if (m_dMinArea != val)
+  if (m_nMinArea != val)
   {
-    m_dMinArea = val;
+    m_nMinArea = val;
     emit MinAreaChanged(val);
   }
 }

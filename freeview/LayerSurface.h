@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.61 $
+ *    $Date: 2014/01/22 21:45:18 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,7 @@ public:
   bool LoadAnnotationFromFile( const QString& filename );
   bool LoadLabelFromFile( const QString& filename );
   bool LoadSplineFromFile(const QString& filename);
+  bool CreateFromMRIS(void* mris_ptr);
 
   void Append2DProps( vtkRenderer* renderer, int nPlane );
   void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
@@ -191,6 +192,8 @@ public:
   void SetActiveLabel( int n );
   void SetActiveLabel(SurfaceLabel* label);
 
+  void SetRefVolume(LayerMRI* ref);
+
   LayerMRI* GetRefVolume()
   {
     return m_volumeRef;
@@ -281,6 +284,7 @@ protected slots:
   void UpdateVectorActor2D();
 
 protected:
+  void InitializeData();
   void InitializeSurface();
   void InitializeActors();
   void MapLabels( unsigned char* data, int nVertexCount );

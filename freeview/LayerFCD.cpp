@@ -22,7 +22,10 @@
 #include "LayerPropertyROI.h"
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
+#include "LayerFCDWorkerThread.h"
 #include "FSVolume.h"
+#include "ProgressCallback.h"
+#include "LayerSurface.h"
 #include <QDebug>
 #include <QTimer>
 
@@ -54,16 +57,58 @@ LayerFCD::LayerFCD(LayerMRI* layerMRI, QObject *parent) : LayerVolumeBase(parent
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
   connect( p, SIGNAL(ThicknessThresholdChanged(double)), this, SLOT(Recompute()));
   connect( p, SIGNAL(SigmaChanged(double)), this, SLOT(Recompute()));
-  connect( p, SIGNAL(MinAreaChanged(double)), this, SLOT(Recompute()));
+  connect( p, SIGNAL(MinAreaChanged(int)), this, SLOT(Recompute()));
 
-  for (int i = 0; i < 6; i++)
-    m_bufferMRIs << (new LayerMRI(NULL));
+  // pre allocate MRIs & surfaces
+  m_mri_norm = new LayerMRI(NULL);
+  m_mri_flair = new LayerMRI(NULL);
+  m_mri_aseg = new LayerMRI(NULL);
+  m_mri_increase = new LayerMRI(NULL);
+  m_mri_decrease = new LayerMRI(NULL);
+  connect(m_mri_norm, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
+  connect(m_mri_flair, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
+  connect(m_mri_aseg, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
+  connect(m_mri_increase, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
+  connect(m_mri_decrease, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
+
+  m_surf_lh = new LayerSurface(NULL);
+  m_surf_rh = new LayerSurface(NULL);
+  connect(m_surf_lh, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
+  connect(m_surf_rh, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
+
+  m_worker = new LayerFCDWorkerThread(this);
+  connect(m_worker, SIGNAL(started()), this, SIGNAL(StatusChanged()));
+  connect(m_worker, SIGNAL(finished()), this, SIGNAL(StatusChanged()));
+  connect(m_worker, SIGNAL(terminated()), this, SIGNAL(StatusChanged()));
 }
 
 LayerFCD::~LayerFCD()
 {
   if (m_fcd)
+  {
+    // if layers still exist, do not free mri and mris because they are still being shared.
+    if (m_mri_norm)
+      m_fcd->mri_norm = NULL;
+    if (m_mri_flair)
+      m_fcd->mri_flair = NULL;
+    if (m_mri_aseg)
+      m_fcd->mri_aseg = NULL;
+    if (m_mri_increase)
+      m_fcd->mri_thickness_increase = NULL;
+    if (m_mri_decrease)
+      m_fcd->mri_thickness_decrease = NULL;
+    if (m_surf_lh)
+      m_fcd->mris_lh = NULL;
+    if (m_surf_rh)
+      m_fcd->mris_rh = NULL;
+
     FCDfree(&m_fcd);
+  }
+}
+
+bool LayerFCD::IsBusy()
+{
+  return m_worker->isRunning();
 }
 
 void LayerFCD::InitializeData()
@@ -108,6 +153,7 @@ bool LayerFCD::Load(const QString &subdir, const QString &subject)
 
 bool LayerFCD::LoadFromFile()
 {
+  ::SetProgressCallback(ProgressCallback, 0, 50);
   m_fcd = ::FCDloadData(m_sSubjectDir.toAscii().data(), m_sSubject.toAscii().data());
   if (m_fcd)
   {
@@ -116,18 +162,22 @@ bool LayerFCD::LoadFromFile()
       cerr << "Did not find norm volume for FCD data" << endl;
       return false;
     }
-    MakeMRILayers();
-    Recompute();
+    ::SetProgressCallback(ProgressCallback, 50, 70);
+    MakeAllLayers();
+    ::SetProgressCallback(ProgressCallback, 70, 100);
+    DoCompute(false);
   }
 
   return (m_fcd != NULL);
 }
 
-void LayerFCD::MakeMRILayers()
+void LayerFCD::MakeAllLayers()
 {
   if (true)
   {
-    LayerMRI* mri = PopMRIfromBuffer();
+    LayerMRI* mri = m_mri_norm;
+    if (m_layerSource)
+      mri->SetRefVolume(m_layerSource->GetSourceVolume());
     mri->SetName(GetName() + "_norm");
     mri->SetFileName(m_fcd->mri_norm->fname);
     if ( mri->CreateFromMRIData((void*)m_fcd->mri_norm) )
@@ -137,102 +187,171 @@ void LayerFCD::MakeMRILayers()
         m_layerSource = mri;
         InitializeData();
       }
-    //  mri->GetProperty()->SetLUTCTAB(m_layerSource->GetProperty()->GetLUTCTAB());
-      m_listMRIs << mri;
     }
     else
     {
       cerr << "Failed to create norm layer" << endl;
       delete mri;
+      m_mri_norm = NULL;
     }
   }
 
   if (m_fcd->mri_flair)
   {
-    LayerMRI* mri = PopMRIfromBuffer();
+    LayerMRI* mri = m_mri_flair;
+    if (m_layerSource)
+      mri->SetRefVolume(m_layerSource->GetSourceVolume());
     mri->SetName(GetName() + "_flair");
     mri->SetFileName(m_fcd->mri_flair->fname);
-    if ( mri->CreateFromMRIData((void*)m_fcd->mri_flair) )
+    if ( !mri->CreateFromMRIData((void*)m_fcd->mri_flair) )
     {
-      m_listMRIs << mri;
+      delete m_mri_flair;
+      m_mri_flair = NULL;
     }
-    else
-      delete mri;
+  }
+  else
+  {
+    delete m_mri_flair;
+    m_mri_flair = NULL;
   }
 
   if (m_fcd->mri_aseg)
   {
-    LayerMRI* mri = PopMRIfromBuffer();
+    LayerMRI* mri = m_mri_aseg;
+    if (m_layerSource)
+      mri->SetRefVolume(m_layerSource->GetSourceVolume());
     mri->SetName(GetName() + "_aseg");
     mri->SetFileName(m_fcd->mri_aseg->fname);
     if ( mri->CreateFromMRIData((void*)m_fcd->mri_aseg) )
     {
       mri->GetProperty()->SetColorMap(LayerPropertyMRI::LUT);
-      m_listMRIs << mri;
+      mri->SetVisible(false);
     }
     else
-      delete mri;
+    {
+      delete m_mri_aseg;
+      m_mri_aseg = NULL;
+    }
+  }
+  else
+  {
+    delete m_mri_aseg;
+    m_mri_aseg = NULL;
   }
 
   if (m_fcd->mri_thickness_increase)
   {
-    LayerMRI* mri = PopMRIfromBuffer();
+    LayerMRI* mri = m_mri_increase;
+    if (m_layerSource)
+      mri->SetRefVolume(m_layerSource->GetSourceVolume());
     mri->SetName(GetName() + "_thickness_increase");
     mri->SetFileName(m_fcd->mri_thickness_increase->fname);
     if ( mri->CreateFromMRIData((void*)m_fcd->mri_thickness_increase) )
     {
       mri->GetProperty()->SetColorMap(LayerPropertyMRI::Heat);
-      m_listMRIs << mri;
-      m_mri_increase = mri;
     }
     else
-      delete mri;
+    {
+      delete m_mri_increase;
+      m_mri_increase = NULL;
+    }
+  }
+  else
+  {
+    delete m_mri_increase;
+    m_mri_increase = NULL;
   }
 
   if (m_fcd->mri_thickness_decrease)
   {
-    LayerMRI* mri = PopMRIfromBuffer();
+    LayerMRI* mri = m_mri_decrease;
+    if (m_layerSource)
+      mri->SetRefVolume(m_layerSource->GetSourceVolume());
     mri->SetName(GetName() + "_thickness_decrease");
     mri->SetFileName(m_fcd->mri_thickness_decrease->fname);
     if ( mri->CreateFromMRIData((void*)m_fcd->mri_thickness_decrease) )
     {
       mri->GetProperty()->SetColorMap(LayerPropertyMRI::Heat);
-      m_listMRIs << mri;
-      m_mri_decrease = mri;
     }
     else
-      delete mri;
+    {
+      delete m_mri_decrease;
+      m_mri_decrease = NULL;
+    }
+  }
+  else
+  {
+    delete m_mri_decrease;
+    m_mri_decrease = NULL;
   }
 
-  for (int i = 0; i < m_bufferMRIs.size(); i++)
-    delete m_bufferMRIs[i];
-  m_bufferMRIs.clear();
-}
+  if (m_fcd->mris_lh)
+  {
+    LayerSurface* surf = m_surf_lh;
+    if (m_layerSource)
+      surf->SetRefVolume(m_layerSource);
+    surf->SetName(GetName() + "_lh");
+    if (!surf->CreateFromMRIS((void*)m_fcd->mris_lh))
+    {
+      delete m_surf_lh;
+      m_surf_lh = NULL;
+    }
+  }
+  else
+  {
+    delete m_surf_lh;
+    m_surf_lh = NULL;
+  }
 
-
-LayerMRI* LayerFCD::PopMRIfromBuffer()
-{
-  LayerMRI* mri = m_bufferMRIs[0];
-  m_bufferMRIs.removeFirst();
-  if (m_layerSource)
-    mri->SetRefVolume(m_layerSource->GetSourceVolume());
-  return mri;
+  if (m_fcd->mris_rh)
+  {
+    LayerSurface* surf = m_surf_rh;
+    if (m_layerSource)
+      surf->SetRefVolume(m_layerSource);
+    surf->SetName(GetName() + "_rh");
+    if (!surf->CreateFromMRIS((void*)m_fcd->mris_rh))
+    {
+      delete m_surf_rh;
+      m_surf_rh = NULL;
+    }
+  }
+  else
+  {
+    delete m_surf_rh;
+    m_surf_rh = NULL;
+  }
 }
 
 void LayerFCD::Recompute()
 {
+  if (m_worker->isRunning())
+    m_worker->wait();
+
+  m_worker->start(QThread::HighPriority);
+}
+
+void LayerFCD::DoCompute(bool resetProgress)
+{
   if (m_fcd)
   {
-    ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), (int)nint(GetProperty()->GetMinArea()));
+    if (resetProgress)
+      ::SetProgressCallback(ProgressCallback, 0, 50);
+    ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), GetProperty()->GetMinArea());
     m_labelVisibility.clear();
     for (int i = 0; i < m_fcd->nlabels; i++)
       m_labelVisibility << true;
     UpdateRASImage(m_imageData);
+    for (int i = 0; i < 3; i++)
+      mReslice[i]->Modified();
 
+    if (resetProgress)
+      ::SetProgressCallback(ProgressCallback, 50, 60);
     if (m_mri_increase)
     {
       m_mri_increase->UpdateMRIToImage();
     }
+    if (resetProgress)
+      ::SetProgressCallback(ProgressCallback, 60, 100);
     if (m_mri_decrease)
     {
       m_mri_decrease->UpdateMRIToImage();
@@ -532,8 +651,61 @@ void LayerFCD::SetLabelVisible(int nIndex, bool visible)
   emit ActorUpdated();
 }
 
-void LayerFCD::SetMRILayerBufferCTAB(COLOR_TABLE *ctab)
+void LayerFCD::SetMRILayerCTAB(COLOR_TABLE *ctab)
 {
-  foreach (LayerMRI* mri, m_bufferMRIs)
+  QList<LayerMRI*> layers = GetMRILayers();
+  foreach (LayerMRI* mri, layers)
     mri->GetProperty()->SetLUTCTAB(ctab);
+}
+
+QList<LayerMRI*> LayerFCD::GetMRILayers()
+{
+  QList<LayerMRI*> layers;
+  if (m_mri_norm)
+    layers << m_mri_norm;
+  if (m_mri_flair)
+    layers << m_mri_flair;
+  if (m_mri_aseg)
+    layers << m_mri_aseg;
+  if (m_mri_increase)
+    layers << m_mri_increase;
+  if (m_mri_decrease)
+    layers << m_mri_decrease;
+
+  return layers;
+}
+
+QList<LayerSurface*> LayerFCD::GetSurfaceLayers()
+{
+  QList<LayerSurface*> layers;
+  if (m_surf_lh)
+    layers << m_surf_lh;
+  if (m_surf_rh)
+    layers << m_surf_rh;
+
+  return layers;
+}
+
+QThread* LayerFCD::GetWorkerThread()
+{
+  return m_worker;
+}
+
+void LayerFCD::OnLayerDestroyed()
+{
+  Layer* layer = qobject_cast<Layer*>(sender());
+  if (layer == m_surf_lh)
+    m_surf_lh = NULL;
+  else if (layer == m_surf_rh)
+    m_surf_rh = NULL;
+  else if (layer == m_mri_norm)
+    m_mri_norm = NULL;
+  else if (layer == m_mri_flair)
+    m_mri_flair = NULL;
+  else if (layer == m_mri_aseg)
+    m_mri_aseg = NULL;
+  else if (layer == m_mri_increase)
+    m_mri_increase = NULL;
+  else if (layer == m_mri_decrease)
+    m_mri_decrease = NULL;
 }
