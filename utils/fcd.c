@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/21 18:32:21 $
- *    $Revision: 1.9 $
+ *    $Date: 2014/01/22 18:14:59 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,7 @@
 #include "cma.h"
 #include "const.h"
 #include "macros.h"
+#include "utils.h"
 #include "mrisegment.h"
 #ifdef HAVE_OPENMP
 #include <omp.h>
@@ -79,22 +80,26 @@ FCDloadData(char *sdir, char *subject)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   MRISsaveVertexPositions(fcd->mris_lh, WHITE_VERTICES) ;
 
+  exec_progress_callback(1, 8, 0, 1) ;
   sprintf(fname, "%s/%s/surf/rh.white", sdir, subject) ;
   fcd->mris_rh = MRISread(fname) ;
   if (fcd->mris_rh == NULL)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   MRISsaveVertexPositions(fcd->mris_rh, WHITE_VERTICES) ;
 
+  exec_progress_callback(2, 8, 0, 1) ;
   sprintf(fname, "%s/%s/mri/aparc+aseg.mgz", sdir, subject) ;
   fcd->mri_aseg = MRIread(fname) ;
   if (fcd->mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
 
+  exec_progress_callback(3, 8, 0, 1) ;
   sprintf(fname, "%s/%s/mri/flair.reg.norm.mgz", sdir, subject) ;
   fcd->mri_flair = MRIread(fname) ;
   if (fcd->mri_flair == NULL)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
 
+  exec_progress_callback(4, 8, 0, 1) ;
   sprintf(fname, "%s/%s/mri/norm.mgz", sdir, subject) ;
   fcd->mri_norm = MRIread(fname) ;
   if (fcd->mri_norm == NULL)
@@ -103,22 +108,26 @@ FCDloadData(char *sdir, char *subject)
   fcd->mri_thickness_increase = MRIcloneDifferentType(fcd->mri_aseg, MRI_FLOAT) ;
   fcd->mri_thickness_decrease = MRIcloneDifferentType(fcd->mri_aseg, MRI_FLOAT) ;
 
+  exec_progress_callback(5, 8, 0, 1) ;
   sprintf(fname, "%s/%s/surf/lh.rh.thickness.smooth0.mgz", sdir, subject) ;
   fcd->rh_thickness_on_lh = MRIread(fname) ;
   if (fcd->mri_aseg == NULL)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
 
+  exec_progress_callback(6, 8, 0, 1) ;
   sprintf(fname, "%s/%s/surf/rh.thickness.mgz", sdir, subject) ;
   fcd->rh_thickness_on_rh = MRIread(fname) ;
   if (fcd->rh_thickness_on_rh == NULL)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
 
 
+  exec_progress_callback(7, 8, 0, 1) ;
   sprintf(fname, "%s/%s/surf/lh.thickness.mgz", sdir, subject) ;
   fcd->lh_thickness_on_lh = MRIread(fname) ;
   if (fcd->lh_thickness_on_lh == NULL)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
 
+  exec_progress_callback(8, 8, 0, 1) ;
   sprintf(fname, "%s/%s/surf/rh.lh.thickness.mgz", sdir, subject) ;
   fcd->lh_thickness_on_rh = MRIread(fname) ;
   if (fcd->lh_thickness_on_rh == NULL)
@@ -166,10 +175,12 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
   mri_lh = MRIclone(fcd->lh_thickness_on_lh, NULL) ;
   mri_rh = MRIclone(fcd->lh_thickness_on_lh, NULL) ;
 
+  exec_progress_callback(1, 8, 0, 1) ;
   MRISwriteFrameToValues(fcd->mris_lh, fcd->lh_thickness_on_lh, 0) ;
   MRISaverageVals(fcd->mris_lh, niter) ;
   MRISreadFrameFromValues(fcd->mris_lh, mri_lh, 0) ;
 
+  exec_progress_callback(2, 8, 0, 1) ;
   MRISwriteFrameToValues(fcd->mris_lh, fcd->rh_thickness_on_lh, 0) ;
   MRISaverageVals(fcd->mris_lh, niter) ;
   MRISreadFrameFromValues(fcd->mris_lh, mri_rh, 0) ;
@@ -180,10 +191,12 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
   mri_lh = MRIclone(fcd->lh_thickness_on_rh, NULL) ;
   mri_rh = MRIclone(fcd->lh_thickness_on_rh, NULL) ;
 
+  exec_progress_callback(3, 8, 0, 1) ;
   MRISwriteFrameToValues(fcd->mris_rh, fcd->lh_thickness_on_rh, 0) ;
   MRISaverageVals(fcd->mris_rh, niter) ;
   MRISreadFrameFromValues(fcd->mris_rh, mri_lh, 0) ;
 
+  exec_progress_callback(4, 8, 0, 1) ;
   MRISwriteFrameToValues(fcd->mris_rh, fcd->rh_thickness_on_rh, 0) ;
   MRISaverageVals(fcd->mris_rh, niter) ;
   MRISreadFrameFromValues(fcd->mris_rh, mri_rh, 0) ;
@@ -192,6 +205,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
 
   MRIclear(fcd->mri_thickness_increase) ;
   MRIclear(fcd->mri_thickness_decrease) ;
+  exec_progress_callback(5, 8, 0, 1) ;
 
   // process left hemisphere
 #if 1
@@ -247,6 +261,8 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
       }
     }
   }
+
+  exec_progress_callback(6, 8, 0, 1) ;
 
   // now do right hemisphere
 #if 1
@@ -304,11 +320,13 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, 
     }
   }
 
+  exec_progress_callback(7, 8, 0, 1) ;
   mriseg = MRIsegment(fcd->mri_thickness_increase, thickness_thresh, 1e10) ;
   MRIremoveSmallSegments(mriseg, size_thresh) ;
   printf("segmenting volume at threshold %2.1f with %d smoothing iters yields %d segments\n", thickness_thresh, niter,mriseg->nsegments) ;
   fflush(stdout) ;
 
+  exec_progress_callback(8, 8, 0, 1) ;
   fcd->nlabels = mriseg->nsegments ;
   for (s = 0 ; s < mriseg->nsegments ; s++)
   {
