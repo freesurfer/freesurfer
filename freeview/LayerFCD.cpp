@@ -223,7 +223,7 @@ void LayerFCD::Recompute()
 {
   if (m_fcd)
   {
-    ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), GetProperty()->GetMinArea());
+    ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), (int)nint(GetProperty()->GetMinArea()));
     m_labelVisibility.clear();
     for (int i = 0; i < m_fcd->nlabels; i++)
       m_labelVisibility << true;
