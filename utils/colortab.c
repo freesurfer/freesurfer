@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/03 20:46:46 $
- *    $Revision: 1.43 $
+ *    $Date: 2014/01/22 22:44:19 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2011,6 +2011,7 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
     case Left_WM_hypointensities:
     case Right_WM_hypointensities:
     case Optic_Chiasm:
+    case Corpus_Callosum:
     case CC_Posterior:
     case CC_Mid_Posterior:
     case CC_Central:      
