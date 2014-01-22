@@ -168,6 +168,7 @@ BUILT_SOURCES = \
   moc_LayerFCD.cpp \
   moc_LayerPropertyFCD.cpp \
   moc_DialogLoadFCD.cpp \
+  moc_LayerFCDWorkerThread.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -469,6 +470,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   PanelFCD.h \
   DialogLoadFCD.cpp \
   DialogLoadFCD.h \
+  LayerFCDWorkerThread.cpp \
+  LayerFCDWorkerThread.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc
