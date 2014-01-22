@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/22 22:44:19 $
- *    $Revision: 1.44 $
+ *    $Date: 2014/01/22 23:17:47 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1957,7 +1957,7 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
   cte->gi = 148;
   cte->bi =  34;
   cte = ct->ctabTissueType->entries[3];
-  sprintf(cte->name,"SubcorticalWM");  
+  sprintf(cte->name,"WM");  
   cte->ri =   0;
   cte->gi = 255;
   cte->bi =   0;
