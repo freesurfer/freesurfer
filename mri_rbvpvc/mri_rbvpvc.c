@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/22 23:47:38 $
- *    $Revision: 1.15 $
+ *    $Date: 2014/01/23 23:54:55 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.15 2014/01/22 23:47:38 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.16 2014/01/23 23:54:55 greve Exp $
 
 /*
   BEGINHELP
@@ -84,7 +84,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.15 2014/01/22 23:47:38 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.16 2014/01/23 23:54:55 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -92,7 +92,7 @@ int checkoptsonly=0;
 struct utsname uts;
 
 char *SrcVolFile=NULL,*SegVolFile=NULL,*MaskVolFile=NULL;
-char *OutDir=NULL,*OutVolFile=NULL;
+char *OutDir=NULL,*RBVVolFile=NULL;
 char *OutBetaFile=NULL,*OutXtXFile=NULL;
 double psfFWHM=-1,cFWHM,rFWHM,sFWHM,cStd,rStd,sStd;
 int DoSegTest=0;
@@ -102,6 +102,7 @@ char *PVFFile=NULL, *SegTTypeFile=NULL;
 double ApplyFWHM=0;
 char *Xfile=NULL;
 char *VRFStatsFile=NULL;
+char *eresFile=NULL, *yhatFile=NULL;
 
 MATRIX *MatrixGetDiag(MATRIX *M, VECTOR *d);
 int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax);
@@ -126,7 +127,9 @@ MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask,
 		    MATRIX *X);
 int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask);
 int WriteVRFStats(char *fname, MRI *seg, COLOR_TABLE *ct, MATRIX *iXtX, MATRIX *gtm, MRI *mask);
-
+MRI *GTMsynth(MATRIX *beta, MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask, int nDils);
+MRI *GTMforward(MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask);
+MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask, double **prvarArray);
 COLOR_TABLE *ctSeg=NULL;
 
 /*---------------------------------------------------------------*/
@@ -134,13 +137,13 @@ int main(int argc, char *argv[])
 {
   int nargs,err,c,r,s,f,nmask;
   MRI *src, *seg, *mask=NULL,*rbv,*gtmsynth,*gtmsynthsm,*mritmp;
-  int nsegs,msegs,nthseg,*segidlist0,*segidlist,segid;
+  int nsegs,msegs,nthseg,*segidlist0,*segidlist;
   MATRIX *beta, *y, *X, *Xt, *XtX, *iXtX, *Xty;
   double val,XtXcond;
   double vrfmin,vrfmax,vrfmean;
   struct timeb  mytimer, timer;
-  MRI *PVF=NULL;
-  MATRIX *SegTType=NULL;
+  MRI *PVF=NULL, *gtmres;
+  double *rvar;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -212,15 +215,6 @@ int main(int argc, char *argv[])
       printf("ERROR: seg and PVF dim mismatch %d\n",err);
       exit(1);
     }
-    printf("Computing SegTType\n");
-    SegTType = Seg2TissueType(seg);
-    //printf("Loading SegTType %s\n",SegTTypeFile);fflush(stdout);
-    //SegTType = MatrixReadTxt(SegTTypeFile, NULL);
-    if(SegTType == NULL){
-      printf("ERROR: reading  %s\n",SegTTypeFile);
-      exit(1);
-    }
-    //MatrixPrint(stdout,SegTType);
   }
   if(MaskVolFile){
     printf("Loading mask %s\n",MaskVolFile);fflush(stdout);
@@ -238,10 +232,10 @@ int main(int argc, char *argv[])
   if(niterations > 0){
     printf("Starting iterative RBV\n");
     rbv = IterativeRBV0PVC(src, seg, mask, niterations,cFWHM, rFWHM, sFWHM, NULL);
-    printf("Writing output to %s ...",OutVolFile);fflush(stdout); TimerStart(&mytimer) ;
-    err = MRIwrite(rbv,OutVolFile);
+    printf("Writing output to %s ...",RBVVolFile);fflush(stdout); TimerStart(&mytimer) ;
+    err = MRIwrite(rbv,RBVVolFile);
     if(err){
-      printf("ERROR: writing to %s\n",OutVolFile);
+      printf("ERROR: writing to %s\n",RBVVolFile);
       exit(1);
     }
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
@@ -318,6 +312,22 @@ int main(int argc, char *argv[])
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
 
   beta = MatrixMultiplyD(iXtX,Xty,NULL);
+
+  printf("Synthesizing ... ");fflush(stdout); TimerStart(&mytimer) ;
+  gtmsynth = GTMsynth(beta, seg, PVF, ctSeg, mask, 9);
+  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+  printf("Smoothing synthesized ... ");fflush(stdout); TimerStart(&mytimer) ;
+  gtmsynthsm = MRIgaussianSmoothNI(gtmsynth, cStd, rStd, sStd, NULL);
+  if(gtmsynthsm==NULL) exit(1);
+  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+  //gtmsynthsm = GTMforward(X, beta, seg, mask);
+  //MRIwrite(gtmsynth,"gtmsynth.nii");
+  if(yhatFile) MRIwrite(gtmsynthsm,yhatFile);
+
+  gtmres = GTMresidual(y, X, beta, seg, mask, &rvar);
+  printf("rvar %g\n",rvar[0]);
+  if(eresFile) MRIwrite(gtmres,eresFile);
+
   if(VRFStatsFile) WriteVRFStats(VRFStatsFile, seg, ctSeg, iXtX, beta, mask);
 
   XtXcond = MatrixConditionNumber(XtX);
@@ -325,7 +335,6 @@ int main(int argc, char *argv[])
   printf("XtX  Condition     %8.3f \n",XtXcond);
   printf("VRF  Mean/Min/Max  %8.3f %8.3f %8.3f \n",vrfmean,vrfmin,vrfmax);
   fflush(stdout);
-
 
   MatrixFree(&y);
   MatrixFree(&Xt);
@@ -368,42 +377,8 @@ int main(int argc, char *argv[])
     printf("done with mgpvc\n");
   }
 
-  if(OutVolFile != NULL){
-    // Simulate Image by filling with GTM means
-    printf("Synthesizing ... ");fflush(stdout); TimerStart(&mytimer) ;
-    gtmsynth = MRIallocSequence(src->width, src->height, src->depth,
-				MRI_FLOAT, src->nframes);
-    if(gtmsynth==NULL){
-      printf("ERROR: could not alloc gtmsynth\n");
-      exit(1);
-    }
-    MRIcopyHeader(src,gtmsynth);
-    for(s=0; s < src->depth; s++){
-      for(c=0; c < src->width; c++){
-	for(r=0; r < src->height; r++){
-	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
-	  segid = MRIgetVoxVal(seg,c,r,s,0);
-	  if(segid == 0) continue;
-	  for(nthseg=0; nthseg < nsegs; nthseg++)
-	    if(segid == segidlist[nthseg]) break;
-	  for(f=0; f < src->nframes; f++)
-	    MRIsetVoxVal(gtmsynth,c,r,s,f,beta->rptr[nthseg+1][f+1]);
-	}
-      }
-    }
-    printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
     
-    MatrixFree(&beta);
-    
-    // Smooth Simulated Images
-    printf("Smoothing synthesized ... ");fflush(stdout); TimerStart(&mytimer) ;
-    gtmsynthsm = MRIgaussianSmoothNI(gtmsynth, cStd, rStd, sStd, NULL);
-    if(gtmsynthsm==NULL) exit(1);
-    printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
-    
-    //MRIwrite(gtmsynth,"gtmsynth.nii");
-    //MRIwrite(gtmsynthsm,"gtmsynthsm.nii");
-    
+  if(RBVVolFile){
     // Compute the final RBV
     printf("Computing RBV ... ");fflush(stdout); TimerStart(&mytimer) ;
     rbv = MRIallocSequence(src->width, src->height, src->depth,
@@ -428,17 +403,16 @@ int main(int argc, char *argv[])
     }
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
 
-    MRIfree(&gtmsynth);
-    MRIfree(&gtmsynthsm);
-
-    printf("Writing output to %s ...",OutVolFile);fflush(stdout); TimerStart(&mytimer) ;
-    err = MRIwrite(rbv,OutVolFile);
+    printf("Writing output to %s ...",RBVVolFile);fflush(stdout); TimerStart(&mytimer) ;
+    err = MRIwrite(rbv,RBVVolFile);
     if(err){
-      printf("ERROR: writing to %s\n",OutVolFile);
+      printf("ERROR: writing to %s\n",RBVVolFile);
       exit(1);
     }
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   }
+  MRIfree(&gtmsynth);
+  MRIfree(&gtmsynthsm);
 
   printf("mri_rbvpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
   printf("mri_rbvpvc done\n");
@@ -515,9 +489,19 @@ static int parse_commandline(int argc, char **argv) {
       OutDir = pargv[0];
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--o")) {
+    else if (!strcasecmp(option, "--o") || !strcasecmp(option, "--rbv")) {
       if (nargc < 1) CMDargNErr(option,1);
-      OutVolFile = pargv[0];
+      RBVVolFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--eres")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      eresFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--yhat")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      yhatFile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--mgpvc")) {
@@ -570,15 +554,17 @@ static void print_usage(void) {
   printf("   --seg segfile : segmentation to define regions for RBV\n");
   printf("   --mask volfile : ignore areas outside of the mask\n");
   printf("   --psf psfmm : scanner PSF FWHM in mm\n");
-  printf("   --pvf pvffile segttype: Non-binary voxelwise PVF\n");
-  printf("   --o  outvolfile : PVC'ed input\n");
+  printf("   --pvf pvffile : Non-binary voxelwise PVF\n");
   printf("   --gtm-means volfile : save ROI means in volume format\n");
-  printf("   --xtx xtx.mtx : save X'*X into xtx.mtx\n");
-  printf("   --vrf vrfstatsfile\n");
-  printf("   --niters N : use iterative method instead of GTM\n");
-  printf("   --seg-test : replace input with seg smoothed by psf\n");
-  printf("   --X Xfile : save X matrix (it will be big)\n");
+  printf("   --rbv rbvfile : PVC'ed input\n");
   printf("   --mgpvc mgpvcfile gmthresh\n");
+  printf("   --vrf vrfstatsfile\n");
+  printf("   --yhat gtm yhat file\n");
+  printf("   --res  gtm residual file\n");
+  printf("   --seg-test : replace input with seg smoothed by psf\n");
+  printf("   --xtx xtx.mtx : save X'*X into xtx.mtx\n");
+  printf("   --X Xfile : save X matrix (it will be big)\n");
+  printf("   --niters N : use iterative method instead of GTM\n");
   //printf("   --od outdir     : output directory\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
@@ -615,7 +601,7 @@ static void check_options(void)
     printf("ERROR: must spec psf FWHM\n");
     exit(1);
   }
-  if(OutVolFile == NULL && OutDir == NULL && MGPVCFile == NULL && OutBetaFile == NULL){
+  if(RBVVolFile == NULL && OutDir == NULL && MGPVCFile == NULL && OutBetaFile == NULL){
     printf("ERROR: must spec an output with --o, --gtm-means,  or --mgpvc\n");
     exit(1);
   }
@@ -1488,7 +1474,8 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
 	  if(c < region->x || c >= region->x+region->dx)  continue;
 	  if(r < region->y || r >= region->y+region->dy)  continue;
 	  if(s < region->z || s >= region->z+region->dz)  continue;
-	  X->rptr[nmask+1][nthseg+1] = 
+	  // do not use nmask+1 here because it has already been incr above
+	  X->rptr[nmask][nthseg+1] = 
 	    MRIgetVoxVal(pvfbbsm,c-region->x,r-region->y,s-region->z,0);
 	}
       }
@@ -1532,11 +1519,11 @@ int WriteVRFStats(char *fname, MRI *seg, COLOR_TABLE *ct, MATRIX *iXtX, MATRIX *
     cte = ct->entries[segid];
     fprintf(fp,"%3d %4d %-31s %-13s %6d %8.3f",n+1,segid,cte->name,
 	    ttctab->entries[cte->TissueType]->name,nvox,vrf);
-    printf("%3d %4d %-31s %-13s %6d %8.3f",n+1,segid,cte->name,
-	    ttctab->entries[cte->TissueType]->name,nvox,vrf);
+    //printf("%3d %4d %-31s %-13s %6d %8.3f",n+1,segid,cte->name,
+    //ttctab->entries[cte->TissueType]->name,nvox,vrf);
     if(gtm){
       fprintf(fp,"   %10.3f",gtm->rptr[n+1][1]);
-      printf("   %10.3f",gtm->rptr[n+1][1]);
+      //printf("   %10.3f",gtm->rptr[n+1][1]);
     }
     fprintf(fp,"\n");
     printf(" \n");
@@ -1564,3 +1551,115 @@ int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask)
   return(nMatches);
 }
 
+MRI *GTMsynth(MATRIX *beta, MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask, int nDils)
+{
+  double vpvf,v,v2;
+  MRI **segttdil, *vol=NULL;
+  int *segidlist, nsegs, nthseg, segid, tt,nTT;
+  int c,r,s,f;
+
+  nTT = ct->ctabTissueType->nentries-1;
+  segidlist = MRIsegIdListExclude0(seg, &nsegs, 0);
+  printf("Dilating segmentation nDils=%d\n",nDils);
+  segttdil = MRIdilateSegWithinTT(seg, nDils, ct);
+  if(segttdil == NULL) return(NULL);
+
+  vol = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_FLOAT,beta->cols);
+  MRIcopyHeader(seg,vol);
+
+  for(s=0; s < seg->depth; s++){
+    for(c=0; c < seg->width; c++){
+      for(r=0; r < seg->height; r++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	for(tt=0; tt < nTT; tt++){
+	  segid = MRIgetVoxVal(segttdil[tt],c,r,s,0);
+	  if(segid == 0) continue;
+	  for(nthseg=0; nthseg < nsegs; nthseg++) if(segidlist[nthseg]==segid) break;
+	  vpvf = MRIgetVoxVal(pvf,c,r,s,tt);
+	  for(f=0; f < beta->cols; f++) {
+	    v = MRIgetVoxVal(vol,c,r,s,f);
+	    v2 = v + vpvf*beta->rptr[nthseg+1][f+1];
+	    MRIsetVoxVal(vol,c,r,s,f,v2);
+	  } // frame
+	} // tt
+      }// r 
+    }// c
+  }// s
+
+  for(tt = 0; tt < nTT; tt++)MRIfree(&segttdil[tt]);
+  free(segidlist);
+
+  return(vol);
+}
+
+MRI *GTMforward(MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask)
+{
+  MRI *vol=NULL;
+  int c,r,s,f,nmask;
+  MATRIX *yhat;
+
+  printf("GTMforward(): computing yhat ..."); fflush(stdout);
+  yhat = MatrixMultiply(X,beta,NULL);
+  printf(" done\n"); fflush(stdout);
+
+  vol = MRIallocSequence(temp->width,temp->height,temp->depth,MRI_FLOAT,beta->cols);
+  MRIcopyHeader(temp,vol);
+
+  nmask = 0;
+  for(s=0; s < temp->depth; s++){
+    for(c=0; c < temp->width; c++){
+      for(r=0; r < temp->height; r++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	for(f=0; f < beta->cols; f++)
+	  MRIsetVoxVal(vol,c,r,s,f,yhat->rptr[nmask+1][f+1]);
+	nmask++;
+      }// r 
+    }// c
+  }// s
+
+  MatrixFree(&yhat);
+  return(vol);
+}
+
+MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask, double **prvarArray)
+{
+  MRI *res=NULL;
+  int c,r,s,f,nmask,dof;
+  MATRIX *yhat,*resmat;
+  double *sumsq,v;
+
+  sumsq = (double *) calloc(sizeof(double),beta->cols);
+  for(f=0; f < beta->cols; f++) sumsq[f] = 0;
+
+  printf("GTMresidual(): computing yhat ..."); fflush(stdout);
+  yhat = MatrixMultiply(X,beta,NULL);
+  printf(" done\n"); fflush(stdout);
+
+  resmat = MatrixSubtract(y,yhat,NULL);
+  MatrixFree(&yhat);
+
+  res = MRIallocSequence(temp->width,temp->height,temp->depth,MRI_FLOAT,beta->cols);
+  MRIcopyHeader(temp,res);
+
+  nmask = 0;
+  for(s=0; s < temp->depth; s++){
+    for(c=0; c < temp->width; c++){
+      for(r=0; r < temp->height; r++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	for(f=0; f < beta->cols; f++){
+	  v = resmat->rptr[nmask+1][f+1];
+	  sumsq[f] = v*v;
+	  MRIsetVoxVal(res,c,r,s,f,v);
+	}
+	nmask++;
+      }// r 
+    }// c
+  }// s
+
+  dof = X->rows - X->cols;
+  for(f=0; f < beta->cols; f++) sumsq[f] /= dof;
+  *prvarArray = sumsq;
+
+  MatrixFree(&resmat);
+  return(res);
+}
