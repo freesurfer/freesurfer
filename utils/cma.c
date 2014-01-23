@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/03 20:43:37 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/01/23 21:51:38 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1228,7 +1228,7 @@ MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct)
   MRI **r;
   MRI *segtt=NULL;
   int nc,tt;
-  char tmpstr[1000];
+  //char tmpstr[1000];
 
   if(ct->ctabTissueType == NULL){
     printf("ERROR: MRIdilateSegWithinTT() ctab tissue type not set\n");
@@ -1237,13 +1237,13 @@ MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct)
 
   r = (MRI **) calloc(sizeof(MRI*),ct->ctabTissueType->nentries-1);
   for(tt = 1; tt < ct->ctabTissueType->nentries; tt++){
-    printf("tt = %d\n",tt);
+    //printf("tt = %d\n",tt);
     segtt = MRIextractTissueTypeSeg(seg, ct, tt, segtt);
     if(segtt == NULL) return(NULL);
     r[tt-1] = MRIdilateSegmentation(segtt, NULL, nDils, NULL, 0, 0, &nc);
     if(r[tt-1] == NULL) return(NULL);
-    sprintf(tmpstr,"seg.dil%d.tt%d.mgh",nDils,tt);
-    MRIwrite(r[tt-1],tmpstr);
+    //sprintf(tmpstr,"seg.dil%d.tt%d.mgh",nDils,tt);
+    //MRIwrite(r[tt-1],tmpstr);
   }
 
   MRIfree(&segtt);
