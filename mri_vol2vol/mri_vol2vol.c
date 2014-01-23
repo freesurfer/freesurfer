@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2012/11/08 23:46:11 $
- *    $Revision: 1.78 $
+ *    $Author: fischl $
+ *    $Date: 2014/01/23 20:36:35 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -479,7 +479,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.78 2012/11/08 23:46:11 lzollei Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.79 2014/01/23 20:36:35 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -600,12 +600,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.78 2012/11/08 23:46:11 lzollei Exp $",
+                          "$Id: mri_vol2vol.c,v 1.79 2014/01/23 20:36:35 fischl Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.78 2012/11/08 23:46:11 lzollei Exp $",
+                                "$Id: mri_vol2vol.c,v 1.79 2014/01/23 20:36:35 fischl Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1785,6 +1785,11 @@ static void check_options(void) {
   }
   if (movvolfile == NULL && ( lta == NULL || ! invert) ) {
     printf("ERROR: No mov volume supplied.\n");
+    exit(1);
+  }
+  if (targvolfile == NULL)
+  {
+    printf("ERROR: No target volume supplied.\n");
     exit(1);
   }
   if(lta != NULL){
