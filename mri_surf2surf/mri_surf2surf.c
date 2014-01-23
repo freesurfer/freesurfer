@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/08/29 18:21:10 $
- *    $Revision: 1.98 $
+ *    $Author: fischl $
+ *    $Date: 2014/01/23 23:05:19 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -354,7 +354,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.98 2013/08/29 18:21:10 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.99 2014/01/23 23:05:19 fischl Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -485,7 +485,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.98 2013/08/29 18:21:10 greve Exp $",
+    "$Id: mri_surf2surf.c,v 1.99 2014/01/23 23:05:19 fischl Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -1577,7 +1577,7 @@ static int parse_commandline(int argc, char **argv)
       trgvalfile = pargv[0];
       nargsused = 1;
     } else if (!strcasecmp(option, "--tval-xyz")) {
-      if(nargc < 1 || CMDnthIsArg(nargc, pargv, 1)){
+      if(nargc < 1 || CMDnthIsArg(nargc, pargv, 0) == 0){
 	printf("ERROR: --tval-xyz flag needs 1 argument\n");
 	printf("   FYI: --tval-xyz now requires a volume. See --help\n");
 	exit(1);
