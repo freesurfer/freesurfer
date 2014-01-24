@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: twitzel $
- *    $Date: 2013/09/17 02:00:22 $
- *    $Revision: 1.528 $
+ *    $Author: greve $
+ *    $Date: 2014/01/24 22:05:24 $
+ *    $Revision: 1.529 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.528 $";
+const char *MRI_C_VERSION = "$Revision: 1.529 $";
 
 
 /*-----------------------------------------------------
@@ -8084,6 +8084,36 @@ MRI *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
   MRIreInitCache(mri_dst) ;
 
   return(mri_dst) ;
+}
+/*
+  \fn MRI *MRIupsampleNConserve(MRI *mri_src, MRI *mri_dst, int N)
+  \breif Uses MRIupsampleN() to upsample the data set, then divides
+  by N*N*N to conserve the sum of all the values;
+ */
+MRI *MRIupsampleNConserve(MRI *mri_src, MRI *mri_dst, int N)
+{
+  double d = N*N*N, v;
+  int c,r,s,f;
+  MRI *mri_srctmp;
+
+  if(mri_src->type != MRI_FLOAT)
+    mri_srctmp = MRISeqchangeType(mri_src, MRI_FLOAT, 0,0,0);
+  else
+    mri_srctmp = mri_src;
+
+  mri_dst = MRIupsampleN(mri_srctmp,mri_dst,N);
+  for(c=0; c < mri_dst->width; c++){
+    for(r=0; r < mri_dst->height; r++){
+      for(s=0; s < mri_dst->depth; s++){
+	for(f=0; f < mri_dst->nframes; f++){
+	  v = MRIgetVoxVal(mri_dst,c,r,s,f);
+	  MRIsetVoxVal(mri_dst,c,r,s,f,v/d);
+	}
+      }
+    }
+  }
+  if(mri_src != mri_srctmp) MRIfree(&mri_srctmp);
+  return(mri_dst);
 }
 
 

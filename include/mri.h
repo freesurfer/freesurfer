@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/11/22 19:41:20 $
- *    $Revision: 1.457 $
+ *    $Author: greve $
+ *    $Date: 2014/01/24 22:05:24 $
+ *    $Revision: 1.458 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -815,7 +815,8 @@ MRI   *MRIzDerivative(MRI *mri_src, MRI *mri_dz) ;
 /* resampling routines */
 MRI   *MRIupsample2(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N) ;
-MRI *MRIdownsampleN(MRI *src, MRI *dst, int Fc, int Fr, int Fs, int KeepType);
+MRI   *MRIupsampleNConserve(MRI *mri_src, MRI *mri_dst, int N);
+MRI   *MRIdownsampleN(MRI *src, MRI *dst, int Fc, int Fr, int Fs, int KeepType);
 MRI   *MRIdownsample2(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst) ;
 
