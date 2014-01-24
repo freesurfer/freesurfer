@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2013/04/25 22:11:59 $
- *    $Revision: 1.72 $
+ *    $Author: greve $
+ *    $Date: 2014/01/24 21:46:16 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -263,6 +263,9 @@ int TransformSourceVoxelToAtlas( TRANSFORM *transform, MRI *mri,
 MATRIX *MRIangles2RotMat(double *angles);
 double *SegRegCost(MRI *regseg, MRI *f, double *costs);
 MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R);
+
+int LTAmriIsSource(const LTA *lta, const MRI *mri);
+int LTAmriIsTarget(const LTA *lta, const MRI *mri);
 
 #if defined(__cplusplus)
 };

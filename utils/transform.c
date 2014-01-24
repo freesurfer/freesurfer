@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2013/04/25 22:13:00 $
- *    $Revision: 1.162 $
+ *    $Author: greve $
+ *    $Date: 2014/01/24 21:46:16 $
+ *    $Revision: 1.163 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,6 +114,10 @@ void initVolGeom(VOL_GEOM *vg)
   strcpy(vg->fname, "unknown"); // initialized to be "unknown"
 }
 
+/*!
+\fn void getVolGeom(const MRI *src, VOL_GEOM *dst)
+\brief Copy Volume Geometry from MRI
+ */
 void getVolGeom(const MRI *src, VOL_GEOM *dst)
 {
   if (!src)
@@ -5010,4 +5014,32 @@ TransformSourceVoxelToAtlas( TRANSFORM *transform, MRI *mri,
     *px = (double)xt ; *py = (double)yt ; *pz = (double)zt ;
   }
   return (NO_ERROR) ;
+}
+
+/*
+  \fn int LTAmriIsSource(const LTA *lta, const MRI *mri)
+  \brief Returns 1 if the geometry in mri matches that in
+  lta->xforms[0].src, otherwise returns 0.
+ */
+int LTAmriIsSource(const LTA *lta, const MRI *mri)
+{
+  VOL_GEOM mrivg;
+  int IsSource;
+  getVolGeom(mri, &mrivg);
+  IsSource = vg_isEqual(&lta->xforms[0].src, &mrivg);
+  return(IsSource);
+}
+/*
+  \fn int LTAmriIsTarget(const LTA *lta, const MRI *mri)
+  \brief Returns 1 if the geometry in mri matches that in
+  lta->xforms[num_xforms-1].dst, otherwise returns 0.
+ */
+int LTAmriIsTarget(const LTA *lta, const MRI *mri)
+{
+  VOL_GEOM mrivg;
+  int IsTarget,nxforms;
+  getVolGeom(mri, &mrivg);
+  nxforms = lta->num_xforms;
+  IsTarget = vg_isEqual(&lta->xforms[nxforms-1].dst, &mrivg);
+  return(IsTarget);
 }
