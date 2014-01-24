@@ -186,7 +186,7 @@ void PanelFCD::OnTextThresholdReturned()
 void PanelFCD::OnTextMinAreaReturned()
 {
   bool ok;
-  double val = ui->lineEditMinArea->text().trimmed().toDouble(&ok);
+  int val = ui->lineEditMinArea->text().trimmed().toInt(&ok);
   if (ok)
   {
     LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
