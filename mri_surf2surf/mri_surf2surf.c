@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/24 18:02:55 $
- *    $Revision: 1.100 $
+ *    $Date: 2014/01/24 21:40:28 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -259,6 +259,12 @@ EXAMPLES:
    file between anatomical and functional spaces. View result with:
      freeview -v template.nii.gz -f lh.white.func
 
+   When using an LTA instead of a register.dat, do not include a target volume
+
+   mri_surf2surf --reg register.lta --hemi lh 
+      --sval-xyz white --tval-xyz template.nii.gz --tval ./lh.white.func 
+      --s yoursubject
+
 5. Extract surface normals of the white surface and save in a
    volume-encoded file:
 
@@ -369,7 +375,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.100 2014/01/24 18:02:55 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.101 2014/01/24 21:40:28 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -500,7 +506,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.100 2014/01/24 18:02:55 greve Exp $",
+    "$Id: mri_surf2surf.c,v 1.101 2014/01/24 21:40:28 greve Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -536,7 +542,7 @@ int main(int argc, char **argv)
   dump_options(stdout);
 
   if(TrgSurfVolFile){
-    TrgSurfVol = MRIread(TrgSurfVolFile);
+    TrgSurfVol = MRIreadHeader(TrgSurfVolFile,MRI_VOLUME_TYPE_UNKNOWN);
     if(TrgSurfVol == NULL) exit(1);
   }
 
@@ -1360,72 +1366,55 @@ static int parse_commandline(int argc, char **argv)
       SurfSrcName = pargv[0];
       UseSurfSrc = SURF_SRC_TAL_XYZ;
       nargsused = 1;
-    } else if (!strcasecmp(option, "--reg")) {
-      if(nargc < 1) {
-        argnerr(option,1);
-      }
-      if (!stricmp(FileNameExtension(pargv[0], tmp), "LTA")) {
+    } 
+    else if(!strcasecmp(option, "--reg") || !strcasecmp(option, "--reg-inv")) {
+      if(nargc < 1) argnerr(option,1);
+      nargsused = 1;
+      if(!stricmp(FileNameExtension(pargv[0], tmp), "LTA")) {
+	if(CMDnthIsArg(nargc, pargv, 1) ) {
+	  printf("ERROR: do not include a template volume with --reg or --reg-inv when using an LTA file\n");
+	  exit(1);
+	}
         LTA *lta ;
         lta = LTAread(pargv[0]) ;
-        if (lta == NULL) {
-          return(1) ;
-        }
+        if (lta == NULL) return(1) ;
+	if(lta->type != REGISTER_DAT){
+	  printf("Converting LTA to REGISTER_DAT\n");
+	  LTAchangeType(lta,REGISTER_DAT);
+	}
         regsubject = (char *) calloc(strlen(lta->subject)+2,sizeof(char));
         strcpy(regsubject, lta->subject) ;
         intensity = lta->fscale ;
         float2int = FLT2INT_ROUND ;
-        ipr = lta->xforms[0].dst.xsize ;
-        bpr = lta->xforms[0].dst.zsize ;
+        ipr = lta->xforms[0].src.xsize ;
+        bpr = lta->xforms[0].src.zsize ;
         XFM = MatrixCopy(lta->xforms[0].m_L, NULL) ;
-        if (lta->type != LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
-          printf("!!! WARNING: non TKREG .lta file %s read in "
-                 "regio_read_register !!!\n",
-                 pargv[0]) ;
-        RegTarg = MRIallocHeader(lta->xforms[0].dst.width,
-                                 lta->xforms[0].dst.height,
-                                 lta->xforms[0].dst.depth,
-                                 MRI_UCHAR,
-                                 1) ;
-        MRIcopyVolGeomToMRI(RegTarg, &lta->xforms[0].dst) ;
+        RegTarg = MRIallocHeader(lta->xforms[0].src.width,
+                                 lta->xforms[0].src.height,
+                                 lta->xforms[0].src.depth,
+                                 MRI_UCHAR,1) ;
+        MRIcopyVolGeomToMRI(RegTarg, &lta->xforms[0].src) ;
         LTAfree(&lta) ;
         err = 0 ;
-      } else
+      } 
+      else{
         err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
                                   &intensity, &XFM, &float2int);
-      if(err) {
-        exit(1);
+	if(err) exit(1);
+	if(CMDnthIsArg(nargc, pargv, 1) ) {
+	  printf("Reading header for %s\n",pargv[1]);
+	  RegTarg = MRIreadHeader(pargv[1],MRI_VOLUME_TYPE_UNKNOWN);
+	  if(RegTarg == NULL) exit(1);
+	  nargsused ++;
+	}
+      }
+      if(!strcasecmp(option, "--reg-inv")){
+	printf("Inverting matrix\n");
+	XFM = MatrixInverse(XFM,XFM);
       }
       ApplyReg = 1;
-      nargsused = 1;
-      if(CMDnthIsArg(nargc, pargv, 1) ) {
-        printf("Reading header for %s\n",pargv[1]);
-        RegTarg = MRIreadHeader(pargv[1],MRI_VOLUME_TYPE_UNKNOWN);
-        if(RegTarg == NULL) {
-          exit(1);
-        }
-        nargsused ++;
-      }
-    } else if (!strcasecmp(option, "--reg-inv")) {
-      if (nargc < 1) {
-        argnerr(option,1);
-      }
-      err = regio_read_register(pargv[0], &regsubject, &ipr, &bpr,
-                                &intensity, &XFM, &float2int);
-      if (err) {
-        exit(1);
-      }
-      XFM = MatrixInverse(XFM,NULL);
-      ApplyReg = 1;
-      nargsused = 1;
-      if(CMDnthIsArg(nargc, pargv, 1) ) {
-        printf("Reading header for %s\n",pargv[1]);
-        RegTarg = MRIreadHeader(pargv[1],MRI_VOLUME_TYPE_UNKNOWN);
-        if(RegTarg == NULL) {
-          exit(1);
-        }
-        nargsused ++;
-      }
-    } else if (!strcasecmp(option, "--reg-diff")) {
+    } 
+    else if (!strcasecmp(option, "--reg-diff")) {
       if (nargc < 1) {
         argnerr(option,1);
       }
@@ -2020,6 +2009,12 @@ printf("   This will create lh.white.func in the current directory. template.nii
 printf("   is a volume in the functional space. register.dat is the registration\n");
 printf("   file between anatomical and functional spaces. View result with:\n");
 printf("     freeview -v template.nii.gz -f lh.white.func\n");
+printf("\n");
+printf("   When using an LTA instead of a register.dat, do not include a target volume\n");
+printf("\n");
+printf("   mri_surf2surf --reg register.lta --hemi lh \n");
+printf("      --sval-xyz white --tval-xyz template.nii.gz --tval ./lh.white.func \n");
+printf("      --s yoursubject\n");
 printf("\n");
 printf("5. Extract surface normals of the white surface and save in a\n");
 printf("   volume-encoded file:\n");
