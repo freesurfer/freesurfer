@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/03/07 19:59:49 $
- *    $Revision: 1.25 $
+ *    $Date: 2014/01/27 21:56:18 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -382,7 +382,8 @@ std::vector<int> MyMRI::findRightSize(MRI *mri, float conform_size,
 // determines width, height, depth to cover mri with conform_size isotropic voxels
 //  bool conform makes cube image (w=h=d) and adjust to min of 256
 {
-
+  //string s = ""; if (conform) s = " , 256-conform" ;
+  //cout << " MyMRI::findRightSize(mri, target_voxel_size=" << conform_size << s << " )" << endl;
   double xsize, ysize, zsize;
   double fwidth, fheight, fdepth, fmax;
   int conform_width;
@@ -393,9 +394,12 @@ std::vector<int> MyMRI::findRightSize(MRI *mri, float conform_size,
 
   // now decide the conformed_width
   // calculate the size in mm for all three directions
-  fwidth = fabs(mri->xsize) * mri->width;
-  fheight = fabs(mri->ysize) * mri->height;
-  fdepth = fabs(mri->zsize) * mri->depth;
+  fwidth  = xsize * mri->width;
+  fheight = ysize * mri->height;
+  fdepth  = zsize * mri->depth;
+  
+  //cout << "in: " <<mri->width << " " << mri->height << " " << mri->depth << endl;
+  //cout << "out: " << fwidth << " " << fheight << " " << fdepth << endl;
 
   vector<int> ret(3);
   double eps = 0.0001; // to prevent ceil(2.0*64 / 2.0) = ceil(64.000000000001) = 65
@@ -466,7 +470,8 @@ bool MyMRI::isConform(MRI * mri)
 
 bool MyMRI::isIsotropic(MRI * mri)
 {
-
+  if (mri->depth == 1) return (mri->xsize == mri->ysize);
+  
   return (mri->xsize == mri->ysize && mri->xsize == mri->zsize);
 
 }
