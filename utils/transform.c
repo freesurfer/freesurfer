@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/24 21:46:16 $
- *    $Revision: 1.163 $
+ *    $Date: 2014/01/28 21:19:36 $
+ *    $Revision: 1.164 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4512,17 +4512,25 @@ VGgetVoxelToRasXform(VOL_GEOM *vg, MATRIX *m, int base)
 }
 /*!
   \fn LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
-  \brief Converts a tkregister-style registration matrix to LTA
+  \brief Converts a tkregister-style registration matrix to LTA. 
+   The LTA will be LINEAR_VOX_TO_VOX. If R=NULL, then computes the 
+   LTA based on header geometry.
 */
 LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
 {
   LTA *lta;
   MATRIX *vox2vox; // Targ->Mov
   MATRIX *Ttarg, *Tmov, *invTmov;
+  int freeR=0;
 
   Ttarg = MRIxfmCRS2XYZtkreg(targ);
   Tmov  = MRIxfmCRS2XYZtkreg(mov);
   invTmov = MatrixInverse(Tmov,NULL);
+
+  if(R==NULL){
+    R = MatrixIdentity(4,NULL);
+    freeR = 1;
+  }
 
   // vox2vox = invTmov * R * Ttarg
   vox2vox = MatrixMultiply(invTmov,R,NULL);
@@ -4539,6 +4547,8 @@ LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
   MatrixFree(&Tmov);
   MatrixFree(&invTmov);
   MatrixFree(&vox2vox);
+  if(freeR) MatrixFree(&R);
+
 
   return(lta);
 }
