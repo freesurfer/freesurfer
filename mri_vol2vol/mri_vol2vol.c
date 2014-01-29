@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/24 23:10:53 $
- *    $Revision: 1.80 $
+ *    $Date: 2014/01/29 00:38:24 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -479,7 +479,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.80 2014/01/24 23:10:53 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.81 2014/01/29 00:38:24 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -583,8 +583,9 @@ char *vsmvolfile=NULL;
 int defM3zPath = 1; // use deafult path to the m3z file
 int TargMNI152 = 0;
 int keepprecision = 0;
-MRI *MRIvol2VolFill(MRI *src, LTA *lta, int Conserve, MRI *outfill);
 int DoFill=0;
+int DoFillConserve=0;
+int FillUpsample=2;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -603,12 +604,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.80 2014/01/24 23:10:53 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.81 2014/01/29 00:38:24 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.80 2014/01/24 23:10:53 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.81 2014/01/29 00:38:24 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -922,9 +923,9 @@ int main(int argc, char **argv) {
       out = MRIvol2VolDelta(in,template,R);
     } 
     else if(DoFill){
-      printf("Running MRIvol2VolFill()\n");
+      printf("Running MRIvol2VolFill(), DoConserve=%d, US=%d\n",DoFillConserve,FillUpsample);
       ltareg = TransformRegDat2LTA(template, in, R);
-      out = MRIvol2VolFill(in, ltareg, 1, out);
+      out = MRIvol2VolFill(in, NULL, ltareg, FillUpsample, DoFillConserve, out);
     }
     else {
       out = MRIcloneBySpace(template,-1,in->nframes);
@@ -1135,7 +1136,19 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--cost-only"))  CostOnly = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--new"))   useold = 0;
-    else if (!strcasecmp(option, "--fill"))   DoFill = 1;
+    else if (!strcasecmp(option, "--fill-average")){
+      DoFill = 1;
+      DoFillConserve = 0;
+    }
+    else if (!strcasecmp(option, "--fill-conserve")){
+      DoFill = 1;
+      DoFillConserve = 1;
+    }
+    else if (!strcasecmp(option, "--fill-upsample")){
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&FillUpsample);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--morph")) {
       DoMorph = 1;
       fstarg = 1;
@@ -2040,157 +2053,4 @@ MATRIX *LoadRfsl(char *fname) {
     }
   }
   return(FSLRegMat);
-}
-
-
-MRI *MRIapplyVSM(MRI *src, MRI *vsm)
-{
-  MRI *out;
-  int c,r,s;
-  float dr,val;
-
-  out = MRIallocSequence(src->width, src->height, src->depth, 
-			 MRI_FLOAT, src->nframes);
-  MRIcopyHeader(src,out);
-  
-  for(c=0; c < src->width; c++){
-    for(r=0; r < src->height; r++){
-      for(s=0; s < src->depth; s++){
-	dr = r + MRIgetVoxVal(vsm,c,r,s,0);
-	MRIsampleSeqVolume(src, c, dr, s, &val, 0,0);
-	MRIsetVoxVal(out,c,r,s,0,val);
-      }
-    }
-  }
-
-  return(out);
-}
-
-
-
-/*
-  \fn MRI *MRIvol2VolFill(MRI *src, LTA *lta, int Conserve, MRI *outfill)
-  \brief Maps one volume to another by summing (Conserve=1) or
-  averaving (Conserve=0) all of the source voxels that land in a given
-  target voxel. If Conserve=1 is used, then the sum of all the voxels
-  in the source equals that in the target. This is generally to be
-  used when the target has a much larger voxel size than the source.
-  The target geometry is taken from the LTA. The LTA can be
-  source-to-target or the reverse.  The direction is automatically
-  determined and the inverse used if necessary. Uses nearest
-  neighbor. It is possible that no source voxels map to a given target
-  voxel (but probably not likely).
- */
-
-MRI *MRIvol2VolFill(MRI *src, LTA *lta, int Conserve, MRI *outfill)
-{
-  int c,r,s, ct,rt,st, f, nhits;
-  MATRIX *crssrc, *crstarg,*v2v;
-  double vsrc, vout;
-  LTA *ltatmp;
-  MRI *hitmap=NULL;
-  VOL_GEOM vgtarg;
-
-  if(lta->num_xforms > 1){
-    printf("ERROR: MRIvol2VolFill(): LTA can only have one xform\n");
-    return(NULL);
-  }
-  if(! LTAmriIsSource(lta, src) && ! LTAmriIsTarget(lta, src)){
-    printf("ERROR: MRIvol2VolFill(): src MRI is neither source nor target in LTA\n");
-    return(NULL);
-  }
-
-  if(lta->type != LINEAR_VOX_TO_VOX)
-    ltatmp = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
-  else ltatmp = lta;
-
-  // Invert the matrix if the LTA goes in the wrong direction
-  if(LTAmriIsSource(ltatmp, src)){
-    v2v = ltatmp->xforms[0].m_L;
-    vgtarg = lta->xforms[lta->num_xforms-1].dst;
-  }
-  else{
-    printf("MRIvol2VolFill(): using inverse\n");
-    LTAinvert(ltatmp);
-    v2v = ltatmp->inv_xforms[0].m_L;
-    vgtarg = lta->inv_xforms[lta->num_xforms-1].dst;
-  }
-  //printf("MRIvol2VolFill(): Vox2Vox\n");
-  //MatrixPrint(stdout,v2v);
-  //printf("\n");
-
-  if(outfill == NULL){
-    outfill = MRIallocSequence(vgtarg.width,vgtarg.height,vgtarg.depth,MRI_FLOAT,src->nframes);
-    useVolGeomToMRI(&vgtarg, outfill);
-    outfill->tr = src->tr;
-    outfill->te = src->te;
-    outfill->flip_angle = src->flip_angle;
-    outfill->ti = src->ti;
-  }
-
-  if(! Conserve){
-    // This keeps track of the number of source voxels land in each target voxel
-    hitmap = MRIallocSequence(vgtarg.width,vgtarg.height,vgtarg.depth,MRI_FLOAT,1);
-    useVolGeomToMRI(&vgtarg, hitmap);
-    hitmap->tr = src->tr;
-    hitmap->te = src->te;
-    hitmap->flip_angle = src->flip_angle;
-    hitmap->ti = src->ti;
-  }
-
-  crssrc = MatrixAlloc(4,1,MATRIX_REAL);
-  crssrc->rptr[4][1] = 1;
-  crstarg = MatrixAlloc(4,1,MATRIX_REAL);
-
-  // Go through the source volume voxels
-  for(c=0; c < src->width; c++){
-    for(r=0; r < src->height; r++){
-      for(s=0; s < src->depth; s++){
-	// Map source voxel to target voxel
-	crssrc->rptr[1][1] = c;
-	crssrc->rptr[2][1] = r;
-	crssrc->rptr[3][1] = s;
-	crstarg = MatrixMultiply(v2v,crssrc,crstarg);
-	ct = nint(crstarg->rptr[1][1]);
-	rt = nint(crstarg->rptr[2][1]);
-	st = nint(crstarg->rptr[3][1]);
-	if(ct < 0 || ct >= vgtarg.width)  continue;
-	if(rt < 0 || rt >= vgtarg.height) continue;
-	if(st < 0 || st >= vgtarg.depth)  continue;
-
-	if(! Conserve){
-	  // Keep track of hits if not conserving
-	  nhits = MRIgetVoxVal(hitmap,ct,rt,st,0);
-	  MRIsetVoxVal(hitmap,ct,rt,st,0,nhits+1);
-	}
-
-	for(f=0; f < src->nframes; f++){
-	  vsrc = MRIgetVoxVal(src,c,r,s,f);
-	  vout = MRIgetVoxVal(outfill,ct,rt,st,f);
-	  MRIsetVoxVal(outfill,ct,rt,st,f,vsrc+vout);
-	}
-      }
-    }
-  }
-
-  if(! Conserve){
-    // Divide by number of hits if not conserving
-    for(ct=0; ct < vgtarg.width; ct++){
-      for(rt=0; rt < vgtarg.height; rt++){
-	for(st=0; st < vgtarg.depth; st++){
-	  nhits = MRIgetVoxVal(hitmap,ct,rt,st,0);
-	  if(nhits == 0) continue;
-	  for(f=0; f < src->nframes; f++){
-	    vout = MRIgetVoxVal(outfill,ct,rt,st,f);
-	    MRIsetVoxVal(outfill,ct,rt,st,f,vout/nhits);
-	  }
-	}
-      }
-    }
-    //MRIwrite(hitmap,"hitmap.mgh");
-    MRIfree(&hitmap);
-  }
-
-  if(lta != ltatmp) LTAfree(&ltatmp);
-  return(outfill);
 }
