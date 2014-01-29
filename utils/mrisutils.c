@@ -6,9 +6,9 @@
 /*
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/12/03 19:38:02 $
- *    $Revision: 1.43 $
+ *    $Author: fischl $
+ *    $Date: 2014/01/29 20:41:14 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1841,7 +1841,7 @@ double MRISvolumeInSurf(MRIS *mris)
 LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices) 
 {
   LABEL      *lcortex ;
-  int        vno, label, nvox, total_vox, adjacent, x, y, z, target_label,l ;
+  int        vno, label, nvox, total_vox, adjacent, x, y, z, target_label,l, base_label, left, right ;
   VERTEX     *v ;
   double     xv, yv, zv, val, xs, ys, zs, d ;
   MRI_REGION box ;
@@ -1880,6 +1880,7 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
     // don't sample inside here due to thin parahippocampal wm.
     // The other interior labels
     // will already have been ripped (and hence not marked)
+    base_label = 0 ;
     for (d = 0 ; d <= 2 ; d += 0.5) {
       xs = v->x + d*v->nx ;
       ys = v->y + d*v->ny ;
@@ -1890,7 +1891,11 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
         MRIsurfaceRASToVoxel(mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
+      if (FZERO(d))
+	base_label = label ;
+	
       if (label == Left_Lateral_Ventricle ||
+	  (IS_WM(label) && IS_WM(base_label) && (base_label != label)) ||   // crossed hemi staying in wm
           label == Right_Lateral_Ventricle ||
           label == Third_Ventricle ||
           label == Left_Accumbens_area ||
@@ -1917,6 +1922,32 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
         v->marked = 0 ;
       }
     }
+
+    // check to see if we are in region between callosum and thalamus on midline
+    MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv);
+    x = nint(xv) ; y = nint(yv) ; z = nint(zv) ;
+    left = MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Left_Thalamus_Proper) ;
+    right = MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Right_Thalamus_Proper) ;
+    if (left && left >= right)   // near left thalamus
+    {
+      if (MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Left_Lateral_Ventricle) > 0)
+      {
+        if (vno == Gdiag_no)
+          DiagBreak() ;
+        v->marked = 0 ;
+      }
+    }
+    else if (right >= left)  // near right thalamus
+    {
+      if (MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Right_Lateral_Ventricle) > 0)
+      {
+        if (vno == Gdiag_no)
+          DiagBreak() ;
+        v->marked = 0 ;
+      }
+    }
+    MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
+
     // putamen can be adjacent to insula in aseg, but shouldn't be inferior
     /* now check for putamen superior to this point. If there's a lot
        of it there, then we are in basal forebrain and not cortex. */
