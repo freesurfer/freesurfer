@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/31 21:21:59 $
- *    $Revision: 1.100 $
+ *    $Date: 2014/01/29 20:39:10 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,8 @@ static char *example_T1 = NULL ;
 static char *example_segmentation = NULL ;
 static char *save_gca_fname = NULL ;
 
+static char *surf_name = NULL ;
+static char *surf_dir = NULL ;
 static float Glabel_scales[MAX_CMA_LABELS] ;
 static float Glabel_offsets[MAX_CMA_LABELS] ;
 
@@ -98,6 +100,9 @@ static double compute_conditional_density(MATRIX *m_inv_cov,
                                           VECTOR *v_vals) ;
 #endif
 
+static MRI *replace_cortex_far_from_surface_with_wmsa(MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, MRI_SURFACE *mris_lh, 
+						      MRI_SURFACE *mris_rh) ;
+static MRI *MRIexpandVentricles(MRI *mri_labeled_src, MRI *mri_labeled, GCA *gca, MRI *mri_inputs, int num_expansions) ;
 int is_possible( GCA *gca,
                  MRI *mri,
                  TRANSFORM *transform,
@@ -207,13 +212,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.100 2013/05/31 21:21:59 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.101 2014/01/29 20:39:10 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.100 2013/05/31 21:21:59 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.101 2014/01/29 20:39:10 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1090,6 +1095,8 @@ int main(int argc, char *argv[])
     MRIfree(&mri_mask) ;
   }
 
+  if (handle_expanded_ventricles)
+    MRIexpandVentricles(mri_labeled, mri_labeled, gca, mri_inputs, 3) ;
   if (gca_write_iterations != 0)
   {
     char fname[STRLEN] ;
@@ -1134,6 +1141,21 @@ int main(int argc, char *argv[])
   if (wmsa)
   {
     MRI *mri_tmp ;
+    if (surf_name)
+    {
+      char fname[STRLEN] ;
+      MRI_SURFACE *mris_lh, *mris_rh ;
+      sprintf(fname, "%s/lh.%s", surf_dir, surf_name) ;
+      mris_lh = MRISread(fname) ;
+      if (mris_lh == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read lh from %s", Progname, fname) ;
+      sprintf(fname, "%s/rh.%s", surf_dir, surf_name) ;
+      mris_rh = MRISread(fname) ;
+      if (mris_rh == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read rh from %s", Progname, fname) ;
+      replace_cortex_far_from_surface_with_wmsa(mri_inputs, mri_labeled, mri_labeled, mris_lh, mris_rh) ;
+      
+    }
     mri_tmp = GCAlabelWMandWMSAs(gca, mri_inputs, mri_labeled, NULL, transform) ;
     MRIfree(&mri_labeled) ;
     mri_labeled = mri_tmp ;
@@ -1233,6 +1255,13 @@ get_option(int argc, char *argv[])
     wm_fname = argv[2] ;
     nargs = 1 ;
     printf("inserting white matter segmentation from %s...\n", wm_fname) ;
+  }
+  else if (!stricmp(option, "SURF"))
+  {
+    surf_dir = argv[2] ;
+    surf_name = argv[3] ;
+    nargs = 2 ;
+    printf("using surfaces ?h.%s in directory %s\n", surf_name, surf_dir) ;
   }
   else if (!stricmp(option, "SD"))
   {
@@ -3987,3 +4016,160 @@ GCAremoveWMSA( GCA *gca )
   return(NO_ERROR) ;
 }
 
+#include "voxlist.h"
+static MRI *
+MRIexpandVentricles(MRI *mri_labeled_src, MRI *mri_labeled, GCA *gca, MRI *mri_inputs, int num_expansions)
+{
+  MRI       *mri_vent, *mri_vent_orig ;
+  double    mean, std, thresh ;
+  VOXLIST   *vl = NULL ;
+  int       nadded, x, y, z, label, i, n ;
+  MRI       *mri_dilated = NULL, *mri_border = NULL ;
+
+  if (mri_labeled == NULL)
+    mri_labeled = MRIcopy(mri_labeled_src, NULL) ;
+
+  mri_vent = MRIclone(mri_labeled_src, NULL) ;
+  MRIcopyLabel(mri_labeled_src, mri_vent, Left_Lateral_Ventricle) ;
+  MRIcopyLabel(mri_labeled_src, mri_vent, Right_Lateral_Ventricle) ;
+//  MRIcopyLabel(mri_labeled_src, mri_vent, Third_Ventricle) ;
+  MRIbinarize(mri_vent, mri_vent, 1, 0, 1) ;
+  mean = MRImeanAndStdInLabel(mri_inputs, mri_vent, 1, &std) ;
+  mri_vent_orig = MRIcopy(mri_vent, NULL) ;
+  thresh = mean+.5*std ;
+  printf("expanding ventricles using %2.1f + 0.5 * %2.1f = %2.1f as threshold\n", mean, std, thresh) ;
+
+  for (n = 0 ; n < num_expansions ; n++)
+  {
+    mri_dilated = MRIdilate(mri_vent, mri_dilated) ;
+    mri_border = MRIsubtract(mri_dilated, mri_vent, mri_border) ;
+    vl = VLSTcreate(mri_border, 1, 1, NULL, 0, 0) ;
+    nadded = 0 ;
+    for (i = 0 ; i < vl->nvox ; i++)
+    {
+      x = vl->xi[i] ; y = vl->yi[i] ; z = vl->zi[i] ;
+      if (x == Gx && y == Gy && z == Gz)
+	DiagBreak() ;
+      if (MRIgetVoxVal(mri_inputs, x, y, z, 0) < thresh)
+      {
+	nadded++ ;
+	MRIsetVoxVal(mri_vent, x, y, z, 0, 1) ;
+      }
+    }
+    MRIclear(mri_dilated) ; MRIclear(mri_border) ;
+  }
+  for (x = 0 ; x < mri_vent->width;  x++)
+    for (y = 0 ; y < mri_vent->height;  y++)
+      for (z = 0 ; z < mri_vent->depth;  z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	if (MRIgetVoxVal(mri_vent, x, y, z, 0) > 0 && MRIgetVoxVal(mri_vent_orig, x, y, z, 0)  == 0) // new ventricle label
+	{
+	  int lh, rh, third ;
+	  lh = MRIlabelsInNbhd(mri_labeled_src, x, y, z, num_expansions, Left_Lateral_Ventricle) ;
+	  rh = MRIlabelsInNbhd(mri_labeled_src, x, y, z, num_expansions, Right_Lateral_Ventricle) ;
+	  third = MRIlabelsInNbhd(mri_labeled_src, x, y, z, num_expansions, Third_Ventricle) ;
+	  if (lh > rh && lh > third)
+	    label = Left_Lateral_Ventricle ;
+	  else if (rh > third)
+	    label = Right_Lateral_Ventricle ;
+	  else
+	    label = Third_Ventricle ;
+	  MRIsetVoxVal(mri_labeled, x, y, z, 0, label) ;
+	}
+      }
+
+  MRIfree(&mri_vent) ;
+  MRIfree(&mri_vent_orig) ;
+  return(mri_labeled) ;
+}
+
+static MRI *
+replace_cortex_far_from_surface_with_wmsa(MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, MRI_SURFACE *mris_lh, 
+					  MRI_SURFACE *mris_rh) 
+{
+  MRI     *mri_lh_dist, *mri_rh_dist ;
+  int     x, y, z, label, f, nchanged = 0 ;
+  VECTOR *v_wm_mean, *v_wmsa_mean, *v_gm_mean, *v_tmp ;
+  float  wm_dist, wmsa_dist, gm_dist ;
+
+
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+
+  mri_lh_dist = MRIcloneDifferentType(mri_dst, MRI_FLOAT) ;
+  MRIScomputeDistanceToSurface(mris_lh, mri_lh_dist, mri_dst->xsize) ;
+  mri_rh_dist = MRIcloneDifferentType(mri_dst, MRI_FLOAT) ;
+  MRIScomputeDistanceToSurface(mris_rh, mri_rh_dist, mri_dst->xsize) ;
+
+  v_tmp = MRImeanInLabelMultispectral(mri_inputs, mri_dst, Left_Cerebral_Cortex)  ;
+  v_gm_mean = MRImeanInLabelMultispectral(mri_inputs, mri_dst, Right_Cerebral_Cortex)  ;
+  VectorAdd(v_tmp, v_gm_mean, v_gm_mean) ;
+  VectorScalarMul(v_gm_mean, 0.5, v_gm_mean) ; 
+  VectorFree(&v_tmp) ;
+
+  v_tmp = MRImeanInLabelMultispectral(mri_inputs, mri_dst, Left_Cerebral_White_Matter)  ;
+  v_wm_mean = MRImeanInLabelMultispectral(mri_inputs, mri_dst, Right_Cerebral_White_Matter)  ;
+  VectorAdd(v_tmp, v_wm_mean, v_wm_mean) ;
+  VectorScalarMul(v_wm_mean, 0.5, v_wm_mean) ; 
+  VectorFree(&v_tmp) ;
+
+  v_tmp = MRImeanInLabelMultispectral(mri_inputs, mri_dst, Left_WM_hypointensities)  ;
+  v_wmsa_mean = MRImeanInLabelMultispectral(mri_inputs, mri_dst, Right_WM_hypointensities)  ;
+  VectorAdd(v_tmp, v_wmsa_mean, v_wmsa_mean) ;
+  VectorScalarMul(v_wmsa_mean, 0.5, v_wmsa_mean) ; 
+//  VectorFree(&v_tmp) ; don't free it - will use it later
+
+  for (x = 0 ; x < mri_dst->width ; x++)
+    for (y = 0 ; y < mri_dst->height ; y++)
+      for (z = 0 ; z < mri_dst->depth ; z++)
+      {
+	if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+	  DiagBreak() ;
+	label = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
+	if (IS_CORTEX(label) == 0)
+	  continue ;
+	if (MRIgetVoxVal(mri_lh_dist, x, y, z, 0) < -1.5 || MRIgetVoxVal(mri_rh_dist, x, y, z, 0) < -1.5)
+	{
+	  for (f = 0 ; f < mri_inputs->nframes; f++)
+	    VECTOR_ELT(v_tmp, f+1) = MRIgetVoxVal(mri_inputs, x, y, z, f) ;
+
+	  wm_dist = VectorDistance(v_wm_mean, v_tmp) ;
+	  wmsa_dist = VectorDistance(v_wmsa_mean, v_tmp) ;
+	  gm_dist = VectorDistance(v_gm_mean, v_tmp) ;
+	  if (wmsa_dist < gm_dist && wmsa_dist < wm_dist)
+	  {
+	    nchanged++ ;
+	    if (label == Left_Cerebral_Cortex)
+	      label = Left_WM_hypointensities ;
+	    else
+	      label = Right_WM_hypointensities ;
+	    if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+	      printf("voxel (%d, %d, %d) is interior to surface and changed to %s (int dists %2.0f, %2.0f, %2.0f, surf dists %2.1f, %2.1f)\n",
+		     x, y, z, cma_label_to_name(label),
+		     wm_dist, gm_dist, wmsa_dist,
+		     MRIgetVoxVal(mri_lh_dist, x, y, z, 0),
+		     MRIgetVoxVal(mri_rh_dist, x, y, z, 0)) ;
+
+	    MRIsetVoxVal(mri_dst, x, y, z, 0, label) ;
+	  }
+	  else
+	    if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+	      printf("voxel (%d, %d, %d) is interior to surface but not changed (int dists %2.0f, %2.0f, %2.0f, surf dists %2.1f, %2.1f)\n",
+		     x, y, z, 
+		     wm_dist, gm_dist, wmsa_dist,
+		     MRIgetVoxVal(mri_lh_dist, x, y, z, 0),
+		     MRIgetVoxVal(mri_rh_dist, x, y, z, 0)) ;
+	}
+	else
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+	    printf("voxel (%d, %d, %d) is not interior to surface and not changed (surf dists %2.1f, %2.1f)\n",
+		     x, y, z, 
+		     MRIgetVoxVal(mri_lh_dist, x, y, z, 0),
+		     MRIgetVoxVal(mri_rh_dist, x, y, z, 0)) ;
+      }
+
+  printf("%d voxels interior to surface changed from cortex to WMSA\n", nchanged) ;
+  MRIfree(&mri_lh_dist) ; MRIfree(&mri_rh_dist) ;
+  return(mri_dst) ;
+}
