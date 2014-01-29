@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/29 00:03:20 $
- *    $Revision: 1.44 $
+ *    $Date: 2014/01/29 00:34:33 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -95,7 +95,7 @@ double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist);
 MRI *MRIsegDiff(MRI *oldseg, MRI *newseg, int *DiffFlag);
 MRI *MRIsegMergeDiff(MRI *oldseg, MRI *diff);
 MRI *MRIhalfCosBias(MRI *in, double alpha, MRI *out);
-MRI *MRIvol2VolFill(MRI *src, LTA *lta, int Average, MRI *outfill);
+MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int Average, MRI *outfill);
 int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
 		  int InterpCode, float param, MRI *vsm);
 int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,

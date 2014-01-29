@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/29 00:03:21 $
- *    $Revision: 1.85 $
+ *    $Date: 2014/01/29 00:34:33 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3315,6 +3315,140 @@ int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,
   }
 
   return(err);
+}
+/*
+  \fn MRI *MRIvol2VolFill(MRI *src, LTA *lta, int DoConserve, MRI *outfill)
+  \brief Maps one volume to another by summing (DoConserve=1) or
+  averaving (DoConserve=0) all of the source voxels that land in a given
+  target voxel. If DoConserve=1 is used, then the sum of all the voxels
+  in the source equals that in the target.  The target geometry is
+  taken from the LTA. The LTA can be source-to-target or the reverse.
+  The direction is automatically determined and the inverse used if
+  necessary. Uses nearest neighbor interpolation. This function should
+  generally be used when the target has a much larger voxel size than
+  the source. It is possible that no source voxels map to a given
+  target voxel (but probably not likely if targ is lowres).
+ */
+MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoConserve, MRI *outfill)
+{
+  int c,r,s, ct,rt,st, f, nhits;
+  MATRIX *crssrc, *crstarg,*v2v,*vmusinv;
+  double vsrc, vout;
+  LTA *ltatmp,*ltamus=NULL;
+  MRI *hitmap=NULL;
+  VOL_GEOM vgtarg;
+  MRI *srcmus=NULL;
+
+  if(lta->num_xforms > 1){
+    printf("ERROR: MRIvol2VolFill(): LTA can only have one xform\n");
+    return(NULL);
+  }
+  if(! LTAmriIsSource(lta, src) && ! LTAmriIsTarget(lta, src)){
+    printf("ERROR: MRIvol2VolFill(): src MRI is neither source nor target in LTA\n");
+    return(NULL);
+  }
+  printf("MRIvol2VolFill(): DoConserve = %d\n",DoConserve);
+
+  if(lta->type != LINEAR_VOX_TO_VOX)
+    ltatmp = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+  else ltatmp = lta;
+
+  // Extract Vox2Vox
+  if(LTAmriIsSource(ltatmp, src)){
+    v2v = ltatmp->xforms[0].m_L;
+    vgtarg = lta->xforms[lta->num_xforms-1].dst;
+  }
+  else{
+    // Invert the matrix if the LTA goes in the wrong direction
+    printf("MRIvol2VolFill(): using inverse\n");
+    LTAinvert(ltatmp);
+    v2v = ltatmp->inv_xforms[0].m_L;
+    vgtarg = lta->inv_xforms[lta->num_xforms-1].dst;
+  }
+  if(lta != ltatmp) LTAfree(&ltatmp);
+
+  srcmus = MRImaskAndUpsample(src, mask, UpsampleFactor, DoConserve, &ltamus);
+
+  // Recompute vox2vox
+  vmusinv = MatrixInverse(ltamus->xforms[0].m_L,NULL);
+  v2v = MatrixMultiply(v2v,vmusinv,v2v);
+  MatrixFree(&vmusinv);
+  LTAfree(&ltamus);
+
+  if(outfill == NULL){
+    outfill = MRIallocSequence(vgtarg.width,vgtarg.height,vgtarg.depth,MRI_FLOAT,src->nframes);
+    useVolGeomToMRI(&vgtarg, outfill);
+    outfill->tr = src->tr;
+    outfill->te = src->te;
+    outfill->flip_angle = src->flip_angle;
+    outfill->ti = src->ti;
+  }
+
+  if(! DoConserve){
+    // This keeps track of the number of source voxels land in each target voxel
+    hitmap = MRIallocSequence(vgtarg.width,vgtarg.height,vgtarg.depth,MRI_FLOAT,1);
+    useVolGeomToMRI(&vgtarg, hitmap);
+    hitmap->tr = src->tr;
+    hitmap->te = src->te;
+    hitmap->flip_angle = src->flip_angle;
+    hitmap->ti = src->ti;
+  }
+
+  crssrc = MatrixAlloc(4,1,MATRIX_REAL);
+  crssrc->rptr[4][1] = 1;
+  crstarg = MatrixAlloc(4,1,MATRIX_REAL);
+
+  // Go through the source volume voxels
+  for(c=0; c < srcmus->width; c++){
+    for(r=0; r < srcmus->height; r++){
+      for(s=0; s < srcmus->depth; s++){
+	// Map source voxel to target voxel
+	crssrc->rptr[1][1] = c;
+	crssrc->rptr[2][1] = r;
+	crssrc->rptr[3][1] = s;
+	crstarg = MatrixMultiply(v2v,crssrc,crstarg);
+	ct = nint(crstarg->rptr[1][1]);
+	rt = nint(crstarg->rptr[2][1]);
+	st = nint(crstarg->rptr[3][1]);
+	if(ct < 0 || ct >= vgtarg.width)  continue;
+	if(rt < 0 || rt >= vgtarg.height) continue;
+	if(st < 0 || st >= vgtarg.depth)  continue;
+
+	if(! DoConserve){
+	  // Keep track of hits if not conserving
+	  nhits = MRIgetVoxVal(hitmap,ct,rt,st,0);
+	  MRIsetVoxVal(hitmap,ct,rt,st,0,nhits+1);
+	}
+
+	for(f=0; f < src->nframes; f++){
+	  vsrc = MRIgetVoxVal(srcmus,c,r,s,f);
+	  vout = MRIgetVoxVal(outfill,ct,rt,st,f);
+	  MRIsetVoxVal(outfill,ct,rt,st,f,vsrc+vout);
+	}
+      }
+    }
+  }
+
+  if(! DoConserve){
+    // Divide by number of hits if not conserving
+    for(ct=0; ct < vgtarg.width; ct++){
+      for(rt=0; rt < vgtarg.height; rt++){
+	for(st=0; st < vgtarg.depth; st++){
+	  nhits = MRIgetVoxVal(hitmap,ct,rt,st,0);
+	  if(nhits == 0) continue;
+	  for(f=0; f < src->nframes; f++){
+	    vout = MRIgetVoxVal(outfill,ct,rt,st,f);
+	    MRIsetVoxVal(outfill,ct,rt,st,f,vout/nhits);
+	  }
+	}
+      }
+    }
+    //MRIwrite(hitmap,"hitmap.mgh");
+    MRIfree(&hitmap);
+  }
+
+  MRIfree(&srcmus);
+  return(outfill);
 }
 
 /* ----------------------------------------------------------*/
