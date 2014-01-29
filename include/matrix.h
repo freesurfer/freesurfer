@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/11/14 16:17:33 $
- *    $Revision: 1.83 $
+ *    $Author: greve $
+ *    $Date: 2014/01/29 23:11:06 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -303,6 +303,7 @@ MATRIX *ANOVAOmnibus(int nLevels);
 MATRIX *ANOVASelectionVector(int nLevels, int Level);
 MATRIX *ANOVASummingVector(int nLevels);
 MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorList);
+MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout);
 
 #if defined(__cplusplus)
 };

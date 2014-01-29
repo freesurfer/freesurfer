@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/11/14 16:17:17 $
- *    $Revision: 1.136 $
+ *    $Author: greve $
+ *    $Date: 2014/01/29 23:11:06 $
+ *    $Revision: 1.137 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4360,4 +4360,59 @@ MatrixRMS(MATRIX *m1, MATRIX *m2)
 
   sse = MatrixSSE(m1, m2) ;
   return(sqrt(sse / (m1->rows*m1->cols))) ;
+}
+
+/*
+  \fn MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
+  \brief Efficiently computes M'*M by exploiting symmetry
+ */
+MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
+{
+  int c1,c2,r;
+  double v,v1,v2;
+
+  if(mout == NULL)
+    mout = MatrixAlloc(m->cols,m->cols,MATRIX_REAL);
+  if(mout->rows != m->cols){
+    printf("ERROR: MatrixMtM() mout cols (%d) != m cols (%d)\n",mout->cols,m->cols);
+    return(NULL);
+  }
+  if(mout->cols != m->cols){
+    printf("ERROR: MatrixMtM() mout cols (%d) != m cols (%d)\n",mout->cols,m->cols);
+    return(NULL);
+  }
+
+  for(c1=1; c1 <= m->cols; c1++){
+    for(c2=c1; c2 <= m->cols; c2++){
+      v = 0;
+      for(r=1; r <= m->rows; r++){
+	v1 = m->rptr[r][c1];
+	v2 = m->rptr[r][c2];
+	v += v1*v2;
+      }
+      mout->rptr[c1][c2] = v;
+      mout->rptr[c2][c1] = v;
+    }
+  }
+
+  if(0){
+    // This is a built in test 
+    MATRIX *mt,*mout2;
+    double dmax;
+    int c;
+    mt = MatrixTranspose(m,NULL);
+    mout2 = MatrixMultiply(mt,m,NULL);
+    dmax = 0;
+    for(r=1; r <= mout->rows; r++){
+      for(c=1; c <= mout->cols; c++){
+	if(dmax < fabs(mout->rptr[r][c1]-mout2->rptr[r][c1]))
+	  dmax = fabs(mout->rptr[r][c1]-mout2->rptr[r][c1]);
+      }
+    }
+    printf("MatrixMtM: test MAR %g\n",dmax);
+    MatrixFree(&mt);
+    MatrixFree(&mout2);
+  }
+
+  return(mout);
 }
