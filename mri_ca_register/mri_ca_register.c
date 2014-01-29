@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/14 16:15:12 $
- *    $Revision: 1.87 $
+ *    $Date: 2014/01/29 20:40:17 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -218,7 +218,7 @@ main(int argc, char *argv[])
   parms.label_dist = 10.0 ;
   parms.l_smoothness = 2 ;
   parms.start_t = 0 ;
-  parms.max_grad = 0.3 ;
+  parms.max_grad = .30000 ;
   parms.sigma = 2.0f ;
   parms.exp_k = 20 ;
   parms.min_avgs = 0 ;
@@ -237,7 +237,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.87 2013/11/14 16:15:12 fischl Exp $",
+           "$Id: mri_ca_register.c,v 1.88 2014/01/29 20:40:17 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -699,21 +699,6 @@ main(int argc, char *argv[])
 
 
   //////////////////////////////////////////////////////////
-  // -debug_voxel Gvx Gvy Gvz option
-  if (transform && Gvx > 0)
-  {
-    float xf, yf, zf ;
-
-    TransformSample(transform, Gvx, Gvy, Gvz, &xf, &yf, &zf) ;
-    Gsx = nint(xf) ;
-    Gsy = nint(yf) ;
-    Gsz = nint(zf) ;
-    printf("mapping by transform (%d, %d, %d) --> "
-           "(%d, %d, %d) for rgb writing\n",
-           Gvx, Gvy, Gvz, Gsx, Gsy, Gsz) ;
-  }
-
-  //////////////////////////////////////////////////////////
   // -regularize val option (default = 0)
   if (regularize > 0)
   {
@@ -748,10 +733,52 @@ main(int argc, char *argv[])
       TransformFree(&transform_long) ;
       //      GCAMwrite(gcam, "combined_gcam.m3z");
     }
+    {
+      char fname[STRLEN] ;
+      MRI  *mri ;
+      sprintf(fname, "%s.invalid.mgz", parms.base_name) ;
+      mri = GCAMwriteMRI(gcam, NULL, GCAM_INVALID) ;
+      printf("writing %s\n", fname) ;
+      MRIwrite(mri, fname) ;
+      MRIfree(&mri) ;
+      sprintf(fname, "%s.status.mgz", parms.base_name) ;
+      mri = GCAMwriteMRI(gcam, NULL, GCAM_STATUS) ;
+      printf("writing %s\n", fname) ;
+      MRIwrite(mri, fname) ;
+      MRIfree(&mri) ;
+    }
+    
   }
   else   // default is to create one
   {
     gcam = GCAMalloc(gca->prior_width, gca->prior_height, gca->prior_depth) ;
+  }
+
+  //////////////////////////////////////////////////////////
+  // -debug_voxel Gvx Gvy Gvz option
+  //////////////////////////////////////////////////////////
+  // -debug_voxel Gvx Gvy Gvz option
+  if (Gvx > 0)
+  {
+    float xf, yf, zf ;
+
+    if (xform_name)
+    {
+      GCAMinvert(gcam, mri_inputs) ;
+      GCAMsampleInverseMorph(gcam, Gvx, Gvy, Gvz, &xf, &yf, &zf) ;
+    }
+    else
+    {
+      TransformInvert(transform, mri_inputs);
+      TransformSample(transform, Gvx, Gvy, Gvz, &xf, &yf, &zf) ;
+    }
+
+    Gsx = nint(xf) ;
+    Gsy = nint(yf) ;
+    Gsz = nint(zf) ;
+    printf("mapping by transform (%d, %d, %d) --> "
+           "(%d, %d, %d) for rgb writing\n",
+           Gvx, Gvy, Gvz, Gsx, Gsy, Gsz) ;
   }
 
   if (ninsertions > 0)
@@ -768,7 +795,7 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not temporal lobe gca %s",
                 Progname, tl_fname) ;
     GCAMinit(gcam, mri_inputs, gca_tl, transform, 0) ;
-    GCAMmarkNegativeNodesInvalid(gcam);
+//    GCAMmarkNegativeNodesInvalid(gcam);
     // debugging
     if (parms.write_iterations != 0)
     {
@@ -872,7 +899,7 @@ main(int argc, char *argv[])
       GCAMcomputeMaxPriorLabels(gcam) ;
     }
   }
-  GCAMmarkNegativeNodesInvalid(gcam) ;
+//  GCAMmarkNegativeNodesInvalid(gcam) ;
   if (renorm_with_histos)
   {
     GCAmapRenormalizeWithHistograms
@@ -882,21 +909,32 @@ main(int argc, char *argv[])
     {
       char fname[STRLEN] ;
       MRI  *mri_gca, *mri_tmp ;
-      mri_gca = MRIclone(mri_inputs, NULL) ;
-      GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-      if (mri_gca->nframes > 1)
+      if (parms.diag_morph_from_atlas )
       {
-        printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-        mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-        MRIfree(&mri_gca) ;
-        mri_gca = mri_tmp ;
+	sprintf(fname, "%s_target", parms.base_name) ;
+	MRIwriteImageViews(mri_inputs, fname, IMAGE_SIZE) ;
+	sprintf(fname, "%s_target.mgz", parms.base_name) ;
+	printf("writing target volume to %s...\n", fname) ;
+	MRIwrite(mri_inputs, fname) ;
       }
-      sprintf(fname, "%s_target_after_histo", parms.base_name) ;
-      MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-      sprintf(fname, "%s_target_after_histo.mgz", parms.base_name) ;
-      printf("writing target volume to %s...\n", fname) ;
-      MRIwrite(mri_gca, fname) ;
-      MRIfree(&mri_gca) ;
+      else
+      {
+	mri_gca = MRIclone(mri_inputs, NULL) ;
+	GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+	if (mri_gca->nframes > 1)
+	{
+	  printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+	  mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+	  MRIfree(&mri_gca) ;
+	  mri_gca = mri_tmp ;
+	}
+	sprintf(fname, "%s_target_after_histo", parms.base_name) ;
+	MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+	sprintf(fname, "%s_target_after_histo.mgz", parms.base_name) ;
+	printf("writing target volume to %s...\n", fname) ;
+	MRIwrite(mri_gca, fname) ;
+	MRIfree(&mri_gca) ;
+      }
     }
   }
 
@@ -933,7 +971,12 @@ main(int argc, char *argv[])
       trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
       trans->type = TransformFileNameType(xform_name);
       trans->xform = (void *)gcam;
-      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
+//      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
+      TransformInvert(trans, mri_inputs);
+      GCAcomputeRenormalizationWithAlignment
+	(gcam->gca, mri_inputs, trans,
+	 parms.log_fp, parms.base_name, NULL, 0,
+	 label_scales,label_offsets,label_peaks,label_computed) ;
       free(trans);
     }
   }
@@ -1182,24 +1225,36 @@ main(int argc, char *argv[])
   if (parms.write_iterations != 0)
   {
     char fname[STRLEN] ;
-    MRI  *mri_gca /*, *mri_tmp*/ ;
-    mri_gca = MRIclone(mri_inputs, NULL) ;
-    GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-#if 0
-    if (mri_gca->nframes > 1)
+
+    if (parms.diag_morph_from_atlas )
     {
-      printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-      mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-      MRIfree(&mri_gca) ;
-      mri_gca = mri_tmp ;
+      sprintf(fname, "%s_target", parms.base_name) ;
+      MRIwriteImageViews(mri_inputs, fname, IMAGE_SIZE) ;
+      sprintf(fname, "%s_target.mgz", parms.base_name) ;
+      printf("writing target volume to %s...\n", fname) ;
+      MRIwrite(mri_inputs, fname) ;
     }
+    else
+    {
+      MRI  *mri_gca /*, *mri_tmp*/ ;
+      mri_gca = MRIclone(mri_inputs, NULL) ;
+      GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+#if 0
+      if (mri_gca->nframes > 1)
+      {
+	printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+	mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+	MRIfree(&mri_gca) ;
+	mri_gca = mri_tmp ;
+      }
 #endif
-    sprintf(fname, "%s_target", parms.base_name) ;
-    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-    sprintf(fname, "%s_target.mgz", parms.base_name) ;
-    printf("writing target volume to %s...\n", fname) ;
-    MRIwrite(mri_gca, fname) ;
-    MRIfree(&mri_gca) ;
+      sprintf(fname, "%s_target", parms.base_name) ;
+      MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+      sprintf(fname, "%s_target.mgz", parms.base_name) ;
+      printf("writing target volume to %s...\n", fname) ;
+      MRIwrite(mri_gca, fname) ;
+      MRIfree(&mri_gca) ;
+    }
   }
 
   ///////////////////////////////////////////////////////////////////
@@ -1254,10 +1309,11 @@ main(int argc, char *argv[])
     int               start_t ;
 
     memmove(&old_parms, (const void *)&parms, sizeof(old_parms)) ;
+    parms.l_log_likelihood = .05 ;
     parms.tol = .01 ;
     parms.l_label = 0 ;
-    parms.l_smoothness = .1 ;   // defaults to 10 when renormalizing by alignment
-    parms.uncompress = 1 ;
+    parms.l_smoothness = 1 ;   // defaults to 10 when renormalizing by alignment
+    parms.uncompress = 0 ;
     parms.ratio_thresh = .25;
     parms.navgs = 16*1024 ;
     parms.integration_type = GCAM_INTEGRATE_OPTIMAL ;
@@ -1269,7 +1325,12 @@ main(int argc, char *argv[])
     parms.start_t = start_t ;
   }
 
+  gcamComputeMetricProperties(gcam) ;
+//  GCAMremoveNegativeNodes(gcam, mri_inputs, &parms) ;
+
   GCAMregister(gcam, mri_inputs, &parms) ;
+//  printf("registration complete, removing remaining folds if any exist\n") ;
+//  GCAMremoveNegativeNodes(gcam, mri_inputs, &parms) ;
   if (renormalize_align_after)
   {
     int old_diag ;
@@ -1310,21 +1371,32 @@ main(int argc, char *argv[])
       {
         char fname[STRLEN] ;
         MRI  *mri_gca, *mri_tmp ;
-        mri_gca = MRIclone(mri_inputs, NULL) ;
-        GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-        if (mri_gca->nframes > 1)
-        {
-          printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-          mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-          MRIfree(&mri_gca) ;
-          mri_gca = mri_tmp ;
-        }
-        sprintf(fname, "%s_target", parms.base_name) ;
-        MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-        sprintf(fname, "%s_target1.mgz", parms.base_name) ;
-        printf("writing target volume to %s...\n", fname) ;
-        MRIwrite(mri_gca, fname) ;
-        MRIfree(&mri_gca) ;
+	if (parms.diag_morph_from_atlas )
+	{
+	  sprintf(fname, "%s_target", parms.base_name) ;
+	  MRIwriteImageViews(mri_inputs, fname, IMAGE_SIZE) ;
+	  sprintf(fname, "%s_target.mgz", parms.base_name) ;
+	  printf("writing target volume to %s...\n", fname) ;
+	  MRIwrite(mri_inputs, fname) ;
+	}
+	else
+	{
+	  mri_gca = MRIclone(mri_inputs, NULL) ;
+	  GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+	  if (mri_gca->nframes > 1)
+	  {
+	    printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+	    mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+	    MRIfree(&mri_gca) ;
+	    mri_gca = mri_tmp ;
+	  }
+	  sprintf(fname, "%s_target", parms.base_name) ;
+	  MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+	  sprintf(fname, "%s_target1.mgz", parms.base_name) ;
+	  printf("writing target volume to %s...\n", fname) ;
+	  MRIwrite(mri_gca, fname) ;
+	  MRIfree(&mri_gca) ;
+	}
       }
     }
     else // this is a sequential call, pass scales..
@@ -1349,9 +1421,11 @@ main(int argc, char *argv[])
     }
     if (parms.noneg < 2)
     {
+#if 0
       parms.tol /= 5 ;  // reset parameters to previous level
       parms.l_smoothness /= 5 ;
       GCAMregister(gcam, mri_inputs, &parms) ;
+#endif
       printf("*********************************************************************************************\n") ;
       printf("*********************************************************************************************\n") ;
       printf("*********************************************************************************************\n") ;
@@ -1367,6 +1441,30 @@ main(int argc, char *argv[])
     }
   }
 
+  if (handle_expanded_ventricles && 0)  // one more less-restrictive morph
+  {
+    GCA_MORPH_PARMS old_parms ;
+    int               start_t ;
+
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
+    printf("!!!!!!!!!!!!!!!! PERFORMING LESS-CONSTRAINED BIG-VENT IN DEFORMATION!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
+    printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
+
+    memmove(&old_parms, (const void *)&parms, sizeof(old_parms)) ;
+    parms.noneg = -1 ;
+    parms.tol = 0.25 ;
+    parms.orig_dt = 1e-6 ;
+    parms.navgs = 256 ;
+    parms.l_log_likelihood = 0.5f ;
+    GCAMregister(gcam, mri_inputs, &parms) ;
+    start_t = parms.start_t ;
+    memmove(&parms, (const void *)&old_parms, sizeof(old_parms)) ;
+    parms.start_t = start_t ;
+  }
   if (parms.l_label > 0)
   {
     GCAMcomputeMaxPriorLabels(gcam) ;  /* start out with max
@@ -1479,6 +1577,12 @@ get_option(int argc, char *argv[])
     printf("specifying temporal white matter using control points in %s\n", twm_fname) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "MAX_GRAD"))
+  {
+    parms.max_grad = atof(argv[2]) ;
+    printf("limiting max grad to be %2.2f (scaling gradients that exceed this norm)\n", parms.max_grad) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "LH"))
   {
     remove_rh = 1  ;
@@ -1487,6 +1591,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "FROM_ATLAS"))
   {
     parms.diag_morph_from_atlas = 1 ;
+    parms.diag_volume = GCAM_MEANS ;
     printf("morphing diagnostics from atlas\n") ;
   }
   else if (!stricmp(option, "write_grad"))
@@ -1602,7 +1707,21 @@ get_option(int argc, char *argv[])
     parms.noneg = atoi(argv[2]) ;
     nargs = 1 ;
     printf("%s allowing temporary folds during numerical minimization\n",
-           parms.noneg ? "not" : "") ;
+           parms.noneg > 0 ? "not" : "") ;
+  }
+  else if (!stricmp(option, "NEG"))
+  {
+    int i = atoi(argv[2]) ;
+    if (i == 0)
+      parms.noneg = 1 ;
+    else if (i == 1)
+      parms.noneg = 0 ;
+    else 
+      parms.noneg = i ;
+
+    nargs = 1 ;
+    printf("%s allowing temporary folds during numerical minimization (%d)\n",
+           parms.noneg == 1 ? "not" : "", parms.noneg) ;
   }
   else if (!stricmp(option, "ISIZE") || !stricmp(option, "IMAGE_SIZE"))
   {
@@ -1834,7 +1953,7 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("l_likelihood = %2.2f\n", parms.l_likelihood) ;
   }
-  else if (!stricmp(option, "LOGLIKELIHOOD"))
+  else if (!stricmp(option, "LOGLIKELIHOOD") || !stricmp(option, "LL"))
   {
     parms.l_log_likelihood = atof(argv[2]) ;
     nargs = 1 ;
