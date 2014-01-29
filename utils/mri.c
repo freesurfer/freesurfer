@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/01/24 22:05:24 $
- *    $Revision: 1.529 $
+ *    $Author: fischl $
+ *    $Date: 2014/01/29 20:40:03 $
+ *    $Revision: 1.530 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.529 $";
+const char *MRI_C_VERSION = "$Revision: 1.530 $";
 
 
 /*-----------------------------------------------------
@@ -12632,9 +12632,13 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
           src_max <= LONG_MAX)
         no_scale_flag = TRUE;
       if (no_scale_flag == FALSE)
+      {
         printf("******* WARNING - forcing scaling of values "
                "to prevent cropping of input [%2.0f, %2.0f]\n",
                src_min, src_max) ;
+	printf("***** DISABLING forcing and not doing scaling ********\n") ;
+	no_scale_flag = 1 ;
+      }
     }
   }
 
@@ -15330,6 +15334,84 @@ MRIstdInLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_mean, int label)
   return(sqrt(var/nvox)) ;
 }
 
+MATRIX *
+MRIcovarianceInLabelMultispectral(MRI *mri_src, MRI *mri_labeled, VECTOR *v_means, int label)
+{
+  MATRIX  *m_cov ;
+  int    f1, f2, x, y, z, nvox, l ;
+  double mean1, mean2 ;
+  float  val1, val2, cov ;
+
+  m_cov = MatrixAlloc(mri_src->nframes, mri_src->nframes, MATRIX_REAL) ;
+
+  for (f1 = 0 ; f1 < mri_src->nframes ; f1++)
+  {
+    mean1 = VECTOR_ELT(v_means, f1) ;
+    for (f2 = 0 ; f2 < mri_src->nframes ; f2++)
+    {
+      mean2 = VECTOR_ELT(v_means, f2) ;
+      nvox = 0 ;
+      for (x = 0 ; x < mri_src->width ; x++)
+      {
+	for (y = 0 ; y < mri_src->height ; y++)
+	{
+	  for (z = 0 ; z < mri_src->depth ; z++)
+	  {
+	    l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+	    if (l == label)
+	    {
+	      val1 = MRIgetVoxVal(mri_src, x, y, z, f1) ;
+	      val2 = MRIgetVoxVal(mri_src, x, y, z, f2) ;
+	      cov = *MATRIX_RELT(m_cov, f1+1, f2+1) ;
+	      cov += (val1-mean1) * (val2-mean2) ;
+	      *MATRIX_RELT(m_cov, f1+1, f2+1) = cov ;
+	      nvox++ ;
+	    }
+	  }
+	}
+      }
+      *MATRIX_RELT(m_cov, f1+1, f2+1) /= nvox ;
+    }
+  }
+
+  return(m_cov) ;
+}
+
+VECTOR *
+MRImeanInLabelMultispectral(MRI *mri_src, MRI *mri_labeled, int label) 
+{
+  int    f, x, y, z, nvox, l ;
+  double mean ;
+  float  val ;
+  VECTOR *v_means ;
+
+  v_means = VectorAlloc(mri_src->nframes, MATRIX_REAL) ;
+
+  for (f = 0 ; f < mri_src->nframes ; f++)
+  {
+    nvox = 0 ; mean = 0.0 ;
+    for (x = 0 ; x < mri_src->width ; x++)
+    {
+      for (y = 0 ; y < mri_src->height ; y++)
+      {
+	for (z = 0 ; z < mri_src->depth ; z++)
+	{
+	  l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+	  if (l == label)
+	  {
+	    val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+	    mean += val ;
+	    nvox++ ;
+	  }
+	}
+      }
+    }
+    if (!nvox)
+      nvox = 1 ;
+    VECTOR_ELT(v_means, f+1) = mean/nvox ;
+  }
+  return(v_means) ;
+}
 double
 MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label)
 {
@@ -15357,6 +15439,40 @@ MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label)
   if (!nvox)
     nvox = 1 ;
   return(mean/nvox) ;
+}
+
+double
+MRImeanAndStdInLabel(MRI *mri_src, MRI *mri_labeled, int label, double *pstd)
+{
+  int  x, y, z, nvox, l ;
+  double mean = 0.0 ;
+  double var = 0 ;
+  float  val ;
+
+  nvox = 0 ;
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+        l = nint(MRIgetVoxVal(mri_labeled, x, y, z, 0)) ;
+        if (l == label)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+          mean += val ;
+	  var += val*val ;
+          nvox++ ;
+        }
+      }
+    }
+  }
+  if (!nvox)
+    nvox = 1 ;
+  mean /= nvox ;
+  if (pstd)
+    *pstd = sqrt(var/nvox - mean*mean) ;
+  return(mean) ;
 }
 
 double
