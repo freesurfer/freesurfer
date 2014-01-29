@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/01/24 22:05:24 $
- *    $Revision: 1.458 $
+ *    $Author: fischl $
+ *    $Date: 2014/01/29 20:39:28 $
+ *    $Revision: 1.459 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -669,6 +669,8 @@ MRI   *MRIminAbs(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst) ;
 MRI   *MRImeanInMask(MRI *mri_src, MRI *mri_dst, MRI *mri_mask, int wsize) ;
 MRI   *MRIstdInMask(MRI *mri_src, MRI *mri_dst, MRI *mri_mean, MRI *mri_mask, int wsize) ;
 double MRImeanInLabel(MRI *mri_src, MRI *mri_labeled, int label) ;
+MATRIX *MRIcovarianceInLabelMultispectral(MRI *mri_src, MRI *mri_labeled, VECTOR *v_means, int label) ;
+VECTOR *MRImeanInLabelMultispectral(MRI *mri_src, MRI *mri_labeled, int label) ;
 double MRIstdInLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_mean, int label) ;
 double MRImeanInLabelInRegion(MRI *mri_src, MRI *mri_labeled,
                               int label, int x0, int y0, int z0, int whalf);
@@ -1112,6 +1114,7 @@ int  MRIcountCpolvAtVoxel(MRI *mri_src, int x, int y, int z, int wsize,
                           int *pnum, int label_to_check) ;
 int  MRIcountCpolvOnAtVoxel(MRI *mri_src, int x, int y, int z, int wsize,
                             int *pnum) ;
+double MRImeanAndStdInLabel(MRI *mri_src, MRI *mri_labeled, int label, double *pstd) ;
 MRI *MRIcentralPlaneOfLeastVarianceNormalMarked(MRI *mri_src, MRI *mri_mask,
     MRI *mri_dst, int wsize) ;
 int  MRIcountCpolvOffAtVoxel(MRI *mri_src,int x, int y, int z, int wsize,

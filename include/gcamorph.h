@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/15 00:07:19 $
- *    $Revision: 1.114 $
+ *    $Date: 2014/01/29 20:39:29 $
+ *    $Revision: 1.115 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -258,7 +258,7 @@ typedef struct
 MRI_SUBCORTCONN ;
 
 int GCAMdilateUseLikelihood(GCA_MORPH *gcam, int ndilations) ;
-int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri) ;
+  int GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_vent, int navgs) ;
 GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
 int       GCAMcopy(GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst) ;
 int GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, GCA_MORPH *gcam_comp);
@@ -481,6 +481,8 @@ MRI  *GCAMinitDensities(GCA_MORPH *gcam,
 #define GCAM_MIN_AREA  20
 #define GCAM_LOG_MIN_AREA  21
 #define GCAM_LOG_JACOBIAN  22
+#define GCAM_STATUS        23
+#define GCAM_INVALID       24
 
 int GCAMsmoothConditionalDensities(GCA_MORPH *gcam, float sigma);
 
@@ -508,6 +510,10 @@ int GCAMwriteDistanceTransforms(GCA_MORPH *gcam,
                                 MRI *mri_atlas_dist_map, 
                                 const char *write_dist_name) ;
 
+int GCAMreadPositionsFromMRI( GCA_MORPH *gcam, const MRI *mri_warp );
+MRI *GCAMwritePositionsToMRI( const GCA_MORPH *gcam, MRI *mri_warp );
+
+
 int GCAMreadWarpFromMRI( GCA_MORPH *gcam, const MRI *mri_warp );
 MRI *GCAMwriteWarpToMRI( const GCA_MORPH *gcam, MRI *mri_warp );
 
@@ -525,6 +531,7 @@ MRI  *GCAMSreclassifyUsingGibbsPriors(MRI *mri_inputs,
 double GCAMMSgibbsImageLogPosterior(GCAM_MS *gcam_ms,MRI *mri_labels,
                                    MRI *mri_inputs,
                                    TRANSFORM *transform, MRI *mri_s_index) ;
+  int GCAMremoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
 int GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp) ;
 extern int combine_labels[8][2] ;
 extern int NCOMBINE_LABELS ;
