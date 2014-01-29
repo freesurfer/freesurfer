@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/04 00:23:36 $
- *    $Revision: 1.78 $
+ *    $Date: 2014/01/29 22:15:47 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -285,7 +285,7 @@ MRIhorizontalBoundingBoxHistogram(MRI *mri, int thresh)
 \fn int MRIcountAboveThreshold(MRI *mri, int thresh)
 \brief Returns the number of voxels above the given threshold
 ------------------------------------------------------*/
-int MRIcountAboveThreshold(MRI *mri, int thresh)
+int MRIcountAboveThreshold(MRI *mri, double thresh)
 {
   int     x, y, z, width, height, depth, count ;
   double val;

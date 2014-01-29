@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/09/26 13:07:46 $
- *    $Revision: 1.26 $
+ *    $Author: greve $
+ *    $Date: 2014/01/29 22:15:47 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -143,7 +143,7 @@ MORPH_3D, M3D ;
 HISTOGRAM *MRIhorizontalHistogram(MRI *mri, int thresh_low, int thresh_hi) ;
 HISTOGRAM *MRIhorizontalBoundingBoxHistogram(MRI *mri, int thresh) ;
 
-int       MRIcountAboveThreshold(MRI *mri, int thresh) ;
+int       MRIcountAboveThreshold(MRI *mri, double thresh) ;
 MRI       *MRIlabel(MRI *mri_src, MRI *mri_dst, int *nlabels) ;
 int       MRIlabelBoundingBoxes(MRI *mri_label,MRI_REGION *bboxes,int nlabels);
 int       MRIeraseOtherLabels(MRI *mri_src, MRI *mri_dst, int label) ;
