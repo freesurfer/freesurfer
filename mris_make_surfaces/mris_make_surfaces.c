@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/10 18:51:39 $
- *    $Revision: 1.146 $
+ *    $Date: 2014/01/29 20:42:02 $
+ *    $Revision: 1.147 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.146 2014/01/10 18:51:39 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.147 2014/01/29 20:42:02 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -163,6 +163,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 static float pial_target_offset = 0 ;
 static float white_target_offset = 0 ;
 
+static COLOR_TABLE *ctab  = NULL;
 static MRI *mri_cover_seg = NULL ;
 static char *aseg_name = "aseg" ;
 static char *aparc_name = "aparc" ;  // for midline and cortex label
@@ -266,13 +267,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.146 2014/01/10 18:51:39 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.147 2014/01/29 20:42:02 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.146 2014/01/10 18:51:39 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.147 2014/01/29 20:42:02 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -541,6 +542,8 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
   MRISaddCommandLine(mris, cmdline) ;
+  if (mris->ct == NULL && ctab)  
+    mris->ct = ctab ;  // add user-specified color table to structure
 
   if (pial_nbrs > 2)
   {
@@ -1990,6 +1993,12 @@ get_option(int argc, char *argv[])
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "ct"))
+  {
+    printf("reading color table from %s\n", argv[2]) ;
+    ctab = CTABreadASCII(argv[2]) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "soap"))
   {
     parms.smooth_intersections = 1 ;
@@ -3397,9 +3406,12 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
 
   if (Gdiag_no >= 0)
   {
+    int index ;
+
     v = &mris->vertices[Gdiag_no] ;
-    printf("v %d: ripflag = %d before connected components\n",
-           Gdiag_no, mris->vertices[Gdiag_no].marked) ;
+    CTABfindAnnotation(mris->ct, v->annotation, &index);
+    printf("v %d: ripflag = %d before connected components, annot %d (%d)\n",
+           Gdiag_no, v->marked, v->annotation, index) ;
     if (v->marked == 0)
     {
       DiagBreak() ;
