@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/04 00:58:46 $
- *    $Revision: 1.84 $
+ *    $Date: 2014/01/29 00:03:21 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,6 +42,7 @@
 #include "sig.h"
 #include "cma.h"
 #include "chronometer.h"
+#include "region.h"
 
 //#define MRI2_TIMERS
 
@@ -690,6 +691,8 @@ MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes)
   return(outvol);
 }
 
+
+
 /*---------------------------------------------------------------
   MRIvol2Vol() - samples the values of one volume into that of
   another. Handles multiple frames. Can do nearest-neighbor,
@@ -1002,6 +1005,59 @@ MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s)
   }
 
   return(0);
+}
+/*
+  \fn MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve, LTA **plta)
+  \brief Masks and upsamples source volume and creates an LTA that
+  maps from source voxel to output voxel. mask=NULL, the mask is
+  generated from the source. If UpsampleFactor <= 1, upsampling is not
+  done. If DoConserve=1, then the upsampled volume is divided by
+  UpsampleFactor^3 and so conserves the sum of all voxel
+  intensities. When masking is done, a bounding box around the
+  non-zero voxels in the mask is created.
+ */
+MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve, LTA **plta)
+{
+  MRI *srcmask, *srcus;
+  LTA *lta,*ltamask, *ltaus;
+  MRI_REGION *region;
+  MATRIX *v2v;
+  int nPad = 2; // not sure if it makes much of a difference
+
+  v2v = MatrixIdentity(4,NULL);
+
+  if(mask) region = REGIONgetBoundingBox(mask,nPad);
+  else     region = REGIONgetBoundingBox(src,nPad);
+  printf(" bounding box %g ",((float)src->width*src->height*src->depth)/
+	 (region->dx*region->dy*region->dz));
+  REGIONprint(stdout, region);
+
+  srcmask = MRIextractRegion(src, NULL, region);
+  if(srcmask == NULL) return(NULL);
+  ltamask = TransformRegDat2LTA(src,srcmask, NULL); //srcvox2srcmaskvox
+  v2v = MatrixMultiply(ltamask->xforms[0].m_L,v2v,v2v);
+  LTAfree(&ltamask);
+  free(region);
+
+  if(UpsampleFactor > 1){
+    if(DoConserve) srcus = MRIupsampleNConserve(srcmask, NULL, UpsampleFactor);
+    else           srcus = MRIupsampleN(srcmask, NULL, UpsampleFactor);
+    ltaus = TransformRegDat2LTA(srcmask, srcus, NULL); //srcmaskvox2srcusvox
+    v2v = MatrixMultiply(ltaus->xforms[0].m_L,v2v,v2v);
+    LTAfree(&ltaus);
+  }
+  else srcus = srcmask;
+
+  lta = LTAalloc(1,NULL);
+  getVolGeom(src, &lta->xforms[0].src);
+  getVolGeom(srcus, &lta->xforms[0].dst);
+  lta->type = LINEAR_VOX_TO_VOX;
+  lta->xforms[0].m_L = v2v; // srcvox to outvox
+  *plta = lta;
+
+  if(UpsampleFactor > 1) MRIfree(&srcmask);
+  // dont free v2v!
+  return(srcus);
 }
 /*---------------------------------------------------------------
   MRIdimMismatch() - checks whether the dimensions on two volumes
