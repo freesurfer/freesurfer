@@ -382,12 +382,31 @@ main(int argc,
   //
   // working space = ATLAS
   tDblCoords cmin, cmax;
+  tDblCoords TMPcmin, TMPcmax;
   compute_bbox(vmris_fixed, cmin, cmax);
+  compute_bbox(vmris_moving, TMPcmin, TMPcmax);
   std::cout << " direct min = " << cmin << " direct max = "
             << cmax << std::endl;
+  std::cout << " direct min TMP = " << TMPcmin << " direct max TMP = "
+            << TMPcmax << std::endl;
   cmin = cmin - tDblCoords(10.0);
-  //cmin = max( cmin - tDblCoords(10.0), tDblCoords(0.0) );
-  cmax = cmax + tDblCoords(10.0);
+  TMPcmin = TMPcmin - tDblCoords(10.0);
+
+  cmin = max( cmin - tDblCoords(10.0), tDblCoords(0.0) );
+  //cmax = cmax + tDblCoords(10.0);
+  cmax = tDblCoords(256.0);
+  TMPcmax = TMPcmax + tDblCoords(10.0);
+  std::cout << " bounding box elts = " << std::endl
+  << " min = " << cmin << std::endl
+  << " max = " << cmax << std::endl;
+
+  std::cout << " TMP bounding box elts = " << std::endl
+  << " TMP min = " << TMPcmin << std::endl
+  << " TMP max = " << TMPcmax << std::endl;
+
+  //cmin = min( cmin, TMPcmin );
+  //cmax = max( cmax, TMPcmax );
+
   std::cout << " bounding box elts = " << std::endl
   << " min = " << cmin << std::endl
   << " max = " << cmax << std::endl;
@@ -517,11 +536,11 @@ main(int argc,
             vecTime.push_back( dtime );
           }
 
-          std::ofstream ofs("stats-orientation.txt", std::ios::app );
-          ofs << step << " " << deltVol << " ";
-          std::copy( vecTime.begin(), vecTime.end(),
-                     std::ostream_iterator<double>( ofs, " " ) );
-          ofs << std::endl;
+          //std::ofstream ofs("stats-orientation.txt", std::ios::app );
+          //ofs << step << " " << deltVol << " ";
+          //std::copy( vecTime.begin(), vecTime.end(),
+          //           std::ostream_iterator<double>( ofs, " " ) );
+          //ofs << std::endl;
         }
 
         // solve the orientation pbs
