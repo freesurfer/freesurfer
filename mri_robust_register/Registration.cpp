@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/09/20 14:27:34 $
- *    $Revision: 1.86 $
+ *    $Date: 2014/01/30 21:57:01 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3526,7 +3526,7 @@ bool Registration::flipInputs()
 
 /** Potentially changes mri_Source and the resample matrix.
  This ensures that vox2vox rot is small and dimensions agree,
- important for gaussian pyramid.
+ important for Gaussian pyramid.
  */
 bool Registration::reorientSource()
 {
@@ -3708,25 +3708,52 @@ void Registration::setSourceAndTarget(MRI * s, MRI * t, bool keeptype)
       cout << "  ensure both FLOAT (" << MRI_FLOAT << ")" << endl;
   }
 
-  // we will make images isotropic
+  // Init reslice matrices:
+  vnl_matrix_fixed<double, 4, 4> Mid;
+  Mid.set_identity();
+  Rsrc = Mid;
+  Rtrg = Mid;
+  
+  // init source and target mri:
+  if (mri_source) MRIfree(&mri_source);
+  mri_source = MRIcopy(s,NULL);
+  if (mri_target) MRIfree(&mri_target);
+  mri_target = MRIcopy(t,NULL);
+  
+  // reorder axis of srouce to match target orientation
+  // flip and reorder axis of source based on RAS alignment or ixform:
+  // this ensures that vox2vox rot is small and dimensions agree 
+  // important for gaussian pyramid
+  //cout << " Sin " << mri_source->width << " " << mri_source->height << " " << mri_source->depth << endl;
+  //cout << " Tin " << mri_target->width << " " << mri_target->height << " " << mri_target->depth << endl;
+  reorientSource();  
+  //cout << " Sout " << mri_source->width << " " << mri_source->height << " " << mri_source->depth << endl;
+  //cout << " Tout " << mri_target->width << " " << mri_target->height << " " << mri_target->depth << endl;
 
-  // get smallest dimension
-  double mins = fabs(s->xsize);
-  if (fabs(s->ysize) < mins)
-    mins = fabs(s->ysize);
-  if (s->depth > 1 && fabs(s->zsize) < mins)
-    mins = fabs(s->zsize);
-  double mint = fabs(t->xsize);
-  if (fabs(t->ysize) < mint)
+  
+  // now we will make images isotropic
+
+  // get smallest voxel length
+  double mins = fabs(mri_source->xsize);
+  if (fabs(mri_source->ysize) < mins)
+    mins = fabs(mri_source->ysize);
+  if (mri_source->depth > 1 && fabs(mri_source->zsize) < mins)
+    mins = fabs(mri_source->zsize);
+  double mint = fabs(mri_target->xsize);
+  if (fabs(mri_target->ysize) < mint)
     mint = fabs(t->ysize);
-  if (t->depth > 1 && fabs(t->zsize) < mint)
-    mint = fabs(t->zsize);
+  if (t->depth > 1 && fabs(mri_target->zsize) < mint)
+    mint = fabs(mri_target->zsize);
   // select the larger of the smallest sides
   double isosize = mins;
   if (mint > mins)
     isosize = mint;
-  vector<int> s_dim = MyMRI::findRightSize(s, isosize, false);
-  vector<int> t_dim = MyMRI::findRightSize(t, isosize, false);
+  vector<int> s_dim = MyMRI::findRightSize(mri_source, isosize, false);
+  vector<int> t_dim = MyMRI::findRightSize(mri_target, isosize, false);
+
+  //cout <<"   isosize: " << isosize << endl;
+  //cout <<"   sdim : " << s_dim[0] << " " << s_dim[1] << " " << s_dim[2] << endl;
+  //cout <<"   tdim : " << t_dim[0] << " " << t_dim[1] << " " << t_dim[2] << endl;
 
   if (symmetry) // adjust dimensions to match
   {
@@ -3737,27 +3764,30 @@ void Registration::setSourceAndTarget(MRI * s, MRI * t, bool keeptype)
       else
         t_dim[i] = s_dim[i];
     }
+    //cout <<"   sdim2 : " << s_dim[0] << " " << s_dim[1] << " " << s_dim[2] << endl;
+    //cout <<"   tdim2 : " << t_dim[0] << " " << t_dim[1] << " " << t_dim[2] << endl;
   }
+  
 
   if (verbose > 0)
   {
-    cout << "   Mov: (" << s->xsize << ", " << s->ysize << ", " << s->zsize
-        << ")mm  and dim (" << s->width << ", " << s->height << ", " << s->depth
+    cout << "   Mov: (" << mri_source->xsize << ", " << mri_source->ysize << ", " << mri_source->zsize
+        << ")mm  and dim (" << mri_source->width << ", " << mri_source->height << ", " << mri_source->depth
         << ")" << endl;
-    cout << "   Dst: (" << t->xsize << ", " << t->ysize << ", " << t->zsize
-        << ")mm  and dim (" << t->width << ", " << t->height << ", " << t->depth
+    cout << "   Dst: (" << mri_target->xsize << ", " << mri_target->ysize << ", " << mri_target->zsize
+        << ")mm  and dim (" << mri_target->width << ", " << mri_target->height << ", " << mri_target->depth
         << ")" << endl;
 
     cout << "   Asserting both images: " << isosize << "mm isotropic " << endl; //and (" << s_dim[0] << ", " << s_dim[1] << ", " << s_dim[2] <<") voxels" <<endl;
   }
 
   // source
-  if (needReslice(s, isosize,  s_dim[0], s_dim[1], s_dim[2], keeptype))
+  if (needReslice(mri_source, isosize,  s_dim[0], s_dim[1], s_dim[2], keeptype))
   {
     if (verbose > 0) cout << "    - reslicing Mov ..." << endl;
-    pair<MRI*, vnl_matrix_fixed<double, 4, 4> > mm = makeIsotropic(s, NULL,
+    pair<MRI*, vnl_matrix_fixed<double, 4, 4> > mm = makeIsotropic(mri_source, NULL,
       isosize, s_dim[0], s_dim[1], s_dim[2], keeptype);
-    Rsrc = mm.second;
+    Rsrc = Rsrc * mm.second;
     assert(mm.first != NULL);
     if (mri_source)
       MRIfree(&mri_source);
@@ -3775,21 +3805,21 @@ void Registration::setSourceAndTarget(MRI * s, MRI * t, bool keeptype)
   {
     if (verbose > 0)
       cout << "    - no Mov reslice necessary" << endl;
-    if (mri_source)
-      MRIfree(&mri_source);
-    vnl_matrix_fixed<double, 4, 4> Rm;
-    Rm.set_identity();
-    Rsrc = Rm;
-    mri_source = MRIcopy(s,NULL);
+    //if (mri_source)
+    //  MRIfree(&mri_source);
+    //vnl_matrix_fixed<double, 4, 4> Rm;
+    //Rm.set_identity();
+    //Rsrc = Rm;
+    //mri_source = MRIcopy(s,NULL);
   }
 
   // target
-  if (needReslice(t, isosize,  t_dim[0], t_dim[1], t_dim[2], keeptype))
+  if (needReslice(mri_target, isosize,  t_dim[0], t_dim[1], t_dim[2], keeptype))
   {
     if (verbose > 0) cout << "    - reslicing Dst ..." << endl;
-    pair<MRI*, vnl_matrix_fixed<double, 4, 4> > mm = makeIsotropic(t, NULL,
+    pair<MRI*, vnl_matrix_fixed<double, 4, 4> > mm = makeIsotropic(mri_target, NULL,
       isosize, t_dim[0], t_dim[1], t_dim[2], keeptype);
-    Rtrg = mm.second;
+    Rtrg = Rtrg * mm.second;
     assert(mm.first != NULL);
     if (mri_target)
       MRIfree(&mri_target);
@@ -3806,18 +3836,20 @@ void Registration::setSourceAndTarget(MRI * s, MRI * t, bool keeptype)
   {
     if (verbose > 0)
       cout << "    - no Dst reslice necessary" << endl;
-    if (mri_target)
-      MRIfree(&mri_target);
-    vnl_matrix_fixed<double, 4, 4> Rm;
-    Rm.set_identity();
-    Rtrg = Rm;
-    mri_target = MRIcopy(t,NULL);
+    //if (mri_target)
+    //  MRIfree(&mri_target);
+    //vnl_matrix_fixed<double, 4, 4> Rm;
+    //Rm.set_identity();
+    //Rtrg = Rm;
+    //mri_target = MRIcopy(t,NULL);
   }
   
-  // flip and reorder axis of source based on RAS alignment or ixform:
-  // this ensures that vox2vox rot is small and dimensions agree 
-  // important for gaussian pyramid
-  reorientSource();
+//  // flip and reorder axis of source based on RAS alignment or ixform:
+//  // this ensures that vox2vox rot is small and dimensions agree 
+//  // important for gaussian pyramid
+//  reorientSource();  
+//  cout << " S " << mri_source->width << " " << mri_source->height << " " << mri_source->depth << endl;
+//  cout << " T " << mri_target->width << " " << mri_target->height << " " << mri_target->depth << endl;
 
   if (gpS.size() > 0)
     freeGaussianPyramid(gpS);
@@ -3913,6 +3945,7 @@ void Registration::setName(const std::string &n)
 bool Registration::needReslice(MRI *mri, double vsize, int xdim, int ydim,
     int zdim, bool keeptype)
 {
+  //cout << "Registration::needReslice(mri , "<< vsize << ", " << xdim << ", " << ydim << ", " << zdim << ", " << keeptype << ")" <<endl;
 
   int mw = mri->width;
   int mh = mri->height;
@@ -3923,7 +3956,9 @@ bool Registration::needReslice(MRI *mri, double vsize, int xdim, int ydim,
   if (md == 1)
     mz = my; // adjust voxel size for tests below if 2D image
 
-//  cout << "Registration::needReslice(mri , "<< vsize << ", " << xdim << ", " << ydim << ", " << zdim << ", " << keeptype << ")" <<endl;
+  //cout << mw << " "<< mh <<" "<<md << endl;
+  //cout << mx << " "<< my <<" "<<mz << endl;
+
   // don't change type if keeptype or if already float:
   bool notypeconvert = (keeptype || mri->type == MRI_FLOAT);
 //  if (notypeconvert && verbose > 1) cout << "     - no TYPE conversion necessary" << endl;
@@ -4298,7 +4333,7 @@ vnl_matrix_fixed<double, 4, 4> Registration::getFinalVox2Vox()
   if (!resample)
     return Mfinal;
 
-  cout << "Adjusting final transform due to non isotropic voxels ..." << endl;
+  cout << "Adjusting final transform due to initial resampling (voxel or size changes) ..." << endl;
 
 //    // Make Mfinal to RAS2RAS
 //    MATRIX * m = NULL;

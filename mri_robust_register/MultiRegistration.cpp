@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/05/21 18:03:15 $
- *    $Revision: 1.49 $
+ *    $Date: 2014/01/30 21:57:01 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -918,11 +918,280 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit,
   return true;
 }
 
+/** Flips/reorders images to be in COR orientation (conform default)
+   (future: maybe use the orientation of most of the inputs )
+   then computes average cosine matrix. 
+   mri_mov images need to be set.
+ */
+vnl_matrix_fixed<double, 3, 3> MultiRegistration::getAverageCosines()
+{
+  int nin = (int) mri_mov.size();
+
+  std::vector <  vnl_matrix_fixed<double, 3, 3> > cosM(nin);
+  vnl_matrix_fixed<double, 3, 3> meanr (0.0);
+
+  // conform slice orientation
+  // orientation: LIA
+  // primary slice direction: coronal
+  vnl_matrix_fixed<double, 3, 3> v2rconf (0.0);
+  v2rconf[0][0] = -1.0;
+  v2rconf[1][0] =  0.0;
+  v2rconf[2][0] =  0.0;
+  v2rconf[0][1] =  0.0;
+  v2rconf[1][1] =  0.0;
+  v2rconf[2][1] = -1.0;
+  v2rconf[0][2] =  0.0;
+  v2rconf[1][2] =  1.0;
+  v2rconf[2][2] =  0.0;
+  
+  // extract cosines
+  for (int i = 0; i<nin ; i++)
+  {
+    cosM[i][0][0] = mri_mov[i]->x_r;
+    cosM[i][1][0] = mri_mov[i]->x_a;
+    cosM[i][2][0] = mri_mov[i]->x_s;
+    cosM[i][0][1] = mri_mov[i]->y_r;
+    cosM[i][1][1] = mri_mov[i]->y_a;
+    cosM[i][2][1] = mri_mov[i]->y_s;
+    cosM[i][0][2] = mri_mov[i]->z_r;
+    cosM[i][1][2] = mri_mov[i]->z_a;
+    cosM[i][2][2] = mri_mov[i]->z_s;
+    
+    // reorder axis to match conform ordering
+    // we only swap dimensions around to make the cosine matrices comparable
+    // (same main slice orientation). We will later average the cosines of all inputs
+    vnl_matrix_fixed<double, 3, 3> v2v = v2rconf.transpose() * cosM[i];
+
+    //cout << " v2v[" << i << "] = " << endl;
+    //vnl_matlab_print(vcl_cout,v2v,"v2v",vnl_matlab_print_format_long);
+    //cout << endl;
+      
+    // swap (and possibly invert) axis, so that rotation gets smaller
+    int xd = 1;
+    int yd = 1;
+    int zd = 1;
+      
+    // determine max in each column:
+    if (fabs(v2v[1][0]) > fabs(v2v[0][0]))
+      xd = 2;
+    if (fabs(v2v[2][0]) > fabs(v2v[0][0])
+        && fabs(v2v[2][0]) > fabs(v2v[1][0]))
+      xd = 3;
+    if (fabs(v2v[1][1]) > fabs(v2v[0][1]))
+      yd = 2;
+    if (fabs(v2v[2][1]) > fabs(v2v[0][1])
+        && fabs(v2v[2][1]) > fabs(v2v[1][1]))
+      yd = 3;
+    if (fabs(v2v[1][2]) > fabs(v2v[0][2]))
+      zd = 2;
+    if (fabs(v2v[2][2]) > fabs(v2v[0][2])
+        && fabs(v2v[2][2]) > fabs(v2v[1][2]))
+      zd = 3;
+        
+    // sign
+    if (v2v[xd - 1][0] < 0.0)
+      xd = -xd;
+    if (v2v[yd - 1][1] < 0.0)
+      yd = -yd;
+    if (v2v[zd - 1][2] < 0.0)
+      zd = -zd;
+        
+    // now reorder if necessary  
+    if (xd != 1 || yd != 2 || zd != 3)
+    {
+
+
+      if (abs(xd) + abs(yd) + abs(zd) != 6)
+      {
+        cout << "WARNING: reorder not clear ..." << endl;
+        vnl_matlab_print(vcl_cout,v2v,"v2v",vnl_matlab_print_format_long);
+        cout << endl;
+        cout << " xd: " << xd << " yd: " << yd << " zd: " << zd << endl;
+        if (vnl_determinant(v2v) < 0)
+        {  // cannot run sqrt later if det < 0
+          cout << "ERROR: vox2vox det: " << vnl_determinant(v2v) << " < 0"
+              << endl;
+          cout << "       Something might be wrong with RAS info in inputs."
+              << endl;
+          cout << "       Make sure volumes are in same voxel orientation." << endl;
+          exit(1);
+        }
+        exit(1);
+      }
+
+      //cout << "   Reordering axes in mov "<< i << " to better fit first mov... ( " << xd << " " << yd
+      //    << " " << zd << " )" << endl;
+
+      vnl_matrix_fixed<double, 3, 3> Q(0.0);
+      Q[0][abs(xd)-1] = (xd >= 0 ? 1 : -1);
+      Q[1][abs(yd)-1] = (yd >= 0 ? 1 : -1);
+      Q[2][abs(zd)-1] = (zd >= 0 ? 1 : -1);
+
+      cosM[i] = cosM[i] * Q;
+
+    }// end reorder
+ 
+    //cout << " v2r[" << i << "] = " << endl;
+    //vnl_matlab_print(vcl_cout,cosM[i],"cosM",vnl_matlab_print_format_long);
+    //cout << endl;
+  
+    meanr += cosM[i];
+
+  }
+
+  // Project meanr back to SO(3) via polar decomposition:  
+  meanr = (1.0 / nin) * meanr;
+  //vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;
+  vnl_matrix<double> PolR(3, 3), PolS(3, 3);
+  MyMatrix::PolarDecomposition(meanr, PolR, PolS);
+  meanr = PolR;
+  //vnl_matlab_print(vcl_cout,meanr,"meanrfinal",vnl_matlab_print_format_long);std::cout << std::endl;
+  
+  return meanr;
+  
+}
+
+
+/** Creates the template image geometry.
+   Sets template to isotropic voxels (select the largest over all images
+   of the minimum side length). Then determines the widht height depth and
+   sets all dimensions to the max (can treat 2D images with depth=1).
+   Then sets average RAS cosines and sets the center to the average RAS center.
+   Will return slices in COR (see getAverageCosines).
+   mri_mov images need to be set.
+ */
+MRI * MultiRegistration::createTemplateGeo()
+{
+  int nin = (int) mri_mov.size();
+
+  // determine isotropic voxel size for template
+  // set to the largest (across images) of the
+  // smallest voxel size
+  double conform_size = 0.0;
+  for (int i = 0; i<nin ; i++)
+  {
+    double xsize = fabs(mri_mov[i]->xsize);
+    double ysize = fabs(mri_mov[i]->ysize);
+    double zsize = fabs(mri_mov[i]->zsize);
+    
+    double minvox = xsize;
+    if (ysize < minvox) minvox = ysize;
+    if (zsize < minvox) minvox = zsize;
+      
+    if (minvox > conform_size) conform_size = minvox;
+  }
+
+  // determine width height depth
+  // since inputs can be in different
+  // slice orientations, set all to the max
+  int maxdim = 0;
+  int count2d = 0;
+  for (int i = 0; i<nin ; i++)
+  {
+    double xsize = fabs(mri_mov[i]->xsize);
+    double ysize = fabs(mri_mov[i]->ysize);
+    double zsize = fabs(mri_mov[i]->zsize);
+    double fwidth  = xsize * mri_mov[i]->width;
+    double fheight = ysize * mri_mov[i]->height;
+    double fdepth  = zsize * mri_mov[i]->depth;
+    
+    double eps =0.0001; // to prevent ceil(2.0*64 / 2.0) = ceil(64.000000000001) = 65
+    int nw = (int) ceil((fwidth / conform_size) - eps);
+    int nh = (int) ceil((fheight / conform_size) - eps);
+    int nd = (int) ceil((fdepth / conform_size) - eps);
+    if (mri_mov[i]->depth == 1)
+      count2d++; // 2d image
+    
+    if (nw > maxdim) maxdim = nd;
+    if (nh > maxdim) maxdim = nh;
+    if (nd > maxdim) maxdim = nd;
+  }
+
+  int depth = maxdim;
+  if (count2d > 0)
+  {
+    if (count2d == nin)
+      depth = 1;
+    else
+    {
+      cerr << " ERROR (createTemplateGeo) : mixing 2d and 3d input images not possible!" << endl;
+      exit(1);
+    }
+  }
+  MRI * template_geo   = MRIallocHeader(maxdim, maxdim, depth, MRI_FLOAT , 1);
+  template_geo->xsize  = template_geo->ysize = template_geo->zsize = conform_size ;
+  template_geo->imnr0  = 1;
+  template_geo->imnr1  = maxdim;
+  template_geo->type   = MRI_UCHAR;
+  template_geo->thick  = conform_size;
+  template_geo->ps     = conform_size;
+  template_geo->xstart = template_geo->ystart = - maxdim/2;
+  template_geo->zstart = -depth/2;
+  template_geo->xend   = template_geo->yend = maxdim/2;
+  template_geo->zend   = depth/2;
+  
+  // set direction cosines to default directions:
+  //template_geo->x_r = -1.0;
+  //template_geo->x_a =  0.0;
+  //template_geo->x_s =  0.0;
+  //template_geo->y_r =  0.0;
+  //template_geo->y_a =  0.0;
+  //template_geo->y_s = -1.0;
+  //template_geo->z_r =  0.0;
+  //template_geo->z_a =  1.0;
+  //template_geo->z_s =  0.0;
+  
+  vnl_matrix_fixed<double, 3, 3> avgcos = getAverageCosines();
+  template_geo->x_r = avgcos[0][0];
+  template_geo->x_a = avgcos[1][0];
+  template_geo->x_s = avgcos[2][0];
+  template_geo->y_r = avgcos[0][1];
+  template_geo->y_a = avgcos[1][1];
+  template_geo->y_s = avgcos[2][1];
+  template_geo->z_r = avgcos[0][2];
+  template_geo->z_a = avgcos[1][2];
+  template_geo->z_s = avgcos[2][2];
+  
+
+  // set center: use the average cras coords of the input images
+  double nr =0.0;
+  double na =0.0;
+  double ns =0.0;
+  for (int i = 0; i < nin; i++)
+  {
+      nr += mri_mov[i]->c_r;
+      na += mri_mov[i]->c_a;
+      ns += mri_mov[i]->c_s;
+  }
+  nr /= (double)nin;
+  na /= (double)nin;
+  ns /= (double)nin;
+
+  // set new center in geometry
+  template_geo->c_r = nr;
+  template_geo->c_a = na;
+  template_geo->c_s = ns;
+  template_geo->ras_good_flag = 1;
+  
+  MRIreInitCache(template_geo);
+
+  return template_geo;
+}
+
+/** Will set initial LTA's from each tp to template space.
+    First registers all inputs to tpi (1..N).
+    maxres, iterate and epsit are passed to those pairwise registrations.
+    If fixtp is true, it stops there and creates average in that tp space.
+    Else it computes average rotation and translation,
+    constructs average template geometry and creates
+    LTA's to that mid space. 
+    Uses mri_mov and other parameters (e.g. satit, iscale, crascenter)
+*/
 bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     int iterate, double epsit)
-// will set ltas (as RAS to RAS )
+// will set ltas (as RAS to RAS ???)
 // tpi 1....n
-// uses outdir
+// uses outdir (really???)
 {
   if (tpi <= 0)
     return false; // no init?
@@ -1155,29 +1424,17 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 //   }
   vnl_matrix_fixed<double, 4, 4> Mm(MyMatrix::getMfromRT(meanr, meant));
 
+
   // construct target geometry for the mean space 
   // (the mean space may be outside any of the input RAS geometries)
-  // copy initial geometry from TPI (keep directions/rotation)
-  MRI * template_geo = MRIclone(mri_mov[tpi], NULL);
-  vnl_vector_fixed<double, 4> ncenter(0.0);
+  // this averages direction cosines (after un-flipping/reordering axis)
+  // it also sets the center to average of CRAS of inputs
+  MRI * template_geo = createTemplateGeo(); 
 
-  // determine center
-  if ( crascenter ) 
+  if (! crascenter) //default behavior: use average centroid
   {
-    // use the average cras coords of the input images
-    for (int i = 0; i < nin; i++)
-    {
-      ncenter[0] += mri_mov[i]->c_r;
-      ncenter[1] += mri_mov[i]->c_a;
-      ncenter[2] += mri_mov[i]->c_s;
-    }
-    ncenter[0] /= (double)nin;
-    ncenter[1] /= (double)nin;
-    ncenter[2] /= (double)nin;
-    ncenter[3] = 1.0;    
-  }
-  else //default
-  {
+    vnl_vector_fixed<double, 4> ncenter(0.0);
+    
     // center at the mean of all tp centroids mapped to the mean space
     // map average centroid from TPI vox space to mean RAS space:
     MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[tpi]);
@@ -1196,14 +1453,28 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     // map to mean space
     ncenter = Mm * ncenter;
     //vnl_matlab_print(vcl_cout,ncenter,"centroidmeanras",vnl_matlab_print_format_long);std::cout << std::endl;
+  
+    // set new center in geometry
+    template_geo->c_r = ncenter[0];
+    template_geo->c_a = ncenter[1];
+    template_geo->c_s = ncenter[2];
+    template_geo->ras_good_flag = 1;
+    MRIreInitCache(template_geo);
   }
   
-  // set new center in geometry
-  template_geo->c_r = ncenter[0];
-  template_geo->c_a = ncenter[1];
-  template_geo->c_s = ncenter[2];
-  template_geo->ras_good_flag = 1;
-  MRIreInitCache(template_geo);
+  // (old) set direction cosines back to tpi
+  //template_geo->x_r = mri_mov[tpi]->x_r;
+  //template_geo->x_a = mri_mov[tpi]->x_a;
+  //template_geo->x_s = mri_mov[tpi]->x_s;
+  //template_geo->y_r = mri_mov[tpi]->y_r;
+  //template_geo->y_a = mri_mov[tpi]->y_a;
+  //template_geo->y_s = mri_mov[tpi]->y_s;
+  //template_geo->z_r = mri_mov[tpi]->z_r;
+  //template_geo->z_a = mri_mov[tpi]->z_a;
+  //template_geo->z_s = mri_mov[tpi]->z_s;
+  
+  
+  
 
   // construct maps from each image to the mean space
   vnl_matrix_fixed<double, 4, 4> M;
@@ -1251,6 +1522,10 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     //LTAwrite(ltas[j],(mov[i]+"-temp2.lta").c_str());  
     LTAchangeType(ltas[j], LINEAR_VOX_TO_VOX);
 
+
+    /* removed this now (as inputs and template may have different voxel sizes...
+       not sure what effect that has on isotropic images , proably rounding errors are small???
+       hope we switch to double in image header geometries
     if (rigid) // map back to Rotation (RAS2RAS->VOX2VOX introduces scaling!)
     {
       vnl_matrix<double> MM(
@@ -1288,7 +1563,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
           ltas[j]->xforms[0].m_L);
     //LTAwrite(ltas[j],(mov[i]+"-temp3.lta").c_str());
 
-    }
+    }*/
 
     if (debug)
     {

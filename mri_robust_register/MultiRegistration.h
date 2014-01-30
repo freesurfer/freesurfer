@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/05/21 18:03:15 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/01/30 21:57:01 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -252,6 +252,9 @@ private:
   void normalizeIntensities(void);
 
   void initRegistration(RegRobust & R);
+
+  vnl_matrix_fixed<double, 3, 3> getAverageCosines();
+  MRI * createTemplateGeo();
 
   // copy of input filenames
   std::vector<std::string> mov;
