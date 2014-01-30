@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/01/18 19:18:41 $
- *    $Revision: 1.70 $
+ *    $Author: greve $
+ *    $Date: 2014/01/30 00:34:27 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -205,7 +205,8 @@ extern "C" {
 
 #define IS_CC(l) (l >= CC_Posterior && l <= CC_Anterior)
 
-#define VOXEL_UNCHANGED 256
+#define VOXEL_UNCHANGED   256
+#define CSF_ExtraCerebral 257
 
 // vascular and lymph labels (from Alex G)
 #define Aorta                    331

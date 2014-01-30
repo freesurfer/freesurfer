@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/22 23:17:47 $
- *    $Revision: 1.45 $
+ *    $Date: 2014/01/30 00:34:28 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2023,6 +2023,7 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
     case Third_Ventricle:
     case Fourth_Ventricle:
     case CSF:
+    case CSF_ExtraCerebral:
     case Left_Lateral_Ventricle:
     case Right_Lateral_Ventricle:
     case Left_Inf_Lat_Vent:
