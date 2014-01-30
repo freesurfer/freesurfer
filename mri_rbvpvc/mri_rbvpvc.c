@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/23 23:54:55 $
- *    $Revision: 1.16 $
+ *    $Date: 2014/01/30 01:04:55 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.16 2014/01/23 23:54:55 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.17 2014/01/30 01:04:55 greve Exp $
 
 /*
   BEGINHELP
@@ -84,7 +84,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.16 2014/01/23 23:54:55 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.17 2014/01/30 01:04:55 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -103,6 +103,13 @@ double ApplyFWHM=0;
 char *Xfile=NULL;
 char *VRFStatsFile=NULL;
 char *eresFile=NULL, *yhatFile=NULL;
+char *SynthFile=NULL;
+MATRIX *beta;
+MRI *PVF=NULL,*seg=NULL,*mask=NULL,*gtmsynth=NULL,*mritmp;
+COLOR_TABLE *ctSeg=NULL;
+char *RVarFile=NULL;
+int RVarOnly=0;
+int nDils=9;
 
 MATRIX *MatrixGetDiag(MATRIX *M, VECTOR *d);
 int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax);
@@ -120,29 +127,31 @@ double MGPVCgmthresh;
 int *MRIsegIdListExclude0(MRI *seg, int *pnsegs, int frame);
 
 MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask, 
-		    double cFWHM, double rFWHM, double sFWHM, 
+		    double cFWHM, double rFWHM, double sFWHM, int nDils,
 		    MATRIX *X);
 MATRIX *BuildGTMPVF(MRI *seg, MATRIX *SegTType, MRI *pvf, MRI *mask, 
 		    double cFWHM, double rFWHM, double sFWHM, 
 		    MATRIX *X);
 int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask);
-int WriteVRFStats(char *fname, MRI *seg, COLOR_TABLE *ct, MATRIX *iXtX, MATRIX *gtm, MRI *mask);
+int WriteVRFStats(char *fname, MRI *seg, COLOR_TABLE *ct, MATRIX *iXtX, MATRIX *gtm, 
+		  MRI *mask, MATRIX *segrvar);
+
 MRI *GTMsynth(MATRIX *beta, MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask, int nDils);
 MRI *GTMforward(MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask);
-MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask, double **prvarArray);
-COLOR_TABLE *ctSeg=NULL;
+MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask, 
+		 double **prvarArray, MRI *seg, MATRIX **psegstats);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
   int nargs,err,c,r,s,f,nmask;
-  MRI *src, *seg, *mask=NULL,*rbv,*gtmsynth,*gtmsynthsm,*mritmp;
+  MRI *src,*rbv,*gtmsynthsm;
   int nsegs,msegs,nthseg,*segidlist0,*segidlist;
-  MATRIX *beta, *y, *X, *Xt, *XtX, *iXtX, *Xty;
+  MATRIX *y, *X, *Xt, *XtX, *iXtX, *Xty, *segrvar;
   double val,XtXcond;
   double vrfmin,vrfmax,vrfmean;
   struct timeb  mytimer, timer;
-  MRI *PVF=NULL, *gtmres;
+  MRI *gtmres;
   double *rvar;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -151,6 +160,8 @@ int main(int argc, char *argv[])
   cmdline = argv2cmdline(argc,argv);
   uname(&uts);
   getcwd(cwd,2000);
+
+  ctSeg = TissueTypeSchema(NULL,"default-jan-2014");
 
   Progname = argv[0] ;
   argc --;
@@ -162,8 +173,6 @@ int main(int argc, char *argv[])
   check_options();
   if (checkoptsonly) return(0);
   dump_options(stdout);
-
-  ctSeg = TissueTypeSchema(NULL,"default-jan-2014");
 
   // Convert FWHM to StdDev
   cStd = cFWHM/sqrt(log(256.0));
@@ -261,7 +270,7 @@ int main(int argc, char *argv[])
   // Create GTM matrix
   printf("Building GTM ... ");fflush(stdout); TimerStart(&mytimer) ;
   //X = BuildGTMPVF(seg,SegTType,PVF,mask,cFWHM,rFWHM,sFWHM,NULL);
-  X = BuildGTMPVF2(seg,PVF,ctSeg,mask,cFWHM,rFWHM,sFWHM,NULL);
+  X = BuildGTMPVF2(seg,PVF,ctSeg,mask,cFWHM,rFWHM,sFWHM,nDils,NULL);
   if(X==NULL) exit(1);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   printf("nmask = %d\n",X->rows);
@@ -293,7 +302,8 @@ int main(int argc, char *argv[])
   // Should normalize X
   Xt = MatrixTranspose(X,NULL);
   printf("Computing  XtX ... ");fflush(stdout); TimerStart(&mytimer) ;
-  XtX = MatrixMultiplyD(Xt,X,NULL);
+  //XtX = MatrixMultiplyD(Xt,X,NULL);
+  XtX = MatrixMtM(X,NULL);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   if(OutXtXFile){
     printf("Writing XtX to %s\n",OutXtXFile);
@@ -324,11 +334,23 @@ int main(int argc, char *argv[])
   //MRIwrite(gtmsynth,"gtmsynth.nii");
   if(yhatFile) MRIwrite(gtmsynthsm,yhatFile);
 
-  gtmres = GTMresidual(y, X, beta, seg, mask, &rvar);
+  gtmres = GTMresidual(y, X, beta, src, mask, &rvar, seg, &segrvar);
   printf("rvar %g\n",rvar[0]);
   if(eresFile) MRIwrite(gtmres,eresFile);
+  if(RVarFile) {
+    FILE *fp;
+    fp = fopen(RVarFile,"w");
+    for(f=0; f < src->nframes; f++)
+      fprintf(fp,"%30.20f\n",rvar[f]);
+    fclose(fp);
+    if(RVarOnly){
+      printf("rvar-only requested so exiting now\n");
+      printf("mri_rbvpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
+      exit(0);
+    }
+  }
 
-  if(VRFStatsFile) WriteVRFStats(VRFStatsFile, seg, ctSeg, iXtX, beta, mask);
+  if(VRFStatsFile) WriteVRFStats(VRFStatsFile, seg, ctSeg, iXtX, beta, mask,segrvar);
 
   XtXcond = MatrixConditionNumber(XtX);
   VRFStats(iXtX, &vrfmean, &vrfmin, &vrfmax);
@@ -484,6 +506,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&niterations);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--ndil")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nDils);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--od")) {
       if (nargc < 1) CMDargNErr(option,1);
       OutDir = pargv[0];
@@ -530,6 +557,32 @@ static int parse_commandline(int argc, char **argv) {
       VRFStatsFile = pargv[0];
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--rvar")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      RVarFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--rvar-only"))
+      RVarOnly = 1;
+    else if(!strcasecmp(option, "--synth")) {
+      if (nargc < 5) CMDargNErr(option,5);
+      OutBetaFile = pargv[0];
+      SegVolFile = pargv[1];
+      PVFFile = pargv[2];
+      MaskVolFile = pargv[3];
+      SynthFile = pargv[4];
+      mritmp = MRIread(OutBetaFile);
+      beta = fMRItoMatrix(mritmp,NULL);
+      beta = MatrixTranspose(beta,NULL);
+      seg = MRIread(SegVolFile);
+      PVF = MRIread(PVFFile);
+      mask = MRIread(MaskVolFile);
+      gtmsynth = GTMsynth(beta, seg, PVF, ctSeg, mask,9);
+      //gtmsynth = GTMsynth(beta, seg, PVF, ctSeg, mask, 9);
+      MRIwrite(gtmsynth,SynthFile);
+      exit(0);
+      nargsused = 1;
+    } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -560,7 +613,7 @@ static void print_usage(void) {
   printf("   --mgpvc mgpvcfile gmthresh\n");
   printf("   --vrf vrfstatsfile\n");
   printf("   --yhat gtm yhat file\n");
-  printf("   --res  gtm residual file\n");
+  printf("   --eres  gtm residual file\n");
   printf("   --seg-test : replace input with seg smoothed by psf\n");
   printf("   --xtx xtx.mtx : save X'*X into xtx.mtx\n");
   printf("   --X Xfile : save X matrix (it will be big)\n");
@@ -601,7 +654,8 @@ static void check_options(void)
     printf("ERROR: must spec psf FWHM\n");
     exit(1);
   }
-  if(RBVVolFile == NULL && OutDir == NULL && MGPVCFile == NULL && OutBetaFile == NULL){
+  if(RBVVolFile == NULL && OutDir == NULL && MGPVCFile == NULL 
+     && OutBetaFile == NULL && RVarFile == NULL){
     printf("ERROR: must spec an output with --o, --gtm-means,  or --mgpvc\n");
     exit(1);
   }
@@ -1397,12 +1451,11 @@ MRI *MGPVC(MRI *tac, MRI *gmpvf, MRI *wmpvf, MATRIX *wmtac, MRI *mask, double ps
 
 /*------------------------------------------------------------------*/
 MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask, 
-		    double cFWHM, double rFWHM, double sFWHM, 
-		    MATRIX *X)
+		     double cFWHM, double rFWHM, double sFWHM, int nDils,
+		     MATRIX *X)
 {
   int c,r,s,tt,nTT;
   MRI **segttdil, **pvfarray, *segmask=NULL, *pvfbb, *pvfbbsm, *pvfmask;
-  int nDils = 3;
   int *segidlist, nsegs, nthseg, segid, nmask;
   double maxFWHM,cStd,rStd,sStd;
   MRI_REGION *region;
@@ -1444,8 +1497,6 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
   // maximum FWHM in voxels
   maxFWHM = MAX(cFWHM/seg->xsize,MAX(rFWHM/seg->ysize,sFWHM/seg->zsize));
   printf("maxFWHM = %g (voxels)\n",maxFWHM);
-  nDils = ceil(3*maxFWHM);
-  //nDils = 2;
 
   printf("Dilating segmentation nDils=%d\n",nDils);
   segttdil = MRIdilateSegWithinTT(seg, nDils, ct);
@@ -1499,7 +1550,8 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
   return(X);
 }
 
-int WriteVRFStats(char *fname, MRI *seg, COLOR_TABLE *ct, MATRIX *iXtX, MATRIX *gtm, MRI *mask)
+int WriteVRFStats(char *fname, MRI *seg, COLOR_TABLE *ct, MATRIX *iXtX, MATRIX *gtm, 
+		  MRI *mask, MATRIX *segrvar)
 {
   int n, nsegs, *segidlist, segid, nvox;
   double vrf;
@@ -1525,8 +1577,12 @@ int WriteVRFStats(char *fname, MRI *seg, COLOR_TABLE *ct, MATRIX *iXtX, MATRIX *
       fprintf(fp,"   %10.3f",gtm->rptr[n+1][1]);
       //printf("   %10.3f",gtm->rptr[n+1][1]);
     }
+    if(segrvar){
+      fprintf(fp,"   %10.4f",sqrt(segrvar->rptr[n+1][1]));
+      //printf("   %10.3f",gtm->rptr[n+1][1]);
+    }
     fprintf(fp,"\n");
-    printf(" \n");
+    //printf(" \n");
   }
   fclose(fp);
   fflush(stdout);
@@ -1621,15 +1677,14 @@ MRI *GTMforward(MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask)
   return(vol);
 }
 
-MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask, double **prvarArray)
+MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask, 
+		 double **prvarArray, MRI *seg, MATRIX **psegstats)
 {
   MRI *res=NULL;
   int c,r,s,f,nmask,dof;
-  MATRIX *yhat,*resmat;
+  int nsegs,nthseg=0,*segidlist,segid,*nperseg;
+  MATRIX *yhat,*resmat,*segstats;
   double *sumsq,v;
-
-  sumsq = (double *) calloc(sizeof(double),beta->cols);
-  for(f=0; f < beta->cols; f++) sumsq[f] = 0;
 
   printf("GTMresidual(): computing yhat ..."); fflush(stdout);
   yhat = MatrixMultiply(X,beta,NULL);
@@ -1641,15 +1696,27 @@ MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask, doubl
   res = MRIallocSequence(temp->width,temp->height,temp->depth,MRI_FLOAT,beta->cols);
   MRIcopyHeader(temp,res);
 
+  segidlist = MRIsegIdListExclude0(seg, &nsegs, 0);
+  segstats = MatrixAlloc(nsegs,beta->cols,MATRIX_REAL);
+  nperseg = (int *)calloc(sizeof(int),nsegs);
+
+  sumsq = (double *) calloc(sizeof(double),beta->cols);
+  for(f=0; f < beta->cols; f++) sumsq[f] = 0;
   nmask = 0;
   for(s=0; s < temp->depth; s++){
     for(c=0; c < temp->width; c++){
       for(r=0; r < temp->height; r++){
 	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(segid != 0){
+	  for(nthseg=0; nthseg < nsegs; nthseg++) if(segidlist[nthseg]==segid) break;
+	  nperseg[nthseg] ++;
+	}
 	for(f=0; f < beta->cols; f++){
 	  v = resmat->rptr[nmask+1][f+1];
-	  sumsq[f] = v*v;
+	  sumsq[f] += v*v;
 	  MRIsetVoxVal(res,c,r,s,f,v);
+	  if(segid != 0) segstats->rptr[nthseg+1][f+1] += v*v;
 	}
 	nmask++;
       }// r 
@@ -1657,9 +1724,22 @@ MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask, doubl
   }// s
 
   dof = X->rows - X->cols;
-  for(f=0; f < beta->cols; f++) sumsq[f] /= dof;
+  for(f=0; f < beta->cols; f++) {
+    sumsq[f] /= dof;
+    for(nthseg=0; nthseg < nsegs; nthseg++){
+      v = segstats->rptr[nthseg+1][f+1];
+      segstats->rptr[nthseg+1][f+1] = v/nperseg[nthseg];
+    }
+  }
   *prvarArray = sumsq;
+  *psegstats = segstats;
 
   MatrixFree(&resmat);
+  free(segidlist);
+  free(nperseg);
   return(res);
 }
+
+
+
+
