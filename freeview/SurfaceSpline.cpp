@@ -54,7 +54,13 @@ bool SurfaceSpline::Load(const QString &filename)
     useVolGeomToMRI(&mris->vg, m_mriSurf);
   }
 
-  m_mri = ::MRIread( filename.toAscii().data() );      // could be long process
+  try {
+    m_mri = ::MRIread( filename.toAscii().data() );      // could be long process
+  }
+  catch (int ret)
+  {
+    return false;
+  }
 
   if ( m_mri == NULL )
   {

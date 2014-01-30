@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/21 22:06:57 $
- *    $Revision: 1.90 $
+ *    $Date: 2014/01/30 21:55:28 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -141,8 +141,14 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
   // save old header to release later so there is no gap where m_MRI becomes NULL during re-loading process
   MRI* tempMRI = m_MRI;
 
-
-  m_MRI = ::MRIread( filename.toAscii().data() );      // could be long process
+  try
+  {
+    m_MRI = ::MRIread( filename.toAscii().data() );      // could be long process
+  }
+  catch (int ret)
+  {
+    return false;
+  }
 
   if ( m_MRI == NULL )
   {
@@ -928,8 +934,15 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
     fclose( fp );
   }
 
-  int err;
-  err = ::MRIwrite( m_MRITemp, filename.toAscii().data() );
+  int err = 0;
+  try
+  {
+    err = ::MRIwrite( m_MRITemp, filename.toAscii().data() );
+  }
+  catch (int ret)
+  {
+    return false;
+  }
 
   if ( err != 0 )
   {

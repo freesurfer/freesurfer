@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/08 21:09:11 $
- *    $Revision: 1.20 $
+ *    $Date: 2014/01/30 21:55:28 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -211,7 +211,13 @@ bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
   }
   MRIfree( &mri );
   ::SetProgressCallback(ProgressCallback, 0, 100);
-  mri = ::MRIread( filename.toAscii().data() );      // long process
+  try {
+    mri = ::MRIread( filename.toAscii().data() );      // long process
+  }
+  catch (int ret) {
+      return false;
+  }
+
   if ( mri == NULL )
   {
     cerr << "MRIread failed: Unable to read from " << qPrintable(filename) << "\n";

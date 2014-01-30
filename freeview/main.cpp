@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/16 22:18:13 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/01/30 21:55:28 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,8 @@ void myMessageOutput(QtMsgType type, const char *msg)
 
 void my_error_exit(int ecode)
 {
-  // do nothing
+  if (ecode != 0)
+    throw (ecode);
 }
 
 int main(int argc, char *argv[])

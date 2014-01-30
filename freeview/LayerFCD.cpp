@@ -154,7 +154,15 @@ bool LayerFCD::Load(const QString &subdir, const QString &subject)
 bool LayerFCD::LoadFromFile()
 {
   ::SetProgressCallback(ProgressCallback, 0, 50);
-  m_fcd = ::FCDloadData(m_sSubjectDir.toAscii().data(), m_sSubject.toAscii().data());
+  try
+  {
+    m_fcd = ::FCDloadData(m_sSubjectDir.toAscii().data(), m_sSubject.toAscii().data());
+  }
+  catch (int ret)
+  {
+    return false;
+  }
+
   if (m_fcd)
   {
     if (!m_fcd->mri_norm)
@@ -336,7 +344,15 @@ void LayerFCD::DoCompute(bool resetProgress)
   {
     if (resetProgress)
       ::SetProgressCallback(ProgressCallback, 0, 50);
-    ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), GetProperty()->GetMinArea());
+    try
+    {
+      ::FCDcomputeThicknessLabels(m_fcd, GetProperty()->GetThicknessThreshold(), GetProperty()->GetSigma(), GetProperty()->GetMinArea());
+    }
+    catch (int ret)
+    {
+      return;
+    }
+
     m_labelVisibility.clear();
     for (int i = 0; i < m_fcd->nlabels; i++)
       m_labelVisibility << true;

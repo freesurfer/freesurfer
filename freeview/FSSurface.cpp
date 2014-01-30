@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/22 21:45:18 $
- *    $Revision: 1.71 $
+ *    $Date: 2014/01/30 21:55:28 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -166,7 +166,13 @@ bool FSSurface::MRISRead( const QString& filename,
     ::MRISfree( &m_MRIS );
   }
 
-  m_MRIS = ::MRISread( filename.toAscii().data() );
+  try {
+    m_MRIS = ::MRISread( filename.toAscii().data() );
+  }
+  catch (int ret)
+  {
+    return false;
+  }
 
   if ( m_MRIS == NULL )
   {
@@ -331,7 +337,13 @@ void FSSurface::LoadTargetSurface( const QString& filename )
     ::MRISfree( &m_MRISTarget );
   }
 
-  m_MRISTarget = ::MRISread( filename.toAscii().data() );
+  try {
+    m_MRISTarget = ::MRISread( filename.toAscii().data() );
+  }
+  catch (int ret)
+  {
+    m_MRISTarget = NULL;
+  }
 
   if ( m_MRISTarget == NULL )
   {
@@ -350,7 +362,17 @@ bool FSSurface::MRISWrite( const QString& filename )
     return false;
   }
 
-  return ( ::MRISwrite( m_MRIS, filename.toAscii().data() ) == 0 );
+  int ret = 0;
+  try
+  {
+    ret = ::MRISwrite( m_MRIS, filename.toAscii().data() );
+  }
+  catch (int ret)
+  {
+    return false;
+  }
+
+  return ( ret == 0 );
 }
 
 bool FSSurface::MRISReadVectors( const QString& filename )
