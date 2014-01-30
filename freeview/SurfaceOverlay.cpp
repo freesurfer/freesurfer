@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/30 21:55:28 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/01/30 22:08:25 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -330,10 +330,16 @@ void SurfaceOverlay::UpdateSmooth(bool trigger_paired)
 
 void SurfaceOverlay::SmoothData(int nSteps_in, float *data_out)
 {
-  MRI* mri = MRIallocSequence( m_nDataSize,
+  MRI* mri = NULL;
+  try {
+    mri = MRIallocSequence( m_nDataSize,
                                1,
                                1,
                                MRI_FLOAT, 1);
+  } catch (int ret) {
+    return;
+  }
+
   if (!mri)
   {
     cerr << "Can not allocate mri\n";

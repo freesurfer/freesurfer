@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/30 21:55:28 $
- *    $Revision: 1.91 $
+ *    $Date: 2014/01/30 22:08:25 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -442,10 +442,16 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     data_type = src_vol->m_MRI->type;
   }
 
-  m_MRI = MRIallocSequence( src_vol->m_MRI->width,
+  try {
+    m_MRI = MRIallocSequence( src_vol->m_MRI->width,
                             src_vol->m_MRI->height,
                             src_vol->m_MRI->depth,
                             data_type, 1 );
+  }
+  catch (int ret)
+  {
+    return false;
+  }
 
   if ( NULL == m_MRI )
   {
@@ -741,7 +747,17 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
         dim[1] = m_MRITemp->height;
         dim[2] = m_MRITemp->depth;
       }
-      MRI* mri = MRIallocSequence( dim[0], dim[1], dim[2], m_MRITemp->type, m_MRITemp->nframes );
+
+      MRI* mri = NULL;
+      try
+      {
+        mri = MRIallocSequence( dim[0], dim[1], dim[2], m_MRITemp->type, m_MRITemp->nframes );
+      }
+      catch (int ret)
+      {
+          return false;
+      }
+
       if ( mri == NULL )
       {
         MatrixFree( &m );
@@ -976,11 +992,20 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   }
 
   // create a target volume
-  MRI* mri = MRIallocSequence( m_MRITarget->width,
+  MRI* mri = NULL;
+  try
+  {
+    MRIallocSequence( m_MRITarget->width,
                                m_MRITarget->height,
                                m_MRITarget->depth,
                                data_type >= 0 ? data_type : m_MRITarget->type,
                                m_MRI->nframes );
+  }
+  catch (int ret)
+  {
+    return false;
+  }
+
   if ( mri == NULL )
   {
     cout << "Can not allocate mri volume for buffering.\n";
@@ -1063,11 +1088,15 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   global_progress_range[1] = nend;
   if ( resampleToOriginal )
   {
-    m_MRITemp = MRIallocSequence( m_MRI->width,
+    try {
+     m_MRITemp = MRIallocSequence( m_MRI->width,
                                   m_MRI->height,
                                   m_MRI->depth,
                                   data_type >= 0 ? data_type : m_MRI->type,
                                   m_MRI->nframes );
+    } catch (int ret) {
+         return false;
+    }
     if ( m_MRITemp == NULL )
     {
       cout << "Can not allocate mri volume for buffering.\n";
@@ -1272,7 +1301,11 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
     }
     if ( bAllocatePixel )
     {
-      mri = MRIallocSequence( dim[0], dim[1], dim[2], src->type, src->nframes );
+      try {
+        mri = MRIallocSequence( dim[0], dim[1], dim[2], src->type, src->nframes );
+      } catch (int ret) {
+        return NULL;
+      }
     }
     else
     {
@@ -1375,7 +1408,11 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
 
     if ( bAllocatePixel )
     {
-      mri = MRIallocSequence( dim[0], dim[1], dim[2], src->type, src->nframes );
+      try {
+        mri = MRIallocSequence( dim[0], dim[1], dim[2], src->type, src->nframes );
+      } catch (int ret) {
+        return NULL;
+      }
     }
     else
     {
@@ -1415,11 +1452,16 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
   {
     // if there is registration matrix, set target as the reference's target
     MRI* mri = m_volumeRef->m_MRITarget;
-    rasMRI = MRIallocSequence( mri->width,
+    try {
+      rasMRI = MRIallocSequence( mri->width,
                                mri->height,
                                mri->depth,
                                m_MRI->type,
                                m_MRI->nframes );
+    } catch (int ret) {
+      return false;
+    }
+
     if ( rasMRI == NULL )
     {
       cerr << "Can not allocate memory for volume transformation\n";
@@ -1436,8 +1478,13 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
       dim[i] = (int) ( ( bounds[i*2+1] - bounds[i*2] ) / voxelSize[i] + 0.5 );
     }
 
-    rasMRI = MRIallocSequence( dim[0], dim[1], dim[2],
+    try {
+      rasMRI = MRIallocSequence( dim[0], dim[1], dim[2],
                                m_MRI->type, m_MRI->nframes );
+    } catch (int ret) {
+      return false;
+    }
+
     if ( rasMRI == NULL )
     {
       cerr << "Can not allocate memory for volume transformation\n";
@@ -1614,8 +1661,13 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
 
       *MATRIX_RELT( m, 4, 4 ) = 1;
 
-      rasMRI = MRIallocSequence( dim[0], dim[1], dim[2],
+      try {
+        rasMRI = MRIallocSequence( dim[0], dim[1], dim[2],
                                  m_MRI->type, m_MRI->nframes );
+      } catch (int ret) {
+        return false;
+      }
+
       if ( rasMRI == NULL )
       {
         cerr << "Can not allocate memory for volume transformation\n";
@@ -2048,7 +2100,7 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
     return false;
   }
 
-  MRI* rasMRI;
+  MRI* rasMRI = NULL;
   if ( rotations.size() == 0 || rotations[0].Plane == -1 )   // restore
   {
     if ( !m_MRIOrigTarget )  // try to restore but no where to restore
@@ -2057,11 +2109,16 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
       return false;
     }
 
-    rasMRI = MRIallocSequence( m_MRIOrigTarget->width,
+    try {
+      rasMRI = MRIallocSequence( m_MRIOrigTarget->width,
                                m_MRIOrigTarget->height,
                                m_MRIOrigTarget->depth,
                                m_MRI->type,
                                m_MRI->nframes );
+    } catch (int ret) {
+      return false;
+    }
+
     if ( rasMRI == NULL )
     {
       cout << "Can not allocate memory for volume transformation.\n";

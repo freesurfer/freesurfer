@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/10/03 15:00:32 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/01/30 22:08:25 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -138,7 +138,13 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
 
   int* dim = image->GetDimensions();
   int zFrames = image->GetNumberOfScalarComponents();
-  MRI* mri = MRIallocSequence( dim[0], dim[1], dim[2], mri_type, zFrames );
+  MRI* mri = NULL;
+  try {
+    mri = MRIallocSequence( dim[0], dim[1], dim[2], mri_type, zFrames );
+  } catch (int ret) {
+    return NULL;
+  }
+
   if ( !mri )
   {
     cerr << "Can not allocate memory for MRI.\n";
