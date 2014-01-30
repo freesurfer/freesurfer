@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/29 00:38:24 $
- *    $Revision: 1.81 $
+ *    $Date: 2014/01/30 16:42:45 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,7 +50,7 @@ mri_vol2vol
   --talres resolution : set voxel size 1mm or 2mm (def is 1)
   --talxfm xfmfile    : default is talairach.xfm (looks in mri/transforms)
 
-  --fstarg <vol>      : use vol <orig.mgz> from subject in --reg as target
+  --fstarg <vol>      : optionally use vol from subject in --reg as target. default is orig.mgz 
   --crop scale        : crop and change voxel size
   --slice-crop sS sE  : crop output slices to be within sS and sE
   --slice-reverse     : reverse order of slices, update vox2ras
@@ -479,7 +479,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.81 2014/01/29 00:38:24 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.82 2014/01/30 16:42:45 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -604,12 +604,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.81 2014/01/29 00:38:24 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.82 2014/01/30 16:42:45 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.81 2014/01/29 00:38:24 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.82 2014/01/30 16:42:45 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1435,7 +1435,7 @@ printf("  --m3z morph    : non-linear morph encoded in the m3z format\n");
 printf("  --noDefM3zPath : flag indicating that the code should not be looking for the non-linear m3z morph in the default location (subj/mri/transforms), but should use the morph name as is\n");
 printf("  --inv-morph    : compute and use the inverse of the m3z morph\n");
 printf("\n");
-printf("  --fstarg <vol>      : use vol <orig.mgz> from subject in --reg as target\n");
+printf("  --fstarg <vol>      : optionally use vol from subject in --reg as target. default is orig.mgz \n");
 printf("  --crop scale        : crop and change voxel size\n");
 printf("  --slice-crop sS sE  : crop output slices to be within sS and sE\n");
 printf("  --slice-reverse     : reverse order of slices, update vox2ras\n");
@@ -1810,6 +1810,17 @@ static void check_options(void) {
     printf("ERROR: No mov volume supplied.\n");
     exit(1);
   }
+  if(fstarg && targvolfile != NULL) {
+    printf("ERROR: Do not specify a targ volume with --fstarg.\n");
+    exit(1);
+  }
+  if(fstarg) {
+    sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,fstargfile);
+    if (!fio_FileExistsReadable(tmpstr))
+      sprintf(tmpstr,"%s/%s/mri/orig",SUBJECTS_DIR,subject);
+    targvolfile = strcpyalloc(tmpstr);
+    printf("Using %s as targ volume\n",targvolfile);
+  }
   if (targvolfile == NULL)
   {
     printf("ERROR: No target volume supplied.\n");
@@ -1886,10 +1897,6 @@ static void check_options(void) {
     printf("ERROR: No targ volume supplied.\n");
     exit(1);
   }
-  if(fstarg && targvolfile != NULL) {
-    printf("ERROR: Do not specify a targ volume with --fstarg.\n");
-    exit(1);
-  }
   if(DoCrop && targvolfile != NULL) {
     printf("ERROR: Do not specify a targ volume with --crop.\n");
     exit(1);
@@ -1913,13 +1920,6 @@ static void check_options(void) {
   if(fstarg && regfile == NULL && subject == NULL) {
     printf("ERROR: Need --reg with --fstarg.\n");
     exit(1);
-  }
-  if(fstarg) {
-    sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,fstargfile);
-    if (!fio_FileExistsReadable(tmpstr))
-      sprintf(tmpstr,"%s/%s/mri/orig",SUBJECTS_DIR,subject);
-    targvolfile = strcpyalloc(tmpstr);
-    printf("Using %s as targ volume\n",targvolfile);
   }
 
   interpcode = MRIinterpCode(interpmethod);
