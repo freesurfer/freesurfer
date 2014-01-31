@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/30 22:08:25 $
- *    $Revision: 1.92 $
+ *    $Date: 2014/01/31 22:56:29 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -995,7 +995,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   MRI* mri = NULL;
   try
   {
-    MRIallocSequence( m_MRITarget->width,
+    mri = MRIallocSequence( m_MRITarget->width,
                                m_MRITarget->height,
                                m_MRITarget->depth,
                                data_type >= 0 ? data_type : m_MRITarget->type,
