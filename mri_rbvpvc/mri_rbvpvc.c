@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/30 01:04:55 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/02/01 00:04:00 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.17 2014/01/30 01:04:55 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.18 2014/02/01 00:04:00 greve Exp $
 
 /*
   BEGINHELP
@@ -84,7 +84,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.17 2014/01/30 01:04:55 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.18 2014/02/01 00:04:00 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -94,7 +94,7 @@ struct utsname uts;
 char *SrcVolFile=NULL,*SegVolFile=NULL,*MaskVolFile=NULL;
 char *OutDir=NULL,*RBVVolFile=NULL;
 char *OutBetaFile=NULL,*OutXtXFile=NULL;
-double psfFWHM=-1,cFWHM,rFWHM,sFWHM,cStd,rStd,sStd;
+double psfFWHM=-1,cFWHM=-1,rFWHM=-1,sFWHM=-1,cStd,rStd,sStd;
 int DoSegTest=0;
 char tmpstr[5000];
 int niterations = 0;
@@ -145,9 +145,9 @@ MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask,
 int main(int argc, char *argv[]) 
 {
   int nargs,err,c,r,s,f,nmask;
-  MRI *src,*rbv,*gtmsynthsm;
+  MRI *src,*rbv,*gtmsynthsm,*gtmsynthsm0;
   int nsegs,msegs,nthseg,*segidlist0,*segidlist;
-  MATRIX *y, *X, *Xt, *XtX, *iXtX, *Xty, *segrvar;
+  MATRIX *y, *X, *Xt, *XtX, *iXtX, *Xty, *segrvar; // *X0;
   double val,XtXcond;
   double vrfmin,vrfmax,vrfmean;
   struct timeb  mytimer, timer;
@@ -323,15 +323,22 @@ int main(int argc, char *argv[])
 
   beta = MatrixMultiplyD(iXtX,Xty,NULL);
 
+  //gtmsynthsm0 = GTMforward(X, beta, seg, mask);
+  //MRIwrite(gtmsynthsm0,"gtm.forward.psf.nii");
+
+  //X0 = BuildGTMPVF2(seg,PVF,ctSeg,mask,0,0,0,nDils,NULL);
+  //gtmsynth = GTMforward(X0, beta, seg, mask);
+  //MRIwrite(gtmsynth,"gtm.forward.sm00.nii");
+
   printf("Synthesizing ... ");fflush(stdout); TimerStart(&mytimer) ;
-  gtmsynth = GTMsynth(beta, seg, PVF, ctSeg, mask, 9);
+  gtmsynth = GTMsynth(beta, seg, PVF, ctSeg, mask, nDils);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+  //MRIwrite(gtmsynth,"gtm.synth.sm00.nii");
+
   printf("Smoothing synthesized ... ");fflush(stdout); TimerStart(&mytimer) ;
   gtmsynthsm = MRIgaussianSmoothNI(gtmsynth, cStd, rStd, sStd, NULL);
   if(gtmsynthsm==NULL) exit(1);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
-  //gtmsynthsm = GTMforward(X, beta, seg, mask);
-  //MRIwrite(gtmsynth,"gtmsynth.nii");
   if(yhatFile) MRIwrite(gtmsynthsm,yhatFile);
 
   gtmres = GTMresidual(y, X, beta, src, mask, &rvar, seg, &segrvar);
@@ -493,6 +500,24 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--psf")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&psfFWHM);
+      cFWHM = psfFWHM;
+      rFWHM = psfFWHM;
+      sFWHM = psfFWHM;
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--psf-col")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&cFWHM);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--psf-row")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&rFWHM);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--psf-slice")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&sFWHM);
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--apply-fwhm")){
@@ -650,7 +675,7 @@ static void check_options(void)
     printf("ERROR: must spec segmentation volume\n");
     exit(1);
   }
-  if(psfFWHM < 0){
+  if(cFWHM < 0 || rFWHM < 0 || sFWHM < 0){
     printf("ERROR: must spec psf FWHM\n");
     exit(1);
   }
@@ -659,10 +684,6 @@ static void check_options(void)
     printf("ERROR: must spec an output with --o, --gtm-means,  or --mgpvc\n");
     exit(1);
   }
-
-  cFWHM = psfFWHM;
-  rFWHM = psfFWHM;
-  sFWHM = psfFWHM;
 
   return;
 }
@@ -1456,8 +1477,8 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
 {
   int c,r,s,tt,nTT;
   MRI **segttdil, **pvfarray, *segmask=NULL, *pvfbb, *pvfbbsm, *pvfmask;
-  int *segidlist, nsegs, nthseg, segid, nmask;
-  double maxFWHM,cStd,rStd,sStd;
+  int *segidlist, nsegs, nthseg, segid, nmask,nPad;
+  double maxFWHM,cStd,rStd,sStd,maxStd,PadThresh=.001;
   MRI_REGION *region;
 
   if(ct->ctabTissueType == NULL){
@@ -1496,7 +1517,9 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
 
   // maximum FWHM in voxels
   maxFWHM = MAX(cFWHM/seg->xsize,MAX(rFWHM/seg->ysize,sFWHM/seg->zsize));
-  printf("maxFWHM = %g (voxels)\n",maxFWHM);
+  maxStd = maxFWHM*sqrt(log(256.0));
+  nPad = ceil(sqrt(-log(PadThresh*maxStd*sqrt(2*M_PI))*2*maxStd));
+  printf("maxFWHM = %g (voxels), PadThresh=%g, nPad=%d\n",maxFWHM,PadThresh,nPad);
 
   printf("Dilating segmentation nDils=%d\n",nDils);
   segttdil = MRIdilateSegWithinTT(seg, nDils, ct);
@@ -1508,7 +1531,7 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
     tt = ct->entries[segid]->TissueType;
     segmask = MRIbinarizeMatch(segttdil[tt-1], segid, 0, segmask);
     pvfmask = MRImaskZero(pvfarray[tt-1], segmask, NULL);
-    region  = REGIONgetBoundingBox(segmask,nDils+1);
+    region  = REGIONgetBoundingBox(segmask,nPad);
     pvfbb   = MRIextractRegion(pvfmask, NULL, region) ;
     pvfbbsm = MRIgaussianSmoothNI(pvfbb, cStd, rStd, sStd, NULL);
     if(Gdiag_no > 1) printf("%3d %4d %d  (%3d,%3d,%3d) (%3d,%3d,%3d)\n",nthseg,segid,tt,
@@ -1655,7 +1678,7 @@ MRI *GTMforward(MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask)
   MATRIX *yhat;
 
   printf("GTMforward(): computing yhat ..."); fflush(stdout);
-  yhat = MatrixMultiply(X,beta,NULL);
+  yhat = MatrixMultiplyD(X,beta,NULL);
   printf(" done\n"); fflush(stdout);
 
   vol = MRIallocSequence(temp->width,temp->height,temp->depth,MRI_FLOAT,beta->cols);
@@ -1687,7 +1710,7 @@ MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask,
   double *sumsq,v;
 
   printf("GTMresidual(): computing yhat ..."); fflush(stdout);
-  yhat = MatrixMultiply(X,beta,NULL);
+  yhat = MatrixMultiplyD(X,beta,NULL);
   printf(" done\n"); fflush(stdout);
 
   resmat = MatrixSubtract(y,yhat,NULL);
