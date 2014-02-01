@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/01 00:04:00 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/02/01 00:04:41 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.18 2014/02/01 00:04:00 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.19 2014/02/01 00:04:41 greve Exp $
 
 /*
   BEGINHELP
@@ -84,7 +84,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.18 2014/02/01 00:04:00 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.19 2014/02/01 00:04:41 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -145,7 +145,7 @@ MRI *GTMresidual(MATRIX *y, MATRIX *X, MATRIX *beta, MRI *temp, MRI *mask,
 int main(int argc, char *argv[]) 
 {
   int nargs,err,c,r,s,f,nmask;
-  MRI *src,*rbv,*gtmsynthsm,*gtmsynthsm0;
+  MRI *src,*rbv,*gtmsynthsm;
   int nsegs,msegs,nthseg,*segidlist0,*segidlist;
   MATRIX *y, *X, *Xt, *XtX, *iXtX, *Xty, *segrvar; // *X0;
   double val,XtXcond;
