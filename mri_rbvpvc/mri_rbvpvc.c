@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/01 00:04:41 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/02/03 19:57:26 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.19 2014/02/01 00:04:41 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.20 2014/02/03 19:57:26 greve Exp $
 
 /*
   BEGINHELP
@@ -74,6 +74,9 @@
 #include "cma.h"
 #include "mrimorph.h"
 #include "region.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -84,7 +87,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.19 2014/02/01 00:04:41 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.20 2014/02/03 19:57:26 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -110,6 +113,7 @@ COLOR_TABLE *ctSeg=NULL;
 char *RVarFile=NULL;
 int RVarOnly=0;
 int nDils=9;
+int nthreads=1;
 
 MATRIX *MatrixGetDiag(MATRIX *M, VECTOR *d);
 int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax);
@@ -173,6 +177,10 @@ int main(int argc, char *argv[])
   check_options();
   if (checkoptsonly) return(0);
   dump_options(stdout);
+
+#ifdef _OPENMP
+  printf("%d avail.processors, using %d\n",omp_get_num_procs(),omp_get_max_threads());
+#endif
 
   // Convert FWHM to StdDev
   cStd = cFWHM/sqrt(log(256.0));
@@ -520,6 +528,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&sFWHM);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--threads")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nthreads);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--apply-fwhm")){
       // apply to input for testing
       if(nargc < 1) CMDargNErr(option,1);
@@ -684,7 +697,12 @@ static void check_options(void)
     printf("ERROR: must spec an output with --o, --gtm-means,  or --mgpvc\n");
     exit(1);
   }
-
+  if(nthreads != 1){
+#ifdef _OPENMP
+    printf("Setting maximum number of threads to %d\n",nthreads);
+    omp_set_num_threads(nthreads);
+#endif
+  }
   return;
 }
 /*---------------------------------------------------------------*/
@@ -1475,11 +1493,10 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
 		     double cFWHM, double rFWHM, double sFWHM, int nDils,
 		     MATRIX *X)
 {
-  int c,r,s,tt,nTT;
-  MRI **segttdil, **pvfarray, *segmask=NULL, *pvfbb, *pvfbbsm, *pvfmask;
-  int *segidlist, nsegs, nthseg, segid, nmask,nPad;
+  int nTT,tt;
+  MRI **segttdil, **pvfarray;
+  int *segidlist, nsegs, nthseg, nmask,nPad;
   double maxFWHM,cStd,rStd,sStd,maxStd,PadThresh=.001;
-  MRI_REGION *region;
 
   if(ct->ctabTissueType == NULL){
     printf("ERROR: BuildGTMPVF2() color table does not have tissue type\n");
@@ -1526,10 +1543,16 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
   if(segttdil == NULL) return(NULL);
 
   printf("Building GTM\n");
+#ifdef _OPENMP
+#pragma omp parallel for 
+#endif
   for(nthseg = 0; nthseg < nsegs; nthseg++){
+    MRI_REGION *region;
+    MRI *pvfbb, *pvfbbsm, *pvfmask,*segmask;
+    int tt, segid,nmask,c,r,s;
     segid = segidlist[nthseg];
     tt = ct->entries[segid]->TissueType;
-    segmask = MRIbinarizeMatch(segttdil[tt-1], segid, 0, segmask);
+    segmask = MRIbinarizeMatch(segttdil[tt-1], segid, 0, NULL);
     pvfmask = MRImaskZero(pvfarray[tt-1], segmask, NULL);
     region  = REGIONgetBoundingBox(segmask,nPad);
     pvfbb   = MRIextractRegion(pvfmask, NULL, region) ;
@@ -1559,6 +1582,7 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
     MRIfree(&pvfmask);
     MRIfree(&pvfbb);
     MRIfree(&pvfbbsm);
+    MRIfree(&segmask);
   }
   //printf("writing GTM\n");
   //MatrixWriteTxt("pp.X.mtx", X);
@@ -1567,9 +1591,7 @@ MATRIX *BuildGTMPVF2(MRI *seg, MRI *pvf, COLOR_TABLE *ct, MRI *mask,
     MRIfree(&segttdil[tt]);
     MRIfree(&pvfarray[tt]);
   }
-  MRIfree(&segmask);
   free(segidlist);
-
   return(X);
 }
 
@@ -1585,6 +1607,10 @@ int WriteVRFStats(char *fname, MRI *seg, COLOR_TABLE *ct, MATRIX *iXtX, MATRIX *
   ttctab = ct->ctabTissueType;
 
   fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",fname);
+    return(1);
+  }
 
   segidlist = MRIsegIdListExclude0(seg, &nsegs, 0); // excluding 0
   for(n=0; n < iXtX->rows; n++){
