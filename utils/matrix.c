@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/29 23:11:06 $
- *    $Revision: 1.137 $
+ *    $Date: 2014/02/03 19:17:01 $
+ *    $Revision: 1.138 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,9 @@
 #include "numerics.h"
 #include "evschutils.h"
 #include "fio.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 // private functions
 MATRIX *MatrixCalculateEigenSystemHelper( MATRIX *m,
@@ -4382,6 +4385,9 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
     return(NULL);
   }
 
+#ifdef _OPENMP
+  #pragma omp parallel for
+#endif
   for(c1=1; c1 <= m->cols; c1++){
     for(c2=c1; c2 <= m->cols; c2++){
       v = 0;
