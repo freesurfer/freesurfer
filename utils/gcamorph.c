@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/29 20:40:04 $
- *    $Revision: 1.285 $
+ *    $Date: 2014/02/03 19:15:25 $
+ *    $Revision: 1.286 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -21336,6 +21336,7 @@ GCAMcomputeVentricleExpansionGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_vent, 
   GCAlabelMean(gcam->gca, Left_Lateral_Ventricle, lh_means) ;
   GCAlabelMean(gcam->gca, Right_Lateral_Ventricle, rh_means) ;
   GCAlabelVar(gcam->gca, Left_Lateral_Ventricle, lh_var) ;
+  GCAlabelVar(gcam->gca, Right_Lateral_Ventricle, rh_var) ;
   std = sqrt((lh_var[0] + rh_var[0]) / 2.0) ;
   thresh = ((lh_means[0] + rh_means[0]) / 2)+2*std ;
 
