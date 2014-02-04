@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/03/06 16:24:34 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/02/04 20:51:47 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,11 +83,19 @@ public:
   static double leastSquares(MRI * si, MRI * ti,
     const vnl_matrix_fixed<double, 4, 4>& Msi,
     const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3);
+  static double leastSquares(MRI * si, MRI * ti,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3,
+    const double & s1, const double & s2);
   static double leastSquares(MRI_BSPLINE * sbi, MRI_BSPLINE * tbi,
     const vnl_matrix_fixed<double, 4, 4>& Msi,
     const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3);
 
   //! never really tested
+  static double tukeyBiweight(MRI *mriS, MRI* mriT,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3, double sat = 4.685);
+  //! never really tested (old)
   static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.685);
   //! never really tested
   static double normalizedCorrelation(MRI * i1, MRI * i2);
