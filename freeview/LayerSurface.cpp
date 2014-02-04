@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/22 21:45:18 $
- *    $Revision: 1.98 $
+ *    $Date: 2014/02/04 22:05:26 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1664,6 +1664,14 @@ void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double value, 
 void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma, int flags )
 {
   m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, pos, size, sigma, flags );
+  SetModified();
+  m_bUndoable = true;
+  emit ActorUpdated();
+}
+
+void LayerSurface::RepositionSmoothSurface(int nVertex, int size, int n_steps)
+{
+  m_surfaceSource->RepositionSmooth(nVertex, size, n_steps);
   SetModified();
   m_bUndoable = true;
   emit ActorUpdated();

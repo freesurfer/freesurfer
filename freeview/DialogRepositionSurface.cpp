@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/08 20:24:50 $
- *    $Revision: 1.12 $
+ *    $Date: 2014/02/04 22:05:26 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,11 +88,15 @@ void DialogRepositionSurface::OnApply()
                                        GetFlags());
       }
     }
-    else
+    else if (ui->tabWidget->currentIndex() == 1)
     {
       double pos[3];
       GetCoordinate(pos);
       surf->RepositionVertex(GetVertex(), pos);
+    }
+    else
+    {
+      surf->RepositionSmoothSurface(GetVertex(), GetNeighborSize(), GetSmoothingSteps());
     }
     UpdateUI();
     ui->pushButtonApply->setDisabled(false);
@@ -147,20 +151,33 @@ int DialogRepositionSurface::GetFlags()
 
 int DialogRepositionSurface::GetVertex()
 {
-  if (ui->tabWidget->currentIndex() == 0)
+  switch (ui->tabWidget->currentIndex())
+  {
+  case 0:
     return ui->lineEditVertex->text().toInt();
-  else
+  case 1:
     return ui->lineEditVertex2->text().toInt();
+  case 2:
+    return ui->lineEditVertex3->text().toInt();
+  }
 }
 
 int DialogRepositionSurface::GetNeighborSize()
 {
-  return ui->lineEditSize->text().toInt();
+  if (ui->tabWidget->currentIndex() == 0)
+    return ui->lineEditSize->text().toInt();
+  else
+    return ui->lineEditNbhdSize->text().toInt();
 }
 
 double DialogRepositionSurface::GetIntensity()
 {
   return ui->lineEditTarget->text().toDouble();
+}
+
+int DialogRepositionSurface::GetSmoothingSteps()
+{
+  return ui->lineEditSmoothingSteps->text().toInt();
 }
 
 void DialogRepositionSurface::GetCoordinate( double* pos )
@@ -254,7 +271,7 @@ bool DialogRepositionSurface::ValidateAll()
         name = "Coordinate";
     }
   }
-  else
+  else if (ui->tabWidget->currentIndex() == 1)
   {
     ui->lineEditVertex2->text().toInt(&ok);
     if (!ok)
@@ -268,6 +285,18 @@ bool DialogRepositionSurface::ValidateAll()
     ui->lineEditCoordZ->text().toDouble(&ok);
     if (!ok)
       name = "Coordinate";
+  }
+  else
+  {
+    ui->lineEditVertex3->text().toInt(&ok);
+    if (!ok)
+      name = "Vertex";
+    ui->lineEditNbhdSize->text().toInt(&ok);
+    if (!ok)
+      name = "Neighborhood Size";
+    ui->lineEditSmoothingSteps->text().toInt(&ok);
+    if (!ok)
+      name = "Smoothing Steps";
   }
 
   if ( !name.isEmpty() )
@@ -289,6 +318,7 @@ void DialogRepositionSurface::OnSurfaceVertexClicked()
     {
       ui->lineEditVertex->setText( QString::number(nVertex) );
       ui->lineEditVertex2->setText(QString::number(nVertex) );
+      ui->lineEditVertex3->setText(QString::number(nVertex) );
       OnCoordinateTypeChanged();
     }
   }
@@ -304,6 +334,7 @@ void DialogRepositionSurface::UpdateVertex()
     {
       ui->lineEditVertex->setText( QString::number(nVertex) );
       ui->lineEditVertex2->setText(QString::number(nVertex) );
+      ui->lineEditVertex3->setText(QString::number(nVertex) );
       OnCoordinateTypeChanged();
     }
   }

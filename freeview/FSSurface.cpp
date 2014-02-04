@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/30 21:55:28 $
- *    $Revision: 1.72 $
+ *    $Date: 2014/02/04 22:05:26 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1759,6 +1759,24 @@ void FSSurface::Reposition( FSVolume *volume, int target_vno, double* coord, int
 {
   MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES );
   MRISrepositionSurfaceToCoordinate( m_MRIS, volume->GetMRI(), target_vno, coord[0], coord[1], coord[2], nsize, sigma, flags );
+  PostEditProcess();
+}
+
+void FSSurface::RepositionSmooth(int vert_n, int nbhd_size, int nsmoothing_steps)
+{
+  MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES );
+  for (int vno = 0 ; vno < m_MRIS->nvertices ; vno++)
+  {
+    m_MRIS->vertices[vno].ripflag = 1;
+  }
+  for (int n = 0 ; n < m_MRIS->vertices[vert_n].vnum ; n++)
+  {
+    m_MRIS->vertices[m_MRIS->vertices[vert_n].v[n]].ripflag = 0;
+  }
+  m_MRIS->vertices[vert_n].ripflag = 0;
+  MRISerodeRipped(m_MRIS, nbhd_size);
+  MRISaverageVertexPositions(m_MRIS, nsmoothing_steps);
+  MRISunrip(m_MRIS);
   PostEditProcess();
 }
 
