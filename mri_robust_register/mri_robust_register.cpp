@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/09/20 14:27:34 $
- *    $Revision: 1.71 $
+ *    $Date: 2014/02/04 22:56:53 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.71 2013/09/20 14:27:34 mreuter Exp $";
+    "$Id: mri_robust_register.cpp,v 1.72 2014/02/04 22:56:53 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -1872,6 +1872,8 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
       P.cost = Registration::NCC;
     else if (cost == "SCR")
       P.cost = Registration::SCR;
+    else if (cost == "TB")
+      P.cost = Registration::TB;
     else
     {
       cout << "ERROR: cost function " << cost << " unknown! " << endl;

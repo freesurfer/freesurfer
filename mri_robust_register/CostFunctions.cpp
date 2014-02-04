@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/02/04 20:51:47 $
- *    $Revision: 1.22 $
+ *    $Date: 2014/02/04 22:56:53 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -464,7 +464,7 @@ double CostFunctions::tukeyBiweight(MRI * i1, MRI * i2, double sat)
 
 
 
-double CostFunctions::tukeyBiweight(MRI *mriS, MRI* mriT,
+/*double CostFunctions::tukeyBiweight(MRI *mriS, MRI* mriT,
     const vnl_matrix_fixed<double, 4, 4>& Msi,
     const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3, double sat)
 {
@@ -479,7 +479,7 @@ double CostFunctions::tukeyBiweight(MRI *mriS, MRI* mriT,
   double d = 0.0;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for schedule(static)  
+#pragma omp parallel for schedule(static)  reduction(+:d) 
 #endif
   for (z = 0; z < dt[2]; z += d3)
   {
@@ -531,7 +531,102 @@ double CostFunctions::tukeyBiweight(MRI *mriS, MRI* mriT,
 
   return d;
 
+}*/
+
+double CostFunctions::tukeyBiweight(MRI *mriS, MRI* mriT,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3, double sat)
+{
+  mriS->outside_val = -1;
+  mriT->outside_val = -1;
+  int dt[4] = { mriT->width, mriT->height, mriT->depth , mriT->nframes };
+  dt[0] = dt[0] -d1 +1;
+  dt[1] = dt[1] -d2 +1;
+  dt[2] = dt[2] -d3 +1;
+
+  int z;
+
+  unsigned int n = ((mriT->width+1)/d1) * ((mriT->height+1)/d2) * ((mriT->depth+1)/d3) * mriT->nframes;
+  float* diff = (float *) calloc(n, sizeof(float));
+  unsigned int pn = ((mriT->width+1)/d1) * ((mriT->height+1)/d2) *mriT->nframes;
+
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static)  
+#endif
+  for (z = 0; z < dt[2]; z += d3)
+  {
+    int x, y, f;
+    double dd;
+    double xs, ys, zs;
+    double xt, yt, zt;
+    double vs, vt;
+    double xtz,ytz,ztz,xsz,ysz,zsz;
+    double xty,yty,zty,xsy,ysy,zsy;
+    
+    unsigned int count = 0;
+    unsigned int zpos = (z/d3) * pn;
+    
+    xtz = Mti[0][2] * z + Mti[0][3];
+    ytz = Mti[1][2] * z + Mti[1][3];
+    ztz = Mti[2][2] * z + Mti[2][3];
+    xsz = Msi[0][2] * z + Msi[0][3];
+    ysz = Msi[1][2] * z + Msi[1][3];
+    zsz = Msi[2][2] * z + Msi[2][3];
+    for (y = 0; y < dt[1]; y += d2)
+    {
+      xty = Mti[0][1] * y + xtz;
+      yty = Mti[1][1] * y + ytz;
+      zty = Mti[2][1] * y + ztz;
+      xsy = Msi[0][1] * y + xsz;
+      ysy = Msi[1][1] * y + ysz;
+      zsy = Msi[2][1] * y + zsz;
+      for (x = 0; x < dt[0]; x += d1)
+      {
+
+        xt = Mti[0][0] * x + xty;
+        yt = Mti[1][0] * x + yty;
+        zt = Mti[2][0] * x + zty;
+        xs = Msi[0][0] * x + xsy;
+        ys = Msi[1][0] * x + ysy;
+        zs = Msi[2][0] * x + zsy;
+
+        for (f = 0; f < dt[3]; f++)
+        {
+          MRIsampleVolumeFrame(mriS, xs, ys, zs, f, &vs);
+          if (vs == -1) continue;
+          MRIsampleVolumeFrame(mriT, xt, yt, zt, f, &vt);
+          if (vt == -1) continue;
+        
+          dd = vs-vt;
+          //d += rhoTukeyBiweight(dd,sat);  
+          diff[zpos+count] = (float) dd;
+          count++;
+        }
+      }
+    }
+  }
+  
+ // float sigma = RobustGaussian<float>::mad(diff, n);
+  //if (sigma == 0.0)
+  //sigma = 1.4826;
+  //cout << "sigma: " << sigma << endl;
+  //if (sigma < 1.0) sigma = 1;
+   
+  double d = 0.0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) reduction(+:d)
+#endif
+  for (unsigned int i = 0; i < n; i++)
+  {
+   // d += rhoTukeyBiweight(diff[i] / sigma, sat);
+    d += rhoTukeyBiweight(diff[i] , sat);
+  }
+  free(diff);
+  return d;
+
 }
+
 
 double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 {
