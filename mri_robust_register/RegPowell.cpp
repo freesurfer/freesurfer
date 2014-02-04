@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/07 03:55:14 $
- *    $Revision: 1.20 $
+ *    $Date: 2014/02/04 20:53:06 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -89,7 +89,7 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
 //   else
 //     Md = RegistrationStep<double>::convertP2Md(p,tocurrent->iscale,tocurrent->rtype);
   Md = tocurrent->convertP2Md(p);
-  Md.second = exp(Md.second); // compute full factor (source to target)
+//  Md.second = exp(Md.second); // compute full factor (source to target)
   //cout << endl;
   //cout << " rtype : " << tocurrent->rtype << endl;
   //cout << " iscale : " << Md.second << endl;
@@ -134,14 +134,50 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
   //hist2(HM, msi,mti,scf,tcf,tocurrent->subsamp,tocurrent->subsamp,tocurrent->subsamp);
   ////vnl_matlab_print(vcl_cerr,HM,"HM",vnl_matlab_print_format_long);
 
+
   // special case for sum of squared differences:
-  if (tocurrent->costfun == LS)
+  if (tocurrent->costfun == LS || tocurrent->costfun == TB)
   {
-    double dd = CostFunctions::leastSquares(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp);
+    // iscale should be taken care of here:
+    double dd;
+    if (tocurrent->iscale) 
+    {
+      double fullscale = exp(Md.second); // compute full factor (source to target)
+      double si = sqrt(fullscale);
+      switch (tocurrent->costfun)
+      {
+        case LS:
+          dd = CostFunctions::leastSquares(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp,si,1.0/si);
+        break;
+        //case TB:
+         // dd = CostFunctions::tukeyBiweight(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp,si,1.0/si);
+        //break;
+        default:
+          cout << " RegPowell::costFunction ERROR cannot deal with cost function "
+              << tocurrent->costfun << " ! " << endl;
+          exit(1);
+      }
+    }
+    else // no iscale:
+    {
+      switch (tocurrent->costfun)
+      {
+        case LS:
+          dd = CostFunctions::leastSquares(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp);
+        break;
+        case TB:
+          dd = CostFunctions::tukeyBiweight(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp);
+        break;
+        default:
+          cout << " RegPowell::costFunction ERROR cannot deal with cost function "
+              << tocurrent->costfun << " ! " << endl;
+          exit(1);
+      }
+    }   
+
     icount++;
     return dd;
-  }
-    
+  }  
 
   // other cases that require a 2d histogram
   static JointHisto H;
