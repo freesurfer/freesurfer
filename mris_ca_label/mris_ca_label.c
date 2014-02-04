@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/10/28 20:41:30 $
- *    $Revision: 1.36 $
+ *    $Author: fischl $
+ *    $Date: 2014/02/04 17:46:42 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.36 2013/10/28 20:41:30 nicks Exp $";
+  "$Id: mris_ca_label.c,v 1.37 2014/02/04 17:46:42 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -705,24 +705,29 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa,
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     if (vno == Gdiag_no)
-    {
       DiagBreak() ;
-    }
+
     v = &mris->vertices[vno] ;
     if (v->marked == 0)  // cortex label says it's not in cortex
     {
+      if (vno == Gdiag_no)
+	printf("vertex not in cortex.label - changing annotation to unknown\n") ;
       v->annotation = 0;  // replace with empty (transparent) annotation
     }
     else // cortex label says it is in cortex
     {
       if (v->annotation <= 0) // annotation is Unknown or invalid
       {
+	if (vno == Gdiag_no)
+	  printf("vertex label unknown but in cortex.label - marking for reclassification\n") ;
         v->marked = MARK_RELABEL;
         num_marked_for_relabel++;
       }
       for (n = 0 ; n < nexcluded ; n++)
         if (v->annotation == exclude_list[n])
         {
+	  if (vno == Gdiag_no)
+	    printf("vertex label in exclude list - marking for reclassification\n") ;
           v->marked = MARK_RELABEL ;
           num_marked_for_relabel++;
           break ;
