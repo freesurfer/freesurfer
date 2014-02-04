@@ -99,6 +99,7 @@ protected:
   LayerMRI*   m_layerSource;
   LayerMRI*   m_mri_norm;
   LayerMRI*   m_mri_flair;
+  LayerMRI*   m_mri_t2;
   LayerMRI*   m_mri_aseg;
   LayerMRI*   m_mri_increase;
   LayerMRI*   m_mri_decrease;

@@ -62,11 +62,13 @@ LayerFCD::LayerFCD(LayerMRI* layerMRI, QObject *parent) : LayerVolumeBase(parent
   // pre allocate MRIs & surfaces
   m_mri_norm = new LayerMRI(NULL);
   m_mri_flair = new LayerMRI(NULL);
+  m_mri_t2 = new LayerMRI(NULL);
   m_mri_aseg = new LayerMRI(NULL);
   m_mri_increase = new LayerMRI(NULL);
   m_mri_decrease = new LayerMRI(NULL);
   connect(m_mri_norm, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
   connect(m_mri_flair, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
+  connect(m_mri_t2, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
   connect(m_mri_aseg, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
   connect(m_mri_increase, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
   connect(m_mri_decrease, SIGNAL(destroyed()), this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
@@ -91,6 +93,8 @@ LayerFCD::~LayerFCD()
       m_fcd->mri_norm = NULL;
     if (m_mri_flair)
       m_fcd->mri_flair = NULL;
+    if (m_mri_t2)
+      m_fcd->mri_t2 = NULL;
     if (m_mri_aseg)
       m_fcd->mri_aseg = NULL;
     if (m_mri_increase)
@@ -221,6 +225,25 @@ void LayerFCD::MakeAllLayers()
   {
     delete m_mri_flair;
     m_mri_flair = NULL;
+  }
+
+  if (m_fcd->mri_t2)
+  {
+    LayerMRI* mri = m_mri_t2;
+    if (m_layerSource)
+      mri->SetRefVolume(m_layerSource->GetSourceVolume());
+    mri->SetName(GetName() + "_t2");
+    mri->SetFileName(m_fcd->mri_t2->fname);
+    if ( !mri->CreateFromMRIData((void*)m_fcd->mri_t2) )
+    {
+      delete m_mri_t2;
+      m_mri_t2 = NULL;
+    }
+  }
+  else
+  {
+    delete m_mri_t2;
+    m_mri_t2 = NULL;
   }
 
   if (m_fcd->mri_aseg)
@@ -681,6 +704,8 @@ QList<LayerMRI*> LayerFCD::GetMRILayers()
     layers << m_mri_norm;
   if (m_mri_flair)
     layers << m_mri_flair;
+  if (m_mri_t2)
+    layers << m_mri_t2;
   if (m_mri_aseg)
     layers << m_mri_aseg;
   if (m_mri_increase)
@@ -718,6 +743,8 @@ void LayerFCD::OnLayerDestroyed()
     m_mri_norm = NULL;
   else if (layer == m_mri_flair)
     m_mri_flair = NULL;
+  else if (layer == m_mri_t2)
+    m_mri_t2 = NULL;
   else if (layer == m_mri_aseg)
     m_mri_aseg = NULL;
   else if (layer == m_mri_increase)

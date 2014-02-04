@@ -15,6 +15,7 @@ typedef struct
   MRI         *mri_aseg ;
   MRI         *mri_norm ;
   MRI         *mri_flair ;
+  MRI         *mri_t2 ;
   MRI         *mri_thickness_increase ;
   MRI         *mri_thickness_decrease ;
   MRI         *lh_thickness_on_lh ;  // thickness of left hemi mapped to left hemi
