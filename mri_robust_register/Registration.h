@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/22 21:51:07 $
- *    $Revision: 1.57 $
+ *    $Date: 2014/02/04 20:54:25 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ public:
 //! The different cost functions
   enum Cost
   {
-    LS = 0, ROB, MI, NMI, ECC, NCC, SCR
+    LS = 0, ROB, MI, NMI, ECC, NCC, SCR, TB
   };
 
   //! Default constructor
