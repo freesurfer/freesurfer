@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/01/17 15:25:29 $
- *    $Revision: 1.753 $
+ *    $Author: nicks $
+ *    $Date: 2014/02/05 00:45:46 $
+ *    $Revision: 1.754 $
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -774,7 +774,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.753 2014/01/17 15:25:29 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.754 2014/02/05 00:45:46 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -79989,7 +79989,7 @@ MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, double s,
 {
   MATRIX  *m_sras2vox = NULL ;
   MATRIX *m_sras2ras, *m_ras2vox ;
-  static VECTOR *v1 = NULL, *v2  ;
+  VECTOR *v1 = NULL, *v2  ;
   MRI *mri_tmp ;
 
   if ( v1 == NULL)

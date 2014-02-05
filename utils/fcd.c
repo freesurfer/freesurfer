@@ -2,14 +2,13 @@
  * @file  fcd.c
  * @brief I/O and analysis algorithms for FCDs (focal cortical dysplasias)
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2014/02/04 20:27:26 $
- *    $Revision: 1.11 $
+ *    $Date: 2014/02/05 00:45:46 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2013-2014,
  * The General Hospital Corporation (Boston, MA).
@@ -269,14 +268,14 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
   // process left hemisphere
 #if 1
 #ifdef HAVE_OPENMP
-  #pragma omp parallel for shared(fcd, mri_lh_diff, Gdiag_no, thickness_thresh) schedule(static,1)
+#pragma omp parallel for shared(fcd, mri_lh_diff, Gdiag_no, thickness_thresh) schedule(static,1)
 #endif
 #endif
   for (vno = 0 ; vno < fcd->mris_lh->nvertices ; vno++)
   {
-    double xs, ys, zs, d, xv, yv, zv  ;
-    float  val, val2, thickness;
-    int   label, xvi, yvi, zvi, base_label ;
+    double d ;
+    float val, val2, thickness;
+    int base_label ;
     VERTEX *v ;
 
     v = &fcd->mris_lh->vertices[vno] ;
@@ -295,23 +294,23 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
       continue ;
     }
 
-    base_label = 0 ;
-    for (d = 0 ; d < thickness ; d += 0.25)
+    for (d = 0, base_label = 0 ; d < thickness ; d += 0.25)
     {
-      xs = v->x+d*v->nx ;
-      ys = v->y+d*v->ny ;
-      zs = v->z+d*v->nz ;
+      double xv, yv, zv;
+      double xs = v->x+d*v->nx ;
+      double ys = v->y+d*v->ny ;
+      double zs = v->z+d*v->nz ;
       MRISsurfaceRASToVoxel(fcd->mris_lh, 
                             fcd->mri_thickness_increase, 
                             xs, ys, zs, 
                             &xv, &yv, &zv) ;
-      xvi = nint(xv) ;
-      yvi = nint(yv) ;
-      zvi = nint(zv) ;
-      label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
+      int xvi = nint(xv) ;
+      int yvi = nint(yv) ;
+      int zvi = nint(zv) ;
+      int label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
       if (IS_WM(label) == 0 && 
           label >= MIN_CORTICAL_PARCELLATION && 
-          label != ctx_rh_unknown)
+          label != ctx_lh_unknown)
       {
         if (label != base_label)
         {
@@ -327,7 +326,8 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
         if (val >= 0)
         {
           val2 = MRIgetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0) ;
-          if (val > val2)  // check another thread already populated this voxel
+          // check another thread already populated this voxel
+          if (val > val2)
           {
             MRIsetVoxVal(fcd->mri_thickness_increase, xvi, yvi, zvi, 0, val) ;
           }
@@ -335,7 +335,8 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
         else
         {
           val2 = MRIgetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0) ;
-          if (val < val2)   // check if another thread already populated this voxel
+          // check if another thread already populated this voxel
+          if (val < val2)
           {
             MRIsetVoxVal(fcd->mri_thickness_decrease, xvi, yvi, zvi, 0, val) ;
           }
@@ -354,9 +355,9 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
 #endif
   for (vno = 0 ; vno < fcd->mris_rh->nvertices ; vno++)
   {
-    double xs, ys, zs, d, xv, yv, zv  ;
-    float  val, val2, thickness;
-    int   label, xvi, yvi, zvi, base_label ;
+    double d  ;
+    float val, val2, thickness;
+    int base_label ;
     VERTEX *v ;
 
     v = &fcd->mris_rh->vertices[vno] ;
@@ -375,20 +376,20 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
     }
     thickness = MRIgetVoxVal(fcd->rh_thickness_on_rh, vno, 0, 0, 0) ;
 
-    base_label = 0 ;
-    for (d = 0 ; d < thickness ; d += 0.25)
+    for (d = 0, base_label = 0; d < thickness ; d += 0.25)
     {
-      xs = v->x+d*v->nx ;
-      ys = v->y+d*v->ny ;
-      zs = v->z+d*v->nz ;
+      double xv, yv, zv;
+      double xs = v->x+d*v->nx ;
+      double ys = v->y+d*v->ny ;
+      double zs = v->z+d*v->nz ;
       MRISsurfaceRASToVoxel(fcd->mris_rh, 
                             fcd->mri_thickness_increase,
                             xs, ys, zs,
                             &xv, &yv, &zv) ;
-      xvi = nint(xv) ;
-      yvi = nint(yv) ;
-      zvi = nint(zv) ;
-      label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
+      int xvi = nint(xv) ;
+      int yvi = nint(yv) ;
+      int zvi = nint(zv) ;
+      int label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
       if (IS_WM(label) == 0 && 
           label >= MIN_CORTICAL_PARCELLATION && 
           label != ctx_rh_unknown)
