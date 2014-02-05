@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2014/02/05 00:45:46 $
- *    $Revision: 1.754 $
+ *    $Date: 2014/02/05 21:08:13 $
+ *    $Revision: 1.755 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -774,7 +774,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.754 2014/02/05 00:45:46 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.755 2014/02/05 21:08:13 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -79984,24 +79984,40 @@ MRISscaleCurvature(
 
 
 int
-MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, double s,
+MRISsurfaceRASToVoxel(MRI_SURFACE *mris, 
+                      MRI *mri, 
+                      double r, double a, double s,
                       double *px, double *py, double *pz)
 {
-  MATRIX  *m_sras2vox = NULL ;
+  MATRIX *m_sras2vox = NULL ;
   MATRIX *m_sras2ras, *m_ras2vox ;
-  VECTOR *v1 = NULL, *v2  ;
   MRI *mri_tmp ;
+  static VECTOR *v1[_MAX_FS_THREADS] = {NULL};
+  static VECTOR *v2[_MAX_FS_THREADS] = {NULL};
 
-  if ( v1 == NULL)
+#ifdef HAVE_OPENMP
+  // thread ID
+  int tid = omp_get_thread_num();
+#else
+  int tid = 0;
+#endif
+
+  // this speeds things up because the alloc is only done once.
+  if (v1[tid] == NULL)
   {
-    v1 = VectorAlloc(4, MATRIX_REAL) ;
-    v2 = VectorAlloc(4, MATRIX_REAL) ;
-    VECTOR_ELT(v1, 4) = 1.0 ;
-    VECTOR_ELT(v2, 4) = 1.0 ;
+    v1[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    v2[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    VECTOR_ELT(v1[tid], 4) = 1.0 ;
+    VECTOR_ELT(v2[tid], 4) = 1.0 ;
   }
+
   if (mris->vg.valid)
   {
-    mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
+    mri_tmp = MRIallocHeader(mris->vg.width, 
+                             mris->vg.height, 
+                             mris->vg.depth,
+                             MRI_UCHAR,
+                             1) ;
     MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
     m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
     MRIfree(&mri_tmp) ;
@@ -80014,16 +80030,17 @@ MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, double s,
   m_ras2vox = MRIgetRasToVoxelXform(mri) ;
   m_sras2vox = MatrixMultiply(m_ras2vox, m_sras2ras, NULL) ;
 
-  V3_X(v1) = r ;
-  V3_Y(v1) = a ;
-  V3_Z(v1) = s ;
-  MatrixMultiply(m_sras2vox, v1, v2) ;
-  *px = V3_X(v2) ;
-  *py = V3_Y(v2) ;
-  *pz = V3_Z(v2) ;
+  V3_X(v1[tid]) = r ;
+  V3_Y(v1[tid]) = a ;
+  V3_Z(v1[tid]) = s ;
+  MatrixMultiply(m_sras2vox, v1[tid], v2[tid]) ;
+  *px = V3_X(v2[tid]) ;
+  *py = V3_Y(v2[tid]) ;
+  *pz = V3_Z(v2[tid]) ;
   MatrixFree(&m_ras2vox) ;
   MatrixFree(&m_sras2ras) ;
   MatrixFree(&m_sras2vox);
+
   return(NO_ERROR) ;
 }
 
@@ -80032,29 +80049,39 @@ MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, double s,
   \fn int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri,
         double r, double a, double s,
         double *px, double *py, double *pz)
-  \brief Computes voxel coordinates of a given surface RAS. Not safe
-    for parallel applications because it caches intermediate data. Note:
-    surfaceRAS is the same as tkRegRAS
+  \brief Computes voxel coordinates of a given surface RAS.
+         Note: surfaceRAS is the same as tkRegRAS
   \param mris - surface (only used to get MRI struct)
   \param mri - defines target voxel space
   \param r, a, s - surface coordinates
   \param px, py, pz - pointers to col, rowl, and slice in mri (output)
 */
-int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri,
+int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris,
+                                MRI *mri,
                                 double r, double a, double s,
                                 double *px, double *py, double *pz)
 {
-  static VECTOR *v1 = NULL, *v2  ;
+  static VECTOR *v1[_MAX_FS_THREADS] = {NULL};
+  static VECTOR *v2[_MAX_FS_THREADS] = {NULL};
 
-  if (v1 == NULL)   // only allocate vectors once
+#ifdef HAVE_OPENMP
+  // thread ID
+  int tid = omp_get_thread_num();
+#else
+  int tid = 0;
+#endif
+
+  // this speeds things up because the alloc is only done once.
+  if (v1[tid] == NULL)
   {
-    v1 = VectorAlloc(4, MATRIX_REAL) ;
-    v2 = VectorAlloc(4, MATRIX_REAL) ;
-    VECTOR_ELT(v1, 4) = 1.0 ;
-    VECTOR_ELT(v2, 4) = 1.0 ;
+    v1[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    v2[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    VECTOR_ELT(v1[tid], 4) = 1.0 ;
+    VECTOR_ELT(v2[tid], 4) = 1.0 ;
   }
 
-  if(MRIcompareHeaders(mris->mri_sras2vox, mri))   // a different volume then previously used
+  // a different volume then previously used
+  if(MRIcompareHeaders(mris->mri_sras2vox, mri))   
   {
     if(mris->m_sras2vox)
     {
@@ -80080,7 +80107,11 @@ int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri,
       // (this is usually that of orig.mgz) Good for freeview, but for
       // this to work, the passed mri must share a scanner RAS with
       // mris->vg.
-      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
+      mri_tmp = MRIallocHeader(mris->vg.width, 
+                               mris->vg.height, 
+                               mris->vg.depth, 
+                               MRI_UCHAR,
+                               1) ;
       MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
       m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
       MRIfree(&mri_tmp) ;
@@ -80099,37 +80130,58 @@ int MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri,
     MatrixFree(&m_ras2vox) ;
   }
 
-  V3_X(v1) = r ;
-  V3_Y(v1) = a ;
-  V3_Z(v1) = s ;
-  MatrixMultiply(mris->m_sras2vox, v1, v2) ;
-  *px = V3_X(v2) ;
-  *py = V3_Y(v2) ;
-  *pz = V3_Z(v2) ;
+  V3_X(v1[tid]) = r ;
+  V3_Y(v1[tid]) = a ;
+  V3_Z(v1[tid]) = s ;
+  MatrixMultiply(mris->m_sras2vox, v1[tid], v2[tid]) ;
+  *px = V3_X(v2[tid]) ;
+  *py = V3_Y(v2[tid]) ;
+  *pz = V3_Z(v2[tid]) ;
+
   return(NO_ERROR) ;
 }
 
 int
-MRISsurfaceRASFromVoxel(MRI_SURFACE *mris, MRI *mri, double x, double y, double z,
+MRISsurfaceRASFromVoxel(MRI_SURFACE *mris, 
+                        MRI *mri,
+                        double x, double y, double z,
                         double *pr, double *pa, double *ps)
 {
   MATRIX  *m_sras2vox = NULL ;
   MATRIX  *m_vox2sras = NULL ;
   MATRIX *m_sras2ras, *m_ras2vox ;
-  static VECTOR *v1 = NULL, *v2  ;
   MRI *mri_tmp ;
+  static VECTOR *v1[_MAX_FS_THREADS] = {NULL};
+  static VECTOR *v2[_MAX_FS_THREADS] = {NULL};
 
-  if ( v1 == NULL)
+#ifdef HAVE_OPENMP
+  // thread ID
+  int tid = omp_get_thread_num();
+#else
+  int tid = 0;
+#endif
+
+  // this speeds things up because the alloc is only done once.
+  if (v1[tid] == NULL)
   {
-    v1 = VectorAlloc(4, MATRIX_REAL) ;
-    v2 = VectorAlloc(4, MATRIX_REAL) ;
-    VECTOR_ELT(v1, 4) = 1.0 ;
-    VECTOR_ELT(v2, 4) = 1.0 ;
+    v1[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    v2[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    VECTOR_ELT(v1[tid], 4) = 1.0 ;
+    VECTOR_ELT(v2[tid], 4) = 1.0 ;
   }
+
   if (mris->vg.valid)
   {
-    mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
-    MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
+    mri_tmp = MRIallocHeader(mris->vg.width, 
+                             mris->vg.height, 
+                             mris->vg.depth, 
+                             MRI_UCHAR,
+                             1) ;
+    MRIallocHeader(mris->vg.width, 
+                   mris->vg.height,
+                   mris->vg.depth,
+                   MRI_UCHAR,
+                   1) ;
     MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
     m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
     MRIfree(&mri_tmp) ;
@@ -80143,36 +80195,52 @@ MRISsurfaceRASFromVoxel(MRI_SURFACE *mris, MRI *mri, double x, double y, double 
   m_sras2vox = MatrixMultiply(m_ras2vox, m_sras2ras, NULL) ;
   m_vox2sras = MatrixInverse(m_sras2vox, NULL) ;
 
-  V3_X(v1) = x ;
-  V3_Y(v1) = y ;
-  V3_Z(v1) = z ;
-  MatrixMultiply(m_vox2sras, v1, v2) ;
-  *pr = V3_X(v2) ;
-  *pa = V3_Y(v2) ;
-  *ps = V3_Z(v2) ;
+  V3_X(v1[tid]) = x ;
+  V3_Y(v1[tid]) = y ;
+  V3_Z(v1[tid]) = z ;
+  MatrixMultiply(m_vox2sras, v1[tid], v2[tid]) ;
+  *pr = V3_X(v2[tid]) ;
+  *pa = V3_Y(v2[tid]) ;
+  *ps = V3_Z(v2[tid]) ;
   MatrixFree(&m_ras2vox) ;
   MatrixFree(&m_sras2ras) ;
   MatrixFree(&m_sras2vox);
   MatrixFree(&m_vox2sras) ;
+
   return(NO_ERROR) ;
 }
-// note that this is *NOT* safe for parallel implementations
-int
-MRISsurfaceRASFromVoxelCached(MRI_SURFACE *mris, MRI *mri, double x, double y,
-                              double z, double *pr, double *pa, double *ps)
-{
-  static MATRIX  *m_vox2sras = NULL ;
-  static VECTOR *v1, *v2  ;
 
-  if (m_vox2sras == NULL)
+
+int
+MRISsurfaceRASFromVoxelCached(MRI_SURFACE *mris, 
+                              MRI *mri,
+                              double x, double y, double z, 
+                              double *pr, double *pa, double *ps)
+{
+  static MATRIX *m_vox2sras[_MAX_FS_THREADS] = {NULL};
+  static VECTOR *v1[_MAX_FS_THREADS] = {NULL};
+  static VECTOR *v2[_MAX_FS_THREADS] = {NULL};
+
+#ifdef HAVE_OPENMP
+  // thread ID
+  int tid = omp_get_thread_num();
+#else
+  int tid = 0;
+#endif
+
+  if (m_vox2sras[tid] == NULL)
   {
     MRI *mri_tmp ;
     MATRIX *m_sras2ras, *m_ras2vox ;
-    MATRIX  *m_sras2vox = NULL ;
+    MATRIX *m_sras2vox = NULL ;
 
     if (mris->vg.valid)
     {
-      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
+      mri_tmp = MRIallocHeader(mris->vg.width,
+                               mris->vg.height,
+                               mris->vg.depth,
+                               MRI_UCHAR,
+                               1) ;
       MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
       m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
       MRIfree(&mri_tmp) ;
@@ -80184,22 +80252,24 @@ MRISsurfaceRASFromVoxelCached(MRI_SURFACE *mris, MRI *mri, double x, double y,
 
     m_ras2vox = MRIgetRasToVoxelXform(mri) ;
     m_sras2vox = MatrixMultiply(m_ras2vox, m_sras2ras, NULL) ;
-    m_vox2sras = MatrixInverse(m_sras2vox, NULL) ;
-    v1 = VectorAlloc(4, MATRIX_REAL) ;
-    v2 = VectorAlloc(4, MATRIX_REAL) ;
-    VECTOR_ELT(v1, 4) = 1.0 ;
-    VECTOR_ELT(v2, 4) = 1.0 ;
+    m_vox2sras[tid] = MatrixInverse(m_sras2vox, NULL) ;
+    v1[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    v2[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    VECTOR_ELT(v1[tid], 4) = 1.0 ;
+    VECTOR_ELT(v2[tid], 4) = 1.0 ;
     MatrixFree(&m_sras2vox) ;
     MatrixFree(&m_ras2vox) ;
     MatrixFree(&m_sras2ras) ;
   }
-  V3_X(v1) = x ;
-  V3_Y(v1) = y ;
-  V3_Z(v1) = z ;
-  MatrixMultiply(m_vox2sras, v1, v2) ;
-  *pr = V3_X(v2) ;
-  *pa = V3_Y(v2) ;
-  *ps = V3_Z(v2) ;
+
+  V3_X(v1[tid]) = x ;
+  V3_Y(v1[tid]) = y ;
+  V3_Z(v1[tid]) = z ;
+  MatrixMultiply(m_vox2sras[tid], v1[tid], v2[tid]) ;
+  *pr = V3_X(v2[tid]) ;
+  *pa = V3_Y(v2[tid]) ;
+  *ps = V3_Z(v2[tid]) ;
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -80210,7 +80280,8 @@ MRISsurfaceRASFromVoxelCached(MRI_SURFACE *mris, MRI *mri, double x, double y,
   Description
   ------------------------------------------------------*/
 int
-MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, double *pnz)
+MRIScomputeNormal(MRIS *mris, int which, int vno,
+                  double *pnx, double *pny, double *pnz)
 {
   float snorm[3], norm[3] ;
   VERTEX *v ;
@@ -80238,7 +80309,9 @@ MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, doub
         mrisPialNormalFace(mris, v->f[n], (int)v->n[n],snorm);
         break ;
       default:
-        ErrorExit(ERROR_BADPARM, "MRIScomputeNormal: which = %d not supported", which) ;
+        ErrorExit(ERROR_BADPARM, 
+                  "MRIScomputeNormal: which = %d not supported",
+                  which) ;
         break ;
       }
       norm[0] += snorm[0];
@@ -80249,12 +80322,16 @@ MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, doub
   {
     return(ERROR_BADPARM) ;
   }
+
   mrisNormalize(norm);
   *pnx = norm[0] ;
   *pny = norm[1] ;
   *pnz = norm[2] ;
+
   return(NO_ERROR) ;
 }
+
+
 static double
 mrisComputeSurfaceRepulsionEnergy(MRI_SURFACE *mris, double l_repulse, MHT *mht)
 {
@@ -83963,7 +84040,9 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 }
 #else
 static double
-mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int *pnvox)
+mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris, 
+                                  INTEGRATION_PARMS *parms, 
+                                  int *pnvox)
 {
   MRI       *mri  = parms->mri_brain ;
   MHT       *mht ;
@@ -84193,7 +84272,6 @@ static int
 mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
   MRI       *mri  = parms->mri_brain ;
-  static MRI *mri_white_dist ;
   FILE      *fp, *fp2 ;
   double    dist, xs, ys, zs, dn, best_dn, best_ll, ll ;
   float     vmin, vmax, val, wdist ;
@@ -84203,6 +84281,7 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   MHT       *mht ;
   VERTEX    *v, *vn ;
   VOXEL_LIST **vl, **vl2 ;
+  static MRI *mri_white_dist = NULL ;
 
   if (FZERO(parms->l_map2d))
     return(NO_ERROR) ;
