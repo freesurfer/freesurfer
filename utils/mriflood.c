@@ -7,8 +7,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/04 16:29:20 $
- *    $Revision: 1.35 $
+ *    $Date: 2014/02/05 19:48:58 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.35 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.36 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -1685,10 +1685,8 @@ MRI *MRISfillInteriorOld(MRI_SURFACE *mris, double resolution, MRI *mri_interior
 \fn MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
 \brief Fills in the interior of a surface by creating a "watertight"
 shell and filling everything outside of the shell. This is much faster
-but slightly less accurate than a ray-tracing algorithm. If
-USE_NEW_FILL_INTERIOR != 1 or is not set, then the "old" biased
-version of this routine is called by default.  See also
-MRISfillInteriorRibbonTest().
+but slightly less accurate than a ray-tracing algorithm.  See also
+MRISfillInteriorOld() and MRISfillInteriorRibbonTest().
 \param mris - input surface
 \param resolution - only used if mri_dst is NULL
 \param mri_dst - output
@@ -1707,13 +1705,6 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   MRI_REGION *region;
   struct timeb start ;
 
-  printf("Starting MRISfillInterior() \n");fflush(stdout);
-  if(getenv("USE_NEW_FILL_INTERIOR") == NULL || 
-     (getenv("USE_NEW_FILL_INTERIOR") != NULL && strcmp(getenv("USE_NEW_FILL_INTERIOR"),"1") != 0)){
-    printf("Using Old MRISfillInterior()\n");fflush(stdout);
-    mri_dst = MRISfillInteriorOld(mris, resolution, mri_dst);
-    return(mri_dst);
-  }
   printf("Using New MRISfillInterior()\n");fflush(stdout);
 
   TimerStart(&start) ;
