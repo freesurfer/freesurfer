@@ -9,9 +9,9 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/03/26 18:57:11 $
- *    $Revision: 1.34 $
+ *    $Author: greve $
+ *    $Date: 2014/02/07 22:46:21 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -176,13 +176,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.34 2013/03/26 18:57:11 fischl Exp $",
+   "$Id: mri_cc.c,v 1.35 2014/02/07 22:46:21 greve Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.34 2013/03/26 18:57:11 fischl Exp $",
+           "$Id: mri_cc.c,v 1.35 2014/02/07 22:46:21 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -2058,7 +2058,7 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   }
 
 
-  LTAinvert(lta) ;
+  LTAfillInverse(lta) ;
 
   return(mri_cc) ;
 }

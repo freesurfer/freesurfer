@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/28 23:32:18 $
- *    $Revision: 1.165 $
+ *    $Date: 2014/02/07 22:46:21 $
+ *    $Revision: 1.166 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,119 @@ static LTA  *ltaReadFile(const char *fname) ;
 
 static LTA *ltaMNIreadEx(const char *fname);
 static LTA *ltaReadFileEx(const char *fname);
+
+/*
+  \fn LTA *LTAcopy(LTA *lta, LTA *ltacp);
+  \brief Copys lta to ltacp. If ltacp is NULL, allocs a new lta. 
+   If ltacp is not NULL, num_xforms must match that of lta.
+ */
+LTA *LTAcopy(LTA *lta, LTA *ltacp)
+{
+  int i;
+
+  if(ltacp == NULL) ltacp = LTAalloc(lta->num_xforms,NULL);
+  if(lta->num_xforms != ltacp->num_xforms){
+    printf("LTAcopy(): ERROR: number of xforms does not match (%d,%d)\n",
+	   lta->num_xforms,ltacp->num_xforms);
+    return(NULL);
+  }
+
+  ltacp->type = lta->type;
+  ltacp->fscale = lta->fscale;
+  strcpy(ltacp->subject,lta->subject);
+  
+  for (i = 0 ; i < lta->num_xforms ; i++){
+    ltacp->xforms[i].x0 =    lta->xforms[i].x0;
+    ltacp->xforms[i].y0 =    lta->xforms[i].y0;
+    ltacp->xforms[i].z0 =    lta->xforms[i].z0;
+    ltacp->xforms[i].sigma = lta->xforms[i].sigma;
+    MatrixCopy(lta->xforms[i].m_L,       ltacp->xforms[i].m_L);
+    MatrixCopy(lta->xforms[i].m_dL,      ltacp->xforms[i].m_dL);
+    MatrixCopy(lta->xforms[i].m_last_dL, ltacp->xforms[i].m_last_dL);
+    memcpy(&ltacp->xforms[i].src, &lta->xforms[i].src, sizeof(VOL_GEOM));
+    memcpy(&ltacp->xforms[i].dst, &lta->xforms[i].dst, sizeof(VOL_GEOM));
+    ltacp->inv_xforms[i].x0 =    lta->inv_xforms[i].x0;
+    ltacp->inv_xforms[i].y0 =    lta->inv_xforms[i].y0;
+    ltacp->inv_xforms[i].z0 =    lta->inv_xforms[i].z0;
+    ltacp->inv_xforms[i].sigma = lta->inv_xforms[i].sigma;
+    MatrixCopy(lta->inv_xforms[i].m_L,       ltacp->inv_xforms[i].m_L);
+    MatrixCopy(lta->inv_xforms[i].m_dL,      ltacp->inv_xforms[i].m_dL);
+    MatrixCopy(lta->inv_xforms[i].m_last_dL, ltacp->inv_xforms[i].m_last_dL);
+    memcpy(&ltacp->inv_xforms[i].src, &lta->inv_xforms[i].src, sizeof(VOL_GEOM));
+    memcpy(&ltacp->inv_xforms[i].dst, &lta->inv_xforms[i].dst, sizeof(VOL_GEOM));
+  }
+  return(ltacp);
+}
+/*
+  \fn int LTAdiff(LTA *lta1, LTA *lta2, double thresh)
+  \brief Checks whether two LTAs are different by checking:
+   num_xforms, type, src volume geometry, dst volume geometry, and
+   transform matrix (m_L).  An element in the transform matrix must be
+   different by more than thresh for the difference to be
+   registered. Returns 1 if different, 0 if the same. Does not check
+   the inverse transform, subject, or other parameters.
+ */
+int LTAdiff(LTA *lta1, LTA *lta2, double thresh)
+{
+  int i, ret,c,r,CheckInverse=0;
+  double d;
+
+  ret = 0;
+  if(lta1->num_xforms != lta2->num_xforms){
+    printf("LTAdiff(): number of xforms does not match (%d,%d)\n",
+	   lta1->num_xforms,lta2->num_xforms);
+    ret = 1;
+  }
+  if(lta1->type != lta2->type){
+    printf("LTAdiff(): types do not match (%d,%d)\n",lta1->type,lta2->type);
+    ret = 1;
+  }
+  if(ret) return(ret);
+
+  for (i = 0 ; i < lta1->num_xforms ; i++){
+    if(!vg_isEqual(&lta1->xforms[i].src,&lta2->xforms[i].src)) {
+      printf("LTAdiff(): i=%d src does not match\n",i);
+      ret=1;
+    }
+    if(!vg_isEqual(&lta1->xforms[i].dst,&lta2->xforms[i].dst)) {
+      printf("LTAdiff(): i=%d dst does not match\n",i);
+      ret=1;
+    }
+    for(r=1; r<=4; r++){
+      for(c=1; c<=4; c++){
+	d = (lta1->xforms[i].m_L->rptr[r][c]-lta2->xforms[i].m_L->rptr[r][c]);
+	if(fabs(d) > thresh)  {
+	  printf("LTAdiff(): i=%d L(%d,%d) does not match (%g,%g) %g\n",i,r,c,
+		 lta1->xforms[i].m_L->rptr[r][c],lta2->xforms[i].m_L->rptr[r][c],d);
+	  ret=1;
+	}
+      }
+    }
+
+    if(CheckInverse){
+      if(!vg_isEqual(&lta1->inv_xforms[i].src,&lta2->inv_xforms[i].src)) {
+	printf("LTAdiff(): i=%d inv src does not match\n",i);
+	ret=1;
+      }
+      if(!vg_isEqual(&lta1->inv_xforms[i].dst,&lta2->inv_xforms[i].dst)) {
+	printf("LTAdiff(): i=%d inv dst does not match\n",i);
+	ret=1;
+      }
+      for(r=1; r<=4; r++){
+	for(c=1; c<=4; c++){
+	  d = (lta1->inv_xforms[i].m_L->rptr[r][c]-lta2->inv_xforms[i].m_L->rptr[r][c]);
+	  if(fabs(d) > thresh)  {
+	    printf("LTAdiff(): i=%d inv L(%d,%d) does not match (%g,%g) %g\n",i,r,c,
+		   lta1->inv_xforms[i].m_L->rptr[r][c],lta2->inv_xforms[i].m_L->rptr[r][c],d);
+	    ret=1;
+	  }
+	}
+      }
+    }
+
+  }
+  return(ret);
+}
 
 void vg_print(const VOL_GEOM *vg)
 {
@@ -2808,7 +2921,7 @@ TransformInvert(TRANSFORM *transform, MRI *mri)
   {
   default:
     lta = (LTA *)transform->xform ;
-    LTAinvert(lta);
+    LTAfillInverse(lta);
 #if 0
     if (MatrixInverse(lta->xforms[0].m_L, lta->inv_xforms[0].m_L) == NULL)
       ErrorExit(ERROR_BADPARM, "TransformInvert: xform noninvertible") ;
@@ -2893,7 +3006,7 @@ TransformApplyInverse(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst)
     // mri_dst = MRIinverseLinearTransform(mri_src, NULL,
     //      ((LTA *)transform->xform)->xforms[0].m_L);
     lta = (LTA*) transform->xform;
-    LTAinvert(lta) ;
+    LTAfillInverse(lta) ;
     mri_dst = LTAinverseTransformInterp(mri_src, mri_dst, lta, SAMPLE_TRILINEAR);
     break ;
   }
@@ -3376,7 +3489,7 @@ LTA *ltaReadFileEx(const char *fname)
   lta->subject[0] = 0 ; lta->fscale = .15 ; 
   while (fgets(line, STRLEN-1, fp))
   {
-    printf("reading extra input line %s", line) ;
+    //printf("reading extra input line %s", line) ;
     if (strncmp(line, "subject", 7)==0)
       sscanf(line, "%*s %s", lta->subject) ;
     else if (strncmp(line, "fscale", 6)==0)
@@ -3634,11 +3747,35 @@ ltaFSLread(const char *fname)
 }
 
 /*
-  compute the inverse transforms and vol_geom for the LTA. Note: this does not
-  change the value of the forward m_L transform to be the inverse! It merely
-  fills in the inverse xforms.
-*/
+  \fn LTA *LTAinvert(LTA *lta)
+  \breif Inverts the LTA by filling the inverse using LTAfillInverse()
+  then swaps xforms and inv_xforms. Note: there was a function with 
+  this name that would simply fill the inverse without performing
+  the inverse. That function is now (Feb 2014) called LTAfillInverse().
+  The passed lta is not changed.
+ */
 LTA *LTAinvert(LTA *lta)
+{
+  LTA *lta2;
+  LINEAR_TRANSFORM *lt;
+  lta2 = LTAcopy(lta,NULL);
+  LTAfillInverse(lta2);
+  lt = lta2->inv_xforms;
+  lta2->inv_xforms = lta2->xforms;
+  lta2->xforms = lt;
+  return(lta2);
+}
+/*
+  \fn LTA *LTAfillInverse(LTA *lta)
+  \brief Computes and fills the inverse transforms (inv_xforms) and
+  swaps vol_geom for the LTA. Note: this does not change the value of
+  the forward m_L transform to be the inverse! It merely fills in the
+  inverse xforms. This function used to be called LTAinvert() but the
+  name was changed to better reflect what it actually does.  The
+  LTAinvert() function now (Feb 2014) actually inverts the LTA.  I
+  think the passed LTA is changed.
+*/
+LTA *LTAfillInverse(LTA *lta)
 {
   int i;
 
@@ -4154,7 +4291,7 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
   }
 
   // fill inverse part
-  LTAinvert(lta);
+  LTAfillInverse(lta);
   return lta;
 }
 

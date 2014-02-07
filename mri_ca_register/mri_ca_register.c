@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/01/29 20:40:17 $
- *    $Revision: 1.88 $
+ *    $Author: greve $
+ *    $Date: 2014/02/07 22:46:21 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -237,7 +237,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.88 2014/01/29 20:40:17 fischl Exp $",
+           "$Id: mri_ca_register.c,v 1.89 2014/02/07 22:46:21 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1188,7 +1188,7 @@ main(int argc, char *argv[])
       l = lta->xforms[0].label ;
       GCAbuildMostLikelyVolumeForStructure
       (gca, mri_seg, l, 0, transform, NULL) ;
-      LTAinvert(lta) ;
+      LTAfillInverse(lta) ;
       mri_aligned = MRIlinearTransform(mri_seg, NULL, lta->xforms[0].m_L) ;
       MRIwrite(mri_seg, "s.mgz")  ;
       MRIwrite(mri_aligned, "a.mgz") ;

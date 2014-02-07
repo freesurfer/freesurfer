@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/20 21:00:37 $
- *    $Revision: 1.126 $
+ *    $Date: 2014/02/07 22:46:21 $
+ *    $Revision: 1.127 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.126 2012/01/20 21:00:37 greve Exp $";
+"$Id: tkregister2.c,v 1.127 2014/02/07 22:46:21 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -3849,7 +3849,7 @@ void write_lta(char *fname) {
     getVolGeom(targ_vol0, &lta->xforms[0].dst);
   } 
   else {
-    // Note: cannot just run LTAinvert()
+    // Note: cannot just run LTAfillInverse()
     lta->xforms[0].m_L = MatrixInverse(RegMatTmp, NULL) ;
     getVolGeom(mov_vol,   &lta->xforms[0].dst);
     getVolGeom(targ_vol0, &lta->xforms[0].src);
@@ -4902,7 +4902,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.126 2012/01/20 21:00:37 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.127 2014/02/07 22:46:21 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

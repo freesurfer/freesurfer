@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/24 21:46:16 $
- *    $Revision: 1.73 $
+ *    $Date: 2014/02/07 22:46:21 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -95,6 +95,8 @@ void mincGetVolInfo(const char *infoline, const char *infoline2,
                     VOL_GEOM *vgSrc, VOL_GEOM *vgDst);
 
 int      LTAfree(LTA **plta) ;
+LTA      *LTAcopy(LTA *lta, LTA *ltacp);
+int      LTAdiff(LTA *lta1, LTA *lta2, double thresh);
 LTA      *LTAreadInVoxelCoords(const char *fname, MRI *mri) ;
 LTA      *LTAread(const char *fname) ;
 LTA      *LTAreadTal(const char *fname) ;
@@ -127,7 +129,8 @@ int      LTAtoVoxelCoords(LTA *lta, MRI *mri) ; // don't use this
    it does not perform resampling */
 MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta);
 
-LTA *LTAinvert(LTA *lta); // fill inverse part of LTA
+LTA *LTAinvert(LTA *lta); // now actually computes the inverse 
+LTA *LTAfillInverse(LTA *lta); // fill inverse part of LTA
 int LTAmodifySrcDstGeom(LTA *lta, MRI *src, MRI *dst);  /* src and dst can be
                                                            null. only those
                                                            non-null used to
