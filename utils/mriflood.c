@@ -7,8 +7,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/05 19:48:58 $
- *    $Revision: 1.36 $
+ *    $Date: 2014/02/07 23:56:21 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.36 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.37 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -1700,7 +1700,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   double vx,vy,vz, vlen, ux,uy,uz, cosa;
   VERTEX *v_0,*v_1,*v_2;
   FACE *f;
-  MATRIX *crs,*xyz=NULL,*vox2rastkr,*m_vox2ras ;
+  MATRIX *crs,*xyz=NULL,*vox2sras=NULL,*m_vox2ras ;
   MRI *mri_cosa, *mri_vlen, *mri_shell, *shellbb, *outsidebb;
   MRI_REGION *region;
   struct timeb start ;
@@ -1733,7 +1733,6 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   drow = mri_dst->ysize;
   dslc = mri_dst->zsize;
 
-  vox2rastkr = MRIxfmCRS2XYZtkreg(mri_dst);
   crs = MatrixAlloc(4,1,MATRIX_REAL);
   crs->rptr[4][1] = 1;
 
@@ -1801,6 +1800,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
         py = py0 + (py1-py0)*(float)u/(float)numu;
         pz = pz0 + (pz1-pz0)*(float)u/(float)numu;
         MRISsurfaceRASToVoxelCached(mris, mri_dst,px,py,pz,&fcol,&frow,&fslc);
+	if(vox2sras == NULL) vox2sras = MatrixInverse(mris->m_sras2vox,NULL);
         col=nint(fcol);
         row=nint(frow);
         slc=nint(fslc);
@@ -1821,7 +1821,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
 	  crs->rptr[1][1] = col;
 	  crs->rptr[2][1] = row;
 	  crs->rptr[3][1] = slc;
-	  xyz = MatrixMultiply(vox2rastkr,crs,xyz); //xyz in tkrRAS space
+	  xyz = MatrixMultiply(vox2sras,crs,xyz); //xyz in surface space
 	  vx = xyz->rptr[1][1];
 	  vy = xyz->rptr[2][1];
 	  vz = xyz->rptr[3][1];
@@ -1840,7 +1840,6 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   printf("  shell done  t = %g\n",TimerStop(&start)/1000.0) ;
   MatrixFree(&crs);
   MatrixFree(&xyz);
-  MatrixFree(&vox2rastkr);
   MRIfree(&mri_vlen);
 
   // Reduce the volume size to speed things up
@@ -1947,7 +1946,8 @@ int MRISfillInteriorRibbonTest(char *subject, int UseNew, FILE *fp)
 	return(1);
       }
       MRIclear(mri);
-      MRISfillInterior(surf,1,mri); // resolution = 1
+      if(UseNew)  MRISfillInterior(surf,1,mri); // resolution = 1
+      if(!UseNew) MRISfillInteriorOld(surf,1,mri); // resolution = 1
 
       nfp = 0; // false positive - not in ribbon but in interior
       nfn = 0; // false negative - in ribbon but not in interior
