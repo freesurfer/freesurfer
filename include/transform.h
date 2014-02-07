@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/07 22:46:21 $
- *    $Revision: 1.74 $
+ *    $Date: 2014/02/07 23:55:52 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,6 +96,7 @@ void mincGetVolInfo(const char *infoline, const char *infoline2,
 
 int      LTAfree(LTA **plta) ;
 LTA      *LTAcopy(LTA *lta, LTA *ltacp);
+LINEAR_TRANSFORM *LTcopy(LT *lt, LT *ltcp);
 int      LTAdiff(LTA *lta1, LTA *lta2, double thresh);
 LTA      *LTAreadInVoxelCoords(const char *fname, MRI *mri) ;
 LTA      *LTAread(const char *fname) ;

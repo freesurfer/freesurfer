@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/07 22:46:21 $
- *    $Revision: 1.166 $
+ *    $Date: 2014/02/07 23:55:52 $
+ *    $Revision: 1.167 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,27 +83,35 @@ LTA *LTAcopy(LTA *lta, LTA *ltacp)
   strcpy(ltacp->subject,lta->subject);
   
   for (i = 0 ; i < lta->num_xforms ; i++){
-    ltacp->xforms[i].x0 =    lta->xforms[i].x0;
-    ltacp->xforms[i].y0 =    lta->xforms[i].y0;
-    ltacp->xforms[i].z0 =    lta->xforms[i].z0;
-    ltacp->xforms[i].sigma = lta->xforms[i].sigma;
-    MatrixCopy(lta->xforms[i].m_L,       ltacp->xforms[i].m_L);
-    MatrixCopy(lta->xforms[i].m_dL,      ltacp->xforms[i].m_dL);
-    MatrixCopy(lta->xforms[i].m_last_dL, ltacp->xforms[i].m_last_dL);
-    memcpy(&ltacp->xforms[i].src, &lta->xforms[i].src, sizeof(VOL_GEOM));
-    memcpy(&ltacp->xforms[i].dst, &lta->xforms[i].dst, sizeof(VOL_GEOM));
-    ltacp->inv_xforms[i].x0 =    lta->inv_xforms[i].x0;
-    ltacp->inv_xforms[i].y0 =    lta->inv_xforms[i].y0;
-    ltacp->inv_xforms[i].z0 =    lta->inv_xforms[i].z0;
-    ltacp->inv_xforms[i].sigma = lta->inv_xforms[i].sigma;
-    MatrixCopy(lta->inv_xforms[i].m_L,       ltacp->inv_xforms[i].m_L);
-    MatrixCopy(lta->inv_xforms[i].m_dL,      ltacp->inv_xforms[i].m_dL);
-    MatrixCopy(lta->inv_xforms[i].m_last_dL, ltacp->inv_xforms[i].m_last_dL);
-    memcpy(&ltacp->inv_xforms[i].src, &lta->inv_xforms[i].src, sizeof(VOL_GEOM));
-    memcpy(&ltacp->inv_xforms[i].dst, &lta->inv_xforms[i].dst, sizeof(VOL_GEOM));
+    LTcopy(&lta->xforms[i],&ltacp->xforms[i]);
+    LTcopy(&lta->inv_xforms[i],&ltacp->inv_xforms[i]);
   }
   return(ltacp);
 }
+
+/*
+  \fn LINEAR_TRANSFORM *LTcopy(LT *lt, LT *ltcp)
+  \brief Copys lt to ltcp. If ltcp cannot be NULL.
+ */
+LINEAR_TRANSFORM *LTcopy(LT *lt, LT *ltcp)
+{
+  if(ltcp == NULL){
+    printf("ERROR: LTcopy() destination LT cannot be NULL\n");
+    return(NULL);
+  }
+  ltcp->x0 =    lt->x0;
+  ltcp->y0 =    lt->y0;
+  ltcp->z0 =    lt->z0;
+  ltcp->sigma = lt->sigma;
+  MatrixCopy(lt->m_L,       ltcp->m_L);
+  MatrixCopy(lt->m_dL,      ltcp->m_dL);
+  MatrixCopy(lt->m_last_dL, ltcp->m_last_dL);
+  memcpy(&ltcp->src, &lt->src, sizeof(VOL_GEOM));
+  memcpy(&ltcp->dst, &lt->dst, sizeof(VOL_GEOM));
+  return(ltcp);
+}
+
+
 /*
   \fn int LTAdiff(LTA *lta1, LTA *lta2, double thresh)
   \brief Checks whether two LTAs are different by checking:
