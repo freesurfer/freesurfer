@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/29 00:34:33 $
- *    $Revision: 1.86 $
+ *    $Date: 2014/02/07 22:47:53 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3361,7 +3361,7 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
   else{
     // Invert the matrix if the LTA goes in the wrong direction
     printf("MRIvol2VolFill(): using inverse\n");
-    LTAinvert(ltatmp);
+    LTAfillInverse(ltatmp);
     v2v = ltatmp->inv_xforms[0].m_L;
     vgtarg = lta->inv_xforms[lta->num_xforms-1].dst;
   }
