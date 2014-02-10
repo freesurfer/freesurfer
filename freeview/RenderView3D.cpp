@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/16 22:18:13 $
- *    $Revision: 1.73 $
+ *    $Date: 2014/02/10 23:39:01 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -559,6 +559,11 @@ void RenderView3D::SetShowSlices(bool bShow)
     m_bShowSlices = bShow;
     RefreshAllActors();
   }
+}
+
+void RenderView3D::SetShowAllSlices(bool bShow)
+{
+
 }
 
 void RenderView3D::UpdateCursorRASPosition( int posX, int posY )

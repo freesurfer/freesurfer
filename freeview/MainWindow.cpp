@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/22 21:45:18 $
- *    $Revision: 1.267 $
+ *    $Date: 2014/02/10 23:39:01 $
+ *    $Revision: 1.268 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -723,6 +723,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   if ( m_cmdParser->Found( "conform" ) )
   {
     this->SetDefaultConform( true );
+  }
+  if (m_cmdParser->Found( "smoothed" ) )
+  {
+    m_defaultSettings["Smoothed"] = true;
   }
   if ( m_cmdParser->Found( "colormap", &sa ))
   {
@@ -1472,6 +1476,10 @@ void MainWindow::RunScript()
   {
     CommandSetOpacity( sa );
   }
+  else if ( cmd == "setsmoothed")
+  {
+    CommandSetSmoothed( sa );
+  }
   else if ( cmd == "setdisplayoutline")
   {
     CommandSetLabelOutline(sa);
@@ -1813,7 +1821,11 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         sup_data["Percentile"] = true;
       }
-      else
+      else if (subOption == "smoothed" || subOption == "smooth")
+      {
+        m_scripts.insert(0, QString("setsmoothed ") + subArgu);
+      }
+      else if (!subOption.isEmpty())
       {
         cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
         return;
@@ -2005,6 +2017,19 @@ void MainWindow::CommandSetLabelOutline(const QStringList &cmd)
     if ( mri )
     {
       mri->GetProperty()->SetShowLabelOutline(true);
+    }
+  }
+}
+
+void MainWindow::CommandSetSmoothed(const QStringList &cmd)
+{
+  QString stemp = cmd[1].toLower();
+  if ( stemp == "yes"|| stemp == "true" || stemp == "1" || stemp == "on")
+  {
+    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+    if ( mri )
+    {
+      mri->GetProperty()->SetTextureSmoothing(1);
     }
   }
 }
