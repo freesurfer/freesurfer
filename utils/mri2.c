@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/07 22:47:53 $
- *    $Revision: 1.87 $
+ *    $Date: 2014/02/10 22:57:47 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1007,7 +1007,8 @@ MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s)
   return(0);
 }
 /*
-  \fn MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve, LTA **plta)
+  \fn MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve, LTA **src2out)
+
   \brief Masks and upsamples source volume and creates an LTA that
   maps from source voxel to output voxel. mask=NULL, the mask is
   generated from the source. If UpsampleFactor <= 1, upsampling is not
@@ -1015,16 +1016,15 @@ MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s)
   UpsampleFactor^3 and so conserves the sum of all voxel
   intensities. When masking is done, a bounding box around the
   non-zero voxels in the mask is created.
+
  */
-MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve, LTA **plta)
+MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve, LTA **src2out)
 {
   MRI *srcmask, *srcus;
   LTA *lta,*ltamask, *ltaus;
   MRI_REGION *region;
   MATRIX *v2v;
   int nPad = 2; // not sure if it makes much of a difference
-
-  v2v = MatrixIdentity(4,NULL);
 
   if(mask) region = REGIONgetBoundingBox(mask,nPad);
   else     region = REGIONgetBoundingBox(src,nPad);
@@ -1035,7 +1035,7 @@ MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve,
   srcmask = MRIextractRegion(src, NULL, region);
   if(srcmask == NULL) return(NULL);
   ltamask = TransformRegDat2LTA(src,srcmask, NULL); //srcvox2srcmaskvox
-  v2v = MatrixMultiply(ltamask->xforms[0].m_L,v2v,v2v);
+  v2v = MatrixCopy(ltamask->xforms[0].m_L,NULL);
   LTAfree(&ltamask);
   free(region);
 
@@ -1043,7 +1043,7 @@ MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve,
     if(DoConserve) srcus = MRIupsampleNConserve(srcmask, NULL, UpsampleFactor);
     else           srcus = MRIupsampleN(srcmask, NULL, UpsampleFactor);
     ltaus = TransformRegDat2LTA(srcmask, srcus, NULL); //srcmaskvox2srcusvox
-    v2v = MatrixMultiply(ltaus->xforms[0].m_L,v2v,v2v);
+    v2v = MatrixMultiply(v2v,ltaus->xforms[0].m_L,v2v);
     LTAfree(&ltaus);
   }
   else srcus = srcmask;
@@ -1053,7 +1053,7 @@ MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve,
   getVolGeom(srcus, &lta->xforms[0].dst);
   lta->type = LINEAR_VOX_TO_VOX;
   lta->xforms[0].m_L = v2v; // srcvox to outvox
-  *plta = lta;
+  *src2out = lta;
 
   if(UpsampleFactor > 1) MRIfree(&srcmask);
   // dont free v2v!
