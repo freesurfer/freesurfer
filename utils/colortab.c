@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/30 00:34:28 $
- *    $Revision: 1.46 $
+ *    $Date: 2014/02/10 18:50:04 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1978,10 +1978,13 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
       TT = TTUnknown;
       break;
 
+    case Left_Cerebral_Cortex:
+    case Right_Cerebral_Cortex:
+      TT = TTCtxGM;
+      break;
+
     case Left_Cerebellum_Cortex:
     case Right_Cerebellum_Cortex:
-      TT = TTCtxGM;
-
     case Left_Hippocampus:
     case Right_Hippocampus:
     case Left_Amygdala:
