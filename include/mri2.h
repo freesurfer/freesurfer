@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/29 00:34:33 $
- *    $Revision: 1.45 $
+ *    $Date: 2014/02/10 22:59:25 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,7 +105,7 @@ MRI *MRIvol2surfVSM( const MRI *SrcVol,
                      const MRI *vsm, int InterpMethod, MRI *SrcHitVol,
                      float ProjFrac, int ProjType, int nskip, 
 		    MRI *TrgVol);
-MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve, LTA **plta);
+MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve, LTA **src2out)
 MRI *MRIsegBoundary(MRI *seg);
 MRI *MRIsliceNo(MRI *in, MRI *out);
 MRI *MRIindexNo(MRI *in, MRI *out);
