@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/21 22:06:58 $
- *    $Revision: 1.146 $
+ *    $Date: 2014/02/10 22:34:50 $
+ *    $Revision: 1.147 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,6 +77,7 @@
 #include "vtkImageFlip.h"
 #include "LayerSurface.h"
 #include "vtkImageResample.h"
+#include <QVariantMap>
 
 extern "C"
 {
@@ -150,6 +151,13 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
   qRegisterMetaType< IntList >( "IntList" );
   m_worker = new LayerMRIWorkerThread(this);
   connect(m_worker, SIGNAL(AvailableLabels(IntList)), this, SLOT(OnAvailableLabels(IntList)));
+
+  QVariantMap map = MainWindow::GetMainWindow()->GetDefaultSettings();
+  if (map["Smoothed"].toBool())
+  {
+    GetProperty()->SetTextureSmoothing(1);
+    UpdateTextureSmoothing();
+  }
 }
 
 LayerMRI::~LayerMRI()
@@ -1924,7 +1932,8 @@ bool LayerMRI::GetVoxelStatsRectangle( const double* pt0, const double* pt1, int
   double* voxel_size = m_imageData->GetSpacing();
   int* dim = m_imageData->GetDimensions();
 
-  if ( nPlane < 0 || nPlane >= dim[nPlane] )
+
+  if ( nPlane < 0 ) //|| nPlane >= dim[nPlane] )
   {
     return false;
   }

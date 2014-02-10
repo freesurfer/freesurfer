@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/23 20:41:52 $
- *    $Revision: 1.9 $
+ *    $Date: 2014/02/10 22:34:21 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -235,7 +235,12 @@ void Region2DPolyline::UpdateStats()
     }
   }
 
-  sprintf( ch, "%.2f mm", dist );
+  if (dist < 0.0001)
+    sprintf( ch, "%.2f nm", dist*1000000);
+  else if (dist < 0.1)
+    sprintf( ch, "%.2f um", dist*1000);
+  else
+    sprintf( ch, "%.2f mm", dist );
   m_strShortStats = ch;
   m_actorText->SetInput( ch );
 

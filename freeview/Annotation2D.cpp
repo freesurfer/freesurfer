@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/23 19:29:17 $
- *    $Revision: 1.20 $
+ *    $Date: 2014/02/10 22:34:08 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -356,7 +356,7 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
       {
         d /= 2;
         title = "1 mm";
-        nNumOfTicks = 1;
+        nNumOfTicks = 5;
         if ( d >= 0.5 - xy_pos[0] )
         {
           d /= 2;
@@ -371,7 +371,79 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
             {
               d /= 2;
               title = "100 um";
-              nNumOfTicks = 1;
+              nNumOfTicks = 5;
+              if ( d >= 0.5 - xy_pos[0] )
+              {
+                d /= 2;
+                title = "50 um";
+                nNumOfTicks = 5;
+                if ( d >= 0.5 - xy_pos[0] )
+                {
+                  d *= 0.4;
+                  title = "20 um";
+                  nNumOfTicks = 2;
+                  if ( d >= 0.5 - xy_pos[0] )
+                  {
+                    d *= 0.5;
+                    title = "10 um";
+                    nNumOfTicks = 5;
+                    if ( d >= 0.5 - xy_pos[0] )
+                    {
+                      d *= 0.5;
+                      title = "5 um";
+                      nNumOfTicks = 5;
+                      if ( d >= 0.5 - xy_pos[0] )
+                      {
+                        d *= 0.4;
+                        title = "2 um";
+                        nNumOfTicks = 2;
+                        if ( d >= 0.5 - xy_pos[0] )
+                        {
+                          d *= 0.5;
+                          title = "1 um";
+                          nNumOfTicks = 5;
+                          if ( d >= 0.5 - xy_pos[0] )
+                          {
+                            d *= 0.5;
+                            title = "500 nm";
+                            nNumOfTicks = 5;
+                            if ( d >= 0.5 - xy_pos[0] )
+                            {
+                              d *= 0.4;
+                              title = "200 nm";
+                              nNumOfTicks = 2;
+                              if ( d >= 0.5 - xy_pos[0] )
+                              {
+                                d *= 0.5;
+                                title = "100 nm";
+                                nNumOfTicks = 5;
+                                if ( d >= 0.5 - xy_pos[0] )
+                                {
+                                  d *= 0.5;
+                                  title = "50 nm";
+                                  nNumOfTicks = 5;
+                                  if ( d >= 0.5 - xy_pos[0] )
+                                  {
+                                    d *= 0.4;
+                                    title = "20 nm";
+                                    nNumOfTicks = 2;
+                                    if ( d >= 0.5 - xy_pos[0] )
+                                    {
+                                      d *= 0.5;
+                                      title = "10 nm";
+                                      nNumOfTicks = 1;
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
             }
           }
         }

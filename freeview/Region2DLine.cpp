@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/23 20:41:52 $
- *    $Revision: 1.12 $
+ *    $Date: 2014/02/10 22:34:21 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,7 +136,13 @@ void Region2DLine::Update()
 void Region2DLine::UpdateStats()
 {
   char ch[1000];
-  sprintf( ch, "%.2f mm", sqrt(vtkMath::Distance2BetweenPoints( m_dPt1, m_dPt2 )) );
+  double d = sqrt(vtkMath::Distance2BetweenPoints( m_dPt1, m_dPt2 ));
+  if (d < 0.0001)
+    sprintf( ch, "%.2f nm", d*1000000);
+  else if (d < 0.1)
+    sprintf( ch, "%.2f um", d*1000);
+  else
+    sprintf( ch, "%.2f mm", d );
   m_strShortStats = ch;
   m_actorText->SetInput( ch );
 
