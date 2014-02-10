@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/07/15 19:44:12 $
- *    $Revision: 1.41 $
+ *    $Author: lzollei $
+ *    $Date: 2014/02/10 20:28:08 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.41 2013/07/15 19:44:12 greve Exp $";
+"$Id: mris_convert.c,v 1.42 2014/02/10 20:28:08 lzollei Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -103,6 +103,8 @@ static int PrintXYZOnly = 0;
 static MATRIX *XFM=NULL;
 static int write_vertex_neighbors = 0;
 static int combinesurfs_flag = 0;
+static int userealras_flag = 0;
+
 int DeleteCommands = 0;
 int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 
@@ -121,7 +123,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.41 2013/07/15 19:44:12 greve Exp $",
+     "$Id: mris_convert.c,v 1.42 2014/02/10 20:28:08 lzollei Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -243,6 +245,11 @@ main(int argc, char *argv[]) {
     mris->ncmds = 0;
   }
 
+  if(userealras_flag)
+    {
+      printf("Setting useRealRAS to 1!\n");
+      mris->useRealRAS = 1;
+    }
 
   if (talxfmsubject) {
     XFM = DevolveXFM(talxfmsubject, NULL, NULL);
@@ -548,6 +555,9 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "-delete-cmds")) {
     DeleteCommands = 1;
   } 
+  else if (!stricmp(option, "-userealras")) {
+    userealras_flag = 1;
+  } 
   else switch (toupper(*option)) {
   case 'A':
     PrintXYZOnly = 1;
@@ -655,6 +665,7 @@ print_help(void) {
   printf( "  -a                Print only surface xyz to ascii file\n") ;
   printf( "  --combinesurfs <infile> <in2file> <outfile>\n") ;
   printf( "  --delete-cmds : delete command lines in surface\n") ;
+  printf( "  --userealras : set the useRealRAS flag in the surface file to 1 \n") ;
   printf( "\n") ;
   printf( "These file formats are supported:\n") ;
   printf( "  ASCII:       .asc\n");
