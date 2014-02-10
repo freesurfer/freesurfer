@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/07 23:55:52 $
- *    $Revision: 1.167 $
+ *    $Date: 2014/02/10 22:58:46 $
+ *    $Revision: 1.168 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3755,23 +3755,23 @@ ltaFSLread(const char *fname)
 }
 
 /*
-  \fn LTA *LTAinvert(LTA *lta)
-  \breif Inverts the LTA by filling the inverse using LTAfillInverse()
-  then swaps xforms and inv_xforms. Note: there was a function with 
-  this name that would simply fill the inverse without performing
-  the inverse. That function is now (Feb 2014) called LTAfillInverse().
-  The passed lta is not changed.
+  \fn LTA *LTAinvert(LTA *lta, LTA *ltainv)
+  \breif Inverts the LTA by copying it and filling in the inverse
+  using LTAfillInverse() then swaps xforms and inv_xforms. Note: there
+  was a function with this name that would simply fill the inverse
+  without performing the inverse. That function is now (Feb 2014)
+  called LTAfillInverse().  The passed lta is not changed.
  */
-LTA *LTAinvert(LTA *lta)
+LTA *LTAinvert(LTA *lta, LTA *ltainv)
 {
-  LTA *lta2;
   LINEAR_TRANSFORM *lt;
-  lta2 = LTAcopy(lta,NULL);
-  LTAfillInverse(lta2);
-  lt = lta2->inv_xforms;
-  lta2->inv_xforms = lta2->xforms;
-  lta2->xforms = lt;
-  return(lta2);
+  ltainv = LTAcopy(lta,ltainv);
+  if(ltainv == NULL) return(NULL);
+  LTAfillInverse(ltainv);
+  lt = ltainv->inv_xforms;
+  ltainv->inv_xforms = ltainv->xforms;
+  ltainv->xforms = lt;
+  return(ltainv);
 }
 /*
   \fn LTA *LTAfillInverse(LTA *lta)
