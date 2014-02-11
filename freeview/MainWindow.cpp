@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/10 23:39:01 $
- *    $Revision: 1.268 $
+ *    $Date: 2014/02/11 21:40:57 $
+ *    $Revision: 1.269 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -377,7 +377,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   connect( ui->actionQuickReference, SIGNAL(triggered()), this->m_wndQuickRef, SLOT(show()));
   connect( ui->actionShowSlices, SIGNAL(toggled(bool)),
-           this->ui->view3D, SLOT(SetShowSlices(bool)));
+           this->ui->view3D, SLOT(SetShowAllSlices(bool)));
   connect( ui->view3D, SIGNAL(VolumeTrackMouseOver(Layer*,QVariantMap)),
            ui->treeWidgetMouseInfo, SLOT(UpdateTrackVolumeAnnotation(Layer*,QVariantMap)));
 
@@ -1102,6 +1102,7 @@ void MainWindow::SetUnifiedTitleAndToolBar(bool b)
 bool MainWindow::IsEmpty()
 {
   QStringList keys = m_layerCollections.keys();
+  keys.removeOne("Supplement");
   for ( int i = 0; i < keys.size(); i++ )
   {
     if ( !m_layerCollections[keys[i]]->IsEmpty() )
@@ -1231,9 +1232,13 @@ void MainWindow::OnIdle()
   ui->actionSaveSurfaceAs   ->setEnabled( layerSurface );
   ui->actionShowColorScale  ->setEnabled( bHasLayer );
   ui->actionShowSliceFrames  ->setEnabled(bHasLayer && ui->view3D->GetShowSlices());
+  ui->actionShowSliceFrames->blockSignals(true);
   ui->actionShowSliceFrames  ->setChecked(ui->view3D->GetShowSliceFrames());
+  ui->actionShowSliceFrames->blockSignals(false);
   ui->actionShowSlices        ->setEnabled(bHasLayer);
+  ui->actionShowSlices->blockSignals(true);
   ui->actionShowSlices        ->setChecked(ui->view3D->GetShowSlices());
+  ui->actionShowSlices->blockSignals(false);
   ui->actionShowLabelStats  ->setEnabled( layerVolume && layerVolume->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT );
   ui->actionToggleCursorVisibility  ->setEnabled( bHasLayer );
   ui->actionTogglePointSetVisibility->setEnabled( layerPointSet );

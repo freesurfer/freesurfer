@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/10 23:39:01 $
- *    $Revision: 1.74 $
+ *    $Date: 2014/02/11 21:40:57 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   this->GetRenderWindow()->GetInteractor()->SetDesiredUpdateRate(30);
   this->GetRenderWindow()->GetInteractor()->SetStillUpdateRate(0.01);
 
-  m_bShowSlices = true;
+  m_bShowSliceFrames = true;
   for ( int i = 0; i < 3; i++ )
   {
     m_actorSliceFrames[i] = vtkSmartPointer<vtkActor>::New();
@@ -240,7 +240,7 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
   SettingsScreenshot setting = mainwnd->GetScreenShotSettings();
 
   m_renderer->RemoveAllViewProps();
-  bool b[3] = { m_bShowSlices, m_bShowSlices, m_bShowSlices };
+  bool* b = m_bSliceVisibility;
   mainwnd->GetLayerCollection( "MRI" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "ROI" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "Surface" )->Append3DProps( m_renderer, b );
@@ -264,7 +264,7 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
   if ( !mainwnd->GetLayerCollection("MRI")->IsEmpty() ||! mainwnd->GetLayerCollection("Surface")->IsEmpty() )
   {
     m_renderer->AddViewProp( m_actorScalarBar );
-    if ( !mainwnd->GetLayerCollection("MRI")->IsEmpty() && m_bShowSlices )
+    if ( !mainwnd->GetLayerCollection("MRI")->IsEmpty() )
     {
       for ( int i = 0; i < 3; i++ )
       {
@@ -538,32 +538,36 @@ void RenderView3D::HighlightSliceFrame( int n )
 
 bool RenderView3D::GetShowSliceFrames()
 {
-  return m_actorSliceFrames[0]->GetVisibility();
+  return m_bShowSliceFrames;
 }
 
 void RenderView3D::SetShowSliceFrames( bool bShow )
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_actorSliceFrames[i]->SetVisibility( bShow?1:0 );
-    m_actorSliceBoundingBox[i]->SetPickable( bShow?1:0 );
+    int nFlag = (m_bSliceVisibility[i] && bShow ? 1: 0);
+    m_actorSliceFrames[i]->SetVisibility( nFlag );
+    m_actorSliceBoundingBox[i]->SetVisibility( nFlag );
+    m_actorSliceBoundingBox[i]->SetPickable( nFlag );
   }
+  m_bShowSliceFrames = bShow;
 
   RequestRedraw();
 }
 
-void RenderView3D::SetShowSlices(bool bShow)
-{
-  if (bShow != m_bShowSlices)
-  {
-    m_bShowSlices = bShow;
-    RefreshAllActors();
-  }
-}
-
 void RenderView3D::SetShowAllSlices(bool bShow)
 {
+  for (int i = 0; i < 3; i++)
+    m_bSliceVisibility[i] = bShow;
+  SetShowSliceFrames(m_bShowSliceFrames);
+  RefreshAllActors();
+}
 
+void RenderView3D::ShowSlice(int nPlane, bool bshow)
+{
+  m_bSliceVisibility[nPlane] = bshow;
+  SetShowSliceFrames(m_bShowSliceFrames);
+  RefreshAllActors();
 }
 
 void RenderView3D::UpdateCursorRASPosition( int posX, int posY )
@@ -1046,7 +1050,29 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   QList<Layer*> layers = mainwnd->GetLayers("Surface");
   layers << mainwnd->GetLayers("MRI");
   layers << mainwnd->GetLayers("PointSet");
-  menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSlices);
+  QAction* act = new QAction("Show All Slices", this);
+  act->setData(3);
+  menu->addAction(act);
+  connect(act, SIGNAL(triggered()), this, SLOT(OnShowSlice()));
+  act = new QAction("Hide All Slices", this);
+  act->setData(-1);
+  menu->addAction(act);
+  connect(act, SIGNAL(triggered()), this, SLOT(OnShowSlice()));
+  menu->addSeparator();
+
+  QStringList slice_names;
+  slice_names << "Show Sagittal Slice" << "Show Coronal Slice" << "Show Axial Slice";
+  for (int i = 0; i < 3; i++)
+  {
+    act = new QAction(slice_names[i], this);
+    act->setData(i);
+    act->setCheckable(true);
+    act->setChecked(m_bSliceVisibility[i]);
+    menu->addAction(act);
+    connect(act, SIGNAL(toggled(bool)), this, SLOT(OnShowSlice(bool)));
+  }
+  menu->addSeparator();
+
   if (!mainwnd->GetLayers("MRI").isEmpty())
   {
     menu->addAction(MainWindow::GetMainWindow()->ui->actionShowSliceFrames);
@@ -1078,3 +1104,25 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   menu->exec(event->globalPos());
 }
 
+void RenderView3D::OnShowSlice(bool bShow)
+{
+  QAction* act = qobject_cast<QAction*>(sender());
+  if (act)
+  {
+    int n = act->data().toInt();
+    if (n < 0)
+    {
+      for (int i = 0; i < 3; i++)
+        m_bSliceVisibility[i] = false;
+    }
+    else if (n > 2)
+    {
+      for (int i = 0; i < 3; i++)
+        m_bSliceVisibility[i] = true;
+    }
+    else
+      m_bSliceVisibility[n] = bShow;
+    SetShowSliceFrames(m_bShowSliceFrames);
+    RefreshAllActors();
+  }
+}

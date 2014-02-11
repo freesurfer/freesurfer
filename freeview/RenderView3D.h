@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/10 23:39:02 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/02/11 21:40:57 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -95,7 +95,7 @@ public:
 
   bool GetShowSlices()
   {
-    return m_bShowSlices;
+    return m_bSliceVisibility[0] || m_bSliceVisibility[1] || m_bSliceVisibility[2];
   }
 
   SurfaceROI* InitializeSurfaceROI( int posX, int posY );
@@ -103,6 +103,8 @@ public:
   void AddSurfaceROIPoint( int posX, int posY );
 
   void PickCurrentSurfaceVertex(int posX, int posY);
+
+  void ShowSlice(int nPlane, bool bshow);
 
 signals:
   void SurfaceVertexClicked();
@@ -117,8 +119,8 @@ public slots:
   bool UpdateBounds();
   void SnapToNearestAxis();
   void UpdateSurfaceCorrelationData();
-  void SetShowSlices(bool bShow = true);
   void SetShowAllSlices(bool bShow);
+  void OnShowSlice(bool bShow = true);
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
@@ -149,7 +151,7 @@ private:
   double  m_dBoundingTolerance;
   int     m_nSliceHighlighted;
 
-  bool    m_bShowSlices;
+  bool    m_bShowSliceFrames;
 
   double  m_dIntersectPoint[3];
   Interactor3DNavigate*   m_interactorNavigate;
