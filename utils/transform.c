@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/10 22:58:46 $
- *    $Revision: 1.168 $
+ *    $Date: 2014/02/11 00:38:40 $
+ *    $Revision: 1.169 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3752,6 +3752,127 @@ ltaFSLread(const char *fname)
   lta->type = FSLREG_TYPE;
 
   return(lta) ;
+}
+
+/*
+  \fn LTA *LTAconcat(LTA **ltaArray, int nLTAs, int Reduce)
+  \brief Concatenates all the transforms in all the LTAs into a single
+   LTA. The LTAs can be of different types.  The LTAs do not need to
+   be in the proper direction (direction is figured out from the
+   volume geometry). If Reduce=0, all the transforms appear in the
+   output LTA. If Reduce=1, all the transforms are combined into a
+   single matrix using LTAreduce().
+ */
+LTA *LTAconcat(LTA **ltaArray, int nLTAs, int Reduce)
+{
+  int ntot,n,m,k,nx,DoInv=0;
+  LTA *lta, *lta1, *ltatmp;
+  
+  ntot = 0;
+  for(n=0; n < nLTAs; n++) {
+    ntot += ltaArray[n]->num_xforms;
+    LTAfillInverse(ltaArray[n]); // just in case
+  }
+  lta = LTAalloc(ntot,NULL);
+
+  // Copy the xforms from the first LTA into the new LTA
+  k=0;
+  lta1 = ltaArray[0];
+  for(m=0; m < lta1->num_xforms; m++){
+    LTcopy(&lta1->xforms[m],&lta->xforms[k]);
+    k++;
+  }
+  // Type, subject, and fscale get that of the first LTA
+  lta->type = lta1->type;
+  lta->fscale = lta1->fscale;
+  strcpy(lta->subject,lta1->subject);
+
+  // Go through the rest of the array
+  for(n=1; n < nLTAs; n++){
+    lta1 = ltaArray[n];
+    if(lta1->type != lta->type) LTAchangeType(lta1,lta->type);
+    nx = lta1->num_xforms;
+    if(vg_isEqual(&lta->xforms[k-1].dst,&lta1->xforms[0].src)) DoInv=0;
+    else if(vg_isEqual(&lta->xforms[k-1].dst,&lta1->xforms[nx-1].dst)) DoInv=1;
+    else{
+      printf("ERROR: LTAconcat(): LTAs %d and %d do not match\n",n-1,n);
+      printf("LTA %d -------------------\n",n-1);
+      LTAprint(stdout,ltaArray[n-1]);
+      printf("LTA %d -------------------\n",n);
+      LTAprint(stdout,ltaArray[n]);
+      printf("--------------------------\n");
+      return(NULL);
+    }
+    if(DoInv == 0){
+      for(m=0; m < nx; m++){
+	LTcopy(&lta1->xforms[m],&lta->xforms[k]);
+	k++;
+      }
+    } 
+    else {
+      for(m=nx-1; m >= 0; m--){
+	LTcopy(&lta1->inv_xforms[m],&lta->xforms[k]);
+	k++;
+      }
+    }
+  }
+  if(Reduce) {
+    ltatmp = LTAreduce(lta);
+    LTAfree(&lta);
+    lta = ltatmp;
+  }
+
+  return(lta);
+}
+
+/*
+  \fn LTA *LTAreduce(LTA *lta0)
+  \brief Reduces a LTA with multiple transforms into a LTA with a
+   single transform. The component LTs do not need to be in the
+   correct direction (direction is figured out from the volume
+   geometry).
+ */
+LTA *LTAreduce(LTA *lta0)
+{
+  LTA *ltar,*lta;
+  LT *lt0, *lt,*ltinv,*ltprev;
+  int n,nx,DoInv=0;
+  MATRIX *M;
+
+  lta = LTAcopy(lta0,NULL);
+  LTAfillInverse(lta);
+
+  ltar = LTAalloc(1,NULL);
+  ltar->type = lta->type;
+  ltar->fscale = lta->fscale;
+  strcpy(ltar->subject,lta->subject);
+
+  // Copy the first LT into the LT of the new LTA
+  lt0 = &ltar->xforms[0];
+  LTcopy(&lta->xforms[0],lt0);
+
+  nx = lta->num_xforms;
+  lt = lt0; // in case only 1 xform
+  for(n=1; n < lta->num_xforms; n++){
+    ltprev = &lta->xforms[n-1];
+    lt     = &lta->xforms[n];
+    ltinv  = &lta->inv_xforms[n];
+    if(vg_isEqual(&ltprev->dst,&lt->src))      DoInv=0;
+    else if(vg_isEqual(&ltprev->dst,&lt->dst)) DoInv=1;
+    else{
+      printf("ERROR: LTAreduce(): LTs %d and %d do not match\n",n-1,n);
+      return(NULL);
+    }
+    //printf("LTAreduce: n=%d, DoInv = %d\n",n,DoInv);
+    if(DoInv == 0) M = lt->m_L;
+    else           M = ltinv->m_L;
+    MatrixMultiply(M, lt0->m_L, lt0->m_L); // new = M*old, M must be on left
+  }
+  if(DoInv == 0) memcpy(&lt0->dst, &lt->dst, sizeof(VOL_GEOM));
+  else           memcpy(&lt0->dst, &lt->src, sizeof(VOL_GEOM)); 
+  
+  LTAfree(&lta);
+  return(ltar);
 }
 
 /*
