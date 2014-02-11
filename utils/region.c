@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/17 23:55:44 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/02/11 16:57:48 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -326,7 +326,9 @@ regionCornerCoords(MRI_REGION *r, int which_corner, int *px, int *py, int *pz)
   \brief Determines bounding box as corners of the smallest box needed
   to fit all the non-zero voxels. If npad is non-zero then then the box
   is expanded by npad in each direction (making it 2*npad bigger in each
-  dimension).
+  dimension). region->{x,y,z} is the CRS 0-based starting point of the box.
+  region->{dx,dy,dz} is the size of the box such that a loop would run
+  for(c=region->x; c < region->x+region->dx; c++)
 */
 MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad)
 {
@@ -356,9 +358,9 @@ MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad)
   region->x  = MAX(cmin - npad,0);
   region->y  = MAX(rmin - npad,0);
   region->z  = MAX(smin - npad,0);
-  region->dx = MIN(cmax-cmin + 2*npad,mask->width);
-  region->dy = MIN(rmax-rmin + 2*npad,mask->height);
-  region->dz = MIN(smax-smin + 2*npad,mask->depth);
+  region->dx = MIN(cmax-cmin + 2*npad,mask->width-1);
+  region->dy = MIN(rmax-rmin + 2*npad,mask->height-1);
+  region->dz = MIN(smax-smin + 2*npad,mask->depth-1);
 
   return(region);
 }
