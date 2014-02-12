@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/12/17 21:06:35 $
-#    $Revision: 1.59 $
+#    $Date: 2014/02/12 16:39:12 $
+#    $Revision: 1.60 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.59 2013/12/17 21:06:35 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.60 2014/02/12 16:39:12 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -43,6 +43,7 @@ set InitRegOut = ();
 set VSM = ();
 set Brute1Max = 4;
 set Brute1Delta = 4;
+set DoBrute2 = 1;
 set SubSamp1 = 100;
 set DoAbs = 0;
 set SaveCurReg = 1;
@@ -285,10 +286,11 @@ endif
 set MinCostFile = $outreg.mincost; # This will be the final cost
 set ParamFile = $outreg.param; # This will be the final parameters
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
-  --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
+  --out-reg $outreg --interp $Interp \
   --wm-proj-abs $WMProjAbs --tol $TolF --tol1d $Tol1D\
   --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
   --nmax $nPowellMax --param $ParamFile --surf $surfname);
+if($DoBrute2) set cmd = ($cmd --brute -0.1 0.1 0.1)
 if($SaveCurReg) set cmd = ($cmd --cur-reg $tmpdir/reg.curopt.dat)
 if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
 if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
@@ -660,6 +662,10 @@ while( $#argv != 0 )
     case "--brute1delta":
       if ( $#argv < 1) goto arg1err;
       set Brute1Delta = $argv[1]; shift;
+      breaksw
+
+    case "--no-brute2":
+      set Brute2 = 0;
       breaksw
 
     case "--subsamp1":
