@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2014/02/11 21:40:57 $
- *    $Revision: 1.269 $
+ *    $Author: nicks $
+ *    $Date: 2014/02/12 18:35:48 $
+ *    $Revision: 1.270 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -878,6 +878,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   {
     QString script = QString("loadfcd ") + sa[0] + " " + sa[1];
     this->AddScript( script );
+    m_defaultSettings["Smoothed"] = true;
   }
 
   cmds.clear();
