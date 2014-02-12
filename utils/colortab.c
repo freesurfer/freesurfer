@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/10 18:50:04 $
- *    $Revision: 1.47 $
+ *    $Date: 2014/02/12 22:20:58 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1999,6 +1999,7 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
     case Left_Caudate:
     case Left_Accumbens_area:
     case Right_Accumbens_area:  
+    case non_WM_hypointensities: // not sure
       TT = TTSubCtxGM;
       break ;
 
@@ -2010,7 +2011,6 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
     case Left_VentralDC:     
     case Right_VentralDC:     
     case WM_hypointensities:
-    case non_WM_hypointensities: // not sure
     case Left_WM_hypointensities:
     case Right_WM_hypointensities:
     case Optic_Chiasm:
