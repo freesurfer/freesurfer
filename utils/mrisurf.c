@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/02/05 21:08:13 $
- *    $Revision: 1.755 $
+ *    $Author: greve $
+ *    $Date: 2014/02/13 23:51:46 $
+ *    $Revision: 1.756 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -774,7 +774,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.755 2014/02/05 21:08:13 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.756 2014/02/13 23:51:46 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -80050,7 +80050,8 @@ MRISsurfaceRASToVoxel(MRI_SURFACE *mris,
         double r, double a, double s,
         double *px, double *py, double *pz)
   \brief Computes voxel coordinates of a given surface RAS.
-         Note: surfaceRAS is the same as tkRegRAS
+   Notes: The passed mri must share  a scanner RAS with mris->vg.
+          SurfaceRAS is the same as tkRegRAS 
   \param mris - surface (only used to get MRI struct)
   \param mri - defines target voxel space
   \param r, a, s - surface coordinates
