@@ -7,8 +7,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/07 23:56:21 $
- *    $Revision: 1.37 $
+ *    $Date: 2014/02/13 23:52:39 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.37 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.38 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -1694,8 +1694,8 @@ MRISfillInteriorOld() and MRISfillInteriorRibbonTest().
 MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
 {
   int col,row,slc,fno,numu,numv,u,v,nhits,width,height,depth ;
-  float x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax;
-  float px0,py0,pz0,px1,py1,pz1,px,py,pz;
+  double x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax;
+  double px0,py0,pz0,px1,py1,pz1,px,py,pz;
   double fcol,frow,fslc, dcol,drow,dslc,val,val2;
   double vx,vy,vz, vlen, ux,uy,uz, cosa;
   VERTEX *v_0,*v_1,*v_2;
@@ -1788,17 +1788,17 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
     numu = ceil(2*d0);
     /* Fill each line in MRI volume */
     for (v=0; v<=numv; v++) {
-      px0 = x0 + (x2-x0)*(float)v/(float)numv;
-      py0 = y0 + (y2-y0)*(float)v/(float)numv;
-      pz0 = z0 + (z2-z0)*(float)v/(float)numv;
-      px1 = x1 + (x2-x1)*(float)v/(float)numv;
-      py1 = y1 + (y2-y1)*(float)v/(float)numv;
-      pz1 = z1 + (z2-z1)*(float)v/(float)numv;
+      px0 = x0 + (x2-x0)*(double)v/(double)numv;
+      py0 = y0 + (y2-y0)*(double)v/(double)numv;
+      pz0 = z0 + (z2-z0)*(double)v/(double)numv;
+      px1 = x1 + (x2-x1)*(double)v/(double)numv;
+      py1 = y1 + (y2-y1)*(double)v/(double)numv;
+      pz1 = z1 + (z2-z1)*(double)v/(double)numv;
       /* Fill each voxel on line in MRI volume */
       for (u=0; u<=numu; u++){
-        px = px0 + (px1-px0)*(float)u/(float)numu;
-        py = py0 + (py1-py0)*(float)u/(float)numu;
-        pz = pz0 + (pz1-pz0)*(float)u/(float)numu;
+        px = px0 + (px1-px0)*(double)u/(double)numu;
+        py = py0 + (py1-py0)*(double)u/(double)numu;
+        pz = pz0 + (pz1-pz0)*(double)u/(double)numu;
         MRISsurfaceRASToVoxelCached(mris, mri_dst,px,py,pz,&fcol,&frow,&fslc);
 	if(vox2sras == NULL) vox2sras = MatrixInverse(mris->m_sras2vox,NULL);
         col=nint(fcol);
