@@ -32,6 +32,8 @@ mfiles_DATA=\
 	fisher_twoclass.m \
 	fread3.m \
 	fwrite3.m \
+  fs_ranksum.m \
+  fs_signrank.m \
 	isdicomfile.m \
 	juelichmat2mat.m \
 	labelic.m \
