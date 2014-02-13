@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/10 23:52:41 $
- *    $Revision: 1.89 $
+ *    $Date: 2014/02/13 23:53:46 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1018,11 +1018,10 @@ MRI *MRIvol2VolTLKernel(MRI *src, MRI *targ, MATRIX *Vt2s)
   non-zero voxels in the mask is created.
 
  */
-MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int DoConserve, LTA **src2out)
+MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int nPad, int DoConserve, LTA **src2out)
 {
   MRI *srcmask, *srcus;
   MRI_REGION *region;
-  int nPad = 2; // not sure if it makes much of a difference
 
   if(mask) region = REGIONgetBoundingBox(mask,nPad);
   else     region = REGIONgetBoundingBox(src,nPad);
@@ -3318,7 +3317,7 @@ int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,
  */
 MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoConserve, MRI *outfill)
 {
-  int c,r,s, ct,rt,st, f, nhits;
+  int c,r,s, ct,rt,st, f, nhits,nPad=2;
   MATRIX *crssrc, *crstarg,*v2v,*vmusinv;
   double vsrc, vout;
   LTA *ltatmp,*ltamus=NULL;
@@ -3354,7 +3353,7 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
   }
   if(lta != ltatmp) LTAfree(&ltatmp);
 
-  srcmus = MRImaskAndUpsample(src, mask, UpsampleFactor, DoConserve, &ltamus);
+  srcmus = MRImaskAndUpsample(src, mask, UpsampleFactor, nPad, DoConserve, &ltamus);
 
   // Recompute vox2vox
   vmusinv = MatrixInverse(ltamus->xforms[0].m_L,NULL);
