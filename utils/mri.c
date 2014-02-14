@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/06 19:47:54 $
- *    $Revision: 1.531 $
+ *    $Date: 2014/02/14 19:57:57 $
+ *    $Revision: 1.532 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.531 $";
+const char *MRI_C_VERSION = "$Revision: 1.532 $";
 
 
 /*-----------------------------------------------------
@@ -3710,16 +3710,12 @@ MRIcopyFrames(MRI *mri_src, MRI *mri_dst, int src_start_frame, int src_end_frame
   }
   return(mri_dst) ;
 }
-/*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-  Extract a cubic region of an MR image and return it to the caller
-  ------------------------------------------------------*/
-MRI *
-MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region)
+/*
+  \fn MRI *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region)
+  \breif Extracts the given region from the source MRI. See also 
+   MRIinsertRegion().
+ */
+MRI *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region)
 {
   MRI_REGION box ;
 
@@ -3734,11 +3730,41 @@ MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region)
   return(MRIextractInto(mri_src, mri_dst, region->x, region->y, region->z,
                         region->dx, region->dy, region->dz, 0, 0, 0)) ;
 }
+/*
+  \fn MRI *MRIinsertRegion(MRI *regionvol, MRI_REGION *region, MRI *temp, MRI *out)
+  \breif Takes an MRI struct that covers the given  region and inserts it into
+  a larger volume from which the region was extracted. See also MRIextractRegion().
+ */
+MRI *MRIinsertRegion(MRI *regionvol, MRI_REGION *region, MRI *temp, MRI *out)
+{
+  int col, row, slc, f;
+  double val;
+
+  if(out == NULL){
+    out = MRIallocSequence(temp->width,temp->height,temp->depth,
+			   regionvol->type,regionvol->nframes);
+    MRIcopyHeader(temp,out);
+  }
+  if(regionvol->nframes != out->nframes){
+    printf("ERROR: MRIinsertRegion(): number of frames mismatch %d %d\n",
+	   regionvol->nframes,out->nframes);
+    return(NULL);
+  }
+  MRIcopyPulseParameters(regionvol,out);
+
+  for(col=region->x; col < region->x+region->dx; col++) {
+    for(row=region->y; row < region->y+region->dy; row++) {
+      for(slc=region->z; slc < region->z+region->dz; slc++) {
+	for(f=0; f < regionvol->nframes; f++){
+	  val = MRIgetVoxVal(regionvol,col-region->x,row-region->y,slc-region->z,f);
+	  MRIsetVoxVal(out,col,row,slc,f, val);
+	}
+      }
+    }
+  }
+  return(out);
+}
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
   Description
   Extract a cubic region of an MR image and return it to the caller
   ------------------------------------------------------*/

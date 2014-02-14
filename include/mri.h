@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/01/29 20:39:28 $
- *    $Revision: 1.459 $
+ *    $Author: greve $
+ *    $Date: 2014/02/14 19:57:57 $
+ *    $Revision: 1.460 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -575,7 +575,9 @@ MRI   *MRIextractIntoRegion(MRI *mri_src, MRI *mri_dst,
                             int x0, int y0, int z0,
                             MRI_REGION *region) ;
 
-MRI   *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region) ;
+MRI *MRIextractRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *region) ;
+MRI *MRIinsertRegion(MRI *regionvol, MRI_REGION *region, MRI *temp, MRI *out);
+
 MRI   *MRIextractPolvPlane(MRI *mri_src, MRI *mri_dst, MRI *mri_polv,
                            int wsize, int x, int y, int z);
 MRI   *MRIextractCpolv(MRI *mri_src, MRI *mri_dst, MRI *mri_polv,
