@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/13 23:53:46 $
- *    $Revision: 1.90 $
+ *    $Date: 2014/02/14 20:02:06 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4008,4 +4008,137 @@ MRI *MRIbinarizeMatch(MRI *seg, int match, int frame, MRI *out)
     }
   }
   return(out);
+}
+/*
+  \fn MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg)
+  \brief Creates a high-resolution (upsampled) segmentation given the
+  aseg and surfaces. The USF is the upsampling factor. The result is
+  upsampled and the FoV is reduced to the bare minimum so the number
+  of voxels in a dimension will not necessarily be USF times the
+  original number. The subcortical structures are the upsampled
+  versions of the low-res aseg (ie, no new information is
+  created). However, cortex benefits from the upsampling. aseg2hrseg
+  is the transform between the aseg space and the hires space (they
+  share a scanner RAS space). If aseg=NULL, then the VOL_GEOM from lhw
+  is used. If USF=-1, then no FoV reduction is done. The surfaces can
+  be NULL.  
+*/
+MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg)
+{
+  MRI *asegus,*lhwvol,*rhwvol,*lhpvol,*rhpvol,*seg;
+  int c,r,s, asegv,lhwv,rhwv,lhpv,rhpv,segv,lhRibbon,rhRibbon,Ribbon,SubCort;
+  int nPad=2;
+
+  asegus = NULL;
+  if(aseg != NULL){
+    if(USF > 0) asegus = MRImaskAndUpsample(aseg, aseg, USF, nPad, 0, aseg2hrseg);
+    else {
+      asegus = aseg;
+      *aseg2hrseg = TransformRegDat2LTA(aseg, aseg, NULL); //Identity
+    }
+  }
+  else {
+    // aseg might be null for testing purposes
+    if(lhw->vg.valid == 0){
+      printf("ERROR: MRIhiresSeg(): if aseg=NULL, then surface volume geometry must be valid\n");
+      return(NULL);
+    }
+    printf("Info: MRIhiresSeg(): aseg is NULL\n");
+    aseg = MRIalloc(lhw->vg.width,lhw->vg.height,lhw->vg.depth,MRI_UCHAR);
+    useVolGeomToMRI(&lhw->vg, aseg);
+    asegus = MRIupsampleN(aseg, NULL, abs(USF)) ;
+    MRIfree(&aseg);
+  }
+  seg  = MRIcopy(asegus,NULL); 
+  MRIcopyHeader(asegus,seg);
+
+  if(lhw){
+    printf("lhw -------------\n");
+    lhwvol = MRIcopy(asegus,NULL); 
+    MRIcopyHeader(asegus,lhwvol);
+    MRISfillInterior(lhw, 0, lhwvol);
+  }
+  if(lhp){
+    printf("lhp -------------\n");
+    lhpvol = MRIcopy(asegus,NULL); 
+    MRIcopyHeader(asegus,lhpvol);
+    MRISfillInterior(lhp, 0, lhpvol);
+  }
+  if(rhw){
+    printf("rhw -------------\n");
+    rhwvol = MRIcopy(asegus,NULL); 
+    MRIcopyHeader(asegus,rhwvol);
+    MRISfillInterior(rhw, 0, rhwvol);
+  }
+  if(rhp){
+    printf("rhp -------------\n");
+    rhpvol = MRIcopy(asegus,NULL); 
+    MRIcopyHeader(asegus,rhpvol);
+    MRISfillInterior(rhp, 0, rhpvol);
+  }
+
+  // stop compiler warnings
+  lhwv = rhwv = lhpv = rhpv = 0; segv=0; asegv=0;
+
+  printf("Starting seg fill\n");
+  for(c=0; c < asegus->width; c++){
+    for(r=0; r < asegus->height; r++){
+      for(s=0; s < asegus->depth; s++){
+
+	if(aseg) asegv = MRIgetVoxVal(asegus,c,r,s,0);
+	if(lhw) lhwv = MRIgetVoxVal(lhwvol,c,r,s,0);
+	if(rhw) rhwv = MRIgetVoxVal(rhwvol,c,r,s,0);
+	if(lhp) lhpv = MRIgetVoxVal(lhpvol,c,r,s,0);
+	if(rhp) rhpv = MRIgetVoxVal(rhpvol,c,r,s,0);
+
+	// outside of pial surfs, set to 0 if seg=cortex
+	if(!lhpv && !rhpv && (asegv==Left_Cerebral_Cortex || asegv==Right_Cerebral_Cortex)){
+	  MRIsetVoxVal(seg,c,r,s,0, 0);
+	  continue;
+	}
+
+	// Check if voxel is in the "true" ribbon
+	lhRibbon=0;
+	if((lhpv && !lhwv)) lhRibbon=1;
+	rhRibbon=0;
+	if((rhpv && !rhwv)) rhRibbon=1;
+	Ribbon = lhRibbon || rhRibbon;
+
+	// SubCort=1 if aseg says voxel is neither cortex nor cerebral WM nor background
+	SubCort=0;
+	if(asegv!=Left_Cerebral_Cortex  && asegv!=Left_Cerebral_White_Matter &&
+	   asegv!=Right_Cerebral_Cortex && asegv!=Right_Cerebral_White_Matter && 
+	   asegv!=0 && aseg) SubCort=1;
+
+	if(SubCort) segv = asegv; // subcort rules
+	else if(Ribbon){
+	  // Voxel is in the "true" ribbon but not in a subcortical structure
+	  if(lhRibbon) segv = Left_Cerebral_Cortex;
+	  if(rhRibbon) segv = Right_Cerebral_Cortex;
+	}
+	else {
+	  /* To get here, it cannot be in the true ribbon so, if the
+	     aseg says it is CorticalGM, that is wrong. The question
+	     is, what is right? Probably WM, but ideally, this should
+	     be set to the seg of nearby voxels. For now, just use WM. */
+	  if(asegv == Left_Cerebral_Cortex)       segv = Left_Cerebral_White_Matter; 
+	  else if(asegv == Right_Cerebral_Cortex) segv = Right_Cerebral_White_Matter;
+	  else{
+	    // To get here aseg must be CerebralWM (?)
+	    if(asegv != Left_Cerebral_White_Matter && asegv != Right_Cerebral_White_Matter &&
+	       asegv != 0 && aseg)
+	      printf("WARNING: MRIhiresSeg(): voxel %d %d %d is %d, expecting WM\n",c,r,s,asegv);
+	    segv = asegv;
+	  }
+	}
+	MRIsetVoxVal(seg,c,r,s,0, segv);
+      }
+    }
+  }
+  if(asegus != aseg) MRIfree(&asegus);
+  if(lhw) MRIfree(&lhwvol);
+  if(rhw) MRIfree(&rhwvol);
+  if(lhp) MRIfree(&lhpvol);
+  if(rhp) MRIfree(&rhpvol);
+  return(seg);
 }

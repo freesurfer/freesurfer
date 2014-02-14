@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/13 23:53:46 $
- *    $Revision: 1.48 $
+ *    $Date: 2014/02/14 20:02:06 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -121,8 +121,10 @@ int MRIsegStatsRobust(MRI *seg, int segid, MRI *mri,int frame,
 MRI *MRImask_with_T2_and_aparc_aseg(MRI *mri_src, MRI *mri_dst, MRI *mri_T2, MRI *mri_aparc_aseg, float T2_thresh, int mm_from_exterior) ;
 int *MRIsegmentationList(MRI *seg, int *pListLength);
 
-  MATRIX *BuildGTM0(MRI *seg, MRI *mask, double cFWHM, double rFWHM, double sFWHM, MATRIX *X);
-  MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out);
+MATRIX *BuildGTM0(MRI *seg, MRI *mask, double cFWHM, double rFWHM, double sFWHM, MATRIX *X);
+MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out);
+MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg);
+
 
 #if defined(__cplusplus)
 };
