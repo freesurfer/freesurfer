@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/10 22:34:50 $
- *    $Revision: 1.147 $
+ *    $Date: 2014/02/14 19:42:59 $
+ *    $Revision: 1.148 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1876,7 +1876,7 @@ bool LayerMRI::GetVoxelValueRange( const double* pt0, const double* pt1, int nPl
   double* voxel_size = m_imageData->GetSpacing();
   int* dim = m_imageData->GetDimensions();
 
-  if ( nPlane < 0 || nPlane >= dim[nPlane] )
+  if ( nPlane < 0 ) // || nPlane >= dim[nPlane] )
   {
     return false;
   }
@@ -2062,7 +2062,7 @@ bool LayerMRI::GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane
   double* voxel_size = m_imageData->GetSpacing();
   int* dim = m_imageData->GetDimensions();
 
-  if ( nPlane < 0 || nPlane >= dim[nPlane] )
+  if ( nPlane < 0 )// || nPlane >= dim[nPlane] )
   {
     return false;
   }
