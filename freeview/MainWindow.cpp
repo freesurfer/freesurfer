@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/02/12 18:35:48 $
- *    $Revision: 1.270 $
+ *    $Author: rpwang $
+ *    $Date: 2014/02/14 19:22:19 $
+ *    $Revision: 1.271 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1510,6 +1510,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceOverlayMethod( sa );
   }
+  else if ( cmd == "setsurfaceoverlayopacity" )
+  {
+    CommandSetSurfaceOverlayOpacity( sa );
+  }
   else if ( cmd == "setsurfaceoffset" )
   {
     CommandSetSurfaceOffset( sa );
@@ -2460,6 +2464,229 @@ void MainWindow::CommandLoadTrack(const QStringList &cmd)
 
 void MainWindow::CommandLoadSurface( const QStringList& cmd )
 {
+  QStringList rawoverlay_list = cmd[1].split("overlay=", QString::SkipEmptyParts, Qt::CaseInsensitive);
+  QStringList overlay_list;
+  for (int i = 1; i < rawoverlay_list.size(); i++)
+  {
+    QStringList sublist = rawoverlay_list[i].split("correlation=", QString::SkipEmptyParts, Qt::CaseInsensitive);
+    overlay_list << QString("overlay=") + sublist[0];
+    for (int j = 1; j < sublist.size(); j++)
+      overlay_list << QString("correlation=") + sublist[i];
+  }
+
+  overlay_list.insert(0, rawoverlay_list[0]);
+
+  QString surface_fn;
+  QString fn_patch = "";
+  QString fn_target = "";
+  QStringList sup_files;
+  for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
+  {
+    QStringList sa_fn = overlay_list[nOverlay].split(":");
+    if (nOverlay == 0)    // first one is not overlay file but actually surface file
+      surface_fn = sa_fn[0];
+    bool bLoadAll = false;
+    bool bLabelOutline = false;
+    QString labelColor;
+    QString overlay_reg;
+    QString overlay_opacity;
+    QString overlay_method = "linearopaque";
+    QStringList overlay_thresholds;
+    bool bSecondHalfData = false;
+    for ( int k = sa_fn.size()-1; k >= 0; k-- )
+    {
+      int n = sa_fn[k].indexOf( "=" );
+      if ( n != -1  )
+      {
+        QString subOption = sa_fn[k].left( n ).toLower();
+        QString subArgu = sa_fn[k].mid( n+1 );
+        if ( subOption == "overlay_reg" )
+          overlay_reg = subArgu;
+        else if (subOption == "overlay_method")
+          overlay_method = subArgu;
+        else if (subOption == "overlay_threshold")
+          overlay_thresholds = subArgu.split(",", QString::SkipEmptyParts);
+        else if (subOption == "overlay_rh" && (subArgu == "1" || subArgu == "true"))
+          bSecondHalfData = true;
+        else if (subOption == "overlay_opacity")
+          overlay_opacity = subArgu;
+      }
+    }
+    if (overlay_reg.isEmpty())
+      overlay_reg = "n/a";
+
+    for ( int k = sa_fn.size()-1; k >= 0; k-- )
+    {
+      int n = sa_fn[k].indexOf( "=" );
+      if ( n != -1  )
+      {
+        QString subOption = sa_fn[k].left( n ).toLower();
+        QString subArgu = sa_fn[k].mid( n+1 );
+        if ( subOption == "color" )
+        {
+          m_scripts.insert( 0, QString("setsurfacecolor ") + subArgu );
+        }
+        else if ( subOption == "edgecolor" || subOption == "edge_color")
+        {
+          m_scripts.insert( 0, QString("setsurfaceedgecolor ") + subArgu );
+        }
+        else if ( subOption == "edgethickness"|| subOption == "edge_thickness" )
+        {
+          m_scripts.insert( 0, QString("setsurfaceedgethickness ") + subArgu );
+        }
+        else if ( subOption == "vertex" )
+        {
+          m_scripts.insert( 0, QString("displaysurfacevertex ") + subArgu);
+        }
+        else if ( subOption == "vertexcolor" || subOption == "vertex_color" )
+        {
+          m_scripts.insert( 0, QString("setsurfacevertexcolor ") + subArgu );
+        }
+        else if ( subOption == "curv" || subOption == "curvature" )
+        {
+          m_scripts.insert( 0, QString("loadsurfacecurvature ") + subArgu );
+        }
+        else if ( subOption == "overlay" || subOption == "correlation" )
+        {
+          // add script to load surface overlay files
+          QString script = "loadsurfaceoverlay ";
+          script += subArgu;
+
+          script += " " + overlay_reg;
+          if (subOption == "correlation")
+            script += QString(" correlation");
+          else
+            script += QString(" n/a");
+
+          if (bSecondHalfData)
+              script += " rh";
+          m_scripts.insert( 0, script );
+
+          if (overlay_method != "linearopaque" || !overlay_thresholds.isEmpty())
+          {
+            script = QString("setsurfaceoverlaymethod ") + overlay_method + " " +
+                     overlay_thresholds.join(" ");
+            // insert right AFTER loadsurfaceoverlay command
+            m_scripts.insert( 1, script );
+          }
+
+          if (!overlay_opacity.isEmpty())
+            m_scripts.insert(1, QString("setsurfaceoverlayopacity ") + overlay_opacity);
+        }
+        else if ( subOption == "annot" || subOption == "annotation" )
+        {
+          // add script to load surface annotation files
+          QStringList annot_fns =subArgu.split(",");
+          for ( int i = annot_fns.size()-1; i >= 0; i-- )
+          {
+            m_scripts.insert( 0, QString("loadsurfaceannotation ") + annot_fns[i] );
+          }
+        }
+        else if ( subOption == "label" )
+        {
+          // add script to load surface label files
+          QStringList fns = subArgu.split(",");
+          for ( int i = fns.size()-1; i >= 0; i-- )
+          {
+            m_scripts.insert(0, QString("loadsurfacelabel ")+fns[i]);
+          }
+        }
+        else if ( subOption == "vector" )
+        {
+          // add script to load surface vector files
+          QStringList vector_fns = subArgu.split(",");
+          for ( int i = vector_fns.size() - 1 ; i >= 0 ; i-- )
+          {
+            m_scripts.insert(0, QString("loadsurfacevector ")+vector_fns[i]);
+          }
+        }
+        else if (subOption == "spline")
+        {
+          m_scripts.insert(0, QString("loadsurfacespline ")+subArgu);
+        }
+        else if ( subOption == "patch" )
+        {
+          if ( subArgu.contains( "/" ) )
+          {
+            subArgu = QFileInfo( subArgu ).absoluteFilePath();
+          }
+          fn_patch = subArgu;
+        }
+        else if ( subOption == "target" || subOption == "target_surf")
+        {
+          if ( subArgu.contains( "/" ) )
+          {
+            subArgu = QFileInfo( subArgu ).absoluteFilePath();
+          }
+          fn_target = subArgu;
+        }
+        else if ( subOption == "name" )
+        {
+          m_scripts.insert( 0, QString("setlayername Surface ")+subArgu );
+        }
+        else if ( subOption == "lock" )
+        {
+          m_scripts.insert( 0, QString("locklayer Surface ")+subArgu );
+        }
+        else if ( subOption == "visible" )
+        {
+          m_scripts.insert( 0, QString("showlayer Surface ")+subArgu );
+        }
+        else if ( subOption == "offset" )
+        {
+          QString script = "setsurfaceoffset ";
+          script += subArgu.replace(",", " ");
+          m_scripts.insert( 0, script );
+        }
+        else if ( subOption == "all")
+        {
+          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+            bLoadAll = true;
+        }
+        else if ( subOption == "label_outline" || subOption == "labeloutline")
+        {
+          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+            bLabelOutline = true;
+        }
+        else if (subOption == "label_color" || subOption == "labelcolor")
+        {
+          labelColor = subArgu;
+        }
+        else if (subOption == "sup_files")
+        {
+          sup_files = subArgu.split(",",  QString::SkipEmptyParts);
+        }
+        else if (subOption != "overlay_reg" && subOption != "overlay_method" && subOption != "overlay_threshold" &&
+                 subOption != "overlay_rh" && subOption != "overlay_opacity")
+        {
+          cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
+          return;
+        }
+      }
+    }
+    if (bLabelOutline)
+    {
+      for (int i = 0; i < m_scripts.size(); i++)
+      {
+        if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
+          m_scripts.insert(i+1, "setsurfacelabeloutline 1");
+      }
+    }
+    if (!labelColor.isEmpty())
+    {
+      for (int i = 0; i < m_scripts.size(); i++)
+      {
+        if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
+          m_scripts.insert(i+1, QString("setsurfacelabelcolor ") + labelColor);
+      }
+    }
+  }
+  LoadSurfaceFile( surface_fn, fn_patch, fn_target, sup_files );
+}
+
+/*
+void MainWindow::CommandLoadSurface( const QStringList& cmd )
+{
   QString fullfn = cmd[1];
   int nIgnoreStart = fullfn.indexOf( "#" );
   int nIgnoreEnd = fullfn.indexOf( "#", nIgnoreStart+1 );
@@ -2712,6 +2939,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   }
   LoadSurfaceFile( fn, fn_patch, fn_target, sup_files );
 }
+*/
 
 void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
 {
@@ -2721,6 +2949,30 @@ void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
     if (cmd[1] == "1")
     {
       surf->SetActiveLabelOutline(true);
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceOverlayOpacity(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    SurfaceOverlay* overlay = surf->GetActiveOverlay();
+    if ( overlay )
+    {
+      bool ok;
+      double opacity = cmd[1].toDouble(&ok);
+      if (ok)
+      {
+        overlay->GetProperty()->SetOpacity(opacity);
+        surf->UpdateOverlay(true);
+        overlay->EmitDataUpdated();
+      }
+      else
+      {
+        cerr << "Invalid input for overlay opacity.\n";
+      }
     }
   }
 }
