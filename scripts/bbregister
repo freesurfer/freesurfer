@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/02/12 16:39:12 $
-#    $Revision: 1.60 $
+#    $Date: 2014/02/14 20:00:39 $
+#    $Revision: 1.61 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.60 2014/02/12 16:39:12 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.61 2014/02/14 20:00:39 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -79,6 +79,7 @@ set RMSFile = ();
 set templateout = ();
 set OutVol = ();
 set fsvol  = brainmask;
+set initsurfcost = ();
 set surfcost = ();
 set surfcon  = ();
 set surfname = "white";
@@ -268,6 +269,7 @@ if($DoPass1) then
   if($#MaskLabel)  set cmd = ($cmd --label $MaskLabel);
   if($LHOnly) set cmd = ($cmd --lh-only);
   if($RHOnly) set cmd = ($cmd --rh-only);
+  if($#initsurfcost) set cmd = ($cmd --init-surf-cost $initsurfcost);
   if($UseEPIMask) set cmd = ($cmd --mask);
   if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
   if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
@@ -304,6 +306,7 @@ if($#OutVol) set cmd = ($cmd --o $OutVol);
 if($#MaskLabel)  set cmd = ($cmd --label $MaskLabel);
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
+if($#initsurfcost && ! $DoPass1)  set cmd = ($cmd --init-surf-cost $initsurfcost);
 if($#surfcost)  set cmd = ($cmd --surf-cost $surfcost);
 if($#surfcon)   set cmd = ($cmd --surf-con  $surfcon);
 if($DoAbs) set cmd = ($cmd --penalty-abs)
@@ -676,6 +679,11 @@ while( $#argv != 0 )
     case "--surf":
       if ( $#argv < 1) goto arg1err;
       set surfname = $argv[1]; shift;
+      breaksw
+
+    case "--init-surf-cost":
+      if ( $#argv < 1) goto arg1err;
+      set initsurfcost = $argv[1]; shift;
       breaksw
 
     case "--surf-cost":
