@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/30 02:01:06 $
- *    $Revision: 1.107 $
+ *    $Date: 2014/02/14 19:05:38 $
+ *    $Revision: 1.108 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.107 2013/12/30 02:01:06 greve Exp $";
+"$Id: mri_segreg.c,v 1.108 2014/02/14 19:05:38 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -365,13 +365,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.107 2013/12/30 02:01:06 greve Exp $",
+     "$Id: mri_segreg.c,v 1.108 2014/02/14 19:05:38 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.107 2013/12/30 02:01:06 greve Exp $",
+     "$Id: mri_segreg.c,v 1.108 2014/02/14 19:05:38 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -536,14 +536,20 @@ int main(int argc, char **argv) {
     if(UseRH){
       sprintf(tmpstr,"%s.rh.mgh",surfcost0base);
       rhcost0file = strcpyalloc(tmpstr);
-      }
+    }
+    nsubsampsave=nsubsamp;
+    nsubsamp=1;
     GetSurfCosts(mov, NULL, R0, R, p, dof, costs);
+    nsubsamp=nsubsampsave;
     if(UseLH) lhcost0 = MRIcopy(lhcost,NULL);
     if(UseRH) rhcost0 = MRIcopy(rhcost,NULL);
     //if(lhcost0file)  MRIwrite(lhcost0,lhcost0file);
     //if(rhcost0file)  MRIwrite(rhcost0,rhcost0file);
     free(lhcost0file);lhcost0file=NULL;
     free(rhcost0file);rhcost0file=NULL;
+    /*If the lhcost0file is not set to NULL, then it adds overhead to
+     GetSurfCosts(). Not sure why I don't just save the cost0 file
+     and don't mess with it again.*/
   }
 
   if(DoProfile){
