@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/14 20:02:06 $
- *    $Revision: 1.91 $
+ *    $Date: 2014/02/18 22:26:57 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3337,7 +3337,8 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
 
   if(lta->type != LINEAR_VOX_TO_VOX)
     ltatmp = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
-  else ltatmp = lta;
+  else   
+    ltatmp = LTAcopy(lta,NULL);
 
   // Extract Vox2Vox
   if(LTAmriIsSource(ltatmp, src)){
@@ -3351,7 +3352,6 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
     v2v = ltatmp->inv_xforms[0].m_L;
     vgtarg = lta->inv_xforms[lta->num_xforms-1].dst;
   }
-  if(lta != ltatmp) LTAfree(&ltatmp);
 
   srcmus = MRImaskAndUpsample(src, mask, UpsampleFactor, nPad, DoConserve, &ltamus);
 
@@ -3433,6 +3433,7 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
     MRIfree(&hitmap);
   }
 
+  LTAfree(&ltatmp);
   MRIfree(&srcmus);
   return(outfill);
 }
