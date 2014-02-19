@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/14 21:02:56 $
- *    $Revision: 1.49 $
+ *    $Date: 2014/02/19 18:27:12 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,6 +88,8 @@ MRI *fMRIsumSquare(MRI *fmri, int Update, MRI *sumsqr);
 MRI *fMRInskip(MRI *inmri, int nskip, MRI *outmri);
 MRI *fMRIndrop(MRI *inmri, int ndrop, MRI *outmri);
 MRI *fMRIframe(MRI *inmri, int frame, MRI *outmri);
+MRI *fMRIinsertFrame(MRI *srcmri, int srcframe, MRI *fmri, int frame);
+
 
 MATRIX *MRItoMatrix(MRI *mri, int c, int r, int s,
                     int Mrows, int Mcols, MATRIX *M);

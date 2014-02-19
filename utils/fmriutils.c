@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/14 21:02:56 $
- *    $Revision: 1.76 $
+ *    $Date: 2014/02/19 18:27:13 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.76 2014/01/14 21:02:56 greve Exp $
+  $Id: fmriutils.c,v 1.77 2014/02/19 18:27:13 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -61,7 +61,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.76 2014/01/14 21:02:56 greve Exp $");
+  return("$Id: fmriutils.c,v 1.77 2014/02/19 18:27:13 greve Exp $");
 }
 
 
@@ -773,6 +773,7 @@ MRI *fMRIframe(MRI *inmri, int frame, MRI *outmri)
       return(NULL);
     }
     MRIcopyHeader(inmri,outmri);
+    MRIcopyPulseParameters(inmri,outmri);
   }
   else{
     if(outmri->width  != inmri->width ||
@@ -799,6 +800,41 @@ MRI *fMRIframe(MRI *inmri, int frame, MRI *outmri)
   }
 
   return(outmri);
+}
+/*
+  \fn MRI *fMRIinsertFrame(MRI *srcmri, int srcframe, MRI *fmri, int frame)
+  \brief Inserts the specified frame from the source mri into the target frame
+  of the fmri. If fmri is NULL, then it is allocated with frame+1 frames.
+ */
+MRI *fMRIinsertFrame(MRI *srcmri, int srcframe, MRI *fmri, int frame)
+{
+  int c,r,s;
+  double v;
+
+  if(fmri == NULL){
+    fmri = MRIallocSequence(srcmri->width,srcmri->height,srcmri->depth,srcmri->type,frame+1);
+    MRIcopyHeader(srcmri,fmri);
+    MRIcopyPulseParameters(srcmri,fmri);
+  }
+  if(fmri->nframes <= frame){
+    printf("ERROR: fMRIinsertFrame() frame %d => nframes %d\n",frame,fmri->nframes);
+    return(NULL);
+  }
+  if(srcmri->nframes <= srcframe){
+    printf("ERROR: fMRIinsertFrame() srcframe %d => nframes %d\n",srcframe,srcmri->nframes);
+    return(NULL);
+  }
+
+  for(c=0; c < srcmri->width; c++){
+    for(r=0; r < srcmri->height; r++){
+      for(s=0; s < srcmri->depth; s++){
+	v = MRIgetVoxVal(srcmri,c,r,s,srcframe);
+	MRIsetVoxVal(fmri,c,r,s,frame,v);
+      }
+    }
+  }
+
+  return(fmri);
 }
 
 
