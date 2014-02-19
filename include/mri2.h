@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/14 20:02:06 $
- *    $Revision: 1.49 $
+ *    $Date: 2014/02/19 18:26:38 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -124,6 +124,9 @@ int *MRIsegmentationList(MRI *seg, int *pListLength);
 MATRIX *BuildGTM0(MRI *seg, MRI *mask, double cFWHM, double rFWHM, double sFWHM, MATRIX *X);
 MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out);
 MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg);
+MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct);
+MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp, 
+				 MRIS *rhw, MRIS *rhp, int USF, COLOR_TABLE *ct);
 
 
 #if defined(__cplusplus)
