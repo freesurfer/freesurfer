@@ -7,8 +7,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/13 23:52:39 $
- *    $Revision: 1.38 $
+ *    $Date: 2014/02/19 18:25:52 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.38 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.39 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -1705,7 +1705,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   MRI_REGION *region;
   struct timeb start ;
 
-  printf("Using New MRISfillInterior()\n");fflush(stdout);
+  //printf("Using New MRISfillInterior()\n");fflush(stdout);
 
   TimerStart(&start) ;
 
@@ -1750,7 +1750,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   }
   MRIcopyHeader(mri_dst,mri_vlen);
 
-  printf("  creating shell\n");
+  //printf("  creating shell\n");
   mri_shell = MRIalloc(mri_dst->width, mri_dst->height, mri_dst->depth, MRI_INT);
   if(mri_shell == NULL){
     printf("ERROR: alloc fill interior shell\n");
@@ -1837,7 +1837,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
       }
     }
   }
-  printf("  shell done  t = %g\n",TimerStop(&start)/1000.0) ;
+  //printf("  shell done  t = %g\n",TimerStop(&start)/1000.0) ;
   MatrixFree(&crs);
   MatrixFree(&xyz);
   MRIfree(&mri_vlen);
@@ -1864,10 +1864,10 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   MRIfree(&mri_shell);
 
   // Flood the outside (outside includes shell). This is the part that takes the longest.
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-  printf("  flooding outside  ");fflush(stdout);
+  //printf("  t = %g\n",TimerStop(&start)/1000.0) ;
+  //printf("  flooding outside  ");fflush(stdout);
   outsidebb = MRISfloodoutside(shellbb, NULL) ;
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ; fflush(stdout);
+  //printf("  t = %g\n",TimerStop(&start)/1000.0) ; fflush(stdout);
 
   // Add the shell to the interior, remove voxels that are mostly on
   // the outside of the surface
@@ -1890,8 +1890,8 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   MRIfree(&mri_cosa);
   MRIfree(&shellbb);
   MRIfree(&outsidebb);
-  printf("  found %d voxels in interior, volume = %g\n",nhits,
-	 nhits*mri_dst->xsize*mri_dst->ysize*mri_dst->zsize);
+  //printf("  Found %d voxels in interior, volume = %g\n",nhits,
+  //nhits*mri_dst->xsize*mri_dst->ysize*mri_dst->zsize);
   printf("  MRISfillInterior t = %g\n",TimerStop(&start)/1000.0) ;
 
   return(mri_dst);
