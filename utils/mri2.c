@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/19 18:26:38 $
- *    $Revision: 1.93 $
+ *    $Date: 2014/02/19 20:53:25 $
+ *    $Revision: 1.94 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4159,7 +4159,7 @@ MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct)
   double vmult;
   VOL_GEOM *vol;
 
-  printf("MRIpartialVolumeFraction() USF=%d\n",USF);fflush(stdout);
+  //printf("MRIpartialVolumeFraction() USF=%d\n",USF);fflush(stdout);
 
   if(ct->ctabTissueType == NULL){
     printf("ERROR: MRIpartialVolumeFraction(): color table does not have tissue type ctab\n");
@@ -4185,9 +4185,13 @@ MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct)
     // binarize tissue type map
     ttbin = MRIbinarizeMatch(ttseg, tt+1, 0, ttbin);
     // compute pvf based on number of seg voxels that fall into output vol vox
-    pvf[tt] = MRIvol2VolFill(ttbin, NULL, seg2vol, 1, 1, NULL);//USF=1 always here
-    // scale factor for mapping to a different voxel size
-    MRImultiplyConst(pvf[tt], vmult, pvf[tt]);
+    pvf[tt] = MRIvol2VolFill(ttbin, NULL, seg2vol, 1, 0, NULL);//USF=1 always here
+    // Better to turn off conserving in vol2volFill than to scale. The simple scaling
+    // below creates a situation in which voxels in the middle of WM do not have
+    // a PVF=1 because the number of highres voxels that land in a lowres voxel
+    // is not constant.
+    //Scale factor for mapping to a different voxel size
+    //MRImultiplyConst(pvf[tt], vmult, pvf[tt]);
   }
 
   MRIfree(&ttseg);
