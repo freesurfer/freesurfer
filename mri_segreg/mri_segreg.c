@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/14 19:05:38 $
- *    $Revision: 1.108 $
+ *    $Date: 2014/02/19 21:26:53 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.108 2014/02/14 19:05:38 greve Exp $";
+"$Id: mri_segreg.c,v 1.109 2014/02/19 21:26:53 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -354,7 +354,7 @@ int main(int argc, char **argv) {
   struct timeb  mytimer;
   double secCostTime;
   FILE *fp, *fpMinCost, *fpInitCost, *fpRMSDiff, *fpPreOpt=NULL, *fpRelCost, *fpParam;
-  double rmsDiffSum, rmsDiffMean=0, rmsDiffMax=0, d;
+  double rmsDiffSum, rmsDiffSum2, rmsDiffMean=0, rmsDiffMax=0, d, rmsDiffStd=0;
   double rcost0, rcost;
   VERTEX *v;
   int nsubsampsave = 0;
@@ -365,13 +365,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.108 2014/02/14 19:05:38 greve Exp $",
+     "$Id: mri_segreg.c,v 1.109 2014/02/19 21:26:53 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.108 2014/02/14 19:05:38 greve Exp $",
+     "$Id: mri_segreg.c,v 1.109 2014/02/19 21:26:53 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -937,6 +937,7 @@ int main(int argc, char **argv) {
 
   if(DoRMSDiff){
     rmsDiffSum = 0;
+    rmsDiffSum2 = 0;
     rmsDiffMax = 0;
     if(lhwm){
       printf("Computing change in lh position\n");
@@ -945,6 +946,7 @@ int main(int argc, char **argv) {
 	v = &(lhwm->vertices[vno]);
 	d = sqrt(v->x*v->x + v->y*v->y + v->z*v->z );
 	rmsDiffSum += d;
+	rmsDiffSum2 += (d*d);
 	if(rmsDiffMax < d) rmsDiffMax = d;
       }
       rmsDiffMean = rmsDiffSum/(lhwm->nvertices);
@@ -957,21 +959,22 @@ int main(int argc, char **argv) {
 	v = &(rhwm->vertices[vno]);
 	d = sqrt(v->x*v->x + v->y*v->y + v->z*v->z );
 	rmsDiffSum += d;
+	rmsDiffSum2 += (d*d);
 	if(rmsDiffMax < d) rmsDiffMax = d;
       }
-      if(lhwm)
-	rmsDiffMean = rmsDiffSum/(lhwm->nvertices + rhwm->nvertices);
-      else
-	rmsDiffMean = rmsDiffSum/(rhwm->nvertices);
+      if(lhwm) n = (lhwm->nvertices + rhwm->nvertices);
+      else     n = rhwm->nvertices;
+      rmsDiffMean = rmsDiffSum/n;
+      rmsDiffStd = sqrt((rmsDiffSum2-n*rmsDiffMean*rmsDiffMean)/(n-1));
     }
-    printf("Surface RMS Diff (mm) %lf %lf\n",rmsDiffMean,rmsDiffMax);
-    fprintf(fp,"Surface RMS Diff (mm) %lf %lf\n",rmsDiffMean,rmsDiffMax);
+    printf("Surface-RMS-Diff-mm %lf %lf %lf\n",rmsDiffMean,rmsDiffStd,rmsDiffMax);
+    fprintf(fp,"Surface-RMS-Diff-mm %lf %lf %lf\n",rmsDiffMean,rmsDiffStd,rmsDiffMax);
     if(RMSDiffFile){
       fpRMSDiff = fopen(RMSDiffFile,"w");
-      //rmsDiffMean rmsDiffMax MinCost Nevals Tx Ty Tz Rx Ry Rz  WMMean CtxMean PctContrast 
+      //rmsDiffMean rmsDiffStd rmsDiffMax MinCost Nevals Tx Ty Tz Rx Ry Rz  WMMean CtxMean PctContrast 
       fprintf(fpRMSDiff,
-	      "%12.9lf %12.9lf %12.9lf %4d  %7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf  %lf %lf %lf \n",
-	      rmsDiffMean,rmsDiffMax,costs[7],nCostEvaluations,
+	      "%12.9lf %12.9lf %12.9lf %12.9lf %4d  %7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf  %lf %lf %lf \n",
+	      rmsDiffMean,rmsDiffStd,rmsDiffMax,costs[7],nCostEvaluations,
 	      p[0],p[1],p[2],p[3],p[4],p[5],
 	      costs[1],costs[4],costs[6]);
 	      
