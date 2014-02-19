@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/02/14 20:00:39 $
-#    $Revision: 1.61 $
+#    $Date: 2014/02/19 21:27:23 $
+#    $Revision: 1.62 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.61 2014/02/14 20:00:39 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.62 2014/02/19 21:27:23 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -50,6 +50,7 @@ set SaveCurReg = 1;
 set featdir = ();
 set InitCostFile = ();
 set CostFailThresh = ();
+set fwhm = ();
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -76,6 +77,7 @@ set UseEPIMask = 0;
 set UseCortexLabel = 1;
 
 set RMSFile = ();
+set RMSFile0 = ();
 set templateout = ();
 set OutVol = ();
 set fsvol  = brainmask;
@@ -194,6 +196,15 @@ echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
+if($#fwhm) then
+  # This can be done for testing purposes
+  echo "Smoothing template by $fwhm" | tee -a $LF
+  set cmd = (mri_fwhm --so --fwhm $fwhm --i $template  --o $template)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
 if($#InitReg == 0) then
   set regvol = $template
   set InitReg = $tmpdir/reg.init.dat
@@ -311,6 +322,7 @@ if($#surfcost)  set cmd = ($cmd --surf-cost $surfcost);
 if($#surfcon)   set cmd = ($cmd --surf-con  $surfcon);
 if($DoAbs) set cmd = ($cmd --penalty-abs)
 if($#InitCostFile) set cmd = ($cmd --initcost $InitCostFile);
+if($#RMSFile0) set cmd = ($cmd --rms $RMSFile0);
 
 echo $cmd | tee -a $LF
 $cmd |& tee -a $LF
@@ -476,6 +488,12 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $movvol"
         exit 1;
       endif
+      breaksw
+
+    case "--fwhm":
+      # For testing
+      if ( $#argv < 1) goto arg1err;
+      set fwhm = $argv[1]; shift;
       breaksw
 
     case "--int":
@@ -781,6 +799,12 @@ while( $#argv != 0 )
     case "--rms":
       if($#argv < 1) goto arg1err;
       set RMSFile = $argv[1]; shift;
+      breaksw
+
+    case "--rms0":
+      # only works with --no-pass1
+      if($#argv < 1) goto arg1err;
+      set RMSFile0 = $argv[1]; shift;
       breaksw
 
     case "--rand-init":
