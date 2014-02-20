@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/05/12 22:28:01 $
- *    $Revision: 1.693.2.7 $
+ *    $Author: greve $
+ *    $Date: 2014/02/20 21:00:19 $
+ *    $Revision: 1.693.2.8 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,7 +764,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.693.2.7 2013/05/12 22:28:01 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.693.2.8 2014/02/20 21:00:19 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -73877,7 +73877,7 @@ MRI *MRISar1(MRIS *surf, MRI *src, MRI *mask, MRI *ar1)
 {
   int nnbrs, frame, vtx, nbrvtx, nthnbr, **crslut, c,r,s, nvox;
   int cnbr, rnbr,snbr, nnbrs_actual;
-  float valvtx, valnbr, ar1sum, sumsqvtx, vtxvar, sumsqnbr, sumsqx, nbrvar;
+  double valvtx, valnbr, ar1sum, sumsqvtx, vtxvar, sumsqnbr, sumsqx, nbrvar;
 
   nvox = src->width * src->height * src->depth;
   if (surf->nvertices != nvox)
