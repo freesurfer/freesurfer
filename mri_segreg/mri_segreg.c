@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/19 21:26:53 $
- *    $Revision: 1.109 $
+ *    $Date: 2014/02/20 00:16:28 $
+ *    $Revision: 1.110 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.109 2014/02/19 21:26:53 greve Exp $";
+"$Id: mri_segreg.c,v 1.110 2014/02/20 00:16:28 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -269,7 +269,7 @@ double txlist[NMAX],tylist[NMAX],tzlist[NMAX];
 double axlist[NMAX],aylist[NMAX],azlist[NMAX];
 
 MRIS *lhwm, *rhwm, *lhctx, *rhctx;
-MRI *lhsegmask, *rhsegmask;
+MRI *lhsegmask=NULL, *rhsegmask=NULL;
 MRI *lhlabel, *rhlabel;
 int UseMask = 0;
 char *cmdline2;
@@ -365,13 +365,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.109 2014/02/19 21:26:53 greve Exp $",
+     "$Id: mri_segreg.c,v 1.110 2014/02/20 00:16:28 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.109 2014/02/19 21:26:53 greve Exp $",
+     "$Id: mri_segreg.c,v 1.110 2014/02/20 00:16:28 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1089,10 +1089,25 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mid-frame")) DoMidFrame = 1;
     else if (!strcasecmp(option, "--no-mask")) UseMask = 0;
     else if (!strcasecmp(option, "--mask"))    UseMask = 1;
-    else if (!strcasecmp(option, "--sd")) {
-      SUBJECTS_DIR = pargv[0] ;
+    else if (!strcasecmp(option, "--lh-mask")){
+      if(nargc < 1) argnerr(option,1);
+      lhsegmask = MRIread(pargv[0]);
+      if(lhsegmask==NULL) exit(1);
+      UseMask = 1;
       nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--rh-mask")){
+      if(nargc < 1) argnerr(option,1);
+      rhsegmask = MRIread(pargv[0]);
+      if(rhsegmask==NULL) exit(1);
+      UseMask = 1;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--sd")) {
+      if(nargc < 1) argnerr(option,1);
+      SUBJECTS_DIR = pargv[0] ;
       printf("using %s as SUBJECTS_DIR\n", SUBJECTS_DIR) ;
+      nargsused = 1;
     }
     else if (!strcasecmp(option, "--label")) {
       mask_label = LabelRead(NULL, pargv[0]) ;
@@ -1963,7 +1978,7 @@ int MRISbbrSurfs(char *subject)
       }
     }
 
-    if(UseMask){
+    if(UseMask && lhsegmask==NULL){
       sprintf(tmpstr,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
       printf("Reading %s\n",tmpstr);
       err = MRISreadAnnotation(lhwm, tmpstr);
@@ -2029,7 +2044,7 @@ int MRISbbrSurfs(char *subject)
       rhctx->vertices[n].y = fy;
       rhctx->vertices[n].z = fz;
     }
-    if(UseMask){
+    if(UseMask && rhsegmask==NULL){
       sprintf(tmpstr,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);
       printf("Reading %s\n",tmpstr);
       err = MRISreadAnnotation(rhwm, tmpstr);
