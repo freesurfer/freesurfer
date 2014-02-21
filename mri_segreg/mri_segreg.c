@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/20 00:16:28 $
- *    $Revision: 1.110 $
+ *    $Date: 2014/02/21 21:14:21 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.110 2014/02/20 00:16:28 greve Exp $";
+"$Id: mri_segreg.c,v 1.111 2014/02/21 21:14:21 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -343,6 +343,7 @@ char *surfname = "white";
 int dof = 6; 
 char *RelCostFile = NULL;
 char *ParamFile = NULL;
+int InitSurfCostOnly=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -365,13 +366,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.110 2014/02/20 00:16:28 greve Exp $",
+     "$Id: mri_segreg.c,v 1.111 2014/02/21 21:14:21 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.110 2014/02/20 00:16:28 greve Exp $",
+     "$Id: mri_segreg.c,v 1.111 2014/02/21 21:14:21 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -543,8 +544,13 @@ int main(int argc, char **argv) {
     nsubsamp=nsubsampsave;
     if(UseLH) lhcost0 = MRIcopy(lhcost,NULL);
     if(UseRH) rhcost0 = MRIcopy(rhcost,NULL);
-    //if(lhcost0file)  MRIwrite(lhcost0,lhcost0file);
-    //if(rhcost0file)  MRIwrite(rhcost0,rhcost0file);
+    if(InitSurfCostOnly){
+      if(lhcost0file)  MRIwrite(lhcost0,lhcost0file);
+      if(rhcost0file)  MRIwrite(rhcost0,rhcost0file);
+      printf("Init surf cost only requested, so exiting now\n");
+      printf("mri_segreg done\n");
+      exit(0);
+    }
     free(lhcost0file);lhcost0file=NULL;
     free(rhcost0file);rhcost0file=NULL;
     /*If the lhcost0file is not set to NULL, then it adds overhead to
@@ -1139,6 +1145,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (istringnmatch(option, "--init-surf-cost",0)) {
       if(nargc < 1) argnerr(option,1);
       surfcost0base = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--init-surf-cost-only",0)) {
+      InitSurfCostOnly=1;
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--surf-cost-diff",0)) {
