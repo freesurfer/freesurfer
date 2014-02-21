@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/02/19 21:27:23 $
-#    $Revision: 1.62 $
+#    $Date: 2014/02/21 21:13:49 $
+#    $Revision: 1.63 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.62 2014/02/19 21:27:23 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.63 2014/02/21 21:13:49 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -86,6 +86,8 @@ set surfcost = ();
 set surfcon  = ();
 set surfname = "white";
 set MaskLabel = ();
+set lhmask = ();
+set rhmask = ();
 
 set RandInitMax = ();
 
@@ -278,6 +280,8 @@ if($DoPass1) then
   if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
   if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
   if($#MaskLabel)  set cmd = ($cmd --label $MaskLabel);
+  if($#lhmask)  set cmd = ($cmd --lh-mask $lhmask);
+  if($#rhmask)  set cmd = ($cmd --rh-mask $rhmask);
   if($LHOnly) set cmd = ($cmd --lh-only);
   if($RHOnly) set cmd = ($cmd --rh-only);
   if($#initsurfcost) set cmd = ($cmd --init-surf-cost $initsurfcost);
@@ -308,6 +312,8 @@ if($SaveCurReg) set cmd = ($cmd --cur-reg $tmpdir/reg.curopt.dat)
 if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
 if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
 if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
+if($#lhmask)  set cmd = ($cmd --lh-mask $lhmask);
+if($#rhmask)  set cmd = ($cmd --rh-mask $rhmask);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
@@ -826,6 +832,20 @@ while( $#argv != 0 )
       set MaskLabel = $argv[1]; shift;
       if(! -e $MaskLabel) then
         echo "ERROR: cannot find $MaskLabel"
+        exit 1;
+      endif
+      breaksw
+
+    case "--mask":
+      if($#argv < 2) goto arg2err;
+      set lhmask = $argv[1]; shift;
+      set rhmask = $argv[1]; shift;
+      if(! -e $lhmask) then
+        echo "ERROR: cannot find $lhmask"
+        exit 1;
+      endif
+      if(! -e $rhmask) then
+        echo "ERROR: cannot find $rhmask"
         exit 1;
       endif
       breaksw
