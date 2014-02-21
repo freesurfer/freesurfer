@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/19 20:53:25 $
- *    $Revision: 1.94 $
+ *    $Date: 2014/02/21 18:35:34 $
+ *    $Revision: 1.95 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1025,7 +1025,7 @@ MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int nPad, int D
 
   if(mask) region = REGIONgetBoundingBox(mask,nPad);
   else     region = REGIONgetBoundingBox(src,nPad);
-  printf(" bounding box %g ",((float)src->width*src->height*src->depth)/
+  printf(" mask-and-upsample bounding box %g ",((float)src->width*src->height*src->depth)/
 	 (region->dx*region->dy*region->dz));
   REGIONprint(stdout, region);
 
@@ -1042,7 +1042,6 @@ MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int nPad, int D
   *src2out = TransformRegDat2LTA(src, srcus, NULL); //src2srcus
 
   if(UpsampleFactor > 1) MRIfree(&srcmask);
-  // dont free v2v!
   return(srcus);
 }
 /*---------------------------------------------------------------
@@ -4105,15 +4104,18 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
 	if((rhpv && !rhwv)) rhRibbon=1;
 	Ribbon = lhRibbon || rhRibbon;
 
-	// SubCort=1 if aseg says voxel is neither cortex nor cerebral WM nor background
+	/* SubCort=1 if aseg says voxel is neither cortex nor cerebral
+	WM nor background nor extracerebral CSF. Note that SubCort=1
+	for other structures as well (head eyes, etc).  */
 	SubCort=0;
 	if(asegv!=Left_Cerebral_Cortex  && asegv!=Left_Cerebral_White_Matter &&
 	   asegv!=Right_Cerebral_Cortex && asegv!=Right_Cerebral_White_Matter && 
-	   asegv!=0 && aseg) SubCort=1;
+	   asegv!=0 && asegv != CSF_ExtraCerebral && aseg) SubCort=1;
 
 	if(SubCort) segv = asegv; // subcort rules
 	else if(Ribbon){
 	  // Voxel is in the "true" ribbon but not in a subcortical structure
+	  // Aseg could say it is in xcCSF, but override that with ribbon
 	  if(lhRibbon) segv = Left_Cerebral_Cortex;
 	  if(rhRibbon) segv = Right_Cerebral_Cortex;
 	}
@@ -4125,10 +4127,10 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
 	  if(asegv == Left_Cerebral_Cortex)       segv = Left_Cerebral_White_Matter; 
 	  else if(asegv == Right_Cerebral_Cortex) segv = Right_Cerebral_White_Matter;
 	  else{
-	    // To get here aseg must be CerebralWM (?)
+	    // To get here aseg can only be CerebralWM or CSF_ExtraCerebral (?) 
 	    if(asegv != Left_Cerebral_White_Matter && asegv != Right_Cerebral_White_Matter &&
-	       asegv != 0 && aseg)
-	      printf("WARNING: MRIhiresSeg(): voxel %d %d %d is %d, expecting WM\n",c,r,s,asegv);
+	       asegv != CSF_ExtraCerebral && asegv != 0 && aseg)
+	      printf("WARNING: MRIhiresSeg(): voxel %d %d %d is %d, expecting WM or xcCSF\n",c,r,s,asegv);
 	    segv = asegv;
 	  }
 	}
@@ -4236,4 +4238,74 @@ MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp,
   return(pvf);
 }
 
+/*
+  \fn int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask)
+  \brief Count the number of times there is a match in seg at the given frame
+  within the mask (mask can be null).
+ */
+int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask)
+{
+  int nMatches = 0;
+  int c, r, s;
 
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	if(MRIgetVoxVal(seg,c,r,s,frame) == MatchVal) nMatches++;
+      }
+    }
+  }
+  return(nMatches);
+}
+
+/*
+  \fn MRI *MRIaddExtraCerebralCSF(MRI *seg, int nDil, MRI *out)
+  \brief Adds the CSF_ExtraCerebral segmentation to seg by dilating the segmentation
+  then assigning CSF_ExtraCerebral to the new voxels. Dilates by nDil. If CSF_ExtraCerebral
+  already exists in the seg, then nothing is done. If nDil<=0, then all voxels outside
+  the segmentation are used. Note: this makes no attempt whatsoever to do a true segmentation
+  of extra-cerebral CSF!!! The seg (or out if non-NULL) must not be UCHAR.
+*/
+MRI *MRIaddExtraCerebralCSF(MRI *seg, int nDil, MRI *out)
+{
+  int c,r,s,n,nxcsf;
+  MRI *mask=NULL;
+  
+  if(seg->type == MRI_UCHAR && out != NULL && out->type == MRI_UCHAR ){
+    printf("ERROR: MRIaddExtraCerebralCSF(): passed seg/out is of type UCHAR\n");
+    return(NULL);
+  }
+  out = MRIcopy(seg,out);
+  if(out==NULL) return(NULL);
+  MRIcopyHeader(seg,out);
+  MRIcopyPulseParameters(seg,out);
+
+  // Check whether CSF_ExtraCerebral already exists
+  n = MRIcountMatches(seg, CSF_ExtraCerebral, 0, NULL);
+  if(n>0) {
+    if(Gdiag_no > 0) printf("MRIaddExtraCerebralCSF(): %d CSF_ExtraCerebral voxels already exist, not adding any more\n",n);
+    return(out);
+  }
+
+  if(Gdiag_no > 0) printf("MRIaddExtraCerebralCSF(): nDil = %d %d\n",nDil,CSF_ExtraCerebral);
+  if(nDil >= 1){
+    mask = MRIdilate(seg,NULL);
+    for(n=1; n<nDil; n++) MRIdilate(mask,mask);
+  }
+
+  nxcsf = 0;
+  for(c=0; c < seg->width; c++) {
+    for(r=0; r < seg->height; r++) {
+      for(s=0; s < seg->depth; s++) {
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+        if(MRIgetVoxVal(seg,c,r,s,0) > 0.5) continue;
+	MRIsetVoxVal(out,c,r,s,0,CSF_ExtraCerebral);
+	nxcsf++;
+      } // slice
+    } // row
+  } // col
+  if(Gdiag_no > 0) printf("MRIaddExtraCerebralCSF(): Added %d CSF_ExtraCerebral voxels\n",nxcsf);
+  if(mask) MRIfree(&mask);
+  return(out);
+}

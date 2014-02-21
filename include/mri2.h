@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/19 18:26:38 $
- *    $Revision: 1.50 $
+ *    $Date: 2014/02/21 18:35:34 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -128,6 +128,8 @@ MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct)
 MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp, 
 				 MRIS *rhw, MRIS *rhp, int USF, COLOR_TABLE *ct);
 
+int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask);
+MRI *MRIaddExtraCerebralCSF(MRI *seg, int nDil, MRI *out);
 
 #if defined(__cplusplus)
 };
