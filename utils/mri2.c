@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/21 18:35:34 $
- *    $Revision: 1.95 $
+ *    $Date: 2014/02/21 20:22:45 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4051,6 +4051,7 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
   }
   seg  = MRIcopy(asegus,NULL); 
   MRIcopyHeader(asegus,seg);
+  //MRIwrite(asegus,"asegus.mgh");
 
   if(lhw){
     //printf("lhw -------------\n");
@@ -4091,12 +4092,6 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
 	if(lhp) lhpv = MRIgetVoxVal(lhpvol,c,r,s,0);
 	if(rhp) rhpv = MRIgetVoxVal(rhpvol,c,r,s,0);
 
-	// outside of pial surfs, set to 0 if seg=cortex
-	if(!lhpv && !rhpv && (asegv==Left_Cerebral_Cortex || asegv==Right_Cerebral_Cortex)){
-	  MRIsetVoxVal(seg,c,r,s,0, 0);
-	  continue;
-	}
-
 	// Check if voxel is in the "true" ribbon
 	lhRibbon=0;
 	if((lhpv && !lhwv)) lhRibbon=1;
@@ -4122,15 +4117,23 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
 	else {
 	  /* To get here, it cannot be in the true ribbon so, if the
 	     aseg says it is CorticalGM, that is wrong. The question
-	     is, what is right? Probably WM, but ideally, this should
-	     be set to the seg of nearby voxels. For now, just use WM. */
-	  if(asegv == Left_Cerebral_Cortex)       segv = Left_Cerebral_White_Matter; 
-	  else if(asegv == Right_Cerebral_Cortex) segv = Right_Cerebral_White_Matter;
+	     is, what is right? Probably WM xCSF , but ideally, this should
+	     be set to the seg of nearby voxels.*/
+	  if(asegv == Left_Cerebral_Cortex)       {
+	    if(lhpv) segv = Left_Cerebral_White_Matter; 
+	    else     segv = CSF_ExtraCerebral;
+	  }
+	  else if(asegv == Right_Cerebral_Cortex){
+	    if(rhpv)   segv = Right_Cerebral_White_Matter;
+	    else       segv = CSF_ExtraCerebral;
+	  }
 	  else{
-	    // To get here aseg can only be CerebralWM or CSF_ExtraCerebral (?) 
+	    // To get here aseg can only be CerebralWM, CSF_ExtraCerebral, Head_ExtraCerebral 
+	    // or something else outside of the brain. 
 	    if(asegv != Left_Cerebral_White_Matter && asegv != Right_Cerebral_White_Matter &&
-	       asegv != CSF_ExtraCerebral && asegv != 0 && aseg)
-	      printf("WARNING: MRIhiresSeg(): voxel %d %d %d is %d, expecting WM or xcCSF\n",c,r,s,asegv);
+	       asegv != CSF_ExtraCerebral && asegv != Head_ExtraCerebral && asegv != 0 && aseg)
+	      if(Gdiag > 0) 
+		printf("WARNING: MRIhiresSeg(): voxel %d %d %d is %d, expecting WM, xcCSF, or head\n",c,r,s,asegv);
 	    segv = asegv;
 	  }
 	}
@@ -4222,6 +4225,7 @@ MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp,
   // Create a high resolution segmentation
   hrseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp, USF, &aseg2hrseg);
   if(hrseg == NULL) return(NULL);
+  //MRIwrite(hrseg,"hrseg.mgh");
   hrseg2aseg = LTAinvert(aseg2hrseg,NULL);
 
   // Compute transform from high res to output volume
