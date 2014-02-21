@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/08 16:58:55 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/02/21 18:47:36 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,542 +28,431 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
-#include <ctype.h>
+#include <unistd.h>
+#include <sys/utsname.h>
 
-#include "mri.h"
 #include "macros.h"
+#include "utils.h"
+#include "fio.h"
+#include "version.h"
+#include "cmdargs.h"
 #include "error.h"
 #include "diag.h"
-#include "proto.h"
-#include "mrimorph.h"
-#include "mri_conform.h"
-#include "utils.h"
-#include "const.h"
-#include "timer.h"
-#include "version.h"
-#include "mrisurf.h"
-#include "registerio.h"
+#include "colortab.h"
+#include "transform.h"
+#include "mri2.h"
+#include "mrisutils.h"
 #include "cma.h"
+#include "timer.h"
+#include "fmriutils.h"
 
-#define WM_VAL         1
-#define GM_VAL         2
-#define CSF_VAL        3
-#define SUBCORT_GM_VAL 4
 
-int MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
-                                     MRI *mri_seg, MRI *mri_wm, MRI *mri_subcort_gm, MRI *mri_cortex, 
-				     MRI *mri_csf,
-                                     int wm_val, int subcort_gm_val, int cortex_val, int csf_val) ;
 int main(int argc, char *argv[]) ;
-static int get_option(int argc, char *argv[]) ;
+static int  parse_commandline(int argc, char **argv);
+static void check_options(void);
+static void print_usage(void) ;
+static void usage_exit(void);
+static void print_help(void) ;
+static void print_version(void) ;
+static void dump_options(FILE *fp);
 
-char *Progname ;
-static void usage_exit(int code) ;
+static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.15 2014/02/21 18:47:36 greve Exp $";
+char *Progname = NULL;
+char *cmdline, cwd[2000];
+int debug=0;
+int checkoptsonly=0;
+struct utsname uts;
 
-static char *subject = NULL ;
-static char sdir[STRLEN] = "" ;
-static double resolution = .5 ;
-static char *fmt = "mgz";
-MRI *add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
-                                       int wm_val, int gm_val, int csf_val) ;
-static char *wsurfname = "white";
-static char *psurfname = "pial";
+char *TempVolFile=NULL;
+char *subject, *subjectoverride=NULL, *SUBJECTS_DIR;
+char *regfile=NULL;
+char *outstem=NULL,*stackfile=NULL,*gmfile=NULL;
+int USF=2;
+char *wsurf = "white";
+char *psurf = "pial";
+char *asegfile="aseg.mgz";
+char *csfmaskfile = NULL;
+COLOR_TABLE *ct=NULL;
+char tmpstr[5000];
+char *fmt = "mgz";
+LTA *aseg2vol=NULL;
+int regtype;
+int nOptUnknown = 0;
+int UseAseg = 1;
+int FillCSF=1;
+int nDil=3;
 
-static int ClearASeg=0;
-
+/*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  char   **av, fname[STRLEN] ;
-  int    ac, nargs ;
-  char   *reg_fname, *in_fname, *out_stem, *cp ;
-  int    msec, minutes, seconds, nvox, float2int ;
+  int nargs,err,tt,nTT;
+  MRI *aseg,**pvf,*mritmp,*stack,*gm,*csfmask;
+  MRIS *lhw, *lhp, *rhw, *rhp;
   struct timeb start ;
-  MRI_SURFACE *mris_lh_white, *mris_rh_white, *mris_lh_pial, *mris_rh_pial ;
-  MRI         *mri_aseg, *mri_seg, *mri_pial, *mri_tmp, *mri_ribbon, *mri_in, *mri_cortex, 
-    *mri_subcort_gm, *mri_wm, *mri_csf ;
-  MATRIX      *m_regdat ;
-  float       intensity, betplaneres, inplaneres ;
-  MATRIX *m_conformed_to_epi_vox2vox, *m_seg_to_conformed_vox2vox,
-    *m_seg_to_epi_vox2vox ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_fractions.c,v 1.14 2014/01/08 16:58:55 greve Exp $", "$Name:  $");
-  if (nargs && argc - nargs == 1)
-    exit (0);
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
+  cmdline = argv2cmdline(argc,argv);
+  uname(&uts);
+  getcwd(cwd,2000);
 
   Progname = argv[0] ;
-  ac = argc ;
-  av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
-    nargs = get_option(argc, argv) ;
-    argc -= nargs ;
-    argv += nargs ;
-  }
-  if (argc < 4)
-    usage_exit(1) ;
-  if (!strlen(sdir)) {
-    cp = getenv("SUBJECTS_DIR") ;
-    if (!cp)
-      ErrorExit(ERROR_BADPARM,
-                "%s: SUBJECTS_DIR not defined in environment.\n", Progname) ;
-    strcpy(sdir, cp) ;
-  }
-  reg_fname = argv[1] ; in_fname = argv[2] ;
-  out_stem = argv[3] ; 
+  argc --;
+  argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+  if (argc == 0) usage_exit();
 
-  printf("Gdiag %lx\n",Gdiag);
-  printf("resolution %lf\n",resolution);
+  parse_commandline(argc, argv);
+  check_options();
+  if (checkoptsonly) return(0);
+  dump_options(stdout);
 
   TimerStart(&start) ;
+  nTT = ct->ctabTissueType->nentries-1; // -1 to exclude unknown
 
-  if (stricmp(reg_fname, "identity.nofile") == 0)
-  {
-    printf("using identity transform\n") ;
-    m_regdat = NULL ;
-    inplaneres = betplaneres = intensity = 1 ;
-    float2int = 0 ;
-    if (subject == NULL)
-      subject = "unknown" ;
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if (SUBJECTS_DIR == NULL) {
+    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+    exit(1);
   }
-  else
-  {
-    char *saved_subject = subject ;
-    printf("reading registration file %s\n", reg_fname) ;
-    regio_read_register(reg_fname, &subject, &inplaneres,
-                        &betplaneres, &intensity,  &m_regdat,
-                        &float2int);
-    
-    if (saved_subject)  // specified on cmdline
-      subject = saved_subject ;
-    m_regdat = regio_read_registermat(reg_fname) ;
-    if(m_regdat == NULL)
-      ErrorExit(ERROR_NOFILE, "%s: could not load registration file from %s", Progname,reg_fname) ;
-  }
-  printf("Format is %s\n",fmt);
-    
-  sprintf(fname, "%s/%s/surf/lh.%s", sdir, subject, wsurfname) ;
-  printf("reading surface %s\n", fname) ;
-  mris_lh_white = MRISread(fname) ;
-  if (mris_lh_white == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not load lh white surface from %s", Progname,fname) ;
+  printf("Reading in aseg and surfs from %s/%s\n",SUBJECTS_DIR,subject);
 
-  sprintf(fname, "%s/%s/surf/rh.%s", sdir, subject, wsurfname) ;
-  printf("reading surface %s\n", fname) ;
-  mris_rh_white = MRISread(fname) ;
-  if (mris_rh_white == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not load rh white surface from %s", Progname,fname) ;
-
-  sprintf(fname, "%s/%s/surf/lh.%s", sdir, subject,psurfname) ;
-  printf("reading surface %s\n", fname) ;
-  mris_lh_pial = MRISread(fname) ;
-  if (mris_lh_pial == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not load lh pial surface from %s", Progname,fname) ;
-
-  sprintf(fname, "%s/%s/surf/rh.%s", sdir, subject, psurfname) ;
-  printf("reading surface %s\n", fname) ;
-  mris_rh_pial = MRISread(fname) ;
-  if (mris_rh_pial == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not load rh pial surface from %s", Progname,fname) ;
-
-  sprintf(fname, "%s/%s/mri/aseg.mgz", sdir, subject) ;
-  printf("reading volume %s\n", fname) ;
-  mri_aseg = MRIread(fname) ;
-  if (mri_aseg == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not load aseg volume from %s", Progname,fname) ;
-  if(ClearASeg){
-    // Used for testing purposes
-    printf("Clearing ASeg\n");
-    MRIclear(mri_aseg);
-  }
-  printf("reading movable volume %s\n", in_fname) ;
-  mri_in = MRIread(in_fname) ;
-  if (mri_in == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not load input volume from %s", Progname,in_fname) ;
- 
-  nvox = (int)ceil(256/resolution); 
-  mri_pial = MRIalloc(nvox, nvox, nvox, MRI_UCHAR) ;
-  MRIsetResolution(mri_pial, resolution, resolution, resolution) ;
-
-  mri_pial->xstart = -resolution*mri_pial->width/2.0 ;
-  mri_pial->xend = resolution*mri_pial->width/2.0 ;
-  mri_pial->ystart = -resolution*mri_pial->height/2.0 ;
-  mri_pial->yend = resolution*mri_pial->height/2.0 ;
-  mri_pial->zstart = -resolution*mri_pial->depth/2.0 ;
-  mri_pial->zend = resolution*mri_pial->depth/2 ;
-  mri_pial->c_r = mri_aseg->c_r ; mri_pial->c_a = mri_aseg->c_a ; mri_pial->c_s = mri_aseg->c_s ;
-  MRIreInitCache(mri_pial) ; 
-
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-
-  printf("filling interior of lh pial surface...\n") ;
-  MRISfillInterior(mris_lh_pial, resolution, mri_pial) ;
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_pial,"fill.lh.pial.mgh");
-  mri_seg = MRIclone(mri_pial, NULL) ;
-  mri_tmp = MRIclone(mri_pial, NULL) ;
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-
-  printf("filling interior of rh pial surface...\n") ;
-  MRISfillInterior(mris_rh_pial, resolution, mri_tmp) ;
-  MRIcopyLabel(mri_tmp, mri_pial, 1) ;
-  MRIclear(mri_tmp) ;
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-
-  printf("filling interior of lh white matter surface...\n") ;
-  MRISfillWhiteMatterInterior(mris_lh_white, mri_aseg, mri_seg, resolution,
-                              WM_VAL, SUBCORT_GM_VAL, CSF_VAL);
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-
-  printf("filling interior of rh white matter surface...\n") ;
-  MRISfillWhiteMatterInterior(mris_rh_white, mri_aseg, mri_tmp, resolution,
-                              WM_VAL, SUBCORT_GM_VAL, CSF_VAL);
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-  MRIcopyLabel(mri_tmp, mri_seg, WM_VAL) ;
-  MRIcopyLabel(mri_tmp, mri_seg, SUBCORT_GM_VAL) ;
-  MRIcopyLabel(mri_tmp, mri_seg, CSF_VAL) ;
-  MRIfree(&mri_tmp) ;
-  
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-  mri_ribbon = MRInot(mri_seg, NULL) ;
-  MRIcopyLabel(mri_seg, mri_pial, CSF_VAL) ;
-  MRIreplaceValuesOnly(mri_pial, mri_pial, CSF_VAL, 0) ;
-  MRIand(mri_ribbon, mri_pial, mri_ribbon, 1) ;
-  MRIbinarize(mri_ribbon, mri_ribbon, 1, 0, GM_VAL) ;
-  MRIcopyLabel(mri_ribbon, mri_seg, GM_VAL) ;
-  MRIreplaceValuesOnly(mri_seg, mri_seg, CSF_VAL, 0) ;
-  add_aseg_structures_outside_ribbon(mri_seg, mri_aseg, mri_seg, WM_VAL, SUBCORT_GM_VAL, CSF_VAL) ;
-
-  if(m_regdat == NULL)    // assume identity transform
-    m_seg_to_epi_vox2vox = MRIgetVoxelToVoxelXform(mri_seg, mri_in) ;
-  else {
-    m_conformed_to_epi_vox2vox = MRIvoxToVoxFromTkRegMtx(mri_in, mri_aseg, m_regdat);
-    m_seg_to_conformed_vox2vox = MRIgetVoxelToVoxelXform(mri_seg, mri_aseg) ;
-    
-    m_seg_to_epi_vox2vox = MatrixMultiply(m_conformed_to_epi_vox2vox, m_seg_to_conformed_vox2vox, NULL) ;
-    MatrixFree(&m_conformed_to_epi_vox2vox) ; 
-    MatrixFree(&m_seg_to_conformed_vox2vox);
-  }
-  printf("hires to input vox2vox matrix:\n") ;
-  MatrixPrint(stdout, m_seg_to_epi_vox2vox) ;
-  mri_cortex = MRIalloc(mri_in->width, mri_in->height, mri_in->depth, MRI_FLOAT) ;
-  MRIcopyHeader(mri_in, mri_cortex) ;
-  mri_subcort_gm = MRIclone(mri_cortex, NULL) ;
-  mri_wm = MRIclone(mri_cortex, NULL) ;
-  mri_csf = MRIclone(mri_cortex, NULL) ;
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-  printf("computing partial volume fractions...\n") ;
-  MRIcomputePartialVolumeFractions(mri_in, m_seg_to_epi_vox2vox, mri_seg, mri_wm, 
-				   mri_subcort_gm, mri_cortex, mri_csf,
-				   WM_VAL, SUBCORT_GM_VAL, GM_VAL, 0) ;
-  
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-  sprintf(fname, "%s.wm.%s", out_stem,fmt) ;
-  printf("writing wm %% to %s\n", fname) ;
-  MRIwrite(mri_wm, fname) ;
-
-  sprintf(fname, "%s.subcort_gm.%s", out_stem,fmt) ;
-  printf("writing subcortical gm %% to %s\n", fname) ;
-  MRIwrite(mri_subcort_gm, fname) ;
-
-  sprintf(fname, "%s.cortex.%s", out_stem, fmt) ;
-  printf("writing cortical gm %% to %s\n", fname) ;
-  MRIwrite(mri_cortex, fname) ;
-  
-  sprintf(fname, "%s.csf.%s", out_stem,fmt) ;
-  printf("writing csf %% to %s\n", fname) ;
-  MRIwrite(mri_csf, fname) ;
-
-  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-  msec = TimerStop(&start) ;
-  seconds = nint((float)msec/1000.0f) ;
-  minutes = seconds / 60 ;
-  seconds = seconds % 60 ;
-  printf("volume fraction calculation took %d minutes"
-          " and %d seconds.\n", minutes, seconds) ;
-  exit(0) ;
-  return(0) ;
-}
-/*----------------------------------------------------------------------
-            Parameters:
-
-           Description:
-----------------------------------------------------------------------*/
-static int
-get_option(int argc, char *argv[]) {
-  int  nargs = 0 ;
-  char *option ;
-
-  option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "SDIR")) {
-    strcpy(sdir, argv[2]) ;
-    printf("using %s as SUBJECTS_DIR...\n", sdir) ;
-    nargs = 1 ;
-  } 
-  else if (!stricmp(option, "DEBUG_VOXEL")) {
-    Gx = atoi(argv[2]) ;
-    Gy = atoi(argv[3]) ;
-    Gz = atoi(argv[4]) ;
-    printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
-    nargs = 3 ;
-  } 
-  else if (!stricmp(option, "nii"))    fmt = "nii";
-  else if (!stricmp(option, "nii.gz")) fmt = "nii.gz";
-  else if (!stricmp(option, "mgh"))    fmt = "mgh";
-  else if (!stricmp(option, "mgz"))    fmt = "mgz";
-  else if (!stricmp(option, "diag-write"))   Gdiag = Gdiag | DIAG_WRITE;
-  else if (!stricmp(option, "diag-verbose")) Gdiag = Gdiag | DIAG_VERBOSE;
-  else if (!stricmp(option, "clear-aseg")) ClearASeg=1;
-  else if (!stricmp(option, "new-fill")) setenv("USE_NEW_FILL_INTERIOR","1",1);
-  else if (!stricmp(option, "wsurf")){
-    wsurfname = argv[2] ;
-    printf("overriding wsurfname with %s\n", wsurfname) ;
-    nargs = 1 ;
-  }
-  else if (!stricmp(option, "psurf")){
-    psurfname = argv[2] ;
-    printf("overriding psurfname with %s\n", psurfname) ;
-    nargs = 1 ;
-  }
-  else {
-    switch (toupper(*option)) {
-    case 'R':
-      resolution = atof(argv[2]) ;
-      printf("setting resolution = %2.3f\n", resolution) ;
-      nargs = 1 ;
-      break ;
-    case 'S':
-      subject = argv[2] ;
-      printf("overriding subject name in register.dat with %s\n", subject) ;
-      nargs = 1 ;
-      break ;
-    case '?':
-    case 'U':
-    case 'H':
-      usage_exit(0) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
+  if(UseAseg){
+    sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,asegfile);
+    printf("Loading %s\n",tmpstr);
+    aseg = MRIread(tmpstr);
+    if(aseg==NULL) exit(1);
+    if(FillCSF){
+      printf("Filling empty voxels with extracerebral CSF, nDil=%d\n",nDil);
+      if(aseg->type == MRI_UCHAR){
+	mritmp = MRIchangeType(aseg,MRI_INT,0,0,0);
+	MRIfree(&aseg);
+	aseg = mritmp;
+      }
+      aseg = MRIaddExtraCerebralCSF(aseg, nDil, aseg);
     }
+  } else aseg=NULL;
+
+  sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,wsurf);
+  lhw = MRISread(tmpstr);
+  if(lhw==NULL) exit(1);
+
+  sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,psurf);
+  lhp = MRISread(tmpstr);
+  if(lhp==NULL) exit(1);
+
+  sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,wsurf);
+  rhw = MRISread(tmpstr);
+  if(rhw==NULL) exit(1);
+
+  sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,psurf);
+  rhp = MRISread(tmpstr);
+  if(rhp==NULL) exit(1);
+
+  if(regtype == REGISTER_DAT){
+    mritmp = MRIreadHeader(TempVolFile,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mritmp==NULL) exit(1);
+    getVolGeom(mritmp, &aseg2vol->xforms[0].src);
+    getVolGeom(aseg, &aseg2vol->xforms[0].dst);
+    MRIfree(&mritmp);
+    if(debug) LTAprint(stdout,aseg2vol);
   }
 
-  return(nargs) ;
-}
-/*----------------------------------------------------------------------
-            Parameters:
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
+  printf("Computing PVF (USF=%d)\n",USF);
+  pvf = MRIpartialVolumeFractionAS(aseg2vol,aseg,lhw,lhp,rhw,rhp,USF,ct);
+  if(pvf == NULL) exit(1);
 
-           Description:
-----------------------------------------------------------------------*/
-static void
-usage_exit(int code) {
-  printf("usage: %s [options] <reg file> <input volume> <output stem>\n",
-         Progname) ;
-  printf("  -SDIR SUBJECTS_DIR \n");
-  printf("  -s    subject:  override entry of register.dat file\n") ;
-  printf("  -r    resolution:  set resolution of internal volume for filling ribbon (def=0.5)\n") ;
-  printf("  -nii, -nii.gz, -mgh, -mgz : format (default is mgz)\n");
-  printf("  -wsurf whitesurface (default is white)\n");
-  printf("  -psurf pialsurface (default is pial)\n");
-  printf("  -diag-write\n");
-  printf("  -diag-verbose\n");
-  printf("  -new-fill : use new filling routine\n");
-  printf("  -clear-aseg : seg aseg=0 (for testing)\n");
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
+
+  if(csfmaskfile){
+    printf("Masking CSF with %s\n",csfmaskfile);
+    sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,csfmaskfile);
+    csfmask = MRIread(tmpstr);
+    if(csfmask==NULL) exit(1);
+    MRIbinarize(csfmask, csfmask, 0.5, 0, 1);
+    MRImask(pvf[3], csfmask, pvf[3], 0, 0);
+  }
+  printf("  t = %g\n",TimerStop(&start)/1000.0) ;
+
+  printf("Writing results nTT=%d\n",nTT);
+
+  for(tt=0; tt < nTT; tt++){
+    sprintf(tmpstr,"%s.%s.%s",outstem,ct->ctabTissueType->entries[tt+1]->name,fmt);
+    err = MRIwrite(pvf[tt],tmpstr);
+    if(err) exit(1);
+  }
+
+  if(stackfile){
+    stack = MRIallocSequence(pvf[0]->width,pvf[0]->height,pvf[0]->depth,MRI_FLOAT,nTT);
+    MRIcopyHeader(pvf[0],stack);
+    MRIcopyPulseParameters(pvf[0],stack);
+    for(tt=0; tt < nTT; tt++) fMRIinsertFrame(pvf[tt], 0, stack, tt);
+    err=MRIwrite(stack,stackfile);
+    if(err) exit(1);
+  }
+
+  if(gmfile){
+    gm = MRIadd(pvf[0],pvf[1],NULL);
+    MRIcopyPulseParameters(pvf[0],gm);
+    err=MRIwrite(gm,gmfile);
+    if(err) exit(1);
+  }
+
+  printf("#@# CVF-Run-Time-Sec %g\n",TimerStop(&start)/1000.0) ;
+  printf("mri_compute_volume_fraction done\n");
+  exit(0);
+}
+/*---------------------------------------------*/
+/*---------------------------------------------*/
+/*---------------------------------------------*/
+// Note: some of the command-line parsing is needed for backwards compatibility
+static int parse_commandline(int argc, char **argv) {
+  int  nargc , nargsused;
+  char **pargv, *option ;
+
+  if (argc < 1) usage_exit();
+
+  nargc   = argc;
+  pargv = argv;
+  while (nargc > 0) {
+
+    option = pargv[0];
+    if (debug) printf("%d %s\n",nargc,option);
+    nargc -= 1;
+    pargv += 1;
+
+    nargsused = 0;
+
+    if (!strcasecmp(option, "--help"))  print_help() ;
+    else if (!strcasecmp(option, "--version")) print_version() ;
+    else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
+    else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--no-aseg")) UseAseg = 0;
+    else if (!strcasecmp(option, "--fill-csf")) FillCSF = 1;
+    else if (!strcasecmp(option, "--no-fill-csf")) FillCSF = 0;
+    else if (!strcasecmp(option, "--ttype+head")) 
+      ct = TissueTypeSchema(NULL,"default-jan-2014+head");
+
+    else if (!strcasecmp(option, "--reg")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      regfile = pargv[0];
+      nargsused = 1;
+      aseg2vol = LTAread(regfile);
+      if(aseg2vol == NULL) exit(1);
+      regtype = TransformFileNameType(regfile);
+      if(regtype == REGISTER_DAT){
+	if(nargc < 2 || CMDisFlag(pargv[1])){
+	  printf("ERROR: registration file %s is not an LTA so --reg requires a target template volume\n",regfile);
+	  exit(1);
+	}
+	TempVolFile = pargv[1];
+	nargsused++;
+      }
+    } 
+    else if (!strcasecmp(option, "--o")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outstem = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--stack")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      stackfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--gm")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      gmfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--csf-mask")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      csfmaskfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--seg")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      asegfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--wsurf")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      wsurf = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--psurf")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      psurf = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "-s") || !strcasecmp(option, "--s")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      subjectoverride = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "-nii.gz")) fmt = "nii.gz";
+    else if (!strcasecmp(option, "-nii")) fmt = "nii";
+    else if (!strcasecmp(option, "-mgh")) fmt = "mgh";
+    else if (!strcasecmp(option, "-mgz")) fmt = "mgz";
+    else if (!strcasecmp(option, "--nii.gz")) fmt = "nii.gz";
+    else if (!strcasecmp(option, "--nii")) fmt = "nii";
+    else if (!strcasecmp(option, "--mgh")) fmt = "mgh";
+    else if (!strcasecmp(option, "--mgz")) fmt = "mgz";
+    else if (!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      setenv("SUBJECTS_DIR",pargv[0],1);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--usf")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&USF);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--ndil")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nDil);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "-r") || !strcasecmp(option, "--r")) {
+      double resolution;
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&resolution);
+      USF = round(1/resolution);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--diag-no")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&Gdiag_no);
+      nargsused = 1;
+    } 
+    else {
+      // Make backwards compatible for flagless inputs
+      if(nOptUnknown == 0){
+	regfile = option;
+	nargsused = 0;
+	aseg2vol = LTAread(regfile);
+	if(aseg2vol == NULL) exit(1);
+	regtype = TransformFileNameType(regfile);
+	printf("Setting registration file to %s\n",regfile);
+      }
+      else if(nOptUnknown == 1){
+	TempVolFile = option;
+	nargsused = 0;
+	printf("Setting template volume to %s\n",TempVolFile);
+      }
+      else if(nOptUnknown == 2){
+	outstem = option;
+	nargsused = 0;
+	printf("Setting outstem to %s\n",outstem);
+      }
+      else {
+	fprintf(stderr,"ERROR: Option %s unknown\n",option);
+	if (CMDsingleDash(option))
+	  fprintf(stderr,"       Did you really mean -%s ?\n",option);
+	exit(-1);
+      }
+      nOptUnknown++;
+    }
+    nargc -= nargsused;
+    pargv += nargsused;
+  }
+  return(0);
+}
+/*---------------------------------------------*/
+
+static void usage_exit(void) {
+  print_usage() ;
+  exit(1) ;
+}
+/*---------------------------------------------*/
+static void print_usage(void) {
+  printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  exit(code) ;
+  printf("   --reg regfile : can be LTA or reg.dat\n");
+  printf("   --o   outstem : output will be oustem.{cortex,subcort_gm,wm,csf}.mgz\n");
+  printf("\n");
+  printf("   --usf USF : upsample factor (default %d)\n",USF);
+  printf("   --r res   : resolution, sets USF = round(1/res)\n");
+  printf("   --seg  segfile : use segfile instead of %s\n",asegfile);
+  printf("   --wsurf wsurf : white surface (default is %s)\n",wsurf);
+  printf("   --psurf psurf : pial surface (default is %s)\n",psurf);
+  printf("   --no-aseg : do not include aseg (good for testing)\n");
+  printf("   --stack stackfile : put ctx,subcortgm,wm,csf into a single multi-frame file\n");
+  printf("   --gm gmfile : put ctx+subcortgm into a single-frame file\n");
+  printf("   --no-fill-csf : do not attempt to fill voxels surrounding seg with the extracerebral CSF segmetation \n");
+  printf("     Note: when the fill is done, there is no attempt to actually segment xCSF voxels.\n");
+  printf("     The passed segmentation is dilated and the new voxels become xCSF\n");
+  printf("     Note: if the passed seg already has the CSF_ExtraCerebral seg, nothing will be done\n");
+  printf("   --dil N : for xCSF fill, dilate by N (default is %d); use -1 to fill the entire volume \n",nDil);
+  printf("\n");
+  printf("   --mgz    : use mgz format (default)\n");
+  printf("   --mgh    : use mgh format\n");
+  printf("   --nii    : use nii format\n");
+  printf("   --nii.gz : use nii.gz format\n");
+  printf("   --ttype+head : use default+head instead of default tissue type info for seg\n");
+  printf("\n");
+  printf("   --debug     turn on debugging\n");
+  printf("   --checkopts don't run anything, just check options and exit\n");
+  printf("   --help      print out information on how to use this program\n");
+  printf("   --version   print out version and exit\n");
+  printf("\n");
+  printf("%s\n", vcid) ;
+  printf("\n");
+}
+/*---------------------------------------------*/
+static void print_help(void) {
+  print_usage() ;
+  printf("Computes partial volume fractions for cortex, subcortical GM, WM and CSF\n");
+  exit(1) ;
+}
+/*---------------------------------------------*/
+static void print_version(void) {
+  printf("%s\n", vcid) ;
+  exit(1) ;
+}
+/*---------------------------------------------*/
+static void check_options(void) {
+
+  if(regfile == NULL){
+    printf("ERROR: no registration file specified\n");
+    exit(1);
+  }
+  if(outstem == NULL){
+    printf("ERROR: no output stem specified\n");
+    exit(1);
+  }
+  if(subjectoverride == NULL) subject = aseg2vol->subject;
+  else                        subject = subjectoverride;
+  if(regtype == REGISTER_DAT && TempVolFile==NULL){
+    printf("ERROR: template volume needed with register.dat file\n");
+    exit(1);
+  }
+  if(ct==NULL) ct = TissueTypeSchema(NULL,"default-jan-2014");
+
+  return;
+}
+/*---------------------------------------------*/
+static void dump_options(FILE *fp) {
+  fprintf(fp,"\n");
+  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"sysname  %s\n",uts.sysname);
+  fprintf(fp,"hostname %s\n",uts.nodename);
+  fprintf(fp,"machine  %s\n",uts.machine);
+  fprintf(fp,"user     %s\n",VERuser());
+  fprintf(fp,"setenv SUBJECTS_DIR %s\n",SUBJECTS_DIR);
+  fprintf(fp,"cd %s\n",cwd);
+  fprintf(fp,"%s\n",cmdline);
+  fprintf(fp,"outstem %s\n",outstem);
+  fprintf(fp,"regfile %s\n",regfile);
+  fprintf(fp,"regtype %d\n",regtype);
+  fprintf(fp,"segfile %s\n",asegfile);
+  fprintf(fp,"wsurf %s\n",wsurf);
+  fprintf(fp,"psurf %s\n",psurf);
+  if(TempVolFile) fprintf(fp,"TempVolFile %s\n",regfile);
+  fprintf(fp,"USF %d\n",USF);
+  if(subjectoverride) fprintf(fp,"subjectoverride %s\n",subjectoverride );
+  return;
 }
 
-MRI *
-add_aseg_structures_outside_ribbon(MRI *mri_src, MRI *mri_aseg, MRI *mri_dst,
-                                   int wm_val, int gm_val, int csf_val)
-{
-  VECTOR *v1, *v2 ;
-  MATRIX *m_vox2vox ;
-  int    x, y, z, xa, ya, za, seg_label, aseg_label ;
-
-  if (mri_dst == NULL)
-    mri_dst = MRIcopy(mri_src, NULL) ;
-  v1 = VectorAlloc(4, MATRIX_REAL) ;
-  v2 = VectorAlloc(4, MATRIX_REAL) ;
-  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
-  m_vox2vox = MRIgetVoxelToVoxelXform(mri_src, mri_aseg) ;
-
-
-  for (x = 0 ; x < mri_dst->width ; x++)
-  {
-    V3_X(v1) = x ;
-    for (y = 0 ; y < mri_dst->height ; y++)
-    {
-      V3_Y(v1) = y ;
-      for (z = 0 ; z < mri_dst->depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        seg_label = nint(MRIgetVoxVal(mri_dst, x, y, z, 0)) ;
-        V3_Z(v1) = z ;
-        MatrixMultiply(m_vox2vox, v1, v2) ;
-        xa = (int)(nint(V3_X(v2))) ;
-        ya = (int)(nint(V3_Y(v2))) ;
-        za = (int)(nint(V3_Z(v2))) ;
-        if (xa < 0 || ya < 0 || za < 0 ||
-            xa >= mri_aseg->width || ya >= mri_aseg->height || za >= mri_aseg->depth)
-          continue ;
-        if (xa == Gx && ya == Gy && za == Gz)
-          DiagBreak() ;
-        aseg_label = nint(MRIgetVoxVal(mri_aseg, xa, ya, za, 0)) ;
-        if (seg_label != 0 && !IS_MTL(aseg_label))  // already labeled and not amyg/hippo, skip it
-          continue ;
-        switch (aseg_label)
-        {
-        case Left_Cerebellum_White_Matter:
-        case Right_Cerebellum_White_Matter:
-        case Brain_Stem:
-          MRIsetVoxVal(mri_dst, x, y, z, 0, wm_val) ;
-          break ;
-	case Left_Hippocampus:
-	case Right_Hippocampus:
-	case Left_Amygdala:
-	case Right_Amygdala:
-        case Left_Cerebellum_Cortex:
-        case Right_Cerebellum_Cortex:
-        case Left_Pallidum:
-        case Right_Pallidum:
-        case Left_Thalamus_Proper:
-        case Right_Thalamus_Proper:
-        case Right_Putamen:
-        case Left_Putamen:
-        case Right_Caudate:
-        case Left_Caudate:
-        case Left_Accumbens_area:
-        case Right_Accumbens_area:  // remove them from cortex
-          MRIsetVoxVal(mri_dst, x, y, z, 0, gm_val) ;
-          break ;
-        default:
-          break ;
-        }
-      }
-    }
-  }
-
-  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_vox2vox) ;
-  return(mri_dst) ;
-}
-int
-MRIcomputePartialVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
-                                 MRI *mri_seg, MRI *mri_wm, MRI *mri_subcort_gm, MRI *mri_cortex,
-				 MRI *mri_csf,
-                                 int wm_val, int subcort_gm_val, int cortex_val, int csf_val)
-{
-  int    x, y, z, xs, ys, zs, label ;
-  VECTOR *v1, *v2 ;
-  MRI    *mri_counts ;
-  float  val, count ;
-  MATRIX *m_inv ;
-
-  m_inv = MatrixInverse(m_vox2vox, NULL) ;
-  if (m_inv == NULL)
-  {
-    MatrixPrint(stdout, m_vox2vox) ;
-    ErrorExit(ERROR_BADPARM, "MRIcomputePartialVolumeFractions: non-invertible vox2vox matrix");
-  }
-  mri_counts = MRIcloneDifferentType(mri_src, MRI_INT) ;
-
-  v1 = VectorAlloc(4, MATRIX_REAL) ;
-  v2 = VectorAlloc(4, MATRIX_REAL) ;
-  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
-  for (x = 0 ; x < mri_seg->width ; x++)
-  {
-    V3_X(v1) = x ;
-    for (y = 0 ; y < mri_seg->height ; y++)
-    {
-      V3_Y(v1) = y ;
-      for (z = 0 ; z < mri_seg->depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        V3_Z(v1) = z ;
-        MatrixMultiply(m_vox2vox, v1, v2) ;
-        xs = nint(V3_X(v2)) ; ys = nint(V3_Y(v2)) ; zs = nint(V3_Z(v2)) ;
-        if (xs >= 0 && ys >= 0 && zs >= 0 &&
-            xs < mri_src->width && ys < mri_src->height && zs < mri_src->depth)
-        {
-          val = MRIgetVoxVal(mri_counts, xs, ys, zs, 0) ;
-          MRIsetVoxVal(mri_counts, xs, ys, zs, 0, val+1) ;
-
-          label = MRIgetVoxVal(mri_seg, x, y, z, 0) ;
-          if (label == csf_val)
-          {
-            val = MRIgetVoxVal(mri_csf, xs, ys, zs, 0) ;
-            MRIsetVoxVal(mri_csf, xs, ys, zs, 0, val+1) ;
-          }
-          else if (label == wm_val)
-          {
-            val = MRIgetVoxVal(mri_wm, xs, ys, zs, 0) ;
-            MRIsetVoxVal(mri_wm, xs, ys, zs, 0, val+1) ;
-          }
-          else if (label == subcort_gm_val)
-          {
-            val = MRIgetVoxVal(mri_subcort_gm, xs, ys, zs, 0) ;
-            MRIsetVoxVal(mri_subcort_gm, xs, ys, zs, 0, val+1) ;
-          }
-          else if (label == cortex_val)
-          {
-            val = MRIgetVoxVal(mri_cortex, xs, ys, zs, 0) ;
-            MRIsetVoxVal(mri_cortex, xs, ys, zs, 0, val+1) ;
-          }
-          else
-            DiagBreak() ;
-        }
-      }
-    }
-  }
-
-  for (x = 0 ; x < mri_src->width ; x++)
-    for (y = 0 ; y < mri_src->height ; y++)
-      for (z = 0 ; z < mri_src->depth ; z++)
-      {
-        count = MRIgetVoxVal(mri_counts, x, y, z, 0) ;
-        if (count >= 1)
-        {
-          if (x == Gx && y == Gy && z == Gz)
-            DiagBreak() ;
-          val = MRIgetVoxVal(mri_wm, x, y, z, 0) ;
-          MRIsetVoxVal(mri_wm, x, y, z, 0, val/count) ;
-          val = MRIgetVoxVal(mri_subcort_gm, x, y, z, 0) ;
-          MRIsetVoxVal(mri_subcort_gm, x, y, z, 0, val/count) ;
-          val = MRIgetVoxVal(mri_cortex, x, y, z, 0) ;
-          MRIsetVoxVal(mri_cortex, x, y, z, 0, val/count) ;
-          val = MRIgetVoxVal(mri_csf, x, y, z, 0) ;
-          MRIsetVoxVal(mri_csf, x, y, z, 0, val/count) ;
-        }
-        else  // sample in other direction
-        {
-          V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
-          MatrixMultiply(m_inv, v1, v2) ;
-          MatrixMultiply(m_inv, v1, v2) ;
-          xs = nint(V3_X(v2)) ; ys = nint(V3_Y(v2)) ; zs = nint(V3_Z(v2)) ;
-          if (xs >= 0 && ys >= 0 && zs >= 0 &&
-              xs < mri_seg->width && ys < mri_seg->height && zs < mri_seg->depth)
-          {
-            label = MRIgetVoxVal(mri_seg, xs, ys, zs, 0) ;
-            if (label == csf_val)
-              MRIsetVoxVal(mri_csf, x, y, z, 0, 1) ;
-            else if (label == wm_val)
-              MRIsetVoxVal(mri_wm, x, y, z, 0, 1) ;
-            else if (label == subcort_gm_val)
-              MRIsetVoxVal(mri_subcort_gm, x, y, z, 0, 1) ;
-            else if (cortex_val)
-              MRIsetVoxVal(mri_cortex, x, y, z, 0, 1) ;
-            else
-              DiagBreak() ;
-          }
-        }
-      }
-  VectorFree(&v1) ; VectorFree(&v2) ; MatrixFree(&m_inv) ;
-  MRIfree(&mri_counts) ;
-
-  return(NO_ERROR) ;
-}
