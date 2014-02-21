@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/12 22:20:58 $
- *    $Revision: 1.48 $
+ *    $Date: 2014/02/21 18:33:40 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1910,6 +1910,10 @@ COLOR_TABLE *TissueTypeSchema(COLOR_TABLE *ct, char *schema)
     ct = TissueTypeSchemaDefault(ct);
     return(ct);
   }
+  if(strcmp(schema,"default-jan-2014+head")==0){
+    ct = TissueTypeSchemaDefaultHead(ct);
+    return(ct);
+  }
   printf("ERROR: tissue type schema %s unrecognized\n",schema);
   return(NULL);
 }
@@ -1942,27 +1946,27 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
   sprintf(ct->TissueTypeSchema,"default-jan-2014");
   ct->ctabTissueType = CTABalloc(5);
   cte = ct->ctabTissueType->entries[0];
-  sprintf(cte->name,"Unknown");  
+  sprintf(cte->name,"unknown");  
   cte->ri = 0;
   cte->gi = 0;
   cte->bi = 0;
   cte = ct->ctabTissueType->entries[1];
-  sprintf(cte->name,"CorticalGM");  
+  sprintf(cte->name,"cortex");  
   cte->ri = 205;
   cte->gi =  62;
   cte->bi =  78;
   cte = ct->ctabTissueType->entries[2];
-  sprintf(cte->name,"SubcorticalGM");  
+  sprintf(cte->name,"subcort_gm");  
   cte->ri = 230;
   cte->gi = 148;
   cte->bi =  34;
   cte = ct->ctabTissueType->entries[3];
-  sprintf(cte->name,"WM");  
+  sprintf(cte->name,"wm");  
   cte->ri =   0;
   cte->gi = 255;
   cte->bi =   0;
   cte = ct->ctabTissueType->entries[4];
-  sprintf(cte->name,"CSF");  
+  sprintf(cte->name,"csf");  
   cte->ri = 120;
   cte->gi =  18;
   cte->bi = 134;
@@ -2058,8 +2062,163 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
 
   return(ct);
 }
-/*--------------------------------------------------------------*/
 
+/*!
+\fn COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
+\brief Adds tissue type information to a color table using the
+default FreeSurfer schema and includes a Head tissue type
+\param ct - color table with tissue type info (if null then 
+uses FreeSurferColorLUT.txt)
+*/
+COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
+{
+  COLOR_TABLE_ENTRY *cte;
+  FSENV *fsenv;
+  char tmpstr[2000];
+  int n,TT, TTUnknown, TTCtxGM, TTSubCtxGM, TTWM, TTCSF, TTHead;
+  TTUnknown = 0;
+  TTCtxGM = 1;
+  TTSubCtxGM = 2;
+  TTWM = 3;
+  TTCSF = 4;
+  TTHead = 5;
+
+  if(ct == NULL){
+    fsenv = FSENVgetenv();
+    sprintf(tmpstr,"%s/FreeSurferColorLUT.txt",fsenv->FREESURFER_HOME);
+    ct = CTABreadASCII(tmpstr);
+  }
+
+  sprintf(ct->TissueTypeSchema,"default-jan-2014+head");
+  ct->ctabTissueType = CTABalloc(6);
+  cte = ct->ctabTissueType->entries[0];
+  sprintf(cte->name,"unknown");  
+  cte->ri = 0;
+  cte->gi = 0;
+  cte->bi = 0;
+  cte = ct->ctabTissueType->entries[1];
+  sprintf(cte->name,"cortex");  
+  cte->ri = 205;
+  cte->gi =  62;
+  cte->bi =  78;
+  cte = ct->ctabTissueType->entries[2];
+  sprintf(cte->name,"subcort_gm");  
+  cte->ri = 230;
+  cte->gi = 148;
+  cte->bi =  34;
+  cte = ct->ctabTissueType->entries[3];
+  sprintf(cte->name,"wm");  
+  cte->ri =   0;
+  cte->gi = 255;
+  cte->bi =   0;
+  cte = ct->ctabTissueType->entries[4];
+  sprintf(cte->name,"csf");  
+  cte->ri = 120;
+  cte->gi =  18;
+  cte->bi = 134;
+  cte = ct->ctabTissueType->entries[5];
+  sprintf(cte->name,"head");  
+  cte->ri = 150;
+  cte->gi = 150;
+  cte->bi = 200;
+
+  for(n=0; n < ct->nentries; n++){
+    cte = ct->entries[n];
+    if(cte == NULL) continue;
+
+    TT = -1;
+    switch (n) {
+
+    case 0: // unknown
+      TT = TTUnknown;
+      break;
+
+    case Left_Cerebral_Cortex:
+    case Right_Cerebral_Cortex:
+      TT = TTCtxGM;
+      break;
+
+    case Left_Cerebellum_Cortex:
+    case Right_Cerebellum_Cortex:
+    case Left_Hippocampus:
+    case Right_Hippocampus:
+    case Left_Amygdala:
+    case Right_Amygdala:
+    case Left_Pallidum:
+    case Right_Pallidum:
+    case Left_Thalamus_Proper:
+    case Right_Thalamus_Proper:
+    case Right_Putamen:
+    case Left_Putamen:
+    case Right_Caudate:
+    case Left_Caudate:
+    case Left_Accumbens_area:
+    case Right_Accumbens_area:  
+    case non_WM_hypointensities: // not sure
+      TT = TTSubCtxGM;
+      break ;
+
+    case Left_Cerebral_White_Matter:
+    case Right_Cerebral_White_Matter:
+    case Left_Cerebellum_White_Matter:
+    case Right_Cerebellum_White_Matter:
+    case Brain_Stem:
+    case Left_VentralDC:     
+    case Right_VentralDC:     
+    case WM_hypointensities:
+    case Left_WM_hypointensities:
+    case Right_WM_hypointensities:
+    case Optic_Chiasm:
+    case Corpus_Callosum:
+    case CC_Posterior:
+    case CC_Mid_Posterior:
+    case CC_Central:      
+    case CC_Mid_Anterior:
+    case CC_Anterior:     
+      TT = TTWM;
+      break ;
+
+    case Third_Ventricle:
+    case Fourth_Ventricle:
+    case CSF:
+    case CSF_ExtraCerebral:
+    case Left_Lateral_Ventricle:
+    case Right_Lateral_Ventricle:
+    case Left_Inf_Lat_Vent:
+    case Right_Inf_Lat_Vent:
+    case Left_choroid_plexus:
+    case Right_choroid_plexus:
+    case Fifth_Ventricle:
+    case Left_vessel:
+    case Right_vessel:
+      TT = TTCSF;
+      break ;
+
+    case Head_ExtraCerebral:
+      TT = TTHead;
+      break ;
+    }
+
+    if(TT == -1){
+      // still not assigned
+      if(n >= 1000 && n <= 1035) TT = TTCtxGM;
+      if(n >= 2000 && n <= 2035) TT = TTCtxGM;
+      if(n >= 3000 && n <= 3035) TT = TTWM;
+      if(n >= 4000 && n <= 4035) TT = TTWM;
+      if(n >= 1100 && n <= 1181) TT = TTCtxGM;
+      if(n >= 2100 && n <= 2181) TT = TTCtxGM;
+      if(n >= 3100 && n <= 3181) TT = TTWM;
+      if(n >= 4100 && n <= 4181) TT = TTWM;
+      if(n == 5001 || n == 5002) TT = TTWM;
+    }
+
+    cte->TissueType = TT;
+  }
+
+  return(ct);
+}
+
+/*--------------------------------------------------------------*/
 /*!
 \fn int CTABprintASCIItt(COLOR_TABLE *ct, FILE *fp)
 \brief Prints the color table including tissue type information.
