@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/21 18:47:36 $
- *    $Revision: 1.15 $
+ *    $Date: 2014/02/22 18:35:18 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 
-static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.15 2014/02/21 18:47:36 greve Exp $";
+static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.16 2014/02/22 18:35:18 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -70,7 +70,7 @@ char *outstem=NULL,*stackfile=NULL,*gmfile=NULL;
 int USF=2;
 char *wsurf = "white";
 char *psurf = "pial";
-char *asegfile="aseg.mgz";
+char *asegfile="aseg.mgz", *outsegfile=NULL,*ttsegfile=NULL,*ttsegctabfile=NULL;
 char *csfmaskfile = NULL;
 COLOR_TABLE *ct=NULL;
 char tmpstr[5000];
@@ -81,6 +81,7 @@ int nOptUnknown = 0;
 int UseAseg = 1;
 int FillCSF=1;
 int nDil=3;
+int RegHeader=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -118,6 +119,9 @@ int main(int argc, char *argv[]) {
   }
   printf("Reading in aseg and surfs from %s/%s\n",SUBJECTS_DIR,subject);
 
+  if(ttsegctabfile)
+    CTABwriteFileASCII(ct->ctabTissueType, ttsegctabfile);
+
   if(UseAseg){
     sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,asegfile);
     printf("Loading %s\n",tmpstr);
@@ -131,6 +135,18 @@ int main(int argc, char *argv[]) {
 	aseg = mritmp;
       }
       aseg = MRIaddExtraCerebralCSF(aseg, nDil, aseg);
+    }
+    if(outsegfile){
+      err = MRIwrite(aseg,outsegfile);
+      if(err) exit(1);
+    }
+    if(ttsegfile){    
+      MRI *ttseg;
+      ttseg = MRIseg2TissueType(aseg, ct, NULL);
+      if(ttseg == NULL) exit(1);
+      err = MRIwrite(ttseg,ttsegfile);
+      if(err) exit(1);
+      MRIfree(&ttseg);
     }
   } else aseg=NULL;
 
@@ -158,6 +174,21 @@ int main(int argc, char *argv[]) {
     MRIfree(&mritmp);
     if(debug) LTAprint(stdout,aseg2vol);
   }
+  if(RegHeader){
+    MRI *orig;
+    MRI *temp;
+    sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,subject);
+    orig = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+    if(orig==0) exit(1);
+    temp = MRIreadHeader(TempVolFile,MRI_VOLUME_TYPE_UNKNOWN);
+    if(temp==0) exit(1);
+    aseg2vol = TransformRegDat2LTA(orig, temp, NULL);
+    printf("Computing registration from header\n");
+    MatrixPrint(stdout,aseg2vol->xforms[0].m_L);
+    MRIfree(&orig);
+    MRIfree(&temp);
+  }
+
 
   printf("  t = %g\n",TimerStop(&start)/1000.0) ;
   printf("Computing PVF (USF=%d)\n",USF);
@@ -252,7 +283,14 @@ static int parse_commandline(int argc, char **argv) {
 	nargsused++;
       }
     } 
-    else if (!strcasecmp(option, "--o")) {
+    else if (!strcasecmp(option, "--regheader")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      subject = pargv[0];
+      TempVolFile = pargv[1];
+      RegHeader = 1;
+      nargsused = 2;
+    } 
+    else if(!strcasecmp(option, "--o") || !strcasecmp(option, "--pvf")) {
       if (nargc < 1) CMDargNErr(option,1);
       outstem = pargv[0];
       nargsused = 1;
@@ -275,6 +313,21 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--seg")) {
       if (nargc < 1) CMDargNErr(option,1);
       asegfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--out-seg")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outsegfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--ttseg")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      ttsegfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--ttseg-ctab")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      ttsegctabfile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--wsurf")) {
@@ -319,7 +372,7 @@ static int parse_commandline(int argc, char **argv) {
       double resolution;
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&resolution);
-      USF = round(1/resolution);
+      USF = nint(1/resolution);
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--diag-no")) {
@@ -370,10 +423,11 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --reg regfile : can be LTA or reg.dat\n");
   printf("   --o   outstem : output will be oustem.{cortex,subcort_gm,wm,csf}.mgz\n");
+  printf("   --reg regfile : can be LTA or reg.dat\n");
   printf("\n");
   printf("   --usf USF : upsample factor (default %d)\n",USF);
+  printf("   --regheader subject\n");
   printf("   --r res   : resolution, sets USF = round(1/res)\n");
   printf("   --seg  segfile : use segfile instead of %s\n",asegfile);
   printf("   --wsurf wsurf : white surface (default is %s)\n",wsurf);
@@ -386,6 +440,9 @@ static void print_usage(void) {
   printf("     The passed segmentation is dilated and the new voxels become xCSF\n");
   printf("     Note: if the passed seg already has the CSF_ExtraCerebral seg, nothing will be done\n");
   printf("   --dil N : for xCSF fill, dilate by N (default is %d); use -1 to fill the entire volume \n",nDil);
+  printf("   --out-seg outseg : save seg (after adding xcsf voxels)\n");
+  printf("   --ttseg ttseg : save tissue type segmentation (probably not that useful)\n");
+  printf("   --ttseg-ctab ctab : save tissue type segmentation ctab (probably not that useful)\n");
   printf("\n");
   printf("   --mgz    : use mgz format (default)\n");
   printf("   --mgh    : use mgh format\n");
@@ -415,19 +472,27 @@ static void print_version(void) {
 /*---------------------------------------------*/
 static void check_options(void) {
 
-  if(regfile == NULL){
-    printf("ERROR: no registration file specified\n");
-    exit(1);
-  }
   if(outstem == NULL){
     printf("ERROR: no output stem specified\n");
     exit(1);
   }
-  if(subjectoverride == NULL) subject = aseg2vol->subject;
-  else                        subject = subjectoverride;
-  if(regtype == REGISTER_DAT && TempVolFile==NULL){
-    printf("ERROR: template volume needed with register.dat file\n");
+  if(regfile == NULL && !RegHeader){
+    printf("ERROR: no registration file specified\n");
     exit(1);
+  }
+  if(RegHeader){
+    if(regfile){
+      printf("ERROR: cannot spec both --regheader and registration file\n");
+      exit(1);
+    }
+  }
+  if((regtype == REGISTER_DAT || RegHeader) && TempVolFile==NULL){
+    printf("ERROR: template volume needed with register.dat file or --reg-header\n");
+    exit(1);
+  }
+  if(!RegHeader){
+    if(subjectoverride == NULL) subject = aseg2vol->subject;
+    else                        subject = subjectoverride;
   }
   if(ct==NULL) ct = TissueTypeSchema(NULL,"default-jan-2014");
 
