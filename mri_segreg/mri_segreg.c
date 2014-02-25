@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/21 21:14:21 $
- *    $Revision: 1.111 $
+ *    $Date: 2014/02/25 19:06:37 $
+ *    $Revision: 1.112 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.111 2014/02/21 21:14:21 greve Exp $";
+"$Id: mri_segreg.c,v 1.112 2014/02/25 19:06:37 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -366,13 +366,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.111 2014/02/21 21:14:21 greve Exp $",
+     "$Id: mri_segreg.c,v 1.112 2014/02/25 19:06:37 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.111 2014/02/21 21:14:21 greve Exp $",
+     "$Id: mri_segreg.c,v 1.112 2014/02/25 19:06:37 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -979,7 +979,7 @@ int main(int argc, char **argv) {
       fpRMSDiff = fopen(RMSDiffFile,"w");
       //rmsDiffMean rmsDiffStd rmsDiffMax MinCost Nevals Tx Ty Tz Rx Ry Rz  WMMean CtxMean PctContrast 
       fprintf(fpRMSDiff,
-	      "%12.9lf %12.9lf %12.9lf %12.9lf %4d  %7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf  %lf %lf %lf \n",
+	      "%12.9lf %12.9lf %12.9lf   %12.9lf %4d  %7.3lf %7.3lf %7.3lf %6.3lf %6.3lf %6.3lf  %lf %lf %lf \n",
 	      rmsDiffMean,rmsDiffStd,rmsDiffMax,costs[7],nCostEvaluations,
 	      p[0],p[1],p[2],p[3],p[4],p[5],
 	      costs[1],costs[4],costs[6]);
