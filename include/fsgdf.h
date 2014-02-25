@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/03/28 19:54:41 $
- *    $Revision: 1.27 $
+ *    $Date: 2014/02/25 19:11:25 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,34 @@ extern int fsgdf_AllowSubjRep;
 #define FSGDF_NCLASSES_MAX  128
 #define FSGDF_NVARS_MAX     128
 #define FSGDF_NINPUTS_MAX  2000
+
+#define FSGD_FACTOR_DISCRETE 1
+#define FSGD_FACTOR_CONTINUOUS 2
+
+#define FSGD_FACTOR_CONTRAST_MAIN 1
+#define FSGD_FACTOR_CONTRAST_INTERACTION 2
+
+typedef struct 
+{
+  char name[200]; // Factor name
+  int type; // discrete or continuous
+  int nLevels; // number of levels for discrete factor
+  char *Levels[100]; // level names for discrete factor
+  int nFactors;// number of dfactor names for continous factor interactions
+  char *FactorNames[100]; // dfactor names for continous factor interactions
+}
+FSGD_FACTOR;
+
+typedef struct 
+{
+  char name[200];
+  int type; // main, interaction
+  int nFactors; // number of factors in the contrast
+  char *FactorNames[100];
+  FSGD_FACTOR *Factors[100];
+}
+FSGD_FACTOR_CONTRAST;
+
 
 typedef struct
 {
@@ -94,6 +122,12 @@ typedef struct
   char **FContrastSub[50];
   int IsFContrast[50];
   MATRIX *C[50];
+
+  FSGD_FACTOR *Factors[100];
+  int nFactors;
+  FSGD_FACTOR_CONTRAST *fc[100];
+  int nFC;
+  
 }
 GROUPDESCRIPTOR, FSGD;
 
