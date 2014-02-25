@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/01/12 19:00:53 $
-#    $Revision: 1.21 $
+#    $Date: 2014/02/25 19:07:09 $
+#    $Revision: 1.22 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -28,7 +28,7 @@
 # uncomment this to increase number of allowable open files:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_subject,v 1.21 2012/01/12 19:00:53 greve Exp $'
+set VERSION = '$Id: make_average_subject,v 1.22 2014/02/25 19:07:09 greve Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
@@ -49,14 +49,29 @@ endif
 
 goto parse_args;
 parse_args_return:
-
 goto check_params;
 check_params_return:
 
+pushd $sdout > /dev/null
+set sdoutfulldir = `pwd`;
+popd > /dev/null
+
+mkdir -p $sdoutfulldir/$average_subject/scripts
+set LF = $sdoutfulldir/$average_subject/scripts/make_average_subject.log
+if(-e $LF) mv $LF $LF.bak
+
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo $0 $cmdargs | tee -a $LF
+echo "" | tee -a $LF
+echo $VERSION | tee -a $LF
+date | tee -a $LF
+pwd | tee -a $LF
+echo "output ddir is $sdout" | tee -a $LF
+id | tee -a $LF
+
 if($DoLink) then
   echo "Creating link"
-  pushd $sdout > /dev/null
-  set sdoutfulldir = `pwd`;
   pushd $SUBJECTS_DIR > /dev/null
   set cmd = (ln -s $sdoutfulldir/$average_subject $average_subject)
   echo $cmd
@@ -65,7 +80,6 @@ if($DoLink) then
     echo "ERROR: make_average_subject"
     exit 1;
   endif
-  popd > /dev/null
   popd > /dev/null
 endif
 
