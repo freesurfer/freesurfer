@@ -14,8 +14,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/09 18:07:03 $
- *    $Revision: 1.42 $
+ *    $Date: 2014/02/25 19:06:14 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,7 +78,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.42 2014/01/09 18:07:03 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.43 2014/02/25 19:06:14 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -150,11 +150,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.42 2014/01/09 18:07:03 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.43 2014/02/25 19:06:14 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.42 2014/01/09 18:07:03 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.43 2014/02/25 19:06:14 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -536,6 +536,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--aparc+aseg"))  UseAParcPlusASeg = 1;
     else if (!strcasecmp(option, "--ttype")) 
       ctTissueType = TissueTypeSchema(NULL,"default-jan-2014");
+    else if (!strcasecmp(option, "--ttype+head")) 
+      ctTissueType = TissueTypeSchema(NULL,"default-jan-2014+head");
 
     else if (!strcmp(option, "--surf")) {
       if (nargc < 1) argnerr(option,1);
@@ -693,7 +695,8 @@ static void print_usage(void) {
   printf("   --annot annotfile : surface annotation file  \n");
   printf("   --seg   segpath : segmentation\n");
   printf("     --upsample USFactor: upsample seg by factor\n");
-  printf("     --ttype : use tissue type info for seg\n");
+  printf("     --ttype : use default tissue type info for seg\n");
+  printf("     --ttype+head : use default+head tissue type info for seg\n");
   printf("     --no-seg-bounding-box : do not reduce seg FoV\n");
   printf("   --aparc+aseg  : use aparc+aseg.mgz in subjectdir as seg\n");
   printf("\n");
