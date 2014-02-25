@@ -10,9 +10,9 @@ function [ovs] = ovstruct(img,actimg,ovmin,ovmax)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:07 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2014/02/25 19:10:08 $
+%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -46,7 +46,7 @@ for frame = 1:nframes,
   p = actimg(:,:,frame);
 
   % Saturate at ovmax %
-  ovs.pos[frame].ind = find(p > ovmax);
+  ovs.pos(frame).ind = find(p > ovmax);
   p(ind) = ovmax;
 
 ind = find(p >= ovmin   &   p <= ovmax );
