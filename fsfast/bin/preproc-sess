@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/01/22 22:08:44 $
-#    $Revision: 1.50 $
+#    $Date: 2014/02/25 19:09:15 $
+#    $Revision: 1.51 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.50 2013/01/22 22:08:44 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.51 2014/02/25 19:09:15 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -75,6 +75,7 @@ set RegDOF = 6;
 set regfile = ();
 set UseB0DC = 0;
 set ApplySubCortMask = 1;
+set InitHeader = 0;
 
 set nskip = 0; # for inorm
 set nolog = 0;
@@ -207,6 +208,7 @@ foreach sess ($SessList)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($UseB0DC)    set cmd = ($cmd -b0dc)
+    if($InitHeader) set cmd = ($cmd -init-header)
     echo "$sessid Registration -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -553,6 +555,10 @@ while( $#argv != 0 )
     case "-no-subcort-mask":
     case "-no-subcort":
       set ApplySubCortMask = 0;
+      breaksw
+
+    case "-init-header":
+      set InitHeader = 1;
       breaksw
 
     case "-b0dc":
