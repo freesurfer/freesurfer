@@ -1,5 +1,5 @@
 function qout = mri_qoutlier(y)
-% qout = mri_qoutlier(y,k)
+% qout = mri_qoutlier(y)
 % Quartile distance for outlier detection.
 % qout is same size as y (which should be nframes-by-nvox)
 % qout value is the distance from the first or third quartile, which
@@ -9,7 +9,7 @@ function qout = mri_qoutlier(y)
 % The output can be thresholded to do the outlier detection.
 % Typical threshold values are 1.5 or 2
 %
-% $Id: mri_qoutlier.m,v 1.1 2011/09/07 22:23:50 greve Exp $
+% $Id: mri_qoutlier.m,v 1.2 2014/02/25 19:53:32 greve Exp $
 
 if(nargin ~= 1)
   fprintf('qout = mri_qoutlier(y)\n');
