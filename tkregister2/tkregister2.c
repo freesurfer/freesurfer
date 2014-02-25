@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/07 22:46:21 $
- *    $Revision: 1.127 $
+ *    $Date: 2014/02/25 19:07:36 $
+ *    $Revision: 1.128 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.127 2014/02/07 22:46:21 greve Exp $";
+"$Id: tkregister2.c,v 1.128 2014/02/25 19:07:36 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -438,6 +438,7 @@ int DoFMovTarg = 0;
 
 char *DetFile = NULL;
 int AllocBuffs(void);
+static int istringnmatch(char *str1, char *str2, int n);
 
 char *seg_vol_id = NULL;
 MRI *seg_vol = NULL;
@@ -450,6 +451,10 @@ char *tkregister_tcl = NULL;
 char *fstaltarg = "mni305.cor.mgz";
 int SurfRGB[3] = {0,255,0};
 int invLTAOut=0;
+double angles[3] = {0,0,0};
+MATRIX *Mrot = NULL;
+double xyztrans[3] = {0,0,0};
+MATRIX *Mtrans = NULL;
 
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
@@ -498,6 +503,26 @@ int Register(ClientData clientData,
     read_reg(regfname);
   // Just use identity
   if (identityreg) RegMat = MatrixIdentity(4,NULL);
+
+  if(Mrot){
+    printf("Applying rotation matrix (R=M*R)\n");
+    printf("Current Reg Matrix is:\n");
+    MatrixPrint(stdout,RegMat);
+    printf("  Angles (deg): %lf %lf %lf\n",angles[0]*180/M_PI,angles[1]*180/M_PI,angles[2]*180/M_PI);
+    printf("  Angles (rad): %lf %lf %lf\n",angles[0],angles[1],angles[2]);
+    printf("  Rotation matrix:\n");
+    MatrixPrint(stdout,Mrot);
+    RegMat = MatrixMultiply(Mrot,RegMat,RegMat);
+  }
+  if(Mtrans){
+    printf("Applying translation matrix (R=M*R)\n");
+    printf("Current Reg Matrix is:\n");
+    MatrixPrint(stdout,RegMat);
+    printf("  Trans (mm): %lf %lf %lf\n",xyztrans[0],xyztrans[1],xyztrans[2]);
+    printf("  Translation matrix:\n");
+    MatrixPrint(stdout,Mtrans);
+    RegMat = MatrixMultiply(Mtrans,RegMat,RegMat);
+  }
 
   if(DoASeg){
     sprintf(tmpstr,"%s/%s/mri/aseg.mgz",subjectsdir,subjectid);
@@ -1357,6 +1382,30 @@ static int parse_commandline(int argc, char **argv) {
       mkheaderreg = 1;
       nargsused = 1;
     } 
+    else if (istringnmatch(option, "--rot",0)) {
+      if (nargc < 3) argnerr(option,3);
+      // Angles are in degrees
+      sscanf(pargv[0],"%lf",&angles[0]);
+      sscanf(pargv[1],"%lf",&angles[1]);
+      sscanf(pargv[2],"%lf",&angles[2]);
+      angles[0] *= (M_PI/180);
+      angles[1] *= (M_PI/180);
+      angles[2] *= (M_PI/180);
+      Mrot = MRIangles2RotMat(angles);
+      nargsused = 3;
+    } 
+    else if (istringnmatch(option, "--trans",0)) {
+      if (nargc < 3) argnerr(option,3);
+      // Translation in mm
+      sscanf(pargv[0],"%lf",&xyztrans[0]);
+      sscanf(pargv[1],"%lf",&xyztrans[1]);
+      sscanf(pargv[2],"%lf",&xyztrans[2]);
+      Mtrans = MatrixIdentity(4,NULL);
+      Mtrans->rptr[1][4] = xyztrans[0];
+      Mtrans->rptr[2][4] = xyztrans[1];
+      Mtrans->rptr[3][4] = xyztrans[2];
+      nargsused = 3;
+    } 
     else if (!strcmp(option, "--det")) {
       if (nargc < 1) argnerr(option,1);
       DetFile = pargv[0];
@@ -1622,6 +1671,8 @@ static void print_usage(void) {
   printf("   --aparc+aseg : load aparc+aseg (hit 'c' to toggle)\n");
   printf("   --wmparc : load wmparc (hit 'c' to toggle)\n");
   printf("   --gdiagno n : set debug level\n");
+  printf("   --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
+  printf("   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
@@ -4902,7 +4953,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.127 2014/02/07 22:46:21 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.128 2014/02/25 19:07:36 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -5304,5 +5355,10 @@ int AllocBuffs(void)
     targimg[n] = (float *) calloc(WINDOW_COLS,sizeof(float));
     surfimg[n] = (int *) calloc(WINDOW_COLS,sizeof(int));
   }
+  return(0);
+}
+static int istringnmatch(char *str1, char *str2, int n) {
+  if (n > 0  && ! strncasecmp(str1,str2,n)) return(1);
+  if (n <= 0 && ! strcasecmp(str1,str2)) return(1);
   return(0);
 }
