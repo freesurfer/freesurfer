@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-config,v 1.7 2012/12/11 18:18:38 greve Exp $';
+set VERSION    = '$Id: fcseed-config,v 1.8 2014/02/25 19:08:31 greve Exp $';
 set cmdargs = ($argv);
 
 set fcconfig = ();
@@ -121,6 +121,11 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set segstem = $argv[1]; shift;
       set segstem = `basename $segstem .mgz`
+      breaksw
+
+    case "-rlf":
+      if ( $#argv < 1) goto arg1err;
+      set rlf = $argv[1]; shift;
       breaksw
 
     case "-roi":
@@ -278,6 +283,7 @@ usage_exit:
   echo ""
   echo "  -fsd FSD : rest or bold (required)"
   echo "  -funcstem funcstem : default is fmcpr"
+  echo "  -rlf RunListFile"
   echo ""
   echo "Functional ROI-based options"
   echo "  -roi fcconfig : as created by funcroi-confg"
