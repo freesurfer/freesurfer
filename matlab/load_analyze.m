@@ -34,9 +34,9 @@ function hdr = load_analyze(imgfile,hdronly)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:12 $
-%    $Revision: 1.5 $
+%    $Author: greve $
+%    $Date: 2014/02/25 19:52:38 $
+%    $Revision: 1.6 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -127,6 +127,13 @@ if(nitemsread ~= nvoxels)
 end
 
 hdr.vol = reshape(hdr.vol, dim');
+
+if(hdr.dime.roi_scale ~= 0 & hdr.dime.roi_scale ~= 1)
+  fprintf('fast_ldanalyze: scaling by %g\n',hdr.dime.roi_scale);
+  hdr.vol = hdr.vol * hdr.dime.roi_scale;
+end
+
+
 
 return;
 
