@@ -70,8 +70,8 @@ function [vertices, label, colortable] = read_annotation(filename, varargin)
 % Original Author: Bruce Fischl
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2013/11/21 21:50:53 $
-%    $Revision: 1.9 $
+%    $Date: 2014/02/25 19:54:10 $
+%    $Revision: 1.10 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -86,7 +86,7 @@ function [vertices, label, colortable] = read_annotation(filename, varargin)
 
 fp = fopen(filename, 'r', 'b');
 
-verbosity = 1;
+verbosity = 0;
 if length(varargin)
     verbosity       = varargin{1};  
 end;
@@ -122,7 +122,6 @@ if(bool)
         len = fread(fp, 1, 'int');
         colortable.orig_tab = fread(fp, len, '*char')';
         colortable.orig_tab = colortable.orig_tab(1:end-1);
-
         colortable.struct_names = cell(numEntries,1);
         colortable.table = zeros(numEntries,5);
         for i = 1:numEntries
@@ -155,7 +154,6 @@ if(bool)
         
         colortable.struct_names = cell(numEntries,1);
         colortable.table = zeros(numEntries,5);
-        
         numEntriesToRead = fread(fp, 1, 'int');
         for i = 1:numEntriesToRead
             structure = fread(fp, 1, 'int')+1;
@@ -173,7 +171,7 @@ if(bool)
             colortable.table(structure,3) = fread(fp, 1, 'int');
             colortable.table(structure,4) = fread(fp, 1, 'int');
             colortable.table(structure,5) = colortable.table(structure,1) + colortable.table(structure,2)*2^8 + colortable.table(structure,3)*2^16 + colortable.table(structure,4)*2^24;       
-        end
+	end
         if verbosity 
           disp(['colortable with ' num2str(colortable.numEntries) ' entries read (originally ' colortable.orig_tab ')']);
         end
@@ -186,4 +184,13 @@ end
 
 fclose(fp);
 
+% This makes it so that each empty entry at least has a string, even
+% if it is an empty string. This can happen with average subjects.
+for i = 1:numEntries
+  if(isempty(colortable.struct_names{i}))
+    colortable.struct_names{i}='';
+  end
+end
+
+return;
 
