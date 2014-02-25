@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/02/21 18:34:19 $
- *    $Revision: 1.66 $
+ *    $Date: 2014/02/25 19:12:20 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -98,7 +98,7 @@ static char *input_names[MAX_GCA_INPUTS] =
 static int do_sanity_check = 0;
 static int do_fix_badsubjs = 0;
 static int sanity_check_badsubj_count = 0;
-
+static int AllowMisMatch=0;
 
 int
 main(int argc, char *argv[])
@@ -129,7 +129,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.66 2012/02/21 18:34:19 greve Exp $",
+           "$Id: mri_ca_train.c,v 1.67 2014/02/25 19:12:20 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -343,9 +343,12 @@ main(int argc, char *argv[])
         counts = 0;
         for (input = 0; input < ninputs; input++)
           if (used[input] == 1) counts++;
-        if (counts != ninputs)
-          ErrorExit(ERROR_BADPARM,
-                    "Input TR, TE, FlipAngle for each subjects must match.\n");
+        if (counts != ninputs){
+	  if(!AllowMisMatch)
+	    ErrorExit(ERROR_BADPARM,
+		      "Input TR, TE, FlipAngle for each subjects must match.\n");
+	  printf("Input TR, TE, FlipAngle for each subjects do not match, but mismatch allowed.\n");	  
+	}
       } else
         for (o = 0 ; o < ninputs ; o++)
           ordering[o] = o ;
@@ -527,6 +530,7 @@ main(int argc, char *argv[])
         // then change it to vox-to-vox transform (linear case)
 
         // modify transform to store inverse also
+	printf("Inverting transform\n");fflush(stdout);
         TransformInvert(transform, mri_inputs) ;
         // verify inverse
         lta = (LTA *) transform->xform;
@@ -820,6 +824,7 @@ main(int argc, char *argv[])
                     Progname, fname) ;
         // change the transform to vox-to-vox
         modify_transform(transform, mri_inputs, gca);
+	printf("Inverting transform\n");fflush(stdout);
         TransformInvert(transform, mri_inputs) ;
         if ((transform->type != MORPH_3D_TYPE) &&
             ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON))
@@ -1208,6 +1213,11 @@ get_option(int argc, char *argv[])
   {
     do_sanity_check = 1;
     printf("will conduct sanity-check of labels...\n") ;
+  }
+  else if (!stricmp(option, "mismatch"))
+  {
+    AllowMisMatch=1;
+    printf("will allow MR param mismatch\n") ;
   }
   else if (!stricmp(option, "check_and_fix"))
   {
