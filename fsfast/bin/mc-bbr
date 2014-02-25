@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/06/29 21:53:49 $
-#    $Revision: 1.4 $
+#    $Date: 2014/02/25 19:08:51 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,19 +26,31 @@
 # Sample to anat
 # Sample to tal
 
-set VERSION = '$Id: mc-bbr,v 1.4 2010/06/29 21:53:49 greve Exp $';
+set VERSION = '$Id: mc-bbr,v 1.5 2014/02/25 19:08:51 greve Exp $';
 
 set invol = ();
 set outvol = ();
+set outlh = ();
+set outrh = ();
+set outmni = ();
 set template = ();
 set frame = 0;
 set mcdat = ();
 set subject = ();
 set DoPVF = 0;
+set outdir = ();
+set trgsubject = fsaverage
+set fwhm = 0;
+set TolF  = 1e-5 
+set Tol1D = 1e-3
+set interp = trilin
+set lhmask = ();
+set rhmask = ();
+set mnimask = ();
 
 set nolog = 0;
 set tmpdir = ();
-set cleanup = 0;
+set cleanup = 1;
 set PrintHelp = 0;
 
 set cmdargs = ($argv);
@@ -115,12 +127,14 @@ endif
 
 # Perform the initial registration
 set reg0 = $outdir/reg.template.dat
-set cmd = (bbregister --mov $template --s $subject --bold \
-  --init-fsl --reg $reg0 --tol1d 1e-2 \
-  --gm-proj-abs 1 --wm-proj-abs 1)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
+if(! -e $reg0) then
+  set cmd = (bbregister --mov $template --s $subject --bold \
+    --init-fsl --reg $reg0 --tol1d 1e-2 \
+    --gm-proj-abs 1 --wm-proj-abs 1)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
 
 # Get number of frames
 set infotxt = /tmp/mriinfo.$$
@@ -146,33 +160,70 @@ while ($nthframe < $nframes)
 
   # Register frame to anat
   set regframe = $outdir/f.$zp.reg.dat
-  set rmsframe = $outdir/f.$zp.rms
-  set paramframe = $outdir/f.$zp.param
-  set cmd = (mri_segreg --mov $f --init-reg $reg0 \
-    --out-reg $regframe --brute -4 4 4 --interp trilinear \
-    --gm-proj-abs 1 --wm-proj-abs 1 --dof 6 --tol 1e-4 \
-    --tol1d 1e-1 --rms $rmsframe --param $paramframe)
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) exit 1;
-
-  # Compute reg to template
-  set regframetemp = $outdir/f.$zp.reg.temp.dat
-  set cmd = (mri_matrix_multiply -im $regframe \
-    -iim $reg0 -om $regframetemp)
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) exit 1;
+  if(! -e $regframe) then
+    set rmsframe = $outdir/f.$zp.rms
+      set paramframe = $outdir/f.$zp.param
+    set mincostframe = $outdir/f.$zp.mincost
+    set logframe = $outdir/f.$zp.log
+    set cmd = (mri_segreg --mov $f --init-reg $reg0 \
+      --out-reg $regframe --brute -4 4 4 --interp trilinear \
+      --gm-proj-abs 1 --wm-proj-abs 1 --dof 6 \
+      --tol $TolF --tol1d $Tol1D \
+      --rms $rmsframe --param $paramframe \
+      --mincost $mincostframe)
+    echo $cmd |& tee -a $LF |& tee -a $logframe
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
 
   # Resample to template
-  set ft = $tmpdir/f.$zp.temp.nii
-  set cmd = (mri_vol2vol --mov $f --targ $template \
-    --reg $regframetemp --o $ft --no-save-reg)
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) exit 1;
+  if($#outvol) then
+    # Compute reg to template
+    set regframetemp = $outdir/f.$zp.reg.temp.dat
+    set cmd = (mri_matrix_multiply -im $regframe \
+      -iim $reg0 -om $regframetemp)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    set ft = $tmpdir/f.$zp.temp.nii
+    set cmd = (mri_vol2vol --mov $f --targ $template \
+      --reg $regframetemp --o $ft --no-save-reg --interp $interp)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+  # Sample to the left hemi
+  if($#outlh) then
+    set lhfile = $tmpdir/lh.$zp.temp.mgh
+    set cmd = (mri_vol2surf --mov $f --reg $regframe --interp $interp\
+       --projfrac 0.5 --hemi lh --o $lhfile --noreshape --cortex)
+    if($#trgsubject) set cmd = ($cmd --trgsubject $trgsubject)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+  # Sample to the right hemi
+  if($#outrh) then
+    set rhfile = $tmpdir/rh.$zp.temp.mgh
+    set cmd = (mri_vol2surf --mov $f --reg $regframe --interp $interp\
+       --projfrac 0.5 --hemi rh --o $rhfile --noreshape  --cortex)
+    if($#trgsubject) set cmd = ($cmd --trgsubject $trgsubject)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+  # Sample to mni305 2mm
+  if($#outmni) then
+    set mnifile = $tmpdir/mni.$zp.temp.nii
+    set cmd = (mri_vol2vol --mov $f --reg $regframe \
+       --tal --talres 2 --o $mnifile --interp $interp)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
 
   if($DoPVF) then
+    # For partial volume correction
     set cmd = (mri_label2vol --seg $ctxgm --temp $template --reg $regframe \
       --o $tmpdir/ribbon.junk.nii --hits $tmpdir/ribbon.hits.$zp.nii \
       --pvf $outdir/ribbon.pvf.$zp.nii)
@@ -182,12 +233,66 @@ while ($nthframe < $nframes)
   endif
 
   @ nthframe = $nthframe + 1
-end
+end # loop over frames
 
-set cmd = (mri_concat $tmpdir/f.????.temp.nii --o $outvol)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
+# Concatenate the output in native space
+if($#outvol) then
+  set cmd = (mri_concat $tmpdir/f.????.temp.nii --o $outvol)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  if($fwhm != 0) then
+    set cmd = (mri_fwhm --i $outvol --o $outvol --fwhm $fwhm --smooth-only)
+    if($#volmask) set cmd = ($cmd --mask $volmask)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+endif
+# Concatenate the output in left hemi
+if($#outlh) then
+  set cmd = (mri_concat $tmpdir/lh.????.temp.mgh --o $outlh)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  if($fwhm != 0) then
+    set cmd = (mris_fwhm --s fsaverage --hemi lh --smooth-only \
+      --i $outlh --fwhm $fwhm --o $outlh)
+    if($#lhmask) set cmd = ($cmd --mask $lhmask )
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+endif
+# Concatenate the output in right hemi
+if($#outrh) then
+  set cmd = (mri_concat $tmpdir/rh.????.temp.mgh --o $outrh)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  if($fwhm != 0) then
+    set cmd = (mris_fwhm --s fsaverage --hemi rh --smooth-only \
+      --i $outrh --fwhm $fwhm --o $outrh)
+    if($#rhmask) set cmd = ($cmd --mask $rhmask )
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+endif
+# Concatenate the output in mni305
+if($#outmni) then
+  set cmd = (mri_concat $tmpdir/mni.????.temp.nii --o $outmni)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+  if($fwhm != 0) then
+    set cmd = (mri_fwhm --i $outmni --o $outmni --smooth-only --fwhm $fwhm)
+    if($#mnimask) set cmd = ($cmd --mask $mnimask);
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+endif
 
 cat $outdir/f.????.param > $mcdat
 echo $cmd |& tee -a $LF
@@ -229,6 +334,51 @@ while( $#argv != 0 )
     case "--o":
       if($#argv < 1) goto arg1err;
       set outvol = $argv[1]; shift;
+      breaksw
+
+    case "--volmask":
+      if($#argv < 1) goto arg1err;
+      set volmask = $argv[1]; shift;
+      breaksw
+
+    case "--olh":
+      if($#argv < 1) goto arg1err;
+      set outlh = $argv[1]; shift;
+      breaksw
+
+    case "--lhmask":
+      if($#argv < 1) goto arg1err;
+      set lhmask = $argv[1]; shift;
+      breaksw
+
+    case "--orh":
+      if($#argv < 1) goto arg1err;
+      set outrh = $argv[1]; shift;
+      breaksw
+
+    case "--rhmask":
+      if($#argv < 1) goto arg1err;
+      set rhmask = $argv[1]; shift;
+      breaksw
+
+    case "--trgsubject":
+      if($#argv < 1) goto arg1err;
+      set trgsubject = $argv[1]; shift;
+      breaksw
+
+    case "--fwhm":
+      if($#argv < 1) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "--omni":
+      if($#argv < 1) goto arg1err;
+      set outmni = $argv[1]; shift;
+      breaksw
+
+    case "--mnimask":
+      if($#argv < 1) goto arg1err;
+      set mnimask = $argv[1]; shift;
       breaksw
 
     case "--s":
@@ -308,8 +458,8 @@ if(! -e $invol) then
   echo "ERROR: cannot find $invol"
   exit 1;
 endif
-if($#outvol == 0) then
-  echo "ERROR: must specify an output volume"
+if($#outvol == 0 && $#outdir == 0) then
+  echo "ERROR: must specify an output volume/dir"
   exit 1;
 endif
 if($#template != 0) then
