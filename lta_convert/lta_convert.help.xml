@@ -63,9 +63,9 @@ are missing this information and you need to explicitly pass it
 via --src and/or --trg. You can also use this if you want to 
 inform the transform to reslice your image differently (i.e.
 to modify the geometry information without changing RAS 
-coordinates).</intro>
+coordinates). For TKREG/register.dat type matrices, src=mov and trg=ref/targ.</intro>
       <argument>--src</argument>
-      <explanation>specify src image geometry</explanation>
+      <explanation>specify src image geometry (mov volume for TKREG/register.dat)</explanation>
       <argument>--trg</argument>
       <explanation>specify trg image geometry</explanation>
       <argument>--trgconform</argument>
