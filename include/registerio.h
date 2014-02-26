@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2013/04/25 16:12:22 $
- *    $Revision: 1.10 $
+ *    $Author: greve $
+ *    $Date: 2014/02/26 21:25:56 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,5 +63,6 @@ MATRIX *regio_read_surfacexform_from_register_dat(const char *fname,
                                                   const MRI *mri, char **subject);
 
 MATRIX *regio_read_registermat(const char *regfile);
+char *regio_read_subject(const char *regfile);
 
 #endif /*BF_H_INC*/

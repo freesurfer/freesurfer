@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2013/04/25 19:10:51 $
- *    $Revision: 1.30 $
+ *    $Author: greve $
+ *    $Date: 2014/02/26 21:25:56 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -554,3 +554,14 @@ MATRIX *regio_read_registermat(const char *regfile)
   return(R);
 }
 
+char *regio_read_subject(const char *regfile)
+{
+  float inplaneres, betplaneres, intensity;
+  int float2int;
+  MATRIX *R;
+  char *subject;
+  regio_read_register(regfile, &subject, &inplaneres,&betplaneres, 
+		      &intensity,  &R,&float2int);
+  MatrixFree(&R);
+  return(subject);
+}
