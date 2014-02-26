@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/11 00:38:39 $
- *    $Revision: 1.77 $
+ *    $Date: 2014/02/26 21:30:02 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -142,10 +142,11 @@ LTA *LTAchangeType(LTA *lta, int ltatype);  /* must have both src and
                                                dst vol_geom valid */
 
 // new routines to retrieve src and dst volume info for transform
-LTA      *LTAreadEx(const char *fname);
-LTA      *LTAreadExType(const char *fname, int type);
-int      LTAwriteEx(const LTA *lta, const char *fname);
-int      LTAprint(FILE *fp, const LTA *lta);
+LTA  *LTAreadEx(const char *fname);
+LTA  *LTAreadExType(const char *fname, int type);
+LTA  *ltaReadRegisterDat(const char *fname, const char *mov, const char *ref);
+int   LTAwriteEx(const LTA *lta, const char *fname);
+int   LTAprint(FILE *fp, const LTA *lta);
 
 #define LINEAR_VOX_TO_VOX       0
 #define LINEAR_VOXEL_TO_VOXEL   LINEAR_VOX_TO_VOX

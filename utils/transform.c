@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/11 00:38:40 $
- *    $Revision: 1.169 $
+ *    $Date: 2014/02/26 21:30:02 $
+ *    $Revision: 1.170 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,6 @@ extern const char* Progname;
 
 #define MAX_TRANSFORMS (1024*4)
 
-static LTA  *ltaReadRegisterDat(const char *fname) ;
 static LTA  *ltaMNIread(const char *fname) ;
 static LTA  *ltaFSLread(const char *fname) ;
 static int  ltaMNIwrite(const LTA *lta,const char *fname) ;
@@ -643,7 +642,7 @@ LTAread(const char *fname)
   switch (type)
   {
   case REGISTER_DAT:
-    lta = ltaReadRegisterDat(fname) ;
+    lta = ltaReadRegisterDat(fname,NULL,NULL) ;
     if (!lta) return(NULL) ;
 
 #if 0
@@ -3041,15 +3040,13 @@ TransformApplyInverseType(TRANSFORM *transform, MRI *mri_src, MRI *mri_dst, int 
 }
 
 #include "stats.h"
-static LTA *
-ltaReadRegisterDat(const char *fname)
+LTA *ltaReadRegisterDat(const char *fname, const char *mov, const char *ref)
 {
   LTA        *lta ;
   char       *tmpstr ;
   float      ipr, bpr ;
   int        err, float2int ;
   MATRIX     *R ;
-
 
   lta = LTAalloc(1, NULL) ;
   lta->xforms[0].sigma = 1.0f ;
@@ -3062,6 +3059,26 @@ ltaReadRegisterDat(const char *fname)
                       "ltaReadRegisterDat: could not read %s", fname));
   strcpy(lta->subject, tmpstr) ; free(tmpstr) ;
   MatrixCopy(R, lta->xforms[0].m_L) ; MatrixFree(&R) ;
+
+  /* The definitions of mov=src and ref=dst are consistent with
+     tkregister2, LTAchangeType() and ltaReadRegisterDat(). This is an
+     unfortunate definition because the registration matrix actually
+     does from ref to mov. But this was an error introduced a long
+     time ago and the rest of the code base has built up around it. */
+  if(mov != NULL){
+    MRI *mritmp;
+    mritmp = MRIreadHeader(mov,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mritmp==NULL) return(NULL);
+    getVolGeom(mritmp, &lta->xforms[0].src);
+    MRIfree(&mritmp);
+  }
+  if(ref != NULL){
+    MRI *mritmp;
+    mritmp = MRIreadHeader(ref,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mritmp==NULL) return(NULL);
+    getVolGeom(mritmp, &lta->xforms[0].dst);
+    MRIfree(&mritmp);
+  }
 
   // (mr) I dont think CORONAL_RAS_TO_CORONAL_RAS is the same here,
   // it did not work for me so I changed it to the REGISTER_DAT
@@ -3540,7 +3557,7 @@ LTAreadExType(const char *fname, int type)
     printf("INFO: This REGISTER_DAT transform "
            "is valid only for volumes between "
            " COR types with c_(r,a,s) = 0.\n");
-    lta = ltaReadRegisterDat((char *) fname);
+    lta = ltaReadRegisterDat((char *) fname,NULL,NULL);
     if (!lta)
       return(NULL) ;
 
@@ -4114,15 +4131,21 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
       lta->type = LINEAR_PHYSVOX_TO_PHYSVOX;
       break;
     case REGISTER_DAT:
+      // from LINEAR_RAS_TO_RAS to REGISTER_DAT:
       for (i = 0; i < lta->num_xforms; ++i)
       {
-        lt = &lta->xforms[i];
+	/* The definitions of mov=src and ref=dst are consistent with
+	   tkregister2, LTAchangeType() and ltaReadRegisterDat(). This is an
+	   unfortunate definition because the registration matrix actually
+	   does from ref to mov. But this was an error introduced a long
+	   time ago and the rest of the code base has built up around it. */
+        lt = &lta->xforms[i]; //movsrc->refdst
         m_L = lt->m_L;
         movmri = MRIallocHeader(lt->src.width,lt->src.height,lt->src.depth,MRI_UCHAR,1);
         refmri = MRIallocHeader(lt->dst.width,lt->dst.height,lt->dst.depth,MRI_UCHAR,1);
         useVolGeomToMRI(&lt->src,movmri);
         useVolGeomToMRI(&lt->dst,refmri);
-        mreg = MRItkRegMtx(refmri, movmri, m_L);
+        mreg = MRItkRegMtx(refmri, movmri, m_L);//refdst->movsrc
         MatrixCopy(mreg, m_L);
         MatrixFree(&mreg);
         MRIfree(&movmri);
@@ -4303,15 +4326,21 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
   {
     switch (ltatype){
     case LINEAR_RAS_TO_RAS:
+      // from REGISTER_DAT to LINEAR_RAS_TO_RAS
       for (i = 0; i < lta->num_xforms; ++i)
       {
-        lt = &lta->xforms[0];
+	/* The definitions of mov=src and ref=dst are consistent with
+	   tkregister2, LTAchangeType() and ltaReadRegisterDat(). This is an
+	   unfortunate definition because the registration matrix actually
+	   does from ref to mov. But this was an error introduced a long
+	   time ago and the rest of the code base has built up around it. */
+        lt = &lta->xforms[0]; //movsrc->refdst
         m_L = lt->m_L;      
         movmri = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR,1) ;
         refmri = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR,1) ;
         MRIcopyVolGeomToMRI(movmri, &lt->src) ;
         MRIcopyVolGeomToMRI(refmri, &lt->dst) ;
-        mreg = MRItkReg2Native(refmri,movmri,m_L); //ras2ras
+        mreg = MRItkReg2Native(refmri,movmri,m_L); //movsrc->refdst
         MatrixCopy(mreg, m_L);
         MatrixFree(&mreg);
         MRIfree(&movmri) ;
