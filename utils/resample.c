@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/05 17:42:04 $
- *    $Revision: 1.44 $
+ *    $Date: 2014/02/26 22:15:47 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1994,6 +1994,61 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
   printf("ASeg2Vol: done\n");
   return(volaseg);
 }
+/*
+  \fn MRI *MRIaseg2volMU(MRI *aseg, LTA *aseg2vol, double fthresh, MRI **pvolhit, int USF, COLOR_TABLE *ct)
+  \brief Frontend for MRIaseg2vol(). This version takes a LTA and
+  USF. It will reduce the FoV of the aseg to the smallest bounding
+  box. This will then be upsampled by USF. The result (and a proper
+  matrix) is handed off to MRIaseg2vol(). The aseg2vol LTA can point 
+  in either direction. 
+*/
+MRI *MRIaseg2volMU(MRI *aseg, LTA *aseg2vol, double fthresh, MRI **pvolhit, int USF, COLOR_TABLE *ct)
+{
+  MRI *asegmu, *OutVol, *TempVol;
+  LTA *aseg2asegmu,*asegmu2aseg,*asegmu2vol,*ltaArray[2];
+  int nPad = 2;
+  VOL_GEOM *vg;
+
+  if(USF != -1) {
+    asegmu = MRImaskAndUpsample(aseg, NULL, USF, nPad, 0, &aseg2asegmu);
+    asegmu2aseg = LTAinvert(aseg2asegmu,NULL);
+    ltaArray[0] = asegmu2aseg;
+    ltaArray[1] = aseg2vol;
+    asegmu2vol = LTAconcat(ltaArray, 2, 1); // figures out inversions
+    LTAfree(&aseg2asegmu);
+  }
+  else {
+    asegmu = aseg;
+    if(LTAmriIsSource(aseg2vol, aseg)) asegmu2vol = LTAcopy(aseg2vol,NULL);
+    else                               asegmu2vol = LTAinvert(aseg2vol,NULL);
+  }
+
+  // MRIaseg2vol() requires a register.dat matrix
+  if(LTAmriIsSource(asegmu2vol, asegmu)){
+    /* The definitions of mov=src and ref=dst are consistent with
+       tkregister2, LTAchangeType() and ltaReadRegisterDat(). This is an
+       unfortunate definition because the registration matrix actually
+       does from ref to mov. But this was an error introduced a long
+       time ago and the rest of the code base has built up around it. */
+    LTAinvert(asegmu2vol,asegmu2vol);
+  }
+  LTAchangeType(asegmu2vol, REGISTER_DAT);  
+
+  if(LTAmriIsSource(aseg2vol, aseg))  vg = &aseg2vol->xforms[0].dst;
+  else                                vg = &aseg2vol->xforms[0].src;
+  TempVol = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_INT, 1);
+  useVolGeomToMRI(vg, TempVol);
+  MRIcopyPulseParameters(aseg,TempVol);
+
+  OutVol = MRIaseg2vol(asegmu, asegmu2vol->xforms[0].m_L, TempVol, fthresh, pvolhit, ct);
+
+  if(asegmu != aseg) MRIfree(&asegmu);
+  LTAfree(&asegmu2vol);
+  MRIfree(&TempVol);
+  return(OutVol);
+}
+
+
 /*-----------------------------------------------------------------------
   MostHitsInVolVox() - determines the segid with the most hits in the
   given volume voxel. In this case, avindsorted points to the first
