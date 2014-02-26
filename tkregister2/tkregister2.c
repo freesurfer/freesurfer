@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/25 19:07:36 $
- *    $Revision: 1.128 $
+ *    $Date: 2014/02/26 21:31:58 $
+ *    $Revision: 1.129 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.128 2014/02/25 19:07:36 greve Exp $";
+"$Id: tkregister2.c,v 1.129 2014/02/26 21:31:58 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -3895,6 +3895,11 @@ void write_lta(char *fname) {
   strcpy(lta->subject, pname) ;
   lta->fscale = fscale_2 ;
   if(! invLTAOut) {
+    /* The definitions of mov=src and ref=dst are consistent with
+       LTAchangeType() and ltaReadRegisterDat(). This is an unfortunate
+       definition because the registration matrix actually does from
+       ref to mov. But this was an error introduced a long time ago
+       and the rest of the code base has built up around it. */
     lta->xforms[0].m_L = MatrixCopy(RegMatTmp, NULL) ;
     getVolGeom(mov_vol,   &lta->xforms[0].src);
     getVolGeom(targ_vol0, &lta->xforms[0].dst);
@@ -4953,7 +4958,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.128 2014/02/25 19:07:36 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.129 2014/02/26 21:31:58 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
