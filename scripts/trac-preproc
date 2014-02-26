@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2013/12/04 17:02:25 $
-#    $Revision: 1.46 $
+#    $Date: 2014/02/26 22:55:30 $
+#    $Revision: 1.47 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.46 2013/12/04 17:02:25 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.47 2014/02/26 22:55:30 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -521,10 +521,12 @@ if ($doqa && ! $dolong) then
   echo "#@# Image quality assessment `date`" |& tee -a $LF
 
   set cmd = $trcdir/dmri_motion
-  set cmd = ($cmd --dwi  $dwidir/dwi_orig.nii.gz)
-  set cmd = ($cmd --mat  $dwidir/dwi.ecclog)
-  set cmd = ($cmd --bval $dwidir/bvals)
-  set cmd = ($cmd --out  $dwidir/dwi_motion.txt)
+  set cmd = ($cmd --dwi   $dwidir/dwi_orig.nii.gz)
+  if (-e $dwidir/dwi.ecclog) then
+    set cmd = ($cmd --mat $dwidir/dwi.ecclog)
+  endif
+  set cmd = ($cmd --bval  $dwidir/bvals)
+  set cmd = ($cmd --out   $dwidir/dwi_motion.txt)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
