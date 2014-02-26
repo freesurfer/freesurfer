@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/22 18:35:18 $
- *    $Revision: 1.16 $
+ *    $Date: 2014/02/26 21:37:08 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,7 @@
 #include "cma.h"
 #include "timer.h"
 #include "fmriutils.h"
+#include "registerio.h"
 
 
 int main(int argc, char *argv[]) ;
@@ -56,7 +57,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 
-static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.16 2014/02/22 18:35:18 greve Exp $";
+static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.17 2014/02/26 21:37:08 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -104,6 +105,12 @@ int main(int argc, char *argv[]) {
   DiagInit(NULL, NULL, NULL) ;
   if (argc == 0) usage_exit();
 
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if (SUBJECTS_DIR == NULL) {
+    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
+    exit(1);
+  }
+
   parse_commandline(argc, argv);
   check_options();
   if (checkoptsonly) return(0);
@@ -112,11 +119,6 @@ int main(int argc, char *argv[]) {
   TimerStart(&start) ;
   nTT = ct->ctabTissueType->nentries-1; // -1 to exclude unknown
 
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if (SUBJECTS_DIR == NULL) {
-    printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-    exit(1);
-  }
   printf("Reading in aseg and surfs from %s/%s\n",SUBJECTS_DIR,subject);
 
   if(ttsegctabfile)
@@ -128,7 +130,7 @@ int main(int argc, char *argv[]) {
     aseg = MRIread(tmpstr);
     if(aseg==NULL) exit(1);
     if(FillCSF){
-      printf("Filling empty voxels with extracerebral CSF, nDil=%d\n",nDil);
+      printf("Filling empty voxels with extracerebral CSF (if not there already), nDil=%d\n",nDil);
       if(aseg->type == MRI_UCHAR){
 	mritmp = MRIchangeType(aseg,MRI_INT,0,0,0);
 	MRIfree(&aseg);
@@ -166,14 +168,6 @@ int main(int argc, char *argv[]) {
   rhp = MRISread(tmpstr);
   if(rhp==NULL) exit(1);
 
-  if(regtype == REGISTER_DAT){
-    mritmp = MRIreadHeader(TempVolFile,MRI_VOLUME_TYPE_UNKNOWN);
-    if(mritmp==NULL) exit(1);
-    getVolGeom(mritmp, &aseg2vol->xforms[0].src);
-    getVolGeom(aseg, &aseg2vol->xforms[0].dst);
-    MRIfree(&mritmp);
-    if(debug) LTAprint(stdout,aseg2vol);
-  }
   if(RegHeader){
     MRI *orig;
     MRI *temp;
@@ -271,8 +265,6 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       regfile = pargv[0];
       nargsused = 1;
-      aseg2vol = LTAread(regfile);
-      if(aseg2vol == NULL) exit(1);
       regtype = TransformFileNameType(regfile);
       if(regtype == REGISTER_DAT){
 	if(nargc < 2 || CMDisFlag(pargv[1])){
@@ -385,8 +377,6 @@ static int parse_commandline(int argc, char **argv) {
       if(nOptUnknown == 0){
 	regfile = option;
 	nargsused = 0;
-	aseg2vol = LTAread(regfile);
-	if(aseg2vol == NULL) exit(1);
 	regtype = TransformFileNameType(regfile);
 	printf("Setting registration file to %s\n",regfile);
       }
@@ -490,6 +480,17 @@ static void check_options(void) {
     printf("ERROR: template volume needed with register.dat file or --reg-header\n");
     exit(1);
   }
+  if(regtype == REGISTER_DAT){
+    char *subjecttmp;
+    subjecttmp = regio_read_subject(regfile);
+    if(subjecttmp==NULL) exit(1);
+    sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subjecttmp,asegfile);
+    aseg2vol = ltaReadRegisterDat(regfile, TempVolFile, tmpstr);
+    free(subjecttmp);
+  }
+  else aseg2vol = LTAread(regfile);
+  if(debug) LTAprint(stdout,aseg2vol);
+
   if(!RegHeader){
     if(subjectoverride == NULL) subject = aseg2vol->subject;
     else                        subject = subjectoverride;
