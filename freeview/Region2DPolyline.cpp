@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/10 22:34:21 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/02/27 21:05:45 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,7 +86,7 @@ void Region2DPolyline::RemoveLastPoint()
 void Region2DPolyline::UpdateWorldCoords()
 {
   WorldPoint wp;
-  for ( size_t i = m_worldPts.size(); i < m_screenPts.size(); i++ )
+  for ( int i = m_worldPts.size(); i < m_screenPts.size(); i++ )
   {
     m_view->MousePositionToRAS( m_screenPts[i].pos[0], m_screenPts[i].pos[1], wp.pos );
     if ( i > 0 && vtkMath::Distance2BetweenPoints( wp.pos, m_worldPts[i-1].pos ) < 1e-8 )
@@ -110,7 +110,7 @@ void Region2DPolyline::Update()
   vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
   lines->InsertNextCell( m_worldPts.size() );
-  for ( size_t i = 0; i < m_worldPts.size(); i++ )
+  for ( int i = 0; i < m_worldPts.size(); i++ )
   {
     m_view->WorldToViewport( m_worldPts[i].pos[0], m_worldPts[i].pos[1], m_worldPts[i].pos[2], pt[0], pt[1], pt[2] );
     pts->InsertNextPoint( pt );
@@ -179,7 +179,7 @@ void Region2DPolyline::UpdateStats()
   if ( m_bSpline )
   {
     vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
-    for ( size_t i = 0; i < m_worldPts.size(); i++ )
+    for ( int i = 0; i < m_worldPts.size(); i++ )
     {
       pts->InsertNextPoint( m_worldPts[i].pos );
     }
@@ -217,7 +217,7 @@ void Region2DPolyline::UpdateStats()
   {
     double* values = NULL;
     int* indices = NULL;
-    for ( size_t i = 1; i < m_worldPts.size(); i++ )
+    for ( int i = 1; i < m_worldPts.size(); i++ )
     {
       dist += sqrt( vtkMath::Distance2BetweenPoints( m_worldPts[i-1].pos, m_worldPts[i].pos ) );
       int count = 0;
@@ -277,7 +277,7 @@ void Region2DPolyline::Offset( int x, int y )
   double pt0[3], pt[3];
   m_view->MousePositionToRAS( 0, 0, pt0 );
   m_view->MousePositionToRAS( x, y, pt );
-  for ( size_t n = 0; n < m_worldPts.size(); n++ )
+  for ( int n = 0; n < m_worldPts.size(); n++ )
   {
     for ( int i = 0; i < 3; i++ )
     {
@@ -302,7 +302,7 @@ bool Region2DPolyline::Contains( int x, int y, int* indexOut )
   m_view->MousePositionToRAS( x, y, pt );
   int nPlane = m_view->GetViewPlane();
 
-  for ( size_t i = 0; i < m_worldPts.size(); i++ )
+  for ( int i = 0; i < m_worldPts.size(); i++ )
   {
     pt[nPlane] = m_worldPts[i].pos[nPlane];
     if ( vtkMath::Distance2BetweenPoints( pt, m_worldPts[i].pos ) < dTh2 )
@@ -320,7 +320,7 @@ bool Region2DPolyline::Contains( int x, int y, int* indexOut )
   }
 
   double closestPt[3], t;
-  for ( size_t i = 0; i < m_worldPts.size()-1; i++ )
+  for ( int i = 0; i < m_worldPts.size()-1; i++ )
   {
     if ( vtkLine::DistanceToLine( pt, m_worldPts[i].pos, m_worldPts[i+1].pos, t, closestPt ) < dTh2 )
     {
@@ -355,7 +355,7 @@ void Region2DPolyline::UpdatePoint( int nIndex, int nX, int nY )
 
 void Region2DPolyline::UpdateSlicePosition( int nPlane, double pos )
 {
-  for ( size_t i = 0; i < m_worldPts.size(); i++ )
+  for ( int i = 0; i < m_worldPts.size(); i++ )
   {
     m_worldPts[i].pos[nPlane] = pos;
   }

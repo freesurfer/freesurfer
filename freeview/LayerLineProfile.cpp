@@ -320,7 +320,7 @@ void LayerLineProfile::UpdateActiveLine()
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
     int nCount = 0;
-    for (size_t i = m_nActiveLineId; i < m_nActiveLineId+1; i++)
+    for (int i = m_nActiveLineId; i < m_nActiveLineId+1; i++)
     {
       std::vector < std::vector < double > > line = m_ptsProfile[i];
       lines->InsertNextCell(line.size());

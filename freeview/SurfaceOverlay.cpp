@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/30 22:08:25 $
- *    $Revision: 1.22 $
+ *    $Date: 2014/02/27 21:05:45 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,8 @@ SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
   m_fDataUnsmoothed(NULL),
   m_dMaxValue(0),
   m_dMinValue(0),
+  m_dRawMaxValue(0),
+  m_dRawMinValue(0),
   m_surface( surf ),
   m_bCorrelationData( false ),
   m_mriCorrelation(NULL),
@@ -143,6 +145,8 @@ void SurfaceOverlay::InitializeData()
         m_dMinValue = m_fData[vno];
       }
     }
+    m_dRawMaxValue = m_dMaxValue;
+    m_dRawMinValue = m_dMinValue;
     memcpy(m_fDataRaw, m_fData, sizeof(float)*m_nDataSize);
   }
 }
@@ -159,6 +163,17 @@ void SurfaceOverlay::InitializeData(float *data_buffer_in, int nvertices, int nf
     m_fDataRaw = data_buffer_in;
     if ( !m_fDataRaw )
       return;
+
+    m_dMaxValue = m_dMinValue = m_fDataRaw[0];
+    for (int i = 0; i < m_nDataSize*m_nNumOfFrames; i++)
+    {
+      if ( m_dMaxValue < m_fDataRaw[i])
+        m_dMaxValue = m_fDataRaw[i];
+      else if (m_dMinValue > m_fDataRaw[i])
+        m_dMinValue = m_fDataRaw[i];
+    }
+    m_dRawMaxValue = m_dMaxValue;
+    m_dRawMinValue = m_dMinValue;
 
     if ( m_fData )
       delete[] m_fData;
@@ -476,6 +491,12 @@ void SurfaceOverlay::GetRange( double* range )
     range[0] = m_dMinValue;
     range[1] = m_dMaxValue;
   }
+}
+
+void SurfaceOverlay::GetRawRange( double* range )
+{
+  range[0] = m_dRawMinValue;
+  range[1] = m_dRawMaxValue;
 }
 
 bool SurfaceOverlay::GetDataAtVertex(int nVertex, float *output)

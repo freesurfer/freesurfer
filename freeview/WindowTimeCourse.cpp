@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/26 20:53:43 $
- *    $Revision: 1.3 $
+ *    $Date: 2014/02/27 21:05:45 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,8 @@
 #include "LayerMRI.h"
 #include "LayerCollection.h"
 #include "FSVolume.h"
+#include "LayerSurface.h"
+#include "SurfaceOverlay.h"
 #include <QSettings>
 
 WindowTimeCourse::WindowTimeCourse(QWidget *parent) :
@@ -56,31 +58,68 @@ WindowTimeCourse::~WindowTimeCourse()
 
 void WindowTimeCourse::UpdateData()
 {
-  LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));
-  if (layer && layer->GetNumberOfFrames() > 1)
+  QString type = MainWindow::GetMainWindow()->GetCurrentLayerType();
+  if (type == "MRI")
   {
-    double ras[3];
-    int n[3];
-    MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetSlicePosition(ras);
-    layer->RemapPositionToRealRAS(ras, ras);
-    layer->RASToOriginalIndex(ras, n);
-    QList<double> data;
-    for (int i = 0; i < layer->GetNumberOfFrames(); i++)
-      data <<  layer->GetVoxelValueByOriginalIndex(n[0], n[1], n[2], i);
-    FSVolume* vol = layer->GetSourceVolume();
-    ui->widgetPlot->SetTimeCourseData(data, vol->GetMinValue(), vol->GetMaxValue(), layer->GetTR());
-    ui->widgetPlot->SetCurrentFrame(layer->GetActiveFrame());
-    connect(layer, SIGNAL(CorrelationSurfaceChanged(LayerSurface*)),
-            this, SLOT(OnLayerCorrelationSurfaceChanged()), Qt::UniqueConnection);
+    LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
+    if (layer && layer->GetNumberOfFrames() > 1)
+    {
+      double ras[3];
+      int n[3];
+      MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetSlicePosition(ras);
+      layer->RemapPositionToRealRAS(ras, ras);
+      layer->RASToOriginalIndex(ras, n);
+      QList<double> data;
+      for (int i = 0; i < layer->GetNumberOfFrames(); i++)
+        data <<  layer->GetVoxelValueByOriginalIndex(n[0], n[1], n[2], i);
+      FSVolume* vol = layer->GetSourceVolume();
+      ui->widgetPlot->SetTimeCourseData(data, vol->GetMinValue(), vol->GetMaxValue(), layer->GetTR());
+      ui->widgetPlot->SetCurrentFrame(layer->GetActiveFrame());
+      connect(layer, SIGNAL(CorrelationSurfaceChanged(LayerSurface*)),
+              this, SLOT(OnLayerCorrelationSurfaceChanged()), Qt::UniqueConnection);
+      setWindowTitle(QString("Time Course (%1)").arg(layer->GetName()));
+    }
+  }
+  else if (type == "Surface")
+  {
+    LayerSurface* surf = qobject_cast<LayerSurface*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
+    if (surf && surf->GetActiveOverlay() && surf->GetActiveOverlay()->GetNumberOfFrames() > 1)
+    {
+      double pos[3];
+      MainWindow::GetMainWindow()->GetLayerCollection("Surface")->GetSlicePosition(pos);
+      int nVert = surf->GetVertexIndexAtTarget(pos, NULL);
+      if (nVert < 0)
+        return;
+
+      SurfaceOverlay* overlay = surf->GetActiveOverlay();
+      int nFrames = overlay->GetNumberOfFrames();
+      float* buffer = new float[nFrames];
+      double range[2];
+      overlay->GetDataAtVertex(nVert, buffer);
+      overlay->GetRawRange(range);
+      QList<double> data;
+      for (int i = 0; i < nFrames; i++)
+        data << buffer[i];
+      delete[] buffer;
+      ui->widgetPlot->SetTimeCourseData(data, range[0], range[1]);
+      ui->widgetPlot->SetCurrentFrame(overlay->GetActiveFrame());
+      setWindowTitle(QString("Time Course (%1)").arg(overlay->GetName()));
+    }
   }
 }
 
 void WindowTimeCourse::OnFrameChanged(int frame)
 {
-  LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));
-  if (layer && frame != layer->GetActiveFrame() && frame < layer->GetNumberOfFrames())
+  QString type = MainWindow::GetMainWindow()->GetCurrentLayerType();
+  if (type != "MRI" && type != "Surface")
+    type == "MRI";
+  if (type == "MRI")
   {
-    layer->SetActiveFrame(frame);
+    LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer("MRI"));
+    if (layer && frame != layer->GetActiveFrame() && frame < layer->GetNumberOfFrames())
+    {
+      layer->SetActiveFrame(frame);
+    }
   }
 }
 

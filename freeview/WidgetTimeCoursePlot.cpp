@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/01 21:03:51 $
- *    $Revision: 1.4 $
+ *    $Date: 2014/02/27 21:05:45 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@ void WidgetTimeCoursePlot::SetTimeCourseData(const QList<double> &data,
   m_data = data;
   m_dTR = t_interval;
   if (m_dTR <= 0)
-    m_dTR = 1;
+    m_dTR = 1000;
   m_dMin = min_val;
   m_dMax = max_val;
   if (m_dMax <= m_dMin)

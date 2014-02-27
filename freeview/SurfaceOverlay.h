@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/15 17:52:20 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/02/27 21:05:45 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,6 +88,8 @@ public:
   double GetDataAtVertex( int nVertex );
 
   void GetRange( double* range );
+
+  void GetRawRange( double* range );
 
   bool LoadCorrelationData( const QString& filename );
 
@@ -166,6 +168,8 @@ private:
   int           m_nDataSize;
   double        m_dMaxValue;
   double        m_dMinValue;
+  double        m_dRawMaxValue;
+  double        m_dRawMinValue;
 
   QString       m_strName;
   QString       m_strFileName;

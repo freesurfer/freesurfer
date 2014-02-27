@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/14 19:22:19 $
- *    $Revision: 1.271 $
+ *    $Date: 2014/02/27 21:05:45 $
+ *    $Revision: 1.272 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1312,7 +1312,8 @@ void MainWindow::OnIdle()
   }
 
   ui->actionShowCommandConsole->setChecked(m_term->isVisible());
-  ui->actionTimeCourse->setEnabled(layerVolume && layerVolume->GetNumberOfFrames() > 1 && !layerVolume->GetCorrelationSurface());
+  ui->actionTimeCourse->setEnabled((layerVolume && layerVolume->GetNumberOfFrames() > 1 && !layerVolume->GetCorrelationSurface()) ||
+                                   (layerSurface && layerSurface->GetActiveOverlay() && layerSurface->GetActiveOverlay()->GetNumberOfFrames() > 1));
   if (ui->actionTimeCourse->isEnabled())
     ui->actionTimeCourse->setChecked(m_wndTimeCourse->isVisible());
 
@@ -3981,6 +3982,11 @@ LayerCollection* MainWindow::GetCurrentLayerCollection()
   return lc;
 }
 
+QString MainWindow::GetCurrentLayerType()
+{
+  return ui->widgetAllLayers->GetCurrentLayerType();
+}
+
 bool MainWindow::SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid )
 {
   bool bRet = false;
@@ -5999,13 +6005,27 @@ void MainWindow::OnActiveLayerChanged(Layer* layer)
         connect(layer, SIGNAL(ActiveFrameChanged(int)),
                 ui->treeWidgetMouseInfo, SLOT(OnMousePositionChanged()), Qt::UniqueConnection);
         m_wndTimeCourse->UpdateData();
-        if (ui->actionTimeCourse->isChecked() && !layer->IsTypeOf("VolumeTrack") && !layer->IsTypeOf("DTI"))
+        if (ui->actionTimeCourse->isChecked() && !layer->IsTypeOf("VolumeTrack"))
         {
-        //    m_wndTimeCourse->show();
+            m_wndTimeCourse->show();
         }
       }
-      else
-        m_wndTimeCourse->hide();
+    //  else
+    //    m_wndTimeCourse->hide();
+    }
+    else if (layer->IsTypeOf("Surface"))
+    {
+      LayerSurface* surf = (LayerSurface*)layer;
+      if (surf->GetActiveOverlay() && surf->GetActiveOverlay()->GetNumberOfFrames() > 1)
+      {
+        m_wndTimeCourse->UpdateData();
+        if (ui->actionTimeCourse->isChecked())
+        {
+            m_wndTimeCourse->show();
+        }
+      }
+  //    else
+  //      m_wndTimeCourse->hide();
     }
   }
 }
