@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/21 18:36:12 $
- *    $Revision: 1.72 $
+ *    $Date: 2014/02/28 21:11:27 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -633,8 +633,7 @@ MRI *MRIlrswapAseg(MRI *aseg);
 MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt);
 int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct);
 MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg);
-MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct);
-
+MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r);
 #if defined(__cplusplus)
 };
 #endif

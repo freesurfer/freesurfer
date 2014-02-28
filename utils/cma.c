@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/23 21:51:38 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/02/28 21:11:27 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1223,9 +1223,8 @@ int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct)
   fill in voxels from the masked out tissue types. This technique
   is used for GTM partial volume correction. Tissue type info in the ctab.
 */
-MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct)
+MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r)
 {
-  MRI **r;
   MRI *segtt=NULL;
   int nc,tt;
   //char tmpstr[1000];
@@ -1235,7 +1234,7 @@ MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct)
     return(NULL);
   }
 
-  r = (MRI **) calloc(sizeof(MRI*),ct->ctabTissueType->nentries-1);
+  if(r==NULL) r = (MRI **) calloc(sizeof(MRI*),ct->ctabTissueType->nentries-1);
   for(tt = 1; tt < ct->ctabTissueType->nentries; tt++){
     //printf("tt = %d\n",tt);
     segtt = MRIextractTissueTypeSeg(seg, ct, tt, segtt);
