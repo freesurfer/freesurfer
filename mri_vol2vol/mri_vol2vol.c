@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/30 16:42:45 $
- *    $Revision: 1.82 $
+ *    $Date: 2014/02/28 21:12:32 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -479,7 +479,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.82 2014/01/30 16:42:45 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.83 2014/02/28 21:12:32 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -604,12 +604,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.82 2014/01/30 16:42:45 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.83 2014/02/28 21:12:32 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.82 2014/01/30 16:42:45 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.83 2014/02/28 21:12:32 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -924,7 +924,8 @@ int main(int argc, char **argv) {
     } 
     else if(DoFill){
       printf("Running MRIvol2VolFill(), DoConserve=%d, US=%d\n",DoFillConserve,FillUpsample);
-      ltareg = TransformRegDat2LTA(template, in, R);
+      if(! invert) ltareg = TransformRegDat2LTA(targ, mov, R);
+      else   	   ltareg = TransformRegDat2LTA(mov, targ, R);
       out = MRIvol2VolFill(in, NULL, ltareg, FillUpsample, DoFillConserve, out);
     }
     else {
