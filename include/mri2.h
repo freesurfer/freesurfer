@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/21 18:35:34 $
- *    $Revision: 1.51 $
+ *    $Date: 2014/02/28 21:10:24 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -124,9 +124,10 @@ int *MRIsegmentationList(MRI *seg, int *pListLength);
 MATRIX *BuildGTM0(MRI *seg, MRI *mask, double cFWHM, double rFWHM, double sFWHM, MATRIX *X);
 MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out);
 MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg);
-MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct);
+
+MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct, MRI **pvf);
 MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp, 
-				 MRIS *rhw, MRIS *rhp, int USF, COLOR_TABLE *ct);
+				 MRIS *rhw, MRIS *rhp, int USF, COLOR_TABLE *ct, MRI **pvf);
 
 int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask);
 MRI *MRIaddExtraCerebralCSF(MRI *seg, int nDil, MRI *out);

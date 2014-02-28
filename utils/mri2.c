@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/21 20:22:45 $
- *    $Revision: 1.96 $
+ *    $Date: 2014/02/28 21:10:24 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1025,9 +1025,11 @@ MRI *MRImaskAndUpsample(MRI *src, MRI *mask, int UpsampleFactor, int nPad, int D
 
   if(mask) region = REGIONgetBoundingBox(mask,nPad);
   else     region = REGIONgetBoundingBox(src,nPad);
-  printf(" mask-and-upsample bounding box %g ",((float)src->width*src->height*src->depth)/
+  if(Gdiag_no > 0) {
+    printf(" mask-and-upsample bounding box %g ",((float)src->width*src->height*src->depth)/
 	 (region->dx*region->dy*region->dz));
-  REGIONprint(stdout, region);
+    REGIONprint(stdout, region);
+  }
 
   srcmask = MRIextractRegion(src, NULL, region);
   if(srcmask == NULL) return(NULL);
@@ -3319,7 +3321,7 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
   int c,r,s, ct,rt,st, f, nhits,nPad=2;
   MATRIX *crssrc, *crstarg,*v2v,*vmusinv;
   double vsrc, vout;
-  LTA *ltatmp,*ltamus=NULL;
+  LTA *ltatmp,*src2srcmus=NULL;
   MRI *hitmap=NULL;
   VOL_GEOM vgtarg;
   MRI *srcmus=NULL;
@@ -3332,7 +3334,7 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
     printf("ERROR: MRIvol2VolFill(): src MRI is neither source nor target in LTA\n");
     return(NULL);
   }
-  //printf("MRIvol2VolFill(): DoConserve = %d\n",DoConserve);
+  if(Gdiag_no > 0) printf("MRIvol2VolFill(): USF=%d, DoConserve=%d\n",UpsampleFactor,DoConserve);
 
   if(lta->type != LINEAR_VOX_TO_VOX)
     ltatmp = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
@@ -3341,24 +3343,27 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
 
   // Extract Vox2Vox
   if(LTAmriIsSource(ltatmp, src)){
+    if(Gdiag_no > 0) printf("MRIvol2VolFill(): not using inverse\n");
     v2v = ltatmp->xforms[0].m_L;
     vgtarg = lta->xforms[lta->num_xforms-1].dst;
   }
   else{
     // Invert the matrix if the LTA goes in the wrong direction
-    //printf("MRIvol2VolFill(): using inverse\n");
+    if(Gdiag_no > 0) printf("MRIvol2VolFill(): using inverse\n");
     LTAfillInverse(ltatmp);
     v2v = ltatmp->inv_xforms[0].m_L;
-    vgtarg = lta->inv_xforms[lta->num_xforms-1].dst;
+    vgtarg = ltatmp->inv_xforms[lta->num_xforms-1].dst;
   }
 
-  srcmus = MRImaskAndUpsample(src, mask, UpsampleFactor, nPad, DoConserve, &ltamus);
-
-  // Recompute vox2vox
-  vmusinv = MatrixInverse(ltamus->xforms[0].m_L,NULL);
-  v2v = MatrixMultiply(v2v,vmusinv,v2v);
-  MatrixFree(&vmusinv);
-  LTAfree(&ltamus);
+  if(UpsampleFactor > 0){
+    srcmus = MRImaskAndUpsample(src, mask, UpsampleFactor, nPad, DoConserve, &src2srcmus);
+    // Recompute vox2vox
+    vmusinv = MatrixInverse(src2srcmus->xforms[0].m_L,NULL);
+    v2v = MatrixMultiply(v2v,vmusinv,v2v);
+    MatrixFree(&vmusinv);
+    LTAfree(&src2srcmus);
+  }
+  else srcmus = src;
 
   if(outfill == NULL){
     outfill = MRIallocSequence(vgtarg.width,vgtarg.height,vgtarg.depth,MRI_FLOAT,src->nframes);
@@ -3433,7 +3438,7 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
   }
 
   LTAfree(&ltatmp);
-  MRIfree(&srcmus);
+  if(srcmus != src) MRIfree(&srcmus);
   return(outfill);
 }
 
@@ -4149,7 +4154,7 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
   return(seg);
 }
 /*
-  \fn MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct)
+  \fn MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct, **pvf)
   \breif Creates PVF maps for each tissue type in the color table. seg can be the aseg but
   is often a highres seg created from the aseg and surfaces (see MRIhiresSeg())
   USF is the upsample factor. If using a seg from MRIhiresSeg(), which has its
@@ -4157,9 +4162,9 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
   The return is an array of MRIs, one for each tissue type. The output volume
   is that of the dst volume geometry in seg2vol.
  */
-MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct)
+MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct, MRI **pvf)
 {
-  MRI **pvf,*ttseg,*ttbin=NULL;
+  MRI *ttseg,*ttbin=NULL;
   int nTT,tt;
   double vmult;
   VOL_GEOM *vol;
@@ -4185,12 +4190,13 @@ MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct)
 
   // Go through each tissue type
   nTT = ct->ctabTissueType->nentries-1;
-  pvf = (MRI **) calloc(sizeof(MRI*),nTT);
+  if(pvf==NULL) pvf = (MRI **) calloc(sizeof(MRI*),nTT);
   for(tt = 0; tt < nTT; tt++){
     // binarize tissue type map
     ttbin = MRIbinarizeMatch(ttseg, tt+1, 0, ttbin);
     // compute pvf based on number of seg voxels that fall into output vol vox
-    pvf[tt] = MRIvol2VolFill(ttbin, NULL, seg2vol, 1, 0, NULL);//USF=1 always here
+    pvf[tt] = MRIvol2VolFill(ttbin, NULL, seg2vol, 1, 0, pvf[tt]);//USF=1 always here
+    if(pvf[tt]==NULL) return(NULL);
     // Better to turn off conserving in vol2volFill than to scale. The simple scaling
     // below creates a situation in which voxels in the middle of WM do not have
     // a PVF=1 because the number of highres voxels that land in a lowres voxel
@@ -4204,11 +4210,9 @@ MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct)
 
   return(pvf);
 }
-
-
 /*
   \fn MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp, 
-				 MRIS *rhw, MRIS *rhp, int USF, COLOR_TABLE *ct)
+				 MRIS *rhw, MRIS *rhp, int USF, COLOR_TABLE *ct, **pvf)
   \brief Creates PVF maps for each tissue type in the color table
   given the aseg and surfaces.  The return is an array of MRIs, one
   for each tissue type. The output volume is that of the dst volume
@@ -4217,15 +4221,14 @@ MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct)
   MRIhiresSeg() then calls MRIpartialVolumeFractionAS().
  */
 MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp, 
-				 MRIS *rhw, MRIS *rhp, int USF, COLOR_TABLE *ct)
+				 MRIS *rhw, MRIS *rhp, int USF, COLOR_TABLE *ct, MRI **pvf)
 {
-  MRI *hrseg,**pvf;
+  MRI *hrseg;
   LTA *aseg2hrseg,*hrseg2aseg,*hrseg2vol,*ltaArray[2];
 
   // Create a high resolution segmentation
   hrseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp, USF, &aseg2hrseg);
   if(hrseg == NULL) return(NULL);
-  //MRIwrite(hrseg,"hrseg.mgh");
   hrseg2aseg = LTAinvert(aseg2hrseg,NULL);
 
   // Compute transform from high res to output volume
@@ -4234,7 +4237,7 @@ MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp,
   hrseg2vol = LTAconcat(ltaArray, 2, 1); // figures out inversions
   if(hrseg2vol == NULL) return(NULL);
 
-  pvf = MRIpartialVolumeFraction(hrseg2vol, hrseg, 1, ct); // USF=1 here
+  pvf = MRIpartialVolumeFraction(hrseg2vol, hrseg, 1, ct, pvf); // USF=1 here
 
   MRIfree(&hrseg);
   LTAfree(&hrseg2aseg);
