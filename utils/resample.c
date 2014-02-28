@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/26 22:15:47 $
- *    $Revision: 1.45 $
+ *    $Date: 2014/02/28 21:11:42 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1838,7 +1838,7 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
 
   // Build an LUT that maps from aseg voxel to the closest
   // output volume voxel (reverse is done below).
-  printf("ASeg2Vol: Building LUT\n");
+  if(Gdiag_no > 0)printf("ASeg2Vol: Building LUT\n");
   fflush(stdout);
   Pa = MatrixConstVal(0,4,1,NULL);
   Pa->rptr[4][1] = 1;
@@ -1885,8 +1885,7 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
     } // row
   } // slice
 
-  printf("ASeg2Vol: Sorting \n");
-  fflush(stdout);
+  if(Gdiag_no > 0){printf("ASeg2Vol: Sorting \n");  fflush(stdout);}
   qsort(avind,Na,sizeof(ASEGVOLINDEX),CompareAVIndices);
 
   // Alloc output volume
@@ -1900,8 +1899,7 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
 
   // Go through each volume voxel and determine which seg id has the
   // most representation.
-  printf("ASeg2Vol: Mapping\n");
-  fflush(stdout);
+  if(Gdiag_no > 0){printf("ASeg2Vol: Mapping\n");  fflush(stdout);}
   n = 0;
   while (n < Na)
   {
@@ -1945,7 +1943,7 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
   // will not be closest to any aseg voxel. So find the output voxels
   // that were not initially mapped and assign them the seg id of the
   // closest in the seg volume.
-  printf("ASeg2Vol: Reverse Map\n");
+  if(Gdiag_no > 0) printf("ASeg2Vol: Reverse Map\n");
   nmisses = 0;
   nfilled = 0;
   for (sv=0; sv < volaseg->depth; sv++)
@@ -1982,7 +1980,7 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
       }
     }
   }
-  printf("nmisses = %d (%d filled)\n",nmisses,nfilled);
+  if(Gdiag_no > 0) printf("nmisses = %d (%d filled)\n",nmisses,nfilled);
 
 
   //MRIwrite(volaseg,"volaseg.mgh");
@@ -1991,7 +1989,7 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
   MatrixFree(&Vv2a);
   free(avind);
 
-  printf("ASeg2Vol: done\n");
+  if(Gdiag_no > 0) printf("ASeg2Vol: done\n");
   return(volaseg);
 }
 /*
