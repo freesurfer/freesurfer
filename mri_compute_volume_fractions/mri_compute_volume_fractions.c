@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/26 21:37:08 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/02/28 21:13:52 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 
-static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.17 2014/02/26 21:37:08 greve Exp $";
+static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.18 2014/02/28 21:13:52 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -183,10 +183,9 @@ int main(int argc, char *argv[]) {
     MRIfree(&temp);
   }
 
-
   printf("  t = %g\n",TimerStop(&start)/1000.0) ;
   printf("Computing PVF (USF=%d)\n",USF);
-  pvf = MRIpartialVolumeFractionAS(aseg2vol,aseg,lhw,lhp,rhw,rhp,USF,ct);
+  pvf = MRIpartialVolumeFractionAS(aseg2vol,aseg,lhw,lhp,rhw,rhp,USF,ct,NULL);
   if(pvf == NULL) exit(1);
 
   printf("  t = %g\n",TimerStop(&start)/1000.0) ;
@@ -203,10 +202,12 @@ int main(int argc, char *argv[]) {
 
   printf("Writing results nTT=%d\n",nTT);
 
-  for(tt=0; tt < nTT; tt++){
-    sprintf(tmpstr,"%s.%s.%s",outstem,ct->ctabTissueType->entries[tt+1]->name,fmt);
-    err = MRIwrite(pvf[tt],tmpstr);
-    if(err) exit(1);
+  if(outstem){
+    for(tt=0; tt < nTT; tt++){
+      sprintf(tmpstr,"%s.%s.%s",outstem,ct->ctabTissueType->entries[tt+1]->name,fmt);
+      err = MRIwrite(pvf[tt],tmpstr);
+      if(err) exit(1);
+    }
   }
 
   if(stackfile){
@@ -348,6 +349,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
       if(nargc < 1) CMDargNErr(option,1);
       setenv("SUBJECTS_DIR",pargv[0],1);
+      SUBJECTS_DIR = getenv("SUBJECTS_DIR");
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--usf")) {
@@ -462,8 +464,8 @@ static void print_version(void) {
 /*---------------------------------------------*/
 static void check_options(void) {
 
-  if(outstem == NULL){
-    printf("ERROR: no output stem specified\n");
+  if(outstem == NULL && stackfile == NULL){
+    printf("ERROR: no output specified\n");
     exit(1);
   }
   if(regfile == NULL && !RegHeader){
@@ -486,6 +488,11 @@ static void check_options(void) {
     if(subjecttmp==NULL) exit(1);
     sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subjecttmp,asegfile);
     aseg2vol = ltaReadRegisterDat(regfile, TempVolFile, tmpstr);
+    if(aseg2vol == NULL){
+      printf("ERROR: reading %s\n",regfile);
+      printf("  maybe something wrong with %s\n",tmpstr);
+      exit(1);
+    }
     free(subjecttmp);
   }
   else aseg2vol = LTAread(regfile);
