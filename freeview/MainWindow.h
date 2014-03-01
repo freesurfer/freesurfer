@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/27 21:05:45 $
- *    $Revision: 1.144 $
+ *    $Date: 2014/03/01 04:50:50 $
+ *    $Revision: 1.145 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -399,6 +399,10 @@ protected slots:
   void OnVolumeFilterConvolve();
   void OnVolumeFilterGradient();
   void OnVolumeFilterSobel();
+  void OnVolumeFilterErode();
+  void OnVolumeFilterDilate();
+  void OnVolumeFilterOpen();
+  void OnVolumeFilterClose();
   void OnResetView();
   void OnSavePoint();
   void OnGoToPoint();

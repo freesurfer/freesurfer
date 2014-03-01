@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/27 21:05:45 $
- *    $Revision: 1.272 $
+ *    $Date: 2014/03/01 04:50:49 $
+ *    $Revision: 1.273 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,10 @@
 #include "VolumeFilterGradient.h"
 #include "VolumeFilterMedian.h"
 #include "VolumeFilterSobel.h"
+#include "VolumeFilterErode.h"
+#include "VolumeFilterDilate.h"
+#include "VolumeFilterOpen.h"
+#include "VolumeFilterClose.h"
 #include "DialogVolumeFilter.h"
 #include "DialogGradientFilter.h"
 #include "Cursor2D.h"
@@ -1253,6 +1257,10 @@ void MainWindow::OnIdle()
   ui->actionVolumeFilterMedian  ->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterGradient->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterSobel->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionVolumeFilterErode->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionVolumeFilterDilate->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionVolumeFilterOpen->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionVolumeFilterClose->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
 
   ui->actionLoadConnectome->setEnabled( !bBusy );  
   ui->actionCloseConnectome ->setEnabled( !bBusy && GetActiveLayer( "CMAT"));
@@ -5709,6 +5717,54 @@ void MainWindow::OnVolumeFilterSobel()
     mri->ResetWindowLevel();
   }
 }
+
+void MainWindow::OnVolumeFilterErode()
+{
+  LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    VolumeFilterErode* filter = new VolumeFilterErode( mri, mri );
+    m_threadVolumeFilter->ExecuteFilter(filter);
+    mri->ResetWindowLevel();
+  }
+}
+
+
+void MainWindow::OnVolumeFilterDilate()
+{
+  LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    VolumeFilterDilate* filter = new VolumeFilterDilate( mri, mri );
+    m_threadVolumeFilter->ExecuteFilter(filter);
+    mri->ResetWindowLevel();
+  }
+}
+
+
+void MainWindow::OnVolumeFilterOpen()
+{
+  LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    VolumeFilterOpen* filter = new VolumeFilterOpen( mri, mri );
+    m_threadVolumeFilter->ExecuteFilter(filter);
+    mri->ResetWindowLevel();
+  }
+}
+
+
+void MainWindow::OnVolumeFilterClose()
+{
+  LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+  if ( mri )
+  {
+    VolumeFilterClose* filter = new VolumeFilterClose( mri, mri );
+    m_threadVolumeFilter->ExecuteFilter(filter);
+    mri->ResetWindowLevel();
+  }
+}
+
 
 void MainWindow::OnVolumeFilterFinished(VolumeFilter *filter)
 {

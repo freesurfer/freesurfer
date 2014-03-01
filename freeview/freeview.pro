@@ -150,7 +150,11 @@ SOURCES += \
     LayerPropertyFCD.cpp \
     PanelFCD.cpp \
     LayerFCDWorkerThread.cpp \
-    DialogLoadFCD.cpp
+    DialogLoadFCD.cpp \
+    VolumeFilterErode.cpp \
+    VolumeFilterDilate.cpp \
+    VolumeFilterOpen.cpp \
+    VolumeFilterClose.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -290,7 +294,11 @@ HEADERS  += \
     LayerPropertyFCD.h \
     PanelFCD.h \
     LayerFCDWorkerThread.h \
-    DialogLoadFCD.h
+    DialogLoadFCD.h \
+    VolumeFilterErode.h \
+    VolumeFilterDilate.h \
+    VolumeFilterOpen.h \
+    VolumeFilterClose.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

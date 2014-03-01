@@ -281,6 +281,14 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	VolumeFilterMedian.h \
 	VolumeFilterSobel.cpp \
 	VolumeFilterSobel.h \
+    VolumeFilterErode.cpp \
+    VolumeFilterErode.h \
+    VolumeFilterDilate.cpp \
+    VolumeFilterDilate.h \
+    VolumeFilterOpen.cpp \
+    VolumeFilterOpen.h \
+    VolumeFilterClose.cpp \
+    VolumeFilterClose.h \
 	vtkSimpleLabelEdgeFilter.cpp \
 	WidgetHistogram.cpp \
 	WindowConfigureOverlay.cpp \

@@ -343,7 +343,7 @@
     <property name="title">
      <string>Tools</string>
     </property>
-    <widget class="QMenu" name="menuVolume_Fiilter">
+    <widget class="QMenu" name="menuVolume_Filter">
      <property name="title">
       <string>Volume Filter</string>
      </property>
@@ -352,8 +352,12 @@
      <addaction name="actionVolumeFilterConvolve"/>
      <addaction name="actionVolumeFilterGradient"/>
      <addaction name="actionVolumeFilterSobel"/>
+     <addaction name="actionVolumeFilterErode"/>
+     <addaction name="actionVolumeFilterDilate"/>
+     <addaction name="actionVolumeFilterOpen"/>
+     <addaction name="actionVolumeFilterClose"/>
     </widget>
-    <addaction name="menuVolume_Fiilter"/>
+    <addaction name="menuVolume_Filter"/>
     <addaction name="actionTransformVolume"/>
     <addaction name="actionCropVolume"/>
     <addaction name="actionCreateOptimalCombinedVolume"/>
@@ -994,11 +998,6 @@
     <string>Alt+W</string>
    </property>
   </action>
-  <action name="actionTransformVolume">
-   <property name="text">
-    <string>Transform Volume...</string>
-   </property>
-  </action>
   <action name="actionCropVolume">
    <property name="text">
     <string>Crop Volume...</string>
@@ -1351,6 +1350,46 @@
    </property>
    <property name="toolTip">
     <string>Close FCD Data</string>
+   </property>
+  </action>
+  <action name="actionVolumeFilterErode">
+   <property name="text">
+    <string>Erode</string>
+   </property>
+   <property name="toolTip">
+    <string>Erode</string>
+   </property>
+  </action>
+  <action name="actionVolumeFilterDilate">
+   <property name="text">
+    <string>Dilate</string>
+   </property>
+   <property name="toolTip">
+    <string>Dilate</string>
+   </property>
+  </action>
+  <action name="actionVolumeFilterOpen">
+   <property name="text">
+    <string>Open</string>
+   </property>
+   <property name="toolTip">
+    <string>Open</string>
+   </property>
+  </action>
+  <action name="actionVolumeFilterClose">
+   <property name="text">
+    <string>Close</string>
+   </property>
+   <property name="toolTip">
+    <string>Close</string>
+   </property>
+  </action>
+  <action name="actionTransformVolume">
+   <property name="text">
+    <string>Transform Volume...</string>
+   </property>
+   <property name="toolTip">
+    <string>Transform Volume</string>
    </property>
   </action>
  </widget>
@@ -1793,22 +1832,6 @@
    <signal>triggered()</signal>
    <receiver>MainWindow</receiver>
    <slot>OnLoadPointSet()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>-1</x>
-     <y>-1</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>606</x>
-     <y>433</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>actionTransformVolume</sender>
-   <signal>triggered()</signal>
-   <receiver>MainWindow</receiver>
-   <slot>OnTransformVolume()</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -2652,6 +2675,86 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionVolumeFilterErode</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterErode()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVolumeFilterDilate</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterDilate()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVolumeFilterOpen</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterOpen()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionVolumeFilterClose</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterClose()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionTransformVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnTransformVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2732,5 +2835,9 @@
   <slot>OnGoToROI()</slot>
   <slot>OnLoadFCD()</slot>
   <slot>OnCloseFCD()</slot>
+  <slot>OnVolumeFilterErode()</slot>
+  <slot>OnVolumeFilterDilate()</slot>
+  <slot>OnVolumeFilterOpen()</slot>
+  <slot>OnVolumeFilterClose()</slot>
  </slots>
 </ui>
