@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/01 15:38:46 $
- *    $Revision: 1.51 $
+ *    $Date: 2014/03/02 04:11:48 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2693,7 +2693,7 @@ MRI *GCAnlables(GCA *gca, MRI *mri)
 /*----------------------------------------------------*/
 MRI *MRIpolyfitBiasField(MRI *vol, int order, MRI *seg, MRI *bias)
 {
-  int c,r,s, nseg, nX, *segids, nsegids,z,k,segid,*tmplist,nthseg, npoly;
+  int c,r,s, nseg, nX, *segids, nsegids,z,k,segid,*tmplist,nthseg, npoly=0;
   MATRIX *X, *y, *Xt, *XtX, *iXtX, *Xty, *beta;
   double dc,dr,ds,val;
   double nchalf,nrhalf,nshalf;
