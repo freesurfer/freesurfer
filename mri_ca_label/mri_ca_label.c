@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/29 20:39:10 $
- *    $Revision: 1.101 $
+ *    $Date: 2014/03/02 19:51:46 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -212,13 +212,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.101 2014/01/29 20:39:10 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.102 2014/03/02 19:51:46 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.101 2014/01/29 20:39:10 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.102 2014/03/02 19:51:46 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1096,7 +1096,9 @@ int main(int argc, char *argv[])
   }
 
   if (handle_expanded_ventricles)
-    MRIexpandVentricles(mri_labeled, mri_labeled, gca, mri_inputs, 3) ;
+  {
+    MRIexpandVentricles(mri_labeled, mri_labeled, gca, mri_inputs, 10) ;
+  }
   if (gca_write_iterations != 0)
   {
     char fname[STRLEN] ;
@@ -4017,6 +4019,8 @@ GCAremoveWMSA( GCA *gca )
 }
 
 #include "voxlist.h"
+
+#define EXCLUDED(l)   (((l) == Unknown) || ((l) == CSF) || ((l) == Third_Ventricle))
 static MRI *
 MRIexpandVentricles(MRI *mri_labeled_src, MRI *mri_labeled, GCA *gca, MRI *mri_inputs, int num_expansions)
 {
@@ -4052,8 +4056,12 @@ MRIexpandVentricles(MRI *mri_labeled_src, MRI *mri_labeled, GCA *gca, MRI *mri_i
 	DiagBreak() ;
       if (MRIgetVoxVal(mri_inputs, x, y, z, 0) < thresh)
       {
-	nadded++ ;
-	MRIsetVoxVal(mri_vent, x, y, z, 0, 1) ;
+	label = MRIgetVoxVal(mri_labeled_src, x, y, z, 0) ;
+	if (!EXCLUDED(label))
+	{
+	  nadded++ ;
+	  MRIsetVoxVal(mri_vent, x, y, z, 0, 1) ;
+	}
       }
     }
     MRIclear(mri_dilated) ; MRIclear(mri_border) ;
