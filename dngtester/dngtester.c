@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/02 04:11:48 $
- *    $Revision: 1.52 $
+ *    $Date: 2014/03/03 02:59:55 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3413,7 +3413,7 @@ int FSGDFactorsPrint(FSGD *gd, FILE *fp)
 MRI *MRIsurf2VolOpt(MRI *tempvol, MRIS **surfs, MRI **overlays, int nsurfs, 
 		    MRI *ribbon, MATRIX *R, MRI *volsurf)
 {
-  int n,c,r,s,f,nmin, vtxno,vtxnomin, nframes, ribval;
+  int n,c,r,s,f,nmin, vtxno,vtxnomin=0, nframes, ribval;
   MHT **hash=NULL;
   int UseHash = 1;
   MATRIX *T, *invR, *M, *surfRAS=NULL,*crs;
