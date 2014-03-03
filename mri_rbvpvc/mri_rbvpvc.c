@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/01 15:42:37 $
- *    $Revision: 1.23 $
+ *    $Date: 2014/03/03 19:48:58 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.23 2014/03/01 15:42:37 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.24 2014/03/03 19:48:58 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.23 2014/03/01 15:42:37 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.24 2014/03/03 19:48:58 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -151,7 +151,7 @@ MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol);
 typedef struct 
 {
   GTM  *gtm;
-  LTA  *anat2pet; // has subject name
+  LTA  *anat2pet0,*anat2pet; // has subject name
   char *gtmsegfile;
   char *pvfsegfile;
   char *wsurf;
@@ -161,14 +161,15 @@ typedef struct
   MRI *gtmseganat, *gtmsegmu, *pvfseganat, *pvfseg;
   MRIS *lhw, *lhp, *rhw, *rhp;
   LTA *anat2gtmsegmu, *gtmsegmu2anat,*gtmsegmu2pet;
-  LTA  *anat2pvfseg,*pvfseg2anat,*pvfseg2pet;
-  double params[100];
+  LTA *pvfseg2anat,*pvfseg2pet,*anat2pvfseg;
+  float params[100];
   int nparams;
-  int nCostEvaluations;
   double ftol;
   double linmintol;
   float fret;
   int niters,nitersmax;
+  int nCostEvaluations;
+  double tLastEval;
 } GTMOPT;
 int GTMOPTsetup(GTMOPT *gtmopt);
 double GTMOPTcost(GTMOPT *gtmopt);
@@ -206,6 +207,8 @@ GTMOPT *gtmopt;
 GTMOPT *gtmopt_powell;
 
 LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *outlta);
+MATRIX *MatrixMtMSparse(MATRIX *m, MATRIX *mout);
+int DoOpt=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -307,6 +310,17 @@ int main(int argc, char *argv[])
     printf("ERROR: seg and source dim mismatch %d\n",err);
     exit(1);
   }
+  if(MaskVolFile){
+    printf("Loading mask %s\n",MaskVolFile);fflush(stdout);
+    gtm->mask = MRIread(MaskVolFile);
+    if(gtm->mask==NULL) exit(1);
+    err = MRIdimMismatch(gtm->gtmseg, gtm->mask, 0);
+    if(err){
+      printf("ERROR: seg and mask dim mismatch %d\n",err);
+      exit(1);
+    }
+  }
+  else gtm->mask=NULL; // should already be NULL
 
   if(PVFFile){
     printf("Loading PVF %s\n",PVFFile);fflush(stdout);
@@ -324,17 +338,6 @@ int main(int argc, char *argv[])
     gtm->pvf = (MRI **) calloc(sizeof(MRI*),nTT);
     for(tt=0; tt<nTT; tt++) gtm->pvf[tt] = fMRIframe(pvfstack,tt,NULL);
   }
-  if(MaskVolFile){
-    printf("Loading mask %s\n",MaskVolFile);fflush(stdout);
-    gtm->mask = MRIread(MaskVolFile);
-    if(gtm->mask==NULL) exit(1);
-    err = MRIdimMismatch(gtm->gtmseg, gtm->mask, 0);
-    if(err){
-      printf("ERROR: seg and mask dim mismatch %d\n",err);
-      exit(1);
-    }
-  }
-  else gtm->mask=NULL; // should already be NULL
 
   printf("Data load time %4.1f sec\n",TimerStop(&mytimer)/1000.0);
 
@@ -348,20 +351,22 @@ int main(int argc, char *argv[])
   printf("FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
   printf("Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
 
-  if(1){
+  if(DoOpt){
   printf("\nRunning optimization\n");
   gtmopt = (GTMOPT *) calloc(sizeof(GTMOPT),1);
-  gtmopt->anat2pet = LTAread("register.lta");
+  gtmopt->anat2pet0 = LTAread("register.lta");
+  gtmopt->anat2pet  = LTAcopy(gtmopt->anat2pet0,NULL);
   gtmopt->gtm = gtm;
   GTMOPTsetup(gtmopt);
   gtmopt_powell = gtmopt;
   MinPowell();
+  LTAwrite(gtmopt->anat2pet,"gtmopt.reg.lta");
   //for(f=0; f < 100; f++){
   //printf("#@# %d ------------------------------------------\n",f);
   //GTMOPTcost(gtmopt);
   //}
   printf("Done optimization\n\n");
-  exit(1);
+  //exit(1);
   }
 
   // Create GTM matrix
@@ -484,6 +489,7 @@ static int parse_commandline(int argc, char **argv) {
     //else if (!strcasecmp(option, "--seg-test")) DoSegTest = 1;
     else if (!strcasecmp(option, "--old-dil"))setenv("GTMDILATEOLD","1",1);
     else if (!strcasecmp(option, "--gtm-only")) ; // not used anymore
+    else if (!strcasecmp(option, "--opt")) DoOpt=1;
     else if (!strcasecmp(option, "--ttype+head"))
       gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014+head");
 
@@ -977,14 +983,16 @@ MATRIX *GTMttest(MATRIX *beta,MATRIX *iXtX, double *rvar, int nthseg)
 int GTMOPTsetup(GTMOPT *gtmopt)
 {
   char *subject, *SUBJECTS_DIR;
-  gtmopt->gtmsegfile="petseg+head.mgz";
-  gtmopt->pvfsegfile="petseg+head.mgz";
+  //gtmopt->gtmsegfile="petseg+head.mgz";
+  //gtmopt->pvfsegfile="petseg+head.mgz";
+  gtmopt->gtmsegfile="petseg.mgz";
+  gtmopt->pvfsegfile="petseg.mgz";
   gtmopt->wsurf = "white";
   gtmopt->psurf = "pial";
   gtmopt->USF = 1;
   gtmopt->ftol= 1e-8;
-  gtmopt->linmintol= 1e-8;
-  gtmopt->nitersmax = 36;
+  gtmopt->linmintol= 5e-3;
+  gtmopt->nitersmax = 4;
   gtmopt->nparams = 6;
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
@@ -1073,8 +1081,7 @@ double GTMOPTcost(GTMOPT *gtmopt)
   if(gtm->X==NULL) return(-1);
   GTMsolve(gtm);
 
-  printf("  rvar = %20.10f, t = %g\n",gtmopt->gtm->rvar->rptr[1][1],
-	 TimerStop(&timer)/1000.0);fflush(stdout);
+  gtmopt->tLastEval = TimerStop(&timer)/1000.0;
   return(0);
 }
 /*------------------------------------------------------------------*/
@@ -1182,7 +1189,7 @@ int GTMsolve(GTM *gtm)
   gtm->Xt = MatrixTranspose(gtm->X,gtm->Xt);
   //printf("Computing  XtX ... ");fflush(stdout);
   TimerStart(&timer);
-  gtm->XtX = MatrixMtM(gtm->X,gtm->XtX);
+  gtm->XtX = MatrixMtMSparse(gtm->X,gtm->XtX);
   //printf(" %4.1f sec\n",TimerStop(&timer)/1000.0);fflush(stdout);
   gtm->iXtX = MatrixInverse(gtm->XtX,gtm->iXtX);
   if(gtm->iXtX==NULL){
@@ -1405,15 +1412,20 @@ int MinPowell()
   GTMOPT *gtmopt = gtmopt_powell;
   float *pPowel, **xi;
   int    r, c, n,dof;
+  struct timeb timer;
 
+  TimerStart(&timer);
   dof = gtmopt->nparams;
 
   printf("Init Powel Params dof = %d\n",dof);
   pPowel = vector(1, dof) ;
-  for(n=0; n < dof; n++) {
-    pPowel[n+1] = gtmopt->params[n];
-    printf("%d %g\n",n,gtmopt->params[n]);
-  }
+  for(n=0; n < dof; n++) pPowel[n+1] = gtmopt->params[n];
+  //pPowel[1] =  .0897;
+  //pPowel[2] =  .2102;
+  //pPowel[3] = -.2905;
+  //pPowel[4] = 0;
+  //pPowel[5] = 0;
+  //pPowel[6] = 0;
 
   xi = matrix(1, dof, 1, dof) ;
   for (r = 1 ; r <= dof ; r++) {
@@ -1425,26 +1437,67 @@ int MinPowell()
   OpenPowell2(pPowel, xi, dof, gtmopt->ftol, gtmopt->linmintol, gtmopt->nitersmax, 
 	      &gtmopt->niters, &gtmopt->fret, compute_powell_cost);
   printf("Powell done niters = %d\n",gtmopt->niters);
-
+  printf("OptTimeSec %4.1f sec\n",TimerStop(&timer)/1000.0);
+  printf("OptTimeMin %5.2f sec\n",(TimerStop(&timer)/1000.0)/60);
+  printf("nEvals %d\n",gtmopt->nCostEvaluations);
+  printf("EvalTimeSec %4.1f sec\n",(TimerStop(&timer)/1000.0)/gtmopt->nCostEvaluations);
+  fflush(stdout);
   for(n=0; n < dof; n++) gtmopt->params[n] = pPowel[n+1];
+  gtmopt->anat2pet = LTAcopy(gtmopt->anat2pet0,gtmopt->anat2pet);
+  LTAapplyAffineParametersTKR(gtmopt->anat2pet, gtmopt->params, gtmopt->nparams, gtmopt->anat2pet);
+  printf("#@# %4d  ",gtmopt->nCostEvaluations);
+  for(n=0; n<gtmopt->nparams; n++) printf("%10.6f ",gtmopt->params[n]);
+  printf("\n");
 
   free_matrix(xi, 1, dof, 1, dof);
   free_vector(pPowel, 1, dof);
   return(NO_ERROR) ;
 }
 /*--------------------------------------------------------------------------*/
-float compute_powell_cost(float *p) 
+float compute_powell_cost(float *pPowel) 
 {
   extern GTMOPT *gtmopt_powell;
   GTMOPT *gtmopt = gtmopt_powell;
-  int n;
-  LTAapplyAffineParametersTKR(gtmopt->anat2pet, p, gtmopt->nparams, gtmopt->anat2pet);
-  GTMOPTcost(gtmopt);
+  int n,newmin;
+  float pp[100],curcost;
+  static float initcost=-1,mincost=-1,ppmin[100];
+  FILE *fp=NULL;
+  
+  for(n=0; n<gtmopt->nparams; n++) pp[n] = pPowel[n+1];
 
-  printf("#@# %4d ",gtmopt->nCostEvaluations);
-  for(n=0; n<gtmopt->nparams; n++) printf("%6.4f ",p[n]);
-  printf("%6.2f\n",gtmopt->gtm->rvar->rptr[1][1]);
-  fflush(stdout);
+  gtmopt->anat2pet = LTAcopy(gtmopt->anat2pet0,gtmopt->anat2pet);
+  LTAapplyAffineParametersTKR(gtmopt->anat2pet, pp, gtmopt->nparams, gtmopt->anat2pet);
+  GTMOPTcost(gtmopt);
+  curcost = gtmopt->gtm->rvar->rptr[1][1];
+  newmin = 0;
+  if(initcost<0) {
+    newmin = 1;
+    initcost = curcost;
+    mincost = curcost;
+    for(n=0; n<gtmopt->nparams; n++) ppmin[n] = pp[n];
+    printf("InitialCost %f\n",initcost);
+    fp=fopen("costs.dat","w");
+  }
+  else fp=fopen("costs.dat","a");
+
+  if(mincost > curcost) {
+    newmin = 1;
+    mincost = curcost;
+    for(n=0; n<gtmopt->nparams; n++) ppmin[n] = pp[n];
+  }
+
+  fprintf(fp,"%4d  ",gtmopt->nCostEvaluations);
+  for(n=0; n<gtmopt->nparams; n++) fprintf(fp,"%12.8f ",pp[n]);
+  fprintf(fp,"  %12.10f \n",curcost/initcost);
+  fflush(fp);
+  fclose(fp);
+
+  if(newmin){
+    printf("#@# %4d  ",gtmopt->nCostEvaluations);
+    for(n=0; n<gtmopt->nparams; n++) printf("%7.3f ",ppmin[n]);
+    printf("  %5.1f %8.6f\n",gtmopt->tLastEval,mincost/initcost);
+    fflush(stdout);
+  }
 
   gtmopt->nCostEvaluations++;
   return((float)gtmopt->gtm->rvar->rptr[1][1]);
@@ -1478,7 +1531,7 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
     M->rptr[1][4] = p[0];
     M->rptr[2][4] = p[1];
     M->rptr[3][4] = p[2];
-    //MatrixMultiply(M,R,R);    
+    MatrixMultiply(M,R,R);    
   }
   if(np >= 9){
     // scale
@@ -1491,7 +1544,7 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
     M->rptr[1][1] = p[6];
     M->rptr[2][2] = p[7];
     M->rptr[3][3] = p[8];
-    //MatrixMultiply(M,R,R);    
+    MatrixMultiply(M,R,R);    
   }
   if(np >= 12){
     // shear
@@ -1499,11 +1552,12 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
     M->rptr[1][2] = p[9];
     M->rptr[1][3] = p[10];
     M->rptr[2][3] = p[11];
-    //MatrixMultiply(M,R,R);    
+    MatrixMultiply(M,R,R);    
   }
 
   if(0){
     int n;
+    printf("---------------------------\n");
     printf("Parameters: ");
     for(n=0; n<np; n++) printf("%6.4f ",p[n]);
     printf("\n");fflush(stdout);
@@ -1515,9 +1569,65 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
   outlta = LTAchangeType(outlta,intype);
   return(outlta);
 }
-
-
-
 /*--------------------------------------------------------------------------*/
+/*
+  \fn MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
+  \brief Efficiently computes M'*M by exploiting symmetry
+ */
+MATRIX *MatrixMtMSparse(MATRIX *m, MATRIX *mout)
+{
+  int c1,c2,r;
+  double v,v1,v2;
+
+  if(mout == NULL)
+    mout = MatrixAlloc(m->cols,m->cols,MATRIX_REAL);
+  if(mout->rows != m->cols){
+    printf("ERROR: MatrixMtM() mout cols (%d) != m cols (%d)\n",mout->cols,m->cols);
+    return(NULL);
+  }
+  if(mout->cols != m->cols){
+    printf("ERROR: MatrixMtM() mout cols (%d) != m cols (%d)\n",mout->cols,m->cols);
+    return(NULL);
+  }
+
+#ifdef _OPENMP
+  #pragma omp parallel for
+#endif
+  for(c1=1; c1 <= m->cols; c1++){
+    for(c2=c1; c2 <= m->cols; c2++){
+      v = 0;
+      for(r=1; r <= m->rows; r++){
+	v1 = m->rptr[r][c1];
+	if(v1==0) continue;
+	v2 = m->rptr[r][c2];
+	if(v2==0) continue;
+	v += v1*v2;
+      }
+      mout->rptr[c1][c2] = v;
+      mout->rptr[c2][c1] = v;
+    }
+  }
+
+  if(0){
+    // This is a built in test 
+    MATRIX *mt,*mout2;
+    double dmax;
+    int c;
+    mt = MatrixTranspose(m,NULL);
+    mout2 = MatrixMultiply(mt,m,NULL);
+    dmax = 0;
+    for(r=1; r <= mout->rows; r++){
+      for(c=1; c <= mout->cols; c++){
+	if(dmax < fabs(mout->rptr[r][c1]-mout2->rptr[r][c1]))
+	  dmax = fabs(mout->rptr[r][c1]-mout2->rptr[r][c1]);
+      }
+    }
+    printf("MatrixMtM: test MAR %g\n",dmax);
+    MatrixFree(&mt);
+    MatrixFree(&mout2);
+  }
+
+  return(mout);
+}
 /*--------------------------------------------------------------------------*/
 
