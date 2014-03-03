@@ -7,8 +7,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/19 18:25:52 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/03/03 19:51:56 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.39 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.40 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -1844,8 +1844,10 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
 
   // Reduce the volume size to speed things up
   region = REGIONgetBoundingBox(mri_shell,2);
-  printf("  Bounding box around shell: ");
-  REGIONprint(stdout, region);
+  if(Gdiag_no > 0){
+    printf("  Bounding box around shell: ");
+    REGIONprint(stdout, region);
+  }
 
   // Copy shell into bounding box
   shellbb = MRIalloc(region->dx, region->dy, region->dz, MRI_UCHAR);
@@ -1892,7 +1894,7 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   MRIfree(&outsidebb);
   //printf("  Found %d voxels in interior, volume = %g\n",nhits,
   //nhits*mri_dst->xsize*mri_dst->ysize*mri_dst->zsize);
-  printf("  MRISfillInterior t = %g\n",TimerStop(&start)/1000.0) ;
+  if(Gdiag_no > 0) printf("  MRISfillInterior t = %g\n",TimerStop(&start)/1000.0) ;
 
   return(mri_dst);
 }
