@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/13 20:22:30 $
- *    $Revision: 1.155 $
+ *    $Date: 2014/03/04 16:43:52 $
+ *    $Revision: 1.156 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1988,40 +1988,37 @@ int dcmGetVolRes(const char *dcmfile, float *ColRes, float *RowRes, float *Slice
     FreeElementData(e); free(e);
   */
 
-  e = GetElementFromFile(dcmfile, 0x18, 0x88);
-  if (e == NULL) //tag not found
-  {
-    tag_not_found =1;
-  }
-  else
-  {
-    sscanf(e->d.string,"%f",SliceRes);
-    if (*SliceRes == 0) //tag found but was zero
-    {
-      tag_not_found = 1;
+  if(AutoSliceResElTag){
+    printf("Automatically determining SliceResElTag\n");
+    e = GetElementFromFile(dcmfile, 0x18, 0x23);
+    if(e != NULL){
+      if(strcmp(e->d.string,"3D")==0) SliceResElTag1 = 0x50;
+      else                            SliceResElTag1 = 0x88;
     }
-    // FreeElementData(e);  // freed here
-    // free(e);
+    else
+      printf("Tag 18,23 is null, cannot automatically determine SliceResElTag\n");
+    printf("SliceResElTag order is %lx then %lx\n",SliceResElTag1,SliceResElTag2);
   }
-  if (e)
-  {
+  /* By default, the slice resolution is determined from 18,88. If 
+     that does not exist, then 18,50 is used. For siemens mag res
+     angiogram (MRAs), 18,50 must be used first */
+  e = GetElementFromFile(dcmfile, 0x18, SliceResElTag1);
+  if(e == NULL) tag_not_found =1;
+  else{
+    sscanf(e->d.string,"%f",SliceRes);
+    if(*SliceRes == 0){
+      tag_not_found = 1; //tag found but was zero
+      FreeElementData(e);
+      free(e);
+    }
+  }
+  if(tag_not_found){ //so either no tag or tag was zero
+    e = GetElementFromFile(dcmfile, 0x18, SliceResElTag2);
+    if (e == NULL) return(1);  //no tag
+    sscanf(e->d.string,"%f",SliceRes);
     FreeElementData(e);
     free(e);
-  }
-  if (tag_not_found) //so either no tag or tag was zero
-  {
-    e = GetElementFromFile(dcmfile, 0x18, 0x50);
-    if (e == NULL)
-    {
-      return(1);  //no tag
-    }
-    sscanf(e->d.string,"%f",SliceRes);
-    FreeElementData(e);
-    free(e);
-    if (*SliceRes == 0)
-    {
-      return(1);  //tag exists but zero
-    }
+    if (*SliceRes == 0)return(1);  //tag exists but zero
   }
   // fprintf(stderr, "SliceRes=%f\n",*SliceRes);
   // FreeElementData(e); free(e);

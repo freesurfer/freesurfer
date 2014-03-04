@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/12 03:15:51 $
- *    $Revision: 1.206 $
+ *    $Date: 2014/03/04 16:43:52 $
+ *    $Revision: 1.207 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.206 2013/11/12 03:15:51 greve Exp $",
+   "$Id: mri_convert.c,v 1.207 2014/03/04 16:43:52 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.206 2013/11/12 03:15:51 greve Exp $",
+      "$Id: mri_convert.c,v 1.207 2014/03/04 16:43:52 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1340,6 +1340,19 @@ int main(int argc, char *argv[])
         exit(1);
       }
     }
+    else if (strcmp(argv[i], "--mra") == 0 )
+    {
+      /* This flag forces DICOMread to first use 18,50 to get the slice thickness instead
+	 of 18,88. This is needed with siemens mag res angiogram (MRAs) */
+      SliceResElTag1 = 0x50;
+      SliceResElTag2 = 0x88; 
+    }
+    else if (strcmp(argv[i], "--auto-slice-res") == 0 )
+    {
+      /* Automatically determine whether to get slice thickness from 18,50 or 18,88
+	 depending upon  the value of 18,23 */
+      AutoSliceResElTag = 1;
+    }
     /*-------------------------------------------------------------*/
     else
     {
@@ -1638,7 +1651,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.206 2013/11/12 03:15:51 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.207 2014/03/04 16:43:52 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0

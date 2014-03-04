@@ -6,9 +6,9 @@
 /*
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: twitzel $
- *    $Date: 2012/03/22 21:26:04 $
- *    $Revision: 1.32 $
+ *    $Author: greve $
+ *    $Date: 2014/03/04 16:43:52 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,10 +53,19 @@ typedef unsigned short int BOOL;
 char *SDCMStatusFile = 0;
 char *SDCMListFile = 0;
 int  UseDICOMRead2 = 1; // use new dicom reader by default
+/* These variables allow the user to change the first tag checked to
+   get the slice thickness.  This is needed with siemens mag res
+   angiogram (MRAs) */
+long SliceResElTag1 = 0x88; //Spacing Between Slices, only makes sense for 2D multislice or 3D multislab
+long SliceResElTag2 = 0x50; //Slice Thickness, make sense for 3D
+int AutoSliceResElTag = 0; // automatically determine which tag to use based on 18,23
 #else
 extern char *SDCMStatusFile;
 extern char *SDCMListFile;
 extern int  UseDICOMRead2;
+extern long SliceResElTag1;
+extern long SliceResElTag2;
+extern int AutoSliceResElTag;
 #endif
 
 typedef enum
