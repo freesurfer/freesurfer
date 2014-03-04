@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/11 16:57:48 $
- *    $Revision: 1.11 $
+ *    $Date: 2014/03/04 19:41:06 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -358,9 +358,9 @@ MRI_REGION *REGIONgetBoundingBox(MRI *mask, int npad)
   region->x  = MAX(cmin - npad,0);
   region->y  = MAX(rmin - npad,0);
   region->z  = MAX(smin - npad,0);
-  region->dx = MIN(cmax-cmin + 2*npad,mask->width-1);
-  region->dy = MIN(rmax-rmin + 2*npad,mask->height-1);
-  region->dz = MIN(smax-smin + 2*npad,mask->depth-1);
+  region->dx = MIN(cmax-cmin + 2*npad, mask->width  - region->x);
+  region->dy = MIN(rmax-rmin + 2*npad, mask->height - region->y);
+  region->dz = MIN(smax-smin + 2*npad, mask->depth  - region->z);
 
   return(region);
 }
