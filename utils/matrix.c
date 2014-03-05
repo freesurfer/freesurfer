@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/03 19:17:01 $
- *    $Revision: 1.138 $
+ *    $Date: 2014/03/05 22:41:34 $
+ *    $Revision: 1.139 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4367,12 +4367,12 @@ MatrixRMS(MATRIX *m1, MATRIX *m2)
 
 /*
   \fn MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
-  \brief Efficiently computes M'*M by exploiting symmetry
+  \brief Efficiently computes M'*M by exploiting symmetry. Exploits
+  sparsity.  Includes Open MP.
  */
 MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
 {
-  int c1,c2,r;
-  double v,v1,v2;
+  int c1,rows,cols;
 
   if(mout == NULL)
     mout = MatrixAlloc(m->cols,m->cols,MATRIX_REAL);
@@ -4385,15 +4385,21 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
     return(NULL);
   }
 
+  rows = m->rows;
+  cols = m->cols;
 #ifdef _OPENMP
-  #pragma omp parallel for
+#pragma omp parallel for shared(rows,cols,mout)
 #endif
-  for(c1=1; c1 <= m->cols; c1++){
-    for(c2=c1; c2 <= m->cols; c2++){
+  for(c1=1; c1 <= cols; c1++){
+    double v,v1,v2;
+    int c2,r;
+    for(c2=c1; c2 <= cols; c2++){
       v = 0;
-      for(r=1; r <= m->rows; r++){
+      for(r=1; r <= rows; r++){
 	v1 = m->rptr[r][c1];
+	if(v1==0) continue; // sparsity
 	v2 = m->rptr[r][c2];
+	if(v2==0) continue; // sparsity
 	v += v1*v2;
       }
       mout->rptr[c1][c2] = v;
@@ -4402,17 +4408,21 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
   }
 
   if(0){
-    // This is a built in test 
+    // This is a built-in test 
     MATRIX *mt,*mout2;
-    double dmax;
-    int c;
+    double d,dmax;
+    int c,r;
     mt = MatrixTranspose(m,NULL);
-    mout2 = MatrixMultiply(mt,m,NULL);
+    mout2 = MatrixMultiplyD(mt,m,NULL);
     dmax = 0;
     for(r=1; r <= mout->rows; r++){
       for(c=1; c <= mout->cols; c++){
-	if(dmax < fabs(mout->rptr[r][c1]-mout2->rptr[r][c1]))
-	  dmax = fabs(mout->rptr[r][c1]-mout2->rptr[r][c1]);
+	d = mout->rptr[r][c]-mout2->rptr[r][c];
+	if(dmax < fabs(d)) {
+	  dmax = fabs(d);
+	  if(dmax > .01) printf("%5d %5d %lf %g %g\n",r,c,d,mout->rptr[r][c],mout2->rptr[r][c]);
+	}
+	
       }
     }
     printf("MatrixMtM: test MAR %g\n",dmax);
