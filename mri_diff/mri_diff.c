@@ -20,8 +20,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/12/05 20:57:13 $
- *    $Revision: 1.32 $
+ *    $Date: 2014/03/05 20:59:02 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -172,7 +172,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.32 2012/12/05 20:57:13 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.33 2014/03/05 20:59:02 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -208,11 +208,12 @@ int ExitStatus = 0;
 int DoRSS = 0; // Compute sqrt of sum squares
 int PrintSSD = 0; // Print sum of squared differences over all voxel
 int PrintRMS = 0; // Print root mean squared differences over all voxel
+int PrintCount = 0; // Print count of number different voxels
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, r, c, s, f;
-  int rmax, cmax, smax, fmax,navg,notzero;
+  int rmax, cmax, smax, fmax,navg,notzero,ndiff;
   double diff,maxdiff;
   double val1, val2, SumSqErr;
   double AvgDiff=0.0,SumDiff=0.0,SumSqDiff=0.0;
@@ -423,12 +424,13 @@ int main(int argc, char *argv[]) {
     }
     SumDiff=0.0;
     c=r=s=f=0;
-		notzero=0;
+    notzero=0;
     val1 = MRIgetVoxVal(InVol1,c,r,s,f);
     val2 = MRIgetVoxVal(InVol2,c,r,s,f);
     maxdiff = fabs(val1-val2);
     cmax=rmax=smax=fmax=0;
     SumSqDiff=0.0; // over all voxel
+    ndiff=0;
     for (c=0; c < InVol1->width; c++) {
       for (r=0; r < InVol1->height; r++) {
         for (s=0; s < InVol1->depth; s++) {
@@ -436,11 +438,12 @@ int main(int argc, char *argv[]) {
           for (f=0; f < InVol1->nframes; f++) {
             val1 = MRIgetVoxVal(InVol1,c,r,s,f);
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
-						if (val1 != 0 && val2 != 0) notzero++;
+	    if (val1 != 0 && val2 != 0) notzero++;
             diff = val1-val2;
             if (diff && verbose) {
               printf("diff %12.8f at %d %d %d %d\n",diff,c,r,s,f);
             }
+	    if(diff != 0) ndiff++;
             SumSqDiff += (diff*diff);
             SumSqErr  += (diff*diff);
             if(AbsDiff)   diff = fabs(diff);
@@ -472,6 +475,7 @@ int main(int argc, char *argv[]) {
 		     
     if(PrintSSD) printf("%f sum of squared differences\n",SumSqDiff);
     if(PrintRMS) printf("%f root mean squared differences\n",sqrt(SumSqDiff/notzero));
+    if(PrintCount) printf("diffcount %d\n",ndiff);
 
     if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);      
     if(DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
@@ -662,7 +666,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--diffpct"))  DiffPct = 1;
     else if (!strcasecmp(option, "--rss"))  DoRSS = 1;
     else if (!strcasecmp(option, "--ssd"))  PrintSSD = 1;
-    else if (!strcasecmp(option, "--rms"))  PrintRMS = 1;
+    else if (!strcasecmp(option, "--rms"))  {PrintRMS = 1;CheckPixVals=1;}
+    else if (!strcasecmp(option, "--count"))  {PrintCount = 1;CheckPixVals=1;}
     else if (!strcasecmp(option, "--qa")) {
       CheckPixVals = 0;
       CheckGeo     = 0;
@@ -704,6 +709,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--diff")) {
       if (nargc < 1) CMDargNErr(option,1);
       DiffVolFile = pargv[0];
+      CheckPixVals=1;
       nargsused = 1;
     } else if (!strcasecmp(option, "--avg-diff")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -818,6 +824,7 @@ static void print_usage(void) {
   printf("   --rss        : save sqrt sum squares with --diff\n");
   printf("   --ssd        : print sum squared differences over all voxel\n");
   printf("   --rms        : print root mean squared diff. over all non-zero voxel\n");
+  printf("   --count      : print number of differing voxels\n");
   printf("\n");
   printf("   --thresh thresh : pix diffs must be greater than this \n");
   printf("   --log DiffFile : store diff info in this file. \n");
