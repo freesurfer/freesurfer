@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/28 21:10:24 $
- *    $Revision: 1.97 $
+ *    $Date: 2014/03/05 22:46:38 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2685,7 +2685,29 @@ int *MRIsegIdListExclude0(MRI *seg, int *pnlist, int frame)
   free(segidlist);
   return(segidlist2);
 }
-
+/* ----------------------------------------------------------*/
+/*!
+  \fn int *MRIsegIdListNot0(MRI *seg, int *nsegs, int frame)
+  \brief Returns a list of the unique segmentation ids in the volume
+   excluding segid=0. The number in the list is *nsegs. The volume
+   need not be an int or char, but it is probably what it will be.
+*/
+int *MRIsegIdListNot0(MRI *seg, int *nsegs, int frame)
+{
+  int *segidlist0, *segidlist, msegs, nthseg;
+  segidlist0 = MRIsegIdList(seg, nsegs, frame);
+  // remove 0 from the list
+  segidlist = (int *)calloc(sizeof(int),*nsegs);
+  msegs = 0;
+  for(nthseg = 0; nthseg < *nsegs; nthseg++){
+    if(segidlist0[nthseg] != 0){
+      segidlist[msegs] = segidlist0[nthseg];
+      msegs++;
+    }
+  }
+  *nsegs = msegs;
+  return(segidlist);
+}
 /* ----------------------------------------------------------*/
 /*!
   \fn int *MRIsegIdList(MRI *seg, int *nlist, int frame)
@@ -3336,16 +3358,15 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
   }
   if(Gdiag_no > 0) printf("MRIvol2VolFill(): USF=%d, DoConserve=%d\n",UpsampleFactor,DoConserve);
 
-  if(lta->type != LINEAR_VOX_TO_VOX)
-    ltatmp = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
-  else   
-    ltatmp = LTAcopy(lta,NULL);
+  ltatmp = LTAcopy(lta,NULL);
+  if(ltatmp->type != LINEAR_VOX_TO_VOX)
+    ltatmp = LTAchangeType(ltatmp, LINEAR_VOX_TO_VOX);
 
   // Extract Vox2Vox
   if(LTAmriIsSource(ltatmp, src)){
     if(Gdiag_no > 0) printf("MRIvol2VolFill(): not using inverse\n");
     v2v = ltatmp->xforms[0].m_L;
-    vgtarg = lta->xforms[lta->num_xforms-1].dst;
+    vgtarg = ltatmp->xforms[lta->num_xforms-1].dst;
   }
   else{
     // Invert the matrix if the LTA goes in the wrong direction
@@ -3373,6 +3394,7 @@ MRI *MRIvol2VolFill(MRI *src, MRI *mask, LTA *lta, int UpsampleFactor, int DoCon
     outfill->flip_angle = src->flip_angle;
     outfill->ti = src->ti;
   }
+  MRIclear(outfill);
 
   if(! DoConserve){
     // This keeps track of the number of source voxels land in each target voxel
@@ -4036,6 +4058,10 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
 
   asegus = NULL;
   if(aseg != NULL){
+    if(aseg->type == MRI_UCHAR){
+      printf("ERROR: MRIhiresSeg(): aseg cannot be uchar\n");
+      return(NULL);
+    }
     if(USF > 0) asegus = MRImaskAndUpsample(aseg, aseg, USF, nPad, 0, aseg2hrseg);
     else {
       asegus = aseg;
@@ -4086,7 +4112,7 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
   // stop compiler warnings
   lhwv = rhwv = lhpv = rhpv = 0; segv=0; asegv=0;
 
-  printf("Starting seg fill\n");
+  if(Gdiag_no > 0) printf("Starting seg fill\n");
   for(c=0; c < asegus->width; c++){
     for(r=0; r < asegus->height; r++){
       for(s=0; s < asegus->depth; s++){
@@ -4116,6 +4142,9 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
 	else if(Ribbon){
 	  // Voxel is in the "true" ribbon but not in a subcortical structure
 	  // Aseg could say it is in xcCSF, but override that with ribbon
+	  // What if something other than aseg.mgz was passed? Seg might not
+	  // have X_Left_Cerebral_Cortex label. This is ok for computing PVF
+	  // but not if you are expecting the labels to be correct.
 	  if(lhRibbon) segv = Left_Cerebral_Cortex;
 	  if(rhRibbon) segv = Right_Cerebral_Cortex;
 	}
