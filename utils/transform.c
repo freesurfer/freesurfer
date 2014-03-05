@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/26 21:30:02 $
- *    $Revision: 1.170 $
+ *    $Date: 2014/03/05 22:44:07 $
+ *    $Revision: 1.171 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4051,6 +4051,10 @@ static void LTAgetR2R(MATRIX *mod, VOL_GEOM *vgSrc, VOL_GEOM *vgDst)
   MatrixFree(&dI2R);
 }
 
+/*
+  \fn LTA *LTAchangeType(LTA *lta, int ltatype)
+  \brief Changes the transform type. The LTA itself is changed.
+ */
 LTA *LTAchangeType(LTA *lta, int ltatype)
 {
   LINEAR_TRANSFORM *lt;  // work pointer
@@ -4374,7 +4378,10 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
                 " requesting REGISTER_DAT to %d ", ltatype);
       break;
     }
-    printf("transformed matrix:\n") ;MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
+    if(Gdiag_no > 0){
+      printf("transformed matrix:\n");
+      MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
+    }
   }
   else if (lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
   {
@@ -4409,7 +4416,10 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
                 " requesting COR_RAS_TO_COR_RAS to %d ", ltatype);
       break;
     }
-    printf("transformed matrix:\n") ;MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
+    if(Gdiag_no > 0){
+      printf("transformed matrix:\n");
+      MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
+    }
   }
   else if (lta->type == FSLREG_TYPE)
   {
@@ -4445,7 +4455,10 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
                 " requesting FSLREG_TYPE to %d ", ltatype);
       break;
     }
-    printf("transformed matrix:\n") ;MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
+    if(Gdiag_no > 0){
+      printf("transformed matrix:\n");
+      MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
+    }
   }
 
   // fill inverse part
