@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/17 22:06:48 $
- *    $Revision: 1.52 $
+ *    $Date: 2014/03/06 20:55:40 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/time.h>
+#include <ctype.h>
 
 #include "error.h"
 #include "diag.h"
@@ -64,7 +65,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.52 2014/01/17 22:06:48 greve Exp $";
+"$Id: mri_volsynth.c,v 1.53 2014/03/06 20:55:40 greve Exp $";
 
 char *Progname = NULL;
 
@@ -688,10 +689,18 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if (!strcmp(option, "--val-a")) {
       if (nargc < 1) argnerr(option,1);
+      if(*pargv[0] != '-' && !isdigit(*pargv[0])){
+	printf("ERROR: --val-a must be a number\n");
+	exit(1);
+      }
       sscanf(pargv[0],"%lf",&ValueA);
       nargsused = 1;
     } else if (!strcmp(option, "--val-b")) {
       if (nargc < 1) argnerr(option,1);
+      if(*pargv[0] != '-' && !isdigit(*pargv[0])){
+	printf("ERROR: --val-b must be a number\n");
+	exit(1);
+      }
       sscanf(pargv[0],"%lf",&ValueB);
       nargsused = 1;
     } else if (!strcmp(option, "--radius")) {
