@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/05/31 22:10:05 $
- *    $Revision: 1.51.2.3 $
+ *    $Date: 2014/03/06 17:03:00 $
+ *    $Revision: 1.51.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.51.2.3 2012/05/31 22:10:05 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.51.2.4 2014/03/06 17:03:00 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.51.2.3 2012/05/31 22:10:05 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.51.2.4 2014/03/06 17:03:00 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -982,6 +982,7 @@ static void print_usage(void) {
   printf("   --cortex : set clabel to be subject/label/hemi.cortex.label\n");
   printf("   --mask maskfile : constrain to be within mask\n");
   printf("   --mask-inv : constrain to be OUTSIDE mask or clabel\n");
+  printf("   --centroid : report centroid instead of location of maximum stat\n");
   printf("   --sum sumfile     : text summary file\n");
   printf("   --o outid        : input with non-clusters set to 0\n");
   printf("   --ocn ocnid      : value is cluster number \n");
@@ -1199,7 +1200,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.51.2.3 2012/05/31 22:10:05 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.51.2.4 2014/03/06 17:03:00 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
