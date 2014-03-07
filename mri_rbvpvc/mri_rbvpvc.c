@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/07 23:08:47 $
- *    $Revision: 1.26 $
+ *    $Date: 2014/03/07 23:12:57 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.26 2014/03/07 23:08:47 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.27 2014/03/07 23:12:57 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.26 2014/03/07 23:08:47 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.27 2014/03/07 23:12:57 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -120,7 +120,6 @@ typedef struct
   double XtXcond;
   MATRIX *rvar;
   double cStd, rStd, sStd;
-  MRI **segttdil;
   MRI *ysynth,*ysynthsm;
   int *nperseg;
   MATRIX *segstats;
@@ -130,8 +129,6 @@ typedef struct
   int *mg_refids;
   int n_mg_refids;
   MATRIX *mg_reftac;
-  int nDils;
-  MRI **pvf;
 } GTM;
 
 GTM *GTMalloc();
@@ -141,10 +138,7 @@ int GTMsetNMask(GTM *gtm);
 int GTMpsfStd(GTM *gtm);
 int GTMsegidlist(GTM *gtm);
 int GTMnPad(GTM *gtm);
-int GTMdilateSeg(GTM *gtm);
 int GTMbuildX(GTM *gtm);
-int GTMbuildX2(GTM *gtm);
-int GTMbuildX3(GTM *gtm);
 int GTMsolve(GTM *gtm);
 int GTMsegrvar(GTM *gtm);
 int GTMsmoothSynth(GTM *gtm);
@@ -334,23 +328,6 @@ int main(int argc, char *argv[])
   }
   else gtm->mask=NULL; // should already be NULL
 
-  if(PVFFile){
-    printf("Loading PVF %s\n",PVFFile);fflush(stdout);
-    pvfstack = MRIread(PVFFile);
-    if(pvfstack==NULL) exit(1);
-    err = MRIdimMismatch(gtm->gtmseg, pvfstack, 0);
-    if(err){
-      printf("ERROR: seg and PVF dim mismatch %d\n",err);
-      exit(1);
-    }
-    if(nTT != pvfstack->nframes){
-      printf("ERROR: PVF frames (%d) does not equal number of tissue types %d\n",pvfstack->nframes,nTT);
-      exit(1);
-    }
-    gtm->pvf = (MRI **) calloc(sizeof(MRI*),nTT);
-    for(tt=0; tt<nTT; tt++) gtm->pvf[tt] = fMRIframe(pvfstack,tt,NULL);
-  }
-
   printf("Data load time %4.1f sec\n",TimerStop(&mytimer)/1000.0);
 
   GTMsetNMask(gtm);
@@ -393,12 +370,10 @@ int main(int argc, char *argv[])
     sprintf(tmpstr,"%s/%s/mri/petseg+head.mgz",SUBJECTS_DIR,gtm->anatseg2pet->subject);
     gtm->anatseg = MRIread(tmpstr);
     if(gtm->anatseg==NULL) exit(1);
-    GTMbuildX3(gtm);
+    GTMbuildX(gtm);
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
     CheckX(gtm->X0);
   }
-  else   GTMbuildX(gtm);
-  CheckX(gtm->X);
 
   if(gtm->X==NULL) exit(1);
   if(Xfile) {
@@ -870,65 +845,6 @@ int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax)
   *vrfmean /= iXtX->rows;
   return(0);
 }
-/*------------------------------------------------------------------*/
-int GTMbuildX(GTM *gtm)
-{
-  int nthseg;
-
-  // Allocate the GTM matrix
-  if(gtm->X==NULL || gtm->X->rows != gtm->nmask || gtm->X->cols != gtm->nsegs){
-    if(gtm->X) MatrixFree(&gtm->X);
-    gtm->X = MatrixAlloc(gtm->nmask,gtm->nsegs,MATRIX_REAL);
-    if(gtm->X == NULL){
-      printf("ERROR: GTMbuildX(): could not alloc X %d %d\n",gtm->nmask,gtm->nsegs);
-      return(1);
-    }
-  }
-  gtm->dof = gtm->X->rows - gtm->X->cols;
-
-#ifdef _OPENMP
-#pragma omp parallel for 
-#endif
-  for(nthseg = 0; nthseg < gtm->nsegs; nthseg++){
-    MRI_REGION *region;
-    MRI *pvfbb, *pvfbbsm, *pvfmask,*segmask;
-    int tt, segid,k,c,r,s;
-    segid = gtm->segidlist[nthseg];
-    tt = gtm->ctGTMSeg->entries[segid]->TissueType;
-    segmask = MRIbinarizeMatch(gtm->segttdil[tt-1], segid, 0, NULL);
-    pvfmask = MRImaskZero(gtm->pvf[tt-1], segmask, NULL);
-    region  = REGIONgetBoundingBox(segmask,gtm->nPad);
-    pvfbb   = MRIextractRegion(pvfmask, NULL, region) ;
-    pvfbbsm = MRIgaussianSmoothNI(pvfbb, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
-    if(Gdiag_no > 1) printf("%3d %4d %d  (%3d,%3d,%3d) (%3d,%3d,%3d)\n",nthseg,segid,tt,
-	   region->x,region->y,region->z,region->dx,region->dy,region->dz);
-    // Fill X
-    // Creating X in this order makes it consistent with matlab
-    // Note: y must be ordered in the same way.
-    k = 0;
-    for(s=0; s < gtm->gtmseg->depth; s++){
-      for(c=0; c < gtm->gtmseg->width; c++){
-	for(r=0; r < gtm->gtmseg->height; r++){
-	  if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
-	  k ++;
-	  if(c < region->x || c >= region->x+region->dx)  continue;
-	  if(r < region->y || r >= region->y+region->dy)  continue;
-	  if(s < region->z || s >= region->z+region->dz)  continue;
-	  // do not use k+1 here because it has already been incr above
-	  gtm->X->rptr[k][nthseg+1] = 
-	    MRIgetVoxVal(pvfbbsm,c-region->x,r-region->y,s-region->z,0);
-	}
-      }
-    }
-
-    free(region);
-    MRIfree(&pvfmask);
-    MRIfree(&pvfbb);
-    MRIfree(&pvfbbsm);
-    MRIfree(&segmask);
-  }
-  return(0);
-}
 /*--------------------------------------------------------------------------*/
 int WriteVRFStats(char *fname, GTM *gtm)
 {
@@ -966,42 +882,6 @@ int WriteVRFStats(char *fname, GTM *gtm)
   }
   fclose(fp);
   fflush(stdout);
-
-  return(0);
-}
-/*--------------------------------------------------------------------------*/
-int GTMsynth(GTM *gtm)
-{
-  double vpvf,v,v2;
-  int nthseg, segid, tt,nTT;
-  int c,r,s,f;
-  return(GTMsynth2(gtm));
-
-  nTT = gtm->ctGTMSeg->ctabTissueType->nentries-1;
-
-  if(gtm->ysynth) MRIfree(&gtm->ysynth);
-  gtm->ysynth = MRIallocSequence(gtm->gtmseg->width,gtm->gtmseg->height,gtm->gtmseg->depth,MRI_FLOAT,
-				 gtm->beta->cols);
-  if(gtm->yvol) MRIcopyHeader(gtm->yvol,gtm->ysynth);
-
-  for(s=0; s < gtm->gtmseg->depth; s++){
-    for(c=0; c < gtm->gtmseg->width; c++){
-      for(r=0; r < gtm->gtmseg->height; r++){
-	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
-	for(tt=0; tt < nTT; tt++){
-	  segid = MRIgetVoxVal(gtm->segttdil[tt],c,r,s,0);
-	  if(segid == 0) continue;
-	  for(nthseg=0; nthseg < gtm->nsegs; nthseg++) if(gtm->segidlist[nthseg]==segid) break;
-	  vpvf = MRIgetVoxVal(gtm->pvf[tt],c,r,s,0);
-	  for(f=0; f < gtm->beta->cols; f++) {
-	    v = MRIgetVoxVal(gtm->ysynth,c,r,s,f);
-	    v2 = v + vpvf*gtm->beta->rptr[nthseg+1][f+1];
-	    MRIsetVoxVal(gtm->ysynth,c,r,s,f,v2);
-	  } // frame
-	} // tt
-      }// r 
-    }// c
-  }// s
 
   return(0);
 }
@@ -1195,7 +1075,7 @@ int GTMpsfStd(GTM *gtm)
 int GTMsegidlist(GTM *gtm)
 {
   int *segidlist0,msegs,nthseg;
-  segidlist0 = MRIsegIdList(gtm->gtmseg, &gtm->nsegs, 0);
+  segidlist0 = MRIsegIdList(gtm->anatseg, &gtm->nsegs, 0);
   // remove 0 from the list
   gtm->segidlist = (int *)calloc(sizeof(int),gtm->nsegs);
   msegs = 0;
@@ -1218,14 +1098,6 @@ int GTMnPad(GTM *gtm)
   maxStd = maxFWHM*sqrt(log(256.0));
   gtm->nPad = ceil(sqrt(-log(gtm->PadThresh*maxStd*sqrt(2*M_PI))*2*maxStd));
   if(Gdiag_no > 0) printf("maxFWHM = %g (voxels), PadThresh=%g, nPad=%d\n",maxFWHM,gtm->PadThresh,gtm->nPad);
-  return(0);
-}
-/*------------------------------------------------------------------*/
-int GTMdilateSeg(GTM *gtm)
-{
-  //printf("Dilating segmentation %d\n",gtm->nDils);
-  gtm->segttdil = MRIdilateSegWithinTT(gtm->gtmseg, gtm->nDils, gtm->ctGTMSeg,gtm->segttdil);
-  if(gtm->segttdil == NULL) return(1);
   return(0);
 }
 /*------------------------------------------------------------------*/
@@ -1619,116 +1491,7 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
   return(outlta);
 }
 /*------------------------------------------------------------------*/
-int GTMbuildX2(GTM *gtm)
-{
-  int nthseg,USF=2;
-  struct timeb timer;
-  double tbin, tv2v, text, tsm, tfill,ttot,tv2m0,tv2m;
-
-  // Allocate the GTM matrix
-  if(gtm->X==NULL || gtm->X->rows != gtm->nmask || gtm->X->cols != gtm->nsegs){
-    if(gtm->X) MatrixFree(&gtm->X);
-    gtm->X = MatrixAlloc(gtm->nmask,gtm->nsegs,MATRIX_REAL);
-    if(gtm->X == NULL){
-      printf("ERROR: GTMbuildX(): could not alloc X %d %d\n",gtm->nmask,gtm->nsegs);
-      return(1);
-    }
-  }
-  if(gtm->X0==NULL || gtm->X0->rows != gtm->nmask || gtm->X0->cols != gtm->nsegs){
-    if(gtm->X0) MatrixFree(&gtm->X0);
-    gtm->X0 = MatrixAlloc(gtm->nmask,gtm->nsegs,MATRIX_REAL);
-    if(gtm->X0 == NULL){
-      printf("ERROR: GTMbuildX(): could not alloc X0 %d %d\n",gtm->nmask,gtm->nsegs);
-      return(1);
-    }
-  }
-  gtm->dof = gtm->X->rows - gtm->X->cols;
-
-  #ifdef _OPENMP
-  #pragma omp parallel for 
-  #endif
-  for(nthseg = 0; nthseg < gtm->nsegs; nthseg++){
-    int segid,k,c,r,s,n;
-    MRI *segbin=NULL,*segbinpet=NULL,*segbinpetbb=NULL,*segbinpetbbsm=NULL;
-    MATRIX *x=NULL;
-    MRI_REGION *region;
-    segid = gtm->segidlist[nthseg];
-    //printf("nthseg = %d, %d %6.4f\n",nthseg,segid,TimerStop(&timer)/1000.0);fflush(stdout);
-    TimerStart(&timer);
-    segbin = MRIbinarizeMatch(gtm->anatseg, segid, 0, segbin); 
-    tbin = TimerStop(&timer)/1000.0;
-    TimerStart(&timer);
-    segbinpet = MRIvol2VolFill(segbin, NULL, gtm->anatseg2pet, USF, 0, segbinpet);// does mask and US
-    tv2v = TimerStop(&timer)/1000.0;
-    if(0){
-      TimerStart(&timer);
-      region  = REGIONgetBoundingBox(segbinpet,gtm->nPad);
-      segbinpetbb   = MRIextractRegion(segbinpet, NULL, region) ;
-      text = TimerStop(&timer)/1000.0;
-      TimerStart(&timer);
-      segbinpetbbsm = MRIgaussianSmoothNI(segbinpetbb, gtm->cStd, gtm->rStd, gtm->sStd, segbinpetbbsm);
-      tsm = TimerStop(&timer)/1000.0;
-      TimerStart(&timer);
-      // Fill X, creating X in this order makes it consistent with matlab
-      // Note: y must be ordered in the same way.
-      k = 0;
-      for(s=0; s < gtm->gtmseg->depth; s++){
-	for(c=0; c < gtm->gtmseg->width; c++){
-	  for(r=0; r < gtm->gtmseg->height; r++){
-	    if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
-	    k ++;
-	    if(c < region->x || c >= region->x+region->dx)  continue;
-	    if(r < region->y || r >= region->y+region->dy)  continue;
-	    if(s < region->z || s >= region->z+region->dz)  continue;
-	    // do not use k+1 here because it has already been incr above
-	    gtm->X->rptr[k][nthseg+1] = 
-	      MRIgetVoxVal(segbinpetbbsm,c-region->x,r-region->y,s-region->z,0);
-	    gtm->X0->rptr[k][nthseg+1] = 
-	      MRIgetVoxVal(segbinpetbbsm,c-region->x,r-region->y,s-region->z,0);
-	  }
-	}
-      }
-      tfill = TimerStop(&timer)/1000.0;
-      ttot = tbin+tv2v+text+tsm+tfill;
-      printf("#@# %3d %4d  %6.4f b=%5.2f v2v=%5.2f ext=%5.2f sm=%5.2f fill=%5.2f\n",
-	     nthseg,segid,ttot,100*tbin/ttot,100*tv2v/ttot,100*text/ttot,100*tsm/ttot,100*tfill/ttot);
-      fflush(stdout);
-      MRIfree(&segbinpetbb);
-    } else {
-      // This is an alternative way. It is about 20% but the code is clearer
-      // It gives nearly identical results (depending upon nPad)
-      TimerStart(&timer);
-      x = GTMvol2mat(gtm, segbinpet, x);
-      tv2m0 = TimerStop(&timer)/1000.0;
-      TimerStart(&timer);
-      for(n=0; n < gtm->X->rows;n++) gtm->X0->rptr[n+1][nthseg+1] = x->rptr[n+1][1];
-      tfill = TimerStop(&timer)/1000.0;
-      TimerStart(&timer);
-      segbinpetbbsm = MRIgaussianSmoothNI(segbinpet, gtm->cStd, gtm->rStd, gtm->sStd, segbinpetbbsm);
-      tsm = TimerStop(&timer)/1000.0;
-      TimerStart(&timer);
-      x = GTMvol2mat(gtm, segbinpetbbsm, x);
-      tv2m = TimerStop(&timer)/1000.0;
-      TimerStart(&timer);
-      for(n=0; n < gtm->X->rows;n++) gtm->X->rptr[n+1][nthseg+1] = x->rptr[n+1][1];
-      tfill += TimerStop(&timer)/1000.0;
-      ttot = tbin+tv2v+tv2m0+tv2m+tsm+tfill;      
-      printf("#@# %3d %4d  %6.4f b=%5.2f v2v=%5.2f tv2m=%5.2f sm=%5.2f fill=%5.2f\n",
-	     nthseg,segid,ttot,100*tbin/ttot,100*tv2v/ttot,100*tv2m/ttot,100*tsm/ttot,100*tfill/ttot);
-      fflush(stdout);
-      MatrixFree(&x);
-    }
-    MRIfree(&segbin);
-    MRIfree(&segbinpet);
-    MRIfree(&segbinpetbbsm);
-  }
-  printf(" Build time %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
-
-  return(0);
-}
-
-/*------------------------------------------------------------------*/
-int GTMsynth2(GTM *gtm)
+int GTMsynth(GTM *gtm)
 {
   MATRIX *yhat;
 
@@ -1768,144 +1531,7 @@ int CheckX(MATRIX *X)
 }
 
 
-/*------------------------------------------------------------*/
-MRI *MRIaseg2volFrame(MRI *aseg, LTA *aseg2vol, int *segidlist, int nsegs, MRI *out)
-{
-  LTA *lta;
-  VOL_GEOM *vg;
-  double m11,m12,m13,m14,m21,m22,m23,m24,m31,m32,m33,m34;
-  //double cvf,rvf,svf, cvfc,rvfc,svfc, cvfr,rvfr,svfr,v;
-  int c,ff,nhits,segidmax,*seg2frame;
-  struct timeb timer;
-  MRI *count;
 
-  TimerStart(&timer);
-
-  if(LTAmriIsSource(aseg2vol,aseg))  lta = LTAcopy(aseg2vol,NULL);
-  else                               lta = LTAinvert(aseg2vol,NULL);
-  if(lta->type != LINEAR_VOX_TO_VOX) LTAchangeType(lta, LINEAR_VOX_TO_VOX);
-  vg = &(lta->xforms[0].dst);
-
-  m11 = lta->xforms[0].m_L->rptr[1][1];
-  m12 = lta->xforms[0].m_L->rptr[1][2];
-  m13 = lta->xforms[0].m_L->rptr[1][3];
-  m14 = lta->xforms[0].m_L->rptr[1][4];
-  m21 = lta->xforms[0].m_L->rptr[2][1];
-  m22 = lta->xforms[0].m_L->rptr[2][2];
-  m23 = lta->xforms[0].m_L->rptr[2][3];
-  m24 = lta->xforms[0].m_L->rptr[2][4];
-  m31 = lta->xforms[0].m_L->rptr[3][1];
-  m32 = lta->xforms[0].m_L->rptr[3][2];
-  m33 = lta->xforms[0].m_L->rptr[3][3];
-  m34 = lta->xforms[0].m_L->rptr[3][4];
-
-  if(out==NULL){
-    out = MRIallocSequence(vg->width,vg->height,vg->depth,MRI_FLOAT,nsegs);
-    if(out==NULL){
-      printf("ERROR: MRIaseg2volFrame(): could not alloc\n");
-      return(NULL);
-    }
-    useVolGeomToMRI(vg,out);
-    MRIcopyPulseParameters(aseg,out);
-  }
-  if(out->width != vg->width || out->height != vg->height || 
-     out->depth != vg->depth || out->nframes != nsegs){
-      printf("ERROR: MRIaseg2volFrame(): dimension mismatch\n");
-      return(NULL);
-  }
-  count = MRIallocSequence(vg->width,vg->height,vg->depth,MRI_INT,1);
-  if(count==NULL){
-    printf("ERROR: MRIaseg2volFrame(): could not alloc count\n");
-    return(NULL);
-  }
-  useVolGeomToMRI(vg,count);
-  MRIcopyPulseParameters(aseg,count);
-
-  segidmax = 0;
-  for(ff=0; ff < nsegs; ff++) if(segidmax < segidlist[ff]) segidmax = segidlist[ff];
-  seg2frame = (int *) calloc(sizeof(int),segidmax+1);
-  for(ff=0; ff < nsegs; ff++) seg2frame[segidlist[ff]] = ff;
-
-  printf("MRIaseg2volFrame(): starting fill t = %g\n",TimerStop(&timer)/1000.0);
-  fflush(stdout);
-  nhits = 0;
-  #ifdef _OPENMP
-  omp_set_num_threads(8);
-  printf("%d avail.processors, using %d\n",omp_get_num_procs(),omp_get_max_threads());
-  fflush(stdout);
-  #pragma omp parallel for shared(out,count) reduction(+:nhits)
-  #endif
-  for(c=0; c < aseg->width; c++){
-    double cvf,rvf,svf, cvfc,rvfc,svfc, cvfr,rvfr,svfr;
-    int segid,cv,rv,sv,f,n,r,s;
-    cvfc = m11*c + m14;
-    rvfc = m21*c + m24;
-    svfc = m31*c + m34;
-    for(r=0; r < aseg->height; r++){
-      cvfr = cvfc + m12*r;
-      rvfr = rvfc + m22*r;
-      svfr = svfc + m32*r;
-      for(s=0; s < aseg->depth; s++){
-	segid = MRIgetVoxVal(aseg,c,r,s,0);
-	if(segid == 0) continue;
-
-	//cvf = m11*c + m12*r + m13*s + m14;
-	//rvf = m21*c + m22*r + m23*s + m24;
-	//svf = m31*c + m32*r + m33*s + m34;
-
-	cvf = cvfr + m13*s;
-	cv = nint(cvf);
-	if(cv < 0 || cv >= vg->width) continue;
-
-	rvf = rvfr + m23*s;
-	rv = nint(rvf);
-	if(rv < 0 || rv >= vg->height) continue;
-
-	svf = svfr + m33*s;
-	sv = nint(svf);
-	if(sv < 0 || sv >= vg->depth) continue;
-	f = seg2frame[segid];
-
-	nhits++; // thread safe because of reduction clause
-
-
-        //Not sure this is thread safe
-	n = MRIgetVoxVal(out,cv,rv,sv,f);
-	MRIsetVoxVal(out,cv,rv,sv,f, n+1);
-	n = MRIgetVoxVal(count,cv,rv,sv,0);
-	MRIsetVoxVal(count,cv,rv,sv,0, n+1);
-      }
-    }
-  }
-
-  // Normalize
-  printf("MRIaseg2volFrame(): normalizing t = %g\n",TimerStop(&timer)/1000.0);
-  fflush(stdout);
-  #ifdef _OPENMP
-  #pragma omp parallel for shared(out,count)
-  #endif
-  for(c=0; c < out->width; c++){
-    int n,f,r,s;
-    double v;
-    for(r=0; r < out->height; r++){
-      for(s=0; s < out->depth; s++){
-	n = MRIgetVoxVal(count,c,r,s,0);
-	if(n < 2) continue;
-	for(f=0; f < nsegs; f++) {
-	  v = MRIgetVoxVal(out,c,r,s,f);
-	  MRIsetVoxVal(out,c,r,s,f,v/n);
-	}
-      }
-    }
-  }
-
-  free(seg2frame);
-  MRIfree(&count);
-  //if(Gdiag_no > 0) printf("MRIaseg2volFrame(): done\n");
-  printf("MRIaseg2volFrame(): nhits = %d t = %g done\n",nhits,TimerStop(&timer)/1000.0);
-  fflush(stdout);
-  return(out);
-}
 int dngtest(LTA *aseg2vol)
 {
   MRI *seg,*segf=NULL,*aseg,*mask,*pvf,*seg2,*newseg;
@@ -2032,7 +1658,7 @@ int dngtest(LTA *aseg2vol)
 
 }
 
-int GTMbuildX3(GTM *gtm)
+int GTMbuildX(GTM *gtm)
 {
   int nthseg;
   struct timeb timer;
