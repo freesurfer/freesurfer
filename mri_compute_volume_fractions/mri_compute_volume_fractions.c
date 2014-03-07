@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/28 21:13:52 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/03/07 19:49:54 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 
-static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.18 2014/02/28 21:13:52 greve Exp $";
+static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.19 2014/03/07 19:49:54 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -83,11 +83,12 @@ int UseAseg = 1;
 int FillCSF=1;
 int nDil=3;
 int RegHeader=0;
+double resmm=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs,err,tt,nTT;
-  MRI *aseg,**pvf,*mritmp,*stack,*gm,*csfmask;
+  MRI *aseg,*pvf,*mritmp,*csfmask;
   MRIS *lhw, *lhp, *rhw, *rhp;
   struct timeb start ;
 
@@ -184,8 +185,12 @@ int main(int argc, char *argv[]) {
   }
 
   printf("  t = %g\n",TimerStop(&start)/1000.0) ;
-  printf("Computing PVF (USF=%d)\n",USF);
-  pvf = MRIpartialVolumeFractionAS(aseg2vol,aseg,lhw,lhp,rhw,rhp,USF,ct,NULL);
+  if(resmm == 0){
+    if(aseg) resmm = aseg->xsize/(USF);
+    else     resmm = 1.0/(USF);
+  }
+  printf("Computing PVF (USF=%d, resmm=%lf)\n",USF,resmm);
+  pvf = MRIpartialVolumeFractionAS(aseg2vol,aseg,lhw,lhp,rhw,rhp,USF,resmm,ct,NULL);
   if(pvf == NULL) exit(1);
 
   printf("  t = %g\n",TimerStop(&start)/1000.0) ;
@@ -196,7 +201,7 @@ int main(int argc, char *argv[]) {
     csfmask = MRIread(tmpstr);
     if(csfmask==NULL) exit(1);
     MRIbinarize(csfmask, csfmask, 0.5, 0, 1);
-    MRImask(pvf[3], csfmask, pvf[3], 0, 0);
+    MRImask(pvf, csfmask, pvf, 0, 0);
   }
   printf("  t = %g\n",TimerStop(&start)/1000.0) ;
 
@@ -205,25 +210,29 @@ int main(int argc, char *argv[]) {
   if(outstem){
     for(tt=0; tt < nTT; tt++){
       sprintf(tmpstr,"%s.%s.%s",outstem,ct->ctabTissueType->entries[tt+1]->name,fmt);
-      err = MRIwrite(pvf[tt],tmpstr);
+      mritmp = fMRIframe(pvf,tt,NULL);
+      err = MRIwrite(mritmp,tmpstr);
       if(err) exit(1);
+      MRIfree(&mritmp);
     }
   }
 
   if(stackfile){
-    stack = MRIallocSequence(pvf[0]->width,pvf[0]->height,pvf[0]->depth,MRI_FLOAT,nTT);
-    MRIcopyHeader(pvf[0],stack);
-    MRIcopyPulseParameters(pvf[0],stack);
-    for(tt=0; tt < nTT; tt++) fMRIinsertFrame(pvf[tt], 0, stack, tt);
-    err=MRIwrite(stack,stackfile);
+    err=MRIwrite(pvf,stackfile);
     if(err) exit(1);
   }
 
   if(gmfile){
-    gm = MRIadd(pvf[0],pvf[1],NULL);
-    MRIcopyPulseParameters(pvf[0],gm);
+    MRI *ctx, *subctxgm, *gm;
+    ctx = fMRIframe(pvf,0,NULL);
+    subctxgm = fMRIframe(pvf,1,NULL);
+    gm = MRIadd(ctx,subctxgm,NULL);
+    MRIcopyPulseParameters(pvf,gm);
     err=MRIwrite(gm,gmfile);
     if(err) exit(1);
+    MRIfree(&ctx);
+    MRIfree(&subctxgm);
+    MRIfree(&gm);
   }
 
   printf("#@# CVF-Run-Time-Sec %g\n",TimerStop(&start)/1000.0) ;
@@ -355,6 +364,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--usf")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&USF);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--resmm")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&resmm);
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--ndil")) {
