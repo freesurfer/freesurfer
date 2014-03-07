@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/26 22:15:47 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/03/07 19:33:14 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -138,5 +138,12 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
                  double fthresh, MRI **pvolhit,COLOR_TABLE *ct);
 MRI *MRIaseg2volMU(MRI *aseg, LTA *aseg2vol, double fthresh, 
 		   MRI **pvolhit, int USF, COLOR_TABLE *ct);
+MRI *MRIseg2SegPVF(MRI *seg, LTA *seg2vol, double resmm, int *segidlist, int nsegs, 
+		   MRI *mask, int ReInit, COLOR_TABLE *ct, MRI *out);
+MRI *MRIsegPVF2Seg(MRI *segpvf, int *segidlist, int nsegs, COLOR_TABLE *ct, 
+		   MRI *mask, MRI *seg);
+int VOXsegPVF2Seg(float *segpvfvox, int *segidlist, int nsegs, COLOR_TABLE *ct);
+MRI *MRIsegPVF2TissueTypePVF(MRI *segpvf, int *segidlist, int nsegs, 
+			     COLOR_TABLE *ct, MRI *mask, MRI *pvf);
 
 #endif /* #ifndef RESAMPLE_H_INC */

@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/28 21:11:42 $
- *    $Revision: 1.46 $
+ *    $Date: 2014/03/07 19:33:14 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,6 +72,11 @@
 #include "bfileio.h"
 #include "corio.h"
 #include "proto.h" // nint
+#include "mrimorph.h"
+#include "timer.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 /*-------------------------------------------------------------------*/
 double round(double); // why is this never defined?!?
@@ -1777,6 +1782,433 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
   MatrixFree(&xyzcrs);
   MRIfree(&dist2);
   return(map);
+}
+/*
+  \fn MRI *MRIseg2SegPVF(MRI *seg, LTA *seg2vol, double resmm, int *segidlist, int nsegs, MRI *mask, int ReInit, MRI *out)
+  \brief Computes the partial volume fraction (PVF:0->1) for each
+  segmentation. The output geometry is derived from the dst in seg2vol
+  (seg2vol can go the other direction, it figures it out). The number
+  of frames in the output equals the number of segmentations
+  (excluding 0).  Each frame is a map where the voxel value is the
+  fraction of that voxel that contains the seg corresonding to that
+  frame. The algorithm works by sampling each output voxel over a
+  uniform grid. For each sample, the location in seg is computed to
+  get the segmentation. The number of hits for this segmentation/frame
+  is then updated for that voxel. The distance in mm between the
+  points of the grid is controlled by resmm. The actual distance will
+  be changed so as to assure that the entire output volume is
+  uniformly sampled. If resmm is negative, then it is interpreted as
+  an upsampling factor (USF=round(abs(resmm))).  segidlist is a
+  complete list of segmentation ids (excluding 0) and nsegs is the
+  number (equal to the number of frames in the output).  This can be
+  obtained with segidlist = MRIsegIdListNot0(seg, &nsegs, 0).  The sum
+  of PVFs across seg will not always equal 1 because the background is
+  not treated as a segmentation.  MRIseg2SegPVF() is built for speed
+  and has several optimizations, one of which is that some data are
+  precomputed and cached. If the mask or segmentation changes, then
+  call with ReInit=1. Run with ReInit=-1 to free the memory in the
+  cache.  This function uses OMP.  See also MRIsegPVF2Seg(),
+  MRIsegPVF2TissueTypePVF(), MRIseg2TissueType().  If ct is non-NULL,
+  then the segmentation is computed based on maximum PVF.  See
+  VOXsegPVF2Seg().  There is no specific advantage to upsampling or
+  masking seg.  mask is a mask in the output space; anything outside
+  of the mask is set to 0.
+*/
+MRI *MRIseg2SegPVF(MRI *seg, LTA *seg2vol, double resmm, int *segidlist, int nsegs, 
+		   MRI *mask, int ReInit, COLOR_TABLE *ct, MRI *out)
+{
+  LTA *lta;
+  VOL_GEOM *vg;
+  double m11,m12,m13,m14,m21,m22,m23,m24,m31,m32,m33,m34;
+  double dc,dr,ds,dcstart,drstart,dsstart;
+  float **nperfth,npervox; // need float for nperf for consistency
+  int nhits,segidmax,nthvox,ndc,ndr,nds,nthreads;
+  int c,r,s,f,nframesout=0,outtype=0,DoSeg;
+  struct timeb timer;
+  static int InitNeeded=1,nvox=0,*clist=NULL,*rlist=NULL,*slist=NULL,*seg2frame, nthcall=0;
+
+  if(ReInit < 0){
+    // This allows the static memory to be freed
+    if(clist) free(clist);
+    if(rlist) free(rlist);
+    if(slist) free(slist);
+    if(seg2frame) free(seg2frame);
+    InitNeeded = 1;
+    nthcall = 0;
+    return(NULL);
+  }
+
+  TimerStart(&timer);
+
+  if(ct) DoSeg = 1;
+  else   DoSeg = 0;
+
+  // Get number of threads
+  nthreads = 1;
+  #ifdef _OPENMP
+  nthreads = omp_get_max_threads(); // using max should be ok
+  #endif
+
+  if(LTAmriIsSource(seg2vol,seg))  lta = LTAinvert(seg2vol,NULL);
+  else                             lta = LTAcopy(seg2vol,NULL);
+  if(lta->type != LINEAR_VOX_TO_VOX) LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+  vg = &(lta->xforms[0].src);
+
+  if(resmm > 0){
+    // compute number of subsamples based on passed resolution
+    ndc = round(vg->xsize/resmm);
+    if(ndc < 1) ndc = 1;
+    ndr = round(vg->ysize/resmm);
+    if(ndr < 1) ndr = 1;
+    nds = round(vg->zsize/resmm);
+    if(nds < 1) nds = 1;
+  }
+  // otherwise, use the value in resmm as the upsample factor
+  else ndc=ndr=nds=round(abs(resmm));
+
+  // this assures that the volume is sampled unformly in each dim
+  dc = 1.0/ndc;
+  dcstart = -0.5 + dc/2.0;
+  dr = 1.0/ndr;
+  drstart = -0.5 + dr/2.0;
+  ds = 1.0/nds;
+  dsstart = -0.5 + ds/2.0;
+  npervox = ndc*ndr*nds; // number of samples in each voxel
+
+  /* For speed, pre-compute some variables. If the mask or the 
+     segs that compose the segmentation change, then the cache
+     should be re-computed by passing ReInit=1. The caller is
+     responsible for determining whether the cache needs to be
+     re-initialized. */
+  if(InitNeeded) ReInit=1;
+  if(ReInit){
+    /* Create an array to map from segid to frame (for speed). The array
+       may be very large depending on segidmax, but still it should be
+       small relative to images. If the segs that compose the segmentation
+       change, the cache should be re-initialized.*/
+    if(seg2frame) free(seg2frame);
+    if(clist) free(clist);
+    if(rlist) free(rlist);
+    if(slist) free(slist);
+
+    segidmax = 0;
+    for(f=0; f < nsegs; f++) if(segidmax < segidlist[f]) segidmax = segidlist[f];
+    seg2frame = (int *) calloc(sizeof(int),segidmax+1);
+    for(f=0; f < nsegs; f++) seg2frame[segidlist[f]] = f;
+
+    /* Precompute the number of voxels in the mask. If the mask
+       changes, then the cache should be re-initialized.*/
+    if(mask) nvox = MRIcountAboveThreshold(mask, 0.5);
+    else     nvox = vg->width*vg->height*vg->depth;
+    printf("MRIseg2SegPVF(): Initilizing cache nsegs = %d, nvox = %d, nthreads=%d, DoSeg=%d\n",
+	   nsegs,nvox,nthreads,DoSeg);
+    printf("resmm=%g c: %g %d %g %g, r: %g %d %g %g, s: %g %d %g %g\n",resmm,
+	   vg->xsize,ndc,dcstart,dc,vg->ysize,ndr,drstart,dr,
+	   vg->zsize,nds,dsstart,ds);
+    printf("delta %g %g %g, npervox = %g\n",vg->xsize/ndc,vg->ysize/ndr,vg->zsize/nds,npervox);
+    fflush(stdout);
+    /* Precompute arrays that map voxel index to col,row,slice in
+       output. If the mask changes, then the cache should be
+       re-initialized.*/
+    clist = (int *) calloc(sizeof(int),nvox);
+    rlist = (int *) calloc(sizeof(int),nvox);
+    slist = (int *) calloc(sizeof(int),nvox);
+    nthvox = 0;
+    for(c=0; c < vg->width; c++){
+      for(r=0; r < vg->height; r++){
+	for(s=0; s < vg->depth; s++){
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	  clist[nthvox] = c;
+	  rlist[nthvox] = r;
+	  slist[nthvox] = s;
+	  nthvox++;
+	}
+      }
+    }
+    InitNeeded=0;
+  }
+
+  // Alloc output and check dimensions
+  if(DoSeg) {nframesout = 1;     outtype = MRI_INT;}
+  else      {nframesout = nsegs; outtype = MRI_FLOAT;}
+  if(out==NULL){
+    out = MRIallocSequence(vg->width,vg->height,vg->depth,outtype,nframesout);
+    if(out==NULL){
+      printf("ERROR: MRIseg2SegPVF(): could not alloc\n");
+      return(NULL);
+    }
+    useVolGeomToMRI(vg,out);
+    MRIcopyPulseParameters(seg,out);
+  }
+  if(out->width != vg->width || out->height != vg->height || 
+     out->depth != vg->depth || out->nframes != nframesout){
+      printf("ERROR: MRIseg2SegPVF(): dimension mismatch\n");
+      return(NULL);
+  }
+  if(mask && MRIdimMismatch(out,mask,0)){
+    printf("ERROR: MRIseg2SegPVF() output/mask dim mismatch\n");
+    return(NULL);
+  }
+
+  // For speed, put matrix values in their own variables
+  m11 = lta->xforms[0].m_L->rptr[1][1];
+  m12 = lta->xforms[0].m_L->rptr[1][2];
+  m13 = lta->xforms[0].m_L->rptr[1][3];
+  m14 = lta->xforms[0].m_L->rptr[1][4];
+  m21 = lta->xforms[0].m_L->rptr[2][1];
+  m22 = lta->xforms[0].m_L->rptr[2][2];
+  m23 = lta->xforms[0].m_L->rptr[2][3];
+  m24 = lta->xforms[0].m_L->rptr[2][4];
+  m31 = lta->xforms[0].m_L->rptr[3][1];
+  m32 = lta->xforms[0].m_L->rptr[3][2];
+  m33 = lta->xforms[0].m_L->rptr[3][3];
+  m34 = lta->xforms[0].m_L->rptr[3][4];
+
+  if(Gdiag_no > 0){
+    printf("resmm=%g c: %g %d %g %g, r: %g %d %g %g, s: %g %d %g %g\n",resmm,
+	   vg->xsize,ndc,dcstart,dc,vg->ysize,ndr,drstart,dr,
+	   vg->zsize,nds,dsstart,ds);
+    printf("delta %g %g %g, npervox = %g\n",vg->xsize/ndc,vg->ysize/ndr,vg->zsize/nds,npervox);
+    printf("MRIseg2SegPVF(): starting fill t = %g, nvox=%d\n",TimerStop(&timer)/1000.0,nvox);
+    fflush(stdout);
+  }
+
+  // Set up array to hold the number per frame in each thread (n per f th)
+  nperfth = (float **) calloc(sizeof(float*),nthreads);
+  for(f=0; f < nthreads; f++) nperfth[f] = (float *) calloc(sizeof(float),nsegs);
+
+  /* The main loop goes over each voxel in the output/mask. This is
+     thread-safe because each voxel is handled separately. */
+  nhits = 0; // keep track of the total number of hits
+  #ifdef _OPENMP
+  // note: removing reduction(+:nhits) slows the speed to that of 1 thread
+  #pragma omp parallel for shared(nperfth,m13,m23,m33) reduction(+:nhits) 
+  #endif
+  for(nthvox = 0; nthvox < nvox; nthvox++){
+    int c,r,s,i,j,k,ca,ra,sa,segid,f,threadno;
+    double cf,rf,sf;
+    double m11cf,m21cf,m31cf,m12rf,m22rf,m32rf;
+    float *nperf;
+
+    // Get the thread number
+    threadno=0;
+    #ifdef _OPENMP
+    threadno=omp_get_thread_num();
+    #endif
+    nperf = nperfth[threadno];
+
+    for(f=0; f < nsegs; f++) nperf[f]=0; // zero n-per-frame
+
+    // Get the col, row, slice of the current voxel
+    c = clist[nthvox];
+    r = rlist[nthvox];
+    s = slist[nthvox];
+    // Uniformly sample ndc-by-ndr-by-nds points in each voxel
+    for(i = 0; i < ndc; i++){
+      cf = c + dcstart + dc*i;
+      m11cf = m11*cf + m14;
+      m21cf = m21*cf + m24;
+      m31cf = m31*cf + m34;
+      for(j = 0; j < ndr; j++){
+	rf = r + drstart + dr*j;
+	m12rf = m12*rf+m11cf;
+	m22rf = m22*rf+m21cf;
+	m32rf = m32*rf+m31cf;
+	for(k = 0; k < nds; k++){
+	  sf = s + dsstart + ds*k;
+
+	  //ca = nint(m11*cf + m12*rf + m13*sf + m14);
+	  ca = nint(m12rf + m13*sf);
+	  if(ca < 0 || ca >= seg->width) continue;
+
+	  //ra = nint(m21*cf + m22*rf + m23*sf + m24);
+	  ra = nint(m22rf + m23*sf);
+	  if(ra < 0 || ra >= seg->height) continue;
+
+	  //sa = nint(m31*cf + m32*rf + m33*sf + m34);
+	  sa = nint(m32rf + m33*sf);
+	  if(sa < 0 || sa >= seg->depth) continue;
+
+	  segid = MRIgetVoxVal(seg,ca,ra,sa,0);
+	  if(segid == 0) continue;
+
+	  f = seg2frame[segid]; // convert the segid to a frame
+	  nperf[f]++; // increment the number of hits for this frame
+	  nhits++; // total number of hits
+	} //ds
+      } //dr
+    } //dc
+    // Done with this voxel
+    // Divide by npervox to compute PVF
+    if(DoSeg == 0){
+      for(f=0; f < nsegs; f++) // dont compute pvf outside, becomes very slow
+	if(nperf[f] > 0) MRIsetVoxVal(out,c,r,s,f, (float)nperf[f]/npervox);
+    }
+    else{
+      // Get seg with highest PVF
+      for(f=0; f < nsegs; f++) nperf[f] = (float)nperf[f]/npervox;
+      segid = VOXsegPVF2Seg(nperf, segidlist, nsegs, ct);
+      MRIsetVoxVal(out,c,r,s,0, segid);
+    }
+  } // nthvox
+
+  for(f=0; f < nthreads; f++) free(nperfth[f]);
+  free(nperfth);
+
+  if(nthcall < 4 || Gdiag_no > 0){
+    printf("MRIseg2SegPVF(): done t = %g, nhits=%d, nthreads=%d\n",TimerStop(&timer)/1000.0,nhits,nthreads);
+    fflush(stdout);
+  }
+  nthcall++;
+  return(out);
+}
+/*
+  \fn MRI *MRIsegPVF2Seg(MRI *segpvf, int *segidlist, int nsegs, COLOR_TABLE *ct, MRI *mask, MRI *seg)
+  \brief Converts a segmentation-wise PVF created by MRIseg2SegPVF()
+  into a segmentation by selecting the segmentation that has the
+  largest PVF. If the sum of PVFs at a voxel is less than 0.5, then
+  the seg is set to 0.  If no seg has PVF>.5 and ct is non-NULL, then
+  the PVFs within each tissue type are computed, and the seg with the
+  max PVF within the tissue type with the max PVF is selected. See
+  also VoxsegPVF2Seg().
+ */
+MRI *MRIsegPVF2Seg(MRI *segpvf, int *segidlist, int nsegs, COLOR_TABLE *ct, MRI *mask, MRI *seg)
+{
+  int c,r,s,f,segid;
+  float *vlist;
+
+  if(seg == NULL){
+    seg = MRIallocSequence(segpvf->width,segpvf->height,segpvf->depth,MRI_INT,1);
+    MRIcopyHeader(segpvf,seg);
+    MRIcopyPulseParameters(segpvf,seg);
+  } 
+  else MRIclear(seg);
+  
+  vlist = (float*)calloc(sizeof(float),nsegs);
+
+  for(c=0; c < segpvf->width; c++){
+    for(r=0; r < segpvf->height; r++){
+      for(s=0; s < segpvf->depth; s++){
+	MRIsetVoxVal(seg,c,r,s,0,0);
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	// Go through each frame/seg
+	for(f=0; f < nsegs; f++)
+	  vlist[f] = MRIgetVoxVal(segpvf,c,r,s,f);
+	segid = VOXsegPVF2Seg(vlist, segidlist, nsegs, ct);
+	MRIsetVoxVal(seg,c,r,s,0,segid);
+      }
+    }
+  }
+  free(vlist);
+  return(seg);
+}
+
+/*
+  \fn int VOXsegPVF2Seg(double *segpvfvox, int *segidlist, int nsegs, COLOR_TABLE *ct)
+  \brief Selects the seg with the greatest PVF.  If the sum of PVFs at
+  a voxel is less than 0.5, then the seg is set to 0.  If no seg has
+  PVF>.5 and ct is non-NULL, then the PVFs within each tissue type are
+  computed, and the seg with the max PVF within the tissue type with
+  the max PVF is selected. segpvfvox is a vector of length nsegs with
+  the PVF for each of the segs. segidlist is the list of segmentation
+  ids (also length nsegs). See also MRIsegPVF2Seg().
+*/
+int VOXsegPVF2Seg(float *segpvfvox, int *segidlist, int nsegs, COLOR_TABLE *ct)
+{
+  int segid, f,fmax,tt,ttmax,nTT;
+  float v,vsum,vmax,vtt[100],vttmax;
+
+  vsum = 0;
+  vmax = 0;
+  fmax = 0;
+  for(f=0; f < nsegs; f++){
+    v = segpvfvox[f];
+    vsum += v;
+    if(v > 0 && vmax < v){
+      vmax = v;
+      fmax = f;
+    }
+  }
+  if(vsum < 0.5) return(0); // mostly background
+
+  if(vmax < 0.5 && ct){
+    // no clear winner, resolve with tissue type
+    nTT = ct->ctabTissueType->nentries-1;
+    // compute pvf for each tissue type
+    for(tt=0; tt < nTT; tt++) vtt[tt] = 0;
+    for(f=0; f < nsegs; f++){
+      segid = segidlist[f];
+      tt = ct->entries[segid]->TissueType-1;
+      vtt[tt] += segpvfvox[f];
+    }
+    // find tissue type that has largest pvf
+    vttmax = 0;
+    ttmax = 0;
+    for(tt=0; tt < nTT; tt++){
+      if(vttmax < vtt[tt]) {
+	vttmax = vtt[tt];
+	ttmax = tt;
+      }
+    }
+    // select the seg with the largest pvf from within the best TT 
+    vmax = 0;
+    fmax = 0;
+    for(f=0; f < nsegs; f++){
+      segid = segidlist[f];
+      tt = ct->entries[segid]->TissueType-1;
+      if(tt != ttmax) continue;
+      v = segpvfvox[f];
+      if(vmax < v){
+	vmax = v;
+	fmax = f;
+      }
+    }
+  }
+
+  segid = segidlist[fmax];
+  return(segid);
+}
+
+/*
+  \fn MRI *MRIsegPVF2TissueTypePVF(MRI *segpvf, int *segidlist, int nsegs, COLOR_TABLE *ct, MRI *mask, MRI *pvf)
+  \brief Converts a SegPVF (as computed by MRIseg2SegPVF()) to tissue
+  type PVF, where the conversion from seg to TT is given in the ct. It
+  may be more efficient to convert a highres seg to a tissue type seg
+  using MRIseg2TissueType(), then run MRIseg2SegPVF() to generate the
+  TT PVF directly.  */
+MRI *MRIsegPVF2TissueTypePVF(MRI *segpvf, int *segidlist, int nsegs, COLOR_TABLE *ct, MRI *mask, MRI *pvf)
+{
+  int nTT,c,r,s,f,tt,segid;
+  double vtt[100];
+  nTT = ct->ctabTissueType->nentries-1;
+
+  if(pvf == NULL){
+    pvf = MRIallocSequence(segpvf->width,segpvf->height,segpvf->depth,MRI_FLOAT,nTT);
+    if(pvf==NULL){
+      printf("ERROR: MRIsegPVF2TissueTypePVF(): could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyHeader(segpvf,pvf);
+    MRIcopyPulseParameters(segpvf,pvf);
+  } 
+  else MRIclear(pvf);
+  
+  for(c=0; c < segpvf->width; c++){
+    for(r=0; r < segpvf->height; r++){
+      for(s=0; s < segpvf->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	for(tt=0; tt < nTT; tt++) vtt[tt] = 0;
+	for(f=0; f < nsegs; f++){
+	  segid = segidlist[f];
+	  tt = ct->entries[segid]->TissueType-1;
+	  vtt[tt] += MRIgetVoxVal(segpvf,c,r,s,f);
+	}
+	for(tt=0; tt < nTT; tt++) MRIsetVoxVal(pvf,c,r,s,tt,vtt[tt]);
+
+      }
+    }
+  }
+  return(pvf);
 }
 
 /*-------------------------------------------------------------------*/
