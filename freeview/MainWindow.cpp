@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/01 04:50:49 $
- *    $Revision: 1.273 $
+ *    $Date: 2014/03/07 16:55:24 $
+ *    $Revision: 1.274 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1237,12 +1237,12 @@ void MainWindow::OnIdle()
   ui->actionSaveSurfaceAs   ->setEnabled( layerSurface );
   ui->actionShowColorScale  ->setEnabled( bHasLayer );
   ui->actionShowSliceFrames  ->setEnabled(bHasLayer && ui->view3D->GetShowSlices());
-  ui->actionShowSliceFrames->blockSignals(true);
+  ui->actionShowSliceFrames ->blockSignals(true);
   ui->actionShowSliceFrames  ->setChecked(ui->view3D->GetShowSliceFrames());
-  ui->actionShowSliceFrames->blockSignals(false);
-  ui->actionShowSlices        ->setEnabled(bHasLayer);
-  ui->actionShowSlices->blockSignals(true);
-  ui->actionShowSlices        ->setChecked(ui->view3D->GetShowSlices());
+  ui->actionShowSliceFrames ->blockSignals(false);
+  ui->actionShowSlices      ->setEnabled(bHasLayer);
+  ui->actionShowSlices      ->blockSignals(true);
+  ui->actionShowSlices      ->setChecked(ui->view3D->GetShowSlices());
   ui->actionShowSlices->blockSignals(false);
   ui->actionShowLabelStats  ->setEnabled( layerVolume && layerVolume->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT );
   ui->actionToggleCursorVisibility  ->setEnabled( bHasLayer );
@@ -1518,6 +1518,10 @@ void MainWindow::RunScript()
   else if ( cmd == "setsurfaceoverlaymethod" )
   {
     CommandSetSurfaceOverlayMethod( sa );
+  }
+  else if (cmd == "setsurfaceoverlaycolormap")
+  {
+    CommandSetSurfaceOverlayColormap( sa );
   }
   else if ( cmd == "setsurfaceoverlayopacity" )
   {
@@ -2489,6 +2493,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn_patch = "";
   QString fn_target = "";
   QStringList sup_files;
+  QStringList valid_overlay_options;
+  valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold"
+                        << "overlay_rh" << "overlay_opacity" << "overlay_colormap";
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
     QStringList sa_fn = overlay_list[nOverlay].split(":");
@@ -2500,6 +2507,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QString overlay_reg;
     QString overlay_opacity;
     QString overlay_method = "linearopaque";
+    QStringList overlay_colormap;
     QStringList overlay_thresholds;
     bool bSecondHalfData = false;
     for ( int k = sa_fn.size()-1; k >= 0; k-- )
@@ -2519,6 +2527,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           bSecondHalfData = true;
         else if (subOption == "overlay_opacity")
           overlay_opacity = subArgu;
+        else if (subOption == "overlay_colormap")
+          overlay_colormap = subArgu.split(",", QString::SkipEmptyParts);
       }
     }
     if (overlay_reg.isEmpty())
@@ -2581,6 +2591,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
 
           if (!overlay_opacity.isEmpty())
             m_scripts.insert(1, QString("setsurfaceoverlayopacity ") + overlay_opacity);
+
+          if (!overlay_colormap.isEmpty())
+            m_scripts.insert(1, QString("setsurfaceoverlaycolormap ") + overlay_colormap.join(" "));
         }
         else if ( subOption == "annot" || subOption == "annotation" )
         {
@@ -2665,8 +2678,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           sup_files = subArgu.split(",",  QString::SkipEmptyParts);
         }
-        else if (subOption != "overlay_reg" && subOption != "overlay_method" && subOption != "overlay_threshold" &&
-                 subOption != "overlay_rh" && subOption != "overlay_opacity")
+        else if ( !valid_overlay_options.contains(subOption) )
         {
           cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
           return;
@@ -3066,6 +3078,28 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
       }
       surf->UpdateOverlay(true);
       overlay->EmitDataUpdated();
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceOverlayColormap(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    SurfaceOverlay* overlay = surf->GetActiveOverlay();
+    if ( overlay )
+    {
+      if (cmd[1] == "colorwheel")
+        overlay->GetProperty()->SetColorScale(SurfaceOverlayProperty::CS_ColorWheel);
+      if (cmd.size() > 2)
+      {
+        if (cmd[2] == "inverse")
+          overlay->GetProperty()->SetColorInverse(true);
+        else if (cmd[2] == "truncate")
+          overlay->GetProperty()->SetColorTruncate(true);
+      }
+      surf->UpdateOverlay(true);
     }
   }
 }
