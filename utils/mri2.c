@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/05 22:46:38 $
- *    $Revision: 1.98 $
+ *    $Date: 2014/03/07 19:49:13 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,7 @@
 #include "cma.h"
 #include "chronometer.h"
 #include "region.h"
+#include "fmriutils.h"
 
 //#define MRI2_TIMERS
 
@@ -4038,23 +4039,37 @@ MRI *MRIbinarizeMatch(MRI *seg, int match, int frame, MRI *out)
 }
 /*
   \fn MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg)
+
   \brief Creates a high-resolution (upsampled) segmentation given the
-  aseg and surfaces. The USF is the upsampling factor. The result is
-  upsampled and the FoV is reduced to the bare minimum so the number
-  of voxels in a dimension will not necessarily be USF times the
-  original number. The subcortical structures are the upsampled
-  versions of the low-res aseg (ie, no new information is
-  created). However, cortex benefits from the upsampling. aseg2hrseg
-  is the transform between the aseg space and the hires space (they
-  share a scanner RAS space). If aseg=NULL, then the VOL_GEOM from lhw
-  is used. If USF=-1, then no FoV reduction is done. The surfaces can
-  be NULL.  
-*/
-MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg)
+  aseg and surfaces (must be aseg or or something with
+  X_Cerebral_Cortex and X_Cerebral_White_Matter labels). The USF is
+  the upsampling factor. The result is upsampled and the FoV is
+  reduced to the bare minimum, so the number of voxels in a dimension
+  will not necessarily be USF times the original number. The
+  subcortical structures are then upsampled versions of the low-res
+  aseg (ie, no new information is created). However, cortex benefits
+  from the upsampling. aseg2hrseg is the transform between the aseg
+  space and the hires space (they share a scanner RAS space). If
+  aseg=NULL, then the VOL_GEOM from lhw is used. If USF=-1, then no
+  FoV reduction is done. The surfaces can be NULL. If UseAnnot=1, then
+  the cortical label is replaced with the annotation label to create
+  something like aparc+aseg.mgz. Cannot get exactly the same as
+  aparc+aseg because aparc+aseg uses ribbon.mgz and this creates its
+  own ribbon using a different process.
+
+  */
+MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int UseAnnot, int USF, LTA **aseg2hrseg)
 {
   MRI *asegus,*lhwvol,*rhwvol,*lhpvol,*rhpvol,*seg;
   int c,r,s, asegv,lhwv,rhwv,lhpv,rhpv,segv,lhRibbon,rhRibbon,Ribbon,SubCort;
   int nPad=2;
+  MATRIX *CRS=NULL, *RAS=NULL, *Vox2RAS=NULL;
+  int vtxno,annot,annotid,annotbase=0;
+  MRIS *mris=NULL;
+  VERTEX vtx;
+  float dw;
+  MHT *lhw_hash=NULL,*rhw_hash=NULL,*hash=NULL;
+  float hashres = 16;
 
   asegus = NULL;
   if(aseg != NULL){
@@ -4075,14 +4090,30 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
       return(NULL);
     }
     printf("Info: MRIhiresSeg(): aseg is NULL\n");
+    // create a volume of 0s
     aseg = MRIalloc(lhw->vg.width,lhw->vg.height,lhw->vg.depth,MRI_UCHAR);
     useVolGeomToMRI(&lhw->vg, aseg);
     asegus = MRIupsampleN(aseg, NULL, abs(USF)) ;
+    *aseg2hrseg = TransformRegDat2LTA(aseg, asegus, NULL); //Identity
     MRIfree(&aseg);
   }
   seg  = MRIcopy(asegus,NULL); 
   MRIcopyHeader(asegus,seg);
   //MRIwrite(asegus,"asegus.mgh");
+  LTAfillInverse(*aseg2hrseg);
+
+  if(UseAnnot){
+    MATRIX *asegVox2RAS;
+    asegVox2RAS = MRIxfmCRS2XYZtkreg(aseg);
+    Vox2RAS = MatrixMultiplyD(asegVox2RAS,(*aseg2hrseg)->inv_xforms[0].m_L,NULL);
+    CRS = MatrixAlloc(4,1,MATRIX_REAL);
+    CRS->rptr[4][1] = 1;
+    RAS = MatrixAlloc(4,1,MATRIX_REAL);
+    RAS->rptr[4][1] = 1;
+    lhw_hash = MHTfillVertexTableRes(lhw, NULL,CURRENT_VERTICES,hashres);
+    rhw_hash = MHTfillVertexTableRes(rhw, NULL,CURRENT_VERTICES,hashres);
+    MatrixFree(&asegVox2RAS);
+  }
 
   if(lhw){
     //printf("lhw -------------\n");
@@ -4112,7 +4143,7 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
   // stop compiler warnings
   lhwv = rhwv = lhpv = rhpv = 0; segv=0; asegv=0;
 
-  if(Gdiag_no > 0) printf("Starting seg fill\n");
+  if(Gdiag_no > 0) printf("Starting seg fill ncols = %3d UseAnnot=%d\n",asegus->width,UseAnnot);
   for(c=0; c < asegus->width; c++){
     for(r=0; r < asegus->height; r++){
       for(s=0; s < asegus->depth; s++){
@@ -4125,9 +4156,9 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
 
 	// Check if voxel is in the "true" ribbon
 	lhRibbon=0;
-	if((lhpv && !lhwv)) lhRibbon=1;
+	if((lhpv && !lhwv)) {lhRibbon=1; mris = lhw; hash = lhw_hash; annotbase=1000;}
 	rhRibbon=0;
-	if((rhpv && !rhwv)) rhRibbon=1;
+	if((rhpv && !rhwv)) {rhRibbon=1; mris = rhw; hash = rhw_hash; annotbase=2000;}
 	Ribbon = lhRibbon || rhRibbon;
 
 	/* SubCort=1 if aseg says voxel is neither cortex nor cerebral
@@ -4145,8 +4176,26 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
 	  // What if something other than aseg.mgz was passed? Seg might not
 	  // have X_Left_Cerebral_Cortex label. This is ok for computing PVF
 	  // but not if you are expecting the labels to be correct.
-	  if(lhRibbon) segv = Left_Cerebral_Cortex;
-	  if(rhRibbon) segv = Right_Cerebral_Cortex;
+	  if(!UseAnnot){
+	    if(lhRibbon) segv = Left_Cerebral_Cortex;
+	    if(rhRibbon) segv = Right_Cerebral_Cortex;
+	  }
+	  else{
+	    CRS->rptr[1][1] = c;
+	    CRS->rptr[2][1] = r;
+	    CRS->rptr[3][1] = s;
+	    RAS = MatrixMultiplyD(Vox2RAS,CRS,RAS);
+	    vtx.x = RAS->rptr[1][1];
+	    vtx.y = RAS->rptr[2][1];
+	    vtx.z = RAS->rptr[3][1];
+	    vtxno = MHTfindClosestVertexNo(hash,mris,&vtx,&dw);
+	    if(vtxno < 0) vtxno = MRISfindClosestVertex(mris,vtx.x,vtx.y,vtx.z,&dw);
+	    // could use pial here too
+	    annot = mris->vertices[vtxno].annotation;
+	    CTABfindAnnotation(mris->ct, annot, &annotid);
+	    if(annotid != -1) segv = annotid+annotbase;
+	    else segv = annotbase; // becomes cortex unknown
+	  }
 	}
 	else {
 	  /* To get here, it cannot be in the true ribbon so, if the
@@ -4180,65 +4229,87 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
   if(rhw) MRIfree(&rhwvol);
   if(lhp) MRIfree(&lhpvol);
   if(rhp) MRIfree(&rhpvol);
+  if(lhw_hash) MHTfree(&lhw_hash);
+  if(rhw_hash) MHTfree(&rhw_hash);
+  if(CRS) MatrixFree(&CRS);
+  if(RAS) MatrixFree(&RAS);
+  if(Vox2RAS) MatrixFree(&Vox2RAS);
   return(seg);
 }
 /*
-  \fn MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct, **pvf)
-  \breif Creates PVF maps for each tissue type in the color table. seg can be the aseg but
+  \fn MRI *MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, double resmm, COLOR_TABLE *ct, MRI *pvf)
+  \brief Creates PVF maps for each tissue type in the color table. seg can be the aseg but
   is often a highres seg created from the aseg and surfaces (see MRIhiresSeg())
   USF is the upsample factor. If using a seg from MRIhiresSeg(), which has its
   own USF, then USF here can be set to 1. See also MRIpartialVolumeFractionAS().
   The return is an array of MRIs, one for each tissue type. The output volume
   is that of the dst volume geometry in seg2vol.
  */
-MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct, MRI **pvf)
+MRI *MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, double resmm, COLOR_TABLE *ct, MRI *pvf)
 {
-  MRI *ttseg,*ttbin=NULL;
-  int nTT,tt;
-  double vmult;
-  VOL_GEOM *vol;
-
-  //printf("MRIpartialVolumeFraction() USF=%d\n",USF);fflush(stdout);
+  MRI *ttseg;
+  int nTT,nsegs,*segidlist;
+  VOL_GEOM *vg;
 
   if(ct->ctabTissueType == NULL){
     printf("ERROR: MRIpartialVolumeFraction(): color table does not have tissue type ctab\n");
     return(NULL);
   }
+  nTT = ct->ctabTissueType->nentries-1; // -1 to exclude background
 
   if(! LTAmriIsSource(seg2vol, seg) && ! LTAmriIsTarget(seg2vol, seg)){
     printf("ERROR: MRIpartialVolumeFraction(): seg MRI is neither source nor target in LTA\n");
     return(NULL);
   }
+  vg = &(seg2vol->xforms[0].dst); 
+
+  if(pvf==NULL){
+    pvf = MRIallocSequence(vg->width,vg->height,vg->depth,MRI_FLOAT,nTT);
+    if(pvf==NULL){
+      printf("ERROR: MRIpartialVolumeFraction(): could not alloc\n");
+      return(NULL);
+    }
+    useVolGeomToMRI(vg,pvf);
+    MRIcopyPulseParameters(seg,pvf);
+  }
+  if(pvf->width != vg->width || pvf->height != vg->height || 
+     pvf->depth != vg->depth || pvf->nframes != nTT){
+      printf("ERROR: MRIpartialVolumeFraction(): dimension mismatch\n");
+      return(NULL);
+  }
 
   // Create a tissue type segmentation from the seg
   ttseg = MRIseg2TissueType(seg, ct, NULL);
+  if(ttseg == NULL) return(NULL);
 
+  segidlist = MRIsegIdListNot0(ttseg, &nsegs,0); // nsegs=nTT
+  pvf = MRIseg2SegPVF(ttseg, seg2vol, resmm, segidlist, nTT, NULL, 1, NULL, pvf);
+  MRIseg2SegPVF(NULL, NULL, 0, NULL, 0, NULL, -1, NULL, NULL); // clear cache
+  free(segidlist);
+  MRIfree(&ttseg);
+  return(pvf);
+  /*---------------------------------------------*/
   // output volume geometry
-  vol = &(seg2vol->xforms[0].dst); 
-  vmult = (seg->xsize*seg->ysize*seg->zsize)/(vol->xsize*vol->ysize*vol->zsize);
-
+  //vmult = (seg->xsize*seg->ysize*seg->zsize)/(vol->xsize*vol->ysize*vol->zsize);
   // Go through each tissue type
-  nTT = ct->ctabTissueType->nentries-1;
-  if(pvf==NULL) pvf = (MRI **) calloc(sizeof(MRI*),nTT);
-  for(tt = 0; tt < nTT; tt++){
+  //for(tt = 0; tt < nTT; tt++){
     // binarize tissue type map
-    ttbin = MRIbinarizeMatch(ttseg, tt+1, 0, ttbin);
+    //ttbin = MRIbinarizeMatch(ttseg, tt+1, 0, ttbin);
     // compute pvf based on number of seg voxels that fall into output vol vox
-    pvf[tt] = MRIvol2VolFill(ttbin, NULL, seg2vol, 1, 0, pvf[tt]);//USF=1 always here
-    if(pvf[tt]==NULL) return(NULL);
+    //pvf[tt] = MRIvol2VolFill(ttbin, NULL, seg2vol, 1, 0, pvf[tt]);//USF=1 always here
+    //if(pvf[tt]==NULL) return(NULL);
     // Better to turn off conserving in vol2volFill than to scale. The simple scaling
     // below creates a situation in which voxels in the middle of WM do not have
     // a PVF=1 because the number of highres voxels that land in a lowres voxel
     // is not constant.
     //Scale factor for mapping to a different voxel size
     //MRImultiplyConst(pvf[tt], vmult, pvf[tt]);
-  }
-
-  MRIfree(&ttseg);
-  MRIfree(&ttbin);
-
-  return(pvf);
+  //}
+  //MRIfree(&ttseg);
+  //MRIfree(&ttbin);
+  //return(pvf);
 }
+
 /*
   \fn MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp, 
 				 MRIS *rhw, MRIS *rhp, int USF, COLOR_TABLE *ct, **pvf)
@@ -4249,14 +4320,15 @@ MRI **MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, int USF, COLOR_TABLE *ct,
   upsample factor, usually set to 2 or 3. This function calls
   MRIhiresSeg() then calls MRIpartialVolumeFractionAS().
  */
-MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp, 
-				 MRIS *rhw, MRIS *rhp, int USF, COLOR_TABLE *ct, MRI **pvf)
+MRI *MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp, 
+				MRIS *rhw, MRIS *rhp, int USF, double resmm,
+				COLOR_TABLE *ct, MRI *pvf)
 {
   MRI *hrseg;
   LTA *aseg2hrseg,*hrseg2aseg,*hrseg2vol,*ltaArray[2];
 
   // Create a high resolution segmentation
-  hrseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp, USF, &aseg2hrseg);
+  hrseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp, 0, USF, &aseg2hrseg);
   if(hrseg == NULL) return(NULL);
   hrseg2aseg = LTAinvert(aseg2hrseg,NULL);
 
@@ -4266,7 +4338,7 @@ MRI **MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp,
   hrseg2vol = LTAconcat(ltaArray, 2, 1); // figures out inversions
   if(hrseg2vol == NULL) return(NULL);
 
-  pvf = MRIpartialVolumeFraction(hrseg2vol, hrseg, 1, ct, pvf); // USF=1 here
+  pvf = MRIpartialVolumeFraction(hrseg2vol, hrseg, resmm, ct, pvf); // USF=1 here
 
   MRIfree(&hrseg);
   LTAfree(&hrseg2aseg);
