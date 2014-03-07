@@ -14,8 +14,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/26 22:16:52 $
- *    $Revision: 1.44 $
+ *    $Date: 2014/03/07 19:50:17 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,7 +78,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.44 2014/02/26 22:16:52 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.45 2014/03/07 19:50:17 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -128,7 +128,7 @@ double nHitsThresh;
 int *ASegLabelList;
 int LabelCode;
 int UseNativeVox2RAS=0;
-int UseNewASeg2Vol=1;
+int UseNewASeg2Vol=0;
 
 int UseAParcPlusASeg = 0;
 int DoStatThresh = 0;
@@ -136,6 +136,7 @@ double StatThresh = -1;
 int LabelCodeOffset = 0;
 COLOR_TABLE *ctTissueType=NULL;
 int UpsampleFactor = -1;
+double resmm=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -149,11 +150,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.44 2014/02/26 22:16:52 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.45 2014/03/07 19:50:17 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.44 2014/02/26 22:16:52 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.45 2014/03/07 19:50:17 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -264,7 +265,7 @@ int main(int argc, char **argv) {
       printf("ERROR: loading aseg %s\n",ASegFSpec);
       exit(1);
     }
-    if(UseNewASeg2Vol) {
+    if(! UseNewASeg2Vol) {
       LTA *aseg2vol;
       aseg2vol = TransformRegDat2LTA(ASeg, TempVol, R);
       OutVol = MRIaseg2volMU(ASeg, aseg2vol, FillThresh, &HitVol, UpsampleFactor, ctTissueType);
@@ -282,6 +283,20 @@ int main(int argc, char **argv) {
 	PVFVol = MRImultiplyConst(HitVol, 1.0/TempVoxVol, NULL);
 	MRIwrite(PVFVol,PVFVolId);
       }
+      printf("mri_label2vol done\n");
+      exit(0);
+    }
+    else {
+      LTA *aseg2vol;
+      int *segidlist,nsegs;
+      aseg2vol = TransformRegDat2LTA(ASeg, TempVol, R);
+      segidlist = MRIsegIdListNot0(ASeg, &nsegs, 0);
+      if(resmm == 0) resmm = ASeg->xsize/UpsampleFactor;
+      OutVol = MRIseg2SegPVF(ASeg, aseg2vol, resmm, segidlist, nsegs, NULL, 0, ctTissueType,NULL);
+      MRIaddCommandLine(OutVol, cmdline) ;
+      err=MRIwrite(OutVol,OutVolId);
+      if(err) exit(1);
+      printf("mri_label2vol done\n");
       exit(0);
     }
     ASegLabelList = NthLabelMap(ASeg, &nlabels);
@@ -525,6 +540,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&UpsampleFactor);
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--resmm")) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&resmm);
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--temp")) {
       if (nargc < 1) argnerr(option,1);
       TempVolId = pargv[0];
@@ -648,8 +668,10 @@ static void print_usage(void) {
   printf("   --annot annotfile : surface annotation file  \n");
   printf("   --seg   segpath : segmentation\n");
   printf("     --upsample USFactor: upsample seg by factor\n");
+  printf("     --resmm ResMM : upsample resolution (instead of USF)\n");
   printf("     --ttype : use default tissue type info for seg\n");
   printf("     --ttype+head : use default+head tissue type info for seg\n");
+  printf("     --new-aseg2vol : use new function (eventually will become default)\n");
   printf("   --aparc+aseg  : use aparc+aseg.mgz in subjectdir as seg\n");
   printf("\n");
   printf("   --temp tempvolid : output template volume\n");
