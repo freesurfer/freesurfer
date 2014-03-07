@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/07 23:12:57 $
- *    $Revision: 1.27 $
+ *    $Date: 2014/03/07 23:23:50 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.27 2014/03/07 23:12:57 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.28 2014/03/07 23:23:50 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.27 2014/03/07 23:12:57 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.28 2014/03/07 23:23:50 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -109,6 +109,7 @@ typedef struct
   double PadThresh;
 
   MRI *segpvf;
+  MRI *ttpvf;
   MRI *gtmseg;
   int nPad;
   int nmask;
@@ -218,8 +219,7 @@ MRI *MRIaseg2volFrame(MRI *aseg, LTA *aseg2vol, int *segidlist, int nsegs, MRI *
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
-  int nargs,err,c,f,nTT,tt;
-  MRI *pvfstack;
+  int nargs,err,c,f,nTT;
   double vrfmin,vrfmax,vrfmean;
   struct timeb  mytimer, timer;
   MRI *gtmres;
@@ -234,7 +234,6 @@ int main(int argc, char *argv[])
 
   gtm = GTMalloc();
   gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
-  gtm->nDils = 4;
   gtm->n_mg_refids = 2;
   gtm->mg_refids = (int*) calloc(sizeof(int),gtm->n_mg_refids);
   gtm->mg_refids[0] =  2;
@@ -335,7 +334,6 @@ int main(int argc, char *argv[])
   GTMmatrixY(gtm);
   GTMpsfStd(gtm); 
   GTMnPad(gtm);   
-  //GTMdilateSeg(gtm);
   printf("nmask = %d, nsegs = %d, excluding segid=0\n",gtm->nmask,gtm->nsegs);
   printf("FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
   printf("Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
@@ -489,7 +487,6 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     //else if (!strcasecmp(option, "--seg-test")) DoSegTest = 1;
-    else if (!strcasecmp(option, "--old-dil"))setenv("GTMDILATEOLD","1",1);
     else if (!strcasecmp(option, "--gtm-only")) ; // not used anymore
     else if (!strcasecmp(option, "--opt")) DoOpt=1;
     else if (!strcasecmp(option, "--ttype+head"))
@@ -581,11 +578,6 @@ static int parse_commandline(int argc, char **argv) {
     //sscanf(pargv[0],"%d",&niterations);
     //nargsused = 1;
     //} 
-    else if (!strcasecmp(option, "--ndil")){
-      if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&gtm->nDils);
-      nargsused = 1;
-    } 
     else if (!strcasecmp(option, "--o") || !strcasecmp(option, "--rbv")) {
       if (nargc < 1) CMDargNErr(option,1);
       RBVVolFile = pargv[0];
@@ -662,8 +654,6 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 2;
     } 
     else if(!strcasecmp(option, "--synth")) {
-      MRI *pvfstack;
-      int tt,nTT;
       if (nargc < 5) CMDargNErr(option,5);
       OutBetaFile = pargv[0];
       SegVolFile = pargv[1];
@@ -674,14 +664,9 @@ static int parse_commandline(int argc, char **argv) {
       gtm->beta = fMRItoMatrix(mritmp,NULL);
       gtm->beta = MatrixTranspose(gtm->beta,NULL);
       gtm->gtmseg = MRIread(SegVolFile);
-      pvfstack = MRIread(PVFFile);
-      nTT = gtm->ctGTMSeg->ctabTissueType->nentries-1;
-      gtm->pvf = (MRI **) calloc(sizeof(MRI*),nTT);
-      for(tt=0; tt<nTT; tt++) gtm->pvf[tt] = fMRIframe(pvfstack,tt,NULL);
       gtm->mask = MRIread(MaskVolFile);
       GTMsetNMask(gtm);
       GTMsegidlist(gtm);
-      GTMdilateSeg(gtm);
       GTMsynth(gtm);
       MRIwrite(gtm->ysynth,SynthFile);
       exit(0);
@@ -711,7 +696,7 @@ static void print_usage(void) {
   printf("   --seg segfile : segmentation to define regions for RBV\n");
   printf("   --mask volfile : ignore areas outside of the mask\n");
   printf("   --psf psfmm : scanner PSF FWHM in mm\n");
-  printf("   --pvf pvffile : Non-binary voxelwise PVF\n");
+  //printf("   --pvf pvffile : Non-binary voxelwise PVF\n");
   printf("   --gtm-means volfile : save ROI means in volume format\n");
   printf("   --rbv rbvfile : PVC'ed input\n");
   printf("   --mgpvc mgpvcfile gmthresh\n");
@@ -972,7 +957,7 @@ int GTMOPTsetup(GTMOPT *gtmopt)
 double GTMOPTcost(GTMOPT *gtmopt)
 {
   MRI *hitvol;
-  int nTT,n;
+  int nTT;
   LTA *ltaArray[2];
   struct timeb timer;
   TimerStart(&timer);
@@ -984,13 +969,6 @@ double GTMOPTcost(GTMOPT *gtmopt)
   ltaArray[1] = gtmopt->anat2pet;
   gtmopt->pvfseg2pet = LTAconcat(ltaArray,2,1);
   //printf("Computing PVF\n");
-  if(gtmopt->gtm->pvf != NULL)
-    for(n=0; n < nTT; n++) 
-      if(gtmopt->gtm->pvf[n]) MRIfree(&(gtmopt->gtm->pvf[n]));
-  //  gtmopt->gtm->pvf = MRIpartialVolumeFraction(gtmopt->pvfseg2pet,gtmopt->pvfseg, 
-  //					      -1, gtmopt->gtm->ctGTMSeg,gtmopt->gtm->pvf);
-  if(gtmopt->gtm->pvf == NULL) return(-1);
-  //printf("  PVF t = %g\n",TimerStop(&timer)/1000.0);fflush(stdout);
   LTAfree(&gtmopt->pvfseg2pet);
 
   ltaArray[0] = gtmopt->gtmsegmu2anat;
@@ -1004,7 +982,6 @@ double GTMOPTcost(GTMOPT *gtmopt)
   LTAfree(&gtmopt->gtmsegmu2pet);
 
   GTMsegidlist(gtmopt->gtm);
-  GTMdilateSeg(gtm);
   GTMbuildX(gtm);
   //printf("  buildX t = %g\n",TimerStop(&timer)/1000.0);fflush(stdout);
   if(gtm->X==NULL) return(-1);
@@ -1024,15 +1001,8 @@ GTM *GTMalloc()
 /*------------------------------------------------------------------*/
 int GTMfree(GTM **pGTM)
 {
-  int tt,nTT;
   GTM *gtm = *pGTM;
 
-  nTT = gtm->ctGTMSeg->ctabTissueType->nentries-1;
-  for(tt=0; tt < nTT; tt++){
-    MRIfree(&gtm->pvf[tt]);
-    MRIfree(&gtm->segttdil[tt]);
-  }
-  free(gtm->pvf);
   MRIfree(&gtm->yvol);
   MRIfree(&gtm->gtmseg);
   MRIfree(&gtm->mask);
@@ -1271,7 +1241,7 @@ int GTMmgpvc(GTM *gtm)
 {
   int c,r,s,f,n,nthseg,segid;
   double sum,vgmpsf,vwmpsf,vwmtac,vtac,vmgtac;
-  MRI *gmpvf,*gmpvfpsf,*wmpvfpsf;
+  MRI *ctxpvf, *subctxpvf, *wmpvf, *gmpvf,*gmpvfpsf,*wmpvfpsf;
 
   gtm->mg_reftac = MatrixAlloc(gtm->yvol->nframes,1,MATRIX_REAL);
 
@@ -1300,10 +1270,18 @@ int GTMmgpvc(GTM *gtm)
   if(gtm->mg == NULL) return(1);
   MRIcopyHeader(gtm->yvol,gtm->mg);
 
-  gmpvf = MRIadd(gtm->pvf[0],gtm->pvf[1],NULL);
+  gtm->ttpvf = MRIsegPVF2TissueTypePVF(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
+				       gtm->ctGTMSeg, gtm->mask, gtm->ttpvf);
+
+
+  ctxpvf    = fMRIframe(gtm->ttpvf,0,NULL);
+  subctxpvf = fMRIframe(gtm->ttpvf,1,NULL);
+  wmpvf     = fMRIframe(gtm->ttpvf,2,NULL);
+
+  gmpvf = MRIadd(ctxpvf,subctxpvf,NULL);
 
   gmpvfpsf = MRIgaussianSmoothNI(gmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
-  wmpvfpsf = MRIgaussianSmoothNI(gtm->pvf[2],gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  wmpvfpsf = MRIgaussianSmoothNI(wmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
 
   for(c=0; c < gtm->yvol->width; c++){
     for(r=0; r < gtm->yvol->height; r++){
@@ -1321,6 +1299,9 @@ int GTMmgpvc(GTM *gtm)
       }
     }
   }
+  MRIfree(&ctxpvf);
+  MRIfree(&subctxpvf);
+  MRIfree(&wmpvf);
   MRIfree(&gmpvf);
   MRIfree(&gmpvfpsf);
   MRIfree(&wmpvfpsf);
