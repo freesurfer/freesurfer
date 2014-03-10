@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/05 22:41:34 $
- *    $Revision: 1.139 $
+ *    $Date: 2014/03/10 15:56:53 $
+ *    $Revision: 1.140 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -459,7 +459,7 @@ MATRIX *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
         r1 = &m1->rptr[row][1] ;
         r2 = &m2->rptr[1][col] ;
         for (i = 1 ; i <= m1_cols ; i++, r2 += cols)
-          val += *r1++ * *r2 ;
+          val += (double)(*r1++) * (*r2);
         *r3++ = val ;
       }
     }
@@ -4364,15 +4364,18 @@ MatrixRMS(MATRIX *m1, MATRIX *m2)
   sse = MatrixSSE(m1, m2) ;
   return(sqrt(sse / (m1->rows*m1->cols))) ;
 }
-
 /*
   \fn MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
-  \brief Efficiently computes M'*M by exploiting symmetry. Exploits
-  sparsity.  Includes Open MP.
+  \brief Efficiently computes M'*M. There are several optimizations:
+  (1) exploits symmetry, (2) exploits sparsity, and (3) creates a LUT
+  (which requires some resident storage). The LUT allows for better
+  load balancing when parallelizing with Open MP (makes it almost 2x
+  faster).
  */
-MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
+MATRIX *MatrixMtM2(MATRIX *m, MATRIX *mout)
 {
-  int c1,rows,cols;
+  int c1,c2,n,rows,cols;
+  static int *c1list=NULL,*c2list=NULL,ntot=0;
 
   if(mout == NULL)
     mout = MatrixAlloc(m->cols,m->cols,MATRIX_REAL);
@@ -4387,28 +4390,53 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
 
   rows = m->rows;
   cols = m->cols;
-#ifdef _OPENMP
-#pragma omp parallel for shared(rows,cols,mout)
-#endif
-  for(c1=1; c1 <= cols; c1++){
-    double v,v1,v2;
-    int c2,r;
-    for(c2=c1; c2 <= cols; c2++){
-      v = 0;
-      for(r=1; r <= rows; r++){
-	v1 = m->rptr[r][c1];
-	if(v1==0) continue; // sparsity
-	v2 = m->rptr[r][c2];
-	if(v2==0) continue; // sparsity
-	v += v1*v2;
+
+  if(ntot==0){
+    // create a lookup table that maps n to c1 and c2
+    if(ntot != ((cols*cols)+cols)/2){
+      if(c1list) free(c1list);
+      if(c2list) free(c2list);
+    }
+    ntot = ((cols*cols)+cols)/2;
+    printf("MatrixMtM: Alloc rows=%d cols=%d ntot=%d\n",rows,cols,ntot);
+    c1list = (int*)calloc(sizeof(int),ntot);
+    c2list = (int*)calloc(sizeof(int),ntot);
+    n = 0;
+    for(c1=1; c1 <= cols; c1++){
+      for(c2=c1; c2 <= cols; c2++){
+	c1list[n] = c1;
+	c2list[n] = c2;
+	n++;
       }
-      mout->rptr[c1][c2] = v;
-      mout->rptr[c2][c1] = v;
     }
   }
 
+
+  /* Loop over the number of distinct elements in the symetric matrix. Using
+     the LUT created above is better for load balancing.  */
+  #ifdef _OPENMP
+  #pragma omp parallel for default(none) shared(c1list,c2list,ntot,cols,rows,mout,m)
+  #endif
+  for(n=0; n < ntot; n++){
+    double v,v1,v2;
+    int c1,c2,r;
+    c1 = c1list[n];
+    c2 = c2list[n];
+    v = 0;
+    for(r=1; r <= rows; r++){
+      v1 = m->rptr[r][c1];
+      if(v1==0) continue;
+      v2 = m->rptr[r][c2];
+      if(v2==0) continue;
+      v += v1*v2;
+      continue;
+    } // row
+    mout->rptr[c1][c2] = v;
+    mout->rptr[c2][c1] = v;
+  }
+
   if(0){
-    // This is a built-in test 
+    // This is a built-in test. The difference should be 0.
     MATRIX *mt,*mout2;
     double d,dmax;
     int c,r;
