@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/10 15:56:53 $
- *    $Revision: 1.140 $
+ *    $Date: 2014/03/10 15:57:59 $
+ *    $Revision: 1.141 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4372,7 +4372,7 @@ MatrixRMS(MATRIX *m1, MATRIX *m2)
   load balancing when parallelizing with Open MP (makes it almost 2x
   faster).
  */
-MATRIX *MatrixMtM2(MATRIX *m, MATRIX *mout)
+MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
 {
   int c1,c2,n,rows,cols;
   static int *c1list=NULL,*c2list=NULL,ntot=0;
