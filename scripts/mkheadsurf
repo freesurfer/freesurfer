@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.8 $
+#    $Author: greve $
+#    $Date: 2014/03/14 22:13:59 $
+#    $Revision: 1.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 # mkheadsurf
 
-set VERSION = '$Id: mkheadsurf,v 1.8 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: mkheadsurf,v 1.9 2014/03/14 22:13:59 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -40,7 +40,7 @@ set hemi = lh;
 set thresh1 = 20;
 set thresh2 = 20;
 set nhitsmin = 2;
-set fillval  = 255;
+set fillval  = 1;
 set NSmooth = 10;
 set PrintHelp = 0;
 set DoInflate = 1;
