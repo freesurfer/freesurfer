@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.91 2014/02/21 18:36:44 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.92 2014/03/14 23:33:18 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -166,7 +166,7 @@
 162 Right-Cerebral-WM-myelinated            220 216 21  0
 163 Left-Subcortical-Gray-Matter            122 186 220 0
 164 Right-Subcortical-Gray-Matter           122 186 220 0
-165 Skull                                   255 165 0   0
+165 Skull                                   120 120 120 0
 166 Posterior-fossa                         14  48  255 0
 167 Scalp                                   166 42  42  0
 168 Hematoma                                121 18  134 0
@@ -235,6 +235,7 @@
 
 257 CSF-ExtraCerebral                      60  60  60  0
 258 Head-ExtraCerebral                    150 150 200  0
+259 PossibleSkull                         120 120 120  0
 
 # lymph node and vascular labels
 331 Aorta                                   255 0   0   0
