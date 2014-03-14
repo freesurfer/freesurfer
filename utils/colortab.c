@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/21 18:33:40 $
- *    $Revision: 1.49 $
+ *    $Date: 2014/03/14 23:32:29 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2195,6 +2195,26 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       break ;
 
     case Head_ExtraCerebral:
+    case 165: //Skull
+    case 259: //PossibleSkull
+    case 118: //Epidermis
+    case 119: //Conn-Tissue
+    case 120: //SC-Fat-Muscle
+    case 121: //Cranium
+    case 122: //CSF-SA
+    case 123: //Muscle
+    case 124: //Ear
+    case 127: //Soft-Tissue
+    case 129: //Bone
+    case 131: //Oribital-Fat
+    case 132: //Tongue
+    case 133: //Nasal-Structures
+    case 134: //Globe
+    case 135: //Teeth
+    case 143: //Vitreous-Humor
+    case 144: //Lens
+    case 145: //Atrieous-Humor
+    case 167: //Scalp
       TT = TTHead;
       break ;
     }
