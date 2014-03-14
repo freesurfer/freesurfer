@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/04 22:05:26 $
- *    $Revision: 1.73 $
+ *    $Date: 2014/03/14 18:08:32 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -337,7 +337,8 @@ void FSSurface::LoadTargetSurface( const QString& filename )
     ::MRISfree( &m_MRISTarget );
   }
 
-  try {
+  try
+  {
     m_MRISTarget = ::MRISread( filename.toAscii().data() );
   }
   catch (int ret)

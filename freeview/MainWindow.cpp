@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/07 16:55:24 $
- *    $Revision: 1.274 $
+ *    $Date: 2014/03/14 18:08:32 $
+ *    $Revision: 1.275 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5354,9 +5354,9 @@ void MainWindow::LoadSurfaceAnnotation()
 void MainWindow::LoadSurfaceAnnotationFile( const QString& filename )
 {
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( layer )
+  if ( layer && !layer->LoadAnnotationFromFile( filename ))
   {
-    layer->LoadAnnotationFromFile( filename );
+    QMessageBox::warning(this, "Error", QString("Could not load annotation from %1").arg(filename));
   }
 }
 
@@ -5365,18 +5365,18 @@ void MainWindow::LoadSurfaceLabel()
   QString filename = QFileDialog::getOpenFileName( this, "Select label file",
                      AutoSelectLastDir( "label" ),
                      "Label files (*)");
-  if ( !filename.isEmpty() )
+  if ( !filename.isEmpty())
   {
-    this->LoadSurfaceLabelFile( filename );
+     this->LoadSurfaceLabelFile( filename );
   }
 }
 
 void MainWindow::LoadSurfaceLabelFile( const QString& filename )
 {
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( layer )
+  if ( layer && !layer->LoadLabelFromFile( filename ))
   {
-    layer->LoadLabelFromFile( filename );
+    QMessageBox::warning(this, "Error", QString("Could not load label from %1").arg(filename));
   }
 }
 
@@ -5394,9 +5394,9 @@ void MainWindow::LoadSurfaceSpline()
 void MainWindow::LoadSurfaceSplineFile(const QString &filename)
 {
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( layer )
+  if ( layer && ! layer->LoadSplineFromFile( filename ))
   {
-    layer->LoadSplineFromFile( filename );
+    QMessageBox::warning(this, "Error", QString("Could not load spline data from %1").arg(filename));;
   }
 }
 

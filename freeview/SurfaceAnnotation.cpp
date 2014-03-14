@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/29 18:58:26 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/03/14 18:08:32 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,7 +92,15 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
     MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
     m_nIndices = NULL;
 
-    if ( MRISreadAnnotation( mris, fn.toAscii().data() ) != 0 )
+    int ret;
+    try {
+      ret = MRISreadAnnotation( mris, fn.toAscii().data() );
+    }
+    catch (int return_code)
+    {
+      ret = return_code;
+    }
+    if ( ret != 0 )
     {
       cerr << "Could not load annotation from file " << qPrintable(fn) << ".\n";
       return false;
