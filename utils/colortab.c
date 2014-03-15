@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/14 23:32:29 $
- *    $Revision: 1.50 $
+ *    $Date: 2014/03/15 16:11:52 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2206,6 +2206,7 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
     case 124: //Ear
     case 127: //Soft-Tissue
     case 129: //Bone
+    case 130: //Air
     case 131: //Oribital-Fat
     case 132: //Tongue
     case 133: //Nasal-Structures
