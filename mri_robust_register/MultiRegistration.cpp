@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/01/30 21:57:01 $
- *    $Revision: 1.50 $
+ *    $Date: 2014/03/15 03:36:59 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,10 +88,9 @@ unsigned int MultiRegistration::getSeed()
 // takes the middle slice 
 {
   int n = (int) mri_mov.size();
-
   assert(n > 1);
 
-  unsigned int seed = 0;
+  double dseed = 0.0;
   int x, y, z, i, p, xup, xdown, yup, ydown, zup, zdown;
   for (i = 0; i < n; i++)
   {
@@ -99,7 +98,7 @@ unsigned int MultiRegistration::getSeed()
     x = mri_mov[i]->width / 2;
     y = mri_mov[i]->height / 2;
     z = mri_mov[i]->depth / 2;
-
+    
     // sum up crossair
     for (p = 0; p < 20; p++)
     {
@@ -111,21 +110,29 @@ unsigned int MultiRegistration::getSeed()
       zdown = z - p;
 
       if (xdown >= 0)
-        seed += MRIvox(mri_mov[i],xdown,y,z) ;
+        dseed += fabs(MRIgetVoxVal(mri_mov[i],xdown,y,z,0)) ;
       if (ydown >= 0)
-        seed += MRIvox(mri_mov[i],x,ydown,z) ;
+        dseed += fabs(MRIgetVoxVal(mri_mov[i],x,ydown,z,0)) ;
       if (zdown >= 0)
-        seed += MRIvox(mri_mov[i],x,y,zdown) ;
+        dseed += fabs(MRIgetVoxVal(mri_mov[i],x,y,zdown,0)) ;
       if (xup < mri_mov[i]->width)
-        seed += MRIvox(mri_mov[i],xup,y,z) ;
+        dseed += fabs(MRIgetVoxVal(mri_mov[i],xup,y,z,0)) ;
       if (yup < mri_mov[i]->height)
-        seed += MRIvox(mri_mov[i],x,yup,z) ;
+        dseed += fabs(MRIgetVoxVal(mri_mov[i],x,yup,z,0)) ;
       if (zup < mri_mov[i]->depth)
-        seed += MRIvox(mri_mov[i],x,y,zup) ;
+        dseed += fabs(MRIgetVoxVal(mri_mov[i],x,y,zup,0)) ;
 
       }
     }
-  return seed;
+  if (dseed == 0.0)
+  {
+    std::cout << "WARNING: image seed is zero, are images really empty at center?" << std::endl;
+  } 
+  else // bring into range from 10 ... 100  if dseed is small, as we convert to int
+    while (dseed < 10) dseed = dseed * 10;
+  
+  //std::cout << "MultiRegistration::getSeed  = " << dseed << std::endl; 
+  return (unsigned int)(dseed);
 }
 
 /*!
@@ -1335,15 +1342,27 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     // here normalize scales to geometric mean:
     normalizeIntensities();
   }
-
-  assert(rigid);
-
-  // find mean translation and rotation (in RAS coordinates)
+  
+  // convert to ras2ras and invert (to map from tpi to each other image
   vector<vnl_matrix_fixed<double, 4, 4> > mras(nin);
   mras[0].set_identity();
+  for (int i = 1; i < nin; i++)
+  {
+    int j = index[i];
+    //cout << "  computing coord of TP " << j + 1 << " ( " << mov[j] << " )" << endl;
+    //cout << "   wrt to TP " << tpi + 1 << " ( " << mov[tpi] << " )" << endl;
+    mras[i] = MyMRI::MRIvoxelXformToRasXform(mri_mov[j], mri_mov[tpi], Md[i].first);
+    ////vnl_matlab_print(vcl_cout,mras[i],"mras",vnl_matlab_print_format_long);std::cout << std::endl;
+    
+    mras[i] = vnl_inverse(mras[i]);    
+  } 
+
+  assert(rigid); // averaging below is only for rigid (we split rot and trans)
+
+  // find mean translation and rotation (in RAS coordinates)
   vnl_matrix_fixed<double, 3, 3> rot;
-  rot.set_identity();
-  vnl_matrix_fixed<double, 3, 3> roti;
+  //rot.set_identity();
+  //vnl_matrix_fixed<double, 3, 3> roti;
   vnl_vector_fixed<double, 3> trans;
   vnl_vector_fixed<double, 3> meant(0.0);
   vnl_matrix_fixed<double, 3, 3> meanr;
@@ -1351,43 +1370,44 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 //  std::vector < vnl_matrix < double > > rotinv(nin-1);
   for (int i = 1; i < nin; i++)
   {
-    int j = index[i];
-    cout << "  computing coord of TP " << j + 1 << " ( " << mov[j] << " )"
-        << endl;
-    cout << "   wrt to TP " << tpi + 1 << " ( " << mov[tpi] << " )" << endl;
-    mras[i] = MyMRI::MRIvoxelXformToRasXform(mri_mov[j], mri_mov[tpi],
-        Md[i].first);
-    //vnl_matlab_print(vcl_cout,mras[i],"mras",vnl_matlab_print_format_long);std::cout << std::endl;
 
     // split into rotation translation
     MyMatrix::getRTfromM(mras[i], rot, trans);
     //vnl_matlab_print(vcl_cout,trans,"trans",vnl_matlab_print_format_long);std::cout << std::endl;
     //vnl_matlab_print(vcl_cout,rot,"rot",vnl_matlab_print_format_long);std::cout << std::endl;
 
-    // reverse order (first translate, then rotate)
-    // rot stays, trans changes: Rx+t = R (x + R^{-1} t)
-    roti = rot.transpose(); // inverse
-    //vnl_matlab_print(vcl_cout,roti,"roti",vnl_matlab_print_format_long);std::cout << std::endl;
-
-    trans = roti * trans;
-    //cout << " transi: - " << endl ;
-    //vnl_matlab_print(vcl_cout,trans,"transi",vnl_matlab_print_format_long);std::cout << std::endl;
-
-//     if (P.debug) // output transonly
-//     {
-//       ostringstream oss;
-//       oss << outdir << "tp" << j+1 << "_to_tp"<<tpi<<"-transonly";
-//       MATRIX *Mtemp = getMfromRT(NULL,trans,NULL);
-//       LTA * nlta = RASmatrix2LTA(Mtemp,P.mri_mov[j],P.mri_mov[tpi]);
-//       MRI* warped = LTAtransform(P.mri_mov[j],NULL, nlta);
-//       MRIwrite(warped, (oss.str()+".mgz").c_str()) ;
-//       LTAfree(&nlta);
-//       MRIfree(&warped);
-//       MatrixFree(&Mtemp);         
-//     }
-    meant -= trans;
-    meanr += roti;
-//    rotinv[i-1] = roti;
+    // these point from TPI to each image as we inverted the RAS2RAS above
+    // so no further processing is necessary as
+    // M x = R x + t
+    // M^-1 x = R' ( x - t ) = R' x - R' t (which is what we summed up before)
+    meant += trans;
+    meanr += rot;
+    
+//  old (before inverting RAS2RAS) : 
+//    // reverse order (first translate, then rotate)
+//    // rot stays, trans changes: Rx+t = R (x + R^{-1} t)
+//    roti = rot.transpose(); // inverse
+//    //vnl_matlab_print(vcl_cout,roti,"roti",vnl_matlab_print_format_long);std::cout << std::endl;
+//
+//    trans = roti * trans;
+//    //cout << " transi: - " << endl ;
+//    //vnl_matlab_print(vcl_cout,trans,"transi",vnl_matlab_print_format_long);std::cout << std::endl;
+//
+////     if (P.debug) // output transonly
+////     {
+////       ostringstream oss;
+////       int j = index[i];
+////       oss << outdir << "tp" << j+1 << "_to_tp"<<tpi<<"-transonly";
+////       MATRIX *Mtemp = getMfromRT(NULL,trans,NULL);
+////       LTA * nlta = RASmatrix2LTA(Mtemp,P.mri_mov[j],P.mri_mov[tpi]);
+////       MRI* warped = LTAtransform(P.mri_mov[j],NULL, nlta);
+////       MRIwrite(warped, (oss.str()+".mgz").c_str()) ;
+////       LTAfree(&nlta);
+////       MRIfree(&warped);
+////       MatrixFree(&Mtemp);         
+////     }
+//    meant -= trans;
+//    meanr += roti;
   }
 
   //average
@@ -1403,25 +1423,6 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
   meanr = PolR;
   //vnl_matlab_print(vcl_cout,meanr,"meanrpol",vnl_matlab_print_format_long);std::cout << std::endl;
 
-//   // project meanr back to SO(3) (using polar decomposition)
-//   vnl_svd < double > svd_decomp(meanr);
-//   if ( svd_decomp.valid() )
-//   {
-//       vnl_matrix < double > mu = svd_decomp.U();
-//       //cout << " mu   : " << mu << endl;
-//       vnl_matrix < double > mv = svd_decomp.V();
-//       //cout << " mv   : " << mv << endl;
-//       mv.inplace_transpose();
-//       meanr = mu * mv;
-//       //cout << " meanr: " << meanr << endl;
-//       //cout << " meant: " << meant << endl;
-//       //cout << " mm   : " << MyMatrix::getMfromRT(meanr,meant) << endl;
-//   }
-//   else
-//   {
-//      cerr << "MultiRegistration::initialXforms ERROR: SVD not possible?" << endl;
-//      exit(1);
-//   }
   vnl_matrix_fixed<double, 4, 4> Mm(MyMatrix::getMfromRT(meanr, meant));
 
 
