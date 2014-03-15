@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/03/14 22:13:59 $
-#    $Revision: 1.9 $
+#    $Date: 2014/03/15 16:12:36 $
+#    $Revision: 1.10 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 # mkheadsurf
 
-set VERSION = '$Id: mkheadsurf,v 1.9 2014/03/14 22:13:59 greve Exp $';
+set VERSION = '$Id: mkheadsurf,v 1.10 2014/03/15 16:12:36 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -44,6 +44,7 @@ set fillval  = 1;
 set NSmooth = 10;
 set PrintHelp = 0;
 set DoInflate = 1;
+set ndilate = 0;
 
 if($#argv == 0) goto usage_exit;
 
@@ -101,6 +102,13 @@ if(! $noseghead ) then
   if($status) then
     echo "ERROR: mri_seghead" |& tee -a $LF
     exit 1;
+  endif
+  if($ndilate != 0) then
+    set cmd = (mri_binarize --i $subjdir/mri/$headvol --min 0.5 \
+      --dilate $ndilate --o $subjdir/mri/$headvol --binval $fillval)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
   endif
 else
   if(! -e $subjdir/mri/$headvol) then
@@ -181,6 +189,11 @@ while( $#argv != 0 )
     case "-subjid":
       if ( $#argv == 0) goto arg1err;
       set subjid = $argv[1]; shift;
+      breaksw
+
+    case "-ndilate":
+      if ( $#argv == 0) goto arg1err;
+      set ndilate = $argv[1]; shift;
       breaksw
 
     case "-nsmooth":
@@ -352,6 +365,7 @@ usage_exit:
   echo "   -thresh1 threshold : default is $thresh1"
   echo "   -thresh2 threshold : default is $thresh2"
   echo "   -nhitsmin N        : default is $nhitsmin"
+  echo "   -ndilate  N        : default is $ndilate"
   echo "   -fillval value     : default is $fillval"
   echo "   -srcvol volid      : default is T1"
   echo "   -headvol volid     : default is seghead"
