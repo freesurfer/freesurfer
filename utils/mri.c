@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/02/14 19:57:57 $
- *    $Revision: 1.532 $
+ *    $Author: fischl $
+ *    $Date: 2014/03/16 20:48:39 $
+ *    $Revision: 1.533 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.532 $";
+const char *MRI_C_VERSION = "$Revision: 1.533 $";
 
 
 /*-----------------------------------------------------
@@ -2078,7 +2078,18 @@ MRIvalScale(MRI *mri_src, MRI *mri_dst, float flo, float fhi)
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  switch (mri_src->type)
+  if ((mri_src->type != mri_dst->type))
+  {
+    for (z = 0 ; z < depth ; z++)
+      for (y = 0 ; y < height ; y++)
+        for (x = 0 ; x < width ; x++)
+        {
+	  val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
+          val = (val - fmin) * scale + flo ;
+	  MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+	}
+  }
+  else switch (mri_src->type)   // same voxel types
   {
   case MRI_FLOAT:
     for (z = 0 ; z < depth ; z++)
@@ -8147,17 +8158,11 @@ MRI *MRIupsampleNConserve(MRI *mri_src, MRI *mri_dst, int N)
 MRI *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
 {
   int     width, depth, height, x, y, z, x1, y1, z1, counts[256], label,
-  max_count, out_label ;
-  BUFTYPE *psrc ;
+    max_count, out_label, zmin, zmax ;
 
-  if (mri_src->type != MRI_UCHAR)
-    ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED,
-                 "MRIdownsample2LabeledVolume: source must be UCHAR"));
-
-  width = mri_src->width/2 ;
-  height = mri_src->height/2 ;
-  depth = mri_src->depth/2 ;
+  width = mri_src->width/2 ; height = mri_src->height/2 ; depth = mri_src->depth/2 ;
+  if (depth == 0)
+    depth = 1 ;
 
   if (!mri_dst)
   {
@@ -8173,16 +8178,20 @@ MRI *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
       for (x = 0 ; x < width ; x++)
       {
         memset(counts, 0, sizeof(counts)) ;
-        if (x == 96 && y == 66 && z == 56)
-          DiagBreak() ;
-        for (z1 = 2*z ; z1 <= 2*z+1 ; z1++)
+	if (depth == 1)
+	  zmin = zmax = z ;
+	else
+	{
+	  zmin = 2*z ;
+	  zmax = 2*z+1 ;
+	}
+        for (z1 = zmin ; z1 <= zmax ; z1++)
         {
           for (y1 = 2*y ; y1 <= 2*y+1 ; y1++)
           {
-            psrc = &MRIvox(mri_src, 2*x, y1, z1) ;
             for (x1 = 2*x ; x1 <= 2*x+1 ; x1++)
             {
-              label = *psrc++ ;
+              label = MRIgetVoxVal(mri_src, x1, y1, z1, 0) ;
               counts[label]++ ;
             }
           }
@@ -8197,7 +8206,7 @@ MRI *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
             max_count = counts[label] ;
           }
         }
-        MRIvox(mri_dst, x, y, z) = out_label ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, out_label) ;
       }
     }
   }
@@ -8206,7 +8215,10 @@ MRI *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst)
   mri_dst->imnr1 = mri_src->imnr0 + mri_dst->depth - 1 ;
   mri_dst->xsize = mri_src->xsize*2 ;
   mri_dst->ysize = mri_src->ysize*2 ;
-  mri_dst->zsize = mri_src->zsize*2 ;
+  if (depth > 1)
+    mri_dst->zsize = mri_src->zsize*2 ;
+  else
+    mri_dst->zsize = mri_src->zsize ;
   mri_dst->thick = mri_src->thick*2 ;
   mri_dst->ps    = mri_src->ps*2 ;
 
