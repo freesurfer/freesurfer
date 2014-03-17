@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/11/15 16:34:15 $
- *    $Revision: 1.43 $
+ *    $Date: 2014/03/17 20:41:20 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.43 2012/11/15 16:34:15 greve Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.44 2014/03/17 20:41:20 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -916,6 +916,11 @@ static int parse_commandline(int argc, char **argv)
     {
       annotname = "aparc.a2009s";
       baseoffset = 10100;
+    }
+    else if (!strcmp(option, "--base-offset")){
+      if (nargc < 1)argnerr(option,1);
+      sscanf(pargv[0],"%d",&baseoffset);
+      nargsused = 1;
     }
    else if (!strcmp(option, "--aseg"))
     {

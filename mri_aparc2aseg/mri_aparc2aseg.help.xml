@@ -52,6 +52,8 @@ Note: The volumes of the cortical labels will be different than reported by mris
       <explanation>Use annotname surface annotation. By default, uses ?h.aparc.annot. With this option, it will load ?h.annotname.annot. The output file will be set to annotname+aseg.mgz, but this can be changed with --o. Note: running --annot aparc.a2009s is NOT the same as running --a2009s. The index numbers will be different.</explanation>
       <argument>--annot-table annottable</argument>
       <explanation>default is $FREESURFER_HOME/Simple_surface_labels2009.txt</explanation>
+      <argument>--base-offset offset</argument>
+      <explanation>Add offset to all segmentation ids. Put as last argument.</explanation>
       <argument>--labelwm</argument>
       <explanation>For each voxel labeled as white matter in the aseg, re-assign its label to be that of the closest cortical point if its distance is less than dmaxctx. The default value of dmaxctx is 5mm, but this can be changed with --wmparc-dmax. If it is beyond this distance, then it is labeld as 'Unsegmented White Matter'.</explanation>
       <argument>--wmparc-dmax dmax</argument>
