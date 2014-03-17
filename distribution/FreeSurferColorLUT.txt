@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.92 2014/03/14 23:33:18 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.93 2014/03/17 20:41:56 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -236,6 +236,8 @@
 257 CSF-ExtraCerebral                      60  60  60  0
 258 Head-ExtraCerebral                    150 150 200  0
 259 PossibleSkull                         120 120 120  0
+260 BoneOrAir                             119 159 176 0
+261 PossibleFluid                         120  18 134 0
 
 # lymph node and vascular labels
 331 Aorta                                   255 0   0   0
@@ -540,7 +542,7 @@
 3032    wm-lh-frontalpole                   155 255 155 0
 3033    wm-lh-temporalpole                  185 185 185 0
 3034    wm-lh-transversetemporal            105 105 55  0
-3035    wm-lh-insula                        254 191 31  0
+3035    wm-lh-insula                        20  220 160 0
 
 4000    wm-rh-unknown                       230 250 230 0
 4001    wm-rh-bankssts                      230 155 215 0
@@ -577,7 +579,30 @@
 4032    wm-rh-frontalpole                   155 255 155 0
 4033    wm-rh-temporalpole                  185 185 185 0
 4034    wm-rh-transversetemporal            105 105 55  0
-4035    wm-rh-insula                        254 191 31  0
+4035    wm-rh-insula                        20  220 160 0
+
+
+# Below is the color table for a lobar white matter parcelation
+#  obtained from running
+# mri_annotation2label --subject subject --hemi lh --lobesStrict lobes
+# mri_annotation2label --subject subject --hemi rh --lobesStrict lobes
+# mri_aparc2aseg --s subject --labelwm --hypo-as-wm --rip-unknown \
+#   --volmask --o wmparc.lobes.mgz --ctxseg aparc+aseg.mgz \
+#   --annot lobes --base-offset 200 [--base-offset must be last arg]
+
+3201    wm-lh-frontal-lobe                  235 35  95  0
+3203    wm-lh-cingulate-lobe                35  75  35  0
+3204    wm-lh-occiptal-lobe                 135 155 195 0
+3205    wm-lh-temporal-lobe                 115 35  35  0
+3206    wm-lh-parietal-lobe                 35  195 35  0
+3207    wm-lh-insula-lobe                   20  220 160 0
+
+4201    wm-rh-frontal-lobe                  235 35  95  0
+4203    wm-rh-cingulate-lobe                35  75  35  0
+4204    wm-rh-occiptal-lobe                 135 155 195 0
+4205    wm-rh-temporal-lobe                 115 35  35  0
+4206    wm-rh-parietal-lobe                 35  195 35  0
+4207    wm-rh-insula-lobe                   20  220 160 0
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2005s flag) in which the aseg
