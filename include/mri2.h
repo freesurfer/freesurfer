@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/07 19:49:13 $
- *    $Revision: 1.54 $
+ *    $Date: 2014/03/17 21:11:24 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,7 +91,7 @@ MRI *MRIsquareRoot(MRI *in, MRI *mask, MRI *out);
 int *MRIsegIdList(MRI *seg, int *nlist, int frame);
 int *MRIsegIdListNot0(MRI *seg, int *nsegs, int frame);
 int *MRIsegIdListExclude0(MRI *seg, int *pnlist, int frame);
-MRI *MRIbinarizeMatch(MRI *seg, int match, int frame, MRI *out);
+MRI *MRIbinarizeMatch(MRI *seg, int *MatchList, int nList, int frame, MRI *out);
 double *MRIsegDice(MRI *seg1, MRI *seg2, int *nsegs, int **segidlist);
 MRI *MRIsegDiff(MRI *oldseg, MRI *newseg, int *DiffFlag);
 MRI *MRIsegMergeDiff(MRI *oldseg, MRI *diff);

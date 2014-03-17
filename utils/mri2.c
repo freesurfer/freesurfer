@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/07 19:49:13 $
- *    $Revision: 1.99 $
+ *    $Date: 2014/03/17 21:11:24 $
+ *    $Revision: 1.100 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4017,9 +4017,9 @@ MRI *MRIfisherTransform(MRI *rho, MRI *mask, MRI *out)
   \fn MRI *MRIbinarizeMatch(MRI *seg, int match, int frame, MRI *out)
   \brief Binarizes a volume based on the voxels values that match the match value.
 */
-MRI *MRIbinarizeMatch(MRI *seg, int match, int frame, MRI *out)
+MRI *MRIbinarizeMatch(MRI *seg, int *MatchList, int nList, int frame, MRI *out)
 {
-  int c,r,s,m;
+  int c,r,s,m,n;
 
   if(out == NULL){
     out = MRIalloc(seg->width,seg->height,seg->depth,MRI_INT);
@@ -4031,7 +4031,12 @@ MRI *MRIbinarizeMatch(MRI *seg, int match, int frame, MRI *out)
     for(c=0; c < seg->width; c++){
       for(r=0; r < seg->height; r++){
 	m = MRIgetVoxVal(seg,c,r,s,frame);
-	if(m == match) MRIsetVoxVal(out,c,r,s,0, 1);
+	for(n=0; n < nList; n++){
+	  if(m == MatchList[n]){
+	    MRIsetVoxVal(out,c,r,s,0, 1);
+	    break;
+	  }
+	}
       }
     }
   }
