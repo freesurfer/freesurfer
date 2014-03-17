@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/17 20:41:20 $
- *    $Revision: 1.44 $
+ *    $Date: 2014/03/17 21:19:27 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.44 2014/03/17 20:41:20 greve Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.45 2014/03/17 21:19:27 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -257,8 +257,7 @@ int main(int argc, char **argv)
     }
   }
 
-  if (UseNewRibbon)
-  {
+  if (UseNewRibbon){
     sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
     printf("Loading ribbon segmentation from %s\n",tmpstr);
     RibbonSeg = MRIread(tmpstr);
@@ -269,16 +268,24 @@ int main(int argc, char **argv)
     }
   }
 
-  if (LabelHypoAsWM)
-  {
-    sprintf(tmpstr,"%s/%s/mri/filled.mgz",SUBJECTS_DIR,subject);
+  if(LabelHypoAsWM){
+    /* This section used to use filled.mgz instead of ribbon.mgz. This is used
+     to determine whether a hypointensity is WM. filled.mgz is not guaranteed
+     to have a non-zero value in a hypointensity.  Not sure why I used
+     filled in the first place, esp since ribbon is used above. */
+    sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
     printf("Loading filled from %s\n",tmpstr);
     filled = MRIread(tmpstr);
-    if (filled == NULL)
-    {
+    if (filled == NULL){
       printf("ERROR: loading filled %s\n",tmpstr);
       exit(1);
     }
+    int MatchList[2];
+    MatchList[0] = 2;
+    MatchList[1] = 41;
+    mritmp = MRIbinarizeMatch(filled, MatchList, 2, 0, NULL);
+    MRIfree(&filled);
+    filled = mritmp;
   }
 
   // ------------ Rip -----------------------
