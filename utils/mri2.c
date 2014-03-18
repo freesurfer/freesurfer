@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/17 21:11:24 $
- *    $Revision: 1.100 $
+ *    $Date: 2014/03/18 16:24:02 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4044,37 +4044,24 @@ MRI *MRIbinarizeMatch(MRI *seg, int *MatchList, int nList, int frame, MRI *out)
 }
 /*
   \fn MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg)
-
   \brief Creates a high-resolution (upsampled) segmentation given the
-  aseg and surfaces (must be aseg or or something with
-  X_Cerebral_Cortex and X_Cerebral_White_Matter labels). The USF is
-  the upsampling factor. The result is upsampled and the FoV is
-  reduced to the bare minimum, so the number of voxels in a dimension
-  will not necessarily be USF times the original number. The
-  subcortical structures are then upsampled versions of the low-res
-  aseg (ie, no new information is created). However, cortex benefits
-  from the upsampling. aseg2hrseg is the transform between the aseg
-  space and the hires space (they share a scanner RAS space). If
-  aseg=NULL, then the VOL_GEOM from lhw is used. If USF=-1, then no
-  FoV reduction is done. The surfaces can be NULL. If UseAnnot=1, then
-  the cortical label is replaced with the annotation label to create
-  something like aparc+aseg.mgz. Cannot get exactly the same as
-  aparc+aseg because aparc+aseg uses ribbon.mgz and this creates its
-  own ribbon using a different process.
-
-  */
-MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int UseAnnot, int USF, LTA **aseg2hrseg)
+  aseg and surfaces. The USF is the upsampling factor. The result is
+  upsampled and the FoV is reduced to the bare minimum so the number
+  of voxels in a dimension will not necessarily be USF times the
+  original number. The subcortical structures are the upsampled
+  versions of the low-res aseg (ie, no new information is
+  created). However, cortex benefits from the upsampling. aseg2hrseg
+  is the transform between the aseg space and the hires space (they
+  share a scanner RAS space). If aseg=NULL, then the VOL_GEOM from lhw
+  is used. If USF=-1, then no FoV reduction is done. The surfaces can
+  be NULL.  This is really meant for the aseg to be the aseg.mgz with 
+  cortex = 3,42 and cerebralwm = 2,41. 
+*/
+MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF, LTA **aseg2hrseg)
 {
   MRI *asegus,*lhwvol,*rhwvol,*lhpvol,*rhpvol,*seg;
   int c,r,s, asegv,lhwv,rhwv,lhpv,rhpv,segv,lhRibbon,rhRibbon,Ribbon,SubCort;
   int nPad=2;
-  MATRIX *CRS=NULL, *RAS=NULL, *Vox2RAS=NULL;
-  int vtxno,annot,annotid,annotbase=0;
-  MRIS *mris=NULL;
-  VERTEX vtx;
-  float dw;
-  MHT *lhw_hash=NULL,*rhw_hash=NULL,*hash=NULL;
-  float hashres = 16;
 
   asegus = NULL;
   if(aseg != NULL){
@@ -4095,30 +4082,13 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int UseA
       return(NULL);
     }
     printf("Info: MRIhiresSeg(): aseg is NULL\n");
-    // create a volume of 0s
     aseg = MRIalloc(lhw->vg.width,lhw->vg.height,lhw->vg.depth,MRI_UCHAR);
     useVolGeomToMRI(&lhw->vg, aseg);
     asegus = MRIupsampleN(aseg, NULL, abs(USF)) ;
-    *aseg2hrseg = TransformRegDat2LTA(aseg, asegus, NULL); //Identity
     MRIfree(&aseg);
   }
   seg  = MRIcopy(asegus,NULL); 
   MRIcopyHeader(asegus,seg);
-  //MRIwrite(asegus,"asegus.mgh");
-  LTAfillInverse(*aseg2hrseg);
-
-  if(UseAnnot){
-    MATRIX *asegVox2RAS;
-    asegVox2RAS = MRIxfmCRS2XYZtkreg(aseg);
-    Vox2RAS = MatrixMultiplyD(asegVox2RAS,(*aseg2hrseg)->inv_xforms[0].m_L,NULL);
-    CRS = MatrixAlloc(4,1,MATRIX_REAL);
-    CRS->rptr[4][1] = 1;
-    RAS = MatrixAlloc(4,1,MATRIX_REAL);
-    RAS->rptr[4][1] = 1;
-    lhw_hash = MHTfillVertexTableRes(lhw, NULL,CURRENT_VERTICES,hashres);
-    rhw_hash = MHTfillVertexTableRes(rhw, NULL,CURRENT_VERTICES,hashres);
-    MatrixFree(&asegVox2RAS);
-  }
 
   if(lhw){
     //printf("lhw -------------\n");
@@ -4148,7 +4118,7 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int UseA
   // stop compiler warnings
   lhwv = rhwv = lhpv = rhpv = 0; segv=0; asegv=0;
 
-  if(Gdiag_no > 0) printf("Starting seg fill ncols = %3d UseAnnot=%d\n",asegus->width,UseAnnot);
+  if(Gdiag_no > 0) printf("Starting seg fill\n");
   for(c=0; c < asegus->width; c++){
     for(r=0; r < asegus->height; r++){
       for(s=0; s < asegus->depth; s++){
@@ -4161,9 +4131,9 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int UseA
 
 	// Check if voxel is in the "true" ribbon
 	lhRibbon=0;
-	if((lhpv && !lhwv)) {lhRibbon=1; mris = lhw; hash = lhw_hash; annotbase=1000;}
+	if((lhpv && !lhwv)) lhRibbon=1;
 	rhRibbon=0;
-	if((rhpv && !rhwv)) {rhRibbon=1; mris = rhw; hash = rhw_hash; annotbase=2000;}
+	if((rhpv && !rhwv)) rhRibbon=1;
 	Ribbon = lhRibbon || rhRibbon;
 
 	/* SubCort=1 if aseg says voxel is neither cortex nor cerebral
@@ -4181,26 +4151,8 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int UseA
 	  // What if something other than aseg.mgz was passed? Seg might not
 	  // have X_Left_Cerebral_Cortex label. This is ok for computing PVF
 	  // but not if you are expecting the labels to be correct.
-	  if(!UseAnnot){
-	    if(lhRibbon) segv = Left_Cerebral_Cortex;
-	    if(rhRibbon) segv = Right_Cerebral_Cortex;
-	  }
-	  else{
-	    CRS->rptr[1][1] = c;
-	    CRS->rptr[2][1] = r;
-	    CRS->rptr[3][1] = s;
-	    RAS = MatrixMultiplyD(Vox2RAS,CRS,RAS);
-	    vtx.x = RAS->rptr[1][1];
-	    vtx.y = RAS->rptr[2][1];
-	    vtx.z = RAS->rptr[3][1];
-	    vtxno = MHTfindClosestVertexNo(hash,mris,&vtx,&dw);
-	    if(vtxno < 0) vtxno = MRISfindClosestVertex(mris,vtx.x,vtx.y,vtx.z,&dw);
-	    // could use pial here too
-	    annot = mris->vertices[vtxno].annotation;
-	    CTABfindAnnotation(mris->ct, annot, &annotid);
-	    if(annotid != -1) segv = annotid+annotbase;
-	    else segv = annotbase; // becomes cortex unknown
-	  }
+	  if(lhRibbon) segv = Left_Cerebral_Cortex;
+	  if(rhRibbon) segv = Right_Cerebral_Cortex;
 	}
 	else {
 	  /* To get here, it cannot be in the true ribbon so, if the
@@ -4234,11 +4186,6 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int UseA
   if(rhw) MRIfree(&rhwvol);
   if(lhp) MRIfree(&lhpvol);
   if(rhp) MRIfree(&rhpvol);
-  if(lhw_hash) MHTfree(&lhw_hash);
-  if(rhw_hash) MHTfree(&rhw_hash);
-  if(CRS) MatrixFree(&CRS);
-  if(RAS) MatrixFree(&RAS);
-  if(Vox2RAS) MatrixFree(&Vox2RAS);
   return(seg);
 }
 /*
@@ -4333,7 +4280,7 @@ MRI *MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp,
   LTA *aseg2hrseg,*hrseg2aseg,*hrseg2vol,*ltaArray[2];
 
   // Create a high resolution segmentation
-  hrseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp, 0, USF, &aseg2hrseg);
+  hrseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp, USF, &aseg2hrseg);
   if(hrseg == NULL) return(NULL);
   hrseg2aseg = LTAinvert(aseg2hrseg,NULL);
 
