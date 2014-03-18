@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/08 00:14:54 $
- *    $Revision: 1.29 $
+ *    $Date: 2014/03/18 16:25:34 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.29 2014/03/08 00:14:54 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.30 2014/03/18 16:25:34 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.29 2014/03/08 00:14:54 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.30 2014/03/18 16:25:34 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -200,6 +200,7 @@ int nReplace = 0, SrcReplace[1000], TrgReplace[1000];
 int ttReduce = 0;
 char *MGPVCFile=NULL;
 char *regfile;
+int regidentity = 0;
 int regtype;
 
 int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax);
@@ -219,6 +220,7 @@ int CheckX(MATRIX *X);
 int dngtest(LTA *aseg2vol);
 
 MRI *MRIaseg2volFrame(MRI *aseg, LTA *aseg2vol, int *segidlist, int nsegs, MRI *out);
+int myfunc();
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -235,6 +237,8 @@ int main(int argc, char *argv[])
   uname(&uts);
   getcwd(cwd,2000);
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  myfunc();
+  exit(1);
 
   gtm = GTMalloc();
   gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
@@ -300,9 +304,6 @@ int main(int argc, char *argv[])
     gtm->ctGTMSeg = ctTT;
   }
 
-  printf("Loading input %s\n",SrcVolFile);
-  gtm->yvol = MRIread(SrcVolFile);
-  if(gtm->yvol==NULL) exit(1);
   if(ApplyFWHM > 0){
     double cStdApply, rStdApply, sStdApply;
     MRI *mritmp;
@@ -516,6 +517,8 @@ static int parse_commandline(int argc, char **argv) {
       }
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--reg-identity")) regidentity = 1;
+    else if (!strcasecmp(option, "--identity")) regidentity = 1;
     else if(!strcasecmp(option, "--src") || !strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
       SrcVolFile = pargv[0];
@@ -741,10 +744,6 @@ static void print_version(void) {
 /*---------------------------------------------------------------*/
 static void check_options(void) 
 {
-  if(regfile == NULL){
-    printf("ERROR: must spec regfile \n");
-    exit(1);
-  }
   if(SrcVolFile == NULL){
     printf("ERROR: must spec source volume\n");
     exit(1);
@@ -777,6 +776,21 @@ static void check_options(void)
     omp_set_num_threads(nthreads);
 #endif
   }
+  printf("Loading input %s\n",SrcVolFile);
+  gtm->yvol = MRIread(SrcVolFile);
+  if(gtm->yvol==NULL) exit(1);
+
+  if(regidentity){
+    printf("Using identity registration\n");
+    gtm->anatseg2pet = TransformRegDat2LTA(gtm->yvol, gtm->yvol, NULL);
+  }
+  else {
+    if(regfile == NULL){
+      printf("ERROR: must spec regfile \n");
+      exit(1);
+    }
+  }
+
   return;
 }
 /*---------------------------------------------------------------*/
@@ -957,7 +971,7 @@ int GTMOPTsetup(GTMOPT *gtmopt)
   // Create a high resolution segmentation used to create PVF
   gtmopt->pvfseg = MRIhiresSeg(gtmopt->pvfseganat,
 			       gtmopt->lhw,gtmopt->lhp,gtmopt->rhw,gtmopt->rhp, 
-			       0, gtmopt->USF, &gtmopt->anat2pvfseg);
+			       gtmopt->USF, &gtmopt->anat2pvfseg);
   if(gtmopt->pvfseg == NULL) return(1);
   gtmopt->pvfseg2anat = LTAinvert(gtmopt->anat2pvfseg,NULL);
 
@@ -1103,6 +1117,7 @@ int GTMsolve(GTM *gtm)
   TimerStart(&timer);
   gtm->XtX = MatrixMtM(gtm->X,gtm->XtX);
   printf(" %4.1f sec\n",TimerStop(&timer)/1000.0);fflush(stdout);
+
   gtm->iXtX = MatrixInverse(gtm->XtX,gtm->iXtX);
   if(gtm->iXtX==NULL){
     gtm->XtXcond = MatrixConditionNumber(gtm->XtX);
@@ -1585,7 +1600,7 @@ int dngtest(LTA *aseg2vol)
   if(rhp==NULL) exit(1);
 
   printf("computing hires seg\n");
-  newseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp,1,1,&aseg2hrseg);
+  newseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp,1,&aseg2hrseg);
   ltaArray[0] = LTAinvert(aseg2hrseg,NULL);
   ltaArray[1] = aseg2vol;
   lta = LTAconcat(ltaArray,2,1);
@@ -1644,11 +1659,11 @@ int dngtest(LTA *aseg2vol)
   if(rhp==NULL) exit(1);
 
   printf("computing hires seg\n");
-  newseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp,1,1,&lta);
+  newseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp,1,&lta);
   MRIwrite(newseg,"newseg.annot.usf1.mgh");
 
   printf("computing hires seg\n");
-  newseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp,1,2,&lta);
+  newseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp,2,&lta);
   MRIwrite(newseg,"newseg.annot.usf2.mgh");
 
   exit(1);
@@ -1726,5 +1741,35 @@ int GTMbuildX(GTM *gtm)
 
   return(0);
 
+}
+
+int myfunc()
+{
+  MRI *aseg,*seg;
+  MRIS *lhw, *lhp, *rhw, *rhp;
+  LTA *aseg2hrseg;
+  int err;
+
+  aseg = MRIread("aseg.mgz");
+  if(aseg->type != MRI_INT) aseg = MRIchangeType(aseg, MRI_INT, 0,0,1);
+
+  lhw = MRISread("../surf/lh.white");
+  lhp = MRISread("../surf/lh.pial");
+  rhw = MRISread("../surf/rh.white");
+  rhp = MRISread("../surf/rh.pial");
+  printf("Loading annots\n");fflush(stdout);
+  err = MRISreadAnnotation(lhw, "../label/lh.lobes.annot");
+  if(err) exit(1);
+  err =   MRISreadAnnotation(lhp, "../label/lh.petseg.annot");
+  if(err) exit(1);
+  err =   MRISreadAnnotation(rhw, "../label/rh.lobes.annot");
+  if(err) exit(1);
+  err =   MRISreadAnnotation(rhp, "../label/rh.petseg.annot");
+  if(err) exit(1);
+  printf("Beginning hires seg\n");fflush(stdout);
+  seg = MRIhiresSeg(aseg, lhw, lhp, rhw, rhp, 2, &aseg2hrseg);
+  MRIwrite(seg,"dngseg.mgh");
+  printf("myfunc done\n");fflush(stdout);
+  return(0);
 }
 
