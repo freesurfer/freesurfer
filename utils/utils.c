@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/06/24 14:06:55 $
- *    $Revision: 1.85 $
+ *    $Author: greve $
+ *    $Date: 2014/03/18 23:00:57 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1311,7 +1311,7 @@ int *unqiue_int_list(int *idlist, int nlist, int *nunique)
 */
 int most_frequent_int_list(int *idlist, int nlist, int *nmax)
 {
-  int n, *ulist, nthu, nthumax, nunique, *nper;
+  int n, *ulist, nthu, nthumax, nunique, *nper,mostfreq;
 
   ulist = unqiue_int_list(idlist, nlist, &nunique) ;
   nper = (int *) calloc(sizeof(int),nunique);
@@ -1328,9 +1328,10 @@ int most_frequent_int_list(int *idlist, int nlist, int *nmax)
       nthumax = nthu;
     }
   }
-
+  mostfreq = ulist[nthumax];
+  free(ulist);
   free(nper);
-  return(ulist[nthumax]);
+  return(mostfreq);
 }
 
 /*--------------------------------------------------
