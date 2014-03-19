@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/05 22:44:07 $
- *    $Revision: 1.171 $
+ *    $Date: 2014/03/19 17:30:13 $
+ *    $Revision: 1.172 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -267,6 +267,25 @@ void getVolGeom(const MRI *src, VOL_GEOM *dst)
   strcpy(dst->fname, src->fname);
 }
 
+/*
+\fn MRI *MRIallocFromVolGeom(VOL_GEOM *vg, int type, int nframes, int HeaderOnly)
+\brief Creates an MRI from a VOL_GEOM, copying the geometry info
+*/
+MRI *MRIallocFromVolGeom(VOL_GEOM *vg, int type, int nframes, int HeaderOnly)
+{
+  MRI *mri;
+  if(HeaderOnly)
+    mri = MRIallocHeader(vg->width, vg->height, vg->depth, type, nframes) ;
+  else
+    mri = MRIallocSequence(vg->width, vg->height, vg->depth, type, nframes) ;
+  if(mri) useVolGeomToMRI(vg, mri);
+  return(mri);
+}
+
+/*
+\fn void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
+\brief Copy geometry info from VOL_GEOM to an MRI structure
+*/
 void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst)
 {
   if (!src)

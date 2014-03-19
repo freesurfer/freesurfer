@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/26 21:30:02 $
- *    $Revision: 1.78 $
+ *    $Date: 2014/03/19 17:30:13 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -223,6 +223,7 @@ void writeVolGeom(FILE *fp, const VOL_GEOM *vg);
 void readVolGeom(FILE *fp, VOL_GEOM *vg);
 void getVolGeom(const MRI *src, VOL_GEOM *vg);
 void useVolGeomToMRI(const VOL_GEOM *src, MRI *dst);
+MRI *MRIallocFromVolGeom(VOL_GEOM *vg, int type, int nframes, int HeaderOnly);
 MATRIX *vg_i_to_r(const VOL_GEOM *vg);
 MATRIX *vg_r_to_i(const VOL_GEOM *vg);
 #define vg_getRasToVoxelXform vg_r_to_i
