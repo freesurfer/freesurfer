@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/03/16 20:48:39 $
- *    $Revision: 1.533 $
+ *    $Date: 2014/03/19 21:11:37 $
+ *    $Revision: 1.534 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.533 $";
+const char *MRI_C_VERSION = "$Revision: 1.534 $";
 
 
 /*-----------------------------------------------------
@@ -2063,7 +2063,7 @@ MRIclipRegion(MRI *mri, MRI_REGION *reg_src, MRI_REGION *reg_clip)
 MRI *
 MRIvalScale(MRI *mri_src, MRI *mri_dst, float flo, float fhi)
 {
-  int      width, height, depth, x, y, z ;
+  int      width, height, depth, x, y, z, f ;
   float    fmin, fmax, *pf_src, *pf_dst, val, scale ;
   short    *ps_src, *ps_dst ;
   BUFTYPE  *pb_src, *pb_dst ;
@@ -2078,16 +2078,17 @@ MRIvalScale(MRI *mri_src, MRI *mri_dst, float flo, float fhi)
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  if ((mri_src->type != mri_dst->type))
+  if ((mri_src->type != mri_dst->type) || 1)   // always
   {
-    for (z = 0 ; z < depth ; z++)
-      for (y = 0 ; y < height ; y++)
-        for (x = 0 ; x < width ; x++)
-        {
-	  val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-          val = (val - fmin) * scale + flo ;
-	  MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
-	}
+    for (f = 0 ; f < mri_src->nframes ; f++)
+      for (z = 0 ; z < depth ; z++)
+	for (y = 0 ; y < height ; y++)
+	  for (x = 0 ; x < width ; x++)
+	  {
+	    val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+	    val = (val - fmin) * scale + flo ;
+	    MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+	  }
   }
   else switch (mri_src->type)   // same voxel types
   {
