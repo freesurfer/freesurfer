@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/31 22:56:29 $
- *    $Revision: 1.93 $
+ *    $Date: 2014/03/19 20:55:18 $
+ *    $Revision: 1.94 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2964,4 +2964,116 @@ double FSVolume::GetHistoPercentileFromValue(double value, int frame)
   }
   else
     return 0;
+}
+
+void FSVolume::GetFrameValueRange(int frame, double *range)
+{
+  int      width, height, depth, x, y, z;
+  float    fmin, fmax, *pf, val ;
+  BUFTYPE  *pb ;
+
+  MRI* mri = m_MRI;
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  fmin = 1000000.0f ;
+  fmax = -1000000.0f ;
+  switch (mri->type)
+  {
+  case MRI_FLOAT:
+      {
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          pf = &MRIFseq_vox(mri, 0, y, z, frame) ;
+          for (x = 0 ; x < width ; x++)
+          {
+            val = *pf++ ;
+            if (val < fmin)
+              fmin = val ;
+            if (val > fmax)
+              fmax = val ;
+          }
+        }
+      }
+    }
+    break ;
+  case MRI_INT:
+       {
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
+            val = (float)MRIIseq_vox(mri, x, y, z, frame) ;
+            if (val < fmin)
+              fmin = val ;
+            if (val > fmax)
+              fmax = val ;
+          }
+        }
+      }
+    }
+    break ;
+  case MRI_SHORT:
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
+            val = (float)MRISseq_vox(mri, x, y, z, frame) ;
+            if (val < fmin)
+              fmin = val ;
+            if (val > fmax)
+              fmax = val ;
+          }
+        }
+      }
+    }
+    break ;
+  case MRI_UCHAR:
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          pb = &MRIseq_vox(mri, 0, y, z, frame) ;
+          for (x = 0 ; x < width ; x++)
+          {
+            val = (float)*pb++ ;
+            if (val < fmin)
+              fmin = val ;
+            if (val > fmax)
+              fmax = val ;
+          }
+        }
+      }
+    }
+    break ;
+  default:
+    {
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
+            val = (float)MRIgetVoxVal(mri, x, y, z, frame) ;
+            if (val < fmin)
+              fmin = val ;
+            if (val > fmax)
+              fmax = val ;
+          }
+        }
+      }
+    }
+    break ;
+  }
+  range[0] = fmin;
+  range[1] = fmax;
 }

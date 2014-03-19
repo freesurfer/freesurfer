@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/21 22:06:58 $
- *    $Revision: 1.41 $
+ *    $Date: 2014/03/19 20:55:18 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,6 +88,8 @@ public:
   {
     return m_fMaxValue;
   }
+
+  void GetFrameValueRange(int nFrame, double* range);
 
   double* GetRASToVoxelMatrix ()
   {

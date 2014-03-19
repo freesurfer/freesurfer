@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.13 $
+ *    $Date: 2014/03/19 20:55:18 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -332,6 +332,11 @@ public:
     return m_bUsePercentile;
   }
 
+  bool GetAutoAdjustFrameLevel()
+  {
+    return m_bAutoAdjustFrameLevel;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -371,6 +376,8 @@ public slots:
     m_bUsePercentile = b;
   }
 
+  void SetAutoAdjustFrameLevel(bool b);
+
 signals:
   void ColorMapChanged();
   void ResliceInterpolationChanged();
@@ -387,7 +394,7 @@ signals:
   void ProjectionMapShown(bool bShown);
 
 private:
-
+  void UpdateMinMaxValues();
   void UpdateLUTTable();
   void BuildGenericLUT( const int colors[256][3] );
 
@@ -470,6 +477,8 @@ private:
   double  m_dVectorScale;
 
   bool    m_bUsePercentile;
+  bool    m_bAutoAdjustFrameLevel;
+  QMap<int, QPair<double, double> > m_mapMinMaxValues;
 
   // ---------------------------------------------------------------------
 

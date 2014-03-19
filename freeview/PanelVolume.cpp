@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/19 19:57:35 $
- *    $Revision: 1.91 $
+ *    $Date: 2014/03/19 20:55:19 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,10 +105,15 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistFrame << ui->sliderFrame
                     << ui->spinBoxFrame
                     << ui->labelFrame
-                    << ui->checkBoxRememberFrame
-                    << ui->labelRememberFrame
-                    << ui->labelCorrelationSurface
-                    << ui->comboBoxCorrelationSurface;
+                    << ui->checkBoxAutoAdjustFrameLevel;
+             //       << ui->checkBoxRememberFrame
+             //       << ui->labelRememberFrame
+             //       << ui->labelCorrelationSurface
+             //       << ui->comboBoxCorrelationSurface;
+  ui->labelRememberFrame->hide();
+  ui->checkBoxRememberFrame->hide();
+  ui->labelCorrelationSurface->hide();
+  ui->comboBoxCorrelationSurface->hide();
 
   m_widgetlistVector << ui->labelInversion
                      << ui->comboBoxInversion
@@ -243,6 +248,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->colorPickerContour, SIGNAL(colorChanged(QColor)), p, SLOT(SetContourColor(QColor)));
   connect( ui->checkBoxUpsampleContour, SIGNAL(toggled(bool)), p, SLOT(SetContourUpsample(bool)));
   connect( ui->checkBoxRememberFrame, SIGNAL(toggled(bool)), p, SLOT(SetRememberFrameSettings(bool)));
+  connect( ui->checkBoxAutoAdjustFrameLevel, SIGNAL(toggled(bool)), p, SLOT(SetAutoAdjustFrameLevel(bool)));
 }
 
 void PanelVolume::DoIdle()
@@ -422,6 +428,7 @@ void PanelVolume::DoUpdateWidgets()
       ui->sliderFrame->setRange( 1, nFrames );
       ui->spinBoxFrame->setRange( 1, nFrames );
       ui->checkBoxRememberFrame->setChecked(layer->GetProperty()->GetRememberFrameSettings());
+      ui->checkBoxAutoAdjustFrameLevel->setChecked(layer->GetProperty()->GetAutoAdjustFrameLevel());
     }
     ui->sliderFrame->setValue( layer->GetActiveFrame() + 1 );
     ChangeSpinBoxValue( ui->spinBoxFrame, layer->GetActiveFrame() + 1 );

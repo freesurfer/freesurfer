@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/15 04:12:50 $
- *    $Revision: 1.20 $
+ *    $Date: 2014/03/19 20:55:18 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,12 +86,13 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_nContourSmoothIterations( 5 ),
   mSource( NULL ),
   m_bShowProjectionMap( false ),
-  m_bRememberFrameSettings( false ),
+  m_bRememberFrameSettings( true ),
   m_nActiveFrame( 0 ),
   m_bShowAsLabelContour( false ),
   m_bContourUpsample(false),
   m_dVectorScale(1.0),
-  m_bUsePercentile(false)
+  m_bUsePercentile(false),
+  m_bAutoAdjustFrameLevel(false)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -166,6 +167,7 @@ void LayerPropertyMRI::RestoreSettings( const QString& filename )
   }
 
   QVariantMap map = rootmap[filename].toMap();
+  map.remove("RememberFrameSettings");
   RestoreSettings(map);
 }
 
@@ -235,12 +237,15 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
 
   if ( map.contains("RememberFrameSettings"))
   {
-    m_bRememberFrameSettings = map["RememberFrameSettings"].toBool();
+  //  m_bRememberFrameSettings = map["RememberFrameSettings"].toBool();
   }
+
+  if (map.contains("AutoAdjustFrameLevel"))
+    m_bAutoAdjustFrameLevel = map["AutoAdjustFrameLevel"].toBool();
 
   if ( map.contains("FrameSettings"))
   {
-    m_frameSettings = map["FrameSettings"].toMap();
+  //  m_frameSettings = map["FrameSettings"].toMap();
   }
 
   if (map.contains("ClearBackground"))
@@ -316,6 +321,7 @@ QVariantMap LayerPropertyMRI::GetSettings()
   map["FrameSettings"] = m_frameSettings;
   map["ClearBackground"] = mbClearZero;
   map["UsePercentile"] = m_bUsePercentile;
+  map["AutoAdjustFrameLevel"] = m_bAutoAdjustFrameLevel;
   return map;
 }
 
@@ -1269,37 +1275,13 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
   // Source object reads the volume and outputs a volume.
   mSource = source;
 
-  // Init our color scale values.
-  mMinVoxelValue = mSource->GetMinValue();
-  mMaxVoxelValue = mSource->GetMaxValue();
-  mMinGrayscaleWindow = mMinVoxelValue;
-  mMaxGrayscaleWindow = mMaxVoxelValue;
-  mMinVisibleValue = mMinVoxelValue - ( mMaxVoxelValue - mMinVoxelValue );
-  mMaxVisibleValue = mMaxVoxelValue + ( mMaxVoxelValue - mMinVoxelValue );
-  mWindowRange[0] = 0;
-  mWindowRange[1] = (mMaxVoxelValue - mMinVoxelValue) * 2;
-  mLevelRange[0] = mMinVoxelValue;
-  mLevelRange[1] = mMaxVoxelValue;
-
   double voxel_size[3];
   source->GetImageOutput()->GetSpacing(voxel_size);
   m_dVectorScale = qMin( qMin( voxel_size[0], voxel_size[1] ), voxel_size[2] ) / 1.8;
 
-  double oneTenth;
-  double highestAbsValue;
-  highestAbsValue = qMax( fabs(mMinVoxelValue), fabs(mMaxVoxelValue) );
-  oneTenth = highestAbsValue / 10.0;
-  mHeatScaleMinThreshold = mMinGrayscaleWindow;
-  mHeatScaleMidThreshold = highestAbsValue / 2.0;
-  mHeatScaleMaxThreshold = highestAbsValue - oneTenth;
+  // Init our color scale values.
+  UpdateMinMaxValues();
 
-  UpdateLUTTable();
-
-  // Init the colors in the heat scale. The editor will handle the
-  // editing from here.
-
-  mMinGenericThreshold = mMinVoxelValue;
-  mMaxGenericThreshold = mMaxVoxelValue;
   mColorMapTable->ClampingOn();
 
   mDirectionCodedTable = vtkSmartPointer<vtkLookupTable>::New();
@@ -1318,12 +1300,10 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
     }
   }
 
-  mMinContourThreshold = mHeatScaleMidThreshold;
-  mMaxContourThreshold = mSource->GetMaxValue();
-
   m_dLabelContourRange[0] = 1;
   m_dLabelContourRange[1] = 2;
 
+  UpdateLUTTable();
   if ( source->GetEmbeddedColorTable() )
   {
     SetColorMap( LUT );
@@ -1332,6 +1312,59 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
 
   // Set up our initial tables.
   this->OnColorMapChanged();
+}
+
+void LayerPropertyMRI::UpdateMinMaxValues()
+{
+  if (!mSource)
+    return;
+
+  if (m_bAutoAdjustFrameLevel)
+  {
+    if (m_mapMinMaxValues.contains(m_nActiveFrame))
+    {
+      QPair<double, double> pair = m_mapMinMaxValues[m_nActiveFrame];
+      mMinVoxelValue = pair.first;
+      mMaxVoxelValue = pair.second;
+    }
+    else
+    {
+      double range[2];
+      mSource->GetFrameValueRange(m_nActiveFrame, range);
+      mMinVoxelValue = range[0];
+      mMaxVoxelValue = range[1];
+    }
+  }
+  else
+  {
+    mMinVoxelValue = mSource->GetMinValue();
+    mMaxVoxelValue = mSource->GetMaxValue();
+  }
+  mMinGrayscaleWindow = mMinVoxelValue;
+  mMaxGrayscaleWindow = mMaxVoxelValue;
+  mMinVisibleValue = mMinVoxelValue - ( mMaxVoxelValue - mMinVoxelValue );
+  mMaxVisibleValue = mMaxVoxelValue + ( mMaxVoxelValue - mMinVoxelValue );
+  mWindowRange[0] = 0;
+  mWindowRange[1] = (mMaxVoxelValue - mMinVoxelValue) * 2;
+  mLevelRange[0] = mMinVoxelValue;
+  mLevelRange[1] = mMaxVoxelValue;
+
+  double oneTenth;
+  double highestAbsValue;
+  highestAbsValue = qMax( fabs(mMinVoxelValue), fabs(mMaxVoxelValue) );
+  oneTenth = highestAbsValue / 10.0;
+  mHeatScaleMinThreshold = mMinGrayscaleWindow;
+  mHeatScaleMidThreshold = highestAbsValue / 2.0;
+  mHeatScaleMaxThreshold = highestAbsValue - oneTenth;
+
+  // Init the colors in the heat scale. The editor will handle the
+  // editing from here.
+
+  mMinGenericThreshold = mMinVoxelValue;
+  mMaxGenericThreshold = mMaxVoxelValue;
+  mMinContourThreshold = mHeatScaleMidThreshold;
+  mMaxContourThreshold = mMaxVoxelValue;
+
 }
 
 void LayerPropertyMRI::SetMinMaxGenericThreshold ( double iMin, double iMax )
@@ -1597,7 +1630,9 @@ void LayerPropertyMRI::SetActiveFrame(int nFrame)
   if (nFrame != m_nActiveFrame)
   {
     m_nActiveFrame = nFrame;
-    if (m_bRememberFrameSettings)
+    if (m_bAutoAdjustFrameLevel)
+      UpdateMinMaxValues();
+    if (m_bRememberFrameSettings || m_bAutoAdjustFrameLevel)
       this->OnColorMapChanged();
   }
 }
@@ -1609,4 +1644,11 @@ void LayerPropertyMRI::SetVectorScale(double dval)
     m_dVectorScale = dval;
 
   }
+}
+
+void LayerPropertyMRI::SetAutoAdjustFrameLevel(bool b)
+{
+  m_bAutoAdjustFrameLevel = b;
+  UpdateMinMaxValues();
+  this->OnColorMapChanged();
 }
