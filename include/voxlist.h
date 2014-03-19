@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 12:38:27 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/03/19 20:24:13 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,6 +44,7 @@ typedef struct
   int     *xi ;
   int     *yi ;
   int     *zi ;
+  int     *fi ;  // frame index
   float   *xd ;  // transformed parameters
   float   *yd ;
   float   *zd ;
