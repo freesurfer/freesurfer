@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/04 16:22:32 $
- *    $Revision: 1.29 $
+ *    $Date: 2014/03/20 20:22:27 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1810,6 +1810,79 @@ void MyMatrix::SchurComplex(const vnl_matrix<double> & M,
       }
 
 /**
+  Computes mean of rotation matrices 
+  */
+vnl_matrix_fixed < double, 3, 3> MyMatrix::RotationMean(const std::vector < vnl_matrix_fixed < double, 3, 3 > > &vm)
+{
+  assert(vm.size() > 0);
+
+  // check if inputs are indeed rotation matrices:
+  double maxnorm =0.0;
+  for (unsigned int i = 0; i<vm.size(); i++)
+  {
+    vnl_matrix_fixed < double , 3, 3> Id = vm[i] * vm[i].transpose();
+    Id[0][0] -= 1.0; Id[1][1] -= 1.0; Id[2][2] -= 1.0;
+    double fn = Id.frobenius_norm() ;
+    //std::cout << " matrix " << i << "  frobenius norm: " <<  fn<<std::endl;
+    if ( fn > maxnorm) maxnorm = fn;
+  }
+  std::cout << "Input rotation's max deviation from rotation is: " << maxnorm << std::endl;
+  if (maxnorm > 0.0001) 
+  {
+    std::cerr << " MyMatrix::RotationMean input(s) not rotation" << std::endl;
+    exit(1);
+  }
+
+
+  vnl_matrix_fixed<double, 3, 3> meanr(0.0);
+
+ // http://brml.technion.ac.il/publications_files/1307386738.pdf
+ // this methods averages the rotation vectors (axis where length = angle)
+  std::vector < double > meanRV (3,0.0);
+  for (unsigned int i = 0; i<vm.size(); i++)
+  {
+    Quaternion Q;
+    Q.importMatrix(vm[i][0][0],vm[i][0][1],vm[i][0][2],
+                   vm[i][1][0],vm[i][1][1],vm[i][1][2],
+                   vm[i][2][0],vm[i][2][1],vm[i][2][2] );
+    std::vector < double > v = Q.getRotVec();
+    //std::cout << "RotVec " << i << " = " << v[0] <<" "<< v[1] << " " << v[2] << std::endl;
+    meanRV[0] += v[0];
+    meanRV[1] += v[1];
+    meanRV[2] += v[2];
+  }
+  meanRV[0] /= vm.size();
+  meanRV[1] /= vm.size();
+  meanRV[2] /= vm.size();
+  //std::cout << "Mean Rot Vec " << meanRV[0] <<" " << meanRV[1] << " "<< meanRV[2] << std::endl;
+  Quaternion Q;
+  Q.importRotVec(meanRV[0], meanRV[1], meanRV[2]);
+  std::vector < double > rmat = Q.getRotMatrix3d();
+  meanr[0][0] = rmat[0]; meanr[0][1] = rmat[1] ; meanr[0][2] = rmat[2];
+  meanr[1][0] = rmat[3]; meanr[1][1] = rmat[4] ; meanr[1][2] = rmat[5];
+  meanr[2][0] = rmat[6]; meanr[2][1] = rmat[7] ; meanr[2][2] = rmat[8];
+  //vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;
+  return meanr;  
+
+  // This older version only averages the rot matrices (mean is minimizer of Frobenius norm
+  // in embedding space) and then maps the result back to a rotation matrix
+  // using polar decomposition. This is similar to averaging points on a sphere 
+  // in Euclidean space and then projecting the average back.
+  for (unsigned int i = 0;i<vm.size(); i++)
+    meanr += vm[i];
+  // Project meanr back to SO(3) via polar decomposition:  
+  meanr = (1.0 / vm.size()) * meanr;
+  vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;
+  vnl_matrix<double> PolR(3, 3), PolS(3, 3);
+  MyMatrix::PolarDecomposition(meanr, PolR, PolS);
+  meanr = PolR;
+    
+  return meanr;
+
+}
+
+
+/**
  Computes geometric mean of matrices in vector vm.
   If n=-1 set n number of elements in vm (default)
   else use n for the division (usefull, if some elements are the identity matrix and not
@@ -1826,6 +1899,25 @@ vnl_matrix < double > MyMatrix::GeometricMean(const std::vector < vnl_matrix < d
   geo = MatrixExp((1.0/n) * geo);
   return geo;
 }
+
+/**
+ Computes geometric mean of matrices in vector vm.
+  If n=-1 set n number of elements in vm (default)
+  else use n for the division (usefull, if some elements are the identity matrix and not
+  passed in the array).
+  geo = exp ( sum_i log(mv[i]) / n )
+ */
+vnl_matrix < double > MyMatrix::GeometricMean(const std::vector < vnl_matrix_fixed < double, 3, 3 > > & vm, int n)
+{
+  assert(vm.size() > 0);
+  if (n==-1) n=(int)vm.size();
+  vnl_matrix < double > geo(MatrixLog(vm[0]));
+  for (unsigned int i = 1;i<vm.size();i++)
+    geo = geo + MatrixLog(vm[i]);
+  geo = MatrixExp((1.0/n) * geo);
+  return geo;
+}
+
 
 // vnl_matrix < double > MyMatrix::GeometricMean(const std::vector < vnl_matrix < double > > & vm, int n)
 // // Computes ( mv[0] * mv[1] ... * mv[m] )^{1/n}
@@ -2027,6 +2119,14 @@ double MyMatrix::getFrobeniusDiff(const vnl_matrix<double>&m1,
  */
 double MyMatrix::RotMatrixLogNorm(const vnl_matrix_fixed<double, 4, 4>& m)
 {
+
+  // for rotation matrices:
+  // tr R = 1 + 2 cos (theta)  , |theta| < pi
+  // log R  = 0 for theta =0
+  //        = (theta / (2 sin(theta)) ) * ( R - R^T)
+  // see also Moakher , Means and averaging in the group of rotations
+  
+
   // assert we have no stretching only rot (and trans)
   double det = vnl_determinant(m);
   //cout << " det: " << det << endl;

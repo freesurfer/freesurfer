@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/04 16:22:32 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/03/20 20:22:27 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -100,10 +100,13 @@ public:
   //! Returns rotation matrix (multiples of 90 degrees)
   static vnl_matrix_fixed<double, 4, 4> getRot(int i);
   
+  //! Mean Rotation
+  static vnl_matrix_fixed < double, 3, 3> RotationMean(const std::vector < vnl_matrix_fixed < double, 3, 3 > > &vm);
 
   //! Geometric mean
   static vnl_matrix < double > GeometricMean(const std::vector < vnl_matrix < double > > &vm, int n=-1);
-
+  static vnl_matrix < double > GeometricMean(const std::vector < vnl_matrix_fixed < double, 3, 3 > > &vm, int n=-1);
+  
   //! Polar Decomposition: A = R * S  (R orthogonal, S pos. semi def, symmetric)
   static void PolarDecomposition(const vnl_matrix<double> &A,
       vnl_matrix<double> &R, vnl_matrix<double> &S);
