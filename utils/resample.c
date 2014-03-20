@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/07 19:33:14 $
- *    $Revision: 1.47 $
+ *    $Date: 2014/03/20 15:48:05 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1798,21 +1798,23 @@ MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol, MATRIX *Qa2v, float projfrac)
   points of the grid is controlled by resmm. The actual distance will
   be changed so as to assure that the entire output volume is
   uniformly sampled. If resmm is negative, then it is interpreted as
-  an upsampling factor (USF=round(abs(resmm))).  segidlist is a
-  complete list of segmentation ids (excluding 0) and nsegs is the
-  number (equal to the number of frames in the output).  This can be
-  obtained with segidlist = MRIsegIdListNot0(seg, &nsegs, 0).  The sum
-  of PVFs across seg will not always equal 1 because the background is
-  not treated as a segmentation.  MRIseg2SegPVF() is built for speed
-  and has several optimizations, one of which is that some data are
-  precomputed and cached. If the mask or segmentation changes, then
-  call with ReInit=1. Run with ReInit=-1 to free the memory in the
-  cache.  This function uses OMP.  See also MRIsegPVF2Seg(),
+  an upsampling factor (USF=round(abs(resmm))).  If resmm==0, then it
+  is set to the minimum voxel size in the segmentation, which is
+  probably reasonable.  segidlist is a complete list of segmentation
+  ids (excluding 0) and nsegs is the number (equal to the number of
+  frames in the output).  This can be obtained with segidlist =
+  MRIsegIdListNot0(seg, &nsegs, 0).  The sum of PVFs across seg will
+  not always equal 1 because the background is not treated as a
+  segmentation.  MRIseg2SegPVF() is built for speed and has several
+  optimizations, one of which is that some data are precomputed and
+  cached. If the mask or segmentation changes, then call with
+  ReInit=1. Run with ReInit=-1 to free the memory in the cache.  This
+  function uses OMP.  See also MRIsegPVF2Seg(),
   MRIsegPVF2TissueTypePVF(), MRIseg2TissueType().  If ct is non-NULL,
   then the segmentation is computed based on maximum PVF.  See
   VOXsegPVF2Seg().  There is no specific advantage to upsampling or
   masking seg.  mask is a mask in the output space; anything outside
-  of the mask is set to 0.
+  of the mask is set to 0.  
 */
 MRI *MRIseg2SegPVF(MRI *seg, LTA *seg2vol, double resmm, int *segidlist, int nsegs, 
 		   MRI *mask, int ReInit, COLOR_TABLE *ct, MRI *out)
@@ -1853,6 +1855,8 @@ MRI *MRIseg2SegPVF(MRI *seg, LTA *seg2vol, double resmm, int *segidlist, int nse
   else                             lta = LTAcopy(seg2vol,NULL);
   if(lta->type != LINEAR_VOX_TO_VOX) LTAchangeType(lta, LINEAR_VOX_TO_VOX);
   vg = &(lta->xforms[0].src);
+
+  if(resmm == 0) resmm = MIN(MIN(seg->xsize,seg->ysize),seg->zsize);
 
   if(resmm > 0){
     // compute number of subsamples based on passed resolution
