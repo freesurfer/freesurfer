@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: ayendiki $
-#    $Date: 2013/08/15 22:14:53 $
-#    $Revision: 1.33 $
+#    $Author: zkaufman $
+#    $Date: 2014/03/20 15:25:06 $
+#    $Revision: 1.34 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.33 2013/08/15 22:14:53 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.34 2014/03/20 15:25:06 zkaufman Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -435,7 +435,7 @@ else
       foreach reg ($reglist)
         set avgmode = $avgname${ntrain}_${xspace}_$reg
 
-        set outdir = dpathlong
+        set outdir = dpath
 
         if ($dopathsubdirs) then
           set outdir = $outdir/${nsample}samp
@@ -570,18 +570,17 @@ else
         set cmd = ($cmd --bpdir     dmri.bedpostX)
         set cmd = ($cmd --ntr       $nstick)
         set cmd = ($cmd --fmin      $fmin)
-        set cmd = ($cmd --basereg   dmri/xfms/anatbase2diff.$reg.mat)
+        set cmd = ($cmd --basereg   dmri/xfms/anatorig2diff.$reg.mat)
         set cmd = ($cmd --basemask  $labdir/anatorig/$basemask.nii.gz)
         set cmd = ($cmd --roi1      $roi1list)
         set cmd = ($cmd --roi2      $roi2list)
         if ($xspace == mni) then
-          set cmd = ($cmd --reg     $xfmdir/anatbase2mni.mat)
+          set cmd = ($cmd --reg     $xfmdir/anatorig2mni.mat)
         else if ($xspace == cvs) then
           # Hack: Using one time point for now!
-          set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
+          if ($tplist[1] != $cvstemp) then
+            set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
 
-          set cmd = ($cmd --reg     $xfmdir_t/anatbase2anatorig.mat)
-          if ($subj != $cvstemp) then
             set cmd = ($cmd --regnl $xfmdir_t/cvs/$cvswarp.m3z)
           endif
         endif
