@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: ayendiki $
-#    $Date: 2013/12/04 16:36:01 $
-#    $Revision: 1.53 $
+#    $Author: zkaufman $
+#    $Date: 2014/03/20 15:22:43 $
+#    $Revision: 1.54 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.53 2013/12/04 16:36:01 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.54 2014/03/20 15:22:43 zkaufman Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -558,6 +558,8 @@ else				#--->>> Multiple time points for each subject
       endif
     end
 
+    set tplist = `printf "%s.long.$bsubj " $tplist`
+
     # Depending on which step of the analysis I am preforming,
     # I may need to process the time points, the base, or all of the above
     set proclist = ()
@@ -921,7 +923,11 @@ if ($dostats) then
     exit 1
   endif
 
-  set statdir = $dtroot/stats
+  if ($#baselist == 0) then
+    set statdir = $dtroot/stats
+  else
+    set statdir = $dtroot/stats.long
+  endif
 
   if ($RunIt) then
     mkdir -p $statdir
@@ -938,11 +944,7 @@ if ($dostats) then
   foreach ntrain ($ntrainlist)
     foreach xspace ($xspacelist)
       foreach reg ($reglist)
-        if ($#baselist == 0) then
-          set outdir = dpath
-        else
-          set outdir = dpathlong
-        endif
+        set outdir = dpath
 
         if ($dopathsubdirs) then
           set outdir = $outdir/${nsample}samp
