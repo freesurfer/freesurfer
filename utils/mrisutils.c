@@ -6,9 +6,9 @@
 /*
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/01/29 20:41:14 $
- *    $Revision: 1.44 $
+ *    $Author: greve $
+ *    $Date: 2014/03/21 16:57:46 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2575,4 +2575,66 @@ MRI_SP *MRISmakeTemplate(int nsubjects, char **subjlist, int nhemis, char **hemi
     }
   }
   return(mrisp_template);
+}
+
+/*
+\fn int MRISsetPialUnknownToWhite(MRIS *white, MRIS *pial)
+\brief Sets the vertex xyz of the pial equal to that of the white
+  in vertices that have no annotation ("unknown"). Either the 
+  white or the pial must have an annotation. If both have an
+  annotation, then white's is used.
+*/
+int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial)
+{
+  int vtxno,UseWhite;
+  int annot=0,annotid=0;
+
+  if(white->ct == NULL && pial->ct == NULL){
+    printf("MRISsetPialUnknownToWhite(): neither white nor pial have an annotation\n");
+    return(1);
+  }
+
+  if(white->ct != NULL) UseWhite = 1;
+  else                  UseWhite = 0;
+
+  #ifdef _OPENMP
+  #pragma omp parallel for firstprivate(annot,annotid)
+  #endif
+  for(vtxno = 0; vtxno < white->nvertices; vtxno++){
+    // Convert annotation number to an entry number
+    if(UseWhite){
+      annot = white->vertices[vtxno].annotation;
+      CTABfindAnnotation(white->ct, annot, &annotid);
+    }
+    else{
+      annot = pial->vertices[vtxno].annotation;
+      CTABfindAnnotation(pial->ct, annot, &annotid);
+    }
+    if(annotid == -1 || white->vertices[vtxno].ripflag || pial->vertices[vtxno].ripflag) {
+      pial->vertices[vtxno].x = white->vertices[vtxno].x;
+      pial->vertices[vtxno].y = white->vertices[vtxno].y;
+      pial->vertices[vtxno].z = white->vertices[vtxno].z;
+    }
+  }
+  MRIScomputeMetricProperties(pial);
+  return(0);
+}
+
+/*
+  \fn int MRISripUnknown(MRIS *surf)
+  \brief Sets the ripflag = 1 in places where the annotation is unknown
+ */
+int MRISripUnknown(MRIS *surf)
+{
+  int nripped = 0,vtxno,annot,annotid;
+
+  for (vtxno = 0; vtxno < surf->nvertices; vtxno++) {
+    annot = surf->vertices[vtxno].annotation;
+    CTABfindAnnotation(surf->ct, annot, &annotid);
+    if(annotid == 0 || annotid == -1){
+      surf->vertices[vtxno].ripflag = 1;
+      nripped++;
+    }
+  }
+  return(0);
 }

@@ -7,8 +7,8 @@
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/03 21:28:35 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/03/21 16:57:46 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,4 +70,7 @@ MRISsampleProfile(MRI_SURFACE *mris, MRI *mri, double *profile, int nsamples, in
 		  double l4x, double l4y, double l4z,
 		  double px,  double py,  double pz) ;
 MRI_SP *MRISmakeTemplate(int nsubjects, char **subjlist, int nhemis, char **hemilist, char *surfregname);
+int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial);
+int MRISripUnknown(MRIS *surf);
+
 #endif
