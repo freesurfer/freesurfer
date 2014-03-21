@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/04 16:43:52 $
- *    $Revision: 1.207 $
+ *    $Author: ayendiki $
+ *    $Date: 2014/03/21 00:28:06 $
+ *    $Revision: 1.208 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -137,8 +137,8 @@ int main(int argc, char *argv[])
   char template_type_string[STRLEN];
   char reslice_like_name[STRLEN];
   int reslice_like_flag;
-  int frame_flag, mid_frame_flag;
-  int frame;
+  int nframes = 0, frame_flag, mid_frame_flag;
+  int frames[2000];
   int subsample_flag, SubSampStart, SubSampDelta, SubSampEnd;
   int downsample2_flag ;
   int downsample_flag;
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.207 2014/03/04 16:43:52 greve Exp $",
+   "$Id: mri_convert.c,v 1.208 2014/03/21 00:28:06 ayendiki Exp $",
    "$Name:  $",
    cmdline);
 
@@ -338,7 +338,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.207 2014/03/04 16:43:52 greve Exp $",
+      "$Id: mri_convert.c,v 1.208 2014/03/21 00:28:06 ayendiki Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1111,7 +1111,11 @@ int main(int argc, char *argv[])
     }
     else if(strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--frame") == 0)
     {
-      get_ints(argc, argv, &i, &frame, 1);
+      nframes = 1;
+      while (i+1+nframes < argc && strncmp(argv[i+1+nframes], "-", 1))
+        nframes++;
+
+      get_ints(argc, argv, &i, frames, nframes);
       frame_flag = TRUE;
     }
     else if(strcmp(argv[i], "--erode-seg") == 0)
@@ -1651,7 +1655,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.207 2014/03/04 16:43:52 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.208 2014/03/21 00:28:06 ayendiki Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -3137,14 +3141,29 @@ int main(int argc, char *argv[])
   {
     if(mid_frame_flag == TRUE)
     {
-      frame = nint(mri->nframes/2);
+      nframes = 1;
+      frames[0] = nint(mri->nframes/2);
     }
-    printf("keeping frame %d\n",frame);
-    mri2 = fMRIframe(mri, frame, NULL);
-    if (mri2 == NULL)
-    {
-      exit(1);
+    if (nframes == 1)
+      printf("keeping frame %d\n", frames[0]);
+    else {
+      printf("keeping frames");
+      for (f = 0; f < nframes; f++)
+        printf(" %d", frames[i]);
+      printf("\n");
     }
+    mri2 = MRIallocSequence(mri->width, mri->height, mri->depth,
+                            mri->type, nframes);
+    if (mri2==NULL)
+      ErrorExit(ERROR_NOMEMORY, "could not allocate memory");
+    MRIcopyHeader(mri,mri2);
+    MRIcopyPulseParameters(mri,mri2);
+    for (f = 0; f < nframes; f++)
+      for (s = 0; s < mri2->depth; s++)
+        for (r = 0; r < mri2->height; r++)
+          for (c = 0; c < mri2->width; c++)
+            MRIsetVoxVal(mri2, c, r, s, f, 
+                         MRIgetVoxVal(mri, c, r, s, frames[f]));
     MRIfree(&mri);
     mri = mri2;
   }
