@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/15 16:11:52 $
- *    $Revision: 1.51 $
+ *    $Date: 2014/03/21 16:07:53 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2226,6 +2226,8 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
       if(n >= 2000 && n <= 2035) TT = TTCtxGM;
       if(n >= 3000 && n <= 3035) TT = TTWM;
       if(n >= 4000 && n <= 4035) TT = TTWM;
+      if(n >= 3201 && n <= 3207) TT = TTWM;
+      if(n >= 4201 && n <= 4207) TT = TTWM;
       if(n >= 1100 && n <= 1181) TT = TTCtxGM;
       if(n >= 2100 && n <= 2181) TT = TTCtxGM;
       if(n >= 3100 && n <= 3181) TT = TTWM;
@@ -2289,4 +2291,22 @@ int CTABprintASCIItt(COLOR_TABLE *ct, FILE *fp)
   }
 
   return (ERROR_NONE);
+}
+/*--------------------------------------------------------------*/
+/*!
+\fn int CTABwriteFileASCIItt(COLOR_TABLE *ct, const char *fname)
+\brief Writes the color table including tissue type information.
+with ribbon values if the aseg is CtxGM or CtxWM or unknown.
+\param ct - color table with tissue type info
+*/
+int CTABwriteFileASCIItt(COLOR_TABLE *ct, const char *fname)
+{
+  FILE *fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: could not open %s for writing\n",fname);
+    return(1);
+  }
+  CTABprintASCIItt(ct, fp);
+  fclose(fp);
+  return(0);
 }
