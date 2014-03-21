@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/01/17 00:30:19 $
- *    $Revision: 1.378 $
+ *    $Author: greve $
+ *    $Date: 2014/03/21 23:58:50 $
+ *    $Revision: 1.379 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,7 @@
 #define MAX_CMDS 1000
 
 #define NEW_VERSION_MAGIC_NUMBER  16777215 // was in mrisurf.c
+#define WHICH_FACE_SPLIT(vno0, vno1) (1*nint(sqrt(1.9*vno0) + sqrt(3.5*vno1)));
 
 typedef struct _area_label
 {
@@ -2090,7 +2091,7 @@ MRI_SURFACE *MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mri
 #define TAUBIN_EDGE_WEIGHTS      2
 
 MRI *MRIcomputeLaminarVolumeFractions(MRI_SURFACE *mris, double res, MRI *mri_src, MRI *mri_vfracs) ;
-
+int mrisFindNeighbors(MRI_SURFACE *mris);
 
 #define SURFACE_SMOOTH_STEPS_TO_SIGMA(iter)   (sqrt((double)iter) * M_PI / 2.0)
 #define SIGMA_TO_SURFACE_SMOOTH_STEPS(sigma)  SQR(2.0*sigma/M_PI)

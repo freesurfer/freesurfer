@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/20 20:59:52 $
- *    $Revision: 1.757 $
+ *    $Date: 2014/03/21 23:58:50 $
+ *    $Revision: 1.758 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -352,7 +352,7 @@ static int   mrisClipGradient(MRI_SURFACE *mris, float max_len) ;
 static int   mrisClipMomentumGradient(MRI_SURFACE *mris, float max_len) ;
 #endif
 static int   mrisComputeSurfaceDimensions(MRI_SURFACE *mris) ;
-static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
+//static int   mrisFindNeighbors(MRI_SURFACE *mris) ;
 static void  mrisNormalize(float v[3]) ;
 static float mrisTriangleArea(MRIS *mris, int fac, int n) ;
 static int   mrisNormalFace(MRIS *mris, int fac,int n,float norm[]) ;
@@ -774,7 +774,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.757 2014/02/20 20:59:52 greve Exp $");
+  return("$Id: mrisurf.c,v 1.758 2014/03/21 23:58:50 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1017,7 +1017,6 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
 
       /* if we're going to be arbitrary,
          we might as well be really arbitrary */
-#define WHICH_FACE_SPLIT(vno0, vno1) (1*nint(sqrt(1.9*vno0) + sqrt(3.5*vno1)))
       /*
         NOTE: for this to work properly in the write, the first two
         vertices in the first face (EVEN and ODD) must be 0 and 1.
@@ -1166,7 +1165,6 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
         = fno;
     }
   }
-
 
   xhi=yhi=zhi= -10000;
   xlo=ylo=zlo= 10000;
@@ -2119,8 +2117,7 @@ MRISresetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 #define MAX_2_NEIGHBORS     20
 #define MAX_1_NEIGHBORS     8
 #define MAX_NEIGHBORS       (10000)
-static int
-mrisFindNeighbors(MRI_SURFACE *mris)
+int mrisFindNeighbors(MRI_SURFACE *mris)
 {
   int          n0,n1,i,k,m,n, vno, vtotal, ntotal, vtmp[MAX_NEIGHBORS] ;
   FACE         *f;
@@ -3864,22 +3861,15 @@ MRIScomputeNormals(MRI_SURFACE *mris)
       }
       else
       {
-        if (i++ > 5)
-        {
-          continue ;
-        }
+        if (i++ > 5) continue ;
 
-        if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
-        {
-          fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
-        }
+	if(Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	  printf("vertex %d: i=%d, degenerate normal, seed=%ld, nc=%ld, fixing\n", k,i,getRandomSeed(),getRandomCalls()) ;
 
         if ((mris->status == MRIS_SPHERICAL_PATCH ||
              mris->status == MRIS_PARAMETERIZED_SPHERE ||
              mris->status == MRIS_SPHERE) && DIAG_VERBOSE_ON)
-        {
           fprintf(stderr, "vertex %d: degenerate normal\n", k) ;
-        }
 
         v->x += (float)randomNumber(-RAN, RAN) ;
         v->y += (float)randomNumber(-RAN, RAN) ;
@@ -3894,6 +3884,8 @@ MRIScomputeNormals(MRI_SURFACE *mris)
         v->z += (float)randomNumber(-RAN, RAN) ;
         for (n=0; n<v->vnum; n++) /*if (!mris->faces[v->f[n]].ripflag)*/
         {
+	  if(Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+	    printf("   k=%5d %d nbr = %5d / %d\n",k,n,v->v[n],v->vnum);
           mris->vertices[v->v[n]].x += (float)randomNumber(-RAN, RAN) ;
           mris->vertices[v->v[n]].y += (float)randomNumber(-RAN, RAN) ;
           mris->vertices[v->v[n]].z += (float)randomNumber(-RAN, RAN) ;
