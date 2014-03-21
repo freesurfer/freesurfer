@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/18 16:25:34 $
- *    $Revision: 1.30 $
+ *    $Date: 2014/03/21 17:00:52 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.30 2014/03/18 16:25:34 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.31 2014/03/21 17:00:52 greve Exp $
 
 /*
   BEGINHELP
@@ -51,8 +51,6 @@
 // 1. Bounding box smoothing
 // 2. FFT smoothing, sparse FFT
 // 3. Subvoxel
-// 4. Parallel
-// 5. XtX symetric
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,6 +77,9 @@
 #include "resample.h"
 #include "numerics.h"
 #include "registerio.h"
+#include "mrisurf.h"
+#include "mrisutils.h"
+#include "cma.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -93,7 +94,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.30 2014/03/18 16:25:34 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.31 2014/03/21 17:00:52 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -219,7 +220,6 @@ char *SUBJECTS_DIR;
 int CheckX(MATRIX *X);
 int dngtest(LTA *aseg2vol);
 
-MRI *MRIaseg2volFrame(MRI *aseg, LTA *aseg2vol, int *segidlist, int nsegs, MRI *out);
 int myfunc();
 
 /*---------------------------------------------------------------*/
@@ -229,6 +229,7 @@ int main(int argc, char *argv[])
   double vrfmin,vrfmax,vrfmean;
   struct timeb  mytimer, timer;
   MRI *gtmres;
+  FILE *fp;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -237,8 +238,9 @@ int main(int argc, char *argv[])
   uname(&uts);
   getcwd(cwd,2000);
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  myfunc();
-  exit(1);
+
+  //myfunc();
+  //exit(1);
 
   gtm = GTMalloc();
   gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
@@ -274,6 +276,10 @@ int main(int argc, char *argv[])
       return(1);
     }
   }
+  sprintf(tmpstr,"%s/mri_rbvpvc.log",OutDir);
+  fp = fopen(tmpstr,"w");
+  dump_options(fp);
+  fclose(fp);
 
   TimerStart(&timer);
 
@@ -289,6 +295,11 @@ int main(int argc, char *argv[])
     MRIfree(&gtm->anatseg);
     gtm->anatseg = mritmp;
   }
+  if(CheckSegTissueType(gtm->anatseg, gtm->ctGTMSeg)) exit(1);
+  gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
+  sprintf(tmpstr,"%s/seg.lut",OutDir);
+  CTABwriteFileASCIItt(gtm->ctGTMSeg,tmpstr);
+
   if(ttReduce > 0) {
     MRI *ttseg;
     COLOR_TABLE *ctTT;
@@ -586,7 +597,7 @@ static int parse_commandline(int argc, char **argv) {
     //sscanf(pargv[0],"%d",&niterations);
     //nargsused = 1;
     //} 
-    else if (!strcasecmp(option, "--o") || !strcasecmp(option, "--rbv")) {
+    else if(!strcasecmp(option, "--rbv")) {
       if (nargc < 1) CMDargNErr(option,1);
       RBVVolFile = pargv[0];
       nargsused = 1;
@@ -639,7 +650,7 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if(!strcasecmp(option, "--rvar-only"))
       RVarOnly = 1;
-    else if(!strcasecmp(option, "--odir")) {
+    else if(!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
       OutDir = pargv[0];
       sprintf(tmpstr,"%s/rvar.dat",OutDir);
@@ -702,7 +713,7 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --src volfile : source data to PVC\n");
+  printf("   --i  inputvol : source data to PVC\n");
   printf("   --mask volfile : ignore areas outside of the mask (in src vol space)\n");
   printf("   --psf psfmm : scanner PSF FWHM in mm\n");
   printf("   --seg segfile : anatomical segmentation to define regions for GTM\n");
@@ -797,8 +808,9 @@ static void check_options(void)
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
   fprintf(fp,"%s\n",vcid);
-  fprintf(fp,"cwd %s\n",cwd);
-  fprintf(fp,"cmdline %s\n",cmdline);
+  fprintf(fp,"setenv SUBJECTS_DIR %s\n",SUBJECTS_DIR);
+  fprintf(fp,"cd %s\n",cwd);
+  fprintf(fp,"%s\n",cmdline);
   fprintf(fp,"sysname  %s\n",uts.sysname);
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
@@ -1745,31 +1757,118 @@ int GTMbuildX(GTM *gtm)
 
 int myfunc()
 {
-  MRI *aseg,*seg;
+  MRI *aseg,*ctxseg;
   MRIS *lhw, *lhp, *rhw, *rhp;
-  LTA *aseg2hrseg;
+  MRI *seg;
+  LTA *aseg2hrseg=NULL; 
   int err;
+  struct timeb timer;
+  COLOR_TABLE *ct;
 
-  aseg = MRIread("aseg.mgz");
+  ct = TissueTypeSchema(NULL,"default-jan-2014");
+
+  printf("Reading vols and surfs\n");
+  aseg = MRIread("gtmseg.aseg.mgz");
   if(aseg->type != MRI_INT) aseg = MRIchangeType(aseg, MRI_INT, 0,0,1);
 
+  //MRI *ribbon = MRIread("ribbon.mgz");
+  //MRIfixAsegWithRibbon(aseg,ribbon,aseg);
+  //MRIwrite(aseg,"aseg.fixed.mgh");
+
   lhw = MRISread("../surf/lh.white");
-  lhp = MRISread("../surf/lh.pial");
-  rhw = MRISread("../surf/rh.white");
-  rhp = MRISread("../surf/rh.pial");
   printf("Loading annots\n");fflush(stdout);
-  err = MRISreadAnnotation(lhw, "../label/lh.lobes.annot");
-  if(err) exit(1);
-  err =   MRISreadAnnotation(lhp, "../label/lh.petseg.annot");
-  if(err) exit(1);
-  err =   MRISreadAnnotation(rhw, "../label/rh.lobes.annot");
-  if(err) exit(1);
-  err =   MRISreadAnnotation(rhp, "../label/rh.petseg.annot");
-  if(err) exit(1);
+  //err = MRISreadAnnotation(lhw, "../label/lh.lobes.annot");  if(err) exit(1);
+  rhw = MRISread("../surf/rh.white");
+  //err =   MRISreadAnnotation(rhw, "../label/rh.lobes.annot");  if(err) exit(1);
+
+  lhp = MRISread("../surf/lh.pial");
+  rhp = MRISread("../surf/rh.pial");
+  err =   MRISreadAnnotation(lhw, "../label/lh.lobes.annot");  if(err) exit(1);
+  err =   MRISreadAnnotation(rhw, "../label/rh.lobes.annot");  if(err) exit(1);
+  err =   MRISreadAnnotation(lhp, "../label/lh.aparc.annot");  if(err) exit(1);
+  err =   MRISreadAnnotation(rhp, "../label/rh.aparc.annot");  if(err) exit(1);
+
+  lhp->ct->idbase = 1000;
+  rhp->ct->idbase = 2000;
+  lhw->ct->idbase = 3200;
+  rhw->ct->idbase = 4200;
+
+  MRISsetPialUnknownToWhite(lhw, lhp);
+  MRISsetPialUnknownToWhite(rhw, rhp);
+  MRISripUnknown(lhw);
+  MRISripUnknown(lhp);
+  MRISripUnknown(rhw);
+  MRISripUnknown(rhp);
+
+  //MRISwrite(lhp,"../surf/lh.pial.dng");
+  //MRISwrite(rhp,"../surf/rh.pial.dng");
+  //printf("done writing surf\n");
+
+
   printf("Beginning hires seg\n");fflush(stdout);
   seg = MRIhiresSeg(aseg, lhw, lhp, rhw, rhp, 2, &aseg2hrseg);
-  MRIwrite(seg,"dngseg.mgh");
+  LTAwrite(aseg2hrseg,"aseg2hrseg.lta");
+  //MRIwrite(seg,"dng.aseg.mgh");
+
+  printf("Beginning annot2ctx\n");fflush(stdout);
+  TimerStart(&timer);
+  ctxseg = MRIannot2CorticalSeg(seg, lhw, lhp, rhw, rhp, NULL, NULL);
+  //MRIwrite(ctxseg,"ctxseg.usf.mgh");
+  ctxseg = MRIannot2CerebralWMSeg(ctxseg, lhw, rhw, 5, NULL, ctxseg);
+  printf(" time %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
   printf("myfunc done\n");fflush(stdout);
+
+  int nlist=0, srclist[100], targlist[100];
+  srclist[nlist] =   85; targlist[nlist] =    0; nlist++;
+  srclist[nlist] = 1000; targlist[nlist] =    0; nlist++;
+  srclist[nlist] = 2000; targlist[nlist] =    0; nlist++;
+  srclist[nlist] = 1016; targlist[nlist] = 1006; nlist++; // parahip=entorhynal
+  srclist[nlist] = 2016; targlist[nlist] = 2006; nlist++; // parahip=entorhynal
+  srclist[nlist] = 1033; targlist[nlist] = 1030; nlist++; // temppole=stg
+  srclist[nlist] = 2033; targlist[nlist] = 2030; nlist++; // temppole=stg
+  srclist[nlist] = 1034; targlist[nlist] = 1030; nlist++; // transtemp=stg
+  srclist[nlist] = 2034; targlist[nlist] = 1030; nlist++; // transtemp=stg
+  srclist[nlist] = 1001; targlist[nlist] = 1015; nlist++; // bankssts=mtg
+  srclist[nlist] = 2001; targlist[nlist] = 2015; nlist++; // bankssts=mtg
+  srclist[nlist] = 1032; targlist[nlist] = 1027; nlist++; // frontpole=rmf
+  srclist[nlist] = 2032; targlist[nlist] = 2027; nlist++; // frontpole=rmf
+
+  srclist[nlist] =    4; targlist[nlist] =   24; nlist++; // LLatVent
+  srclist[nlist] =    5; targlist[nlist] =   24; nlist++; // LInfLatVent
+  srclist[nlist] =   14; targlist[nlist] =   24; nlist++; // 3rd
+  srclist[nlist] =   15; targlist[nlist] =   24; nlist++; // 4th
+  srclist[nlist] =   72; targlist[nlist] =   24; nlist++; // 5th
+  srclist[nlist] =   31; targlist[nlist] =   24; nlist++; // LChoroidP
+  srclist[nlist] =   43; targlist[nlist] =   24; nlist++; // RLatVent
+  srclist[nlist] =   44; targlist[nlist] =   24; nlist++; // RInfLatVent
+  srclist[nlist] =   63; targlist[nlist] =   24; nlist++; // RChoroidP
+  srclist[nlist] =   30; targlist[nlist] =   24; nlist++; // LVessel
+  srclist[nlist] =   62; targlist[nlist] =   24; nlist++; // RVessel
+
+  srclist[nlist] =  251; targlist[nlist] =  192; nlist++; // CC
+  srclist[nlist] =  252; targlist[nlist] =  192; nlist++; // CC
+  srclist[nlist] =  253; targlist[nlist] =  192; nlist++; // CC
+  srclist[nlist] =  254; targlist[nlist] =  192; nlist++; // CC
+  srclist[nlist] =  255; targlist[nlist] =  192; nlist++; // CC
+
+  srclist[nlist] =  85; targlist[nlist] =  0; nlist++; // OpticChi
+
+  ctxseg = MRIreplaceList(ctxseg, srclist, targlist, nlist, NULL);
+
+  //printf("writing ctxseg\n");
+  //MRIwrite(ctxseg2,"wmparc.usf.mgh");
+  //exit(1);
+
+  int nsegs, *segidlist;
+  MRI *seg2;
+  segidlist = MRIsegIdListNot0(ctxseg, &nsegs, 0);
+  seg2 = MRIseg2SegPVF(ctxseg, aseg2hrseg, 0, segidlist, nsegs, NULL, 0, ct, NULL);
+
+  printf("writing anat seg\n");  
+  MRIwrite(seg2,"ctxseg.usf2.anat.mgh");
+
+  printf("done\n");  
+
+
   return(0);
 }
-
