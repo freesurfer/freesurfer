@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/18 23:00:57 $
- *    $Revision: 1.86 $
+ *    $Date: 2014/03/21 22:11:12 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,13 +70,23 @@ static long idum = 0L ;
 int
 setRandomSeed(long seed)
 {
-  idum = seed ;
 
   // also seed the 'standard' random number generators: rand() and random()
   srand(seed);
   srandom(seed);
 
   // seed vnl_random thingy
+  if(idum == seed){
+    /* If you want to reseed it to the same seed you had before, you have to run OpenRan1() 
+       with a different seed, then run it again with the same seed as before, otherwise
+       it does not restart the generator.  This change was made by DNG on March 21, 2014.
+       It might break automatic tests that try to test with the same seed. This code
+       is called by MRIScomputeNormals() when there is a degenerate vertex where the
+       average normal is 0.*/
+    long idummy = seed - 1;
+    OpenRan1(&idummy);
+  }
+  idum = seed ;
   OpenRan1(&idum);
 
   return(NO_ERROR) ;
