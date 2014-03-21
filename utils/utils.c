@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 22:11:12 $
- *    $Revision: 1.87 $
+ *    $Date: 2014/03/21 23:52:05 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ int isblank (int c);
   Return Values:
   nothing.
   ------------------------------------------------------------------------*/
-static long idum = 0L ;
+static long idum = 0L, nrgcalls=0L ;
 int
 setRandomSeed(long seed)
 {
@@ -88,6 +88,7 @@ setRandomSeed(long seed)
   }
   idum = seed ;
   OpenRan1(&idum);
+  nrgcalls = 1;
 
   return(NO_ERROR) ;
 }
@@ -95,6 +96,10 @@ setRandomSeed(long seed)
 long getRandomSeed(void)
 {
   return(idum);
+}
+long getRandomCalls(void)
+{
+  return(nrgcalls);
 }
 
 double
@@ -114,7 +119,8 @@ randomNumber(double low, double hi)
 
   range = hi - low ;
   val = OpenRan1(&idum) * range + low ;
-
+  //printf("randomcall %3ld %12.10lf\n",nrgcalls,val);
+  nrgcalls++;
   if ((val < low) || (val > hi))
     ErrorPrintf(ERROR_BADPARM, "randomNumber(%2.1f, %2.1f) - %2.1f\n",
                 (float)low, (float)hi, (float)val) ;

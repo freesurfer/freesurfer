@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/05/30 12:53:01 $
- *    $Revision: 1.51 $
+ *    $Author: greve $
+ *    $Date: 2014/03/21 23:52:04 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,7 @@ extern "C" {
 double randomNumber(double low, double hi) ;
 int    setRandomSeed(long seed) ;
 long getRandomSeed(void);
+long getRandomCalls(void);
 double normAngle(double angle) ;
 float  deltaAngle(float angle1, float angle2) ;
 double calcDeltaPhi(double phi1, double phi2) ;
