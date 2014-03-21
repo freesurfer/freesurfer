@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/03/15 03:36:59 $
- *    $Revision: 1.51 $
+ *    $Date: 2014/03/21 15:38:15 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -313,6 +313,9 @@ void MultiRegistration::initRegistration(RegRobust & R)
   {
     R.setRigid();
   }
+  else
+    R.setAffine();
+    
   R.setIscale(iscale);
   if (transonly)
     R.setTransonly();
@@ -1253,6 +1256,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 
     RegRobust R;
     initRegistration(R); //set parameter
+    //R.setRigid(); // stay rigid for averaging initial template space, after that allow affine
     R.setVerbose(0);
     R.setSourceAndTarget(mri_mov[j], mri_mov[tpi], keeptype);
     R.setName(oss.str());
@@ -1346,83 +1350,76 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
   // convert to ras2ras and invert (to map from tpi to each other image
   vector<vnl_matrix_fixed<double, 4, 4> > mras(nin);
   mras[0].set_identity();
+  vector<vnl_matrix_fixed<double, 3, 3> > mras3(nin);
+  mras3[0].set_identity();
+  vnl_vector_fixed<double, 3> meant(0.0);
+  vnl_matrix_fixed<double, 3, 3> lin;
+  vnl_vector_fixed<double, 3> trans;
+  vnl_matrix_fixed < double , 4 , 4 > mrasinv;
+
   for (int i = 1; i < nin; i++)
   {
     int j = index[i];
     //cout << "  computing coord of TP " << j + 1 << " ( " << mov[j] << " )" << endl;
     //cout << "   wrt to TP " << tpi + 1 << " ( " << mov[tpi] << " )" << endl;
     mras[i] = MyMRI::MRIvoxelXformToRasXform(mri_mov[j], mri_mov[tpi], Md[i].first);
+    // mras is also needed later!
+    
     ////vnl_matlab_print(vcl_cout,mras[i],"mras",vnl_matlab_print_format_long);std::cout << std::endl;
     
-    mras[i] = vnl_inverse(mras[i]);    
-  } 
-
-  assert(rigid); // averaging below is only for rigid (we split rot and trans)
-
-  // find mean translation and rotation (in RAS coordinates)
-  vnl_matrix_fixed<double, 3, 3> rot;
-  //rot.set_identity();
-  //vnl_matrix_fixed<double, 3, 3> roti;
-  vnl_vector_fixed<double, 3> trans;
-  vnl_vector_fixed<double, 3> meant(0.0);
-  vnl_matrix_fixed<double, 3, 3> meanr;
-  meanr.set_identity();
-//  std::vector < vnl_matrix < double > > rotinv(nin-1);
-  for (int i = 1; i < nin; i++)
-  {
-
-    // split into rotation translation
-    MyMatrix::getRTfromM(mras[i], rot, trans);
+    // invert so that each transform points from tpi to other time points
+    mrasinv = vnl_inverse(mras[i]);    
+    
+    // split translation and linear matrix (rotation, when rigid):
+    MyMatrix::getRTfromM(mrasinv, lin, trans);
     //vnl_matlab_print(vcl_cout,trans,"trans",vnl_matlab_print_format_long);std::cout << std::endl;
-    //vnl_matlab_print(vcl_cout,rot,"rot",vnl_matlab_print_format_long);std::cout << std::endl;
+    //vnl_matlab_print(vcl_cout,lin,"lin",vnl_matlab_print_format_long);std::cout << std::endl;
 
     // these point from TPI to each image as we inverted the RAS2RAS above
     // so no further processing is necessary as
-    // M x = R x + t
-    // M^-1 x = R' ( x - t ) = R' x - R' t (which is what we summed up before)
+    // M x = A x + t
+    // M^-1 x = A^(-1) ( x - t ) = A^(-1) x - A^(-1) t (which is what we had summed up before)
+    // This way the linear map A is done first and then things are moved
+    // so we can simply average the linear (or rotation) part and the translation 
+    // separately and put back together. Thus the linear average will be applied fist, then trans.
+
+    // simply average translation part
     meant += trans;
-    meanr += rot;
+
+    // store linear or rigid part for later:
+    mras3[i] = lin;
     
-//  old (before inverting RAS2RAS) : 
-//    // reverse order (first translate, then rotate)
-//    // rot stays, trans changes: Rx+t = R (x + R^{-1} t)
-//    roti = rot.transpose(); // inverse
-//    //vnl_matlab_print(vcl_cout,roti,"roti",vnl_matlab_print_format_long);std::cout << std::endl;
-//
-//    trans = roti * trans;
-//    //cout << " transi: - " << endl ;
-//    //vnl_matlab_print(vcl_cout,trans,"transi",vnl_matlab_print_format_long);std::cout << std::endl;
-//
-////     if (P.debug) // output transonly
-////     {
-////       ostringstream oss;
-////       int j = index[i];
-////       oss << outdir << "tp" << j+1 << "_to_tp"<<tpi<<"-transonly";
-////       MATRIX *Mtemp = getMfromRT(NULL,trans,NULL);
-////       LTA * nlta = RASmatrix2LTA(Mtemp,P.mri_mov[j],P.mri_mov[tpi]);
-////       MRI* warped = LTAtransform(P.mri_mov[j],NULL, nlta);
-////       MRIwrite(warped, (oss.str()+".mgz").c_str()) ;
-////       LTAfree(&nlta);
-////       MRIfree(&warped);
-////       MatrixFree(&Mtemp);         
-////     }
-//    meant -= trans;
-//    meanr += roti;
+  } 
+  //average translation
+  meant = (1.0 / nin) * meant;
+  if (debug)
+    vnl_matlab_print(vcl_cout,meant,"meant",vnl_matlab_print_format_long);std::cout << std::endl;  
+
+  // find mean rotation or linear map (in RAS coordinates)
+  vnl_matrix_fixed<double, 3, 3> meanr;
+  if (rigid)
+    meanr = MyMatrix::RotationMean(mras3);
+  else
+    meanr = MyMatrix::GeometricMean(mras3);
+  
+  if (debug)
+  {
+    vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;  
+
+    cout << " Determinant( meanr ) : " << vnl_determinant(meanr) << endl << endl;
+      cout << " Decompose into Rot * Shear * Scale : " << endl << endl;
+      vnl_matrix<double> Rot, Shear;
+      vnl_diag_matrix<double> Scale;
+      MyMatrix::Polar2Decomposition(meanr, Rot, Shear, Scale);
+      vnl_matlab_print(vcl_cout,Rot,"Rot",vnl_matlab_print_format_long);
+      cout << endl;
+      vnl_matlab_print(vcl_cout,Shear,"Shear",vnl_matlab_print_format_long);
+      cout << endl;
+      vnl_matlab_print(vcl_cout,Scale,"Scale",vnl_matlab_print_format_long);
+      cout << endl;
   }
 
-  //average
-  meant = (1.0 / nin) * meant;
-  //vnl_matlab_print(vcl_cout,meant,"meant",vnl_matlab_print_format_long);std::cout << std::endl;  
-
-//  meanr = MyMatrix::GeometricMean(rotinv,nin);
-  // Project meanr back to SO(3) via polar decomposition:  
-  meanr = (1.0 / nin) * meanr;
-  //vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;
-  vnl_matrix<double> PolR(3, 3), PolS(3, 3);
-  MyMatrix::PolarDecomposition(meanr, PolR, PolS);
-  meanr = PolR;
-  //vnl_matlab_print(vcl_cout,meanr,"meanrpol",vnl_matlab_print_format_long);std::cout << std::endl;
-
+  // put back together to matrix in homogeneous coords
   vnl_matrix_fixed<double, 4, 4> Mm(MyMatrix::getMfromRT(meanr, meant));
 
 
@@ -1490,29 +1487,37 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     M = Mm * mras[i];
 //vnl_matlab_print(vcl_cout,M,"M",vnl_matlab_print_format_long);std::cout << std::endl;
 
-//       {
-//         vnl_matrix < double > R(3,3),S(3,3),A(3,3),I(3,3);
-//         I.set_identity();
-//         M.extract(A);
-//         MyMatrix::PolarDecomposition(A,R,S);
-//         if (S[0][0] < 0.0 || S[1][1] < 0.0 || S[2][2] < 0.0)
-//           ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error:  produced reflection.\n") ;
-//         double eps = 0.00000000000001;
-//         
-//         double fnorm1 = (S-I).frobenius_norm();
-//         if (fnorm1 > eps)
-//         {
-//           std::cerr << "Internal Error: " << std::endl;
-//           std::cerr << " Rotation should not scale ( "<< fnorm1 << " )" << std::endl;
-//           std::cerr << " Debug Info: " << std::endl;
-//           vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;
-//           vnl_matlab_print(vcl_cerr,R,"R",vnl_matlab_print_format_long);std::cerr << std::endl;
-//           vnl_matlab_print(vcl_cerr,S,"S",vnl_matlab_print_format_long);std::cerr << std::endl;
-//           
-//         
-//           ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Sqrt of Rotation should not scale.\n") ;
-//         }
-//       }
+    if (rigid)
+    {
+         vnl_matrix < double > R(3,3),S(3,3),A(3,3),I(3,3);
+         I.set_identity();
+         M.extract(A);
+         MyMatrix::PolarDecomposition(A,R,S);
+         if (S[0][0] < 0.0 || S[1][1] < 0.0 || S[2][2] < 0.0)
+           ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error:  produced reflection.\n") ;
+         double eps = 0.00001;
+         
+         double fnorm1 = (S-I).frobenius_norm();
+         if (fnorm1 > eps)
+         {
+           std::cerr << "Internal Error for tp " << j << " -> template" << std::endl;
+           std::cerr << " Rotation should not scale ( "<< fnorm1 << " )" << std::endl;
+           std::cerr << " Debug Info: " << std::endl;
+           vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;
+           vnl_matlab_print(vcl_cerr,R,"R",vnl_matlab_print_format_long);std::cerr << std::endl;
+           vnl_matlab_print(vcl_cerr,S,"S",vnl_matlab_print_format_long);std::cerr << std::endl;
+           
+         
+           ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Rotation should not scale.\n") ;
+         }
+     
+        cout << "   mapping back to rot, err = " << fnorm1 << endl;
+        M.update(R);
+        M.set_row(3, 0.0);
+        M[3][3] = 1.0;
+         
+         
+    }
 
     // make lta from M (M is RAS to RAS)
     assert(ltas.size() == mri_mov.size());
