@@ -7,8 +7,8 @@
  * Original Author: F. Segonne 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 22:12:36 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/03/21 23:59:31 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -581,8 +581,6 @@ static int saveTesselation(tesselation_parms *parms)
     face2=&parms->face[m];
 
     /* if we're going to be arbitrary, we might as well be really arbitrary */
-#define WHICH_FACE_SPLIT(vno0, vno1) \
-            (1*nint(sqrt(1.9*vno0) + sqrt(3.5*vno1)))
     /*
        NOTE: for this to work properly in the write, the first two
        vertices in the first face (EVEN and ODD) must be 0 and 1.
