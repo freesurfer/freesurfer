@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/07 20:58:33 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/03/21 23:57:48 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,7 +111,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.19 2011/12/07 20:58:33 greve Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.20 2014/03/21 23:57:48 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -136,7 +136,7 @@ static int ComputeNormalDist=0;
 static int CheckCurv=0;
 static int CheckAParc=0;
 static double thresh=0;
-static double seed=1234;
+static long seed=1234;
 
 static int error_count=0;
 static int MAX_NUM_ERRORS=10; // in loops, stop after this many errors found
@@ -229,8 +229,6 @@ int main(int argc, char *argv[]) {
     MRI    *mri_dist ;
 
     mri_dist = MRIalloc(surf1->nvertices,1,1,MRI_FLOAT) ;
-    MRIScomputeMetricProperties(surf1) ;
-    MRIScomputeMetricProperties(surf2) ;
     for (nthvtx=0; nthvtx < surf1->nvertices; nthvtx++) {
       vtx1 = &(surf1->vertices[nthvtx]);
       vtx2 = &(surf2->vertices[nthvtx]);
@@ -603,11 +601,18 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&thresh);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--maxerrs")) {
+    } 
+    else if (!strcasecmp(option, "--maxerrs")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&MAX_NUM_ERRORS);
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcasecmp(option, "--seed")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%ld",&seed);
+      nargsused = 1;
+    } 
+    else {
       if (surf1path == NULL) {
         surf1path = option;
         CheckSurf=1;
@@ -653,6 +658,7 @@ static void print_usage(void) {
   printf("   --no-check-nxyz : do not check vertex normals\n");
   printf("   --xyz-rms xyzrmsfile : compute and save rms diff between xyz\n");
   printf("   --angle-rms anglermsfile : compute angle on sphere between xyz\n");
+  printf("   --seed seed : set random seed for degenerate normals\n");
   printf("\n");
   printf("   --debug       turn on debugging\n");
   printf("   --checkopts   don't run anything, just check options and exit\n");
@@ -746,6 +752,7 @@ static void dump_options(FILE *fp) {
   if (curvname) fprintf(fp,"curvname  %s\n",curvname);
   if (aparcname)fprintf(fp,"aparcname %s\n",aparcname);
   if (aparc2name)fprintf(fp,"aparc2name %s\n",aparc2name);
+  fprintf(fp,"seed %ld\n",seed);
   fprintf(fp,"\n");
   fprintf(fp,"\n");
 
