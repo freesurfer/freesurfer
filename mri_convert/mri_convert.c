@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2014/03/21 00:28:06 $
- *    $Revision: 1.208 $
+ *    $Date: 2014/03/21 21:08:52 $
+ *    $Revision: 1.209 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -139,6 +139,7 @@ int main(int argc, char *argv[])
   int reslice_like_flag;
   int nframes = 0, frame_flag, mid_frame_flag;
   int frames[2000];
+  char *errormsg;
   int subsample_flag, SubSampStart, SubSampDelta, SubSampEnd;
   int downsample2_flag ;
   int downsample_flag;
@@ -213,7 +214,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.208 2014/03/21 00:28:06 ayendiki Exp $",
+   "$Id: mri_convert.c,v 1.209 2014/03/21 21:08:52 ayendiki Exp $",
    "$Name:  $",
    cmdline);
 
@@ -338,7 +339,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.208 2014/03/21 00:28:06 ayendiki Exp $",
+      "$Id: mri_convert.c,v 1.209 2014/03/21 21:08:52 ayendiki Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1111,9 +1112,14 @@ int main(int argc, char *argv[])
     }
     else if(strcmp(argv[i], "-f") == 0 || strcmp(argv[i], "--frame") == 0)
     {
-      nframes = 1;
-      while (i+1+nframes < argc && strncmp(argv[i+1+nframes], "-", 1))
+      nframes = 0;
+      do
+      {
         nframes++;
+        if (i+1+nframes < argc && strncmp(argv[i+1+nframes], "-", 1))
+          strtol(argv[i+1+nframes], &errormsg, 10);
+      }
+      while (i+1+nframes < argc && strncmp(argv[i+1+nframes], "-", 1) && *errormsg == '\0');
 
       get_ints(argc, argv, &i, frames, nframes);
       frame_flag = TRUE;
@@ -1655,7 +1661,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.208 2014/03/21 00:28:06 ayendiki Exp $\n");
+  printf("$Id: mri_convert.c,v 1.209 2014/03/21 21:08:52 ayendiki Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
