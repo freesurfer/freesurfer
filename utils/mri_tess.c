@@ -6,9 +6,9 @@
 /*
  * Original Author: F. Segonne 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.9 $
+ *    $Author: greve $
+ *    $Date: 2014/03/21 22:12:36 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -119,7 +119,7 @@ static void initTesselationParms(tesselation_parms *parms);
 static int freeTesselationParms(tesselation_parms **parms);
 static void allocateTesselation(tesselation_parms *parms);
 static void freeTesselation(tesselation_parms *parms);
-static int mrisFindNeighbors(MRI_SURFACE *mris);
+static int mrisFindNeighbors2(MRI_SURFACE *mris);
 static int saveTesselation(tesselation_parms *parms);
 static void add_face(int imnr, int i, int j, int f, int prev_flag
                      ,tesselation_parms *parms) ;
@@ -423,7 +423,10 @@ static void freeTesselation(tesselation_parms *parms)
 #define MAX_1_NEIGHBORS     8
 #define MAX_NEIGHBORS       (400)
 
-static int mrisFindNeighbors(MRI_SURFACE *mris)
+
+/* This may be the same as that in mrisurf.c. Whoever wrote it should
+   NOT have done this. Very bad programming. */
+static int mrisFindNeighbors2(MRI_SURFACE *mris)
 {
   int          n0,n1,i,k,m,n, vno, vtotal, ntotal, vtmp[MAX_NEIGHBORS] ;
   FACE         *f;
@@ -457,7 +460,7 @@ static int mrisFindNeighbors(MRI_SURFACE *mris)
     mris->vertices[k].v = (int *)calloc(mris->vertices[k].vnum,sizeof(int));
     if (!mris->vertices[k].v)
       ErrorExit(ERROR_NOMEMORY,
-                "mrisFindNeighbors: could not allocate nbr array") ;
+                "mrisFindNeighbors2: could not allocate nbr array") ;
 
     v->vtotal = v->vnum ;
     v->nsize = 1 ;
@@ -474,12 +477,12 @@ static int mrisFindNeighbors(MRI_SURFACE *mris)
     v->dist = (float *)calloc(v->vnum, sizeof(float)) ;
     if (!v->dist)
       ErrorExit(ERROR_NOMEMORY,
-                "mrisFindNeighbors: could not allocate list of %d "
+                "mrisFindNeighbors2: could not allocate list of %d "
                 "dists at v=%d", v->vnum, k) ;
     v->dist_orig = (float *)calloc(v->vnum, sizeof(float)) ;
     if (!v->dist_orig)
       ErrorExit(ERROR_NOMEMORY,
-                "mrisFindNeighbors: could not allocate list of %d "
+                "mrisFindNeighbors2: could not allocate list of %d "
                 "dists at v=%d", v->vnum, k) ;
     /*
         if (v->num != v->vnum)
@@ -677,7 +680,7 @@ static int saveTesselation(tesselation_parms *parms)
   mris->yctr = (yhi+ylo)/2;
   mris->zctr = (zhi+zlo)/2;
 
-  mrisFindNeighbors(mris);
+  mrisFindNeighbors2(mris);
   MRIScomputeNormals(mris);
 
   mris->type = MRIS_TRIANGULAR_SURFACE; /*not so sure about that*/
