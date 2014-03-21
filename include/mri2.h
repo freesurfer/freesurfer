@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/18 16:24:02 $
- *    $Revision: 1.56 $
+ *    $Date: 2014/03/21 16:08:55 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -73,6 +73,7 @@ MRI *MRIvol2VolDelta(MRI *mov, MRI *targ, MATRIX *Rt2s);
 MRI *MRIexp(MRI *mri, double a, double b, MRI *mask, MRI *out);
 MRI *MRIsum(MRI *mri1, MRI *mri2, double a, double b, MRI *mask, MRI *out);
 MRI *MRIvote(MRI *in, MRI *mask, MRI *vote);
+int MRImostFreqNeighbor(MRI *mri, int c, int r, int s, int f, int delta);
 
 #define VOX2VOXREGTYPE_FILE 0 /* Use specifed file */
 #define VOX2VOXREGTYPE_FIND 1 /* Look for register.dat in movable MRI dir */
@@ -129,8 +130,9 @@ MRI *MRIpartialVolumeFraction(LTA *seg2vol, MRI *seg, double resmm, COLOR_TABLE 
 MRI *MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp, 
 				MRIS *rhw, MRIS *rhp, int USF, double resmm, COLOR_TABLE *ct, MRI *pvf);
 
-int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask);
+int MRIcountMatches(const MRI *seg, const int MatchVal, const int frame, const MRI *mask);
 MRI *MRIaddExtraCerebralCSF(MRI *seg, int nDil, MRI *out);
+COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg);
 
 #if defined(__cplusplus)
 };

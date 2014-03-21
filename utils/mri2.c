@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/18 16:24:02 $
- *    $Revision: 1.101 $
+ *    $Date: 2014/03/21 16:08:56 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1949,7 +1949,40 @@ MRI *MRIvote(MRI *in, MRI *mask, MRI *vote)
   return(vote);
 }
 
+/*
+\fn int MRImostFreqNeighbor(MRI *mri, int c, int r, int s, int f, int delta)
+\brief Returns the most frequent value from within a neighborhood of the
+column, row, and slice at the given frame. The neighborhood size is within
+delta of the center voxel and includes the center voxel. Ie, the number
+of voxels searched is (2*delta + 1)^3
+*/
+int MRImostFreqNeighbor(MRI *mri, int c, int r, int s, int f, int delta)
+{
+  int dc,dr,ds,cn,rn,sn,nbr;
+  int nlist, *list, nmax,nside;
 
+  nside = 2*delta + 1;
+  list = (int *) calloc(sizeof(int),nside*nside*nside);
+
+  nlist = 0;
+  for(dc=-delta; dc <= delta; dc++){
+    cn = c + dc;
+    if(cn < 0 || cn >= mri->width) continue;
+    for(dr=-delta; dr <= delta; dr++){
+      rn = r + dr;
+      if(rn < 0 || rn >= mri->height) continue;
+      for(ds=-delta; ds <= delta; ds++){
+	sn = s + ds;
+	if(sn < 0 || sn >= mri->depth) continue;
+	list[nlist] = MRIgetVoxVal(mri,cn,rn,sn,f);
+	nlist++;
+      }
+    }
+  }
+  nbr = most_frequent_int_list(list, nlist, &nmax);
+  free(list);
+  return(nbr);
+}
 
 /* MRImakeVox2VoxReg() - takes a target volume, a movable volume, a
    registration method, and an optional registration filename, and
@@ -4062,6 +4095,7 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
   MRI *asegus,*lhwvol,*rhwvol,*lhpvol,*rhpvol,*seg;
   int c,r,s, asegv,lhwv,rhwv,lhpv,rhpv,segv,lhRibbon,rhRibbon,Ribbon,SubCort;
   int nPad=2;
+  int HasXCSF,UnknownFill;
 
   asegus = NULL;
   if(aseg != NULL){
@@ -4089,6 +4123,12 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
   }
   seg  = MRIcopy(asegus,NULL); 
   MRIcopyHeader(asegus,seg);
+
+  // Check whether the seg has an extracerebral CSF segmentation
+  HasXCSF = MRIcountMatches(aseg, CSF_ExtraCerebral, 0, aseg);
+  if(HasXCSF > 0) UnknownFill = CSF_ExtraCerebral;
+  else            UnknownFill = 0;
+  printf("  MRIhiresSeg(): filling unknowns with %d\n",UnknownFill);fflush(stdout);
 
   if(lhw){
     //printf("lhw -------------\n");
@@ -4161,11 +4201,11 @@ MRI *MRIhiresSeg(MRI *aseg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, int USF,
 	     be set to the seg of nearby voxels.*/
 	  if(asegv == Left_Cerebral_Cortex)       {
 	    if(lhpv) segv = Left_Cerebral_White_Matter; 
-	    else     segv = CSF_ExtraCerebral;
+	    else     segv = UnknownFill;
 	  }
 	  else if(asegv == Right_Cerebral_Cortex){
 	    if(rhpv)   segv = Right_Cerebral_White_Matter;
-	    else       segv = CSF_ExtraCerebral;
+	    else       segv = UnknownFill;
 	  }
 	  else{
 	    // To get here aseg can only be CerebralWM, CSF_ExtraCerebral, Head_ExtraCerebral 
@@ -4303,12 +4343,16 @@ MRI *MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp,
   \brief Count the number of times there is a match in seg at the given frame
   within the mask (mask can be null).
  */
-int MRIcountMatches(MRI *seg, int MatchVal, int frame, MRI *mask)
+int MRIcountMatches(const MRI *seg, const int MatchVal, const int frame, const MRI *mask)
 {
   int nMatches = 0;
-  int c, r, s;
+  int c;
 
+  #ifdef _OPENMP
+  #pragma omp parallel for reduction(+:nMatches) 
+  #endif
   for(c=0; c < seg->width; c++){
+    int r,s;
     for(r=0; r < seg->height; r++){
       for(s=0; s < seg->depth; s++){
 	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
@@ -4368,4 +4412,36 @@ MRI *MRIaddExtraCerebralCSF(MRI *seg, int nDil, MRI *out)
   if(Gdiag_no > 0) printf("MRIaddExtraCerebralCSF(): Added %d CSF_ExtraCerebral voxels\n",nxcsf);
   if(mask) MRIfree(&mask);
   return(out);
+}
+/*
+\fn COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg)
+\brief Creates a new CTAB with only the segments in seg
+*/
+COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg)
+{
+  COLOR_TABLE *ct;
+  int *segidlist,nsegs,segid,n;
+
+  segidlist = MRIsegIdList(seg, &nsegs, 0); //list of segs and nsegs
+
+  ct = CTABalloc(segidlist[nsegs-1]+1);
+  for(n=0; n < ct->nentries; n++) { // start by setting all to NULL
+    free(ct->entries[n]);
+    ct->entries[n] = NULL;
+  }
+
+  for(n=0; n < nsegs; n++){
+    segid = segidlist[n];
+    if(ct0->entries[segid] == NULL){
+      printf("ERROR: CTABpruneCTab(): ctab does not have segid %d\n",segid);
+      return(NULL);
+    }
+    ct->entries[segid] = (CTE*) calloc(sizeof(CTE),1);
+    memcpy(ct->entries[segid],ct0->entries[segid],sizeof(CTE));
+  }
+
+  if(ct0->ctabTissueType) ct->ctabTissueType = CTABdeepCopy(ct0->ctabTissueType);
+
+  free(segidlist);
+  return(ct);
 }
