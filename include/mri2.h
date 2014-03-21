@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 16:08:55 $
- *    $Revision: 1.57 $
+ *    $Date: 2014/03/21 16:58:24 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,6 +133,8 @@ MRI *MRIpartialVolumeFractionAS(LTA *aseg2vol, MRI *aseg, MRIS *lhw, MRIS *lhp,
 int MRIcountMatches(const MRI *seg, const int MatchVal, const int frame, const MRI *mask);
 MRI *MRIaddExtraCerebralCSF(MRI *seg, int nDil, MRI *out);
 COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg);
+MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, LTA *anat2seg, MRI *ctxseg);
+MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, LTA *anat2seg, MRI *wmseg);
 
 #if defined(__cplusplus)
 };

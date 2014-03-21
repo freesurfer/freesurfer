@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 16:08:56 $
- *    $Revision: 1.102 $
+ *    $Date: 2014/03/21 16:58:24 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4445,3 +4445,299 @@ COLOR_TABLE *CTABpruneCTab(const COLOR_TABLE *ct0, MRI *seg)
   free(segidlist);
   return(ct);
 }
+
+/*
+  \fn MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, LTA *anat2seg, MRI *ctxseg)
+  \brief Creates a segmentation of the cortical labels
+  (X_Cerebral_Cortex) found in seg based upon the annotation of the
+  nearest cortical vertex. For unknown areas, the segmentation is
+  given CSF_ExtraCerebral if that segno already exists in seg,
+  otherwise it is give 0. The annotion is expected to be in the pial
+  surfaces. anat2seg is the registration between the
+  surface/anatomical space and the segmentation space. If they share a
+  space, then just use NULL. The surface space is obtained from
+  lhw->vg. This function basically is what is done when creating
+  aparc+aseg.mgz. It is recommended that MRISsetPialUnknownToWhite()
+  be run on the pial surfaces before using this function. The output
+  will be the same size as seg.
+ */
+MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, LTA *anat2seg, MRI *ctxseg)
+{
+  MATRIX *AnatVox2SurfRAS,*SegVox2SurfRAS;
+  float hashres = 16;
+  MHT *lhw_hash=NULL,*rhw_hash=NULL,*lhp_hash=NULL,*rhp_hash=NULL;
+  LTA *lta;
+  MRI *anat;
+  int c,nunknown;
+  int HasXCSF,UnknownFill;
+
+  if(lhw->vg.valid != 1){
+    printf("ERROR: MRIannot2CorticalSeg(): lhw does not have a valid geometry\n");
+    return(NULL);
+  }
+
+  if(ctxseg == NULL){
+    ctxseg = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_INT,1);
+    MRIcopyHeader(seg,ctxseg);
+    MRIcopyPulseParameters(seg,ctxseg);
+  }
+  if(MRIdimMismatch(seg,ctxseg,0)){
+    printf("ERROR: MRIannot2CorticalSeg(): dimension mismatch\n");
+    return(NULL);
+  }
+
+  // Create an MRI for the anatomical voume the surfaces were generated from
+  anat = MRIallocFromVolGeom(&(lhw->vg), MRI_INT, 1, 1);
+
+  // Compute an LTA that maps from the anatomical to the segmentation
+  if(anat2seg == NULL) lta = TransformRegDat2LTA(anat, seg, NULL);
+  else {
+    if(LTAmriIsTarget(anat2seg, seg)) lta = LTAcopy(anat2seg,NULL);
+    else                              lta = LTAinvert(anat2seg,NULL);
+  }
+  if(lta->type != LINEAR_VOX_TO_VOX) LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+  LTAfillInverse(lta);
+
+  // Anatomical Vox to Surface RAS
+  AnatVox2SurfRAS = MRIxfmCRS2XYZtkreg(anat);
+  // Segmentation Vox to Surface RAS
+  SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS,lta->inv_xforms[0].m_L,NULL);
+
+  // Create the hash for faster service
+  lhw_hash = MHTfillVertexTableRes(lhw, NULL,CURRENT_VERTICES,hashres);
+  lhp_hash = MHTfillVertexTableRes(lhp, NULL,CURRENT_VERTICES,hashres);
+  rhw_hash = MHTfillVertexTableRes(rhw, NULL,CURRENT_VERTICES,hashres);
+  rhp_hash = MHTfillVertexTableRes(rhp, NULL,CURRENT_VERTICES,hashres);
+
+  // Check whether the seg has an extracerebral CSF segmentation
+  HasXCSF = MRIcountMatches(seg, CSF_ExtraCerebral, 0, seg);
+  if(HasXCSF > 0) UnknownFill = CSF_ExtraCerebral;
+  else            UnknownFill = 0;
+
+  printf("  MRIannot2CorticalSeg(): looping over volume\n");fflush(stdout);
+  nunknown=0;
+  #ifdef _OPENMP
+  #pragma omp parallel for reduction(+:nunknown) 
+  #endif
+  for(c=0; c < seg->width; c++){
+    int r,s,asegv,annot,annotid,vtxno,wvtxno,pvtxno,segv,wmval;
+    VERTEX vtx;
+    MATRIX *RAS=NULL,*CRS=NULL;
+    float wdw,pdw;
+    MRIS *wsurf,*psurf;
+    MHT *whash=NULL,*phash=NULL;
+    CRS = MatrixAlloc(4,1,MATRIX_REAL);
+    CRS->rptr[4][1] = 1;
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	asegv = MRIgetVoxVal(seg,c,r,s,0);
+
+	if(asegv!=Left_Cerebral_Cortex && asegv!=Right_Cerebral_Cortex) {
+	  // If not in the ribbon, just copy seg to output and continue
+	  MRIsetVoxVal(ctxseg,c,r,s,0,asegv);
+	  continue;
+	}
+
+	if(asegv==Left_Cerebral_Cortex){
+	  wsurf = lhw;
+	  whash = lhw_hash;
+	  phash = lhp_hash;
+	  psurf = lhp;
+	  wmval = Left_Cerebral_White_Matter;
+	}
+	else {
+	  wsurf = rhw;
+	  whash = rhw_hash;
+	  phash = rhp_hash;
+	  psurf = rhp;
+	  wmval = Right_Cerebral_White_Matter;
+	}
+
+	// Compute location of voxel in surface space
+	CRS->rptr[1][1] = c;
+	CRS->rptr[2][1] = r;
+	CRS->rptr[3][1] = s;
+	RAS = MatrixMultiply(SegVox2SurfRAS,CRS,RAS);
+	vtx.x = RAS->rptr[1][1];
+	vtx.y = RAS->rptr[2][1];
+	vtx.z = RAS->rptr[3][1];
+
+	// Find closest white surface vertex and compute distance
+	wvtxno = MHTfindClosestVertexNo(whash,wsurf,&vtx,&wdw);
+	if(wvtxno < 0) wvtxno = MRISfindClosestVertex(wsurf,vtx.x,vtx.y,vtx.z,&wdw);
+
+	// Find closest pial surface vertex and compute distance
+	pvtxno = MHTfindClosestVertexNo(phash,psurf,&vtx,&pdw);
+	if(pvtxno < 0) pvtxno = MRISfindClosestVertex(psurf,vtx.x,vtx.y,vtx.z,&pdw);
+
+	// Use the vertex that is closest
+	if(wdw <= pdw) vtxno = wvtxno;
+	else           vtxno = pvtxno;
+	
+	// From the surface annotation, get the annotation number
+	annot = psurf->vertices[vtxno].annotation;
+	// Convert annotation number to an entry number
+	CTABfindAnnotation(psurf->ct, annot, &annotid);
+	// Set segmentation to entry number + idbase
+	if(annotid != -1) segv = annotid + psurf->ct->idbase;
+	else{
+	  segv = UnknownFill; // no annotation present
+	  nunknown++;
+	}
+	MRIsetVoxVal(ctxseg,c,r,s,0,segv);
+      }
+    }
+    MatrixFree(&CRS);
+    if(RAS) MatrixFree(&RAS);
+  }
+  printf("  MRIannot2CorticalSeg(): found %d unknown, filled with %d\n",nunknown,UnknownFill);fflush(stdout);
+
+  MHTfree(&lhw_hash);
+  MHTfree(&rhw_hash);
+  MHTfree(&rhp_hash);
+  MHTfree(&lhp_hash);
+  MatrixFree(&SegVox2SurfRAS);
+  MatrixFree(&AnatVox2SurfRAS);
+  MRIfree(&anat);
+  LTAfree(&lta);
+
+  return(ctxseg);
+}
+
+/*
+  \fn MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, LTA *anat2seg, MRI *wmseg)
+  \brief Creates a segmentation of the cerebral WM
+  (X_Cerebral_White_Matter) found in seg based upon the annotation of
+  the nearest white vertex within DistThresh mm of the cortex. If it
+  is beyond the distance threshold then 5001 or 5002 is used. If
+  DistThresh is negative, then no distance threshold is used.
+  anat2seg is the registration between the surface/anatomical space
+  and the segmentation space. If they share a space, then just use
+  NULL. The surface space is obtained from lhw->vg. The output will be
+  the same size as seg. Note that a voxel in seg must be labeled as
+  X_Cerebral_White_Matter for it to receive a new label. This means
+  that if you want hypointensities to be re-labeld, you must change
+  the hypointensities label to that of X_Cerebral_White_Matter.  This
+  function basically is what is done when creating wmparc.mgz.
+ */
+MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, LTA *anat2seg, MRI *wmseg)
+{
+  MATRIX *AnatVox2SurfRAS,*SegVox2SurfRAS;
+  float hashres = 16;
+  MHT *lhw_hash=NULL,*rhw_hash=NULL;
+  LTA *lta;
+  MRI *anat;
+  int c;
+
+  if(lhw->vg.valid != 1){
+    printf("ERROR: MRIannot2CerebralWMSeg(): lhw does not have a valid geometry\n");
+    return(NULL);
+  }
+
+  if(wmseg == NULL){
+    wmseg = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_INT,1);
+    MRIcopyHeader(seg,wmseg);
+    MRIcopyPulseParameters(seg,wmseg);
+  }
+  if(MRIdimMismatch(seg,wmseg,0)){
+    printf("ERROR: MRIannot2CerebralWMSeg(): dimension mismatch\n");
+    return(NULL);
+  }
+
+  // Create an MRI for the anatomical voume the surfaces were generated from
+  anat = MRIallocFromVolGeom(&(lhw->vg), MRI_INT, 1, 1);
+
+  // Compute an LTA that maps from the anatomical to the segmentation
+  if(anat2seg == NULL) lta = TransformRegDat2LTA(anat, seg, NULL);
+  else {
+    if(LTAmriIsTarget(anat2seg, seg)) lta = LTAcopy(anat2seg,NULL);
+    else                              lta = LTAinvert(anat2seg,NULL);
+  }
+  if(lta->type != LINEAR_VOX_TO_VOX) LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+  LTAfillInverse(lta);
+
+  // Anatomical Vox to Surface RAS
+  AnatVox2SurfRAS = MRIxfmCRS2XYZtkreg(anat);
+  // Segmentation Vox to Surface RAS
+  SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS,lta->inv_xforms[0].m_L,NULL);
+
+  // Create the hash for faster service
+  lhw_hash = MHTfillVertexTableRes(lhw, NULL,CURRENT_VERTICES,hashres);
+  rhw_hash = MHTfillVertexTableRes(rhw, NULL,CURRENT_VERTICES,hashres);
+
+
+  printf("  MRIannot2CerebralWMSeg(): looping over volume\n");fflush(stdout);
+  #ifdef _OPENMP
+  #pragma omp parallel for 
+  #endif
+  for(c=0; c < seg->width; c++){
+    int r,s,asegv,annot,annotid,wvtxno,segv,wmunknown;
+    VERTEX vtx;
+    MATRIX *RAS=NULL,*CRS=NULL;
+    float wdw;
+    MRIS *wsurf;
+    MHT *whash=NULL;
+    CRS = MatrixAlloc(4,1,MATRIX_REAL);
+    CRS->rptr[4][1] = 1;
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	asegv = MRIgetVoxVal(seg,c,r,s,0);
+
+	if(asegv!=Left_Cerebral_White_Matter && asegv!=Right_Cerebral_White_Matter){
+	  // If not in WM, just copy seg to output and continue
+	  MRIsetVoxVal(wmseg,c,r,s,0,asegv);
+	  continue;
+	}
+
+	if(asegv==Left_Cerebral_White_Matter){
+	  wsurf = lhw;
+	  whash = lhw_hash;
+	  wmunknown = 5001;
+	}
+	else {
+	  wsurf = rhw;
+	  whash = rhw_hash;
+	  wmunknown = 5002;
+	}
+
+	// Compute location of voxel in surface space
+	CRS->rptr[1][1] = c;
+	CRS->rptr[2][1] = r;
+	CRS->rptr[3][1] = s;
+	RAS = MatrixMultiply(SegVox2SurfRAS,CRS,RAS);
+	vtx.x = RAS->rptr[1][1];
+	vtx.y = RAS->rptr[2][1];
+	vtx.z = RAS->rptr[3][1];
+
+	// Find closest white surface vertex and compute distance
+	wvtxno = MHTfindClosestVertexNo(whash,wsurf,&vtx,&wdw);
+	if(wvtxno < 0) wvtxno = MRISfindClosestVertex(wsurf,vtx.x,vtx.y,vtx.z,&wdw);
+
+	if(wdw <= DistThresh || DistThresh < 0 ){
+	  // From the surface annotation, get the annotation number
+	  annot = wsurf->vertices[wvtxno].annotation;
+	  // Convert annotation number to an entry number
+	  CTABfindAnnotation(wsurf->ct, annot, &annotid);
+	  // Set segmentation to entry number + idbase
+	  if(annotid != -1) segv = annotid + wsurf->ct->idbase;
+	  else    	    segv = wmunknown; // no annotation present
+	}
+	else segv = wmunknown;
+	MRIsetVoxVal(wmseg,c,r,s,0,segv);
+      }
+    }
+    MatrixFree(&CRS);
+    if(RAS) MatrixFree(&RAS);
+  }
+
+
+  MHTfree(&lhw_hash);
+  MHTfree(&rhw_hash);
+  MatrixFree(&SegVox2SurfRAS);
+  MatrixFree(&AnatVox2SurfRAS);
+  MRIfree(&anat);
+  LTAfree(&lta);
+
+  return(wmseg);
+}
+
