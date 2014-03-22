@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/22 00:32:01 $
- *    $Revision: 1.760 $
+ *    $Date: 2014/03/22 01:48:52 $
+ *    $Revision: 1.761 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -774,7 +774,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.760 2014/03/22 00:32:01 greve Exp $");
+  return("$Id: mrisurf.c,v 1.761 2014/03/22 01:48:52 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1677,19 +1677,11 @@ MRI_SURFACE *MRISfastRead(const char *fname)
 MRI_SURFACE *MRISread(const char *fname)
 {
   MRI_SURFACE  *mris ;
-  long seed;
-
-  /* Control the random seed so that MRIScomputeNormals() always does
-     the same thing, otherwise it changes the xyz of the surface if
-     it finds degenerate normals. */
-  seed = getRandomSeed();
-  setRandomSeed(1234); // matches MRIStessellate()
 
   mris = MRISreadOverAlloc(fname, 0.0) ;
   if (mris == NULL) return(NULL) ;
   MRISsetNeighborhoodSize(mris, 3) ;   // find nbhds out to 3-nbrs
   MRISresetNeighborhoodSize(mris, 1) ; // reset current size to 1-nbrs
-  setRandomSeed(seed); // restore
   return(mris) ;
 }
 
@@ -3799,6 +3791,13 @@ MRIScomputeNormals(MRI_SURFACE *mris)
   VERTEX    *v ;
   FACE      *f;
   float     norm[3],snorm[3], len ;
+  long seed;
+
+  /* Control the random seed so that MRIScomputeNormals() always does
+     the same thing, otherwise it changes the xyz of the surface if
+     it finds degenerate normals. */
+  seed = getRandomSeed();
+  setRandomSeed(1234);
 
   i = 0 ;
 
@@ -3902,6 +3901,7 @@ MRIScomputeNormals(MRI_SURFACE *mris)
   mris->vertices[0].nz = mris->vertices[0].nz / fabs(mris->vertices[0].nz) ;
 #endif
 
+  setRandomSeed(seed); // restore
   return(NO_ERROR) ;
 }
 
@@ -83619,10 +83619,8 @@ mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   \brief Creates a surface from a volume by tiling the outside of all
   the voxels that match value. The all_flag should be set if
   remove_non_hippo_voxels() has been run in mri. This function was
-  derived from mri_tessellate.c and produces the same exact result. As
-  long as the mri_tesselate surface is MRISread() immediately after
-  setRandomSeed(1234) (which is now the default in MRISread()).  It
-  calls the TESSxxx() functions below.  The code is pretty
+  derived from mri_tessellate.c and produces the same exact result. .
+  It calls the TESSxxx() functions below.  The code is pretty
   horrific. Don't blame me, I did not write it, I just copied the from
   mri_tessellate.
  */
@@ -83848,12 +83846,7 @@ MRIS *MRIStessellate(MRI *mri,  int value, int all_flag)
 
   getVolGeom(mri, &(surf->vg));
   mrisFindNeighbors(surf);
-
-  // Set seed to make sure MRIScomputeNormals() always computes the same thing
-  unsigned long seed = getRandomSeed();
-  setRandomSeed(1234); // // matches MRISread()
   MRIScomputeMetricProperties(surf) ;
-  setRandomSeed(seed);
 
   return(surf);
 }
