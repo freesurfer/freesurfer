@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2014/03/20 15:33:23 $
-#    $Revision: 1.48 $
+#    $Author: ayendiki $
+#    $Date: 2014/03/22 03:31:22 $
+#    $Revision: 1.49 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.48 2014/03/20 15:33:23 zkaufman Exp $'
+set VERSION = '$Id: trac-preproc,v 1.49 2014/03/22 03:31:22 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -444,51 +444,42 @@ if ($docorr && ! $dobase) then
 
   # Make diffusion brain mask
   if ($#nb0 > 0) then
-    set cmd = (fslroi $dwidir/dwi.nii.gz $dwidir/lowb.nii.gz 0 $nb0)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
-
-    set cmd = (fslmaths $dwidir/lowb.nii.gz -Tmean $dwidir/lowb.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
+    set lowblist = ()
+    @ k = 0
+    while ($k < $nb0)
+      set lowblist = ($lowblist $k)
+      @ k = $k + 1
+    end
   else
     set bmin = `grep -v ^$ $dwidir/dwi_orig.mghdti.bvals \
                 | sort --numeric-sort | head -1`
-    set flist = `cat $dwidir/dwi_orig.mghdti.bvals \
-                 | awk -v bmin=$bmin '{if ($1 == bmin) print NR-1}'`
-    foreach iframe ($flist)
-      set cmd = mri_convert
-      set cmd = ($cmd --frame $iframe)
-      set cmd = ($cmd $dwidir/dwi.nii.gz)
-      set cmd = ($cmd $dwidir/dwi_frame$iframe.nii.gz)
-      echo $cmd |& tee -a $LF |& tee -a $CF
-      if ($RunIt) then
-        $cmd |& tee -a $LF
-        if ($status) goto error_exit
-      endif
-    end
+    set lowblist = `cat $dwidir/dwi_orig.mghdti.bvals \
+                    | awk -v bmin=$bmin '{if ($1 == bmin) print NR-1}'`
+  endif
 
-    set cmd = mri_concat
-    set cmd = ($cmd --i `printf "$dwidir/dwi_frame%s.nii.gz " $flist`)
-    set cmd = ($cmd --mean)
-    set cmd = ($cmd --o $dwidir/lowb.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
+  if (! $#lowblist) then
+    echo "ERROR: Cannot detect low-b volumes"
+    goto error_exit
+  endif
 
-    set cmd = (rm -f $dwidir/dwi_frame*.nii.gz)
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
+  set cmd = mri_convert
+  set cmd = ($cmd --frame $lowblist)
+  set cmd = ($cmd $dwidir/dwi.nii.gz)
+  set cmd = ($cmd $dwidir/lowb.nii.gz)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+
+  set cmd = mri_concat
+  set cmd = ($cmd --i $dwidir/lowb.nii.gz)
+  set cmd = ($cmd --mean)
+  set cmd = ($cmd --o $dwidir/lowb.nii.gz)
+  echo $cmd |& tee -a $LF |& tee -a $CF
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
   endif
 
   set cmd = bet
@@ -531,6 +522,54 @@ if ($doqa && ! $dobase) then
   if ($RunIt) then
     $cmd |& tee -a $LF
     if ($status) goto error_exit
+  endif
+
+  if (-e $dwidir/keepframes.txt) then		# Remove bad frames
+    set keepframes = `cat $dwidir/keepframes.txt | sort --numeric`
+
+    # Remove frames from DWI series
+    set cmd = (mv -f $dwidir/dwi.nii.gz $dwidir/dwi.full.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = mri_convert
+    set cmd = ($cmd $dwidir/$fname.full)
+    set cmd = ($cmd $dwidir/$fname)
+    set cmd = ($cmd --frame $keepframes)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Remove the respective gradient vectors and b-values
+    foreach fname (bvecs bvals)
+      set cmd = (mv -f $dwidir/$fname $dwidir/$fname.full)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) goto error_exit
+      endif
+
+      set nline = `wc -l $dwidir/$fname.full | awk '{print $1}'`
+
+      @ k = 1
+      while ($k <= $nline)
+        set linefull = `sed -n ${k}p $dwidir/$fname.full`
+
+        set line = ()
+        foreach iframe ($keepframes)
+          set line = ($line $linefull[iframe])
+        end
+
+        echo $keepline >> $dwidir/$fname
+
+        @ k = $k + 1
+      end
+    end
   endif
 endif
 
