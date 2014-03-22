@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/09/06 15:25:51 $
- *    $Revision: 1.37 $
+ *    $Author: greve $
+ *    $Date: 2014/03/22 00:41:04 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,7 +68,7 @@
 //
 
 
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.37 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.38 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,7 +92,7 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.37 $";
 #include "mrisurf.h"
 
 static char vcid[] =
-  "$Id: mri_tessellate.c,v 1.37 2013/09/06 15:25:51 fischl Exp $";
+  "$Id: mri_tessellate.c,v 1.38 2014/03/22 00:41:04 greve Exp $";
 
 #define SQR(x) ((x)*(x))
 
@@ -109,24 +109,6 @@ static int type_changed = 0;
 // orig->surface RAS is not MRIvoxelToWorld(), but more involved one
 int compatibility= 1;
 ////////////////////////////////////////////////
-
-// mrisurf.h defines bigger structures (face_type_ and vertex_type_).
-// we don't need big structure here
-typedef struct tface_type_
-{
-  int imnr,i,j,f;
-  int num;
-  int v[4];
-}
-tface_type;
-
-typedef struct tvertex_type_
-{
-  int imnr,i,j;
-  int num;
-  int f[9];
-}
-tvertex_type;
 
 tface_type *face;
 int *face_index_table0;
@@ -151,9 +133,9 @@ static int get_option(int argc, char *argv[]) ;
 static void usage_exit(int code);
 
 char *Progname ;
+int UseMRIStessellate=0;
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   char cmdline[CMD_LINE_LEN], ofpref[STRLEN] /*,*data_dir*/;
   int  nargs ;
@@ -162,13 +144,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_tessellate.c,v 1.37 2013/09/06 15:25:51 fischl Exp $",
+   "$Id: mri_tessellate.c,v 1.38 2014/03/22 00:41:04 greve Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_tessellate.c,v 1.37 2013/09/06 15:25:51 fischl Exp $",
+           "$Id: mri_tessellate.c,v 1.38 2014/03/22 00:41:04 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -187,10 +169,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
   // we removed the option
-  if (argc<3)
-  {
-    usage_exit(1);
-  }
+  if (argc<3) usage_exit(1);
   if (argc == 3)   // value not specified on cmdline - figure it out from hemi in output surf
   {
     char *cp, fname[STRLEN]  ;
@@ -238,6 +217,21 @@ main(int argc, char *argv[])
   printf("%s\n",vcid);
   printf("  %s\n",MRISurfSrcVersion());
   fflush(stdout);
+
+  if(UseMRIStessellate){
+    MRIS *mris;
+    int err;
+    printf("Using MRIStessellate())\n");
+    mris = MRIStessellate(mri,value,all_flag);
+    if(mris == NULL){
+      printf("ERROR: mri_tessellate\n");
+      exit(1);
+    }
+    err = MRISwrite(mris,ofpref);
+    if(err) exit(1);
+    printf("mri_tessellate done\n");
+    exit(0);
+  }
 
   // 4 connected (6 in 3D) neighbors
   xnum = mri->width;
@@ -627,6 +621,7 @@ get_option(int argc, char *argv[])
             atoi(argv[2])) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "new")) UseMRIStessellate=1;
   else switch (toupper(*option))
     {
     case 'H':
