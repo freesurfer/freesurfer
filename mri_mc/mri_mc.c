@@ -10,9 +10,9 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.22 $
+ *    $Author: greve $
+ *    $Date: 2014/03/22 01:40:02 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -387,7 +387,14 @@ void reallocateFaces(tesselation_parms *parms) {
 #define MAX_1_NEIGHBORS     8
 #define MAX_NEIGHBORS       (400)
 
-int mrisFindNeighbors(MRI_SURFACE *mris) {
+
+/* Might be the same as in mrisurf.c. Here's a clue: if you need a
+function that is defined statically in a library, delete the word
+"static" and copy the function declaration to the include file, then
+call the function that is already there. It is just terrible
+programming practice to copy entire functions to a new file.
+ */
+int mrisFindNeighbors2(MRI_SURFACE *mris) {
   int          n0,n1,i,k,m,n, vno, vtotal, ntotal, vtmp[MAX_NEIGHBORS] ;
   FACE         *f;
   VERTEX       *v ;
@@ -595,7 +602,7 @@ int saveTesselation2(tesselation_parms *parms) {
   mris->yctr = (yhi+ylo)/2;
   mris->zctr = (zhi+zlo)/2;
 
-  mrisFindNeighbors(mris);
+  mrisFindNeighbors2(mris);
   MRIScomputeNormals(mris);
 
   mris->type = MRIS_TRIANGULAR_SURFACE; /*not so sure about that*/
@@ -892,7 +899,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mri_mc.c,v 1.22 2011/03/02 00:04:23 nicks Exp $", "$Name:  $", 
+     "$Id: mri_mc.c,v 1.23 2014/03/22 01:40:02 greve Exp $", "$Name:  $", 
      cmdline);
   Progname=argv[0];
 
