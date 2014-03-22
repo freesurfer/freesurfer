@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/22 00:24:46 $
- *    $Revision: 1.759 $
+ *    $Date: 2014/03/22 00:32:01 $
+ *    $Revision: 1.760 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -774,7 +774,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.759 2014/03/22 00:24:46 greve Exp $");
+  return("$Id: mrisurf.c,v 1.760 2014/03/22 00:32:01 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1674,18 +1674,22 @@ MRI_SURFACE *MRISfastRead(const char *fname)
 
   Description
   ------------------------------------------------------*/
-MRI_SURFACE *
-MRISread(const char *fname)
+MRI_SURFACE *MRISread(const char *fname)
 {
   MRI_SURFACE  *mris ;
+  long seed;
+
+  /* Control the random seed so that MRIScomputeNormals() always does
+     the same thing, otherwise it changes the xyz of the surface if
+     it finds degenerate normals. */
+  seed = getRandomSeed();
+  setRandomSeed(1234); // matches MRIStessellate()
 
   mris = MRISreadOverAlloc(fname, 0.0) ;
-  if (mris == NULL)
-  {
-    return(NULL) ;
-  }
+  if (mris == NULL) return(NULL) ;
   MRISsetNeighborhoodSize(mris, 3) ;   // find nbhds out to 3-nbrs
   MRISresetNeighborhoodSize(mris, 1) ; // reset current size to 1-nbrs
+  setRandomSeed(seed); // restore
   return(mris) ;
 }
 
@@ -83617,9 +83621,10 @@ mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   remove_non_hippo_voxels() has been run in mri. This function was
   derived from mri_tessellate.c and produces the same exact result. As
   long as the mri_tesselate surface is MRISread() immediately after
-  setRandomSeed(1234).  It calls the TESSxxx() functions below.  The
-  code is pretty horrific. Don't blame me, I did not write it, I just
-  copied the from mri_tessellate.
+  setRandomSeed(1234) (which is now the default in MRISread()).  It
+  calls the TESSxxx() functions below.  The code is pretty
+  horrific. Don't blame me, I did not write it, I just copied the from
+  mri_tessellate.
  */
 MRIS *MRIStessellate(MRI *mri,  int value, int all_flag)
 {
@@ -83846,7 +83851,7 @@ MRIS *MRIStessellate(MRI *mri,  int value, int all_flag)
 
   // Set seed to make sure MRIScomputeNormals() always computes the same thing
   unsigned long seed = getRandomSeed();
-  setRandomSeed(1234); // matches mris_diff
+  setRandomSeed(1234); // // matches MRISread()
   MRIScomputeMetricProperties(surf) ;
   setRandomSeed(seed);
 
