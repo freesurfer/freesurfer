@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2014/03/21 21:08:52 $
- *    $Revision: 1.209 $
+ *    $Date: 2014/03/22 02:47:38 $
+ *    $Revision: 1.210 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.209 2014/03/21 21:08:52 ayendiki Exp $",
+   "$Id: mri_convert.c,v 1.210 2014/03/22 02:47:38 ayendiki Exp $",
    "$Name:  $",
    cmdline);
 
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.209 2014/03/21 21:08:52 ayendiki Exp $",
+      "$Id: mri_convert.c,v 1.210 2014/03/22 02:47:38 ayendiki Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1661,7 +1661,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.209 2014/03/21 21:08:52 ayendiki Exp $\n");
+  printf("$Id: mri_convert.c,v 1.210 2014/03/22 02:47:38 ayendiki Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -3155,7 +3155,7 @@ int main(int argc, char *argv[])
     else {
       printf("keeping frames");
       for (f = 0; f < nframes; f++)
-        printf(" %d", frames[i]);
+        printf(" %d", frames[f]);
       printf("\n");
     }
     mri2 = MRIallocSequence(mri->width, mri->height, mri->depth,
@@ -3165,11 +3165,18 @@ int main(int argc, char *argv[])
     MRIcopyHeader(mri,mri2);
     MRIcopyPulseParameters(mri,mri2);
     for (f = 0; f < nframes; f++)
-      for (s = 0; s < mri2->depth; s++)
-        for (r = 0; r < mri2->height; r++)
-          for (c = 0; c < mri2->width; c++)
-            MRIsetVoxVal(mri2, c, r, s, f, 
-                         MRIgetVoxVal(mri, c, r, s, frames[f]));
+      if (frames[f] < 0 || frames[f] >= mri->nframes)
+      {
+        printf("   ERROR: valid frame numbers are between 0 and %d\n",
+               mri->nframes-1);
+        exit(1);
+      }
+      else
+        for (s = 0; s < mri2->depth; s++)
+          for (r = 0; r < mri2->height; r++)
+            for (c = 0; c < mri2->width; c++)
+              MRIsetVoxVal(mri2, c, r, s, f, 
+                           MRIgetVoxVal(mri, c, r, s, frames[f]));
     MRIfree(&mri);
     mri = mri2;
   }
