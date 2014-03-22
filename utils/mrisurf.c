@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 23:58:50 $
- *    $Revision: 1.758 $
+ *    $Date: 2014/03/22 00:24:46 $
+ *    $Revision: 1.759 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -774,7 +774,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.758 2014/03/21 23:58:50 greve Exp $");
+  return("$Id: mrisurf.c,v 1.759 2014/03/22 00:24:46 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -83606,6 +83606,357 @@ mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   vlst_free(mris, &vl) ;
   return(NO_ERROR) ;
 }
+
+#define MAXVERTICES 10000000
+#define MAXFACES    (2*MAXVERTICES)
+
+/*
+  \fn MRIS *MRIStessellate(MRI *mri,  int value, int all_flag)
+  \brief Creates a surface from a volume by tiling the outside of all
+  the voxels that match value. The all_flag should be set if
+  remove_non_hippo_voxels() has been run in mri. This function was
+  derived from mri_tessellate.c and produces the same exact result. As
+  long as the mri_tesselate surface is MRISread() immediately after
+  setRandomSeed(1234).  It calls the TESSxxx() functions below.  The
+  code is pretty horrific. Don't blame me, I did not write it, I just
+  copied the from mri_tessellate.
+ */
+MRIS *MRIStessellate(MRI *mri,  int value, int all_flag)
+{
+  int imnr,i,j,f_pack,v_ind,f;
+  int xnum, ynum, numimg;
+  int face_index, vertex_index;
+  int *face_index_table0;
+  int *face_index_table1;
+  tface_type *face;
+  tvertex_type *vertex;
+  int *vertex_index_table;
+  int k,n;
+  MATRIX *m;
+  VECTOR *vw, *vv;
+  VERTEX *vtx;
+  int useRealRAS = 0;
+  MRIS *surf;
+  int which, fno, vertices[VERTICES_PER_FACE+1];
+  FACE *sface;
+
+  xnum = mri->width;
+  ynum = mri->height;
+  numimg = mri->depth;
+  face_index = 0;
+  vertex_index = 0;
+
+  face = (tface_type *)lcalloc(MAXFACES,sizeof(tface_type));
+
+  face_index_table0 = (int *)lcalloc(600*ynum*xnum,sizeof(int));
+  face_index_table1 = (int *)lcalloc(600*ynum*xnum,sizeof(int));
+
+  vertex = (tvertex_type *)lcalloc(MAXVERTICES,sizeof(tvertex_type));
+  vertex_index_table = (int *)lcalloc(800*ynum*xnum,sizeof(int));
+
+
+  for (imnr=0; imnr<=numimg; imnr++)
+  {
+    if(Gdiag_no > 0){
+      if ((vertex_index || face_index) && !(imnr % 10))
+	printf("slice %d: %d vertices, %d faces\n",
+	       imnr,vertex_index,face_index);
+    }
+    // i is for width
+    for (i=0; i<=ynum; i++)
+      for (j=0; j<=xnum; j++) {
+        //              z, y,  x,     z,   y,   x
+        if (TESSfacep(mri,imnr,i-1,j-1,imnr-1,i-1,j-1,value,all_flag) ||
+            TESSfacep(mri,imnr,i-1,j,imnr-1,i-1,j,value,all_flag) ||
+            TESSfacep(mri,imnr,i,j,imnr-1,i,j,value,all_flag) ||
+            TESSfacep(mri,imnr,i,j-1,imnr-1,i,j-1,value,all_flag) ||
+            TESSfacep(mri,imnr-1,i,j-1,imnr-1,i-1,j-1,value,all_flag) ||
+            TESSfacep(mri,imnr-1,i,j,imnr-1,i-1,j,value,all_flag) ||
+            TESSfacep(mri,imnr,i,j,imnr,i-1,j,value,all_flag) ||
+            TESSfacep(mri,imnr,i,j-1,imnr,i-1,j-1,value,all_flag) ||
+            TESSfacep(mri,imnr-1,i-1,j,imnr-1,i-1,j-1,value,all_flag) ||
+            TESSfacep(mri,imnr-1,i,j,imnr-1,i,j-1,value,all_flag) ||
+            TESSfacep(mri,imnr,i,j,imnr,i,j-1,value,all_flag) ||
+            TESSfacep(mri,imnr,i-1,j,imnr,i-1,j-1,value,all_flag))
+        {
+          v_ind = TESSaddVertex(mri, imnr,i,j, &vertex_index, vertex_index_table,vertex);
+          TESScheckFace(mri, imnr  ,i-1,j-1,imnr-1,i-1,j-1,0,2,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i-1,j  ,imnr-1,i-1,j  ,0,3,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i  ,j  ,imnr-1,i  ,j  ,0,0,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i  ,j-1,imnr-1,i  ,j-1,0,1,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i  ,j-1,imnr-1,i-1,j-1,2,2,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i  ,j  ,imnr-1,i-1,j  ,2,1,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i  ,j  ,imnr  ,i-1,j  ,2,0,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i  ,j-1,imnr  ,i-1,j-1,2,3,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i-1,j  ,imnr-1,i-1,j-1,4,2,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i  ,j  ,imnr-1,i  ,j-1,4,3,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i  ,j  ,imnr  ,i  ,j-1,4,0,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i-1,j  ,imnr  ,i-1,j-1,4,1,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+
+          TESScheckFace(mri, imnr-1,i-1,j-1,imnr  ,i-1,j-1,1,2,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i-1,j  ,imnr  ,i-1,j  ,1,1,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i  ,j  ,imnr  ,i  ,j  ,1,0,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i  ,j-1,imnr  ,i  ,j-1,1,3,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i-1,j-1,imnr-1,i  ,j-1,3,2,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i-1,j  ,imnr-1,i  ,j  ,3,3,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i-1,j  ,imnr  ,i  ,j  ,3,0,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i-1,j-1,imnr  ,i  ,j-1,3,1,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i-1,j-1,imnr-1,i-1,j  ,5,2,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr-1,i  ,j-1,imnr-1,i  ,j  ,5,1,v_ind,1,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i  ,j-1,imnr  ,i  ,j  ,5,0,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+          TESScheckFace(mri, imnr  ,i-1,j-1,imnr  ,i-1,j  ,5,3,v_ind,0,
+		     all_flag, value, face, &face_index, face_index_table0, face_index_table1,vertex);
+        }
+      }
+    for (i=0; i<ynum; i++){
+      for (j=0; j<xnum; j++){
+        for (f=0; f<6; f++) {
+          f_pack = f*ynum*xnum+i*xnum+j;
+          face_index_table0[f_pack] = face_index_table1[f_pack];
+        }
+      }
+    }
+  }
+
+  printf("MRIStessellate: nvertices = %d, nfaces = %d\n",vertex_index,face_index);
+  surf = MRISalloc(vertex_index,2*face_index);
+
+  if (useRealRAS==1) m = extract_i_to_r(mri);
+  else               m = surfaceRASFromVoxel_(mri);
+  if(Gdiag_no > 0){
+    printf("MRIStessellate: using vox2ras matrix:\n") ;
+    MatrixPrint(stdout, m) ;
+  }
+
+  vv = VectorAlloc(4, MATRIX_REAL);
+  vv->rptr[4][1] = 1;
+  vw = VectorAlloc(4, MATRIX_REAL);
+  for (k=0; k<vertex_index; k++){
+    vtx = &(surf->vertices[k]);
+
+    //V4_LOAD(vv, vertex[k].j-0.5, vertex[k].i-0.5, vertex[k].imnr-0.5, 1);
+    vv->rptr[1][1] = vertex[k].j-0.5;
+    vv->rptr[2][1] = vertex[k].i-0.5;
+    vv->rptr[3][1] = vertex[k].imnr-0.5;
+
+    MatrixMultiply(m, vv, vw);
+    // we are doing the same thing as the following, but we save time in
+    // calculating the matrix at every point
+    // if (useRealRAS == 1)  // use the physical RAS as the vertex point
+    //   MRIvoxelToWorld(mri,
+    //                   vertex[k].j-0.5,
+    //                   vertex[k].i-0.5,
+    //                   vertex[k].imnr-0.5,
+    //                   &x, &y, &z);
+    // else
+    //   MRIvoxelToSurfaceRAS(mri,
+    //                        vertex[k].j-0.5,
+    //                        vertex[k].i-0.5,
+    //                        vertex[k].imnr-0.5,
+    //                        &x, &y, &z);
+    vtx->x = V3_X(vw);
+    vtx->y = V3_Y(vw);
+    vtx->z = V3_Z(vw);
+  }
+
+  k = -1;
+  for (fno = 0 ; fno < surf->nfaces ; fno += 2)  {
+    k++;
+
+    /* quandrangular face */
+    for (n = 0 ; n < 4 ; n++)  vertices[n] = face[k].v[n];
+
+    /* if we're going to be arbitrary, we might as well be really arbitrary */
+    /*  NOTE: for this to work properly in the write, the first two
+        vertices in the first face (EVEN and ODD) must be 0 and 1. */
+    which = WHICH_FACE_SPLIT(vertices[0], vertices[1]) ;
+
+    /* 1st triangle */
+    if (EVEN(which)) {
+      surf->faces[fno].v[0] = vertices[0] ;
+      surf->faces[fno].v[1] = vertices[1] ;
+      surf->faces[fno].v[2] = vertices[3] ;
+      
+      /* 2nd triangle */
+      surf->faces[fno+1].v[0] = vertices[2] ;
+      surf->faces[fno+1].v[1] = vertices[3] ;
+      surf->faces[fno+1].v[2] = vertices[1] ;
+    }
+    else{
+      surf->faces[fno].v[0] = vertices[0] ;
+      surf->faces[fno].v[1] = vertices[1] ;
+      surf->faces[fno].v[2] = vertices[2] ;
+      
+      /* 2nd triangle */
+      surf->faces[fno+1].v[0] = vertices[0] ;
+      surf->faces[fno+1].v[1] = vertices[2] ;
+      surf->faces[fno+1].v[2] = vertices[3] ;
+    }
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++){
+      surf->vertices[surf->faces[fno].v[n]].num++;
+      surf->vertices[surf->faces[fno+1].v[n]].num++;
+    }
+  }
+
+  for (k=0; k<vertex_index; k++){
+    surf->vertices[k].f = (int *)calloc(surf->vertices[k].num,sizeof(int));
+    surf->vertices[k].n = (uchar *)calloc(surf->vertices[k].num,sizeof(uchar));
+    surf->vertices[k].num = 0 ;
+  }
+  for (k = 0 ; k < surf->nfaces ; k++){
+    sface = &(surf->faces[k]) ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      surf->vertices[sface->v[n]].f[surf->vertices[sface->v[n]].num++] = k;
+  }
+
+  for (k=0; k<vertex_index; k++){
+    for (n=0; n<surf->vertices[k].num; n++){
+      for (i=0; i<VERTICES_PER_FACE; i++){
+	if (surf->faces[surf->vertices[k].f[n]].v[i] == k)
+	  surf->vertices[k].n[n] = i;
+      }
+    }
+  }
+
+  getVolGeom(mri, &(surf->vg));
+  mrisFindNeighbors(surf);
+
+  // Set seed to make sure MRIScomputeNormals() always computes the same thing
+  unsigned long seed = getRandomSeed();
+  setRandomSeed(1234); // matches mris_diff
+  MRIScomputeMetricProperties(surf) ;
+  setRandomSeed(seed);
+
+  return(surf);
+}
+
+void TESSaddFace(MRI *mri, int imnr, int i, int j, int f, int prev_flag, int *pface_index, 
+	      tface_type *face, int *face_index_table0, int *face_index_table1)
+{
+  int xnum, ynum, pack;
+
+  xnum = mri->width;
+  ynum = mri->height;
+  pack = f*ynum*xnum+i*xnum+j;
+
+  if (*pface_index >= MAXFACES-1)
+    ErrorExit(ERROR_NOMEMORY, "%s: max faces %d exceeded",
+              Progname,MAXFACES) ;
+  if (prev_flag)
+  {
+    face_index_table0[pack] = *pface_index;
+  }
+  else
+  {
+    face_index_table1[pack] = *pface_index;
+  }
+  face[*pface_index].imnr = imnr; // z
+  face[*pface_index].i = i;       // y
+  face[*pface_index].j = j;       // x
+  face[*pface_index].f = f;
+  face[*pface_index].num = 0;
+  (*pface_index)++;
+}
+
+void TESScheckFace(MRI *mri, int im0, int i0, int j0, int im1, int i1,int j1,
+		int f, int n, int v_ind, int prev_flag, int all_flag, int value,
+		tface_type *face, int *pface_index, int *face_index_table0, 
+		int *face_index_table1,	tvertex_type *vertex)
+{
+  int xnum, ynum, numimg, f_pack, f_ind;
+  int imax, imin, jmax, jmin;
+  xnum = mri->width;
+  ynum = mri->height;
+  numimg = mri->depth;
+  f_pack = f*ynum*xnum+i0*xnum+j0; // f= 0, 1, 2, 3, 4, 5
+
+  jmax = mri->width;
+  jmin = 0;
+  imax = mri->height;
+  imin = 0;
+
+  if ((im0>=0&&im0<numimg&&i0>=imin&&i0<imax&&j0>=jmin&&j0<jmax&&
+       im1>=0&&im1<numimg&&i1>=imin&&i1<imax&&j1>=jmin&&j1<jmax))
+  {
+    if ((all_flag &&
+         ((MRIgetVoxVal(mri, j0, i0, im0,0) != 
+           MRIgetVoxVal(mri, j1, i1, im1,0))/* && (MRIvox(mri, j1, i1, im1) == 0)*/))
+        ||
+        (((MRIgetVoxVal(mri, j0, i0, im0,0)==value) && 
+          (MRIgetVoxVal(mri, j1, i1, im1,0)!=value))))
+    {
+      if (n==0)
+        TESSaddFace(mri, im0,i0,j0,f,prev_flag, pface_index, face, face_index_table0, face_index_table1);
+      if (prev_flag)
+        f_ind = face_index_table0[f_pack];
+      else
+        f_ind = face_index_table1[f_pack];
+      face[f_ind].v[n] = v_ind;
+      if (vertex[v_ind].num<9)
+        vertex[v_ind].f[vertex[v_ind].num++] = f_ind;
+    }
+  }
+}
+
+int TESSaddVertex(MRI *mri, int imnr, int i, int j, int *pvertex_index,  int *vertex_index_table, tvertex_type *vertex)
+{
+  int xnum = mri->width;
+
+  int pack = i*(xnum+1)+j;
+
+  if (*pvertex_index >= MAXVERTICES-1)
+    ErrorExit(ERROR_NOMEMORY, "%s: max vertices %d exceeded",
+              Progname,MAXVERTICES) ;
+  vertex_index_table[pack] = *pvertex_index;
+  vertex[*pvertex_index].imnr = imnr; // z
+  vertex[*pvertex_index].i = i;       // y
+  vertex[*pvertex_index].j = j;       // x
+  vertex[*pvertex_index].num = 0;
+  
+  return( (*pvertex_index)++ );
+}
+
+int TESSfacep(MRI *mri, int im0, int i0, int j0, int im1, int i1, int j1, int value, int all_flag)
+{
+  int numimg, imax, imin, jmax, jmin;
+  numimg = mri->depth;
+  // it is so confusing this guy uses j for width and i for height
+  jmax = mri->width;
+  jmin = 0;
+  imax = mri->height;
+  imin = 0;
+  return (im0>=0&&im0<numimg&&i0>=imin&&i0<imax&&j0>=jmin&&j0<jmax&&
+          im1>=0&&im1<numimg&&i1>=imin&&i1<imax&&j1>=jmin&&j1<jmax&&
+          MRIgetVoxVal(mri, j0, i0, im0,0) != MRIgetVoxVal(mri, j1, i1, im1,0) &&
+          ((MRIgetVoxVal(mri, j0, i0, im0,0)==value ||
+            MRIgetVoxVal(mri, j1, i1, im1,0)==value) || all_flag));
+}
+
+
+
 
 #if 0
 static double

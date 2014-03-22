@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 23:58:50 $
- *    $Revision: 1.379 $
+ *    $Date: 2014/03/22 00:24:46 $
+ *    $Revision: 1.380 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -303,6 +303,22 @@ typedef struct
   void   *mht ;
 }
 MRI_SURFACE, MRIS ;
+
+// This structs are used with the TESS functions
+typedef struct tface_type_
+{
+  int imnr,i,j,f;
+  int num;
+  int v[4];
+}
+tface_type;
+typedef struct tvertex_type_
+{
+  int imnr,i,j;
+  int num;
+  int f[9];
+}
+tvertex_type;
 
 #define IPFLAG_HVARIABLE                0x0001 /* for parms->flags */
 #define IPFLAG_NO_SELF_INT_TEST         0x0002
@@ -2092,6 +2108,15 @@ MRI_SURFACE *MRISconcat(MRI_SURFACE *mris1, MRI_SURFACE *mris2, MRI_SURFACE *mri
 
 MRI *MRIcomputeLaminarVolumeFractions(MRI_SURFACE *mris, double res, MRI *mri_src, MRI *mri_vfracs) ;
 int mrisFindNeighbors(MRI_SURFACE *mris);
+MRIS *MRIStessellate(MRI *mri,  int value, int all_flag);
+void TESSaddFace(MRI *mri, int imnr, int i, int j, int f, int prev_flag, int *pface_index, 
+		 tface_type *face, int *face_index_table0, int *face_index_table1);
+void TESScheckFace(MRI *mri, int im0, int i0, int j0, int im1, int i1,int j1,
+		int f, int n, int v_ind, int prev_flag, int all_flag, int value,
+		tface_type *face, int *pface_index, int *face_index_table0, 
+		   int *face_index_table1,	tvertex_type *vertex);
+int TESSaddVertex(MRI *mri, int imnr, int i, int j, int *pvertex_index,  int *vertex_index_table, tvertex_type *vertex);
+int TESSfacep(MRI *mri, int im0, int i0, int j0, int im1, int i1, int j1, int value, int all_flag);
 
 #define SURFACE_SMOOTH_STEPS_TO_SIGMA(iter)   (sqrt((double)iter) * M_PI / 2.0)
 #define SIGMA_TO_SURFACE_SMOOTH_STEPS(sigma)  SQR(2.0*sigma/M_PI)
