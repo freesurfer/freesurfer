@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2012/11/06 23:11:52 $
- *    $Revision: 1.6 $
+ *    $Author: greve $
+ *    $Date: 2014/03/24 22:14:13 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,7 +30,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Segment the head.
-  $Id: mri_seghead.c,v 1.6 2012/11/06 23:11:52 mreuter Exp $
+  $Id: mri_seghead.c,v 1.7 2014/03/24 22:14:13 greve Exp $
 */
 
 #include <stdio.h>
@@ -42,10 +42,12 @@
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
+#include "mrisurf.h"
 
 #include "fio.h"
 #include "mri.h"
 #include "MRIio_old.h"
+#include "cmdargs.h"
 
 
 static int  parse_commandline(int argc, char **argv);
@@ -61,7 +63,7 @@ static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_seghead.c,v 1.6 2012/11/06 23:11:52 mreuter Exp $";
+static char vcid[] = "$Id: mri_seghead.c,v 1.7 2014/03/24 22:14:13 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *subjid;
@@ -88,7 +90,11 @@ MRI *invol_orig;
 
 char tmpstr[1000];
 char *hvoldat = NULL;
+char *SUBJECTS_DIR;
 FILE *fp;
+int MakeSkullSurface(char *subject, double *params);
+int MRISprojectDist(MRIS *surf, const MRI *mridist);
+int MRISbrainSurfToSkull(MRIS *surf, const double *params, const MRI *vol);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -375,11 +381,35 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       hvoldat = pargv[0];
       nargsused = 1;
-    } else if (stringmatch(option, "--dilate")) {
+    } 
+    else if (stringmatch(option, "--dilate")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&dilate);
       nargsused = 1;
-    } else {
+    } 
+    else if (stringmatch(option, "--skull")) {
+      char *subject; 
+      double params[7];
+      if (nargc < 1) argnerr(option,1);
+      subject = pargv[0];
+      params[0] = .5; // athresh
+      params[1] = 2; //minthick
+      params[2] = 9; //maxthick
+      params[3] = 30; //maxdist
+      params[4] = .5; //stepsize
+      params[5] = 2; //ndils
+      params[6] = 10; //navgs
+      MakeSkullSurface(subject, params);
+      exit(0);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      setenv("SUBJECTS_DIR",pargv[0],1);
+      SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+      nargsused = 1;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -516,3 +546,197 @@ static int stringmatch(char *str1, char *str2) {
   return(0);
 }
 
+
+int MakeSkullSurface(char *subject, double *params)
+{
+  char *SUBJECTS_DIR, tmpstr[5000];
+  MRIS *surf,*surf2;
+  MRI *mri;
+  int ndils,navgs,n,err;
+  
+  //athresh  = params[0]; // .5
+  //minthick = params[1]; // 2
+  //maxthick = params[2]; // 9
+  //maxdist  = params[3]; // 30
+  //stepsize = params[4]; // 0.5
+  ndils = nint(params[5]);
+  navgs = nint(params[6]);
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  sprintf(tmpstr,"%s/%s/surf/lh.brainsurf",SUBJECTS_DIR,subject);
+  printf("Reading brain surface %s\n",tmpstr);
+  surf = MRISread(tmpstr);
+  if(surf == NULL){
+    printf("ERROR: cannot find %s\n",tmpstr);
+    exit(1);
+  }
+  sprintf(tmpstr,"%s/%s/mri/nu.mgz",SUBJECTS_DIR,subject);
+  printf("Reading volume %s\n",tmpstr);
+  mri = MRIread(tmpstr);
+  if(mri == NULL) exit(1);
+
+  printf("Projecting brain surface to skull\n");
+  MRISbrainSurfToSkull(surf, params, mri);
+
+  printf("Filling skull interior\n");
+  MRISfillInterior(surf, 0, mri) ; // replaces values in mri
+
+  printf("Dilating by %d\n",ndils);
+  for(n=0; n<ndils; n++) MRIdilate(mri,mri);
+
+  printf("Eroding by %d\n",ndils);
+  for(n=0; n<ndils; n++) MRIerode(mri,mri);
+
+  printf("Retessellating skull surface\n");
+  surf2 = MRIStessellate(mri, 1, 0);
+
+  printf("Smoothiing vertex positions niters = %d \n",navgs);
+  MRISaverageVertexPositions(surf2, navgs) ;
+
+  sprintf(tmpstr,"%s/%s/surf/lh.skull",SUBJECTS_DIR,subject);
+  printf("Writing to %s\n",tmpstr);
+  err = MRISwrite(surf2,tmpstr);
+  if(err){
+    printf("ERROR: writing %s\n",tmpstr);
+    exit(1);
+  }
+
+  MRIfree(&mri);
+  MRISfree(&surf);
+  MRISfree(&surf2);
+  return(0);
+}
+
+/*
+  \fn int MRISprojectDist(MRIS *surf, const MRI *mridist)
+  \brief Project surface along the normal a distance given by the value in mridist
+  at the voxel corresponding to the vertex.
+ */
+int MRISprojectDist(MRIS *surf, const MRI *mridist)
+{
+  VERTEX *vtx;
+  int vno,nthstep;
+  double dist;
+
+  for(vno = 0; vno < surf->nvertices; vno++){
+    vtx = &(surf->vertices[vno]);
+    for(nthstep = 0; nthstep < mridist->nframes; nthstep++){
+      dist = MRIgetVoxVal(mridist,vno,0,0,nthstep);
+      vtx->x += dist*vtx->nx;
+      vtx->y += dist*vtx->ny;
+      vtx->z += dist*vtx->nz;
+    }
+  }
+  return(0);
+}
+
+/*
+  \fn int MRISbrainSurfToSkull(MRIS *surf, const double *params, const MRI *vol)
+  \brief This is a slight hack to try to find the outer surface of the
+  skull. The surf should be something like the brain surface
+  (including xcsf). This function then projects along the normal for
+  maxdist mm sampling vol every stepsize and finds the maximum
+  (expected to be skin), then steps back until the signal intensity
+  (wrt max-min) drops by a fraction of athresh. The skull thickness is
+  constrained to be between minthick and maxthick. vol should probably
+  be nu.mgz. params: 0=athresh, 1=minthick, 2=maxthick, 3=maxdist,
+  4=stepsize.  All distances are in mm. This is a very crude method
+  and it is not expected that it will always yield an accurate skull.
+  The surface could be refined by filling it in, dilating, eroding,
+  tessellating, smoothing.
+ */
+int MRISbrainSurfToSkull(MRIS *surf, const double *params, const MRI *vol)
+{
+  VERTEX *vtx;
+  MRI *mridist;
+  int vno,c,r,s,nthstep,nthstepvmax,nhits,nsteps;
+  MATRIX *vox2tkras,*tkras2vox,*xyz,*crs;
+  double a,dist,dx,dy,dz,v,vmax,vmin,*vlist,dmax;
+  double athresh, maxdist=30, stepsize=0.5, minthick=2, maxthick=9;
+
+  athresh  = params[0]; // .5
+  minthick = params[1]; // 2
+  maxthick = params[2]; // 9
+  maxdist  = params[3]; // 30
+  stepsize = params[4]; // 0.5
+
+  vox2tkras = MRIxfmCRS2XYZtkreg(vol);
+  tkras2vox = MatrixInverse(vox2tkras,NULL);
+  crs = MatrixAlloc(4,1,MATRIX_REAL);
+  xyz = MatrixAlloc(4,1,MATRIX_REAL);
+  crs->rptr[4][1] = 1;
+  xyz->rptr[4][1] = 1;
+
+  nsteps = ceil(maxdist/stepsize)+1;
+  vlist = (double *)calloc(sizeof(double),nsteps);
+
+  mridist = MRIallocSequence(surf->nvertices,1,1,MRI_FLOAT,1);
+
+  nhits = 0;
+  for(vno = 0; vno < surf->nvertices; vno++){
+    vtx = &(surf->vertices[vno]);
+    vmax = 0;
+    vmin = 1e10;
+    nthstepvmax = 0;
+    for(nthstep = 0; nthstep < nsteps; nthstep++) vlist[nthstep] = 0;
+    // project out along the normal
+    for(nthstep = 0; nthstep < nsteps; nthstep++){
+      dist = stepsize*nthstep;
+      dx = dist*vtx->nx;
+      dy = dist*vtx->ny;
+      dz = dist*vtx->nz;
+      xyz->rptr[1][1] = vtx->x + dx;
+      xyz->rptr[2][1] = vtx->y + dy;
+      xyz->rptr[3][1] = vtx->z + dz;
+      crs = MatrixMultiply(tkras2vox,xyz,crs);
+      c = crs->rptr[1][1];
+      r = crs->rptr[2][1];
+      s = crs->rptr[3][1];
+      if(c < 0 || c >= vol->width || 
+	 r < 0 || r >= vol->height ||
+	 s < 0 || s >= vol->depth){
+	continue;
+      }
+      v = MRIgetVoxVal(vol,c,r,s,0);
+      vlist[nthstep] = v;
+      if(vmax < v){
+	// keep track of where the max intensity is
+	vmax = v;
+	dmax = dist;
+	nthstepvmax = nthstep;
+      }
+    }
+
+    // Find the minimum between step=0 and where the maximum is
+    // Ie, don't find a minimum beyond the max
+    vmin = 1e10;
+    for(nthstep = 0; nthstep < nthstepvmax; nthstep++)  {
+      v = vlist[nthstep];
+      if(vmin > v) vmin = v;
+    }
+
+    // Start at the maximum and step backwards
+    for(nthstep = nthstepvmax; nthstep >= 0; nthstep--){
+      // how far has the signal dropped since the maximum?
+      a = (vlist[nthstep]-vmin)/(vmax-vmin); 
+      if(a < athresh){
+	dist = stepsize*nthstep;
+	if(dist > maxthick) dist = maxthick;
+	if(dist < minthick) dist = minthick;
+	MRIsetVoxVal(mridist,vno,0,0,0,dist);
+	break;
+      }
+    }
+  } // vertex
+
+  // Move the surface out to the maximum
+  MRISprojectDist(surf, mridist);
+
+  MRIfree(&mridist);
+  MatrixFree(&vox2tkras);
+  MatrixFree(&tkras2vox);
+  MatrixFree(&crs);
+  MatrixFree(&xyz);
+  free(vlist);
+  return(0);
+}
