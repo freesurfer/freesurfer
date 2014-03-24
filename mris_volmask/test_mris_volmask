@@ -7,9 +7,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/05/02 21:02:44 $
-#    $Revision: 1.7 $
+#    $Author: greve $
+#    $Date: 2014/03/24 20:18:47 $
+#    $Revision: 1.8 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_volmask,v 1.7 2011/05/02 21:02:44 nicks Exp $'
+set VERSION='$Id: test_mris_volmask,v 1.8 2014/03/24 20:18:47 greve Exp $'
 
 umask 002
 
@@ -49,7 +49,9 @@ endif
 
 setenv SUBJECTS_DIR $PWD
 # no longer necessary: source ../scripts/vtk_setup
-set cmd=(./mris_volmask testdata2)
+set cmd=(./mris_volmask  --label_left_white   2 --label_left_ribbon   3 \
+    --label_right_white 41 --label_right_ribbon 42 \
+    --save_ribbon testdata2)
 echo ""
 echo $cmd
 echo $cmd >& test_mris_volmask.log
