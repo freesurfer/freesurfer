@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/21 01:51:28 $
- *    $Revision: 1.81 $
+ *    $Date: 2014/03/24 16:40:26 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2591,19 +2591,27 @@ HISTO2Dplot(HISTOGRAM2D *histo, char *fname)
   
   bmin2 = 0 ; bmax2 = histo->nbins2-1 ;
   for (bmin1 = 0 ; bmin1 < histo->nbins1 ; bmin1++)
+  {
     for (bmin2 = 0 ; bmin2 < histo->nbins2 ; bmin2++)
       if (histo->counts[bmin1][bmin2] > 0)
 	break ;
-  for (bmax1 = histo->nbins1-1 ; bmax1 > bmin1 ; bmax1--)
-    for (bmax2 = histo->nbins2-1 ; bmax2 > bmin2 ; bmax2--)
-    if (histo->counts[bmax1][bmax2] > 0)
+    if (bmin2 < histo->nbins2 && histo->counts[bmin1][bmin2] > 0)
       break ;
+  }
+  for (bmax1 = histo->nbins1-1 ; bmax1 > bmin1 ; bmax1--)
+  {
+    for (bmax2 = histo->nbins2-1 ; bmax2 > bmin2 ; bmax2--)
+      if (histo->counts[bmax1][bmax2] > 0)
+	break ;
+    if (bmax2 > bmin2 && histo->counts[bmax1][bmax2] > 0)
+      break ;
+  }
 
   for (bin_no1 = bmin1 ; bin_no1 <= bmax1 ; bin_no1++)
     fprintf(fp, "%f ", histo->bins1[bin_no1]) ;
   fprintf(fp, "\n") ;
   for (bin_no2 = bmin2 ; bin_no2 <= bmax2 ; bin_no2++)
-    fprintf(fp, "%f ", histo->bins1[bin_no1]) ;
+    fprintf(fp, "%f ", histo->bins2[bin_no2]) ;
   fprintf(fp, "\n") ;
   for (bin_no1 = bmin1 ; bin_no1 <= bmax1 ; bin_no1++)
   {
@@ -3379,5 +3387,53 @@ HISTOcomputeFWHM(HISTOGRAM *h, int peak)
 
   fwhm = 2*width*h->bin_size ;
   return(fwhm) ;
+}
+
+double
+HISTOrmsDifference(HISTOGRAM *h1, HISTOGRAM *h2) 
+{
+  int    b; 
+  double rms, error ;
+
+  for (rms = 0.0, b = 0 ; b < h1->nbins ; b++)
+  {
+    error = h1->counts[b] - h2->counts[b] ;
+    rms += error*error ;
+  }
+  return(sqrt(rms / h1->nbins)) ;
+}
+double
+HISTOearthMoversDistance(HISTOGRAM *h1, HISTOGRAM *h2) 
+{
+  double emd = 0.0 ;
+
+  h1 = HISTOcopy(h1, NULL) ; HISTOmakePDF(h1, h1) ;
+  h2 = HISTOcopy(h2, NULL) ; HISTOmakePDF(h2, h2) ;
+
+
+  HISTOfree(&h1) ; HISTOfree(&h2) ;   // these were copied at the beginning, not the caller's version
+  return(emd) ;
+}
+
+double
+HISTOksDistance(HISTOGRAM *h1, HISTOGRAM *h2) 
+{
+  double ks_dist, dist, c2 ;
+  int    b ;
+
+  h1 = HISTOcopy(h1, NULL) ; HISTOmakeCDF(h1, h1) ;
+  h2 = HISTOcopy(h2, NULL) ; HISTOmakeCDF(h2, h2) ;
+
+  for (ks_dist = 0.0, b = 0 ; b < h1->nbins ; b++)
+  {
+    c2 = HISTOgetCount(h2, h1->bins[b]) ;
+    dist = fabs(h1->counts[b] - c2) ;
+    if (dist > ks_dist)
+      ks_dist = dist ;
+  }
+
+
+  HISTOfree(&h1) ; HISTOfree(&h2) ;   // these were copied at the beginning, not the caller's version
+  return(ks_dist) ;
 }
 
