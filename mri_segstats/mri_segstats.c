@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/21 22:47:03 $
- *    $Revision: 1.75.2.12 $
+ *    $Date: 2014/03/24 18:12:16 $
+ *    $Revision: 1.75.2.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,7 +113,7 @@ int CountEdits(char *subject, char *outfile);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.75.2.12 2013/11/21 22:47:03 greve Exp $";
+  "$Id: mri_segstats.c,v 1.75.2.13 2014/03/24 18:12:16 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -368,7 +368,7 @@ int main(int argc, char **argv)
     }
     if(nErodeSeg){
       printf("Eroding seg %d times\n",nErodeSeg);
-      tmp = MRIerodeSegmentation(seg, NULL, 1, 0);
+      tmp = MRIerodeSegmentation(seg, NULL, nErodeSeg, 0);
       MRIfree(&seg);
       seg = tmp;
     }
