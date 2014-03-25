@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/24 22:14:13 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/03/25 16:06:42 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,7 +30,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: Segment the head.
-  $Id: mri_seghead.c,v 1.7 2014/03/24 22:14:13 greve Exp $
+  $Id: mri_seghead.c,v 1.8 2014/03/25 16:06:42 greve Exp $
 */
 
 #include <stdio.h>
@@ -63,7 +63,7 @@ static int  singledash(char *flag);
 static int  stringmatch(char *str1, char *str2);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_seghead.c,v 1.7 2014/03/24 22:14:13 greve Exp $";
+static char vcid[] = "$Id: mri_seghead.c,v 1.8 2014/03/25 16:06:42 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 char *subjid;
@@ -92,9 +92,10 @@ char tmpstr[1000];
 char *hvoldat = NULL;
 char *SUBJECTS_DIR;
 FILE *fp;
-int MakeSkullSurface(char *subject, double *params);
+
 int MRISprojectDist(MRIS *surf, const MRI *mridist);
 int MRISbrainSurfToSkull(MRIS *surf, const double *params, const MRI *vol);
+int MakeSkullSurface(char *subject, double *params, char *innername, char *outername);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -388,10 +389,12 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if (stringmatch(option, "--skull")) {
-      char *subject; 
+      char *subject, *innername, *outername; 
       double params[7];
-      if (nargc < 1) argnerr(option,1);
+      if(nargc < 3) argnerr(option,3);
       subject = pargv[0];
+      innername = pargv[1]; // relative to subject/surf
+      outername = pargv[2]; // relative to subject/surf
       params[0] = .5; // athresh
       params[1] = 2; //minthick
       params[2] = 9; //maxthick
@@ -399,9 +402,9 @@ static int parse_commandline(int argc, char **argv) {
       params[4] = .5; //stepsize
       params[5] = 2; //ndils
       params[6] = 10; //navgs
-      MakeSkullSurface(subject, params);
+      MakeSkullSurface(subject, params, innername, outername);
       exit(0);
-      nargsused = 1;
+      nargsused = 3;
     } 
     else if (!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -547,13 +550,12 @@ static int stringmatch(char *str1, char *str2) {
 }
 
 
-int MakeSkullSurface(char *subject, double *params)
+int MakeSkullSurface(char *subject, double *params, char *innername, char *outername)
 {
   char *SUBJECTS_DIR, tmpstr[5000];
   MRIS *surf,*surf2;
   MRI *mri;
   int ndils,navgs,n,err;
-  
   //athresh  = params[0]; // .5
   //minthick = params[1]; // 2
   //maxthick = params[2]; // 9
@@ -563,7 +565,7 @@ int MakeSkullSurface(char *subject, double *params)
   navgs = nint(params[6]);
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  sprintf(tmpstr,"%s/%s/surf/lh.brainsurf",SUBJECTS_DIR,subject);
+  sprintf(tmpstr,"%s/%s/surf/%s",SUBJECTS_DIR,subject,innername);
   printf("Reading brain surface %s\n",tmpstr);
   surf = MRISread(tmpstr);
   if(surf == NULL){
@@ -575,7 +577,7 @@ int MakeSkullSurface(char *subject, double *params)
   mri = MRIread(tmpstr);
   if(mri == NULL) exit(1);
 
-  printf("Projecting brain surface to skull\n");
+  printf("Projecting inner surface to outer skull\n");
   MRISbrainSurfToSkull(surf, params, mri);
 
   printf("Filling skull interior\n");
@@ -593,7 +595,7 @@ int MakeSkullSurface(char *subject, double *params)
   printf("Smoothiing vertex positions niters = %d \n",navgs);
   MRISaverageVertexPositions(surf2, navgs) ;
 
-  sprintf(tmpstr,"%s/%s/surf/lh.skull",SUBJECTS_DIR,subject);
+  sprintf(tmpstr,"%s/%s/surf/%s",SUBJECTS_DIR,subject,outername);
   printf("Writing to %s\n",tmpstr);
   err = MRISwrite(surf2,tmpstr);
   if(err){
