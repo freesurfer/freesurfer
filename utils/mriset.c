@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/11/22 19:41:07 $
- *    $Revision: 1.88 $
+ *    $Author: greve $
+ *    $Date: 2014/03/25 21:48:10 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2431,33 +2431,45 @@ MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,float low_in_val, float hi_in_va
 /*!
   \fn MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *out)
   \brief Replaces a value in the source list with the corresponding value 
-  in the target list. See also MRIreplaceValues().
+  in the target list. Can be done in-place. See also MRIreplaceValues().
 */
 MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *out)
 {
-  int c,r,s,n,segid;
+  int c,m;
 
-  if(seg == out){
-    printf("ERROR: MRIreplaceList(): cannot be done in-place\n");
-    return(NULL);
+  if(!out) {
+    out = MRIallocSequence(seg->width, seg->height, seg->depth,MRI_INT,1);
+    if(out == NULL) return(NULL);
+    MRIcopyHeader(seg,out);
+    MRIcopyPulseParameters(seg,out);
   }
-  if(!out) out = MRIallocSequence(seg->width, seg->height, seg->depth,seg->type, 1);
   if(MRIdimMismatch(seg, out, 0)){
     printf("ERROR: MRIreplaceList(): seg/out dim mismatch\n");
     return(NULL);
   }
+  if(out->type == MRI_UCHAR){
+    for(m = 0; m < nlist; m++){
+      if(targlist[m] > 255){
+	printf("ERROR: MRIreplaceList(): output is UCHAR, but target is > 255\n");
+	return(NULL);
+      }
+    }
+  }
 
-  out = MRIcopy(seg,out);
   for(c=0; c < seg->width; c++){
+    int hit,n,r,s,segid;
     for(r=0; r < seg->height; r++){
       for(s=0; s < seg->depth; s++){
 	segid = MRIgetVoxVal(seg,c,r,s,0);
+	hit = 0;
 	for(n = 0; n < nlist; n++){
 	  if(segid == srclist[n]){
 	    MRIsetVoxVal(out,c,r,s,0, targlist[n]);
+	    hit = 1;
 	    break;
 	  }
 	}//n
+	if(!hit) MRIsetVoxVal(out,c,r,s,0, segid);
       }//s
     }//r
   }//c
