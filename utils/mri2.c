@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/25 20:10:48 $
- *    $Revision: 1.104 $
+ *    $Date: 2014/03/25 21:48:57 $
+ *    $Revision: 1.105 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4772,3 +4772,47 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, i
   return(wmseg);
 }
 
+/*
+  \fn MRI *MRIunsegmentCortex(MRI *seg, const MRI *ribbon, MRI *out)
+  \brief Replaces voxels in seg that have segid = X_Cerebral_Cortex with
+  X_Cerebral_Cortex. This is used prior to running MRIhiresSeg().
+  It's a long story. Can be done in-place. ribbon should probably
+  be ribbon.mgz. seg may be something like aparc+aseg.mgz
+*/
+MRI *MRIunsegmentCortex(MRI *seg, const MRI *ribbon, MRI *out)
+{
+  int c;
+
+  if(out == NULL){
+    out  = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_INT,1);
+    if(out == NULL) return(NULL);
+    MRIcopyHeader(seg,out);
+    MRIcopyPulseParameters(seg,out);
+  }
+  if(MRIdimMismatch(seg,out,0)){
+    printf("ERROR: MRIunsegmentCortex() dim mismatch between seg and out\n");
+    return(NULL);
+  }
+  if(MRIdimMismatch(seg,ribbon,0)){
+    printf("ERROR: MRIunsegmentCortex() dim mismatch between seg and ribbon\n");
+    return(NULL);
+  }
+
+  #ifdef _OPENMP
+  #pragma omp parallel for 
+  #endif
+  for(c=0; c < seg->width; c++){
+    int r,s,rsegid,segid;
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	rsegid = MRIgetVoxVal(ribbon,c,r,s,0);
+	if(rsegid!=Left_Cerebral_Cortex && rsegid!=Right_Cerebral_Cortex) {
+	  segid = MRIgetVoxVal(seg,c,r,s,0);
+	  MRIsetVoxVal(out,c,r,s,0,segid); // copy seg
+	}
+	else  MRIsetVoxVal(out,c,r,s,0,rsegid); // set to ribbon
+      }
+    }
+  }
+  return(out);
+}
