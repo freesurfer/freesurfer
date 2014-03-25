@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 16:58:24 $
- *    $Revision: 1.103 $
+ *    $Date: 2014/03/25 20:10:48 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4605,7 +4605,7 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
 }
 
 /*
-  \fn MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, LTA *anat2seg, MRI *wmseg)
+  \fn MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, int LabelHypoAsWM, LTA *anat2seg, MRI *wmseg)
   \brief Creates a segmentation of the cerebral WM
   (X_Cerebral_White_Matter) found in seg based upon the annotation of
   the nearest white vertex within DistThresh mm of the cortex. If it
@@ -4615,12 +4615,14 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
   and the segmentation space. If they share a space, then just use
   NULL. The surface space is obtained from lhw->vg. The output will be
   the same size as seg. Note that a voxel in seg must be labeled as
-  X_Cerebral_White_Matter for it to receive a new label. This means
-  that if you want hypointensities to be re-labeld, you must change
-  the hypointensities label to that of X_Cerebral_White_Matter.  This
-  function basically is what is done when creating wmparc.mgz.
+  X_Cerebral_White_Matter for it to receive a new label. If
+  LabelHypoAsWM is set to 1, then any labels with value
+  WM_hypointensities or X_WM_hypointensities will be relabeled as if
+  it is WM (if the hypo is in CC, then a cortical WM label may be
+  outside of the white surface).  This function basically is what is
+  done when creating wmparc.mgz.
  */
-MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, LTA *anat2seg, MRI *wmseg)
+MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, int LabelHypoAsWM, LTA *anat2seg, MRI *wmseg)
 {
   MATRIX *AnatVox2SurfRAS,*SegVox2SurfRAS;
   float hashres = 16;
@@ -4665,13 +4667,12 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
   lhw_hash = MHTfillVertexTableRes(lhw, NULL,CURRENT_VERTICES,hashres);
   rhw_hash = MHTfillVertexTableRes(rhw, NULL,CURRENT_VERTICES,hashres);
 
-
   printf("  MRIannot2CerebralWMSeg(): looping over volume\n");fflush(stdout);
   #ifdef _OPENMP
   #pragma omp parallel for 
   #endif
   for(c=0; c < seg->width; c++){
-    int r,s,asegv,annot,annotid,wvtxno,segv,wmunknown;
+    int r,s,asegv,annot,annotid,wvtxno,segv,wmunknown,IsHypo,IsWM;
     VERTEX vtx;
     MATRIX *RAS=NULL,*CRS=NULL;
     float wdw;
@@ -4683,21 +4684,51 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
       for(s=0; s < seg->depth; s++){
 	asegv = MRIgetVoxVal(seg,c,r,s,0);
 
-	if(asegv!=Left_Cerebral_White_Matter && asegv!=Right_Cerebral_White_Matter){
+	if(asegv==WM_hypointensities || asegv==Left_WM_hypointensities || 
+	   asegv==Right_WM_hypointensities) IsHypo = 1;
+	else IsHypo = 0;
+
+	if(asegv==Left_Cerebral_White_Matter || asegv==Right_Cerebral_White_Matter) IsWM = 1;
+	else IsWM = 0;
+
+	if(c==147 && r==85 && s==128)
+	  DiagBreak();
+
+	if(!IsWM && !(IsHypo && LabelHypoAsWM)){
 	  // If not in WM, just copy seg to output and continue
 	  MRIsetVoxVal(wmseg,c,r,s,0,asegv);
 	  continue;
 	}
 
-	if(asegv==Left_Cerebral_White_Matter){
+	if(asegv==Left_Cerebral_White_Matter || asegv==Left_WM_hypointensities){
 	  wsurf = lhw;
 	  whash = lhw_hash;
 	  wmunknown = 5001;
 	}
-	else {
+	else if(asegv==Right_Cerebral_White_Matter || asegv==Right_WM_hypointensities){
 	  wsurf = rhw;
 	  whash = rhw_hash;
 	  wmunknown = 5002;
+	}
+	else{
+	  // Must be WM_hypointensities which does not have a hemisphere, so see
+	  // whether it is closest to lh or rh
+	  int lhvtxno, rhvtxno;
+	  float lhd,rhd;
+	  lhvtxno = MHTfindClosestVertexNo(lhw_hash,lhw,&vtx,&lhd);
+	  if(lhvtxno < 0) lhvtxno = MRISfindClosestVertex(lhw,vtx.x,vtx.y,vtx.z,&lhd);
+	  rhvtxno = MHTfindClosestVertexNo(rhw_hash,rhw,&vtx,&rhd);
+	  if(rhvtxno < 0) rhvtxno = MRISfindClosestVertex(rhw,vtx.x,vtx.y,vtx.z,&rhd);
+	  if(lhd < rhd){
+	    wsurf = lhw;
+	    whash = lhw_hash;
+	    wmunknown = 5001;
+	  }
+	  else{
+	    wsurf = rhw;
+	    whash = rhw_hash;
+	    wmunknown = 5002;
+	  }
 	}
 
 	// Compute location of voxel in surface space
