@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.93 2014/03/17 20:41:56 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.94 2014/03/25 16:09:16 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -235,7 +235,7 @@
 
 257 CSF-ExtraCerebral                      60  60  60  0
 258 Head-ExtraCerebral                    150 150 200  0
-259 PossibleSkull                         120 120 120  0
+259 SkullApprox                           120 120 120  0
 260 BoneOrAir                             119 159 176 0
 261 PossibleFluid                         120  18 134 0
 
