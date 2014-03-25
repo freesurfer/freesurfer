@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/19 20:55:18 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/03/25 16:24:05 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -251,6 +251,15 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
   if (map.contains("ClearBackground"))
   {
     mbClearZero = map["ClearBackground"].toBool();
+  }
+
+  if (m_bRememberFrameSettings)
+  {
+    QVariantMap map2 = m_frameSettings[QString::number(m_nActiveFrame)].toMap();
+    QStringList keys = map.keys();
+    foreach (QString key, keys)
+      map2[key] = map[key];
+    m_frameSettings[QString::number(m_nActiveFrame)] = map2;
   }
 
   if (m_bUsePercentile)
