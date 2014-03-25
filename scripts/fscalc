@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # fscalc
 
-set VERSION = '$Id: fscalc,v 1.8 2011/12/07 17:14:01 greve Exp $';
+set VERSION = '$Id: fscalc,v 1.9 2014/03/25 18:20:52 greve Exp $';
 
 set outvol = ();
 set inops = ();
@@ -59,6 +59,12 @@ if( -e $i1) then
 else
   # Assume it is a constant, then synthesize
   # a volume with all values equal to that const
+  # But first check whether it looks like a file
+  fname2ext $i1 >& /dev/null
+  if($status == 0) then
+    echo "ERROR: cannot find $i1"
+    exit 1;
+  endif
   set template = ();
   foreach inop ($inops)
     if(-e $inop) then
