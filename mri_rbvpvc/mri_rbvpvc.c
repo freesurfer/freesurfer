@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/25 22:08:34 $
- *    $Revision: 1.32 $
+ *    $Date: 2014/03/26 17:54:47 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.32 2014/03/25 22:08:34 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.33 2014/03/26 17:54:47 greve Exp $
 
 /*
   BEGINHELP
@@ -95,7 +95,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.32 2014/03/25 22:08:34 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.33 2014/03/26 17:54:47 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -106,7 +106,10 @@ typedef struct
 {
   MRI *yvol;
   MRI *anatseg;
-  LTA *anatseg2pet;
+  LTA *anat2pet;
+  LTA *anat2seg;
+  LTA *seg2anat;
+  LTA *seg2pet;
   MRI *mask;
   double cFWHM, rFWHM, sFWHM;
   double PadThresh;
@@ -231,6 +234,7 @@ typedef struct
   char *ctxannotfile;
   int ctxlhbase,ctxrhbase;
   int LabelHypoAsWM;
+  int LabelCCAsWM;
   float dmax;
   int nlist,srclist[300],targlist[300];
   MRI *seg;
@@ -300,7 +304,14 @@ int main(int argc, char *argv[])
 
   TimerStart(&timer);
 
-  // Load data
+  char *stem = IDstemFromName(SegVolFile);
+  sprintf(tmpstr,"%s.lta",stem);
+  gtm->anat2seg = LTAread(tmpstr);
+  if(gtm->anat2seg == NULL) exit(1);
+  gtm->seg2anat = LTAinvert(gtm->anat2seg,NULL);
+  gtm->seg2pet = LTAconcat2(gtm->seg2anat,gtm->anat2pet,1);
+
+  // Load seg
   TimerStart(&mytimer);
   printf("Loading seg for gtm %s\n",SegVolFile);fflush(stdout);
   gtm->anatseg = MRIread(SegVolFile);
@@ -314,7 +325,7 @@ int main(int argc, char *argv[])
   }
   if(CheckSegTissueType(gtm->anatseg, gtm->ctGTMSeg)) exit(1);
   gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
-  sprintf(tmpstr,"%s/seg.lut",OutDir);
+  sprintf(tmpstr,"%s/seg.ctab",OutDir);
   CTABwriteFileASCIItt(gtm->ctGTMSeg,tmpstr);
 
   if(ttReduce > 0) {
@@ -404,6 +415,9 @@ int main(int argc, char *argv[])
   GTMsolve(gtm);
   printf("Time to solve %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
 
+  // Could rescale to reference here
+
+  // Create GTM seg and pvf in pet space, might be useful
   gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
 				       gtm->ctGTMSeg, gtm->mask, gtm->gtmseg);
   gtm->ttpvf = MRIsegPVF2TissueTypePVF(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
@@ -538,8 +552,8 @@ static int parse_commandline(int argc, char **argv) {
 	exit(1);
 	//gtm->anatseg2pet = ltaReadRegisterDat(regfile, SrcVolFile, SegVolFile);
       }
-      gtm->anatseg2pet = LTAread(regfile);
-      if(gtm->anatseg2pet == NULL){
+      gtm->anat2pet = LTAread(regfile);
+      if(gtm->anat2pet == NULL){
 	printf("ERROR: reading %s\n",regfile);
 	exit(1);
       }
@@ -798,7 +812,7 @@ static void check_options(void)
     exit(1);
   }
   if(! fio_FileExistsReadable(SegVolFile)){
-    sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtm->anatseg2pet->subject,SegVolFile);
+    sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtm->anat2pet->subject,SegVolFile);
     if(! fio_FileExistsReadable(tmpstr)){
       printf("ERROR: cannot find seg vol %s or %s\n",SegVolFile,tmpstr);
       exit(1);
@@ -827,7 +841,7 @@ static void check_options(void)
 
   if(regidentity){
     printf("Using identity registration\n");
-    gtm->anatseg2pet = TransformRegDat2LTA(gtm->yvol, gtm->yvol, NULL);
+    gtm->anat2pet = TransformRegDat2LTA(gtm->yvol, gtm->yvol, NULL);
   }
   else {
     if(regfile == NULL){
@@ -1742,7 +1756,7 @@ int GTMbuildX(GTM *gtm)
 
   TimerStart(&timer);
   printf("computing seg pvf \n");fflush(stdout);
-  gtm->segpvf = MRIseg2SegPVF(gtm->anatseg, gtm->anatseg2pet, 0.5, gtm->segidlist, 
+  gtm->segpvf = MRIseg2SegPVF(gtm->anatseg, gtm->seg2pet, 0.5, gtm->segidlist, 
 			       gtm->nsegs, gtm->mask, 0, NULL, gtm->segpvf);
   if(gtm->segpvf==NULL) return(1);
 
@@ -1793,9 +1807,12 @@ int GTMSEGprint(GTMSEG *gtmseg, FILE *fp)
   fprintf(fp,"subject %s\n",gtmseg->subject);
   fprintf(fp,"USF %d\n",gtmseg->USF);
   fprintf(fp,"apasfile %s\n",gtmseg->apasfile);
-  fprintf(fp,"wmannotfile %s\n",gtmseg->wmannotfile);
-  fprintf(fp,"wmlhbase %d\n",gtmseg->wmlhbase);
-  fprintf(fp,"wmrhbase %d\n",gtmseg->wmrhbase);
+  if(gtmseg->wmannotfile != NULL){
+    fprintf(fp,"wmannotfile %s\n",gtmseg->wmannotfile);
+    fprintf(fp,"wmlhbase %d\n",gtmseg->wmlhbase);
+    fprintf(fp,"wmrhbase %d\n",gtmseg->wmrhbase);
+  }
+  else fprintf(fp,"wmannotfile NULL\n");
   fprintf(fp,"ctxannotfile %s\n",gtmseg->ctxannotfile);
   fprintf(fp,"ctxlhbase %d\n",gtmseg->ctxlhbase);
   fprintf(fp,"ctxrhbase %d\n",gtmseg->ctxrhbase);
@@ -1818,12 +1835,14 @@ int MakeGTMSeg(char *subject, int USF, int LabelHypoAsWM, float dmax, char *outs
   gtmseg->subject = strcpyalloc(subject);
   gtmseg->apasfile = "apas+head.mgz";
   gtmseg->wmannotfile = "lobes.annot";
+  //gtmseg->wmannotfile = NULL;
   gtmseg->wmlhbase =  3200;
   gtmseg->wmrhbase =  4200;
   gtmseg->ctxannotfile = "aparc.annot";
   gtmseg->ctxlhbase = 1000;
   gtmseg->ctxrhbase = 2000;
   gtmseg->LabelHypoAsWM = LabelHypoAsWM;
+  gtmseg->LabelCCAsWM = 1;
   gtmseg->dmax = dmax;
   gtmseg->USF = USF;
 
@@ -1859,6 +1878,7 @@ int MakeGTMSeg(char *subject, int USF, int LabelHypoAsWM, float dmax, char *outs
   srclist[nlist] =   63; targlist[nlist] =   24; nlist++; // RChoroidP ?
   srclist[nlist] =   30; targlist[nlist] =   24; nlist++; // LVessel ?
   srclist[nlist] =   62; targlist[nlist] =   24; nlist++; // RVessel ?
+  srclist[nlist] =   80; targlist[nlist] =   24; nlist++; // non-WM-hypo ?
 
   /* Repace CC segments with one CC. Cant just set these to lhWM or
    lhWM. Have to re-program MRIannot2CerebralWMSeg() as with 
@@ -1934,18 +1954,25 @@ int MRIgtmSeg(GTMSEG *gtmseg)
 
   printf("Loading annotations ");
   printf(" t = %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
-  sprintf(tmpstr,"%s/%s/label/lh.%s",SUBJECTS_DIR,gtmseg->subject,gtmseg->wmannotfile);
-  err = MRISreadAnnotation(lhw,tmpstr);  
-  if(err) {
-    printf("Try running mri_annotation2label --s %s --hemi lh --lobesStrict lobefilename\n",gtmseg->subject);
-    return(1);
+  if(gtmseg->wmannotfile != NULL){
+    sprintf(tmpstr,"%s/%s/label/lh.%s",SUBJECTS_DIR,gtmseg->subject,gtmseg->wmannotfile);
+    err = MRISreadAnnotation(lhw,tmpstr);  
+    if(err) {
+      printf("Try running mri_annotation2label --s %s --hemi lh --lobesStrict lobefilename\n",gtmseg->subject);
+      return(1);
+    }
+    sprintf(tmpstr,"%s/%s/label/rh.%s",SUBJECTS_DIR,gtmseg->subject,gtmseg->wmannotfile);
+    err = MRISreadAnnotation(rhw,tmpstr);
+    if(err) {
+      printf("Try running mri_annotation2label --s %s --hemi rh --lobesStrict lobefilename\n",gtmseg->subject);
+      return(1);
+    }
+    MRISripUnknown(lhw);
+    MRISripUnknown(rhw);
+    lhw->ct->idbase = gtmseg->wmlhbase; 
+    rhw->ct->idbase = gtmseg->wmrhbase; 
   }
-  sprintf(tmpstr,"%s/%s/label/rh.%s",SUBJECTS_DIR,gtmseg->subject,gtmseg->wmannotfile);
-  err = MRISreadAnnotation(rhw,tmpstr);
-  if(err) {
-    printf("Try running mri_annotation2label --s %s --hemi rh --lobesStrict lobefilename\n",gtmseg->subject);
-    return(1);
-  }
+  else printf("Not segmenting WM\n");
 
   sprintf(tmpstr,"%s/%s/label/lh.%s",SUBJECTS_DIR,gtmseg->subject,gtmseg->ctxannotfile);
   err = MRISreadAnnotation(lhp,tmpstr);  if(err) return(1);
@@ -1954,15 +1981,31 @@ int MRIgtmSeg(GTMSEG *gtmseg)
 
   lhp->ct->idbase = gtmseg->ctxlhbase;
   rhp->ct->idbase = gtmseg->ctxrhbase;
-  lhw->ct->idbase = gtmseg->wmlhbase; 
-  rhw->ct->idbase = gtmseg->wmrhbase; 
 
   MRISsetPialUnknownToWhite(lhw, lhp);
   MRISsetPialUnknownToWhite(rhw, rhp);
-  MRISripUnknown(lhw);
   MRISripUnknown(lhp);
-  MRISripUnknown(rhw);
   MRISripUnknown(rhp);
+
+  if(gtmseg->LabelHypoAsWM || gtmseg->LabelCCAsWM){
+    int nlist, list[100];
+    nlist = 0;
+    if(gtmseg->LabelHypoAsWM){
+      list[nlist] = WM_hypointensities; nlist++;
+      list[nlist] = Left_WM_hypointensities; nlist++;
+      list[nlist] = Right_WM_hypointensities; nlist++;
+    }
+    if(gtmseg->LabelCCAsWM){
+      list[nlist] = 251; nlist++;
+      list[nlist] = 252; nlist++;
+      list[nlist] = 253; nlist++;
+      list[nlist] = 254; nlist++;
+      list[nlist] = 255; nlist++;
+      list[nlist] = 192; nlist++;
+    }
+    printf(" Unsegmenting WM %d %d\n",gtmseg->LabelHypoAsWM,gtmseg->LabelCCAsWM);
+    MRIunsegmentWM(aseg, lhw, rhw, list, nlist, NULL, aseg);
+  }
 
   // Upsample the segmentation
   printf("Beginning hires seg ");fflush(stdout);
@@ -1978,9 +2021,11 @@ int MRIgtmSeg(GTMSEG *gtmseg)
   MRIfree(&hrseg);
 
   // Label wm (like wmaparc)
-  printf("Beginning annot2wm ");
-  printf(" t = %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
-  ctxseg = MRIannot2CerebralWMSeg(ctxseg, lhw, rhw, gtmseg->dmax, gtmseg->LabelHypoAsWM, NULL, ctxseg);
+  if(gtmseg->wmannotfile != NULL){
+    printf("Beginning annot2wm ");
+    printf(" t = %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
+    ctxseg = MRIannot2CerebralWMSeg(ctxseg, lhw, rhw, gtmseg->dmax, NULL, ctxseg);
+  }
 
   MRISfree(&lhw);
   MRISfree(&lhp);
@@ -1995,26 +2040,28 @@ int MRIgtmSeg(GTMSEG *gtmseg)
   printf("Found %d segs in the final list\n",nsegs);
   for(n=0; n < nsegs; n++){
     if(segidlist[n] == Left_Cerebral_Cortex){
-      printf("ERRRO: MRIgtmSeg() found left cortical label\n");
+      printf("ERROR: MRIgtmSeg() found left cortical label\n");
       err = 1;
     }
     if(segidlist[n] == Right_Cerebral_Cortex){
-      printf("ERRRO: MRIgtmSeg() found right cortical label\n");
+      printf("ERROR: MRIgtmSeg() found right cortical label\n");
       err = 1;
     }
-    if(segidlist[n] == Left_Cerebral_White_Matter){
-      printf("ERRRO: MRIgtmSeg() found left cerebral WM label\n");
-      err = 1;
-    }
-    if(segidlist[n] == Right_Cerebral_White_Matter){
-      printf("ERRRO: MRIgtmSeg() found right cerebral WM label\n");
-      err = 1;
+    if(gtmseg->wmannotfile != NULL){
+      if(segidlist[n] == Left_Cerebral_White_Matter){
+	printf("ERROR: MRIgtmSeg() found left cerebral WM label\n");
+	err = 1;
+      }
+      if(segidlist[n] == Right_Cerebral_White_Matter){
+	printf("ERROR: MRIgtmSeg() found right cerebral WM label\n");
+	err = 1;
+      }
     }
     if(gtmseg->LabelHypoAsWM){
       if(segidlist[n]==WM_hypointensities || 
 	 segidlist[n]==Left_WM_hypointensities || 
 	 segidlist[n]==Right_WM_hypointensities){
-	printf("ERRRO: MRIgtmSeg() found WM hypointensity label\n");
+	printf("ERROR: MRIgtmSeg() found WM hypointensity label\n");
 	err = 1;
       }
     }
