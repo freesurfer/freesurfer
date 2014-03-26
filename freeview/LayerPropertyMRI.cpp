@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/25 16:24:05 $
- *    $Revision: 1.22 $
+ *    $Date: 2014/03/26 20:02:39 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,7 +86,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_nContourSmoothIterations( 5 ),
   mSource( NULL ),
   m_bShowProjectionMap( false ),
-  m_bRememberFrameSettings( true ),
+  m_bRememberFrameSettings( false ),
   m_nActiveFrame( 0 ),
   m_bShowAsLabelContour( false ),
   m_bContourUpsample(false),
@@ -243,9 +243,9 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
   if (map.contains("AutoAdjustFrameLevel"))
     m_bAutoAdjustFrameLevel = map["AutoAdjustFrameLevel"].toBool();
 
-  if ( map.contains("FrameSettings"))
+  if ( map.contains("FrameSettings") && mri->GetNumberOfFrames() > 1)
   {
-  //  m_frameSettings = map["FrameSettings"].toMap();
+    m_frameSettings = map["FrameSettings"].toMap();
   }
 
   if (map.contains("ClearBackground"))
@@ -253,7 +253,7 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
     mbClearZero = map["ClearBackground"].toBool();
   }
 
-  if (m_bRememberFrameSettings)
+  if (m_bRememberFrameSettings && mri->GetNumberOfFrames() > 1)
   {
     QVariantMap map2 = m_frameSettings[QString::number(m_nActiveFrame)].toMap();
     QStringList keys = map.keys();
