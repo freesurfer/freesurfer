@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/25 21:48:57 $
- *    $Revision: 1.105 $
+ *    $Date: 2014/03/26 17:53:35 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,11 +47,13 @@
 
 //#define MRI2_TIMERS
 
-
 #include "affine.h"
 
 #ifdef FS_CUDA
 #include "mrivol2vol_cuda.h"
+#endif
+#ifdef _OPENMP
+#include <omp.h>
 #endif
 
 /* overwrite generic nint to speed up execution 
@@ -4517,6 +4519,7 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
   printf("  MRIannot2CorticalSeg(): looping over volume\n");fflush(stdout);
   nunknown=0;
   #ifdef _OPENMP
+  printf("     nthreads = %d\n",omp_get_max_threads());
   #pragma omp parallel for reduction(+:nunknown) 
   #endif
   for(c=0; c < seg->width; c++){
@@ -4605,24 +4608,24 @@ MRI *MRIannot2CorticalSeg(MRI *seg, MRIS *lhw, MRIS *lhp, MRIS *rhw, MRIS *rhp, 
 }
 
 /*
-  \fn MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, int LabelHypoAsWM, LTA *anat2seg, MRI *wmseg)
+  \fn MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, LTA *anat2seg, MRI *wmseg)
+
   \brief Creates a segmentation of the cerebral WM
   (X_Cerebral_White_Matter) found in seg based upon the annotation of
   the nearest white vertex within DistThresh mm of the cortex. If it
   is beyond the distance threshold then 5001 or 5002 is used. If
   DistThresh is negative, then no distance threshold is used.
   anat2seg is the registration between the surface/anatomical space
-  and the segmentation space. If they share a space, then just use
+  and the segmentation space. If they share a RAS space, then just use
   NULL. The surface space is obtained from lhw->vg. The output will be
   the same size as seg. Note that a voxel in seg must be labeled as
-  X_Cerebral_White_Matter for it to receive a new label. If
-  LabelHypoAsWM is set to 1, then any labels with value
-  WM_hypointensities or X_WM_hypointensities will be relabeled as if
-  it is WM (if the hypo is in CC, then a cortical WM label may be
-  outside of the white surface).  This function basically is what is
-  done when creating wmparc.mgz.
+  X_Cerebral_White_Matter for it to receive a new label. This means
+  that if you want hypointensities or CC to be re-labeled, you must
+  change the hypointensities label to that of X_Cerebral_White_Matter
+  (see MRIunsegmentWM()). This function basically is what is done when
+  creating wmparc.mgz.
  */
-MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, int LabelHypoAsWM, LTA *anat2seg, MRI *wmseg)
+MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, LTA *anat2seg, MRI *wmseg)
 {
   MATRIX *AnatVox2SurfRAS,*SegVox2SurfRAS;
   float hashres = 16;
@@ -4669,10 +4672,11 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, i
 
   printf("  MRIannot2CerebralWMSeg(): looping over volume\n");fflush(stdout);
   #ifdef _OPENMP
+  printf("     nthreads = %d\n",omp_get_max_threads());
   #pragma omp parallel for 
   #endif
   for(c=0; c < seg->width; c++){
-    int r,s,asegv,annot,annotid,wvtxno,segv,wmunknown,IsHypo,IsWM;
+    int r,s,asegv,annot,annotid,wvtxno,segv,wmunknown;
     VERTEX vtx;
     MATRIX *RAS=NULL,*CRS=NULL;
     float wdw;
@@ -4684,51 +4688,21 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, i
       for(s=0; s < seg->depth; s++){
 	asegv = MRIgetVoxVal(seg,c,r,s,0);
 
-	if(asegv==WM_hypointensities || asegv==Left_WM_hypointensities || 
-	   asegv==Right_WM_hypointensities) IsHypo = 1;
-	else IsHypo = 0;
-
-	if(asegv==Left_Cerebral_White_Matter || asegv==Right_Cerebral_White_Matter) IsWM = 1;
-	else IsWM = 0;
-
-	if(c==147 && r==85 && s==128)
-	  DiagBreak();
-
-	if(!IsWM && !(IsHypo && LabelHypoAsWM)){
+	if(asegv!=Left_Cerebral_White_Matter && asegv!=Right_Cerebral_White_Matter){
 	  // If not in WM, just copy seg to output and continue
 	  MRIsetVoxVal(wmseg,c,r,s,0,asegv);
 	  continue;
 	}
 
-	if(asegv==Left_Cerebral_White_Matter || asegv==Left_WM_hypointensities){
+	if(asegv==Left_Cerebral_White_Matter){
 	  wsurf = lhw;
 	  whash = lhw_hash;
 	  wmunknown = 5001;
 	}
-	else if(asegv==Right_Cerebral_White_Matter || asegv==Right_WM_hypointensities){
+	else {
 	  wsurf = rhw;
 	  whash = rhw_hash;
 	  wmunknown = 5002;
-	}
-	else{
-	  // Must be WM_hypointensities which does not have a hemisphere, so see
-	  // whether it is closest to lh or rh
-	  int lhvtxno, rhvtxno;
-	  float lhd,rhd;
-	  lhvtxno = MHTfindClosestVertexNo(lhw_hash,lhw,&vtx,&lhd);
-	  if(lhvtxno < 0) lhvtxno = MRISfindClosestVertex(lhw,vtx.x,vtx.y,vtx.z,&lhd);
-	  rhvtxno = MHTfindClosestVertexNo(rhw_hash,rhw,&vtx,&rhd);
-	  if(rhvtxno < 0) rhvtxno = MRISfindClosestVertex(rhw,vtx.x,vtx.y,vtx.z,&rhd);
-	  if(lhd < rhd){
-	    wsurf = lhw;
-	    whash = lhw_hash;
-	    wmunknown = 5001;
-	  }
-	  else{
-	    wsurf = rhw;
-	    whash = rhw_hash;
-	    wmunknown = 5002;
-	  }
 	}
 
 	// Compute location of voxel in surface space
@@ -4754,6 +4728,119 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, i
 	  else    	    segv = wmunknown; // no annotation present
 	}
 	else segv = wmunknown;
+	MRIsetVoxVal(wmseg,c,r,s,0,segv);
+      }
+    }
+    MatrixFree(&CRS);
+    if(RAS) MatrixFree(&RAS);
+  }
+
+  MHTfree(&lhw_hash);
+  MHTfree(&rhw_hash);
+  MatrixFree(&SegVox2SurfRAS);
+  MatrixFree(&AnatVox2SurfRAS);
+  MRIfree(&anat);
+  LTAfree(&lta);
+
+  return(wmseg);
+}
+/*
+  \fn MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, LTA *anat2seg, MRI *wmseg)
+  \brief Changes a voxel segmentation to Left_Cerebral_White_Matter or Right_Cerebral_White_Matter
+  depending on which surface it is closest to (no distance restriction). A voxel is relabeled if its
+  segid in seg is in the segidlist. Can be done in place. anat2seg is an LTA that maps from the seg
+  space the surface anatomical space. If NULL, then it assumes that the surface VOL_GEOM and the
+  seg share a scanner RAS space. This function can be used to relabel hypointensities and CC.
+ */
+MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, LTA *anat2seg, MRI *wmseg)
+{
+  MATRIX *AnatVox2SurfRAS,*SegVox2SurfRAS;
+  float hashres = 16;
+  MHT *lhw_hash=NULL,*rhw_hash=NULL;
+  LTA *lta;
+  MRI *anat;
+  int c;
+
+  if(lhw->vg.valid != 1){
+    printf("ERROR: MRIunsegmentWM(): lhw does not have a valid geometry\n");
+    return(NULL);
+  }
+
+  if(wmseg == NULL){
+    wmseg = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_INT,1);
+    MRIcopyHeader(seg,wmseg);
+    MRIcopyPulseParameters(seg,wmseg);
+  }
+  if(MRIdimMismatch(seg,wmseg,0)){
+    printf("ERROR: MRIunsegmentWM(): dimension mismatch\n");
+    return(NULL);
+  }
+
+  // Create an MRI for the anatomical voume the surfaces were generated from
+  anat = MRIallocFromVolGeom(&(lhw->vg), MRI_INT, 1, 1);
+
+  // Compute an LTA that maps from the anatomical to the segmentation
+  if(anat2seg == NULL) lta = TransformRegDat2LTA(anat, seg, NULL);
+  else {
+    if(LTAmriIsTarget(anat2seg, seg)) lta = LTAcopy(anat2seg,NULL);
+    else                              lta = LTAinvert(anat2seg,NULL);
+  }
+  if(lta->type != LINEAR_VOX_TO_VOX) LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+  LTAfillInverse(lta);
+
+  // Anatomical Vox to Surface RAS
+  AnatVox2SurfRAS = MRIxfmCRS2XYZtkreg(anat);
+  // Segmentation Vox to Surface RAS
+  SegVox2SurfRAS = MatrixMultiplyD(AnatVox2SurfRAS,lta->inv_xforms[0].m_L,NULL);
+
+  // Create the hash for faster service
+  lhw_hash = MHTfillVertexTableRes(lhw, NULL,CURRENT_VERTICES,hashres);
+  rhw_hash = MHTfillVertexTableRes(rhw, NULL,CURRENT_VERTICES,hashres);
+
+  printf("  MRIunsegmentWM(): looping over volume\n");fflush(stdout);
+  #ifdef _OPENMP
+  printf("     nthreads = %d\n",omp_get_max_threads());
+  #pragma omp parallel for 
+  #endif
+  for(c=0; c < seg->width; c++){
+    int n,r,s,asegv,segv,hit,lhvtxno, rhvtxno;
+    VERTEX vtx;
+    MATRIX *RAS=NULL,*CRS=NULL;
+    float lhd,rhd;
+    CRS = MatrixAlloc(4,1,MATRIX_REAL);
+    CRS->rptr[4][1] = 1;
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	asegv = MRIgetVoxVal(seg,c,r,s,0);
+
+	hit = 0;
+	for(n=0; n < nlist; n++){
+	  if(asegv == segidlist[n]){
+	    hit = 1;
+	    break;
+	  }
+	}
+	if(hit == 0){
+	  MRIsetVoxVal(wmseg,c,r,s,0,asegv);
+	  continue;
+	}
+
+	CRS->rptr[1][1] = c;
+	CRS->rptr[2][1] = r;
+	CRS->rptr[3][1] = s;
+	RAS = MatrixMultiply(SegVox2SurfRAS,CRS,RAS);
+	vtx.x = RAS->rptr[1][1];
+	vtx.y = RAS->rptr[2][1];
+	vtx.z = RAS->rptr[3][1];
+
+	lhvtxno = MHTfindClosestVertexNo(lhw_hash,lhw,&vtx,&lhd);
+	if(lhvtxno < 0) lhvtxno = MRISfindClosestVertex(lhw,vtx.x,vtx.y,vtx.z,&lhd);
+
+	rhvtxno = MHTfindClosestVertexNo(rhw_hash,rhw,&vtx,&rhd);
+	if(rhvtxno < 0) rhvtxno = MRISfindClosestVertex(rhw,vtx.x,vtx.y,vtx.z,&rhd);
+
+	if(lhd < rhd) segv = Left_Cerebral_White_Matter;
+	else          segv = Right_Cerebral_White_Matter;
 	MRIsetVoxVal(wmseg,c,r,s,0,segv);
       }
     }
