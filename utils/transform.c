@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/19 17:30:13 $
- *    $Revision: 1.172 $
+ *    $Date: 2014/03/27 02:04:41 $
+ *    $Revision: 1.173 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3788,6 +3788,20 @@ ltaFSLread(const char *fname)
   lta->type = FSLREG_TYPE;
 
   return(lta) ;
+}
+
+/*
+  \fn LTA *LTAconcat2(LTA *lta1, LTA *lta2, int Reduce)
+  \brief Same as LTAconcat() but for exactly two LTAs (which I
+  seem to be doing a lot of).
+ */
+LTA *LTAconcat2(LTA *lta1, LTA *lta2, int Reduce)
+{
+  LTA *ltaArray[2], *ltaout;
+  ltaArray[0] = lta1;
+  ltaArray[1] = lta2;
+  ltaout = LTAconcat(ltaArray, 2, Reduce);
+  return(ltaout);
 }
 
 /*

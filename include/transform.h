@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/19 17:30:13 $
- *    $Revision: 1.79 $
+ *    $Date: 2014/03/27 02:04:41 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,6 +133,7 @@ MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta);
 LTA *LTAinvert(LTA *lta, LTA *ltainv); // now actually computes the inverse 
 LTA *LTAreduce(LTA *lta0);
 LTA *LTAconcat(LTA **ltaArray, int nLTAs, int Reduce);
+LTA *LTAconcat2(LTA *lta1, LTA *lta2, int Reduce);
 LTA *LTAfillInverse(LTA *lta); // fill inverse part of LTA
 int LTAmodifySrcDstGeom(LTA *lta, MRI *src, MRI *dst);  /* src and dst can be
                                                            null. only those
