@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/04/16 00:03:14 $
- *    $Revision: 1.16 $
+ *    $Author: greve $
+ *    $Date: 2014/03/27 17:58:45 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 extern char *crypt(const char *, const char *);
 
@@ -96,12 +97,21 @@ void chklc(void)
   lfile = fopen(lfilename,"r");
   if (lfile == NULL)
   {
+    if(errno == EACCES){
+      printf("\n\nERROR: FreeSurfer license file %s exists but you do not have read permission\n",lfilename);
+      printf("   Try running chmod a+r %s\n\n\n",lfilename);
+      exit(-1);
+    }
     sprintf(lfilename,"%s/lic%s",dirname, "ense.txt");
-
     lfile = fopen(lfilename,"r");
   }
   if (lfile == NULL)
   {
+    if(errno == EACCES){
+      printf("\n\nERROR: FreeSurfer license file %s exists but you do not have read permission\n",lfilename);
+      printf("   Try running chmod a+r %s\n\n\n",lfilename);
+      exit(-1);
+    }
     fprintf(stderr,licmsg,lfilename);
     exit(-1);
   }
