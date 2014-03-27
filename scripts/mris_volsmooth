@@ -7,9 +7,9 @@
 #
 # Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.10 $
+#    $Author: greve $
+#    $Date: 2014/03/27 21:28:41 $
+#    $Revision: 1.11 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 #
 
 
-set VERSION = '$Id: mris_volsmooth,v 1.10 2011/03/02 20:16:39 nicks Exp $'
+set VERSION = '$Id: mris_volsmooth,v 1.11 2014/03/27 21:28:41 greve Exp $'
 set invol  = ();
 set reg = ();
 set outvol = ();
@@ -35,6 +35,7 @@ set projfrac = ();
 set pfa_min   = ();
 set pfa_max   = ();
 set pfa_delta = ();
+set FillRibbon = 0;
 set surfout = ();
 set cleanup = 1;
 set LF = ();
@@ -185,6 +186,7 @@ foreach hemi (lh rh)
     --template $invol --volreg $reg --outvol $outvol);
   if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
   if($#pfa_min)  set cmd = ($cmd --projfrac 0.5) # Not really sure what to do here
+  if($FillRibbon) set cmd = ($cmd --fillribbon)
   if(! -e $outvol) set cmd = ($cmd --merge $mergevol);
   if(-e $outvol)   set cmd = ($cmd --merge $outvol);
   echo "" | tee -a $LF
@@ -257,6 +259,10 @@ while( $#argv != 0 )
       set pfa_min   = $argv[1]; shift;
       set pfa_max   = $argv[1]; shift;
       set pfa_delta = $argv[1]; shift;
+      breaksw
+
+    case "--fill-ribbon":
+      set FillRibbon = 1;
       breaksw
 
     case "--surf-out":
@@ -359,6 +365,7 @@ usage_exit:
   echo " --reg volreg    : registers vol to surface anatomical"
   echo " --projfrac frac : project frac of thickness along surface normal"
   echo " --projfrac-avg min max delta : average along normal"
+  echo " --fill-ribbon : fill ribbon"
   echo " --surf-out basename : save smoothed surfaces as basename.?h.mgh"
   echo " "
   echo " --fwhm fwhm     : suface FWHM in mm"
