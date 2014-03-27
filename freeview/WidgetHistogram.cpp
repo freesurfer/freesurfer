@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/08 19:55:12 $
- *    $Revision: 1.6 $
+ *    $Date: 2014/03/27 20:13:34 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -233,7 +233,7 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
         painter.drawLine( m_rectGraph.left(), y, m_rectGraph.left()-4, y );
 
         QPen oldPen = painter.pen();
-        QPen newpen( QPen( Qt::gray) );
+        QPen newpen( Qt::gray );
         newpen.setStyle(Qt::DotLine);
         painter.setPen( newpen );
         painter.drawLine( m_rectGraph.left(), y, m_rectGraph.right(), y );

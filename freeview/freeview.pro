@@ -428,13 +428,13 @@ TARGET = FreeView
 RC_FILE = resource/icons/freeview.icns
 
 # uncomment following lines to build for 10.5 compatible binaries
-CONFIG += i386
-CONFIG -= x86_64
+#CONFIG -= x86
+#CONFIG -= x86_64
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.6
-QMAKE_MAC_SDK=/Developer/SDKs/MacOSX10.6.sdk
-QMAKE_CXXFLAGS += -mmacosx-version-min=10.6 -arch i386
-QMAKE_CFLAGS += -mmacosx-version-min=10.6 -arch i386
-QMAKE_LFLAGS += -mmacosx-version-min=10.6 -arch i386
+#QMAKE_MAC_SDK=/Developer/SDKs/MacOSX10.6.sdk
+#QMAKE_CXXFLAGS += -mmacosx-version-min=10.6 -arch i386
+#QMAKE_CFLAGS += -mmacosx-version-min=10.6 -arch i386
+#QMAKE_LFLAGS += -mmacosx-version-min=10.6 -arch i386
 
 LIBS -= -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \
@@ -499,7 +499,7 @@ LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -lm -ldl
     /usr/pubsw/packages/mni/current/lib/libminc.a /usr/pubsw/packages/mni/current/lib/libnetcdf.a \
     -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
     -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
-    -lpetscdm -lpetscmat -lpetscvec -lpetsc  -lmpich -lfmpich -lpmpich \
+    -lpetscdm -lpetscmat -lpetscvec -lpetsc  -lmpich -lpmpich \
     -framework Accelerate /usr/local/gfortran/lib/libgfortran.a
 
 LIBS -= -L/usr/X11R6/lib -lX11 -lXext -lXt -lSM -lICE -lGLU -lGL

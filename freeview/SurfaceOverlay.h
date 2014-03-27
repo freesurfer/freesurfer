@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/27 21:05:45 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/03/27 20:13:34 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,13 +29,13 @@
 #ifndef SurfaceOverlay_h
 #define SurfaceOverlay_h
 
+#include <QObject>
+#include <QString>
+
 extern "C"
 {
 #include "mri.h"
 }
-
-#include <QObject>
-#include <QString>
 
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
