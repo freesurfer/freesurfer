@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/08 18:41:34 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/03/27 19:38:18 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.39 2014/01/08 18:41:34 greve Exp $
+// $Id: mri_binarize.c,v 1.40 2014/03/27 19:38:18 greve Exp $
 
 /*
   BEGINHELP
@@ -192,7 +192,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.39 2014/01/08 18:41:34 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.40 2014/03/27 19:38:18 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -244,6 +244,8 @@ int FDRSign = 0;
 int nErodeNN=0, NNType=0;
 
 int nReplace = 0, SrcReplace[1000], TrgReplace[1000];
+char *SurfFile=NULL;
+int nsmoothsurf=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -508,6 +510,14 @@ int main(int argc, char *argv[]) {
   // Save output
   if(OutVolFile) MRIwrite(OutVol,OutVolFile);
 
+  if(SurfFile){
+    MRIS *surf;
+    surf = MRIStessellate(OutVol,BinVal,0);
+    if(nsmoothsurf > 0) MRISaverageVertexPositions(surf, nsmoothsurf) ;
+    MRISwrite(surf,SurfFile);
+    MRISfree(&surf);
+  }
+
   nvox = OutVol->width * OutVol->height * OutVol->depth;
   voxvol = OutVol->xsize * OutVol->ysize * OutVol->zsize;
   printf("Count: %d %lf %d %lf\n",nhits,nhits*voxvol,nvox,(double)100*nhits/nvox);
@@ -649,11 +659,23 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       InVolFile = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--o")) {
+    } 
+    else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
       OutVolFile = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--merge")) {
+    } 
+    else if (!strcasecmp(option, "--surf")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      SurfFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--surf-smooth")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nsmoothsurf); // number of iterations
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--merge")) {
       if (nargc < 1) CMDargNErr(option,1);
       MergeVolFile = pargv[0];
       nargsused = 1;
@@ -864,6 +886,8 @@ static void print_usage(void) {
   printf("   --erode-face   nerode: erode binarization using 'face' nearest neighbors\n");
   printf("   --erode-edge   nerode: erode binarization using 'edge' nearest neighbors\n");
   printf("   --erode-corner nerode: erode binarization using 'corner' nearest neighbors (same as --erode)\n");
+  printf("   --surf surfname : create a surface mesh from the binarization\n");
+  printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -997,7 +1021,7 @@ static void check_options(void) {
     printf("ERROR: must specify input volume\n");
     exit(1);
   }
-  if(OutVolFile == NULL && CountFile == NULL) {
+  if(OutVolFile == NULL && CountFile == NULL && SurfFile == NULL) {
     printf("ERROR: must specify output volume or output count file\n");
     exit(1);
   }
