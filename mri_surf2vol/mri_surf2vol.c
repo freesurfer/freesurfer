@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.24 $
+ *    $Author: greve $
+ *    $Date: 2014/03/28 21:27:02 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,7 +30,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.24 2011/03/02 00:04:25 nicks Exp $
+  $Id: mri_surf2vol.c,v 1.25 2014/03/28 21:27:02 greve Exp $
 */
 
 #include <stdio.h>
@@ -71,7 +71,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_surf2vol.c,v 1.24 2011/03/02 00:04:25 nicks Exp $";
+  "$Id: mri_surf2vol.c,v 1.25 2014/03/28 21:27:02 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_surf2vol.c,v 1.24 2011/03/02 00:04:25 nicks Exp $",
+           "$Id: mri_surf2vol.c,v 1.25 2014/03/28 21:27:02 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -281,19 +281,31 @@ int main(int argc, char **argv) {
 
   printf("INFO: mapping vertices to closest voxel\n");
   if (fillribbon) {   /* fill entire ribbon */
+    VtxVol = MRIconst(TempVol->width, TempVol->height, TempVol->depth, 1, -1, NULL);
     nhits = 0; 
     for (projfrac = ProjFracStart ; projfrac <= ProjFracStop ; projfrac += ProjFracDelta) {
-      VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
+      MRI *VtxVolp;
+      VtxVolp = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
       if (VtxVol == NULL) {
         printf("ERROR: could not map vertices to voxels\n");
         exit(1);
       }
 
-      n = MRIsurf2Vol(SurfVal, OutVol, VtxVol);
+      n = MRIsurf2Vol(SurfVal, OutVol, VtxVolp);
       printf("INFO: resampling surface to volume at projfrac=%2.2f, %d hits\n",
              projfrac, n);
       nhits += n ;
-      MRIfree(&VtxVol) ;
+      for (c=0; c < OutVol->width; c++) {
+	for (r=0; r < OutVol->height; r++) {
+	  for (s=0; s < OutVol->depth; s++) {
+	    v = MRIgetVoxVal(VtxVol,c,r,s,0);
+	    if(v != -1) continue;
+	    v = MRIgetVoxVal(VtxVolp,c,r,s,0);
+	    MRIsetVoxVal(VtxVol,c,r,s,0, v);
+	  }
+	}
+      }
+      MRIfree(&VtxVolp) ;
     }
     /* nhits is not valid yet for filling the ribbon.
        MRIsurf2Vol needs to be rewritten to take into
