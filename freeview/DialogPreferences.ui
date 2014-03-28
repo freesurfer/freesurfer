@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>401</width>
-    <height>477</height>
+    <height>509</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -138,6 +138,13 @@
         </property>
         <property name="checked">
          <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxRightButtonErase">
+        <property name="text">
+         <string>Allow right mouse button to erase voxels</string>
         </property>
        </widget>
       </item>
@@ -283,8 +290,8 @@
    <slot>OnClicked(QAbstractButton*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>302</x>
-     <y>453</y>
+     <x>314</x>
+     <y>496</y>
     </hint>
     <hint type="destinationlabel">
      <x>385</x>
@@ -299,8 +306,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>193</x>
-     <y>453</y>
+     <x>205</x>
+     <y>496</y>
     </hint>
     <hint type="destinationlabel">
      <x>187</x>

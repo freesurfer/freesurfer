@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/14 18:08:32 $
- *    $Revision: 1.275 $
+ *    $Date: 2014/03/28 19:29:38 $
+ *    $Revision: 1.276 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -425,6 +425,10 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   ui->menuAction->setTearOffEnabled(true);
   ui->menuTools->setTearOffEnabled(true);
   ui->menuHelp->setTearOffEnabled(true);
+
+  addAction(ui->actionToggleAseg);
+  addAction(ui->actionToggleBrainmask);
+  addAction(ui->actionToggleWm);
 }
 
 MainWindow::~MainWindow()
@@ -1598,6 +1602,10 @@ void MainWindow::RunScript()
   else if (cmd == "setvolumemask")
   {
     CommandSetVolumeMask( sa );
+  }
+  else if (cmd == "savelayer")
+  {
+    CommandSaveLayer(sa);
   }
   m_bScriptRunning = false;
 }
@@ -4286,7 +4294,11 @@ void MainWindow::OnSaveVolume()
       fn += ".mgz";
     }
     layer->SetFileName( fn );
-    m_threadIOWorker->SaveVolume( layer );
+    m_scripts.append(QString("savelayer ") + QString::number(layer->GetID()));
+  }
+  else
+  {
+    m_scripts.clear();
   }
 }
 
@@ -6039,6 +6051,33 @@ void MainWindow::OnPaste()
   }
 }
 
+void MainWindow::ToggleSpecialVolume(const QString &name)
+{
+  QList<Layer*> layers = GetLayers("MRI");
+  foreach (Layer* layer, layers)
+  {
+    if (layer->GetFileName().contains(name, Qt::CaseInsensitive))
+    {
+      layer->SetVisible(!layer->IsVisible());
+    }
+  }
+}
+
+void MainWindow::OnToggleWm()
+{
+  ToggleSpecialVolume("wm.mgz");
+}
+
+void MainWindow::OnToggleAseg()
+{
+  ToggleSpecialVolume("aseg.mgz");
+}
+
+void MainWindow::OnToggleBrainmask()
+{
+  ToggleSpecialVolume("brainmask.mgz");
+}
+
 void MainWindow::ToggleShowLayer(const QString& type )
 {
   Layer* layer = GetActiveLayer(type);
@@ -6066,6 +6105,22 @@ void MainWindow::OnToggleShowROI()
 void MainWindow::OnToggleShowPointSet()
 {
   ToggleShowLayer("PointSet");
+}
+
+void MainWindow::OnToggleAllSurfaces()
+{
+  QList<Layer*> layers = GetLayers("Surface");
+  bool bVisible = false;
+  foreach (Layer* layer, layers)
+  {
+    if (layer->IsVisible())
+    {
+      bVisible = true;
+      break;
+    }
+  }
+  foreach (Layer* layer, layers)
+    layer->SetVisible(!bVisible);
 }
 
 void MainWindow::OnAbout()
@@ -6461,4 +6516,56 @@ void MainWindow::OnCloseFCD()
   }
 
   GetLayerCollection( "FCD" )->RemoveLayer( layer );
+}
+
+QVariant MainWindow::GetSetting(const QString &key)
+{
+  if (m_settings.contains(key))
+    return m_settings[key];
+  else
+    return QVariant();
+}
+
+void MainWindow::SetSetting(const QString &key, const QVariant &value)
+{
+  m_settings[key] = value;
+}
+
+void MainWindow::UpdateSettings()
+{
+  if (m_dlgPreferences)
+  {
+    QVariantMap map = m_dlgPreferences->GetSettings();
+    QStringList keys = map.keys();
+    foreach (QString key, keys)
+      m_settings[key] = map[key];
+  }
+}
+
+void MainWindow::CommandSaveLayer(const QStringList &cmd)
+{
+  if (cmd.size() < 2)
+    return;
+
+  QList<Layer*> layers = GetLayers("MRI");
+  bool bOK;
+  int nID = cmd[1].toInt(&bOK);
+  if (!bOK)
+    return;
+  foreach (Layer* layer, layers)
+  {
+    if (layer->GetID() == nID)
+    {
+      m_threadIOWorker->SaveVolume(layer);
+      return;
+    }
+  }
+}
+
+void MainWindow::SaveLayers(const QList<Layer *> &layers)
+{
+  foreach (Layer* layer, layers)
+  {
+    m_scripts.append(QString("savelayer ") + QString::number(layer->GetID()));
+  }
 }

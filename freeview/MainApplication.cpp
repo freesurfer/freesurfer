@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/08/29 15:24:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2014/03/28 19:29:38 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,7 @@
 
 
 #include "MainApplication.h"
+#include <QKeyEvent>
 
 MainApplication::MainApplication( int & argc, char ** argv ) :
     QApplication(argc, argv)

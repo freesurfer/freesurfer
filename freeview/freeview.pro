@@ -499,7 +499,7 @@ LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -lm -ldl
     /usr/pubsw/packages/mni/current/lib/libminc.a /usr/pubsw/packages/mni/current/lib/libnetcdf.a \
     -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
     -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
-    -lpetscdm -lpetscmat -lpetscvec -lpetsc  -lmpich -lpmpich \
+    -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lpmpich \
     -framework Accelerate /usr/local/gfortran/lib/libgfortran.a
 
 LIBS -= -L/usr/X11R6/lib -lX11 -lXext -lXt -lSM -lICE -lGLU -lGL

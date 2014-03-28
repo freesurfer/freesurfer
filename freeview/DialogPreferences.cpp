@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/23 19:29:18 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/03/28 19:29:37 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,6 +69,15 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   ui->groupBoxMac->setEnabled(false);
   ui->groupBoxMac->hide();
 #endif
+
+  connect(ui->colorPickerAnnotation, SIGNAL(colorChanged(QColor)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->colorPickerBackground, SIGNAL(colorChanged(QColor)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->comboBoxCursorStyle, SIGNAL(currentIndexChanged(int)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxRightButtonErase, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxSaveCopy, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxSyncZoom, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
 }
 
 DialogPreferences::~DialogPreferences()
@@ -89,6 +98,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->radioButtonThemeDark->setChecked(map["DarkConsole"].toBool());
   ui->radioButtonThemeLight->setChecked(!map["DarkConsole"].toBool());
   ui->colorPickerAnnotation->setCurrentColor(map["AnnotationColor"].value<QColor>());
+  ui->checkBoxRightButtonErase->setChecked(map["RightButtonErase"].toBool());
   BlockAllSignals(this, false);
 }
 
@@ -104,6 +114,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["MacUnifiedTitleBar"] = ui->checkBoxMacUnified->isChecked();
   map["DarkConsole"] = ui->radioButtonThemeDark->isChecked();
   map["AnnotationColor"] = ui->colorPickerAnnotation->currentColor();
+  map["RightButtonErase"] = ui->checkBoxRightButtonErase->isChecked();
   return map;
 }
 
@@ -116,6 +127,7 @@ void DialogPreferences::OnClicked(QAbstractButton* btn)
     ui->colorPickerAnnotation->setCurrentColor(Qt::white);
     ui->comboBoxCursorStyle->setCurrentIndex(0);
     ui->checkBoxSaveCopy->setChecked(true);
+    ui->checkBoxRightButtonErase->setChecked(false);
     ui->checkBoxSyncZoom->setChecked(true);
     ui->radioButtonThemeDark->setChecked(true);
 #ifdef Q_WS_MAC

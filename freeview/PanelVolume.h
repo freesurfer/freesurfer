@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.45 $
+ *    $Date: 2014/03/28 19:29:38 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +78,7 @@ protected slots:
   void OnPasteSettingsToAll();
   void OnSliderTrackVolumeMin(int);
   void OnTrackVolumeThresholdChanged();
+  void OnLockLayer(bool);
 
   void UpdateColorLabel();
   void UpdateTrackVolumeThreshold();

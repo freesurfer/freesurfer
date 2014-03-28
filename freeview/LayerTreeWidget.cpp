@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/23 17:09:26 $
- *    $Revision: 1.9 $
+ *    $Date: 2014/03/28 19:29:38 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -99,6 +99,12 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   {
     menu->addAction(wnd->ui->actionNewVolume);
     menu->addAction(wnd->ui->actionLoadVolume);
+    if (type == "MRI")
+    {
+      QAction* act = new QAction("Save All Checked Volumes", this);
+      connect(act, SIGNAL(triggered()), this, SLOT(OnSaveVisibleVolumes()));
+      menu->addAction(act);
+    }
     menu->addSeparator();
   }
   if (type == "Surface" || type.isEmpty())
@@ -267,4 +273,18 @@ void LayerTreeWidget::OnSetColorMap()
     if (layer && layer->GetEndType() == "MRI")
       layer->GetProperty()->SetColorMap(act->data().toInt());
   }
+}
+
+void LayerTreeWidget::OnSaveVisibleVolumes()
+{
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+  QList<Layer*> visibles;
+  foreach (Layer* layer, layers)
+  {
+    if (layer->IsVisible() && ((LayerMRI*)layer)->IsModified())
+    {
+      visibles << layer;
+    }
+  }
+  MainWindow::GetMainWindow()->SaveLayers(visibles);
 }

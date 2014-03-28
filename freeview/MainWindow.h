@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/07 16:55:24 $
- *    $Revision: 1.146 $
+ *    $Date: 2014/03/28 19:29:38 $
+ *    $Revision: 1.147 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -204,6 +204,10 @@ public:
     return m_settings;
   }
 
+  QVariant GetSetting(const QString& key);
+
+  void SetSetting(const QString& key, const QVariant& value );
+
   QList<Layer*> GetSelectedLayers(const QString& layerType);
 
   int GetMode();
@@ -214,6 +218,8 @@ public:
   }
 
   QString GetCurrentLayerType();
+
+  void SaveLayers(const QList<Layer*>& layers);
 
 Q_SIGNALS:
   void MainViewChanged( int n );
@@ -254,6 +260,8 @@ public slots:
 
   void ToggleSplinePicking();
   void SetSplinePicking(bool b);
+
+  void UpdateSettings();
 
 protected:
   void closeEvent   ( QCloseEvent * event );
@@ -349,6 +357,8 @@ protected:
   void CommandSetCamera         ( const QStringList& cmd );
   void CommandGotoLabel         ( const QStringList& cmd );
 
+  void CommandSaveLayer         ( const QStringList& cmd );
+
 protected slots:
   void OnIdle();
   void OnAbout();
@@ -416,6 +426,10 @@ protected slots:
   void OnToggleShowSurface();
   void OnToggleShowROI();
   void OnToggleShowPointSet();
+  void OnToggleAllSurfaces();
+  void OnToggleWm();
+  void OnToggleAseg();
+  void OnToggleBrainmask();
   void OnLoadCommand();
   void OnWriteMovieFrames();
   void OnIncreaseOpacity();
@@ -468,6 +482,7 @@ private:
   void LoadPointSetFile( const QString& fn, int type );
   void UpdateRecentFileActions();
   void ToggleShowLayer(const QString& type );
+  void ToggleSpecialVolume(const QString& name);
   bool UpdateSurfaceCorrelation(LayerSurface* layer);
   void ShowNonModalMessage(const QString& title, const QString& msg);
   void LoadConnectomeMatrixFile(const QString& fn_cmat, const QString& fn_parcel, const QString& fn_ctab);

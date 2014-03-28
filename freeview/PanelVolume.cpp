@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/19 20:55:19 $
- *    $Revision: 1.92 $
+ *    $Date: 2014/03/28 19:29:38 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -197,7 +197,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistNonVolumeTrack = combo;
 
   LayerCollection* lc = mainwnd->GetLayerCollection("MRI");
-  connect( ui->actionLockLayer, SIGNAL(toggled(bool)), lc, SLOT(LockCurrent(bool)) );
+  connect( ui->actionLockLayer, SIGNAL(toggled(bool)), this, SLOT(OnLockLayer(bool)) );
   connect( ui->actionMoveLayerUp, SIGNAL(triggered()), lc, SLOT(MoveLayerUp()));
   connect( ui->actionMoveLayerDown, SIGNAL(triggered()), lc, SLOT(MoveLayerDown()));
 }
@@ -1367,4 +1367,13 @@ void PanelVolume::OnCheckUsePercentile(bool b)
     layer->GetProperty()->SetUsePercentile(b);
     UpdateWidgets();
   }
+}
+
+void PanelVolume::OnLockLayer(bool b)
+{
+   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+   foreach (LayerMRI* layer, layers)
+   {
+     layer->Lock(b);
+   }
 }

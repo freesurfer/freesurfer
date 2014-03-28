@@ -327,6 +327,8 @@
     <addaction name="actionToggleSurfaceVisibility"/>
     <addaction name="actionToggleROIVisibility"/>
     <addaction name="actionTogglePointSetVisibility"/>
+    <addaction name="separator"/>
+    <addaction name="actionToggleAllSurfaces"/>
    </widget>
    <widget class="QMenu" name="menuAction">
     <property name="title">
@@ -971,7 +973,7 @@
     <string>Toggle Volume Visibility</string>
    </property>
    <property name="shortcut">
-    <string>Alt+V</string>
+    <string>Alt+V, Shift+V</string>
    </property>
   </action>
   <action name="actionToggleSurfaceVisibility">
@@ -1327,6 +1329,9 @@
    <property name="toolTip">
     <string>Recon Edit</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+E</string>
+   </property>
   </action>
   <action name="actionGoToROI">
    <property name="text">
@@ -1390,6 +1395,41 @@
    </property>
    <property name="toolTip">
     <string>Transform Volume</string>
+   </property>
+  </action>
+  <action name="actionToggleAllSurfaces">
+   <property name="text">
+    <string>Toggle All Surfaces</string>
+   </property>
+   <property name="toolTip">
+    <string>Toggle All Surfaces</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="actionToggleWm">
+   <property name="text">
+    <string>Toggle Wm</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="actionToggleAseg">
+   <property name="text">
+    <string>Toggle Aseg</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+A</string>
+   </property>
+  </action>
+  <action name="actionToggleBrainmask">
+   <property name="text">
+    <string>Toggle Brainmask</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D</string>
    </property>
   </action>
  </widget>
@@ -2755,6 +2795,70 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionToggleAllSurfaces</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleAllSurfaces()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionToggleWm</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleWm()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionToggleAseg</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleAseg()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionToggleBrainmask</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToggleBrainmask()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2839,5 +2943,9 @@
   <slot>OnVolumeFilterDilate()</slot>
   <slot>OnVolumeFilterOpen()</slot>
   <slot>OnVolumeFilterClose()</slot>
+  <slot>OnToggleAllSurfaces()</slot>
+  <slot>OnToggleWm()</slot>
+  <slot>OnToggleAseg()</slot>
+  <slot>OnToggleBrainmask()</slot>
  </slots>
 </ui>

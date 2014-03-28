@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.30 $
+ *    $Date: 2014/03/28 19:29:38 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,16 @@ Interactor2DVolumeEdit::Interactor2DVolumeEdit( const QString& layerTypeName, QO
 Interactor2DVolumeEdit::~Interactor2DVolumeEdit()
 {}
 
+void Interactor2DVolumeEdit::PreprocessMouseEvent(QMouseEvent *event)
+{
+  bool bRightButtonErase = MainWindow::GetMainWindow()->GetSetting("RightButtonErase").toBool();
+  if (bRightButtonErase && event->button() == Qt::RightButton && event->modifiers() == Qt::NoModifier)
+  {
+    QMouseEvent e(event->type(), event->pos(), Qt::LeftButton,Qt::LeftButton, Qt::ShiftModifier);
+    *event = e;
+  }
+}
+
 bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
@@ -56,6 +66,8 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
   {
     return Interactor2D::ProcessMouseDownEvent( event, renderview );
   }
+
+  PreprocessMouseEvent(event);
 
   if ( event->button() == Qt::LeftButton ||
        ( event->button() == Qt::RightButton && (event->buttons() & Qt::LeftButton) ) )
@@ -280,6 +292,8 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
 bool Interactor2DVolumeEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
 {
 // RenderView2D* view = ( RenderView2D* )renderview;
+  PreprocessMouseEvent(event);
+
   UpdateCursor( event, renderview );
 
   if ( m_bEditing )
@@ -305,6 +319,8 @@ bool Interactor2DVolumeEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView
 bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
+
+  PreprocessMouseEvent(event);
 
   if ( m_bEditing )
   {
