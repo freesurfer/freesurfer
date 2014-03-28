@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/03/19 21:11:37 $
- *    $Revision: 1.534 $
+ *    $Author: greve $
+ *    $Date: 2014/03/28 15:58:44 $
+ *    $Revision: 1.535 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.534 $";
+const char *MRI_C_VERSION = "$Revision: 1.535 $";
 
 
 /*-----------------------------------------------------
@@ -5768,7 +5768,7 @@ MRI *MRIclone( const MRI *mri_src, MRI *mri_dst)
 }
 /*!
   \fn MRI *MRIcloneBySpace(MRI *mri_src, int type, int nframes)
-  \brief Copies mri struct, allocs but not copy pixels (type,nframes)
+  \brief Copies mri struct, header, and pulse params, allocs but does not copy pixels
   \param mri_src - source MRI struct
   \param type - clone will be of this type (-1 to use source)
   \param nframes - clone will have this many frames  (-1 to use source)
@@ -5784,6 +5784,7 @@ MRI *MRIcloneBySpace(MRI *mri_src, int type, int nframes)
   mri_dst = MRIallocSequence(mri_src->width, mri_src->height,
                              mri_src->depth, type, nframes);
   MRIcopyHeader(mri_src, mri_dst) ;
+  MRIcopyPulseParameters(mri_src, mri_dst) ;
   mri_dst->nframes = nframes;
   return(mri_dst) ;
 }
