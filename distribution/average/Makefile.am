@@ -12,7 +12,8 @@ GCA=\
 	face.gca \
 	RB_all_2008-03-26.gca \
 	RB_all_withskull_2008-03-26.gca \
-	talairach_mixed_with_skull.gca
+	talairach_mixed_with_skull.gca \
+	wmsa_new_eesmith.gca
 
 GCS=\
 	lh.atlas2002_simple.gcs \
