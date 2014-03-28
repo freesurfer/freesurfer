@@ -20,8 +20,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/05 20:59:02 $
- *    $Revision: 1.33 $
+ *    $Date: 2014/03/28 18:27:09 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -172,7 +172,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.33 2014/03/05 20:59:02 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.34 2014/03/28 18:27:09 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -208,7 +208,6 @@ int ExitStatus = 0;
 int DoRSS = 0; // Compute sqrt of sum squares
 int PrintSSD = 0; // Print sum of squared differences over all voxel
 int PrintRMS = 0; // Print root mean squared differences over all voxel
-int PrintCount = 0; // Print count of number different voxels
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -475,7 +474,7 @@ int main(int argc, char *argv[]) {
 		     
     if(PrintSSD) printf("%f sum of squared differences\n",SumSqDiff);
     if(PrintRMS) printf("%f root mean squared differences\n",sqrt(SumSqDiff/notzero));
-    if(PrintCount) printf("diffcount %d\n",ndiff);
+    if(CheckPixVals) printf("diffcount %d\n",ndiff);
 
     if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);      
     if(DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
@@ -667,7 +666,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--rss"))  DoRSS = 1;
     else if (!strcasecmp(option, "--ssd"))  PrintSSD = 1;
     else if (!strcasecmp(option, "--rms"))  {PrintRMS = 1;CheckPixVals=1;}
-    else if (!strcasecmp(option, "--count"))  {PrintCount = 1;CheckPixVals=1;}
+    else if (!strcasecmp(option, "--count"))  {CheckPixVals=1;}
     else if (!strcasecmp(option, "--qa")) {
       CheckPixVals = 0;
       CheckGeo     = 0;
