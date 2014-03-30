@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/28 21:27:02 $
- *    $Revision: 1.25 $
+ *    $Date: 2014/03/30 18:48:33 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,7 +30,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.25 2014/03/28 21:27:02 greve Exp $
+  $Id: mri_surf2vol.c,v 1.26 2014/03/30 18:48:33 greve Exp $
 */
 
 #include <stdio.h>
@@ -71,7 +71,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_surf2vol.c,v 1.25 2014/03/28 21:27:02 greve Exp $";
+  "$Id: mri_surf2vol.c,v 1.26 2014/03/30 18:48:33 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_surf2vol.c,v 1.25 2014/03/28 21:27:02 greve Exp $",
+           "$Id: mri_surf2vol.c,v 1.26 2014/03/30 18:48:33 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -282,6 +282,7 @@ int main(int argc, char **argv) {
   printf("INFO: mapping vertices to closest voxel\n");
   if (fillribbon) {   /* fill entire ribbon */
     VtxVol = MRIconst(TempVol->width, TempVol->height, TempVol->depth, 1, -1, NULL);
+    printf("VtxVol fixed\n");
     nhits = 0; 
     for (projfrac = ProjFracStart ; projfrac <= ProjFracStop ; projfrac += ProjFracDelta) {
       MRI *VtxVolp;
@@ -313,8 +314,8 @@ int main(int argc, char **argv) {
        many times
     */
     // This is a hack for when there's a merge volume
-    projfrac = (ProjFracStart+ProjFracStop)/2;
-    VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
+    //projfrac = (ProjFracStart+ProjFracStop)/2;
+    //VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
   } else {  /* sample from one point */
     VtxVol = MRImapSurf2VolClosest(SrcSurf, OutVol, Qa2v, projfrac);
     if (VtxVol == NULL) {
