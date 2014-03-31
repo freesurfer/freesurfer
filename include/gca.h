@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/05/31 21:22:10 $
- *    $Revision: 1.121 $
+ *    $Author: greve $
+ *    $Date: 2014/03/31 16:25:21 $
+ *    $Revision: 1.122 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -552,6 +552,7 @@ double wm_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
 double cortex_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
 double csf_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
 double gm_prior(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
+MRI *GCAsampleToVol(MRI *mri, GCA *gca, TRANSFORM *transform, MRI **seg, MRI *out);
 
 #if defined(__cplusplus)
 };

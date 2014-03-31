@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/05/31 21:21:15 $
- *    $Revision: 1.314 $
+ *    $Author: greve $
+ *    $Date: 2014/03/31 16:25:20 $
+ *    $Revision: 1.315 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,7 @@
 #include "intensity_eig.h"
 #include "numerics.h"
 #include "mrisegment.h"
+#include "mri2.h"
 
 #include "affine.h"
 
@@ -29254,3 +29255,99 @@ GCAisLeftHemisphere(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int 
   return(lh_prior > rh_prior);
 }
 
+/*
+  \fn MRI *GCAsampleToVol(MRI *mri, GCA *gca, TRANSFORM *transform, MRI
+  **seg, MRI *out) \brief Samples the intensities of the GCA into the
+  space of the mri (which should be the conformed space of a subject,
+  eg, orig.mgz). transform is the non-linear transform that maps
+  between the conformed space and the atlas space (eg, talairach.m3z)
+  and must have been inverted.  If seg is non-NULL then the most
+  likely seg in the output space is returned. The output type will be
+  float and will have as many frames as the gca has modes. Takes only
+  a few min to run.
+
+  MRI *orig, *gcaseg;
+  orig = MRIread("orig.mgz");
+  gca = GCAread("wmsa_new_eesmith.gca");
+  transform = TransformRead("transforms/talairach.m3z");
+  TransformInvert(transform, orig);
+  gcavol = GCAsample(orig, gca, transform, &gcaseg, NULL);
+  MRIwrite(gcavol,"gca.intensities.mgh");
+  MRIwrite(gcaseg,"gcaseg.mgh");
+
+  The output can be converted to uchar
+    mri_convert gca.intensities.mgh  gca.mode.mgh --split -odt uchar --no_scale 1
+  The result can be fed to mri_ca_normalize 
+    mri_ca_normalize -c cp.mgh -mask brainmask.mgz \
+       gca.mode0000.mgh gca.mode0001.mgh gca.mode0002.mgh \
+       wmsa_new_eesmith.gca talairach.m3z \
+       gca.mode0000.can.mgh gca.mode0001.can.mgh gca.mode0002.can.mgh
+  gca.mode000?.can.mgh should be pretty close to gca.mode0000.mgh. It is not 
+  exact, maybe because of the conversion to uchar (which mri_ca_normalize requires).
+*/
+MRI *GCAsampleToVol(MRI *mri, GCA *gca, TRANSFORM *transform, MRI **seg, MRI *out)
+{
+  int z;
+
+  if(out == NULL){
+    out = MRIcloneBySpace(mri, MRI_FLOAT, gca->ninputs);
+    if(out == NULL) return(NULL);
+  }
+  if(MRIdimMismatch(mri, out, 0)){
+    printf("ERROR: GCAsampleToVol(): output dimension mismatch\n");
+    return(NULL);
+  }
+  if(seg != NULL){
+    if(*seg == NULL){
+      *seg = MRIcloneBySpace(mri, MRI_INT, 1);
+      if(*seg == NULL) return(NULL);
+    }
+    if(MRIdimMismatch(mri, *seg, 0)){
+      printf("ERROR: GCAsampleToVol(): seg dimention mismatch\n");
+      return(NULL);
+    }
+  }
+
+  for (z = 0 ; z < mri->depth ; z++)  {
+    int       y,x,xn,yn,zn,n, max_n,err,f ;
+    GC1D      *gc ;
+    GCA_NODE  *gcan ;
+    GCA_PRIOR *gcap ;
+    double    max_p ;
+
+    for (y = 0 ; y < mri->height ; y++)    {
+      for (x = 0 ; x < mri->width ; x++)      {
+
+	// Set to 0 in case it does not make it through to the end
+	for(f=0; f < gca->ninputs; f++) MRIsetVoxVal(out,x,y,z,f,0);
+	if(seg) MRIsetVoxVal(*seg,x,y,z,0,0);
+	  
+	// Get the node for the xyz of this voxel
+	err = GCAsourceVoxelToNode(gca, mri, transform,x, y, z, &xn, &yn, &zn);
+	if(err) continue;
+	
+	gcan = &gca->nodes[xn][yn][zn] ;
+	gcap = getGCAP(gca, mri, transform, x, y, z) ;
+	if(gcap==NULL) continue;
+	
+	// get structure with max prior prob
+	max_p = 0 ;
+	max_n = -1 ;
+	for(n = 0 ; n < gcan->nlabels ; n++){
+	  if(getPrior(gcap, gcan->labels[n]) >= max_p){
+	    max_p = getPrior(gcap, gcan->labels[n]) ;
+	    max_n = n ;
+	  }
+	}
+	if(max_n < 0) continue ; /* couldn't find any valid label at this location */
+
+	// Set the output
+	gc = &gcan->gcs[max_n] ;
+	for(f=0; f < gca->ninputs; f++) MRIsetVoxVal(out,x,y,z,f,gc->means[f]);
+	if(seg) MRIsetVoxVal(*seg,x,y,z,0,gcan->labels[max_n]);
+      }
+    }
+  }
+
+  return(out);
+}
