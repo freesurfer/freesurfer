@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/26 17:54:47 $
- *    $Revision: 1.33 $
+ *    $Date: 2014/03/31 20:50:54 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.33 2014/03/26 17:54:47 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.34 2014/03/31 20:50:54 greve Exp $
 
 /*
   BEGINHELP
@@ -95,7 +95,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.33 2014/03/26 17:54:47 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.34 2014/03/31 20:50:54 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -233,6 +233,7 @@ typedef struct
   int wmlhbase,wmrhbase;
   char *ctxannotfile;
   int ctxlhbase,ctxrhbase;
+  int SubSegWM;
   int LabelHypoAsWM;
   int LabelCCAsWM;
   float dmax;
@@ -243,7 +244,7 @@ typedef struct
 
 
 int MRIgtmSeg(GTMSEG *gtmseg);
-int MakeGTMSeg(char *subject, int USF, int LabelHypoAsWM, float dmax, char *outsegname);
+int MakeGTMSeg(char *subject, int USF, int SubSegWM, int LabelCCAsWM, int LabelHypoAsWM, float dmax, char *outsegfile);
 int GTMSEGprint(GTMSEG *gtmseg, FILE *fp);
 
 /*---------------------------------------------------------------*/
@@ -617,6 +618,20 @@ static int parse_commandline(int argc, char **argv) {
 #endif
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--max-threads")){
+      nthreads = 1;
+#ifdef _OPENMP
+      nthreads = omp_get_max_threads();
+      omp_set_num_threads(nthreads);
+#endif
+    } 
+    else if (!strcasecmp(option, "--max-threads-1")){
+      nthreads = 1;
+#ifdef _OPENMP
+      nthreads = omp_get_max_threads()-1;
+      omp_set_num_threads(nthreads);
+#endif
+    } 
     else if (!strcasecmp(option, "--apply-fwhm")){
       // apply to input for testing
       if(nargc < 1) CMDargNErr(option,1);
@@ -706,16 +721,18 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 2;
     } 
     else if (!strcasecmp(option, "--make-gtm-seg")) {
-      if(nargc < 4) CMDargNErr(option,4);
-      int err,USF, LabelHypoAsWM;
+      if(nargc < 6) CMDargNErr(option,6);
+      int err,USF, LabelCCAsWM, LabelHypoAsWM, SubSegWM;
       float dmax;
       char *subject,*outsegfile;
       subject = pargv[0];
       sscanf(pargv[1],"%d",&USF);
-      sscanf(pargv[2],"%d",&LabelHypoAsWM);
-      sscanf(pargv[3],"%f",&dmax);
-      outsegfile = pargv[4];
-      err = MakeGTMSeg(subject, USF, LabelHypoAsWM, dmax, outsegfile);
+      sscanf(pargv[2],"%d",&SubSegWM);
+      sscanf(pargv[3],"%d",&LabelCCAsWM);
+      sscanf(pargv[4],"%d",&LabelHypoAsWM);
+      sscanf(pargv[5],"%f",&dmax);
+      outsegfile = pargv[6];
+      err = MakeGTMSeg(subject, USF, SubSegWM, LabelCCAsWM, LabelHypoAsWM, dmax, outsegfile);
       if(err) exit(1);
       exit(0);
       nargsused = 4;
@@ -778,9 +795,14 @@ static void print_usage(void) {
   printf("   --X Xfile : save X matrix (it will be big)\n");
   printf("   --niters N : use iterative method instead of GTM\n");
   printf("   --odir outdir     : output directory\n");
-  printf("   --make-gtm-seg subject USF LabelHypoAsWM dmax outsegfile\n");
+  printf("   --make-gtm-seg subject USF SubSegWM LabelCCasWM LabelHypoAsWM dmax outsegfile\n");
   printf("   --synth gtmbeta seg pvf mask out\n");
   printf("\n");
+#ifdef _OPENMP
+  printf("   --threads N : use N threads (with Open MP)\n");
+  printf("   --threads-max : use the maximum allowable number of threads for this computer\n");
+  printf("   --threads-max-1 : use one less than the maximum allowable number of threads for this computer\n");
+#endif
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -1816,6 +1838,7 @@ int GTMSEGprint(GTMSEG *gtmseg, FILE *fp)
   fprintf(fp,"ctxannotfile %s\n",gtmseg->ctxannotfile);
   fprintf(fp,"ctxlhbase %d\n",gtmseg->ctxlhbase);
   fprintf(fp,"ctxrhbase %d\n",gtmseg->ctxrhbase);
+  fprintf(fp,"SubSegWM %3d\n",gtmseg->SubSegWM);
   fprintf(fp,"LabelHypoAsWM %3d\n",gtmseg->LabelHypoAsWM);
   fprintf(fp,"dmax %f\n",gtmseg->dmax);
   fprintf(fp,"nlist %3d\n",gtmseg->nlist);
@@ -1823,7 +1846,7 @@ int GTMSEGprint(GTMSEG *gtmseg, FILE *fp)
   return(0);
 }
 
-int MakeGTMSeg(char *subject, int USF, int LabelHypoAsWM, float dmax, char *outsegfile)
+int MakeGTMSeg(char *subject, int USF, int SubSegWM, int LabelCCAsWM, int LabelHypoAsWM, float dmax, char *outsegfile)
 {
   GTMSEG *gtmseg;
   int nlist, *srclist, *targlist, err;
@@ -1834,17 +1857,20 @@ int MakeGTMSeg(char *subject, int USF, int LabelHypoAsWM, float dmax, char *outs
   gtmseg = (GTMSEG *) calloc(sizeof(GTMSEG),1);
   gtmseg->subject = strcpyalloc(subject);
   gtmseg->apasfile = "apas+head.mgz";
-  gtmseg->wmannotfile = "lobes.annot";
-  //gtmseg->wmannotfile = NULL;
-  gtmseg->wmlhbase =  3200;
-  gtmseg->wmrhbase =  4200;
   gtmseg->ctxannotfile = "aparc.annot";
   gtmseg->ctxlhbase = 1000;
   gtmseg->ctxrhbase = 2000;
+  gtmseg->SubSegWM = SubSegWM;
   gtmseg->LabelHypoAsWM = LabelHypoAsWM;
-  gtmseg->LabelCCAsWM = 1;
+  gtmseg->LabelCCAsWM = LabelCCAsWM;
   gtmseg->dmax = dmax;
   gtmseg->USF = USF;
+  if(gtmseg->SubSegWM){
+    gtmseg->wmannotfile = "lobes.annot";
+    gtmseg->wmlhbase =  3200;
+    gtmseg->wmrhbase =  4200;
+  }
+  else  gtmseg->wmannotfile = NULL;
 
   srclist  = &(gtmseg->srclist[0]);
   targlist = &(gtmseg->targlist[0]);
@@ -1858,8 +1884,8 @@ int MakeGTMSeg(char *subject, int USF, int LabelHypoAsWM, float dmax, char *outs
   srclist[nlist] = 2001; targlist[nlist] = 2015; nlist++; // bankssts=mtg
   srclist[nlist] = 1032; targlist[nlist] = 1027; nlist++; // frontpole=rmf
   srclist[nlist] = 2032; targlist[nlist] = 2027; nlist++; // frontpole=rmf
-  srclist[nlist] = 1016; targlist[nlist] = 1006; nlist++; // parahip=entorhinal ?
-  srclist[nlist] = 2016; targlist[nlist] = 2006; nlist++; // parahip=entorhinal ?
+  //srclist[nlist] = 1016; targlist[nlist] = 1006; nlist++; // parahip=entorhinal ?
+  //srclist[nlist] = 2016; targlist[nlist] = 2006; nlist++; // parahip=entorhinal ?
 
   // There should not be any cortex unknown after MRIannot2CorticalSeg()
   srclist[nlist] = 1000; targlist[nlist] =    0; nlist++; // cortex unknown
@@ -1880,14 +1906,14 @@ int MakeGTMSeg(char *subject, int USF, int LabelHypoAsWM, float dmax, char *outs
   srclist[nlist] =   62; targlist[nlist] =   24; nlist++; // RVessel ?
   srclist[nlist] =   80; targlist[nlist] =   24; nlist++; // non-WM-hypo ?
 
-  /* Repace CC segments with one CC. Cant just set these to lhWM or
-   lhWM. Have to re-program MRIannot2CerebralWMSeg() as with 
-   relabeling hypointensities. */
-  srclist[nlist] =  251; targlist[nlist] =  192; nlist++; 
-  srclist[nlist] =  252; targlist[nlist] =  192; nlist++; 
-  srclist[nlist] =  253; targlist[nlist] =  192; nlist++; 
-  srclist[nlist] =  254; targlist[nlist] =  192; nlist++; 
-  srclist[nlist] =  255; targlist[nlist] =  192; nlist++; 
+  /* Repace CC segments with one CC if not unsegmenting CC */
+  if(! gtmseg->LabelCCAsWM){
+    srclist[nlist] =  251; targlist[nlist] =  192; nlist++; 
+    srclist[nlist] =  252; targlist[nlist] =  192; nlist++; 
+    srclist[nlist] =  253; targlist[nlist] =  192; nlist++; 
+    srclist[nlist] =  254; targlist[nlist] =  192; nlist++; 
+    srclist[nlist] =  255; targlist[nlist] =  192; nlist++; 
+  }
 
   gtmseg->nlist = nlist;
 
@@ -1987,28 +2013,25 @@ int MRIgtmSeg(GTMSEG *gtmseg)
   MRISripUnknown(lhp);
   MRISripUnknown(rhp);
 
-  if(gtmseg->LabelHypoAsWM || gtmseg->LabelCCAsWM){
+  // relabel WM_hypointensities as {Left,Right}_WM_hypointensities as 
+  printf(" Relabeling any unlateralized hypointenities as lateralized hypointenities\n");
+  MRIrelabelHypoHemi(aseg, lhw, rhw, NULL, aseg);
+
+  if(gtmseg->LabelCCAsWM){
     int nlist, list[100];
     nlist = 0;
-    if(gtmseg->LabelHypoAsWM){
-      list[nlist] = WM_hypointensities; nlist++;
-      list[nlist] = Left_WM_hypointensities; nlist++;
-      list[nlist] = Right_WM_hypointensities; nlist++;
-    }
-    if(gtmseg->LabelCCAsWM){
-      list[nlist] = 251; nlist++;
-      list[nlist] = 252; nlist++;
-      list[nlist] = 253; nlist++;
-      list[nlist] = 254; nlist++;
-      list[nlist] = 255; nlist++;
-      list[nlist] = 192; nlist++;
-    }
-    printf(" Unsegmenting WM %d %d\n",gtmseg->LabelHypoAsWM,gtmseg->LabelCCAsWM);
+    list[nlist] = 251; nlist++;
+    list[nlist] = 252; nlist++;
+    list[nlist] = 253; nlist++;
+    list[nlist] = 254; nlist++;
+    list[nlist] = 255; nlist++;
+    list[nlist] = 192; nlist++;
+    printf(" Relabeling CC as WM\n");
     MRIunsegmentWM(aseg, lhw, rhw, list, nlist, NULL, aseg);
   }
 
   // Upsample the segmentation
-  printf("Beginning hires seg ");fflush(stdout);
+  printf("Beginning hires seg USF = %d",gtmseg->USF);fflush(stdout);
   printf(" t = %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
   hrseg = MRIhiresSeg(aseg, lhw, lhp, rhw, rhp, gtmseg->USF, &gtmseg->anat2seg);
   if(hrseg == NULL) return(1);
@@ -2025,7 +2048,7 @@ int MRIgtmSeg(GTMSEG *gtmseg)
     printf("Beginning annot2wm ");
     printf(" t = %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
     ctxseg = MRIannot2CerebralWMSeg(ctxseg, lhw, rhw, gtmseg->dmax, NULL, ctxseg);
-  }
+  } else     printf("Not subsegmenting WM");
 
   MRISfree(&lhw);
   MRISfree(&lhp);
@@ -2057,13 +2080,9 @@ int MRIgtmSeg(GTMSEG *gtmseg)
 	err = 1;
       }
     }
-    if(gtmseg->LabelHypoAsWM){
-      if(segidlist[n]==WM_hypointensities || 
-	 segidlist[n]==Left_WM_hypointensities || 
-	 segidlist[n]==Right_WM_hypointensities){
-	printf("ERROR: MRIgtmSeg() found WM hypointensity label\n");
-	err = 1;
-      }
+    if(segidlist[n]==WM_hypointensities){
+      printf("ERROR: MRIgtmSeg() found unlateralized WM hypointensity label\n");
+      err = 1;
     }
     if(err) return(1);
   }
