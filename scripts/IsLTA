@@ -1,0 +1,131 @@
+#!/bin/tcsh -f
+# IsLTA
+
+set VERSION = '$Id: IsLTA,v 1.1 2014/03/31 21:14:28 greve Exp $';
+
+set regfile = ();
+set outfile = ();
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+#========================================================
+set tmp = /tmp/tmp.IsLTA.$$.lta
+set cmd = (lta_convert --inlta $regfile --outlta $tmp)
+$cmd >& /dev/null
+set st = $status
+if($st != 0) then
+  set IsLTA = 0;
+else
+  set IsLTA = 1;
+endif
+echo $IsLTA
+if($#outfile) then
+  echo $IsLTA > $outfile
+endif
+rm -f $tmp
+exit 0
+
+#========================================================
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "--lta":
+    case "--reg":
+    case "--r":
+      if($#argv < 1) goto arg1err;
+      set regfile = $argv[1]; shift;
+      if(! -e $regfile) then
+        echo "ERROR: cannot find $regfile"
+        exit 1;
+      endif
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#regfile == 0) then
+  echo "ERROR: must spec intput reg/lta file"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "IsLTA --r candidatefile --o outfile"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Echos 1 to the terminal (and/or outputfile) if the given file is an LTA,
+otherwise echos 0.
+
+
