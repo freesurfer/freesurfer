@@ -82,6 +82,7 @@ inflate_subject_new-rh \
 inflate_subject-rh \
 inflate_subject_sc \
 isanalyze \
+IsLTA \
 isnifti \
 is-surface \
 kww_setup \
