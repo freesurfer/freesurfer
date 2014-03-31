@@ -174,6 +174,7 @@ register_subject \
 register_subject_flash \
 register_subject_mixed \
 reg-mni305.2mm \
+reg2subject \
 reinflate_subject \
 reinflate_subject-lh \
 reinflate_subject-rh \
