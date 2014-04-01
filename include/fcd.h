@@ -1,3 +1,28 @@
+/**
+ * @file  fcd.h
+ * @brief I/O and analysis algorithms for FCDs (focal cortical dysplasias)
+ *
+ */
+/*
+ * Original Author: Bruce Fischl
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2014/04/01 00:43:10 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
+
 #ifndef FCD_H
 #define FCD_H
 
@@ -13,15 +38,16 @@ typedef struct
   MRI_SURFACE *mris_lh ;
   MRI_SURFACE *mris_rh ;
   MRI         *mri_aseg ;
+  MRI         *mri_aparc ;
   MRI         *mri_norm ;
   MRI         *mri_flair ;
   MRI         *mri_t2 ;
   MRI         *mri_thickness_increase ;
   MRI         *mri_thickness_decrease ;
-  MRI         *lh_thickness_on_lh ;  // thickness of left hemi mapped to left hemi
-  MRI         *lh_thickness_on_rh ;  // thickness of left hemi mapped to right hemi
-  MRI         *rh_thickness_on_lh ;  // thickness of right hemi mapped to right hemi
-  MRI         *rh_thickness_on_rh ;  // thickness of right hemi mapped to right hemi
+  MRI         *lh_thickness_on_lh ;  // thickness of lh mapped to lh
+  MRI         *lh_thickness_on_rh ;  // thickness of lh mapped to rh
+  MRI         *rh_thickness_on_lh ;  // thickness of rh mapped to lh
+  MRI         *rh_thickness_on_rh ;  // thickness of rh mapped to rh
   double      thickness_threshold ;
   int         thickness_smooth_steps ;
   int         nlabels ;
@@ -31,7 +57,10 @@ typedef struct
 
 
 FCD_DATA   *FCDloadData(char *sdir, char *subject);
-int         FCDcomputeThicknessLabels(FCD_DATA *fcd, double thickness_thresh, double sigma, int size_thresh) ;
+int         FCDcomputeThicknessLabels(FCD_DATA *fcd, 
+                                      double thickness_thresh,
+                                      double sigma,
+                                      int size_thresh) ;
 int         FCDfree(FCD_DATA **pfcd) ;
 
 #endif

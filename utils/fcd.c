@@ -7,20 +7,18 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2014/02/05 00:45:46 $
- *    $Revision: 1.12 $
+ *    $Date: 2014/04/01 00:43:10 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2013-2014,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -40,6 +38,16 @@ static int sort_labels(FCD_DATA *fcd)  ;
 static int most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg) ;
 static int compare_labels(const void *v1,const void *v2)  ;
 static int fcdFreeLabels(FCD_DATA *fcd)  ;
+static MRI *build_distance_by_intensity_histo(MRI *mri_norm,
+                                              MRI *mri_dist,
+                                              MRI *mri_aseg,
+                                              double dist_spacing,
+                                              double max_dist);
+static int augment_thicknesses(FCD_DATA *fcd,
+                               MRI *mri_pvals,
+                               double min_dist,
+                               double max_dist,
+                               double thresh) ;
 
 static int
 most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg)
@@ -69,12 +77,16 @@ most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg)
   return(max_label) ;
 }
 
+#define MAX_DIST 10
+#define DIST_SPACING .5
+
 
 FCD_DATA   *
 FCDloadData(char *sdir, char *subject)
 {
-  FCD_DATA *fcd ;
-  char     fname[STRLEN] ;
+  FCD_DATA    *fcd ;
+  char        fname[STRLEN] ;
+  MRI         *mri_interior, *mri_dist, *mri_int_lh, *mri_int_rh, *mri_pvals ;
 
   fcd = (FCD_DATA *)calloc(1, sizeof(FCD_DATA)) ;
 
@@ -85,8 +97,12 @@ FCDloadData(char *sdir, char *subject)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
   MRISsaveVertexPositions(fcd->mris_lh, WHITE_VERTICES) ;
+  if (MRISreadPialCoordinates(fcd->mris_lh, "pial") != NO_ERROR)
+  {
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load lh pial vertices") ;
+  }
 
-  exec_progress_callback(1, 9, 0, 1) ;
+  exec_progress_callback(1, 12, 0, 1) ;
   sprintf(fname, "%s/%s/surf/rh.white", sdir, subject) ;
   fcd->mris_rh = MRISread(fname) ;
   if (fcd->mris_rh == NULL)
@@ -94,16 +110,28 @@ FCDloadData(char *sdir, char *subject)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
   MRISsaveVertexPositions(fcd->mris_rh, WHITE_VERTICES) ;
+  if (MRISreadPialCoordinates(fcd->mris_rh, "pial") != NO_ERROR)
+  {
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load rh pial vertices") ;
+  }
 
-  exec_progress_callback(2, 9, 0, 1) ;
-  sprintf(fname, "%s/%s/mri/aparc+aseg.mgz", sdir, subject) ;
+  exec_progress_callback(2, 12, 0, 1) ;
+  sprintf(fname, "%s/%s/mri/aseg.mgz", sdir, subject) ;
   fcd->mri_aseg = MRIread(fname) ;
   if (fcd->mri_aseg == NULL)
   {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
 
-  exec_progress_callback(3, 9, 0, 1) ;
+  exec_progress_callback(3, 12, 0, 1) ;
+  sprintf(fname, "%s/%s/mri/aparc+aseg.mgz", sdir, subject) ;
+  fcd->mri_aparc = MRIread(fname) ;
+  if (fcd->mri_aparc == NULL)
+  {
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
+  }
+
+  exec_progress_callback(4, 12, 0, 1) ;
   fcd->mri_flair = NULL;
   sprintf(fname, "%s/%s/mri/flair.reg.norm.mgz", sdir, subject) ; 
   if ( ! FileExists(fname))
@@ -111,7 +139,15 @@ FCDloadData(char *sdir, char *subject)
     sprintf(fname, "%s/%s/mri/FLAIR.mgz", sdir, subject) ; 
     if ( ! FileExists(fname))
     {
-      sprintf(fname, " ");
+      sprintf(fname, "%s/%s/mri/FLAIRax.mgz", sdir, subject) ; 
+      if ( ! FileExists(fname))
+      {
+        sprintf(fname, "%s/%s/mri/FLAIRcor.mgz", sdir, subject) ; 
+        if ( ! FileExists(fname))
+        {
+          sprintf(fname, " ");
+        }
+      }
     }
   }
   if (strlen(fname) > 1)
@@ -123,18 +159,30 @@ FCDloadData(char *sdir, char *subject)
     }
   }
 
-  exec_progress_callback(5, 9, 0, 1) ;
-  sprintf(fname, "%s/%s/mri/T2.mgz", sdir, subject) ;
-  if (FileExists(fname))
+  fcd->mri_t2 = NULL;
+  sprintf(fname, "%s/%s/mri/T2.mgz", sdir, subject) ; 
+  if ( ! FileExists(fname))
+  {
+    sprintf(fname, "%s/%s/mri/T2ax.mgz", sdir, subject) ; 
+    if ( ! FileExists(fname))
+    {
+      sprintf(fname, "%s/%s/mri/T2cor.mgz", sdir, subject) ; 
+      if ( ! FileExists(fname))
+      {
+        sprintf(fname, " ");
+      }
+    }
+  }
+  if (strlen(fname) > 1)
   {
     fcd->mri_t2 = MRIread(fname) ;
     if (fcd->mri_t2 == NULL)
     {
-      ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
+      ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load $s", fname) ;
     }
   }
 
-  exec_progress_callback(6, 9, 0, 1) ;
+  exec_progress_callback(5, 12, 0, 1) ;
   sprintf(fname, "%s/%s/mri/norm.mgz", sdir, subject) ;
   fcd->mri_norm = MRIread(fname) ;
   if (fcd->mri_norm == NULL)
@@ -147,7 +195,7 @@ FCDloadData(char *sdir, char *subject)
   fcd->mri_thickness_decrease = 
     MRIcloneDifferentType(fcd->mri_aseg, MRI_FLOAT) ;
 
-  exec_progress_callback(7, 9, 0, 1) ;
+  exec_progress_callback(6, 12, 0, 1) ;
   sprintf(fname, "%s/%s/surf/lh.rh.thickness.smooth0.mgz", sdir, subject) ;
   fcd->rh_thickness_on_lh = MRIread(fname) ;
   if (fcd->mri_aseg == NULL)
@@ -155,7 +203,7 @@ FCDloadData(char *sdir, char *subject)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
 
-  exec_progress_callback(8, 9, 0, 1) ;
+  exec_progress_callback(7, 12, 0, 1) ;
   sprintf(fname, "%s/%s/surf/rh.thickness.mgz", sdir, subject) ;
   fcd->rh_thickness_on_rh = MRIread(fname) ;
   if (fcd->rh_thickness_on_rh == NULL)
@@ -163,7 +211,7 @@ FCDloadData(char *sdir, char *subject)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
 
-  exec_progress_callback(9, 9, 0, 1) ;
+  exec_progress_callback(8, 12, 0, 1) ;
   sprintf(fname, "%s/%s/surf/lh.thickness.mgz", sdir, subject) ;
   fcd->lh_thickness_on_lh = MRIread(fname) ;
   if (fcd->lh_thickness_on_lh == NULL)
@@ -171,13 +219,60 @@ FCDloadData(char *sdir, char *subject)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
 
-  exec_progress_callback(8, 8, 0, 1) ;
-  sprintf(fname, "%s/%s/surf/rh.lh.thickness.mgz", sdir, subject) ;
-  fcd->lh_thickness_on_rh = MRIread(fname) ;
-  if (fcd->lh_thickness_on_rh == NULL)
+  exec_progress_callback(9, 12, 0, 1) ;
+  sprintf(fname, "%s/%s/surf/rh.lh.thickness.smooth0.mgz", sdir, subject) ;
+  if ( ! FileExists(fname))
   {
-    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
+    sprintf(fname, "%s/%s/surf/rh.lh.thickness.mgz", sdir, subject) ;
+    if (fcd->lh_thickness_on_rh == NULL)
+    {
+      ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
+    }
   }
+  fcd->lh_thickness_on_rh = MRIread(fname) ;
+
+  exec_progress_callback(10, 12, 0, 1) ;
+  mri_int_lh = MRIclone(fcd->mri_norm, NULL) ;
+  mri_int_rh = MRIclone(fcd->mri_norm, NULL) ;
+  mri_interior = MRIclone(fcd->mri_norm, NULL) ;
+  mri_dist = MRIcloneDifferentType(mri_interior, MRI_FLOAT) ;
+  MRISrestoreVertexPositions(fcd->mris_lh, PIAL_VERTICES) ;
+  MRISrestoreVertexPositions(fcd->mris_rh, PIAL_VERTICES) ;
+  MRISfillInterior(fcd->mris_lh, mri_interior->xsize, mri_int_lh) ;
+  MRISfillInterior(fcd->mris_rh, mri_interior->xsize, mri_int_rh) ;
+
+  exec_progress_callback(11, 12, 0, 1) ;
+  MRIor(mri_int_lh, mri_int_rh, mri_interior, 0) ;
+  MRIfree(&mri_int_lh) ;
+  MRIfree(&mri_int_rh) ;
+  MRIbinarize(mri_interior, mri_interior, 1, 0, 1) ;
+  if (Gdiag & DIAG_WRITE)
+  {
+    MRIwrite(mri_interior, "int.mgz") ;
+  }
+  MRIdistanceTransform(mri_interior,
+                       mri_dist,
+                       1,
+                       2*MAX_DIST,
+                       DTRANS_MODE_SIGNED,
+                       NULL);
+  if (Gdiag & DIAG_WRITE)
+  {
+    MRIwrite(mri_dist, "dist.mgz") ;
+  }
+  mri_pvals = build_distance_by_intensity_histo(fcd->mri_norm, 
+                                                mri_dist,
+                                                fcd->mri_aseg,
+                                                DIST_SPACING,
+                                                MAX_DIST) ;
+  exec_progress_callback(12, 12, 0, 1) ;
+  augment_thicknesses(fcd, mri_pvals, 1.5, 5, 1) ;
+
+  MRISrestoreVertexPositions(fcd->mris_lh, WHITE_VERTICES) ;
+  MRISrestoreVertexPositions(fcd->mris_rh, WHITE_VERTICES) ;
+  MRIfree(&mri_dist) ;
+  MRIfree(&mri_interior) ;
+  MRIfree(&mri_pvals) ;
 
   return(fcd) ;
 }
@@ -215,9 +310,9 @@ static int compare_labels(const void *v1,const void *v2)
 
 
 int
-FCDcomputeThicknessLabels(FCD_DATA *fcd, 
-                          double thickness_thresh, 
-                          double sigma, 
+FCDcomputeThicknessLabels(FCD_DATA *fcd,
+                          double thickness_thresh,
+                          double sigma,
                           int size_thresh)
 {
   MRI    *mri_lh, *mri_rh, *mri_lh_diff, *mri_rh_diff ;
@@ -307,7 +402,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
       int xvi = nint(xv) ;
       int yvi = nint(yv) ;
       int zvi = nint(zv) ;
-      int label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
+      int label = MRIgetVoxVal(fcd->mri_aparc, xvi, yvi, zvi, 0) ;
       if (IS_WM(label) == 0 && 
           label >= MIN_CORTICAL_PARCELLATION && 
           label != ctx_lh_unknown)
@@ -389,7 +484,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
       int xvi = nint(xv) ;
       int yvi = nint(yv) ;
       int zvi = nint(zv) ;
-      int label = MRIgetVoxVal(fcd->mri_aseg, xvi, yvi, zvi, 0) ;
+      int label = MRIgetVoxVal(fcd->mri_aparc, xvi, yvi, zvi, 0) ;
       if (IS_WM(label) == 0 && 
           label >= MIN_CORTICAL_PARCELLATION && 
           label != ctx_rh_unknown)
@@ -428,6 +523,10 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
 
   exec_progress_callback(7, 8, 0, 1) ;
   mriseg = MRIsegment(fcd->mri_thickness_increase, thickness_thresh, 1e10) ;
+  MRIeraseSmallSegments(mriseg, fcd->mri_thickness_increase, thickness_thresh) ;
+  MRIsegmentFree(&mriseg) ;
+  MRIclose(fcd->mri_thickness_increase, fcd->mri_thickness_increase) ;
+  mriseg = MRIsegment(fcd->mri_thickness_increase, thickness_thresh, 1e10) ;
   MRIremoveSmallSegments(mriseg, size_thresh) ;
   printf("segmenting volume at threshold %2.1f with %d "
          "smoothing iters yields %d segments\n",
@@ -441,7 +540,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
     int label ;
 
     fcd->labels[s] = MRIsegmentToLabel(mriseg, fcd->mri_thickness_increase, s) ;
-    label = most_frequent_label(fcd->mri_aseg, &mriseg->segments[s]) ;
+    label = most_frequent_label(fcd->mri_aparc, &mriseg->segments[s]) ;
     strcpy(fcd->labels[s]->name, cma_label_to_name(label)) ;
   }
   sort_labels(fcd) ;
@@ -492,6 +591,10 @@ FCDfree(FCD_DATA **pfcd)
   {
     MRIfree(&fcd->mri_aseg) ;
   }
+  if (fcd->mri_aparc)
+  {
+    MRIfree(&fcd->mri_aparc) ;
+  }
   if (fcd->mri_norm)
   {
     MRIfree(&fcd->mri_norm) ;
@@ -527,6 +630,182 @@ FCDfree(FCD_DATA **pfcd)
 
   fcdFreeLabels(fcd) ;
   free(fcd) ;
+  return(NO_ERROR) ;
+}
+
+static MRI *
+build_distance_by_intensity_histo(MRI *mri_norm,
+                                  MRI *mri_dist,
+                                  MRI *mri_aseg,
+                                  double dist_spacing,
+                                  double max_dist)
+{
+  HISTOGRAM2D *h_dist_by_int ;
+  int         x, y, z, b1, b2, label ;
+  float       val, dist ;
+  double      total, unlikely, pval ;
+  MRI         *mri_pvals ;
+
+  h_dist_by_int = HISTO2Dalloc((int)ceil(max_dist/dist_spacing), 256) ;
+  HISTO2Dinit(h_dist_by_int,
+              h_dist_by_int->nbins1,
+              h_dist_by_int->nbins2,
+              0,
+              MAX_DIST,
+              0,
+              255) ;
+  for (x = 0 ; x < mri_dist->width ; x++)
+    for (y = 0 ; y < mri_dist->height ; y++)
+      for (z = 0 ; z < mri_dist->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+        {
+          DiagBreak() ;
+        }
+        dist = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
+        if (dist < 0 || dist > MAX_DIST)  // in interior or too far away
+        {
+          continue ;
+        }
+        label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+        if (IS_WHITE_CLASS(label) == 0 && 
+            IS_CORTEX(label) == 0 && 
+            label < MIN_CORTICAL_PARCELLATION)
+        {
+          continue ;
+        }
+        val = MRIgetVoxVal(mri_norm, x, y, z, 0) ;
+        HISTO2DaddSample(h_dist_by_int, dist, val, 0, max_dist, 0, 255) ;
+      }
+
+  // normalize the counts for each distance
+  for (b1 = 0 ; b1 < h_dist_by_int->nbins1 ; b1++)
+  {
+    for (total = 0.0, b2 = 0 ; b2 < h_dist_by_int->nbins2 ; b2++)
+    {
+      total += h_dist_by_int->counts[b1][b2] ;
+    }
+
+    if (total > 0)
+    {
+      unlikely = 1.0/(10*total) ;
+      for (b2 = 0 ; b2 < h_dist_by_int->nbins2 ; b2++)
+      {
+        h_dist_by_int->counts[b1][b2]/=total ;
+        if (DZERO(h_dist_by_int->counts[b1][b2]))
+        {
+          h_dist_by_int->counts[b1][b2] = unlikely ;
+        }
+      }
+    }
+  }
+
+  mri_pvals = MRIclone(mri_dist, NULL) ;
+  for (x = 0 ; x < mri_dist->width ; x++)
+    for (y = 0 ; y < mri_dist->height ; y++)
+      for (z = 0 ; z < mri_dist->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+        {
+          DiagBreak() ;
+        }
+        dist = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
+        if (dist < 0 || dist > MAX_DIST)  // in interior
+        {
+          continue ;
+        }
+        label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+        if (IS_WHITE_CLASS(label) == 0 && 
+            IS_CORTEX(label) == 0 && 
+            label < MIN_CORTICAL_PARCELLATION)
+        {
+          continue ;
+        }
+        val = MRIgetVoxVal(mri_norm, x, y, z, 0) ;
+        pval = HISTO2DgetCount(h_dist_by_int, dist, val) ;
+        if (pval > 0)
+        {
+          pval = -log10(pval) ;
+        }
+        else
+        {
+          pval = -10000 ;
+        }
+        MRIsetVoxVal(mri_pvals, x, y, z, 0, pval) ;
+      }
+
+  HISTO2Dfree(&h_dist_by_int) ;
+  return(mri_pvals) ;
+}
+
+static int
+augment_thicknesses(FCD_DATA *fcd, 
+                    MRI *mri_pvals,
+                    double min_dist,
+                    double max_dist,
+                    double thresh)
+{
+  int         h, vno ;
+  VERTEX      *v ;
+  MRI_SURFACE *mris ;
+  MRI         *mri_thickness ;
+  double      nx, ny, nz, x0, y0, z0, d, x, y, z, val ;
+  MRI_SEGMENTATION *mriseg ;
+
+  mriseg = MRIsegment(mri_pvals, thresh, 1e10) ;
+  MRIeraseSmallSegments(mriseg, mri_pvals, 20) ;
+  MRIremoveSmallSegments(mriseg, 100) ;
+  if (Gdiag & DIAG_WRITE)
+  {
+    MRIwrite(mri_pvals, "pvals.mgz") ;
+  }
+  MRIsegmentFree(&mriseg) ;
+
+  for (h = 0 ; h <= 1 ; h++)  // do each hemi
+  {
+    if (h == 0)  // left hemi
+    {
+      mri_thickness = fcd->lh_thickness_on_lh ;
+      mris = fcd->mris_lh ;
+    }
+    else   // right hemi
+    {
+      mri_thickness = fcd->rh_thickness_on_rh ;
+      mris = fcd->mris_rh ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      if (vno == Gdiag_no)
+      {
+        DiagBreak() ;
+      }
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+      {
+        continue ;
+      }
+      MRISvertexNormalInVoxelCoords(mris, mri_pvals, vno, &nx, &ny, &nz) ;
+      MRISvertexToVoxel(mris, v, mri_pvals, &x0, &y0, &z0) ;
+
+      for (d = 0 ; d <= max_dist ; d += 0.5)
+      {
+        x = x0+d*nx ;
+        y = y0+d*ny ;
+        z = z0+d*nz ;
+        MRIsampleVolume(mri_pvals, x, y, z, &val) ;
+        if (val < thresh)
+        {
+          break ;
+        }
+      }
+	
+      if (d > min_dist)   // a string of unlikely values
+      {
+        val = MRIgetVoxVal(mri_thickness, vno, 0, 0, 0) ;
+        MRIsetVoxVal(mri_thickness, vno, 0, 0, 0, val+d) ;
+      }
+    }
+  }
   return(NO_ERROR) ;
 }
 
