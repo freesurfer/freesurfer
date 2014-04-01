@@ -209,7 +209,7 @@
      <x>0</x>
      <y>0</y>
      <width>1213</width>
-     <height>23</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -973,7 +973,7 @@
     <string>Toggle Volume Visibility</string>
    </property>
    <property name="shortcut">
-    <string>Alt+V, Shift+V</string>
+    <string>Alt+V</string>
    </property>
   </action>
   <action name="actionToggleSurfaceVisibility">
