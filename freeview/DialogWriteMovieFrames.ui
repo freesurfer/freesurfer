@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>426</width>
-    <height>328</height>
+    <width>478</width>
+    <height>353</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -102,31 +102,8 @@
        </property>
       </spacer>
      </item>
-     <item row="2" column="0">
-      <widget class="QLabel" name="labelAngleStep">
-       <property name="text">
-        <string>Angle step size</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="1">
-      <widget class="QDoubleSpinBox" name="doubleSpinBoxAngleStep">
-       <property name="decimals">
-        <number>2</number>
-       </property>
-       <property name="minimum">
-        <double>-100.000000000000000</double>
-       </property>
-       <property name="maximum">
-        <double>100.000000000000000</double>
-       </property>
-       <property name="value">
-        <double>1.000000000000000</double>
-       </property>
-      </widget>
-     </item>
      <item row="3" column="1">
-      <widget class="QSpinBox" name="spinBoxSliceStart">
+      <widget class="QSpinBox" name="spinBoxStart">
        <property name="minimum">
         <number>0</number>
        </property>
@@ -138,15 +115,35 @@
        </property>
       </widget>
      </item>
-     <item row="5" column="0">
-      <widget class="QLabel" name="labelSliceStep">
+     <item row="4" column="0">
+      <widget class="QLabel" name="labelEndNumber">
        <property name="text">
-        <string>Slice step size</string>
+        <string>End number</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QSpinBox" name="spinBoxEnd">
+       <property name="minimum">
+        <number>0</number>
+       </property>
+       <property name="maximum">
+        <number>10000</number>
+       </property>
+       <property name="value">
+        <number>0</number>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="labelStartNumber">
+       <property name="text">
+        <string>Start number</string>
        </property>
       </widget>
      </item>
      <item row="5" column="1">
-      <widget class="QSpinBox" name="spinBoxSliceStep">
+      <widget class="QSpinBox" name="spinBoxStep">
        <property name="minimum">
         <number>1</number>
        </property>
@@ -155,31 +152,37 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
-      <widget class="QLabel" name="labelSliceStartNumber">
+     <item row="5" column="0">
+      <widget class="QLabel" name="labelSliceStep">
        <property name="text">
-        <string>Slice start number</string>
+        <string>Step size</string>
        </property>
       </widget>
      </item>
-     <item row="4" column="0">
-      <widget class="QLabel" name="labelSliceEndNumber">
+     <item row="2" column="0">
+      <widget class="QLabel" name="labelFlyThrough">
        <property name="text">
-        <string>Slice end number</string>
+        <string>Fly through</string>
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
-      <widget class="QSpinBox" name="spinBoxSliceEnd">
-       <property name="minimum">
-        <number>0</number>
-       </property>
-       <property name="maximum">
-        <number>10000</number>
-       </property>
-       <property name="value">
-        <number>0</number>
-       </property>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="comboBoxFlyThrough">
+       <item>
+        <property name="text">
+         <string>Slice</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Frame</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Angle</string>
+        </property>
+       </item>
       </widget>
      </item>
     </layout>
@@ -203,7 +206,7 @@
    <item>
     <widget class="QLabel" name="label_4">
      <property name="text">
-      <string>NOTE: Angle step is for spinning in 3D view only. If the main viewport is 2D slice view, it will be ignored. A slice fly-through will be saved instead.</string>
+      <string>NOTE: Angle is for spinning in 3D view only. If the main viewport is 2D slice view, it will be ignored. </string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
@@ -296,8 +299,8 @@
    <slot>OnOpen()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>402</x>
-     <y>63</y>
+     <x>467</x>
+     <y>60</y>
     </hint>
     <hint type="destinationlabel">
      <x>469</x>
@@ -312,8 +315,8 @@
    <slot>OnAbort()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>68</x>
-     <y>304</y>
+     <x>78</x>
+     <y>342</y>
     </hint>
     <hint type="destinationlabel">
      <x>155</x>
@@ -328,8 +331,8 @@
    <slot>OnWrite()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>292</x>
-     <y>303</y>
+     <x>381</x>
+     <y>342</y>
     </hint>
     <hint type="destinationlabel">
      <x>292</x>
@@ -344,12 +347,28 @@
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>377</x>
-     <y>305</y>
+     <x>467</x>
+     <y>342</y>
     </hint>
     <hint type="destinationlabel">
      <x>381</x>
      <y>336</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxFlyThrough</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>DialogWriteMovieFrames</receiver>
+   <slot>OnComboBoxFlyThrough(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>208</x>
+     <y>111</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>707</x>
+     <y>167</y>
     </hint>
    </hints>
   </connection>
@@ -358,5 +377,6 @@
   <slot>OnOpen()</slot>
   <slot>OnWrite()</slot>
   <slot>OnAbort()</slot>
+  <slot>OnComboBoxFlyThrough(int)</slot>
  </slots>
 </ui>

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/05 20:25:28 $
- *    $Revision: 1.9 $
+ *    $Date: 2014/04/01 17:34:57 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,8 @@ public:
   void closeEvent(QCloseEvent *e);
 
 public slots:
-  void UpdateUI(bool bUpdateSliceNumber = true);
+  void UpdateUI(bool UpdateNumbers = true);
+  void OnComboBoxFlyThrough(int nIndex);
 
 signals:
   void Started();
@@ -64,9 +65,8 @@ private:
   Ui::DialogWriteMovieFrames *ui;
   RenderView* m_view;
   QTimer      m_timer;
-  double      m_dAngleStepSize;
-  int         m_nStartSlice;
-  int         m_nSliceStepSize;
+  int         m_nStepSize;
+  int         m_nStartNumber;
   QString     m_strOutputDir;
   int         m_nStepCount;
   int         m_nTotalSteps;
