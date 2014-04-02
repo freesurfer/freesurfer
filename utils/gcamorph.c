@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/02/03 19:15:25 $
- *    $Revision: 1.286 $
+ *    $Author: greve $
+ *    $Date: 2014/04/02 21:03:07 $
+ *    $Revision: 1.287 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -21815,4 +21815,46 @@ most_likely_label(GCA_MORPH *gcam, TRANSFORM *transform, int xp, int yp, int zp,
     }
   }
   return(best_label) ;
+}
+
+/*
+  \fn MRI *GCAMtoMRI(GCAM *gcam, MRI *mri)
+  Maps a GCA Morph structure to an MRI by copying the "xyz"
+  to 3 frames in the MRI. Note that the "xyz" is actually
+  the col, row, slice in the source image. The geometry
+  is set to match that of the atlas image.
+ */
+MRI *GCAMtoMRI(GCAM *gcam, MRI *mri)
+{
+  int c;
+
+  if(mri == NULL){
+    mri = MRIallocSequence(gcam->width,gcam->height,gcam->depth,MRI_FLOAT,3);
+    if(mri==NULL) return(NULL);
+    useVolGeomToMRI(&(gcam->atlas), mri);
+    mri->width  = gcam->width; // this gets overwritten by VolGeom
+    mri->height = gcam->height;
+    mri->depth  = gcam->depth;
+    mri->xsize *= gcam->spacing; // Adapt to the node spacing
+    mri->ysize *= gcam->spacing;
+    mri->zsize *= gcam->spacing;
+  }
+
+  for(c=0; c < gcam->width; c++){
+    GCA_MORPH_NODE *gcan=NULL;
+    int r,s;
+    for(r=0; r < gcam->height; r++){
+      for(s=0; s < gcam->depth; s++){
+	gcan = &(gcam->nodes[c][r][s]);
+	// The "x,y,z" tell you the col, row, slice in the original image
+	// to which the crs in the gcam maps (ie, it maps from gcam CRS 
+	// to image CRS)
+	MRIsetVoxVal(mri,c,r,s,0,gcan->x); // col (LR)
+	MRIsetVoxVal(mri,c,r,s,1,gcan->y); // row (SI)
+	MRIsetVoxVal(mri,c,r,s,2,gcan->z); // slice (AP)
+      }
+    }
+  }
+
+  return(mri);
 }

@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/01/29 20:39:29 $
- *    $Revision: 1.115 $
+ *    $Author: greve $
+ *    $Date: 2014/04/02 21:03:08 $
+ *    $Revision: 1.116 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -632,6 +632,8 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
 
   int gcamSmoothGradient( GCA_MORPH *gcam, int navgs );
+
+MRI *GCAMtoMRI(GCAM *gcam, MRI *mri);
 
 #ifdef FS_CUDA
   //! Wrapper around the GPU version of gcamComputeMetricProperties
