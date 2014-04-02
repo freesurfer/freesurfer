@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/31 20:50:54 $
- *    $Revision: 1.34 $
+ *    $Date: 2014/04/02 19:43:19 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.34 2014/03/31 20:50:54 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.35 2014/04/02 19:43:19 greve Exp $
 
 /*
   BEGINHELP
@@ -81,6 +81,7 @@
 #include "mrisutils.h"
 #include "cma.h"
 #include "mri_identify.h"
+//#include "transform.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -95,7 +96,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.34 2014/03/31 20:50:54 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.35 2014/04/02 19:43:19 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -263,6 +264,7 @@ int main(int argc, char *argv[])
   uname(&uts);
   getcwd(cwd,2000);
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  vg_isEqual_Threshold = 10e-4;
 
   gtm = GTMalloc();
   gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
@@ -311,6 +313,11 @@ int main(int argc, char *argv[])
   if(gtm->anat2seg == NULL) exit(1);
   gtm->seg2anat = LTAinvert(gtm->anat2seg,NULL);
   gtm->seg2pet = LTAconcat2(gtm->seg2anat,gtm->anat2pet,1);
+  if(gtm->seg2pet == NULL) {
+    printf("ERROR: LTAconcat()\n");
+    printf("mri_rbvpvc exited with errors\n");
+    exit(1);
+  }
 
   // Load seg
   TimerStart(&mytimer);
@@ -629,6 +636,7 @@ static int parse_commandline(int argc, char **argv) {
       nthreads = 1;
 #ifdef _OPENMP
       nthreads = omp_get_max_threads()-1;
+      if(nthreads < 0) nthreads = 1;
       omp_set_num_threads(nthreads);
 #endif
     } 
@@ -720,6 +728,11 @@ static int parse_commandline(int argc, char **argv) {
       nReplace++;
       nargsused = 2;
     } 
+    else if (!strcasecmp(option, "--vg-thresh")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&vg_isEqual_Threshold);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--make-gtm-seg")) {
       if(nargc < 6) CMDargNErr(option,6);
       int err,USF, LabelCCAsWM, LabelHypoAsWM, SubSegWM;
@@ -794,7 +807,7 @@ static void print_usage(void) {
   printf("   --xtx xtx.mtx : save X'*X into xtx.mtx\n");
   printf("   --X Xfile : save X matrix (it will be big)\n");
   printf("   --niters N : use iterative method instead of GTM\n");
-  printf("   --odir outdir     : output directory\n");
+  printf("   --o outdir     : output directory\n");
   printf("   --make-gtm-seg subject USF SubSegWM LabelCCasWM LabelHypoAsWM dmax outsegfile\n");
   printf("   --synth gtmbeta seg pvf mask out\n");
   printf("\n");
@@ -803,6 +816,7 @@ static void print_usage(void) {
   printf("   --threads-max : use the maximum allowable number of threads for this computer\n");
   printf("   --threads-max-1 : use one less than the maximum allowable number of threads for this computer\n");
 #endif
+  printf("   --vg-thresh thrshold : threshold for  'ERROR: LTAconcat(): LTAs 0 and 1 do not match'\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -885,7 +899,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
-
+  fprintf(fp,"vgthresh   %lf\n",vg_isEqual_Threshold);
   return;
 }
 
