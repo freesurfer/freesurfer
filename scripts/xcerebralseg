@@ -1,7 +1,8 @@
 #!/bin/tcsh -f
 # xcerebralseg
+# HAB_097_MC_BL 200 148 103
 
-set VERSION = '$Id: xcerebralseg,v 1.3 2014/03/26 16:04:37 greve Exp $';
+set VERSION = '$Id: xcerebralseg,v 1.4 2014/04/02 20:17:47 greve Exp $';
 
 set subject = ();
 set apasvol = aparc+aseg.mgz
@@ -171,16 +172,26 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 
+# Make sure that the filled skull is a superset of apas+xcsf
+set cmd = (fscalc $skullfilled or $apasxcsfmask -o $skullfilled)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
 # Add skull to the apas+xcsf segmentation
-# Assumes that the filled skull is a superset of apas+xcsf
 set apasxcsfskull = $tmpdir/apas+xcsf+skull.mgh
 set cmd = (fscalc $skullfilled sub $apasxcsfmask mul 259 add $apasxcsf -o $apasxcsfskull)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 
+# Make sure that headmask is a superset of filled skull
+set cmd = (fscalc $headmask or $skullfilled -o $headmask);
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
 # Add head into the apas+xcsf+skull segmentation
-# Assumes that the headmask is a superset of the filled skull
 set cmd = (fscalc $headmask sub $skullfilled mul 258 add $apasxcsfskull -o $outvol)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
@@ -191,7 +202,7 @@ if($status) goto error_exit;
 # Cleanup
 if($cleanup) then
   rm -rf $tmpdir
-  rm -f $headmask
+  #rm -f $headmask
 endif
 
 # Done
