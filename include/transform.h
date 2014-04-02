@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/27 02:04:41 $
- *    $Revision: 1.80 $
+ *    $Date: 2014/04/02 19:42:01 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@ extern "C" {
 
 
 #include "const.h"
+#include "float.h"
 
 typedef enum { MINC, TKREG, GENERIC, UNKNOWN=-1 } TransformType;
 
@@ -90,6 +91,13 @@ typedef struct
   void       *xform ;
 }
 TRANSFORM ;
+
+// allows controlling of thresh used to determine if two volume gemoetries are the same
+#ifdef _TRANSFORM_SRC
+double vg_isEqual_Threshold=FLT_EPSILON;
+#else
+extern double vg_isEqual_Threshold;
+#endif
 
 void mincGetVolInfo(const char *infoline, const char *infoline2,
                     VOL_GEOM *vgSrc, VOL_GEOM *vgDst);
@@ -234,9 +242,8 @@ MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg);
 
 int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri);
 
-int vg_isEqual(const VOL_GEOM *vg1,
-               const VOL_GEOM *vg2); /* return 1 if equal
-                                        return 0 if not equal */
+int vg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2); /* return 1 if equal return 0 if not equal */
+int vg_isNotEqualThresh(const VOL_GEOM *vg1, const VOL_GEOM *vg2, const double thresh);
 void vg_print(const VOL_GEOM *vg);
 
 int LTAvoxelXformToRASXform(const MRI *src, const MRI *dst,
