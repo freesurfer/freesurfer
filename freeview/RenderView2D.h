@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/23 19:29:18 $
- *    $Revision: 1.34 $
+ *    $Date: 2014/04/02 19:28:32 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,7 @@ public:
   }
 
   void UpdateMouseRASPosition( int posX, int posY );
-  void UpdateCursorRASPosition( int posX, int posY );
+  void UpdateCursorRASPosition( int posX, int posY, bool bSnapToVertex = false );
   void MoveSlice( int nStep );
 
   void SetInteractionMode( int nMode );

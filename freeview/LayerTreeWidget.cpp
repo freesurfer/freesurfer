@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/28 19:29:38 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/04/02 19:28:32 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,9 +32,27 @@
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 
+QRect MyItemDelegate::GetCheckBoxRect(const QModelIndex &index, const QStyleOptionViewItem& option) const
+{
+  QRect CheckBox = rect (option, index, Qt::CheckStateRole);
+  QRect Icon = rect (option, index, Qt::DecorationRole) ;
+  QRect Text = rect (option, index, Qt::DisplayRole) ;
+
+  doLayout (option, &CheckBox, &Icon, &Text, true) ;
+
+  QRect VisualRect = ParentView -> visualRect (index) ;
+  CheckBox.translate (VisualRect.topLeft()) ;
+  Icon.translate (VisualRect.topLeft()) ;
+  Text.translate (VisualRect.topLeft()) ;
+  return CheckBox;
+}
+
+
 LayerTreeWidget::LayerTreeWidget(QWidget *parent) :
   QTreeWidget(parent)
 {
+  m_itemDelegate = new MyItemDelegate(this);
+  setItemDelegate(m_itemDelegate);
 }
 
 void LayerTreeWidget::drawRow( QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const
@@ -61,10 +79,42 @@ void LayerTreeWidget::ForceUpdate()
 
 void LayerTreeWidget::mousePressEvent(QMouseEvent *event)
 {
+
   if (event->button()== Qt::RightButton)
     return;
   else
+  {
+    QTreeWidgetItem* item = itemAt(event->pos());
+    if (rectCheckbox.isEmpty() || rectCheckbox.width() <= 0)
+    {
+      QStyleOptionViewItem option = viewOptions();
+      if (item)
+        rectCheckbox = m_itemDelegate->GetCheckBoxRect(indexFromItem(item), option);
+    }
+
+    if (item && item->childCount() == 0
+        && event->x() < rectCheckbox.right() && event->x() > rectCheckbox.left())
+    {
+      return;
+    }
+    viewOptions();
     QTreeWidget::mousePressEvent(event);
+  }
+}
+
+void LayerTreeWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+  if (event->button() == Qt::LeftButton)
+  {
+    QTreeWidgetItem* item = itemAt(event->pos());
+    if (item && item->childCount() == 0
+        && event->x() < rectCheckbox.right() && event->x() > rectCheckbox.left())
+    {
+      item->setCheckState(0, item->checkState(0) == Qt::Checked ? Qt::Unchecked : Qt::Checked);
+      return;
+    }
+    QTreeWidget::mouseReleaseEvent(event);
+  }
 }
 
 void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)

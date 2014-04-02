@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/28 19:29:38 $
- *    $Revision: 1.9 $
+ *    $Date: 2014/04/02 19:28:32 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,8 +25,24 @@
 #define LAYERTREEWIDGET_H
 
 #include <QTreeWidget>
+#include <QItemDelegate>
 
 class Layer;
+
+class MyItemDelegate : public QItemDelegate
+{
+  Q_OBJECT
+
+public:
+  explicit MyItemDelegate (QTreeWidget *parent)
+    : QItemDelegate (parent), ParentView (parent) { }
+  ~MyItemDelegate() { }
+
+  QRect GetCheckBoxRect(const QModelIndex &index, const QStyleOptionViewItem& option) const;
+
+private:
+  QTreeWidget* ParentView ;
+};
 
 class LayerTreeWidget : public QTreeWidget
 {
@@ -36,6 +52,7 @@ public:
 
   void contextMenuEvent(QContextMenuEvent *e);
   void mousePressEvent(QMouseEvent *event);
+  void mouseReleaseEvent(QMouseEvent *event);
 
 signals:
 
@@ -53,6 +70,11 @@ public slots:
 
 protected:
   void drawRow ( QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const;
+
+  MyItemDelegate* m_itemDelegate;
+  QRect         rectCheckbox;
 };
+
+
 
 #endif // LAYERTREEWIDGET_H

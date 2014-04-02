@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/16 22:19:07 $
- *    $Revision: 1.67 $
+ *    $Date: 2014/04/02 19:28:32 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,7 @@
 #include <QMenu>
 #include <QDebug>
 #include "LayerLineProfile.h"
+#include "LayerSurface.h"
 
 RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
 {
@@ -227,7 +228,7 @@ void RenderView2D::UpdateMouseRASPosition( int posX, int posY )
   lc->SetCurrentRASPosition( pos );
 }
 
-void RenderView2D::UpdateCursorRASPosition( int posX, int posY )
+void RenderView2D::UpdateCursorRASPosition( int posX, int posY, bool bSnapToVertex )
 {
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
   if ( !lc )
@@ -237,6 +238,21 @@ void RenderView2D::UpdateCursorRASPosition( int posX, int posY )
 
   double pos[3];
   MousePositionToRAS( posX, posY, pos );
+
+  if (bSnapToVertex)
+  {
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
+    foreach (Layer* layer, layers)
+    {
+      LayerSurface* surf = qobject_cast<LayerSurface*>(layer);
+      int nVertex = surf->GetVertexIndexAtTarget( pos, NULL );
+      if (nVertex >= 0)
+      {
+        if (surf->GetTargetAtVertex(nVertex, pos))
+          break;
+      }
+    }
+  }
 
   MainWindow::GetMainWindow()->SetSlicePosition( pos );
   lc->SetCursorRASPosition( pos );

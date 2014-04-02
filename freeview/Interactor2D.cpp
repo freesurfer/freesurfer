@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/14 21:06:01 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/04/02 19:28:32 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -89,7 +89,9 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
     else
     {
       m_bMovingCursor = true;
-      view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY );
+      view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY,
+                                    !mainwnd->IsRepositioningSurface() && ( event->modifiers() & CONTROL_MODIFIER ) &&
+                                    ( event->modifiers() & Qt::ShiftModifier ) );
       view->RequestRedraw();
       if (mainwnd->IsRepositioningSurface())
       {
