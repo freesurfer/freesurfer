@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/02 19:28:32 $
- *    $Revision: 1.11 $
+ *    $Date: 2014/04/03 20:23:26 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,7 +79,6 @@ void LayerTreeWidget::ForceUpdate()
 
 void LayerTreeWidget::mousePressEvent(QMouseEvent *event)
 {
-
   if (event->button()== Qt::RightButton)
     return;
   else

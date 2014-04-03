@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/28 19:29:38 $
- *    $Revision: 1.276 $
+ *    $Date: 2014/04/03 20:23:26 $
+ *    $Revision: 1.277 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2621,6 +2621,34 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             m_scripts.insert(0, QString("loadsurfacelabel ")+fns[i]);
           }
         }
+        else if ( subOption == "label_outline" || subOption == "labeloutline")
+        {
+          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+          {
+            for (int i = 0; i < m_scripts.size(); i++)
+            {
+              if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
+              {
+                m_scripts.insert(i+1, "setsurfacelabeloutline 1");
+                break;
+              }
+            }
+          }
+        }
+        else if (subOption == "label_color" || subOption == "labelcolor")
+        {
+          if (!subArgu.isEmpty())
+          {
+            for (int i = 0; i < m_scripts.size(); i++)
+            {
+              if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
+              {
+                m_scripts.insert(i+1, QString("setsurfacelabelcolor ") + subArgu);
+                break;
+              }
+            }
+          }
+        }
         else if ( subOption == "vector" )
         {
           // add script to load surface vector files
@@ -2673,15 +2701,6 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
             bLoadAll = true;
         }
-        else if ( subOption == "label_outline" || subOption == "labeloutline")
-        {
-          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
-            bLabelOutline = true;
-        }
-        else if (subOption == "label_color" || subOption == "labelcolor")
-        {
-          labelColor = subArgu;
-        }
         else if (subOption == "sup_files")
         {
           sup_files = subArgu.split(",",  QString::SkipEmptyParts);
@@ -2691,22 +2710,6 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
           return;
         }
-      }
-    }
-    if (bLabelOutline)
-    {
-      for (int i = 0; i < m_scripts.size(); i++)
-      {
-        if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
-          m_scripts.insert(i+1, "setsurfacelabeloutline 1");
-      }
-    }
-    if (!labelColor.isEmpty())
-    {
-      for (int i = 0; i < m_scripts.size(); i++)
-      {
-        if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
-          m_scripts.insert(i+1, QString("setsurfacelabelcolor ") + labelColor);
       }
     }
   }

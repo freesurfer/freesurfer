@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/04 22:05:26 $
- *    $Revision: 1.99 $
+ *    $Date: 2014/04/03 20:23:26 $
+ *    $Revision: 1.100 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -433,16 +433,20 @@ bool LayerSurface::LoadAnnotationFromFile( const QString& filename )
 
 bool LayerSurface::LoadLabelFromFile( const QString& filename )
 {
-  // create annotation
+  // create label
   SurfaceLabel* label = new SurfaceLabel( this );
-  bool ret = label->LoadLabel( filename );
+
+  QString fn = filename;
+  if (fn.left(2) == "~/")
+    fn.replace("~", QDir::homePath());
+  QFileInfo fi(fn);
+  bool ret = label->LoadLabel(fn);
   if ( !ret )
   {
     delete label;
     return false;
   }
 
-  QFileInfo fi(filename);
   if ( fi.suffix() == ".label" )
   {
     label->SetName( fi.completeBaseName() );
