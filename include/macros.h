@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.38 $
+ *    $Author: greve $
+ *    $Date: 2014/04/03 01:14:24 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,6 +77,7 @@
 #endif
 
 #define FZERO(f)     (fabs(f) < FLT_EPSILON)
+#define FZEROTHR(f,thr)     (fabs(f) < thr)
 #define DZERO(d)     (fabs(d) < 1e-15)
 #define iszero(f)   (FZERO(f))
 #define FEQUAL(f1,f2) (FZERO(f1-f2))
