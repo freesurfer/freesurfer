@@ -61,6 +61,7 @@ fsgd_parser.py \
 fsl_sub_mgh \
 fsutils.py \
 tkmeditfv \
+tksurferfv \
 stem2fname \
 freesurfer \
 fs_lib_check \
