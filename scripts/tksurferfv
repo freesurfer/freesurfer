@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tkmeditfv
 
-set VERSION = '$Id: tksurferfv,v 1.1 2014/04/04 18:08:18 greve Exp $';
+set VERSION = '$Id: tksurferfv,v 1.2 2014/04/04 18:27:07 greve Exp $';
 
 set subject = ();
 set overlay = ();
@@ -271,8 +271,11 @@ endif
 if($#annot) then
   set annotfile = $SUBJECTS_DIR/$subject/label/$hemi.$annot
   if(! -e $annotfile) then 
-    echo "ERROR: cannot find $annotfile"
-    exit 1
+    set annotfile = $SUBJECTS_DIR/$subject/label/$hemi.$annot.annot
+    if(! -e $annotfile) then 
+      echo "ERROR: cannot find $annot for $subject"
+      exit 1
+    endif
   endif
 endif
 
