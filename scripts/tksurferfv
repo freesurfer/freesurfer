@@ -1,0 +1,309 @@
+#!/bin/tcsh -f
+# tkmeditfv
+
+set VERSION = '$Id: tksurferfv,v 1.1 2014/04/04 18:08:18 greve Exp $';
+
+set subject = ();
+set overlay = ();
+set surflist0 = ();
+set overlaylist = ();
+set overlayreg = ();
+set twfvol = ();
+set twfreg = ();
+set annot = ();
+set hemi = ();
+set fthresh = 2;
+set fmax    = 5;
+set label = ();
+set UseTkSurfer = 0;
+set curv = curv
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+
+#========================================================
+
+if(! $UseTkSurfer) then
+  ### FreeView ####----------------------------------------------
+  set cmd = (freeview -f)
+  foreach surf ($surflist)
+    set curvfile = $SUBJECTS_DIR/$subject/surf/$hemi.$curv
+    set surfarg = "$surf":"curvature=$curvfile"
+    if($#annot) then
+      set surfarg = "$surfarg":"annot=$annotfile":"edgethickness=0"
+    endif
+    foreach overlay ($overlaylist)
+      set surfarg = "$surfarg":"overlay=$overlay":"overlay_threshold=$fthresh,$fmax"
+      if($#overlayreg) set surfarg = "$surfarg":"overlay_reg=$overlayreg"
+    end
+    set cmd = ($cmd $surfarg)
+  end
+  set cmd = ($cmd -viewport 3d)
+else
+  ### tksurfer ####----------------------------------------------
+  set cmd = (tksurfer $subject $hemi $surflist0[1] -fminmax $fthresh $fmax)
+  if($#annot) set cmd = ($cmd -annot $annot)
+  if($#label) set cmd = ($cmd -label $label)
+  foreach overlay ($overlaylist)
+    set cmd = ($cmd -overlay $overlay)
+  end
+endif
+echo $cmd
+$cmd
+
+#========================================================
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+
+set subject = $argv[1]; shift;
+set hemi = $argv[1]; shift;
+set surf = $argv[1]; shift;
+set surflist0 = ($surflist0 $surf)
+
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-label":
+    case "-l":
+      if($#argv < 1) goto arg1err;
+      set label = $argv[1]; shift;
+      breaksw
+
+    case "-reg":
+      if($#argv < 1) goto arg1err;
+      set overlayreg = $argv[1]; shift;
+      set twfreg = $overlayreg;
+      breaksw
+
+    case "-timecourse-reg":
+      if($#argv < 1) goto arg1err;
+      set twfreg = $argv[1]; shift;
+      breaksw
+
+    case "-overlay-reg":
+      if($#argv < 1) goto arg1err;
+      set overlayreg = $argv[1]; shift;
+      breaksw
+
+    case "-annot":
+      if($#argv < 1) goto arg1err;
+      set annot = $argv[1]; shift;
+      breaksw
+
+    case "-aparc":
+      if($#argv < 1) goto arg1err;
+      set annot = aparc.annot
+      breaksw
+
+    case "-overlay":
+    case "-ov":
+      if($#argv < 1) goto arg1err;
+      set ov = $argv[1]; shift;
+      if(! -e $ov) then
+        echo "ERROR: cannot find $ov"
+        exit 1;
+      endif
+      set overlaylist = ($overlaylist $ov)
+      breaksw
+
+    case "-timecourse":
+    case "-t":
+      if($#argv < 1) goto arg1err;
+      set twf = $argv[1]; shift;
+      if(! -e $twf) then
+        echo "ERROR: cannot find $twf"
+        exit 1;
+      endif
+      set overlaylist = ($overlaylist $twf)
+      breaksw
+
+    case "-fminmax":
+      if($#argv < 2) goto arg2err;
+      set fthresh = $argv[1]; shift;
+      set fmax = $argv[1]; shift;
+      breaksw
+
+    case "-fmin":
+    case "-fthresh":
+      if($#argv < 1) goto arg1err;
+      set fthresh = $argv[1]; shift;
+      breaksw
+
+    case "-fmax":
+      if($#argv < 1) goto arg1err;
+      set fmax = $argv[1]; shift;
+      breaksw
+
+    case "-surf":
+    case "-aux-surf":
+    case "-aux-surface":
+      if($#argv < 1) goto arg1err;
+      set surf = $argv[1]; shift;
+      set surflist0 = ($surflist0 $surf);
+      breaksw
+
+    case "-pial":
+      set surflist0 = ($surflist0 pial);
+      breaksw
+
+    case "-white":
+      set surflist0 = ($surflist0 white);
+      breaksw
+
+    case "-surfs":
+      set surflist0 = (inflated white pial)
+      breaksw
+
+    case "-tksurfer":
+    case "-tkm":
+      set UseTkSurfer = 1;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "-debug":
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($subject == getreg) then
+  if($#overlayreg == 0) then
+    echo "ERROR: must supply regfile with getreg"
+    exit 1;
+  endif
+  set subject = `reg2subject $overlayreg`
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+set surflist = ();
+foreach surf ($surflist0)
+  if(-e $surf) then
+    set surflist = ($surflist $surf)
+  else
+    set surfpath = $SUBJECTS_DIR/$subject/surf/$hemi.$surf
+    if(! -e $surfpath) then
+      echo "ERROR: cannot find $surf or $surfpath"
+      exit 1;
+    endif
+    set surflist = ($surflist $surfpath)
+  endif
+end
+
+
+if($#label) then
+  if(! -e $label) then
+    set l0 = $SUBJECTS_DIR/$subject/label/$label
+    if(! -e $l0 && ! -e $label) then 
+      echo "ERROR: cannot find $label or $l0"
+      exit 1;
+    endif
+    set label = $l0
+  endif
+endif
+if($#annot) then
+  set annotfile = $SUBJECTS_DIR/$subject/label/$hemi.$annot
+  if(! -e $annotfile) then 
+    echo "ERROR: cannot find $annotfile"
+    exit 1
+  endif
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "This is a script that runs freeview with arguments like tksurfer."
+  echo "Not all tksurfer functionality is replicated."
+  echo ""
+  echo "tksurferfv subject hemi surface ..."
+  echo ""
+  echo "-tksurfer : use tksurfer instead of freeview"
+  echo ""
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
