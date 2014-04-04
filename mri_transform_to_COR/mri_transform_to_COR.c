@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.3 $
+ *    $Author: greve $
+ *    $Date: 2014/04/04 19:58:54 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,9 +50,9 @@
 #include "version.h"
 #define MYFZERO(f)     (fabs(f) < 0.0001F)
 #define SAMPLE_BSPLINE 5
-#define DBL_EPSILON 1e-10
+#define DBL_EPSILON_THIS_FILE 1e-10
 
-static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.3 2011/03/02 00:04:25 nicks Exp $";
+static char vcid[] = "$Id: mri_transform_to_COR.c,v 1.4 2014/04/04 19:58:54 greve Exp $";
 
 LTA *ltaReadFileEx(const char *fname);
 int MYvg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2);
@@ -125,7 +125,7 @@ main(int argc, char *argv[]) {
   int i, nbins, bin;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.3 2011/03/02 00:04:25 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.4 2014/04/04 19:58:54 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     usage_exit (0);
   argc -= nargs;
@@ -1182,7 +1182,7 @@ int  SamplesToCoefficients
   for (z = 0L; z < Depth; z++) {
     for (y = 0L; y < Height; y++) {
       GetRow(mri_vol, y, z, Line);
-      ConvertToInterpolationCoefficients(Line, Width, Pole, NbPoles, DBL_EPSILON);
+      ConvertToInterpolationCoefficients(Line, Width, Pole, NbPoles, DBL_EPSILON_THIS_FILE);
       PutRow(mri_vol, y, z, Line);
 
     }
@@ -1198,7 +1198,7 @@ int  SamplesToCoefficients
   for (z = 0L; z < Depth; z++) {
     for (x = 0L; x < Width; x++) {
       GetColumn(mri_vol,  x, z, Line);
-      ConvertToInterpolationCoefficients(Line, Height, Pole, NbPoles, DBL_EPSILON);
+      ConvertToInterpolationCoefficients(Line, Height, Pole, NbPoles, DBL_EPSILON_THIS_FILE);
       PutColumn(mri_vol, x, z, Line);
     }
   }
@@ -1213,7 +1213,7 @@ int  SamplesToCoefficients
   for (y = 0L; y < Height; y++) {
     for (x = 0L; x < Width; x++) {
       GetVertical(mri_vol, x, y, Line);
-      ConvertToInterpolationCoefficients(Line, Depth, Pole, NbPoles, DBL_EPSILON);
+      ConvertToInterpolationCoefficients(Line, Depth, Pole, NbPoles, DBL_EPSILON_THIS_FILE);
       PutVertical(mri_vol, x, y, Line);
     }
   }
