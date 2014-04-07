@@ -59,6 +59,7 @@ MRISUBDIRS=\
 	mri_ca_train \
 	mri_cvs_register \
 	mri_gcab_train \
+	mri_gtmseg \
 	mri_gcut \
 	mri_cc mri_cht2p \
 	mri_cnr \
