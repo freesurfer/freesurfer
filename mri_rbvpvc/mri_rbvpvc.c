@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/08 19:08:09 $
- *    $Revision: 1.37 $
+ *    $Date: 2014/04/08 20:31:39 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.37 2014/04/08 19:08:09 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.38 2014/04/08 20:31:39 greve Exp $
 
 /*
   BEGINHELP
@@ -96,7 +96,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.37 2014/04/08 19:08:09 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.38 2014/04/08 20:31:39 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -114,6 +114,7 @@ typedef struct
   MRI *mask;
   double cFWHM, rFWHM, sFWHM;
   double PadThresh;
+  MRI *yseg,*yhat0seg,*yhatseg;
 
   MRI *segpvf;
   MRI *ttpvf;
@@ -152,7 +153,7 @@ int GTMsolve(GTM *gtm);
 int GTMsegrvar(GTM *gtm);
 int GTMsmoothSynth(GTM *gtm);
 int GTMsynth(GTM *gtm);
-MRI *GTMsynth2(GTM *gtm);
+MRI *GTMsegSynth(GTM *gtm);
 int GTMrbv(GTM *gtm);
 int GTMmgpvc(GTM *gtm);
 MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m);
@@ -301,6 +302,10 @@ int main(int argc, char *argv[])
     printf("mri_rbvpvc exited with errors\n");
     exit(1);
   }
+  sprintf(tmpstr,"%s/seg2pet.lta",OutDir);
+  LTAwrite(gtm->seg2pet,tmpstr);
+  sprintf(tmpstr,"%s/anat2seg.lta",OutDir);
+  LTAwrite(gtm->anat2seg,tmpstr);
 
   // Load seg
   TimerStart(&mytimer);
@@ -466,16 +471,6 @@ int main(int argc, char *argv[])
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   if(yhatFile0) MRIwrite(gtm->ysynth,yhatFile0);
 
-  if(0){
-  printf("Synthesizing in seg space... ");fflush(stdout); TimerStart(&mytimer) ;
-  mritmp = GTMsynth2(gtm);
-  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
-  sprintf(tmpstr,"%s/yhat0.seg.nii.gz",OutDir);
-  printf("Saving ...");fflush(stdout); TimerStart(&mytimer) ;
-  MRIwrite(mritmp,tmpstr);
-  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
-  }
-
   printf("Smoothing synthesized ... ");fflush(stdout); TimerStart(&mytimer) ;
   GTMsmoothSynth(gtm);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
@@ -523,7 +518,7 @@ int main(int argc, char *argv[])
     GTMwriteMGRefTAC(gtm, tmpstr);
   }
     
-  if(RBVVolFile){
+  if(DoRBV){
     printf("Computing RBV\n");
     GTMrbv(gtm);
     printf("Writing output to %s ...",RBVVolFile);fflush(stdout); TimerStart(&mytimer) ;
@@ -1339,25 +1334,65 @@ int GTMsegrvar(GTM *gtm)
 int GTMrbv(GTM *gtm)
 {
   int c,r,s,f;
-  double val;
+  double val,v,vhat0,vhat;
+  LTA *lta;
 
-  if(gtm->rbv) MRIfree(&gtm->rbv);
-  gtm->rbv = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth,
-			      MRI_FLOAT, gtm->yvol->nframes);
-  MRIcopyHeader(gtm->yvol,gtm->rbv);
-  for(s=0; s < gtm->yvol->depth; s++){
-    for(c=0; c < gtm->yvol->width; c++){
-      for(r=0; r < gtm->yvol->height; r++){
-	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
+  if(gtm->rbv)      MRIfree(&gtm->rbv);
+  if(gtm->yhat0seg) MRIfree(&gtm->yhat0seg);
+  if(gtm->yhatseg)  MRIfree(&gtm->yhatseg);
+  if(gtm->yseg)     MRIfree(&gtm->yseg);
+
+  printf("   Synthesizing in seg space... \n");fflush(stdout);
+  gtm->yhat0seg = GTMsegSynth(gtm);
+  if(gtm->yhat0seg == NULL){
+    printf("ERROR: GTMrbv() could not synthesize yhat0seg\n");
+    return(1);
+  }
+
+  printf("   Smoothing in seg space... \n");fflush(stdout);
+  gtm->yhatseg = MRIgaussianSmoothNI(gtm->yhat0seg, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  if(gtm->yhatseg == NULL){
+    printf("ERROR: GTMrbv() could not smooth yhatseg\n");
+    return(1);
+  }
+
+  printf("   Sampling input to seg space... \n");fflush(stdout);
+  gtm->yseg = MRIallocSequence(gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth,
+			      MRI_FLOAT, gtm->anatseg->nframes);
+  MRIcopyHeader(gtm->anatseg,gtm->rbv);
+  if(gtm->yseg == NULL){
+    printf("ERROR: GTMrbv() could not alloc yseg\n");
+    return(1);
+  }
+
+  printf("   Computing RBV ... \n");fflush(stdout);
+  gtm->rbv = MRIallocSequence(gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth,
+			      MRI_FLOAT, gtm->anatseg->nframes);
+  if(gtm->rbv == NULL){
+    printf("ERROR: GTMrbv() could not alloc rbv\n");
+    return(1);
+  }
+  MRIcopyHeader(gtm->anatseg,gtm->rbv);
+
+  lta = LTAcopy(gtm->seg2pet,NULL);
+  LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+  MRIvol2Vol(gtm->yvol,gtm->yseg,(lta->xforms[0].m_L),SAMPLE_TRILINEAR, 0.0);
+  LTAfree(&lta);
+
+  for(s=0; s < gtm->anatseg->depth; s++){
+    for(c=0; c < gtm->anatseg->width; c++){
+      for(r=0; r < gtm->anatseg->height; r++){
+	if(MRIgetVoxVal(gtm->anatseg,c,r,s,0) < 0.5) continue;
 	for(f=0; f < gtm->yvol->nframes; f++){
-	  val = (double)MRIgetVoxVal(gtm->yvol,c,r,s,f)*
-	    MRIgetVoxVal(gtm->ysynth,c,r,s,f)/
-	      (MRIgetVoxVal(gtm->ysynthsm,c,r,s,f)+FLT_EPSILON);
-	    MRIsetVoxVal(gtm->rbv,c,r,s,f,val);
-	  }
+	  v     = MRIgetVoxVal(gtm->yseg,c,r,s,f);
+	  vhat0 = MRIgetVoxVal(gtm->yhat0seg,c,r,s,f);
+	  vhat  = MRIgetVoxVal(gtm->yhatseg,c,r,s,f);
+	  val = v*vhat0/(vhat+FLT_EPSILON);
+	  MRIsetVoxVal(gtm->rbv,c,r,s,f,val);
 	}
       }
     }
+  }
   return(0);
 }
 
@@ -1842,7 +1877,7 @@ int GTMbuildX(GTM *gtm)
 
 }
 
-MRI *GTMsynth2(GTM *gtm)
+MRI *GTMsegSynth(GTM *gtm)
 {
   int c,r,s,f,segid,segno;
   MRI *synth;
