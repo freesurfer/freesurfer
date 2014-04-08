@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/08 20:31:39 $
- *    $Revision: 1.38 $
+ *    $Date: 2014/04/08 21:23:50 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.38 2014/04/08 20:31:39 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.39 2014/04/08 21:23:50 greve Exp $
 
 /*
   BEGINHELP
@@ -96,7 +96,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.38 2014/04/08 20:31:39 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.39 2014/04/08 21:23:50 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -115,7 +115,8 @@ typedef struct
   double cFWHM, rFWHM, sFWHM;
   double PadThresh;
   MRI *yseg,*yhat0seg,*yhatseg;
-
+  int rescale,n_scale_refids,scale_refids[100];
+  double scale;
   MRI *segpvf;
   MRI *ttpvf;
   MRI *gtmseg;
@@ -136,8 +137,7 @@ typedef struct
   MRI *mg;
   double mg_gmthresh;
   char *mg_ref_schema;
-  int mg_refids[100];
-  int n_mg_refids;
+  int n_mg_refids,mg_refids[100];
   MATRIX *mg_reftac;
 } GTM;
 
@@ -221,6 +221,7 @@ MATRIX *GTMttest(MATRIX *beta,MATRIX *iXtX, double *rvar, int nthseg);
 int GTMmgRefIds(GTM *gtm);
 int GTMprintMGRefTAC(GTM *gtm, FILE *fp);
 int GTMwriteMGRefTAC(GTM *gtm, char *filename);
+int GTMrescale(GTM *gtm);
 
 GTM *gtm;
 GTMOPT *gtmopt;
@@ -237,11 +238,11 @@ int DoMGPVC=0, DoRBV=0;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
-  int nargs,err,c,f,nTT;
+  int nargs,err,c,f,nTT,n;
   double vrfmin,vrfmax,vrfmean;
   struct timeb  mytimer, timer;
   MRI *gtmres;
-  FILE *logfp;
+  FILE *logfp,*fp;
   char *stem;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -256,6 +257,11 @@ int main(int argc, char *argv[])
   gtm = GTMalloc();
   gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
   gtm->mg_ref_schema = "basic-or-lobes";
+  gtm->rescale = 0; 
+  gtm->n_scale_refids = 2;
+  gtm->scale_refids[0] = 7;
+  gtm->scale_refids[1] = 46;
+
   GTMmgRefIds(gtm);
 
   //ctSeg = TissueTypeSchema(NULL,"default-jan-2014");
@@ -434,7 +440,20 @@ int main(int argc, char *argv[])
   printf("Time to solve %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   fprintf(logfp,"GTM-Solve-Time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
 
-  // Could rescale to reference here
+  if(gtm->rescale){
+    // Rescaling is done during GTMsolve()
+    printf("Rescaling using segids ");
+    for(n=0; n < gtm->n_scale_refids; n++) printf("%4d ",gtm->scale_refids[n]);
+    printf("\n");
+    fprintf(logfp,"Rescaling using segids ");
+    for(n=0; n < gtm->n_scale_refids; n++) fprintf(logfp,"%4d ",gtm->scale_refids[n]);
+    fprintf(logfp,"\n");
+    fprintf(logfp,"rescale factor %20.15lf\n",gtm->scale);
+    sprintf(tmpstr,"%s/scale.dat",OutDir);
+    fp = fopen(tmpstr,"w");
+    fprintf(fp,"%20.15lf\n",gtm->scale);
+    fclose(fp);
+  }
 
   // Create GTM seg and pvf in pet space, might be useful
   gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
@@ -480,7 +499,6 @@ int main(int argc, char *argv[])
   if(eresFile) MRIwrite(gtmres,eresFile);
 
   if(RVarFile) {
-    FILE *fp;
     fp = fopen(RVarFile,"w");
     for(f=0; f < gtm->yvol->nframes; f++)
       fprintf(fp,"%30.20f\n",gtm->rvar->rptr[1][f+1]);
@@ -678,6 +696,7 @@ static int parse_commandline(int argc, char **argv) {
     //nargsused = 1;
     //} 
     else if(!strcasecmp(option, "--rbv")) DoRBV = 1;
+    else if(!strcasecmp(option, "--rescale")) gtm->rescale = 1;
 
     else if (!strcasecmp(option, "--eres")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -1218,6 +1237,7 @@ int GTMsolve(GTM *gtm)
   }
   gtm->Xty = MatrixMultiplyD(gtm->Xt,gtm->y,gtm->Xty);
   gtm->beta = MatrixMultiplyD(gtm->iXtX,gtm->Xty,gtm->beta);
+  if(gtm->rescale) GTMrescale(gtm);
   gtm->yhat = MatrixMultiplyD(gtm->X,gtm->beta,gtm->yhat);
   gtm->res  = MatrixSubtract(gtm->y,gtm->yhat,gtm->res);
   gtm->dof = gtm->X->rows - gtm->X->cols;
@@ -1981,3 +2001,36 @@ int GTMwriteMGRefTAC(GTM *gtm, char *filename)
   return(0);
 }
 
+/*--------------------------------------------------------------------------*/
+int GTMrescale(GTM *gtm)
+{
+  int f,n,nthseg,segid,found,nhits;
+  double sum;
+
+  // global rescaling
+  nhits = 0;
+  sum = 0;
+  for(f=0; f < gtm->yvol->nframes; f++){
+    for(nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
+      segid = gtm->segidlist[nthseg];
+      found = 0;
+      for(n=0; n < gtm->n_scale_refids; n++) {
+	if(segid == gtm->scale_refids[n]) {
+	  found = 1;
+	  nhits++;
+	  break;
+	}
+      }
+      if(!found) continue;
+      sum += gtm->beta->rptr[nthseg+1][f+1];
+    }
+  }
+  gtm->scale = 100/(sum/nhits);
+  printf("gtm multiplicative scale %g (nhits=%2d) \n",gtm->scale,nhits);
+
+  MRImultiplyConst(gtm->yvol,gtm->scale,gtm->yvol);
+  MatrixScalarMul(gtm->beta, gtm->scale,gtm->beta);
+  MatrixScalarMul(gtm->y, gtm->scale,gtm->y);
+
+  return(0);
+}
