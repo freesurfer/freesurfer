@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/14 19:57:57 $
- *    $Revision: 1.460 $
+ *    $Date: 2014/04/08 15:30:04 $
+ *    $Revision: 1.461 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -648,8 +648,8 @@ MRI   *MRImin(MRI *mri1, MRI *mri2, MRI *mri_min);
 MRI   *MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize) ;
 MRI   *MRIgaussian1d(float sigma, int max_len) ;
 MRI   *MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian) ;
-MRI   *MRIgaussianSmooth(MRI *src, float std, int norm, MRI *targ);
-MRI   *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, float std, MRI *targ);
+MRI   *MRIgaussianSmooth(MRI *src, double std, int norm, MRI *targ);
+MRI   *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, double std, MRI *targ);
 MRI   *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
     MRI *mri_gaussian) ;
 MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, 
