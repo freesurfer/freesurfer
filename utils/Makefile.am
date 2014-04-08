@@ -119,6 +119,7 @@ libutils_main_SOURCES=\
 	gifti_io.c \
 	gifti_local.c \
 	gifti_xml.c \
+	gtm.c \
 	gw_ic2562.c \
 	gw_utils.c \
 	handle.c \
