@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/03 20:23:26 $
- *    $Revision: 1.100 $
+ *    $Date: 2014/04/08 20:40:27 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -388,16 +388,20 @@ void LayerSurface::CopyCorrelationOverlay(LayerSurface *surf)
 
 bool LayerSurface::LoadAnnotationFromFile( const QString& filename )
 {
+  QString fn = filename;
+  if (fn.left(2) == "~/")
+    fn.replace("~", QDir::homePath());
+  QFileInfo fi(fn);
+
   // create annotation
   SurfaceAnnotation* annot = new SurfaceAnnotation( this );
-  bool ret = annot->LoadAnnotation( filename );
+  bool ret = annot->LoadAnnotation( fi.absoluteFilePath() );
   if ( !ret )
   {
     delete annot;
     return false;
   }
 
-  QFileInfo fi(filename);
   QString name;
   if ( fi.suffix() == ".annot" )
   {

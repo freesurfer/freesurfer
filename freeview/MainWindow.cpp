@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/03 20:23:26 $
- *    $Revision: 1.277 $
+ *    $Date: 2014/04/08 20:40:27 $
+ *    $Revision: 1.278 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1139,7 +1139,10 @@ void MainWindow::OnIdle()
  //     << "  script empty: " << m_scripts.isEmpty();
   if ( !bBusy && !m_bScriptRunning && !m_scripts.isEmpty() )
   {
+    bool last_one = (m_scripts.size() == 1);
     RunScript();
+    if (last_one)
+      ui->widgetAllLayers->UpdateWidgets();
   }
 
   ui->actionViewSagittal->setChecked( m_nMainView == this->MV_Sagittal );
@@ -1578,6 +1581,10 @@ void MainWindow::RunScript()
   else if (cmd == "setsurfacelabelcolor")
   {
     CommandSetSurfaceLabelColor( sa );
+  }
+  else if ( cmd == "setsurfaceannotationoutline" )
+  {
+    CommandSetSurfaceAnnotationOutline( sa );
   }
   else if ( cmd == "setlayername" )
   {
@@ -2542,7 +2549,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     if (overlay_reg.isEmpty())
       overlay_reg = "n/a";
 
-    for ( int k = sa_fn.size()-1; k >= 0; k-- )
+  //  for ( int k = sa_fn.size()-1; k >= 0; k-- )
+    for (int k = 0; k < sa_fn.size(); k++)
     {
       int n = sa_fn[k].indexOf( "=" );
       if ( n != -1  )
@@ -2610,6 +2618,20 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           for ( int i = annot_fns.size()-1; i >= 0; i-- )
           {
             m_scripts.insert( 0, QString("loadsurfaceannotation ") + annot_fns[i] );
+          }
+        }
+        else if ( subOption == "annot_outline" || subOption == "annotation_outline")
+        {
+          if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
+          {
+            for (int i = 0; i < m_scripts.size(); i++)
+            {
+              if (m_scripts[i].indexOf("loadsurfaceannotation") == 0)
+              {
+                m_scripts.insert(i+1, "setsurfaceannotationoutline 1");
+                break;
+              }
+            }
           }
         }
         else if ( subOption == "label" )
@@ -2981,6 +3003,18 @@ void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
     if (cmd[1] == "1")
     {
       surf->SetActiveLabelOutline(true);
+    }
+  }
+}
+
+void MainWindow::CommandSetSurfaceAnnotationOutline(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    if (cmd[1] == "1")
+    {
+      surf->SetActiveAnnotationOutline(true);
     }
   }
 }

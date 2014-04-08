@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/04/08 20:40:28 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,12 +53,15 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   m_layerSurface = NULL;
   QSettings settings;
   QVariant v = settings.value("WindowConfigureOverlay/Geometry");
-  ui->checkBoxAutoApply->setChecked(settings.value("WindowConfigureOverlay/AutoApply").toBool());
-  ui->checkBoxAutoFrame->setChecked(settings.value("WindowConfigureOverlay/AutoFrame").toBool());
   if (v.isValid())
   {
     this->restoreGeometry(v.toByteArray());
   }
+  v = settings.value("WindowConfigureOverlay/AutoApply");
+  if (!v.isValid())
+    v = true;
+  ui->checkBoxAutoApply->setChecked(v.toBool());
+  ui->checkBoxAutoFrame->setChecked(settings.value("WindowConfigureOverlay/AutoFrame").toBool());
 
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
   connect(lc, SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateUI()));
@@ -130,6 +133,7 @@ void WindowConfigureOverlay::UpdateUI()
     ui->sliderFrame->setValue(overlay->GetActiveFrame());
     ui->spinBoxFrame->setRange(0, overlay->GetNumberOfFrames()-1);
     ui->spinBoxFrame->setValue(overlay->GetActiveFrame());
+    ui->labelFrameRange->setText(QString("0-%1").arg(overlay->GetNumberOfFrames()-1));
     ui->groupBoxFrame->setVisible(overlay->GetNumberOfFrames() > 1);
 
 //   ui->radioButtonGreenRed ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_GreenRed );
