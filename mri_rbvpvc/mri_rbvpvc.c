@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/07 20:10:29 $
- *    $Revision: 1.36 $
+ *    $Date: 2014/04/08 19:08:09 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.36 2014/04/07 20:10:29 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.37 2014/04/08 19:08:09 greve Exp $
 
 /*
   BEGINHELP
@@ -96,7 +96,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.36 2014/04/07 20:10:29 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.37 2014/04/08 19:08:09 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -134,7 +134,8 @@ typedef struct
   MRI *rbv;
   MRI *mg;
   double mg_gmthresh;
-  int *mg_refids;
+  char *mg_ref_schema;
+  int mg_refids[100];
   int n_mg_refids;
   MATRIX *mg_reftac;
 } GTM;
@@ -192,7 +193,7 @@ char *OutBetaFile=NULL,*OutXtXFile=NULL;
 char *SrcBetaFile=NULL;
 MATRIX *srcbeta;
 double psfFWHM=-1;
-char tmpstr[5000];
+char tmpstr[5000],logfile[5000];
 char *PVFFile=NULL, *SegTTypeFile=NULL;
 double ApplyFWHM=0;
 char *Xfile=NULL;
@@ -216,6 +217,9 @@ int WriteVRFStats(char *fname, GTM *gtm);
 
 
 MATRIX *GTMttest(MATRIX *beta,MATRIX *iXtX, double *rvar, int nthseg);
+int GTMmgRefIds(GTM *gtm);
+int GTMprintMGRefTAC(GTM *gtm, FILE *fp);
+int GTMwriteMGRefTAC(GTM *gtm, char *filename);
 
 GTM *gtm;
 GTMOPT *gtmopt;
@@ -227,6 +231,8 @@ char *SUBJECTS_DIR;
 int CheckX(MATRIX *X);
 int dngtest(LTA *aseg2vol);
 
+int DoMGPVC=0, DoRBV=0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
@@ -234,7 +240,8 @@ int main(int argc, char *argv[])
   double vrfmin,vrfmax,vrfmean;
   struct timeb  mytimer, timer;
   MRI *gtmres;
-  FILE *fp;
+  FILE *logfp;
+  char *stem;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -247,10 +254,8 @@ int main(int argc, char *argv[])
 
   gtm = GTMalloc();
   gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
-  gtm->n_mg_refids = 2;
-  gtm->mg_refids = (int*) calloc(sizeof(int),gtm->n_mg_refids);
-  gtm->mg_refids[0] =  2;
-  gtm->mg_refids[1] = 41;
+  gtm->mg_ref_schema = "basic-or-lobes";
+  GTMmgRefIds(gtm);
 
   //ctSeg = TissueTypeSchema(NULL,"default-jan-2014");
 
@@ -279,14 +284,13 @@ int main(int argc, char *argv[])
       return(1);
     }
   }
-  sprintf(tmpstr,"%s/mri_rbvpvc.log",OutDir);
-  fp = fopen(tmpstr,"w");
-  dump_options(fp);
-  fclose(fp);
+  sprintf(logfile,"%s/mri_rbvpvc.log",OutDir);
+  logfp = fopen(logfile,"w");
+  dump_options(logfp);
 
   TimerStart(&timer);
 
-  char *stem = IDstemFromName(SegVolFile);
+  stem = IDstemFromName(SegVolFile);
   sprintf(tmpstr,"%s.lta",stem);
   gtm->anat2seg = LTAread(tmpstr);
   if(gtm->anat2seg == NULL) exit(1);
@@ -301,6 +305,7 @@ int main(int argc, char *argv[])
   // Load seg
   TimerStart(&mytimer);
   printf("Loading seg for gtm %s\n",SegVolFile);fflush(stdout);
+  fprintf(logfp,"Loading seg for gtm %s\n",SegVolFile);fflush(logfp);
   gtm->anatseg = MRIread(SegVolFile);
   if(gtm->anatseg==NULL) exit(1);
   if(nReplace > 0) {
@@ -346,6 +351,7 @@ int main(int argc, char *argv[])
 
   if(MaskVolFile){
     printf("Loading mask %s\n",MaskVolFile);fflush(stdout);
+    fprintf(logfp,"Loading mask %s\n",MaskVolFile);
     gtm->mask = MRIread(MaskVolFile);
     if(gtm->mask==NULL) exit(1);
     err = MRIdimMismatch(gtm->yvol, gtm->mask, 0);
@@ -357,6 +363,8 @@ int main(int argc, char *argv[])
   else gtm->mask=NULL; // should already be NULL
 
   printf("Data load time %4.1f sec\n",TimerStop(&mytimer)/1000.0);
+  fprintf(logfp,"Data load time %4.1f sec\n",TimerStop(&mytimer)/1000.0);
+  fflush(stdout);fflush(logfp);
 
   GTMsetNMask(gtm);
   GTMsegidlist(gtm);
@@ -367,6 +375,10 @@ int main(int argc, char *argv[])
   printf("FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
   printf("Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
   printf("nPad %d, PadThresh %g\n",gtm->nPad,gtm->PadThresh);
+  fprintf(logfp,"nmask = %d, nsegs = %d, excluding segid=0\n",gtm->nmask,gtm->nsegs);
+  fprintf(logfp,"FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
+  fprintf(logfp,"Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
+  fprintf(logfp,"nPad %d, PadThresh %g\n",gtm->nPad,gtm->PadThresh);
 
   if(DoOpt){
   printf("\nRunning optimization\n");
@@ -392,6 +404,8 @@ int main(int argc, char *argv[])
   GTMbuildX(gtm);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   if(gtm->X==NULL) exit(1);
+  fprintf(logfp,"GTM-Build-time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
+
 
   if(SrcBetaFile){
     printf("Synthsizing using beta %s\n",SrcBetaFile);
@@ -413,6 +427,7 @@ int main(int argc, char *argv[])
   TimerStart(&mytimer) ; 
   GTMsolve(gtm);
   printf("Time to solve %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+  fprintf(logfp,"GTM-Solve-Time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
 
   // Could rescale to reference here
 
@@ -441,13 +456,25 @@ int main(int argc, char *argv[])
   }
 
   printf("rvar = %g\n",gtm->rvar->rptr[1][1]);
+  fprintf(logfp,"rvar = %g\n",gtm->rvar->rptr[1][1]);
   gtm->XtXcond = MatrixConditionNumber(gtm->XtX);
   printf("XtX  Condition     %8.3f \n",gtm->XtXcond);
+  fprintf(logfp,"XtX  Condition     %8.3f \n",gtm->XtXcond);
 
   printf("Synthesizing ... ");fflush(stdout); TimerStart(&mytimer) ;
   GTMsynth(gtm);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   if(yhatFile0) MRIwrite(gtm->ysynth,yhatFile0);
+
+  if(0){
+  printf("Synthesizing in seg space... ");fflush(stdout); TimerStart(&mytimer) ;
+  mritmp = GTMsynth2(gtm);
+  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+  sprintf(tmpstr,"%s/yhat0.seg.nii.gz",OutDir);
+  printf("Saving ...");fflush(stdout); TimerStart(&mytimer) ;
+  MRIwrite(mritmp,tmpstr);
+  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+  }
 
   printf("Smoothing synthesized ... ");fflush(stdout); TimerStart(&mytimer) ;
   GTMsmoothSynth(gtm);
@@ -476,14 +503,24 @@ int main(int argc, char *argv[])
   printf("XtX  Condition     %8.3f \n",gtm->XtXcond);
   printf("VRF  Mean/Min/Max  %8.3f %8.3f %8.3f \n",vrfmean,vrfmin,vrfmax);
   fflush(stdout);
-
+  fprintf(logfp,"XtX  Condition     %8.3f \n",gtm->XtXcond);
+  fprintf(logfp,"VRF  Mean/Min/Max  %8.3f %8.3f %8.3f \n",vrfmean,vrfmin,vrfmax);
+  fflush(logfp);
 
   if(MGPVCFile != NULL){
-    printf("MG PVC\n");
+    printf("MG PVC, refidschema %s\n",gtm->mg_ref_schema);
+    fprintf(logfp,"MG PVC\n");
     GTMmgpvc(gtm);
     err = MRIwrite(gtm->mg,MGPVCFile);
     if(err) exit(1);
     printf("done with mgpvc\n");
+    fprintf(logfp,"done with mgpvc\n");
+    fprintf(logfp,"MG Ref Schema %s\n",gtm->mg_ref_schema);
+    for(c=0; c < gtm->n_mg_refids; c++) fprintf(logfp,"%4d ",gtm->mg_refids[c]);
+    fprintf(logfp,"\n");
+    stem = IDstemFromName(MGPVCFile);
+    sprintf(tmpstr,"%s.reftac.dat",stem);
+    GTMwriteMGRefTAC(gtm, tmpstr);
   }
     
   if(RBVVolFile){
@@ -499,6 +536,9 @@ int main(int argc, char *argv[])
   }
 
 
+  fprintf(logfp,"mri_rbvpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
+  fprintf(logfp,"mri_rbvpvc done\n");
+  fclose(logfp);
   printf("mri_rbvpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
   printf("mri_rbvpvc done\n");
   return(0);
@@ -642,11 +682,8 @@ static int parse_commandline(int argc, char **argv) {
     //sscanf(pargv[0],"%d",&niterations);
     //nargsused = 1;
     //} 
-    else if(!strcasecmp(option, "--rbv")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      RBVVolFile = pargv[0];
-      nargsused = 1;
-    } 
+    else if(!strcasecmp(option, "--rbv")) DoRBV = 1;
+
     else if (!strcasecmp(option, "--eres")) {
       if (nargc < 1) CMDargNErr(option,1);
       eresFile = pargv[0];
@@ -663,10 +700,10 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--mgpvc")) {
-      if (nargc < 2) CMDargNErr(option,2);
-      MGPVCFile = pargv[0];
-      sscanf(pargv[1],"%lf",&gtm->mg_gmthresh);
-      nargsused = 2;
+      if (nargc < 1) CMDargNErr(option,1);
+      DoMGPVC = 1;
+      sscanf(pargv[0],"%lf",&gtm->mg_gmthresh);
+      nargsused = 1;
     } 
     else if(!strcasecmp(option, "--beta") || !strcasecmp(option, "--gtm-means")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -706,7 +743,7 @@ static int parse_commandline(int argc, char **argv) {
       eresFile = strcpyalloc(tmpstr);
       sprintf(tmpstr,"%s/yhat.nii.gz",OutDir);
       yhatFile = strcpyalloc(tmpstr);
-      sprintf(tmpstr,"%s/gtm.nii.gz",OutDir);
+      sprintf(tmpstr,"%s/beta.nii.gz",OutDir);
       OutBetaFile = strcpyalloc(tmpstr);
       sprintf(tmpstr,"%s/gtmseg.nii.gz",OutDir);
       OutSegFile = strcpyalloc(tmpstr);
@@ -827,16 +864,25 @@ static void check_options(void)
     printf("ERROR: must spec psf FWHM\n");
     exit(1);
   }
-  if(RBVVolFile == NULL && OutDir == NULL && MGPVCFile == NULL 
-     && OutBetaFile == NULL && RVarFile == NULL && yhatFile == NULL){
-    printf("ERROR: must spec an output with --o, --gtm-means,  or --mgpvc\n");
+
+  if(OutDir == NULL){
+    printf("ERROR: must spec an output with --o\n");
     exit(1);
   }
+  if(DoMGPVC){
+    sprintf(tmpstr,"%s/mg.nii.gz",OutDir);
+    MGPVCFile = strcpyalloc(tmpstr);
+  }
+  if(DoRBV){
+    sprintf(tmpstr,"%s/rbv.nii.gz",OutDir);
+    RBVVolFile = strcpyalloc(tmpstr);
+  }
+
   if(nthreads != 1){
-#ifdef _OPENMP
+    #ifdef _OPENMP
     printf("Setting maximum number of threads to %d\n",nthreads);
     omp_set_num_threads(nthreads);
-#endif
+    #endif
   }
   printf("Loading input %s\n",SrcVolFile);
   gtm->yvol = MRIread(SrcVolFile);
@@ -1326,29 +1372,31 @@ int GTMsmoothSynth(GTM *gtm)
 /*--------------------------------------------------------------------------*/
 int GTMmgpvc(GTM *gtm)
 {
-  int c,r,s,f,n,nthseg,segid;
+  int c,r,s,f,n,nthseg,segid,found,nhits;
   double sum,vgmpsf,vwmpsf,vwmtac,vtac,vmgtac;
   MRI *ctxpvf, *subctxpvf, *wmpvf, *gmpvf,*gmpvfpsf,*wmpvfpsf;
 
   gtm->mg_reftac = MatrixAlloc(gtm->yvol->nframes,1,MATRIX_REAL);
 
   for(f=0; f < gtm->yvol->nframes; f++){
+    nhits = 0;
     sum = 0;
-    for(n=0; n < gtm->n_mg_refids; n++){
-      segid = -1;
-      for(nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
-	segid = gtm->segidlist[nthseg];
-	if(segid == gtm->mg_refids[n]) break;
+    for(nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
+      segid = gtm->segidlist[nthseg];
+      found = 0;
+      for(n=0; n < gtm->n_mg_refids; n++) {
+	if(segid == gtm->mg_refids[n]) {
+	  found = 1;
+	  nhits++;
+	  break;
+	}
       }
-      if(segid == -1){
-	printf("ERROR: could not find a match for n=%d %d\n",n,gtm->mg_refids[n]);
-	return(1);
-      }
+      if(!found) continue;
       sum += gtm->beta->rptr[nthseg+1][f+1];
       printf("n=%d, nthseg=%d %g\n",n,nthseg,gtm->beta->rptr[nthseg+1][f+1]);
     }
-    gtm->mg_reftac->rptr[f+1][1] = sum/gtm->n_mg_refids;
-    printf("wm tac %2d %g\n",f,gtm->mg_reftac->rptr[f+1][1]);
+    gtm->mg_reftac->rptr[f+1][1] = sum/nhits;
+    printf("wm tac %2d %2d %g\n",f,nhits,gtm->mg_reftac->rptr[f+1][1]);
   }
 
   if(gtm->mg) MRIfree(&gtm->mg);
@@ -1800,13 +1848,20 @@ MRI *GTMsynth2(GTM *gtm)
   MRI *synth;
 
   synth = MRIallocSequence(gtm->anatseg->width,gtm->anatseg->height,gtm->anatseg->depth,MRI_FLOAT,gtm->beta->cols);
+  MRIcopyHeader(gtm->anatseg,synth);
 
   for(c=0; c < gtm->anatseg->width; c++){
     for(r=0; r < gtm->anatseg->height; r++){
       for(s=0; s < gtm->anatseg->depth; s++){
 	segid = MRIgetVoxVal(gtm->anatseg,c,r,s,0);
+	if(segid == 0) continue;
 	for(segno=0; segno < gtm->nsegs; segno++)
 	  if(segid == gtm->segidlist[segno]) break;
+	if(segno == gtm->nsegs){
+	  printf("ERROR: GTMsynth2(): could not find a match for segid=%d\n",segid);
+	  for(segno=0; segno < gtm->nsegs; segno++) printf("%3d %5d\n",segno,gtm->segidlist[segno]);
+	  return(NULL);
+	}
 	for(f=0; f < gtm->beta->cols; f++)
 	  MRIsetVoxVal(synth,c,r,s,f,gtm->beta->rptr[segno+1][f+1]);
       }
@@ -1814,5 +1869,80 @@ MRI *GTMsynth2(GTM *gtm)
   }
 
   return(synth);
+}
+
+int GTMmgRefIds(GTM *gtm)
+{
+  int m;
+  if(strcmp(gtm->mg_ref_schema,"basic")==0){
+    m=0;
+    gtm->mg_refids[m] =  2; m++;
+    gtm->mg_refids[m] = 41; m++;
+    gtm->n_mg_refids = m;
+    return(gtm->n_mg_refids);
+  }
+  if(strcmp(gtm->mg_ref_schema,"lobes")==0){
+    m=0;
+    gtm->mg_refids[m] = 3201; m++;
+    gtm->mg_refids[m] = 3203; m++;
+    gtm->mg_refids[m] = 3204; m++;
+    gtm->mg_refids[m] = 3205; m++;
+    gtm->mg_refids[m] = 3206; m++;
+    gtm->mg_refids[m] = 3207; m++;
+    gtm->mg_refids[m] = 4201; m++;
+    gtm->mg_refids[m] = 4203; m++;
+    gtm->mg_refids[m] = 4204; m++;
+    gtm->mg_refids[m] = 4205; m++;
+    gtm->mg_refids[m] = 4206; m++;
+    gtm->mg_refids[m] = 4207; m++;
+    gtm->mg_refids[m] = 5001; m++;
+    gtm->mg_refids[m] = 5002; m++;
+    gtm->n_mg_refids = m;
+    return(gtm->n_mg_refids);
+  }
+
+  if(strcmp(gtm->mg_ref_schema,"basic-or-lobes")==0){
+    m=0;
+    gtm->mg_refids[m] =  2; m++;
+    gtm->mg_refids[m] = 41; m++;
+    gtm->mg_refids[m] = 3201; m++;
+    gtm->mg_refids[m] = 3203; m++;
+    gtm->mg_refids[m] = 3204; m++;
+    gtm->mg_refids[m] = 3205; m++;
+    gtm->mg_refids[m] = 3206; m++;
+    gtm->mg_refids[m] = 3207; m++;
+    gtm->mg_refids[m] = 4201; m++;
+    gtm->mg_refids[m] = 4203; m++;
+    gtm->mg_refids[m] = 4204; m++;
+    gtm->mg_refids[m] = 4205; m++;
+    gtm->mg_refids[m] = 4206; m++;
+    gtm->mg_refids[m] = 4207; m++;
+    gtm->mg_refids[m] = 5001; m++;
+    gtm->mg_refids[m] = 5002; m++;
+    gtm->n_mg_refids = m;
+    return(gtm->n_mg_refids);
+  }
+
+  printf("MG Reference ID schema %s unrecognized\n",gtm->mg_ref_schema);
+  return(0);
+}
+
+
+int GTMprintMGRefTAC(GTM *gtm, FILE *fp)
+{
+  int f;
+  for(f=0; f < gtm->yvol->nframes; f++)
+    fprintf(fp,"%3d %10.5f\n",f,gtm->mg_reftac->rptr[f+1][1]);
+
+  return(0);
+}
+
+int GTMwriteMGRefTAC(GTM *gtm, char *filename)
+{
+  FILE *fp;
+  fp = fopen(filename,"w");
+  GTMprintMGRefTAC(gtm, fp);
+  fclose(fp);
+  return(0);
 }
 
