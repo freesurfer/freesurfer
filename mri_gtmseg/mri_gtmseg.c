@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/07 19:50:09 $
- *    $Revision: 1.2 $
+ *    $Date: 2014/04/08 19:06:07 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-// $Id: mri_gtmseg.c,v 1.2 2014/04/07 19:50:09 greve Exp $
+// $Id: mri_gtmseg.c,v 1.3 2014/04/08 19:06:07 greve Exp $
 
 /*
   BEGINHELP
@@ -63,7 +63,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmseg.c,v 1.2 2014/04/07 19:50:09 greve Exp $";
+static char vcid[] = "$Id: mri_gtmseg.c,v 1.3 2014/04/08 19:06:07 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -80,7 +80,7 @@ int nthreads;
 int main(int argc, char *argv[]) {
   int nargs,err;
   char tmpstr[5000],*stem;
-  struct timeb  mytimer, timer;
+  struct timeb  mytimer;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
   GTMdefaultSegReplacmentList(gtmseg);
   dump_options(stdout);
 
-  TimerStart(&timer);
+  TimerStart(&mytimer);
   printf("Starting MRIgtmSeg()\n"); fflush(stdout);
   err = MRIgtmSeg(gtmseg);
   if(err) exit(1);
@@ -198,8 +198,16 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 3;
     } 
 
-    else if(!strcasecmp(option, "--subseg-wm"))    gtmseg->SubSegWM = 1;
-    else if(!strcasecmp(option, "--no-subseg-wm")) gtmseg->SubSegWM = 0;
+    else if(!strcasecmp(option, "--subseg-wm"))    {
+      gtmseg->SubSegWM = 1;
+      gtmseg->wmannotfile = "lobes.annot";
+      gtmseg->wmlhbase =  3200;
+      gtmseg->wmrhbase =  4200;
+    }
+    else if(!strcasecmp(option, "--no-subseg-wm")) {
+      gtmseg->wmannotfile = NULL;
+      gtmseg->SubSegWM = 0;
+    }
     else if(!strcasecmp(option, "--wm-annot")) {
       if(nargc < 3) CMDargNErr(option,3);
       gtmseg->wmannotfile = pargv[0];
@@ -323,98 +331,6 @@ static void dump_options(FILE *fp) {
   GTMSEGprint(gtmseg, stdout);
   return;
 }
-
-/*-----------------------------------------------------------------------------------*/
-int MakeGTMSeg(char *subject, int USF, int SubSegWM, int LabelCCAsWM, int LabelHypoAsWM, float dmax, char *outsegfile)
-{
-  GTMSEG *gtmseg;
-  int nlist, *srclist, *targlist, err;
-  char *SUBJECTS_DIR,tmpstr[5000];
-
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-
-  gtmseg = (GTMSEG *) calloc(sizeof(GTMSEG),1);
-  gtmseg->subject = strcpyalloc(subject);
-  gtmseg->apasfile = "apas+head.mgz";
-  gtmseg->ctxannotfile = "aparc.annot";
-  gtmseg->ctxlhbase = 1000;
-  gtmseg->ctxrhbase = 2000;
-  gtmseg->SubSegWM = SubSegWM;
-  gtmseg->KeepHypo = !LabelHypoAsWM;
-  gtmseg->KeepCC = !LabelCCAsWM;
-  gtmseg->dmax = dmax;
-  gtmseg->USF = USF;
-  if(gtmseg->SubSegWM){
-    gtmseg->wmannotfile = "lobes.annot";
-    gtmseg->wmlhbase =  3200;
-    gtmseg->wmrhbase =  4200;
-  }
-  else  gtmseg->wmannotfile = NULL;
-
-  srclist  = &(gtmseg->srclist[0]);
-  targlist = &(gtmseg->targlist[0]);
-
-  nlist = 0;
-  srclist[nlist] = 1033; targlist[nlist] = 1030; nlist++; // temppole=stg
-  srclist[nlist] = 2033; targlist[nlist] = 2030; nlist++; // temppole=stg
-  srclist[nlist] = 1034; targlist[nlist] = 1030; nlist++; // transtemp=stg
-  srclist[nlist] = 2034; targlist[nlist] = 1030; nlist++; // transtemp=stg
-  srclist[nlist] = 1001; targlist[nlist] = 1015; nlist++; // bankssts=mtg
-  srclist[nlist] = 2001; targlist[nlist] = 2015; nlist++; // bankssts=mtg
-  srclist[nlist] = 1032; targlist[nlist] = 1027; nlist++; // frontpole=rmf
-  srclist[nlist] = 2032; targlist[nlist] = 2027; nlist++; // frontpole=rmf
-  //srclist[nlist] = 1016; targlist[nlist] = 1006; nlist++; // parahip=entorhinal ?
-  //srclist[nlist] = 2016; targlist[nlist] = 2006; nlist++; // parahip=entorhinal ?
-
-  // There should not be any cortex unknown after MRIannot2CorticalSeg()
-  srclist[nlist] = 1000; targlist[nlist] =    0; nlist++; // cortex unknown
-  srclist[nlist] = 2000; targlist[nlist] =    0; nlist++; // cortex unknown
-
-  // Should I replace subcorts before hires seg?
-  srclist[nlist] =   85; targlist[nlist] =    0; nlist++; // optic chiasm
-  srclist[nlist] =    4; targlist[nlist] =   24; nlist++; // LLatVent
-  srclist[nlist] =    5; targlist[nlist] =   24; nlist++; // LInfLatVent
-  srclist[nlist] =   14; targlist[nlist] =   24; nlist++; // 3rd
-  srclist[nlist] =   15; targlist[nlist] =   24; nlist++; // 4th
-  srclist[nlist] =   72; targlist[nlist] =   24; nlist++; // 5th
-  srclist[nlist] =   31; targlist[nlist] =   24; nlist++; // LChoroidP ?
-  srclist[nlist] =   43; targlist[nlist] =   24; nlist++; // RLatVent
-  srclist[nlist] =   44; targlist[nlist] =   24; nlist++; // RInfLatVent
-  srclist[nlist] =   63; targlist[nlist] =   24; nlist++; // RChoroidP ?
-  srclist[nlist] =   30; targlist[nlist] =   24; nlist++; // LVessel ?
-  srclist[nlist] =   62; targlist[nlist] =   24; nlist++; // RVessel ?
-  srclist[nlist] =   80; targlist[nlist] =   24; nlist++; // non-WM-hypo ?
-
-  /* Repace CC segments with one CC if not unsegmenting CC */
-  if(gtmseg->KeepCC){
-    printf(" Relabeling CC as a single segmentation\n");
-    srclist[nlist] =  251; targlist[nlist] =  192; nlist++; 
-    srclist[nlist] =  252; targlist[nlist] =  192; nlist++; 
-    srclist[nlist] =  253; targlist[nlist] =  192; nlist++; 
-    srclist[nlist] =  254; targlist[nlist] =  192; nlist++; 
-    srclist[nlist] =  255; targlist[nlist] =  192; nlist++; 
-  }
-
-  gtmseg->nlist = nlist;
-
-  GTMSEGprint(gtmseg, stdout);
-  MRIgtmSeg(gtmseg);
-  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtmseg->subject,outsegfile);
-  printf("Writing output file to %s\n",tmpstr);
-  err = MRIwrite(gtmseg->seg,tmpstr);
-  if(err) return(1);
-
-  char *stem = IDstemFromName(outsegfile);
-  sprintf(tmpstr,"%s/%s/mri/%s.lta",SUBJECTS_DIR,gtmseg->subject,stem);
-  printf("Writing lta file to %s\n",tmpstr);
-  err=LTAwrite(gtmseg->anat2seg,tmpstr);
-  if(err) return(1);
-
-  printf("MakeGTMSeg() done\n");fflush(stdout);
-
-  return(0);
-}
-
 
 /*-----------------------------------------------------------------------------*/
 int GTMdefaultSegReplacmentList(GTMSEG *gtmseg)
