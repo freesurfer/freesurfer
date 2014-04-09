@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/04/07 16:20:45 $
-#    $Revision: 1.608 $
+#    $Date: 2014/04/09 21:58:41 $
+#    $Revision: 1.609 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3506,7 +3506,7 @@ AC_OUTPUT([Makefile
            mri_ca_register/Makefile
            mri_ca_tissue_parms/Makefile
            mri_ca_train/Makefile
-           mri_rbvpvc/Makefile
+           mri_gtmpvc/Makefile
            mri_rf_label/Makefile
            mri_rf_train/Makefile
            mri_gcab_train/Makefile
