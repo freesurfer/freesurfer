@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/09 20:44:50 $
- *    $Revision: 1.41 $
+ *    $Date: 2014/04/09 21:10:06 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.41 2014/04/09 20:44:50 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.42 2014/04/09 21:10:06 greve Exp $
 
 /*
   BEGINHELP
@@ -96,7 +96,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.41 2014/04/09 20:44:50 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.42 2014/04/09 21:10:06 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1439,43 +1439,48 @@ int GTMrbv(GTM *gtm)
 
   TimerStart(&mytimer) ; 
 
-  printf("   Synthesizing in seg space... \n");fflush(stdout);
+  printf("   Synthesizing in seg space... ");fflush(stdout);
   gtm->yhat0seg = GTMsegSynth(gtm);
   if(gtm->yhat0seg == NULL){
     printf("ERROR: GTMrbv() could not synthesize yhat0seg\n");
     return(1);
   }
+  printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
 
-  printf("   Smoothing in seg space... \n");fflush(stdout);
+
+  printf("   Smoothing in seg space... ");fflush(stdout);
   gtm->yhatseg = MRIgaussianSmoothNI(gtm->yhat0seg, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
   if(gtm->yhatseg == NULL){
     printf("ERROR: GTMrbv() could not smooth yhatseg\n");
     return(1);
   }
+  printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
 
-  printf("   Sampling input to seg space... \n");fflush(stdout);
+  printf("   Sampling input to seg space... ");fflush(stdout);
   gtm->yseg = MRIallocSequence(gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth,
-			      MRI_FLOAT, gtm->anatseg->nframes);
-  MRIcopyHeader(gtm->anatseg,gtm->rbv);
+			      MRI_FLOAT, gtm->yvol->nframes);
   if(gtm->yseg == NULL){
     printf("ERROR: GTMrbv() could not alloc yseg\n");
     return(1);
   }
-
-  printf("   Computing RBV ... \n");fflush(stdout);
-  gtm->rbv = MRIallocSequence(gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth,
-			      MRI_FLOAT, gtm->anatseg->nframes);
-  if(gtm->rbv == NULL){
-    printf("ERROR: GTMrbv() could not alloc rbv\n");
-    return(1);
-  }
-  MRIcopyHeader(gtm->anatseg,gtm->rbv);
+  MRIcopyHeader(gtm->anatseg,gtm->yseg);
+  MRIcopyPulseParameters(gtm->yvol,gtm->yseg);
+  printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
 
   lta = LTAcopy(gtm->seg2pet,NULL);
   LTAchangeType(lta,LINEAR_VOX_TO_VOX);
   MRIvol2Vol(gtm->yvol,gtm->yseg,(lta->xforms[0].m_L),SAMPLE_TRILINEAR, 0.0);
   LTAfree(&lta);
 
+  printf("   Computing RBV ... ");fflush(stdout);
+  gtm->rbv = MRIallocSequence(gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth,
+			      MRI_FLOAT, gtm->yvol->nframes);
+  if(gtm->rbv == NULL){
+    printf("ERROR: GTMrbv() could not alloc rbv\n");
+    return(1);
+  }
+  MRIcopyHeader(gtm->anatseg,gtm->rbv);
+  MRIcopyPulseParameters(gtm->yvol,gtm->rbv);
   for(s=0; s < gtm->anatseg->depth; s++){
     for(c=0; c < gtm->anatseg->width; c++){
       for(r=0; r < gtm->anatseg->height; r++){
@@ -1490,6 +1495,10 @@ int GTMrbv(GTM *gtm)
       }
     }
   }
+  MRIfree(&gtm->yseg);
+  MRIfree(&gtm->yhat0seg);
+  MRIfree(&gtm->yhatseg);
+  printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
 
   if(gtm->mask_rbv_to_brain){
     printf("   masking RBV to brain\n");
@@ -1499,7 +1508,7 @@ int GTMrbv(GTM *gtm)
     nReplace = 0;
     for(n=0; n < gtm->ctGTMSeg->nentries; n++){
       if(gtm->ctGTMSeg->entries[n] == NULL)  continue;
-      if(gtm->ctGTMSeg->entries[n]->TissueType != 5) continue;
+      if(gtm->ctGTMSeg->entries[n]->TissueType != 5) continue; // should not hard-code
       ReplaceThis[nReplace] = n;
       WithThat[nReplace] = 0;
       nReplace++;
@@ -1553,10 +1562,10 @@ int GTMmgpvc(GTM *gtm)
       }
       if(!found) continue;
       sum += gtm->beta->rptr[nthseg+1][f+1];
-      printf("n=%d, nthseg=%d %g\n",n,nthseg,gtm->beta->rptr[nthseg+1][f+1]);
+      printf("   n=%d, nthseg=%d %g\n",n,nthseg,gtm->beta->rptr[nthseg+1][f+1]);
     }
     gtm->mg_reftac->rptr[f+1][1] = sum/nhits;
-    printf("wm tac %2d %2d %g\n",f,nhits,gtm->mg_reftac->rptr[f+1][1]);
+    printf("   wm tac %2d %2d %g\n",f,nhits,gtm->mg_reftac->rptr[f+1][1]);
   }
 
   if(gtm->mg) MRIfree(&gtm->mg);
