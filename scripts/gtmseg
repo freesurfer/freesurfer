@@ -1,0 +1,345 @@
+#!/bin/tcsh -f
+# gtmseg
+
+set VERSION = '$Id: gtmseg,v 1.1 2014/04/09 21:31:43 greve Exp $';
+
+set outdir = ();
+set subject = ();
+set USF = 2;
+set SubSegWM = 0
+set KeepCC = 0
+set KeepHypo = 0;
+set dmax = 5;
+set outvol = gtmseg.mgz # relative to subject/mri
+set headseg = apas+head.mgz # created by xcerebralseg
+set ctxannot = ()
+set wmannot = ()
+set ctxlhbase=0;
+set ctxrhbase=0;
+set wmlhbase=0;
+set wmrhbase=0;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set outdir = $SUBJECTS_DIR/$subject/mri
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.gtmseg.$$
+  if(! -e /scratch) set tmpdir = $outdir/tmpdir.gtmseg.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/gtmseg.$outvol.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for gtmseg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+if(! -e $SUBJECTS_DIR/$subject/mri/$headseg) then
+  set cmd = (xcerebralseg --s $subject --o $SUBJECTS_DIR/$subject/mri/$headseg)
+  if(! $cleanup) set cmd = ($cmd --tmpdir $tmpdir/xcerebralseg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+
+if($#SubSegWM && $#wmannot == 0) then
+  foreach hemi (lh rh)
+    set cmd = (mri_annotation2label --subject $subject --hemi $hemi --lobesStrict lobes)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a LF
+    if($status) goto error_exit;
+  end
+endif
+
+set cmd = (mri_gtmseg --s $subject --usf $USF --dmax $dmax --o $outvol)
+if($#ctxannot)  set cmd = ($cmd --ctx-annot $ctxannot $ctxlhbase $ctxrhbase)
+if($#wmannot)   set cmd = ($cmd --wm-annot  $wmannot  $wmlhbase  $wmrhbase)
+if($SubSegWM)   set cmd = ($cmd --subseg-wm)
+if(! $SubSegWM) set cmd = ($cmd --no-subseg-wm)
+if($KeepCC)     set cmd = ($cmd --keep-cc)
+if(! $KeepCC)   set cmd = ($cmd --no-keep-cc)
+if($KeepHypo)     set cmd = ($cmd --keep-hypo)
+if(! $KeepHypo)   set cmd = ($cmd --no-keep-hypo)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+echo "To check run:" | tee -a $LF
+echo "tkmeditfv $subject nu.mgz lh.skull.inner.approx -seg $outvol  -aux-surface lh.skull.outer.approx -opacity 1" | tee -a $LF
+echo ""| tee -a $LF
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Gtmseg-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Gtmseg-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "gtmseg Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "--usf":
+      if($#argv < 1) goto arg1err;
+      set USF = $argv[1]; shift;
+      breaksw
+
+    case "--dmax":
+      if($#argv < 1) goto arg1err;
+      set dmax = $argv[1]; shift;
+      breaksw
+
+    case "--ctx-annot":
+      if($#argv < 3) goto arg3err;
+      set ctxannot = $argv[1]; shift;
+      set ctxlhbase = $argv[2]; shift;
+      set ctxrhbase = $argv[3]; shift;
+      breaksw
+
+    case "--wm-annot":
+      if($#argv < 3) goto arg3err;
+      set wmannot = $argv[1]; shift;
+      set wmlhbase = $argv[2]; shift;
+      set wmrhbase = $argv[3]; shift;
+      set SubSegWM = 1;
+      breaksw
+
+    case "--no-subsegwm":
+      set SubSegWM = 0;
+      set wmannot = ();
+      breaksw
+    case "--wmsubseg":
+    case "--wm-subseg":
+    case "--subsegwm":
+    case "--subseg-wm":
+      set SubSegWM = 1;
+      breaksw
+
+    case "--keep-hypo":
+    case "--no-label-hypo":
+      set KeepHypo = 1;
+      breaksw
+    case "--no-keep-hypo":
+    case "--label-hypo":
+      set KeepHypo = 0;
+      breaksw
+
+    case "--keep-cc":
+    case "--no-label-cc":
+      set KeepCC = 1;
+      breaksw
+    case "--label-cc":
+      set KeepCC = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+if($#ctxannot) then
+  foreach hemi (lh rh)
+    set f = $SUBJECTS_DIR/$subject/label/$hemi.$ctxannot
+    if(! -e $f) then
+      echo "ERROR: cannot find $f"
+      exit 1;
+    endif
+  end
+endif
+if($#wmannot) then
+  foreach hemi (lh rh)
+    set f = $SUBJECTS_DIR/$subject/label/$hemi.$wmannot
+    if(! -e $f) then
+      echo "ERROR: cannot find $f"
+      exit 1;
+    endif
+  end
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "gtmseg -- create an anatomical segmentation for the geometric transfer matrix (GTM)"
+  echo ""
+  echo " --s subject     : subject to analyze (required)"
+  echo ""
+  echo " --o outvol      : relative to subject/mri (default is $outvol)" 
+  echo " --usf USF       : upsampling factor (default is $USF)"
+  echo " --subsegwm    : subsegment WM into lobes (default)"
+  echo " --keep-hypo     : do not relabel hypointensities as WM when subsegmenting WM"
+  echo " --keep-cc       : do not relabel corpus callosum as WM"
+  echo " --dmax dmax     : distance threshold to use when subsegmenting WM (default is $dmax)"
+  echo ""
+
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Creates a segmentation that can then be used with the geometric transfer matrix
+for performing PET partial volume correction. It will create a segmentation of 
+the head (approximate extra-cerebral CSF, approximate skull, and the rest of 
+the head) using the xcerebralseg script. The WM can be subsegmented into lobes
+with --subsegwm. Hypointensities can be kept with --keep-hypo. The corpus
+callosum can be kept with --keep-cc. If these segments are not "kept" then
+they are relabelled as WM. The upsampling factor (USF) controls the resolution
+of the segmentation; this make a difference for cortical segmentations. Higher
+resolution is more accurate but takes up more disk space and will require 
+more computations later on.
+
+Example:
+
+gtmseg --s subject
+
+Creates a file called $SUBJECTS_DIR/subject/mri/gtmseg.mgz without
+subsegmenting WM. Hypos are re-labeled as WM as is CC. The USF is 2
+(meaning .5mm voxel size).
+
+gtmseg --s subject --keep-hypo --subsegwm --o gtmseg.wmseg.hypo.mgz --usf 1
+
+Creates a file called $SUBJECTS_DIR/subject/mri/gtmseg.wmseg.hypo.mgz
+with subsegmenting of WM and keeping yypos. CC is re-labeled as
+WM. The USF is 1 (meaning 1mm voxel size).
+
