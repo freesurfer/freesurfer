@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/08 21:23:50 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/04/09 20:29:49 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.39 2014/04/08 21:23:50 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.40 2014/04/09 20:29:49 greve Exp $
 
 /*
   BEGINHELP
@@ -96,7 +96,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.39 2014/04/08 21:23:50 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.40 2014/04/09 20:29:49 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -129,11 +129,13 @@ typedef struct
   MATRIX *y,*Xt, *XtX, *iXtX, *Xty, *beta, *res, *yhat;
   double XtXcond;
   MATRIX *rvar;
+  MATRIX *skew,*kurtosis;
   double cStd, rStd, sStd;
   MRI *ysynth,*ysynthsm;
   int *nperseg;
-  MATRIX *segstats;
+  MATRIX *nvox,*vrf,*segrvar;
   MRI *rbv;
+  int mask_rbv_to_brain;
   MRI *mg;
   double mg_gmthresh;
   char *mg_ref_schema;
@@ -191,7 +193,8 @@ int MinPowell();
 char *SrcVolFile=NULL,*SegVolFile=NULL,*MaskVolFile=NULL;
 char *OutDir=NULL,*RBVVolFile=NULL;
 char *OutBetaFile=NULL,*OutXtXFile=NULL;
-char *SrcBetaFile=NULL;
+char *SrcBetaFile=NULL,*SynthFile=NULL;
+int SynthOnly=0;
 MATRIX *srcbeta;
 double psfFWHM=-1;
 char tmpstr[5000],logfile[5000];
@@ -199,11 +202,10 @@ char *PVFFile=NULL, *SegTTypeFile=NULL;
 double ApplyFWHM=0;
 char *Xfile=NULL;
 char *VRFStatsFile=NULL;
-char *eresFile=NULL, *yhatFile=NULL, *yhatFile0=NULL;
+char *eresFile=NULL, *yhatFile=NULL, *yhat0File=NULL;
 char *OutSegFile=NULL;
-char *SynthFile=NULL;
 MRI *mritmp;
-char *RVarFile=NULL;
+char *RVarFile=NULL,*SkewFile=NULL,*KurtosisFile=NULL;
 int RVarOnly=0;
 int nthreads=1;
 int nReplace = 0, SrcReplace[1000], TrgReplace[1000];
@@ -212,8 +214,9 @@ char *MGPVCFile=NULL;
 char *regfile;
 int regidentity = 0;
 int regtype;
+int SaveEres=0, SaveYhat=0,SaveYhat0=0;
 
-int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax);
+int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax);
 int WriteVRFStats(char *fname, GTM *gtm);
 
 
@@ -234,6 +237,8 @@ int CheckX(MATRIX *X);
 int dngtest(LTA *aseg2vol);
 
 int DoMGPVC=0, DoRBV=0;
+MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k);
+MATRIX *MatrixSkew(MATRIX *y, MATRIX *s);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -257,10 +262,11 @@ int main(int argc, char *argv[])
   gtm = GTMalloc();
   gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
   gtm->mg_ref_schema = "basic-or-lobes";
-  gtm->rescale = 0; 
+  gtm->rescale = 1; 
   gtm->n_scale_refids = 2;
   gtm->scale_refids[0] = 7;
   gtm->scale_refids[1] = 46;
+  gtm->mask_rbv_to_brain = 1;
 
   GTMmgRefIds(gtm);
 
@@ -290,9 +296,10 @@ int main(int argc, char *argv[])
       perror(NULL);
       return(1);
     }
+    sprintf(logfile,"%s/mri_rbvpvc.log",OutDir);
+    logfp = fopen(logfile,"w");
   }
-  sprintf(logfile,"%s/mri_rbvpvc.log",OutDir);
-  logfp = fopen(logfile,"w");
+  else logfp = stdout;
   dump_options(logfp);
 
   TimerStart(&timer);
@@ -308,10 +315,6 @@ int main(int argc, char *argv[])
     printf("mri_rbvpvc exited with errors\n");
     exit(1);
   }
-  sprintf(tmpstr,"%s/seg2pet.lta",OutDir);
-  LTAwrite(gtm->seg2pet,tmpstr);
-  sprintf(tmpstr,"%s/anat2seg.lta",OutDir);
-  LTAwrite(gtm->anat2seg,tmpstr);
 
   // Load seg
   TimerStart(&mytimer);
@@ -322,19 +325,23 @@ int main(int argc, char *argv[])
   if(nReplace > 0) {
     printf("Replacing %d\n",nReplace);
     for(f=0; f < nReplace; f++) printf("%2d:  %4d %4d\n",f+1,SrcReplace[f],TrgReplace[f]);
+    for(f=0; f < nReplace; f++) fprintf(logfp,"%2d:  %4d %4d\n",f+1,SrcReplace[f],TrgReplace[f]);
     mritmp = MRIreplaceList(gtm->anatseg, SrcReplace, TrgReplace, nReplace, NULL);
     MRIfree(&gtm->anatseg);
     gtm->anatseg = mritmp;
   }
-  if(CheckSegTissueType(gtm->anatseg, gtm->ctGTMSeg)) exit(1);
+  if(CheckSegTissueType(gtm->anatseg, gtm->ctGTMSeg)){
+    printf("Failed tissue type check\n");
+    fprintf(logfp,"Failed tissue type check\n");
+    exit(1);
+  }
   gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
-  sprintf(tmpstr,"%s/seg.ctab",OutDir);
-  CTABwriteFileASCIItt(gtm->ctGTMSeg,tmpstr);
 
   if(ttReduce > 0) {
     MRI *ttseg;
     COLOR_TABLE *ctTT;
     printf("Reducing seg to tissue type seg\n");
+    fprintf(logfp,"Reducing seg to tissue type seg\n");
     ttseg = MRIseg2TissueType(gtm->anatseg, gtm->ctGTMSeg, NULL);
     if(ttseg == NULL) exit(1);
     MRIfree(&gtm->anatseg);
@@ -350,6 +357,7 @@ int main(int argc, char *argv[])
     double cStdApply, rStdApply, sStdApply;
     MRI *mritmp;
     printf("Smoothing input by %g mm FWHM \n",ApplyFWHM);
+    fprintf(logfp,"Smoothing input by %g mm FWHM \n",ApplyFWHM);
     cStdApply = ApplyFWHM/sqrt(log(256.0));
     rStdApply = ApplyFWHM/sqrt(log(256.0));
     sStdApply = ApplyFWHM/sqrt(log(256.0));
@@ -417,16 +425,26 @@ int main(int argc, char *argv[])
   if(gtm->X==NULL) exit(1);
   fprintf(logfp,"GTM-Build-time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
 
+  // Create GTM seg in pet space (used by GTMsynth)
+  gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
+			      gtm->ctGTMSeg, gtm->mask, gtm->gtmseg);
+  if(OutSegFile){
+    err=MRIwrite(gtm->gtmseg,OutSegFile);
+    if(err) exit(1);
+  }
 
   if(SrcBetaFile){
-    printf("Synthsizing using beta %s\n",SrcBetaFile);
+    printf("Synthsizing using supplied beta %s\n",SrcBetaFile);
     gtm->beta = srcbeta;
     GTMsynth(gtm);
+    MRIwrite(gtm->ysynth,SynthFile);
+    if(SynthOnly){
+      printf("SynthOnly requested so exiting now\n");
+      printf("mri_rbvpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
+      exit(0);
+    }
     MRIfree(&gtm->yvol);
-    sprintf(tmpstr,"%s/ysynth0.nii.gz",OutDir);
-    MRIwrite(gtm->ysynth,tmpstr);
-    sprintf(tmpstr,"%s/ysynth.nii.gz",OutDir);
-    MRIwrite(gtm->ysynthsm,tmpstr);
+    GTMsmoothSynth(gtm);
     gtm->yvol = MRIcopy(gtm->ysynthsm,NULL);
   }
 
@@ -439,6 +457,16 @@ int main(int argc, char *argv[])
   GTMsolve(gtm);
   printf("Time to solve %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   fprintf(logfp,"GTM-Solve-Time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
+
+  sprintf(tmpstr,"%s/hrseg2pet.lta",OutDir);
+  LTAwrite(gtm->seg2pet,tmpstr);
+  sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
+  LTAwrite(gtm->anat2seg,tmpstr);
+  sprintf(tmpstr,"%s/anat2pet.lta",OutDir);
+  LTAwrite(gtm->anat2pet,tmpstr);
+
+  sprintf(tmpstr,"%s/seg.ctab",OutDir);
+  CTABwriteFileASCIItt(gtm->ctGTMSeg,tmpstr);
 
   if(gtm->rescale){
     // Rescaling is done during GTMsolve()
@@ -455,29 +483,21 @@ int main(int argc, char *argv[])
     fclose(fp);
   }
 
-  // Create GTM seg and pvf in pet space, might be useful
-  gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
-				       gtm->ctGTMSeg, gtm->mask, gtm->gtmseg);
+  // Create GTM pvf in pet space (why?)
   gtm->ttpvf = MRIsegPVF2TissueTypePVF(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
 				       gtm->ctGTMSeg, gtm->mask, gtm->ttpvf);
-  if(OutSegFile){
-    err=MRIwrite(gtm->gtmseg,OutSegFile);
-    if(err) exit(1);
-  }
 
-  if(OutBetaFile){
-    printf("Writing GTM estimates to %s\n",OutBetaFile);
-    mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, gtm->yvol->nframes);
-    for(c=0; c < gtm->nsegs; c++){
-      for(f=0; f < gtm->yvol->nframes; f++){
-	MRIsetVoxVal(mritmp,c,0,0,f, gtm->beta->rptr[c+1][f+1]);
-      }
+  printf("Writing GTM estimates to %s\n",OutBetaFile);
+  mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, gtm->yvol->nframes);
+  for(c=0; c < gtm->nsegs; c++){
+    for(f=0; f < gtm->yvol->nframes; f++){
+      MRIsetVoxVal(mritmp,c,0,0,f, gtm->beta->rptr[c+1][f+1]);
     }
-    err=MRIwrite(mritmp,OutBetaFile);
-    if(err) exit(1);
-    MRIfree(&mritmp);
-    //err=MatrixWriteTxt(OutBetaFile, beta);
   }
+  err=MRIwrite(mritmp,OutBetaFile);
+  if(err) exit(1);
+  MRIfree(&mritmp);
+  //err=MatrixWriteTxt(OutBetaFile, beta);
 
   printf("rvar = %g\n",gtm->rvar->rptr[1][1]);
   fprintf(logfp,"rvar = %g\n",gtm->rvar->rptr[1][1]);
@@ -485,43 +505,109 @@ int main(int argc, char *argv[])
   printf("XtX  Condition     %8.3f \n",gtm->XtXcond);
   fprintf(logfp,"XtX  Condition     %8.3f \n",gtm->XtXcond);
 
-  printf("Synthesizing ... ");fflush(stdout); TimerStart(&mytimer) ;
-  GTMsynth(gtm);
-  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
-  if(yhatFile0) MRIwrite(gtm->ysynth,yhatFile0);
-
-  printf("Smoothing synthesized ... ");fflush(stdout); TimerStart(&mytimer) ;
-  GTMsmoothSynth(gtm);
-  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
-  if(yhatFile) MRIwrite(gtm->ysynthsm,yhatFile);
-
-  gtmres = GTMmat2vol(gtm,gtm->res,NULL);
-  if(eresFile) MRIwrite(gtmres,eresFile);
-
-  if(RVarFile) {
-    fp = fopen(RVarFile,"w");
-    for(f=0; f < gtm->yvol->nframes; f++)
-      fprintf(fp,"%30.20f\n",gtm->rvar->rptr[1][f+1]);
-    fclose(fp);
-    if(RVarOnly){
-      printf("rvar-only requested so exiting now\n");
-      printf("mri_rbvpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
-      exit(0);
-    }
+  if(yhat0File || yhatFile){
+    printf("Synthesizing ... ");fflush(stdout); TimerStart(&mytimer) ;
+    GTMsynth(gtm);
+    printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   }
-  GTMsegrvar(gtm);
-  if(VRFStatsFile) WriteVRFStats(VRFStatsFile, gtm);
+  if(yhat0File) MRIwrite(gtm->ysynth,yhat0File);
 
-  VRFStats(gtm->iXtX, &vrfmean, &vrfmin, &vrfmax);
+  if(yhatFile){
+    printf("Smoothing synthesized ... ");fflush(stdout); TimerStart(&mytimer) ;
+    GTMsmoothSynth(gtm);
+    printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+    MRIwrite(gtm->ysynthsm,yhatFile);
+  }
+
+  if(eresFile){
+    gtmres = GTMmat2vol(gtm,gtm->res,NULL);
+    MRIwrite(gtmres,eresFile);
+    MRIfree(&gtmres);
+  }
+
+  fp = fopen(RVarFile,"w");
+  for(f=0; f < gtm->yvol->nframes; f++)
+    fprintf(fp,"%30.20f\n",gtm->rvar->rptr[1][f+1]);
+  fclose(fp);
+  if(RVarOnly){
+    printf("rvar-only requested so exiting now\n");
+    printf("mri_rbvpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
+    exit(0);
+  }
+
+  // Write the number of voxels in the mask
+  sprintf(tmpstr,"%s/nmask.dat",OutDir);
+  fp = fopen(tmpstr,"w");
+  fprintf(fp,"%d\n",gtm->nmask);
+  fclose(fp);
+
+  if(KurtosisFile) {
+    fp = fopen(KurtosisFile,"w");
+    for(f=0; f < gtm->yvol->nframes; f++)
+      fprintf(fp,"%30.20f\n",gtm->kurtosis->rptr[1][f+1]);
+    fclose(fp);
+  }
+  if(SkewFile) {
+    fp = fopen(SkewFile,"w");
+    for(f=0; f < gtm->yvol->nframes; f++)
+      fprintf(fp,"%30.20f\n",gtm->skew->rptr[1][f+1]);
+    fclose(fp);
+  }
+
+  MatlabWrite(gtm->XtX, OutXtXFile,"XtX");
+
+  GTMsegrvar(gtm);
+  VRFStats(gtm, &vrfmean, &vrfmin, &vrfmax);
+
   printf("XtX  Condition     %8.3f \n",gtm->XtXcond);
   printf("VRF  Mean/Min/Max  %8.3f %8.3f %8.3f \n",vrfmean,vrfmin,vrfmax);
   fflush(stdout);
   fprintf(logfp,"XtX  Condition     %8.3f \n",gtm->XtXcond);
   fprintf(logfp,"VRF  Mean/Min/Max  %8.3f %8.3f %8.3f \n",vrfmean,vrfmin,vrfmax);
   fflush(logfp);
+  WriteVRFStats(VRFStatsFile, gtm);
 
-  if(MGPVCFile != NULL){
-    printf("MG PVC, refidschema %s\n",gtm->mg_ref_schema);
+  // Write condition number to a dat file
+  sprintf(tmpstr,"%s/cond.dat",OutDir);
+  fp = fopen(tmpstr,"w");
+  fprintf(fp,"%20.15lf\n",gtm->XtXcond);
+  fclose(fp);
+
+  // Res variance in each seg
+  sprintf(tmpstr,"%s/seg.rvar.nii.gz",OutDir);
+  printf("Writing seg rvar estimates to %s\n",tmpstr);
+  mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, gtm->yvol->nframes);
+  for(c=0; c < gtm->nsegs; c++){
+    for(f=0; f < gtm->yvol->nframes; f++){
+      MRIsetVoxVal(mritmp,c,0,0,f, gtm->segrvar->rptr[c+1][f+1]);
+    }
+  }
+  err=MRIwrite(mritmp,tmpstr);
+  if(err) exit(1);
+  MRIfree(&mritmp);
+
+  // VRF in each seg
+  sprintf(tmpstr,"%s/seg.vrf.nii.gz",OutDir);
+  printf("Writing seg vrf to %s\n",tmpstr);
+  mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, 1);
+  for(c=0; c < gtm->nsegs; c++) MRIsetVoxVal(mritmp,c,0,0,0, gtm->vrf->rptr[c+1][1]);
+  err=MRIwrite(mritmp,tmpstr);
+  if(err) exit(1);
+  MRIfree(&mritmp);
+
+  // NVox in each seg
+  sprintf(tmpstr,"%s/seg.nvox.nii.gz",OutDir);
+  printf("Writing seg nvox to %s\n",tmpstr);
+  mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, 1);
+  for(c=0; c < gtm->nsegs; c++) MRIsetVoxVal(mritmp,c,0,0,0, gtm->nvox->rptr[c+1][1]);
+  err=MRIwrite(mritmp,tmpstr);
+  if(err) exit(1);
+  MRIfree(&mritmp);
+
+  if(DoMGPVC){
+    printf("Performing MG PVC, refidschema %s\n",gtm->mg_ref_schema);
+    sprintf(tmpstr,"%s/mg.nii.gz",OutDir);
+    MGPVCFile = strcpyalloc(tmpstr);
     fprintf(logfp,"MG PVC\n");
     GTMmgpvc(gtm);
     err = MRIwrite(gtm->mg,MGPVCFile);
@@ -537,6 +623,8 @@ int main(int argc, char *argv[])
   }
     
   if(DoRBV){
+    sprintf(tmpstr,"%s/rbv.nii.gz",OutDir);
+    RBVVolFile = strcpyalloc(tmpstr);
     printf("Computing RBV\n");
     GTMrbv(gtm);
     printf("Writing output to %s ...",RBVVolFile);fflush(stdout); TimerStart(&mytimer) ;
@@ -571,31 +659,30 @@ static int parse_commandline(int argc, char **argv) {
   while (nargc > 0) {
 
     option = pargv[0];
-    if (debug) printf("%d %s\n",nargc,option);
+    if(debug) printf("%d %s\n",nargc,option);
     nargc -= 1;
     pargv += 1;
 
     nargsused = 0;
 
-    if (!strcasecmp(option, "--help"))  print_help() ;
-    else if (!strcasecmp(option, "--version")) print_version() ;
-    else if (!strcasecmp(option, "--debug"))   debug = 1;
-    else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
-    else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    //else if (!strcasecmp(option, "--seg-test")) DoSegTest = 1;
-    else if (!strcasecmp(option, "--gtm-only")) ; // not used anymore
-    else if (!strcasecmp(option, "--opt")) DoOpt=1;
-    else if (!strcasecmp(option, "--ttype+head"))
+    if(!strcasecmp(option, "--help"))  print_help() ;
+    else if(!strcasecmp(option, "--version")) print_version() ;
+    else if(!strcasecmp(option, "--debug"))   debug = 1;
+    else if(!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
+    else if(!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if(!strcasecmp(option, "--opt")) DoOpt=1;
+    else if(!strcasecmp(option, "--ttype+head"))
       gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014+head");
-    else if (!strcasecmp(option, "--tt-reduce")) ttReduce = 1;
+    else if(!strcasecmp(option, "--tt-reduce")) ttReduce = 1;
+    else if(!strcasecmp(option, "--no-mask_rbv_to_brain")) gtm->mask_rbv_to_brain = 0;
 
-    else if (!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
+    else if(!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
       if(nargc < 1) CMDargNErr(option,1);
       setenv("SUBJECTS_DIR",pargv[0],1);
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
       nargsused = 1;
     } 
-    else if (!strcmp(option, "--reg")){
+    else if(!strcmp(option, "--reg")){
       if(nargc < 1) CMDargNErr(option,1);
       regfile = pargv[0];
       regtype = TransformFileNameType(regfile);
@@ -611,34 +698,29 @@ static int parse_commandline(int argc, char **argv) {
       }
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--reg-identity")) regidentity = 1;
-    else if (!strcasecmp(option, "--identity")) regidentity = 1;
+    else if(!strcasecmp(option, "--reg-identity")) regidentity = 1;
+    else if(!strcasecmp(option, "--identity")) regidentity = 1;
     else if(!strcasecmp(option, "--src") || !strcasecmp(option, "--i")) {
-      if (nargc < 1) CMDargNErr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       SrcVolFile = pargv[0];
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--seg")) {
-      if (nargc < 1) CMDargNErr(option,1);
+    else if(!strcasecmp(option, "--seg")) {
+      if(nargc < 1) CMDargNErr(option,1);
       SegVolFile = pargv[0];
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--pvf")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      PVFFile = pargv[0];
-      nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--mask")) {
-      if (nargc < 1) CMDargNErr(option,1);
+    else if(!strcasecmp(option, "--mask")) {
+      if(nargc < 1) CMDargNErr(option,1);
       MaskVolFile = pargv[0];
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--gdiag")) {
+    else if(!strcasecmp(option, "--gdiag")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
     }
-    else if (!strcasecmp(option, "--psf")){
+    else if(!strcasecmp(option, "--psf")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&psfFWHM);
       gtm->cFWHM = psfFWHM;
@@ -646,150 +728,118 @@ static int parse_commandline(int argc, char **argv) {
       gtm->sFWHM = psfFWHM;
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--psf-col")){
+    else if(!strcasecmp(option, "--psf-col")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&gtm->cFWHM);
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--psf-row")){
+    else if(!strcasecmp(option, "--psf-row")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&gtm->rFWHM);
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--psf-slice")){
+    else if(!strcasecmp(option, "--psf-slice")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&gtm->sFWHM);
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--threads")){
-      if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&nthreads);
-#ifdef _OPENMP
-      omp_set_num_threads(nthreads);
-#endif
-      nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--max-threads")){
-      nthreads = 1;
-#ifdef _OPENMP
-      nthreads = omp_get_max_threads();
-      omp_set_num_threads(nthreads);
-#endif
-    } 
-    else if (!strcasecmp(option, "--max-threads-1")){
-      nthreads = 1;
-#ifdef _OPENMP
-      nthreads = omp_get_max_threads()-1;
-      if(nthreads < 0) nthreads = 1;
-      omp_set_num_threads(nthreads);
-#endif
-    } 
-    else if (!strcasecmp(option, "--apply-fwhm")){
+    else if(!strcasecmp(option, "--apply-fwhm")){
       // apply to input for testing
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&ApplyFWHM);
       nargsused = 1;
     } 
-    //else if (!strcasecmp(option, "--niters")){
-    //if(nargc < 1) CMDargNErr(option,1);
-    //sscanf(pargv[0],"%d",&niterations);
-    //nargsused = 1;
-    //} 
     else if(!strcasecmp(option, "--rbv")) DoRBV = 1;
     else if(!strcasecmp(option, "--rescale")) gtm->rescale = 1;
+    else if(!strcasecmp(option, "--no-rescale")) gtm->rescale = 0;
 
-    else if (!strcasecmp(option, "--eres")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      eresFile = pargv[0];
-      nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--yhat")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      yhatFile = pargv[0];
-      nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--yhat0")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      yhatFile0 = pargv[0];
-      nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--mgpvc")) {
-      if (nargc < 1) CMDargNErr(option,1);
+    else if(!strcasecmp(option, "--mgpvc")) {
+      if(nargc < 1) CMDargNErr(option,1);
       DoMGPVC = 1;
       sscanf(pargv[0],"%lf",&gtm->mg_gmthresh);
       nargsused = 1;
     } 
-    else if(!strcasecmp(option, "--beta") || !strcasecmp(option, "--gtm-means")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      OutBetaFile = pargv[0];
-      nargsused = 1;
-    } 
     else if(!strcasecmp(option, "--X")) {
-      if (nargc < 1) CMDargNErr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       Xfile = pargv[0];
       nargsused = 1;
     } 
-    else if(!strcasecmp(option, "--xtx")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      OutXtXFile = pargv[0];
-      nargsused = 1;
-    } 
-    else if(!strcasecmp(option, "--vrf")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      VRFStatsFile = pargv[0];
-      nargsused = 1;
-    } 
-    else if(!strcasecmp(option, "--rvar")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      RVarFile = pargv[0];
-      nargsused = 1;
-    } 
-    else if(!strcasecmp(option, "--rvar-only"))
-      RVarOnly = 1;
+    else if(!strcasecmp(option, "--rvar-only")) RVarOnly = 1;
     else if(!strcasecmp(option, "--o")) {
-      if (nargc < 1) CMDargNErr(option,1);
+      if(nargc < 1) CMDargNErr(option,1);
       OutDir = pargv[0];
       sprintf(tmpstr,"%s/rvar.dat",OutDir);
       RVarFile = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/skew.dat",OutDir);
+      SkewFile = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/kurtosis.dat",OutDir);
+      KurtosisFile = strcpyalloc(tmpstr);
       sprintf(tmpstr,"%s/vrf.dat",OutDir);
       VRFStatsFile = strcpyalloc(tmpstr);
-      sprintf(tmpstr,"%s/eres.nii.gz",OutDir);
-      eresFile = strcpyalloc(tmpstr);
-      sprintf(tmpstr,"%s/yhat.nii.gz",OutDir);
-      yhatFile = strcpyalloc(tmpstr);
       sprintf(tmpstr,"%s/beta.nii.gz",OutDir);
       OutBetaFile = strcpyalloc(tmpstr);
-      sprintf(tmpstr,"%s/gtmseg.nii.gz",OutDir);
+      sprintf(tmpstr,"%s/seg.nii.gz",OutDir);
       OutSegFile = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/xtx.mat",OutDir);
+      OutXtXFile = strcpyalloc(tmpstr);
       nargsused = 1;
     } 
-    else if (!strcasecmp(option, "--replace")) {
+    else if(!strcasecmp(option, "--save-eres")) SaveEres=1;
+    else if(!strcasecmp(option, "--save-yhat")) SaveYhat=1;
+    else if(!strcasecmp(option, "--save-yhat0")) SaveYhat0=1;
+    else if(!strcasecmp(option, "--replace")) {
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%d",&SrcReplace[nReplace]);
       sscanf(pargv[1],"%d",&TrgReplace[nReplace]);
       nReplace++;
       nargsused = 2;
     } 
-    else if (!strcasecmp(option, "--merge-hypos")) {
+    else if(!strcasecmp(option, "--merge-hypos")) {
       SrcReplace[nReplace]=78; TrgReplace[nReplace]=77; nReplace++;
       SrcReplace[nReplace]=79; TrgReplace[nReplace]=77; nReplace++;
     } 
-    else if (!strcasecmp(option, "--vg-thresh")) {
+    else if(!strcasecmp(option, "--vg-thresh")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&vg_isEqual_Threshold);
       nargsused = 1;
     }
     else if(!strcasecmp(option, "--synth")) {
-      if(nargc < 1) CMDargNErr(option,1);
+      if(nargc < 2) CMDargNErr(option,2);
       SrcBetaFile = pargv[0];
+      SynthFile   = pargv[1];
       mritmp = MRIread(SrcBetaFile);
       if(mritmp == NULL) exit(1);
-      srcbeta = fMRItoMatrix(mritmp,NULL);
+      MATRIX *srcbetaT = fMRItoMatrix(mritmp,NULL);
+      srcbeta = MatrixTranspose(srcbetaT,NULL);
+      MatrixFree(&srcbetaT);
+      nargsused = 2;
+    } 
+    else if(!strcasecmp(option, "--threads")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nthreads);
+      #ifdef _OPENMP
+      omp_set_num_threads(nthreads);
+      #endif
       nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--max-threads")){
+      nthreads = 1;
+      #ifdef _OPENMP
+      nthreads = omp_get_max_threads();
+      omp_set_num_threads(nthreads);
+      #endif
+    } 
+    else if(!strcasecmp(option, "--max-threads-1")){
+      nthreads = 1;
+      #ifdef _OPENMP
+      nthreads = omp_get_max_threads()-1;
+      if(nthreads < 0) nthreads = 1;
+      omp_set_num_threads(nthreads);
+      #endif
     } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
-      if (CMDsingleDash(option))
+      if(CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
       exit(-1);
     }
@@ -807,34 +857,33 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --i  inputvol : source data to PVC\n");
-  printf("   --mask volfile : ignore areas outside of the mask (in src vol space)\n");
+  printf("   --i   inputvol : source data to PVC\n");
   printf("   --psf psfmm : scanner PSF FWHM in mm\n");
   printf("   --seg segfile : anatomical segmentation to define regions for GTM\n");
+  printf("   --reg reg.lta : LTA registration file that maps anatomical to PET\n");
+  printf("   --o   outdir    : output directory\n");
+  printf("\n");
+  printf("   --no-rescale   : do not global rescale such that mean of cerebellum WM is 100\n");
+  printf("   --mask volfile : ignore areas outside of the mask (in input vol space)\n");
   printf("   --ttype+head : use tissue type def that includes head segmentation\n");
   printf("   --merge-hypos : merge left and right hypointensites into to ROI\n");
+  printf("   --tt-reduce : reduce segmentation to that of a tissue type\n");
+  printf("   --replace Id1 Id2 : replace seg Id1 with seg Id2\n");
   printf("\n");
-  //printf("   --pvf pvffile : Non-binary voxelwise PVF\n");
-  printf("   --gtm-means volfile : save ROI means in volume format\n");
-  printf("   --rbv rbvfile : PVC'ed input\n");
-  printf("   --mgpvc mgpvcfile gmthresh\n");
-  printf("   --vrf vrfstatsfile\n");
-  printf("   --yhat gtm yhat file\n");
-  printf("   --eres  gtm residual file\n");
-  printf("   --seg-test : replace input with seg smoothed by psf\n");
-  printf("   --xtx xtx.mtx : save X'*X into xtx.mtx\n");
+  printf("   --rbv            : perform RBV PVC\n");
+  printf("   --mgpvc gmthresh : perform Mueller-Gaertner PVC, gmthresh is min gm pvf bet 0 and 1\n");
   printf("   --X Xfile : save X matrix (it will be big)\n");
-  printf("   --niters N : use iterative method instead of GTM\n");
-  printf("   --o outdir     : output directory\n");
-  printf("   --make-gtm-seg subject USF SubSegWM LabelCCasWM LabelHypoAsWM dmax outsegfile\n");
-  printf("   --synth gtmbeta seg pvf mask out\n");
   printf("\n");
-#ifdef _OPENMP
+  printf("   --synth gtmbeta synthvolume : synthesize unsmoothed volume with gtmbeta as input\n");
+  printf("\n");
+  #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");
   printf("   --threads-max : use the maximum allowable number of threads for this computer\n");
   printf("   --threads-max-1 : use one less than the maximum allowable number of threads for this computer\n");
-#endif
+  #endif
+  printf("   --sd SUBJECTS_DIR\n");
   printf("   --vg-thresh thrshold : threshold for  'ERROR: LTAconcat(): LTAs 0 and 1 do not match'\n");
+  printf("   --gdiag diagno : set diagnostic level\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -879,17 +928,25 @@ static void check_options(void)
     exit(1);
   }
 
-  if(OutDir == NULL){
-    printf("ERROR: must spec an output with --o\n");
+  if(OutDir == NULL && SynthFile != NULL) SynthOnly=1;
+  if(OutDir == NULL && SynthFile == NULL){
+    printf("ERROR: must spec an output with --o or --synth\n");
     exit(1);
   }
-  if(DoMGPVC){
-    sprintf(tmpstr,"%s/mg.nii.gz",OutDir);
-    MGPVCFile = strcpyalloc(tmpstr);
-  }
-  if(DoRBV){
-    sprintf(tmpstr,"%s/rbv.nii.gz",OutDir);
-    RBVVolFile = strcpyalloc(tmpstr);
+
+  if(OutDir){
+    if(SaveEres){
+      sprintf(tmpstr,"%s/eres.nii.gz",OutDir);
+      eresFile = strcpyalloc(tmpstr);
+    }
+    if(SaveYhat){
+      sprintf(tmpstr,"%s/yhat.nii.gz",OutDir);
+      yhatFile = strcpyalloc(tmpstr);
+    }
+    if(SaveYhat0){
+      sprintf(tmpstr,"%s/yhat0.nii.gz",OutDir);
+      yhat0File = strcpyalloc(tmpstr);
+    }
   }
 
   if(nthreads != 1){
@@ -967,16 +1024,16 @@ MRI *MRIdownSmoothUp(MRI *src, int Fc, int Fr, int Fs,
   return(dst);
 }
 /*--------------------------------------------------------------------------*/
-int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax)
+int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax)
 {
-  int n;
+  int n,nvox,segid;
   double vrf;
 
   *vrfmean = 0;
   *vrfmax = 0;
   *vrfmin = 0;
-  for(n=0; n < iXtX->rows; n++){
-    vrf = (double) 1.0/iXtX->rptr[n+1][n+1];
+  for(n=0; n < gtm->iXtX->rows; n++){
+    vrf = (double) 1.0/gtm->iXtX->rptr[n+1][n+1];
     if(n==0){
       *vrfmax = vrf;
       *vrfmin = vrf;
@@ -985,7 +1042,22 @@ int VRFStats(MATRIX *iXtX, double *vrfmean, double *vrfmin, double *vrfmax)
     if(*vrfmin > vrf) *vrfmin = vrf;
     *vrfmean += vrf;
   }
-  *vrfmean /= iXtX->rows;
+  *vrfmean /= gtm->iXtX->rows;
+
+  if(gtm->vrf) MatrixFree(&gtm->vrf);
+  gtm->vrf = MatrixAlloc(gtm->iXtX->rows,1,MATRIX_REAL);
+
+  if(gtm->nvox) MatrixFree(&gtm->nvox);
+  gtm->nvox = MatrixAlloc(gtm->iXtX->rows,1,MATRIX_REAL);
+
+  for(n=0; n < gtm->iXtX->rows; n++){
+    segid = gtm->segidlist[n];
+    nvox = MRIcountMatches(gtm->gtmseg, segid, 0, gtm->mask);
+    vrf = (double) 1.0/gtm->iXtX->rptr[n+1][n+1];
+    gtm->vrf->rptr[n+1][1]  = vrf;
+    gtm->nvox->rptr[n+1][1] = nvox;
+  }
+
   return(0);
 }
 /*--------------------------------------------------------------------------*/
@@ -1005,23 +1077,20 @@ int WriteVRFStats(char *fname, GTM *gtm)
     return(1);
   }
 
+  gtm->vrf = MatrixAlloc(gtm->iXtX->rows,1,MATRIX_REAL);
+
   for(n=0; n < gtm->iXtX->rows; n++){
     segid = gtm->segidlist[n];
-    nvox = MRIcountMatches(gtm->gtmseg, segid, 0, gtm->mask);
-    vrf = (double) 1.0/gtm->iXtX->rptr[n+1][n+1];
+    vrf = gtm->vrf->rptr[n+1][1];
+    nvox = gtm->nvox->rptr[n+1][1];
     cte = gtm->ctGTMSeg->entries[segid];
     fprintf(fp,"%3d %4d %-31s %-13s %6d %8.3f",n+1,segid,cte->name,
 	    ttctab->entries[cte->TissueType]->name,nvox,vrf);
     //printf("%3d %4d %-31s %-13s %6d %8.3f",n+1,segid,cte->name,
     //ttctab->entries[cte->TissueType]->name,nvox,vrf);
-    if(gtm->beta)
-      fprintf(fp,"   %10.3f",gtm->beta->rptr[n+1][1]);
-    if(gtm->segstats){
-      fprintf(fp,"   %10.4f",sqrt(gtm->segstats->rptr[n+1][1]));
-      //printf("   %10.3f",gtm->rptr[n+1][1]);
-    }
+    if(gtm->beta)    fprintf(fp,"   %10.3f",gtm->beta->rptr[n+1][1]);
+    if(gtm->segrvar) fprintf(fp,"   %10.4f",sqrt(gtm->segrvar->rptr[n+1][1]));
     fprintf(fp,"\n");
-    //printf(" \n");
   }
   fclose(fp);
   fflush(stdout);
@@ -1244,9 +1313,11 @@ int GTMsolve(GTM *gtm)
   if(gtm->rvar==NULL) gtm->rvar = MatrixAlloc(1,gtm->res->cols,MATRIX_REAL);
   for(f=0; f < gtm->res->cols; f++){
     sum = 0;
-    for(n=0; n < gtm->res->rows; n++) sum += (gtm->res->rptr[n+1][f+1]*gtm->res->rptr[n+1][f+1]);
+    for(n=0; n < gtm->res->rows; n++) sum += ((double)gtm->res->rptr[n+1][f+1]*gtm->res->rptr[n+1][f+1]);
     gtm->rvar->rptr[1][f+1] = sum/gtm->dof;
   }
+  gtm->kurtosis = MatrixKurtosis(gtm->res,gtm->kurtosis);
+  gtm->skew     = MatrixSkew(gtm->res,gtm->skew);
   return(0);
 }
 /*-----------------------------------------------------------------*/
@@ -1319,7 +1390,7 @@ int GTMsegrvar(GTM *gtm)
   int nthseg=0,segid;
   double v;
 
-  gtm->segstats = MatrixAlloc(gtm->nsegs,gtm->beta->cols,MATRIX_REAL);
+  gtm->segrvar = MatrixAlloc(gtm->nsegs,gtm->beta->cols,MATRIX_REAL);
   gtm->nperseg = (int *)calloc(sizeof(int),gtm->nsegs);
 
   k=0;
@@ -1334,7 +1405,7 @@ int GTMsegrvar(GTM *gtm)
 	}
 	for(f=0; f < gtm->beta->cols; f++){
 	  v = gtm->res->rptr[k+1][f+1];
-	  if(segid != 0) gtm->segstats->rptr[nthseg+1][f+1] += v*v;
+	  if(segid != 0) gtm->segrvar->rptr[nthseg+1][f+1] += v*v;
 	}
 	k++;
       }// r 
@@ -1343,8 +1414,8 @@ int GTMsegrvar(GTM *gtm)
 
   for(f=0; f < gtm->beta->cols; f++) {
     for(nthseg=0; nthseg < gtm->nsegs; nthseg++){
-      v = gtm->segstats->rptr[nthseg+1][f+1];
-      gtm->segstats->rptr[nthseg+1][f+1] = v/gtm->nperseg[nthseg];
+      v = gtm->segrvar->rptr[nthseg+1][f+1];
+      gtm->segrvar->rptr[nthseg+1][f+1] = v/gtm->nperseg[nthseg];
     }
   }
   return(0);
@@ -1413,6 +1484,33 @@ int GTMrbv(GTM *gtm)
       }
     }
   }
+
+  if(gtm->mask_rbv_to_brain){
+    printf("   masking RBV to brain\n");
+    int n, nReplace, ReplaceThis[1000], WithThat[1000];
+    MRI *segtmp,*rbvtmp;
+    MRI_REGION *region;
+    nReplace = 0;
+    for(n=0; n < gtm->ctGTMSeg->nentries; n++){
+      if(gtm->ctGTMSeg->entries[n] == NULL)  continue;
+      if(gtm->ctGTMSeg->entries[n]->TissueType != 5) continue;
+      ReplaceThis[nReplace] = n;
+      WithThat[nReplace] = 0;
+      nReplace++;
+    }
+    printf("  replacing head voxels with 0\n");
+    segtmp = MRIreplaceList(gtm->anatseg, ReplaceThis, WithThat, nReplace, NULL);
+    printf("  computing bounding box  ");
+    region = REGIONgetBoundingBox(segtmp,10);
+    REGIONprint(stdout, region);
+    printf("  extracting bounding box\n");
+    rbvtmp = MRIextractRegion(gtm->rbv, NULL, region);
+    free(region); region=NULL;
+    MRIfree(&segtmp);
+    MRIfree(&gtm->rbv);
+    gtm->rbv = rbvtmp;
+  }
+
   return(0);
 }
 
@@ -1897,6 +1995,7 @@ int GTMbuildX(GTM *gtm)
 
 }
 
+/*--------------------------------------------------------------------------*/
 MRI *GTMsegSynth(GTM *gtm)
 {
   int c,r,s,f,segid,segno;
@@ -1904,6 +2003,7 @@ MRI *GTMsegSynth(GTM *gtm)
 
   synth = MRIallocSequence(gtm->anatseg->width,gtm->anatseg->height,gtm->anatseg->depth,MRI_FLOAT,gtm->beta->cols);
   MRIcopyHeader(gtm->anatseg,synth);
+  MRIcopyPulseParameters(gtm->yvol,synth);
 
   for(c=0; c < gtm->anatseg->width; c++){
     for(r=0; r < gtm->anatseg->height; r++){
@@ -1913,7 +2013,7 @@ MRI *GTMsegSynth(GTM *gtm)
 	for(segno=0; segno < gtm->nsegs; segno++)
 	  if(segid == gtm->segidlist[segno]) break;
 	if(segno == gtm->nsegs){
-	  printf("ERROR: GTMsynth2(): could not find a match for segid=%d\n",segid);
+	  printf("ERROR: GTMsegSynth(): could not find a match for segid=%d\n",segid);
 	  for(segno=0; segno < gtm->nsegs; segno++) printf("%3d %5d\n",segno,gtm->segidlist[segno]);
 	  return(NULL);
 	}
@@ -1926,6 +2026,7 @@ MRI *GTMsegSynth(GTM *gtm)
   return(synth);
 }
 
+/*--------------------------------------------------------------------------*/
 int GTMmgRefIds(GTM *gtm)
 {
   int m;
@@ -1983,6 +2084,7 @@ int GTMmgRefIds(GTM *gtm)
 }
 
 
+/*--------------------------------------------------------------------------*/
 int GTMprintMGRefTAC(GTM *gtm, FILE *fp)
 {
   int f;
@@ -1992,6 +2094,7 @@ int GTMprintMGRefTAC(GTM *gtm, FILE *fp)
   return(0);
 }
 
+/*--------------------------------------------------------------------------*/
 int GTMwriteMGRefTAC(GTM *gtm, char *filename)
 {
   FILE *fp;
@@ -2030,7 +2133,70 @@ int GTMrescale(GTM *gtm)
 
   MRImultiplyConst(gtm->yvol,gtm->scale,gtm->yvol);
   MatrixScalarMul(gtm->beta, gtm->scale,gtm->beta);
-  MatrixScalarMul(gtm->y, gtm->scale,gtm->y);
+  MatrixScalarMul(gtm->y,    gtm->scale,gtm->y);
 
   return(0);
+}
+
+MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k)
+{
+  int c, r;
+  double mn,m4=0,m2=0,g2,delta,b1,b2,n;
+
+  if(k==NULL) k = MatrixAlloc(1,y->cols,MATRIX_REAL);
+
+  n = y->rows;
+  b1 = (n+1)*(n-1)/((n-2)*(n-3));
+  b2 = ((n-1)*(n-1))/((n-2)*(n-3));
+  printf("kurt: n=%d, b1=%g b2=%g\n",(int)n,b1,b2);
+
+  for(c=0; c < y->cols; c++){
+    mn = 0;
+    for(r=0; r < y->rows; r++) mn += y->rptr[r+1][c+1];
+    mn /= y->rows;
+    m2 = 0;
+    m4 = 0;
+    for(r=0; r < y->rows; r++){
+      delta = y->rptr[r+1][c+1]-mn;
+      m2 += pow(delta,2.0); // sum of squares
+      m4 += pow(delta,4.0); // sum of quads
+    }
+    m4 *= y->rows;
+    if(m2 != 0) g2 = b1*(m4/(m2*m2)) - 3*b2; // 0 mean
+    else        g2 = 0;
+    printf("kurt: %2d mn=%g, m2=%g, m4=%g, g2=%g\n",c,mn,m2,m4,g2);
+    k->rptr[1][c+1] = g2;
+  }
+  return(k);
+}
+
+MATRIX *MatrixSkew(MATRIX *y, MATRIX *s)
+{
+  int c, r;
+  double mn,m2,m3,g1,delta,n,adj;
+
+  if(s==NULL) s = MatrixAlloc(1,y->cols,MATRIX_REAL);
+
+  n = y->rows;
+  adj = sqrt(n*(n-1))/(n-2);
+
+  for(c=0; c < y->cols; c++){
+    mn = 0;
+    for(r=0; r < y->rows; r++) mn += y->rptr[r+1][c+1];
+    mn /= y->rows;
+    m2 = 0;
+    m3 = 0;
+    for(r=0; r < y->rows; r++){
+      delta = y->rptr[r+1][c+1]-mn;
+      m2 += pow(delta,2.0); // sum of squares
+      m3 += pow(delta,3.0); // sum of cubes
+    }
+    m2 /= n;
+    m3 /= n;
+    if(m2 != 0) g1 = adj*m3/pow(m2,1.5);
+    else        g1 = 0;
+    printf("skew: %2d mn=%g, m2=%g, m3=%g g1=%g\n",c,mn,m2,m3,g1);
+    s->rptr[1][c+1] = g1;
+  }
+  return(s);
 }
