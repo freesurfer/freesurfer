@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/09 20:29:49 $
- *    $Revision: 1.40 $
+ *    $Date: 2014/04/09 20:44:50 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.40 2014/04/09 20:29:49 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.41 2014/04/09 20:44:50 greve Exp $
 
 /*
   BEGINHELP
@@ -96,7 +96,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.40 2014/04/09 20:29:49 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.41 2014/04/09 20:44:50 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -460,10 +460,10 @@ int main(int argc, char *argv[])
 
   sprintf(tmpstr,"%s/hrseg2pet.lta",OutDir);
   LTAwrite(gtm->seg2pet,tmpstr);
-  sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
-  LTAwrite(gtm->anat2seg,tmpstr);
   sprintf(tmpstr,"%s/anat2pet.lta",OutDir);
   LTAwrite(gtm->anat2pet,tmpstr);
+  //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
+  //LTAwrite(gtm->anat2seg,tmpstr);
 
   sprintf(tmpstr,"%s/seg.ctab",OutDir);
   CTABwriteFileASCIItt(gtm->ctGTMSeg,tmpstr);
@@ -486,6 +486,8 @@ int main(int argc, char *argv[])
   // Create GTM pvf in pet space (why?)
   gtm->ttpvf = MRIsegPVF2TissueTypePVF(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
 				       gtm->ctGTMSeg, gtm->mask, gtm->ttpvf);
+  sprintf(tmpstr,"%s/pvf.nii.gz",OutDir);
+  MRIwrite(gtm->ttpvf,tmpstr);
 
   printf("Writing GTM estimates to %s\n",OutBetaFile);
   mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, gtm->yvol->nframes);
@@ -1427,11 +1429,15 @@ int GTMrbv(GTM *gtm)
   int c,r,s,f;
   double val,v,vhat0,vhat;
   LTA *lta;
+  struct timeb mytimer;
+
 
   if(gtm->rbv)      MRIfree(&gtm->rbv);
   if(gtm->yhat0seg) MRIfree(&gtm->yhat0seg);
   if(gtm->yhatseg)  MRIfree(&gtm->yhatseg);
   if(gtm->yseg)     MRIfree(&gtm->yseg);
+
+  TimerStart(&mytimer) ; 
 
   printf("   Synthesizing in seg space... \n");fflush(stdout);
   gtm->yhat0seg = GTMsegSynth(gtm);
@@ -1510,6 +1516,7 @@ int GTMrbv(GTM *gtm)
     MRIfree(&gtm->rbv);
     gtm->rbv = rbvtmp;
   }
+  printf("  RBV took %4.2f min\n",TimerStop(&mytimer)/60000.0);
 
   return(0);
 }
