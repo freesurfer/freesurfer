@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/27 21:05:45 $
- *    $Revision: 1.4 $
+ *    $Date: 2014/04/09 20:56:04 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,7 +34,10 @@
 
 WindowTimeCourse::WindowTimeCourse(QWidget *parent) :
     QWidget(parent),
-    ui(new Ui::WindowTimeCourse)
+    ui(new Ui::WindowTimeCourse),
+    lastMRI(NULL),
+    lastSurface(NULL),
+    lastOverlay(NULL)
 {
     ui->setupUi(this);
     this->setWindowFlags(Qt::Tool);
@@ -62,6 +65,9 @@ void WindowTimeCourse::UpdateData()
   if (type == "MRI")
   {
     LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
+    if (layer && layer->GetNumberOfFrames() == 1 &&
+        MainWindow::GetMainWindow()->GetLayerCollection("MRI")->Contains(lastMRI))
+      layer = lastMRI;
     if (layer && layer->GetNumberOfFrames() > 1)
     {
       double ras[3];
@@ -78,12 +84,20 @@ void WindowTimeCourse::UpdateData()
       connect(layer, SIGNAL(CorrelationSurfaceChanged(LayerSurface*)),
               this, SLOT(OnLayerCorrelationSurfaceChanged()), Qt::UniqueConnection);
       setWindowTitle(QString("Time Course (%1)").arg(layer->GetName()));
+      lastMRI = layer;
     }
   }
   else if (type == "Surface")
   {
     LayerSurface* surf = qobject_cast<LayerSurface*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
-    if (surf && surf->GetActiveOverlay() && surf->GetActiveOverlay()->GetNumberOfFrames() > 1)
+    SurfaceOverlay* overlay = (surf ? surf->GetActiveOverlay() : NULL);
+    if (overlay && overlay->GetNumberOfFrames() == 1 &&
+        MainWindow::GetMainWindow()->GetLayerCollection("Surface")->Contains(lastSurface))
+    {
+      overlay = lastOverlay;
+      surf = lastSurface;
+    }
+    if (surf && overlay && overlay->GetNumberOfFrames() > 1)
     {
       double pos[3];
       MainWindow::GetMainWindow()->GetLayerCollection("Surface")->GetSlicePosition(pos);
@@ -104,6 +118,8 @@ void WindowTimeCourse::UpdateData()
       ui->widgetPlot->SetTimeCourseData(data, range[0], range[1]);
       ui->widgetPlot->SetCurrentFrame(overlay->GetActiveFrame());
       setWindowTitle(QString("Time Course (%1)").arg(overlay->GetName()));
+      lastSurface = surf;
+      lastOverlay = overlay;
     }
   }
 }

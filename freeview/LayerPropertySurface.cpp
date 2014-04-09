@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/06 20:32:58 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/04/09 20:56:03 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,7 @@
 #include "vtkRGBAColorTransferFunction.h"
 #include "vtkMath.h"
 #include "FSSurface.h"
+#include <QDebug>
 
 using namespace std;
 
@@ -49,7 +50,9 @@ LayerPropertySurface::LayerPropertySurface ( QObject* parent ) :
   m_bShowVertices( false ),
   m_nVertexPointSize( 3 ),
   m_nMeshColorMap( 0 ),
-  m_surface( NULL )
+  m_surface( NULL ),
+  m_bShowOverlay(true),
+  m_bShowAnnotation(true)
 {
   m_lutCurvature = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 
@@ -451,4 +454,22 @@ void LayerPropertySurface::SetVertexColor( const QColor& c )
 void LayerPropertySurface::SetMeshColor( const QColor& c )
 {
   SetMeshColor( c.redF(), c.greenF(), c.blueF() );
+}
+
+void LayerPropertySurface::SetShowOverlay(bool bShow)
+{
+  if (bShow != m_bShowOverlay)
+  {
+    m_bShowOverlay = bShow;
+    emit OverlayChanged();
+  }
+}
+
+void LayerPropertySurface::SetShowAnnotation(bool bShow)
+{
+  if (bShow != m_bShowAnnotation)
+  {
+    m_bShowAnnotation = bShow;
+    emit OverlayChanged();
+  }
 }

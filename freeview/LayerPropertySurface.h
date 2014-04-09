@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/08/06 20:32:58 $
- *    $Revision: 1.6 $
+ *    $Date: 2014/04/09 20:56:03 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -152,6 +152,16 @@ public:
 
   void RestoreFullSettings(const QVariantMap& map);
 
+  bool GetShowOverlay()
+  {
+    return m_bShowOverlay;
+  }
+
+  bool GetShowAnnotation()
+  {
+    return m_bShowAnnotation;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetCurvatureMap( int nMap );
@@ -173,6 +183,8 @@ public slots:
   void ShowVertices( bool bShow );
   void SetEdgeThickness( int nThickness );
   void SetVectorPointSize( int nSize );
+  void SetShowOverlay(bool bShow);
+  void SetShowAnnotation(bool bShow);
 
 Q_SIGNALS:
   void OpacityChanged( double opacity );
@@ -184,6 +196,7 @@ Q_SIGNALS:
   void ColorMapChanged();
   void PositionChanged();
   void PositionChanged(double dx, double dy, double dz);
+  void OverlayChanged();
 
 private:
   void SetColorMapChanged();
@@ -212,6 +225,9 @@ private:
   int     m_nVertexPointSize;
 
   int     m_nMeshColorMap;
+
+  bool    m_bShowOverlay;
+  bool    m_bShowAnnotation;
 
   vtkSmartPointer<vtkRGBAColorTransferFunction> m_lutCurvature;
 

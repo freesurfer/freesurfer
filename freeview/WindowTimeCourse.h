@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/26 20:53:43 $
- *    $Revision: 1.3 $
+ *    $Date: 2014/04/09 20:56:04 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,10 @@ namespace Ui {
     class WindowTimeCourse;
 }
 
+class LayerMRI;
+class LayerSurface;
+class SurfaceOverlay;
+
 class WindowTimeCourse : public QWidget
 {
     Q_OBJECT
@@ -50,6 +54,9 @@ signals:
 
 private:
     Ui::WindowTimeCourse *ui;
+    LayerMRI*     lastMRI;
+    LayerSurface* lastSurface;
+    SurfaceOverlay* lastOverlay;
 };
 
 #endif // WINDOWTIMECOURSE_H

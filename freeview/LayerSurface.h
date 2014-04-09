@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/04 22:05:26 $
- *    $Revision: 1.63 $
+ *    $Date: 2014/04/09 20:56:03 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -171,8 +171,6 @@ public:
   void SetActiveAnnotation( int n );
 
   void SetActiveAnnotation( const QString& name );
-
-  void UpdateAnnotation( bool bAskRedraw = false );
 
   // label functions
   int GetNumberOfLabels();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/08 20:40:27 $
- *    $Revision: 1.278 $
+ *    $Date: 2014/04/09 20:56:03 $
+ *    $Revision: 1.279 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -764,6 +764,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       std::cerr << "Unrecognized viewport name '" << qPrintable(sa[0]) << "'.\n";
       return false;
     }
+  }
+  if (m_cmdParser->Found("timecourse"))
+  {
+    ui->actionTimeCourse->setChecked(true);
   }
 
   if ( m_cmdParser->Found( "viewsize", &sa ) )

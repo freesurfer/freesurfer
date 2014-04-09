@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/14 21:06:01 $
- *    $Revision: 1.53 $
+ *    $Date: 2014/04/09 20:56:04 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,9 +45,9 @@ PanelSurface::PanelSurface(QWidget *parent) :
 {
   ui->setupUi(this);
   MainWindow* mainwnd = MainWindow::GetMainWindow();
-  ui->toolbar->insertAction(ui->actionSurfaceMain, mainwnd->ui->actionLoadSurface);
-  ui->toolbar->insertAction(ui->actionSurfaceMain, mainwnd->ui->actionCloseSurface);
-  ui->toolbar->insertSeparator(ui->actionSurfaceMain);
+  ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionLoadSurface);
+  ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionCloseSurface);
+  ui->toolbar->insertSeparator(ui->actionShowOverlay);
 
 //  ui->treeWidgetLabels->hide();
 
@@ -171,6 +171,10 @@ void PanelSurface::DoIdle()
   ui->actionSurfaceWhite->setChecked( layer && layer->GetActiveSurface() == FSSurface::SurfaceWhite );
   ui->actionSurfacePial->setEnabled( surf && surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
   ui->actionSurfacePial->setChecked( layer && layer->GetActiveSurface() == FSSurface::SurfacePial );
+  ui->actionShowOverlay->setEnabled(layer && layer->GetNumberOfOverlays() > 0);
+  ui->actionShowOverlay->setChecked(layer && layer->GetProperty()->GetShowOverlay());
+  ui->actionShowAnnotation->setEnabled(layer && layer->GetNumberOfAnnotations() > 0);
+  ui->actionShowAnnotation->setChecked(layer && layer->GetProperty()->GetShowAnnotation());
   BlockAllSignals( false );
 }
 
@@ -201,6 +205,9 @@ void PanelSurface::DoUpdateWidgets()
   ui->lineEditFileName->clear();
   if ( layer )
   {
+    surf = layer->GetSourceSurface();
+    ui->toolbar2->setVisible(surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) || surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) ||
+                             surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) || surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
     ui->sliderOpacity->setValue( (int)( layer->GetProperty()->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, layer->GetProperty()->GetOpacity() );
 
@@ -223,7 +230,6 @@ void PanelSurface::DoUpdateWidgets()
     ui->sliderMidPoint->setValue( (int) ( ( layer->GetProperty()->GetThresholdMidPoint() - range[0] ) / ( range[1] - range[0] ) * 100 ) );
     ui->sliderSlope->setValue( (int) ( layer->GetProperty()->GetThresholdSlope() ) );
 
-    surf = layer->GetSourceSurface();
     ui->comboBoxRender->setCurrentIndex( layer->GetProperty()->GetSurfaceRenderMode() );
     ui->comboBoxMeshColor->setCurrentIndex( layer->GetProperty()->GetMeshColorMap() );
     ui->checkBoxShowVertices->setChecked( layer->GetProperty()->GetShowVertices() );
@@ -613,3 +619,22 @@ void PanelSurface::OnCurrentLabelItemChanged(QTreeWidgetItem *item)
     }
   }
 }
+
+void PanelSurface::OnToggleOverlay(bool bShow)
+{
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
+  {
+    layer->GetProperty()->SetShowOverlay(bShow);
+  }
+}
+
+void PanelSurface::OnToggleAnnotation(bool bShow)
+{
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
+  {
+    layer->GetProperty()->SetShowAnnotation(bShow);
+  }
+}
+

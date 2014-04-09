@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/08 20:40:27 $
- *    $Revision: 1.101 $
+ *    $Date: 2014/04/09 20:56:03 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -130,6 +130,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   connect( p, SIGNAL(PositionChanged()), this, SLOT(UpdateActorPositions()) );
   connect( p, SIGNAL(PositionChanged(double, double, double)),
            this, SLOT(UpdateROIPosition(double, double, double)));
+  connect( p, SIGNAL(OverlayChanged()), this, SLOT(UpdateOverlay()));
 
   if (m_volumeRef)
     connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()), Qt::UniqueConnection);
@@ -1227,7 +1228,8 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   }
   vtkPolyData* polydata = mapper->GetInput();
   vtkPolyData* polydataWireframe = wf_mapper->GetInput();
-  if ( m_nActiveOverlay >= 0 || m_nActiveAnnotation >= 0 )
+  if ( (GetProperty()->GetShowOverlay() && m_nActiveOverlay >= 0) ||
+       (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0) )
   {
     if ( mapper )
     {
@@ -1259,9 +1261,9 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
           data[i*4+3] = 255;
         }
       }
-      if (m_nActiveOverlay >= 0)
+      if (GetProperty()->GetShowOverlay() && m_nActiveOverlay >= 0)
         GetActiveOverlay()->MapOverlay( data );
-      if (m_nActiveAnnotation >= 0)
+      if (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0)
         GetActiveAnnotation()->MapAnnotationColor(data);
       MapLabels( data, nCount );
       for ( int i = 0; i < nCount; i++ )
@@ -1365,7 +1367,7 @@ void LayerSurface::SetActiveAnnotation( int n )
       this->GetProperty()->SetCurvatureMap( LayerPropertySurface::CM_Binary );
     }
     m_nActiveAnnotation = n;
-    UpdateAnnotation();
+    UpdateOverlay();
     emit ActiveAnnotationChanged( n );
     emit ActorUpdated();
   }
@@ -1427,55 +1429,6 @@ SurfaceAnnotation* LayerSurface::GetAnnotation( int n )
   else
   {
     return NULL;
-  }
-}
-
-void LayerSurface::UpdateAnnotation( bool bAskRedraw )
-{
-  UpdateOverlay(bAskRedraw);
-  return;
-
-  vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
-  vtkPolyData* polydata = mapper->GetInput();
-  vtkPolyDataMapper* mapperWireframe = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
-  vtkPolyData* polydataWireframe = mapperWireframe->GetInput();
-  if ( m_nActiveAnnotation >= 0 )
-  {
-    if ( mapper )
-    {
-      int nCount = polydata->GetPoints()->GetNumberOfPoints();
-      vtkSmartPointer<vtkIntArray> array = vtkIntArray::SafeDownCast( polydata->GetPointData()->GetArray( "Annotation" ) );
-      if ( array.GetPointer() == NULL )
-      {
-        array = vtkSmartPointer<vtkIntArray>::New();
-        //   array->SetNumberOfTuples( nCount );
-        array->SetName( "Annotation" );
-        polydata->GetPointData()->AddArray( array );
-        polydataWireframe->GetPointData()->AddArray( array );
-      }
-
-      array->SetArray( GetActiveAnnotation()->GetIndices(), nCount, 1 );
-      polydata->GetPointData()->SetActiveScalars( "Annotation" );
-
-      vtkSmartPointer<vtkFreesurferLookupTable> lut = vtkSmartPointer<vtkFreesurferLookupTable>::New();
-      lut->BuildFromCTAB( GetActiveAnnotation()->GetColorTable(), false );  // do not clear zero
-      mapper->SetLookupTable( lut );
-      mapper->UseLookupTableScalarRangeOn();
-      if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
-      {
-        polydataWireframe->GetPointData()->SetActiveScalars( "Annotation" );
-        mapperWireframe->SetLookupTable( lut );
-        mapperWireframe->UseLookupTableScalarRangeOn();
-      }
-    }
-  }
-  else
-  {
-    UpdateColorMap();
-  }
-  if ( bAskRedraw )
-  {
-    emit ActorUpdated();
   }
 }
 
@@ -1659,7 +1612,6 @@ void LayerSurface::SetActiveAnnotationOutline(bool bOutline)
     emit ActorUpdated();
   }
 }
-
 
 void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma, int flags )
 {

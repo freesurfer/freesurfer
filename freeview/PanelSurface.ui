@@ -40,8 +40,26 @@
       <property name="bottomMargin">
        <number>0</number>
       </property>
+      
       <item>
        <widget class="QToolBar" name="toolbar">
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="floatable">
+         <bool>false</bool>
+        </property>
+        <addaction name="actionShowOverlay"/>
+        <addaction name="actionShowAnnotation"/>
+        <addaction name="separator"/>
+        <addaction name="actionLockLayer"/>
+       </widget>
+      </item>
+<item>
+       <widget class="QToolBar" name="toolbar2">
         <property name="iconSize">
          <size>
           <width>24</width>
@@ -56,8 +74,6 @@
         <addaction name="actionSurfaceWhite"/>
         <addaction name="actionSurfacePial"/>
         <addaction name="actionSurfaceOriginal"/>
-        <addaction name="separator"/>
-        <addaction name="actionLockLayer"/>
        </widget>
       </item>
      </layout>
@@ -814,6 +830,36 @@
     <string>Lock</string>
    </property>
   </action>
+  <action name="actionShowOverlay">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_overlay.png</normaloff>:/resource/icons/surface_overlay.png</iconset>
+   </property>
+   <property name="text">
+    <string>Show Overlay</string>
+   </property>
+   <property name="toolTip">
+    <string>Show Overlay</string>
+   </property>
+  </action>
+  <action name="actionShowAnnotation">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface_annot.png</normaloff>:/resource/icons/surface_annot.png</iconset>
+   </property>
+   <property name="text">
+    <string>Show Annotation</string>
+   </property>
+   <property name="toolTip">
+    <string>Show Annotation</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -839,7 +885,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>268</x>
-     <y>98</y>
+     <y>134</y>
     </hint>
     <hint type="destinationlabel">
      <x>368</x>
@@ -855,7 +901,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>299</y>
+     <y>337</y>
     </hint>
     <hint type="destinationlabel">
      <x>349</x>
@@ -871,7 +917,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>248</x>
-     <y>326</y>
+     <y>364</y>
     </hint>
     <hint type="destinationlabel">
      <x>46</x>
@@ -887,7 +933,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>248</x>
-     <y>359</y>
+     <y>397</y>
     </hint>
     <hint type="destinationlabel">
      <x>78</x>
@@ -903,7 +949,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>329</x>
-     <y>331</y>
+     <y>369</y>
     </hint>
     <hint type="destinationlabel">
      <x>326</x>
@@ -919,7 +965,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>329</x>
-     <y>364</y>
+     <y>402</y>
     </hint>
     <hint type="destinationlabel">
      <x>332</x>
@@ -935,7 +981,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>396</y>
+     <y>434</y>
     </hint>
     <hint type="destinationlabel">
      <x>56</x>
@@ -951,7 +997,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>428</y>
+     <y>466</y>
     </hint>
     <hint type="destinationlabel">
      <x>350</x>
@@ -967,7 +1013,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>459</y>
+     <y>497</y>
     </hint>
     <hint type="destinationlabel">
      <x>429</x>
@@ -983,7 +1029,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>710</y>
+     <y>748</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -999,7 +1045,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>874</y>
+     <y>912</y>
     </hint>
     <hint type="destinationlabel">
      <x>486</x>
@@ -1015,7 +1061,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>795</y>
+     <y>833</y>
     </hint>
     <hint type="destinationlabel">
      <x>398</x>
@@ -1062,12 +1108,44 @@
    <slot>OnButtonLoadLabel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>247</x>
-     <y>509</y>
+     <x>330</x>
+     <y>558</y>
     </hint>
     <hint type="destinationlabel">
      <x>489</x>
      <y>570</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionShowOverlay</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnToggleOverlay(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>165</x>
+     <y>514</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionShowAnnotation</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnToggleAnnotation(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>165</x>
+     <y>514</y>
     </hint>
    </hints>
   </connection>
@@ -1089,5 +1167,7 @@
   <slot>OnLabelItemChanged(QTreeWidgetItem*)</slot>
   <slot>OnCurrentLabelItemChanged(QTreeWidgetItem*)</slot>
   <slot>OnButtonLoadLabel()</slot>
+  <slot>OnToggleOverlay(bool)</slot>
+  <slot>OnToggleAnnotation(bool)</slot>
  </slots>
 </ui>

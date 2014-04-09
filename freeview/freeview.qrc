@@ -104,5 +104,7 @@
         <file>resource/icons/view_time_course.png</file>
         <file>resource/icons/voxel_draw_clone.png</file>
         <file>resource/icons/recon_edit.png</file>
+        <file>resource/icons/surface_annot.png</file>
+        <file>resource/icons/surface_overlay.png</file>
     </qresource>
 </RCC>
