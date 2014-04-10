@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/10 15:57:59 $
- *    $Revision: 1.141 $
+ *    $Date: 2014/04/10 19:32:23 $
+ *    $Revision: 1.142 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4460,3 +4460,78 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
 
   return(mout);
 }
+
+/*
+  \fn MATRIX *MatrixSkew(MATRIX *y, MATRIX *s)
+  \brief Computes the skew (3rd moment) of the values in each column
+  of y. If y has multiple columns, a skew is computed for each one.xx
+*/
+MATRIX *MatrixSkew(MATRIX *y, MATRIX *s)
+{
+  int c, r;
+  double mn,m2,m3,g1,delta,n,adj;
+
+  if(s==NULL) s = MatrixAlloc(1,y->cols,MATRIX_REAL);
+
+  n = y->rows;
+  adj = sqrt(n*(n-1))/(n-2);
+
+  for(c=0; c < y->cols; c++){
+    mn = 0;
+    for(r=0; r < y->rows; r++) mn += y->rptr[r+1][c+1];
+    mn /= y->rows;
+    m2 = 0;
+    m3 = 0;
+    for(r=0; r < y->rows; r++){
+      delta = y->rptr[r+1][c+1]-mn;
+      m2 += pow(delta,2.0); // sum of squares
+      m3 += pow(delta,3.0); // sum of cubes
+    }
+    m2 /= n;
+    m3 /= n;
+    if(m2 != 0) g1 = adj*m3/pow(m2,1.5);
+    else        g1 = 0;
+    printf("skew: %2d mn=%g, m2=%g, m3=%g g1=%g\n",c,mn,m2,m3,g1);
+    s->rptr[1][c+1] = g1;
+  }
+  return(s);
+}
+/*
+  \fn MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k)
+  \brief Computes the 'unbiased' kurtosis (4th moment) of the values
+  in each column of y. If y has multiple columns, a kurtosis is
+  computed for each one.x  
+*/
+MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k)
+{
+  int c, r;
+  double mn,m4=0,m2=0,g2,delta,b1,b2,n;
+
+  if(k==NULL) k = MatrixAlloc(1,y->cols,MATRIX_REAL);
+
+  n = y->rows;
+  b1 = (n+1)*(n-1)/((n-2)*(n-3));
+  b2 = ((n-1)*(n-1))/((n-2)*(n-3));
+  printf("kurt: n=%d, b1=%g b2=%g\n",(int)n,b1,b2);
+
+  for(c=0; c < y->cols; c++){
+    mn = 0;
+    for(r=0; r < y->rows; r++) mn += y->rptr[r+1][c+1];
+    mn /= y->rows;
+    m2 = 0;
+    m4 = 0;
+    for(r=0; r < y->rows; r++){
+      delta = y->rptr[r+1][c+1]-mn;
+      m2 += pow(delta,2.0); // sum of squares
+      m4 += pow(delta,4.0); // sum of quads
+    }
+    m4 *= y->rows;
+    // Formula below usually has a +3, but this is left off so that k has 0 mean
+    if(m2 != 0) g2 = b1*(m4/(m2*m2)) - 3*b2;
+    else        g2 = 0;
+    printf("kurt: %2d mn=%g, m2=%g, m4=%g, g2=%g\n",c,mn,m2,m4,g2);
+    k->rptr[1][c+1] = g2;
+  }
+  return(k);
+}
+
