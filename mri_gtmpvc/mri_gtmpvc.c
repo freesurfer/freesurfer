@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/10 19:58:53 $
- *    $Revision: 1.2 $
+ *    $Date: 2014/04/10 20:06:27 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.2 2014/04/10 19:58:53 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.3 2014/04/10 20:06:27 greve Exp $
 
 /*
   BEGINHELP
@@ -96,7 +96,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.2 2014/04/10 19:58:53 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.3 2014/04/10 20:06:27 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -535,27 +535,22 @@ int main(int argc, char *argv[])
   printf("Writing GTM beta estimates to %s\n",OutBetaFile);
   mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, gtm->yvol->nframes);
   for(c=0; c < gtm->nsegs; c++){
-    for(f=0; f < gtm->yvol->nframes; f++){
+    for(f=0; f < gtm->yvol->nframes; f++)
       MRIsetVoxVal(mritmp,c,0,0,f, gtm->beta->rptr[c+1][f+1]);
-      printf("%3d %10.5f\n",c,gtm->beta->rptr[c+1][f+1]);
-    }
   }
   err=MRIwrite(mritmp,OutBetaFile);
   if(err) exit(1);
   MRIfree(&mritmp);
-  //err=MatrixWriteTxt(OutBetaFile, beta);
 
   printf("Writing var of GTM estimates to %s\n",OutBetaVarFile);
   mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, gtm->yvol->nframes);
   for(c=0; c < gtm->nsegs; c++){
-    for(f=0; f < gtm->yvol->nframes; f++){
+    for(f=0; f < gtm->yvol->nframes; f++)
       MRIsetVoxVal(mritmp,c,0,0,f, gtm->betavar->rptr[c+1][f+1]);
-    }
   }
   err=MRIwrite(mritmp,OutBetaVarFile);
   if(err) exit(1);
   MRIfree(&mritmp);
-  //err=MatrixWriteTxt(OutBetaFile, beta);
 
   printf("rvar = %g\n",gtm->rvar->rptr[1][1]);
   fprintf(logfp,"rvar = %g\n",gtm->rvar->rptr[1][1]);
@@ -692,14 +687,6 @@ int main(int argc, char *argv[])
   }
   
   printf("Setting up contrasts\n");
-  if(0){
-    gtm->nContrasts = 1;
-    gtm->contrasts[0] = (GTMCON *) calloc(sizeof(GTMCON),1);
-    gtm->contrasts[0]->C = MatrixAlloc(1,gtm->beta->rows,MATRIX_REAL);
-    gtm->contrasts[0]->C->rptr[1][1]  = 1;
-    gtm->contrasts[0]->C->rptr[1][14] = -1;
-    gtm->contrasts[0]->name = "testcon";
-  }
   if(gtm->nContrasts > 0){
     printf("Testing contrasts\n");
     GTMttest(gtm);
