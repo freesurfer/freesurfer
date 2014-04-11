@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/11 16:52:24 $
- *    $Revision: 1.5 $
+ *    $Date: 2014/04/11 23:23:08 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.5 2014/04/11 16:52:24 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.6 2014/04/11 23:23:08 greve Exp $
 
 /*
   BEGINHELP
@@ -91,7 +91,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.5 2014/04/11 16:52:24 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.6 2014/04/11 23:23:08 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -332,18 +332,6 @@ int main(int argc, char *argv[])
 
   TimerStart(&timer);
 
-  stem = IDstemFromName(SegVolFile);
-  sprintf(tmpstr,"%s.lta",stem);
-  gtm->anat2seg = LTAread(tmpstr);
-  if(gtm->anat2seg == NULL) exit(1);
-  gtm->seg2anat = LTAinvert(gtm->anat2seg,NULL);
-  gtm->seg2pet = LTAconcat2(gtm->seg2anat,gtm->anat2pet,1);
-  if(gtm->seg2pet == NULL) {
-    printf("ERROR: LTAconcat()\n");
-    printf("mri_gtmpvc exited with errors\n");
-    exit(1);
-  }
-
   // Load seg
   TimerStart(&mytimer);
   printf("Loading seg for gtm %s\n",SegVolFile);fflush(stdout);
@@ -364,6 +352,28 @@ int main(int argc, char *argv[])
     exit(1);
   }
   gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
+
+  stem = IDstemFromName(SegVolFile);
+  sprintf(tmpstr,"%s.lta",stem);
+  if(fio_FileExistsReadable(tmpstr)){
+    printf("Reading %s\n",tmpstr);
+    fprintf(logfp,"Reading %s\n",tmpstr);
+    gtm->anat2seg = LTAread(tmpstr);
+    if(gtm->anat2seg == NULL) exit(1);
+  }
+  else{
+    printf("Assuming seg is in conformed space\n");
+    fprintf(logfp,"Assuming seg is in conformed space\n");
+    gtm->anat2seg = TransformRegDat2LTA(gtm->anatseg, gtm->anatseg, NULL);
+  }
+  gtm->seg2anat = LTAinvert(gtm->anat2seg,NULL);
+  gtm->seg2pet = LTAconcat2(gtm->seg2anat,gtm->anat2pet,1);
+  if(gtm->seg2pet == NULL) {
+    printf("ERROR: LTAconcat()\n");
+    printf("mri_gtmpvc exited with errors\n");
+    exit(1);
+  }
+
 
   if(ttReduce > 0) {
     MRI *ttseg;
@@ -1035,6 +1045,7 @@ static void print_usage(void) {
   printf("   --no-rescale   : do not global rescale such that mean of cerebellum WM is 100\n");
   printf("   --tt-reduce : reduce segmentation to that of a tissue type\n");
   printf("   --replace Id1 Id2 : replace seg Id1 with seg Id2\n");
+  printf("   --reg-identity : assume that input is in anatomical space \n");
   printf("\n");
   printf("   --no-vox-frac-cor : do not use voxel fraction correction (with --psf 0 turns off PVC entirely)\n");
   printf("   --rbv            : perform RBV PVC\n");
@@ -2208,7 +2219,7 @@ int GTMrescale(GTM *gtm)
     }
   }
   gtm->scale = 100/(sum/nhits);
-  printf("gtm multiplicative scale %g (nhits=%2d) \n",gtm->scale,nhits);
+  printf("gtm multiplicative scale %g\n",gtm->scale);
 
   MRImultiplyConst(gtm->yvol,gtm->scale,gtm->yvol);
   MatrixScalarMul(gtm->beta, gtm->scale,gtm->beta);
