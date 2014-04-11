@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/11 16:09:29 $
- *    $Revision: 1.4 $
+ *    $Date: 2014/04/11 16:52:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.4 2014/04/11 16:09:29 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.5 2014/04/11 16:52:24 greve Exp $
 
 /*
   BEGINHELP
@@ -91,7 +91,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.4 2014/04/11 16:09:29 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.5 2014/04/11 16:52:24 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -175,6 +175,7 @@ int GTMpsfStd(GTM *gtm);
 int GTMsegidlist(GTM *gtm);
 int GTMnPad(GTM *gtm);
 int GTMbuildX(GTM *gtm);
+int GTMbuildXNoVoxFracCor(GTM *gtm);
 int GTMsolve(GTM *gtm);
 int GTMsegrvar(GTM *gtm);
 int GTMsmoothSynth(GTM *gtm);
@@ -239,7 +240,7 @@ char *MGPVCFile=NULL;
 char *regfile;
 int regidentity = 0;
 int regtype;
-int SaveEres=0, SaveYhat=0,SaveYhat0=0;
+int SaveEres=0, SaveYhat=0,SaveYhat0=0, SaveInput=0;
 
 int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax);
 int WriteVRFStats(char *fname, GTM *gtm);
@@ -266,6 +267,7 @@ int CheckX(MATRIX *X);
 int dngtest(LTA *aseg2vol);
 
 int DoRBV=0;
+int DoVoxFracCor=1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -462,9 +464,10 @@ int main(int argc, char *argv[])
   }
 
   // Create GTM matrix
-  printf("Building GTM ... ");fflush(stdout); 
+  printf("Building GTM DoVoxFracCor=%d... ",DoVoxFracCor);fflush(stdout); 
   TimerStart(&mytimer) ;
-  GTMbuildX(gtm);
+  if(DoVoxFracCor) GTMbuildX(gtm);
+  else             GTMbuildXNoVoxFracCor(gtm);
   printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   if(gtm->X==NULL) exit(1);
   fprintf(logfp,"GTM-Build-time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
@@ -507,6 +510,12 @@ int main(int argc, char *argv[])
   if(err) exit(1);
   printf("Time to solve %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   fprintf(logfp,"GTM-Solve-Time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
+
+  if(SaveInput){
+    sprintf(tmpstr,"%s/input.nii.gz",OutDir);
+    printf("Writing input to %s\n",tmpstr);
+    MRIwrite(gtm->yvol,tmpstr);
+  }
 
   if(ymatfile) {
     printf("Writing y to %s\n",ymatfile);
@@ -741,6 +750,9 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--debug"))   debug = 1;
     else if(!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if(!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if(!strcasecmp(option, "--no-vox-frac-cor")) DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--no-vox-frac")) DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--no-vfc"))      DoVoxFracCor=0;
     else if(!strcasecmp(option, "--opt")) DoOpt=1;
     else if(!strcasecmp(option, "--ttype+head"))
       gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014+head");
@@ -898,6 +910,7 @@ static int parse_commandline(int argc, char **argv) {
       }
       nargsused = gtm->n_km_hbids;
     } 
+    else if(!strcasecmp(option, "--save-input")) SaveInput = 1;
     else if(!strcasecmp(option, "--X0"))   SaveX0 = 1;
     else if(!strcasecmp(option, "--X"))    SaveX = 1;
     else if(!strcasecmp(option, "--y"))    SaveYMat = 1;
@@ -1023,6 +1036,7 @@ static void print_usage(void) {
   printf("   --tt-reduce : reduce segmentation to that of a tissue type\n");
   printf("   --replace Id1 Id2 : replace seg Id1 with seg Id2\n");
   printf("\n");
+  printf("   --no-vox-frac-cor : do not use voxel fraction correction (with --psf 0 turns off PVC entirely)\n");
   printf("   --rbv            : perform RBV PVC\n");
   printf("   --mgpvc gmthresh : perform Mueller-Gaertner PVC, gmthresh is min gm pvf bet 0 and 1\n");
   printf("\n");
@@ -2000,7 +2014,6 @@ int GTMbuildX(GTM *gtm)
 			       gtm->nsegs, gtm->mask, 0, NULL, gtm->segpvf);
   if(gtm->segpvf==NULL) return(1);
 
-
   #ifdef _OPENMP
   #pragma omp parallel for 
   #endif
@@ -2013,7 +2026,7 @@ int GTMbuildX(GTM *gtm)
     nthsegpvf = fMRIframe(gtm->segpvf,nthseg,NULL);
     region      = REGIONgetBoundingBox(nthsegpvf,gtm->nPad);
     nthsegpvfbb = MRIextractRegion(nthsegpvf, NULL, region) ;
-    nthsegpvfbbsm = MRIgaussianSmoothNI(nthsegpvfbb, gtm->cStd, gtm->rStd, gtm->sStd, nthsegpvfbbsm);
+    nthsegpvfbbsm = MRIgaussianSmoothNI(nthsegpvfbb, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
     // Fill X, creating X in this order makes it consistent with matlab
     // Note: y must be ordered in the same way.
     k = 0;
@@ -2036,6 +2049,82 @@ int GTMbuildX(GTM *gtm)
     MRIfree(&nthsegpvf);
     MRIfree(&nthsegpvfbb);
     MRIfree(&nthsegpvfbbsm);
+  }
+  printf(" Build time %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
+
+  return(0);
+
+}
+
+/*------------------------------------------------------------------------------*/
+int GTMbuildXNoVoxFracCor(GTM *gtm)
+{
+  int nthseg;
+  struct timeb timer;
+
+  printf("GTMbuildXNoVoxFracCor()\n");
+
+  if(gtm->X==NULL || gtm->X->rows != gtm->nmask || gtm->X->cols != gtm->nsegs){
+    if(gtm->X) MatrixFree(&gtm->X);
+    gtm->X = MatrixAlloc(gtm->nmask,gtm->nsegs,MATRIX_REAL);
+    if(gtm->X == NULL){
+      printf("ERROR: GTMbuildXNoVoxFracCor(): could not alloc X %d %d\n",gtm->nmask,gtm->nsegs);
+      return(1);
+    }
+  }
+  if(gtm->X0==NULL || gtm->X0->rows != gtm->nmask || gtm->X0->cols != gtm->nsegs){
+    if(gtm->X0) MatrixFree(&gtm->X0);
+    gtm->X0 = MatrixAlloc(gtm->nmask,gtm->nsegs,MATRIX_REAL);
+    if(gtm->X0 == NULL){
+      printf("ERROR: GTMbuildXNoVoxFracCor(): could not alloc X0 %d %d\n",gtm->nmask,gtm->nsegs);
+      return(1);
+    }
+  }
+  gtm->dof = gtm->X->rows - gtm->X->cols;
+  TimerStart(&timer);
+  printf("  computing seg pvf \n");fflush(stdout);
+  gtm->segpvf = MRIseg2SegPVF(gtm->anatseg, gtm->seg2pet, 0.5, gtm->segidlist, 
+			       gtm->nsegs, gtm->mask, 0, NULL, gtm->segpvf);
+  if(gtm->segpvf==NULL) return(1);
+  printf("  computing seg in pet space \n");fflush(stdout);
+  gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
+			      gtm->ctGTMSeg, gtm->mask, gtm->gtmseg);
+
+  #ifdef _OPENMP
+  #pragma omp parallel for 
+  #endif
+  for(nthseg = 0; nthseg < gtm->nsegs; nthseg++){
+    int segid,k,c,r,s;
+    MRI *nthsegmri=NULL,*nthsegmribb=NULL,*nthsegmribbsm=NULL;
+    MRI_REGION *region;
+    segid = gtm->segidlist[nthseg];
+    //printf("nthseg = %d, %d %6.4f\n",nthseg,segid,TimerStop(&timer)/1000.0);fflush(stdout);
+    nthsegmri = MRIbinarizeMatch(gtm->gtmseg,&segid,1,0,NULL);
+    region      = REGIONgetBoundingBox(nthsegmri,gtm->nPad);
+    nthsegmribb = MRIextractRegion(nthsegmri, NULL, region) ;
+    nthsegmribbsm = MRIgaussianSmoothNI(nthsegmribb, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+    // Fill X, creating X in this order makes it consistent with matlab
+    // Note: y must be ordered in the same way.
+    k = 0;
+    for(s=0; s < gtm->yvol->depth; s++){
+      for(c=0; c < gtm->yvol->width; c++){
+	for(r=0; r < gtm->yvol->height; r++){
+	  if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
+	  k ++;
+	  if(c < region->x || c >= region->x+region->dx)  continue;
+	  if(r < region->y || r >= region->y+region->dy)  continue;
+	  if(s < region->z || s >= region->z+region->dz)  continue;
+	  // do not use k+1 here because it has already been incr above
+	  gtm->X->rptr[k][nthseg+1] = 
+	    MRIgetVoxVal(nthsegmribbsm,c-region->x,r-region->y,s-region->z,0);
+	  gtm->X0->rptr[k][nthseg+1] = 
+	    MRIgetVoxVal(nthsegmribb,c-region->x,r-region->y,s-region->z,0);
+	}
+      }
+    }
+    MRIfree(&nthsegmri);
+    MRIfree(&nthsegmribb);
+    free(region);
   }
   printf(" Build time %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
 
