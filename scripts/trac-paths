@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2014/03/20 15:25:06 $
-#    $Revision: 1.34 $
+#    $Author: ayendiki $
+#    $Date: 2014/04/11 01:25:52 $
+#    $Revision: 1.35 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.34 2014/03/20 15:25:06 zkaufman Exp $'
+set VERSION = '$Id: trac-paths,v 1.35 2014/04/11 01:25:52 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -375,7 +375,7 @@ if (! $dolong) then
         foreach pathname ($pathlist)
           set pathpre = ${pathname}_$avgmode
 
-          if (-e $outdir/$pathpre/cpts.map.txt) then
+          if (-e $outdir/$pathpre/path.map.txt) then
             set pname = `echo $pathname | awk -v FS=_ '{print $1}'`
 
             set cmd = $trcdir/dmri_pathstats
@@ -615,7 +615,7 @@ else
           foreach pathname ($pathlist)
             set pathdir = $outdir_t/${pathname}_$avgmode
 
-            if (-e $pathdir/cpts.map.txt) then
+            if (-e $pathdir/path.map.txt) then
               set pname = `echo $pathname | awk -v FS=_ '{print $1}'`
 
               set cmd = $trcdir/dmri_pathstats
