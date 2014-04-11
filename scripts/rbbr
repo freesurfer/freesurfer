@@ -1,0 +1,484 @@
+#!/bin/tcsh -f
+# rbbr
+
+set VERSION = '$Id: rbbr,v 1.1 2014/04/11 18:31:55 greve Exp $';
+
+set outreg = ();
+set outlta = ();
+set subject = ();
+set Contrast = ();
+set mov = ();
+set psf = ();
+set BBRInit = ();
+set InitReg = ();
+set cthresh = 1.5;
+set fwhm = ()
+set NIters = 3;
+set isc = ()
+set iscmask = ()
+set RMSFile = ();
+set RMSFile0 = ();
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set segname = gtmseg.mgz
+set UseGTM = 0;
+set TTReduce = 0;
+set SPMUseNII = 0;
+set surfname = ();
+set LHOnly = 0;
+set RHOnly = 0;
+set WMProjAbs = ()
+set GMProjFrac = ()
+set GMProjAbs = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set outdir = `dirname $outreg`
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.rbbr.$$
+  if(! -e /scratch) set tmpdir = $outdir/tmpdir.rbbr.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outreg.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for rbbr" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+set InitLTA = $tmpdir/init.reg.lta
+if($#InitReg == 0) then
+  set InitReg = $tmpdir/init.reg.dat
+  set cmd = (bbregister --mov $mov $Contrast $BBRInit --s $subject --reg $InitReg --lta $InitLTA)
+  if($SPMUseNII) set cmd = ($cmd --spm-nii)
+  if($LHOnly) set cmd = ($cmd --lh-only)
+  if($RHOnly) set cmd = ($cmd --rh-only)
+  if($#WMProjAbs)  set cmd = ($cmd --wm-proj-abs $WMProjAbs)
+  if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs $GMProjAbs)
+  if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+else
+  set InitReg2 = $tmpdir/init.reg.dat
+  set IsLTA = `IsLTA --r $InitReg`
+  echo "IsLTA = $IsLTA"
+  if($IsLTA) then
+    cp $InitReg $InitLTA
+    set cmd = (lta_convert --inlta $InitLTA --outreg $InitReg2)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit;
+  else
+    cp $InitReg $InitReg2
+    set cmd = (lta_convert --inreg $InitReg2 --outlta $InitLTA \
+      --src $mov --trg $SUBJECTS_DIR/$subject/mri/orig.mgz)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit;
+  endif
+  set InitReg = $InitReg2
+endif
+
+rm -f $RMSFile
+set InitRegLTA = $InitLTA
+@ Iter = 0
+while($Iter < $NIters)
+  @ Iter = $Iter + 1
+  echo "#@# Iter $Iter/$NIters `date`" | tee -a $LF
+
+  if($UseGTM) then
+    set gtmdir = $tmpdir/gtm.i$Iter
+    set cmd = (mri_gtmpvc --seg $segname --i $mov --o $gtmdir \
+       --reg $InitRegLTA --psf $fwhm --max-threads-1 --ttype+head --save-yhat)
+    if($TTReduce) set cmd = ($cmd --tt-reduce --no-rescale)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit;
+    set rvar = `cat $gtmdir/rvar.dat`
+    echo "RVAR $Iter $rvar" | tee -a $LF
+    set yhat = $gtmdir/yhat.nii.gz
+  else
+    set yhat = $mov
+  endif
+
+  if($#isc == 0) set isc = $tmpdir/isc
+  set cmd = (bbregister --mov $yhat --t2 --init-reg $InitReg \
+    --init-surf-cost $isc --init-surf-cost-only)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  if($#iscmask == 0) set iscmask = $tmpdir/iscmask
+  foreach hemi (lh rh)
+    set cmd = (mri_binarize --i $isc.$hemi.mgh --min $cthresh --o $iscmask.$hemi.mgh --inv)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit;
+  end
+
+  set BBReg = $tmpdir/bbr.reg.i$Iter.dat
+  set BBLTA = $tmpdir/bbr.reg.i$Iter.lta
+  set rms   = $tmpdir/bbr.rms.i$Iter.dat
+
+  set cmd = (bbregister --mov $mov $Contrast --init-reg $InitReg --rms0 $rms\
+    --mask $iscmask.lh.mgh $iscmask.rh.mgh --no-pass1 --reg $BBReg --lta $BBLTA)
+  if($LHOnly) set cmd = ($cmd --lh-only)
+  if($RHOnly) set cmd = ($cmd --rh-only)
+  if($#WMProjAbs)  set cmd = ($cmd --wm-proj-abs $WMProjAbs)
+  if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs $GMProjAbs)
+  if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  cat $rms >> $RMSFile
+
+  set InitReg    = $BBReg
+  set InitRegLTA = $BBLTA
+
+end
+
+if($#outreg) cp $BBReg $outreg
+if($#outlta) cp $BBLTA $outlta
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Rbbr-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Rbbr-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "rbbr Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--subject":
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--iters":
+      if($#argv < 1) goto arg1err;
+      set NIters = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set outreg = $argv[1]; shift;
+      breaksw
+
+    case "--lta":
+      if($#argv < 1) goto arg1err;
+      set outlta = $argv[1]; shift;
+      breaksw
+
+    case "--mov":
+      if($#argv < 1) goto arg1err;
+      set mov = $argv[1]; shift;
+      if(! -e $mov) then
+        echo "ERROR: cannot find $mov"
+        exit 1;
+      endif
+      breaksw
+
+    case "--psf":
+    case "--fwhm":
+      if($#argv < 1) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "--gtm":
+    case "--segname":
+      if($#argv < 2) goto arg2err;
+      set segname = $argv[1]; shift;
+      set fwhm    = $argv[1]; shift;
+      set UseGTM = 1;
+      breaksw
+
+    case "--tt-reduce":
+      set TTReduce = 1;
+      breaksw
+
+    case "--rms":
+      if($#argv < 1) goto arg1err;
+      set RMSFile = $argv[1]; shift;
+      breaksw
+
+    case "--isc":
+      if($#argv < 1) goto arg1err;
+      set isc = $argv[1]; shift;
+      breaksw
+
+    case "--iscmask":
+      if($#argv < 1) goto arg1err;
+      set iscmask = $argv[1]; shift;
+      breaksw
+
+    case "--T1":
+    case "--t1":
+      set Contrast = "--t1"
+      breaksw
+
+    case "--bold":
+    case "--dti":
+    case "--T2":
+    case "--t2":
+      set Contrast = "--t2"
+      breaksw
+
+    case "--init-rr":
+      set BBRInit = "--init-rr"
+      breaksw
+    case "--init-fsl":
+      set BBRInit = "--init-fsl"
+      breaksw
+     case "--init-spm":
+      set BBRInit = "--init-spm"
+      breaksw
+    case "--regheader":
+    case "--reg-header":
+    case "--init-header":
+      set BBRInit = "--init-header":
+      breaksw
+
+    case "--init-reg":
+      if($#argv < 1) goto arg1err;
+      set InitReg = $argv[1]; shift;
+      if(! -e $InitReg) then
+        echo "ERROR: cannot find $InitReg"
+        exit 1;
+      endif
+      set subject = `reg2subject --r $InitReg`
+      set BBRInit = "--init-reg $InitReg" # changed later
+      breaksw
+
+    case "--thresh":
+    case "--cthresh":
+      if($#argv < 1) goto arg1err;
+      set cthresh = $argv[1]; shift;
+      breaksw
+
+    case "--spm-nii":
+      set SPMUseNII = 1;
+      breaksw
+
+    case "--surf":
+      if($#argv < 1) goto arg1err;
+      set surfname = $argv[1]; shift;
+      breaksw
+
+    case "--lh-only":
+      set LHOnly = 1;
+      set RHOnly = 0;
+      breaksw
+
+    case "--rh-only":
+      set LHOnly = 1;
+      set RHOnly = 0;
+      breaksw
+
+    case "--gm-proj-frac":
+      if($#argv < 1) goto arg1err;
+      set GMProjFrac = $argv[1]; shift;
+      set GMProjAbs = ();
+      breaksw
+
+    case "--gm-proj-abs":
+      if($#argv < 1) goto arg1err;
+      set GMProjAbs = $argv[1]; shift;
+      set GMProjFrac = ();
+      breaksw
+
+    case "--wm-proj-abs":
+      if($#argv < 1) goto arg1err;
+      set WMProjAbs = $argv[1]; shift;
+      breaksw
+
+    case "--proj-abs":
+      if($#argv < 1) goto arg1err;
+      set ProjAbs = $argv[1]; shift;
+      set WMProjAbs = $ProjAbs;
+      set GMProjAbs = $ProjAbs;
+      set GMProjFrac = ();
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outreg == 0 && $#outlta == 0) then
+  echo "ERROR: must spec output reg or lta"
+  exit 1;
+endif
+if($#Contrast == 0) then
+  echo "ERROR: must spec contrast"
+  exit 1;
+endif
+if($#mov == 0) then
+  echo "ERROR: must spec mov"
+  exit 1;
+endif
+if($#BBRInit == 0) then
+  echo "ERROR: must spec init method"
+  exit 1;
+endif
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "rbbr : robust version of bbregister"
+  echo "  --s subject : FreeSurfer subject (not needed with --init-reg)"
+  echo "  --mov mov"
+  echo "  --t1 or --t2 : tissue contrast (can use --bold and --dti)"
+  echo "  --init-reg, --init-spm, --init-fsl --init-header"
+  echo "  --cthresh thresh : cost threshold to define outlier ($cthresh)"
+  echo "  --gtm segname FWHM : use gtm to synthesize"
+  echo "  --tt-reduce : reduce GTM Seg to tissue types (faster)"
+  echo "  --iters n : number of iterations ($NIters)"
+  echo "  --reg outputreg"
+  echo "  --lta outputlta"
+  echo "  --lh-only : only use left hemi"
+  echo "  --rh-only : only use right hemi"
+  echo "  --gm-proj-frac frac : default is to use bbregister default"
+  echo "  --gm-proj-abs abs : default is to use bbregister default"
+  echo "  --wm-proj-abs abs : default is to use bbregister default"
+  echo ""
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
