@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/02/20 01:42:43 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/04/11 01:19:20 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,6 +74,7 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_pathstats";
 
+float probThresh = .2, faThresh = 0;
 char *inTrkFile = NULL, *inRoi1File = NULL, *inRoi2File = NULL,
      *inTrcDir = NULL, *dtBase = NULL,
      *outFile = NULL, *outVoxFile = NULL,
@@ -156,12 +157,12 @@ int main(int argc, char **argv) {
 
   if (inTrcDir > 0) {			// Probabilistic paths
     int len, nx, ny, nz, nvox = 0;
-    float wtot = 0, thresh = 0;
-    char mname[PATH_MAX];
-    vector<int> lengths;
+    float wtot = 0, pthresh = 0;
+    vector<int> lengths, pathmap, basepathmap;
     vector<float>::iterator iavg, iwavg;
     MRI *post;
     ifstream infile;
+    string pathline;
 
     // Read lengths of path samples
     sprintf(fname, "%s/length.samples.txt", inTrcDir);
@@ -188,10 +189,10 @@ int main(int argc, char **argv) {
     nz = post->depth;
 
     // Find (robust) maximum value of posterior distribution
-    thresh = (float) MRIfindPercentile(post, .99, 0);
+    pthresh = (float) MRIfindPercentile(post, .99, 0);
 
-    // Set threshold at 20% of (robust) maximum
-    thresh *= .2;
+    // Set probability threshold as a portion (default: 20%) of (robust) maximum
+    pthresh *= probThresh;
 
     // Compute average and weighted average of measures on thresholded posterior
     avg.resize(meas.size());
@@ -204,7 +205,11 @@ int main(int argc, char **argv) {
         for (int ix = 0; ix < nx; ix++) {
           const float h = MRIgetVoxVal(post, ix, iy, iz, 0);
 
-          if (h > thresh) {
+          if (h > pthresh) {
+            if (faThresh > 0)		// If FA threshold has been set
+              if (MRIgetVoxVal(*(meas.end()-1), ix, iy, iz, 0) <= faThresh)
+                continue;
+
             iavg = avg.begin();
             iwavg = wavg.begin();
 
@@ -230,11 +235,31 @@ int main(int argc, char **argv) {
       for (iwavg = wavg.begin(); iwavg < wavg.end(); iwavg++)
         *iwavg /= wtot;
 
-    // Read control points of MAP path sample
-    sprintf(fname, "%s/cpts.map.txt", inTrcDir);
-    sprintf(mname, "%s/path.pd.nii.gz", inTrcDir);
-    Spline myspline(fname, mname);
-    myspline.InterpolateSpline();
+    // Read maximum a posteriori path coordinates
+    sprintf(fname, "%s/path.map.txt", inTrcDir);
+    infile.open(fname, ios::in);
+    if (!infile) {
+      cout << "ERROR: Could not open " << fname << " for reading" << endl;
+      exit(1);
+    }
+
+    while (getline(infile, pathline)) {
+      int coord;
+      istringstream pathstr(pathline);
+
+      for (int k = 0; k < 3; k++)
+        if (pathstr >> coord)
+          pathmap.push_back(coord);
+
+      for (int k = 0; k < 3; k++)
+        if (pathstr >> coord)
+          basepathmap.push_back(coord);
+    }
+
+    if (!basepathmap.empty() && basepathmap.size() != pathmap.size()) {
+      cout << "ERROR: Unexpected number of coordinates in " << fname << endl;
+      exit(1);
+    }
 
     // Overall measures
     count   = lengths.size();
@@ -242,17 +267,35 @@ int main(int argc, char **argv) {
     lenmin  = *min_element(lengths.begin(), lengths.end());
     lenmax  = *max_element(lengths.begin(), lengths.end());
     lenavg  = ( (lenavg > 0) ? (lenavg / (float) lengths.size()) : 0 );
-    lencent = (myspline.GetAllPointsEnd() - myspline.GetAllPointsBegin()) / 3;
+    lencent = pathmap.size() / 3;
 
-    if (dtBase)
-      cavg = myspline.ComputeAvg(meas);
+    if (dtBase) {
+      vector<float>::iterator iavg;
+
+      cavg.resize(meas.size());
+      fill(cavg.begin(), cavg.end(), 0.0);
+
+      for (vector<int>::const_iterator ipt = pathmap.begin();
+                                       ipt < pathmap.end(); ipt += 3) {
+        iavg = cavg.begin();
+
+        for (vector<MRI *>::const_iterator ivol = meas.begin();
+                                           ivol < meas.end(); ivol++) {
+          *iavg += MRIgetVoxVal(*ivol, ipt[0], ipt[1], ipt[2], 0);
+          iavg++;
+        }
+      }
+
+      for (iavg = cavg.begin(); iavg < cavg.end(); iavg++)
+        *iavg /= lencent;
+    }
 
     // Measures by voxel on MAP streamline
     if (outVoxFile) {
-//      myspline.WriteValues(meas, outVoxFile);
       int npts;
       CTrackReader trkreader;
       TRACK_HEADER trkheadin;
+      vector<int>::const_iterator iptbase;
       vector<float> valsum(meas.size());
       vector<float>::iterator ivalsum;
       vector< vector<int> > pathsamples;
@@ -295,11 +338,18 @@ int main(int argc, char **argv) {
       }
 
       // Loop over all points along the MAP path
-      for (vector<int>::const_iterator ipt = myspline.GetAllPointsBegin();
-                                       ipt < myspline.GetAllPointsEnd();
-                                       ipt += 3) {
+      if (!basepathmap.empty())
+        iptbase = basepathmap.begin();
+
+      for (vector<int>::const_iterator ipt = pathmap.begin();
+                                       ipt < pathmap.end(); ipt += 3) {
+        int nsamp = 0;
+
         // Write coordinates of this point
-        outfile << ipt[0] << " " << ipt[1] << " " << ipt[2];
+        if (!basepathmap.empty()) 	// In base space if longitudinal
+          outfile << iptbase[0] << " " << iptbase[1] << " " << iptbase[2];
+        else 				// In native space if cross-sectional
+          outfile << ipt[0] << " " << ipt[1] << " " << ipt[2];
 
         // Write value of each diffusion measure at this point
         for (vector<MRI *>::const_iterator ivol = meas.begin();
@@ -331,6 +381,18 @@ int main(int argc, char **argv) {
             }
           }
 
+/* TESTING
+          if (MRIgetVoxVal(post, iptmin[0], iptmin[1], iptmin[2], 0) <= pthresh)
+            continue;
+*/
+
+          if (faThresh > 0)           // If FA threshold has been set
+            if (MRIgetVoxVal(*(meas.end()-1),
+                             iptmin[0], iptmin[1], iptmin[2], 0) <= faThresh)
+              continue;
+
+          nsamp++;
+
           ivalsum = valsum.begin();
 
           for (vector<MRI *>::const_iterator ivol = meas.begin();
@@ -345,11 +407,14 @@ int main(int argc, char **argv) {
 
         for (vector<MRI *>::const_iterator ivol = meas.begin();
                                            ivol < meas.end(); ivol++) {
-          outfile << " " << *ivalsum / pathsamples.size();
+          outfile << " " << *ivalsum / nsamp;
           ivalsum++;
         }
 
         outfile << endl;
+
+        if (!basepathmap.empty())
+          iptbase += 3;
       }
     }
   }
@@ -517,6 +582,16 @@ static int parse_commandline(int argc, char **argv) {
       refVolFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--pthr")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%f", &probThresh);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--fthr")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%f", &faThresh);
+      nargsused = 1;
+    }
     nargc -= nargsused;
     pargv += nargsused;
   }
@@ -551,6 +626,11 @@ static void print_usage(void)
   printf("     Base name of output volumes of streamline ends (optional)\n");
   printf("   --ref <file>:\n");
   printf("     Reference volume (needed only if using --outend without --dtbase)\n");
+  printf("   --pthr <num>:\n");
+  printf("     Lower threshold on path posterior distribution,\n");
+  printf("     as a portion of the maximum (range: 0-1, default: 0.2)\n");
+  printf("   --fthr <num>:\n");
+  printf("     Lower threshold on FA (range: 0-1, default: no threshold)\n");
   printf("\n");
   printf("\n");
   printf("   --debug:     turn on debugging\n");
@@ -609,6 +689,14 @@ static void check_options(void) {
   }
   if(outEndBase && !refVolFile && !dtBase) {
     printf("ERROR: must specify reference volume to use --outend\n");
+    exit(1);
+  }
+  if(probThresh < 0 || probThresh > 1) {
+    printf("ERROR: probability threshold must a number between 0 and 1\n");
+    exit(1);
+  }
+  if(faThresh < 0 || faThresh > 1) {
+    printf("ERROR: FA threshold must a number between 0 and 1\n");
     exit(1);
   }
   return;
@@ -670,6 +758,9 @@ static void dump_options(FILE *fp) {
     fprintf(fp, "Base name of output end point volumes: %s\n", outEndBase);
   if (refVolFile)
     fprintf(fp, "Reference for output end point volumes: %s\n", refVolFile);
+  fprintf(fp, "Lower threshold for probability: %f\n", probThresh);
+  if (faThresh > 0)
+    fprintf(fp, "Lower threshold for FA: %f\n", faThresh);
 
   return;
 }
