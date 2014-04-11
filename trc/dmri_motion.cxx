@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/10/26 22:44:22 $
- *    $Revision: 1.3 $
+ *    $Date: 2014/04/11 01:23:11 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,8 @@ const char *Progname = "dmri_motion";
 
 float T = 100, D = .001;
 
-char *inMatFile = NULL, *inDwiFile = NULL, *inBvalFile = NULL, *outFile = NULL;
+char *inMatFile = NULL, *inDwiFile = NULL, *inBvalFile = NULL,
+     *outFile = NULL, *outFrameFile = NULL;
 
 MRI *dwi;
 
@@ -87,6 +88,8 @@ struct timeb cputimer;
 int main(int argc, char **argv) {
   int nargs, cputime;
   float travg = 0, roavg = 0, score = 0, pbad = 0;
+  vector<int> nbadframe;
+  vector<float> trframe, roframe, scoreframe;
   string matline;
   ifstream infile;
   ofstream outfile;
@@ -146,18 +149,26 @@ int main(int argc, char **argv) {
           // Translations with respect to first frame
           tr = reg.GetTranslate();
 
+          // Frame-to-frame translations
+          for (int k = 0; k < 3; k++)
+            trframe.push_back(tr[k] - tr0[k]);
+
           // Cumulative frame-to-frame translations
           for (int k = 0; k < 3; k++)
-            trtot[k] += fabs(tr[k] - tr0[k]);
+            trtot[k] += fabs(*(trframe.end()-3+k));
 
           copy(tr.begin(), tr.end(), tr0.begin());
 
           // Rotations with respect to first frame
           ro = reg.GetRotate();
 
+          // Frame-to-frame rotations
+          for (int k = 0; k < 3; k++)
+            roframe.push_back(ro[k] - ro0[k]);
+
           // Cumulative frame-to-frame rotations
           for (int k = 0; k < 3; k++)
-            rotot[k] += fabs(ro[k] - ro0[k]);
+            rotot[k] += fabs(*(roframe.end()-3+k));
 
           copy(ro.begin(), ro.end(), ro0.begin());
 
@@ -200,6 +211,11 @@ int main(int argc, char **argv) {
     nxy = nx*ny;
     minvox = 0.05*nxy;
 
+    nbadframe.resize(nd);
+    fill(nbadframe.begin(), nbadframe.end(), 0);
+    scoreframe.resize(nd);
+    fill(scoreframe.begin(), scoreframe.end(), 0.0);
+
     // Read b-value table
     cout << "Loading b-value table from " << inBvalFile << endl;
     infile.open(inBvalFile, ios::in);
@@ -222,8 +238,10 @@ int main(int argc, char **argv) {
     for (set<float>::const_iterator ib = blist.begin(); ib != blist.end();
                                                         ib++) {
       const float thresh = T * exp(-(*ib)*D);
-      r1.clear();
+      vector<int>::iterator inbad = nbadframe.begin();
+      vector<float>::iterator iscore = scoreframe.begin();
 
+      r1.clear();
       ibval = bvals.begin();
 
       for (int id = 0; id < nd; id++) {
@@ -254,21 +272,33 @@ int main(int argc, char **argv) {
               nslice++;
 
               if (S > 1) {
-                nbad++;
-                score += S;
+                (*inbad)++;
+                (*iscore) += S;
               }
             }
 
             ir1++;
           }
+
+          nbad += *inbad;
+          score += *iscore;
+
+          // Average motion score of bad slices in this frame
+          if (*inbad > 0)
+            *iscore /= *inbad;
+          else
+            *iscore = 1;
         }
 
         ibval++;
+        inbad++;
+        iscore++;
       }
     }
 
     // Percentage of bad slices among all non-empty slices
-    pbad = nbad / (float) nslice * 100;
+    if (nslice > 0)
+      pbad = nbad / (float) nslice * 100;
 
     // Average motion score of bad slices
     if (nbad > 0)
@@ -277,11 +307,82 @@ int main(int argc, char **argv) {
       score = 1;
   }
 
+  // Write overall measures to file
   outfile.open(outFile, ios::out);
   outfile << "AvgTranslation AvgRotation PercentBadSlices AvgDropoutScore"
           << endl
           << travg << " " << roavg << " " << pbad << " " << score << endl;
   outfile.close();
+
+  // Write frame-by-frame measures to file
+  if (outFrameFile) {
+    vector<float>::const_iterator itr = trframe.begin(),
+                                  iro = roframe.begin(),
+                                  iscore = scoreframe.begin();
+
+    if (trframe.empty()) {
+      trframe.resize(nbadframe.size() * 3);
+      fill(trframe.begin(), trframe.end(), 0.0);
+    }
+    else if (trframe.size() != nbadframe.size() * 3) {
+      cout << "ERROR: inconsistent number of frames for "
+           << "between-volume (" << trframe.size()/3 << ") and "
+           << "within-volume (" << nbadframe.size() << ") measures" << endl;
+      exit(1);
+    }
+
+    if (roframe.empty()) {
+      roframe.resize(nbadframe.size() * 3);
+      fill(roframe.begin(), roframe.end(), 0.0);
+    }
+    else if (roframe.size() != nbadframe.size() * 3) {
+      cout << "ERROR: inconsistent number of frames for "
+           << "between-volume (" << roframe.size()/3 << ") and "
+           << "within-volume (" << nbadframe.size() << ") measures" << endl;
+      exit(1);
+    }
+
+    if (nbadframe.empty()) {
+      nbadframe.resize(trframe.size() / 3);
+      fill(nbadframe.begin(), nbadframe.end(), 0);
+    }
+    else if (nbadframe.size() != trframe.size() / 3) {
+      cout << "ERROR: inconsistent number of frames for "
+           << "between-volume (" << trframe.size()/3 << ") and "
+           << "within-volume (" << nbadframe.size() << ") measures" << endl;
+      exit(1);
+    }
+
+    if (scoreframe.empty()) {
+      scoreframe.resize(trframe.size() / 3);
+      fill(scoreframe.begin(), scoreframe.end(), 0.0);
+    }
+    else if (scoreframe.size() != trframe.size() / 3) {
+      cout << "ERROR: inconsistent number of frames for "
+           << "between-volume (" << trframe.size()/3 << ") and "
+           << "within-volume (" << scoreframe.size() << ") measures" << endl;
+      exit(1);
+    }
+
+    outfile.open(outFrameFile, ios::out);
+    outfile << "TranslationX TranslationY TranslationZ "
+            << "RotationX RotationY RotationZ "
+            << "PercentBadSlices AvgDropoutScore" << endl;
+
+    for (vector<int>::const_iterator inbad = nbadframe.begin();
+                                     inbad < nbadframe.end(); inbad++) {
+    
+      outfile << itr[0] << " " << itr[1] << " " << itr[2] << " "
+              << iro[0] << " " << iro[1] << " " << iro[2] << " "
+              << *inbad << " " << *iscore << endl;
+
+      itr += 3;
+      iro += 3;
+      iscore++;
+    }
+
+    outfile.close();
+  }
 
   cputime = TimerStop(&cputimer);
   cout << "Done in " << cputime/1000.0 << " sec." << endl;
@@ -343,6 +444,11 @@ static int parse_commandline(int argc, char **argv) {
       outFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--outf")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outFrameFile = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    }
     nargc -= nargsused;
     pargv += nargsused;
   }
@@ -357,6 +463,10 @@ static void print_usage(void)
   << "Required arguments" << endl
   << "   --out <file>:" << endl
   << "     Output text file of motion measures" << endl
+  << endl
+  << "Optional arguments" << endl
+  << "   --outf <file>:" << endl
+  << "     Output text file of frame-by-frame motion measures" << endl
   << endl
   << "Arguments needed for between-volume motion measures" << endl
   << "   --mat <file>:" << endl
@@ -437,6 +547,10 @@ static void dump_options() {
        << "user     " << VERuser() << endl;
 
   cout << "Output motion measure file: " << outFile << endl;
+
+  if (outFrameFile)
+    cout << "Output frame-by-frame motion measure file: " << outFrameFile
+         << endl;
 
   if (inMatFile)
     cout << "Input transform file: " << inMatFile << endl;
