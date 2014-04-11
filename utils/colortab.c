@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 16:07:53 $
- *    $Revision: 1.52 $
+ *    $Date: 2014/04/11 22:42:20 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,8 @@ static COLOR_TABLE *znzCTABreadFromBinaryV2(znzFile fp);
 int ctabDuplicates;
 
 /*-------------------------------------------------------------------
+COLOR_TABLE *CTABreadASCII(const char *fname)
+Reads in 7th column as tissue type
   ----------------------------------------------------------------*/
 COLOR_TABLE *CTABreadASCII(const char *fname)
 {
@@ -64,7 +66,7 @@ COLOR_TABLE *CTABreadASCII(const char *fname)
   FILE        *fp;
   int         structure;
   char        name[STRLEN];
-  int         r, g, b, t;
+  int         r, g, b, t, tt=0;
   int         line_num;
 
   /* Try to open the file. */
@@ -130,8 +132,8 @@ COLOR_TABLE *CTABreadASCII(const char *fname)
   rewind(fp);
   while ((cp = fgets(line, STRLEN, fp)) != NULL)
   {
-    if (sscanf (line, "%d %s %d %d %d %d",
-                &structure, name, &r, &g, &b, &t) == 6)
+    if (sscanf (line, "%d %s %d %d %d %d %d",
+                &structure, name, &r, &g, &b, &t, &tt) >= 6)
     {
 
       /* If this entry already exists, there's a duplicate entry
@@ -180,6 +182,7 @@ COLOR_TABLE *CTABreadASCII(const char *fname)
           (float)ct->entries[structure]->bi / 255.0;
         ct->entries[structure]->af =
           (float)ct->entries[structure]->ai / 255.0;
+	ct->entries[structure]->TissueType = tt;
       }
     }
     line_num++;
@@ -2273,7 +2276,7 @@ int CTABprintASCIItt(COLOR_TABLE *ct, FILE *fp)
     cte = ct->ctabTissueType->entries[structure];
     if(cte == NULL) continue;
     tmpstr = deblank(cte->name);
-    fprintf (fp, "# %3d  %-30s  %3d %3d %3d  %3d\n",
+    fprintf (fp, "#ctTType %3d  %-30s  %3d %3d %3d  %3d\n",
 	     structure + ct->idbase, tmpstr,
 	     cte->ri,cte->gi,cte->bi, 255 - cte->ai);
     free(tmpstr);
