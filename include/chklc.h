@@ -6,9 +6,9 @@
 /*
  * Original Author: 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2014/04/11 18:37:09 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,5 +26,6 @@
 #define CHKLC_H
 
 void chklc(void) ;
+int  chklc2(char* msg);
 
 #endif
