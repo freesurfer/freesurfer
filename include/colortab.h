@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 16:07:53 $
- *    $Revision: 1.33 $
+ *    $Date: 2014/04/11 23:21:40 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -179,5 +179,6 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct);
 COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct);
 int CTABprintASCIItt(COLOR_TABLE *ct, FILE *fp);
 int CTABwriteFileASCIItt(COLOR_TABLE *ct, const char *fname);
+COLOR_TABLE *CTABreadASCIIttHeader(const char *fname);
 
 #endif

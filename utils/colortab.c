@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/11 22:42:20 $
- *    $Revision: 1.53 $
+ *    $Date: 2014/04/11 23:21:40 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -194,7 +194,84 @@ COLOR_TABLE *CTABreadASCII(const char *fname)
 
   //CTABfindDuplicateAnnotations(ct);
 
+  // This will read the tissue type ctab if it is there
+  ct->ctabTissueType = CTABreadASCIIttHeader(fname);
+
   /* Return the new color table. */
+  return(ct);
+}
+
+/*
+  \fn COLOR_TABLE *CTABreadASCIIttHeader(const char *fname)
+  \brief reads tissue type from header of a ctab (line that start with
+  #ctTType) as written by CTABwriteFileASCIItt().
+ */
+COLOR_TABLE *CTABreadASCIIttHeader(const char *fname)
+{
+  FILE *fp;
+  COLOR_TABLE *ct=NULL;
+  int nct,ni,segid,segidmax;
+  char *cp, *str, line[5000];
+  int         structure;
+  char        name[STRLEN];
+  int         r, g, b, t;
+
+  fp = fopen(fname,"r");
+  if(fp == NULL){
+    printf("ERROR: CTABreadASCIItt(): cannot open %s\n",fname);
+    return(NULL);
+  }
+
+  segidmax = -1;
+  nct=0;
+  cp = (char *)1;
+  while(cp != NULL)  {
+    cp = fgets(line, STRLEN, fp);
+    ni = CountItemsInString(line);
+    if(ni==0) continue;
+    str = GetNthItemFromString(line, 0);
+    if(strcmp(str,"#ctTType")!=0) {
+      free(str);
+      continue;
+    }
+    free(str);
+    str = GetNthItemFromString(line, 1);
+    sscanf(str,"%d",&segid);
+    free(str);
+    if(segidmax < segid) segidmax = segid;
+    nct++;
+  }
+  //printf("nct = %d, segidmax %d\n",nct,segidmax);
+
+  ct = (COLOR_TABLE *)calloc(1, sizeof(COLOR_TABLE));
+  ct->nentries = segidmax + 1;
+  ct->entries = (COLOR_TABLE_ENTRY**) calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY*));
+
+  rewind(fp);
+
+  nct=0;
+  cp = (char *)1;
+  while(cp != NULL)  {
+    cp = fgets(line, STRLEN, fp);
+    ni = CountItemsInString(line);
+    if(ni==0) continue;
+    str = GetNthItemFromString(line, 0);
+    if(strcmp(str,"#ctTType")!=0) {
+      free(str);
+      continue;
+    }
+    free(str);
+    sscanf(line, "%*s %d %s  %d %d %d  %d",&structure, name, &r, &g, &b, &t);
+    ct->entries[structure] = (COLOR_TABLE_ENTRY*) calloc(1,sizeof(COLOR_TABLE_ENTRY));
+    strncpy(ct->entries[structure]->name, name,strlen(name)+1);
+    ct->entries[structure]->ri = r;
+    ct->entries[structure]->gi = g;
+    ct->entries[structure]->bi = b;
+    ct->entries[structure]->ai = (255-t); /* alpha = 255-trans */
+    nct++;
+  }
+
+  fclose(fp);
   return(ct);
 }
 
