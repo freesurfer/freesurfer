@@ -48,8 +48,8 @@ class Aeon {		// One point in time
     ~Aeon();
     static void SetBaseMask(MRI *BaseMask);
     static void SavePathPriors(std::vector<float> &Priors);
-    static void SaveControlPointSample(std::vector<int> &ControlPoints);
-    static void SetPathMap();
+    static void SaveBasePath(std::vector<int> &PathPoints);
+    static void SetPathMap(unsigned int PathIndex);
     void ReadData(const char *RootDir, const char *DwiFile,
                   const char *GradientFile, const char *BvalueFile,
                   const char *MaskFile, const char *BedpostDir,
@@ -59,11 +59,14 @@ class Aeon {		// One point in time
     float GetDx() const;
     float GetDy() const;
     float GetDz() const;
+    unsigned int GetNumSample() const;
     void FreeMask();
     void SetOutputDir(const char *OutDir);
     const string &GetOutputDir() const;
     void ClearPath();
     bool MapPathFromBase(Spline &BaseSpline);
+    const void FindDuplicatePathPoints(std::vector<bool> &IsDuplicate);
+    void RemovePathPoints(std::vector<bool> &DoRemove, unsigned int NewSize=0);
     void ProposeDiffusionParameters();
     bool ComputePathDataFit();
     int FindErrorSegment(Spline &BaseSpline);
@@ -97,10 +100,10 @@ class Aeon {		// One point in time
 
   private:
     static const unsigned int mDiffStep;
-    static int mMaximumAPosterioriPath;
-    static unsigned int mMaximumAPosterioriPath0;
-    static std::vector< std::vector<int> > mControlPointSamples;
+    static int mMaxAPosterioriPath;
+    static unsigned int mMaxAPosterioriPath0;
     static std::vector<float> mPriorSamples;
+    static std::vector< std::vector<int> > mBasePathPointSamples;
     static MRI *mBaseMask;
 
     bool mRejectF, mAcceptF, mRejectTheta, mAcceptTheta;
@@ -122,9 +125,12 @@ class Aeon {		// One point in time
     AffineReg mBaseReg;
 
     bool IsInMask(std::vector<int>::const_iterator Point);
-    int FindMaximumAPosterioriPath(std::vector< std::vector<int> > &PathSamples,
-                                   std::vector<int> &PathLengths,
-                                   MRI *PathHisto);
+    void ComputePathLengths(std::vector<int> &PathLengths,
+                            std::vector< std::vector<int> > &PathSamples);
+    void ComputePathHisto(MRI *HistoVol,
+                          std::vector< std::vector<int> > &PathSamples);
+    int FindMaxAPosterioriPath(std::vector< std::vector<int> > &PathSamples,
+                               std::vector<int> &PathLengths, MRI *PathHisto);
 };
 
 class Coffin {		// The main container
@@ -222,7 +228,6 @@ class Coffin {		// The main container
     bool JumpMcmcSingle(int ControlIndex);
     bool ProposePathFull();
     bool ProposePathSingle(int ControlIndex);
-    void MapPathToTimePoints();
     void ProposeDiffusionParameters();
     bool AcceptPath(bool UsePriorOnly=false);
     double ComputeXyzPriorOffPath(std::vector<int> &PathAtlasPoints);
@@ -236,6 +241,7 @@ class Coffin {		// The main container
     void UpdateProposalStd();
     void SavePathPosterior(bool IsPathAccepted);
     void SavePath();
+    void RemoveDuplicatePathPoints();
     bool IsInMask(std::vector<int>::const_iterator Point);
     bool IsInRoi(std::vector<int>::const_iterator Point, MRI *Roi);
     bool IsZigZag(std::vector<int> &ControlPoints,

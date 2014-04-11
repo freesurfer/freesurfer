@@ -25,10 +25,10 @@
 using namespace std;
 
 const unsigned int Aeon::mDiffStep = 3;
-int Aeon::mMaximumAPosterioriPath;
-unsigned int Aeon::mMaximumAPosterioriPath0;
-vector< vector<int> > Aeon::mControlPointSamples;
+int Aeon::mMaxAPosterioriPath;
+unsigned int Aeon::mMaxAPosterioriPath0;
 vector<float> Aeon::mPriorSamples;
+vector< vector<int> > Aeon::mBasePathPointSamples;
 MRI *Aeon::mBaseMask;
 
 const unsigned int Coffin::mMaxTryMask = 100,
@@ -62,17 +62,17 @@ void Aeon::SavePathPriors(vector<float> &Priors) {
 }
 
 //
-// Save a sample of the control points, common among all time points
+// Save a path sample in base space, common among all time points
 //
-void Aeon::SaveControlPointSample(vector<int> &ControlPoints) {
-  mControlPointSamples.push_back(ControlPoints);
+void Aeon::SaveBasePath(vector<int> &PathPoints) {
+  mBasePathPointSamples.push_back(PathPoints);
 }
 
 //
-// Set the current sample as the MAP path
+// Set a path sample as the MAP path
 //
-void Aeon::SetPathMap() {
-  mMaximumAPosterioriPath0 = mControlPointSamples.size() - 1;
+void Aeon::SetPathMap(unsigned int PathIndex) {
+  mMaxAPosterioriPath0 = PathIndex;
 }
 
 //
@@ -238,6 +238,11 @@ float Aeon::GetDy() const { return mMask->ysize; }
 float Aeon::GetDz() const { return mMask->zsize; }
 
 //
+// Return this time point's current number of saved path samples
+//
+unsigned int Aeon::GetNumSample() const { return mPathPointSamples.size(); }
+
+//
 // Free the space allocation to this time point's mask for clean-up
 //
 void Aeon::FreeMask() {
@@ -270,10 +275,10 @@ const string &Aeon::GetOutputDir() const { return mOutDir; }
 //
 void Aeon::ClearPath() {
   // Path-related variables that are common among all time points
-  mMaximumAPosterioriPath = -1;
-  mMaximumAPosterioriPath0 = 0;
-  mControlPointSamples.clear();
+  mMaxAPosterioriPath = -1;
+  mMaxAPosterioriPath0 = 0;
   mPriorSamples.clear();
+  mBasePathPointSamples.clear();
 
   // Path-related variables that are specific to this time point
   mPathPoints.clear();
@@ -343,6 +348,7 @@ bool Aeon::MapPathFromBase(Spline &BaseSpline) {
     for (vector<int>::const_iterator iptbase = BaseSpline.GetAllPointsBegin();
                                      iptbase < BaseSpline.GetAllPointsEnd();
                                      iptbase += 3) {
+
       for (int k = 0; k < 3; k++)
         pointf[k] = (float) iptbase[k];
 
@@ -351,25 +357,14 @@ bool Aeon::MapPathFromBase(Spline &BaseSpline) {
       for (int k = 0; k < 3; k++)
         point[k] = (int) round(pointf[k]);
 
-      // Keep point if it's not a duplicate (duplicates occur when mapping from
-      // a higher-resolution base space to a lower-resolution native space)
-      // and it's in the mask (points that are in the base mask may not be in 
+      // Keep point if it's in the mask (a point in the base mask may not be in 
       // an individual time point's mask due to interpolation/rounding errors)
-      if ( (mPathPointsNew.empty() || !(point[0] == *(mPathPointsNew.end()-3) &&
-                                        point[1] == *(mPathPointsNew.end()-2) &&
-                                        point[2] == *(mPathPointsNew.end()-1)))
-          && IsInMask(point.begin()) ) {
-        // Reject the path if it self-intersects (a path downsampled from base
-        // space may self-intersect in native space)
-        for (vector<int>::const_iterator ipt = mPathPointsNew.begin();
-                                         ipt < mPathPointsNew.end(); ipt += 3)
-          if (point[0] == ipt[0] && point[1] == ipt[1] && point[2] == ipt[2]) {
-            mErrorPoint.insert(mErrorPoint.begin(), point.begin(), point.end());
-            return false;
-          }
-
-        mPathPointsNew.insert(mPathPointsNew.end(), point.begin(), point.end());
+      if (!IsInMask(point.begin())) {
+        mErrorPoint.insert(mErrorPoint.begin(), point.begin(), point.end());
+        return false;
       }
+      else
+        mPathPointsNew.insert(mPathPointsNew.end(), point.begin(), point.end());
     }
 
     // Smooth discrete point coordinates
@@ -396,8 +391,8 @@ bool Aeon::MapPathFromBase(Spline &BaseSpline) {
 
   for (vector<float>::const_iterator itang = tangbegin; itang < tangend;
                                                         itang += 3) {
-      *iphi = atan2(itang[1], itang[0]);
-      *itheta = acos(itang[2] / sqrt(itang[0]*itang[0] + itang[1]*itang[1]
+    *iphi = atan2(itang[1], itang[0]);
+    *itheta = acos(itang[2] / sqrt(itang[0]*itang[0] + itang[1]*itang[1]
                                                        + itang[2]*itang[2]));
 
     iphi++;
@@ -405,6 +400,76 @@ bool Aeon::MapPathFromBase(Spline &BaseSpline) {
   }
 
   return true;
+}
+
+//
+// Find duplicate consecutive points along the current path
+//
+const void Aeon::FindDuplicatePathPoints(vector<bool> &IsDuplicate) {
+  vector<bool>::iterator idup = IsDuplicate.begin();
+  vector<int>::const_iterator ipt = mPathPoints.begin();
+
+  while (ipt < mPathPoints.end()) {
+    vector<int>::const_iterator iptnext = ipt + 3;
+
+    idup++;
+
+    while (iptnext < mPathPoints.end() && *idup) {
+      iptnext += 3;
+      idup++;
+    }
+
+    if (iptnext < mPathPoints.end() &&
+        ipt[0] == iptnext[0] && ipt[1] == iptnext[1] && ipt[2] == iptnext[2]) 
+      *idup = true;
+
+    ipt = iptnext;
+
+    while (ipt < mPathPoints.end() && *idup) {
+      ipt += 3;
+      idup++;
+    }
+  }
+}
+
+//
+// Remove specified points from current path
+//
+void Aeon::RemovePathPoints(vector<bool> &DoRemove, unsigned int NewSize) {
+  vector<int>::const_iterator ipt;
+  vector<int>::iterator iptnew;
+  vector<int> newpath;
+
+  if (NewSize > 0)
+    newpath.resize(NewSize);
+  else {			// If new size was not pre-computed, compute it
+    unsigned int newsize = 0;
+
+    for (vector<bool>::const_iterator irem = DoRemove.begin();
+                                      irem < DoRemove.end(); irem++)
+      if (! *irem)
+        newsize += 3;
+
+    newpath.resize(newsize);
+  }
+
+  ipt = mPathPoints.begin();
+  iptnew = newpath.begin();
+
+  for (vector<bool>::const_iterator irem = DoRemove.begin();
+                                    irem < DoRemove.end(); irem++) {
+    if (! *irem) {
+      copy(ipt, ipt+3, iptnew);
+      iptnew += 3;
+    }
+
+    ipt += 3;
+  }
+
+  mPathPoints.resize(newpath.size());
+  copy(newpath.begin(), newpath.end(), mPathPoints.begin());
+
+  mPathLength = mPathPoints.size() / 3;
 }
 
 //
@@ -648,11 +713,29 @@ void Aeon::WriteOutputs() {
   TRACK_HEADER trkheadout;
   vector<int> lengths(mPathPointSamples.size()), cptsmap, cptsmap0;
   vector<int>::iterator ilen;
+  vector<int>::const_iterator iptbase;
   vector<float> fpath;
   vector<float>::iterator ifpt;
   vector<float>::const_iterator ipr;
+  vector< vector<int> >::const_iterator pathmap, basepathmap;
   string fname;
-  MRI *pdvol = MRIclone(mMask, NULL);
+  ofstream mapfile;
+  MRI *pdvol;
+
+  // Find maximum a posteriori path, if it hasn't been found yet:
+  // Case where this is the first of multiple time points
+  if (!mBasePathPointSamples.empty() && mMaxAPosterioriPath < 0) {
+    pdvol = MRIclone(mBaseMask, NULL);
+
+    ComputePathHisto(pdvol, mBasePathPointSamples);
+    ComputePathLengths(lengths, mBasePathPointSamples);
+
+    mMaxAPosterioriPath = FindMaxAPosterioriPath(mBasePathPointSamples, 
+                                                 lengths, pdvol);
+
+    MRIfree(&pdvol);
+    fill(lengths.begin(), lengths.end(), 0);
+  }
 
   // Save a .trk file with path samples:
   // Output space orientation information
@@ -730,27 +813,16 @@ void Aeon::WriteOutputs() {
   MatrixFree(&outv2r);
 
   // Save volume of path samples
-  ilen = lengths.begin();
-  for (vector< vector<int> >::const_iterator ipath = mPathPointSamples.begin();
-                                             ipath < mPathPointSamples.end();
-                                             ipath++) {
-    *ilen = ipath->size() / 3;
+  pdvol = MRIclone(mMask, NULL);
 
-    for (vector<int>::const_iterator ipt = ipath->begin();
-                                     ipt < ipath->end(); ipt += 3) {
-      const int ix = ipt[0], iy = ipt[1], iz = ipt[2];
-      
-      MRIsetVoxVal(pdvol, ix, iy, iz, 0,
-                   MRIgetVoxVal(pdvol, ix, iy, iz, 0) + 1);
-    }
-
-    ilen++;
-  }
+  ComputePathHisto(pdvol, mPathPointSamples);
 
   fname = mOutDir + "/path.pd.nii.gz";
   MRIwrite(pdvol, fname.c_str());
 
   // Save length of path samples
+  ComputePathLengths(lengths, mPathPointSamples);
+
   fname = mOutDir + "/length.samples.txt";
   ofstream lenfile(fname.c_str(), ios::out);
 
@@ -763,15 +835,43 @@ void Aeon::WriteOutputs() {
                                                            ilen++)
     lenfile << *ilen << endl;
 
-  // Find maximum a posteriori path if it hasn't been found yet
-  if (mMaximumAPosterioriPath < 0)
-    mMaximumAPosterioriPath =
-      FindMaximumAPosterioriPath(mPathPointSamples, lengths, pdvol);
+  // Find maximum a posteriori path, if it hasn't been found yet:
+  // Case where this is the only time point
+  if (mMaxAPosterioriPath < 0)
+    mMaxAPosterioriPath = FindMaxAPosterioriPath(mPathPointSamples, 
+                                                 lengths, pdvol);
 
-  // Save maximum a posteriori path
-  vector< vector<int> >::const_iterator pathmap = mPathPointSamples.begin() +
-                                                  mMaximumAPosterioriPath;
+  pathmap = mPathPointSamples.begin() + mMaxAPosterioriPath;
 
+  if (!mBasePathPointSamples.empty()) {
+    basepathmap = mBasePathPointSamples.begin() + mMaxAPosterioriPath;
+    iptbase = basepathmap->begin();
+  }
+
+  // Save maximum a posteriori path coordinates
+  fname = mOutDir + "/path.map.txt";
+  mapfile.open(fname.c_str(), ios::out);
+
+  if (!mapfile) {
+    cout << "ERROR: Could not open " << fname << " for writing" << endl;
+    exit(1);
+  }
+
+  for (vector<int>::const_iterator ipt = pathmap->begin();
+                                   ipt < pathmap->end(); ipt += 3) {
+    mapfile << ipt[0] << " " << ipt[1] << " " << ipt[2];
+
+    if (!mBasePathPointSamples.empty()) {
+      mapfile << " " << iptbase[0] << " " << iptbase[1] << " " << iptbase[2];
+      iptbase += 3;
+    }
+
+    mapfile << endl;
+  }
+
+  mapfile.close();
+
+  // Save maximum a posteriori path as a volume
   MRIclear(pdvol);
   for (vector<int>::const_iterator ipt = pathmap->begin();
                                    ipt < pathmap->end(); ipt += 3) {
@@ -783,9 +883,8 @@ void Aeon::WriteOutputs() {
   MRIwrite(pdvol, fname.c_str());
 
 if (0) {		// !OLD METHOD! Remove this eventually
-  // Save maximum a posteriori path
-  vector< vector<int> >::const_iterator pathmap = mPathPointSamples.begin() +
-                                                  mMaximumAPosterioriPath0;
+  // Save maximum a posteriori path as a volume
+  pathmap = mPathPointSamples.begin() + mMaxAPosterioriPath0;
 
   MRIclear(pdvol);
   for (vector<int>::const_iterator ipt = pathmap->begin();
@@ -827,87 +926,6 @@ if (0) {		// !OLD METHOD! Remove this eventually
 
   fname = mOutDir + "/endpt2.pd.nii.gz";
   MRIwrite(pdvol, fname.c_str());
-
-  // Save control point samples
-  fname = mOutDir + "/cpts.samples.txt";
-  ofstream sampfile(fname.c_str(), ios::out);
-
-  if (!sampfile) {
-    cout << "ERROR: Could not open " << fname << " for writing" << endl;
-    exit(1);
-  }
-
-  if (mBaseReg.IsEmpty()) {	// Single time point, there is no base
-    for (vector< vector<int> >::const_iterator
-         isamp = mControlPointSamples.begin();
-         isamp < mControlPointSamples.end(); isamp++) {
-      for (vector<int>::const_iterator icpt = isamp->begin();
-                                       icpt < isamp->end(); icpt += 3)
-        sampfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
-
-      if (isamp - mControlPointSamples.begin() == mMaximumAPosterioriPath)
-        cptsmap.insert(cptsmap.end(), isamp->begin(), isamp->end());
-
-      if (isamp - mControlPointSamples.begin() == (int)
-                                                  mMaximumAPosterioriPath0)
-        cptsmap0.insert(cptsmap0.end(), isamp->begin(), isamp->end());
-    }
-  }
-  else {			// Multiple time points, must map from base
-    vector<float> point(3);
-
-    for (vector< vector<int> >::const_iterator
-         isamp = mControlPointSamples.begin();
-         isamp < mControlPointSamples.end(); isamp++)
-      for (vector<int>::const_iterator icpt = isamp->begin();
-                                       icpt < isamp->end(); icpt += 3) {
-        // Map control points from base to native DWI space
-        for (int k = 0; k < 3; k++)
-          point[k] = (float) icpt[k];
-
-        mBaseReg.ApplyXfm(point, point.begin());
-
-        sampfile << round(point[0]) << " " << round(point[1]) << " "
-                                           << round(point[2]) << endl;
-
-        if (isamp - mControlPointSamples.begin() == mMaximumAPosterioriPath)
-          for (int k = 0; k < 3; k++)
-            cptsmap.push_back((int) round(point[k]));
-
-        if (isamp - mControlPointSamples.begin() == (int)
-                                                    mMaximumAPosterioriPath0)
-          for (int k = 0; k < 3; k++)
-            cptsmap0.push_back((int) round(point[k]));
-      }
-  }
-
-  // Save control points corresponding to maximum a posteriori path
-  fname = mOutDir + "/cpts.map.txt";
-  ofstream mapfile(fname.c_str(), ios::out);
-
-  if (!mapfile) {
-    cout << "ERROR: Could not open " << fname << " for writing" << endl;
-    exit(1);
-  }
-
-  for (vector<int>::const_iterator icpt = cptsmap.begin();
-                                   icpt < cptsmap.end(); icpt += 3)
-    mapfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
-
-if (0) {		// !OLD METHOD! Remove this eventually
-  // Save control points corresponding to maximum a posteriori path
-  fname = mOutDir + "/cpts.map.txt";
-  ofstream mapfile(fname.c_str(), ios::out);
-
-  if (!mapfile) {
-    cout << "ERROR: Could not open " << fname << " for writing" << endl;
-    exit(1);
-  }
-
-  for (vector<int>::const_iterator icpt = cptsmap0.begin();
-                                   icpt < cptsmap0.end(); icpt += 3)
-    mapfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
-}
 
   // Save data-fit and prior terms of objective function on accepted and
   // rejected path samples
@@ -3396,21 +3414,70 @@ void Coffin::SavePathPosterior(bool IsPathAccepted) {
 // Save current path as an MCMC sample
 //
 void Coffin::SavePath() {
-  // Save current path for all time points
+  // If needed, downsample from base to native space
+  if (mDwi.size() > 1)
+    RemoveDuplicatePathPoints();
+
+  // Save current path for each time point
   for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
     idwi->SavePath();
 
-  // Save current control points
-  Aeon::SaveControlPointSample(mControlPoints);
+  // If there are multiple time points, also save current path in base space
+  if (mDwi.size() > 1)
+    Aeon::SaveBasePath(mPathPoints);
 
   // Keep track of MAP path
   if (mPosteriorOnPath < mPosteriorOnPathMap) {
-    Aeon::SetPathMap();
+    Aeon::SetPathMap(mDwi[0].GetNumSample() - 1);
     mPosteriorOnPathMap = mPosteriorOnPath;
   }
 }
 
 //
+// Remove duplicate points from path
+// Duplicate points can arise when mapping a path from base space to
+// a lower-resolution native space 
+//
+void Coffin::RemoveDuplicatePathPoints() {
+  unsigned int newsize = 0;
+  vector<int>::const_iterator ipt;
+  vector<int>::iterator iptnew;
+  vector<bool> isdup(mPathPoints.size()/3, false);
+  vector<int> newpath;
+
+  // Find duplicate path points
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+    idwi->FindDuplicatePathPoints(isdup);
+
+  // Remove duplicate path points in base space
+  for (vector<bool>::const_iterator idup = isdup.begin(); idup < isdup.end();
+                                                          idup++)
+    if (! *idup)
+      newsize += 3;
+
+  newpath.resize(newsize);
+
+  ipt = mPathPoints.begin();
+  iptnew = newpath.begin();
+
+  for (vector<bool>::const_iterator idup = isdup.begin(); idup < isdup.end();
+                                                          idup++) {
+    if (! *idup) {
+      copy(ipt, ipt+3, iptnew);
+      iptnew += 3;
+    }
+
+    ipt += 3;
+  }
+
+  mPathPoints.resize(newsize);
+  copy(newpath.begin(), newpath.end(), mPathPoints.begin());
+
+  // Remove duplicate path points in the space of each time point
+  for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
+    idwi->RemovePathPoints(isdup, newsize);
+}
+
 // Check that a point is inside the mask
 //
 bool Coffin::IsInMask(vector<int>::const_iterator Point) {
@@ -3698,15 +3765,47 @@ bool Aeon::IsInMask(vector<int>::const_iterator Point) {
 }
 
 //
+// Compute leengths of path samples
+//
+void Aeon::ComputePathLengths(vector<int> &PathLengths,
+                              vector< vector<int> > &PathSamples) {
+  vector<int>::iterator ilen = PathLengths.begin();
+
+  for (vector< vector<int> >::const_iterator ipath = PathSamples.begin();
+                                             ipath < PathSamples.end();
+                                             ipath++) {
+    *ilen = ipath->size() / 3;
+
+    ilen++;
+  }
+}
+
+//
+// Compute spatial histogram from path samples
+//
+void Aeon::ComputePathHisto(MRI *HistoVol,
+                            vector< vector<int> > &PathSamples) {
+  for (vector< vector<int> >::const_iterator ipath = PathSamples.begin();
+                                             ipath < PathSamples.end();
+                                             ipath++)
+    for (vector<int>::const_iterator ipt = ipath->begin();
+                                     ipt < ipath->end(); ipt += 3) {
+      const int ix = ipt[0], iy = ipt[1], iz = ipt[2];
+      
+      MRIsetVoxVal(HistoVol, ix, iy, iz, 0,
+                   MRIgetVoxVal(HistoVol, ix, iy, iz, 0) + 1);
+    }
+}
+
+//
 // Find maximum a posteriori path
 //
-int Aeon::FindMaximumAPosterioriPath(vector< vector<int> > &PathSamples,
-                                     vector<int> &PathLengths,
-                                     MRI *PathHisto) {
+int Aeon::FindMaxAPosterioriPath(vector< vector<int> > &PathSamples,
+                                 vector<int> &PathLengths, MRI *PathHisto) {
   const int lmin = *min_element(PathLengths.begin(), PathLengths.end()),
             lmax = *max_element(PathLengths.begin(), PathLengths.end());
   float lnorm, pathnorm = 0.0, probmax = 0.0;
-  vector<int>::const_iterator icptsmap, ilen;
+  vector<int>::const_iterator ilen;
   vector< vector<int> >::const_iterator ipathmap;
   vector<float> lhisto(lmax-lmin+1, 0), lhistofilt(lhisto.size(), 0);
   vector<float>::iterator ihistofilt = lhistofilt.begin();
