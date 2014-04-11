@@ -1,17 +1,17 @@
 /**
  * @file  mri_gtmpvc.c
- * @brief Peforms RBV Partial volume correction
+ * @brief Peforms Partial volume correction based on the geometric transfer matrix GTM
  *
- * Implementation of Region-based Voxelwise (RBV) partial volume correction
- * as found in Thomas, et al, 2011, Eur J Nucl Med Mol Imaging, 38:1104-1119.
- * It also implements the Geometric Transfer Matrix (GTM) as it is needed by RBV.
+ *
+ * Implementation of geometric transfer matrix (GTM). Also includes Muller-Gartner (MG) and
+ * Region-based Voxelwise (RBV) partial volume correction.
  */
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/10 20:06:27 $
- *    $Revision: 1.3 $
+ *    $Date: 2014/04/11 16:09:29 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.3 2014/04/10 20:06:27 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.4 2014/04/11 16:09:29 greve Exp $
 
 /*
   BEGINHELP
@@ -46,11 +46,6 @@
 
   ENDUSAGE
 */
-
-// Things to do:
-// 1. Bounding box smoothing
-// 2. FFT smoothing, sparse FFT
-// 3. Subvoxel
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,7 +91,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.3 2014/04/10 20:06:27 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.4 2014/04/11 16:09:29 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -126,8 +121,7 @@ typedef struct
   double cFWHM, rFWHM, sFWHM;
   double PadThresh;
   MRI *yseg,*yhat0seg,*yhatseg;
-  int rescale,n_scale_refids,scale_refids[100];
-  double scale;
+
   MRI *segpvf;
   MRI *ttpvf;
   MRI *gtmseg;
@@ -148,13 +142,27 @@ typedef struct
   MRI *ysynth,*ysynthsm;
   int *nperseg;
   MATRIX *nvox,*vrf,*segrvar;
+
   MRI *rbv;
   int mask_rbv_to_brain;
+
+  int rescale,n_scale_refids,scale_refids[100];
+  double scale;
+
+  int DoMGPVC;
   MRI *mg;
   double mg_gmthresh;
-  char *mg_ref_schema;
   int n_mg_refids,mg_refids[100];
   MATRIX *mg_reftac;
+
+  int DoKMRef;
+  int n_km_refids,km_refids[100];
+  MATRIX *km_reftac;
+
+  int DoKMHB;
+  int n_km_hbids,km_hbids[100];
+  MATRIX *km_hbtac;
+
   char *OutDir;
   FILE *logfp;
 } GTM;
@@ -216,8 +224,8 @@ double psfFWHM=-1;
 char tmpstr[5000],logfile[5000];
 char *PVFFile=NULL, *SegTTypeFile=NULL;
 double ApplyFWHM=0;
-char *Xfile=NULL,*ymatfile=NULL,*betamatfile=NULL;
-int SaveX=0, SaveYMat=0, SaveBetaMat=0;
+char *Xfile=NULL,*X0file=NULL,*ymatfile=NULL,*betamatfile=NULL;
+int SaveX=0, SaveX0=0, SaveYMat=0, SaveBetaMat=0;
 char *VRFStatsFile=NULL;
 char *eresFile=NULL, *yhatFile=NULL, *yhat0File=NULL;
 char *OutSegFile=NULL;
@@ -243,6 +251,9 @@ int GTMprintMGRefTAC(GTM *gtm, FILE *fp);
 int GTMwriteMGRefTAC(GTM *gtm, char *filename);
 int GTMrescale(GTM *gtm);
 int GTMwriteContrasts(GTM *GTM);
+int GTMprintRefIds(GTM *gtm, FILE *fp);
+int GTMcheckRefIds(GTM *gtm);
+int GTMrefTAC(GTM *gtm);
 
 GTM *gtm;
 GTMOPT *gtmopt;
@@ -254,7 +265,7 @@ char *SUBJECTS_DIR;
 int CheckX(MATRIX *X);
 int dngtest(LTA *aseg2vol);
 
-int DoMGPVC=0, DoRBV=0;
+int DoRBV=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -277,17 +288,14 @@ int main(int argc, char *argv[])
 
   gtm = GTMalloc();
   gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
-  gtm->mg_ref_schema = "basic-or-lobes";
+
+  // by default, rescale to Cerebellum WM
   gtm->rescale = 1; 
   gtm->n_scale_refids = 2;
   gtm->scale_refids[0] = 7;
   gtm->scale_refids[1] = 46;
   gtm->mask_rbv_to_brain = 1;
   gtm->nContrasts = 0;
-
-  GTMmgRefIds(gtm);
-
-  //ctSeg = TissueTypeSchema(NULL,"default-jan-2014");
 
   Progname = argv[0] ;
   argc --;
@@ -426,7 +434,14 @@ int main(int argc, char *argv[])
       exit(1);
     }
   }
+  sprintf(tmpstr,"%s/seg.ctab",OutDir);
+  CTABwriteFileASCIItt(gtm->ctGTMSeg,tmpstr);
 
+  printf("Checking Ref Ids\n");
+  err=GTMcheckRefIds(gtm);
+  if(err) exit(1);
+  GTMprintRefIds(gtm, stdout);
+  GTMprintRefIds(gtm, logfp);
 
   if(DoOpt){
   printf("\nRunning optimization\n");
@@ -477,14 +492,19 @@ int main(int argc, char *argv[])
     gtm->yvol = MRIcopy(gtm->ysynthsm,NULL);
   }
 
-  if(Xfile) {
+  if(SaveX0) {
+    printf("Writing X0 to %s\n",Xfile);
+    MatlabWrite(gtm->X0, X0file,"X0");
+  }
+  if(SaveX) {
     printf("Writing X to %s\n",Xfile);
     MatlabWrite(gtm->X, Xfile,"X");
     //MatrixWriteTxt(Xfile, gtm->X);
   }
   printf("Solving ...\n");
   TimerStart(&mytimer) ; 
-  GTMsolve(gtm); // also rescales everything if desired
+  err=GTMsolve(gtm); // also rescales everything if desired
+  if(err) exit(1);
   printf("Time to solve %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   fprintf(logfp,"GTM-Solve-Time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
 
@@ -498,6 +518,8 @@ int main(int argc, char *argv[])
     MatlabWrite(gtm->beta, betamatfile, "beta");
   }
 
+  GTMrefTAC(gtm);
+
   sprintf(tmpstr,"%s/hrseg2pet.lta",OutDir);
   LTAwrite(gtm->seg2pet,tmpstr);
   sprintf(tmpstr,"%s/anat2pet.lta",OutDir);
@@ -505,17 +527,10 @@ int main(int argc, char *argv[])
   //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
   //LTAwrite(gtm->anat2seg,tmpstr);
 
-  sprintf(tmpstr,"%s/seg.ctab",OutDir);
-  CTABwriteFileASCIItt(gtm->ctGTMSeg,tmpstr);
 
   if(gtm->rescale){
     // Rescaling is done during GTMsolve()
-    printf("Rescaled using segids ");
-    for(n=0; n < gtm->n_scale_refids; n++) printf("%4d ",gtm->scale_refids[n]);
-    printf("\n");
-    fprintf(logfp,"Rescaled using segids ");
-    for(n=0; n < gtm->n_scale_refids; n++) fprintf(logfp,"%4d ",gtm->scale_refids[n]);
-    fprintf(logfp,"\n");
+    printf("rescale factor %20.15lf\n",gtm->scale);
     fprintf(logfp,"rescale factor %20.15lf\n",gtm->scale);
     sprintf(tmpstr,"%s/scale.dat",OutDir);
     fp = fopen(tmpstr,"w");
@@ -554,6 +569,9 @@ int main(int argc, char *argv[])
 
   printf("rvar = %g\n",gtm->rvar->rptr[1][1]);
   fprintf(logfp,"rvar = %g\n",gtm->rvar->rptr[1][1]);
+
+  // Note: not going to rescale matrix because scaling should not 
+  // be an issue here
   gtm->XtXcond = MatrixConditionNumber(gtm->XtX);
   printf("XtX  Condition     %8.3f \n",gtm->XtXcond);
   fprintf(logfp,"XtX  Condition     %8.3f \n",gtm->XtXcond);
@@ -654,8 +672,8 @@ int main(int argc, char *argv[])
   if(err) exit(1);
   MRIfree(&mritmp);
 
-  if(DoMGPVC){
-    printf("Performing MG PVC, refidschema %s\n",gtm->mg_ref_schema);
+  if(gtm->DoMGPVC){
+    printf("Performing MG PVC\n");
     sprintf(tmpstr,"%s/mg.nii.gz",OutDir);
     MGPVCFile = strcpyalloc(tmpstr);
     fprintf(logfp,"MG PVC\n");
@@ -664,9 +682,6 @@ int main(int argc, char *argv[])
     if(err) exit(1);
     printf("done with mgpvc\n");
     fprintf(logfp,"done with mgpvc\n");
-    fprintf(logfp,"MG Ref Schema %s\n",gtm->mg_ref_schema);
-    for(c=0; c < gtm->n_mg_refids; c++) fprintf(logfp,"%4d ",gtm->mg_refids[c]);
-    fprintf(logfp,"\n");
     stem = IDstemFromName(MGPVCFile);
     sprintf(tmpstr,"%s.reftac.dat",stem);
     GTMwriteMGRefTAC(gtm, tmpstr);
@@ -686,9 +701,8 @@ int main(int argc, char *argv[])
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   }
   
-  printf("Setting up contrasts\n");
   if(gtm->nContrasts > 0){
-    printf("Testing contrasts\n");
+    printf("Testing %d contrasts\n",gtm->nContrasts);
     GTMttest(gtm);
     printf("Writing contrasts\n");
     GTMwriteContrasts(gtm);
@@ -807,15 +821,84 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--rbv")) DoRBV = 1;
-    else if(!strcasecmp(option, "--rescale")) gtm->rescale = 1;
     else if(!strcasecmp(option, "--no-rescale")) gtm->rescale = 0;
-
-    else if(!strcasecmp(option, "--mgpvc")) {
+    else if(!strcasecmp(option, "--rescale")) {
       if(nargc < 1) CMDargNErr(option,1);
-      DoMGPVC = 1;
+      gtm->rescale = 1;
+      gtm->n_scale_refids = 0;
+      int nth = 0;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	sscanf(pargv[nth],"%d",&gtm->scale_refids[gtm->n_scale_refids]);
+	gtm->n_scale_refids++;
+	nth ++;
+      }
+      nargsused = nth;
+    }
+    else if(!strcasecmp(option, "--mgpvc")){
+      if(nargc < 1) CMDargNErr(option,1);
+      gtm->DoMGPVC = 1;
       sscanf(pargv[0],"%lf",&gtm->mg_gmthresh);
       nargsused = 1;
+      if(CMDnthIsArg(nargc, pargv, 1)){
+	gtm->n_mg_refids = 0;
+	int nth = 1;
+	while(CMDnthIsArg(nargc, pargv, nth) ){
+	  sscanf(pargv[nth],"%d",&gtm->mg_refids[gtm->n_mg_refids]);
+	  gtm->n_mg_refids++;
+	  nth ++;
+	}
+	nargsused += gtm->n_mg_refids;
+      }
     } 
+    else if(!strcasecmp(option, "--mgpvc-ref-cerebral-wm")) {
+      int m=0;
+      gtm->mg_refids[m] =  2; m++;
+      gtm->mg_refids[m] = 41; m++;
+      gtm->n_mg_refids = m;
+    }
+    else if(!strcasecmp(option, "--mgpvc-ref-lobes-wm")) {
+      int m=0;
+      gtm->mg_refids[m] = 3201; m++;
+      gtm->mg_refids[m] = 3203; m++;
+      gtm->mg_refids[m] = 3204; m++;
+      gtm->mg_refids[m] = 3205; m++;
+      gtm->mg_refids[m] = 3206; m++;
+      gtm->mg_refids[m] = 3207; m++;
+      gtm->mg_refids[m] = 4201; m++;
+      gtm->mg_refids[m] = 4203; m++;
+      gtm->mg_refids[m] = 4204; m++;
+      gtm->mg_refids[m] = 4205; m++;
+      gtm->mg_refids[m] = 4206; m++;
+      gtm->mg_refids[m] = 4207; m++;
+      gtm->mg_refids[m] = 5001; m++;
+      gtm->mg_refids[m] = 5002; m++;
+      gtm->n_mg_refids = m;
+    }
+    else if(!strcasecmp(option, "--km-ref")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      gtm->DoKMRef = 1;
+      gtm->n_km_refids = 0;
+      int nth = 0;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	sscanf(pargv[nth],"%d",&gtm->km_refids[gtm->n_km_refids]);
+	gtm->n_km_refids++;
+	nth ++;
+      }
+      nargsused = gtm->n_km_refids;
+    } 
+    else if(!strcasecmp(option, "--km-hb")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      gtm->DoKMHB = 1;
+      gtm->n_km_hbids = 0;
+      int nth = 0;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	sscanf(pargv[nth],"%d",&gtm->km_hbids[gtm->n_km_hbids]);
+	gtm->n_km_hbids++;
+	nth ++;
+      }
+      nargsused = gtm->n_km_hbids;
+    } 
+    else if(!strcasecmp(option, "--X0"))   SaveX0 = 1;
     else if(!strcasecmp(option, "--X"))    SaveX = 1;
     else if(!strcasecmp(option, "--y"))    SaveYMat = 1;
     else if(!strcasecmp(option, "--beta")) SaveBetaMat = 1;
@@ -946,6 +1029,7 @@ static void print_usage(void) {
   printf("   --X : save X matrix in matlab4 format as X.mat (it will be big)\n");
   printf("   --y : save y matrix in matlab4 format as X.mat\n");
   printf("   --beta : save beta matrix in matlab4 format as X.mat\n");
+  printf("   --X0 : save X0 matrix in matlab4 format as X0.mat (it will be big)\n");
   printf("\n");
   printf("   --synth gtmbeta synthvolume : synthesize unsmoothed volume with gtmbeta as input\n");
   printf("\n");
@@ -1043,6 +1127,10 @@ static void check_options(void)
     }
   }
 
+  if(SaveX0) {
+    sprintf(tmpstr,"%s/X0.mat",OutDir);
+    X0file = strcpyalloc(tmpstr);
+  }
   if(SaveX) {
     sprintf(tmpstr,"%s/X.mat",OutDir);
     Xfile = strcpyalloc(tmpstr);
@@ -1350,9 +1438,13 @@ int GTMnPad(GTM *gtm)
   double maxFWHM, maxStd;
   maxFWHM = MAX(gtm->cFWHM/gtm->yvol->xsize,
 		MAX(gtm->rFWHM/gtm->yvol->ysize,gtm->sFWHM/gtm->yvol->zsize));
-  maxStd = maxFWHM*sqrt(log(256.0));
-  gtm->nPad = ceil(sqrt(-log(gtm->PadThresh*maxStd*sqrt(2*M_PI))*2*maxStd));
-  if(Gdiag_no > 0) printf("maxFWHM = %g (voxels), PadThresh=%g, nPad=%d\n",maxFWHM,gtm->PadThresh,gtm->nPad);
+  if(maxFWHM > 0){
+    // The case where psf=0, just correcting for volume fraction
+    maxStd = maxFWHM*sqrt(log(256.0));
+    gtm->nPad = ceil(sqrt(-log(gtm->PadThresh*maxStd*sqrt(2*M_PI))*2*maxStd));
+    printf("maxFWHM = %g (voxels), PadThresh=%g, nPad=%d\n",maxFWHM,gtm->PadThresh,gtm->nPad);
+  }
+  else gtm->nPad = 1;
   return(0);
 }
 /*------------------------------------------------------------------*/
@@ -1983,63 +2075,6 @@ MRI *GTMsegSynth(GTM *gtm)
 }
 
 /*--------------------------------------------------------------------------*/
-int GTMmgRefIds(GTM *gtm)
-{
-  int m;
-  if(strcmp(gtm->mg_ref_schema,"basic")==0){
-    m=0;
-    gtm->mg_refids[m] =  2; m++;
-    gtm->mg_refids[m] = 41; m++;
-    gtm->n_mg_refids = m;
-    return(gtm->n_mg_refids);
-  }
-  if(strcmp(gtm->mg_ref_schema,"lobes")==0){
-    m=0;
-    gtm->mg_refids[m] = 3201; m++;
-    gtm->mg_refids[m] = 3203; m++;
-    gtm->mg_refids[m] = 3204; m++;
-    gtm->mg_refids[m] = 3205; m++;
-    gtm->mg_refids[m] = 3206; m++;
-    gtm->mg_refids[m] = 3207; m++;
-    gtm->mg_refids[m] = 4201; m++;
-    gtm->mg_refids[m] = 4203; m++;
-    gtm->mg_refids[m] = 4204; m++;
-    gtm->mg_refids[m] = 4205; m++;
-    gtm->mg_refids[m] = 4206; m++;
-    gtm->mg_refids[m] = 4207; m++;
-    gtm->mg_refids[m] = 5001; m++;
-    gtm->mg_refids[m] = 5002; m++;
-    gtm->n_mg_refids = m;
-    return(gtm->n_mg_refids);
-  }
-
-  if(strcmp(gtm->mg_ref_schema,"basic-or-lobes")==0){
-    m=0;
-    gtm->mg_refids[m] =  2; m++;
-    gtm->mg_refids[m] = 41; m++;
-    gtm->mg_refids[m] = 3201; m++;
-    gtm->mg_refids[m] = 3203; m++;
-    gtm->mg_refids[m] = 3204; m++;
-    gtm->mg_refids[m] = 3205; m++;
-    gtm->mg_refids[m] = 3206; m++;
-    gtm->mg_refids[m] = 3207; m++;
-    gtm->mg_refids[m] = 4201; m++;
-    gtm->mg_refids[m] = 4203; m++;
-    gtm->mg_refids[m] = 4204; m++;
-    gtm->mg_refids[m] = 4205; m++;
-    gtm->mg_refids[m] = 4206; m++;
-    gtm->mg_refids[m] = 4207; m++;
-    gtm->mg_refids[m] = 5001; m++;
-    gtm->mg_refids[m] = 5002; m++;
-    gtm->n_mg_refids = m;
-    return(gtm->n_mg_refids);
-  }
-
-  printf("MG Reference ID schema %s unrecognized\n",gtm->mg_ref_schema);
-  return(0);
-}
-
-/*--------------------------------------------------------------------------*/
 int GTMprintMGRefTAC(GTM *gtm, FILE *fp)
 {
   int f;
@@ -2276,3 +2311,162 @@ int dngtest(LTA *aseg2vol)
 
 }
 
+/*-------------------------------------------------------------------------*/
+int GTMcheckRefIds(GTM *gtm)
+{
+  int n,m,ok;
+
+  if(gtm->rescale){
+    for(n=0; n < gtm->n_scale_refids; n++){
+      ok = 0;
+      for(m=0; m < gtm->nsegs; m++){
+	if(gtm->segidlist[m] == gtm->scale_refids[n]){
+	  ok = 1;
+	  break;
+	}
+      }
+      if(! ok) {
+	printf("ERROR: scale reference id %d cannot be found in seg id list\n",gtm->scale_refids[n]);
+	fprintf(gtm->logfp,"ERROR: scale reference id %d cannot be found in seg id list\n",gtm->scale_refids[n]);
+	return(1);
+      }
+    }
+  }
+
+  if(gtm->DoMGPVC){
+    for(n=0; n < gtm->n_mg_refids; n++){
+      ok = 0;
+      for(m=0; m < gtm->nsegs; m++){
+	if(gtm->segidlist[m] == gtm->mg_refids[n]){
+	  ok = 1;
+	  break;
+	}
+      }
+      if(! ok) {
+	printf("ERROR: MG reference id %d cannot be found in seg id list\n",gtm->mg_refids[n]);
+	fprintf(gtm->logfp,"ERROR: scale reference id %d cannot be found in seg id list\n",gtm->mg_refids[n]);
+	return(1);
+      }
+    }
+  }
+
+  if(gtm->DoKMRef){
+    for(n=0; n < gtm->n_km_refids; n++){
+      ok = 0;
+      for(m=0; m < gtm->nsegs; m++){
+	if(gtm->segidlist[m] == gtm->km_refids[n]){
+	  ok = 1;
+	  break;
+	}
+      }
+      if(! ok) {
+	printf("ERROR: KM reference id %d cannot be found in seg id list\n",gtm->km_refids[n]);
+	fprintf(gtm->logfp,"ERROR: scale reference id %d cannot be found in seg id list\n",gtm->km_refids[n]);
+	return(1);
+      }
+    }
+  }
+
+  if(gtm->DoKMHB){
+    for(n=0; n < gtm->n_km_hbids; n++){
+      ok = 0;
+      for(m=0; m < gtm->nsegs; m++){
+	if(gtm->segidlist[m] == gtm->km_hbids[n]){
+	  ok = 1;
+	  break;
+	}
+      }
+      if(! ok) {
+	printf("ERROR: KM high binding id %d cannot be found in seg id list\n",gtm->km_hbids[n]);
+	fprintf(gtm->logfp,"ERROR: scale high binding id %d cannot be found in seg id list\n",gtm->km_hbids[n]);
+	return(1);
+      }
+    }
+  }
+
+  return(0);
+}
+
+/*-----------------------------------------------------------------------------------------*/
+int GTMprintRefIds(GTM *gtm, FILE *fp)
+{
+  int n;
+
+  if(gtm->rescale){
+    fprintf(fp,"Segmentations used for rescaling\n");
+    for(n=0; n < gtm->n_scale_refids; n++) 
+      fprintf(fp,"%4d %s\n",gtm->scale_refids[n],gtm->ctGTMSeg->entries[gtm->scale_refids[n]]->name);
+  }
+
+  if(gtm->DoMGPVC){
+    fprintf(fp,"Segmentations used for MG PVC WM reference\n");
+    for(n=0; n < gtm->n_mg_refids; n++) 
+      fprintf(fp,"%4d %s\n",gtm->mg_refids[n],gtm->ctGTMSeg->entries[gtm->mg_refids[n]]->name);
+  }
+
+  if(gtm->DoKMRef){
+    fprintf(fp,"Segmentations used for KM reference TAC\n");
+    for(n=0; n < gtm->n_km_refids; n++)
+      fprintf(fp,"%4d %s\n",gtm->km_refids[n],gtm->ctGTMSeg->entries[gtm->km_refids[n]]->name);
+  }
+
+  if(gtm->DoKMHB){
+    fprintf(fp,"Segmentations used for KM High Binding TAC\n");
+    for(n=0; n < gtm->n_km_hbids; n++)
+      fprintf(fp,"%4d %s\n",gtm->km_hbids[n],gtm->ctGTMSeg->entries[gtm->km_hbids[n]]->name);
+  }
+  fflush(fp);
+  return(0);
+}
+
+
+/*--------------------------------------------------------------------------*/
+int GTMrefTAC(GTM *gtm)
+{
+  int f,n,nthseg,segid;
+  double sum;
+  char tmpstr[5000];
+  FILE *fp;
+
+  if(gtm->DoKMRef){
+    sprintf(tmpstr,"%s/km.ref.tac.dat",gtm->OutDir);
+    fp = fopen(tmpstr,"w");
+    if(fp==NULL) return(1);
+    gtm->km_reftac = MatrixAlloc(gtm->yvol->nframes,1,MATRIX_REAL);
+    for(f=0; f < gtm->yvol->nframes; f++){
+      sum = 0;
+      for(n=0; n < gtm->n_km_refids; n++) {
+	for(nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
+	  segid = gtm->segidlist[nthseg];
+	  if(segid == gtm->km_refids[n]) break;
+	}
+	sum += gtm->beta->rptr[nthseg+1][f+1];
+      }
+      gtm->km_reftac->rptr[f+1][1] = sum/gtm->n_km_refids;
+      fprintf(fp,"%20.15lf\n",sum/gtm->n_km_refids);
+    }
+    fclose(fp);
+  }
+
+  if(gtm->DoKMHB){
+    sprintf(tmpstr,"%s/km.hb.tac.dat",gtm->OutDir);
+    fp = fopen(tmpstr,"w");
+    if(fp==NULL) return(1);
+    gtm->km_hbtac = MatrixAlloc(gtm->yvol->nframes,1,MATRIX_REAL);
+    for(f=0; f < gtm->yvol->nframes; f++){
+      sum = 0;
+      for(n=0; n < gtm->n_km_hbids; n++) {
+	for(nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
+	  segid = gtm->segidlist[nthseg];
+	  if(segid == gtm->km_hbids[n]) break;
+	}
+	sum += gtm->beta->rptr[nthseg+1][f+1];
+      }
+      gtm->km_hbtac->rptr[f+1][1] = sum/gtm->n_km_hbids;
+      fprintf(fp,"%20.15lf\n",sum/gtm->n_km_hbids);
+    }
+    fclose(fp);
+  }
+
+  return(0);
+}
