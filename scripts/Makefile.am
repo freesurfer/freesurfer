@@ -164,6 +164,7 @@ print_unique_labels.csh \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \
+rbbr \
 rcbf-prep \
 rebuild_gca_atlas.csh \
 recon-all \
