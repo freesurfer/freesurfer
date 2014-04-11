@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/12 21:01:10 $
- *    $Revision: 1.25 $
+ *    $Date: 2014/04/11 15:31:56 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,6 +23,63 @@
  *
  */
 
+/*
+BEGINHELP --------------------------------------------------------------
+
+This program computes tables for performing multiple comparisons on
+the surface based on a monte carlo simulation using white gaussian
+noise smoothed on the surface. mri_mcsim was used to generate the
+tables found in $FREESURFER_HOME/average/mult-comp-cor and used by
+mri_glmfit-sim with the --cache option. The tables in mult-comp-cor
+are for fsaverage and fsaverage_sym for a search space over the whole
+cortex. mri_mcsim can be used to create new tables for a new subject
+or for fsaverage/fsaverage_sum with a smaller search space.
+
+Example 1: Create tables for a new subject for whole hemisphere
+
+mri_mcsim --o /path/to/mult-comp-cor/newsubject/lh/cortex --base mc-z 
+  --save-iter  --surf newsubject lh --nreps 10000
+
+This may take hours (or even days) to run; see below for
+parallelizing.  When running mri_glmfit-sim, add --cache-dir
+/path/to/mult-comp-cor
+
+Example 2: Create tables for superior temporal gyrus for fsaverage
+
+First, create the label by running
+
+mri_annotation2label --subject fsaverage --hemi lh --outdir labeldir
+
+mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base mc-z 
+  --save-iter  --surf fsaverage lh --nreps 10000 
+  --label labeldir/lh.superiortemporal.label
+
+When running mri_glmfit, make sure to use   --label labeldir/lh.superiortemporal.label
+When running mri_glmfit-sim, add --cache-dir /path/to/mult-comp-cor --cache-label superiortemporal
+
+Example 3: running simulations in parallel (two jobs, 5000 iterations
+each for a total of 10000)
+
+mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base mc-z.j001 
+  --save-iter  --surf fsaverage lh --nreps 5000
+  --label labeldir/lh.superiortemporal.label
+
+mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base mc-z.j002 
+  --save-iter  --surf fsaverage lh --nreps 500
+  --label labeldir/lh.superiortemporal.label
+
+When those jobs are done, merge the results into a single table with
+
+mri_surfcluster 
+  --csd /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.j001.csd 
+  --csd /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.j002.csd 
+  --csd-out /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.csd 
+  --csdpdf  /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.cdf --csdpdf-only
+
+Repeat the above command for each FWHM, sign (pos, neg, abs) and threshold
+
+ENDHELP --------------------------------------------------------------
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -66,7 +123,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.25 2013/11/12 21:01:10 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.26 2014/04/11 15:31:56 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -641,6 +698,60 @@ static void print_usage(void) {
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
+printf("\n");
+printf("This program computes tables for performing multiple comparisons on\n");
+printf("the surface based on a monte carlo simulation using white gaussian\n");
+printf("noise smoothed on the surface. mri_mcsim was used to generate the\n");
+printf("tables found in $FREESURFER_HOME/average/mult-comp-cor and used by\n");
+printf("mri_glmfit-sim with the --cache option. The tables in mult-comp-cor\n");
+printf("are for fsaverage and fsaverage_sym for a search space over the whole\n");
+printf("cortex. mri_mcsim can be used to create new tables for a new subject\n");
+printf("or for fsaverage/fsaverage_sum with a smaller search space.\n");
+printf("\n");
+printf("Example 1: Create tables for a new subject for whole hemisphere\n");
+printf("\n");
+printf("mri_mcsim --o /path/to/mult-comp-cor/newsubject/lh/cortex --base mc-z \n");
+printf("  --save-iter  --surf newsubject lh --nreps 10000\n");
+printf("\n");
+printf("This may take hours (or even days) to run; see below for\n");
+printf("parallelizing.  When running mri_glmfit-sim, add --cache-dir\n");
+printf("/path/to/mult-comp-cor\n");
+printf("\n");
+printf("Example 2: Create tables for superior temporal gyrus for fsaverage\n");
+printf("\n");
+printf("First, create the label by running\n");
+printf("\n");
+printf("mri_annotation2label --subject fsaverage --hemi lh --outdir labeldir\n");
+printf("\n");
+printf("mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base mc-z \n");
+printf("  --save-iter  --surf fsaverage lh --nreps 10000 \n");
+printf("  --label labeldir/lh.superiortemporal.label\n");
+printf("\n");
+printf("When running mri_glmfit, make sure to use   --label labeldir/lh.superiortemporal.label\n");
+printf("When running mri_glmfit-sim, add --cache-dir /path/to/mult-comp-cor --cache-label superiortemporal\n");
+printf("\n");
+printf("Example 3: running simulations in parallel (two jobs, 5000 iterations\n");
+printf("each for a total of 10000)\n");
+printf("\n");
+printf("mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base mc-z.j001 \n");
+printf("  --save-iter  --surf fsaverage lh --nreps 5000\n");
+printf("  --label labeldir/lh.superiortemporal.label\n");
+printf("\n");
+printf("mri_mcsim --o /path/to/mult-comp-cor/fsaverage/lh/superiortemporal --base mc-z.j002 \n");
+printf("  --save-iter  --surf fsaverage lh --nreps 500\n");
+printf("  --label labeldir/lh.superiortemporal.label\n");
+printf("\n");
+printf("When those jobs are done, merge the results into a single table with\n");
+printf("\n");
+printf("mri_surfcluster \n");
+printf("  --csd /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.j001.csd \n");
+printf("  --csd /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.j002.csd \n");
+printf("  --csd-out /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.csd \n");
+printf("  --csdpdf  /path/to/mult-comp-cor/fsaverage/lh/superiortemporal/fwhm10/abs/th20/mc-z.cdf --csdpdf-only\n");
+printf("\n");
+printf("Repeat the above command for each FWHM, sign (pos, neg, abs) and threshold\n");
+printf("\n");
+
   exit(1) ;
 }
 /* --------------------------------------------- */
