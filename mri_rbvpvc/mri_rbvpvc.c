@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/09 21:10:06 $
- *    $Revision: 1.42 $
+ *    $Date: 2014/04/11 15:42:24 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.42 2014/04/09 21:10:06 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.43 2014/04/11 15:42:24 greve Exp $
 
 /*
   BEGINHELP
@@ -96,7 +96,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.42 2014/04/09 21:10:06 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.43 2014/04/11 15:42:24 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -237,8 +237,6 @@ int CheckX(MATRIX *X);
 int dngtest(LTA *aseg2vol);
 
 int DoMGPVC=0, DoRBV=0;
-MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k);
-MATRIX *MatrixSkew(MATRIX *y, MATRIX *s);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -2152,67 +2150,4 @@ int GTMrescale(GTM *gtm)
   MatrixScalarMul(gtm->y,    gtm->scale,gtm->y);
 
   return(0);
-}
-
-MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k)
-{
-  int c, r;
-  double mn,m4=0,m2=0,g2,delta,b1,b2,n;
-
-  if(k==NULL) k = MatrixAlloc(1,y->cols,MATRIX_REAL);
-
-  n = y->rows;
-  b1 = (n+1)*(n-1)/((n-2)*(n-3));
-  b2 = ((n-1)*(n-1))/((n-2)*(n-3));
-  printf("kurt: n=%d, b1=%g b2=%g\n",(int)n,b1,b2);
-
-  for(c=0; c < y->cols; c++){
-    mn = 0;
-    for(r=0; r < y->rows; r++) mn += y->rptr[r+1][c+1];
-    mn /= y->rows;
-    m2 = 0;
-    m4 = 0;
-    for(r=0; r < y->rows; r++){
-      delta = y->rptr[r+1][c+1]-mn;
-      m2 += pow(delta,2.0); // sum of squares
-      m4 += pow(delta,4.0); // sum of quads
-    }
-    m4 *= y->rows;
-    if(m2 != 0) g2 = b1*(m4/(m2*m2)) - 3*b2; // 0 mean
-    else        g2 = 0;
-    printf("kurt: %2d mn=%g, m2=%g, m4=%g, g2=%g\n",c,mn,m2,m4,g2);
-    k->rptr[1][c+1] = g2;
-  }
-  return(k);
-}
-
-MATRIX *MatrixSkew(MATRIX *y, MATRIX *s)
-{
-  int c, r;
-  double mn,m2,m3,g1,delta,n,adj;
-
-  if(s==NULL) s = MatrixAlloc(1,y->cols,MATRIX_REAL);
-
-  n = y->rows;
-  adj = sqrt(n*(n-1))/(n-2);
-
-  for(c=0; c < y->cols; c++){
-    mn = 0;
-    for(r=0; r < y->rows; r++) mn += y->rptr[r+1][c+1];
-    mn /= y->rows;
-    m2 = 0;
-    m3 = 0;
-    for(r=0; r < y->rows; r++){
-      delta = y->rptr[r+1][c+1]-mn;
-      m2 += pow(delta,2.0); // sum of squares
-      m3 += pow(delta,3.0); // sum of cubes
-    }
-    m2 /= n;
-    m3 /= n;
-    if(m2 != 0) g1 = adj*m3/pow(m2,1.5);
-    else        g1 = 0;
-    printf("skew: %2d mn=%g, m2=%g, m3=%g g1=%g\n",c,mn,m2,m3,g1);
-    s->rptr[1][c+1] = g1;
-  }
-  return(s);
 }
