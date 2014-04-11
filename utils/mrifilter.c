@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/08 15:30:04 $
- *    $Revision: 1.102 $
+ *    $Date: 2014/04/11 16:03:49 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -6956,7 +6956,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
   }
 
   #ifdef _OPENMP
-  printf("MRIgaussianSmoothNI(): %d avail.processors, using %d\n",omp_get_num_procs(),omp_get_max_threads());
+  if(Gdiag_no > 0) printf("MRIgaussianSmoothNI(): %d avail.processors, using %d\n",omp_get_num_procs(),omp_get_max_threads());
   #endif
 
   /* -----------------Smooth the columns -----------------------------*/
@@ -7070,7 +7070,7 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
   #endif
   for(c=0; c < cstop; c++) {
     int r,s;
-    double aa=0,bb=0,cc=0,val;
+    double aa=1,bb=1,cc=1,val;
     for(r=0; r < rstop; r++) {
       for(s=0; s < sstop; s++) {
         if(cstd > 0.0) aa = vc->rptr[c+1][1];
