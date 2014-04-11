@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/09 20:56:04 $
- *    $Revision: 1.54 $
+ *    $Date: 2014/04/11 20:06:39 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -196,7 +196,7 @@ void PanelSurface::DoUpdateWidgets()
   LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
   for ( int i = 0; i < this->allWidgets.size(); i++ )
   {
-    if ( allWidgets[i] != ui->toolbar && allWidgets[i]->parentWidget() != ui->toolbar )
+    if ( allWidgets[i] != ui->toolbar2 && allWidgets[i]->parentWidget() != ui->toolbar2 )
     {
       allWidgets[i]->setEnabled(layer);
     }

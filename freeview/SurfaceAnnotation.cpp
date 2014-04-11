@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/14 18:08:32 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/04/11 20:06:39 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,7 +111,24 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
       m_lut = mris->ct;
       m_nIndexSize = mris->nvertices;
       m_nIndices = new int[m_nIndexSize];
-      CTABgetNumberOfValidEntries( m_lut, &m_nAnnotations );
+
+      // find valid annotations
+      int n;
+      QList<int> annotIndices;
+      for ( int i = 0; i < m_nIndexSize; i++ )
+      {
+        if ( CTABfindAnnotation( m_lut, mris->vertices[i].annotation, &n ) == 0 )
+        {
+          m_nIndices[i] = n;
+          if (!annotIndices.contains(n))
+            annotIndices << n;
+        }
+        else
+          m_nIndices[i] = -1;
+      }
+      qSort(annotIndices);
+      m_nAnnotations = annotIndices.size();
+   //   CTABgetNumberOfValidEntries( m_lut, &m_nAnnotations );
       m_nCenterVertices = new int[m_nAnnotations];
       for ( int i = 0; i < m_nAnnotations; i++ )
       {
@@ -129,26 +146,16 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
         memset( pts[i], 0, sizeof( double ) * 3 );
       }
 
-      int n;
       for ( int i = 0; i < m_nIndexSize; i++ )
       {
-        if ( CTABfindAnnotation( m_lut, mris->vertices[i].annotation, &n ) == 0 )
+        if ( m_nIndices[i] != -1 && mris->vertices[i].ripflag == 0 )
         {
-          m_nIndices[i] = n;
-
-          if ( mris->vertices[i].ripflag == 0 &&
-               m_nIndices[i] != -1 )
-          {
-            vcount[n]++;
-            pts[n][0] += mris->vertices[i].x;
-            pts[n][1] += mris->vertices[i].y;
-            pts[n][2] += mris->vertices[i].z;
-            m_nCenterVertices[n] = i;
-          }
-        }
-        else
-        {
-          m_nIndices[i] = -1;
+          n = annotIndices.indexOf(m_nIndices[i]);
+          vcount[n]++;
+          pts[n][0] += mris->vertices[i].x;
+          pts[n][1] += mris->vertices[i].y;
+          pts[n][2] += mris->vertices[i].z;
+          m_nCenterVertices[n] = i;
         }
       }
 
@@ -178,14 +185,13 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
       // build outline indices, not work yet
       m_nOutlineIndices = new int[m_nIndexSize];
       memcpy(m_nOutlineIndices, m_nIndices, sizeof(int)*m_nIndexSize);
-      vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
       for (int i = 0; i < m_nAnnotations; i++)
       {
         if (true)
         {
           VERTEX *v;
           MRISclearMarks(mris);
-          LABEL* label = MRISannotation_to_label(mris, i);
+          LABEL* label = MRISannotation_to_label(mris, annotIndices[i]);
           if (label)
           {
             LabelMarkSurface(label, mris);

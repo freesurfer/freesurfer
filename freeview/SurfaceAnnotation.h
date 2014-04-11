@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/29 18:58:26 $
- *    $Revision: 1.16 $
+ *    $Date: 2014/04/11 20:06:39 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,11 +65,6 @@ public:
   int GetIndexSize()
   {
     return m_nIndexSize;
-  }
-
-  int GetNumberOfAnnotations()
-  {
-    return m_nAnnotations;
   }
 
   COLOR_TABLE* GetColorTable()

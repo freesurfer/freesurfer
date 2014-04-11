@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/09 20:56:04 $
- *    $Revision: 1.43 $
+ *    $Date: 2014/04/11 20:06:39 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,8 +27,10 @@
 #include "MyUtils.h"
 #include <QStringList>
 #include <QDateTime>
+#include <QMessageBox>
 #include <QDir>
 #include <QDebug>
+#include <QStyleFactory>
 #include "CursorFactory.h"
 #include "vtkObject.h"
 #include "LineProf.h"
@@ -38,6 +40,7 @@
 extern "C"
 {
 #include "fsinit.h"
+#include "chklc.h"
 }
 
 char* Progname;
@@ -76,7 +79,7 @@ int main(int argc, char *argv[])
   Progname = argv[0];  
   ErrorSetExitFunc(my_error_exit);
 
-  putenv((char*)"SURFER_FRONTDOOR=");
+//  putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)
     putenv((char*)"LANG=en_US");
   qInstallMsgHandler(myMessageOutput);
@@ -136,7 +139,7 @@ int main(int argc, char *argv[])
   app.setOrganizationDomain("nmr.mgh.harvard.edu");
 #ifdef Q_WS_X11
   app.setApplicationName("freeview");
-  app.setStyle( "Gtk" );
+  app.setStyle( "Cleanlooks" );
 #else
   app.setApplicationName("FreeView");
 #endif
@@ -158,6 +161,15 @@ int main(int argc, char *argv[])
 
   MainWindow w(NULL, &cmd);
   w.show();
+
+  // check license
+  char license_msg[2000];
+  if (!chklc2(license_msg))
+  {
+    QMessageBox::warning(&w, "License Error", license_msg);
+    w.close();
+    return false;
+  }
 
   if (!w.ParseCommand(argc, argv, true))
   {

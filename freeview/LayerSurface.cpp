@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/09 20:56:03 $
- *    $Revision: 1.102 $
+ *    $Date: 2014/04/11 20:06:39 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -396,7 +396,7 @@ bool LayerSurface::LoadAnnotationFromFile( const QString& filename )
 
   // create annotation
   SurfaceAnnotation* annot = new SurfaceAnnotation( this );
-  bool ret = annot->LoadAnnotation( fi.absoluteFilePath() );
+  bool ret = annot->LoadAnnotation( fn );
   if ( !ret )
   {
     delete annot;
@@ -1121,6 +1121,7 @@ void LayerSurface::SetActiveOverlay( int nOverlay )
     UpdateOverlay(false);
     emit ActiveOverlayChanged( nOverlay );
     emit ActorUpdated();
+    GetProperty()->SetShowOverlay(true);
   }
 }
 
@@ -1370,6 +1371,7 @@ void LayerSurface::SetActiveAnnotation( int n )
     UpdateOverlay();
     emit ActiveAnnotationChanged( n );
     emit ActorUpdated();
+    GetProperty()->SetShowAnnotation(true);
   }
 }
 
