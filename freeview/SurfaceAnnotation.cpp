@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/11 20:06:39 $
- *    $Revision: 1.20 $
+ *    $Date: 2014/04/12 17:27:58 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -117,7 +117,8 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
       QList<int> annotIndices;
       for ( int i = 0; i < m_nIndexSize; i++ )
       {
-        if ( CTABfindAnnotation( m_lut, mris->vertices[i].annotation, &n ) == 0 )
+        if ( CTABfindAnnotation( m_lut, mris->vertices[i].annotation, &n ) == 0 &&
+            n >= 0)
         {
           m_nIndices[i] = n;
           if (!annotIndices.contains(n))
