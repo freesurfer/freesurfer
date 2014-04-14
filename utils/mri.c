@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/28 15:58:44 $
- *    $Revision: 1.535 $
+ *    $Author: fischl $
+ *    $Date: 2014/04/14 18:58:12 $
+ *    $Revision: 1.536 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.535 $";
+const char *MRI_C_VERSION = "$Revision: 1.536 $";
 
 
 /*-----------------------------------------------------
@@ -7889,6 +7889,10 @@ ImageToMRI(IMAGE *I)
   case PFFLOAT:
     type = MRI_FLOAT;
     break;
+  case PFRGB:
+    printf("converting RGB image....\n") ;
+    type = MRI_UCHAR ;
+    break ;
   case PFDOUBLE:
   case PFCOMPLEX:
   default:
@@ -7902,12 +7906,12 @@ ImageToMRI(IMAGE *I)
   else
     mri = MRIallocSequence(width, height, depth, type, nframes);
 
-  // just fake the size
+  MRIsetResolution(mri, I->xsize, I->ysize, 1) ;
   mri->nframes = nframes;
   mri->imnr0 = 1;
   mri->imnr1 = 1;
-  mri->thick = mri->ps = 1.0;
-  mri->xsize = mri->ysize = mri->zsize = 1.0;
+//  mri->thick = mri->ps = 1.0;
+//  mri->xsize = mri->ysize = mri->zsize = 1.0;
   mri->xend = mri->width  * mri->xsize / 2.0;
   mri->xstart = -mri->xend;
   mri->yend = mri->height * mri->ysize / 2.0;
@@ -7933,7 +7937,6 @@ ImageToMRI(IMAGE *I)
   // hips coordinate system is inverted
   for (frames = 0; frames < nframes; ++frames)
   {
-
     for (y = 0 ; y < height ; y++)
     {
       yp = height - (y+1) ;
@@ -7943,7 +7946,21 @@ ImageToMRI(IMAGE *I)
         switch (mri->type)
         {
         case MRI_UCHAR:
-          MRIseq_vox(mri, x, y, 0, frames) = *IMAGEpix(I, x, yp);
+	  if (I->pixel_format == PFRGB)
+	  {
+	    int rgb, r, g, b ;
+
+	    rgb = *(int *)IMAGERGBpix(I, x, yp) & 0x00ffffff;
+	    if (rgb > 0)
+	      DiagBreak() ;
+	    r = rgb & 0x00ff ;
+	    g = (rgb >> 8) & 0x00ff ;
+	    b = (rgb >> 16) & 0x00ff ;
+	    MRIseq_vox(mri, x, y, 0, frames) = rgb ;
+//	    MRIseq_vox(mri, x, y, 0, frames) = (0.299*r + 0.587*g + 0.114*b); ; // standard tv conversion
+	  } 
+	  else
+	    MRIseq_vox(mri, x, y, 0, frames) = *IMAGEpix(I, x, yp);
           break ;
         case MRI_SHORT:
           MRISseq_vox(mri, x, y, 0, frames) = *IMAGESpix(I, x, yp);
@@ -7952,14 +7969,30 @@ ImageToMRI(IMAGE *I)
           {
             int val ;
 
-            if (*IMAGESpix(I, x, yp) < 0)
-              DiagBreak() ;
-            if (I->pixel_format == PFSHORT)
-              MRIIseq_vox(mri, x, y, 0, frames) = 
-                (int)((unsigned short)(*IMAGESpix(I, x, yp)));
-            else
-              MRIIseq_vox(mri, x, y, 0, frames) = *IMAGEIpix(I, x, yp);
-            val = MRIIseq_vox(mri, x, y, 0, frames);
+	    if (I->pixel_format == PFRGB)
+	    {
+	      int rgb, r, g, b ;
+	      
+	      rgb = *(int *)IMAGERGBpix(I, x, yp) & 0x00ffffff;
+	      if (rgb > 0)
+		DiagBreak() ;
+	      r = rgb & 0x00ff ;
+	      g = (rgb >> 8) & 0x00ff ;
+	      b = (rgb >> 16) & 0x00ff ;
+	      MRIseq_vox(mri, x, y, 0, frames) = rgb ;
+//	      MRIseq_vox(mri, x, y, 0, frames) = (0.299*r + 0.587*g + 0.114*b); ; // standard tv conversion
+	    } 
+	    else
+	    {
+	      if (*IMAGESpix(I, x, yp) < 0)
+		DiagBreak() ;
+	      if (I->pixel_format == PFSHORT)
+		MRIIseq_vox(mri, x, y, 0, frames) = 
+		  (int)((unsigned short)(*IMAGESpix(I, x, yp)));
+	      else
+		MRIIseq_vox(mri, x, y, 0, frames) = *IMAGEIpix(I, x, yp);
+	      val = MRIIseq_vox(mri, x, y, 0, frames);
+	    }
             break ;
           }
         case MRI_FLOAT:

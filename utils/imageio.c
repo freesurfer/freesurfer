@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/25 12:38:13 $
- *    $Revision: 1.50 $
+ *    $Date: 2014/04/14 18:58:13 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -820,8 +820,6 @@ ImageAppend(IMAGE *I, const char*fname)
            Description:
              Read a TIFF image from a file.
 ----------------------------------------------------------------------*/
-// 3 bytes per pixel
-#define IMAGERGBpix(im, x, y)           ((im->image) + (((int) y) * im->ocols * 3) + (x))
 
 static IMAGE *
 TiffReadImage(const char*fname, int frame0)
@@ -840,8 +838,9 @@ TiffReadImage(const char*fname, int frame0)
   short    compression;
   int      compressionInt;
   short    orientation;
-#if 0 // we used to translate RGB image into grey scale
-  unsigned char     *buffer;
+  short    resunit ;
+#if 0// we used to translate RGB image into grey scale
+//unsigned char     *buffer;
   int      skip;
   int      i;
   float    r, g, b, y;
@@ -849,6 +848,7 @@ TiffReadImage(const char*fname, int frame0)
 #endif
   int      scanlinesize;
   int      index = 0;
+  float    xres, yres, res ;
 
   if (!tif)
     return(NULL) ;
@@ -873,6 +873,10 @@ TiffReadImage(const char*fname, int frame0)
   // fill order is LSB or MSB TIFFReadScanLine() handles it automatically
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_FILLORDER, &fillorder);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_COMPRESSION, &compression);
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_XRESOLUTION, &xres);
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_YRESOLUTION, &yres);
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
+
   // orientation
   // #define TIFFTAG_ORIENTATION             274     /* +image orientation */
   //    ORIENTATION_TOPLEFT         1       /* row 0 top, col 0 lhs */
@@ -996,8 +1000,24 @@ TiffReadImage(const char*fname, int frame0)
   else
     I = ImageAlloc(height, width, type, 1) ;
 
-  iptr = I->image;
+  res = (xres+yres)/2 ;
+  switch (resunit)
+  {
+  case 3: // cm
+  case 1: // no units 
+    I->sizepix = 1 / res ;
+    I->xsize = 100.0 / xres ; // mm
+    I->ysize = 100.0 / yres ; // mm
+    break ;
+  default:
+  case 2: // inches
+    I->sizepix = 2.54 / res ;
+    I->xsize = 10.0*2.54 / xres ;  // mm
+    I->ysize = 10.0*2.54 / yres ;  // mm
+    break ;
+  }
 
+  iptr = I->image;
 
   for (frame=0;frame<nframe;frame++)
   {
@@ -1069,7 +1089,7 @@ TiffReadImage(const char*fname, int frame0)
         //     Y   =  0.299  0.587   0.114  R
         //     I      0.596 -0.275  -0.321  G
         //     Q      0.212 -0.523   0.311  B
-        // and use Y for grey scale (this is color tv signal into bw tv
+        // andd use Y for grey scale (this is color tv signal into bw tv
         switch (bits_per_sample)
         {
         default:
@@ -1077,9 +1097,9 @@ TiffReadImage(const char*fname, int frame0)
           skip = 3; //
           for (i = 0; i < width; ++i)
           {
-            r = (float) buffer[i*skip];
-            g = (float) buffer[i*skip+1];
-            b = (float) buffer[i*skip+2];
+            r = (float) buf[i*skip];
+            g = (float) buf[i*skip+1];
+            b = (float) buf[i*skip+2];
             y = (0.299*r + 0.587*g + 0.114*b);
             *IMAGEpix(I, i, row) = (unsigned char) y;
           }
@@ -1088,11 +1108,11 @@ TiffReadImage(const char*fname, int frame0)
           skip = 12; // 3x4 bytes at a time
           for (i=0; i < width ; ++i)
           {
-            pf = (float *) &buffer[i*skip];
+            pf = (float *) &buf[i*skip];
             r = *pf;
-            pf = (float *) &buffer[i*skip+4];
+            pf = (float *) &buf[i*skip+4];
             g = *pf;
-            pf = (float *) &buffer[i*skip+8];
+            pf = (float *) &buf[i*skip+8];
             b = *pf;
             y = (0.299*r + 0.587*g + 0.114*b);
             *IMAGEFpix(I, i, row) = y;
