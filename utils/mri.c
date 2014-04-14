@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/04/14 18:58:12 $
- *    $Revision: 1.536 $
+ *    $Date: 2014/04/14 19:02:28 $
+ *    $Revision: 1.537 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.536 $";
+const char *MRI_C_VERSION = "$Revision: 1.537 $";
 
 
 /*-----------------------------------------------------
@@ -7973,7 +7973,7 @@ ImageToMRI(IMAGE *I)
 	    {
 	      int rgb, r, g, b ;
 	      
-	      rgb = *(int *)IMAGERGBpix(I, x, yp) & 0x00ffffff;
+	      rgb = *(int *)IMAGERGBpix(I, x, yp);
 	      if (rgb > 0)
 		DiagBreak() ;
 	      r = rgb & 0x00ff ;
