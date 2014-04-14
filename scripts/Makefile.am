@@ -240,6 +240,7 @@ vtk_setup \
 wfilemask \
 wm-anat-snr \
 wmedits2surf \
+wmsaseg \
 xcerebralseg\
 xcorr\
 xfmrot \

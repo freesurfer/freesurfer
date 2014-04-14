@@ -1,0 +1,441 @@
+#!/bin/tcsh -f
+# wmsaseg
+
+set VERSION = '$Id: wmsaseg,v 1.1 2014/04/14 20:34:00 greve Exp $';
+#set VERSION = "`ls -l $0`"
+set gca = $FREESURFER_HOME/average/wmsa_new_eesmith.gca
+
+set subject = ();
+set bbrinit = "--init-fsl"
+set outsub = wmsa;
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set DoReg = 1;
+set RegOnly = 0;
+set DoCANorm = 1;
+set origsubject = ();
+set GetOrigFromLong = 0;
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set outdir = $SUBJECTS_DIR/$subject/mri/$outsub
+mkdir -p $outdir
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.wmsaseg.$$
+  if(! -e /scratch) set tmpdir = $SUBJECTS_DIR/$subject/tmp/tmpdir.wmsaseg.$$
+endif
+mkdir -p $tmpdir
+
+if($#LF == 0) set LF = $outdir/wmsaseg.log
+if($LF != /dev/null) rm -f $LF
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+
+echo "Log file for wmsaseg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv FREESURFER_HOME $FREESURFER_HOME" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+set mdir = $SUBJECTS_DIR/$subject/mri
+pushd $mdir 
+set mdir = `pwd`
+echo "Current dir `pwd`" |tee -a $LF
+
+set t2     = $SUBJECTS_DIR/$origsubject/mri/orig/T2.mgz
+set pd     = $SUBJECTS_DIR/$origsubject/mri/orig/PD.mgz
+set t2anat = $mdir/T2.anat.mgz
+set pdanat = $mdir/PD.anat.mgz
+
+if($DoReg) then
+  # Register T2 to anatomical
+  set t2reg = $mdir/T2.register.dat
+  set update = `UpdateNeeded $t2reg $t2`
+  if($update) then
+    set cmd = (bbregister --s $subject --mov $t2 --reg $t2reg $bbrinit --t2 --fsl-bet-mov)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+  # Force them to be the same - this will not always be the case
+  set pdreg = $t2reg; 
+
+  # Apply registration to T2
+  set update = `UpdateNeeded $t2anat $t2reg $t2`
+  if($update) then
+    set cmd = (mri_vol2vol --mov $t2 --reg $t2reg --fstarg --o $t2anat --no-save-reg)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    # Convert to uchar
+    set cmd = (mri_convert $t2anat $t2anat -odt uchar)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+  # Apply registration to PD
+  set update = `UpdateNeeded $pdanat $pdreg $pd`
+  if($update) then
+    set cmd = (mri_vol2vol --mov $pd --reg $pdreg --fstarg --o $pdanat --no-save-reg)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+    # Convert to uchar
+    set cmd = (mri_convert $pdanat $pdanat -odt uchar)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+endif # DoReg
+
+if($RegOnly) then
+  echo "Registration only requested, so exiting now" | tee -a $LF
+  if($cleanup) rm -rf $tmpdir
+  set tSecEnd = `date '+%s'`;
+  @ tSecRun = $tSecEnd - $tSecStart;
+  set tRunHours = `echo $tSecRun/3600|bc -l`
+  set tRunHours = `printf %5.2f $tRunHours`
+  set EndTime = `date`;
+  echo "StartEnd $StartTime $EndTime" |& tee -a $LF
+  echo "wmsaseg-Run-Time-Hours $tRunHours" |& tee -a $LF
+  echo "wmsaseg done (registration only)" |& tee -a $LF
+endif
+
+set tallta = $mdir/transforms/talairach.lta
+set talm3z = $mdir/transforms/talairach.m3z
+set nu = $mdir/nu.mgz
+set norm = $mdir/norm.mgz
+
+# Intensity normalize
+date |& tee -a $LF
+set pdnorm = $outdir/PD.canorm.mgz
+set t1norm = $outdir/T1.canorm.mgz
+set t2norm = $outdir/T2.canorm.mgz
+set ctrlpts = $outdir/ctrl_pts.wmsa.mgz
+if($DoCANorm) then
+  set cmd = (mri_ca_normalize -mask $mdir/brainmask.mgz -c $ctrlpts\
+    $norm $pdanat $t2anat $gca $tallta $t1norm $pdnorm $t2norm)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
+# Compute labels
+date |& tee -a $LF
+set wmsaseg = $outdir/wmsa.mgz
+#set pwmsaseg = $mdir/p.aseg.wmsa; # dont include ext .mgz
+#set wp = (-write_probs $pwmsaseg)
+set wp = ();
+# -nobigventricles 
+set cmd = (mri_ca_label  $wp -wmsa -regularize 0.9 \
+   $t1norm $pdnorm $t2norm $talm3z $gca $wmsaseg)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+  
+date |& tee -a $LF
+set wmsasegedit = $outdir/wmsa.edited.mgz
+set cmd = (mri_edit_segmentation_with_surfaces -gca $gca $talm3z $wmsaseg \
+  $SUBJECTS_DIR/$subject/surf $t1norm $pdnorm $t2norm $wmsasegedit)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# Run segstats to get volume
+set cmd = (mri_segstats --seg $wmsasegedit \
+  --sum $outdir/wmsa.stats \
+  --pv $mdir/norm.mgz --in $mdir/norm.mgz \
+  --empty --excludeid 0 --excl-ctxgmwm --supratent --subcortgray \
+  --in-intensity-name norm --in-intensity-units MR \
+  --etiv --surf-wm-vol --surf-ctx-vol --totalgray \
+  --ctab $FREESURFER_HOME/ASegStatsLUT.txt --subject $subject)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# Run segstats to get intensities
+foreach mode (T1 T2 PD)
+  set invol = $outdir/$mode.canorm.mgz
+  set stat = $outdir/wmsa.$mode.dat
+  set cmd = (mri_segstats --i $invol --seg $wmsasegedit --id 78 79 --sum $stat --ctab-default)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+end
+  
+if($cleanup) rm -rf $tmpdir
+
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+set EndTime = `date`;
+echo "StartEnd $StartTime $EndTime" |& tee -a $LF
+echo "wmsaseg-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo "wmsaseg done" |& tee -a $LF
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--s+orig":
+      if($#argv < 1) goto arg1err;
+      set origsubject = $argv[1]; shift;
+      breaksw
+
+    case "--s+long":
+      set GetOrigFromLong = 1;
+      breaksw
+
+    case "--sub":
+    case "--subdir":
+      if($#argv < 1) goto arg1err;
+      set outsub = $argv[1]; shift;
+      breaksw
+
+    case "--init-spm":
+      set bbrinit = "--init-spm"
+      breaksw
+
+    case "--gca":
+      if($#argv < 1) goto arg1err;
+      set gca = $argv[1]; shift;
+      breaksw
+
+    case "--no-reg":
+      set DoReg = 0;
+      breaksw
+
+    case "--reg-only":
+      set RegOnly = 1;
+      breaksw
+
+    case "--no-canorm":
+      set DoCANorm = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+if(-e $SUBJECTS_DIR/$subject/mri/$outsub/wmsa.edited.mgz) then
+  echo "Results for subject $subject already exist, skipping"
+  exit 0;
+endif
+if($GetOrigFromLong) then
+  set origsubject = `echo $subject | sed 's/\.long./ /g' | awk '{print $1}'`
+  echo "Getting orig from long: $subject $origsubject"
+endif
+if($#origsubject == 0) set origsubject = $subject
+foreach mode (T2 PD)
+  set fname = $SUBJECTS_DIR/$origsubject/mri/orig/$mode.mgz
+  if(! -e $fname) then
+    set fname = $SUBJECTS_DIR/$origsubject/mri/$mode.mgz
+    if(! -e $fname) then
+      echo "ERROR: cannot find $fname"
+      exit 1;
+    endif
+  endif
+end
+if(! -e $gca) then
+  echo "ERROR: cannot find $gca"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "wmsaseg --s subject"
+  echo "  --s+orig origsubject : get T2 and PD from origsubject (good for long)" 
+  echo "  --s+long : get T2 and PD from orig long subject (origsubject.long.base_base)" 
+  echo "  --sub output sub dir (default is wmsa)"
+  echo "  --gca gcafile"
+  echo "  --no-reg : do not register mode to anat"
+  echo "  --no-canorm : do not run mri_ca_norm (eg, if used another)"
+  echo "  --init-spm : default is fsl"
+  echo "  --reg-only : only perform registration"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program is still under development. Use at your own risk.
+
+To use, put T2.mgz and PD.mgz into subject/mri/orig, then run
+
+wmsaseg --s subject
+
+
+mri_ca_normalize fails (causes T1.canorm.mgz to be saturated) with the 
+wmsa.lta and the wmsa GCA, but this "works" 
+
+set gca = $FREESURFER_HOME/average/RB_all_2008-03-26.gca
+set lta = talairach.lta
+mri_ca_normalize -mask $mdir/brainmask.mgz \
+  $normuse $pdanat $t2anat $gca $lta $t1norm $pdnorm $t2norm
+
+# To see accuracy of wmsa.lta
+set gca = /space/dijon/21/users/jpacheco/FreeSurfer-WMSA-03122007/average/wmsa_new_eesmith.gca
+tkregister2 --mov $gca \
+  --targ ../brainmask.mgz --lta-inv wmsa.lta --reg reg.wmsa.dat \
+  --surfs --s $subject
+tkregister2 --targ $gca --mov ../T2.anat.mgz --lta wmsa.lta --reg sdlkfj
+
+
+# To see accuracy of talairach.lta
+tkregister2 --mov $FREESURFER_HOME/average/RB_all_2008-03-26.gca \
+  --targ ../brainmask.mgz --lta-inv talairach.lta --reg talairach.lta.reg.dat \
+  --surfs --s $subject
+
+bbregister --s $subject --12 --t1 --init-spm --reg reg12.dat\
+  --mov $FREESURFER_HOME/average/RB_all_2008-03-26.gca 
+
+tkregister2  --reg junk.dat --regheader --s fsaverage --surfs \
+  --mov $FREESURFER_HOME/average/RB_all_2008-03-26.gca 
+
+# Check talairach.xfm
+tkregister2 --ixfm talairach.xfm --zero-cras \
+  --reg talairach.xfm.reg.dat --surfs \
+  --mov $FREESURFER_HOME/subjects/fsaverage/mri/orig.mgz \
+  --s $subject 
+
+# To see accuracy of talairach_with_skull.lta
+tkregister2 --mov $FREESURFER_HOME/average/RB_all_withskull_2008-03-26.gca \
+  --targ ../nu.mgz --lta-inv talairach_with_skull.lta --reg talairach_with_skull.lta.reg.dat \
+  --surfs --s subject
+
+set subject = 0724
+set mdir = $SUBJECTS_DIR/$subject/mri
+tkregister2 --mov $FREESURFER_HOME/average/RB_all_2008-03-26.gca \
+  --targ $mdir/nu.mgz --lta-inv $mdir/transforms/talairach.lta \
+  --reg $mdir/transforms/talairach.lta.reg.dat \
+  --surfs --s $subject --noedit
+tkregister2 --mov $FREESURFER_HOME/subjects/fsaverage/mri/orig.mgz \
+  --s $subject --ixfm $mdir/transforms/talairach.xfm --zero-cras \
+  --reg $mdir/transforms/talairach.xfm.reg.dat --noedit
+rms-reg-diff $mdir/transforms/talairach.lta.reg.dat $mdir/transforms/talairach.xfm.reg.dat  
+
+
+mri_vol2vol --mov ../norm.mgz --m3z talairach.m3z --no-save-reg \
+  --targ $SUBJECTS_DIR/fsaverage/mri/orig.mgz --o junk.mgh \
+  --s $subject
+
+tkregister2 --mov $FREESURFER_HOME/average/RB_all_2008-03-26.gca \
+  --targ junk.mgh --regheader --reg junk.dat --s fsaverage --surfs
+
+tkregister2 --mov junk.mgh --regheader --reg junk.dat \
+  --s RB_all_2008-03-26 --surfs --fstarg --fmov-targ
+
+mri_vol2vol --mov ../norm.mgz --m3z wmsa.m3z --no-save-reg \
+  --targ $SUBJECTS_DIR/fsaverage/mri/orig.mgz --o junk2.mgh \
+  --s $subject
+
+tkregister2 --mov junk2.mgh --regheader --reg junk.dat \
+  --s wmsa_new_eesmith --surfs --fstarg --fmov-targ
+
