@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/29 20:42:02 $
- *    $Revision: 1.147 $
+ *    $Date: 2014/04/14 20:13:38 $
+ *    $Revision: 1.148 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.147 2014/01/29 20:42:02 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.148 2014/04/14 20:13:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -267,13 +267,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.147 2014/01/29 20:42:02 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.148 2014/04/14 20:13:38 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.147 2014/01/29 20:42:02 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.148 2014/04/14 20:13:38 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1717,6 +1717,13 @@ main(int argc, char *argv[])
                                          DTRANS_MODE_SIGNED, NULL) ;
           MRIscalarMul(mri_tmp, mri_tmp,
                        (5/mri_tmp->xsize)) ;// same range as intensities
+	  if (Gdiag & DIAG_WRITE)
+	  {
+              sprintf(fname, "%s.cseg.dtrans%s%s.mgz", hemi, output_suffix, suffix) ;
+              printf("writing dtrans volume to %s\n", fname) ;
+              MRIwrite(mri_tmp, fname) ;
+	  }
+//          parms.grad_dir = 1 ;
           MRIfree(&mri_T1) ;
           mri_T1 = mri_tmp ;
           MRISsetVals(mris, 0) ;   // target is 0 distance transform val
@@ -1740,7 +1747,11 @@ main(int argc, char *argv[])
          GRAY_CSF, mri_mask, thresh, parms.flags) ;
         MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
       }
-      MRISaddToValues(mris, pial_target_offset) ;
+      if (!FZERO(pial_target_offset))
+      {
+	MRISaddToValues(mris, pial_target_offset) ;
+	printf("adding %2.2f to pial targets\n", pial_target_offset);
+      }
       {
         int ii, vno, n, vtotal ;
         VERTEX *v ;
@@ -1993,6 +2004,13 @@ get_option(int argc, char *argv[])
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "grad_dir"))
+  {
+    int i = atoi(argv[2]) ;
+    parms.grad_dir =  i < 0 ? -1 : i > 0 ? 1 : 0 ;
+    fprintf(stderr,  "setting grad dir to %d\n", parms.grad_dir) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "ct"))
   {
     printf("reading color table from %s\n", argv[2]) ;
@@ -2013,7 +2031,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "pial_offset"))
   {
     pial_target_offset = atof(argv[2]) ;
-    fprintf(stderr,  "offseting pial target vals by %2.0f\n",
+    fprintf(stderr,  "offseting pial target vals by %2.2f\n",
             pial_target_offset) ;
     nargs = 1 ;
   }
