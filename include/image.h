@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.16 $
+ *    $Author: fischl $
+ *    $Date: 2014/04/14 19:00:56 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -336,6 +336,10 @@ IMAGE  *ImageUpsample2(IMAGE *Isrc, IMAGE *Idst) ;
 /* for complex images */
 #define IMAGECseq(im, n)          ((float *)(im->image) + \
                                   (((long)n) * 2 * im->ocols * im->orows))
+
+// RGB images are 3 bytes per pixel
+#define IMAGERGBpix(im, x, y)           ((im->image) + (((int) y) * im->ocols * 3) + (x*3))
+
 
 #define IMAGEDseq_pix(im,x,y,n)   ((IMAGEDseq(im,n)) \
                                      + (((long)y) * im->ocols) + (x))
