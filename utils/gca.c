@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/31 16:25:20 $
- *    $Revision: 1.315 $
+ *    $Date: 2014/04/14 20:04:39 $
+ *    $Revision: 1.316 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5019,13 +5019,14 @@ GCAcomputeLogSampleProbability(GCA *gca,
                                int nsamples,
                                double clamp)
 {
-  int        x, y, z, width, height, depth, i, xp, yp, zp ;
-  float      vals[MAX_GCA_INPUTS] ;
-  double     total_log_p, log_p ;
-#ifndef HAVE_OPENMP
+  int        width, height, depth, i;
+  double     total_log_p;
   int        countOutside = 0;
   double     outside_log_p = 0.;
-#endif
+  float  vals[MAX_GCA_INPUTS] ;
+  int    x, y, z, xp, yp, zp ;
+  double log_p;
+
   /* go through each GC in the sample and compute the probability of
      the image at that point.
   */
@@ -5038,29 +5039,19 @@ GCAcomputeLogSampleProbability(GCA *gca,
 
   // go through all sample points
   total_log_p = 0.0 ;
-#if 1
-#ifdef HAVE_OPENMP
-  xp = yp = zp = x = y = z = 0 ;
-  log_p = 0.0 ;
-  #pragma omp parallel for firstprivate(Gdiag_no, Gxp, Gyp, Gzp, nsamples,xp, yp, zp, x, y, z, vals,log_p,transform,mri_inputs) shared(gcas, gca, clamp) schedule(static,1) reduction(+: total_log_p)
-#endif
-#endif
-  for (i = 0 ; i < nsamples ; i++)
-  {
+
+  /* This loop used to be openmp'ed but there was something in it that
+   was not thread-safe and caused unstable/nonrepeatable behavior with
+   multimodal inputs. Removing did not seem to slow it down much.
+  */
+  for (i = 0 ; i < nsamples ; i++){
     /////////////////// diag code /////////////////////////////
     if (i == Gdiag_no)
-    {
       DiagBreak() ;
-    }
     if (Gdiag_no == gcas[i].label)
-    {
       DiagBreak() ;
-    }
-    if (i == Gdiag_no ||
-        (gcas[i].xp == Gxp && gcas[i].yp == Gyp && gcas[i].zp == Gzp))
-    {
+    if (i == Gdiag_no || (gcas[i].xp == Gxp && gcas[i].yp == Gyp && gcas[i].zp == Gzp))
       DiagBreak() ;
-    }
     ///////////////////////////////////////////////////////////
 
     // get prior coordinates
@@ -5068,13 +5059,9 @@ GCAcomputeLogSampleProbability(GCA *gca,
     yp = gcas[i].yp ;
     zp = gcas[i].zp ;
     // if it is inside the source voxel
-    if (!GCApriorToSourceVoxel(gca, mri_inputs, transform,
-                               xp, yp, zp, &x, &y, &z))
-    {
+    if (!GCApriorToSourceVoxel(gca, mri_inputs, transform, xp, yp, zp, &x, &y, &z)) {
       if (x == Gx && y == Gy && z == Gz)
-      {
         DiagBreak() ;
-      }
 
       // (x,y,z) is the source voxel position
       gcas[i].x = x ;
@@ -5084,52 +5071,22 @@ GCAcomputeLogSampleProbability(GCA *gca,
       // get values from all inputs
       load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
       log_p = gcaComputeSampleLogDensity(&gcas[i], vals, gca->ninputs) ;
-      if (FZERO(vals[0]) && gcas[i].label == Gdiag_no)
-      {
+      if (FZERO(vals[0]) && gcas[i].label == Gdiag_no) {
         if (fabs(log_p) < 5)
-        {
           DiagBreak() ;
-        }
         DiagBreak() ;
       }
-#if 1
-      if (log_p < -clamp)
-      {
-        log_p = -clamp ;
-      }
-#endif
-
-#if 0
-      if (!check_finite("2", total_log_p))
-      {
-        fprintf(stdout,
-                "total log p not finite at (%d, %d, %d)\n",
-                x, y, z) ;
-        DiagBreak() ;
-      }
-#endif
+      if (log_p < -clamp) log_p = -clamp ;
     }
-    else  // outside the voxel
-    {
+    else{  // outside the voxel
       log_p = -1000000; // BIG_AND_NEGATIVE;
       // log(VERY_UNLIKELY); // BIG_AND_NEGATIVE;
-#ifndef HAVE_OPENMP
       outside_log_p += log_p;
       countOutside++;
-#endif
     }
     gcas[i].log_p = log_p;
     total_log_p += log_p;
   }
-
-#ifndef __OPTIMIZE__
-#if 0
-  if (nsamples > 3000)
-    fprintf(stdout, "good samples %d (outside %d) log_p = %.1f "
-            "(outside %.1f)\n",
-            nsamples-countOutside, countOutside, total_log_p, outside_log_p);
-#endif
-#endif
   fflush(stdout) ;
 
   return((float)total_log_p/nsamples) ;
