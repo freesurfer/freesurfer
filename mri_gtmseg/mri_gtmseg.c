@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/08 19:06:07 $
- *    $Revision: 1.3 $
+ *    $Date: 2014/04/14 22:13:46 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-// $Id: mri_gtmseg.c,v 1.3 2014/04/08 19:06:07 greve Exp $
+// $Id: mri_gtmseg.c,v 1.4 2014/04/14 22:13:46 greve Exp $
 
 /*
   BEGINHELP
@@ -63,7 +63,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmseg.c,v 1.3 2014/04/08 19:06:07 greve Exp $";
+static char vcid[] = "$Id: mri_gtmseg.c,v 1.4 2014/04/14 22:13:46 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -73,8 +73,8 @@ struct utsname uts;
 GTMSEG *gtmseg;
 char *OutVolFile=NULL;
 char *SUBJECTS_DIR;
-int GTMdefaultSegReplacmentList(GTMSEG *gtmseg);
 int nthreads;
+int DoReplace = 1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -97,9 +97,9 @@ int main(int argc, char *argv[]) {
   gtmseg->KeepCC = 0;
   gtmseg->apasfile = "apas+head.mgz";
   gtmseg->ctxannotfile = "aparc.annot";
-  gtmseg->SubSegWM = 0;
   gtmseg->ctxlhbase = 1000;
   gtmseg->ctxrhbase = 2000;
+  gtmseg->SubSegWM = 0;
   if(gtmseg->SubSegWM){
     gtmseg->wmannotfile = "lobes.annot";
     gtmseg->wmlhbase =  3200;
@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
   check_options();
   if (checkoptsonly) return(0);
 
-  GTMdefaultSegReplacmentList(gtmseg);
+  if(DoReplace) GTMdefaultSegReplacmentList(gtmseg);
   dump_options(stdout);
 
   TimerStart(&mytimer);
@@ -167,6 +167,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcasecmp(option, "--no-replace")) DoReplace = 0;
 
     else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -289,6 +290,7 @@ static void print_usage(void) {
   printf("   --dmax dmax : distance from ctx for wmseg to be considered 'unsegmented' (%f)\n",gtmseg->dmax);
   printf("   --keep-hypo : do not convert WM hypointensities to a white matter label \n");
   printf("   --keep-cc : do not convert corpus callosum to a white matter label \n");
+  printf("   --no-replace : do not default merging and replacement\n");
   printf("\n");
   #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");
@@ -330,57 +332,4 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"user     %s\n",VERuser());
   GTMSEGprint(gtmseg, stdout);
   return;
-}
-
-/*-----------------------------------------------------------------------------*/
-int GTMdefaultSegReplacmentList(GTMSEG *gtmseg)
-{
-
-  int nlist, *srclist, *targlist;
-
-  srclist  = &(gtmseg->srclist[0]);
-  targlist = &(gtmseg->targlist[0]);
-
-  nlist = 0;
-  srclist[nlist] = 1033; targlist[nlist] = 1030; nlist++; // temppole=stg
-  srclist[nlist] = 2033; targlist[nlist] = 2030; nlist++; // temppole=stg
-  srclist[nlist] = 1034; targlist[nlist] = 1030; nlist++; // transtemp=stg
-  srclist[nlist] = 2034; targlist[nlist] = 1030; nlist++; // transtemp=stg
-  srclist[nlist] = 1001; targlist[nlist] = 1015; nlist++; // bankssts=mtg
-  srclist[nlist] = 2001; targlist[nlist] = 2015; nlist++; // bankssts=mtg
-  srclist[nlist] = 1032; targlist[nlist] = 1027; nlist++; // frontpole=rmf
-  srclist[nlist] = 2032; targlist[nlist] = 2027; nlist++; // frontpole=rmf
-  //srclist[nlist] = 1016; targlist[nlist] = 1006; nlist++; // parahip=entorhinal ?
-  //srclist[nlist] = 2016; targlist[nlist] = 2006; nlist++; // parahip=entorhinal ?
-
-  // There should not be any cortex unknown after MRIannot2CorticalSeg()
-  srclist[nlist] = 1000; targlist[nlist] =    0; nlist++; // cortex unknown
-  srclist[nlist] = 2000; targlist[nlist] =    0; nlist++; // cortex unknown
-
-  // Should I replace subcorts before hires seg?
-  srclist[nlist] =   85; targlist[nlist] =    0; nlist++; // optic chiasm
-  srclist[nlist] =    4; targlist[nlist] =   24; nlist++; // LLatVent
-  srclist[nlist] =    5; targlist[nlist] =   24; nlist++; // LInfLatVent
-  srclist[nlist] =   14; targlist[nlist] =   24; nlist++; // 3rd
-  srclist[nlist] =   15; targlist[nlist] =   24; nlist++; // 4th
-  srclist[nlist] =   72; targlist[nlist] =   24; nlist++; // 5th
-  srclist[nlist] =   31; targlist[nlist] =   24; nlist++; // LChoroidP ?
-  srclist[nlist] =   43; targlist[nlist] =   24; nlist++; // RLatVent
-  srclist[nlist] =   44; targlist[nlist] =   24; nlist++; // RInfLatVent
-  srclist[nlist] =   63; targlist[nlist] =   24; nlist++; // RChoroidP ?
-  srclist[nlist] =   30; targlist[nlist] =   24; nlist++; // LVessel ?
-  srclist[nlist] =   62; targlist[nlist] =   24; nlist++; // RVessel ?
-  srclist[nlist] =   80; targlist[nlist] =   24; nlist++; // non-WM-hypo ?
-
-  /* Repace CC segments with one CC if not unsegmenting CC */
-  if(gtmseg->KeepCC){
-    srclist[nlist] =  251; targlist[nlist] =  192; nlist++; 
-    srclist[nlist] =  252; targlist[nlist] =  192; nlist++; 
-    srclist[nlist] =  253; targlist[nlist] =  192; nlist++; 
-    srclist[nlist] =  254; targlist[nlist] =  192; nlist++; 
-    srclist[nlist] =  255; targlist[nlist] =  192; nlist++; 
-  }
-
-  gtmseg->nlist = nlist;
-  return(0);
 }

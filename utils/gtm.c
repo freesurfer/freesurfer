@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/07 19:46:49 $
- *    $Revision: 1.1 $
+ *    $Date: 2014/04/14 22:13:46 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -231,5 +231,58 @@ int MRIgtmSeg(GTMSEG *gtmseg)
 
   printf("MRIgtmSeg() done, t = %6.4f\n",TimerStop(&timer)/1000.0);
   fflush(stdout);
+  return(0);
+}
+
+/*-----------------------------------------------------------------------------*/
+int GTMdefaultSegReplacmentList(GTMSEG *gtmseg)
+{
+
+  int nlist, *srclist, *targlist;
+
+  srclist  = &(gtmseg->srclist[0]);
+  targlist = &(gtmseg->targlist[0]);
+
+  nlist = 0;
+  srclist[nlist] = 1033; targlist[nlist] = 1030; nlist++; // temppole=stg
+  srclist[nlist] = 2033; targlist[nlist] = 2030; nlist++; // temppole=stg
+  srclist[nlist] = 1034; targlist[nlist] = 1030; nlist++; // transtemp=stg
+  srclist[nlist] = 2034; targlist[nlist] = 1030; nlist++; // transtemp=stg
+  srclist[nlist] = 1001; targlist[nlist] = 1015; nlist++; // bankssts=mtg
+  srclist[nlist] = 2001; targlist[nlist] = 2015; nlist++; // bankssts=mtg
+  srclist[nlist] = 1032; targlist[nlist] = 1027; nlist++; // frontpole=rmf
+  srclist[nlist] = 2032; targlist[nlist] = 2027; nlist++; // frontpole=rmf
+  //srclist[nlist] = 1016; targlist[nlist] = 1006; nlist++; // parahip=entorhinal ?
+  //srclist[nlist] = 2016; targlist[nlist] = 2006; nlist++; // parahip=entorhinal ?
+
+  // There should not be any cortex unknown after MRIannot2CorticalSeg()
+  srclist[nlist] = 1000; targlist[nlist] =    0; nlist++; // cortex unknown
+  srclist[nlist] = 2000; targlist[nlist] =    0; nlist++; // cortex unknown
+
+  // Should I replace subcorts before hires seg?
+  srclist[nlist] =   85; targlist[nlist] =    0; nlist++; // optic chiasm
+  srclist[nlist] =    4; targlist[nlist] =   24; nlist++; // LLatVent
+  srclist[nlist] =    5; targlist[nlist] =   24; nlist++; // LInfLatVent
+  srclist[nlist] =   14; targlist[nlist] =   24; nlist++; // 3rd
+  srclist[nlist] =   15; targlist[nlist] =   24; nlist++; // 4th
+  srclist[nlist] =   72; targlist[nlist] =   24; nlist++; // 5th
+  srclist[nlist] =   31; targlist[nlist] =   24; nlist++; // LChoroidP ?
+  srclist[nlist] =   43; targlist[nlist] =   24; nlist++; // RLatVent
+  srclist[nlist] =   44; targlist[nlist] =   24; nlist++; // RInfLatVent
+  srclist[nlist] =   63; targlist[nlist] =   24; nlist++; // RChoroidP ?
+  srclist[nlist] =   30; targlist[nlist] =   24; nlist++; // LVessel ?
+  srclist[nlist] =   62; targlist[nlist] =   24; nlist++; // RVessel ?
+  srclist[nlist] =   80; targlist[nlist] =   24; nlist++; // non-WM-hypo ?
+
+  /* Repace CC segments with one CC if not unsegmenting CC */
+  if(gtmseg->KeepCC){
+    srclist[nlist] =  251; targlist[nlist] =  192; nlist++; 
+    srclist[nlist] =  252; targlist[nlist] =  192; nlist++; 
+    srclist[nlist] =  253; targlist[nlist] =  192; nlist++; 
+    srclist[nlist] =  254; targlist[nlist] =  192; nlist++; 
+    srclist[nlist] =  255; targlist[nlist] =  192; nlist++; 
+  }
+
+  gtmseg->nlist = nlist;
   return(0);
 }
