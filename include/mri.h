@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/04/08 15:30:04 $
- *    $Revision: 1.461 $
+ *    $Author: fischl $
+ *    $Date: 2014/04/14 18:58:28 $
+ *    $Revision: 1.462 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,6 +57,7 @@ extern "C" {
 #define MRI_TENSOR  6
 #define MRI_FLOAT_COMPLEX  7
 #define MRI_DOUBLE_COMPLEX  8
+#define MRI_RGB             9
 
 #define NEAREST_NEIGHBOR_FACE   1
 #define NEAREST_NEIGHBOR_EDGE   2

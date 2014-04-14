@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2014/04/14 18:58:28 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,6 +79,8 @@ struct header
   h_boolean paramdealloc; /* If nonzero, free param structures and/or
              param values when requested */
   struct extpar *params; /* Additional parameters */
+  float xsize ;
+  float ysize ;
 };
 
 struct hips_roi
