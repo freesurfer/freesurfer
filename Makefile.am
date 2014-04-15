@@ -341,7 +341,8 @@ MISCDIRS=\
 	hiam_make_template\
 	hiam_register \
 	gradient_nonlin_unwarp \
-	swi_processing
+	swi_processing \
+	nmovie_qt
 
 # ordering is important here for proper 'make check' and 'make distcheck' function
 SUBDIRS=\
