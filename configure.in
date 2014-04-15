@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2014/04/09 21:58:41 $
-#    $Revision: 1.609 $
+#    $Author: zkaufman $
+#    $Date: 2014/04/15 14:53:55 $
+#    $Revision: 1.610 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -382,7 +382,17 @@ if test "$host" = "powerpc64-suse-linux"; then
 fi
 AC_SUBST(LIB_LAPACK_A)
 
-
+# libnetcdf is now installed by default on centos6 computers
+# at the Center. We want it to compile against the static 
+# version found in the mni library so that libnetcdf does 
+# not become a dependancy for users outside the Center.
+LIB_NETCDF=""
+if test -e /usr/pubsw/packages/mni/current/lib/libnetcdf.a ; then
+  LIB_NETCDF="/usr/pubsw/packages/mni/current/lib/libnetcdf.a"
+else
+  LIB_NETCDF="-lnetcdf"
+fi
+AC_SUBST(LIB_NETCDF)
 
 ################################################################
 # Most of our scripts use /bin/tcsh, so make sure it exists
@@ -1227,10 +1237,10 @@ fi
 MINC2=NO
 if test -e "$ac_mni_libraries/libminc2.a" ; then
   # newer build of the MNI tools
-  LIBS_MNI="-lnetcdf -lhdf5 -lvolume_io2 -lminc2"
+  LIBS_MNI="$LIB_NETCDF -lhdf5 -lvolume_io2 -lminc2"
   MINC2=YES
 else
-  LIBS_MNI="-lnetcdf -lvolume_io -lminc"
+  LIBS_MNI="$LIB_NETCDF -lvolume_io -lminc"
 fi
 
 AC_SUBST(MNI_CFLAGS)
