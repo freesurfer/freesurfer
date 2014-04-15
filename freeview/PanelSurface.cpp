@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/11 20:06:39 $
- *    $Revision: 1.55 $
+ *    $Date: 2014/04/15 17:04:21 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionLoadSurface);
   ui->toolbar->insertAction(ui->actionShowOverlay, mainwnd->ui->actionCloseSurface);
   ui->toolbar->insertSeparator(ui->actionShowOverlay);
+  ui->toolbar2->hide();
 
 //  ui->treeWidgetLabels->hide();
 
@@ -196,7 +197,8 @@ void PanelSurface::DoUpdateWidgets()
   LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
   for ( int i = 0; i < this->allWidgets.size(); i++ )
   {
-    if ( allWidgets[i] != ui->toolbar2 && allWidgets[i]->parentWidget() != ui->toolbar2 )
+    if ( allWidgets[i] != ui->toolbar && allWidgets[i]->parentWidget() != ui->toolbar &&
+        allWidgets[i] != ui->toolbar2 && allWidgets[i]->parentWidget() != ui->toolbar2)
     {
       allWidgets[i]->setEnabled(layer);
     }
