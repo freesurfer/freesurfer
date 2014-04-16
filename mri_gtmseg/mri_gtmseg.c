@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/14 22:13:46 $
- *    $Revision: 1.4 $
+ *    $Date: 2014/04/16 17:54:32 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-// $Id: mri_gtmseg.c,v 1.4 2014/04/14 22:13:46 greve Exp $
+// $Id: mri_gtmseg.c,v 1.5 2014/04/16 17:54:32 greve Exp $
 
 /*
   BEGINHELP
@@ -39,6 +39,8 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 
+#undef X
+#include "mri2.h"
 #include "macros.h"
 #include "utils.h"
 #include "fio.h"
@@ -63,7 +65,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmseg.c,v 1.4 2014/04/14 22:13:46 greve Exp $";
+static char vcid[] = "$Id: mri_gtmseg.c,v 1.5 2014/04/16 17:54:32 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -74,13 +76,13 @@ GTMSEG *gtmseg;
 char *OutVolFile=NULL;
 char *SUBJECTS_DIR;
 int nthreads;
-int DoReplace = 1;
-
+COLOR_TABLE *ctMaster, *ctMerge=NULL;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs,err;
   char tmpstr[5000],*stem;
   struct timeb  mytimer;
+  COLOR_TABLE *ct;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -106,6 +108,7 @@ int main(int argc, char *argv[]) {
     gtmseg->wmrhbase =  4200;
   }
   else  gtmseg->wmannotfile = NULL;
+  gtmseg->nlist = 0;
 
   Progname = argv[0] ;
   argc --;
@@ -117,8 +120,17 @@ int main(int argc, char *argv[]) {
   check_options();
   if (checkoptsonly) return(0);
 
-  if(DoReplace) GTMdefaultSegReplacmentList(gtmseg);
   dump_options(stdout);
+
+  ctMaster = TissueTypeSchema(NULL,"default-jan-2014+head");
+
+  if(ctMerge) {
+    printf("Merging CTAB master with merge ctab\n");
+    CTABmerge(ctMaster,ctMerge);
+  }
+  //err = CTABwriteFileASCII(ctMerge,"merge.copy.ctab");
+  //err = CTABwriteFileASCIItt(ctMaster,"master.ctab");
+  //if(err) exit(1);
 
   TimerStart(&mytimer);
   printf("Starting MRIgtmSeg()\n"); fflush(stdout);
@@ -134,6 +146,14 @@ int main(int argc, char *argv[]) {
   sprintf(tmpstr,"%s/%s/mri/%s.lta",SUBJECTS_DIR,gtmseg->subject,stem);
   printf("Writing lta file to %s\n",tmpstr);
   err=LTAwrite(gtmseg->anat2seg,tmpstr);
+  if(err) exit(1);
+
+  printf("Computing colortable\n");
+  ct = GTMSEGctab(gtmseg, ctMaster);
+  if(ct == NULL) exit(1);
+  sprintf(tmpstr,"%s/%s/mri/%s.ctab",SUBJECTS_DIR,gtmseg->subject,stem);
+  printf("Writing colortable to %s\n",tmpstr);
+  err = CTABwriteFileASCIItt(ct,tmpstr);
   if(err) exit(1);
 
   printf("mri_gtmseg finished in %g minutes\n",TimerStop(&mytimer)/60000.0);
@@ -167,7 +187,6 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    else if (!strcasecmp(option, "--no-replace")) DoReplace = 0;
 
     else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -190,7 +209,12 @@ static int parse_commandline(int argc, char **argv) {
       gtmseg->apasfile = pargv[0];
       nargsused = 1;
     } 
-
+    else if (!strcasecmp(option, "--ctab")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      ctMerge = CTABreadASCII(pargv[0]);
+      if(ctMerge == NULL) exit(1);
+      nargsused = 1;
+    } 
     else if(!strcasecmp(option, "--ctx-annot")) {
       if(nargc < 3) CMDargNErr(option,3);
       gtmseg->ctxannotfile = pargv[0];
@@ -281,7 +305,7 @@ static void print_usage(void) {
   printf("   --o outvol  : output volume (output will be subject/mri/outvol\n");
   printf("   --s subject : source subject \n");
   printf("   --usf USF : upsampling factor (default %d)\n",gtmseg->USF);
-  printf("   --apas apasfile : defines extra-cerebral segmentations (%s)\n",gtmseg->apasfile);
+  printf("   --apas apasfile : defines extra-cerebral and subcortical segmentations (%s)\n",gtmseg->apasfile);
   printf("   --ctx-annot annot lhbase rhbase : use annot to segment cortex (%s,%d,%d)\n",
 	 gtmseg->ctxannotfile,gtmseg->ctxlhbase,gtmseg->ctxrhbase);
   printf("   --subseg-wm : turn on segmenting of WM into smaller parts (off by default)\n");
@@ -290,7 +314,7 @@ static void print_usage(void) {
   printf("   --dmax dmax : distance from ctx for wmseg to be considered 'unsegmented' (%f)\n",gtmseg->dmax);
   printf("   --keep-hypo : do not convert WM hypointensities to a white matter label \n");
   printf("   --keep-cc : do not convert corpus callosum to a white matter label \n");
-  printf("   --no-replace : do not default merging and replacement\n");
+  printf("   --ctab ctab.lut : copy items in ctab.lut into master ctab merging or overwriting what is there \n");
   printf("\n");
   #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");
