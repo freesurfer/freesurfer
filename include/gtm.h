@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/14 22:13:46 $
- *    $Revision: 1.2 $
+ *    $Date: 2014/04/16 17:53:01 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include "matrix.h"
 #include "mri.h"
 #include "transform.h"
+#include "mrisurf.h"
 
 #ifdef X
 #undef X
@@ -42,6 +43,7 @@ typedef struct
   char *apasfile;
   char *ctxannotfile;
   int ctxlhbase,ctxrhbase;
+  MRIS *lhw, *lhp, *rhw, *rhp;
   int KeepHypo;
   int KeepCC;
   int SubSegWM;
@@ -55,6 +57,7 @@ typedef struct
 
 int MRIgtmSeg(GTMSEG *gtmseg);
 int GTMSEGprint(GTMSEG *gtmseg, FILE *fp);
-int GTMdefaultSegReplacmentList(GTMSEG *gtmseg);
+int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat);
+COLOR_TABLE *GTMSEGctab(GTMSEG *gtmseg, COLOR_TABLE *ctSubCort);
 
 #endif
