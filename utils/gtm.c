@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/16 17:53:02 $
- *    $Revision: 1.3 $
+ *    $Date: 2014/04/16 19:22:44 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,7 +81,6 @@ int MRIgtmSeg(GTMSEG *gtmseg)
   printf("Starting MRIgtmSeg() USF=%d\n",gtmseg->USF);
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  SUBJECTS_DIR = "/autofs/cluster/con_009/users/greve/fdg-pvc/FSMR";
 
   sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtmseg->subject,gtmseg->apasfile);
   printf("Loading %s\n",tmpstr);
