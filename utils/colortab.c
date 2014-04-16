@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/11 23:21:40 $
- *    $Revision: 1.54 $
+ *    $Date: 2014/04/16 17:34:48 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ COLOR_TABLE *CTABreadASCII(const char *fname)
   int         structure;
   char        name[STRLEN];
   int         r, g, b, t, tt=0;
-  int         line_num;
+  int         line_num,nscan;
 
   /* Try to open the file. */
   fp = fopen(fname, "r");
@@ -130,16 +130,13 @@ COLOR_TABLE *CTABreadASCII(const char *fname)
   line_num = 1;
   ctabDuplicates = 0;
   rewind(fp);
-  while ((cp = fgets(line, STRLEN, fp)) != NULL)
-  {
-    if (sscanf (line, "%d %s %d %d %d %d %d",
-                &structure, name, &r, &g, &b, &t, &tt) >= 6)
-    {
-
+  while ((cp = fgets(line, STRLEN, fp)) != NULL){
+    nscan = sscanf(line, "%d %s %d %d %d %d %d",&structure, name, &r, &g, &b, &t, &tt);
+    if(nscan != 7) tt = -1; // set tissue type to -1 if not there
+    if(nscan >= 6){
       /* If this entry already exists, there's a duplicate entry
          in the file. Warn, but then continue on.*/
-      if (ct->entries[structure] != NULL)
-      {
+      if (ct->entries[structure] != NULL) {
         printf ("CTABreadASCII(%s): Line %d: Duplicate structure "
                 "index %d, was %s %d %d %d %d\n",
                 fname, line_num, structure,
@@ -150,19 +147,15 @@ COLOR_TABLE *CTABreadASCII(const char *fname)
                 ct->entries[structure]->ai);
         ctabDuplicates++;
       }
-      else
-      {
+      else {
         /* Try to create a new entry.*/
         ct->entries[structure] = (CTE*) malloc(sizeof(CTE));
-        if (NULL == ct->entries[structure])
-        {
+        if (NULL == ct->entries[structure]) {
           fclose(fp);
           CTABfree(&ct);
-          ErrorReturn
-            (NULL, 
-             (ERROR_NO_MEMORY, 
-              "CTABreadASCII(%s): could not allocate entry for structure %d", 
-              fname, structure));
+          ErrorReturn(NULL,(ERROR_NO_MEMORY, 
+			    "CTABreadASCII(%s): could not allocate entry for structure %d", 
+			    fname, structure));
         }
 
         /* Fill out the entry. */
@@ -268,6 +261,7 @@ COLOR_TABLE *CTABreadASCIIttHeader(const char *fname)
     ct->entries[structure]->gi = g;
     ct->entries[structure]->bi = b;
     ct->entries[structure]->ai = (255-t); /* alpha = 255-trans */
+    ct->entries[structure]->TissueType = structure;
     nct++;
   }
 
@@ -362,8 +356,10 @@ COLOR_TABLE *CTABdeepCopy(COLOR_TABLE *ct)
       copy->entries[structure]->gf = ct->entries[structure]->gf;
       copy->entries[structure]->bf = ct->entries[structure]->bf;
       copy->entries[structure]->af = ct->entries[structure]->af;
+      copy->entries[structure]->TissueType = ct->entries[structure]->TissueType;
     }
   }
+  if(ct->ctabTissueType) copy->ctabTissueType = CTABdeepCopy(ct->ctabTissueType);
 
   /* Return the new copy. */
   return copy;
@@ -2362,7 +2358,7 @@ int CTABprintASCIItt(COLOR_TABLE *ct, FILE *fp)
   for (structure = 0; structure < ct->nentries; structure++)  {
     cte = ct->entries[structure];
     if(cte == NULL) continue;
-    if(cte->TissueType == -1) continue;
+    //if(cte->TissueType == -1) continue;
     tmpstr = deblank(cte->name);
     fprintf (fp, "%3d  %-30s  %3d %3d %3d  %3d  %2d\n",
 	     structure + ct->idbase, tmpstr,
@@ -2390,3 +2386,27 @@ int CTABwriteFileASCIItt(COLOR_TABLE *ct, const char *fname)
   fclose(fp);
   return(0);
 }
+
+
+/*--------------------------------------------------------------*/
+/*!
+\fn int CTABmerge(COLOR_TABLE *ct, const COLOR_TABLE *merge)
+\brief Takes items in merge and copies them into ct. If ct
+already has an item for that structure, it is deleted and
+the new one is used to overwrite it.
+*/
+int CTABmerge(COLOR_TABLE *ct, const COLOR_TABLE *merge)
+{
+  int n;
+  CTE *cte,*cte0;
+
+  for(n=0; n < merge->nentries; n++){
+    cte = merge->entries[n];
+    if(cte == NULL) continue;
+    cte0 = ct->entries[n];
+    if(cte0==NULL) cte0 = (CTE*) calloc(1, sizeof(COLOR_TABLE_ENTRY));
+    memcpy(cte0,cte,sizeof(CTE));
+  }
+  return(0);
+}
+
