@@ -5,6 +5,9 @@
 foodir=$(prefix)
 foo_DATA=LICENSE NOTICE README AUTHORS INSTALL COPYING
 
+OCTSUBDIRS=\
+	oct_train 
+
 DMRISUBDIRS=\
 	dmri_poistats \
   dmri_tensoreig  
@@ -379,6 +382,7 @@ SUBDIRS=\
 	$(STATSDIRS) \
 	$(MISCDIRS) \
 	$(DMRISUBDIRS) \
+	$(OCTSUBDIRS) \
 	fsfast \
 	matlab \
 	freeview \

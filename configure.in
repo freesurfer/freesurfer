@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: rpwang $
-#    $Date: 2014/04/15 16:24:31 $
-#    $Revision: 1.611 $
+#    $Author: fischl $
+#    $Date: 2014/04/17 13:29:44 $
+#    $Revision: 1.612 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3773,6 +3773,7 @@ AC_OUTPUT([Makefile
            mris_longitudinal_surfaces/Makefile
            mris_compute_volume_fractions/Makefile
            nmovie/Makefile
+           oct_train/Makefile
 	   nmovie_qt/Makefile
            optseq2/Makefile
            orient_mri/Makefile
