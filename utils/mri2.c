@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/31 19:02:27 $
- *    $Revision: 1.107 $
+ *    $Date: 2014/04/17 17:06:35 $
+ *    $Revision: 1.108 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5010,4 +5010,126 @@ MRI *MRIunsegmentCortex(MRI *seg, const MRI *ribbon, MRI *out)
     }
   }
   return(out);
+}
+
+/*
+  \fn MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlist)
+  \brief Relabels non-wm hypointenties (80,81,82) based on
+  proximity/most frequent nearest neighbor to labels listed in
+  segidlist. The most frequent nearest neighbor to a hypo is
+  determined.  If the most freq is in segidlist, then the hypo is
+  relabled according to the corresponding segid in outsegidlist.  If
+  none of the nearest neighbors are in the segidlist, the hypo is not
+  relabeled.
+ */
+MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlist)
+{
+  int c,r,s,c0,r0,s0,k,n,loop,nchanged,mfsegid,nbrmax,nthnbr,nhits,segid,hit;
+  int *clist,*rlist,*slist,*hitlist,nbrlist[3*3*3],nchangedtot;
+  MRI *seg, *newseg;
+
+  seg = MRIcopy(seg0,NULL);
+  newseg = MRIcopy(seg0,NULL);
+
+  // Get a count of non-wm-hypos
+  nhits = 0;
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(segid != 80 && segid != 81 && segid != 82) continue;
+	nhits++;
+      }
+    }
+  }
+  printf("MRIrelabelNonWMHypos(): found %d non-WM-hypointensities\n",nhits);
+
+  // Get a list of cols, rows, and slices of the non-wm-hypos
+  clist = (int *) calloc(nhits,sizeof(int));
+  rlist = (int *) calloc(nhits,sizeof(int));
+  slist = (int *) calloc(nhits,sizeof(int));
+  nhits = 0;
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(segid != 80 && segid != 81 && segid != 82) continue;
+	clist[nhits] = c;
+	rlist[nhits] = r;
+	slist[nhits] = s;
+	nhits++;
+      }
+    }
+  }
+
+  // Loop dilating the segs adjacent to hypos until there are no changes
+  hitlist = (int *) calloc(nhits,sizeof(int));
+  nchangedtot = 0;
+  loop = 0;
+  nchanged = 1;
+  while(nchanged != 0){
+    printf("loop %2d ",loop);fflush(stdout);
+    loop++;
+    nchanged = 0;
+    // go through the hypo list
+    for(k=0; k < nhits; k++){
+      if(hitlist[k]) continue;
+      c0 = clist[k];
+      r0 = rlist[k];
+      s0 = slist[k];
+      // Get a list of neihbors in 3x3x3 neighborhood around the hypo
+      nthnbr = 0;
+      for(c=c0-1; c <= c0+1; c++){
+	for(r=r0-1; r <= r0+1; r++){
+	  for(s=s0-1; s <= s0+1; s++){
+	    if(c < 0 || c >= seg->width)  continue;
+	    if(r < 0 || r >= seg->height) continue;
+	    if(s < 0 || s >= seg->depth)  continue;
+	    if(c==c0 && r==r0 && s==s0)   continue;
+	    segid = MRIgetVoxVal(seg,c,r,s,0);
+	    /* Require that nbr be in segidlist. Can have a situation
+	    where the most freq nbr may not be in the segidlist but it
+	    gets labeled to the most freq neighbor that is in the
+	    segidlist*/
+	    hit = 0;
+	    for(n=0; n < nsegs; n++){
+	      if(segid == segidlist[n]){
+		hit = 1;
+		break;
+	      }
+	    }
+	    if(hit==0) continue;
+	    nbrlist[nthnbr] = segid;
+	    nthnbr++;
+	  }
+	}
+      }
+      if(nthnbr == 0) continue;
+      mfsegid = most_frequent_int_list(nbrlist, nthnbr, &nbrmax);
+      fflush(stdout);
+      for(n=0; n < nsegs; n++){
+	if(mfsegid == segidlist[n]){
+	  // relabel hypo in seg as most freq adjacent structure (dilation)
+	  MRIsetVoxVal(seg,   c0,r0,s0,0, segidlist[n]); 
+	  // relabel hypo in the output based on the output segidlist
+	  MRIsetVoxVal(newseg,c0,r0,s0,0, outsegidlist[n]); 
+	  hitlist[k] = 1;
+	  nchanged++;
+	  nchangedtot++;
+	  break;
+	}
+      } // nsegs
+    } // k
+    printf("  nchanged %4d\n",nchanged);fflush(stdout);
+  } // while
+
+  printf("MRIrelabelNonWMHypos(): relabeled %d non-WM-hypointensities\n",nchangedtot);
+  fflush(stdout);
+
+  free(clist);
+  free(rlist);
+  free(slist);
+  free(hitlist);
+  MRIfree(&seg);
+  return(newseg);
 }

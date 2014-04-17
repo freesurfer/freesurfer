@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/31 19:02:28 $
- *    $Revision: 1.62 $
+ *    $Date: 2014/04/17 17:06:36 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -138,6 +138,7 @@ MRI *MRIannot2CerebralWMSeg(MRI *seg, MRIS *lhw, MRIS *rhw, double DistThresh, L
 MRI *MRIunsegmentCortex(MRI *seg, const MRI *ribbon, MRI *out);
 MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, LTA *anat2seg, MRI *wmseg);
 MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmseg);
+MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlist);
 
 #if defined(__cplusplus)
 };
