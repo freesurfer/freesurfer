@@ -216,6 +216,7 @@ EXTRA_DIST=\
 	queue.h \
 	randomfields.h \
 	rbf.h \
+	rbm.h \
 	rec.h \
 	region.h \
 	registerio.h \
