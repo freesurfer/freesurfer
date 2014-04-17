@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/03/19 20:24:07 $
- *    $Revision: 1.27 $
+ *    $Date: 2014/04/17 19:26:30 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,8 +148,6 @@ VLSTcreate(MRI *mri,
 	  if (x == Gx && y == Gy && z == Gz)
 	    DiagBreak() ;
 	  val = MRIgetVoxVal(mri, x, y, z, f) ;
-	  if (val > 0)
-	    DiagBreak() ;
 	  if (x == Gx && y == Gy && z == Gz)
 	    DiagBreak() ;
 	  if (border_only && 
@@ -1253,3 +1251,45 @@ VLSThausdorffDistance(VOXEL_LIST *vl1, VOXEL_LIST *vl2, double max_dist, MRI **p
   }
   return(hdist) ;
 }
+double
+VLSTmean(VOXEL_LIST *vl, MRI *mri, double *pvar) 
+{
+  double   mean, var, val ;
+  int      x, y, z, f, n ;
+
+  if (mri == NULL)
+    mri = vl->mri ;
+  for  (mean = var = 0.0, n = 0 ; n < vl->nvox ; n++)
+  {
+    x = vl->xi[n] ; y = vl->yi[n] ;  z = vl->zi[n] ;  f = vl->fi[n] ; 
+    val = MRIgetVoxVal(mri, x, y, z, f) ;
+    var += val*val ;
+    mean += val ;
+  }
+  mean /= vl->nvox ;
+  var = (var - vl->nvox*mean*mean) / (vl->nvox-1) ;
+  if (pvar)
+    *pvar = var ;
+  return(mean) ;
+}
+
+int
+VLSTsample(VOXEL_LIST *vl, MRI *mri) 
+{
+  double   val ;
+  int      x, y, z, f, n ;
+
+  if (mri == NULL)
+    mri = vl->mri ;
+  for  (n = 0 ; n < vl->nvox ; n++)
+  {
+    x = vl->xi[n] ; y = vl->yi[n] ;  z = vl->zi[n] ;  f = vl->fi[n] ; 
+    if (f < mri->nframes)
+      val = MRIgetVoxVal(mri, x, y, z, f) ;
+    else
+      val = MRIgetVoxVal(mri, x, y, z, f) ;
+    vl->vsrc[n] = val ;
+  }
+  return(NO_ERROR) ;
+}
+
