@@ -136,6 +136,7 @@ MRISUBDIRS=\
 	mri_reduce \
 	mri_register \
 	mri_relabel_hypointensities \
+	mri_relabel_nonwm_hypos \
 	mri_remove_neck \
 	mri_ribbon \
 	mri_rigid_register \
