@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/03/19 20:24:13 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/04/17 19:26:38 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,6 +104,8 @@ MRI         *VLSTwriteOrderToMRI(VOXEL_LIST *vl, MRI *mri) ;
 #define t_to_X(xk, xkp1, x)   ((t) * ((xkp1)-(xk)) + (xk))
 
 
+double      VLSTmean(VOXEL_LIST *vl, MRI *mri, double *pvar) ;
+int         VLSTsample(VOXEL_LIST *vl, MRI *mri) ;
 VOXEL_LIST  *VLSTsplineFit(VOXEL_LIST *vl, int num_control) ;
 VOXEL_LIST  *VLSTinterpolate(VOXEL_LIST *vl, float spacing) ;
 int         VLSTinterpolateIntoVolume(VOXEL_LIST *vl, MRI *mri, float val) ;
