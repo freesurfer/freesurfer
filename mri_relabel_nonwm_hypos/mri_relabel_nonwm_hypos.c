@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/17 17:55:13 $
- *    $Revision: 1.1 $
+ *    $Date: 2014/04/17 18:03:22 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_relabel_nonwm_hypos.c,v 1.1 2014/04/17 17:55:13 greve Exp $
+// $Id: mri_relabel_nonwm_hypos.c,v 1.2 2014/04/17 18:03:22 greve Exp $
 
 /*
   BEGINHELP
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) ;
 int PrintSegIds(int nsegs, int *segidlist, int *outsegidlist);
 int DefaultSegIds(int *segidlist, int *outsegidlist);
 
-static char vcid[] = "$Id: mri_relabel_nonwm_hypos.c,v 1.1 2014/04/17 17:55:13 greve Exp $";
+static char vcid[] = "$Id: mri_relabel_nonwm_hypos.c,v 1.2 2014/04/17 18:03:22 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -213,6 +213,13 @@ static void print_help(void) {
   nsegs = DefaultSegIds(segidlist, outsegidlist);
   PrintSegIds(nsegs, segidlist, outsegidlist);
   printf("\n");
+  printf("The user will need to create a custom color to view/analyze the new segmentation\n");
+  printf("The color table must be formated like $FREESURFER_HOME/FreeSurferColorLUT.txt, eg\n");
+  printf("   270 left-caudate-nonwm-hypos   120 120 0 0\n");
+  printf("This can be used with tkmedit, like tkmedit subject nu.mgz -seg newseg.mgz newcolortable\n");
+  printf("or when running mri_segstats (passing the colortable with --ctab)\n");
+  printf("\n");
+
   exit(1) ;
 }
 /*-------------------------------------------------------*/
