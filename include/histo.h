@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/26 14:15:29 $
- *    $Revision: 1.46 $
+ *    $Date: 2014/04/17 19:20:47 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -135,6 +135,9 @@ double    HISTOgetEntropy(HISTOGRAM *h);
 HISTOGRAM *HISTOsoapBubbleZeros(HISTOGRAM *hsrc, HISTOGRAM *hdst, int niters) ;
 int       HISTOfindMaxDerivative(HISTOGRAM *h, double min_count, double max_count, int whalf, 
                                  int grad_dir) ;
+double    HISTOrmsDifference(HISTOGRAM *h1, HISTOGRAM *h2) ;
+double    HISTOearthMoversDistance(HISTOGRAM *h1, HISTOGRAM *h2) ;
+double    HISTOksDistance(HISTOGRAM *h1, HISTOGRAM *h2)  ;
 
 
 
