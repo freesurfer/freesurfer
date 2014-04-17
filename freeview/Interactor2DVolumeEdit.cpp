@@ -1,4 +1,4 @@
-/**
+ /**
  * @file  Interactor2DVolumeEdit.cpp
  * @brief Interactor for editing volume in 2D render view.
  *
@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/28 19:29:38 $
- *    $Revision: 1.31 $
+ *    $Date: 2014/04/17 20:54:45 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,9 @@ Interactor2DVolumeEdit::~Interactor2DVolumeEdit()
 
 void Interactor2DVolumeEdit::PreprocessMouseEvent(QMouseEvent *event)
 {
+  if (m_nAction == EM_Polyline || m_nAction == EM_Livewire )
+    return;
+
   bool bRightButtonErase = MainWindow::GetMainWindow()->GetSetting("RightButtonErase").toBool();
   if (bRightButtonErase && event->button() == Qt::RightButton && event->modifiers() == Qt::NoModifier)
   {
@@ -291,7 +294,8 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
 
 bool Interactor2DVolumeEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
 {
-// RenderView2D* view = ( RenderView2D* )renderview;
+  RenderView2D* view = ( RenderView2D* )renderview;
+  view->releaseMouse();
   PreprocessMouseEvent(event);
 
   UpdateCursor( event, renderview );

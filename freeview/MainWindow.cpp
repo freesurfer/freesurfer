@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/09 20:56:03 $
- *    $Revision: 1.279 $
+ *    $Date: 2014/04/17 20:54:45 $
+ *    $Revision: 1.280 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3776,6 +3776,7 @@ void MainWindow::SetAction( int nAction )
 {
   for ( int i = 0; i < 4; i++ )
   {
+    m_views[i]->releaseMouse();
     m_views[i]->SetAction( nAction );
   }
 
@@ -5502,6 +5503,7 @@ void MainWindow::SetMode( int nMode )
   int nOldMode = m_views[0]->GetInteractionMode();
   for ( int i = 0; i < 4; i++ )
   {
+    m_views[i]->releaseMouse();
     m_views[i]->SetInteractionMode( nMode );
   }
   if (nOldMode == RenderView::IM_VolumeCrop && nMode != nOldMode)
