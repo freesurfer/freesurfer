@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/17 20:54:45 $
- *    $Revision: 1.280 $
+ *    $Date: 2014/04/22 18:32:55 $
+ *    $Revision: 1.281 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -768,6 +768,11 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   if (m_cmdParser->Found("timecourse"))
   {
     ui->actionTimeCourse->setChecked(true);
+  }
+
+  if (m_cmdParser->Found("nocursor"))
+  {
+    OnToggleCursorVisibility(false);
   }
 
   if ( m_cmdParser->Found( "viewsize", &sa ) )
