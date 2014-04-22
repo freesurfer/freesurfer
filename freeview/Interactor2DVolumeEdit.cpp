@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/17 20:54:45 $
- *    $Revision: 1.32 $
+ *    $Date: 2014/04/22 16:05:45 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,154 +92,157 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
     {
       if ( (!mri || !mri->IsVisible()) ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
       {
-        emit Error( "Layer Not Visible", mri );
+        emit Error( "Selected layer is not visible", mri );
+        break;
       }
       else if ( !mri->IsEditable() ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
       {
-        emit Error( "Layer Not Editable", mri );
+        emit Error( "Selected layer is not editable", mri );
+        break;
       }
       else if ( m_strLayerTypeName == "MRI" && ((LayerMRI*)mri)->IsTransformed() )
       {
-        emit Error( "Layer Not Editable For Transformation", mri );
+        emit Error( "Selected layer is not editable for transformation", mri );
+        break;
       }
       else
-    {
-      m_nMousePosX = event->x();
-      m_nMousePosY = event->y();
-      bool bFill3D = (LayerMRI*)MainWindow::GetMainWindow()->GetBrushProperty()->GetFill3D();
+      {
+        m_nMousePosX = event->x();
+        m_nMousePosY = event->y();
+        bool bFill3D = (LayerMRI*)MainWindow::GetMainWindow()->GetBrushProperty()->GetFill3D();
 
-      double ras[3];
-      view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
-      bool bCondition = !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton);
-      if ( (m_nAction == EM_ColorPicker || m_bColorPicking ) && mri->IsTypeOf( "MRI" ) )
-      {
-        if ( event->modifiers() & CONTROL_MODIFIER )
+        double ras[3];
+        view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
+        bool bCondition = !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton);
+        if ( (m_nAction == EM_ColorPicker || m_bColorPicking ) && mri->IsTypeOf( "MRI" ) )
         {
-          mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
-        }
-        else
-        {
-          double dValue = ((LayerMRI*)mri)->GetVoxelValue( ras );
-          if ( dValue != 0 )
+          if ( event->modifiers() & CONTROL_MODIFIER )
           {
-            MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue( (float)dValue );
-          }
-        }
-        m_bColorPicking = false;
-      }
-      else if ( m_nAction == EM_Freehand ) //&& ( event->ControlDown() ) )
-      {
-        if ( event->modifiers() & CONTROL_MODIFIER )
-        {
-          mri->SaveForUndo( bFill3D ? -1 : view->GetViewPlane());
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
-        }
-        else
-        {
-          mri->SaveForUndo( view->GetViewPlane() );
-          m_bEditing = true;
-          mri->SetVoxelByRAS( ras, view->GetViewPlane(),bCondition );
-        }
-      }
-      else if ( m_nAction == EM_Clone )
-      {
-        mri->SaveForUndo( view->GetViewPlane() );
-        m_bEditing = true;
-        mri->CloneVoxelByRAS( ras, view->GetViewPlane() );
-      }
-      else if ( m_nAction == EM_Fill ) //&& ( event->ControlDown() ) )
-      {
-        mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
-        mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
-      }
-      else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
-      {
-        if ( event->modifiers() & CONTROL_MODIFIER )
-        {
-          mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
-          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
-        }
-        else
-        {
-          mri->SaveForUndo( view->GetViewPlane() );
-          m_bEditing = true;
-          double ras2[3];
-          view->GetCursor2D()->ClearInterpolationPoints();
-          view->GetCursor2D()->GetPosition( ras2 );
-          view->GetCursor2D()->SetPosition( ras );
-          view->GetCursor2D()->SetPosition2( ras );
-          if ( m_dPolylinePoints.size() > 0 )
-          {
-            if ( m_nAction == EM_Polyline )
-            {
-              mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), bCondition );
-            }
-            else
-            {
-              mri->SetLiveWireByRAS( ras, ras2, view->GetViewPlane() );
-            }
+            mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
+            mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
           }
           else
           {
-            // mri->SaveForUndo( view->GetViewPlane() );
-            m_dPolylinePoints.push_back( ras[0] );
-            m_dPolylinePoints.push_back( ras[1] );
-            m_dPolylinePoints.push_back( ras[2] );
-            view->GetCursor2D()->SetPosition( ras );
+            double dValue = ((LayerMRI*)mri)->GetVoxelValue( ras );
+            if ( dValue != 0 )
+            {
+              MainWindow::GetMainWindow()->GetBrushProperty()->SetFillValue( (float)dValue );
+            }
           }
-
-          view->grabMouse();
+          m_bColorPicking = false;
         }
-      }
-      else if ( m_nAction == EM_Contour && mri->IsTypeOf( "MRI" ) )
-      {
-        LayerMRI* mri_ref = (LayerMRI*)MainWindow::GetMainWindow()->GetBrushProperty()->GetReferenceLayer();
-        if ( !mri_ref )
+        else if ( m_nAction == EM_Freehand ) //&& ( event->ControlDown() ) )
         {
-          emit Error( "Reference Layer Not Set" );
-          return false;
-        }
-
-        Contour2D* c2d = view->GetContour2D();
-        if ( (event->modifiers() & CONTROL_MODIFIER) && (event->modifiers() & Qt::AltModifier) )
-        {
-          double dValue = mri_ref->GetVoxelValue( ras );
-          if ( dValue != 0 )
+          if ( event->modifiers() & CONTROL_MODIFIER )
           {
-            m_bEditing = true;
-            c2d->SetInput( mri_ref->GetSliceImageData( view->GetViewPlane() ), dValue, ras[view->GetViewPlane()], mri_ref->GetActiveFrame() );
-            c2d->SetVisible( true );
-            view->RequestRedraw();
+            mri->SaveForUndo( bFill3D ? -1 : view->GetViewPlane());
+            mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
           }
-          else if ( c2d->IsVisible() )
+          else
           {
+            mri->SaveForUndo( view->GetViewPlane() );
             m_bEditing = true;
+            mri->SetVoxelByRAS( ras, view->GetViewPlane(),bCondition );
           }
         }
-        else if ( (event->modifiers() & CONTROL_MODIFIER) && !(event->modifiers() & Qt::AltModifier) )
+        else if ( m_nAction == EM_Clone )
         {
           mri->SaveForUndo( view->GetViewPlane() );
-          ((LayerMRI*)mri)->FloodFillByContour2D( ras, c2d );
-        }
-        else if ( event->modifiers() & Qt::ShiftModifier )
-        {
           m_bEditing = true;
-          c2d->RemoveLine( ras, ras );
-          view->RequestRedraw();
+          mri->CloneVoxelByRAS( ras, view->GetViewPlane() );
+        }
+        else if ( m_nAction == EM_Fill ) //&& ( event->ControlDown() ) )
+        {
+          mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
+          mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
+        }
+        else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
+        {
+          if ( event->modifiers() & CONTROL_MODIFIER )
+          {
+            mri->SaveForUndo(bFill3D ? -1 : view->GetViewPlane());
+            mri->FloodFillByRAS( ras, view->GetViewPlane(), bCondition, bFill3D );
+          }
+          else
+          {
+            mri->SaveForUndo( view->GetViewPlane() );
+            m_bEditing = true;
+            double ras2[3];
+            view->GetCursor2D()->ClearInterpolationPoints();
+            view->GetCursor2D()->GetPosition( ras2 );
+            view->GetCursor2D()->SetPosition( ras );
+            view->GetCursor2D()->SetPosition2( ras );
+            if ( m_dPolylinePoints.size() > 0 )
+            {
+              if ( m_nAction == EM_Polyline )
+              {
+                mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), bCondition );
+              }
+              else
+              {
+                mri->SetLiveWireByRAS( ras, ras2, view->GetViewPlane() );
+              }
+            }
+            else
+            {
+              // mri->SaveForUndo( view->GetViewPlane() );
+              m_dPolylinePoints.push_back( ras[0] );
+              m_dPolylinePoints.push_back( ras[1] );
+              m_dPolylinePoints.push_back( ras[2] );
+              view->GetCursor2D()->SetPosition( ras );
+            }
+
+            view->grabMouse();
+          }
+        }
+        else if ( m_nAction == EM_Contour && mri->IsTypeOf( "MRI" ) )
+        {
+          LayerMRI* mri_ref = (LayerMRI*)MainWindow::GetMainWindow()->GetBrushProperty()->GetReferenceLayer();
+          if ( !mri_ref )
+          {
+            emit Error( "Reference Layer Not Set" );
+            return false;
+          }
+
+          Contour2D* c2d = view->GetContour2D();
+          if ( (event->modifiers() & CONTROL_MODIFIER) && (event->modifiers() & Qt::AltModifier) )
+          {
+            double dValue = mri_ref->GetVoxelValue( ras );
+            if ( dValue != 0 )
+            {
+              m_bEditing = true;
+              c2d->SetInput( mri_ref->GetSliceImageData( view->GetViewPlane() ), dValue, ras[view->GetViewPlane()], mri_ref->GetActiveFrame() );
+              c2d->SetVisible( true );
+              view->RequestRedraw();
+            }
+            else if ( c2d->IsVisible() )
+            {
+              m_bEditing = true;
+            }
+          }
+          else if ( (event->modifiers() & CONTROL_MODIFIER) && !(event->modifiers() & Qt::AltModifier) )
+          {
+            mri->SaveForUndo( view->GetViewPlane() );
+            ((LayerMRI*)mri)->FloodFillByContour2D( ras, c2d );
+          }
+          else if ( event->modifiers() & Qt::ShiftModifier )
+          {
+            m_bEditing = true;
+            c2d->RemoveLine( ras, ras );
+            view->RequestRedraw();
+          }
+          else
+          {
+            m_bEditing = true;
+            c2d->AddLine( ras, ras );
+            view->RequestRedraw();
+          }
         }
         else
         {
-          m_bEditing = true;
-          c2d->AddLine( ras, ras );
-          view->RequestRedraw();
+          return Interactor2D::ProcessMouseDownEvent( event, renderview );
         }
       }
-      else
-      {
-        return Interactor2D::ProcessMouseDownEvent( event, renderview );
-      }
-    }
     }
 
     return false;

@@ -209,7 +209,7 @@
      <x>0</x>
      <y>0</y>
      <width>1213</width>
-     <height>20</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -393,6 +393,9 @@
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
+   <property name="windowTitle">
+    <string>Tool Bar</string>
+   </property>
    <property name="movable">
     <bool>false</bool>
    </property>
