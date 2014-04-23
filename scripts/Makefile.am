@@ -209,6 +209,7 @@ test_recon-all.csh \
 test_fs_tutorial.csh \
 thickdiffmap \
 tkmeditfv \
+tksurferfv \
 trac-all \
 trac-paths \
 trac-preproc \
