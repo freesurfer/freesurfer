@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/08/27 15:49:58 $
-#    $Revision: 1.16.2.3 $
+#    $Date: 2014/04/23 20:39:26 $
+#    $Revision: 1.16.2.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.16.2.3 2013/08/27 15:49:58 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.16.2.4 2014/04/23 20:39:26 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -53,6 +53,7 @@ set DoFieldSign = 0;
 set UseTalairach = 0;
 set RegDOF = 6;
 set regfile = ();
+set UseFreeview = 0;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -255,34 +256,44 @@ foreach sess ($SessList)
     set subject = $self
   endif
 
-  set cmd = (tksurfer $trgsubjectuse $hemi $surf -overlay $mapconcatfile)
-  set cmd = ($cmd -label-outline -colscalebarflag 1)
-  if($ShowHDR) then
-    set cmd = ($cmd -timecourse $hpath -timecourse-offset $hoffsetpath)
-  endif
-  if($#annot) set cmd = ($cmd -annot $annot)
-  set maskopt = ()
-  if($IsRet && ($map == angle || $map == fieldsign)) then
-    set mapanadir = $sess/$mapfsd/$mapanalysis
-    if($IsSurface) set maskstem = $mapanadir/fieldsign/fsig
-    if(! $IsSurface) then
-      set maskstem = $mapanadir/fieldsign/$hemi.fsig
-      if($status) then
-        echo "ERROR: cannot find $mapanadir/fieldsign/$hemi.fsig."
-        echo "       Run fieldsign-sess."
-        exit 1;
-      endif
+  if($UseFreeview == 0) then
+    set cmd = (tksurfer $trgsubjectuse $hemi $surf -overlay $mapconcatfile)
+    set cmd = ($cmd -label-outline -colscalebarflag 1)
+    if($ShowHDR) then
+      set cmd = ($cmd -timecourse $hpath -timecourse-offset $hoffsetpath)
     endif
-    set mask = `stem2fname $maskstem`
-    set maskopt = (-mask $mask -mask-thresh $fthresh -fthresh .01)
+    if($#annot) set cmd = ($cmd -annot $annot)
+    set maskopt = ()
+    if($IsRet && ($map == angle || $map == fieldsign)) then
+      set mapanadir = $sess/$mapfsd/$mapanalysis
+      if($IsSurface) set maskstem = $mapanadir/fieldsign/fsig
+      if(! $IsSurface) then
+        set maskstem = $mapanadir/fieldsign/$hemi.fsig
+        if($status) then
+          echo "ERROR: cannot find $mapanadir/fieldsign/$hemi.fsig."
+          echo "       Run fieldsign-sess."
+          exit 1;
+        endif
+      endif
+      set mask = `stem2fname $maskstem`
+      set maskopt = (-mask $mask -mask-thresh $fthresh -fthresh .01)
+    endif
+    set fmid   = `echo "($fmax+$fthresh)/2.0" | bc -l`
+    set fslope = `echo "1.0/($fmax-$fthresh)" | bc -l`
+    set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope $maskopt)
+    if($Delink) set cmd = ($cmd -delink);
+    if($#TCL) set cmd = ($cmd -tcl $TCL)
+  else
+    # FreeView via tksurferfv
+    set cmd = (tksurferfv $trgsubjectuse $hemi $surf -overlay $mapconcatfile)
+    if($#annot) set cmd = ($cmd -annot $annot)
+    if($surf != white) set cmd = ($cmd -surf white);
+    if($surf != pial) set cmd = ($cmd -surf pial);
+    if($surf != inflated) set cmd = ($cmd -surf inflated);
+    set cmd = ($cmd -fminmax $fthresh $fmax)
   endif
-  set fmid   = `echo "($fmax+$fthresh)/2.0" | bc -l`
-  set fslope = `echo "1.0/($fmax-$fthresh)" | bc -l`
-  set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope $maskopt)
-  if($Delink) set cmd = ($cmd -delink);
-  if($#TCL) set cmd = ($cmd -tcl $TCL)
 
-  echo " cd `pwd`"
+  echo "cd `pwd`"
   echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"
   echo $cmd
   echo ""
@@ -401,6 +412,16 @@ while( $#argv != 0 )
     case "-reg-dof":
       if($#argv == 0) goto arg1err;
       set RegDOF = $argv[1];shift;
+      breaksw
+
+    case "-freeview":
+    case "-fv":
+      set UseFreeview = 1;
+      breaksw
+
+    case "-tks":
+    case "-tksurfer":
+      set UseFreeview = 0;
       breaksw
 
     case "-tcl":
@@ -582,6 +603,13 @@ check_params:
 
   if($#regfile == 0) set regfile = register.dof$RegDOF.dat
 
+  if($ShowHDR && $UseFreeview) then
+    echo "ERROR: you must use tksurfer to display the hemodynamic response time course"
+    echo "  Two things you can do:"
+    echo "    1. To display with freeview but no HRF, re-run with the -nohdr option"
+    echo "    2. To display with tksurfer and the HRF, re-run with the -tksurfer option"
+  endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -611,6 +639,8 @@ usage_exit:
   echo "   -interp method : interpolation for volume analyses"
   echo "   -fwhm fwhm : surface smooth by fwhm (only necessary for volume analyses)"
   echo "   -tcl script.tcl  : run tksurfer with tcl script"
+  echo "   -freeview : display with freeview (cannot display HRFs)"
+  echo "   -tksurfer  : display with tksurfer"
   echo ""
   echo "   -d  sessdir  ..."
   echo ""
