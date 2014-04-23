@@ -13,20 +13,18 @@ function flacnew = flac_conmat(flac,nthcon)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/09 21:25:31 $
-%    $Revision: 1.4 $
+%    $Date: 2014/04/23 20:44:09 $
+%    $Revision: 1.5.2.1 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 flacnew = [];
@@ -43,6 +41,22 @@ end
 
 con = flac.con(nthcon);
 nevs = length(flac.ev);
+
+nregtot = 0;
+for nthev = 1:nevs
+  nregtot = nregtot + flac.ev(nthev).nreg;
+end
+
+if(con.UseExtC)
+  % Use externally specified contrast matrix, task only
+  J = size(con.ContrastMtx_0,1);
+  C = zeros(J,nregtot);
+  indtask = flac_taskregind(flac);
+  C(:,indtask) = con.ContrastMtx_0;
+  flacnew = flac;
+  flacnew.con(nthcon).C = C;
+  return;
+end
 
 if(con.rmprestim)
   % Remove the prestimulus baseline, added on 4/8/09
