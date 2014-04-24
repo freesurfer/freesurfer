@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/22 18:32:55 $
- *    $Revision: 1.281 $
+ *    $Date: 2014/04/24 16:52:03 $
+ *    $Revision: 1.282 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5360,9 +5360,8 @@ void MainWindow::LoadSurfaceCurvatureFile( const QString& filename )
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer )
   {
-    QFileInfo fi( filename );
-    layer->LoadCurvatureFromFile( fi.absoluteFilePath() );
-    m_strLastDir = fi.absoluteFilePath();
+    layer->LoadCurvatureFromFile( filename );
+  //  m_strLastDir = fi.absoluteFilePath();
   }
 }
 

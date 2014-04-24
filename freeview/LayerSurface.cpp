@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/11 20:06:39 $
- *    $Revision: 1.103 $
+ *    $Date: 2014/04/24 16:52:03 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -283,6 +283,7 @@ void LayerSurface::UpdateVectorActor2D()
 bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
 {
   QString fn = filename;
+  fn.replace("~", QDir::homePath());
   if (!QFile::exists(fn))
   {
     fn = QFileInfo(QFileInfo(m_sFilename).dir(), filename).absoluteFilePath();
@@ -293,6 +294,7 @@ bool LayerSurface::LoadCurvatureFromFile( const QString& filename )
     return false;
   }
 
+  UpdateOverlay(false);
   emit Modified();
   emit SurfaceCurvatureLoaded();
   emit ActorUpdated();
