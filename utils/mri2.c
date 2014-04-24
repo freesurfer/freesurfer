@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/17 17:06:35 $
- *    $Revision: 1.108 $
+ *    $Date: 2014/04/24 22:43:09 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4997,15 +4997,22 @@ MRI *MRIunsegmentCortex(MRI *seg, const MRI *ribbon, MRI *out)
   #pragma omp parallel for 
   #endif
   for(c=0; c < seg->width; c++){
-    int r,s,rsegid,segid;
+    int r,s,rsegid,segid,SubCort;
     for(r=0; r < seg->height; r++){
       for(s=0; s < seg->depth; s++){
 	rsegid = MRIgetVoxVal(ribbon,c,r,s,0);
-	if(rsegid!=Left_Cerebral_Cortex && rsegid!=Right_Cerebral_Cortex) {
-	  segid = MRIgetVoxVal(seg,c,r,s,0);
-	  MRIsetVoxVal(out,c,r,s,0,segid); // copy seg
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(rsegid!=Left_Cerebral_Cortex && rsegid!=Right_Cerebral_Cortex)
+	  MRIsetVoxVal(out,c,r,s,0,segid); // not in the ribbon, copy seg
+	else {
+	  // is in the ribbon, but still could be a subcortical structure
+	  SubCort=0;
+	  if(segid!=Left_Cerebral_Cortex  && segid!=Left_Cerebral_White_Matter &&
+	     segid!=Right_Cerebral_Cortex && segid!=Right_Cerebral_White_Matter && 
+	     segid!=0 && segid != CSF_ExtraCerebral) SubCort=1;
+	  if(SubCort) MRIsetVoxVal(out,c,r,s,0,segid); // set to ribbon
+	  else        MRIsetVoxVal(out,c,r,s,0,rsegid); // set to ribbon
 	}
-	else  MRIsetVoxVal(out,c,r,s,0,rsegid); // set to ribbon
       }
     }
   }
