@@ -436,6 +436,8 @@
    <addaction name="actionViewAxial"/>
    <addaction name="actionView3D"/>
    <addaction name="separator"/>
+   <addaction name="actionResetView"/>
+   <addaction name="separator"/>
    <addaction name="actionShowCoordinateAnnotation"/>
    <addaction name="actionShowColorScale"/>
    <addaction name="actionTimeCourse"/>
@@ -867,6 +869,10 @@
    </property>
   </action>
   <action name="actionResetView">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/reset_view.png</normaloff>:/resource/icons/reset_view.png</iconset>
+   </property>
    <property name="text">
     <string>Reset View</string>
    </property>

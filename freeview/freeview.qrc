@@ -106,5 +106,6 @@
         <file>resource/icons/recon_edit.png</file>
         <file>resource/icons/surface_annot.png</file>
         <file>resource/icons/surface_overlay.png</file>
+        <file>resource/icons/reset_view.png</file>
     </qresource>
 </RCC>

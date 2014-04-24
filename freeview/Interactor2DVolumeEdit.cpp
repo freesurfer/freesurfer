@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/22 16:05:45 $
- *    $Revision: 1.33 $
+ *    $Date: 2014/04/24 20:35:10 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,17 +92,17 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
     {
       if ( (!mri || !mri->IsVisible()) ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
       {
-        emit Error( "Selected layer is not visible", mri );
+        emit Error( QString("Selected layer '%1' is not visible").arg(mri->GetName()), mri );
         break;
       }
       else if ( !mri->IsEditable() ) //&& ( event->ControlDown() || m_nAction == EM_Polyline ) )
       {
-        emit Error( "Selected layer is not editable", mri );
+        emit Error( QString("Selected layer '%1' is not editable").arg(mri->GetName()), mri );
         break;
       }
       else if ( m_strLayerTypeName == "MRI" && ((LayerMRI*)mri)->IsTransformed() )
       {
-        emit Error( "Selected layer is not editable for transformation", mri );
+        emit Error( QString("Selected layer '%1' is not editable for transformation").arg(mri->GetName()), mri );
         break;
       }
       else
