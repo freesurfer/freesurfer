@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/04/14 19:02:28 $
- *    $Revision: 1.537 $
+ *    $Author: greve $
+ *    $Date: 2014/04/24 20:37:29 $
+ *    $Revision: 1.538 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.537 $";
+const char *MRI_C_VERSION = "$Revision: 1.538 $";
 
 
 /*-----------------------------------------------------
@@ -6218,36 +6218,17 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
 
   if ((width <= 0) || (height <= 0) || (depth <= 0))
     ErrorReturn(NULL,
-                (ERROR_BADPARM, "MRIalloc(%d, %d, %d): bad parm",
-                 width, height, depth)) ;
-#if 1
+                (ERROR_BADPARM, "MRIallocSequence(%d, %d, %d, %d): bad parm",
+                 width, height, depth, nframes)) ;
   mri = MRIallocHeader(width, height, depth, type, nframes) ;
   MRIinitHeader(mri) ;
-#else
-  mri = (MRI *)calloc(1, sizeof(MRI)) ;
-  if (!mri)
-    ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate MRI\n") ;
-
-  mri->scale = 1 ;
-  mri->height = height ;
-  mri->width = width ;
-  mri->yinvert = 1 ;
-  mri->depth = depth ;
-  mri->type = type ;
-  mri->frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME)) ;
-  if (!mri->frames)
-    ErrorExit(ERROR_NO_MEMORY,
-              "MRIalloc: could not allocate %d frames\n", nframes) ;
-  for (int i = 0 ; i < nframes ; i++)
-    mri->frames[i].m_ras2vox = MatrixAlloc(4,4, MATRIX_REAL) ;
-#endif
   mri->nframes = nframes ;
   MRIallocIndices(mri) ;
   mri->outside_val = 0 ;
   mri->slices = (BUFTYPE ***)calloc(depth*nframes, sizeof(BUFTYPE **)) ;
   if (!mri->slices)
     ErrorExit(ERROR_NO_MEMORY,
-              "MRIalloc: could not allocate %d slices\n", mri->depth) ;
+              "MRIallocSequence: could not allocate %d slices\n", mri->depth) ;
 
   for (slice = 0 ; slice < depth*nframes ; slice++)
   {
@@ -6256,9 +6237,9 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
     if (!mri->slices[slice])
       ErrorExit
       (ERROR_NO_MEMORY,
-       "MRIalloc(%d, %d, %d): could not allocate "
+       "MRIallocSequence(%d, %d, %d,%d): could not allocate "
        "%d bytes for %dth slice\n",
-       height, width, depth, mri->height*sizeof(BUFTYPE *), slice) ;
+       height, width, depth, nframes, mri->height*sizeof(BUFTYPE *), slice) ;
 
 #if USE_ELECTRIC_FENCE
     switch (mri->type)
@@ -6285,7 +6266,7 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
     default:
       ErrorReturn(NULL,
                   (ERROR_BADPARM,
-                   "MRIalloc(%d, %d, %d, %d): unknown type",
+                   "MRIallocSequence(%d, %d, %d, type=%d): unknown type",
                    width, height, depth, mri->type)) ;
       break ;
     }
@@ -6294,9 +6275,9 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
     if (buf == NULL)
       ErrorExit
       (ERROR_NO_MEMORY,
-       "MRIalloc(%d, %d, %d): could not allocate "
+       "MRIallocSequence(%d, %d, %d,%d): could not allocate "
        "%d bytes for %dth slice\n",
-       height, width, depth, (mri->width*mri->height*bpp), slice) ;
+       height, width, depth, nframes, (mri->width*mri->height*bpp), slice) ;
     for (row = 0 ; row < mri->height ; row++)
     {
       mri->slices[slice][row] = buf+(row*mri->width*bpp) ;
@@ -6335,7 +6316,7 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
       default:
         ErrorReturn(NULL,
                     (ERROR_BADPARM,
-                     "MRIalloc(%d, %d, %d, %d): unknown type",
+                     "MRIalloc(%d, %d, %d, type=%d): unknown type",
                      width, height, depth, mri->type)) ;
         break ;
       }
@@ -6343,9 +6324,9 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
       if (!mri->slices[slice][row])
         ErrorExit
         (ERROR_NO_MEMORY,
-         "MRIalloc(%d,%d,%d): could not allocate "
+         "MRIallocSequence(%d,%d,%d,%d): could not allocate "
          "%dth row in %dth slice\n",
-         width,height,depth, slice, row) ;
+         width,height,depth, nframes, slice, row) ;
     }
 #endif
   }
