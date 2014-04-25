@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/25 18:35:33 $
- *    $Revision: 1.105 $
+ *    $Date: 2014/04/25 22:03:03 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,7 +113,7 @@ int CountEdits(char *subject, char *outfile);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.105 2014/04/25 18:35:33 greve Exp $";
+  "$Id: mri_segstats.c,v 1.106 2014/04/25 22:03:03 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1510,6 +1510,14 @@ static int parse_commandline(int argc, char **argv)
       }
       DoMultiply = 1;
       sscanf(pargv[0],"%lf",&MultVal);
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--div") )
+    {
+      if(nargc < 1) argnerr(option,1);
+      DoMultiply = 1;
+      sscanf(pargv[0],"%lf",&MultVal);
+      MultVal = 1.0/MultVal;
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--robust"))

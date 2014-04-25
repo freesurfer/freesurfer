@@ -84,6 +84,8 @@ aparc or aparc.a2005s, then the segmentation numbers will match those in $FREESU
       <explanation>compute the square root of the input prior to computing stats.</explanation>
       <argument>--mul val</argument>
       <explanation>multiply input by val</explanation>
+      <argument>--div val</argument>
+      <explanation>divide input by val</explanation>
       <argument>--snr</argument>
       <explanation>save mean/std as extra column in output table</explanation>
       <argument>--abs</argument>
