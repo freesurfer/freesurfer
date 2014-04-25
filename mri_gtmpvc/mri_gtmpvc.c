@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/11 23:23:08 $
- *    $Revision: 1.6 $
+ *    $Date: 2014/04/25 23:37:16 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.6 2014/04/11 23:23:08 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.7 2014/04/25 23:37:16 greve Exp $
 
 /*
   BEGINHELP
@@ -91,7 +91,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.6 2014/04/11 23:23:08 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.7 2014/04/25 23:37:16 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -121,6 +121,9 @@ typedef struct
   double cFWHM, rFWHM, sFWHM;
   double PadThresh;
   MRI *yseg,*yhat0seg,*yhatseg;
+  double automask_fwhm,automask_thresh;
+  int automask_reduce_fov;
+  MRI_REGION *automaskRegion;
 
   MRI *segpvf;
   MRI *ttpvf;
@@ -130,6 +133,7 @@ typedef struct
   int nsegs,*segidlist;
   int dof;
   COLOR_TABLE *ctGTMSeg;
+  int nReplace , SrcReplace[1000], TrgReplace[1000];
   MATRIX *X,*X0;
   MATRIX *y,*Xt, *XtX, *iXtX, *Xty, *beta, *res, *yhat;
   MATRIX *betavar;
@@ -185,6 +189,11 @@ int GTMrbv(GTM *gtm);
 int GTMmgpvc(GTM *gtm);
 MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m);
 MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol);
+int GTMprintReplaceList(FILE *fp, const int nReplace, const int *ReplaceThis, const int *WithThat);
+int GTMcheckReplaceList(const int nReplace, const int *ReplaceThis, const int *WithThat);
+int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, int *WithThat);
+int GTMcheckX(MATRIX *X);
+int GTMautoMask(GTM *gtm);
 
 typedef struct 
 {
@@ -234,7 +243,6 @@ MRI *mritmp;
 char *RVarFile=NULL,*SkewFile=NULL,*KurtosisFile=NULL;
 int RVarOnly=0;
 int nthreads=1;
-int nReplace = 0, SrcReplace[1000], TrgReplace[1000];
 int ttReduce = 0;
 char *MGPVCFile=NULL;
 char *regfile;
@@ -263,16 +271,15 @@ GTMOPT *gtmopt_powell;
 LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *outlta);
 int DoOpt=0;
 char *SUBJECTS_DIR;
-int CheckX(MATRIX *X);
-int dngtest(LTA *aseg2vol);
 
 int DoRBV=0;
 int DoVoxFracCor=1;
+int AutoMask=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
 {
-  int nargs,err,c,f,nTT,n;
+  int nargs,err,c,f,n;
   double vrfmin,vrfmax,vrfmean;
   struct timeb  mytimer, timer;
   MRI *gtmres;
@@ -289,7 +296,8 @@ int main(int argc, char *argv[])
   vg_isEqual_Threshold = 10e-4;
 
   gtm = GTMalloc();
-  gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
+  //gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014+head");
+  //gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014");
 
   // by default, rescale to Cerebellum WM
   gtm->rescale = 1; 
@@ -297,7 +305,9 @@ int main(int argc, char *argv[])
   gtm->scale_refids[0] = 7;
   gtm->scale_refids[1] = 46;
   gtm->mask_rbv_to_brain = 1;
+  gtm->nReplace = 0;
   gtm->nContrasts = 0;
+  gtm->automask_reduce_fov = 1;
 
   Progname = argv[0] ;
   argc --;
@@ -309,7 +319,6 @@ int main(int argc, char *argv[])
   check_options();
   if (checkoptsonly) return(0);
   dump_options(stdout);
-  nTT = gtm->ctGTMSeg->ctabTissueType->nentries-1;
 
 #ifdef _OPENMP
   printf("%d avail.processors, using %d\n",omp_get_num_procs(),omp_get_max_threads());
@@ -338,22 +347,14 @@ int main(int argc, char *argv[])
   fprintf(logfp,"Loading seg for gtm %s\n",SegVolFile);fflush(logfp);
   gtm->anatseg = MRIread(SegVolFile);
   if(gtm->anatseg==NULL) exit(1);
-  if(nReplace > 0) {
-    printf("Replacing %d\n",nReplace);
-    for(f=0; f < nReplace; f++) printf("%2d:  %4d %4d\n",f+1,SrcReplace[f],TrgReplace[f]);
-    for(f=0; f < nReplace; f++) fprintf(logfp,"%2d:  %4d %4d\n",f+1,SrcReplace[f],TrgReplace[f]);
-    mritmp = MRIreplaceList(gtm->anatseg, SrcReplace, TrgReplace, nReplace, NULL);
-    MRIfree(&gtm->anatseg);
-    gtm->anatseg = mritmp;
-  }
-  if(CheckSegTissueType(gtm->anatseg, gtm->ctGTMSeg)){
-    printf("Failed tissue type check\n");
-    fprintf(logfp,"Failed tissue type check\n");
-    exit(1);
-  }
-  gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
 
   stem = IDstemFromName(SegVolFile);
+  sprintf(tmpstr,"%s.ctab",stem);
+  printf("Loading seg ctab %s\n",tmpstr);fflush(stdout);
+  fprintf(logfp,"Loading ctab %s\n",tmpstr);fflush(logfp);
+  gtm->ctGTMSeg = CTABreadASCII(tmpstr);
+  if(gtm->ctGTMSeg == NULL) exit(1);
+
   sprintf(tmpstr,"%s.lta",stem);
   if(fio_FileExistsReadable(tmpstr)){
     printf("Reading %s\n",tmpstr);
@@ -374,6 +375,22 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  if(gtm->nReplace > 0) {
+    printf("Replacing %d\n",gtm->nReplace);
+    mritmp = MRIreplaceList(gtm->anatseg, gtm->SrcReplace, gtm->TrgReplace, gtm->nReplace, NULL);
+    MRIfree(&gtm->anatseg);
+    gtm->anatseg = mritmp;
+    sprintf(tmpstr,"%s/seg.replace.list",OutDir);
+    fp = fopen(tmpstr,"w");
+    GTMprintReplaceList(fp, gtm->nReplace, gtm->SrcReplace, gtm->TrgReplace);
+    fclose(fp);
+  }
+  if(CheckSegTissueType(gtm->anatseg, gtm->ctGTMSeg)){
+    printf("Failed tissue type check\n");
+    fprintf(logfp,"Failed tissue type check\n");
+    exit(1);
+  }
+  gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
 
   if(ttReduce > 0) {
     MRI *ttseg;
@@ -404,7 +421,9 @@ int main(int argc, char *argv[])
     gtm->yvol = mritmp;
   }
 
-  // could check dims against LTA
+  // These have to be done before automask
+  GTMpsfStd(gtm); 
+  GTMnPad(gtm);   
 
   if(MaskVolFile){
     printf("Loading mask %s\n",MaskVolFile);fflush(stdout);
@@ -417,7 +436,13 @@ int main(int argc, char *argv[])
       exit(1);
     }
   }
-  else gtm->mask=NULL; // should already be NULL
+  else if(AutoMask){
+    printf("Computing auto mask \n");
+    GTMautoMask(gtm);
+    sprintf(tmpstr,"%s/mask.nii.gz",OutDir);
+    MRIwrite(gtm->mask,tmpstr);
+  }
+  else  gtm->mask=NULL; // should already be NULL
 
   printf("Data load time %4.1f sec\n",TimerStop(&mytimer)/1000.0);
   fprintf(logfp,"Data load time %4.1f sec\n",TimerStop(&mytimer)/1000.0);
@@ -426,8 +451,6 @@ int main(int argc, char *argv[])
   GTMsetNMask(gtm);
   GTMsegidlist(gtm);
   GTMmatrixY(gtm);
-  GTMpsfStd(gtm); 
-  GTMnPad(gtm);   
   printf("nmask = %d, nsegs = %d, excluding segid=0\n",gtm->nmask,gtm->nsegs);
   printf("FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
   printf("Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
@@ -522,7 +545,7 @@ int main(int argc, char *argv[])
   fprintf(logfp,"GTM-Solve-Time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
 
   if(SaveInput){
-    sprintf(tmpstr,"%s/input.nii.gz",OutDir);
+    sprintf(tmpstr,"%s/input.rescaled.nii.gz",OutDir);
     printf("Writing input to %s\n",tmpstr);
     MRIwrite(gtm->yvol,tmpstr);
   }
@@ -763,18 +786,44 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--no-vox-frac-cor")) DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-vox-frac")) DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-vfc"))      DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--auto-mask")){
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%lf",&gtm->automask_fwhm);
+      sscanf(pargv[1],"%lf",&gtm->automask_thresh);
+      AutoMask=1;
+      nargsused = 2;
+    }
+    else if(!strcasecmp(option, "--no-reduce-fov")) gtm->automask_reduce_fov = 0;
     else if(!strcasecmp(option, "--opt")) DoOpt=1;
-    else if(!strcasecmp(option, "--ttype+head"))
-      gtm->ctGTMSeg = TissueTypeSchema(NULL,"default-jan-2014+head");
-    else if(!strcasecmp(option, "--tt-reduce")) ttReduce = 1;
-    else if(!strcasecmp(option, "--no-mask_rbv_to_brain")) gtm->mask_rbv_to_brain = 0;
-
     else if(!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
       if(nargc < 1) CMDargNErr(option,1);
       setenv("SUBJECTS_DIR",pargv[0],1);
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
       nargsused = 1;
     } 
+    else if(!strcmp(option, "--ctab")){
+      if(nargc < 1) CMDargNErr(option,1);
+      gtm->ctGTMSeg = CTABreadASCII(pargv[0]);
+      if(gtm->ctGTMSeg==NULL) exit(1);
+      if(gtm->ctGTMSeg->ctabTissueType == NULL){
+	printf("ERROR: ctab %s does not have a tissue type designation\n",pargv[0]);
+	exit(1);
+      }
+      nargsused = 1;
+    }
+
+    else if(!strcasecmp(option, "--tt-reduce")) ttReduce = 1;
+    else if(!strcasecmp(option, "--no-mask_rbv_to_brain")) gtm->mask_rbv_to_brain = 0;
+    else if(!strcasecmp(option, "--default-seg-merge"))
+      GTMdefaultSegReplacmentList(&gtm->nReplace,&(gtm->SrcReplace[0]),&(gtm->TrgReplace[0]));
+
+    else if(!strcmp(option, "--replace-file")){
+      if(nargc < 1) CMDargNErr(option,1);
+      int err=GTMloadReplacmentList(pargv[0],&gtm->nReplace,&(gtm->SrcReplace[0]),&(gtm->TrgReplace[0]));
+      if(err) exit(1);
+      nargsused = 1;
+    }
+
     else if(!strcmp(option, "--reg")){
       if(nargc < 1) CMDargNErr(option,1);
       regfile = pargv[0];
@@ -954,14 +1003,14 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--save-yhat0")) SaveYhat0=1;
     else if(!strcasecmp(option, "--replace")) {
       if(nargc < 2) CMDargNErr(option,2);
-      sscanf(pargv[0],"%d",&SrcReplace[nReplace]);
-      sscanf(pargv[1],"%d",&TrgReplace[nReplace]);
-      nReplace++;
+      sscanf(pargv[0],"%d",&gtm->SrcReplace[gtm->nReplace]);
+      sscanf(pargv[1],"%d",&gtm->TrgReplace[gtm->nReplace]);
+      gtm->nReplace++;
       nargsused = 2;
     } 
     else if(!strcasecmp(option, "--merge-hypos")) {
-      SrcReplace[nReplace]=78; TrgReplace[nReplace]=77; nReplace++;
-      SrcReplace[nReplace]=79; TrgReplace[nReplace]=77; nReplace++;
+      gtm->SrcReplace[gtm->nReplace]=78; gtm->TrgReplace[gtm->nReplace]=77; gtm->nReplace++;
+      gtm->SrcReplace[gtm->nReplace]=79; gtm->TrgReplace[gtm->nReplace]=77; gtm->nReplace++;
     } 
     else if(!strcasecmp(option, "--vg-thresh")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -1039,12 +1088,16 @@ static void print_usage(void) {
   printf("   --o   outdir    : output directory\n");
   printf("\n");
   printf("   --mask volfile : ignore areas outside of the mask (in input vol space)\n");
+  printf("   --auto-mask FWHM thresh : automatically compute mask\n");
+  printf("   --no-reduce-fov : do not reduce FoV to encompass automask\n");
   printf("   --C contrast.mtx : univariate contrast to test (ascii text file)\n");
-  printf("   --ttype+head : use tissue type def that includes head segmentation\n");
+  printf("   --ctab ctab : \n");
   printf("   --merge-hypos : merge left and right hypointensites into to ROI\n");
   printf("   --no-rescale   : do not global rescale such that mean of cerebellum WM is 100\n");
   printf("   --tt-reduce : reduce segmentation to that of a tissue type\n");
+  printf("   --default-seg-merge : default schema for merging ROIs\n");
   printf("   --replace Id1 Id2 : replace seg Id1 with seg Id2\n");
+  printf("   --replace-file : file with a list of Ids to replace\n");
   printf("   --reg-identity : assume that input is in anatomical space \n");
   printf("\n");
   printf("   --no-vox-frac-cor : do not use voxel fraction correction (with --psf 0 turns off PVC entirely)\n");
@@ -1052,8 +1105,8 @@ static void print_usage(void) {
   printf("   --mgpvc gmthresh : perform Mueller-Gaertner PVC, gmthresh is min gm pvf bet 0 and 1\n");
   printf("\n");
   printf("   --X : save X matrix in matlab4 format as X.mat (it will be big)\n");
-  printf("   --y : save y matrix in matlab4 format as X.mat\n");
-  printf("   --beta : save beta matrix in matlab4 format as X.mat\n");
+  printf("   --y : save y matrix in matlab4 format as y.mat\n");
+  printf("   --beta : save beta matrix in matlab4 format as beta.mat\n");
   printf("   --X0 : save X0 matrix in matlab4 format as X0.mat (it will be big)\n");
   printf("\n");
   printf("   --synth gtmbeta synthvolume : synthesize unsmoothed volume with gtmbeta as input\n");
@@ -1169,6 +1222,14 @@ static void check_options(void)
     betamatfile = strcpyalloc(tmpstr);
   }
 
+  GTMcheckReplaceList(gtm->nReplace, gtm->SrcReplace, gtm->TrgReplace);
+
+  if(gtm->DoMGPVC && gtm->n_mg_refids == 0){
+    printf("ERROR: you must specify the ref segids for MG PVC either as extra \n"
+	   "options to --mgpvc or with --mgpvc-ref-cerebral-wm\n");
+    exit(1);
+  }
+
   return;
 }
 /*---------------------------------------------------------------*/
@@ -1183,6 +1244,11 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
   fprintf(fp,"vgthresh   %lf\n",vg_isEqual_Threshold);
+  fprintf(fp,"nReplace   %d\n",gtm->nReplace);
+  if(0 && gtm->nReplace > 0){
+    fprintf(fp,"SegId replacement list\n");
+    GTMprintReplaceList(fp, gtm->nReplace, gtm->SrcReplace, gtm->TrgReplace);
+  }
   return;
 }
 
@@ -1624,7 +1690,7 @@ int GTMrbv(GTM *gtm)
 
   TimerStart(&mytimer) ; 
 
-  printf("   Synthesizing in seg space... ");fflush(stdout);
+  printf("   Synthesizing unsmoothed input in seg space... ");fflush(stdout);
   gtm->yhat0seg = GTMsegSynth(gtm);
   if(gtm->yhat0seg == NULL){
     printf("ERROR: GTMrbv() could not synthesize yhat0seg\n");
@@ -1974,8 +2040,11 @@ int GTMsynth(GTM *gtm)
     
   return(0);
 }
-/*------------------------------------------------------------*/
-int CheckX(MATRIX *X)
+/*
+  \fn int GTMcheckX(MATRIX *X)
+  \brief Checks that all colums sum to 1
+ */
+int GTMcheckX(MATRIX *X)
 {
   int r,c,count;
   double sum,d,dmax;
@@ -1992,7 +2061,7 @@ int CheckX(MATRIX *X)
     if(dmax < d) dmax = d;
   }
 
-  printf("CheckX: count=%d, dmax=%g\n",count,dmax);
+  printf("GTMcheckX: count=%d, dmax=%g\n",count,dmax);
   return(count);
 }
 /*------------------------------------------------------------------------------*/
@@ -2286,132 +2355,6 @@ int GTMwriteContrasts(GTM *GTM)
 }
 
 /*-------------------------------------------------------------------------*/
-int dngtest(LTA *aseg2vol)
-{
-  MRI *seg,*segf=NULL,*aseg,*mask,*pvf,*seg2,*newseg;
-  char *subject, *SUBJECTS_DIR;
-  char tmpstr[5000];
-  int f,nsegs, *segidlist; //nPad=2,USF=1;
-  LTA *seg2vol,*lta,*aseg2hrseg,*ltaArray[2];
-  //LTA *anat2seg, *seg2anat,*ltaArray[2];
-  COLOR_TABLE *ct;
-  char *wsurf="white", *psurf="pial";
-  MRIS *lhw, *lhp, *rhw, *rhp;
-
-#ifdef _OPENMP
-  omp_set_num_threads(8);
-#endif
-
-  ct = TissueTypeSchema(NULL,"default-jan-2014+head");
-
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  SUBJECTS_DIR = "/autofs/cluster/con_009/users/greve/fdg-pvc/FSMR";
-  subject = aseg2vol->subject;
-
-  mask = MRIread("mask.nii.gz");
-
-  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,"aparc+aseg.mgz");
-  //sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,"petseg+head.mgz");
-  //sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,"petseg.mgz");
-  //sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,"aseg.mgz");
-  printf("Loading %s\n",tmpstr);
-  aseg = MRIread(tmpstr);
-  if(aseg==NULL) exit(1);
-  if(aseg->type != MRI_INT) aseg = MRIchangeType(aseg, MRI_INT, 0,0,1);
-  aseg = MRIaddExtraCerebralCSF(aseg, 3, aseg);
-
-  sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,wsurf);
-  lhw = MRISread(tmpstr);
-  if(lhw==NULL) exit(1);
-  sprintf(tmpstr,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
-  MRISreadAnnotation(lhw, tmpstr);
-
-  sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,psurf);
-  lhp = MRISread(tmpstr);
-  if(lhp==NULL) exit(1);
-
-  sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,wsurf);
-  rhw = MRISread(tmpstr);
-  if(rhw==NULL) exit(1);
-  sprintf(tmpstr,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);
-  MRISreadAnnotation(rhw, tmpstr);
-
-  sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,psurf);
-  rhp = MRISread(tmpstr);
-  if(rhp==NULL) exit(1);
-
-  printf("computing hires seg\n");
-  newseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp,1,&aseg2hrseg);
-  ltaArray[0] = LTAinvert(aseg2hrseg,NULL);
-  ltaArray[1] = aseg2vol;
-  lta = LTAconcat(ltaArray,2,1);
-
-  seg = newseg;
-  seg2vol = lta;
-  segidlist = MRIsegIdListNot0(seg, &nsegs, 0);
-
-  printf("computing seg with MRIseg2SegPVF\n");fflush(stdout);
-  seg2 = MRIseg2SegPVF(seg, seg2vol, 0.5, segidlist, nsegs, mask, 1, ct, NULL);
-  MRIwrite(seg2,"dng.apas.nii");
-  exit(0);
-
-  printf("aseg2volframe %d\n",nsegs);
-  //for(f=0; f < nsegs; f++) printf("%2d %4d\n",f,segidlist[f]);
-  for(f=0; f < 2; f++){
-    printf("f = %d -------------------------------------------\n",f);
-    segf = MRIseg2SegPVF(seg, seg2vol, 0.5, segidlist, nsegs, mask, 0, NULL, segf);
-    //sprintf(tmpstr,"segf.%02d.mgh",f); MRIwrite(segf,tmpstr);
-    printf("\n");
-  }
-
-  printf("Computing seg with MRIsegPVF2Seg\n");fflush(stdout);
-  seg2 = MRIsegPVF2Seg(segf, segidlist, nsegs, ct, mask, NULL);
-  MRIwrite(seg2,"dng.seg.nii");
-
-
-  pvf=NULL;
-  printf("saving pvf\n");fflush(stdout);
-  pvf = MRIsegPVF2TissueTypePVF(segf, segidlist, nsegs, ct, mask, NULL);
-  MRIwrite(pvf,"dng.pvf.nii");
-
-  //printf("saving\n");
-  //MRIwrite(segf,"segf.nii");
-  printf("done\n");
-  return(0);
-
-  sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,wsurf);
-  lhw = MRISread(tmpstr);
-  if(lhw==NULL) exit(1);
-  sprintf(tmpstr,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
-  MRISreadAnnotation(lhw, tmpstr);
-
-  sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,psurf);
-  lhp = MRISread(tmpstr);
-  if(lhp==NULL) exit(1);
-
-  sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,wsurf);
-  rhw = MRISread(tmpstr);
-  if(rhw==NULL) exit(1);
-  sprintf(tmpstr,"%s/%s/label/rh.aparc.annot",SUBJECTS_DIR,subject);
-  MRISreadAnnotation(rhw, tmpstr);
-
-  sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,psurf);
-  rhp = MRISread(tmpstr);
-  if(rhp==NULL) exit(1);
-
-  printf("computing hires seg\n");
-  newseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp,1,&lta);
-  MRIwrite(newseg,"newseg.annot.usf1.mgh");
-
-  printf("computing hires seg\n");
-  newseg = MRIhiresSeg(aseg,lhw,lhp,rhw,rhp,2,&lta);
-  MRIwrite(newseg,"newseg.annot.usf2.mgh");
-
-  exit(1);
-
-}
-
-/*-------------------------------------------------------------------------*/
 int GTMcheckRefIds(GTM *gtm)
 {
   int n,m,ok;
@@ -2519,7 +2462,6 @@ int GTMprintRefIds(GTM *gtm, FILE *fp)
   return(0);
 }
 
-
 /*--------------------------------------------------------------------------*/
 int GTMrefTAC(GTM *gtm)
 {
@@ -2563,10 +2505,128 @@ int GTMrefTAC(GTM *gtm)
 	sum += gtm->beta->rptr[nthseg+1][f+1];
       }
       gtm->km_hbtac->rptr[f+1][1] = sum/gtm->n_km_hbids;
-      fprintf(fp,"%20.15lf\n",sum/gtm->n_km_hbids);
+      fprintf(fp,"%20.15lf\n",gtm->km_hbtac->rptr[f+1][1]);
     }
     fclose(fp);
+
+    MRI *mritmp = MRIallocSequence(1, 1, 1, MRI_FLOAT, gtm->yvol->nframes);
+    for(f=0; f < gtm->yvol->nframes; f++)
+      MRIsetVoxVal(mritmp,0,0,0,f, gtm->km_hbtac->rptr[f+1][1]);
+    sprintf(tmpstr,"%s/km.hb.tac.nii.gz",gtm->OutDir);
+    MRIwrite(mritmp,tmpstr);
+    MRIfree(&mritmp);
   }
 
   return(0);
 }
+
+/*------------------------------------------------------------*/
+int GTMprintReplaceList(FILE *fp, const int nReplace, const int *ReplaceThis, const int *WithThat)
+{
+  int n;
+  for(n=0; n < nReplace; n++)
+    fprintf(fp,"%5d %5d\n",ReplaceThis[n],WithThat[n]);
+  return(0);
+}
+
+/*------------------------------------------------------------*/
+int GTMcheckReplaceList(const int nReplace, const int *ReplaceThis, const int *WithThat)
+{
+  int n,m;
+  for(n=0; n < nReplace; n++){
+    for(m=0; m < nReplace; m++){
+      if(ReplaceThis[n] == WithThat[m]){
+	printf("ERROR: item %d appears as both source and target seg id in replacement list\n",ReplaceThis[n]);
+	return(1);
+      }
+    }
+  }
+  return(0);
+}
+
+/*------------------------------------------------------------*/
+int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, int *WithThat)
+{
+  FILE *fp;
+  int nlist,r,nth;
+  char tmpstr[1001], *s;
+
+  fp = fopen(fname,"r");
+  if(fp==NULL){
+    int e=errno;
+    printf("ERROR: could not open %s %d\n",fname,e);
+    printf("%s\n",strerror(e));
+    return(1);
+  }
+  nlist = *nReplace;
+
+  nth = -1;
+  while(1){
+    nth++;
+    s = fgets(tmpstr,1000,fp);
+    if(s==NULL) break;
+    if(tmpstr[0] == '#') continue;
+    r = CountItemsInString(tmpstr);
+    if(r != 2){
+      printf("ERROR: line %d in %s has the wrong format (has %d elements, expecting 2)\n",nth,fname,r);
+      return(1);
+    }
+    sscanf(tmpstr,"%d %d",&ReplaceThis[nlist],&WithThat[nlist]); 
+    nlist++;
+  }
+  if(nlist == 0){
+    printf("ERROR: could not find any replacement items in %s\n",fname);
+    return(1);
+  }
+  printf("Read in %d replacement items from %s\n",nlist,fname);
+  *nReplace += nlist;
+  return(0);
+}
+/*------------------------------------------------------------*/
+int GTMautoMask(GTM *gtm)
+{
+  LTA *lta,*pet2bbpet,*seg2bbpet;
+  double std;
+  MRI *masktmp,*yvoltmp;
+
+  gtm->mask = MRIalloc(gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth,MRI_FLOAT);
+  MRIcopyHeader(gtm->yvol,gtm->mask);
+  if(LTAmriIsSource(gtm->seg2pet,gtm->yvol)) lta = LTAcopy(gtm->seg2pet,NULL);
+  else                                       lta = LTAinvert(gtm->seg2pet,NULL);        
+  LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+
+  // Sample the seg into the pet space
+  MRIvol2Vol(gtm->anatseg,gtm->mask,lta->xforms[0].m_L,SAMPLE_NEAREST,0);
+  // Threshold it at 0.5 to give the mask
+  MRIbinarize(gtm->mask,gtm->mask,0.5,0,1);
+  // Smooth binary mask
+  std = gtm->automask_fwhm/sqrt(log(256.0)); // convert fwhm to std
+  MRIgaussianSmoothNI(gtm->mask, std,std,std, gtm->mask);
+  // Binarize again to get final mask
+  MRIbinarize(gtm->mask,gtm->mask,gtm->automask_thresh,0,1);
+
+  if(gtm->automask_reduce_fov){
+    printf("Automask, reducing FOV\n");
+    gtm->automaskRegion = REGIONgetBoundingBox(gtm->mask,1);
+    printf("region %d %d %d reduced to ",gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth);
+    REGIONprint(stdout, gtm->automaskRegion);
+    fflush(stdout);
+    masktmp = MRIextractRegion(gtm->mask, NULL, gtm->automaskRegion);
+    yvoltmp = MRIextractRegion(gtm->yvol, NULL, gtm->automaskRegion);
+    pet2bbpet = TransformRegDat2LTA(gtm->yvol, yvoltmp, NULL);
+    seg2bbpet = LTAconcat2(gtm->seg2pet,pet2bbpet, 1);
+    MRIfree(&gtm->yvol);
+    gtm->yvol = yvoltmp;
+    MRIfree(&gtm->mask);
+    gtm->mask = masktmp;
+    LTAfree(&gtm->seg2pet);
+    gtm->seg2pet = seg2bbpet;
+  }
+
+  LTAfree(&lta);
+  return(0);
+}
+
+
+
+
