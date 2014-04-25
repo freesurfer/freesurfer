@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/25 23:37:16 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/04/25 23:59:32 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.7 2014/04/25 23:37:16 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.8 2014/04/25 23:59:32 greve Exp $
 
 /*
   BEGINHELP
@@ -91,7 +91,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.7 2014/04/25 23:37:16 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.8 2014/04/25 23:59:32 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -121,9 +121,11 @@ typedef struct
   double cFWHM, rFWHM, sFWHM;
   double PadThresh;
   MRI *yseg,*yhat0seg,*yhatseg;
+
   double automask_fwhm,automask_thresh;
   int automask_reduce_fov;
   MRI_REGION *automaskRegion;
+  MRI *yvol_full_fov; 
 
   MRI *segpvf;
   MRI *ttpvf;
@@ -237,7 +239,7 @@ double ApplyFWHM=0;
 char *Xfile=NULL,*X0file=NULL,*ymatfile=NULL,*betamatfile=NULL;
 int SaveX=0, SaveX0=0, SaveYMat=0, SaveBetaMat=0;
 char *VRFStatsFile=NULL;
-char *eresFile=NULL, *yhatFile=NULL, *yhat0File=NULL;
+char *eresFile=NULL, *yhatFile=NULL, *yhat0File=NULL,*yhatFullFoVFile=NULL;
 char *OutSegFile=NULL;
 MRI *mritmp;
 char *RVarFile=NULL,*SkewFile=NULL,*KurtosisFile=NULL;
@@ -248,7 +250,7 @@ char *MGPVCFile=NULL;
 char *regfile;
 int regidentity = 0;
 int regtype;
-int SaveEres=0, SaveYhat=0,SaveYhat0=0, SaveInput=0;
+int SaveEres=0, SaveYhat=0,SaveYhat0=0, SaveInput=0,SaveYhatFullFoV=0;
 
 int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax);
 int WriteVRFStats(char *fname, GTM *gtm);
@@ -618,18 +620,25 @@ int main(int argc, char *argv[])
   printf("XtX  Condition     %8.3f \n",gtm->XtXcond);
   fprintf(logfp,"XtX  Condition     %8.3f \n",gtm->XtXcond);
 
-  if(yhat0File || yhatFile){
+  if(yhat0File || yhatFile || yhatFullFoVFile){
     printf("Synthesizing ... ");fflush(stdout); TimerStart(&mytimer) ;
     GTMsynth(gtm);
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   }
   if(yhat0File) MRIwrite(gtm->ysynth,yhat0File);
 
-  if(yhatFile){
+  if(yhatFile|| yhatFullFoVFile){
     printf("Smoothing synthesized ... ");fflush(stdout); TimerStart(&mytimer) ;
     GTMsmoothSynth(gtm);
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
-    MRIwrite(gtm->ysynthsm,yhatFile);
+    if(yhatFile) MRIwrite(gtm->ysynthsm,yhatFile);
+  }
+
+  if(yhatFullFoVFile){
+    printf("Restoring FoV to yhat, saving in %s\n",yhatFullFoVFile);
+    mritmp = MRIinsertRegion(gtm->ysynthsm, gtm->automaskRegion, gtm->yvol_full_fov, NULL);
+    MRIwrite(mritmp,yhatFullFoVFile);
+    MRIfree(&mritmp);
   }
 
   if(eresFile){
@@ -1001,6 +1010,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--save-eres")) SaveEres=1;
     else if(!strcasecmp(option, "--save-yhat")) SaveYhat=1;
     else if(!strcasecmp(option, "--save-yhat0")) SaveYhat0=1;
+    else if(!strcasecmp(option, "--save-yhat-full-fov")) SaveYhatFullFoV=1;
     else if(!strcasecmp(option, "--replace")) {
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%d",&gtm->SrcReplace[gtm->nReplace]);
@@ -1108,6 +1118,11 @@ static void print_usage(void) {
   printf("   --y : save y matrix in matlab4 format as y.mat\n");
   printf("   --beta : save beta matrix in matlab4 format as beta.mat\n");
   printf("   --X0 : save X0 matrix in matlab4 format as X0.mat (it will be big)\n");
+  printf("   --save-input : saves rescaled input as input.rescaled.nii.gz\n");
+  printf("   --save-eres : saves residual error\n");
+  printf("   --save-yhat : saves yhat\n");
+  printf("   --save-yhat-full-fov : saves yhat in full FoV (of FoV was reduced)\n");
+  printf("   --save-yhat0 : saves yhat prior to smoothing\n");
   printf("\n");
   printf("   --synth gtmbeta synthvolume : synthesize unsmoothed volume with gtmbeta as input\n");
   printf("\n");
@@ -1177,6 +1192,10 @@ static void check_options(void)
     if(SaveYhat){
       sprintf(tmpstr,"%s/yhat.nii.gz",OutDir);
       yhatFile = strcpyalloc(tmpstr);
+    }
+    if(SaveYhatFullFoV){
+      sprintf(tmpstr,"%s/yhat.fullfov.nii.gz",OutDir);
+      yhatFullFoVFile = strcpyalloc(tmpstr);
     }
     if(SaveYhat0){
       sprintf(tmpstr,"%s/yhat0.nii.gz",OutDir);
@@ -2615,6 +2634,9 @@ int GTMautoMask(GTM *gtm)
     yvoltmp = MRIextractRegion(gtm->yvol, NULL, gtm->automaskRegion);
     pet2bbpet = TransformRegDat2LTA(gtm->yvol, yvoltmp, NULL);
     seg2bbpet = LTAconcat2(gtm->seg2pet,pet2bbpet, 1);
+    gtm->yvol_full_fov = MRIallocHeader(gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth,MRI_FLOAT,1);
+    MRIcopyHeader(gtm->yvol,gtm->yvol_full_fov);
+    MRIcopyPulseParameters(gtm->yvol,gtm->yvol_full_fov);
     MRIfree(&gtm->yvol);
     gtm->yvol = yvoltmp;
     MRIfree(&gtm->mask);
