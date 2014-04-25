@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/24 18:01:44 $
- *    $Revision: 1.104 $
+ *    $Date: 2014/04/25 18:35:33 $
+ *    $Revision: 1.105 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,7 +113,7 @@ int CountEdits(char *subject, char *outfile);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.104 2014/03/24 18:01:44 greve Exp $";
+  "$Id: mri_segstats.c,v 1.105 2014/04/25 18:35:33 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -896,9 +896,11 @@ int main(int argc, char **argv)
         continue;
       }
     }
-    printf("%3d   %3d  %33s  %6d  %10.3f\n",n,StatSumTable[n].id,StatSumTable[n].name,
-	   StatSumTable[n].nhits,StatSumTable[n].vol);
-    fflush(stdout);
+    if(Gdiag_no > 1){
+      printf("%3d   %3d  %33s  %6d  %10.3f\n",n,StatSumTable[n].id,StatSumTable[n].name,
+	     StatSumTable[n].nhits,StatSumTable[n].vol);
+      fflush(stdout);
+    }
   }
   printf("\n");
 
