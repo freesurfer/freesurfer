@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # rbbr
 
-set VERSION = '$Id: rbbr,v 1.1 2014/04/11 18:31:55 greve Exp $';
+set VERSION = '$Id: rbbr,v 1.2 2014/04/26 00:10:07 greve Exp $';
 
 set outreg = ();
 set outlta = ();
@@ -31,6 +31,8 @@ set RHOnly = 0;
 set WMProjAbs = ()
 set GMProjFrac = ()
 set GMProjAbs = ();
+set frame = ()
+set outtemplate = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -85,10 +87,25 @@ echo $VERSION | tee -a $LF
 uname -a  | tee -a $LF
 
 #========================================================
+
+if($#frame) then
+  if($#outtemplate) then
+    set template = $outtemplate
+  else
+    set template = $tmpdir/mov.frame.nii
+  endif
+  set cmd = (mri_convert  --frame $frame $mov $template);
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+else 
+  set template = $mov
+endif
+
 set InitLTA = $tmpdir/init.reg.lta
 if($#InitReg == 0) then
   set InitReg = $tmpdir/init.reg.dat
-  set cmd = (bbregister --mov $mov $Contrast $BBRInit --s $subject --reg $InitReg --lta $InitLTA)
+  set cmd = (bbregister --mov $template $Contrast $BBRInit --s $subject --reg $InitReg --lta $InitLTA)
   if($SPMUseNII) set cmd = ($cmd --spm-nii)
   if($LHOnly) set cmd = ($cmd --lh-only)
   if($RHOnly) set cmd = ($cmd --rh-only)
@@ -111,7 +128,7 @@ else
   else
     cp $InitReg $InitReg2
     set cmd = (lta_convert --inreg $InitReg2 --outlta $InitLTA \
-      --src $mov --trg $SUBJECTS_DIR/$subject/mri/orig.mgz)
+      --src $template --trg $SUBJECTS_DIR/$subject/mri/orig.mgz)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) goto error_exit;
@@ -128,15 +145,16 @@ while($Iter < $NIters)
 
   if($UseGTM) then
     set gtmdir = $tmpdir/gtm.i$Iter
-    set cmd = (mri_gtmpvc --seg $segname --i $mov --o $gtmdir \
-       --reg $InitRegLTA --psf $fwhm --max-threads-1 --ttype+head --save-yhat)
+    set cmd = (mri_gtmpvc --seg $segname --i $template --o $gtmdir \
+      --reg $InitRegLTA --psf $fwhm --max-threads-1 \
+      --auto-mask $fwhm .001 --save-yhat-full-fov)
     if($TTReduce) set cmd = ($cmd --tt-reduce --no-rescale)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) goto error_exit;
     set rvar = `cat $gtmdir/rvar.dat`
     echo "RVAR $Iter $rvar" | tee -a $LF
-    set yhat = $gtmdir/yhat.nii.gz
+    set yhat = $gtmdir/yhat.fullfov.nii.gz
   else
     set yhat = $mov
   endif
@@ -160,7 +178,7 @@ while($Iter < $NIters)
   set BBLTA = $tmpdir/bbr.reg.i$Iter.lta
   set rms   = $tmpdir/bbr.rms.i$Iter.dat
 
-  set cmd = (bbregister --mov $mov $Contrast --init-reg $InitReg --rms0 $rms\
+  set cmd = (bbregister --mov $template $Contrast --init-reg $InitReg --rms0 $rms\
     --mask $iscmask.lh.mgh $iscmask.rh.mgh --no-pass1 --reg $BBReg --lta $BBLTA)
   if($LHOnly) set cmd = ($cmd --lh-only)
   if($RHOnly) set cmd = ($cmd --rh-only)
@@ -185,6 +203,13 @@ if($#outlta) cp $BBLTA $outlta
 
 # Cleanup
 if($cleanup) rm -rf $tmpdir
+
+echo ""
+echo "To test run" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo "tksurfer --mov $mov --reg $outreg --surfs"  | tee -a $LF
+echo ""
 
 # Done
 echo " " |& tee -a $LF
@@ -246,6 +271,17 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $mov"
         exit 1;
       endif
+      breaksw
+
+    case "--t":
+    case "--template":
+      if($#argv < 1) goto arg1err;
+      set outtemplate = $argv[1]; shift;
+      breaksw
+
+    case "--frame":
+      if($#argv < 1) goto arg1err;
+      set frame = $argv[1]; shift;
       breaksw
 
     case "--psf":
@@ -472,6 +508,8 @@ usage_exit:
   echo "  --gm-proj-frac frac : default is to use bbregister default"
   echo "  --gm-proj-abs abs : default is to use bbregister default"
   echo "  --wm-proj-abs abs : default is to use bbregister default"
+  echo "  --frame frameno : use 0-based frameno as template"
+  echo "  --template outtemplate : save template as an output (good with --frame)"
   echo ""
   echo ""
 
