@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/24 22:43:09 $
- *    $Revision: 1.109 $
+ *    $Date: 2014/04/29 22:36:59 $
+ *    $Revision: 1.110 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5009,8 +5009,8 @@ MRI *MRIunsegmentCortex(MRI *seg, const MRI *ribbon, MRI *out)
 	  SubCort=0;
 	  if(segid!=Left_Cerebral_Cortex  && segid!=Left_Cerebral_White_Matter &&
 	     segid!=Right_Cerebral_Cortex && segid!=Right_Cerebral_White_Matter && 
-	     segid!=0 && segid != CSF_ExtraCerebral) SubCort=1;
-	  if(SubCort) MRIsetVoxVal(out,c,r,s,0,segid); // set to ribbon
+	     segid!=0 && segid != CSF_ExtraCerebral && segid < 1000) SubCort=1;
+	  if(SubCort) MRIsetVoxVal(out,c,r,s,0,segid); // set to seg
 	  else        MRIsetVoxVal(out,c,r,s,0,rsegid); // set to ribbon
 	}
       }
