@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/09 20:56:04 $
- *    $Revision: 1.5 $
+ *    $Date: 2014/04/29 18:10:42 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include "LayerSurface.h"
 #include "SurfaceOverlay.h"
 #include <QSettings>
+#include <QDebug>
 
 WindowTimeCourse::WindowTimeCourse(QWidget *parent) :
     QWidget(parent),
@@ -65,6 +66,18 @@ void WindowTimeCourse::UpdateData()
   if (type == "MRI")
   {
     LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
+    if (lastMRI == NULL)
+    {
+        QList<Layer*> mri_col = MainWindow::GetMainWindow()->GetLayers("MRI");
+        foreach (Layer* mri, mri_col)
+        {
+            if (((LayerMRI*)mri)->GetNumberOfFrames() > 1)
+            {
+                lastMRI = ((LayerMRI*)mri);
+                break;
+            }
+        }
+    }
     if (layer && layer->GetNumberOfFrames() == 1 &&
         MainWindow::GetMainWindow()->GetLayerCollection("MRI")->Contains(lastMRI))
       layer = lastMRI;
@@ -91,12 +104,29 @@ void WindowTimeCourse::UpdateData()
   {
     LayerSurface* surf = qobject_cast<LayerSurface*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
     SurfaceOverlay* overlay = (surf ? surf->GetActiveOverlay() : NULL);
+    if (surf && lastOverlay == NULL)
+    {
+        for (int i = 0; i < surf->GetNumberOfOverlays(); i++)
+        {
+            SurfaceOverlay* so = surf->GetOverlay(i);
+            if (so->GetNumberOfFrames() > 1)
+            {
+                lastOverlay = so;
+                lastSurface = surf;
+                break;
+            }
+        }
+    }
     if (overlay && overlay->GetNumberOfFrames() == 1 &&
         MainWindow::GetMainWindow()->GetLayerCollection("Surface")->Contains(lastSurface))
     {
-      overlay = lastOverlay;
-      surf = lastSurface;
+      if (lastOverlay && lastOverlay->GetNumberOfFrames() > 1)
+      {
+        overlay = lastOverlay;
+        surf = lastSurface;
+      }
     }
+
     if (surf && overlay && overlay->GetNumberOfFrames() > 1)
     {
       double pos[3];
@@ -105,7 +135,6 @@ void WindowTimeCourse::UpdateData()
       if (nVert < 0)
         return;
 
-      SurfaceOverlay* overlay = surf->GetActiveOverlay();
       int nFrames = overlay->GetNumberOfFrames();
       float* buffer = new float[nFrames];
       double range[2];
