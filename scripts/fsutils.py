@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.16 2013/12/19 22:47:34 lzollei Exp $
+# $Id: fsutils.py,v 1.17 2014/04/30 19:44:34 greve Exp $
 import os
 import logging
 import sys
@@ -64,6 +64,7 @@ class StatsParser:
         self.exclude_structlist = [] 
         self.structlist = []
         self.measurelist = []
+        self.include_vol_extras = 1;
 
     # parse only the following structures
     def parse_only(self, structlist):
@@ -149,7 +150,7 @@ class AsegStatsParser(StatsParser):
             # segidlist is not useful here, all the values of segidlist will be 
             # 'Placeholder_ID'
             # this is because len of all 3 lists -- structlist, measurelist and segidlists should be same
-            if measure == 'volume':
+            if measure == 'volume' and self.include_vol_extras:
                 beg_struct_tuple = (
                         ('# Measure lhCortex, lhCortexVol,', 'lhCortexVol'), 
                         ('# Measure rhCortex, rhCortexVol,', 'rhCortexVol'), 
