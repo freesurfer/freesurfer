@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tkmeditfv
 
-set VERSION = '$Id: tksurferfv,v 1.5 2014/04/30 15:43:10 greve Exp $';
+set VERSION = '$Id: tksurferfv,v 1.6 2014/04/30 19:57:03 greve Exp $';
 
 set subject = ();
 set overlay = ();
@@ -54,7 +54,7 @@ if(! $UseTkSurfer) then
     @ nthsurf = $nthsurf + 1;
     set curvfile = $SUBJECTS_DIR/$subject/surf/$hemi.$curv
     set surfarg = "$surf":"curvature=$curvfile"
-    if($nthsurf > 1) set surfarg = "$surfarg":"visible=0"
+    if($nthsurf != $#surflist) set surfarg = "$surfarg":"visible=0"
     if($#annot) then
       set surfarg = "$surfarg":"annot=$annotfile":"edgethickness=0:annot_outline=1"
     endif
@@ -174,19 +174,19 @@ while( $#argv != 0 )
     case "-aux-surface":
       if($#argv < 1) goto arg1err;
       set surf = $argv[1]; shift;
-      set surflist0 = ($surflist0 $surf);
+      set surflist0 = ($surf $surflist0);
       breaksw
 
     case "-pial":
-      set surflist0 = ($surflist0 pial);
+      set surflist0 = (pial $surflist0);
       breaksw
 
     case "-white":
-      set surflist0 = ($surflist0 white);
+      set surflist0 = (white $surflist0);
       breaksw
 
     case "-surfs":
-      set surflist0 = (inflated white pial)
+      set surflist0 = (white pial inflated)
       breaksw
 
     case "-tksurfer":
