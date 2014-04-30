@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tkmeditfv
 
-set VERSION = '$Id: tksurferfv,v 1.4 2014/04/30 15:03:57 greve Exp $';
+set VERSION = '$Id: tksurferfv,v 1.5 2014/04/30 15:43:10 greve Exp $';
 
 set subject = ();
 set overlay = ();
@@ -49,9 +49,12 @@ set tSecStart = `date '+%s'`;
 if(! $UseTkSurfer) then
   ### FreeView ####----------------------------------------------
   set cmd = (freeview -f)
+  @ nthsurf = 0;
   foreach surf ($surflist)
+    @ nthsurf = $nthsurf + 1;
     set curvfile = $SUBJECTS_DIR/$subject/surf/$hemi.$curv
     set surfarg = "$surf":"curvature=$curvfile"
+    if($nthsurf > 1) set surfarg = "$surfarg":"visible=0"
     if($#annot) then
       set surfarg = "$surfarg":"annot=$annotfile":"edgethickness=0:annot_outline=1"
     endif
