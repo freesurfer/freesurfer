@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/03/08 17:34:37 $
-#    $Revision: 1.35 $
+#    $Date: 2014/04/30 15:44:51 $
+#    $Revision: 1.36 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.35 2013/03/08 17:34:37 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.36 2014/04/30 15:44:51 greve Exp $';
 set inputargs = ($argv);
 
 set sessid  = ();
@@ -259,7 +259,8 @@ else
   set fmid = `echo "($fthresh+$fmax)/2"|bc -l`
   set fvopt = ($mapconcatfile":"colormap=heat":"heatscale=$fthresh,$fmid,$fmax)
   if($#regfile) set fvopt = ($fvopt":"reg=$regfile)
-  set cmd = ($cmd -v $fvopt)
+  set cmd = ($cmd -v $fvopt -viewport coronal -colorscale)
+  #set cmd = ($cmd -timecourse)
 endif
 
 echo "------------------------"
