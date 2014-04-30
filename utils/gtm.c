@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/16 19:22:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2014/04/30 19:22:47 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,6 +65,10 @@ int GTMSEGprint(GTMSEG *gtmseg, FILE *fp)
   fprintf(fp,"KeepCC %3d\n",gtmseg->KeepCC);
   fprintf(fp,"dmax %f\n",gtmseg->dmax);
   fprintf(fp,"nlist %3d\n",gtmseg->nlist);
+  fprintf(fp,"lhmin %5d\n",gtmseg->lhmin);
+  fprintf(fp,"lhmax %5d\n",gtmseg->lhmax);
+  fprintf(fp,"rhmin %5d\n",gtmseg->rhmin);
+  fprintf(fp,"rhmax %5d\n",gtmseg->rhmax);
   fflush(fp);
   return(0);
 }
@@ -74,7 +78,7 @@ int MRIgtmSeg(GTMSEG *gtmseg)
 {
   int err,*segidlist,nsegs,n;
   char *SUBJECTS_DIR, tmpstr[5000];
-  MRI *apas, *ribbon, *aseg, *hrseg, *ctxseg;
+  MRI *apas, *aseg, *hrseg, *ctxseg;
   struct timeb timer;
   TimerStart(&timer);
 
@@ -87,15 +91,9 @@ int MRIgtmSeg(GTMSEG *gtmseg)
   apas = MRIread(tmpstr);
   if(apas==NULL) return(1);
 
-  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtmseg->subject,"ribbon.mgz");
-  printf("Loading %s\n",tmpstr);
-  ribbon = MRIread(tmpstr);
-  if(ribbon==NULL) return(1);
-
-  aseg = MRIunsegmentCortex(apas, ribbon, NULL); // aseg+head
+  aseg = MRIunsegmentCortex(apas, gtmseg->lhmin, gtmseg->lhmax, gtmseg->rhmin, gtmseg->rhmax, NULL); // aseg+head
   if(aseg == NULL) return(1);
   MRIfree(&apas);
-  MRIfree(&ribbon);
 
   printf("Loading surfaces ");
   printf(" t = %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);

@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/16 17:54:32 $
- *    $Revision: 1.5 $
+ *    $Date: 2014/04/30 19:22:48 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-// $Id: mri_gtmseg.c,v 1.5 2014/04/16 17:54:32 greve Exp $
+// $Id: mri_gtmseg.c,v 1.6 2014/04/30 19:22:48 greve Exp $
 
 /*
   BEGINHELP
@@ -65,7 +65,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmseg.c,v 1.5 2014/04/16 17:54:32 greve Exp $";
+static char vcid[] = "$Id: mri_gtmseg.c,v 1.6 2014/04/30 19:22:48 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -109,6 +109,10 @@ int main(int argc, char *argv[]) {
   }
   else  gtmseg->wmannotfile = NULL;
   gtmseg->nlist = 0;
+  gtmseg->lhmin = 1000;
+  gtmseg->lhmax = 1900;
+  gtmseg->rhmin = 2000;
+  gtmseg->rhmax = 2900;
 
   Progname = argv[0] ;
   argc --;
@@ -281,6 +285,18 @@ static int parse_commandline(int argc, char **argv) {
       omp_set_num_threads(nthreads);
       #endif
     } 
+    else if(!strcasecmp(option, "--lhminmax")) {
+      if(nargc < 3) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&gtmseg->lhmin);
+      sscanf(pargv[1],"%d",&gtmseg->lhmax);
+      nargsused = 2;
+    } 
+    else if(!strcasecmp(option, "--rhminmax")) {
+      if(nargc < 3) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&gtmseg->rhmin);
+      sscanf(pargv[1],"%d",&gtmseg->rhmax);
+      nargsused = 2;
+    } 
 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -315,6 +331,8 @@ static void print_usage(void) {
   printf("   --keep-hypo : do not convert WM hypointensities to a white matter label \n");
   printf("   --keep-cc : do not convert corpus callosum to a white matter label \n");
   printf("   --ctab ctab.lut : copy items in ctab.lut into master ctab merging or overwriting what is there \n");
+  printf("   --lhminmax lhmin lhmax : for defining ribbon in apas (default: %d %d) \n",gtmseg->lhmin,gtmseg->lhmax);
+  printf("   --rhminmax rhmin rhmax : for defining ribbon in apas (default: %d %d) \n",gtmseg->rhmin,gtmseg->rhmax);
   printf("\n");
   #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");

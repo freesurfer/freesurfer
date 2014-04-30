@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/16 17:53:01 $
- *    $Revision: 1.3 $
+ *    $Date: 2014/04/30 19:22:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,7 @@ typedef struct
   int nlist,srclist[300],targlist[300];
   MRI *seg;
   LTA *anat2seg;
+  int lhmin, lhmax, rhmin, rhmax;
 } GTMSEG;
 
 int MRIgtmSeg(GTMSEG *gtmseg);

@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/29 22:36:59 $
- *    $Revision: 1.110 $
+ *    $Date: 2014/04/30 19:22:47 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4968,13 +4968,14 @@ MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmse
 }
 
 /*
-  \fn MRI *MRIunsegmentCortex(MRI *seg, const MRI *ribbon, MRI *out)
-  \brief Replaces voxels in seg that have segid = X_Cerebral_Cortex with
-  X_Cerebral_Cortex. This is used prior to running MRIhiresSeg().
-  It's a long story. Can be done in-place. ribbon should probably
-  be ribbon.mgz. seg may be something like aparc+aseg.mgz
-*/
-MRI *MRIunsegmentCortex(MRI *seg, const MRI *ribbon, MRI *out)
+  \fn MRI *MRIunsegmentCortex(MRI *seg, int lhmin, int lhmax, int rhmin, int rhmax, MRI *out)
+  \brief Replaces voxels in seg that have lhmin <= segid <= lhmax with
+  Left_Cerebral_Cortex and rhmin <= segid <= rhmax with
+  Right_Cerebral_Cortex. If lhmax or rhmax are less than 0, then no
+  upper limit is used This is used prior to running MRIhiresSeg().
+  It's a long story. Can be done in-place.  Ideally, seg is something
+  like aparc+aseg.mgz */
+MRI *MRIunsegmentCortex(MRI *seg, int lhmin, int lhmax, int rhmin, int rhmax, MRI *out)
 {
   int c;
 
@@ -4988,31 +4989,21 @@ MRI *MRIunsegmentCortex(MRI *seg, const MRI *ribbon, MRI *out)
     printf("ERROR: MRIunsegmentCortex() dim mismatch between seg and out\n");
     return(NULL);
   }
-  if(MRIdimMismatch(seg,ribbon,0)){
-    printf("ERROR: MRIunsegmentCortex() dim mismatch between seg and ribbon\n");
-    return(NULL);
-  }
 
   #ifdef _OPENMP
   #pragma omp parallel for 
   #endif
   for(c=0; c < seg->width; c++){
-    int r,s,rsegid,segid,SubCort;
+    int r,s,segid;
     for(r=0; r < seg->height; r++){
       for(s=0; s < seg->depth; s++){
-	rsegid = MRIgetVoxVal(ribbon,c,r,s,0);
 	segid = MRIgetVoxVal(seg,c,r,s,0);
-	if(rsegid!=Left_Cerebral_Cortex && rsegid!=Right_Cerebral_Cortex)
-	  MRIsetVoxVal(out,c,r,s,0,segid); // not in the ribbon, copy seg
-	else {
-	  // is in the ribbon, but still could be a subcortical structure
-	  SubCort=0;
-	  if(segid!=Left_Cerebral_Cortex  && segid!=Left_Cerebral_White_Matter &&
-	     segid!=Right_Cerebral_Cortex && segid!=Right_Cerebral_White_Matter && 
-	     segid!=0 && segid != CSF_ExtraCerebral && segid < 1000) SubCort=1;
-	  if(SubCort) MRIsetVoxVal(out,c,r,s,0,segid); // set to seg
-	  else        MRIsetVoxVal(out,c,r,s,0,rsegid); // set to ribbon
-	}
+	if(segid >= lhmin && (lhmax < 0 || segid <= lhmax))       
+	  MRIsetVoxVal(out,c,r,s,0,Left_Cerebral_Cortex);
+	else if(segid >= rhmin && (rhmax < 0 || segid <= rhmax))  
+	  MRIsetVoxVal(out,c,r,s,0,Right_Cerebral_Cortex);
+	else
+	  MRIsetVoxVal(out,c,r,s,0,segid);
       }
     }
   }
