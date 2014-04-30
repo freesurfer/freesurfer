@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2014/03/20 15:22:43 $
-#    $Revision: 1.54 $
+#    $Author: ayendiki $
+#    $Date: 2014/04/30 20:17:21 $
+#    $Revision: 1.55 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.54 2014/03/20 15:22:43 zkaufman Exp $'
+set VERSION = '$Id: trac-all,v 1.55 2014/04/30 20:17:21 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -200,7 +200,8 @@ if ($#groupid) set cmdopts = ($cmdopts -grp $groupid)
 if ($allowcore) set cmdopts = ($cmdopts -allowcoredump)
 
 #------------ Loop over subjects ------------------------------------------#
-set dtdirlist = ()
+set subjdirs = ()
+set basedirs = ()
 
 if ($#baselist == 0) then	#--->>> A single time point for each subject
   foreach isubj ($runlist)
@@ -223,7 +224,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
       endif
     endif
 
-    set dtdirlist = ($dtdirlist $dtdir)
+    set subjdirs = ($subjdirs $dtdir)
 
     if ($dostats) continue
 
@@ -583,7 +584,8 @@ else				#--->>> Multiple time points for each subject
       set dtdir = $dtroot/$subj
 
       if ($subj != $bsubj) then
-        set dtdirlist = ($dtdirlist $dtdir)
+        set subjdirs = ($subjdirs $dtdir)
+        set basedirs = ($basedirs $dtroot/$bsubj)
       endif
 
       if ($dostats) then
@@ -933,6 +935,8 @@ if ($dostats) then
     mkdir -p $statdir
   endif
 
+  set cvswarp = final_CVSmorph_to$cvstemp
+
   set xspacelist = ()
   if ($doregmni) set xspacelist = ($xspacelist mni)
   if ($doregcvs) set xspacelist = ($xspacelist cvs)
@@ -981,25 +985,46 @@ if ($dostats) then
           if ($RunIt) then
             rm -f $statdir/$pathname.$avgmode.inputs.txt
 
-            foreach dtdir ($dtdirlist)
-              set dwidir = $dtdir/dmri
-              set xfmdir = $dtdir/dmri/xfms
-              set pathdir = $dtdir/$outdir/${pathname}_$avgmode
+            @ k = 1
+            while ($k <= $#subjdirs)
+              set pathdir = $subjdirs[$k]/$outdir/${pathname}_$avgmode
 
               if (-e $pathdir/path.pd.nii.gz) then
-                set inputs = $pathdir
-                set inputs = ($inputs $dwidir/dtifit_FA.nii.gz)
+                if ($#baselist == 0) then		# Cross-sectional
+                  set xfmdir = $subjdirs[$k]/dmri/xfms
+                  set labdir = $subjdirs[$k]/dlabel
+                  set refvol = $labdir/diff/aparc+aseg_mask.$reg.nii.gz
+                else					# Longitudinal
+                  set xfmdir = $basedirs[$k]/dmri/xfms
+                  set labdir = $basedirs[$k]/dlabel
+                  set refvol = $labdir/anatorig/aparc+aseg_mask.nii.gz
+                endif
+
+                set inputs = ($pathdir $refvol)
+
                 if ($xspace == mni) then
-                  set inputs = ($inputs $xfmdir/diff2mni.$reg.mat)
+                  if ($#baselist == 0) then		# Cross-sectional
+                    set inputs = ($inputs $xfmdir/diff2mni.$reg.mat)
+                  else					# Longitudinal
+                    set inputs = ($inputs $xfmdir/anatorig2mni.mat)
+                  endif
                 else if ($xspace == cvs) then
-                  set inputs = ($inputs $xfmdir/diff2anatorig.$reg.mat)
-                  if (-e $xfmdir/cvs/$cvswarp.m3z) then
-                    set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
+                  if ($#baselist == 0) then		# Cross-sectional
+                    set inputs = ($inputs $xfmdir/diff2anatorig.$reg.mat)
+                    if (-e $xfmdir/cvs/$cvswarp.m3z) then
+                      set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
+                    endif
+                  else					# Longitudinal
+                    if (-e $xfmdir/cvs/$cvswarp.m3z) then
+                      set inputs = ($inputs $xfmdir/cvs/$cvswarp.m3z)
+                    endif
                   endif
                 endif
 
                 echo $inputs >> $statdir/$pathname.$avgmode.inputs.txt
               endif
+
+              @ k = $k + 1
             end
 
             if (! -e $statdir/$pathname.$avgmode.inputs.txt) then
@@ -1044,7 +1069,7 @@ if ($onpbs && $RunIt) then
     set preid = `fsl_sub_mgh -l $pbslogdir/log -m a -N trcpre -t $submitfile`
   else if ($dobedpost) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 0
-    bedpostx_mgh -n $nstick `printf '%s/dmri ' $dtdirlist`
+    bedpostx_mgh -n $nstick `printf '%s/dmri ' $subjdirs`
   else if ($dopaths) then
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
     if ($doregcvs) setenv MYPBSARCH "ppn=4,vmem=28gb"
