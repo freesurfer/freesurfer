@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/02/21 21:41:11 $
-#    $Revision: 1.64 $
+#    $Date: 2014/04/30 20:38:54 $
+#    $Revision: 1.65 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.64 2014/02/21 21:41:11 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.65 2014/04/30 20:38:54 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -730,6 +730,7 @@ while( $#argv != 0 )
 
     case "--init-surf-cost-only":
       set InitSurfCostOnly = 1;
+      set nolog = 1;
       breaksw
 
     case "--surf-cost":
