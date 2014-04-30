@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/08 20:40:27 $
- *    $Revision: 1.13 $
+ *    $Date: 2014/04/30 18:29:51 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -237,6 +237,12 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
       act->setData(LayerPropertyMRI::NIH);
       act->setCheckable(true);
       act->setChecked(nColorMap == LayerPropertyMRI::NIH);
+      connect(act, SIGNAL(triggered()), this, SLOT(OnSetColorMap()));
+      submenu->addAction(act);
+      act = new QAction("PET", this);
+      act->setData(LayerPropertyMRI::PET);
+      act->setCheckable(true);
+      act->setChecked(nColorMap == LayerPropertyMRI::PET);
       connect(act, SIGNAL(triggered()), this, SLOT(OnSetColorMap()));
       submenu->addAction(act);
     }

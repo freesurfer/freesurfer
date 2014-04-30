@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/24 16:52:03 $
- *    $Revision: 1.282 $
+ *    $Date: 2014/04/30 18:29:51 $
+ *    $Revision: 1.283 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1960,6 +1960,10 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   else if ( strg == "nih" )
   {
     nColorMap = LayerPropertyMRI::NIH;
+  }
+  else if ( strg == "pet" )
+  {
+    nColorMap = LayerPropertyMRI::PET;
   }
   else if ( strg != "grayscale" )
   {

@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/19 20:55:18 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/04/30 18:29:51 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@ public:
   // The color map types in which a volume can be drawn.
   enum ColorMapType
   {
-    NoColorMap=-1, Grayscale, LUT, Heat, Jet, GEColor, NIH, DirectionCoded
+    NoColorMap=-1, Grayscale, LUT, Heat, Jet, GEColor, NIH, PET, DirectionCoded
   };
 
   enum VectorInversion

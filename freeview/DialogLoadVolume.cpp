@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/30 16:38:11 $
- *    $Revision: 1.29 $
+ *    $Date: 2014/04/30 18:29:51 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -182,7 +182,7 @@ int DialogLoadVolume::GetSampleMethod()
 QString DialogLoadVolume::GetColorMap()
 {
   QStringList names;
-  names << "grayscale" << "lut" << "heat" << "jet" << "gecolor" << "nih";
+  names << "grayscale" << "lut" << "heat" << "jet" << "gecolor" << "nih" << "pet";
   return names[ui->comboBoxColorMap->currentIndex()];
 }
 

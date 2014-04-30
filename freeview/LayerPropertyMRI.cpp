@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/26 20:02:39 $
- *    $Revision: 1.23 $
+ *    $Date: 2014/04/30 18:29:51 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -427,6 +427,7 @@ QVariantMap LayerPropertyMRI::GetActiveSettings()
   case Jet:
   case GEColor:
   case NIH:
+  case PET:
     map["MinGenericThreshold"] = mMinGenericThreshold;
     map["MaxGenericThreshold"] = mMaxGenericThreshold;
     if (m_bUsePercentile)
@@ -682,6 +683,10 @@ void LayerPropertyMRI::OnColorMapChanged ()
 
   case NIH:
     BuildGenericLUT( stock_nih );
+    break;
+
+  case PET:
+    BuildGenericLUT( stock_pet );
     break;
 
   case LUT:

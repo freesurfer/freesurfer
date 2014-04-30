@@ -302,6 +302,11 @@
           <string>NIH</string>
          </property>
         </item>
+        <item>
+         <property name="text">
+          <string>PET</string>
+         </property>
+        </item>
        </widget>
       </item>
       <item row="14" column="0">

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/28 19:29:38 $
- *    $Revision: 1.93 $
+ *    $Date: 2014/04/30 18:29:52 $
+ *    $Revision: 1.94 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -413,6 +413,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->comboBoxColorMap->addItem( "Jet", LayerPropertyMRI::Jet );
     ui->comboBoxColorMap->addItem( "GE Color", LayerPropertyMRI::GEColor );
     ui->comboBoxColorMap->addItem( "NIH", LayerPropertyMRI::NIH );
+    ui->comboBoxColorMap->addItem( "PET", LayerPropertyMRI::PET );
     for ( int i = 0; i < ui->comboBoxColorMap->count(); i++ )
     {
       if ( ui->comboBoxColorMap->itemData( i ).toInt() == nColorMap )
