@@ -120,10 +120,15 @@ INFLATED_LH=$(LH).inflated
 INFLATED_RH=$(RH).inflated
 WHITE_LH=$(LH).white
 WHITE_RH=$(RH).white
+CURV_RH=$(RH).curv
 CURV_LH=$(LH).curv
 CURV_RH=$(RH).curv
 AREA_LH=$(LH).area
 AREA_RH=$(RH).area
+AREA_MID_LH=$(LH).area.mid
+AREA_MID_RH=$(RH).area.mid
+VOLUME_LH=$(LH).volume
+VOLUME_RH=$(RH).volume
 SMOOTHWM_LH=$(LH).smoothwm
 SMOOTHWM_RH=$(RH).smoothwm
 INFLATED_LH=$(LH).inflated
@@ -139,6 +144,8 @@ AUTORECON2_SURF=$(ORIG_NOFIX_LH) $(ORIG_NOFIX_RH) \
 	$(WHITE_LH) $(WHITE_RH) \
 	$(CURV_LH) $(CURV_RH) \
 	$(AREA_LH) $(AREA_RH) \
+	$(AREA_MID_LH) $(AREA_MID_RH) \
+	$(VOLUME_LH) $(VOLUME_RH) \
 	$(SMOOTHWM_LH) $(SMOOTHWM_RH) \
 	$(INFLATED_LH) $(INFLATED_RH) \
 	$(SULC_LH) $(SULC_RH)
@@ -198,6 +205,18 @@ $(AREA_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
 
 $(AREA_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH)
 	recon-all -s $(subj) -hemi rh -white
+
+$(AREA_MID_LH): $(AREA_LH)
+	recon-all -s $(subj) -hemi lh -surfvolume
+
+$(AREA_MID_RH): $(AREA_RH)
+	recon-all -s $(subj) -hemi rh -surfvolume
+
+$(VOLUME_LH): $(AREA_MID_LH) # should depend on thickness too
+	recon-all -s $(subj) -hemi lh -surfvolume
+
+$(VOLUME_RH): $(AREA_MID_RH) # should depend on thickness too
+	recon-all -s $(subj) -hemi rh -surfvolume
 
 $(SMOOTHWM_LH): $(WHITE_LH)
 	recon-all -s $(subj) -hemi lh -smooth2
