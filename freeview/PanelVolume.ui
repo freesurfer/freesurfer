@@ -271,43 +271,7 @@
        </widget>
       </item>
       <item row="13" column="1">
-       <widget class="QComboBox" name="comboBoxColorMap">
-        <item>
-         <property name="text">
-          <string>Grayscale</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Lookup table</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Heat</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Jet</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>GE Color</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>NIH</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>PET</string>
-         </property>
-        </item>
-       </widget>
+       <widget class="QComboBox" name="comboBoxColorMap"/>
       </item>
       <item row="14" column="0">
        <widget class="QLabel" name="labelLookUpTable">

@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/14 21:06:02 $
- *    $Revision: 1.12 $
+ *    $Date: 2014/05/01 19:10:07 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,14 +32,6 @@
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
 #include "FSSurface.h"
-#include "vtkActor.h"
-#include "vtkProperty.h"
-#include "vtkPolyDataMapper.h"
-#include "vtkPolyData.h"
-#include "vtkPoints.h"
-#include "vtkAppendPolyData.h"
-#include "vtkCellArray.h"
-#include "vtkMath.h"
 #include "MyUtils.h"
 #include <QFile>
 #include <QDebug>
@@ -48,15 +40,12 @@ SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
   QObject( surf ),
   m_label( NULL ),
   m_surface( surf ),
-  m_bVisible( true )
+  m_bVisible( true ),
+  m_nOutlineIndices(NULL)
 {
   m_rgbColor[0] = 1.0;
   m_rgbColor[1] = 1.0;
   m_rgbColor[2] = 0.0;
-
-  m_actorOutline = vtkSmartPointer<vtkActor>::New();
-  m_actorOutline->SetPosition(surf->GetProperty()->GetPosition());
-  m_actorOutline->GetProperty()->SetLineWidth(4);
 
   SetShowOutline(false);
   SetColor(1.0, 1.0, 0);
@@ -68,6 +57,8 @@ SurfaceLabel::~SurfaceLabel ()
   {
     ::LabelFree( &m_label );
   }
+  if (m_nOutlineIndices)
+    delete[] m_nOutlineIndices;
 }
 
 
@@ -115,185 +106,32 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   }
 
   // create outline
-  if (m_surface)
+  m_nOutlineIndices = new int[m_label->n_points];
+  VERTEX *v;
+  MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
+  MRISclearMarks(mris);
+  LabelMarkSurface(m_label, mris);
+  for (int n = 0 ; n < m_label->n_points ; n++)
   {
-    MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
-    VERTEX *v;
-
-    MRISclearMarks(mris);
-    LabelMarkSurface(m_label, mris);
-    QList<int> vertices;
-    for (int n = 0 ; n < m_label->n_points ; n++)
+    m_nOutlineIndices[n] = 0;
+    if (m_label->lv[n].vno >= 0)
     {
-      if (m_label->lv[n].vno >= 0)
-      {
-        v = &mris->vertices[m_label->lv[n].vno] ;
-        if (v->ripflag)
-          continue ;
+      v = &mris->vertices[m_label->lv[n].vno] ;
+      if (v->ripflag)
+        continue;
 
-        for (int m = 0 ; m < v->vnum ; m++)
+      for (int m = 0 ; m < v->vnum ; m++)
+      {
+        if (mris->vertices[v->v[m]].marked == 0)
         {
-          if (mris->vertices[v->v[m]].marked == 0)
-          {
-            if (!vertices.contains(m_label->lv[n].vno))
-              vertices << m_label->lv[n].vno;
-            break;
-          }
+          m_nOutlineIndices[n] = 1;
+          break;
         }
       }
     }
-    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-    QList<int> neighbor_count;
-    for (int i = 0; i < vertices.size(); i++)
-    {
-      v = &mris->vertices[vertices[i]];
-      double pt[3] = { v->x, v->y, v->z };
-      m_surface->GetTargetAtSurfaceRAS(pt, pt);
-      points->InsertNextPoint(pt);
-      int n = 0;
-      for (int m = 0; m < v->vnum; m++)
-      {
-        if (vertices.contains(v->v[m]))
-          n++;
-      }
-      neighbor_count << n;
-    }
-    QList< QPair<int, int> > pairs;
-    for (int i = 0; i < vertices.size(); i++)
-    {
-      v = &mris->vertices[vertices[i]];
-      for (int m = 0; m < v->vnum; m++)
-      {
-        int n = vertices.indexOf(v->v[m]);
-        if (n >= 0)
-        {
-        //  if (neighbor_count[i] < 3 || neighbor_count[n] < 3)
-          QPair<int, int> p(i, n);
-          if (i > n)
-            p = QPair<int, int>(n, i);
-          if (!pairs.contains(p))
-          {
-            lines->InsertNextCell(2);
-            lines->InsertCellPoint(i);
-            lines->InsertCellPoint(n);
-            pairs << p;
-          }
-        }
-      }
-    }
-
-    vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
-    polydata->SetPoints(points);
-    polydata->SetLines(lines);
-    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInput( polydata);
-    m_actorOutline->SetMapper( mapper );
   }
 
   return true;
-}
-
-vtkPolyData* SurfaceLabel::MakeEdgePolyData(const QList<int> &indices_in, const QList<int> &vertices)
-{
-  MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
-  VERTEX *v;
-  QList<int> indices = indices_in;
-  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-  vtkPolyData* polydata = vtkPolyData::New();
-  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-  lines->InsertNextCell( indices.size() + 1 );
-  for ( int i = 0; i < indices.size(); i++ )
-  {
-    lines->InsertCellPoint( i );
-    v = &mris->vertices[indices[i]];
-    double pt[3] = { v->x, v->y, v->z };
-    m_surface->GetTargetAtSurfaceRAS(pt, pt);
-    points->InsertNextPoint(pt);
-  }
-  lines->InsertCellPoint(0);
-
-  polydata->SetPoints( points );
-  polydata->SetLines( lines );
-
-  // Has a hole in the label, recursively add it to the overlay polydata
-  if (indices.size() < vertices.size())
-  {
-    QList<int> sub_vertices = vertices;
-    for (int i = 0; i < indices.size(); i++)
-    {
-      if (sub_vertices.contains(indices[i]))
-        sub_vertices.removeOne(indices[i]);
-    }
-
-    indices.clear();
-    indices << sub_vertices[0];
-    indices = DoConnectEdgeVertices(indices, sub_vertices);
-    vtkPolyData* polydata2 = MakeEdgePolyData(indices, sub_vertices);
-    vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
-    append->AddInput(polydata);
-    append->AddInput(polydata2);
-    append->Update();
-    vtkPolyData* polydata_all = vtkPolyData::New();
-    polydata_all->DeepCopy(append->GetOutput());
-    return polydata_all;
-  }
-  else
-    return polydata;
-}
-
-QList<int> SurfaceLabel::DoConnectEdgeVertices(const QList<int> &prev_indices, const QList<int> &vertices)
-{
-  MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
-  VERTEX *v;
-
-//  qDebug() << vertices.size() << prev_indices.size();
-  QList<int> indices = prev_indices;
-  while (indices.size() < vertices.size())
-  {
-    v = &mris->vertices[indices.last()];
-    QList<int> connects;
-    for (int m = 0 ; m < v->vnum ; m++)
-    {
-      if (!indices.contains(v->v[m]) && vertices.contains(v->v[m]))
-      {
-        connects << v->v[m];
-      }
-    }
-    if (!connects.isEmpty())
-    {
-      if (connects.size() == 1)
-        indices << connects[0];
-      else
-      {
-        int ncount = 0;
-        int n = -1;
-        QList<int> solutions[10];
-        for (int i = 0; i < connects.size(); i++)
-        {
-          QList<int> sol_indices = indices;
-          sol_indices << connects[i];
-          solutions[i] = DoConnectEdgeVertices(sol_indices, vertices);
-          if (solutions[i].size() > ncount)
-          {
-            ncount = solutions[i].size();
-            n = i;
-          }
-        }
-        if (n == -1)
-        {
-          qDebug() << n;  // should not happen
-          n = 0;
-        }
-        return solutions[n];
-      }
-    }
-    else
-    {
-      return indices;
-    }
-  }
-  return indices;
 }
 
 void SurfaceLabel::SetColor( double r, double g, double b )
@@ -302,14 +140,12 @@ void SurfaceLabel::SetColor( double r, double g, double b )
   m_rgbColor[1] = g;
   m_rgbColor[2] = b;
 
-  m_actorOutline->GetProperty()->SetColor(r, g, b);
-
 //  emit SurfaceLabelChanged();
 }
 
 void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
 {
-  if ( !m_label || m_bShowOutline)
+  if ( !m_label)
   {
     return;
   }
@@ -317,7 +153,7 @@ void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
   for ( int i = 0; i < m_label->n_points; i++ )
   {
     int vno = m_label->lv[i].vno;
-    if ( vno < nVertexCount )
+    if ( vno < nVertexCount && (!m_bShowOutline || m_nOutlineIndices[i] > 0) )
     {
       double opacity = m_label->lv[i].stat;
       if ( opacity > 1 )
@@ -338,13 +174,7 @@ void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
 
 void SurfaceLabel::SetShowOutline(bool bOutline)
 {
-  this->m_bShowOutline = bOutline;
-  m_actorOutline->SetVisibility(bOutline?1:0);
-}
-
-vtkActor* SurfaceLabel::GetOutlineActor()
-{
-  return m_actorOutline;
+  m_bShowOutline = bOutline;
 }
 
 void SurfaceLabel::SetVisible(bool flag)

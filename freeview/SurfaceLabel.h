@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/05 20:25:29 $
- *    $Revision: 1.8 $
+ *    $Date: 2014/05/01 19:10:07 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,8 +38,6 @@ extern "C"
 }
 
 class LayerSurface;
-class vtkActor;
-class vtkPolyData;
 
 class SurfaceLabel  : public QObject
 {
@@ -72,8 +70,6 @@ public:
 
   void SetShowOutline(bool bOutline);
 
-  vtkActor* GetOutlineActor();
-
   bool IsVisible()
   {
     return m_bVisible;
@@ -86,8 +82,6 @@ public slots:
   void SetVisible(bool flag);
 
 private:
-  QList<int> DoConnectEdgeVertices(const QList<int>& indices_in, const QList<int>& vertices);
-  vtkPolyData* MakeEdgePolyData(const QList<int>& indices_in, const QList<int>& vertices);
 
   LABEL*        m_label;
   QString       m_strName;
@@ -96,7 +90,7 @@ private:
   bool          m_bTkReg;
   bool          m_bShowOutline;
   bool          m_bVisible;
-  vtkSmartPointer<vtkActor> m_actorOutline;
+  int*          m_nOutlineIndices;
 };
 
 #endif

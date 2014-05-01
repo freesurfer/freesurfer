@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/12 17:27:58 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/05/01 19:10:07 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -183,16 +183,15 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
       }
       delete[] pts;
 
-      // build outline indices, not work yet
+      // build outline indices
       m_nOutlineIndices = new int[m_nIndexSize];
       memcpy(m_nOutlineIndices, m_nIndices, sizeof(int)*m_nIndexSize);
       for (int i = 0; i < m_nAnnotations; i++)
       {
-        if (true)
-        {
           VERTEX *v;
           MRISclearMarks(mris);
           LABEL* label = MRISannotation_to_label(mris, annotIndices[i]);
+
           if (label)
           {
             LabelMarkSurface(label, mris);
@@ -209,15 +208,14 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
                 {
                   if (mris->vertices[v->v[m]].marked == 0)
                   {
-                    m_nOutlineIndices[v->v[m]] = m_nIndices[v->v[m]];
+                    m_nOutlineIndices[label->lv[n].vno] = m_nIndices[label->lv[n].vno];
+                    break;
                   }
                 }
               }
             }
-
             LabelFree(&label);
           }
-        }
       }
       return true;
     }
@@ -256,7 +254,7 @@ QString SurfaceAnnotation::GetAnnotationNameAtIndex( int nIndex )
   int nValid = 0;
   int nTotalCount = 0;
   CTABgetNumberOfTotalEntries( m_lut, &nTotalCount );
-  if ( nIndex < nTotalCount )
+  if ( nIndex >= 0 && nIndex < nTotalCount )
   {
     CTABisEntryValid( m_lut, nIndex, &nValid );
   }

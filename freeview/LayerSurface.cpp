@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/24 16:52:03 $
- *    $Revision: 1.104 $
+ *    $Date: 2014/05/01 19:10:07 $
+ *    $Revision: 1.105 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -733,9 +733,6 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
   if (m_spline)
     m_spline->AppendProp3D(renderer);
 
-  for (int i = 0; i < m_labels.size(); i++)
-    renderer->AddViewProp(m_labels[i]->GetOutlineActor());
-
   m_roi->AppendProps(renderer);
 }
 
@@ -853,14 +850,6 @@ void LayerSurface::SetVisible( bool bVisible )
   {
     m_vectorActor2D[i]->SetVisibility( nVectorVisibility );
   }
-
-  for (int i = 0; i < m_labels.size(); i++)
-  {
-    m_labels[i]->GetOutlineActor()->VisibilityOff();
-  }
-
-  if (bVisible && m_nActiveLabel >= 0 && m_labels[m_nActiveLabel]->GetShowOutline())
-    m_labels[m_nActiveLabel]->GetOutlineActor()->VisibilityOn();
 
   m_spline->SetVisible(bVisible);
 
@@ -1509,11 +1498,6 @@ void LayerSurface::UpdateActorPositions()
   m_vertexActor->SetPosition( pos );
   m_wireframeActor->SetPosition( pos );
 
-  for (int i = 0; i < m_labels.size(); i++)
-  {
-    m_labels[i]->GetOutlineActor()->SetPosition(pos);
-  }
-
   emit ActorUpdated();
 }
 
@@ -1600,8 +1584,7 @@ void LayerSurface::SetActiveLabelOutline(bool bOutline)
   if ( m_nActiveLabel >= 0)
   {
     m_labels[m_nActiveLabel]->SetShowOutline(bOutline);
-    if (!this->IsVisible())
-      m_labels[m_nActiveLabel]->GetOutlineActor()->VisibilityOff();
+
     UpdateColorMap();
     emit ActorUpdated();
   }
