@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/25 23:59:32 $
- *    $Revision: 1.8 $
+ *    $Date: 2014/05/02 22:43:46 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.8 2014/04/25 23:59:32 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.9 2014/05/02 22:43:46 greve Exp $
 
 /*
   BEGINHELP
@@ -91,7 +91,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.8 2014/04/25 23:59:32 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.9 2014/05/02 22:43:46 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -151,6 +151,7 @@ typedef struct
 
   MRI *rbv;
   int mask_rbv_to_brain;
+  MRI *rbvsegmean;
 
   int rescale,n_scale_refids,scale_refids[100];
   double scale;
@@ -750,6 +751,8 @@ int main(int argc, char *argv[])
       exit(1);
     }
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+    sprintf(tmpstr,"%s/rbv.segmean.nii.gz",OutDir);
+    MRIwrite(gtm->rbvsegmean,tmpstr);
   }
   
   if(gtm->nContrasts > 0){
@@ -914,7 +917,7 @@ static int parse_commandline(int argc, char **argv) {
       }
       nargsused = nth;
     }
-    else if(!strcasecmp(option, "--mgpvc")){
+    else if(!strcasecmp(option, "--mgpvc") || !strcasecmp(option, "--mg")){
       if(nargc < 1) CMDargNErr(option,1);
       gtm->DoMGPVC = 1;
       sscanf(pargv[0],"%lf",&gtm->mg_gmthresh);
@@ -930,13 +933,13 @@ static int parse_commandline(int argc, char **argv) {
 	nargsused += gtm->n_mg_refids;
       }
     } 
-    else if(!strcasecmp(option, "--mgpvc-ref-cerebral-wm")) {
+    else if(!strcasecmp(option, "--mg-ref-cerebral-wm")) {
       int m=0;
       gtm->mg_refids[m] =  2; m++;
       gtm->mg_refids[m] = 41; m++;
       gtm->n_mg_refids = m;
     }
-    else if(!strcasecmp(option, "--mgpvc-ref-lobes-wm")) {
+    else if(!strcasecmp(option, "--mg-ref-lobes-wm")) {
       int m=0;
       gtm->mg_refids[m] = 3201; m++;
       gtm->mg_refids[m] = 3203; m++;
@@ -1101,18 +1104,22 @@ static void print_usage(void) {
   printf("   --auto-mask FWHM thresh : automatically compute mask\n");
   printf("   --no-reduce-fov : do not reduce FoV to encompass automask\n");
   printf("   --C contrast.mtx : univariate contrast to test (ascii text file)\n");
-  printf("   --ctab ctab : \n");
-  printf("   --merge-hypos : merge left and right hypointensites into to ROI\n");
-  printf("   --no-rescale   : do not global rescale such that mean of cerebellum WM is 100\n");
-  printf("   --tt-reduce : reduce segmentation to that of a tissue type\n");
+  printf("\n");
   printf("   --default-seg-merge : default schema for merging ROIs\n");
+  printf("   --merge-hypos : merge left and right hypointensites into to ROI\n");
+  printf("   --tt-reduce : reduce segmentation to that of a tissue type\n");
   printf("   --replace Id1 Id2 : replace seg Id1 with seg Id2\n");
   printf("   --replace-file : file with a list of Ids to replace\n");
   printf("   --reg-identity : assume that input is in anatomical space \n");
+  printf("   --no-rescale   : do not global rescale such that mean of cerebellum WM is 100\n");
   printf("\n");
   printf("   --no-vox-frac-cor : do not use voxel fraction correction (with --psf 0 turns off PVC entirely)\n");
   printf("   --rbv            : perform RBV PVC\n");
-  printf("   --mgpvc gmthresh : perform Mueller-Gaertner PVC, gmthresh is min gm pvf bet 0 and 1\n");
+  printf("   --mg gmthresh RefId1 RefId2 ...: perform Mueller-Gaertner PVC, gmthresh is min gm pvf bet 0 and 1\n");
+  printf("   --mg-ref-cerebral-wm : set MG RefIds to 2 and 41\n");
+  printf("   --mg-ref-lobes-wm : set MG RefIds to those for lobes when using wm subseg\n");
+  printf("   --km-ref RefId1 RefId2 ... : compute reference TAC for KM as mean of given RefIds\n");
+  printf("   --km-hb  RefId1 RefId2 ... : compute HiBinding TAC for KM as mean of given RefIds\n");
   printf("\n");
   printf("   --X : save X matrix in matlab4 format as X.mat (it will be big)\n");
   printf("   --y : save y matrix in matlab4 format as y.mat\n");
@@ -1128,8 +1135,8 @@ static void print_usage(void) {
   printf("\n");
   #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");
-  printf("   --threads-max : use the maximum allowable number of threads for this computer\n");
-  printf("   --threads-max-1 : use one less than the maximum allowable number of threads for this computer\n");
+  printf("   --max-threads : use the maximum allowable number of threads for this computer\n");
+  printf("   --max-threads-1 : use one less than the maximum allowable number of threads for this computer\n");
   #endif
   printf("   --sd SUBJECTS_DIR\n");
   printf("   --vg-thresh thrshold : threshold for  'ERROR: LTAconcat(): LTAs 0 and 1 do not match'\n");
@@ -1696,10 +1703,11 @@ int GTMsegrvar(GTM *gtm)
 /*--------------------------------------------------------------------------*/
 int GTMrbv(GTM *gtm)
 {
-  int c,r,s,f;
-  double val,v,vhat0,vhat;
+  int c,r,s,f,nthseg,segid;
+  double val,v,vhat0,vhat,v2;
   LTA *lta;
   struct timeb mytimer;
+  MATRIX *nhits;
 
 
   if(gtm->rbv)      MRIfree(&gtm->rbv);
@@ -1751,16 +1759,24 @@ int GTMrbv(GTM *gtm)
   }
   MRIcopyHeader(gtm->anatseg,gtm->rbv);
   MRIcopyPulseParameters(gtm->yvol,gtm->rbv);
+
+  gtm->rbvsegmean = MRIallocSequence(gtm->nsegs,1,1,MRI_FLOAT,gtm->yvol->nframes);
+  nhits = MatrixAlloc(gtm->beta->rows,1,MATRIX_REAL);
   for(s=0; s < gtm->anatseg->depth; s++){
     for(c=0; c < gtm->anatseg->width; c++){
       for(r=0; r < gtm->anatseg->height; r++){
-	if(MRIgetVoxVal(gtm->anatseg,c,r,s,0) < 0.5) continue;
+	segid = MRIgetVoxVal(gtm->anatseg,c,r,s,0);
+	if(segid < 0.5) continue;
+	for(nthseg=0; nthseg < gtm->nsegs; nthseg++) if(gtm->segidlist[nthseg] == segid) break;
+	nhits->rptr[nthseg+1][1] ++;
 	for(f=0; f < gtm->yvol->nframes; f++){
 	  v     = MRIgetVoxVal(gtm->yseg,c,r,s,f);
 	  vhat0 = MRIgetVoxVal(gtm->yhat0seg,c,r,s,f);
 	  vhat  = MRIgetVoxVal(gtm->yhatseg,c,r,s,f);
 	  val = v*vhat0/(vhat+FLT_EPSILON);
 	  MRIsetVoxVal(gtm->rbv,c,r,s,f,val);
+	  v2 = MRIgetVoxVal(gtm->rbvsegmean,nthseg,0,0,f);
+	  MRIsetVoxVal(gtm->rbvsegmean,nthseg,0,0,f,v2+val);
 	}
       }
     }
@@ -1769,6 +1785,14 @@ int GTMrbv(GTM *gtm)
   MRIfree(&gtm->yhat0seg);
   MRIfree(&gtm->yhatseg);
   printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
+
+  for(nthseg=0; nthseg < gtm->nsegs; nthseg++){
+    for(f=0; f < gtm->yvol->nframes; f++){
+      val = MRIgetVoxVal(gtm->rbvsegmean,nthseg,0,0,f)/nhits->rptr[nthseg+1][1];
+      MRIsetVoxVal(gtm->rbvsegmean,nthseg,0,0,f,val);
+    }
+  }
+  MatrixFree(&nhits);
 
   if(gtm->mask_rbv_to_brain){
     printf("   masking RBV to brain\n");
@@ -2604,7 +2628,7 @@ int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, in
 /*------------------------------------------------------------*/
 int GTMautoMask(GTM *gtm)
 {
-  LTA *lta,*pet2bbpet,*seg2bbpet;
+  LTA *lta,*pet2bbpet,*seg2bbpet,*anat2bbpet;
   double std;
   MRI *masktmp,*yvoltmp;
 
@@ -2616,6 +2640,7 @@ int GTMautoMask(GTM *gtm)
 
   // Sample the seg into the pet space
   MRIvol2Vol(gtm->anatseg,gtm->mask,lta->xforms[0].m_L,SAMPLE_NEAREST,0);
+  LTAfree(&lta);
   // Threshold it at 0.5 to give the mask
   MRIbinarize(gtm->mask,gtm->mask,0.5,0,1);
   // Smooth binary mask
@@ -2634,6 +2659,10 @@ int GTMautoMask(GTM *gtm)
     yvoltmp = MRIextractRegion(gtm->yvol, NULL, gtm->automaskRegion);
     pet2bbpet = TransformRegDat2LTA(gtm->yvol, yvoltmp, NULL);
     seg2bbpet = LTAconcat2(gtm->seg2pet,pet2bbpet, 1);
+    if(LTAmriIsSource(gtm->anat2pet,gtm->yvol)) lta = LTAinvert(gtm->anat2pet,NULL);        
+    else                                        lta = LTAcopy(gtm->anat2pet,NULL);
+    anat2bbpet = LTAconcat2(lta,pet2bbpet,1);
+    LTAfree(&lta);
     gtm->yvol_full_fov = MRIallocHeader(gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth,MRI_FLOAT,1);
     MRIcopyHeader(gtm->yvol,gtm->yvol_full_fov);
     MRIcopyPulseParameters(gtm->yvol,gtm->yvol_full_fov);
@@ -2643,11 +2672,14 @@ int GTMautoMask(GTM *gtm)
     gtm->mask = masktmp;
     LTAfree(&gtm->seg2pet);
     gtm->seg2pet = seg2bbpet;
+    LTAfree(&gtm->anat2pet);
+    gtm->anat2pet = anat2bbpet;
   }
 
-  LTAfree(&lta);
   return(0);
 }
+
+
 
 
 
