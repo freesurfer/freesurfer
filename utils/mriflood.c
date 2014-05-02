@@ -7,8 +7,8 @@
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/03 19:51:56 $
- *    $Revision: 1.40 $
+ *    $Date: 2014/05/02 22:04:26 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.40 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.41 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -1870,6 +1870,20 @@ MRI *MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_dst)
   //printf("  flooding outside  ");fflush(stdout);
   outsidebb = MRISfloodoutside(shellbb, NULL) ;
   //printf("  t = %g\n",TimerStop(&start)/1000.0) ; fflush(stdout);
+
+  /* Note: it is possible that there are voxels outside of the shell
+     that do not get flooded because they form a hole and the flood
+     cannot reach it. This can particularly happen when the resolution
+     is 1mm. It is possible to fix this by inverting the shell and
+     finding clusters. The two big clusters are for inside and outside
+     the shell and the smaller ones will be holes that are actually
+     outside the shell. Of course, once this is done, the flooding
+     is not needed. The clustering takes much longer than the flooding.
+     The clustering could also be done in a mask made by dilating
+     the shell a few times. I have not implemented this fix because
+     I don't think it happens that often, if ever, for resolutions
+     of 0.5 or finer.
+   */
 
   // Add the shell to the interior, remove voxels that are mostly on
   // the outside of the surface
