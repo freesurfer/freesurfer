@@ -31,7 +31,7 @@ public slots:
   void OnActiveLayerChanged(Layer* curLayer);
   void OnLayerRemoved(Layer* added_layer);
   void OnLayerAdded(Layer* removed_layer);
-  void RefreshLayerList(Layer* curLayer = NULL);
+  void RefreshLayerList(const QList<Layer*>& selectedLayers = QList<Layer*>(), Layer* curLayer = NULL);
   void OnCurrentItemChanged(QTreeWidgetItem* item);
   void OnItemDoubleClicked(QTreeWidgetItem* item);
   void OnItemChanged(QTreeWidgetItem* item);
@@ -41,7 +41,8 @@ public slots:
   void UpdateWidgets();
 
 private:
-  void AddLayers(QList<Layer*> layers, const QString& cat_name, Layer* activeLayer, Layer* curLayer = NULL);
+  void AddLayers(QList<Layer*> layers, const QString& cat_name, Layer* activeLayer,
+                 const QList<Layer *>& selectedLayers, Layer* curLayer = NULL);
   PanelLayer* SetCurrentPanel(const QString& layerType);
 
   Ui::PanelAllLayers *ui;

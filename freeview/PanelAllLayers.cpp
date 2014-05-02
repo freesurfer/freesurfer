@@ -125,10 +125,12 @@ void PanelAllLayers::OnActiveLayerChanged(Layer *curlayer)
 
 void PanelAllLayers::OnLayerAdded(Layer *added_layer)
 {
-  RefreshLayerList(added_layer);
+  QList<Layer*> layers;
+  layers << added_layer;
+  RefreshLayerList(layers, added_layer);
 }
 
-void PanelAllLayers::RefreshLayerList(Layer *curLayer)
+void PanelAllLayers::RefreshLayerList(const QList<Layer *>& selectedLayers_in, Layer* curLayer)
 {
   Layer* layer = NULL;
   QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
@@ -137,23 +139,37 @@ void PanelAllLayers::RefreshLayerList(Layer *curLayer)
   if (curLayer)
     layer = curLayer;
 
+  QList<Layer*> selectedLayers = selectedLayers_in;
+  if (selectedLayers.isEmpty())
+  {
+    QList<QTreeWidgetItem*> items = ui->treeWidgetLayers->selectedItems();
+    foreach (QTreeWidgetItem* item, items)
+    {
+      Layer* layer_sel = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+      if (layer_sel)
+        selectedLayers << layer_sel;
+    }
+  }
+
   ui->treeWidgetLayers->blockSignals(true);
   ui->treeWidgetLayers->clear();
   ui->treeWidgetLayers->blockSignals(false);
   MainWindow* wnd = MainWindow::GetMainWindow();
-  AddLayers(wnd->GetLayers("MRI"), "Volumes", wnd->GetActiveLayer("MRI"), layer );
-  AddLayers(wnd->GetLayers("Surface"), "Surfaces", wnd->GetActiveLayer("Surface"), layer);
-  AddLayers(wnd->GetLayers("ROI"), "ROIs", wnd->GetActiveLayer("ROI"), layer);
-  AddLayers(wnd->GetLayers("PointSet"), "Point Sets", wnd->GetActiveLayer("PointSet"), layer);
-  AddLayers(wnd->GetLayers("CMAT"), "CMAT", wnd->GetActiveLayer("CMAT"), layer);
-  AddLayers(wnd->GetLayers("Track"), "Track", wnd->GetActiveLayer("Track"), layer);
-  AddLayers(wnd->GetLayers("FCD"), "FCD", wnd->GetActiveLayer("FCD"), layer);
+  AddLayers(wnd->GetLayers("MRI"), "Volumes", wnd->GetActiveLayer("MRI"), selectedLayers, layer );
+  AddLayers(wnd->GetLayers("Surface"), "Surfaces", wnd->GetActiveLayer("Surface"), selectedLayers, layer);
+  AddLayers(wnd->GetLayers("ROI"), "ROIs", wnd->GetActiveLayer("ROI"), selectedLayers, layer);
+  AddLayers(wnd->GetLayers("PointSet"), "Point Sets", wnd->GetActiveLayer("PointSet"), selectedLayers, layer);
+  AddLayers(wnd->GetLayers("CMAT"), "CMAT", wnd->GetActiveLayer("CMAT"), selectedLayers, layer);
+  AddLayers(wnd->GetLayers("Track"), "Track", wnd->GetActiveLayer("Track"), selectedLayers, layer);
+  AddLayers(wnd->GetLayers("FCD"), "FCD", wnd->GetActiveLayer("FCD"), selectedLayers, layer);
 }
 
-void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, Layer* activeLayer, Layer* curLayer)
+void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, Layer* activeLayer,
+                               const QList<Layer *>& selectedLayers, Layer* curLayer)
 {
   ui->treeWidgetLayers->blockSignals(true);
   QTreeWidgetItem* currentItem = NULL;
+  QList<QTreeWidgetItem*> selectedItems;
   if (!layers.isEmpty())
   {
     QTreeWidgetItem* topItem = new QTreeWidgetItem(ui->treeWidgetLayers);
@@ -178,12 +194,21 @@ void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, L
         fnt.setBold(true);
         item->setFont(0, fnt);
       }
+      if (selectedLayers.contains(layers[i]))
+      {
+        selectedItems << item;
+      }
     }
     topItem->setExpanded(true);
   }
   ui->treeWidgetLayers->blockSignals(false);
   if (currentItem)
     ui->treeWidgetLayers->setCurrentItem(currentItem);
+  if (!selectedItems.isEmpty())
+  {
+    foreach (QTreeWidgetItem* item, selectedItems)
+      item->setSelected(true);
+  }
 }
 
 void PanelAllLayers::OnLayerRemoved(Layer * removed_layer)
