@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/02/12 01:53:35 $
- *    $Revision: 1.4 $
+ *    $Date: 2014/05/02 19:36:47 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -404,7 +404,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
-        asegList.push_back(fio_fullpath(pargv[0]));
+        asegList.push_back(fio_fullpath(pargv[nargsused]));
         nargsused++;
       }
     }
