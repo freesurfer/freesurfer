@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/30 18:29:51 $
- *    $Revision: 1.24 $
+ *    $Date: 2014/05/02 17:04:22 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -241,7 +241,9 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
   }
 
   if (map.contains("AutoAdjustFrameLevel"))
-    m_bAutoAdjustFrameLevel = map["AutoAdjustFrameLevel"].toBool();
+  {
+    SetAutoAdjustFrameLevel(map["AutoAdjustFrameLevel"].toBool());
+  }
 
   if ( map.contains("FrameSettings") && mri->GetNumberOfFrames() > 1)
   {
