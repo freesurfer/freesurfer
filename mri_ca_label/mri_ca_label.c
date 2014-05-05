@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/03/02 19:51:46 $
- *    $Revision: 1.102 $
+ *    $Author: lindemer $
+ *    $Date: 2014/05/05 15:07:07 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,6 +82,7 @@ static float unlikely_mah_dist_thresh = 4 ;  // more than this many sigmas from 
 
 static int wmsa = 0 ;   // apply wmsa postprocessing (using T2/PD data)
 static int nowmsa = 0 ; // remove all wmsa labels from the atlas
+
 
 static int handle_expanded_ventricles = 0;
 
@@ -178,6 +179,7 @@ static int no_gibbs = 0 ;
 static int anneal = 0 ;
 static char *mri_fname = NULL ;
 static int hippocampus_flag = 1 ;
+static char *wmsa_probs = NULL;
 
 #define CMA_PARCELLATION  0
 static int parcellation_type = CMA_PARCELLATION ;
@@ -200,7 +202,7 @@ int main(int argc, char *argv[])
 {
   char         **av ;
   int          ac, nargs, extra ;
-  char         *in_fname, *out_fname,  *gca_fname, *xform_fname ;
+  char         *in_fname, *out_fname,  *gca_fname, *xform_fname;
   MRI          *mri_inputs, *mri_labeled, *mri_fixed = NULL, *mri_tmp ;
   int          msec, minutes, seconds, ninputs, input ;
   struct timeb start ;
@@ -209,16 +211,17 @@ int main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 
+
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.102 2014/03/02 19:51:46 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.103 2014/05/05 15:07:07 lindemer Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.102 2014/03/02 19:51:46 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.103 2014/05/05 15:07:07 lindemer Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1162,6 +1165,20 @@ int main(int argc, char *argv[])
     MRIfree(&mri_labeled) ;
     mri_labeled = mri_tmp ;
   }
+ if (wmsa_probs != NULL)
+ //if (wmsa_probs)
+     {
+      MRI *probs_tmp ; 
+      char fname[STRLEN] ;
+      printf("working on WMSA probs now...\n") ;
+      sprintf(fname, "%s.mgz", wmsa_probs) ;
+      probs_tmp=GCAsampleToVolWMSAprob(mri_inputs, gca, transform, NULL);
+      printf("writing WMSA probability volume to %s....\n", fname) ;
+      //MRIwrite(probs_tmp,fname); 
+      if (MRIwrite(probs_tmp, fname) != NO_ERROR){
+	ErrorExit(Gerror, "%s: MRIwrite(%s) failed", Progname, fname);
+	}
+     } 
 
   mri_labeled->ct = gca->ct ;  // embed color table in output volume
   /*  GCAfree(&gca) ; */
@@ -1330,6 +1347,14 @@ get_option(int argc, char *argv[])
     G_write_probs = argv[2] ;
     nargs = 1 ;
     printf("writing label probabilities to %s...\n", G_write_probs) ;
+  }
+  else if (!stricmp(option, "wmsa_probs"))
+  {
+    wmsa_probs = argv[2] ;
+    //wmsa_probs = 1;
+    printf("Writing WMSA probabilities to file %s...\n", wmsa_probs) ; 
+    nargs =1 ;
+    //sprintf(wmsaprob_fname,"%s.mgz",wmsa_probs);
   }
   else if (!stricmp(option, "TL"))
   {
