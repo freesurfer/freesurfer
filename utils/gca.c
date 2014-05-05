@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/04/14 20:04:39 $
- *    $Revision: 1.316 $
+ *    $Author: lindemer $
+ *    $Date: 2014/05/05 15:07:57 $
+ *    $Revision: 1.317 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29308,3 +29308,60 @@ MRI *GCAsampleToVol(MRI *mri, GCA *gca, TRANSFORM *transform, MRI **seg, MRI *ou
 
   return(out);
 }
+
+MRI *GCAsampleToVolWMSAprob(MRI *mri, GCA *gca, TRANSFORM *transform, MRI *out)
+{
+  int z;
+
+  if(out == NULL){
+    out = MRIcloneBySpace(mri, MRI_FLOAT, 1);
+    if(out == NULL) return(NULL);
+  }
+  if(MRIdimMismatch(mri, out, 0)){
+    printf("ERROR: GCAsampleToVol(): output dimension mismatch\n");
+    return(NULL);
+  }
+ 
+  for (z = 0 ; z < mri->depth ; z++)  {
+    int       y,x,xn,yn,zn,n, wmsa_n,err;
+  
+    GCA_NODE  *gcan ;
+    GCA_PRIOR *gcap ;
+    double    wmsa_p ;
+
+    for (y = 0 ; y < mri->height ; y++)    {
+      for (x = 0 ; x < mri->width ; x++)      {
+
+	// Set to 0 in case it does not make it through to the end
+	MRIsetVoxVal(out,x,y,z,0,0);
+	
+	  
+	// Get the node for the xyz of this voxel
+	err = GCAsourceVoxelToNode(gca, mri, transform,x, y, z, &xn, &yn, &zn);
+	if(err) continue;
+	
+	gcan = &gca->nodes[xn][yn][zn] ;
+	gcap = getGCAP(gca, mri, transform, x, y, z) ;
+	if(gcap==NULL) continue;
+	
+	// get priors for voxels with WMSA having highest prob
+	wmsa_p = 0 ;
+	wmsa_n = -1 ;
+	for(n = 0 ; n < gcan->nlabels ; n++){
+	   if(IS_HYPO(gcan->labels[n])){	  
+	    wmsa_p = getPrior(gcap, gcan->labels[n]) ;
+	    wmsa_n = n ;
+	  }
+	}
+	if(wmsa_n < 0) continue ; /* couldn't find any valid label at this location */
+
+	// Set the output to be the prior at each WMSA voxel
+	MRIsetVoxVal(out,x,y,z,0,wmsa_p);
+      }
+    }
+  }
+
+  return(out);
+}
+
+
