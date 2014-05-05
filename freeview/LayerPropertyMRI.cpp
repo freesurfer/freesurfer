@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/02 17:04:22 $
- *    $Revision: 1.25 $
+ *    $Date: 2014/05/05 17:31:56 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -240,9 +240,9 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
   //  m_bRememberFrameSettings = map["RememberFrameSettings"].toBool();
   }
 
-  if (map.contains("AutoAdjustFrameLevel"))
+  if (map.contains("AutoAdjustFrameLevel") && map["AutoAdjustFrameLevel"].toBool())
   {
-    SetAutoAdjustFrameLevel(map["AutoAdjustFrameLevel"].toBool());
+    SetAutoAdjustFrameLevel(true);
   }
 
   if ( map.contains("FrameSettings") && mri->GetNumberOfFrames() > 1)
@@ -1665,6 +1665,7 @@ void LayerPropertyMRI::SetVectorScale(double dval)
 void LayerPropertyMRI::SetAutoAdjustFrameLevel(bool b)
 {
   m_bAutoAdjustFrameLevel = b;
-  UpdateMinMaxValues();
+  if (b)
+    UpdateMinMaxValues();
   this->OnColorMapChanged();
 }
