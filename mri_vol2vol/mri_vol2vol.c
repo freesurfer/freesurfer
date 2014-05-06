@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/28 21:12:32 $
- *    $Revision: 1.83 $
+ *    $Date: 2014/05/06 20:04:49 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -479,7 +479,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.83 2014/02/28 21:12:32 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.84 2014/05/06 20:04:49 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -604,12 +604,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.83 2014/02/28 21:12:32 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.84 2014/05/06 20:04:49 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.83 2014/02/28 21:12:32 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.84 2014/05/06 20:04:49 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -682,25 +682,18 @@ int main(int argc, char **argv) {
   }
 
   /*-----------------------------------------------------*/
-  if (fstal) {
+  if(fstal) {
     // Recompute R for converting to/from talairach space
     // and set the target volume file
     printf("\n"); 
     printf("Compute R for talairach space\n");
     Xtal = DevolveXFM(subject, NULL, talxfmfile);
     invXtal = MatrixInverse(Xtal,NULL);
-    if (Xtal == NULL) exit(1);
-    if (fstalres > 0) {
-      Rtal = LoadRtal(fstalres);
-      sprintf(tmpstr,"%s/average/mni305.cor.subfov%d.mgz",FSH,fstalres);
-      targvolfile = strcpyalloc(tmpstr);
-    } else {
-      Rtal = MatrixIdentity(4,NULL);
-      sprintf(tmpstr,"%s/average/mni305.cor.mgz",FSH);
-      targvolfile = strcpyalloc(tmpstr);
-    }
+    if(Xtal == NULL) exit(1);
+    if(fstalres > 0) Rtal = LoadRtal(fstalres);
+    else             Rtal = MatrixIdentity(4,NULL);
     invRtal = MatrixInverse(Rtal,NULL);
-    if (Gdiag_no > 0) {
+    if(Gdiag_no > 0) {
       printf("matrix from regfile ---------------------- \n");
       MatrixPrint(stdout,R);
       printf("Xtal ---------------------- \n");
@@ -1803,11 +1796,11 @@ printf("\n");
 /* --------------------------------------------- */
 static void check_options(void) {
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if (SUBJECTS_DIR==NULL) {
+  if(SUBJECTS_DIR==NULL) {
     printf("ERROR: SUBJECTS_DIR undefined.\n");
     exit(1);
   }
-  if (movvolfile == NULL && ( lta == NULL || ! invert) ) {
+  if(movvolfile == NULL && ( lta == NULL || ! invert) ) {
     printf("ERROR: No mov volume supplied.\n");
     exit(1);
   }
@@ -1815,6 +1808,15 @@ static void check_options(void) {
     printf("ERROR: Do not specify a targ volume with --fstarg.\n");
     exit(1);
   }
+  if(fstal && targvolfile != NULL) {
+    printf("ERROR: Do not specify a targ volume with --tal.\n");
+    exit(1);
+  }
+  if(fstal && fstarg) {
+    printf("ERROR: cannot specify a --tal and --fstarg.\n");
+    exit(1);
+  }
+
   if(fstarg) {
     sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,fstargfile);
     if (!fio_FileExistsReadable(tmpstr))
@@ -1822,25 +1824,20 @@ static void check_options(void) {
     targvolfile = strcpyalloc(tmpstr);
     printf("Using %s as targ volume\n",targvolfile);
   }
-  if (targvolfile == NULL)
-  {
+
+  if(fstal){
+    if (fstalres > 0) {
+      sprintf(tmpstr,"%s/average/mni305.cor.subfov%d.mgz",FSH,fstalres);
+      targvolfile = strcpyalloc(tmpstr);
+    } else {
+      sprintf(tmpstr,"%s/average/mni305.cor.mgz",FSH);
+      targvolfile = strcpyalloc(tmpstr);
+    }
+  }
+
+  if (targvolfile == NULL){
     printf("ERROR: No target volume supplied.\n");
     exit(1);
-  }
-  if(lta != NULL){
-    MRI *mrimovtmp,*mritrgtmp;
-    printf("%s %s\n",movvolfile,targvolfile);
-    mrimovtmp = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
-    if(mrimovtmp == NULL) exit(1);
-    mritrgtmp = MRIreadHeader(targvolfile,MRI_VOLUME_TYPE_UNKNOWN);
-    if(mritrgtmp == NULL) exit(1);
-    lta = LTAchangeType(lta,LINEAR_RAS_TO_RAS);
-    LTAmodifySrcDstGeom(lta, mrimovtmp, mritrgtmp);
-    R = TransformLTA2RegDat(lta);
-    ipr = lta->xforms[0].src.xsize ;
-    bpr = lta->xforms[0].src.zsize ;
-    MRIfree(&mrimovtmp);
-    MRIfree(&mritrgtmp);
   }
 
   if(outvolfile == NULL && DispFile == NULL) {
@@ -1894,20 +1891,28 @@ static void check_options(void) {
   }
   
 
+  if(lta != NULL){
+    MRI *mrimovtmp,*mritrgtmp;
+    printf("%s %s\n",movvolfile,targvolfile);
+    mrimovtmp = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mrimovtmp == NULL) exit(1);
+    mritrgtmp = MRIreadHeader(targvolfile,MRI_VOLUME_TYPE_UNKNOWN);
+    if(mritrgtmp == NULL) exit(1);
+    lta = LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+    LTAmodifySrcDstGeom(lta, mrimovtmp, mritrgtmp);
+    R = TransformLTA2RegDat(lta);
+    ipr = lta->xforms[0].src.xsize ;
+    bpr = lta->xforms[0].src.zsize ;
+    MRIfree(&mrimovtmp);
+    MRIfree(&mritrgtmp);
+  }
+
   if(!fstal && !DoCrop && !fstarg && targvolfile == NULL &&  ( lta == NULL || invert) ) {
     printf("ERROR: No targ volume supplied.\n");
     exit(1);
   }
   if(DoCrop && targvolfile != NULL) {
     printf("ERROR: Do not specify a targ volume with --crop.\n");
-    exit(1);
-  }
-  if(fstal && targvolfile != NULL) {
-    printf("ERROR: Do not specify a targ volume with --tal.\n");
-    exit(1);
-  }
-  if(fstal && fstarg) {
-    printf("ERROR: cannot specify a --tal and --fstarg.\n");
     exit(1);
   }
   if(xfmfile != NULL && regfile != NULL) {
