@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2013/06/06 21:23:29 $
-#    $Revision: 1.68 $
+#    $Author: lzollei $
+#    $Date: 2014/05/06 21:36:46 $
+#    $Revision: 1.69 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.68 2013/06/06 21:23:29 mreuter Exp $';
+set VERSION = '$Id: mris_preproc,v 1.69 2014/05/06 21:36:46 lzollei Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -514,7 +514,7 @@ while( $#argv != 0 )
       endif
       set ivplist = ($ivplist $ivp);
       set irplist = ($irplist $irp);
-      set subj = `head -1 $irp`;
+      set subj = `reg2subject --r $irp`;
       set subjlist = ($subjlist $subj);
       set srcvol = 1;
       breaksw
@@ -808,8 +808,8 @@ if($#SessFile) then
       echo "ERROR: cannot find $reg"
       exit 1;
     endif
-    set subject = `head -n 1 $reg`;
-    set fsfsubjects = ($fsfsubjects $subject)
+    set subject = `reg2subject --r $reg`;
+    set fsfsubjects = ($fsfsubjects $subject);
     set ivplist = ($ivplist $map);
     set irplist = ($irplist $reg);
     @ nthsess = $nthsess + 1;
@@ -963,7 +963,7 @@ foreach subj ($subjlist)
   endif
   if($#ivplist != 0) then
     set regfile = $irplist[$nthsubj];
-    set regsubj = `head -n 1 $regfile`;
+    set regsubj = `reg2subject --r $regfile`;
     if($regsubj != $subj) then
       echo "ERROR: subject mismatch for input $nthsubj ($regsubj vs $subj)"
       exit 1;
