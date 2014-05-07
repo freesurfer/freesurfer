@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/30 18:29:51 $
- *    $Revision: 1.283 $
+ *    $Date: 2014/05/07 16:48:49 $
+ *    $Revision: 1.284 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,6 +102,7 @@
 #include "DialogLoadSurface.h"
 #include "LayerFCD.h"
 #include "LayerPropertyFCD.h"
+#include "DialogSetCamera.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -249,6 +250,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(this->m_views[i], SIGNAL(LineProfileIdPicked(LayerLineProfile*, int)),
             m_dlgLineProfile, SLOT(OnLineProfileIdPicked(LayerLineProfile*,int)));
   }
+
+  m_dlgSetCamera = new DialogSetCamera(this);
+  m_dlgSetCamera->hide();
 
   QStringList keys = m_layerCollections.keys();
   for ( int i = 0; i < keys.size(); i++ )
@@ -1277,6 +1281,7 @@ void MainWindow::OnIdle()
   ui->actionVolumeFilterDilate->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterOpen->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterClose->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionSetCamera->setEnabled(bHasLayer);
 
   ui->actionLoadConnectome->setEnabled( !bBusy );  
   ui->actionCloseConnectome ->setEnabled( !bBusy && GetActiveLayer( "CMAT"));
@@ -5236,7 +5241,7 @@ void MainWindow::OnCycleLayer()
   LayerCollection* lc = GetLayerCollection(ui->widgetAllLayers->GetCurrentLayerType());
   if ( lc )
   {
-    lc->CycleLayer();
+    lc->CycleLayer(true, ui->viewAxial->GetInteractionMode() == RenderView2D::IM_ReconEdit);
   }
 }
 
@@ -5245,7 +5250,7 @@ void MainWindow::OnReverseCycleLayer()
   LayerCollection* lc = GetLayerCollection(ui->widgetAllLayers->GetCurrentLayerType());
   if ( lc )
   {
-    lc->CycleLayer( false );
+    lc->CycleLayer( false, ui->viewAxial->GetInteractionMode() == RenderView2D::IM_ReconEdit );
   }
 }
 
@@ -6619,4 +6624,10 @@ void MainWindow::SaveLayers(const QList<Layer *> &layers)
   {
     m_scripts.append(QString("savelayer ") + QString::number(layer->GetID()));
   }
+}
+
+void MainWindow::OnViewSetCamera()
+{
+  m_dlgSetCamera->show();
+  m_dlgSetCamera->raise();
 }

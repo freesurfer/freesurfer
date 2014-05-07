@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/08 20:40:27 $
- *    $Revision: 1.148 $
+ *    $Date: 2014/05/07 16:48:49 $
+ *    $Revision: 1.149 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,7 @@ class VolumeFilterWorkerThread;
 class VolumeFilter;
 class DialogLineProfile;
 class LayerFCD;
+class DialogSetCamera;
 
 #define MAX_RECENT_FILES    10
 
@@ -355,10 +356,11 @@ protected:
   void CommandSetLayerName      ( const QStringList& cmd );
   void CommandSetVolumeMask     ( const QStringList& cmd );
   void CommandSetSmoothed       ( const QStringList& cmd );
-  void CommandSetCamera         ( const QStringList& cmd );
   void CommandGotoLabel         ( const QStringList& cmd );
-
   void CommandSaveLayer         ( const QStringList& cmd );
+
+public:
+  void CommandSetCamera         ( const QStringList& cmd );
 
 protected slots:
   void OnIdle();
@@ -447,6 +449,8 @@ protected slots:
   void OnGoToROI();
   void OnLoadFCD();
   void OnCloseFCD();
+
+  void OnViewSetCamera();
 
   void OnLoadConnectomeMatrix();
   void OnCloseConnectomeMatrix();
@@ -539,6 +543,7 @@ private:
   WindowGroupPlot*      m_wndGroupPlot;
   DialogLabelStats*     m_dlgLabelStats;
   DialogLineProfile*    m_dlgLineProfile;
+  DialogSetCamera*      m_dlgSetCamera;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 

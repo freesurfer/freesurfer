@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/19 19:00:50 $
- *    $Revision: 1.31 $
+ *    $Date: 2014/05/07 16:48:49 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,7 +50,7 @@ public:
   bool MoveLayerUp( Layer* layer );
   bool MoveLayerDown( Layer* layer );
   bool MoveToTop( Layer* layer );
-  bool CycleLayer( bool bMoveUp = true );
+  bool CycleLayer( bool bMoveUp = true, bool bChangeActiveLayer = false );
 
   void Append2DProps( vtkRenderer* renderer, int nImagePlane );
   void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );

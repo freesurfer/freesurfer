@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/02 16:57:38 $
- *    $Revision: 1.41 $
+ *    $Date: 2014/05/07 16:48:49 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -318,7 +318,7 @@ bool LayerCollection::MoveToTop( Layer* layer )
   return false;
 }
 
-bool LayerCollection::CycleLayer( bool bMoveUp )
+bool LayerCollection::CycleLayer( bool bMoveUp, bool bChangeActiveLayer )
 {
   if ( (int)m_layers.size() > 1 )
   {
@@ -392,13 +392,10 @@ bool LayerCollection::CycleLayer( bool bMoveUp )
 
     delete[] bVisibility;
 
-    // do not change active layer any more
-    /*
-    if ( nActive >= 0 )
+    if ( bChangeActiveLayer && nActive >= 0 )
     {
       SetActiveLayer( m_layers[nActive] );
     }
-    */
 
     emit LayerCycled( layer_buf );
     emit LayerMoved ( layer_buf );
