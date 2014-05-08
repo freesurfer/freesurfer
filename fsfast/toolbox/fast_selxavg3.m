@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.108 2013/10/03 19:23:56 greve Exp $
+% $Id: fast_selxavg3.m,v 1.109 2014/05/08 19:59:47 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2013/10/03 19:23:56 $
-%    $Revision: 1.108 $
+%    $Date: 2014/05/08 19:59:47 $
+%    $Revision: 1.109 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.108 2013/10/03 19:23:56 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.109 2014/05/08 19:59:47 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,17 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.108 2013/10/03 19:23:56 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.109 2014/05/08 19:59:47 greve Exp $';
+
+% remove non-mask when analyzing. This does not change the results
+% at all, it just prevents the processing of voxels that are
+% already zero. It reduces the memory load and speeds things
+% up. For the surface, it creates identical results as when
+% reduction is not done. For the volume, everything is the same
+% except the fsnr and rho volumes. There are a few voxels at the
+% edge of the volume that are not masked out when redction is not
+% done. I have no idea why.
+flac0.ReduceToMask = ReduceToMask; 
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -173,10 +183,13 @@ for nthouter = outer_runlist
   indmaskout = find(~mask.vol);
   nslices = mask.volsize(3);
   nvox = prod(mask.volsize);
-  fprintf('Found %d/%d (%4.1f) voxels in mask\n',nmask,nvox,100*nmask/nvox);
-  fprintf(fplf,'Found %d/%d (%4.1f) voxels in mask\n',nmask,nvox,100*nmask/nvox);
+  fprintf('Found %d/%d (%4.1f) voxels in mask %d\n',nmask,nvox,100*nmask/nvox,flac0.ReduceToMask);
+  fprintf(fplf,'Found %d/%d (%4.1f) voxels in mask %d\n',nmask,nvox,100*nmask/nvox,flac0.ReduceToMask);
   mri = mask; % save as template
   mri.vol = []; % blank
+  if(flac0.ReduceToMask) nData = nmask;
+  else                nData = nvox;
+  end
 
   %---------------------------------------------%
   fprintf('Creating Design Matrix\n');
@@ -356,7 +369,7 @@ if(DoGLMFit)
   fprintf('OLS Beta Pass \n');
   fprintf(fplf,'OLS Beta Pass \n');
   tic;
-  betamat0 = zeros(nX,nvox);
+  betamat0 = zeros(nX,nData);
   gmean = 0;
   yrun_randn = [];
   rawbeta = 0;
@@ -366,7 +379,14 @@ if(DoGLMFit)
     fprintf(fplf,'  run %d    t=%4.1f\n',nthrun,toc);
     flac = runflac(nthrun).flac;          
     indrun = find(tpindrun == nthrun);
+    fprintf('reading data ...'); tic
     yrun = MRIread(flac.funcfspec);
+    fprintf(' %g\n',toc);
+    if(isempty(yrun))
+      fprintf('ERROR: loading %s\n',funcfspec);
+      fprintf(fplf,'ERROR: loading %s\n',funcfspec);
+      return;
+    end
     if(abs(yrun.tr/1000 - flac.TR) > .01)
       fprintf('\n\n');
       fprintf('ERROR: TR mismatch between analysis and data\n');
@@ -383,6 +403,7 @@ if(DoGLMFit)
       return;
     end
     yrun = fast_vol2mat(yrun);
+    if(flac0.ReduceToMask) yrun = yrun(:,indmask); end
     if(~isempty(flac.TFmtx))
       % Temporal filter
       fprintf('Temporally filtering\n');
@@ -394,13 +415,9 @@ if(DoGLMFit)
     [rawbetarun rawrvarrun] = fast_glmfit(yrun,Xdt);
     rawbeta = rawbeta + rawbetarun;
     rawrvar = rawrvar + rawrvarrun;
-    if(isempty(yrun))
-      fprintf('ERROR: loading %s\n',funcfspec);
-      fprintf(fplf,'ERROR: loading %s\n',funcfspec);
-      return;
-    end
     
     Brun = B0(:,indrun);
+
     betamat0 = betamat0 + Brun*yrun;
 
     fprintf('    Global Mean %8.2f\n',flac.globalmean);
@@ -417,6 +434,11 @@ if(DoGLMFit)
   indtmp = find(rawrvar == 0);
   rawsfnr = rawbeta(1,:)./sqrt(rawrvar);
   rawsfnr(indtmp) = 0;
+  if(flac0.ReduceToMask) 
+    tmp = zeros(1,nvox);
+    tmp(indmask) = rawsfnr;
+    rawsfnr = tmp;
+  end
   tmpmri = mri;
   tmpmri.vol = fast_mat2vol(rawsfnr,mri.volsize);
   fname = sprintf('%s/raw.fsnr.%s',outanadir,ext);
@@ -434,7 +456,9 @@ if(DoGLMFit)
   % baseline0.vol = fast_mat2vol(betamn0,mri.volsize);
   % Compute Rescale Factor
   if(flac0.inorm ~= 0)
-    gmean0 = mean(betamn0(indmask));
+    if(flac0.ReduceToMask) gmean0 = mean(betamn0);
+    else                gmean0 = mean(betamn0(indmask));
+    end
     fprintf('Global In-Mask Mean = %g (%g)\n',gmean,gmean0);
     fprintf(fplf,'Global In-Mask Mean = %g (%g)\n',gmean,gmean0);
     %gmean = gmean0; % This will use old method
@@ -464,8 +488,11 @@ if(DoGLMFit)
     fprintf(fplf,'  run %d    t=%4.1f\n',nthrun,toc);
     flac = runflac(nthrun).flac;
     indrun = find(tpindrun == nthrun);
+    fprintf('reading data ...'); tic
     yrun = MRIread(flac.funcfspec);
+    fprintf(' %g\n',toc);
     yrun = fast_vol2mat(yrun);
+    if(flac0.ReduceToMask) yrun = yrun(:,indmask); end
     if(~isempty(flac.TFmtx))
       % Temporal filter
       fprintf('Temporally filtering\n');
@@ -490,7 +517,7 @@ if(DoGLMFit)
     sstdrun(indtp0) = 1;
     sstd = [sstd; sstdrun];
     if(flac0.HeteroGCor) 
-      rrun = rrun./repmat(sstdrun,[1 nvox]); 
+      rrun = rrun./repmat(sstdrun,[1 nData]); 
     end
 
     rsserun = sum(rrun.^2);
@@ -515,7 +542,14 @@ if(DoGLMFit)
     else
       rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
     end
-    rho1.vol(:,:,:,nthrun) = fast_mat2vol(rho1run,rho1.volsize); 
+    if(flac0.ReduceToMask) 
+      tmp = zeros(1,nvox);
+      tmp(indmask) = rho1run;
+      rho1.vol(:,:,:,nthrun) = fast_mat2vol(tmp,rho1.volsize); 
+    else
+      rho1.vol(:,:,:,nthrun) = fast_mat2vol(rho1run,rho1.volsize); 
+    end
+
     fprintf('Saving rho1\n');
     fname = sprintf('%s/rho1.%s',outanadir,ext);
     MRIwrite(rho1,fname);
@@ -525,14 +559,26 @@ if(DoGLMFit)
       fprintf(fplf,'Saving unwhitened residuals\n');
       fname = sprintf('%s/res-uw-%03d.%s',outresdir,nthrun,ext);
       rrunmri = mri;
-      rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+      if(flac0.ReduceToMask) 
+	tmp = zeros(size(rrun,1),nvox);
+	tmp(:,indmask) = rrun;
+	rrunmri.vol = fast_mat2vol(tmp,mri.volsize);
+      else 
+	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+      end
       MRIwrite(rrunmri,fname);
       fprintf('Computing ACF\n');
       fprintf(fplf,'Computing ACF\n');
       acfmat = fast_acorr(rrun);
       acfmat = acfmat(1:30,:);
       acf = mri;
-      acf.vol = fast_mat2vol(acfmat,acf.volsize);
+      if(flac0.ReduceToMask) 
+	tmp = zeros(size(acfmat,1),nvox);
+	tmp(:,indmask) = acfmat;
+	acf.vol = fast_mat2vol(tmp,acf.volsize);
+      else
+	acf.vol = fast_mat2vol(acfmat,acf.volsize);
+      end
       fprintf('Saving ACF\n');
       fprintf(fplf,'Saving ACF\n');
       fname = sprintf('%s/acf-uw-%03d.%s',outresdir,nthrun,ext);      
@@ -543,7 +589,14 @@ if(DoGLMFit)
       if(MatlabSaveRes | DoFWHM)
 	fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
 	rrunmri = mri;
-	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+	if(flac0.ReduceToMask) 
+	  tmp = zeros(size(rrun,1),nvox);
+	  tmp(indmask) = rho1run;
+	  rrunmri.vol = fast_mat2vol(tmp,mri.volsize);
+	  clear tmp;
+	else
+	  rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+	end
 	MRIwrite(rrunmri,fname);
       end
     end
@@ -552,7 +605,9 @@ if(DoGLMFit)
       % Compute Err Cov Mtx from unwhitened residuals
       fprintf('Computing ErrCovMtx\n');
       fprintf(fplf,'Computing ErrCovMtx\n');
-      ErrCovMtxRun = rrun(:,indmask)*rrun(:,indmask)';
+      if(flac0.ReduceToMask) ErrCovMtxRun = rrun*rrun';
+      else ErrCovMtxRun = rrun(:,indmask)*rrun(:,indmask)';
+      end
       if(nthrun == 1) 
 	ErrCovMtx = ErrCovMtxRun;
       else
@@ -709,7 +764,7 @@ if(DoGLMFit)
     fprintf('GLS Beta Pass \n');
     fprintf(fplf,'GLS Beta Pass \n');
     tic;
-    betamat = zeros(nX,nvox);
+    betamat = zeros(nX,nData);
     for nthrun = nthrunlist
       fprintf('  run %d    t=%4.1f\n',nthrun,toc);
       fprintf(fplf,'  run %d    t=%4.1f\n',nthrun,toc);
@@ -717,7 +772,8 @@ if(DoGLMFit)
       indrun = find(tpindrun == nthrun);
       yrun = MRIread(flac.funcfspec);
       yrun = fast_vol2mat(yrun);
-      if(flac0.HeteroGCor) yrun = yrun./repmat(sstd(indrun),[1 nvox]); end
+      if(flac0.ReduceToMask) yrun = yrun(:,indmask); end      
+      if(flac0.HeteroGCor) yrun = yrun./repmat(sstd(indrun),[1 nData]); end
       if(~isempty(flac.TFmtx))
 	% Temporal filter
 	fprintf('Temporally filtering\n');
@@ -727,7 +783,9 @@ if(DoGLMFit)
       yrun = RescaleFactor*yrun;  
       for nthseg = 0:flac0.acfbins
 	%fprintf('     seg  %d    %g    ---------\n',nthseg,toc);
-	indseg = find(acfseg.vol==nthseg);
+	if(flac0.ReduceToMask) indseg = find(acfseg.vol(indmask)==nthseg);
+	else	            indseg = find(acfseg.vol==nthseg);
+	end
 	if(nthseg == 0)  B = B0;
 	else   B = inv(X'*Sinv(:,:,nthseg)*X)*(X'*Sinv(:,:,nthseg));
 	end
@@ -752,7 +810,8 @@ if(DoGLMFit)
       indrun = find(tpindrun == nthrun);
       yrun = MRIread(flac.funcfspec);
       yrun = fast_vol2mat(yrun);
-      if(flac0.HeteroGCor) yrun = yrun./repmat(sstd(indrun),[1 nvox]); end
+      if(flac0.ReduceToMask) yrun = yrun(:,indmask); end
+      if(flac0.HeteroGCor) yrun = yrun./repmat(sstd(indrun),[1 nData]); end
       if(~isempty(flac.TFmtx))
 	% Temporal filter
 	fprintf('Temporally filtering\n');
@@ -764,7 +823,9 @@ if(DoGLMFit)
       yhatrun = Xrun*betamat;
       rrun = yrun - yhatrun;
       for nthseg = 1:flac0.acfbins % ok to skip 0
-	indseg = find(acfseg.vol==nthseg);
+	if(flac0.ReduceToMask) indseg = find(acfseg.vol(indmask)==nthseg);
+	else	            indseg = find(acfseg.vol==nthseg);
+	end
 	if(~flac.fsv3_whiten)
 	  acfrun = nrho1segmn(nthseg).^([0:flac.ntp-1]');
 	else
@@ -779,7 +840,13 @@ if(DoGLMFit)
       if(MatlabSaveRes | DoFWHM)
 	fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
 	rrunmri = mri;
-	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+	if(flac0.ReduceToMask) 
+	  tmp = zeros(size(rrun,1),nvox);
+	  tmp(:,indmask) = rrun;
+	  rrunmri.vol = fast_mat2vol(tmp,mri.volsize);
+	else 
+	  rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+	end
 	MRIwrite(rrunmri,fname);
       end
       
@@ -795,9 +862,20 @@ if(DoGLMFit)
     clear rvarmat0 betamat0;
   end % acfbins > 0
 
-  % Mask betas and rvars
-  betamat(:,indmaskout) = 0;
-  rvarmat(:,indmaskout) = 0;
+  % Mask or unmask betas and rvars
+  if(flac0.ReduceToMask)
+    % Unmask
+    tmp = zeros(size(betamat,1),nvox);
+    tmp(:,indmask) = betamat;
+    betamat = tmp;
+    tmp = zeros(1,nvox);
+    tmp(indmask) = rvarmat;
+    rvarmat = tmp;
+  else
+    % Mask
+    betamat(:,indmaskout) = 0;
+    rvarmat(:,indmaskout) = 0;
+  end
   
   if(DoMCFit) [betamc rvarmc] = fast_glmfit(mcAll,X);
   else betamc=[]; rvarmc=[];

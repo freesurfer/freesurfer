@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/12/09 20:03:03 $
-#    $Revision: 1.60 $
+#    $Date: 2014/05/08 19:59:47 $
+#    $Revision: 1.61 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.60 2011/12/09 20:03:03 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.61 2014/05/08 19:59:47 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -57,6 +57,7 @@ set SynthNoiseAmp = 1;
 set SynthNoiseAR1 = .3;
 set SynthSignalAmp = 0;
 set SynthSeed = -1;
+set ReduceToMask = 1;
 
 set UseOctave = 0;
 if($?FS_USE_OCTAVE) then
@@ -292,6 +293,7 @@ foreach sess ($SessList)
   echo "SynthSignalAmp = $SynthSignalAmp;" >> $MLF
   echo "SynthSeed      = $SynthSeed;"      >> $MLF
   echo "sess           = '$sess';"         >> $MLF
+  echo "ReduceToMask   = $ReduceToMask;"   >> $MLF
   echo "analysis = '$analysis';" >> $MLF
   echo "flacname = '$flacfile';" >> $MLF
   echo "outtop = '$OutParent';" >> $MLF
@@ -462,6 +464,23 @@ while( $#argv != 0 )
 
     case "-octave":
       set UseOctave = 1
+      breaksw
+
+    case "-no-reduce-to-mask":
+      # remove non-mask when analyzing. This does not change the
+      # results at all, it just prevents the processing of voxels that
+      # are already zero. It reduces the memory load and speeds things
+      # up. For the surface, it creates identical results as when
+      # reduction is not done. For the volume, everything is the same
+      # except the fsnr and rho volumes. There are a few voxels at the
+      # edge of the volume that are not masked out when redction is
+      # not done. I have no idea why. This flag is provided for
+      # backwards compatibility
+      set ReduceToMask = 0;
+      breaksw
+
+    case "-matlab":
+      set UseOctave = 0;
       breaksw
 
     case "-no-octave":
