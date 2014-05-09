@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/07 19:49:54 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/05/09 17:56:04 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 
-static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.19 2014/03/07 19:49:54 greve Exp $";
+static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.20 2014/05/09 17:56:04 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -98,6 +98,7 @@ int main(int argc, char *argv[]) {
   cmdline = argv2cmdline(argc,argv);
   uname(&uts);
   getcwd(cwd,2000);
+  vg_isEqual_Threshold = 10e-4;
 
   Progname = argv[0] ;
   argc --;
@@ -388,6 +389,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--vg-thresh")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&vg_isEqual_Threshold);
+      nargsused = 1;
+    }
     else {
       // Make backwards compatible for flagless inputs
       if(nOptUnknown == 0){
@@ -456,6 +462,7 @@ static void print_usage(void) {
   printf("   --nii.gz : use nii.gz format\n");
   printf("   --ttype+head : use default+head instead of default tissue type info for seg\n");
   printf("\n");
+  printf("   --vg-thresh thrshold : threshold for  'ERROR: LTAconcat(): LTAs 0 and 1 do not match'\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
