@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/27 21:05:45 $
- *    $Revision: 1.5 $
+ *    $Date: 2014/05/09 16:57:44 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -141,27 +141,28 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
 
   // draw X metrics
   nMetricInterval = 50;
-  dMetricStep =  (m_data.size()-1)*m_dTR / (rc_plot.width() / nMetricInterval);
+  double dTR = 1; // m_dTR;
+  dMetricStep =  (m_data.size()-1)*dTR / (rc_plot.width() / nMetricInterval);
   dMetricStep = MyUtils::RoundToGrid( dMetricStep );
   dMetricPos = 0;
   double x = rc_plot.left();
   while (x < rc_plot.right())
   {
-    QString strg = QString::number(dMetricPos/1000);
+    QString strg = QString::number(dMetricPos);
     p.drawText(QRectF(x-100, rc_plot.bottom()+5, 200, 20),
                Qt::AlignTop | Qt::AlignHCenter, strg);
 
     dMetricPos += dMetricStep;
-    x = rc_plot.left() + dMetricPos/((m_data.size()-1)*m_dTR)*rc_plot.width();
+    x = rc_plot.left() + dMetricPos/((m_data.size()-1)*dTR)*rc_plot.width();
   }
 
   QRectF rc = rect().adjusted(0, 0, 0, -3);
-  p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, "Time (s)");
+  p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, "Frame ");
 
   // draw current stats
-  QString strg = QString("Signal intensity:%1    Time: %2 (s)   #: %3")
+  QString strg = QString("Signal intensity:%1   Frame: %3")
                  .arg(m_data[m_nCurrentFrame])
-                 .arg(m_nCurrentFrame*m_dTR/1000)
+              //   .arg(m_nCurrentFrame*m_dTR/1000)
                  .arg(m_nCurrentFrame);
   rc = rect().adjusted(0, 5, 0, 0);
   p.drawText(rc, Qt::AlignHCenter | Qt::AlignTop, strg);

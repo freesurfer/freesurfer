@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/30 18:29:52 $
- *    $Revision: 1.94 $
+ *    $Date: 2014/05/09 16:57:44 $
+ *    $Revision: 1.95 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -223,8 +223,8 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxSmooth, SIGNAL(stateChanged(int)), p, SLOT(SetTextureSmoothing(int)) );
   connect( ui->checkBoxShowContour, SIGNAL(clicked(bool)), p, SLOT(SetShowAsContour(bool)) );
   connect( ui->checkBoxShowLabelContour, SIGNAL(clicked(bool)), p, SLOT(SetShowAsLabelContour(bool)) );
-  connect( ui->sliderFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrameOneBase(int)) );
-  connect( ui->spinBoxFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrameOneBase(int)) );
+  connect( ui->sliderFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrame(int)) );
+  connect( ui->spinBoxFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrame(int)) );
   connect( ui->checkBoxDisplayVector, SIGNAL(toggled(bool)), p, SLOT(SetDisplayVector(bool)) );
   connect( ui->checkBoxDisplayTensor, SIGNAL(toggled(bool)), p, SLOT(SetDisplayTensor(bool)) );
   connect( ui->comboBoxRenderObject, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorRepresentation(int)) );
@@ -426,13 +426,13 @@ void PanelVolume::DoUpdateWidgets()
     int nFrames = layer->GetNumberOfFrames();
     if ( nFrames > 1 )
     {
-      ui->sliderFrame->setRange( 1, nFrames );
-      ui->spinBoxFrame->setRange( 1, nFrames );
+      ui->sliderFrame->setRange( 0, nFrames-1 );
+      ui->spinBoxFrame->setRange( 0, nFrames-1 );
       ui->checkBoxRememberFrame->setChecked(layer->GetProperty()->GetRememberFrameSettings());
       ui->checkBoxAutoAdjustFrameLevel->setChecked(layer->GetProperty()->GetAutoAdjustFrameLevel());
     }
-    ui->sliderFrame->setValue( layer->GetActiveFrame() + 1 );
-    ChangeSpinBoxValue( ui->spinBoxFrame, layer->GetActiveFrame() + 1 );
+    ui->sliderFrame->setValue( layer->GetActiveFrame() );
+    ChangeSpinBoxValue( ui->spinBoxFrame, layer->GetActiveFrame() );
 
     ui->checkBoxShowContour->setChecked( layer->GetProperty()->GetShowAsContour() );
     ui->sliderContourThresholdLow->setValue( (int)( ( layer->GetProperty()->GetContourMinThreshold() - dminvalue ) / ( dmaxvalue - dminvalue ) * 100 ) );
