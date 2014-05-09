@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/02 22:43:46 $
- *    $Revision: 1.9 $
+ *    $Date: 2014/05/09 22:06:22 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.9 2014/05/02 22:43:46 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.10 2014/05/09 22:06:22 greve Exp $
 
 /*
   BEGINHELP
@@ -91,7 +91,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.9 2014/05/02 22:43:46 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.10 2014/05/09 22:06:22 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -140,7 +140,7 @@ typedef struct
   MATRIX *y,*Xt, *XtX, *iXtX, *Xty, *beta, *res, *yhat;
   MATRIX *betavar;
   double XtXcond;
-  MATRIX *rvar;
+  MATRIX *rvar,*rvargm;
   MATRIX *skew,*kurtosis;
   int nContrasts;
   GTMCON *contrasts[100];
@@ -197,6 +197,7 @@ int GTMcheckReplaceList(const int nReplace, const int *ReplaceThis, const int *W
 int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, int *WithThat);
 int GTMcheckX(MATRIX *X);
 int GTMautoMask(GTM *gtm);
+int GTMrvarGM(GTM *gtm);
 
 typedef struct 
 {
@@ -657,6 +658,7 @@ int main(int argc, char *argv[])
     printf("mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
     exit(0);
   }
+  GTMrvarGM(gtm);
 
   // Write the number of voxels in the mask
   sprintf(tmpstr,"%s/nmask.dat",OutDir);
@@ -1128,7 +1130,7 @@ static void print_usage(void) {
   printf("   --save-input : saves rescaled input as input.rescaled.nii.gz\n");
   printf("   --save-eres : saves residual error\n");
   printf("   --save-yhat : saves yhat\n");
-  printf("   --save-yhat-full-fov : saves yhat in full FoV (of FoV was reduced)\n");
+  printf("   --save-yhat-full-fov : saves yhat in full FoV (if FoV was reduced)\n");
   printf("   --save-yhat0 : saves yhat prior to smoothing\n");
   printf("\n");
   printf("   --synth gtmbeta synthvolume : synthesize unsmoothed volume with gtmbeta as input\n");
@@ -2675,6 +2677,46 @@ int GTMautoMask(GTM *gtm)
     LTAfree(&gtm->anat2pet);
     gtm->anat2pet = anat2bbpet;
   }
+
+  return(0);
+}
+
+int GTMrvarGM(GTM *gtm)
+{
+  COLOR_TABLE *ct;
+  int f,s,c,r,n,nhits,segid,tt;
+  double sum;
+  FILE *fp;
+  char tmpstr[2000];
+
+  if(gtm->rvargm==NULL) gtm->rvargm = MatrixAlloc(1,gtm->res->cols,MATRIX_REAL);
+  ct = gtm->ctGTMSeg;
+
+  for(f=0; f < gtm->res->cols; f++){
+    sum = 0;
+    n = -1;
+    nhits = 0;
+    for(s=0; s < gtm->yvol->depth; s++){
+      for(c=0; c < gtm->yvol->width; c++){
+	for(r=0; r < gtm->yvol->height; r++){
+	  if(MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
+	  n++;
+	  segid = MRIgetVoxVal(gtm->gtmseg,c,r,s,0);
+	  tt = ct->entries[segid]->TissueType;
+	  if(tt != 1 && tt != 2) continue; // not GM
+	  sum += ((double)gtm->res->rptr[n+1][f+1]*gtm->res->rptr[n+1][f+1]);
+	  nhits ++;
+	}
+      }
+    }
+    gtm->rvargm->rptr[1][f+1] = sum/nhits;
+    printf("rvargm %2d %6.4f\n",f,gtm->rvargm->rptr[1][f+1]);
+  }
+
+  sprintf(tmpstr,"%s/rvar.gm.dat",gtm->OutDir);
+  fp = fopen(tmpstr,"w");
+  for(f=0; f < gtm->res->cols; f++) fprintf(fp,"%30.20f\n",gtm->rvargm->rptr[1][f+1]);
+  fclose(fp);
 
   return(0);
 }
