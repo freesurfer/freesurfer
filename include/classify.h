@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 01:01:07 $
- *    $Revision: 1.6 $
+ *    $Date: 2014/05/10 00:38:48 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,5 +35,11 @@
 #define CLASSIFIER_RBF             4   /* radial basis function */
 #define CLASSIFIER_SVM             5
 #define CLASSIFIER_RFOREST         6
+
+// different types of deep learning networks
+#define NET_DBN  0
+#define NET_RBM  1
+#define NET_CDBN 2
+#define NET_SAE  3
 
 #endif
