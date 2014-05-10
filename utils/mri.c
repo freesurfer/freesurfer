@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/04/24 20:37:29 $
- *    $Revision: 1.538 $
+ *    $Author: fischl $
+ *    $Date: 2014/05/10 00:36:08 $
+ *    $Revision: 1.539 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.538 $";
+const char *MRI_C_VERSION = "$Revision: 1.539 $";
 
 
 /*-----------------------------------------------------
@@ -6745,65 +6745,65 @@ MRIcompareHeaders(MRI *mri1, MRI *mri2)
 {
   if (mri1 == NULL || mri2 == NULL)
     return(1) ; // not the same
-  if (mri1->xsize != mri2->xsize)
+  if (!FEQUAL(mri1->xsize, mri2->xsize))
     return(1) ;
-  if (mri1->ysize != mri2->ysize)
+  if (!FEQUAL(mri1->ysize, mri2->ysize))
     return(1) ;
-  if (mri1->zsize != mri2->zsize)
+  if (!FEQUAL(mri1->zsize, mri2->zsize))
     return(1) ;
   if (mri1->ptype != mri2->ptype)
     return(1) ;
-  if (mri1->fov != mri2->fov)
+  if (!FEQUAL(mri1->fov, mri2->fov))
     return(1) ;
-  if (mri1->thick != mri2->thick)
+  if (!FEQUAL(mri1->thick, mri2->thick))
     return(1) ;
-  if (mri1->ps != mri2->ps)
+  if (!FEQUAL(mri1->ps, mri2->ps))
     return(1) ;
   if (mri1->location != mri2->location)
     return(1) ;
-  if (mri1->xstart != mri2->xstart)
+  if (!FEQUAL(mri1->xstart, mri2->xstart))
     return(1) ;
-  if (mri1->xend != mri2->xend)
+  if (!FEQUAL(mri1->xend, mri2->xend))
     return(1) ;
-  if (mri1->ystart != mri2->ystart)
+  if (!FEQUAL(mri1->ystart, mri2->ystart))
     return(1) ;
-  if (mri1->yend != mri2->yend)
+  if (!FEQUAL(mri1->yend, mri2->yend))
     return(1) ;
-  if (mri1->zstart != mri2->zstart)
+  if (!FEQUAL(mri1->zstart, mri2->zstart))
     return(1) ;
-  if (mri1->zend != mri2->zend)
+  if (!FEQUAL(mri1->zend, mri2->zend))
     return(1) ;
-  if (mri1->flip_angle != mri2->flip_angle)
+  if (!FEQUAL(mri1->flip_angle, mri2->flip_angle))
     return(1) ;
-  if (mri1->tr != mri2->tr)
+  if (!FEQUAL(mri1->tr, mri2->tr))
     return(1) ;
-  if (mri1->te != mri2->te)
+  if (!FEQUAL(mri1->te, mri2->te))
     return(1) ;
-  if (mri1->ti != mri2->ti)
+  if (!FEQUAL(mri1->ti, mri2->ti))
     return(1) ;
-  if (mri1->x_r != mri2->x_r)
+  if (!FEQUAL(mri1->x_r, mri2->x_r))
     return(1) ;
-  if (mri1->x_a != mri2->x_a)
+  if (!FEQUAL(mri1->x_a, mri2->x_a))
     return(1) ;
-  if (mri1->x_s != mri2->x_s)
+  if (!FEQUAL(mri1->x_s, mri2->x_s))
     return(1) ;
-  if (mri1->y_r != mri2->y_r)
+  if (!FEQUAL(mri1->y_r, mri2->y_r))
     return(1) ;
-  if (mri1->y_a != mri2->y_a)
+  if (!FEQUAL(mri1->y_a, mri2->y_a))
     return(1) ;
-  if (mri1->y_s != mri2->y_s)
+  if (!FEQUAL(mri1->y_s, mri2->y_s))
     return(1) ;
-  if (mri1->z_r != mri2->z_r)
+  if (!FEQUAL(mri1->z_r, mri2->z_r))
     return(1) ;
-  if (mri1->z_a != mri2->z_a)
+  if (!FEQUAL(mri1->z_a, mri2->z_a))
     return(1) ;
-  if (mri1->z_s != mri2->z_s)
+  if (!FEQUAL(mri1->z_s, mri2->z_s))
     return(1) ;
-  if (mri1->c_r != mri2->c_r)
+  if (!FEQUAL(mri1->c_r, mri2->c_r))
     return(1) ;
-  if (mri1->c_a != mri2->c_a)
+  if (!FEQUAL(mri1->c_a, mri2->c_a))
     return(1) ;
-  if (mri1->c_s != mri2->c_s)
+  if (!FEQUAL(mri1->c_s, mri2->c_s))
     return(1) ;
   if (mri1->ras_good_flag != mri2->ras_good_flag)
     return(1) ;
