@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/13 12:59:06 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/05/10 00:36:39 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,8 +54,14 @@ RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth, char **class_nam
     ErrorExit(ERROR_NOMEMORY, "RFalloc(%d, %d, %d, %d): could not allocate RF",
               ntrees,nfeatures,nclasses, max_depth) ;
 
+  rf->pvals = (double *)calloc(nclasses, sizeof(double)) ;
   rf->ntrees = ntrees ; rf->nfeatures = nfeatures ; rf->nclasses = nclasses ;
   rf->max_depth = max_depth ;
+  if (nsteps < 3)
+  {
+    printf("warning: RFalloc: nsteps specified as %d - should be >= 3)\n", nsteps) ;
+    nsteps = 3 ;
+  }
   rf->nsteps = nsteps ;
   rf->min_step_size = 0.0 ; rf->max_steps = 1000*nsteps ;
   rf->class_names = (char **)calloc(rf->nclasses, sizeof(rf->class_names[0])) ;
@@ -1040,6 +1046,7 @@ RFclassify(RANDOM_FOREST *rf, double *feature, double *p_pval, int true_class)
       if (p_pval)
 	*p_pval = (double)class_counts[c]/total_count ;
     }
+    rf->pvals[c] = (double)class_counts[c]/total_count ;
   }
 
   if (DIAG_VERBOSE_ON) for (c = 0 ; c < rf->nclasses ; c++)
@@ -1234,3 +1241,44 @@ rfFeatureInfoGain(RANDOM_FOREST *rf, TREE *tree, NODE *parent, NODE *left, NODE 
   }
   return(info_gain) ;
 }
+static int
+rfFreeNodes(NODE *node)
+{
+  if (node->left)
+    rfFreeNodes(node->left) ;
+  if (node->right)
+    rfFreeNodes(node->right) ;
+
+  free(node->training_set) ;
+  free(node->class_counts) ;
+
+  return(NO_ERROR) ;
+}
+
+int
+RFfree(RANDOM_FOREST **prf)
+{
+  RANDOM_FOREST *rf = *prf ;
+  int           c, t ;
+  TREE          *tree ;
+
+  *prf = NULL ;
+  
+  for (t = 0 ; t < rf->ntrees ; t++)
+  {
+    tree = &rf->trees[t] ;
+    rfFreeNodes(tree->root.left) ;
+    rfFreeNodes(tree->root.right) ;
+    free(tree->root.class_counts) ;
+  }
+  free(rf->trees) ;
+  free(rf->feature_min) ;
+  free(rf->feature_max) ;
+  free(rf->pvals) ;
+  for (c = 0 ; c < rf->nclasses ; c++)
+    free(rf->class_names[c]) ;
+  free(rf->class_names) ;
+  free(rf) ;
+  return(NO_ERROR) ;
+}
+
