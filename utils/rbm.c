@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/04/17 13:30:39 $
- *    $Revision: 1.1 $
+ *    $Date: 2014/05/10 00:37:45 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -433,7 +433,7 @@ RBMalloc(int type, int nvisible, int nhidden, int nlabels, int input_type)
 	ErrorExit(ERROR_NOMEMORY, "RBMalloc: could not allocate label weights[%d]\n", v) ;
       for (h = 0 ; h <  nhidden ; h++)
       {
-	rbm->label_weights[v][h] = randomNumber(-wt_lim, wt_lim) ;
+	rbm->label_weights[v][h] = randomNumber(-2*wt_lim, wt_lim) ;
       }
       rbm->label_bias[v] = randomNumber(-.01, .01) ;
     }
@@ -472,7 +472,7 @@ RBMalloc(int type, int nvisible, int nhidden, int nlabels, int input_type)
       ErrorExit(ERROR_NOMEMORY, "RBMalloc: could not allocate weights[%d]\n", v) ;
     for (h = 0 ; h <  nhidden ; h++)
     {
-      rbm->weights[v][h] = randomNumber(-wt_lim, wt_lim) ;
+      rbm->weights[v][h] = randomNumber(-50*wt_lim, wt_lim) ;
 //      rbm->weights[v][h] = randomNumber(-1.2*5*wt_lim, 5*wt_lim) ;
     }
     rbm->visible_bias[v] = randomNumber(-.01, .01) ;
@@ -1192,7 +1192,7 @@ RBMtrainFromVoxlistImage(RBM *rbm, VOXLIST *vl, RBM_PARMS *parms)
     if (last_rms < rms)
     {
 //      training_rate *= .99 ;
-      printf("error increased - decreasing training rate to %f\n", training_rate) ;
+//      printf("error increased - decreasing training rate to %f\n", training_rate) ;
 //      memset(last_dvisible_bias, 0, rbm->nvisible*sizeof(last_dvisible_bias[0])) ;
 //      memset(last_dhidden_bias, 0, rbm->nhidden*sizeof(last_dhidden_bias[0])) ;
 //      for (v = 0 ; v < rbm->nvisible ; v++)
@@ -1658,7 +1658,7 @@ DBNtrainFromVoxlistImage(DBN *dbn, VOXLIST *vl, RBM_PARMS *parms)
       if (last_rms < rms)
       {
 //      training_rate *= .99 ;
-	printf("error increased - decreasing training rate to %f\n", training_rate) ;
+//	printf("error increased - decreasing training rate to %f\n", training_rate) ;
 //      memset(last_dvisible_bias, 0, rbm->nvisible*sizeof(last_dvisible_bias[0])) ;
 //      memset(last_dhidden_bias, 0, rbm->nhidden*sizeof(last_dhidden_bias[0])) ;
 //      for (v = 0 ; v < rbm->nvisible ; v++)
@@ -2349,7 +2349,7 @@ CDBNtrainFromVoxlistImage(CDBN *cdbn, VOXLIST *vl, RBM_PARMS *parms, MRI *mri_in
       if (last_rms < rms)
       {
 //      training_rate *= .99 ;
-	printf("error increased - decreasing training rate to %f\n", training_rate) ;
+//	printf("error increased - decreasing training rate to %f\n", training_rate) ;
 //      memset(last_dvisible_bias, 0, rbm->nvisible*sizeof(last_dvisible_bias[0])) ;
 //      memset(last_dhidden_bias, 0, rbm->nhidden*sizeof(last_dhidden_bias[0])) ;
 //      for (v = 0 ; v < rbm->nvisible ; v++)
@@ -2483,7 +2483,7 @@ CDBNtrainFromVoxlistImage(CDBN *cdbn, VOXLIST *vl, RBM_PARMS *parms, MRI *mri_in
 	if (last_label_rms < label_rms)
 	{
 //      training_rate *= .99 ;
-	  printf("error increased - decreasing training rate to %f\n", training_rate) ;
+//	  printf("error increased - decreasing training rate to %f\n", training_rate) ;
 //      memset(last_dvisible_bias, 0, rbm->nvisible*sizeof(last_dvisible_bias[0])) ;
 //      memset(last_dhidden_bias, 0, rbm->nhidden*sizeof(last_dhidden_bias[0])) ;
 //      for (v = 0 ; v < rbm->nvisible ; v++)
@@ -3114,8 +3114,8 @@ CDBNfillVisible(CDBN *cdbn, MRI *mri_inputs, double *visible, int x0, int y0, in
   float val ;
 
   whalf = (ksize-1)/2 ;
-  for (f = 0 ; f < mri_inputs->nframes ; f++)
-    for (v = 0, xk = -whalf ; xk <= whalf ; xk++)
+  for (v = f = 0 ; f < mri_inputs->nframes ; f++)
+    for (xk = -whalf ; xk <= whalf ; xk++)
     {
       xi = mri_inputs->xi[x0+xk] ;
       for (yk = -whalf ; yk <= whalf ; yk++, v++)
@@ -3231,20 +3231,20 @@ MRI *
 cdbn_layer_weights(CDBN *cdbn, int layer)
 {
   MRI  *mri = NULL, *mri_prev, *mri_counts ;
-  int  width, whalf, whalf_prev, x, y, xk, yk, v, h, count, xp, yp,hp ;
+  int  width, whalf_prev, x, y, xk, yk, v, h, count, xp, yp,hp ;
   RBM  *rbm, *rbm_prev ;
   float val, val_prev ;
 
-  if (layer == 0)
+  if (layer <= 0)
     return(weights_to_mri(cdbn->rbms[0])) ;
-  else if (layer == 1)
+  else if (layer >= 1)
   {
     rbm = cdbn->rbms[layer] ;
     rbm_prev = cdbn->rbms[layer-1] ;
-    whalf_prev = (rbm_prev->ksize-1)/2;
-    whalf = (rbm->ksize-1)/2;
-    width = rbm->ksize + 2*whalf_prev ;
     mri_prev = cdbn_layer_weights(cdbn, layer-1) ;
+    whalf_prev = (mri_prev->width-1)/2;
+    width = rbm->ksize + 2*whalf_prev ;
+
     mri = MRIallocSequence(width, width, 1, MRI_FLOAT, rbm->nhidden) ;
     MRIcopyHeader(cdbn->rbms[0]->mri_inputs, mri) ;
     mri_counts = MRIallocSequence(width, width, 1, MRI_INT, 1) ; MRIcopyHeader(mri, mri_counts) ;
@@ -3258,10 +3258,10 @@ cdbn_layer_weights(CDBN *cdbn, int layer)
 	{
 	  for (y = 0 ; y < rbm->ksize ; y++, v++)
 	  {
-	    for (xp = 0 ; xp < rbm_prev->ksize ; xp++)
+	    for (xp = 0 ; xp < mri_prev->width ; xp++)
 	    {
 	      xk = mri->xi[x + xp] ;  // this is the location in the larger kernel
-	      for (yp = 0 ; yp < rbm_prev->ksize ; yp++)
+	      for (yp = 0 ; yp < mri_prev->height ; yp++)
 	      {
 		yk = mri->yi[y + yp] ;  // y position in larger kernel
 		if (xk == Gx && yk == Gy)
