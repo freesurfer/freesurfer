@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/16 21:38:35 $
- *    $Revision: 1.80 $
+ *    $Author: fischl $
+ *    $Date: 2014/05/10 00:38:13 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -145,14 +145,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.80 2012/10/16 21:38:35 nicks Exp $",
+   "$Id: mri_normalize.c,v 1.81 2014/05/10 00:38:13 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.80 2012/10/16 21:38:35 nicks Exp $",
+           "$Id: mri_normalize.c,v 1.81 2014/05/10 00:38:13 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -369,7 +369,7 @@ main(int argc, char *argv[])
       {
         MRIwrite(mri_bias, "b.mgz") ;
       }
-      printf("smoothing bias field\n") ;
+      printf("smoothing bias field with sigma=%2.3f\n", bias_sigma) ;
       MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel) ;
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
       {
@@ -1628,33 +1628,31 @@ remove_nonwm_voxels(MRI *mri_ctrl_src, MRI *mri_aseg, MRI *mri_ctrl_dst)
       for (z = 0 ; z < mri_ctrl_src->depth ; z++)
       {
         if (x == Gx && y == Gy && z == Gz)
-        {
           DiagBreak() ;
-        }
+
         if (MRIgetVoxVal(mri_ctrl_src, x, y, z, 0) == 0)
-        {
           continue ;
-        }
-        V3_X(v_src) = x ;
-        V3_Y(v_src) = y ;
-        V3_Z(v_src) = z ;
+
+        V3_X(v_src) = x ; V3_Y(v_src) = y ; V3_Z(v_src) = z ;
         MatrixMultiply(m_vox_to_vox, v_src, v_dst) ;
-        xa = nint(V3_X(v_dst)) ;
-        ya = nint(V3_Y(v_dst)) ;
-        za = nint(V3_Z(v_dst));
+        xa = nint(V3_X(v_dst)) ; ya = nint(V3_Y(v_dst)) ; za = nint(V3_Z(v_dst));
         label = MRIgetVoxVal(mri_aseg, xa, ya, za, 0) ;
         switch (label)
         {
+	case Left_Accumbens_area:
         case Left_Thalamus_Proper:
         case Left_Lateral_Ventricle:
         case Left_Caudate:
         case Left_Putamen:
+	case Left_choroid_plexus:
         case Left_Pallidum:
         case Left_Amygdala:
         case Left_Hippocampus:
         case Left_Cerebellum_Cortex:
         case Left_Inf_Lat_Vent:
 
+	case Right_Accumbens_area:
+	case Right_choroid_plexus:
         case Right_Thalamus_Proper:
         case Right_Lateral_Ventricle:
         case Right_Caudate:
@@ -1671,7 +1669,11 @@ remove_nonwm_voxels(MRI *mri_ctrl_src, MRI *mri_aseg, MRI *mri_ctrl_dst)
           MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, CONTROL_NONE) ;
           break ;
         default:
-          MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, CONTROL_MARKED) ;
+	  if ((MRIlabelsInNbhd(mri_aseg, xa, ya, za, 1, Left_Lateral_Ventricle) > 0) ||
+	      (MRIlabelsInNbhd(mri_aseg, xa, ya, za, 1, Right_Lateral_Ventricle) > 0))    // don't use voxels bordering the ventricles
+	    MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, CONTROL_NONE) ;
+	  else
+	    MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, CONTROL_MARKED) ;
           break ;
         }
       }
