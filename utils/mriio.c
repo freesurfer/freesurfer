@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/03 19:56:01 $
- *    $Revision: 1.408 $
+ *    $Date: 2014/05/10 00:37:22 $
+ *    $Revision: 1.409 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -807,7 +807,8 @@ MRI *mri_read( const char *fname,
     if (sae == NULL)
       ErrorReturn(NULL, (ERROR_BADPARM, "MRIread(%s): could not read autoencoder\n", fname_copy)) ;
 
-    mri = SAEinputWeightsToMRI(sae, NULL) ;
+    mri = SAElayerWeightsToMRI(sae, start_frame) ;
+    start_frame = 0 ; end_frame = mri->nframes-1 ;
     SAEfree(&sae) ;
   }
   else if (type == GDF_FILE)
