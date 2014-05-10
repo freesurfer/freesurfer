@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/04/17 13:31:08 $
- *    $Revision: 1.1 $
+ *    $Date: 2014/05/10 13:08:42 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,7 +42,9 @@
 #define RBM_INPUT_IMAGE            1
 #define RBM_INPUT_VALUE            2
 
+#ifndef SIGMOID  // also defined in rbm.h
 #define SIGMOID(x)        ((1) / (1 + exp(-(x))))
+#endif
 #define  GAUSSIAN(x,u,s)  ((1.0/(s*sqrt(2*M_PI)))*exp(-(((x)-u)*((x)-u))/(2.0*s*s)))
 
 #define MAX_LAYERS 100
