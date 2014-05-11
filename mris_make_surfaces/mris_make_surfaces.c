@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/04/14 20:13:38 $
- *    $Revision: 1.148 $
+ *    $Date: 2014/05/11 13:46:53 $
+ *    $Revision: 1.149 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.148 2014/04/14 20:13:38 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.149 2014/05/11 13:46:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -267,13 +267,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.148 2014/04/14 20:13:38 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.149 2014/05/11 13:46:53 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.148 2014/04/14 20:13:38 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.149 2014/05/11 13:46:53 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -397,6 +397,15 @@ main(int argc, char *argv[])
   /////////////////////////////////////////
 //  setMRIforSurface(mri_T1);
 
+
+  // make sure filled and wm are in same voxel coords as T1
+  if (MRIcompareHeaders(mri_T1, mri_filled) != 0)
+  {
+    MRI *mri_tmp ;
+    printf("resampling filled volume to be in voxel register with T1\n") ;
+    mri_tmp = MRIresample(mri_filled, mri_T1, SAMPLE_NEAREST) ;
+    MRIfree(&mri_filled) ; mri_filled = mri_tmp ;
+  }
   if (white_fname != NULL)
   {
     sprintf(fname, "%s/%s/mri/%s", sdir, sname, white_fname) ;
@@ -514,6 +523,13 @@ main(int argc, char *argv[])
     mri_tmp = MRIchangeType(mri_wm, MRI_UCHAR, 0, 255, 1) ;
     MRIfree(&mri_wm) ;
     mri_wm = mri_tmp ;
+  }
+  if (MRIcompareHeaders(mri_T1, mri_wm) != 0)
+  {
+    MRI *mri_tmp ;
+    printf("resampling wm volume to be in voxel register with T1\n") ;
+    mri_tmp = MRIresample(mri_wm, mri_T1, SAMPLE_NEAREST) ;
+    MRIfree(&mri_wm) ; mri_wm = mri_tmp ;
   }
   //////////////////////////////////////////
 //  setMRIforSurface(mri_wm);
