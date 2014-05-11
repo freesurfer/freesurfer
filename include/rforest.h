@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/13 00:01:40 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/05/11 02:29:43 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,6 +83,7 @@ typedef struct
   int    max_steps ;
   char   **feature_names ;   // for diags
   double max_class_ratio ;  // don't let there be way more of one class than another
+  double *pvals ;           // classification probabilities
 } RANDOM_FOREST, RF ;
 
 RANDOM_FOREST *RFalloc(int ntrees, int nfeatures, int nclasses, int max_depth,
@@ -97,6 +98,6 @@ int  RFcomputeOutOfBagCorrect(RANDOM_FOREST *rf, int *training_classes, double *
 int  RFtrainTree(RANDOM_FOREST *rf, int tno, int *training_classes, double **training_data, int ntraining);
 int  RFsetNumberOfClasses(RANDOM_FOREST *rf, int nlabels) ;
 int  RFevaluateFeatures(RANDOM_FOREST *rf, FILE *fp) ;
-
+int  RFfree(RANDOM_FOREST **prf) ;
 
 #endif
