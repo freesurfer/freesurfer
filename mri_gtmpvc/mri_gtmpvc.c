@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/09 22:06:22 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/05/13 21:19:28 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.10 2014/05/09 22:06:22 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.11 2014/05/13 21:19:28 greve Exp $
 
 /*
   BEGINHELP
@@ -91,7 +91,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.10 2014/05/09 22:06:22 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.11 2014/05/13 21:19:28 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -100,7 +100,7 @@ struct utsname uts;
 
 typedef struct 
 {
-  char *name;
+  char *name; // contrast name
   MATRIX *C;
   MATRIX *gamma;
   MATRIX *gammavar;
@@ -111,67 +111,75 @@ typedef struct
 
 typedef struct 
 {
-  MRI *yvol;
-  MRI *anatseg;
-  LTA *anat2pet;
-  LTA *anat2seg;
-  LTA *seg2anat;
-  LTA *seg2pet;
-  MRI *mask;
-  double cFWHM, rFWHM, sFWHM;
-  double PadThresh;
-  MRI *yseg,*yhat0seg,*yhatseg;
+  MRI *yvol; // source (PET) data
+  MRI *anatseg; // segmentation in anatomical space, may be hires (ie, not conformed)
+  LTA *anat2pet; // registration from anat to pet space
+  LTA *anat2seg; // registration from FS conformed space to seg
+  LTA *seg2anat; // inverse registration
+  LTA *seg2pet;  // registration from segmentation to source volume
+  MRI *mask;     // binary mask in PET space
+  double cFWHM, rFWHM, sFWHM; // assumed FWHM of PSF
+  double cStd, rStd, sStd; // PSF FWHM converted to standard dev
 
-  double automask_fwhm,automask_thresh;
-  int automask_reduce_fov;
-  MRI_REGION *automaskRegion;
-  MRI *yvol_full_fov; 
-
-  MRI *segpvf;
-  MRI *ttpvf;
-  MRI *gtmseg;
-  int nPad;
-  int nmask;
-  int nsegs,*segidlist;
-  int dof;
-  COLOR_TABLE *ctGTMSeg;
-  int nReplace , SrcReplace[1000], TrgReplace[1000];
-  MATRIX *X,*X0;
-  MATRIX *y,*Xt, *XtX, *iXtX, *Xty, *beta, *res, *yhat;
-  MATRIX *betavar;
-  double XtXcond;
-  MATRIX *rvar,*rvargm;
-  MATRIX *skew,*kurtosis;
-  int nContrasts;
-  GTMCON *contrasts[100];
-  double cStd, rStd, sStd;
-  MRI *ysynth,*ysynthsm;
-  int *nperseg;
-  MATRIX *nvox,*vrf,*segrvar;
-
-  MRI *rbv;
-  int mask_rbv_to_brain;
-  MRI *rbvsegmean;
+  double automask_fwhm,automask_thresh; // Use this FWHM instead of PSF when computing mask
+  int automask_reduce_fov; // Flag: reduce PET FoV to be tight to mask.
+  MRI_REGION *automaskRegion; // Keep reduction region in case reinstate at original FoV
+  MRI *yvol_full_fov; // Used to keep header of original FoV source data
+  double PadThresh; // Used to dilate mask based on automask_fwhm
+  int nPad; // Actual amount of dilation
 
   int rescale,n_scale_refids,scale_refids[100];
   double scale;
 
-  int DoMGPVC;
-  MRI *mg;
-  double mg_gmthresh;
-  int n_mg_refids,mg_refids[100];
-  MATRIX *mg_reftac;
+  MRI *segpvf; // PVF of each seg (one in each frame)
+  MRI *ttpvf; // PVF of each tissue type (one in each frame), used by MG
+  MRI *gtmseg; // Segmentation in PET space
+  int nmask; // number of voxels in the mask
 
-  int DoKMRef;
-  int n_km_refids,km_refids[100];
-  MATRIX *km_reftac;
+  int nsegs,*segidlist; // number of segments in segmentation, list of segids
+  int *nperseg; // number of voxels per seg
+  COLOR_TABLE *ctGTMSeg; // color table of segments
+  int nReplace , SrcReplace[1000], TrgReplace[1000]; // for replacing segs
+  MATRIX *nvox; // same as nperseg, doh
+  MATRIX *vrf;  // variance reduction factor for each seg
+  MATRIX *segrvar; // residual variance in each seg
 
-  int DoKMHB;
-  int n_km_hbids,km_hbids[100];
-  MATRIX *km_hbtac;
+  // GLM stuff for GTM
+  MATRIX *X,*X0;
+  MATRIX *y,*Xt, *XtX, *iXtX, *Xty, *beta, *res, *yhat,*betavar;
+  MATRIX *rvar,*rvargm; // residual variance, all vox and only GM
+  int dof;
+  double XtXcond;
+  MRI *ysynth,*ysynthsm; // synthesized vs yhat
+  MATRIX *skew,*kurtosis; // for QAe
+  int DoVoxFracCor; // Flag to correct for volume fraction effect
 
-  char *OutDir;
-  FILE *logfp;
+  int nContrasts;
+  GTMCON *contrasts[100];
+
+  MRI *rbv; // RBV computed volume
+  int mask_rbv_to_brain; // Reduce FoV of RBV to be tight to brain
+  MRI *yseg; // source volume trilin resampled to seg space (used with RBV)
+  MRI *yhat0seg; // unsmoothed yhat created in seg space (used with RBV)
+  MRI *yhatseg;  // smoothed yhat in seg space (used with RBV)
+  MRI *rbvsegmean; // seg mean in RBV, used for QA
+
+  int DoMGPVC; // Muller-Gartner
+  MRI *mg; // MG output volume
+  double mg_gmthresh; // GM PVF threshold 
+  int n_mg_refids,mg_refids[100]; // WM reference seg IDs
+  MATRIX *mg_reftac; // WM reference TAC
+
+  int DoKMRef; // Kinetic Modeling Reference TAC
+  int n_km_refids,km_refids[100]; // KM reference seg IDs
+  MATRIX *km_reftac; // KM reference TAC
+
+  int DoKMHB; // Kinetic Modeling HiBinding TAC
+  int n_km_hbids,km_hbids[100];// KM HiBinding seg IDs
+  MATRIX *km_hbtac; // KM HiBinding TAC
+
+  char *OutDir; // output folder
+  FILE *logfp;  // log file pointer
 } GTM;
 
 GTM *GTMalloc();
@@ -182,7 +190,6 @@ int GTMpsfStd(GTM *gtm);
 int GTMsegidlist(GTM *gtm);
 int GTMnPad(GTM *gtm);
 int GTMbuildX(GTM *gtm);
-int GTMbuildXNoVoxFracCor(GTM *gtm);
 int GTMsolve(GTM *gtm);
 int GTMsegrvar(GTM *gtm);
 int GTMsmoothSynth(GTM *gtm);
@@ -277,7 +284,6 @@ int DoOpt=0;
 char *SUBJECTS_DIR;
 
 int DoRBV=0;
-int DoVoxFracCor=1;
 int AutoMask=0;
 
 /*---------------------------------------------------------------*/
@@ -312,6 +318,7 @@ int main(int argc, char *argv[])
   gtm->nReplace = 0;
   gtm->nContrasts = 0;
   gtm->automask_reduce_fov = 1;
+  gtm->DoVoxFracCor = 1;
 
   Progname = argv[0] ;
   argc --;
@@ -500,13 +507,26 @@ int main(int argc, char *argv[])
   //exit(1);
   }
 
+  /* Create the "SegPVF". This is a multi-frame volume, each frame corresponds to a
+     different Seg ID. The value is the PVF of that SegID. This is independent of
+     the PSF (but accounts for the volume fraction effect). */
+  printf("Computing Seg PVF \n");fflush(stdout);
+  gtm->segpvf = MRIseg2SegPVF(gtm->anatseg, gtm->seg2pet, 0.5, gtm->segidlist, 
+			      gtm->nsegs, gtm->mask, 0, NULL, gtm->segpvf);
+  if(gtm->segpvf==NULL) exit(1);
+
+  /* This creates a segmentation in the PET space based upon which Seg
+     has the greated PVF (independent of PSF). */
+  printf("Computing Seg in input space \n");fflush(stdout);
+  gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
+			      gtm->ctGTMSeg, gtm->mask, gtm->gtmseg);
+
   // Create GTM matrix
-  printf("Building GTM DoVoxFracCor=%d... ",DoVoxFracCor);fflush(stdout); 
+  printf("Building GTM DoVoxFracCor=%d... ",gtm->DoVoxFracCor);fflush(stdout); 
   TimerStart(&mytimer) ;
-  if(DoVoxFracCor) GTMbuildX(gtm);
-  else             GTMbuildXNoVoxFracCor(gtm);
-  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+  GTMbuildX(gtm);
   if(gtm->X==NULL) exit(1);
+  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   fprintf(logfp,"GTM-Build-time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
 
   // Create GTM seg in pet space (used by GTMsynth)
@@ -797,9 +817,9 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--debug"))   debug = 1;
     else if(!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if(!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    else if(!strcasecmp(option, "--no-vox-frac-cor")) DoVoxFracCor=0;
-    else if(!strcasecmp(option, "--no-vox-frac")) DoVoxFracCor=0;
-    else if(!strcasecmp(option, "--no-vfc"))      DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--no-vox-frac-cor")) gtm->DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--no-vox-frac")) gtm->DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--no-vfc"))      gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--auto-mask")){
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%lf",&gtm->automask_fwhm);
@@ -1254,7 +1274,7 @@ static void check_options(void)
 
   if(gtm->DoMGPVC && gtm->n_mg_refids == 0){
     printf("ERROR: you must specify the ref segids for MG PVC either as extra \n"
-	   "options to --mgpvc or with --mgpvc-ref-cerebral-wm\n");
+	   "options to --mg or with --mg-ref-cerebral-wm\n");
     exit(1);
   }
 
@@ -1317,6 +1337,12 @@ MRI *MRIdownSmoothUp(MRI *src, int Fc, int Fr, int Fs,
   return(dst);
 }
 /*--------------------------------------------------------------------------*/
+/*
+  \fn int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax)
+  \brief Computes the variance reduction factor (VRF) for each seg, the number
+  of voxels for the seg, and betavar for each seg and frame. Also computes
+  the max and min VRF.
+*/
 int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax)
 {
   int n,nvox,segid,f;
@@ -1359,6 +1385,11 @@ int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax)
   return(0);
 }
 /*--------------------------------------------------------------------------*/
+/*
+  \fn int WriteVRFStats(char *fname, GTM *gtm)
+  \brief Creates the vrf.dat file in the output folder. This is a text file
+  that reports several statistics including the variance reduction factor (VRF).
+*/
 int WriteVRFStats(char *fname, GTM *gtm)
 {
   int n, segid, nvox;
@@ -1495,6 +1526,11 @@ double GTMOPTcost(GTMOPT *gtmopt)
   return(0);
 }
 /*------------------------------------------------------------------*/
+/*
+  \fn GTM *GTMalloc()
+  \brief Allocates the GTM structure but nothing in the structure.
+   sets PadThresh = .0001;
+*/
 GTM *GTMalloc()
 {
   GTM *gtm;
@@ -1503,6 +1539,10 @@ GTM *GTMalloc()
   return(gtm);
 }
 /*------------------------------------------------------------------*/
+/*
+  \fn int GTMfree(GTM **pGTM)
+  \brief Frees a lot of stuff, but not everything.
+*/
 int GTMfree(GTM **pGTM)
 {
   GTM *gtm = *pGTM;
@@ -1525,12 +1565,22 @@ int GTMfree(GTM **pGTM)
   return(0);
 }
 /*------------------------------------------------------------------*/
+/*
+  \fn int GTMmatrixY(GTM *gtm)
+  \brief Converts the input gtm->yvol to a matrix using GTMvol2mat().
+  It is important that this be done conistently with X, etc.
+*/
 int GTMmatrixY(GTM *gtm)
 {
   gtm->y = GTMvol2mat(gtm, gtm->yvol, NULL);
   return(0);
 }
 /*------------------------------------------------------------------*/
+/*
+  \fn int GTMsetNMask(GTM *gtm)
+  \brief Computes the number of voxels in the mask. If the mask is
+  NULL, then just computes the number of voxels in the input.
+*/
 int GTMsetNMask(GTM *gtm)
 {
   if(gtm->mask) gtm->nmask = MRIcountAboveThreshold(gtm->mask, 0.5);
@@ -1538,6 +1588,10 @@ int GTMsetNMask(GTM *gtm)
   return(0);
 }
 /*------------------------------------------------------------------*/
+/*
+  \fn int GTMpsfStd(GTM *gtm)
+  \brief Convert the PSF {crs}FWHM to a standard deviation.
+*/
 int GTMpsfStd(GTM *gtm)
 {
   gtm->cStd = gtm->cFWHM/sqrt(log(256.0));
@@ -1546,12 +1600,33 @@ int GTMpsfStd(GTM *gtm)
   return(0);
 }
 /*------------------------------------------------------------------*/
+/*
+  \fn int GTMsegidlist(GTM *gtm)
+  \brief Compute a sorted list of segmentation IDs from the segmentation
+  itself (excludes 0). Just runs MRIsegIdListNot0().
+*/
 int GTMsegidlist(GTM *gtm)
 {
   gtm->segidlist = MRIsegIdListNot0(gtm->anatseg, &gtm->nsegs, 0);
   return(0);
 }
 /*------------------------------------------------------------------*/
+/*
+  \fn int GTMnPad(GTM *gtm)
+  \brief Computes the number of voxels used to pad the tightest
+  fitting bounding box around the nonzero voxels of the seg. There
+  must be enough padding to account for spill-over created by
+  smoothing the input by the PSF. It works by determining the distance
+  from the center of a Gaussian such that the kernel equals PadThresh
+  (a value between 0 and 1). The FWHM of the Guassian is the maximum
+  of the {crs}FWHM. The way this should be interpreted is that any
+  spill-over signal outside of the brain that is excluded by the
+  bounding box will be no larger than PadThresh times the unsmoothed
+  signal. Eg, if PadThresh is .001, then nPad will be computed such
+  that the spill-over signal will be 0.1% less than the original
+  signal. Using the bounding box can greatly reduce the size of 
+  the input (esp for PET).
+*/
 int GTMnPad(GTM *gtm)
 {
   double maxFWHM, maxStd;
@@ -1567,11 +1642,23 @@ int GTMnPad(GTM *gtm)
   return(0);
 }
 /*------------------------------------------------------------------*/
+/*
+  \fn int GTMsolve(GTM *gtm)
+  \brief Solves the GTM using a GLM. X must already have been created.
+  Computes Xt, XtX, iXtX, beta, yhat, res, dof, rvar, kurtosis, and skew.
+  Also will rescale if rescaling. Returns 1 and computes condition
+  number if matrix cannot be inverted. Otherwise returns 0.
+*/
 int GTMsolve(GTM *gtm)
 {
   struct timeb timer;
   int n,f;
   double sum;
+
+  if(gtm->X == NULL){
+    printf("ERROR: GTMsolve(): must build design matrix first\n");
+    exit(1);
+  }
 
   gtm->Xt = MatrixTranspose(gtm->X,gtm->Xt);
   printf("Computing  XtX ... ");fflush(stdout);
@@ -1602,6 +1689,14 @@ int GTMsolve(GTM *gtm)
   return(0);
 }
 /*-----------------------------------------------------------------*/
+/*
+  \fn MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol)
+  \brief Converts a matrix an MRI volume with rows=frames
+  and columns=spatial dims. It is done row fastest, then col, then
+  slice which makes it consistent with matlab. Any place that operates
+  on the matrix data must be consistent when going from vol to matrix
+  and back. See also GTMbuildX() and GTMvol2mat().
+*/
 MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol)
 {
   int k,c,r,s,f;
@@ -1631,6 +1726,14 @@ MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol)
   return(vol);
 }
 /*-----------------------------------------------------------------*/
+/*
+  \fn MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m)
+  \brief Converts an MRI volume into a matrix with rows=frames
+  and columns=spatial dims. It is done row fastest, then col, then
+  slice which makes it consistent with matlab. Any place that operates
+  on the matrix data must be consistent when going from vol to matrix
+  and back. See also GTMbuildX() and GTMmat2vol(). 
+*/
 MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m)
 {
   int k,c,r,s,f;
@@ -1652,7 +1755,7 @@ MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m)
   }
 
   k = 0;
-  for(s=0; s < vol->depth; s++){
+  for(s=0; s < vol->depth; s++){ // crs order is important here!
     for(c=0; c < vol->width; c++){
       for(r=0; r < vol->height; r++){
 	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
@@ -1664,7 +1767,12 @@ MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m)
   }
   return(m);
 }
-/*-----------------------------------------------------*/
+/*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMsegrvar(GTM *gtm)
+  \brief Computes the residual variance in each segmentation. Not perfect
+  because the resdiual has spill-over. Hopefully it is meaningful for something.
+*/
 int GTMsegrvar(GTM *gtm)
 {
   int c,r,s,f,k;
@@ -1703,6 +1811,14 @@ int GTMsegrvar(GTM *gtm)
 }
 
 /*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMrbv(GTM *gtm)
+  \brief Performs Region-based Voxel-wise PVF correction. Can reduce the FoV
+  of the output to a bounding box that tightly fits around the brain to
+  reduce memory and disk space. The output shares a RAS space with the 
+  anatseg (which shares a RAS space with the conformed anat) so a new
+  registration is not needed.
+ */
 int GTMrbv(GTM *gtm)
 {
   int c,r,s,f,nthseg,segid;
@@ -1710,7 +1826,6 @@ int GTMrbv(GTM *gtm)
   LTA *lta;
   struct timeb mytimer;
   MATRIX *nhits;
-
 
   if(gtm->rbv)      MRIfree(&gtm->rbv);
   if(gtm->yhat0seg) MRIfree(&gtm->yhat0seg);
@@ -1728,7 +1843,7 @@ int GTMrbv(GTM *gtm)
   printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
 
 
-  printf("   Smoothing in seg space... ");fflush(stdout);
+  printf("   Smoothing synthesized in seg space... ");fflush(stdout);
   gtm->yhatseg = MRIgaussianSmoothNI(gtm->yhat0seg, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
   if(gtm->yhatseg == NULL){
     printf("ERROR: GTMrbv() could not smooth yhatseg\n");
@@ -1736,7 +1851,7 @@ int GTMrbv(GTM *gtm)
   }
   printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
 
-  printf("   Sampling input to seg space... ");fflush(stdout);
+  printf("   Sampling input to seg space with trilin... ");fflush(stdout);
   gtm->yseg = MRIallocSequence(gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth,
 			      MRI_FLOAT, gtm->yvol->nframes);
   if(gtm->yseg == NULL){
@@ -1764,7 +1879,7 @@ int GTMrbv(GTM *gtm)
 
   gtm->rbvsegmean = MRIallocSequence(gtm->nsegs,1,1,MRI_FLOAT,gtm->yvol->nframes);
   nhits = MatrixAlloc(gtm->beta->rows,1,MATRIX_REAL);
-  for(s=0; s < gtm->anatseg->depth; s++){
+  for(s=0; s < gtm->anatseg->depth; s++){ // crs order not important
     for(c=0; c < gtm->anatseg->width; c++){
       for(r=0; r < gtm->anatseg->height; r++){
 	segid = MRIgetVoxVal(gtm->anatseg,c,r,s,0);
@@ -1775,9 +1890,9 @@ int GTMrbv(GTM *gtm)
 	  v     = MRIgetVoxVal(gtm->yseg,c,r,s,f);
 	  vhat0 = MRIgetVoxVal(gtm->yhat0seg,c,r,s,f);
 	  vhat  = MRIgetVoxVal(gtm->yhatseg,c,r,s,f);
-	  val = v*vhat0/(vhat+FLT_EPSILON);
+	  val = v*vhat0/(vhat+FLT_EPSILON); // RBV equation
 	  MRIsetVoxVal(gtm->rbv,c,r,s,f,val);
-	  v2 = MRIgetVoxVal(gtm->rbvsegmean,nthseg,0,0,f);
+	  v2 = MRIgetVoxVal(gtm->rbvsegmean,nthseg,0,0,f); // track seg means for QA
 	  MRIsetVoxVal(gtm->rbvsegmean,nthseg,0,0,f,v2+val);
 	}
       }
@@ -1788,6 +1903,7 @@ int GTMrbv(GTM *gtm)
   MRIfree(&gtm->yhatseg);
   printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
 
+  // track seg means for QA
   for(nthseg=0; nthseg < gtm->nsegs; nthseg++){
     for(f=0; f < gtm->yvol->nframes; f++){
       val = MRIgetVoxVal(gtm->rbvsegmean,nthseg,0,0,f)/nhits->rptr[nthseg+1][1];
@@ -1797,6 +1913,9 @@ int GTMrbv(GTM *gtm)
   MatrixFree(&nhits);
 
   if(gtm->mask_rbv_to_brain){
+    // Reduce RBV to a tight mask around the brain. This can greatly reduce 
+    // memory requirements. The RAS space is still that of the anatseg
+    // (and so also that of the conformed anat) so no new registration is necessary
     printf("   masking RBV to brain\n");
     int n, nReplace, ReplaceThis[1000], WithThat[1000];
     MRI *segtmp,*rbvtmp;
@@ -1835,14 +1954,19 @@ int GTMsmoothSynth(GTM *gtm)
 }
 
 /*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMmgpvc(GTM *gtm)
+  \brief Performs Muller-Gartner PVC. Hardcodes tissue type IDs to 
+  be 0=cortex, 1=subcortexgm, 2=WM.
+ */
 int GTMmgpvc(GTM *gtm)
 {
   int c,r,s,f,n,nthseg,segid,found,nhits;
   double sum,vgmpsf,vwmpsf,vwmtac,vtac,vmgtac;
   MRI *ctxpvf, *subctxpvf, *wmpvf, *gmpvf,*gmpvfpsf,*wmpvfpsf;
 
+  // Compute the MG reference TAC
   gtm->mg_reftac = MatrixAlloc(gtm->yvol->nframes,1,MATRIX_REAL);
-
   for(f=0; f < gtm->yvol->nframes; f++){
     nhits = 0;
     sum = 0;
@@ -1870,16 +1994,20 @@ int GTMmgpvc(GTM *gtm)
   if(gtm->mg == NULL) return(1);
   MRIcopyHeader(gtm->yvol,gtm->mg);
 
-  ctxpvf    = fMRIframe(gtm->ttpvf,0,NULL);
-  subctxpvf = fMRIframe(gtm->ttpvf,1,NULL);
-  wmpvf     = fMRIframe(gtm->ttpvf,2,NULL);
-
-  gmpvf = MRIadd(ctxpvf,subctxpvf,NULL);
-
+  // Compute gray matter PVF with smoothing
+  ctxpvf    = fMRIframe(gtm->ttpvf,0,NULL); // cortex PVF
+  subctxpvf = fMRIframe(gtm->ttpvf,1,NULL); // subcortex GM PVF
+  gmpvf = MRIadd(ctxpvf,subctxpvf,NULL); // All GM PVF
+  // Smooth GM PVF by PSF
   gmpvfpsf = MRIgaussianSmoothNI(gmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+
+  // WM PVF
+  wmpvf = fMRIframe(gtm->ttpvf,2,NULL); 
+  // Smooth GM PVF by PSF
   wmpvfpsf = MRIgaussianSmoothNI(wmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
 
-  for(c=0; c < gtm->yvol->width; c++){
+  // Finally, do the actual MG correction
+  for(c=0; c < gtm->yvol->width; c++){ // crs order not important
     for(r=0; r < gtm->yvol->height; r++){
       for(s=0; s < gtm->yvol->depth; s++){
 	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue; 
@@ -2068,6 +2196,12 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
   return(outlta);
 }
 /*------------------------------------------------------------------*/
+/*
+  \fn int GTMsynth(GTM *gtm)
+  \brief Synthesizes the unsmoothed PET image by computing 
+   ysynth = X0*beta and then re-packing the result into a volume.
+   This is mainly useful for debugging.
+ */
 int GTMsynth(GTM *gtm)
 {
   MATRIX *yhat;
@@ -2085,6 +2219,7 @@ int GTMsynth(GTM *gtm)
     
   return(0);
 }
+/*------------------------------------------------------------------*/
 /*
   \fn int GTMcheckX(MATRIX *X)
   \brief Checks that all colums sum to 1
@@ -2110,12 +2245,18 @@ int GTMcheckX(MATRIX *X)
   return(count);
 }
 /*------------------------------------------------------------------------------*/
+/*
+  \fn int GTMbuildX(GTM *gtm)
+  \brief Builds the GTM design matrix both with (X) and without (X0) PSF.  If 
+  gtm->DoVoxFracCor=1 then corrects for volume fraction effect.
+*/
 int GTMbuildX(GTM *gtm)
 {
   int nthseg;
   struct timeb timer;
 
   if(gtm->X==NULL || gtm->X->rows != gtm->nmask || gtm->X->cols != gtm->nsegs){
+    // Alloc or realloc X
     if(gtm->X) MatrixFree(&gtm->X);
     gtm->X = MatrixAlloc(gtm->nmask,gtm->nsegs,MATRIX_REAL);
     if(gtm->X == NULL){
@@ -2134,10 +2275,6 @@ int GTMbuildX(GTM *gtm)
   gtm->dof = gtm->X->rows - gtm->X->cols;
 
   TimerStart(&timer);
-  printf("computing seg pvf \n");fflush(stdout);
-  gtm->segpvf = MRIseg2SegPVF(gtm->anatseg, gtm->seg2pet, 0.5, gtm->segidlist, 
-			       gtm->nsegs, gtm->mask, 0, NULL, gtm->segpvf);
-  if(gtm->segpvf==NULL) return(1);
 
   #ifdef _OPENMP
   #pragma omp parallel for 
@@ -2148,18 +2285,22 @@ int GTMbuildX(GTM *gtm)
     MRI_REGION *region;
     segid = gtm->segidlist[nthseg];
     //printf("nthseg = %d, %d %6.4f\n",nthseg,segid,TimerStop(&timer)/1000.0);fflush(stdout);
-    nthsegpvf = fMRIframe(gtm->segpvf,nthseg,NULL);
-    region      = REGIONgetBoundingBox(nthsegpvf,gtm->nPad);
-    nthsegpvfbb = MRIextractRegion(nthsegpvf, NULL, region) ;
+    if(gtm->DoVoxFracCor)
+      nthsegpvf = fMRIframe(gtm->segpvf,nthseg,NULL); // extract PVF for this seg
+    else
+      nthsegpvf = MRIbinarizeMatch(gtm->gtmseg,&segid,1,0,NULL); // or get binary mask
+    // Extract a region for the seg. This speeds up smoothing.
+    region      = REGIONgetBoundingBox(nthsegpvf,gtm->nPad); // tight+pad bounding box 
+    nthsegpvfbb = MRIextractRegion(nthsegpvf, NULL, region) ; // extract BB
     nthsegpvfbbsm = MRIgaussianSmoothNI(nthsegpvfbb, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
     // Fill X, creating X in this order makes it consistent with matlab
-    // Note: y must be ordered in the same way.
+    // Note: y must be ordered in the same way. See GTMvol2mat()
     k = 0;
     for(s=0; s < gtm->yvol->depth; s++){
       for(c=0; c < gtm->yvol->width; c++){
 	for(r=0; r < gtm->yvol->height; r++){
 	  if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
-	  k ++;
+	  k ++; // have to incr here in case continue below
 	  if(c < region->x || c >= region->x+region->dx)  continue;
 	  if(r < region->y || r >= region->y+region->dy)  continue;
 	  if(s < region->z || s >= region->z+region->dz)  continue;
@@ -2181,93 +2322,26 @@ int GTMbuildX(GTM *gtm)
 
 }
 
-/*------------------------------------------------------------------------------*/
-int GTMbuildXNoVoxFracCor(GTM *gtm)
-{
-  int nthseg;
-  struct timeb timer;
-
-  printf("GTMbuildXNoVoxFracCor()\n");
-
-  if(gtm->X==NULL || gtm->X->rows != gtm->nmask || gtm->X->cols != gtm->nsegs){
-    if(gtm->X) MatrixFree(&gtm->X);
-    gtm->X = MatrixAlloc(gtm->nmask,gtm->nsegs,MATRIX_REAL);
-    if(gtm->X == NULL){
-      printf("ERROR: GTMbuildXNoVoxFracCor(): could not alloc X %d %d\n",gtm->nmask,gtm->nsegs);
-      return(1);
-    }
-  }
-  if(gtm->X0==NULL || gtm->X0->rows != gtm->nmask || gtm->X0->cols != gtm->nsegs){
-    if(gtm->X0) MatrixFree(&gtm->X0);
-    gtm->X0 = MatrixAlloc(gtm->nmask,gtm->nsegs,MATRIX_REAL);
-    if(gtm->X0 == NULL){
-      printf("ERROR: GTMbuildXNoVoxFracCor(): could not alloc X0 %d %d\n",gtm->nmask,gtm->nsegs);
-      return(1);
-    }
-  }
-  gtm->dof = gtm->X->rows - gtm->X->cols;
-  TimerStart(&timer);
-  printf("  computing seg pvf \n");fflush(stdout);
-  gtm->segpvf = MRIseg2SegPVF(gtm->anatseg, gtm->seg2pet, 0.5, gtm->segidlist, 
-			       gtm->nsegs, gtm->mask, 0, NULL, gtm->segpvf);
-  if(gtm->segpvf==NULL) return(1);
-  printf("  computing seg in pet space \n");fflush(stdout);
-  gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
-			      gtm->ctGTMSeg, gtm->mask, gtm->gtmseg);
-
-  #ifdef _OPENMP
-  #pragma omp parallel for 
-  #endif
-  for(nthseg = 0; nthseg < gtm->nsegs; nthseg++){
-    int segid,k,c,r,s;
-    MRI *nthsegmri=NULL,*nthsegmribb=NULL,*nthsegmribbsm=NULL;
-    MRI_REGION *region;
-    segid = gtm->segidlist[nthseg];
-    //printf("nthseg = %d, %d %6.4f\n",nthseg,segid,TimerStop(&timer)/1000.0);fflush(stdout);
-    nthsegmri = MRIbinarizeMatch(gtm->gtmseg,&segid,1,0,NULL);
-    region      = REGIONgetBoundingBox(nthsegmri,gtm->nPad);
-    nthsegmribb = MRIextractRegion(nthsegmri, NULL, region) ;
-    nthsegmribbsm = MRIgaussianSmoothNI(nthsegmribb, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
-    // Fill X, creating X in this order makes it consistent with matlab
-    // Note: y must be ordered in the same way.
-    k = 0;
-    for(s=0; s < gtm->yvol->depth; s++){
-      for(c=0; c < gtm->yvol->width; c++){
-	for(r=0; r < gtm->yvol->height; r++){
-	  if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
-	  k ++;
-	  if(c < region->x || c >= region->x+region->dx)  continue;
-	  if(r < region->y || r >= region->y+region->dy)  continue;
-	  if(s < region->z || s >= region->z+region->dz)  continue;
-	  // do not use k+1 here because it has already been incr above
-	  gtm->X->rptr[k][nthseg+1] = 
-	    MRIgetVoxVal(nthsegmribbsm,c-region->x,r-region->y,s-region->z,0);
-	  gtm->X0->rptr[k][nthseg+1] = 
-	    MRIgetVoxVal(nthsegmribb,c-region->x,r-region->y,s-region->z,0);
-	}
-      }
-    }
-    MRIfree(&nthsegmri);
-    MRIfree(&nthsegmribb);
-    free(region);
-  }
-  printf(" Build time %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
-
-  return(0);
-
-}
-
 /*--------------------------------------------------------------------------*/
+/*
+  \fn MRI *GTMsegSynth(GTM *gtm)
+  \brief Creates a volume that is the same size as the anatseg in which the value
+  at a voxel equals the beta of the seg ID at that voxel. This is used for RBV.
+*/
 MRI *GTMsegSynth(GTM *gtm)
 {
   int c,r,s,f,segid,segno;
   MRI *synth;
 
   synth = MRIallocSequence(gtm->anatseg->width,gtm->anatseg->height,gtm->anatseg->depth,MRI_FLOAT,gtm->beta->cols);
+  if(synth == NULL){
+    printf("ERROR: GTMsegSynth(): could not alloc\n");
+    return(NULL);
+  }
   MRIcopyHeader(gtm->anatseg,synth);
   MRIcopyPulseParameters(gtm->yvol,synth);
 
-  for(c=0; c < gtm->anatseg->width; c++){
+  for(c=0; c < gtm->anatseg->width; c++){ // crs order does not matter here
     for(r=0; r < gtm->anatseg->height; r++){
       for(s=0; s < gtm->anatseg->depth; s++){
 	segid = MRIgetVoxVal(gtm->anatseg,c,r,s,0);
@@ -2289,6 +2363,10 @@ MRI *GTMsegSynth(GTM *gtm)
 }
 
 /*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMprintMGRefTAC(GTM *gtm, FILE *fp)
+  \brief Prints the Muller-Gartner WM reference TAC to the given file pointer
+*/
 int GTMprintMGRefTAC(GTM *gtm, FILE *fp)
 {
   int f;
@@ -2299,6 +2377,10 @@ int GTMprintMGRefTAC(GTM *gtm, FILE *fp)
 }
 
 /*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMwriteMGRefTAC(GTM *gtm, char *filename)
+  \brief Writes the Muller-Gartner WM reference TAC to the given file
+*/
 int GTMwriteMGRefTAC(GTM *gtm, char *filename)
 {
   FILE *fp;
@@ -2309,6 +2391,11 @@ int GTMwriteMGRefTAC(GTM *gtm, char *filename)
 }
 
 /*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMrescale(GTM *gtm)
+  \brief Computes global rescaling factor and applies it to yvol, beta, and y.
+  The factor = 100/mean(beta_i) where i is the list of scale seg IDs (scale_ref_ids)
+*/
 int GTMrescale(GTM *gtm)
 {
   int f,n,nthseg,segid,found,nhits;
@@ -2343,6 +2430,11 @@ int GTMrescale(GTM *gtm)
 }
 
 /*-------------------------------------------------------------------------------*/
+/*
+  \fn int GTMttest(GTM *gtm)
+  \brief Computes a t-test for each contrast. This includes computing gamma, 
+  gammavar, t, and p.
+*/
 int GTMttest(GTM *gtm)
 {
   MATRIX *Ct,*CiXtX,*CiXtXCt;
@@ -2374,6 +2466,11 @@ int GTMttest(GTM *gtm)
   return(0);
 }
 /*------------------------------------------------------------------------------*/
+/*
+  \fn int GTMwriteContrasts(GTM *GTM)
+  \brief Creates an ASCII file in the output folder for each contrast with gamma, 
+  gammavar, t, and p
+ */
 int GTMwriteContrasts(GTM *GTM)
 {
   int n,nframes,f;
@@ -2400,6 +2497,11 @@ int GTMwriteContrasts(GTM *GTM)
 }
 
 /*-------------------------------------------------------------------------*/
+/*
+  \fn int GTMcheckRefIds(GTM *gtm)
+  \brief Checks the segmentation IDs used for rescaling, MG, KM Ref, and KM HB
+  to make sure that they are in the segmentation.
+ */
 int GTMcheckRefIds(GTM *gtm)
 {
   int n,m,ok;
@@ -2475,7 +2577,11 @@ int GTMcheckRefIds(GTM *gtm)
   return(0);
 }
 
-/*-----------------------------------------------------------------------------------------*/
+/*
+  \fn int GTMprintRefIds(GTM *gtm, FILE *fp)
+  \brief Prints the segmentation IDs used for rescaling, MG, KM Ref, and KM HB
+  to the given FILE pointer.
+ */
 int GTMprintRefIds(GTM *gtm, FILE *fp)
 {
   int n;
@@ -2506,8 +2612,12 @@ int GTMprintRefIds(GTM *gtm, FILE *fp)
   fflush(fp);
   return(0);
 }
-
-/*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMrefTAC(GTM *gtm)
+  \brief Computes KM reference and hibinding TACs. Also writes them
+  to the output folder. The HB TAC is written as both an ascii file
+  and a nii.gz (the later needed for KM analysis with mri_glmfit)
+ */
 int GTMrefTAC(GTM *gtm)
 {
   int f,n,nthseg,segid;
@@ -2565,7 +2675,10 @@ int GTMrefTAC(GTM *gtm)
   return(0);
 }
 
-/*------------------------------------------------------------*/
+/*
+  \fn int GTMprintReplaceList(FILE *fp, const int nReplace, const int *ReplaceThis, const int *WithThat)
+  \brief Prints the replacement list to the FILE pointer.
+ */
 int GTMprintReplaceList(FILE *fp, const int nReplace, const int *ReplaceThis, const int *WithThat)
 {
   int n;
@@ -2574,7 +2687,11 @@ int GTMprintReplaceList(FILE *fp, const int nReplace, const int *ReplaceThis, co
   return(0);
 }
 
-/*------------------------------------------------------------*/
+/*
+  \fn int GTMcheckReplaceList(const int nReplace, const int *ReplaceThis, const int *WithThat)
+  \brief Checks replacement list to make sure that no item in ReplaceThis list appears in
+  the WithThat list.
+ */
 int GTMcheckReplaceList(const int nReplace, const int *ReplaceThis, const int *WithThat)
 {
   int n,m;
@@ -2589,7 +2706,12 @@ int GTMcheckReplaceList(const int nReplace, const int *ReplaceThis, const int *W
   return(0);
 }
 
-/*------------------------------------------------------------*/
+/*
+  \fn int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, int *WithThat)
+  \brief Loads in data from a file. The file should have two columns of numbers. The first
+  is the segmentation ID to replace the second is the segmentation ID to replace it with.
+  It will ignore any line that begins with a #. 
+ */
 int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, int *WithThat)
 {
   FILE *fp;
@@ -2628,6 +2750,14 @@ int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, in
   return(0);
 }
 /*------------------------------------------------------------*/
+/*
+  \fn int GTMautoMask(GTM *gtm)
+  \brief Computes a mask in PET space based on the segmentation and
+  smoothing level. Optionally, it reduces the FoV of PET to be tight
+  with the mask. If this is done, it recomputes the registration
+  matrices.  The header of the full FoV PET is kept in
+  gtm->yvol_full_fov but the pixel data are freed to reduce storage.
+*/
 int GTMautoMask(GTM *gtm)
 {
   LTA *lta,*pet2bbpet,*seg2bbpet,*anat2bbpet;
@@ -2680,7 +2810,16 @@ int GTMautoMask(GTM *gtm)
 
   return(0);
 }
-
+/*
+  \fn int GTMrvarGM(GTM *gtm)
+  \brief Computes residual variance only in GM structures. The measure
+  is not perfect because there will be spill-over from adjacent
+  structures. But it will not include much from outside of the head (as
+  the standard rvar measure will). The result is stored in
+  gtm->rvargm. This hard-codes GM as 1 and 2 in the tissue type CTAB.
+  Also writes rvar.gm.dat in the output folder. The value is computed
+  as the sum of res.^2 in GM divided by the number of GM voxels.x  
+*/
 int GTMrvarGM(GTM *gtm)
 {
   COLOR_TABLE *ct;
@@ -2696,6 +2835,7 @@ int GTMrvarGM(GTM *gtm)
     sum = 0;
     n = -1;
     nhits = 0;
+    // slice, col, row order is important here as is skipping the mask
     for(s=0; s < gtm->yvol->depth; s++){
       for(c=0; c < gtm->yvol->width; c++){
 	for(r=0; r < gtm->yvol->height; r++){
@@ -2703,7 +2843,7 @@ int GTMrvarGM(GTM *gtm)
 	  n++;
 	  segid = MRIgetVoxVal(gtm->gtmseg,c,r,s,0);
 	  tt = ct->entries[segid]->TissueType;
-	  if(tt != 1 && tt != 2) continue; // not GM
+	  if(tt != 1 && tt != 2) continue; // not GM (hardcoded)
 	  sum += ((double)gtm->res->rptr[n+1][f+1]*gtm->res->rptr[n+1][f+1]);
 	  nhits ++;
 	}
