@@ -1,12 +1,13 @@
 #!/bin/tcsh -f
 # bmedits2surf
 
-set VERSION = '$Id: bmedits2surf,v 1.1 2013/08/28 18:02:12 greve Exp $';
+set VERSION = '$Id: bmedits2surf,v 1.2 2014/05/14 21:02:42 greve Exp $';
 
 set subject = ();
 set hemilist = (lh rh);
 set UseFSA = 1; # target fsaverage, otherwise self
 set proj = (--projfrac-max 0 2 .3)
+set DoSurfs = 1;
 set Overwrite = 0;
 
 set tmpdir = ();
@@ -96,12 +97,15 @@ if($status) exit 1;
 
 # Extract voxels that have been erased
 set bmerase = $tmpdir/bm.erase.mgh
-set cmd = (mri_binarize --i $bm --match 1 --o $bmerase --mask $diff)
+set bmecount = $sd/stats/bm.erase.dat
+set cmd = (mri_binarize --i $bm --match 1 --o $bmerase --mask $diff \
+  --count $bmecount)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
 
 # Map erased voxels to the surface
+if($DoSurfs) then
 foreach hemi ($hemilist)
   set bmeditsurf = $sd/surf/$hemi.bmerase.mgh
   if($UseFSA) set bmeditsurf = $sd/surf/$hemi.bmerase.fsa.mgh
@@ -119,6 +123,7 @@ foreach hemi ($hemilist)
     if($status) exit 1;
   endif
 end
+endif
 
 # Remove the erased voxels from the diff to leave the cloned
 set bmclone = $tmpdir/bm.clone.mgh
@@ -127,7 +132,15 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
 
+# Count the number of cloned
+set bmccount = $sd/stats/bm.clone.dat
+set cmd = (mri_binarize --i $bmclone --match 1 --count $bmccount)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
 # Map cloned voxels to the surface
+if($DoSurfs) then
 foreach hemi ($hemilist)
   set bmeditsurf = $sd/surf/$hemi.bmclone.mgh
   if($UseFSA) set bmeditsurf = $sd/surf/$hemi.bmclone.fsa.mgh
@@ -145,6 +158,7 @@ foreach hemi ($hemilist)
     if($status) exit 1;
   endif
 end
+endif
 
 #========================================================
 
@@ -202,6 +216,10 @@ while( $#argv != 0 )
 
     case "--overwrite":
       set Overwrite = 1;
+      breaksw
+
+    case "--no-surfs":
+      set DoSurfs = 0;
       breaksw
 
     case "--no-overwrite":
@@ -283,6 +301,7 @@ usage_exit:
   echo " --overwrite : force overwriting of existing results"
   echo " --tmp tmpdir, --cleanup, --no-cleanup, --debug "
   echo " --lh, --rh : only do one hemi"
+  echo " --no-surfs : do not computes surfs, only stats"
   echo " "
   echo " --help : without it you are helpless"
   echo " "
@@ -308,6 +327,11 @@ These are binary masks on fsaverage space. They can be concatenated
 together to make maps of the likelyhood that a given spatial location
 is affected by a brainmask edit. Currently, this will not include
 changes to brainmask.finalsurfs.mgz.
+
+It will also create 
+  subject/stats/bmclone.dat
+  subject/stats/bmerase.dat
+The first number will be the number of voxels cloned/edited
 
 See also wmedits2surf
 
