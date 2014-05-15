@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/15 22:52:36 $
- *    $Revision: 1.89 $
+ *    $Date: 2014/05/15 23:15:52 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1689,5 +1689,6 @@ int PrintMemUsage(FILE *fp)
 
   fprintf(fp,"MEM: Size %d  Peak: %d   RSS: %d  Data: %d  Stk: %d\n",
 	  u[0],u[1],u[2],u[3],u[4]);
+  fflush(fp);
   return(0);
 }
