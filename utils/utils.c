@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 23:52:05 $
- *    $Revision: 1.88 $
+ *    $Date: 2014/05/15 22:52:36 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,8 @@
 #include <sys/param.h>
 #include <unistd.h>
 #include <time.h> /* msvc (dng) */
+#include <sys/resource.h>
+#include <errno.h>
 
 /* This should be in ctype.h, but the compiler complains */
 #ifndef Darwin
@@ -1650,4 +1652,42 @@ compute_permutation(int num, int *vec)
     vec[n] = tmp ;
   }
   return(vec) ;
+}
+
+int *GetMemUsage(int *u)
+{
+  FILE *fp;
+  static char tag[500];
+  int r;
+
+  if(u==NULL) u = (int*)calloc(sizeof(int),5);
+  fp = fopen("/proc/self/status","r");
+
+  while (1) {
+    r = fscanf(fp,"%s",tag);
+    if(r==EOF) break;
+    if(!strcasecmp(tag,"VmSize:")) fscanf(fp,"%d",&u[0]);
+    if(!strcasecmp(tag,"VmPeak:")) fscanf(fp,"%d",&u[1]);
+    if(!strcasecmp(tag,"VmRSS:"))  fscanf(fp,"%d",&u[2]);
+    if(!strcasecmp(tag,"VmData:")) fscanf(fp,"%d",&u[3]);
+    if(!strcasecmp(tag,"VmStk:"))  fscanf(fp,"%d",&u[4]);
+    fgets(tag,499,fp);
+  }
+  fclose(fp);
+  //printf("SPRDS: ");
+  //int k;
+  //for(k=0; k < 5; k++) printf("%d ",u[k]);
+  //printf("\n");
+
+  return(u);
+}
+
+int PrintMemUsage(FILE *fp)
+{
+  static int u[5];
+  GetMemUsage(u);
+
+  fprintf(fp,"MEM: Size %d  Peak: %d   RSS: %d  Data: %d  Stk: %d\n",
+	  u[0],u[1],u[2],u[3],u[4]);
+  return(0);
 }

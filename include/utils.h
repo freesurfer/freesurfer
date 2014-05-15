@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 23:52:04 $
- *    $Revision: 1.52 $
+ *    $Date: 2014/05/15 22:52:35 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -130,6 +130,8 @@ void exec_progress_callback(int slice, int total_slices, int frame, int total_fr
 
 
 int  *compute_permutation(int num, int *vec)  ;
+int *GetMemUsage(int *u);
+int PrintMemUsage(FILE *fp);
 
 #if defined(__cplusplus)
 };
