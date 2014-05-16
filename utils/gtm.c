@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/13 21:41:56 $
- *    $Revision: 1.6 $
+ *    $Date: 2014/05/16 23:00:30 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -580,7 +580,6 @@ int GTMfree(GTM **pGTM)
   MRIfree(&gtm->mask);
   MatrixFree(&gtm->X);
   MatrixFree(&gtm->y);
-  MatrixFree(&gtm->Xt);
   MatrixFree(&gtm->XtX);
   MatrixFree(&gtm->iXtX);
   MatrixFree(&gtm->Xty);
@@ -703,7 +702,6 @@ int GTMsolve(GTM *gtm)
     exit(1);
   }
 
-  gtm->Xt = MatrixTranspose(gtm->X,gtm->Xt);
   printf("Computing  XtX ... ");fflush(stdout);
   TimerStart(&timer);
   gtm->XtX = MatrixMtM(gtm->X,gtm->XtX);
@@ -715,7 +713,7 @@ int GTMsolve(GTM *gtm)
     printf("ERROR: matrix cannot be inverted, cond=%g\n",gtm->XtXcond);
     return(1);
   }
-  gtm->Xty = MatrixMultiplyD(gtm->Xt,gtm->y,gtm->Xty);
+  gtm->Xty  = MatrixAtB(gtm->X,gtm->y,gtm->Xty);
   gtm->beta = MatrixMultiplyD(gtm->iXtX,gtm->Xty,gtm->beta);
   if(gtm->rescale) GTMrescale(gtm);
   gtm->yhat = MatrixMultiplyD(gtm->X,gtm->beta,gtm->yhat);
@@ -860,7 +858,11 @@ int GTMsegrvar(GTM *gtm)
   of the output to a bounding box that tightly fits around the brain to
   reduce memory and disk space. The output shares a RAS space with the 
   anatseg (which shares a RAS space with the conformed anat) so a new
-  registration is not needed.
+  registration is not needed. This is a re-write of GTMrbv0(), which
+  did not manage memory very well. The RBV volume output is identical.
+  Note: gtm->rbvsegmean is the mean input inside each seg for the RBV.
+  It is a QA metric to compare against the GTM. If masking, it will 
+  not be accurate for segs outside the brain.
  */
 int GTMrbv(GTM *gtm)
 {
@@ -869,17 +871,184 @@ int GTMrbv(GTM *gtm)
   LTA *lta;
   struct timeb mytimer;
   MATRIX *nhits;
+  MRI *yframe=NULL;
+  MRI_REGION *region=NULL;
+  MRI *segbrain=NULL;
+  MRI *yseg=NULL; // source volume trilin resampled to seg space (used with RBV)
+  MRI *yhat0seg=NULL; // unsmoothed yhat created in seg space (used with RBV)
+  MRI *yhatseg=NULL;  // smoothed yhat in seg space (used with RBV)
 
   if(gtm->rbv)      MRIfree(&gtm->rbv);
-  if(gtm->yhat0seg) MRIfree(&gtm->yhat0seg);
-  if(gtm->yhatseg)  MRIfree(&gtm->yhatseg);
-  if(gtm->yseg)     MRIfree(&gtm->yseg);
+
+  TimerStart(&mytimer) ; 
+
+  if(gtm->mask_rbv_to_brain){
+    // Reduce RBV to a tight bounding box around the brain by excluding anything
+    // with "head" tissue type (hardcoded=5). This can greatly reduce 
+    // memory requirements. The RAS space is still that of the anatseg
+    // (and so also that of the conformed anat) so no new registration is necessary
+    printf("   masking RBV to brain\n");
+    PrintMemUsage(stdout);
+    int n, nReplace, ReplaceThis[1000], WithThat[1000];
+    nReplace = 0;
+    for(n=0; n < gtm->ctGTMSeg->nentries; n++){
+      if(gtm->ctGTMSeg->entries[n] == NULL)  continue;
+      if(gtm->ctGTMSeg->entries[n]->TissueType != 5) continue; // should not hard-code
+      ReplaceThis[nReplace] = n;
+      WithThat[nReplace] = 0;
+      nReplace++;
+    }
+    printf("  replacing head voxels with 0\n");
+    segbrain = MRIreplaceList(gtm->anatseg, ReplaceThis, WithThat, nReplace, NULL);
+    printf("  computing bounding box  %d %d %d ",gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth);
+    region = REGIONgetBoundingBox(segbrain,10);
+    REGIONprint(stdout, region);
+    MRI *tmp = MRIextractRegion(segbrain, NULL, region);
+    MRIfree(&segbrain);
+    segbrain = tmp;
+  }
+  else segbrain = gtm->anatseg;
+
+  printf("   Allocating RBV nvox=%d\n",segbrain->width*segbrain->height*segbrain->depth*gtm->nframes);
+  fflush(stdout);
+  PrintMemUsage(stdout);
+  gtm->rbv = MRIallocSequence(segbrain->width, segbrain->height, segbrain->depth,
+				MRI_FLOAT, gtm->nframes);
+  if(gtm->rbv == NULL){
+    printf("ERROR: GTMrbv() could not alloc rbv\n");
+    return(1);
+  }
+  MRIcopyHeader(segbrain,gtm->rbv);
+  MRIcopyPulseParameters(gtm->yvol,gtm->rbv);
+  PrintMemUsage(stdout);
+  if(gtm->mask_rbv_to_brain) MRIfree(&segbrain);
+
+  // must be in anatseg space
+  yseg = MRIallocSequence(gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth, MRI_FLOAT, 1);
+  if(yseg == NULL){
+    printf("ERROR: GTMrbv() could not alloc yseg\n");
+    return(1);
+  }
+  MRIcopyHeader(gtm->anatseg,yseg);
+  MRIcopyPulseParameters(gtm->yvol,yseg);
+
+  // Keep track of segmeans in RBV for QA
+  gtm->rbvsegmean = MRIallocSequence(gtm->nsegs,1,1,MRI_FLOAT,gtm->nframes);
+
+  printf("RBV looping over %d frames, t = %4.2f min \n",gtm->nframes,TimerStop(&mytimer)/60000.0);fflush(stdout);
+  for(f=0; f < gtm->nframes; f++){
+    printf("   f=%d t = %4.2f\n",f,TimerStop(&mytimer)/60000.0);fflush(stdout);
+    yframe = fMRIframe(gtm->yvol,f,yframe); 
+
+    printf("   Synthesizing unsmoothed input in seg space %4.2f \n",TimerStop(&mytimer)/60000.0);fflush(stdout);
+    PrintMemUsage(stdout);
+    yhat0seg = GTMsegSynth(gtm,f,yhat0seg);
+    if(yhat0seg == NULL){
+      printf("ERROR: GTMrbv() could not synthesize yhat0seg\n");
+      return(1);
+    }
+
+    printf("   Smoothing synthesized in seg space %4.2f \n",TimerStop(&mytimer)/60000.0);fflush(stdout);
+    PrintMemUsage(stdout);
+    yhatseg = MRIgaussianSmoothNI(yhat0seg, gtm->cStd, gtm->rStd, gtm->sStd, yhatseg);
+    if(yhatseg == NULL){
+      printf("ERROR: GTMrbv() could not smooth yhatseg\n");
+      return(1);
+    }
+
+    printf("   Sampling input to seg space with trilin %4.2f \n",TimerStop(&mytimer)/60000.0);fflush(stdout);
+    PrintMemUsage(stdout);
+    lta = LTAcopy(gtm->seg2pet,NULL);
+    LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+    MRIvol2Vol(yframe,yseg,(lta->xforms[0].m_L),SAMPLE_TRILINEAR, 0.0);
+    LTAfree(&lta);
+
+    printf("   Computing RBV %4.2f \n",TimerStop(&mytimer)/60000.0);fflush(stdout);
+    PrintMemUsage(stdout);
+    nhits = MatrixAlloc(gtm->beta->rows,1,MATRIX_REAL);
+    for(c=0; c < gtm->anatseg->width; c++){ // crs order not important
+      for(r=0; r < gtm->anatseg->height; r++){
+	for(s=0; s < gtm->anatseg->depth; s++){
+	  segid = MRIgetVoxVal(gtm->anatseg,c,r,s,0);
+	  if(segid < 0.5) continue;
+
+	  if(gtm->mask_rbv_to_brain){
+	    if(c < region->x || c >= region->x+region->dx)  continue;
+	    if(r < region->y || r >= region->y+region->dy)  continue;
+	    if(s < region->z || s >= region->z+region->dz)  continue;
+	  }
+
+	  for(nthseg=0; nthseg < gtm->nsegs; nthseg++) if(gtm->segidlist[nthseg] == segid) break;
+	  if(f==0) nhits->rptr[nthseg+1][1] ++;
+
+	  v     = MRIgetVoxVal(yseg,c,r,s,0);
+	  vhat0 = MRIgetVoxVal(yhat0seg,c,r,s,0);
+	  vhat  = MRIgetVoxVal(yhatseg,c,r,s,0);
+	  val = v*vhat0/(vhat+FLT_EPSILON); // RBV equation
+	  if(gtm->mask_rbv_to_brain)
+	    MRIsetVoxVal(gtm->rbv,c-region->x,r-region->y,s-region->z,f,val);
+	  else
+	    MRIsetVoxVal(gtm->rbv,c,r,s,f,val);
+
+	  // track seg means for QA. Head Segs won't reflect QA if masking
+	  v2 = MRIgetVoxVal(gtm->rbvsegmean,nthseg,0,0,f); 
+	  MRIsetVoxVal(gtm->rbvsegmean,nthseg,0,0,f,v2+val);
+
+	}
+      }
+    }
+  }
+  PrintMemUsage(stdout);
+  printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
+  MRIfree(&yseg);
+  MRIfree(&yhat0seg);
+  MRIfree(&yhatseg);
+  MRIfree(&yframe);
+  if(gtm->mask_rbv_to_brain) free(region); 
+
+  // track seg means for QA
+  for(nthseg=0; nthseg < gtm->nsegs; nthseg++){
+    for(f=0; f < gtm->nframes; f++){
+      val = MRIgetVoxVal(gtm->rbvsegmean,nthseg,0,0,f)/nhits->rptr[nthseg+1][1];
+      MRIsetVoxVal(gtm->rbvsegmean,nthseg,0,0,f,val);
+    }
+  }
+  MatrixFree(&nhits);
+
+
+  PrintMemUsage(stdout);
+  printf("  RBV took %4.2f min\n",TimerStop(&mytimer)/60000.0);
+
+  return(0);
+}
+
+/*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMrbv0(GTM *gtm)
+  \brief Performs Region-based Voxel-wise PVF correction. Can reduce the FoV
+  of the output to a bounding box that tightly fits around the brain to
+  reduce memory and disk space. The output shares a RAS space with the 
+  anatseg (which shares a RAS space with the conformed anat) so a new
+  registration is not needed. Use GTMrbv() instead since it manages
+  memory much better and provides the same output.
+ */
+int GTMrbv0(GTM *gtm)
+{
+  int c,r,s,f,nthseg,segid;
+  double val,v,vhat0,vhat,v2;
+  LTA *lta;
+  struct timeb mytimer;
+  MATRIX *nhits;
+  MRI *yseg; // source volume trilin resampled to seg space (used with RBV)
+  MRI *yhat0seg; // unsmoothed yhat created in seg space (used with RBV)
+  MRI *yhatseg;  // smoothed yhat in seg space (used with RBV)
 
   TimerStart(&mytimer) ; 
 
   printf("   Synthesizing unsmoothed input in seg space... ");fflush(stdout);
-  gtm->yhat0seg = GTMsegSynth(gtm);
-  if(gtm->yhat0seg == NULL){
+  PrintMemUsage(stdout);
+  yhat0seg = GTMsegSynth(gtm,-1,NULL);
+  if(yhat0seg == NULL){
     printf("ERROR: GTMrbv() could not synthesize yhat0seg\n");
     return(1);
   }
@@ -887,30 +1056,34 @@ int GTMrbv(GTM *gtm)
 
 
   printf("   Smoothing synthesized in seg space... ");fflush(stdout);
-  gtm->yhatseg = MRIgaussianSmoothNI(gtm->yhat0seg, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
-  if(gtm->yhatseg == NULL){
+  PrintMemUsage(stdout);
+  yhatseg = MRIgaussianSmoothNI(yhat0seg, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  if(yhatseg == NULL){
     printf("ERROR: GTMrbv() could not smooth yhatseg\n");
     return(1);
   }
   printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
 
   printf("   Sampling input to seg space with trilin... ");fflush(stdout);
-  gtm->yseg = MRIallocSequence(gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth,
+  PrintMemUsage(stdout);
+  yseg = MRIallocSequence(gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth,
 			      MRI_FLOAT, gtm->yvol->nframes);
-  if(gtm->yseg == NULL){
+  if(yseg == NULL){
     printf("ERROR: GTMrbv() could not alloc yseg\n");
     return(1);
   }
-  MRIcopyHeader(gtm->anatseg,gtm->yseg);
-  MRIcopyPulseParameters(gtm->yvol,gtm->yseg);
+  MRIcopyHeader(gtm->anatseg,yseg);
+  MRIcopyPulseParameters(gtm->yvol,yseg);
   printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
 
   lta = LTAcopy(gtm->seg2pet,NULL);
   LTAchangeType(lta,LINEAR_VOX_TO_VOX);
-  MRIvol2Vol(gtm->yvol,gtm->yseg,(lta->xforms[0].m_L),SAMPLE_TRILINEAR, 0.0);
+  PrintMemUsage(stdout);
+  MRIvol2Vol(gtm->yvol,yseg,(lta->xforms[0].m_L),SAMPLE_TRILINEAR, 0.0);
   LTAfree(&lta);
 
   printf("   Computing RBV ... ");fflush(stdout);
+  PrintMemUsage(stdout);
   gtm->rbv = MRIallocSequence(gtm->anatseg->width, gtm->anatseg->height, gtm->anatseg->depth,
 			      MRI_FLOAT, gtm->yvol->nframes);
   if(gtm->rbv == NULL){
@@ -920,6 +1093,7 @@ int GTMrbv(GTM *gtm)
   MRIcopyHeader(gtm->anatseg,gtm->rbv);
   MRIcopyPulseParameters(gtm->yvol,gtm->rbv);
 
+  PrintMemUsage(stdout);
   gtm->rbvsegmean = MRIallocSequence(gtm->nsegs,1,1,MRI_FLOAT,gtm->yvol->nframes);
   nhits = MatrixAlloc(gtm->beta->rows,1,MATRIX_REAL);
   for(s=0; s < gtm->anatseg->depth; s++){ // crs order not important
@@ -930,9 +1104,9 @@ int GTMrbv(GTM *gtm)
 	for(nthseg=0; nthseg < gtm->nsegs; nthseg++) if(gtm->segidlist[nthseg] == segid) break;
 	nhits->rptr[nthseg+1][1] ++;
 	for(f=0; f < gtm->yvol->nframes; f++){
-	  v     = MRIgetVoxVal(gtm->yseg,c,r,s,f);
-	  vhat0 = MRIgetVoxVal(gtm->yhat0seg,c,r,s,f);
-	  vhat  = MRIgetVoxVal(gtm->yhatseg,c,r,s,f);
+	  v     = MRIgetVoxVal(yseg,c,r,s,f);
+	  vhat0 = MRIgetVoxVal(yhat0seg,c,r,s,f);
+	  vhat  = MRIgetVoxVal(yhatseg,c,r,s,f);
 	  val = v*vhat0/(vhat+FLT_EPSILON); // RBV equation
 	  MRIsetVoxVal(gtm->rbv,c,r,s,f,val);
 	  v2 = MRIgetVoxVal(gtm->rbvsegmean,nthseg,0,0,f); // track seg means for QA
@@ -941,9 +1115,10 @@ int GTMrbv(GTM *gtm)
       }
     }
   }
-  MRIfree(&gtm->yseg);
-  MRIfree(&gtm->yhat0seg);
-  MRIfree(&gtm->yhatseg);
+  PrintMemUsage(stdout);
+  MRIfree(&yseg);
+  MRIfree(&yhat0seg);
+  MRIfree(&yhatseg);
   printf("  t = %4.2f min\n",TimerStop(&mytimer)/60000.0);fflush(stdout);
 
   // track seg means for QA
@@ -960,6 +1135,7 @@ int GTMrbv(GTM *gtm)
     // memory requirements. The RAS space is still that of the anatseg
     // (and so also that of the conformed anat) so no new registration is necessary
     printf("   masking RBV to brain\n");
+    PrintMemUsage(stdout);
     int n, nReplace, ReplaceThis[1000], WithThat[1000];
     MRI *segtmp,*rbvtmp;
     MRI_REGION *region;
@@ -983,6 +1159,7 @@ int GTMrbv(GTM *gtm)
     MRIfree(&gtm->rbv);
     gtm->rbv = rbvtmp;
   }
+  PrintMemUsage(stdout);
   printf("  RBV took %4.2f min\n",TimerStop(&mytimer)/60000.0);
 
   return(0);
@@ -1208,22 +1385,28 @@ int GTMbuildX(GTM *gtm)
 
 /*--------------------------------------------------------------------------*/
 /*
-  \fn MRI *GTMsegSynth(GTM *gtm)
+  \fn MRI *GTMsegSynth(GTM *gtm, int frame, MRI *synth)
   \brief Creates a volume that is the same size as the anatseg in which the value
   at a voxel equals the beta of the seg ID at that voxel. This is used for RBV.
+  If frame < 0, then all frames are are computed. If frame >= 0, then synth
+  will have only one frame reprsenting the passed frame.
 */
-MRI *GTMsegSynth(GTM *gtm)
+MRI *GTMsegSynth(GTM *gtm, int frame, MRI *synth)
 {
-  int c,r,s,f,segid,segno;
-  MRI *synth;
+  int c,r,s,f,segid,segno,nframes;
 
-  synth = MRIallocSequence(gtm->anatseg->width,gtm->anatseg->height,gtm->anatseg->depth,MRI_FLOAT,gtm->beta->cols);
+  if(frame < 0) nframes = gtm->nframes;
+  else          nframes = 1;
+
   if(synth == NULL){
-    printf("ERROR: GTMsegSynth(): could not alloc\n");
-    return(NULL);
+    synth = MRIallocSequence(gtm->anatseg->width,gtm->anatseg->height,gtm->anatseg->depth,MRI_FLOAT,nframes);
+    if(synth == NULL){
+      printf("ERROR: GTMsegSynth(): could not alloc %d frames\n",nframes);
+      return(NULL);
+    }
+    MRIcopyHeader(gtm->anatseg,synth);
+    MRIcopyPulseParameters(gtm->yvol,synth);
   }
-  MRIcopyHeader(gtm->anatseg,synth);
-  MRIcopyPulseParameters(gtm->yvol,synth);
 
   for(c=0; c < gtm->anatseg->width; c++){ // crs order does not matter here
     for(r=0; r < gtm->anatseg->height; r++){
@@ -1237,8 +1420,11 @@ MRI *GTMsegSynth(GTM *gtm)
 	  for(segno=0; segno < gtm->nsegs; segno++) printf("%3d %5d\n",segno,gtm->segidlist[segno]);
 	  return(NULL);
 	}
-	for(f=0; f < gtm->beta->cols; f++)
-	  MRIsetVoxVal(synth,c,r,s,f,gtm->beta->rptr[segno+1][f+1]);
+	if(frame < 0){
+	  for(f=0; f < gtm->beta->cols; f++)
+	    MRIsetVoxVal(synth,c,r,s,f,gtm->beta->rptr[segno+1][f+1]);
+	}
+	else MRIsetVoxVal(synth,c,r,s,0,gtm->beta->rptr[segno+1][frame+1]);
       }
     }
   }
@@ -1734,7 +1920,7 @@ int GTMrvarGM(GTM *gtm)
       }
     }
     gtm->rvargm->rptr[1][f+1] = sum/nhits;
-    printf("rvargm %2d %6.4f\n",f,gtm->rvargm->rptr[1][f+1]);
+    if(f==0) printf("rvargm %2d %6.4f\n",f,gtm->rvargm->rptr[1][f+1]);
   }
 
   sprintf(tmpstr,"%s/rvar.gm.dat",gtm->OutDir);

@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/13 21:41:56 $
- *    $Revision: 1.5 $
+ *    $Date: 2014/05/16 23:00:29 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,6 +77,7 @@ typedef struct
   MRI *mask;     // binary mask in PET space
   double cFWHM, rFWHM, sFWHM; // assumed FWHM of PSF
   double cStd, rStd, sStd; // PSF FWHM converted to standard dev
+  int nframes; // one place to get the number of input frames
 
   double automask_fwhm,automask_thresh; // Use this FWHM instead of PSF when computing mask
   int automask_reduce_fov; // Flag: reduce PET FoV to be tight to mask.
@@ -103,7 +104,7 @@ typedef struct
 
   // GLM stuff for GTM
   MATRIX *X,*X0;
-  MATRIX *y,*Xt, *XtX, *iXtX, *Xty, *beta, *res, *yhat,*betavar;
+  MATRIX *y, *XtX, *iXtX, *Xty, *beta, *res, *yhat,*betavar;
   MATRIX *rvar,*rvargm; // residual variance, all vox and only GM
   int dof;
   double XtXcond;
@@ -116,9 +117,6 @@ typedef struct
 
   MRI *rbv; // RBV computed volume
   int mask_rbv_to_brain; // Reduce FoV of RBV to be tight to brain
-  MRI *yseg; // source volume trilin resampled to seg space (used with RBV)
-  MRI *yhat0seg; // unsmoothed yhat created in seg space (used with RBV)
-  MRI *yhatseg;  // smoothed yhat in seg space (used with RBV)
   MRI *rbvsegmean; // seg mean in RBV, used for QA
 
   int DoMGPVC; // Muller-Gartner
@@ -157,7 +155,7 @@ int GTMsolve(GTM *gtm);
 int GTMsegrvar(GTM *gtm);
 int GTMsynth(GTM *gtm);
 int GTMsmoothSynth(GTM *gtm);
-MRI *GTMsegSynth(GTM *gtm);
+MRI *GTMsegSynth(GTM *gtm, int frame, MRI *synth);
 int GTMrbv(GTM *gtm);
 int GTMmgpvc(GTM *gtm);
 MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m);
