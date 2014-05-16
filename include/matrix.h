@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/16 16:27:18 $
- *    $Revision: 1.86 $
+ *    $Date: 2014/05/16 22:19:03 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,9 +96,10 @@ MATRIX  *MatrixRead(const char *fname) ;
 int     MatrixWrite(MATRIX *mIn,const char *fname, const char *name) ;
 MATRIX  *MatrixIdentity(int n, MATRIX *mI) ;
 int     MatrixPrint(FILE *fp, const MATRIX *mat) ;
-int MatrixPrintFmt(FILE *fp,const char *fmt, MATRIX *mat);
+int     MatrixPrintFmt(FILE *fp,const char *fmt, MATRIX *mat);
 int     MatrixPrintOneLine(FILE *fp, MATRIX *mat) ;
 int     MatrixPrintTranspose(FILE *fp, MATRIX *mat) ;
+int     MatrixPrintWithString(FILE *fp, MATRIX *m, char *Pre, char *Post);
 MATRIX  *MatrixTranspose(MATRIX *mIn, MATRIX *mOut) ;
 MATRIX  *MatrixAdd( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
 MATRIX  *MatrixSubtract( const MATRIX *m1, const MATRIX *m2, MATRIX *mOut) ;
@@ -307,6 +308,7 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout);
 MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout);
 MATRIX *MatrixSkew(MATRIX *y, MATRIX *s);
 MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k);
+double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh);
 
 #if defined(__cplusplus)
 };

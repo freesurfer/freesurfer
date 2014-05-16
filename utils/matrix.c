@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/16 16:27:18 $
- *    $Revision: 1.144 $
+ *    $Date: 2014/05/16 22:19:03 $
+ *    $Revision: 1.145 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -406,18 +406,14 @@ MATRIX *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
   register double val;
   MATRIX   *m_tmp1 = NULL, *m_tmp2 = NULL ;
 
-  if (!m1)
-    ErrorExit(ERROR_BADPARM,
-              "MatrixMultiply: m1 is null!\n") ;
-  if (!m2)
-    ErrorExit(ERROR_BADPARM,
-              "MatrixMultiply: m2 is null!\n") ;
-
-  if (m1->cols != m2->rows)
-    ErrorReturn(NULL,
-                (ERROR_BADPARM,
-                 "MatrixMultiply: m1 cols %d does not match m2 rows %d\n",
-                 m1->cols, m2->rows)) ;
+  if (!m1) ErrorExit(ERROR_BADPARM,"MatrixMultiplyD(): m1 is null!\n") ;
+  if (!m2) ErrorExit(ERROR_BADPARM,"MatrixMultiplyD(): m2 is null!\n") ;
+  if (m1->cols != m2->rows){
+    char tmpstr[500];
+    sprintf(tmpstr,"MatrixMultiplyD(): m1 cols %d does not match m2 rows %d\n %s %d\n",
+	    m1->cols, m2->rows,__FILE__,__LINE__);
+    ErrorReturn(NULL,(ERROR_BADPARM,"%s",tmpstr));
+  }
 
   if (!m3)
   {
@@ -723,6 +719,15 @@ int MatrixPrint(FILE *fp, const MATRIX *mat)
   return(NO_ERROR) ;
 }
 
+int MatrixPrintWithString(FILE *fp, MATRIX *m, char *Pre, char *Post)
+{
+  int err;
+  fprintf(fp,"%s",Pre);
+  err = MatrixPrint(fp, m);
+  fprintf(fp,"%s",Post);
+  fflush(fp);
+  return(err);
+}
 
 int MatrixPrintFmt(FILE *fp, const char *fmt, MATRIX *mat)
 {
@@ -4594,4 +4599,28 @@ MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
   }
 
   return(mout);
+}
+/*
+  \fn double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh)
+  \brief Computes the maximum element by element absolute difference
+  between two matrices. If dthresh is > 0, then prints more info about
+  each element whose diff is > dthresh
+*/
+double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh)
+{
+  int r,c;
+  double d,dmax;
+  if(m1->rows != m2->rows || m1->cols != m2->cols){
+    printf("ERROR: MatrixMaxAbsDiff(): dim mismatch\n");
+    return(-1);
+  }
+  dmax = 0;
+  for(r=1; r <= m1->rows; r++){
+    for(c=1; c <= m1->cols; c++){
+      d = (double)m1->rptr[r][c]-m2->rptr[r][c];
+      if(dthresh > 0 && fabs(d) > dthresh) printf("%5d %5d %lf %g %g\n",r,c,d,m1->rptr[r][c],m2->rptr[r][c]);
+      if(dmax < fabs(d)) dmax = fabs(d);
+    }
+  }
+  return(dmax);
 }
