@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/05/10 00:36:08 $
- *    $Revision: 1.539 $
+ *    $Author: greve $
+ *    $Date: 2014/05/16 22:21:17 $
+ *    $Revision: 1.540 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.539 $";
+const char *MRI_C_VERSION = "$Revision: 1.540 $";
 
 
 /*-----------------------------------------------------
@@ -166,21 +166,21 @@ MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
 
   /* direction cosine between columns scaled by
      distance between colums */
-  *MATRIX_RELT(m, 1, 1) = mri->x_r * mri->xsize;
-  *MATRIX_RELT(m, 2, 1) = mri->x_a * mri->xsize;
-  *MATRIX_RELT(m, 3, 1) = mri->x_s * mri->xsize;
+  *MATRIX_RELT(m, 1, 1) = (double) mri->x_r * mri->xsize;
+  *MATRIX_RELT(m, 2, 1) = (double) mri->x_a * mri->xsize;
+  *MATRIX_RELT(m, 3, 1) = (double) mri->x_s * mri->xsize;
 
   /* direction cosine between rows scaled by
      distance between rows */
-  *MATRIX_RELT(m, 1, 2) = mri->y_r * mri->ysize;
-  *MATRIX_RELT(m, 2, 2) = mri->y_a * mri->ysize;
-  *MATRIX_RELT(m, 3, 2) = mri->y_s * mri->ysize;
+  *MATRIX_RELT(m, 1, 2) = (double) mri->y_r * mri->ysize;
+  *MATRIX_RELT(m, 2, 2) = (double) mri->y_a * mri->ysize;
+  *MATRIX_RELT(m, 3, 2) = (double) mri->y_s * mri->ysize;
 
   /* direction cosine between slices scaled by
      distance between slices */
-  *MATRIX_RELT(m, 1, 3) = mri->z_r * mri->zsize;
-  *MATRIX_RELT(m, 2, 3) = mri->z_a * mri->zsize;
-  *MATRIX_RELT(m, 3, 3) = mri->z_s * mri->zsize;
+  *MATRIX_RELT(m, 1, 3) = (double) mri->z_r * mri->zsize;
+  *MATRIX_RELT(m, 2, 3) = (double) mri->z_a * mri->zsize;
+  *MATRIX_RELT(m, 3, 3) = (double) mri->z_s * mri->zsize;
 
   /* Preset the offsets to 0 */
   *MATRIX_RELT(m, 1, 4) = 0.0;
@@ -197,21 +197,21 @@ MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
 
   /* Col, Row, Slice at the Center of the Volume */
   Pcrs = MatrixAlloc(4, 1, MATRIX_REAL);
-  *MATRIX_RELT(Pcrs, 1, 1) = mri->width/2.0  + base;
-  *MATRIX_RELT(Pcrs, 2, 1) = mri->height/2.0 + base;
-  *MATRIX_RELT(Pcrs, 3, 1) = mri->depth/2.0  + base;
+  *MATRIX_RELT(Pcrs, 1, 1) = (double) mri->width/2.0  + base;
+  *MATRIX_RELT(Pcrs, 2, 1) = (double) mri->height/2.0 + base;
+  *MATRIX_RELT(Pcrs, 3, 1) = (double) mri->depth/2.0  + base;
   *MATRIX_RELT(Pcrs, 4, 1) = 1.0;
 
   /* XYZ offset the first Col, Row, and Slice from Center */
   /* PxyzOffset = Mdc*D*PcrsCenter */
-  PxyzOffset = MatrixMultiply(m,Pcrs,NULL);
+  PxyzOffset = MatrixMultiplyD(m,Pcrs,NULL);
 
   /* XYZ at the Center of the Volume is mri->c_r, c_a, c_s  */
 
   /* The location of the center of the voxel at CRS = (0,0,0)*/
-  *MATRIX_RELT(m, 1, 4) = mri->c_r - PxyzOffset->rptr[1][1];
-  *MATRIX_RELT(m, 2, 4) = mri->c_a - PxyzOffset->rptr[2][1];
-  *MATRIX_RELT(m, 3, 4) = mri->c_s - PxyzOffset->rptr[3][1];
+  *MATRIX_RELT(m, 1, 4) = (double) mri->c_r - PxyzOffset->rptr[1][1];
+  *MATRIX_RELT(m, 2, 4) = (double) mri->c_a - PxyzOffset->rptr[2][1];
+  *MATRIX_RELT(m, 3, 4) = (double) mri->c_s - PxyzOffset->rptr[3][1];
 
   MatrixFree(&Pcrs);
   MatrixFree(&PxyzOffset);
