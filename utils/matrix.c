@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/10 19:32:23 $
- *    $Revision: 1.142 $
+ *    $Date: 2014/05/16 15:19:49 $
+ *    $Revision: 1.143 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4491,7 +4491,7 @@ MATRIX *MatrixSkew(MATRIX *y, MATRIX *s)
     m3 /= n;
     if(m2 != 0) g1 = adj*m3/pow(m2,1.5);
     else        g1 = 0;
-    printf("skew: %2d mn=%g, m2=%g, m3=%g g1=%g\n",c,mn,m2,m3,g1);
+    //printf("skew: %2d mn=%g, m2=%g, m3=%g g1=%g\n",c,mn,m2,m3,g1);
     s->rptr[1][c+1] = g1;
   }
   return(s);
@@ -4512,7 +4512,7 @@ MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k)
   n = y->rows;
   b1 = (n+1)*(n-1)/((n-2)*(n-3));
   b2 = ((n-1)*(n-1))/((n-2)*(n-3));
-  printf("kurt: n=%d, b1=%g b2=%g\n",(int)n,b1,b2);
+  //printf("kurt: n=%d, b1=%g b2=%g\n",(int)n,b1,b2);
 
   for(c=0; c < y->cols; c++){
     mn = 0;
@@ -4529,7 +4529,7 @@ MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k)
     // Formula below usually has a +3, but this is left off so that k has 0 mean
     if(m2 != 0) g2 = b1*(m4/(m2*m2)) - 3*b2;
     else        g2 = 0;
-    printf("kurt: %2d mn=%g, m2=%g, m4=%g, g2=%g\n",c,mn,m2,m4,g2);
+    //printf("kurt: %2d mn=%g, m2=%g, m4=%g, g2=%g\n",c,mn,m2,m4,g2);
     k->rptr[1][c+1] = g2;
   }
   return(k);
