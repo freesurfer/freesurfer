@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/13 21:41:56 $
- *    $Revision: 1.12 $
+ *    $Date: 2014/05/16 23:02:21 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.12 2014/05/13 21:41:56 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.13 2014/05/16 23:02:21 greve Exp $
 
 /*
   BEGINHELP
@@ -91,7 +91,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.12 2014/05/13 21:41:56 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.13 2014/05/16 23:02:21 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -233,9 +233,12 @@ int main(int argc, char *argv[])
   // Load seg
   TimerStart(&mytimer);
   printf("Loading seg for gtm %s\n",SegVolFile);fflush(stdout);
+  PrintMemUsage(stdout);
   fprintf(logfp,"Loading seg for gtm %s\n",SegVolFile);fflush(logfp);
   gtm->anatseg = MRIread(SegVolFile);
   if(gtm->anatseg==NULL) exit(1);
+  printf("  done loading seg\n");fflush(stdout);
+  PrintMemUsage(stdout);
 
   stem = IDstemFromName(SegVolFile);
   sprintf(tmpstr,"%s.ctab",stem);
@@ -243,6 +246,7 @@ int main(int argc, char *argv[])
   fprintf(logfp,"Loading ctab %s\n",tmpstr);fflush(logfp);
   gtm->ctGTMSeg = CTABreadASCII(tmpstr);
   if(gtm->ctGTMSeg == NULL) exit(1);
+  printf("  done loading ctab\n");fflush(stdout);
 
   sprintf(tmpstr,"%s.lta",stem);
   if(fio_FileExistsReadable(tmpstr)){
@@ -265,8 +269,9 @@ int main(int argc, char *argv[])
   }
 
   if(gtm->nReplace > 0) {
-    printf("Replacing %d\n",gtm->nReplace);
+    printf("Replacing %d\n",gtm->nReplace);fflush(stdout);
     mritmp = MRIreplaceList(gtm->anatseg, gtm->SrcReplace, gtm->TrgReplace, gtm->nReplace, NULL);
+    printf("  done replacing\n");fflush(stdout);
     MRIfree(&gtm->anatseg);
     gtm->anatseg = mritmp;
     sprintf(tmpstr,"%s/seg.replace.list",OutDir);
@@ -279,7 +284,9 @@ int main(int argc, char *argv[])
     fprintf(logfp,"Failed tissue type check\n");
     exit(1);
   }
+  printf("Pruning ctab\n"); fflush(stdout);
   gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
+  printf("  done pruning ctab\n"); fflush(stdout);
 
   if(ttReduce > 0) {
     MRI *ttseg;
@@ -326,8 +333,13 @@ int main(int argc, char *argv[])
     }
   }
   else if(AutoMask){
-    printf("Computing auto mask \n");
+    printf("Computing auto mask \n");fflush(stdout);
+    PrintMemUsage(stdout);
+    PrintMemUsage(logfp);
     GTMautoMask(gtm);
+    printf("  done auto mask \n");fflush(stdout);
+    PrintMemUsage(stdout);
+    PrintMemUsage(logfp);
     sprintf(tmpstr,"%s/mask.nii.gz",OutDir);
     MRIwrite(gtm->mask,tmpstr);
   }
@@ -339,7 +351,9 @@ int main(int argc, char *argv[])
 
   GTMsetNMask(gtm);
   GTMsegidlist(gtm);
+
   GTMmatrixY(gtm);
+
   printf("nmask = %d, nsegs = %d, excluding segid=0\n",gtm->nmask,gtm->nsegs);
   printf("FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
   printf("Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
@@ -367,52 +381,57 @@ int main(int argc, char *argv[])
   GTMprintRefIds(gtm, stdout);
   GTMprintRefIds(gtm, logfp);
 
-  if(DoOpt){
-  printf("\nRunning optimization\n");
-  gtmopt = (GTMOPT *) calloc(sizeof(GTMOPT),1);
-  gtmopt->anat2pet0 = LTAread("register.lta");
-  gtmopt->anat2pet  = LTAcopy(gtmopt->anat2pet0,NULL);
-  gtmopt->gtm = gtm;
-  GTMOPTsetup(gtmopt);
-  gtmopt_powell = gtmopt;
-  MinPowell();
-  LTAwrite(gtmopt->anat2pet,"gtmopt.reg.lta");
-  //for(f=0; f < 100; f++){
-  //printf("#@# %d ------------------------------------------\n",f);
-  //GTMOPTcost(gtmopt);
-  //}
-  printf("Done optimization\n\n");
-  //exit(1);
-  }
-
   /* Create the "SegPVF". This is a multi-frame volume, each frame corresponds to a
      different Seg ID. The value is the PVF of that SegID. This is independent of
      the PSF (but accounts for the volume fraction effect). */
   printf("Computing Seg PVF \n");fflush(stdout);
+  PrintMemUsage(stdout);
+  PrintMemUsage(logfp);
   gtm->segpvf = MRIseg2SegPVF(gtm->anatseg, gtm->seg2pet, 0.5, gtm->segidlist, 
 			      gtm->nsegs, gtm->mask, 0, NULL, gtm->segpvf);
   if(gtm->segpvf==NULL) exit(1);
+  PrintMemUsage(stdout);
+  PrintMemUsage(logfp);
 
   /* This creates a segmentation in the PET space based upon which Seg
-     has the greated PVF (independent of PSF). */
+     has the greated PVF (independent of PSF). (used by GTMsynth) */
   printf("Computing Seg in input space \n");fflush(stdout);
   gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
 			      gtm->ctGTMSeg, gtm->mask, gtm->gtmseg);
 
   // Create GTM matrix
-  printf("Building GTM DoVoxFracCor=%d... ",gtm->DoVoxFracCor);fflush(stdout); 
+  printf("Building GTM DoVoxFracCor=%d\n",gtm->DoVoxFracCor);fflush(stdout); 
+  PrintMemUsage(stdout);
+  PrintMemUsage(logfp);
   TimerStart(&mytimer) ;
   GTMbuildX(gtm);
   if(gtm->X==NULL) exit(1);
-  printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+  printf(" gtm build time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   fprintf(logfp,"GTM-Build-time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
+  PrintMemUsage(stdout);
+  PrintMemUsage(logfp);
 
-  // Create GTM seg in pet space (used by GTMsynth)
-  gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
-			      gtm->ctGTMSeg, gtm->mask, gtm->gtmseg);
+  // Create GTM pvf in pet space (why?)
+  gtm->ttpvf = MRIsegPVF2TissueTypePVF(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
+				       gtm->ctGTMSeg, gtm->mask, gtm->ttpvf);
+  sprintf(tmpstr,"%s/pvf.nii.gz",OutDir);
+  MRIwrite(gtm->ttpvf,tmpstr);
+
+  printf("Freeing segpvf\n"); fflush(stdout);
+  MRIfree(&gtm->segpvf);
+
   if(OutSegFile){
     err=MRIwrite(gtm->gtmseg,OutSegFile);
     if(err) exit(1);
+  }
+  if(SaveX0) {
+    printf("Writing X0 to %s\n",Xfile);
+    MatlabWrite(gtm->X0, X0file,"X0");
+  }
+  if(SaveX) {
+    printf("Writing X to %s\n",Xfile);
+    MatlabWrite(gtm->X, Xfile,"X");
+    //MatrixWriteTxt(Xfile, gtm->X);
   }
 
   if(SrcBetaFile){
@@ -430,28 +449,25 @@ int main(int argc, char *argv[])
     gtm->yvol = MRIcopy(gtm->ysynthsm,NULL);
   }
 
-  if(SaveX0) {
-    printf("Writing X0 to %s\n",Xfile);
-    MatlabWrite(gtm->X0, X0file,"X0");
-  }
-  if(SaveX) {
-    printf("Writing X to %s\n",Xfile);
-    MatlabWrite(gtm->X, Xfile,"X");
-    //MatrixWriteTxt(Xfile, gtm->X);
-  }
   printf("Solving ...\n");
   TimerStart(&mytimer) ; 
+  PrintMemUsage(stdout);
+  PrintMemUsage(logfp);
   err=GTMsolve(gtm); // also rescales everything if desired
   if(err) exit(1);
   printf("Time to solve %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   fprintf(logfp,"GTM-Solve-Time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
+  PrintMemUsage(stdout);
+  PrintMemUsage(logfp);
+
+  printf("Freeing X\n");
+  MatrixFree(&gtm->X);
 
   if(SaveInput){
     sprintf(tmpstr,"%s/input.rescaled.nii.gz",OutDir);
     printf("Writing input to %s\n",tmpstr);
     MRIwrite(gtm->yvol,tmpstr);
   }
-
   if(ymatfile) {
     printf("Writing y to %s\n",ymatfile);
     MatlabWrite(gtm->y, ymatfile, "y");
@@ -471,7 +487,6 @@ int main(int argc, char *argv[])
   //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
   //LTAwrite(gtm->anat2seg,tmpstr);
 
-
   if(gtm->rescale){
     // Rescaling is done during GTMsolve()
     printf("rescale factor %20.15lf\n",gtm->scale);
@@ -484,12 +499,6 @@ int main(int argc, char *argv[])
 
   GTMsegrvar(gtm);
   VRFStats(gtm, &vrfmean, &vrfmin, &vrfmax);
-
-  // Create GTM pvf in pet space (why?)
-  gtm->ttpvf = MRIsegPVF2TissueTypePVF(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
-				       gtm->ctGTMSeg, gtm->mask, gtm->ttpvf);
-  sprintf(tmpstr,"%s/pvf.nii.gz",OutDir);
-  MRIwrite(gtm->ttpvf,tmpstr);
 
   printf("Writing GTM beta estimates to %s\n",OutBetaFile);
   mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, gtm->yvol->nframes);
@@ -526,6 +535,9 @@ int main(int argc, char *argv[])
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
   }
   if(yhat0File) MRIwrite(gtm->ysynth,yhat0File);
+  
+  printf("Freeing X0\n");
+  MatrixFree(&gtm->X0);
 
   if(yhatFile|| yhatFullFoVFile){
     printf("Smoothing synthesized ... ");fflush(stdout); TimerStart(&mytimer) ;
@@ -626,6 +638,7 @@ int main(int argc, char *argv[])
 
   if(gtm->DoMGPVC){
     printf("Performing MG PVC\n");
+    PrintMemUsage(stdout);
     sprintf(tmpstr,"%s/mg.nii.gz",OutDir);
     MGPVCFile = strcpyalloc(tmpstr);
     fprintf(logfp,"MG PVC\n");
@@ -643,6 +656,7 @@ int main(int argc, char *argv[])
     sprintf(tmpstr,"%s/rbv.nii.gz",OutDir);
     RBVVolFile = strcpyalloc(tmpstr);
     printf("Computing RBV\n");
+    PrintMemUsage(stdout);
     GTMrbv(gtm);
     printf("Writing output to %s ...",RBVVolFile);fflush(stdout); TimerStart(&mytimer) ;
     err = MRIwrite(gtm->rbv,RBVVolFile);
@@ -654,6 +668,14 @@ int main(int argc, char *argv[])
     sprintf(tmpstr,"%s/rbv.segmean.nii.gz",OutDir);
     MRIwrite(gtm->rbvsegmean,tmpstr);
   }
+
+  // Free the data from gtm->yvol, keep header
+  // Not very useful here, but have to wait until after RBV and MG
+  printf("Freeing y\n"); fflush(stdout);
+  mritmp = MRIcopyHeader(gtm->yvol,NULL);
+  MRIcopyPulseParameters(gtm->yvol,mritmp);
+  MRIfree(&gtm->yvol);
+  gtm->yvol = mritmp;
   
   if(gtm->nContrasts > 0){
     printf("Testing %d contrasts\n",gtm->nContrasts);
@@ -661,6 +683,8 @@ int main(int argc, char *argv[])
     printf("Writing contrasts\n");
     GTMwriteContrasts(gtm);
   }
+  PrintMemUsage(stdout);
+  PrintMemUsage(logfp);
 
   fprintf(logfp,"mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
   fprintf(logfp,"mri_gtmpvc done\n");
@@ -669,7 +693,7 @@ int main(int argc, char *argv[])
   printf("mri_gtmpvc done\n");
   return(0);
   exit(0);
-}
+} // end of main
 /*--------------------------------------------------------------------*/
 /*---------------------------------------------------------------*/
 /*---------------------------------------------------------------*/
@@ -1113,12 +1137,14 @@ static void check_options(void)
   if(nthreads != 1){
     #ifdef _OPENMP
     printf("Setting maximum number of threads to %d\n",nthreads);
-    omp_set_num_threads(nthreads);
+    omp_set_num_threads(nthreads);fflush(stdout);
     #endif
   }
-  printf("Loading input %s\n",SrcVolFile);
+  printf("Loading input %s\n",SrcVolFile);fflush(stdout);
   gtm->yvol = MRIread(SrcVolFile);
   if(gtm->yvol==NULL) exit(1);
+  gtm->nframes = gtm->yvol->nframes ;
+  printf("  done loading input %d frames\n",gtm->nframes);fflush(stdout);
 
   if(regidentity){
     printf("Using identity registration\n");
@@ -1477,8 +1503,4 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
   return(outlta);
 }
 
-
-
-
-
-
+/*--------------------------------------------------------------------*/
