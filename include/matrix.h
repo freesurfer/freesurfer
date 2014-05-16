@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/10 19:32:23 $
- *    $Revision: 1.85 $
+ *    $Date: 2014/05/16 16:27:18 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -304,6 +304,7 @@ MATRIX *ANOVASelectionVector(int nLevels, int Level);
 MATRIX *ANOVASummingVector(int nLevels);
 MATRIX *ANOVAContrast(int *FLevels, int nFactors, int *FactorList, int nFactorList);
 MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout);
+MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout);
 MATRIX *MatrixSkew(MATRIX *y, MATRIX *s);
 MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k);
 

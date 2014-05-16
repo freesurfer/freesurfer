@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/16 15:19:49 $
- *    $Revision: 1.143 $
+ *    $Date: 2014/05/16 16:27:18 $
+ *    $Revision: 1.144 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4398,7 +4398,7 @@ MATRIX *MatrixMtM(MATRIX *m, MATRIX *mout)
       if(c2list) free(c2list);
     }
     ntot = ((cols*cols)+cols)/2;
-    printf("MatrixMtM: Alloc rows=%d cols=%d ntot=%d\n",rows,cols,ntot);
+    if(Gdiag_no > 0) printf("MatrixMtM: Alloc rows=%d cols=%d ntot=%d\n",rows,cols,ntot);
     c1list = (int*)calloc(sizeof(int),ntot);
     c2list = (int*)calloc(sizeof(int),ntot);
     n = 0;
@@ -4535,3 +4535,63 @@ MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k)
   return(k);
 }
 
+/*
+  \fn MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
+  \brief Computes A'*B without computing or allocating A'
+  explicitly. This can be helpful whan A is a large matrix.
+  Accumlates using double. OpenMP capable.
+ */
+MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout)
+{
+  int colA;
+
+  if(A->rows != B->rows){
+    printf("ERROR: MatrixAtB(): dim mismatch: %d %d\n",A->rows,B->rows);
+    return(NULL);
+  }
+  if(mout == NULL){
+    mout = MatrixAlloc(A->cols,B->cols,MATRIX_REAL);
+    if(mout == NULL){
+      printf("ERROR: MatrixAtB(): could not alloc %d %d\n",A->cols,B->cols);
+      return(NULL);
+    }
+  }
+
+  #ifdef _OPENMP
+  #pragma omp parallel for 
+  #endif
+  for(colA=0; colA < A->cols; colA++){
+    int row, colB;
+    double sum;
+    for(colB=0; colB < B->cols; colB++){
+      sum = 0;
+      for(row=0; row < A->rows; row++)
+	sum += (double)A->rptr[row+1][colA+1]*B->rptr[row+1][colB+1];
+      mout->rptr[colA+1][colB+1] = sum;
+    }
+  }
+
+  if(0){
+    // In this test, dmax should be 0 because MatrixMultiplyD() is used
+    MATRIX *At = MatrixTranspose(A,NULL);
+    MATRIX *mout2 = MatrixMultiplyD(At,B,NULL);
+    int r,c;
+    double d,dmax;
+    dmax = 0;
+    for(r=1; r <= mout->rows; r++){
+      for(c=1; c <= mout->cols; c++){
+	d = mout->rptr[r][c]-mout2->rptr[r][c];
+	if(dmax < fabs(d)) {
+	  dmax = fabs(d);
+	  if(dmax > .01) printf("%5d %5d %lf %g %g\n",r,c,d,mout->rptr[r][c],mout2->rptr[r][c]);
+	}
+	
+      }
+    }
+    printf("MatrixAtB: test MAR %g\n",dmax);
+    MatrixFree(&At);
+    MatrixFree(&mout2);
+  }
+
+  return(mout);
+}
