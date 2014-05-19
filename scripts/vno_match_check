@@ -49,7 +49,7 @@ foreach hemi ( $hemis )
     endif
 
     # and check that all the other surfaces have this same number
-    foreach surf ( white pial inflated smoothwm sphere )
+    foreach surf ( white pial inflated smoothwm sphere sphere.reg )
 
         if ("x$2" != "x") echo "Checking $subj/surf/$hemi.$surf..."
         if ( ! -e $SUBJECTS_DIR/$subj/surf/$hemi.$surf ) then
