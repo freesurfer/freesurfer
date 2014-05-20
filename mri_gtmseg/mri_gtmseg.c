@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/30 19:22:48 $
- *    $Revision: 1.6 $
+ *    $Date: 2014/05/20 21:22:37 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-// $Id: mri_gtmseg.c,v 1.6 2014/04/30 19:22:48 greve Exp $
+// $Id: mri_gtmseg.c,v 1.7 2014/05/20 21:22:37 greve Exp $
 
 /*
   BEGINHELP
@@ -55,6 +55,7 @@
 #endif
 
 #include "gtm.h"
+#include "resample.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -65,7 +66,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmseg.c,v 1.6 2014/04/30 19:22:48 greve Exp $";
+static char vcid[] = "$Id: mri_gtmseg.c,v 1.7 2014/05/20 21:22:37 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -77,12 +78,15 @@ char *OutVolFile=NULL;
 char *SUBJECTS_DIR;
 int nthreads;
 COLOR_TABLE *ctMaster, *ctMerge=NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs,err;
   char tmpstr[5000],*stem;
   struct timeb  mytimer;
   COLOR_TABLE *ct;
+  MRI *mritmp;
+  LTA *seg2new, *ltatmp;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -94,6 +98,7 @@ int main(int argc, char *argv[]) {
 
   gtmseg = (GTMSEG *) calloc(sizeof(GTMSEG),1);
   gtmseg->USF = 2;
+  gtmseg->OutputUSF = gtmseg->USF;
   gtmseg->dmax = 5.0;
   gtmseg->KeepHypo = 0;
   gtmseg->KeepCC = 0;
@@ -141,24 +146,44 @@ int main(int argc, char *argv[]) {
   err = MRIgtmSeg(gtmseg);
   if(err) exit(1);
 
+  printf("Computing colortable\n");
+  ct = GTMSEGctab(gtmseg, ctMaster);
+  if(ct == NULL) exit(1);
+
+  if(gtmseg->OutputUSF != gtmseg->USF){
+    printf("Changing size of output to USF of %d\n",gtmseg->OutputUSF);
+    double res = 1.0/gtmseg->OutputUSF;
+    mritmp = MRIchangeSegRes(gtmseg->seg, res,res,res, ct, &seg2new);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&gtmseg->seg);
+    gtmseg->seg = mritmp;
+    ltatmp = LTAconcat2(gtmseg->anat2seg,seg2new,1);
+    LTAfree(&gtmseg->anat2seg);
+    LTAfree(&seg2new);
+    gtmseg->anat2seg = ltatmp;
+    printf("Recomputing colortable\n");
+    CTABfree(&ct);
+    ct = GTMSEGctab(gtmseg, ctMaster);
+    if(ct == NULL) exit(1);
+  }
+
   sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtmseg->subject,OutVolFile);
   printf("Writing output file to %s\n",tmpstr);
   err = MRIwrite(gtmseg->seg,tmpstr);
   if(err) exit(1);
-
   stem = IDstemFromName(OutVolFile);
+
+  sprintf(tmpstr,"%s/%s/mri/%s.ctab",SUBJECTS_DIR,gtmseg->subject,stem);
+  printf("Writing colortable to %s\n",tmpstr);
+  err = CTABwriteFileASCIItt(ct,tmpstr);
+  if(err) exit(1);
+
   sprintf(tmpstr,"%s/%s/mri/%s.lta",SUBJECTS_DIR,gtmseg->subject,stem);
   printf("Writing lta file to %s\n",tmpstr);
   err=LTAwrite(gtmseg->anat2seg,tmpstr);
   if(err) exit(1);
 
-  printf("Computing colortable\n");
-  ct = GTMSEGctab(gtmseg, ctMaster);
-  if(ct == NULL) exit(1);
-  sprintf(tmpstr,"%s/%s/mri/%s.ctab",SUBJECTS_DIR,gtmseg->subject,stem);
-  printf("Writing colortable to %s\n",tmpstr);
-  err = CTABwriteFileASCIItt(ct,tmpstr);
-  if(err) exit(1);
+
 
   printf("mri_gtmseg finished in %g minutes\n",TimerStop(&mytimer)/60000.0);
   printf("mri_gtmseg done\n");fflush(stdout);
@@ -206,6 +231,11 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--usf")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&gtmseg->USF);
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--output-usf")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&gtmseg->OutputUSF);
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--apas")) {
@@ -333,6 +363,7 @@ static void print_usage(void) {
   printf("   --ctab ctab.lut : copy items in ctab.lut into master ctab merging or overwriting what is there \n");
   printf("   --lhminmax lhmin lhmax : for defining ribbon in apas (default: %d %d) \n",gtmseg->lhmin,gtmseg->lhmax);
   printf("   --rhminmax rhmin rhmax : for defining ribbon in apas (default: %d %d) \n",gtmseg->rhmin,gtmseg->rhmax);
+  printf("   --output-usf OutputUSF : set actual output resolution. Default is to be the same as the --usf");
   printf("\n");
   #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");
@@ -350,7 +381,7 @@ static void print_usage(void) {
 /*-----------------------------------------------------------------------------------*/
 static void print_help(void) {
   print_usage() ;
-  printf("WARNING: this program is not yet tested!\n");
+  printf("This program creates a segmentation that can be used with the geometric transfer matrix (GTM).\n");
   exit(1) ;
 }
 /*-----------------------------------------------------------------------------------*/
@@ -375,3 +406,4 @@ static void dump_options(FILE *fp) {
   GTMSEGprint(gtmseg, stdout);
   return;
 }
+
