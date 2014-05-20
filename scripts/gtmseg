@@ -1,11 +1,12 @@
 #!/bin/tcsh -f
 # gtmseg
 
-set VERSION = '$Id: gtmseg,v 1.5 2014/04/25 21:10:05 greve Exp $';
+set VERSION = '$Id: gtmseg,v 1.6 2014/05/20 23:07:53 greve Exp $';
 
 set outdir = ();
 set subject = ();
 set USF = 2;
+set OutputUSF = ();
 set SubSegWM = 0
 set KeepCC = 0
 set KeepHypo = 0;
@@ -98,6 +99,7 @@ if($KeepCC)     set cmd = ($cmd --keep-cc)
 if(! $KeepCC)   set cmd = ($cmd --no-keep-cc)
 if($KeepHypo)     set cmd = ($cmd --keep-hypo)
 if(! $KeepHypo)   set cmd = ($cmd --no-keep-hypo)
+if($#OutputUSF)   set cmd = ($cmd --output-usf $OutputUSF)
 
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
@@ -172,6 +174,11 @@ while( $#argv != 0 )
     case "--usf":
       if($#argv < 1) goto arg1err;
       set USF = $argv[1]; shift;
+      breaksw
+
+    case "--output-usf":
+      if($#argv < 1) goto arg1err;
+      set OutputUSF = $argv[1]; shift;
       breaksw
 
     case "--dmax":
@@ -331,6 +338,7 @@ usage_exit:
   echo " --dmax dmax     : distance threshold to use when subsegmenting WM (default is $dmax)"
   echo " --ctx-annot annot lhbase rhbase : annotation to use for cortical segmentation (default is aparc 1000 2000)"
   echo " --wm-annot  annot lhbase rhbase : annotation to use for WM segmentation (with --subsegwm, default is lobes 3200 4200)"
+  echo " --output-usf OutputUSF : set output USF different than USF, mostly for debugging"
   echo ""
   echo " --seg-stats : compute segmentation stats (good for debugging)"
   echo " --debug "
