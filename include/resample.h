@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/07 19:33:14 $
- *    $Revision: 1.22 $
+ *    $Date: 2014/05/20 21:21:23 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -138,6 +138,7 @@ MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
                  double fthresh, MRI **pvolhit,COLOR_TABLE *ct);
 MRI *MRIaseg2volMU(MRI *aseg, LTA *aseg2vol, double fthresh, 
 		   MRI **pvolhit, int USF, COLOR_TABLE *ct);
+MRI *MRIchangeSegRes(MRI *seg, double xsize, double ysize, double zsize, COLOR_TABLE *ct, LTA **seg2new);
 MRI *MRIseg2SegPVF(MRI *seg, LTA *seg2vol, double resmm, int *segidlist, int nsegs, 
 		   MRI *mask, int ReInit, COLOR_TABLE *ct, MRI *out);
 MRI *MRIsegPVF2Seg(MRI *segpvf, int *segidlist, int nsegs, COLOR_TABLE *ct, 

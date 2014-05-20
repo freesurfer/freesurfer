@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/20 15:48:05 $
- *    $Revision: 1.48 $
+ *    $Date: 2014/05/20 21:21:23 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2481,7 +2481,29 @@ MRI *MRIaseg2volMU(MRI *aseg, LTA *aseg2vol, double fthresh, MRI **pvolhit, int 
   MRIfree(&TempVol);
   return(OutVol);
 }
+/*
+  \fn MRI *MRIchangeSegRes(MRI *seg, double xsize, double ysize, double zsize, COLOR_TABLE *ct, LTA **seg2new)
+  \brief Changes the resolution of the segmentation to
+  {x,y,z}size. I'm not sure how the results will differ from
+  MRIaseg2volMU() or MRIaseg2vol(). This uses MRIseg2SegPVF() and MRIaseg2vol()
+  uses a voting scheme. I would guess that they are close.
+ */
+MRI *MRIchangeSegRes(MRI *seg, double xsize, double ysize, double zsize, COLOR_TABLE *ct, LTA **seg2new)
+{
+  int *segidlist, nsegs, ReGridFactor = -2, ReInitCache=1;
+  MRI *newseg,*mritmp;
 
+  segidlist = MRIsegIdListNot0(seg, &nsegs, 0);
+
+  mritmp = MRIresize(seg,xsize,ysize,zsize,0);
+  *seg2new = TransformRegDat2LTA(mritmp,seg,NULL);
+  newseg = MRIseg2SegPVF(seg, *seg2new, ReGridFactor, segidlist, nsegs, NULL, ReInitCache, ct, NULL);
+  if(newseg == NULL) return(NULL);
+
+  MRIfree(&mritmp);
+  free(segidlist);
+  return(newseg);
+}
 
 /*-----------------------------------------------------------------------
   MostHitsInVolVox() - determines the segid with the most hits in the
