@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/16 22:21:17 $
- *    $Revision: 1.540 $
+ *    $Date: 2014/05/20 19:48:04 $
+ *    $Revision: 1.541 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.540 $";
+const char *MRI_C_VERSION = "$Revision: 1.541 $";
 
 
 /*-----------------------------------------------------
@@ -8055,6 +8055,127 @@ MRIextractValues(MRI *mri_src, MRI *mri_dst, float min_val, float max_val)
   }
 
   return(mri_dst) ;
+}
+
+/*
+  \fn MRI *MRIresize(MRI *mri, double xsize, double ysize, double zsize, int nframes)
+  \brief Creates a new MRI volume with the given voxel size from the
+  passed MRI but keeps the direction cosines. The true center of the
+  two MRI volumes is the same. The FoV will be approximately the same
+  (depending upon whether the new and old voxel sizes are integer
+  multiples of each other. The pixel data may or may not be allocated
+  depending on the value of nframes. If nframes=0, no pixel data is
+  allocated. If nframes<0, then pixel data are allocated with
+  nframes=mri->nframes. If nframes>0, then uses nframes. The result of
+  this function can be passed to MRIvol2Vol(), MRIvol2VolVSM, or to
+  create a LTA with mri2new = TransformRegDat2LTA(new,mri,NULL). This
+  is different than MRIdownsampleN() in that arbitrary sizes can be used
+  and values are not give to pixel data (if pixel data alloced).
+ */
+MRI *MRIresize(MRI *mri, double xsize, double ysize, double zsize, int nframes)
+{
+  MATRIX *V, *crsTrueCenter, *crsTrueCenter3, *rasTrueCenter4, *rasTrueCenter, 
+    *M, *P0, *crsCenter, *rasCenter, *crsTrueCenterNew;
+  int width,height,depth;
+  MRI *mri2;
+
+  // dims of the new volume
+  width  = nint(mri->width*mri->xsize/xsize);
+  height = nint(mri->height*mri->ysize/ysize);
+  depth  = nint(mri->depth*mri->zsize/zsize);
+
+  // Need to compute P0 for new volume assuming that the true
+  // center of the new and old volume will be the same.
+  V = MRIxfmCRS2XYZ(mri, 0); // vox2ras of old volume
+
+  // crsTrueCenter is "index" at the true center of the old volume
+  crsTrueCenter = MatrixAlloc(4,1,MATRIX_REAL);
+  crsTrueCenter->rptr[1][1] = (double)(mri->width-1)/2.0;
+  crsTrueCenter->rptr[2][1] = (double)(mri->height-1)/2.0;
+  crsTrueCenter->rptr[3][1] = (double)(mri->depth-1)/2.0;
+  crsTrueCenter->rptr[4][1] =  1.0;
+  crsTrueCenter3 = MatrixAlloc(3,1,MATRIX_REAL);
+  crsTrueCenter3->rptr[1][1] = crsTrueCenter->rptr[1][1];
+  crsTrueCenter3->rptr[2][1] = crsTrueCenter->rptr[2][1];
+  crsTrueCenter3->rptr[3][1] = crsTrueCenter->rptr[3][1];
+
+  // rasTrueCenter is the RAS coordinate at the true center of the old volume
+  rasTrueCenter4 = MatrixMultiplyD(V,crsTrueCenter,NULL);
+  rasTrueCenter = MatrixAlloc(3,1,MATRIX_REAL);
+  rasTrueCenter->rptr[1][1] = rasTrueCenter4->rptr[1][1];
+  rasTrueCenter->rptr[2][1] = rasTrueCenter4->rptr[2][1];
+  rasTrueCenter->rptr[3][1] = rasTrueCenter4->rptr[3][1];
+
+  // M is the Mdc*D of the new volume
+  M = MatrixAlloc(3, 3, MATRIX_REAL);
+  *MATRIX_RELT(M, 1, 1) = mri->x_r * xsize;
+  *MATRIX_RELT(M, 2, 1) = mri->x_a * xsize;
+  *MATRIX_RELT(M, 3, 1) = mri->x_s * xsize;
+  *MATRIX_RELT(M, 1, 2) = mri->y_r * ysize;
+  *MATRIX_RELT(M, 2, 2) = mri->y_a * ysize;
+  *MATRIX_RELT(M, 3, 2) = mri->y_s * ysize;
+  *MATRIX_RELT(M, 1, 3) = mri->z_r * zsize;
+  *MATRIX_RELT(M, 2, 3) = mri->z_a * zsize;
+  *MATRIX_RELT(M, 3, 3) = mri->z_s * zsize;
+
+  crsTrueCenterNew = MatrixAlloc(3,1,MATRIX_REAL);
+  crsTrueCenterNew->rptr[1][1] = (double)(width-1)/2.0;
+  crsTrueCenterNew->rptr[2][1] = (double)(height-1)/2.0;
+  crsTrueCenterNew->rptr[3][1] = (double)(depth-1)/2.0;
+
+  // P0 = rasTrueCenter - M*crsTrueCenterNew
+  P0 = MatrixMultiplyD(M,crsTrueCenterNew,NULL);
+  P0 = MatrixSubtract(rasTrueCenter,P0,P0);
+
+  // Voxel index at the "false" center of the new volume
+  crsCenter = MatrixAlloc(3,1,MATRIX_REAL);
+  crsCenter->rptr[1][1] = width/2.0;
+  crsCenter->rptr[2][1] = height/2.0;
+  crsCenter->rptr[3][1] = depth/2.0;
+
+  // RAS at the "false" center of the new volume
+  rasCenter = MatrixMultiplyD(M,crsCenter,NULL);
+  rasCenter = MatrixAdd(rasCenter,P0,NULL);
+
+  if(nframes == 0)  mri2 = MRIallocHeader(width,height,depth,MRI_FLOAT,1);
+  if(nframes <  0)  mri2 = MRIallocHeader(width,height,depth,MRI_FLOAT,mri->nframes);
+  if(nframes >  0)  mri2 = MRIallocHeader(width,height,depth,MRI_FLOAT,nframes);
+  MRIcopyHeader(mri,mri2);
+
+  mri2->xsize = xsize;
+  mri2->ysize = ysize;
+  mri2->zsize = zsize;
+  mri2->c_r = rasCenter->rptr[1][1];
+  mri2->c_a = rasCenter->rptr[2][1];
+  mri2->c_s = rasCenter->rptr[3][1];
+  MRIreInitCache(mri2);
+
+  if(0){
+    MATRIX *V2 = MRIxfmCRS2XYZ(mri2, 0);
+    MatrixPrintWithString(stdout, M, "M = [\n", "];\n");
+    MatrixPrintWithString(stdout, crsTrueCenter, "crsTrueCenter = [\n", "];\n");
+    MatrixPrintWithString(stdout, rasTrueCenter, "rasTrueCenter = [\n", "];\n");
+    MatrixPrintWithString(stdout, P0, "P0 = [\n", "];\n");
+    MatrixPrintWithString(stdout, crsCenter, "crsCenter = [\n", "];\n");
+    MatrixPrintWithString(stdout, rasCenter, "rasCenter = [\n", "];\n");
+    MatrixPrintWithString(stdout, V, "V = [\n", "];\n");
+    MatrixPrintWithString(stdout, V2, "V2 = [\n", "];\n");
+    //printf("maxdiff %20.19lf\n",MatrixMaxAbsDiff(V,V2,-1));
+    MatrixFree(&V2);
+  }
+
+  MatrixFree(&V);
+  MatrixFree(&crsTrueCenter);
+  MatrixFree(&crsTrueCenter3);
+  MatrixFree(&rasTrueCenter4);
+  MatrixFree(&rasTrueCenter);
+  MatrixFree(&M);
+  MatrixFree(&P0); 
+  MatrixFree(&crsCenter);
+  MatrixFree(&rasCenter);
+  MatrixFree(&crsTrueCenterNew);
+
+  return(mri2);
 }
 
 

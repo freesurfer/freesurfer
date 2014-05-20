@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/04/14 18:58:28 $
- *    $Revision: 1.462 $
+ *    $Author: greve $
+ *    $Date: 2014/05/20 19:48:04 $
+ *    $Revision: 1.463 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -824,6 +824,7 @@ MRI   *MRIupsampleNConserve(MRI *mri_src, MRI *mri_dst, int N);
 MRI   *MRIdownsampleN(MRI *src, MRI *dst, int Fc, int Fr, int Fs, int KeepType);
 MRI   *MRIdownsample2(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdownsample2LabeledVolume(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIresize(MRI *mri, double xsize, double ysize, double zsize, int nframes);
 
 /* surfaceRAS and voxel routines */
 MATRIX *surfaceRASFromVoxel_(MRI *mri);
