@@ -716,6 +716,12 @@ void createHistologyBlockIndexTable( Config &conf ) {
 
 	// get input file lists
 	Array<String> bFileList = dirFileList( blockPath, "", ".JPG" );
+  if (bFileList.count() == 0)
+	  bFileList = dirFileList( blockPath, "", ".jpg" );
+  if (bFileList.count() == 0)
+	  bFileList = dirFileList( blockPath, "", ".png" );
+  if (bFileList.count() == 0)
+	  bFileList = dirFileList( blockPath, "", ".PNG" );
 	disp( 1, "blockface file count: %d", bFileList.count() );
 
 	// open output file
