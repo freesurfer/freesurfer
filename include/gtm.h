@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/16 23:00:29 $
- *    $Revision: 1.6 $
+ *    $Date: 2014/05/20 21:22:07 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,7 +39,8 @@
 typedef struct
 {
   char *subject;
-  int USF;
+  int USF; // used internally
+  int OutputUSF; 
   char *apasfile;
   char *ctxannotfile;
   int ctxlhbase,ctxrhbase;
@@ -54,7 +55,10 @@ typedef struct
   MRI *seg;
   LTA *anat2seg;
   int lhmin, lhmax, rhmin, rhmax;
+  int *segidlist, nsegs;
+  MRI *anat; // header of anatomical to get geom
 } GTMSEG;
+
 typedef struct 
 {
   char *name; // contrast name

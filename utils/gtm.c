@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/16 23:00:30 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/05/20 21:22:07 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,7 @@ int GTMSEGprint(GTMSEG *gtmseg, FILE *fp)
 {
   fprintf(fp,"subject %s\n",gtmseg->subject);
   fprintf(fp,"USF %d\n",gtmseg->USF);
+  fprintf(fp,"OutputUSF %d\n",gtmseg->OutputUSF);
   fprintf(fp,"apasfile %s\n",gtmseg->apasfile);
   if(gtmseg->wmannotfile != NULL){
     fprintf(fp,"wmannotfile %s\n",gtmseg->wmannotfile);
@@ -94,6 +95,8 @@ int MRIgtmSeg(GTMSEG *gtmseg)
   printf("Loading %s\n",tmpstr);
   apas = MRIread(tmpstr);
   if(apas==NULL) return(1);
+
+  gtmseg->anat = MRIcopyHeader(apas,NULL); // keep anat header around
 
   aseg = MRIunsegmentCortex(apas, gtmseg->lhmin, gtmseg->lhmax, gtmseg->rhmin, gtmseg->rhmax, NULL); // aseg+head
   if(aseg == NULL) return(1);
@@ -222,7 +225,8 @@ int MRIgtmSeg(GTMSEG *gtmseg)
     }
     if(err) return(1);
   }
-  free(segidlist);
+  gtmseg->segidlist = segidlist;
+  gtmseg->nsegs = nsegs;
 
   printf("MRIgtmSeg() done, t = %6.4f\n",TimerStop(&timer)/1000.0);
   fflush(stdout);
