@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/20 21:22:07 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/05/21 17:56:15 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -120,8 +120,12 @@ typedef struct
   GTMCON *contrasts[100];
 
   MRI *rbv; // RBV computed volume
-  int mask_rbv_to_brain; // Reduce FoV of RBV to be tight to brain
   MRI *rbvsegmean; // seg mean in RBV, used for QA
+  MRI *rbvseg; // may be different than anatseg if rbvsegres used
+  LTA *rbvseg2pet; // may be different than seg2pet if rbvsegres used
+  double rbvsegres;
+  int mask_rbv_to_brain; // Reduce FoV of RBV to be tight to brain
+  MRI *rbvsegmasked; 
 
   int DoMGPVC; // Muller-Gartner
   MRI *mg; // MG output volume
@@ -137,7 +141,7 @@ typedef struct
   int n_km_hbids,km_hbids[100];// KM HiBinding seg IDs
   MATRIX *km_hbtac; // KM HiBinding TAC
 
-  char *OutDir; // output folder
+  char *OutDir, *AuxDir; // output folder, auxiliary output folder
   FILE *logfp;  // log file pointer
 } GTM;
 
@@ -160,6 +164,7 @@ int GTMsegrvar(GTM *gtm);
 int GTMsynth(GTM *gtm);
 int GTMsmoothSynth(GTM *gtm);
 MRI *GTMsegSynth(GTM *gtm, int frame, MRI *synth);
+int GTMrbvseg(GTM *gtm);
 int GTMrbv(GTM *gtm);
 int GTMmgpvc(GTM *gtm);
 MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m);
