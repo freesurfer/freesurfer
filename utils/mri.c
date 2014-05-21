@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/20 19:48:04 $
- *    $Revision: 1.541 $
+ *    $Date: 2014/05/21 01:19:20 $
+ *    $Revision: 1.542 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.541 $";
+const char *MRI_C_VERSION = "$Revision: 1.542 $";
 
 
 /*-----------------------------------------------------
@@ -8077,7 +8077,7 @@ MRI *MRIresize(MRI *mri, double xsize, double ysize, double zsize, int nframes)
   MATRIX *V, *crsTrueCenter, *crsTrueCenter3, *rasTrueCenter4, *rasTrueCenter, 
     *M, *P0, *crsCenter, *rasCenter, *crsTrueCenterNew;
   int width,height,depth;
-  MRI *mri2;
+  MRI *mri2=NULL;
 
   // dims of the new volume
   width  = nint(mri->width*mri->xsize/xsize);
