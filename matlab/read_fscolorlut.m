@@ -1,9 +1,9 @@
-function [code, name, rgbv] = read_fscolorlut(fname)
-% [code name rgb] = read_fscolorlut(fname)
+function [code, name, rgbv, tt] = read_fscolorlut(fname)
+% [code name rgb tt] = read_fscolorlut(fname)
 %
 % Reads a freesurfer color lookup table. By default
 % reads $FREESURFER_HOME/FreeSurferColorLUT.txt.
-%
+% tt is tissue type which might not be there for all ctabs
 
 
 %
@@ -12,8 +12,8 @@ function [code, name, rgbv] = read_fscolorlut(fname)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2012/10/24 20:18:48 $
-%    $Revision: 1.6 $
+%    $Date: 2014/05/22 20:03:29 $
+%    $Revision: 1.7 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -40,6 +40,7 @@ if(fp == -1)
   return;
 end
 
+tt = [];
 name = '';
 nthitem = 1;
 while(1)
@@ -58,9 +59,11 @@ while(1)
   g = sscanf(tline,'%*d %*s %*d %d',1);
   b = sscanf(tline,'%*d %*s %*d %*d %d',1);
   v = sscanf(tline,'%*d %*s %*d %*d %*d %d',1);
+  t = sscanf(tline,'%*d %*s %*d %*d %*d %*d %d',1);
   code(nthitem,1) = c;
   name = strvcat(name,n');
   rgbv(nthitem,:) = [r g b v];
+  if(~isempty(t)) tt(nthitem) = t; end
 
   nthitem = nthitem + 1;
 end
