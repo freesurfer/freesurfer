@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/21 01:19:20 $
- *    $Revision: 1.542 $
+ *    $Date: 2014/05/26 21:16:06 $
+ *    $Revision: 1.543 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.542 $";
+const char *MRI_C_VERSION = "$Revision: 1.543 $";
 
 
 /*-----------------------------------------------------
@@ -56,6 +56,8 @@ const char *MRI_C_VERSION = "$Revision: 1.542 $";
 #include "voxlist.h"
 #include "fastmarching.h"
 #include "mriBSpline.h"
+#include "randomfields.h"
+#include "mri2.h"
 
 extern int errno;
 
@@ -15092,6 +15094,52 @@ MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
   return(out);
 }
 
+/*
+  \fn MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, MRI *mrirandexp)
+  \brief fills an MRI structure with values sampled from a
+  exponential/poisson distribution with mean at each voxel given
+  mrimean.
+*/
+MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, MRI *mrirandexp)
+{
+  int err,c,r,s,f,m;
+  RFS *rfs;
+  double mu,L,v;
+
+  if(mrirandexp == NULL){
+    mrirandexp = MRIcopy(mrimean,NULL);
+    MRIcopyPulseParameters(mrimean,mrirandexp);
+  }
+  err = MRIdimMismatch(mrimean, mrirandexp,1);
+  if(err){
+    printf("ERROR: MRIrandexp(): dimension mismatch\n");
+    return(NULL);
+  }
+
+  rfs = RFspecInit(seed, NULL);
+  rfs->name = strcpyalloc("uniform");
+  rfs->params[0] = 0;
+  rfs->params[1] = 1;
+
+  for(c=0; c < mrimean->width; c++)  {
+    for(r=0; r < mrimean->height; r++)    {
+      for(s=0; s < mrimean->depth; s++)      {
+        if(binmask != NULL)        {
+          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+          if (!m) continue;
+        }
+        for (f=0; f < mrimean->nframes; f++) {
+          mu = MRIgetVoxVal(mrimean,c,r,s,f) + FLT_MIN;
+	  L = 1.0/mu;
+	  v = (log(L)-log(L*RFdrawVal(rfs)))/L;
+	  MRIsetVoxVal(mrirandexp,c,r,s,f,v);
+        }
+      }
+    }
+  }
+  RFspecFree(&rfs);
+  return(mrirandexp);
+}
 /*---------------------------------------------------------------------
   MRIrandn() - fills an MRI structure with values sampled from a
   normal distribution with mean avg and standard devation stddev.
