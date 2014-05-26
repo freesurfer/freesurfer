@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2014/04/30 20:17:21 $
-#    $Revision: 1.55 $
+#    $Date: 2014/05/26 08:28:32 $
+#    $Revision: 1.56 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.55 2014/04/30 20:17:21 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.56 2014/05/26 08:28:32 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -157,7 +157,7 @@ set dopathsubdirs = 0
 set nstick = 2
 set fmin = 0.05
 set nburnin = 200
-set nsample = 7500
+set nsample = ()		# Default is set below
 set nupdate = 0
 set nkeep = 5
 set doinitprop = 1
@@ -170,6 +170,15 @@ parse_args_return:
 
 # Source run command file
 if ($#rcfile) source $rcfile
+
+# Set default number of samples for cross-sectional or longitudinal case
+if ($#nsample == 0) then
+  if ($#baselist == 0) then
+    set nsample = 7500
+  else
+    set nsample = 12000
+  endif
+endif
 
 goto check_params;
 check_params_return:
