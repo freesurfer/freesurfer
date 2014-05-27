@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/26 21:16:06 $
- *    $Revision: 1.543 $
+ *    $Date: 2014/05/27 03:25:51 $
+ *    $Revision: 1.544 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.543 $";
+const char *MRI_C_VERSION = "$Revision: 1.544 $";
 
 
 /*-----------------------------------------------------
@@ -15095,25 +15095,35 @@ MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out)
 }
 
 /*
-  \fn MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, MRI *mrirandexp)
+  \fn MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, MRI *mrirandexp)
   \brief fills an MRI structure with values sampled from a
   exponential/poisson distribution with mean at each voxel given
-  mrimean.
+  mrimean. The frames of mrimean are replicated nreps times, each rep
+  gets different noise 
 */
-MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, MRI *mrirandexp)
+MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, MRI *mrirandexp)
 {
-  int err,c,r,s,f,m;
+  int err,c,r,s,f,f2,m,nthrep,nframestot;
   RFS *rfs;
   double mu,L,v;
 
+  nframestot = nreps*mrimean->nframes;
+
   if(mrirandexp == NULL){
-    mrirandexp = MRIcopy(mrimean,NULL);
+    mrirandexp = MRIallocSequence(mrimean->width,mrimean->height,mrimean->depth,MRI_FLOAT,nframestot);
+    MRIcopyHeader(mrimean,mrirandexp);
     MRIcopyPulseParameters(mrimean,mrirandexp);
   }
-  err = MRIdimMismatch(mrimean, mrirandexp,1);
-  if(err){
-    printf("ERROR: MRIrandexp(): dimension mismatch\n");
-    return(NULL);
+  else{
+    err = MRIdimMismatch(mrimean, mrirandexp,0);
+    if(err){
+      printf("ERROR: MRIrandexp(): dimension mismatch\n");
+      return(NULL);
+    }
+    if(mrirandexp->nframes != nframestot){
+      printf("ERROR: MRIrandexp(): nframes do not match\n");
+      return(NULL);
+    }
   }
 
   rfs = RFspecInit(seed, NULL);
@@ -15124,16 +15134,20 @@ MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, MRI *mrirand
   for(c=0; c < mrimean->width; c++)  {
     for(r=0; r < mrimean->height; r++)    {
       for(s=0; s < mrimean->depth; s++)      {
-        if(binmask != NULL)        {
-          m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-          if (!m) continue;
-        }
-        for (f=0; f < mrimean->nframes; f++) {
-          mu = MRIgetVoxVal(mrimean,c,r,s,f) + FLT_MIN;
-	  L = 1.0/mu;
-	  v = (log(L)-log(L*RFdrawVal(rfs)))/L;
-	  MRIsetVoxVal(mrirandexp,c,r,s,f,v);
-        }
+	if(binmask != NULL)        {
+	  m = (int)MRIgetVoxVal(binmask,c,r,s,0);
+	  if (!m) continue;
+	}
+	f2 = 0;
+	for(nthrep=0; nthrep < nreps; nthrep++){
+	  for (f=0; f < mrimean->nframes; f++) {
+	    mu = MRIgetVoxVal(mrimean,c,r,s,f) + FLT_MIN;
+	    L = 1.0/mu;
+	    v = (log(L)-log(L*RFdrawVal(rfs)))/L;
+	    MRIsetVoxVal(mrirandexp,c,r,s,f2,v);
+	    f2++;
+	  }
+	}
       }
     }
   }

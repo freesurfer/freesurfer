@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/26 21:16:06 $
- *    $Revision: 1.464 $
+ *    $Date: 2014/05/27 03:25:51 $
+ *    $Revision: 1.465 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1316,7 +1316,7 @@ MRI *MRIlog10(MRI *inmri, MRI *mask, MRI *outmri, int negflag);
 MRI *MRIlog(MRI *in, MRI *mask, double a, double b, MRI *out);
 MRI *MRIrandn(int ncols, int nrows, int nslices, int nframes,
               float avg, float stddev, MRI *mri);
-MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, MRI *mrirandexp);
+MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, MRI *mrirandexp);
 MRI *MRIrande(int ncols, int nrows, int nslices, int nframes,
               float avg, int order, MRI *mri);
 MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
