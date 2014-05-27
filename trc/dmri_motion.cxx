@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2014/04/11 01:23:11 $
- *    $Revision: 1.4 $
+ *    $Date: 2014/05/27 11:55:57 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,7 +91,6 @@ int main(int argc, char **argv) {
   vector<int> nbadframe;
   vector<float> trframe, roframe, scoreframe;
   string matline;
-  ifstream infile;
   ofstream outfile;
 
   /* rkt: check for and handle version tag */
@@ -121,6 +120,7 @@ int main(int argc, char **argv) {
   if (inMatFile) {		// Estimate between-volume motion
     int nframe = 0;
     vector<float> xform, tr0(3,0), ro0(3,0), trtot(3,0), rotot(3,0);
+    ifstream infile;
 
     cout << "Loading volume-to-baseline affine transformations" << endl;
     infile.open(inMatFile, ios::in);
@@ -194,6 +194,7 @@ int main(int argc, char **argv) {
     vector<int>::const_iterator ir1;
     vector<float> bvals;
     vector<float>::const_iterator ibval;
+    ifstream infile;
  
     // Read DWI volume series
     cout << "Loading DWI volume series from " << inDwiFile << endl;
