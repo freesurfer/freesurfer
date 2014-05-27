@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/21 17:56:15 $
- *    $Revision: 1.8 $
+ *    $Date: 2014/05/27 03:51:54 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -161,7 +161,7 @@ int GTMnPad(GTM *gtm);
 int GTMbuildX(GTM *gtm);
 int GTMsolve(GTM *gtm);
 int GTMsegrvar(GTM *gtm);
-int GTMsynth(GTM *gtm);
+int GTMsynth(GTM *gtm, int NoiseSeed, int nReps);
 int GTMsmoothSynth(GTM *gtm);
 MRI *GTMsegSynth(GTM *gtm, int frame, MRI *synth);
 int GTMrbvseg(GTM *gtm);

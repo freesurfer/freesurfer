@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/21 17:56:15 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/05/27 03:54:27 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.14 2014/05/21 17:56:15 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.15 2014/05/27 03:54:27 greve Exp $
 
 /*
   BEGINHELP
@@ -77,6 +77,7 @@
 #include "cma.h"
 #include "mri_identify.h"
 #include "gtm.h"
+#include "pdf.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -91,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.14 2014/05/21 17:56:15 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.15 2014/05/27 03:54:27 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -164,6 +165,7 @@ char *SUBJECTS_DIR;
 
 int DoRBV=0;
 int AutoMask=0;
+int GTMSynthSeed=0,GTMSynthReps=1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -444,7 +446,7 @@ int main(int argc, char *argv[])
   if(SrcBetaFile){
     printf("Synthsizing using supplied beta %s\n",SrcBetaFile);
     gtm->beta = srcbeta;
-    GTMsynth(gtm);
+    GTMsynth(gtm,GTMSynthSeed,GTMSynthReps);
     MRIwrite(gtm->ysynth,SynthFile);
     if(SynthOnly){
       printf("SynthOnly requested so exiting now\n");
@@ -454,6 +456,7 @@ int main(int argc, char *argv[])
     MRIfree(&gtm->yvol);
     GTMsmoothSynth(gtm);
     gtm->yvol = MRIcopy(gtm->ysynthsm,NULL);
+    MatrixFree(&gtm->beta);
   }
 
   printf("Solving ...\n");
@@ -538,8 +541,9 @@ int main(int argc, char *argv[])
 
   if(yhat0File || yhatFile || yhatFullFoVFile){
     printf("Synthesizing ... ");fflush(stdout); TimerStart(&mytimer) ;
-    GTMsynth(gtm);
+    GTMsynth(gtm,GTMSynthSeed,GTMSynthReps);
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+    fprintf(logfp,"GTMSynth: Seed=%d, Reps=%d\n",GTMSynthSeed,GTMSynthReps);
   }
   if(yhat0File) MRIwrite(gtm->ysynth,yhat0File);
   
@@ -955,6 +959,14 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if(!strcasecmp(option, "--save-eres")) SaveEres=1;
     else if(!strcasecmp(option, "--save-yhat")) SaveYhat=1;
+    else if(!strcasecmp(option, "--save-yhat-with-noise")){
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&GTMSynthSeed);
+      if(GTMSynthSeed <= 0) GTMSynthSeed = PDFtodSeed();
+      sscanf(pargv[1],"%d",&GTMSynthReps);
+      SaveYhat=1;
+      nargsused = 2;
+    }
     else if(!strcasecmp(option, "--save-yhat0")) SaveYhat0=1;
     else if(!strcasecmp(option, "--save-yhat-full-fov")) SaveYhatFullFoV=1;
     else if(!strcasecmp(option, "--save-rbv-seg")) SaveRBVSeg = 1;
@@ -985,15 +997,18 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--synth")) {
-      if(nargc < 2) CMDargNErr(option,2);
+      if(nargc < 4) CMDargNErr(option,4);
       SrcBetaFile = pargv[0];
       SynthFile   = pargv[1];
+      sscanf(pargv[2],"%d",&GTMSynthSeed);
+      if(GTMSynthSeed <= 0) GTMSynthSeed = PDFtodSeed();
+      sscanf(pargv[3],"%d",&GTMSynthReps);
       mritmp = MRIread(SrcBetaFile);
       if(mritmp == NULL) exit(1);
       MATRIX *srcbetaT = fMRItoMatrix(mritmp,NULL);
       srcbeta = MatrixTranspose(srcbetaT,NULL);
       MatrixFree(&srcbetaT);
-      nargsused = 2;
+      nargsused = 4;
     } 
     else if(!strcasecmp(option, "--threads")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1072,10 +1087,11 @@ static void print_usage(void) {
   printf("   --save-input : saves rescaled input as input.rescaled.nii.gz\n");
   printf("   --save-eres : saves residual error\n");
   printf("   --save-yhat : saves yhat\n");
+  printf("   --save-yhat-with-noise seed nreps : saves yhat with noise, seed < 0 for TOD\n");
   printf("   --save-yhat-full-fov : saves yhat in full FoV (if FoV was reduced)\n");
   printf("   --save-yhat0 : saves yhat prior to smoothing\n");
   printf("\n");
-  printf("   --synth gtmbeta synthvolume : synthesize unsmoothed volume with gtmbeta as input\n");
+  printf("   --synth gtmbeta synthvolume seed nreps : synthesize unsmoothed volume with gtmbeta as input\n");
   printf("\n");
   #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");

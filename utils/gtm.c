@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/21 17:56:15 $
- *    $Revision: 1.9 $
+ *    $Date: 2014/05/27 03:51:54 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1283,15 +1283,18 @@ int GTMmgpvc(GTM *gtm)
 }
 /*------------------------------------------------------------------*/
 /*
-  \fn int GTMsynth(GTM *gtm)
+  \fn int GTMsynth(GTM *gtm, int NoiseSeed, int nReps)
   \brief Synthesizes the unsmoothed PET image by computing 
    ysynth = X0*beta and then re-packing the result into a volume.
    This is then smoothed with GTMsmoothSynth() to give a full
-   synthesis of the input (same as X*beta).
+   synthesis of the input (same as X*beta). If NoiseSeed > 0
+   then exponentially distributed noise is added. The noisy
+   volume is replicated nReps times with different noise in each rep.
  */
-int GTMsynth(GTM *gtm)
+int GTMsynth(GTM *gtm, int NoiseSeed, int nReps)
 {
   MATRIX *yhat;
+  MRI *mritmp;
 
   if(gtm->ysynth) MRIfree(&gtm->ysynth);
   gtm->ysynth = MRIallocSequence(gtm->gtmseg->width,gtm->gtmseg->height,gtm->gtmseg->depth,MRI_FLOAT,
@@ -1303,6 +1306,13 @@ int GTMsynth(GTM *gtm)
   yhat = MatrixMultiply(gtm->X0,gtm->beta,NULL);
   GTMmat2vol(gtm, yhat, gtm->ysynth);
   MatrixFree(&yhat);
+
+  if(NoiseSeed > 0) {
+    printf("GTMsynth(): adding noise, seed=%d, nReps=%d\n",NoiseSeed,nReps);
+    mritmp = MRIrandexp(gtm->ysynth, gtm->mask, NoiseSeed, nReps, NULL);
+    MRIfree(&gtm->ysynth);
+    gtm->ysynth=mritmp;
+  }
     
   return(0);
 }
@@ -1314,7 +1324,7 @@ int GTMsynth(GTM *gtm)
  */
 int GTMsmoothSynth(GTM *gtm)
 {
-  if(gtm->ysynth == NULL) GTMsynth(gtm);
+  if(gtm->ysynth == NULL) GTMsynth(gtm,0,0);
   gtm->ysynthsm = MRIgaussianSmoothNI(gtm->ysynth, gtm->cStd, gtm->rStd, gtm->sStd, gtm->ysynthsm);
   return(0);
 }
