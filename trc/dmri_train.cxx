@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/02/15 01:28:02 $
- *    $Revision: 1.11 $
+ *    $Date: 2014/05/27 14:49:34 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -315,7 +315,12 @@ static int parse_commandline(int argc, char **argv) {
       useTrunc = true;
     else if (!strcmp(option, "--xstr"))
       excludeStr = true;
-
+    else {
+      fprintf(stderr,"ERROR: Option %s unknown\n",option);
+      if (CMDsingleDash(option))
+        fprintf(stderr,"       Did you really mean -%s ?\n",option);
+      exit(-1);
+    }
     nargc -= nargsused;
     pargv += nargsused;
   }
