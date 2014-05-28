@@ -10,10 +10,10 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2012/11/13 18:57:50 $
- *    $Revision: 1.28.2.3 $
+ *    $Date: 2014/05/28 23:55:14 $
+ *    $Revision: 1.28.2.4 $
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -762,6 +762,62 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
       }
     }
 
+    // check-for and read coordsys structs for talairach xform and volgeom
+    if (coords->coordsys && (coords->numCS > 0))
+    {
+      int idx;
+      for (idx=0; idx<coords->numCS; idx++)
+      {
+        if (0==strcmp(coords->coordsys[idx]->dataspace,"NIFTI_XFORM_UNKNOWN"))
+        {
+          if (0==strcmp(coords->coordsys[idx]->xformspace,
+                        "NIFTI_XFORM_TALAIRACH"))
+          {
+            int r,c;
+            mris->SRASToTalSRAS_ = MatrixAlloc(4, 4, MATRIX_REAL);
+            for (r=1; r <= 4; r++)
+            {
+              for (c=1; c <= 4; c++)
+              {
+                mris->SRASToTalSRAS_->rptr[r][c] = 
+                  coords->coordsys[idx]->xform[r-1][c-1];
+              }            
+            }
+          }
+
+          // first half of vol geometry info
+          if (0==strcmp(coords->coordsys[idx]->xformspace,
+                        "FS_VOLGEOM_WHDSIZE"))
+          {      
+            mris->vg.width = coords->coordsys[idx]->xform[0][0];
+            mris->vg.height =coords->coordsys[idx]->xform[0][1];
+            mris->vg.depth = coords->coordsys[idx]->xform[0][2];
+            mris->vg.xsize = coords->coordsys[idx]->xform[1][0];
+            mris->vg.ysize = coords->coordsys[idx]->xform[1][1];
+            mris->vg.zsize = coords->coordsys[idx]->xform[1][2];
+          }
+          // and the second half of vol geometry
+          if (0==strcmp(coords->coordsys[idx]->xformspace,
+                        "FS_VOLGEOM_RAS"))
+          {  
+            mris->vg.x_r = coords->coordsys[idx]->xform[0][0];
+            mris->vg.x_a = coords->coordsys[idx]->xform[0][1];
+            mris->vg.x_s = coords->coordsys[idx]->xform[0][2];
+            mris->vg.y_r = coords->coordsys[idx]->xform[1][0];
+            mris->vg.y_a = coords->coordsys[idx]->xform[1][1];
+            mris->vg.y_s = coords->coordsys[idx]->xform[1][2];
+            mris->vg.z_r = coords->coordsys[idx]->xform[2][0];
+            mris->vg.z_a = coords->coordsys[idx]->xform[2][1];
+            mris->vg.z_s = coords->coordsys[idx]->xform[2][2];
+            mris->vg.c_r = coords->coordsys[idx]->xform[3][0];
+            mris->vg.c_a = coords->coordsys[idx]->xform[3][1];
+            mris->vg.c_s = coords->coordsys[idx]->xform[3][2];
+            mris->vg.valid = 1; // finally we can say its valid data
+          }
+        }
+      }
+    }
+
     /* other data structure essentials, namely:
      *  mrisFindNeighbors(mris);
      *  mrisComputeVertexDistances(mris);
@@ -1454,17 +1510,54 @@ int MRISwriteGIFTI(MRIS* mris,
         mris->SRASToTalSRAS_->rows==4 &&
         mris->SRASToTalSRAS_->cols==4)
     {
+      int idx;
       // found a valid xform, so use it...
       gifti_add_empty_CS( coords );
-      coords->coordsys[0]->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
-      coords->coordsys[0]->xformspace = strcpyalloc("NIFTI_XFORM_TALAIRACH");
+      idx = coords->numCS - 1;
+      coords->coordsys[idx]->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
+      coords->coordsys[idx]->xformspace = strcpyalloc("NIFTI_XFORM_TALAIRACH");
       MATRIX *xform = mris->SRASToTalSRAS_;
       int r,c;
       for (r=1; r <= 4; r++)
         for (c=1; c <= 4; c++)
         {
-          coords->coordsys[0]->xform[r-1][c-1] = xform->rptr[r][c];
+          coords->coordsys[idx]->xform[r-1][c-1] = xform->rptr[r][c];
         }
+    }
+
+    // add volume geometry info if valid
+    if (mris->vg.valid)
+    {
+      int idx;
+      // found a valid xform, so use it, doing so using two giiCoordSys
+      // structs, since we can't fit all vol geom info in one
+      gifti_add_empty_CS( coords );
+      idx = coords->numCS - 1;
+      coords->coordsys[idx]->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
+      coords->coordsys[idx]->xformspace = strcpyalloc("FS_VOLGEOM_WHDSIZE");
+      coords->coordsys[idx]->xform[0][0] = mris->vg.width;
+      coords->coordsys[idx]->xform[0][1] = mris->vg.height;
+      coords->coordsys[idx]->xform[0][2] = mris->vg.depth;
+      coords->coordsys[idx]->xform[1][0] = mris->vg.xsize;
+      coords->coordsys[idx]->xform[1][1] = mris->vg.ysize;
+      coords->coordsys[idx]->xform[1][2] = mris->vg.zsize;
+      // the other one...
+      gifti_add_empty_CS( coords );
+      idx = coords->numCS - 1;
+      coords->coordsys[idx]->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
+      coords->coordsys[idx]->xformspace = strcpyalloc("FS_VOLGEOM_RAS");
+      coords->coordsys[idx]->xform[0][0] = mris->vg.x_r;
+      coords->coordsys[idx]->xform[0][1] = mris->vg.x_a;
+      coords->coordsys[idx]->xform[0][2] = mris->vg.x_s;
+      coords->coordsys[idx]->xform[1][0] = mris->vg.y_r;
+      coords->coordsys[idx]->xform[1][1] = mris->vg.y_a;
+      coords->coordsys[idx]->xform[1][2] = mris->vg.y_s;
+      coords->coordsys[idx]->xform[2][0] = mris->vg.z_r;
+      coords->coordsys[idx]->xform[2][1] = mris->vg.z_a;
+      coords->coordsys[idx]->xform[2][2] = mris->vg.z_s;
+      coords->coordsys[idx]->xform[3][0] = mris->vg.c_r;
+      coords->coordsys[idx]->xform[3][1] = mris->vg.c_a;
+      coords->coordsys[idx]->xform[3][2] = mris->vg.c_s;
     }
 
     coords->nvals = gifti_darray_nvals (coords);
