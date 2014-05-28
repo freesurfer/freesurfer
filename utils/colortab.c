@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/04/16 17:34:48 $
- *    $Revision: 1.55 $
+ *    $Author: fischl $
+ *    $Date: 2014/05/28 20:16:29 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2409,4 +2409,83 @@ int CTABmerge(COLOR_TABLE *ct, const COLOR_TABLE *merge)
   }
   return(0);
 }
+
+static int
+ctabMinDist(COLOR_TABLE *ct, int r, int g, int b)
+{
+  int    i, dist, min_dist = 3*256 ;
+
+  for (i = 0 ; i < ct->nentries ; i++)
+  {
+    if (ct->entries[i] == NULL)
+      continue ;
+    dist = abs(ct->entries[i]->ri - r) + abs(ct->entries[i]->gi - g) + abs(ct->entries[i]->bi - b) ;
+    if (dist < min_dist)
+      min_dist = dist ;
+  }
+  return(min_dist) ;
+}
+
+/*--------------------------------------------------------------*/
+/*!
+\fn int CTABaddUniqueEntry(COLOR_TABLE *ct, char *name, int min_dist) 
+\brief Creates and adds a unique entry into the ct (increasing ct->nentries)
+The new entry will be at least min_dist from any existing rgb value so it can be
+visually distinguished (rdist+gdist+bdist)
+*/
+int
+CTABaddUniqueEntry(COLOR_TABLE *ct, char *name, int min_dist) 
+{
+  int                dist, i , r, g, b; 
+  COLOR_TABLE_ENTRY *cte, **pcte;
+
+  while (min_dist > 0)
+  {
+    for (i = 0 ; i < 1000 ;  i++)
+    {
+      r = nint(randomNumber(0, 255)) ;
+      g = nint(randomNumber(0, 255)) ;
+      b = nint(randomNumber(0, 255)) ;
+      dist = ctabMinDist(ct, r, g, b) ;
+      if (dist <= min_dist)
+	break ;
+    }
+    if (dist > min_dist)
+      min_dist-- ;
+    else
+      break ;
+  }
+
+  if (min_dist <= 0)
+    return(-1) ;
+
+  for (i = 0 ; i < ct->nentries ; i++)  // see if there are any unused slots
+    if (ct->entries[i] == NULL)
+    {
+      ct->entries[i] = (COLOR_TABLE_ENTRY *)calloc(1, sizeof(COLOR_TABLE_ENTRY)) ;
+      break ;
+    }
+
+  if (i >= ct->nentries)  // allocate and copy over new table
+  {
+    pcte = ct->entries ;
+    ct->entries = (COLOR_TABLE_ENTRY **)calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY *)) ;
+    for (i = 0 ; i < ct->nentries ; i++)
+    {
+      ct->entries[i] = (COLOR_TABLE_ENTRY *)calloc(1, sizeof(COLOR_TABLE_ENTRY)) ;
+      memmove(ct->entries[i], pcte[i], sizeof(COLOR_TABLE_ENTRY)) ;
+    }
+    i = ct->nentries ;
+    ct->nentries++ ;
+  }
+
+  cte = ct->entries[i];
+  cte->ri = r ; cte->gi = g ; cte->bi = b ;
+  cte->rf = (float)cte->ri/255.0f; cte->gf = (float)cte->gi/255.0f; cte->bf = (float)cte->bi/255.0f;
+  cte->ai = 255;
+  strcpy(cte->name, name) ;
+  
+  return(i) ;
+}
+
 
