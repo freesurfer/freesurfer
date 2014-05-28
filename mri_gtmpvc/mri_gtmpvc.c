@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/28 20:30:39 $
- *    $Revision: 1.16 $
+ *    $Date: 2014/05/28 20:57:13 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.16 2014/05/28 20:30:39 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.17 2014/05/28 20:57:13 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.16 2014/05/28 20:30:39 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.17 2014/05/28 20:57:13 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -134,6 +134,8 @@ char *OutBetaFile=NULL,*OutBetaVarFile=NULL,*OutXtXFile=NULL;
 char *SrcBetaFile=NULL;
 int SynthOnly=0,SaveSynth=0;
 int GTMSynthSeed=0,GTMSynthReps=1;
+double SynthPSFFWHMCol=0,SynthPSFFWHMRow=0,SynthPSFFWHMSlice=0;
+double SynthPSFStdCol=0,SynthPSFStdRow=0,SynthPSFStdSlice=0;
 MATRIX *srcbeta;
 double psfFWHM=-1;
 char tmpstr[5000],logfile[5000];
@@ -452,7 +454,8 @@ int main(int argc, char *argv[])
     printf("Synthsizing using supplied beta %s\n",SrcBetaFile);
     gtm->beta = srcbeta;
     GTMsynth(gtm,GTMSynthSeed,GTMSynthReps);
-    GTMsmoothSynth(gtm);
+    printf("Smoothing synthsizing %g %g %g\n",SynthPSFStdCol,SynthPSFStdRow,SynthPSFStdSlice);
+    gtm->ysynthsm = MRIgaussianSmoothNI(gtm->ysynth,SynthPSFStdCol,SynthPSFStdRow,SynthPSFStdSlice,NULL);
     if(SaveSynth){
       sprintf(tmpstr,"%s/synth.nii.gz",OutDir);
       MRIwrite(gtm->ysynthsm,tmpstr);
@@ -1003,17 +1006,23 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--synth")) {
-      if(nargc < 3) CMDargNErr(option,3);
+      if(nargc < 6) CMDargNErr(option,6);
       SrcBetaFile = pargv[0];
-      sscanf(pargv[1],"%d",&GTMSynthSeed);
+      sscanf(pargv[1],"%lf",&SynthPSFFWHMCol);
+      sscanf(pargv[2],"%lf",&SynthPSFFWHMRow);
+      sscanf(pargv[3],"%lf",&SynthPSFFWHMSlice);
+      sscanf(pargv[4],"%d",&GTMSynthSeed);
       if(GTMSynthSeed < 0) GTMSynthSeed = PDFtodSeed();
-      sscanf(pargv[2],"%d",&GTMSynthReps);
+      sscanf(pargv[5],"%d",&GTMSynthReps);
       mritmp = MRIread(SrcBetaFile);
       if(mritmp == NULL) exit(1);
       MATRIX *srcbetaT = fMRItoMatrix(mritmp,NULL);
       srcbeta = MatrixTranspose(srcbetaT,NULL);
       MatrixFree(&srcbetaT);
-      nargsused = 3;
+      SynthPSFStdCol   = SynthPSFFWHMCol/sqrt(log(256.0));
+      SynthPSFStdRow   = SynthPSFFWHMRow/sqrt(log(256.0));
+      SynthPSFStdSlice = SynthPSFFWHMSlice/sqrt(log(256.0));
+      nargsused = 6;
     } 
     else if(!strcasecmp(option, "--synth-only")) {SynthOnly = 1;SaveSynth = 1;}
     else if(!strcasecmp(option, "--save-synth")) SaveSynth = 1;
@@ -1098,8 +1107,9 @@ static void print_usage(void) {
   printf("   --save-yhat-full-fov : saves yhat in full FoV (if FoV was reduced)\n");
   printf("   --save-yhat0 : saves yhat prior to smoothing\n");
   printf("\n");
-  printf("   --synth gtmbeta seed nreps : synthesize volume with gtmbeta as input\n");
-  printf("       spec all other inputs the same; seed=0 for no noise, -1 for TOD seed\n");
+  printf("   --synth gtmbeta C R S seed nreps : synthesize volume with gtmbeta as input\n");
+  printf("       spec all other inputs the same; CRS are PSF for col, row, slice\n");
+  printf("       seed=0 for no noise, -1 for TOD seed\n");
   printf("   --synth-only : exit after doing synthesis (implies --synth-save)\n");
   printf("   --synth-save : with --synth saves synthesized volume to outdir/synth.nii.gz\n");
   printf("\n");
