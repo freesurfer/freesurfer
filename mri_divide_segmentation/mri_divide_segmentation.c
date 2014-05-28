@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/05/28 20:16:08 $
- *    $Revision: 1.1 $
+ *    $Date: 2014/05/28 20:22:11 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ main(int argc, char *argv[]) {
   MATRIX       *m_obs, *m_obs_T, *m_cov, *m_eig ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_divide_segmentation.c,v 1.1 2014/05/28 20:16:08 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_divide_segmentation.c,v 1.2 2014/05/28 20:22:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -270,12 +270,8 @@ get_option(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <inverse operator> <EEG/MEG data file>",
+  printf("usage: %s [options] <input aseg> <segmentation index> <# of subdivisions> <output aseg>\n",
          Progname) ;
-  printf(
-    "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
-  );
-  printf("\tn - noise-sensitivity normalize inverse (default=1)") ;
   exit(code) ;
 }
 
