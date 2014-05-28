@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/05/28 20:22:11 $
- *    $Revision: 1.2 $
+ *    $Date: 2014/05/28 20:27:57 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,8 +65,8 @@ main(int argc, char *argv[]) {
 //  double       e1x, e1y, e1z, e2x, e2y, e2z, e3z, e3y, e3z ;
   MATRIX       *m_obs, *m_obs_T, *m_cov, *m_eig ;
 
-  /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_divide_segmentation.c,v 1.2 2014/05/28 20:22:11 fischl Exp $", "$Name:  $");
+  setRandomSeed(-1L) ;
+  nargs = handle_version_option (argc, argv, "$Id: mri_divide_segmentation.c,v 1.3 2014/05/28 20:27:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -112,6 +112,7 @@ main(int argc, char *argv[]) {
     sprintf(name, "%s.div%d", cma_label_to_name(segno), i) ;
     indices[i] = CTABaddUniqueEntry(mri->ct, name, 50) ;
     mri->ct->entries[indices[i]]->TissueType = mri->ct->entries[segno]->TissueType ;
+    printf("%s: index %d\n", name, indices[i]) ;
   }
 
 
