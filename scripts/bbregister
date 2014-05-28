@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/04/30 20:38:54 $
-#    $Revision: 1.65 $
+#    $Date: 2014/05/28 21:30:07 $
+#    $Revision: 1.66 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.65 2014/04/30 20:38:54 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.66 2014/05/28 21:30:07 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -269,6 +269,19 @@ if($#InitReg == 0) then
     if($status) exit 1;
     set InitReg = $InitReg0;
   endif
+else
+  IsLTA --r $InitReg --o $tmpdir/islta.$$ | tee -a $LF
+  if($status) exit 1;
+  set InitRegIsLTA = `cat $tmpdir/islta.$$`
+  if($InitRegIsLTA) then
+    echo "Changing from LTA to register.dat" | tee -a $LF
+    set InitRegTKR = $tmpdir/init.reg.$$.dat
+    set cmd = (lta_convert --inlta $InitReg --outreg $InitRegTKR)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    set InitReg = $InitRegTKR;
+ endif
 endif
 
 if($#InitRegOut) cp $InitReg $InitRegOut
@@ -601,7 +614,7 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $InitReg"
         exit 1;
       endif
-      set subject = `head -n 1 $InitReg`
+      set subject = `reg2subject --r $InitReg`
       set InitFSL = 0;
       set InitSPM = 0;
       set InitHeader = 0;

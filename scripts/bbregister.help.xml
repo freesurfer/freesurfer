@@ -57,7 +57,7 @@
       <argument>--init-best-rr</argument>
       <explanation> Include robust register NMI in the init-best list.</explanation>
       <argument>--init-reg initregfile</argument>
-      <explanation>Supply an initial registration matrix (cannot be part of 'best' list).</explanation>
+      <explanation>Supply an initial registration matrix; can be LTA; cannot be part of 'best' list).</explanation>
 
       <intro>Contrast Arguments (one required)</intro>
       <argument>--t1</argument>
