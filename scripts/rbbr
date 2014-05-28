@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # rbbr
 
-set VERSION = '$Id: rbbr,v 1.5 2014/05/26 19:28:34 greve Exp $';
+set VERSION = '$Id: rbbr,v 1.6 2014/05/28 21:52:19 greve Exp $';
 
 set outreg = ();
 set outlta = ();
@@ -192,7 +192,7 @@ while($Iter < $NIters)
   $cmd |& tee -a $LF
   if($status) goto error_exit;
 
-  cat $rms >> $RMSFile
+  if($#RMSFile) cat $rms >> $RMSFile
 
   set InitReg    = $BBReg
   set InitRegLTA = $BBLTA
@@ -208,7 +208,7 @@ if($#outlta) cp $BBLTA $outlta
 if($cleanup) rm -rf $tmpdir
 
 echo ""
-echo "To test run" | tee -a $LF
+echo "To check registration, run" | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "cd `pwd`"  | tee -a $LF
 echo "tkregister2 --mov $mov --reg $outreg --surfs"  | tee -a $LF
