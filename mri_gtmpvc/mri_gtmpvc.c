@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/27 03:54:27 $
- *    $Revision: 1.15 $
+ *    $Date: 2014/05/28 20:30:39 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.15 2014/05/27 03:54:27 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.16 2014/05/28 20:30:39 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.15 2014/05/27 03:54:27 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.16 2014/05/28 20:30:39 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -131,8 +131,9 @@ int MinPowell();
 char *SrcVolFile=NULL,*SegVolFile=NULL,*MaskVolFile=NULL;
 char *OutDir=NULL,*AuxDir,*RBVVolFile=NULL;
 char *OutBetaFile=NULL,*OutBetaVarFile=NULL,*OutXtXFile=NULL;
-char *SrcBetaFile=NULL,*SynthFile=NULL;
-int SynthOnly=0;
+char *SrcBetaFile=NULL;
+int SynthOnly=0,SaveSynth=0;
+int GTMSynthSeed=0,GTMSynthReps=1;
 MATRIX *srcbeta;
 double psfFWHM=-1;
 char tmpstr[5000],logfile[5000];
@@ -165,7 +166,6 @@ char *SUBJECTS_DIR;
 
 int DoRBV=0;
 int AutoMask=0;
-int GTMSynthSeed=0,GTMSynthReps=1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -361,8 +361,6 @@ int main(int argc, char *argv[])
   GTMsetNMask(gtm);
   GTMsegidlist(gtm);
 
-  GTMmatrixY(gtm);
-
   printf("nmask = %d, nsegs = %d, excluding segid=0\n",gtm->nmask,gtm->nsegs);
   printf("FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
   printf("Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
@@ -443,23 +441,38 @@ int main(int argc, char *argv[])
     //MatrixWriteTxt(Xfile, gtm->X);
   }
 
+  sprintf(tmpstr,"%s/hrseg2pet.lta",AuxDir);
+  LTAwrite(gtm->seg2pet,tmpstr);
+  sprintf(tmpstr,"%s/anat2pet.lta",AuxDir);
+  LTAwrite(gtm->anat2pet,tmpstr);
+  //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
+  //LTAwrite(gtm->anat2seg,tmpstr);
+
   if(SrcBetaFile){
     printf("Synthsizing using supplied beta %s\n",SrcBetaFile);
     gtm->beta = srcbeta;
     GTMsynth(gtm,GTMSynthSeed,GTMSynthReps);
-    MRIwrite(gtm->ysynth,SynthFile);
+    GTMsmoothSynth(gtm);
+    if(SaveSynth){
+      sprintf(tmpstr,"%s/synth.nii.gz",OutDir);
+      MRIwrite(gtm->ysynthsm,tmpstr);
+    }
     if(SynthOnly){
       printf("SynthOnly requested so exiting now\n");
       printf("mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
+      fprintf(logfp,"SynthOnly requested so exiting now\n");
+      fprintf(logfp,"mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
       exit(0);
     }
     MRIfree(&gtm->yvol);
-    GTMsmoothSynth(gtm);
     gtm->yvol = MRIcopy(gtm->ysynthsm,NULL);
+    MRIfree(&gtm->ysynth);
+    MRIfree(&gtm->ysynthsm);
     MatrixFree(&gtm->beta);
   }
 
   printf("Solving ...\n");
+  GTMmatrixY(gtm);
   TimerStart(&mytimer) ; 
   if(Gdiag_no > 0) PrintMemUsage(stdout);
   PrintMemUsage(logfp);
@@ -489,13 +502,6 @@ int main(int argc, char *argv[])
   }
 
   GTMrefTAC(gtm);
-
-  sprintf(tmpstr,"%s/hrseg2pet.lta",AuxDir);
-  LTAwrite(gtm->seg2pet,tmpstr);
-  sprintf(tmpstr,"%s/anat2pet.lta",AuxDir);
-  LTAwrite(gtm->anat2pet,tmpstr);
-  //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
-  //LTAwrite(gtm->anat2seg,tmpstr);
 
   if(gtm->rescale){
     // Rescaling is done during GTMsolve()
@@ -997,19 +1003,20 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--synth")) {
-      if(nargc < 4) CMDargNErr(option,4);
+      if(nargc < 3) CMDargNErr(option,3);
       SrcBetaFile = pargv[0];
-      SynthFile   = pargv[1];
-      sscanf(pargv[2],"%d",&GTMSynthSeed);
-      if(GTMSynthSeed <= 0) GTMSynthSeed = PDFtodSeed();
-      sscanf(pargv[3],"%d",&GTMSynthReps);
+      sscanf(pargv[1],"%d",&GTMSynthSeed);
+      if(GTMSynthSeed < 0) GTMSynthSeed = PDFtodSeed();
+      sscanf(pargv[2],"%d",&GTMSynthReps);
       mritmp = MRIread(SrcBetaFile);
       if(mritmp == NULL) exit(1);
       MATRIX *srcbetaT = fMRItoMatrix(mritmp,NULL);
       srcbeta = MatrixTranspose(srcbetaT,NULL);
       MatrixFree(&srcbetaT);
-      nargsused = 4;
+      nargsused = 3;
     } 
+    else if(!strcasecmp(option, "--synth-only")) {SynthOnly = 1;SaveSynth = 1;}
+    else if(!strcasecmp(option, "--save-synth")) SaveSynth = 1;
     else if(!strcasecmp(option, "--threads")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nthreads);
@@ -1091,7 +1098,10 @@ static void print_usage(void) {
   printf("   --save-yhat-full-fov : saves yhat in full FoV (if FoV was reduced)\n");
   printf("   --save-yhat0 : saves yhat prior to smoothing\n");
   printf("\n");
-  printf("   --synth gtmbeta synthvolume seed nreps : synthesize unsmoothed volume with gtmbeta as input\n");
+  printf("   --synth gtmbeta seed nreps : synthesize volume with gtmbeta as input\n");
+  printf("       spec all other inputs the same; seed=0 for no noise, -1 for TOD seed\n");
+  printf("   --synth-only : exit after doing synthesis (implies --synth-save)\n");
+  printf("   --synth-save : with --synth saves synthesized volume to outdir/synth.nii.gz\n");
   printf("\n");
   #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");
@@ -1145,9 +1155,8 @@ static void check_options(void)
     exit(1);
   }
 
-  if(OutDir == NULL && SynthFile != NULL) SynthOnly=1;
-  if(OutDir == NULL && SynthFile == NULL){
-    printf("ERROR: must spec an output with --o or --synth\n");
+  if(OutDir == NULL){
+    printf("ERROR: must spec an output folder with --o\n");
     exit(1);
   }
 
