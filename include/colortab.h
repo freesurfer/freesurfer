@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/04/16 17:34:48 $
- *    $Revision: 1.35 $
+ *    $Author: fischl $
+ *    $Date: 2014/05/28 20:16:50 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -181,5 +181,6 @@ int CTABprintASCIItt(COLOR_TABLE *ct, FILE *fp);
 int CTABwriteFileASCIItt(COLOR_TABLE *ct, const char *fname);
 COLOR_TABLE *CTABreadASCIIttHeader(const char *fname);
 int CTABmerge(COLOR_TABLE *ct, const COLOR_TABLE *merge);
+int CTABaddUniqueEntry(COLOR_TABLE *ct, char *name, int min_dist) ;
 
 #endif
