@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/08/28 14:09:49 $
- *    $Revision: 1.67 $
+ *    $Date: 2014/05/30 20:58:47 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,6 +65,7 @@
 #include "version.h"
 #include "fmriutils.h"
 #include "proto.h" // nint
+#include "cmdargs.h"
 
 #ifndef FZERO
 #define FZERO(f)     (fabs(f) < 0.0000001F)
@@ -82,7 +83,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.67 2012/08/28 14:09:49 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.68 2014/05/30 20:58:47 greve Exp $";
 
 char *Progname = NULL;
 
@@ -206,7 +207,7 @@ MRI *MRIvol2surf(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
 int main(int argc, char **argv) {
   int n,err, f, vtx, svtx, tvtx, nproj, nSmoothSteps;
   int nrows_src, ncols_src, nslcs_src, nfrms;
-  float ipr, bpr, intensity;
+  //float ipr, bpr, intensity;
   float colres_src=0, rowres_src=0, slcres_src=0;
   char fname[2000];
   int nTrg121,nSrc121,nSrcLost;
@@ -214,11 +215,12 @@ int main(int argc, char **argv) {
   float MnTrgMultiHits,MnSrcMultiHits;
   int nargs;
   int r,c,s,nsrchits;
+  LTA *lta;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.67 2012/08/28 14:09:49 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.68 2014/05/30 20:58:47 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -229,6 +231,7 @@ int main(int argc, char **argv) {
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+  vg_isEqual_Threshold = 10e-4;
 
   if (argc == 0) usage_exit();
 
@@ -294,16 +297,48 @@ int main(int argc, char **argv) {
 
   if (!regheader) {
     /* Load the registration matrix */
-    err = regio_read_register(srcregfile, &srcsubject, &ipr, &bpr,
-                              &intensity, &Dsrc, &float2int_src);
-    if (err) exit(1);
-    if (srcsubjectuse) {
-      if (strcmp(srcsubject,srcsubjectuse)) {
-        printf("INFO: overriding regsubject %s with %s\n",
-               srcsubject,srcsubjectuse);
+    lta = LTAread(srcregfile);
+    if(lta == NULL) exit(1);
+    if(debug) LTAprint(stdout,lta);
+    srcsubject = lta->subject;
+    if(srcsubjectuse) {
+      if(strcmp(srcsubject,srcsubjectuse)){
+        printf("INFO: overriding regsubject %s with %s\n",srcsubject,srcsubjectuse);
       }
       srcsubject = srcsubjectuse;
     }
+    if(lta->xforms[0].src.valid && lta->xforms[0].dst.valid){
+      printf("Input reg is LTA\n");
+      if(LTAmriIsTarget(lta,SrcVol)) {
+	printf("Inverting LTA\n");
+	lta = LTAinvert(lta,lta);        
+      }
+      else if(!LTAmriIsSource(lta,SrcVol)) {
+	printf("\n\n");
+	LTAprint(stdout,lta);
+	printf("\n\n");
+	printf("ERROR: source volume is neither source nor target of the registration\n");
+	exit(1);
+      }
+      LTAchangeType(lta, REGISTER_DAT);
+    }
+    else {
+      printf("Input reg is register.dat\n");
+      /* check that the resolution of the SrcVol is the same as in reg file */
+      if(fabs(lta->xforms[0].src.xsize-SrcVol->xsize) > .001 ||
+	 fabs(lta->xforms[0].src.zsize-SrcVol->zsize) > .001){
+	printf("WARNING: the voxel resolution in the source volume"
+	       " (%g,%g,%g) differs \n",
+	       SrcVol->xsize,SrcVol->ysize,SrcVol->zsize);
+	printf("         from that listed in the registration file (%g,%g,%g)\n",
+	       lta->xforms[0].src.xsize,lta->xforms[0].src.ysize,lta->xforms[0].src.zsize);
+	if(fixtkreg) {
+	  printf("ERROR: cannot fix tkreg matrix with resolution inconsistency\n");
+	  exit(1);
+	}
+      }
+    }
+    Dsrc = lta->xforms[0].m_L;
   } else {
     /* compute the registration from the header */
     sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,srcsubject, ref_vol_name);
@@ -314,7 +349,6 @@ int main(int argc, char **argv) {
     Dsrc = MRItkRegMtx(TargVol,SrcVol,NULL);
     MRIfree(&TargVol);
   }
-
 
   if(Mrot){
     printf("Applying rotation matrix (R=M*R)\n");
@@ -350,22 +384,8 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  /* check that the resolution of the SrcVol is the same as in reg file */
-  if (!regheader &&
-      (fabs(SrcVol->xsize-ipr) > .01 || fabs(SrcVol->zsize-bpr) > .01)) {
-    printf("WARNING: the voxel resolution in the source volume"
-           " (%g,%g,%g) differs \n",
-           SrcVol->xsize,SrcVol->ysize,SrcVol->zsize);
-    printf("         from that listed in the registration file (%g,%g,%g)\n",
-           ipr,ipr,bpr);
-    if (fixtkreg) {
-      printf("ERROR: cannot fix tkreg matrix with resolution inconsistency\n");
-      exit(1);
-    }
-  }
-
   /* Fix tkregister matrix if necessary */
-  if (fixtkreg && float2int == FLT2INT_TKREG) {
+  if(fixtkreg && float2int == FLT2INT_TKREG) {
     printf("INFO: fixing tkregister matrix\n");
     Dsrctmp = MRIfixTkReg(SrcVol,Dsrc);
     printf("-------- original matrix -----------\n");
@@ -376,6 +396,10 @@ int main(int argc, char **argv) {
     Dsrc = Dsrctmp;
     float2int = FLT2INT_ROUND;
   }
+
+  printf("-------- original matrix -----------\n");
+  MatrixPrint(stdout,Dsrc);
+  printf("-------- original matrix -----------\n");
 
   if(vsmfile){
     printf("Reading vsm %s\n",vsmfile);
@@ -836,6 +860,11 @@ static int parse_commandline(int argc, char **argv) {
       srcsubject = pargv[0];
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--vg-thresh")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&vg_isEqual_Threshold);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--mni152reg")) {
       sprintf(tmpstr,"%s/average/mni152.register.dat",
 	      getenv("FREESURFER_HOME"));
@@ -1093,7 +1122,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --mov input volume path (or --src)\n");
   printf("   --ref reference volume name (default=orig.mgz\n");
-  printf("   --reg source registration  \n");
+  printf("   --reg source registration (can be reg.dat or lta) \n");
   printf("   --regheader subject\n");
   printf("   --mni152reg : $FREESURFER_HOME/average/mni152.register.dat\n");
   printf("   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
@@ -1154,6 +1183,7 @@ static void print_usage(void) {
   printf("   --version   print out version and exit\n");
   printf("\n");
   printf("   --interp    interpolation method (<nearest> or trilinear)\n");
+  printf("   --vg-thresh thrshold : threshold for  'ERROR: LTAconcat(): LTAs 0 and 1 do not match'\n");
   printf("%s\n", vcid) ;
   printf("\n");
   //printf("   --src_type  input volume format \n");
@@ -1175,8 +1205,8 @@ static void print_help(void) {
     "  --mov path to input volume (see below). Can also use --src\n"
     "\n"
     "  --reg file : registration file as computed by tkregister,\n"
-    "    tkmedit, mri_make_register, or spmregister. This file\n"
-    "    has the following format:\n"
+    "    spmregister, bbregister, etc. This file\n"
+    "    can be an LTA (better) or a register.dat, in which case it has the following format:\n"
     "\n"
     "        subjectname\n"
     "        in-plane resolution(mm)\n"
