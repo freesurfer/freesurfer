@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/02 19:42:01 $
- *    $Revision: 1.174 $
+ *    $Date: 2014/05/30 20:59:37 $
+ *    $Revision: 1.175 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3105,12 +3105,25 @@ LTA *ltaReadRegisterDat(const char *fname, const char *mov, const char *ref)
     getVolGeom(mritmp, &lta->xforms[0].src);
     MRIfree(&mritmp);
   }
+  else {
+    // at least set what is known
+    lta->xforms[0].src.valid = 0;
+    lta->xforms[0].src.xsize = ipr;
+    lta->xforms[0].src.ysize = ipr;
+    lta->xforms[0].src.zsize = bpr;
+  }
   if(ref != NULL){
     MRI *mritmp;
     mritmp = MRIreadHeader(ref,MRI_VOLUME_TYPE_UNKNOWN);
     if(mritmp==NULL) return(NULL);
     getVolGeom(mritmp, &lta->xforms[0].dst);
     MRIfree(&mritmp);
+  }
+  else {
+    lta->xforms[0].dst.valid = 0;
+    lta->xforms[0].dst.xsize = 1;
+    lta->xforms[0].dst.ysize = 1;
+    lta->xforms[0].dst.zsize = 1;
   }
 
   // (mr) I dont think CORONAL_RAS_TO_CORONAL_RAS is the same here,
