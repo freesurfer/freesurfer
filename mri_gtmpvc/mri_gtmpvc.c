@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/30 16:50:39 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/05/30 20:13:56 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.18 2014/05/30 16:50:39 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.19 2014/05/30 20:13:56 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.18 2014/05/30 16:50:39 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.19 2014/05/30 20:13:56 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1090,7 +1090,8 @@ static void print_usage(void) {
   printf("   --no-rescale   : do not global rescale such that mean of cerebellum WM is 100\n");
   printf("\n");
   printf("   --no-vox-frac-cor : do not use voxel fraction correction (with --psf 0 turns off PVC entirely)\n");
-  printf("   --rbv            : perform RBV PVC\n");
+  printf("   --rbv             : perform RBV PVC\n");
+  printf("   --rbv-res voxsize : set RBV voxel resolution (good for when standard res takes too much memory)\n");
   printf("   --mg gmthresh RefId1 RefId2 ...: perform Mueller-Gaertner PVC, gmthresh is min gm pvf bet 0 and 1\n");
   printf("   --mg-ref-cerebral-wm : set MG RefIds to 2 and 41\n");
   printf("   --mg-ref-lobes-wm : set MG RefIds to those for lobes when using wm subseg\n");
