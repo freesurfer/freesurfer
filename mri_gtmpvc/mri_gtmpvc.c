@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/28 20:57:13 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/05/30 16:50:39 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.17 2014/05/28 20:57:13 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.18 2014/05/30 16:50:39 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.17 2014/05/28 20:57:13 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.18 2014/05/30 16:50:39 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1026,6 +1026,7 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if(!strcasecmp(option, "--synth-only")) {SynthOnly = 1;SaveSynth = 1;}
     else if(!strcasecmp(option, "--save-synth")) SaveSynth = 1;
+    else if(!strcasecmp(option, "--synth-save")) SaveSynth = 1;
     else if(!strcasecmp(option, "--threads")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nthreads);
@@ -1041,7 +1042,7 @@ static int parse_commandline(int argc, char **argv) {
       omp_set_num_threads(nthreads);
       #endif
     } 
-    else if(!strcasecmp(option, "--max-threads-1")){
+    else if(!strcasecmp(option, "--max-threads-1") || !strcasecmp(option, "--max-threads-minus-1")){
       nthreads = 1;
       #ifdef _OPENMP
       nthreads = omp_get_max_threads()-1;
@@ -1116,7 +1117,7 @@ static void print_usage(void) {
   #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");
   printf("   --max-threads : use the maximum allowable number of threads for this computer\n");
-  printf("   --max-threads-1 : use one less than the maximum allowable number of threads for this computer\n");
+  printf("   --max-threads-minus-1 : use one less than the maximum allowable number of threads for this computer\n");
   #endif
   printf("   --sd SUBJECTS_DIR\n");
   printf("   --vg-thresh thrshold : threshold for  'ERROR: LTAconcat(): LTAs 0 and 1 do not match'\n");
