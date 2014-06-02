@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/02 21:07:33 $
- *    $Revision: 1.20 $
+ *    $Date: 2014/06/02 21:27:28 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.20 2014/06/02 21:07:33 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.21 2014/06/02 21:27:28 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.20 2014/06/02 21:07:33 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.21 2014/06/02 21:27:28 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -696,6 +696,12 @@ int main(int argc, char *argv[])
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
     sprintf(tmpstr,"%s/aux/anat2rbv.lta",OutDir);
     LTAwrite(gtm->anat2rbv,tmpstr);
+    sprintf(tmpstr,"%s/aux/anat2rbv.lta",OutDir);
+    LTAwrite(gtm->anat2rbv,tmpstr);
+    ltatmp = LTAinvert(gtm->anat2rbv,NULL);
+    sprintf(tmpstr,"%s/rbv2anat.lta",AuxDir);
+    LTAwrite(ltatmp,tmpstr);
+    LTAfree(&ltatmp);
 
     sprintf(tmpstr,"%s/rbv.segmean.nii.gz",AuxDir);
     MRIwrite(gtm->rbvsegmean,tmpstr);
