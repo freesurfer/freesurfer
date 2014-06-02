@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2014/05/27 14:49:34 $
- *    $Revision: 1.12 $
+ *    $Date: 2014/06/02 09:46:59 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -161,25 +161,25 @@ int main(int argc, char **argv) {
     vector<int> lengths, pathmap, basepathmap;
     vector<float>::iterator iavg, iwavg;
     MRI *post;
-    ifstream infile;
+    ifstream lenfile, infile;
     string pathline;
 
     // Read lengths of path samples
     sprintf(fname, "%s/length.samples.txt", inTrcDir);
-    infile.open(fname, ios::in);
-    if (!infile) {
+    lenfile.open(fname, ios::in);
+    if (!lenfile) {
       cout << "ERROR: Could not open " << fname << " for reading" << endl;
       exit(1);
     }
 
     // Sum path lengths
     lenavg = 0;
-    while (infile >> len) {
+    while (lenfile >> len) {
       lengths.push_back(len);
       lenavg += len;
     }
 
-    infile.close();
+    lenfile.close();
 
     // Read path posterior distribution
     sprintf(fname, "%s/path.pd.nii.gz", inTrcDir);
