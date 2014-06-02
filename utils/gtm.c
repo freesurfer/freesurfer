@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/27 03:51:54 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/06/02 21:05:29 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -180,6 +180,7 @@ int MRIgtmSeg(GTMSEG *gtmseg)
   printf(" t = %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
   hrseg = MRIhiresSeg(aseg, gtmseg->lhw, gtmseg->lhp, gtmseg->rhw, gtmseg->rhp, gtmseg->USF, &gtmseg->anat2seg);
   if(hrseg == NULL) return(1);
+  strcpy(gtmseg->anat2seg->subject,gtmseg->subject);
   MRIfree(&aseg);
 
   // Label cortex (like aparc+aseg)
@@ -913,6 +914,8 @@ int GTMrbv(GTM *gtm)
     gtm->rbvsegmasked = tmp;
   }
   else gtm->rbvsegmasked = gtm->rbvseg;
+  gtm->anat2rbv = TransformRegDat2LTA(gtm->rbvsegmasked, gtm->anatconf, NULL);
+  strcpy(gtm->anat2rbv->subject,gtm->anat2pet->subject);
 
   //printf("writing gtm->rbvsegmasked\n");
   //MRIwrite(gtm->rbvsegmasked,"segbrain.mgh");
@@ -1213,7 +1216,7 @@ int GTMmgpvc(GTM *gtm)
 {
   int c,r,s,f,n,nthseg,segid,found,nhits;
   double sum,vgmpsf,vwmpsf,vwmtac,vtac,vmgtac;
-  MRI *ctxpvf, *subctxpvf, *wmpvf, *gmpvf,*gmpvfpsf,*wmpvfpsf;
+  MRI *ctxpvf, *subctxpvf, *wmpvf, *gmpvf,*wmpvfpsf;
 
   // Compute the MG reference TAC
   gtm->mg_reftac = MatrixAlloc(gtm->yvol->nframes,1,MATRIX_REAL);
@@ -1249,11 +1252,11 @@ int GTMmgpvc(GTM *gtm)
   subctxpvf = fMRIframe(gtm->ttpvf,1,NULL); // subcortex GM PVF
   gmpvf = MRIadd(ctxpvf,subctxpvf,NULL); // All GM PVF
   // Smooth GM PVF by PSF
-  gmpvfpsf = MRIgaussianSmoothNI(gmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  gtm->gmpvfpsf = MRIgaussianSmoothNI(gmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
 
   // WM PVF
   wmpvf = fMRIframe(gtm->ttpvf,2,NULL); 
-  // Smooth GM PVF by PSF
+  // Smooth WM PVF by PSF
   wmpvfpsf = MRIgaussianSmoothNI(wmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
 
   // Finally, do the actual MG correction
@@ -1261,7 +1264,7 @@ int GTMmgpvc(GTM *gtm)
     for(r=0; r < gtm->yvol->height; r++){
       for(s=0; s < gtm->yvol->depth; s++){
 	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue; 
-	vgmpsf = MRIgetVoxVal(gmpvfpsf,c,r,s,0);
+	vgmpsf = MRIgetVoxVal(gtm->gmpvfpsf,c,r,s,0);
 	if(vgmpsf < gtm->mg_gmthresh) continue; 
 	vwmpsf = MRIgetVoxVal(wmpvfpsf,c,r,s,0);
 	for(f=0; f < gtm->yvol->nframes; f++){
@@ -1277,7 +1280,6 @@ int GTMmgpvc(GTM *gtm)
   MRIfree(&subctxpvf);
   MRIfree(&wmpvf);
   MRIfree(&gmpvf);
-  MRIfree(&gmpvfpsf);
   MRIfree(&wmpvfpsf);
   return(0);
 }

@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/27 03:51:54 $
- *    $Revision: 1.9 $
+ *    $Date: 2014/06/02 21:05:29 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,6 +82,7 @@ typedef struct
   double cFWHM, rFWHM, sFWHM; // assumed FWHM of PSF
   double cStd, rStd, sStd; // PSF FWHM converted to standard dev
   int nframes; // one place to get the number of input frames
+  MRI *anatconf;   // header of conformed anatomical
 
   double automask_fwhm,automask_thresh; // Use this FWHM instead of PSF when computing mask
   int automask_reduce_fov; // Flag: reduce PET FoV to be tight to mask.
@@ -123,6 +124,7 @@ typedef struct
   MRI *rbvsegmean; // seg mean in RBV, used for QA
   MRI *rbvseg; // may be different than anatseg if rbvsegres used
   LTA *rbvseg2pet; // may be different than seg2pet if rbvsegres used
+  LTA *anat2rbv; // conformed anat to RBV for convenience with mri_vol2vol
   double rbvsegres;
   int mask_rbv_to_brain; // Reduce FoV of RBV to be tight to brain
   MRI *rbvsegmasked; 
@@ -132,6 +134,7 @@ typedef struct
   double mg_gmthresh; // GM PVF threshold 
   int n_mg_refids,mg_refids[100]; // WM reference seg IDs
   MATRIX *mg_reftac; // WM reference TAC
+  MRI *gmpvfpsf; // GM PVF smoothed by PSF
 
   int DoKMRef; // Kinetic Modeling Reference TAC
   int n_km_refids,km_refids[100]; // KM reference seg IDs
