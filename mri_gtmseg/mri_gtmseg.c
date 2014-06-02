@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/20 21:22:37 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/06/02 21:06:42 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-// $Id: mri_gtmseg.c,v 1.7 2014/05/20 21:22:37 greve Exp $
+// $Id: mri_gtmseg.c,v 1.8 2014/06/02 21:06:42 greve Exp $
 
 /*
   BEGINHELP
@@ -66,7 +66,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmseg.c,v 1.7 2014/05/20 21:22:37 greve Exp $";
+static char vcid[] = "$Id: mri_gtmseg.c,v 1.8 2014/06/02 21:06:42 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -228,7 +228,7 @@ static int parse_commandline(int argc, char **argv) {
       gtmseg->subject = pargv[0];
       nargsused = 1;
     } 
-    else if(!strcasecmp(option, "--usf")) {
+    else if(!strcasecmp(option, "--usf") || !strcasecmp(option, "--internal-usf")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&gtmseg->USF);
       nargsused = 1;
@@ -350,7 +350,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --o outvol  : output volume (output will be subject/mri/outvol\n");
   printf("   --s subject : source subject \n");
-  printf("   --usf USF : upsampling factor (default %d)\n",gtmseg->USF);
+  printf("   --internal-usf USF : upsampling factor (default %d)\n",gtmseg->USF);
   printf("   --apas apasfile : defines extra-cerebral and subcortical segmentations (%s)\n",gtmseg->apasfile);
   printf("   --ctx-annot annot lhbase rhbase : use annot to segment cortex (%s,%d,%d)\n",
 	 gtmseg->ctxannotfile,gtmseg->ctxlhbase,gtmseg->ctxrhbase);
@@ -363,7 +363,7 @@ static void print_usage(void) {
   printf("   --ctab ctab.lut : copy items in ctab.lut into master ctab merging or overwriting what is there \n");
   printf("   --lhminmax lhmin lhmax : for defining ribbon in apas (default: %d %d) \n",gtmseg->lhmin,gtmseg->lhmax);
   printf("   --rhminmax rhmin rhmax : for defining ribbon in apas (default: %d %d) \n",gtmseg->rhmin,gtmseg->rhmax);
-  printf("   --output-usf OutputUSF : set actual output resolution. Default is to be the same as the --usf");
+  printf("   --output-usf OutputUSF : set actual output resolution. Default is to be the same as the --internal-usf");
   printf("\n");
   #ifdef _OPENMP
   printf("   --threads N : use N threads (with Open MP)\n");
