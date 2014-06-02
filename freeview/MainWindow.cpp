@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/07 16:48:49 $
- *    $Revision: 1.284 $
+ *    $Date: 2014/06/02 20:42:37 $
+ *    $Revision: 1.285 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -526,39 +526,6 @@ void MainWindow::LoadSettings()
   SyncZoom(m_settings["SyncZoom"].toBool());
   m_term->SetDarkTheme(m_settings["DarkConsole"].toBool());
 
-  // restore panel order from last time
-  /*
-  QStringList tabs = settings.value("ControlPanel/TabOrder").toStringList();
-  if ( tabs.size() == ui->tabWidgetControlPanel->count())
-  {
-    QMap<QWidget*, QString> tabWidgets;
-    for (int i = 0; i < ui->tabWidgetControlPanel->count(); i++)
-    {
-      tabWidgets[ui->tabWidgetControlPanel->widget(i)] = ui->tabWidgetControlPanel->tabText(i);
-    }
-    ui->tabWidgetControlPanel->clear();
-    for (int i = 0; i < tabs.size(); i++)
-    {
-      QWidget* w = this->findChild<QWidget*>(tabs[i]);
-      if (w && tabWidgets.contains(w))
-      {
-        ui->tabWidgetControlPanel->addTab(w, tabWidgets[w]);
-      }
-    }
-    // double-check if any stock widgets were left unattached mistakenly
-    // (should not happen unless lightening strikes and configure file messes up)
-    QList<QWidget*> keys = tabWidgets.keys();
-    for (int i = 0; i < keys.size(); i++)
-    {
-      if (ui->tabWidgetControlPanel->indexOf(keys[i]) < 0)
-      {
-        ui->tabWidgetControlPanel->addTab(keys[i], tabWidgets[keys[i]]);
-      }
-    }
-  }
-  ui->tabWidgetControlPanel->setCurrentIndex(0);
-  */
-
 #ifdef Q_WS_MAC
   this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
   this->SetUseCommandControl(m_settings["MacUseCommand"].toBool());
@@ -714,15 +681,15 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   bool bReverseOrder = m_cmdParser->Found("rorder");
   if ( m_cmdParser->Found("cmd", &sa))
   {
-    this->AddScript( QString("loadcommand ") + sa[0]);
+    this->AddScript( QStringList("loadcommand") << sa[0]);
   }
   if ( m_cmdParser->Found("hide", &sa))
   {
-    this->AddScript( QString("hidelayer ") + sa[0]);
+    this->AddScript( QStringList("hidelayer") << sa[0]);
   }
   if ( m_cmdParser->Found("unload", &sa))
   {
-    this->AddScript( QString("unloadlayer ") + sa[0]);
+    this->AddScript( QStringList("unloadlayer") << sa[0]);
   }
   if ( m_cmdParser->Found( "trilinear" ) )
   {
@@ -781,19 +748,19 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
 
   if ( m_cmdParser->Found( "viewsize", &sa ) )
   {
-    this->AddScript( QString("setviewsize ") + sa[0] + " " + sa[1] );
+    this->AddScript( QStringList("setviewsize") << sa[0] << sa[1] );
   }
 
-  QStringList cmds;
+  QList<QStringList> cmds;
   bool bHasVolume = false;
   if ( floatingArgs.size() > 0 )
   {
     for ( int i = 0; i < floatingArgs.size(); i++ )
     {
-      QString script = QString("loadvolume ") + floatingArgs[i];
+      QStringList script = QStringList("loadvolume") << floatingArgs[i];
       if ( m_cmdParser->Found( "r" ) )
       {
-        script += " r";
+        script << "r";
       }
       cmds << script;
       bHasVolume = true;
@@ -806,10 +773,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     m_cmdParser->Found( "v", &sa, n );
     for ( int i = 0; i < sa.size(); i++ )
     {
-      QString script = QString("loadvolume ") + sa[i];
+      QStringList script = QStringList("loadvolume") << sa[i];
       if ( m_cmdParser->Found( "r" ) )
       {
-        script += " r";
+        script << "r";
       }
       cmds << script;
       bHasVolume = true;
@@ -818,19 +785,22 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
 
   if (bReverseOrder)
   {
-    QStringList tempList;
+    QList<QStringList> tempList;
     for (int i = cmds.size()-1; i >= 0; i--)
       tempList << cmds[i];
     cmds = tempList;
   }
   for (int i = 0; i < cmds.size(); i++)
   {
-    if (cmds[i].contains(":basis=1"))
+    for (int j = 0; j < cmds[i].size(); j++)
     {
-      QString strg = cmds[i];
-      strg.replace(":basis=1", QString(":basis=%1").arg(i));
-      cmds.removeAt(i);
-      cmds.insert(0, strg);
+      if (cmds[i][j].contains(":basis=1"))
+      {
+        QStringList cmd = cmds[i];
+        cmd[j].replace(":basis=1", QString(":basis=%1").arg(i));
+        cmds.removeAt(i);
+        cmds.insert(0, cmd);
+      }
     }
   }
   AddScripts(cmds);
@@ -841,11 +811,11 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     m_cmdParser->Found( "dti", &sa, n );
     for ( int i = 0; i < sa.size()/2; i++ )
     {
-      QString script = "loaddti ";
-      script += sa[i*2] + " " + sa[i*2+1];
+      QStringList script("loaddti");
+      script << sa[i*2] << sa[i*2+1];
       if ( m_cmdParser->Found( "r" ) )
       {
-        script += " r";
+        script << "r";
       }
       this->AddScript( script );
       bHasVolume = true;
@@ -858,10 +828,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     m_cmdParser->Found( "tv", &sa, n );
     for ( int i = 0; i < sa.size(); i++ )
     {
-      QString script = QString("loadtrackvolume ") + sa[i];
+      QStringList script = QStringList("loadtrackvolume") << sa[i];
       if ( m_cmdParser->Found( "r" ) )
       {
-        script += " r";
+        script << "r";
       }
       this->AddScript( script );
     }
@@ -882,12 +852,12 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       m_cmdParser->Found( "l", &sa, n );
       for (int i = 0; i < sa.size(); i++ )
       {
-        cmds << (QString("loadroi ") + sa[i]);
+        cmds << (QStringList("loadroi") << sa[i]);
       }
     }
     if (bReverseOrder)
     {
-      QStringList tempList;
+      QList<QStringList> tempList;
       for (int i = cmds.size()-1; i >= 0; i--)
         tempList << cmds[i];
       cmds = tempList;
@@ -897,7 +867,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
 
   if (m_cmdParser->Found("fcd", &sa))
   {
-    QString script = QString("loadfcd ") + sa[0] + " " + sa[1];
+    QStringList script = QStringList("loadfcd") << sa[0] << sa[1];
     this->AddScript( script );
     m_defaultSettings["Smoothed"] = true;
   }
@@ -909,18 +879,18 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     m_cmdParser->Found( "f", &sa, n );
     for (int i = 0; i < sa.size(); i++ )
     {
-      QString script = "loadsurface ";
-      script += sa[i];
+      QStringList script("loadsurface");
+      script << sa[i];
       if ( m_cmdParser->Found( "r" ) )
       {
-        script += " r";
+        script << "r";
       }
       cmds << script;
     }
   }
   if (bReverseOrder)
   {
-    QStringList tempList;
+    QList<QStringList> tempList;
     for (int i = cmds.size()-1; i >= 0; i--)
       tempList << cmds[i];
     cmds = tempList;
@@ -933,7 +903,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     m_cmdParser->Found( "t", &sa, n );
     for (int i = 0; i < sa.size(); i++ )
     {
-      this->AddScript( QString("loadtrack ") + sa[i] );
+      this->AddScript( QStringList("loadtrack") << sa[i] );
     }
   }
 
@@ -944,18 +914,18 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     m_cmdParser->Found( "w", &sa, n );
     for ( int i = 0; i < sa.size(); i++ )
     {
-      QString script = "loadwaypoints ";
-      script += sa[i];
+      QStringList script("loadwaypoints");
+      script << sa[i];
       if ( m_cmdParser->Found( "r" ) )
       {
-        script += " r";
+        script << "r";
       }
       cmds << script;
     }
   }
   if (bReverseOrder)
   {
-    QStringList tempList;
+    QList<QStringList> tempList;
     for (int i = cmds.size()-1; i >= 0; i--)
       tempList << cmds[i];
     cmds = tempList;
@@ -968,11 +938,11 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     m_cmdParser->Found( "c", &sa, n );
     for ( int i = 0; i < sa.size(); i++ )
     {
-      QString script = "loadcontrolpoints ";
-      script += sa[i];
+      QStringList script("loadcontrolpoints");
+      script << sa[i];
       if ( m_cmdParser->Found( "r" ) )
       {
-        script += " r";
+        script << "r";
       }
       this->AddScript( script );
     }
@@ -983,29 +953,28 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   {
     m_cmdParser->Found( "p-labels", &sa, n );
     QString filenames = sa.join(";");
-    QString script = "loadpvolumes ";
-    script += filenames;
+    QStringList script("loadpvolumes");
+    script << filenames;
     sa.clear();
     if ( m_cmdParser->Found( "p-prefix", &sa ) )
     {
-      script += " " + sa[0];
+      script << sa[0];
     }
     else
     {
-      script += " n/a";
+      script << "n/a";
     }
     sa.clear();
     if ( m_cmdParser->Found( "p-lut", &sa ) )
     {
-      script += " " + sa[0];
+      script << sa[0];
     }
     this->AddScript( script );
   }
 
   if ( m_cmdParser->Found( "cmat", &sa ) )
   {
-    QString script = QString("loadconnectome ") + sa[0] + " " + sa[1];
-    this->AddScript( script );
+    this->AddScript( QStringList("loadconnectome") << sa[0] << sa[1] );
   }
 
   if ( m_cmdParser->Found( "ras", &sa ) )
@@ -1020,7 +989,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       std::cerr << "Invalid argument for 'ras'. Arguments must be valid float values.\n";
       return false;
     }
-    this->AddScript( QString("ras %1 %2 %3").arg(sa[0]).arg(sa[1]).arg(sa[2]) );
+    this->AddScript( QStringList("ras") << sa[0] << sa[1] << sa[2] );
   }
 
   if ( m_cmdParser->Found( "slice", &sa ) )
@@ -1036,7 +1005,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       return false;
     }
 
-    this->AddScript( QString("slice %1 %2 %3").arg(sa[0]).arg(sa[1]).arg(sa[2]) );
+    this->AddScript( QStringList("slice") << sa[0] << sa[1] << sa[2] );
   }
 
   if ( m_cmdParser->Found( "zoom", &sa ) )
@@ -1048,7 +1017,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       std::cerr << "Invalid argument for 'zoom'. Argument must be a valid float value.\n";
       return false;
     }
-    this->AddScript( QString("zoom ") + sa[0] );
+    this->AddScript( QStringList("zoom") << sa[0] );
   }
 
   if ( m_cmdParser->Found( "camera", &sa ) )
@@ -1058,12 +1027,12 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       std::cerr << "Invalid arguments for 'cam'. Arguments must be in pairs.\n";
       return false;
     }
-    this->AddScript( QString("setcamera ") + sa.join(" ") );
+    this->AddScript( QStringList("setcamera") << sa );
   }
 
   if (m_cmdParser->Found("colorscale"))
   {
-    this->AddScript("showcolorscale");
+    this->AddScript(QStringList("showcolorscale"));
   }
 
   if ( m_cmdParser->Found( "ss", &sa ) )
@@ -1071,14 +1040,20 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     QString mag_factor = "1";
     if (sa.size() > 1)
       mag_factor = sa[1];
-    this->AddScript( QString("screencapture %1 %2").arg(sa[0]).arg(mag_factor) );
+    this->AddScript( QStringList("screencapture") << sa[0] << mag_factor );
     if (bAutoQuit && !m_cmdParser->Found("noquit"))
     {
-      this->AddScript( "quit" );
+      this->AddScript( QStringList("quit") );
     }
   }
+
+  if (m_cmdParser->Found("fly", &sa))
+  {
+
+  }
+
   if ( m_cmdParser->Found("quit"))
-    AddScript("quit");
+    AddScript(QStringList("quit") );
   return true;
 }
 
@@ -1135,12 +1110,12 @@ bool MainWindow::IsEmpty()
   return true;
 }
 
-void MainWindow::AddScript(const QString & command)
+void MainWindow::AddScript(const QStringList & command)
 {
   m_scripts << command;
 }
 
-void MainWindow::AddScripts(const QStringList &cmds)
+void MainWindow::AddScripts(const QList<QStringList> &cmds)
 {
   m_scripts << cmds;
 }
@@ -1380,7 +1355,7 @@ void MainWindow::RunScript()
     return;
   }
 
-  QStringList sa = m_scripts[0].split(" ", QString::SkipEmptyParts);
+  QStringList sa = m_scripts[0];
   m_scripts.removeAt(0);
   m_bScriptRunning = true;
   QString cmd = sa[0].toLower();
@@ -1733,9 +1708,8 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if ( subOption == "heatscaleoption" ||
                 subOption == "heatscaleoptions" )
       {
-        QString script = "setheatscaleoptions";
-        QStringList opts = subArgu.split(",");
-        script += " " + opts.join(" ");
+        QStringList script("setheatscaleoptions");
+        script << subArgu.split(",");
         m_scripts.insert( 0, script );
       }
       else if ( subOption == "lut" )
@@ -1804,66 +1778,58 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       }
       else if ( subOption == "opacity" )
       {
-        QString script = "setopacity ";
-        script += subArgu;
-
-        m_scripts.insert( 0, script );
+        m_scripts.insert( 0, QStringList() << "setopacity" << subArgu );
       }
       else if ( subOption == "outline")
       {
-        QString script = "setdisplayoutline ";
-        script += subArgu;
-
-        m_scripts.insert( 0, script );
+        m_scripts.insert( 0, QStringList() << "setdisplayoutline" << subArgu );
       }
       else if ( subOption == "isosurface" )
       {
-        QString script = "setdisplayisosurface ";
+        QStringList script("setdisplayisosurface");
         QStringList args = subArgu.split( ",");
         if ( args.size() > 0 && args[0].size() > 0 )
         {
-          script += args[0];
+          script << args[0];
         }
         if ( args.size() > 1 && args[1].size() > 0 )
         {
-          script += " " + args[1];
+          script << args[1];
         }
         m_scripts.insert( 0, script );
       }
       else if ( subOption == "upsample_isosurface")
       {
-        m_scripts.insert( 0,  QString("setisosurfaceupsample ") + subArgu );
+        m_scripts.insert( 0,  (QStringList("setisosurfaceupsample") << subArgu) );
       }
       else if (subOption == "color")
       {
-        m_scripts.insert( 0,  QString("setisosurfacecolor ") + subArgu );
+        m_scripts.insert( 0,  (QStringList("setisosurfacecolor") << subArgu) );
       }
       else if ( subOption == "surface_region" || subOption == "surface_regions" )
       {
-        QString script = "loadisosurfaceregion ";
-        script += QFileInfo(subArgu).absoluteFilePath();
-        m_scripts.insert( 0, script );
+        m_scripts.insert( 0, (QStringList("loadisosurfaceregion") << QFileInfo(subArgu).absoluteFilePath()) );
       }
       else if ( subOption == "name" )
       {
-        m_scripts.insert( 0, QString("setlayername MRI ")+subArgu );
+        m_scripts.insert( 0, QStringList("setlayername") << "MRI" << subArgu );
       }
       else if ( subOption == "lock" )
       {
-        m_scripts.insert( 0, QString("locklayer MRI ")+subArgu );
+        m_scripts.insert( 0, QStringList("locklayer") << "MRI" << subArgu );
       }
       else if ( subOption == "visible" )
       {
-        m_scripts.insert( 0, QString("showlayer MRI ")+subArgu );
+        m_scripts.insert( 0, QStringList("showlayer") << "MRI" << subArgu );
       }
       else if ( subOption == "gotolabel" || subOption == "structure")
       {
-        m_scripts.insert(0, QString("gotolabel ")+subArgu);
+        m_scripts.insert(0, QStringList("gotolabel") << subArgu);
         gotoLabelName = subArgu;
       }
       else if (subOption == "mask")
       {
-        m_scripts.insert(0, QString("setvolumemask ")+subArgu);
+        m_scripts.insert(0, QStringList("setvolumemask") << subArgu);
       }
       else if (subOption == "basis")
       {
@@ -1875,7 +1841,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       }
       else if (subOption == "smoothed" || subOption == "smooth")
       {
-        m_scripts.insert(0, QString("setsmoothed ") + subArgu);
+        m_scripts.insert(0, QStringList("setsmoothed") << subArgu);
       }
       else if (!subOption.isEmpty())
       {
@@ -1897,30 +1863,30 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
 
   if ( scales.size() > 0 || (colormap != "grayscale" && colormap != "greyscale") )
   {
-    QString script = "setcolormap ";
-    script += colormap + " " + colormap_scale
-              + " " + scales.join(" ");
+    QStringList script("setcolormap");
+    script << colormap << colormap_scale
+              << scales;
     m_scripts.insert( 0, script );
   }
 
   if ( !lut_name.isEmpty() )
   {
-    m_scripts.insert( 0, QString("setlut ") + lut_name );
+    m_scripts.insert( 0, QStringList("setlut") << lut_name );
   }
 
   if ( !tensor_display.isEmpty() && tensor_display != "no" )
   {
-    QString script = "setdisplaytensor " +
-                     tensor_display + " " +
-                     tensor_render + " " +
+    QStringList script = QStringList("setdisplaytensor") <<
+                     tensor_display <<
+                     tensor_render <<
                      vector_inversion;
     m_scripts.insert( 0, script );
   }
   else if ( !vector_display.isEmpty() && vector_display != "no" )
   {
-    QString script = "setdisplayvector " +
-                     vector_display + " " +
-                     vector_render + " " +
+    QStringList script = QStringList("setdisplayvector") <<
+                     vector_display <<
+                     vector_render <<
                      vector_inversion;
     m_scripts.insert( 0, script );
   }
@@ -2367,8 +2333,8 @@ void MainWindow::CommandLoadDTI( const QStringList& sa )
 
     if ( !vector_display.isEmpty() && vector_display != "no" )
     {
-      QString script = "setdisplayvector ";
-      script += vector_display + " " + vector_render + " " + vector_inversion;
+      QStringList script("setdisplayvector");
+      script << vector_display << vector_render << vector_inversion;
 
       m_scripts.insert( 0, script );
     }
@@ -2577,57 +2543,57 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         QString subArgu = sa_fn[k].mid( n+1 );
         if ( subOption == "color" )
         {
-          m_scripts.insert( 0, QString("setsurfacecolor ") + subArgu );
+          m_scripts.insert( 0, QStringList("setsurfacecolor") << subArgu );
         }
         else if ( subOption == "edgecolor" || subOption == "edge_color")
         {
-          m_scripts.insert( 0, QString("setsurfaceedgecolor ") + subArgu );
+          m_scripts.insert( 0, QStringList("setsurfaceedgecolor") << subArgu );
         }
         else if ( subOption == "edgethickness"|| subOption == "edge_thickness" )
         {
-          m_scripts.insert( 0, QString("setsurfaceedgethickness ") + subArgu );
+          m_scripts.insert( 0, QStringList("setsurfaceedgethickness") << subArgu );
         }
         else if ( subOption == "vertex" )
         {
-          m_scripts.insert( 0, QString("displaysurfacevertex ") + subArgu);
+          m_scripts.insert( 0, QStringList("displaysurfacevertex") << subArgu);
         }
         else if ( subOption == "vertexcolor" || subOption == "vertex_color" )
         {
-          m_scripts.insert( 0, QString("setsurfacevertexcolor ") + subArgu );
+          m_scripts.insert( 0, QStringList("setsurfacevertexcolor") << subArgu );
         }
         else if ( subOption == "curv" || subOption == "curvature" )
         {
-          m_scripts.insert( 0, QString("loadsurfacecurvature ") + subArgu );
+          m_scripts.insert( 0, QStringList("loadsurfacecurvature") << subArgu );
         }
         else if ( subOption == "overlay" || subOption == "correlation" )
         {
           // add script to load surface overlay files
-          QString script = "loadsurfaceoverlay ";
-          script += subArgu;
+          QStringList script("loadsurfaceoverlay");
+          script << subArgu;
 
-          script += " " + overlay_reg;
+          script << overlay_reg;
           if (subOption == "correlation")
-            script += QString(" correlation");
+            script << "correlation";
           else
-            script += QString(" n/a");
+            script << "n/a";
 
           if (bSecondHalfData)
-              script += " rh";
+              script << "rh";
           m_scripts.insert( 0, script );
 
           if (overlay_method != "linearopaque" || !overlay_thresholds.isEmpty())
           {
-            script = QString("setsurfaceoverlaymethod ") + overlay_method + " " +
-                     overlay_thresholds.join(" ");
+            script = QStringList("setsurfaceoverlaymethod") << overlay_method <<
+                     overlay_thresholds;
             // insert right AFTER loadsurfaceoverlay command
             m_scripts.insert( 1, script );
           }
 
           if (!overlay_opacity.isEmpty())
-            m_scripts.insert(1, QString("setsurfaceoverlayopacity ") + overlay_opacity);
+            m_scripts.insert(1, QStringList("setsurfaceoverlayopacity") << overlay_opacity);
 
           if (!overlay_colormap.isEmpty())
-            m_scripts.insert(1, QString("setsurfaceoverlaycolormap ") + overlay_colormap.join(" "));
+            m_scripts.insert(1, QStringList("setsurfaceoverlaycolormap") << overlay_colormap);
         }
         else if ( subOption == "annot" || subOption == "annotation" )
         {
@@ -2635,7 +2601,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           QStringList annot_fns =subArgu.split(",");
           for ( int i = annot_fns.size()-1; i >= 0; i-- )
           {
-            m_scripts.insert( 0, QString("loadsurfaceannotation ") + annot_fns[i] );
+            m_scripts.insert( 0, QStringList("loadsurfaceannotation") << annot_fns[i] );
           }
         }
         else if ( subOption == "annot_outline" || subOption == "annotation_outline")
@@ -2644,9 +2610,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           {
             for (int i = 0; i < m_scripts.size(); i++)
             {
-              if (m_scripts[i].indexOf("loadsurfaceannotation") == 0)
+              if (m_scripts[i][0] == "loadsurfaceannotation")
               {
-                m_scripts.insert(i+1, "setsurfaceannotationoutline 1");
+                m_scripts.insert(i+1, QStringList("setsurfaceannotationoutline") << "1");
                 break;
               }
             }
@@ -2658,7 +2624,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           QStringList fns = subArgu.split(",");
           for ( int i = fns.size()-1; i >= 0; i-- )
           {
-            m_scripts.insert(0, QString("loadsurfacelabel ")+fns[i]);
+            m_scripts.insert(0, QStringList("loadsurfacelabel") << fns[i]);
           }
         }
         else if ( subOption == "label_outline" || subOption == "labeloutline")
@@ -2667,9 +2633,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           {
             for (int i = 0; i < m_scripts.size(); i++)
             {
-              if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
+              if (m_scripts[i][0] == "loadsurfacelabel")
               {
-                m_scripts.insert(i+1, "setsurfacelabeloutline 1");
+                m_scripts.insert(i+1, QStringList("setsurfacelabeloutline") << "1");
                 break;
               }
             }
@@ -2681,9 +2647,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           {
             for (int i = 0; i < m_scripts.size(); i++)
             {
-              if (m_scripts[i].indexOf("loadsurfacelabel") == 0)
+              if (m_scripts[i][0] == "loadsurfacelabel")
               {
-                m_scripts.insert(i+1, QString("setsurfacelabelcolor ") + subArgu);
+                m_scripts.insert(i+1, QStringList("setsurfacelabelcolor") << subArgu);
                 break;
               }
             }
@@ -2695,12 +2661,12 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           QStringList vector_fns = subArgu.split(",");
           for ( int i = vector_fns.size() - 1 ; i >= 0 ; i-- )
           {
-            m_scripts.insert(0, QString("loadsurfacevector ")+vector_fns[i]);
+            m_scripts.insert(0, QStringList("loadsurfacevector") << vector_fns[i]);
           }
         }
         else if (subOption == "spline")
         {
-          m_scripts.insert(0, QString("loadsurfacespline ")+subArgu);
+          m_scripts.insert(0, QStringList("loadsurfacespline") << subArgu);
         }
         else if ( subOption == "patch" )
         {
@@ -2720,21 +2686,19 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         }
         else if ( subOption == "name" )
         {
-          m_scripts.insert( 0, QString("setlayername Surface ")+subArgu );
+          m_scripts.insert( 0, QStringList("setlayername") << "Surface" << subArgu );
         }
         else if ( subOption == "lock" )
         {
-          m_scripts.insert( 0, QString("locklayer Surface ")+subArgu );
+          m_scripts.insert( 0, QStringList("locklayer") << "Surface" << subArgu );
         }
         else if ( subOption == "visible" )
         {
-          m_scripts.insert( 0, QString("showlayer Surface ")+subArgu );
+          m_scripts.insert( 0, QStringList("showlayer") << "Surface" << subArgu );
         }
         else if ( subOption == "offset" )
         {
-          QString script = "setsurfaceoffset ";
-          script += subArgu.replace(",", " ");
-          m_scripts.insert( 0, script );
+          m_scripts.insert( 0, QStringList("setsurfaceoffset") << subArgu.split(",") );
         }
         else if ( subOption == "all")
         {
@@ -3443,11 +3407,11 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
       }
       else if ( option == "name" )
       {
-        m_scripts.insert( 0, QString("setlayername PointSet ")+argu );
+        m_scripts.insert( 0, QStringList("setlayername") << "PointSet" << argu );
       }
       else if ( option == "visible" )
       {
-        m_scripts.insert( 0, QString("showlayer PointSet ")+argu );
+        m_scripts.insert( 0, QStringList("showlayer") << "PointSet" << argu );
       }
       else
       {
@@ -3458,12 +3422,12 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
 
   if ( color != "null" || spline_color != "null" )
   {
-    m_scripts.insert( 0, QString("setpointsetcolor ") + color + " " + spline_color );
+    m_scripts.insert( 0, QStringList("setpointsetcolor") << color << spline_color );
   }
 
   if ( radius != "0" || spline_radius != "0" )
   {
-    m_scripts.insert( 0, QString("setpointsetradius ") + radius + " " + spline_radius );
+    m_scripts.insert( 0, QStringList("setpointsetradius") << radius << spline_radius );
   }
 
   LoadWayPointsFile( fn );
@@ -3493,11 +3457,11 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
       }
       else if ( option == "name" )
       {
-        m_scripts.insert( 0, QString("setlayername PointSet ")+argu );
+        m_scripts.insert( 0, QStringList("setlayername") << "PointSet" << argu );
       }
       else if ( option == "visible" )
       {
-        m_scripts.insert( 0, QString("showlayer PointSet ")+argu );
+        m_scripts.insert( 0, QStringList("showlayer") << "PointSet" << argu );
       }
       else
       {
@@ -3508,12 +3472,12 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
 
   if ( color != "null" )
   {
-    m_scripts.insert( 0, QString("setpointsetcolor ") + color );
+    m_scripts.insert( 0, QStringList("setpointsetcolor") << color );
   }
 
   if ( radius != "0" )
   {
-    m_scripts.insert( 0, QString("setpointsetradius ") + radius);
+    m_scripts.insert( 0, QStringList("setpointsetradius") << radius);
   }
   LoadControlPointsFile( fn );
 }
@@ -3601,6 +3565,11 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
   {
     cerr << "Failed to save screen shot to " << cmd[1].toAscii().constData() << ".\n";
   }
+}
+
+void MainWindow::CommandFlyThrough(const QStringList &cmd)
+{
+
 }
 
 void MainWindow::CommandSetViewport( const QStringList& cmd )
@@ -3731,7 +3700,7 @@ void MainWindow::CommandSetSlice( const QStringList& cmd )
   LayerCollection* lc_mri = GetLayerCollection( "MRI" );
   if ( !lc_mri->IsEmpty() )
   {
-    LayerMRI* mri = (LayerMRI*)lc_mri->GetLayer( lc_mri->GetNumberOfLayers()-1 );;
+    LayerMRI* mri = (LayerMRI*)lc_mri->GetLayer( lc_mri->GetNumberOfLayers()-1 );
     int x, y, z;
     bool bOK;
     x = cmd[1].toInt(&bOK);
@@ -4177,7 +4146,7 @@ void MainWindow::OnLoadVolume()
     bool bHasSurface = !GetLayerCollection( "Surface" )->IsEmpty();
     for (int i = 0; i < filenames.size(); i++)
     {
-      QString script = "loadvolume ";
+      QStringList script("loadvolume");
       QString fn = filenames[i];
       if ( !reg_fn.isEmpty() )
       {
@@ -4195,11 +4164,11 @@ void MainWindow::OnLoadVolume()
         fn += ":lut=" + dlg.GetLUT();
       }
 
-      script += fn;
+      script << fn;
 
       if ( (!bHasVolume && bHasSurface) || (!bHasVolume && dlg.IsToResample()) || m_bResampleToRAS )
       {
-        script += " r";
+        script << "r";
       }
 
       AddScript( script );
@@ -4350,7 +4319,7 @@ void MainWindow::OnSaveVolume()
       fn += ".mgz";
     }
     layer->SetFileName( fn );
-    m_scripts.append(QString("savelayer ") + QString::number(layer->GetID()));
+    m_scripts.append(QStringList("savelayer") << QString::number(layer->GetID()));
   }
   else
   {
@@ -4521,7 +4490,7 @@ void MainWindow::OnLoadROI()
                           "Label files (*)");
   for ( int i = 0; i < filenames.size(); i++)
   {
-    this->AddScript( QString("loadroi ")+filenames[i] );
+    this->AddScript( QStringList("loadroi") << filenames[i] );
   }
 }
 
@@ -4759,11 +4728,11 @@ void MainWindow::OnLoadPointSet()
       }
       if ( nType == LayerPropertyPointSet::WayPoint )
       {
-        AddScript(QString("loadwaypoints ")+fns[i]);
+        AddScript(QStringList("loadwaypoints")<<fns[i]);
       }
       else if ( nType == LayerPropertyPointSet::ControlPoint )
       {
-        AddScript(QString("loadcontrolpoints ")+fns[i]);
+        AddScript(QStringList("loadcontrolpoints")<<fns[i]);
       }
     }
   }
@@ -4870,7 +4839,7 @@ void MainWindow::OnLoadTrack()
   {
     for ( int i = 0; i < filenames.size(); i++ )
     {
-      AddScript(QString("loadtrack ") + filenames[i]);
+      AddScript(QStringList("loadtrack") << filenames[i]);
     }
   }
 }
@@ -4902,7 +4871,7 @@ void MainWindow::OnLoadSurface()
   {
     for ( int i = 0; i < filenames.size(); i++ )
     {
-      AddScript(QString("loadsurface ") + filenames[i]);
+      AddScript(QStringList("loadsurface") << filenames[i]);
     }
   }
   /*
@@ -6238,7 +6207,7 @@ void MainWindow::OnLoadCommand()
                      "Command files (*)");
   if (!filename.isEmpty())
   {
-    AddScript(QString("loadcommand ") + filename);
+    AddScript(QStringList("loadcommand") << filename);
   }
 }
 
@@ -6482,8 +6451,8 @@ void MainWindow::OnLoadConnectomeMatrix()
   DialogLoadConnectome dlg(this);
   if (dlg.exec() == QDialog::Accepted)
   {
-    AddScript(QString("loadconnectome %1:lut=%3 %2").arg(dlg.GetCMATFilename()).arg(dlg.GetParcelFilename())
-        .arg(dlg.GetCTABFilename()));
+    AddScript(QStringList("loadconnectome")
+              << QString("%1:lut=%2").arg(dlg.GetCMATFilename()).arg(dlg.GetCTABFilename()) << dlg.GetParcelFilename());
   }
 }
 
@@ -6559,7 +6528,7 @@ void MainWindow::OnLoadFCD()
     QString subject = dir.dirName();
     dir.cdUp();
     subject_dir = dir.absolutePath();
-    AddScript(QString("loadfcd ") + subject_dir + " " + subject);
+    AddScript(QStringList("loadfcd") << subject_dir << subject);
   }
 }
 
@@ -6622,7 +6591,7 @@ void MainWindow::SaveLayers(const QList<Layer *> &layers)
 {
   foreach (Layer* layer, layers)
   {
-    m_scripts.append(QString("savelayer ") + QString::number(layer->GetID()));
+    m_scripts.append(QStringList("savelayer") << QString::number(layer->GetID()));
   }
 }
 

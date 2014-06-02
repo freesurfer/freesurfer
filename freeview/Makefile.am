@@ -628,7 +628,7 @@ install-exec-hook:freeview
 	echo "    exit 0"	>> $(DESTDIR)$(bindir)/freeview
 	echo "  endif"	>> $(DESTDIR)$(bindir)/freeview
 	echo "endif"	>> $(DESTDIR)$(bindir)/freeview
-	echo "freeview.bin \$$argv" >> $(DESTDIR)$(bindir)/freeview
+	echo "freeview.bin "\"\$$argv\""" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/freeview.bin; fi

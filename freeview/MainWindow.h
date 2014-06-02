@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/07 16:48:49 $
- *    $Revision: 1.149 $
+ *    $Date: 2014/06/02 20:42:37 $
+ *    $Revision: 1.150 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -168,8 +168,8 @@ public:
 
   void TransformVolume(double* mat, int sample_method);
 
-  void AddScript(const QString& command);
-  void AddScripts(const QStringList& cmds);
+  void AddScript(const QStringList& command);
+  void AddScripts(const QList<QStringList>& cmds);
 
   QString AutoSelectLastDir( const QString& subdir );
   static QString AutoSelectLastDir( const QString& lastdir, const QString& subdir );
@@ -321,6 +321,7 @@ protected:
   void CommandLoadControlPoints ( const QStringList& cmd );
   void CommandLoadPVolumes      ( const QStringList& cmd );
   void CommandScreenCapture     ( const QStringList& cmd );
+  void CommandFlyThrough        ( const QStringList& cmd );
   void CommandSetViewport       ( const QStringList& cmd );
   void CommandSetViewSize       ( const QStringList& cmd );
   void CommandZoom              ( const QStringList& cmd );
@@ -519,7 +520,7 @@ private:
   QList<QAction*>   m_actionRecentVolumes;
   QList<QAction*>   m_actionRecentSurfaces;
 
-  QStringList       m_scripts;
+  QList<QStringList>  m_scripts;
   bool              m_bScriptRunning;
 
   bool              m_bSplinePicking;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/30 18:29:51 $
- *    $Revision: 1.30 $
+ *    $Date: 2014/06/02 20:42:37 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -140,7 +140,7 @@ void DialogLoadVolume::OnLUT( int nSel )
 
 QStringList DialogLoadVolume::GetVolumeFileNames()
 {
-  QStringList fns = ui->comboBoxFilenames->currentText().split( QRegExp( "[; ]" ), QString::SkipEmptyParts );
+  QStringList fns = ui->comboBoxFilenames->currentText().split( QRegExp( "[;]" ), QString::SkipEmptyParts );
   for (int i = 0; i < fns.size(); i++)
   {
     fns[i] = MyUtils::CygwinPathProof(fns[i]);
