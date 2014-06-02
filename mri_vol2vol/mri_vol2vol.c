@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/06 20:04:49 $
- *    $Revision: 1.84 $
+ *    $Date: 2014/06/02 19:31:16 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -479,7 +479,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.84 2014/05/06 20:04:49 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.85 2014/06/02 19:31:16 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -531,7 +531,7 @@ float minrescale = 0.0, maxrescale = 255.0;
 
 float ipr, bpr, intensity;
 int float2int,err, nargs;
-int SaveReg=1;
+int SaveReg=0;
 
 int DoKernel = 0;
 int DoSaveInputMR = 1 ; // this is now the default behavior
@@ -604,12 +604,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.84 2014/05/06 20:04:49 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.85 2014/06/02 19:31:16 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.84 2014/05/06 20:04:49 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.85 2014/06/02 19:31:16 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -693,7 +693,7 @@ int main(int argc, char **argv) {
     if(fstalres > 0) Rtal = LoadRtal(fstalres);
     else             Rtal = MatrixIdentity(4,NULL);
     invRtal = MatrixInverse(Rtal,NULL);
-    if(Gdiag_no > 0) {
+    if(1 || Gdiag_no > 0) {
       printf("matrix from regfile ---------------------- \n");
       MatrixPrint(stdout,R);
       printf("Xtal ---------------------- \n");
@@ -713,7 +713,7 @@ int main(int argc, char **argv) {
     mov = MRIread(movvolfile);
     if (mov == NULL) exit(1);
     if (targvolfile != NULL ) targ = MRIreadHeader(targvolfile,MRI_VOLUME_TYPE_UNKNOWN);
-    else if (lta != NULL)
+    else if (lta != NULL && !fstal)
     {
        targ = MRIclone(mov,targ);
        MRIcopyVolGeomToMRI(targ,&lta->xforms[0].dst); 
@@ -731,7 +731,7 @@ int main(int argc, char **argv) {
     if (targvolfile != NULL ) targ = MRIread(targvolfile);
     if(targ == NULL) exit(1);
     if (movvolfile != NULL) mov = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
-    else if (lta != NULL)
+    else if (lta != NULL && !fstal)
     {
        mov = MRIclone(targ,mov);
        MRIcopyVolGeomToMRI(mov,&lta->xforms[0].src); 
@@ -815,10 +815,10 @@ int main(int argc, char **argv) {
     R = MatrixInverse(R,NULL);
   }
 
-  //printf("\n");
-  //printf("Final tkRAS-to-tkRAS Matrix is:\n");
-  //MatrixPrint(stdout,R);
-  //printf("\n");
+  printf("\n");
+  printf("Final tkRAS-to-tkRAS Matrix is:\n");
+  MatrixPrint(stdout,R);
+  printf("\n");
 
   if(DispFile){
     printf("Computing affine displacment\n");
@@ -891,10 +891,10 @@ int main(int argc, char **argv) {
   vox2vox = MatrixMultiply(invTin,R,NULL);
   MatrixMultiply(vox2vox,Ttemp,vox2vox);
 
-  //printf("\n");
-  //printf("Vox2Vox Matrix is:\n");
-  //MatrixPrint(stdout,vox2vox);
-  //printf("\n");
+  printf("\n");
+  printf("Vox2Vox Matrix is:\n");
+  MatrixPrint(stdout,vox2vox);
+  printf("\n");
 
   // Allocate the output
   template->type = precisioncode;
@@ -1127,6 +1127,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mr"))        DoSaveInputMR = 0;
     else if (!strcasecmp(option, "--delta"))     DoDelta = 1;
     else if (!strcasecmp(option, "--no-save-reg"))  SaveReg = 0;
+    else if (!strcasecmp(option, "--save-reg"))  SaveReg = 1;
     else if (!strcasecmp(option, "--cost-only"))  CostOnly = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
     else if (!strcasecmp(option, "--new"))   useold = 0;
@@ -1193,7 +1194,7 @@ static int parse_commandline(int argc, char **argv) {
       if (err) exit(1);
       nargsused = 1;
     } 
-    else if (istringnmatch(option, "--lta",0)) {
+    else if (istringnmatch(option, "--lta",0) || istringnmatch(option, "--lta-inv",0)) {
       if (nargc < 1) argnerr(option,1);
       regfile = pargv[0];
       if(stricmp(FileNameExtension(regfile, tmp), "LTA")){
@@ -1216,8 +1217,20 @@ static int parse_commandline(int argc, char **argv) {
       if(lta->subject[0]==0) strcpy(lta->subject, "subject-unknown"); 
       subject = (char *) calloc(strlen(lta->subject)+2,sizeof(char));
       strcpy(subject, lta->subject) ;
+      if(istringnmatch(option, "--lta-inv",0)){
+	printf("Inverting LTA\n");
+	LTAinvert(lta,lta);
+      }
       intensity = lta->fscale ;
       float2int = FLT2INT_ROUND ;
+      LTAchangeType(lta, REGISTER_DAT);
+      R = lta->xforms[0].m_L;
+      ipr = lta->xforms[0].src.xsize ;
+      bpr = lta->xforms[0].src.zsize ;
+      printf("\n");
+      printf("Matrix from LTA:\n");
+      MatrixPrint(stdout,R);
+      printf("\n");
       //err = regio_read_register(regfile, &subject, &ipr, &bpr,
       //                          &intensity, &R, &float2int);
       nargsused = 1;
@@ -1411,8 +1424,9 @@ printf("  --targ targvol      : output template (or input with --inv)\n");
 printf("  --o    outvol       : output volume\n");
 printf("  --disp dispvol      : displacement volume\n");
 printf("\n");
-printf("  --lta  register.lta : Linear Transform Array (usually only 1 transform)\n");
 printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n");
+printf("  --lta  register.lta : Linear Transform Array (usually only 1 transform)\n");
+printf("  --lta-inv  register.lta : LTA, invert (may not be the same as --lta --inv with --fstal)\n");
 printf("  --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)\n");
 printf("  --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)\n");
 printf("  --regheader         : ScannerRAS-to-ScannerRAS matrix = identity\n");
@@ -1454,7 +1468,7 @@ printf("\n");
 printf("  --synth : replace input with white gaussian noise\n");
 printf("  --seed seed : seed for synth (def is to set from time of day)\n");
 printf("\n");
-printf("  --no-save-reg : do not write out output volume registration matrix\n");
+printf("  --save-reg : write out output volume registration matrix\n");
 printf("\n");
 printf("  --help : go ahead, make my day\n");
 printf("  --debug\n");
@@ -1890,8 +1904,7 @@ static void check_options(void) {
     }
   }
   
-
-  if(lta != NULL){
+  if(lta != NULL && !fstal){
     MRI *mrimovtmp,*mritrgtmp;
     printf("%s %s\n",movvolfile,targvolfile);
     mrimovtmp = MRIreadHeader(movvolfile,MRI_VOLUME_TYPE_UNKNOWN);
