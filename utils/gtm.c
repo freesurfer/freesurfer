@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/02 21:05:29 $
- *    $Revision: 1.11 $
+ *    $Date: 2014/06/02 21:27:04 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -914,7 +914,7 @@ int GTMrbv(GTM *gtm)
     gtm->rbvsegmasked = tmp;
   }
   else gtm->rbvsegmasked = gtm->rbvseg;
-  gtm->anat2rbv = TransformRegDat2LTA(gtm->rbvsegmasked, gtm->anatconf, NULL);
+  gtm->anat2rbv = TransformRegDat2LTA(gtm->anatconf, gtm->rbvsegmasked, NULL);
   strcpy(gtm->anat2rbv->subject,gtm->anat2pet->subject);
 
   //printf("writing gtm->rbvsegmasked\n");
