@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/30 20:13:56 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/06/02 21:07:33 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.19 2014/05/30 20:13:56 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.20 2014/06/02 21:07:33 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.19 2014/05/30 20:13:56 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.20 2014/06/02 21:07:33 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
   MRI *gtmres;
   FILE *logfp,*fp;
   char *stem;
+  LTA *ltatmp;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -447,6 +448,11 @@ int main(int argc, char *argv[])
   LTAwrite(gtm->seg2pet,tmpstr);
   sprintf(tmpstr,"%s/anat2pet.lta",AuxDir);
   LTAwrite(gtm->anat2pet,tmpstr);
+  ltatmp = LTAinvert(gtm->anat2pet,NULL);
+  sprintf(tmpstr,"%s/pet2anat.lta",AuxDir);
+  LTAwrite(ltatmp,tmpstr);
+  LTAfree(&ltatmp);
+
   //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
   //LTAwrite(gtm->anat2seg,tmpstr);
 
@@ -669,6 +675,8 @@ int main(int argc, char *argv[])
     fprintf(logfp,"done with mgpvc\n");
     sprintf(tmpstr,"%s/mg.reftac.dat",AuxDir);
     GTMwriteMGRefTAC(gtm, tmpstr);
+    sprintf(tmpstr,"%s/gm.pvf.psf.nii.gz",AuxDir);
+    MRIwrite(gtm->gmpvfpsf, tmpstr);
   }
     
   if(DoRBV){
@@ -686,6 +694,9 @@ int main(int argc, char *argv[])
       exit(1);
     }
     printf(" %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+    sprintf(tmpstr,"%s/aux/anat2rbv.lta",OutDir);
+    LTAwrite(gtm->anat2rbv,tmpstr);
+
     sprintf(tmpstr,"%s/rbv.segmean.nii.gz",AuxDir);
     MRIwrite(gtm->rbvsegmean,tmpstr);
     if(SaveRBVSeg){
@@ -1161,6 +1172,10 @@ static void check_options(void)
     }
     SegVolFile = strcpyalloc(tmpstr);
   }
+
+  sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,gtm->anat2pet->subject);
+  gtm->anatconf = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+  if(gtm->anatconf == NULL) exit(1);
 
   if(gtm->cFWHM < 0 || gtm->rFWHM < 0 || gtm->sFWHM < 0){
     printf("ERROR: must spec psf FWHM\n");
