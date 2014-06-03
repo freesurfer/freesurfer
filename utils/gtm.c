@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/02 21:27:04 $
- *    $Revision: 1.12 $
+ *    $Date: 2014/06/03 16:54:17 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1364,7 +1364,7 @@ int GTMcheckX(MATRIX *X)
 */
 int GTMbuildX(GTM *gtm)
 {
-  int nthseg;
+  int nthseg,err;
   struct timeb timer;
 
   if(gtm->X==NULL || gtm->X->rows != gtm->nmask || gtm->X->cols != gtm->nsegs){
@@ -1388,8 +1388,9 @@ int GTMbuildX(GTM *gtm)
 
   TimerStart(&timer);
 
+  err = 0;
   #ifdef _OPENMP
-  #pragma omp parallel for 
+  #pragma omp parallel for reduction(+:err)
   #endif
   for(nthseg = 0; nthseg < gtm->nsegs; nthseg++){
     int segid,k,c,r,s;
@@ -1403,7 +1404,19 @@ int GTMbuildX(GTM *gtm)
       nthsegpvf = MRIbinarizeMatch(gtm->gtmseg,&segid,1,0,NULL); // or get binary mask
     // Extract a region for the seg. This speeds up smoothing.
     region      = REGIONgetBoundingBox(nthsegpvf,gtm->nPad); // tight+pad bounding box 
+    if(region->dx <0 ){
+      printf("ERROR: creating region for nthseg=%d, segid=%d, %s\n",nthseg,segid,gtm->ctGTMSeg->entries[segid]->name);
+      printf("It may be that there are no voxels for this seg when mapped into the input space. \nCheck %s/aux/seg.nii.gz and the registration\n",gtm->OutDir);
+      err++;
+      continue;
+    }
     nthsegpvfbb = MRIextractRegion(nthsegpvf, NULL, region) ; // extract BB
+    if(nthsegpvfbb == NULL){
+      printf("ERROR: extracting nthseg=%d, segid=%d, %s\n",nthseg,segid,gtm->ctGTMSeg->entries[segid]->name);
+      printf("It may be that there are no voxels for this seg when mapped into the input space. \nCheck %s/aux/seg.nii.gz and the registration\n",gtm->OutDir);
+      err++;
+      continue;
+    }
     nthsegpvfbbsm = MRIgaussianSmoothNI(nthsegpvfbb, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
     // Fill X, creating X in this order makes it consistent with matlab
     // Note: y must be ordered in the same way. See GTMvol2mat()
@@ -1428,7 +1441,8 @@ int GTMbuildX(GTM *gtm)
     MRIfree(&nthsegpvfbb);
     MRIfree(&nthsegpvfbbsm);
   }
-  printf(" Build time %6.4f\n",TimerStop(&timer)/1000.0);fflush(stdout);
+  printf(" Build time %6.4f, err = %d\n",TimerStop(&timer)/1000.0,err);fflush(stdout);
+  if(err) gtm->X = NULL;
 
   return(0);
 
