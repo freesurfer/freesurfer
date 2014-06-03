@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/02 21:27:28 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/06/03 16:54:44 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.21 2014/06/02 21:27:28 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.22 2014/06/03 16:54:44 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.21 2014/06/02 21:27:28 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.22 2014/06/03 16:54:44 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -408,6 +408,10 @@ int main(int argc, char *argv[])
   printf("Computing Seg in input space \n");fflush(stdout);
   gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
 			      gtm->ctGTMSeg, gtm->mask, gtm->gtmseg);
+  if(OutSegFile){
+    err=MRIwrite(gtm->gtmseg,OutSegFile);
+    if(err) exit(1);
+  }
 
   // Create GTM matrix
   printf("Building GTM DoVoxFracCor=%d\n",gtm->DoVoxFracCor);fflush(stdout); 
@@ -430,10 +434,6 @@ int main(int argc, char *argv[])
   printf("Freeing segpvf\n"); fflush(stdout);
   //MRIfree(&gtm->segpvf);
 
-  if(OutSegFile){
-    err=MRIwrite(gtm->gtmseg,OutSegFile);
-    if(err) exit(1);
-  }
   if(SaveX0) {
     printf("Writing X0 to %s\n",Xfile);
     MatlabWrite(gtm->X0, X0file,"X0");
