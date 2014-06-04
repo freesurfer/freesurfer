@@ -98,12 +98,9 @@ if [ "x$SGE_ROOT" = "x" ] ; then
 	. /usr/local/share/sge/default/common/settings.sh
     elif [ -f /usr/local/sge/default/common/settings.sh ] ; then
 	. /usr/local/sge/default/common/settings.sh
-    elif [ -d /pbs ] && [ -z $PBS_JOBID ] ; then	# Specific to PBS cluster (AY)
+    elif [ -d /pbs ] && [ -z $PBS_JOBID ] ; then		# For PBS (AY)
 	METHOD=PBS
-	if [ "x$MYPBSQUEUE" = "x" ] && [ `hostname` = "seychelles" ] ; then
-	    MYPBSQUEUE=private
-	fi
-	if [ "x$MYPBSQUEUE" = "x" ] && [ `hostname` = "launchpad" ] ; then
+	if [ "x$MYPBSQUEUE" = "x" ] ; then
 	    MYPBSQUEUE=default
 	fi
 	if [ "x$MYPBSMAXJOBS" = "x" ] ; then
@@ -111,6 +108,17 @@ if [ "x$SGE_ROOT" = "x" ] ; then
 	fi
 	if [ "x$MYPBSWAIT" = "x" ] ; then
 	    MYPBSWAIT=20
+	fi
+    elif [ -f /usr/bin/srun ] && [ -z $SLURM_JOB_ID ] ; then	# For SLURM (AY)
+	METHOD=SLURM
+	if [ "x$MY_SLURM_PARTITION" = "x" ] ; then
+	    MY_SLURM_PARTITION=normal
+	fi
+	if [ "x$MY_SLURM_MAX_JOBS" = "x" ] ; then
+	    MY_SLURM_MAX_JOBS=200
+	fi
+	if [ "x$MY_SLURM_WAIT" = "x" ] ; then
+	    MY_SLURM_WAIT=20
 	fi
     else
 	METHOD=NONE
@@ -209,16 +217,22 @@ fi
 # change. It also sets up the basic emailing control.
 ###########################################################################
 
-queue=long.q
-mailto=`whoami`@fmrib.ox.ac.uk
-MailOpts="as"
+mailto=`whoami`
 
-if [ $METHOD = PBS ] ; then		# (AY)
+if [ $METHOD = SGE ] ; then
+    queue=long.q
+    MailOpts="as"
+elif [ $METHOD = PBS ] ; then		# (AY)
     queue=$MYPBSQUEUE
-    mailto=`whoami`
     MailOpts="abe"
     if [ "x$MYPBSARCH" != "x" ] ; then
 	pbs_arch="-l nodes=1:$MYPBSARCH"
+    fi
+elif [ $METHOD = SLURM ] ; then		# (AY)
+    queue=$MY_SLURM_PARTITION
+    MailOpts="ALL"
+    if [ "x$MY_SLURM_ARCH" != "x" ] ; then
+	slurm_arch="--constraint=$MY_SLURM_ARCH"
     fi
 fi
 
@@ -270,6 +284,7 @@ while [ $1 != -- ] ; do
     -a)
       sge_arch="-l arch=$2"
       pbs_arch="-l nodes=1:$2"
+      slurm_arch="--constraint=$2"
       shift;;
     -p)
       sge_priority="-p $2"
@@ -282,12 +297,23 @@ while [ $1 != -- ] ; do
       jid=$2
       sge_hold="-hold_jid $jid"
       pbs_hold="-W depend=afterok:$jid"
+      slurm_hold="--dependency=afterok:$jid"
       shift;;
     -t)
       taskfile=$2
       tasks=`wc -l $taskfile | awk '{print $1}'`
       sge_tasks="-t 1-$tasks"
-      pbs_tasks=""
+      # Split jobs in batches so that the total number of jobs running
+      # at any given time does not exceed a user-specified maximum (AY)
+      if [ $METHOD = PBS ] ; then		# (AY)
+      	nbatch=$(($tasks/$MYPBSMAXJOBS + ($tasks%$MYPBSMAXJOBS > 0)))
+      	ninbatch=$(($tasks/$nbatch + ($tasks%$nbatch > 0)))
+      	pbs_tasks=""
+      elif [ $METHOD = SLURM ] ; then		# (AY)
+      	nbatch=$(($tasks/$MY_SLURM_MAX_JOBS + ($tasks%$MY_SLURM_MAX_JOBS > 0)))
+      	ninbatch=$(($tasks/$nbatch + ($tasks%$nbatch > 0)))
+      	slurm_tasks="--array 1-$nbatch"
+      fi
       shift;;
     -N)
       JobName=$2;
@@ -404,10 +430,6 @@ EOF
 	    if [ "x$LogDir" != x ] ; then
 		cp /dev/null $LogDir/joblist
 	    fi
-	    # Split jobs in batches so that there are no more than
-	    # MYPBSMAXJOBS jobs running at the any given time
-	    nbatch=$(($tasks/$MYPBSMAXJOBS + ($tasks%$MYPBSMAXJOBS > 0)))
-	    ninbatch=$(($tasks/$nbatch + ($tasks%$nbatch > 0)))
 	    k=0
 	    while [ $k -lt $ninbatch ]; do
 		j=$k
@@ -449,6 +471,53 @@ EOF
 	if [ ! -z $heldjobs ] ; then
 	    qrls ${heldjobs[*]}
         fi
+	;;
+
+###########################################################################
+# The following has been modified from "SGE)" above to submit jobs
+# on a cluster using SLURM. (AY)
+###########################################################################
+
+    SLURM)
+	if [ "x$tasks" = "x" ] ; then
+	    if [ "x$LogDir" = "x" ] ; then
+        	slurm_log="--output=$LogDir/slurm-%j.out"
+        	slurm_log="$slurm_log --error=$LogDir/slurm-%j.err"
+	    fi
+	    if [ $scriptmode -ne 1 ] ; then
+		slurm_command="srun --partition $queue --mail-user $mailto --job-name $JobName --mail-type $MailOpts $slurm_log $slurm_arch $slurm_hold"
+	    else
+		slurm_command="srun $slurm_log $slurm_arch $slurm_hold"
+	    fi
+	    if [ $verbose -eq 1 ] ; then 
+		echo slurm_command: $slurm_command >&2
+		echo executing: $@ >&2
+	    fi
+	    exec $slurm_command $@ | awk '{print $NF}'
+	else
+	    if [ "x$LogDir" = "x" ] ; then
+        	slurm_log="--output=$LogDir/slurm-%A_%a.out"
+        	slurm_log="$slurm_log --error=$LogDir/slurm-%A_%a.err"
+	    fi
+	    slurm_command="sbatch --partition $queue --mail-user $mailto --job-name $JobName --mail-type $MailOpts $slurm_log $slurm_arch $slurm_hold $slurm_tasks"
+	    if [ $verbose -eq 1 ] ; then 
+		echo slurm_command: $slurm_command >&2
+		echo control file: $taskfile >&2
+	    fi
+	    exec $slurm_command <<EOF | awk '{print $NF}'
+#!/bin/sh
+
+iline=\$(($ninbatch*(\$SLURM_ARRAY_TASK_ID - 1) + 1))
+endline=\$((\$iline + $ninbatch))
+
+while [ \$iline -lt \$endline ] && [ \$iline -le $tasks ] ; do
+  cmdline=\`sed -n "\$iline p" $taskfile\`
+  srun \$cmdline
+  let iline=iline+1
+  sleep $MY_SLURM_WAIT
+done
+EOF
+	fi
 	;;
 
 ###########################################################################
