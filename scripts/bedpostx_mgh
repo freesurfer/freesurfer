@@ -244,7 +244,7 @@ mkdir -p ${subjdir}.bedpostX/logs
 mkdir -p ${subjdir}.bedpostX/logs/pid_${$}
 mkdir -p ${subjdir}.bedpostX/xfms
 
-mailto=`whoami`@fmrib.ox.ac.uk
+mailto=`whoami`
 echo Queuing preprocessing stages
 if [ "x$mergeid" = "x" ] ; then
     preprocid=`${BPDIR}/fsl_sub_mgh -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
