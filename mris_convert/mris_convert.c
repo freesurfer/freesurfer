@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/06 21:40:54 $
- *    $Revision: 1.43 $
+ *    $Author: nicks $
+ *    $Date: 2014/06/20 00:06:52 $
+ *    $Revision: 1.44 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -45,17 +45,19 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.43 2014/03/06 21:40:54 greve Exp $";
+  "$Id: mris_convert.c,v 1.44 2014/06/20 00:06:52 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
-static const COLOR_TABLE_ENTRY unknown = 
+static const COLOR_TABLE_ENTRY unknown =
 {"unknown", 0,0,0,0, 0,0,0,0};
-static COLOR_TABLE_ENTRY userLabel = 
-{ "user label name gets copied here                   ", 
-  220,20,20,255, 0.8,0.08,0.08,1};
+static COLOR_TABLE_ENTRY userLabel =
+{
+  "user label name gets copied here                   ",
+  220,20,20,255, 0.8,0.08,0.08,1
+};
 static const CTE *entries[2] = {&unknown, &userLabel};
-static const COLOR_TABLE miniColorTable = 
+static const COLOR_TABLE miniColorTable =
 {(CTE**)entries, 2, "miniColorTable", 2};
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
@@ -105,6 +107,7 @@ static int write_vertex_neighbors = 0;
 static int combinesurfs_flag = 0;
 static int userealras_flag = 0;
 static MRI *VolGeomMRI=NULL;
+static int cras_correction = 0;
 
 int DeleteCommands = 0;
 int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
@@ -112,10 +115,11 @@ int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   MRI_SURFACE  *mris ;
   char **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
-    *cp, path[STRLEN], *dot, ext[STRLEN] ;
+       *cp, path[STRLEN], *dot, ext[STRLEN] ;
   int ac, nargs,nthvtx,n ;
   FILE *fp=NULL;
   char *in2_fname=NULL;
@@ -123,11 +127,13 @@ main(int argc, char *argv[]) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
-    (argc, argv,
-     "$Id: mris_convert.c,v 1.43 2014/03/06 21:40:54 greve Exp $",
-     "$Name:  $");
+          (argc, argv,
+           "$Id: mris_convert.c,v 1.44 2014/06/20 00:06:52 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs;
 
   Progname = argv[0] ;
@@ -136,7 +142,8 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -146,71 +153,98 @@ main(int argc, char *argv[]) {
 
   // confirm that all options were eaten (this catches the case where options
   // were included at the end of the command string)
-  if (combinesurfs_flag) {
-    if (argc != 4) usage_exit() ;
-  } 
-  else {
-    if (argc != 3) usage_exit() ;
+  if (combinesurfs_flag)
+  {
+    if (argc != 4)
+    {
+      usage_exit() ;
+    }
+  }
+  else
+  {
+    if (argc != 3)
+    {
+      usage_exit() ;
+    }
   }
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
 
-  if (combinesurfs_flag) {
+  if (combinesurfs_flag)
+  {
     in2_fname = argv[2];
     out_fname = argv[3];
   }
 
-  if (talxfmsubject && curv_file_flag) {
+  if (talxfmsubject && curv_file_flag)
+  {
     printf("ERROR: cannot specify -t and -c\n");
     exit(1);
   }
 
-  if (labelstats_file_flag && ! label_file_flag) {
+  if (labelstats_file_flag && ! label_file_flag)
+  {
     printf("ERROR: cannot specify --labelstats without --label\n");
     exit(1);
   }
 
-  if (parcstats_file_flag && ! annot_file_flag) {
+  if (parcstats_file_flag && ! annot_file_flag)
+  {
     printf("ERROR: cannot specify --parcstats without --annot\n");
     exit(1);
   }
 
   // check whether output is a .w file
   dot = strrchr(out_fname, '.') ;
-  if (dot) {
+  if (dot)
+  {
     strcpy(ext, dot+1) ;
-    if (!stricmp(ext, "W")) w_file_dst_flag = 1 ;
+    if (!stricmp(ext, "W"))
+    {
+      w_file_dst_flag = 1 ;
+    }
   }
 
-  if (w_file_dst_flag) {
+  if (w_file_dst_flag)
+  {
     convertToWFile(in_fname, out_fname) ; //???
     exit(0) ;
   }
 
   // check whether input is a .w file
   dot = strrchr(in_fname, '.') ;
-  if (dot) {
+  if (dot)
+  {
     strcpy(ext, dot+1) ;
-    if (!stricmp(ext, "W")) w_file_src_flag = 1 ;
+    if (!stricmp(ext, "W"))
+    {
+      w_file_src_flag = 1 ;
+    }
   }
 
-  if (w_file_src_flag) {
+  if (w_file_src_flag)
+  {
     convertFromWFile(in_fname, out_fname) ; //???
     exit(0) ;
   }
 
-  if (patch_flag) {   /* read in orig surface before reading in patch */
+  if (patch_flag)     /* read in orig surface before reading in patch */
+  {
     char name[100] ;
 
     FileNamePath(in_fname, path) ;
     FileNameOnly(in_fname, name) ;
     cp = strchr(name, '.') ;
-    if (cp) {
+    if (cp)
+    {
       strncpy(hemi, cp-2, 2) ;
       hemi[2] = 0 ;
-    } else
+    }
+    else
+    {
       strcpy(hemi, "lh") ;
+    }
 
     sprintf(fname, "%s/%s.orig", path, hemi) ;
     mris = MRISread(fname) ;
@@ -220,26 +254,32 @@ main(int argc, char *argv[]) {
     if (MRISreadPatch(mris, in_fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
                 Progname, in_fname) ;
-    if (read_orig_positions) {
+    if (read_orig_positions)
+    {
       if (MRISreadVertexPositions(mris, orig_surf_name) != NO_ERROR)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, orig_surf_name) ;
     }
-  } else {
+  }
+  else
+  {
     mris = MRISread(in_fname) ;
     if (!mris)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
-    if (combinesurfs_flag) {
+    if (combinesurfs_flag)
+    {
       mris2 = MRISread(in2_fname) ;
       if (!mris2)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, in2_fname) ;
     }
   }
-  if(DeleteCommands){
+  if(DeleteCommands)
+  {
     fprintf(stderr,"Deleting %d commands from surface header\n",mris->ncmds);
-    for(n=0; n<mris->ncmds; n++){
+    for(n=0; n<mris->ncmds; n++)
+    {
       free(mris->cmdlines[n]);
       mris->cmdlines[n] = NULL;
     }
@@ -247,53 +287,98 @@ main(int argc, char *argv[]) {
   }
 
   if(userealras_flag)
-    {
-      printf("Setting useRealRAS to 1!\n");
-      mris->useRealRAS = 1;
-    }
+  {
+    printf("Setting useRealRAS to 1!\n");
+    mris->useRealRAS = 1;
+  }
 
-  if (talxfmsubject) {
+  if(cras_correction)
+  {
+    printf("Changing CRAS to scanner coordinates\n");
+    mris->useRealRAS = 1;
+    int vno;
+    for (vno=0; vno < mris->nvertices; vno++)
+    {
+      mris->vertices[vno].x += mris->vg.c_r;
+      mris->vertices[vno].y += mris->vg.c_a;
+      mris->vertices[vno].z += mris->vg.c_s;
+      mris->xctr = mris->vg.c_r;
+      mris->yctr = mris->vg.c_a;
+      mris->zctr = mris->vg.c_s;
+    }
+  }
+
+  if (talxfmsubject)
+  {
     XFM = DevolveXFM(talxfmsubject, NULL, NULL);
-    if (XFM == NULL) exit(1);
+    if (XFM == NULL)
+    {
+      exit(1);
+    }
     printf("Applying talairach transform\n");
     MatrixPrint(stdout,XFM);
     MRISmatrixMultiply(mris,XFM);
   }
 
-  if (rescale) {
-    if (mris->group_avg_surface_area == 0) {
+  if (rescale)
+  {
+    if (mris->group_avg_surface_area == 0)
+    {
       printf("ERROR: cannot rescale a non-group surface\n");
       exit(1);
     }
     scale = sqrt((double)mris->group_avg_surface_area/mris->total_area);
   }
 
-  if (scale > 0) {
+  if (scale > 0)
+  {
     printf("scale = %lf\n",scale);
     MRISscale(mris,scale);
     MRIScomputeMetricProperties(mris);
   }
 
-  if (curv_file_flag) {
+  if (curv_file_flag)
+  {
     int type ;
 
-    if (MRISreadCurvatureFile(mris, curv_fname) != NO_ERROR) exit(1);
+    if (MRISreadCurvatureFile(mris, curv_fname) != NO_ERROR)
+    {
+      exit(1);
+    }
     type = MRISfileNameType(out_fname) ;
     if (type == MRIS_ASCII_FILE)
+    {
       writeAsciiCurvFile(mris, out_fname) ;
+    }
     else if (type == MRIS_GIFTI_FILE)
+    {
       MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, curv_fname);
+    }
     else
+    {
       MRISwriteCurvature(mris, out_fname) ;
-  } 
-  else if (annot_file_flag) {
+    }
+  }
+  else if (annot_file_flag)
+  {
     // first read the annotation/gifti label data...
     int type = MRISfileNameType(annot_fname);
-    if (type == MRIS_ANNOT_FILE) {
-      if (MRISreadAnnotation(mris, annot_fname) != NO_ERROR) exit(1);
-    } else if (type == MRIS_GIFTI_FILE) {
-      if (NULL == mrisReadGIFTIdanum(annot_fname, mris, gifti_da_num)) exit(1);
-    } else {
+    if (type == MRIS_ANNOT_FILE)
+    {
+      if (MRISreadAnnotation(mris, annot_fname) != NO_ERROR)
+      {
+        exit(1);
+      }
+    }
+    else if (type == MRIS_GIFTI_FILE)
+    {
+      if (NULL == mrisReadGIFTIdanum(annot_fname, mris, gifti_da_num))
+      {
+        exit(1);
+      }
+    }
+    else
+    {
       printf("ERROR: unknown file annot file type specified for --annot: "
              "%s\n",annot_fname);
       exit(1);
@@ -301,7 +386,8 @@ main(int argc, char *argv[]) {
     // read parcstats text file (pairs of parc labels and stat values) and
     // save value associated with that parc label into the vertex with that
     // parc (annot) label
-    if (parcstats_file_flag) {
+    if (parcstats_file_flag)
+    {
       FILE* fp;
       if ((fp = fopen(parcstats_fname, "r")) == NULL)
       {
@@ -309,7 +395,8 @@ main(int argc, char *argv[]) {
         ErrorExit(ERROR_BADFILE, "ERROR: can't open file %s", parcstats_fname);
       }
       char line[STRLEN];
-      while (fgets(line, STRLEN, fp) != NULL) {
+      while (fgets(line, STRLEN, fp) != NULL)
+      {
         char label[STRLEN];
         float val;
         sscanf(line,"%s %f",label,&val);
@@ -317,10 +404,13 @@ main(int argc, char *argv[]) {
         int annot = CTABentryNameToAnnotation(label, mris->ct);
         int vno;
         int doprint=1;
-        for (vno=0; vno < mris->nvertices; vno++) {
-          if (annot == mris->vertices[vno].annotation) {
+        for (vno=0; vno < mris->nvertices; vno++)
+        {
+          if (annot == mris->vertices[vno].annotation)
+          {
             mris->vertices[vno].curv = val;
-            if (doprint) {
+            if (doprint)
+            {
               printf("label: %s, val: %9.9f\n",label,val);
               doprint = 0;
             }
@@ -329,13 +419,16 @@ main(int argc, char *argv[]) {
       }
       // now write the 'curv' data (the parc stats we just assigned) to file
       type = MRISfileNameType(out_fname) ;
-      if (type == MRIS_ASCII_FILE) {
+      if (type == MRIS_ASCII_FILE)
+      {
         writeAsciiCurvFile(mris, out_fname) ;
       }
-      else if (type == MRIS_GIFTI_FILE) {
+      else if (type == MRIS_GIFTI_FILE)
+      {
         MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, curv_fname);
       }
-      else {
+      else
+      {
         MRISwriteCurvature(mris, out_fname) ;
       }
       exit(0);
@@ -343,22 +436,33 @@ main(int argc, char *argv[]) {
 
     // if fall through, then write annot file
     type = MRISfileNameType(out_fname);
-    if (type == MRIS_ANNOT_FILE) {
-      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR) exit(1);
-    } else if (type == MRIS_GIFTI_FILE) {
-      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR) {
+    if (type == MRIS_ANNOT_FILE)
+    {
+      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
+      {
         exit(1);
       }
-    } else {
+    }
+    else if (type == MRIS_GIFTI_FILE)
+    {
+      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR)
+      {
+        exit(1);
+      }
+    }
+    else
+    {
       printf("ERROR: unknown file annot file type specified for output: "
              "%s\n",out_fname);
       exit(1);
     }
   }
-  else if (label_file_flag) {
+  else if (label_file_flag)
+  {
     // first read the freesurfer .label file...
     LABEL* label = LabelRead(NULL, label_fname);
-    if (NULL == label) {
+    if (NULL == label)
+    {
       printf("ERROR: reading .label file specified for --label: "
              "%s\n",label_fname);
       exit(1);
@@ -372,12 +476,17 @@ main(int argc, char *argv[]) {
     char ctabfile[2000];
     sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",getenv("FREESURFER_HOME"));
     ct0 = CTABreadASCII(ctabfile);
-    if (ct0) {
+    if (ct0)
+    {
       int cno;
-      for (cno=0; cno < ct0->nentries; cno++) {
-        if (ct0->entries[cno]) {
-          if (ct0->entries[cno]->name) {
-            if (0==strcmp(label_name,ct0->entries[cno]->name)) {
+      for (cno=0; cno < ct0->nentries; cno++)
+      {
+        if (ct0->entries[cno])
+        {
+          if (ct0->entries[cno]->name)
+          {
+            if (0==strcmp(label_name,ct0->entries[cno]->name))
+            {
               // we found this label! so update local colortable with info
               memcpy(miniColorTable.entries[1],
                      ct0->entries[cno],
@@ -393,7 +502,8 @@ main(int argc, char *argv[]) {
                                         miniColorTable.entries[1]->gi,
                                         miniColorTable.entries[1]->bi);
     int lno;
-    for (lno=0; lno < label->n_points; lno++) {
+    for (lno=0; lno < label->n_points; lno++)
+    {
       int vno = label->lv[lno].vno;
       mris->vertices[vno].annotation = annotation;
       mris->vertices[vno].stat = label->lv[lno].stat; // in case --labelstats
@@ -401,13 +511,22 @@ main(int argc, char *argv[]) {
 
     // now write the annot file (either in .annot format, or gifti LabelTable)
     int type = MRISfileNameType(out_fname);
-    if (type == MRIS_ANNOT_FILE) {
-      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR) exit(1);
-    } else if (type == MRIS_GIFTI_FILE) {
-      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR) {
+    if (type == MRIS_ANNOT_FILE)
+    {
+      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
+      {
         exit(1);
       }
-    } else {
+    }
+    else if (type == MRIS_GIFTI_FILE)
+    {
+      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR)
+      {
+        exit(1);
+      }
+    }
+    else
+    {
       printf("ERROR: unknown file annot file type specified for output: "
              "%s\n",out_fname);
       exit(1);
@@ -417,73 +536,94 @@ main(int argc, char *argv[]) {
 
     // if --labelstats was given, then we want to write-out the stats values
     // found in the .label file to a file
-    if (labelstats_file_flag) {
+    if (labelstats_file_flag)
+    {
       int type = MRISfileNameType(labelstats_fname);
-      if (type == MRIS_GIFTI_FILE) {
-        if (MRISwriteGIFTI(mris,NIFTI_INTENT_UNIFORM,labelstats_fname,NULL) 
-            != NO_ERROR) {
+      if (type == MRIS_GIFTI_FILE)
+      {
+        if (MRISwriteGIFTI(mris,NIFTI_INTENT_UNIFORM,labelstats_fname,NULL)
+            != NO_ERROR)
+        {
           exit(1);
         }
-      } else {
+      }
+      else
+      {
         printf("ERROR: unknown file file type specified for --labelstats: "
                "%s\n",labelstats_fname);
         exit(1);
       }
     }
   }
-  else if (func_file_flag) {
+  else if (func_file_flag)
+  {
     MRI* mri = MRIread( func_fname );
-    if (NULL == mri) {
+    if (NULL == mri)
+    {
       printf("ERROR: unable to to read %s\n",func_fname);
       exit(1);
     }
     MRIwrite(mri, out_fname);
     exit(0);
   }
-  else if (mris->patch) {
+  else if (mris->patch)
+  {
     int type = MRISfileNameType(out_fname) ;
-    if (type == MRIS_GIFTI_FILE) {
+    if (type == MRIS_GIFTI_FILE)
+    {
       MRISwrite(mris, out_fname);
     }
-    else {
+    else
+    {
       MRISwritePatch(mris, out_fname) ;
     }
   }
   else if (output_normals)
+  {
     MRISwriteNormalsAscii(mris, out_fname) ;
+  }
   else if (write_vertex_neighbors)
+  {
     MRISwriteVertexNeighborsAscii(mris, out_fname) ;
-  else if(PrintXYZOnly){
+  }
+  else if(PrintXYZOnly)
+  {
     printf("Printing only XYZ to ascii file\n");
     fp = fopen(out_fname,"w");
-    for(nthvtx = 0; nthvtx < mris->nvertices; nthvtx++){
+    for(nthvtx = 0; nthvtx < mris->nvertices; nthvtx++)
+    {
       fprintf(fp,"%9.4f %9.4f %9.4f\n",mris->vertices[nthvtx].x,
               mris->vertices[nthvtx].y,mris->vertices[nthvtx].z);
     }
     fclose(fp);
   }
-  else if (combinesurfs_flag) {
+  else if (combinesurfs_flag)
+  {
     MRI_SURFACE *mris3 = MRISalloc(mris->nvertices+mris2->nvertices,
                                    mris->nfaces+mris2->nfaces);
     int vno,vno2,vno3;
-    for (vno=0,vno3=0; vno < mris->nvertices; vno++, vno3++) {
+    for (vno=0,vno3=0; vno < mris->nvertices; vno++, vno3++)
+    {
       mris3->vertices[vno3].x = mris->vertices[vno].x;
       mris3->vertices[vno3].y = mris->vertices[vno].y;
       mris3->vertices[vno3].z = mris->vertices[vno].z;
     }
-    for (vno2=0; vno2 < mris2->nvertices; vno2++, vno3++) {
+    for (vno2=0; vno2 < mris2->nvertices; vno2++, vno3++)
+    {
       mris3->vertices[vno3].x = mris2->vertices[vno2].x;
       mris3->vertices[vno3].y = mris2->vertices[vno2].y;
       mris3->vertices[vno3].z = mris2->vertices[vno2].z;
     }
     int fno,fno2,fno3;
-    for (fno=0,fno3=0; fno < mris->nfaces; fno++, fno3++) {
+    for (fno=0,fno3=0; fno < mris->nfaces; fno++, fno3++)
+    {
       mris3->faces[fno3].v[0] = mris->faces[fno].v[0];
       mris3->faces[fno3].v[1] = mris->faces[fno].v[1];
       mris3->faces[fno3].v[2] = mris->faces[fno].v[2];
     }
     int offset = mris->nvertices;
-    for (fno2=0; fno2 < mris2->nfaces; fno2++, fno3++) {
+    for (fno2=0; fno2 < mris2->nfaces; fno2++, fno3++)
+    {
       mris3->faces[fno3].v[0] = mris2->faces[fno2].v[0] + offset;
       mris3->faces[fno3].v[1] = mris2->faces[fno2].v[1] + offset;
       mris3->faces[fno3].v[2] = mris2->faces[fno2].v[2] + offset;
@@ -492,8 +632,10 @@ main(int argc, char *argv[]) {
     MRISfree(&mris2);
     MRISfree(&mris3);
   }
-  else {
-    if(MRISfileNameType(out_fname) == MRIS_VOLUME_FILE){
+  else
+  {
+    if(MRISfileNameType(out_fname) == MRIS_VOLUME_FILE)
+    {
       printf("Saving surface xyz %s as a volume format\n",out_fname);
       MRI *vol = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 3);
       MRIScopyMRI(mris,vol,0,"x");
@@ -501,10 +643,15 @@ main(int argc, char *argv[]) {
       MRIScopyMRI(mris,vol,2,"z");
       MRIwrite(vol,out_fname);
       MRIfree(&vol);
-    } else {
-      // default output: 
+    }
+    else
+    {
+      // default output:
       printf("Saving %s as a surface\n",out_fname);
-      if(VolGeomMRI) getVolGeom(VolGeomMRI,&mris->vg);
+      if(VolGeomMRI)
+      {
+        getVolGeom(VolGeomMRI,&mris->vg);
+      }
       MRISwrite(mris, out_fname) ;
     }
   }
@@ -522,121 +669,151 @@ main(int argc, char *argv[]) {
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help"))
+  {
     print_help() ;
+  }
   else if (!stricmp(option, "-version"))
+  {
     print_version() ;
-  else if (!stricmp(option, "-annot")) {
+  }
+  else if (!stricmp(option, "-annot"))
+  {
     annot_fname = argv[2] ;
     annot_file_flag = 1;
     nargs = 1 ;
-  } else if (!stricmp(option, "-da_num")) {
+  }
+  else if (!stricmp(option, "-da_num"))
+  {
     sscanf(argv[2],"%d",&gifti_da_num);
     nargs = 1 ;
-  } else if (!stricmp(option, "-label")) {
+  }
+  else if (!stricmp(option, "-label"))
+  {
     label_fname = argv[2] ;
     label_name = argv[3] ;
     label_file_flag = 1;
     nargs = 2 ;
-  } else if (!stricmp(option, "-labelstats")) {
+  }
+  else if (!stricmp(option, "-labelstats"))
+  {
     labelstats_fname = argv[2] ;
     labelstats_file_flag = 1;
     nargs = 1 ;
-  } else if (!stricmp(option, "-parcstats")) {
+  }
+  else if (!stricmp(option, "-parcstats"))
+  {
     parcstats_fname = argv[2] ;
     parcstats_file_flag = 1;
     nargs = 1 ;
-  } else if (!stricmp(option, "-combinesurfs")) {
-    combinesurfs_flag = 1;
-  } 
-  else if (!stricmp(option, "-delete-cmds")) {
-    DeleteCommands = 1;
-  } 
-  else if (!stricmp(option, "-userealras")) {
-    userealras_flag = 1;
-  } 
-  else if (!stricmp(option, "-vol-geom")) {
-    VolGeomMRI = MRIreadHeader(argv[2],MRI_VOLUME_TYPE_UNKNOWN);
-    if(VolGeomMRI == NULL) exit(1);
-    nargs = 1 ;
-  } 
-  else switch (toupper(*option)) {
-  case 'A':
-    PrintXYZOnly = 1;
-    break ;
-  case 'F':
-    func_file_flag = 1 ;
-    func_fname = argv[2] ;
-    nargs = 1 ;
-    break ;
-  case 'C':
-    curv_file_flag = 1 ;
-    curv_fname = argv[2] ;
-    nargs = 1 ;
-    break ;
-  case 'N':
-    output_normals = 1;
-    break ;
-  case 'O':
-    read_orig_positions = 1 ;
-    orig_surf_name = argv[2] ;
-    nargs = 1 ;
-    break ;
-  case 'S':
-    sscanf(argv[2],"%lf",&scale);
-    nargs = 1 ;
-    break ;
-  case 'R':
-    rescale = 1;
-    break ;
-  case 'P':
-    patch_flag = 1 ;
-    nargs = 0 ;
-    break ;
-  case 'T':
-    talairach_flag = 1 ;
-    talxfmsubject = argv[2] ;
-    nargs = 1 ;
-    break ;
-  case 'V':
-    write_vertex_neighbors = 1;
-    nargs = 0 ;
-    break ;
-  case '?':
-  case 'U':
-  case 'H':
-    print_help() ;
-    exit(1) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
   }
+  else if (!stricmp(option, "-combinesurfs"))
+  {
+    combinesurfs_flag = 1;
+  }
+  else if (!stricmp(option, "-delete-cmds"))
+  {
+    DeleteCommands = 1;
+  }
+  else if (!stricmp(option, "-userealras"))
+  {
+    userealras_flag = 1;
+  }
+  else if (!stricmp(option, "-cras_correction"))
+  {
+    cras_correction = 1;
+  }
+  else if (!stricmp(option, "-vol-geom"))
+  {
+    VolGeomMRI = MRIreadHeader(argv[2],MRI_VOLUME_TYPE_UNKNOWN);
+    if(VolGeomMRI == NULL)
+    {
+      exit(1);
+    }
+    nargs = 1 ;
+  }
+  else switch (toupper(*option))
+    {
+    case 'A':
+      PrintXYZOnly = 1;
+      break ;
+    case 'F':
+      func_file_flag = 1 ;
+      func_fname = argv[2] ;
+      nargs = 1 ;
+      break ;
+    case 'C':
+      curv_file_flag = 1 ;
+      curv_fname = argv[2] ;
+      nargs = 1 ;
+      break ;
+    case 'N':
+      output_normals = 1;
+      break ;
+    case 'O':
+      read_orig_positions = 1 ;
+      orig_surf_name = argv[2] ;
+      nargs = 1 ;
+      break ;
+    case 'S':
+      sscanf(argv[2],"%lf",&scale);
+      nargs = 1 ;
+      break ;
+    case 'R':
+      rescale = 1;
+      break ;
+    case 'P':
+      patch_flag = 1 ;
+      nargs = 0 ;
+      break ;
+    case 'T':
+      talairach_flag = 1 ;
+      talxfmsubject = argv[2] ;
+      nargs = 1 ;
+      break ;
+    case 'V':
+      write_vertex_neighbors = 1;
+      nargs = 0 ;
+      break ;
+    case '?':
+    case 'U':
+    case 'H':
+      print_help() ;
+      exit(1) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }
 
 static void
-usage_exit(void) {
+usage_exit(void)
+{
   print_help() ;
   exit(1) ;
 }
 
 static void
-print_usage(void) {
+print_usage(void)
+{
   fprintf(stderr,
           "Usage: %s [options] <input file> <output file>\n",
           Progname) ;
 }
 
 static void
-print_help(void) {
+print_help(void)
+{
   print_usage() ;
   printf(
     "\nThis program will convert MRI-surface data formats.\n") ;
@@ -674,6 +851,7 @@ print_help(void) {
   printf( "  --delete-cmds : delete command lines in surface\n") ;
   printf( "  --userealras : set the useRealRAS flag in the surface file to 1 \n") ;
   printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
+  printf( "  --cras_correction : shift center to scanner coordinate center \n") ;
   printf( "\n") ;
   printf( "These file formats are supported:\n") ;
   printf( "  ASCII:       .asc\n");
@@ -721,13 +899,15 @@ print_help(void) {
 }
 
 static void
-print_version(void) {
+print_version(void)
+{
   printf( "%s\n", vcid) ;
   exit(1) ;
 }
 
 static int
-convertToWFile(char *in_fname, char *out_fname) {
+convertToWFile(char *in_fname, char *out_fname)
+{
   FILE   *infp, *outfp ;
   char   line[300], *cp ;
   int    vno, l = 0, num, ilat ;
@@ -736,11 +916,15 @@ convertToWFile(char *in_fname, char *out_fname) {
   fprintf(stderr, "writing w file %s...\n", out_fname) ;
   outfp = fopen(out_fname,"wb");
   if (outfp==NULL)
+  {
     ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,out_fname) ;
+  }
 
   infp = fopen(in_fname,"rb");
   if (infp==NULL)
+  {
     ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,in_fname) ;
+  }
 
 
   cp = fgetl(line, 299, infp) ;
@@ -750,9 +934,11 @@ convertToWFile(char *in_fname, char *out_fname) {
   fwrite2(0,outfp);
   fwrite3(num,outfp);
 
-  while ((cp = fgetl(line, 299, infp)) != NULL) {
+  while ((cp = fgetl(line, 299, infp)) != NULL)
+  {
     l++ ;
-    if (sscanf(cp, "%d %f", &vno, &val) != 2) {
+    if (sscanf(cp, "%d %f", &vno, &val) != 2)
+    {
       ErrorPrintf(ERROR_BADFILE,
                   "%s: could not scan parms from line %d: %s.\n",
                   Progname, l, cp) ;
@@ -768,7 +954,8 @@ convertToWFile(char *in_fname, char *out_fname) {
 
 
 static int
-convertFromWFile(char *in_fname, char *out_fname) {
+convertFromWFile(char *in_fname, char *out_fname)
+{
   FILE   *infp, *outfp ;
   int    vno, num, ilat, i ;
   float  val, lat ;
@@ -776,18 +963,23 @@ convertFromWFile(char *in_fname, char *out_fname) {
   fprintf(stderr, "writing ascii w file %s...\n", out_fname) ;
   outfp = fopen(out_fname,"wb");
   if (outfp==NULL)
+  {
     ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,out_fname) ;
+  }
 
   infp = fopen(in_fname,"rb");
   if (infp==NULL)
+  {
     ErrorExit(ERROR_NOFILE, "%s: Can't create file %s\n",Progname,in_fname) ;
+  }
 
   fread2(&ilat,infp);
   lat = (float)ilat/10.0;
   fprintf(outfp, "%2.3f\n", lat) ;
   fread3(&num,infp);
   fprintf(outfp, "%d\n", num) ;
-  for (i=0;i<num;i++) {
+  for (i=0; i<num; i++)
+  {
     fread3(&vno,infp);
     val = freadFloat(infp) ;
     fprintf(outfp, "%d  %f\n", vno, val) ;
@@ -800,7 +992,8 @@ convertFromWFile(char *in_fname, char *out_fname) {
 
 
 static int
-writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) {
+writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname)
+{
   FILE   *fp ;
   int    vno ;
   VERTEX *v ;
@@ -810,10 +1003,13 @@ writeAsciiCurvFile(MRI_SURFACE *mris, char *out_fname) {
     ErrorExit(ERROR_BADFILE, "%s could not open output file %s.\n",
               Progname, out_fname) ;
 
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     fprintf(fp, "%3.3d %2.5f %2.5f %2.5f %2.5f\n",
             vno, v->x, v->y, v->z, v->curv) ;
   }
@@ -835,16 +1031,20 @@ int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
   FILE *fp;
 
   fp = fopen(out_fname,"w");
-  if(fp == NULL){
+  if(fp == NULL)
+  {
     printf("ERROR: opening %s\n",out_fname);
     exit(1);
   }
 
-  for(vno=0; vno < mris->nvertices; vno++){
+  for(vno=0; vno < mris->nvertices; vno++)
+  {
     nnbrs = mris->vertices[vno].vnum;
     fprintf(fp,"%6d %2d   ",vno,nnbrs);
     for (nbrvno = 0; nbrvno < nnbrs; nbrvno++)
+    {
       fprintf(fp,"%6d ",mris->vertices[vno].v[nbrvno]);
+    }
     fprintf(fp,"\n");
   }
   fclose(fp);
