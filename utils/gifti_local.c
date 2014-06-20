@@ -10,8 +10,8 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2014/05/28 23:25:28 $
- *    $Revision: 1.33 $
+ *    $Date: 2014/06/20 00:02:36 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -647,7 +647,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     strcpy(mris->fname,fname);
     mris->type = MRIS_TRIANGULAR_SURFACE;
     char* hemi = gifti_get_meta_value(&coords->meta,
-                                      "AnatomicalStructurePrimary'");
+                                      "AnatomicalStructurePrimary");
     if (hemi && (strcmp(hemi,"CortexRight")==0))
     {
       mris->hemisphere = RIGHT_HEMISPHERE ;
@@ -659,6 +659,67 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     else
     {
       mris->hemisphere = NO_HEMISPHERE;
+    }
+
+    /* retrieve volume geometry info */
+    {
+      int vgvalid = 0; // there are a total of 18 values
+      char* stmp = gifti_get_meta_value(&coords->meta,"VolGeomWidth");
+      if (stmp && (1==sscanf(stmp,"%d",&mris->vg.width)))
+      {
+        vgvalid++; // track valid volgeom values found
+      }
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomHeight");
+      if (stmp && (1==sscanf(stmp,"%d",&mris->vg.height))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomDepth");
+      if (stmp && (1==sscanf(stmp,"%d",&mris->vg.depth))){vgvalid++;}
+      
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomXsize");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.xsize))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomYsize");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.ysize))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomZsize");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.zsize))){vgvalid++;}
+      
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomX_R");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.x_r))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomX_A");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.x_a))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomX_S");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.x_s))){vgvalid++;}
+
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomY_R");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.y_r))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomY_A");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.y_a))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomY_S");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.y_s))){vgvalid++;}
+
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomZ_R");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.z_r))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomZ_A");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.z_a))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomZ_S");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.z_s))){vgvalid++;}
+
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomC_R");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.c_r))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomC_A");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.c_a))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"VolGeomC_S");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->vg.c_s))){vgvalid++;}
+
+      if (vgvalid == 18)
+      {
+        mris->vg.valid = 1; // finally we can say its valid data
+      }
+
+      stmp = gifti_get_meta_value(&coords->meta,"SurfaceCenterX");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->xctr))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"SurfaceCenterY");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->yctr))){vgvalid++;}
+      stmp = gifti_get_meta_value(&coords->meta,"SurfaceCenterZ");
+      if (stmp && (1==sscanf(stmp,"%f",&mris->zctr))){vgvalid++;}
     }
 
     /* Copy in the vertices. */
@@ -762,7 +823,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
       }
     }
 
-    // check-for and read coordsys structs for talairach xform and volgeom
+    // check-for and read coordsys struct for talairach xform
     if (coords->coordsys && (coords->numCS > 0))
     {
       int idx;
@@ -783,36 +844,6 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
                   coords->coordsys[idx]->xform[r-1][c-1];
               }            
             }
-          }
-
-          // first half of vol geometry info
-          if (0==strcmp(coords->coordsys[idx]->xformspace,
-                        "FS_VOLGEOM_WHDSIZE"))
-          {      
-            mris->vg.width = coords->coordsys[idx]->xform[0][0];
-            mris->vg.height =coords->coordsys[idx]->xform[0][1];
-            mris->vg.depth = coords->coordsys[idx]->xform[0][2];
-            mris->vg.xsize = coords->coordsys[idx]->xform[1][0];
-            mris->vg.ysize = coords->coordsys[idx]->xform[1][1];
-            mris->vg.zsize = coords->coordsys[idx]->xform[1][2];
-          }
-          // and the second half of vol geometry
-          if (0==strcmp(coords->coordsys[idx]->xformspace,
-                        "FS_VOLGEOM_RAS"))
-          {  
-            mris->vg.x_r = coords->coordsys[idx]->xform[0][0];
-            mris->vg.x_a = coords->coordsys[idx]->xform[0][1];
-            mris->vg.x_s = coords->coordsys[idx]->xform[0][2];
-            mris->vg.y_r = coords->coordsys[idx]->xform[1][0];
-            mris->vg.y_a = coords->coordsys[idx]->xform[1][1];
-            mris->vg.y_s = coords->coordsys[idx]->xform[1][2];
-            mris->vg.z_r = coords->coordsys[idx]->xform[2][0];
-            mris->vg.z_a = coords->coordsys[idx]->xform[2][1];
-            mris->vg.z_s = coords->coordsys[idx]->xform[2][2];
-            mris->vg.c_r = coords->coordsys[idx]->xform[3][0];
-            mris->vg.c_a = coords->coordsys[idx]->xform[3][1];
-            mris->vg.c_s = coords->coordsys[idx]->xform[3][2];
-            mris->vg.valid = 1; // finally we can say its valid data
           }
         }
       }
@@ -1525,41 +1556,6 @@ int MRISwriteGIFTI(MRIS* mris,
         }
     }
 
-    // add volume geometry info if valid
-    if (mris->vg.valid)
-    {
-      int idx;
-      // found a valid xform, so use it, doing so using two giiCoordSys
-      // structs, since we can't fit all vol geom info in one
-      gifti_add_empty_CS( coords );
-      idx = coords->numCS - 1;
-      coords->coordsys[idx]->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
-      coords->coordsys[idx]->xformspace = strcpyalloc("FS_VOLGEOM_WHDSIZE");
-      coords->coordsys[idx]->xform[0][0] = mris->vg.width;
-      coords->coordsys[idx]->xform[0][1] = mris->vg.height;
-      coords->coordsys[idx]->xform[0][2] = mris->vg.depth;
-      coords->coordsys[idx]->xform[1][0] = mris->vg.xsize;
-      coords->coordsys[idx]->xform[1][1] = mris->vg.ysize;
-      coords->coordsys[idx]->xform[1][2] = mris->vg.zsize;
-      // the other one...
-      gifti_add_empty_CS( coords );
-      idx = coords->numCS - 1;
-      coords->coordsys[idx]->dataspace = strcpyalloc("NIFTI_XFORM_UNKNOWN");
-      coords->coordsys[idx]->xformspace = strcpyalloc("FS_VOLGEOM_RAS");
-      coords->coordsys[idx]->xform[0][0] = mris->vg.x_r;
-      coords->coordsys[idx]->xform[0][1] = mris->vg.x_a;
-      coords->coordsys[idx]->xform[0][2] = mris->vg.x_s;
-      coords->coordsys[idx]->xform[1][0] = mris->vg.y_r;
-      coords->coordsys[idx]->xform[1][1] = mris->vg.y_a;
-      coords->coordsys[idx]->xform[1][2] = mris->vg.y_s;
-      coords->coordsys[idx]->xform[2][0] = mris->vg.z_r;
-      coords->coordsys[idx]->xform[2][1] = mris->vg.z_a;
-      coords->coordsys[idx]->xform[2][2] = mris->vg.z_s;
-      coords->coordsys[idx]->xform[3][0] = mris->vg.c_r;
-      coords->coordsys[idx]->xform[3][1] = mris->vg.c_a;
-      coords->coordsys[idx]->xform[3][2] = mris->vg.c_s;
-    }
-
     coords->nvals = gifti_darray_nvals (coords);
     gifti_datatype_sizes (coords->datatype, &coords->nbyper, NULL);
 
@@ -1778,6 +1774,61 @@ int MRISwriteGIFTI(MRIS* mris,
       gifti_add_to_meta( &faces->meta, "TopologicalType", topotype, 1 );
       gifti_add_to_meta( &coords->meta, "Name", name, 1 );
       gifti_add_to_meta( &faces->meta, "Name", name, 1 );
+    }
+
+    // add volume geometry info if valid, and surface center-coords
+    if (mris->vg.valid)
+    {
+      char stmp[100];
+
+      sprintf(stmp,"%d",mris->vg.width);
+      gifti_add_to_meta( &coords->meta, "VolGeomWidth", stmp, 1);
+      sprintf(stmp,"%d",mris->vg.height);
+      gifti_add_to_meta( &coords->meta, "VolGeomHeight", stmp, 1);
+      sprintf(stmp,"%d",mris->vg.depth);
+      gifti_add_to_meta( &coords->meta, "VolGeomDepth", stmp, 1);
+
+      sprintf(stmp,"%f",mris->vg.xsize);
+      gifti_add_to_meta( &coords->meta, "VolGeomXsize", stmp, 1);
+      sprintf(stmp,"%f",mris->vg.ysize);
+      gifti_add_to_meta( &coords->meta, "VolGeomYsize", stmp, 1);
+      sprintf(stmp,"%f",mris->vg.zsize);
+      gifti_add_to_meta( &coords->meta, "VolGeomZsize", stmp, 1);
+
+      sprintf(stmp,"%f",mris->vg.x_r);
+      gifti_add_to_meta( &coords->meta, "VolGeomX_R", stmp, 1);
+      sprintf(stmp,"%f",mris->vg.x_a);
+      gifti_add_to_meta( &coords->meta, "VolGeomX_A", stmp, 1);
+      sprintf(stmp,"%f",mris->vg.x_s);
+      gifti_add_to_meta( &coords->meta, "VolGeomX_S", stmp, 1);
+
+      sprintf(stmp,"%f",mris->vg.y_r);
+      gifti_add_to_meta( &coords->meta, "VolGeomY_R", stmp, 1);
+      sprintf(stmp,"%f",mris->vg.y_a);
+      gifti_add_to_meta( &coords->meta, "VolGeomY_A", stmp, 1);
+      sprintf(stmp,"%f",mris->vg.y_s);
+      gifti_add_to_meta( &coords->meta, "VolGeomY_S", stmp, 1);
+
+      sprintf(stmp,"%f",mris->vg.z_r);
+      gifti_add_to_meta( &coords->meta, "VolGeomZ_R", stmp, 1);
+      sprintf(stmp,"%f",mris->vg.z_a);
+      gifti_add_to_meta( &coords->meta, "VolGeomZ_A", stmp, 1);
+      sprintf(stmp,"%f",mris->vg.z_s);
+      gifti_add_to_meta( &coords->meta, "VolGeomZ_S", stmp, 1);
+
+      sprintf(stmp,"%f",mris->vg.c_r);
+      gifti_add_to_meta( &coords->meta, "VolGeomC_R", stmp, 1);
+      sprintf(stmp,"%f",mris->vg.c_a);
+      gifti_add_to_meta( &coords->meta, "VolGeomC_A", stmp, 1);
+      sprintf(stmp,"%f",mris->vg.c_s);
+      gifti_add_to_meta( &coords->meta, "VolGeomC_S", stmp, 1);
+
+      sprintf(stmp,"%f",mris->xctr);
+      gifti_add_to_meta( &coords->meta, "SurfaceCenterX", stmp, 1);
+      sprintf(stmp,"%f",mris->yctr);
+      gifti_add_to_meta( &coords->meta, "SurfaceCenterY", stmp, 1);
+      sprintf(stmp,"%f",mris->zctr);
+      gifti_add_to_meta( &coords->meta, "SurfaceCenterZ", stmp, 1);
     }
   } // end of if NIFTI_INTENT_POINTSET or NIFTI_INTENT_TRIANGLE
 
