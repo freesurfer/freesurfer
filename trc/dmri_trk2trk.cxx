@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2013/02/12 06:19:26 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/06/21 17:10:12 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,11 +70,12 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_trk2trk";
 
-int doInvNonlin = 0, doFill = 0, nin = 0, nout = 0, nvol = 0;
-char *inDir = NULL, *inFile[100],
-     *outDir = NULL, *outFile[100], *outVolFile[100],
+int doInvNonlin = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1;
+char *inDir = NULL,
+     *outDir = NULL,
      *inRefFile = NULL, *outRefFile = NULL,
      *affineXfmFile = NULL, *nonlinXfmFile = NULL;
+vector<char *> inTrkList, outTrkList, outAscList, outVolList;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -101,8 +102,8 @@ int main(int argc, char **argv) {
   uname(&uts);
   getcwd(cwd, 2000);
 
-  Progname = argv[0] ;
-  argc --;
+  Progname = argv[0];
+  argc--;
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -119,7 +120,7 @@ int main(int argc, char **argv) {
   inref = MRIread(inRefFile);
   outref = MRIread(outRefFile);
 
-  if (nvol > 0)
+  if (!outVolList.empty())
     outvol = MRIclone(outref, NULL);
 
   // Output space orientation information
@@ -138,20 +139,21 @@ int main(int argc, char **argv) {
   if (affineXfmFile)
     affinereg.ReadXfm(affineXfmFile, inref, outref);
 
-  for (int itrk = 0; itrk < nout; itrk++) {
-    int npts;
+  for (unsigned int itrk = 0; itrk < inTrkList.size(); itrk++) {
+    int npts, nstr = 0;
     CTrackReader trkreader;
-    CTrackWriter trkwriter;
-    TRACK_HEADER trkheadin, trkheadout;
+    TRACK_HEADER trkheadin;
+    vector< vector<float> > streamlines;
 
-    printf("Processing .trk file %d of %d...\n", itrk+1, nout);
+    cout << "Processing .trk file " << itrk+1 << " of " << inTrkList.size()
+         << "..." << endl;
     TimerStart(&cputimer);
 
     // Open input .trk file
     if (inDir)
-      sprintf(fname, "%s/%s", inDir, inFile[itrk]);
+      sprintf(fname, "%s/%s", inDir, inTrkList[itrk]);
     else
-      strcpy(fname, inFile[itrk]);
+      strcpy(fname, inTrkList[itrk]);
 
     if (!trkreader.Open(fname, &trkheadin)) {
       cout << "ERROR: Cannot open input file " << fname << endl;
@@ -159,62 +161,18 @@ int main(int argc, char **argv) {
       exit(1);
     }
 
-    if (nout > 0) {
-      // Set output .trk header
-      trkheadout = trkheadin;
-
-      trkheadout.voxel_size[0] = outref->xsize;
-      trkheadout.voxel_size[1] = outref->ysize;
-      trkheadout.voxel_size[2] = outref->zsize;
-
-      trkheadout.dim[0] = outref->width;
-      trkheadout.dim[1] = outref->height;
-      trkheadout.dim[2] = outref->depth;
-
-      for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
-          trkheadout.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
-
-      strcpy(trkheadout.voxel_order, outorient);
-
-      // Find patient-to-scanner coordinate transform:
-      // Take x and y vectors from vox2RAS matrix, convert to LPS,
-      // divide by voxel size
-      trkheadout.image_orientation_patient[0] = 
-        - trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[1] = 
-        - trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[2] = 
-          trkheadout.vox_to_ras[2][0] / trkheadout.voxel_size[0];
-      trkheadout.image_orientation_patient[3] = 
-        - trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
-      trkheadout.image_orientation_patient[4] = 
-        - trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
-      trkheadout.image_orientation_patient[5] = 
-          trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
-
-      // Open output .trk file
-      if (outDir)
-        sprintf(fname, "%s/%s", outDir, outFile[itrk]);
-      else
-        strcpy(fname, outFile[itrk]);
-
-      if (!trkwriter.Initialize(fname, trkheadout)) {
-        cout << "ERROR: Cannot open output file " << fname << endl;
-        cout << "ERROR: " << trkwriter.GetLastErrorMessage() << endl;
-        exit(1);
-      }
-    }
-
-    if (nvol > 0)
-      MRIclear(outvol);
-
     while (trkreader.GetNextPointCount(&npts)) {
       float *iraw, *rawpts = new float[npts*3];
       vector<float> newpts;
 
       // Read a streamline from input file
       trkreader.GetNextTrackData(npts, rawpts);
+
+      if (doNth && nstr != strNum) {
+        delete[] rawpts;
+        nstr++;
+        continue;
+      }
 
       iraw = rawpts;
       for (int ipt = npts; ipt > 0; ipt--) {
@@ -266,64 +224,339 @@ int main(int argc, char **argv) {
         copy(iraw, iraw+3, point.begin());
 
         for (int istep = (int) round(dmax); istep > 0; istep--) {
-          // Write transformed point to volume
-          if (nvol > 0) {
-            int ix = (int) round(point[0]),
-                iy = (int) round(point[1]),
-                iz = (int) round(point[2]);
+          newpts.insert(newpts.end(), point.begin(), point.end());
 
-            if (ix < 0)			ix = 0;
-            if (ix >= outvol->width)	ix = outvol->width-1;
-            if (iy < 0)			iy = 0;
-            if (iy >= outvol->height)	iy = outvol->height-1;
-            if (iz < 0)			iz = 0;
-            if (iz >= outvol->depth)	iz = outvol->depth-1;
-
-            MRIsetVoxVal(outvol, ix, iy, iz, 0,
-                         MRIgetVoxVal(outvol, ix, iy, iz, 0) + 1);
-          }
-
-          for (int k = 0; k < 3; k++) {
-            // Make .5-based and multiply back by output voxel size
-            newpts.push_back((point[k] + .5) * trkheadout.voxel_size[k]);
-
+          for (int k = 0; k < 3; k++)
             point[k] += step[k];
-          }
         }
 
         iraw += 3;
       }
 
-      // Write transformed streamline to .trk file
-      if (nout > 0)
-        trkwriter.WriteNextTrack(newpts.size()/3, &newpts[0]);
-
       delete[] rawpts;
+      streamlines.push_back(newpts);
+
+      nstr++;
     }
 
-    if (nout > 0)
-      trkwriter.Close();
+    if (doMean) {
+      unsigned int nstr = streamlines.size(), lmin, kmax, nstrout, kstrmean = 0;
+      float dmin = numeric_limits<float>::infinity();
+      vector<bool> isout(nstr);
+      vector<unsigned int> lengths(nstr);
+      vector<float> steps(nstr), strmean, strstd, strU, strL;
+      vector<bool>::iterator iout;
+      vector<unsigned int>::iterator ilen;
+      vector<float>::iterator istep, imean, istd, iupper, ilower;
 
-    if (nvol > 0) {
+      // Find the minimum streamline length
+      ilen = lengths.begin();
+
+      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
+                                                   istr < streamlines.end();
+                                                   istr++) {
+        *ilen = istr->size()/3;
+        ilen++;
+      }
+
+      lmin = *min_element(lengths.begin(), lengths.end());
+      kmax = lmin - 1;
+
+      // Set the step size for each streamline to have equal number of steps
+      istep = steps.begin();
+
+      for (ilen = lengths.begin(); ilen < lengths.end(); ilen++) {
+        *istep = (*ilen - 1) / (float) kmax;
+        istep++;
+      }
+
+      lengths.clear();
+
+      // Compute mean and standard deviation of point coordinates at each step
+      strmean.resize(lmin*3);
+      fill(strmean.begin(), strmean.end(), 0.0);
+      strstd.resize(strmean.size());
+      fill(strstd.begin(), strstd.end(), 0.0);
+
+      istep = steps.begin();
+
+      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
+                                                   istr < streamlines.end();
+                                                   istr++) {
+        imean = strmean.begin();
+        istd = strstd.begin();
+
+        for (unsigned int kpt = 0; kpt < kmax; kpt++) {
+          const unsigned int idx = (unsigned int) round(kpt * (*istep));
+          vector<float>::const_iterator ipt = istr->begin() + idx * 3;
+
+          if (ipt > istr->end() - 3)
+            ipt = istr->end() - 3;
+
+          for (int k = 0; k < 3; k++) {
+            imean[k] += (float) ipt[k];
+            istd[k]  += (float) ipt[k] * ipt[k];
+          }
+
+          imean += 3;
+          istd += 3;
+        }
+ 
+        istep++;
+      }
+
+      // Compute upper and lower limit for flagging a point as an outlier
+      strU.resize(strmean.size());
+      strL.resize(strmean.size());
+
+      istd = strstd.begin();
+      iupper = strU.begin();
+      ilower = strL.begin();
+
+      for (imean = strmean.begin(); imean < strmean.end(); imean++) {
+        *imean /= nstr;
+
+        if (nstr > 1)
+          *istd = sqrt((*istd - nstr * (*imean) * (*imean)) / (nstr-1));
+        else
+          *istd = 0;
+
+        *iupper = *imean + 2 * (*istd);
+        *ilower = *imean - 2 * (*istd);
+
+        istd++;
+        iupper++;
+        ilower++;
+      }
+
+      // Flag streamlines with at least one outlier point
+      fill(isout.begin(), isout.end(), false);
+
+      iout = isout.begin();
+      istep = steps.begin();
+
+      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
+                                                   istr < streamlines.end();
+                                                   istr++) {
+        iupper = strU.begin();
+        ilower = strL.begin();
+
+        for (unsigned int kpt = 0; kpt < kmax; kpt++) {
+          const unsigned int idx = (unsigned int) round(kpt * (*istep));
+          vector<float>::const_iterator ipt = istr->begin() + idx * 3;
+
+          for (int k = 0; k < 3; k++) {
+            if (*ipt > *iupper || *ipt < *ilower) {
+              *iout = true;
+              break;
+            }
+        
+            ipt++;
+            iupper++;
+            ilower++;
+          }
+
+          if (*iout)
+            break;
+        }
+
+        iout++;
+        istep++;
+      }
+
+      nstrout = count(isout.begin(), isout.end(), true);
+
+      cout << "INFO: Found " << nstrout
+           << " streamlines more than 2 standard deviations away from the mean"
+           << endl;
+
+      if (nstrout == nstr) {
+        cout << "INFO: Turning off outlier checks" << endl;
+
+        fill(isout.begin(), isout.end(), false);
+      }
+
+      // Find the non-outlier streamline that is closest to the mean streamline
+      iout = isout.begin();
+      istep = steps.begin();
+
+      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
+                                                   istr < streamlines.end();
+                                                   istr++) {
+        if (!*iout) {
+          float dist = 0;
+
+          imean = strmean.begin();
+          istd = strstd.begin();
+
+          for (unsigned int kpt = 0; kpt < kmax; kpt++) {
+            const unsigned int idx = (unsigned int) round(kpt * (*istep));
+            vector<float>::const_iterator ipt = istr->begin() + idx * 3;
+
+            const float dx = ipt[0] - imean[0],
+                        dy = ipt[1] - imean[1],
+                        dz = ipt[2] - imean[2];
+
+            dist += sqrt(dx*dx + dy*dy + dz*dz);
+
+            imean += 3;
+            istd += 3;
+          }
+
+          if (dist < dmin) {
+            dmin = dist;
+            kstrmean = istr - streamlines.begin();
+          }
+        }
+
+        iout++;
+        istep++;
+      }
+
+      cout << "INFO: Streamline closest to the mean is " << kstrmean << endl;
+
+      // Keep only the chosen streamline for writing to disk
+      streamlines.erase(streamlines.begin(), streamlines.begin() + kstrmean);
+      streamlines.erase(streamlines.begin() + 1, streamlines.end());
+    }
+
+    // Write transformed streamlines to volume
+    if (!outVolList.empty()) {
       if (outDir)
-        sprintf(fname, "%s/%s", outDir, outVolFile[itrk]);
+        sprintf(fname, "%s/%s", outDir, outVolList[itrk]);
       else
-        strcpy(fname, outVolFile[itrk]);
+        strcpy(fname, outVolList[itrk]);
+
+      MRIclear(outvol);
+
+      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
+                                                   istr < streamlines.end();
+                                                   istr++)
+        for (vector<float>::const_iterator ipt = istr->begin();
+                                           ipt < istr->end(); ipt += 3) {
+          int ix = (int) round(ipt[0]),
+              iy = (int) round(ipt[1]),
+              iz = (int) round(ipt[2]);
+
+          if (ix < 0)			ix = 0;
+          if (ix >= outvol->width)	ix = outvol->width-1;
+          if (iy < 0)			iy = 0;
+          if (iy >= outvol->height)	iy = outvol->height-1;
+          if (iz < 0)			iz = 0;
+          if (iz >= outvol->depth)	iz = outvol->depth-1;
+
+          MRIsetVoxVal(outvol, ix, iy, iz, 0,
+                       MRIgetVoxVal(outvol, ix, iy, iz, 0) + 1);
+        }
 
       MRIwrite(outvol, fname);
     }
 
+    // Write transformed streamlines to text file
+    if (!outAscList.empty()) {
+      ofstream outfile;
+
+      if (outDir)
+        sprintf(fname, "%s/%s", outDir, outAscList[itrk]);
+      else
+        strcpy(fname, outAscList[itrk]);
+
+      outfile.open(fname, ios::out);
+      if (!outfile) {
+        cout << "ERROR: Could not open " << fname << " for writing" << endl;
+        exit(1);
+      }
+
+      for (vector< vector<float> >::const_iterator istr = streamlines.begin();
+                                                   istr < streamlines.end();
+                                                   istr++) {
+        for (vector<float>::const_iterator ipt = istr->begin();
+                                           ipt < istr->end(); ipt += 3)
+          outfile << (int) round(ipt[0]) << " "
+                  << (int) round(ipt[1]) << " "
+                  << (int) round(ipt[2]) << endl;
+
+        outfile << endl;
+      }
+
+      outfile.close();
+    }
+
+    // Write transformed streamlines to .trk file
+    if (!outTrkList.empty()) {
+      CTrackWriter trkwriter;
+      TRACK_HEADER trkheadin, trkheadout;
+
+      // Set output .trk header
+      trkheadout = trkheadin;
+
+      trkheadout.voxel_size[0] = outref->xsize;
+      trkheadout.voxel_size[1] = outref->ysize;
+      trkheadout.voxel_size[2] = outref->zsize;
+
+      trkheadout.dim[0] = outref->width;
+      trkheadout.dim[1] = outref->height;
+      trkheadout.dim[2] = outref->depth;
+
+      for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+          trkheadout.vox_to_ras[i][j] = outv2r->rptr[i+1][j+1];
+
+      strcpy(trkheadout.voxel_order, outorient);
+
+      // Find patient-to-scanner coordinate transform:
+      // Take x and y vectors from vox2RAS matrix, convert to LPS,
+      // divide by voxel size
+      trkheadout.image_orientation_patient[0] = 
+        - trkheadout.vox_to_ras[0][0] / trkheadout.voxel_size[0];
+      trkheadout.image_orientation_patient[1] = 
+        - trkheadout.vox_to_ras[1][0] / trkheadout.voxel_size[0];
+      trkheadout.image_orientation_patient[2] = 
+          trkheadout.vox_to_ras[2][0] / trkheadout.voxel_size[0];
+      trkheadout.image_orientation_patient[3] = 
+        - trkheadout.vox_to_ras[0][1] / trkheadout.voxel_size[1];
+      trkheadout.image_orientation_patient[4] = 
+        - trkheadout.vox_to_ras[1][1] / trkheadout.voxel_size[1];
+      trkheadout.image_orientation_patient[5] = 
+          trkheadout.vox_to_ras[2][1] / trkheadout.voxel_size[1];
+
+      // Open output .trk file
+      if (outDir)
+        sprintf(fname, "%s/%s", outDir, outTrkList[itrk]);
+      else
+        strcpy(fname, outTrkList[itrk]);
+
+      if (!trkwriter.Initialize(fname, trkheadout)) {
+        cout << "ERROR: Cannot open output file " << fname << endl;
+        cout << "ERROR: " << trkwriter.GetLastErrorMessage() << endl;
+        exit(1);
+      }
+
+      for (vector< vector<float> >::iterator istr = streamlines.begin();
+                                             istr < streamlines.end(); istr++) {
+        // Make .5-based and multiply back by output voxel size
+        for (vector<float>::iterator ipt = istr->begin(); ipt < istr->end();
+                                                          ipt += 3)
+          for (int k = 0; k < 3; k++)
+            ipt[k] = (ipt[k] + .5) * trkheadout.voxel_size[k];
+
+        trkwriter.WriteNextTrack(istr->size()/3, &(istr->at(0)));
+      }
+
+      trkwriter.Close();
+    }
+
     cputime = TimerStop(&cputimer);
-    printf("Done in %g sec.\n", cputime/1000.0);
+    cout << "Done in " << cputime/1000.0 << " sec." << endl;
   }
 
   MatrixFree(&outv2r);
   MRIfree(&inref);
   MRIfree(&outref);
-  if (nvol > 0)
+  if (!outVolList.empty())
     MRIfree(&outvol);
 
-  printf("dmri_trk2trk done\n");
+  cout << "dmri_trk2trk done" << endl;
   return(0);
   exit(0);
 }
@@ -359,9 +592,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
-        inFile[nin] = pargv[nargsused];
+        inTrkList.push_back(pargv[nargsused]);
         nargsused++;
-        nin++;
       }
     } 
     else if (!strcmp(option, "--outdir")) {
@@ -373,20 +605,26 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
-        outFile[nout] = pargv[nargsused];
+        outTrkList.push_back(pargv[nargsused]);
         nargsused++;
-        nout++;
       }
-    } 
+    }
+    else if (!strcmp(option, "--outasc")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      nargsused = 0;
+      while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
+        outAscList.push_back(pargv[nargsused]);
+        nargsused++;
+      }
+    }
     else if (!strcmp(option, "--outvol")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (nargsused < nargc && strncmp(pargv[nargsused], "--", 2)) {
-        outVolFile[nvol] = pargv[nargsused];
+        outVolList.push_back(pargv[nargsused]);
         nargsused++;
-        nvol++;
       }
-    } 
+    }
     else if (!strcmp(option, "--inref")) {
       if (nargc < 1) CMDargNErr(option,1);
       inRefFile = fio_fullpath(pargv[0]);
@@ -411,6 +649,14 @@ static int parse_commandline(int argc, char **argv) {
       doInvNonlin = 1;
     else if (!strcasecmp(option, "--fill"))
       doFill = 1;
+    else if (!strcasecmp(option, "--mean"))
+      doMean = 1;
+    else if (!strcasecmp(option, "--nth")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%d", &strNum);
+      nargsused = 1;
+      doNth = 1;
+    }
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -426,89 +672,107 @@ static int parse_commandline(int argc, char **argv) {
 /* --------------------------------------------- */
 static void print_usage(void) 
 {
-  printf("\n");
-  printf("USAGE: ./dmri_trk2trk\n");
-  printf("\n");
-  printf("Basic inputs\n");
-  printf("   --in <file> [...]:\n");
-  printf("     Input .trk file(s)\n");
-  printf("   --indir <dir>:\n");
-  printf("     Input directory (optional)\n");
-  printf("     If specified, names of input .trk files are relative to this\n");
-  printf("   --out <file> [...]:\n");
-  printf("     Output .trk file(s), as many as inputs\n");
-  printf("   --outvol <file> [...]:\n");
-  printf("     Output volume(s), as many as inputs\n");
-  printf("   --outdir <dir>:\n");
-  printf("     Output directory (optional)\n");
-  printf("     If specified, names of output .trk files and volumes are relative to this)\n");
-  printf("   --inref <file>:\n");
-  printf("     Input reference volume\n");
-  printf("   --outref <file>:\n");
-  printf("     Output reference volume\n");
-  printf("   --reg <file>:\n");
-  printf("     Affine registration (.mat), applied first\n");
-  printf("   --regnl <file>:\n");
-  printf("     Nonlinear registration (.m3z), applied second\n");
-  printf("   --invnl:\n");
-  printf("     Apply inverse of nonlinear warp (with --regnl, default: no)\n");
-  printf("   --fill:\n");
-  printf("     Fill gaps b/w mapped points by linear interpolation\n");
-  printf("     (Default: don't fill)\n");
-  printf("\n");
-  printf("Other options\n");
-  printf("   --debug:     turn on debugging\n");
-  printf("   --checkopts: don't run anything, just check options and exit\n");
-  printf("   --help:      print out information on how to use this program\n");
-  printf("   --version:   print out version and exit\n");
-  printf("\n");
+  cout
+  << endl << "USAGE: " << Progname << endl << endl
+  << "Basic inputs" << endl
+  << "   --in <file> [...]:" << endl
+  << "     Input .trk file(s)" << endl
+  << "   --indir <dir>:" << endl
+  << "     Input directory (optional)" << endl
+  << "     If specified, names of input .trk files are relative to this" << endl
+  << "   --out <file> [...]:" << endl
+  << "     Output .trk file(s), as many as inputs" << endl
+  << "   --outasc <file> [...]:" << endl
+  << "     Output ASCII plain text file(s), as many as inputs" << endl
+  << "   --outvol <file> [...]:" << endl
+  << "     Output volume(s), as many as inputs" << endl
+  << "   --outdir <dir>:" << endl
+  << "     Output directory (optional)" << endl
+  << "     If specified, names of output .trk files and volumes are relative to this)" << endl
+  << "   --inref <file>:" << endl
+  << "     Input reference volume" << endl
+  << "   --outref <file>:" << endl
+  << "     Output reference volume" << endl
+  << "   --reg <file>:" << endl
+  << "     Affine registration (.mat), applied first" << endl
+  << "   --regnl <file>:" << endl
+  << "     Nonlinear registration (.m3z), applied second" << endl
+  << "   --invnl:" << endl
+  << "     Apply inverse of nonlinear warp (with --regnl, default: no)" << endl
+  << "   --fill:" << endl
+  << "     Fill gaps b/w mapped points by linear interpolation" << endl
+  << "     (Default: don't fill)" << endl
+  << "   --mean:" << endl
+  << "     Only save the mean streamline (Default: save all)" << endl
+  << "   --nth <num>:" << endl
+  << "     Only save the n-th (0-based) streamline (Default: save all)" << endl
+  << endl
+  << "Other options" << endl
+  << "   --debug:     turn on debugging" << endl
+  << "   --checkopts: don't run anything, just check options and exit" << endl
+  << "   --help:      print out information on how to use this program" << endl
+  << "   --version:   print out version and exit" << endl
+  << endl;
 }
 
 /* --------------------------------------------- */
 static void print_help(void) {
-  print_usage() ;
-  printf("\n");
-  printf("...\n");
-  printf("\n");
+  print_usage();
+
+  cout << endl
+       << "..." << endl
+       << endl;
+
   exit(1) ;
 }
 
 /* ------------------------------------------------------ */
 static void usage_exit(void) {
-  print_usage() ;
+  print_usage();
   exit(1) ;
 }
 
 /* --------------------------------------------- */
 static void print_version(void) {
-  printf("%s\n", vcid) ;
+  cout << vcid << endl;
   exit(1) ;
 }
 
 /* --------------------------------------------- */
 static void check_options(void) {
-  if(nin == 0) {
-    printf("ERROR: must specify input .trk file(s)\n");
+  if (inTrkList.empty()) {
+    cout << "ERROR: must specify input .trk file(s)" << endl;
     exit(1);
   }
-  if(nout == 0 && nvol == 0) {
-    printf("ERROR: must specify output .trk or volume file(s)\n");
+  if (outTrkList.empty() && outAscList.empty() && outVolList.empty()) {
+    cout << "ERROR: must specify output .trk or text or volume file(s)" << endl;
     exit(1);
   }
-  if(nout > 0 && nout != nin) {
-    printf("ERROR: must specify as many output .trk files as input files\n");
+  if (!outTrkList.empty() && outTrkList.size() != inTrkList.size()) {
+    cout << "ERROR: must specify as many output .trk files as input files"
+         << endl;
     exit(1);
   }
-  if(nvol > 0 && nvol != nin) {
-    printf("ERROR: must specify as many output volumes as input .trk files\n");
+  if (!outAscList.empty() && outAscList.size() != inTrkList.size()) {
+    cout << "ERROR: must specify as many output text files as input .trk files"
+         << endl;
     exit(1);
   }
-  if(!inRefFile) {
-    printf("ERROR: must specify input reference volume\n");
+  if (!outVolList.empty() && outVolList.size() != inTrkList.size()) {
+    cout << "ERROR: must specify as many output volumes as input .trk files"
+         << endl;
     exit(1);
   }
-  if(!outRefFile) {
-    printf("ERROR: must specify output reference volume\n");
+  if (!inRefFile) {
+    cout << "ERROR: must specify input reference volume" << endl;
+    exit(1);
+  }
+  if (!outRefFile) {
+    cout << "ERROR: must specify output reference volume" << endl;
+    exit(1);
+  }
+  if (doMean && doNth) {
+    cout << "ERROR: cannot use both --mean and --nth" << endl;
     exit(1);
   }
   return;
@@ -516,44 +780,60 @@ static void check_options(void) {
 
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
-  fprintf(fp,"\n");
-  fprintf(fp,"%s\n",vcid);
-  fprintf(fp,"cwd %s\n",cwd);
-  fprintf(fp,"cmdline %s\n",cmdline);
-  fprintf(fp,"sysname  %s\n",uts.sysname);
-  fprintf(fp,"hostname %s\n",uts.nodename);
-  fprintf(fp,"machine  %s\n",uts.machine);
-  fprintf(fp,"user     %s\n",VERuser());
+  cout << endl
+       << vcid << endl
+       << "cwd " << cwd << endl
+       << "cmdline " << cmdline << endl
+       << "sysname  " << uts.sysname << endl
+       << "hostname " << uts.nodename << endl
+       << "machine  " << uts.machine << endl
+       << "user     " << VERuser() << endl;
 
   if (inDir)
-    fprintf(fp, "Input directory: %s\n", inDir);
-  fprintf(fp, "Input files:");
-  for (int k = 0; k < nin; k++)
-    fprintf(fp, " %s", inFile[k]);
-  fprintf(fp, "\n");
+    cout << "Input directory: " << inDir << endl;
+  cout << "Input .trk files:";
+  for (vector<char *>::const_iterator istr = inTrkList.begin();
+                                      istr < inTrkList.end(); istr++)
+    cout << " " << *istr;
+  cout << endl;
   if (outDir)
-    fprintf(fp, "Output directory: %s\n", outDir);
-  if (nout > 0) {
-    fprintf(fp, "Output files:");
-    for (int k = 0; k < nout; k++)
-      fprintf(fp, " %s", outFile[k]);
-    fprintf(fp, "\n");
+    cout << "Output directory: " << outDir << endl;
+  if (!outTrkList.empty()) {
+    cout << "Output .trk files:";
+    for (vector<char *>::const_iterator istr = outTrkList.begin();
+                                        istr < outTrkList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
   }
-  if (nvol > 0) {
-    fprintf(fp, "Output volumes:");
-    for (int k = 0; k < nvol; k++)
-      fprintf(fp, " %s", outVolFile[k]);
-    fprintf(fp, "\n");
+  if (!outAscList.empty()) {
+    cout << "Output text files:";
+    for (vector<char *>::const_iterator istr = outAscList.begin();
+                                        istr < outAscList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
   }
-  fprintf(fp, "Input reference: %s\n", inRefFile);
-  fprintf(fp, "Output reference: %s\n", outRefFile);
+  if (!outVolList.empty()) {
+    cout << "Output volumes:";
+    for (vector<char *>::const_iterator istr = outVolList.begin();
+                                        istr < outVolList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
+  }
+  cout << "Input reference: " << inRefFile << endl;
+  cout << "Output reference: " << outRefFile << endl;
   if (affineXfmFile)
-    fprintf(fp, "Affine registration: %s\n", affineXfmFile);
+    cout << "Affine registration: " << affineXfmFile << endl;
   if (nonlinXfmFile) {
-    fprintf(fp, "Nonlinear registration: %s\n", nonlinXfmFile);
-    fprintf(fp, "Invert nonlinear morph: %d\n", doInvNonlin);
+    cout << "Nonlinear registration: " << nonlinXfmFile << endl;
+    cout << "Invert nonlinear morph: " << doInvNonlin << endl;
   }
-  fprintf(fp, "Fill gaps between points: %d\n", doFill);
+  cout << "Fill gaps between points: " << doFill << endl;
+  if (doMean)
+    cout << "Saving mean streamline" << endl;
+  else if (doNth)
+    cout << "Saving single streamline: " << strNum << endl;
+  else
+    cout << "Saving all streamlines" << endl;
 
   return;
 }
