@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2014/06/02 09:46:59 $
- *    $Revision: 1.13 $
+ *    $Date: 2014/06/21 18:29:34 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,10 +75,11 @@ static char vcid[] = "";
 const char *Progname = "dmri_pathstats";
 
 float probThresh = .2, faThresh = 0;
+char PathMAP[] = "path.map.txt";
 char *inTrkFile = NULL, *inRoi1File = NULL, *inRoi2File = NULL,
-     *inTrcDir = NULL, *dtBase = NULL,
+     *inTrcDir = NULL, *inVoxFile = PathMAP, *dtBase = NULL,
      *outFile = NULL, *outVoxFile = NULL,
-     *outStrFile = NULL, *outEndBase = NULL, *refVolFile = NULL,
+     *outMedianFile = NULL, *outEndBase = NULL, *refVolFile = NULL,
      fname[PATH_MAX];
 
 MRI *l1, *l2, *l3, *v1;
@@ -236,7 +237,7 @@ int main(int argc, char **argv) {
         *iwavg /= wtot;
 
     // Read maximum a posteriori path coordinates
-    sprintf(fname, "%s/path.map.txt", inTrcDir);
+    sprintf(fname, "%s/%s", inTrcDir, inVoxFile);
     infile.open(fname, ios::in);
     if (!infile) {
       cout << "ERROR: Could not open " << fname << " for reading" << endl;
@@ -440,13 +441,13 @@ int main(int argc, char **argv) {
       cavg = myblood.ComputeAvgCenter(meas);
     }
 
-    // Measures by voxel on center streamline
+    // Measures by voxel on median streamline
     if (outVoxFile)
       myblood.WriteValuesCenter(meas, outVoxFile);
 
-    // Save center streamline
-    if (outStrFile)
-      myblood.WriteCenterStreamline(outStrFile, inTrkFile);
+    // Save median streamline
+    if (outMedianFile)
+      myblood.WriteCenterStreamline(outMedianFile, inTrkFile);
 
     // Save streamline end points
     if (outEndBase) {
@@ -542,6 +543,11 @@ static int parse_commandline(int argc, char **argv) {
       inTrcDir = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--invox")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      inVoxFile = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--dtbase")) {
       if (nargc < 1) CMDargNErr(option,1);
       dtBase = fio_fullpath(pargv[0]);
@@ -567,12 +573,12 @@ static int parse_commandline(int argc, char **argv) {
       outVoxFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
-    else if (!strcmp(option, "--outstr")) {
+    else if (!strcmp(option, "--median")) {
       if (nargc < 1) CMDargNErr(option,1);
-      outStrFile = fio_fullpath(pargv[0]);
+      outMedianFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
-    else if (!strcmp(option, "--outend")) {
+    else if (!strcmp(option, "--ends")) {
       if (nargc < 1) CMDargNErr(option,1);
       outEndBase = fio_fullpath(pargv[0]);
       nargsused = 1;
@@ -626,12 +632,12 @@ static void print_usage(void)
   printf("     Output text file for overall path measures\n");
   printf("   --outvox <file>:\n");
   printf("     Output text file for voxel-by-voxel measures along path (optional)\n");
-  printf("   --outstr <file>:\n");
-  printf("     Output .trk file of center streamline (optional)\n");
-  printf("   --outend <base>:\n");
+  printf("   --median <file>:\n");
+  printf("     Output .trk file of median streamline (optional)\n");
+  printf("   --ends   <base>:\n");
   printf("     Base name of output volumes of streamline ends (optional)\n");
   printf("   --ref <file>:\n");
-  printf("     Reference volume (needed only if using --outend without --dtbase)\n");
+  printf("     Reference volume (needed only if using --ends without --dtbase)\n");
   printf("   --pthr <num>:\n");
   printf("     Lower threshold on path posterior distribution,\n");
   printf("     as a portion of the maximum (range: 0-1, default: 0.2)\n");
@@ -677,7 +683,7 @@ static void check_options(void) {
     printf("ERROR: must specify input .trk file or tracula directory\n");
     exit(1);
   }
-  if(!outFile && !outVoxFile && !outStrFile && !outEndBase) {
+  if(!outFile && !outVoxFile && !outMedianFile && !outEndBase) {
     printf("ERROR: must specify at least one type of output\n");
     exit(1);
   }
@@ -685,24 +691,24 @@ static void check_options(void) {
     printf("ERROR: must specify dtifit base name for voxel-by-voxel output\n");
     exit(1);
   }
-  if(outStrFile && !inTrkFile) {
-    printf("ERROR: must specify input .trk file to use --outstr\n");
+  if(outMedianFile && !inTrkFile) {
+    printf("ERROR: must specify input .trk file to use --median\n");
     exit(1);
   }
   if(outEndBase && !inTrkFile) {
-    printf("ERROR: must specify input .trk file to use --outend\n");
+    printf("ERROR: must specify input .trk file to use --ends\n");
     exit(1);
   }
   if(outEndBase && !refVolFile && !dtBase) {
-    printf("ERROR: must specify reference volume to use --outend\n");
+    printf("ERROR: must specify reference volume to use --ends\n");
     exit(1);
   }
   if(probThresh < 0 || probThresh > 1) {
-    printf("ERROR: probability threshold must a number between 0 and 1\n");
+    printf("ERROR: probability threshold must be a number between 0 and 1\n");
     exit(1);
   }
   if(faThresh < 0 || faThresh > 1) {
-    printf("ERROR: FA threshold must a number between 0 and 1\n");
+    printf("ERROR: FA threshold must be a number between 0 and 1\n");
     exit(1);
   }
   return;
@@ -758,8 +764,8 @@ static void dump_options(FILE *fp) {
     fprintf(fp, "Output file for overall measures: %s\n", outFile);
   if (outVoxFile)
     fprintf(fp, "Output file for voxel-by-voxel measures: %s\n", outVoxFile);
-  if (outStrFile)
-    fprintf(fp, "Output center streamline .trk file: %s\n", outStrFile);
+  if (outMedianFile)
+    fprintf(fp, "Output median streamline file: %s\n", outMedianFile);
   if (outEndBase)
     fprintf(fp, "Base name of output end point volumes: %s\n", outEndBase);
   if (refVolFile)
