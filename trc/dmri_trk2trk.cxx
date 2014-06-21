@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2014/06/21 17:10:12 $
- *    $Revision: 1.15 $
+ *    $Date: 2014/06/21 18:25:52 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -314,6 +314,8 @@ int main(int argc, char **argv) {
       ilower = strL.begin();
 
       for (imean = strmean.begin(); imean < strmean.end(); imean++) {
+        float dout;
+
         *imean /= nstr;
 
         if (nstr > 1)
@@ -321,8 +323,13 @@ int main(int argc, char **argv) {
         else
           *istd = 0;
 
-        *iupper = *imean + 2 * (*istd);
-        *ilower = *imean - 2 * (*istd);
+        if (imean == strmean.begin() || imean == strmean.end() - 1)
+          dout = *istd;
+        else
+          dout = 2 * (*istd);
+
+        *iupper = *imean + dout;
+        *ilower = *imean - dout;
 
         istd++;
         iupper++;
@@ -367,7 +374,7 @@ int main(int argc, char **argv) {
       nstrout = count(isout.begin(), isout.end(), true);
 
       cout << "INFO: Found " << nstrout
-           << " streamlines more than 2 standard deviations away from the mean"
+           << " streamlines with at least one outlier coordinate"
            << endl;
 
       if (nstrout == nstr) {
