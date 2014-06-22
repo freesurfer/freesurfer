@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2014/06/21 18:29:34 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/06/22 13:24:59 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -245,16 +245,16 @@ int main(int argc, char **argv) {
     }
 
     while (getline(infile, pathline)) {
-      int coord;
+      float coord;
       istringstream pathstr(pathline);
 
       for (int k = 0; k < 3; k++)
         if (pathstr >> coord)
-          pathmap.push_back(coord);
+          pathmap.push_back((int) round(coord));
 
       for (int k = 0; k < 3; k++)
         if (pathstr >> coord)
-          basepathmap.push_back(coord);
+          basepathmap.push_back((int) round(coord));
     }
 
     if (!basepathmap.empty() && basepathmap.size() != pathmap.size()) {
