@@ -37,6 +37,7 @@ test2_logfile.expected test3.expected test4.expected \
 test6.expected $(foo_DATA) $(BUILT_SOURCES)
 
 clean:
+    rm -f $(BUILT_SOURCES)
 	rm -f mris_anatomical_stats *.o
 	rm -Rf testdata2 *.observed *.table *.out
 
