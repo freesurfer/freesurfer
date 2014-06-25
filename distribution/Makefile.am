@@ -23,6 +23,9 @@ foo_SCRIPTS= \
 	FreeSurferEnv.sh \
 	SetUpFreeSurfer.sh
 
+clean-local:
+	rm -f SetUpFreeSurfer.csh SetUpFreeSurfer.sh
+
 EXTRA_DIST=$(foo_DATA) $(foo_SCRIPTS) \
 	SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh
 

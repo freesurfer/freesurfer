@@ -45,6 +45,9 @@ endif
 
 TESTS=$(top_builddir)/scripts/help_xml_validate test_mris_pmake
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=asynch.h c_label.h C_mpmProg.h c_SMessage.h c_SSocket.h \
 	c_surface.h c_vertex.h dijkstra.h env.h general.h help.h pathconvert.h \
 	pstream.h scanopt.h surface.h $(foo_DATA) $(BUILT_SOURCES) test_mris_pmake

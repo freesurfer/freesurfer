@@ -131,6 +131,10 @@ vtkKWOrientMRIView3DTcl.cxx:
 OrientMRILibInit.cxx:
 endif
 
+clean-local:
+	rm -f vtkKWOrientMRIAppTcl.cxx vtkKWOrientMRIWindowTcl.cxx \
+	vtkKWOrientMRIView2DTcl.cxx vtkKWOrientMRIView3DTcl.cxx OrientMRILibInit.cxx
+
 EXTRA_DIST=$(orient_mri_DATA) \
 OrientMRIEvents.h \
 OrientMRILibInit.cxx \

@@ -79,4 +79,7 @@ uninstall-hook:
 endif
 endif
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=MainWindow.ui MainWindow.h nmovie.pro

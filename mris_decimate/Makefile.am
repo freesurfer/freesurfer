@@ -19,6 +19,9 @@ foo_DATA=mris_decimate.help.xml
 
 BUILT_SOURCES=mris_decimate.help.xml.h
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be

@@ -15,6 +15,9 @@ foo_DATA=mri_remove_neck.help.xml
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be

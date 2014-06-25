@@ -28,6 +28,9 @@ check_PROGRAMS=foo
 
 TESTS=test_mri_aparc2aseg $(top_builddir)/scripts/help_xml_validate
 
+clean-local:
+	rm -f $(BUILT_SOURCES)
+
 EXTRA_DIST=test_mri_aparc2aseg testdata.tar.gz testdata2.tar.gz \
 	$(BUILT_SOURCES) $(foo_DATA)
 

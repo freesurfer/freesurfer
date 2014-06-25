@@ -16,6 +16,9 @@ TESTS=$(top_builddir)/scripts/help_xml_validate
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_compute_seg_overlap.help.xml
 
+clean-local:
+	rm -f $(BUILT_SOURCES)
+
 EXTRA_DIST=$(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be

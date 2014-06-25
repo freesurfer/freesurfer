@@ -639,6 +639,7 @@ endif
 
 clean-local:
 	rm -f $(BUILT_SOURCES)
+	rm -f resource/FreeSurferColorLUT.txt
 endif 
 
 EXTRA_DIST=$(freeview_SOURCES)

@@ -65,6 +65,9 @@ check_PROGRAMS=foo
 
 TESTS=test_libgfortran test_mri_robust_template $(top_builddir)/scripts/help_xml_validate
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=Regression.h Regression.cpp Registration.h RegistrationStep.h \
 	MultiRegistration.h Quaternion.h RobustGaussian.cpp RegPowell.cpp \
 	CostFunctions.h RobustGaussian.h RegPowell.h MyMatrix.h MyMRI.h \

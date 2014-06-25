@@ -27,6 +27,9 @@ check_PROGRAMS=foo
 
 TESTS=test_tal_afd $(top_builddir)/scripts/help_xml_validate
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=test_tal_afd good_tal.xfm good_tal.txt bad_tal.xfm bad_tal.txt \
 	$(foo_DATA) $(BUILT_SOURCES)
 

@@ -41,6 +41,9 @@ foo_DATA=mris_register.help.xml
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=make_mris_register_movie.tcl $(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be

@@ -102,4 +102,7 @@ uninstall-hook:
 endif
 endif
 
+clean-local:
+	rm -f $(BUILT_SOURCES)
+
 EXTRA_DIST=MainWindow.ui MainWindow.h dummy_qt.pro

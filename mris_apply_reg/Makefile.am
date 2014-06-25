@@ -13,6 +13,9 @@ mris_apply_reg_LDFLAGS=$(OS_LDFLAGS)
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_apply_reg.help.xml
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
 EXCLUDE_FILES=

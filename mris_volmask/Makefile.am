@@ -81,6 +81,9 @@ uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/mris_volmask_vtk.bin
 endif
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=cmd_line_interface.h test_mris_volmask $(foo_DATA) \
 	TestMRISOBBTree.cpp TestMRISDistanceField.cpp $(BUILT_SOURCES)
 

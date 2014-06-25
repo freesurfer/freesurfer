@@ -212,6 +212,9 @@ check_PROGRAMS=foo
 
 #HACK till lta_diff fix TESTS=test_libg2c test_talairach_avi $(top_builddir)/scripts/help_xml_validate
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=$(dist_bin_SCRIPTS) talairach_avi.help.xml.h \
 	$(foo_DATA) \
 	$(CFILES) \

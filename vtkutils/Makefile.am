@@ -165,6 +165,8 @@ vtkArrowPipelineTester_LDADD=\
 	-lvtkHybridTCL -lvtkGraphicsTCL -lvtkImagingTCL -lvtkIOTCL \
 	-lvtkCommonTCL 
 
+clean-local:
+	rm -f vtkKWBltGraphTcl.cxx vtkKWRGBATransferFunctionEditorTcl.cxx
 
 EXTRA_DIST=IconLoader.h \
 vtkArrowPipeline.h \

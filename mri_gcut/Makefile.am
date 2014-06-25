@@ -12,6 +12,9 @@ foo_DATA=mri_gcut.help.xml
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
+clean-local:
+	rm -f $(BUILT_SOURCES)
+
 EXTRA_DIST = gcut.h graphcut.h graphcut.cpp pre_pro.cpp \
 	$(foo_DATA) $(BUILT_SOURCES)
 

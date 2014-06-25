@@ -34,6 +34,9 @@ mris_extract_main_component_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 #build_MC_table_SOURCES=build_MC_table.c
 #build_MC_table_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
+clean-local:
+	rm -f $(BUILT_SOURCES)
+
 EXTRA_DIST=compare_test_volumes test_volume_reference.mgz $(foo_DATA) \
 	build_MC_table.c mc_table.gif $(BUILT_SOURCES)
 

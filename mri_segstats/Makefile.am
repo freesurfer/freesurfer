@@ -53,6 +53,9 @@ check_PROGRAMS=foo
 
 TESTS=test_mri_segstats $(top_builddir)/scripts/help_xml_validate
 
+clean-local:
+	rm -f $(BUILT_SOURCES) 
+
 EXTRA_DIST=test_mri_segstats testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
