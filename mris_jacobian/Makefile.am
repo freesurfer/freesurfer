@@ -13,6 +13,8 @@ mris_jacobian_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_jacobian.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mris_jacobian.help.xml.html
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
@@ -27,5 +29,5 @@ EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mris_jacobian.help.xml.h
+BUILT_SOURCES=mris_jacobian.help.xml.h mris_jacobian.help.xml.html
 

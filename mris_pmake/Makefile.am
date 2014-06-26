@@ -4,6 +4,8 @@
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_pmake.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mris_pmake.help.xml.html
 
 bin_PROGRAMS = mris_pmake
 mris_pmake_SOURCES = \
@@ -58,5 +60,4 @@ EXTRA_DIST=asynch.h c_label.h C_mpmProg.h c_SMessage.h c_SSocket.h \
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mris_pmake.help.xml.h
-
+BUILT_SOURCES=mris_pmake.help.xml.h mris_pmake.help.xml.html

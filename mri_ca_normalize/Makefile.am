@@ -17,6 +17,8 @@ mri_ca_normalize_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_ca_normalize.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_ca_normalize.help.xml.html
 
 # trick to get test data into the build directory (during make distcheck)
 foo_SOURCES=
@@ -44,5 +46,4 @@ EXTRA_DIST=testdata.tar.gz test_mri_ca_normalize $(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_ca_normalize.help.xml.h
-
+BUILT_SOURCES=mri_ca_normalize.help.xml.h mri_ca_normalize.help.xml.html

@@ -11,6 +11,8 @@ foo_DATA= \
 
 xmldir=$(prefix)/docs/xml
 xml_DATA=mri_cvs_register.help.xml
+htmldir=$(prefix)/docs/html
+html_DATA=mri_cvs_register.help.xml.html
 
 install-exec-hook:
 	$(top_builddir)/utils/fsPrintHelp $(srcdir)/mri_cvs_register.help.xml \
@@ -25,3 +27,6 @@ EXTRA_DIST=$(foo_DATA) $(xml_DATA)
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+clean-local:
+	rm -f *.help.xml.html

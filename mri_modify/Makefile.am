@@ -1,7 +1,6 @@
 ## 
 ## Makefile.am 
 ##
-# Makefile.am specify i addtion to the standard
 
 AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
@@ -14,8 +13,6 @@ mri_modify_LDFLAGS=$(OS_LDFLAGS)
 mri_copy_params_SOURCES=mri_copy_params.cpp
 mri_copy_params_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_copy_params_LDFLAGS=$(OS_LDFLAGS)
-
-
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

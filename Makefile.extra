@@ -24,7 +24,11 @@ dist-hook:
 
 if HAVE_XXD
 # A rule to create a header from an xml file in order to
-# include the file as a string at compilation time
+# include the file as a string at compilation time (see ProjectHelp wiki page)
 %.xml.h : %.xml
 	xxd -i $< $@
 endif
+
+# A rule to create an html file from an xml file (see ProjectHelp wiki page)
+%.xml.html : %.xml
+	$(top_builddir)/utils/xmlToHtml $< $@

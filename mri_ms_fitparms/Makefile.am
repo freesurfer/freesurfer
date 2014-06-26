@@ -12,6 +12,8 @@ mri_ms_fitparms_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_ms_fitparms.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_ms_fitparms.help.xml.html
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
@@ -26,4 +28,4 @@ EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_ms_fitparms.help.xml.h
+BUILT_SOURCES=mri_ms_fitparms.help.xml.h mri_ms_fitparms.help.xml.html

@@ -70,6 +70,8 @@ foo_DATA= \
 
 xmldir=$(prefix)/docs/xml
 xml_DATA=talairach_avi.help.xml
+htmldir=$(prefix)/docs/html
+html_DATA=talairach_avi.help.xml.html
 
 dist_bin_SCRIPTS = talairach_avi mpr2mni305 brec brec.awk \
 	t4img_4dfp tal_QC_AZS
@@ -271,5 +273,4 @@ copy_ffiles_from_src:
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=talairach_avi.help.xml.h
-
+BUILT_SOURCES=talairach_avi.help.xml.h talairach_avi.help.xml.html

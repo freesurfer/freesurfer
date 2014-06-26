@@ -10,7 +10,6 @@ mri_map_cpdat_SOURCES=mri_map_cpdat.cpp
 mri_map_cpdat_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_map_cpdat_LDFLAGS=$(OS_LDFLAGS)
 
-
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

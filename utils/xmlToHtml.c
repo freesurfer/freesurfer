@@ -1,16 +1,16 @@
 /**
  * @file  xmlToHtml.c
- * @brief Reads an .xml file and outputs it in a wiki format
+ * @brief Reads an .xml file and outputs it in html format
  *
  */
 /*
  * Original Author: Greg Terrono
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.3 $
+ *    $Date: 2014/06/26 01:32:35 $
+ *    $Revision: 1.4 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
   //Checks for the .xml file name
   if (argc==1)
   {
-    fprintf(stderr, "No file name passed.");
+    fprintf(stderr, "No file name passed.\n");
     return -1;
   }
   //Opens the .xml file given as an argument
@@ -84,7 +84,9 @@ int main(int argc, char *argv[])
   }
 
   if (argc==2)
+  {
     printf("No output specified.\nOutput will be sent to output.html.\n");
+  }
   FILE *outFile;
   outFile=fopen(argc>2?argv[2]:"output.html", "w");
 
@@ -108,7 +110,9 @@ int main(int argc, char *argv[])
         {
           printName(argumentType,outFile);
           if (tagNameIs("arguments",cur))
+          {
             fprintf(outFile," ARGUMENTS");
+          }
           fprintf(outFile,"</h1>");
           xmlNodePtr argumentElement;
           argumentElement=argumentType->xmlChildrenNode;
@@ -128,29 +132,35 @@ int main(int argc, char *argv[])
               {
                 if (tagNameIs("argument",argumentElement)||
                     tagNameIs("output",argumentElement))
+                {
                   fprintf(outFile, "<td>&nbsp;</td>\n");
+                }
                 justArg=0;
               }
               else if (tagNameIs("explanation",argumentElement))
+              {
                 fprintf(outFile, "</tr>\n<tr>\n<td>&nbsp;</td>\n");
+              }
               if (tagNameIs("argument",argumentElement)||
                   tagNameIs("output",argumentElement))
+              {
                 justArg=1;
+              }
               if (tagNameIs("intro",argumentElement))
               {
                 char *c, *intro;
                 c= (char *)xmlNodeListGetString
-                  (doc,
-                   argumentElement->xmlChildrenNode, 1);
+                   (doc,
+                    argumentElement->xmlChildrenNode, 1);
                 if (first)
                 {
-                  intro= malloc(strlen("\n<h3>")+strlen(c)+1);
+                  intro= malloc(strlen("\n<h3>")+strlen(c)+100);
                   strcpy(intro,"\n<h3>");
                   first=0;
                 }
                 else
                 {
-                  intro= malloc(strlen("</tr>\n</table>\n<h3>")+strlen(c)+1);
+                  intro= malloc(strlen("</tr>\n</table>\n<h3>")+strlen(c)+100);
                   strcpy(intro,"</tr>\n</table>\n<h3>");
                 }
                 intro=strcat(intro,c);
@@ -162,12 +172,12 @@ int main(int argc, char *argv[])
                   {
                     char *content;
                     content= (char *)xmlNodeListGetString
-                      (doc, argumentElement->next->xmlChildrenNode, 1);
+                             (doc, argumentElement->next->xmlChildrenNode, 1);
                     char *secondHalf=
-                      malloc(strlen("<br />") +strlen(content)+ 1);
+                      malloc(strlen("<br />") +strlen(content)+ 100);
                     strcpy(secondHalf,"<br />");
                     secondHalf=strcat(secondHalf,content);
-                    char *temp= malloc(strlen(intro)+strlen(secondHalf)+1);
+                    char *temp= malloc(strlen(intro)+strlen(secondHalf)+100);
                     strcpy(temp,intro);
                     temp=strcat(temp,secondHalf);
                     free(intro);
@@ -175,22 +185,26 @@ int main(int argc, char *argv[])
                   }
                   argumentElement=argumentElement->next;
                 }
-                char *temp= malloc(strlen(intro)+strlen("</h3>\n"+1));
+                char *temp= malloc(strlen(intro)+strlen("</h3>\n")+100);
                 strcpy(temp,intro);
                 temp=strcat(temp,"</h3>");
-                free(intro);
+//HACK this or the free below causes crash                free(intro);
                 intro=temp;
                 fprintf(outFile,"%s\n",intro);
-                free(intro);
+//HACK this causes crash, debug it:                free(intro);
                 justIntro=1;
               }
               else
               {
                 if (first)
+                {
                   first=0;
+                }
                 else if ((tagNameIs("argument",argumentElement)||
                           tagNameIs("output",argumentElement))&&!justIntro)
+                {
                   fprintf(outFile, "</tr>\n");
+                }
 
                 justIntro=0;
                 printTableContents(doc,argumentElement,outFile);
@@ -200,13 +214,17 @@ int main(int argc, char *argv[])
             if (argumentElement==NULL)
             {
               if (!justIntro)
+              {
                 fprintf (outFile,"</tr>\n</table>\n");
+              }
               break;
             }
           }
         }
         if (!tagNameIs("arguments",cur))
+        {
           break;
+        }
         argumentType=argumentType->next;
       }
     }
@@ -215,7 +233,9 @@ int main(int argc, char *argv[])
     {
       printName(cur,outFile);
       if (tagNameIs("EXAMPLE",cur))
+      {
         fprintf(outFile," %d",exampleNum++);
+      }
       fprintf(outFile,"</h1>");
       printContents(doc,cur,outFile);
     }
@@ -252,7 +272,9 @@ void replaceUnderscore(char *c)
 {
   char *pos=strchr(c, '_');
   if (pos!=NULL)
+  {
     *pos=' ';
+  }
 }
 
 //Prints the text of a tag in the corect format
@@ -265,17 +287,27 @@ void printContents(xmlDocPtr doc, xmlNodePtr cur,FILE *f)
   for (i=0; i<strlen((char*)contents); i++)
   {
     if (*(contents+i)=='\n')
+    {
       fprintf (f,"<br />");
+    }
     else if (*(contents+i)=='<')
+    {
       fprintf(f,"&lt;");
+    }
     else if (*(contents+i)=='>')
+    {
       fprintf(f,"&gt;");
+    }
     else if (*(contents+i)=='&')
+    {
       fprintf(f,"&amp;");
+    }
     else if (*(contents+i)=='\"')
       fprintf(f, "\\\"");
     else
+    {
       fprintf(f,"%c",*(contents+i));
+    }
   }
   fprintf (f,"</p>");
   xmlFree(contents);
@@ -288,28 +320,46 @@ void printTableContents(xmlDocPtr doc, xmlNodePtr cur,FILE *f)
   contents = xmlNodeListGetString(doc, cur->xmlChildrenNode, 1);
   unsigned int i;
   if (tagNameIs("argument",cur)||tagNameIs("output",cur))
+  {
     fprintf(f,"<tr>\n");
+  }
   if (tagNameIs("intro",cur))
+  {
     fprintf(f, "<h3><br />");
+  }
   else
+  {
     fprintf (f,"<td>");
+  }
   for (i=0; i<strlen((char*)contents); i++)
   {
     if (*(contents+i)=='\n')
+    {
       fprintf(f,"<br />");
+    }
     else if (*(contents+i)=='<')
+    {
       fprintf(f,"&lt;");
+    }
     else if (*(contents+i)=='>')
+    {
       fprintf(f,"&gt;");
+    }
     else if (*(contents+i)=='&')
+    {
       fprintf(f,"&amp;");
+    }
     else if (*(contents+i)=='\"')
       fprintf(f, "\\\"");
     else
+    {
       fprintf(f,"%c",*(contents+i));
+    }
   }
   if (!tagNameIs("intro",cur))
+  {
     fprintf (f,"</td>");
+  }
 
   xmlFree(contents);
 }
@@ -318,7 +368,9 @@ void printTableContents(xmlDocPtr doc, xmlNodePtr cur,FILE *f)
 int tagNameIs(char *c, xmlNodePtr cur)
 {
   if (cur==NULL)
+  {
     return 0;
+  }
   return !(xmlStrcmp(cur->name, (const xmlChar *)c));
 }
 
@@ -330,6 +382,8 @@ int wrdLen(char *c)
   int i;
   for (i=0; i<strlen(c); i++)
     if (*(c+i)==' '||*(c+i)=='_'||*(c+i)=='/')
+    {
       return i;
+    }
   return i;
 }

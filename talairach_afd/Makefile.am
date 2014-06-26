@@ -12,6 +12,8 @@ talairach_afd_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=talairach_afd.help.xml
+foo2dir=$(prefix)/docs/xml
+foo2_DATA=talairach_afd.help.xml
 
 # trick to get test data into build dir
 foo_SOURCES=
@@ -39,5 +41,4 @@ EXTRA_DIST=test_tal_afd good_tal.xfm good_tal.txt bad_tal.xfm bad_tal.txt \
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=talairach_afd.help.xml.h
-
+BUILT_SOURCES=talairach_afd.help.xml.h talairach_afd.help.xml.html

@@ -13,11 +13,10 @@ mris_smooth_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_smooth.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mris_smooth.help.xml.html
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
-
-clean-local:
-	rm -f $(BUILT_SOURCES) 
 
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
@@ -29,3 +28,5 @@ include $(top_srcdir)/Makefile.extra
 
 BUILT_SOURCES=mris_smooth.help.xml.h
 
+clean-local:
+	-rm *.help.xml.h *.help.xml.html

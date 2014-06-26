@@ -15,6 +15,8 @@ mri_make_uchar_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_convert.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_convert.help.xml.html
 
 # trick to get test data into the build directory
 foo_SOURCES=
@@ -38,4 +40,4 @@ EXTRA_DIST=test_mri_convert testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_convert.help.xml.h
+BUILT_SOURCES=mri_convert.help.xml.h mri_convert.help.xml.html

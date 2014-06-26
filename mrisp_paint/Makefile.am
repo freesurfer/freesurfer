@@ -13,6 +13,8 @@ mrisp_paint_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mrisp_paint.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mrisp_paint.help.xml.html
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
@@ -27,5 +29,5 @@ EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mrisp_paint.help.xml.h
+BUILT_SOURCES=mrisp_paint.help.xml.h mrisp_paint.help.xml.html
 

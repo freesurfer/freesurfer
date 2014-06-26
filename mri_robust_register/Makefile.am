@@ -12,10 +12,14 @@ OTHERLDFLAGS=-z muldefs
 endif
 
 BUILT_SOURCES=mri_robust_template.help.xml.h \
-	mri_robust_register.help.xml.h
+	mri_robust_register.help.xml.h \
+	mri_robust_template.help.xml.html \
+	mri_robust_register.help.xml.html
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_robust_template.help.xml mri_robust_register.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_robust_template.help.xml.html mri_robust_register.help.xml.html
 
 bin_PROGRAMS = mri_robust_register \
 	mri_robust_template \

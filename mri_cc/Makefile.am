@@ -13,6 +13,8 @@ mri_cc_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_cc.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_cc.help.xml.html
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
@@ -27,5 +29,5 @@ EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_cc.help.xml.h
+BUILT_SOURCES=mri_cc.help.xml.h mri_cc.help.xml.html
 

@@ -10,8 +10,6 @@ mri_vol2surf_SOURCES=mri_vol2surf.c
 mri_vol2surf_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_vol2surf_LDFLAGS=$(OS_LDFLAGS)
 
-
-
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

@@ -20,6 +20,8 @@ mri_em_register_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_em_register.help.xml mri_em_register_cuda.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_em_register.help.xml mri_em_register_cuda.help.xml.html
 
 
 ## ----
@@ -60,4 +62,6 @@ EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_em_register.help.xml.h mri_em_register_cuda.help.xml.h
+BUILT_SOURCES=mri_em_register.help.xml.h mri_em_register_cuda.help.xml.h \
+	mri_em_register.help.xml.html mri_em_register_cuda.help.xml.html
+

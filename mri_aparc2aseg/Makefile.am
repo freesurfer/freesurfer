@@ -13,6 +13,8 @@ mri_aparc2aseg_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_aparc2aseg.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_aparc2aseg.help.xml.html
 
 # trick to get test data into the build directory
 foo_SOURCES=
@@ -40,5 +42,5 @@ EXTRA_DIST=test_mri_aparc2aseg testdata.tar.gz testdata2.tar.gz \
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_aparc2aseg.help.xml.h
+BUILT_SOURCES=mri_aparc2aseg.help.xml.h mri_aparc2aseg.help.xml.html
 

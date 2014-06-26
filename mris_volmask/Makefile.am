@@ -9,6 +9,8 @@ bin_PROGRAMS=mris_volmask mris_volmask_novtk
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_volmask.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mris_volmask.help.xml.html
 
 if HAVE_VTK_LIBS
 bin_PROGRAMS += mris_volmask_vtk
@@ -93,5 +95,5 @@ EXTRA_DIST=cmd_line_interface.h test_mris_volmask $(foo_DATA) \
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mris_volmask.help.xml.h
+BUILT_SOURCES=mris_volmask.help.xml.h mris_volmask.help.xml.html
 

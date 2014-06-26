@@ -12,11 +12,10 @@ mri_normalize_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_normalize.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_normalize.help.xml.html
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
-
-clean-local:
-	rm -f $(BUILT_SOURCES) 
 
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
@@ -26,5 +25,7 @@ EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_normalize.help.xml.h
+BUILT_SOURCES=mri_normalize.help.xml.h mri_normalize.help.xml.html
 
+clean-local:
+	rm -f $(BUILT_SOURCES)

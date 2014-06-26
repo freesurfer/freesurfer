@@ -16,11 +16,10 @@ TESTS = ../scripts/help_xml_validate
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_decimate.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mris_decimate.help.xml.html
 
-BUILT_SOURCES=mris_decimate.help.xml.h
-
-clean-local:
-	rm -f $(BUILT_SOURCES) 
+BUILT_SOURCES=mris_decimate.help.xml.h mris_decimate.help.xml.html
 
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
@@ -30,3 +29,5 @@ EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
+clean-local:
+	rm -f $(BUILT_SOURCES)

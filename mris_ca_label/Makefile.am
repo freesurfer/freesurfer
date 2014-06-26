@@ -13,6 +13,8 @@ mris_ca_label_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_ca_label.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mris_ca_label.help.xml.html
 
 # trick to get test data into the build directory
 foo_SOURCES=
@@ -39,5 +41,5 @@ EXTRA_DIST=test_mris_ca_label testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mris_ca_label.help.xml.h
+BUILT_SOURCES=mris_ca_label.help.xml.h mris_ca_label.help.xml.html
 

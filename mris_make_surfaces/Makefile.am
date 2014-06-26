@@ -28,11 +28,10 @@ mris_exvivo_surfaces_LDFLAGS= $(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_make_surfaces.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mris_make_surfaces.help.xml.html
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
-
-clean-local:
-	rm -f $(BUILT_SOURCES) 
 
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
@@ -42,5 +41,7 @@ EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mris_make_surfaces.help.xml.h
+BUILT_SOURCES=mris_make_surfaces.help.xml.h mris_make_surfaces.help.xml.html
 
+clean-local:
+	rm -f $(BUILT_SOURCES)

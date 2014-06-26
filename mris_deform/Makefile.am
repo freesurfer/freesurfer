@@ -10,9 +10,13 @@ mris_deform_SOURCES=mris_deform.c
 mris_deform_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_deform_LDFLAGS=$(OS_LDFLAGS)
 
-#check_PROGRAMS=myown
-#myown_SOURCES=myown.c
-#myown_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
+mris_ca_deform_SOURCES=mris_ca_deform.c
+mris_ca_deform_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mris_ca_deform_LDFLAGS=$(OS_LDFLAGS)
+
+mris_nudge_SOURCES=mris_nudge.c
+mris_nudge_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mris_nudge_LDFLAGS=$(OS_LDFLAGS)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
@@ -20,11 +24,3 @@ mris_deform_LDFLAGS=$(OS_LDFLAGS)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-mris_ca_deform_SOURCES=mris_ca_deform.c
-mris_ca_deform_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
-mris_ca_deform_LDFLAGS=$(OS_LDFLAGS)
-
-
-mris_nudge_SOURCES=mris_nudge.c
-mris_nudge_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
-mris_nudge_LDFLAGS=$(OS_LDFLAGS)

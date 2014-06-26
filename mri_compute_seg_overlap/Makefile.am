@@ -15,6 +15,8 @@ TESTS=$(top_builddir)/scripts/help_xml_validate
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_compute_seg_overlap.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_compute_seg_overlap.help.xml.html
 
 clean-local:
 	rm -f $(BUILT_SOURCES)
@@ -27,4 +29,5 @@ EXTRA_DIST=$(foo_DATA)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_compute_seg_overlap.help.xml.h
+BUILT_SOURCES=mri_compute_seg_overlap.help.xml.h \
+	mri_compute_seg_overlap.help.xml.html

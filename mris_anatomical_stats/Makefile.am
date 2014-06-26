@@ -14,6 +14,8 @@ mris_anatomical_stats_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_anatomical_stats.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mris_anatomical_stats.help.xml.html
 
 # trick to get test data into build dir
 foo_SOURCES=
@@ -44,5 +46,6 @@ test6.expected $(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mris_anatomical_stats.help.xml.h
+BUILT_SOURCES=mris_anatomical_stats.help.xml.h \
+	mris_anatomical_stats.help.xml.html
 

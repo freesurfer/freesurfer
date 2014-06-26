@@ -17,6 +17,8 @@ mri_validate_skull_stripped_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_watershed.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_watershed.help.xml.html
 
 SUBDIRS=brain_volume
 
@@ -33,5 +35,4 @@ EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_watershed.help.xml.h
-
+BUILT_SOURCES=mri_watershed.help.xml.h mri_watershed.help.xml.html

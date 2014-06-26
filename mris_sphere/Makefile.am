@@ -13,6 +13,8 @@ mris_sphere_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_sphere.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mris_sphere.help.xml.html
 
 mris_remove_negative_vertices_SOURCES=mris_remove_negative_vertices.c
 mris_remove_negative_vertices_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
@@ -56,5 +58,5 @@ EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES) make_mris_sphere_movie.tcl
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mris_sphere.help.xml.h
+BUILT_SOURCES=mris_sphere.help.xml.h mris_sphere.help.xml.html
 

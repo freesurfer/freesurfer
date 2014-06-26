@@ -9,6 +9,8 @@ mri_gcut_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_gcut.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_gcut.help.xml.html
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
@@ -21,5 +23,4 @@ EXTRA_DIST = gcut.h graphcut.h graphcut.cpp pre_pro.cpp \
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_gcut.help.xml.h
-
+BUILT_SOURCES=mri_gcut.help.xml.h mri_gcut.help.xml.html

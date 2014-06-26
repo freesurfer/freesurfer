@@ -8,6 +8,8 @@ mri_mc_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_pretess.help.xml mris_extract_main_component.help.xml
+foo2dir=$(prefix)/docs/html
+foo2_DATA=mri_pretess.help.xml.html mris_extract_main_component.help.xml.html
 
 # trick to get test data into build dir
 foo_SOURCES=
@@ -46,4 +48,5 @@ EXTRA_DIST=compare_test_volumes test_volume_reference.mgz $(foo_DATA) \
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-BUILT_SOURCES=mri_pretess.help.xml.h mris_extract_main_component.help.xml.h
+BUILT_SOURCES=mri_pretess.help.xml.h mris_extract_main_component.help.xml.h \
+	mri_pretess.help.xml.html mris_extract_main_component.help.xml.html
