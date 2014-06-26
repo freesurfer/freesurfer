@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/02 19:31:16 $
- *    $Revision: 1.85 $
+ *    $Date: 2014/06/26 18:20:17 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -444,8 +444,9 @@ ENDHELP --------------------------------------------------------------
 #include "pdf.h"
 #include "cmdargs.h"
 #include "mri_circulars.h"
-
+#include "mriBSpline.h"
 #include "chronometer.h"
+#include "timer.h"
 
 #ifdef FS_CUDA
 #include "devicemanagement.h"
@@ -479,7 +480,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.85 2014/06/02 19:31:16 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.86 2014/06/26 18:20:17 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -586,6 +587,7 @@ int keepprecision = 0;
 int DoFill=0;
 int DoFillConserve=0;
 int FillUpsample=2;
+MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -604,12 +606,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.85 2014/06/02 19:31:16 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.86 2014/06/26 18:20:17 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.85 2014/06/02 19:31:16 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.86 2014/06/26 18:20:17 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1394,11 +1396,49 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       subject = pargv[0];
       nargsused = 1;
-    } else if (istringnmatch(option, "--cost",0)) {
+    } 
+    else if (istringnmatch(option, "--cost",0)) {
       if (nargc < 1) argnerr(option,1);
       SegRegCostFile = pargv[0];
       nargsused = 1;
-    } else {
+    } 
+    else if (istringnmatch(option, "--gcam",0)) {
+      LTA *srclta, *dstlta;
+      if(nargc < 7){
+	printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
+	argnerr(option,7);
+      }
+      printf("Loading mov %s\n",pargv[0]);
+      mov = MRIread(pargv[0]);
+      if(mov == NULL) exit(1);
+      if(strcmp(pargv[1],"0")!=0){
+	printf("Loading source LTA %s\n",pargv[1]);
+	srclta = LTAread(pargv[1]);
+	if(srclta == NULL) exit(1);
+      } else srclta = NULL;
+      if(strcmp(pargv[2],"0")!=0){
+	printf("Loading GCAM %s\n",pargv[2]);
+	gcam = GCAMread(pargv[2]);
+	if(gcam == NULL) exit(1);
+      } else gcam = NULL;
+      printf("Loading destination LTA %s\n",pargv[3]);
+      dstlta = LTAread(pargv[3]);
+      if(strcmp(pargv[4],"0")!=0){
+	vsm = MRIread(pargv[4]);
+	if(vsm == NULL) exit(1);
+      } else vsm = NULL;
+      sscanf(pargv[5],"%d",&interpcode);
+      targvolfile = pargv[6];
+      out = MRIvol2volGCAM(mov, srclta, gcam, dstlta, vsm, interpcode, NULL);
+      if(out == NULL) exit(1);
+      printf("Writing to %s\n",targvolfile);
+      err = MRIwrite(out,targvolfile);
+      if(err) exit(1);
+      printf("mri_vol2vol gcam done\n");
+      exit(0);
+      nargsused = 7;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -1457,6 +1497,10 @@ printf("\n");
 printf("  --precision precisionid : output precision (def is float)\n");
 printf("  --keep-precision  : set output precision to that of input\n");
 printf("  --kernel            : save the trilinear interpolation kernel instead\n");
+printf("  --gcam mov srclta gcam dstlta vsm interp out\n");
+printf("     srclta, gcam, or vsm can be set to 0 to indicate identity\n");
+printf("     direction is automatically determined from srclta and dstlta\n");
+printf("     interp %d=nearest, %d=trilin, %d=cubicbspline\n",SAMPLE_NEAREST,SAMPLE_TRILINEAR,SAMPLE_CUBIC_BSPLINE);
 printf("\n");
 printf("  --no-resample : do not resample, just change vox2ras matrix\n");
 printf("\n");
@@ -2073,3 +2117,177 @@ MATRIX *LoadRfsl(char *fname) {
   }
   return(FSLRegMat);
 }
+/*
+  \fn MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst)
+  \brief Converts one volume into another using as many as four transforms: VSM, src linear, gcam/m3z, dst linear.
+  Any may be NULL except dstlta in which case they are assumed to be the identity. This function allows for
+  transforming from the functional space to a sub FoV of CVS space including B0 distortion correction.
+ */
+MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst)
+{
+  int c,r,s,f,out_of_gcam,cvsm,rvsm,iss;
+  VOL_GEOM *vgdst_src,*vgdst_dst;
+  MATRIX *crsDst, *crsGCAM=NULL, *crsAnat=NULL, *crsSrc=NULL, *Vdst, *Vsrc;
+  double val,v;
+  MRI_BSPLINE * bspline = NULL;
+  float drvsm, *valvect;
+  struct timeb timer;
+
+  if(!vsm) printf("MRIvol2volGCAM(): VSM not used\n");
+  if(!gcam) printf("MRIvol2volGCAM(): GCAM not used\n");
+  if(!srclta) printf("MRIvol2volGCAM(): Source LTA not used\n");
+  printf("MRIvol2volGCAM(): interpolation type is %d %s\n",sample_type,MRIinterpString(sample_type));
+
+  if(vsm){
+    if(MRIdimMismatch(src,vsm,0)){
+      printf("ERROR: MRIvol2volGCAM(): src-vsm dim mismatch\n");
+      return(NULL);
+    }
+  }
+
+  if(srclta){
+    if(srclta->type != LINEAR_VOX_TO_VOX){
+      printf("MRIvol2volGCAM(): Chaning Source LTA type to vox2vox\n");
+      LTAchangeType(srclta, LINEAR_VOX_TO_VOX) ;
+    }
+    if(LTAmriIsSource(srclta, src)){
+      printf("MRIvol2volGCAM(): Inverting Source LTA\n");
+      Vsrc = MatrixInverse(srclta->xforms[0].m_L,NULL);
+    }
+    else Vsrc = MatrixCopy(srclta->xforms[0].m_L,NULL);
+  }
+  else Vsrc = MatrixIdentity(4,NULL);
+
+  vgdst_src = &(dstlta->xforms[0].src);
+  vgdst_dst = &(dstlta->xforms[0].dst);
+  // check that vgdst_src is 256^3, 1mm
+  if(vgdst_src->width != 256 || vgdst_src->height != 256 ||
+     vgdst_src->depth != 256 || vgdst_src->xsize != 1 ||
+     vgdst_src->ysize != 1   || vgdst_src->zsize != 1){
+    if(vgdst_dst->width != 256 || vgdst_dst->height != 256 ||
+       vgdst_dst->depth != 256 || vgdst_dst->xsize != 1 ||
+       vgdst_dst->ysize != 1   || vgdst_dst->zsize != 1){
+      printf("ERROR: MRIvol2volGCAM(): neither src nor dst VG of Dest LTA is conformed\n");
+      return(NULL);
+    }
+    else {
+      printf("MRIvol2volGCAM(): Inverting Destination LTA\n");
+      LTAinvert(dstlta,dstlta);
+    }
+  }
+  else printf("MRIvol2volGCAM(): NOT inverting Destination LTA\n");
+  vgdst_src = &(dstlta->xforms[0].src);
+  vgdst_dst = &(dstlta->xforms[0].dst);
+  if(dstlta->type != LINEAR_VOX_TO_VOX){
+    printf("MRIvol2volGCAM(): Chaning Destination LTA type to vox2vox\n");
+    LTAchangeType(dstlta, LINEAR_VOX_TO_VOX) ;
+  }
+  Vdst = MatrixInverse(dstlta->xforms[0].m_L,NULL);
+
+  if(dst == NULL){
+    dst = MRIallocFromVolGeom(vgdst_dst, MRI_FLOAT, src->nframes, 0);
+    if(dst==NULL) return(NULL);
+    MRIcopyPulseParameters(src,dst);
+  }
+
+  if(sample_type == SAMPLE_CUBIC_BSPLINE) bspline = MRItoBSpline(src,NULL,3);
+  valvect = (float *) calloc(sizeof(float),src->nframes);
+
+  crsDst = MatrixAlloc(4,1,MATRIX_REAL);
+  crsDst->rptr[4][1] = 1;
+  crsAnat = MatrixAlloc(4,1,MATRIX_REAL);
+  crsAnat->rptr[4][1] = 1;
+  // scroll thru the CRS in the output/dest volume
+  TimerStart(&timer);
+  for(c=0; c < dst->width; c++){
+    for(r=0; r < dst->height; r++){
+      for(s=0; s < dst->depth; s++){
+	// CRS in destination volume
+	crsDst->rptr[1][1] = c;
+	crsDst->rptr[2][1] = r;
+	crsDst->rptr[3][1] = s;
+
+	// Compute the CRS in the GCAM
+	crsGCAM = MatrixMultiplyD(Vdst,crsDst,crsGCAM);
+
+	if(gcam){
+	  // Compute the CRS in the anatomical
+	  out_of_gcam = GCAMsampleMorph(gcam, 
+					crsGCAM->rptr[1][1],crsGCAM->rptr[2][1],crsGCAM->rptr[3][1],
+					&crsAnat->rptr[1][1],&crsAnat->rptr[2][1],&crsAnat->rptr[3][1]);
+	  if(out_of_gcam) continue;
+	}
+	else crsAnat = MatrixCopy(crsGCAM,crsAnat);
+
+	// Compute the CRS in the Source Space
+	crsSrc = MatrixMultiply(Vsrc,crsAnat,crsSrc);
+
+        if(vsm){
+          /* crsSrc is the CRS in the undistored source space. This
+	     code computes the crsSrc in the space distorted by B0
+	     inhomogeneity (ie, the space of MRI *src).  This is just
+	     a change in the row value as given by the voxel shift map
+	     (VSM). The VSM must have the same dimensions as src. */
+	  cvsm = floor(crsSrc->rptr[1][1]);
+	  rvsm = floor(crsSrc->rptr[2][1]);
+	  iss = nint(crsSrc->rptr[3][1]);
+
+	  if(cvsm < 0 || cvsm+1 >= src->width)  continue;
+	  if(rvsm < 0 || rvsm+1 >= src->height) continue;
+	  // Dont sample outside the BO mask indicated by vsm=0
+	  v = MRIgetVoxVal(vsm,cvsm,rvsm,iss,0);
+	  if(fabs(v) < FLT_MIN) continue;
+	  v = MRIgetVoxVal(vsm,cvsm+1,rvsm,iss,0);
+	  if(fabs(v) < FLT_MIN) continue;
+	  v = MRIgetVoxVal(vsm,cvsm,rvsm+1,iss,0);
+	  if(fabs(v) < FLT_MIN) continue;
+	  v = MRIgetVoxVal(vsm,cvsm+1,rvsm+1,iss,0);
+	  if(fabs(v) < FLT_MIN) continue;
+	  /* Performs 3D interpolation. May want to use iss instead of crsSrc->rptr[3][1]
+	     to make it a 2D interpolation. Not sure.*/
+          MRIsampleSeqVolume(vsm, crsSrc->rptr[1][1],crsSrc->rptr[2][1],crsSrc->rptr[3][1], &drvsm, 0, 0);
+	  if(drvsm == 0) continue;
+          crsSrc->rptr[2][1] += drvsm;
+        }
+
+	// Check for out of the source FoV
+	if(crsSrc->rptr[1][1] < 0 || crsSrc->rptr[1][1] >= src->width)  continue;
+	if(crsSrc->rptr[2][1] < 0 || crsSrc->rptr[2][1] >= src->height) continue;
+	if(crsSrc->rptr[3][1] < 0 || crsSrc->rptr[3][1] >= src->depth)  continue;
+
+        if(sample_type != SAMPLE_TRILINEAR)
+	  for(f=0; f < src->nframes; f++){
+	    if(sample_type == SAMPLE_CUBIC_BSPLINE)
+	      MRIsampleBSpline(bspline, crsSrc->rptr[1][1],crsSrc->rptr[2][1],crsSrc->rptr[3][1], f, &val);
+	    else
+	      MRIsampleVolumeFrameType(src,
+				       crsSrc->rptr[1][1],crsSrc->rptr[2][1],crsSrc->rptr[3][1],
+				       f, sample_type, &val) ;
+	    MRIsetVoxVal(dst,c,r,s,f, val);
+	  }
+	else {
+	  // This will do the same as above, it is just faster with multiple frames
+          MRIsampleSeqVolume(src, crsSrc->rptr[1][1],crsSrc->rptr[2][1],crsSrc->rptr[3][1],
+			     valvect,0, src->nframes-1) ;
+	  for(f=0; f < src->nframes; f++)  MRIsetVoxVal(dst,c,r,s,f, valvect[f]);
+	}
+
+      } // s
+    } // r
+  } // c
+
+  MatrixFree(&crsDst);
+  MatrixFree(&crsGCAM);
+  MatrixFree(&crsAnat);
+  MatrixFree(&crsSrc);
+  MatrixFree(&Vdst);
+  MatrixFree(&Vsrc);
+  if(bspline) MRIfreeBSpline(&bspline);
+  free(valvect);
+
+  printf("MRIvol2volGCAM: t=%6.4f\n",TimerStop(&timer)/1000.0);
+  fflush(stdout);
+
+  return(dst);
+}
+
