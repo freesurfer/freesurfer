@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2014/03/22 02:47:38 $
- *    $Revision: 1.210 $
+ *    $Author: greve $
+ *    $Date: 2014/06/27 23:06:52 $
+ *    $Revision: 1.211 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.210 2014/03/22 02:47:38 ayendiki Exp $",
+   "$Id: mri_convert.c,v 1.211 2014/06/27 23:06:52 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.210 2014/03/22 02:47:38 ayendiki Exp $",
+      "$Id: mri_convert.c,v 1.211 2014/06/27 23:06:52 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1009,6 +1009,8 @@ int main(int argc, char *argv[])
         exit(1);
       }
     }
+    else if (strcmp(argv[i], "--bfile-little-endian") == 0 )
+      setenv("BFILE_LITTLE_ENDIAN","1",1);
     else if(strcmp(argv[i], "-sc") == 0 ||
             strcmp(argv[i], "--scale") == 0)
     {
@@ -1661,7 +1663,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.210 2014/03/22 02:47:38 ayendiki Exp $\n");
+  printf("$Id: mri_convert.c,v 1.211 2014/06/27 23:06:52 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
