@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/05/10 00:37:22 $
- *    $Revision: 1.409 $
+ *    $Author: greve $
+ *    $Date: 2014/06/27 23:01:02 $
+ *    $Revision: 1.410 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3717,7 +3717,7 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
   int dealloc, nslices, nframes;
   MRI *mri;
   float min,max;
-  int swap_bytes_flag, size, bufsize;
+  int swap_bytes_flag, size, bufsize, endian=0;
   char *ext;
   void *buf;
 
@@ -3829,8 +3829,17 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
 
   swap_bytes_flag = 0;
 #if (BYTE_ORDER==LITTLE_ENDIAN)
-  swap_bytes_flag = 1;
+  swap_bytes_flag = 1; // make it big endian
 #endif
+
+  if(getenv("BFILE_LITTLE_ENDIAN")!=NULL){
+    // This is a mechanism to force bfloat/bshort files to be written as little endian
+    printf("INFO: BFILE_LITTLE_ENDIAN is set, so writing as little endian\n");
+    endian = 1;
+    if(BYTE_ORDER==LITTLE_ENDIAN) swap_bytes_flag = 0;
+    printf("swap = %d, order=%d, le=%d be=%d, endian=%d\n",  swap_bytes_flag,
+	   BYTE_ORDER,LITTLE_ENDIAN,BIG_ENDIAN,endian);
+  }
 
   //printf("--------------------------------\n");
   //MRIdump(mri,stdout);
@@ -3852,7 +3861,7 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
       (ERROR_BADFILE, (ERROR_BADFILE,
                        "bvolumeWrite(): can't open file %s", fname));
     }
-    fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, 0);
+    fprintf(fp, "%d %d %d %d\n", mri->height, mri->width, mri->nframes, endian);
     fclose(fp);
 
     /* ----- write the data file ----- */
