@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/01 16:30:14 $
- *    $Revision: 1.545 $
+ *    $Date: 2014/07/01 19:18:28 $
+ *    $Revision: 1.546 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.545 $";
+const char *MRI_C_VERSION = "$Revision: 1.546 $";
 
 
 /*-----------------------------------------------------
@@ -15131,6 +15131,8 @@ MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, M
   rfs->params[0] = 0;
   rfs->params[1] = 1;
 
+  //printf("MRIrandexp(): starting loop\n"); fflush(stdout);
+
   for(c=0; c < mrimean->width; c++)  {
     for(r=0; r < mrimean->height; r++)    {
       for(s=0; s < mrimean->depth; s++)      {
@@ -15147,11 +15149,14 @@ MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, M
 	      continue;
 	    }
 	    L = 1.0/mu;
-	    q = RFdrawVal(rfs);
+	    q = 0;
+	    while(q < FLT_MIN) q = RFdrawVal(rfs);
 	    v = (log(L)-log(L*q))/L;
 	    MRIsetVoxVal(mrirandexp,c,r,s,f2,v);
-	    if(0 && c==101 && r==18 && s==31){
-	      printf("mu = %lf; L = %lf; q=%lf; v=%lf;\n",mu,L,q,v);
+	    if(!finite(v)){
+	      printf("WARNING: MRIrandexp(): voxel not finite\n");
+	      printf("%3d %3d %3d %2d mu = %lf; L = %lf; q=%30.30lf; v=%lf;\n",c,r,s,f2,mu,L,q,v);
+	      fflush(stdout);
 	    }
 	    f2++;
 	  }
@@ -15160,6 +15165,7 @@ MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, M
     }
   }
   RFspecFree(&rfs);
+  //printf("MRIrandexp(): done\n");  fflush(stdout);
   return(mrirandexp);
 }
 /*---------------------------------------------------------------------
