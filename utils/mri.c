@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/27 03:25:51 $
- *    $Revision: 1.544 $
+ *    $Date: 2014/07/01 16:30:14 $
+ *    $Revision: 1.545 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.544 $";
+const char *MRI_C_VERSION = "$Revision: 1.545 $";
 
 
 /*-----------------------------------------------------
@@ -95,7 +95,7 @@ extern int errno;
 
 #define N_HIST_BINS 1000
 
-
+#define MRIxfmCRS2XYZPrecision double
 
 /*-----------------------------------------------------
   STATIC DATA
@@ -168,21 +168,21 @@ MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
 
   /* direction cosine between columns scaled by
      distance between colums */
-  *MATRIX_RELT(m, 1, 1) = (double) mri->x_r * mri->xsize;
-  *MATRIX_RELT(m, 2, 1) = (double) mri->x_a * mri->xsize;
-  *MATRIX_RELT(m, 3, 1) = (double) mri->x_s * mri->xsize;
+  *MATRIX_RELT(m, 1, 1) = (MRIxfmCRS2XYZPrecision) mri->x_r * mri->xsize;
+  *MATRIX_RELT(m, 2, 1) = (MRIxfmCRS2XYZPrecision) mri->x_a * mri->xsize;
+  *MATRIX_RELT(m, 3, 1) = (MRIxfmCRS2XYZPrecision) mri->x_s * mri->xsize;
 
   /* direction cosine between rows scaled by
      distance between rows */
-  *MATRIX_RELT(m, 1, 2) = (double) mri->y_r * mri->ysize;
-  *MATRIX_RELT(m, 2, 2) = (double) mri->y_a * mri->ysize;
-  *MATRIX_RELT(m, 3, 2) = (double) mri->y_s * mri->ysize;
+  *MATRIX_RELT(m, 1, 2) = (MRIxfmCRS2XYZPrecision) mri->y_r * mri->ysize;
+  *MATRIX_RELT(m, 2, 2) = (MRIxfmCRS2XYZPrecision) mri->y_a * mri->ysize;
+  *MATRIX_RELT(m, 3, 2) = (MRIxfmCRS2XYZPrecision) mri->y_s * mri->ysize;
 
   /* direction cosine between slices scaled by
      distance between slices */
-  *MATRIX_RELT(m, 1, 3) = (double) mri->z_r * mri->zsize;
-  *MATRIX_RELT(m, 2, 3) = (double) mri->z_a * mri->zsize;
-  *MATRIX_RELT(m, 3, 3) = (double) mri->z_s * mri->zsize;
+  *MATRIX_RELT(m, 1, 3) = (MRIxfmCRS2XYZPrecision) mri->z_r * mri->zsize;
+  *MATRIX_RELT(m, 2, 3) = (MRIxfmCRS2XYZPrecision) mri->z_a * mri->zsize;
+  *MATRIX_RELT(m, 3, 3) = (MRIxfmCRS2XYZPrecision) mri->z_s * mri->zsize;
 
   /* Preset the offsets to 0 */
   *MATRIX_RELT(m, 1, 4) = 0.0;
@@ -199,9 +199,9 @@ MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
 
   /* Col, Row, Slice at the Center of the Volume */
   Pcrs = MatrixAlloc(4, 1, MATRIX_REAL);
-  *MATRIX_RELT(Pcrs, 1, 1) = (double) mri->width/2.0  + base;
-  *MATRIX_RELT(Pcrs, 2, 1) = (double) mri->height/2.0 + base;
-  *MATRIX_RELT(Pcrs, 3, 1) = (double) mri->depth/2.0  + base;
+  *MATRIX_RELT(Pcrs, 1, 1) = (MRIxfmCRS2XYZPrecision) mri->width/2.0  + base;
+  *MATRIX_RELT(Pcrs, 2, 1) = (MRIxfmCRS2XYZPrecision) mri->height/2.0 + base;
+  *MATRIX_RELT(Pcrs, 3, 1) = (MRIxfmCRS2XYZPrecision) mri->depth/2.0  + base;
   *MATRIX_RELT(Pcrs, 4, 1) = 1.0;
 
   /* XYZ offset the first Col, Row, and Slice from Center */
@@ -211,9 +211,9 @@ MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base)
   /* XYZ at the Center of the Volume is mri->c_r, c_a, c_s  */
 
   /* The location of the center of the voxel at CRS = (0,0,0)*/
-  *MATRIX_RELT(m, 1, 4) = (double) mri->c_r - PxyzOffset->rptr[1][1];
-  *MATRIX_RELT(m, 2, 4) = (double) mri->c_a - PxyzOffset->rptr[2][1];
-  *MATRIX_RELT(m, 3, 4) = (double) mri->c_s - PxyzOffset->rptr[3][1];
+  *MATRIX_RELT(m, 1, 4) = (MRIxfmCRS2XYZPrecision) mri->c_r - PxyzOffset->rptr[1][1];
+  *MATRIX_RELT(m, 2, 4) = (MRIxfmCRS2XYZPrecision) mri->c_a - PxyzOffset->rptr[2][1];
+  *MATRIX_RELT(m, 3, 4) = (MRIxfmCRS2XYZPrecision) mri->c_s - PxyzOffset->rptr[3][1];
 
   MatrixFree(&Pcrs);
   MatrixFree(&PxyzOffset);
@@ -15105,7 +15105,7 @@ MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, M
 {
   int err,c,r,s,f,f2,m,nthrep,nframestot;
   RFS *rfs;
-  double mu,L,v;
+  double mu,L,v,q;
 
   nframestot = nreps*mrimean->nframes;
 
@@ -15141,10 +15141,18 @@ MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, M
 	f2 = 0;
 	for(nthrep=0; nthrep < nreps; nthrep++){
 	  for (f=0; f < mrimean->nframes; f++) {
-	    mu = MRIgetVoxVal(mrimean,c,r,s,f) + FLT_MIN;
+	    mu = MRIgetVoxVal(mrimean,c,r,s,f);
+	    if(mu == 0) {
+	      MRIsetVoxVal(mrirandexp,c,r,s,f2,0);
+	      continue;
+	    }
 	    L = 1.0/mu;
-	    v = (log(L)-log(L*RFdrawVal(rfs)))/L;
+	    q = RFdrawVal(rfs);
+	    v = (log(L)-log(L*q))/L;
 	    MRIsetVoxVal(mrirandexp,c,r,s,f2,v);
+	    if(0 && c==101 && r==18 && s==31){
+	      printf("mu = %lf; L = %lf; q=%lf; v=%lf;\n",mu,L,q,v);
+	    }
 	    f2++;
 	  }
 	}
