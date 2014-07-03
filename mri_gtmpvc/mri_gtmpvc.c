@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/03 22:37:33 $
- *    $Revision: 1.23 $
+ *    $Date: 2014/07/03 22:38:23 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.23 2014/07/03 22:37:33 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.24 2014/07/03 22:38:23 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.23 2014/07/03 22:37:33 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.24 2014/07/03 22:38:23 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1052,7 +1052,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--synth-only")) {SynthOnly = 1;SaveSynth = 1;}
     else if(!strcasecmp(option, "--save-synth")) SaveSynth = 1;
     else if(!strcasecmp(option, "--synth-save")) SaveSynth = 1;
-    else if(!strcasecmp(option, "--threads") || option, "--nthreads")){
+    else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nthreads);
       #ifdef _OPENMP
