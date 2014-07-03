@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/17 19:42:05 $
- *    $Revision: 1.232 $
+ *    $Date: 2014/07/03 20:17:42 $
+ *    $Revision: 1.233 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,6 +94,9 @@ USAGE: ./mri_glmfit
 
    --resynthtest niters : test GLM by resynthsis
    --profile     niters : test speed
+
+   --mrtm1 RefTac TimeSec : perform MRTM1 kinetic modeling
+   --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling
 
    --perm-force : force perumtation test, even when design matrix is not orthog
    --diag Gdiag_no : set diagnositc level
@@ -555,7 +558,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.232 2014/04/17 19:42:05 greve Exp $";
+"$Id: mri_glmfit.c,v 1.233 2014/07/03 20:17:42 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -718,7 +721,6 @@ CSD *csdList[5][3][20];
 
 MATRIX *RTM_Cr, *RTM_intCr, *RTM_TimeSec, *RTM_TimeMin;
 int DoMRTM1=0;
-double MRTM1_HalfLife=-1;
 int DoMRTM2=0;
 double MRTM2_k2p=0;
 MATRIX *MRTM2_x1;
@@ -1083,7 +1085,6 @@ int main(int argc, char **argv) {
   if(DoMRTM1) {
     printf("Performing MRTM1\n"); fflush(stdout);
     mriglm->Xg = MatrixHorCat(RTM_Cr,RTM_intCr,NULL);
-    if(MRTM1_HalfLife > 0) mriglm->wg = HalfLife2Weight(MRTM1_HalfLife,RTM_TimeMin);
     mriglm->npvr = 1;
     printf("Computing integral of input ..."); fflush(stdout);
     mriglm->pvr[0] = fMRIcumTrapZ(mriglm->y,RTM_TimeMin,NULL,NULL);
@@ -2649,10 +2650,10 @@ static int parse_commandline(int argc, char **argv) {
       ComputeFWHM = 0;
     } 
     else if (!strcmp(option, "--mrtm1")) {
-      // --mrtm1 cr.dat time.sec.dat halflife
+      // --mrtm1 cr.dat time.sec.dat 
       // PET Kinetic Modeling, multilinear reference tissue model 1
       // k2 and k2a are per-min
-      if(nargc < 3) CMDargNErr(option,1);
+      if(nargc < 2) CMDargNErr(option,1);
       DoMRTM1=1;
       RTM_Cr = MatrixReadTxt(pargv[0], NULL);
       if(RTM_Cr == NULL) exit(1);
@@ -2661,12 +2662,10 @@ static int parse_commandline(int argc, char **argv) {
       RTM_TimeMin = MatrixAlloc(RTM_TimeSec->rows,1,MATRIX_REAL);
       for(k=0; k < RTM_TimeSec->rows; k++)
 	RTM_TimeMin->rptr[k+1][1] = RTM_TimeSec->rptr[k+1][1]/60;
-      sscanf(pargv[2],"%lf",&MRTM1_HalfLife);
-      printf("MRTM1_HalfLife %g\n",MRTM1_HalfLife);
       RTM_intCr = MatrixCumTrapZ(RTM_Cr, RTM_TimeMin, NULL);
       prunemask = 0;
       NoContrastsOK = 1;
-      nargsused = 3;
+      nargsused = 2;
     } 
     else if (!strcmp(option, "--mrtm2")) {
       // --mrtm2 cr.dat time.sec.dat k2pmin 
@@ -2805,7 +2804,6 @@ printf("   --X design matrix file\n");
 printf("   --C contrast1.mtx <--C contrast2.mtx ...>\n");
 printf("   --osgm : construct X and C as a one-sample group mean\n");
 printf("   --no-contrasts-ok : do not fail if no contrasts specified\n");
-printf("   --fsgd-rescale : rescale continuous variables in FSGD to have StdDev=1\n");
 printf("\n");
 printf("   --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors\n");
 printf("   --selfreg col row slice   : self-regressor from index col row slice\n");
@@ -2826,7 +2824,8 @@ printf("   --no-est-fwhm : turn off FWHM output estimation\n");
 printf("\n");
 printf("   --mask maskfile : binary mask\n");
 printf("   --label labelfile : use label as mask, surfaces only\n");
-printf("   --cortex : use subjects ?h.cortex.label as --label\n");
+printf("   --no-mask : do NOT use a mask (same as --no-cortex)\n");
+printf("   --no-cortex : do NOT use subjects ?h.cortex.label as --label\n");
 printf("   --mask-inv : invert mask\n");
 printf("   --prune : remove voxels that do not have a non-zero value at each frame (def)\n");
 printf("   --no-prune : do not prune\n");
@@ -2843,7 +2842,6 @@ printf("   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc
 printf("   --sim-sign signstring : abs, pos, or neg. Default is abs.\n");
 printf("   --uniform min max : use uniform distribution instead of gaussian\n");
 printf("\n");
-printf("   --fisher : compute fisher transform of the input\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
 printf("   --tar1 : compute and save temporal AR1 of residual\n");
 printf("   --save-yhat : flag to save signal estimate\n");
@@ -2855,6 +2853,9 @@ printf("   --synth : replace input with gaussian\n");
 printf("\n");
 printf("   --resynthtest niters : test GLM by resynthsis\n");
 printf("   --profile     niters : test speed\n");
+printf("\n");
+printf("   --mrtm1 RefTac TimeSec : perform MRTM1 kinetic modeling\n");
+printf("   --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling\n");
 printf("\n");
 printf("   --perm-force : force perumtation test, even when design matrix is not orthog\n");
 printf("   --diag Gdiag_no : set diagnositc level\n");
@@ -2868,9 +2869,8 @@ printf("   --allowsubjrep allow subject names to repeat in the fsgd file (must a
 printf("                  before --fsgd)\n");
 printf("   --allow-zero-dof : mostly for very special purposes\n");
 printf("   --illcond : allow ill-conditioned design matrices\n");
-printf("   --no-rescale-x : do not rescale X prior to computing inverse\n");
 printf("   --sim-done SimDoneFile : create DoneFile when simulation finished \n");
-printf("   --rand-split NSplits SplitNo (make sure to use same seed for all splits) \n");
+printf("\n");
 printf("\n");
 }
 
