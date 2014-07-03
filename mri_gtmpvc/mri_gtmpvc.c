@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/03 16:54:44 $
- *    $Revision: 1.22 $
+ *    $Date: 2014/07/03 22:37:33 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.22 2014/06/03 16:54:44 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.23 2014/07/03 22:37:33 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.22 2014/06/03 16:54:44 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.23 2014/07/03 22:37:33 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -168,6 +168,8 @@ char *SUBJECTS_DIR;
 
 int DoRBV=0;
 int AutoMask=0;
+float pxfm[6]={0,0,0,0,0,0};
+int ApplyXFM=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -460,7 +462,7 @@ int main(int argc, char *argv[])
     printf("Synthsizing using supplied beta %s\n",SrcBetaFile);
     gtm->beta = srcbeta;
     GTMsynth(gtm,GTMSynthSeed,GTMSynthReps);
-    printf("Smoothing synthsizing %g %g %g\n",SynthPSFStdCol,SynthPSFStdRow,SynthPSFStdSlice);
+    printf("Smoothing synthsized %g %g %g\n",SynthPSFStdCol,SynthPSFStdRow,SynthPSFStdSlice);
     gtm->ysynthsm = MRIgaussianSmoothNI(gtm->ysynth,SynthPSFStdCol,SynthPSFStdRow,SynthPSFStdSlice,NULL);
     if(SaveSynth){
       sprintf(tmpstr,"%s/synth.nii.gz",OutDir);
@@ -740,7 +742,7 @@ int main(int argc, char *argv[])
 /*---------------------------------------------------------------*/
 /*---------------------------------------------------------------*/
 static int parse_commandline(int argc, char **argv) {
-  int  nargc , nargsused;
+  int  nargc , nargsused, n;
   char **pargv, *option ;
 
   if (argc < 1) usage_exit();
@@ -817,6 +819,12 @@ static int parse_commandline(int argc, char **argv) {
 	exit(1);
       }
       nargsused = 1;
+    } 
+    else if(!strcmp(option, "--xfm")){
+      if(nargc < 6) CMDargNErr(option,6);
+      for(n=0; n < 6; n++) sscanf(pargv[n],"%f",&pxfm[n]);
+      ApplyXFM=1;
+      nargsused = 6;
     } 
     else if(!strcasecmp(option, "--reg-identity")) regidentity = 1;
     else if(!strcasecmp(option, "--identity")) regidentity = 1;
@@ -1044,7 +1052,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--synth-only")) {SynthOnly = 1;SaveSynth = 1;}
     else if(!strcasecmp(option, "--save-synth")) SaveSynth = 1;
     else if(!strcasecmp(option, "--synth-save")) SaveSynth = 1;
-    else if(!strcasecmp(option, "--threads")){
+    else if(!strcasecmp(option, "--threads") || option, "--nthreads")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nthreads);
       #ifdef _OPENMP
@@ -1234,7 +1242,10 @@ static void check_options(void)
       exit(1);
     }
   }
-
+  if(ApplyXFM){
+    printf("Applying xfm parameters\n");
+    LTAapplyAffineParametersTKR(gtm->anat2pet, pxfm, 6, gtm->anat2pet);
+  }
   if(SaveX0) {
     sprintf(tmpstr,"%s/X0.mat",OutDir);
     X0file = strcpyalloc(tmpstr);
@@ -1264,6 +1275,7 @@ static void check_options(void)
 }
 /*---------------------------------------------------------------*/
 static void dump_options(FILE *fp) {
+  int n;
   fprintf(fp,"\n");
   fprintf(fp,"%s\n",vcid);
   fprintf(fp,"setenv SUBJECTS_DIR %s\n",SUBJECTS_DIR);
@@ -1279,6 +1291,11 @@ static void dump_options(FILE *fp) {
     fprintf(fp,"SegId replacement list\n");
     GTMprintReplaceList(fp, gtm->nReplace, gtm->SrcReplace, gtm->TrgReplace);
   }
+  fprintf(fp,"ApplyXFM %d: ",ApplyXFM);
+  for(n=0; n < 6; n++) fprintf(fp,"%6.4f ",pxfm[n]);
+  fprintf(fp,"\n");
+
+
   return;
 }
 
