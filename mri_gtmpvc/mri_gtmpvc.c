@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/03 22:38:23 $
- *    $Revision: 1.24 $
+ *    $Date: 2014/07/07 23:02:32 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.24 2014/07/03 22:38:23 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.25 2014/07/07 23:02:32 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.24 2014/07/03 22:38:23 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.25 2014/07/07 23:02:32 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -170,6 +170,8 @@ int DoRBV=0;
 int AutoMask=0;
 float pxfm[6]={0,0,0,0,0,0};
 int ApplyXFM=0;
+int DoSimulation = 0;
+int DoVoxFracCorTmp;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -217,6 +219,8 @@ int main(int argc, char *argv[])
   check_options();
   if (checkoptsonly) return(0);
   dump_options(stdout);
+
+  DoVoxFracCorTmp = gtm->DoVoxFracCor;
 
 #ifdef _OPENMP
   printf("%d avail.processors, using %d\n",omp_get_num_procs(),omp_get_max_threads());
@@ -281,6 +285,16 @@ int main(int argc, char *argv[])
     printf("mri_gtmpvc exited with errors\n");
     exit(1);
   }
+  sprintf(tmpstr,"%s/hrseg2pet.lta",AuxDir);
+  LTAwrite(gtm->seg2pet,tmpstr);
+  sprintf(tmpstr,"%s/anat2pet.lta",AuxDir);
+  LTAwrite(gtm->anat2pet,tmpstr);
+  ltatmp = LTAinvert(gtm->anat2pet,NULL);
+  sprintf(tmpstr,"%s/pet2anat.lta",AuxDir);
+  LTAwrite(ltatmp,tmpstr);
+  LTAfree(&ltatmp);
+  //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
+  //LTAwrite(gtm->anat2seg,tmpstr);
 
   if(gtm->nReplace > 0) {
     printf("Replacing %d\n",gtm->nReplace);fflush(stdout);
@@ -416,6 +430,12 @@ int main(int argc, char *argv[])
   }
 
   // Create GTM matrix
+  if(DoSimulation && !gtm->DoVoxFracCor) {
+    // DoVoxFracCorTmp keeps track of the old value of gtm->DoVoxFracCor
+    printf("Turning VoxFracCor ON for simulation. It will be turned OFF for anlaysis.\n");
+    fprintf(logfp,"Turning VoxFracCor ON for simulation. It will be turned OFF for anlaysis.\n");
+    gtm->DoVoxFracCor = 1;
+  }
   printf("Building GTM DoVoxFracCor=%d\n",gtm->DoVoxFracCor);fflush(stdout); 
   if(Gdiag_no > 0) PrintMemUsage(stdout);
   PrintMemUsage(logfp);
@@ -433,32 +453,7 @@ int main(int argc, char *argv[])
   sprintf(tmpstr,"%s/pvf.nii.gz",AuxDir);
   MRIwrite(gtm->ttpvf,tmpstr);
 
-  printf("Freeing segpvf\n"); fflush(stdout);
-  //MRIfree(&gtm->segpvf);
-
-  if(SaveX0) {
-    printf("Writing X0 to %s\n",Xfile);
-    MatlabWrite(gtm->X0, X0file,"X0");
-  }
-  if(SaveX) {
-    printf("Writing X to %s\n",Xfile);
-    MatlabWrite(gtm->X, Xfile,"X");
-    //MatrixWriteTxt(Xfile, gtm->X);
-  }
-
-  sprintf(tmpstr,"%s/hrseg2pet.lta",AuxDir);
-  LTAwrite(gtm->seg2pet,tmpstr);
-  sprintf(tmpstr,"%s/anat2pet.lta",AuxDir);
-  LTAwrite(gtm->anat2pet,tmpstr);
-  ltatmp = LTAinvert(gtm->anat2pet,NULL);
-  sprintf(tmpstr,"%s/pet2anat.lta",AuxDir);
-  LTAwrite(ltatmp,tmpstr);
-  LTAfree(&ltatmp);
-
-  //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
-  //LTAwrite(gtm->anat2seg,tmpstr);
-
-  if(SrcBetaFile){
+  if(DoSimulation){
     printf("Synthsizing using supplied beta %s\n",SrcBetaFile);
     gtm->beta = srcbeta;
     GTMsynth(gtm,GTMSynthSeed,GTMSynthReps);
@@ -480,6 +475,41 @@ int main(int argc, char *argv[])
     MRIfree(&gtm->ysynth);
     MRIfree(&gtm->ysynthsm);
     MatrixFree(&gtm->beta);
+    if(!DoVoxFracCorTmp) {
+      // DoVoxFracCorTmp keeps track of the old value of gtm->DoVoxFracCor
+      printf("Turning VoxFracCor back OFF for anlaysis.\n");
+      fprintf(logfp,"Turning VoxFracCor back OFF for anlaysis.\n");
+      gtm->DoVoxFracCor = 0;
+      printf("Rebuilding GTM DoVoxFracCor=%d\n",gtm->DoVoxFracCor);
+      fprintf(logfp,"Rebuilding GTM DoVoxFracCor=%d\n",gtm->DoVoxFracCor);
+      if(Gdiag_no > 0) PrintMemUsage(stdout);
+      PrintMemUsage(logfp);
+      TimerStart(&mytimer);
+      MatrixFree(&gtm->X);
+      MatrixFree(&gtm->X0);
+      GTMbuildX(gtm);
+      if(gtm->X==NULL) exit(1);
+      printf(" gtm build time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(stdout);
+      fprintf(logfp,"GTM-rebuild-time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
+      if(Gdiag_no > 0) PrintMemUsage(stdout);
+      PrintMemUsage(logfp);
+      // Create GTM pvf in pet space (why?)
+      gtm->ttpvf = MRIsegPVF2TissueTypePVF(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
+					   gtm->ctGTMSeg, gtm->mask, gtm->ttpvf);
+      sprintf(tmpstr,"%s/pvf.nii.gz",AuxDir);
+      MRIwrite(gtm->ttpvf,tmpstr);
+    }
+  }
+
+  //printf("Freeing segpvf\n"); fflush(stdout);
+  //MRIfree(&gtm->segpvf);
+  if(SaveX0) {
+    printf("Writing X0 to %s\n",Xfile);
+    MatlabWrite(gtm->X0, X0file,"X0");
+  }
+  if(SaveX) {
+    printf("Writing X to %s\n",Xfile);
+    MatlabWrite(gtm->X, Xfile,"X");
   }
 
   printf("Solving ...\n");
@@ -1047,6 +1077,7 @@ static int parse_commandline(int argc, char **argv) {
       SynthPSFStdCol   = SynthPSFFWHMCol/sqrt(log(256.0));
       SynthPSFStdRow   = SynthPSFFWHMRow/sqrt(log(256.0));
       SynthPSFStdSlice = SynthPSFFWHMSlice/sqrt(log(256.0));
+      DoSimulation = 1;
       nargsused = 6;
     } 
     else if(!strcasecmp(option, "--synth-only")) {SynthOnly = 1;SaveSynth = 1;}
@@ -1136,7 +1167,8 @@ static void print_usage(void) {
   printf("\n");
   printf("   --synth gtmbeta C R S seed nreps : synthesize volume with gtmbeta as input\n");
   printf("       spec all other inputs the same; CRS are PSF for col, row, slice\n");
-  printf("       seed=0 for no noise, -1 for TOD seed\n");
+  printf("       seed=0 for no noise, -1 for TOD seed. Turns on VFC for synth\n");
+  printf("       but returns it to its specified value for analysis\n");
   printf("   --synth-only : exit after doing synthesis (implies --synth-save)\n");
   printf("   --synth-save : with --synth saves synthesized volume to outdir/synth.nii.gz\n");
   printf("\n");
