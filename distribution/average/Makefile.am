@@ -66,7 +66,8 @@ foo_DATA=\
 	mni152.register.dat \
 	mni152.1mm.register.dat \
 	mni152.mni305.cor.subfov1.dat \
-	mni152.mni305.cor.subfov2.dat 
+	mni152.mni305.cor.subfov2.dat \
+	RB_all_2008-03-26.mni152.2mm.lta 
 else
 foo_DATA=\
 	$(GCA) \
@@ -81,9 +82,10 @@ foo_DATA=\
 	mni305.cor.subfov2.mgz \
 	mni305.cor.subfov1.reg \
 	mni305.cor.subfov2.reg \
-	mni152.register.dat
+	mni152.register.dat \
 	mni152.mni305.cor.subfov1.dat \
-	mni152.mni305.cor.subfov2.dat 
+	mni152.mni305.cor.subfov2.dat \
+	RB_all_2008-03-26.mni152.2mm.lta 
 endif
 
 EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz fsaverage_sym.tar.gz \
