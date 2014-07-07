@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/05/07 20:02:26 $
-#    $Revision: 1.38 $
+#    $Date: 2014/07/07 18:59:07 $
+#    $Revision: 1.39 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.38 2014/05/07 20:02:26 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.39 2014/07/07 18:59:07 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -60,6 +60,7 @@ set sch = ();
 set nolog = 0;
 set DoTrans = 1;
 set AllowSwapPosDet = 1;
+set ltafile = ();
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -364,6 +365,14 @@ if($#templateout) then
   if($status) exit 1;
 endif
 
+if($#ltafile) then
+  set cmd = (lta_convert --inreg $regfile --outlta $ltafile \
+    --src $movvol --trg $refvol)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
 # Cleanup
 if($cleanup) then
   echo "Cleaning up" |& tee -a $LF
@@ -527,6 +536,11 @@ while( $#argv != 0 )
     case "--reg":
       if ( $#argv < 1) goto arg1err;
       set regfile = $argv[1]; shift;
+      breaksw
+
+    case "--lta":
+      if ( $#argv < 1) goto arg1err;
+      set ltafile = $argv[1]; shift;
       breaksw
 
     case "--bbr":
@@ -693,6 +707,7 @@ usage_exit:
   echo "   --nolog      : do produce a log file"
   echo "   --version    : print version and exit"
   echo "   --help       : print help and exit"
+  echo "   --lta ltafile.lta : output reg in LTA format"
   echo ""
 
   if($PrintHelp) \
