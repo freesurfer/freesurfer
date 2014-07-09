@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/30 20:59:37 $
- *    $Revision: 1.175 $
+ *    $Date: 2014/07/09 22:50:42 $
+ *    $Revision: 1.176 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -640,7 +640,12 @@ LTAwrite(LTA *lta, const char *fname)
   time_str = ctime(&tt) ;
   fprintf(fp, "# transform file %s\n# created by %s on %s\n",
           fname, user, time_str) ;
-  fprintf(fp, "type      = %d\n", lta->type) ;
+  fprintf(fp, "type      = %d ", lta->type) ;
+  if(lta->type == LINEAR_VOX_TO_VOX) fprintf(fp, "# LINEAR_VOX_TO_VOX");
+  if(lta->type == LINEAR_RAS_TO_RAS) fprintf(fp, "# LINEAR_RAS_TO_RAS");
+  if(lta->type == REGISTER_DAT) fprintf(fp, "# REGISTER_DAT");
+  fprintf(fp, "\n");
+
   fprintf(fp, "nxforms   = %d\n", lta->num_xforms) ;
   for (i = 0 ; i < lta->num_xforms ; i++)
   {
@@ -3674,7 +3679,12 @@ int LTAprint(FILE *fp, const LTA *lta)
   int i,c,r;
   LT *lt;
 
-  fprintf(fp, "type      = %d\n", lta->type) ;
+  //fprintf(fp, "type      = %d\n", lta->type) ;
+  fprintf(fp, "type      = %d ", lta->type) ;
+  if(lta->type == LINEAR_VOX_TO_VOX) fprintf(fp, "# LINEAR_VOX_TO_VOX");
+  if(lta->type == LINEAR_RAS_TO_RAS) fprintf(fp, "# LINEAR_RAS_TO_RAS");
+  if(lta->type == REGISTER_DAT) fprintf(fp, "# REGISTER_DAT");
+  fprintf(fp, "\n");
   fprintf(fp, "nxforms   = %d\n", lta->num_xforms) ;
   for (i = 0 ; i < lta->num_xforms ; i++)
   {
