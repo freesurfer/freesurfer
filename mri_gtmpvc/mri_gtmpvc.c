@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/07 23:02:32 $
- *    $Revision: 1.25 $
+ *    $Date: 2014/07/09 22:22:10 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.25 2014/07/07 23:02:32 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.26 2014/07/09 22:22:10 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.25 2014/07/07 23:02:32 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.26 2014/07/09 22:22:10 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -285,16 +285,6 @@ int main(int argc, char *argv[])
     printf("mri_gtmpvc exited with errors\n");
     exit(1);
   }
-  sprintf(tmpstr,"%s/hrseg2pet.lta",AuxDir);
-  LTAwrite(gtm->seg2pet,tmpstr);
-  sprintf(tmpstr,"%s/anat2pet.lta",AuxDir);
-  LTAwrite(gtm->anat2pet,tmpstr);
-  ltatmp = LTAinvert(gtm->anat2pet,NULL);
-  sprintf(tmpstr,"%s/pet2anat.lta",AuxDir);
-  LTAwrite(ltatmp,tmpstr);
-  LTAfree(&ltatmp);
-  //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
-  //LTAwrite(gtm->anat2seg,tmpstr);
 
   if(gtm->nReplace > 0) {
     printf("Replacing %d\n",gtm->nReplace);fflush(stdout);
@@ -452,6 +442,17 @@ int main(int argc, char *argv[])
 				       gtm->ctGTMSeg, gtm->mask, gtm->ttpvf);
   sprintf(tmpstr,"%s/pvf.nii.gz",AuxDir);
   MRIwrite(gtm->ttpvf,tmpstr);
+
+  sprintf(tmpstr,"%s/hrseg2pet.lta",AuxDir);
+  LTAwrite(gtm->seg2pet,tmpstr);
+  sprintf(tmpstr,"%s/anat2pet.lta",AuxDir);
+  LTAwrite(gtm->anat2pet,tmpstr);
+  ltatmp = LTAinvert(gtm->anat2pet,NULL);
+  sprintf(tmpstr,"%s/pet2anat.lta",AuxDir);
+  LTAwrite(ltatmp,tmpstr);
+  LTAfree(&ltatmp);
+  //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
+  //LTAwrite(gtm->anat2seg,tmpstr);
 
   if(DoSimulation){
     printf("Synthsizing using supplied beta %s\n",SrcBetaFile);
