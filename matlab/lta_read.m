@@ -7,9 +7,9 @@ function M = lta_read(fname)
 %
 % Original Author: Bruce Fischl
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:12 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2014/07/10 03:47:06 $
+%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -39,8 +39,7 @@ while ((length(tline) > 0) & (tline(1) == '#'))
 	tline = fgetl(fid) ;
 end
 
-
-tline = fgetl(fid) ;  % type
+%tline = fgetl(fid) ;  % type --> gotten above
 tline = fgetl(fid) ;  % nxforms
 tline = fgetl(fid) ;  % mean
 tline = fgetl(fid) ;  % sigma
@@ -48,9 +47,9 @@ tline = fgetl(fid) ;  % dimensions
 
 M = zeros(4,4) ;
 for row=1:4
-	tline = fgetl(fid) ;  % one row of matrix
-	tmp = sscanf(tline, '%f');
-	 M(row,:) = tmp';
+  tline = fgetl(fid) ;  % one row of matrix
+  tmp = sscanf(tline, '%f');
+  M(row,:) = tmp';
 end
 
 fclose(fid) ;
