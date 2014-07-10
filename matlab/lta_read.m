@@ -8,8 +8,8 @@ function M = lta_read(fname)
 % Original Author: Bruce Fischl
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2014/07/10 03:47:06 $
-%    $Revision: 1.4 $
+%    $Date: 2014/07/10 04:11:44 $
+%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -34,20 +34,27 @@ if (fid < 0)
 	error(sprintf('could not open file %s', fname));
 end
 
-tline = fgetl(fid) ;
-while ((length(tline) > 0) & (tline(1) == '#'))
-	tline = fgetl(fid) ;
+n=0;
+while(1)
+  n = n + 1;
+  tline = fgetl(fid);
+  if(tline == -1)
+    fprintf('lta_read format error %s\n',fname);
+    M = [];
+    return;
+  end
+  tag = sscanf(tline,'%s',1);
+  if(strcmp(tag,'type')) break; end
 end
 
-%tline = fgetl(fid) ;  % type --> gotten above
-tline = fgetl(fid) ;  % nxforms
-tline = fgetl(fid) ;  % mean
-tline = fgetl(fid) ;  % sigma
-tline = fgetl(fid) ;  % dimensions
+tline = fgetl(fid);   % nxforms
+tline = fgetl(fid);   % mean
+tline = fgetl(fid);   % sigma
+tline = fgetl(fid);   % dimensions
 
 M = zeros(4,4) ;
 for row=1:4
-  tline = fgetl(fid) ;  % one row of matrix
+  tline = fgetl(fid);   % one row of matrix
   tmp = sscanf(tline, '%f');
   M(row,:) = tmp';
 end
