@@ -34,6 +34,13 @@ void selectBlockFaceImageSubset( Config &conf ) {
 
 	// loop over images
 	Array<String> fileList = dirFileList( inputPath, "", ".JPG" );
+	if (fileList.count() == 0)
+    fileList = dirFileList( inputPath, "", ".jpg" ); 
+	if (fileList.count() == 0)
+    fileList = dirFileList( inputPath, "", ".PNG" ); 
+	if (fileList.count() == 0)
+    fileList = dirFileList( inputPath, "", ".png" ); 
+
 	for (int inputIndex = offset; inputIndex < fileList.count(); inputIndex += imagesPerSlice) {
 		disp( 1, "index: %d, file: %s", inputIndex, fileList[ inputIndex ].c_str() );
 
@@ -325,6 +332,12 @@ void cropBlockFaceImages( Config &conf ) {
 
 	// get input file list
 	Array<String> fileList = dirFileList( inputPath, "", ".JPG" );
+	if (fileList.count() == 0)
+    fileList = dirFileList( inputPath, "", ".jpg" ); 
+	if (fileList.count() == 0)
+    fileList = dirFileList( inputPath, "", ".PNG" ); 
+	if (fileList.count() == 0)
+    fileList = dirFileList( inputPath, "", ".png" ); 
 	if (fileList.count() == 0) { 
 		warning( "no input files at %s", inputPath.c_str() );
 		return;
@@ -412,7 +425,7 @@ void cropBlockFaceImages( Config &conf ) {
 #pragma omp critical
 #endif
 {
-			warning( "bad slice: %s; stopping command", fileList[ inputIndex ].c_str() );
+			warning( "bad slice (low inside count %i): %s; stopping command",insideCount, fileList[ inputIndex ].c_str() );
       keepgoing = false;
       doreturn = true;
 //			return;
