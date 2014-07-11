@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/03 16:54:17 $
- *    $Revision: 1.13 $
+ *    $Date: 2014/07/11 19:17:15 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -277,10 +277,6 @@ int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat)
   ReplaceThis[nlist] =   43; WithThat[nlist] =   24; nlist++; // RLatVent
   ReplaceThis[nlist] =   44; WithThat[nlist] =   24; nlist++; // RInfLatVent
 
-  // Not sure about choriod plexi. Make part of CSF?
-  ReplaceThis[nlist] =   31; WithThat[nlist] =   24; nlist++; // LChoroidP ?
-  ReplaceThis[nlist] =   63; WithThat[nlist] =   24; nlist++; // RChoroidP ?
-
   // And these?
   ReplaceThis[nlist] =   30; WithThat[nlist] =   24; nlist++; // LVessel ?
   ReplaceThis[nlist] =   62; WithThat[nlist] =   24; nlist++; // RVessel ?
@@ -292,6 +288,12 @@ int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat)
   ReplaceThis[nlist] =  253; WithThat[nlist] =  192; nlist++; 
   ReplaceThis[nlist] =  254; WithThat[nlist] =  192; nlist++; 
   ReplaceThis[nlist] =  255; WithThat[nlist] =  192; nlist++; 
+
+  // Not sure about choriod plexi. Make part of CSF?
+  // Note: the location as last two items makes it so that --default-seg-merge-choroid
+  // in mri_gtmpvc works.
+  ReplaceThis[nlist] =   31; WithThat[nlist] =   24; nlist++; // LChoroidP ?
+  ReplaceThis[nlist] =   63; WithThat[nlist] =   24; nlist++; // RChoroidP ?
 
   *nReplace += nlist;
   return(0);
