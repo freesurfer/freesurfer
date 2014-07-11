@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/09 22:22:10 $
- *    $Revision: 1.26 $
+ *    $Date: 2014/07/11 19:18:13 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.26 2014/07/09 22:22:10 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.27 2014/07/11 19:18:13 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.26 2014/07/09 22:22:10 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.27 2014/07/11 19:18:13 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -827,6 +827,11 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--no-mask_rbv_to_brain")) gtm->mask_rbv_to_brain = 0;
     else if(!strcasecmp(option, "--default-seg-merge"))
       GTMdefaultSegReplacmentList(&gtm->nReplace,&(gtm->SrcReplace[0]),&(gtm->TrgReplace[0]));
+    else if(!strcasecmp(option, "--default-seg-merge-choroid")){
+      GTMdefaultSegReplacmentList(&gtm->nReplace,&(gtm->SrcReplace[0]),&(gtm->TrgReplace[0]));
+      // Last two itmes are choroid.
+      gtm->nReplace -= 2;
+    }
 
     else if(!strcmp(option, "--replace-file")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1145,6 +1150,7 @@ static void print_usage(void) {
   printf("   --replace-file : file with a list of Ids to replace\n");
   printf("   --reg-identity : assume that input is in anatomical space \n");
   printf("   --no-rescale   : do not global rescale such that mean of cerebellum WM is 100\n");
+  printf("   --default-seg-merge-choroid : default schema for merging ROIs but keeps choroid\n");
   printf("\n");
   printf("   --no-vox-frac-cor : do not use voxel fraction correction (with --psf 0 turns off PVC entirely)\n");
   printf("   --rbv             : perform RBV PVC\n");
