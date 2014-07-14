@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2014/05/28 20:15:49 $
-#    $Revision: 1.615 $
+#    $Author: nicks $
+#    $Date: 2014/07/14 19:19:33 $
+#    $Revision: 1.616 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1323,6 +1323,20 @@ AC_ARG_WITH(vxl-dir,
      AC_SUBST(VXL_DIR)
   ])
 
+# NJS: --with-itk-4.5.1-vxl is a temporary hack to allow building against 
+# ITK v4.5.1, which doesnt seem to work with the default vxl, so we use the
+# Vxl code within itk
+AC_ARG_WITH(itk-4.5.1-vxl,
+  [  --with-itk-4.5.1-vxl     set paths to use VXL in NMR Center ITK v4.5.1.],
+  [  withval=/usr/pubsw/packages/itk/4.5.1
+     ac_vxl_includes="$withval"/include/ITK-4.5
+     ac_vxl_libraries="$withval"/lib
+     VXL_DIR="$withval"
+     itk_45_vxl="yes"
+     AC_SUBST(VXL_DIR)
+  ])
+# end NJS HACK
+
 if test "x$VXL_DIR" = "x"; then
   # if a VXL root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
@@ -1370,6 +1384,10 @@ fi
 
 # these are the VXL libs used by freesurfer:
 LIBS_VXL="-lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib"
+# NJS HACK ITK 4.5.1 has these:
+if test "x$itk_45_vxl" = "xyes"; then
+  LIBS_VXL="-litkvnl_algo-4.5 -litkvnl-4.5 -litkvcl-4.5 -litkv3p_netlib-4.5"
+fi
 
 AC_SUBST(VXL_CFLAGS)
 AC_SUBST(VXL_LIBS)
@@ -2614,6 +2632,20 @@ AC_ARG_WITH(itk-dir,
      AC_SUBST(ITK_DIR)
   ])
 
+# NJS: --with-itk-4.5.1 is a temporary hack to allow building against ITK v4.5.1
+# Note: use with --with-itk-4.5.1-vxl flag, since default vxl doesnt work w4.5.1
+AC_ARG_WITH(itk-4.5.1,
+  [  --with-itk-4.5.1        set paths to use NMR Center ITK v4.5.1.],
+  [  withval=/usr/pubsw/packages/itk/4.5.1
+     ac_itk_includes="$withval"/include/ITK-4.5
+     ac_itk_libraries="$withval"/lib
+     ITK_DIR="$withval"
+     itk_apps="yes"
+     itk_45="yes"
+     AC_SUBST(ITK_DIR)
+  ])
+# end NJS HACK
+
 AC_ARG_WITH(itk-include,
   [  --with-itk-include=DIR      root of ITK include directory.],
   [  itk_i="$withval"
@@ -2668,7 +2700,8 @@ if test "$itk_apps" = "yes"; then
 
   # these are the minimum ITK libs necessary to support Nrrd IO,
   # notice they are all static (avoiding LD_LIBRARY_PATH usage)
-  LIBS_ITK="$ac_itk_libraries/libITKIO.a \
+  LIBS_ITK="\
+  $ac_itk_libraries/libITKIO.a \
   $ac_itk_libraries/libITKAlgorithms.a \
   $ac_itk_libraries/libITKCommon.a \
   $ac_itk_libraries/libITKNumerics.a \
@@ -2686,6 +2719,24 @@ if test "$itk_apps" = "yes"; then
   $ac_itk_libraries/libitkjpeg12.a \
   $ac_itk_libraries/libitkjpeg16.a \
   $ac_itk_libraries/libITKDICOMParser.a"
+
+  # NJS HACK ITK 4.5.1 uses these:
+  if test "x$itk_45" = "xyes"; then
+    LIBS_ITK="\
+    $ac_itk_libraries/libITKIONRRD-4.5.a \
+    $ac_itk_libraries/libITKIOImageBase-4.5.a \
+    $ac_itk_libraries/libITKCommon-4.5.a \
+    $ac_itk_libraries/libITKMetaIO-4.5.a \
+    $ac_itk_libraries/libITKniftiio-4.5.a \
+    $ac_itk_libraries/libITKNrrdIO-4.5.a \
+    $ac_itk_libraries/libitkpng-4.5.a \
+    $ac_itk_libraries/libitksys-4.5.a \
+    $ac_itk_libraries/libitktiff-4.5.a \
+    $ac_itk_libraries/libitkv3p_netlib-4.5.a \
+    $ac_itk_libraries/libitkzlib-4.5.a \
+    $ac_itk_libraries/libitkopenjpeg-4.5.a \
+    $ac_itk_libraries/libITKDICOMParser-4.5.a"
+  fi
 
   # ITK v3.16.0 needs libuuid for function `gdcm::Util::GenerateUUID'
   if test -e /usr/lib/libuuid.a ; then
@@ -2951,12 +3002,14 @@ AC_CHECK_FILE($VXL_LIB/libvnl$DYNAMIC_LIB_EXT,
    else
      export LD_LIBRARY_PATH="$VXL_LIB":"$LD_LIBRARY_PATH"
    fi],[])
+if test ! "x$itk_45_vxl" = "xyes"; then
 AC_CHECK_LIB([vnl], [main],[],
   [AC_MSG_ERROR([FATAL: vnl lib not found. \
 Set LDFLAGS or --with-vxl-dir.])] )
 AC_CHECK_LIB([vnl_algo], [main],[],
   [AC_MSG_ERROR([FATAL: vnl_algo lib not found. \
 Set LDFLAGS or --with-vxl-dir.])] )
+fi
 
 # ANN check
 if test ! "x$ac_ann_dir" = "xNO"; then
