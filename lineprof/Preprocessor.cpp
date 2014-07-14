@@ -146,7 +146,6 @@ Preprocessor::convertInputToPointSet()
   return pointSet;
 }
 
-#if 0 // removed by NJS, doesnt compile against ITK 4.5.1
 Preprocessor::LabelImagePointer
 Preprocessor::convertPointSetToBinaryImage(PointSetPointer pointSet)
 {
@@ -184,7 +183,6 @@ Preprocessor::convertPointSetToBinaryImage(PointSetPointer pointSet)
 
   return filter->GetOutput();
 }
-#endif
 
 void Preprocessor::generateImageMask(LabelImagePointer image)
 {
