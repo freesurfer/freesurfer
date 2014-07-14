@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2013/08/14 21:06:39 $
- *    $Revision: 1.5 $
+ *    $Author: greve $
+ *    $Date: 2014/07/14 18:44:48 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,17 +63,18 @@ struct Parameters
   bool   invert;
   int    ltaouttype;
   bool   trgconform;
+  string subject;
   intypes::InputType intype;
 };
 
 static struct Parameters P =
-{ "", "", "", "", "" ,"" ,"" , false , LINEAR_RAS_TO_RAS, false, intypes::UNKNOWN};
+  { "", "", "", "", "" ,"" ,"" , false , LINEAR_RAS_TO_RAS, false,"", intypes::UNKNOWN};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.5 2013/08/14 21:06:39 mreuter Exp $";
+    "$Id: lta_convert.cpp,v 1.6 2014/07/14 18:44:48 greve Exp $";
 char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
@@ -423,6 +424,12 @@ int main(int argc, char *argv[])
     copyVolGeom(&lt->src, &lt->dst);
     copyVolGeom(&vgtmp, &lt->src);  
   }
+
+  if(P.subject.size() > 0){
+    printf("setting subject to %s\n",P.subject.c_str());
+    strcpy(lta->subject,P.subject.c_str());
+  }
+  lta->fscale = 0.1;
     
   // write final
   if (P.ltaout!="")
@@ -519,6 +526,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.intype = intypes::REG;
     nargs = 1;
     cout << "--inreg: " << P.transin << " input TK REG transform." << endl;
+  }
+  else if (!strcmp(option, "SUBJECT"))
+  {
+    P.subject = string(argv[1]);
+    nargs = 1;
+    cout << "--s: " << P.subject << " subject name" << endl;
   }
   else if (!strcmp(option, "INNIFTYREG"))
   {
