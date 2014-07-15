@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/02 21:06:42 $
- *    $Revision: 1.8 $
+ *    $Date: 2014/07/15 19:11:45 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-// $Id: mri_gtmseg.c,v 1.8 2014/06/02 21:06:42 greve Exp $
+// $Id: mri_gtmseg.c,v 1.9 2014/07/15 19:11:45 greve Exp $
 
 /*
   BEGINHELP
@@ -66,7 +66,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmseg.c,v 1.8 2014/06/02 21:06:42 greve Exp $";
+static char vcid[] = "$Id: mri_gtmseg.c,v 1.9 2014/07/15 19:11:45 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
     printf("Merging CTAB master with merge ctab\n");
     CTABmerge(ctMaster,ctMerge);
   }
-  //err = CTABwriteFileASCII(ctMerge,"merge.copy.ctab");
+  //err = CTABwriteFileASCIItt(ctMerge,"merge.copy.ctab");
   //err = CTABwriteFileASCIItt(ctMaster,"master.ctab");
   //if(err) exit(1);
 
