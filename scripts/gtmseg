@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # gtmseg
 
-set VERSION = '$Id: gtmseg,v 1.6 2014/05/20 23:07:53 greve Exp $';
+set VERSION = '$Id: gtmseg,v 1.7 2014/07/15 19:57:16 greve Exp $';
 
 set outdir = ();
 set subject = ();
@@ -19,7 +19,8 @@ set ctxlhbase=0;
 set ctxrhbase=0;
 set wmlhbase=0;
 set wmrhbase=0;
-set DoSegStats = 0;
+set DoSegStats = 1;
+set ctab = ();
 
 set tmpdir = ();
 set cleanup = 1;
@@ -73,11 +74,14 @@ echo $VERSION | tee -a $LF
 uname -a  | tee -a $LF
 
 #========================================================
-if(! -e $SUBJECTS_DIR/$subject/mri/$headseg) then
+if($headseg == apas+head.mgz && ! -e $SUBJECTS_DIR/$subject/mri/$headseg) then
   set cmd = (xcerebralseg --s $subject --o $SUBJECTS_DIR/$subject/mri/$headseg)
   if(! $cleanup) set cmd = ($cmd --tmpdir $tmpdir/xcerebralseg)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
+  if($status) goto error_exit;
+else if(! -e $SUBJECTS_DIR/$subject/mri/$headseg) then
+  echo "ERROR: cannot find $SUBJECTS_DIR/$subject/mri/$headseg"
   if($status) goto error_exit;
 endif
 
@@ -91,6 +95,7 @@ if($SubSegWM && $#wmannot == 0) then
 endif
 
 set cmd = (mri_gtmseg --s $subject --usf $USF --o $outvol)
+set cmd = ($cmd --apas $headseg)
 if($#ctxannot)  set cmd = ($cmd --ctx-annot $ctxannot $ctxlhbase $ctxrhbase)
 if($#wmannot)   set cmd = ($cmd --wm-annot  $wmannot  $wmlhbase  $wmrhbase)
 if($SubSegWM)   set cmd = ($cmd --subseg-wm --dmax $dmax)
@@ -100,6 +105,7 @@ if(! $KeepCC)   set cmd = ($cmd --no-keep-cc)
 if($KeepHypo)     set cmd = ($cmd --keep-hypo)
 if(! $KeepHypo)   set cmd = ($cmd --no-keep-hypo)
 if($#OutputUSF)   set cmd = ($cmd --output-usf $OutputUSF)
+if($#ctab)        set cmd = ($cmd --ctab $ctab)
 
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
@@ -171,6 +177,16 @@ while( $#argv != 0 )
       set outvol = $argv[1]; shift;
       breaksw
 
+    case "--head":
+      if($#argv < 1) goto arg1err;
+      set headseg = $argv[1]; shift;
+      breaksw
+
+    case "--ctab":
+      if($#argv < 1) goto arg1err;
+      set ctab = $argv[1]; shift;
+      breaksw
+
     case "--usf":
       if($#argv < 1) goto arg1err;
       set USF = $argv[1]; shift;
@@ -231,6 +247,10 @@ while( $#argv != 0 )
 
     case "--seg-stats":
       set DoSegStats = 1;
+      breaksw
+
+    case "--no-seg-stats":
+      set DoSegStats = 0;
       breaksw
 
     case "--log":
@@ -339,8 +359,10 @@ usage_exit:
   echo " --ctx-annot annot lhbase rhbase : annotation to use for cortical segmentation (default is aparc 1000 2000)"
   echo " --wm-annot  annot lhbase rhbase : annotation to use for WM segmentation (with --subsegwm, default is lobes 3200 4200)"
   echo " --output-usf OutputUSF : set output USF different than USF, mostly for debugging"
+  echo " --head headseg : use headseg instead of $headseg"
+  echo " --ctab colortable "
   echo ""
-  echo " --seg-stats : compute segmentation stats (good for debugging)"
+  echo " --no-seg-stats : do not compute segmentation stats"
   echo " --debug "
   echo " --help "
 
@@ -377,4 +399,45 @@ gtmseg --s subject --keep-hypo --subsegwm --o gtmseg.wmseg.hypo.mgz --usf 1
 Creates a file called $SUBJECTS_DIR/subject/mri/gtmseg.wmseg.hypo.mgz
 with subsegmenting of WM and keeping yypos. CC is re-labeled as
 WM. The USF is 1 (meaning 1mm voxel size).
+
+You can use your own segmentation or a modified FS segmentation. 
+It will be easiest if you modify apas+head.mgz to insert your
+segmentations. apas+head.mgz is created by gtmseg but you can
+create it with 
+
+xcerebralseg --s $subject --o $SUBJECTS_DIR/$subject/mri/apas+head.mgz
+
+Create a new segmentation by replacing voxels in apas+head.mgz with
+your segmentation. Make sure that the index you give your new
+segmentation(s) is not already present in apas+head.mgz. Next create a
+color table text file that looks something like this:
+
+# TissueTypeSchema 
+#ctTType   0  unknown                           0   0   0    0
+#ctTType   1  cortex                          205  62  78    0
+#ctTType   2  subcort_gm                      230 148  34    0
+#ctTType   3  wm                                0 255   0    0
+#ctTType   4  csf                             120  18 134    0
+#ctTType   5  head                            150 150 200    0
+265 MySeg            219 100 176 0 2
+
+In the above case, it is assumed that the index that you used
+was 265 and that your segmentation is for subcortical gray matter
+(thus making the last number=2 in the MySeg row). If you have more
+than one segmentation you are adding, then add rows into the 
+color table. The first 5 entries codes for the different possible
+tissue types.
+
+You can then run
+
+gtmseg --s subject --head apas+head+myseg.mgz \
+   --ctab myseg.colortable.txt --o gtmseg+myseg.mgz  
+
+where apas+head+myseg.mgz is apas+head.mgz with your new segmentation,
+myseg.colortable.txt is the color table you created, and
+gtmseg+myseg.mgz will be your output volume. Note that an output color
+table gtmseg+myseg.ctab will be generated. You should check in this to
+make sure that your segmentation appears. You can also run
+
+tkmeditfv subject orig.mgz -seg gtmseg+myseg.mgz  myseg.colortable.txt
 
