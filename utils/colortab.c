@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/05/28 20:16:29 $
- *    $Revision: 1.56 $
+ *    $Author: greve $
+ *    $Date: 2014/07/15 19:42:15 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2404,7 +2404,10 @@ int CTABmerge(COLOR_TABLE *ct, const COLOR_TABLE *merge)
     cte = merge->entries[n];
     if(cte == NULL) continue;
     cte0 = ct->entries[n];
-    if(cte0==NULL) cte0 = (CTE*) calloc(1, sizeof(COLOR_TABLE_ENTRY));
+    if(cte0==NULL) {
+      cte0 = (CTE*) calloc(1, sizeof(COLOR_TABLE_ENTRY));
+      ct->entries[n] = cte0;
+    }
     memcpy(cte0,cte,sizeof(CTE));
   }
   return(0);
