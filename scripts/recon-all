@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2014/06/02 14:25:28 $
-#    $Revision: 1.468 $
+#    $Author: greve $
+#    $Date: 2014/07/16 15:40:12 $
+#    $Revision: 1.469 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.468 2014/06/02 14:25:28 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.469 2014/07/16 15:40:12 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4400,7 +4400,7 @@ while( $#argv != 0 )
     case "-sb":
       # Hidden option: same as -s but no basename;
       # needed when passing a subdir of a subject
-      # as a subject.
+      # as a subject as with xhemi
       if( $#argv < 1) goto arg1err;
       set subjid = $argv[1]; shift;
       breaksw
@@ -6147,8 +6147,9 @@ check_params:
     else # ================= if cross run or base ==========================
 
       # make sure $subjid does not contain .long.
-      set haslong = `echo $subjid | grep "\.long\."`
-      if ( "$haslong" != "" ) then
+      set haslong  = `echo $subjid | grep "\.long\."`
+      set hasxhemi = `echo $subjid | grep xhemi`
+      if ( "$haslong" != "" && "$hasxhemi" == "" ) then
         echo ""
         echo "ERROR: Are you trying to run or re-run a longitudinal time point?"
         echo "       If so, please specify the following parameters:"
