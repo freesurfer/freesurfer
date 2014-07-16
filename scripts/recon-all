@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/07/16 15:40:12 $
-#    $Revision: 1.469 $
+#    $Date: 2014/07/16 15:57:47 $
+#    $Revision: 1.470 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.469 2014/07/16 15:40:12 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.470 2014/07/16 15:57:47 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -241,6 +241,9 @@ set DESTRIEUX_NAME = a2009s
 # Mindboggle cortical parcellation atlas (-cortparc3):
 set DKTATLAS40_GCS = DKTatlas40.gcs
 set DKTATLAS40_NAME = DKTatlas40
+
+# Initialization method for BBR
+set BBRInit = fsl; # others are spm, header, rr, best
 
 # Set this to 0 to do everything but run the command.
 # This is good for debugging.
@@ -3513,12 +3516,13 @@ if($DoT2pial || $DoFLAIRpial) then
         if($status) goto error_exit;
       else
         # if t2flairraw.lta does not exist in cross, register T2raw to longspace
+        set xopts = `fsr-getxopts bbregister $XOptsFile`;
         set bbcmd = (bbregister \
             --s $subjid \
             --mov $t2flairraw \
             --lta $mdir/transforms/${t2flair}raw.lta \
-            --init-fsl \
-            --T2 )
+            --init-$BBRInit \
+            --T2 $xopts)
         echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) $fs_time $bbcmd |& tee -a $LF
         if($status) goto error_exit;
@@ -3527,12 +3531,13 @@ if($DoT2pial || $DoFLAIRpial) then
     else #regular processing, register T2flairraw to T1 and create lta
 
       # first create a T2/FLAIR that is registered to the T1s
+      set xopts = `fsr-getxopts bbregister $XOptsFile`;
       set bbcmd = (bbregister \
           --s $subjid \
           --mov $t2flairraw \
           --lta $mdir/transforms/${t2flair}raw.lta \
-          --init-fsl \
-          --T2 )
+          --init-$BBRInit \
+          --T2 $xopts)
       echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $bbcmd |& tee -a $LF
       if($status) goto error_exit;
@@ -4455,6 +4460,22 @@ while( $#argv != 0 )
       popd > /dev/null
       set InputT2Vol = "$T2InVolDir/$T2InVolBase";
       set DoConvertT2Input = 1;
+      breaksw
+
+    case "-bbr-init-fsl"
+      set BBRInit = fsl;
+      breaksw
+    case "-bbr-init-spm"
+      set BBRInit = spm;
+      breaksw
+    case "-bbr-init-rr"
+      set BBRInit = rr;
+      breaksw
+    case "-bbr-init-header"
+      set BBRInit = header;
+      breaksw
+    case "-bbr-init-best"
+      set BBRInit = best;
       breaksw
 
     case "-FLAIR"
