@@ -92,7 +92,7 @@ Preprocessor::convertInputToPointSet()
   }
   if ( counter < 2 )
   {
-    std::cerr << " incorect number of cells\n";
+    std::cerr << " incorrect number of cells\n";
     exit(1);
   }
 
