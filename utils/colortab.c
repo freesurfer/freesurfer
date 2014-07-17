@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/15 19:42:15 $
- *    $Revision: 1.57 $
+ *    $Date: 2014/07/17 03:56:21 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2292,6 +2292,7 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
     case 144: //Lens
     case 145: //Atrieous-Humor
     case 167: //Scalp
+    case 262: //Sinus
       TT = TTHead;
       break ;
     }
