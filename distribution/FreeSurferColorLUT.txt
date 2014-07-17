@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.94 2014/03/25 16:09:16 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.95 2014/07/17 19:19:11 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -238,6 +238,9 @@
 259 SkullApprox                           120 120 120  0
 260 BoneOrAir                             119 159 176 0
 261 PossibleFluid                         120  18 134 0
+262 Sinus                                 119 159 176 0
+263 Left-Eustachian                       119 159 176 0
+264 Right-Eustachian                      119 159 176 0
 
 # lymph node and vascular labels
 331 Aorta                                   255 0   0   0
