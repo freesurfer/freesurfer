@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/17 03:56:21 $
- *    $Revision: 1.58 $
+ *    $Date: 2014/07/17 19:20:30 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2293,6 +2293,8 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
     case 145: //Atrieous-Humor
     case 167: //Scalp
     case 262: //Sinus
+    case 263: //Left-Eustachian
+    case 264: //Right-Eustachian
       TT = TTHead;
       break ;
     }
