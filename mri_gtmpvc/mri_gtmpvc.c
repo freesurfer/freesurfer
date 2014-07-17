@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/11 19:18:13 $
- *    $Revision: 1.27 $
+ *    $Date: 2014/07/17 21:40:35 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.27 2014/07/11 19:18:13 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.28 2014/07/17 21:40:35 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.27 2014/07/11 19:18:13 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.28 2014/07/17 21:40:35 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -529,7 +529,8 @@ int main(int argc, char *argv[])
   MatrixFree(&gtm->X);
 
   if(SaveInput){
-    sprintf(tmpstr,"%s/input.rescaled.nii.gz",OutDir);
+    if(gtm->rescale || gtm->DoSteadyState) sprintf(tmpstr,"%s/input.rescaled.nii.gz",OutDir);
+    else  sprintf(tmpstr,"%s/input.nii.gz",OutDir);
     printf("Writing input to %s\n",tmpstr);
     MRIwrite(gtm->yvol,tmpstr);
   }
@@ -542,8 +543,6 @@ int main(int argc, char *argv[])
     printf("Writing beta to %s\n",betamatfile);
     MatlabWrite(gtm->beta, betamatfile, "beta");
   }
-
-  GTMrefTAC(gtm);
 
   if(gtm->rescale){
     // Rescaling is done during GTMsolve()
@@ -918,6 +917,15 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&ApplyFWHM);
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--ss")){
+      if(nargc < 3) CMDargNErr(option,3);
+      sscanf(pargv[0],"%lf",&gtm->ss_bpc);
+      sscanf(pargv[1],"%lf",&gtm->ss_scale);
+      sscanf(pargv[2],"%lf",&gtm->ss_dcf);
+      gtm->DoSteadyState = 1;
+      gtm->rescale = 0;
+      nargsused = 3;
+    } 
     else if(!strcasecmp(option, "--rbv")) DoRBV = 1;
     else if(!strcasecmp(option, "--no-rescale")) gtm->rescale = 0;
     else if(!strcasecmp(option, "--rescale")) {
@@ -1160,6 +1168,8 @@ static void print_usage(void) {
   printf("   --mg-ref-lobes-wm : set MG RefIds to those for lobes when using wm subseg\n");
   printf("   --km-ref RefId1 RefId2 ... : compute reference TAC for KM as mean of given RefIds\n");
   printf("   --km-hb  RefId1 RefId2 ... : compute HiBinding TAC for KM as mean of given RefIds\n");
+  printf("   --ss bpc scale dcf : steady-state analysis spec blood plasma concentration, unit scale\n");
+  printf("     and decay correction factor. You must also spec --km-ref. Turns off rescaling\n");
   printf("\n");
   printf("   --X : save X matrix in matlab4 format as X.mat (it will be big)\n");
   printf("   --y : save y matrix in matlab4 format as y.mat\n");
@@ -1309,6 +1319,10 @@ static void check_options(void)
 	   "options to --mg or with --mg-ref-cerebral-wm\n");
     exit(1);
   }
+  if(gtm->DoSteadyState && gtm->n_km_refids == 0){
+    printf("ERROR: with --ss you must specify km reference IDs with --km-ref\n");
+    exit(1);
+  }
 
   return;
 }
@@ -1333,6 +1347,10 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"ApplyXFM %d: ",ApplyXFM);
   for(n=0; n < 6; n++) fprintf(fp,"%6.4f ",pxfm[n]);
   fprintf(fp,"\n");
+  if(gtm->DoSteadyState){
+    fprintf(fp,"SteadyState bpc=%g, scale=%g, dcf=%g\n",
+	    gtm->ss_bpc,gtm->ss_scale,gtm->ss_dcf);
+  }
 
 
   return;
@@ -1636,5 +1654,4 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
   outlta = LTAchangeType(outlta,intype);
   return(outlta);
 }
-
 

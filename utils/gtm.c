@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/11 19:17:15 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/07/17 21:40:35 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -724,6 +724,9 @@ int GTMsolve(GTM *gtm)
   gtm->Xty  = MatrixAtB(gtm->X,gtm->y,gtm->Xty);
   gtm->beta = MatrixMultiplyD(gtm->iXtX,gtm->Xty,gtm->beta);
   if(gtm->rescale) GTMrescale(gtm);
+  GTMrefTAC(gtm);
+  if(gtm->DoSteadyState) GTMsteadyState(gtm);
+
   gtm->yhat = MatrixMultiplyD(gtm->X,gtm->beta,gtm->yhat);
   gtm->res  = MatrixSubtract(gtm->y,gtm->yhat,gtm->res);
   gtm->dof = gtm->X->rows - gtm->X->cols;
@@ -1562,6 +1565,40 @@ int GTMrescale(GTM *gtm)
   MRImultiplyConst(gtm->yvol,gtm->scale,gtm->yvol);
   MatrixScalarMul(gtm->beta, gtm->scale,gtm->beta);
   MatrixScalarMul(gtm->y,    gtm->scale,gtm->y);
+
+  return(0);
+}
+/*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMsteadyState(GTM *gtm)
+  \brief out = (in - ref)*dcf/(scale*bpc)
+*/
+int GTMsteadyState(GTM *gtm)
+{
+  int f,n,c,r,s;
+  double v,y,ref;
+
+  if(gtm->DoSteadyState == 0) return(1);
+
+  v = gtm->ss_dcf/(gtm->ss_scale*gtm->ss_bpc);
+  printf("SteadyState: v = %g\n",v);
+
+  for(f=0; f < gtm->nframes; f++){
+    ref = gtm->km_reftac->rptr[f+1][1];
+    for(n=0; n < gtm->beta->rows; n++)
+      gtm->beta->rptr[n+1][f+1] = v*(gtm->beta->rptr[n+1][f+1] - ref);
+    for(n=0; n < gtm->y->rows; n++)
+      gtm->y->rptr[n+1][f+1] = v*(gtm->y->rptr[n+1][f+1] - ref);
+    for(c=0; c < gtm->yvol->width; c++){ // crs order not important
+      for(r=0; r < gtm->yvol->height; r++){
+	for(s=0; s < gtm->yvol->depth; s++){
+	  if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue; 
+	  y = MRIgetVoxVal(gtm->yvol,c,r,s,f);
+	  MRIsetVoxVal(gtm->yvol,c,r,s,f, v*(y-ref));
+	}
+      }
+    }
+  }
 
   return(0);
 }

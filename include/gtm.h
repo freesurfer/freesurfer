@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/02 21:05:29 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/07/17 21:40:35 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -144,6 +144,10 @@ typedef struct
   int n_km_hbids,km_hbids[100];// KM HiBinding seg IDs
   MATRIX *km_hbtac; // KM HiBinding TAC
 
+  //Steady-state blood plasma concentration, unit scale, decay correction factor
+  double ss_bpc, ss_scale, ss_dcf;
+  int DoSteadyState; // flag, set to 1 to do steady state analysis
+
   char *OutDir, *AuxDir; // output folder, auxiliary output folder
   FILE *logfp;  // log file pointer
 } GTM;
@@ -183,6 +187,7 @@ int GTMmgRefIds(GTM *gtm);
 int GTMprintMGRefTAC(GTM *gtm, FILE *fp);
 int GTMwriteMGRefTAC(GTM *gtm, char *filename);
 int GTMrescale(GTM *gtm);
+int GTMsteadyState(GTM *gtm);
 int GTMwriteContrasts(GTM *GTM);
 int GTMprintRefIds(GTM *gtm, FILE *fp);
 int GTMcheckRefIds(GTM *gtm);
