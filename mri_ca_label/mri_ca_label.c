@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lindemer $
- *    $Date: 2014/05/05 15:07:07 $
- *    $Revision: 1.103 $
+ *    $Author: fischl $
+ *    $Date: 2014/07/17 19:39:21 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,7 @@ static char *surf_dir = NULL ;
 static float Glabel_scales[MAX_CMA_LABELS] ;
 static float Glabel_offsets[MAX_CMA_LABELS] ;
 
+static float gsmooth_sigma = -1 ;
 #define MAX_READS 100
 static int nreads = 0 ;
 static char *read_intensity_fname[MAX_READS] ;
@@ -215,13 +216,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.103 2014/05/05 15:07:07 lindemer Exp $",
+   "$Id: mri_ca_label.c,v 1.104 2014/07/17 19:39:21 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.103 2014/05/05 15:07:07 lindemer Exp $",
+           "$Id: mri_ca_label.c,v 1.104 2014/07/17 19:39:21 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -329,6 +330,13 @@ int main(int argc, char *argv[])
   if (nowmsa)
   {
     GCAremoveWMSA(gca) ;
+  }
+  if (gsmooth_sigma > 0)
+  {
+    GCA *gca_smooth ;
+    gca_smooth = GCAsmooth(gca, gsmooth_sigma) ;
+    GCAfree(&gca) ;
+    gca = gca_smooth ;
   }
   extra = 0 ;
   if (gca->flags & GCA_XGRAD)
@@ -744,7 +752,7 @@ int main(int argc, char *argv[])
       printf("label(%d, %d, %d) = %s (%d), norm=%2.0f\n",
              Ggca_x, Ggca_y, Ggca_z,
              cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
-             MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z),
+             (int)MRIgetVoxVal(mri_labeled, Ggca_x, Ggca_y, Ggca_z,0),
              MRIgetVoxVal(mri_inputs, Ggca_x, Ggca_y, Ggca_z, 0)) ;
     if (regularize_mean > 0)
     {
@@ -850,6 +858,46 @@ int main(int argc, char *argv[])
         {
           GCAwrite(gca, save_gca_fname) ;
         }
+	if (renormalization_fname)
+	{
+	  FILE   *fp ;
+	  int    *labels, nlines, i ;
+	  float  *intensities, f1, f2 ;
+	  char   *cp, line[STRLEN] ;
+	  
+	  fp = fopen(renormalization_fname, "r") ;
+	  if (!fp)
+	    ErrorExit(ERROR_NOFILE, "%s: could not read %s",
+		      Progname, renormalization_fname) ;
+	  
+	  cp = fgetl(line, 199, fp) ;
+	  nlines = 0 ;
+	  while (cp)
+	  {
+	    nlines++ ;
+	    cp = fgetl(line, 199, fp) ;
+	  }
+	  rewind(fp) ;
+	  printf("reading %d labels from %s...\n", nlines,renormalization_fname) ;
+	  labels = (int *)calloc(nlines, sizeof(int)) ;
+	  intensities = (float *)calloc(nlines, sizeof(float)) ;
+	  cp = fgetl(line, 199, fp) ;
+	  for (i = 0 ; i < nlines ; i++)
+	  {
+	    sscanf(cp, "%e  %e", &f1, &f2) ;
+	    labels[i] = (int)f1 ;
+	    intensities[i] = f2 ;
+	    if (labels[i] == Left_Cerebral_White_Matter)
+	    {
+	      DiagBreak() ;
+	    }
+	    cp = fgetl(line, 199, fp) ;
+	  }
+	  GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
+	  free(labels) ;
+	  free(intensities) ;
+	}
+	fflush(stdout);  fflush(stderr);
         GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
         {
           MRI *mri_imp ;
@@ -976,9 +1024,9 @@ int main(int argc, char *argv[])
       if (Ggca_x >= 0)
         printf("label(%d, %d, %d) = %s (%d)\n",
                Ggca_x, Ggca_y, Ggca_z,
-               cma_label_to_name(MRIvox
-                                 (mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
-               MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)) ;
+               cma_label_to_name(MRIgetVoxVal
+                                 (mri_labeled, Ggca_x, Ggca_y, Ggca_z,0)),
+               (int)MRIgetVoxVal(mri_labeled, Ggca_x, Ggca_y, Ggca_z,0)) ;
       TransformFree(&transform_long) ;
       if (gca_write_iterations != 0)
       {
@@ -1441,6 +1489,12 @@ get_option(int argc, char *argv[])
     novar = 1 ;
     printf("not using variance in classification\n") ;
   }
+  else if (!stricmp(option, "GSMOOTH"))
+  {
+    gsmooth_sigma = atof(argv[2]) ;
+    printf("smoothing atlas with a Gaussian with sigma = %2.2f mm\n", gsmooth_sigma) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "LSCALE"))
   {
     int l ;
@@ -1700,7 +1754,7 @@ insert_wm_segmentation( MRI *mri_labeled, MRI *mri_wm,
         {
           continue ;
         }
-        label = MRIvox(mri_labeled, x, y, z) ;
+        label = MRIgetVoxVal(mri_labeled, x, y, z,0) ;
         if (!change_label[label])
         {
           continue ;
@@ -1739,11 +1793,11 @@ insert_wm_segmentation( MRI *mri_labeled, MRI *mri_wm,
           {
             label = Left_Cerebral_White_Matter ;
           }
-          if (label != MRIvox(mri_labeled, x, y, z))
+          if (label != MRIgetVoxVal(mri_labeled, x, y, z,0))
           {
             nchanged++ ;
           }
-          MRIvox(mri_labeled, x, y, z) = label ;
+          MRIsetVoxVal(mri_labeled, x, y, z, 0, label) ;
 #if 0
           if (MRIvox(mri_wm, x, y, z) < 140)
 #endif
@@ -1773,7 +1827,7 @@ MRIcountNbhdLabels( MRI *mri,
       for (xk = -1 ; xk <= 1 ; xk++)
       {
         xi = mri->xi[x+xk] ;
-        if (MRIvox(mri, xi, yi, zi) == label)
+        if (MRIgetVoxVal(mri, xi, yi, zi,0) == label)
         {
           total++ ;
         }
@@ -1897,7 +1951,7 @@ distance_to_label( MRI *mri_labeled, int label,
     xi = mri_labeled->xi[xi] ;
     yi = mri_labeled->yi[yi] ;
     zi = mri_labeled->zi[zi];
-    if (MRIvox(mri_labeled, xi, yi, zi) == label)
+    if (MRIgetVoxVal(mri_labeled, xi, yi, zi,0) == label)
     {
       break ;
     }
@@ -1937,7 +1991,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
         {
           DiagBreak() ;
         }
-        label = MRIvox(mri_labeled, x, y, z) ;
+        label = MRIgetVoxVal(mri_labeled, x, y, z,0) ;
         if (!GCAsourceVoxelToNode
             (gca, mri_labeled, transform, x, y, z, &xn, &yn, &zn))
         {
@@ -1965,7 +2019,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
             int xi ;
 
             xi = mri_inputs->xi[x-1] ;
-            if (MRIvox(mri_labeled, xi, y, z) ==
+            if (MRIgetVoxVal(mri_labeled, xi, y, z,0) ==
                 Left_Cerebral_Cortex)
             {
               if (GCAlabelExists
@@ -1984,7 +2038,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
 
 
               }
-              MRIvox(mri_tmp, xi, y, z) = Left_Hippocampus ;
+              MRIsetVoxVal(mri_tmp, xi, y, z,0, Left_Hippocampus) ;
               nchanged++ ;
               total_changed++ ;
             }
@@ -1997,7 +2051,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
             int xi ;
 
             xi = mri_inputs->xi[x+1] ;
-            if (MRIvox(mri_labeled, xi, y, z) ==
+            if (MRIgetVoxVal(mri_labeled, xi, y, z, 0) ==
                 Right_Cerebral_Cortex)
             {
               if (GCAlabelExists
@@ -2015,7 +2069,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
                  cma_label_to_name(Right_Cerebral_Cortex),
                  cma_label_to_name(Right_Hippocampus)) ;
               }
-              MRIvox(mri_tmp, xi, y, z) = Right_Hippocampus ;
+              MRIsetVoxVal(mri_tmp, xi, y, z, 0,  Right_Hippocampus) ;
               nchanged++ ;
               total_changed++ ;
             }
@@ -2064,8 +2118,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
               }
               nchanged++ ;
               total_changed++ ;
-              MRIvox(mri_tmp, x, y, z) =
-                Left_Cerebral_White_Matter ;
+              MRIsetVoxVal(mri_tmp, x, y, z, 0, Left_Cerebral_White_Matter) ;
             }
             break ;
           case Right_Hippocampus:
@@ -2110,8 +2163,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
               }
               nchanged++ ;
               total_changed++ ;
-              MRIvox(mri_tmp, x, y, z) =
-                Right_Cerebral_White_Matter ;
+              MRIsetVoxVal(mri_tmp, x, y, z, 0, Right_Cerebral_White_Matter) ;
             }
             break ;
           default:
@@ -2135,7 +2187,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
           {
             DiagBreak() ;
           }
-          label = MRIvox(mri_tmp, x, y, z) ;
+          label = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
 
           left = 0 ;
           switch (label)
@@ -2179,7 +2231,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
               }
               nchanged++ ;
               total_changed++ ;
-              MRIvox(mri_tmp, x, y, z) = Left_Cerebral_Cortex ;
+              MRIsetVoxVal(mri_tmp, x, y, z, 0, Left_Cerebral_Cortex) ;
             }
             break ;
           case Right_Hippocampus:
@@ -2224,7 +2276,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
               }
               nchanged++ ;
               total_changed++ ;
-              MRIvox(mri_tmp, x, y, z) = Right_Cerebral_Cortex ;
+              MRIsetVoxVal(mri_tmp, x, y, z, 0, Right_Cerebral_Cortex) ;
             }
           default:
             break ;
@@ -2248,7 +2300,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
           {
             DiagBreak() ;
           }
-          label = MRIvox(mri_tmp, x, y, z) ;
+          label = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
 
           left = 0 ;
           switch (label)
@@ -2282,7 +2334,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
 
               nchanged++ ;
               total_changed++ ;
-              MRIvox(mri_tmp, x, y, z) = label ;
+              MRIsetVoxVal(mri_tmp, x, y, z, 0, label) ;
             }
             break ;
           default:
@@ -2307,7 +2359,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
         {
           DiagBreak() ;
         }
-        label = MRIvox(mri_tmp, x, y, z) ;
+        label = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
 
         left = 0 ;
         was_unknown = 0 ;
@@ -2320,7 +2372,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
           for (i = 1 ; i <= MIN_UNKNOWN+3 ; i++)
           {
             yi = mri_tmp->yi[y+i] ;
-            olabel = MRIvox(mri_tmp, x, yi, z) ;
+            olabel = MRIgetVoxVal(mri_tmp, x, yi, z, 0) ;
             if (olabel == Left_Hippocampus ||
                 olabel == Right_Hippocampus)
             {
@@ -2349,15 +2401,14 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
             }
             nchanged++ ;
             total_changed++ ;
-            MRIvox(mri_tmp, x, y, z) =
-              left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
+            MRIsetVoxVal(mri_tmp, x, y, z, 0, left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex) ;
             if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
             {
               printf
               ("(%d, %d, %d) %s changed to %s "
                "in edit_hippocampus\n",
                x, y, z, cma_label_to_name(label),
-               cma_label_to_name(MRIvox(mri_tmp, x, y, z))) ;
+               cma_label_to_name(MRIgetVoxVal(mri_tmp, x, y, z,0))) ;
             }
           }
 
@@ -2382,7 +2433,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
         {
           DiagBreak() ;
         }
-        label = MRIvox(mri_tmp, x, y, z) ;
+        label = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
 
         left = 0 ;
         found_wm = found_hippo = was_wm = was_hippo = 0 ;
@@ -2394,7 +2445,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
           for (i = 1 ; i <= 10 ; i++)
           {
             yi = mri_tmp->yi[y-i] ;
-            olabel = MRIvox(mri_tmp, x, yi, z) ;
+            olabel = MRIgetVoxVal(mri_tmp, x, yi, z, 0) ;
             if (found_wm)  /* check for hippo */
             {
               if (olabel == Left_Hippocampus ||
@@ -2438,14 +2489,13 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
             }
             nchanged++ ;
             total_changed++ ;
-            MRIvox(mri_tmp, x, y, z) =
-              left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex ;
+            MRIsetVoxVal(mri_tmp, x, y, z, 0, left ? Left_Cerebral_Cortex : Right_Cerebral_Cortex) ;
             if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
             {
               printf("(%d, %d, %d) %s changed to "
                      "%s in edit_hippocampus\n",
                      x, y, z, cma_label_to_name(label),
-                     cma_label_to_name(MRIvox(mri_tmp, x, y, z))) ;
+                     cma_label_to_name(MRIgetVoxVal(mri_tmp, x, y, z,0))) ;
             }
           }
 
@@ -2480,7 +2530,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
             continue ;
           }
 
-          label = MRIvox(mri_labeled, x, y, z) ;
+          label = MRIgetVoxVal(mri_labeled, x, y, z, 0) ;
 
           left = 0 ;
           switch (label)
@@ -2499,7 +2549,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
                        cma_label_to_name(Left_Cerebral_Cortex),
                        cma_label_to_name(Left_Hippocampus)) ;
               }
-              MRIvox(mri_tmp, x, y, z) = Left_Hippocampus ;
+              MRIsetVoxVal(mri_tmp, x, y, z, 0, Left_Hippocampus) ;
             }
             break ;
           case Right_Cerebral_Cortex:
@@ -2516,7 +2566,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
                        cma_label_to_name(Right_Cerebral_Cortex),
                        cma_label_to_name(Right_Hippocampus)) ;
               }
-              MRIvox(mri_tmp, x, y, z) = Right_Hippocampus ;
+              MRIsetVoxVal(mri_tmp, x, y, z, 0, Right_Hippocampus) ;
             }
             break ;
           }
@@ -2542,21 +2592,21 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
             DiagBreak() ;
           }
 
-          label = MRIvox(mri_labeled, x, y, z) ;
+          label = MRIgetVoxVal(mri_labeled, x, y, z, 0) ;
 
           left = 0 ;
           switch (label)
           {
           case Left_Hippocampus:
             xi = mri_labeled->xi[x+1] ;
-            if (MRIvox(mri_labeled, xi, y, z) ==
+            if (MRIgetVoxVal(mri_labeled, xi, y, z, 0) ==
                 Left_Cerebral_Cortex)
             {
               found_hippo = 1 ;
               for (i = 0 ; found_hippo && i < 8 ; i++)
               {
                 xi = mri_labeled->xi[x-i] ;
-                if (MRIvox(mri_labeled, xi, y, z) !=
+                if (MRIgetVoxVal(mri_labeled, xi, y, z, 0) !=
                     Left_Hippocampus)
                 {
                   found_hippo = 0 ;
@@ -2582,20 +2632,19 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
                    cma_label_to_name(Left_Cerebral_Cortex),
                    cma_label_to_name(Left_Hippocampus)) ;
                 }
-                MRIvox(mri_labeled, xi, y, z) =
-                  Left_Hippocampus ;
+                MRIsetVoxVal(mri_labeled, xi, y, z,0, Left_Hippocampus) ;
               }
             }
             break ;
           case Right_Hippocampus:
             xi = mri_labeled->xi[x+1] ;
-            if (MRIvox(mri_tmp, xi, y, z) == Right_Cerebral_Cortex)
+            if (MRIgetVoxVal(mri_tmp, xi, y, z, 0) == Right_Cerebral_Cortex)
             {
               found_hippo = 1 ;
               for (i = 0 ; found_hippo && i < 8 ; i++)
               {
                 xi = mri_labeled->xi[x+i] ;
-                if (MRIvox(mri_labeled, xi, y, z) !=
+                if (MRIgetVoxVal(mri_labeled, xi, y, z, 0) !=
                     Right_Hippocampus)
                 {
                   found_hippo = 0 ;
@@ -2621,8 +2670,7 @@ edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
                    cma_label_to_name(Right_Cerebral_Cortex),
                    cma_label_to_name(Right_Hippocampus)) ;
                 }
-                MRIvox(mri_labeled, xi, y, z) =
-                  Right_Hippocampus ;
+                MRIsetVoxVal(mri_labeled, xi, y, z, 0, Right_Hippocampus) ;
               }
             }
             break ;
@@ -2670,7 +2718,7 @@ edit_amygdala( MRI *mri_inputs,
         {
           DiagBreak() ;
         }
-        label = MRIvox(mri_tmp, x, y, z) ;
+        label = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
 
         left = 0 ;
         found_wm = found_amygdala = was_wm = was_amygdala = 0 ;
@@ -2682,7 +2730,7 @@ edit_amygdala( MRI *mri_inputs,
           for (i = 1 ; i <= 10 ; i++)
           {
             yi = mri_tmp->yi[y-i] ;
-            olabel = MRIvox(mri_tmp, x, yi, z) ;
+            olabel = MRIgetVoxVal(mri_tmp, x, yi, z, 0) ;
             if (found_wm)  /* check for amygdala */
             {
               if (olabel == Left_Amygdala ||
@@ -2721,13 +2769,13 @@ edit_amygdala( MRI *mri_inputs,
               (gca, mri_tmp, label, transform, x, y, z,0))
           {
             nchanged++ ;
-            MRIvox(mri_tmp, x, y, z) = label ;
+            MRIsetVoxVal(mri_tmp, x, y, z, 0, label) ;
             if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
             {
               printf("(%d, %d, %d) %s changed to "
                      "%s in edit_amygdala\n",
                      x, y, z, cma_label_to_name(label),
-                     cma_label_to_name(MRIvox(mri_tmp, x, y, z))) ;
+                     cma_label_to_name(MRIgetVoxVal(mri_tmp, x, y, z, 0))) ;
             }
           }
 
@@ -2878,12 +2926,12 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
     {
       p = 255.0 ;
     }
-    MRIvox(mri_probs, gcas[i].x, gcas[i].y, gcas[i].z) = (char)p ;
+    MRIsetVoxVal(mri_probs, gcas[i].x, gcas[i].y, gcas[i].z, 0, p) ;
     if (gcas[i].x == Ggca_x && gcas[i].y == Ggca_y && gcas[i].z == Ggca_z)
     {
       DiagBreak() ;
     }
-    MRIvox(mri_tmp_labels, gcas[i].x, gcas[i].y, gcas[i].z) = gcas[i].label ;
+    MRIsetVoxVal(mri_tmp_labels, gcas[i].x, gcas[i].y, gcas[i].z, 0, gcas[i].label) ;
   }
 
   added = (int **)calloc(width, sizeof(int *)) ;
@@ -2912,12 +2960,12 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
     {
       for (y = ymin ; y <= ymax ; y++)
       {
-        if (MRIvox(mri_tmp_labels,x,y,z) != Left_Cerebral_White_Matter)
+        if (MRIgetVoxVal(mri_tmp_labels,x,y,z, 0) != Left_Cerebral_White_Matter)
         {
           continue ;
         }
         yi = mri_probs->yi[y+1] ;
-        p = MRIvox(mri_probs, x,  y, z) + MRIvox(mri_probs, x, yi, z) ;
+        p = MRIgetVoxVal(mri_probs, x,  y, z, 0) + MRIgetVoxVal(mri_probs, x, yi, z,0) ;
         if (p > pmax)
         {
           pmax = p ;
@@ -2933,8 +2981,8 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
   printf("using (%d, %d, %d) as seed point for LH\n", ximax, yimax, zimax) ;
 
   /* put the seed point back in */
-  MRIvox(mri_tmp, ximax, yimax, zimax) = 255 ;
-  MRIvox(mri_tmp, ximax, yimax+1, zimax) = 255 ;
+  MRIsetVoxVal(mri_tmp, ximax, yimax, zimax, 0, 255) ;
+  MRIsetVoxVal(mri_tmp, ximax, yimax+1, zimax, 0, 255) ;
   xmin = MAX(0,ximax-1) ;
   xmax = MIN(ximax+1,width-1) ;
   ymin = MAX(0,yimax-1) ;
@@ -2958,7 +3006,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
         yimax = -1 ;
         for (y = ymin ; y <= ymax ; y++)
         {
-          if (MRIvox(mri_tmp, x, y, z))
+          if (MRIgetVoxVal(mri_tmp, x, y, z, 0))
           {
             continue ;
           }
@@ -2974,8 +3022,8 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
 #endif
           yi = mri_probs->yi[y+1] ;
           p =
-            MRIvox(mri_probs, x,  y, z) +
-            MRIvox(mri_probs, x, yi, z) ;
+            MRIgetVoxVal(mri_probs, x,  y, z, 0) +
+            MRIgetVoxVal(mri_probs, x, yi, z, 0) ;
           if (p > pmax)
           {
             pmax = p ;
@@ -3022,8 +3070,8 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
           zmax++ ;
         }
 
-        MRIvox(mri_tmp, x, yimax, z) = 255 ;
-        MRIvox(mri_tmp, x, yimax+1, z) = 255 ;
+        MRIsetVoxVal(mri_tmp, x, yimax, z, 0, 255) ;
+        MRIsetVoxVal(mri_tmp, x, yimax+1, z, 0, 255) ;
         nchanged++ ;
       }
     }
@@ -3080,12 +3128,12 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
     {
       for (y = ymin ; y <= ymax ; y++)
       {
-        if (MRIvox(mri_tmp_labels,x,y,z) != Right_Cerebral_White_Matter)
+        if (MRIgetVoxVal(mri_tmp_labels,x,y,z,0) != Right_Cerebral_White_Matter)
         {
           continue ;
         }
         yi = mri_probs->yi[y+1] ;
-        p = MRIvox(mri_probs, x,  y, z) + MRIvox(mri_probs, x, yi, z) ;
+        p = MRIgetVoxVal(mri_probs, x,  y, z, 0) + MRIgetVoxVal(mri_probs, x, yi, z, 0) ;
         if (p > pmax)
         {
           pmax = p ;
@@ -3101,8 +3149,8 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
   printf("using (%d, %d, %d) as seed point for RH\n", ximax, yimax, zimax) ;
 
   /* put the seed point back in */
-  MRIvox(mri_tmp, ximax, yimax, zimax) = 255 ;
-  MRIvox(mri_tmp, ximax, yimax+1, zimax) = 255 ;
+  MRIsetVoxVal(mri_tmp, ximax, yimax, zimax, 0, 255) ;
+  MRIsetVoxVal(mri_tmp, ximax, yimax+1, zimax, 0, 255) ;
   xmin = MAX(0,ximax-1) ;
   xmax = MIN(ximax+1,width-1) ;
   ymin = MAX(0,yimax-1) ;
@@ -3126,7 +3174,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
         yimax = -1 ;
         for (y = ymin ; y <= ymax ; y++)
         {
-          if (MRIvox(mri_tmp, x, y, z))
+          if (MRIgetVoxVal(mri_tmp, x, y, z, 0))
           {
             continue ;
           }
@@ -3142,8 +3190,8 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
 #endif
           yi = mri_probs->yi[y+1] ;
           p =
-            MRIvox(mri_probs, x,  y, z) +
-            MRIvox(mri_probs, x, yi, z) ;
+            MRIgetVoxVal(mri_probs, x,  y, z, 0) +
+            MRIgetVoxVal(mri_probs, x, yi, z,0) ;
           if (p > pmax)
           {
             pmax = p ;
@@ -3190,8 +3238,8 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
           zmax++ ;
         }
 
-        MRIvox(mri_tmp, x, yimax, z) = 255 ;
-        MRIvox(mri_tmp, x, yimax+1, z) = 255 ;
+        MRIsetVoxVal(mri_tmp, x, yimax, z, 0, 255) ;
+        MRIsetVoxVal(mri_tmp, x, yimax+1, z, 0,  255) ;
         nchanged++ ;
       }
     }
@@ -3254,7 +3302,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
           {
             DiagBreak() ;
           }
-          if (MRIvox(mri_tmp, x, y, z))
+          if (MRIgetVoxVal(mri_tmp, x, y, z, 0))
           {
             continue ;
           }
@@ -3266,10 +3314,10 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
           {
             continue ;
           }
-          if ((MRIvox(mri_tmp, x+1, y, z) &&
-               MRIvox(mri_tmp, x-1,y,z)) ||
-              (MRIvox(mri_tmp, x, y, z-1) &&
-               MRIvox(mri_tmp, x,y,z+1)))
+          if ((MRIgetVoxVal(mri_tmp, x+1, y, z, 0) &&
+               MRIgetVoxVal(mri_tmp, x-1,y,z, 0)) ||
+              (MRIgetVoxVal(mri_tmp, x, y, z-1, 0) &&
+               MRIgetVoxVal(mri_tmp, x,y,z+1,0)))
           {
             if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
             {
@@ -3277,11 +3325,11 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
             }
 
             nchanged++ ;
-            MRIvox(mri_tmp, x,y,z) =
-              MAX(MAX(MAX(MRIvox(mri_tmp, x+1, y, z),
-                          MRIvox(mri_tmp, x-1,y,z)),
-                      MRIvox(mri_tmp, x, y, z-1)),
-                  MRIvox(mri_tmp, x,y,z+1)) ;
+            MRIsetVoxVal(mri_tmp, x,y,z, 0, 
+			 MAX(MAX(MAX(MRIgetVoxVal(mri_tmp, x+1, y, z, 0),
+				     MRIgetVoxVal(mri_tmp, x-1,y,z, 0)),
+				 MRIgetVoxVal(mri_tmp, x, y, z-1, 0)),
+			     MRIgetVoxVal(mri_tmp, x,y,z+1, 0))) ;
           }
         }
       }
@@ -3308,64 +3356,64 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
           {
             DiagBreak() ;
           }
-          if (MRIvox(mri_tmp, x, y, z))
+          if (MRIgetVoxVal(mri_tmp, x, y, z,0))
           {
             continue ;
           }
           yi = mri_tmp->yi[y+1] ;
-          if (MRIvox(mri_tmp,x,yi,z)) /* check inferior */
+          if (MRIgetVoxVal(mri_tmp,x,yi,z,0)) /* check inferior */
           {
             yi = mri_tmp->yi[y-1] ;
             zi = mri_tmp->zi[z+1] ;
-            if (MRIvox(mri_tmp, x, yi, zi)) /* inferior voxel on */
+            if (MRIgetVoxVal(mri_tmp, x, yi, zi,0)) /* inferior voxel on */
             {
               if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
               {
                 DiagBreak() ;
               }
               nchanged++ ;
-              MRIvox(mri_tmp, x,y,z) = 255 ;
+              MRIsetVoxVal(mri_tmp, x,y,z, 0, 255) ;
             }
             else
             {
               zi = mri_tmp->zi[z-1] ;
-              if (MRIvox(mri_tmp, x, yi,  zi))
+              if (MRIgetVoxVal(mri_tmp, x, yi,  zi, 0))
               {
                 if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
                 {
                   DiagBreak() ;
                 }
                 nchanged++ ;
-                MRIvox(mri_tmp, x,y,z) = 255 ;
+                MRIsetVoxVal(mri_tmp, x,y,z, 0, 255) ;
               }
             }
           }
 
           yi = mri_tmp->yi[y-1] ;
-          if (MRIvox(mri_tmp,x,yi,z)) /* check suprior */
+          if (MRIgetVoxVal(mri_tmp,x,yi,z,0)) /* check suprior */
           {
             yi = mri_tmp->yi[y+1] ;
             zi = mri_tmp->zi[z+1] ;
-            if (MRIvox(mri_tmp, x, yi, zi)) /* inferior voxel on */
+            if (MRIgetVoxVal(mri_tmp, x, yi, zi,0)) /* inferior voxel on */
             {
               if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
               {
                 DiagBreak() ;
               }
               nchanged++ ;
-              MRIvox(mri_tmp, x,y,z) = 255 ;
+              MRIsetVoxVal(mri_tmp, x,y,z,0,255) ;
             }
             else
             {
               zi = mri_tmp->zi[z-1] ;
-              if (MRIvox(mri_tmp, x, yi,  zi))
+              if (MRIgetVoxVal(mri_tmp, x, yi,  zi,0))
               {
                 if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
                 {
                   DiagBreak() ;
                 }
                 nchanged++ ;
-                MRIvox(mri_tmp, x,y,z) = 255 ;
+                MRIsetVoxVal(mri_tmp, x,y,z, 0,  255) ;
               }
             }
           }
@@ -3397,7 +3445,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
 #endif
         for (y = ymin ; y <= ymax ; y++)
         {
-          if (MRIvox(mri_tmp, x, y, z))
+          if (MRIgetVoxVal(mri_tmp, x, y, z,0))
           {
             continue ;
           }
@@ -3423,7 +3471,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
               DiagBreak() ;
             }
             nchanged++ ;
-            MRIvox(mri_tmp, x, y, z) = 128 ;
+            MRIsetVoxVal(mri_tmp, x, y, z, 0, 128) ;
           }
         }
       }
@@ -3456,7 +3504,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
           DiagBreak() ;
         }
 
-        if (MRIvox(mri_tmp, x, y, z) != 255) /* not temporal wm */
+        if (MRIgetVoxVal(mri_tmp, x, y, z,0) != 255) /* not temporal wm */
         {
           continue ;
         }
@@ -3469,7 +3517,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
         {
           /* check for hippocampus inferior */
           yi = mri_tmp->yi[y-i] ;
-          label = MRIvox(mri_labeled,x,yi,z) ;
+          label = MRIgetVoxVal(mri_labeled,x,yi,z,0) ;
 #if 0
           if (label == Left_Cerebral_Cortex ||
               label == Right_Cerebral_Cortex)
@@ -3483,10 +3531,10 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
               printf
               ("(%d, %d, %d) %s changed to %s in insert tl\n",
                x, yi, z,
-               cma_label_to_name(MRIvox(mri_labeled,x,yi, z)),
+               cma_label_to_name(MRIgetVoxVal(mri_labeled,x,yi, z,0)),
                cma_label_to_name(label)) ;
             }
-            MRIvox(mri_labeled, x, yi, z) = label ;
+            MRIsetVoxVal(mri_labeled, x, yi, z, 0,  label) ;
           }
 #else
           if (!GCAsourceVoxelToPrior
@@ -3515,10 +3563,10 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
                      "in insert tl\n",
                      x, yi, z,
                      cma_label_to_name
-                     (MRIvox(mri_labeled,x,yi, z)),
+                     (MRIgetVoxVal(mri_labeled,x,yi, z,0)),
                      cma_label_to_name(label)) ;
                   }
-                  MRIvox(mri_labeled, x, yi, z) = label ;
+                  MRIsetVoxVal(mri_labeled, x, yi, z, 0, label) ;
                 }
               }
             }
@@ -3526,7 +3574,7 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
 #endif
           /* check for hippocampus inferior */
           yi = mri_tmp->yi[y+i] ;
-          label = MRIvox(mri_labeled,x,yi,z) ;
+          label = MRIgetVoxVal(mri_labeled,x,yi,z,0) ;
           if (IS_HIPPO(label) || IS_LAT_VENT(label))
           {
             int left ;
@@ -3547,10 +3595,10 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
                  "in insert tl\n",
                  x, yi, z,
                  cma_label_to_name
-                 (MRIvox(mri_labeled,x,yi, z)),
+                 (MRIgetVoxVal(mri_labeled,x,yi, z,0)),
                  cma_label_to_name(label)) ;
               }
-              MRIvox(mri_labeled, x, yi, z) = label ;
+              MRIsetVoxVal(mri_labeled, x, yi, z, 0, label) ;
             }
           }
         }
@@ -3575,16 +3623,16 @@ insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
     x = gcas[i].x ;
     y = gcas[i].y ;
     z = gcas[i].z ;
-    if (MRIvox(mri_tmp, x, y, z))
+    if (MRIgetVoxVal(mri_tmp, x, y, z,0))
     {
       if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
       {
         printf("changing voxel (%d, %d, %d) from %s to %s\n",
-               x, y, z, cma_label_to_name(MRIvox(mri_labeled,x, y,z)),
+               x, y, z, cma_label_to_name(MRIgetVoxVal(mri_labeled,x, y,z,0)),
                cma_label_to_name(gcas[i].label)) ;
         DiagBreak() ;
       }
-      MRIvox(mri_labeled, x, y, z) = gcas[i].label ;
+      MRIsetVoxVal(mri_labeled, x, y, z, 0, gcas[i].label) ;
     }
   }
 
