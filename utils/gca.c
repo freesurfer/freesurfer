@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lindemer $
- *    $Date: 2014/05/05 15:07:57 $
- *    $Revision: 1.317 $
+ *    $Author: fischl $
+ *    $Date: 2014/07/17 19:39:02 $
+ *    $Revision: 1.318 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2209,7 +2209,7 @@ GCAtrainCovariances(GCA *gca,
             }
             ////////////////////////////////////////////////////////
             // update the value
-            MRIvox(mri_mapped, xn, yn, zn) = 1 ;
+            MRIsetVoxVal(mri_mapped, xn, yn, zn, 0, 1) ;
             GCAupdateNodeCovariance(gca, mri_inputs,
                                     xn, yn, zn, vals, label) ;
 
@@ -2282,7 +2282,7 @@ GCAtrainCovariances(GCA *gca,
         {
           DiagBreak() ;
         }
-        if (MRIvox(mri_mapped, xn, yn, zn) > 0)
+        if (MRIgetVoxVal(mri_mapped, xn, yn, zn,0) > 0)
         {
           continue ;
         }
@@ -2421,7 +2421,7 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                        x,y,z, xp, yp, zp, xn, yn, zn, label);
               }
             }
-            MRIvox(mri_mapped, xp, yp, zp) = 1 ;
+            MRIsetVoxVal(mri_mapped, xp, yp, zp, 0, 1) ;
             GCAupdatePrior(gca, mri_inputs, xp, yp, zp, label) ;
             if ((GCAupdateNode(gca, mri_inputs, xn, yn, zn,
                                vals,label,gca_prune, noint) ==
@@ -2560,7 +2560,7 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
         {
           DiagBreak() ;
         }
-        if (MRIvox(mri_mapped, xp, yp, zp) > 0)
+        if (MRIgetVoxVal(mri_mapped, xp, yp, zp, 0) > 0)
         {
           continue ;
         }
@@ -3953,7 +3953,7 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
     mri_dst = MRIalloc(mri_inputs->width,
                        mri_inputs->height,
                        mri_inputs->depth,
-                       MRI_UCHAR) ;
+                       MRI_INT) ;
     if (!mri_dst)
     {
       ErrorExit(ERROR_NOMEMORY, "GCAlabel: could not allocate dst") ;
@@ -4434,7 +4434,7 @@ GCAannealUnlikelyVoxels(MRI *mri_inputs,
   width = mri_inputs->width ;
   height = mri_inputs->height ;
   depth = mri_inputs->depth ;
-  mri_bad = MRIalloc(width, height, depth, MRI_UCHAR) ;
+  mri_bad = MRIalloc(width, height, depth, MRI_INT) ;
   MRIcopyHeader(mri_inputs, mri_bad);
 
   for (nindices = x = 0 ; x < width ; x++)
@@ -4443,7 +4443,7 @@ GCAannealUnlikelyVoxels(MRI *mri_inputs,
     {
       for (z = 0 ; z < depth ; z++)
       {
-        if (mri_fixed && MRIvox(mri_fixed, x, y, z) > 0)
+        if (mri_fixed && MRIgetVoxVal(mri_fixed, x, y, z,0) > 0)
         {
           continue ;
         }
@@ -4458,7 +4458,7 @@ GCAannealUnlikelyVoxels(MRI *mri_inputs,
           gcan = &gca->nodes[xn][yn][zn] ;
           if (log_posterior < log(1.0f/(float)gcan->total_training))
           {
-            MRIvox(mri_bad, x, y, z) = 1 ;
+            MRIsetVoxVal(mri_bad, x, y, z, 0, 1) ;
             nindices++ ;
           }
         }
@@ -4476,7 +4476,7 @@ GCAannealUnlikelyVoxels(MRI *mri_inputs,
     {
       for (z = 0 ; z < depth ; z++)
       {
-        if (MRIvox(mri_bad, x, y, z) > 0)
+        if (MRIgetVoxVal(mri_bad, x, y, z,0) > 0)
         {
           x_indices[index] = x ;
           y_indices[index] = y ;
@@ -5484,8 +5484,8 @@ GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas, int nsamples)
         for (zk = -scale/2 ; zk <= scale/2 ; zk++)
         {
           zd = MIN(MAX(0, zd0+zk), gca_dst->prior_height-1) ;
-          if (MRIvox(mri_found, (int)(xd*vscale), (int)(yd*vscale),
-                     (int)(zd*vscale)))
+          if (MRIgetVoxVal(mri_found, (int)(xd*vscale), (int)(yd*vscale),
+			   (int)(zd*vscale),0))
           {
             continue ;
           }
@@ -5522,8 +5522,8 @@ GCAtransformSamples(GCA *gca_src, GCA *gca_dst, GCA_SAMPLE *gcas, int nsamples)
               label, gcas[i].xp, gcas[i].yp, gcas[i].zp) ;
       DiagBreak() ;
     }
-    MRIvox(mri_found, (int)(gcas[i].xp*vscale),
-           (int)(gcas[i].yp*vscale), (int)(gcas[i].zp*vscale))= 1;
+    MRIsetVoxVal(mri_found, (int)(gcas[i].xp*vscale),
+		 (int)(gcas[i].yp*vscale), (int)(gcas[i].zp*vscale),0,1);
     if (gcas[i].yp < min_y)
     {
       min_y = gcas[i].yp ;
@@ -5892,7 +5892,7 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
       xv = gcas[i].xp*scale ;
       yv = gcas[i].yp*scale ;
       zv = gcas[i].zp*scale ;
-      MRIvox(mri_found, xv, yv, zv) = 1 ;
+      MRIsetVoxVal(mri_found, xv, yv, zv, 0, 1) ;
     }
 
     do
@@ -5922,7 +5922,7 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
               DiagBreak() ;
             }
 
-            if (!MRIvox(mri_found, xv, yv, zv))
+            if (!(int)MRIgetVoxVal(mri_found, xv, yv, zv,0))
               /* none at this location yet */
             {
               if (gcas2->label == Gdiag_no)
@@ -5931,7 +5931,7 @@ GCAfindStableSamplesByLabel(GCA *gca, int nsamples, float min_prior)
               }
               samples_added[n]++ ;
               gcas[total_found+nfound++] = *gcas2 ;
-              MRIvox(mri_found, xv, yv, zv) = gcas2->label ;
+              MRIsetVoxVal(mri_found, xv, yv, zv, 0, gcas2->label) ;
               gcas2->label = -1 ;
               if (nfound+total_found >= nsamples)
               {
@@ -6221,7 +6221,8 @@ GCA_SAMPLE *
 GCAfindStableSamples(GCA *gca,
                      int *pnsamples, int min_spacing,
                      float min_prior, int *exclude_list,
-                     int unknown_nbr_spacing)
+                     int unknown_nbr_spacing,
+		     int vent_spacing)
 {
   GCA_SAMPLE *gcas ;
   int   xi, yi, zi, width, height, depth, label, nfound;
@@ -6233,10 +6234,29 @@ GCAfindStableSamples(GCA *gca,
   float vars[MAX_DIFFERENT_LABELS], max_priors[MAX_DIFFERENT_LABELS];
   float prior_stride, x, y, z, min_unknown[MAX_GCA_INPUTS];
   float max_unknown[MAX_GCA_INPUTS], prior_factor ;
-  MRI   *mri_filled ;
+  MRI   *mri_filled, *mri_vent_dist = NULL ;
 
 #define MIN_UNKNOWN_DIST  2
 
+  if (vent_spacing > 0)
+  {
+    MRI *mri_labels = GCAbuildMostLikelyLabelVolume(gca) ;
+    MRI *mri_vent ;
+    mri_vent = MRIclone(mri_labels, NULL) ;
+    MRIcopyLabel(mri_labels, mri_vent, Left_Lateral_Ventricle) ;
+    MRIcopyLabel(mri_labels, mri_vent, Right_Lateral_Ventricle) ;
+//    MRIcopyLabel(mri_labels, mri_vent, Left_Inf_Lat_Vent) ;
+//    MRIcopyLabel(mri_labels, mri_vent, Right_Inf_Lat_Vent) ;
+    MRIbinarize(mri_vent, mri_vent, 1, 0, 1) ;
+
+//    MRIwrite(mri_vent, "v.mgz") ;
+//    MRIwrite(mri_labels, "l.mgz") ;
+    mri_vent_dist = MRIdistanceTransform(mri_vent, NULL, 1,
+					 mri_vent->width,
+					 DTRANS_MODE_SIGNED, NULL) ;
+//    MRIwrite(mri_vent_dist, "d.mgz") ;
+    MRIfree(&mri_vent) ; MRIfree(&mri_labels) ;
+  }
   gcaFindMaxPriors(gca, max_priors) ;
   gcaFindIntensityBounds(gca, min_unknown, max_unknown) ;
   printf("bounding unknown intensity as < ") ;
@@ -6366,6 +6386,9 @@ GCAfindStableSamples(GCA *gca,
             continue ;
           }
 
+	  if ((IS_WM(label) || IS_THALAMUS(label) || IS_CAUDATE(label)) && mri_vent_dist && (MRIgetVoxVal(mri_vent_dist, x, y, z,0) < vent_spacing))
+	    continue ;
+
           if ((best_label == 0) ||
               (priors[label] > max_prior) ||
               (FEQUAL(priors[label], max_prior) &&
@@ -6409,7 +6432,7 @@ GCAfindStableSamples(GCA *gca,
                 if (!GCApriorToVoxel(gca, mri_filled,
                                      x, y, z, &xv, &yv, &zv))
                 {
-                  if (MRIvox(mri_filled, xv, yv, zv) == 0)
+                  if (MRIgetVoxVal(mri_filled, xv, yv, zv,0) == 0)
                   {
                     mriFillRegion(mri_filled,
                                   xv, yv, zv, 0, 1,
@@ -6471,6 +6494,9 @@ GCAfindStableSamples(GCA *gca,
   *pnsamples = nfound ;
   fflush(stdout) ;
 
+  if (mri_vent_dist)
+    MRIfree(&mri_vent_dist) ;
+
   MRIfree(&mri_filled) ;
   return(gcas) ;
 }
@@ -6501,6 +6527,7 @@ GCAfindExteriorSamples(GCA *gca,
   {
     max_unknown[r] = (max_unknown[r] + tmp[r])/2;
   }
+
 
   GCAlabelVar(gca, Left_Lateral_Ventricle, var) ;
   GCAlabelVar(gca, Right_Lateral_Ventricle, tmp) ;
@@ -7890,7 +7917,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
     for (y = 0 ; y < height ; y++)
       for (z = 0 ; z < depth ; z++)
       {
-        MRIvox(mri_changed,x,y,z) = 1 ;
+        MRIsetVoxVal(mri_changed,x,y,z, 0, 1) ;
       }
 
 #if 0
@@ -7946,7 +7973,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
         }
 
 #if 1
-        if (MRIvox(mri_changed, x, y, z) == 0)
+        if ((int)MRIgetVoxVal(mri_changed, x, y, z,0) == 0)
         {
           continue ;
         }
@@ -8091,18 +8118,18 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
                                      PRIOR_FACTOR) ;
           if (new_posterior > old_posterior)
           {
-            MRIvox(mri_changed, x, y, z) = 1 ;
+            MRIsetVoxVal(mri_changed, x, y, z, 0,  1) ;
             nchanged++ ;
           }
           else
           {
             MRIsetVoxVal(mri_dst, x, y, z, 0, old_label) ;
-            MRIvox(mri_changed, x, y, z) = 0 ;
+            MRIsetVoxVal(mri_changed, x, y, z, 0, 0) ;
           }
         }
         else
         {
-          MRIvox(mri_changed, x, y, z) = 0 ;
+          MRIsetVoxVal(mri_changed, x, y, z,0, 0) ;
         }
       } // if (!GCAsource...)
     } // index loop
@@ -8176,7 +8203,7 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM *transform,
     for (y = 0 ; y < height ; y++)
       for (z = 0 ; z < depth ; z++)
       {
-        MRIvox(mri_changed,x,y,z) = 1 ;
+        MRIsetVoxVal(mri_changed,x,y,z, 0, 1) ;
       }
 
   old_posterior = GCAgibbsImageLogPosterior(gca, mri_dst, mri_inputs, transform) ;
@@ -8231,7 +8258,7 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM *transform,
       }
 
 #if 1
-      if (MRIvox(mri_changed, x, y, z) == 0)
+      if ((int)MRIgetVoxVal(mri_changed, x, y, z,0) == 0)
       {
         continue ;
       }
@@ -8279,11 +8306,11 @@ GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM *transform,
         if (label != old_label)
         {
           nchanged++ ;
-          MRIvox(mri_changed, x, y, z) = 1 ;
+          MRIsetVoxVal(mri_changed, x, y, z,0,  1) ;
         }
         else
         {
-          MRIvox(mri_changed, x, y, z) = 0 ;
+          MRIsetVoxVal(mri_changed, x, y, z, 0, 0) ;
         }
         MRIsetVoxVal(mri_dst, x, y, z, 0,label) ;
       }
@@ -8375,7 +8402,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
   iter = 0 ;
   if (!mri_dst)
   {
-    mri_dst = MRIalloc(width, height, depth, MRI_UCHAR) ;
+    mri_dst = MRIalloc(width, height, depth, MRI_INT) ;
     if (!mri_dst)
     {
       ErrorExit(ERROR_NOMEMORY, "GCAlabel: could not allocate dst") ;
@@ -8397,15 +8424,15 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
         if (restart && mri_fixed)
         {
           // mark only fixed voxels
-          if (MRIvox(mri_fixed, x, y, z))
+          if (MRIgetVoxVal(mri_fixed, x, y, z,0))
           {
-            MRIvox(mri_changed,x,y,z) = 1 ;
+            MRIsetVoxVal(mri_changed,x,y,z, 0, 1) ;
           }
         }
         else
           // everything is marked
         {
-          MRIvox(mri_changed,x,y,z) = 1 ;
+          MRIsetVoxVal(mri_changed,x,y,z, 0, 1) ;
         }
       }
 
@@ -8461,8 +8488,8 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
           for (z = 0 ; z < depth ; z++)
           {
             // not fixed voxel, but changed
-            if (MRIvox(mri_fixed, x, y, z) == 0 &&
-                (MRIvox(mri_changed,x,y,z) > 0))
+            if ((int)MRIgetVoxVal(mri_fixed, x, y, z, 0) == 0 &&
+                ((int)MRIgetVoxVal(mri_changed,x,y,z, 0) > 0))
             {
               x_indices[index] = x ;
               y_indices[index] = y ;
@@ -8514,13 +8541,13 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
       }
 
       // if the label is fixed, don't do anything
-      if (mri_fixed && MRIvox(mri_fixed, x, y, z))
+      if (mri_fixed && MRIgetVoxVal(mri_fixed, x, y, z,0))
       {
         continue ;
       }
 
       // if not marked, don't do anything
-      if (MRIvox(mri_changed, x, y, z) == 0)
+      if (MRIgetVoxVal(mri_changed, x, y, z,0) == 0)
       {
         continue ;
       }
@@ -8611,11 +8638,11 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
       {
         nchanged++ ;
         // mark it as changed
-        MRIvox(mri_changed, x, y, z) = 1 ;
+        MRIsetVoxVal(mri_changed, x, y, z, 0, 1) ;
       }
       else
       {
-        MRIvox(mri_changed, x, y, z) = 0 ;
+        MRIsetVoxVal(mri_changed, x, y, z, 0, 0) ;
       }
       // assign new label
       MRIsetVoxVal(mri_dst, x, y, z, 0, label) ;
@@ -8792,7 +8819,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
           for (y = 0 ; y < height ; y++)
             for (z = 0 ; z < depth ; z++)
             {
-              MRIvox(mri_changed,x,y,z) = 1 ;
+              MRIsetVoxVal(mri_changed,x,y,z, 0, 1) ;
             }
       }
       if (fixed && !restart)
@@ -8849,7 +8876,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
         x = x_indices[index] ;
         y = y_indices[index] ;
         z = z_indices[index] ;
-        if (MRIvox(mri_probs, x, y, z) != 255)
+        if ((int)MRIgetVoxVal(mri_probs, x, y, z, 0) != 255)
         {
           break ;
         }
@@ -8861,14 +8888,13 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
         x = x_indices[index] ;
         y = y_indices[index] ;
         z = z_indices[index] ;
-        if (MRIvox(mri_probs, x, y, z) == 255)
+        if ((int)MRIgetVoxVal(mri_probs, x, y, z, 0) == 255)
         {
-          MRIvox(mri_probs, x, y, z) = 0 ;
+          MRIsetVoxVal(mri_probs, x, y, z, 0,  0) ;
         }
         else
         {
-          MRIvox(mri_probs, x, y, z) =
-            100 * (float)(n_nonzero-index)/n_nonzero ;
+          MRIsetVoxVal(mri_probs, x, y, z, 0, 100 * (float)(n_nonzero-index)/n_nonzero) ;
         }
       }
       MRIwrite(mri_probs, fname) ;
@@ -8920,7 +8946,7 @@ gcaGibbsSort(GCA *gca, MRI *mri_labels, MRI *mri_inputs,
         {
           log_posterior = 255 ;
         }
-        MRIvox(mri_probs,x,y,z) = log_posterior ;
+        MRIsetVoxVal(mri_probs,x,y,z, 0, log_posterior) ;
         total_log_posterior += log_posterior ;
       }
     }
