@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lindemer $
- *    $Date: 2014/05/05 15:07:47 $
- *    $Revision: 1.123 $
+ *    $Author: fischl $
+ *    $Date: 2014/07/17 20:11:38 $
+ *    $Revision: 1.124 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -296,7 +296,7 @@ GCA_SAMPLE *GCAfindContrastSamples(GCA *gca, int *pnsamples, int min_spacing,
 GCA_SAMPLE *GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list,
                               int unknown_nbr_spacing) ;
 GCA_SAMPLE *GCAfindStableSamples(GCA *gca, int *pnsamples, int min_spacing,
-                                 float min_prior, int *exclude_list, int unknown_nbr_spacing) ;
+                                 float min_prior, int *exclude_list, int unknown_nbr_spacing, int vent_spacing) ;
 GCA_SAMPLE *GCAfindExteriorSamples(GCA *gca, int *pnsamples, int min_spacing,
                                    float min_prior, int unknown_nbr_spacing, int use_ventricles) ;
 GCA_SAMPLE *GCAfindStableSamplesByLabel(GCA *gca, int nsamples,
@@ -385,7 +385,7 @@ int GCArenormalizeToExample(GCA *gca, MRI *mri_seg, MRI *mri_T1) ;
 
 int     GCAlabelMode(GCA *gca, int label, float *modes) ;
 int     GCAlabelMean(GCA *gca, int label, float *means) ;
-int     GCAlabelVar(GCA *gca, int label, float *means) ;
+int     GCAlabelVar(GCA *gca, int label, float *vars) ;
 int     GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform, MRI *mri, int label, float *means) ;
 MATRIX  *GCAlabelCovariance(GCA *gca, int label, MATRIX *m_total) ;
 int     GCAregularizeConditionalDensities(GCA *gca, float smooth) ;
@@ -464,6 +464,7 @@ int GCAcomputeLabelStats(GCA *gca, int target_label, float *pvar, float *means);
 float GCAcomputeLabelLikelihood(GCA *gca, TRANSFORM *transform, MRI *mri, 
                                 float x, float y, float z, int label) ;
 float GCAcomputeLabelPosterior(GCA *gca, TRANSFORM *transform, MRI *mri, float x, float y, float z, int label) ;
+int GCApriorToVoxelReal(GCA *gca, MRI *mri, double xp, double yp, double zp, double *pxv, double *pyv, double *pzv) ;
 GCA_NODE *GCAbuildRegionalGCAN( const GCA *gca,
 				int x, int y, int z, int wsize );
 int set_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs) ;
