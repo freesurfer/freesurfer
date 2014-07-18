@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/04/14 18:49:57 $
- *    $Revision: 1.24 $
+ *    $Date: 2014/07/18 02:11:40 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -279,7 +279,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_deface.c,v 1.24 2011/04/14 18:49:57 fischl Exp $", "$Name:  $");
+           "$Id: mri_deface.c,v 1.25 2014/07/18 02:11:40 fischl Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     ErrorExit
@@ -489,7 +489,7 @@ main(int argc, char *argv[]) {
       parms.gcas = GCAfindContrastSamples(gca,&nsamples, spacing,min_prior);
     else
       parms.gcas = GCAfindStableSamples
-                   (gca, &nsamples,spacing, min_prior, exclude_list,1);
+	(gca, &nsamples,spacing, min_prior, exclude_list,1,-1);
     printf("spacing=%d, using %d sample points, tol=%2.2e...\n",
            spacing, nsamples, parms.tol) ;
     parms.nsamples = nsamples ;
