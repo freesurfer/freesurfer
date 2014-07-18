@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/02/06 22:51:40 $
- *    $Revision: 1.98 $
+ *    $Author: fischl $
+ *    $Date: 2014/07/18 02:11:35 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -87,6 +87,7 @@ int robust = 0 ;
   be used in the alignment.
 */
 static int unknown_nbr_spacing = 1 ;
+static int vent_spacing = -1 ;
 
 static float label_scales[MAX_CMA_LABELS] ;
 static float label_offsets[MAX_CMA_LABELS] ;
@@ -231,7 +232,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.98 2013/02/06 22:51:40 nicks Exp $",
+     "$Id: mri_em_register.c,v 1.99 2014/07/18 02:11:35 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -731,7 +732,7 @@ main(int argc, char *argv[])
     else
       parms.gcas = GCAfindStableSamples
                    (gca, &nsamples,spacing,
-                    min_prior,exclude_list,unknown_nbr_spacing) ;
+                    min_prior,exclude_list,unknown_nbr_spacing, vent_spacing) ;
     mark_gcas_classes(parms.gcas, nsamples) ;
     printf("************************************************\n");
     printf("spacing=%d, using %d sample points, tol=%2.2e...\n",
@@ -1650,10 +1651,11 @@ get_option(int argc, char *argv[])
     // seems not used
     nomap = 1 ;
   }
-  else if (!strcmp(option, "bigvent"))
+  else if (!strcmp(option, "BIGVENT"))
   {
     bigvent = 1 ;
-    printf("handling expanded ventricles\n") ;
+    vent_spacing = 30 ;
+    printf("handling expanded ventricles with vent_spacing = %d\n", vent_spacing) ;
   }
   else if (!strcmp(option, "LSCALE"))
   {
@@ -1783,9 +1785,13 @@ get_option(int argc, char *argv[])
   {
     unknown_nbr_spacing = atoi(argv[2]) ;
     nargs = 1 ;
-    printf("aligning to atlas containing skull, "
-           "setting unknown_nbr_spacing = %d\n",
-           unknown_nbr_spacing) ;
+    printf("setting unknown_nbr_spacing = %d\n", unknown_nbr_spacing) ;
+  }
+  else if (!strcmp(option, "VENT_SPACING"))
+  {
+    vent_spacing = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("disallowing WM voxels within %d mm of ventricles in atlas (useful for big ventricles)\n", vent_spacing) ;
   }
   /////// debug options //////////////////////////////////
   else if (!strcmp(option, "DIAG"))
