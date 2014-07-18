@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/07/17 19:39:21 $
- *    $Revision: 1.104 $
+ *    $Author: greve $
+ *    $Date: 2014/07/18 02:52:08 $
+ *    $Revision: 1.105 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -188,7 +188,7 @@ static int parcellation_type = CMA_PARCELLATION ;
 MRI *insert_wm_segmentation( MRI *mri_labeled, MRI *mri_wm,
                              int parcellation_type, int fixed_flag,
                              GCA *gca, TRANSFORM *transform );
-
+int MRItoUCHAR(MRI **pmri);
 extern char *gca_write_fname ;
 extern int gca_write_iterations ;
 
@@ -216,13 +216,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.104 2014/07/17 19:39:21 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.105 2014/07/18 02:52:08 greve Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.104 2014/07/17 19:39:21 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.105 2014/07/18 02:52:08 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1241,6 +1241,9 @@ int main(int argc, char *argv[])
     mri_labeled = mri_tmp ;
   }
 #endif
+
+  // convert back to uchar if possible
+  MRItoUCHAR(&mri_labeled);
 
   printf("writing labeled volume to %s...\n", out_fname) ;
   if (MRIwrite(mri_labeled, out_fname) != NO_ERROR)
@@ -4253,4 +4256,63 @@ replace_cortex_far_from_surface_with_wmsa(MRI *mri_inputs, MRI *mri_src, MRI *mr
   printf("%d voxels interior to surface changed from cortex to WMSA\n", nchanged) ;
   MRIfree(&mri_lh_dist) ; MRIfree(&mri_rh_dist) ;
   return(mri_dst) ;
+}
+
+/*
+  \fn int MRItoUCHAR(MRI **pmri)
+  \brief Changes the mri to uchar if it is not uchar already and the
+  range is between 0 and 255 inclusive. This is mainly used by the
+  output of mri_ca_label to change the output to uchar since the inner
+  workings of the labeling were changed to use int. With this, the
+  aseg output will be uchar and so not break anything downstream.
+ */
+int MRItoUCHAR(MRI **pmri)
+{
+  MRI *mri, *mri2;
+  int c,r,s,f;
+  double v, vmin, vmax;
+
+  mri = *pmri;
+
+  if(mri->type == MRI_UCHAR) return(0);
+
+  vmax = MRIgetVoxVal(mri,0,0,0,0);  
+  vmin = vmax;
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	for(f=0; f < mri->nframes; f++){
+	  v = MRIgetVoxVal(mri,c,r,s,f);
+	  if(v < vmin) vmin = v;
+	  if(v > vmax) vmax = v;
+	}
+      }
+    }
+  }
+
+  printf("MRItoUCHAR: min=%g, max=%g\n",vmin,vmax);
+
+  if(vmin < 0 || vmax > 255){
+    printf("MRItoUCHAR: range too large, not changing type\n");
+    return(0);
+  }
+
+  printf("MRItoUCHAR: converting to UCHAR\n");
+
+  mri2 = MRIcloneBySpace(mri, MRI_UCHAR, mri->nframes);
+
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	for(f=0; f < mri->nframes; f++){
+	  v = MRIgetVoxVal(mri,c,r,s,f);
+	  MRIsetVoxVal(mri2,c,r,s,f,nint(v));
+	}
+      }
+    }
+  }
+
+  MRIfree(&mri);
+  *pmri = mri2;
+  return(1);
 }
