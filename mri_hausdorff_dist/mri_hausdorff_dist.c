@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:16 $
- *    $Revision: 1.13 $
+ *    $Author: lzollei $
+ *    $Date: 2014/07/18 20:19:23 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.13 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.14 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -56,7 +56,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which);
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.13 2011/03/02 00:04:16 nicks Exp $";
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.14 2014/07/18 20:19:23 lzollei Exp $";
 static int fromFile = 0;
 
 char *Progname ;
@@ -349,7 +349,7 @@ compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which)
                 xf = x + dx * fabs(d2)/dist ;
                 yf = y + dy * fabs(d2)/dist ;
                 zf = z + dz * fabs(d2)/dist ;
-		printf("mri_hausdorff: dist = %f\n", dist);
+		//printf("mri_hausdorff: dist = %f\n", dist);
                 MRIsampleVolume(mri[n], xf, yf, zf, &zval) ;
                 if (zval < 0)
                   DiagBreak() ;
