@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/30 18:29:51 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/07/21 16:49:05 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -165,6 +165,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     menu->addAction(wnd->ui->actionNewROI);
     menu->addAction(wnd->ui->actionLoadROI);
     menu->addAction(wnd->ui->actionGoToROI);
+    menu->addAction(wnd->ui->actionShowLabelStats);
     menu->addSeparator();
   }
   if (type == "PointSet" || type.isEmpty())

@@ -18,9 +18,10 @@ public:
     void showEvent(QShowEvent *);
 
   public slots:
-    void OnSlicePositionChanged();
+    void UpdateStats();
 
 private:
+
     Ui::DialogLabelStats *ui;
 };
 

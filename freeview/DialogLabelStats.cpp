@@ -3,6 +3,7 @@
 #include "MainWindow.h"
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
+#include "LayerROI.h"
 
 DialogLabelStats::DialogLabelStats(QWidget *parent) :
     QWidget(parent),
@@ -17,7 +18,7 @@ DialogLabelStats::~DialogLabelStats()
     delete ui;
 }
 
-void DialogLabelStats::OnSlicePositionChanged()
+void DialogLabelStats::UpdateStats()
 {
   if (!isVisible())
     return;
@@ -35,14 +36,26 @@ void DialogLabelStats::OnSlicePositionChanged()
     if (label && mri)
       break;
   }
+  LayerROI* roi = (LayerROI*)mainwnd->GetActiveLayer("ROI");
 
-  if (label)
+  float fLabel, fArea = 0;
+  double mean, sd;
+  int nCount = 0;
+  if (label && label->IsVisible())
   {
-    float fLabel, fArea = 0;
-    double mean, sd;
-    int nCount = 0;
     label->GetCurrentLabelStats( mainwnd->GetMainViewId(), &fLabel, &nCount, &fArea, mri, &mean, &sd );
     ui->labelLabel->setText(QString::number((int)fLabel));
+    ui->labelCount->setText(QString::number(nCount));
+    ui->labelArea->setText(QString("%3 mm2").arg(fArea));
+    if (mri)
+      ui->labelMean->setText(QString("%1 +/- %2").arg(mean).arg(sd));
+    else
+      ui->labelMean->clear();
+  }
+  else if (roi) // update ROI
+  {
+    roi->GetStats( mainwnd->GetMainViewId(), &nCount, &fArea, mri, &mean, &sd );
+    ui->labelLabel->setText(roi->GetName());
     ui->labelCount->setText(QString::number(nCount));
     ui->labelArea->setText(QString("%3 mm2").arg(fArea));
     if (mri)
@@ -54,6 +67,6 @@ void DialogLabelStats::OnSlicePositionChanged()
 
 void DialogLabelStats::showEvent(QShowEvent *e)
 {
-  OnSlicePositionChanged();
+  UpdateStats();
   QWidget::showEvent(e);
 }

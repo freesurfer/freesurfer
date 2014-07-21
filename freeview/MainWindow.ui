@@ -1045,7 +1045,10 @@
   </action>
   <action name="actionShowLabelStats">
    <property name="text">
-    <string>Show Label Stats...</string>
+    <string>Show Label/ROI Stats...</string>
+   </property>
+   <property name="toolTip">
+    <string>Show Label/ROI Stats</string>
    </property>
   </action>
   <action name="actionQuickReference">

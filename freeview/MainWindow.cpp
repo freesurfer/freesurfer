@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/06/02 20:42:37 $
- *    $Revision: 1.285 $
+ *    $Date: 2014/07/21 16:49:05 $
+ *    $Revision: 1.286 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -238,7 +238,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   m_dlgLabelStats = new DialogLabelStats(this);
   m_dlgLabelStats->hide();
-  connect(this, SIGNAL(SlicePositionChanged()), m_dlgLabelStats, SLOT(OnSlicePositionChanged()), Qt::QueuedConnection);
+  connect(this, SIGNAL(SlicePositionChanged()), m_dlgLabelStats, SLOT(UpdateStats()), Qt::QueuedConnection);
+  connect(m_layerCollections["ROI"], SIGNAL(ActiveLayerChanged(Layer*)), m_dlgLabelStats, SLOT(UpdateStats()), Qt::QueuedConnection);
 
   m_dlgLineProfile = new DialogLineProfile(this);
   m_dlgLineProfile->hide();
@@ -1239,7 +1240,7 @@ void MainWindow::OnIdle()
   ui->actionShowSlices      ->blockSignals(true);
   ui->actionShowSlices      ->setChecked(ui->view3D->GetShowSlices());
   ui->actionShowSlices->blockSignals(false);
-  ui->actionShowLabelStats  ->setEnabled( layerVolume && layerVolume->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT );
+  ui->actionShowLabelStats  ->setEnabled( (layerVolume && layerVolume->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT) || layerROI );
   ui->actionToggleCursorVisibility  ->setEnabled( bHasLayer );
   ui->actionTogglePointSetVisibility->setEnabled( layerPointSet );
   ui->actionToggleROIVisibility     ->setEnabled( layerROI );
@@ -3569,7 +3570,11 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
 
 void MainWindow::CommandFlyThrough(const QStringList &cmd)
 {
-
+    if (GetMainViewId() > 2)
+    {
+      cerr << "Can not fly through. Please set main viewport to 2D slice view.\n";
+      return;
+    }
 }
 
 void MainWindow::CommandSetViewport( const QStringList& cmd )
