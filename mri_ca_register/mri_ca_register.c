@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/02/07 22:46:21 $
- *    $Revision: 1.89 $
+ *    $Author: fischl $
+ *    $Date: 2014/07/23 20:59:59 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,6 +74,7 @@
 #endif
 #include "gcamorphtestutils.h"
 
+static int nozero = 0 ;
 extern int gcam_write_grad ; // defined in gcamorph.c for diags
 static int remove_cerebellum = 0 ;
 static int remove_lh = 0 ;
@@ -237,7 +238,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.89 2014/02/07 22:46:21 greve Exp $",
+           "$Id: mri_ca_register.c,v 1.90 2014/07/23 20:59:59 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -899,6 +900,11 @@ main(int argc, char *argv[])
       GCAMcomputeMaxPriorLabels(gcam) ;
     }
   }
+  if (nozero)  // if negative will run once without them and once with them
+  {
+    printf("disabling zero nodes\n") ;
+    GCAMignoreZero(gcam, mri_inputs) ;
+  }
 //  GCAMmarkNegativeNodesInvalid(gcam) ;
   if (renorm_with_histos)
   {
@@ -1299,6 +1305,46 @@ main(int argc, char *argv[])
     }
 
     GCAapplyRenormalization(gca, llabel_scales_total, llabel_offsets_total, 0) ;
+  }
+
+  if (renormalization_fname)
+  {
+    FILE   *fp ;
+    int    *labels, nlines, i ;
+    float  *intensities, f1, f2 ;
+    char   *cp, line[STRLEN] ;
+
+    fp = fopen(renormalization_fname, "r") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read %s",
+                Progname, renormalization_fname) ;
+
+    cp = fgetl(line, 199, fp) ;
+    nlines = 0 ;
+    while (cp)
+    {
+      nlines++ ;
+      cp = fgetl(line, 199, fp) ;
+    }
+    rewind(fp) ;
+    printf("reading %d labels from %s...\n", nlines,renormalization_fname) ;
+    labels = (int *)calloc(nlines, sizeof(int)) ;
+    intensities = (float *)calloc(nlines, sizeof(float)) ;
+    cp = fgetl(line, 199, fp) ;
+    for (i = 0 ; i < nlines ; i++)
+    {
+      sscanf(cp, "%e  %e", &f1, &f2) ;
+      labels[i] = (int)f1 ;
+      intensities[i] = f2 ;
+      if (labels[i] == Left_Cerebral_White_Matter)
+      {
+        DiagBreak() ;
+      }
+      cp = fgetl(line, 199, fp) ;
+    }
+    GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
+    free(labels) ;
+    free(intensities) ;
   }
 
   //////////////////////////////////////////////////////////////////
@@ -2131,6 +2177,11 @@ get_option(int argc, char *argv[])
       parms.navgs = atoi(argv[2]) ;
       nargs = 1 ;
       printf("smoothing gradient with %d averages...\n", parms.navgs) ;
+      break ;
+    case 'Z':
+      nozero = !atoi(argv[2]) ;
+      printf("%sdisabling zero nodes\n", nozero ? "" : "NOT ") ;
+      nargs = 1 ;
       break ;
     case 'F':
       ctl_point_fname = argv[2] ;
