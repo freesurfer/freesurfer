@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/07/17 19:39:02 $
- *    $Revision: 1.318 $
+ *    $Date: 2014/07/23 21:01:09 $
+ *    $Revision: 1.319 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -21422,6 +21422,8 @@ GCAcomputeRenormalizationWithAlignment
         lower_thresh = 75 ;
         upper_thresh = 120 ;
         break ;
+      case Left_Hippocampus:
+      case Right_Hippocampus:
       case Left_Amygdala:
       case Right_Amygdala:
         lower_thresh = 50 ;
