@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2014/07/16 15:57:47 $
-#    $Revision: 1.470 $
+#    $Author: fischl $
+#    $Date: 2014/07/24 17:59:57 $
+#    $Revision: 1.471 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.470 2014/07/16 15:57:47 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.471 2014/07/24 17:59:57 fischl Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3547,7 +3547,7 @@ if($DoT2pial || $DoFLAIRpial) then
     # both regular and long processing:
     
     # actually map the input (and make conform as the T1 target)
-    set mapcmd = ( mri_convert -at $mdir/transforms/${t2flair}raw.lta )
+    set mapcmd = ( mri_convert -odt short -at $mdir/transforms/${t2flair}raw.lta )
     if($UseCubic) set mapcmd = ($mapcmd -rt cubic )
     set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
     set mapcmd = ($mapcmd $t2flairraw )
