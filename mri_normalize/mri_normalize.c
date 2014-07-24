@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/05/10 00:38:13 $
- *    $Revision: 1.81 $
+ *    $Date: 2014/07/24 21:37:42 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,7 @@ static MRI *MRIremoveWMOutliers(MRI *mri_src,
                                 MRI *mri_dst_ctrl,
                                 int intensity_below) ;
 int main(int argc, char *argv[]) ;
+static int remove_outliers_near_surface(MRI *mri_ctrl, MRI *mri_dist, MRI *mri_dst, MRI *mri_ctrl_out, float min_dist, float nsigma)  ;
 static int get_option(int argc, char *argv[]) ;
 static void  usage_exit(int code) ;
 static MRI *compute_bias(MRI *mri_src, MRI *mri_dst, MRI *mri_bias) ;
@@ -145,14 +146,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.81 2014/05/10 00:38:13 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.82 2014/07/24 21:37:42 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.81 2014/05/10 00:38:13 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.82 2014/07/24 21:37:42 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -353,6 +354,7 @@ main(int argc, char *argv[])
     {
       remove_surface_outliers(mri_ctrl, mri_dist, mri_dst, mri_ctrl) ;
     }
+    remove_outliers_near_surface(mri_ctrl, mri_dist, mri_dst, mri_ctrl, min_dist+1, 2.5) ;
     mri_bias = MRIbuildBiasImage(mri_dst, mri_ctrl, NULL, 0.0) ;
     if (mri_dist)
     {
@@ -1716,5 +1718,33 @@ MRIcombineDistanceTransforms(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst)
           MRIsetVoxVal(mri_dst, x, y, z, f, val1) ;
         }
   return(mri_dst) ;
+}
+
+static int
+remove_outliers_near_surface(MRI *mri_ctrl, MRI *mri_dist, MRI *mri_dst, MRI *mri_ctrl_out, float min_dist, float nsigma) 
+{
+  int x, y, z, c, nremoved ;
+  double mean, sigma, val ;
+
+  for (nremoved = x = 0 ; x < mri_ctrl->width ; x++)
+    for (y = 0 ; y < mri_ctrl->height ; y++)
+      for (z = 0 ; z < mri_ctrl->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz) 
+	  DiagBreak() ;
+	c = MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
+	if ((MRIgetVoxVal(mri_dist, x, y, z, 0) < min_dist) && (c > 0))  // it is a control point and it's close to the edge
+	{
+	  MRIsetVoxVal(mri_ctrl, x, y, z, 0, 0) ;  // so it won't be included in mean/variance calculation
+	  mean = MRImeanInLabelInRegion(mri_dst, mri_ctrl, c, x, y, z, 9, &sigma) ;
+	  val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
+	  if (fabs(val-mean) > nsigma*sigma)
+	    nremoved++ ;
+	  else 
+	    MRIsetVoxVal(mri_ctrl, x, y, z, 0, c) ;
+	}
+      }
+  printf("%d control points within %2.1fmm of the surface removed as intensity outliers\n", nremoved, min_dist) ;
+  return(nremoved) ;
 }
 
