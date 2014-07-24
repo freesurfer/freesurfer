@@ -1,17 +1,17 @@
 /**
  * @file  mri_simulate_atrophy.c
- * @brief fuse a set of segmentations (asegs)
- *
- * program to fuse a group of cross sectional segmentations into 
- * an initial estimate of a longitudinal one
- * See Sabuncu et al., MICCA 2009 (SNIP paper).
+ * @brief simulate atrophy in cortical or subcortical regions
+  *
+ * program to simulate atrophic changes in a cortical or subcortical structure by
+ * darkening the T1 intensities according to decrease volume fractions
+ * 
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.5 $
+ *    $Author: fischl $
+ *    $Date: 2014/07/24 21:37:18 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,6 +58,7 @@ MRI *MRIsimulateAtrophy(MRI *mri_norm, MRI *mri_aseg,  int target_label,
 static float noise_sigma = 4 ;
 static float atrophy_pct = 0.05 ;
 static int nlabels = 1 ;
+static int nlabels_set = 0 ;
 #define MAX_LABELS 100
 static int target_labels[MAX_LABELS] = { Left_Hippocampus } ;
 static int border_labels[MAX_LABELS][MAX_LABELS] ;
@@ -74,7 +75,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_simulate_atrophy.c,v 1.5 2011/03/02 00:04:24 nicks Exp $",
+     "$Id: mri_simulate_atrophy.c,v 1.6 2014/07/24 21:37:18 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -150,6 +151,13 @@ static int get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
   {
+  case 'L':
+    target_labels[nlabels_set] = atoi(argv[2]) ;
+    printf("simulating atrophy in label %s (%d)\n",
+	   cma_label_to_name(target_labels[nlabels_set]), target_labels[nlabels_set]) ;
+    ++nlabels_set ;
+    nargs = 1 ;
+    break ;
   case 'N':
     noise_sigma = atof(argv[2]) ;
     printf("using noise level %f\n", noise_sigma) ;
@@ -264,9 +272,9 @@ MRIsimulateAtrophy(MRI *mri_norm, MRI *mri_aseg,  int target_label,
         // compute mean of this label
         pv = MRIgetVoxVal(mri_mixing, x, y, z, 0) ;
         mean_label = MRImeanInLabelInRegion(mri_norm, mri_aseg, target_label,
-                                            x, y, z, 7) ;
+                                            x, y, z, 7, NULL) ;
         mean_nbr = MRImeanInLabelInRegion(mri_norm, mri_aseg, nbr_label,
-                                          x, y, z, 7) ;
+                                          x, y, z, 7, NULL) ;
         val = MRIgetVoxVal(mri_norm, x, y, z, 0) ;
         pv = (val - mean_nbr) / (mean_label - mean_nbr) ;
         if (pv <= 0)
