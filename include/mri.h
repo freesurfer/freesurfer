@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/05/27 03:25:51 $
- *    $Revision: 1.465 $
+ *    $Author: fischl $
+ *    $Date: 2014/07/24 21:35:12 $
+ *    $Revision: 1.466 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -676,7 +676,7 @@ MATRIX *MRIcovarianceInLabelMultispectral(MRI *mri_src, MRI *mri_labeled, VECTOR
 VECTOR *MRImeanInLabelMultispectral(MRI *mri_src, MRI *mri_labeled, int label) ;
 double MRIstdInLabel(MRI *mri_src, MRI *mri_labeled, MRI *mri_mean, int label) ;
 double MRImeanInLabelInRegion(MRI *mri_src, MRI *mri_labeled,
-                              int label, int x0, int y0, int z0, int whalf);
+                              int label, int x0, int y0, int z0, int whalf, double *sigma);
 MRI   *MRImeanByte(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
 MRI   *MRIstdNonzero(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
