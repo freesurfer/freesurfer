@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/18 19:21:27 $
- *    $Revision: 1.26 $
+ *    $Date: 2014/07/24 19:37:49 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -430,7 +430,7 @@ bool LayerVolumeBase::CloneVoxelByIndex( int* n1, int* n2, int nPlane)
   return true;
 }
 
-bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b3D, char* mask_out )
+bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b3D, char* mask_out, bool ignore_exclusion )
 {
   int n[3];
   double* origin = m_imageData->GetOrigin();
@@ -443,7 +443,7 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b
 
   if (!b3D)
   {
-    if ( FloodFillByIndex( n, nPlane, bAdd, true, mask_out ) )
+    if ( FloodFillByIndex( n, nPlane, bAdd, true, mask_out, ignore_exclusion ) )
     {
       if ( !mask_out )
       {
@@ -479,7 +479,7 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b
 }
 
 // when mask_out is not null, do not fill the actual image data. instead, fill the mask_out buffer
-bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool ignore_overflow, char* mask_out )
+bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool ignore_overflow, char* mask_out, bool ignore_exclusion )
 {
   int* nDim = m_imageData->GetDimensions();
   int nx = 0, ny = 0, x = 0, y = 0;
@@ -623,7 +623,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool igno
           double fvalue = ref->GetScalarComponentAsDouble( n[nPlane], i, j, nActiveCompRef );
           if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
-               ( m_propertyBrush->GetExcludeRangeEnabled() &&
+               ( !ignore_exclusion && m_propertyBrush->GetExcludeRangeEnabled() &&
                  ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
           {
             ;
@@ -916,7 +916,7 @@ bool LayerVolumeBase::CopyStructure( int nPlane, double* ras )
   char* mask = new char[dim[0]*dim[1]*dim[2]];
   memset( mask, 0, dim[0]*dim[1]*dim[2] );
 
-  if ( FloodFillByRAS( ras, nPlane, true, mask ) )
+  if ( FloodFillByRAS( ras, nPlane, true, false, mask, true ) )
   {
     m_bufferClipboard.Clear();
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/07/21 16:49:05 $
- *    $Revision: 1.286 $
+ *    $Date: 2014/07/24 19:37:49 $
+ *    $Revision: 1.287 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -599,7 +599,7 @@ void MainWindow::closeEvent( QCloseEvent * event )
       msg += layers[i]->GetName() + " (" + layers[i]->GetFileName() + ")\n";
     }
     msg += "\nDo you still want to quit?";
-    QMessageBox msgbox;
+    QMessageBox msgbox(this);
     msgbox.setIcon(QMessageBox::Question);
     QAbstractButton* yesBtn = msgbox.addButton("Quit", QMessageBox::YesRole);
     QAbstractButton* noBtn = msgbox.addButton("Cancel", QMessageBox::NoRole);
