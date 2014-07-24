@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/05/11 13:46:53 $
- *    $Revision: 1.149 $
+ *    $Date: 2014/07/24 21:52:25 $
+ *    $Revision: 1.150 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.149 2014/05/11 13:46:53 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.150 2014/07/24 21:52:25 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -267,13 +267,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.149 2014/05/11 13:46:53 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.150 2014/07/24 21:52:25 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.149 2014/05/11 13:46:53 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.150 2014/07/24 21:52:25 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1534,9 +1534,19 @@ main(int argc, char *argv[])
 //  parms.l_histo = 1 ;
         parms.l_location = 1 ;
         parms.l_intensity = 0 ;
-        parms.l_nspring *= 0.1 ;
-        parms.l_tspring *= 0.1 ;
-        parms.l_curv *= 0.1 ;
+	if (i == 0) // only the first time
+	{
+#if 1
+	  parms.l_nspring *= 0.1 ;
+	  parms.l_tspring *= 0.1 ;
+	  parms.l_curv *= 0.1 ;
+#else
+	  parms.l_nspring *= 0.5 ;
+	  parms.l_tspring *= 0.5 ;
+	  parms.l_curv *= 0.5 ;
+#endif
+	}
+
 //  parms.l_max_spring = .1 ;
 //  parms.l_parea = .05 ;
       }
@@ -1656,9 +1666,18 @@ main(int argc, char *argv[])
 //        parms.l_histo = 1 ;
         parms.l_location = 1 ;
         parms.l_intensity = 0 ;
+#if 0
         parms.l_nspring *= 0.1 ;
         parms.l_tspring *= 0.1 ;
         parms.l_curv *= 0.1 ;
+#else
+	if (i == 0) // only the first time
+	{
+	  parms.l_nspring *= 0.5 ;
+	  parms.l_tspring *= 0.5 ;
+	  parms.l_curv *= 0.5 ;
+	}
+#endif
 //  parms.l_max_spring = .1 ;
 //  parms.l_parea = .05 ;
       }
