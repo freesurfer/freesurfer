@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/07/01 19:18:28 $
- *    $Revision: 1.546 $
+ *    $Author: fischl $
+ *    $Date: 2014/07/24 21:35:21 $
+ *    $Revision: 1.547 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.546 $";
+const char *MRI_C_VERSION = "$Revision: 1.547 $";
 
 
 /*-----------------------------------------------------
@@ -15729,10 +15729,11 @@ MRImeanAndStdInLabel(MRI *mri_src, MRI *mri_labeled, int label, double *pstd)
 
 double
 MRImeanInLabelInRegion(MRI *mri_src, MRI *mri_labeled,
-                       int label, int x0, int y0, int z0, int whalf)
+                       int label, int x0, int y0, int z0, int whalf, double *psigma)
 {
   int  x, y, z, nvox, l ;
   double mean = 0.0 ;
+  double var = 0.0 ;
   float  val ;
 
   nvox = 0 ;
@@ -15754,13 +15755,20 @@ MRImeanInLabelInRegion(MRI *mri_src, MRI *mri_labeled,
           val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
           mean += val ;
           nvox++ ;
+	  var += val*val ;
         }
       }
     }
   }
   if (!nvox)
     nvox = 1 ;
-  return(mean/nvox) ;
+  mean /= nvox ;
+  if (psigma)
+  {
+    var = var/nvox - mean*mean ;
+    *psigma = sqrt(var) ;
+  }
+  return(mean) ;
 }
 double
 MRImaxInLabelInRegion(MRI *mri_src, MRI *mri_labeled,
