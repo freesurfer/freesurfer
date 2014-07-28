@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/25 19:12:20 $
- *    $Revision: 1.67 $
+ *    $Date: 2014/07/28 19:48:34 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -129,7 +129,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.67 2014/02/25 19:12:20 greve Exp $",
+           "$Id: mri_ca_train.c,v 1.68 2014/07/28 19:48:34 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -954,7 +954,6 @@ main(int argc, char *argv[])
     MRI *mri ;
 
     mri = GCAbuildMostLikelyVolume(gca, NULL) ;
-    MRIwrite(mri, "m.mgh") ;
     MRIfree(&mri) ;
   }
 
