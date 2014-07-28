@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/07/23 21:01:09 $
- *    $Revision: 1.319 $
+ *    $Author: greve $
+ *    $Date: 2014/07/28 21:23:09 $
+ *    $Revision: 1.320 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25319,7 +25319,7 @@ GCAlabelWMandWMSAs(GCA *gca,
                    TRANSFORM *transform)
 {
   int    h, wm_label, wmsa_label, x, y, z, label, nwm, nwmsa, nunknown, ngm,
-         ncaudate, caudate_label, gm_label, n, found, i;
+         ncaudate, caudate_label, gm_label, n, found, i, NotWMSA;
   MATRIX *m_cov_wm, *m_cov_wmsa, *m_inv_cov_wmsa, *m_inv_cov_wm, *m_I,
          *m_cov_un, *m_inv_cov_un;
   VECTOR *v_mean_wm, *v_mean_wmsa, *v_vals, *v_dif_label, *v_dif_wmsa,
@@ -25462,30 +25462,22 @@ GCAlabelWMandWMSAs(GCA *gca,
               printf("         - wm_dist = %2.0f, "
                      "wmsa_dist = %2.0f, mdists = (%2.0f, %2.0f)\n",
                      wm_dist, wmsa_dist, wm_mdist, wmsa_mdist) ;
-            if ((wm_dist > wmsa_dist) && (wm_mdist > wmsa_mdist))
-            {
+            if ((wm_dist > wmsa_dist) && (wm_mdist > wmsa_mdist)) {
               VectorSubtract(v_vals, v_mean_wm, v_dif_label) ;
               VectorSubtract(v_vals, v_mean_wmsa, v_dif_wmsa) ;
-              if (
-                ((fabs(VECTOR_ELT(v_dif_wmsa,1)) <
-                  fabs(VECTOR_ELT(v_dif_label,1))) &&
-                 (fabs(VECTOR_ELT(v_dif_wmsa,2)) <
-                  fabs(VECTOR_ELT(v_dif_label,2))) &&
-                 (fabs(VECTOR_ELT(v_dif_wmsa,3)) <
-                  fabs(VECTOR_ELT(v_dif_label,3)))) ||
-                ((2*wmsa_dist < wm_dist) &&
-                 (2*wmsa_mdist < wm_mdist)))
-              {
-                if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-                  printf("changing label from %s to %s\n",
-                         cma_label_to_name(label),
-                         cma_label_to_name(wmsa_label)) ;
-                if (label == Unknown)
-                {
-                  DiagBreak() ;
-                }
+
+	      /* If the abs distance to wmsa is less than the abs dist
+	      to the label for all modes OR (the euclidan distance to
+	      WM is more than twice the dist to WMSA and the
+	      mahalanobis distance to WM is more than twice the dist
+	      to WMSA) then change the label to WMSA.
+	      */
+	      NotWMSA = 0;
+	      for(n=0; n < mri_inputs->nframes; n++)
+		if(fabs(VECTOR_ELT(v_dif_wmsa,n+1)) >= fabs(VECTOR_ELT(v_dif_label,n+1))) NotWMSA = 1;
+              if( !NotWMSA || ((2*wmsa_dist < wm_dist) && (2*wmsa_mdist < wm_mdist)) )
                 label = wmsa_label ;
-              }
+
             }
           }
           MRIsetVoxVal(mri_dst_labels, x, y, z, 0, label) ;
@@ -25577,19 +25569,11 @@ GCAlabelWMandWMSAs(GCA *gca,
                 printf("         - wm_dist = %2.0f, "
                        "wmsa_dist = %2.0f\n",
                        wm_dist, wmsa_dist) ;
-              if ((fabs(VECTOR_ELT(v_dif_wmsa,1)) <
-                   fabs(VECTOR_ELT(v_dif_label,1))) &&
-                  (fabs(VECTOR_ELT(v_dif_wmsa,2)) <
-                   fabs(VECTOR_ELT(v_dif_label,2))) &&
-                  (fabs(VECTOR_ELT(v_dif_wmsa,3)) <
-                   fabs(VECTOR_ELT(v_dif_label,3))))
-              {
-                if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-                  printf("changing label from %s to %s\n",
-                         cma_label_to_name(label),
-                         cma_label_to_name(wmsa_label)) ;
-                label = wmsa_label ;
-              }
+
+	      NotWMSA = 0;
+	      for(n=0; n < mri_inputs->nframes; n++)
+		if(fabs(VECTOR_ELT(v_dif_wmsa,n+1)) >= fabs(VECTOR_ELT(v_dif_label,n+1))) NotWMSA = 1;
+              if(!NotWMSA) label = wmsa_label ;
             }
             else if (label == wm_label)
             {
@@ -25598,24 +25582,10 @@ GCAlabelWMandWMSAs(GCA *gca,
                 printf("         - wm_dist = %2.0f, "
                        "wmsa_dist = %2.0f\n",
                        wm_dist, wmsa_dist) ;
-              if (((fabs(VECTOR_ELT(v_dif_wmsa,1)) <
-                    fabs(VECTOR_ELT(v_dif_label,1))) &&
-                   (fabs(VECTOR_ELT(v_dif_wmsa,2)) <
-                    fabs(VECTOR_ELT(v_dif_label,2))) &&
-                   (fabs(VECTOR_ELT(v_dif_wmsa,3)) <
-                    fabs(VECTOR_ELT(v_dif_label,3)))) ||
-                  (wmsa_dist*3 < wm_dist))
-              {
-                if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-                  printf("changing label from %s to %s\n",
-                         cma_label_to_name(label),
-                         cma_label_to_name(wmsa_label)) ;
-                if (label == Unknown)
-                {
-                  DiagBreak() ;
-                }
-                label = wmsa_label ;
-              }
+	      NotWMSA = 0;
+	      for(n=0; n < mri_inputs->nframes; n++)
+		if(fabs(VECTOR_ELT(v_dif_wmsa,n+1)) >= fabs(VECTOR_ELT(v_dif_label,n+1))) NotWMSA = 1;
+              if(!NotWMSA || (wmsa_dist*3 < wm_dist) ) label = wmsa_label ;
             }
             else if (label == Unknown)
             {
@@ -25624,23 +25594,10 @@ GCAlabelWMandWMSAs(GCA *gca,
                 printf("         - wm_dist = %2.0f, "
                        "wmsa_dist = %2.0f\n",
                        wm_dist, wmsa_dist) ;
-              if ((fabs(VECTOR_ELT(v_dif_wmsa,1)) <
-                   fabs(VECTOR_ELT(v_dif_label,1))) &&
-                  (fabs(VECTOR_ELT(v_dif_wmsa,2)) <
-                   fabs(VECTOR_ELT(v_dif_label,2))) &&
-                  (fabs(VECTOR_ELT(v_dif_wmsa,3)) <
-                   fabs(VECTOR_ELT(v_dif_label,3))))
-              {
-                if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-                  printf("changing label from %s to %s\n",
-                         cma_label_to_name(label),
-                         cma_label_to_name(wmsa_label)) ;
-                if (label == Unknown)
-                {
-                  DiagBreak() ;
-                }
-                label = wmsa_label ;
-              }
+	      NotWMSA = 0;
+	      for(n=0; n < mri_inputs->nframes; n++)
+		if(fabs(VECTOR_ELT(v_dif_wmsa,n+1)) >= fabs(VECTOR_ELT(v_dif_label,n+1))) NotWMSA = 1;
+              if(!NotWMSA) label = wmsa_label ;
             }
             MRIsetVoxVal(mri_dst_labels, x, y, z, 0, label) ;
           }
