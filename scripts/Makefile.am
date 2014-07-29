@@ -119,6 +119,7 @@ map_all_labels-lh \
 map_central_sulcus \
 map_to_base \
 meanval \
+mergeseg \
 merge_stats_tables \
 minc2seqinfo \
 misc.py \
