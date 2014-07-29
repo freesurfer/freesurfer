@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/07/29 19:10:54 $
- *    $Revision: 1.212 $
+ *    $Date: 2014/07/29 19:22:31 $
+ *    $Revision: 1.213 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.212 2014/07/29 19:10:54 fischl Exp $",
+   "$Id: mri_convert.c,v 1.213 2014/07/29 19:22:31 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.212 2014/07/29 19:10:54 fischl Exp $",
+      "$Id: mri_convert.c,v 1.213 2014/07/29 19:22:31 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1663,7 +1663,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.212 2014/07/29 19:10:54 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.213 2014/07/29 19:22:31 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -2908,6 +2908,7 @@ int main(int argc, char *argv[])
 	  mri_tmp = MRIresample(mri, mri_template, resample_type_val);
 	  MRIfree(&mri) ; MRIfree(&template) ; 
 	  mri = mri_tmp ;
+	  useVolGeomToMRI(&gcam->image, mri_template) ;
 	  template = mri_template ;
 	}
         printf("morphing from atlas with resample type %d\n", resample_type_val) ;
