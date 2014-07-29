@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/06/27 23:06:52 $
- *    $Revision: 1.211 $
+ *    $Author: fischl $
+ *    $Date: 2014/07/29 19:10:54 $
+ *    $Revision: 1.212 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.211 2014/06/27 23:06:52 greve Exp $",
+   "$Id: mri_convert.c,v 1.212 2014/07/29 19:10:54 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.211 2014/06/27 23:06:52 greve Exp $",
+      "$Id: mri_convert.c,v 1.212 2014/07/29 19:10:54 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1663,7 +1663,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.211 2014/06/27 23:06:52 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.212 2014/07/29 19:10:54 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -2894,13 +2894,28 @@ int main(int argc, char *argv[])
       }
       else // invert
       {
-        mri_transformed = MRIclone(mri, NULL);
+	GCA_MORPH *gcam = (GCA_MORPH *)tran->xform ;
+
         // check whether the volume to be morphed and the morph have the same dimensions
+	if ((gcam->image.width == mri->width) &&
+	    (gcam->image.height == mri->height) &&
+	    (gcam->image.depth == mri->depth))
+	  mri_transformed = MRIclone(mri, NULL);
+	else  // when morphing atlas to subject using -ait <3d morph> must resample atlas to 256 before applying morph
+	{
+	  MRI *mri_template = MRIalloc(gcam->image.width,  gcam->image.height, gcam->image.depth, mri->type), *mri_tmp  ;
+	  useVolGeomToMRI(&gcam->atlas, mri_template) ;
+	  mri_tmp = MRIresample(mri, mri_template, resample_type_val);
+	  MRIfree(&mri) ; MRIfree(&template) ; 
+	  mri = mri_tmp ;
+	  template = mri_template ;
+	}
         printf("morphing from atlas with resample type %d\n", resample_type_val) ;
         mri_transformed = GCAMmorphFromAtlas(mri,                  
-					     (GCA_MORPH *)tran->xform,
+					     gcam,
 					     mri_transformed,
 					     resample_type_val);
+	MRIwrite(mri_transformed, "t.mgz") ;
       }
       TransformFree(&tran);
       MRIfree(&mri);
