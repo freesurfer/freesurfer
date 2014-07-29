@@ -38,6 +38,8 @@
     <required-flagged>
     </required-flagged>
     <optional-flagged>
+      <argument>-no1d_remove &lt;s&gt;;</argument>
+      <explanation>don't run code that removes 1D strands from segmentation</explanation>
       <argument>-slope &lt;s&gt;</argument>
       <explanation>set the curvature slope (both n and p)</explanation>
       <argument>-pslope &lt;p&gt;</argument>

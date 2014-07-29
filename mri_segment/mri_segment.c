@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/08/04 19:39:41 $
- *    $Revision: 1.41 $
+ *    $Date: 2014/07/29 17:51:35 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
  *
  */
 
-const char *MRI_SEGMENT_VERSION = "$Revision: 1.41 $";
+const char *MRI_SEGMENT_VERSION = "$Revision: 1.42 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +74,7 @@ static int fill_ventricles = 0 ;
 static int keep_edits = 0 ;
 
 static int auto_detect_stats =  1 ;
+static int no1d_remove = 0 ;
 static int log_stats = 1 ;
 static void  usage_exit(int code) ;
 
@@ -121,7 +122,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_segment.c,v 1.41 2011/08/04 19:39:41 fischl Exp $",
+           "$Id: mri_segment.c,v 1.42 2014/07/29 17:51:35 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -167,8 +168,11 @@ main(int argc, char *argv[])
   {
     mri_dst = MRIcopy(mri_src, NULL) ;
     /*    MRIfilterMorphology(mri_dst, mri_dst) ;*/
-    fprintf(stderr, "removing 1-dimensional structures...\n") ;
-    MRIremove1dStructures(mri_dst, mri_dst, 10000, 2, NULL) ;
+    if (no1d_remove == 0)
+    {
+      fprintf(stderr, "removing 1-dimensional structures...\n") ;
+      MRIremove1dStructures(mri_dst, mri_dst, 10000, 2, NULL) ;
+    }
 #if 0
     MRIcheckRemovals(mri_src, mri_dst, mri_labels, 5) ;
     fprintf(stderr, "thickening thin strands....\n") ;
@@ -301,8 +305,11 @@ main(int argc, char *argv[])
   if (thicken)
   {
     /*    MRIfilterMorphology(mri_dst, mri_dst) ;*/
-    fprintf(stderr, "removing 1-dimensional structures...\n") ;
-    MRIremove1dStructures(mri_dst, mri_dst, 10000, 2, mri_labels) ;
+    if (no1d_remove == 0)
+    {
+      fprintf(stderr, "removing 1-dimensional structures...\n") ;
+      MRIremove1dStructures(mri_dst, mri_dst, 10000, 2, mri_labels) ;
+    }
 #if 0
     MRIcheckRemovals(mri_src, mri_dst, mri_labels, 5) ;
 #endif
@@ -395,6 +402,11 @@ get_option(int argc, char *argv[])
     printf("assuming input volume is WashU MP-RAGE (dark GM)\n") ;
     gray_hi = 85 ;
     wm_low = 80 ;
+  }
+  else if (!stricmp(option, "no1d_remove"))
+  {
+    fprintf(stderr, "disabling removal of 1D strands\n") ;
+    no1d_remove = 1 ;
   }
   else if (!stricmp(option, "slope"))
   {
