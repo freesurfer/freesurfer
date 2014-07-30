@@ -7,11 +7,11 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2014/07/30 14:39:06 $
-#    $Revision: 1.473 $
+#    $Author: nicks $
+#    $Date: 2014/07/30 22:11:16 $
+#    $Revision: 1.474 $
 #
-# Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.473 2014/07/30 14:39:06 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.474 2014/07/30 22:11:16 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -959,7 +959,10 @@ if ($DoConvertT2Input || $DoConvertFlairInput) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
 
   if ($DoConvertT2Input) then
-    set cmd = (mri_convert $InputT2Vol $subjdir/mri/orig/T2raw.mgz)
+    set cmd = (mri_convert \
+        --no_scale 1 \
+        $InputT2Vol \
+        $subjdir/mri/orig/T2raw.mgz)
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -969,7 +972,10 @@ if ($DoConvertT2Input || $DoConvertFlairInput) then
   endif
 
   if ($DoConvertFlairInput) then
-    set cmd = (mri_convert $InputFlairVol $subjdir/mri/orig/FLAIRraw.mgz)
+    set cmd = (mri_convert \
+        --no_scale 1 \
+        $InputFlairVol \
+        $subjdir/mri/orig/FLAIRraw.mgz)
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -3409,7 +3415,9 @@ if($DoT2pial || $DoFLAIRpial) then
     # both regular and long processing:
     
     # actually map the input (and make conform as the T1 target)
-    set mapcmd = ( mri_convert -odt short -at $mdir/transforms/${t2flair}raw.lta )
+    set mapcmd = (mri_convert \
+        -odt short \
+        -at $mdir/transforms/${t2flair}raw.lta)
     if($UseCubic) set mapcmd = ($mapcmd -rt cubic -ns 1)
     set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
     set mapcmd = ($mapcmd $t2flairraw )
@@ -3418,13 +3426,24 @@ if($DoT2pial || $DoFLAIRpial) then
     if($RunIt) $fs_time $mapcmd |& tee -a $LF
     if($status) goto error_exit;
     
-    # then give the T2/FLAIR a little normalizing
+    # then give the T2/FLAIR a little normalizing (saving pre-normalized)
+    set cmd = (cp -vf $mdir/${t2flair}.mgz \
+                      $mdir/${t2flair}.prenorm.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+    if ("${t2flair}" == "T2") then 
+        set normflags = (-sigma 0.5 nonmax_suppress 0 -min_dist 1)
+    else
+        set normflags = (-sigma 4)
+    endif
     set normcmd = (mri_normalize \
+        $normflags \
         -aseg $mdir/aseg.mgz \
-        -sigma 4 \
         -surface $sdir/rh.white identity.nofile \
         -surface $sdir/lh.white identity.nofile \
-        $mdir/${t2flair}.mgz \
+        $mdir/${t2flair}.prenorm.mgz \
         $mdir/${t2flair}.mgz)
     echo "\n $normcmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $normcmd |& tee -a $LF
