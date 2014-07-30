@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/08/22 17:12:26 $
- *    $Revision: 1.20 $
+ *    $Author: lindemer $
+ *    $Date: 2014/07/30 20:19:32 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.20 2011/08/22 17:12:26 nicks Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.21 2014/07/30 20:19:32 lindemer Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -57,9 +57,10 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
-static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right,
+static int relabel_hypointensities(MRI *mri, MRI *mri_inputs, MRI_SURFACE *mris, int right,
                                    GCA *gca, TRANSFORM *transform) ;
 static int relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) ;
+//static int load_val_vector(VECTOR *v_means, MRI *mri_inputs, int x, int y, int z) ; 
 
 static char *annot_name = "aparc.annot" ;
 
@@ -86,7 +87,7 @@ main(int argc, char *argv[])
 {
   char          **av, *hemi, fname[STRLEN], *in_fname,
                 *in_aseg_name, *out_aseg_name, *surf_dir ;
-  int           ac, nargs, h, i, ninputs, input ;
+  int           ac, nargs, h, i, ninputs, input;
   MRI_SURFACE   *mris ;
   MRI           *mri_aseg, *mri_tmp = NULL, *mri_inputs = NULL ;
   float         *thickness ;
@@ -209,11 +210,12 @@ main(int argc, char *argv[])
       if (which_edits & HYPO_EDITS)
       {
         printf("%s: relabeling hypointensities...\n", hemi) ;
-        relabel_hypointensities(mri_aseg, mris, h, gca, transform) ;
+        relabel_hypointensities(mri_aseg, mri_inputs, mris, h, gca, transform) ;
       }
       if (which_edits & (CORTEX_EDITS | CEREBELLUM_EDITS))
       {
         printf("%s: relabeling gray matter voxels.\n", hemi) ;
+	printf("Which edits are: %i\n", which_edits);
         relabel_gray_matter(mri_aseg, mris, which_edits) ;
       }
       MRISfree(&mris) ;
@@ -230,6 +232,9 @@ main(int argc, char *argv[])
       MRIfree(&mri_aseg) ;
       mri_aseg = mri_tmp ;
     }
+
+    //MRIwmsaHalo(mri_inputs, mri_aseg, 3);
+
   }
 
 #if 0
@@ -239,6 +244,10 @@ main(int argc, char *argv[])
     edit_unknowns(mri_aseg, mri_vals) ;
   }
 #endif
+  printf("Fixing halos... \n") ; 
+	MRIwmsaHalo(mri_inputs, mri_aseg, 3);
+  printf("Finished fixing halos...\n");
+  fflush(stdout) ; 
 
   printf("writing modified segmentation to %s...\n", out_aseg_name) ;
   MRIwrite(mri_aseg, out_aseg_name) ;
@@ -434,26 +443,52 @@ print_version(void)
   exit(1) ;
 }
 
+/*static int
+load_val_vector(VECTOR *v_means, MRI *mri_inputs, int x, int y, int z)
+{
+  int  n ;
+
+  for (n = 0 ; n < mri_inputs->nframes ; n++)
+  {
+    VECTOR_ELT(v_means, n+1) = MRIgetVoxVal(mri_inputs, x, y, z, n) ;
+  }
+  return(NO_ERROR) ;
+}*/
+
 static int
-relabel_hypointensities(MRI *mri,
+relabel_hypointensities(MRI *mri, MRI *mri_inputs,
                         MRI_SURFACE *mris,
                         int right,
                         GCA *gca,
                         TRANSFORM *transform)
 {
-  int              x, y, z, label, changed, n ;
+  int              x, y, z, label, changed, n, wmsa_label, wm_label ;
+  //int nwmsa;
   GCA_PRIOR        *gcap ;
   MRI              *mri_inside, *mri_inside_eroded, *mri_inside_dilated ;
   MRIS_HASH_TABLE *mht ;
   VERTEX           *v ;
-  float            dx, dy, dz, dot, dist ;
+  float            dx, dy, dz, dot, dist, temp_x, temp_y, temp_z;
   Real             xw, yw, zw ;
-
+ 
   mri_inside = MRIclone(mri, NULL) ;
   MRISeraseOutsideOfSurface(0.5, mri_inside, mris, 128) ;
   mri_inside_eroded = MRIerode(mri_inside, NULL) ;
   mri_inside_dilated = MRIdilate(mri_inside, NULL) ;
   mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
+
+
+ 	if(right)
+	   {
+	     wmsa_label = Right_WM_hypointensities;
+	     wm_label = Right_Cerebral_White_Matter;
+	   }
+	  else
+	  {
+	    wmsa_label = Left_WM_hypointensities;
+	    wm_label = Left_Cerebral_White_Matter;
+	  }
+
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     char fname[STRLEN] ;
@@ -470,6 +505,7 @@ relabel_hypointensities(MRI *mri,
     {
       for (z = 0 ; z < mri->depth ; z++)
       {
+
         if (x == Gx && y == Gy && z == Gz)
         {
           DiagBreak() ;
@@ -516,6 +552,16 @@ relabel_hypointensities(MRI *mri,
           dot = v->nx*dx + v->ny*dy + v->nz*dz ;
           dist = sqrt(dx*dx+dy*dy+dz*dz) ;
         }
+	temp_x = (float)xw;
+	temp_y = (float)yw;
+	temp_z = (float)zw;
+	if (x == Gx && y == Gy && z == Gz)
+	{
+		printf("(%f, %f, %f,) is the WM surface coordinate for voxel (%i, %i, %i)\n", temp_x, temp_y, temp_z, x, y, z);
+		printf("Distance from surface coordinates to nearest vertex is %f\n", dist);
+		printf("Dot is: %f\n", dot);
+		printf("Nearest vertex coordinates are: %f, %f, %f\n", v->x, v->y, v->z);
+	}
 
         if (dot > 0 && 
             (MRIgetVoxVal(mri_inside_eroded, x, y, z, 0) > 0))  
@@ -532,22 +578,44 @@ relabel_hypointensities(MRI *mri,
           printf("(%d, %d, %d), label %s, dist = %2.1f, dot = %2.1f\n",
                  Gx, Gy, Gz,
                  cma_label_to_name(label), dist, dot) ;
+
+	gcap = getGCAP(gca, mri, transform, x, y, z) ;
+	
         switch (label)
         {
         case Left_Cerebral_Cortex:
         case Right_Cerebral_Cortex:  // check to see if it's inside ribbon and change it to hypointensity
-          if (dot < 0 && dist > 2)
-          {
-            if (x == Gx && y == Gy && z == Gz)
+
+	if (dot < 0 && dist > 1)
+  {  
+
+	 MRIvox(mri,x,y,z) = right ? Right_Cerebral_White_Matter : Left_Cerebral_White_Matter ;
+
+	/*for (n = 0 ; n < gcap->nlabels ; n++)
             {
-              printf("inside gray/white boundary, "
+              
+               if (x == Gx && y == Gy && z == Gz)
+            	{
+              	printf("inside gray/white boundary, "
                      "changing to hypointensity...\n") ;
-            }
-            changed++ ;
-            MRIvox(mri, x, y, z) = 
-              right ? Right_WM_hypointensities : Left_WM_hypointensities ;
-          }
-          break ;
+            	}
+           	changed++ ;
+            	MRIvox(mri, x, y, z) = right ? Right_WM_hypointensities : Left_WM_hypointensities ;
+              }*/
+
+	  //nwmsa = MRIlabelsInNbhd(mri, x, y, z,3, wmsa_label) ;
+	  
+	  /*if(GCAdistWMvWMSA(mri_inputs, x, y, z, right, gca))
+		{
+	    	  MRIvox(mri, x, y, z) = right ? Right_WM_hypointensities : Left_WM_hypointensities ;
+		   changed++ ; 
+		}
+		
+	  else
+		  MRIvox(mri,x,y,z) = right ? Right_Cerebral_White_Matter : Left_Cerebral_White_Matter ;
+	    	 */  
+	   break ;
+	}
         case Left_WM_hypointensities:
         case Right_WM_hypointensities: // check to see if it's outside ribbon and change it to gm
           if (gca)  // if we have a gca, check to make sure gm is possible here
@@ -556,7 +624,7 @@ relabel_hypointensities(MRI *mri,
             double dist ;
 
             // don't change things on the walls of the ventricles
-            gcap = getGCAP(gca, mri, transform, x, y, z) ;
+            //gcap = getGCAP(gca, mri, transform, x, y, z) ;
             found = 0 ;
             for (n = 0 ; n < gcap->nlabels ; n++)
             {
@@ -610,8 +678,14 @@ relabel_hypointensities(MRI *mri,
                                xi, yi, zi) ;
                       break ;
                     }
-                    if (IS_GM(gcap->labels[n]) && gcap->priors[n] > 0.1)
+
+		    if (IS_HYPO(gcap->labels[n]) && gcap->priors[n] > 0.5)
+			break;
+			
+			//changed from 0.1 to 0.5 by emily 04/22/2014
+                    if (IS_GM(gcap->labels[n]) && gcap->priors[n] > 0.5)
                     {
+                   	
                       if (x == Gx && y == Gy && z == Gz)
                         printf("possible gray matter found at (%d, %d, %d)\n",
                                xi, yi, zi) ;
@@ -656,8 +730,7 @@ relabel_hypointensities(MRI *mri,
   return(NO_ERROR) ;
 }
 
-static int
-relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits)
+static int relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits)
 {
   int              x, y, z, label, changed, out_label, xi, yi, zi, left ;
   VECTOR           *v1, *v2 ;
