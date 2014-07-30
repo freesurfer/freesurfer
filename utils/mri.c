@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/07/24 21:35:21 $
- *    $Revision: 1.547 $
+ *    $Author: lindemer $
+ *    $Date: 2014/07/30 20:18:24 $
+ *    $Revision: 1.548 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.547 $";
+const char *MRI_C_VERSION = "$Revision: 1.548 $";
 
 
 /*-----------------------------------------------------
@@ -18689,5 +18689,481 @@ MRIcopyFramesToMatrixRows(MRI *mri, MATRIX *m_dst, int start_frame, int nframes,
     }
   }
   return(m_dst) ;
+}
+
+
+//n is the half neighborhood size
+//relabels a given voxel to WMSA if it was not already
+//and if its mahalanobis distance to WMSAs is closer to that of WM 
+//as determined by the labeled voxels in a n-half neighborhood
+int MRIwmsaHalo(MRI *mri_inputs, MRI *mri_labeled, int n)
+{ 
+
+	int h, label, nwm, nwmsa, ngm, x, y, z, wmsa_label, wm_label, gm_label, a, b, changed;
+	double wm_mdist=0, wmsa_mdist=0, caudate_mdist=0, vent_mdist=0;
+	VECTOR *v_vals=NULL, *wm_means, *wmsa_means, *caudate_means, *vent_means;
+  MATRIX *wmsa_cov, *wm_cov, *caudate_cov, *vent_cov, *m_inv_cov_wmsa=NULL, *m_inv_cov_wm=NULL, *m_inv_cov_caudate=NULL, *m_inv_cov_vent=NULL;
+  MRI *label_copy=NULL;
+
+  //Use ENTIRE wm 
+  MRIcomputeWMMeansandCovariances(mri_inputs,mri_labeled,&wm_cov,&wm_means);
+  m_inv_cov_wm = MatrixAlloc(wm_cov->rows, wm_cov->cols, wm_cov->type) ;
+  MatrixInverse(wm_cov, m_inv_cov_wm) ;
+
+  MRIcomputeWMSAMeansandCovariances(mri_inputs,mri_labeled,&wmsa_cov,&wmsa_means);
+  m_inv_cov_wmsa = MatrixAlloc(wmsa_cov->rows, wmsa_cov->cols, wmsa_cov->type) ;
+  MatrixInverse(wmsa_cov, m_inv_cov_wmsa) ;
+
+  MRIcomputeCaudateMeansandCovariances(mri_inputs,mri_labeled,&caudate_cov,&caudate_means);
+  m_inv_cov_caudate = MatrixAlloc(caudate_cov->rows,caudate_cov->cols,caudate_cov->type) ;
+  MatrixInverse(caudate_cov,m_inv_cov_caudate) ;
+
+  MRIcomputeVentMeansandCovariances(mri_inputs,mri_labeled,&vent_cov,&vent_means);
+  m_inv_cov_vent = MatrixAlloc(vent_cov->rows,vent_cov->cols,vent_cov->type) ;
+  MatrixInverse(vent_cov,m_inv_cov_vent) ; 
+  
+  changed = 1;
+  //b = 1;
+  //while(changed > 0)
+  //{   
+  for (b = 0; b<2; b++)
+  {
+  changed = 0;
+	v_vals = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ; 
+
+  printf("copying label file...\n");
+  label_copy = MRIcopy(mri_labeled, NULL);
+  printf("Finished copying label file...\n");
+ 
+	for (h=0; h<2; h++)
+	{
+	
+		if(h==0)
+		   {
+		     wmsa_label = Right_WM_hypointensities;
+		     wm_label = Right_Cerebral_White_Matter;
+         gm_label = Right_Cerebral_Cortex;
+        }
+		  else
+		  {
+		    wmsa_label = Left_WM_hypointensities;
+		    wm_label = Left_Cerebral_White_Matter;
+        gm_label = Left_Cerebral_Cortex;
+		  }
+
+		for (x = 0; x< mri_labeled->width; x++)
+		{
+			for (y=0; y< mri_labeled->height; y++)
+			{
+				for (z=0; z<mri_labeled->depth; z++)
+				{
+			
+        
+					 label = MRIvox(label_copy,x,y,z);
+  			 	
+					 nwm = MRIlabelsInNbhd(label_copy, x, y, z, n, wm_label);
+					 nwmsa = MRIlabelsInNbhd(label_copy, x, y, z, n, wmsa_label);
+           ngm = MRIlabelsInNbhd(label_copy, x, y, z, 1, gm_label);
+          
+          if (nwmsa < 1 || ngm > 0 )
+          //if (nwmsa < 1 || nwm < 1 || ngm > 0)   
+          //if (nwm < n || ngm > 0)            
+              continue ;					
+					
+          for (a = 0; a<mri_inputs->nframes; a++)
+						{
+						 VECTOR_ELT(v_vals,a+1) = MRIgetVoxVal(mri_inputs,x,y,z,a);					
+						}
+          //printf("Computing means and covariances\n");
+          //fflush(stdout);
+					//MRIcomputeNbhdMeansandCovariances(mri_inputs, label_copy, wm_label, x, y, z, n, &wm_cov, &wm_means);
+          //printf("Computing means and covariances\n");
+          //fflush(stdout);
+					//MRIcomputeNbhdMeansandCovariances(mri_inputs, label_copy, wmsa_label, x, y, z, n, &wmsa_cov, &wmsa_means);
+	        //printf("finished\n");
+          //fflush(stdout);
+
+          //m_inv_cov_wm = MatrixAlloc(wm_cov->rows, wm_cov->cols, wm_cov->type) ;
+          //m_inv_cov_wmsa = MatrixAlloc(wmsa_cov->rows, wmsa_cov->cols, wmsa_cov->type) ;
+
+          //printf("Calculating WMSA inv matrix\n");
+          //fflush(stdout);
+					//MatrixInverse(wmsa_cov, m_inv_cov_wmsa) ;
+          //printf("Done calculating WMSA inv matrix\n") ;
+          //fflush(stdout);
+
+
+          //printf("Calculating WM inv matrix\n");
+          //fflush(stdout);
+ 				  //MatrixInverse(wm_cov, m_inv_cov_wm) ;
+          //printf("Done calculating WM inv matrix\n") ;
+          //fflush(stdout);
+
+					wmsa_mdist = MatrixMahalanobisDistance(wmsa_means, m_inv_cov_wmsa, v_vals) ;
+          
+          if (x == Gx && y == Gy && z == Gz )
+            printf("WM_mdist is %f and WMSA_mdist is %f for voxel %d, %d, %d\n", wm_mdist, wmsa_mdist, x, y, z) ;
+
+          if(IS_WM(label))
+            {
+					   wm_mdist = MatrixMahalanobisDistance(wm_means, m_inv_cov_wm, v_vals) ;
+              if( (VECTOR_ELT(v_vals,1) < VECTOR_ELT(wm_means,1)) && 
+                  (VECTOR_ELT(v_vals,2) > VECTOR_ELT(wm_means,2)) && 
+                  (VECTOR_ELT(v_vals,3) > VECTOR_ELT(wm_means,3)) && 
+                  ((7*wmsa_mdist<wm_mdist) || (3*wmsa_mdist<wm_mdist && nwmsa>3)))
+                  {
+						        MRIsetVoxVal(mri_labeled,x,y,z,0,wmsa_label);
+                    changed++ ; 
+					        }
+              }
+           if(IS_CAUDATE(label))
+            {
+					   caudate_mdist = MatrixMahalanobisDistance(caudate_means, m_inv_cov_caudate, v_vals) ;
+              if( (VECTOR_ELT(v_vals,1) < VECTOR_ELT(caudate_means,1)) && 
+                  (VECTOR_ELT(v_vals,2) > VECTOR_ELT(caudate_means,2)) && 
+                  (VECTOR_ELT(v_vals,3) > VECTOR_ELT(caudate_means,3)) && 
+                  ((7*wmsa_mdist<caudate_mdist) || (2*wmsa_mdist<caudate_mdist && nwmsa>3)))
+                  {
+						        MRIsetVoxVal(mri_labeled,x,y,z,0,wmsa_label);
+                    changed++ ; 
+					        }
+              }
+
+            if(IS_VENTRICLE(label))
+            {
+					    vent_mdist = MatrixMahalanobisDistance(vent_means, m_inv_cov_vent, v_vals) ;
+              printf("T1 mean for vent is %f\n", VECTOR_ELT(vent_means,1));
+              printf("PD mean for vent is %f\n", VECTOR_ELT(vent_means,2));
+              printf("T2 mean for vent is %f\n", VECTOR_ELT(vent_means,3));
+              printf("T1 val for voxel %d, %d, %d, is %f\n", x, y, z, VECTOR_ELT(v_vals,1));
+              //printf("Voxel %d, %d, %d is ventricle...\n", x, y, z);
+              //printf("Ventricle m dist is: %f\n", vent_mdist) ;
+              //printf("WMSA m dist is: %f\n", wmsa_mdist) ; 
+              if( (VECTOR_ELT(v_vals,1) > 2*VECTOR_ELT(vent_means,1)) && 
+                  ((7*wmsa_mdist<vent_mdist) || (wmsa_mdist<vent_mdist && nwmsa>3)))
+                  {
+						        MRIsetVoxVal(mri_labeled,x,y,z,0,wmsa_label);
+                    changed++ ; 
+					        }
+              }
+          
+		  		}
+		   }
+	  }
+  }
+  printf("Iteration %d, %d halo voxels changed to WMSA\n", b, changed);
+  fflush(stdout) ; 
+  //b++;
+  MRIfree(&label_copy); 
+  }
+  MatrixFree(&wm_cov);
+  MatrixFree(&wm_means);
+  MatrixFree(&m_inv_cov_wm);
+  MatrixFree(&wmsa_cov);
+  MatrixFree(&wmsa_means);
+  MatrixFree(&m_inv_cov_wmsa);
+	return(NO_ERROR);
+}
+
+//Size is the number of voxels within a neighborhood of nbhd
+//that have the label "label"
+//This function computes the means and covariances of a particular label
+//Within a given nbhd of a voxel with the coordinates x y z
+int MRIcomputeNbhdMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, int label, int x, int y, int z, int nbhd, MATRIX **p_mcov, VECTOR **p_vmeans)
+{
+  int     a, size, n, xi, yi, zi, xk, yk, zk ;
+  MATRIX *m_cov_total, *m_data ;
+  VECTOR *v_means;
+  double mean;
+
+  size = MRIlabelsInNbhd(mri_labeled,x,y,z,nbhd,label);
+
+  m_data = MatrixAlloc(size,mri_inputs->nframes,MATRIX_REAL);
+  v_means = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ;
+  m_cov_total = MatrixAlloc(mri_inputs->nframes,mri_inputs->nframes,MATRIX_REAL);
+   
+  for (n=0 ; n<mri_inputs->nframes ; n++)
+  {
+    mean = 0.0;
+
+      for (a = 0, zk = -nbhd ; zk <= nbhd ; zk++)
+      {
+        zi = mri_labeled->zi[z+zk] ;
+        for (yk = -nbhd ; yk <= nbhd ; yk++)
+        {
+          yi = mri_labeled->yi[y+yk] ;
+          for (xk = -nbhd ; xk <= nbhd ; xk++)
+          {
+            xi = mri_labeled->xi[x+xk] ;
+            if (nint(MRIgetVoxVal(mri_labeled, xi, yi, zi,0)) == label)
+             {  
+                if (a >= size)
+                 {  printf("ERROR: a %d is greater than the number of neighbors: %d\n",a,size);
+                    return(ERROR); 
+                  }
+                m_data->rptr[a+1][n+1] = MRIgetVoxVal(mri_inputs,xi,yi,zi,n);
+                mean += m_data->rptr[a+1][n+1];
+                a++;
+              }
+          }
+        }
+      }
+
+    if (a != size) 
+    { printf("ERROR: a %d is not equal to the number of neighbors: %d\n",a,size);
+    return(ERROR);
+    }
+    mean = mean / a;
+    VECTOR_ELT(v_means,n+1)=(float)mean;
+  } 
+
+  MatrixCovariance(m_data,m_cov_total,v_means);
+  MatrixFree(&m_data);
+  *p_mcov = m_cov_total;
+  *p_vmeans = v_means;
+   //printf("No error, finishing\n");
+  return(NO_ERROR);
+  
+}
+
+int MRIcomputeWMMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans)
+{
+
+  int a, h, x, y, z, n, wm_label;
+  MATRIX *m_data, *m_data_final, *cov_final;
+  VECTOR *means_final;
+
+
+    m_data = MatrixAlloc((0.5*(mri_labeled->width)*(mri_labeled->height)*(mri_labeled->depth)),mri_inputs->nframes,MATRIX_REAL) ;
+    means_final = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ;
+    cov_final = MatrixAlloc(mri_inputs->nframes,mri_inputs->nframes,MATRIX_REAL); 
+//First ID all WM that has no non-WM neighbors w/in nbhd of 3
+//Load multimodal data into matrix
+//Use MatrixCovariance function to calculate means and covariance matrix
+
+    a = 1;
+    for(h=0; h<=1; h++)
+    {
+
+      if(h==0)
+      {
+        wm_label = Right_Cerebral_White_Matter;
+      }else
+      {
+        wm_label = Left_Cerebral_White_Matter;
+      }
+
+      for(x = 0; x<mri_labeled->width; x++)
+      {
+        for(y = 0; y<mri_labeled->height; y++)
+        {
+          for(z=0; z<mri_labeled->depth; z++)
+          {
+
+            if(MRIgetVoxVal(mri_labeled,x,y,z,0)==wm_label)
+            {
+              if(MRIlabelsInNbhd(mri_labeled,x,y,z,3,wm_label)==343)
+              {
+                printf("Voxel %d, %d, %d has no non-WM neighbors\n", x, y, z) ;
+                fflush(stdout) ;
+                for(n=0;n<mri_inputs->nframes;n++)
+                {
+                  m_data->rptr[a][n+1] = MRIgetVoxVal(mri_inputs,x,y,z,n);
+                }
+                a++;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    m_data_final = MatrixCopyRegion(m_data,NULL,1,1,a,mri_inputs->nframes,1,1);
+    MatrixCovariance(m_data_final,cov_final,means_final);
+    MatrixFree(&m_data);
+    MatrixFree(&m_data_final);
+    *p_mcov = cov_final;
+    *p_vmeans = means_final ; 
+    return(NO_ERROR); 
+
+}
+
+int MRIcomputeWMSAMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans)
+{
+
+  int a, h, x, y, z, n, wmsa_label;
+  MATRIX *m_data, *m_data_final, *cov_final;
+  VECTOR *means_final;
+
+
+    m_data = MatrixAlloc((0.5*(mri_labeled->width)*(mri_labeled->height)*(mri_labeled->depth)),mri_inputs->nframes,MATRIX_REAL) ;
+    means_final = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ;
+    cov_final = MatrixAlloc(mri_inputs->nframes,mri_inputs->nframes,MATRIX_REAL); 
+//First ID all WM that has no non-WM neighbors w/in nbhd of 3
+//Load multimodal data into matrix
+//Use MatrixCovariance function to calculate means and covariance matrix
+
+    a = 1;
+    for(h=0; h<=1; h++)
+    {
+
+      if(h==0)
+      {
+        wmsa_label = Right_WM_hypointensities;
+      }else
+      {
+        wmsa_label = Left_WM_hypointensities;
+      }
+
+      for(x = 0; x<mri_labeled->width; x++)
+      {
+        for(y = 0; y<mri_labeled->height; y++)
+        {
+          for(z=0; z<mri_labeled->depth; z++)
+          {
+
+            if(MRIgetVoxVal(mri_labeled,x,y,z,0)==wmsa_label)
+            {
+                for(n=0;n<mri_inputs->nframes;n++)
+                {
+                  m_data->rptr[a][n+1] = MRIgetVoxVal(mri_inputs,x,y,z,n);
+                }
+                a++;
+            }
+          }
+        }
+      }
+    }
+
+    m_data_final = MatrixCopyRegion(m_data,NULL,1,1,a,mri_inputs->nframes,1,1);
+    MatrixCovariance(m_data_final,cov_final,means_final);
+    MatrixFree(&m_data);
+    MatrixFree(&m_data_final);
+    *p_mcov = cov_final;
+    *p_vmeans = means_final ; 
+    return(NO_ERROR); 
+
+}
+
+int MRIcomputeCaudateMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans)
+{
+
+  int a, h, x, y, z, n, caudate_label;
+  MATRIX *m_data, *m_data_final, *cov_final;
+  VECTOR *means_final;
+
+
+    m_data = MatrixAlloc((0.5*(mri_labeled->width)*(mri_labeled->height)*(mri_labeled->depth)),mri_inputs->nframes,MATRIX_REAL) ;
+    means_final = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ;
+    cov_final = MatrixAlloc(mri_inputs->nframes,mri_inputs->nframes,MATRIX_REAL); 
+//First ID all WM that has no non-WM neighbors w/in nbhd of 3
+//Load multimodal data into matrix
+//Use MatrixCovariance function to calculate means and covariance matrix
+
+    a = 1;
+    for(h=0; h<=1; h++)
+    {
+
+      if(h==0)
+      {
+        caudate_label = Right_Caudate;
+      }else
+      {
+        caudate_label = Left_Caudate;
+      }
+
+      for(x = 0; x<mri_labeled->width; x++)
+      {
+        for(y = 0; y<mri_labeled->height; y++)
+        {
+          for(z=0; z<mri_labeled->depth; z++)
+          {
+
+            if(MRIgetVoxVal(mri_labeled,x,y,z,0)==caudate_label)
+            {
+               if(MRIlabelsInNbhd(mri_labeled,x,y,z,1,caudate_label)==9)
+               {
+                  for(n=0;n<mri_inputs->nframes;n++)
+                  {
+                    m_data->rptr[a][n+1] = MRIgetVoxVal(mri_inputs,x,y,z,n);
+                  }
+                  a++;
+                }
+            }
+          }
+        }
+      }
+    }
+
+    m_data_final = MatrixCopyRegion(m_data,NULL,1,1,a,mri_inputs->nframes,1,1);
+    MatrixCovariance(m_data_final,cov_final,means_final);
+    MatrixFree(&m_data);
+    MatrixFree(&m_data_final);
+    *p_mcov = cov_final;
+    *p_vmeans = means_final ; 
+    return(NO_ERROR); 
+
+}
+
+int MRIcomputeVentMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans)
+{
+
+  int a, h, x, y, z, n, vent_label;
+  MATRIX *m_data, *m_data_final, *cov_final;
+  VECTOR *means_final;
+
+
+    m_data = MatrixAlloc((0.5*(mri_labeled->width)*(mri_labeled->height)*(mri_labeled->depth)),mri_inputs->nframes,MATRIX_REAL) ;
+    means_final = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ;
+    cov_final = MatrixAlloc(mri_inputs->nframes,mri_inputs->nframes,MATRIX_REAL); 
+//First ID all WM that has no non-WM neighbors w/in nbhd of 3
+//Load multimodal data into matrix
+//Use MatrixCovariance function to calculate means and covariance matrix
+
+    a = 1;
+    for(h=0; h<=1; h++)
+    {
+
+      if(h==0)
+      {
+        vent_label = Right_Lateral_Ventricle;
+      }else
+      {
+        vent_label = Left_Lateral_Ventricle;
+      }
+
+      for(x = 0; x<mri_labeled->width; x++)
+      {
+        for(y = 0; y<mri_labeled->height; y++)
+        {
+          for(z=0; z<mri_labeled->depth; z++)
+          {
+
+            if(MRIgetVoxVal(mri_labeled,x,y,z,0)==vent_label)
+            {
+               if(MRIlabelsInNbhd(mri_labeled,x,y,z,2,vent_label)==125)
+               {
+                  printf("Voxel %d, %d, %d has no non-ventricle neighbors\n", x, y, z) ;
+                  fflush(stdout) ;
+                  for(n=0;n<mri_inputs->nframes;n++)
+                  {
+                    m_data->rptr[a][n+1] = MRIgetVoxVal(mri_inputs,x,y,z,n);
+                  }
+                  a++;
+                }
+            }
+          }
+        }
+      }
+    }
+
+    m_data_final = MatrixCopyRegion(m_data,NULL,1,1,a,mri_inputs->nframes,1,1);
+    MatrixCovariance(m_data_final,cov_final,means_final);
+    MatrixFree(&m_data);
+    MatrixFree(&m_data_final);
+    *p_mcov = cov_final;
+    *p_vmeans = means_final ; 
+    return(NO_ERROR); 
+
 }
 
