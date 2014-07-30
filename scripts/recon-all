@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2014/07/29 14:18:49 $
-#    $Revision: 1.472 $
+#    $Author: greve $
+#    $Date: 2014/07/30 14:39:06 $
+#    $Revision: 1.473 $
 #
 # Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.472 2014/07/29 14:18:49 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.473 2014/07/30 14:39:06 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3271,144 +3271,6 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.surfvolume.touch
   endif
 
-  # ---------- WM/GM Contrast (pctsurfcon) ---------------------------
-  # skip in base (as rawavg does not exist)
-  if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# WM/GM Contrast $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    set xopts = `fsr-getxopts pctsurfcon $XOptsFile`;
-    set cmd = (pctsurfcon --s $subjid)
-    if($hemi == lh) set cmd = ($cmd --lh-only)
-    if($hemi == rh) set cmd = ($cmd --rh-only)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.pctsurfcon.touch
-  endif
-
-  # ---------- Surface Anatomical Stats ---------------------------
-  if($DoParcStats) then
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Parcellation Stats $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    set annot = ../label/$hemi.aparc.annot
-    set stats = ../stats/$hemi.aparc.stats
-    set ctab  = ../label/aparc.annot.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz)
-    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
-    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.aparcstats.touch
-  endif
-
-  #---------------- Cortical Parcellation 2------------------------#
-  if($DoCortParc2) then
-    echo "#-----------------------------------------"\
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Cortical Parc 2 $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
-    set CPAtlas = ${GCSDIR}/${hemi}.${DESTRIEUX_GCS}
-    set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
-    set cmd = (mris_ca_label)
-    if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
-    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
-    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
-    set cmd = ($cmd $xopts)
-    if($longitudinal) then
-      # longitudinal:
-      set cmd = ($cmd -long -R \
-                   $longbasedir/label/${hemi}.aparc.${DESTRIEUX_NAME}.annot)
-    endif
-    set cmd = ($cmd $subjid $hemi ../surf/$hemi.sphere.reg $CPAtlas $annot)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.aparc2.touch
-  endif
-
-  # ---------- Surface Anatomical Stats 2 ---------------------------
-  if($DoParcStats2) then
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Parcellation Stats 2 $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
-    set stats = ../stats/$hemi.aparc.${DESTRIEUX_NAME}.stats
-    set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz)
-    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
-    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.aparcstats2.touch
-  endif
-
-  #---------------- Cortical Parcellation 3 ------------------------#
-  if($DoCortParc3) then
-    echo "#-----------------------------------------"\
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Cortical Parc 3 $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
-    set CPAtlas = ${GCSDIR}/${hemi}.${DKTATLAS40_GCS}
-    set annot = ../label/$hemi.aparc.${DKTATLAS40_NAME}.annot
-    set cmd = (mris_ca_label)
-    if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
-    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
-    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
-    set cmd = ($cmd $xopts)
-    if($longitudinal) then
-      # longitudinal:
-      set cmd = ($cmd -long -R \
-                   $longbasedir/label/${hemi}.aparc.${DKTATLAS40_NAME}.annot)
-    endif
-    set cmd = ($cmd $subjid $hemi ../surf/$hemi.sphere.reg $CPAtlas $annot)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.aparc2.touch
-  endif
-
-  # ---------- Surface Anatomical Stats 3 ---------------------------
-  if($DoParcStats3) then
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Parcellation Stats 3 $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    set annot = ../label/$hemi.aparc.${DKTATLAS40_NAME}.annot
-    set stats = ../stats/$hemi.aparc.${DKTATLAS40_NAME}.stats
-    set ctab  = ../label/aparc.annot.${DKTATLAS40_NAME}.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz)
-    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
-    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.aparcstats3.touch
-  endif
-
   # ---------- Surface Vertices Number Match Check --------------
   if($DoVnoMatchCheck) then
     echo "#-----------------------------------------" \
@@ -3625,8 +3487,149 @@ if($DoT2pial || $DoFLAIRpial) then
       echo $cmd > $touchdir/$hemi.surfvolume.touch
     end # Loop over hemilist
   endif
-
 endif # if correct pial w/ T2/FLAIR
+
+# Moved stats and GWcontrast here to be after T2 pial fixing
+foreach hemi ($hemilist)
+  # ---------- Surface Anatomical Stats ---------------------------
+  if($DoParcStats) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Parcellation Stats $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set annot = ../label/$hemi.aparc.annot
+    set stats = ../stats/$hemi.aparc.stats
+    set ctab  = ../label/aparc.annot.ctab
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set cmd = (mris_anatomical_stats -mgz)
+    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.aparcstats.touch
+  endif
+
+  #---------------- Cortical Parcellation 2------------------------#
+  if($DoCortParc2) then
+    echo "#-----------------------------------------"\
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Cortical Parc 2 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
+    set CPAtlas = ${GCSDIR}/${hemi}.${DESTRIEUX_GCS}
+    set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
+    set cmd = (mris_ca_label)
+    if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
+    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
+    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd $xopts)
+    if($longitudinal) then
+      # longitudinal:
+      set cmd = ($cmd -long -R \
+                   $longbasedir/label/${hemi}.aparc.${DESTRIEUX_NAME}.annot)
+    endif
+    set cmd = ($cmd $subjid $hemi ../surf/$hemi.sphere.reg $CPAtlas $annot)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.aparc2.touch
+  endif
+
+  # ---------- Surface Anatomical Stats 2 ---------------------------
+  if($DoParcStats2) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Parcellation Stats 2 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
+    set stats = ../stats/$hemi.aparc.${DESTRIEUX_NAME}.stats
+    set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set cmd = (mris_anatomical_stats -mgz)
+    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.aparcstats2.touch
+  endif
+
+  #---------------- Cortical Parcellation 3 ------------------------#
+  if($DoCortParc3) then
+    echo "#-----------------------------------------"\
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Cortical Parc 3 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
+    set CPAtlas = ${GCSDIR}/${hemi}.${DKTATLAS40_GCS}
+    set annot = ../label/$hemi.aparc.${DKTATLAS40_NAME}.annot
+    set cmd = (mris_ca_label)
+    if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
+    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
+    if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
+    set cmd = ($cmd $xopts)
+    if($longitudinal) then
+      # longitudinal:
+      set cmd = ($cmd -long -R \
+                   $longbasedir/label/${hemi}.aparc.${DKTATLAS40_NAME}.annot)
+    endif
+    set cmd = ($cmd $subjid $hemi ../surf/$hemi.sphere.reg $CPAtlas $annot)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.aparc2.touch
+  endif
+
+  # ---------- Surface Anatomical Stats 3 ---------------------------
+  if($DoParcStats3) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Parcellation Stats 3 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set annot = ../label/$hemi.aparc.${DKTATLAS40_NAME}.annot
+    set stats = ../stats/$hemi.aparc.${DKTATLAS40_NAME}.stats
+    set ctab  = ../label/aparc.annot.${DKTATLAS40_NAME}.ctab
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set cmd = (mris_anatomical_stats -mgz)
+    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.aparcstats3.touch
+  endif
+
+  # ---------- WM/GM Contrast (pctsurfcon) ---------------------------
+  # skip in base (as rawavg does not exist)
+  if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# WM/GM Contrast $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    set xopts = `fsr-getxopts pctsurfcon $XOptsFile`;
+    set cmd = (pctsurfcon --s $subjid)
+    if($hemi == lh) set cmd = ($cmd --lh-only)
+    if($hemi == rh) set cmd = ($cmd --rh-only)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.pctsurfcon.touch
+  endif
+
+end # hemilist
 
 #-------Edit Aseg with Surfaces -------------#
 if($DoSurfSegEdit) then
