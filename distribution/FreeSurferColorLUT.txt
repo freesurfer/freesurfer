@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.95 2014/07/17 19:19:11 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.96 2014/07/31 19:37:51 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -414,6 +414,9 @@
 677  Cbm_Left_PUNs                          126 138 37  0
 678  Cbm_Left_TONs                          189 197 117 0
 679  Cbm_Left_FLOs                          240 230 140 0
+# Added by DNG 7/31/14
+690  CbmWM_Gyri_Left                        122 135 50  0
+691  CbmWM_Gyri_Right                       122 135 50  0
 
 701 CSF-FSL-FAST                            120 18  134 0
 702 GrayMatter-FSL-FAST                     205 62  78  0
