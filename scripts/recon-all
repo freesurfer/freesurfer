@@ -7,11 +7,11 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2014/03/25 14:58:11 $
-#    $Revision: 1.379.2.78 $
+#    $Author: nicks $
+#    $Date: 2014/07/31 21:24:57 $
+#    $Revision: 1.379.2.79 $
 #
-# Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.78 2014/03/25 14:58:11 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.79 2014/07/31 21:24:57 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -241,6 +241,9 @@ set DESTRIEUX_NAME = a2009s
 # Mindboggle cortical parcellation atlas (-cortparc3):
 set DKTATLAS40_GCS = DKTatlas40.gcs
 set DKTATLAS40_NAME = DKTatlas40
+
+# Initialization method for BBR
+set BBRInit = fsl; # others are spm, header, rr, best
 
 # Set this to 0 to do everything but run the command.
 # This is good for debugging.
@@ -956,7 +959,10 @@ if ($DoConvertT2Input || $DoConvertFlairInput) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
 
   if ($DoConvertT2Input) then
-    set cmd = (mri_convert $InputT2Vol $subjdir/mri/orig/T2raw.mgz)
+    set cmd = (mri_convert \
+        --no_scale 1 \
+        $InputT2Vol \
+        $subjdir/mri/orig/T2raw.mgz)
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -966,7 +972,10 @@ if ($DoConvertT2Input || $DoConvertFlairInput) then
   endif
 
   if ($DoConvertFlairInput) then
-    set cmd = (mri_convert $InputFlairVol $subjdir/mri/orig/FLAIRraw.mgz)
+    set cmd = (mri_convert \
+        --no_scale 1 \
+        $InputFlairVol \
+        $subjdir/mri/orig/FLAIRraw.mgz)
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -3278,25 +3287,235 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.surfvolume.touch
   endif
 
-  # ---------- WM/GM Contrast (pctsurfcon) ---------------------------
-  # skip in base (as rawavg does not exist)
-  if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
+  # ---------- Surface Vertices Number Match Check --------------
+  if($DoVnoMatchCheck) then
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
-    echo "#@# WM/GM Contrast $hemi `date`" \
+    echo "#@# Vno Match Check $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
-    set xopts = `fsr-getxopts pctsurfcon $XOptsFile`;
-    set cmd = (pctsurfcon --s $subjid)
-    if($hemi == lh) set cmd = ($cmd --lh-only)
-    if($hemi == rh) set cmd = ($cmd --rh-only)
+    set cmd = (vno_match_check $subjid $hemi);
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.pctsurfcon.touch
+    echo $cmd > $touchdir/$hemi.vnomatchcheck.touch
   endif
 
+  # ------ Compare aseg stats of two subjects ------
+  if ($DoAparcStatsDiff) then
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# AParc Stats Diff `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $SUBJECTS_DIR > /dev/null
+    $PWD |& tee -a $LF
+    foreach parc (aparc)
+      foreach meas (area volume thickness)
+        set subj1=($diffsubj)
+        if ( "x$subj1" == "x$subjid" ) then
+          # aparcstats2table doesnt accept identical subject names, so fake it
+          ln -s $subj1 ${diffsubj}_tmp
+          set subj1=(${diffsubj}_tmp)
+        endif
+        set cmd=(aparcstatsdiff $subj1 $subjid $hemi $parc $meas)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if (-e ${diffsubj}_tmp) rm ${diffsubj}_tmp
+      end
+    end
+    echo $cmd > $touchdir/aparcstatsdiff.touch
+  endif
+
+  # ---------- Label V1 ----------------
+  if($DoLabelV1) then
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Label V1 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    if ( ! -e $SUBJECTS_DIR/V1_average) then
+      echo "ERROR: V1_average subject does not exist in SUBJECTS_DIR!"
+      goto error_exit;
+    endif
+    cd $subjdir/label > /dev/null
+    $PWD |& tee -a $LF
+    set cmd=(predict_v1.sh)
+    if( ! $RunIt) set cmd=($cmd -p)
+    set cmd = ($cmd -h $hemi $subjid);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.label_v1.touch
+  endif
+
+end # Loop over hemilist
+
+
+#---------------- Refine Pial Surfaces Using T2/FLAIR -----------------------#
+if($DoT2pial || $DoFLAIRpial) then
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# Refine Pial Surfs w/ T2/FLAIR `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/scripts > /dev/null
+
+  # should be one or the other.  check params checks for this.
+  if($DoT2pial) set t2flair=(T2)
+  if($DoFLAIRpial) set t2flair=(FLAIR)
+
+  set mdir=$SUBJECTS_DIR/${subjid}/mri
+  set sdir=$SUBJECTS_DIR/${subjid}/surf
+
+  if (! -e $mdir/${t2flair}.mgz) then
+  
+    set t2flairraw = $mdir/orig/${t2flair}raw.mgz
+    
+    # Longitudinal processing
+    if ($longitudinal) then
+    
+      # use T2/FLAIR raw from cross if missing in long
+      if (! -e $t2flairraw) then
+        set t2flairraw = ${SUBJECTS_DIR}/${tpNid}/mri/orig/${t2flair}raw.mgz
+      endif
+      if (! -e $t2flairraw) then
+          echo "ERROR: mri/orig/${t2flair}raw.mgz missing in long and cross." \
+            |& tee -a $LF
+          goto error_exit;
+      endif  
+      
+      # concatenate lta if created in cross (T2cross->T1cross->longspace)
+      # this avoids registering again if already done in cross
+      if ( -e ${SUBJECTS_DIR}/${tpNid}/mri/transforms/${t2flair}raw.lta ) then
+        set cmd = (mri_concatenate_lta )
+        set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/transforms/${t2flair}raw.lta )
+        set cmd = ($cmd $tpNtobase_regfile $mdir/transforms/${t2flair}raw.lta)
+        echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      else
+        # if t2flairraw.lta does not exist in cross, register T2raw to longspace
+        set xopts = `fsr-getxopts bbregister $XOptsFile`;
+        set bbcmd = (bbregister \
+            --s $subjid \
+            --mov $t2flairraw \
+            --lta $mdir/transforms/${t2flair}raw.lta \
+            --init-$BBRInit \
+            --T2 $xopts)
+        echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $bbcmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+      
+    else #regular processing, register T2flairraw to T1 and create lta
+
+      # first create a T2/FLAIR that is registered to the T1s
+      set xopts = `fsr-getxopts bbregister $XOptsFile`;
+      set bbcmd = (bbregister \
+          --s $subjid \
+          --mov $t2flairraw \
+          --lta $mdir/transforms/${t2flair}raw.lta \
+          --init-$BBRInit \
+          --T2 $xopts)
+      echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $bbcmd |& tee -a $LF
+      if($status) goto error_exit;
+
+    endif 
+    
+    # both regular and long processing:
+    
+    # actually map the input (and make conform as the T1 target)
+    set mapcmd = (mri_convert \
+        -odt short \
+        -at $mdir/transforms/${t2flair}raw.lta)
+    if($UseCubic) set mapcmd = ($mapcmd -rt cubic -ns 1)
+    set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
+    set mapcmd = ($mapcmd $t2flairraw )
+    set mapcmd = ($mapcmd $mdir/${t2flair}.prenorm.mgz )
+    echo "\n $mapcmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $mapcmd |& tee -a $LF
+    if($status) goto error_exit;
+    
+    # then give the T2/FLAIR a little normalizing
+    # note: pre-normalized file remains for debug, with .prenorm in name
+    if ("${t2flair}" == "T2") then 
+        set normflags = (-sigma 0.5 nonmax_suppress 0 -min_dist 1)
+    else # else a FLAIR
+        set normflags = (-sigma 4)
+    endif
+    set normcmd = (mri_normalize \
+        $normflags \
+        -aseg $mdir/aseg.mgz \
+        -surface $sdir/rh.white identity.nofile \
+        -surface $sdir/lh.white identity.nofile \
+        $mdir/${t2flair}.prenorm.mgz \
+        $mdir/${t2flair}.mgz)
+    echo "\n $normcmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $normcmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+
+  foreach hemi ($hemilist)
+    $PWD |& tee -a $LF
+    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
+    set nv1=(`mris_info $sdir/${hemi}.pial |& grep nvertices`)
+    set nv2=(`mris_info $sdir/${hemi}.wo${t2flair}.pial |& grep nvertices`)
+    if ( (! -e $sdir/${hemi}.wo${t2flair}.pial) || \
+         ("$nv1" != "$nv2") ) then
+      set cmd = (cp -v $sdir/${hemi}.pial $sdir/${hemi}.wo${t2flair}.pial)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif    
+    set cmd = (mris_make_surfaces \
+        -orig_white white \
+        -orig_pial wo${t2flair}.pial)
+    if ( ! $UseAseg) set cmd = ($cmd -noaseg)
+    if ($PialNoAparc) set cmd = ($cmd -noaparc)
+    # -white NOWRITE: dont overwrite white, curv, area, and cortex.label files
+    set cmd = ($cmd -white NOWRITE)
+    set cmd = ($cmd -mgz -T1 brain.finalsurfs)
+    # if using a T2 or FLAIR to remove dura that might be confused with pial...
+    if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2)
+    if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR)
+    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.pial_refine.touch
+  end # for each hemi
+
+  # redo ?h.volume files
+  if(-e $subjdir/surf/rh.volume || -e $subjdir/surf/lh.volume) then
+    foreach hemi ($hemilist)
+      echo "#--------------------------------------------" \
+        |& tee -a $LF |& tee -a $CF
+      echo "#@# Surf Volume $hemi `date`" \
+        |& tee -a $SF |& tee -a $LF |& tee -a $CF
+      cd $subjdir/surf > /dev/null
+      $PWD |& tee -a $LF
+      set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      set cmd=(mris_calc -o ${hemi}.volume)
+      set cmd=($cmd ${hemi}.area.mid mul ${hemi}.thickness)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
+      echo $cmd > $touchdir/$hemi.surfvolume.touch
+    end # Loop over hemilist
+  endif
+
+endif # if correct pial w/ T2/FLAIR
+
+# Moved stats and GWcontrast here to be after T2 pial fixing
+foreach hemi ($hemilist)
   # ---------- Surface Anatomical Stats ---------------------------
   if($DoParcStats) then
     echo "#-----------------------------------------" \
@@ -3416,222 +3635,26 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparcstats3.touch
   endif
 
-  # ---------- Surface Vertices Number Match Check --------------
-  if($DoVnoMatchCheck) then
+  # ---------- WM/GM Contrast (pctsurfcon) ---------------------------
+  # skip in base (as rawavg does not exist)
+  if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
-    echo "#@# Vno Match Check $hemi `date`" \
+    echo "#@# WM/GM Contrast $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
-    set cmd = (vno_match_check $subjid $hemi);
+    set xopts = `fsr-getxopts pctsurfcon $XOptsFile`;
+    set cmd = (pctsurfcon --s $subjid)
+    if($hemi == lh) set cmd = ($cmd --lh-only)
+    if($hemi == rh) set cmd = ($cmd --rh-only)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.vnomatchcheck.touch
+    echo $cmd > $touchdir/$hemi.pctsurfcon.touch
   endif
 
-  # ------ Compare aseg stats of two subjects ------
-  if ($DoAparcStatsDiff) then
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# AParc Stats Diff `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $SUBJECTS_DIR > /dev/null
-    $PWD |& tee -a $LF
-    foreach parc (aparc)
-      foreach meas (area volume thickness)
-        set subj1=($diffsubj)
-        if ( "x$subj1" == "x$subjid" ) then
-          # aparcstats2table doesnt accept identical subject names, so fake it
-          ln -s $subj1 ${diffsubj}_tmp
-          set subj1=(${diffsubj}_tmp)
-        endif
-        set cmd=(aparcstatsdiff $subj1 $subjid $hemi $parc $meas)
-        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if (-e ${diffsubj}_tmp) rm ${diffsubj}_tmp
-      end
-    end
-    echo $cmd > $touchdir/aparcstatsdiff.touch
-  endif
-
-  # ---------- Label V1 ----------------
-  if($DoLabelV1) then
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Label V1 $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    if ( ! -e $SUBJECTS_DIR/V1_average) then
-      echo "ERROR: V1_average subject does not exist in SUBJECTS_DIR!"
-      goto error_exit;
-    endif
-    cd $subjdir/label > /dev/null
-    $PWD |& tee -a $LF
-    set cmd=(predict_v1.sh)
-    if( ! $RunIt) set cmd=($cmd -p)
-    set cmd = ($cmd -h $hemi $subjid);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.label_v1.touch
-  endif
-
-end # Loop over hemilist
-
-
-#---------------- Refine Pial Surfaces Using T2/FLAIR -----------------------#
-if($DoT2pial || $DoFLAIRpial) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# Refine Pial Surfs w/ T2/FLAIR `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/scripts > /dev/null
-
-  # should be one or the other.  check params checks for this.
-  if($DoT2pial) set t2flair=(T2)
-  if($DoFLAIRpial) set t2flair=(FLAIR)
-
-  set mdir=$SUBJECTS_DIR/${subjid}/mri
-  set sdir=$SUBJECTS_DIR/${subjid}/surf
-
-  if (! -e $mdir/${t2flair}.mgz) then
-  
-    set t2flairraw = $mdir/orig/${t2flair}raw.mgz
-    
-    # Longitudinal processing
-    if ($longitudinal) then
-    
-      # use T2/FLAIR raw from cross if missing in long
-      if (! -e $t2flairraw) then
-        set t2flairraw = ${SUBJECTS_DIR}/${tpNid}/mri/orig/${t2flair}raw.mgz
-      endif
-      if (! -e $t2flairraw) then
-          echo "ERROR: mri/orig/${t2flair}raw.mgz missing in long and cross." \
-            |& tee -a $LF
-          goto error_exit;
-      endif  
-      
-      # concatenate lta if created in cross (T2cross->T1cross->longspace)
-      # this avoids registering again if already done in cross
-      if ( -e ${SUBJECTS_DIR}/${tpNid}/mri/transforms/${t2flair}raw.lta ) then
-        set cmd = (mri_concatenate_lta )
-        set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/transforms/${t2flair}raw.lta )
-        set cmd = ($cmd $tpNtobase_regfile $mdir/transforms/${t2flair}raw.lta)
-        echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      else
-        # if t2flairraw.lta does not exist in cross, register T2raw to longspace
-        set bbcmd = (bbregister \
-            --s $subjid \
-            --mov $t2flairraw \
-            --lta $mdir/transforms/${t2flair}raw.lta \
-            --init-fsl \
-            --T2 )
-        echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $bbcmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
-      
-    else #regular processing, register T2flairraw to T1 and create lta
-
-      # first create a T2/FLAIR that is registered to the T1s
-      set bbcmd = (bbregister \
-          --s $subjid \
-          --mov $t2flairraw \
-          --lta $mdir/transforms/${t2flair}raw.lta \
-          --init-fsl \
-          --T2 )
-      echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $bbcmd |& tee -a $LF
-      if($status) goto error_exit;
-
-    endif 
-    
-    # both regular and long processing:
-    
-    # actually map the input (and make conform as the T1 target)
-    set mapcmd = ( mri_convert -at $mdir/transforms/${t2flair}raw.lta )
-    if($UseCubic) set mapcmd = ($mapcmd -rt cubic )
-    set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
-    set mapcmd = ($mapcmd $t2flairraw )
-    set mapcmd = ($mapcmd $mdir/${t2flair}.mgz )
-    echo "\n $mapcmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $mapcmd |& tee -a $LF
-    if($status) goto error_exit;
-    
-    # then give the T2/FLAIR a little normalizing
-    set normcmd = (mri_normalize \
-        -aseg $mdir/aseg.mgz \
-        -sigma 4 \
-        -surface $sdir/rh.white identity.nofile \
-        -surface $sdir/lh.white identity.nofile \
-        $mdir/${t2flair}.mgz \
-        $mdir/${t2flair}.mgz)
-    echo "\n $normcmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $normcmd |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-
-  foreach hemi ($hemilist)
-    $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
-    set nv1=(`mris_info $sdir/${hemi}.pial |& grep nvertices`)
-    set nv2=(`mris_info $sdir/${hemi}.wo${t2flair}.pial |& grep nvertices`)
-    if ( (! -e $sdir/${hemi}.wo${t2flair}.pial) || \
-         ("$nv1" != "$nv2") ) then
-      set cmd = (cp -v $sdir/${hemi}.pial $sdir/${hemi}.wo${t2flair}.pial)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif    
-    set cmd = (mris_make_surfaces \
-        -orig_white white \
-        -orig_pial wo${t2flair}.pial)
-    if ( ! $UseAseg) set cmd = ($cmd -noaseg)
-    if ($PialNoAparc) set cmd = ($cmd -noaparc)
-    # -white NOWRITE: dont overwrite white, curv, area, and cortex.label files
-    set cmd = ($cmd -white NOWRITE)
-    set cmd = ($cmd -mgz -T1 brain.finalsurfs)
-    # if using a T2 or FLAIR to remove dura that might be confused with pial...
-    if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2)
-    if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR)
-    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.pial_refine.touch
-  end # for each hemi
-
-  # redo ?h.volume files
-  if(-e $subjdir/surf/rh.volume || -e $subjdir/surf/lh.volume) then
-    foreach hemi ($hemilist)
-      echo "#--------------------------------------------" \
-        |& tee -a $LF |& tee -a $CF
-      echo "#@# Surf Volume $hemi `date`" \
-        |& tee -a $SF |& tee -a $LF |& tee -a $CF
-      cd $subjdir/surf > /dev/null
-      $PWD |& tee -a $LF
-      set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      set cmd=(mris_calc -o ${hemi}.volume)
-      set cmd=($cmd ${hemi}.area.mid mul ${hemi}.thickness)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
-      echo $cmd > $touchdir/$hemi.surfvolume.touch
-    end # Loop over hemilist
-  endif
-
-endif # if correct pial w/ T2/FLAIR
+end # hemilist
 
 #-------Edit Aseg with Surfaces -------------#
 if($DoSurfSegEdit) then
@@ -4410,7 +4433,7 @@ while( $#argv != 0 )
     case "-sb":
       # Hidden option: same as -s but no basename;
       # needed when passing a subdir of a subject
-      # as a subject.
+      # as a subject as with xhemi
       if( $#argv < 1) goto arg1err;
       set subjid = $argv[1]; shift;
       breaksw
@@ -4465,6 +4488,22 @@ while( $#argv != 0 )
       popd > /dev/null
       set InputT2Vol = "$T2InVolDir/$T2InVolBase";
       set DoConvertT2Input = 1;
+      breaksw
+
+    case "-bbr-init-fsl"
+      set BBRInit = fsl;
+      breaksw
+    case "-bbr-init-spm"
+      set BBRInit = spm;
+      breaksw
+    case "-bbr-init-rr"
+      set BBRInit = rr;
+      breaksw
+    case "-bbr-init-header"
+      set BBRInit = header;
+      breaksw
+    case "-bbr-init-best"
+      set BBRInit = best;
       breaksw
 
     case "-FLAIR"
@@ -6137,7 +6176,7 @@ check_params:
           if (${f} == ${tpNid}) set found_tpNid = 1
           if (${f} == ${longbaseid}) set found_longbaseid = 1
         end
-        if ( ! $found_tpNid && ! $DoAddTp ) then
+        if ( ! $found_tpNid && ! $DoAddTp  ) then
           echo "ERROR: $tpNid is not in ${longbasedir}/${BaseSubjsListFname}"
           echo ""
           exit 1
@@ -6157,8 +6196,9 @@ check_params:
     else # ================= if cross run or base ==========================
 
       # make sure $subjid does not contain .long.
-      set haslong = `echo $subjid | grep "\.long\."`
-      if ( "$haslong" != "" ) then
+      set haslong  = `echo $subjid | grep "\.long\."`
+      set hasxhemi = `echo $subjid | grep xhemi`
+      if ( "$haslong" != "" && "$hasxhemi" == "" ) then
         echo ""
         echo "ERROR: Are you trying to run or re-run a longitudinal time point?"
         echo "       If so, please specify the following parameters:"
