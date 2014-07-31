@@ -22,6 +22,7 @@ bmedits2surf \
 browse-minc-header.tcl \
 bugr \
 build_desikan_killiany_gcs.csh \
+cblumwmgyri \
 check_subject \
 clear_fs_env.csh \
 compute_interrater_variability.csh \
