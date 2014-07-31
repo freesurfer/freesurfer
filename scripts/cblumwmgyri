@@ -1,0 +1,311 @@
+#!/bin/tcsh -f
+# cblumwmgyri
+
+set VERSION = '$Id: cblumwmgyri,v 1.1 2014/07/31 19:36:27 greve Exp $';
+
+set subject = ();
+set seg = aparc+aseg.mgz
+set nED = 2;
+set outseg = ();
+set DoSegStats = 1;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set mdir = $SUBJECTS_DIR/$subject/mri
+set outdir = $mdir
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.cblumwmgyri.$$
+  if(! -e /scratch) set tmpdir = $outdir/tmpdir.cblumwmgyri.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/cblumwmgyri.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for cblumwmgyri" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+set seged = $tmpdir/seg.erode.dilate.mgh
+
+# Erode the seg by nED, then dilate it by nED
+# This effectively removes the gyri 
+set cmd = (mri_convert $mdir/$seg --erode-seg $nED $seged)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+set cmd = (mri_convert $seged --dil-seg $nED $seged)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Make a mask of cerebellum GM, dilated by nED
+set cblumgmdil = $tmpdir/cblumgm.dil.mgh
+set cmd = (mri_binarize --i $seged --match 8 47 --o $cblumgmdil --dilate $nED)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+foreach hemi (lh rh)
+  if($hemi == lh) then
+    set srcmatch = 7   # ID for lh cerebellum WM
+    set outsegno = 690 # ID to use for lh cerebellum WM gyri
+  else
+    set srcmatch = 46  # ID for rh cerebellum WM
+    set outsegno = 691 # ID to use for rh cerebellum WM gyri
+  endif
+
+  # Make a mask of all ?h cerebellum wm from the original seg
+  set cmd = (mri_binarize --i $mdir/$seg --o $tmpdir/cblum.wm.$hemi.mask.mgh --match $srcmatch)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  # Make a mask of the core ?h cerebellum wm and invert it
+  set cmd = (mri_binarize --i $seged --o $tmpdir/cblum.wm.$hemi.mask.core.not.mgh --match $srcmatch --inv)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  # The gyri will be the voxels in the original def of cerebellum WM but not in the 
+  # core and also were cerebellum GM when it was dilated. 
+  set cmd = (fscalc $tmpdir/cblum.wm.$hemi.mask.core.not.mgh and \
+                    $tmpdir/cblum.wm.$hemi.mask.mgh  and \
+                    $cblumgmdil -o $tmpdir/cblum.wm.$hemi.gyri.mgh)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+  # Merge the new gyral WM with the original seg
+  if($hemi == lh) set src = $mdir/$seg
+  if($hemi == rh) set src = $mdir/$outseg
+  set cmd = (mergeseg --src $src --merge $tmpdir/cblum.wm.$hemi.gyri.mgh \
+    --o $mdir/$outseg --segid $outsegno)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+
+end
+
+if($DoSegStats) then
+  set stats = $SUBJECTS_DIR/$subject/stats/$outsegbase.stats
+  set cmd = (mri_segstats --seg $mdir/$outseg --sum $stats --pv $mdir/norm.mgz \
+    --brainmask $mdir/brainmask.mgz --excludeid 0 \
+    --excl-ctxgmwm --in $mdir/norm.mgz --etiv --brain-vol-from-seg \
+    --in-intensity-name norm --in-intensity-units MR \
+    --subject $subject --ctab-default --id 7 8 690 46 47 691 16 15 17 53)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Cblumwmgyri-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Cblumwmgyri-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "cblumwmgyri Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outseg = $argv[1]; shift;
+      breaksw
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set seg = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--n":
+      if($#argv < 1) goto arg1err;
+      set nED = $argv[1]; shift;
+      breaksw
+
+    case "--no-segstats":
+      set DoSegStats = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+if(! -e $SUBJECTS_DIR/$subject/mri/$seg) then
+  echo "ERROR: cannot find $SUBJECTS_DIR/$subject/mri/$seg"
+  exit 1;
+endif
+
+set segbase = `basename $seg .mgz`
+if($#outseg == 0)  set outseg = $segbase+cblumwmgyri.mgz
+echo "outseg is $outseg"
+set outsegbase = `basename $outseg .mgz`
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "cblumwmgyri --s subject"
+  echo "  --seg source seg (default aparc+aseg.mgz)"
+  echo "  --n nerodes/dilates"
+  echo "  --o outseg (default sourceseg+cblumwmgyri.mgz)"
+  echo "  --no-segstats : do not compute segstats"
+  echo "  --sd SUBJECS_DIR"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This script segments cerebellar WM into gyral and core components
+using geometrical constaints.  The input seg (default aparc+aseg.mgz)
+must have cerebellum segmented into cortex and WM. The output will
+have cortex, core WM, and gyral WM.  The core WM will have IDs 7 and
+46 (for left and right) and a gyral segmentation (690 and 691). None
+of the other segmentations, including cerebellar GM, will be affected.
+
