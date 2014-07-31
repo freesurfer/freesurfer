@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/07/24 21:35:12 $
- *    $Revision: 1.466 $
+ *    $Author: lindemer $
+ *    $Date: 2014/07/31 11:36:06 $
+ *    $Revision: 1.467 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,6 +37,7 @@ extern "C" {
 #include "colortab.h"
 
 #include "affine.h"
+
 
 #define BUFTYPE  unsigned char
 
@@ -1182,6 +1183,13 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
                                float gray_low, float gray_hi,
                                float *pmean_wm, float *psigma_wm,
                                float *pmean_gm, float *psigma_gm) ;
+
+int MRIwmsaHalo(MRI *mri_inputs, MRI *mri_labeled, int n) ; 
+int MRIcomputeNbhdMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, int label, int x, int y, int z, int nbhd, MATRIX **p_mcov, VECTOR **p_vmeans) ;
+int MRIcomputeWMMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
+int MRIcomputeWMSAMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
+int MRIcomputeCaudateMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
+int MRIcomputeVentMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
 
 #define WINDOW_GAUSSIAN  0
 #define WINDOW_HAMMING   1
