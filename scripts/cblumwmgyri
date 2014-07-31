@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # cblumwmgyri
 
-set VERSION = '$Id: cblumwmgyri,v 1.1 2014/07/31 19:36:27 greve Exp $';
+set VERSION = '$Id: cblumwmgyri,v 1.2 2014/07/31 19:56:21 greve Exp $';
 
 set subject = ();
 set seg = aparc+aseg.mgz
@@ -145,6 +145,12 @@ endif
 # Cleanup
 if($cleanup) rm -rf $tmpdir
 
+echo "" | tee -a $LF
+echo "To check, run:" | tee -a $LF
+echo " setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo " tkmedit $subject orig.mgz -opacity 1 -seg $outseg " | tee -a $LF
+echo "" | tee -a $LF
+
 # Done
 echo " " |& tee -a $LF
 set tSecEnd = `date '+%s'`;
@@ -154,7 +160,6 @@ set tRunHours = `printf %5.2f $tRunHours`
 echo "Started at $StartTime " |& tee -a $LF
 echo "Ended   at `date`" |& tee -a $LF
 echo "Cblumwmgyri-Run-Time-Sec $tSecRun" |& tee -a $LF
-echo "Cblumwmgyri-Run-Time-Hours $tRunHours" |& tee -a $LF
 echo " " |& tee -a $LF
 echo "cblumwmgyri Done" |& tee -a $LF
 exit 0
@@ -287,8 +292,8 @@ arg2err:
 usage_exit:
   echo ""
   echo "cblumwmgyri --s subject"
-  echo "  --seg source seg (default aparc+aseg.mgz)"
-  echo "  --n nerodes/dilates"
+  echo "  --seg source seg (default $seg)"
+  echo "  --n nerodes/dilates (default $nED)"
   echo "  --o outseg (default sourceseg+cblumwmgyri.mgz)"
   echo "  --no-segstats : do not compute segstats"
   echo "  --sd SUBJECS_DIR"
@@ -308,4 +313,13 @@ must have cerebellum segmented into cortex and WM. The output will
 have cortex, core WM, and gyral WM.  The core WM will have IDs 7 and
 46 (for left and right) and a gyral segmentation (690 and 691). None
 of the other segmentations, including cerebellar GM, will be affected.
+
+The geometrical constraints are just taking the cerebellum WM and eroding
+it by N voxels, then dilating it by N voxels to give the core. The gyri
+are anthing in the orginal WM segmentation but not in the core and
+in the cerebellum GM when dilated by N. N is controlled by --n.
+
+Example:
+
+cblumwmgyri --s bert
 
