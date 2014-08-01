@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2014/08/01 20:17:01 $
-#    $Revision: 1.478 $
+#    $Date: 2014/08/01 22:09:48 $
+#    $Revision: 1.479 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.478 2014/08/01 20:17:01 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.479 2014/08/01 22:09:48 zkaufman Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5469,26 +5469,26 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2":
-      set DoGCAReg         = 0;
-      set DoRemoveNeck     = 0;
-      set DoSkullLTA       = 0;
-      set DoCANormalize    = 0;
+      set DoGCAReg         = 1;
+      set DoRemoveNeck     = 1;
+      set DoSkullLTA       = 1;
+      set DoCANormalize    = 1;
       set DoCAReg          = 1;
-      set DoCALabel        = 0;
+      set DoCALabel        = 1;
       set DoSegStats       = 0;
-      set DoNormalization2 = 0;
-      set DoMaskBFS        = 0;
-      set DoSegmentation   = 0;
-      set DoFill           = 0;
-      set DoTessellate     = 0;
-      set DoSmooth1        = 0;
-      set DoInflate1       = 0;
-      set DoQSphere        = 0;
-      set DoFix            = 0;
-      set DoSmooth2        = 0;
-      set DoInflate2       = 0;
-      set DoWhiteSurfs     = 0;
-      set DoCurvStats      = 0;
+      set DoNormalization2 = 1;
+      set DoMaskBFS        = 1;
+      set DoSegmentation   = 1;
+      set DoFill           = 1;
+      set DoTessellate     = 1;
+      set DoSmooth1        = 1;
+      set DoInflate1       = 1;
+      set DoQSphere        = 1;
+      set DoFix            = 1;
+      set DoSmooth2        = 1;
+      set DoInflate2       = 1;
+      set DoWhiteSurfs     = 1;
+      set DoCurvStats      = 1;
       breaksw
 
     case "-autorecon2-volonly":
