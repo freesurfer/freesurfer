@@ -4,7 +4,7 @@ function roilist2 = striphemi(roilist,ncut)
 % If ncut is nonempty and greater than 0 then removes ncut letters
 %   from the end of each roiname. This can be helpful when removing
 %   things like '_thickness'.
-% $Id: striphemi.m,v 1.2 2014/07/09 23:17:13 greve Exp $
+% $Id: striphemi.m,v 1.3 2014/08/04 20:20:06 greve Exp $
 
 if(~exist('ncut','var')) ncut = []; end
 if(isempty(ncut)) ncut = 0; end
@@ -14,6 +14,9 @@ nrois = size(roilist,1);
 hemistringlist = strvcat('Left-','Right-','ctx-lh-','ctx-rh-',...
 			 'wm-lh-','wm-rh-','rh_','lh_');
 nhemistrings = size(hemistringlist,1);
+
+hemistringlistpost = strvcat('_L','_R');
+nhemistringspost = size(hemistringlistpost,1);
 
 roilist2 = '';
 for nth = 1:nrois
@@ -29,6 +32,19 @@ for nth = 1:nrois
       roilist2 = strvcat(roilist2,s);
       hit = 1;
       break;
+    end
+  end
+  if(hit == 0) 
+    for nthhs = 1:nhemistringspost
+      hs = deblank(hemistringlistpost(nthhs,:));
+      k = strfind(s,hs);
+      if(~isempty(k))
+	nh = length(hs);
+	s = s(1:end-nh);
+	roilist2 = strvcat(roilist2,s);
+	hit = 1;
+	break;
+      end
     end
   end
   if(hit == 0) roilist2 = strvcat(roilist2,s); end
