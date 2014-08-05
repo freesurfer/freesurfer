@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/15 15:43:39 $
- *    $Revision: 1.346 $
+ *    $Date: 2014/08/05 17:03:30 $
+ *    $Revision: 1.347 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.346 $";
+char *VERSION = "$Revision: 1.347 $";
 
 #define TCL
 #define TKMEDIT
@@ -1194,7 +1194,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.346 2011/10/15 15:43:39 fischl Exp $",
+     "$Id: tkmedit.c,v 1.347 2014/08/05 17:03:30 fischl Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5892,6 +5892,7 @@ static Tcl_Interp *interp;
 static Tcl_DString command;
 static int tty;
 
+extern int tkmFontSize ;
 int main ( int argc, char** argv ) {
 
   tkm_tErr   eResult                           = tkm_tErr_NoErr;
@@ -5907,6 +5908,12 @@ int main ( int argc, char** argv ) {
   int        nArg                              = 0;
   time_t     theTime;
   char       sSubjectName[tkm_knNameLen]       = "";
+
+  if (getenv("TKMEDIT_FONT_SIZE") != NULL)
+  {
+    tkmFontSize = atoi(getenv("TKMEDIT_FONT_SIZE")) ;
+    printf("using color scale bar font size %d\n", tkmFontSize) ;
+  }
 
   /* init our debugging macro code, if any. */
   InitDebugging( "tkmedit" );
@@ -5945,7 +5952,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.346 2011/10/15 15:43:39 fischl Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.347 2014/08/05 17:03:30 fischl Exp $ $Name:  $\n"
         )
       );
 
@@ -11137,7 +11144,7 @@ void RecomputeSegmentation ( tkm_tSegType iVolume ) {
       gSegmentationVolume[iVolume]->mpMriValues,
       gGCATransform, 10,
       gSegmentationChangedVolume[iVolume]->mpMriValues, 1,
-      RecomputeUpdateCallback);
+      RecomputeUpdateCallback, .5, .5);
 
   UpdateAndRedraw() ;
 
