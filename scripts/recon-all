@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2014/08/01 22:09:48 $
-#    $Revision: 1.479 $
+#    $Author: fischl $
+#    $Date: 2014/08/05 17:03:46 $
+#    $Revision: 1.480 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.479 2014/08/01 22:09:48 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.480 2014/08/05 17:03:46 fischl Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2487,7 +2487,7 @@ if($DoCALabel) then
   #------------------- mri_ca_label -------------------------------#
   # Run mri_ca_label to create aseg.auto_noCCseg.mgz
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
-  set cmd = (mri_ca_label)
+  set cmd = (mri_ca_label -relabel_unlikely 9 .3 -prior 0.5)
   set cmd = ($cmd $UseCAAlign)
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
