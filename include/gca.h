@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/07/17 20:11:38 $
- *    $Revision: 1.124 $
+ *    $Date: 2014/08/05 17:03:03 $
+ *    $Revision: 1.125 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,10 @@ extern "C" {
 #include "colortab.h"
 
 #include "affine.h"
+
+#if 0
+extern double MIN_PRIOR_FACTOR, MAX_PRIOR_FACTOR, PRIOR_FACTOR ;   // sorry, too hard to propagate this everywhere for now
+#endif
 
 #define MIN_PRIOR  0.5
 #define MAX_GCA_INPUTS 1000
@@ -227,7 +231,7 @@ MRI  *GCAlabel(MRI *mri_src, GCA *gca, MRI *mri_dst, TRANSFORM *transform) ;
 MRI  *GCAclassify(MRI *mri_src,GCA *gca,MRI *mri_dst,TRANSFORM *transform,int max_labels);
 MRI  *GCAreclassifyUsingGibbsPriors(MRI *mri_inputs, GCA *gca, MRI *mri_dst,
                                     TRANSFORM *transform, int max_iter, MRI *mri_fixed,
-                                    int restart, void (*update_func)(MRI *));
+                                    int restart, void (*update_func)(MRI *), double min_prior_factor, double max_prior_factor);
 GCA  *GCAreduce(GCA *gca_src) ;
 int  GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv,
                     int *pyv, int *pzv) ;
@@ -259,7 +263,7 @@ int   GCAremoveOutlyingSamples(GCA *gca, GCA_SAMPLE *gcas,
 int   GCArankSamples(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
                      int *ordered_indices) ;
 MRI  *GCAanneal(MRI *mri_inputs, GCA *gca, MRI *mri_dst,TRANSFORM *transform,
-                int max_iter);
+                int max_iter, double prior_factor);
 int    GCAsourceVoxelToNode( const GCA *gca, MRI *mri, TRANSFORM *transform,
 			     int xv, int yv, int zv,
 			     int *pxn, int *pyn, int *pzn );
@@ -290,7 +294,7 @@ int    GCAsampleStats(GCA *gca, MRI *mri, TRANSFORM *transform, int class,
 
 
 MRI  *GCAannealUnlikelyVoxels(MRI *mri_inputs, GCA *gca, MRI *mri_dst,
-                              TRANSFORM *transform, int max_iter, MRI *mri_fixed) ;
+                              TRANSFORM *transform, int max_iter, MRI *mri_fixed, double prior_factor) ;
 GCA_SAMPLE *GCAfindContrastSamples(GCA *gca, int *pnsamples, int min_spacing,
                                    float min_prior) ;
 GCA_SAMPLE *GCAfindAllSamples(GCA *gca, int *pnsamples, int *exclude_list,
@@ -490,6 +494,7 @@ double GCAgibbsImpossibleConfiguration(GCA *gca,
                                        TRANSFORM *transform) ;
 MRI *GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform);
 double GCAimagePosteriorLogProbability(GCA *gca, MRI *mri_labels, MRI *mri_inputs, TRANSFORM *transform) ;
+double GCAwindowPosteriorLogProbability(GCA *gca, MRI *mri_labels, MRI *mri_inputs, TRANSFORM *transform, int x0, int y0, int z0, int whalf) ;
 int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
 
 #define GCA_DEFAULT_NOISE_PARAMETER  1
@@ -514,11 +519,12 @@ GCAreclassifyVoxelsAtOptimalScale(GCA *gca, TRANSFORM *transform,
 
 GCA *GCAsmooth(GCA *gca, double sigma) ;
 GCA *GCAcopy(GCA *gca_src, GCA *gca_dst) ;
+int GCAgetMaxPriorLabelAtVoxel(GCA *gca, MRI *mri, int x, int y, int z, TRANSFORM *transform, double *p_prior) ;
 int GCAgetMaxPriorLabel(GCA *gca, int xp, int yp, int zp, double *p_prior) ;
 int GCAupdateDistributions(GCA *gca, MRI *mri, TRANSFORM *transform);
 double GCAgibbsImageLogPosterior(GCA *gca,MRI *mri_labels,
                                  MRI *mri_inputs,
-                                 TRANSFORM *transform) ;
+                                 TRANSFORM *transform, double prior_factor) ;
 double GCAnbhdGibbsLogPosterior(GCA *gca,
                                 MRI *mri_labels,
                                 MRI *mri_inputs,
