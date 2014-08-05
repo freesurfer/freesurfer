@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/07/18 02:52:08 $
- *    $Revision: 1.105 $
+ *    $Author: fischl $
+ *    $Date: 2014/08/05 17:03:16 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,11 @@
 #include "version.h"
 #include "fsinit.h"
 
+static double PRIOR_FACTOR = 1.0 ;
+
+static char *read_renorm_fname = NULL ;
+static char *write_renorm_fname = NULL ;
+
 static int remove_cerebellum = 0 ;
 static int remove_lh = 0 ;
 static int remove_rh = 0 ;
@@ -63,6 +68,7 @@ static char *save_gca_fname = NULL ;
 
 static char *surf_name = NULL ;
 static char *surf_dir = NULL ;
+static int rescale = 0 ;
 static float Glabel_scales[MAX_CMA_LABELS] ;
 static float Glabel_offsets[MAX_CMA_LABELS] ;
 
@@ -77,9 +83,12 @@ static int norm_PD = 0;
 static int map_to_flash = 0 ;
 
 static int reclassify_unlikely = 0 ;
+static double unlikely_prior_thresh = 0.3 ;
 static int unlikely_wsize = 9 ;
+#if 0
 static float unlikely_sigma = .5 ;
 static float unlikely_mah_dist_thresh = 4 ;  // more than this many sigmas from mean means unlikely
+#endif
 
 static int wmsa = 0 ;   // apply wmsa postprocessing (using T2/PD data)
 static int nowmsa = 0 ; // remove all wmsa labels from the atlas
@@ -93,6 +102,8 @@ static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
 static double TEs[MAX_GCA_INPUTS] ;
 
+static MRI *GCArelabelUnlikely(GCA *gca, MRI *mri_inputs, TRANSFORM *transform, MRI *mri_src_labeled, MRI *mri_dst_labeled, double prior_thresh, int whalf)  ;
+static MRI *fix_putamen(GCA *gca, MRI *mri_inputs, MRI *mri_imp, TRANSFORM *transform, MRI *mri_src_labeled, MRI *mri_dst_labeled, double prior_thresh)  ;
 #if 0
 static int load_val_vector(VECTOR *v_means,
                            MRI *mri_inputs,
@@ -216,13 +227,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.105 2014/07/18 02:52:08 greve Exp $",
+   "$Id: mri_ca_label.c,v 1.106 2014/08/05 17:03:16 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.105 2014/07/18 02:52:08 greve Exp $",
+           "$Id: mri_ca_label.c,v 1.106 2014/08/05 17:03:16 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -478,7 +489,8 @@ int main(int argc, char *argv[])
     exit(0) ;
   }
   // -renorm fname option
-  GCAapplyRenormalization(gca, Glabel_scales, Glabel_offsets, 0) ;
+  if (rescale)
+    GCAapplyRenormalization(gca, Glabel_scales, Glabel_offsets, 0) ;
   if (renormalization_fname)
   {
     FILE   *fp ;
@@ -764,7 +776,7 @@ int main(int argc, char *argv[])
     }
     GCAreclassifyUsingGibbsPriors
     (mri_inputs, gca, mri_labeled, transform, max_iter,
-     mri_fixed, 0, NULL);
+     mri_fixed, 0, NULL, PRIOR_FACTOR, PRIOR_FACTOR);
   }
   else    // don't read old one in - create new labeling
   {
@@ -839,17 +851,29 @@ int main(int argc, char *argv[])
           label_offsets[MAX_CMA_LABELS],
           label_peaks[MAX_CMA_LABELS];
         int label_computed[MAX_CMA_LABELS];
-        // initial call (returning the label_* infos)
-        GCAcomputeRenormalizationWithAlignment
-        (gca, mri_inputs, transform,
-         logfp, base_name, NULL, handle_expanded_ventricles,
-         label_scales,label_offsets,label_peaks,label_computed) ;
-        // sequential call gets passed the results from first call
-        // will overwrite the intensity.txt file with combinded results
-        GCAseqRenormalizeWithAlignment
-        (gca, mri_inputs, transform,
-         logfp, base_name, NULL, handle_expanded_ventricles,
-         label_scales,label_offsets,label_peaks,label_computed) ;
+
+	if (read_renorm_fname)
+	{
+	  GCAfree(&gca) ;
+	  gca = GCAread(read_renorm_fname) ;
+	}
+	else
+	{
+	  // initial call (returning the label_* infos)
+	  GCAcomputeRenormalizationWithAlignment
+	    (gca, mri_inputs, transform,
+	     logfp, base_name, NULL, handle_expanded_ventricles,
+	     label_scales,label_offsets,label_peaks,label_computed) ;
+	  // sequential call gets passed the results from first call
+	  // will overwrite the intensity.txt file with combinded results
+	  GCAseqRenormalizeWithAlignment
+	    (gca, mri_inputs, transform,
+	     logfp, base_name, NULL, handle_expanded_ventricles,
+	     label_scales,label_offsets,label_peaks,label_computed) ;
+	  if (write_renorm_fname)
+	    GCAwrite(gca, write_renorm_fname) ;
+	}
+
         if (regularize_mean > 0)
         {
           GCAregularizeConditionalDensities(gca, regularize_mean) ;
@@ -899,9 +923,18 @@ int main(int argc, char *argv[])
 	}
 	fflush(stdout);  fflush(stderr);
         GCAlabel(mri_inputs, gca, mri_labeled, transform) ;
+
+	/*
+	  try  to create a better starting labeling by relabeling regions of a label that disagree
+	  with the atlas label all at once (the MRF stuff is prone to local minima where flipping one
+	  label increases the energy, but flipping a bunch all at once lowers it)
+	*/
+	if (reclassify_unlikely)
+	  GCArelabelUnlikely(gca, mri_inputs, transform, mri_labeled, mri_labeled, unlikely_prior_thresh, (unlikely_wsize-1)/2) ;
         {
           MRI *mri_imp ;
           mri_imp = GCAmarkImpossible(gca, mri_labeled, NULL, transform) ;
+	  fix_putamen(gca, mri_inputs, mri_imp, transform, mri_labeled, mri_labeled,-.1) ;
           if (Gdiag & DIAG_WRITE)
           {
             MRIwrite(mri_imp, "gca_imp.mgz") ;
@@ -1095,7 +1128,7 @@ int main(int argc, char *argv[])
     {
       if (anneal)
       {
-        GCAanneal(mri_inputs, gca, mri_labeled, transform, max_iter) ;
+        GCAanneal(mri_inputs, gca, mri_labeled, transform, max_iter, PRIOR_FACTOR) ;
       }
       else
       {
@@ -1105,7 +1138,7 @@ int main(int argc, char *argv[])
         }
         GCAreclassifyUsingGibbsPriors
         (mri_inputs, gca, mri_labeled, transform, max_iter,
-         mri_fixed, 0, NULL);
+         mri_fixed, 0, NULL, PRIOR_FACTOR, PRIOR_FACTOR);
       }
     }
   }
@@ -1158,7 +1191,7 @@ int main(int argc, char *argv[])
     MRIwrite(mri_labeled, fname) ;
   }
 
-  if (reclassify_unlikely)
+  if (reclassify_unlikely && 0)
   {
     MRI *mri_sigma ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -1299,6 +1332,12 @@ get_option(int argc, char *argv[])
     remove_lh = 1  ;
     printf("removing left hemisphere labels\n") ;
   }
+  else if (!stricmp(option, "PRIOR"))
+  {
+    PRIOR_FACTOR = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("using Gibbs prior factor = %2.3f\n", PRIOR_FACTOR) ;
+  }
   else if (!strcmp(option, "NOCEREBELLUM"))
   {
     remove_cerebellum = 1 ;
@@ -1355,6 +1394,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "RELABEL_UNLIKELY"))
   {
+#if 0
     reclassify_unlikely = atoi(argv[2]) ;
     unlikely_wsize = atoi(argv[3]) ;
     unlikely_sigma = atof(argv[4]) ;
@@ -1367,6 +1407,14 @@ get_option(int argc, char *argv[])
       printf("not relabeling unlikely voxels\n") ;
     }
     nargs = 4 ;
+#else
+    reclassify_unlikely = 1 ;
+    unlikely_wsize = atoi(argv[2]) ;
+    unlikely_prior_thresh = atof(argv[3]) ;
+    printf("relabeling unlikely voxels with window_size = %d and prior threshold %2.2f\n",
+	   unlikely_wsize, unlikely_prior_thresh) ;
+    nargs = 2 ;
+#endif
   }
   else if (!stricmp(option, "CONFORM"))
   {
@@ -1502,6 +1550,7 @@ get_option(int argc, char *argv[])
   {
     int l ;
     l = atoi(argv[2]) ;
+    rescale = 1 ;
     Glabel_scales[l] = atof(argv[3]) ;
     nargs = 2 ;
     printf("scaling label %s by %2.2f\n", cma_label_to_name(l), Glabel_scales[l]) ;
@@ -1594,6 +1643,18 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("renormalizing using predicted intensity values in %s...\n",
            renormalization_fname) ;
+  }
+  else if (!stricmp(option, "WRITE_RENORM"))
+  {
+    write_renorm_fname = argv[2] ;
+    nargs = 1 ;
+    printf("writing renormalized GCA to in %s...\n", write_renorm_fname) ;
+  }
+  else if (!stricmp(option, "READ_RENORM"))
+  {
+    read_renorm_fname = argv[2] ;
+    nargs = 1 ;
+    printf("reading renormalized GCA from %s...\n", read_renorm_fname) ;
   }
   else if (!stricmp(option, "FLASH"))
   {
@@ -4316,3 +4377,266 @@ int MRItoUCHAR(MRI **pmri)
   *pmri = mri2;
   return(1);
 }
+static MRI *
+fix_putamen(GCA *gca, MRI *mri_inputs, MRI *mri_imp, TRANSFORM *transform, MRI *mri_src_labeled, MRI *mri_dst_labeled, double prior_thresh) 
+{
+  int        x, y, z, nchanged, label, n, left, right, above, below, gm, wm, iter, total_changed ;
+  double     pwm, pgm ;
+  GCA_PRIOR *gcap ;
+  
+  if (mri_dst_labeled == NULL)
+    mri_dst_labeled = MRIcopy(mri_src_labeled, NULL) ;
+  if (prior_thresh < 0)
+    return(mri_dst_labeled) ;
+
+  for (iter = total_changed = 0 ; iter < 5 ; iter++)
+  {
+    for (nchanged = x = 0 ; x < mri_imp->width ; x++)
+      for (y = 0 ; y < mri_imp->height ; y++)
+	for (z = 0 ; z < mri_imp->depth ; z++)
+	{
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+	    DiagBreak() ;
+	  if (MRIgetVoxVal(mri_imp, x, y, z, 0) > 0)
+	  {
+	    gcap = getGCAP(gca, mri_inputs, transform, x, y, z) ;
+	    for (n = 0 ; n < gcap->nlabels ; n++)
+	      if (IS_PUTAMEN(gcap->labels[n]))
+		break ;
+	    if (n < gcap->nlabels)   // found putamen
+	    {
+	      label = MRIgetVoxVal(mri_src_labeled, x, y, z, 0) ;
+	      if (IS_PUTAMEN(label) && gcap->priors[n] < prior_thresh)
+	      {
+		left = MRIgetVoxVal(mri_src_labeled, x+1, y, z, 0) ;
+		right = MRIgetVoxVal(mri_src_labeled, x-1, y, z, 0) ;
+		above = MRIgetVoxVal(mri_src_labeled, x, y-1, z, 0) ;
+		below = MRIgetVoxVal(mri_src_labeled, x, y+1, z, 0) ;
+		if (((IS_CORTEX(left) || IS_WM(left)) &&
+		     (IS_CORTEX(right) || IS_WM(right))) ||
+		    (((IS_CORTEX(above) || IS_WM(above)) &&
+		      (IS_CORTEX(below) || IS_WM(below)))))
+		{
+		  nchanged++ ;
+		  if  (label == Left_Putamen)
+		  {
+		    gm = Left_Cerebral_Cortex ; wm = Left_Cerebral_White_Matter ;
+		  }
+		  else
+		  {
+		    gm = Right_Cerebral_Cortex ; wm = Right_Cerebral_White_Matter ;
+		  }
+		  pwm = GCAlabelProbability(mri_inputs, gca, transform, (float)x, (float)y, (float)z,wm) ;
+		  pgm = GCAlabelProbability(mri_inputs, gca, transform, (float)x, (float)y, (float)z,gm) ;
+		  if (pwm > pgm) // change it to white matter
+		    label = wm ;
+		else           // change it to gray matter
+		  label = gm ;
+		  MRIsetVoxVal(mri_dst_labeled, x, y, z, 0, label) ;
+		  if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+		    printf("changing putamen label at (%d, %d, %d) to %s (%d)\n", x, y, z, cma_label_to_name(label), label) ;
+		}
+	      }
+	      else   // consider changing it to putamen from something else
+	      {
+	      }
+	    }
+	  }
+	}
+    total_changed += nchanged ;
+    if (nchanged == 0)
+      break ;
+  }
+
+  printf("%d putamen labels changed to cortex/white matter\n", total_changed) ;
+  return(mri_dst_labeled) ;
+}
+
+
+VOXEL_LIST *
+find_unlikely_voxels_in_region(GCA *gca, TRANSFORM *transform, MRI *mri_labeled, double prior_thresh, MRI *mri_prior_labels, MRI *mri_priors, int x, int y, int z, int whalf) 
+{
+  int         xi, yi, zi, xk, yk, zk, nvox, label, prior_label ;
+  double      prior ;
+  GCA_PRIOR   *gcap ;
+  VOXEL_LIST  *vl ;
+
+  for (nvox = 0, xk = -whalf ; xk <= whalf ; xk++)
+  {
+    xi = mri_labeled->xi[x+xk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri_labeled->yi[y+yk] ;
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+	zi = mri_labeled->zi[z+zk] ;
+	label = MRIgetVoxVal(mri_labeled, xi, yi, zi, 0) ;
+	prior_label = MRIgetVoxVal(mri_prior_labels, xi, yi, zi, 0) ;
+	if (label == prior_label)
+	  continue ;
+	gcap = getGCAP(gca, mri_labeled, transform, xi, yi, zi) ;
+	prior = getPrior(gcap, label) ;
+	if (prior < prior_thresh)
+	  nvox++ ;
+      }
+    }
+  }
+  if (nvox == 0)
+    return(NULL) ;
+  vl = VLSTalloc(nvox) ; vl->nvox = 0 ;
+  vl->mri = mri_labeled ;
+  
+  for (xk = -whalf ; xk <= whalf ; xk++)
+  {
+    xi = mri_labeled->xi[x+xk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri_labeled->yi[y+yk] ;
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+	zi = mri_labeled->zi[z+zk] ;
+	if (xi == Gx && yi == Gy && zi == Gz)
+	  DiagBreak() ;
+	label = MRIgetVoxVal(mri_labeled, xi, yi, zi, 0) ;
+	prior_label = MRIgetVoxVal(mri_prior_labels, xi, yi, zi, 0) ;
+	if (label == prior_label)
+	  continue ;
+	gcap = getGCAP(gca, mri_labeled, transform, xi, yi, zi) ;
+	prior = getPrior(gcap, label) ;
+	if (prior < prior_thresh)
+	  VLSTadd(vl, xi, yi, zi, xi, yi, zi) ;
+      }
+    }
+  }
+  VLSTsample(vl, mri_labeled) ;
+  
+  return(vl) ;
+}
+static int
+change_unlikely_voxels(GCA *gca, MRI *mri_dst_label, MRI *mri_inputs, TRANSFORM *transform, VOXEL_LIST *vl, int label_to_change, MRI *mri_prior_labels) 
+{
+  int       i, max_label, x, y, z, nchanged ;
+#if 0
+  int       n ;
+  double    p, max_p ;
+  GCA_PRIOR *gcap ;
+#endif
+
+  for (nchanged = i = 0 ; i < vl->nvox ; i++)
+  {
+    if (nint(vl->vsrc[i]) != label_to_change)
+      continue ;
+    nchanged++ ;
+    x = vl->xi[i] ; y = vl->yi[i] ; z = vl->zi[i] ;
+    max_label = MRIgetVoxVal(mri_prior_labels, x, y, z, 0) ;
+    MRIsetVoxVal(mri_dst_label, x, y, z, 0, max_label) ; // use prior label
+    if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+      printf("changing label at (%d, %d, %d) from %s to %s\n", Ggca_x, Ggca_y, Ggca_z, cma_label_to_name(label_to_change),cma_label_to_name(max_label));
+#if 0
+    gcap = getGCAP(gca, mri_inputs, transform, vl->xi[i], vl->yi[i], vl->zi[i]) ;
+    max_p = 0.0 ; max_label = 0 ;
+    for (n = 0 ; n < gcap->nlabels ; n++)
+    {
+      if (x == Gx && y == Gy && z == Gz)
+	DiagBreak() ;
+      if (gcap->labels[n] == label_to_change)   // don't let it be the one we are changing
+	continue ;
+      p = GCAlabelProbability(mri_inputs, gca, transform, (float)x, (float)y, (float)z, gcap->labels[n]) ;
+      if (p > max_p)
+      {
+	max_label = gcap->labels[n] ;
+	max_p = p ;
+      }
+    }
+    if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+      printf("changing label at (%d, %d, %d) from %s to %s\n", Ggca_x, Ggca_y, Ggca_z, cma_label_to_name(label_to_change),cma_label_to_name(max_label));
+    MRIsetVoxVal(mri_dst_label, x, y, z, 0, max_label) ;
+#endif
+  }
+
+  return(nchanged) ;
+}
+static MRI *
+GCArelabelUnlikely(GCA *gca, MRI *mri_inputs, TRANSFORM *transform, MRI *mri_src_labeled, MRI *mri_dst_labeled, double prior_thresh, int whalf)  
+{
+  int         x, y, z, nchanged, total_changed, i, nindices, label, index, nchanged_tmp  ;
+  short       *x_indices, *y_indices, *z_indices ;
+  VOXEL_LIST *vl ;
+  MRI        *mri_prior_labels, *mri_priors ;
+  double      prior, posterior_before, posterior_after  ;
+
+  mri_prior_labels = MRIclone(mri_dst_labeled, NULL) ;
+  mri_priors = MRIcloneDifferentType(mri_dst_labeled, MRI_FLOAT) ;
+
+  if (mri_dst_labeled == NULL)
+    mri_dst_labeled = MRIcopy(mri_src_labeled, NULL) ;
+
+  for (x = 0 ; x < mri_inputs->width ; x++)
+    for (y = 0 ; y < mri_inputs->height ; y++)
+      for (z = 0 ; z < mri_inputs->depth ; z++)
+	{
+	  if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+	    DiagBreak() ;
+	  label = GCAgetMaxPriorLabelAtVoxel(gca, mri_dst_labeled, x, y, z, transform, &prior) ;
+	  MRIsetVoxVal(mri_prior_labels, x, y, z, 0, label) ;
+	  MRIsetVoxVal(mri_priors, x, y, z, 0, prior) ;
+	}
+  
+  nindices = mri_inputs->width * mri_inputs->height * mri_inputs->depth ;
+  x_indices = (short *)calloc(nindices, sizeof(short)) ;
+  y_indices = (short *)calloc(nindices, sizeof(short)) ;
+  z_indices = (short *)calloc(nindices, sizeof(short)) ;
+  for (i = total_changed = 0 ; i < 5 ; i++)
+  {
+    MRIcomputeVoxelPermutation(mri_inputs, x_indices, y_indices, z_indices) ;
+    for (nchanged = index = 0 ; index < nindices ; index++)
+    {
+      x = x_indices[index] ; y = y_indices[index] ; z = z_indices[index] ;
+      label = MRIgetVoxVal(mri_dst_labeled, x, y, z, 0) ;
+      if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+	DiagBreak() ;
+      if (label == (int)MRIgetVoxVal(mri_prior_labels,x,y,z,0))
+	continue ;
+
+#if 0
+      if ((GCAisPossible(gca, mri_inputs, Left_Putamen, transform, x, y, z, 0) == 0) &&
+	  (GCAisPossible(gca, mri_inputs, Left_Putamen, transform, x, y, z, 0) == 0))
+	continue ;
+      if (!IS_PUTAMEN(label))   // disable everything but putamen for now
+	continue ;
+#endif
+      posterior_before = GCAwindowPosteriorLogProbability(gca, mri_dst_labeled, mri_inputs, transform, x, y, z,  whalf)  ;
+
+      vl = find_unlikely_voxels_in_region(gca, transform, mri_dst_labeled, prior_thresh, mri_prior_labels, mri_priors, x, y, z, whalf) ;
+      if (vl == NULL)
+	continue;
+      if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+      {
+	MRI *mri ;
+	mri = VLSTtoMri(vl, NULL) ;
+	MRIwrite(mri, "vl.mgz") ;
+	MRIfree(&mri) ;
+	DiagBreak() ;
+      }
+      nchanged_tmp = change_unlikely_voxels(gca, mri_dst_labeled, mri_inputs, transform, vl, label,mri_prior_labels) ;
+      posterior_after = GCAwindowPosteriorLogProbability(gca, mri_dst_labeled, mri_inputs, transform, x, y, z,  whalf)  ;
+      if (posterior_after <= posterior_before)
+	VLSTvsrcToMri(vl, mri_dst_labeled) ;   // undo label change
+      else
+      {
+	nchanged += nchanged_tmp ;
+	DiagBreak() ;
+      }
+      VLSTfree(&vl) ;
+    }
+    total_changed += nchanged ;
+    printf("%d voxels changed in iteration %d of unlikely voxel relabeling\n", nchanged, i) ;
+    if (!nchanged)
+      break ;
+  }
+
+  MRIfree(&mri_prior_labels) ;
+  MRIfree(&mri_priors) ;
+  return(mri_dst_labeled) ;
+}
+
