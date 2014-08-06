@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/04/17 19:26:38 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/08/06 13:30:31 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,7 @@ VOXEL_LIST, VOXLIST ;
 VOXEL_LIST *VLSTfromMRI(MRI *mri, int vno) ;
 VOXEL_LIST *VLSTalloc(int nvox) ;
 VOXEL_LIST *VLSTcopy(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst, int start_index, int num) ;
+MRI         *VLSTvsrcToMri(VOXEL_LIST *vl, MRI *mri) ;
 MRI         *VLSTtoMri(VOXEL_LIST *vl, MRI *mri) ;
 int         VLSTfree(VOXEL_LIST **pvoxel_list) ;
 VOXEL_LIST  *VLSTcreateFromDifference(MRI *mri1, MRI *mri2, VOXEL_LIST *vl, int target_label) ;
@@ -86,6 +87,7 @@ int         VLSTaddUnique(VOXEL_LIST *vl, int x, int y, int z, float xd, float y
 int         VLSTinList(VOXEL_LIST *vl, int x, int y, int z);
 int         VLSTadd(VOXEL_LIST *vl, int x, int y, int z, float xd, float yd, float zd) ;
 
+int         VLmostCommonLabel(VOXEL_LIST *vl) ;
 int         VLSTwriteLabel(VOXEL_LIST *vl, char *fname, MRI_SURFACE *mris, MRI *mri) ;
 LABEL       *VLSTtoLabel(VOXEL_LIST *vl, MRI_SURFACE *mris, MRI *mri) ;
 MRI         *VLSTwriteOrderToMRI(VOXEL_LIST *vl, MRI *mri) ;

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/04/17 19:26:30 $
- *    $Revision: 1.28 $
+ *    $Date: 2014/08/06 13:30:47 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -358,11 +358,32 @@ VLSTtoMri(VOXEL_LIST *vl, MRI *mri)
   double  val ;
 
   if (mri == NULL)
+  {
+    if (vl->mri == NULL)
+      ErrorReturn(NULL, (ERROR_BADPARM, "VLSTtoMri: mri and vl->mri are both NULL")) ;
     mri = MRIclone(vl->mri, NULL) ;
+  }
 
   for (i = 0 ; i < vl->nvox ; i++)
   {
     val = MRIgetVoxVal(vl->mri, vl->xi[i], vl->yi[i], vl->zi[i], 0) ;
+    MRIsetVoxVal(mri, vl->xi[i], vl->yi[i], vl->zi[i], 0, val) ;
+  }
+  return(mri) ;
+}
+
+MRI *
+VLSTvsrcToMri(VOXEL_LIST *vl, MRI *mri)
+{
+  int   i ;
+  double  val ;
+
+  if (mri == NULL)
+    mri = MRIclone(vl->mri, NULL) ;
+
+  for (i = 0 ; i < vl->nvox ; i++)
+  {
+    val = vl->vsrc[i] ;
     MRIsetVoxVal(mri, vl->xi[i], vl->yi[i], vl->zi[i], 0, val) ;
   }
   return(mri) ;
@@ -1293,3 +1314,31 @@ VLSTsample(VOXEL_LIST *vl, MRI *mri)
   return(NO_ERROR) ;
 }
 
+int
+VLmostCommonLabel(VOXEL_LIST *vl) 
+{
+  int max_label, *label_counts, n, label, max_label_count ;
+
+  max_label = 0 ;
+  for (n = 0 ; n <  vl->nvox ; n++)
+  {
+    label = nint(vl->vsrc[n]) ;
+    if (label > max_label)
+      max_label = label ;
+  }
+  label_counts = (int *)calloc(max_label+1, sizeof(int)) ;
+  for (n = 0 ; n <= max_label ; n++)
+    label_counts[n] = 0 ;
+  for (n = 0 ; n <  vl->nvox ; n++)
+  {
+    label = nint(vl->vsrc[n]) ;
+    label_counts[label]++ ;
+  }
+  for (max_label_count = max_label = n = 0 ; n <= max_label ; n++)
+    if (label_counts[n] > max_label_count)
+    {
+      max_label_count = label_counts[n] ;
+      max_label = n ;
+    }
+  return(max_label) ;
+}
