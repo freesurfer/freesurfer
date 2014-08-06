@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # gtmseg
 
-set VERSION = '$Id: gtmseg,v 1.7 2014/07/15 19:57:16 greve Exp $';
+set VERSION = '$Id: gtmseg,v 1.8 2014/08/06 20:01:25 greve Exp $';
 
 set outdir = ();
 set subject = ();
@@ -21,6 +21,7 @@ set wmlhbase=0;
 set wmrhbase=0;
 set DoSegStats = 1;
 set ctab = ();
+set SubSegCblumWM = 1;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -85,6 +86,17 @@ else if(! -e $SUBJECTS_DIR/$subject/mri/$headseg) then
   if($status) goto error_exit;
 endif
 
+if($SubSegCblumWM) then
+  set base = `basename $headseg .mgz`
+  set headseg2 = $base+cblumwmgyri.mgz
+  set cmd = (cblumwmgyri --s $subject --seg $headseg --n 2 \
+    --o $headseg2 --no-segstats --no-log)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+  set headseg = $headseg2
+endif
+
 if($SubSegWM && $#wmannot == 0) then
   foreach hemi (lh rh)
     set cmd = (mri_annotation2label --subject $subject --hemi $hemi --lobesStrict lobes)
@@ -116,7 +128,8 @@ if($DoSegStats) then
   set ctab = $SUBJECTS_DIR/$subject/mri/$gtmsegstem.ctab
   set stat = $SUBJECTS_DIR/$subject/stats/$gtmsegstem.stats
   set gtmseg = $SUBJECTS_DIR/$subject/mri/$outvol
-  set cmd = (mri_segstats --seg $gtmseg --ctab $ctab --sum $stat --excludeid 0)
+  set cmd = (mri_segstats --seg $gtmseg --ctab $ctab --sum $stat \
+    --excludeid 0 --etiv --subject $subject)
   $cmd | tee -a $LF
   if($status) goto error_exit;
 endif
@@ -245,6 +258,13 @@ while( $#argv != 0 )
       set KeepCC = 0;
       breaksw
 
+    case "--subseg-cblum-wm":
+      set SubSegCblumWM = 1;
+      breaksw
+    case "--no-subseg-cblum-wm":
+      set SubSegCblumWM = 0;
+      breaksw
+
     case "--seg-stats":
       set DoSegStats = 1;
       breaksw
@@ -360,9 +380,10 @@ usage_exit:
   echo " --wm-annot  annot lhbase rhbase : annotation to use for WM segmentation (with --subsegwm, default is lobes 3200 4200)"
   echo " --output-usf OutputUSF : set output USF different than USF, mostly for debugging"
   echo " --head headseg : use headseg instead of $headseg"
+  echo " --no-subseg-cblum-wm : do not subsegment cerebellum WM into core and gyri":
   echo " --ctab colortable "
-  echo ""
   echo " --no-seg-stats : do not compute segmentation stats"
+  echo ""
   echo " --debug "
   echo " --help "
 
@@ -375,16 +396,28 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Creates a segmentation that can then be used with the geometric transfer matrix
-for performing PET partial volume correction. It will create a segmentation of 
-the head (approximate extra-cerebral CSF, approximate skull, and the rest of 
-the head) using the xcerebralseg script. The WM can be subsegmented into lobes
-with --subsegwm. Hypointensities can be kept with --keep-hypo. The corpus
-callosum can be kept with --keep-cc. If these segments are not "kept" then
-they are relabelled as WM. The upsampling factor (USF) controls the resolution
-of the segmentation; this make a difference for cortical segmentations. Higher
-resolution is more accurate but takes up more disk space and will require 
-more computations later on.
+Creates a segmentation that can then be used with the geometric
+transfer matrix for performing PET partial volume correction. It will
+create a segmentation of the head (approximate extra-cerebral CSF,
+approximate skull, and the rest of the head) using the xcerebralseg
+script. The WM can be subsegmented into lobes with
+--subsegwm. Hypointensities can be kept with --keep-hypo. The corpus
+callosum can be kept with --keep-cc. If these segments are not "kept"
+then they are relabelled as WM. The upsampling factor (USF) controls
+the resolution of the segmentation; this make a difference for
+cortical segmentations. Higher resolution is more accurate but takes
+up more disk space and will require more computations later on. 
+
+By default, the cerebellum WM is subsegmented into a core component
+and gyri. The core components keep the
+{Left,Right}-Cerebellum-White-Matter names and indices. The gyri will
+become CbmWM_Gyri_{Left,Right} with indices 690 and 691. This segmentation
+is done because the gyri tend to be very thin and hard to segment
+from GM. Because they are thin, they will be very succeptible to 
+partial volume effects, even with partial volume correction. This
+can be especially problematic when cerebellum WM is used as a 
+reference region. To remerge them when running mri_gtmpvc, add
+this to the command line: --replace 690 7 --replace 691 46
 
 Example:
 
