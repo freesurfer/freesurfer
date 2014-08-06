@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/01 01:41:22 $
- *    $Revision: 1.144 $
+ *    $Author: fischl $
+ *    $Date: 2014/08/06 01:29:30 $
+ *    $Revision: 1.145 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,7 @@
 #include "utils.h"
 #include "error.h"
 #include "proto.h" //  nint
+int tkmFontSize = 8 ;
 
 /* i'm not sure what to do about these y flips. it seems that whenever we're
    using a point that's going to go into the buffer to be drawn to the screen,
@@ -5041,6 +5042,7 @@ DspA_tErr DspA_DrawFunctionalOverlay_ ( tkmDisplayAreaRef this ) {
   int                   posMidLine   = 0;
   int                   negMinLine   = 0;
   int                   negMidLine   = 0;
+  void                  *glut_font    = GLUT_BITMAP_8_BY_13;
 
   DspA_SetUpOpenGLPort_( this );
 
@@ -5126,8 +5128,18 @@ DspA_tErr DspA_DrawFunctionalOverlay_ ( tkmDisplayAreaRef this ) {
       glRasterPos2i( this->mnVolumeSizeX - 10 - (strlen(sValue) * 4) - 2,
                      (nY==0 ? GLDRAW_Y_FLIP(nY+8) : GLDRAW_Y_FLIP(nY)) );
       for ( nChar = 0; nChar < strlen(sValue); nChar++ ) {
-        glutBitmapCharacter( GLUT_BITMAP_8_BY_13, sValue[nChar] );
+	switch (tkmFontSize)
+	{
+	default:
+	case 8: glut_font = GLUT_BITMAP_8_BY_13 ; break ;
+	case 9: glut_font = GLUT_BITMAP_9_BY_15 ; break ;
+	case 12:glut_font = GLUT_BITMAP_HELVETICA_12 ; break ;
+	case 10:glut_font = GLUT_BITMAP_HELVETICA_10 ; break ;
+	case 18:glut_font = GLUT_BITMAP_HELVETICA_18 ; break ;
+	case 24:glut_font = GLUT_BITMAP_TIMES_ROMAN_24 ; break ;
       }
+        glutBitmapCharacter(glut_font, sValue[nChar] );
+    }
     }
   }
 
