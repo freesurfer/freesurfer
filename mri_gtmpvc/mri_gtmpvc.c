@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/17 21:40:35 $
- *    $Revision: 1.28 $
+ *    $Date: 2014/08/06 20:25:58 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.28 2014/07/17 21:40:35 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.29 2014/08/06 20:25:58 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.28 2014/07/17 21:40:35 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.29 2014/08/06 20:25:58 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1059,6 +1059,10 @@ static int parse_commandline(int argc, char **argv) {
       gtm->SrcReplace[gtm->nReplace]=78; gtm->TrgReplace[gtm->nReplace]=77; gtm->nReplace++;
       gtm->SrcReplace[gtm->nReplace]=79; gtm->TrgReplace[gtm->nReplace]=77; gtm->nReplace++;
     } 
+    else if(!strcasecmp(option, "--merge-cblum-wm-gyri")) {
+      gtm->SrcReplace[gtm->nReplace]=690; gtm->TrgReplace[gtm->nReplace]=7; gtm->nReplace++;
+      gtm->SrcReplace[gtm->nReplace]=691; gtm->TrgReplace[gtm->nReplace]=46; gtm->nReplace++;
+    } 
     else if(!strcasecmp(option, "--vg-thresh")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&vg_isEqual_Threshold);
@@ -1153,6 +1157,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --default-seg-merge : default schema for merging ROIs\n");
   printf("   --merge-hypos : merge left and right hypointensites into to ROI\n");
+  printf("   --merge-cblum-wm-gyri : cerebellum WM gyri back into cerebellum WM\n");
   printf("   --tt-reduce : reduce segmentation to that of a tissue type\n");
   printf("   --replace Id1 Id2 : replace seg Id1 with seg Id2\n");
   printf("   --replace-file : file with a list of Ids to replace\n");
