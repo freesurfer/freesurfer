@@ -7,9 +7,9 @@
 #
 # Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.6 $
+#    $Author: greve $
+#    $Date: 2014/08/06 22:24:59 $
+#    $Revision: 1.7 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -27,7 +27,7 @@
 # a functional data set by projecting out the eigenvectors
 # as computed from evfunc (fast_evfunc.m)
 #
-set VERSION = '$Id: mri_mergelabels,v 1.6 2011/03/02 20:16:39 nicks Exp $'
+set VERSION = '$Id: mri_mergelabels,v 1.7 2014/08/06 22:24:59 greve Exp $'
 set inputargs = ($argv);
 
 set PWDCMD = `getpwdcmd`;
@@ -55,6 +55,8 @@ check_params_return:
 set outdir = `dirname $outlabel`;
 mkdir -p $outdir
 
+set firstline = `head -n 1 $inputlist[1]`;
+
 # Count the total number in the label #
 set nlabelsum = 0;
 foreach inlabel ($inputlist)
@@ -62,7 +64,8 @@ foreach inlabel ($inputlist)
   set nlabelsum = `echo "$nlabelsum + $nlabel" | bc -l`;
 end
 
-echo "#label , from subject ??" > $outlabel
+#echo "#label , from subject ??" > $outlabel
+echo "$firstline" > $outlabel
 echo $nlabelsum >> $outlabel
 
 # Cat the data into the label #
