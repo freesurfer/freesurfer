@@ -53,7 +53,7 @@ MGZ=\
 	mni305.mask.cor.mgz
 
 if NMR_INSTALL
-foo_DATA=\
+DATA_LIST=\
 	$(GCA) \
 	$(GCS) \
 	$(TIF) \
@@ -69,7 +69,7 @@ foo_DATA=\
 	mni152.mni305.cor.subfov2.dat \
 	RB_all_2008-03-26.mni152.2mm.lta 
 else
-foo_DATA=\
+DATA_LIST=\
 	$(GCA) \
 	$(GCS) \
 	$(TIF) \
@@ -88,7 +88,7 @@ foo_DATA=\
 	RB_all_2008-03-26.mni152.2mm.lta 
 endif
 
-EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz fsaverage_sym.tar.gz \
+EXTRA_DIST=$(DATA_LIST) fsaverage.tar.gz fsaverage_sym.tar.gz \
         V1_average.tar.gz \
 	fsaverage3.tar.gz fsaverage4.tar.gz \
 	fsaverage5.tar.gz fsaverage6.tar.gz fsaverage7.tar.gz \

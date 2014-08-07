@@ -4,7 +4,7 @@
 
 foodir=$(prefix)/data/GEMS
 
-foo_DATA=\
+DATA_LIST=\
 CurrentMeshCollection30.gz \
 compressionLookupTable.txt \
 compressionLookupTable_left.txt \
@@ -14,7 +14,7 @@ nonPartialVolumeStatsRightReferenceForBert.txt \
 kvlQuantifyHippocampalSubfieldSegmentations.sh.help.xml \
 kvlSegmentHippocampalSubfields.sh.help.xml
 
-EXTRA_DIST = $(foo_DATA)
+EXTRA_DIST = $(DATA_LIST)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
