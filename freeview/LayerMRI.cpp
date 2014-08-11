@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/14 19:42:59 $
- *    $Revision: 1.148 $
+ *    $Date: 2014/08/11 17:09:44 $
+ *    $Revision: 1.149 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2017,7 +2017,7 @@ bool LayerMRI::GetVoxelStats(QList<int> &indices, double *mean_out, double *sd_o
     int i = indices[n];
     int j = indices[n+1];
     int k = indices[n+2];
-    if (i < dim[0] && j < dim[1] && k < dim[2])
+    if (i >= 0 && i < dim[0] && j >= 0 && j < dim[1] && k >= 0 && k < dim[2])
     {
       dMean += m_imageData->GetScalarComponentAsDouble( i, j, k, nActiveComp );
       nCount++;
@@ -2036,7 +2036,7 @@ bool LayerMRI::GetVoxelStats(QList<int> &indices, double *mean_out, double *sd_o
       int i = indices[n];
       int j = indices[n+1];
       int k = indices[n+2];
-      if (i < dim[0] && j < dim[1] && k < dim[2])
+      if (i >= 0 && i < dim[0] && j >= 0 && j < dim[1] && k >= 0 && k < dim[2])
       {
         double value = m_imageData->GetScalarComponentAsDouble( i, j, k, nActiveComp );
         sd += ( value-(*mean_out) ) * ( value-(*mean_out) );
@@ -2054,6 +2054,21 @@ bool LayerMRI::GetVoxelStats(QList<int> &indices, double *mean_out, double *sd_o
   return true;
 }
 
+bool LayerMRI::GetVoxelStatsByTargetRAS(QList<float> &coords, double* mean_out, double *sd_out)
+{
+  double* orig = m_imageData->GetOrigin();
+  double* vsize = m_imageData->GetSpacing();
+  int* ext = m_imageData->GetExtent();
+
+  QList<int> indices;
+  for (int i = 0; i < coords.size(); i+=3)
+  {
+    indices << (int)( ( coords[i] - orig[0] ) / vsize[0] + 0.5 )
+            << (int)( ( coords[i+1] - orig[1] ) / vsize[1] + 0.5 )
+            << (int)( ( coords[i+2] - orig[2] ) / vsize[2] + 0.5 );
+  }
+  return GetVoxelStats(indices, mean_out, sd_out);
+}
 
 // memory allocated for indice_out and value_out need to be freed outside of this function!
 bool LayerMRI::GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane, int*& indice_out, double*& value_out, int* cnt_out )
@@ -2306,7 +2321,8 @@ void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out
   int cnt = 0;
   int ext[3][2] = { { 0, dim[0]-1 }, {0, dim[1]-1}, {0, dim[2]-1} };
   ext[nPlane][0] = ext[nPlane][1] = n[nPlane];
-  QList<int> indices;
+//  QList<int> indices;
+  QList<float> coords;
   for ( int i = ext[0][0]; i <= ext[0][1]; i++ )
   {
     for ( int j = ext[1][0]; j <= ext[1][1]; j++ )
@@ -2316,7 +2332,8 @@ void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out
         if ( m_imageData->GetScalarComponentAsFloat( i, j, k, m_nActiveFrame ) == fLabel )
         {
           cnt++;
-          indices << i << j << k;
+  //        indices << i << j << k;
+          coords << i*vs[0] + origin[0] << j*vs[1] + origin[1] << k*vs[2] + origin[2];
         }
       }
     }
@@ -2328,7 +2345,7 @@ void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out
   *area_out = cnt*vs[0]*vs[1]*vs[2];
 
   if (underlying_mri)
-    underlying_mri->GetVoxelStats(indices, mean_out, sd_out);
+    underlying_mri->GetVoxelStatsByTargetRAS(coords, mean_out, sd_out);
 }
 
 vtkImageData* LayerMRI::GetSliceImageData( int nPlane )

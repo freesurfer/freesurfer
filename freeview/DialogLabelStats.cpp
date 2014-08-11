@@ -36,6 +36,12 @@ void DialogLabelStats::UpdateStats()
     if (label && mri)
       break;
   }
+  // only use current layer
+  mri = qobject_cast<LayerMRI*>(mainwnd->GetActiveLayer("MRI"));
+  if (mri->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+  {
+    mri = NULL;
+  }
   LayerROI* roi = (LayerROI*)mainwnd->GetActiveLayer("ROI");
 
   float fLabel, fArea = 0;

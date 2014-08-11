@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/07/24 19:37:49 $
- *    $Revision: 1.287 $
+ *    $Date: 2014/08/11 17:09:44 $
+ *    $Revision: 1.288 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -239,6 +239,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_dlgLabelStats = new DialogLabelStats(this);
   m_dlgLabelStats->hide();
   connect(this, SIGNAL(SlicePositionChanged()), m_dlgLabelStats, SLOT(UpdateStats()), Qt::QueuedConnection);
+  connect(m_layerCollections["MRI"], SIGNAL(ActiveLayerChanged(Layer*)), m_dlgLabelStats, SLOT(UpdateStats()), Qt::QueuedConnection);
   connect(m_layerCollections["ROI"], SIGNAL(ActiveLayerChanged(Layer*)), m_dlgLabelStats, SLOT(UpdateStats()), Qt::QueuedConnection);
 
   m_dlgLineProfile = new DialogLineProfile(this);
@@ -1183,6 +1184,16 @@ void MainWindow::OnIdle()
   LayerROI* layerROI  = (LayerROI*)GetActiveLayer( "ROI");
   LayerPointSet* layerPointSet  = (LayerPointSet*)GetActiveLayer( "PointSet");
   LayerTrack* layerTrack  = (LayerTrack*)GetActiveLayer( "Track");
+  bool bHasLabelLayer = false;
+  QList<Layer*> volumes = GetLayers("MRI");
+  foreach (Layer* layer, volumes)
+  {
+    if (((LayerMRI*)layer)->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
+    {
+      bHasLabelLayer = true;
+      break;
+    }
+  }
 //  LayerCollection* lc = GetCurrentLayerCollection();
   bool bHasLayer = !IsEmpty();
   ui->actionVoxelEdit       ->setEnabled( layerVolume && layerVolume->IsEditable() );
@@ -1240,7 +1251,7 @@ void MainWindow::OnIdle()
   ui->actionShowSlices      ->blockSignals(true);
   ui->actionShowSlices      ->setChecked(ui->view3D->GetShowSlices());
   ui->actionShowSlices->blockSignals(false);
-  ui->actionShowLabelStats  ->setEnabled( (layerVolume && layerVolume->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT) || layerROI );
+  ui->actionShowLabelStats  ->setEnabled( (layerVolume && bHasLabelLayer) || layerROI );
   ui->actionToggleCursorVisibility  ->setEnabled( bHasLayer );
   ui->actionTogglePointSetVisibility->setEnabled( layerPointSet );
   ui->actionToggleROIVisibility     ->setEnabled( layerROI );

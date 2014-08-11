@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/07/21 16:49:05 $
- *    $Revision: 1.24 $
+ *    $Date: 2014/08/11 17:09:44 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -359,12 +359,14 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
   }
 
   int* dim = m_imageData->GetDimensions();
+  double* origin = m_imageData->GetOrigin();
   double vs[3];
   m_imageData->GetSpacing( vs );
   unsigned char* ptr = (unsigned char*)m_imageData->GetScalarPointer();
 
   int cnt = 0;
-  QList<int> indices;
+//  QList<int> indices;
+  QList<float> coords;
   for ( int i = 0; i < dim[0]; i++ )
   {
     for ( int j = 0; j < dim[1]; j++ )
@@ -374,7 +376,8 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
         if ( ptr[k*dim[0]*dim[1]+j*dim[0]+i] != 0 )
         {
           cnt++;
-          indices << i << j << k;
+//          indices << i << j << k;
+          coords << i*vs[0]+origin[0] << j*vs[1]+origin[1] << k*vs[2]+origin[2];
         }
       }
     }
@@ -385,5 +388,5 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
   *area_out = cnt*vs[0]*vs[1]*vs[2];
 
   if (underlying_mri)
-    underlying_mri->GetVoxelStats(indices, mean_out, sd_out);
+    underlying_mri->GetVoxelStatsByTargetRAS(coords, mean_out, sd_out);
 }

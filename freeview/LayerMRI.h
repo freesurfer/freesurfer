@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/21 22:06:58 $
- *    $Revision: 1.91 $
+ *    $Date: 2014/08/11 17:09:44 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -178,6 +178,8 @@ public:
   bool GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane, int*& indice_out, double*& value_out, int* cnt_out );
 
   bool GetVoxelStats(QList<int>& indices, double* mean_out, double* sd_out = NULL);
+
+  bool GetVoxelStatsByTargetRAS(QList<float> &coords, double* mean_out, double *sd_out = NULL);
 
   void ResetWindowLevel();
 
