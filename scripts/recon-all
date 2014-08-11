@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2014/08/05 17:03:46 $
-#    $Revision: 1.480 $
+#    $Author: nicks $
+#    $Date: 2014/08/11 17:28:21 $
+#    $Revision: 1.481 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.480 2014/08/05 17:03:46 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.481 2014/08/11 17:28:21 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3466,13 +3466,8 @@ if($DoT2pial || $DoFLAIRpial) then
     
     # then give the T2/FLAIR a little normalizing
     # note: pre-normalized file remains for debug, with .prenorm in name
-    if ("${t2flair}" == "T2") then 
-        set normflags = (-sigma 0.5 nonmax_suppress 0 -min_dist 1)
-    else # else a FLAIR
-        set normflags = (-sigma 4)
-    endif
     set normcmd = (mri_normalize \
-        $normflags \
+        -sigma 0.5 nonmax_suppress 0 -min_dist 1 \
         -aseg $mdir/aseg.mgz \
         -surface $sdir/rh.white identity.nofile \
         -surface $sdir/lh.white identity.nofile \
@@ -3504,8 +3499,10 @@ if($DoT2pial || $DoFLAIRpial) then
     set cmd = ($cmd -white NOWRITE)
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     # if using a T2 or FLAIR to remove dura that might be confused with pial...
-    if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2)
-    if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR)
+    if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2 \
+        -nsigma_above 2 -nsigma_below 5)
+    if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR \
+        -nsigma_above 3 -nsigma_below 3)
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
