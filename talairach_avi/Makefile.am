@@ -11,7 +11,7 @@ AM_LDFLAGS=$(LIB_G2C_A)
 LIBS=
 
 foodir=$(prefix)/average
-foo_DATA= \
+DATA_LIST= \
 	711-2B_as_mni_average_305.4dfp.hdr \
 	711-2B_as_mni_average_305_mask.4dfp.ifh \
 	711-2C_as_mni_average_305.4dfp.img \
@@ -218,7 +218,7 @@ clean-local:
 	rm -f $(BUILT_SOURCES) 
 
 EXTRA_DIST=$(dist_bin_SCRIPTS) talairach_avi.help.xml.h \
-	$(foo_DATA) \
+	$(DATA_LIST) \
 	$(CFILES) \
 	$(HFILES) \
 	$(FFILES) \

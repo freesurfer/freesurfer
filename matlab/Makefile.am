@@ -10,7 +10,7 @@ lmemassunifilesdir=$(prefix)/matlab/lme/mass_univariate
 lmeunifilesdir=$(prefix)/matlab/lme/univariate
 lmeQdecfilesdir=$(prefix)/matlab/lme/Qdec
 
-mfiles_DATA=\
+mfiles_FILES=\
 	angles2rotmat.m \
 	barsegstats.m \
 	bmmcost.m \
@@ -149,15 +149,15 @@ mfiles_DATA=\
 	xfm_read.m
 
 if NMR_INSTALL
-siemens_DATA=\
+siemens_FILES=\
 	read_meas_dat.m \
 	read_meas_prot.m \
 	read_meas_prot__struct.m
 else
-siemens_DATA=
+siemens_FILES=
 endif
 
-lmefiles_DATA=\
+lmefiles_FILES=\
 	lme/usage.txt \
 	lme/fs_read_label.m \
 	lme/fs_read_surf.m \
@@ -166,7 +166,7 @@ lmefiles_DATA=\
 	lme/fs_write_Y.m \
 	lme/sortData.m
 
-lmegeofiles_DATA=\
+lmegeofiles_FILES=\
 	lme/geodesic/geodesic_license.txt \
 	lme/geodesic/geodesic_readme.txt \
 	lme/geodesic/geodesic_src.tar.gz \
@@ -189,7 +189,7 @@ lmegeofiles_DATA=\
 	lme/geodesic/geodesic_propagate.m \
 	lme/geodesic/geodesic_trace_back.m
 
-lmemassunifiles_DATA=\
+lmemassunifiles_FILES=\
 	lme/mass_univariate/AdjMtx.m \
 	lme/mass_univariate/lme_FSfit.m \
 	lme/mass_univariate/lme_mass_FDR2.m \
@@ -213,7 +213,7 @@ lmemassunifiles_DATA=\
 	lme/mass_univariate/parfor_progress.m \
 	lme/mass_univariate/sphCoord.m
 
-lmeunifiles_DATA=\
+lmeunifiles_FILES=\
 	lme/univariate/lme_EI.m \
 	lme/univariate/lme_fit_EMinit.m \
 	lme/univariate/lme_fit_EM.m \
@@ -232,7 +232,7 @@ lmeunifiles_DATA=\
 	lme/univariate/lme_timePlot.m \
 	lme/univariate/vec.m
 
-lmeQdecfiles_DATA=\
+lmeQdecfiles_FILES=\
 	lme/Qdec/findQdecVar.m \
 	lme/Qdec/fReadQdec.m \
 	lme/Qdec/fWriteQdec.m \
@@ -242,15 +242,15 @@ lmeQdecfiles_DATA=\
 	lme/Qdec/Qdec2num.m \
 	lme/Qdec/rmQdecCol.m
 
-EXTRA_DIST=$(mfiles_DATA) \
-	$(lmefiles_DATA) \
-	$(lmegeofiles_DATA) \
-	$(lmeunifiles_DATA) \
-	$(lmemassunifiles_DATA) \
-	$(lmeQdecfiles_DATA)
+EXTRA_DIST=$(mfiles_FILES) \
+	$(lmefiles_FILES) \
+	$(lmegeofiles_FILES) \
+	$(lmeunifiles_FILES) \
+	$(lmemassunifiles_FILES) \
+	$(lmeQdecfiles_FILES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
-EXCLUDE_FILES=$(siemens_DATA)
+EXCLUDE_FILES=$(siemens_FILES)
 include $(top_srcdir)/Makefile.extra
