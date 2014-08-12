@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/09 17:56:04 $
- *    $Revision: 1.20 $
+ *    $Date: 2014/08/12 15:22:42 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 
-static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.20 2014/05/09 17:56:04 greve Exp $";
+static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.21 2014/08/12 15:22:42 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -131,6 +131,12 @@ int main(int argc, char *argv[]) {
     printf("Loading %s\n",tmpstr);
     aseg = MRIread(tmpstr);
     if(aseg==NULL) exit(1);
+    if(aseg->type == MRI_UCHAR){
+      printf("Changing type of seg from UCHAR to INT\n");
+      mritmp = MRIchangeType(aseg, MRI_INT, 0, 1, 1);
+      MRIfree(&aseg);
+      aseg = mritmp;
+    }
     if(FillCSF){
       printf("Filling empty voxels with extracerebral CSF (if not there already), nDil=%d\n",nDil);
       if(aseg->type == MRI_UCHAR){
