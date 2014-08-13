@@ -98,6 +98,7 @@ MRISUBDIRS=\
 	mri_histo_eq \
 	mri_compute_structure_transforms \
 	mri_ibmc \
+	mri_iic \
 	mri_info \
 	mri_and \
 	mri_hausdorff_dist \

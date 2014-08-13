@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/07/14 19:19:33 $
-#    $Revision: 1.616 $
+#    $Author: blewin $
+#    $Date: 2014/08/13 18:49:26 $
+#    $Revision: 1.617 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3616,6 +3616,7 @@ AC_OUTPUT([Makefile
            mri_histo_normalize/Makefile
            histo_fix_topology/Makefile
            mri_ibmc/Makefile
+           mri_iic/Makefile
            mri_info/Makefile
            mri_and/Makefile
            mri_hausdorff_dist/Makefile
