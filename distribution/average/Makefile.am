@@ -95,7 +95,7 @@ EXTRA_DIST=$(DATA_LIST) fsaverage.tar.gz fsaverage_sym.tar.gz \
 	EC_average.tar.gz mult-comp-cor.tar.gz \
 	build_gcs_morph.csh cvs_avg35.tar.gz cvs_avg35_inMNI152.tar.gz
 
-install: install-fooDATA
+install:
 	mkdir -p $(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35
 	rm -Rf $(top_builddir)/distribution/average/cvs_avg35
