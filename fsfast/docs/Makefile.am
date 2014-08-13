@@ -41,7 +41,7 @@ TEXFILES=\
 	vol2roi.tex\
 	yakview.tex
 
-DATA_LIST = $(TEXFILES:%.tex=%.pdf)
+foo_DATA = $(TEXFILES:%.tex=%.pdf)
 
 .ps.pdf:
 	ps2pdf $< $@

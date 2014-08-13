@@ -142,11 +142,11 @@ TIF=\
 	icon_zoom_in.tif \
 	icon_zoom_out.tif
 
-DATA_LIST= $(GIF) $(TIF) \
+foo_DATA= $(GIF) $(TIF) \
 	icon_zoom_out.png icon_label_list.xpm icon_fill_roi.png \
 	icon_fill_volume.png icon_label_table.xpm
 
-EXTRA_DIST = $(DATA_LIST)
+EXTRA_DIST = $(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

@@ -53,7 +53,7 @@ MGZ=\
 	mni305.mask.cor.mgz
 
 if NMR_INSTALL
-DATA_LIST=\
+foo_DATA=\
 	$(GCA) \
 	$(GCS) \
 	$(TIF) \
@@ -69,7 +69,7 @@ DATA_LIST=\
 	mni152.mni305.cor.subfov2.dat \
 	RB_all_2008-03-26.mni152.2mm.lta 
 else
-DATA_LIST=\
+foo_DATA=\
 	$(GCA) \
 	$(GCS) \
 	$(TIF) \
@@ -88,14 +88,14 @@ DATA_LIST=\
 	RB_all_2008-03-26.mni152.2mm.lta 
 endif
 
-EXTRA_DIST=$(DATA_LIST) fsaverage.tar.gz fsaverage_sym.tar.gz \
+EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz fsaverage_sym.tar.gz \
         V1_average.tar.gz \
 	fsaverage3.tar.gz fsaverage4.tar.gz \
 	fsaverage5.tar.gz fsaverage6.tar.gz fsaverage7.tar.gz \
 	EC_average.tar.gz mult-comp-cor.tar.gz \
 	build_gcs_morph.csh cvs_avg35.tar.gz cvs_avg35_inMNI152.tar.gz
 
-install:
+install: install-fooDATA
 	mkdir -p $(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35
 	rm -Rf $(top_builddir)/distribution/average/cvs_avg35
