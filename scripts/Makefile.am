@@ -10,6 +10,7 @@ aparcstats2table \
 asegstats2table \
 aparcstatsdiff \
 asegstatsdiff \
+apas2aseg \
 avi2talxfm \
 batchjobs \
 beta2sxa \
