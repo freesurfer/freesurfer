@@ -1,0 +1,234 @@
+#!/bin/tcsh -f
+# apas2aseg
+
+set VERSION = '$Id: apas2aseg,v 1.1 2014/08/14 22:25:53 greve Exp $';
+
+set outdir = ();
+set subject = ();
+set hemilist = ();
+set bedpost = ();
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+set outdir = `dirname $outseg`
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+# Set up log file
+if($#LF == 0) set LF = /dev/null
+if($LF != /dev/null) rm -f $LF
+echo "Log file for apas2aseg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+
+set cmd = (mri_binarize --i $apas --o $outseg)
+@ n = 0
+while ($n <= 35)
+  @ lh = 1000 + $n
+  @ rh = 2000 + $n
+  set cmd = ($cmd --replace $lh 3 --replace $rh 42)
+  @ n = $n + 1;
+end
+
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+
+#========================================================
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Apas2aseg-Run-Time-Sec $tSecRun" |& tee -a $LF
+#echo "Apas2aseg-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "apas2aseg Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      if(! -e $SUBJECTS_DIR/$subject) then
+        echo "ERROR: cannot find $subject"
+        exit 1;
+      endif
+      set apas = $SUBJECTS_DIR/$subject/mri/aparc+aseg.mgz
+      set outseg = $SUBJECTS_DIR/$subject/mri/apas-aseg.mgz
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outseg = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set apas = $argv[1]; shift;
+      if(! -e $apas) then
+        echo "ERROR: cannot find $apas"
+        exit 1;
+      endif
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#apas == 0) then
+  echo "ERROR: must spec input seg"
+  exit 1;
+endif
+if($#outseg == 0) then
+  echo "ERROR: must spec output seg"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "apas2aseg --help"
+  echo "  --s subject"
+  echo ""
+  echo "  --i aparc+aseg"
+  echo "  --o newseg (apas-aseg.mgz)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Converts aparc+aseg.mgz into something like aseg.mgz by replacing the
+cortical segmentations 1000-1035 with 3 and 2000-2035 with 42. The
+advantage of this output is that the cortical label conforms to the
+actual surface (this is not the case with aseg.mgz). By default, the
+output is apas-aseg.mgz. It should only take a few seconds to run.  To
+run, just execute:
+
+apas2aseg --s subject
+
+or
+
+apas2aseg --i aparc+aseg.mgz --o newseg.mgz
+
+
