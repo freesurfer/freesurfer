@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2014/08/15 16:15:07 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/08/15 21:17:29 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,10 +81,18 @@ void chklc(void)
   if (cp == NULL)
   {
     fprintf(stderr,"%s",errmsg);
-    exit(-1);
+    #ifdef Darwin
+      fprintf(stderr,"\n");
+      fprintf(stderr,"%s","Attempting to use /Applications/freesurfer directory.\n");
+      strncpy(dirname, "/Applications/freesurfer", STRLEN) ;
+    #else
+      exit(-1);
+    #endif
   }
-
-  strncpy(dirname, cp, STRLEN) ;
+  else
+  {
+    strncpy(dirname, cp, STRLEN) ;
+  }
 
   lfilename = (char*)calloc(1,512);
   email = (char*)calloc(1,512);
@@ -134,7 +142,7 @@ void chklc(void)
   if (strcmp(key2, "") != 0)
   {
     // We have a 4 line license file.
-    key = key2;
+    strcpy(key,key2);
     crypt_gkey = crypt(gkey,"FS");
   } 
   else 
@@ -150,6 +158,8 @@ void chklc(void)
     #endif
   }
 
+  printf("crypt_gkey = %s\n", crypt_gkey);
+  
   if (strcmp(key,crypt_gkey)!=0)
   {
     fprintf(stderr,licmsg2,lfilename);
@@ -172,7 +182,7 @@ void chklc(void)
 //  if the license check fails. But freeview is a clickable application on mac
 //  which might not have a terminal window open, so we want a message to appear
 //  if the license check fails. The only way to do this is to either modify 
-//  all existing calls the chklc throughout the code, or have separate license
+//  all existing calls to chklc throughout the code, or have separate license
 //  checking code for freeview. The first scares me, so Im going with the latter.
 //
 //  Also there are difference with the way the FREESURFER_HOME environment variable 
@@ -186,6 +196,7 @@ void chklc(void)
 int chklc2(char* msg)
 {
 
+  char  dirname[STRLEN], *cp;
   FILE* lfile;
   char* email;
   char* magic;
@@ -199,6 +210,23 @@ int chklc2(char* msg)
   sprintf(str, "S%sER%sRONT%sOR", "URF", "_F", "DO") ;
   if (getenv(str) != NULL) return 1;
 
+  cp = getenv("FREESURFER_HOME");
+  if (cp == NULL)
+  {
+    fprintf(stderr,"%s",errmsg);
+    #ifdef Darwin
+      fprintf(stderr,"\n");
+      fprintf(stderr,"%s","Attempting to use the /Applications/freesurfer directory.\n");
+      strncpy(dirname, "/Applications/freesurfer", STRLEN) ;
+    #else
+      exit(-1);
+    #endif
+  }
+  else
+  {
+    strncpy(dirname, cp, STRLEN) ;
+  }
+ 
   lfilename = (char*)calloc(1,512);
   email = (char*)calloc(1,512);
   magic = (char*)calloc(1,512);
@@ -206,7 +234,7 @@ int chklc2(char* msg)
   key2  = (char*)calloc(1,512);
   gkey  = (char*)calloc(1,1024);
 
-  sprintf(lfilename,".lic%s", "ense");
+  sprintf(lfilename,"%s/.lic%s",dirname, "ense");
 
   lfile = fopen(lfilename,"r");
   char permission_msg[] =
@@ -223,7 +251,7 @@ int chklc2(char* msg)
         sprintf(msg,permission_msg,lfilename,lfilename);
       return 0;
     }
-    sprintf(lfilename,".lic%s", "ense.txt");
+    sprintf(lfilename,"%s/lic%s",dirname, "ense.txt");
     lfile = fopen(lfilename,"r");
   }
   if (lfile == NULL)
@@ -257,7 +285,7 @@ int chklc2(char* msg)
   if (strcmp(key2, "") != 0)
   {
     // We have a 4 line license file.
-    key = key2;
+    strcpy(key,key2);
     crypt_gkey = crypt(gkey,"FS");
   } 
   else 
