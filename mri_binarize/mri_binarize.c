@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/27 19:38:18 $
- *    $Revision: 1.40 $
+ *    $Date: 2014/08/17 17:47:29 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.40 2014/03/27 19:38:18 greve Exp $
+// $Id: mri_binarize.c,v 1.41 2014/08/17 17:47:29 greve Exp $
 
 /*
   BEGINHELP
@@ -192,7 +192,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.40 2014/03/27 19:38:18 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.41 2014/08/17 17:47:29 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -462,7 +462,7 @@ int main(int argc, char *argv[]) {
   if(nReplace != 0){
     printf("Replacing %d\n",nReplace);
     for(n=0; n < nReplace; n++) printf("%2d:  %4d %4d\n",n+1,SrcReplace[n],TrgReplace[n]);
-    OutVol = MRIreplaceList(InVol, SrcReplace, TrgReplace, nReplace, NULL);
+    OutVol = MRIreplaceList(InVol, SrcReplace, TrgReplace, nReplace, MaskVol, NULL);
   }
 
   printf("Found %d values in range\n",nhits);

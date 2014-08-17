@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/17 21:40:35 $
- *    $Revision: 1.15 $
+ *    $Date: 2014/08/17 17:47:29 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -196,7 +196,7 @@ int MRIgtmSeg(GTMSEG *gtmseg)
     ctxseg = MRIannot2CerebralWMSeg(ctxseg, gtmseg->lhw, gtmseg->rhw, gtmseg->dmax, NULL, ctxseg);
   } else     printf("Not subsegmenting WM\n");
 
-  gtmseg->seg = MRIreplaceList(ctxseg, gtmseg->srclist, gtmseg->targlist, gtmseg->nlist, NULL);
+  gtmseg->seg = MRIreplaceList(ctxseg, gtmseg->srclist, gtmseg->targlist, gtmseg->nlist, NULL, NULL);
   if(gtmseg == NULL) return(1);
   MRIfree(&ctxseg);
 
@@ -910,7 +910,7 @@ int GTMrbv(GTM *gtm)
       nReplace++;
     }
     printf("  replacing head voxels with 0\n");
-    gtm->rbvsegmasked = MRIreplaceList(gtm->rbvseg, ReplaceThis, WithThat, nReplace, NULL);
+    gtm->rbvsegmasked = MRIreplaceList(gtm->rbvseg, ReplaceThis, WithThat, nReplace, NULL, NULL);
     printf("  computing bounding box  %d %d %d ",gtm->rbvseg->width, gtm->rbvseg->height, gtm->rbvseg->depth);
     region = REGIONgetBoundingBox(gtm->rbvsegmasked,10);
     REGIONprint(stdout, region);
@@ -1195,7 +1195,7 @@ int GTMrbv0(GTM *gtm)
       nReplace++;
     }
     printf("  replacing head voxels with 0\n");
-    segtmp = MRIreplaceList(gtm->anatseg, ReplaceThis, WithThat, nReplace, NULL);
+    segtmp = MRIreplaceList(gtm->anatseg, ReplaceThis, WithThat, nReplace, NULL, NULL);
     printf("  computing bounding box  ");
     region = REGIONgetBoundingBox(segtmp,10);
     REGIONprint(stdout, region);

@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/25 21:48:10 $
- *    $Revision: 1.89 $
+ *    $Date: 2014/08/17 17:47:29 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2429,11 +2429,12 @@ MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,float low_in_val, float hi_in_va
   return(mri_dst) ;
 }
 /*!
-  \fn MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *out)
+  \fn MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *mask, MRI *out)
   \brief Replaces a value in the source list with the corresponding value 
   in the target list. Can be done in-place. See also MRIreplaceValues().
+  If mask is non-null, then only replaces things in the mask.
 */
-MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *out)
+MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *mask, MRI *out)
 {
   int c,m;
 
@@ -2461,6 +2462,10 @@ MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *out)
     for(r=0; r < seg->height; r++){
       for(s=0; s < seg->depth; s++){
 	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5){
+	  MRIsetVoxVal(out,c,r,s,0, segid);
+	  continue;
+	}
 	hit = 0;
 	for(n = 0; n < nlist; n++){
 	  if(segid == srclist[n]){
