@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/11 15:42:24 $
- *    $Revision: 1.43 $
+ *    $Date: 2014/08/17 17:47:57 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_rbvpvc.c,v 1.43 2014/04/11 15:42:24 greve Exp $
+// $Id: mri_rbvpvc.c,v 1.44 2014/08/17 17:47:57 greve Exp $
 
 /*
   BEGINHELP
@@ -96,7 +96,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_rbvpvc.c,v 1.43 2014/04/11 15:42:24 greve Exp $";
+static char vcid[] = "$Id: mri_rbvpvc.c,v 1.44 2014/08/17 17:47:57 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -324,7 +324,7 @@ int main(int argc, char *argv[])
     printf("Replacing %d\n",nReplace);
     for(f=0; f < nReplace; f++) printf("%2d:  %4d %4d\n",f+1,SrcReplace[f],TrgReplace[f]);
     for(f=0; f < nReplace; f++) fprintf(logfp,"%2d:  %4d %4d\n",f+1,SrcReplace[f],TrgReplace[f]);
-    mritmp = MRIreplaceList(gtm->anatseg, SrcReplace, TrgReplace, nReplace, NULL);
+    mritmp = MRIreplaceList(gtm->anatseg, SrcReplace, TrgReplace, nReplace, NULL, NULL);
     MRIfree(&gtm->anatseg);
     gtm->anatseg = mritmp;
   }
@@ -1512,7 +1512,7 @@ int GTMrbv(GTM *gtm)
       nReplace++;
     }
     printf("  replacing head voxels with 0\n");
-    segtmp = MRIreplaceList(gtm->anatseg, ReplaceThis, WithThat, nReplace, NULL);
+    segtmp = MRIreplaceList(gtm->anatseg, ReplaceThis, WithThat, nReplace, NULL, NULL);
     printf("  computing bounding box  ");
     region = REGIONgetBoundingBox(segtmp,10);
     REGIONprint(stdout, region);
