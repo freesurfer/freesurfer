@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/08/06 20:25:58 $
- *    $Revision: 1.29 $
+ *    $Date: 2014/08/18 01:59:22 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.29 2014/08/06 20:25:58 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.30 2014/08/18 01:59:22 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.29 2014/08/06 20:25:58 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.30 2014/08/18 01:59:22 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -288,7 +288,7 @@ int main(int argc, char *argv[])
 
   if(gtm->nReplace > 0) {
     printf("Replacing %d\n",gtm->nReplace);fflush(stdout);
-    mritmp = MRIreplaceList(gtm->anatseg, gtm->SrcReplace, gtm->TrgReplace, gtm->nReplace, NULL);
+    mritmp = MRIreplaceList(gtm->anatseg, gtm->SrcReplace, gtm->TrgReplace, gtm->nReplace, NULL, NULL);
     if(Gdiag_no > 0) printf("  done replacing\n");fflush(stdout);
     MRIfree(&gtm->anatseg);
     gtm->anatseg = mritmp;
