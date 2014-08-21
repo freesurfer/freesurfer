@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:43 $
- *    $Revision: 1.38 $
+ *    $Author: greve $
+ *    $Date: 2014/08/21 17:51:31 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -969,4 +969,36 @@ int fio_mkdirp(const char *path, mode_t mode)
   }
 
   return(0);
+}
+
+/*
+  \fn int fio_FileHasCarriageReturn(char *fname)
+  \brief Checks whether the file has a carriage return which probably means
+  that it was created under windows. Returns 0 if no CR is found or 1 if
+  a CR is found (or -1 if it could not open the file).
+  The CRs can be replaced with a new line with
+    cat file | sed 's/\r/\n/g' > newfile
+ */
+int fio_FileHasCarriageReturn(char *fname)
+{
+  FILE *fp;
+  char c;
+  int n;
+
+  fp = fopen(fname,"r");
+  if(fp == NULL){
+    printf("ERROR: fio_FileHasCarriageReturn(): cannot open %s\n",fname);
+    return(-1);
+  }
+  n = 0; 
+  while(1){
+    c = fgetc(fp);
+    if(c==EOF) break;
+    if(c == '\r'){
+      n = 1; 
+      break;
+    }
+  }
+  fclose(fp);
+  return(n);
 }

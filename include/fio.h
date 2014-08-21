@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.23 $
+ *    $Author: greve $
+ *    $Date: 2014/08/21 17:51:31 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,6 +102,7 @@ int fio_pushd(const char *dir);
 int fio_popd(void);
 char *fio_fullpath(const char *fname);
 int fio_mkdirp(const char *path, mode_t mode);
+int fio_FileHasCarriageReturn(char *fname);
 
 //#define fwriteLong(l, fp)   fwrite4((int)l, fp)
 
