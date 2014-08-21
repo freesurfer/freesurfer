@@ -45,8 +45,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/10 17:05:29 $
- *    $Revision: 1.56 $
+ *    $Date: 2014/08/21 17:58:54 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -268,7 +268,21 @@ FSGD *gdfRead(char *gdfname, int LoadData) {
   char datafilename[1000];
   MATRIX *Xt,*XtX,*iXtX;
 
-  printf("gdfReadHeader: reading %s\n",gdfname);
+  printf("gdfRead(): reading %s\n",gdfname);
+
+  nv = fio_FileHasCarriageReturn(gdfname);
+  if(nv == -1) return(NULL);
+
+  if(nv != 0){
+    printf("\n");
+    printf("WARNING: carriage returns have been detected in file %s\n",gdfname);
+    printf("Was it created on a Windows computer?\n");
+    printf("This may cause an error in reading the FSGD file.\n");
+    printf("If so, try running:\n");
+    printf("    cat %s | sed 's/\\r/\\n/g' > new.%s \n",gdfname,gdfname);
+    printf("Then use new.%s \n",gdfname);
+    printf("\n");
+  }
 
   fp = fopen(gdfname,"r");
   if (fp==NULL) {
