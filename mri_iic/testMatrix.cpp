@@ -1,3 +1,27 @@
+/**
+ * @file  testMatrix.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: Benjamin Lewin 
+ * CVS Revision Info:
+ *    $Author: blewin $
+ *    $Date: 2014/08/22 21:22:49 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 //testMatrix.cpp
 //
 //Created 7/23/2014
@@ -23,11 +47,11 @@ int main()
   std::cout << "Slices: ";
   std::cin >> slices;
 
-  Matrix3d matrix0(rows, cols, slices);
-  Matrix3d matrix;
+  Matrix3d matrix(rows, cols, slices);
+  //Matrix3d matrix;
 //  Matrix3d mempty;
 //  matrix = mempty;
-  matrix = matrix0;
+  //matrix = matrix0;
 
   std::cout << "\nDIMENSIONS:\n";
   std::cout << "Height: " << matrix.getHeight() << std::endl;

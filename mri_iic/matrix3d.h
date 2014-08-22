@@ -1,3 +1,27 @@
+/**
+ * @file  matrix3d.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: Benjamin Lewin 
+ * CVS Revision Info:
+ *    $Author: blewin $
+ *    $Date: 2014/08/22 21:22:49 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 //Matrix3d.h
 //
 //Created 7/21/2014
@@ -24,7 +48,7 @@ class Matrix3d
     Matrix3d& operator=(const Matrix3d& other); 
 
     // returns the value at the given coordinate
-    float getVal(int row, int col, int slice);
+    float getVal(int row, int col, int slice) const;
     // sets the given coordinate to the value provided
     void setVal(int row, int col, int slice, float const &val);
 

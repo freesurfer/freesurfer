@@ -1,3 +1,27 @@
+/**
+ * @file  tensorCubicSmoothing.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: Benjamin Lewin 
+ * CVS Revision Info:
+ *    $Author: blewin $
+ *    $Date: 2014/08/22 21:22:49 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 //tensorCubicSmoothing.cpp
 //
 //Created 8/4/2014
@@ -6,6 +30,7 @@
 
 #include "tensorCubicSmoothing.h"
 #include <iostream>
+#include <cmath>
 
 //using namespace ctl;
 
@@ -24,7 +49,7 @@ TensorCubicSmoothing::TensorCubicSmoothing(const TensorCubicSmoothing& other)
   AtWA = other.AtWA;
   AtWr = other.AtWr;
   coefficients = other.coefficients;
-}
+} 
 // Assignment Overload
 TensorCubicSmoothing& TensorCubicSmoothing::operator=(const TensorCubicSmoothing& other)
 {
@@ -42,7 +67,27 @@ int TensorCubicSmoothing::constructAtWA(const vnl_matrix<float> &B2x,
                                         const Matrix3d &W,
                                         const vnl_vector<int> &indexMap)
 {
-  //STUB
+  int X = B2x.cols();
+  int Y = B2y.cols();
+  int Z = B2z.cols();
+  int size = sqrt(X * Y * Z);
+  Matrix3d temp = doBasisMultiplications(W, B2x, B2y, B2z);
+  AtWA.set_size(size, size);
+
+  //move to temporary 1 dimensional form
+  vnl_vector<float> intermediate(size * size);
+  int count = 0;
+  for(int i = 0; i < Z; i++)
+    for(int j = 0; j < Y; j++)
+      for(int k = 0; k < X; k++)
+        intermediate(count++) = temp.getVal(j, k, i);
+
+  //put in 2d array using index map
+  count = 0;
+  for(int i = 0; i < size; i++)
+    for(int j = 0; j < size; j++)
+      AtWA(j, i) = intermediate(indexMap(count++));
+  
   return 0;
 }
 
@@ -54,7 +99,29 @@ int TensorCubicSmoothing::constructAtWr(const vnl_matrix<float> &Bx,
                                         const Matrix3d          &W,
                                         const Matrix3d          &r)
 {
-  //STUB
+ 
+  int X = Bx.cols();
+  int Y = By.cols();
+  int Z = Bz.cols();
+  Matrix3d Wr = W;
+
+  // multiply each element of W by corresponding in r
+  for(int i = 0; i < Z; i++)
+    for(int j = 0; j < Y; j++)
+      for(int k = 0; k < X; k++)
+        Wr.setVal(j, k, i, Wr.getVal(j, k, i) * r.getVal(j, k, i));
+
+  Matrix3d temp = doBasisMultiplications(Wr, Bx, By, Bz);
+
+  AtWr.set_size(X * Y * Z);
+  int count = 0;
+  for(int i = 0; i < Z; i++)
+    for(int j = 0; j < Y; j++)
+      for(int k = 0; k < X; k++)
+        AtWr(count++) = temp.getVal(j, k, i);
+  
+
+  //map into 1d vector
   return 0;
 }
 
@@ -87,10 +154,10 @@ void TensorCubicSmoothing::expandCoefficients(Matrix3d &d,
 }
 
 // multiplies the 3d data matrix by basis functions in each direction
-Matrix3d TensorCubicSmoothing::doSneakySeperabilityMultiplications(const Matrix3d &data, 
-                                                                   const vnl_matrix<float> &Bx,
-                                                                   const vnl_matrix<float> &By,
-                                                                   const vnl_matrix<float> &Bz)
+Matrix3d TensorCubicSmoothing::doBasisMultiplications(const Matrix3d &data, 
+                                                      const vnl_matrix<float> &Bx,
+                                                      const vnl_matrix<float> &By,
+                                                      const vnl_matrix<float> &Bz)
 {
   int rows = data.getHeight();
   //int cols = data.getWidth();

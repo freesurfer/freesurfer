@@ -1,3 +1,27 @@
+/**
+ * @file  testTCS.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: Benjamin Lewin 
+ * CVS Revision Info:
+ *    $Author: blewin $
+ *    $Date: 2014/08/22 21:22:50 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 //testTCS.cpp
 //
 //Created 8/7/14
@@ -8,12 +32,12 @@
 #include "matrix3d.h"
 #include <vnl/vnl_matrix.h>
 
-const int ROWS   = 3;
-const int COLS   = 4;
-const int SLICES = 5;
-const int NUM_BX = 4;
-const int NUM_BY = 5;
-const int NUM_BZ = 3;
+const int ROWS   = 400;
+const int COLS   = 400;
+const int SLICES = 400;
+const int NUM_BX = 15;
+const int NUM_BY = 15;
+const int NUM_BZ = 15;
 
 int main()
 {
@@ -26,7 +50,7 @@ int main()
 
   TensorCubicSmoothing test;
 
-  test.doSneakySeperabilityMultiplications(data, Bx, By, Bz);
+  test.doBasisMultiplications(data, Bx, By, Bz);
 
   return 0;
 }

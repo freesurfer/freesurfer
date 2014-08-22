@@ -1,3 +1,27 @@
+/**
+ * @file  matrix3d.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ */
+/*
+ * Original Author: Benjamin Lewin 
+ * CVS Revision Info:
+ *    $Author: blewin $
+ *    $Date: 2014/08/22 21:22:49 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 //Matrix3d.h
 //
 //Created 7/21/2014
@@ -36,13 +60,13 @@ Matrix3d::Matrix3d(int rows, int cols, int slices)
 // destructor, deletes the array of matricies and all matricies within
 Matrix3d::~Matrix3d()
 {
-  /*
   for(int i = 0; i < depth; i++)
   {
+    std::cerr << i << '\n';
     delete data[i];
   }
-  */
   delete [] data;
+  data = NULL;
 }
 
 // copy constructor, creates exact replica of other
@@ -91,7 +115,7 @@ Matrix3d& Matrix3d::operator=(const Matrix3d& other)
 }
 
 // returns the value at the given coordinate
-float Matrix3d::getVal(int row, int col, int slice)
+float Matrix3d::getVal(int row, int col, int slice) const
 {
   if(row < 0 || row >= height || col < 0 || col >= width || slice < 0 || slice >= depth)
   {
