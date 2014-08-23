@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/08/05 17:02:46 $
- *    $Revision: 1.321 $
+ *    $Date: 2014/08/23 18:02:22 $
+ *    $Revision: 1.322 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1610,6 +1610,12 @@ GCAsourceVoxelToNode( const GCA *gca, MRI *mri, TRANSFORM *transform,
                       int xv, int yv, int zv,
                       int *pxn, int *pyn, int *pzn)
 {
+#if 1
+  int  xp, yp, zp ;
+
+  GCAsourceVoxelToPrior(gca, mri, transform, xv, yv, zv, &xp, &yp, &zp) ;
+  GCApriorToNode(gca, xp, yp, zp, pxn, pyn, pzn) ;
+#else
   float xt, yt, zt;
   double  xrt, yrt, zrt ;
   LTA *lta;
@@ -1663,8 +1669,8 @@ GCAsourceVoxelToNode( const GCA *gca, MRI *mri, TRANSFORM *transform,
   {
     return(ERROR_BADPARM) ;
   }
-
   // get the position in node from the talairach position
+#endif
   return(NO_ERROR) ;
 }
 
@@ -2495,9 +2501,9 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                   gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
                   if (gc == NULL)
                   {
-                    printf("gcap[%d][%d][%d]->labels[%d] ="
+                    printf("(%d, %d, %d): gcap[%d][%d][%d]->labels[%d] ="
                            " %s - node (%d, %d, %d): no gc!\n",
-                           xp, yp, zp, n, cma_label_to_name(gcap->labels[n]),
+                           x, y, z, xp, yp, zp, n, cma_label_to_name(gcap->labels[n]),
                            xn, yn, zn) ;
                     DiagBreak() ;
                   }
@@ -2509,6 +2515,7 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                                 xn,yn,zn,
                                 xp,yp,zp,
                                 x,y,z);
+
             }
             if (xn == Ggca_x && yn == Ggca_y && zn == Ggca_z &&
                 (label == Ggca_label || (Ggca_label < 0))
