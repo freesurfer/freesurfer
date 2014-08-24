@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/07/24 21:52:25 $
- *    $Revision: 1.150 $
+ *    $Date: 2014/08/24 15:51:44 $
+ *    $Revision: 1.151 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.150 2014/07/24 21:52:25 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.151 2014/08/24 15:51:44 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -267,13 +267,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.150 2014/07/24 21:52:25 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.151 2014/08/24 15:51:44 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.150 2014/07/24 21:52:25 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.151 2014/08/24 15:51:44 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -3823,7 +3823,6 @@ compute_brain_thresh(MRI_SURFACE *mris, MRI *mri_ratio, float nstd)
 
 #define SAMPLE_DIST .1
 #define PERCENTILE   0.9
-#define HISTO_NBINS  256
 
 static int
 compute_pial_target_locations(MRI_SURFACE *mris,
@@ -3836,16 +3835,18 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 {
   Real      val, xs, ys, zs, xv, yv, zv, d, mean, std ;
   int       vno, num_in, num_out, found_bad_intensity;
-  int done, bin, niter, outside_of_white, n ;
+  int done, bin, niter, outside_of_white, n, histo_nbins ;
   VERTEX    *v ;
   double min_gray, max_gray, thickness, nx, ny, nz, mn, mx, sig;
   double last_white, max_outward_dist ;
-  HISTOGRAM *h, *hcdf ;
+  HISTOGRAM *h, *hcdf, *hcdf_rev ;
   MRI       *mri_filled ;
+  float     min_val, max_val ;
 
-  h = HISTOalloc(HISTO_NBINS) ;
-  mx = HISTO_NBINS-1 ;
-  HISTOinit(h, HISTO_NBINS, 0, mx) ;
+  MRIvalRange(mri_T2, &min_val, &max_val) ;
+  histo_nbins = max_val+1 ;
+  h = HISTOalloc(histo_nbins) ; mx = max_val ;
+  HISTOinit(h, histo_nbins, 0, max_val) ;
 
   MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
   MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
@@ -3899,9 +3900,10 @@ compute_pial_target_locations(MRI_SURFACE *mris,
         HISTOaddSample(h, val, 0, mx) ;
       }
     }
+    hcdf_rev = HISTOmakeReverseCDF(h, NULL) ;
     hcdf = HISTOmakeCDF(h, NULL) ;
     bin = HISTOfindBinWithCount(hcdf, PERCENTILE);
-    if (bin < ceil(PERCENTILE*HISTO_NBINS)/4)  // data range is too compressed for histogram to represent
+    if (bin < ceil(PERCENTILE*histo_nbins)/4)  // data range is too compressed for histogram to represent
     {
       done = (niter > 10) ;
       if (niter++ > 0)
@@ -3912,7 +3914,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       {
         mx = 2*bin/(.9) ;  // first time - take an educated guess
       }
-      HISTOinit(h, HISTO_NBINS, 0, mx) ;
+      HISTOinit(h, histo_nbins, 0, mx) ;
       printf("compressed histogram detected, changing bin size to %f\n",
              h->bin_size) ;
     }
@@ -3935,9 +3937,28 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   }
   max_gray = mn+nstd_above*sig ;
   min_gray = mn-nstd_below*sig ;
+  {
+    int bin ;
+    bin = HISTOfindBinWithCount(hcdf, 0.01) ;
+    printf("min bin %d (%2.1f) found with count %2.3f\n", bin, hcdf->bins[bin], hcdf->counts[bin]) ;
+    if (hcdf->bins[bin] > min_gray)
+    {
+      printf("resetting min gray %2.1f based on CDF\n", min_gray) ;
+      min_gray = hcdf->bins[bin];
+    }
+
+    bin = HISTOfindBinWithCount(hcdf_rev, 0.01) ;
+    printf("max bin %d (%2.1f) found with count %2.3f\n", bin, hcdf_rev->bins[bin], hcdf_rev->counts[bin]) ;
+    if (hcdf_rev->bins[bin] < max_gray)
+    {
+      printf("resetting max gray %2.1f based on CDF\n", max_gray) ;
+      max_gray = hcdf_rev->bins[bin];
+    }
+  }
   printf("locating cortical regions not in the range [%2.2f %2.2f], "
          "gm=%2.2f+-%2.2f, and vertices in regions > %2.1f\n",
          min_gray, max_gray, mn, sig, mn-.5*sig) ;
+
 
   for (n = 0 ; n < nlabels ; n++)
   {
@@ -4086,12 +4107,15 @@ compute_pial_target_locations(MRI_SURFACE *mris,
                vno,d,v->targx,v->targy,v->targz, xv, yv, zv) ;
     }
   }
-  MRIfree(&mri_filled) ;
+  MRIfree(&mri_filled) ; HISTOfree(&h) ; HISTOfree(&hcdf) ; HISTOfree(&hcdf_rev) ;
+
   printf("%d surface locations found to contain inconsistent "
          "values (%d in, %d out)\n",
          num_in+num_out, num_in, num_out) ;
   return(NO_ERROR) ;
 }
+
+#define HISTO_NBINS 256
 
 static int
 find_and_mark_pinched_regions(MRI_SURFACE *mris,
