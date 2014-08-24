@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/03/24 16:40:26 $
- *    $Revision: 1.82 $
+ *    $Date: 2014/08/24 15:52:10 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1941,6 +1941,36 @@ HISTOfindMedian(HISTOGRAM *h)
   return(median) ;
 }
 
+HISTOGRAM *
+HISTOmakeReverseCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst)
+{
+  int    b, b2 ;
+  double total = 0 ;
+  HISTOGRAM *habs ;
+
+  habs = HISTOabs(hsrc, NULL) ;
+
+  if (hdst == NULL)
+    hdst = HISTOcopy(hsrc, NULL) ;
+  for (b = hdst->nbins-1 ; b >= 0 ; b--)
+  {
+    if (hdst->bins[b] >= 0)
+    {
+      for (total = 0.0, b2 = habs->nbins-1 ; b2 >= 0 ; b2--)
+        if (fabs(habs->bins[b2]) >= hdst->bins[b])
+          total += habs->counts[b2] ;
+      hdst->counts[b] = total ;
+    }
+    else
+      hdst->counts[b] = 0 ;
+  }
+
+  for (b = 0 ; b < hdst->nbins ; b++)
+    hdst->counts[b] /= total ;
+
+  HISTOfree(&habs) ;
+  return(hdst) ;
+}
 HISTOGRAM *
 HISTOmakeCDF(HISTOGRAM *hsrc, HISTOGRAM *hdst)
 {
