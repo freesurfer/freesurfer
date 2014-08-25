@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/08/22 02:04:07 $
- *    $Revision: 1.55 $
+ *    $Date: 2014/08/25 02:14:22 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3777,7 +3777,7 @@ MRI *MRISprojectToSubThresh(const MRIS *surf, const MRI *vol, const double vthre
   VERTEX *vtx;
   int vno,c,r,s,nthstep,nsteps;
   MATRIX *vox2tkras,*tkras2vox,*xyz,*crs;
-  double dist,dx,dy,dz,v;
+  double dist=0,dx,dy,dz,v;
 
   vox2tkras = MRIxfmCRS2XYZtkreg(vol);
   tkras2vox = MatrixInverse(vox2tkras,NULL);
