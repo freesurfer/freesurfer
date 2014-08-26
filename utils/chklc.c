@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2014/08/15 21:17:29 $
- *    $Revision: 1.20 $
+ *    $Date: 2014/08/26 21:25:12 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -158,8 +158,6 @@ void chklc(void)
     #endif
   }
 
-  printf("crypt_gkey = %s\n", crypt_gkey);
-  
   if (strcmp(key,crypt_gkey)!=0)
   {
     fprintf(stderr,licmsg2,lfilename);
