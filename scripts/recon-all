@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/07/31 21:24:57 $
-#    $Revision: 1.379.2.79 $
+#    $Date: 2014/08/26 20:40:04 $
+#    $Revision: 1.379.2.80 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.79 2014/07/31 21:24:57 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.80 2014/08/26 20:40:04 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -66,6 +66,7 @@ set DoCleanCW256 = 0;
 set DoCleanTal   = 0;
 set DoCleanLta   = 0;
 set DoCleanCP    = 0;
+set DoCleanTWM   = 0;
 set DoCleanSeed  = 0;
 set DoCleanPFH   = 0;
 set DoCleanBM    = 0;
@@ -86,6 +87,7 @@ set XOptsClean = 0; # Delete a pre-existing xopts file
 set XOptsUse   = 1; # Use a pre-existing xopts file (default '1': always use)
 set XOptsOverwrite = 0; # Overwrite a pre-existing xopts file
 set ControlPointsFile = ();
+set TWMControlPointsFile = ();
 set PonsSeedCRS = (); # SeedCRS center of pons for mri_fill #
 set CCSeedCRS = ();   # SeedCRS center of corpus callosum for mri_fill #
 set RHSeedCRS = ();   # SeedCRS point in the right hemi wm for mri_fill #
@@ -266,6 +268,7 @@ set DoNormalization  = 0;
 set DoNormalization2 = 0;
 set DoMaskBFS        = 0;
 set UseControlPoints = 0;
+set UseTWMControlPoints = 0;
 set DoSkullStrip     = 0;
 set DoSegmentation   = 0;
 set DoGCAReg         = 0;
@@ -723,6 +726,11 @@ if($DoCleanCP) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd  |& tee -a $LF
 endif
+if($DoCleanTWM) then
+  set cmd = (mv -f $subjdir/tmp/twm.dat $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+endif
 if($DoCleanBFSE) then
   set cmd = (mv -f $subjdir/mri/brain.finalsurfs.manedit.mgz $subjdir/trash)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -781,6 +789,25 @@ if(-e $seedfile) set WSSeedPoint = `cat $seedfile | grep -v \#`
 set ControlPointsFile = $subjdir/tmp/control.dat
 if(-e $ControlPointsFile) then
   set UseControlPoints = 1;
+endif
+
+#------------ Control Points for Registration ------------------#
+set DefaultTWMControlPointsFile = $subjdir/tmp/twm.dat
+if( $UseTWMControlPoints ) then
+  #copy twmfile to $subjdir/tmp/twm.dat:
+  set cmd = (mkdir -p ${subjdir}/tmp)
+  echo "\n $cmd"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  set cmd = (cp -vf ${TWMControlPointsFile} $DefaultTWMControlPointsFile)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  set TWMControlPointsFile = $DefaultTWMControlPointsFile
+else
+  if (-e $DefaultTWMControlPointsFile) then
+    set UseControlPoints = 1;
+    set TWMControlPointsFile = $DefaultTWMControlPointsFile
+  endif
 endif
 
 #---- Conform Width to 256 --------#
@@ -2285,6 +2312,7 @@ if($DoCAReg) then
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   if($DoSecondPassRenorm) set cmd = ($cmd -secondpassrenorm)
   if( ! $longitudinal) set cmd = ($cmd -T transforms/talairach.lta)
+  if($UseTWMControlPoints) set cmd = ($cmd -twm $TWMControlPointsFile)
   if ( $longitudinal ) then
     # here is tpN's longitudinal command
     # init with warp (m3z) from base
@@ -3438,13 +3466,8 @@ if($DoT2pial || $DoFLAIRpial) then
     
     # then give the T2/FLAIR a little normalizing
     # note: pre-normalized file remains for debug, with .prenorm in name
-    if ("${t2flair}" == "T2") then 
-        set normflags = (-sigma 0.5 nonmax_suppress 0 -min_dist 1)
-    else # else a FLAIR
-        set normflags = (-sigma 4)
-    endif
     set normcmd = (mri_normalize \
-        $normflags \
+        -sigma 0.5 -nonmax_suppress 0 -min_dist 1 \
         -aseg $mdir/aseg.mgz \
         -surface $sdir/rh.white identity.nofile \
         -surface $sdir/lh.white identity.nofile \
@@ -3476,8 +3499,10 @@ if($DoT2pial || $DoFLAIRpial) then
     set cmd = ($cmd -white NOWRITE)
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     # if using a T2 or FLAIR to remove dura that might be confused with pial...
-    if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2)
-    if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR)
+    if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2 \
+        -nsigma_above 2 -nsigma_below 5)
+    if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR \
+        -nsigma_above 3 -nsigma_below 3)
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -4849,6 +4874,16 @@ while( $#argv != 0 )
       set GCA = $argv[1]; shift;
       breaksw
 
+    case "-twm":
+      if ( $#argv < 1) goto arg1err;
+      set UseTWMControlPoints = 1;
+      set TWMControlPointsFile = $argv[1]; shift;
+      if(! -e "$TWMControlPointsFile") then
+        echo "ERROR: cannot find $TWMControlPointsFile"
+        goto error_exit;
+      endif
+      breaksw
+
     case "-gca-skull":
       if ( $#argv < 1) goto arg1err;
       set GCASkull = $argv[1]; shift;
@@ -5297,6 +5332,7 @@ while( $#argv != 0 )
       set DoCleanTal   = 1;
       set DoCleanLta   = 1;
       set DoCleanCP    = 1;
+      set DoCleanTWM   = 1;
       set DoCleanSeed  = 1;
       set DoCleanPFH   = 1;
       set DoCleanBM    = 1;
@@ -5318,6 +5354,10 @@ while( $#argv != 0 )
 
     case "-clean-cp":
       set DoCleanCP   = 1;
+      breaksw
+
+    case "-clean-twm":
+      set DoCleanTWM  = 1;
       breaksw
 
     case "-clean-wm":
@@ -6854,6 +6894,12 @@ FREESURFER_HOME/average directory (or use -gcs-dir to specify an alternate
 path). The default is named
 curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs and is located in
 FREESURFER_HOME/average.
+
+-twm twmfile
+
+Where (twmfile) is a control.dat format file (a point set in freeview) 
+with points manually selected to be in the white matter inferior to 
+hippocampus in the temporal lobe. This option is passed to mri_ca_register. 
 
 -nuiterations
 
