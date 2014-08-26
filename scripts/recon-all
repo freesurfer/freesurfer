@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/08/11 17:28:21 $
-#    $Revision: 1.481 $
+#    $Date: 2014/08/26 20:36:16 $
+#    $Revision: 1.482 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.481 2014/08/11 17:28:21 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.482 2014/08/26 20:36:16 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3467,7 +3467,7 @@ if($DoT2pial || $DoFLAIRpial) then
     # then give the T2/FLAIR a little normalizing
     # note: pre-normalized file remains for debug, with .prenorm in name
     set normcmd = (mri_normalize \
-        -sigma 0.5 nonmax_suppress 0 -min_dist 1 \
+        -sigma 0.5 -nonmax_suppress 0 -min_dist 1 \
         -aseg $mdir/aseg.mgz \
         -surface $sdir/rh.white identity.nofile \
         -surface $sdir/lh.white identity.nofile \
