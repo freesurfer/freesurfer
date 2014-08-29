@@ -10,7 +10,6 @@
 # files are committed.  so this means that if the tex files change, 
 # someone must manually delete the pdfs then run make.   
 
-if HAVE_LATEX
 foodir=$(prefix)/fsfast/docs
 # cannot specify *, since Makefile etc will be copied
 TEXFILES=\
@@ -43,25 +42,11 @@ TEXFILES=\
 
 foo_DATA = $(TEXFILES:%.tex=%.pdf)
 
-.ps.pdf:
-	ps2pdf $< $@
-	rm -f $< *.aux *.log
-
-.dvi.ps:
-	dvips $< -o $@ >& /dev/null
-	rm -f $<
-
-.tex.dvi:
-	latex -interaction=nonstopmode $< >& /dev/null
-
 clean-local:
 	rm -f *.aux *.log *.ps
 
 distclean-local:
 	rm -f Makefile
-
-# endif HAVE_LATEX
-endif
 
 EXTRA_DIST=$(TEXFILES)
 
