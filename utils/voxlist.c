@@ -7,21 +7,19 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/23 18:10:58 $
- *    $Revision: 1.19 $
+ *    $Author: zkaufman $
+ *    $Date: 2014/09/02 20:39:59 $
+ *    $Revision: 1.21.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -224,6 +222,8 @@ typedef struct
   float vsrc, vdst, xd, yd, zd ;
   int   xi, yi, zi ;
 } SORT_VOXEL ;
+
+
 static int
 compare_sort(const void *psv1, const void *psv2)
 {
@@ -232,13 +232,40 @@ compare_sort(const void *psv1, const void *psv2)
   sv1 = (SORT_VOXEL *)psv1 ;
   sv2 = (SORT_VOXEL *)psv2 ;
 
-  if (sv1->vsrc < sv2->vsrc)
+  if (sv1->vsrc < sv2->vsrc) {
     return(1) ;
-  else if (sv1->vsrc > sv2->vsrc)
+  } else if (sv1->vsrc > sv2->vsrc) {
     return(-1) ;
+  } else {
+    
+    if (sv1->xi < sv2->xi) {
+      return(1) ;
+    } else if (sv1->xi > sv2->xi) {
+      return(-1) ;
+    } else {
+    
+      if (sv1->yi < sv2->yi) {
+        return(1) ;
+      } else if (sv1->yi > sv2->yi) {
+        return(-1) ;
+      } else {
 
+        if (sv1->zi < sv2->zi) {
+          return(1) ;
+        } else if (sv1->zi > sv2->zi) {
+          return(-1) ;
+        }
+
+      }
+
+    }
+
+  }
+  
+  
   return(0) ;
 }
+
 
 VOXEL_LIST *
 VLSTsort(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst)
@@ -297,6 +324,7 @@ VLSTfree(VOXEL_LIST **pvl)
   free(vl) ;
   return(NO_ERROR) ;
 }
+
 MRI *
 VLSTcreateMri(VOXEL_LIST *vl, int val)
 {
@@ -488,7 +516,7 @@ VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
   double   val, xd, yd, zd ;
   int    i ;
 
-  VLSTtransformCoords(vl, m) ;
+  VLSTtransformCoords(vl, m, 0) ;
   for (i = 0 ; i < vl->nvox ; i++)
   {
     val = MRIgetVoxVal(vl->mri, vl->xi[i], vl->yi[i], vl->zi[i], 0) ;
@@ -513,12 +541,13 @@ VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
   return(NO_ERROR) ;
 }
 int
-VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m)
+VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m, int skip)
 {
   double   xd, yd, zd, val ;
   int    i, x, y, z ;
   static VECTOR *v1 = NULL, *v2 ;
 
+  skip++ ;   // skip=0 means do every one
   if (v1 == NULL)
   {
     v1 = VectorAlloc(4, MATRIX_REAL) ;
@@ -527,7 +556,7 @@ VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m)
     *MATRIX_RELT(v2, 4, 1) = 1.0 ;
   }
 
-  for (i = 0 ; i < vl->nvox ; i++)
+  for (i = 0 ; i < vl->nvox ; i+=skip)
   {
     x = vl->xi[i] ; y = vl->yi[i] ; z = vl->zi[i] ;
     if (vl->mri)
