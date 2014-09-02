@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/08/06 13:30:47 $
- *    $Revision: 1.29 $
+ *    $Author: zkaufman $
+ *    $Date: 2014/09/02 20:42:31 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -231,6 +231,8 @@ typedef struct
   float vsrc, vdst, xd, yd, zd ;
   int   xi, yi, zi ;
 } SORT_VOXEL ;
+
+
 static int
 compare_sort(const void *psv1, const void *psv2)
 {
@@ -239,13 +241,40 @@ compare_sort(const void *psv1, const void *psv2)
   sv1 = (SORT_VOXEL *)psv1 ;
   sv2 = (SORT_VOXEL *)psv2 ;
 
-  if (sv1->vsrc < sv2->vsrc)
+  if (sv1->vsrc < sv2->vsrc) {
     return(1) ;
-  else if (sv1->vsrc > sv2->vsrc)
+  } else if (sv1->vsrc > sv2->vsrc) {
     return(-1) ;
+  } else {
+    
+    if (sv1->xi < sv2->xi) {
+      return(1) ;
+    } else if (sv1->xi > sv2->xi) {
+      return(-1) ;
+    } else {
+    
+      if (sv1->yi < sv2->yi) {
+        return(1) ;
+      } else if (sv1->yi > sv2->yi) {
+        return(-1) ;
+      } else {
 
+        if (sv1->zi < sv2->zi) {
+          return(1) ;
+        } else if (sv1->zi > sv2->zi) {
+          return(-1) ;
+        }
+
+      }
+
+    }
+
+  }
+  
+  
   return(0) ;
 }
+
 
 VOXEL_LIST *
 VLSTsort(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst)
