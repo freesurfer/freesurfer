@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/04/02 21:03:07 $
- *    $Revision: 1.287 $
+ *    $Author: zkaufman $
+ *    $Date: 2014/09/02 20:42:50 $
+ *    $Revision: 1.288 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -453,6 +453,8 @@ GCAMwrite( const GCA_MORPH *gcam, const char *fname )
   GCA_MORPH_NODE  *gcamn ;
   int gzipped = 0;
 
+  printf("GCAMwrite\n");
+
   if (strstr(fname, ".m3z"))
   {
     //    printf("GCAMwrite:: m3z loop\n");
@@ -474,6 +476,9 @@ GCAMwrite( const GCA_MORPH *gcam, const char *fname )
   znzwriteInt(gcam->depth, file) ;
   znzwriteInt(gcam->spacing, file) ;
   znzwriteFloat(gcam->exp_k, file) ;
+  // Added by zjk
+  // znzwriteInt(gcam->neg, file) ;
+  // znzwriteInt(gcam->ninputs, file) ;
 
   for (x = 0 ; x < gcam->width ; x++)
   {
@@ -493,6 +498,11 @@ GCAMwrite( const GCA_MORPH *gcam, const char *fname )
         znzwriteInt(gcamn->xn, file) ;
         znzwriteInt(gcamn->yn, file) ;
         znzwriteInt(gcamn->zn, file) ;
+
+        // Added by zjk
+        // znzwriteFloat(gcamn->dx, file) ;
+        // znzwriteFloat(gcamn->dy, file) ;
+        // znzwriteFloat(gcamn->dz, file) ;
       }
     }
   }
@@ -1401,6 +1411,9 @@ GCAMread(const char *fname)
 
   gcam->spacing = znzreadInt(file) ;
   gcam->exp_k   = znzreadFloat(file) ;
+  // Added by zjk
+  // gcam->neg = znzreadInt(file) ;
+  // gcam->ninputs = znzreadInt(file) ;
 
   for (x = 0 ; x < width ; x++)
   {
@@ -1421,6 +1434,12 @@ GCAMread(const char *fname)
         gcamn->yn = znzreadInt(file) ;
         gcamn->zn = znzreadInt(file) ;
 
+        // Added by zjk
+        // gcamn->dx = znzreadFloat(file) ;
+        // gcamn->dy = znzreadFloat(file) ;
+        // gcamn->dz = znzreadFloat(file) ;
+        
+        
         // if all the positions are zero, then this is not a valid point
         // mark invalid = 1
         if (FZERO(gcamn->origx) && FZERO(gcamn->origy) && FZERO(gcamn->origz)
