@@ -1,17 +1,16 @@
 /**
  * @file  testMatrix.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief A test file for the class Matrix3d
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: Benjamin Lewin 
+ * Original Author: Benjamin Lewin
  * CVS Revision Info:
- *    $Author: blewin $
- *    $Date: 2014/08/22 21:22:49 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2014/09/03 20:31:32 $
+ *    $Revision: 1.3 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -22,18 +21,9 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-//testMatrix.cpp
-//
-//Created 7/23/2014
-//By: Benjamin Lewin
-//
-//A test file for the class Matrix3d
-//
-
 
 #include <iostream>
 #include "matrix3d.h"
-
 
 int main()
 {

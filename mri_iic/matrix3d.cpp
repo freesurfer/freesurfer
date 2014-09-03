@@ -1,17 +1,16 @@
 /**
  * @file  matrix3d.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief wrapper for 3d vnl_matrix operations
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Benjamin Lewin
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2014/09/03 20:10:25 $
- *    $Revision: 1.3 $
+ *    $Date: 2014/09/03 20:31:32 $
+ *    $Revision: 1.4 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -22,18 +21,13 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-//Matrix3d.h
-//
-//Created 7/21/2014
-//By: Benjamin Lewin
-//
 
-#include "matrix3d.h"
 #include <vnl/vnl_matrix.h>
 #include <iostream>
 #include <iomanip>
 #include <cstdlib>
 
+#include "matrix3d.h"
 
 // default constructor, creates matrix with all dimentions 0 and NULL data
 Matrix3d::Matrix3d()
@@ -94,7 +88,7 @@ Matrix3d& Matrix3d::operator=(const Matrix3d& other)
     {
       for(int i = 0; i < depth; i++)
       {
-              delete data[i];
+        delete data[i];
       }
       delete [] data;
     }
@@ -107,8 +101,8 @@ Matrix3d& Matrix3d::operator=(const Matrix3d& other)
     data = new vnl_matrix<float>* [depth];
     for(int i = 0; i < depth; i++)
     {
-            data[i] = new vnl_matrix<float> (height, width);
-            data[i] = other.data[i];
+      data[i] = new vnl_matrix<float> (height, width);
+      data[i] = other.data[i];
     }
   }
   return *this;
@@ -180,20 +174,3 @@ void Matrix3d::print()
     std::cout << std::endl;
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
