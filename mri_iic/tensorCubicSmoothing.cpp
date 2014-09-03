@@ -7,9 +7,9 @@
 /*
  * Original Author: Benjamin Lewin 
  * CVS Revision Info:
- *    $Author: blewin $
- *    $Date: 2014/08/22 21:22:49 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2014/09/03 20:10:25 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,11 +22,6 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-//tensorCubicSmoothing.cpp
-//
-//Created 8/4/2014
-//By: Ben Lewin
-//
 
 #include "tensorCubicSmoothing.h"
 #include <iostream>
@@ -70,7 +65,7 @@ int TensorCubicSmoothing::constructAtWA(const vnl_matrix<float> &B2x,
   int X = B2x.cols();
   int Y = B2y.cols();
   int Z = B2z.cols();
-  int size = sqrt(X * Y * Z);
+  int size = (int)sqrt(X * Y * Z);
   Matrix3d temp = doBasisMultiplications(W, B2x, B2y, B2z);
   AtWA.set_size(size, size);
 

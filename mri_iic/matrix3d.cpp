@@ -5,11 +5,11 @@
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: Benjamin Lewin 
+ * Original Author: Benjamin Lewin
  * CVS Revision Info:
- *    $Author: blewin $
- *    $Date: 2014/08/22 21:22:49 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2014/09/03 20:10:25 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,7 +133,7 @@ void Matrix3d::setVal(int row, int col, int slice, float const &val)
     std::cerr << "ERROR: index out of bounds\n"; //Maybe Throw exeption instead
     exit(1);
   }
-    
+
   data[slice]->put(row, col, val);
 }
 
