@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/08/24 15:51:44 $
- *    $Revision: 1.151 $
+ *    $Date: 2014/09/04 12:47:49 $
+ *    $Revision: 1.152 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.151 2014/08/24 15:51:44 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.152 2014/09/04 12:47:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,13 +69,19 @@ static int find_and_mark_pinched_regions(MRI_SURFACE *mris,
     MRI *mri_T2,
     float nstd_below,
     float nstd_above) ;
+
+static float T2_max = -1 ;
+static float T2_min = -1 ;
+
 static int compute_pial_target_locations(MRI_SURFACE *mris,
-    MRI *mri_T2,
-    float nstd_below,
-    float nstd_above,
-    LABEL **labels,
-    int nlabels,
-    int contrast_type) ;
+					 MRI *mri_T2,
+					 float nstd_below,
+					 float nstd_above,
+					 LABEL **labels,
+					 int nlabels,
+					 int contrast_type,
+					 float T2_min,
+					 float T2_max) ;
 static int compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
                                 int label, int whalf,
                                 double *pnx, double *pny,
@@ -267,13 +273,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.151 2014/08/24 15:51:44 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.152 2014/09/04 12:47:49 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.151 2014/08/24 15:51:44 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.152 2014/09/04 12:47:49 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -297,7 +303,6 @@ main(int argc, char *argv[])
   parms.l_curv = 1.0 ;
   parms.l_intensity = 0.2 ;
   parms.l_spring = 0.0f ;
-  parms.l_curv = 1.0 ;
   parms.l_intensity = 0.2 ;
   parms.l_tspring = 1.0f ;
   parms.l_nspring = 0.5f ;
@@ -1406,7 +1411,9 @@ main(int argc, char *argv[])
   sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
   fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
   parms.l_repulse = 0 ;
-  for (j = 0 ; j <= 0 ; parms.l_intensity *= 2, j++)  /* only once for now */
+//  for (j = 0 ; j <= 0 ; parms.l_intensity *= 2, j++)  /* only once for now */
+
+  for (j = 0 ; j < 1 ; j++)  /* only once for now */
   {
     current_sigma = pial_sigma ;
     for (n_averages = max_pial_averages, i = 0 ;
@@ -1519,7 +1526,7 @@ main(int argc, char *argv[])
         compute_pial_target_locations(mris, mri_flair,
                                       nsigma_below, nsigma_above,
                                       labels, nlabels,
-                                      CONTRAST_FLAIR) ;
+                                      CONTRAST_FLAIR, T2_min, T2_max) ;
 
         if (Gdiag & DIAG_WRITE)
         {
@@ -1650,7 +1657,7 @@ main(int argc, char *argv[])
           compute_pial_target_locations(mris, mri_T2,
                                         nsigma_below, nsigma_above,
                                         labels, nlabels,
-                                        CONTRAST_T2) ;
+                                        CONTRAST_T2, T2_min, T2_max) ;
         }
 
         if (Gdiag & DIAG_WRITE)
@@ -2037,6 +2044,18 @@ get_option(int argc, char *argv[])
   {
     nbrs = atoi(argv[2]) ;
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "T2_min"))
+  {
+    T2_min = atof(argv[2]) ;
+    fprintf(stderr,  "using min T2 gray matter threshold %2.1f\n", T2_min) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "T2_max"))
+  {
+    T2_max = atof(argv[2]) ;
+    fprintf(stderr,  "using max T2 gray matter threshold %2.1f\n", T2_max) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "grad_dir"))
@@ -3831,7 +3850,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
                               float nstd_above,
                               LABEL **labels,
                               int nlabels,
-                              int contrast_type)
+                              int contrast_type, float T2_min, float T2_max)
 {
   Real      val, xs, ys, zs, xv, yv, zv, d, mean, std ;
   int       vno, num_in, num_out, found_bad_intensity;
@@ -3959,6 +3978,16 @@ compute_pial_target_locations(MRI_SURFACE *mris,
          "gm=%2.2f+-%2.2f, and vertices in regions > %2.1f\n",
          min_gray, max_gray, mn, sig, mn-.5*sig) ;
 
+  if (T2_min >= 0)
+  {
+    min_gray = T2_min ;
+    printf("using user specified min gray threshold %2.1f\n", min_gray) ;
+  }
+  if (T2_max >= 0)
+  {
+    max_gray = T2_max ;
+    printf("using user specified max gray threshold %2.1f\n", max_gray) ;
+  }
 
   for (n = 0 ; n < nlabels ; n++)
   {
