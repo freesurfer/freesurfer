@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/04/19 16:38:23 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/09/05 12:58:16 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +41,10 @@ CMATread(const char *fname)
   int    nlabels, i, j, ind1, ind2 ;
   FILE   *fp ;
 
+
   fp = fopen(fname, "r") ;
+  if (fp == NULL)
+    ErrorReturn(NULL, (ERROR_NOFILE, "CMATread(%s): could not open file",fname)) ;
 
   fscanf(fp, "CMAT - %d\n", &nlabels) ;
   cmat = CMATalloc(nlabels, NULL) ;
