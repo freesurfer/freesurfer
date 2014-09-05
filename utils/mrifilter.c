@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/04/11 16:03:49 $
- *    $Revision: 1.103 $
+ *    $Author: fischl $
+ *    $Date: 2014/09/05 12:59:36 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,9 @@
 #ifdef FS_CUDA
 #include "mriconvolve_cuda.h"
 #include "mrimean_cuda.h"
+#endif
+#ifdef HAVE_OPENMP
+#include <omp.h>
 #endif
 
 /*-----------------------------------------------------
@@ -6178,18 +6181,36 @@ MRIsmoothLabel6Connected(MRI *mri_intensity,
 			 int fixed_label,
 			 float min_change)
 {
-  int   x, y, z, n, xi, yi, zi, xk, yk, zk, i, l ;
-  float val, val_mean, max_change, change ;
+  int   x, n, i, nthreads ;
+  float max_change[_MAX_FS_THREADS], max_change_overall ;
   MRI   *mri_tmp ;
 
   mri_tmp = MRIcopy(mri_intensity, NULL) ;
   mri_smooth = MRIcopy(mri_intensity, mri_smooth) ;
+#ifdef HAVE_OPENMP
+  #pragma omp parallel
+  {
+    nthreads = omp_get_num_threads();
+  }
+#else
+  nthreads = 1;
+#endif
 
   for (i = 0 ; i < niter ; i++)
   {
-    max_change = 0.0 ;
+    memset(max_change, 0, sizeof(max_change)) ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(max_change) shared(mri_tmp,mri_label,Gx,Gy,Gz) schedule(static,1)
+#endif
     for (x = 0 ; x < mri_tmp->width ; x++)
     {
+      int tid, y, z, xi, yi, zi, xk, yk, zk, l, n ;
+      float change, val, val_mean ;
+#ifdef HAVE_OPENMP
+    tid = omp_get_thread_num();
+#else
+    tid = 0;
+#endif
       for (y = 0 ; y < mri_tmp->height ; y++)
       {
         for (z = 0 ; z < mri_tmp->depth ; z++)
@@ -6230,15 +6251,19 @@ MRIsmoothLabel6Connected(MRI *mri_intensity,
 	    val = MRIgetVoxVal(mri_smooth, x, y, z, 0) ;
 	    val_mean /= (float)n ;
 	    change = fabs(val-val_mean) ;
-	    if (change > max_change)
-	      max_change = change ;
+	    if (change > max_change[tid])
+	      max_change[tid] = change ;
             MRIsetVoxVal(mri_tmp, x, y, z, 0, val_mean) ;
 	  }
         }
       }
     }
     MRIcopy(mri_tmp, mri_smooth) ;
-    if (max_change < min_change)
+    for (n = 0, max_change_overall = 0.0 ; n < nthreads ; n++)
+      if (max_change[n] > max_change_overall)
+	max_change_overall = max_change[n] ;
+
+    if (max_change_overall < min_change)
       break ;
   }
 
