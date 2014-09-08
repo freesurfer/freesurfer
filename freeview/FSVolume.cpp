@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/19 20:55:18 $
- *    $Revision: 1.94 $
+ *    $Date: 2014/09/08 16:37:29 $
+ *    $Revision: 1.95 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@
 #include <QDebug>
 #include "ProgressCallback.h"
 
+
 extern "C"
 {
 #include "registerio.h"
@@ -56,6 +57,8 @@ extern "C"
 #include "utils.h"
 #include "macros.h"
 }
+
+#define NUM_OF_HISTO_BINS 10000
 
 using namespace std;
 
@@ -200,6 +203,15 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 
   MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
   UpdateHistoCDF();
+
+  double val = GetHistoValueFromPercentile(0.999)+m_histoCDF->bin_size/2;
+  if (m_fMaxValue > 10*val)
+  {
+    // abnormally high voxel value
+    UpdateHistoCDF(0, val);
+    val = GetHistoValueFromPercentile(0.999)+m_histoCDF->bin_size/2;
+    m_fMaxValue = val;
+  }
 
   return true;
 }
@@ -2894,7 +2906,7 @@ void FSVolume::SetCroppingBounds( double* bounds )
   m_bCrop = true;
 }
 
-void FSVolume::UpdateHistoCDF(int frame)
+void FSVolume::UpdateHistoCDF(int frame, float threshold)
 {
   float fMinValue, fMaxValue;
   MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
@@ -2904,7 +2916,8 @@ void FSVolume::UpdateHistoCDF(int frame)
     m_bValidHistogram = false;
     return;
   }
-  HISTO *histo = HISTOinit(NULL, 10000, fMinValue, fMaxValue);
+  HISTO *histo = HISTOinit(NULL, NUM_OF_HISTO_BINS, fMinValue, threshold>=0?threshold:fMaxValue);
+
   if (!histo)
   {
     qDebug() << "Could not create HISTO";
@@ -2918,7 +2931,7 @@ void FSVolume::UpdateHistoCDF(int frame)
       for (int z = 0 ; z < m_MRI->depth; z++)
       {
         float val = MRIgetVoxVal(m_MRI, x, y, z, frame) ;
-        if (!FZERO(val))
+        if (!FZERO(val) && (threshold < 0 || val < threshold))
           HISTOaddSample(histo, val, 0, 0) ;
       }
     }

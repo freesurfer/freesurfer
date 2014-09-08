@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/19 20:55:18 $
- *    $Revision: 1.42 $
+ *    $Date: 2014/09/08 16:37:29 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -213,7 +213,7 @@ public slots:
 protected:
   bool LoadMRI( const QString& filename, const QString& reg_filename );
   bool LoadRegistrationMatrix( const QString& filename );
-  void UpdateHistoCDF(int frame = 0);
+  void UpdateHistoCDF(int frame = 0, float threshold = -1);
   void CopyMRIDataToImage( MRI* mri, vtkImageData* image );
   void CopyMatricesFromMRI();
   bool CreateImage( MRI* mri );
