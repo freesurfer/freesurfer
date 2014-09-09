@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/02/16 16:46:59 $
-#    $Revision: 1.21 $
+#    $Date: 2014/09/09 15:04:53 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,13 +23,12 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask-sess,v 1.21 2012/02/16 16:46:59 greve Exp $'
+set VERSION = '$Id: mkbrainmask-sess,v 1.22 2014/09/09 15:04:53 greve Exp $'
 
 set cmdargs = ($argv);
 
 set fsd = "bold";
 set funcstem = f; # stem of functional volume
-set thresh = 0.1;
 set ndilations = 1;
 set nerodes = 0;
 set ne3erodes = 3; # 3 may be too many for some reduced FoVs
@@ -39,9 +38,12 @@ set nolog     = 0;
 set nthrun = ();
 set debug = 0;
 set scratchdir = ();
+set PerRun = 1;
 set PrintHelp = 0;
 set UpdateOnly = 0;
 set RunListFile = ();
+set regfile = register.dof6.dat
+set PerRun = 1;
 
 set infmt  = ();
 set outfmt = nii
@@ -111,86 +113,100 @@ foreach sess ($SessList)
   cd $sess/$fsd
 
   ### Session-level mask ----------------------------------
-  set template = `stem2fname template`
-  if($status) then
-    echo "ERROR: cannot find template for $sess/$fsd"  |& tee -a $LF
-    echo "       run mktemplate-sess"  |& tee -a $LF
-    exit 1;
-  endif
-  set mask = $maskdir/$maskstem.$outfmt;
-
-  set UpdateNeeded = 0;
-  if(! $UpdateOnly) set UpdateNeeded = 1;
-  if(`UpdateNeeded $mask $template`) set UpdateNeeded = 1;
-
-  if($UpdateNeeded) then
-    set cmd = (mkbrainmask -i $template -o $mask -thresh $thresh)
-    set cmd = ($cmd -ndil $ndilations -nerode $nerodes)
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
-  else
-    echo "$sessid Update not needed for session-level mask"| tee -a $LF
-  endif
-
-  ### Run-level masks --------------------------
-  set RunList = `getrunlist . $RunListFile`;
-  if($status || $#RunList == 0) then
-    echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
-    exit 1;
-  endif
-
-  foreach Run ($RunList)
-
-    set template = `stem2fname $Run/template`
+  if($PerRun == 0) then
+    set template = `stem2fname template`
     if($status) then
-      echo "ERROR: cannot find $template for $sess/$fsd/$Run" |& tee -a $LF
+      echo "ERROR: cannot find template for $sess/$fsd"  |& tee -a $LF
       echo "       run mktemplate-sess"  |& tee -a $LF
       exit 1;
     endif
-    set mask = $Run/$maskdir/$maskstem.$outfmt;
-    set maske3 = $Run/$maskdir/$maskstem.e3.$outfmt;
+    set reg = $sess/$fsd/$regfile
+    if(! -e $reg) then
+      echo "ERROR: cannot find $reg, you might need to run register-sess" |& tee -a $LF
+      exit 1;
+    endif
 
+    set mask = $maskdir/$maskstem.$outfmt;
     set UpdateNeeded = 0;
     if(! $UpdateOnly) set UpdateNeeded = 1;
-    if(`UpdateNeeded $mask   $template`) set UpdateNeeded = 1;
-    if(`UpdateNeeded $maske3 $template`) set UpdateNeeded = 1;
+    if(`UpdateNeeded $mask $template $reg`) set UpdateNeeded = 1;
 
     if($UpdateNeeded) then
-      set cmd = (mkbrainmask -i $template -o $mask -thresh $thresh );
+      set cmd = (mkbrainmask -i $template -o $mask -reg $reg)
       set cmd = ($cmd -ndil $ndilations -nerode $nerodes)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
-      # Create a second mask eroded by 3 to compute the mean
-      set cmd = (mri_binarize --i $mask --min 0.5 \
-       --zero-edges --erode $ne3erodes --o $maske3)
-      echo $cmd | tee -a $LF
-      $cmd | tee -a $LF
-      if($status) exit 1;
     else
-      echo "$sessid Update not needed for run $Run mask" | tee -a $LF
+      echo "$sessid Update not needed for session-level mask"| tee -a $LF
     endif
 
-    # Compute the global mean in the eroded mask from the 4D volume
-    set meanval = $Run/global.meanval.dat
-    set avgwf   = $Run/global.waveform.dat
-    set fstem = `cat $Run/template.log | grep FUNCSTEM | awk '{print $2}'`
-    set ffile = `stem2fname $Run/$fstem`;
-    set UpdateNeeded = 0;
-    if(! $UpdateOnly)   set UpdateNeeded = 1;
-    if(! $UpdateNeeded) set UpdateNeeded = `UpdateNeeded $meanval $maske3 $ffile`
-    if(! $UpdateNeeded) set UpdateNeeded = `UpdateNeeded $avgwf   $maske3 $ffile`
-    if($UpdateNeeded) then
-      set cmd = (meanval --i $ffile --m $maske3 --o $meanval --avgwf $avgwf);
-      echo $cmd | tee -a $LF
-      $cmd | tee -a $LF
-      if($status) exit 1;
-    else
-      echo "$sessid Update not needed for run $Run meanval" | tee -a $LF
+  else
+    ### Run-level masks --------------------------
+    set RunList = `getrunlist . $RunListFile`;
+    if($status || $#RunList == 0) then
+      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+      exit 1;
     endif
 
-  end # Run
+    foreach Run ($RunList)
+
+      set template = `stem2fname $Run/template`
+      if($status) then
+        echo "ERROR: cannot find $template for $sess/$fsd/$Run" |& tee -a $LF
+        echo "       run mktemplate-sess"  |& tee -a $LF
+        exit 1;
+      endif
+      set reg = $sess/$fsd/$Run/$regfile
+      if(! -e $reg) then
+        echo "ERROR: cannot find $reg, you might need to run register-sess" |& tee -a $LF
+        exit 1;
+      endif
+
+      set mask = $Run/$maskdir/$maskstem.$outfmt;
+      set maske3 = $Run/$maskdir/$maskstem.e3.$outfmt;
+      set UpdateNeeded = 0;
+      if(! $UpdateOnly) set UpdateNeeded = 1;
+      if(`UpdateNeeded $mask   $template $reg`) set UpdateNeeded = 1;
+      if(`UpdateNeeded $maske3 $template $reg`) set UpdateNeeded = 1;
+
+      if($UpdateNeeded) then
+        set cmd = (mkbrainmask -i $template -o $mask -reg $reg);
+        set cmd = ($cmd -ndil $ndilations -nerode $nerodes)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+        # Create a second mask eroded by 3 to compute the mean
+        set cmd = (mri_binarize --i $mask --min 0.5 \
+         --zero-edges --erode $ne3erodes --o $maske3)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      else
+        echo "$sessid Update not needed for run $Run mask" | tee -a $LF
+      endif
+
+      # Compute the global mean in the eroded mask from the 4D volume
+      set meanval = $Run/global.meanval.dat
+      set avgwf   = $Run/global.waveform.dat
+      set fstem = `cat $Run/template.log | grep FUNCSTEM | awk '{print $2}'`
+      set ffile = `stem2fname $Run/$fstem`;
+      set UpdateNeeded = 0;
+      if(! $UpdateOnly)   set UpdateNeeded = 1;
+      if(! $UpdateNeeded) set UpdateNeeded = `UpdateNeeded $meanval $maske3 $ffile`
+      if(! $UpdateNeeded) set UpdateNeeded = `UpdateNeeded $avgwf   $maske3 $ffile`
+      if($UpdateNeeded) then
+        set cmd = (meanval --i $ffile --m $maske3 --o $meanval --avgwf $avgwf);
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      else
+        echo "$sessid Update not needed for run $Run meanval" | tee -a $LF
+      endif
+
+    end # Run
+
+  endif # Session or Run
 
 end # Session
 
@@ -221,15 +237,9 @@ while( $#argv != 0 )
       set maskstem = $argv[1]; shift;
       breaksw
 
-    case "-head":
-      set maskstem = head;
-      set thresh = .05;
-      set ndilations = 3;
-      breaksw
-
-    case "-thresh":
-      if ( $#argv == 0) goto arg1err;
-      set thresh = $argv[1]; shift;
+    case "-reg":
+      if ($#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
       breaksw
 
     case "-ndilates":
@@ -247,6 +257,18 @@ while( $#argv != 0 )
     case "-ne3erodes":
       if ( $#argv == 0) goto arg1err;
       set ne3erodes = $argv[1]; shift;
+      breaksw
+
+    case "-per-run":
+    case "-perrun":
+      set PerRun = 1;
+      breaksw
+
+    case "-per-session":
+    case "-no-per-run":
+    case "-no-perrun":
+      set PerRun = 0;
+      #set ExpKeyNeeded = 1;
       breaksw
 
     case "-fmt":
@@ -334,17 +356,12 @@ usage_exit:
   echo "   -d  sessdir     "
   echo ""
   echo "Optional Arguments"
-  echo "   -thresh  threshold : fraction of global mean to separate ($thresh)"
-  echo "                        brain and air (default is .1)"
   echo "   -fsd   funcsubdir  : functional subdirectory (default: bold)"
   echo "   -ndilates ndialations  : dialate (ie, expand) the mask (def is 1)"
   echo "   -nerodes   nerodes      : erodes (ie, contracts) the mask"
   echo "   -ne3erodes ne3erodes    : erodes (ie, contracts) the e3 mask (default is 3)"
   echo "   -maskstem stem     : stem of binary mask (stored in fsd/masks/stem)"
   echo "                        default is brain"
-  echo "   -head : flag to set parameters to cover the whole head instead"
-  echo "           of just the brain. thresh=0.05, ndil=3, stem=head"
-  echo ""
   echo ""
   echo "Other Options"
   echo "   -update            : only run if input is newer than output"
