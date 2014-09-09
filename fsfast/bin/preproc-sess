@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/02/25 19:09:15 $
-#    $Revision: 1.51 $
+#    $Date: 2014/09/09 15:05:25 $
+#    $Revision: 1.52 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.51 2014/02/25 19:09:15 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.52 2014/09/09 15:05:25 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -186,19 +186,6 @@ foreach sess ($SessList)
     if($status) exit 1;
   endif
 
-  if($DoMask) then
-    set cmd = (mkbrainmask-sess -maskstem $maskstem)
-    set cmd = ($cmd -fsd $fsd)
-    set cmd = ($cmd -s $sessid -d $sessparent)
-    if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
-    if($nolog) set cmd = ($cmd -nolog);
-    if($UpdateOnly) set cmd = ($cmd -update);
-    echo "$sessid Mask ------------------------" |& tee -a $LF
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) exit 1;
-  endif
-
   if($DoReg) then
     set cmd = (register-sess -s $sessid -d $sessparent -fsd $fsd)
     set cmd = ($cmd -dof $RegDOF)
@@ -210,6 +197,19 @@ foreach sess ($SessList)
     if($UseB0DC)    set cmd = ($cmd -b0dc)
     if($InitHeader) set cmd = ($cmd -init-header)
     echo "$sessid Registration -----------------------------" |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+  if($DoMask) then # Must be after reg now
+    set cmd = (mkbrainmask-sess -maskstem $maskstem)
+    set cmd = ($cmd -fsd $fsd)
+    set cmd = ($cmd -s $sessid -d $sessparent)
+    if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
+    if($nolog) set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
+    echo "$sessid Mask ------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
