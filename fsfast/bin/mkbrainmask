@@ -1,170 +1,122 @@
-#! /bin/csh -f
+#!/bin/tcsh -f
+# mkbrainmask
 
-#
-# mkbrainmask -- frontend for FSL's BET (Brain Extraction Tool)
-#
-# Should allow user to spec frame of input to use
-#
-# Original Author: Doug Greve
-# CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2011/03/28 20:38:08 $
-#    $Revision: 1.15 $
-#
-# Copyright (C) 2002-2007,
-# The General Hospital Corporation (Boston, MA). 
-# All rights reserved.
-#
-# Distribution, usage and copying of this software is covered under the
-# terms found in the License Agreement file named 'COPYING' found in the
-# FreeSurfer source code root directory, and duplicated here:
-# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
-#
-# General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
-#
+set VERSION = '$Id: mkbrainmask,v 1.16 2014/09/09 14:10:54 greve Exp $';
 
-
-set VERSION = '$Id: mkbrainmask,v 1.15 2011/03/28 20:38:08 greve Exp $';
-
-set inputargs = ($argv);
-
-set instem     = ();
-set outstem    = ();
-set thresh     = 0.1;
-set scratchdir = ();
-set cleanup    = 1;
-set seqinfo     = ();
+set movmask = ();
+set reg = ();
+set mov = ();
 set ndilates = 0;
 set dilerodedim = ();
 set nerodes = 0;
 set zeroedges = 0;
 set zerosliceedges = 0;
+set UseAnatMask = 0;
+set UseAPAS = 1;
 
-if($#argv == 0) then
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
   goto usage_exit;
-  exit 1;
 endif
-
-set n = `echo $argv | grep version | wc -l` 
+set n = `echo $argv | grep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-
 goto parse_args;
 parse_args_return:
-
 goto check_params;
 check_params_return:
 
-setenv FSLOUTPUTTYPE NIFTI
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
 
-set FSLMATHS = fslmaths.fsl
-which $FSLMATHS > /dev/null
-if($status) then
-  set FSLMATHS = avwmaths
-  which $FSLMATHS > /dev/null
-  if($status) then
-    echo "ERROR: cannot find either fslmaths for avwmaths"
-    exit 1;
-  endif
-endif
-echo FSLMATHS $FSLMATHS
-
-#---------------------------------------------------#
-set outdir = `dirname $outstem`;
+set outdir = `dirname $movmask`
 mkdir -p $outdir
 
-#---------------------------------------------------#
-if($#scratchdir == 0) then
-  set scratchdir = /tmp/mkbrainmask_$$
-else
-  set scratchdir = $scratchdir/mkbrainmask
-endif
-mkdir -p $scratchdir
-echo "Scratch Dir is $scratchdir" 
+# Set up log file
+if($#LF == 0) set LF = $movmask.mkbrainmask.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for mkbrainmask" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
 
-# Convert to nifti
-set inimg = $scratchdir/in.nii
-set cmd = (mri_convert $instem $inimg)
-pwd
-echo $cmd
-$cmd
-if($status) then
-  echo "ERROR: mri_convert failed"
-  exit 1;
-endif
+#========================================================
+set cmd = (mri_vol2vol --mov $mov --reg $reg --inv --interp nearest --o $movmask)
+if($UseAnatMask) set cmd = ($cmd --targ $anatmask)
+if($UseAPAS) set cmd = ($cmd --targ $apas)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
 
-echo "# ---------- Using FSL's BET to Extract Brain------------------ #"
-set cmd = (bet.fsl $inimg $scratchdir/brain -m -f $thresh)
-pwd
-echo $cmd
-$cmd
-if($status) then
-  echo "ERROR: bet failed"
-  exit 1;
-endif
-
-# Binarize
-set cmd = (mri_binarize --i $scratchdir/brain_mask.nii --min .01 \
-                        --o $scratchdir/brain_mask.nii );
+#------------------------------------------------------------------
+set cmd = (mri_binarize --i $movmask --o $movmask --min 0.5)
 if($zeroedges)      set cmd = ($cmd --zero-edges);
 if($zerosliceedges) set cmd = ($cmd --zero-slice-edges);
-echo $cmd
-$cmd 
-if($status) exit 1;
-
-set srcmask = $scratchdir/brain_mask.nii
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
 
 #------------------------------------------------------------------
 if($ndilates > 0) then
-  echo Diliating $ndilates
-  set cmd = (mri_binarize --i $srcmask --min 0.5 \
-     --dilate $ndilates --o $srcmask);
-  pwd
-  echo $cmd
-  $cmd
-  if($status) then
-    echo "ERROR: dilation failed"
-    exit 1;
-  endif
+  echo "Diliating $ndilates" | tee -a $LF
+  set cmd = (mri_binarize --i $movmask --min 0.5 \
+     --dilate $ndilates --o $movmask);
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
 endif
 
 #------------------------------------------------------------------
 if($nerodes > 0) then
-  echo Eroding $nerodes
+  echo "Eroding $nerodes" | tee -a $LF
   set cmd = (mri_binarize --i $srcmask --min 0.5 \
      --erode $nerodes --o $srcmask);
-  pwd
-  echo $cmd
-  $cmd
-  if($status) then
-    echo "ERROR: erosion failed"
-    exit 1;
-  endif
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
 endif
 
-# Convert the binary mask to output
-set cmd = (mri_convert $scratchdir/brain_mask.nii $outstem)
-pwd
-echo $cmd
-$cmd
-if($status) then
-  echo "ERROR: mri_convert failed"
-  exit 1;
-endif
+#========================================================
 
-# Delete temporary files #
-if($cleanup ) then
-  rm -r $scratchdir
-endif
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Mkbrainmask-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "mkbrainmask Done" |& tee -a $LF
+exit 0
 
-echo " "
-echo "----------------- mkbrainmask Done -----------------------------"
-echo " "
+###############################################
 
-exit 0;
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
 ###############################################
 
 ############--------------##################
@@ -176,39 +128,39 @@ while( $#argv != 0 )
   
   switch($flag)
 
-    case "-i":
-      if ( $#argv == 0) goto arg1err;
-      set instem = $argv[1]; shift;
-      breaksw
-
     case "-o":
-      if ( $#argv == 0) goto arg1err;
-      set outstem = $argv[1]; shift;
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set movmask = $argv[1]; shift;
       breaksw
 
-    case "-thresh":
-      if ( $#argv == 0) goto arg1err;
-      set thresh = $argv[1]; shift;
+    case "-reg":
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set reg = $argv[1]; shift;
+      if(! -e $reg) then
+        echo "ERROR: cannot find $reg"
+        exit 1;
+      endif
       breaksw
 
-    case "-scratch":
-      if ( $#argv == 0) goto arg1err;
-      set scratchdir = $argv[1]; shift;
+    case "-i":
+    case "--mov":
+      if($#argv < 1) goto arg1err;
+      set mov = $argv[1]; shift;
       breaksw
 
     case "-ndil":
-      if ( $#argv == 0) goto arg1err;
+    case "--ndil":
+      if($#argv < 1) goto arg1err;
       set ndilates = $argv[1]; shift;
       breaksw
 
     case "-nerode":
-      if ( $#argv == 0) goto arg1err;
-      set nerodes = $argv[1]; shift;
+    case "--nerode":
+      if($#argv < 1) goto arg1err;
+      set nerode = $argv[1]; shift;
       breaksw
-
-    #case "-2d":
-    #  set dilerodedim = 2;
-    #  breaksw
 
     case "-zero-edges":
       set zeroedges = 1; 
@@ -218,24 +170,44 @@ while( $#argv != 0 )
       set zerosliceedges = 1; 
       breaksw
 
-    case "-umask":
-      if ( $#argv == 0) goto arg1err;
-      umask $1; shift;
+    case "-apas":
+      set UseAPAS = 1;
+      set UseAnatMask = 0;
+      set ndilates = 1;
       breaksw
 
-    case "-nocleanup":
+    case "-anatmask":
+    case "-anat-mask":
+      set UseAnatMask = 1;
+      set UseAPAS = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
       set cleanup = 0;
       breaksw
 
-    case "-verbose":
-      set verbose = 1;
+    case "--nocleanup":
+      set cleanup = 0;
       breaksw
 
-    case "-echo":
-      set echo = 1;
+    case "--cleanup":
+      set cleanup = 1;
       breaksw
 
-    case "-debug":
+    case "--debug":
       set verbose = 1;
       set echo = 1;
       breaksw
@@ -255,15 +227,33 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#instem == 0) then
-     echo "ERROR: no input specified"
-     exit 1
-  endif
-
-  if($#outstem == 0) then
-     echo "ERROR: no output specified"
-     exit 1
-  endif
+if($#reg == 0) then
+  echo "ERROR: must spec reg"
+  exit 1;
+endif
+if($#mov == 0) then
+  echo "ERROR: must spec mov"
+  exit 1;
+endif
+if($#movmask == 0) then
+  echo "ERROR: must spec output mask"
+  exit 1;
+endif
+set subject = `reg2subject --r $reg`
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+set anatmask = $SUBJECTS_DIR/$subject/mri/brainmask.mgz
+if(! -e $anatmask) then
+  echo "ERROR: cannot find $anatmask"
+  exit 1;
+endif
+set apas = $SUBJECTS_DIR/$subject/mri/aparc+aseg.mgz
+if(! -e $apas) then
+  echo "ERROR: cannot find $apas"
+  exit 1;
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -273,42 +263,43 @@ arg1err:
   echo "ERROR: flag $flag requires one argument"
   exit 1
 ############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
 
 ############--------------##################
 usage_exit:
-  echo ""
-  echo "USAGE: mkbrainmask"
+  echo "mkbrainmask -help"
   echo ""
   echo "Required Arguments:";
   echo "   -i invol"
   echo "   -o outvol "
+  echo "   -reg reg.dat"
   echo ""
   echo "Optional Arguments:";
   echo "   -zero-edges : set volume edge voxels to 0"
   echo "   -zero-slice-edges : set slice edge voxels to 0"
-  echo "   -thresh threshold : between 0 and 1"
-  echo "   -scratch dir : directory to put temporary files"
-  echo "   -nocleanup   : don't delete temporary files"
-  echo "   -seqinfo seqinfofile : use this if there is no .bhdr"
   echo "   -ndil n : number of dilations to expand the mask"
   echo "   -nerode n : number of erosions to contract the mask"
-  echo "   -2d : erode or dilate in 2D rather than 3D"
+  echo "   -anatmask : use brainmask.mgz instead of aparc+aseg.mgz"
   echo ""
-  echo "Other Arguments (Optional)"
-  echo "   -umask umask   : set unix file permission mask"
-  echo "   -version       : print version and exit"
-  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 exit 1;
 
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
 
-############--------------##################
-print_help:
-
-echo "\
-mkbrainmask\
-\
-Those using this program should cite: Smith, S. (2000).  Robust \
-automated brain extraction.  NeuroImage.  Submitted. \
-\
-"
+Creates a mask of the brain in the input volume space based on the FS
+anatomically defined segmentation of brain structures (aparc+aseg.mgz)
+which is mapped to the input space through the registration. After
+mapping, the mask is dilated by 1. If -anatmask is used, then
+brainmask.mgz is used instead of aparc+aseg.mgz and no dilation is
+used. If -ndil is set, then it overrides the default number. If the
+mask is eroded with -nerode, then the erosion is done after
+dilations. This function is meant to replace mkbrainmask.fsl, which
+uses the FSL bet program, which does not use the anatomical analysis.
 
