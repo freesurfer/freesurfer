@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/11 20:17:31 $
-#    $Revision: 1.13 $
+#    $Date: 2014/09/09 15:04:33 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.13 2011/03/11 20:17:31 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.14 2014/09/09 15:04:33 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -215,6 +215,7 @@ foreach sess ($SessList)
       exit 1;
     endif
     set regfile = $fsd/$regfilename
+    set ltafile = $fsd/$ltafilename
 
     set UpdateNeeded = 1;
     if(-e $regfile && $UpdateOnly) then
@@ -226,7 +227,7 @@ foreach sess ($SessList)
     endif
 
     if($UpdateNeeded) then
-      set cmd = ($cmd --mov $template --reg $regfile)
+      set cmd = ($cmd --mov $template --reg $regfile --lta $ltafile)
       if($regmethod == bbregister) then
         set regfileinit = $fsd/init.$regfilename
         set cmd = ($cmd --init-reg-out $regfileinit)
@@ -526,8 +527,14 @@ if($PerRun == 0 && $PerSess == 0) then
 endif
 
 if($#regfilename == 0) then
-  if(! $UseB0DC) set regfilename  = register.dof$RegDOF.dat
-  if($UseB0DC)   set regfilename  = register.dof$RegDOF.b0dc.dat
+  if(! $UseB0DC) then
+    set regfilename  = register.dof$RegDOF.dat
+    set ltafilename  = register.dof$RegDOF.lta
+  endif
+  if($UseB0DC)   then
+    set regfilename  = register.dof$RegDOF.b0dc.dat
+    set ltafilename  = register.dof$RegDOF.b0dc.lta
+  endif
 endif
 
 goto check_params_return;
