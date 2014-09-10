@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/31 21:43:57 $
- *    $Revision: 1.29 $
+ *    $Date: 2014/09/10 20:29:18 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -255,7 +255,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.29 2012/10/31 21:43:57 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.30 2014/09/10 20:29:18 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -305,6 +305,7 @@ int nerode = 0;
 int SmoothOnly = 0;
 int nframesmin = 10;
 int DoSqr = 0; // take square of input before smoothing
+int DoMedian = 0, MedianWidth=0;
 
 char *sum2file = NULL;
 
@@ -426,22 +427,35 @@ int main(int argc, char *argv[]) {
   } else nsearch = InVals->width * InVals->height * InVals->depth;
   printf("Search region is %d voxels = %lf mm3\n",nsearch,nsearch*voxelvolume);
 
-  if( (infwhm > 0 || infwhmc > 0 || infwhmr > 0 || infwhms > 0) && SmoothOnly) {
-    if(SaveUnmasked) mritmp = NULL;
-    else             mritmp = mask;
-    if(infwhm > 0) {
-      printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
-      MRImaskedGaussianSmooth(InVals, mritmp, ingstd, InVals);
+  if(DoMedian == 0){
+    if( (infwhm > 0 || infwhmc > 0 || infwhmr > 0 || infwhms > 0) && SmoothOnly) {
+      if(SaveUnmasked) mritmp = NULL;
+      else             mritmp = mask;
+      if(infwhm > 0) {
+	printf("Smoothing input by fwhm=%lf, gstd=%lf\n",infwhm,ingstd);
+	MRImaskedGaussianSmooth(InVals, mritmp, ingstd, InVals);
+      }
+      if(infwhmc > 0 || infwhmr > 0 || infwhms > 0) {
+	printf("Smoothing input by fwhm=(%lf,%lf,%lf) gstd=(%lf,%lf,%lf)\n",
+	       infwhmc,infwhmr,infwhms,ingstdc,ingstdr,ingstds);
+	MRIgaussianSmoothNI(InVals, ingstdc, ingstdr, ingstds, InVals);
+      }
+      printf("Saving to %s\n",outpath);
+      MRIwrite(InVals,outpath);
+      printf("SmoothOnly requested, so exiting now\n");
+      exit(0);
     }
-    if(infwhmc > 0 || infwhmr > 0 || infwhms > 0) {
-      printf("Smoothing input by fwhm=(%lf,%lf,%lf) gstd=(%lf,%lf,%lf)\n",
-	     infwhmc,infwhmr,infwhms,ingstdc,ingstdr,ingstds);
-      MRIgaussianSmoothNI(InVals, ingstdc, ingstdr, ingstds, InVals);
+  } else {
+    printf("Running median filter %d\n",MedianWidth);
+    mritmp = MRImedian(InVals, NULL, MedianWidth, NULL);
+    MRIfree(&InVals);
+    InVals = mritmp;
+    if(SmoothOnly){
+      printf("Saving to %s\n",outpath);
+      MRIwrite(InVals,outpath);
+      printf("SmoothOnly requested, so exiting now\n");
+      exit(0);
     }
-    printf("Saving to %s\n",outpath);
-    MRIwrite(InVals,outpath);
-    printf("SmoothOnly requested, so exiting now\n");
-    exit(0);
   }
 
   // Make a copy, if needed, prior to doing anything to data
@@ -692,12 +706,20 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       datfile = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--fwhm")) {
+    } 
+    else if (!strcasecmp(option, "--fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&infwhm);
       ingstd = infwhm/sqrt(log(256.0));
       nargsused = 1;
-    } else if (!strcasecmp(option, "--fwhmc")) {
+    }
+    else if (!strcasecmp(option, "--median")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&MedianWidth);
+      DoMedian = 1;
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--fwhmc")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&infwhmc);
       ingstdc = infwhmc/sqrt(log(256.0));
@@ -835,6 +857,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --fwhm fwhm : smooth BY fwhm before measuring\n");
   printf("   --gstd gstd : same as --fwhm but specified as the stddev\n");
+  printf("   --median width : perform median filtering instead of gaussian\n");
   printf("\n");
   printf("   --to-fwhm tofwhm : smooth TO fwhm\n");
   printf("   --to-fwhm-tol tolerance : smooth to fwhm +/- tol (def .5mm)\n");
