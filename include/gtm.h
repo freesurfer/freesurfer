@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/11 20:13:12 $
- *    $Revision: 1.12 $
+ *    $Date: 2014/09/11 20:23:06 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -194,5 +194,6 @@ int GTMcheckRefIds(GTM *gtm);
 int GTMrefTAC(GTM *gtm);
 int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax);
 int WriteVRFStats(char *fname, GTM *gtm);
+MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc);
 
 #endif

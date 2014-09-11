@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/11 20:13:12 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/09/11 20:23:06 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,9 @@
 #include "mrimorph.h"
 #include "numerics.h"
 #include "resample.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 /*------------------------------------------------------------------------------------*/
 int GTMSEGprint(GTMSEG *gtmseg, FILE *fp)
@@ -2043,4 +2046,170 @@ int GTMrvarGM(GTM *gtm)
   }
 
   return(0);
+}
+
+/*
+  \fn MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc)
+  \brief Performs "localized" GTM correction by estimating the contribution
+  from each tissue type based on solving a GLM of neighbors around each
+  target voxel. This is a map-based, instead of ROI-based, PVC.
+  \param src is the source data
+  \param pvf is partial volume fraction smoothed by the PSF, each
+  tissue type in its own frame
+  \param nrad defines neighborhood as (2*nrad+1)^3 voxels
+*/
+MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc)
+{
+  int c,tt,nTT,nvmax;
+  struct timeb timer;
+  
+  nTT = pvf->nframes;
+
+  if(MRIdimMismatch(src,pvf,0)){
+      printf("ERROR: GTMlocal(): src-pvf dim mismatch\n");
+    return(NULL);
+  }
+  if(pvc == NULL){
+    pvc = (MRI **)calloc(sizeof(MRI*),nTT);
+    for(tt = 0; tt < nTT; tt++){
+      pvc[tt] = MRIallocSequence(pvf->width, pvf->height, pvf->depth,
+				 MRI_FLOAT, src->nframes);
+      if(pvc[tt]==NULL){
+	printf("ERROR: GTMlocal(): could not alloc\n");
+	return(NULL);
+      }
+      MRIcopyHeader(src,pvc[tt]);
+      MRIcopyPulseParameters(src,pvc[tt]);
+    }
+  }
+  if(MRIdimMismatch(src,pvc[0],0)){
+      printf("ERROR: GTMlocal(): src-pvc dim mismatch\n");
+    return(NULL);
+  }
+
+  nvmax = (2*nrad+1)*(2*nrad+1)*(2*nrad+1);
+  printf("nrad = %d, nvmax = %d, nTT=%d\n",nrad,nvmax,nTT);
+  TimerStart(&timer);
+
+  #ifdef _OPENMP
+  printf("     nthreads = %d\n",omp_get_max_threads());
+  #pragma omp parallel for 
+  #endif
+  for(c=0; c < src->width; c++){
+    MATRIX *X, *y, *beta=NULL, *Xt=NULL, *XtX=NULL, *Xty=NULL, *iXtX=NULL, *Xsum,*ytmp,*Xtmp;
+    int r,s,f, dc,dr,ds, tt, nth, nv, nkeep,indkeep[100],nthbeta;
+    double v;
+    printf("%2d ",c); fflush(stdout);
+    for(r=0; r < src->height; r++){
+      for(s=0; s < src->depth; s++){
+	//if(!(c == 27 && r==60 && s==41)) continue;
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue; 
+	y = MatrixAlloc(nvmax,src->nframes,MATRIX_REAL);
+	X = MatrixAlloc(nvmax,pvf->nframes,MATRIX_REAL);
+
+	nth = 0; //row of y or X
+	for(f=0; f < src->nframes; f++)
+	  y->rptr[nth+1][f+1] = MRIgetVoxVal(src,c,r,s,f);
+	for(tt=0; tt < pvf->nframes; tt++) 
+	  X->rptr[nth+1][tt+1] = MRIgetVoxVal(pvf,c,r,s,tt);
+	nth++;
+	for(dc = -nrad; dc <= nrad; dc++){
+	  if(c+dc < 0 || c+dc >= src->width) continue; 
+	  for(dr = -nrad; dr <= nrad; dr++){
+	    if(r+dr < 0 || r+dr >= src->height) continue; 
+	    for(ds = -nrad; ds <= nrad; ds++){
+	      if(s+ds < 0 || s+ds >= src->depth) continue; 
+	      if(dc==0 && dr==0 && ds==0) continue;
+	      for(f=0; f < src->nframes; f++)
+		y->rptr[nth+1][f+1] = MRIgetVoxVal(src,c+dc,r+dr,s+ds,f);
+	      for(tt=0; tt < pvf->nframes; tt++){
+		v  = MRIgetVoxVal(pvf,c+dc,r+dr,s+ds,tt);
+		X->rptr[nth+1][tt+1] = v;
+	      }
+	      nth++;
+	    } // ds
+	  } //dr
+	} //dc
+	nv = nth; // nvox in y/X. May not be nvmax if near edge
+
+	// Each ttype needs a minmal representation
+	Xsum = MatrixSum(X,1,NULL);
+	nkeep = 0;
+	for(tt=0; tt < pvf->nframes; tt++) {
+	  indkeep[tt] = 0;
+	  if(Xsum->rptr[1][tt+1]>.1) {
+	    indkeep[tt] = 1;
+	    nkeep++;
+	  }
+	}
+	if(nkeep == 0) continue;
+	
+	if(nkeep != pvf->nframes || nv != nvmax) {
+	  // Either not all tissue types will be kept or not all nvmax were avail
+	  ytmp = MatrixAlloc(nv,src->nframes,MATRIX_REAL);
+	  Xtmp = MatrixAlloc(nv,nkeep,MATRIX_REAL);
+	  for(nth = 0; nth < nv; nth++){
+	    for(f=0; f < src->nframes; f++) ytmp->rptr[nth+1][f+1] = y->rptr[nth+1][f+1];
+	    nkeep = 0;
+	    for(tt=0; tt < pvf->nframes; tt++){
+	      if(Xsum->rptr[1][tt+1]>.1){
+		Xtmp->rptr[nth+1][nkeep+1] = X->rptr[nth+1][tt+1];
+		nkeep++;
+	      }
+	    }
+	  }
+	  MatrixFree(&y);	
+	  MatrixFree(&X);	
+	  y = ytmp;
+	  X = Xtmp;
+	}
+	MatrixFree(&Xsum);	
+	Xt = MatrixTranspose(X,NULL);
+	XtX = MatrixMultiplyD(Xt,X,NULL);
+	iXtX = MatrixInverse(XtX,NULL);
+	if(iXtX == NULL) {
+	  MatrixFree(&y);
+	  MatrixFree(&X);
+	  MatrixFree(&Xt);
+	  MatrixFree(&XtX);
+	  continue;
+	}
+
+	Xty = MatrixMultiplyD(Xt,y,NULL);
+	beta = MatrixMultiplyD(iXtX,Xty,NULL);
+	nthbeta = 0;
+	for(tt=0; tt < pvf->nframes; tt++){
+	  if(indkeep[tt] == 0) continue;
+	  for(f=0; f < src->nframes; f++) 
+	    MRIsetVoxVal(pvc[tt], c,r,s,f, beta->rptr[nthbeta+1][f+1]);
+	  nthbeta++;
+	}
+	if(0 && c==56 && r==55 && s==33){
+	  printf("c=%d; r=%d; s=%d;\n",c+1,r+1,s+1);
+	  printf("nv=%d, nkeep=%d, nf=%d\n",nv,nkeep,pvf->nframes);
+	  //MatrixPrint(stdout,y);
+	  //MatrixPrint(stdout,X);
+	  MatrixPrint(stdout,beta);
+	  fflush(stdout);
+	  MatlabWrite(y, "yy.mat", "y");
+	  MatlabWrite(X, "XX.mat", "X");
+	  MatlabWrite(beta, "bb.mat", "beta");
+	  //exit(1);
+	}
+	MatrixFree(&beta);
+
+	MatrixFree(&y);	
+	MatrixFree(&X);	
+	MatrixFree(&Xt);
+	MatrixFree(&XtX);
+	MatrixFree(&Xty);
+	MatrixFree(&iXtX);
+      } //s
+    } // r
+  } // c
+  printf("\n");
+  printf("t=%6.4f\n",TimerStop(&timer)/1000.0);
+  fflush(stdout);
+
+  return(pvc);
 }
