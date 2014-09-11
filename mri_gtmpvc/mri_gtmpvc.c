@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/08/18 01:59:22 $
- *    $Revision: 1.30 $
+ *    $Date: 2014/09/11 20:13:12 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.30 2014/08/18 01:59:22 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.31 2014/09/11 20:13:12 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.30 2014/08/18 01:59:22 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.31 2014/09/11 20:13:12 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -147,7 +147,7 @@ char *VRFStatsFile=NULL;
 char *eresFile=NULL, *yhatFile=NULL, *yhat0File=NULL,*yhatFullFoVFile=NULL;
 char *OutSegFile=NULL;
 MRI *mritmp;
-char *RVarFile=NULL,*SkewFile=NULL,*KurtosisFile=NULL;
+char *RVarFile=NULL,*RVarUnscaledFile=NULL,*SkewFile=NULL,*KurtosisFile=NULL;
 int RVarOnly=0;
 int nthreads=1;
 int ttReduce = 0;
@@ -621,6 +621,12 @@ int main(int argc, char *argv[])
   for(f=0; f < gtm->yvol->nframes; f++)
     fprintf(fp,"%30.20f\n",gtm->rvar->rptr[1][f+1]);
   fclose(fp);
+  if(gtm->rescale){
+    fp = fopen(RVarUnscaledFile,"w");
+    for(f=0; f < gtm->yvol->nframes; f++)
+      fprintf(fp,"%30.20f\n",gtm->rvarUnscaled->rptr[1][f+1]);
+    fclose(fp);
+  }
   if(RVarOnly){
     printf("rvar-only requested so exiting now\n");
     printf("mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
@@ -1019,6 +1025,8 @@ static int parse_commandline(int argc, char **argv) {
       gtm->OutDir = OutDir;
       sprintf(tmpstr,"%s/rvar.dat",AuxDir);
       RVarFile = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/rvar.unscaled.dat",AuxDir);
+      RVarUnscaledFile = strcpyalloc(tmpstr);
       sprintf(tmpstr,"%s/skew.dat",AuxDir);
       SkewFile = strcpyalloc(tmpstr);
       sprintf(tmpstr,"%s/kurtosis.dat",AuxDir);

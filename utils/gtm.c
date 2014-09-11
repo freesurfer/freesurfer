@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/08/17 17:47:29 $
- *    $Revision: 1.16 $
+ *    $Date: 2014/09/11 20:13:12 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -731,10 +731,13 @@ int GTMsolve(GTM *gtm)
   gtm->res  = MatrixSubtract(gtm->y,gtm->yhat,gtm->res);
   gtm->dof = gtm->X->rows - gtm->X->cols;
   if(gtm->rvar==NULL) gtm->rvar = MatrixAlloc(1,gtm->res->cols,MATRIX_REAL);
+  if(gtm->rvarUnscaled==NULL) gtm->rvarUnscaled = MatrixAlloc(1,gtm->res->cols,MATRIX_REAL);
   for(f=0; f < gtm->res->cols; f++){
     sum = 0;
     for(n=0; n < gtm->res->rows; n++) sum += ((double)gtm->res->rptr[n+1][f+1]*gtm->res->rptr[n+1][f+1]);
     gtm->rvar->rptr[1][f+1] = sum/gtm->dof;
+    if(gtm->rescale) gtm->rvarUnscaled->rptr[1][f+1] = gtm->rvar->rptr[1][f+1]/(gtm->scale*gtm->scale);
+    else             gtm->rvarUnscaled->rptr[1][f+1] = gtm->rvar->rptr[1][f+1];
   }
   gtm->kurtosis = MatrixKurtosis(gtm->res,gtm->kurtosis);
   gtm->skew     = MatrixSkew(gtm->res,gtm->skew);
@@ -2031,6 +2034,13 @@ int GTMrvarGM(GTM *gtm)
   fp = fopen(tmpstr,"w");
   for(f=0; f < gtm->res->cols; f++) fprintf(fp,"%30.20f\n",gtm->rvargm->rptr[1][f+1]);
   fclose(fp);
+
+  if(gtm->rescale){
+    sprintf(tmpstr,"%s/rvar.gm.unscaled.dat",gtm->AuxDir);
+    fp = fopen(tmpstr,"w");
+    for(f=0; f < gtm->res->cols; f++) fprintf(fp,"%30.20f\n",gtm->rvargm->rptr[1][f+1]/(gtm->scale*gtm->scale));
+    fclose(fp);
+  }
 
   return(0);
 }
