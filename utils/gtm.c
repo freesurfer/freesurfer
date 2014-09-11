@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/11 20:23:06 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/09/11 20:25:52 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2062,6 +2062,7 @@ MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc)
 {
   int c,tt,nTT,nvmax;
   struct timeb timer;
+  double Xthresh = 0.1;
   
   nTT = pvf->nframes;
 
@@ -2137,7 +2138,7 @@ MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc)
 	nkeep = 0;
 	for(tt=0; tt < pvf->nframes; tt++) {
 	  indkeep[tt] = 0;
-	  if(Xsum->rptr[1][tt+1]>.1) {
+	  if(Xsum->rptr[1][tt+1] > Xthresh) {
 	    indkeep[tt] = 1;
 	    nkeep++;
 	  }
@@ -2152,7 +2153,7 @@ MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc)
 	    for(f=0; f < src->nframes; f++) ytmp->rptr[nth+1][f+1] = y->rptr[nth+1][f+1];
 	    nkeep = 0;
 	    for(tt=0; tt < pvf->nframes; tt++){
-	      if(Xsum->rptr[1][tt+1]>.1){
+	      if(Xsum->rptr[1][tt+1] > Xthresh){
 		Xtmp->rptr[nth+1][nkeep+1] = X->rptr[nth+1][tt+1];
 		nkeep++;
 	      }
