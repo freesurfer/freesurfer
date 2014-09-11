@@ -1,18 +1,19 @@
 #!/bin/tcsh -f
 # xcerebralseg
-# HAB_097_MC_BL 200 148 103
 
-set VERSION = '$Id: xcerebralseg,v 1.4 2014/04/02 20:17:47 greve Exp $';
+set VERSION = '$Id: xcerebralseg,v 1.5 2014/09/11 18:16:28 greve Exp $';
 
+set outvol = apas+head.mgz
 set subject = ();
-set apasvol = aparc+aseg.mgz
-set outvol = ();
-set apasndil = 5; # number of apas dilations
-set bsndil = 8;   # number of brainstem dilations
-set cblumndil = 6; # number of cerebellum dilations
-set nerode = 4; # number of erodes of final dilated map
-# Headseg number of dilations
-# Assure first vox is in xcsf
+set atlas = $FREESURFER_HOME/average/aseg+spmhead.ixi.gca
+set srcvol = nu.mgz
+set xform = talairach.m3z
+set mergevol = aparc+aseg.mgz
+
+# Seghead parameters
+set thresh1 = 20;
+set thresh2 = 20;
+set nhitsmin = 2;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -46,10 +47,9 @@ set min    = `date +%M`
 
 set sd = $SUBJECTS_DIR/$subject
 
-#set tmpdir = $sd/mri/tmpdir.xcerebralseg
 if($#tmpdir == 0) then
   if(-e /scratch)   set tmpdir = /scratch/tmpdir.xcerebralseg.$$
-  if(! -e /scratch) set tmpdir = $sd/mri/tmpdir.xcerebralseg.$$
+  if(! -e /scratch) set tmpdir = $sd/tmp/tmpdir.xcerebralseg.$$
 endif
 mkdir -p $tmpdir
 
@@ -67,143 +67,59 @@ cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
 echo $VERSION | tee -a $LF
 uname -a  | tee -a $LF
 
-set nu = $sd/mri/nu.mgz
-set apas = $sd/mri/$apasvol
-
 #========================================================
 
-# Create a mask of the head
-set headmask = $sd/mri/head.mask.mgz
-set cmd = (mkheadsurf -s $subject -ndilate 1 -headvol head.mask.mgz)
+# Perform the labeling
+set seg1 = $tmpdir/seg1.mgh
+set cmd = (mri_ca_label -align -nobigventricles \
+   $srcvolpath $xformpath $atlas $seg1)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto error_exit;
+if($status) goto_error_exit;
 
-# Binarize apas ("dilate 0")
-set apasdil0 = $tmpdir/apas.dil0.mgh
-set cmd = (mri_binarize --min 0.5 --i $apas --o $apasdil0)
+# Replace all cortex GM and cerebral WM with xCSF. It wont matter
+# that stuff in the brain is replaced because that will get replaced
+# in the merge anyway
+set seg2 = $tmpdir/seg2.mgh
+set cmd = (mri_binarize --i $seg1 --o $seg2 \
+  --replace 3 257 --replace 42 257 --replace 2 257 --replace 41 257)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto error_exit;
+if($status) goto_error_exit;
 
-# Dilate apas by 1
-set apasdil1 = $tmpdir/apas.dil1.mgh
-set cmd = (mri_binarize --min 0.5 --i $apas --o $apasdil1 --dilate 1)
+# Merge the FS brain seg with this seg
+set seg3 = $tmpdir/seg3.mgh
+set cmd = (mergeseg --src $seg2 --merge $mergevolpath --o $seg3)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto error_exit;
+if($status) goto_error_exit;
 
-# 1 voxel shell around apas
-set apasshell = $tmpdir/apas.shell.mgh
-set cmd = (fscalc $apasdil1 sub $apasdil0 -o $apasshell)
+# Create a seg of the head for filling in voxels below and masking stuff out
+set seghead = $tmpdir/seghead.mgz
+set cmd = (mri_seghead --invol $srcvolpath --outvol $seghead \
+  --fill 1 --thresh1  $thresh1 --thresh2  $thresh2 --nhitsmin $nhitsmin);
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto error_exit;
+if($status) exit 1;
 
-# dilate apas by apasndil
-set apasdil = $tmpdir/apas.dil.mgh
-set cmd = (mri_binarize --min 0.5 --i $apas --o $apasdil --dilate $apasndil);
+# Replace unlabeled voxels in the head with head seg
+set seg4 = $tmpdir/seg4.mgh
+set cmd = (mri_binarize --i $seg3 --o $seg4 --replace 0 258 --mask $seghead);
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto error_exit;
+if($status) goto_error_exit;
 
-# dilate brainstem by bsndil
-set bsdil = $tmpdir/bs.dil.mgh
-set cmd = (mri_binarize --match 16 --i $apas --o $bsdil --dilate $bsndil);
+# Replace unlabeled voxels in the head with head seg
+set outseg = $SUBJECTS_DIR/$subject/mri/$outvol
+set cmd = (mri_mask $seg4 $seghead $outseg)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto error_exit;
-
-# dilate cerebellum by cblumndil
-set cblumdil = $tmpdir/cblum.dil.mgh
-set cmd = (mri_binarize --match 7 8 46 47 15 --i $apas --o $cblumdil --dilate $cblumndil);
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# create a single dilated mask
-set dil = $tmpdir/dil.mgh
-set cmd = (mri_concat --sum $apasdil $bsdil $cblumdil --o $dil)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# erode dilated mask to bring back to near apas
-set apasxcsfmask = $tmpdir/apas+xcsf.mask.mgh
-set cmd = (mri_binarize --min 0.5 --i $dil --erode $nerode --o $apasxcsfmask)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# New apas segmentation with an extra-cerebral csf segmentation
-set apasxcsf = $tmpdir/apas+xcsf.mgz
-set cmd = (fscalc $apasxcsfmask sub $apasdil0 -mul 257 add $apas -o $apasxcsf)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# Build a surface around apas+xcsf. This can be though of as the 
-# outer brain surface or inner skull surface
-set bsurf0 = $tmpdir/lh.brainsurf0 # lh needed for surfs
-set cmd = (mri_tessellate $apasxcsfmask 1 $bsurf0)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# Smooth the surface 
-set bsurf = $sd/surf/lh.skull.inner.approx  # lh needed for surfs
-set cmd = (mris_smooth -nw $bsurf0 $bsurf)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# Create outer skull surface
-set skullsurf = $sd/surf/lh.skull.outer.approx  # lh needed for surfs
-set cmd = (mri_seghead --skull $subject lh.skull.inner.approx lh.skull.outer.approx)
-#set cmd = ($DEV/dngtester/dngtester $subject)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# Fill the skull and everything inside
-set skullfilled = $tmpdir/skull.filled.mgh
-set cmd = (mris_fill -t $apas $skullsurf $skullfilled)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# Make sure that the filled skull is a superset of apas+xcsf
-set cmd = (fscalc $skullfilled or $apasxcsfmask -o $skullfilled)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# Add skull to the apas+xcsf segmentation
-set apasxcsfskull = $tmpdir/apas+xcsf+skull.mgh
-set cmd = (fscalc $skullfilled sub $apasxcsfmask mul 259 add $apasxcsf -o $apasxcsfskull)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# Make sure that headmask is a superset of filled skull
-set cmd = (fscalc $headmask or $skullfilled -o $headmask);
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
-
-# Add head into the apas+xcsf+skull segmentation
-set cmd = (fscalc $headmask sub $skullfilled mul 258 add $apasxcsfskull -o $outvol)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) goto error_exit;
+if($status) goto_error_exit;
 
 #========================================================
 
 # Cleanup
-if($cleanup) then
-  rm -rf $tmpdir
-  #rm -f $headmask
-endif
+if($cleanup) rm -rf $tmpdir
 
 # Done
 echo " " |& tee -a $LF
@@ -223,9 +139,7 @@ exit 0
 
 ############--------------##################
 error_exit:
-echo "ERROR: $cmd"| tee -a $LF
-date | tee -a $LF
-echo "xcerebralseg exited with errors" | tee -a $LF
+echo "ERROR:"
 
 exit 1;
 ###############################################
@@ -239,19 +153,23 @@ while( $#argv != 0 )
   
   switch($flag)
 
-    case "--s":
-      if($#argv < 1) goto arg1err;
-      set subject = $argv[1]; shift;
-      breaksw
-
     case "--o":
       if($#argv < 1) goto arg1err;
       set outvol = $argv[1]; shift;
       breaksw
 
-    case "--seg":
+    case "--s":
       if($#argv < 1) goto arg1err;
-      set apasvol = $argv[1]; shift;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--atlas":
+      if($#argv < 1) goto arg1err;
+      set atlas = $argv[1]; shift;
+      if(! -e $atlas) then
+        echo "ERROR: cannot find $atlas"
+        exit 1;
+      endif
       breaksw
 
     case "--log":
@@ -303,15 +221,26 @@ if($#subject == 0) then
   echo "ERROR: must spec subject"
   exit 1;
 endif
-
-set sd = $SUBJECTS_DIR/$subject
-if(! -e $sd) then
+if(! -e $SUBJECTS_DIR/$subject) then
   echo "ERROR: cannot find $subject"
   exit 1;
 endif
 
-if($#outvol == 0) then
-  echo "ERROR: must spec output volume"
+set xformpath = $SUBJECTS_DIR/$subject/mri/transforms/$xform
+if(! -e $xformpath) then
+  echo "ERROR: cannot find $xformpath"
+  exit 1;
+endif
+
+set srcvolpath = $SUBJECTS_DIR/$subject/mri/$srcvol
+if(! -e $srcvolpath) then
+  echo "ERROR: cannot find $srcvolpath"
+  exit 1;
+endif
+
+set mergevolpath = $SUBJECTS_DIR/$subject/mri/$mergevol
+if(! -e $mergevolpath) then
+  echo "ERROR: cannot find $mergevolpath"
   exit 1;
 endif
 
@@ -331,19 +260,10 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "xcerebralseg - approximate segmentation of extra cerebral tissue (see --help)"
-  echo ""
-  echo " --s subject : subject whose head to segment"
-  echo " --o outseg   : output segmentation (relative to subject/mri)"
-  echo ""
-  echo " --seg seg : source segmentation (default is $apasvol)"
-  echo ""
-  echo " --apasndil apasndil : dilate seg this many times (default is $apasndil)"
-  echo " --bsndil bsndil : dilate just the brainstem this many times (default is $bsndil)"
-  echo " --cblumndil cblumndil : dilate just the cerebellum this many times (default is $cblumndil)"
-  echo " --nerode nerode : erode dilated apas+bs+clbum this many times (default is $nerode)"
-  echo ""
-  echo " --help : description of what this program does"
+  echo "xcerebralseg --help"
+  echo " --s subject"
+  echo " --o outvol (default: $outvol)"
+  echo " --atlas headgca (default: $atlas)"
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -354,33 +274,37 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-This is a program that APPROXIMATELY segmentents extra cerebral tissue
-into extra cerebral CSF (xCSF, id=257), skull (id=259), and the rest
-of the head (id=258).  It takes a brain segmentation as input (default
-aparc+aseg.mgz). To get the xCSF, it performs some dilation and
-eroding operations that are purely geometrical and totally ignore
-anything in the image. The xCSF boundary is assumed to be the inner
-boundary of the skull. A surface is created for this boundary
-(surf/lh.skull.inner.approx, "lh" only need because it is a surface).
-This surface is grown out until it hits what appears to be skin in the
-nu.mgz (so this part does pay attention to the pixel data). This forms
-the approximate outer surface of the skull (lh.skull.outer.approx).
-The rest of the tissue is determined by running mkheadsurf. The final
-result is a whole head segmentation that includes the aparc+aseg.mgz
-without change, an xCSF segmentation, a skull segmentation, and a
-head segmentation. The output file name should be relative to 
-subject/mri.
+Performs labeling of extracerebral structures including sulcal CSF,
+skull/bone, head soft tissue, and air inside the head (eg, sinuses).
+This is merged with the aparc+aseg.mgz segmentation to give a whole
+head segmentation.  It uses a GCA (aseg+spmhead.ixi.gca) generated
+from 79 subjects from the IXI database (www.brain-development.org);
+see below for a demographic break down of the 79. The 79 were analyzed
+using SPM New Segment, and then FreeSurfer code was used to generate
+the GCA based on the SPM segmentation. It has been tested against a CT
+data set and performs about as well as SPM in terms of detecting the
+skull. Still, the results are far from perfect, so one should still
+treat them as approximate.
 
-Example:
-
-xcerebralseg --s subject --o apas+head.mgz
-
-Creates:
-subject/mri/apas+head.mgz
-subject/surf/lh.skull.inner.approx
-subject/surf/lh.skull.outer.approx
-
-tkmeditfv subject nu.mgz lh.skull.inner.approx -seg apas+head.mgz -opacity 1 -aux-surface lh.skull.outer.approx
-
-Remember, this is only approximate!
+ntotal 79 
+males 34 
+females 45 
+white 39 
+asian 14 
+black 13 
+chinese 13 
+Philips-1.5T 39  (Guys)
+Philips-3T 22    (HH)
+GE-1.5T 18       (IOP)
+mean age: 58.0995
+min age: 20.21
+max age: 86.32
+age decade break down
+ 20-30  5 
+ 30-40 10 
+ 40-50 10 
+ 50-60 13 
+ 60-70 17 
+ 70-80 16 
+ 80-90  8 
 
