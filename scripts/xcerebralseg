@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # xcerebralseg
 
-set VERSION = '$Id: xcerebralseg,v 1.5 2014/09/11 18:16:28 greve Exp $';
+set VERSION = '$Id: xcerebralseg,v 1.6 2014/09/11 19:29:24 greve Exp $';
 
 set outvol = apas+head.mgz
 set subject = ();
@@ -68,6 +68,8 @@ echo $VERSION | tee -a $LF
 uname -a  | tee -a $LF
 
 #========================================================
+set outseg = $SUBJECTS_DIR/$subject/mri/$outvol
+set segbase = `fname2stem $outvol`
 
 # Perform the labeling
 set seg1 = $tmpdir/seg1.mgh
@@ -75,7 +77,7 @@ set cmd = (mri_ca_label -align -nobigventricles \
    $srcvolpath $xformpath $atlas $seg1)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto_error_exit;
+if($status) goto error_exit;
 
 # Replace all cortex GM and cerebral WM with xCSF. It wont matter
 # that stuff in the brain is replaced because that will get replaced
@@ -85,16 +87,16 @@ set cmd = (mri_binarize --i $seg1 --o $seg2 \
   --replace 3 257 --replace 42 257 --replace 2 257 --replace 41 257)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto_error_exit;
+if($status) goto error_exit;
 
 # Merge the FS brain seg with this seg
 set seg3 = $tmpdir/seg3.mgh
 set cmd = (mergeseg --src $seg2 --merge $mergevolpath --o $seg3)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto_error_exit;
+if($status) goto error_exit;
 
-# Create a seg of the head for filling in voxels below and masking stuff out
+# Create a seg of the head for filling in voxels and masking stuff out
 set seghead = $tmpdir/seghead.mgz
 set cmd = (mri_seghead --invol $srcvolpath --outvol $seghead \
   --fill 1 --thresh1  $thresh1 --thresh2  $thresh2 --nhitsmin $nhitsmin);
@@ -107,14 +109,28 @@ set seg4 = $tmpdir/seg4.mgh
 set cmd = (mri_binarize --i $seg3 --o $seg4 --replace 0 258 --mask $seghead);
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto_error_exit;
+if($status) goto error_exit;
 
 # Replace unlabeled voxels in the head with head seg
-set outseg = $SUBJECTS_DIR/$subject/mri/$outvol
 set cmd = (mri_mask $seg4 $seghead $outseg)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
-if($status) goto_error_exit;
+if($status) goto error_exit;
+
+# Run segstats to get stats of the extra cerebral structures.  This is
+# done for informational purposes only.  Values for other structures
+# are there for reference.
+set sdir = $SUBJECTS_DIR/$subject
+set sum =  $sdir/stats/$segbase.stats 
+set cmd = (mri_segstats --seg $outseg --sum $sum \
+   --pv $sdir/mri/nu.mgz --empty --brainmask $sdir/mri/brainmask.mgz \
+   --in-intensity-name nu \
+   --in $sdir/mri/nu.mgz  --in-intensity-units MR --etiv  \
+   --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt \
+   --subject $subject --id 2 41 4 5 14 15 43 44 130 165 257 258)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
 
 #========================================================
 
@@ -261,7 +277,7 @@ arg2err:
 usage_exit:
   echo ""
   echo "xcerebralseg --help"
-  echo " --s subject"
+  echo " --s subject (required)"
   echo " --o outvol (default: $outvol)"
   echo " --atlas headgca (default: $atlas)"
   echo ""
@@ -284,7 +300,9 @@ using SPM New Segment, and then FreeSurfer code was used to generate
 the GCA based on the SPM segmentation. It has been tested against a CT
 data set and performs about as well as SPM in terms of detecting the
 skull. Still, the results are far from perfect, so one should still
-treat them as approximate.
+treat them as approximate. This segmentation is primarily intended to
+be used to create nuisance variables for fMRI and PET. Note that the
+"Skull" segmentation includes any kind of bone.
 
 ntotal 79 
 males 34 
