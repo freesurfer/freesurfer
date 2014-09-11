@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/08/17 17:47:28 $
- *    $Revision: 1.468 $
+ *    $Date: 2014/09/11 21:42:55 $
+ *    $Revision: 1.469 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1375,9 +1375,11 @@ MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri);
 #ifdef _MRIIO_SRC
 int N_Zero_Pad_Input  = -1;
 int N_Zero_Pad_Output = -1;
+int MRIIO_Strip_Pound = 1;
 #else
 extern int N_Zero_Pad_Input;
 extern int N_Zero_Pad_Output;
+extern int MRIIO_Strip_Pound;
 #endif
 
 float MRIfovCol(MRI *mri);

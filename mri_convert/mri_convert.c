@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/07/29 19:22:31 $
- *    $Revision: 1.213 $
+ *    $Author: greve $
+ *    $Date: 2014/09/11 21:42:56 $
+ *    $Revision: 1.214 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.213 2014/07/29 19:22:31 fischl Exp $",
+   "$Id: mri_convert.c,v 1.214 2014/09/11 21:42:56 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.213 2014/07/29 19:22:31 fischl Exp $",
+      "$Id: mri_convert.c,v 1.214 2014/09/11 21:42:56 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1320,6 +1320,8 @@ int main(int argc, char *argv[])
       i++;
       sscanf(argv[i],"%d",&N_Zero_Pad_Input);
     }
+    else if ( (strcmp(argv[i], "--no-strip-pound") == 0))
+      MRIIO_Strip_Pound = 0;
     /*-----------------------------------------------------*/ //E/
     else if (strcmp(argv[i], "-zgez") == 0 ||
              strcmp(argv[i], "--zero_ge_z_offset") == 0)
@@ -1663,7 +1665,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.213 2014/07/29 19:22:31 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.214 2014/09/11 21:42:56 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0

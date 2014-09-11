@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/27 23:01:02 $
- *    $Revision: 1.410 $
+ *    $Date: 2014/09/11 21:42:56 $
+ *    $Revision: 1.411 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -550,8 +550,10 @@ int MRIgetVolumeName(const char *string, char *name_only)
   if ((at = strrchr(name_only, '@')) != NULL)
     *at = '\0';
 
-  if ((pound = strrchr(name_only, '#')) != NULL)
-    *pound = '\0';
+  if(MRIIO_Strip_Pound){
+    if ((pound = strrchr(name_only, '#')) != NULL)
+      *pound = '\0';
+  }
 
   return(NO_ERROR);
 
@@ -602,7 +604,8 @@ MRI *mri_read( const char *fname,
     strcpy(fname_copy, fname);
 
   at = strrchr(fname_copy, '@');
-  pound = strrchr(fname_copy, '#');
+  if(MRIIO_Strip_Pound)  pound = strrchr(fname_copy, '#');
+  else  pound = NULL;
 
   if (at != NULL)
   {
@@ -13615,7 +13618,9 @@ MRIunpackFileName(const char *inFname, int *pframe, int *ptype, char *outFname)
   struct stat stat_buf;
 
   strcpy(outFname, inFname) ;
-  number = strrchr(outFname, '#') ;
+  if(MRIIO_Strip_Pound) number = strrchr(outFname, '#') ;
+  else                  number = NULL;
+
   at = strrchr(outFname, '@');
 
   if (at)
