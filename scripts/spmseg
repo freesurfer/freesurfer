@@ -1,0 +1,441 @@
+#!/bin/tcsh -f
+# spmseg
+
+set VERSION = '$Id: spmseg,v 1.1 2014/09/11 18:01:34 greve Exp $';
+
+set subject = ();
+set invol = orig.mgz
+set outvol = aseg+spmhead.mgz
+set headvol =  ();
+set tmpdir = ();
+set MLF = ();
+set monly = 0;
+set cleanup = 1;
+set LF = ();
+set WarpingRegularization = 10; # SPM default is 4, but DI suggests 10
+set BiasFWHM = 30; # SPM default is 60, but DI suggests 30
+
+# Seghead parameters
+set thresh1 = 20;
+set thresh2 = 20;
+set nhitsmin = 2;
+
+# Defaults for the Martinos Center
+set matlabcmd = /usr/pubsw/common/matlab/7.8/bin/matlab
+set spm8path = /usr/pubsw/common/spm/spm8
+
+# set matlabcmd = /Applications/MATLAB_R2010b.app/bin/matlab
+# set spm8path = /Users/greve/spm/spm8
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.spmseg.$$
+  if(! -e /scratch) set tmpdir = $SUBJECTS_DIR/$subject/tmp/tmpdir.spmseg.$$
+endif
+mkdir -p $tmpdir
+
+if($#MLF == 0) set MLF = $tmpdir/run_spmseg.m
+rm -f $MLF
+
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/$outvol.spmseg.log
+if($LF != /dev/null) rm -f $LF
+
+echo "Log file for spmseg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+uname -a  | tee -a $LF
+echo "matlabcmd $matlabcmd" | tee -a $LF
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+
+# Convert input to nifit, make sure it is a float
+set cmd = (mri_convert $input -odt float $tmpdir/input.nii)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+set input = $tmpdir/input.nii
+
+set spmsegbatch = $tmpdir/spmsegbatch.m
+rm -f $spmsegbatch
+
+#-------------------------------------------------------------
+tee $spmsegbatch >& /dev/null <<EOF
+matlabbatch{1}.spm.tools.preproc8.channel.vols = {'$input,1'};
+matlabbatch{1}.spm.tools.preproc8.channel.biasreg = 0.0001;
+matlabbatch{1}.spm.tools.preproc8.channel.biasfwhm = $BiasFWHM;
+matlabbatch{1}.spm.tools.preproc8.channel.write = [0 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(1).tpm = {'$spm8path/toolbox/Seg/TPM.nii,1'};
+matlabbatch{1}.spm.tools.preproc8.tissue(1).ngaus = 2;
+matlabbatch{1}.spm.tools.preproc8.tissue(1).native = [1 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(1).warped = [0 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(2).tpm = {'$spm8path/toolbox/Seg/TPM.nii,2'};
+matlabbatch{1}.spm.tools.preproc8.tissue(2).ngaus = 2;
+matlabbatch{1}.spm.tools.preproc8.tissue(2).native = [1 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(2).warped = [0 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(3).tpm = {'$spm8path/toolbox/Seg/TPM.nii,3'};
+matlabbatch{1}.spm.tools.preproc8.tissue(3).ngaus = 2;
+matlabbatch{1}.spm.tools.preproc8.tissue(3).native = [1 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(3).warped = [0 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(4).tpm = {'$spm8path/toolbox/Seg/TPM.nii,4'};
+matlabbatch{1}.spm.tools.preproc8.tissue(4).ngaus = 3;
+matlabbatch{1}.spm.tools.preproc8.tissue(4).native = [1 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(4).warped = [0 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(5).tpm = {'$spm8path/toolbox/Seg/TPM.nii,5'};
+matlabbatch{1}.spm.tools.preproc8.tissue(5).ngaus = 4;
+matlabbatch{1}.spm.tools.preproc8.tissue(5).native = [1 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(5).warped = [0 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(6).tpm = {'$spm8path/toolbox/Seg/TPM.nii,6'};
+matlabbatch{1}.spm.tools.preproc8.tissue(6).ngaus = 2;
+matlabbatch{1}.spm.tools.preproc8.tissue(6).native = [1 0];
+matlabbatch{1}.spm.tools.preproc8.tissue(6).warped = [0 0];
+matlabbatch{1}.spm.tools.preproc8.warp.reg = $WarpingRegularization;
+matlabbatch{1}.spm.tools.preproc8.warp.affreg = 'mni';
+matlabbatch{1}.spm.tools.preproc8.warp.samp = 3;
+matlabbatch{1}.spm.tools.preproc8.warp.write = [0 0];
+EOF
+
+tee -a $MLF >& /dev/null <<EOF
+% Matlab Version
+spm8path = '$spm8path';
+if(~isempty(spm8path)) addpath(spm8path); end
+fprintf('%s\n',version);
+fprintf('%s\n',which('spm'));
+input = '$input';
+monly = [$monly];
+spm_defaults
+global defaults
+EOF
+
+cat $spmsegbatch >> $MLF
+
+tee -a $MLF >& /dev/null <<EOF
+try
+  spm_jobman('initcfg');
+catch
+  fprintf('ERROR: running spm_jobman(initcfg)\n');
+  if(~monly) quit; end
+  return;
+end
+try
+  spm_jobman('run_nogui',matlabbatch)
+catch
+  fprintf('ERROR: running spm_jobman(run_nogui)\n');
+  if(~monly) quit; end
+  return;
+end
+EOF
+
+if(! $monly ) echo "quit;" >> $MLF
+
+echo "------------------------------------------" >> $LF
+cat $MLF >> $LF
+echo "------------------------------------------" >> $LF
+
+
+if(! $monly) then
+  # Create a seg of the head for masking
+  if($#headvol == 0) then
+    set seghead = $tmpdir/seghead.mgz
+  else
+    set seghead = $SUBJECTS_DIR/$subject/$headvol
+  endif
+  set cmd = (mri_seghead --invol $input --outvol $seghead \
+    --fill 1 --thresh1  $thresh1 --thresh2  $thresh2 --nhitsmin $nhitsmin);
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Create aseg from aparc+aseg. Don't use original aseg because it
+  # has not been fixed with the surfaces.
+  set apasaseg = $tmpdir/apas-aseg.mgz
+  set cmd = (apas2aseg --s $subject --o $apasaseg)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  date | tee -a $LF
+  cat $MLF | $matlabcmd -nodisplay -nojvm -nosplash | tee -a $LF
+  echo "" | tee -a $LF
+  date | tee -a $LF
+
+  # Create segmentation based on maximum prob for a given tissue type
+  set flist = ();
+  foreach tt (1 2 3 4 5 6)
+    set f = $tmpdir/c$tt"input".nii
+    set flist = ($flist $f);
+  end
+  set spmseg0 = $tmpdir/tt.spmseg.mgz
+  set cmd = (mri_concat $flist --max-index  --o $spmseg0)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  cp $spmseg0 $tmpdir/tt.spmseg0.mgz
+
+  # Set stuff outside of the head to 0
+  set cmd = (mri_mask $spmseg0 $seghead $spmseg0)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Change segnos to match FS
+  set cmd = (mri_binarize --i $spmseg0 --o $spmseg0 \
+    --replace 1 3 --replace 2 2 --replace 3 257 \
+    --replace 4 165 --replace 5 258 --replace 6 130 )
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Create a mask of voxels outsize of apas
+  set apasasegnot = $tmpdir/apas-aseg.not.mgz
+  set cmd = (mri_binarize --i $apasaseg --min 0.5 --inv --o $apasasegnot)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Create a mask of voxels outside of apas labeled as GM or WM
+  # Set value to 257 (xCSF) for later. Not sure what the best 
+  # approach is for WM but replacing with xCSF probably does not
+  # hurt anything.
+  set outliers = $tmpdir/outliers.mgz
+  set cmd = (mri_binarize --i $spmseg0 --match 2 3 --binval 257 \
+     --mask $apasasegnot --o $outliers)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Invert outliers
+  set outliersnot = $tmpdir/outliers.not.mgz
+  set cmd = (mri_binarize --i $outliers --min 0.5 --inv --o $outliersnot)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Replace outliers with 257 (xCSF)
+  set cmd = (fscalc $spmseg0 mul $outliersnot add $outliers -o $spmseg0)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Merge with aseg
+  set merged = $tmpdir/merged.mgz
+  set cmd = (mergeseg --src $spmseg0 --merge $apasaseg --o $merged)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Has to be float or uchar for GCA (and it can't be uchar)
+  set outpath = $SUBJECTS_DIR/$subject/mri/$outvol
+  set cmd = (mri_convert $merged $outpath -odt float --no_scale 1)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  echo "To check run" | tee -a $LF
+  echo "tkmedit $subject nu.mgz -opacity 1 -seg $outvol" | tee -a $LF
+
+endif
+
+if($cleanup) rm -rf $tmpdir
+
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+
+set EndTime = `date`;
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at $EndTime" | tee -a $LF
+echo "SPMSEG-Run-Time-Sec $tSecRun" | tee -a $LF
+echo "spmseg done" | tee -a $LF
+echo ""
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      set input = $SUBJECTS_DIR/$subject/mri/orig.mgz
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set invol = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "--save-head":
+      if($#argv < 1) goto arg1err;
+      set headvol = $argv[1]; shift;
+      breaksw
+
+    case "--monly":
+      if($#argv < 1) goto arg1err;
+      set monly = 1;
+      set MLF = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--matlab":
+      if($#argv < 1) goto arg1err;
+      set matlabcmd = $argv[1]; shift;
+      breaksw
+
+    case "--spm8":
+      if($#argv < 1) goto arg1err;
+      set spm8path = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec input subject"
+  exit 1;
+endif
+set input = $SUBJECTS_DIR/$subject/mri/$invol
+if(! -e $input) then
+  echo "ERROR: cannot find $input"
+  exit 1;
+endif
+if(! -e $matlabcmd) then
+  echo "ERROR: cannot find matlab command $matlabcmd"
+  echo "Set with --matlab option"
+  exit 1;
+endif
+if(! -e $spm8path) then
+  echo "ERROR: cannot find spm8 path $spm8path"
+  echo "Set with --spm8 option"
+  exit 1;
+endif
+if($#matlabcmd == 0) then
+  set matlabcmd = `which matlab`;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "spmseg --s subject"
+  echo "  --i invol (default is $invol)"
+  echo "  --o outvol (default is $outvol)"
+  echo "  --save-head headvol (eg, headmask.mgz)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This runs the SPM8 NewSeg program on the T1 to generate a map of 6
+tissue types: GM, WM, CSF, bone, head, and air. It merges this
+segmentation with the aseg (fixed by the surfaces) and cleans up stuff
+labeled as GM or WM that is outside of the aseg. Segmentation numbers
+match those in FreeSurferColorLUT.txt.
+
+The parameters used for the segmentation are the default, except for
+the following suggested by David Izquierdo in his paper An SPM8-based
+Approach for Attenuation Correction Combining Segmentation and
+Non-rigid Template Formation: Application to Simultaneous PET/MR Brain
+Imaging
+
+WarpingRegularization = 10; # SPM default is 4
+BiasFWHM = 30; # SPM default is 60
+
