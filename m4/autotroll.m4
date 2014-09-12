@@ -161,6 +161,13 @@ dnl Memo: AC_ARG_WITH(package, help-string, [if-given], [if-not-given])
     test -d /usr/pubsw/packages/qt/current/bin \
       && tmp_qt_paths="$tmp_qt_paths:/usr/pubsw/packages/qt/current/bin"
   fi
+ 
+  # Path to qt as installed by the official Qt Mac .dmg package.
+  if test x"$QT_PATH" = "x"; then
+    test -d /usr/bin \
+      && tmp_qt_paths="$tmp_qt_paths:/usr/bin"
+  fi
+  
 
   # Find qmake.
   AC_ARG_VAR([QMAKE], [Qt Makefile generator command])

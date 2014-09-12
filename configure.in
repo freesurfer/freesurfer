@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2014/09/05 21:28:32 $
-#    $Revision: 1.618 $
+#    $Date: 2014/09/12 18:18:31 $
+#    $Revision: 1.619 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -617,15 +617,12 @@ if (test "$OS" = "Darwin") && (test "$machine_hardware" = "x86_64"); then
   MAC_64="YES"
 fi
 
-# The --install-Mac32-GUIs flag should only be used when building
-# on 64-bit Mac systems and in conjuction with the --disable-GUI-build
-# flag. In this way, it will skip the building of the GUIs but will
-# install the precompiled 32bit versions of tkmedit, tksurfer, tkregister, freeview and qdec.
+# On 64-bit Mac systems, the 32bit versions of tkmedit, tksurfer, 
+# tkregister, and qdec are installed by default.
 install_Mac32_GUIs="NO"
-AC_ARG_WITH(Mac32-GUIs,
- [  --with-Mac32-GUIs     install Mac 32-bit GUIs should only be used on Mac 64-bit platforms],
- [ install_Mac32_GUIs="YES"
- ])
+if test x$MAC_64 = xYES; then
+   install_Mac32_GUIs="YES"
+fi
 
 disable_gui_build="NO"
 AC_ARG_ENABLE(GUI-build,
@@ -1823,6 +1820,13 @@ if test "$disable_gui_build" = "YES"; then
   tcltk_apps="NO"
 fi
 
+# Disable building of tcltk apps on Mac 64bit systems
+# due to issues with the tcltkixblt package. 
+if test x$MAC_64 = xYES
+then
+   tcltk_apps="NO"
+fi
+
 if test "$tcltk_apps" = "yes"; then
   AC_MSG_RESULT([Enabled building of Tcl/Tk apps.])
   # enable testing for OpenGL libs:
@@ -2222,7 +2226,6 @@ AC_ARG_WITH(vtk-dir,
      ac_vtk_dir="$withval"
      VTK_DIR=$ac_vtk_dir
   ])
-
 
 if test ! "$disable_gui_build" = "YES"; then
   if test "x$VTK_DIR" = "x"; then
