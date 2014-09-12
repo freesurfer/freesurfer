@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.36.2.6 2013/06/05 17:06:31 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.36.2.7 2014/09/12 14:50:28 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -537,7 +537,7 @@ foreach conname ($conlist)
     if(! -e $FREESURFER_HOME/subjects/$volsubject/mri/$aseg) set aseg = aseg.mgz
     set cmd = (mri_volcluster --in $sig --mask $mask --reg $reg --no-fixmni\
       --cwsig $cwsig --sum $sum --ocn $ocn --cwpvalthresh $cwpvalthresh \
-      --seg $volsubject $aseg)
+      --seg $volsubject $aseg  --out $msig)
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
     if(! $UseGRF) set cmd = ($cmd --csdpdf $csdpdf $csdlist --vwsig $vwsig )
     if($UseGRF)   set cmd = ($cmd --fwhmdat $glmdir/fwhm.dat --sign $simsign --thmin $thresh)
