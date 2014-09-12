@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/08/26 20:36:16 $
-#    $Revision: 1.482 $
+#    $Author: greve $
+#    $Date: 2014/09/12 15:38:17 $
+#    $Revision: 1.483 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.482 2014/08/26 20:36:16 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.483 2014/09/12 15:38:17 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3549,16 +3549,19 @@ foreach hemi ($hemilist)
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     set annot = ../label/$hemi.aparc.annot
-    set stats = ../stats/$hemi.aparc.stats
     set ctab  = ../label/aparc.annot.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz)
-    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
-    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+    foreach surfname (white pial)
+      if($surfname == white) set stats = ../stats/$hemi.aparc.stats
+      if($surfname == pial)  set stats = ../stats/$hemi.aparc.pial.stats
+      set cmd = (mris_anatomical_stats -mgz)
+      if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+      set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi $surfname);
+      $PWD |& tee -a $LF
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    end
     echo $cmd > $touchdir/$hemi.aparcstats.touch
   endif
 
