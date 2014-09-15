@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/05/28 19:46:31 $
- *    $Revision: 1.73 $
+ *    $Date: 2014/09/15 17:04:49 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +41,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.73 2013/05/28 19:46:31 greve Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.74 2014/09/15 17:04:49 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -120,7 +120,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.73 2013/05/28 19:46:31 greve Exp $",
+           "$Id: mris_anatomical_stats.c,v 1.74 2014/09/15 17:04:49 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -550,12 +550,18 @@ main(int argc, char *argv[])
         mean_cortex_thickness /= num_cortex_vertices;
       }
     }
-    fprintf(fp,
-            "# Measure Cortex, NumVert, Number of Vertices, %d, unitless\n",
-            num_cortex_vertices);
-    fprintf(fp,
-            "# Measure Cortex, WhiteSurfArea, White Surface Total Area, %g, mm^2\n",
-            total_cortex_area);
+    fprintf(fp,"# Measure Cortex, NumVert, Number of Vertices, %d, unitless\n",
+	    num_cortex_vertices);
+    if(strcmp(surf_name,"white")==0)
+      fprintf(fp,"# Measure Cortex, WhiteSurfArea, White Surface Total Area, %g, mm^2\n",
+	      total_cortex_area);
+    else if(strcmp(surf_name,"pial")==0)
+      fprintf(fp,"# Measure Cortex, PialSurfArea, Pial Surface Total Area, %g, mm^2\n",
+	      total_cortex_area);
+    else 
+      fprintf(fp,"# Measure Cortex, SurfArea, Surface Total Area, %g, mm^2\n",
+	      total_cortex_area);
+
     if (cortex_label)
     {
       fprintf(fp,
