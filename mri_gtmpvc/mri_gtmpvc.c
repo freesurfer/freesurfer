@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/11 20:13:12 $
- *    $Revision: 1.31 $
+ *    $Date: 2014/09/17 19:42:34 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.31 2014/09/11 20:13:12 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.32 2014/09/17 19:42:34 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.31 2014/09/11 20:13:12 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.32 2014/09/17 19:42:34 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -172,6 +172,7 @@ float pxfm[6]={0,0,0,0,0,0};
 int ApplyXFM=0;
 int DoSimulation = 0;
 int DoVoxFracCorTmp;
+int Frame = -1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -199,6 +200,7 @@ int main(int argc, char *argv[])
 
   // by default, rescale to Cerebellum WM
   gtm->rescale = 1; 
+  gtm->scale_refval = 1; 
   gtm->n_scale_refids = 2;
   gtm->scale_refids[0] = 7;
   gtm->scale_refids[1] = 46;
@@ -809,6 +811,11 @@ static int parse_commandline(int argc, char **argv) {
       AutoMask=1;
       nargsused = 2;
     }
+    else if(!strcasecmp(option, "--frame")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&Frame);
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--no-reduce-fov")) gtm->automask_reduce_fov = 0;
     else if(!strcasecmp(option, "--opt")) DoOpt=1;
     else if(!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
@@ -934,6 +941,11 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if(!strcasecmp(option, "--rbv")) DoRBV = 1;
     else if(!strcasecmp(option, "--no-rescale")) gtm->rescale = 0;
+    else if(!strcasecmp(option, "--scale-refval")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&gtm->scale_refval);
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--rescale")) {
       if(nargc < 1) CMDargNErr(option,1);
       gtm->rescale = 1;
@@ -1153,6 +1165,7 @@ static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --i   inputvol : source data to PVC\n");
+  printf("         --frame F : only process 0-based frame F from inputvol\n");
   printf("   --psf psfmm : scanner PSF FWHM in mm\n");
   printf("   --seg segfile : anatomical segmentation to define regions for GTM\n");
   printf("   --reg reg.lta : LTA registration file that maps anatomical to PET\n");
@@ -1170,7 +1183,8 @@ static void print_usage(void) {
   printf("   --replace Id1 Id2 : replace seg Id1 with seg Id2\n");
   printf("   --replace-file : file with a list of Ids to replace\n");
   printf("   --reg-identity : assume that input is in anatomical space \n");
-  printf("   --no-rescale   : do not global rescale such that mean of cerebellum WM is 100\n");
+  printf("   --no-rescale   : do not global rescale such that mean of reference region is scaleref\n");
+  printf("   --scale-refval refval : scale such that mean in reference region is refval\n");
   printf("   --default-seg-merge-choroid : default schema for merging ROIs but keeps choroid\n");
   printf("\n");
   printf("   --no-vox-frac-cor : do not use voxel fraction correction (with --psf 0 turns off PVC entirely)\n");
@@ -1291,6 +1305,16 @@ static void check_options(void)
   printf("Loading input %s\n",SrcVolFile);fflush(stdout);
   gtm->yvol = MRIread(SrcVolFile);
   if(gtm->yvol==NULL) exit(1);
+  if(Frame >= 0){
+    printf("Extracting frame %d\n",Frame);
+    if(Frame >= gtm->yvol->nframes){
+      printf("ERROR: requested frame %d >= number of frames %d\n",Frame,gtm->yvol->nframes);
+      exit(1);
+    }
+    mritmp = fMRIframe(gtm->yvol,Frame,NULL);
+    MRIfree(&gtm->yvol);
+    gtm->yvol = mritmp;
+  }
   gtm->nframes = gtm->yvol->nframes ;
   printf("  done loading input %d frames\n",gtm->nframes);fflush(stdout);
 

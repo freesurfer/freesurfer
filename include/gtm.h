@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/11 20:23:06 $
- *    $Revision: 1.13 $
+ *    $Date: 2014/09/17 19:42:34 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,7 +92,7 @@ typedef struct
   int nPad; // Actual amount of dilation
 
   int rescale,n_scale_refids,scale_refids[100];
-  double scale;
+  double scale, scale_refval; //scale = scale factor, scalerefval = 1 or 100, etc
 
   MRI *segpvf; // PVF of each seg (one in each frame)
   MRI *ttpvf; // PVF of each tissue type (one in each frame), used by MG

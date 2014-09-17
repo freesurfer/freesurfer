@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/11 20:25:52 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/09/17 19:42:33 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1565,7 +1565,7 @@ int GTMrescale(GTM *gtm)
       sum += gtm->beta->rptr[nthseg+1][f+1];
     }
   }
-  gtm->scale = 100/(sum/nhits);
+  gtm->scale = gtm->scale_refval/(sum/nhits);
   printf("gtm multiplicative scale %g\n",gtm->scale);
 
   MRImultiplyConst(gtm->yvol,gtm->scale,gtm->yvol);
