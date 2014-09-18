@@ -6,10 +6,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2013/01/09 21:22:55 $
-#    $Revision: 1.19 $
+#    $Date: 2014/09/18 19:21:13 $
+#    $Revision: 1.20 $
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -23,15 +23,16 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.19 2013/01/09 21:22:55 nicks Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.20 2014/09/18 19:21:13 nicks Exp $';
 
 set InVol = ();
 set OutVol = ();
-set nIters = 4; # default in recon-all
+set MaskVol = ();
+set nIters = 1; # default in recon-all beginning v6.0
 set HiRes = ();
-set nProtoIters = ();
+set nProtoIters = 1000; # default in recon-all beginning v6.0
 set StopThresh = ();
-set Distance = ();
+set Distance = 200; # 200 for 1.5T, 50 for 3T
 set FWHM = ();
 set LF = ();
 set UseFloat = 1;
@@ -90,6 +91,26 @@ if($status) then
   exit 1;
 endif
 
+# Convert mask to minc
+if ($#MaskVol) then
+  set cmd1 = (mri_binarize --i $MaskVol --min 1 --o $tmpdir/mask.mgz)
+  set cmd2 = (mri_convert ${HiRes} $tmpdir/mask.mgz $tmpdir/mask.mnc)
+  if($UseFloat) set cmd2 = ($cmd2 -odt float)
+  pwd |& tee -a $LF
+  echo $cmd1 |& tee -a $LF
+  $cmd1 |& tee -a $LF
+  if($status) then
+    echo "ERROR: binarizing mask vol" |& tee -a $LF
+    exit 1;
+  endif
+  echo $cmd2 |& tee -a $LF
+  $cmd2 |& tee -a $LF
+  if($status) then
+    echo "ERROR: converting mask vol to minc" |& tee -a $LF
+    exit 1;
+  endif
+endif
+
 # Run intensity correction #
 @ nthIter = 1;
 while($nthIter <= $nIters)
@@ -103,6 +124,7 @@ while($nthIter <= $nIters)
   if($#StopThresh)    set cmd = ($cmd -stop $StopThresh);
   if($#Distance)      set cmd = ($cmd -distance $Distance);
   if($#FWHM)          set cmd = ($cmd -fwhm $FWHM);
+  if($#MaskVol)       set cmd = ($cmd -mask $tmpdir/mask.mnc);
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) then
@@ -113,6 +135,7 @@ while($nthIter <= $nIters)
   @ nthIter = $nthIter + 1;
   echo " " |& tee -a $LF
 end
+if($#MaskVol) rm -f $tmpdir/mask.mnc $tmpdir/mask.imp $tmpdir/mask.mgz
 echo " " |& tee -a $LF
 echo " " |& tee -a $LF
 
@@ -206,6 +229,11 @@ while( $#argv != 0 )
     case "--o":
       if ( $#argv == 0) goto arg1err;
       set OutVol = $argv[1]; shift;
+      breaksw
+
+    case "--mask":
+      if ( $#argv == 0) goto arg1err;
+      set MaskVol = $argv[1]; shift;
       breaksw
 
     case "--n":
