@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2014/09/12 15:38:17 $
-#    $Revision: 1.483 $
+#    $Author: nicks $
+#    $Date: 2014/09/18 19:24:00 $
+#    $Revision: 1.484 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.483 2014/09/12 15:38:17 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.484 2014/09/18 19:24:00 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -102,7 +102,7 @@ set WSGcaAtlas  = 1;    # 1=use GCA atlas and registration to do skull strip
 set WSUseTalXfm = 0;    # 1=use talairach.xfm instead of talairach_with_skull
                         # to do atlas alignment during mri_watershed
 set DoGcut = 0;         # 1=run mri_gcut after mri_watershed
-set NuIterations = 2;   # Number of iterations for nu intensity correction
+set NuIterations = 1;   # Number of iterations for nu intensity correction
 set ConformMin = 0;     # 1=conformed to min dimension
 set HiRes = 0;          # 1=hires option (conformed to min dimension)
 set Norm3dIters = ();   # passed as -n to *both* mri_normalize runs
@@ -214,8 +214,8 @@ set brain_template = talairach_mixed_with_skull.gca
 set face_template  = face.gca
 
 # For subcortical segmentation
-set GCA      = RB_all_2008-03-26.gca
-set GCASkull = RB_all_withskull_2008-03-26.gca
+set GCA      = RB_all_2014-08-21.gca
+set GCASkull = RB_all_withskull_2014-08-21.gca
 set GCADIR   = "${FREESURFER_HOME}/average"
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
@@ -1551,13 +1551,12 @@ talairach:
     else
       # default: run one pass of nu_correct, as its been found that scans
       # with strong bias fields can cause talairach_avi to fail.  note that
-      # this orig_nu doesnt do as much correction as
-      # the nuintensitycor stage (which does more passes and uses talairach.xfm
-      # to find the wm ball so as to do histogramming).
+      # this orig_nu.mgz uses the full head, whereas nu.mgz is created using
+      # the brainmask, and also talairach.xfm to find the white matter ball.
       set tal_input = orig_nu.mgz
       set cmd = (mri_nu_correct.mni \
         --n 1 --proto-iters 1000 --distance 50 --no-rescale \
-        --i orig.mgz --o orig_nu.mgz)
+        --i orig.mgz --o $tal_input)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd >& orig_nu.log
       if($status) goto error_exit;
@@ -1602,7 +1601,7 @@ talairach:
     set cmd = (cp $xfma $xfm)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) then
-      sleep 1; # Sleep here to assure that they have diff time stamps
+      sleep 2; # Sleep here to assure that they have diff time stamps
       $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
@@ -1734,59 +1733,6 @@ endif
 endif
 
 
-#----------- Nu Intensity Correction ------------------#
-if($DoNuIntensityCor) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# Nu Intensity Correction `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
-  set cmd = (mri_nu_correct.mni  --i orig.mgz --o nu.mgz )
-  # to fix a problem with mri_nu_correct.mni messing with the histogramming
-  # in some odd subjects (due to voxels outside the brain, which has the
-  # effect of altering white matter intensity interpretation downstream),
-  # the inclusion of talairach.xfm with mri_nu_correct.mni causes
-  # mri_make_uchar to run, which uses the Tal xform to find a ball of voxels
-  # that are mostly brain. The top of the intensity histogram in this ball
-  # will then be white matter, which allows us to center it at the desired
-  # value, approximately (110).
-  if ($DoNuMakeUchar) then
-    if ( ! -e transforms/talairach.xfm) then
-      echo "WARNING: transforms/talairach.xfm does not exist!" \
-        |& tee -a $LF
-      echo "It will not be used by mri_nu_correct.mni." \
-        |& tee -a $LF
-    else
-      set cmd = ($cmd --uchar transforms/talairach.xfm)
-    endif
-  endif
-  # --cm for hi-res support:
-  if ($ConformMin) set cmd = ($cmd --cm)
-  if ($DoNuIntensityCor3T) then
-    # params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
-    # "Improvement of brain segmentation accuracy by optimizing
-    # non-uniformity correction using N3"
-    set NuIterations = 1;
-    set cmd = ($cmd --proto-iters 1000 --distance 50)
-  endif
-  set cmd = ($cmd --n $NuIterations $xopts)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  # Add xfm to nu
-  set cmd = (mri_add_xform_to_header -c \
-             $subjdir/mri/transforms/talairach.xfm \
-             nu.mgz nu.mgz)
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-  touch $touchdir/nu.touch
-endif
-
-
 #----------- Defacing ------------------#
 if($DoDeface) then
   echo "#--------------------------------------------" \
@@ -1844,7 +1790,7 @@ if($DoNormalization) then
     set cmd = (mri_normalize \
       -w $subjdir/mri/ctrl_vol.mgz $subjdir/mri/bias_vol.mgz \
       -l $longbasedir/mri/ctrl_vol.mgz $longbasedir/mri/bias_vol.mgz \
-      $subjdir/mri/nu.mgz \
+      $subjdir/mri/orig_nu.mgz \
       $subjdir/mri/T1.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -1861,7 +1807,7 @@ if($DoNormalization) then
     if($ConformMin)       set cmd = ($cmd -noconform)
     # in base create the ctrl_vol.mgz for init longs later:
     if($DoCreateBaseSubj) set cmd = ($cmd -W ctrl_vol.mgz bias_vol.mgz)
-    set cmd = ($cmd $xopts nu.mgz T1.mgz)
+    set cmd = ($cmd $xopts orig_nu.mgz T1.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -1992,7 +1938,7 @@ skullstrip:
         set cmd2 = (mri_em_register)
         if($UseCuda) set cmd2 = (mri_em_register_cuda)
         set cmd2 = ($cmd2 -skull)
-        set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
+        set cmd2 = ($cmd2 $xopts2 orig_nu.mgz ${GCADIR}/$GCASkull)
         set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
         echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) $fs_time $cmd2 |& tee -a $LF
@@ -2024,7 +1970,7 @@ skullstrip:
       # defaults:
       set PREFLOOD_HEIGHTS = ( 5 10 20 30 )
     endif
-    set SS_VOLUMES = ( orig nu T1 )
+    set SS_VOLUMES = ( orig orig_nu T1 )
     if ( $?GOTO_LL_CALC ) goto ll_calc
 
     # create command files, one job for each volume type and preflood height...
@@ -2215,6 +2161,68 @@ skullstrip:
     endif
   endif
 
+endif
+
+
+#----------- AUTORECON 2 -------------#
+
+
+#----------- Nu Intensity Correction ------------------#
+if($DoNuIntensityCor) then
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# Nu Intensity Correction `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
+  set cmd = (mri_nu_correct.mni --i orig.mgz --o nu.mgz --proto-iters 1000)
+  # to fix a problem with mri_nu_correct.mni messing with the histogramming
+  # in some odd subjects (due to voxels outside the brain, which has the
+  # effect of altering white matter intensity interpretation downstream),
+  # the inclusion of talairach.xfm with mri_nu_correct.mni causes
+  # mri_make_uchar to run, which uses the Tal xform to find a ball of voxels
+  # that are mostly brain. The top of the intensity histogram in this ball
+  # will then be white matter, which allows us to center it at the desired
+  # value, approximately (110).
+  if ($DoNuMakeUchar) then
+    if ( ! -e transforms/talairach.xfm) then
+      echo "WARNING: transforms/talairach.xfm does not exist!" \
+        |& tee -a $LF
+      echo "It will not be used by mri_nu_correct.mni." \
+        |& tee -a $LF
+    else
+      set cmd = ($cmd --uchar transforms/talairach.xfm)
+    endif
+  endif
+  # --cm for hi-res support:
+  if ($ConformMin) set cmd = ($cmd --cm)
+  if ($DoNuIntensityCor3T) then
+    # params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
+    # "Improvement of brain segmentation accuracy by optimizing
+    # non-uniformity correction using N3"
+    set NuIterations = 1;
+    set cmd = ($cmd --distance 50)
+  endif
+  set cmd = ($cmd --n $NuIterations)
+  # add the mask, as per c.larsen, bias-field correction is known to work
+  # much better when the brain area is properly masked, in this case by
+  # brainmask.mgz.  the MaskVol env var is read by mri_nu_correct.mni
+  set cmd = ($cmd --mask brainmask.mgz $xopts)
+  # add user-specified option (from an 'experts file')
+  set cmd = ($cmd $xopts)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  # Add xfm to nu
+  set cmd = (mri_add_xform_to_header -c \
+             $subjdir/mri/transforms/talairach.xfm \
+             nu.mgz nu.mgz)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  touch $touchdir/nu.touch
 endif
 
 #-------------- GCA Registration  -------------------------#
@@ -4281,7 +4289,9 @@ if($DoGEMS) then
       |& tee -a $LF |& tee -a $CF |& tee -a $GEMSF
   echo "#@# Hippocampal Subfields processing `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $GEMSF
-  if (-e ${subjdir}/mri/aseg.mgz && -e ${subjdir}/mri/nu.mgz && -e ${subjdir}/mri/transforms/talairach.xfm ) then
+  if (-e ${subjdir}/mri/aseg.mgz && \
+      -e ${subjdir}/mri/nu.mgz && \
+      -e ${subjdir}/mri/transforms/talairach.xfm ) then
     # create a tmp directory if it doesn't exist
     set cmd = (mkdir -p ${subjdir}/tmp/subfieldResults)
     echo "\n $cmd"|& tee -a $LF |& tee -a $CF
@@ -4290,11 +4300,19 @@ if($DoGEMS) then
     set kvltmpd = (${subjdir}/tmp/subfieldResults)
 
     # do hippocampal processing
-    set cmd = (kvlSegmentHippocampalSubfields.sh $subjid left $SUBJECTS_DIR ${kvltmpd} )
+    set cmd = (kvlSegmentHippocampalSubfields.sh \
+        $subjid \
+        left \
+        $SUBJECTS_DIR \
+        ${kvltmpd} )
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $GEMSF
     if($status) goto error_exit;
-    set cmd = (kvlSegmentHippocampalSubfields.sh $subjid right $SUBJECTS_DIR ${kvltmpd} )
+    set cmd = (kvlSegmentHippocampalSubfields.sh \
+        $subjid \
+        right \
+        $SUBJECTS_DIR \
+        ${kvltmpd} )
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $GEMSF
     if($status) goto error_exit;
@@ -5463,12 +5481,12 @@ while( $#argv != 0 )
       set DoMotionCor      = 1;
       set DoTalairach      = 1;
       set DoTalCheck       = 1;
-      set DoNuIntensityCor = 1;
       set DoNormalization  = 1;
       set DoSkullStrip     = 1;
       breaksw
 
     case "-autorecon2":
+      set DoNuIntensityCor = 1;
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
@@ -5492,6 +5510,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2-volonly":
+      set DoNuIntensityCor = 1;
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
@@ -5521,6 +5540,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2-inflate1":
+      set DoNuIntensityCor = 1;
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
@@ -6907,7 +6927,7 @@ hippocampus in the temporal lobe. This option is passed to mri_ca_register.
 -nuiterations
 
 Number of iterations in the non-uniform intensity correction.
-Default is 2.
+Default is 1.
 
 -norm3diters niters
 
@@ -7161,14 +7181,6 @@ The motion correction step uses a robust registration [14] procedure
 to produce highly accurate registrations of the brain, ignoring outlier
 regions, such as differen cropping planes, jaw, neck, eye movement etc.
 
-NU Intensity Correction (-<no>nuintensitycor)
-
-Non-parametric Non-uniform intensity Normalization (N3), corrects for
-intensity non-uniformity in MR data,  making relatively few assumptions
-about the data.  This runs the MINC tool 'nu_correct'.  By default, four
-iterations of nu_correct are run.  The flag -nuiterations specification
-of some other number of iterations.
-
 Talairach (-<no>talairach)
 
 This computes the affine transform from the orig volume to the MNI305
@@ -7203,6 +7215,14 @@ mri/brainmask.auto.mgz and mri/brainmask.mgz.
 Runs the mri_watershed program. If the strip fails, users can specify
 seed points (-wsseed) or change the threshold (-wsthresh, -wsmore, -wsless).
 The -autorecon1 stage ends here.
+
+NU Intensity Correction (-<no>nuintensitycor)
+
+Non-parametric Non-uniform intensity Normalization (N3), corrects for
+intensity non-uniformity in MR data,  making relatively few assumptions
+about the data.  This runs the MINC tool 'nu_correct'.  By default, one
+iteration of nu_correct is run.  The flag -nuiterations specification
+of some other number of iterations.
 
 Automatic Subcortical Segmentation (-<no>subcortseg)
 
