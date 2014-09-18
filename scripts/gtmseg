@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # gtmseg
 
-set VERSION = '$Id: gtmseg,v 1.10 2014/09/17 20:35:51 greve Exp $';
+set VERSION = '$Id: gtmseg,v 1.11 2014/09/18 15:33:53 greve Exp $';
 
 set outdir = ();
 set subject = ();
@@ -141,10 +141,6 @@ if($cleanup) rm -rf $tmpdir
 set stem = `fname2stem $outvol`
 set ctab = $stem.ctab
 
-echo "To check run:" | tee -a $LF
-echo "tkmeditfv $subject nu.mgz lh.skull.inner.approx -seg $outvol $ctab -aux-surface lh.skull.outer.approx -opacity 1" | tee -a $LF
-echo ""| tee -a $LF
-
 # Done
 echo " " |& tee -a $LF
 set tSecEnd = `date '+%s'`;
@@ -156,6 +152,10 @@ echo "Ended   at `date`" |& tee -a $LF
 echo "Gtmseg-Run-Time-Sec $tSecRun" |& tee -a $LF
 echo "Gtmseg-Run-Time-Hours $tRunHours" |& tee -a $LF
 echo " " |& tee -a $LF
+echo "To check run:" | tee -a $LF
+echo "tkmeditfv $subject nu.mgz -seg $outvol $ctab -opacity 1" | tee -a $LF
+echo ""| tee -a $LF
+
 echo "gtmseg Done" |& tee -a $LF
 exit 0
 
