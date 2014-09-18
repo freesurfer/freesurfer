@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: lzollei $
-#    $Date: 2014/05/06 21:36:46 $
-#    $Revision: 1.69 $
+#    $Author: greve $
+#    $Date: 2014/09/18 20:33:51 $
+#    $Revision: 1.70 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.69 2014/05/06 21:36:46 lzollei Exp $';
+set VERSION = '$Id: mris_preproc,v 1.70 2014/09/18 20:33:51 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -252,7 +252,7 @@ foreach subj ($subjlist)
        set cmd = ($cmd --sval-$sval $svalsurf)
     endif
     if($jac) set cmd = ($cmd --jac)
-    if($#srcfmt) set cmd = ($cmd --sfmt $srcfmt)
+    if($#srcfmt && $#sval == 0) set cmd = ($cmd --sfmt $srcfmt)
     if($synth && ! $srcvol) set cmd = ($cmd --synth) # Synth if desired, vol done above
     if($#fwhmsrc)   set cmd = ($cmd --fwhm-src $fwhmsrc) # Smth in the targ space below
     if($#niterssrc) set cmd = ($cmd --nsmooth-in $niterssrc) # Smth in the targ space below
