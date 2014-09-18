@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/08/21 21:07:42 $
- *    $Revision: 1.38 $
+ *    $Date: 2014/09/18 22:05:24 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.38 2012/08/21 21:07:42 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.39 2014/09/18 22:05:24 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
   int n,nvoxs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.38 2012/08/21 21:07:42 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.39 2014/09/18 22:05:24 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1165,6 +1165,13 @@ int PartialDump(char *dicomfile, FILE *fp)
   e = GetElementFromFile(dicomfile, 0x20, 0x1041);
   if (e != NULL) {
     fprintf(fp,"SliceLocation %s\n",e->d.string);
+    FreeElementData(e);
+    free(e);
+  }
+
+  e = GetElementFromFile(dicomfile, 0x2, 0x10);
+  if (e != NULL) {
+    fprintf(fp,"TransferSyntax %s\n",e->d.string);
     FreeElementData(e);
     free(e);
   }
