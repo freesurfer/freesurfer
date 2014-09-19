@@ -38,6 +38,10 @@
       <explanation>Number of iterations to run nu_correct. Default is 4. This is the number of times that nu_correct is repeated (ie, using the output from the previous run as the input for the next). This is different than the -iterations option to nu_correct.</explanation>
       <argument>--proto-iters Np</argument>
       <explanation>Passes Np as argument of the -iterations flag of nu_correct. This is different than the --n flag above. Default is not to pass nu_correct the -iterations flag.</explanation>
+    </required-flagged>
+    <optional-flagged>
+      <argument>--mask maskvol</argument>
+      <explanation>brainmask volume. Input can be any format accepted by mri_convert.</explanation>
       <argument>--stop thresh</argument>
       <explanation>Passes thresh as argument of the -stop flag of nu_correct. According to the nu_correct documentation, this threshold is the "CV of change in field estimate below which iteration stops (suggest 0.01 to 0.0001)".  Default is not to pass nu_correct the -stop flag.</explanation>
       <argument>--uchar tal.xfm</argument>
@@ -46,8 +50,6 @@
       <explanation>Do not use mri_make_uchar (default)</explanation>
       <argument>--cm</argument>
       <explanation>For use with data that is higher than 1mm resolution.</explanation>
-    </required-flagged>
-    <optional-flagged>
       <argument>--help</argument>
       <explanation>print help and exit</explanation>
       <argument>--debug</argument>
