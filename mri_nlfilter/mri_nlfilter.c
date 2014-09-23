@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.14 $
+ *    $Author: greve $
+ *    $Date: 2014/09/23 17:47:09 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,7 @@
 #include "region.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.14 2011/03/02 00:04:23 nicks Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.15 2014/09/23 17:47:09 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -87,7 +87,7 @@ main(int argc, char *argv[]) {
   MRI_REGION  region, clip_region ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.14 2011/03/02 00:04:23 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.15 2014/09/23 17:47:09 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -133,6 +133,8 @@ main(int argc, char *argv[]) {
   if (!mri_dst)
     ErrorExit(ERROR_NOFILE, "%s: could allocate space for destination image",
               Progname) ;
+
+  printf("filter number: %d\n",filter_type);
 
   for (z = 0 ; z < depth ; z += region_size) {
     for (y = 0 ; y < height ; y += region_size) {
@@ -206,14 +208,18 @@ main(int argc, char *argv[]) {
           fprintf(stderr, "done.\nfiltering image...") ;
         mri_filter_src = MRIupsample2(mri_clip, NULL) ;
         MRIfree(&mri_clip) ;
+
+	//-----------------------------------------------------------
         switch (filter_type) {
         case FILTER_CPOLV_MEDIAN:
+	  if(x==0 && y==0 && z==0) printf("filter type: cpolv median\n");
           mri_polv = MRIplaneOfLeastVarianceNormal(mri_filter_src,NULL,5);
           mri_filter_dst =
             MRIpolvMedian(mri_filter_src, NULL, mri_polv,filter_window_size);
           MRIfree(&mri_polv) ;
           break ;
         case FILTER_GAUSSIAN:
+	  if(x==0 && y==0 && z==0) printf("filter type: gaussian\n");
           mri_filter_dst =
             MRIconvolveGaussian(mri_filter_src, NULL, mri_gaussian) ;
           if (!mri_filter_dst)
@@ -221,18 +227,21 @@ main(int argc, char *argv[]) {
                       "%s: could not allocate temporary buffer space",Progname);
           break ;
         case FILTER_MEDIAN:
+	  if(x==0 && y==0 && z==0) printf("filter type: median\n");
           mri_filter_dst = MRImedian(mri_filter_src,NULL,filter_window_size, NULL);
           if (!mri_filter_dst)
             ErrorExit(ERROR_NOMEMORY,
                       "%s: could not allocate temporary buffer space",Progname);
           break ;
         case FILTER_MEAN:
+	  if(x==0 && y==0 && z==0) printf("filter type: mean\n");
           mri_filter_dst = MRImean(mri_filter_src, NULL, filter_window_size) ;
           if (!mri_filter_dst)
             ErrorExit(ERROR_NOMEMORY,
                       "%s: could not allocate temporary buffer space",Progname);
           break ;
         case FILTER_MINMAX:
+	  if(x==0 && y==0 && z==0) printf("filter type: minmax\n");
           mri_filter_dst =
             MRIminmax(mri_filter_src, NULL, mri_dir, filter_window_size) ;
           if (!mri_filter_dst)
@@ -241,6 +250,7 @@ main(int argc, char *argv[]) {
                       Progname) ;
           break ;
         default:
+	  if(x==0 && y==0 && z==0) printf("filter type: none\n");
           mri_filter_dst = MRIcopy(mri_filter_src, NULL) ; /* no filtering */
           break ;
         }
@@ -408,6 +418,7 @@ print_usage(void) {
   fprintf(stderr,
           "usage: %s [options] <input image file> <output image file>\n",
           Progname) ;
+  printf("  use --help to get help\n");
 }
 
 static void
@@ -442,6 +453,8 @@ print_help(void) {
           "  -gaussian <sigma> - filter with Gaussian instead of median.\n") ;
   fprintf(stderr,
           "  -mean             - filter with mean instead of median.\n") ;
+  printf("  -cplov    - filter with cplov (whatever that is).\n") ;
+  printf("  -minmax   - filter with minmax (whatever that is)\n") ;
   fprintf(stderr,
           "  -w <window size>  - specify window used for offset calculation "
           "(default=%d).\n", OFFSET_WSIZE) ;
