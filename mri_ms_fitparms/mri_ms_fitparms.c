@@ -19,9 +19,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/05/16 17:49:25 $
- *    $Revision: 1.71 $
+ *    $Author: fischl $
+ *    $Date: 2014/09/23 12:22:27 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -219,14 +219,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.71 2011/05/16 17:49:25 nicks Exp $",
+   "$Id: mri_ms_fitparms.c,v 1.72 2014/09/23 12:22:27 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
             argc, argv,
-            "$Id: mri_ms_fitparms.c,v 1.71 2011/05/16 17:49:25 nicks Exp $",
+            "$Id: mri_ms_fitparms.c,v 1.72 2014/09/23 12:22:27 fischl Exp $",
             "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -314,6 +314,11 @@ main(int argc, char *argv[])
     if (mri_flash[nvolumes] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read volume %s",
                 Progname, in_fname) ;
+    if (mri_flash[nvolumes]->type == MRI_UCHAR)
+    {
+      fprintf(stderr, "WARNING:  input %s is type UCHAR. Make sure it has not been scaled",
+	      in_fname) ;
+    }
 
     if (!FEQUAL(scale, 1.0))
     {
@@ -1168,7 +1173,7 @@ get_option(int argc, char *argv[])
     }
     mri_v = MRIbuildVoronoiDiagram(mri_faf, mri_ctrl, NULL) ;
 #if 0
-    MRIsoapBubble(mri_v, mri_ctrl, mri_faf, 25) ;
+    MRIsoapBubble(mri_v, mri_ctrl, mri_faf, 25, 1) ;
 #else
     avg_v_size = (mri_faf->xsize + mri_faf->ysize + mri_faf->zsize)/3 ;
     mri_kernel = MRIgaussian1d(sigma/avg_v_size, 0) ;
@@ -1397,6 +1402,8 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
           {
             MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
           }
+	  if (!devFinite(val))
+	    DiagBreak() ;
           ImageValues[j] = val;
           ss += val*val;
         }
@@ -1436,6 +1443,8 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
           center_indx = best_indx;
         }
 
+	if (center_indx < 0)
+	  DiagBreak() ;
         T1 = SignalTableT1[best_indx];
         MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
 
@@ -1461,7 +1470,11 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
           {
             err = MRIgetVoxVal(mri_flash_synth[j], x, y, z, 0) -
                   ImageValues[j]*norm;
+	    if (!devFinite(err))
+	      DiagBreak() ;
             sse += err*err;
+	    if (!devFinite(sse))
+	      DiagBreak() ;
           }
         }
         else
@@ -1474,11 +1487,17 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
             pred_val = PD*SignalTableNorm[best_indx]*
                        SignalTableValues[best_indx][j] ;
             err = pred_val-ImageValues[j]*norm;
+	    if (!devFinite(err))
+	      DiagBreak() ;
             sse += err*err;
+	    if (!devFinite(sse))
+	      DiagBreak() ;
           }
         }
 
         total_sse += sse ;
+	if (!devFinite(total_sse))
+	  DiagBreak() ;
         MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
         if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
         {
@@ -1498,7 +1517,7 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
     MatrixFree(&vox2ras[j]) ;
     MatrixFree(&ras2vox[j]) ;
   }
-  total_sse = sqrt(total_sse / (width*height*depth)) ;
+  total_sse = sqrt(total_sse / ((double)width*(double)height*(double)depth)) ;
   return(total_sse) ;
 }
 
@@ -1678,8 +1697,12 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
           err = FLASHforwardModel(faf_scale*mri->flip_angle,
                                   mri->tr, PD, T1)-ImageValues[j]*inorm;
           sse += err*err;
+	  if (!devFinite(sse))
+	    DiagBreak() ;
         }
         total_sse += sse ;
+	if (!devFinite(total_sse))
+	  DiagBreak() ;
         MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse/(double)nvolumes));
         if (T1 >= 4999 && ImageValues[0] > 70 && ImageValues[1] > 70)
         {
@@ -1687,7 +1710,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
         }
       }
   }
-  total_sse = sqrt(total_sse / (double)(width*height*depth*nvolumes)) ;
+  total_sse = sqrt(total_sse / ((double)width*(double)height*(double)depth*(double)nvolumes)) ;
   MatrixFree(&m_vox2vox) ;
   VectorFree(&v1) ;
   VectorFree(&v2) ;
@@ -2160,7 +2183,7 @@ estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth,
         while ((sse < last_sse) && (niter++ < 4));
         total_sse += sse ;
       }
-  total_sse = sqrt(total_sse / (width*height*depth)) ;
+  total_sse = sqrt(total_sse / ((double)width*(double)height*(double)depth)) ;
   for (i = 0 ; i < nvalues ; i++)
   {
     for (j = 0 ; j < nvalues ; j++)
