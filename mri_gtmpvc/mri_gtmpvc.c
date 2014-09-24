@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/17 19:42:34 $
- *    $Revision: 1.32 $
+ *    $Date: 2014/09/24 23:10:26 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.32 2014/09/17 19:42:34 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.33 2014/09/24 23:10:26 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.32 2014/09/17 19:42:34 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.33 2014/09/24 23:10:26 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -151,7 +151,7 @@ char *RVarFile=NULL,*RVarUnscaledFile=NULL,*SkewFile=NULL,*KurtosisFile=NULL;
 int RVarOnly=0;
 int nthreads=1;
 int ttReduce = 0;
-char *MGPVCFile=NULL;
+char *MGPVCFile=NULL,*MeltzerPVCFile=NULL;
 char *regfile;
 int regidentity = 0;
 int regtype;
@@ -719,6 +719,19 @@ int main(int argc, char *argv[])
     MRIwrite(gtm->gmpvfpsf, tmpstr);
   }
     
+  if(gtm->DoMeltzerPVC){
+    printf("Performing Meltzer PVC\n");
+    if(Gdiag_no > 0) PrintMemUsage(stdout);
+    fprintf(logfp,"Meltzer PVC\n");
+    GTMmeltzerpvc(gtm);
+    sprintf(tmpstr,"%s/meltzer.nii.gz",OutDir);
+    MeltzerPVCFile = strcpyalloc(tmpstr);
+    err = MRIwrite(gtm->meltzer,MeltzerPVCFile);
+    if(err) exit(1);
+    if(Gdiag_no > 0) printf("done with meltzer pvc\n");
+    fprintf(logfp,"done with meltzer pvc\n");
+  }
+    
   if(DoRBV){
     printf("Computing RBV Seg\n");
     GTMrbvseg(gtm);
@@ -750,6 +763,7 @@ int main(int argc, char *argv[])
       MRIwrite(gtm->rbvsegmasked,tmpstr);
     }
   }
+
 
   // Free the data from gtm->yvol, keep header
   // Not very useful here, but have to wait until after RBV and MG
@@ -957,6 +971,10 @@ static int parse_commandline(int argc, char **argv) {
 	nth ++;
       }
       nargsused = nth;
+    }
+    else if(!strcasecmp(option, "--meltzer")) {
+      gtm->DoMeltzerPVC = 1;
+      gtm->meltzer_thresh = .01;
     }
     else if(!strcasecmp(option, "--mgpvc") || !strcasecmp(option, "--mg")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1691,4 +1709,5 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
   outlta = LTAchangeType(outlta,intype);
   return(outlta);
 }
+
 

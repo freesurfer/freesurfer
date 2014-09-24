@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/17 19:42:34 $
- *    $Revision: 1.14 $
+ *    $Date: 2014/09/24 23:10:26 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,6 +136,10 @@ typedef struct
   MATRIX *mg_reftac; // WM reference TAC
   MRI *gmpvfpsf; // GM PVF smoothed by PSF
 
+  int DoMeltzerPVC; // Meltzer method
+  MRI *meltzer; // MG output volume
+  double meltzer_thresh; // GM+WM PVF threshold 
+
   int DoKMRef; // Kinetic Modeling Reference TAC
   int n_km_refids,km_refids[100]; // KM reference seg IDs
   MATRIX *km_reftac; // KM reference TAC
@@ -174,6 +178,7 @@ MRI *GTMsegSynth(GTM *gtm, int frame, MRI *synth);
 int GTMrbvseg(GTM *gtm);
 int GTMrbv(GTM *gtm);
 int GTMmgpvc(GTM *gtm);
+int GTMmeltzerpvc(GTM *gtm);
 MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m);
 MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol);
 int GTMprintReplaceList(FILE *fp, const int nReplace, const int *ReplaceThis, const int *WithThat);

@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/17 19:42:33 $
- *    $Revision: 1.20 $
+ *    $Date: 2014/09/24 23:10:26 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1294,6 +1294,56 @@ int GTMmgpvc(GTM *gtm)
   MRIfree(&wmpvfpsf);
   return(0);
 }
+/*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMmeltzerpvc(GTM *gtm)
+  \brief Performs Meltzer PVC. Hardcodes tissue type IDs to 
+  be 0=cortex, 1=subcortexgm, 2=WM.
+ */
+int GTMmeltzerpvc(GTM *gtm)
+{
+  int c,r,s,f;
+  double vgmwmpsf,v;
+  MRI *ctxpvf, *subctxpvf, *wmpvf, *gmwmpvf,*gmwmpvfpsf;
+
+  if(gtm->meltzer) MRIfree(&gtm->meltzer);
+  gtm->meltzer = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth,
+			   MRI_FLOAT, gtm->yvol->nframes);
+  if(gtm->meltzer == NULL) return(1);
+  MRIcopyHeader(gtm->yvol,gtm->meltzer);
+
+  // Compute gray+white matter PVF with smoothing
+  ctxpvf    = fMRIframe(gtm->ttpvf,0,NULL); // cortex PVF
+  subctxpvf = fMRIframe(gtm->ttpvf,1,NULL); // subcortex GM PVF
+  wmpvf     = fMRIframe(gtm->ttpvf,2,NULL); // WM PVF
+  gmwmpvf = MRIadd(ctxpvf,subctxpvf,NULL); // All GM PVF
+  MRIadd(gmwmpvf,wmpvf,gmwmpvf); // All GM+WM PVF
+  // Smooth GMWM PVF by PSF
+  gmwmpvfpsf = MRIgaussianSmoothNI(gmwmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+
+  // Finally, do the actual Meltzer correction
+  for(c=0; c < gtm->yvol->width; c++){ // crs order not important
+    for(r=0; r < gtm->yvol->height; r++){
+      for(s=0; s < gtm->yvol->depth; s++){
+	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue; 
+	vgmwmpsf = MRIgetVoxVal(gmwmpvfpsf,c,r,s,0);
+	if(vgmwmpsf < gtm->meltzer_thresh) continue; 
+	for(f=0; f < gtm->yvol->nframes; f++){
+	  v = MRIgetVoxVal(gtm->yvol,c,r,s,f);
+	  MRIsetVoxVal(gtm->meltzer,c,r,s,f, v/vgmwmpsf);
+	}
+      }
+    }
+  }
+  MRIfree(&ctxpvf);
+  MRIfree(&subctxpvf);
+  MRIfree(&wmpvf);
+  MRIfree(&gmwmpvf);
+  MRIfree(&gmwmpvfpsf);
+  return(0);
+}
+
+
 /*------------------------------------------------------------------*/
 /*
   \fn int GTMsynth(GTM *gtm, int NoiseSeed, int nReps)
