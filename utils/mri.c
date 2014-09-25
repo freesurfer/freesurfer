@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lindemer $
- *    $Date: 2014/07/30 20:18:24 $
- *    $Revision: 1.548 $
+ *    $Author: fischl $
+ *    $Date: 2014/09/25 18:28:18 $
+ *    $Revision: 1.549 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.548 $";
+const char *MRI_C_VERSION = "$Revision: 1.549 $";
 
 
 /*-----------------------------------------------------
@@ -12470,9 +12470,6 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
   if (!mri_dst)
     ErrorExit(ERROR_NOMEMORY, "MRIcopyFrame: could not alloc dst") ;
 
-  if (mri_src->type != mri_dst->type)
-    ErrorReturn(NULL,(ERROR_UNSUPPORTED,
-                      "MRIcopyFrame: src and dst must be same type"));
   if (dst_frame >= mri_dst->nframes)
     ErrorReturn
     (NULL,
@@ -12480,6 +12477,16 @@ MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
       "MRIcopyFrame: dst frame #%d out of range (nframes=%d)\n",
       dst_frame, mri_dst->nframes)) ;
   MRIcopyHeader(mri_src, mri_dst) ;
+
+  if (mri_src->type != mri_dst->type)
+  {
+    int x ;
+    for (z = 0 ; z < depth ; z++)
+      for (y = 0 ; y < height ; y++)
+	for (x = 0 ; x < width ; x++)
+	  MRIsetVoxVal(mri_dst, x, y, z, dst_frame, MRIgetVoxVal(mri_src, x, y, z, src_frame)) ;
+    return(mri_dst) ;
+  }
 
   switch (mri_src->type)
   {

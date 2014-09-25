@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/05/15 23:15:52 $
- *    $Revision: 1.90 $
+ *    $Author: fischl $
+ *    $Date: 2014/09/25 18:28:18 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -536,6 +536,8 @@ FileType(const char *fname)
       return(HIPS_FILE) ;
     else if (!strcmp(dot, "LST"))
       return(LIST_FILE) ;
+    else if (!strcmp(dot, "TXT"))
+      return(TEXT_FILE) ;
   }
   return(UNKNOWN_FILE) ;
 }
@@ -605,6 +607,19 @@ FileNumberOfEntries(const char *fname)
       }
       fclose(fp) ;
 
+      break ;
+    case TEXT_FILE:
+      fp = fopen(buf, "rb") ;
+      if (!fp)
+        ErrorReturn(-1, (ERROR_NO_FILE,  "FileNumberOfEntries: could not open %s",buf)) ;
+      cp = fgetl(line, 199, fp) ;
+      nentries = 0 ;
+      while (cp)
+      {
+	nentries++ ;
+        cp = fgetl(line, 199, fp) ;
+      }
+      fclose(fp) ;
       break ;
     case HIPS_FILE:
       nentries = ImageNumFrames(buf) ;
