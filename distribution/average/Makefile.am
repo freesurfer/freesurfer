@@ -14,7 +14,8 @@ GCA=\
 	RB_all_withskull_2014-08-21.gca \
 	talairach_mixed_with_skull.gca \
 	wmsa_new_eesmith.gca \
-	aseg+spmhead.ixi.gca
+	aseg+spmhead.ixi.gca \
+	pons.mni152.2mm.mgz
 
 GCS=\
 	lh.atlas2002_simple.gcs \
