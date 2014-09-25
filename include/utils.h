@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/05/15 22:52:35 $
- *    $Revision: 1.53 $
+ *    $Author: fischl $
+ *    $Date: 2014/09/25 18:28:00 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@ extern "C" {
 #define HIPS_FILE     1
 #define LIST_FILE     2
 #define UNKNOWN_FILE  3
+#define TEXT_FILE     4
 
 // defines the maximum number of threads used in OpenMP code
 #define _MAX_FS_THREADS 128 
