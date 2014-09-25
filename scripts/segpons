@@ -1,0 +1,292 @@
+#!/bin/tcsh -f
+# segpons
+
+set VERSION = '$Id: segpons,v 1.1 2014/09/25 23:23:10 greve Exp $';
+
+set outvol = ();
+set subject = ();
+set thresh = 10;
+set pons152 = $FREESURFER_HOME/average/pons.mni152.2mm.mgz
+set srcsegvol = aseg.mgz
+set UseASeg = 1;
+set RefineASeg = 1;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.segpons.$$
+  if(! -e /scratch) set tmpdir = $SUBJECTS_DIR/$subject/tmp/tmpdir.segpons.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/$outvol.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for segpons" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+if($UseASeg && $RefineASeg) then
+    set srcseg = $tmpdir/aseg.mgh
+    set cmd = (apas2aseg --s $subject --o $srcseg)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) goto error_exit;
+  end
+else
+  set srcseg = $SUBJECTS_DIR/$subject/mri/$srcsegvol
+  if(! -e $srcseg) then
+    echo "ERROR: cannot find $srcseg" | tee -a $LF
+    goto error_exit;
+  endif
+endif
+
+set reg = $SUBJECTS_DIR/$subject/mri/transforms/reg.mni152.2mm.dat
+if(! -e $reg) then
+  set cmd = (mni152reg --s $subject)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+endif
+
+set pons0 = $tmpdir/pons0.mgh
+set cmd = (mri_vol2vol --mov $pons152 --interp nearest --targ $srcseg \
+  --o $pons0 --reg $reg)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+set bs = $tmpdir/brainstem.mgh
+set cmd = (mri_binarize --i $srcseg --match 16 --o $bs)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# 174 = pons
+set pons = $tmpdir/pons.mgh
+set cmd = (fscalc $bs mul $pons0 mul 174 -o $pons)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+set out = $SUBJECTS_DIR/$subject/mri/$outvol
+set cmd = (mergeseg --src $srcseg --merge $pons --o $out --nolog)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Segpons-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Segpons-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "To check run"|& tee -a $LF
+echo "tkmedit $subject orig.mgz -seg $srcsegvol -aux-seg $outvol -opacity 1" |& tee -a $LF
+
+echo " " |& tee -a $LF
+echo "segpons Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--aseg":
+      set srcsegvol = aseg.mgz
+      set UseASeg = 1;
+      breaksw
+
+    case "--apas":
+      set srcsegvol = aparc+aseg.mgz
+      set outvol = apas+pons.mgz
+      set UseASeg = 0;
+      breaksw
+
+    case "--no-refine":
+      set RefineASeg = 0;
+      breaksw
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set srcsegvol = $argv[1]; shift;
+      set stem = `fname2stem $srcsegvol`
+      set outvol = $stem+pons.mgz
+      set UseASeg = 0;
+      breaksw
+
+    case "--pons152":
+      if($#argv < 1) goto arg1err;
+      set pons152 = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outvol == 0) set outvol = aseg+pons.mgz
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+if(! -e $pons152) then
+  echo "ERROR: cannot find $pons152"
+  exit 1; 
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "segpons --s subject"
+  echo " --aseg : use and refine aseg (default, output will be aseg+pons.mgz)"
+  echo " --apas : use aparc+aseg.mgz (output will be apas+pons.mgz)"
+  echo " --seg seg : specify your own seg (output will be seg+pons.mgz)"
+  echo " --no-refine : do not refine when using aseg"
+  echo " --pons152 ponsmask : mask of pons in mni152space ($pons152)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is a "fast-and-dirty" way to get an APPROXIMATE segmentation of
+pons. Pons has been labeled in the mni152 2mm space. The subject is
+linearly registered to the mni152 space using mni152reg. The pons mask
+is then mapped into the subject anatomical space. The final pons
+segmentation is the intesection of the pons mask and the brain stem
+segmentation (ie, pons is constrained to be within brain stem). 
+The pons segmentation number is 174.
+
