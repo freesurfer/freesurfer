@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/05/10 00:36:39 $
- *    $Revision: 1.15 $
+ *    $Date: 2014/09/25 19:36:55 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1279,6 +1279,41 @@ RFfree(RANDOM_FOREST **prf)
     free(rf->class_names[c]) ;
   free(rf->class_names) ;
   free(rf) ;
+  return(NO_ERROR) ;
+}
+
+static int
+rfPruneTree(NODE *node, int min_training_samples)
+{
+  int deleted ;
+
+  if (node == NULL)
+    return(0) ;
+  if ((node->total_counts < min_training_samples) ||
+      ((node->left->total_counts < min_training_samples) &&
+       (node->right->total_counts < min_training_samples)))
+  {
+    rfFreeNodes(node->left) ;
+    rfFreeNodes(node->right) ;
+    node->left = node->right = NULL ;
+    deleted = 1 ;
+  }
+
+  return(deleted) ;
+}
+
+int
+RFpruneTree(RANDOM_FOREST *rf, int min_training_samples) 
+{
+  int           t ;
+  TREE          *tree ;
+  
+  for (t = 0 ; t < rf->ntrees ; t++)
+  {
+    tree = &rf->trees[t] ;
+    rfPruneTree(&tree->root, min_training_samples) ;
+  }
+    
   return(NO_ERROR) ;
 }
 
