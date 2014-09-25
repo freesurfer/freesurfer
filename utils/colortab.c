@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/31 19:41:00 $
- *    $Revision: 1.60 $
+ *    $Date: 2014/09/25 23:35:12 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2090,6 +2090,7 @@ COLOR_TABLE *TissueTypeSchemaDefault(COLOR_TABLE *ct)
     case 690: // Cerebellum CbmWM_Gyri_Left
     case 691: // Cerebellum CbmWM_Gyri_Right
     case Brain_Stem:
+    case 174: // Pons
     case Left_VentralDC:     
     case Right_VentralDC:     
     case WM_hypointensities:
@@ -2243,6 +2244,7 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
     case 690: // Cerebellum CbmWM_Gyri_Left
     case 691: // Cerebellum CbmWM_Gyri_Right
     case Brain_Stem:
+    case 174: // Pons
     case Left_VentralDC:     
     case Right_VentralDC:     
     case WM_hypointensities:
