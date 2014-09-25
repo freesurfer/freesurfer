@@ -198,6 +198,7 @@ segment_subject_notal2 \
 segment_subject_old_skull_strip \
 segment_subject_sc \
 segment_subject_talmgh \
+segpons \
 setlabelstat\
 sfa2fieldsign \
 show_tal \
