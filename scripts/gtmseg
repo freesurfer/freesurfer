@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # gtmseg
 
-set VERSION = '$Id: gtmseg,v 1.11 2014/09/18 15:33:53 greve Exp $';
+set VERSION = '$Id: gtmseg,v 1.12 2014/09/25 23:42:24 greve Exp $';
 
 set outdir = ();
 set subject = ();
@@ -22,6 +22,7 @@ set wmrhbase=0;
 set DoSegStats = 1;
 set ctab = ();
 set SubSegCblumWM = 1;
+set AddPons = 0;
 set DoXCerSeg = 0;
 
 set tmpdir = ();
@@ -90,6 +91,15 @@ if($SubSegCblumWM) then
   set cmd = (cblumwmgyri --s $subject --seg $headseg --n 2 \
     --o $headseg2 --no-segstats --no-log)
   echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+  set headseg = $headseg2
+endif
+
+if($AddPons) then
+  set base = `basename $headseg .mgz`
+  set headseg2 = $base+pons.mgz
+  set cmd = (segpons --s $subject --seg $headseg --o $headseg2)
   $cmd | tee -a $LF
   if($status) goto error_exit;
   set headseg = $headseg2
@@ -196,6 +206,10 @@ while( $#argv != 0 )
     case "--head":
       if($#argv < 1) goto arg1err;
       set headseg = $argv[1]; shift;
+      breaksw
+
+    case "--pons":
+      set AddPons = 1;
       breaksw
 
     case "--ctab":
@@ -394,6 +408,7 @@ usage_exit:
   echo " --output-usf OutputUSF : set output USF different than USF, mostly for debugging"
   echo " --head headseg : use headseg instead of $headseg"
   echo " --no-subseg-cblum-wm : do not subsegment cerebellum WM into core and gyri":
+  echo " --pons : add an approximate segmentation of pons (see segpons)":
   echo " --ctab colortable "
   echo " --no-seg-stats : do not compute segmentation stats"
   echo ""
