@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/25 22:03:03 $
- *    $Revision: 1.106 $
+ *    $Date: 2014/09/25 21:23:01 $
+ *    $Revision: 1.107 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,6 +79,7 @@
 #include "cmdargs.h"
 #include "fio.h"
 #include "ctrpoints.h"
+#include "stats.h"
 
 #ifdef FS_CUDA
 #include "devicemanagement.h"
@@ -94,16 +95,6 @@ static void argnerr(char *option, int n);
 static void dump_options(FILE *fp);
 static int  singledash(char *flag);
 
-typedef struct
-{
-  int id;
-  char name[1000];
-  int nhits;
-  float vol;
-  int red, green, blue; // 0-255
-  float min, max, range, mean, std, snr;
-}
-STATSUMENTRY;
 
 int MRIsegCount(MRI *seg, int id, int frame);
 STATSUMENTRY *LoadStatSumFile(char *fname, int *nsegid);
@@ -113,7 +104,7 @@ int CountEdits(char *subject, char *outfile);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.106 2014/04/25 22:03:03 greve Exp $";
+  "$Id: mri_segstats.c,v 1.107 2014/09/25 21:23:01 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -200,6 +191,7 @@ char *cmdline, cwd[2000];
 int DoEuler = 0;
 int lheno, rheno;
 int DoAbs = 0;
+int UsePrintSegStat = 1; // use new way to print
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -1185,6 +1177,28 @@ int main(int argc, char **argv)
     {
       fprintf(fp,"# VertexArea_mm2 %g \n",voxelvolume);
     }
+
+
+    if(UsePrintSegStat){
+      printf("Using PrintSegStat\n");
+      SEGSTAT *segstat;
+      segstat = (SEGSTAT *)calloc(sizeof(SEGSTAT),1);
+      segstat->nentries = nsegid;
+      segstat->entry = StatSumTable;
+      if(!mris) segstat->IsSurf = 0;
+      else      segstat->IsSurf = 1;
+      if(ctab)  segstat->UseName = 1;
+      else      segstat->UseName = 0;
+      if(InVolFile) segstat->DoIntensity = 1;
+      else          segstat->DoIntensity = 0;
+      segstat->InIntensityName = InIntensityName;
+      segstat->InIntensityUnits = InIntensityUnits;
+      segstat->DoSNR = DoSNR;
+      PrintSegStat(fp, segstat);
+    }
+    else {
+      printf("Not using PrintSegStat\n");
+
     fprintf(fp,"# TableCol  1 ColHeader Index \n");
     fprintf(fp,"# TableCol  1 FieldName Index \n");
     fprintf(fp,"# TableCol  1 Units     NA \n");
@@ -1305,6 +1319,7 @@ int main(int argc, char **argv)
     }
     fclose(fp);
   }
+}
 
   if(ctabfileOut != NULL)
   {
@@ -1429,6 +1444,8 @@ static int parse_commandline(int argc, char **argv)
     {
       debug = 1;
     }
+    else if (!strcasecmp(option, "--newprint")) UsePrintSegStat = 1;
+    else if (!strcasecmp(option, "--no-newprint")) UsePrintSegStat = 0;
     else if (!strcasecmp(option, "--dontrun"))
     {
       dontrun = 1;
@@ -2247,3 +2264,4 @@ int CountEdits(char *subject, char *outfile)
 
   return(0);
 }
+

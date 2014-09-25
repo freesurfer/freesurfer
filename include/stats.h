@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/03/07 18:00:29 $
- *    $Revision: 1.21 $
+ *    $Author: greve $
+ *    $Date: 2014/09/25 21:23:01 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,31 @@
 #include "minc_volume_io.h"
 #include "matrix.h"
 #include "mri.h"
+
+// These are structures used by mri_segstats
+typedef struct
+{
+  int id;
+  char name[1000];
+  int nhits;
+  float vol;
+  int red, green, blue; // 0-255
+  float min, max, range, mean, std, snr;
+}
+STATSUMENTRY;
+typedef struct
+{
+  int nentries;
+  char *ColHeaders[100];
+  int ncols;
+  STATSUMENTRY *entry;
+  int IsSurf;
+  int UseName;
+  int DoIntensity;
+  char *InIntensityName;
+  char *InIntensityUnits;
+  int DoSNR; 
+} SEGSTAT;
 
 // This is the table structure that can represent the output
 // of asegstats2table and aparcstats2table.
@@ -182,4 +207,8 @@ typedef struct
 } FS_STATS ;
 
 FS_STATS *FSstatsRead(char *fname) ;
+
+int PrintSegStat(FILE *fp, SEGSTAT *segstat);
+
+
 #endif

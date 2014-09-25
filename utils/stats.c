@@ -6,9 +6,9 @@
 /*
  * Original Authors: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2013/05/17 15:09:31 $
- *    $Revision: 1.38 $
+ *    $Author: greve $
+ *    $Date: 2014/09/25 21:23:01 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1647,4 +1647,122 @@ FSstatsRead(char *fname)
   fclose(fp) ;
   return(stats) ;
 }
+
+int PrintSegStat(FILE *fp, SEGSTAT *segstat)
+{
+  int n,c;
+  char tmpstr[1000];
+
+  fprintf(fp,"# TableCol  1 ColHeader Index \n");
+  fprintf(fp,"# TableCol  1 FieldName Index \n");
+  fprintf(fp,"# TableCol  1 Units     NA \n");
+  segstat->ColHeaders[0] = strcpyalloc("Index");
+
+  fprintf(fp,"# TableCol  2 ColHeader SegId \n");
+  fprintf(fp,"# TableCol  2 FieldName Segmentation Id\n");
+  fprintf(fp,"# TableCol  2 Units     NA\n");
+  segstat->ColHeaders[1] = strcpyalloc("SegId");
+  if(!segstat->IsSurf) {
+    fprintf(fp,"# TableCol  3 ColHeader NVoxels \n");
+    fprintf(fp,"# TableCol  3 FieldName Number of Voxels\n");
+    fprintf(fp,"# TableCol  3 Units     unitless\n");
+    segstat->ColHeaders[2] = strcpyalloc("NVoxels");
+    fprintf(fp,"# TableCol  4 ColHeader Volume_mm3\n");
+    fprintf(fp,"# TableCol  4 FieldName Volume\n");
+    fprintf(fp,"# TableCol  4 Units     mm^3\n");
+    segstat->ColHeaders[3] = strcpyalloc("Volume_mm3");
+  }
+  else{
+    fprintf(fp,"# TableCol  3 ColHeader NVertices \n");
+    fprintf(fp,"# TableCol  3 FieldName Number of Vertices\n");
+    fprintf(fp,"# TableCol  3 Units     unitless\n");
+    segstat->ColHeaders[2] = strcpyalloc("NVertices");
+    fprintf(fp,"# TableCol  4 ColHeader Area_mm2\n");
+    fprintf(fp,"# TableCol  4 FieldName Area\n");
+    fprintf(fp,"# TableCol  4 Units     mm^2\n");
+    segstat->ColHeaders[3] = strcpyalloc("Area_mm2");
+  }
+  c = 5;
+  fprintf(fp,"# TableCol %2d ColHeader StructName\n",c);
+  fprintf(fp,"# TableCol %2d FieldName Structure Name\n",c);
+  fprintf(fp,"# TableCol %2d Units     NA\n",c);
+  segstat->ColHeaders[c-1] = strcpyalloc("StructName");
+  c++;
+
+  if(segstat->DoIntensity){
+    fprintf(fp,"# TableCol %2d ColHeader %sMean \n",c,segstat->InIntensityName);
+    fprintf(fp,"# TableCol %2d FieldName Intensity %sMean\n",
+	    c,segstat->InIntensityName);
+    fprintf(fp,"# TableCol %2d Units     %s\n",c,segstat->InIntensityUnits);
+    sprintf(tmpstr,"%sMean",segstat->InIntensityName);
+    segstat->ColHeaders[c-1] = strcpyalloc(tmpstr);
+    c++;
+
+    fprintf(fp,"# TableCol %2d ColHeader %sStdDev\n",c,segstat->InIntensityName);
+    fprintf(fp,"# TableCol %2d FieldName Itensity %sStdDev\n",
+	    c,segstat->InIntensityName);
+    fprintf(fp,"# TableCol %2d Units     %s\n",c,segstat->InIntensityUnits);
+    sprintf(tmpstr,"%sStdDev",segstat->InIntensityName);
+    segstat->ColHeaders[c-1] = strcpyalloc(tmpstr);
+    c++;
+    
+    fprintf(fp,"# TableCol %2d ColHeader %sMin\n",c,segstat->InIntensityName);
+    fprintf(fp,"# TableCol %2d FieldName Intensity %sMin\n",
+	    c,segstat->InIntensityName);
+    fprintf(fp,"# TableCol %2d Units     %s\n",c,segstat->InIntensityUnits);
+    sprintf(tmpstr,"%sMin",segstat->InIntensityName);
+    segstat->ColHeaders[c-1] = strcpyalloc(tmpstr);
+    c++;
+    
+    fprintf(fp,"# TableCol %2d ColHeader %sMax\n",c,segstat->InIntensityName);
+    fprintf(fp,"# TableCol %2d FieldName Intensity %sMax\n",
+	    c,segstat->InIntensityName);
+    fprintf(fp,"# TableCol %2d Units     %s\n",c,segstat->InIntensityUnits);
+    sprintf(tmpstr,"%sMax",segstat->InIntensityName);
+    segstat->ColHeaders[c-1] = strcpyalloc(tmpstr);
+    c++;
+    
+    fprintf(fp,"# TableCol %2d ColHeader %sRange\n",c,segstat->InIntensityName);
+    fprintf(fp,"# TableCol %2d FieldName Intensity %sRange\n",
+	    c,segstat->InIntensityName);
+    fprintf(fp,"# TableCol %2d Units     %s\n",c,segstat->InIntensityUnits);
+    sprintf(tmpstr,"%sRange",segstat->InIntensityName);
+    segstat->ColHeaders[c-1] = strcpyalloc(tmpstr);
+    c++;
+  }
+  if(segstat->DoSNR){
+    fprintf(fp,"# TableCol %2d ColHeader SNR\n",c);
+    fprintf(fp,"# TableCol %2d FieldName Intensity SNR\n",c);
+    fprintf(fp,"# TableCol %2d Units     none\n",c);
+    sprintf(tmpstr,"%sSNR",segstat->InIntensityName);
+    segstat->ColHeaders[c-1] = strcpyalloc(tmpstr);
+    c++;
+  }
+
+  fprintf(fp,"# NRows %d \n",segstat->nentries);
+  fprintf(fp,"# NTableCols %d \n",c-1);
+
+  fprintf(fp,"# ColHeaders  ");
+  for(n=0; n < c-1; n++) fprintf(fp,"%s ",segstat->ColHeaders[n]);
+  fprintf(fp," \n");
+  for(n=0; n < segstat->nentries; n++){
+    fprintf(fp,"%3d %3d  %8d %10.1f  ", n+1, segstat->entry[n].id,
+	    segstat->entry[n].nhits, segstat->entry[n].vol);
+
+    if(segstat->UseName) fprintf(fp,"%-30s ",segstat->entry[n].name);
+    else                 fprintf(fp,"Seg%04d ",segstat->entry[n].id);
+    
+    if(segstat->DoIntensity){    
+      fprintf(fp,"%10.4f %10.4f %10.4f %10.4f %10.4f ",
+	      segstat->entry[n].mean, segstat->entry[n].std,
+	      segstat->entry[n].min, segstat->entry[n].max,
+	      segstat->entry[n].range);
+      if(segstat->DoSNR)  fprintf(fp,"%10.4f ",segstat->entry[n].snr);
+    }
+    fprintf(fp,"\n");
+  }
+
+  return(0);
+}
+
 
