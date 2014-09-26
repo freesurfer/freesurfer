@@ -20,8 +20,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/09/23 12:22:27 $
- *    $Revision: 1.72 $
+ *    $Date: 2014/09/26 16:41:57 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -185,6 +185,8 @@ static int findUniqueTETRFA(MRI *mri_flash[], int numvolumes, float *ptr,
 static int resetTRTEFA(MRI *mri, float tr, float te, double fa);
 
 
+static int dx = -1, dy, dz, xo, yo, zo ;
+
 
 int
 main(int argc, char *argv[])
@@ -219,14 +221,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.72 2014/09/23 12:22:27 fischl Exp $",
+   "$Id: mri_ms_fitparms.c,v 1.73 2014/09/26 16:41:57 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
             argc, argv,
-            "$Id: mri_ms_fitparms.c,v 1.72 2014/09/23 12:22:27 fischl Exp $",
+            "$Id: mri_ms_fitparms.c,v 1.73 2014/09/26 16:41:57 fischl Exp $",
             "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -314,6 +316,12 @@ main(int argc, char *argv[])
     if (mri_flash[nvolumes] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read volume %s",
                 Progname, in_fname) ;
+    if (dx > 0)   // extract subimage
+    {
+      MRI *mri_tmp = MRIextract(mri_flash[nvolumes], NULL, xo, yo, zo, dx, dy, dz) ;
+      MRIfree(&mri_flash[nvolumes]) ;
+      mri_flash[nvolumes] = mri_tmp ;
+    }
     if (mri_flash[nvolumes]->type == MRI_UCHAR)
     {
       fprintf(stderr, "WARNING:  input %s is type UCHAR. Make sure it has not been scaled",
@@ -913,6 +921,18 @@ get_option(int argc, char *argv[])
     synth_flag = 1 ;
     printf("disabling volume synthesis\n") ;
     niter = 0 ;
+  }
+  else if (!stricmp(option, "extract"))
+  {
+    xo = atoi(argv[2]) ;
+    yo = atoi(argv[3]) ;
+    zo = atoi(argv[4]) ;
+    dx = atoi(argv[5]) ;
+    dy = atoi(argv[6]) ;
+    dz = atoi(argv[7]) ;
+
+    printf("extracting subimages at (%d, %d, %d), size (%d, %d, %d)\n", xo, yo, zo, dx, dy, dz) ;
+    nargs = 6 ;
   }
   else if (!stricmp(option, "fa_scale"))
   {
