@@ -106,6 +106,8 @@ Interpolation method.  Default is trilinear, other options are nearest, cubic, s
 		<explanation>Compute a brain mask from the PD map and use it when computing registration</explanation>
 	      <argument>-w</argument>
 		<explanation>Write out intermediate results every X iterations</explanation>
+	      <argument>-extract x0 y0 z0 dx dy dz </argument>
+		<explanation>extract a subimage for each input image</explanation>
 	      <argument>-window</argument>
 		<explanation>Not implemented(????)</explanation>
     </optional-flagged>
