@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/07/27 18:13:32 $
- *    $Revision: 1.85 $
+ *    $Date: 2014/09/26 14:51:32 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.85 $";
+char *MRI_INFO_VERSION = "$Revision: 1.86 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static char vcid[] =
-  "$Id: mri_info.c,v 1.85 2012/07/27 18:13:32 fischl Exp $";
+  "$Id: mri_info.c,v 1.86 2014/09/26 14:51:32 fischl Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -1043,7 +1043,7 @@ static void do_file(char *fname)
     printf("    dimensions: %d x %d x %d\n",
            mri->width, mri->height, mri->depth) ;
   }
-  printf("   voxel sizes: %6.4f, %6.4f, %6.4f\n",
+  printf("   voxel sizes: %6.6f, %6.6f, %6.6f\n",
          mri->xsize, mri->ysize, mri->zsize) ;
   printf("          type: %s (%d)\n",
          mri->type == MRI_UCHAR   ? "UCHAR" :
