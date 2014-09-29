@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/09/18 19:24:00 $
-#    $Revision: 1.484 $
+#    $Date: 2014/09/29 17:53:57 $
+#    $Revision: 1.485 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.484 2014/09/18 19:24:00 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.485 2014/09/29 17:53:57 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -319,8 +319,9 @@ set DoSurfSegEdit    = 0; # if 1, run mri_edit_segmentation_with_surfaces to
                           # (this is the -surfsegedit flag)
 set DoCortRibbonVolMask = 0;
 set DoSegStats       = 0;
-set DoAParc2ASeg = 0;
-set DoWMParc = 0;
+set DoAParc2ASeg     = 0;
+set DoAPas2ASeg      = 0;
+set DoWMParc         = 0;
 set DoAParcASegStats = 0;
 
 
@@ -3849,6 +3850,19 @@ if($DoAParc2ASeg) then
   endif
 endif
 
+# ----------------- APas2ASeg ---------------------------------------- #
+if($DoAPas2ASeg) then
+  echo "#-----------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# APas-to-ASeg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set cmd = (apas2aseg --i aparc+aseg.mgz --o aseg+.mgz)
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/apas2aseg.touch
+endif
+
 # ----------------- WMParc ---------------------------------------- #
 if($DoWMParc) then
   echo "#-----------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -4882,6 +4896,7 @@ while( $#argv != 0 )
       set DoSegStats       = 0;
       set NoNormMGZ        = 1;
       set DoAParc2ASeg     = 0;
+      set DoAPas2ASeg      = 0;
       set DoWMParc         = 0;
       set DoCortRibbonVolMask = 0;
       breaksw
@@ -5315,6 +5330,13 @@ while( $#argv != 0 )
       set DoAParc2ASeg = 0;
       breaksw
 
+    case "-apas2aseg":
+      set DoAPas2ASeg = 1;
+      breaksw
+    case "-noapas2aseg":
+      set DoAPas2ASeg = 0;
+      breaksw
+
     case "-aparc+aseg-stats":
       set DoAParcASegStats = 1;
       breaksw
@@ -5470,6 +5492,7 @@ while( $#argv != 0 )
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
       set DoAParc2ASeg     = 1;
+      set DoAPas2ASeg      = 1;
       set DoWMParc         = 1;
       set DoCurvStats      = 1;
       set DoBaLabels       = 1;
@@ -5598,6 +5621,7 @@ while( $#argv != 0 )
       set DoParcStats3     = 1;
       set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
+      set DoAPas2ASeg      = 1;
       set DoWMParc         = 1;
       set DoCurvStats      = 1;
       set DoBaLabels       = 1;
@@ -5621,6 +5645,7 @@ while( $#argv != 0 )
       set DoSegStats       = 1;
       set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
+      set DoAPas2ASeg      = 1;
       set DoCurvStats      = 1;
       set DoWMParc         = 1;
       set DoBaLabels       = 1;
@@ -5660,6 +5685,7 @@ while( $#argv != 0 )
       set DoParcStats3     = 1;
       set DoCortRibbonVolMask = 0;
       set DoAParc2ASeg     = 0;
+      set DoAPas2ASeg      = 0;
       set DoWMParc         = 0;
       set DoSegStats       = 0;
       set DoCurvStats      = 1;
@@ -5789,6 +5815,7 @@ while( $#argv != 0 )
       set DoSegStats       = 0;
       set NoNormMGZ        = 1;
       set DoAParc2ASeg     = 0;
+      set DoAPas2ASeg      = 0;
       set DoWMParc         = 0;
       set DoCortRibbonVolMask = 0;
       breaksw
@@ -6477,7 +6504,7 @@ check_params:
      ! $DoLabelExvivoEC && ! $DoSurfSegEdit && ! $DoPialSurfs && \
      ! $DoGEMS && ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && \
-     ! $DoCortParc3 && ! $DoParcStats3) then
+     ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg ) then
      echo "ERROR: nothing to do. You must specify an operation to perform by adding"
      echo "flags. Eg, -all, -autorecon1, -autorecon2, -autorecon3, etc."
      exit 1;
@@ -6819,6 +6846,7 @@ Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
   -<no>pial               1 hour    per hemisphere
   -<no>cortribbon        20 min
   -<no>aparc2aseg         1 min
+  -<no>apas2aseg          1 min
   -<no>wmparc            20 min
 
   -all                20-40 hours   both hemipheres
