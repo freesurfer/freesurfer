@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/09/08 16:37:29 $
- *    $Revision: 1.95 $
+ *    $Date: 2014/09/29 16:46:15 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -203,14 +203,16 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 
   MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
   UpdateHistoCDF();
-
-  double val = GetHistoValueFromPercentile(0.999)+m_histoCDF->bin_size/2;
-  if (m_fMaxValue > 10*val)
+  if (m_bValidHistogram)
   {
-    // abnormally high voxel value
-    UpdateHistoCDF(0, val);
-    val = GetHistoValueFromPercentile(0.999)+m_histoCDF->bin_size/2;
-    m_fMaxValue = val;
+    double val = GetHistoValueFromPercentile(0.999)+m_histoCDF->bin_size/2;
+    if (m_fMaxValue > 10*val)
+    {
+      // abnormally high voxel value
+      UpdateHistoCDF(0, val);
+      val = GetHistoValueFromPercentile(0.999)+m_histoCDF->bin_size/2;
+      m_fMaxValue = val;
+    }
   }
 
   return true;
