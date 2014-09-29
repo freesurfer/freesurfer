@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/08/11 17:09:44 $
- *    $Revision: 1.149 $
+ *    $Date: 2014/09/29 16:31:31 $
+ *    $Revision: 1.150 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,6 +77,7 @@
 #include "vtkImageFlip.h"
 #include "LayerSurface.h"
 #include "vtkImageResample.h"
+#include "vtkImageExtractComponents.h"
 #include <QVariantMap>
 
 extern "C"
@@ -3056,6 +3057,75 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
   }
   emit ActorUpdated();
   GetProperty()->EmitChangeSignal();
+}
+
+void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low, double th_high)
+{
+  if (!m_imageDataBackup.GetPointer())
+  {
+    m_imageDataBackup = vtkSmartPointer<vtkImageData>::New();
+    m_imageDataBackup->DeepCopy(GetImageData());
+  }
+  if (frame == -1)
+  {
+    for (int i = 0; i < GetNumberOfFrames(); i++)
+    {
+      Threshold(i, src, src_frame, th_low, th_high);
+    }
+  }
+  else
+  {
+    vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
+    threshold->ThresholdBetween(th_low, th_high);
+    if (src->GetImageData()->GetNumberOfScalarComponents() > 1)
+    {
+      vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
+      extract->SetInput(src->GetImageData());
+      extract->SetComponents(src_frame);
+      threshold->SetInput(extract->GetOutput());
+    }
+    else
+    {
+      threshold->SetInput(src->GetImageData());
+    }
+    threshold->SetOutputScalarTypeToChar();
+    threshold->SetInValue(1.0);
+    threshold->SetOutValue(0);
+    threshold->ReplaceInOn();
+    threshold->ReplaceOutOn();
+    threshold->Update();
+    vtkSmartPointer<vtkImageData> src_image = threshold->GetOutput();
+    vtkImageData* target_image = GetImageData();
+    char* src_ptr = (char*)src_image->GetScalarPointer();
+    int *dim = src_image->GetDimensions();
+    char* target_ptr = (char*)target_image->GetScalarPointer();
+    int nFrames = target_image->GetNumberOfScalarComponents();
+    int nBytes = target_image->GetScalarSize();
+    for (int i = 0; i < dim[0]; i++)
+    {
+      for (int j = 0; j < dim[1]; j++)
+      {
+        for (int k = 0; k < dim[2]; k++)
+        {
+          int n = k*dim[0]*dim[1] + j*dim[0] + i;
+          if (src_ptr[n] < 1)
+            memset(target_ptr + (n*nFrames+frame)*nBytes, 0, nBytes);
+        }
+      }
+    }
+    SetModified();
+    emit ActorUpdated();
+    GetProperty()->EmitChangeSignal();
+  }
+}
+
+void LayerMRI::RestoreFromBackup()
+{
+  if (m_imageDataBackup.GetPointer())
+  {
+    m_imageData->DeepCopy(m_imageDataBackup);
+    emit ActorUpdated();
+  }
 }
 
 void LayerMRI::SetCorrelationSurface(LayerSurface *surf)

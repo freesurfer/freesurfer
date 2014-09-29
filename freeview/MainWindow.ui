@@ -363,6 +363,7 @@
     <addaction name="menuVolume_Filter"/>
     <addaction name="actionTransformVolume"/>
     <addaction name="actionCropVolume"/>
+    <addaction name="actionThresholdVolume"/>
     <addaction name="actionCreateOptimalCombinedVolume"/>
     <addaction name="separator"/>
     <addaction name="actionRepositionSurface"/>
@@ -1451,6 +1452,11 @@
    </property>
    <property name="toolTip">
     <string>Set Camera</string>
+   </property>
+  </action>
+  <action name="actionThresholdVolume">
+   <property name="text">
+    <string>Threshold Volume...</string>
    </property>
   </action>
  </widget>
@@ -2896,6 +2902,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionThresholdVolume</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnThresholdVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2985,5 +3007,6 @@
   <slot>OnToggleAseg()</slot>
   <slot>OnToggleBrainmask()</slot>
   <slot>OnViewSetCamera()</slot>
+  <slot>OnThresholdVolume()</slot>
  </slots>
 </ui>

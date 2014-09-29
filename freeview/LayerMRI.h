@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/08/11 17:09:44 $
- *    $Revision: 1.92 $
+ *    $Date: 2014/09/29 16:31:31 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -301,6 +301,10 @@ public:
   double GetHistoPercentileFromValue(double value);
 
   bool HasValidHistogram();
+
+  void Threshold(int frame, LayerMRI* src, int src_frame, double th_low, double th_high);
+
+  void RestoreFromBackup();
 
 public slots:
   void SetActiveFrame( int nFrame );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/08/11 17:09:44 $
- *    $Revision: 1.288 $
+ *    $Date: 2014/09/29 16:31:31 $
+ *    $Revision: 1.289 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -103,6 +103,7 @@
 #include "LayerFCD.h"
 #include "LayerPropertyFCD.h"
 #include "DialogSetCamera.h"
+#include "DialogThresholdVolume.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -170,7 +171,6 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   m_toolWindowROIEdit = new ToolWindowROIEdit( this );
   m_toolWindowROIEdit->hide();
-
   m_dlgTransformVolume = new DialogTransformVolume( this );
   m_dlgTransformVolume->hide();
   for (int i = 0; i < 3; i++)
@@ -188,6 +188,11 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
           m_dlgCropVolume, SLOT(OnLayerRemoved(Layer*)));
   m_dlgSaveScreenshot = NULL;
   m_dlgPreferences = NULL;
+
+  m_dlgThresholdVolume = new DialogThresholdVolume(this);
+  m_dlgThresholdVolume->hide();
+  connect(m_layerCollections["MRI"], SIGNAL(LayerAdded(Layer*)), m_dlgThresholdVolume, SLOT(UpdateVolumes()));
+  connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)), m_dlgThresholdVolume, SLOT(UpdateVolumes()));
 
   m_wndQuickRef = new WindowQuickReference(this);
   m_wndQuickRef->hide();
@@ -1259,6 +1264,7 @@ void MainWindow::OnIdle()
   ui->actionToggleVolumeVisibility  ->setEnabled( layerVolume );
   ui->actionToggleVoxelCoordinateDisplay->setEnabled( bHasLayer );
   ui->actionTransformVolume ->setEnabled( layerVolume );
+  ui->actionThresholdVolume->setEnabled(layerVolume);
   ui->actionVolumeFilterConvolve->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterMean    ->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterMedian  ->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
@@ -5637,6 +5643,11 @@ void MainWindow::OnCropVolume()
   m_volumeCropper->SetVolume( mri );
   m_volumeCropper->Show();
   SetMode( RenderView::IM_VolumeCrop );
+}
+
+void MainWindow::OnThresholdVolume()
+{
+  m_dlgThresholdVolume->show();
 }
 
 void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes )

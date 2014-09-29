@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/07/21 16:49:06 $
- *    $Revision: 1.48 $
+ *    $Date: 2014/09/29 16:31:31 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
   Progname = argv[0];  
   ErrorSetExitFunc(my_error_exit);
 
-//  putenv((char*)"SURFER_FRONTDOOR=");
+  putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)
     putenv((char*)"LANG=en_US");
   qInstallMsgHandler(myMessageOutput);

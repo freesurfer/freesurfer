@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/06/02 20:42:37 $
- *    $Revision: 1.150 $
+ *    $Date: 2014/09/29 16:31:31 $
+ *    $Revision: 1.151 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,7 @@ class VolumeFilter;
 class DialogLineProfile;
 class LayerFCD;
 class DialogSetCamera;
+class DialogThresholdVolume;
 
 #define MAX_RECENT_FILES    10
 
@@ -408,6 +409,7 @@ protected slots:
   void OnEditRedo();
   void OnTransformVolume();
   void OnCropVolume();
+  void OnThresholdVolume();
   void OnSaveScreenshot();
   void OnVolumeFilterMean();
   void OnVolumeFilterMedian();
@@ -545,6 +547,7 @@ private:
   DialogLabelStats*     m_dlgLabelStats;
   DialogLineProfile*    m_dlgLineProfile;
   DialogSetCamera*      m_dlgSetCamera;
+  DialogThresholdVolume* m_dlgThresholdVolume;
 
   VolumeFilterWorkerThread* m_threadVolumeFilter;
 

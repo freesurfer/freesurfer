@@ -155,7 +155,8 @@ SOURCES += \
     VolumeFilterDilate.cpp \
     VolumeFilterOpen.cpp \
     VolumeFilterClose.cpp \
-    DialogSetCamera.cpp
+    DialogSetCamera.cpp \
+    DialogThresholdVolume.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -300,7 +301,8 @@ HEADERS  += \
     VolumeFilterDilate.h \
     VolumeFilterOpen.h \
     VolumeFilterClose.h \
-    DialogSetCamera.h
+    DialogSetCamera.h \
+    DialogThresholdVolume.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -346,7 +348,8 @@ FORMS    += MainWindow.ui \
     DialogLoadSurface.ui \
     PanelFCD.ui \
     DialogLoadFCD.ui \
-    DialogSetCamera.ui
+    DialogSetCamera.ui \
+    DialogThresholdVolume.ui
 
 RESOURCES += \
     freeview.qrc
