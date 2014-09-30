@@ -3,9 +3,11 @@
 #
 
 foodir=$(prefix)/subjects
-foo_DATA=README sample-001.mgz sample-002.mgz
+foo_datafiles=README sample-001.mgz sample-002.mgz
 
-EXTRA_DIST=$(foo_DATA)
+install-data-local:
+	test -z $(foodir) || $(MKDIR_P) $(foodir)
+		$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

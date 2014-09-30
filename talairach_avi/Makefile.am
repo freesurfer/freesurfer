@@ -11,7 +11,7 @@ AM_LDFLAGS=$(LIB_G2C_A)
 LIBS=
 
 foodir=$(prefix)/average
-foo_DATA= \
+foo_datafiles= \
 	711-2B_as_mni_average_305.4dfp.hdr \
 	711-2B_as_mni_average_305_mask.4dfp.ifh \
 	711-2C_as_mni_average_305.4dfp.img \
@@ -218,7 +218,6 @@ clean-local:
 	rm -f $(BUILT_SOURCES) 
 
 EXTRA_DIST=$(dist_bin_SCRIPTS) talairach_avi.help.xml.h \
-	$(foo_DATA) \
 	$(CFILES) \
 	$(HFILES) \
 	$(FFILES) \
@@ -266,6 +265,10 @@ copy_ffiles_from_src:
 	list=( $(FFILES) ); for p in $${list[@]}; do \
 		find src -follow -type f -name $$p -exec cp -iv {} . \;; \
 	done;
+
+install-data-local:
+	test -z $(foodir) || $(MKDIR_P) $(foodir)
+	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
