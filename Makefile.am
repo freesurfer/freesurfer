@@ -346,7 +346,6 @@ MISCDIRS=\
 	hiam_make_surfaces\
 	hiam_make_template\
 	hiam_register \
-	gradient_nonlin_unwarp \
 	swi_processing \
 	nmovie_qt
 

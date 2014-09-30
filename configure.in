@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2014/09/12 18:18:31 $
-#    $Revision: 1.619 $
+#    $Author: nicks $
+#    $Date: 2014/09/30 16:39:39 $
+#    $Revision: 1.620 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3525,8 +3525,6 @@ AC_OUTPUT([Makefile
            fslutils/Makefile
            glut/Makefile
            gpu_utils/Makefile
-           gradient_nonlin_unwarp/Makefile
-           gradient_nonlin_unwarp/gradient_coil_files/Makefile
            opencl_algorithms/Makefile
            hiam_make_surfaces/Makefile
            hiam_register/Makefile
