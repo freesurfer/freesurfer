@@ -2,7 +2,7 @@
 # Makefile.am
 #
 
-SUBDIRS=average lib docs grad_unwarp_tables \
+SUBDIRS=average lib docs \
 	fsafd subjects sessions diffusion fsl-extra trctrain
 
 foodir=$(prefix)
