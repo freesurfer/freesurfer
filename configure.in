@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/09/30 16:39:39 $
-#    $Revision: 1.620 $
+#    $Date: 2014/09/30 19:00:18 $
+#    $Revision: 1.621 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3504,7 +3504,6 @@ AC_OUTPUT([Makefile
            distribution/diffusion/mgh-dti-seqpack/Makefile
            distribution/trctrain/Makefile
            distribution/fsafd/Makefile
-           distribution/grad_unwarp_tables/Makefile
            distribution/lib/Makefile
            distribution/lib/bem/Makefile
            distribution/sessions/Makefile
