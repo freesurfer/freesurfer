@@ -2,6 +2,7 @@
 # Makefile.am for matlab files
 #
 
+foodir=$(prefix)/matlab/lme/geodesic
 mfilesdir=$(prefix)/matlab
 siemensdir=$(prefix)/matlab
 lmefilesdir=$(prefix)/matlab/lme
@@ -166,7 +167,6 @@ lmefiles_DATA=\
 lmegeofiles_DATA=\
 	lme/geodesic/geodesic_license.txt \
 	lme/geodesic/geodesic_readme.txt \
-	lme/geodesic/geodesic_src.tar.gz \
 	lme/geodesic/geodesic_matlab_api.h \
 	lme/geodesic/create_flat_triangular_mesh.m \
 	lme/geodesic/create_hedgehog_mesh.m \
@@ -238,6 +238,13 @@ lmeQdecfiles_DATA=\
 	lme/Qdec/num2Qdec.m \
 	lme/Qdec/Qdec2num.m \
 	lme/Qdec/rmQdecCol.m
+
+foo_datafiles=lme/geodesic/geodesic_src.tar.gz
+
+
+install-data-local:
+	test -z $(foodir) || $(MKDIR_P) $(foodir)
+	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 EXTRA_DIST=$(mfiles_DATA) \
 	$(lmefiles_DATA) \

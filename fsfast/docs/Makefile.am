@@ -41,7 +41,7 @@ TEXFILES=\
 	vol2roi.tex\
 	yakview.tex
 
-foo_DATA = $(TEXFILES:%.tex=%.pdf)
+foo_datafiles = $(TEXFILES:%.tex=%.pdf)
 
 .ps.pdf:
 	ps2pdf $< $@
@@ -63,7 +63,9 @@ distclean-local:
 # endif HAVE_LATEX
 endif
 
-EXTRA_DIST=$(TEXFILES)
+install-data-local:
+	test -z $(foodir) || $(MKDIR_P) $(foodir)
+	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
