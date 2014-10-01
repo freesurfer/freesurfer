@@ -1,14 +1,17 @@
 #!/bin/tcsh -f
 # xcerebralseg
 
-set VERSION = '$Id: xcerebralseg,v 1.6 2014/09/11 19:29:24 greve Exp $';
+set VERSION = '$Id: xcerebralseg,v 1.7 2014/10/01 01:51:36 greve Exp $';
 
 set outvol = apas+head.mgz
 set subject = ();
-set atlas = $FREESURFER_HOME/average/aseg+spmhead.ixi.gca
+#set atlas = $FREESURFER_HOME/average/aseg+spmhead.ixi.gca
+set atlas = $FREESURFER_HOME/average/aseg+spmhead+vermis+pons.ixi.gca
 set srcvol = nu.mgz
 set xform = talairach.m3z
 set mergevol = aparc+aseg.mgz
+set DoPons = 1;
+set DoVermis = 1;
 
 # Seghead parameters
 set thresh1 = 20;
@@ -96,6 +99,38 @@ echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
 
+if($DoPons) then
+  # Make a mask of pons
+  set pons = $tmpdir/pons.mgh
+  set cmd = (mri_binarize --i $seg1 --match 174 --o $pons --binval 174)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+  # Merge pons
+  set seg3b = $tmpdir/seg3b.mgh
+  set cmd = (mergeseg --src $seg3 --merge $pons --o $seg3b)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+  set seg3 = $seg3b;
+endif
+
+if($DoVermis) then
+  # Make a mask of vermis
+  set vermis = $tmpdir/vermis.mgh
+  set cmd = (mri_binarize --i $seg1 --match 172 --o $vermis --binval 172)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+  # Merge pons
+  set seg3c = $tmpdir/seg3c.mgh
+  set cmd = (mergeseg --src $seg3 --merge $vermis --o $seg3c)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+  set seg3 = $seg3c;
+endif
+
 # Create a seg of the head for filling in voxels and masking stuff out
 set seghead = $tmpdir/seghead.mgz
 set cmd = (mri_seghead --invol $srcvolpath --outvol $seghead \
@@ -128,6 +163,8 @@ set cmd = (mri_segstats --seg $outseg --sum $sum \
    --in $sdir/mri/nu.mgz  --in-intensity-units MR --etiv  \
    --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt \
    --subject $subject --id 2 41 4 5 14 15 43 44 130 165 257 258)
+if($DoVermis) set cmd = ($cmd --id 172)
+if($DoPons)   set cmd = ($cmd --id 174)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) goto error_exit;
@@ -186,6 +223,16 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $atlas"
         exit 1;
       endif
+      breaksw
+
+    case "--nopons":
+    case "--no-pons":
+      set DoPons = 0;
+      breaksw
+
+    case "--novermis":
+    case "--no-vermis":
+      set DoVermis = 0;
       breaksw
 
     case "--log":
@@ -280,6 +327,9 @@ usage_exit:
   echo " --s subject (required)"
   echo " --o outvol (default: $outvol)"
   echo " --atlas headgca (default: $atlas)"
+  echo ""
+  echo " --no-pons"
+  echo " --no-vermis"
   echo ""
 
   if(! $PrintHelp) exit 1;
