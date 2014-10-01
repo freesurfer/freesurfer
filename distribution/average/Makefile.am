@@ -15,6 +15,7 @@ GCA=\
 	talairach_mixed_with_skull.gca \
 	wmsa_new_eesmith.gca \
 	aseg+spmhead.ixi.gca \
+	aseg+spmhead+vermis+pons.ixi.gca \
 	pons.mni152.2mm.mgz
 
 GCS=\
