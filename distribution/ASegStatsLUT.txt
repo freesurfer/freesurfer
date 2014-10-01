@@ -1,5 +1,5 @@
 #
-# $Id: ASegStatsLUT.txt,v 1.3 2007/12/14 23:11:12 nicks Exp $
+# $Id: ASegStatsLUT.txt,v 1.4 2014/10/01 21:11:38 greve Exp $
 #
 # This is a subset of the labels found in FreeSurferColorLUT.txt.
 # This is the set that will be reported in the stats/aseg.stats file.
@@ -26,7 +26,7 @@
  28  Left-VentralDC                        165   42   42    0
  30  Left-vessel                           160   32  240    0
  31  Left-choroid-plexus                     0  200  200    0
- 41  Right-Cerebral-White-Matter             0  225    0    0
+ 41  Right-Cerebral-White-Matter           245  245  245    0
  42  Right-Cerebral-Cortex                 205   62   78    0
  43  Right-Lateral-Ventricle               120   18  134    0
  44  Right-Inf-Lat-Vent                    196   58  250    0

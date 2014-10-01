@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.96 2014/07/31 19:37:51 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.97 2014/10/01 21:11:39 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -43,7 +43,7 @@
 38  Left-Porg                               74  155 60  0
 39  Left-Aorg                               122 135 50  0
 40  Right-Cerebral-Exterior                 70  130 180 0
-41  Right-Cerebral-White-Matter             0   225 0   0
+41  Right-Cerebral-White-Matter             245 245 245 0
 42  Right-Cerebral-Cortex                   205 62  78  0
 43  Right-Lateral-Ventricle                 120 18  134 0
 44  Right-Inf-Lat-Vent                      196 58  250 0
