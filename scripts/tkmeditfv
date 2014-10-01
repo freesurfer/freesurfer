@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tkmeditfv
 
-set VERSION = '$Id: tkmeditfv,v 1.8 2014/09/24 17:34:43 greve Exp $';
+set VERSION = '$Id: tkmeditfv,v 1.9 2014/10/01 21:08:18 greve Exp $';
 
 set subject = ();
 set overlay = ();
@@ -329,12 +329,38 @@ if($#subject) then
     else
       set segvol = $SUBJECTS_DIR/$subject/mri/$segvol0
     endif
+    if($#segcolor) then
+      if(! -e $segcolor) then
+        set segcolor0 = $segcolor;
+        set segcolor = $SUBJECTS_DIR/$subject/mri/$segcolor0
+        if(! -e $segcolor) then
+          set segcolor = $FREESURFER_HOME/$segcolor0
+          if(! -e $segcolor) then
+            echo "ERROR: cannot find $segcolor0"
+            exit 1; 
+          endif
+        endif
+      endif
+    endif
   endif
   if($#auxsegvol0) then
     if(-e $auxsegvol0) then
       set auxsegvol = $auxsegvol0
     else
       set auxsegvol = $SUBJECTS_DIR/$subject/mri/$auxsegvol0
+    endif
+    if($#auxsegcolor) then
+      if(! -e $auxsegcolor) then
+        set auxsegcolor0 = $auxsegcolor;
+        set auxsegcolor = $SUBJECTS_DIR/$subject/mri/$auxsegcolor0
+        if(! -e $auxsegcolor) then
+          set auxsegcolor = $FREESURFER_HOME/$auxsegcolor0
+          if(! -e $auxsegcolor) then
+            echo "ERROR: cannot find $auxsegcolor0"
+            exit 1; 
+          endif
+        endif
+      endif
     endif
   endif
   foreach surf ($surflist0)
