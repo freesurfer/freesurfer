@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/24 23:10:26 $
- *    $Revision: 1.15 $
+ *    $Date: 2014/10/01 01:54:50 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,6 +69,13 @@ typedef struct
   MATRIX *p;
 } GTM_CONTRAST, GTMCON;
 
+typedef struct 
+{
+  int nrad;
+  double Xthresh;
+  MRI *res; // residual at voxel
+  MRI *rvar; // residual variance across neighborhood
+} LGTM;
 
 typedef struct 
 {
@@ -140,6 +147,9 @@ typedef struct
   MRI *meltzer; // MG output volume
   double meltzer_thresh; // GM+WM PVF threshold 
 
+  int DoLGTMPVC; // Local GTM
+  LGTM *lgtm;
+
   int DoKMRef; // Kinetic Modeling Reference TAC
   int n_km_refids,km_refids[100]; // KM reference seg IDs
   MATRIX *km_reftac; // KM reference TAC
@@ -199,6 +209,6 @@ int GTMcheckRefIds(GTM *gtm);
 int GTMrefTAC(GTM *gtm);
 int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax);
 int WriteVRFStats(char *fname, GTM *gtm);
-MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc);
+MRI **GTMlocal(GTM *gtm, MRI **pvc);
 
 #endif

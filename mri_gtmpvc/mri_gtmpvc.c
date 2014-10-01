@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/24 23:10:26 $
- *    $Revision: 1.33 $
+ *    $Date: 2014/10/01 01:54:51 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.33 2014/09/24 23:10:26 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.34 2014/10/01 01:54:51 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.33 2014/09/24 23:10:26 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.34 2014/10/01 01:54:51 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -173,6 +173,7 @@ int ApplyXFM=0;
 int DoSimulation = 0;
 int DoVoxFracCorTmp;
 int Frame = -1;
+MRI **lgtmpvc;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -731,6 +732,26 @@ int main(int argc, char *argv[])
     if(Gdiag_no > 0) printf("done with meltzer pvc\n");
     fprintf(logfp,"done with meltzer pvc\n");
   }
+  if(gtm->DoLGTMPVC){
+    printf("Performing lGTM PVC\n");
+    if(Gdiag_no > 0) PrintMemUsage(stdout);
+    fprintf(logfp,"lGTM PVC\n");
+    lgtmpvc = GTMlocal(gtm,NULL);
+    for(n=0; n < gtm->ttpvf->nframes; n++){
+      sprintf(tmpstr,"%s/lgtm.%02d.nii.gz",OutDir,n);
+      err = MRIwrite(lgtmpvc[n],tmpstr);
+      if(err) exit(1);
+      MRIfree(&lgtmpvc[n]);
+    }
+    sprintf(tmpstr,"%s/lgtm.res.nii.gz",OutDir);
+    err = MRIwrite(gtm->lgtm->res,tmpstr);
+    if(err) exit(1);
+    sprintf(tmpstr,"%s/lgtm.rvar.nii.gz",OutDir);
+    err = MRIwrite(gtm->lgtm->rvar,tmpstr);
+    if(err) exit(1);
+    if(Gdiag_no > 0) printf("done with lgtm pvc\n");
+    fprintf(logfp,"done with lgtm pvc\n");
+  }
     
   if(DoRBV){
     printf("Computing RBV Seg\n");
@@ -976,6 +997,15 @@ static int parse_commandline(int argc, char **argv) {
       gtm->DoMeltzerPVC = 1;
       gtm->meltzer_thresh = .01;
     }
+    else if(!strcasecmp(option, "--lgtm")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      gtm->DoLGTMPVC = 1;
+      gtm->lgtm = (LGTM *) calloc(sizeof(LGTM),1);
+      sscanf(pargv[0],"%d",&gtm->lgtm->nrad);
+      sscanf(pargv[1],"%lf",&gtm->lgtm->Xthresh);
+      nargsused = 2;
+    }
+
     else if(!strcasecmp(option, "--mgpvc") || !strcasecmp(option, "--mg")){
       if(nargc < 1) CMDargNErr(option,1);
       gtm->DoMGPVC = 1;

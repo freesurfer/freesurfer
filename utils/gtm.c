@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/24 23:10:26 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/10/01 01:54:51 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2108,73 +2108,89 @@ int GTMrvarGM(GTM *gtm)
   tissue type in its own frame
   \param nrad defines neighborhood as (2*nrad+1)^3 voxels
 */
-MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc)
+MRI **GTMlocal(GTM *gtm, MRI **pvc)
 {
   int c,tt,nTT,nvmax;
   struct timeb timer;
-  double Xthresh = 0.1;
+  MRI *pvfpsf;
   
-  nTT = pvf->nframes;
+  nTT = gtm->ttpvf->nframes;
 
-  if(MRIdimMismatch(src,pvf,0)){
-      printf("ERROR: GTMlocal(): src-pvf dim mismatch\n");
-    return(NULL);
-  }
+  pvfpsf = MRIgaussianSmoothNI(gtm->ttpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+
   if(pvc == NULL){
     pvc = (MRI **)calloc(sizeof(MRI*),nTT);
     for(tt = 0; tt < nTT; tt++){
-      pvc[tt] = MRIallocSequence(pvf->width, pvf->height, pvf->depth,
-				 MRI_FLOAT, src->nframes);
+      pvc[tt] = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, 
+				 gtm->yvol->depth,MRI_FLOAT, gtm->yvol->nframes);
       if(pvc[tt]==NULL){
-	printf("ERROR: GTMlocal(): could not alloc\n");
+	printf("ERROR: GTMlocal(): could not alloc %d\n",tt);
 	return(NULL);
       }
-      MRIcopyHeader(src,pvc[tt]);
-      MRIcopyPulseParameters(src,pvc[tt]);
+      MRIcopyHeader(gtm->yvol,pvc[tt]);
+      MRIcopyPulseParameters(gtm->yvol,pvc[tt]);
     }
   }
-  if(MRIdimMismatch(src,pvc[0],0)){
-      printf("ERROR: GTMlocal(): src-pvc dim mismatch\n");
+  if(MRIdimMismatch(gtm->yvol,pvc[0],1)){
+      printf("ERROR: GTMlocal(): gtm->yvol-pvc dim mismatch\n");
     return(NULL);
   }
 
-  nvmax = (2*nrad+1)*(2*nrad+1)*(2*nrad+1);
-  printf("nrad = %d, nvmax = %d, nTT=%d\n",nrad,nvmax,nTT);
+  if(gtm->lgtm->res == NULL){
+    gtm->lgtm->res = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth,MRI_FLOAT, gtm->yvol->nframes);
+    MRIcopyHeader(gtm->yvol,gtm->lgtm->res);
+    MRIcopyPulseParameters(gtm->yvol,gtm->lgtm->res);
+  }
+  if(MRIdimMismatch(gtm->yvol,gtm->lgtm->res,1)){
+      printf("ERROR: GTMlocal(): gtm->yvol-res dim mismatch\n");
+    return(NULL);
+  }
+
+  if(gtm->lgtm->rvar == NULL){
+    gtm->lgtm->rvar = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth,MRI_FLOAT, gtm->yvol->nframes);
+    MRIcopyHeader(gtm->yvol,gtm->lgtm->rvar);
+    MRIcopyPulseParameters(gtm->yvol,gtm->lgtm->rvar);
+  }
+  if(MRIdimMismatch(gtm->yvol,gtm->lgtm->rvar,0)){
+      printf("ERROR: GTMlocal(): gtm->yvol-rvar dim mismatch\n");
+    return(NULL);
+  }
+
+  nvmax = (2*gtm->lgtm->nrad+1)*(2*gtm->lgtm->nrad+1)*(2*gtm->lgtm->nrad+1);
+  printf("GTMlocal(): nrad = %d, nvmax = %d, nTT=%d, Xthresh %f\n",
+	 gtm->lgtm->nrad,nvmax,nTT,gtm->lgtm->Xthresh);
   TimerStart(&timer);
 
   #ifdef _OPENMP
   printf("     nthreads = %d\n",omp_get_max_threads());
   #pragma omp parallel for 
   #endif
-  for(c=0; c < src->width; c++){
+  for(c=0; c < gtm->yvol->width; c++){
     MATRIX *X, *y, *beta=NULL, *Xt=NULL, *XtX=NULL, *Xty=NULL, *iXtX=NULL, *Xsum,*ytmp,*Xtmp;
+    MATRIX *yhat, *eres;
     int r,s,f, dc,dr,ds, tt, nth, nv, nkeep,indkeep[100],nthbeta;
     double v;
-    printf("%2d ",c); fflush(stdout);
-    for(r=0; r < src->height; r++){
-      for(s=0; s < src->depth; s++){
-	//if(!(c == 27 && r==60 && s==41)) continue;
-	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue; 
-	y = MatrixAlloc(nvmax,src->nframes,MATRIX_REAL);
-	X = MatrixAlloc(nvmax,pvf->nframes,MATRIX_REAL);
+    for(r=0; r < gtm->yvol->height; r++){
+      for(s=0; s < gtm->yvol->depth; s++){
+	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue; 
+	y = MatrixAlloc(nvmax,gtm->yvol->nframes,MATRIX_REAL);
+	X = MatrixAlloc(nvmax,pvfpsf->nframes,MATRIX_REAL);
 
 	nth = 0; //row of y or X
-	for(f=0; f < src->nframes; f++)
-	  y->rptr[nth+1][f+1] = MRIgetVoxVal(src,c,r,s,f);
-	for(tt=0; tt < pvf->nframes; tt++) 
-	  X->rptr[nth+1][tt+1] = MRIgetVoxVal(pvf,c,r,s,tt);
+	for(f=0; f < gtm->yvol->nframes; f++)	         y->rptr[nth+1][f+1] = MRIgetVoxVal(gtm->yvol,c,r,s,f);
+	for(tt=0; tt < pvfpsf->nframes; tt++) X->rptr[nth+1][tt+1] = MRIgetVoxVal(pvfpsf,c,r,s,tt);
 	nth++;
-	for(dc = -nrad; dc <= nrad; dc++){
-	  if(c+dc < 0 || c+dc >= src->width) continue; 
-	  for(dr = -nrad; dr <= nrad; dr++){
-	    if(r+dr < 0 || r+dr >= src->height) continue; 
-	    for(ds = -nrad; ds <= nrad; ds++){
-	      if(s+ds < 0 || s+ds >= src->depth) continue; 
+	for(dc = -gtm->lgtm->nrad; dc <= gtm->lgtm->nrad; dc++){
+	  if(c+dc < 0 || c+dc >= gtm->yvol->width) continue; 
+	  for(dr = -gtm->lgtm->nrad; dr <= gtm->lgtm->nrad; dr++){
+	    if(r+dr < 0 || r+dr >= gtm->yvol->height) continue; 
+	    for(ds = -gtm->lgtm->nrad; ds <= gtm->lgtm->nrad; ds++){
+	      if(s+ds < 0 || s+ds >= gtm->yvol->depth) continue; 
 	      if(dc==0 && dr==0 && ds==0) continue;
-	      for(f=0; f < src->nframes; f++)
-		y->rptr[nth+1][f+1] = MRIgetVoxVal(src,c+dc,r+dr,s+ds,f);
-	      for(tt=0; tt < pvf->nframes; tt++){
-		v  = MRIgetVoxVal(pvf,c+dc,r+dr,s+ds,tt);
+	      for(f=0; f < gtm->yvol->nframes; f++)
+		y->rptr[nth+1][f+1] = MRIgetVoxVal(gtm->yvol,c+dc,r+dr,s+ds,f);
+	      for(tt=0; tt < pvfpsf->nframes; tt++){
+		v  = MRIgetVoxVal(pvfpsf,c+dc,r+dr,s+ds,tt);
 		X->rptr[nth+1][tt+1] = v;
 	      }
 	      nth++;
@@ -2184,26 +2200,27 @@ MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc)
 	nv = nth; // nvox in y/X. May not be nvmax if near edge
 
 	// Each ttype needs a minmal representation
+	// Sum the columns of X
 	Xsum = MatrixSum(X,1,NULL);
 	nkeep = 0;
-	for(tt=0; tt < pvf->nframes; tt++) {
+	for(tt=0; tt < pvfpsf->nframes; tt++) {
 	  indkeep[tt] = 0;
-	  if(Xsum->rptr[1][tt+1] > Xthresh) {
+	  if(Xsum->rptr[1][tt+1] > gtm->lgtm->Xthresh) {
 	    indkeep[tt] = 1;
 	    nkeep++;
 	  }
 	}
 	if(nkeep == 0) continue;
 	
-	if(nkeep != pvf->nframes || nv != nvmax) {
+	if(nkeep != pvfpsf->nframes || nv != nvmax) {
 	  // Either not all tissue types will be kept or not all nvmax were avail
-	  ytmp = MatrixAlloc(nv,src->nframes,MATRIX_REAL);
+	  ytmp = MatrixAlloc(nv,gtm->yvol->nframes,MATRIX_REAL);
 	  Xtmp = MatrixAlloc(nv,nkeep,MATRIX_REAL);
 	  for(nth = 0; nth < nv; nth++){
-	    for(f=0; f < src->nframes; f++) ytmp->rptr[nth+1][f+1] = y->rptr[nth+1][f+1];
+	    for(f=0; f < gtm->yvol->nframes; f++) ytmp->rptr[nth+1][f+1] = y->rptr[nth+1][f+1];
 	    nkeep = 0;
-	    for(tt=0; tt < pvf->nframes; tt++){
-	      if(Xsum->rptr[1][tt+1] > Xthresh){
+	    for(tt=0; tt < pvfpsf->nframes; tt++){
+	      if(Xsum->rptr[1][tt+1] > gtm->lgtm->Xthresh){
 		Xtmp->rptr[nth+1][nkeep+1] = X->rptr[nth+1][tt+1];
 		nkeep++;
 	      }
@@ -2229,27 +2246,42 @@ MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc)
 	Xty = MatrixMultiplyD(Xt,y,NULL);
 	beta = MatrixMultiplyD(iXtX,Xty,NULL);
 	nthbeta = 0;
-	for(tt=0; tt < pvf->nframes; tt++){
+	for(tt=0; tt < pvfpsf->nframes; tt++){
 	  if(indkeep[tt] == 0) continue;
-	  for(f=0; f < src->nframes; f++) 
+	  for(f=0; f < gtm->yvol->nframes; f++) 
 	    MRIsetVoxVal(pvc[tt], c,r,s,f, beta->rptr[nthbeta+1][f+1]);
 	  nthbeta++;
 	}
-	if(0 && c==56 && r==55 && s==33){
+
+	yhat = MatrixMultiply(X,beta,NULL);
+	eres = MatrixSubtract(y,yhat,NULL);
+	for(f=0; f < gtm->yvol->nframes; f++) 
+	  MRIsetVoxVal(gtm->lgtm->res,c,r,s,f, eres->rptr[1][f+1]);
+	for(f=0; f < gtm->yvol->nframes; f++){
+	  v = 0;
+	  for(nth = 0; nth < nv; nth++)
+	    v += (eres->rptr[nth+1][f+1] * eres->rptr[nth+1][f+1]);
+	  v = v/(X->rows - X->cols);
+	  MRIsetVoxVal(gtm->lgtm->rvar,c,r,s,f,v);
+	}
+
+	if(c==56 && r==55 && s==33){
 	  printf("c=%d; r=%d; s=%d;\n",c+1,r+1,s+1);
-	  printf("nv=%d, nkeep=%d, nf=%d\n",nv,nkeep,pvf->nframes);
+	  printf("nv=%d, nkeep=%d, nf=%d\n",nv,nkeep,pvfpsf->nframes);
 	  //MatrixPrint(stdout,y);
 	  //MatrixPrint(stdout,X);
 	  MatrixPrint(stdout,beta);
 	  fflush(stdout);
-	  MatlabWrite(y, "yy.mat", "y");
-	  MatlabWrite(X, "XX.mat", "X");
-	  MatlabWrite(beta, "bb.mat", "beta");
+	  MatlabWrite(y, "y.mat", "y");
+	  MatlabWrite(X, "X.mat", "X");
+	  MatlabWrite(beta, "b.mat", "beta");
 	  //exit(1);
 	}
 	MatrixFree(&beta);
 
 	MatrixFree(&y);	
+	MatrixFree(&yhat);	
+	MatrixFree(&eres);	
 	MatrixFree(&X);	
 	MatrixFree(&Xt);
 	MatrixFree(&XtX);
@@ -2258,8 +2290,12 @@ MRI **GTMlocal(MRI *src, MRI *pvf, MRI *mask, int nrad, MRI **pvc)
       } //s
     } // r
   } // c
+
+  MRIfree(&pvfpsf);
   printf("\n");
+  //printf("nNull=%d\n",nNull);
   printf("t=%6.4f\n",TimerStop(&timer)/1000.0);
+  printf("GTMlocal(); done\n");
   fflush(stdout);
 
   return(pvc);
