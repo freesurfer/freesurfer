@@ -10,7 +10,6 @@
 # files are committed.  so this means that if the tex files change, 
 # someone must manually delete the pdfs then run make.   
 
-if HAVE_LATEX
 foodir=$(prefix)/fsfast/docs
 # cannot specify *, since Makefile etc will be copied
 TEXFILES=\
@@ -42,6 +41,8 @@ TEXFILES=\
 	yakview.tex
 
 foo_datafiles = $(TEXFILES:%.tex=%.pdf)
+
+if HAVE_LATEX
 
 .ps.pdf:
 	ps2pdf $< $@
