@@ -10,7 +10,7 @@ Yeo2011_17Networks_MNI152_FreeSurferConformed1mm.nii.gz Yeo2011_7Networks_ColorL
 Yeo2011_7Networks_MNI152_FreeSurferConformed1mm_LiberalMask.nii.gz Yeo2011_7Networks_MNI152_FreeSurferConformed1mm.nii.gz
 
 install-data-local:
-	test -z $(foodir) || $(MKDIR_P) $(foodir)
+	test -z $(foodir) || $(mkdir_p) $(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 # Our release target. Include files to be excluded here. They will be

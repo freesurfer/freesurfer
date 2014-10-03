@@ -246,7 +246,7 @@ foo_datafiles=lme/geodesic/geodesic_src.tar.gz
 
 
 install-data-local:
-	test -z $(foodir) || $(MKDIR_P) $(foodir)
+	test -z $(foodir) || $(mkdir_p) $(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 EXTRA_DIST=$(mfiles_DATA) \
