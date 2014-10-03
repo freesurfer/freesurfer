@@ -94,7 +94,7 @@ foo_otherdatafiles=fsaverage.tar.gz fsaverage_sym.tar.gz \
 
 
 install:
-	test -z $(foodir) || $(MKDIR_P) $(foodir)
+	test -z $(foodir) || $(mkdir_p) $(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 	mkdir -p $(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35

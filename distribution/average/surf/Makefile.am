@@ -11,7 +11,7 @@ lh.sphere.ico2.reg  lh.sphere.ico6.reg  rh.sphere.ico2.reg  rh.sphere.ico6.reg \
 lh.sphere.ico3.reg  lh.sphere.ico7.reg  rh.sphere.ico3.reg  rh.sphere.ico7.reg
 
 install-data-local:
-	test -z $(foodir) || $(MKDIR_P) $(foodir)
+	test -z $(foodir) || $(mkdir_p) $(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 # Our release target. Include files to be excluded here. They will be

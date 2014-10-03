@@ -15,7 +15,7 @@ kvlQuantifyHippocampalSubfieldSegmentations.sh.help.xml \
 kvlSegmentHippocampalSubfields.sh.help.xml
 
 install-data-local:
-	test -z $(foodir) || $(MKDIR_P) $(foodir)
+	test -z $(foodir) || $(mkdir_p) $(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 # Our release target. Include files to be excluded here. They will be
