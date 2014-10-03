@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/25 21:23:01 $
- *    $Revision: 1.107 $
+ *    $Date: 2014/10/03 22:30:24 $
+ *    $Revision: 1.108 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,6 +80,7 @@
 #include "fio.h"
 #include "ctrpoints.h"
 #include "stats.h"
+#include "gtm.h"
 
 #ifdef FS_CUDA
 #include "devicemanagement.h"
@@ -104,7 +105,7 @@ int CountEdits(char *subject, char *outfile);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.107 2014/09/25 21:23:01 greve Exp $";
+  "$Id: mri_segstats.c,v 1.108 2014/10/03 22:30:24 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -129,7 +130,7 @@ int synth = 0;
 int debug = 0;
 int dontrun = 0;
 long seed = 0;
-MRI *seg, *invol, *famri, *maskvol, *pvvol, *brainvol, *mri_aseg, *mri_ribbon;
+MRI *seg, *invol, *famri, *maskvol, *pvvol, *brainvol, *mri_aseg, *mri_ribbon,*mritmp;
 int nsegid0, *segidlist0;
 int nsegid, *segidlist;
 int NonEmptyOnly = 1;
@@ -192,6 +193,8 @@ int DoEuler = 0;
 int lheno, rheno;
 int DoAbs = 0;
 int UsePrintSegStat = 1; // use new way to print
+
+int nReplace , SrcReplace[1000], TrgReplace[1000]; // for replacing segs
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -358,6 +361,13 @@ int main(int argc, char **argv)
       printf("ERROR: loading %s\n",SegVolFile);
       exit(1);
     }
+    if(nReplace > 0) {
+      printf("Replacing %d\n",nReplace);
+      mritmp = MRIreplaceList(seg,SrcReplace, TrgReplace, nReplace, NULL, NULL);
+      MRIfree(&seg);
+      seg = mritmp;
+    }
+
     if(nErodeSeg){
       printf("Eroding seg %d times\n",nErodeSeg);
       tmp = MRIerodeSegmentation(seg, NULL, nErodeSeg, 0);
@@ -1450,10 +1460,8 @@ static int parse_commandline(int argc, char **argv)
     {
       dontrun = 1;
     }
-    else if (!strcasecmp(option, "--nonempty"))
-    {
+    else if (!strcasecmp(option, "--nonempty")||!strcasecmp(option, "--non-empty"))
       NonEmptyOnly = 1;
-    }
     else if (!strcasecmp(option, "--empty"))
     {
       NonEmptyOnly = 0;
@@ -1920,6 +1928,25 @@ static int parse_commandline(int argc, char **argv)
       PVVolFile = pargv[0];
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--gtm-default-seg-merge"))
+      GTMdefaultSegReplacmentList(&nReplace,&(SrcReplace[0]),&(TrgReplace[0]));
+    else if(!strcasecmp(option, "--gtm-default-seg-merge-choroid")){
+      GTMdefaultSegReplacmentList(&nReplace,&(SrcReplace[0]),&(TrgReplace[0]));
+      nReplace -= 2;       // Last two itmes are choroid.
+    }
+    else if(!strcmp(option, "--replace-file")){
+      if(nargc < 1) CMDargNErr(option,1);
+      int err=GTMloadReplacmentList(pargv[0],&nReplace,&(SrcReplace[0]),&(TrgReplace[0]));
+      if(err) exit(1);
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--replace")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&SrcReplace[nReplace]);
+      sscanf(pargv[1],"%d",&TrgReplace[nReplace]);
+      nReplace++;
+      nargsused = 2;
+    } 
     else
     {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);

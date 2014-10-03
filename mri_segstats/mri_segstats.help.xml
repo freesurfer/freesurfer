@@ -167,6 +167,14 @@ For each segmentation, computes the average waveform across all the voxels in th
       <explanation>print out information on how to use this program</explanation>
       <argument>--version</argument>
       <explanation>print out version and exit</explanation>
+      <argument>--replace ID1 ID2</argument>
+      <explanation>Replace ID1 with ID2</explanation>
+      <argument>--replace-file file</argument>
+      <explanation>Replace segmentations based pairs in file</explanation>
+      <argument>--gtm-default-seg-merge</argument>
+      <explanation>Replace segmentations based on GTM default</explanation>
+      <argument>--gtm-default-seg-merge-choroid</argument>
+      <explanation>Replace segmentations based on GTM default excluding choroid</explanation>
     </optional-flagged>
   </arguments>
 	<example>mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --excludeid 0 --sum bert.aseg.sum
