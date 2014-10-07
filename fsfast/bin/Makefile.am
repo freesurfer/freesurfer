@@ -49,6 +49,7 @@ FSF_FILES=\
 	fast_getext \
 	fast-log-preamble.csh \
 	fcseed-config \
+	fcseedcor \
 	fcseed-sess \
 	fcreg-sess \
 	feat.fsfast-patch \

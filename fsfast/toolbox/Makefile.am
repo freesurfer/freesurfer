@@ -91,6 +91,7 @@ MFILES=\
 	fast_evspatfil.m \
 	fast_exptrendmtx.m \
 	fast_fcreg.m \
+	fast_fcseedcor.m \
 	fast_fdrthresh.m \
 	fast_fftaxis.m \
 	fast_ffx.m \
