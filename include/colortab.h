@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/05/28 20:16:50 $
- *    $Revision: 1.36 $
+ *    $Author: greve $
+ *    $Date: 2014/10/07 15:29:50 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,7 @@ typedef struct
   int   ri, gi, bi, ai;  /* 0-255 range. */
   float rf, gf, bf, af;   /* 0-1 range.  */
   int TissueType;
+  int count; // Number of voxels for this entry
 }
 COLOR_TABLE_ENTRY, CTE;
 

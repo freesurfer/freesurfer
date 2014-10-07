@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/30 23:18:06 $
- *    $Revision: 1.62 $
+ *    $Date: 2014/10/07 15:29:50 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -176,6 +176,7 @@ COLOR_TABLE *CTABreadASCII(const char *fname)
         ct->entries[structure]->af =
           (float)ct->entries[structure]->ai / 255.0;
 	ct->entries[structure]->TissueType = tt;
+	ct->entries[structure]->count = 0;
       }
     }
     line_num++;

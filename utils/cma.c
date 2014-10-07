@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/28 21:11:27 $
- *    $Revision: 1.20 $
+ *    $Date: 2014/10/07 15:29:50 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1182,18 +1182,21 @@ MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg)
 /*!
   \fn int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct)
   \brief Make sure that the each segmentation has a tissue type.
-  Tissue type info in the ctab.
+  Tissue type info in the ctab. Counts number of voxels for 
+  each entry.
   \return 0 if no error, 1 if error
 */
 int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct)
 {
-  int c,r,s,segid,err;
+  int c,r,s,n,segid,err;
 
   err = 1;
   if(ct->ctabTissueType == NULL){
     printf("ERROR: CheckSegTissueType() ctab tissue type not set\n");
     return(err);
   }
+
+  for(n=0; n < ct->nentries; n++) if(ct->entries[n]) ct->entries[n]->count = 0;
 
   for(c=0; c < seg->width; c++){
     for(r=0; r < seg->height; r++){
@@ -1208,6 +1211,7 @@ int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct)
 		 segid,ct->entries[segid]->name);
 	  return(err);
 	}
+	ct->entries[segid]->count++;
       }
     }
   }
