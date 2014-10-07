@@ -1,0 +1,359 @@
+#!/bin/tcsh -f
+# fcseedcor
+
+set VERSION = '$Id: fcseedcor,v 1.1 2014/10/07 19:43:27 greve Exp $';
+
+set outfile = ();
+set seedlist = ();
+set xreglist = ();
+set nperxreg = ();
+set HPFCutOffHz = ()
+set LPFCutOffHz = ();
+set nskip = 4;
+set LPFOrderRatio = 10;
+set nsim = 0;
+set fsd = bold;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set MLF = ();
+set monly = 0;
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+if($#tmpdir == 0) then
+  if(-e /scratch)   set tmpdir = /scratch/tmpdir.fcseedcor.$$
+  if(! -e /scratch) set tmpdir = tmpdir.fcseedcor.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = log/$outfile.fcseedcor.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for fcseedcor" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+if($#MLF == 0) set MLF = /tmp/selxavg3-sess-$$.m
+rm -f $MLF
+echo "% `date`  " >> $MLF
+echo "% `pwd`  " >> $MLF
+echo "  " >> $MLF
+echo "  " >> $MLF
+
+echo "outfile = '$outfile';"  >> $MLF
+echo "fsd = '$fsd';"  >> $MLF
+echo "sesslist = '';" >> $MLF
+foreach sess ($SessList)
+  echo "sesslist = strvcat(sesslist,'$sess');" >> $MLF
+end
+
+echo "seedlist = '';" >> $MLF
+foreach seed ($seedlist)
+  echo "seedlist = strvcat(seedlist,'$seed');" >> $MLF
+end
+
+echo "xreglist = '';" >> $MLF
+foreach xreg ($xreglist)
+  echo "xreglist = strvcat(xreglist,'$xreg');" >> $MLF
+end
+echo "nperxreg = [$nperxreg];" >> $MLF
+
+echo "HPFCutOffHz = $HPFCutOffHz;" >> $MLF
+echo "LPFCutOffHz = $LPFCutOffHz;" >> $MLF
+echo "nskip = $nskip;" >> $MLF
+echo "LPFOrderRatio = $LPFOrderRatio;" >> $MLF
+echo "nsim = $nsim;" >> $MLF
+echo "monly = $monly;" >> $MLF
+echo "fast_fcseedcor;" >> $MLF
+
+if(! $monly) then
+  echo "------- matlab output --------------------" | tee -a $LF
+  cat $MLF | matlab -display iconic | tee -a $LF
+endif
+
+#========================================================
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Fcseedcor-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Fcseedcor-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "fcseedcor Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o":
+      if($#argv < 1) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "-seed":
+      if($#argv < 1) goto arg1err;
+      set seed = $argv[1]; shift;
+      set seedlist = ($seedlist $seed)
+      breaksw
+
+    case "-xreg":
+      if($#argv < 2) goto arg2err;
+      set xreg = $argv[1]; shift;
+      set nper = $argv[1]; shift;
+      set xreglist = ($xreglist $xreg)
+      set nperxreg = ($nperxreg $nper)
+      breaksw
+
+    case "-fsd":
+      if( $#argv < 1) goto arg1err;
+      set fsd =  $argv[1]; shift;
+      breaksw
+
+    case "-hpf":
+      if( $#argv < 1) goto arg1err;
+      set HPFCutOffHz =  $argv[1]; shift;
+      breaksw
+
+    case "-lpf":
+      if( $#argv < 1) goto arg1err;
+      set LPFCutOffHz =  $argv[1]; shift;
+      breaksw
+
+    case "-lpf-order":
+      if( $#argv < 1) goto arg1err;
+      set LPFOrderRatio =  $argv[1]; shift;
+      breaksw
+
+    case "-nskip":
+      if( $#argv < 1) goto arg1err;
+      set nskip =  $argv[1]; shift;
+      breaksw
+
+    case "-sim":
+      if( $#argv < 1) goto arg1err;
+      set nsim =  $argv[1]; shift;
+      breaksw
+
+    case "-monly":
+      if( $#argv < 1) goto arg1err;
+      set MLF =  $1; shift;
+      set monly = 1;
+      breaksw
+
+    case "-log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+    case "-no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "-tmp":
+    case "-tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "-nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "-cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "-debug":
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outfile == 0) then
+  echo "ERROR: must spec output file"
+  exit 1;
+endif
+if($#seedlist < 1) then
+  echo "ERROR: must spec at least two seeds"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fcseedcor - correlation coefficient between two or more seed regions "
+  echo "  -help - get more information"
+  echo "  -o output file (eg, seedcor.dat)"
+  echo "  -seed seedname -seed seedname2 <-seed seedname3 ... >"
+  echo "  -xreg xregname N <-xreg xregname2 N2> "
+  echo "  -fsd FSD (default is $fsd)"
+  echo "  -hpf HPFCutOffHz : high-pass cut off in Hz"
+  echo "  -lpf LPFCutOffHz : high-pass cut off in Hz"
+  echo "  -nskip nskip : skip first nskip time points (default $nskip)"
+  echo "  -lpf-order LPFOrderRatio : select LPF order ratio (default $LPFOrderRatio)"
+  echo "  -sim nsim : perform simulations to compute p-values for each correlation"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the partial correlation coefficient between two or more seed regions 
+after regressing out nuisance variables and performing temporal filtering.
+
+Exapmle:
+
+fcseedcor \
+  -s sess01 -s sess03 -s sess05 -fsd rest\
+  -seed fc.licc.dat \
+  -seed fc.postc.rh.dat \
+  -seed fc.calc.rh.dat \
+  -xreg global.waveform.dat 1 \
+  -xreg fc.vcsf.dat 1 \
+  -xreg fc.wm.dat 1 \
+  -xreg mcprextreg 6 \
+  -hpf .01 -lpf .2 -nskip 4 \
+  -o seedcor.dat
+
+Runs on three sessions using rest as the FSD. Three seeds were
+chosen. Four nuisance regressors were chosen. Each nuisance regressor
+is followed by a number indicating how many regressors from that file
+to use. The seeds and nuisance regressors are created by running
+fcseed-config and fcseed-sess. A high-pass filter cut off of 0.01 Hz
+was selected. This is used to compute the number of polynomial regressors
+to use as nuisance variables. A low-pass filter cut off of 0.20 Hz
+was selected; this is implemented as a filter. 
+
+The output will be a text file called seedcor.dat. There will be a
+different file for each run and subject; it will be saved in
+session/fsd/RRR/seedcor.dat. There will also be a log file called
+session/fsd/RRR/seedcor.dat.log. For the above example, seedcor.dat
+will be a 3x3 matrix looking something like
+
+ 0.00000 -0.41453  0.24401 
+-0.41453  0.00000 -0.07780 
+ 0.24401 -0.07780  0.00000 
+
+The diagonal will always be 0. The matrix will always be symmetric. The correlation 
+betwee fc.licc.dat (1st seed) and fc.postc.rh.dat (2nd seed) is -0.41453. 
+
+If you have multiple runs, average across the runs before comparing
+across subject.
+
+There is a way to compute p-values of each correlation through
+simulation. To do this, add -sim N where N is the number of
+simulations to run; 1000 should be sufficient (it is pretty fast).
+When this is done, there will be a new file called
+session/fsd/RRR/pseedcor.dat with a 3x3 matrix. The values in the
+matrix will be the p-values that the correlation coefficient is not
+equal to 0.
+
