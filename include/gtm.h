@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/10/01 01:54:50 $
- *    $Revision: 1.16 $
+ *    $Date: 2014/10/07 15:30:42 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -107,10 +107,11 @@ typedef struct
   int nmask; // number of voxels in the mask
 
   int nsegs,*segidlist; // number of segments in segmentation, list of segids
-  int *nperseg; // number of voxels per seg
+  int *nperseg; // number of voxels per seg measured in pet space
+  MATRIX *nvox; // same as nperseg, doh
+  MRI *volperseg; // volume of each segment (nperseg * voxsize) measure in anat seg space
   COLOR_TABLE *ctGTMSeg; // color table of segments
   int nReplace , SrcReplace[1000], TrgReplace[1000]; // for replacing segs
-  MATRIX *nvox; // same as nperseg, doh
   MATRIX *vrf;  // variance reduction factor for each seg
   MATRIX *segrvar; // residual variance in each seg
 

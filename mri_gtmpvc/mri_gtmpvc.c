@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/10/01 01:54:51 $
- *    $Revision: 1.34 $
+ *    $Date: 2014/10/07 15:30:42 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.34 2014/10/01 01:54:51 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.35 2014/10/07 15:30:42 greve Exp $
 
 /*
   BEGINHELP
@@ -90,9 +90,10 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
+MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.34 2014/10/01 01:54:51 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.35 2014/10/07 15:30:42 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -202,9 +203,11 @@ int main(int argc, char *argv[])
   // by default, rescale to Cerebellum WM
   gtm->rescale = 1; 
   gtm->scale_refval = 1; 
-  gtm->n_scale_refids = 2;
-  gtm->scale_refids[0] = 7;
-  gtm->scale_refids[1] = 46;
+  //gtm->n_scale_refids = 2;
+  //gtm->scale_refids[0] = 7; // lh cerebellum wm
+  //gtm->scale_refids[1] = 46;// rh cerebellum wm
+  gtm->n_scale_refids = 1;
+  gtm->scale_refids[0] = 174; // pons
   gtm->mask_rbv_to_brain = 1;
   gtm->nReplace = 0;
   gtm->nContrasts = 0;
@@ -308,6 +311,11 @@ int main(int argc, char *argv[])
   printf("Pruning ctab\n"); fflush(stdout);
   gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
   if(Gdiag_no > 0) printf("  done pruning ctab\n"); fflush(stdout);
+
+  gtm->volperseg = CTABcount2MRI(gtm->ctGTMSeg, gtm->anatseg);
+  sprintf(tmpstr,"%s/seg.vol.nii.gz",AuxDir);
+  MRIwrite(gtm->volperseg,tmpstr);
+  printf("done with seg vol\n"); fflush(stdout);
 
   if(ttReduce > 0) {
     MRI *ttseg;
@@ -1738,6 +1746,29 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
 
   outlta = LTAchangeType(outlta,intype);
   return(outlta);
+}
+
+
+MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg)
+{
+  int n,ntot;
+  MRI *mri;
+  float voxsize;
+
+  voxsize = seg->xsize * seg->ysize * seg->zsize;
+
+  ntot = 0;
+  for(n=1; n < ct->nentries; n++) if(ct->entries[n]) ntot++;
+  mri = MRIalloc(ntot,1,1,MRI_FLOAT);
+
+  ntot = 0;
+  for(n=1; n < ct->nentries; n++) 
+    if(ct->entries[n]) {
+      MRIsetVoxVal(mri,ntot,0,0,0, voxsize*ct->entries[n]->count);
+      ntot++;
+    }
+
+  return(mri);
 }
 
 
