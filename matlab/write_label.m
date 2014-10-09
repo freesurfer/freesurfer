@@ -8,8 +8,8 @@ function ok = write_label(lindex, lxyz, lvals, labelfile, subjid,space)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: fischl $
-%    $Date: 2014/10/09 21:48:50 $
-%    $Revision: 1.5 $
+%    $Date: 2014/10/09 21:51:47 $
+%    $Revision: 1.6 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -25,12 +25,13 @@ function ok = write_label(lindex, lxyz, lvals, labelfile, subjid,space)
 
 ok = 0;
 
-if(nargin ~= 4 & nargin ~= 5)
-  fprintf('ok = write_label(lindex, lxzy, lvals, labelfile, <subjid>)\n');
+if(nargin ~= 4 & nargin ~= 5 & nargin ~= 6)
+  fprintf('ok = write_label(lindex, lxzy, lvals, labelfile, <subjid> <space>)\n');
   return;
 end
 
-if(exist('subid') ~= 1) subjid = ''; end
+if(exist('subjid') ~= 1) subjid = 'matlab'; end
+if(exist('space') ~= 1) space = 'tkReg'; end
 
 if(isempty(lindex) & isempty(lxyz))
   fprintf('ERROR: both lindex and lxyz are empty.\n');
@@ -74,7 +75,7 @@ if(fid == -1)
   return;
 end
 
-fprintf(fid,'#!ascii label, from subject %s \n',subjid);
+fprintf(fid,'#!ascii label, from subject %s, vox2ras=%s \n',subjid,space);
 fprintf(fid,'%d\n',npoints);
 
 % Make sure they are npoints by 1 %
