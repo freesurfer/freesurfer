@@ -1,5 +1,5 @@
-function ok = write_label(lindex, lxyz, lvals, labelfile, subjid)
-% ok = write_label(lindex, lxzy, lvals, labelfile, <subjid>)
+function ok = write_label(lindex, lxyz, lvals, labelfile, subjid,space)
+% ok = write_label(lindex, lxzy, lvals, labelfile, <subjid>,<space name>)
 
 
 %
@@ -7,9 +7,9 @@ function ok = write_label(lindex, lxyz, lvals, labelfile, subjid)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:13 $
-%    $Revision: 1.4 $
+%    $Author: fischl $
+%    $Date: 2014/10/09 21:48:50 $
+%    $Revision: 1.5 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -21,6 +21,7 @@ function ok = write_label(lindex, lxyz, lvals, labelfile, subjid)
 %
 % Reporting: freesurfer@nmr.mgh.harvard.edu
 %
+% where space name can be "voxel", "tkreg", "scanner"
 
 ok = 0;
 
