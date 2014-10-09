@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/09/30 19:00:18 $
-#    $Revision: 1.621 $
+#    $Author: zkaufman $
+#    $Date: 2014/10/09 15:17:26 $
+#    $Revision: 1.622 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2775,8 +2775,60 @@ AC_SUBST(ITK_LIBS)
 AC_SUBST(ITK_LIB)
 AC_SUBST(LIBS_ITK)
 
+################################################################
+# GDCM (Grassroots DICOM)
+################################################################
+ac_gdcm_includes="NO"
+ac_gdcm_libraries="NO"
+GDCM_CFLAGS=""
+GDCM_LIBS=""
+GDCM_LIB=""
+LIBS_GDCM=""
+GDCM_DIR=""
+AC_MSG_CHECKING(GDCM directory)
 
-#####################################################
+if test "x$GDCM_DIR" = "x"; then
+  if test -d "/usr/pubsw/packages/gdcm/current" ; then
+    withval=/usr/pubsw/packages/gdcm/current
+    gdcm_i="$withval/include/gdcm-2.4"
+    ac_gdcm_includes="$gdcm_i $gdcm_i/gdcmjpeg $gdcm_i/gdcmopenjpeg $gdcm_i/gdcmcharls $gdcm_i/socketxx"
+    ac_gdcm_libraries="$withval/lib"
+    GDCM_DIR="$withval"
+    gdcm_apps="yes"
+    AC_SUBST(GDCM_DIR)
+  fi
+fi
+
+if test ! "$ac_gdcm_includes" = "NO"; then
+  AC_MSG_RESULT(GDCM directory is $withval)
+  for item in $ac_gdcm_includes; do
+      GDCM_CFLAGS="${GDCM_CFLAGS} -I${item}"
+  done
+fi
+
+if test ! "$ac_gdcm_libraries" = "NO"; then
+  GDCM_LIBS=-L$ac_gdcm_libraries
+  GDCM_LIB=$ac_gdcm_libraries
+fi
+
+if test "$gdcm_apps" = "yes"; then
+  AC_MSG_RESULT([Enabled building of GDCM apps.])
+  LIBS_GDCM="-lgdcmcharls -lgdcmCommon -lgdcmDICT -lgdcmDSED -lgdcmexpat \
+             -lgdcmIOD -lgdcmjpeg12 -lgdcmjpeg16 -lgdcmjpeg8 -lgdcmMEXD  \
+             -lgdcmMSFF -lgdcmopenjpeg -lgdcmuuid -lgdcmzlib -lsocketxx"
+  LDFLAGS="$GDCM_LIBS $LDFLAGS"
+else
+  AC_MSG_RESULT([Not building GDCM apps.])
+fi
+
+AM_CONDITIONAL(ENABLE_GDCM_APPS, test "$gdcm_apps" = "yes")
+AM_CONDITIONAL(HAVE_GDCM_LIBS, test "$gdcm_apps" = "yes")
+
+AC_SUBST(GDCM_CFLAGS)
+AC_SUBST(GDCM_LIBS)
+AC_SUBST(GDCM_LIB)
+AC_SUBST(LIBS_GDCM)
+
 # OpenGL
 #####################################################
 AC_MSG_NOTICE(Getting OpenGL info...)
@@ -2955,11 +3007,11 @@ ac_save_ldflags=$LDFLAGS
 CPPFLAGS="$CPPFLAGS $EXPAT_CFLAGS $TIFF_CFLAGS $JPEG_CFLAGS \
 $PETSC_CFLAGS $ITK_CFLAGS $ANN_CFLAGS \
 $MNI_CFLAGS $TCL_CFLAGS $CPPUNIT_CFLAGS $VXL_CFLAGS $NIFTI_CFLAGS \
-$GL_CFLAGS $GLU_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS"
+$GL_CFLAGS $GLU_CFLAGS $VTK_CFLAGS $KWWIDGETS_CFLAGS $GDCM_CFLAGS"
 LDFLAGS="$LDFLAGS $MNI_LIBS $TCL_LIBS $VXL_LIBS \
 $EXPAT_LIBS $TIFF_LIBS $JPEG_LIBS \
 $gl_libs $GL_LIBS $GLU_LIBS $VTK_LIBS $ITK_LIBS $KWWIDGETS_LIBS \
-$PETSC_LIBS $NIFTI_LIBS $XAWPLUS_LIBS $ANN_LIBS"
+$PETSC_LIBS $NIFTI_LIBS $XAWPLUS_LIBS $ANN_LIBS $GDCM_LIBS"
 AC_MSG_NOTICE(Making sure that all libraries can be compiled...)
 # AC_MSG_NOTICE(CPPFLAGS: $CPPFLAGS)
 # AC_MSG_NOTICE(LDFLAGS: $LDFLAGS)
@@ -3433,6 +3485,7 @@ LIBS="$LIBS $LIBS_NIFTI"
 LIBS="$LIBS_ITK $LIBS"
 LIBS="$LIBS_ICC $LIBS"
 LIBS="$LIBS_OPEN64 $LIBS"
+LIBS="$LIBS_GDCM $LIBS"
 
 AC_SUBST(CPPFLAGS)
 AC_SUBST(LDFLAGS)
