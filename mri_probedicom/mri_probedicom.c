@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/18 22:05:24 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/10/14 19:49:46 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.39 2014/09/18 22:05:24 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.40 2014/10/14 19:49:46 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
   int n,nvoxs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.39 2014/09/18 22:05:24 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.40 2014/10/14 19:49:46 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -513,6 +513,7 @@ static void print_help(void) {
     "      protocol           18 1030\n"
     "      flip angle         18 1314\n"
     "      echo time          18 81\n"
+    "      inversion time     18 82\n"
     "      repetition time    18 80\n"
     "      slice thickness    18 50\n"
     "      pixel spacing      28 30\n"
@@ -1071,6 +1072,13 @@ int PartialDump(char *dicomfile, FILE *fp)
     free(e);
   }
 
+  e = GetElementFromFile(dicomfile, 0x18, 0x82);
+  if (e != NULL) {
+    fprintf(fp,"InversionTime %s\n",e->d.string);
+    FreeElementData(e);
+    free(e);
+  }
+
   e = GetElementFromFile(dicomfile, 0x18, 0x89);
   if (e != NULL) {
     fprintf(fp,"NPhaseEnc %s\n",e->d.string);
@@ -1569,6 +1577,7 @@ int DCMCompare(char *dcmfile1, char *dcmfile2)
   tagname[n] = "Transmitting Coil";tag1[n] = 0x18; tag2[n] = 0x1251; type[n] = 0; n++;
   tagname[n] = "Flip Angle";       tag1[n] = 0x18; tag2[n] = 0x1314; type[n] = 0; n++;
   tagname[n] = "Echo Time";        tag1[n] = 0x18; tag2[n] = 0x0081; type[n] = 0; n++;
+  tagname[n] = "Inversion Time";   tag1[n] = 0x18; tag2[n] = 0x0082; type[n] = 0; n++;
   tagname[n] = "Repetition Time";  tag1[n] = 0x18; tag2[n] = 0x0080; type[n] = 0; n++;
   tagname[n] = "Phase Encode Direction"; tag1[n] = 0x18; tag2[n] = 0x1312; type[n] = 0; n++;
   tagname[n] = "Pixel Spacing";    tag1[n] = 0x28; tag2[n] = 0x0030; type[n] = 0; n++;
