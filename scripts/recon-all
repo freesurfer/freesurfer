@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/09/29 17:53:57 $
-#    $Revision: 1.485 $
+#    $Date: 2014/10/15 21:54:35 $
+#    $Revision: 1.486 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.485 2014/09/29 17:53:57 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.486 2014/10/15 21:54:35 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -47,6 +47,7 @@ set CF_DEFAULT_NAME = recon-all.cmd;
 set AppendLog    = 1;
 set AppendStatus = 1;
 set DoTime = 0;
+if($?SET_FS_CMD_TIMING) set DoTime = 1;
 set fs_time = "";
 set ErrorFile = /dev/null
 set cmd = ();
