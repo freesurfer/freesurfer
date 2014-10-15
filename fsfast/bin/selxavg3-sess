@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/05/08 19:59:47 $
-#    $Revision: 1.61 $
+#    $Date: 2014/10/15 22:02:08 $
+#    $Revision: 1.62 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.61 2014/05/08 19:59:47 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.62 2014/10/15 22:02:08 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -58,6 +58,7 @@ set SynthNoiseAR1 = .3;
 set SynthSignalAmp = 0;
 set SynthSeed = -1;
 set ReduceToMask = 1;
+set threads = "-singleCompThread"; # one single thread
 
 set UseOctave = 0;
 if($?FS_USE_OCTAVE) then
@@ -320,7 +321,7 @@ if(! $monly && $nprocs > 0) then
   echo "------------------------------------------" | tee -a $LF
   if($UseOctave == 0) then
     echo "------- matlab output --------------------" | tee -a $LF
-    cat $MLF | matlab -display iconic | tee -a $LF
+    cat $MLF | matlab -display iconic $threads | tee -a $LF
   else
     echo "------- octave output --------------------" | tee -a $LF
     echo LD_LIBRARY_PATH $LD_LIBRARY_PATH
@@ -488,6 +489,10 @@ while( $#argv != 0 )
       set UseOctave = 0;
       breaksw
 
+    case "-max-threads":
+      set threads = ""
+      breaksw
+  
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -638,6 +643,7 @@ usage_exit:
   echo "   -nolog         : do not create a log file"
   echo "   -log logfile   : specify log file explicitly"
   echo "   -outparent dir : save output to this dir instead of in session"
+  echo "   -max-threads   : use all CPUs (default is to use 1)"
   echo ""
 
   if(! $PrintHelp) exit 1;
