@@ -33,8 +33,8 @@ function hdr = load_nifti(niftifile,hdronly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2014/10/15 21:30:49 $
-%    $Revision: 1.19 $
+%    $Date: 2014/10/15 22:01:26 $
+%    $Revision: 1.20 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -61,13 +61,12 @@ if(isempty(hdronly)) hdronly = 0; end
 ext = niftifile((strlen(niftifile)-2):strlen(niftifile));
 if(strcmpi(ext,'.gz'))
   % Need to create unique file name (harder than it looks)
-  r0 = rand('state');
-  rand('state', sum(100*clock));
-  gzipped =  round(rand(1)*10000000 + sum(int16(niftifile))) + round(cputime);
-  rand('state',r0);
-  ind = findstr(niftifile, '.');
-  new_niftifile = sprintf('%s/tmp%d.nii', fsgettmppath, gzipped);
+  %r0 = rand('state');  rand('state', sum(100*clock));
+  %gzipped =  round(rand(1)*10000000 + sum(int16(niftifile))) + round(cputime);
+  %rand('state',r0);
+  new_niftifile = sprintf('%s.load_nifti.m.nii', tempname(fsgettmppath));
   %fprintf('Uncompressing %s to %s\n',niftifile,new_niftifile);
+  gzipped = 1;
   if(strcmp(computer,'MAC') || strcmp(computer,'MACI') || ismac)
     cmd = sprintf('gunzip -c %s > %s', niftifile, new_niftifile)
   else
