@@ -32,9 +32,9 @@ function hdr = load_nifti(niftifile,hdronly)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:12 $
-%    $Revision: 1.18 $
+%    $Author: greve $
+%    $Date: 2014/10/15 21:30:49 $
+%    $Revision: 1.19 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -61,16 +61,24 @@ if(isempty(hdronly)) hdronly = 0; end
 ext = niftifile((strlen(niftifile)-2):strlen(niftifile));
 if(strcmpi(ext,'.gz'))
   % Need to create unique file name (harder than it looks)
+  r0 = rand('state');
   rand('state', sum(100*clock));
-  gzipped =  round(rand(1)*10000000 + ...
-		   sum(int16(niftifile))) + round(cputime);
+  gzipped =  round(rand(1)*10000000 + sum(int16(niftifile))) + round(cputime);
+  rand('state',r0);
   ind = findstr(niftifile, '.');
-  new_niftifile = sprintf('/tmp/tmp%d.nii', gzipped);
+  new_niftifile = sprintf('%s/tmp%d.nii', fsgettmppath, gzipped);
   %fprintf('Uncompressing %s to %s\n',niftifile,new_niftifile);
   if(strcmp(computer,'MAC') || strcmp(computer,'MACI') || ismac)
-    unix(sprintf('gunzip -c %s > %s', niftifile, new_niftifile));
+    cmd = sprintf('gunzip -c %s > %s', niftifile, new_niftifile)
   else
-    unix(sprintf('zcat %s > %s', niftifile, new_niftifile)) ;
+    cmd = sprintf('zcat %s > %s', niftifile, new_niftifile);
+  end
+  [status result] = unix(cmd);
+  if(status)
+    fprintf('cd %s\n',pwd);
+    fprintf('%s\n',cmd);
+    fprintf('ERROR: %s\n',result);
+    return;
   end
   niftifile = new_niftifile ;
 else
@@ -79,7 +87,16 @@ end
 
 hdr = load_nifti_hdr(niftifile);
 if(isempty(hdr)) 
-  if(gzipped >=0) unix(sprintf('rm %s', niftifile)); end
+  if(gzipped >=0) 
+    cmd = sprintf('rm %s', niftifile);
+    [status result] = unix(cmd); 
+    if(status)
+      fprintf('cd %s\n',pwd);
+      fprintf('%s\n',cmd);
+      fprintf('ERROR: %s\n',result);
+      return;
+    end
+  end
   return; 
 end
 
@@ -125,6 +142,11 @@ switch(hdr.datatype)
  otherwise,
   fprintf('ERROR: data type %d not supported',hdr.datatype);
   hdr = [];
+  fclose(fp);
+  if(gzipped >=0) 
+    fprintf('Deleting temporary uncompressed file %s\n',niftifile);
+    unix(sprintf('rm %s', niftifile)); 
+  end
   return;
 end
 
