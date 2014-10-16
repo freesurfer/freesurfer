@@ -2,15 +2,15 @@
 #
 # NAME
 #
-#  batchjobs
+#  reconbatchjobs
 #
 # SYNOPSIS
 #
-#  batchjobs logfile cmdfile1 [cmdfile2 ...]
+#  reconbatchjobs logfile cmdfile1 [cmdfile2 ...]
 #
 # DESCRIPTION
 #
-#  batchjobs is a worker-bee for the recon-all script, to
+#  reconbatchjobs is a worker-bee for the recon-all script, to
 #  support running multiple instances of a binary (ie running
 #  in parallel).  The main hurdles to running recon-all binaries
 #  in parallel is making sure to get the return code, and to
@@ -18,19 +18,21 @@
 #  are simultaneously sent to the log file, then the log file
 #  becomes an interleaved mess).
 #
-#  batchjobs takes at least two arguments.  The first is the
+#  reconbatchjobs takes at least two arguments.  The first is the
 #  filename to which command output should be appended when the
 #  command (job) is finished.
 #  The next argument(s) are files containing the command string
 #  to execute.
+#  For example usage, look in the recon-all script in the 'multi-strip'
+#  section of the skull-strip stage.
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/02 20:16:38 $
-#    $Revision: 1.3 $
+#    $Date: 2014/10/16 18:00:57 $
+#    $Revision: 1.1 $
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -43,7 +45,7 @@
 #
 
 if [ $# -lt 3 ] ; then
-  echo "Usage: batchjobs logfile cmdfile1 [cmdfile2 ...]"
+  echo "Usage: reconbatchjobs logfile cmdfile1 [cmdfile2 ...]"
   exit 1
 fi
 
