@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/09/09 15:05:25 $
-#    $Revision: 1.52 $
+#    $Date: 2014/10/16 16:32:02 $
+#    $Revision: 1.53 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.52 2014/09/09 15:05:25 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.53 2014/10/16 16:32:02 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -75,7 +75,12 @@ set RegDOF = 6;
 set regfile = ();
 set UseB0DC = 0;
 set ApplySubCortMask = 1;
+set InitFSL = 1;
+set InitSPM = 0;
 set InitHeader = 0;
+set IntermediateFSD = ()
+set IntermediateStem = ()
+set contrast = bold
 
 set nskip = 0; # for inorm
 set nolog = 0;
@@ -188,14 +193,17 @@ foreach sess ($SessList)
 
   if($DoReg) then
     set cmd = (register-sess -s $sessid -d $sessparent -fsd $fsd)
-    set cmd = ($cmd -dof $RegDOF)
+    set cmd = ($cmd -dof $RegDOF -$contrast)
     if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
     if($PerRun)     set cmd = ($cmd -per-run)
     if($PerSess) set cmd = ($cmd -per-session)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($UseB0DC)    set cmd = ($cmd -b0dc)
+    if($InitFSL) set cmd = ($cmd -init-fsl)
+    if($InitSPM) set cmd = ($cmd -init-spm)
     if($InitHeader) set cmd = ($cmd -init-header)
+    if($#IntermediateFSD) set cmd = ($cmd -bbr-int $IntermediateFSD $IntermediateStem)
     echo "$sessid Registration -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -443,6 +451,20 @@ while( $#argv != 0 )
       set regfile = $argv[1]; shift;
       breaksw
 
+    case "-bbr-int":
+      if($#argv < 2) goto arg2err;
+      set IntermediateFSD = $argv[1]; shift;
+      set IntermediateStem = $argv[1]; shift;
+      breaksw
+
+    case "-bold":
+    case "-t2":
+      set contrast = bold
+      breaksw
+    case "-t1":
+      set contrast = t1
+      breaksw
+
     case "-projfrac":
       if ( $#argv == 0) goto arg1err;
       set ProjFrac = $argv[1]; shift;
@@ -557,7 +579,19 @@ while( $#argv != 0 )
       set ApplySubCortMask = 0;
       breaksw
 
+    case "-init-fsl":
+      set InitFSL = 1;
+      set InitSPM = 0;
+      set InitHeader = 0;
+      breaksw
+    case "-init-spm":
+      set InitFSL = 0;
+      set InitSPM = 1;
+      set InitHeader = 0;
+      breaksw
     case "-init-header":
+      set InitFSL = 0;
+      set InitSPM = 0;
       set InitHeader = 1;
       breaksw
 
@@ -790,6 +824,12 @@ usage_exit:
   echo "  -d  srchdir     ..."
   echo "  -fsd    fsd <bold>"
   echo "  -rlf    rlf  : run list file (default all runs)"
+  echo ""
+  echo "Registration options"
+  echo "  -init-fsl : use fsl to initialize bbr registration"
+  echo "  -init-spm : use spm to initialize bbr registration (needs matlab)"
+  echo "  -init-header : use geometry to initialize bbr registration"
+  echo "  -bbr-int ifsd istem : use intermediate volume in sess/ifsd/RRR/istem"
   echo ""
   echo "Other options (probably not too useful)"
   echo ""
