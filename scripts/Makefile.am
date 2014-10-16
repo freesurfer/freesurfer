@@ -12,7 +12,7 @@ aparcstatsdiff \
 asegstatsdiff \
 apas2aseg \
 avi2talxfm \
-batchjobs \
+reconbatchjobs \
 beta2sxa \
 bblabel \
 bbmask \
