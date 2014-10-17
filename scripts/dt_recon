@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.19 2014/08/07 18:58:08 lzollei Exp $';
+set VERSION = '$Id: dt_recon,v 1.20 2014/10/17 23:19:15 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -22,6 +22,7 @@ set infodump = ();
 set OutDir = ();
 set reg = ();
 set mask = ();
+set bbrinit = fsl
 
 set PrintHelp = 0;
 set LF = ();
@@ -175,7 +176,7 @@ if($#reg == 0) then
     echo "Registration" |  tee -a $LF
     date |  tee -a $LF
     set cmd = (bbregister --s $subject --mov $OutDir/lowb.nii.gz \
-       --init-fsl --lta $reg --bold) # TODO: can it be run without --reg????
+       --init-$bbrinit --lta $reg --bold) # TODO: can it be run without --reg????
     if($subject == fsaverage) set cmd = ($cmd --12)
     echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
     echo "cd `pwd`" |  tee -a $LF
@@ -333,6 +334,14 @@ while( $#argv != 0 )
       set DoTalairach = 0;
       breaksw
 
+    case "--init-fsl":
+      set bbrinit = fsl
+      breaksw
+
+    case "--init-spm":
+      set bbrinit = spm
+      breaksw
+
     case "--eres-save":
       set SaveERes = 1;
       breaksw
@@ -470,6 +479,7 @@ usage_exit:
   echo "  --eres-save      : save resdidual error (dwires and eres)"
   echo "  --pca            : run PCA/SVD analysis on eres (saves in pca-eres dir)"
   echo "  --prune_thr thr  : set threshold for masking (default is FLT_MIN)"
+  echo "  --init-spm       : init BBR with SPM instead of FSL (requires matlab)"
   echo "  --debug          : print out lots of info"
   echo "  --version        : print version of this script and exit"
   echo "  --help           : voluminous bits of wisdom"
