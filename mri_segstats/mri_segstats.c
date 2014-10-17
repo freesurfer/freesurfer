@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/10/03 22:30:24 $
- *    $Revision: 1.108 $
+ *    $Date: 2014/10/17 19:31:46 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,11 +101,12 @@ int MRIsegCount(MRI *seg, int id, int frame);
 STATSUMENTRY *LoadStatSumFile(char *fname, int *nsegid);
 int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int CountEdits(char *subject, char *outfile);
+float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct);
 
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.108 2014/10/03 22:30:24 greve Exp $";
+  "$Id: mri_segstats.c,v 1.109 2014/10/17 19:31:46 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1866,7 +1867,7 @@ static int parse_commandline(int argc, char **argv)
       subject = pargv[0];
       nargsused = 1;
     }
-    else if (!strcmp(option, "--count-edits"))
+    else if (!strcmp(option, "--qa-stats"))
     {
       if (nargc < 2) argnerr(option,2);
       subject = pargv[0];
@@ -2279,16 +2280,137 @@ int CountEdits(char *subject, char *outfile)
   MRIfree(&mri);
   MRIfree(&mri2);
 
-  printf("%s nc %3d, nWMErase %3d, nWMFill %3d, nBMErase %3d, nBMClone %3d, nASegChanges %3d\n",
-	 subject,count,nWMErase,nWMFill,nBMErase,nBMClone,nASegChanges);
+  int nvertices, nfaces, nedges;
+  int lheno, rheno, lhholes, rhholes, totholes;
+  MRIS *mris;
+  sprintf(tmpstr,"%s/%s/surf/lh.orig.nofix",SUBJECTS_DIR,subject);
+  mris = MRISread(tmpstr);
+  if(mris==NULL) exit(1);
+  lheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+  MRISfree(&mris);
+  sprintf(tmpstr,"%s/%s/surf/rh.orig.nofix",SUBJECTS_DIR,subject);
+  mris = MRISread(tmpstr);
+  if(mris==NULL) exit(1);
+  rheno = MRIScomputeEulerNumber(mris, &nvertices, &nfaces, &nedges) ;
+  MRISfree(&mris);
+  lhholes = 1-lheno/2;
+  rhholes = 1-rheno/2;
+  totholes = lhholes+rhholes;
+
+  double determinant = 0;
+  double etiv_scale_factor = 1948.106;
+  double atlas_icv=0;
+  sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",SUBJECTS_DIR,subject);
+  atlas_icv = MRIestimateTIV(tmpstr,etiv_scale_factor,&determinant);
+
+  double *BrainVolStats=NULL;
+  BrainVolStats = ComputeBrainVolumeStats(subject);
+  double MaskVolToETIV;
+  MaskVolToETIV = BrainVolStats[12]/atlas_icv;
+  free(BrainVolStats);
+
+  float *wmstats;
+  // Erode=3, trim the top and bottom 2% when computing WM mean, std, etc
+  wmstats = WMAnatStats(subject, "norm.mgz", 3, 2);
+
+  printf("%s nc %3d, nWMErase %3d, nWMFill %3d, nBMErase %3d, nBMClone %3d, nASegChanges %3d, "
+	 "lhholes %4d, rhholes %4d, MaskVolToETIV %7.5f\n",
+	 subject,count,nWMErase,nWMFill,nBMErase,nBMClone,nASegChanges,
+	 lhholes,rhholes,MaskVolToETIV);
+  printf("wmstats: %6.2f %6.2f %6.2f %6.2f %6.2f\n",wmstats[0],wmstats[1],
+	 wmstats[2],wmstats[3],wmstats[4]);
+
 
   if(outfile){
     fp = fopen(outfile,"w");
-    fprintf(fp,"%s %3d    %4d %4d    %4d %4d   %4d\n",
-	 subject,count,nWMErase,nWMFill,nBMErase,nBMClone,nASegChanges);
+    fprintf(fp,"%s %3d    %4d %4d    %4d %4d   %4d  %4d %4d %4d   %7.5f %6.2f %6.2f %6.2f %6.2f %6.2f %6.2f\n",
+	    subject,count,nWMErase,nWMFill,nBMErase,nBMClone,nASegChanges,
+	    lhholes,rhholes,totholes,MaskVolToETIV,wmstats[0],wmstats[1],
+	    wmstats[2],wmstats[3],wmstats[4],wmstats[0]/wmstats[1]);
     fclose(fp);
   }
 
+
   return(0);
+}
+
+float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct)
+{
+  char sd[4000],tmpstr[4000];
+  float *stats,val;
+  MATRIX *v;
+  int wmids[12] = {2, 41, 7, 46, 251, 252, 253, 254, 255, 77, 78, 79};
+  int nwmids = 12;
+  int c,r,s,n,Matched,nhits;
+  MRI *apas, *wmvol;
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  sprintf(sd,"%s/%s",SUBJECTS_DIR,subject);
+  sprintf(tmpstr,"%s/%s/mri/aparc+aseg.mgz",SUBJECTS_DIR,subject);
+  apas = MRIread(tmpstr);
+  if(apas == NULL) return(NULL);
+
+  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,volname);
+  wmvol = MRIread(tmpstr);
+  if(wmvol == NULL) return(NULL);
+
+  for(c=0; c < apas->width; c++) {
+    for(r=0; r < apas->height; r++) {
+      for(s=0; s < apas->depth; s++) {
+	val = MRIgetVoxVal(apas,c,r,s,0);
+	Matched = 0;
+	for(n=0; n < nwmids; n++){
+	  if(fabs(val - wmids[n]) < 2*FLT_MIN){
+	    MRIsetVoxVal(apas,c,r,s,0,1);
+	    Matched = 1;
+	    break;
+	  }
+	}
+	if(!Matched) MRIsetVoxVal(apas,c,r,s,0,0);
+      }
+    }
+  }
+
+  if(nErodes > 0){
+    printf("Eroding %d voxels in 3d\n",nErodes);
+    for(n=0; n<nErodes; n++) MRIerode(apas,apas);
+  }
+
+  nhits = 0;
+  for(c=0; c < apas->width; c++) {
+    for(r=0; r < apas->height; r++) {
+      for(s=0; s < apas->depth; s++) {
+	val = MRIgetVoxVal(apas,c,r,s,0);
+	if(val < 0.5) continue;
+	nhits ++;
+      }
+    }
+  }
+
+  v = MatrixAlloc(nhits,1,MATRIX_REAL);
+  nhits = 0;
+  for(c=0; c < apas->width; c++) {
+    for(r=0; r < apas->height; r++) {
+      for(s=0; s < apas->depth; s++) {
+	val = MRIgetVoxVal(apas,c,r,s,0);
+	if(val < 0.5) continue;
+	v->rptr[nhits+1][1] = MRIgetVoxVal(wmvol,c,r,s,0);
+	nhits ++;
+      }
+    }
+  }
+
+  stats = (float *) calloc(5,sizeof(float));
+  MRIsegStatsRobust(apas, 1, wmvol, 0, &stats[2],&stats[3],&stats[4],
+		    &stats[0],&stats[1],Pct);
+  //stats[1] = sqrt(VectorVar(v,&stats[0]));
+  //stats[4] = VectorRange(v, &stats[2], &stats[3]);
+
+  MRIfree(&apas);
+  MRIfree(&wmvol);
+  MatrixFree(&v);
+
+
+  return(stats);
 }
 
