@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/08/23 18:02:22 $
- *    $Revision: 1.322 $
+ *    $Date: 2014/10/17 18:05:21 $
+ *    $Revision: 1.323 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5083,17 +5083,12 @@ GCAcomputeLogSampleProbability(GCA *gca,
   int        width, height, depth, i;
   double     total_log_p;
   int        countOutside = 0;
-  double     outside_log_p = 0.;
-  float  vals[MAX_GCA_INPUTS] ;
-  int    x, y, z, xp, yp, zp ;
-  double log_p;
+//  double     outside_log_p = 0.;
 
   /* go through each GC in the sample and compute the probability of
      the image at that point.
   */
-  width = mri_inputs->width ;
-  height = mri_inputs->height;
-  depth = mri_inputs->depth ;
+  width = mri_inputs->width ; height = mri_inputs->height; depth = mri_inputs->depth ;
   // store inverse transformation .. forward:input->gca template,
   // inv: gca template->input
   TransformInvert(transform, mri_inputs) ;
@@ -5105,7 +5100,15 @@ GCAcomputeLogSampleProbability(GCA *gca,
    was not thread-safe and caused unstable/nonrepeatable behavior with
    multimodal inputs. Removing did not seem to slow it down much.
   */
-  for (i = 0 ; i < nsamples ; i++){
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+:total_log_p,countOutside)
+#endif
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    int    x, y, z, xp, yp, zp ;
+    double log_p;
+    float  vals[MAX_GCA_INPUTS] ;
+
     /////////////////// diag code /////////////////////////////
     if (i == Gdiag_no)
       DiagBreak() ;
@@ -5116,18 +5119,15 @@ GCAcomputeLogSampleProbability(GCA *gca,
     ///////////////////////////////////////////////////////////
 
     // get prior coordinates
-    xp = gcas[i].xp ;
-    yp = gcas[i].yp ;
-    zp = gcas[i].zp ;
+    xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ;
+
     // if it is inside the source voxel
     if (!GCApriorToSourceVoxel(gca, mri_inputs, transform, xp, yp, zp, &x, &y, &z)) {
       if (x == Gx && y == Gy && z == Gz)
         DiagBreak() ;
 
       // (x,y,z) is the source voxel position
-      gcas[i].x = x ;
-      gcas[i].y = y ;
-      gcas[i].z = z ;
+      gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
 
       // get values from all inputs
       load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
@@ -5137,12 +5137,13 @@ GCAcomputeLogSampleProbability(GCA *gca,
           DiagBreak() ;
         DiagBreak() ;
       }
-      if (log_p < -clamp) log_p = -clamp ;
+      if (log_p < -clamp) 
+	log_p = -clamp ;
     }
     else{  // outside the voxel
       log_p = -1000000; // BIG_AND_NEGATIVE;
       // log(VERY_UNLIKELY); // BIG_AND_NEGATIVE;
-      outside_log_p += log_p;
+//      outside_log_p += log_p;
       countOutside++;
     }
     gcas[i].log_p = log_p;
