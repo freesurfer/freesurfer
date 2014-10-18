@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/08/17 17:47:29 $
- *    $Revision: 1.90 $
+ *    $Author: fischl $
+ *    $Date: 2014/10/18 21:21:12 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,9 @@
 double round(double x);
 #include <string.h>
 #include <memory.h>
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include "error.h"
 #include "proto.h"
@@ -461,14 +464,11 @@ MRI *MRIerodeNN(MRI *in, MRI *out, int NNDef)
 /*-----------------------------------------------------*/
 MRI * MRIerode(MRI *mri_src, MRI *mri_dst)
 {
-  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
-  BUFTYPE *pdst, min_val, val ;
+  int     width, height, depth, z, same ;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
@@ -483,10 +483,13 @@ MRI * MRIerode(MRI *mri_src, MRI *mri_dst)
 
   if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
   {
-    double fmin_val, fval ;
-
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
     for (z = 0 ; z < depth ; z++)
     {
+      int x, y, z0, zi, y0, yi, x0, xi ;
+      float fmin_val, fval ;
       for (y = 0 ; y < height ; y++)
       {
         for (x = 0 ; x < width ; x++)
@@ -514,8 +517,14 @@ MRI * MRIerode(MRI *mri_src, MRI *mri_dst)
   }
   else
   {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
     for (z = 0 ; z < depth ; z++)
     {
+      int x, y, z0, zi, y0, yi, x0, xi ;
+      BUFTYPE *pdst, min_val, val ;
+      
       for (y = 0 ; y < height ; y++)
       {
         pdst = &MRIvox(mri_dst, 0, y, z) ;
@@ -3286,6 +3295,21 @@ findLabel(MRI *mri, int x, int y, int z)
           MRI_RIGHT_HEMISPHERE) ;
 }
 #endif
+int
+MRIsetFrameValues(MRI *mri, int frame, float val)
+{
+  int   width, depth, height, x, y, z ;
+
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
+
+  for (x = 0 ; x < width  ; x++)
+    for (y = 0 ; y < height ; y++)
+      for (z = 0 ; z < depth ; z++)
+	MRIsetVoxVal(mri, x, y, z, frame, val) ;
+
+  return(NO_ERROR) ;
+}
+  
 /*-----------------------------------------------------
   Parameters:
 

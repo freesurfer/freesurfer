@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/10/17 18:05:21 $
- *    $Revision: 1.323 $
+ *    $Date: 2014/10/18 21:21:12 $
+ *    $Revision: 1.324 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3991,12 +3991,7 @@ GCAcompleteCovarianceTraining(GCA *gca)
 MRI  *
 GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
 {
-  int       x, y, z, width, height, depth, label, xn, yn, zn, n, num_pv, max_n,
-            use_partial_volume_stuff ;
-  GCA_NODE  *gcan ;
-  GCA_PRIOR *gcap ;
-  GC1D      *gc, *max_gc ;
-  float    /*dist,*/ max_p, p, vals[MAX_GCA_INPUTS] ;
+  int       x, width, height, depth, num_pv, use_partial_volume_stuff ;
 #if INTERP_PRIOR
   float     prior ;
 #endif
@@ -4026,11 +4021,18 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
      voxel (and hence the classifier) to which it maps. Then update the
      classifiers statistics based on this voxel's intensity and label.
   */
-  width = mri_inputs->width ;
-  height = mri_inputs->height;
-  depth = mri_inputs->depth ;
+  width = mri_inputs->width ; height = mri_inputs->height; depth = mri_inputs->depth ; num_pv = 0 ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+: num_pv)
+#endif
   for (x = 0 ; x < width ; x++)
   {
+    int y, z, n, label, max_n, xn, yn, zn ;
+    float vals[MAX_GCA_INPUTS], max_p, p ;
+    GCA_NODE  *gcan ;
+    GCA_PRIOR *gcap ;
+    GC1D      *gc, *max_gc ;
+
     for (y = 0 ; y < height ; y++)
     {
       for (z = 0 ; z < depth ; z++)
@@ -4206,13 +4208,7 @@ GCAlabelProbabilities(MRI *mri_inputs,
                       MRI *mri_dst,
                       TRANSFORM *transform)
 {
-  int       x, y, z, width, height, depth, label,
-            xn, yn, zn, n ;
-  GCA_NODE  *gcan ;
-  GCA_PRIOR *gcap ;
-  GC1D      *gc ;
-  double    max_p, p, total_p ;
-  float     vals[MAX_GCA_INPUTS] ;
+  int       x, width, height, depth ;
 
   width = mri_inputs->width ;
   height = mri_inputs->height;
@@ -4231,21 +4227,20 @@ GCAlabelProbabilities(MRI *mri_inputs,
      voxel (and hence the classifier) to which it maps. Then update the
      classifiers statistics based on this voxel's intensity and label.
   */
+#pragma omp parallel for
   for (x = 0 ; x < width ; x++)
   {
+    int y, z, label, xn, yn, zn, n ;
+    GCA_NODE  *gcan ;
+    GCA_PRIOR *gcap ;
+    GC1D      *gc ;
+    double    max_p, p, total_p ;
+    float     vals[MAX_GCA_INPUTS] ;
+    
     for (y = 0 ; y < height ; y++)
     {
       for (z = 0 ; z < depth ; z++)
       {
-        /// debug code /////////////////////////
-        if (x == 152 && y == 126 && z == 127)
-        {
-          DiagBreak() ;
-        }
-        if (x == 63 && y == 107 && z == 120)
-        {
-          DiagBreak() ;
-        }
         ///////////////////////////////////////
 
         load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
@@ -5101,7 +5096,7 @@ GCAcomputeLogSampleProbability(GCA *gca,
    multimodal inputs. Removing did not seem to slow it down much.
   */
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+:total_log_p,countOutside)
+#pragma omp parallel for 
 #endif
   for (i = 0 ; i < nsamples ; i++)
   {
@@ -8422,11 +8417,10 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
                               void (*update_func)(MRI *),
 			      double min_prior_factor, double max_prior_factor)
 {
-  int      x, y, z, width, height, depth, label, val, iter,
-    n, nchanged, min_changed, index, nindices, old_label, fixed , max_label ;
+  int      x, y, z, width, height, depth, iter,
+    nchanged, min_changed, index, nindices, fixed ;
   short    *x_indices, *y_indices, *z_indices ;
-  GCA_PRIOR *gcap ;
-  double   ll, lcma = 0.0, old_posterior, new_posterior, max_posterior, prior_factor ;
+  double   prior_factor, old_posterior, lcma = 0.0 ;
   MRI      *mri_changed, *mri_probs /*, *mri_zero */ ;
 
   prior_factor = min_prior_factor ;
@@ -8483,7 +8477,12 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
      classifiers statistics based on this voxel's intensity and label.
   */
   // mark changed location
+#ifdef HAVE_OPENMP
+#pragma omp parallel for 
+#endif
   for (x = 0 ; x < width ; x++)
+  {
+    int y, z ;
     for (y = 0 ; y < height ; y++)
       for (z = 0 ; z < depth ; z++)
       {
@@ -8501,7 +8500,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
           MRIsetVoxVal(mri_changed,x,y,z, 0, 1) ;
         }
       }
-
+  }
   if (restart && mri_fixed)
   {
     MRIdilate(mri_changed, mri_changed) ;
@@ -8596,27 +8595,26 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
                            mri_inputs->depth, MRI_FLOAT) ;
       MRIcopyHeader(mri_inputs, mri_probs) ;
     }
+
+//#pragma omp parallel for reduction(+: nchanged)
     for (index = 0 ; index < nindices ; index++)
     {
-      x = x_indices[index] ;
-      y = y_indices[index] ;
-      z = z_indices[index] ;
+      int x, y, z, n, label, old_label ;
+      GCA_PRIOR *gcap ;
+      double   new_posterior, max_posterior ;
+      float    val ;
+  
+      x = x_indices[index] ; y = y_indices[index] ; z = z_indices[index] ;
       if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-      {
         DiagBreak() ;
-      }
 
       // if the label is fixed, don't do anything
       if (mri_fixed && MRIgetVoxVal(mri_fixed, x, y, z,0))
-      {
         continue ;
-      }
 
       // if not marked, don't do anything
       if (MRIgetVoxVal(mri_changed, x, y, z,0) == 0)
-      {
         continue ;
-      }
 
       // get the grey value
       val = MRIgetVoxVal(mri_inputs, x, y, z, 0) ;
@@ -8625,14 +8623,11 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
       gcap = getGCAP(gca, mri_inputs, transform, x, y, z) ;
       // it is not in the right place
       if (gcap==NULL)
-      {
         continue;
-      }
+
       // only one label associated, don't do anything
       if (gcap->nlabels == 1)
-      {
         continue ;
-      }
 
       // save the current label
       label = old_label = nint(MRIgetVoxVal(mri_dst, x, y, z,0)) ;
@@ -8646,9 +8641,8 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
       {
         // skip the current label
         if (gcap->labels[n] == old_label)
-        {
           continue ;
-        }
+
         // assign the new label
         MRIsetVoxVal(mri_dst, x, y, z, 0,gcap->labels[n]) ;
         // calculate neighborhood likelihood
@@ -8732,7 +8726,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
     {
       MRI_SEGMENTATION *mriseg ;
       MRI              *mri_impossible, *mri_impossible_label ;
-      int              label, s, nchanged, iter ;
+      int              label, s, nchanged, iter, max_label ;
       char             fname[STRLEN] ;
       double           old_posterior, new_posterior ;
 
@@ -8818,6 +8812,8 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
     // print info
     if (nchanged > 10000 && iter < 2 && !restart)
     {
+      double ll ;
+
       ll = GCAgibbsImageLogPosterior(gca, mri_dst,
                                      mri_inputs, transform, prior_factor) ;
       // get the average value
@@ -9027,15 +9023,17 @@ double
 GCAgibbsImageLogPosterior(GCA *gca, MRI *mri_labels, MRI *mri_inputs,
                           TRANSFORM *transform, double prior_factor)
 {
-  int    x, y, z, width, depth, height ;
-  double total_log_posterior, log_posterior ;
+  int    x, width, depth, height ;
+  double total_log_posterior ;
 
-  width = mri_labels->width ;
-  height = mri_labels->height ;
-  depth = mri_labels->depth ;
+  width = mri_labels->width ; height = mri_labels->height ; depth = mri_labels->depth ;
 
-  for (total_log_posterior = 0.0, x = 0 ; x < width ; x++)
+  total_log_posterior = 0.0 ;
+#pragma omp parallel for reduction(+: total_log_posterior)
+  for (x = 0 ; x < width ; x++)
   {
+    int    y, z ;
+    double log_posterior ;
     for (y = 0 ; y < height ; y++)
     {
       for (z = 0 ; z < depth ; z++)
@@ -19512,10 +19510,14 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
       {
         border = BORDER_SIZE ;
       }
-      GCAbuildMostLikelyVolumeForStructure
-      (gca, mri_seg, l, border, transform,mri_labels) ;
+      GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, border, transform,mri_labels) ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
       for (x = 0 ; x < mri_labels->width ; x++)
       {
+	int label, y, z ;
+	double val ;
         for (y = 0 ; y < mri_labels->height ; y++)
         {
           for (z = 0 ; z < mri_labels->depth ; z++)
@@ -19769,8 +19771,14 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         h_mri->bins[i] = (i+1)*h_mri->bin_size ;
       }
 
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+:num)
+#endif
       for (num = x = 0 ; x < mri_aligned->width ; x++)
       {
+	int y, z, bin ;
+	double val ;
+
         for (y = 0 ; y < mri_aligned->height ; y++)
         {
           for (z = 0 ; z < mri_aligned->depth ; z++)
@@ -24520,13 +24528,7 @@ GCAbuildMostLikelyVolumeForStructure( const GCA *gca,
                                       TRANSFORM *transform,
                                       MRI *mri_labels)
 {
-  int              x,  y, z, xn, yn, zn, width, depth, height,
-                   n, xp, yp, zp, r ;
-  const GCA_NODE         *gcan ;
-  const GCA_PRIOR        *gcap ;
-  double           max_prior ;
-  int              max_label ;
-  const GC1D             *gc_max ;
+  int              z, width, depth, height ;
   MRI              *mri_tmp ;
   MRI_SEGMENTATION *mriseg ;
   int              free_transform = 0 ;
@@ -24561,11 +24563,18 @@ GCAbuildMostLikelyVolumeForStructure( const GCA *gca,
 
 
   // mri is prior if mri = NULL
-  width = mri->width ;
-  depth = mri->depth ;
-  height = mri->height ;
+  width = mri->width ; depth = mri->depth ; height = mri->height ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
   for (z = 0 ; z < depth ; z++)
   {
+    int x, y, xn, yn, zn, max_label,n, r, xp, yp, zp ;
+    double max_prior ;
+    const GCA_NODE         *gcan ;
+    const GCA_PRIOR        *gcap ;
+    const GC1D             *gc_max ;
+
     for (y = 0 ; y < height ; y++)
     {
       for (x = 0 ; x < width ; x++)
@@ -24689,9 +24698,18 @@ GCAbuildMostLikelyVolumeForStructure( const GCA *gca,
   {
     mri_tmp = MRIcopy(mri, NULL) ;
 
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
     for (z = 0 ; z < depth ; z++)
     {
+      int y, xn, yn, zn, max_label,n, r, xp, yp, zp, x ;
+      double max_prior ;
+      const GCA_NODE         *gcan ;
+      const GCA_PRIOR        *gcap ;
+      const GC1D             *gc_max ;
       for (y = 0 ; y < height ; y++)
+
       {
         for (x = 0 ; x < width ; x++)
         {
@@ -24909,21 +24927,22 @@ static HISTOGRAM *
 gcaGetLabelHistogram(GCA *gca, int label, int frame, int border)
 {
   HISTOGRAM *h_gca ;
-  int       xn, yn, zn, n ;
-  GCA_NODE  *gcan ;
-  GC1D      *gc ;
-  float     prior ;
-  int       b ;
-
+  int       zn, b ;
 
   // build histogram of this label
   h_gca = HISTOalloc(256) ;
   for (b = 0 ; b < h_gca->nbins ; b++)
-  {
     h_gca->bins[b] = b ;
-  }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
   for (zn = 0 ; zn < gca->node_depth ; zn++)
   {
+    GCA_NODE  *gcan ;
+    GC1D      *gc ;
+    float     prior ;
+    int       b, yn, xn, n ;
     for (yn = 0 ; yn < gca->node_height ; yn++)
     {
       for (xn = 0 ; xn < gca->node_width ; xn++)
@@ -24933,9 +24952,8 @@ gcaGetLabelHistogram(GCA *gca, int label, int frame, int border)
         {
           /* find index in lookup table for this label */
           if (gcan->labels[n] != label)
-          {
             continue ;
-          }
+
           gc = &gcan->gcs[n] ;
           prior = get_node_prior(gca, label, xn, yn, zn) ;
           if (prior != 0)
@@ -24947,19 +24965,14 @@ gcaGetLabelHistogram(GCA *gca, int label, int frame, int border)
               {
                 DiagBreak() ;
                 if (b < 0)
-                {
                   b = 0 ;
-                }
+
                 if (b >= h_gca->nbins)
-                {
                   b = h_gca->nbins - 1 ;
-                }
               }
               h_gca->counts[b] += prior ;
               if (!finite(gc->means[frame]))
-              {
                 DiagBreak() ;
-              }
             }
           }
         }

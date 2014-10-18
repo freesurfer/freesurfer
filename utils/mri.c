@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/09/25 18:28:18 $
- *    $Revision: 1.549 $
+ *    $Date: 2014/10/18 21:21:12 $
+ *    $Revision: 1.550 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.549 $";
+const char *MRI_C_VERSION = "$Revision: 1.550 $";
 
 
 /*-----------------------------------------------------
@@ -38,6 +38,10 @@ const char *MRI_C_VERSION = "$Revision: 1.549 $";
 #include <memory.h>
 #include <errno.h>
 #include <ctype.h>
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
+
 #include "error.h"
 #include "proto.h"
 #include "mri.h"
@@ -1868,9 +1872,7 @@ MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame)
   float    fmin, fmax, *pf, val ;
   BUFTYPE  *pb ;
 
-  width = mri->width ;
-  height = mri->height ;
-  depth = mri->depth ;
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
 
   fmin = 10000.0f ;
   fmax = -10000.0f ;
@@ -4973,20 +4975,23 @@ MRI *
 MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold, float low_val,
             float hi_val)
 {
-  int     width, height, depth, x, y, z, f ;
-  double    val ;
+  int     width, height, depth, f, z ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
 
   for (f = 0 ; f < mri_src->nframes ; f++)
   {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
     for (z = 0 ; z < depth ; z++)
     {
+    double    val ;
+    int       x, y ;
+
       for (y = 0 ; y < height ; y++)
       {
         for (x = 0 ; x < width ; x++)
