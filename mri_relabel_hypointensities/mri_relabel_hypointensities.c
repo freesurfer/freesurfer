@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2014/10/18 00:56:19 $
- *    $Revision: 1.8 $
+ *    $Date: 2014/10/18 21:47:11 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,7 +39,7 @@
 #include "mrishash.h"
 #include "cma.h"
 
-static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.8 2014/10/18 00:56:19 nicks Exp $";
+static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.9 2014/10/18 21:47:11 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -70,15 +70,13 @@ main(int argc, char *argv[])
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
-  {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
-  if (argc < 3)
-  {
+  if (argc < 3) {
     usage_exit() ;
   }
 
@@ -87,21 +85,16 @@ main(int argc, char *argv[])
   out_aseg_name = argv[3] ;
 
   mri_aseg = MRIread(in_aseg_name) ;
-  if (!mri_aseg)
-  {
+  if (!mri_aseg) {
     ErrorExit(ERROR_NOFILE,
               "%s: could not read input segmentation %s",
               Progname, in_aseg_name) ;
   }
 
-  for (h = 0 ; h <= 1 ; h++)
-  {
-    if (h == 0)
-    {
+  for (h = 0 ; h <= 1 ; h++) {
+    if (h == 0) {
       hemi = "lh" ;
-    }
-    else
-    {
+    } else {
       hemi = "rh" ;
     }
     sprintf(fname, "%s/%s.%s", surf_dir, hemi, surf_name)  ;
@@ -133,24 +126,17 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
-  {
+  if (!stricmp(option, "-help")) {
     print_help() ;
-  }
-  else if (!stricmp(option, "-version"))
-  {
+  } else if (!stricmp(option, "-version")) {
     print_version() ;
-  }
-  else if (!stricmp(option, "debug_voxel"))
-  {
+  } else if (!stricmp(option, "debug_voxel")) {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
-  }
-  else switch (toupper(*option))
-    {
+  } else switch (toupper(*option)) {
     case '?':
     case 'U':
       print_usage() ;
@@ -205,28 +191,20 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
   Real             xw, yw, zw ;
 
   mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
-  for (changed = x = 0 ; x < mri->width ; x++)
-  {
-    for (y = 0 ; y < mri->height ; y++)
-    {
-      for (z = 0 ; z < mri->depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-        {
+  for (changed = x = 0 ; x < mri->width ; x++) {
+    for (y = 0 ; y < mri->height ; y++) {
+      for (z = 0 ; z < mri->depth ; z++) {
+        if (x == Gx && y == Gy && z == Gz) {
           DiagBreak() ;
         }
         label = MRIvox(mri, x, y, z) ;
-        if (label == Left_WM_hypointensities)
-        {
+        if (label == Left_WM_hypointensities) {
           MRIvox(mri, x, y, z) = WM_hypointensities ;
-        }
-        else if (label == Right_WM_hypointensities)
-        {
+        } else if (label == Right_WM_hypointensities) {
           MRIvox(mri, x, y, z) = WM_hypointensities ;
         }
         if ((!right && (label != Left_Cerebral_Cortex)) ||
-            (right && (label != Right_Cerebral_Cortex)))
-        {
+            (right && (label != Right_Cerebral_Cortex))) {
           continue ;
         }
 
@@ -238,17 +216,14 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
         {
           dot = -1 ;
           dist = 1000 ;
-        }
-        else
-        {
+        } else {
           dx = xw - v->x ;
           dy = yw - v->y ;
           dz = zw - v->z ;
           dot = v->nx*dx + v->ny*dy + v->nz*dz ;
           dist = sqrt(dx*dx+dy*dy+dz*dz) ;
         }
-        if (dot < 0 && dist > 1)
-        {
+        if (dot < 0 && dist > 1) {
           changed++ ;
           MRIvox(mri, x, y, z) = WM_hypointensities ;
         }
@@ -268,27 +243,19 @@ relabel_hypointensities_neighboring_gray(MRI *mri)
   int    x, y, z, label, changed, i ;
   MRI    *mri_tmp = NULL ;
 
-  for (changed = i = 0 ; i < 2 ; i++)
-  {
+  for (changed = i = 0 ; i < 2 ; i++) {
     mri_tmp = MRIcopy(mri, mri_tmp) ;
-    for (x = 0 ; x < mri->width ; x++)
-    {
-      for (y = 0 ; y < mri->height ; y++)
-      {
-        for (z = 0 ; z < mri->depth ; z++)
-        {
+    for (x = 0 ; x < mri->width ; x++) {
+      for (y = 0 ; y < mri->height ; y++) {
+        for (z = 0 ; z < mri->depth ; z++) {
           label = MRIvox(mri_tmp, x, y, z) ;
-          if (label != WM_hypointensities)
-          {
+          if (label != WM_hypointensities) {
             continue ;
           }
-          if (MRIneighbors(mri_tmp, x, y, z, Left_Cerebral_Cortex) > 0)
-          {
+          if (MRIneighbors(mri_tmp, x, y, z, Left_Cerebral_Cortex) > 0) {
             MRIvox(mri, x, y, z) = Left_Cerebral_Cortex ;
             changed++ ;
-          }
-          else  if (MRIneighbors(mri_tmp, x, y, z, Right_Cerebral_Cortex) > 0)
-          {
+          } else if (MRIneighbors(mri_tmp,x,y,z,Right_Cerebral_Cortex) > 0) {
             MRIvox(mri, x, y, z) = Right_Cerebral_Cortex ;
             changed++ ;
           }
