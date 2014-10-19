@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/10/18 21:21:12 $
- *    $Revision: 1.324 $
+ *    $Date: 2014/10/19 12:29:22 $
+ *    $Revision: 1.325 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4227,7 +4227,9 @@ GCAlabelProbabilities(MRI *mri_inputs,
      voxel (and hence the classifier) to which it maps. Then update the
      classifiers statistics based on this voxel's intensity and label.
   */
+#ifdef HAVE_OPENMP
 #pragma omp parallel for
+#endif
   for (x = 0 ; x < width ; x++)
   {
     int y, z, label, xn, yn, zn, n ;
@@ -9029,7 +9031,9 @@ GCAgibbsImageLogPosterior(GCA *gca, MRI *mri_labels, MRI *mri_inputs,
   width = mri_labels->width ; height = mri_labels->height ; depth = mri_labels->depth ;
 
   total_log_posterior = 0.0 ;
+#ifdef HAVE_OPENMP
 #pragma omp parallel for reduction(+: total_log_posterior)
+#endif
   for (x = 0 ; x < width ; x++)
   {
     int    y, z ;
