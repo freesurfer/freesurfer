@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/02/04 22:56:53 $
- *    $Revision: 1.72 $
+ *    $Date: 2014/10/20 15:07:00 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.72 2014/02/04 22:56:53 mreuter Exp $";
+    "$Id: mri_robust_register.cpp,v 1.73 2014/10/20 15:07:00 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -2222,6 +2222,15 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
         << endl << endl;
     exit(1);
   }
+  bool test5 = (P.iterate > 0);
+  if (!test5)
+  {
+    //printUsage();
+    cerr << endl << endl
+        << "ERROR: --maxit must be larger than 0 (max iterations on each resolution)"
+        << endl << endl;
+    exit(1);
+  }
 
-  return (test1 && test2 && test3 && test4);
+  return (test1 && test2 && test3 && test4 && test5);
 }
