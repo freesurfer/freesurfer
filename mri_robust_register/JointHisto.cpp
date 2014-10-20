@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:14 $
- *    $Revision: 1.8 $
+ *    $Date: 2014/10/20 15:08:02 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -682,7 +682,7 @@ double JointHisto::computeMI()
 // Wells III, Viola, Atsumi, Nakajima & Kikinis (1996).
 // "Multi-modal volume registration by maximisation of mutual information".
 // Medical Image Analysis, 1(1):35-51, 1996. 
-// mi =  sum_{i,j} [ P(i,j) log2 (P(i,j) / Pr(i) Pc(j)) ]
+// mi =  sum_{i,j} [ P(i,j) log2 (P(i,j) /(Pr(i) Pc(j)) ) ]
 // mi = H(M) + H(N) - H(M,N)
 {
   int i, j;

@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/03/21 15:38:15 $
- *    $Revision: 1.52 $
+ *    $Date: 2014/10/20 15:08:02 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -928,7 +928,7 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit,
   return true;
 }
 
-/** Flips/reorders images to be in COR orientation (conform default)
+/** Flips/reorders images to be in LIA orientation (conform default)
    (future: maybe use the orientation of most of the inputs )
    then computes average cosine matrix. 
    mri_mov images need to be set.
@@ -1531,7 +1531,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
 
     /* removed this now (as inputs and template may have different voxel sizes...
        not sure what effect that has on isotropic images , proably rounding errors are small???
-       hope we switch to double in image header geometries
+       hope we switch to double in image header geometries and transform
     if (rigid) // map back to Rotation (RAS2RAS->VOX2VOX introduces scaling!)
     {
       vnl_matrix<double> MM(
