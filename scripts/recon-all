@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/10/16 18:00:57 $
-#    $Revision: 1.487 $
+#    $Date: 2014/10/20 23:49:42 $
+#    $Revision: 1.488 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.487 2014/10/16 18:00:57 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.488 2014/10/20 23:49:42 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -54,10 +54,10 @@ set cmd = ();
 
 set tcsh61706 = (`tcsh --version | grep "6\.17\.06"`)
 if ("$tcsh61706" != "") then
-     echo ""
-     echo "WARNING: tcsh v6.17.06 has an exit code bug! Please update tcsh!"
-     echo ""
-     # workaround to force expected behavior:
+    echo ""
+    echo "WARNING: tcsh v6.17.06 has an exit code bug! Please update tcsh!"
+    echo ""
+    # workaround to force expected behavior:
     set anyerror
 endif
 
@@ -165,9 +165,6 @@ set UseYa3tTalAtlas = 0; # if 1, use 3T18yoSchwartz young-adult 3T atlas for tal
 set CustomTalAtlas = ""; # -custom-tal-atlas <name of atlas in average dir>
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
 set MakefileTarget = () # argument to recon-all -make
-set DoAsegStatsDiff = 0; # if 1, then run asegstatsdiff
-set DoAparcStatsDiff = 0; # if 1, then run aparcstatsdiff
-set diffsubj = (); # the subject used by asegstatsdiff and aparcstatsdiff
 set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
 set DoRobustMotionCor = 1; # if 1, then use mri_robust_template for motion cor
 set mc_robust_template_avg_arg = 1; # when using mri_robust_template for motion
@@ -314,14 +311,11 @@ set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
 set DoBaLabels       = 0;
 set DoLabelExvivoEC  = 0;
-# ----------- Surface and Volume ------------------#
-set DoSurfSegEdit    = 0; # if 1, run mri_edit_segmentation_with_surfaces to
-                          # fixup aseg.mgz with info from surfaces
-                          # (this is the -surfsegedit flag)
+# ----------- Surface and Volume -----------#
 set DoCortRibbonVolMask = 0;
-set DoSegStats       = 0;
 set DoAParc2ASeg     = 0;
 set DoAPas2ASeg      = 0;
+set DoSegStats       = 0;
 set DoWMParc         = 0;
 set DoAParcASegStats = 0;
 
@@ -381,7 +375,6 @@ if(-e $bstampfile0) then
   echo "Subject Stamp: $bstamp"
   echo "Current Stamp: $bstamp0"
 endif
-
 
 if ($DoMakefile) then
   setenv RECONALL_MAKE_SUBJECT $subjid
@@ -609,7 +602,7 @@ if($DoIsRunning) then
   echo $VERSION    >> $IsRunningFile
 endif
 
-# ------- Check FREESURFER HOME consistency ---------------------#
+# ------- Check FREESURFER_HOME consistency --------------#
 set CSDF = $subjdir/scripts/csurfdir
 if($DoCleanCSDF) rm -vf $CSDF
 if(-e $CSDF) then
@@ -673,7 +666,9 @@ if( ! $RunIt) then
 endif
 
 
-#------------ Clean -----------------------------#
+#------------       --------------#
+#------------ Clean --------------#
+#------------       --------------#
 if($DoCleanSeed) then
   set cmd = ("mv -f $subjdir/scripts/seed-*.crs.man.dat $subjdir/trash");
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -787,13 +782,13 @@ if($#WSSeedPoint) then
 endif
 if(-e $seedfile) set WSSeedPoint = `cat $seedfile | grep -v \#`
 
-#------------ Control Points for Intensity Normalization ------------------#
+#------------ Control Points for Intensity Normalization -----------#
 set ControlPointsFile = $subjdir/tmp/control.dat
 if(-e $ControlPointsFile) then
   set UseControlPoints = 1;
 endif
 
-#------------ Control Points for Registration ------------------#
+#------------ Control Points for Registration -----------#
 set DefaultTWMControlPointsFile = $subjdir/tmp/twm.dat
 if( $UseTWMControlPoints ) then
   #copy twmfile to $subjdir/tmp/twm.dat:
@@ -819,7 +814,7 @@ if( $DoConformWidth256) then
   touch $subjdir/tmp/cw256
 endif
 
-#---------------- Show Edits ------------------#
+#----------- Show Edits -----------#
 # discover which edits a user has made, list them, and if volume edits were
 # made, create a file which shows them (using mri_compile_edits)
 if($DoShowEdits) then
@@ -907,7 +902,7 @@ if($DoShowEdits) then
 endif
 
 
-#----------- Longitudinal ------------------#
+#----------- Longitudinal -----------#
 if($longitudinal) then
   # if adding a new timepoint was requested by -addtp flag
   if($DoAddTp) then
@@ -938,7 +933,10 @@ if($longitudinal) then
   endif
 endif
 
-#----------- Convert T1 Input ------------------#
+
+#-----------                  -----------#
+#----------- Convert T1 Input -----------#
+#-----------                  -----------#
 if($#InputList != 0) then
   @ nth = 1;
   foreach InputVol ($InputList)
@@ -979,7 +977,10 @@ if($#InputList != 0) then
   end
 endif
 
-#----------- Input T2 or FLAIR images ------------------#
+
+#-----------                          -----------#
+#----------- Input T2 or FLAIR images -----------#
+#-----------                          -----------#
 if ($DoConvertT2Input || $DoConvertFlairInput) then
 
   echo "#--------------------------------------------" \
@@ -1015,7 +1016,10 @@ if ($DoConvertT2Input || $DoConvertFlairInput) then
 
 endif
 
+
+#-------------                                                 ------------#
 #------------- Longitudinal 'base' subject input file creation ------------#
+#-------------                                                 ------------#
 if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -1072,7 +1076,8 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
     # subjects in the longitudinal stream
 
     # 1. make the norm upright (base space)
-    set cmd = ( make_upright $normInVols[1] ${subjdir}/mri/norm_template.mgz $ltaXforms[1] )
+    set cmd = ( make_upright $normInVols[1] \
+        ${subjdir}/mri/norm_template.mgz $ltaXforms[1] )
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -1080,7 +1085,8 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
     endif
 
     # 2. create the upright orig volume
-    set cmd = ( mri_convert -rt cubic -at $ltaXforms[1] $subjInVols[1] ${subjdir}/mri/orig.mgz )
+    set cmd = ( mri_convert -rt cubic \
+        -at $ltaXforms[1] $subjInVols[1] ${subjdir}/mri/orig.mgz )
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -1168,7 +1174,15 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   touch $touchdir/base.touch
 endif
 
-#----------- Motion Correct and Average ------------------#
+
+#-----------             -------------#
+#----------- AUTORECON 1 -------------#
+#-----------             -------------#
+
+
+#-----------                            -----------#
+#----------- Motion Correct and Average -----------#
+#-----------                            -----------#
 if($DoMotionCor) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -1358,7 +1372,6 @@ if($DoMotionCor) then
     goto motioncor_post_process
   endif
 
-
   # default processing:
   set cmd = ();
 
@@ -1524,7 +1537,9 @@ if($DoMotionCor) then
 endif # Motion Correction
 
 
-#----------- Talairach ------------------#
+#-----------           -----------#
+#----------- Talairach -----------#
+#-----------           -----------#
 if($DoTalairach) then
 talairach:
   echo "#--------------------------------------------" \
@@ -1735,7 +1750,9 @@ endif
 endif
 
 
-#----------- Defacing ------------------#
+#-----------          -----------#
+#----------- Defacing -----------#
+#-----------          -----------#
 if($DoDeface) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -1753,7 +1770,9 @@ if($DoDeface) then
 endif
 
 
-#----------- Intensity Normalization1 ------------------#
+#-----------                          -----------#
+#----------- Intensity Normalization1 -----------#
+#-----------                          -----------#
 if($DoNormalization) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -1817,7 +1836,10 @@ if($DoNormalization) then
   echo $cmd > $touchdir/inorm1.touch
 endif
 
-#----------- Skull Stripping ------------------#
+
+#-----------                 -----------#
+#----------- Skull Stripping -----------#
+#-----------                 -----------#
 if($DoSkullStrip) then
 skullstrip:
   echo "#--------------------------------------------" \
@@ -2166,10 +2188,14 @@ skullstrip:
 endif
 
 
+#-----------             -------------#
 #----------- AUTORECON 2 -------------#
+#-----------             -------------#
 
 
-#----------- Nu Intensity Correction ------------------#
+#-----------                         -----------#
+#----------- Nu Intensity Correction -----------#
+#-----------                         -----------#
 if($DoNuIntensityCor) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -2227,7 +2253,10 @@ if($DoNuIntensityCor) then
   touch $touchdir/nu.touch
 endif
 
-#-------------- GCA Registration  -------------------------#
+
+#--------------                   ---------------#
+#-------------- GCA Registration  ---------------#
+#--------------                   ---------------#
 if($DoGCAReg) then
   echo "#-------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# EM Registration `date`" |& tee -a $SF |& tee -a $LF  |& tee -a $CF
@@ -2260,7 +2289,10 @@ if($DoGCAReg) then
   echo $cmd > $touchdir/em_register.touch
 endif
 
+
+#------------                         --------------#
 #------------ Canonical Normalization --------------#
+#------------                         --------------#
 if($DoCANormalize) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# CA Normalize `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -2307,7 +2339,9 @@ if($DoCANormalize) then
 endif # DoCANormalize
 
 
+#------------                        --------------#
 #------------ Canonical Registration --------------#
+#------------                        --------------#
 if($DoCAReg) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# CA Reg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -2348,7 +2382,10 @@ if($DoCAReg) then
   echo $cmd > $touchdir/ca_register.touch
 endif
 
+
+#------------                                   --------------#
 #------------ Inverse of Canonical Registration --------------#
+#------------                                   --------------#
 if($DoCARegInv) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# CA Reg Inv `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -2368,7 +2405,10 @@ if($DoCARegInv) then
   echo $cmd > $touchdir/ca_register_inv.touch
 endif
 
+
+#------------                                    --------------#
 #------------ Removes neck and part of the face  --------------#
+#------------                                    --------------#
 if($DoRemoveNeck) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# Remove Neck `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -2389,7 +2429,10 @@ if($DoRemoveNeck) then
   echo $cmd > $touchdir/mri_remove_neck.touch
 endif
 
+
+#------------                                       --------------#
 #------------ Recompute lta with skull but no neck  --------------#
+#------------                                       --------------#
 if($DoSkullLTA) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# SkullLTA `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -2406,7 +2449,10 @@ if($DoSkullLTA) then
   echo $cmd > $touchdir/skull_2.lta.touch
 endif
 
+
+#--------------                      --------------#
 #-------------- SubCort Segmentation --------------#
+#--------------                      --------------#
 if($DoCALabel) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# SubCort Seg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -2420,10 +2466,10 @@ if($DoCALabel) then
       if($status) goto error_exit;
   endif
 
-  # ----------- Prior to changing aseg.auto.mgz -------------------#
-  if( -e aseg.mgz &&  -e aseg.auto.mgz) then
+  # ----------- Prior to changing aseg.auto.mgz ------------#
+  if( -e aseg.mgz && -e aseg.auto.mgz ) then
     # aseg.mgz and aseg.auto.mgz DO exist (at least 2nd pass)
-    if(! -e aseg.manedit.mgz) then
+    if( ! -e aseg.manedit.mgz) then
       # aseg.manedit.mgz does NOT exist
       # Check for diffs between aseg.auto and aseg
       # Note: if there are no diffs, then aseg.manedit.mgz is not created
@@ -2441,7 +2487,7 @@ if($DoCALabel) then
       # aseg.manedit.mgz DOES exist
       # This has to be handled in two stages in case manedit itself has
       # been edited.
-      # 1. Check for diffs bettween aseg.auto and aseg (new and old edits)
+      # 1. Check for diffs between aseg.auto and aseg (new and old edits)
       set cmd = (mri_seg_diff --seg1 aseg.auto.mgz \
         --seg2 aseg.mgz --diff aseg.manedit.tmp.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2475,8 +2521,9 @@ if($DoCALabel) then
     foreach s (${BaseSubjsList})
       # copy the transform (tpi cross to base) to local transform dir
       # where mri_fuse_segmentations is looking for it:
-      set cmd = (cp -vf ${longbasedir}/mri/transforms/${s}_to_${longbaseid}.lta \
-                        ${subjdir}/mri/transforms/${s}_to_${subjid}.lta)
+      set cmd = (cp -vf \
+            ${longbasedir}/mri/transforms/${s}_to_${longbaseid}.lta \
+            ${subjdir}/mri/transforms/${s}_to_${subjid}.lta)
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -2494,7 +2541,7 @@ if($DoCALabel) then
     endif
   endif
 
-  #------------------- mri_ca_label -------------------------------#
+  #------------------- mri_ca_label ------------------------#
   # Run mri_ca_label to create aseg.auto_noCCseg.mgz
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
   set cmd = (mri_ca_label -relabel_unlikely 9 .3 -prior 0.5)
@@ -2556,7 +2603,10 @@ if($DoASegMerge) then
   echo $cmd > $touchdir/asegmerge.touch
 endif
 
-# ----------- Intensity Normalization2 ------------------------#
+
+# -----------                          -----------------#
+# ----------- Intensity Normalization2 -----------------#
+# -----------                          -----------------#
 if($DoNormalization2) then
   echo "#--------------------------------------------" \
     |& tee -a $LF  |& tee -a $CF
@@ -2586,7 +2636,10 @@ if($DoNormalization2) then
   echo $cmd > $touchdir/inorm2.touch
 endif
 
-# -------------- Mask BFS ----------------------#
+
+# --------------          ---------------#
+# -------------- Mask BFS ---------------#
+# --------------          ---------------#
 if($DoMaskBFS) then
   echo "#--------------------------------------------" \
     |& tee -a $LF  |& tee -a $CF
@@ -2624,7 +2677,10 @@ if($DoMaskBFS) then
   endif
 endif
 
-#---------------- WM Segmentation --------------------------#
+
+#----------------                 -------------------#
+#---------------- WM Segmentation -------------------#
+#----------------                 -------------------#
 if($DoSegmentation) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -2741,7 +2797,10 @@ if($DoSegmentation) then
   echo $cmd > $touchdir/wmsegment.touch
 endif
 
-#---------------- Fill --------------------------#
+
+#----------------      -------------------#
+#---------------- Fill -------------------#
+#----------------      -------------------#
 if($DoFill) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -2768,13 +2827,16 @@ if($DoFill) then
   echo $cmd > $touchdir/fill.touch
 endif
 
+
 #########################################################
 #                  Per-Hemisphere                       #
 #########################################################
 
 foreach hemi ($hemilist)
 
-  #---------------- Tessellate --------------------------#
+  #----------------            -------------------#
+  #---------------- Tessellate -------------------#
+  #----------------            -------------------#
   if($DoTessellate && ( ! $longitudinal )) then
     if($hemi == "lh") then
       set hemivalue = 255;
@@ -2822,7 +2884,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.tessellate.touch
   endif
 
-  #---------------- Smooth1 --------------------------#
+
+  #----------------         -------------------#
+  #---------------- Smooth1 -------------------#
+  #----------------         -------------------#
   if($DoSmooth1 && ( ! $longitudinal )) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -2841,7 +2906,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.smoothwm1.touch
   endif
 
-  #---------------- Inflate1 --------------------------#
+
+  #----------------          -------------------#
+  #---------------- Inflate1 -------------------#
+  #----------------          -------------------#
   if($DoInflate1 && ( ! $longitudinal )) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -2860,7 +2928,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.inflate1.touch
   endif
 
-  #---------------- QSphere --------------------------#
+
+  #----------------         -------------------#
+  #---------------- QSphere -------------------#
+  #----------------         -------------------#
   if($DoQSphere && ( ! $longitudinal )) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -2879,7 +2950,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.qsphere.touch
   endif
 
-  #---------------- Fix Topology --------------------------#
+
+  #----------------              -------------------#
+  #---------------- Fix Topology -------------------#
+  #----------------              -------------------#
   if($DoFix && ( ! $longitudinal )) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -2972,7 +3046,10 @@ foreach hemi ($hemilist)
 
   # Smooth2 and Inflate2 moved to after make white surfs
 
-  #---------------- Make White Surfaces --------------------------#
+
+  #----------------                     -------------------#
+  #---------------- Make White Surfaces -------------------#
+  #----------------                     -------------------#
   if($DoWhiteSurfs) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3033,7 +3110,10 @@ foreach hemi ($hemilist)
     if( ! $DoPialSurfs) echo $cmd > $touchdir/$hemi.final_surfaces.touch
   endif
 
-  #---------------- Smooth2 --------------------------#
+
+  #----------------         -------------------#
+  #---------------- Smooth2 -------------------#
+  #----------------         -------------------#
   if($DoSmooth2) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3053,7 +3133,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.smoothwm2.touch
   endif
 
-  #---------------- Inflate2 --------------------------#
+
+  #----------------          -------------------#
+  #---------------- Inflate2 -------------------#
+  #----------------          -------------------#
   if($DoInflate2) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3079,7 +3162,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.inflate2.touch
   endif
 
-  # ---------- Curvature Anatomical Stats ---------------------------
+
+  # ----------                            -----------#
+  # ---------- Curvature Anatomical Stats -----------#
+  # ----------                            -----------#
   if($DoCurvStats) then
     echo "\n#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3100,8 +3186,14 @@ foreach hemi ($hemilist)
   endif
 
 
-  #---------------Begin Morph --------------------------------#
-  #---------------- Sphere --------------------------#
+#-----------             -------------#
+#----------- AUTORECON 3 -------------#
+#-----------             -------------#
+
+
+  #----------------        ----------------#
+  #---------------- Sphere ----------------#
+  #----------------        ----------------#
   if($DoSphere) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3127,7 +3219,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.sphmorph.touch
   endif
 
-  #---------------- Surface Registration --------------------------#
+
+  #----------------                      -------------------#
+  #---------------- Surface Registration -------------------#
+  #----------------                      -------------------#
   if($DoSurfReg) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3155,7 +3250,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.sphreg.touch
   endif
 
+
+  #----------                                         ----------------#
   #---------- Surface Registration to Average Subject ----------------#
+  #----------                                         ----------------#
   if($#SurfRegToSubj) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3174,7 +3272,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.sphreg.$SurfRegToSubj.touch
   endif
 
-  #---------------- Jacobian white --------------------------#
+
+  #----------------                -------------------#
+  #---------------- Jacobian white -------------------#
+  #----------------                -------------------#
   if($DoJacobianWhite) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3192,7 +3293,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.jacobian_white.touch
   endif
 
+
+  #---                                                                  ---#
   #--- Surface Registration, allow maximal distortion, produce Jacobian ---#
+  #---                                                                  ---#
   if($DoJacobianDist0) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3213,7 +3317,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.jacobian_dist0.touch
   endif
 
-  #---------------- Average Curv for Display----------------------#
+
+  #---------------                          ---------------#
+  #--------------- Average Curv for Display ---------------#
+  #---------------                          ---------------#
   if($DoAvgCurv) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3231,7 +3338,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.avgcurv.touch
   endif
 
-  #---------------- Cortical Parcellation------------------------#
+
+  #----------------                       -----------------#
+  #---------------- Cortical Parcellation -----------------#
+  #----------------                       -----------------#
   if($DoCortParc) then
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3258,7 +3368,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparc.touch
   endif
 
-  #---------------- Make Pial Surfaces --------------------------#
+
+  #----------------                    -------------------#
+  #---------------- Make Pial Surfaces -------------------#
+  #----------------                    -------------------#
   if($DoPialSurfs) then
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3325,7 +3438,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.surfvolume.touch
   endif
 
-  # ---------- Surface Vertices Number Match Check --------------
+
+  # ----------                                     --------------#
+  # ---------- Surface Vertices Number Match Check --------------#
+  # ----------                                     --------------#
   if($DoVnoMatchCheck) then
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3340,32 +3456,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.vnomatchcheck.touch
   endif
 
-  # ------ Compare aseg stats of two subjects ------
-  if ($DoAparcStatsDiff) then
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# AParc Stats Diff `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $SUBJECTS_DIR > /dev/null
-    $PWD |& tee -a $LF
-    foreach parc (aparc)
-      foreach meas (area volume thickness)
-        set subj1=($diffsubj)
-        if ( "x$subj1" == "x$subjid" ) then
-          # aparcstats2table doesnt accept identical subject names, so fake it
-          ln -s $subj1 ${diffsubj}_tmp
-          set subj1=(${diffsubj}_tmp)
-        endif
-        set cmd=(aparcstatsdiff $subj1 $subjid $hemi $parc $meas)
-        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if (-e ${diffsubj}_tmp) rm ${diffsubj}_tmp
-      end
-    end
-    echo $cmd > $touchdir/aparcstatsdiff.touch
-  endif
 
-  # ---------- Label V1 ----------------
+  # ----------          ------------#
+  # ---------- Label V1 ------------#
+  # ----------          ------------#
   if($DoLabelV1) then
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3387,9 +3481,15 @@ foreach hemi ($hemilist)
   endif
 
 end # Loop over hemilist
+#
+# 1st HEMI LOOP ENDS HERE
+#
 
 
-#---------------- Refine Pial Surfaces Using T2/FLAIR -----------------------#
+#----------------                                     ----------------#
+#---------------- Refine Pial Surfaces Using T2/FLAIR ----------------#
+#----------------                                     ----------------#
+# this is not run in the hemi-loop because both surfaces must exist
 if($DoT2pial || $DoFLAIRpial) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -3397,7 +3497,7 @@ if($DoT2pial || $DoFLAIRpial) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/scripts > /dev/null
 
-  # should be one or the other.  check params checks for this.
+  # should be one or the other.  'check_params' section checks for this.
   if($DoT2pial) set t2flair=(T2)
   if($DoFLAIRpial) set t2flair=(FLAIR)
 
@@ -3549,9 +3649,18 @@ if($DoT2pial || $DoFLAIRpial) then
 
 endif # if correct pial w/ T2/FLAIR
 
-# Moved stats and GWcontrast here to be after T2 pial fixing
+
+# ----------                        -------------#
+# ---------- Resume hemi processing -------------#
+# ----------                        -------------#
+
+# Moved stats and GWcontrast here to be after T2 pial refinement
+
 foreach hemi ($hemilist)
-  # ---------- Surface Anatomical Stats ---------------------------
+
+  # ----------                          -----------#
+  # ---------- Surface Anatomical Stats -----------#
+  # ----------                          -----------#
   if($DoParcStats) then
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3566,7 +3675,8 @@ foreach hemi ($hemilist)
       if($surfname == pial)  set stats = ../stats/$hemi.aparc.pial.stats
       set cmd = (mris_anatomical_stats -mgz)
       if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
-      set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi $surfname);
+      set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts \
+        $subjid $hemi $surfname);
       $PWD |& tee -a $LF
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -3575,7 +3685,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparcstats.touch
   endif
 
-  #---------------- Cortical Parcellation 2------------------------#
+
+  #----------------                         -----------------#
+  #---------------- Cortical Parcellation 2 -----------------#
+  #----------------                         -----------------#
   if($DoCortParc2) then
     echo "#-----------------------------------------"\
       |& tee -a $LF |& tee -a $CF
@@ -3603,7 +3716,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparc2.touch
   endif
 
-  # ---------- Surface Anatomical Stats 2 ---------------------------
+
+  # ----------                            ------------#
+  # ---------- Surface Anatomical Stats 2 ------------#
+  # ----------                            ------------#
   if($DoParcStats2) then
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3624,7 +3740,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparcstats2.touch
   endif
 
-  #---------------- Cortical Parcellation 3 ------------------------#
+
+  #----------------                         -----------------#
+  #---------------- Cortical Parcellation 3 -----------------#
+  #----------------                         -----------------#
   if($DoCortParc3) then
     echo "#-----------------------------------------"\
       |& tee -a $LF |& tee -a $CF
@@ -3652,7 +3771,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparc2.touch
   endif
 
-  # ---------- Surface Anatomical Stats 3 ---------------------------
+
+  # ----------                            -----------#
+  # ---------- Surface Anatomical Stats 3 -----------#
+  # ----------                            -----------#
   if($DoParcStats3) then
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3673,7 +3795,10 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparcstats3.touch
   endif
 
-  # ---------- WM/GM Contrast (pctsurfcon) ---------------------------
+
+  # ----------                             ----------#
+  # ---------- WM/GM Contrast (pctsurfcon) ----------#
+  # ----------                             ----------#
   # skip in base (as rawavg does not exist)
   if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
     echo "#-----------------------------------------" \
@@ -3693,44 +3818,14 @@ foreach hemi ($hemilist)
   endif
 
 end # hemilist
+#
+# 2nd HEMI LOOP ENDS HERE
+#
 
-#-------Edit Aseg with Surfaces -------------#
-if($DoSurfSegEdit) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# SurfSegEdit `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_edit_segmentation_with_surfaces $XOptsFile`;
-  set cmd = (mri_edit_segmentation_with_surfaces $xopts)
-  set cmd = ($cmd aseg.auto.mgz ../surf norm.mgz aseg.surfedit.mgz)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  $PWD |& tee -a $LF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  # now merge any manual edits that user might have made
-  if(-e aseg.manedit.mgz ) then
-    set cmd = (mri_seg_diff --seg aseg.surfedit.mgz \
-      --diff-in aseg.manedit.mgz --merged aseg.mgz)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if( ! $RunIt) then
-      echo "INFO: mri_seg_diff was not actually executed," |& tee -a $LF
-      echo "so subsequent commands (shown with -dontrun)" |& tee -a $LF
-      echo "may not have accurate arguments!" |& tee -a $LF
-    endif
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  # if no manual edits, then copy to aseg.mgz
-  else
-    set cmd = (cp aseg.surfedit.mgz aseg.mgz)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-  echo $cmd > $touchdir/surfsegedit.touch
-endif
 
-#---------------- Cortical Ribbon -------------------------#
+#----------------                 ------------------#
+#---------------- Cortical Ribbon ------------------#
+#----------------                 ------------------#
 if($DoCortRibbonVolMask) then
   echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
@@ -3749,7 +3844,58 @@ if($DoCortRibbonVolMask) then
   echo $cmd > $touchdir/cortical_ribbon.touch
 endif
 
+
+# -----------------            ----------------- #
+# ----------------- AParc2ASeg ----------------- #
+# -----------------            ----------------- #
+if($DoAParc2ASeg) then
+  echo "#-----------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# AParc-to-ASeg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir > /dev/null
+  set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
+  # Desikan (or whatever was specified by -gcs)
+  set cmd = (mri_aparc2aseg --s $subjid --volmask $xopts)
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/aparc2aseg.touch
+  # Now do Christophe's (if exist, which they may not, if -nocortparc2 used)
+  if( -e ${subjdir}/label/lh.aparc.${DESTRIEUX_NAME}.annot && \
+      -e ${subjdir}/label/rh.aparc.${DESTRIEUX_NAME}.annot ) then
+    set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
+    set cmd = (mri_aparc2aseg --s $subjid --volmask --${DESTRIEUX_NAME} $xopts)
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/aparc.${DESTRIEUX_NAME}2aseg.touch
+  else
+    echo "INFO: skipping ${DESTRIEUX_NAME} aparc2aseg" \
+    |& tee -a $LF |& tee -a $CF
+  endif
+endif
+
+
+# -----------------           ------------------- #
+# ----------------- APas2ASeg ------------------- #
+# -----------------           ------------------- #
+if($DoAPas2ASeg) then
+  echo "#-----------------------------------------"|& tee -a $LF |& tee -a $CF
+  echo "#@# APas-to-ASeg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set cmd = (apas2aseg --i aparc+aseg.mgz --o aseg+.mgz)
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/apas2aseg.touch
+endif
+
+
+#--------------            --------------#
 #-------------- ASeg Stats --------------#
+#--------------            --------------#
 if($DoSegStats) then
   # Stats on the automatic segmentation
   echo "#--------------------------------------------" \
@@ -3802,69 +3948,10 @@ if($DoSegStats) then
   echo $cmd > $touchdir/segstats.touch
 endif
 
-if ($DoAsegStatsDiff) then
-  # Compare aseg stats of two subjects
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# ASeg Stats Diff `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $SUBJECTS_DIR > /dev/null
-  set subj1=($diffsubj)
-  if ( "x$subj1" == "x$subjid" ) then
-    # asegstats2table doesnt accept identical subject names, so fake it
-    ln -s $subj1 ${diffsubj}_tmp
-    set subj1=(${diffsubj}_tmp)
-  endif
-  set cmd=(asegstatsdiff $subj1 $subjid)
-  $PWD |& tee -a $LF
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if (-e ${diffsubj}_tmp) rm ${diffsubj}_tmp
-  echo $cmd > $touchdir/asegstatsdiff.touch
-endif
 
-# ----------------- AParc2ASeg ---------------------------------------- #
-if($DoAParc2ASeg) then
-  echo "#-----------------------------------------"|& tee -a $LF |& tee -a $CF
-  echo "#@# AParc-to-ASeg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir > /dev/null
-  set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
-  # Desikan (or whatever was specified by -gcs)
-  set cmd = (mri_aparc2aseg --s $subjid --volmask $xopts)
-  $PWD |& tee -a $LF
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/aparc2aseg.touch
-  # Now do Christophe's (if exist, which they may not, if -nocortparc2 used)
-  if( -e ${subjdir}/label/lh.aparc.${DESTRIEUX_NAME}.annot && \
-      -e ${subjdir}/label/rh.aparc.${DESTRIEUX_NAME}.annot ) then
-    set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
-    set cmd = (mri_aparc2aseg --s $subjid --volmask --${DESTRIEUX_NAME} $xopts)
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/aparc.${DESTRIEUX_NAME}2aseg.touch
-  else
-    echo "INFO: skipping ${DESTRIEUX_NAME} aparc2aseg" \
-    |& tee -a $LF |& tee -a $CF
-  endif
-endif
-
-# ----------------- APas2ASeg ---------------------------------------- #
-if($DoAPas2ASeg) then
-  echo "#-----------------------------------------"|& tee -a $LF |& tee -a $CF
-  echo "#@# APas-to-ASeg `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  set cmd = (apas2aseg --i aparc+aseg.mgz --o aseg+.mgz)
-  $PWD |& tee -a $LF
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/apas2aseg.touch
-endif
-
-# ----------------- WMParc ---------------------------------------- #
+# -----------------        ------------------#
+# ----------------- WMParc ------------------#
+# -----------------        ------------------#
 if($DoWMParc) then
   echo "#-----------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# WMParc `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -3899,9 +3986,9 @@ if($DoWMParc) then
 endif
 
 
-# -----------------------------------------------------------
-# Do Contra Surface Registration here so don't have
-# to wait for other results
+#--------                             ---------#
+#-------- Contra Surface Registration ---------#
+#--------                             ---------#
 foreach hemi ($hemilist)
 
   # Registers ipsi and contra
@@ -3959,7 +4046,9 @@ foreach hemi ($hemilist)
 end # hemi
 
 
-# ---------------------------------------------------------------
+# -----------------        ------------------#
+# ----------------- Qcache ------------------#
+# -----------------        ------------------#
 # Create the smoothed surfaces to fsaverage target needed by Qdec.
 if ($DoQdecCache) then
   if ("${measuredir}" != "") then
@@ -4046,8 +4135,9 @@ if ($DoQdecCache) then
 endif # DoQdecCache
 
 
-# ---------------------------------------------------------------
-# Compute local gyrification index measurements
+#--------                          --------#
+#-------- Local Gyrification Index --------#
+#--------                          --------#
 if ($DoLocalGyriIndex) then
   cd $subjdir/surf
   $PWD |& tee -a $LF
@@ -4064,7 +4154,9 @@ if ($DoLocalGyriIndex) then
 endif # DoLocalGyriIndex
 
 
-# --------------------------------------------------------------------
+#--------                      --------#
+#-------- Brodmann Area Labels --------#
+#--------                      --------#
 # Create Brodmann area labels by mapping from fsaverage,
 # then create the ?h.BA.annot file from these labels,
 # then generate a ?h.BA.stats file from that annot.
@@ -4212,8 +4304,10 @@ if ($DoBaLabels) then
 endif # DoBaLabels
 
 
-# --------------------------------------------------------------------
-# Create entorhinal cortex labels by mapping from exvivo subjects,
+#--------                          --------#
+#-------- Entorhinal Cortex Labels --------#
+#--------                          --------#
+# create entorhinal cortex labels by mapping from exvivo subjects,
 # then generate ?h.entorhinal_exvivo.stats files
 if ($DoLabelExvivoEC) then
   cd $subjdir/label
@@ -4263,7 +4357,9 @@ if ($DoLabelExvivoEC) then
 endif # DoLabelExvivoEC
 
 
+#--------------                  -----------------#
 #-------------- AParc+ASeg Stats -----------------#
+#--------------                  -----------------#
 # This is not something you want to do in general. The volumes
 # of cortical structures should be obtained from the aparc.stats,
 # but getting the intensity means and stddevs can be useful.
@@ -4296,7 +4392,10 @@ if($DoAParcASegStats) then
   echo $cmd > $touchdir/aparc+aseg.stats.touch
 endif
 
+
+#--------------                        -----------------#
 #-------------- Hippocampal Subfields  -----------------#
+#--------------                        -----------------#
 if($DoGEMS) then
   set GEMSF = ($subjdir/scripts/hippo-subfields.log)
   rm -f $GEMSF
@@ -4363,6 +4462,11 @@ if($DoGEMS) then
   endif #checking of aseg.mgz, nu.mgz and talairach.xfm
 endif
 
+
+#--------------                    ----------------#
+#--------------  END OF RECON-ALL  ----------------#
+#--------------                    ----------------#
+
 echo "" |& tee -a $LF
 echo "#------------------------------------------" |& tee -a $LF
 echo "" |& tee -a $LF
@@ -4424,6 +4528,8 @@ if($?RECONALL_USAGE_FILE) then
 endif
 
 exit 0
+
+
 #############------------------------------------#######################
 ##################>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<<#######################
 #############------------------------------------#######################
@@ -5302,14 +5408,6 @@ while( $#argv != 0 )
       set DoParcStats3 = 0;
       breaksw
 
-    case "-surfsegedit":
-    case "-edit-aseg-with-surfs":
-      set DoSurfSegEdit = 1;
-      breaksw
-    case "-nosurfsegedit":
-      set DoSurfSegEdit = 0;
-      breaksw
-
     case "-segstats":
       set DoSegStats = 1;
       breaksw
@@ -5491,9 +5589,9 @@ while( $#argv != 0 )
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
       set DoCortRibbonVolMask = 1;
-      set DoSegStats       = 1;
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
+      set DoSegStats       = 1;
       set DoWMParc         = 1;
       set DoCurvStats      = 1;
       set DoBaLabels       = 1;
@@ -5643,10 +5741,10 @@ while( $#argv != 0 )
       set DoParcStats2     = 1;
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
-      set DoSegStats       = 1;
       set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
+      set DoSegStats       = 1;
       set DoCurvStats      = 1;
       set DoWMParc         = 1;
       set DoBaLabels       = 1;
@@ -5845,12 +5943,6 @@ while( $#argv != 0 )
       set DoSecondPassRenorm = 1;
       breaksw
 
-    case "-diffsubj":
-      if ( $#argv < 1) goto arg1err;
-      set diffsubj = $argv[1]; shift;
-      set diffsujb = `basename $diffsubj`; # remove trailing /
-      breaksw
-
     # flags -long, -no-orig-pial and -uselongbasectrlvol are all associated
     # with longitudinal processing
     case "-long":
@@ -5970,14 +6062,6 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set DoMakefile = 1;
       set MakefileTarget = $argv[1]; shift;
-      breaksw;
-
-    case "-asegstatsdiff":
-      set DoAsegStatsDiff = 1;
-      breaksw;
-
-    case "-aparcstatsdiff":
-      set DoAparcStatsDiff = 1;
       breaksw;
 
     case "-time":
@@ -6190,7 +6274,7 @@ check_params:
 
     set subjdir = $SUBJECTS_DIR/$subjid
 
-    #------------ Longitudinal -----------------------------------#
+    #------------ Longitudinal ---------------#
     if($longitudinal) then
 
       # assert that $tpNid does not contain .long.
@@ -6342,7 +6426,7 @@ check_params:
     endif
 
 
-    #----------------------------------------------------------------#
+    #---------------------------------------------------------#
     if($#InputList == 0) then
       if(! $DoCreateBaseSubj) then
         if($longitudinal) mkdir -p ${subjdir}
@@ -6499,10 +6583,10 @@ check_params:
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && \
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
-     ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
+     ! $DoMakefile && \
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
-     ! $DoLabelExvivoEC && ! $DoSurfSegEdit && ! $DoPialSurfs && \
+     ! $DoLabelExvivoEC && ! $DoPialSurfs && \
      ! $DoGEMS && ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && \
      ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg ) then
@@ -6519,19 +6603,6 @@ check_params:
   if( ($WSMore || $WSLess) && $WSPctPreFlood ) then
     echo "ERROR: cannot specify -wsmore or -wsless and -wsthresh"
     exit 1;
-  endif
-
-  if ($DoAsegStatsDiff) then
-    if ( $#diffsubj != 1 ) then
-      echo "ERROR: -asegstatsdiff requires -diffsubj <subjid>"
-      exit 1;
-    endif
-  endif
-  if ($DoAparcStatsDiff) then
-    if ( $#diffsubj != 1 ) then
-      echo "ERROR: -aparcstatsdiff requires -diffsubj <subjid>"
-      exit 1;
-    endif
   endif
 
   if($#SurfRegToSubj) then
@@ -6848,6 +6919,7 @@ Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
   -<no>cortribbon        20 min
   -<no>aparc2aseg         1 min
   -<no>apas2aseg          1 min
+  -<no>segstats          10 min
   -<no>wmparc            20 min
 
   -all                20-40 hours   both hemipheres
@@ -7659,13 +7731,13 @@ loading the patch through File->Patch->LoadPatch...
 
 GETTING HELP
 
-Send email to freesurfer@nmr.mgh.harvard.edu. Also see
-https://surfer.nmr.mgh.harvard.edu. In particular, there is both a
-reconstruction guide and tutorial as well as manuals for tkmedit and
-tksurfer.
+See https://surfer.nmr.mgh.harvard.edu
+Send email to freesurfer@nmr.mgh.harvard.edu
 
 
 REFERENCES
+
+See https://www.zotero.org/freesurfer
 
 [1] Collins, DL, Neelin, P., Peters, TM, and Evans, AC. (1994)
 Automatic 3D Inter-Subject Registration of MR Volumetric Data in
