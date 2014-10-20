@@ -23,11 +23,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/07/23 20:59:59 $
- *    $Revision: 1.90 $
+ *    $Author: nicks $
+ *    $Date: 2014/10/20 23:59:48 $
+ *    $Revision: 1.91 $
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -238,7 +238,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.90 2014/07/23 20:59:59 fischl Exp $",
+           "$Id: mri_ca_register.c,v 1.91 2014/10/20 23:59:48 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -273,9 +273,9 @@ main(int argc, char *argv[])
   printf("logging results to %s.log\n", parms.base_name) ;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel
-  { 
-    n_omp_threads = omp_get_num_threads(); 
+  #pragma omp parallel
+  {
+    n_omp_threads = omp_get_num_threads();
   }
   printf("\n\n ======= NUMBER OF OPENMP THREADS = %d ======= \n",
          n_omp_threads);
@@ -318,7 +318,9 @@ main(int argc, char *argv[])
                   Progname, mask_fname) ;
       // if mask == 0, then set dst as 0
       for (val = 0 ; val < MIN_WM_VAL ; val++)
-	MRImask(mri_tmp, mri_mask, mri_tmp, val, 0) ;
+      {
+        MRImask(mri_tmp, mri_mask, mri_tmp, val, 0) ;
+      }
       MRIfree(&mri_mask) ;
     }
     if (T2_mask_fname)
@@ -327,18 +329,24 @@ main(int argc, char *argv[])
 
       mri_T2 = MRIread(T2_mask_fname) ;
       if (!mri_T2)
-	ErrorExit(ERROR_NOFILE, "%s: could not open T2 mask volume %s.\n",
-		  Progname, mask_fname) ;
+        ErrorExit(ERROR_NOFILE, "%s: could not open T2 mask volume %s.\n",
+                  Progname, mask_fname) ;
       if (aparc_aseg_fname)   // use T2 and aparc+aseg to remove non-brain stuff
       {
- 	mri_aparc_aseg = MRIread(aparc_aseg_fname) ;
-	if (mri_aparc_aseg == NULL)
-	  ErrorExit(ERROR_NOFILE, "%s: could not open aparc+aseg volume %s.\n",
-		    Progname, aparc_aseg_fname) ;
+        mri_aparc_aseg = MRIread(aparc_aseg_fname) ;
+        if (mri_aparc_aseg == NULL)
+          ErrorExit(ERROR_NOFILE, "%s: could not open aparc+aseg volume %s.\n",
+                    Progname, aparc_aseg_fname) ;
       }
 
-      MRImask_with_T2_and_aparc_aseg(mri_tmp, mri_tmp, mri_T2, mri_aparc_aseg, T2_thresh, MM_FROM_EXTERIOR) ;
-      MRIfree(&mri_T2) ; MRIfree(&mri_aparc_aseg) ;
+      MRImask_with_T2_and_aparc_aseg(mri_tmp,
+                                     mri_tmp,
+                                     mri_T2,
+                                     mri_aparc_aseg,
+                                     T2_thresh,
+                                     MM_FROM_EXTERIOR) ;
+      MRIfree(&mri_T2) ;
+      MRIfree(&mri_aparc_aseg) ;
     }
     if (alpha > 0)
     {
@@ -551,7 +559,10 @@ main(int argc, char *argv[])
     MPoint  *pArray ;
     double   xr, yr, zr ;
 
-    parms.mri_twm = MRIalloc(mri_inputs->width, mri_inputs->height, mri_inputs->depth, MRI_UCHAR) ;
+    parms.mri_twm = MRIalloc(mri_inputs->width,
+                             mri_inputs->height,
+                             mri_inputs->depth,
+                             MRI_UCHAR) ;
     MRIcopyHeader(mri_inputs, parms.mri_twm) ;
     pArray = MRIreadControlPoints(twm_fname, &nctrl, &useRealRAS);
     for (count = i = 0 ; i < nctrl ; i++)
@@ -559,42 +570,62 @@ main(int argc, char *argv[])
       switch (useRealRAS)
       {
       case 0:
-	MRIsurfaceRASToVoxel(parms.mri_twm,
-			     pArray[i].x, pArray[i].y, pArray[i].z,
-			     &xr, &yr, &zr);
-	break;
+        MRIsurfaceRASToVoxel(parms.mri_twm,
+                             pArray[i].x, pArray[i].y, pArray[i].z,
+                             &xr, &yr, &zr);
+        break;
       case 1:
-	MRIworldToVoxel(parms.mri_twm,
-			pArray[i].x, pArray[i].y, pArray[i].z,
-			&xr, &yr, &zr) ;
-	break;
+        MRIworldToVoxel(parms.mri_twm,
+                        pArray[i].x, pArray[i].y, pArray[i].z,
+                        &xr, &yr, &zr) ;
+        break;
       default:
-	ErrorExit(ERROR_BADPARM,
-		  "MRI3dUseFileControlPoints has bad useRealRAS flag %d\n",
-		  useRealRAS) ;
-      }	
-      x = nint(xr) ; y = nint(yr) ; z = nint(zr) ;
+        ErrorExit(ERROR_BADPARM,
+                  "MRI3dUseFileControlPoints has bad useRealRAS flag %d\n",
+                  useRealRAS) ;
+      }
+      x = nint(xr) ;
+      y = nint(yr) ;
+      z = nint(zr) ;
       if (MRIindexNotInVolume(parms.mri_twm, x, y, z) == 0)
       {
-	GC1D      *gc ;
-	int       lh ;
+        GC1D      *gc ;
+        int       lh ;
 
-	if (MRIvox(parms.mri_twm, x, y, z) == 0)
-	  count++ ;
-	MRIvox(parms.mri_twm, x, y, z) = 1 ;
-	lh = GCAisLeftHemisphere(gca, mri_inputs, transform, x, y, z) ;
-	gc = GCAfindSourceGC(gca, mri_inputs, transform, x, y, z, lh ? Left_Cerebral_White_Matter : Right_Cerebral_White_Matter) ;
-	if (gc)
-	  MRIsetVoxVal(mri_inputs, x, y,z, 0, gc->means[0]) ;
-	else
-	  MRIsetVoxVal(mri_inputs, x, y,z, 0, 100) ;
+        if (MRIvox(parms.mri_twm, x, y, z) == 0)
+        {
+          count++ ;
+        }
+        MRIvox(parms.mri_twm, x, y, z) = 1 ;
+        lh = GCAisLeftHemisphere(gca, mri_inputs, transform, x, y, z) ;
+        gc = GCAfindSourceGC(gca,
+                             mri_inputs,
+                             transform,
+                             x, y, z,
+                             lh ? Left_Cerebral_White_Matter
+                             : Right_Cerebral_White_Matter) ;
+        if (gc)
+        {
+          MRIsetVoxVal(mri_inputs, x, y,z, 0, gc->means[0]) ;
+        }
+        else
+        {
+          MRIsetVoxVal(mri_inputs, x, y,z, 0, 100) ;
+        }
       }
       else
-	bad++ ;
+      {
+        bad++ ;
+      }
     }
     if (bad > 0)
-      ErrorPrintf(ERROR_BADFILE, "!!!!! %d control points rejected for being out of bounds !!!!!!\n") ;
-    printf("%d temporal lobe white matter control points read from file %s\n", count, twm_fname) ;
+    {
+      ErrorPrintf(
+        ERROR_BADFILE,
+        "!!!!! %d control points rejected for being out of bounds !!!!!!\n") ;
+    }
+    printf("%d temporal lobe white matter control points read from file %s\n",
+           count, twm_fname) ;
   }
 
   /////////////////////////////////////////////////
@@ -748,7 +779,7 @@ main(int argc, char *argv[])
       MRIwrite(mri, fname) ;
       MRIfree(&mri) ;
     }
-    
+
   }
   else   // default is to create one
   {
@@ -783,8 +814,15 @@ main(int argc, char *argv[])
   }
 
   if (ninsertions > 0)
-    GCAinsertLabels(gca, mri_inputs, transform, ninsertions,
-                    insert_labels, insert_intensities, insert_coords, insert_whalf) ;
+    GCAinsertLabels(gca,
+                    mri_inputs,
+                    transform,
+                    ninsertions,
+                    insert_labels,
+                    insert_intensities,
+                    insert_coords,
+                    insert_whalf) ;
+
   //////////////////////////////////////////////////////////
   // -TL temporal_lobe.gca option
   if (tl_fname)
@@ -909,37 +947,37 @@ main(int argc, char *argv[])
   if (renorm_with_histos)
   {
     GCAmapRenormalizeWithHistograms
-      (gcam->gca, mri_inputs, transform,parms.log_fp, parms.base_name,
-       label_scales,label_offsets,label_peaks,label_computed) ;
+    (gcam->gca, mri_inputs, transform,parms.log_fp, parms.base_name,
+     label_scales,label_offsets,label_peaks,label_computed) ;
     if (parms.write_iterations != 0 && 0)
     {
       char fname[STRLEN] ;
       MRI  *mri_gca, *mri_tmp ;
       if (parms.diag_morph_from_atlas )
       {
-	sprintf(fname, "%s_target", parms.base_name) ;
-	MRIwriteImageViews(mri_inputs, fname, IMAGE_SIZE) ;
-	sprintf(fname, "%s_target.mgz", parms.base_name) ;
-	printf("writing target volume to %s...\n", fname) ;
-	MRIwrite(mri_inputs, fname) ;
+        sprintf(fname, "%s_target", parms.base_name) ;
+        MRIwriteImageViews(mri_inputs, fname, IMAGE_SIZE) ;
+        sprintf(fname, "%s_target.mgz", parms.base_name) ;
+        printf("writing target volume to %s...\n", fname) ;
+        MRIwrite(mri_inputs, fname) ;
       }
       else
       {
-	mri_gca = MRIclone(mri_inputs, NULL) ;
-	GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-	if (mri_gca->nframes > 1)
-	{
-	  printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-	  mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-	  MRIfree(&mri_gca) ;
-	  mri_gca = mri_tmp ;
-	}
-	sprintf(fname, "%s_target_after_histo", parms.base_name) ;
-	MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-	sprintf(fname, "%s_target_after_histo.mgz", parms.base_name) ;
-	printf("writing target volume to %s...\n", fname) ;
-	MRIwrite(mri_gca, fname) ;
-	MRIfree(&mri_gca) ;
+        mri_gca = MRIclone(mri_inputs, NULL) ;
+        GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+        if (mri_gca->nframes > 1)
+        {
+          printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+          mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+          MRIfree(&mri_gca) ;
+          mri_gca = mri_tmp ;
+        }
+        sprintf(fname, "%s_target_after_histo", parms.base_name) ;
+        MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+        sprintf(fname, "%s_target_after_histo.mgz", parms.base_name) ;
+        printf("writing target volume to %s...\n", fname) ;
+        MRIwrite(mri_gca, fname) ;
+        MRIfree(&mri_gca) ;
       }
     }
   }
@@ -980,9 +1018,9 @@ main(int argc, char *argv[])
 //      GCAmapRenormalize(gcam->gca, mri_inputs, trans) ;
       TransformInvert(trans, mri_inputs);
       GCAcomputeRenormalizationWithAlignment
-	(gcam->gca, mri_inputs, trans,
-	 parms.log_fp, parms.base_name, NULL, 0,
-	 label_scales,label_offsets,label_peaks,label_computed) ;
+      (gcam->gca, mri_inputs, trans,
+       parms.log_fp, parms.base_name, NULL, 0,
+       label_scales,label_offsets,label_peaks,label_computed) ;
       free(trans);
     }
   }
@@ -1248,10 +1286,10 @@ main(int argc, char *argv[])
 #if 0
       if (mri_gca->nframes > 1)
       {
-	printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-	mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-	MRIfree(&mri_gca) ;
-	mri_gca = mri_tmp ;
+        printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+        mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+        MRIfree(&mri_gca) ;
+        mri_gca = mri_tmp ;
       }
 #endif
       sprintf(fname, "%s_target", parms.base_name) ;
@@ -1417,32 +1455,32 @@ main(int argc, char *argv[])
       {
         char fname[STRLEN] ;
         MRI  *mri_gca, *mri_tmp ;
-	if (parms.diag_morph_from_atlas )
-	{
-	  sprintf(fname, "%s_target", parms.base_name) ;
-	  MRIwriteImageViews(mri_inputs, fname, IMAGE_SIZE) ;
-	  sprintf(fname, "%s_target.mgz", parms.base_name) ;
-	  printf("writing target volume to %s...\n", fname) ;
-	  MRIwrite(mri_inputs, fname) ;
-	}
-	else
-	{
-	  mri_gca = MRIclone(mri_inputs, NULL) ;
-	  GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-	  if (mri_gca->nframes > 1)
-	  {
-	    printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
-	    mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-	    MRIfree(&mri_gca) ;
-	    mri_gca = mri_tmp ;
-	  }
-	  sprintf(fname, "%s_target", parms.base_name) ;
-	  MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-	  sprintf(fname, "%s_target1.mgz", parms.base_name) ;
-	  printf("writing target volume to %s...\n", fname) ;
-	  MRIwrite(mri_gca, fname) ;
-	  MRIfree(&mri_gca) ;
-	}
+        if (parms.diag_morph_from_atlas )
+        {
+          sprintf(fname, "%s_target", parms.base_name) ;
+          MRIwriteImageViews(mri_inputs, fname, IMAGE_SIZE) ;
+          sprintf(fname, "%s_target.mgz", parms.base_name) ;
+          printf("writing target volume to %s...\n", fname) ;
+          MRIwrite(mri_inputs, fname) ;
+        }
+        else
+        {
+          mri_gca = MRIclone(mri_inputs, NULL) ;
+          GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+          if (mri_gca->nframes > 1)
+          {
+            printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+            mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+            MRIfree(&mri_gca) ;
+            mri_gca = mri_tmp ;
+          }
+          sprintf(fname, "%s_target", parms.base_name) ;
+          MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+          sprintf(fname, "%s_target1.mgz", parms.base_name) ;
+          printf("writing target volume to %s...\n", fname) ;
+          MRIwrite(mri_gca, fname) ;
+          MRIfree(&mri_gca) ;
+        }
       }
     }
     else // this is a sequential call, pass scales..
@@ -1472,13 +1510,8 @@ main(int argc, char *argv[])
       parms.l_smoothness /= 5 ;
       GCAMregister(gcam, mri_inputs, &parms) ;
 #endif
-      printf("*********************************************************************************************\n") ;
-      printf("*********************************************************************************************\n") ;
-      printf("*********************************************************************************************\n") ;
-      printf("********************* ALLOWING NEGATIVE NODES IN DEFORMATION ********************************\n") ;
-      printf("*********************************************************************************************\n") ;
-      printf("*********************************************************************************************\n") ;
-      printf("*********************************************************************************************\n") ;
+      printf("********************* ALLOWING NEGATIVE NODES IN DEFORMATION"
+             "********************************\n") ;
       parms.noneg = 0 ;
       parms.tol = 0.25 ;
       parms.orig_dt = 1e-6 ;
@@ -1620,7 +1653,8 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "TWM"))
   {
     twm_fname = argv[2] ;
-    printf("specifying temporal white matter using control points in %s\n", twm_fname) ;
+    printf("specifying temporal white matter using control points in %s\n",
+           twm_fname) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "MAX_GRAD"))
@@ -1759,11 +1793,17 @@ get_option(int argc, char *argv[])
   {
     int i = atoi(argv[2]) ;
     if (i == 0)
+    {
       parms.noneg = 1 ;
+    }
     else if (i == 1)
+    {
       parms.noneg = 0 ;
-    else 
+    }
+    else
+    {
       parms.noneg = i ;
+    }
 
     nargs = 1 ;
     printf("%s allowing temporary folds during numerical minimization (%d)\n",
@@ -1853,8 +1893,8 @@ get_option(int argc, char *argv[])
     T2_mask_fname = argv[2] ;
     T2_thresh = atof(argv[3]) ;
     nargs = 2 ;
-    printf("using T2 volume %s thresholded at %f to mask input volume...\n", 
-	   T2_mask_fname, T2_thresh) ;
+    printf("using T2 volume %s thresholded at %f to mask input volume...\n",
+           T2_mask_fname, T2_thresh) ;
   }
   else if (!stricmp(option, "AMASK"))
   {
@@ -1862,8 +1902,8 @@ get_option(int argc, char *argv[])
     T2_mask_fname = argv[3] ;
     T2_thresh = atof(argv[4]) ;
     nargs = 3 ;
-    printf("using aparc+aseg vol %s and T2 volume %s thresholded at %f to mask input volume...\n", 
-	   aparc_aseg_fname, T2_mask_fname, T2_thresh) ;
+    printf("using aparc+aseg vol %s and T2 volume %s thresholded at %f to mask input volume...\n",
+           aparc_aseg_fname, T2_mask_fname, T2_thresh) ;
   }
   else if (!stricmp(option, "DIAG"))
   {
