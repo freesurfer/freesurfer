@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/05/21 18:00:47 $
- *    $Revision: 1.25 $
+ *    $Date: 2014/10/21 13:29:38 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -262,6 +262,7 @@ std::pair<vnl_matrix_fixed<double, 4, 4>, double> RegistrationStep<T>::computeRe
       MRIcopyHeader(mriS, mri_weights);
       mri_weights->type = MRI_FLOAT;
       MRIsetResolution(mri_weights, mriS->xsize, mriS->ysize, mriS->zsize);
+      mri_weights->outside_val = 1.0;
     }
 
     int x, y, z, f;
@@ -286,12 +287,17 @@ std::pair<vnl_matrix_fixed<double, 4, 4>, double> RegistrationStep<T>::computeRe
           for (y = 0; y < mriS->height; y++)
           {
             val = MRILseq_vox(mri_indexing,x,y,z,f) ;
-            //std::cout << " val: " << val << endl;
-              if (val == -10) MRIFseq_vox(mri_weights, x, y, z, f) = -0.5;    // init value (border)
-              else if (val == -1) MRIFseq_vox(mri_weights, x, y, z, f) = -0.6;// zero element (skipped)
-              else if (val == -2) MRIFseq_vox(mri_weights, x, y, z, f) = -0.7;// nan element (skipped)
-              else if (val == -5) MRIFseq_vox(mri_weights, x, y, z, f) = -1;  // outside element (skipped)
-              else
+             //if (val < 0) std::cout << " val: " << val << endl;
+              if (val < 0) MRIFseq_vox(mri_weights, x, y, z, f) = 1.0;  // anything special set to ignore
+              if (val == -4) MRIFseq_vox(mri_weights, x, y, z, f) = 0.0;// background in only one image (0.0 = label outlier)
+
+              //if (val == -10) MRIFseq_vox(mri_weights, x, y, z, f) = -0.5;    // init value (border)
+              //else if (val == -1) MRIFseq_vox(mri_weights, x, y, z, f) = -0.6;// zero element (skipped)
+              //else if (val == -2) MRIFseq_vox(mri_weights, x, y, z, f) = -0.7;// nan element (skipped)
+              //else if (val == -4) MRIFseq_vox(mri_weights, x, y, z, f) = -0.9;// background in only one image
+              //else if (val == -5) MRIFseq_vox(mri_weights, x, y, z, f) = -1;  // backgroun/outside in both images
+
+              if (val >= 0.0)
               {
                 //std::cout << "val: " << val << "  xyz: " << x << " " << y << " " << z << " " << std::flush;
                 assert(val < (int)w.size());
@@ -430,6 +436,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
     itype = MRI_INT;
   }
   mri_indexing = MRIallocSequence(mriS->width, mriS->height, mriS->depth, itype, mriS->nframes);
+  mri_indexing->outside_val = -10;
   if (mri_indexing == NULL)
     ErrorExit(ERROR_NO_MEMORY,
         "Registration::constructAB could not allocate memory for mri_indexing");
@@ -708,11 +715,16 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
         assert(xp1 < mriS->width);
         assert(yp1 < mriS->height);
         assert(zp1 < mriS->depth);
-        if ( MRIgetVoxVal(mriS,xp1,yp1,zp1,0) == mriS->outside_val || MRIgetVoxVal(mriT,xp1,yp1,zp1,0) == mriT->outside_val )
+        const float & mriSval = MRIgetVoxVal(mriS,xp1,yp1,zp1,0);
+        const float & mriTval = MRIgetVoxVal(mriT,xp1,yp1,zp1,0);
+        if ( mriSval == mriS->outside_val || mriTval == mriT->outside_val )
         {
           //std::cout << "voxel outside (" << xp1 << " " << yp1 << " " << zp1 << " )  mriS: " <<MRIFvox(mriS,xp1,yp1,zp1) << "  mriT: " << MRIFvox(mriT,xp1,yp1,zp1)  << "  ovalS: " << mriS->outside_val << "  ovalT: " << mriT->outside_val<< std::endl;
+          int outval = -4;
+          if (mriSval == mriS->outside_val && mriTval == mriT->outside_val )
+            outval = -5;
           for (f=0;f<fxf;f++)
-            MRILseq_vox(mri_indexing, xp1, yp1, zp1,f) = -5;
+            MRILseq_vox(mri_indexing, xp1, yp1, zp1,f) = outval;
           ocount+=fxf;
           //cout << " " << ocount << flush;
           continue;

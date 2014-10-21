@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/05/21 18:04:11 $
- *    $Revision: 1.4 $
+ *    $Date: 2014/10/21 13:29:38 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -324,17 +324,18 @@ void RegRobust::iterativeRegistrationHelper(int nmax, double epsit, MRI * mriS,
       MRIwrite(mri_hweights, n.c_str());
     }
     // remove negative weights (markers) set to 1
-    int x, y, z;
+   /* int x, y, z;
     for (z = 0; z < mri_hweights->depth; z++)
       for (x = 0; x < mri_hweights->width; x++)
         for (y = 0; y < mri_hweights->height; y++)
         {
           if (MRIFvox(mri_hweights,x,y,z) < 0) MRIFvox(mri_hweights,x,y,z) = 1;
-        }
+        }*/
 
     mri_weights = MRIalloc(mriT->width, mriT->height, mriT->depth, MRI_FLOAT);
     MRIcopyHeader(mriT, mri_weights);
     mri_weights->type = MRI_FLOAT;
+    mri_weights->outside_val = 1; 
     if (symmetry)
       mri_weights = MyMRI::MRIlinearTransform(mri_hweights, mri_weights, mh2);
     else
