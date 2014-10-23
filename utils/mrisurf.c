@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/22 01:48:52 $
- *    $Revision: 1.761 $
+ *    $Author: fischl $
+ *    $Date: 2014/10/23 17:17:14 $
+ *    $Revision: 1.762 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,12 @@
 #include "voxlist.h"
 #ifdef HAVE_OPENMP
 #include <omp.h>
+#endif
+
+#ifdef HAVE_OPENMP
+#if 0
+#undef HAVE_OPENMP
+#endif
 #endif
 
 #define DMALLOC 0
@@ -774,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.761 2014/03/22 01:48:52 greve Exp $");
+  return("$Id: mrisurf.c,v 1.762 2014/10/23 17:17:14 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -2269,7 +2275,7 @@ MRISsampleAtEachDistance(MRI_SURFACE *mris,int nbhd_size,int nbrs_per_distance)
   the v->v array to hold the expanded list.
   ------------------------------------------------------*/
 #define MAX_VERTICES  20000
-#define MAX_V         1000  /* max for any one node, actually way too big */
+#define MAX_V         5000  /* max for any one node, actually way too big */
 #define TRIANGLE_DISTANCE_CORRECTION  1.09f /*1.1f*/
 /*1.066f*/ /*1.12578*/ /* 1.13105f*/ /*1.1501f  (1.1364f)*/
 #define QUADRANGLE_DISTANCE_CORRECTION  ((1+sqrt(2)) / 2) /* 1.2071  */
@@ -2280,13 +2286,18 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   VERTEX       *v, *vn, *vn2 ;
   int          *vnbrs, *vall, *vnb,found, n2, vnbrs_num,
                vall_num, nbhd_size,done, checks = 0 ;
-  float        xd, yd, zd, min_dist, dist, dist_scale, old_dist[MAX_V];
-  float        old_v[MAX_V], min_angle, angle ;
+  float        xd, yd, zd, min_dist, dist, dist_scale, *old_dist;
+  float        min_angle, angle ;
   VECTOR       *v1, *v2 ;
-  float        c[100] ;
-  int          nc[100] ;
+  float        c[100],*orig_old_dist ;
+  int          nc[100], *old_v ;
   int          diag_vno1, diag_vno2 ;
   char         *cp ;
+
+  orig_old_dist = old_dist = (float *)calloc(MAX_V, sizeof(float)) ;
+  old_v = (int *)calloc(MAX_V, sizeof(int)) ;
+  if (old_dist == NULL || old_v == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRISsampleDistances: could not allocated old_dist buffer") ;
 
   if ((cp = getenv("VDIAG1")) != NULL)
   {
@@ -2402,6 +2413,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       memmove(v->v, old_v, v->vtotal*sizeof(v->v[0])) ;
 
       /* save and restore distance vector */
+      if (v->vtotal >= MAX_V || old_dist != orig_old_dist)
+	printf("!!!!!!!!!!!!! v %d has too many (%d) vertices to save distances for !!!!!!!!!!!!!!!!!\n", vno, vtotal) ;
       memmove(old_dist, v->dist, v->vtotal*sizeof(v->dist[0])) ;
       free(v->dist) ;
       v->dist = (float *)calloc(max_v, sizeof(float)) ;
@@ -2412,6 +2425,17 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
       memmove(v->dist, old_dist, v->vtotal*sizeof(v->dist[0])) ;
 
       /* save and restore original distance vector */
+      {
+	int k ;
+	for (k = 0 ; k < v->vtotal ; k++)
+	{
+	  old_dist[k] = 0 ;
+	  v->dist_orig[k] *= 1 ;
+	  old_dist[k] = v->dist_orig[k] ;
+	}
+	if (vno == Gdiag_no)
+	  DiagBreak() ;
+      }
       memmove(old_dist, v->dist_orig, v->vtotal*sizeof(v->dist_orig[0])) ;
       free(v->dist_orig) ;
       v->dist_orig = (float *)calloc(max_v, sizeof(float)) ;
@@ -2891,6 +2915,8 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
   free(vnbrs) ;
   free(vall) ;
   free(vnb) ;
+  free(old_dist) ;
+  free(old_v) ;
   VectorFree(&v1) ;
   VectorFree(&v2) ;
   if (Gdiag & DIAG_HEARTBEAT)
@@ -3290,48 +3316,71 @@ MRISsampleDistances(MRI_SURFACE *mris, int *nbrs, int max_nbhd)
 int
 MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 {
-  int          i,n, vno, neighbors, j, vnum, niter, nb_vnum ;
-  VERTEX       *v, *vnb, *vnb2 ;
-  int          vtmp[MAX_NEIGHBORS], vtotal, ntotal ;
+  int          vno, niter, ntotal, vtotal ;
 
   /*
     now build a list of 2-connected neighbors. After this is done,
     reallocate the v->n list and arrange the 2-connected neighbors
     sequentially after it.
   */
-  for (niter = 0 ; niter < nsize-mris->nsize ; niter++)
+
+  if (nsize <= mris->max_nsize)
   {
+#if 0
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+#endif
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
+      VERTEX       *v ;
+
       v = &mris->vertices[vno] ;
       if (vno == Gdiag_no)
-      {
         DiagBreak()  ;
-      }
-      if (v->nsize >= nsize)
+
+      switch (nsize)
       {
-	switch (nsize)
-	{
-	case 1:  v->vtotal = v->vnum ; break ;
-	case 2:  v->vtotal = v->v2num ; break ;
-	case 3:  v->vtotal = v->v3num ; break ;
-	default: break ;
-	}
-        continue ;
+      case 1:  v->vtotal = v->vnum ; break ;
+      case 2:  v->vtotal = v->v2num ; break ;
+      case 3:  v->vtotal = v->v3num ; break ;
+      default: break ;
       }
+    }
+    mris->nsize = nsize ;
+    return(NO_ERROR) ;
+  }
+
+  // setting neighborhood size to a value larger than it has been in the past
+  mris->max_nsize = nsize ;
+  for (niter = 0 ; niter < nsize-mris->nsize ; niter++)
+  {
+#if 0
+    // this can't be parallelized due to the marking of neighbors
+#ifdef HAVE_OPENMP
+//#pragma omp parallel for
+#endif
+#endif
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      int          i,n, neighbors, j, vnum, nb_vnum ;
+      VERTEX       *v, *vnb, *vnb2 ;
+      int          vtmp[MAX_NEIGHBORS] ;
+
+      v = &mris->vertices[vno] ;
+      if (vno == Gdiag_no)
+        DiagBreak()  ;
+
       vnum = v->vtotal ;
       if (v->ripflag || !vnum)
-      {
         continue ;
-      }
+
       memmove(vtmp, v->v, vnum*sizeof(int)) ;
 
       /* mark 1-neighbors so we don't count them twice */
       v->marked = 1 ;
       for (i = 0 ; i < vnum; i++)
-      {
         mris->vertices[v->v[i]].marked = 1 ;
-      }
 
       /* count 2-neighbors */
       for (neighbors = vnum, i = 0;
@@ -3342,9 +3391,7 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
         vnb = &mris->vertices[n] ;
         vnb->marked = 1 ;
         if (vnb->ripflag)
-        {
           continue ;
-        }
 
         nb_vnum = vnb->vnum ;
 
@@ -3352,9 +3399,8 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
         {
           vnb2 = &mris->vertices[vnb->v[j]] ;
           if (vnb2->ripflag || vnb2->marked)
-          {
             continue ;
-          }
+
           vtmp[neighbors] = vnb->v[j] ;
           vnb2->marked = 1 ;
           if (++neighbors >= MAX_NEIGHBORS)
@@ -3384,13 +3430,11 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
         mris->vertices[vtmp[n]].marked = 0 ;
       }
       if (v->dist)
-      {
         free(v->dist) ;
-      }
+
       if (v->dist_orig)
-      {
         free(v->dist_orig) ;
-      }
+
 
       v->dist = (float *)calloc(neighbors, sizeof(float)) ;
       if (!v->dist)
@@ -3435,19 +3479,25 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
   }
 
-  for (vno = ntotal = vtotal = 0 ; vno < mris->nvertices ; vno++)
+  ntotal = vtotal = 0 ;
+#if 0
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+:ntotal,vtotal)
+#endif
+#endif
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    VERTEX       *v ;
+
     v = &mris->vertices[vno] ;
     if (v->vtotal > 0)
     {
       if (v->dist)
-      {
         free(v->dist) ;
-      }
+
       if (v->dist_orig)
-      {
         free(v->dist_orig) ;
-      }
+
       v->dist = (float *)calloc(v->vtotal, sizeof(float)) ;
       if (!v->dist)
         ErrorExit(ERROR_NOMEMORY,
@@ -3461,9 +3511,8 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
     }
 
     if (v->ripflag)
-    {
       continue ;
-    }
+
     vtotal += v->vtotal ;
     ntotal++ ;
   }
@@ -3471,9 +3520,8 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
   mris->avg_nbrs = (float)vtotal / (float)ntotal ;
   mris->nsize = nsize ;
   if (Gdiag & DIAG_SHOW && mris->nsize > 1 && DIAG_VERBOSE_ON)
-  {
     fprintf(stdout, "avg_nbrs = %2.1f\n", mris->avg_nbrs) ;
-  }
+
   mrisComputeVertexDistances(mris) ;
   mrisComputeOriginalVertexDistances(mris) ;
   return(NO_ERROR) ;
@@ -3787,11 +3835,8 @@ MRISremoveRipped(MRI_SURFACE *mris)
 int
 MRIScomputeNormals(MRI_SURFACE *mris)
 {
-  int       k,n, num, i ;
-  VERTEX    *v ;
-  FACE      *f;
-  float     norm[3],snorm[3], len ;
   long seed;
+  int  k, i ;
 
   /* Control the random seed so that MRIScomputeNormals() always does
      the same thing, otherwise it changes the xyz of the surface if
@@ -3808,7 +3853,16 @@ MRIScomputeNormals(MRI_SURFACE *mris)
     mrisSmoothBoundaryNormals(mris,10);
   }
 #endif
-  for (k=0; k<mris->nfaces; k++) if (mris->faces[k].ripflag)
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+#endif
+  for (k=0; k<mris->nfaces; k++) 
+  {
+    FACE *f ;
+    int  n ;
+    if (mris->faces[k].ripflag)
     {
       f = &mris->faces[k];
       for (n=0; n<VERTICES_PER_FACE; n++)
@@ -3816,10 +3870,22 @@ MRIScomputeNormals(MRI_SURFACE *mris)
         mris->vertices[f->v[n]].border = TRUE;
       }
     }
+  }
 
-  for (k=0; k<mris->nvertices; k++) if (!mris->vertices[k].ripflag)
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+:i) schedule(static,1)
+#endif
+#endif
+  for (k=0; k<mris->nvertices; k++) 
+  {
+    VERTEX    *v ;
+    float     norm[3],snorm[3], len ;
+    int       n, num ;
+
+    v = &mris->vertices[k];
+    if (!v->ripflag)
     {
-      v = &mris->vertices[k];
       snorm[0]=snorm[1]=snorm[2]=0;
       v->area = 0;
 
@@ -3835,24 +3901,17 @@ MRIScomputeNormals(MRI_SURFACE *mris)
           v->area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
         }
       if (!num)
-      {
         continue ;
-      }
+
       mrisNormalize(snorm);
 
       if (fix_vertex_area)
-      {
         v->area /= 3.0 ;
-      }
       else
-      {
         v->area /= 2.0 ;
-      }
 
       if (v->origarea<0)        /* has never been set */
-      {
         v->origarea = v->area;
-      }
 
       len = sqrt(snorm[0]*snorm[0] + snorm[1]*snorm[1] + snorm[2]*snorm[2]) ;
       if (!FZERO(len))
@@ -3896,6 +3955,7 @@ MRIScomputeNormals(MRI_SURFACE *mris)
         k-- ;   /* recalculate the normal for this vertex */
       }
     }
+  }
 #if 0
   mris->vertices[0].nx = mris->vertices[0].ny = 0 ;
   mris->vertices[0].nz = mris->vertices[0].nz / fabs(mris->vertices[0].nz) ;
@@ -3912,25 +3972,34 @@ MRIScomputeNormals(MRI_SURFACE *mris)
 static int
 mrisComputeVertexDistances(MRI_SURFACE *mris)
 {
-  int     vno, n, vtotal, *pv ;
-  VERTEX  *v, *vn ;
-  float   d, xd, yd, zd, circumference = 0.0f, angle ;
-  VECTOR  *v1, *v2 ;
-
-  v1 = VectorAlloc(3, MATRIX_REAL) ;
-  v2 = VectorAlloc(3, MATRIX_REAL) ;
-
+  int     vno,tno ;
+  VECTOR  *v1[_MAX_FS_THREADS], *v2[_MAX_FS_THREADS] ;
+  
+  for (tno = 0 ; tno < _MAX_FS_THREADS ; tno++)
+  {
+    v1[tno] = VectorAlloc(3, MATRIX_REAL) ;
+    v2[tno] = VectorAlloc(3, MATRIX_REAL) ;
+  }
+    
+#if 1
+#ifdef HAVE_OPENMP
+// have to  make v1 and v2 arrays and use tids for this to work
+//#pragma omp parallel for
+#endif
+#endif
   for (vno=0; vno<mris->nvertices; vno++)
   {
+    int     n, vtotal, *pv ;
+    VERTEX  *v, *vn ;
+    float   d, xd, yd, zd, circumference = 0.0f, angle ;
+
     v = &mris->vertices[vno];
     if (v->ripflag || v->dist == NULL)
-    {
       continue ;
-    }
+
     if (vno == Gdiag_no)
-    {
       DiagBreak() ;
-    }
+
     vtotal = v->vtotal ;
     switch (mris->status)
     {
@@ -3950,20 +4019,26 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
       break ;
     case MRIS_PARAMETERIZED_SPHERE:
     case MRIS_SPHERE:
-      VECTOR_LOAD(v1, v->x, v->y, v->z) ;  /* radius vector */
+    {
+#ifdef HAVE_OPENMP
+      // thread ID
+      int tid = omp_get_thread_num();
+#else
+      int tid = 0;
+#endif
+      
+      VECTOR_LOAD(v1[tid], v->x, v->y, v->z) ;  /* radius vector */
       if (FZERO(circumference))   /* only calculate once */
-      {
-        circumference = M_PI * 2.0 * V3_LEN(v1) ;
-      }
+        circumference = M_PI * 2.0 * V3_LEN(v1[tid]) ;
+
       for (pv = v->v, n = 0 ; n < vtotal ; n++)
       {
         vn = &mris->vertices[*pv++] ;
         if (vn->ripflag)
-        {
           continue ;
-        }
-        VECTOR_LOAD(v2, vn->x, vn->y, vn->z) ;  /* radius vector */
-        angle = fabs(Vector3Angle(v1, v2)) ;
+
+        VECTOR_LOAD(v2[tid], vn->x, vn->y, vn->z) ;  /* radius vector */
+        angle = fabs(Vector3Angle(v1[tid], v2[tid])) ;
 #if 0
         xd = v->x - vn->x ;
         yd = v->y - vn->y ;
@@ -3972,17 +4047,20 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
 #endif
         d = circumference * angle / (2.0 * M_PI) ;
         if (angle > M_PI || angle < -M_PI || d > circumference/2 || angle < 0)
-        {
           DiagBreak() ;
-        }
+
         v->dist[n] = d ;
       }
       break ;
     }
+    }
   }
 
-  VectorFree(&v1) ;
-  VectorFree(&v2) ;
+  for (tno = 0 ; tno < _MAX_FS_THREADS ; tno++)
+  {
+    VectorFree(&v1[tno]) ;
+    VectorFree(&v2[tno]) ;
+  }
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------------------
@@ -9585,7 +9663,7 @@ mrisComputeSSE_MEF(MRI_SURFACE *mris,
 double
 MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
+  double  sse, sse_area, sse_angle, sse_curv, sse_spring, sse_dist,
     area_scale, sse_corr, sse_neg_area, l_corr,
     sse_val, sse_sphere, sse_thick_min, sse_thick_parallel,
     sse_ashburner_triangle,
@@ -9594,7 +9672,6 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap,
     sse_lap, sse_dura, sse_nlspring, sse_thick_normal, sse_histo, sse_map, sse_map2d ;
   int     ano, fno ;
-  FACE    *face ;
   MHT     *mht_v_current = NULL ;
   MHT     *mht_f_current = NULL ;
 
@@ -9650,20 +9727,25 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (!FZERO(parms->l_angle)||!FZERO(parms->l_area)||(!FZERO(parms->l_parea)))
   {
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+:sse_angle,sse_neg_area, sse_area)
+#endif
+#endif
     for (fno = 0 ; fno < mris->nfaces ; fno++)
     {
+      FACE    *face ;
+      double  delta ;
+
       face = &mris->faces[fno] ;
       if (face->ripflag)
-      {
         continue ;
-      }
 
       delta = (double)(area_scale*face->area - face->orig_area) ;
 #if ONLY_NEG_AREA_TERM
       if (face->area < 0.0f)
-      {
         sse_neg_area += delta*delta ;
-      }
+
 #endif
       sse_area += delta*delta ;
       for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
@@ -9671,9 +9753,8 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         delta = deltaAngle(face->angle[ano],face->orig_angle[ano]);
 #if ONLY_NEG_AREA_TERM
         if (face->angle[ano] >= 0.0f)
-        {
           delta = 0.0f ;
-        }
+
 #endif
         sse_angle += delta*delta ;
       }
@@ -10589,8 +10670,8 @@ MRISupdateEllipsoidSurface(MRI_SURFACE *mris)
   ------------------------------------------------------*/
 int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 {
-  int    i, vno, vnb, *pnb, vnum ;
-  float  dx, dy, dz, num, sigma ;
+  int    i, vno ;
+  float  sigma ;
   VERTEX *v;
   const VERTEX *vn ;
   MRI_SP *mrisp, *mrisp_blur ;
@@ -10602,6 +10683,11 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
   {
     UFSS = "1";
   }
+#if 1
+#ifdef HAVE_OPENMP
+  UFSS = "0" ;   // MRISaverageGradientsFast can't use openmp
+#endif
+#endif
   if(strcmp(UFSS,"0"))
   {
     i=MRISaverageGradientsFast(mris,num_avgs);
@@ -10633,18 +10719,25 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
     MRISPfree(&mrisp) ;
     MRISPfree(&mrisp_blur) ;
   }
-  else for (i = 0 ; i < num_avgs ; i++)
+  else 
+    for (i = 0 ; i < num_avgs ; i++)
     {
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static,1)
+#endif
+#endif
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
+	VERTEX *v ;
+	float  dx, dy, dz, num ;
+	int    vnb, *pnb, vnum ;
+	
         v = &mris->vertices[vno] ;
         if (v->ripflag)
-        {
           continue ;
-        }
-        dx = v->dx ;
-        dy = v->dy ;
-        dz = v->dz ;
+
+        dx = v->dx ; dy = v->dy ; dz = v->dz ;
         pnb = v->v ;
         /*      vnum = v->v2num ? v->v2num : v->vnum ;*/
         vnum = v->vnum ;
@@ -10652,29 +10745,28 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         {
           vn = &mris->vertices[*pnb++] ; /* neighboring vertex pointer */
           if (vn->ripflag)
-          {
             continue ;
-          }
+
           num++ ;
-          dx += vn->dx ;
-          dy += vn->dy ;
-          dz += vn->dz ;
+          dx += vn->dx ; dy += vn->dy ; dz += vn->dz ;
         }
         num++ ;
-        v->tdx = dx / num ;
-        v->tdy = dy / num ;
-        v->tdz = dz / num ;
+        v->tdx = dx / num ; v->tdy = dy / num ; v->tdz = dz / num ;
       }
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static,1)
+#endif
+#endif
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
+	VERTEX *v ;
+
         v = &mris->vertices[vno] ;
         if (v->ripflag)
-        {
           continue ;
-        }
-        v->dx = v->tdx ;
-        v->dy = v->tdy ;
-        v->dz = v->tdz ;
+
+        v->dx = v->tdx ; v->dy = v->tdy ; v->dz = v->tdz ;
       }
     }
   if (Gdiag_no >= 0)
@@ -11231,66 +11323,80 @@ MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname)
 int
 MRIScomputeTriangleProperties(MRI_SURFACE *mris)
 {
-  VECTOR  *v_a, *v_b, *v_n ;
-  VERTEX  *v0, *v1, *v2, *va, *vb, *vo, *v ;
-  FACE    *face ;
-  int     fno, ano, vno  ;
-  float   area, angle, dot, cross, dz ;
+  int    fno, vno, tno ;
+  double total_area ;
+  VECTOR  *v_a[_MAX_FS_THREADS], *v_b[_MAX_FS_THREADS], *v_n[_MAX_FS_THREADS] ;
 
-  v_a = VectorAlloc(3, MATRIX_REAL) ;
-  v_b = VectorAlloc(3, MATRIX_REAL) ;
-  v_n = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
+  total_area = 0.0f ;
+  for (tno = 0 ; tno < _MAX_FS_THREADS ; tno++)
+  {
+    v_a[tno] = VectorAlloc(3, MATRIX_REAL) ;  
+    v_b[tno] = VectorAlloc(3, MATRIX_REAL) ;
+    v_n[tno] = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
+  }
 
-  mris->total_area = 0.0f ;
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+:total_area) schedule(static,1)
+#endif
+#endif
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
+    VERTEX  *v0, *v1, *v2, *va, *vb, *vo ;
+    FACE    *face ;
+    int     ano  ;
+    float   area, angle, dot, cross, dz ;
+#ifdef HAVE_OPENMP
+      // thread ID
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
+
+    // these are done in the loop to allow parallelization
     face = &mris->faces[fno] ;
     if (face->ripflag)
-    {
       continue ;
-    }
+
     if (fno == Gx)
-    {
       DiagBreak() ;
-    }
+
     v0 = &mris->vertices[face->v[0]] ;
     v1 = &mris->vertices[face->v[1]] ;
     v2 = &mris->vertices[face->v[2]] ;
-    VERTEX_EDGE(v_a, v0, v1) ;
-    VERTEX_EDGE(v_b, v0, v2) ;
+    VERTEX_EDGE(v_a[tid], v0, v1) ;
+    VERTEX_EDGE(v_b[tid], v0, v2) ;
 
     /* compute metric properties of first triangle */
-    V3_CROSS_PRODUCT(v_a, v_b, v_n) ;
-    area = V3_LEN(v_n) * 0.5f ;
-    dot = V3_DOT(v_a, v_b) ;
+    V3_CROSS_PRODUCT(v_a[tid], v_b[tid], v_n[tid]) ;
+    area = V3_LEN(v_n[tid]) * 0.5f ;
+    dot = V3_DOT(v_a[tid], v_b[tid]) ;
     face->area = area ;
     if (area < 0)
-    {
       DiagBreak() ;
-    }
-    V3_NORMALIZE(v_n, v_n) ;             /* make it a unit vector */
-    face->nx = V3_X(v_n);
-    face->ny = V3_Y(v_n);
-    face->nz = V3_Z(v_n);
+
+    V3_NORMALIZE(v_n[tid], v_n[tid]) ;             /* make it a unit vector */
+    face->nx = V3_X(v_n[tid]);
+    face->ny = V3_Y(v_n[tid]);
+    face->nz = V3_Z(v_n[tid]);
     if (!devFinite(area) || !devFinite(mris->total_area))
-    {
       DiagBreak() ;
-    }
-    mris->total_area += area ;
+
+    total_area += area ;
 
     /* now compute angles */
-    VECTOR_LOAD(v_n, face->nx, face->ny, face->nz) ;
-    if ((V3_X(v_n) < V3_Y(v_n)) && (V3_X(v_n) < V3_Z(v_n)))
+    VECTOR_LOAD(v_n[tid], face->nx, face->ny, face->nz) ;
+    if ((V3_X(v_n[tid]) < V3_Y(v_n[tid])) && (V3_X(v_n[tid]) < V3_Z(v_n[tid])))
     {
-      dz = fabs(V3_X(v_n)) ;
+      dz = fabs(V3_X(v_n[tid])) ;
     }
-    else if (V3_Y(v_n) < V3_Z(v_n))
+    else if (V3_Y(v_n[tid]) < V3_Z(v_n[tid]))
     {
-      dz = fabs(V3_Y(v_n)) ;
+      dz = fabs(V3_Y(v_n[tid])) ;
     }
     else
     {
-      dz = fabs(V3_Z(v_n)) ;
+      dz = fabs(V3_Z(v_n[tid])) ;
     }
     for (ano = 0 ; ano < ANGLES_PER_TRIANGLE ; ano++)
     {
@@ -11314,10 +11420,10 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
         break ;
       }
 
-      VERTEX_EDGE(v_a, vo, va) ;
-      VERTEX_EDGE(v_b, vo, vb) ;
-      cross = VectorTripleProduct(v_b, v_a, v_n) ;
-      dot = V3_DOT(v_a, v_b) ;
+      VERTEX_EDGE(v_a[tid], vo, va) ;
+      VERTEX_EDGE(v_b[tid], vo, vb) ;
+      cross = VectorTripleProduct(v_b[tid], v_a[tid], v_n[tid]) ;
+      dot = V3_DOT(v_a[tid], v_b[tid]) ;
       angle = atan2(cross, dot) ;
       face->angle[ano] = angle ;
 
@@ -11329,36 +11435,41 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
     }
   }
 
+  for (tno = 0 ; tno < _MAX_FS_THREADS ; tno++)
+  {
+    VectorFree(&v_a[tno]) ; VectorFree(&v_b[tno]) ; VectorFree(&v_n[tno]) ;
+  }
+  mris->total_area = total_area ;
+
   /* calculate the "area" of the vertices */
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static,1)
+#endif
+#endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    VERTEX *v ;
+    FACE   *face ;
+    int    fno ;
+
     v = &mris->vertices[vno] ;
     if (v->ripflag)
-    {
       continue ;
-    }
+
     v->area = 0.0 ;
     for (fno = 0 ; fno < v->num ; fno++)
     {
       face = &mris->faces[v->f[fno]] ;
       if (face->ripflag == 0)
-      {
         v->area += face->area ;
-      }
     }
     if (fix_vertex_area)
-    {
       v->area /= 3.0 ;
-    }
     else
-    {
       v->area /= 2.0 ;
-    }
   }
 
-  VectorFree(&v_a) ;
-  VectorFree(&v_b) ;
-  VectorFree(&v_n) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -19041,7 +19152,6 @@ int
 MRISapplyGradient(MRI_SURFACE *mris, double dt)
 {
   int     vno, nvertices ;
-  VERTEX  *v ;
 
   nvertices = mris->nvertices ;
   MRISstoreCurrentPositions(mris) ;
@@ -19050,13 +19160,19 @@ MRISapplyGradient(MRI_SURFACE *mris, double dt)
     MRISrotate(mris, mris, dt*mris->alpha, dt*mris->beta, dt*mris->gamma) ;
   }
   else
+  {
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static,1)
+#endif
+#endif
     for (vno = 0 ; vno < nvertices ; vno++)
     {
+      VERTEX  *v ;
       v = &mris->vertices[vno] ;
       if (v->ripflag)
-      {
         continue ;
-      }
+
       if (!finite(v->x) || !finite(v->y) || !finite(v->z))
         ErrorPrintf(ERROR_BADPARM,
                     "vertex %d position is not finite!\n",vno) ;
@@ -19067,6 +19183,7 @@ MRISapplyGradient(MRI_SURFACE *mris, double dt)
       v->y += dt*v->dy;
       v->z += dt*v->dz;
     }
+  }
   return(NO_ERROR) ;
 }
 
@@ -22329,12 +22446,12 @@ MRIScomputeFolding(MRI_SURFACE *mris)
 static int
 mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  VECTOR  *v_y, *v_delta, *v_n ;
-  float   l_dist, d0, dt, delta, nc, scale, norm, max_del, vsmooth = 1.0 ;
-  VERTEX  *v, *vn ;
-  int     vno, n, vnum, max_v, max_n ;
+  float   l_dist, scale, max_del, norm ;
+  int     vno, tno ;
+//  int     max_n, max_v ;
   int     diag_vno1, diag_vno2 ;
   char    *cp ;
+  VECTOR  *v_y[_MAX_FS_THREADS], *v_delta[_MAX_FS_THREADS], *v_n[_MAX_FS_THREADS] ;
 
   if ((cp = getenv("VDIAG1")) != NULL)
   {
@@ -22364,9 +22481,6 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     return(NO_ERROR) ;
   }
 
-  v_n = VectorAlloc(3, MATRIX_REAL) ;
-  v_y = VectorAlloc(3, MATRIX_REAL) ;
-  v_delta = VectorAlloc(3, MATRIX_REAL) ;
   norm = 1.0f / mris->avg_nbrs ;
 
 #if METRIC_SCALE
@@ -22391,21 +22505,41 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     fprintf(stdout, "distance scale = %2.3f\n", scale) ;
   }
   max_del = 10000.0f ;
+  for (tno = 0 ;  tno < _MAX_FS_THREADS ; tno++)
+  {
+    v_n[tno] = VectorAlloc(3, MATRIX_REAL) ;
+    v_y[tno] = VectorAlloc(3, MATRIX_REAL) ;
+    v_delta[tno] = VectorAlloc(3, MATRIX_REAL) ;
+  }
+#if 1
+// need to make v_n etc. into arrays and use tids
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static,1)
+#endif
+#endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    VERTEX *v, *vn ;
+    int    vnum, n ;
+    float   d0, dt, delta, nc, vsmooth = 1.0 ;
+
+#ifdef HAVE_OPENMP
+      // thread ID
+    int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
+
     v = &mris->vertices[vno] ;
     vnum = v->vtotal ;
     if (v->ripflag || vnum <= 0)
-    {
       continue ;
-    }
 
     if (v->border)
-    {
       DiagBreak() ;
-    }
-    V3_CLEAR(v_delta) ;
-    VECTOR_LOAD(v_n, v->nx, v->ny, v->nz) ;
+
+    V3_CLEAR(v_delta[tid]) ;
+    VECTOR_LOAD(v_n[tid], v->nx, v->ny, v->nz) ;
 
     if (vno == Gdiag_no && Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stdout,
@@ -22416,62 +22550,67 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     {
       vn = &mris->vertices[v->v[n]] ;
       if (vn->ripflag)
-      {
         continue ;
-      }
+
       d0 = v->dist_orig[n]/scale ;
       dt = v->dist[n] ;
       delta = dt - d0 ;
+#if 0
+#if 0
+#ifdef HAVE_OPENMP
+#pragma omp critical (max_delta)
+#endif
+#endif
+      {
       if (fabs(delta) > max_del)
       {
         max_del = delta ;
         max_v = vno ;
         max_n = n ;
       }
-      VECTOR_LOAD(v_y, vn->x - v->x, vn->y - v->y, vn->z - v->z) ;
-      if ((V3_LEN_IS_ZERO(v_y)))
-      {
-        continue ;
       }
-      V3_NORMALIZE(v_y, v_y) ;   /* make it a unit vector */
-      V3_SCALAR_MUL(v_y, delta, v_y) ;
-      V3_ADD(v_y, v_delta, v_delta) ;
+#endif
+      VECTOR_LOAD(v_y[tid], vn->x - v->x, vn->y - v->y, vn->z - v->z) ;
+      if ((V3_LEN_IS_ZERO(v_y[tid])))
+        continue ;
+
+      V3_NORMALIZE(v_y[tid], v_y[tid]) ;   /* make it a unit vector */
+      V3_SCALAR_MUL(v_y[tid], delta, v_y[tid]) ;
+      V3_ADD(v_y[tid], v_delta[tid], v_delta[tid]) ;
       if (vno == Gdiag_no && Gdiag & DIAG_SHOW & 0)// deverbosified by dng
         fprintf(stdout,
                 "nbr %d (%6.6d) @ (%2.2f, %2.2f, %2.2f), "
                 "d0 %2.2f, dt %2.2f, "
                 "delta %2.3f\n\tdx=%2.3f, %2.3f, %2.3f)\n",
                 n, v->v[n], vn->x, vn->y, vn->z, d0, dt,
-                delta, V3_X(v_y), V3_Y(v_y), V3_Z(v_y)) ;
+                delta, V3_X(v_y[tid]), V3_Y(v_y[tid]), V3_Z(v_y[tid])) ;
       if ((vno == diag_vno1 && v->v[n] == diag_vno2) ||
           (vno == diag_vno2 && v->v[n] == diag_vno1))
         printf("nbr %d (%6.6d) @ (%2.2f, %2.2f, %2.2f), "
                "d0 %2.2f, dt %2.2f, "
                "delta %2.3f\n\ty=%2.3f, %2.3f, %2.3f)\n",
                n, v->v[n], vn->x, vn->y, vn->z, d0, dt,
-               delta, V3_X(v_y), V3_Y(v_y), V3_Z(v_y)) ;
+               delta, V3_X(v_y[tid]), V3_Y(v_y[tid]), V3_Z(v_y[tid])) ;
     }
 
-    V3_SCALAR_MUL(v_delta, norm, v_delta) ;
+    V3_SCALAR_MUL(v_delta[tid], norm, v_delta[tid]) ;
 
     if ((vno == Gdiag_no || vno == diag_vno1 || vno == diag_vno1)
         && Gdiag & DIAG_SHOW)
       fprintf(stdout,
               "total delta=(%2.3f, %2.3f, %2.3f)\n",
-              V3_X(v_delta), V3_Y(v_delta), V3_Z(v_delta)) ;
+              V3_X(v_delta[tid]), V3_Y(v_delta[tid]), V3_Z(v_delta[tid])) ;
     /* take out normal component */
-    nc = V3_DOT(v_n, v_delta) ;
-    V3_SCALAR_MUL(v_n, -nc, v_n) ;
-    V3_ADD(v_delta, v_n, v_delta) ;
+    nc = V3_DOT(v_n[tid], v_delta[tid]) ;
+    V3_SCALAR_MUL(v_n[tid], -nc, v_n[tid]) ;
+    V3_ADD(v_delta[tid], v_n[tid], v_delta[tid]) ;
 
     if (parms->vsmoothness)
-    {
       vsmooth = (1.0 - parms->vsmoothness[vno]) ;
-    }
 
-    v->dx += l_dist * V3_X(v_delta) ;
-    v->dy += l_dist * V3_Y(v_delta) ;
-    v->dz += l_dist * V3_Z(v_delta) ;
+    v->dx += l_dist * V3_X(v_delta[tid]) ;
+    v->dy += l_dist * V3_Y(v_delta[tid]) ;
+    v->dz += l_dist * V3_Z(v_delta[tid]) ;
     if (vno == Gdiag_no || vno == diag_vno1 || vno == diag_vno1)
       fprintf(stdout, "v %d, distance term: (%2.3f, %2.3f, %2.3f)\n",
               vno, v->dx, v->dy, v->dz) ;
@@ -22493,10 +22632,13 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       fclose(fp) ;
     }
   }
+  for (tno = 0 ;  tno < _MAX_FS_THREADS ; tno++)
+  {
+    VectorFree(&v_n[tno]) ;
+    VectorFree(&v_y[tno]) ;
+    VectorFree(&v_delta[tno]) ;
+  }
 
-  VectorFree(&v_n) ;
-  VectorFree(&v_y) ;
-  VectorFree(&v_delta) ;
 
   return(NO_ERROR) ;
 }
@@ -23008,9 +23150,8 @@ mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
 static double
 mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 {
-  VERTEX  *v, *vn ;
-  int     vno, n, nvertices, max_v, max_n, err_cnt, max_errs, vn_vno ;
-  double  dist_scale, sse_dist, delta, v_sse, max_del ;
+  int     vno, max_v, max_n, err_cnt, max_errs ;
+  double  dist_scale, sse_dist, max_del ;
   static int first = 1 ;
 
 #if METRIC_SCALE
@@ -23035,44 +23176,46 @@ mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   err_cnt=0;
   max_errs=1000;
 
-  for (sse_dist = 0.0, nvertices = vno = 0 ; vno < mris->nvertices ; vno++)
+  sse_dist = 0.0 ; 
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp parallel for reduction(+:sse_dist) schedule(static,1)
+#endif
+#endif
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    VERTEX  *v, *vn ;
+    int     n, vn_vno ;
+    double  delta, v_sse ;
+
     v = &mris->vertices[vno] ;
     if (v->ripflag)
-    {
       continue ;
-    }
+
     if (vno == Gdiag_no)
-    {
       DiagBreak() ;
-    }
+
 
 #if NO_NEG_DISTANCE_TERM
     if (v->neg)
-    {
       continue ;
-    }
 #endif
 
-    nvertices++ ;
     for (v_sse = 0.0, n = 0 ; n < v->vtotal ; n++)
     {
       vn_vno = v->v[n] ;
       vn = &mris->vertices[vn_vno] ;
       if (vn->ripflag)
-      {
         continue ;
-      }
+
 #if NO_NEG_DISTANCE_TERM
       if (mris->vertices[v->v[n]].neg)
-      {
         continue ;
-      }
+
 #endif
       if (v->dist_orig[n] >= UNFOUND_DIST)
-      {
         continue ;
-      }
+
       if (DZERO(v->dist_orig[n]) && first)
       {
         first = 0 ;
@@ -23089,38 +23232,38 @@ mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       }
       delta = dist_scale*v->dist[n] - v->dist_orig[n] ;
 
+#if 0
+#if 1
+#ifdef HAVE_OPENMP
+#pragma omp critical (max_delta) 
+#endif
+#endif
+      {
       if (fabs(delta) > fabs(max_del))
       {
         max_del = delta ;
         max_v = vno ;
         max_n = n ;
       }
+      }
+#endif
       if (parms->vsmoothness)
-      {
         v_sse += (1.0-parms->vsmoothness[vno])*(delta*delta) ;
-      }
       else
-      {
         v_sse += delta*delta ;
-      }
+
       if (!finite(delta) || !finite(v_sse))
-      {
         DiagBreak() ;
-      }
     }
     if (v_sse > 10000)
-    {
       DiagBreak() ;
-    }
+
     if (parms->dist_error)
-    {
       parms->dist_error[vno] = v_sse ;
-    }
+
     sse_dist += v_sse ;
     if (!finite(sse_dist) || !finite(v_sse))
-    {
       DiagBreak() ;
-    }
   }
 
 #ifdef FS_CUDA
@@ -76846,11 +76989,12 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
                   Progname, fname) ;
     }
   }
+  printf("%03d: dt=%2.4f, %d negative triangles\n", -1, 0.0, negative) ;
   while (negative > 0)
   {
     old_neg = negative ;
 
-    if (Gdiag & DIAG_SHOW && (parms->t % 100 == 0) && parms->t > 0)
+//    if (Gdiag & DIAG_SHOW && (parms->t % 100 == 0) && parms->t > 0)
       printf("%03d: dt=%2.4f, %d negative triangles\n", parms->t, parms->dt,
              negative) ;
     if (parms->fp && parms->t % 100==0)
@@ -80719,25 +80863,31 @@ MRIScomputeHausdorffDistance(MRI_SURFACE *mris, int mode)
 int
 MRIScomputeAllDistances(MRI_SURFACE *mris)
 {
-  VERTEX *v, *vn ;
-  int    vno, n, nvalid, *old_v, vno2, done = 0 ;
+  int    vno, done = 0, nvalid ;
   LABEL  *area ;
+
+  area = LabelAlloc(1, NULL, NULL) ;
 
   if (Gdiag & DIAG_SHOW)
   {
     fprintf(stdout, "\ncomputing complete distance matrix...\n") ;
   }
-  area = LabelAlloc(1, NULL, NULL) ;
 
   MRIScomputeMetricProperties(mris) ;
   nvalid = MRISvalidVertices(mris) ;
+#if 0
+  // this for loop can't be parallelized due to the use of MRISdistanceTransform
+//#pragma omp parallel for reduction(+:done)
+#endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    VERTEX *v, *vn ;
+    int    n, *old_v, vno2 ;
+
     v = &mris->vertices[vno] ;
     if (v->ripflag)
-    {
       continue ;
-    }
+
 
     if ((Gdiag & DIAG_SHOW) && (++done % (nvalid/20)) == 0)
     {
@@ -80753,9 +80903,8 @@ MRIScomputeAllDistances(MRI_SURFACE *mris)
     area->n_points = 1 ;
     MRISdistanceTransform(mris, area, DTRANS_MODE_UNSIGNED) ;
     if (v->dist_orig)
-    {
       free(v->dist_orig) ;
-    }
+
     if (v->dist)
     {
       free(v->dist) ;
@@ -80784,9 +80933,8 @@ MRIScomputeAllDistances(MRI_SURFACE *mris)
     {
       vn = &mris->vertices[vno2] ;
       if (vn->ripflag || vn->marked)
-      {
         continue ;
-      }
+
       v->dist[n] = v->dist_orig[n] = vn->val;
       v->v[n++] = vno2 ;
       vn->marked = 1 ;
@@ -80812,9 +80960,8 @@ MRIScomputeAllDistances(MRI_SURFACE *mris)
               break ;
             }
           if (found == 0 && vno2 != vno)
-          {
             DiagBreak() ;
-          }
+
         }
       }
     }
