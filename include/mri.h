@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/09/11 21:42:55 $
- *    $Revision: 1.469 $
+ *    $Author: fischl $
+ *    $Date: 2014/10/23 17:18:06 $
+ *    $Revision: 1.470 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1177,6 +1177,7 @@ MRI    *MRIsetLabelValues(MRI *mri_src, MRI *mri_label, MRI *mri_dst,
                           int label, float val);
 int    MRIwriteImageViews(MRI *mri, char *base_name, int target_size) ;
 int MRIsetValues(MRI *mri, float val) ;
+int MRIsetFrameValues(MRI *mri, int frame, float val) ;
 MRI    *MRIwindow(MRI *mri_src, MRI *mri_dst, int which, float x0, float y0,
                   float z0, float parm) ;
 int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
