@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/22 00:24:46 $
- *    $Revision: 1.380 $
+ *    $Author: fischl $
+ *    $Date: 2014/10/23 17:17:50 $
+ *    $Revision: 1.381 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -266,6 +266,7 @@ typedef struct
   int          nlabels ;
   MRIS_AREA_LABEL *labels ;       /* nlabels of these (may be null) */
   int          nsize ;            /* size of neighborhoods */
+  int          max_nsize ;      // max the neighborhood size has been set to (typically 3)
   float        avg_nbrs ;         /* mean # of vertex neighbors */
   void         *vp ;              /* for misc. use */
   float        alpha ;            /* rotation around z-axis */
