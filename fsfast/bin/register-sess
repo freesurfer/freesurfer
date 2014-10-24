@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/10/16 16:32:24 $
-#    $Revision: 1.15 $
+#    $Date: 2014/10/24 22:06:42 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,13 +23,13 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.15 2014/10/16 16:32:24 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.16 2014/10/24 22:06:42 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
 set fsd          = bold;
 set PerRun       = 0;
-set PerSess     = 0;
+set PerSess      = 1; # must be done for mkbrainmask-sess
 set regmethod = bbregister
 set RegDOF = 6;
 set regfilename = ();
@@ -240,7 +240,9 @@ foreach sess ($SessList)
       $cmd |& tee -a $LF
       if($status) exit 1;
     endif
-  else
+  endif
+
+  if($PerRun) then
     # Do separately for each run
     foreach Run ($RunList)
       echo "  Run: $Run ----------------" |& tee -a $LF
@@ -319,13 +321,16 @@ while( $#argv != 0 )
     case "-per-run":
     case "-perrun":
       set PerRun = 1;
-      set PerSess = 0;
       breaksw
 
     case "-per-session":
     case "-persession":
       set PerSess = 1;
-      set PerRun = 0;
+      breaksw
+
+    case "-no-per-session":
+    case "-no-persession":
+      set PerSess = 0;
       breaksw
 
     case "-bbr":
@@ -532,10 +537,6 @@ if($DoBackground && $DoPBSub) then
   echo "ERROR: cannot -bg and -pbsubmit"
   exit 1
 endif
-if($PerRun == 0 && $PerSess == 0) then
-  echo "ERROR: You must specify -per-run or -per-session"
-  exit 1;
-endif
 
 if($#regfilename == 0) then
   if(! $UseB0DC) then
@@ -574,7 +575,7 @@ usage_exit:
   echo ""
   echo " One of these is necessary"
   echo "   -per-run      : register to template in each run separately"
-  echo "   -per-session  : register to session-level template"
+  echo "   -no-per-session  : do not register to session-level template"
   echo ""
   echo " Optional Arguments"
   echo "   -bbr : use bbregister (default)"
