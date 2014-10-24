@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.50 2014/09/12 14:50:19 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.51 2014/10/24 22:49:14 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -560,6 +560,12 @@ foreach conname ($conlist)
   endif
 
   if($anattype == volume) then
+    mri_info --o  /tmp/mri_glmfit-sim.junk.$$.cres --cres $sig
+    set voxsize = `cat /tmp/mri_glmfit-sim.junk.$$.cres`
+    if($voxsize != 2) then
+      echo "ERROR: voxel size of input is $voxsize, expecting 2"
+      exit 1
+    endif
     set reg = $FREESURFER_HOME/subjects/$volsubject/mri.2mm/reg.2mm.dat 
     set aseg = aparc+aseg.mgz
     if(! -e $FREESURFER_HOME/subjects/$volsubject/mri/$aseg) set aseg = aseg.mgz
