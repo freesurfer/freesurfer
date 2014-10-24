@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/09/09 15:04:53 $
-#    $Revision: 1.22 $
+#    $Date: 2014/10/24 22:06:26 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask-sess,v 1.22 2014/09/09 15:04:53 greve Exp $'
+set VERSION = '$Id: mkbrainmask-sess,v 1.23 2014/10/24 22:06:26 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -38,7 +38,6 @@ set nolog     = 0;
 set nthrun = ();
 set debug = 0;
 set scratchdir = ();
-set PerRun = 1;
 set PrintHelp = 0;
 set UpdateOnly = 0;
 set RunListFile = ();
@@ -113,35 +112,36 @@ foreach sess ($SessList)
   cd $sess/$fsd
 
   ### Session-level mask ----------------------------------
-  if($PerRun == 0) then
-    set template = `stem2fname template`
-    if($status) then
-      echo "ERROR: cannot find template for $sess/$fsd"  |& tee -a $LF
-      echo "       run mktemplate-sess"  |& tee -a $LF
-      exit 1;
-    endif
-    set reg = $sess/$fsd/$regfile
-    if(! -e $reg) then
-      echo "ERROR: cannot find $reg, you might need to run register-sess" |& tee -a $LF
-      exit 1;
-    endif
+  # This must be done regardless of whether it is per-run or not
+  # because rawfunc2surf-sess needs session-level mask
+  set template = `stem2fname template`
+  if($status) then
+    echo "ERROR: cannot find template for $sess/$fsd"  |& tee -a $LF
+    echo "       run mktemplate-sess"  |& tee -a $LF
+    exit 1;
+  endif
+  set reg = $sess/$fsd/$regfile
+  if(! -e $reg) then
+    echo "ERROR: cannot find $reg, you might need to run register-sess" |& tee -a $LF
+    exit 1;
+  endif
 
-    set mask = $maskdir/$maskstem.$outfmt;
-    set UpdateNeeded = 0;
-    if(! $UpdateOnly) set UpdateNeeded = 1;
-    if(`UpdateNeeded $mask $template $reg`) set UpdateNeeded = 1;
+  set mask = $maskdir/$maskstem.$outfmt;
+  set UpdateNeeded = 0;
+  if(! $UpdateOnly) set UpdateNeeded = 1;
+  if(`UpdateNeeded $mask $template $reg`) set UpdateNeeded = 1;
 
-    if($UpdateNeeded) then
-      set cmd = (mkbrainmask -i $template -o $mask -reg $reg)
-      set cmd = ($cmd -ndil $ndilations -nerode $nerodes)
-      echo $cmd | tee -a $LF
-      $cmd | tee -a $LF
-      if($status) exit 1;
-    else
-      echo "$sessid Update not needed for session-level mask"| tee -a $LF
-    endif
-
+  if($UpdateNeeded) then
+    set cmd = (mkbrainmask -i $template -o $mask -reg $reg)
+    set cmd = ($cmd -ndil $ndilations -nerode $nerodes)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
   else
+    echo "$sessid Update not needed for session-level mask"| tee -a $LF
+  endif
+
+  if($PerRun) then
     ### Run-level masks --------------------------
     set RunList = `getrunlist . $RunListFile`;
     if($status || $#RunList == 0) then
