@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/11/10 20:21:13 $
-#    $Revision: 1.13 $
+#    $Author: greve $
+#    $Date: 2014/10/27 16:10:47 $
+#    $Revision: 1.14 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.13 2011/11/10 20:21:13 nicks Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.14 2014/10/27 16:10:47 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -186,7 +186,8 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $reg"
         exit 1;
       endif
-      set subject = `head -n 1 $reg`
+      #set subject = `head -n 1 $reg`
+      set subject = `reg2subject --r $reg`;
       breaksw
 
     case "--b":
