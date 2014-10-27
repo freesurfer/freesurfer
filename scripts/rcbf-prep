@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # rcbf-prep
 
-set VERSION = '$Id: rcbf-prep,v 1.3 2012/09/11 15:35:34 greve Exp $';
+set VERSION = '$Id: rcbf-prep,v 1.4 2014/10/27 16:27:48 greve Exp $';
 setenv FSLOUTPUTTYPE NIFTI
 
 set outdir = ();
@@ -179,7 +179,8 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $reg"
         exit 1;
       endif
-      set subject = `head -n 1 $reg`
+      #set subject = `head -n 1 $reg`
+      set subject = `reg2subject --r $reg`;
       breaksw
 
     case "--roitab":
