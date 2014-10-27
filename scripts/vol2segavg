@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # vol2segavg
 
-set VERSION = '$Id: vol2segavg,v 1.3 2014/01/09 19:49:46 greve Exp $';
+set VERSION = '$Id: vol2segavg,v 1.4 2014/10/27 16:26:33 greve Exp $';
 
 set outfile = ();
 set subject = ();
@@ -344,11 +344,12 @@ if(! -e $invol) then
   exit 1;
 endif
 if($#reg) then
-  set subject = `head -n 1 $reg`
-  if(! -e $invol) then
-    echo "ERROR: cannot find $invol"
+  if(! -e $reg) then
+    echo "ERROR: cannot find $reg"
     exit 1;
   endif
+  #set subject = `head -n 1 $reg`
+  set subject = `reg2subject --r $reg`;
 else
   if(! $RegHeader) then
     echo "ERROR: must spec --reg or --regheader"

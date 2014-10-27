@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.5 $
+#    $Author: greve $
+#    $Date: 2014/10/27 16:19:31 $
+#    $Revision: 1.6 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: lpcregister,v 1.5 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: lpcregister,v 1.6 2014/10/27 16:19:31 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -372,7 +372,8 @@ while( $#argv != 0 )
     case "--s-from-reg":
       if( $#argv < 1) goto arg1err;
       set tmp = $argv[1]; shift;
-      set subject = `head -n 1 $tmp`
+      #set subject = `head -n 1 $tmp`
+      set subject = `reg2subject --r $tmp`;
       breaksw
 
     case "--nocleanup":

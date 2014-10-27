@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # rtview
 
-set VERSION = '$Id: rtview,v 1.3 2013/07/15 18:48:53 greve Exp $';
+set VERSION = '$Id: rtview,v 1.4 2014/10/27 16:22:38 greve Exp $';
 
 set srcsubject = ();
 set trgsubject = ();
@@ -174,7 +174,8 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $regfile"
         exit 1;
       endif
-      set srcsubject = `head -n 1 $regfile`
+      #set srcsubject = `head -n 1 $regfile`
+      set srcsubject = `reg2subject --r $regfile`;
       breaksw
 
     case "--r":

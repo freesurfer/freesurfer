@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/05/28 21:30:07 $
-#    $Revision: 1.66 $
+#    $Date: 2014/10/27 16:20:28 $
+#    $Revision: 1.67 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.66 2014/05/28 21:30:07 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.67 2014/10/27 16:20:28 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -515,7 +515,8 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $tmp"
         exit 1;
       endif
-      set subject = `head -n 1 $tmp`
+      #set subject = `head -n 1 $tmp`
+      set subject = `reg2subject --r $tmp`;
       breaksw
 
     case "--mov":

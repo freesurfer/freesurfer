@@ -2,7 +2,7 @@
 # sfa2fieldsign
 setenv FSLOUTPUTTYPE NIFTI
 
-set VERSION = '$Id: sfa2fieldsign,v 1.4 2009/10/23 18:56:11 greve Exp $';
+set VERSION = '$Id: sfa2fieldsign,v 1.5 2014/10/27 16:23:54 greve Exp $';
 
 set sfadir = ();
 set regfile = ();
@@ -275,7 +275,8 @@ if($#regfile == 0) then
   echo "ERROR: must spec regfile"
   exit 1;
 endif
-set subject = `head -n 1 $regfile`
+#set subject = `head -n 1 $regfile`
+set subject = `reg2subject --r $regfile`;
 if(! -e $SUBJECTS_DIR/$subject) then
   echo "ERROR: cannot find $subject"
   exit 1;
