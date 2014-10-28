@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/10/20 23:49:42 $
-#    $Revision: 1.488 $
+#    $Author: greve $
+#    $Date: 2014/10/28 22:12:41 $
+#    $Revision: 1.489 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.488 2014/10/20 23:49:42 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.489 2014/10/28 22:12:41 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -249,6 +249,8 @@ set BBRInit = fsl; # others are spm, header, rr, best
 # This is good for debugging.
 set RunIt = 1;
 
+set PatchDir = ();
+
 # print versions and exit
 set DoVersionsOnly = 0;
 
@@ -375,6 +377,9 @@ if(-e $bstampfile0) then
   echo "Subject Stamp: $bstamp"
   echo "Current Stamp: $bstamp0"
 endif
+rm -f $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
+if($#PatchDir) echo "$PatchDir" > $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
+
 
 if ($DoMakefile) then
   setenv RECONALL_MAKE_SUBJECT $subjid
@@ -5751,6 +5756,21 @@ while( $#argv != 0 )
       set DoLabelExvivoEC  = 1;
       breaksw
 
+    # skips unnecessary steps when refining pial surface only
+    case "-T2pial-only":
+      set DoT2pial         = 1;
+      set DoPctSurfCon     = 1;
+      set DoParcStats      = 1;
+      set DoParcStats2     = 1;
+      set DoParcStats3     = 1;
+      set DoCortRibbonVolMask = 1;
+      set DoAParc2ASeg     = 1;
+      set DoWMParc         = 1;
+      set DoCurvStats      = 1;
+      set DoBaLabels       = 1; # Does label and stats
+      set DoLabelExvivoEC  = 1; # Does label and stats
+      breaksw
+
     case "-autorecon-hemi":
       if ( $#argv < 1) goto arg1err;
       set hemilist = $argv[1]; shift;
@@ -5838,6 +5858,16 @@ while( $#argv != 0 )
       endif
       pushd $FREESURFER_HOME > /dev/null
       setenv FREESURFER_HOME `pwd`;
+      breaksw
+
+    case "-patch":
+      if ( $#argv < 1) goto arg1err;
+      set PatchDir = $argv[1]; shift;
+      if(! -e $PatchDir) then
+        echo "ERROR: cannot find patch $PatchDir"
+        exit 1;
+      endif
+      set path = ($PatchDir $path)
       breaksw
 
     case "-dontrun":
