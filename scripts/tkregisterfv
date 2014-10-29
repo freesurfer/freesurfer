@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tkmeditfv
 
-set VERSION = '$Id: tkregisterfv,v 1.2 2014/10/29 16:42:25 greve Exp $';
+set VERSION = '$Id: tkregisterfv,v 1.3 2014/10/29 17:00:46 greve Exp $';
 
 set subject = ();
 set movvol = ();
@@ -51,7 +51,7 @@ set tSecStart = `date '+%s'`;
 
 if(! $UseTkRegister) then
   ### FreeView ####----------------------------------------------
-  if(! -e $#reg) then
+  if(! -e $reg) then
     set cmd = (tkregister2_cmdl --mov $movvol --targ $targ --regheader --reg /tmp/tmp.reg.$$.dat --ltaout $reg --regheader)
     if($#subject) set cmd = ($cmd --s $subject)
     echo $cmd 
@@ -61,6 +61,7 @@ if(! $UseTkRegister) then
       echo "ERROR: $cmd"
       exit 1;
     endif
+    rm /tmp/tmp.reg.$$.dat
   endif
   set cmd = (freeview -viewport coronal)
   set cmd = ($cmd -v $targ":"visible=0)
@@ -368,7 +369,7 @@ arg2err:
 usage_exit:
   echo ""
   echo "This is a script that runs freeview with arguments like tkregister."
-  echo "Not all tkregister functionality is replicated. Only supports LTA"
+  echo "Not all tkregister functionality is replicated."
   echo ""
   echo "tkregisterfv --mov mov --targ targ --reg reg.lta --s subject "
   echo ""
