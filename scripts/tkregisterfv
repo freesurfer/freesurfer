@@ -1,0 +1,383 @@
+#!/bin/tcsh -f
+# tkmeditfv
+
+set VERSION = '$Id: tkregisterfv,v 1.1 2014/10/29 16:40:49 greve Exp $';
+
+set subject = ();
+set movvol = ();
+set targ = ();
+set fstarg = orig.mgz
+set lta = ();
+set surfs = 0;
+set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
+set segopacity = .3;
+set UseTkRegister = 0;
+set surfcolor = (yellow red yellow red);
+set surflist = ();
+set surflist0 = ();
+set DoSurfs = 0;
+set auxlist = ();
+set auxreglist = ();
+set segvol0 = ();
+set segvol = ();
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+
+#========================================================
+
+if(! $UseTkRegister) then
+  ### FreeView ####----------------------------------------------
+  if(! -e $#reg) then
+    set cmd = (tkregister2_cmdl --mov $movvol --targ $targ --regheader --reg /tmp/tmp.reg.$$.dat --ltaout $reg --regheader)
+    if($#subject) set cmd = ($cmd --s $subject)
+    echo $cmd 
+    $cmd 
+    if($status) then
+      echo "cd `pwd`"
+      echo "ERROR: $cmd"
+      exit 1;
+    endif
+  endif
+  set cmd = (freeview -viewport coronal)
+  set cmd = ($cmd -v $targ":"visible=0)
+  @ nthaux = 0;
+  foreach aux ($auxlist)
+    @ nthaux = $nthaux + 1;
+    if($auxreglist[$nthaux] == 0) set cmd = ($cmd $aux)
+    if($auxreglist[$nthaux] != 0) set cmd = ($cmd $aux":"reg=$auxreglist[$nthaux])    
+  end
+  if($#segvol) set cmd = ($cmd -v "$segvol":"lut=$segcolor":"opacity=$segopacity":"colormap=lut")
+  if($#reg == 1) set cmd = ($cmd $movvol":"reg=$reg)
+  if($#reg == 0) set cmd = ($cmd $movvol)
+  @ nth = 0;
+  foreach surf ($surflist)
+    @ nth = $nth + 1;
+    set cmd = ($cmd --surface $surf":"edgecolor=$surfcolor[$nth])
+  end
+else
+  ### tkregister ####----------------------------------------------
+  set cmd = tkregister
+  if($DoSurfs) set cmd = ($cmd -surfs)
+endif
+echo "cd `pwd`"
+echo $cmd
+$cmd
+
+#========================================================
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--mov":
+      if($#argv < 1) goto arg1err;
+      set movvol = $argv[1]; shift;
+      if(! -e $movvol) then
+        echo "ERROR: cannot find $movvol"
+        exit 1;
+      endif
+      breaksw
+
+    case "--targ":
+      if($#argv < 1) goto arg1err;
+      set targvol = $argv[1]; shift;
+      if(! -e $targvol) then
+        echo "ERROR: cannot find $targvol"
+        exit 1;
+      endif
+      breaksw
+
+    case "--aux":
+      if($#argv < 1) goto arg1err;
+      set auxvol = $argv[1]; shift;
+      if(! -e $auxvol) then
+        echo "ERROR: cannot find $auxvol"
+        exit 1;
+      endif
+      set auxlist = ($auxlist $auxvol)
+      if($#argv > 0) then
+        set isarg = `isargflag $argv[1]`
+        set auxreg = $argv[1]; shift;        
+        if($auxreg != 0 && ! -e $auxreg) then
+          echo "ERROR: cannot find $auxreg"
+          exit 1;
+        endif
+        set auxreglist = ($auxreglist $auxreg)
+      else
+        set auxreglist = ($auxreglist 0)
+      endif
+      breaksw
+
+    case "--fstarg":
+      if($#argv < 1) goto arg1err;
+      set fstargvol = $argv[1]; shift;
+      breaksw
+
+    case "--subject":
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      set DoSurfs = 1;
+      set surflist0 = (lh.white rh.white)
+      set surfcolor = (yellow yellow);
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift
+      breaksw
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set segvol0 = $argv[1]; shift;
+      if(! `isargflag $argv`) then
+        set segcolor = $argv[1]; shift;
+      endif
+      breaksw
+
+    case "--aseg":
+      set segvol0 = aseg.mgz
+      breaksw
+
+    case "--aparc+aseg":
+      set segvol0 = aparc+aseg.mgz
+      breaksw
+
+    case "--op":
+    case "--opacity":
+      if($#argv < 1) goto arg1err;
+      set segopacity = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set reg = $argv[1]; shift;
+      breaksw
+
+    case "--surfs":
+    case "--wm-surfs":
+      set DoSurfs = 1;
+      set surflist0 = (lh.white rh.white)
+      set surfcolor = (yellow yellow);
+      breaksw
+
+    case "--lh-only":
+      set DoSurfs = 1;
+      set surflist0 = (lh.white)
+      set surfcolor = (yellow)
+      breaksw
+
+    case "--rh-only":
+      set DoSurfs = 1;
+      set surflist0 = (rh.white)
+      set surfcolor = (yellow)
+      breaksw
+
+    case "--pial-surfs":
+      set DoSurfs = 1;
+      set surflist0 = (lh.pial rh.pial)
+      set surfcolor = (red red);
+      breaksw
+
+    case "--all-surfs":
+      set DoSurfs = 1;
+      set surflist0 = (lh.white lh.pial rh.white rh.pial)
+      set surfcolor = (yellow red yellow red);
+      breaksw
+
+    case "--no-surfs":
+      set DoSurfs = 0;
+      set surflist0 = ()
+      breaksw
+
+    case "--surface":
+    case "--surf":
+      if($#argv < 1) goto arg1err;
+      set mainsurf = $argv[1]
+      set surflist0 = ($surflist0 $mainsurf); shift;
+      breaksw
+
+    case "--aux-surface":
+    case "--aux-surf":
+      if($#argv < 1) goto arg1err;
+      set auxsurf = $argv[1]
+      set surflist0 = ($surflist0 $auxsurf); shift;
+      breaksw
+
+
+    case "--tkregister":
+    case "--tkr":
+      set UseTkRegister = 1;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "-debug":
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#movvol == 0) then
+  echo "ERROR: must spec a moveable volume"
+  exit 1;
+endif
+
+if($#targ == 0) then
+  if($#subject == 0 && $#reg == 0) then
+    echo "ERROR: must spec either subject or reg or targ"
+    exit 1;
+  endif
+  if($#subject == 0) then
+    if(! -e $reg) then
+      echo "ERROR: cannot find $reg"
+      exit 1;
+    endif
+    set subject = `reg2subject --r $reg`
+  endif
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+  set targ = $SUBJECTS_DIR/$subject/mri/$fstarg
+  if(! -e $targ) then
+    echo "ERROR: cannot find $targ"
+    exit 1;
+  endif
+endif
+
+if($#segvol0) then
+  if(-e $segvol0) then
+    set segvol = $segvol0
+  else
+    set segvol = $SUBJECTS_DIR/$subject/mri/$segvol0
+  endif
+  if(! -e $segvol) then
+    echo "ERROR: cannot find $segvol"
+    exit 1;
+  endif
+  if($#segcolor) then
+    if(! -e $segcolor) then
+      set segcolor0 = $segcolor;
+      set segcolor = $SUBJECTS_DIR/$subject/mri/$segcolor0
+      if(! -e $segcolor) then
+        set segcolor = $FREESURFER_HOME/$segcolor0
+        if(! -e $segcolor) then
+          echo "ERROR: cannot find $segcolor0"
+          exit 1; 
+        endif
+      endif
+    endif
+  endif
+endif
+
+foreach surf ($surflist0)
+  if(-e $surf) then
+    set surflist = ($surflist $surf)
+  else
+    set surfpath = $SUBJECTS_DIR/$subject/surf/$surf
+    if(! -e $surfpath) then
+      echo "ERROR: cannot find $surfpath"
+      exit 1;
+    endif
+    set surflist = ($surflist $surfpath)
+  endif
+end
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "This is a script that runs freeview with arguments like tkregister."
+  echo "Not all tkregister functionality is replicated."
+  echo ""
+  echo "tkregisterfv --s subject --mov mov --targ targ -reg reg "
+  echo ""
+  echo ""
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
