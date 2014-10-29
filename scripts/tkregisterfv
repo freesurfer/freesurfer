@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tkmeditfv
 
-set VERSION = '$Id: tkregisterfv,v 1.1 2014/10/29 16:40:49 greve Exp $';
+set VERSION = '$Id: tkregisterfv,v 1.2 2014/10/29 16:42:25 greve Exp $';
 
 set subject = ();
 set movvol = ();
@@ -368,9 +368,9 @@ arg2err:
 usage_exit:
   echo ""
   echo "This is a script that runs freeview with arguments like tkregister."
-  echo "Not all tkregister functionality is replicated."
+  echo "Not all tkregister functionality is replicated. Only supports LTA"
   echo ""
-  echo "tkregisterfv --s subject --mov mov --targ targ -reg reg "
+  echo "tkregisterfv --mov mov --targ targ --reg reg.lta --s subject "
   echo ""
   echo ""
   if(! $PrintHelp) exit 1;
