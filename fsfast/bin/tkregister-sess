@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/11 20:17:31 $
-#    $Revision: 1.36 $
+#    $Date: 2014/10/29 17:34:22 $
+#    $Revision: 1.37 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.36 2011/03/11 20:17:31 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.37 2014/10/29 17:34:22 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -55,6 +55,7 @@ set DoTag = 0;
 set Size = ();
 set RunListFile = ();
 set UseB0DC = 0;
+set UseFreeView = 0;
 
 set PrintHelp = 0;
 if($#argv == 0)  goto usage_exit;
@@ -156,26 +157,33 @@ foreach sess ($SessList)
   endif
 
   # Set up the basic cmd line
-  set cmd = (tkregister2 --plane $Plane --volview $VolView)
-  if($#Slice)    set cmd = ($cmd --slice $Slice)
-  if($Inorm)     set cmd = ($cmd --inorm)
-  if(! $Inorm)   set cmd = ($cmd --no-inorm)
-  if($FOV)       set cmd = ($cmd --fov $FOV)
-  if($#movscale) set cmd = ($cmd --movscale $movscale)
-  if($#fmov)     set cmd = ($cmd --fmov $fmov)
-  if($RegHeader) set cmd = ($cmd --regheader)
-  if($#SurfRGB)  set cmd = ($cmd --surf-rgb $SurfRGB)
-  if($DoTag)     set cmd = ($cmd --tag)
-  if($DoAseg)    set cmd = ($cmd --aseg)
-  if($DoAparcAseg)  set cmd = ($cmd --aparc+aseg)
-  if($DoWMparc)     set cmd = ($cmd --wmparc)
-  if($Size)     set cmd = ($cmd --$Size)
-  set cmd = ($cmd --fstarg --targ $anatvol)
-  if($#Surf) then
-    set lhsurfpath = $SUBJECTS_DIR/$subject/surf/lh.$Surf;
-    set rhsurfpath = $SUBJECTS_DIR/$subject/surf/rh.$Surf;
-    if(-e $lhsurfpath && -e $rhsurfpath ) set cmd = ($cmd --surf $Surf)
+  if($UseFreeView == 1) then
+    set cmd0 = (tkregisterfv)
+    if($Surf == white) set cmd0 = ($cmd0 --wm-surfs)
+    if($Surf == pial)  set cmd0 = ($cmd0 --pial-surfs)
+  else
+    set cmd0 = (tkregister2 --volview $VolView)
+    if($#Slice)    set cmd0 = ($cmd0 --slice $Slice)
+    if($Inorm)     set cmd0 = ($cmd0 --inorm)
+    if(! $Inorm)   set cmd0 = ($cmd0 --no-inorm)
+    if($FOV)       set cmd0 = ($cmd0 --fov $FOV)
+    if($#movscale) set cmd0 = ($cmd0 --movscale $movscale)
+    if($#fmov)     set cmd0 = ($cmd0 --fmov $fmov)
+    if($RegHeader) set cmd0 = ($cmd0 --regheader)
+    if($#SurfRGB)  set cmd0 = ($cmd0 --surf-rgb $SurfRGB)
+    if($DoTag)     set cmd0 = ($cmd0 --tag)
+    if($DoAseg)    set cmd0 = ($cmd0 --aseg)
+    if($DoAparcAseg)  set cmd0 = ($cmd0 --aparc+aseg)
+    if($DoWMparc)     set cmd0 = ($cmd0 --wmparc)
+    if($Size)     set cmd0 = ($cmd0 --$Size)
+    set cmd0 = ($cmd0 --fstarg --targ $anatvol)
+    if($#Surf) then
+      set lhsurfpath = $SUBJECTS_DIR/$subject/surf/lh.$Surf;
+      set rhsurfpath = $SUBJECTS_DIR/$subject/surf/rh.$Surf;
+      if(-e $lhsurfpath && -e $rhsurfpath ) set cmd0 = ($cmd0 --surf $Surf)
+    endif
   endif
+  set cmd0 = ($cmd0 --plane $Plane)
   set title = $subject--$sessid;
 
   if($PerSess) then
@@ -199,7 +207,7 @@ foreach sess ($SessList)
       set ttl = `printf "%s-%4.2f" $ttl $mincost`
     endif
     # Run the cmd
-    set cmd = ($cmd --reg $reg --mov $template --title $ttl)
+    set cmd = ($cmd0 --reg $reg --mov $template --title $ttl)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -228,7 +236,7 @@ foreach sess ($SessList)
       set ttl = `printf "%s-%4.2f" $ttl $mincost`
     endif
     # Run the cmd
-    set cmd = ($cmd --reg $reg --mov $template --title $ttl)
+    set cmd = ($cmd0 --reg $reg --mov $template --title $ttl)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -401,6 +409,11 @@ while( $#argv != 0 )
 
     case "-tag":
       set DoTag = 1;
+      breaksw
+
+    case "-fv":
+    case "-freeview":
+      set UseFreeView = 1;
       breaksw
 
     case "-nolog":
