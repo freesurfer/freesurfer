@@ -160,6 +160,7 @@ rcbf-prep \
 rebuild_gca_atlas.csh \
 recon-all \
 recon-all.makefile \
+reg2subject \
 reg-feat2anat \
 register_child \
 register.csh \
