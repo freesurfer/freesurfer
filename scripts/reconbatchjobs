@@ -26,11 +26,15 @@
 #  For example usage, look in the recon-all script in the 'multi-strip'
 #  section of the skull-strip stage.
 #
+#  Note: the commands are assumed to be independent of each other,
+#  and a dependency chain is not supported (and so commands that need
+#  to run in sequence should be handled by the caller, eg. recon-all)
+#
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/10/16 18:00:57 $
-#    $Revision: 1.1 $
+#    $Date: 2014/10/30 05:56:18 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -46,6 +50,7 @@
 
 if [ $# -lt 3 ] ; then
   echo "Usage: reconbatchjobs logfile cmdfile1 [cmdfile2 ...]"
+  echo "See recon-all script for examples."
   exit 1
 fi
 
@@ -60,7 +65,10 @@ shift
 for cmd in $*; do
   JOB=`cat $cmd`
   LOG=$cmd.log
-  exec $JOB >& $LOG &
+  echo "" >& $LOG
+  echo " $JOB" >> $LOG
+  echo "" >> $LOG
+  exec $JOB >> $LOG 2>&1 &
   PIDS=(${PIDS[@]} $!)
   LOGS=(${LOGS[@]} $LOG)
   rm -f $cmd
@@ -80,6 +88,8 @@ do
   cat $log >> $MAIN_LOG_FILE
   rm -f $log
 done
+
+echo "PIDs (${PIDS[@]}) completed and logs appended."
 
 # and check for failures
 for pid_status in "${PIDS_STATUS[@]}"
