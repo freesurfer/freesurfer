@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/25 19:11:25 $
- *    $Revision: 1.28 $
+ *    $Date: 2014/10/30 15:35:42 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,7 +47,7 @@ extern int fsgdf_AllowSubjRep;
 
 #define FSGDF_NCLASSES_MAX  128
 #define FSGDF_NVARS_MAX     128
-#define FSGDF_NINPUTS_MAX  2000
+#define FSGDF_NINPUTS_MAX  10000
 
 #define FSGD_FACTOR_DISCRETE 1
 #define FSGD_FACTOR_CONTINUOUS 2
@@ -86,11 +86,11 @@ typedef struct
   char regsubj[200];
   char datafile[1000];
   int  nclasses;
-  char classlabel[FSGDF_NCLASSES_MAX][50]; /* [class][length]*/
-  char classmarker[FSGDF_NCLASSES_MAX][50];  /* [class][length]*/
-  char classcolor[FSGDF_NCLASSES_MAX][50]; /* [class][length]*/
+  char classlabel[FSGDF_NCLASSES_MAX][100]; /* [class][length]*/
+  char classmarker[FSGDF_NCLASSES_MAX][100];  /* [class][length]*/
+  char classcolor[FSGDF_NCLASSES_MAX][100]; /* [class][length]*/
   int  nvariables;
-  char varlabel[FSGDF_NVARS_MAX][50]; /* [class][length]*/
+  char varlabel[FSGDF_NVARS_MAX][100]; /* [class][length]*/
   char defvarlabel[50]; /* default variable */
 
   int  nvarsfromfile;
