@@ -65,6 +65,7 @@ fsutils.py \
 gtmseg \
 tkmeditfv \
 tksurferfv \
+tkregisterfv \
 stem2fname \
 freesurfer \
 fs_lib_check \
