@@ -9,11 +9,11 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/07/18 02:11:35 $
- *    $Revision: 1.99 $
+ *    $Author: nicks $
+ *    $Date: 2014/10/30 05:54:13 $
+ *    $Revision: 1.100 $
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -219,20 +219,11 @@ main(int argc, char *argv[])
   AcquireCUDADevice();
 #endif // FS_CUDA
 
-#ifdef HAVE_OPENMP
-#pragma omp parallel
-  { 
-    n_omp_threads = omp_get_num_threads(); 
-  }
-  printf("\n\n ======= NUMBER OF OPENMP THREADS = %d ======= \n",
-         n_omp_threads);
-#endif
-
   /* rkt: check for and handle version tag */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.99 2014/07/18 02:11:35 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.100 2014/10/30 05:54:13 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -273,6 +264,15 @@ main(int argc, char *argv[])
     printUsage();
     exit(1);
   }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+  { 
+    n_omp_threads = omp_get_num_threads(); 
+  }
+  printf("\n== Number of threads available to %s for OpenMP = %d == \n",
+         Progname, n_omp_threads);
+#endif
 
   ninputs = argc-3 ;
   printf("reading %d input volumes...\n", ninputs) ;
