@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2014/01/13 17:35:00 $
-%    $Revision: 1.67 $
+%    $Date: 2014/10/30 15:43:34 $
+%    $Revision: 1.68 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -315,6 +315,7 @@ if(strcmp(designtype,'retinotopy'))
     flac.con(nthcon).ev(1).evrw = [1 1 zeros(1,10)];
     flac.con(nthcon).rmprestim = 0;
     flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+    flac.con(nthcon).UseExtC = 0;
     flac.ana.con(nthcon) = flac.con(nthcon);
   end
   ncontrasts = length(flac.con);
@@ -339,6 +340,7 @@ if(strcmp(designtype,'abblocked'))
   flac.con(nthcon).ev(1).evrw = [1 1 1 1 zeros(1,8)];
   flac.con(nthcon).rmprestim = 0;
   flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+  flac.con(nthcon).UseExtC = 0;
   flac.ana.con = flac.con(nthcon);
 
   nthcon = nthcon + 1;
@@ -353,6 +355,7 @@ if(strcmp(designtype,'abblocked'))
   flac.con(nthcon).ev(1).evrw = [1 1 0 0 zeros(1,8)];
   flac.con(nthcon).rmprestim = 0;
   flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+  flac.con(nthcon).UseExtC = 0;
   flac.ana.con(nthcon) = flac.con(nthcon);
 
   nthcon = nthcon + 1;
@@ -367,6 +370,7 @@ if(strcmp(designtype,'abblocked'))
   flac.con(nthcon).ev(1).evrw = [1 0 0 0 zeros(1,8)];
   flac.con(nthcon).rmprestim = 0;
   flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+  flac.con(nthcon).UseExtC = 0;
   flac.ana.con(nthcon) = flac.con(nthcon);
 
   nthcon = nthcon + 1;
@@ -381,6 +385,7 @@ if(strcmp(designtype,'abblocked'))
   flac.con(nthcon).ev(1).evrw = [0 1 0 0 zeros(1,8)];
     flac.con(nthcon).rmprestim = 0;
   flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+  flac.con(nthcon).UseExtC = 0;
   flac.ana.con(nthcon) = flac.con(nthcon);
 
   nthcon = nthcon + 1;
@@ -395,6 +400,7 @@ if(strcmp(designtype,'abblocked'))
   flac.con(nthcon).ev(1).evrw = [0 0 1 1 zeros(1,8)];
   flac.con(nthcon).rmprestim = 0;
   flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+  flac.con(nthcon).UseExtC = 0;
   flac.ana.con(nthcon) = flac.con(nthcon);
   
   ncontrasts = length(flac.con);
