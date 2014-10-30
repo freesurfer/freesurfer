@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2013/05/28 14:13:30 $
-#    $Revision: 1.62 $
+#    $Date: 2014/10/30 16:18:12 $
+#    $Revision: 1.63 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.62 2013/05/28 14:13:30 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.63 2014/10/30 16:18:12 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -789,7 +789,7 @@ check_params:
       set projfrac = 0.5;
     endif
   endif
-  if($#regfile == 0) set regfile = register.dof$RegDOF.dat 
+  if($#regfile == 0) set regfile = register.dof$RegDOF.lta
 
   if($talres == 2) then
     set subcortmask = $SUBJECTS_DIR/fsaverage/mri.2mm/subcort.mask.mgz
@@ -848,7 +848,7 @@ usage_exit:
   echo "   -version    : print version and exit"
   echo " "
   echo "Options below are for analyses done in native space"
-  echo "   -reg regfile    : instead of register.dat"
+  echo "   -reg regfile    : instead of register.dof6.lta"
   echo "   -interp method  : trilinear (def) or nearest"
   echo "   -fwhm fwhm      : smooth by fwhm"
   echo ""

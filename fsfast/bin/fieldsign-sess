@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/10/30 15:32:46 $
-#    $Revision: 1.4 $
+#    $Date: 2014/10/30 16:18:12 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: fieldsign-sess,v 1.4 2012/10/30 15:32:46 greve Exp $';
+set VERSION = '$Id: fieldsign-sess,v 1.5 2014/10/30 16:18:12 greve Exp $';
 set inputargs = ($argv);
 
 set analysis = ();
@@ -33,6 +33,7 @@ set RegDOF = 6;
 set regfile = ()
 set fwhm = ();
 set DoReverse = 0;
+set UseB0DC = 0;
 
 set UseLog = 1;
 set tmpdir = ();
@@ -112,6 +113,15 @@ foreach sess ($SessList)
     if($anasubject != self) set trgsubject = $anasubject;
   endif
 
+  set b0dcmap = ();
+  if($UseB0DC) then
+    set b0dcmap = `stem2fname $sess/$fsd/$b0dcmapstem`;
+    if($status) then
+      echo "$b0dcmap"|& tee -a $LF
+      exit 1;
+    endif
+  endif
+
   set outdir = $anadir/fieldsign
   mkdir -p $outdir
 
@@ -120,6 +130,7 @@ foreach sess ($SessList)
       # Resample to surface
       set cmd0 = (mri_vol2surf --reg $reg --projfrac 0.5 --interp nearest \
         --cortex --hemi $hemi)
+      if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
       # Eccen real
       set cmd = ($cmd0 --mov $eccenreal --o $outdir/$hemi.eccen.real.nii)
       echo $cmd | tee -a $LF
@@ -328,10 +339,16 @@ check_params:
     endif
   endif
 
-  if($#regfile == 0) set regfile = register.dof$RegDOF.dat    
+  if($#regfile == 0) then
+    if(! $UseB0DC) set regfile  = register.dof$RegDOF.lta
+    if($UseB0DC)   set regfile  = register.dof$RegDOF.b0dc.lta
+  endif
 
   set fsd = `getana -a $analysis -t fsd`;
   if(! $UseLog) set LF = /dev/null
+
+  set UseB0DC = `getana -a $analysis -t UseB0DC`;
+  if($#UseB0DC == 0) set UseB0DC = 0;
 
 goto check_params_return;
 ############--------------##################

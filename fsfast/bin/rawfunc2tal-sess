@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/05/08 20:08:16 $
-#    $Revision: 1.22 $
+#    $Date: 2014/10/30 16:18:12 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.22 2014/05/08 20:08:16 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.23 2014/10/30 16:18:12 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -432,8 +432,8 @@ if($#maskstem == 0) set maskstem = $maskname
 set maskstem = $maskstem.$target.$res"mm"
 
 if($#regfile == 0) then
-  if(! $UseB0DC) set regfile = register.dof$RegDOF.dat
-  if($UseB0DC)   set regfile = register.dof$RegDOF.b0dc.dat
+  if(! $UseB0DC) set regfile = register.dof$RegDOF.lta
+  if($UseB0DC)   set regfile = register.dof$RegDOF.b0dc.lta
 endif
 
 goto check_params_return;
@@ -467,7 +467,7 @@ usage_exit:
   echo "  -no-masked-smooth : do not mask when smoothing"
   echo "  -nearest     : use nearest neighbor interp (default is trilin)"
   echo "  -xfm tal.xfm : xfm file found in subject/mri/transforms (default is $talxfm)"
-  echo "  -reg regfile : default is register.dof$RegDOF.dat"
+  echo "  -reg regfile : default is register.dof$RegDOF.lta"
   echo "  -per-session : use session-level registration and mask instead of -per-run"
   echo "  -no-subcort-mask : do not apply MNI305 subcortical mask"
   echo ""

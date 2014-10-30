@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/10/24 22:06:42 $
-#    $Revision: 1.16 $
+#    $Date: 2014/10/30 16:18:12 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.16 2014/10/24 22:06:42 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.17 2014/10/30 16:18:12 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -52,6 +52,7 @@ set FSLSwapTrans = 0;
 set UseB0DC = 0;
 set b0dcmapstem = b0dcmap
 set contrast = bold
+set DeleteDat = 0;
 
 set UpdateOnly = 0;
 
@@ -185,25 +186,25 @@ foreach sess ($SessList)
   endif
 
   # Set up the cmd line to be used for all invocations
-  set cmd = ($regmethod --s $subject)
+  set cmd0 = ($regmethod --s $subject)
   if($regmethod == bbregister) then
     if($InitWithSess) then
       set sessreg = $fsd/$regfilename
       set bbrinit = (--init-reg $sessreg)
     endif
-    set cmd = ($cmd $bbrinit --$RegDOF --$contrast)
-    if($#BBRTolF) set cmd = ($cmd --tolf $BBRTolF)
-    if($#BBRTol1D) set cmd = ($cmd --tol1d $BBRTol1D)
-    if($#IntermediateFSD) set cmd = ($cmd --int $Intermediate)
-    if($FSLSwapTrans) set cmd = ($cmd --fsl-swap-trans)
+    set cmd0 = ($cmd0 $bbrinit --$RegDOF --$contrast)
+    if($#BBRTolF) set cmd0 = ($cmd0 --tolf $BBRTolF)
+    if($#BBRTol1D) set cmd0 = ($cmd0 --tol1d $BBRTol1D)
+    if($#IntermediateFSD) set cmd0 = ($cmd0 --int $Intermediate)
+    if($FSLSwapTrans) set cmd0 = ($cmd0 --fsl-swap-trans)
     set XOpts = ($BBRXOpts)
-    if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+    if($UseB0DC) set cmd0 = ($cmd0 --vsm $b0dcmap)
   else if($regmethod == fslregister) then
-    set cmd = ($cmd --dof $RegDOF --fsvol $fstargvol)
-    if($FSLSwapTrans) set cmd = ($cmd --allow-swap --trans)
+    set cmd0 = ($cmd0 --dof $RegDOF --fsvol $fstargvol)
+    if($FSLSwapTrans) set cmd0 = ($cmd0 --allow-swap --trans)
     set XOpts = ($FSLXOpts)
   else # spmregister
-    set cmd = ($cmd --fsvol $fstargvol $SPMXOpts)
+    set cmd0 = ($cmd0 --fsvol $fstargvol $SPMXOpts)
     set XOpts = ($SPMXOpts)
   endif
 
@@ -219,8 +220,8 @@ foreach sess ($SessList)
     set ltafile = $fsd/$ltafilename
 
     set UpdateNeeded = 1;
-    if(-e $regfile && $UpdateOnly) then
-      test $template -nt $regfile
+    if(-e $ltafile && $UpdateOnly) then
+      test $template -nt $ltafile
       if($status) then
         pwd | tee -a $LF
         set UpdateNeeded = 0;
@@ -228,7 +229,7 @@ foreach sess ($SessList)
     endif
 
     if($UpdateNeeded) then
-      set cmd = ($cmd --mov $template --reg $regfile --lta $ltafile)
+      set cmd = ($cmd0 --mov $template --reg $regfile --lta $ltafile)
       if($regmethod == bbregister) then
         set regfileinit = $fsd/init.$regfilename
         set cmd = ($cmd --init-reg-out $regfileinit)
@@ -239,8 +240,9 @@ foreach sess ($SessList)
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) exit 1;
+      if($DeleteDat) rm $regfile
     endif
-  endif
+  endif #PerSession
 
   if($PerRun) then
     # Do separately for each run
@@ -255,10 +257,11 @@ foreach sess ($SessList)
         exit 1;
       endif
       set regfile = $funcdir/$regfilename
+      set ltafile = $funcdir/$ltafilename
 
       set UpdateNeeded = 1;
-      if(-e $regfile && $UpdateOnly) then
-        test $template -nt $regfile
+      if(-e $ltafile && $UpdateOnly) then
+        test $template -nt $ltafile
         if($status) then
           echo "Update not needed" | tee -a $LF
           set UpdateNeeded = 0;
@@ -266,7 +269,7 @@ foreach sess ($SessList)
       endif
 
       if($UpdateNeeded) then
-        set cmd = ($cmd --mov $template --reg $regfile)
+        set cmd = ($cmd0 --mov $template --reg $regfile --lta $ltafile)
         if($regmethod == bbregister) then
           set regfileinit = $funcdir/init.$regfilename
           set cmd = ($cmd --init-reg-out $regfileinit)
@@ -284,11 +287,12 @@ foreach sess ($SessList)
         else
           $cmd |& tee -a $LF
           if($status) exit 1;
+          if($DeleteDat) rm $regfile
         endif
       endif
     end  # Loop over runs
 
-  endif
+  endif # PerRun
 
   popd > /dev/null
 
@@ -480,6 +484,15 @@ while( $#argv != 0 )
 
     case "-bg":
       set DoBackground = 1;
+      breaksw
+
+    # For testing with LTA only
+    case "-delete-dat":
+      set DeleteDat = 1;
+      breaksw
+    case "-no-delete-dat":
+    case "-keep-dat":
+      set DeleteDat = 0;
       breaksw
 
     case "-debug":

@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/06/07 21:48:29 $
-#    $Revision: 1.6 $
+#    $Date: 2014/10/30 16:18:12 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 #
 
 
-set VERSION = '$Id: synth-sess,v 1.6 2007/06/07 21:48:29 greve Exp $'
+set VERSION = '$Id: synth-sess,v 1.7 2014/10/30 16:18:12 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -84,8 +84,8 @@ if($#templatesess) then
   if(-e $templatesess/subjectname) then
     cp $templatesess/subjectname $sess/subjectname
   endif
-  if(-e $templatesess/$fsd/register.dat) then
-    cp $templatesess/$fsd/register.dat $sess/$fsd/register.dat
+  if(-e $templatesess/$fsd/register.dof6.lta) then
+    cp $templatesess/$fsd/register.dof6.lta $sess/$fsd/register.dof6.lta
   endif
 
 else
