@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2014/10/20 23:59:48 $
- *    $Revision: 1.91 $
+ *    $Date: 2014/10/30 05:55:20 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -238,7 +238,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.91 2014/10/20 23:59:48 nicks Exp $",
+           "$Id: mri_ca_register.c,v 1.92 2014/10/30 05:55:20 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -261,6 +261,17 @@ main(int argc, char *argv[])
     exit(1);
   }
 
+#ifdef HAVE_OPENMP
+  #pragma omp parallel
+  {
+    n_omp_threads = omp_get_num_threads();
+  }
+  printf("\n== Number of threads available to %s for OpenMP = %d == \n",
+         Progname, n_omp_threads);
+#else
+  n_omp_threads = 1;
+#endif
+
   ninputs = argc-3 ;
   printf("reading %d input volumes...\n", ninputs) ;
   in_fname = argv[1] ;
@@ -271,17 +282,6 @@ main(int argc, char *argv[])
   strcpy(parms.base_name, fname) ;
   //  Gdiag |= DIAG_WRITE ;
   printf("logging results to %s.log\n", parms.base_name) ;
-
-#ifdef HAVE_OPENMP
-  #pragma omp parallel
-  {
-    n_omp_threads = omp_get_num_threads();
-  }
-  printf("\n\n ======= NUMBER OF OPENMP THREADS = %d ======= \n",
-         n_omp_threads);
-#else
-  n_omp_threads = 1;
-#endif
 
   TimerStart(&start) ;
 
