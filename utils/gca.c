@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/10/19 12:29:22 $
- *    $Revision: 1.325 $
+ *    $Date: 2014/10/31 14:53:05 $
+ *    $Revision: 1.326 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5079,7 +5079,6 @@ GCAcomputeLogSampleProbability(GCA *gca,
 {
   int        width, height, depth, i;
   double     total_log_p;
-  int        countOutside = 0;
 //  double     outside_log_p = 0.;
 
   /* go through each GC in the sample and compute the probability of
@@ -5098,7 +5097,7 @@ GCAcomputeLogSampleProbability(GCA *gca,
    multimodal inputs. Removing did not seem to slow it down much.
   */
 #ifdef HAVE_OPENMP
-#pragma omp parallel for 
+#pragma omp parallel for reduction(+:total_log_p)
 #endif
   for (i = 0 ; i < nsamples ; i++)
   {
@@ -5141,7 +5140,6 @@ GCAcomputeLogSampleProbability(GCA *gca,
       log_p = -1000000; // BIG_AND_NEGATIVE;
       // log(VERY_UNLIKELY); // BIG_AND_NEGATIVE;
 //      outside_log_p += log_p;
-      countOutside++;
     }
     gcas[i].log_p = log_p;
     total_log_p += log_p;
