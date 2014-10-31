@@ -7,8 +7,8 @@
  * Original Authors: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/25 21:23:01 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/10/31 21:53:24 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,7 @@
 #include "mri_identify.h"
 #include "stats.h"
 #include "fsgdf.h"
+#include "registerio.h"
 
 extern const char* Progname;
 
@@ -262,7 +263,7 @@ STAT_TABLE *InitStatTableFromMRI(MRI* mri_in, const char* tablefile)
   return st;
 }
 
-// Stuff below here is not used anymore
+// Stuff below here is not used anymore (really?)
 
 
 /*------------------------------------------------------------------------
@@ -270,55 +271,18 @@ STAT_TABLE *InitStatTableFromMRI(MRI* mri_in, const char* tablefile)
 fMRI_REG *
 StatReadRegistration(const char *fname)
 {
-  int        row, col ;
-  FILE       *fp ;
+  int        float2int, err ;
   fMRI_REG   *reg ;
-  char       line[MAX_LINE_LEN] ;
+  char *subject;
 
-  fp = fopen(fname, "r") ;
-  if (!fp)
-    ErrorReturn(NULL, (ERROR_NOFILE,
-                       "StatReadRegistration: could not open %s", fname)) ;
   reg = (fMRI_REG *)calloc(1, sizeof(fMRI_REG)) ;
-  reg->mri2fmri = MatrixAlloc(REG_ROWS, REG_COLS, MATRIX_REAL) ;
-  fgetl(reg->name, MAX_LINE_LEN-1, fp) ;
-
-  if (!stricmp(reg->name, "margaret"))
-    DiagBreak() ;
-
-  fgetl(line, MAX_LINE_LEN-1, fp) ;
-  if (sscanf(line, "%f", &reg->in_plane_res) != 1)
-    ErrorReturn(reg, (ERROR_BADFILE, "StatReadRegistration: could not scan "
-                      "in plane resolution from %s", line)) ;
-  fgetl(line, MAX_LINE_LEN-1, fp) ;
-  if (sscanf(line, "%f", &reg->slice_thickness) != 1)
-    ErrorReturn(reg, (ERROR_BADFILE, "StatReadRegistration: could not scan "
-                      "slice thickness from %s", line)) ;
-  fgetl(line, MAX_LINE_LEN-1, fp) ;
-  if (sscanf(line, "%f", &reg->brightness_scale) != 1)
-    ErrorReturn(reg, (ERROR_BADFILE, "StatReadRegistration: could not scan "
-                      "brightness scale from %s", line)) ;
-
-  for (row = 1 ; row <= REG_ROWS ; row++)
-  {
-    for (col = 1 ; col <= REG_COLS ; col++)
-    {
-      if (fscanf(fp, "%f  ", &reg->mri2fmri->rptr[row][col]) != 1)
-        ErrorReturn
-          (NULL,
-           (ERROR_BADFILE,
-            "StatReadRegistration(%s): could not scan element (%d, %d)",
-            fname, row, col)) ;
-    }
-    fscanf(fp, "\n") ;
-  }
-  fclose(fp) ;
+  err = regio_read_register(fname, &subject, &reg->in_plane_res, &reg->slice_thickness,
+			    &reg->brightness_scale, &reg->mri2fmri, &float2int);
+  if(err) return(NULL);
+  sprintf(reg->name,"%s",subject);
+  free(subject);
   reg->fmri2mri = MatrixInverse(reg->mri2fmri, NULL) ;
-  if (!reg->fmri2mri)
-    ErrorExit(ERROR_BADPARM, "StatReadReg(%s): singular registration matrix",
-              fname) ;
-
-  return(reg) ;
+  return(reg);
 }
 
 /*------------------------------------------------------------------------
