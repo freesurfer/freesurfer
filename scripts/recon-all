@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/10/31 20:39:27 $
-#    $Revision: 1.491 $
+#    $Date: 2014/11/01 01:55:01 $
+#    $Revision: 1.492 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.491 2014/10/31 20:39:27 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.492 2014/11/01 01:55:01 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -671,9 +671,9 @@ if( ! $RunIt) then
 endif
 
 
-#------------       --------------#
-#------------ Clean --------------#
-#------------       --------------#
+#------------         --------------#
+##-----------  -clean --------------#
+#------------         --------------#
 if($DoCleanSeed) then
   set cmd = ("mv -f $subjdir/scripts/seed-*.crs.man.dat $subjdir/trash");
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -812,14 +812,18 @@ else
   endif
 endif
 
-#---- Conform Width to 256 --------#
+#----                      ----#
+#---- Conform Width to 256 ----#
+##---         -cw256       ----#
 if( $DoConformWidth256) then
   echo "-cw256 option is now persistent (remove with -clean-cw256)" \
     |& tee -a $LF
   touch $subjdir/tmp/cw256
 endif
 
-#----------- Show Edits -----------#
+#-----------              -----------#
+##----------  -show-edits -----------#
+#-----------              -----------#
 # discover which edits a user has made, list them, and if volume edits were
 # made, create a file which shows them (using mri_compile_edits)
 if($DoShowEdits) then
@@ -907,7 +911,10 @@ if($DoShowEdits) then
 endif
 
 
-#----------- Longitudinal -----------#
+#-----------               -----------#
+#-----------  Longitudinal -----------#
+##---------- -long and -tp ----------#
+#-----------               -----------#
 if($longitudinal) then
   # if adding a new timepoint was requested by -addtp flag
   if($DoAddTp) then
@@ -941,6 +948,7 @@ endif
 
 #-----------                  -----------#
 #----------- Convert T1 Input -----------#
+##----------    -i <file>     -----------#
 #-----------                  -----------#
 if($#InputList != 0) then
   @ nth = 1;
@@ -985,6 +993,7 @@ endif
 
 #-----------                          -----------#
 #----------- Input T2 or FLAIR images -----------#
+##---------- -T2 <file> -FLAIR <file> -----------#
 #-----------                          -----------#
 if ($DoConvertT2Input || $DoConvertFlairInput) then
 
@@ -1024,6 +1033,7 @@ endif
 
 #-------------                                                 ------------#
 #------------- Longitudinal 'base' subject input file creation ------------#
+##------------                   -base                         ------------#
 #-------------                                                 ------------#
 if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   echo "#--------------------------------------------" \
@@ -1181,12 +1191,13 @@ endif
 
 
 #-----------             -------------#
-#----------- AUTORECON 1 -------------#
+##---------- AUTORECON 1 -------------#
 #-----------             -------------#
 
 
 #-----------                            -----------#
 #----------- Motion Correct and Average -----------#
+##----------        -motioncor          -----------#
 #-----------                            -----------#
 if($DoMotionCor) then
   echo "#--------------------------------------------" \
@@ -1542,9 +1553,29 @@ if($DoMotionCor) then
 endif # Motion Correction
 
 
-#-----------           -----------#
-#----------- Talairach -----------#
-#-----------           -----------#
+#-----------          -----------#
+##----------  -deface -----------#
+#-----------          -----------#
+if($DoDeface) then
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# Deface `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set cmd = (mri_deface orig.mgz \
+     $FREESURFER_HOME/average/$brain_template \
+     $FREESURFER_HOME/average/$face_template \
+     orig_defaced.mgz)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  touch $touchdir/deface.touch
+endif
+
+
+#-----------             -----------#
+##----------  -talairach -----------#
+#-----------             -----------#
 if($DoTalairach) then
 talairach:
   echo "#--------------------------------------------" \
@@ -1755,28 +1786,9 @@ endif
 endif
 
 
-#-----------          -----------#
-#----------- Defacing -----------#
-#-----------          -----------#
-if($DoDeface) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# Deface `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  set cmd = (mri_deface orig.mgz \
-     $FREESURFER_HOME/average/$brain_template \
-     $FREESURFER_HOME/average/$face_template \
-     orig_defaced.mgz)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  touch $touchdir/deface.touch
-endif
-
-
 #-----------                          -----------#
 #----------- Intensity Normalization1 -----------#
+##----------      -normalization      -----------#
 #-----------                          -----------#
 if($DoNormalization) then
   echo "#--------------------------------------------" \
@@ -1844,6 +1856,7 @@ endif
 
 #-----------                 -----------#
 #----------- Skull Stripping -----------#
+##----------   -skullstrip   -----------#
 #-----------                 -----------#
 if($DoSkullStrip) then
 skullstrip:
@@ -1895,7 +1908,10 @@ skullstrip:
 
     if ($#bmInVols == 1) then
       # only a single time point in base
-      set cmd = (mri_convert -at $ltaXforms[1] -rt nearest $bmInVols[1] brainmask_template.mgz )
+      set cmd = (mri_convert \
+        -at $ltaXforms[1] \
+        -rt nearest \
+        $bmInVols[1] brainmask_template.mgz )
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -2194,12 +2210,13 @@ endif
 
 
 #-----------             -------------#
-#----------- AUTORECON 2 -------------#
+##---------- AUTORECON 2 -------------#
 #-----------             -------------#
 
 
 #-----------                         -----------#
 #----------- Nu Intensity Correction -----------#
+##----------     -nuintensitycor     -----------#
 #-----------                         -----------#
 if($DoNuIntensityCor) then
   echo "#--------------------------------------------" \
@@ -2261,6 +2278,7 @@ endif
 
 #--------------                   ---------------#
 #-------------- GCA Registration  ---------------#
+##-------------      -gcareg      ---------------#
 #--------------                   ---------------#
 if($DoGCAReg) then
   echo "#-------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -2297,6 +2315,7 @@ endif
 
 #------------                         --------------#
 #------------ Canonical Normalization --------------#
+##-----------         -canorm         --------------#
 #------------                         --------------#
 if($DoCANormalize) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -2346,6 +2365,7 @@ endif # DoCANormalize
 
 #------------                        --------------#
 #------------ Canonical Registration --------------#
+##-----------        -careg          --------------#
 #------------                        --------------#
 if($DoCAReg) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -2390,6 +2410,7 @@ endif
 
 #------------                                   --------------#
 #------------ Inverse of Canonical Registration --------------#
+##-----------              -careginv            --------------#
 #------------                                   --------------#
 if($DoCARegInv) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -2413,6 +2434,7 @@ endif
 
 #------------                                    --------------#
 #------------ Removes neck and part of the face  --------------#
+##-----------              -rmneck               --------------#
 #------------                                    --------------#
 if($DoRemoveNeck) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -2437,6 +2459,7 @@ endif
 
 #------------                                       --------------#
 #------------ Recompute lta with skull but no neck  --------------#
+##-----------              -skull-lta               --------------#
 #------------                                       --------------#
 if($DoSkullLTA) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -2457,6 +2480,7 @@ endif
 
 #--------------                      --------------#
 #-------------- SubCort Segmentation --------------#
+##-------------        -calabel      --------------#
 #--------------                      --------------#
 if($DoCALabel) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -2609,9 +2633,10 @@ if($DoASegMerge) then
 endif
 
 
-# -----------                          -----------------#
-# ----------- Intensity Normalization2 -----------------#
-# -----------                          -----------------#
+#-----------                          -----------------#
+#----------- Intensity Normalization2 -----------------#
+##----------     -normalization2      -----------------#
+#-----------                          -----------------#
 if($DoNormalization2) then
   echo "#--------------------------------------------" \
     |& tee -a $LF  |& tee -a $CF
@@ -2642,9 +2667,10 @@ if($DoNormalization2) then
 endif
 
 
-# --------------          ---------------#
-# -------------- Mask BFS ---------------#
-# --------------          ---------------#
+#--------------                        ---------------#
+#-------------- Create BrainFinalSurfs ---------------#
+##-------------         -maskbfs       ---------------#
+#--------------                        ---------------#
 if($DoMaskBFS) then
   echo "#--------------------------------------------" \
     |& tee -a $LF  |& tee -a $CF
@@ -2685,6 +2711,7 @@ endif
 
 #----------------                 -------------------#
 #---------------- WM Segmentation -------------------#
+##---------------  -segmentation  -------------------#
 #----------------                 -------------------#
 if($DoSegmentation) then
   echo "#--------------------------------------------" \
@@ -2803,9 +2830,9 @@ if($DoSegmentation) then
 endif
 
 
-#----------------      -------------------#
-#---------------- Fill -------------------#
-#----------------      -------------------#
+#----------------        -------------------#
+##---------------  -fill -------------------#
+#----------------        -------------------#
 if($DoFill) then
   echo "#--------------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -2860,9 +2887,9 @@ endif
 #
 
 
-#----------------            -------------------#
-#---------------- Tessellate -------------------#
-#----------------            -------------------#
+#----------------              -------------------#
+##---------------  -tessellate -------------------#
+#----------------              -------------------#
 if($DoTessellate && ( ! $longitudinal )) then
   # no need to run hemis in parallel, as this already runs in seconds
   foreach hemi ($hemilist)
@@ -2915,9 +2942,9 @@ if($DoTessellate && ( ! $longitudinal )) then
 endif
 
 
-#----------------         -------------------#
-#---------------- Smooth1 -------------------#
-#----------------         -------------------#
+#----------------           -------------------#
+##---------------  -smooth1 -------------------#
+#----------------           -------------------#
 if($DoSmooth1 && ( ! $longitudinal )) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -2950,9 +2977,9 @@ if($DoSmooth1 && ( ! $longitudinal )) then
 endif
 
 
-#----------------          -------------------#
-#---------------- Inflate1 -------------------#
-#----------------          -------------------#
+#----------------            -------------------#
+##---------------  -inflate1 -------------------#
+#----------------            -------------------#
 if($DoInflate1 && ( ! $longitudinal )) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -2985,9 +3012,9 @@ if($DoInflate1 && ( ! $longitudinal )) then
 endif
 
 
-#----------------         -------------------#
-#---------------- QSphere -------------------#
-#----------------         -------------------#
+#----------------           -------------------#
+##---------------  -qsphere -------------------#
+#----------------           -------------------#
 if($DoQSphere && ( ! $longitudinal )) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -3022,6 +3049,7 @@ endif
 
 #----------------              -------------------#
 #---------------- Fix Topology -------------------#
+##---------------     -fix     -------------------#
 #----------------              -------------------#
 if($DoFix && ( ! $longitudinal )) then
   foreach hemi ($hemilist)
@@ -3162,6 +3190,7 @@ endif
 
 #----------------                     -------------------#
 #---------------- Make White Surfaces -------------------#
+##---------------       -white        -------------------#
 #----------------                     -------------------#
 if($DoWhiteSurfs) then
   set CMDFS = () # see earlier notes on -parallel implementation
@@ -3260,9 +3289,9 @@ if($DoWhiteSurfs) then
 endif
 
 
-#----------------         -------------------#
-#---------------- Smooth2 -------------------#
-#----------------         -------------------#
+#----------------           -------------------#
+##---------------  -smooth2 -------------------#
+#----------------           -------------------#
 if($DoSmooth2) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -3296,9 +3325,9 @@ if($DoSmooth2) then
 endif
 
 
-#----------------          -------------------#
-#---------------- Inflate2 -------------------#
-#----------------          -------------------#
+#----------------            -------------------#
+##---------------  -inflate2 -------------------#
+#----------------            -------------------#
 if($DoInflate2) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -3353,9 +3382,10 @@ if($DoInflate2) then
 endif
 
 
-# ----------                            -----------#
-# ---------- Curvature Anatomical Stats -----------#
-# ----------                            -----------#
+#----------                            -----------#
+#---------- Curvature Anatomical Stats -----------#
+##---------        -curvstats          -----------#
+#----------                            -----------#
 if($DoCurvStats) then
   foreach hemi ($hemilist)
     echo "\n#-----------------------------------------" \
@@ -3379,13 +3409,13 @@ endif
 
 
 #-----------             -------------#
-#----------- AUTORECON 3 -------------#
+##---------- AUTORECON 3 -------------#
 #-----------             -------------#
 
 
-#----------------        ----------------#
-#---------------- Sphere ----------------#
-#----------------        ----------------#
+#----------------          ----------------#
+##---------------  -sphere ----------------#
+#----------------          ----------------#
 if($DoSphere) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -3427,6 +3457,7 @@ endif
 
 #----------------                      -------------------#
 #---------------- Surface Registration -------------------#
+##---------------       -surfreg       -------------------#
 #----------------                      -------------------#
 if($DoSurfReg) then
   set CMDFS = () # see earlier notes on -parallel implementation
@@ -3469,8 +3500,94 @@ if($DoSurfReg) then
 endif
 
 
+#--------                             ---------#
+#-------- Contra Surface Registration ---------#
+##-------   -contrasurfreg            ---------#
+##-------   -contrasurfreg-subj       ---------#
+#--------                             ---------#
+
+# Registers ipsi and contra
+if($DoContraSurfReg) then
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    if($hemi == lh) then
+      set nothemi = rh;
+    else
+      set nothemi = lh;
+    endif
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Contra Surf Reg $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    $PWD |& tee -a $LF
+    set AvgTif = ${AvgCurvTifPath}/$nothemi.${AvgCurvTif}
+    set xopts = `fsr-getxopts mris_register $XOptsFile`;
+    set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere)
+    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
+    set cmd = ($cmd $xopts)
+    set cmd = ($cmd $AvgTif ../surf/$hemi.$nothemi.sphere.reg)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($DoParallel) then
+      set CMDF = mris_register_${hemi}.cmd
+      echo "$cmd" > $CMDF
+      set CMDFS = ( $CMDFS $CMDF )
+    else
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    echo $cmd > $touchdir/$hemi.sphreg.contra.touch
+  end # Loop over hemilist
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+endif
+
+# Register ipsi to contra directly (instead of thru sphere)
+# Creates lh.rh.sphere (note that there is no .reg)
+if($DoContraSurfRegWithinSubject) then
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    cd $subjdir/surf
+    $PWD |& tee -a $LF
+    if($hemi == lh) then
+      set nothemi = rh;
+    else
+      set nothemi = lh;
+    endif
+    if(! -e $nothemi.inflated.H) then
+      echo "ERROR: cannot find $nothemi.inflated.H, try running -inflate2" \
+          |& tee -a $LF
+      goto error_exit;
+    endif
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Contra Surf Reg Within Subject $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    set cmd = (mris_register -dist 0.3 -reverse -1 \
+       ./$hemi.sphere ./$nothemi.sphere ./$hemi.$nothemi.sphere)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($DoParallel) then
+      set CMDF = mris_register_${hemi}.cmd
+      echo "$cmd" > $CMDF
+      set CMDFS = ( $CMDFS $CMDF )
+    else
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    echo $cmd > $touchdir/$hemi.sphere.contra.touch
+  end # hemi
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+endif
+
+
 #----------                                         ----------------#
 #---------- Surface Registration to Average Subject ----------------#
+##---------           -surfreg-to-subject           ----------------#
 #----------                                         ----------------#
 if($#SurfRegToSubj) then
   set CMDFS = () # see earlier notes on -parallel implementation
@@ -3504,9 +3621,9 @@ if($#SurfRegToSubj) then
 endif
 
 
-#----------------                -------------------#
-#---------------- Jacobian white -------------------#
-#----------------                -------------------#
+#----------------                  -------------------#
+##---------------  -jacobian_white -------------------#
+#----------------                  -------------------#
 if($DoJacobianWhite) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -3541,6 +3658,7 @@ endif
 
 #---                                                                  ---#
 #--- Surface Registration, allow maximal distortion, produce Jacobian ---#
+##--                        -jacobian_dist0                           ---#
 #---                                                                  ---#
 if($DoJacobianDist0) then
   set CMDFS = () # see earlier notes on -parallel implementation
@@ -3578,6 +3696,7 @@ endif
 
 #---------------                          ---------------#
 #--------------- Average Curv for Display ---------------#
+##--------------         -avgcurv         ---------------#
 #---------------                          ---------------#
 if($DoAvgCurv) then
   set CMDFS = () # see earlier notes on -parallel implementation
@@ -3612,6 +3731,7 @@ endif
 
 #----------------                       -----------------#
 #---------------- Cortical Parcellation -----------------#
+##---------------       -cortparc       -----------------#
 #----------------                       -----------------#
 if($DoCortParc) then
   set CMDFS = () # see earlier notes on -parallel implementation
@@ -3655,6 +3775,7 @@ endif
 
 #----------------                    -------------------#
 #---------------- Make Pial Surfaces -------------------#
+##---------------       -pial        -------------------#
 #----------------                    -------------------#
 if($DoPialSurfs) then
   set CMDFS = () # see earlier notes on -parallel implementation
@@ -3712,6 +3833,10 @@ if($DoPialSurfs) then
   endif
 endif
 
+
+#----------------              -------------------#
+##---------------  -surfvolume -------------------#
+#----------------              -------------------#
 if($DoPialSurfs || $DoSurfVolume) then
   foreach hemi ($hemilist)
     echo "#--------------------------------------------" \
@@ -3739,76 +3864,9 @@ if($DoPialSurfs || $DoSurfVolume) then
 endif
 
 
-# ----------                                     --------------#
-# ---------- Surface Vertices Number Match Check --------------#
-# ----------                                     --------------#
-if($DoVnoMatchCheck) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Vno Match Check $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    set cmd = (vno_match_check $subjid $hemi);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = vno_match_check_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.vnomatchcheck.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
-
-# ----------          ------------#
-# ---------- Label V1 ------------#
-# ----------          ------------#
-if($DoLabelV1) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    echo "#-----------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Label V1 $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    if ( ! -e $SUBJECTS_DIR/V1_average) then
-      echo "ERROR: V1_average subject does not exist in SUBJECTS_DIR!"
-      goto error_exit;
-    endif
-    cd $subjdir/label > /dev/null
-    $PWD |& tee -a $LF
-    set cmd=(predict_v1.sh)
-    if( ! $RunIt) set cmd=($cmd -p)
-    set cmd = ($cmd -h $hemi $subjid);
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = predicit_v1_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.label_v1.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
-
 #----------------                                     ----------------#
 #---------------- Refine Pial Surfaces Using T2/FLAIR ----------------#
+##---------------     -T2pial  and  -FLAIRpial        ----------------#
 #----------------                                     ----------------#
 # note: the registration portion requires existence of both surfaces
 if($DoT2pial || $DoFLAIRpial) then
@@ -3837,9 +3895,9 @@ if($DoT2pial || $DoFLAIRpial) then
         set t2flairraw = ${SUBJECTS_DIR}/${tpNid}/mri/orig/${t2flair}raw.mgz
       endif
       if (! -e $t2flairraw) then
-          echo "ERROR: mri/orig/${t2flair}raw.mgz missing in long and cross." \
-            |& tee -a $LF
-          goto error_exit;
+        echo "ERROR: mri/orig/${t2flair}raw.mgz missing in long and cross." \
+          |& tee -a $LF
+        goto error_exit;
       endif
 
       # concatenate lta if created in cross (T2cross->T1cross->longspace)
@@ -3985,9 +4043,10 @@ endif # if correct pial w/ T2/FLAIR
 # stats and GWcontrast must run here, after T2 pial refinement
 
 
-# ----------                          -----------#
-# ---------- Surface Anatomical Stats -----------#
-# ----------                          -----------#
+#----------                          -----------#
+#---------- Surface Anatomical Stats -----------#
+##---------       -parcstats         -----------#
+#----------                          -----------#
 if($DoParcStats) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -4028,6 +4087,7 @@ endif
 
 #----------------                         -----------------#
 #---------------- Cortical Parcellation 2 -----------------#
+##---------------       -cortparc2        -----------------#
 #----------------                         -----------------#
 if($DoCortParc2) then
   set CMDFS = () # see earlier notes on -parallel implementation
@@ -4070,9 +4130,10 @@ if($DoCortParc2) then
 endif
 
 
-# ----------                            ------------#
-# ---------- Surface Anatomical Stats 2 ------------#
-# ----------                            ------------#
+#----------                            ------------#
+#---------- Surface Anatomical Stats 2 ------------#
+##---------         -parcstats2         -----------#
+#----------                            ------------#
 if($DoParcStats2) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -4109,6 +4170,7 @@ endif
 
 #----------------                         -----------------#
 #---------------- Cortical Parcellation 3 -----------------#
+##---------------       -cortparc3        -----------------#
 #----------------                         -----------------#
 if($DoCortParc3) then
   set CMDFS = () # see earlier notes on -parallel implementation
@@ -4151,9 +4213,10 @@ if($DoCortParc3) then
 endif
 
 
-# ----------                            -----------#
-# ---------- Surface Anatomical Stats 3 -----------#
-# ----------                            -----------#
+#----------                            -----------#
+#---------- Surface Anatomical Stats 3 -----------#
+##---------         -parcstats3        -----------#
+#----------                            -----------#
 if($DoParcStats3) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
@@ -4188,9 +4251,10 @@ if($DoParcStats3) then
 endif
 
 
-# ----------                             ----------#
-# ---------- WM/GM Contrast (pctsurfcon) ----------#
-# ----------                             ----------#
+#----------                ----------#
+#---------- WM/GM Contrast ----------#
+##---------  -pctsurfcon   ----------#
+#----------                ----------#
 # for longitutinal stream, skip in base (as rawavg does not exist)
 if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
   set CMDFS = () # see earlier notes on -parallel implementation
@@ -4225,6 +4289,7 @@ endif
 
 #----------------                 ------------------#
 #---------------- Cortical Ribbon ------------------#
+##---------------   -cortribbon   ------------------#
 #----------------                 ------------------#
 if($DoCortRibbonVolMask) then
   echo "#--------------------------------------------" \
@@ -4245,9 +4310,9 @@ if($DoCortRibbonVolMask) then
 endif
 
 
-# -----------------            ----------------- #
-# ----------------- AParc2ASeg ----------------- #
-# -----------------            ----------------- #
+#-----------------               ----------------- #
+##----------------  -aparc2aseg  ----------------- #
+#-----------------               ----------------- #
 if($DoAParc2ASeg) then
   echo "#-----------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -4278,9 +4343,9 @@ if($DoAParc2ASeg) then
 endif
 
 
-# -----------------           ------------------- #
-# ----------------- APas2ASeg ------------------- #
-# -----------------           ------------------- #
+#-----------------             ------------------ #
+##----------------  -apas2aseg ------------------ #
+#-----------------             ------------------ #
 if($DoAPas2ASeg) then
   echo "#-----------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -4297,7 +4362,7 @@ endif
 
 
 #--------------            --------------#
-#-------------- ASeg Stats --------------#
+##-------------  -segstats --------------#
 #--------------            --------------#
 if($DoSegStats) then
   # Stats on the automatic segmentation
@@ -4351,9 +4416,9 @@ if($DoSegStats) then
 endif
 
 
-# -----------------        ------------------#
-# ----------------- WMParc ------------------#
-# -----------------        ------------------#
+#-----------------          ------------------#
+##----------------  -wmparc ------------------#
+#-----------------          ------------------#
 if($DoWMParc) then
   echo "#-----------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -4388,246 +4453,44 @@ if($DoWMParc) then
 endif
 
 
-#--------                             ---------#
-#-------- Contra Surface Registration ---------#
-#--------                             ---------#
-
-# Registers ipsi and contra
-if($DoContraSurfReg) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    if($hemi == lh) then
-      set nothemi = rh;
-    else
-      set nothemi = lh;
-    endif
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Contra Surf Reg $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-    $PWD |& tee -a $LF
-    set AvgTif = ${AvgCurvTifPath}/$nothemi.${AvgCurvTif}
-    set xopts = `fsr-getxopts mris_register $XOptsFile`;
-    set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere)
-    if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
-    set cmd = ($cmd $xopts)
-    set cmd = ($cmd $AvgTif ../surf/$hemi.$nothemi.sphere.reg)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_register_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.sphreg.contra.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
+#--------------                    -----------------#
+##-------------  -aparc+aseg-stats -----------------#
+#--------------                    -----------------#
+# This is not something you want to do in general. The volumes
+# of cortical structures should be obtained from the aparc.stats,
+# but getting the intensity means and stddevs can be useful.
+if($DoAParcASegStats) then
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# AParcASeg Stats `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir > /dev/null
+  set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
+  set cmd = (mri_segstats)
+  set cmd = ($cmd --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
+  set cmd = ($cmd --pv mri/norm.mgz )
+  set cmd = ($cmd --excludeid 0 --ctab-default --empty)
+  set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
+  set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
+  set cmd = ($cmd --in-intensity-units MR)
+  set cmd = ($cmd --subject $subjid);
+  if ( -e mri/transforms/talairach.xfm ) then
+    set cmd = ($cmd --etiv);
+  else
+    echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
+    echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
-endif
-
-# Register ipsi to contra directly (instead of thru sphere)
-# Creates lh.rh.sphere (note that there is no .reg)
-if($DoContraSurfRegWithinSubject) then
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    cd $subjdir/surf
-    $PWD |& tee -a $LF
-    if($hemi == lh) then
-      set nothemi = rh;
-    else
-      set nothemi = lh;
-    endif
-    if(! -e $nothemi.inflated.H) then
-      echo "ERROR: cannot find $nothemi.inflated.H, try running -inflate2" \
-          |& tee -a $LF
-      goto error_exit;
-    endif
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Contra Surf Reg Within Subject $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    set cmd = (mris_register -dist 0.3 -reverse -1 \
-       ./$hemi.sphere ./$nothemi.sphere ./$hemi.$nothemi.sphere)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_register_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.sphere.contra.touch
-  end # hemi
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif
-
-
-
-# -----------------        ------------------#
-# ----------------- Qcache ------------------#
-# -----------------        ------------------#
-# Create the smoothed surfaces to fsaverage target needed by Qdec.
-if ($DoQdecCache) then
-  # check for the target subject 'fsaverage' (if using as default target)
-  # and create symlink from distribution dir if not found in subjects dir
-  if (("${target}" == "fsaverage") && ( ! -e $SUBJECTS_DIR/fsaverage)) then
-    echo "INFO: fsaverage subject does not exist in SUBJECTS_DIR" \
-      |& tee -a $LF |& tee -a $CF
-    echo "INFO: Creating symlink to fsaverage subject..." \
-      |& tee -a $LF |& tee -a $CF
-    set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage)
-    echo "\n cd $SUBJECTS_DIR; $cmd; cd - \n"|& tee -a $LF |& tee -a $CF
-    cd $SUBJECTS_DIR
-    if($RunIt && ! -e fsaverage) $fs_time $cmd |& tee -a $LF
-    cd -
-  endif
-
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    foreach measure ($measurelist)
-      echo "#--------------------------------------------" \
-          |& tee -a $LF |& tee -a $CF
-      echo "#@# Qdec Cache preproc $hemi $measure $target `date`" \
-          |& tee -a $SF |& tee -a $LF |& tee -a $CF
-
-      if ("${measuredir}" != "") then
-        cd ${measuredir}
-      else
-        cd $subjdir/surf
-      endif
-      $PWD |& tee -a $LF
-
-      set MeasFile=(${hemi}.${measure})
-      # strip .mgz from filename (does nothing if not .mgz extension):
-      set MeasFile=`basename ${MeasFile} .mgz`
-      set MeasFile=(${MeasFile}.${target})
-      set cmd=(mris_preproc \
-          --s ${subjid} \
-          --hemi ${hemi} \
-          --meas ${measure} \
-          --target ${target} \
-          --out ${MeasFile}.mgh)
-      if ("${measuredir}" != "") set cmd = ($cmd --surfdir ${measuredir})
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($DoParallel) then
-        set CMDF = mris_preproc_${hemi}_${measure}_${target}.cmd
-        echo "$cmd" > $CMDF
-        set CMDFS = ( $CMDFS $CMDF )
-      else
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-      endif
-    end # measure
-  end # hemi
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-
-  # now surf2surf
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    foreach measure ($measurelist)
-      foreach fwhm ($fwhmlist)
-        echo "#--------------------------------------------" \
-            |& tee -a $LF |& tee -a $CF
-        echo "#@# Qdec Cache surf2surf $hemi $measure fwhm$fwhm $target `date`" \
-            |& tee -a $SF |& tee -a $LF |& tee -a $CF
-        set OutFile=(${hemi}.${measure})
-        # strip .mgz from filename (does nothing if not .mgz extension):
-        set OutFile=`basename ${OutFile} .mgz`
-        set OutFile=(${OutFile}.fwhm${fwhm}.${target})
-        set cmd=(mri_surf2surf \
-            --s ${target} \
-            --hemi ${hemi} \
-            --fwhm ${fwhm} \
-            --sval ${MeasFile}.mgh \
-            --tval ${OutFile}.mgh)
-        if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
-        if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
-        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-        if($DoParallel) then
-          set CMDF = mris_surf2surf_${hemi}_${measure}_${fwhm}_${target}.cmd
-          echo "$cmd" > $CMDF
-          set CMDFS = ( $CMDFS $CMDF )
-        else
-          if($RunIt) $fs_time $cmd |& tee -a $LF
-          if($status) goto error_exit;
-        endif
-        echo $cmd > $touchdir/${hemi}.${measure}.${fwhm}.qcache.touch
-      end # fwhm
-    end # measure
-  end # hemi
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-
-  # file move
-  foreach hemi ($hemilist)
-    foreach measure ($measurelist)
-      foreach fwhm ($fwhmlist)
-        set OutFile=(${hemi}.${measure})
-        # strip .mgz from filename (does nothing if not .mgz extension):
-        set OutFile=`basename ${OutFile} .mgz`
-        set OutFile=(${OutFile}.fwhm${fwhm}.${target})
-        if($RunIt) then
-          if ("${measuredir}" != "") then
-            set cmd = (mv -v ${OutFile}.mgh $subjdir/surf)
-            echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-            $cmd |& tee -a $LF
-          endif
-        endif
-        echo $cmd > $touchdir/$hemi.$measure.$fwhm.qcache.touch
-      end # fwhm
-    end # measure
-  end # hemi
-
-  if($RunIt) rm -Rf tmp.mris_preproc.* # cleanup
-endif # DoQdecCache
-
-
-#--------                          --------#
-#-------- Local Gyrification Index --------#
-#--------                          --------#
-if ($DoLocalGyriIndex) then
-  cd $subjdir/surf
+  set cmd = ($cmd $xopts);
   $PWD |& tee -a $LF
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    echo "#--------------------------------------------" \
-        |& tee -a $LF |& tee -a $CF
-    echo "#@# Local Gyrification Index $hemi `date`" \
-        |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    set cmd=(mris_compute_lgi --i ${hemi}.pial)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($DoParallel) then
-      set CMDF = mris_compute_lgi_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-  end # hemi
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-endif # DoLocalGyriIndex
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/aparc+aseg.stats.touch
+endif
 
 
 #--------                      --------#
 #-------- Brodmann Area Labels --------#
+##-------      -balabels       --------#
 #--------                      --------#
 # Create Brodmann area labels by mapping from fsaverage,
 # then create the ?h.BA.annot file from these labels,
@@ -4801,8 +4664,46 @@ if ($DoBaLabels) then
 endif # DoBaLabels
 
 
+#----------            ------------#
+##---------  -label-V1 ------------#
+#----------            ------------#
+if($DoLabelV1) then
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Label V1 $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    if ( ! -e $SUBJECTS_DIR/V1_average) then
+      echo "ERROR: V1_average subject does not exist in SUBJECTS_DIR!"
+      goto error_exit;
+    endif
+    cd $subjdir/label > /dev/null
+    $PWD |& tee -a $LF
+    set cmd=(predict_v1.sh)
+    if( ! $RunIt) set cmd=($cmd -p)
+    set cmd = ($cmd -h $hemi $subjid);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($DoParallel) then
+      set CMDF = predicit_v1_${hemi}.cmd
+      echo "$cmd" > $CMDF
+      set CMDFS = ( $CMDFS $CMDF )
+    else
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    echo $cmd > $touchdir/$hemi.label_v1.touch
+  end # Loop over hemilist
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+endif
+
+
 #--------                          --------#
 #-------- Entorhinal Cortex Labels --------#
+##-------    -label-exvivo-ec      --------#
 #--------                          --------#
 # create entorhinal cortex labels by mapping from exvivo subjects,
 # then generate ?h.entorhinal_exvivo.stats files
@@ -4854,44 +4755,9 @@ if ($DoLabelExvivoEC) then
 endif # DoLabelExvivoEC
 
 
-#--------------                  -----------------#
-#-------------- AParc+ASeg Stats -----------------#
-#--------------                  -----------------#
-# This is not something you want to do in general. The volumes
-# of cortical structures should be obtained from the aparc.stats,
-# but getting the intensity means and stddevs can be useful.
-if($DoAParcASegStats) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# AParcASeg Stats `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir > /dev/null
-  set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
-  set cmd = (mri_segstats)
-#  if($UseCuda) set cmd = (mri_segstats_cuda)
-  set cmd = ($cmd --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
-  set cmd = ($cmd --pv mri/norm.mgz )
-  set cmd = ($cmd --excludeid 0 --ctab-default --empty)
-  set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
-  set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
-  set cmd = ($cmd --in-intensity-units MR)
-  set cmd = ($cmd --subject $subjid);
-  if ( -e mri/transforms/talairach.xfm ) then
-    set cmd = ($cmd --etiv);
-  else
-    echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
-    echo "      due to missing talairach.xfm file" |& tee -a $LF
-  endif
-  set cmd = ($cmd $xopts);
-  $PWD |& tee -a $LF
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/aparc+aseg.stats.touch
-endif
-
-
 #--------------                        -----------------#
 #-------------- Hippocampal Subfields  -----------------#
+##-------------   -hippo-subfields     -----------------#
 #--------------                        -----------------#
 if($DoGEMS) then
   set GEMSF = ($subjdir/scripts/hippo-subfields.log)
@@ -4960,8 +4826,195 @@ if($DoGEMS) then
 endif
 
 
+#--------                          --------#
+#-------- Local Gyrification Index --------#
+##-------           -lgi           --------#
+#--------                          --------#
+if ($DoLocalGyriIndex) then
+  cd $subjdir/surf
+  $PWD |& tee -a $LF
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    echo "#--------------------------------------------" \
+        |& tee -a $LF |& tee -a $CF
+    echo "#@# Local Gyrification Index $hemi `date`" \
+        |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    set cmd=(mris_compute_lgi --i ${hemi}.pial)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($DoParallel) then
+      set CMDF = mris_compute_lgi_${hemi}.cmd
+      echo "$cmd" > $CMDF
+      set CMDFS = ( $CMDFS $CMDF )
+    else
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  end # hemi
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+endif # DoLocalGyriIndex
+
+
+#-----------------          ------------------#
+##----------------  -qcache ------------------#
+#-----------------          ------------------#
+# Create the smoothed surfaces to fsaverage target needed by Qdec.
+if ($DoQdecCache) then
+  # check for the target subject 'fsaverage' (if using as default target)
+  # and create symlink from distribution dir if not found in subjects dir
+  if (("${target}" == "fsaverage") && ( ! -e $SUBJECTS_DIR/fsaverage)) then
+    echo "INFO: fsaverage subject does not exist in SUBJECTS_DIR" \
+      |& tee -a $LF |& tee -a $CF
+    echo "INFO: Creating symlink to fsaverage subject..." \
+      |& tee -a $LF |& tee -a $CF
+    set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage)
+    echo "\n cd $SUBJECTS_DIR; $cmd; cd - \n"|& tee -a $LF |& tee -a $CF
+    cd $SUBJECTS_DIR
+    if($RunIt && ! -e fsaverage) $fs_time $cmd |& tee -a $LF
+    cd -
+  endif
+
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    foreach measure ($measurelist)
+      echo "#--------------------------------------------" \
+          |& tee -a $LF |& tee -a $CF
+      echo "#@# Qdec Cache preproc $hemi $measure $target `date`" \
+          |& tee -a $SF |& tee -a $LF |& tee -a $CF
+
+      if ("${measuredir}" != "") then
+        cd ${measuredir}
+      else
+        cd $subjdir/surf
+      endif
+      $PWD |& tee -a $LF
+
+      set MeasFile=(${hemi}.${measure})
+      # strip .mgz from filename (does nothing if not .mgz extension):
+      set MeasFile=`basename ${MeasFile} .mgz`
+      set MeasFile=(${MeasFile}.${target})
+      set cmd=(mris_preproc \
+          --s ${subjid} \
+          --hemi ${hemi} \
+          --meas ${measure} \
+          --target ${target} \
+          --out ${MeasFile}.mgh)
+      if ("${measuredir}" != "") set cmd = ($cmd --surfdir ${measuredir})
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($DoParallel) then
+        set CMDF = mris_preproc_${hemi}_${measure}_${target}.cmd
+        echo "$cmd" > $CMDF
+        set CMDFS = ( $CMDFS $CMDF )
+      else
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    end # measure
+  end # hemi
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+
+  # now surf2surf
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    foreach measure ($measurelist)
+      foreach fwhm ($fwhmlist)
+        echo "#--------------------------------------------" \
+            |& tee -a $LF |& tee -a $CF
+        echo "#@# Qdec Cache surf2surf $hemi $measure fwhm$fwhm $target `date`" \
+            |& tee -a $SF |& tee -a $LF |& tee -a $CF
+        set OutFile=(${hemi}.${measure})
+        # strip .mgz from filename (does nothing if not .mgz extension):
+        set OutFile=`basename ${OutFile} .mgz`
+        set OutFile=(${OutFile}.fwhm${fwhm}.${target})
+        set cmd=(mri_surf2surf \
+            --s ${target} \
+            --hemi ${hemi} \
+            --fwhm ${fwhm} \
+            --sval ${MeasFile}.mgh \
+            --tval ${OutFile}.mgh)
+        if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
+        if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($DoParallel) then
+          set CMDF = mris_surf2surf_${hemi}_${measure}_${fwhm}_${target}.cmd
+          echo "$cmd" > $CMDF
+          set CMDFS = ( $CMDFS $CMDF )
+        else
+          if($RunIt) $fs_time $cmd |& tee -a $LF
+          if($status) goto error_exit;
+        endif
+        echo $cmd > $touchdir/${hemi}.${measure}.${fwhm}.qcache.touch
+      end # fwhm
+    end # measure
+  end # hemi
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+
+  # file move
+  foreach hemi ($hemilist)
+    foreach measure ($measurelist)
+      foreach fwhm ($fwhmlist)
+        set OutFile=(${hemi}.${measure})
+        # strip .mgz from filename (does nothing if not .mgz extension):
+        set OutFile=`basename ${OutFile} .mgz`
+        set OutFile=(${OutFile}.fwhm${fwhm}.${target})
+        if($RunIt) then
+          if ("${measuredir}" != "") then
+            set cmd = (mv -v ${OutFile}.mgh $subjdir/surf)
+            echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+            $cmd |& tee -a $LF
+          endif
+        endif
+        echo $cmd > $touchdir/$hemi.$measure.$fwhm.qcache.touch
+      end # fwhm
+    end # measure
+  end # hemi
+
+  if($RunIt) rm -Rf tmp.mris_preproc.* # cleanup
+endif # DoQdecCache
+
+
+#----------                                     --------------#
+#---------- Surface Vertices Number Match Check --------------#
+##---------             -vno-check              --------------#
+#----------                                     --------------#
+if($DoVnoMatchCheck) then
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    echo "#-----------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Vno Match Check $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+    $PWD |& tee -a $LF
+    set cmd = (vno_match_check $subjid $hemi);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($DoParallel) then
+      set CMDF = vno_match_check_${hemi}.cmd
+      echo "$cmd" > $CMDF
+      set CMDFS = ( $CMDFS $CMDF )
+    else
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    echo $cmd > $touchdir/$hemi.vnomatchcheck.touch
+  end # Loop over hemilist
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+endif
+
+
 #--------------                    ----------------#
-#--------------  END OF RECON-ALL  ----------------#
+##-------------  END OF RECON-ALL  ----------------#
 #--------------                    ----------------#
 
 echo "" |& tee -a $LF
@@ -5026,13 +5079,13 @@ endif
 
 exit 0
 
+#--------------                  ----------------#
+##-------------  EXIT RECON-ALL  ----------------#
+#--------------                  ----------------#
 
-#############------------------------------------#######################
-##################>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<<#######################
-#############------------------------------------#######################
-
-############--------------##################
+#-------------------------------------------------#
 error_exit:
+#-------------------------------------------------#
   uname -a | tee -a $LF | tee -a $SF
   echo "" |& tee -a $LF |& tee -a $SF
   echo "recon-all -s $subjid exited with ERRORS at `date`" \
@@ -5067,8 +5120,9 @@ error_exit:
   exit 1;
 endif
 
-############--------------##################
+#-------------------------------------------------#
 parse_args:
+#-------------------------------------------------#
 set cmdline = ($argv);
 while( $#argv != 0 )
 
@@ -6219,7 +6273,6 @@ while( $#argv != 0 )
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
       set DoWMParc         = 1;
-      set DoCurvStats      = 1;
       set DoBaLabels       = 1;
       set DoLabelExvivoEC  = 1;
       breaksw
@@ -6734,22 +6787,25 @@ while( $#argv != 0 )
   endsw
 end
 
+#-------------------------------------------------#
 goto parse_args_return;
-############--------------##################
-############--------------##################
+#-------------------------------------------------#
+
+#-------------------------------------------------#
 arg1err:
+#-------------------------------------------------#
   echo "ERROR: flag $flag requires one argument"
   exit 1
-############--------------##################
-############--------------##################
+
+#-------------------------------------------------#
 arg3err:
+#-------------------------------------------------#
   echo "ERROR: flag $flag requires three arguments"
   exit 1
-############--------------##################
 
-
-############--------------##################
+#-------------------------------------------------#
 check_params:
+#-------------------------------------------------#
   if($DoT2pial && $DoFLAIRpial) then
     echo "Cannot specify both T2 and FLAIR for pial correction."
     goto error_exit;
@@ -7145,12 +7201,19 @@ check_params:
     endif
   endif
 
+  if($DoParallel == 1 && $#hemilist == 1) then
+    echo "ERROR: cannot use -parallel with a single hemi"
+    exit(1);
+  endif
+
+#-------------------------------------------------#
 goto check_params_return;
-############--------------##################
+#-------------------------------------------------#
 
 
-############--------------##################
+#-------------------------------------------------#
 usage_exit:
+#-------------------------------------------------#
   echo ""
   echo "USAGE: $ProgName"
   echo ""
