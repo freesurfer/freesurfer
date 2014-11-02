@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/07/14 18:44:48 $
- *    $Revision: 1.6 $
+ *    $Author: mreuter $
+ *    $Date: 2014/11/02 03:01:37 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,7 +48,7 @@ extern "C"
 using namespace std;
 
 namespace intypes {
-enum InputType { UNKNOWN, LTA, REG, FSL, MNI, NIFTYREG };
+enum InputType { UNKNOWN, LTA, REG, FSL, MNI, NIFTYREG, ITK };
 }
 
 struct Parameters
@@ -58,6 +58,7 @@ struct Parameters
   string fslout;
   string mniout;
   string regout;
+  string itkout;
   string src;
   string trg;
   bool   invert;
@@ -68,13 +69,13 @@ struct Parameters
 };
 
 static struct Parameters P =
-  { "", "", "", "", "" ,"" ,"" , false , LINEAR_RAS_TO_RAS, false,"", intypes::UNKNOWN};
+{ "", "", "", "", "" ,"" ,"" ,"" , false , LINEAR_RAS_TO_RAS, false,"", intypes::UNKNOWN};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.6 2014/07/14 18:44:48 greve Exp $";
+    "$Id: lta_convert.cpp,v 1.7 2014/11/02 03:01:37 mreuter Exp $";
 char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
@@ -292,6 +293,119 @@ LTA * readNIFTYREG(const string& xfname, const string& sname, const string& tnam
   return lta;
 }
 
+LTA * readITK(const string& xfname, const string& sname, const string& tname)
+// ITK (and Ants) uses Left Posterior Superior coordinates
+// and stores inverse (map from ref to mov).
+// For some Ants output, call ConvertTransformFile (in Ants) to first
+// convert to ITK fromat (e.g. from binary .mat). 
+// this functionality needs to be moved to LTA (transform) in the future
+{
+
+//#Insight Transform File V1.0
+//#Transform 0
+//Transform: AffineTransform_double_3_3
+//Parameters: 1.0899336847275212 -0.039727996262830335 0.03140529159493116 0.03896690477110579 1.0495356962743074 0.24617959701005143 -0.01840643428186128 -0.27758480101278094 1.059354268159089 -0.9666057029459277 -1.6941071744720673 7.8829725769991175
+//FixedParameters: 0 0 0
+
+  LTA* lta = LTAalloc(1, NULL) ;
+  LINEAR_TRANSFORM * lt = &lta->xforms[0] ;
+  lt->sigma = 1.0f ;
+  lt->x0 = lt->y0 = lt->z0 = 0 ;
+  lta->type = LINEAR_RAS_TO_RAS;
+  
+  std::ifstream transfile (xfname.c_str());
+  MATRIX* m_L = MatrixAlloc(4,4,MATRIX_REAL);
+  std::string str;
+  if(transfile.is_open())
+  {
+    float v1,v2,v3;
+    while(!transfile.eof())
+    {
+      while (transfile.peek() == '#')
+        getline (transfile,str);
+      transfile >> str;
+      if (str == "Transform:")
+      {
+        getline(transfile,str);
+        std::cout << str <<std::endl;
+      }
+      else if (str == "Parameters:")
+      { 
+        // convert to ras2ras (from lps2lps)
+        // read and mult with diag(-1,-1,0,0) from left and right:
+        transfile >> v1 >> v2 >> v3;
+        *MATRIX_RELT(m_L,1,1) = v1;
+        *MATRIX_RELT(m_L,1,2) = v2;
+        *MATRIX_RELT(m_L,1,3) = -v3;
+        transfile >> v1 >> v2 >> v3;
+        *MATRIX_RELT(m_L,2,1) = v1;
+        *MATRIX_RELT(m_L,2,2) = v2;
+        *MATRIX_RELT(m_L,2,3) = -v3;
+        transfile >> v1 >> v2 >> v3;
+        *MATRIX_RELT(m_L,3,1) = -v1;
+        *MATRIX_RELT(m_L,3,2) = -v2;
+        *MATRIX_RELT(m_L,3,3) = v3;
+        
+        transfile >> v1 >> v2 >> v3;
+        *MATRIX_RELT(m_L,1,4) = -v1;
+        *MATRIX_RELT(m_L,2,4) = -v2;
+        *MATRIX_RELT(m_L,3,4) = v3;
+        *MATRIX_RELT(m_L,4,1) = 0.0;
+        *MATRIX_RELT(m_L,4,2) = 0.0;
+        *MATRIX_RELT(m_L,4,3) = 0.0;
+        *MATRIX_RELT(m_L,4,4) = 1.0;   
+               
+      }
+      else if (str == "FixedParameters:")
+      {
+        transfile >> v1>> v2 >> v3; // center of rotation ???
+        if (v1 != 0 || v2!=0 || v3!=0)
+        {
+          std::cout << " fixedParameters not equal to zero (not implementd): " << v1 << " " << v2 << " " << v3 << std::endl;
+          exit(1);
+        }
+      }
+      else
+      {
+         std::cout << str << " unknown!" <<std::endl;
+         exit(1);
+      }
+    }
+    transfile.close();
+  }
+  else
+  {
+    cerr << "readITK Error opening " << xfname << endl;
+    exit(1);
+  }
+  
+  lt->m_L = MatrixInverse( m_L, lt->m_L );
+  MatrixFree(&m_L);
+  
+  // read src and target mri header
+  MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
+  if (src == NULL)
+  {
+    cerr << "ERROR readITK: cannot read src MRI" << sname << endl;
+    exit(1);
+  }
+  MRI * trg = MRIreadHeader(tname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
+  if (trg == NULL)
+  {
+    cerr << "ERROR readITK: cannot read trg MRI" << tname << endl;
+    exit(1);
+  }
+  
+  getVolGeom(src, &lta->xforms[0].src);
+  getVolGeom(trg, &lta->xforms[0].dst);
+  
+  MRIfree(&src);
+  MRIfree(&trg);
+
+  return lta;
+}
+
+
 void writeFSL(const string& fname, const LTA * lta)
 {
   // shallow copy
@@ -354,6 +468,56 @@ void writeREG(const string& fname, const LTA * lta)
   return;
 }
 
+void writeITK(const string& fname, const LTA * lta)
+{
+  // shallow copy
+  LTA * ltatmp = shallowCopyLTA(lta);
+  if (ltatmp->type != LINEAR_RAS_TO_RAS)
+    LTAchangeType(ltatmp, LINEAR_RAS_TO_RAS);
+
+  // invert
+  MATRIX* m_L = MatrixAlloc(4,4,MATRIX_REAL);
+  m_L = MatrixInverse( ltatmp->xforms[0].m_L , m_L);
+  
+  // convert to left-post-superior
+  // multiply from left and right with diag(-1,-1,1,1)
+  *MATRIX_RELT(m_L,1,3) = - *MATRIX_RELT(m_L,1,3);
+  *MATRIX_RELT(m_L,2,3) = - *MATRIX_RELT(m_L,2,3);
+  *MATRIX_RELT(m_L,3,1) = - *MATRIX_RELT(m_L,3,1);
+  *MATRIX_RELT(m_L,3,2) = - *MATRIX_RELT(m_L,3,2);
+  *MATRIX_RELT(m_L,1,4) = - *MATRIX_RELT(m_L,1,4);
+  *MATRIX_RELT(m_L,2,4) = - *MATRIX_RELT(m_L,2,4);
+  
+  LTAfree(&ltatmp);
+
+  std::ofstream transfile (fname.c_str());
+  if(transfile.is_open())
+  {
+    transfile.precision(17);
+    transfile << "#Insight Transform File V1.0" << std::endl;
+    transfile << "#Transform 0" << std::endl;
+    transfile << "Transform: AffineTransform_double_3_3" << std::endl;
+    transfile << "Parameters:";
+    for (int row = 1; row < 4; row++)
+      for (int col = 1; col < 4; col++)
+        transfile << " " << *MATRIX_RELT(m_L,row,col);
+    for (int row = 1; row < 4 ; row++)
+      transfile << " " << *MATRIX_RELT(m_L,row,4);
+    transfile << std::endl;
+    transfile << "FixedParameters: 0 0 0" << std::endl;
+    transfile.close();
+  }
+  else
+  { 
+    cerr << "writeITK Error opening " << fname << endl;
+    exit(1);
+  }
+  MatrixFree(&m_L);
+
+
+  return;
+
+}
 
 int main(int argc, char *argv[])
 {
@@ -390,6 +554,8 @@ int main(int argc, char *argv[])
     lta = readREG(P.transin.c_str(),P.src,P.trg);
   else if (P.intype==intypes::NIFTYREG)
     lta = readNIFTYREG(P.transin.c_str(),P.src,P.trg);
+  else if (P.intype==intypes::ITK)
+    lta = readITK(P.transin.c_str(),P.src,P.trg);
   if (!lta)
   {
     ErrorExit(ERROR_BADFILE, "%s: can't read input file %s",Progname, P.transin.c_str());
@@ -458,6 +624,10 @@ int main(int argc, char *argv[])
   if (P.regout!="")
   {
     writeREG(P.regout,lta);
+  }
+  if (P.itkout!="")
+  {
+    writeITK(P.itkout,lta);
   }
   
   LTAfree(&lta);
@@ -540,6 +710,13 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1;
     cout << "--inreg: " << P.transin << " input Nifty Reg transform." << endl;
   }
+  else if (!strcmp(option, "INITK"))
+  {
+    P.transin = string(argv[1]);
+    P.intype = intypes::ITK;
+    nargs = 1;
+    cout << "--inreg: " << P.transin << " input ITK txt transform." << endl;
+  }
   else if (!strcmp(option, "OUTLTA") )
   {
     P.ltaout = string(argv[1]);
@@ -563,6 +740,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.regout = string(argv[1]);
     nargs = 1;
     cout << "--outreg: " << P.regout << " output reg.dat matrix." << endl;
+  }
+  else if (!strcmp(option, "OUTITK") )
+  {
+    P.itkout = string(argv[1]);
+    nargs = 1;
+    cout << "--outitk: " << P.itkout << " output ITK txt matrix." << endl;
   }
   else if (!strcmp(option, "SRC") )
   {
