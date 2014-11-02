@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/10/23 17:17:14 $
- *    $Revision: 1.762 $
+ *    $Date: 2014/11/02 19:37:16 $
+ *    $Revision: 1.763 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.762 2014/10/23 17:17:14 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.763 2014/11/02 19:37:16 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -3984,7 +3984,7 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
 #if 1
 #ifdef HAVE_OPENMP
 // have to  make v1 and v2 arrays and use tids for this to work
-//#pragma omp parallel for
+#pragma omp parallel for
 #endif
 #endif
   for (vno=0; vno<mris->nvertices; vno++)
@@ -85037,3 +85037,4 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   return(NO_ERROR) ;
 }
 #endif
+
