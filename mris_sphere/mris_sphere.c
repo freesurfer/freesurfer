@@ -10,10 +10,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.57 $
+ *    $Date: 2014/11/03 18:03:50 $
+ *    $Revision: 1.58 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -30,6 +30,9 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#ifdef HAVE_OPENMP // mrisurf.c has numerous parallelized functions
+#include <omp.h>
+#endif
 
 #include "macros.h"
 #include "error.h"
@@ -48,7 +51,7 @@
 #endif // FS_CUDA
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.57 2011/03/02 00:04:34 nicks Exp $";
+  "$Id: mris_sphere.c,v 1.58 2014/11/03 18:03:50 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -122,13 +125,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.57 2011/03/02 00:04:34 nicks Exp $",
+   "$Id: mris_sphere.c,v 1.58 2014/11/03 18:03:50 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.57 2011/03/02 00:04:34 nicks Exp $",
+           "$Id: mris_sphere.c,v 1.58 2014/11/03 18:03:50 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -197,6 +200,16 @@ main(int argc, char *argv[])
   printf("%s\n",vcid);
   printf("  %s\n",MRISurfSrcVersion());
   fflush(stdout);
+
+#ifdef HAVE_OPENMP
+  int n_omp_threads = 1;
+#pragma omp parallel
+  { 
+    n_omp_threads = omp_get_num_threads(); 
+  }
+  printf("\n== Number of threads available to %s for OpenMP = %d == \n",
+         Progname, n_omp_threads);
+#endif
 
   if (parms.base_name[0] == 0)
   {
