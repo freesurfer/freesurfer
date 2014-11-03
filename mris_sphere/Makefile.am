@@ -45,12 +45,20 @@ mris_sphere_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 
 endif
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mris_sphere/testdata.tar.gz"; then \
+		cp -v $(top_srcdir)/mris_sphere/testdata.tar.gz \
+					$(top_builddir)/mris_sphere/; fi;
+
+TESTS=test_mris_sphere $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
-	rm -f $(BUILT_SOURCES) 
+	rm -f $(BUILT_SOURCES)
 
-EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES) make_mris_sphere_movie.tcl
+EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES) \
+	make_mris_sphere_movie.tcl test_mris_sphere
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
