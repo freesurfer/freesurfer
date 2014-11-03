@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/11/03 18:59:33 $
-#    $Revision: 1.1 $
+#    $Date: 2014/11/03 21:35:07 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_em_register,v 1.1 2014/11/03 18:59:33 nicks Exp $'
+set VERSION='$Id: test_mri_em_register,v 1.2 2014/11/03 21:35:07 nicks Exp $'
 
 umask 002
 
@@ -40,38 +40,40 @@ gunzip -c testdata.tar.gz | tar xvf -
 
 cd testdata
 
+set log = (../test_mri_em_register.log)
+if (-e $log) rm -f $log 
+
 setenv OMP_NUM_THREADS 1
-set cmd1=(../mri_em_register \
+set cmd=(../mri_em_register \
     -uns 3 \
     -mask brainmask.mgz \
     nu.mgz \
     ../../distribution/average/RB_all_2014-08-21.gca \
     talairach.1cpu.lta)
-echo ""
-echo $cmd1
-echo $cmd1 > CMDF1
-
-setenv OMP_NUM_THREADS 8
-set cmd2=(../mri_em_register \
-    -uns 3 \
-    -mask brainmask.mgz \
-    nu.mgz \
-    ../../distribution/average/RB_all_2014-08-21.gca \
-    talairach.8cpu.lta)
-echo ""
-echo $cmd2
-echo $cmd2 >> CMDF2
-
-# run both commands in parallel
-../../scripts/reconbatchjobs test.log CMDF1 CMDF2
+echo "\n\n $cmd \n\n" |& tee -a $log
+$cmd |& tee -a $log
 if ($status != 0) then
   echo "mri_em_register FAILED"
   exit 1
 endif
 
-echo ""
-echo ""
-echo ""
+setenv OMP_NUM_THREADS 8
+set cmd=(../mri_em_register \
+    -uns 3 \
+    -mask brainmask.mgz \
+    nu.mgz \
+    ../../distribution/average/RB_all_2014-08-21.gca \
+    talairach.8cpu.lta)
+echo "\n\n $cmd \n\n" |& tee -a $log
+$cmd |& tee -a $log
+if ($status != 0) then
+  echo "mri_em_register FAILED"
+  exit 1
+endif
+
+echo "" |& tee -a $log
+echo "" |& tee -a $log
+echo "" |& tee -a $log
 
 #
 # compare expected results with actual (produced) results
@@ -80,12 +82,10 @@ echo ""
 set TEST_FILES=( talairach.1cpu.lta talairach.8cpu.lta )
 foreach tstf ($TEST_FILES)
   set cmd=(../../mri_robust_register/lta_diff talairach.lta $tstf);
-  echo ""
-  echo $cmd
-  $cmd
-  set diff_status=$status
-  if ($diff_status != 0) then
-    echo "$cmd FAILED (exit status=$diff_status)"
+  echo "\n\n $cmd \n\n" |& tee -a $log
+  set result = (`$cmd |& tee -a $log`)
+  if ($result != 0) then
+    echo "$cmd FAILED (RMS=$result)" |& tee -a $log
     exit 1
   endif
 end
@@ -96,6 +96,6 @@ end
 cd ..
 rm -Rf testdata
 
-echo ""
-echo "test_mri_em_register passed all tests"
+echo "" |& tee -a $log
+echo "test_mri_em_register passed all tests" |& tee -a $log
 exit 0
