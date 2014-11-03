@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/08/27 19:40:10 $
- *    $Revision: 1.27 $
+ *    $Date: 2014/11/03 17:25:21 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,7 +92,9 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bContourUpsample(false),
   m_dVectorScale(1.0),
   m_bUsePercentile(false),
-  m_bAutoAdjustFrameLevel(false)
+  m_bAutoAdjustFrameLevel(false),
+  m_bNormalizeVector(true),
+  m_dVectorDisplayScale(1.0)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -729,6 +731,18 @@ void LayerPropertyMRI::SetDisplayVector( bool b )
   emit DisplayModeChanged();
 }
 
+void LayerPropertyMRI::SetNormalizeVector(bool b)
+{
+  m_bNormalizeVector = b;
+  emit DisplayModeChanged();
+}
+
+void LayerPropertyMRI::SetVectorDisplayScale(double val)
+{
+  m_dVectorDisplayScale = val;
+  emit DisplayModeChanged();
+}
+
 void LayerPropertyMRI::SetVectorInversion( int nInversion )
 {
   if ( m_bDisplayVector )
@@ -1300,6 +1314,10 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
 
   // Init our color scale values.
   UpdateMinMaxValues();
+
+  double dscale = qMax(fabs(mMaxVoxelValue), fabs(mMinVoxelValue));
+  if (dscale > 0)
+    m_dVectorDisplayScale = 1/dscale;
 
   mColorMapTable->ClampingOn();
 

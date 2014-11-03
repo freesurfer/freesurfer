@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/09 16:57:44 $
- *    $Revision: 1.95 $
+ *    $Date: 2014/11/03 17:25:22 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                         << ui->lineEditWindow
                         << ui->lineEditLevel
                         << ui->sliderWindow
-                        << ui->sliderLevel;
+                        << ui->sliderLevel
+                        << ui->checkBoxPercentile;
 
   m_widgetlistHeatScale << ui->sliderMid
                         << ui->sliderOffset
@@ -118,7 +119,10 @@ PanelVolume::PanelVolume(QWidget *parent) :
   m_widgetlistVector << ui->labelInversion
                      << ui->comboBoxInversion
                      << ui->labelRenderObject
-                     << ui->comboBoxRenderObject;
+                     << ui->comboBoxRenderObject
+                     << ui->checkBoxNormalizeVectors
+                     << ui->lineEditVectorScale
+                     << ui->labelVectorScale;
                  //    << ui->labelMask
                  //    << ui->comboBoxMask;
 
@@ -226,6 +230,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->sliderFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrame(int)) );
   connect( ui->spinBoxFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrame(int)) );
   connect( ui->checkBoxDisplayVector, SIGNAL(toggled(bool)), p, SLOT(SetDisplayVector(bool)) );
+  connect( ui->checkBoxNormalizeVectors, SIGNAL(toggled(bool)), p, SLOT(SetNormalizeVector(bool)));
   connect( ui->checkBoxDisplayTensor, SIGNAL(toggled(bool)), p, SLOT(SetDisplayTensor(bool)) );
   connect( ui->comboBoxRenderObject, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorRepresentation(int)) );
   connect( ui->comboBoxInversion, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorInversion(int)) );
@@ -461,6 +466,11 @@ void PanelVolume::DoUpdateWidgets()
       ui->comboBoxRenderObject->addItem( "3D Bar (slow!)" );
       ui->comboBoxRenderObject->setCurrentIndex( layer->GetProperty()->GetVectorRepresentation() );
       ui->comboBoxInversion->setCurrentIndex( layer->GetProperty()->GetVectorInversion() );
+      if (layer->GetProperty()->GetNormalizeVector())
+      {
+         ui->lineEditVectorScale->setVisible(false);
+         ui->labelVectorScale->setVisible(false);
+      }
     }
     else if ( layer->GetProperty()->GetDisplayTensor() )
     {
@@ -469,6 +479,8 @@ void PanelVolume::DoUpdateWidgets()
       ui->comboBoxRenderObject->setCurrentIndex( layer->GetProperty()->GetTensorRepresentation() );
       ui->comboBoxInversion->setCurrentIndex( layer->GetProperty()->GetTensorInversion() );
     }
+    ui->checkBoxNormalizeVectors->setChecked(layer->GetProperty()->GetNormalizeVector());
+    ChangeLineEditNumber( ui->lineEditVectorScale, layer->GetProperty()->GetVectorDisplayScale());
 
     ui->checkBoxShowInfo->setChecked( layer->GetProperty()->GetShowInfo() );
     ui->checkBoxProjectionMap->setChecked( layer->GetProperty()->GetShowProjectionMap());
@@ -559,6 +571,14 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxDisplayTensor->setChecked( layer && layer->GetProperty()->GetDisplayTensor() );
     ShowWidgets( m_widgetlistVector, ui->checkBoxDisplayVector->isChecked() || ui->checkBoxDisplayTensor->isChecked() );
     ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() );
+    if ( layer && layer->GetProperty()->GetDisplayVector() )
+    {
+      if (layer->GetProperty()->GetNormalizeVector())
+      {
+         ui->lineEditVectorScale->setVisible(false);
+         ui->labelVectorScale->setVisible(false);
+      }
+    }
     ui->checkBoxShowContour->setVisible( bNormalDisplay );
     if (layer && ui->checkBoxShowContour->isChecked())
     {
@@ -1377,4 +1397,16 @@ void PanelVolume::OnLockLayer(bool b)
    {
      layer->Lock(b);
    }
+}
+
+void PanelVolume::OnLineEditVectorDisplayScale(const QString &strg)
+{
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if ( layer )
+  {
+    bool ok;
+    double val = strg.toDouble(&ok);
+    if (ok && val > 0)
+      layer->GetProperty()->SetVectorDisplayScale(val);
+  }
 }

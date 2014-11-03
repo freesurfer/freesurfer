@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/07/21 16:49:05 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/11/03 17:25:22 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,7 +70,7 @@ public:
 
   virtual void SetModified();
 
-  void GetCentroidPosition(double* pos);
+  bool GetCentroidPosition(double* pos);
 
   void GetStats(int nPlane, int *count_out, float *area_out,
                 LayerMRI *underlying_mri, double *mean_out, double *sd_out);

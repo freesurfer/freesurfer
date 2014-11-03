@@ -51,6 +51,7 @@ BUILT_SOURCES = \
   ui_DialogLoadFCD.h \
   ui_DialogSetCamera.h \
   ui_DialogThresholdVolume.h \
+  ui_DialogVolumeSegmentation.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -173,6 +174,7 @@ BUILT_SOURCES = \
   moc_LayerFCDWorkerThread.cpp \
   moc_DialogSetCamera.cpp \
   moc_DialogThresholdVolume.cpp \
+  moc_DialogVolumeSegmentation.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -488,6 +490,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogSetCamera.h \
   DialogThresholdVolume.cpp \
   DialogThresholdVolume.h \
+  DialogVolumeSegmentation.cpp \
+  DialogVolumeSegmentation.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc

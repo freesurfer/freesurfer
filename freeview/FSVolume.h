@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/09/08 16:37:29 $
- *    $Revision: 1.43 $
+ *    $Date: 2014/11/03 17:25:21 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -204,11 +204,13 @@ public:
 
   bool MapMRIToImage( bool do_not_create_image = false );
 
+  bool Segment(int min_label_index, int max_label_index, int min_num_of_voxels);
+
 Q_SIGNALS:
   void ProgressChanged( int n );
 
 public slots:
-  void UpdateMRIToImage();
+//  void UpdateMRIToImage();
 
 protected:
   bool LoadMRI( const QString& filename, const QString& reg_filename );

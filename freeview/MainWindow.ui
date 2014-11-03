@@ -1459,6 +1459,11 @@
     <string>Threshold Volume...</string>
    </property>
   </action>
+  <action name="actionVolumeSegmentation">
+   <property name="text">
+    <string>Segment Label Volume...</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -2918,6 +2923,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionVolumeSegmentation</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnSegmentVolume()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -3008,5 +3029,6 @@
   <slot>OnToggleBrainmask()</slot>
   <slot>OnViewSetCamera()</slot>
   <slot>OnThresholdVolume()</slot>
+  <slot>OnSegmentVolume()</slot>
  </slots>
 </ui>

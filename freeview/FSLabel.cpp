@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/22 18:15:07 $
- *    $Revision: 1.22 $
+ *    $Date: 2014/11/03 17:25:21 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -266,9 +266,9 @@ bool FSLabel::LabelWrite( const QString& filename )
   return err == 0;
 }
 
-void FSLabel::GetCentroidRASPosition(double* pos, FSVolume* ref_vol)
+bool FSLabel::GetCentroidRASPosition(double* pos, FSVolume* ref_vol)
 {
-  if (m_label->n_points > 0)
+  if (m_label && m_label->n_points > 0)
   {
     double x = 0, y = 0, z = 0;
     for ( int i = 0; i < m_label->n_points; i++ )
@@ -290,5 +290,8 @@ void FSLabel::GetCentroidRASPosition(double* pos, FSVolume* ref_vol)
       ref_vol->TkRegToNativeRAS( pos, pos );
     }
     ref_vol->NativeRASToRAS( pos, pos );
+    return true;
   }
+  else
+    return false;
 }

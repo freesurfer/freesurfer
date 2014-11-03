@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/09/29 16:46:15 $
- *    $Revision: 1.96 $
+ *    $Date: 2014/11/03 17:25:21 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,7 @@ extern "C"
 #include "transform.h"
 #include "utils.h"
 #include "macros.h"
+#include "mrisegment.h"
 }
 
 #define NUM_OF_HISTO_BINS 10000
@@ -217,7 +218,6 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 
   return true;
 }
-
 
 bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 {
@@ -2349,6 +2349,7 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
   }
 }
 
+/*
 void FSVolume::UpdateMRIToImage()
 {
   vtkImageData* image = m_imageData;
@@ -2405,6 +2406,7 @@ void FSVolume::UpdateMRIToImage()
 
   m_imageData->Modified();
 }
+*/
 
 vtkImageData* FSVolume::GetImageOutput()
 {
@@ -3091,4 +3093,24 @@ void FSVolume::GetFrameValueRange(int frame, double *range)
   }
   range[0] = fmin;
   range[1] = fmax;
+}
+
+bool FSVolume::Segment(int min_label_index, int max_label_index, int min_number_of_voxels)
+{
+  if (!UpdateMRIFromImage(m_imageData))
+    return false;
+
+  qDebug() << "before segmentation";
+  MRI_SEGMENTATION *mseg ;
+  mseg = MRIsegment(m_MRITemp, min_label_index, max_label_index) ;
+  MRIeraseSmallSegments(mseg, m_MRITemp, min_number_of_voxels) ;
+  MRIsegmentFree(&mseg);
+  qDebug() << "after segmentation";
+  MRI* temp = m_MRI;
+  m_MRI = m_MRITemp;
+  MapMRIToImage(true);
+  m_MRI = temp;
+  MRIfree(&m_MRITemp);
+
+  return true;
 }

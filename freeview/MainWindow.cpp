@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/09/29 16:31:31 $
- *    $Revision: 1.289 $
+ *    $Date: 2014/11/03 17:25:22 $
+ *    $Revision: 1.290 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,6 +104,7 @@
 #include "LayerPropertyFCD.h"
 #include "DialogSetCamera.h"
 #include "DialogThresholdVolume.h"
+#include "DialogVolumeSegmentation.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -193,6 +194,11 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_dlgThresholdVolume->hide();
   connect(m_layerCollections["MRI"], SIGNAL(LayerAdded(Layer*)), m_dlgThresholdVolume, SLOT(UpdateVolumes()));
   connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)), m_dlgThresholdVolume, SLOT(UpdateVolumes()));
+
+  m_dlgVolumeSegmentation = new DialogVolumeSegmentation(this);
+  m_dlgVolumeSegmentation->hide();
+  connect(m_layerCollections["MRI"], SIGNAL(LayerAdded(Layer*)), m_dlgVolumeSegmentation, SLOT(UpdateVolumes()));
+  connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)), m_dlgVolumeSegmentation, SLOT(UpdateVolumes()));
 
   m_wndQuickRef = new WindowQuickReference(this);
   m_wndQuickRef->hide();
@@ -1265,6 +1271,7 @@ void MainWindow::OnIdle()
   ui->actionToggleVoxelCoordinateDisplay->setEnabled( bHasLayer );
   ui->actionTransformVolume ->setEnabled( layerVolume );
   ui->actionThresholdVolume->setEnabled(layerVolume);
+  ui->actionVolumeSegmentation->setEnabled(layerVolume);
   ui->actionVolumeFilterConvolve->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterMean    ->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterMedian  ->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
@@ -5650,6 +5657,11 @@ void MainWindow::OnThresholdVolume()
   m_dlgThresholdVolume->show();
 }
 
+void MainWindow::OnSegmentVolume()
+{
+  m_dlgVolumeSegmentation->show();
+}
+
 void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes )
 {
   // first update ROI and waypoints before their reference volume is rotated
@@ -6519,8 +6531,8 @@ void MainWindow::OnGoToROI()
 {
   LayerROI* roi = (LayerROI*)GetActiveLayer("ROI");
   double pos[3];
-  roi->GetCentroidPosition(pos);
-  SetSlicePosition(pos);
+  if (roi->GetCentroidPosition(pos))
+    SetSlicePosition(pos);
 }
 
 void MainWindow::CommandLoadFCD(const QStringList& cmd )

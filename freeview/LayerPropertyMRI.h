@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/30 18:29:51 $
- *    $Revision: 1.15 $
+ *    $Date: 2014/11/03 17:25:22 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -327,6 +327,16 @@ public:
     return m_dVectorScale;
   }
 
+  double GetVectorDisplayScale()
+  {
+    return m_dVectorDisplayScale;
+  }
+
+  bool GetNormalizeVector()
+  {
+    return m_bNormalizeVector;
+  }
+
   bool GetUsePercentile()
   {
     return m_bUsePercentile;
@@ -350,6 +360,8 @@ public slots:
   void SetWindow( double iWindow );
   void SetLevel ( double iLevel );
   void SetDisplayVector( bool b );
+  void SetNormalizeVector( bool b);
+  void SetVectorDisplayScale(double val);
   void SetDisplayTensor( bool b );
   void SetVectorInversion( int n );
   void SetVectorRepresentation( int n );
@@ -418,7 +430,6 @@ private:
 
   bool    mbClearZero;
   double  mMinVoxelValue, mMaxVoxelValue;
-
   double  mMinVisibleValue, mMaxVisibleValue;
 
   // For grayscale drawing.
@@ -455,6 +466,9 @@ private:
   bool    m_bDisplayVector;
   int     m_nVectorInversion;
   int     m_nVectorRepresentation;
+  bool    m_bNormalizeVector;
+  double  m_dVectorDisplayScale;
+  double  m_dVectorScale;
 
   bool    m_bDisplayTensor;
   int     m_nTensorInversion;
@@ -474,7 +488,6 @@ private:
 
   bool    m_bShowProjectionMap;
 
-  double  m_dVectorScale;
 
   bool    m_bUsePercentile;
   bool    m_bAutoAdjustFrameLevel;

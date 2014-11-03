@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/08/11 17:09:44 $
- *    $Revision: 1.25 $
+ *    $Date: 2014/11/03 17:25:22 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,7 @@
 #include "LayerMRI.h"
 #include "FSLabel.h"
 #include <stdlib.h>
+#include <QDebug>
 
 LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( parent )
 {
@@ -344,10 +345,16 @@ void LayerROI::UpdateLabelData( )
   }
 }
 
-void LayerROI::GetCentroidPosition(double *pos)
+bool LayerROI::GetCentroidPosition(double *pos)
 {
-  m_label->GetCentroidRASPosition(pos, m_layerSource->GetSourceVolume());
-  m_layerSource->RASToTarget(pos, pos);
+  UpdateLabelData();
+  if (m_label->GetCentroidRASPosition(pos, m_layerSource->GetSourceVolume()))
+  {
+    m_layerSource->RASToTarget(pos, pos);
+    return true;
+  }
+  else
+    return false;
 }
 
 void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
