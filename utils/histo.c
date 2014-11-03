@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/08/24 15:52:10 $
- *    $Revision: 1.83 $
+ *    $Date: 2014/11/03 18:10:44 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -612,10 +612,8 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
   nbins = histo_src->nbins ;
   if (!histo_dst)
   {
-    histo_dst = HISTOalloc(nbins) ;
-    histo_dst->bin_size = histo_src->bin_size ;
-    histo_dst->min = histo_src->min ;
-    histo_dst->max = histo_src->max ;
+    histo_dst = HISTOcopy(histo_src, NULL) ;
+    HISTOclearCounts(histo_dst, histo_dst) ;
   }
   else
   {
@@ -2008,13 +2006,14 @@ HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile,
                        double *poffset, double *psigma)
 {
   int       peak, bin, min_bin, max_bin, zbin, n ;
-  HISTOGRAM *habs, *hcdf, *hz ;
+  HISTOGRAM *habs, *hcdf, *hz, *hs ;
   double    thresh, sigma, delta_sigma, max_sigma, predicted_val, val,
     sqrt_2pi, sse, best_sigma, best_sse, error, scale, mean ;
 
   sqrt_2pi = sqrt(2*M_PI) ;
-  peak = HISTOfindHighestPeakInRegion(h, 0, h->nbins) ;
-  mean = *poffset = h->bins[peak] ;
+  hs = HISTOsmooth(h, NULL, 2.0/h->bin_size) ;
+  peak = HISTOfindHighestPeakInRegion(hs, 0, hs->nbins) ;
+  mean = *poffset = hs->bins[peak] ;
   hz = HISTOlinearScale(h, NULL, 1.0, -mean) ;
   habs = HISTOabs(hz, NULL) ;
   hcdf = HISTOmakeCDF(hz, NULL) ;
@@ -2024,17 +2023,18 @@ HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile,
     HISTOplot(habs, "ha.plt") ;
     HISTOplot(hcdf, "hc.plt") ;
     HISTOplot(h, "h.plt") ;
+    HISTOplot(hs, "hs.plt") ;
     HISTOplot(hz, "hz.plt") ;
   }
 
-  bin = HISTOfindNextValley(h, peak) ;
+  bin = HISTOfindNextValley(hs, peak+10/hs->bin_size) ;  // real valley must not be right next to peak
   if (bin < 0)
   {
     bin = HISTOfindBinWithCount(hcdf, max_percentile) ;
     thresh = hcdf->bins[bin] ;  // threshold for computing variance
   }
   else
-    thresh = h->bins[bin]-peak ;
+    thresh = h->bins[bin]-h->bins[peak] ;
   min_bin = HISTOfindBin(hz, -thresh) ;
   max_bin = HISTOfindBin(hz, thresh) ;
   if (hz->nbins == 0)
@@ -2119,6 +2119,7 @@ HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile,
     HISTOfree(&hp) ;
   }
 
+  HISTOfree(&hs) ;
   HISTOfree(&habs) ;
   HISTOfree(&hcdf) ;
   HISTOfree(&hz) ;
