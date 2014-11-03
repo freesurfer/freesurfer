@@ -49,12 +49,19 @@ mri_em_register_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
         $(CFLAGS) $(mri_em_register_cuda_LDFLAGS) $(LDFLAGS) -o $@
 endif
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mri_em_register/testdata.tar.gz"; then \
+		cp -v $(top_srcdir)/mri_em_register/testdata.tar.gz \
+					$(top_builddir)/mri_em_register/; fi;
+
+TESTS=test_mri_em_register $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
 	rm -f $(BUILT_SOURCES)
 
-EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
+EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES) test_mri_em_register
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
