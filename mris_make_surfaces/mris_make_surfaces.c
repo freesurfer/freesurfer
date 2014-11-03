@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/09/04 12:47:49 $
- *    $Revision: 1.152 $
+ *    $Date: 2014/11/03 18:08:57 $
+ *    $Revision: 1.153 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.152 2014/09/04 12:47:49 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.153 2014/11/03 18:08:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -273,13 +273,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.152 2014/09/04 12:47:49 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.153 2014/11/03 18:08:57 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.152 2014/09/04 12:47:49 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.153 2014/11/03 18:08:57 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -3913,6 +3913,8 @@ compute_pial_target_locations(MRI_SURFACE *mris,
           continue ;
         }
 
+	if (val > 250)
+	  DiagBreak() ;
         mean += val ;
         std += val*val ;
         num_in++ ;
@@ -3953,6 +3955,11 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   if (Gdiag & DIAG_WRITE)
   {
     HISTOplot(h, "h.plt") ;
+  }
+  if (sig < 5)   // something failed in robust fit - use normal fits
+  {
+    printf("invalid robust sig %2.3f detected, using gaussian std %2.3f instead\n", sig, std) ;
+    sig = std ;
   }
   max_gray = mn+nstd_above*sig ;
   min_gray = mn-nstd_below*sig ;
