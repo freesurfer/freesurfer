@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/11/02 19:37:16 $
- *    $Revision: 1.763 $
+ *    $Date: 2014/11/03 15:41:20 $
+ *    $Revision: 1.764 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.763 2014/11/02 19:37:16 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.764 2014/11/03 15:41:20 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -3326,10 +3326,8 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
 
   if (nsize <= mris->max_nsize)
   {
-#if 0
 #ifdef HAVE_OPENMP
 #pragma omp parallel for
-#endif
 #endif
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
@@ -3355,11 +3353,9 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
   mris->max_nsize = nsize ;
   for (niter = 0 ; niter < nsize-mris->nsize ; niter++)
   {
-#if 0
     // this can't be parallelized due to the marking of neighbors
 #ifdef HAVE_OPENMP
 //#pragma omp parallel for
-#endif
 #endif
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
@@ -3480,10 +3476,8 @@ MRISsetNeighborhoodSize(MRI_SURFACE *mris, int nsize)
   }
 
   ntotal = vtotal = 0 ;
-#if 0
 #ifdef HAVE_OPENMP
 #pragma omp parallel for reduction(+:ntotal,vtotal)
-#endif
 #endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -3853,10 +3847,9 @@ MRIScomputeNormals(MRI_SURFACE *mris)
     mrisSmoothBoundaryNormals(mris,10);
   }
 #endif
-#if 1
+
 #ifdef HAVE_OPENMP
 #pragma omp parallel for
-#endif
 #endif
   for (k=0; k<mris->nfaces; k++) 
   {
@@ -3872,10 +3865,8 @@ MRIScomputeNormals(MRI_SURFACE *mris)
     }
   }
 
-#if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for reduction(+:i) schedule(static,1)
-#endif
 #endif
   for (k=0; k<mris->nvertices; k++) 
   {
@@ -3981,11 +3972,9 @@ mrisComputeVertexDistances(MRI_SURFACE *mris)
     v2[tno] = VectorAlloc(3, MATRIX_REAL) ;
   }
     
-#if 1
 #ifdef HAVE_OPENMP
 // have to  make v1 and v2 arrays and use tids for this to work
 #pragma omp parallel for
-#endif
 #endif
   for (vno=0; vno<mris->nvertices; vno++)
   {
@@ -9727,10 +9716,8 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
   if (!FZERO(parms->l_angle)||!FZERO(parms->l_area)||(!FZERO(parms->l_parea)))
   {
-#if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for reduction(+:sse_angle,sse_neg_area, sse_area)
-#endif
 #endif
     for (fno = 0 ; fno < mris->nfaces ; fno++)
     {
@@ -10683,10 +10670,8 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
   {
     UFSS = "1";
   }
-#if 1
 #ifdef HAVE_OPENMP
   UFSS = "0" ;   // MRISaverageGradientsFast can't use openmp
-#endif
 #endif
   if(strcmp(UFSS,"0"))
   {
@@ -10722,10 +10707,8 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
   else 
     for (i = 0 ; i < num_avgs ; i++)
     {
-#if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static,1)
-#endif
 #endif
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
@@ -10753,10 +10736,8 @@ int MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         num++ ;
         v->tdx = dx / num ; v->tdy = dy / num ; v->tdz = dz / num ;
       }
-#if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static,1)
-#endif
 #endif
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
@@ -11335,10 +11316,8 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
     v_n[tno] = VectorAlloc(3, MATRIX_REAL) ;       /* normal vector */
   }
 
-#if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for reduction(+:total_area) schedule(static,1)
-#endif
 #endif
   for (fno = 0 ; fno < mris->nfaces ; fno++)
   {
@@ -11442,10 +11421,8 @@ MRIScomputeTriangleProperties(MRI_SURFACE *mris)
   mris->total_area = total_area ;
 
   /* calculate the "area" of the vertices */
-#if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static,1)
-#endif
 #endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -19161,10 +19138,8 @@ MRISapplyGradient(MRI_SURFACE *mris, double dt)
   }
   else
   {
-#if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static,1)
-#endif
 #endif
     for (vno = 0 ; vno < nvertices ; vno++)
     {
@@ -22511,11 +22486,9 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     v_y[tno] = VectorAlloc(3, MATRIX_REAL) ;
     v_delta[tno] = VectorAlloc(3, MATRIX_REAL) ;
   }
-#if 1
 // need to make v_n etc. into arrays and use tids
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static,1)
-#endif
 #endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -22558,7 +22531,7 @@ mrisComputeDistanceTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #if 0
 #if 0
 #ifdef HAVE_OPENMP
-#pragma omp critical (max_delta)
+//#pragma omp critical (max_delta)
 #endif
 #endif
       {
@@ -23177,10 +23150,8 @@ mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   max_errs=1000;
 
   sse_dist = 0.0 ; 
-#if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for reduction(+:sse_dist) schedule(static,1)
-#endif
 #endif
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
@@ -23233,10 +23204,8 @@ mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       delta = dist_scale*v->dist[n] - v->dist_orig[n] ;
 
 #if 0
-#if 1
 #ifdef HAVE_OPENMP
-#pragma omp critical (max_delta) 
-#endif
+//#pragma omp critical (max_delta) 
 #endif
       {
       if (fabs(delta) > fabs(max_del))
@@ -31418,10 +31387,8 @@ MRISaverageVals(MRI_SURFACE *mris, int navgs)
   for (i = 0 ; i < navgs ; i++)
   {
 
-#if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for shared(mris, i) schedule(static,1)
-#endif
 #endif
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
@@ -31448,10 +31415,8 @@ MRISaverageVals(MRI_SURFACE *mris, int navgs)
       num++ ;  /*  account for central vertex */
       v->tdx = val / num ;
     }
-#if 1
 #ifdef HAVE_OPENMP
 #pragma omp parallel for shared(mris, i) schedule(static,1)
-#endif
 #endif
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
