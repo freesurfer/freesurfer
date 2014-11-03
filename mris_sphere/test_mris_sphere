@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/11/03 22:06:00 $
-#    $Revision: 1.1 $
+#    $Date: 2014/11/03 23:13:35 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_sphere,v 1.1 2014/11/03 22:06:00 nicks Exp $'
+set VERSION='$Id: test_mris_sphere,v 1.2 2014/11/03 23:13:35 nicks Exp $'
 
 umask 002
 
@@ -44,7 +44,7 @@ set log = (../test_mris_sphere.log)
 if (-e $log) rm -f $log
 
 setenv OMP_NUM_THREADS 1
-set cmd=(../mris_sphere rh.inflated rh.1cpu.sphere)
+set cmd=(../mris_sphere -seed 1234 rh.inflated rh.1cpu.sphere)
 echo "\n\n $cmd \n\n" |& tee -a $log
 $cmd |& tee -a $log
 if ($status != 0) then
@@ -53,7 +53,7 @@ if ($status != 0) then
 endif
 
 setenv OMP_NUM_THREADS 8
-set cmd=(../mris_sphere rh.inflated rh.8cpu.sphere)
+set cmd=(../mris_sphere -seed 1234 rh.inflated rh.8cpu.sphere)
 echo "\n\n $cmd \n\n" |& tee -a $log
 $cmd |& tee -a $log
 if ($status != 0) then
