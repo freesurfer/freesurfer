@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/10/07 15:30:42 $
- *    $Revision: 1.35 $
+ *    $Date: 2014/11/04 20:47:55 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.35 2014/10/07 15:30:42 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.36 2014/11/04 20:47:55 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.35 2014/10/07 15:30:42 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.36 2014/11/04 20:47:55 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -702,7 +702,7 @@ int main(int argc, char *argv[])
   if(err) exit(1);
   MRIfree(&mritmp);
 
-  // NVox in each seg
+  // NVox in each seg measured in PET space
   sprintf(tmpstr,"%s/seg.nvox.nii.gz",AuxDir);
   printf("Writing seg nvox to %s\n",tmpstr);
   mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, 1);
@@ -882,11 +882,6 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--no-mask_rbv_to_brain")) gtm->mask_rbv_to_brain = 0;
     else if(!strcasecmp(option, "--default-seg-merge"))
       GTMdefaultSegReplacmentList(&gtm->nReplace,&(gtm->SrcReplace[0]),&(gtm->TrgReplace[0]));
-    else if(!strcasecmp(option, "--default-seg-merge-choroid")){
-      GTMdefaultSegReplacmentList(&gtm->nReplace,&(gtm->SrcReplace[0]),&(gtm->TrgReplace[0]));
-      // Last two itmes are choroid.
-      gtm->nReplace -= 2;
-    }
 
     else if(!strcmp(option, "--replace-file")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1241,7 +1236,6 @@ static void print_usage(void) {
   printf("   --reg-identity : assume that input is in anatomical space \n");
   printf("   --no-rescale   : do not global rescale such that mean of reference region is scaleref\n");
   printf("   --scale-refval refval : scale such that mean in reference region is refval\n");
-  printf("   --default-seg-merge-choroid : default schema for merging ROIs but keeps choroid\n");
   printf("\n");
   printf("   --no-vox-frac-cor : do not use voxel fraction correction (with --psf 0 turns off PVC entirely)\n");
   printf("   --rbv             : perform RBV PVC\n");
