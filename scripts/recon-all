@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/11/01 01:55:01 $
-#    $Revision: 1.492 $
+#    $Date: 2014/11/04 02:14:24 $
+#    $Revision: 1.493 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.492 2014/11/01 01:55:01 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.493 2014/11/04 02:14:24 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -178,9 +178,12 @@ set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
-setenv OMP_NUM_THREADS 1 # -openmp <num_threads> allows specifying more threads
 set UseCPsWithCaNorm = 0 # -canorm-usecps flag allows usage of control points with ca_norm
-set DoParallel = 0; # if 1, then run with -openmp 8, and run rh/lh stages in parallel
+setenv OMP_NUM_THREADS 1 # -openmp <num_threads> allows specifying more threads
+set DoParallel = 0; # if 1, then run with -openmp 4, and run rh/lh stages in parallel
+
+set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
+set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -200,8 +203,6 @@ set DoNuIntensityCor3T = 0; # if 1, use Zheng, Chee, Zagorodnov params for 3T
 set DoAddTp = 0; # if 1, then 'fake'-add this timepoint to long subj set
 set DoAffineBase = 0; # if 1, allow affine when creating base (fix calibration)
 set UseCubic = 1; # if 1, use cubic spline when mri_convert does conform step
-set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
-set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
 
 # Hippocampal subfields:
 set DoGEMS = 0;      # if 1, will run the hippocampal subfields processing
@@ -315,6 +316,7 @@ set DoBaLabels       = 0;
 set DoLabelExvivoEC  = 0;
 # ----------- Surface and Volume -----------#
 set DoCortRibbonVolMask = 0;
+set DoRelabelHypos   = 0;
 set DoAParc2ASeg     = 0;
 set DoAPas2ASeg      = 0;
 set DoSegStats       = 0;
@@ -540,6 +542,7 @@ mri_and -all-info >> $LF
 mri_or -all-info >> $LF
 mri_fuse_segmentations -all-info >> $LF
 mri_segstats -all-info >> $LF
+mri_relabel_hypointensities -all-info >> $LF
 
 echo "#######################################" >> $LF
 echo "GCADIR $GCADIR" >> $LF
@@ -5130,15 +5133,6 @@ while( $#argv != 0 )
 
   switch($flag)
 
-    # This is a temporary flag to test how changing the way the vertex
-    # area is computed in mrisurf.c affects a recon. It is set by default!
-    case "-fixvertexarea"
-      setenv FIX_VERTEX_AREA;
-      breaksw
-    case "-nofixvertexarea"
-      unsetenv FIX_VERTEX_AREA;
-      breaksw
-
     case "-subject":
     case "-subjid":
     case "-sid":
@@ -5208,22 +5202,6 @@ while( $#argv != 0 )
       set DoConvertT2Input = 1;
       breaksw
 
-    case "-bbr-init-fsl"
-      set BBRInit = fsl;
-      breaksw
-    case "-bbr-init-spm"
-      set BBRInit = spm;
-      breaksw
-    case "-bbr-init-rr"
-      set BBRInit = rr;
-      breaksw
-    case "-bbr-init-header"
-      set BBRInit = header;
-      breaksw
-    case "-bbr-init-best"
-      set BBRInit = best;
-      breaksw
-
     case "-FLAIR"
     case "-flair"
       if( $#argv < 1) goto arg1err;
@@ -5243,6 +5221,40 @@ while( $#argv != 0 )
       popd > /dev/null
       set InputFlairVol = "$FlairInVolDir/$FlairInVolBase";
       set DoConvertFlairInput = 1;
+      breaksw
+
+    # flags -long, -no-orig-pial and -uselongbasectrlvol are all associated
+    # with longitudinal processing
+    case "-long":
+    case "-longitudinal":
+      set longitudinal = 1;
+      set NoRandomness = 1;
+      if ( $#argv < 2) goto arg1err;
+      # get the subject name to use for timepoint
+      set tpNid = $argv[1]; shift;
+      set tpNid = `basename $tpNid`; # remove trailing /
+      # get the subject to use for the base subject
+      set longbaseid = $argv[1]; shift;
+      set longbaseid = `basename $longbaseid`; # remove trailing /
+      # and create subjid to reflect its longitudinal relation to longbaseid
+      set subjid = ${tpNid}.long.${longbaseid}
+      breaksw
+
+    case "-uselongbasectrlvol":
+      set UseLongbaseCtrlVol = 1;
+      breaksw
+
+    case "-uselongbasewmedits":
+      set UseLongbaseWMedits = 1;
+      breaksw
+
+    case "-noasegfusion":
+      set UseAsegFusion = 0;
+      breaksw
+
+    case "-addtp":
+      # 'fake'-add a new timepoint
+      set DoAddTp = 1;
       breaksw
 
     case "-base-affine":
@@ -5283,20 +5295,6 @@ while( $#argv != 0 )
     case "-base-invol":
       if ( $#argv < 1) goto arg1err;
       set BaseSubjInvol = $argv[1]; shift;
-      breaksw
-
-    case "-hemi":
-      if ( $#argv < 1) goto arg1err;
-      set hemilist = $argv[1]; shift;
-      if($hemilist != lh && $hemilist != rh) then
-        echo "ERROR: hemi = $hemilist, must be either lh or rh"
-        goto error_exit;
-      endif
-      breaksw
-
-    case "-mail":
-      if ( $#argv < 1) goto arg1err;
-      set mailuser = $argv[1]; shift;
       breaksw
 
     case "-motioncor":
@@ -5351,39 +5349,6 @@ while( $#argv != 0 )
       breaksw
     case "-nodeface":
       set DoDeface = 0;
-      breaksw
-
-    case "-nuintensitycor":
-    case "-nu_correct":
-      set DoNuIntensityCor = 1;
-      breaksw
-    case "-nonuintensitycor":
-      set DoNuIntensityCor = 0;
-      breaksw
-
-    case "-nuintensitycor-3T":
-    case "-nuintensitycor-3t":
-      set DoNuIntensityCor = 1;
-      set DoNuIntensityCor3T = 1;
-      breaksw
-
-    case "-3T":
-    case "-3t":
-      set UseYa3tTalAtlas = 1;
-      set DoNuIntensityCor3T = 1;
-      breaksw
-
-    case "-nuiterations":
-      if ( $#argv < 1) goto arg1err;
-      set NuIterations = $argv[1]; shift;
-      breaksw
-
-    case "-numakeuchar":
-      set DoNuMakeUchar = 1;
-      breaksw
-    case "-no-numakeuchar":
-    case "-nonumakeuchar":
-      set DoNuMakeUchar = 0;
       breaksw
 
     # note: norm3diters and normmaxgrads is applied to both runs of
@@ -5454,11 +5419,96 @@ while( $#argv != 0 )
       set DoMultiStrip = 0;
       breaksw
 
-    case "-segmentation":
-      set DoSegmentation = 1;
+    case "-watershed":
+      echo $argv[1];
+      if ( $#argv < 1 ) goto arg1err;
+      switch($argv[1])
+        case "nowatershed":
+          set WaterShed = 0; breaksw;
+        case "normal":
+          set WaterShed = 1; breaksw;
+        case "watershedonly":
+          set WaterShed = 2; breaksw;
+        case "watershedtemplate":
+          set WaterShed = 3; breaksw;
+        case "atlas":
+          set WaterShed = 4; breaksw;
+        default:
+          echo "ERROR: -watershed argument $argv[1] unrecognized."
+          echo "Valid arguments are: atlas, nowatershed, normal, watershedonly,"
+          echo "and watershedtemplate."
+          goto error_exit;
+        breaksw;
+      endsw
+      shift;
       breaksw
-    case "-nosegmentation":
-      set DoSegmentation = 0;
+    case "-wsless":
+      set WSLess = 1; breaksw
+    case "-wsmore":
+      set WSMore = 1; breaksw
+    case "-wsatlas":
+      set WSAtlas = 1; breaksw
+    case "-no-wsatlas":
+      set WSAtlas = 0; breaksw
+    case "-wsthresh":
+      if ( $#argv < 1) goto arg1err;
+      set WSPctPreFlood = $argv[1]; shift;
+      breaksw
+    case "-wsseed":
+      if ( $#argv < 3) goto arg3err;
+      set WSSeedPoint = ($argv[1] $argv[2] $argv[3]);
+      shift;shift;shift;
+      breaksw
+    case "-wsgcaatlas":
+      set WSGcaAtlas = 1; breaksw
+    case "-nowsgcaatlas":
+    case "-no-wsgcaatlas":
+      set WSGcaAtlas = 0; breaksw
+    case "-wstalxfm":
+      set WSUseTalXfm = 1; breaksw
+    case "-no-wstalxfm":
+      set WSUseTalXfm = 0; breaksw
+
+    case "-gcut":
+      set DoGcut = 1;
+      breaksw
+
+    case "-no-gcut":
+    case "-nogcut":
+      set DoGcut = 0;
+      breaksw
+
+    case "-nuintensitycor":
+    case "-nu_correct":
+      set DoNuIntensityCor = 1;
+      breaksw
+    case "-nonuintensitycor":
+      set DoNuIntensityCor = 0;
+      breaksw
+
+    case "-nuintensitycor-3T":
+    case "-nuintensitycor-3t":
+      set DoNuIntensityCor = 1;
+      set DoNuIntensityCor3T = 1;
+      breaksw
+
+    case "-3T":
+    case "-3t":
+      set UseYa3tTalAtlas = 1;
+      set DoNuIntensityCor3T = 1;
+      breaksw
+
+    case "-nuiterations":
+      if ( $#argv < 1) goto arg1err;
+      set NuIterations = $argv[1]; shift;
+      breaksw
+
+    case "-numakeuchar":
+      set DoNuMakeUchar = 1;
+      breaksw
+    case "-no-numakeuchar":
+    case "-nonumakeuchar":
+      set DoNuMakeUchar = 0;
       breaksw
 
     case "-gcareg":
@@ -5491,6 +5541,29 @@ while( $#argv != 0 )
       breaksw
     case "-nocareg":
       set DoCAReg = 0;
+      breaksw
+
+    case "-seg-wlo"
+      if( $#argv < 1) goto arg1err;
+      set WMSeg_wlo = (-wlo $argv[1]); shift;
+      breaksw
+    case "-seg-ghi"
+      if( $#argv < 1) goto arg1err;
+      set WMSeg_ghi = (-ghi $argv[1]); shift;
+      breaksw
+
+    case "-ca-align":
+      set UseCAAlign = (-align);
+      breaksw
+    case "-no-ca-align":
+      set UseCAAlign = ();
+      breaksw
+
+    case "-ca-align-after":
+      set UseCAAlignAfter = (-align-after);
+      breaksw
+    case "-no-ca-align-after":
+      set UseCAAlignAfter = ();
       breaksw
 
     case "-rmneck":
@@ -5598,6 +5671,13 @@ while( $#argv != 0 )
       set GCSDIR = $argv[1]; shift;
       breaksw
 
+    case "-segmentation":
+      set DoSegmentation = 1;
+      breaksw
+    case "-nosegmentation":
+      set DoSegmentation = 0;
+      breaksw
+
     case "-fill":
       set DoFill = 1;
       breaksw
@@ -5623,87 +5703,6 @@ while( $#argv != 0 )
       if ( $#argv < 3) goto arg3err;
       set RHSeedCRS = ($argv[1] $argv[2] $argv[3]);
       shift;shift;shift;
-      breaksw
-    case "-watershed":
-      echo $argv[1];
-      if ( $#argv < 1 ) goto arg1err;
-      switch($argv[1])
-        case "nowatershed":
-          set WaterShed = 0; breaksw;
-        case "normal":
-          set WaterShed = 1; breaksw;
-        case "watershedonly":
-          set WaterShed = 2; breaksw;
-        case "watershedtemplate":
-          set WaterShed = 3; breaksw;
-        case "atlas":
-          set WaterShed = 4; breaksw;
-        default:
-          echo "ERROR: -watershed argument $argv[1] unrecognized."
-          echo "Valid arguments are: atlas, nowatershed, normal, watershedonly,"
-          echo "and watershedtemplate."
-          goto error_exit;
-        breaksw;
-      endsw
-      shift;
-      breaksw
-    case "-wsless":
-      set WSLess = 1; breaksw
-    case "-wsmore":
-      set WSMore = 1; breaksw
-    case "-wsatlas":
-      set WSAtlas = 1; breaksw
-    case "-no-wsatlas":
-      set WSAtlas = 0; breaksw
-    case "-wsthresh":
-      if ( $#argv < 1) goto arg1err;
-      set WSPctPreFlood = $argv[1]; shift;
-      breaksw
-    case "-wsseed":
-      if ( $#argv < 3) goto arg3err;
-      set WSSeedPoint = ($argv[1] $argv[2] $argv[3]);
-      shift;shift;shift;
-      breaksw
-    case "-wsgcaatlas":
-      set WSGcaAtlas = 1; breaksw
-    case "-nowsgcaatlas":
-    case "-no-wsgcaatlas":
-      set WSGcaAtlas = 0; breaksw
-    case "-wstalxfm":
-      set WSUseTalXfm = 1; breaksw
-    case "-no-wstalxfm":
-      set WSUseTalXfm = 0; breaksw
-
-    case "-gcut":
-      set DoGcut = 1;
-      breaksw
-
-    case "-no-gcut":
-    case "-nogcut":
-      set DoGcut = 0;
-      breaksw
-
-    case "-seg-wlo"
-      if( $#argv < 1) goto arg1err;
-      set WMSeg_wlo = (-wlo $argv[1]); shift;
-      breaksw
-    case "-seg-ghi"
-      if( $#argv < 1) goto arg1err;
-      set WMSeg_ghi = (-ghi $argv[1]); shift;
-      breaksw
-
-    case "-ca-align":
-      set UseCAAlign = (-align);
-      breaksw
-    case "-no-ca-align":
-      set UseCAAlign = ();
-      breaksw
-
-    case "-ca-align-after":
-      set UseCAAlignAfter = (-align-after);
-      breaksw
-    case "-no-ca-align-after":
-      set UseCAAlignAfter = ();
       breaksw
 
     case "-tessellate":
@@ -5780,17 +5779,13 @@ while( $#argv != 0 )
       set UseNewTopoFix = 1;
       breaksw
 
-    case "-norandomness":
-      set NoRandomness = 1;
+    case "-whitesurfs":
+    case "-white":
+      set DoWhiteSurfs = 1;
       breaksw
-
-    case "-randomness":
-      set NoRandomness = 0;
-      breaksw
-
-    case "-rng-seed":
-      set NoRandomness = 1;
-      set RngSeed = $argv[1]; shift;
+    case "-nowhitesurfs":
+    case "-nowhite":
+      set DoWhiteSurfs = 0;
       breaksw
 
     case "-smooth2":
@@ -5805,13 +5800,6 @@ while( $#argv != 0 )
       breaksw
     case "-noinflate2":
       set DoInflate2 = 0;
-      breaksw
-
-    case "-cortribbon":
-      set DoCortRibbonVolMask = 1;
-      breaksw
-    case "-nocortribbon":
-      set DoCortRibbonVolMask = 0;
       breaksw
 
     case "-sphere":
@@ -5873,13 +5861,11 @@ while( $#argv != 0 )
       set DoAvgCurv = 0;
       breaksw
 
-    case "-whitesurfs":
-    case "-white":
-      set DoWhiteSurfs = 1;
+    case "-cortparc":
+      set DoCortParc = 1;
       breaksw
-    case "-nowhitesurfs":
-    case "-nowhite":
-      set DoWhiteSurfs = 0;
+    case "-nocortparc":
+      set DoCortParc = 0;
       breaksw
 
     case "-pialsurfs":
@@ -5909,19 +5895,15 @@ while( $#argv != 0 )
       set DoPialSurfs = 0;
       breaksw
 
-    case "-pctsurfcon":
-      set DoPctSurfCon = 1;
-      breaksw
-    case "-nopctsurfcon":
-    case "-no-pctsurfcon":
-      set DoPctSurfCon = 0;
-      breaksw
+    case "-surfvolume":
+      set DoSurfVolume = 1;
+      breaksw;
 
-    case "-cortparc":
-      set DoCortParc = 1;
+    case "-parcstats":
+      set DoParcStats = 1;
       breaksw
-    case "-nocortparc":
-      set DoCortParc = 0;
+    case "-noparcstats":
+      set DoParcStats = 0;
       breaksw
 
     case "-cortparc2":
@@ -5931,25 +5913,18 @@ while( $#argv != 0 )
       set DoCortParc2 = 0;
       breaksw
 
-    case "-cortparc3":
-      set DoCortParc3 = 1;
-      breaksw
-    case "-nocortparc3":
-      set DoCortParc3 = 0;
-      breaksw
-
-    case "-parcstats":
-      set DoParcStats = 1;
-      breaksw
-    case "-noparcstats":
-      set DoParcStats = 0;
-      breaksw
-
     case "-parcstats2":
       set DoParcStats2 = 1;
       breaksw
     case "-noparcstats2":
       set DoParcStats2 = 0;
+      breaksw
+
+    case "-cortparc3":
+      set DoCortParc3 = 1;
+      breaksw
+    case "-nocortparc3":
+      set DoCortParc3 = 0;
       breaksw
 
     case "-parcstats3":
@@ -5959,18 +5934,19 @@ while( $#argv != 0 )
       set DoParcStats3 = 0;
       breaksw
 
-    case "-segstats":
-      set DoSegStats = 1;
+    case "-pctsurfcon":
+      set DoPctSurfCon = 1;
       breaksw
-    case "-nosegstats":
-      set DoSegStats = 0;
+    case "-nopctsurfcon":
+    case "-no-pctsurfcon":
+      set DoPctSurfCon = 0;
       breaksw
 
-    case "-curvstats":
-      set DoCurvStats = 1;
+    case "-cortribbon":
+      set DoCortRibbonVolMask = 1;
       breaksw
-    case "-nocurvstats":
-      set DoCurvStats = 0;
+    case "-nocortribbon":
+      set DoCortRibbonVolMask = 0;
       breaksw
 
     case "-aparc2aseg":
@@ -5994,6 +5970,13 @@ while( $#argv != 0 )
       set DoAParcASegStats = 0;
       breaksw
 
+    case "-segstats":
+      set DoSegStats = 1;
+      breaksw
+    case "-nosegstats":
+      set DoSegStats = 0;
+      breaksw
+
     case "-wmparc":
       set DoWMParc = 1;
       breaksw
@@ -6001,103 +5984,55 @@ while( $#argv != 0 )
       set DoWMParc = 0;
       breaksw
 
-    case "-expert":
-      if( $#argv < 1) goto arg1err;
-      set XOptsFile = $argv[1]; shift;
-      fsr-checkxopts $XOptsFile
-      if($status) goto error_exit;
-      set XOptsFile = `getfullpath $XOptsFile`
-      breaksw
+    case "-balabels":
+    case "-ba_labels":
+    case "-ba-labels":
+    case "-label_ba":
+    case "-label_BA":
+      set DoBaLabels = 1;
+      breaksw;
 
-    case "-xopts-use"
-      set XOptsUse = 1; # Use pre-existing xopts
-      breaksw
-    case "-xopts-clean"
-      set XOptsClean = 1; # Delete pre-existing xopts
-      breaksw
-    case "-xopts-overwrite"
-      set XOptsOverwrite = 1; # Overwrite pre-existing xopts
-      breaksw
+    case "-nobalabels":
+    case "-noba_labels":
+    case "-noba-labels":
+    case "-nolabel_ba":
+    case "-nolabel_BA":
+    case "-no_ba_labels":
+    case "-no-ba-labels":
+    case "-no_label_ba":
+    case "-no_label_BA":
+      set DoBaLabels = 0;
+      breaksw;
 
-    case "-clean":
-      set DoCleanCSDF  = 1;
-      set DoCleanCW256 = 1;
-      set DoCleanTal   = 1;
-      set DoCleanLta   = 1;
-      set DoCleanCP    = 1;
-      set DoCleanTWM   = 1;
-      set DoCleanSeed  = 1;
-      set DoCleanPFH   = 1;
-      set DoCleanBM    = 1;
-      set DoCleanASeg  = 1;
-      set DoCleanWM    = 1;
-      set DoCleanBFSE  = 1;
-      set DoCleanXopts = 1;
-      set DoCleanT2    = 1;
-      set DoCleanFLAIR = 1;
-      breaksw
+    case "-label_v1":
+    case "-label_V1":
+    case "-label-v1":
+    case "-label-V1":
+      set DoLabelV1 = 1;
+      breaksw;
 
-    case "-clean-xopts":
-      set DoCleanXopts = 1;
-      breaksw
+    case "-label_exvivo_ec":
+    case "-label-exvivo-ec":
+    case "-label_exvivo_EC":
+    case "-label-exvivo-EC":
+      set DoLabelExvivoEC = 1;
+      breaksw;
 
-    case "-clean-cw256":
-      set DoCleanCW256 = 1;
-      breaksw
+    case "-nolabel_exvivo_ec":
+    case "-nolabel-exvivo-ec":
+    case "-nolabel_exvivo_EC":
+    case "-nolabel-exvivo-EC":
+    case "-no_label_exvivo_ec":
+    case "-no-label-exvivo-ec":
+    case "-no_label_exvivo_EC":
+    case "-no-label-exvivo-EC":
+      set DoLabelExvivoEC = 0;
+      breaksw;
 
-    case "-clean-cp":
-      set DoCleanCP   = 1;
-      breaksw
-
-    case "-clean-twm":
-      set DoCleanTWM  = 1;
-      breaksw
-
-    case "-clean-wm":
-      set DoCleanWM   = 1;
-      breaksw
-
-    case "-clean-cpwm":
-    case "-clean-wmcp":
-      set DoCleanWM   = 1;
-      set DoCleanCP   = 1;
-      breaksw
-
-    case "-clean-seed":
-      set DoCleanSeed   = 1;
-      breaksw
-
-    case "-clean-tal":
-      set DoCleanTal   = 1;
-      breaksw
-
-    case "-clean-lta":
-      set DoCleanLta   = 1;
-      breaksw
-
-    case "-clean-pfh":
-      set DoCleanPFH   = 1;
-      breaksw
-
-    case "-clean-bm":
-      set DoCleanBM   = 1;
-      breaksw
-
-    case "-clean-aseg":
-      set DoCleanASeg   = 1;
-      breaksw
-
-    case "-clean-bfse":
-      set DoCleanBFSE   = 1;
-      breaksw
-
-    case "-clean-T2":
-      set DoCleanT2 = 1;
-      breaksw
-
-    case "-clean-FLAIR":
-      set DoCleanFLAIR = 1;
-      breaksw
+#---------------------------------------------------#
+# Note: end of flags for recon-all stages above, 
+# below are 'autorecon' and other multi-stage flags
+#---------------------------------------------------#
 
     case "-all":
     case "-autorecon-all":
@@ -6105,9 +6040,9 @@ while( $#argv != 0 )
       set DoMotionCor      = 1;
       set DoTalairach      = 1;
       set DoTalCheck       = 1;
-      set DoNuIntensityCor = 1;
       set DoNormalization  = 1;
       set DoSkullStrip     = 1;
+      set DoNuIntensityCor = 1;
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
@@ -6123,9 +6058,10 @@ while( $#argv != 0 )
       set DoInflate1       = 1;
       set DoQSphere        = 1;
       set DoFix            = 1;
+      set DoWhiteSurfs     = 1;
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
-      set DoWhiteSurfs     = 1;
+      set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
       set DoContraSurfReg  = 0;
@@ -6133,18 +6069,17 @@ while( $#argv != 0 )
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
-      set DoPctSurfCon     = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
+      set DoPctSurfCon     = 1;
       set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
       set DoSegStats       = 1;
       set DoWMParc         = 1;
-      set DoCurvStats      = 1;
       set DoBaLabels       = 1;
       set DoLabelExvivoEC  = 1;
       breaksw
@@ -6357,6 +6292,139 @@ while( $#argv != 0 )
       set DoLabelExvivoEC  = 1;
       breaksw
 
+#-------------------------------------------------#
+# below are utility flags and special modifiers
+#-------------------------------------------------#
+
+    case "-hemi":
+      if ( $#argv < 1) goto arg1err;
+      set hemilist = $argv[1]; shift;
+      if($hemilist != lh && $hemilist != rh) then
+        echo "ERROR: hemi = $hemilist, must be either lh or rh"
+        goto error_exit;
+      endif
+      breaksw
+
+    # This is a temporary flag to test how changing the way the vertex
+    # area is computed in mrisurf.c affects a recon. It is set by default!
+    case "-fixvertexarea"
+      setenv FIX_VERTEX_AREA;
+      breaksw
+    case "-nofixvertexarea"
+      unsetenv FIX_VERTEX_AREA;
+      breaksw
+
+    case "-norandomness":
+      set NoRandomness = 1;
+      breaksw
+
+    case "-randomness":
+      set NoRandomness = 0;
+      breaksw
+
+    case "-rng-seed":
+      set NoRandomness = 1;
+      set RngSeed = $argv[1]; shift;
+      breaksw
+
+    case "-expert":
+      if( $#argv < 1) goto arg1err;
+      set XOptsFile = $argv[1]; shift;
+      fsr-checkxopts $XOptsFile
+      if($status) goto error_exit;
+      set XOptsFile = `getfullpath $XOptsFile`
+      breaksw
+
+    case "-xopts-use"
+      set XOptsUse = 1; # Use pre-existing xopts
+      breaksw
+    case "-xopts-clean"
+      set XOptsClean = 1; # Delete pre-existing xopts
+      breaksw
+    case "-xopts-overwrite"
+      set XOptsOverwrite = 1; # Overwrite pre-existing xopts
+      breaksw
+
+    case "-clean":
+      set DoCleanCSDF  = 1;
+      set DoCleanCW256 = 1;
+      set DoCleanTal   = 1;
+      set DoCleanLta   = 1;
+      set DoCleanCP    = 1;
+      set DoCleanTWM   = 1;
+      set DoCleanSeed  = 1;
+      set DoCleanPFH   = 1;
+      set DoCleanBM    = 1;
+      set DoCleanASeg  = 1;
+      set DoCleanWM    = 1;
+      set DoCleanBFSE  = 1;
+      set DoCleanXopts = 1;
+      set DoCleanT2    = 1;
+      set DoCleanFLAIR = 1;
+      breaksw
+
+    case "-clean-xopts":
+      set DoCleanXopts = 1;
+      breaksw
+
+    case "-clean-cw256":
+      set DoCleanCW256 = 1;
+      breaksw
+
+    case "-clean-cp":
+      set DoCleanCP   = 1;
+      breaksw
+
+    case "-clean-twm":
+      set DoCleanTWM  = 1;
+      breaksw
+
+    case "-clean-wm":
+      set DoCleanWM   = 1;
+      breaksw
+
+    case "-clean-cpwm":
+    case "-clean-wmcp":
+      set DoCleanWM   = 1;
+      set DoCleanCP   = 1;
+      breaksw
+
+    case "-clean-seed":
+      set DoCleanSeed   = 1;
+      breaksw
+
+    case "-clean-tal":
+      set DoCleanTal   = 1;
+      breaksw
+
+    case "-clean-lta":
+      set DoCleanLta   = 1;
+      breaksw
+
+    case "-clean-pfh":
+      set DoCleanPFH   = 1;
+      breaksw
+
+    case "-clean-bm":
+      set DoCleanBM   = 1;
+      breaksw
+
+    case "-clean-aseg":
+      set DoCleanASeg   = 1;
+      breaksw
+
+    case "-clean-bfse":
+      set DoCleanBFSE   = 1;
+      breaksw
+
+    case "-clean-T2":
+      set DoCleanT2 = 1;
+      breaksw
+
+    case "-clean-FLAIR":
+      set DoCleanFLAIR = 1;
+      breaksw
+
     case "-waitfor":
       if ( $#argv < 1) goto arg1err;
       set WaitForFile = $argv[1]; shift;
@@ -6365,6 +6433,11 @@ while( $#argv != 0 )
     case "-notify":
       if ( $#argv < 1) goto arg1err;
       set NotifyFile = $argv[1]; shift;
+      breaksw
+
+    case "-mail":
+      if ( $#argv < 1) goto arg1err;
+      set mailuser = $argv[1]; shift;
       breaksw
 
     case "-status":
@@ -6518,40 +6591,6 @@ while( $#argv != 0 )
       set DoSecondPassRenorm = 1;
       breaksw
 
-    # flags -long, -no-orig-pial and -uselongbasectrlvol are all associated
-    # with longitudinal processing
-    case "-long":
-    case "-longitudinal":
-      set longitudinal = 1;
-      set NoRandomness = 1;
-      if ( $#argv < 2) goto arg1err;
-      # get the subject name to use for timepoint
-      set tpNid = $argv[1]; shift;
-      set tpNid = `basename $tpNid`; # remove trailing /
-      # get the subject to use for the base subject
-      set longbaseid = $argv[1]; shift;
-      set longbaseid = `basename $longbaseid`; # remove trailing /
-      # and create subjid to reflect its longitudinal relation to longbaseid
-      set subjid = ${tpNid}.long.${longbaseid}
-      breaksw
-
-    case "-addtp":
-      # 'fake'-add a new timepoint
-      set DoAddTp = 1;
-      breaksw
-
-    case "-noasegfusion":
-      set UseAsegFusion = 0;
-      breaksw
-
-    case "-uselongbasectrlvol":
-      set UseLongbaseCtrlVol = 1;
-      breaksw
-
-    case "-uselongbasewmedits":
-      set UseLongbaseWMedits = 1;
-      breaksw
-
     case "-mprage":
       set IsMPRAGE = 1;
       breaksw;
@@ -6653,55 +6692,6 @@ while( $#argv != 0 )
       set DoLocalGyriIndex = 1;
       breaksw;
 
-    case "-balabels":
-    case "-ba_labels":
-    case "-ba-labels":
-    case "-label_ba":
-    case "-label_BA":
-      set DoBaLabels = 1;
-      breaksw;
-
-    case "-nobalabels":
-    case "-noba_labels":
-    case "-noba-labels":
-    case "-nolabel_ba":
-    case "-nolabel_BA":
-    case "-no_ba_labels":
-    case "-no-ba-labels":
-    case "-no_label_ba":
-    case "-no_label_BA":
-      set DoBaLabels = 0;
-      breaksw;
-
-    case "-surfvolume":
-      set DoSurfVolume = 1;
-      breaksw;
-
-    case "-label_v1":
-    case "-label_V1":
-    case "-label-v1":
-    case "-label-V1":
-      set DoLabelV1 = 1;
-      breaksw;
-
-    case "-label_exvivo_ec":
-    case "-label-exvivo-ec":
-    case "-label_exvivo_EC":
-    case "-label-exvivo-EC":
-      set DoLabelExvivoEC = 1;
-      breaksw;
-
-    case "-nolabel_exvivo_ec":
-    case "-nolabel-exvivo-ec":
-    case "-nolabel_exvivo_EC":
-    case "-nolabel-exvivo-EC":
-    case "-no_label_exvivo_ec":
-    case "-no-label-exvivo-ec":
-    case "-no_label_exvivo_EC":
-    case "-no-label-exvivo-EC":
-      set DoLabelExvivoEC = 0;
-      breaksw;
-
     case "-use-concat-lta-tal":
       set UseConcatLtaTal = 1;
       breaksw;
@@ -6777,6 +6767,22 @@ while( $#argv != 0 )
     case "-no-flairpial":
     case "-no_flairpial":
       set DoFLAIRpial = 0;
+      breaksw
+
+    case "-bbr-init-fsl"
+      set BBRInit = fsl;
+      breaksw
+    case "-bbr-init-spm"
+      set BBRInit = spm;
+      breaksw
+    case "-bbr-init-rr"
+      set BBRInit = rr;
+      breaksw
+    case "-bbr-init-header"
+      set BBRInit = header;
+      breaksw
+    case "-bbr-init-best"
+      set BBRInit = best;
       breaksw
 
     default:
