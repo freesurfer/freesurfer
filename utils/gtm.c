@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/10/01 01:54:51 $
- *    $Revision: 1.22 $
+ *    $Date: 2014/11/04 20:46:16 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -240,36 +240,28 @@ int MRIgtmSeg(GTMSEG *gtmseg)
 
 /*-----------------------------------------------------------------------------*/
 /* 
-\fn int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat)
-\brief Creates a list of segids to replace with other seg ids. This is
-mainly to merge very small segs (like temporal pole) with bigger segs
-so that the GTM does not become too ill-conditioned. All ventricular
-CSF segs are merged. CC subsegs are merged into a single label 192. It
-is assumed that ReplaceThis and WithThat are arrays that have already
+\fn int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis,int *WithThat) 
+\brief Creates a list of segids to replace with other seg ids. All
+ventricular CSF segs are merged. Various ROIs are replaced with 0 (eg,
+vessel).  CC subsegs are merged into a single label 192.  It is
+assumed that ReplaceThis and WithThat are arrays that have already
 been allocated. It is also assumed that nReplace has been initialized.
-The result is that items are added to the list.
- */
+The result is that items are added to the list. */
 int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat)
 {
   int nlist;
 
   nlist = *nReplace;
-  ReplaceThis[nlist] = 1033; WithThat[nlist] = 1030; nlist++; // temppole=stg
-  ReplaceThis[nlist] = 2033; WithThat[nlist] = 2030; nlist++; // temppole=stg
-  ReplaceThis[nlist] = 1034; WithThat[nlist] = 1030; nlist++; // transtemp=stg
-  ReplaceThis[nlist] = 2034; WithThat[nlist] = 1030; nlist++; // transtemp=stg
-  ReplaceThis[nlist] = 1001; WithThat[nlist] = 1015; nlist++; // bankssts=mtg
-  ReplaceThis[nlist] = 2001; WithThat[nlist] = 2015; nlist++; // bankssts=mtg
-  ReplaceThis[nlist] = 1032; WithThat[nlist] = 1027; nlist++; // frontpole=rmf
-  ReplaceThis[nlist] = 2032; WithThat[nlist] = 2027; nlist++; // frontpole=rmf
+  //ReplaceThis[nlist] = 1033; WithThat[nlist] = 1030; nlist++; // temppole=stg
+  //ReplaceThis[nlist] = 2033; WithThat[nlist] = 2030; nlist++; // temppole=stg
+  //ReplaceThis[nlist] = 1034; WithThat[nlist] = 1030; nlist++; // transtemp=stg
+  //ReplaceThis[nlist] = 2034; WithThat[nlist] = 1030; nlist++; // transtemp=stg
+  //ReplaceThis[nlist] = 1001; WithThat[nlist] = 1015; nlist++; // bankssts=mtg
+  //ReplaceThis[nlist] = 2001; WithThat[nlist] = 2015; nlist++; // bankssts=mtg
+  //ReplaceThis[nlist] = 1032; WithThat[nlist] = 1027; nlist++; // frontpole=rmf
+  //ReplaceThis[nlist] = 2032; WithThat[nlist] = 2027; nlist++; // frontpole=rmf
   //ReplaceThis[nlist] = 1016; WithThat[nlist] = 1006; nlist++; // parahip=entorhinal ?
   //ReplaceThis[nlist] = 2016; WithThat[nlist] = 2006; nlist++; // parahip=entorhinal ?
-
-  // There should not be any cortex unknown after MRIannot2CorticalSeg()
-  ReplaceThis[nlist] = 1000; WithThat[nlist] =    0; nlist++; // cortex unknown
-  ReplaceThis[nlist] = 2000; WithThat[nlist] =    0; nlist++; // cortex unknown
-
-  ReplaceThis[nlist] =   85; WithThat[nlist] =    0; nlist++; // optic chiasm
 
   // Merge ventricular CSF into one label
   ReplaceThis[nlist] =    4; WithThat[nlist] =   24; nlist++; // LLatVent
@@ -280,11 +272,6 @@ int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat)
   ReplaceThis[nlist] =   43; WithThat[nlist] =   24; nlist++; // RLatVent
   ReplaceThis[nlist] =   44; WithThat[nlist] =   24; nlist++; // RInfLatVent
 
-  // And these?
-  ReplaceThis[nlist] =   30; WithThat[nlist] =   24; nlist++; // LVessel ?
-  ReplaceThis[nlist] =   62; WithThat[nlist] =   24; nlist++; // RVessel ?
-  ReplaceThis[nlist] =   80; WithThat[nlist] =   24; nlist++; // non-WM-hypo ?
-
   /* Merge multiple CC subsegments into one CC */
   ReplaceThis[nlist] =  251; WithThat[nlist] =  192; nlist++; 
   ReplaceThis[nlist] =  252; WithThat[nlist] =  192; nlist++; 
@@ -292,11 +279,21 @@ int GTMdefaultSegReplacmentList(int *nReplace, int *ReplaceThis, int *WithThat)
   ReplaceThis[nlist] =  254; WithThat[nlist] =  192; nlist++; 
   ReplaceThis[nlist] =  255; WithThat[nlist] =  192; nlist++; 
 
-  // Not sure about choriod plexi. Make part of CSF?
+  // There should not be any cortex unknown after MRIannot2CorticalSeg()
+  ReplaceThis[nlist] = 1000; WithThat[nlist] =    0; nlist++; // cortex unknown
+  ReplaceThis[nlist] = 2000; WithThat[nlist] =    0; nlist++; // cortex unknown
+  ReplaceThis[nlist] =   85; WithThat[nlist] =    0; nlist++; // optic chiasm
+
+  // And these?
+  ReplaceThis[nlist] =   30; WithThat[nlist] =    0; nlist++; // LVessel ?
+  ReplaceThis[nlist] =   62; WithThat[nlist] =    0; nlist++; // RVessel ?
+  ReplaceThis[nlist] =   80; WithThat[nlist] =    0; nlist++; // non-WM-hypo ?
+
+  // Not sure about choriod plexus. Make part of CSF?
   // Note: the location as last two items makes it so that --default-seg-merge-choroid
   // in mri_gtmpvc works.
-  ReplaceThis[nlist] =   31; WithThat[nlist] =   24; nlist++; // LChoroidP ?
-  ReplaceThis[nlist] =   63; WithThat[nlist] =   24; nlist++; // RChoroidP ?
+  //ReplaceThis[nlist] =   31; WithThat[nlist] =   24; nlist++; // LChoroidP ?
+  //ReplaceThis[nlist] =   63; WithThat[nlist] =   24; nlist++; // RChoroidP ?
 
   *nReplace += nlist;
   return(0);
