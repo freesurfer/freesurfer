@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: postprocess_targz.csh,v 1.16 2013/05/22 22:04:42 nicks Exp $'
+set ID='$Id: postprocess_targz.csh,v 1.17 2014/11/04 18:19:12 nicks Exp $'
 
 set echo=1
 

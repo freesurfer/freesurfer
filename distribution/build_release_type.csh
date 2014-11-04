@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.148 2013/05/22 22:04:42 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.149 2014/11/04 18:19:12 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -33,10 +33,7 @@ set FAILURE_MAIL_LIST=(\
     rudolph@nmr.mgh.harvard.edu \
     ayendiki@nmr.mgh.harvard.edu \
     zkaufman@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
-if ("$HOSTNAME" == "zeke") then
-  set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu)
-endif
+#set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 
 setenv OSTYPE `uname -s`
 if ("$OSTYPE" == "linux") setenv OSTYPE Linux
@@ -158,6 +155,8 @@ set TIME_STAMP=`date +%Y%m%d`
 # Sanity checks
 ######################################################################
 #
+set CURRENT_TIME=`date`
+echo "Running Sanity checks: $CURRENT_TIME" >>& $OUTPUTF
 if(! -d $SCRIPT_DIR) then 
   echo "$SCRIPT_DIR doesn't exist" >>& $OUTPUTF
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED - sanity"
@@ -249,6 +248,8 @@ endif
 # make distclean
 ######################################################################
 #
+set CURRENT_TIME=`date`
+echo "Running make distclean: $CURRENT_TIME" >>& $OUTPUTF
 echo "##########################################################" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
@@ -276,6 +277,8 @@ endif
 # one in CVS) will not be used.  Also check for removed files, added
 # files, and files with conflicts, all these being a big no-no.
 # this stupid cd is to try to get Mac NFS to see CVSROOT:
+set CURRENT_TIME=`date`
+echo "Running CVS update: $CURRENT_TIME" >>& $OUTPUTF
 setenv CVSROOT /autofs/space/repo_001/dev
 if ("$HOSTNAME" == "hima") then
   setenv CVSROOT /space/repo/1/dev
@@ -406,6 +409,8 @@ rm -f $CVSUPDATEF
 # configure
 ######################################################################
 #
+set CURRENT_TIME=`date`
+echo "Running configure: $CURRENT_TIME" >>& $OUTPUTF
 echo "##########################################################" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
@@ -505,6 +510,8 @@ chmod 777 conf
 # make clean
 ######################################################################
 #
+set CURRENT_TIME=`date`
+echo "Running make clean: $CURRENT_TIME" >>& $OUTPUTF
 echo "##########################################################" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: make clean" >>& $OUTPUTF
@@ -515,6 +522,8 @@ if (-e Makefile) make clean >>& $OUTPUTF
 # make
 ######################################################################
 #
+set CURRENT_TIME=`date`
+echo "Running make: $CURRENT_TIME" >>& $OUTPUTF
 echo "##########################################################" >>& $OUTPUTF
 echo "Making $BUILD_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
@@ -565,6 +574,8 @@ endif
 # make check (run available unit tests)
 ######################################################################
 #
+set CURRENT_TIME=`date`
+echo "Running make check: $CURRENT_TIME" >>& $OUTPUTF
 if ($?SKIP_ALL_MAKE_CHECKS) goto make_check_done
 if ("$RELEASE_TYPE" != "stable-pub") then
   echo "########################################################" >>& $OUTPUTF
@@ -615,6 +626,8 @@ make_check_done:
 ######################################################################
 # (recall that configure sets $bindir to bin-new/ instead of /bin, 
 # to minimize disruption of machines using contents of /bin)
+set CURRENT_TIME=`date`
+echo "Running make install: $CURRENT_TIME" >>& $OUTPUTF
 echo "CMD: rm -Rf ${INSTALL_DIR}/bin-new" >>& $OUTPUTF
 if (-e ${INSTALL_DIR}/bin-new) rm -rf ${INSTALL_DIR}/bin-new >>& $OUTPUTF
 if ("${RELEASE_TYPE}" == "stable-pub") then
@@ -792,6 +805,8 @@ chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 # checks that the tarball works by untarring into a _build directory,
 # runs make, then make check, make install, and make uninstall.
 #goto make_distcheck_done
+set CURRENT_TIME=`date`
+echo "Running make distcheck: $CURRENT_TIME" >>& $OUTPUTF
 if (("$RELEASE_TYPE" == "stable") || \
     ("$RELEASE_TYPE" == "dev")) then
 # just run on terrier
@@ -838,6 +853,8 @@ make_distcheck_done:
 ######################################################################
 # ensure that the symlinks to the necessary packages are in place
 #
+set CURRENT_TIME=`date`
+echo "Running simlinks: $CURRENT_TIME" >>& $OUTPUTF
 symlinks:
 
   # first remove existing links
@@ -889,7 +906,9 @@ symlinks:
 # Mac uses Qt frameworks for freeview, which are included in the
 # Freeview.app bundle. So remove the qt symlink in the 
 # $FREESURFER_HOME/lib directory
+set CURRENT_TIME=`date`
 if ("$OSTYPE" == "Darwin") then
+   echo "Running fix mac libs: $CURRENT_TIME" >>& $OUTPUTF
    rm ${INSTALL_DIR}/lib/qt
 endif
 
@@ -927,6 +946,8 @@ endif
 # create tarball
 ######################################################################
 # If building stable-pub, then create a tarball
+set CURRENT_TIME=`date`
+echo "Running create tarball: $CURRENT_TIME" >>& $OUTPUTF
 if (("$RELEASE_TYPE" == "stable-pub") || \
     ("$RELEASE_TYPE" == "dev") || \
     ( -e ${BUILD_HOSTNAME_DIR}/TARBALL)) then
@@ -948,6 +969,8 @@ endif
 # build against the freesurfer enviro (NMR center only)
 ######################################################################
 #
+set CURRENT_TIME=`date`
+echo "Running copy libraries: $CURRENT_TIME" >>& $OUTPUTF
 if ("$RELEASE_TYPE" == "dev") then
   # remove existing 
   set cmd=(rm -Rf ${INSTALL_DIR}/lib/dev)

@@ -1,6 +1,11 @@
 #! /bin/tcsh -ef
-# if these are defined, then make check skips these *very* long tests:
+# if these are defined, then make check skips these long tests:
 setenv SKIP_MRI_APARC2ASEG_TEST 1
 setenv SKIP_MRIS_EXPAND_TEST 1
 setenv SKIP_MRIS_VOLMASK_TEST 1
 setenv SKIP_MRIS_ANAT_STATS_TEST 1
+setenv SKIP_MRISHASH_TEST 1
+setenv SKIP_MRI_EMREG_1CPU_TEST 1
+setenv SKIP_MRIS_SPHERE_1CPU_TEST 1
+
+# they are read by their respective test scripts
