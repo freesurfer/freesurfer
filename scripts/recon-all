@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/11/04 02:14:24 $
-#    $Revision: 1.493 $
+#    $Author: greve $
+#    $Date: 2014/11/04 23:35:22 $
+#    $Revision: 1.494 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.493 2014/11/04 02:14:24 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.494 2014/11/04 23:35:22 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3814,8 +3814,8 @@ if($DoPialSurfs) then
     endif
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
-    # -white NOWRITE: dont overwrite white, curv, area, and cortex.label files
-    set cmd = ($cmd -white NOWRITE)
+    # -nowhite : do not refit white surface (nothing wrt white gets overwritten)
+    set cmd = ($cmd -nowhite)
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -3988,8 +3988,8 @@ if($DoT2pial || $DoFLAIRpial) then
         -orig_pial wo${t2flair}.pial)
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
-    # -white NOWRITE: dont overwrite white, curv, area, and cortex.label files
-    set cmd = ($cmd -white NOWRITE)
+    # -nowhite : do not refit white surface (nothing wrt white gets overwritten)
+    set cmd = ($cmd -nowhite)
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     # if using a T2 or FLAIR to remove dura that might be confused with pial...
     if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2 \
