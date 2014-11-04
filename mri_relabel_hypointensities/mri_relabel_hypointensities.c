@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2014/10/18 21:47:11 $
- *    $Revision: 1.9 $
+ *    $Date: 2014/11/04 01:36:20 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,8 +38,10 @@
 #include "fio.h"
 #include "mrishash.h"
 #include "cma.h"
+#include "version.h"
 
-static char vcid[] = "$Id: mri_relabel_hypointensities.c,v 1.9 2014/10/18 21:47:11 nicks Exp $";
+static char vcid[] = 
+"$Id: mri_relabel_hypointensities.c,v 1.10 2014/11/04 01:36:20 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -63,6 +65,23 @@ main(int argc, char *argv[])
   int           ac, nargs, h ;
   MRI_SURFACE   *mris ;
   MRI           *mri_aseg ;
+
+  char cmdline[CMD_LINE_LEN] ;
+  make_cmd_version_string
+  (argc, argv,
+   "$Id: mri_relabel_hypointensities.c,v 1.10 2014/11/04 01:36:20 nicks Exp $",
+   "$Name:  $", cmdline);
+
+  /* rkt: check for and handle version tag */
+  nargs = handle_version_option
+          (argc, argv,
+           "$Id: mri_relabel_hypointensities.c,v 1.10 2014/11/04 01:36:20 nicks Exp $",
+           "$Name:  $");
+  if (nargs && argc - nargs == 1)
+  {
+    exit (0);
+  }
+  argc -= nargs;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
