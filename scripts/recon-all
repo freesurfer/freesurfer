@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/08/26 20:40:04 $
-#    $Revision: 1.379.2.80 $
+#    $Author: greve $
+#    $Date: 2014/11/04 23:45:13 $
+#    $Revision: 1.379.2.81 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379.2.80 2014/08/26 20:40:04 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.379.2.81 2014/11/04 23:45:13 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -65,8 +65,8 @@ set DoCleanCSDF  = 0;
 set DoCleanCW256 = 0;
 set DoCleanTal   = 0;
 set DoCleanLta   = 0;
-set DoCleanCP    = 0;
 set DoCleanTWM   = 0;
+set DoCleanCP    = 0;
 set DoCleanSeed  = 0;
 set DoCleanPFH   = 0;
 set DoCleanBM    = 0;
@@ -251,6 +251,8 @@ set BBRInit = fsl; # others are spm, header, rr, best
 # This is good for debugging.
 set RunIt = 1;
 
+set PatchDir = ();
+
 # print versions and exit
 set DoVersionsOnly = 0;
 
@@ -379,7 +381,7 @@ if(-e $bstampfile0) then
   echo "Subject Stamp: $bstamp"
   echo "Current Stamp: $bstamp0"
 endif
-
+if($#PatchDir) echo "$PatchDir" > $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
 
 if ($DoMakefile) then
   setenv RECONALL_MAKE_SUBJECT $subjid
@@ -1473,7 +1475,7 @@ if($DoMotionCor) then
   # At this point, rawavg.mgz exists. Use it to create orig.mgz,
   # conform to COR FOV but keep mgz format.
   set cmd = (mri_convert $rawavg $origvol)
-  if($UseCubic) set cmd = ($cmd -rt cubic)
+  if($UseCubic) set cmd = ($cmd -rt cubic -ns 1)
   if($ConformMin) then
     set cmd = ($cmd --conform_min)
   else
@@ -3280,8 +3282,8 @@ foreach hemi ($hemilist)
     endif
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
-    # -white NOWRITE: dont overwrite white, curv, area, and cortex.label files
-    set cmd = ($cmd -white NOWRITE)
+    # -nowhite : do not refit white surface (nothing wrt white gets overwritten)
+    set cmd = ($cmd -nowhite)
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
     $PWD |& tee -a $LF
@@ -3466,8 +3468,13 @@ if($DoT2pial || $DoFLAIRpial) then
     
     # then give the T2/FLAIR a little normalizing
     # note: pre-normalized file remains for debug, with .prenorm in name
+    if ("${t2flair}" == "T2") then 
+        set normflags = (-sigma 0.5 -nonmax_suppress 0 -min_dist 1)
+    else # else a FLAIR
+        set normflags = (-sigma 4)
+    endif
     set normcmd = (mri_normalize \
-        -sigma 0.5 -nonmax_suppress 0 -min_dist 1 \
+        $normflags \
         -aseg $mdir/aseg.mgz \
         -surface $sdir/rh.white identity.nofile \
         -surface $sdir/lh.white identity.nofile \
@@ -3495,14 +3502,13 @@ if($DoT2pial || $DoFLAIRpial) then
         -orig_pial wo${t2flair}.pial)
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
-    # -white NOWRITE: dont overwrite white, curv, area, and cortex.label files
-    set cmd = ($cmd -white NOWRITE)
+    # -nowhite : do not refit white surface (nothing wrt white gets overwritten)
+    set cmd = ($cmd -nowhite)
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     # if using a T2 or FLAIR to remove dura that might be confused with pial...
-    if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2 \
-        -nsigma_above 2 -nsigma_below 5)
-    if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR \
-        -nsigma_above 3 -nsigma_below 3)
+    if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2 -nsigma_above 2 -nsigma_below 5)
+    if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR -nsigma_above 3 -nsigma_below 3)
+
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -5604,6 +5610,26 @@ while( $#argv != 0 )
       set DoLabelExvivoEC  = 1;
       breaksw
 
+    # skips unnecessary steps when refining pial surface only
+    case "-T2pial-only":
+      set DoT2pial         = 1;
+      set DoPctSurfCon     = 1;
+      set DoParcStats      = 1;
+      set DoParcStats2     = 1;
+      set DoParcStats3     = 1;
+      set DoCortRibbonVolMask = 1;
+      set DoAParc2ASeg     = 1;
+      set DoWMParc         = 1;
+      set DoCurvStats      = 1;
+      set DoBaLabels       = 1; # Does label and stats
+      set DoLabelExvivoEC  = 1; # Does label and stats
+      breaksw
+
+    case "-T2brainmask":
+      set DoT2brainmask    = 1;
+      set DoSkullStrip     = 1;
+      breaksw
+
     case "-autorecon-hemi":
       if ( $#argv < 1) goto arg1err;
       set hemilist = $argv[1]; shift;
@@ -5690,6 +5716,16 @@ while( $#argv != 0 )
       endif
       pushd $FREESURFER_HOME > /dev/null
       setenv FREESURFER_HOME `pwd`;
+      breaksw
+
+    case "-patch":
+      if ( $#argv < 1) goto arg1err;
+      set PatchDir = $argv[1]; shift;
+      if(! -e $PatchDir) then
+        echo "ERROR: cannot find patch $PatchDir"
+        exit 1;
+      endif
+      set path = ($PatchDir $path)
       breaksw
 
     case "-dontrun":
