@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/04 20:47:55 $
- *    $Revision: 1.36 $
+ *    $Date: 2014/11/04 20:57:35 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.36 2014/11/04 20:47:55 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.37 2014/11/04 20:57:35 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.36 2014/11/04 20:47:55 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.37 2014/11/04 20:57:35 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1096,9 +1096,9 @@ static int parse_commandline(int argc, char **argv) {
       KurtosisFile = strcpyalloc(tmpstr);
       sprintf(tmpstr,"%s/gtm.stats.dat",OutDir);
       VRFStatsFile = strcpyalloc(tmpstr);
-      sprintf(tmpstr,"%s/beta.nii.gz",OutDir);
+      sprintf(tmpstr,"%s/gtm.nii.gz",OutDir);
       OutBetaFile = strcpyalloc(tmpstr);
-      sprintf(tmpstr,"%s/beta.var.nii.gz",OutDir);
+      sprintf(tmpstr,"%s/gtm.var.nii.gz",OutDir);
       OutBetaVarFile = strcpyalloc(tmpstr);
       sprintf(tmpstr,"%s/seg.nii.gz",AuxDir);
       OutSegFile = strcpyalloc(tmpstr);
