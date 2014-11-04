@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2014/11/04 18:12:43 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,6 +24,7 @@
 #include "TermWidget.h"
 #include "ui_TermWidget.h"
 #include "MainWindow.h"
+#include "MyCmdLineParser.h"
 #include <QTimer>
 #include <QDebug>
 #include <QSettings>

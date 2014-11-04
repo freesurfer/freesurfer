@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:22 $
- *    $Revision: 1.290 $
+ *    $Date: 2014/11/04 18:12:43 $
+ *    $Revision: 1.291 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,6 +105,7 @@
 #include "DialogSetCamera.h"
 #include "DialogThresholdVolume.h"
 #include "DialogVolumeSegmentation.h"
+#include <QProcessEnvironment>
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -670,7 +671,7 @@ void MainWindow::moveEvent(QMoveEvent *event)
 bool MainWindow::ParseCommand(int argc, char *argv[], bool bAutoQuit)
 {
   return (m_cmdParser->Parse(argc, argv) &&
-          DoParseCommand(bAutoQuit));
+          DoParseCommand(m_cmdParser, bAutoQuit));
 }
 
 bool MainWindow::ParseCommand(const QString& cmd, bool bAutoQuit)
@@ -678,53 +679,62 @@ bool MainWindow::ParseCommand(const QString& cmd, bool bAutoQuit)
   QString strg = cmd;
   strg.replace("~", QDir::homePath());
   return (m_cmdParser->Parse(strg) &&
-          DoParseCommand(bAutoQuit));
+          DoParseCommand(m_cmdParser, bAutoQuit));
 }
 
-bool MainWindow::DoParseCommand(bool bAutoQuit)
+bool MainWindow::ParseCommand(MyCmdLineParser* parser, const QString& cmd, bool bAutoQuit)
+{
+  QString strg = cmd;
+  strg.replace("~", QDir::homePath());
+  return (parser->Parse(strg) &&
+          DoParseCommand(parser, bAutoQuit));
+}
+
+
+bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
 {
   QStringList sa;
   QStringList floatingArgs;
-  string_array tmp_ar = m_cmdParser->GetFloatingArguments();
+  string_array tmp_ar = parser->GetFloatingArguments();
   for ( size_t i = 0; i < tmp_ar.size(); i++)
   {
     floatingArgs << tmp_ar[i].c_str();
   }
 
-  bool bReverseOrder = m_cmdParser->Found("rorder");
-  if ( m_cmdParser->Found("cmd", &sa))
+  bool bReverseOrder = parser->Found("rorder");
+  if ( parser->Found("cmd", &sa))
   {
     this->AddScript( QStringList("loadcommand") << sa[0]);
   }
-  if ( m_cmdParser->Found("hide", &sa))
+  if ( parser->Found("hide", &sa))
   {
     this->AddScript( QStringList("hidelayer") << sa[0]);
   }
-  if ( m_cmdParser->Found("unload", &sa))
+  if ( parser->Found("unload", &sa))
   {
     this->AddScript( QStringList("unloadlayer") << sa[0]);
   }
-  if ( m_cmdParser->Found( "trilinear" ) )
+  if ( parser->Found( "trilinear" ) )
   {
     this->SetDefaultSampleMethod( SAMPLE_TRILINEAR );
   }
-  if ( m_cmdParser->Found( "cubic" ) )
+  if ( parser->Found( "cubic" ) )
   {
     this->SetDefaultSampleMethod( SAMPLE_CUBIC_BSPLINE );
   }
-  if ( m_cmdParser->Found( "conform" ) )
+  if ( parser->Found( "conform" ) )
   {
     this->SetDefaultConform( true );
   }
-  if (m_cmdParser->Found( "smoothed" ) )
+  if (parser->Found( "smoothed" ) )
   {
     m_defaultSettings["Smoothed"] = true;
   }
-  if ( m_cmdParser->Found( "colormap", &sa ))
+  if ( parser->Found( "colormap", &sa ))
   {
     this->SetDefaultColorMapType(sa[0]);
   }
-  if ( m_cmdParser->Found( "viewport", &sa ) )
+  if ( parser->Found( "viewport", &sa ) )
   {
     QString strg = sa[0].toLower();
     if ( strg == "sagittal" || strg == "x" )
@@ -749,29 +759,43 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       return false;
     }
   }
-  if (m_cmdParser->Found("timecourse"))
+  if (parser->Found("timecourse"))
   {
     ui->actionTimeCourse->setChecked(true);
   }
 
-  if (m_cmdParser->Found("nocursor"))
+  if (parser->Found("nocursor"))
   {
     OnToggleCursorVisibility(false);
   }
 
-  if ( m_cmdParser->Found( "viewsize", &sa ) )
+  if ( parser->Found( "viewsize", &sa ) )
   {
     this->AddScript( QStringList("setviewsize") << sa[0] << sa[1] );
   }
 
-  QList<QStringList> cmds;
+  int nRepeats = parser->GetNumberOfRepeats( "recon" );
   bool bHasVolume = false;
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    parser->Found( "recon", &sa, n );
+    for ( int i = 0; i < sa.size(); i++ )
+    {
+      QStringList script = QStringList("loadsubject") << sa[i];
+    //  AddScript(script);
+    //  qDebug() << script;
+      CommandLoadSubject(script);
+      bHasVolume = true;
+    }
+  }
+
+  QList<QStringList> cmds;
   if ( floatingArgs.size() > 0 )
   {
     for ( int i = 0; i < floatingArgs.size(); i++ )
     {
       QStringList script = QStringList("loadvolume") << floatingArgs[i];
-      if ( m_cmdParser->Found( "r" ) )
+      if ( parser->Found( "r" ) )
       {
         script << "r";
       }
@@ -780,14 +804,14 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     }
   }
 
-  int nRepeats = m_cmdParser->GetNumberOfRepeats( "v" );
+  nRepeats = parser->GetNumberOfRepeats( "v" );
   for ( int n = 0; n < nRepeats; n++ )
   {
-    m_cmdParser->Found( "v", &sa, n );
+    parser->Found( "v", &sa, n );
     for ( int i = 0; i < sa.size(); i++ )
     {
       QStringList script = QStringList("loadvolume") << sa[i];
-      if ( m_cmdParser->Found( "r" ) )
+      if ( parser->Found( "r" ) )
       {
         script << "r";
       }
@@ -818,15 +842,15 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   }
   AddScripts(cmds);
 
-  nRepeats = m_cmdParser->GetNumberOfRepeats( "dti" );
+  nRepeats = parser->GetNumberOfRepeats( "dti" );
   for ( int n = 0; n < nRepeats; n++ )
   {
-    m_cmdParser->Found( "dti", &sa, n );
+    parser->Found( "dti", &sa, n );
     for ( int i = 0; i < sa.size()/2; i++ )
     {
       QStringList script("loaddti");
       script << sa[i*2] << sa[i*2+1];
-      if ( m_cmdParser->Found( "r" ) )
+      if ( parser->Found( "r" ) )
       {
         script << "r";
       }
@@ -835,14 +859,14 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     }
   }
 
-  nRepeats = m_cmdParser->GetNumberOfRepeats( "tv" );
+  nRepeats = parser->GetNumberOfRepeats( "tv" );
   for ( int n = 0; n < nRepeats; n++ )
   {
-    m_cmdParser->Found( "tv", &sa, n );
+    parser->Found( "tv", &sa, n );
     for ( int i = 0; i < sa.size(); i++ )
     {
       QStringList script = QStringList("loadtrackvolume") << sa[i];
-      if ( m_cmdParser->Found( "r" ) )
+      if ( parser->Found( "r" ) )
       {
         script << "r";
       }
@@ -851,7 +875,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   }
 
   cmds.clear();
-  nRepeats = m_cmdParser->GetNumberOfRepeats( "l" );
+  nRepeats = parser->GetNumberOfRepeats( "l" );
   if (nRepeats > 0 && !bHasVolume)
   {
     QString msg = "Can not load volume label without loading a volume first";
@@ -862,7 +886,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   {
     for ( int n = 0; n < nRepeats; n++ )
     {
-      m_cmdParser->Found( "l", &sa, n );
+      parser->Found( "l", &sa, n );
       for (int i = 0; i < sa.size(); i++ )
       {
         cmds << (QStringList("loadroi") << sa[i]);
@@ -878,7 +902,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     AddScripts(cmds);
   }
 
-  if (m_cmdParser->Found("fcd", &sa))
+  if (parser->Found("fcd", &sa))
   {
     QStringList script = QStringList("loadfcd") << sa[0] << sa[1];
     this->AddScript( script );
@@ -886,15 +910,15 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   }
 
   cmds.clear();
-  nRepeats = m_cmdParser->GetNumberOfRepeats( "f" );
+  nRepeats = parser->GetNumberOfRepeats( "f" );
   for ( int n = 0; n < nRepeats; n++ )
   {
-    m_cmdParser->Found( "f", &sa, n );
+    parser->Found( "f", &sa, n );
     for (int i = 0; i < sa.size(); i++ )
     {
       QStringList script("loadsurface");
       script << sa[i];
-      if ( m_cmdParser->Found( "r" ) )
+      if ( parser->Found( "r" ) )
       {
         script << "r";
       }
@@ -910,10 +934,10 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   }
   AddScripts(cmds);
 
-  nRepeats = m_cmdParser->GetNumberOfRepeats( "t" );
+  nRepeats = parser->GetNumberOfRepeats( "t" );
   for ( int n = 0; n < nRepeats; n++ )
   {
-    m_cmdParser->Found( "t", &sa, n );
+    parser->Found( "t", &sa, n );
     for (int i = 0; i < sa.size(); i++ )
     {
       this->AddScript( QStringList("loadtrack") << sa[i] );
@@ -921,15 +945,15 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   }
 
   cmds.clear();
-  nRepeats = m_cmdParser->GetNumberOfRepeats( "w" );
+  nRepeats = parser->GetNumberOfRepeats( "w" );
   for ( int n = 0; n < nRepeats; n++ )
   {
-    m_cmdParser->Found( "w", &sa, n );
+    parser->Found( "w", &sa, n );
     for ( int i = 0; i < sa.size(); i++ )
     {
       QStringList script("loadwaypoints");
       script << sa[i];
-      if ( m_cmdParser->Found( "r" ) )
+      if ( parser->Found( "r" ) )
       {
         script << "r";
       }
@@ -945,15 +969,15 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
   }
   AddScripts(cmds);
 
-  nRepeats = m_cmdParser->GetNumberOfRepeats( "c" );
+  nRepeats = parser->GetNumberOfRepeats( "c" );
   for ( int n = 0; n < nRepeats; n++ )
   {
-    m_cmdParser->Found( "c", &sa, n );
+    parser->Found( "c", &sa, n );
     for ( int i = 0; i < sa.size(); i++ )
     {
       QStringList script("loadcontrolpoints");
       script << sa[i];
-      if ( m_cmdParser->Found( "r" ) )
+      if ( parser->Found( "r" ) )
       {
         script << "r";
       }
@@ -961,15 +985,15 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     }
   }
 
-  nRepeats = m_cmdParser->GetNumberOfRepeats( "p-labels" );
+  nRepeats = parser->GetNumberOfRepeats( "p-labels" );
   for ( int n = 0; n < nRepeats; n++ )
   {
-    m_cmdParser->Found( "p-labels", &sa, n );
+    parser->Found( "p-labels", &sa, n );
     QString filenames = sa.join(";");
     QStringList script("loadpvolumes");
     script << filenames;
     sa.clear();
-    if ( m_cmdParser->Found( "p-prefix", &sa ) )
+    if ( parser->Found( "p-prefix", &sa ) )
     {
       script << sa[0];
     }
@@ -978,19 +1002,19 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
       script << "n/a";
     }
     sa.clear();
-    if ( m_cmdParser->Found( "p-lut", &sa ) )
+    if ( parser->Found( "p-lut", &sa ) )
     {
       script << sa[0];
     }
     this->AddScript( script );
   }
 
-  if ( m_cmdParser->Found( "cmat", &sa ) )
+  if ( parser->Found( "cmat", &sa ) )
   {
     this->AddScript( QStringList("loadconnectome") << sa[0] << sa[1] );
   }
 
-  if ( m_cmdParser->Found( "ras", &sa ) )
+  if ( parser->Found( "ras", &sa ) )
   {
     bool bOK;
     double ras[3];
@@ -1005,7 +1029,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     this->AddScript( QStringList("ras") << sa[0] << sa[1] << sa[2] );
   }
 
-  if ( m_cmdParser->Found( "slice", &sa ) )
+  if ( parser->Found( "slice", &sa ) )
   {
     bool bOK;
     int slice[3];
@@ -1021,7 +1045,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     this->AddScript( QStringList("slice") << sa[0] << sa[1] << sa[2] );
   }
 
-  if ( m_cmdParser->Found( "zoom", &sa ) )
+  if ( parser->Found( "zoom", &sa ) )
   {
     bool bOK;
     double dValue = sa[0].toDouble(&bOK);
@@ -1033,7 +1057,7 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     this->AddScript( QStringList("zoom") << sa[0] );
   }
 
-  if ( m_cmdParser->Found( "camera", &sa ) )
+  if ( parser->Found( "camera", &sa ) )
   {
     if ( sa.size()%2 > 0)
     {
@@ -1043,30 +1067,31 @@ bool MainWindow::DoParseCommand(bool bAutoQuit)
     this->AddScript( QStringList("setcamera") << sa );
   }
 
-  if (m_cmdParser->Found("colorscale"))
+  if (parser->Found("colorscale"))
   {
     this->AddScript(QStringList("showcolorscale"));
   }
 
-  if ( m_cmdParser->Found( "ss", &sa ) )
+  if ( parser->Found( "ss", &sa ) )
   {
     QString mag_factor = "1";
     if (sa.size() > 1)
       mag_factor = sa[1];
     this->AddScript( QStringList("screencapture") << sa[0] << mag_factor );
-    if (bAutoQuit && !m_cmdParser->Found("noquit"))
+    if (bAutoQuit && !parser->Found("noquit"))
     {
       this->AddScript( QStringList("quit") );
     }
   }
 
-  if (m_cmdParser->Found("fly", &sa))
+  if (parser->Found("fly", &sa))
   {
 
   }
 
-  if ( m_cmdParser->Found("quit"))
+  if ( parser->Found("quit"))
     AddScript(QStringList("quit") );
+
   return true;
 }
 
@@ -1388,6 +1413,10 @@ void MainWindow::RunScript()
   {
     CommandLoadCommand(sa);
   }
+  else if (cmd == "loadsubject")
+  {
+    CommandLoadSubject(sa);
+  }
   else if ( cmd == "hidelayer" )
   {
     CommandHideLayer(sa);
@@ -1651,6 +1680,31 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
     args.prepend("freeview");
     ParseCommand(args.join(" "));
   }
+}
+
+void MainWindow::CommandLoadSubject(const QStringList &sa)
+{
+  QString subject_path = QProcessEnvironment::systemEnvironment().value("SUBJECTS_DIR");
+  if (subject_path.isEmpty())
+  {
+    cerr << "SUBJECTS_DIR is not set. Can not load subject.\n";
+    return;
+  }
+  subject_path += "/" + sa[1];
+  QString args = QString("freeview -v %1/mri/wm.mgz:colormap=heat "
+                         "%1/mri/brain.mgz "
+                         "%1/mri/orig.mgz "
+                         "%1/mri/aseg.mgz:colormap=lut "
+                         "-f %1/surf/lh.white "
+                         "%1/surf/rh.white "
+                         "%1/surf/lh.pial:edgecolor=red "
+                         "%1/surf/rh.pial:edgecolor=red "
+                         "%1/surf/lh.orig:edgecolor=green "
+                         "%1/surf/rh.orig:edgecolor=green "
+                         "%1/surf/lh.inflated:annot=aparc:visible=0 "
+                         "%1/surf/rh.inflated:annot=aparc:visible=0 ").arg(subject_path);
+  MyCmdLineParser parser(m_cmdParser);
+  ParseCommand(&parser, args);
 }
 
 void MainWindow::CommandHideLayer(const QStringList &sa)

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:22 $
- *    $Revision: 1.152 $
+ *    $Date: 2014/11/04 18:12:43 $
+ *    $Revision: 1.153 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -255,6 +255,7 @@ public slots:
 //  void ShowAllLayers();
 //  void HideAllLayers();
   bool ParseCommand(const QString& cmd, bool bAutoQuit = false);
+  bool ParseCommand(MyCmdLineParser* parser, const QString& cmd, bool bAutoQuit = false);
 
   void SetProgress(int n);
 
@@ -303,6 +304,7 @@ protected:
 
   void RunScript();
   void CommandLoadCommand( const QStringList& sa );
+  void CommandLoadSubject( const QStringList& sa );
   void CommandHideLayer( const QStringList& sa);
   void CommandUnloadLayer( const QStringList& sa);
   void CommandLoadVolume( const QStringList& sa );
@@ -485,7 +487,7 @@ protected slots:
   void UpdateInfoPanel();
 
 private:
-  bool DoParseCommand(bool bAutoQuit);
+  bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();
   void LoadSettings();
   void SetCurrentFile( const QString &fileName, int type = 0 );

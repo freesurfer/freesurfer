@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/14 17:13:45 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/11/04 18:12:43 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,14 +45,22 @@ MyCmdLineParser::MyCmdLineParser( const char* ProgramName, CmdLineEntry* entries
 {
   SetProgramName( ProgramName );
   m_nNumberOfPureArguments = 0;
+  m_cmdLineEntries.clear();
   if ( entries )
   {
     SetValidCmdLineEntries( entries );
   }
-
   m_bNewLineStyle = true;
 }
 
+MyCmdLineParser::MyCmdLineParser(const MyCmdLineParser *parser)
+{
+  SetProgramName(parser->m_strProgramName);
+  m_nNumberOfPureArguments = 0;
+  m_cmdLineEntries.clear();
+  m_cmdLineEntriesValid = parser->m_cmdLineEntriesValid;
+  m_bNewLineStyle = true;
+}
 
 MyCmdLineParser::~MyCmdLineParser()
 {
@@ -407,7 +415,6 @@ bool MyCmdLineParser::Parse(const string_array& args)
     }
   }
 
-  //
   m_cmdLineEntries.clear();
   CmdLineEntry e;
   bool bSucceed = true;

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.12 $
+ *    $Author: rpwang $
+ *    $Date: 2014/11/04 18:12:43 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,6 +79,7 @@ class MyCmdLineParser
 {
 public:
   MyCmdLineParser( const char* ProgName, CmdLineEntry* entries = NULL );
+  MyCmdLineParser(const MyCmdLineParser* parser);
   virtual ~MyCmdLineParser();
 
   void SetValidCmdLineEntries( CmdLineEntry* entries );
