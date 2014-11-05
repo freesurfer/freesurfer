@@ -69,7 +69,7 @@ dmri_poistats_LDADD = $(LIBS_ITK) \
 	$(top_builddir)/itkutils/libitkutils.a \
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
 	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
-	-litkvnl -litkvcl \
+	-litkvcl \
 	-lITKMetaIO -litksys -lITKEXPAT -lITKniftiio -lITKznz -litkzlib \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH) )
 dmri_poistats_LDFLAGS = $(OS_LDFLAGS)
@@ -84,7 +84,7 @@ dmri_initialize_path_LDADD = $(LIBS_ITK) \
 	$(top_builddir)/itkutils/libitkutils.a \
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
 	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
-	-litkvnl -litkvcl \
+	-litkvcl \
 	-lITKMetaIO -litksys -lITKEXPAT -lITKniftiio -lITKznz -litkzlib \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH) )
 dmri_initialize_path_LDFLAGS = $(OS_LDFLAGS)
@@ -136,7 +136,7 @@ TestPoistatsReplica_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(CPPUNIT_LIBS) -lcppunit -ldl 	\
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
 	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
-	-litkvnl -litkvcl -lITKMetaIO -litksys -lITKEXPAT -lITKniftiio \
+	-litkvcl -lITKMetaIO -litksys -lITKEXPAT -lITKniftiio \
 	-lITKznz -litkzlib
 
 # TestPoistatsReplicas
@@ -155,7 +155,7 @@ TestPoistatsReplicas_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(CPPUNIT_LIBS) -lcppunit -ldl 	\
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
 	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib \
-	-litkvnl -litkvcl -lITKMetaIO -litksys -lITKEXPAT -lITKniftiio \
+	-litkvcl -lITKMetaIO -litksys -lITKEXPAT -lITKniftiio \
 	-lITKznz -litkzlib
 
 # TestPoistats
@@ -176,7 +176,7 @@ TestPoistats_LDADD= \
 	$(LIBS_ITK) \
 	$(CPPUNIT_LIBS)	-lcppunit \
 	-lITKBasicFilters -litkgdcm -litkpng -litktiff -lITKSpatialObject \
-	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib -litkvnl -litkvcl \
+	-lITKNumerics -litkvnl_inst -litkvnl_algo -litkv3p_netlib -litkvcl \
 	-lITKIO 	-lITKMetaIO -litksys -lITKEXPAT -lITKniftiio -lITKznz -litkzlib
 
 TestPoistats_LDFLAGS = $(OS_LDFLAGS)
