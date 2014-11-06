@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/11/04 01:36:20 $
- *    $Revision: 1.10 $
+ *    $Author: fischl $
+ *    $Date: 2014/11/06 02:06:29 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +41,7 @@
 #include "version.h"
 
 static char vcid[] = 
-"$Id: mri_relabel_hypointensities.c,v 1.10 2014/11/04 01:36:20 nicks Exp $";
+"$Id: mri_relabel_hypointensities.c,v 1.11 2014/11/06 02:06:29 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,13 +69,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_relabel_hypointensities.c,v 1.10 2014/11/04 01:36:20 nicks Exp $",
+   "$Id: mri_relabel_hypointensities.c,v 1.11 2014/11/06 02:06:29 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_relabel_hypointensities.c,v 1.10 2014/11/04 01:36:20 nicks Exp $",
+           "$Id: mri_relabel_hypointensities.c,v 1.11 2014/11/06 02:06:29 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -216,11 +216,11 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
         if (x == Gx && y == Gy && z == Gz) {
           DiagBreak() ;
         }
-        label = MRIvox(mri, x, y, z) ;
+        label = MRIgetVoxVal(mri, x, y, z, 0) ;
         if (label == Left_WM_hypointensities) {
-          MRIvox(mri, x, y, z) = WM_hypointensities ;
+          MRIsetVoxVal(mri, x, y, z,0, WM_hypointensities) ;
         } else if (label == Right_WM_hypointensities) {
-          MRIvox(mri, x, y, z) = WM_hypointensities ;
+          MRIsetVoxVal(mri, x, y, z, 0,  WM_hypointensities) ;
         }
         if ((!right && (label != Left_Cerebral_Cortex)) ||
             (right && (label != Right_Cerebral_Cortex))) {
@@ -244,7 +244,7 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
         }
         if (dot < 0 && dist > 1) {
           changed++ ;
-          MRIvox(mri, x, y, z) = WM_hypointensities ;
+          MRIsetVoxVal(mri, x, y, z, 0, WM_hypointensities) ;
         }
       }
     }
@@ -267,15 +267,15 @@ relabel_hypointensities_neighboring_gray(MRI *mri)
     for (x = 0 ; x < mri->width ; x++) {
       for (y = 0 ; y < mri->height ; y++) {
         for (z = 0 ; z < mri->depth ; z++) {
-          label = MRIvox(mri_tmp, x, y, z) ;
+          label = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
           if (label != WM_hypointensities) {
             continue ;
           }
           if (MRIneighbors(mri_tmp, x, y, z, Left_Cerebral_Cortex) > 0) {
-            MRIvox(mri, x, y, z) = Left_Cerebral_Cortex ;
+            MRIsetVoxVal(mri, x, y, z, 0, Left_Cerebral_Cortex) ;
             changed++ ;
           } else if (MRIneighbors(mri_tmp,x,y,z,Right_Cerebral_Cortex) > 0) {
-            MRIvox(mri, x, y, z) = Right_Cerebral_Cortex ;
+            MRIsetVoxVal(mri, x, y, z, 0, Right_Cerebral_Cortex) ;
             changed++ ;
           }
         }
