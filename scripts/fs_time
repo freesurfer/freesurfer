@@ -18,6 +18,9 @@ while( <@ARGV> ) {
 # Run it inside timer
 $start = time;
 system( $command );
+if ($? != 0) {
+    exit 1;
+}
 $stop = time;
 
 # Compute elapsed time
