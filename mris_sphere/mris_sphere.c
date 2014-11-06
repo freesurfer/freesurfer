@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2014/11/03 18:03:50 $
- *    $Revision: 1.58 $
+ *    $Date: 2014/11/06 01:38:58 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,7 @@
 #endif // FS_CUDA
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.58 2014/11/03 18:03:50 nicks Exp $";
+  "$Id: mris_sphere.c,v 1.59 2014/11/06 01:38:58 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -125,13 +125,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.58 2014/11/03 18:03:50 nicks Exp $",
+   "$Id: mris_sphere.c,v 1.59 2014/11/06 01:38:58 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.58 2014/11/03 18:03:50 nicks Exp $",
+           "$Id: mris_sphere.c,v 1.59 2014/11/06 01:38:58 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -402,6 +402,8 @@ main(int argc, char *argv[])
   }
   if (!load)
   {
+    fflush(stdout);
+    fflush(stderr);
     fprintf(stderr, "writing spherical brain to %s\n", out_fname) ;
     MRISwrite(mris, out_fname) ;
   }
