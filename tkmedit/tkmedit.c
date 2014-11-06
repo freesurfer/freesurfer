@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/08/05 17:03:30 $
- *    $Revision: 1.347 $
+ *    $Author: greve $
+ *    $Date: 2014/11/06 16:47:49 $
+ *    $Revision: 1.348 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.347 $";
+char *VERSION = "$Revision: 1.348 $";
 
 #define TCL
 #define TKMEDIT
@@ -63,6 +63,7 @@ char *VERSION = "$Revision: 1.347 $";
 #include "fsgdf_wrap.h"
 #include "fsgdf.h"
 #include "mri2.h"
+#include "registerio.h"
 
 #include <tcl.h>
 //#include <tclDecls.h>
@@ -1194,7 +1195,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.347 2014/08/05 17:03:30 fischl Exp $",
+     "$Id: tkmedit.c,v 1.348 2014/11/06 16:47:49 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -1703,11 +1704,16 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           overlayRegType = FunD_tRegistration_File;
           nCurrentArg += 2;
           if(bGetSubjectFromReg){
-            FILE *fp;
-            fp = fopen(sOverlayRegistration,"r");
-            fscanf(fp,"%s",sSubject);
-            fclose(fp);
-            //            printf("Setting subject name to %s\n",sSubject);
+	    char *subject;
+	    float inplaneres, betplaneres, intensity;
+	    MATRIX *R;
+	    int err, float2int;
+	    err = regio_read_register(sOverlayRegistration, &subject, &inplaneres,
+				      &betplaneres, &intensity,  &R, &float2int);
+	    sprintf(sSubject,"%s",subject);
+	    printf("Setting subject name to %s from %s\n",sSubject,sOverlayRegistration);
+	    MatrixFree(&R);
+	    free(subject);
             DebugNote( ("Setting subject home from env") );
             eResult = SetSubjectHomeDirFromEnv( sSubject );
             DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
@@ -1745,11 +1751,16 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	timecourseRegType = FunD_tRegistration_File;
 	nCurrentArg += 2;
 	if(bGetSubjectFromReg){
-	  FILE *fp;
-	  fp = fopen(sOverlayRegistration,"r");
-	  fscanf(fp,"%s",sSubject);
-	  fclose(fp);
+	  char *subject;
+	  float inplaneres, betplaneres, intensity;
+	  MATRIX *R;
+	  int err, float2int;
+	  err = regio_read_register(sOverlayRegistration, &subject, &inplaneres,
+				    &betplaneres, &intensity,  &R, &float2int);
+	  sprintf(sSubject,"%s",subject);
 	  printf("Setting subject name to %s\n",sSubject);
+	  MatrixFree(&R);
+	  free(subject);
 	  DebugNote( ("Setting subject home from env") );
 	  eResult = SetSubjectHomeDirFromEnv( sSubject );
 	  DebugAssertThrow( (tkm_tErr_NoErr == eResult) );
@@ -5952,7 +5963,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.347 2014/08/05 17:03:30 fischl Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.348 2014/11/06 16:47:49 greve Exp $ $Name:  $\n"
         )
       );
 
