@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2014/11/04 23:35:22 $
-#    $Revision: 1.494 $
+#    $Author: nicks $
+#    $Date: 2014/11/06 05:35:58 $
+#    $Revision: 1.495 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.494 2014/11/04 23:35:22 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.495 2014/11/06 05:35:58 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -119,9 +119,9 @@ set FixDiagOnly = 0; # for topology fixer
 set RmNeckRadius = 25;  # used by mri_remove_neck
 set UseCAAlign = (-align); # flag added to mri_ca_label
 set UseCAAlignAfter = (-align-after); # flag added to mri_ca_register
-set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used,
+set UseAseg  = 1 # when set to 0 (using -noaseg),then aseg.presurf.mgz not used
                  # nor is ?h.cortex.label (which originates through the aseg)
-set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz
+set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.presurf
                      # is not used during the 2nd mri_normalize step
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
 set NoThicken = 0 # if 1, add '-thicken 0' to mri_segment
@@ -152,7 +152,8 @@ set NoNormMGZ = 0; # set to 1 when -nosubcortseg or -noaseg flag is used,
                    # which causes norm.mgz not to used during inorm2 step
 set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
 set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
-set measurelist = ( thickness area area.pial volume curv sulc white.K white.H jacobian_white w-g.pct.mgh )
+set measurelist = ( thickness area area.pial volume curv sulc \
+                    white.K white.H jacobian_white w-g.pct.mgh )
                      # ^ these are the files smoothed by DoQdecCache (-qcache)
 set UserMeasureList = 0; # if 1, then 'measurelist' gets additional -measure args
 set measuredir = (); # for specifying an alternate path to measure files
@@ -290,6 +291,8 @@ set DoQSphere        = 0;
 set DoFix            = 0;
 set DoSmooth2        = 0;
 set DoInflate2       = 0;
+set DoCurvHK         = 0;
+set DoCurvStats      = 0;
 set DoSphere         = 0;
 set DoSurfReg        = 0;
 set SurfRegToSubj    = ();
@@ -309,8 +312,6 @@ set DoSurfVolume     = 0;
 set DoParcStats      = 0;
 set DoParcStats2     = 0;
 set DoParcStats3     = 0;
-set DoCurvStats      = 0;
-set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
 set DoBaLabels       = 0;
 set DoLabelExvivoEC  = 0;
@@ -323,6 +324,7 @@ set DoSegStats       = 0;
 set DoWMParc         = 0;
 set DoAParcASegStats = 0;
 
+set DoVnoMatchCheck  = 0;
 
 set DoIsRunning  = 1;
 set IsRunningFile  = ();
@@ -714,6 +716,9 @@ if($DoCleanASeg) then
   set cmd = (mv -f $subjdir/mri/aseg.mgz $subjdir/trash)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/aseg.presurf.mgz $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
   set cmd = (mv -f $subjdir/mri/aseg.manedit.mgz $subjdir/trash)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd  |& tee -a $LF
@@ -896,7 +901,7 @@ if($DoShowEdits) then
   endif
 
   # volume edits, as determined by mri_compile_edits:
-  # brainmask.mgz, aseg.mgz, brain.finalsurfs.mgz, wm.mgz, brain.mgz
+  # brainmask.mgz, aseg.presurf.mgz, brain.finalsurfs.mgz, wm.mgz, brain.mgz
   set compile_edits=($subjdir/tmp/compile_edits)
   set cmd = (mri_compile_edits ${subjid} $subjdir/mri/edits.mgz)
   if($RunIt) then
@@ -2492,21 +2497,21 @@ if($DoCALabel) then
   set DoASegMerge = 1; # Force
 
   if($DoCleanASeg) then
-    set cmd = (rm -f aseg.mgz aseg.manedit.mgz)
+    set cmd = (rm -f aseg.presurf.mgz aseg.manedit.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
       if($status) goto error_exit;
   endif
 
   # ----------- Prior to changing aseg.auto.mgz ------------#
-  if( -e aseg.mgz && -e aseg.auto.mgz ) then
-    # aseg.mgz and aseg.auto.mgz DO exist (at least 2nd pass)
+  if( -e aseg.presurf.mgz && -e aseg.auto.mgz ) then
+    # aseg.presurf.mgz and aseg.auto.mgz DO exist (at least 2nd pass)
     if( ! -e aseg.manedit.mgz) then
       # aseg.manedit.mgz does NOT exist
-      # Check for diffs between aseg.auto and aseg
+      # Check for diffs between aseg.auto and aseg.presurf
       # Note: if there are no diffs, then aseg.manedit.mgz is not created
       set cmd = (mri_seg_diff --seg1 aseg.auto.mgz \
-        --seg2 aseg.mgz --diff aseg.manedit.mgz)
+        --seg2 aseg.presurf.mgz --diff aseg.manedit.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if( ! $RunIt) then
         echo "INFO: mri_seg_diff was not actually executed," |& tee -a $LF
@@ -2519,9 +2524,9 @@ if($DoCALabel) then
       # aseg.manedit.mgz DOES exist
       # This has to be handled in two stages in case manedit itself has
       # been edited.
-      # 1. Check for diffs between aseg.auto and aseg (new and old edits)
+      # 1. Check for diffs between aseg.auto and aseg.presurf (new & old edits)
       set cmd = (mri_seg_diff --seg1 aseg.auto.mgz \
-        --seg2 aseg.mgz --diff aseg.manedit.tmp.mgz)
+        --seg2 aseg.presurf.mgz --diff aseg.manedit.tmp.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if( ! $RunIt) then
         echo "INFO: mri_seg_diff was not actually executed," |& tee -a $LF
@@ -2564,7 +2569,7 @@ if($DoCALabel) then
     end
     # now create the fused aseg
     set cmd = (mri_fuse_segmentations)
-    set cmd = ($cmd -a aseg.mgz -c aseg.auto_noCCseg.mgz -n norm.mgz)
+    set cmd = ($cmd -a aseg.presurf.mgz -c aseg.auto_noCCseg.mgz -n norm.mgz)
     set cmd = ($cmd ${subjid} ${BaseSubjsList} aseg.fused.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -2616,7 +2621,7 @@ if($DoASegMerge) then
   cd $subjdir/mri > /dev/null
   if(-e aseg.manedit.mgz ) then
     set cmd = (mri_seg_diff --seg aseg.auto.mgz \
-      --diff-in aseg.manedit.mgz --merged aseg.mgz)
+      --diff-in aseg.manedit.mgz --merged aseg.presurf.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if( ! $RunIt) then
       echo "INFO: mri_seg_diff was not actually executed," |& tee -a $LF
@@ -2626,7 +2631,7 @@ if($DoASegMerge) then
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
   else
-    set cmd = (cp aseg.auto.mgz aseg.mgz)
+    set cmd = (cp aseg.auto.mgz aseg.presurf.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -2655,7 +2660,7 @@ if($DoNormalization2) then
   if($IsMPRAGE)           set cmd = ($cmd -mprage)
   if($IsWashuMPRAGE)      set cmd = ($cmd -washu_mprage)
   if($ConformMin)         set cmd = ($cmd -noconform)
-  if($UseAseg && ! $NoAsegInorm2) set cmd = ($cmd -aseg aseg.mgz)
+  if($UseAseg && ! $NoAsegInorm2) set cmd = ($cmd -aseg aseg.presurf.mgz)
   if($NoNormMGZ) then
     # norm.mgz doesnt exist with -noaseg or -nosubcortseg, so use brainmask.mgz
     set cmd = ($cmd $xopts brainmask.mgz brain.mgz)
@@ -2781,7 +2786,8 @@ if($DoSegmentation) then
     set xopts = `fsr-getxopts mri_edit_wm_with_aseg $XOptsFile`;
     set cmd = (mri_edit_wm_with_aseg)
     if(! $DoCleanWM) set cmd = ($cmd -keep-in)
-    set cmd = ($cmd $xopts wm.seg.mgz brain.mgz aseg.mgz wm.asegedit.mgz)
+    set cmd = ($cmd $xopts wm.seg.mgz brain.mgz \
+        aseg.presurf.mgz wm.asegedit.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3239,7 +3245,11 @@ if($DoWhiteSurfs) then
       # default stream:
       set cmd = (mris_make_surfaces)
     endif
-    if ( ! $UseAseg) set cmd = ($cmd -noaseg)
+    if ($UseAseg) then
+      set cmd = ($cmd -aseg ../mri/aseg.presurf)
+    else
+      set cmd = ($cmd -noaseg)
+    endif
     set cmd = ($cmd -noaparc)
     if($DoPialSurfs) then
       # if creating pial downstream, then only do white surface now
@@ -3263,29 +3273,6 @@ if($DoWhiteSurfs) then
     if( ! $DoPialSurfs) echo $cmd > $touchdir/$hemi.final_surfaces.touch
   end # Loop over hemilist
   if($RunIt && $DoParallel) then # if -parallel flag is used
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-
-  # create curvature files ?h.white.H and ?h.white.K
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
-    set cmd = (mris_curvature $xopts ../surf/$hemi.white)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    set CMDF = mris_curvature_${hemi}.cmd
-    echo "$cmd" > $CMDF
-    if($DoParallel) then
-      set CMDF = mris_curvature_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-    echo $cmd > $touchdir/$hemi.white.H.K.touch
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
     reconbatchjobs $LF $CMDFS |& tee -a $LF
     if($status) goto error_exit;
   endif
@@ -3354,34 +3341,70 @@ if($DoInflate2) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
-  end # Loop over hemilist
-  if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-  set CMDFS = () # see earlier notes on -parallel implementation
-  foreach hemi ($hemilist)
-    # create curvature files ?h.inflated.H and ?h.inflated.K
-    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
-    set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
-    set cmd = ($cmd $xopts ../surf/$hemi.inflated)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    set CMDF = mris_curvature_${hemi}.cmd
-    echo "$cmd" > $CMDF
-    if($DoParallel) then
-      set CMDF = mris_curvature_${hemi}.cmd
-      echo "$cmd" > $CMDF
-      set CMDFS = ( $CMDFS $CMDF )
-    else
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
     echo $cmd > $touchdir/$hemi.inflate2.touch
   end # Loop over hemilist
   if($RunIt && $DoParallel) then
     reconbatchjobs $LF $CMDFS |& tee -a $LF
     if($status) goto error_exit;
   endif
+endif
+
+
+#----------                     -----------#
+#---------- Curvature .H and .K -----------#
+##---------       -curvHK       -----------#
+#----------                     -----------#
+if($DoCurvHK) then
+  set CMDFS = () # see earlier notes on -parallel implementation
+  foreach hemi ($hemilist)
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Curv .H and .K $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/surf > /dev/null
+    $PWD |& tee -a $LF
+    # create curvature files ?h.white.H and ?h.white.K
+    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
+    set cmd = (mris_curvature -w $xopts $hemi.white)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    set CMDF = mris_curvature_white_${hemi}.cmd
+    echo "$cmd" > $CMDF
+    if($DoParallel) then
+      set CMDF = mris_curvature_white_${hemi}.cmd
+      echo "$cmd" > $CMDF
+      set CMDFS = ( $CMDFS $CMDF )
+    else
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    echo $cmd > $touchdir/$hemi.white.H.K.touch
+
+    # create curvature files ?h.inflated.H and ?h.inflated.K
+    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
+    set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
+    set cmd = ($cmd $xopts $hemi.inflated)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    set CMDF = mris_curvature_inflated_${hemi}.cmd
+    echo "$cmd" > $CMDF
+    if($DoParallel) then
+      set CMDF = mris_curvature_inflated_${hemi}.cmd
+      echo "$cmd" > $CMDF
+      set CMDFS = ( $CMDFS $CMDF )
+    else
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+    echo $cmd > $touchdir/$hemi.inflate.H.K.touch
+  end # Loop over hemilist
+
+  if($RunIt && $DoParallel) then
+    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  foreach hemi ($hemilist)
+    if( ! -e ${hemi}.white.H) goto error_exit;
+    if( ! -e ${hemi}.inflated.H) goto error_exit;
+  end
 endif
 
 
@@ -3750,7 +3773,7 @@ if($DoCortParc) then
     set annot = ../label/$hemi.aparc.annot
     set cmd = (mris_ca_label)
     if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
-    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
+    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.presurf.mgz)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     if($longitudinal) then
@@ -3812,7 +3835,11 @@ if($DoPialSurfs) then
       # default stream:
       set cmd = (mris_make_surfaces)
     endif
-    if ( ! $UseAseg) set cmd = ($cmd -noaseg)
+    if ($UseAseg) then
+      set cmd = ($cmd -aseg ../mri/aseg.presurf)
+    else
+      set cmd = ($cmd -noaseg)
+    endif
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
     # -nowhite : do not refit white surface (nothing wrt white gets overwritten)
     set cmd = ($cmd -nowhite)
@@ -3834,36 +3861,6 @@ if($DoPialSurfs) then
     reconbatchjobs $LF $CMDFS |& tee -a $LF
     if($status) goto error_exit;
   endif
-endif
-
-
-#----------------              -------------------#
-##---------------  -surfvolume -------------------#
-#----------------              -------------------#
-if($DoPialSurfs || $DoSurfVolume) then
-  foreach hemi ($hemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Surf Volume $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/surf > /dev/null
-    $PWD |& tee -a $LF
-    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set cmd=(mris_calc -o ${hemi}.volume)
-    set cmd=($cmd ${hemi}.area.mid mul ${hemi}.thickness)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
-    echo $cmd > $touchdir/$hemi.surfvolume.touch
-  end # Loop over hemilist
 endif
 
 
@@ -3960,7 +3957,7 @@ if($DoT2pial || $DoFLAIRpial) then
     # note: pre-normalized file remains for debug, with .prenorm in name
     set normcmd = (mri_normalize \
         -sigma 0.5 -nonmax_suppress 0 -min_dist 1 \
-        -aseg $mdir/aseg.mgz \
+        -aseg $mdir/aseg.presurf.mgz \
         -surface $sdir/rh.white identity.nofile \
         -surface $sdir/lh.white identity.nofile \
         $mdir/${t2flair}.prenorm.mgz \
@@ -3986,7 +3983,11 @@ if($DoT2pial || $DoFLAIRpial) then
     set cmd = (mris_make_surfaces \
         -orig_white white \
         -orig_pial wo${t2flair}.pial)
-    if ( ! $UseAseg) set cmd = ($cmd -noaseg)
+    if ($UseAseg) then
+      set cmd = ($cmd -aseg ../mri/aseg.presurf)
+    else
+      set cmd = ($cmd -noaseg)
+    endif
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
     # -nowhite : do not refit white surface (nothing wrt white gets overwritten)
     set cmd = ($cmd -nowhite)
@@ -4044,6 +4045,36 @@ endif # if correct pial w/ T2/FLAIR
 
 
 # stats and GWcontrast must run here, after T2 pial refinement
+
+
+#----------------              -------------------#
+##---------------  -surfvolume -------------------#
+#----------------              -------------------#
+if($DoPialSurfs || $DoT2pial || $DoFLAIRpial || $DoSurfVolume) then
+  foreach hemi ($hemilist)
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Surf Volume $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/surf > /dev/null
+    $PWD |& tee -a $LF
+    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd=(mris_calc -o ${hemi}.volume)
+    set cmd=($cmd ${hemi}.area.mid mul ${hemi}.thickness)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
+    echo $cmd > $touchdir/$hemi.surfvolume.touch
+  end # Loop over hemilist
+endif
 
 
 #----------                          -----------#
@@ -4106,7 +4137,7 @@ if($DoCortParc2) then
     set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
     set cmd = (mris_ca_label)
     if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
-    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
+    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.presurf.mgz)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     if($longitudinal) then
@@ -4189,7 +4220,7 @@ if($DoCortParc3) then
     set annot = ../label/$hemi.aparc.${DKTATLAS40_NAME}.annot
     set cmd = (mris_ca_label)
     if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
-    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
+    if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.presurf.mgz)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     if($longitudinal) then
@@ -4313,9 +4344,29 @@ if($DoCortRibbonVolMask) then
 endif
 
 
-#-----------------               ----------------- #
-##----------------  -aparc2aseg  ----------------- #
-#-----------------               ----------------- #
+#-----------------                         ------------------#
+#----------------- Relabel Hypointensities ------------------#
+##----------------      -hyporelabel       ------------------#
+#-----------------                        ------------------ #
+if($DoRelabelHypos) then
+  echo "#-----------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# Relabel Hypointensities `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  $PWD |& tee -a $LF
+  set cmd = (mri_relabel_hypointensities \
+    aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/relabelhypos.touch
+endif
+
+
+#-----------------               -----------------#
+##----------------  -aparc2aseg  -----------------#
+#-----------------               -----------------#
 if($DoAParc2ASeg) then
   echo "#-----------------------------------------" \
     |& tee -a $LF |& tee -a $CF
@@ -4325,7 +4376,8 @@ if($DoAParc2ASeg) then
   $PWD |& tee -a $LF
   set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
   # Desikan (or whatever was specified by -gcs)
-  set cmd = (mri_aparc2aseg --s $subjid --volmask $xopts)
+  set cmd = (mri_aparc2aseg --s $subjid --volmask \
+    --aseg aseg.presurf.hypos $xopts)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -4334,7 +4386,8 @@ if($DoAParc2ASeg) then
   if( -e ${subjdir}/label/lh.aparc.${DESTRIEUX_NAME}.annot && \
       -e ${subjdir}/label/rh.aparc.${DESTRIEUX_NAME}.annot ) then
     set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
-    set cmd = (mri_aparc2aseg --s $subjid --volmask --${DESTRIEUX_NAME} $xopts)
+    set cmd = (mri_aparc2aseg --s $subjid --volmask \
+        --aseg aseg.presurf.hypos --${DESTRIEUX_NAME} $xopts)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -4347,6 +4400,7 @@ endif
 
 
 #-----------------             ------------------ #
+#-----------------  Final Aseg ------------------ #
 ##----------------  -apas2aseg ------------------ #
 #-----------------             ------------------ #
 if($DoAPas2ASeg) then
@@ -4356,7 +4410,7 @@ if($DoAPas2ASeg) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
-  set cmd = (apas2aseg --i aparc+aseg.mgz --o aseg+.mgz)
+  set cmd = (apas2aseg --i aparc+aseg.mgz --o aseg.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -5802,6 +5856,20 @@ while( $#argv != 0 )
       set DoInflate2 = 0;
       breaksw
 
+    case "-curvHK":
+      set DoCurvHK = 1;
+      breaksw
+    case "-nocurvHK":
+      set DoCurvHK = 0;
+      breaksw
+
+    case "-curvstats":
+      set DoCurvStats = 1;
+      breaksw
+    case "-nocurvstats":
+      set DoCurvStats = 0;
+      breaksw
+
     case "-sphere":
       set DoSphere = 1;
       breaksw
@@ -5949,6 +6017,13 @@ while( $#argv != 0 )
       set DoCortRibbonVolMask = 0;
       breaksw
 
+    case "-hyporelabel":
+      set DoRelabelHypos = 1;
+      breaksw
+    case "-nohyporelabel":
+      set DoRelabelHypos = 0;
+      breaksw
+
     case "-aparc2aseg":
       set DoAParc2ASeg = 1;
       breaksw
@@ -6061,6 +6136,7 @@ while( $#argv != 0 )
       set DoWhiteSurfs     = 1;
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
+      set DoCurvHK         = 1;
       set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
@@ -6076,6 +6152,7 @@ while( $#argv != 0 )
       set DoParcStats3     = 1;
       set DoPctSurfCon     = 1;
       set DoCortRibbonVolMask = 1;
+      set DoRelabelHypos   = 1;
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
       set DoSegStats       = 1;
@@ -6114,6 +6191,7 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoWhiteSurfs     = 1;
+      set DoCurvHK         = 1;
       set DoCurvStats      = 1;
       breaksw
 
@@ -6144,6 +6222,7 @@ while( $#argv != 0 )
       set DoInflate2       = 1;
       set DoWhiteSurfs     = 1;
       set DoSegStats       = 0;
+      set DoCurvHK         = 1;
       set DoCurvStats      = 1;
       breaksw
 
@@ -6181,6 +6260,7 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoSegStats       = 0;
+      set DoCurvHK         = 1;
       set DoCurvStats      = 1;
       breaksw
 
@@ -6190,6 +6270,7 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoSegStats       = 1;
+      set DoCurvHK         = 1;
       set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
@@ -6205,6 +6286,7 @@ while( $#argv != 0 )
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
       set DoCortRibbonVolMask = 1;
+      set DoRelabelHypos   = 1;
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
       set DoWMParc         = 1;
@@ -6220,17 +6302,17 @@ while( $#argv != 0 )
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
-      set DoPctSurfCon     = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
+      set DoPctSurfCon     = 1;
       set DoCortRibbonVolMask = 1;
+      set DoRelabelHypos   = 1;
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
       set DoSegStats       = 1;
-      set DoCurvStats      = 1;
       set DoWMParc         = 1;
       set DoBaLabels       = 1;
       set DoLabelExvivoEC  = 1;
@@ -6239,16 +6321,20 @@ while( $#argv != 0 )
     # skips unnecessary steps when refining pial surface only
     case "-T2pial-only":
       set DoT2pial         = 1;
-      set DoPctSurfCon     = 1;
       set DoParcStats      = 1;
+      set DoCortParc2      = 1;
       set DoParcStats2     = 1;
+      set DoCortParc3      = 1;
       set DoParcStats3     = 1;
+      set DoPctSurfCon     = 1;
       set DoCortRibbonVolMask = 1;
+      set DoRelabelHypos   = 1;
       set DoAParc2ASeg     = 1;
+      set DoAPas2ASeg      = 1;
+      set DoSegStats       = 1;
       set DoWMParc         = 1;
-      set DoCurvStats      = 1;
-      set DoBaLabels       = 1; # Does label and stats
-      set DoLabelExvivoEC  = 1; # Does label and stats
+      set DoBaLabels       = 1;
+      set DoLabelExvivoEC  = 1;
       breaksw
 
     case "-autorecon-hemi":
@@ -6269,6 +6355,8 @@ while( $#argv != 0 )
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
       set DoWhiteSurfs     = 1;
+      set DoCurvHK         = 1;
+      set DoCurvStats      = 1;
       set DoSphere         = 1;
       set DoSurfReg        = 1;
       set DoContraSurfReg  = 0;
@@ -6276,18 +6364,18 @@ while( $#argv != 0 )
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
-      set DoPctSurfCon     = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
+      set DoPctSurfCon     = 1;
       set DoCortRibbonVolMask = 0;
+      set DoRelabelHypos   = 1;
       set DoAParc2ASeg     = 0;
       set DoAPas2ASeg      = 0;
       set DoWMParc         = 0;
       set DoSegStats       = 0;
-      set DoCurvStats      = 1;
       set DoBaLabels       = 1;
       set DoLabelExvivoEC  = 1;
       breaksw
@@ -7173,7 +7261,7 @@ check_params:
      ! $DoCortRibbonVolMask && ! $DoJacobianWhite && ! $DoJacobianDist0 && \
      ! $DoCANormalize && ! $DoCAReg && ! $DoCALabel && \
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
-     ! $DoMakefile && ! $DoParallel && \
+     ! $DoMakefile && ! $DoParallel && ! $DoRelabelHypos && ! $DoCurvHK && \
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
      ! $DoLabelExvivoEC && ! $DoPialSurfs && \
@@ -7657,20 +7745,20 @@ In the _second_ usage of mri_normalize, do N number of iterations
 -noaseg
 
 Skips subcortical segmentation steps (same as -nosubcortseg), and does
-not use aseg.mgz for inorm2, wm segmentation, or filling. Use this flag
-for brains that do not support usage of Freesurfers subcortical
+not use aseg.presurf.mgz for inorm2, wm segmentation, or filling. 
+Use this flag for brains that do not support usage of Freesurfers subcortical
 segmentation, such as baby brains, or non-human primates.
 
 -noaseg-inorm2
 
-Does not use aseg.mgz for the second mri_normalize step.
+Does not use aseg.presurf.mgz for the second mri_normalize step.
 
 -bigventricles
 
 If a subject has enlarged ventricles due to atrophy, include the -bigventricles
 flag with the -autorecon2 stage in order to prevent surfaces extending into
 the ventricle regions. The flag directly affects the binary mri_ca_register,
-and mris_make_surfaces indirectly via aseg.mgz.
+and mris_make_surfaces indirectly via aseg.presurf.mgz.
 
 -norandomness
 
@@ -7969,7 +8057,7 @@ Creates the file mri/transforms/talairach_with_skull_2.lta.
 CA Label (-<no>calabel)
 
 Labels subcortical structures, based in GCA model.
-Creates the files mri/aseg.auto.mgz and mri/aseg.mgz.
+Creates the files mri/aseg.auto.mgz and mri/aseg.presurf.mgz.
 
 ASeg Stats (-<no>segstats)
 
@@ -7982,7 +8070,7 @@ Performs a second (major) intensity correction using only the brain
 volume as the input (so that it has to be done after the skull strip).
 Intensity normalization works better when the skull has been removed.
 Creates a new brain.mgz volume. The -autorecon2-cp stage begins here.
-If -noaseg flag is used, then aseg.mgz is not used by mri_normalize.
+If -noaseg flag is used, then aseg.presurf.mgz is not used by mri_normalize.
 
 WM Segmentation (-<no>segmentation)
 
@@ -8004,8 +8092,8 @@ then seed points can be supplied (see -cc-crs, -pons-crs, -lh-crs,
 -rh-crs). The actual points used for the cutting planes in the
 corpus callosum and pons can be found in scripts/ponscc.cut.log.
 The stage -autorecon2-wm begins here.  This is the last stage of
-volumetric processing. If -noaseg is used, then aseg.mgz is not used
-by mri_fill.
+volumetric processing. If -noaseg is used, then aseg.presurf.mgz is 
+not used by mri_fill.
 
 Tessellation (-<no>tessellate)
 
