@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/11/05 05:18:44 $
-#    $Revision: 1.1 $
+#    $Date: 2014/11/06 03:20:09 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_ca_label,v 1.1 2014/11/05 05:18:44 nicks Exp $'
+set VERSION='$Id: test_mri_ca_label,v 1.2 2014/11/06 03:20:09 nicks Exp $'
 
 umask 002
 
@@ -43,6 +43,7 @@ cd testdata
 set log = (../test_mri_ca_label.log)
 set threads=( 1 8 )
 if ($?SKIP_MRI_CALABEL_1CPU_TEST) set threads=( 8 )
+if ("`uname -s`" == "Darwin") set threads=( 1 )
 #goto compare
 
 if (-e $log) rm -f $log 
@@ -75,6 +76,7 @@ echo "" |& tee -a $log
 # compare expected results with actual (produced) results
 #
 compare:
+if ("`uname -s`" == "Darwin") cp aseg.auto_noCCseg.macos.mgz aseg.auto_noCCseg.mgz
 
 foreach num ($threads)
 
