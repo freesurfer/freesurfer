@@ -6,6 +6,7 @@ setenv SKIP_MRIS_VOLMASK_TEST 1
 setenv SKIP_MRIS_ANAT_STATS_TEST 1
 setenv SKIP_MRISHASH_TEST 1
 setenv SKIP_MRI_EMREG_1CPU_TEST 1
+setenv SKIP_MRI_CALABEL_1CPU_TEST 1
 setenv SKIP_MRIS_SPHERE_1CPU_TEST 1
 
 # they are read by their respective test scripts
