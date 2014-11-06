@@ -52,6 +52,8 @@
       <explanation>pars = 1. Surface root name (i.e. &lt;subject&gt;/surf/$hemi.&lt;NAME&gt; - default value is white</explanation>
       <argument>--surf_pial</argument>
       <explanation>pars = 1. Surface root name (i.e. &lt;subject&gt;/surf/$hemi.&lt;NAME&gt; - default value is pial</explanation>
+      <argument>--aseg_name</argument>
+      <explanation>pars = 1. Default value is aseg. Allows specifying a different name for the aseg input file.</explanation>
       <argument>--out_root</argument>
       <explanation>pars = 1. Default value is ribbon - output will then be mri/ribbon.mgz and mri/lh.ribbon.mgz and mri/rh.ribbon.mgz (last 2 if -save_ribbon is used)</explanation>
       <argument>--sd</argument>

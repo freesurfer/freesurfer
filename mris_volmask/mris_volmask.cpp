@@ -11,9 +11,9 @@
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
+ *    $Date: 2014/11/06 03:40:22 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -132,6 +132,8 @@ struct IoParams
   StringType  surfWhiteRoot;
   StringType  surfPialRoot;
 
+  StringType  asegName;
+
   StringType  outRoot;
 
   unsigned char labelLeftWhite;
@@ -158,7 +160,7 @@ main(int ac, char* av[])
   nargs =
     handle_version_option
     ( ac, av,
-      "$Id: mris_volmask.cpp,v 1.25 2011/03/02 00:04:34 nicks Exp $",
+      "$Id: mris_volmask.cpp,v 1.26 2014/11/06 03:40:22 nicks Exp $",
       "$Name:  $"
     );
   if (nargs && ac - nargs == 1)
@@ -416,6 +418,7 @@ IoParams::IoParams()
   bSaveRibbon = false;
 
   outRoot = "ribbon";
+  asegName = "aseg";
   surfWhiteRoot = "white";
   surfPialRoot = "pial";
 
@@ -461,6 +464,10 @@ IoParams::parse(int ac, char* av[])
   interface.AddOptionString
   ( (ssurf+"pial").c_str(), &surfPialRoot,
     (strUse + " - default value is pial").c_str()
+  );
+  interface.AddOptionString
+  ( "aseg_name", &asegName,
+    "default value is aseg, allows name override"
   );
   interface.AddOptionString
   ( "out_root", &outRoot,
@@ -574,7 +581,7 @@ LoadInputFiles(const IoParams& params,
     pathSurfLeftPial = pathSurf / "lh.pial";
     pathSurfRightWhite = pathSurf / "rh.white";
     pathSurfRightPial = pathSurf / "rh.pial";
-    pathMriInput = subjDir / "mri" / "aseg.mgz";
+    pathMriInput = subjDir / "mri" / params.asegName + ".mgz";
 
     pathOutput = subjDir / "mri";
   }
