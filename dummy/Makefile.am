@@ -12,19 +12,20 @@
 # 3. create dev/yourdir/Makefile.am  (follow dummy/Makefile.am)
 #      i.e. replace dummy with your program name.
 #
-# 4. automake -v at the top directory, i.e. dev/ (which will create 
-#    Makefile.in in yourdir directory)
-# 5. autoconf (which will create configure from configure.in)
-# 6. configure .... and make to make sure that your new thing is working
-# 7. try make to make sure that yourthing is compiled.
+# 4. ./setup_configure at the top directory, i.e. dev/ (which will create 
+#    Makefile.in in yourdir directory and configure from configure.in)
+# 5. ./configure .... and make to make sure that your new thing is working
+# 6. try make to make sure that yourthing is compiled.
 #
 # After confirming everything working:
-# 8. checkin yourdir/Makefile.am, yourdir/yourprog.c or cpp.  
+# 7. checkin yourdir/Makefile.am, yourdir/yourprog.c or cpp.  
 #    (Don't checkin Makefile or Makefile.in.)
-# 9. checkin dev/configure.in, dev/Makefile.am
+# 8. checkin dev/configure.in, dev/Makefile.am
 #
-# If you have problems, please let us know (kteich@nmr.mgh.harvard.edu or
-# nicks@nmr.mgh.harvard.edu).
+# 9. lastly, delete this help text from your own Makefile.am!
+#
+# If you have problems, please let us know (zkaufman@nmr.mgh.harvard.edu
+# or nicks@nmr.mgh.harvard.edu).
 #########################################################################
 # from ------------------------------------------------
 
@@ -51,7 +52,8 @@ dummy_LDFLAGS=$(OS_LDFLAGS)
 # you can do "make CFLAGS=-g myown" to create a debugging version.
 #
 # The program listed as check_PROGRAMS are not compiled under standard 
-# "make". Only "make check" will compile them.
+# "make". Only "make check" will compile them. See mri_convert's
+# Makefile.am for an example of its 'make check' test setup.
 # 
 # Please don't remove myown.c from this dummy directory.
 ########################################################################
