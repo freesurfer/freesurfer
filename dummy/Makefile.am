@@ -21,7 +21,7 @@
 # After confirming everything working:
 # 8. checkin yourdir/Makefile.am, yourdir/yourprog.c or cpp.  
 #    (Don't checkin Makefile or Makefile.in.)
-# 9. checkin dev/configure.in, dev/configure, dev/Makefile.am
+# 9. checkin dev/configure.in, dev/Makefile.am
 #
 # If you have problems, please let us know (kteich@nmr.mgh.harvard.edu or
 # nicks@nmr.mgh.harvard.edu).
