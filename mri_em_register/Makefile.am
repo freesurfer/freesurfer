@@ -56,6 +56,8 @@ foo:
 		cp -v $(top_srcdir)/mri_em_register/testdata.tar.gz \
 					$(top_builddir)/mri_em_register/; fi;
 
+check_PROGRAMS=foo
+
 TESTS=test_mri_em_register $(top_builddir)/scripts/help_xml_validate
 
 clean-local:

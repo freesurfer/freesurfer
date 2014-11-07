@@ -24,6 +24,8 @@ foo:
 		cp -v $(top_srcdir)/mri_ca_label/testdata.tar.gz \
 					$(top_builddir)/mri_ca_label/; fi;
 
+check_PROGRAMS=foo
+
 TESTS=test_mri_ca_label $(top_builddir)/scripts/help_xml_validate
 
 clean-local:

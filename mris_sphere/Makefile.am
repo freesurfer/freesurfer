@@ -52,6 +52,8 @@ foo:
 		cp -v $(top_srcdir)/mris_sphere/testdata.tar.gz \
 					$(top_builddir)/mris_sphere/; fi;
 
+check_PROGRAMS=foo
+
 TESTS=test_mris_sphere $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
