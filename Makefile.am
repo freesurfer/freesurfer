@@ -346,6 +346,7 @@ MISCDIRS=\
 	hiam_make_surfaces\
 	hiam_make_template\
 	hiam_register \
+  spline3 \
 	swi_processing \
 	nmovie_qt
 
