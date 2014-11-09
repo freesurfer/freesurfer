@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/04 20:57:35 $
- *    $Revision: 1.37 $
+ *    $Date: 2014/11/09 23:46:49 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.37 2014/11/04 20:57:35 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.38 2014/11/09 23:46:49 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.37 2014/11/04 20:57:35 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.38 2014/11/09 23:46:49 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -535,6 +535,19 @@ int main(int argc, char *argv[])
   fprintf(logfp,"GTM-Solve-Time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
   if(Gdiag_no > 0) PrintMemUsage(stdout);
   PrintMemUsage(logfp);
+
+  printf("Computing percent TT in each ROI\n");
+  GTMttPercent(gtm);
+  sprintf(tmpstr,"%s/seg.ttpct.nii.gz",AuxDir);
+  printf("Writing tt percent to %s\n",tmpstr);
+  mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, gtm->ttpvf->nframes);
+  for(c=0; c < gtm->nsegs; c++){
+    for(f=0; f < gtm->ttpvf->nframes; f++)
+      MRIsetVoxVal(mritmp,c,0,0,f, gtm->ttpct->rptr[c+1][f+1]);
+  }
+  err=MRIwrite(mritmp,tmpstr);
+  if(err) exit(1);
+  MRIfree(&mritmp);
 
   printf("Freeing X\n");
   MatrixFree(&gtm->X);
