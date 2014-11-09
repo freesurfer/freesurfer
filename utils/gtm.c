@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/04 20:46:16 $
- *    $Revision: 1.23 $
+ *    $Date: 2014/11/09 23:46:16 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2297,3 +2297,53 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
 
   return(pvc);
 }
+
+/*
+  \fn MRI int GTMttPercent(GTM *gtm)
+  \brief Computes the percent of each tissue type contributing to
+   each segmentation.
+*/
+int GTMttPercent(GTM *gtm)
+{
+  int nTT,k,s,c,r,segid,nthseg,mthseg,mthsegid,tt;
+  double sum;
+
+  nTT = gtm->ttpvf->nframes;
+  if(gtm->ttpct != NULL) MatrixFree(&gtm->ttpct);
+  gtm->ttpct = MatrixAlloc(gtm->nsegs,nTT,MATRIX_REAL);
+
+  // Must be done in same order as GTMbuildX()
+  k = 0;
+  for(s=0; s < gtm->yvol->depth; s++){
+    for(c=0; c < gtm->yvol->width; c++){
+      for(r=0; r < gtm->yvol->height; r++){
+	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
+	segid = MRIgetVoxVal(gtm->gtmseg,c,r,s,0);
+	k++; //have to do this here
+	if(segid == 0) continue;
+	for(nthseg = 0; nthseg < gtm->nsegs; nthseg++)
+	  if(segid == gtm->segidlist[nthseg]) break;
+	for(mthseg = 0; mthseg < gtm->nsegs; mthseg++){
+	  mthsegid = gtm->segidlist[mthseg];
+	  tt = gtm->ctGTMSeg->entries[mthsegid]->TissueType;
+	  //printf("k=%d, segid = %d, nthseg = %d, mthsegid = %d, mthseg = %d, tt=%d\n",
+	  // k,segid,nthseg,mthsegid,mthseg,tt);
+	  fflush(stdout);
+	  gtm->ttpct->rptr[nthseg+1][tt] += //not tt+1
+	    (gtm->X->rptr[k][mthseg+1] * gtm->beta->rptr[mthseg+1][1]);
+	}
+      }
+    }
+  }
+  
+  for(nthseg = 0; nthseg < gtm->nsegs; nthseg++){
+    sum = 0;
+    for(tt=0; tt < nTT; tt++) sum += gtm->ttpct->rptr[nthseg+1][tt+1]; //yes, tt+1
+    for(tt=0; tt < nTT; tt++) 
+      gtm->ttpct->rptr[nthseg+1][tt+1] = 100*gtm->ttpct->rptr[nthseg+1][tt+1]/sum;
+  }
+
+  return(0);
+}
+
+
