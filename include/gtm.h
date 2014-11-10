@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/10/07 15:30:42 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/11/10 03:00:27 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,6 +114,7 @@ typedef struct
   int nReplace , SrcReplace[1000], TrgReplace[1000]; // for replacing segs
   MATRIX *vrf;  // variance reduction factor for each seg
   MATRIX *segrvar; // residual variance in each seg
+  MATRIX *ttpct; // percent of the signal in each seg from each tt
 
   // GLM stuff for GTM
   MATRIX *X,*X0;
@@ -211,5 +212,6 @@ int GTMrefTAC(GTM *gtm);
 int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax);
 int WriteVRFStats(char *fname, GTM *gtm);
 MRI **GTMlocal(GTM *gtm, MRI **pvc);
+int GTMttPercent(GTM *gtm);
 
 #endif
