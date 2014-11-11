@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/10/07 15:29:50 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/11/11 18:41:51 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1252,5 +1252,125 @@ MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r)
   MRIfree(&segtt);
   return(r);
 }
+
+/*!
+  \fn SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm)
+  \brief Computes the volume of non-brain voxels with in threshmm of a
+  given brain tissue segmentation. ctab is used to determine which seg
+  numbers are brain and non-brain. If ctab is NULL, then the default
+  is used. A SEGSTAT table is returned. The mean intensity field
+  contains the volume of the actual segmentation for a given structure
+  so as to compare against other measures as a double check. Can use
+  PrintSegStat(fp, segstat). Note that a single non-brain voxel may
+  be counted multiple times.
+*/
+SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm)
+{
+  int c,r,s,cB,rB,sB,nthseg, segno, segnoB, FreeCTab;
+  int *segnolist, *count, *segcount, nsegs;
+  double threshvox, d2, dc2, dr2, dc, dr, ds, voxsize,threshmm2;
+  int cBmin,cBmax,rBmin,rBmax,sBmin,sBmax;
+  SEGSTAT *segstat;
+  MRI *hitmap;
+
+  FreeCTab = 0;
+  if(ctab == NULL){
+    ctab = TissueTypeSchema(NULL,"default-jan-2014+head");
+    FreeCTab = 1;
+  }
+
+  segnolist = MRIsegIdListNot0(seg, &nsegs, 0);
+  count = (int *) calloc(nsegs,sizeof(int));
+  segcount = (int *) calloc(nsegs,sizeof(int));
+
+  threshmm2 = threshmm*threshmm; // distance threshold squared
+
+  // for the cube bounding box
+  threshvox = ceil(threshmm/(MIN(MIN(seg->xsize,seg->ysize),seg->zsize))); 
+
+  voxsize = seg->xsize*seg->ysize*seg->zsize;
+  printf("threshmm = %g, threshvox = %lf voxsize = %lf\n",threshmm,threshvox,voxsize);
+
+  hitmap = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_UCHAR,nsegs);
+  MRIcopyHeader(seg,hitmap);
+  MRIcopyPulseParameters(seg,hitmap);
+
+  // Go through each source segmentation voxel
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	segno = MRIgetVoxVal(seg,c,r,s,0);
+	if(segno == 0) continue;
+
+	// If the source voxel is not Ctx, SubCtxGM, or WM, skip
+	if(ctab->entries[segno]->TissueType > 3) continue;
+
+	// Get the nthseg for this segno
+	for(nthseg=0; nthseg < nsegs; nthseg++) if(segno == segnolist[nthseg]) break;
+	segcount[nthseg]++;
+
+	// cube around the CRS source voxel
+	cBmin = nint(MAX(0,c-threshvox));
+	cBmax = nint(MIN(c+threshvox,seg->width-1));
+	rBmin = nint(MAX(0,r-threshvox));
+	rBmax = nint(MIN(r+threshvox,seg->height-1));
+	sBmin = nint(MAX(0,s-threshvox));
+	sBmax = nint(MIN(s+threshvox,seg->depth-1));
+
+	// Loop through the cube 
+	for(cB=cBmin; cB < cBmax; cB++){
+	  dc = seg->xsize*(c-cB);
+	  dc2 = (dc*dc);
+	  for(rB=rBmin; rB < rBmax; rB++){
+	    dr = seg->ysize*(r-rB);
+	    dr2 = (dr*dr);
+	    for(sB=sBmin; sB < sBmax; sB++){
+	      segnoB = MRIgetVoxVal(seg,cB,rB,sB,0);
+	      // Only consider target voxels that are NOT Ctx, SubCtxGM, or WM
+	      if(ctab->entries[segnoB]->TissueType <= 3) continue; 
+	      // Skip if this voxel has already been counted for this segno
+	      if(MRIgetVoxVal(hitmap,cB,rB,sB,nthseg) > 0.5) continue;
+	      // Compute distance-squared from source to target
+	      ds = seg->zsize*(s-sB);
+	      d2 = dc2 + dr2 + ds*ds;
+	      if(d2 > threshmm2) continue;
+	      count[nthseg]++;
+	      MRIsetVoxVal(hitmap,cB,rB,sB,nthseg,1); // mark as hit
+	    } // sB
+	  } // rB
+	} // cB
+
+      } //s
+    } //r
+  } //c
+
+  // This can be used to verify
+  //MRIwrite(hitmap,"hitmap.mgh");
+
+  segstat = (SEGSTAT *) calloc(sizeof(SEGSTAT),1);
+  segstat->nentries = nsegs;
+  segstat->entry = (STATSUMENTRY *) calloc(sizeof(STATSUMENTRY),nsegs);
+  segstat->UseName = 1;
+  segstat->IsSurf = 0;
+  segstat->DoIntensity = 1;
+  segstat->InIntensityName = "NonBrainVol";
+  segstat->InIntensityUnits = "mm3";
+  for(nthseg=0; nthseg < nsegs; nthseg++) {
+    segno = segnolist[nthseg];
+    //printf("%3d %4d %d %-25s %5d\n",nthseg,segno,ctab->entries[segno]->TissueType,ctab->entries[segno]->name,count[nthseg]);
+    sprintf(segstat->entry[nthseg].name,"%s",ctab->entries[segno]->name);
+    segstat->entry[nthseg].id = segno;
+    segstat->entry[nthseg].nhits = count[nthseg];
+    segstat->entry[nthseg].vol = count[nthseg]*voxsize;
+    segstat->entry[nthseg].mean = segcount[nthseg]*voxsize;
+  }
+
+  MRIfree(&hitmap);
+  free(segnolist);
+  if(FreeCTab) CTABfree(&ctab);
+  return(segstat);
+}
+
+
 
 /* eof */

@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/28 21:11:27 $
- *    $Revision: 1.73 $
+ *    $Date: 2014/11/11 18:41:51 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,9 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
+#include "stats.h"
+#include "mri2.h"
 
 /*
  * colors for these labels defined in distribution/FreeSurferColorLUT.txt
@@ -634,6 +637,8 @@ MRI *MRIseg2TissueType(MRI *seg, COLOR_TABLE *ct, MRI *tt);
 int CheckSegTissueType(MRI *seg, COLOR_TABLE *ct);
 MRI *MRIextractTissueTypeSeg(MRI *seg, COLOR_TABLE *ct, int tt, MRI *ttseg);
 MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r);
+SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm);
+
 #if defined(__cplusplus)
 };
 #endif
