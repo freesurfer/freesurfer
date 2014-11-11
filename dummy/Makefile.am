@@ -20,7 +20,7 @@
 # After confirming everything working:
 # 7. checkin yourdir/Makefile.am, yourdir/yourprog.c or cpp.  
 #    (Don't checkin Makefile or Makefile.in.)
-# 8. checkin dev/configure.in, dev/Makefile.am
+# 8. commit dev/configure.in, dev/Makefile.am
 #
 # 9. lastly, delete this help text from your own Makefile.am!
 #
