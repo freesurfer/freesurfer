@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.109 2014/05/08 19:59:47 greve Exp $
+% $Id: fast_selxavg3.m,v 1.110 2014/11/11 18:42:45 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2014/05/08 19:59:47 $
-%    $Revision: 1.109 $
+%    $Date: 2014/11/11 18:42:45 $
+%    $Revision: 1.110 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.109 2014/05/08 19:59:47 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.110 2014/11/11 18:42:45 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.109 2014/05/08 19:59:47 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.110 2014/11/11 18:42:45 greve Exp $';
 
 % remove non-mask when analyzing. This does not change the results
 % at all, it just prevents the processing of voxels that are
@@ -294,7 +294,7 @@ for nthouter = outer_runlist
 
   tmpxfile = sprintf('%s/Xtmp.mat',outanadir);
   fprintf('Saving X matrix to %s\n',tmpxfile);
-  save(tmpxfile,'X','flac','Xsss','Xn','XtX');
+  save(tmpxfile,'X','flac','Xsss','Xn','XtX','runflac');
 
   XCond = cond(XtX);
   fprintf('XCond = %g (normalized)\n',XCond);
