@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/11 18:55:51 $
- *    $Revision: 1.23 $
+ *    $Date: 2014/11/11 19:38:46 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include "error.h"
 #include "mrisutils.h"
 #include "fio.h"
+#include "gtm.h"
 
 /* see ch notebook 2 */
 
@@ -1252,6 +1253,52 @@ MRI **MRIdilateSegWithinTT(MRI *seg, int nDils, COLOR_TABLE *ct, MRI **r)
   MRIfree(&segtt);
   return(r);
 }
+
+/*!
+  \fn int Seg2NbrNonBrainWrapper(char *subject, char *segname, char *ctab, char *statname, double threshmm)
+  \brief Wrapper around Seg2NbrNonBrain() that operates on the FS directory structure and performs
+  GTMdefaultSegReplacmentList(). Writes out stats.
+*/
+int Seg2NbrNonBrainWrapper(char *subject, char *segname, COLOR_TABLE *ctab, char *statname, double threshmm)
+{
+  char *SUBJECTS_DIR, tmpstr[2000];
+  MRI *seg, *mritmp;
+  int nReplace , SrcReplace[1000], TrgReplace[1000];
+  SEGSTAT *segstat;
+  FILE *fp;
+
+  printf("Seg2NbrNonBrainWrapper()  %s %s %s %g\n",subject, segname, statname,threshmm);
+  fflush(stdout);
+
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  SUBJECTS_DIR = "/autofs/cluster/con_009/users/greve/fdg-pvc/FSMR";
+
+  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,segname);
+  seg = MRIread(tmpstr);
+  if(seg == NULL) exit(1);
+
+  printf("Replacing\n");  fflush(stdout);
+  GTMdefaultSegReplacmentList(&nReplace,&SrcReplace[0],&TrgReplace[0]);
+  mritmp = MRIreplaceList(seg, SrcReplace, TrgReplace, nReplace, NULL, NULL);
+  MRIfree(&seg);
+  seg = mritmp;
+
+  printf("Computing stats\n");  fflush(stdout);
+  segstat = Seg2NbrNonBrain(seg, ctab, 3);
+
+  sprintf(tmpstr,"%s/%s/stats/%s",SUBJECTS_DIR,subject,statname);
+  fp = fopen(tmpstr,"w");
+  fprintf(fp,"# Non-brain tissue volume near each segmentation\n");
+  fprintf(fp,"# Seg2NbrNonBrainWrapper()  %s %s %s %g\n",subject, segname, statname,threshmm);
+  fprintf(fp,"# seg voxsize  %g %g %g\n",seg->xsize,seg->ysize,seg->zsize);
+  PrintSegStat(fp, segstat);
+  fclose(fp);
+
+  MRIfree(&seg);
+
+  return(0);
+}
+
 
 /*!
   \fn SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm)
