@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/11 18:41:51 $
- *    $Revision: 1.22 $
+ *    $Date: 2014/11/11 18:55:51 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1353,7 +1353,7 @@ SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm)
   segstat->UseName = 1;
   segstat->IsSurf = 0;
   segstat->DoIntensity = 1;
-  segstat->InIntensityName = "NonBrainVol";
+  segstat->InIntensityName = "SegVolInBrain";
   segstat->InIntensityUnits = "mm3";
   for(nthseg=0; nthseg < nsegs; nthseg++) {
     segno = segnolist[nthseg];
