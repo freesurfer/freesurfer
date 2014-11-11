@@ -5,9 +5,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.11 $
+ *    $Author: greve $
+ *    $Date: 2014/11/11 18:40:47 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,6 +24,10 @@
 
 #ifndef xxVoxl_H
 #define xxVoxl_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "xTypes.h"
 
@@ -53,28 +57,28 @@ char xVoxl_IsEqualFloat ( xVoxelRef ipVox1, xVoxelRef ipVox2 );
 
 #ifndef XVOXL_USE_MACROS
 
-void xVoxl_Set      ( xVoxelRef this,   int x,   int y,   int z );
-void xVoxl_SetFloat ( xVoxelRef this, float x, float y, float z );
+void xVoxl_Set      ( xVoxelRef ThisKRT,   int x,   int y,   int z );
+void xVoxl_SetFloat ( xVoxelRef ThisKRT, float x, float y, float z );
 
-void xVoxl_SetX ( xVoxelRef this, int x );
-void xVoxl_SetY ( xVoxelRef this, int y );
-void xVoxl_SetZ ( xVoxelRef this, int z );
+void xVoxl_SetX ( xVoxelRef ThisKRT, int x );
+void xVoxl_SetY ( xVoxelRef ThisKRT, int y );
+void xVoxl_SetZ ( xVoxelRef ThisKRT, int z );
 
-void xVoxl_SetFloatX ( xVoxelRef this, float x );
-void xVoxl_SetFloatY ( xVoxelRef this, float y );
-void xVoxl_SetFloatZ ( xVoxelRef this, float z );
+void xVoxl_SetFloatX ( xVoxelRef ThisKRT, float x );
+void xVoxl_SetFloatY ( xVoxelRef ThisKRT, float y );
+void xVoxl_SetFloatZ ( xVoxelRef ThisKRT, float z );
 
-int xVoxl_GetX ( xVoxelRef this );
-int xVoxl_GetY ( xVoxelRef this );
-int xVoxl_GetZ ( xVoxelRef this );
+int xVoxl_GetX ( xVoxelRef ThisKRT );
+int xVoxl_GetY ( xVoxelRef ThisKRT );
+int xVoxl_GetZ ( xVoxelRef ThisKRT );
 
-int xVoxl_GetRoundX ( xVoxelRef this );
-int xVoxl_GetRoundY ( xVoxelRef this );
-int xVoxl_GetRoundZ ( xVoxelRef this );
+int xVoxl_GetRoundX ( xVoxelRef ThisKRT );
+int xVoxl_GetRoundY ( xVoxelRef ThisKRT );
+int xVoxl_GetRoundZ ( xVoxelRef ThisKRT );
 
-float xVoxl_GetFloatX ( xVoxelRef this );
-float xVoxl_GetFloatY ( xVoxelRef this );
-float xVoxl_GetFloatZ ( xVoxelRef this );
+float xVoxl_GetFloatX ( xVoxelRef ThisKRT );
+float xVoxl_GetFloatY ( xVoxelRef ThisKRT );
+float xVoxl_GetFloatZ ( xVoxelRef ThisKRT );
 
 #else /* macros versions */
 
@@ -117,31 +121,34 @@ after the macro call. */
 
 #endif /* end of macro versions */
 
-tBoolean xVoxl_IncrementUntilLimit          ( xVoxelRef this,
+tBoolean xVoxl_IncrementUntilLimit          ( xVoxelRef ThisKRT,
     float      inLimit );
-tBoolean xVoxl_IncrementWithMinUntilLimit   ( xVoxelRef this,
+tBoolean xVoxl_IncrementWithMinUntilLimit   ( xVoxelRef ThisKRT,
     float     inMin,
     float     inLimit );
-tBoolean xVoxl_IncrementUntilLimits         ( xVoxelRef this,
+tBoolean xVoxl_IncrementUntilLimits         ( xVoxelRef ThisKRT,
     float     inXLimit,
     float     inYLimit,
     float     inZLimit );
-tBoolean xVoxl_IncrementWithMinsUntilLimits  ( xVoxelRef this,
+tBoolean xVoxl_IncrementWithMinsUntilLimits  ( xVoxelRef ThisKRT,
     float     inXMin,
     float     inYMin,
     float     inXLimit,
     float     inYLimit,
     float     inZLimit );
 
-int xVoxl_ExpandToIndex ( xVoxelRef this, int inDimensionX, int inDimensionY );
+int xVoxl_ExpandToIndex ( xVoxelRef ThisKRT, int inDimensionX, int inDimensionY );
 
-void xVoxl_PrintDebug ( xVoxelRef  this );
+void xVoxl_PrintDebug ( xVoxelRef  ThisKRT );
 
 /* easy way to expand the voxel struct into x/y/z coords */
 #define xVoxl_ExpandFloat(v) xVoxl_GetFloatX(v), xVoxl_GetFloatY(v), xVoxl_GetFloatZ(v)
 #define xVoxl_ExpandInt(v)   xVoxl_GetX(v),      xVoxl_GetY(v),      xVoxl_GetZ(v)
 #define xVoxl_ExpandRint(v)   (int)rint(xVoxl_GetX(v)), (int)rint(xVoxl_GetY(v)), (int)rint(xVoxl_GetZ(v))
 
+#if defined(__cplusplus)
+};
+#endif
 
 
 #endif
