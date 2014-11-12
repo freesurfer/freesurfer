@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/10/01 16:53:30 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/11/12 21:36:05 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -284,7 +284,7 @@ void DialogTransformVolume::OnSaveReg()
   }
 
   QString filename = QFileDialog::getSaveFileName(this, "Save Registration",
-                     QFileInfo( layer_mri->GetFileName() ).absolutePath(),
+                     QFileInfo( layer_mri->GetRegFileName() ).absoluteFilePath(),
                      "LTA files (*.lta);;All files (*)");
   if ( !filename.isEmpty() )
   {

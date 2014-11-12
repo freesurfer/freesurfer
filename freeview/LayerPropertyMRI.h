@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:22 $
- *    $Revision: 1.16 $
+ *    $Date: 2014/11/12 21:36:06 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -347,6 +347,11 @@ public:
     return m_bAutoAdjustFrameLevel;
   }
 
+  bool GetHeatScaleAutoMid()
+  {
+    return m_bHeatScaleAutoMid;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -389,6 +394,7 @@ public slots:
   }
 
   void SetAutoAdjustFrameLevel(bool b);
+  void SetHeatScaleAutoMid(bool bAutoMid);
 
 signals:
   void ColorMapChanged();
@@ -444,6 +450,7 @@ private:
   bool    m_bHeatScaleClearHigh;
   bool    m_bHeatScaleTruncate;
   bool    m_bHeatScaleInvert;
+  bool    m_bHeatScaleAutoMid;
 
   double  mMinGenericThreshold;
   double  mMaxGenericThreshold;

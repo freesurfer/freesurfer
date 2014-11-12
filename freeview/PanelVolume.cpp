@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:22 $
- *    $Revision: 1.96 $
+ *    $Date: 2014/11/12 21:36:06 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,6 +83,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
                         << ui->lineEditOffset
                         << ui->checkBoxClearHigher
                         << ui->checkBoxTruncate
+                        << ui->checkBoxSetMidToMin
                         << ui->checkBoxInvert
                         << ui->labelMid
                         << ui->labelOffset;
@@ -244,6 +245,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(UpdateWidgets()));
   connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearZero(bool)) );
   connect( ui->checkBoxClearHigher, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleClearHigh(bool)) );
+  connect( ui->checkBoxSetMidToMin, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleAutoMid(bool)));
   connect( ui->checkBoxTruncate, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleTruncate(bool)) );
   connect( ui->checkBoxInvert, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleInvert(bool)) );
   connect( ui->checkBoxShowOutline, SIGNAL(toggled(bool)), p, SLOT(SetShowLabelOutline(bool)) );
@@ -402,6 +404,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxClearHigher->setChecked( layer->GetProperty()->GetHeatScaleClearHigh() );
     ui->checkBoxTruncate->setChecked( layer->GetProperty()->GetHeatScaleTruncate() );
     ui->checkBoxInvert->setChecked( layer->GetProperty()->GetHeatScaleInvert() );
+    ui->checkBoxSetMidToMin->setChecked( layer->GetProperty()->GetHeatScaleAutoMid());
 
     ui->comboBoxColorMap->clear();
     ui->comboBoxColorMap->addItem( "Grayscale", LayerPropertyMRI::Grayscale );
@@ -612,6 +615,13 @@ void PanelVolume::DoUpdateWidgets()
       }
       UpdateColorLabel();
     }
+  }
+  if (layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::Heat)
+  {
+    bool bAutoMid = layer->GetProperty()->GetHeatScaleAutoMid();
+    ui->labelMid->setEnabled(!bAutoMid);
+    ui->sliderMid->setEnabled(!bAutoMid);
+    ui->lineEditMid->setEnabled(!bAutoMid);
   }
 
   UpdateTrackVolumeThreshold();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:21 $
- *    $Revision: 1.97 $
+ *    $Date: 2014/11/12 21:36:06 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,7 +53,6 @@
 extern "C"
 {
 #include "registerio.h"
-#include "transform.h"
 #include "utils.h"
 #include "macros.h"
 #include "mrisegment.h"
@@ -83,7 +82,8 @@ FSVolume::FSVolume( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_histoCDF( NULL ),
   m_nHistoFrame(0),
   m_bValidHistogram(false),
-  m_bSharedMRI(false)
+  m_bSharedMRI(false),
+  m_lta(NULL)
 {
   m_imageData = NULL;
   if ( ref )
@@ -137,6 +137,11 @@ FSVolume::~FSVolume()
   if (m_histoCDF)
   {
     ::HISTOfree(&m_histoCDF);
+  }
+
+  if (m_lta)
+  {
+    ::LTAfree(&m_lta);
   }
 }
 
@@ -309,7 +314,7 @@ bool FSVolume::Restore( const QString& filename, const QString& reg_filename )
   }
 }
 
-MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, MRI *src)
+MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, MRI *src, LTA** lta_out)
 {
   QString ext = QFileInfo( filename ).suffix();
   MATRIX* matReg = NULL;
@@ -395,6 +400,10 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
     // Assume RAS2RAS and uses vox2ras from input volumes:
     // Note: This ignores the volume geometry in the LTA file.
     matReg = MRItkRegMtx( target, src, lta->xforms[0].m_L );
+    if (lta_out)
+    {
+      *lta_out = LTAcopy(lta, NULL);
+    }
     TransformFree( &FSXform );
   }
 
@@ -408,7 +417,7 @@ bool FSVolume::LoadRegistrationMatrix( const QString& filename )
   {
     ::MatrixFree( &m_matReg );
   }
-  m_matReg = LoadRegistrationMatrix(filename, m_MRIRef, m_MRI);
+  m_matReg = LoadRegistrationMatrix(filename, m_MRIRef, m_MRI, &m_lta);
   return (m_matReg != NULL);
 }
 
@@ -627,18 +636,52 @@ bool FSVolume::SaveRegistration( const QString& filename )
   {
     *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
   }
-  MATRIX* voxel_xform = MRIrasXformToVoxelXform( m_MRI, NULL, m, NULL );
+
   LINEAR_TRANSFORM *lt;
   VOL_GEOM srcG, dstG;
-  LTA* lta = LTAalloc(1, NULL) ;
-  lt = &lta->xforms[0];
-  lt->sigma = 1.0f ;
-  lt->x0 = lt->y0 = lt->z0 = 0;
-  lta->type = LINEAR_VOX_TO_VOX;
-  lt->m_L = voxel_xform;
+  LTA* lta;
+
+  if (m_matReg)
+  {
+    MATRIX* reg = NULL;
+    if (m_MRIRef)
+    {
+      LTA* temp = TransformRegDat2LTA(m_MRIRef, m_MRI, m_matReg);
+      temp = LTAchangeType(temp, LINEAR_RAS_TO_RAS);
+      reg = MatrixCopy(temp->xforms[0].m_L, NULL);
+      LTAfree(&temp);
+    }
+    else
+      reg = MatrixCopy(m_matReg, NULL);
+    MATRIX* inv_reg = MatrixInverse(reg, NULL);
+    MATRIX* md = MatrixMultiply(m, inv_reg, NULL);
+    MatrixFree(&m);
+    MatrixFree(&inv_reg);
+    MatrixFree(&reg);
+    m = md;
+  }
+
+  if (m_lta)
+  {
+    lta = LTAcopy(m_lta, NULL);
+    lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+    lt = &lta->xforms[0];
+    lt->m_L = m;
+  }
+  else
+  {
+    MATRIX* voxel_xform = MRIrasXformToVoxelXform( m_MRI, m_MRIRef, m, NULL );
+    lta = LTAalloc(1, NULL);
+    lt = &lta->xforms[0];
+    lt->sigma = 1.0f ;
+    lt->x0 = lt->y0 = lt->z0 = 0;
+    lta->type = LINEAR_VOX_TO_VOX;
+    lt->m_L = voxel_xform;
+    MatrixFree(&m);
+  }
 
   getVolGeom( m_MRI, &srcG );
-  getVolGeom( m_MRI, &dstG );
+  getVolGeom( m_MRIRef, &dstG );
   lta->xforms[0].src = srcG;
   lta->xforms[0].dst = dstG;
 

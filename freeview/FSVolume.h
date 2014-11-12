@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:21 $
- *    $Revision: 1.44 $
+ *    $Date: 2014/11/12 21:36:06 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,6 +38,7 @@ extern "C"
 #include "mri.h"
 #include "histo.h"
 #include "colortab.h"
+#include "transform.h"
 }
 
 class vtkTransform;
@@ -191,7 +192,7 @@ public:
     m_bCropToOriginal = bCrop;
   }
 
-  static MATRIX* LoadRegistrationMatrix(const QString &filename, MRI* target, MRI* src);
+  static MATRIX* LoadRegistrationMatrix(const QString &filename, MRI* target, MRI* src, LTA** lta_out = NULL);
 
   double GetHistoValueFromPercentile(double percentile, int frame = 0);
 
@@ -233,6 +234,7 @@ protected:
   MRI*      m_MRIRef;         // reference target space, can also serve as the registration target. header only
   MRI*      m_MRIOrigTarget;  // orignal target space, header only
   MRI*      m_MRITemp;        // temp mri for saving
+  LTA*      m_lta;
   MATRIX*   m_matReg;
   COLOR_TABLE*  m_ctabEmbedded;
   HISTOGRAM*    m_histoCDF;

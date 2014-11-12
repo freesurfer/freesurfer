@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/04 18:12:43 $
- *    $Revision: 1.291 $
+ *    $Date: 2014/11/12 21:36:06 $
+ *    $Revision: 1.292 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -737,11 +737,11 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   if ( parser->Found( "viewport", &sa ) )
   {
     QString strg = sa[0].toLower();
-    if ( strg == "sagittal" || strg == "x" )
+    if ( strg == "sagittal" || strg == "sag" || strg == "x" )
     {
       SetMainView( MV_Sagittal );
     }
-    else if ( strg == "coronal" || strg == "y" )
+    else if ( strg == "coronal" ||  strg == "cor" || strg == "y" )
     {
       SetMainView( MV_Coronal );
     }
@@ -756,7 +756,7 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     else
     {
       std::cerr << "Unrecognized viewport name '" << qPrintable(sa[0]) << "'.\n";
-      return false;
+    //  return false;
     }
   }
   if (parser->Found("timecourse"))
@@ -4293,7 +4293,7 @@ void MainWindow::LoadVolumeFile( const QString& filename,
   layer->SetFileName( fullpath );
   if ( !reg_filename.isEmpty() )
   {
-    layer->SetRegFileName( QFileInfo( QDir(fi.canonicalPath()), reg_filename ).absoluteFilePath() );
+    layer->SetRegFileName( QFileInfo( reg_filename ).absoluteFilePath() );
   }
 
   if ( !bResample && reg_filename.isEmpty())
@@ -5652,13 +5652,20 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
     case LayerPropertyMRI::Heat:
       if ( scales.size() >= 3 )
       {
+        p->SetHeatScaleAutoMid(false);
         p->SetHeatScaleMinThreshold( scales[0] );
         p->SetHeatScaleMidThreshold( scales[1] );
         p->SetHeatScaleMaxThreshold( scales[2] );
       }
+      else if ( scales.size() == 2 )
+      {
+        p->SetHeatScaleAutoMid(true);
+        p->SetHeatScaleMinThreshold( scales[0] );
+        p->SetHeatScaleMaxThreshold( scales[1] );
+      }
       else if ( !scales.empty() )
       {
-        cerr << "Need 3 values for heatscale.\n";
+        cerr << "Need 2 or 3 values for heatscale.\n";
       }
       break;
     case LayerPropertyMRI::LUT:
@@ -5688,8 +5695,7 @@ void MainWindow::OnTransformVolume()
 {
   if ( !m_dlgTransformVolume->isVisible() )
   {
-    QMessageBox::warning( this, "Warning",
-                          "Transformation can only apply to volumes for now. If your data includes ROI/Surface/Way Points, please do not use this feature yet.");
+    cout << "Warning: Transformation can only apply to volumes for now. If your data includes ROI/Surface/Way Points, please do not use this feature yet.\n";
     m_dlgTransformVolume->show();
     m_dlgTransformVolume->UpdateUI();
   }

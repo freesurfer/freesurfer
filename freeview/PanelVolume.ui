@@ -28,7 +28,7 @@
      <x>0</x>
      <y>0</y>
      <width>311</width>
-     <height>1675</height>
+     <height>1702</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -561,7 +561,7 @@
           </property>
          </spacer>
         </item>
-        <item row="3" column="0" colspan="2">
+        <item row="4" column="0" colspan="2">
          <widget class="QCheckBox" name="checkBoxClearBackground">
           <property name="text">
            <string>Clear background</string>
@@ -575,7 +575,7 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="0" colspan="2">
+        <item row="3" column="0" colspan="2">
          <widget class="QCheckBox" name="checkBoxClearHigher">
           <property name="text">
            <string>Clear higher values</string>
@@ -586,6 +586,13 @@
          <widget class="QCheckBox" name="checkBoxPercentile">
           <property name="text">
            <string>Use percentile</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0" colspan="2">
+         <widget class="QCheckBox" name="checkBoxSetMidToMin">
+          <property name="text">
+           <string>Set Mid to Min</string>
           </property>
          </widget>
         </item>
@@ -1270,7 +1277,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>155</x>
-     <y>1287</y>
+     <y>1314</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1318,7 +1325,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>149</x>
-     <y>991</y>
+     <y>1018</y>
     </hint>
     <hint type="destinationlabel">
      <x>37</x>
@@ -1558,7 +1565,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1352</y>
+     <y>1379</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1574,7 +1581,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1395</y>
+     <y>1422</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1590,7 +1597,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1515</y>
+     <y>1542</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1606,7 +1613,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1352</y>
+     <y>1379</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1622,7 +1629,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1395</y>
+     <y>1422</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1638,7 +1645,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1515</y>
+     <y>1542</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1654,7 +1661,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>308</x>
-     <y>1352</y>
+     <y>1379</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1670,7 +1677,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>308</x>
-     <y>1400</y>
+     <y>1427</y>
     </hint>
     <hint type="destinationlabel">
      <x>288</x>
@@ -1686,7 +1693,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>308</x>
-     <y>1520</y>
+     <y>1547</y>
     </hint>
     <hint type="destinationlabel">
      <x>68</x>
@@ -1702,7 +1709,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>199</x>
-     <y>1602</y>
+     <y>1629</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1766,7 +1773,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1232</y>
+     <y>1259</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1782,7 +1789,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>308</x>
-     <y>1227</y>
+     <y>1254</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1798,7 +1805,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>242</x>
-     <y>1232</y>
+     <y>1259</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1830,11 +1837,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>47</x>
-     <y>1611</y>
+     <y>1638</y>
     </hint>
     <hint type="destinationlabel">
      <x>46</x>
-     <y>1260</y>
+     <y>1287</y>
     </hint>
    </hints>
   </connection>
@@ -1846,11 +1853,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>93</x>
-     <y>1611</y>
+     <y>1638</y>
     </hint>
     <hint type="destinationlabel">
      <x>91</x>
-     <y>1287</y>
+     <y>1314</y>
     </hint>
    </hints>
   </connection>
@@ -1862,11 +1869,11 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>69</x>
-     <y>1287</y>
+     <y>1314</y>
     </hint>
     <hint type="destinationlabel">
      <x>71</x>
-     <y>1611</y>
+     <y>1638</y>
     </hint>
    </hints>
   </connection>
@@ -1878,7 +1885,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>167</x>
-     <y>1000</y>
+     <y>1027</y>
     </hint>
     <hint type="destinationlabel">
      <x>325</x>
@@ -1894,7 +1901,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>309</x>
-     <y>1315</y>
+     <y>1342</y>
     </hint>
     <hint type="destinationlabel">
      <x>-122</x>
@@ -1910,7 +1917,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>179</x>
-     <y>1433</y>
+     <y>1460</y>
     </hint>
     <hint type="destinationlabel">
      <x>-88</x>
@@ -1926,7 +1933,7 @@ of each frame</string>
    <hints>
     <hint type="sourcelabel">
      <x>245</x>
-     <y>1433</y>
+     <y>1460</y>
     </hint>
     <hint type="destinationlabel">
      <x>-51</x>
@@ -1993,7 +2000,7 @@ of each frame</string>
      <y>428</y>
     </hint>
     <hint type="destinationlabel">
-     <x>121</x>
+     <x>181</x>
      <y>460</y>
     </hint>
    </hints>
@@ -2009,8 +2016,8 @@ of each frame</string>
      <y>427</y>
     </hint>
     <hint type="destinationlabel">
-     <x>63</x>
-     <y>453</y>
+     <x>143</x>
+     <y>454</y>
     </hint>
    </hints>
   </connection>
@@ -2027,6 +2034,54 @@ of each frame</string>
     <hint type="destinationlabel">
      <x>394</x>
      <y>455</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxSetMidToMin</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelMid</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>123</x>
+     <y>918</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>23</x>
+     <y>778</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxSetMidToMin</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>sliderMid</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>160</x>
+     <y>916</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>155</x>
+     <y>777</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxSetMidToMin</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditMid</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>195</x>
+     <y>917</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>271</x>
+     <y>781</y>
     </hint>
    </hints>
   </connection>

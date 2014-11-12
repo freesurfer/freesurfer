@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:21 $
- *    $Revision: 1.151 $
+ *    $Date: 2014/11/12 21:36:06 $
+ *    $Revision: 1.152 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -257,8 +257,8 @@ bool LayerMRI::LoadVolumeFromFile( )
   m_volumeSource->SetConform( m_bConform );
   m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
 
-  if ( !m_volumeSource->MRIRead(  m_sFilename.toAscii().data(),
-                                  m_sRegFilename.size() > 0 ? m_sRegFilename.toAscii().data() : NULL ) )
+  if ( !m_volumeSource->MRIRead( m_sFilename.toAscii().data(),
+                                 m_sRegFilename.size() > 0 ? m_sRegFilename.toAscii().data() : NULL ) )
   {
     return false;
   }
@@ -3077,16 +3077,21 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
   {
     vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
     threshold->ThresholdBetween(th_low, th_high);
-    if (src->GetImageData()->GetNumberOfScalarComponents() > 1)
+    vtkImageData* image = src->GetImageData();
+    if (m_imageDataBackup.GetPointer() && src == this)
+    {
+      image = m_imageDataBackup;
+    }
+    if (image->GetNumberOfScalarComponents() > 1)
     {
       vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
-      extract->SetInput(src->GetImageData());
+      extract->SetInput(image);
       extract->SetComponents(src_frame);
       threshold->SetInput(extract->GetOutput());
     }
     else
     {
-      threshold->SetInput(src->GetImageData());
+      threshold->SetInput(image);
     }
     threshold->SetOutputScalarTypeToChar();
     threshold->SetInValue(1.0);
@@ -3101,6 +3106,7 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
     char* target_ptr = (char*)target_image->GetScalarPointer();
     int nFrames = target_image->GetNumberOfScalarComponents();
     int nBytes = target_image->GetScalarSize();
+    char* backup_ptr = (char*)m_imageDataBackup->GetScalarPointer();
     for (int i = 0; i < dim[0]; i++)
     {
       for (int j = 0; j < dim[1]; j++)
@@ -3108,8 +3114,11 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
         for (int k = 0; k < dim[2]; k++)
         {
           int n = k*dim[0]*dim[1] + j*dim[0] + i;
+          int offset = (n*nFrames+frame)*nBytes;
           if (src_ptr[n] < 1)
-            memset(target_ptr + (n*nFrames+frame)*nBytes, 0, nBytes);
+            memset(target_ptr + offset, 0, nBytes);
+          else
+            memcpy(target_ptr + offset, backup_ptr + offset, nBytes);
         }
       }
     }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/02 19:28:32 $
- *    $Revision: 1.68 $
+ *    $Date: 2014/11/12 21:36:06 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -487,6 +487,7 @@ void RenderView2D::ZoomAtCursor( int nX, int nY, double factor )
   Update2DOverlay();
   UpdateAnnotation();
   RequestRedraw();
+  EmitZooming();
 }
 
 void RenderView2D::resizeEvent(QResizeEvent *event)

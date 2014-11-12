@@ -440,6 +440,7 @@
    <addaction name="separator"/>
    <addaction name="actionResetView"/>
    <addaction name="separator"/>
+   <addaction name="actionToggleAllSurfaces"/>
    <addaction name="actionShowCoordinateAnnotation"/>
    <addaction name="actionShowColorScale"/>
    <addaction name="actionTimeCourse"/>
@@ -1412,6 +1413,10 @@
    </property>
   </action>
   <action name="actionToggleAllSurfaces">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/surface.png</normaloff>:/resource/icons/surface.png</iconset>
+   </property>
    <property name="text">
     <string>Toggle All Surfaces</string>
    </property>

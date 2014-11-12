@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:21 $
- *    $Revision: 1.28 $
+ *    $Date: 2014/11/12 21:36:06 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,7 +94,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bUsePercentile(false),
   m_bAutoAdjustFrameLevel(false),
   m_bNormalizeVector(true),
-  m_dVectorDisplayScale(1.0)
+  m_dVectorDisplayScale(1.0),
+  m_bHeatScaleAutoMid(false)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -1014,6 +1015,17 @@ void LayerPropertyMRI::SetMaxGrayscaleWindow ( double iMax )
   }
 }
 
+void LayerPropertyMRI::SetHeatScaleAutoMid(bool bAutoMid)
+{
+  if (bAutoMid != m_bHeatScaleAutoMid)
+  {
+    m_bHeatScaleAutoMid = bAutoMid;
+    if (bAutoMid)
+      mHeatScaleMidThreshold = mHeatScaleMinThreshold;
+    this->OnColorMapChanged();
+  }
+}
+
 void LayerPropertyMRI::SetHeatScaleMinThreshold ( double iValue )
 {
   double HeatScaleMinThreshold = mHeatScaleMinThreshold;
@@ -1035,8 +1047,10 @@ void LayerPropertyMRI::SetHeatScaleMinThreshold ( double iValue )
     {
       mHeatScaleMinThreshold = iValue;
     }
-    this->OnColorMapChanged();
   }
+  if (m_bHeatScaleAutoMid)
+    mHeatScaleMidThreshold = mHeatScaleMinThreshold;
+  this->OnColorMapChanged();
 }
 
 double LayerPropertyMRI::GetHeatScaleMinThreshold ()
@@ -1391,6 +1405,8 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   highestAbsValue = qMax( fabs(mMinVoxelValue), fabs(mMaxVoxelValue) );
   oneTenth = highestAbsValue / 10.0;
   mHeatScaleMinThreshold = mMinGrayscaleWindow;
+  if (mHeatScaleMinThreshold < 0)
+    mHeatScaleMinThreshold = 0;
   mHeatScaleMidThreshold = highestAbsValue / 2.0;
   mHeatScaleMaxThreshold = highestAbsValue - oneTenth;
 
