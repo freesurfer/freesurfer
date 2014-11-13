@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/12/21 19:09:18 $
- *    $Revision: 1.52 $
+ *    $Date: 2014/11/13 19:37:17 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
   ---------------------------------------------------------------*/
 const char *vclustSrcVersion(void)
 {
-  return("$Id: volcluster.c,v 1.52 2011/12/21 19:09:18 greve Exp $");
+  return("$Id: volcluster.c,v 1.53 2014/11/13 19:37:17 greve Exp $");
 }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
@@ -830,15 +830,12 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
                           MATRIX *FSA2Func)
 {
   LABEL *label;
-  MATRIX *CRS2Func, *Func2CRS, *Func2FSA;
+  MATRIX *CRS2Func,*Func2FSA;
   MATRIX *xyzFunc, *xyzFSA;
-  int n,nlabel;
-  float xc, yc, zc, x, y, z, val;
+  int n;
+  float  val;
 
-  /* Compute the Cluster XYZ in Functional FOV space */
-  Func2CRS = FOVQuantMatrix(vol->width, vol->height, vol->depth,
-                            colres, rowres, sliceres);
-  CRS2Func = MatrixInverse(Func2CRS,NULL);
+  CRS2Func = MRIxfmCRS2XYZtkreg(vol);
   clustComputeXYZ(vc,CRS2Func);
 
   /* Matrix to convert from volume to anatomical */
@@ -849,69 +846,31 @@ LABEL *clustCluster2Label(VOLCLUSTER *vc, MRI *vol, int frame,
   xyzFunc->rptr[4][1] = 1;
   xyzFSA = MatrixAlloc(4, 1, MATRIX_REAL);
 
-  /* First pass: count the number in the label */
-  nlabel = 0;
-  for (n = 0; n < vc->nmembers; n++)
-  {
-    xc = vc->x[n];
-    yc = vc->y[n];
-    zc = vc->z[n];
-    /* go through functional space in incr of 1 mm */
-    for (x = xc - colres/2;   x <= xc + colres/2;  x += 1.0)
-    {
-      for (y = yc - sliceres/2; y <= yc + sliceres/2; y += 1.0)
-      {
-        for (z = zc - rowres/2;   z <= zc + rowres/2;   z += 1.0)
-        {
-          nlabel ++;
-        }
-      }
-    }
-  }
-  printf("INFO: nlabel = %d\n",nlabel);
-
   /* Alloc the label */
-  label = LabelAlloc(nlabel,NULL,NULL);
+  label = LabelAlloc(vc->nmembers,NULL,NULL);
 
-  /* Second pass: assign label values */
-  nlabel = 0;
-  for (n = 0; n < vc->nmembers; n++)
-  {
-    xc = vc->x[n];
-    yc = vc->y[n];
-    zc = vc->z[n];
+  /* Assign label values */
+  for (n = 0; n < vc->nmembers; n++){
     val = MRIgetVoxVal(vol,vc->col[n],vc->row[n],vc->slc[n],frame);
 
-    /* go through functional space in incr of 1 mm */
-    for (x = xc - colres/2; x <= xc + colres/2; x += 1.0)
-    {
-      for (y = yc - sliceres/2; y <= yc + sliceres/2; y += 1.0)
-      {
-        for (z = zc - rowres/2; z <= zc + rowres/2; z += 1.0)
-        {
+    /* convert Functional XYZ FSA XYZ */
+    xyzFunc->rptr[1][1] = vc->x[n];
+    xyzFunc->rptr[2][1] = vc->y[n];
+    xyzFunc->rptr[3][1] = vc->z[n];
+    MatrixMultiply(Func2FSA,xyzFunc,xyzFSA);
 
-          /* convert Functional XYZ FSA XYZ */
-          xyzFunc->rptr[1][1] = x;
-          xyzFunc->rptr[2][1] = y;
-          xyzFunc->rptr[3][1] = z;
-          MatrixMultiply(Func2FSA,xyzFunc,xyzFSA);
-
-          /* assign fields to label */
-          label->lv[nlabel].x = rint(xyzFSA->rptr[1][1]);
-          label->lv[nlabel].y = rint(xyzFSA->rptr[2][1]);
-          label->lv[nlabel].z = rint(xyzFSA->rptr[3][1]);
-          label->lv[nlabel].stat   = val;
-          nlabel ++;
-        }
-      }
-    }
+    /* assign fields to label */
+    label->lv[n].x = rint(xyzFSA->rptr[1][1]);
+    label->lv[n].y = rint(xyzFSA->rptr[2][1]);
+    label->lv[n].z = rint(xyzFSA->rptr[3][1]);
+    label->lv[n].stat   = val;
+    label->lv[n].vno = -1;
   }
-  label->n_points = nlabel;
+  label->n_points = vc->nmembers;
 
   MatrixFree(&xyzFunc);
   MatrixFree(&xyzFSA);
   MatrixFree(&Func2FSA);
-  MatrixFree(&Func2CRS);
   MatrixFree(&CRS2Func);
 
   return(label);
