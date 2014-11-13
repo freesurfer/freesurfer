@@ -57,5 +57,30 @@ int main ()
    
    // print interpolated results:
    std::cout << " Ynew : "; for (int i = 0;i<N;i++) std::cout << " " << ynew[i] ;std::cout << std::endl;
+   
+   
+   // NOW test array interface:
+   double* yarr = (double*)malloc( N*sizeof(double));
+   memcpy(yarr,arr,N*sizeof(double));
+   double* xarr = (double*)malloc( N*sizeof(double));
+   memcpy(xarr,&x[0], N*sizeof(double));
+   double* xnewarr = (double*)malloc( N*sizeof(double));
+   memcpy(xnewarr,&xnew[0], N*sizeof(double));
+   double *ynewarr = (double*)malloc(N*sizeof(double));
+
+   Spline3 S2;
+   S2.preCacheX(N,xarr);
+   S2.preCacheXnew(N,xnewarr); // could be different length M
+   S2.interp(N,yarr); // using cached x
+   // Then evaluate at xnew location
+   // note, y needs to be passed again, as it is not
+   // cached in interp above.   
+   ynewarr = S.eval(N,yarr,ynewarr);  // using cached xnew, ynewarr needs to be same length as xnewarr
+   
+   // print interpolated results:
+   std::cout << " Ynewarr : "; for (int i = 0;i<N;i++) std::cout << " " << ynewarr[i] ;std::cout << std::endl;
+   
+   // free everything, but here we just quit
+     
    return 0;
 }

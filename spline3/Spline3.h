@@ -16,6 +16,8 @@
 #include <vector>
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
+#include <cassert>
 
 /** \class Spline3
  * \brief A simple class representing cubic splines
@@ -43,22 +45,28 @@ public:
       
   //! Construct a cubic spline from x and y data in a single step
   void interp( const std::vector <double > & x , const std::vector <double > & y );
+  void interp( unsigned int N, const double x[] , const double y[] );
 
   //! Cache everything related to x knots
   void preCacheX( const std::vector <double > & x );
+  void preCacheX( unsigned int N, const double x[] );
   
   //! Construct a cubic spline from y (x information needs to be cached before)
   void interp( const std::vector <double > & y );
+  void interp( unsigned int N, const double y[] );
     
     
   //! Evaluate spline at locations in xnew in a single step
   const std::vector < double > & eval( const std::vector <double > & xnew , const std::vector <double > & yold );
+  double* eval( unsigned int M, const double xnew[] , unsigned int N, const double yold[], double ynew[]  );
 
   //! Cache everything related to xnew knots
   void preCacheXnew( const std::vector <double > & xnew );
+  void preCacheXnew( unsigned int M, const double xnew[] );
 
   //! Evaluate spline at locations in xnew (from cache)
   const std::vector < double > & eval( const std::vector <double > & yold );
+  double* eval( unsigned int N, const double yold[], double ynew[] );
   
   const std::vector < double > & getYPP(){return ypp;};
   
@@ -115,6 +123,11 @@ void Spline3::interp(const std::vector <double > & x , const std::vector <double
   preCacheX(x);
   interp(y);
 }
+void Spline3::interp( unsigned int N, const double x[] , const double y[] )
+{
+  preCacheX(N,x);
+  interp(N,y);
+}
 
 /** Function to Cache everything that depends on x. This also
     creates a copy of x (as it is needed later and we have time here)
@@ -122,12 +135,12 @@ void Spline3::interp(const std::vector <double > & x , const std::vector <double
 void Spline3::preCacheX(const std::vector <double > & x)
 {
   n = x.size();
-  xc = x;
   if (n<3)
   {
     std::cerr << "Spline3 ERROR: we need at least 3 knots" << std::endl;
     exit(1); 
   }
+  xc = x;
   computeHi(x);
   computeM(x);
   cacheMi();
@@ -138,7 +151,28 @@ void Spline3::preCacheX(const std::vector <double > & x)
   yd.resize(n-1);
   ydhi.resize(n-1);
 }
- 
+
+void Spline3::preCacheX( unsigned int N, const double x[] )
+{
+  n = N;
+  if (n<3)
+  {
+    std::cerr << "Spline3 ERROR: we need at least 3 knots" << std::endl;
+    exit(1); 
+  }
+  // copy x
+  xc.resize(N);
+  memcpy( &xc[0], x, N );
+  computeHi(xc);
+  computeM(xc);
+  cacheMi();
+
+  // allocate space for b (right hand side) and ypp (second derivatives)
+  b.resize(n);
+  ypp.resize(n);
+  yd.resize(n-1);
+  ydhi.resize(n-1);
+} 
 
 /** Interpolates the cubic spline into x and y (by computing the Ypp). 
     preCacheX(x) needs to be called beforehand!
@@ -147,6 +181,26 @@ void Spline3::preCacheX(const std::vector <double > & x)
     later for eval) as this function is time sensitive. */
 void Spline3::interp( const std::vector <double > & y )
 {
+  assert(y.size() == n);
+  //bcond: spline quadratic in first and last interval
+  b[0]   = 0.0;
+  b[n-1] = 0.0;
+  // avoid re-computation of stuff
+  yd[0] = y[1] - y[0];
+  ydhi[0] = yd[0] * hi[0];
+  for (unsigned int i = 1; i<n-1;i++)
+  {
+    yd[i]   = y[i+1] - y[i];
+    ydhi[i] = yd[i] * hi[i]; 
+    b[i]    = ydhi[i] - ydhi[i-1];
+  }
+  
+  // now we should have Mi (from cache) and b, time to compute ypp:
+  computeYpp();
+}
+void Spline3::interp( unsigned int N, const double y[] )
+{
+  assert(n==N);
   //bcond: spline quadratic in first and last interval
   b[0]   = 0.0;
   b[n-1] = 0.0;
@@ -172,6 +226,12 @@ const std::vector <double> & Spline3::eval( const std::vector < double > & xnew 
   preCacheXnew(xnew);
   return eval(yold);
 }
+double* Spline3::eval( unsigned int M, const double xnew[] , unsigned int N, const double yold[], double ynew[] )
+{
+  preCacheXnew(M,xnew);
+  return eval(N,yold,ynew);
+}
+
 
 /** Caches everything related to xnew (the values used for the
     spline evaluation). It specifically sets m (size of xnew)
@@ -199,6 +259,28 @@ void Spline3::preCacheXnew( const std::vector < double > & xnew )
   }  
   ynew.resize(m);
 }
+void Spline3::preCacheXnew( unsigned int M, const double xnew[] )
+{
+  m = M;
+  intervals.resize(m);
+  d.resize(m); 
+  unsigned int i,j;
+  for ( j = 0; j< m; j++)
+  {
+    // determine intervals
+    intervals[j] = n-2;
+    for ( i = 0; i < n-1; i++ )
+    {
+      if ( xnew[j] < xc[i+1] )
+      {
+        intervals[j] = i;
+        break;
+      }
+    }    
+    d[j] = xnew[j] - xc[intervals[j]];
+  }  
+  ynew.resize(m);
+}
 
 /** Evaluates the spline at the xnew locations (preCacheXnew has
     to be called before and the spline needs to be constructed 
@@ -207,6 +289,34 @@ void Spline3::preCacheXnew( const std::vector < double > & xnew )
     Derivatives can easily be computed here (but are not!). */
 const std::vector <double> & Spline3::eval( const std::vector < double > & yold )
 {
+  for (unsigned int j = 0; j< m; j++)
+  {
+    unsigned int & ival = intervals[j];
+    double & dval = d[j];
+    double & hval = h[ival];
+    //double & hival = hi[ival];
+    double & ydhiival = ydhi[ival];
+    
+    ynew[j] = yold[ival]
+      + dval * ( ydhiival
+             - ( ypp[ival+1] / 6.0 + ypp[ival] / 3.0 ) * hval
+      + dval * ( 0.5 * ypp[ival]
+      + dval * ( ( ypp[ival+1] - ypp[ival] ) / ( 6.0 * hval ) ) ) );
+  
+  // Derivatives could be computed like this:
+//  yx = ( ydhiival
+//    - ( ypp[ival+1] / 6.0 + ypp[ival] / 3.0 ) * hval
+//    + dval * ( ypp[ival]
+//    + dval * ( 0.5 * ( ypp[ival+1] - ypp[ival] ) * hival ) );
+//
+//  yxx = ypp[ival] + dval * ( ypp[ival+1] - ypp[ival] ) * hival;
+  }
+  return ynew;
+}
+
+double*  Spline3::eval( unsigned int N, const double yold[], double ynew[] )
+{
+  if (ynew == NULL) ynew = (double*)malloc(m*sizeof(double));
   for (unsigned int j = 0; j< m; j++)
   {
     unsigned int & ival = intervals[j];
