@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/10/23 17:18:06 $
- *    $Revision: 1.470 $
+ *    $Author: mreuter $
+ *    $Date: 2014/11/13 19:49:09 $
+ *    $Revision: 1.471 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -493,6 +493,8 @@ MRI *MRIconvolve1dFloat(MRI *mri_src, MRI *mri_dst,
                         float *k, int len, int axis,
                         int src_frame, int dst_frame);
 MRI   *MRIconvolve1dShort(MRI *mri_src, MRI *mri_dst, float *k, int len,
+                          int axis, int src_frame, int dst_frame) ;
+MRI   *MRIconvolve1dInt(MRI *mri_src, MRI *mri_dst, float *k, int len,
                           int axis, int src_frame, int dst_frame) ;
 MRI   *MRIconvolve1dByte(MRI *mri_src, MRI *mri_dst, float *k, int len,
                          int axis, int src_frame, int dst_frame) ;
@@ -1389,6 +1391,7 @@ int MRIorientationStringToDircos(MRI *mri, char *ostr);
 char *MRIcheckOrientationString(char *ostr);
 char *MRIsliceDirectionName(MRI *mri);
 MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
+MRI *MRIconformSliceOrder(MRI *mri);
 
 /* different modes for distance transform - signed
    (<0 in interior) unsigned from border, or
