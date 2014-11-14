@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/01/30 21:57:01 $
- *    $Revision: 1.87 $
+ *    $Date: 2014/11/14 02:53:50 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -725,7 +725,7 @@ void Registration::computeMultiresRegistration(int stopres, int n, double epsit)
   if (debug)
   {
     cout << " Debug: writing inital MOV resampled to DST ..." << endl;
-    vnl_matlab_print(vcl_cerr,md.first,"Minit",vnl_matlab_print_format_long);
+    vnl_matlab_print(vcl_cout,md.first,"Minit",vnl_matlab_print_format_long);
     cout << endl;
     MRI * mri_tmp = MRIclone(mriT, NULL); // bring to same space as target (output after resampling)
     mri_tmp = MyMRI::MRIlinearTransform(mriS, mri_tmp, md.first);
@@ -750,7 +750,6 @@ void Registration::computeMultiresRegistration(int stopres, int n, double epsit)
   if (gpT.size() == 0)
     gpT = buildGPLimits(mriT, limits);
   assert(gpS.size() == gpT.size());
-
   if (gpT[0]->width < MINS || gpT[0]->height < MINS
       || (gpT[0]->depth < MINS && gpT[0]->depth != 1))
   {
@@ -3026,6 +3025,7 @@ vector<MRI*> Registration::buildGPLimits(MRI * mri_in,
   }
 
   //cout << " w[0]: " << p[0]->width << endl;
+  p[0]->outside_val = mri_in->outside_val;
   int j = 1;
   for (; i < limits.second; i++)
   {
@@ -3033,6 +3033,7 @@ vector<MRI*> Registration::buildGPLimits(MRI * mri_in,
     mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel);
     //p[j] = MRIdownsample2(mri_tmp,NULL);
     p[j] = MRIdownsample2BSpline(mri_tmp, NULL);
+    p[j]->outside_val = mri_in->outside_val;
     MRIfree(&mri_tmp);
     mri_tmp = p[j];
     j++;
@@ -3120,6 +3121,7 @@ vector<MRI*> Registration::buildGaussianPyramid(MRI * mri_in, int min, int max)
   }
   cout << " downsample2 " << endl;
   //cout << " w[0]: " << p[0]->width << endl;
+  p[0]->outside_val = mri_in->outside_val;
   int i;
   for (i = 1; i < n; i++)
   {
@@ -3130,6 +3132,7 @@ vector<MRI*> Registration::buildGaussianPyramid(MRI * mri_in, int min, int max)
     mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel);
     //p[i] = MRIdownsample2(mri_tmp,NULL);
     p[i] = MyMRI::subSample(mri_tmp, NULL, true);
+    p[i]->outside_val = mri_in->outside_val;
     //p[i] = MRIdownsample2BSpline(mri_tmp, NULL);
     MRIfree(&mri_tmp);
     mri_tmp = p[i];
@@ -3844,6 +3847,25 @@ void Registration::setSourceAndTarget(MRI * s, MRI * t, bool keeptype)
     //mri_target = MRIcopy(t,NULL);
   }
   
+  // set outside value to background:
+  float bgvals = MyMRI::getBackground(mri_source);
+  float bgvalt = MyMRI::getBackground(mri_target);
+  //cout << "    - checkBackground: outside val " << mri_source->outside_val << " src, " << mri_target->outside_val << " trg" << endl;
+  //cout << "          suspected background val " << bgvals << " src, " << bgvalt << " trg" << endl;
+  //MRIwrite(mri_source,"test.mgz");
+  if (bgvals != mri_source->outside_val)
+  {
+    cout << "    - warn: src mri outside_val = " << mri_source->outside_val << "  but suspected background: " << bgvals << endl;     
+    cout << "    - updating outside value..." << endl;
+    mri_source->outside_val = bgvals;
+  }
+  if (bgvalt != mri_target->outside_val)
+  {
+    cout << "    - warn: trg mri outside_val = " << mri_target->outside_val << "  but suspected background: " << bgvalt << endl;     
+    cout << "    - updating outside value..." << endl;
+    mri_target->outside_val = bgvalt;
+  }  
+
 //  // flip and reorder axis of source based on RAS alignment or ixform:
 //  // this ensures that vox2vox rot is small and dimensions agree 
 //  // important for gaussian pyramid
@@ -4564,6 +4586,8 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double, 4, 4>& M,
     MyMRI::MRIvalscale(mri_Swarp, mri_Swarp, si);
     MyMRI::MRIvalscale(mri_Twarp, mri_Twarp, 1.0 / si);
   }
+  mri_Swarp->outside_val = mriS->outside_val;
+  mri_Twarp->outside_val = mriT->outside_val;
 
 }
 
