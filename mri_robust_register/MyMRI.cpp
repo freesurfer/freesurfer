@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/01/27 21:56:18 $
- *    $Revision: 1.26 $
+ *    $Date: 2014/11/14 02:21:45 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -567,6 +567,47 @@ MRI * MyMRI::gaussianCube(int size)
         MRIsetVoxVal(g, x, y, z, 0, MRIgetVoxVal(g, x, y, z, 0) / (float) sum);
 
   return g;
+}
+
+
+float MyMRI::getBackground(MRI * mri)
+// simple approach : count min and max values
+// this will fail if background is gray
+{
+  float minval = MRIgetVoxVal (mri,0,0,0,0);
+  float maxval = minval;
+  int w,h,d;
+  for (d = 0; d<mri->depth; d++)
+  {
+    for (h = 0; h<mri->height; h++)
+    {
+      for (w = 0; w<mri->width; w++)
+      {
+         const float & val = MRIgetVoxVal (mri, w, h, d,0);
+         if (val > maxval) maxval = val;
+         if (val < minval) minval = val;
+      }
+    }
+  }
+
+  int mins = 0;
+  int maxs = 0;
+  float eps = (maxval-minval)/255.0;
+  for (d = 0; d<mri->depth; d++)
+  {
+    for (h = 0; h<mri->height; h++)
+    {
+      for (w = 0; w<mri->width; w++)
+      {
+         const float & val = MRIgetVoxVal (mri, w, h, d,0);
+         if (maxval-val<eps) maxs++;
+         if (val-minval<eps) mins++;
+      }
+    }
+  }
+  if (mins > maxs) return minval;
+  else return maxval;
+  
 }
 
 double MyMRI::entropyPatch(MRI * mri, int x, int y, int z, int radius,

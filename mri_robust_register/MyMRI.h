@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/03/06 16:24:35 $
- *    $Revision: 1.16 $
+ *    $Date: 2014/11/14 02:21:45 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -89,6 +89,9 @@ public:
 
   //! Get (next) random number (uniform 0..1)
   static double getRand(int & randpos);
+  
+  //! Get background intensity (vox val with largest level set)
+  static float getBackground(MRI * mri);
 
 private:
   static MRI * getPrefilter();
