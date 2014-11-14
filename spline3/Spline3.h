@@ -162,7 +162,7 @@ void Spline3::preCacheX( unsigned int N, const double x[] )
   }
   // copy x
   xc.resize(N);
-  memcpy( &xc[0], x, N );
+  memcpy( &xc[0], x, N*sizeof(double) );
   computeHi(xc);
   computeM(xc);
   cacheMi();

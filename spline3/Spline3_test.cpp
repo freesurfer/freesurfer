@@ -75,7 +75,7 @@ int main ()
    // Then evaluate at xnew location
    // note, y needs to be passed again, as it is not
    // cached in interp above.   
-   ynewarr = S.eval(N,yarr,ynewarr);  // using cached xnew, ynewarr needs to be same length as xnewarr
+   ynewarr = S2.eval(N,yarr,ynewarr);  // using cached xnew, ynewarr needs to be same length as xnewarr
    
    // print interpolated results:
    std::cout << " Ynewarr : "; for (int i = 0;i<N;i++) std::cout << " " << ynewarr[i] ;std::cout << std::endl;
