@@ -211,6 +211,7 @@ spmmat2register \
 spm_t_to_b \
 spmregister \
 sratio \
+stattablediff \
 subject_info.py \
 surfreg \
 pctsurfcon\
