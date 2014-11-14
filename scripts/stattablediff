@@ -1,0 +1,239 @@
+#!/usr/bin/python
+import sys;
+import os;
+import string;
+from numpy  import *;
+
+#---------------------------------------------------------
+def print_help():
+  print "USAGE: stattablediff - creates a table of the differences between two tables";
+  print "  --t1 table1 : input table 1 (output of asegstats2table or aparcstats2table)";
+  print "  --t2 table2 : input table 2 (output of asegstats2table or aparcstats2table)";
+  print "  --o  tablediff : output file";
+  print "  --percent compute percent diff with respect to mean of tables";
+  print "  --percent1 compute percent diff with respect to table1";
+  print "  --percent2 compute percent diff with respect to table2";
+  print "  --mul mulval : multiply by mulval";
+  print "  --div divval : divide by divval";
+  print "  --debug : print out debugging info";
+  return 0;
+#end def print_help:
+
+#---------------------------------------------------------
+def argnerr(narg,flag):
+  print "ERROR: flag %s requires %d arguments" % (flag,narg);
+  sys.exit(1);
+#end def parse_args(argv)
+
+#---------------------------------------------------------
+def parse_args(argv):
+  global table1;
+  global table2;
+  global tablediff;
+  global debug;
+  global DoPercent;
+  global MulVal;
+  global DivVal;
+
+  del argv[0]; # get past program name (like shift)
+
+  while(len(argv) != 0):
+    flag = argv[0];
+    del argv[0];
+    if(debug): print "flag = %s" % flag;
+    if(flag == "--t1"):
+      if(len(argv) < 1): argnerr(1,flag);
+      table1 = argv[0]; del argv[0];
+    elif(flag == "--t2"):
+      if(len(argv) < 1): argnerr(1,flag);
+      table2 = argv[0]; del argv[0];
+    elif(flag == "--o"):
+      if(len(argv) < 1): argnerr(1,flag);
+      tablediff = argv[0]; del argv[0];
+    elif(flag == "--mul"):
+      if(len(argv) < 1): argnerr(1,flag);
+      MulVal = float(argv[0]); del argv[0];
+    elif(flag == "--div"):
+      if(len(argv) < 1): argnerr(1,flag);
+      DivVal = float(argv[0]); del argv[0];
+    elif(flag == "--percent1"):
+      DoPercent = 1;
+    elif(flag == "--percent2"):
+      DoPercent = 2;
+    elif(flag == "--percent"):
+      DoPercent = 3;
+    elif(flag == "--debug"):
+      debug = 1;
+    else:
+      print "ERROR: flag %s not recognized" % flag; 
+      sys.exit(1);
+    #endif
+  #endwhile
+  return 0;
+
+#end def parse_args(argv)
+
+#---------------------------------------------------------
+def isflag(arg):
+  if(len(arg) < 3): return 0;
+  if(arg[0] == "-" and arg[1] == "-"): return 1;
+  return 0;
+# end def isflag(arg)
+
+#---------------------------------------------------------
+def check_args():
+  global table1;
+  global table2;
+  global tablediff;
+
+  if(len(table1) == 0):
+    print "ERROR: table1 needed";
+    sys.exit(1);
+  #endif    
+  if(len(table2) == 0):
+    print "ERROR: table2 needed";
+    sys.exit(1);
+  #endif    
+  if(len(tablediff) == 0):
+    print "ERROR: output needed";
+    sys.exit(1);
+  #endif    
+
+  return 0;
+#end check_args()
+
+#-----------------------------------------------------------
+# ------ main -----------------------------------------------
+#-----------------------------------------------------------
+
+debug = 0;
+table1=();
+table2=();
+tablediff=();
+DoPercent = 0;
+MulVal = 1;
+DivVal = 1;
+
+nargs = len(sys.argv) - 1;
+if(nargs == 0):
+  print_help();
+  sys.exit(0);
+#end
+parse_args(sys.argv);
+check_args();
+
+# Count number of rows, cols in table 1
+try:
+  fp = open(table1, 'r');
+except:
+  print "ERROR: opening %s" % (table1);
+  sys.exit(1);
+#endtry
+header1 = fp.readline();
+collist1 = header1.split();
+del collist1[0]; # remove Measure:xxx
+ncols1 = len(collist1);
+nrows1 = 0;
+for line in fp:
+  nrows1 = nrows1 + 1;
+#endfor
+fp.close;
+
+# Count number of rows, cols in table 2
+try:
+  fp = open(table2, 'r');
+except:
+  print "ERROR: opening %s" % (table2);
+  sys.exit(1);
+#endtry
+fp = open(table2, 'r');
+header2 = fp.readline();
+collist2 = header2.split();
+del collist2[0]; # remove Measure:xxx
+ncols2 = len(collist2);
+nrows2 = 0;
+for line in fp:
+  nrows2 = nrows2 + 1;
+#endfor
+fp.close;
+
+if(debug):
+  print "nrows1 %d, ncols1 %d" % (nrows1,ncols1);
+  print "nrows2 %d, ncols2 %d" % (nrows2,ncols2);
+#endif
+
+if(nrows1 != nrows2):
+  print "ERROR: rows are not equal %d %d" % (nrows1,nrows2);
+  sys.exit(0);
+#end
+if(ncols1 != ncols2):
+  print "ERROR: cols are not equal %d %d" % (ncols1,ncols2);
+  sys.exit(0);
+#end
+
+# Read in table 1
+subjlist1 = [];
+m1 = zeros((nrows1,ncols1));
+fp = open(table1, 'r');
+header = fp.readline();
+row = 0;
+for line in fp:
+  linesplit = line.split();
+  subjlist1.append(linesplit[0]);
+  del linesplit[0];
+  col = 0;
+  for v in linesplit:
+    m1[row][col] = float(v);
+    col = col + 1;
+  #endfor
+  row = row + 1;
+#endfor
+fp.close;
+
+# Read in table 2
+subjlist2 = [];
+m2 = zeros((nrows2,ncols2));
+fp = open(table2, 'r');
+header = fp.readline();
+row = 0;
+for line in fp:
+  linesplit = line.split();
+  subjlist2.append(linesplit[0]);
+  del linesplit[0];
+  col = 0;
+  for v in linesplit:
+    m2[row][col] = float(v);
+    col = col + 1;
+  #endfor
+  row = row + 1;
+#endfor
+fp.close;
+
+mdiff = (m1-m2)*MulVal/DivVal;
+if(DoPercent):
+  if(DoPercent==1):   den = m1;
+  elif(DoPercent==2): den = m2;
+  else:               den = ((m1+m2)/2);
+  mdiff = 100*mdiff/den;
+#end
+
+fp = open(tablediff,'w');
+fp.write(header);
+for row in range(0, nrows1):
+  fp.write("%s " % subjlist1[row]);
+  for col in range(0, ncols1):
+    fp.write("%f " % mdiff[row,col]);
+  #end
+  fp.write("\n");
+#end
+fp.close;
+
+print "stattablediff done";
+sys.exit(0);
+#-------------------------------------------------#
+
+
+
+
+
+
