@@ -215,6 +215,9 @@ if(DoPercent):
   elif(DoPercent==2): den = m2;
   else:               den = ((m1+m2)/2);
   mdiff = 100*mdiff/den;
+  # set elemnts to 0 where den=0
+  a = transpose(nonzero(den==0));
+  mdiff[a[:,0],a[:,1]] = 0;
 #end
 
 fp = open(tablediff,'w');
