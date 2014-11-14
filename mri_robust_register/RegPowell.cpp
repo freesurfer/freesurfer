@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/02/04 20:53:06 $
- *    $Revision: 1.21 $
+ *    $Date: 2014/11/14 17:36:15 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -331,7 +331,8 @@ void RegPowell::computeIterativeRegistration(int nmax, double epsit, MRI * mriS,
     }
     is2d = true;
   }
-
+  
+  double outsideval = mriS->outside_val;
   bool cleanupS = true;
   if (mriS->type != MRI_UCHAR)
   {
@@ -349,8 +350,10 @@ void RegPowell::computeIterativeRegistration(int nmax, double epsit, MRI * mriS,
   else
     mriS = MRIcopy(mriS, NULL);
   MyMRI::MRInorm255(mriS, mriS);
+  mriS->outside_val = outsideval;
 
   bool cleanupT = true;
+  outsideval = mriT->outside_val;
   if (mriT->type != MRI_UCHAR)
   {
     int no_scale_flag = FALSE;
@@ -368,6 +371,7 @@ void RegPowell::computeIterativeRegistration(int nmax, double epsit, MRI * mriS,
   else
     mriT = MRIcopy(mriT, NULL);
   MyMRI::MRInorm255(mriT, mriT);
+  mriT->outside_val = outsideval;
 
   tocurrent = this; // so that we can access this from static cost function
   //rtype = 2;
@@ -508,7 +512,8 @@ void RegPowell::computeIterativeRegistration(int nmax, double epsit, MRI * mriS,
 
   if (iscale)
   {
-    p[pcount - 1] = iscaleinit; // or are the images already pre-scaled????
+//    p[pcount - 1] = iscaleinit; // or are the images already pre-scaled????
+    p[pcount - 1] = fmd.second; // or are the images already pre-scaled????
     xi[pcount - 1][pcount - 1] = 20 * 0.001;
   }
 
@@ -554,7 +559,7 @@ void RegPowell::computeIterativeRegistration(int nmax, double epsit, MRI * mriS,
     cout << " iter: " << minimizer.get_num_iterations() << endl;
     cout << " final e = " << setprecision(14) << minimizer.get_end_error()
         << endl;
-    vnl_matlab_print(vcl_cerr,p,"p",vnl_matlab_print_format_long);
+    vnl_matlab_print(vcl_cout,p,"p",vnl_matlab_print_format_long);
     cout << endl;
   }
 

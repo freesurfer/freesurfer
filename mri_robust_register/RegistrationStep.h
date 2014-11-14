@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/14 02:53:50 $
- *    $Revision: 1.27 $
+ *    $Date: 2014/11/14 17:36:16 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -174,6 +174,7 @@ std::pair<vnl_matrix_fixed<double, 4, 4>, double> RegistrationStep<T>::computeRe
     cerr<< "ERROR in RegistrationStep: no transform specified ..." << endl;
     exit(1);
   }
+
   vnl_matrix<T> A;
   vnl_vector<T> b;
 
@@ -525,8 +526,8 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
         << fx->depth << " x " << fx->nframes << " = " << n << std::flush;
   long int counti = 0;
   double eps = 0.00001;
-  double oepss = mriS->outside_val/255.0;
-  double oepst = mriT->outside_val/255.0;
+  double oepss = eps+mriS->outside_val/255.0;
+  double oepst = eps+mriT->outside_val/255.0;
   int fxd = fx->depth;
   int fxw = fx->width;
   int fxh = fx->height;
@@ -537,7 +538,6 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
   float fzval = eps/2.0;
   int dx, dy, dz;
   int randpos = 0;
-  //cout << " mris outside: " << mriS->outside_val << " mrit outside: " << mriT->outside_val << endl;
   for (z = fxstart; z < fxd; z++)
     for (x = fxstart; x < fxw; x++)
       for (y = fxstart; y < fxh; y++)
@@ -570,7 +570,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
         assert(yp1 < mriS->height);
         assert(zp1 < mriS->depth);
 //        if ( MRIgetVoxVal(mriS,xp1,yp1,zp1,0) == mriS->outside_val || MRIgetVoxVal(mriT,xp1,yp1,zp1,0) == mriT->outside_val )
-        if ( fabs(MRIgetVoxVal(mriS,xp1,yp1,zp1,0)- mriS->outside_val) < oepss || fabs(MRIgetVoxVal(mriT,xp1,yp1,zp1,0)- mriT->outside_val)<oepst )
+        if ( fabs(MRIgetVoxVal(mriS,xp1,yp1,zp1,0)- mriS->outside_val) <= oepss || fabs(MRIgetVoxVal(mriT,xp1,yp1,zp1,0)- mriT->outside_val)<=oepst )
         {
           //std::cout << "voxel outside (" << xp1 << " " << yp1 << " " << zp1 << " )  mriS: " <<MRIFvox(mriS,xp1,yp1,zp1) << "  mriT: " << MRIFvox(mriT,xp1,yp1,zp1)  << "  ovalS: " << mriS->outside_val << "  ovalT: " << mriT->outside_val<< std::endl;
           ocount+=fxf; // will be outside in all frames then
@@ -720,12 +720,13 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
         assert(zp1 < mriS->depth);
         const float & mriSval = MRIgetVoxVal(mriS,xp1,yp1,zp1,0);
         const float & mriTval = MRIgetVoxVal(mriT,xp1,yp1,zp1,0);
+        
 //        if ( mriSval == mriS->outside_val || mriTval == mriT->outside_val )
-        if ( fabs(mriSval- mriS->outside_val) < oepss || fabs(mriTval- mriT->outside_val)<oepst )
+        if ( fabs(mriSval- mriS->outside_val) <= oepss || fabs(mriTval- mriT->outside_val)<=oepst )
         {
           //std::cout << "voxel outside (" << xp1 << " " << yp1 << " " << zp1 << " )  mriS: " <<MRIFvox(mriS,xp1,yp1,zp1) << "  mriT: " << MRIFvox(mriT,xp1,yp1,zp1)  << "  ovalS: " << mriS->outside_val << "  ovalT: " << mriT->outside_val<< std::endl;
           int outval = -4;
-          if (fabs(mriSval - mriS->outside_val)<oepss && fabs(mriTval- mriT->outside_val) < oepst )
+          if (fabs(mriSval - mriS->outside_val)<=oepss && fabs(mriTval- mriT->outside_val) <= oepst )
             outval = -5;
           for (f=0;f<fxf;f++)
             MRILseq_vox(mri_indexing, xp1, yp1, zp1,f) = outval;
@@ -914,7 +915,8 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT, vnl_matrix<T>& A,
     MRIfree(&fz);
   MRIfree(&ft);
   MRIfree(&SmT);
-
+//MRIwrite(mri_indexing,"mriindexing2.mgz");
+//exit(1);
   return;
 }
 

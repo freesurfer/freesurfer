@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/10/21 13:29:38 $
- *    $Revision: 1.5 $
+ *    $Date: 2014/11/14 17:36:15 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -193,7 +193,9 @@ void RegRobust::iterativeRegistrationHelper(int nmax, double epsit, MRI * mriS,
       MRIwrite(mri_Swarp, (name + "-mriS-hw.mgz").c_str());
       MRIwrite(mri_Twarp, (name + "-mriT-hw.mgz").c_str());
       char ch;
-      std::cout << "HW inputs written " << std::endl;
+      std::cout << "HW inputs written as" << std::endl;
+      std::cout << (name + "-mriS-hw.mgz") << std::endl;
+      std::cout << (name + "-mriT-hw.mgz") << std::endl;
       std::cout << "Press a key to run registration: ";
       std::cin >> ch;
     }
