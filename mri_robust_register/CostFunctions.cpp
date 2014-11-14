@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/02/04 22:56:53 $
- *    $Revision: 1.23 $
+ *    $Date: 2014/11/14 02:23:06 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -686,16 +686,19 @@ double CostFunctions::moment(MRI *i, int x, int y, int z)
 
 std::vector<double> CostFunctions::centroid(MRI *i)
 // M_100/M_000 , M_010/M_000 , M_001 / M_000
+// now ignore outside_vals in centroid computation (for white backgrounds)
 {
   //cout << "CostFunctions::centroid" << endl;
   std::vector<double> dd(3, 0.0);
   double n = 0;
   double val;
+  double eps = i->outside_val/255.0;
   for (int d = 0; d < i->depth; d++)
     for (int h = 0; h < i->height; h++)
       for (int w = 0; w < i->width; w++)
       {
         val = MRIgetVoxVal(i, w, h, d, 0);
+        if (fabs(val-i->outside_val) < eps) val = 0.0; // invisible
         n += val;
         dd[0] += (w + 1) * val;
         dd[1] += (h + 1) * val;
