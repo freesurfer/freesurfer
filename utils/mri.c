@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/10/18 21:21:12 $
- *    $Revision: 1.550 $
+ *    $Author: greve $
+ *    $Date: 2014/11/14 19:08:12 $
+ *    $Revision: 1.551 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.550 $";
+const char *MRI_C_VERSION = "$Revision: 1.551 $";
 
 
 /*-----------------------------------------------------
@@ -12459,88 +12459,31 @@ MRIconcatenateFrames(MRI *mri_frame1, MRI *mri_frame2, MRI *mri_dst)
 }
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-MRI *
-MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
+MRI *MRIcopyFrame(MRI *mri_src, MRI *mri_dst, int src_frame, int dst_frame)
 {
-  int       width, height, depth, y, z, bytes ;
-  BUFTYPE   *psrc, *pdst ;
+  int width, height, depth, x, y, z;
 
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
 
-  if (!mri_dst)
-    mri_dst =
-      MRIallocSequence(width, height, depth, mri_src->type, dst_frame+1) ;
-  if (!mri_dst)
-    ErrorExit(ERROR_NOMEMORY, "MRIcopyFrame: could not alloc dst") ;
+  if(!mri_dst){
+    mri_dst =  MRIallocSequence(width, height, depth, mri_src->type, dst_frame+1) ;
+    MRIcopyHeader(mri_src, mri_dst); // only copy header if needed
+    MRIcopyPulseParameters(mri_src, mri_dst) ;
+    if(!mri_dst)
+      ErrorExit(ERROR_NOMEMORY, "MRIcopyFrame: could not alloc dst") ;
+  }
 
-  if (dst_frame >= mri_dst->nframes)
-    ErrorReturn
-    (NULL,
-     (ERROR_BADPARM,
+  if(dst_frame >= mri_dst->nframes)
+    ErrorReturn(NULL,(ERROR_BADPARM,
       "MRIcopyFrame: dst frame #%d out of range (nframes=%d)\n",
       dst_frame, mri_dst->nframes)) ;
-  MRIcopyHeader(mri_src, mri_dst) ;
 
-  if (mri_src->type != mri_dst->type)
-  {
-    int x ;
-    for (z = 0 ; z < depth ; z++)
-      for (y = 0 ; y < height ; y++)
-	for (x = 0 ; x < width ; x++)
-	  MRIsetVoxVal(mri_dst, x, y, z, dst_frame, MRIgetVoxVal(mri_src, x, y, z, src_frame)) ;
-    return(mri_dst) ;
-  }
-
-  switch (mri_src->type)
-  {
-  case MRI_UCHAR:
-    bytes = sizeof(unsigned char) ;
-    break ;
-  case MRI_SHORT:
-    bytes = sizeof(short) ;
-    break ;
-  case MRI_INT:
-    bytes = sizeof(int) ;
-    break ;
-  case MRI_FLOAT:
-    bytes = sizeof(float) ;
-    break ;
-  default:
-    ErrorReturn(NULL, (ERROR_BADPARM,
-                       "MRIcopyFrame: unsupported src format %d",
-                       mri_src->type));
-    break ;
-  }
-  bytes *= width ;
-  for (z = 0 ; z < depth ; z++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      switch (mri_src->type)
-      {
-      default:  /* already handled above */
-      case MRI_UCHAR:
-        psrc = &MRIseq_vox(mri_src, 0, y, z, src_frame) ;
-        pdst = &MRIseq_vox(mri_dst, 0, y, z, dst_frame) ;
-        break ;
-      case MRI_SHORT:
-        psrc = (BUFTYPE *)&MRISseq_vox(mri_src, 0, y, z, src_frame) ;
-        pdst = (BUFTYPE *)&MRISseq_vox(mri_dst, 0, y, z, dst_frame) ;
-        break ;
-      case MRI_INT:
-        psrc = (BUFTYPE *)&MRIIseq_vox(mri_src, 0, y, z, src_frame) ;
-        pdst = (BUFTYPE *)&MRIIseq_vox(mri_dst, 0, y, z, dst_frame) ;
-        break ;
-      case MRI_FLOAT:
-        psrc = (BUFTYPE *)&MRIFseq_vox(mri_src, 0, y, z, src_frame) ;
-        pdst = (BUFTYPE *)&MRIFseq_vox(mri_dst, 0, y, z, dst_frame) ;
-        break ;
-      }
-      memmove(pdst, psrc, bytes) ;
-    }
-  }
+  for(z = 0 ; z < depth ; z++)
+    for(y = 0 ; y < height ; y++)
+      for(x = 0 ; x < width ; x++)
+	MRIsetVoxVal(mri_dst, x, y, z, dst_frame, MRIgetVoxVal(mri_src, x, y, z, src_frame)) ;
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
