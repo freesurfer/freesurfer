@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/14 02:23:06 $
- *    $Revision: 1.24 $
+ *    $Date: 2014/11/15 04:50:07 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,22 +65,162 @@ std::pair<float, float> CostFunctions::minmax(MRI *i)
   return std::pair<float, float>(min, max);
 }
 
-float CostFunctions::mean(MRI *i)
+double CostFunctions::mean(MRI *mri, int frame)
 {
-  int count = 0;
+/*  int count = 0;
   double d = 0.0;
-  MRIiterator it1(i);
+  MRIiterator it1(mri);
   for (it1.begin(); !it1.isEnd(); it1++)
   {
     d += (*it1);
     count++;
   }
-  return (float) (d / count);
+  return (float) (d / count);*/
+  
+
+// currently only for one frame at a time
+// future, return vector < double > for all frames and do 
+// mapping only once, then each process needs it's own vector < double > finally 
+// sum across processess (basically reduction on a vector)
+
+  double d = 0.0;
+  unsigned int ocount = 0;
+  unsigned int count = 0;
+
+  int z;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) reduction(+:d)  
+#endif
+  for (z = 0; z < mri->depth; z++)
+  {
+    int y,x;
+    double v;
+    for (y = 0; y < mri->height; y++)
+    {
+      for (x = 0; x < mri->width; x++)
+      {
+         //MRIsampleVolumeFrame(mri, x, y, z, frame, &v);
+          v = MRIgetVoxVal(mri,x,y,z,frame);
+          if (v == -1)
+          {
+#ifdef HAVE_OPENMP
+#pragma omp atomic
+#endif
+            ocount++;
+            continue;
+          }
+          d += v;  
+          
+#ifdef HAVE_OPENMP
+#pragma omp atomic
+#endif
+         count++; // can be removed, but needs to agree with N below!!!
+      }
+    }
+  }
+  
+  unsigned int n =  mri->width * mri->height * mri->depth - ocount;
+  assert(n==count);
+  return d/n;
+
+
 }
 
-float CostFunctions::var(MRI *i)
+
+double CostFunctions::mean(MRI * mri,
+    const vnl_matrix_fixed<double, 4, 4>& Mi,
+    int frame,
+    int d1, int d2, int d3)
 {
-  double m = mean(i);
+  return mean(mri,Mi,frame,d1,d2,d3,0,mri->width,0,mri->height,0,mri->depth);
+}
+
+double CostFunctions::mean(MRI * mri,
+    const vnl_matrix_fixed<double, 4, 4>& Mi,
+    int frame,
+    int d1, int d2, int d3,
+    int xmin, int xmax, int ymin, int ymax, int zmin, int zmax)
+{
+// currently only for one frame at a time
+// future, return vector < double > for all frames and do 
+// mapping only once, then each process needs it's own vector < double > finally 
+// sum across processess (basically reduction on a vector)
+
+  mri->outside_val = -1;
+  if (frame <0 || frame >= mri->nframes )
+  {
+    std::cerr << " ERROR: CostFunctions::mean frame " << frame << " outside range !" << std::endl;
+    exit(1);
+  }
+  int dt[3] = { xmax, ymax, zmax };
+  dt[0] = dt[0] -d1 +1;
+  dt[1] = dt[1] -d2 +1;
+  dt[2] = dt[2] -d3 +1;
+
+  int z;
+  double d = 0.0;
+  unsigned int ocount = 0;
+  unsigned int count = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) reduction(+:d)  
+#endif
+  for (z = zmin; z < dt[2]; z += d3)
+  {
+    int x, y;
+    double xx, yx, zx;
+    double v;
+    double xz,yz,zz;
+    double xy,yy,zy;
+  
+    xz = Mi[0][2] * z + Mi[0][3];
+    yz = Mi[1][2] * z + Mi[1][3];
+    zz = Mi[2][2] * z + Mi[2][3];
+    for (y = ymin; y < dt[1]; y += d2)
+    {
+      xy = Mi[0][1] * y + xz;
+      yy = Mi[1][1] * y + yz;
+      zy = Mi[2][1] * y + zz;
+      for (x = xmin; x < dt[0]; x += d1)
+      {
+
+        xx = Mi[0][0] * x + xy;
+        yx = Mi[1][0] * x + yy;
+        zx = Mi[2][0] * x + zy;
+
+        //for (f = 0; f < dt[3]; f++)
+        //{
+          MRIsampleVolumeFrame(mri, xx, yx, zx, frame, &v);
+          if (v == -1)
+          {
+#ifdef HAVE_OPENMP
+#pragma omp atomic
+#endif
+            ocount++;
+            continue;
+          }
+          d += v;  
+          
+#ifdef HAVE_OPENMP
+#pragma omp atomic
+#endif
+           count++; // can be removed, but needs to agree with N below!!!
+        //}
+      }
+    }
+  }
+  
+  unsigned int n = (((xmax-xmin-1)/d1)+1) * (((ymax-ymin-1)/d2)+1)  * (((zmax-zmin-1)/d3)+1) -ocount;
+  assert(n==count);
+  return d/n;
+
+}
+
+
+
+double CostFunctions::var(MRI *i, int frame)
+{
+  double m = mean(i,frame);
   double d = 0.0;
   double dd;
   int count = 0;
@@ -91,7 +231,7 @@ float CostFunctions::var(MRI *i)
     d += dd * dd;
     count++;
   }
-  return (float) (d / count);
+  return  (d / count);
 }
 
 float CostFunctions::median(MRI *i)
@@ -251,6 +391,87 @@ double CostFunctions::leastSquares(MRI *mriS, MRI* mriT,
     const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3, 
     const double &s1, const double &s2)
 {
+  // white background needs to be tested, 
+  // in my test case there were black stripes, 
+  // at boundary, leading to gray stripes after
+  // downsampling, leading to big problems during alingment
+  double sout = mriS->outside_val;
+  double tout = mriT->outside_val;
+  mriS->outside_val = -1;
+  mriT->outside_val = -1;
+  int dt[4] = { mriT->width, mriT->height, mriT->depth , mriT->nframes };
+  dt[0] = dt[0] -d1 +1;
+  dt[1] = dt[1] -d2 +1;
+  dt[2] = dt[2] -d3 +1;
+
+  int z;
+  double d = 0.0;
+  //double oepss = sout / 255.0;
+  //double oepst = tout / 255.0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) reduction(+:d)  
+#endif
+  for (z = 0; z < dt[2]; z += d3)
+  {
+    int x, y, f;
+    double dd;
+    double xs, ys, zs;
+    double xt, yt, zt;
+    double vs, vt;
+    double xtz,ytz,ztz,xsz,ysz,zsz;
+    double xty,yty,zty,xsy,ysy,zsy;
+  
+    xtz = Mti[0][2] * z + Mti[0][3];
+    ytz = Mti[1][2] * z + Mti[1][3];
+    ztz = Mti[2][2] * z + Mti[2][3];
+    xsz = Msi[0][2] * z + Msi[0][3];
+    ysz = Msi[1][2] * z + Msi[1][3];
+    zsz = Msi[2][2] * z + Msi[2][3];
+    for (y = 0; y < dt[1]; y += d2)
+    {
+      xty = Mti[0][1] * y + xtz;
+      yty = Mti[1][1] * y + ytz;
+      zty = Mti[2][1] * y + ztz;
+      xsy = Msi[0][1] * y + xsz;
+      ysy = Msi[1][1] * y + ysz;
+      zsy = Msi[2][1] * y + zsz;
+      for (x = 0; x < dt[0]; x += d1)
+      {
+
+        xt = Mti[0][0] * x + xty;
+        yt = Mti[1][0] * x + yty;
+        zt = Mti[2][0] * x + zty;
+        xs = Msi[0][0] * x + xsy;
+        ys = Msi[1][0] * x + ysy;
+        zs = Msi[2][0] * x + zsy;
+
+        for (f = 0; f < dt[3]; f++)
+        {
+          MRIsampleVolumeFrame(mriS, xs, ys, zs, f, &vs);
+          if (vs == -1) continue;
+          //if (fabs (vs -sout) < oepss) continue;
+          MRIsampleVolumeFrame(mriT, xt, yt, zt, f, &vt);
+          if (vt == -1) continue;
+          //if (fabs (vs -sout) < oepss) vs = 0;
+          //if (fabs(vt -tout) < oepst) vt= 0;
+        
+          dd = (s1*vs)-(s2*vt);
+          d += dd*dd;  
+        }
+      }
+    }
+  }
+  mriS->outside_val = sout;
+  mriT->outside_val = tout;
+  return d;
+
+}
+
+double CostFunctions::absDiff(MRI *mriS, MRI* mriT,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3, 
+    const double &s1, const double &s2)
+{
   mriS->outside_val = -1;
   mriT->outside_val = -1;
   int dt[4] = { mriT->width, mriT->height, mriT->depth , mriT->nframes };
@@ -306,7 +527,7 @@ double CostFunctions::leastSquares(MRI *mriS, MRI* mriT,
           if (vt == -1) continue;
         
           dd = (s1*vs)-(s2*vt);
-          d += dd*dd;  
+          d += fabs(dd);  
         }
       }
     }
@@ -315,6 +536,7 @@ double CostFunctions::leastSquares(MRI *mriS, MRI* mriT,
   return d;
 
 }
+
 
 // needs to be updated (see parallel versions above)
 double CostFunctions::leastSquares(MRI_BSPLINE *mriS, MRI_BSPLINE* mriT,
@@ -400,6 +622,273 @@ double CostFunctions::leastSquares(MRI_BSPLINE *mriS, MRI_BSPLINE* mriT,
   //cout << " d: " << d << endl;
   return (float) d;
 }*/
+
+
+double CostFunctions::localNCC(MRI *mriS, MRI* mriT,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3 )
+{
+  int blockradius = 2;
+  int bw = 2*blockradius+1;
+  //int bw2 = bw*bw;
+  //int bw3 = bw*bw2;
+  
+  mriS->outside_val = -1;
+  mriT->outside_val = -1;
+  
+  // because we may need to iterate several times, map once 
+  // to avoid additional resampling
+  MRI * nmriS = mapMRI(mriS,Msi,1,1,1);
+  MRI * nmriT = mapMRI(mriT,Mti,1,1,1);
+
+  int dt[4] = { mriT->width, mriT->height, mriT->depth , mriT->nframes };
+  dt[0] = dt[0] -d1 - blockradius;
+  dt[1] = dt[1] -d2 - blockradius;
+  dt[2] = dt[2] -d3 - blockradius;
+
+  int z;
+  double d = 0.0;
+  unsigned int dcount = 0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) reduction(+:d)  
+#endif
+  for (z = blockradius; z < dt[2]; z += d3)
+  {
+    int x, y, f,i,j,k;
+    double dd;
+    //double xs, ys, zs;
+    //double xt, yt, zt;
+    double vs, vt;
+    
+    // precompute xyz coords for all z in block (include translation)
+    int nz = z - blockradius;
+    int nzm = nz + bw;
+    int ny, nx, nym, nxm;
+    
+    double smean, tmean, svar, tvar,tdd,sdd;
+    int counter;
+    
+    for (y = blockradius; y < dt[1]; y += d2)
+    {
+      ny = y - blockradius;
+      nym = ny + bw;
+      for (x = blockradius; x < dt[0]; x += d1)
+      {
+        nx = x - blockradius;
+        nxm = nx+bw;
+        
+        for (f = 0; f < dt[3]; f++)
+        {
+          // loop over block to compute means
+          smean = 0.0;
+          tmean = 0.0;
+          counter = 0;
+          for (i=nz;i<nzm;i++)
+          for (j=ny;j<nym;j++)
+          for (k=nx;k<nxm;k++)
+          {
+            //MRIsampleVolumeFrame(mriS, xsx[k]+xsy[j]+xsz[i], ysx[k]+ysy[j]+ysz[i], zsx[k]+zsy[j]+zsz[i], f, &vs);
+            vs = MRIgetVoxVal(nmriS,k,j,i,f);
+            if (vs == -1) goto nextcoord;
+            //MRIsampleVolumeFrame(mriT, xtx[k]+xty[j]+xtz[i], ytx[k]+yty[j]+ytz[i], ztx[k]+zty[j]+ztz[i], f, &vt);
+            vt = MRIgetVoxVal(nmriT,k,j,i,f);
+            if (vt == -1) goto nextcoord;
+            tmean += vt;
+            smean += vs;
+            //tdata[counter]= vt;
+            //sdata[counter]= vs;
+            counter++;
+          }
+          tmean /= counter;
+          smean /= counter;
+          
+          // loop over block again
+          dd = 0.0;
+          svar = 0.0;
+          tvar = 0.0;
+          for (i=nz;i<nzm;i++)
+          for (j=ny;j<nym;j++)
+          for (k=nx;k<nxm;k++)
+          {    
+            vs = MRIgetVoxVal(nmriS,k,j,i,f);
+            if (vs == -1) goto nextcoord;
+            //MRIsampleVolumeFrame(mriT, xtx[k]+xty[j]+xtz[i], ytx[k]+yty[j]+ytz[i], ztx[k]+zty[j]+ztz[i], f, &vt);
+            vt = MRIgetVoxVal(nmriT,k,j,i,f);
+            if (vt == -1) goto nextcoord;
+            tdd = vt - tmean;
+            sdd = vs - smean;
+            dd += tdd * sdd;
+            svar += tdd * tdd;
+            tvar += sdd * sdd;
+          }
+          //svar /= bw3;
+          //tvar /= bw3;
+            
+          //d += dd / (bw3 * svar * tvar); 
+          if (svar ==0 || tvar == 0) goto nextcoord;
+          svar = sqrt( svar);
+          tvar = sqrt( tvar);
+          d += fabs(dd / (svar * tvar)); 
+          
+          if (isnan(d))
+          {
+            cout << "d is nan " << dd << " " << svar << " " << tvar << endl;
+            exit (1);
+          }
+          
+#ifdef HAVE_OPENMP
+#pragma omp atomic
+#endif
+          dcount++;
+        }
+// I hate goto's but this is the easiest to break out of all the nested loops above
+nextcoord:
+      i=0; // needs something here 
+      }
+    }
+    
+  }
+
+  MRIfree(&nmriS);
+  MRIfree(&nmriT);
+
+  return d/dcount;
+
+}
+
+MRI * CostFunctions::mapMRI(MRI *mri, const vnl_matrix_fixed<double, 4, 4>& Mi,
+    int d1, int d2, int d3)
+{
+  int width  = ((mri->width  -1) / d1 ) +1;
+  int height = ((mri->height -1) / d2 ) +1;
+  int depth  = ((mri->depth  -1) / d3 ) +1;
+  MRI * nmri = MRIallocSequence(width,height,depth,MRI_FLOAT,mri->nframes);
+  nmri->outside_val = mri->outside_val;
+  
+  int iz;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) 
+#endif
+  for (iz = 0; iz < depth; iz ++)
+  {
+    int z = iz * d3; 
+    int ix,x, iy,y, f;
+    double xt, yt, zt;
+    double v;
+    double xtz,ytz,ztz;
+    double xty,yty,zty;
+  
+    xtz = Mi[0][2] * z + Mi[0][3];
+    ytz = Mi[1][2] * z + Mi[1][3];
+    ztz = Mi[2][2] * z + Mi[2][3];
+    
+    for (iy = 0; iy < height; iy++)
+    {
+      y = iy * d2;
+      xty = Mi[0][1] * y + xtz;
+      yty = Mi[1][1] * y + ytz;
+      zty = Mi[2][1] * y + ztz;
+  
+      for (ix = 0; ix < width; ix++)
+      {
+        x = ix * d1;
+        xt = Mi[0][0] * x + xty;
+        yt = Mi[1][0] * x + yty;
+        zt = Mi[2][0] * x + zty;
+
+        for (f = 0; f < mri->nframes; f++)
+        {
+          MRIsampleVolumeFrame(mri, xt, yt, zt, f, &v);
+          MRIsetVoxVal(nmri,ix,iy,iz,f,v);
+        }
+      }
+    }
+  }
+  return nmri;
+}
+
+
+double CostFunctions::NCC(MRI *mriS, MRI* mriT,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3)
+{
+  mriS->outside_val = -1;
+  mriT->outside_val = -1;
+  
+  // because we need to iterate several times, map once 
+  // to avoid additional resampling
+  MRI * nmriS = mapMRI(mriS,Msi,d1,d2,d3);
+  MRI * nmriT = mapMRI(mriT,Mti,d1,d2,d3);
+  
+  // compute means for each frame
+  vector < double > meanS (mriS->nframes);
+  vector < double > meanT (mriT->nframes);
+  assert(mriS->nframes == mriT->nframes);
+  for (int f = 0; f<mriT->nframes; f++)
+  {
+    meanS[f] = mean(nmriS,f);
+    meanT[f] = mean(nmriT,f);
+  }
+
+  assert ( mriT->nframes ==1 ); // for now  
+
+  int z;
+  double d = 0.0;
+  double sigS = 0.0;
+  double sigT = 0.0;
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) reduction(+:d)  
+#endif
+  for (z = 0; z < nmriT->depth; z++)
+  {
+    int x, y, f;
+    double ds, dt, vs, vt;
+    
+    for (y = 0; y < nmriT->height; y++)
+    {
+      for (x = 0; x < nmriT->width; x++)
+      {
+
+        for (f = 0; f < nmriT->nframes; f++)
+        {
+          //MRIsampleVolumeFrame(nmriS, x, y, z, f, &vs);
+          vs = MRIgetVoxVal(nmriS,x,y,z,f);
+          if (vs == -1) continue;
+          //MRIsampleVolumeFrame(nmriT, x, y, z, f, &vt);
+          vt = MRIgetVoxVal(nmriT,x,y,z,f);
+          if (vt == -1) continue;
+        
+           
+          ds = (vs-meanS[f]);
+          dt = (vt-meanT[f]);
+          d += ds*dt;
+#ifdef HAVE_OPENMP
+#pragma omp atomic
+#endif
+          sigS += ds*ds;
+          
+#ifdef HAVE_OPENMP
+#pragma omp atomic
+#endif
+          sigT += dt*dt;
+        }
+      }
+    }
+  }
+
+  sigS = sqrt(sigS);
+  sigT = sqrt(sigT);
+
+  MRIfree(&nmriS);
+  MRIfree(&nmriT);
+
+  return fabs(d / (sigS * sigT));
+
+}
+
 
 double CostFunctions::tukeyBiweight(MRI * i1, MRI * i2, double sat)
 {

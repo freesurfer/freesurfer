@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/02/04 20:51:47 $
- *    $Revision: 1.18 $
+ *    $Date: 2014/11/15 04:50:07 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,13 +59,21 @@ public:
   //! Get max intensity value
   static float max(MRI *i);
   //! Get mean intensity value
-  static float mean(MRI *i);
+  static double mean(MRI *i, int frame);
+  static double mean(MRI *i, const vnl_matrix_fixed<double, 4, 4>& Mi,
+                     int frame,
+                     int d1, int d2, int d3);
+  static double mean(MRI * mri,
+    const vnl_matrix_fixed<double, 4, 4>& Mi,
+    int frame,
+    int d1, int d2, int d3,
+    int xmin, int xmax, int ymin, int ymax, int zmin, int zmax);
   //! Get variance of intensity values
-  static float var(MRI *i);
+  static double var(MRI *i, int frame);
   //! Get standard deviation of intensity values
-  static float sdev(MRI *i)
+  static double sdev(MRI *i, int frame)
   {
-    return sqrt(var(i));
+    return sqrt(var(i,frame));
   }
 
   //! Get median of intensity values
@@ -79,7 +87,7 @@ public:
   //! Get principal orientation
   static vnl_matrix_fixed<double, 3, 3> orientation(MRI * i);
 
-  //! Least Squares
+  //! Sum of Squared Difference (SSD)
   static double leastSquares(MRI * si, MRI * ti,
     const vnl_matrix_fixed<double, 4, 4>& Msi,
     const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3);
@@ -91,14 +99,32 @@ public:
     const vnl_matrix_fixed<double, 4, 4>& Msi,
     const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3);
 
+  //! Sum of Absolute Difference (SAD)  
+  static double absDiff(MRI * si, MRI * ti,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3,
+    const double & s1, const double & s2);
+    
   //! never really tested
   static double tukeyBiweight(MRI *mriS, MRI* mriT,
     const vnl_matrix_fixed<double, 4, 4>& Msi,
-    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3, double sat = 4.685);
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3, double sat = 4.6851);
   //! never really tested (old)
-  static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.685);
+  static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.6851);
   //! never really tested
   static double normalizedCorrelation(MRI * i1, MRI * i2);
+
+  //! Normalized Correlation Coefficient
+  static double NCC(MRI *mriS, MRI* mriT,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3 );
+
+
+  //! Local Normalized Correlation Coefficient
+  static double localNCC(MRI *mriS, MRI* mriT,
+    const vnl_matrix_fixed<double, 4, 4>& Msi,
+    const vnl_matrix_fixed<double, 4, 4>& Mti, int d1, int d2, int d3 );
+
 
   //! Mutual Information (joint histograms)
   static double mutualInformation(MRI * i1, MRI * i2, double fwhm = 7)
@@ -145,6 +171,9 @@ protected:
   {
     return d * d;
   }
+
+  static MRI * mapMRI(MRI* mri, const vnl_matrix_fixed<double, 4, 4>& Mi,
+    int d1, int d2, int d3);
 
 };
 
