@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/14 02:21:45 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/11/15 04:02:30 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,18 @@ public:
       bool correction = false, MRI * mask=NULL);
   //! NLSD not tested
   static MRI * nlsdImage(MRI * mri, int prad, int nrad);
+
+  //! subtracts mean and divides by standard deviation (global)
+  static MRI * getNormalizedImage(MRI *mri);
+  
+  //! subtracts local mean and std
+  static MRI * getNormalizedImage(MRI *mri, int boxradius);
+
+  //! mean Filter
+  static MRI * meanFilter(MRI *mri, int boxradius);
+
+  //! median Filter
+  static MRI * medianFilter(MRI *mri, int boxradius);
 
   static double noiseVar(MRI * mri);
 

@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/14 02:21:45 $
- *    $Revision: 1.27 $
+ *    $Date: 2014/11/15 04:02:30 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,7 @@
 #include "MyMRI.h"
 #include "MyMatrix.h"
 #include "CostFunctions.h"
+#include "RobustGaussian.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -1613,4 +1614,300 @@ void MyMRI::get3Dcorrection(double* histo, unsigned int v1, unsigned int v2,
   for (i = 0; i < intRange; i++)
     histo[i] = histo[i] + tempPDF[i];
 
+}
+
+
+MRI * MyMRI::getNormalizedImage(MRI *mri)
+{
+  MRI * mriN = MRIallocSequence(mri->width,mri->height, mri->depth, MRI_FLOAT, mri->nframes);
+  MRIcopyHeader(mri,mriN);
+  mriN->type = MRI_FLOAT;
+  unsigned int N = mri->width * mri->height * mri->depth;
+  
+  // do each frame independently
+  for (int f = 0; f< mri->nframes; f++)
+  {
+  
+    // compute mean:
+    double mean = 0.0;
+    int y;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) reduction(+:mean)  
+#endif
+    for (y = 0; y < mri->height; y++)
+    {
+      int z,x;
+      double v;
+      for (z = 0; z < mri->depth; z++)
+      {
+        for (x = 0; x < mri->width; x++)
+        {
+          v = MRIgetVoxVal(mri,x,y,z,f);
+          mean += v;  
+        }
+      }
+    }
+    mean = mean / N;
+    
+    // compute std:
+    double std = 0.0;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) reduction(+:std)  
+#endif
+    for (y = 0; y < mri->height; y++)
+    {
+      int z,x;
+      double v;
+      for (z = 0; z < mri->depth; z++)
+      {
+        for (x = 0; x < mri->width; x++)
+        {
+          v = MRIgetVoxVal(mri,x,y,z,f) - mean;
+          std += v*v;  
+        }
+      }
+    }
+    std = sqrt(std / (N-1.5));
+    
+    // fill output image
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) 
+#endif
+    for (y = 0; y < mri->height; y++)
+    {
+      int z,x;
+      double v;
+      for (z = 0; z < mri->depth; z++)
+       {
+        for (x = 0; x < mri->width; x++)
+        {
+          v = (MRIgetVoxVal(mri,x,y,z,f) - mean) / std;
+          MRIsetVoxVal(mriN,x,y,z,f,v);
+        }
+      }
+    }
+    
+
+  } // for each frame
+  
+  return mriN;
+}
+  
+MRI * MyMRI::getNormalizedImage(MRI *mri, int blockradius)
+{
+  double stdeps = 0.0001;
+  
+  MRI * mriN = MRIallocSequence(mri->width,mri->height, mri->depth, MRI_FLOAT, mri->nframes);
+  MRIcopyHeader(mri,mriN);
+  mriN->type = MRI_FLOAT;
+  
+  int bw = 2*blockradius+1;
+  int bw3 = bw * bw * bw;
+  int dt[4] = { mri->width, mri->height, mri->depth , mri->nframes };
+  dt[0] = dt[0] - 1 - blockradius;
+  dt[1] = dt[1] - 1 - blockradius;
+  dt[2] = dt[2] - 1 - blockradius;
+  int blockradiusz = blockradius;
+  int bwz = bw;
+  if (mri->depth == 1) // 2D case
+  {
+    blockradiusz = 0;
+    bwz = 1;
+    bw3 = bw * bw;
+    dt[2] = 1;
+  }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) 
+#endif
+  for (int y = blockradius; y < dt[1]; y++)
+  {
+    int x,z,f,i,j,k;
+    
+    double v, mean, std;
+    
+    // precompute xyz coords for all z in block (include translation)
+    int ny, nx, nz, nym, nxm, nzm;
+    ny = y - blockradius;
+    nym = ny + bw;
+    
+    for (x = blockradius; x < dt[0]; x++)
+    {
+      nx = x - blockradius;
+      nxm = nx+bw;
+      
+      for (z = blockradiusz; z < dt[2]; z++)
+      {
+        nz = z - blockradiusz;
+        nzm = nz + bwz;
+        
+        for (f = 0; f < dt[3]; f++)
+        {
+          // loop over block to compute mean
+          mean = 0.0;
+          for (i=nz;i<nzm;i++)
+          for (j=ny;j<nym;j++)
+          for (k=nx;k<nxm;k++)
+          {
+            v = MRIgetVoxVal(mri,k,j,i,f);
+            mean += v;
+          }
+          mean /= bw3;
+          
+          // compute std for block
+          std = 0.0;
+          for (i=nz;i<nzm;i++)
+          for (j=ny;j<nym;j++)
+          for (k=nx;k<nxm;k++)
+          {
+            v = MRIgetVoxVal(mri,k,j,i,f) - mean;
+            std += v*v;
+          }
+          std = sqrt(std/(bw3 - 1.5));  // is this also true in 2D?
+          
+          if (std < stdeps) std = 1.0;
+          
+          v = (MRIgetVoxVal(mri,x,y,z,f) - mean) / std;
+          MRIsetVoxVal(mriN,x,y,z,f,v);
+        }
+      }
+    }
+  }
+  return mriN;
+}
+
+MRI * MyMRI::meanFilter(MRI *mri, int blockradius)
+{
+  MRI * mriN = MRIallocSequence(mri->width,mri->height, mri->depth, MRI_FLOAT, mri->nframes);
+  MRIcopyHeader(mri,mriN);
+  mriN->type = MRI_FLOAT;
+  
+  int bw = 2*blockradius+1;
+  int bw3 = bw * bw * bw;
+  int dt[4] = { mri->width, mri->height, mri->depth , mri->nframes };
+  dt[0] = dt[0] - 1 - blockradius;
+  dt[1] = dt[1] - 1 - blockradius;
+  dt[2] = dt[2] - 1 - blockradius;
+  int blockradiusz = blockradius;
+  int bwz = bw;
+  if (mri->depth == 1) // 2D case
+  {
+    blockradiusz = 0;
+    bwz = 1;
+    bw3 = bw * bw;
+    dt[2] = 1;
+  }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) 
+#endif
+  for (int y = blockradius; y < dt[1]; y++)
+  {
+    int x,z,f,i,j,k;
+    
+    double mean;
+    
+    // precompute xyz coords for all z in block (include translation)
+    int ny, nx, nz, nym, nxm, nzm;
+    
+    ny = y - blockradius;
+    nym = ny + bw;
+    for (x = blockradius; x < dt[0]; x++)
+    {
+      nx = x - blockradius;
+      nxm = nx+bw;
+      
+      for (z = blockradiusz; z < dt[2]; z++)
+      {
+        nz = z - blockradiusz;
+        nzm = nz + bwz;
+        
+        for (f = 0; f < dt[3]; f++)
+        {
+          // loop over block to compute mean
+          mean = 0.0;
+          for (i=nz;i<nzm;i++)
+          for (j=ny;j<nym;j++)
+          for (k=nx;k<nxm;k++)
+          {
+            mean += MRIgetVoxVal(mri,k,j,i,f);
+          }
+          mean /= bw3;
+                    
+          MRIsetVoxVal(mriN,x,y,z,f,mean);
+        }
+      }
+    }
+  }
+  return mriN;
+}
+
+MRI * MyMRI::medianFilter(MRI *mri, int blockradius)
+{
+  MRI * mriN = MRIallocSequence(mri->width,mri->height, mri->depth, mri->type, mri->nframes);
+  MRIcopyHeader(mri,mriN);
+  //mriN->type = MRI_FLOAT;
+  
+  int bw = 2*blockradius+1;
+  int bw3 = bw * bw * bw;
+  int dt[4] = { mri->width, mri->height, mri->depth , mri->nframes };
+  dt[0] = dt[0] - 1 - blockradius;
+  dt[1] = dt[1] - 1 - blockradius;
+  dt[2] = dt[2] - 1 - blockradius;
+  int blockradiusz = blockradius;
+  int bwz = bw;
+  if (mri->depth == 1) // 2D case
+  {
+    blockradiusz = 0;
+    bwz = 1;
+    bw3 = bw * bw;
+    dt[2] = 1;
+  }
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static) 
+#endif
+  for (int y = blockradius; y < dt[1]; y++)
+  {
+    int x,z,f,i,j,k,count;
+    
+    double median;
+    float* t = (float *) calloc(bw3, sizeof(float));
+    
+    // precompute xyz coords for all z in block (include translation)
+    int ny, nx,nz, nym, nxm, nzm;
+    ny = y - blockradius;
+    nym = ny + bw;
+    
+    for (x = blockradius; x < dt[0]; x++)
+    {
+      nx = x - blockradius;
+      nxm = nx+bw;
+      
+      for (z = blockradiusz; z < dt[2]; z++)
+      {
+        nz = z - blockradiusz;
+        nzm = nz + bwz;
+        
+        for (f = 0; f < dt[3]; f++)
+        {
+          // loop over block to compute mean
+          count = 0;
+          for (i=nz;i<nzm;i++)
+          for (j=ny;j<nym;j++)
+          for (k=nx;k<nxm;k++)
+          {
+            
+            t[count] = MRIgetVoxVal(mri,k,j,i,f);
+            count++;
+          }
+          median = RobustGaussian<float>::median(t, bw3);
+                    
+          MRIsetVoxVal(mriN,x,y,z,f,median);
+        }
+      }
+    }
+    free(t);
+  }
+  return mriN;
 }
