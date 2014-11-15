@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/10/20 15:07:00 $
- *    $Revision: 1.73 $
+ *    $Date: 2014/11/15 04:59:44 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.73 2014/10/20 15:07:00 mreuter Exp $";
+    "$Id: mri_robust_register.cpp,v 1.74 2014/11/15 04:59:44 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -271,6 +271,33 @@ void entro(Parameters & P)
 
   exit(0);
 }
+
+void lnorm(Parameters & P)
+{
+
+  //int sigma  = 7;
+  int radius = 2;
+
+//  cout << "Entropy sigma: " << sigma << "  radius: " << radius << endl;
+  cout << "Normalization Box radius: " << radius << endl;
+
+  cout << "Converting: " << P.mov.c_str() << endl;
+  MRI * mri1 = MRIread(P.mov.c_str());
+  //MRI * mri1e = MyMRI::entropyImage(mri1,radius,sigma);
+  MRI * mri1e = MyMRI::getNormalizedImage(mri1, radius);
+  MRIwrite(mri1e, "mri1n.mgz");
+  P.mov = "mri1n.mgz";
+
+  cout << "Converting: " << P.dst.c_str() << endl;
+  MRI * mri2 = MRIread(P.dst.c_str());
+  //MRI * mri2e = MyMRI::entropyImage(mri2,radius,sigma);
+  MRI * mri2e = MyMRI::getNormalizedImage(mri2, radius);
+  MRIwrite(mri2e, "mri2n.mgz");
+  P.dst = "mri2n.mgz";
+
+  exit(0);
+}
+
 
 void jointhisto(Parameters & P)
 {
@@ -605,6 +632,7 @@ int main(int argc, char *argv[])
 //gradmag(P);
 //jointhisto(P);
 //debug(P);
+//lnorm(P);
 
 // vnl_vector < double > p(6,0.0);
 // p[3] = 0.1;
@@ -1874,6 +1902,10 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
       P.cost = Registration::SCR;
     else if (cost == "TB")
       P.cost = Registration::TB;
+    else if (cost == "LNCC")
+      P.cost = Registration::LNCC;
+    else if (cost == "SAD")
+      P.cost = Registration::SAD;
     else
     {
       cout << "ERROR: cost function " << cost << " unknown! " << endl;

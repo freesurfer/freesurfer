@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/14 17:36:15 $
- *    $Revision: 1.22 $
+ *    $Date: 2014/11/15 04:59:44 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,44 +136,47 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
 
 
   // special case for sum of squared differences:
-  if (tocurrent->costfun == LS || tocurrent->costfun == TB)
+  if (tocurrent->costfun == LS || tocurrent->costfun == TB || tocurrent->costfun==LNCC
+       || tocurrent->costfun==SAD || tocurrent->costfun==NCC )
   {
     // iscale should be taken care of here:
     double dd;
+    double si = 1.0;
+    double sii = 1.0;
     if (tocurrent->iscale) 
     {
       double fullscale = exp(Md.second); // compute full factor (source to target)
-      double si = sqrt(fullscale);
-      switch (tocurrent->costfun)
-      {
-        case LS:
-          dd = CostFunctions::leastSquares(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp,si,1.0/si);
-        break;
-        //case TB:
-         // dd = CostFunctions::tukeyBiweight(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp,si,1.0/si);
-        //break;
-        default:
-          cout << " RegPowell::costFunction ERROR cannot deal with cost function "
-              << tocurrent->costfun << " ! " << endl;
-          exit(1);
-      }
+      si = sqrt(fullscale);
+      sii = 1.0/si;
     }
-    else // no iscale:
+    switch (tocurrent->costfun)
     {
-      switch (tocurrent->costfun)
-      {
-        case LS:
-          dd = CostFunctions::leastSquares(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp);
-        break;
-        case TB:
-          dd = CostFunctions::tukeyBiweight(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp);
-        break;
-        default:
-          cout << " RegPowell::costFunction ERROR cannot deal with cost function "
-              << tocurrent->costfun << " ! " << endl;
-          exit(1);
-      }
-    }   
+      case LS:
+        //if (tocurrent->iscale)
+          dd = CostFunctions::leastSquares(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp,si,sii);
+        //else // this will not really be much faster (maybe a second):
+        //  dd = CostFunctions::leastSquares(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp);
+      break;
+      case TB:
+        dd = CostFunctions::tukeyBiweight(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp);
+      break;
+      case LNCC:
+        //dd = CostFunctions::localNCC(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp);
+        dd = - CostFunctions::localNCC(scf,tcf,msi,mti,5,5, 5);
+      break;
+      case NCC:
+        dd = - CostFunctions::NCC(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp);
+      break;
+      case SAD:
+        dd = CostFunctions::absDiff(scf,tcf,msi,mti,tocurrent->subsamp,tocurrent->subsamp, tocurrent->subsamp,si,sii);
+      break;
+      default:
+        cout << " RegPowell::costFunction ERROR cannot deal with cost function "
+             << tocurrent->costfun << " ! " << endl;
+        exit(1);
+    }
+    
+    
 
     icount++;
     return dd;
