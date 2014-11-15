@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.9 $
+ *    $Author: greve $
+ *    $Date: 2014/11/15 00:07:19 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,7 @@
  */
 
 
-// $Id: mris_seg2annot.c,v 1.9 2011/03/02 00:04:34 nicks Exp $
+// $Id: mris_seg2annot.c,v 1.10 2014/11/15 00:07:19 greve Exp $
 
 /*
   BEGINHELP
@@ -114,7 +114,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_seg2annot.c,v 1.9 2011/03/02 00:04:34 nicks Exp $";
+static char vcid[] = "$Id: mris_seg2annot.c,v 1.10 2014/11/15 00:07:19 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -127,6 +127,8 @@ char *ctabfile=NULL, *annotfile=NULL;
 char  *SUBJECTS_DIR;
 
 COLOR_TABLE *ctab = NULL;
+int AutoCTab = 0;
+char *outctabfile = NULL;
 MRI_SURFACE *mris;
 MRI *surfseg, *mritmp;
 char *surfname = "white";
@@ -154,13 +156,7 @@ int main(int argc, char *argv[]) {
   if (checkoptsonly) return(0);
   dump_options(stdout);
 
-  // Have to read ctab both ways
-  printf("Reading ctab %s\n",ctabfile);
-  ctab = CTABreadASCII(ctabfile);
-  if (ctab == NULL) {
-    printf("ERROR: reading %s\n",ctabfile);
-    exit(1);
-  }
+
 
   printf("Reading surface seg %s\n",surfsegfile);
   surfseg = MRIread(surfsegfile);
@@ -193,6 +189,24 @@ int main(int argc, char *argv[]) {
            mris->nvertices,nv);
     printf("Make sure the surface segmentation matches the subject and hemi\n");
     exit(1);
+  }
+
+  if(AutoCTab == 0){
+    // Have to read ctab both ways (what does this mean?)
+    printf("Reading ctab %s\n",ctabfile);
+    ctab = CTABreadASCII(ctabfile);
+    if (ctab == NULL) {
+      printf("ERROR: reading %s\n",ctabfile);
+      exit(1);
+    }
+  }
+  else {
+    int *segidlist, nsegs;
+    segidlist = MRIsegIdListNot0(surfseg, &nsegs, 0);
+    printf("AutoCTab nsegs = %d\n",nsegs);
+    ctab = CTABalloc(nsegs+1);
+    if(outctabfile != NULL) CTABwriteFileASCII(ctab,outctabfile);
+    free(segidlist);
   }
 
   err = MRISseg2annot(mris, surfseg, ctab);
@@ -247,7 +261,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       ctabfile = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--o")) {
+    } 
+    else if (!strcasecmp(option, "--ctab-auto")){
+      AutoCTab = 1;
+      nargsused = 0;
+      if(CMDnthIsArg(nargc, pargv, 0)) {
+        outctabfile = pargv[0];
+	nargsused = 1;
+      } 
+    }
+    else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
       annotfile = pargv[0];
       nargsused = 1;
@@ -273,6 +296,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --seg  surfseg    : volume-encoded surface segmentation \n");
   printf("   --ctab colortable : color table (like FreeSurferColorLUT.txt)\n");
+  printf("   --ctab-auto <outcolortable> : create a random color table, optionally save ctab\n");
   printf("   --s subject   : subject name\n");
   printf("   --h hemi      : surface hemifield\n");
   printf("   --o annot     : output annotation file\n");
@@ -348,7 +372,7 @@ static void check_options(void) {
     printf("ERROR: hemi not specified\n");
     exit(1);
   }
-  if (ctabfile == NULL) {
+  if(ctabfile == NULL && ! AutoCTab) {
     printf("ERROR: ctab not specified\n");
     exit(1);
   }
