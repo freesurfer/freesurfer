@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/14 02:53:50 $
- *    $Revision: 1.88 $
+ *    $Date: 2014/11/17 15:17:34 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3592,13 +3592,14 @@ bool Registration::reorientSource()
     vnl_matlab_print(vcl_cout,myinit,"v2v",vnl_matlab_print_format_long);
     cout << endl;
     cout << " xd: " << xd << " yd: " << yd << " zd: " << zd << endl;
-    if (vnl_determinant(myinit) < 0)
+    if (vnl_determinant(myinit) < 0 && symmetry)
     {  // cannot run sqrt later if det < 0
       cout << "ERROR: vox2vox det: " << vnl_determinant(myinit) << " < 0"
           << endl;
-      cout << "       Something might be wrong with RAS info in inputs."
+      cout << "       Symmetry does not work with flipped volumes."
           << endl;
       cout << "       Make sure volumes are in same voxel orientation." << endl;
+      cout << "       Or run with --nosym flag." << endl;
       exit(1);
     }
     return false;

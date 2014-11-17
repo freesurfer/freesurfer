@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/15 04:59:44 $
- *    $Revision: 1.23 $
+ *    $Date: 2014/11/17 15:17:34 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -572,9 +572,23 @@ void RegPowell::computeIterativeRegistration(int nmax, double epsit, MRI * mriS,
   {
     // new M = mh2 * cm * mh1
     fmd.first = (mh2 * fmd.first) * mh1;
+    // adjust half way maps to new midpoint based on final transform
+    if (verbose > 1)
+      std::cout << "     -- adjusting half-way maps " << std::endl;
+    vnl_matrix_fixed<double, 4, 4> ch = MyMatrix::MatrixSqrt(fmd.first);
+    // do not just assume c = ch*ch, rather c = ch2 * ch
+    // for transforming target we need ch2^-1 = ch * c^-1
+    vnl_matrix_fixed<double, 4, 4> ci = vnl_inverse(fmd.first);
+    vnl_matrix_fixed<double, 4, 4> chi = ch * ci;
+    mov2weights = ch;
+    dst2weights = chi;
   }
   else
+  {
     fmd.first = fmd.first * initialM;
+    mov2weights = fmd.first;
+    dst2weights.set_identity();
+  }
   //vnl_matlab_print(vcl_cerr,fmd.first,"M",vnl_matlab_print_format_long); cout << endl;   
 
   // ISCALECHANGE:
@@ -587,16 +601,6 @@ void RegPowell::computeIterativeRegistration(int nmax, double epsit, MRI * mriS,
     //if (verbose >0 ) std::cout << "     -- intensity log diff: abs(" << cmd.second << ") " << istar.str() << std::endl;
   }
 
-  // adjust half way maps to new midpoint based on final transform
-  if (verbose > 1)
-    std::cout << "     -- adjusting half-way maps " << std::endl;
-  vnl_matrix_fixed<double, 4, 4> ch = MyMatrix::MatrixSqrt(fmd.first);
-  // do not just assume c = ch*ch, rather c = ch2 * ch
-  // for transforming target we need ch2^-1 = ch * c^-1
-  vnl_matrix_fixed<double, 4, 4> ci = vnl_inverse(fmd.first);
-  vnl_matrix_fixed<double, 4, 4> chi = ch * ci;
-  mov2weights = ch;
-  dst2weights = chi;
 
   Mfinal = fmd.first;
 
