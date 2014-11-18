@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/15 04:59:44 $
- *    $Revision: 1.74 $
+ *    $Date: 2014/11/18 16:14:42 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,6 +133,7 @@ struct Parameters
   string entdst;
   bool entball;
   bool entcorrection;
+  double powelltol;
 };
 static struct Parameters P =
 { "", "", "", "", "", "", "", "", "", "", "", false, false, false, false, false,
@@ -140,14 +141,14 @@ static struct Parameters P =
     NULL, NULL, false, false, true, false, 1, -1, false, 0.16, true, true, "",
     "", -1, -1, Registration::ROB,
 //  256,
-    SAMPLE_CUBIC_BSPLINE, false, ERADIUS, "", "", false, false };
+    SAMPLE_CUBIC_BSPLINE, false, ERADIUS, "", "", false, false, 1e-5 };
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.74 2014/11/15 04:59:44 mreuter Exp $";
+    "$Id: mri_robust_register.cpp,v 1.75 2014/11/18 16:14:42 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -1459,10 +1460,15 @@ static void initRegistration(Registration & R, Parameters & P)
   R.setCost(P.cost);
   //R.setOutputWeights(P.weights,P.weightsout);
   // set only for robust registration
-  if (P.cost == Registration::ROB)
+  //if (P.cost == Registration::ROB)
+  if (R.getClassName() == "RegRobust")
   {
     dynamic_cast<RegRobust*>(&R)->setSaturation(P.sat);
     dynamic_cast<RegRobust*>(&R)->setWLimit(P.wlimit);
+  }
+  if (R.getClassName() == "RegPowell")
+  {
+    dynamic_cast<RegPowell*>(&R)->setTolerance(P.powelltol);
   }
 
   int pos = P.lta.rfind(".");
@@ -2036,6 +2042,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.dosatest = true;
     nargs = 0;
     cout << "--satest: Trying to estimate SAT value!" << endl;
+  }
+  else if (!strcmp(option, "POWELLTOL"))
+  {
+    P.powelltol = atof(argv[1]);
+    nargs = 1;
+    cout << "--powelltol: Using tolerance " << P.powelltol << " in Powell optimizier!" << endl;
   }
   else if (!strcmp(option, "DOUBLEPREC"))
   {

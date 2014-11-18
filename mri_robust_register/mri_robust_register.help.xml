@@ -97,10 +97,11 @@ Use --noinit if center of mass is meaningless, e.g. when registering different r
              Also see --entradius, --entball, --entcorrection.
       MI     (mutual information),
       NMI    (normalized mutual information),
-             Both MI and NMI are good for cross modal, but are not robust.
+             MI, NMI are also good for x-modal (not robust).
       ECC    (entropy correlation coefficient) experimental,
       NCC    (normalized cross corrrelation) experimental,
       SCR    (symetrized correlation ratio) experimental.
+Note: most cost functions require the image backgrounds to be black! Also, only ROB and ROBENT use gradient decend, the others use a Powell optimizer.
 </explanation>
      <argument>--entradius</argument>
       <explanation>with ROBENT: specify box radius for entropy computation, default: 5 (may be slow)</explanation>
@@ -110,12 +111,15 @@ Use --noinit if center of mass is meaningless, e.g. when registering different r
       <explanation>with ROBENT: use ball around voxel instead of box (default no), does not seem to make a big difference.</explanation>
      <argument>--entmov &lt;entmov.mgz&gt;</argument>
       <explanation>with ROBENT: write movable entropy image.</explanation>
-     <argument>--entdst &lt;entdst.mgz&gt;</argument>
-      <explanation>with ROBENT: write target entropy image.</explanation>
+     <argument>--powelltol &lt;real&gt;</argument>
+      <explanation>with MI,NMI etc: set Powell tolerance (default 0.00001 = 1e-5).</explanation>
+      
 
       <argument>--nosym</argument>
       <explanation>do not map to half way space, but resample mov to dst internally (destroys symmetry, but is useful when registering a larger block to a part)</explanation>
       <argument>--maxit &lt;#&gt;</argument>
+     <argument>--entdst &lt;entdst.mgz&gt;</argument>
+      <explanation>with ROBENT: write target entropy image.</explanation>
       <explanation>iterate max # times on each resolution (default 5)</explanation>
       <argument>--highit &lt;#&gt;</argument>
       <explanation>iterate max # times on highest resolution (default 5)</explanation>
@@ -195,7 +199,7 @@ freeview dstT1.mgz T2_to_T1.mgz T2_to_T1_weights.mgz:colormap=heat </example>
   
 mri_robust_register --mov movT2.mgz --dst dstT1.mgz --mapmov T2_to_T1.mgz --lta T2_to_T1.lta --cost NMI
   
-Registers a T2 image to T1 using normalized mutual information (no outlier detection, Powell method is used for optimization). Here no saturation or intensity scaling is necessary. NMI or MI may be the prefered option for non-isotropic voxel where ROBENT has not been tested much.
+Registers a T2 image to T1 using normalized mutual information (no outlier detection, Powell method is used for optimization). Here no saturation or intensity scaling is necessary. NMI or MI may be the prefered option for non-isotropic voxel whereas ROBENT has not been tested much. Also if you register a slab to a whole image you should probably add --nosym and play around with masking the images (e.g. --maskmov brainmask ).
 Look at results with:
 
 freeview dstT1.mgz T2_to_T1.mgz </example> 

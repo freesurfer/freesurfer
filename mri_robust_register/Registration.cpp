@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/17 15:17:34 $
- *    $Revision: 1.89 $
+ *    $Date: 2014/11/18 16:14:42 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3586,23 +3586,44 @@ bool Registration::reorientSource()
   if (xd == 1 && yd == 2 && zd == 3)
     return false; // nothing to swap
 
-  if (abs(xd) + abs(yd) + abs(zd) != 6)
+  if (abs(xd) * abs(yd) * abs(zd) != 6) // collision
   {
-    cout << "WARNING: reorder not clear ..." << endl;
+    cout << "  Registration::reorientSource: reorder not clear, solving conflict ..." << endl;
     vnl_matlab_print(vcl_cout,myinit,"v2v",vnl_matlab_print_format_long);
     cout << endl;
-    cout << " xd: " << xd << " yd: " << yd << " zd: " << zd << endl;
-    if (vnl_determinant(myinit) < 0 && symmetry)
-    {  // cannot run sqrt later if det < 0
-      cout << "ERROR: vox2vox det: " << vnl_determinant(myinit) << " < 0"
-          << endl;
-      cout << "       Symmetry does not work with flipped volumes."
-          << endl;
-      cout << "       Make sure volumes are in same voxel orientation." << endl;
-      cout << "       Or run with --nosym flag." << endl;
-      exit(1);
+    
+    // fix cases where 2 want to swap (and the third does not
+    // want to stay in his spot, else there would be no conflict)
+    // here force the third to stay:
+    if (abs(xd) == 2 && abs(yd) ==1)
+    {
+      zd = 3;
+      if (myinit[2][2] < 0.0) zd = -zd;      
     }
-    return false;
+    else if (abs(xd) == 3 && abs(zd) ==1)
+    {
+      yd = 2;
+      if (myinit[1][1] < 0.0) yd = -yd;    
+    }    
+    else if (abs(yd) == 3 && abs(zd) ==2)
+    {
+      xd = 1;
+      if (myinit[0][0] < 0.0) xd = -xd;
+    } 
+    else
+    {
+      // there remain cases where (a) one wants to remain and others don't 
+      // want to swap with each other, or (b) two want to remain
+      // and third wants to swap:  keep all in their spot
+      xd = 1;
+      if (myinit[0][0] < 0.0) xd = -xd;
+      yd = 2;
+      if (myinit[1][1] < 0.0) yd = -yd;
+      zd = 3;
+      if (myinit[2][2] < 0.0) zd = -zd;
+      
+    }
+        
   }
 
   cout << "   Reordering axes in mov to better fit dst... ( " << xd << " " << yd
@@ -3613,12 +3634,13 @@ bool Registration::reorientSource()
   MRI* mri_temp = mri_source;
   mri_source = MRIreorder(mri_temp, NULL, xd, yd, zd);
 
+  // get reordermatrix:
   MATRIX *v2v = MRIgetVoxelToVoxelXform(mri_source, mri_temp);
   vnl_matrix_fixed<double, 4, 4> Sreorderinv = MyMatrix::convertMATRIX2VNL(v2v);
   MatrixFree(&v2v);
   MRIfree(&mri_temp);
 
-  if (debug)
+//  if (debug)
   {
     string fn = getName() + "-mriS-reorder.mgz";
     cout << "   Writing reordered source as " << fn << endl;
@@ -3632,21 +3654,33 @@ bool Registration::reorientSource()
   // Rsrc points from resliced/reordered back to original input
   Rsrc = Rsrc * Sreorderinv;
 
-//   if (!Minit.empty())
-//   {
-//     // also adjust myinit 
-//    // Minit = getMinitResampled(); // Minit*Sreorderinv;
-//     vnl_matlab_print(vcl_cout,getMinitResampled(),"finalv2v",vnl_matlab_print_format_long);cout << endl;
-//     cout << " Determinant : " << vnl_determinant(getMinitResampled()) << endl;
-//   }
-//  else
-//  {  
-//    v2v = MRIgetVoxelToVoxelXform(mri_source,mri_target);
-//    myinit = MyMatrix::convertMATRIX2VNL(v2v);
-//    MatrixFree(&v2v);
-//    vnl_matlab_print(vcl_cout,myinit,"finalv2v",vnl_matlab_print_format_long);cout << endl;
-//    cout << " Determinant : " << vnl_determinant(myinit) << endl;  
-//  }
+
+  // check if this fixed orientation problems (should have worked):
+  double det = 0;
+  vnl_matrix_fixed<double, 4, 4> v2vfull2;
+  if (!Minit.empty())
+  {
+    v2vfull2 = getMinitResampled();
+  }
+  else
+  {
+    MATRIX *v2vfull = MRIgetVoxelToVoxelXform(mri_source, mri_target);
+    v2vfull2 = MyMatrix::convertMATRIX2VNL(v2vfull);
+    MatrixFree(&v2vfull); 
+  }
+  det = vnl_determinant(v2vfull2);
+  cout << " Determinant after swap : " << det << endl;  
+  if (det < 0 && symmetry) // this should not happen
+  {  // cannot run sqrt later if det < 0
+    cout << "ERROR: vox2vox det: " << det << " < 0"
+         << endl;
+     vnl_matlab_print(vcl_cout,v2vfull2,"v2v",vnl_matlab_print_format_long);cout << endl;
+    cout << "       Symmetry does not work with flipped volumes."
+         << endl;
+    cout << "       Make sure volumes are in same voxel orientation." << endl;
+    cout << "       Or run with --nosym flag." << endl;
+    exit(1);
+  }
 
   return true;
 

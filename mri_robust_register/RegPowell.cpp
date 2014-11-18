@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/17 15:17:34 $
- *    $Revision: 1.24 $
+ *    $Date: 2014/11/18 16:14:42 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -532,9 +532,9 @@ void RegPowell::computeIterativeRegistration(int nmax, double epsit, MRI * mriS,
   //int maxiter = 5;
   //minimizer.set_linmin_xtol(tol);
   //double tol = 1e-4; //
-  double tol = 1e-5; //
-  minimizer.set_x_tolerance(tol);
-  minimizer.set_f_tolerance(tol);
+  //double tol = 1e-5; //
+  minimizer.set_x_tolerance(xtol);
+  minimizer.set_f_tolerance(ftol);
   //minimizer.set_max_function_evals(maxiter);
 
   //minimizer.set_trace(0);

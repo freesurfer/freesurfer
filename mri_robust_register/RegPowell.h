@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:15 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/11/18 16:14:42 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,27 +52,32 @@ class RegPowell: public Registration
 {
 public:
   RegPowell() :
-      Registration()
+      Registration(),xtol(1e-5),ftol(1e-5)
   {
   }
-  ;
+
   virtual ~RegPowell()
   {
   }
-  ;
 
-//  void computeIterativeRegistration(int n,double epsit){Registration::computeIterativeRegistration(n,epsit);};
+  //! Set the tolerance for Powell minimizer (both x and f tollerance)
+  void setTolerance(double tol) {xtol=tol;ftol=tol;}
 
+  //! The Powell way of doing iterative registration
   virtual void computeIterativeRegistration(int n, double epsit, MRI * mriS,
       MRI* mriT, const vnl_matrix<double> &Minit, double iscaleinit);
+      
   //! The static cost function for the Powell minimizer
   static double costFunction(const vnl_vector<double> & p);
 
+  //! Return the half way geometry (here use target for now)
   MRI * getHalfWayGeom()
   {
     return tcf;
   }
-  ;
+
+  //! Get Name of Registration class
+  virtual std::string getClassName() {return "RegPowell";}
 
 protected:
 
@@ -86,6 +91,8 @@ protected:
   static int icount;
   static int subsamp;
   static bool is2d;
+  double xtol;
+  double ftol;
 
 };
 

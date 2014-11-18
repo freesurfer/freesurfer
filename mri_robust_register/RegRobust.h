@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/14 17:36:15 $
- *    $Revision: 1.6 $
+ *    $Date: 2014/11/18 16:14:42 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,6 +77,9 @@ public:
   {
     wlimit = d;
   }
+
+  //! Get Name of Registration class
+  virtual std::string getClassName() {return "RegRobust";}
   
 protected:
   virtual void computeIterativeRegistration(int n, double epsit, MRI * mriS,

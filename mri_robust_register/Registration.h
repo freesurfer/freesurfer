@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/15 04:59:44 $
- *    $Revision: 1.59 $
+ *    $Date: 2014/11/18 16:14:42 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,7 +80,7 @@ public:
           false), costfun(ROB), converged(false)
   {
   }
-  ;
+
 
   //! Destructor to delete our data
   virtual ~Registration();
@@ -93,13 +93,12 @@ public:
   {
     freeGaussianPyramid(gpS);
   }
-  ;
+
   //! Free Gaussian pyramid for target image
   void freeGPT()
   {
     freeGaussianPyramid(gpT);
   }
-  ;
 
   //! Allow only translation
   void setTransonly()
@@ -108,7 +107,7 @@ public:
     transonly = true;
     isoscale = false;
   }
-  ;
+
   //! Allow only rigid (default)
   void setRigid()
   {
@@ -116,7 +115,7 @@ public:
     transonly = false;
     isoscale = false;
   }
-  ;
+
   //! Allow rigid and isotropic scaling
   void setIsoscale()
   {
@@ -124,7 +123,7 @@ public:
     transonly = false;
     isoscale = true;
   }
-  ;
+
   //! Allow affine transform
   void setAffine()
   {
@@ -132,13 +131,13 @@ public:
     transonly = false;
     isoscale = false;
   }
-  ;
+
   //! Specify iteration number on highest level
   void setHighit(int i)
   {
     highit = i;
   }
-  ;
+
   //! Specify debug level
   void setDebug(int d)
   {
@@ -146,7 +145,6 @@ public:
     if (d > 0)
       verbose = 2;
   }
-  ;
 
   //! Set Verbose Level: 0 very quiet, 1 default, 2 detail
   void setVerbose(int i)
@@ -157,27 +155,24 @@ public:
       i = 2;
     verbose = i;
   }
-  ;
 
   //! Specify wether global intensity scale is to be estimated
   void setIscale(bool i)
   {
     iscale = i;
   }
-  ;
+
   //! Specify initial intensity scale
   void setIscaleInit(double d)
   {
     iscaleinit = d;
   }
-  ;
 
   //! Set initial transform fo the original volumes (not in resampled space!)
   void setMinitOrig(const vnl_matrix<double> & m)
   {
     Minit = m;
   }
-  ;
 
   //! setSource and setTarget needed by MultiRegistration (no reslicing necessary there)
   void setSource(MRI * s, bool conform = false, bool keeptype = false);
@@ -190,19 +185,19 @@ public:
   {
     subsamplesize = sss;
   }
-  ;
+
   //! Specify min size for multi resolution
   void setMinSize(int s)
   {
     minsize = s;
   }
-  ;
+
   //! Specify max size for multi resolution
   void setMaxSize(int s)
   {
     maxsize = s;
   }
-  ;
+
   //! Specify name for debug output
   void setName(const std::string &n);
 
@@ -211,33 +206,31 @@ public:
   {
     initorient = io;
   }
-  ;
 
   //! If true (default) automatically initialize transform
   void setInitTransform(bool it)
   {
     inittransform = it;
   }
-  ;
+
   //! Specify if initial scaling should be performed (not tested)
   void setInitScaling(bool it)
   {
     initscaling = it;
   }
-  ;
+
   //! Specify if double precision is to be used internally
   void setDoublePrec(bool b)
   {
     doubleprec = b;
   }
-  ;
+
   // void setWLimit( double d)      {wlimit = d;};
   //! Specify wether registration is symmetric or at target space
   void setSymmetry(bool b)
   {
     symmetry = b;
   }
-  ;
 
   //! Will be changed by Interpolator later, do not use
   void setSampleType(int st)
@@ -259,32 +252,31 @@ public:
   {
     costfun = c;
   }
-  ;
 
   //! Is intensity scaling switched on?
   bool isIscale()
   {
     return iscale;
   }
-  ;\
+
   //! Get the name as specified with setName()
   std::string getName()
   {
     return name;
   }
-  ;
+
   //! Returns true if the registration converged in maxit steps
   bool getConverged()
   {
     return converged;
   }
-  ;
+
   //! Returns the weights (only for robust registration)
   virtual MRI * getWeights()
   {
     return NULL;
   }
-  ;
+
 //  MRI * getWeights()             {return mri_weights;};
 //  MRI * getHWeights()            {return mri_hweights;};
   //! Returns the half way geometry
@@ -311,7 +303,6 @@ public:
   {
     return iscalefinal;
   }
-  ;
 
 //  double estimateIScale(MRI *mriS, MRI *mriT);
 
@@ -329,6 +320,10 @@ public:
   vnl_vector_fixed<double, 4> getCentroidT();
   //! Return centroid of mov image in dst space (of input, not of resampled internal version)
   vnl_vector_fixed<double, 4> getCentroidSinT();
+
+
+  //! Get Name of Registration class
+  virtual std::string getClassName() {return "Registration";}
 
 protected:
   //! Setup transfromation model, source and target need to be set before
