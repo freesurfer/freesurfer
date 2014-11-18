@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2014/11/07 15:42:43 $
-#    $Revision: 1.624 $
+#    $Author: zkaufman $
+#    $Date: 2014/11/18 22:45:23 $
+#    $Revision: 1.625 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2537,6 +2537,7 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
   WXWIDGETS_GTK_CFLAGS="-D__WXGTK20__"
   WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/gtk-2.0"
   WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib/gtk-2.0/include"
+  WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/gdk-pixbuf-2.0"
   WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib64/gtk-2.0/include"
   WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/glib-2.0"
   WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/lib/glib-2.0/include"
