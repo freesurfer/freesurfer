@@ -11,7 +11,7 @@ int main ()
 {
    // Set 10 x, xnew and y values
    int N = 10;
-   Spline3 S;
+   Spline3 <double > S;
    std::vector < double > x(N);
    std::vector < double > xnew(N);
    std::vector < double > ynew;
@@ -59,16 +59,16 @@ int main ()
    std::cout << " Ynew : "; for (int i = 0;i<N;i++) std::cout << " " << ynew[i] ;std::cout << std::endl;
    
    
-   // NOW test array interface:
-   double* yarr = (double*)malloc( N*sizeof(double));
-   memcpy(yarr,arr,N*sizeof(double));
-   double* xarr = (double*)malloc( N*sizeof(double));
-   memcpy(xarr,&x[0], N*sizeof(double));
-   double* xnewarr = (double*)malloc( N*sizeof(double));
-   memcpy(xnewarr,&xnew[0], N*sizeof(double));
-   double *ynewarr = (double*)malloc(N*sizeof(double));
+   // NOW test array interface and use float:
+   float* yarr = (float*)malloc( N*sizeof(float));
+   for (int i = 0;i<N;i++) yarr[i] = (float)arr[i];
+   float* xarr = (float*)malloc( N*sizeof(float));
+   for (int i = 0;i<N;i++) xarr[i] = (float)x[i];
+   float* xnewarr = (float*)malloc( N*sizeof(float));
+   for (int i = 0;i<N;i++) xnewarr[i] = (float)xnew[i];
+   float *ynewarr = (float*)malloc(N*sizeof(float));
 
-   Spline3 S2;
+   Spline3 <float> S2;
    S2.preCacheX(N,xarr);
    S2.preCacheXnew(N,xnewarr); // could be different length M
    S2.interp(N,yarr); // using cached x
