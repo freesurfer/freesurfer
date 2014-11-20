@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/20 23:45:11 $
- *    $Revision: 1.412 $
+ *    $Date: 2014/11/20 23:49:53 $
+ *    $Revision: 1.413 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -12769,7 +12769,7 @@ mghRead(const char *fname, int read_volume, int frame)
       if (znzreadFloatEx(&(mri->te), fp))
         if (znzreadFloatEx(&(mri->ti), fp))
           if (znzreadFloatEx(&(mri->fov), fp))
-	    if (znzreadFloatEx(&(mri->FieldStrength), fp))
+	    //if (znzreadFloatEx(&(mri->FieldStrength), fp)) // not backwards compat
             ;
     }
   }
@@ -13068,8 +13068,8 @@ mghWrite(MRI *mri, const char *fname, int frame)
   znzwriteFloat(mri->flip_angle, fp) ;
   znzwriteFloat(mri->te, fp) ;
   znzwriteFloat(mri->ti, fp) ;
-  znzwriteFloat(mri->fov, fp); // somebody forgot this
-  znzwriteFloat(mri->FieldStrength, fp); // somebody forgot this
+  znzwriteFloat(mri->fov, fp); 
+  //znzwriteFloat(mri->FieldStrength, fp); // not backwards compat
 
   // if mri->transform_fname has non-zero length
   // I write a tag with strlength and write it
