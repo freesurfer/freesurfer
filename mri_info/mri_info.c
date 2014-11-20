@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/09/26 14:51:32 $
- *    $Revision: 1.86 $
+ *    $Author: greve $
+ *    $Date: 2014/11/20 23:46:54 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.86 $";
+char *MRI_INFO_VERSION = "$Revision: 1.87 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static char vcid[] =
-  "$Id: mri_info.c,v 1.86 2014/09/26 14:51:32 fischl Exp $";
+  "$Id: mri_info.c,v 1.87 2014/11/20 23:46:54 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -1079,6 +1079,7 @@ static void do_file(char *fname)
   {
     printf("       PhEncDir: UNKNOWN\n");
   }
+  printf("       FieldStrength: %lf\n", mri->FieldStrength);
   printf("ras xform %spresent\n", mri->ras_good_flag ? "" : "not ") ;
   printf("    xform info: x_r = %8.4f, y_r = %8.4f, z_r = %8.4f, "
          "c_r = %10.4f\n",
