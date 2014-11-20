@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/10/07 15:29:50 $
- *    $Revision: 1.63 $
+ *    $Date: 2014/11/20 22:47:08 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -236,6 +236,7 @@ COLOR_TABLE *CTABreadASCIIttHeader(const char *fname)
     nct++;
   }
   //printf("nct = %d, segidmax %d\n",nct,segidmax);
+  if(nct == 0) return(NULL);
 
   ct = (COLOR_TABLE *)calloc(1, sizeof(COLOR_TABLE));
   ct->nentries = segidmax + 1;
