@@ -6,9 +6,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.5 $
+ *    $Author: greve $
+ *    $Date: 2014/11/20 23:05:06 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,6 +38,7 @@ typedef struct
   char *hostname;  // eg, icebox (same as nodename)
   char *sysname;   // eg, Linux
   char *machine;   // eg, i686
+  char *tmpdir;    // folder for temporary files
   COLOR_TABLE *ctab; // FREESURFER_HOME/FreeSurferColorLUT.txt
 }
 FSENV;
