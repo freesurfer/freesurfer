@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/04 16:43:52 $
- *    $Revision: 1.156 $
+ *    $Date: 2014/11/20 23:14:03 $
+ *    $Revision: 1.157 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,7 @@ void *malloc(size_t size);
 #include "diag.h"
 #include "macros.h" // DEGREES
 #include "dti.h"
+#include "fsenv.h"
 
 #define _DICOMRead_SRC
 #include "DICOMRead.h"
@@ -108,6 +109,9 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   DTI *dti;
   int TryDTI = 1, DoDTI = 1;
   int vol_datatype;
+  FSENV *env;
+  char tmpfile[2000],tmpfilestdout[2000],*FileNameUse,cmd[4000];
+  int IsCompressed;
   extern int sliceDirCosPresent; // set when no ascii header
 
   xs=ys=zs=xe=ye=ze=d=0.; /* to avoid compiler warnings */
@@ -431,23 +435,6 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
     return(vol);
   }
 
-  /* exclude all JPEG compressed dicoms for now */
-  if(strncmp(sdfi->TransferSyntaxUID,"1.2.840.10008.1.2.4",19)==0)
-  {
-    printf("ERROR: the pixel data cannot be loaded as it is JPEG compressed.\n");
-    printf("       (Transfer Syntax UID: %s)\n",sdfi->TransferSyntaxUID);
-    exit(1);
-  }
-
-  /* exclude RLE compressed images for now */
-  if(strncmp(sdfi->TransferSyntaxUID,"1.2.840.10008.1.2.5",19)==0)
-  {
-    printf("ERROR: the pixel data cannot be loaded as it is RLE compressed.\n");
-    printf("       (Transfer Syntax UID: %s)\n",sdfi->TransferSyntaxUID);
-    printf("       You may be able to use dcmdrle (from the dcmtk package)\n");
-    printf("       to decompress the files before using mri_convert.\n"); 
-    exit(1);
-  }
   
   /* Dump info about the first file to stdout */
   DumpSDCMFileInfo(stdout,sdfi);
@@ -485,19 +472,56 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
       MinSliceScaleFactor = sdfi_list[nthfile]->SliceScaleFactor;
     }
 
-
-  for (nthfile = 0; nthfile < nlist; nthfile ++)
-  {
+  env = FSENVgetenv();
+  for (nthfile = 0; nthfile < nlist; nthfile ++){
 
     sdfi = sdfi_list[nthfile];
 
-    /* Get the pixel data */
-    element = GetElementFromFile(sdfi->FileName,0x7FE0,0x10);
-    if (element == NULL)
-    {
-      fprintf(stderr,"ERROR: reading pixel data from %s\n",sdfi->FileName);
-      MRIfree(&vol);
+    /* Handle compression */
+    // If changing this code, make sure to change similar code below
+    if(strncmp(sdfi->TransferSyntaxUID,jpegCompressed_UID,19)==0 ||
+       strncmp(sdfi->TransferSyntaxUID,rllEncoded_UID,19)==0) {
+      // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
+      IsCompressed = 1;
+      sprintf(tmpfile,"%s/%s.tmp.decompressed.dcm.XXXXXX",env->tmpdir,env->user);
+      pc = mktemp(tmpfile);
+      sprintf(tmpfile,"%s",pc);
+      if(strncmp(sdfi->TransferSyntaxUID,jpegCompressed_UID,19)==0){
+	printf("JPEG compressed, decompressing\n");
+	sprintf(tmpfilestdout,"%s.dcmdjpeg.out",tmpfile);
+	sprintf(cmd,"dcmdjpeg.fs +te %s %s >& %s",sdfi->FileName,tmpfile,tmpfilestdout); // shell?
+      }
+      if(strncmp(sdfi->TransferSyntaxUID,rllEncoded_UID,19)==0){
+	printf("RLE compressed, decompressing\n");
+	sprintf(tmpfilestdout,"%s.dcmdlrf.out",tmpfile);
+	sprintf(cmd,"dcmdrle.fs +te %s %s >& %s",sdfi->FileName,tmpfile,tmpfilestdout); // shell?
+      }
+      printf("cd %s\n",env->cwd);
+      printf("%s\n",cmd);
+      err = system(cmd);
+      if(err == -1){
+	printf("ERROR: %d, see %s for more details\n",err,tmpfilestdout);
+	exit(1);
+      }
+      FileNameUse = tmpfile;
     }
+    else {
+      IsCompressed = 0;
+      FileNameUse = sdfi->FileName;
+    }
+
+    /* Get the pixel data */
+    element = GetElementFromFile(FileNameUse,0x7FE0,0x10);
+    if(element == NULL){
+      printf("ERROR: reading pixel data from %s\n",FileNameUse);
+      MRIfree(&vol);
+      exit(1);
+    }
+    if(IsCompressed){
+      unlink(tmpfile);
+      unlink(tmpfilestdout);
+    }
+
     pixeldata = (unsigned short *)(element->d.string);
 
     if (!IsMosaic)
@@ -691,6 +715,8 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   /* restore progress range */
   global_progress_range[0] = nstart;
   global_progress_range[1] = nend;
+
+  FSENVfree(&env);
 
   return(vol);
 }
@@ -5880,7 +5906,7 @@ int alphasort(const void *a, const void *b)
   --------------------------------------------------------------*/
 MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 {
-  char **FileNames, *dcmdir;
+  char **FileNames, *dcmdir, *pc;
   DICOMInfo RefDCMInfo, TmpDCMInfo, **dcminfo;
   int nfiles, nframes,nslices, r, c, s, f, err;
   int ndcmfiles, nthfile, mritype=0,nvox;
@@ -5889,6 +5915,9 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   DCM_ELEMENT *element;
   double r0, a0,  s0;
   MRI *mri;
+  FSENV *env;
+  char tmpfile[2000],tmpfilestdout[2000],*FileNameUse,cmd[4000];
+  int IsCompressed;
 
   printf("Starting DICOMRead2()\n");
 
@@ -6150,39 +6179,62 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
     return(mri);
   }
 
-  printf("TransferSyntaxUID: --%s--\n",dcminfo[0]->TransferSyntaxUID);
-  if(strcmp(dcminfo[0]->TransferSyntaxUID,"1.2.840.10008.1.2.4.70")==0)
-  {
-    printf("ERROR: the pixel data cannot be loaded as it is JPEG compressed.\n");
-    printf("       (Transfer Syntax UID: %s)\n",dcminfo[0]->TransferSyntaxUID);
-    // It can be converted to non-jpeg with
-    // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic
-    // dcmdjpeg +te jpgdicom newdicom
-    printf("jpegUID:           --%s--\n",jpegCompressed_UID);
-    exit(1);
-  }
+  env = FSENVgetenv();
 
   printf("Loading pixel data\n");
   nvox = RefDCMInfo.Columns * RefDCMInfo.Rows;
 
-  if(RefDCMInfo.BitsAllocated == 16|| RefDCMInfo.BitsAllocated == 8)
-  {
+  if(RefDCMInfo.BitsAllocated == 16|| RefDCMInfo.BitsAllocated == 8){
     nthfile = 0;
-    for (s=0; s < nslices; s++)
-    {
-      for (f=0; f < nframes; f++)
-      {
-        if (Gdiag_no > 0)
-        {
-          printf("slice %2d, frame %2d\n",s,f);
-        }
-        element = GetElementFromFile(dcminfo[nthfile]->FileName,0x7FE0,0x10);
-        if (element == NULL)
-        {
-          printf("ERROR: reading pixel data from %s\n",
-                 dcminfo[nthfile]->FileName);
+    for (s=0; s < nslices; s++){
+      for (f=0; f < nframes; f++) {
+        if (Gdiag_no > 0) printf("slice %2d, frame %2d\n",s,f);
+
+	/* Handle compression */
+	// If changing this code, make sure to change similar code above
+	if(strncmp(dcminfo[nthfile]->TransferSyntaxUID,jpegCompressed_UID,19)==0 ||
+	   strncmp(dcminfo[nthfile]->TransferSyntaxUID,rllEncoded_UID,19)==0) {
+	  // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
+	  IsCompressed = 1;
+	  sprintf(tmpfile,"%s/%s.tmp.decompressed.dcm.XXXXXX",env->tmpdir,env->user);
+	  pc = mktemp(tmpfile);
+	  sprintf(tmpfile,"%s",pc);
+	  if(strncmp(dcminfo[nthfile]->TransferSyntaxUID,jpegCompressed_UID,19)==0){
+	    printf("JPEG compressed, decompressing\n");
+	    sprintf(tmpfilestdout,"%s.dcmdjpeg.out",tmpfile);
+	    sprintf(cmd,"dcmdjpeg.fs +te %s %s >& %s",dcminfo[nthfile]->FileName,tmpfile,tmpfilestdout);
+	  }
+	  if(strncmp(dcminfo[nthfile]->TransferSyntaxUID,rllEncoded_UID,19)==0){
+	    printf("RLE compressed, decompressing\n");
+	    sprintf(tmpfilestdout,"%s.dcmdlrf.out",tmpfile);
+	    sprintf(cmd,"dcmdrle.fs +te %s %s >& %s",dcminfo[nthfile]->FileName,tmpfile,tmpfilestdout); 
+	  }
+	  printf("cd %s\n",env->cwd);
+	  printf("%s\n",cmd);
+	  err = system(cmd);
+	  if(err != 0){
+	    printf("ERROR: %d, see %s for more details\n",err,tmpfilestdout);
+	    // Should stream tmpfilestdout to terminal
+	    exit(1);
+	  }
+	  FileNameUse = tmpfile;
+	}
+	else {
+	  IsCompressed = 0;
+	  FileNameUse = dcminfo[nthfile]->FileName;
+	}
+
+        element = GetElementFromFile(FileNameUse,0x7FE0,0x10);
+        if (element == NULL){
+          printf("ERROR: reading pixel data from %s\n",dcminfo[nthfile]->FileName);
           MRIfree(&mri);
+	  exit(1);
         }
+	if(IsCompressed){
+	  unlink(tmpfile);
+	  unlink(tmpfilestdout);
+	}
+
         v08 = (unsigned char *)(element->d.string);
         v16 = (unsigned short *)(element->d.string);
         for (r=0; r < RefDCMInfo.Rows; r++)
@@ -6208,10 +6260,10 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   } // 16 bit
 
   for (nthfile = 0; nthfile < ndcmfiles; nthfile ++)
-  {
     free(dcminfo[nthfile]);
-  }
   free(dcminfo);
+
+  FSENVfree(&env);
 
   return(mri);
 }
