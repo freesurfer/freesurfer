@@ -7,8 +7,8 @@
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/04 16:43:52 $
- *    $Revision: 1.33 $
+ *    $Date: 2014/11/20 23:45:11 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,9 +147,10 @@ typedef struct
 
   // acquisition parameters
   double EchoTime,
-  RepetitionTime,
-  InversionTime,
-  FlipAngle;
+    RepetitionTime,
+    InversionTime,
+    FlipAngle,
+    FieldStrength;
   short EchoNumber;
   char *PhEncDir;
 
@@ -187,6 +188,7 @@ typedef struct
   float EchoTime;
   float RepetitionTime;
   float InversionTime;
+  float FieldStrength;
 
   float PhEncFOV;
   float ReadoutFOV;

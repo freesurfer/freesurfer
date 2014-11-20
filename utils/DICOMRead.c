@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/20 23:14:03 $
- *    $Revision: 1.157 $
+ *    $Date: 2014/11/20 23:45:11 $
+ *    $Revision: 1.158 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -296,6 +296,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   vol->te    = sdfi->EchoTime;
   vol->ti    = sdfi->InversionTime;
   vol->flip_angle  = sdfi->FlipAngle;
+  vol->FieldStrength  = sdfi->FieldStrength;
   if (! sdfi->IsMosaic )
   {
     vol->tr    = sdfi->RepetitionTime;
@@ -925,6 +926,7 @@ MRI * sdcmLoadVolumeAutoScale(const char *dcmfile, int LoadVolume, int nthonly)
   vol->te    = sdfi->EchoTime;
   vol->ti    = sdfi->InversionTime;
   vol->flip_angle  = sdfi->FlipAngle;
+  vol->FieldStrength = sdfi->FieldStrength;
   if (! sdfi->IsMosaic )
   {
     vol->tr    = sdfi->RepetitionTime;
@@ -2602,6 +2604,10 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
   tag=DCM_MAKETAG(0x18, 0x81);
   cond=GetDoubleFromString(&object, tag, &dtmp);
   sdcmfi->EchoTime = (float) dtmp;
+
+  tag=DCM_MAKETAG(0x18, 0x87);
+  cond=GetDoubleFromString(&object, tag, &dtmp);
+  sdcmfi->FieldStrength = (float) dtmp;
 
   tag=DCM_MAKETAG(0x18, 0x82);
   cond=GetDoubleFromString(&object, tag, &dtmp);
@@ -5111,6 +5117,13 @@ CONDITION GetDICOMInfo(const char *fname,
     IsTagPresent[DCM_EchoTime]=true;
   }
 
+  tag=DCM_MAKETAG(0x18, 0x87);
+  cond=GetDoubleFromString(object, tag, &dcminfo->FieldStrength);
+  if (cond != DCM_NORMAL){
+    dcminfo->FieldStrength = 0;
+    cond2=cond;
+  }
+
   // flip angle
   tag=DCM_MAKETAG(0x18, 0x1314);
   cond=GetDoubleFromString(object, tag, &dcminfo->FlipAngle);
@@ -6071,6 +6084,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   mri->te      = RefDCMInfo.EchoTime;
   mri->ti      = RefDCMInfo.InversionTime;
   mri->flip_angle = RefDCMInfo.FlipAngle;
+  mri->FieldStrength = RefDCMInfo.FieldStrength;
   mri->width   = RefDCMInfo.Columns;
   mri->height  = RefDCMInfo.Rows;
   mri->depth   = nslices;

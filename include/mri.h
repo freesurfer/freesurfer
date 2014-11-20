@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2014/11/13 19:49:09 $
- *    $Revision: 1.471 $
+ *    $Author: greve $
+ *    $Date: 2014/11/20 23:45:11 $
+ *    $Revision: 1.472 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -217,6 +217,7 @@ typedef struct
   int           dof ;
   double        mean ;
   double        flip_angle ;  /* in radians */
+  float   FieldStrength; 
   char          *pedir; /* phase enc direction: ROW, COL, etc*/
 
   void*         tag_data; /* saved tag data */
