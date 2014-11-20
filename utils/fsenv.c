@@ -6,9 +6,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.5 $
+ *    $Author: greve $
+ *    $Date: 2014/11/20 23:04:46 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,7 +39,7 @@
 // Return the CVS version of this file.
 const char *FSENVsrcVersion(void)
 {
-  return("$Id: fsenv.c,v 1.5 2011/03/02 00:04:44 nicks Exp $");
+  return("$Id: fsenv.c,v 1.6 2014/11/20 23:04:46 greve Exp $");
 }
 
 FSENV *FSENVgetenv(void)
@@ -89,6 +89,10 @@ FSENV *FSENVgetenv(void)
   // Get time and date at the time this function was called
   fsenv->date = VERcurTimeStamp();
 
+  pc = getenv("FREESURFER_TMP_DIR");
+  if(pc != NULL) fsenv->tmpdir = strcpyalloc(pc);
+  else fsenv->tmpdir = strcpyalloc("/tmp");
+
   return(fsenv);
 }
 /*-----------------------------------------------*/
@@ -103,6 +107,7 @@ int FSENVfree(FSENV **ppenv)
   free(env->hostname);
   free(env->sysname);
   free(env->machine);
+  free(env->tmpdir);
   CTABfree(&env->ctab);
   free(*ppenv);
   *ppenv = NULL;
