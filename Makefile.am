@@ -418,6 +418,12 @@ install-data-hook:
 			cp -f $(FSLDIR)/bin/fslorient $(DESTDIR)$(bindir)/fslorient.fsl ; \
 		fi; \
 	fi;
+	if test ! "x$(DCMTKDIR)" = "x" ; then \
+		if test -e $(DCMTKLDIR) ; then \
+			cp -f $(DCMTKDIR)/bin/dcmdjpeg $(DESTDIR)$(bindir)/dcmdjpeg.fs ; \
+			cp -f $(DCMTKDIR)/bin/dcmdrle $(DESTDIR)$(bindir)/dcmdrle.fs ; \
+		fi; \
+	fi;
 	if test ! "x$(AFNIDIR)" = "x" ; then \
 		if test -e $(AFNIDIR)/bin/3dvolreg ; then \
 			cp -f $(AFNIDIR)/bin/3dvolreg $(DESTDIR)$(bindir)/3dvolreg.afni ; \
