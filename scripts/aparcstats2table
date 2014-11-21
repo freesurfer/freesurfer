@@ -9,7 +9,7 @@ from fsutils import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.25 2013/02/13 18:06:29 nicks Exp $
+# $Id: aparcstats2table,v 1.26 2014/11/21 23:17:19 greve Exp $
 
 # globals
 l = aparclogger
@@ -88,7 +88,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.25 2013/02/13 18:06:29 nicks Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.26 2014/11/21 23:17:19 greve Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -108,6 +108,7 @@ def options_parse():
     h_roi = 'print ROIs information for each subject'
     h_tr = 'transpose the table ( default is subjects in rows and ROIs in cols)' 
     h_v = 'increase verbosity'
+    h_etiv = 'report volume as percent estimated total intracranial volume' 
 
     # Add the options
     parser.add_option('--subjects', dest='subjects' ,action='callback',
@@ -143,6 +144,8 @@ def options_parse():
                       default=False, help=h_tr)
     parser.add_option('-v', '--debug', action='store_true', dest='verboseflag',
                       default=False, help=h_v)
+    parser.add_option('', '--etiv', action='store_true', dest='etivflag',
+                      default=False, help=h_etiv)
     (options, args) = parser.parse_args()
    
     # error check
@@ -387,8 +390,24 @@ if __name__=="__main__":
     print 'Building the table..'
     rows, columns, table = sanitize_table(options, pretable)
 
+    if(options.etivflag):
+        try:
+            for row in rows:
+                etiv = table[row]['eTIV'];
+                for col in columns:
+                    if(col == 'lhSurfaceHoles'): continue; 
+                    if(col == 'rhSurfaceHoles'): continue; 
+                    if(col == 'SurfaceHoles'): continue; 
+                    if(col == 'BrainSegVol-to-eTIV'): continue; 
+                    if(col == 'MaskVol-to-eTIV'): continue; 
+                    v = table[row][col];
+                    table[row][col] = 100*v/etiv;
+        except:
+            print "ERROR: --etiv, cannot find eTIV in measure list"
+            sys.exit(1)
+                    
     # Write this table ( in memory ) to disk.. function uses TableWriter class
-    print 'Writing the table to %s' %options.outputfile
+    print 'Writing the table to %s' % options.outputfile
     write_table(options, rows, columns, table)
 
     # always exit with 0 exit code
