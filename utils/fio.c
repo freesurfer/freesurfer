@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/08/21 17:51:31 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/11/21 17:45:30 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -519,6 +519,11 @@ znzreadShort(znzFile fp)
 /* while (znzread..Ex(., fp))                            */
 /*   dosomething();                                    */
 /*******************************************************/
+/*
+  Note: znzreadFloatEx() is not compatible with TAGwrite()
+  because TAGwrite() does not do a byte order swap. Use
+  znzTAGreadFloat() instead of znzreadFloatEx().
+ */
 int znzreadFloatEx(float *pf, znzFile fp)
 {
   int   ret ;
