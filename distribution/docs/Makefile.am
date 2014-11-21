@@ -22,6 +22,7 @@ foo_DATA=\
 	license.nifti.txt \
 	license.gifti.txt \
 	license.cuda.txt \
+	license.dcmtk.txt \
 	license.lapack.txt
 
 poodir=$(prefix)/tktools
