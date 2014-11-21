@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: datastruct_utils.py,v 1.5 2010/01/08 20:08:23 krish Exp $
+# $Id: datastruct_utils.py,v 1.6 2014/11/21 23:07:41 greve Exp $
 from __future__ import generators
 
 __all__ = ['Ddict', 'TableWriter', 'StableDict', 'unique_union',
@@ -58,7 +58,11 @@ class TableWriter:
         fp = open(self.filename, 'w')
         fp.write(self.row1col1)
         for c in self.columns:
-            fp.write(self.delimiter + self.pretext + c + self.posttext)
+            if((c == 'eTIV' or c == 'BrainSegVolNotVent') and (self.pretext == 'lh_' or self.pretext == 'rh_')):
+                # For eTIV in aparc stats file
+                fp.write(self.delimiter + c);
+            else:
+                fp.write(self.delimiter + self.pretext + c + self.posttext)
         fp.write('\n')
         
         for r in self.rows:
@@ -76,7 +80,11 @@ class TableWriter:
         fp.write('\n')
 
         for c in self.columns:
-            fp.write(self.pretext + c + self.posttext)
+            if((c == 'eTIV' or c == 'BrainSegVolNotVent') and (self.pretext == 'lh_' or self.pretext == 'rh_')):
+                # For eTIV in aparc stats file
+                fp.write(c)
+            else:
+                fp.write(self.pretext + c + self.posttext)
             for r in self.rows:
                 fp.write(self.delimiter + '%g' %self.table[r][c])
             fp.write('\n')
