@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/15 17:04:49 $
- *    $Revision: 1.74 $
+ *    $Date: 2014/11/21 23:00:13 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,9 +39,10 @@
 #include "fio.h"
 #include "version.h"
 #include "colortab.h"
+#include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.74 2014/09/15 17:04:49 greve Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.75 2014/11/21 23:00:13 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -93,6 +94,7 @@ static char *white_name = "white" ;
 static char *pial_name = "pial" ;
 static LABEL *cortex_label = NULL ; // limit surface area calc to cortex.label
 static int crosscheck = 0;
+static int DoGlobalStats = 1;
 
 #define MAX_INDICES 50000
 static char *names[MAX_INDICES];
@@ -120,7 +122,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.74 2014/09/15 17:04:49 greve Exp $",
+           "$Id: mris_anatomical_stats.c,v 1.75 2014/11/21 23:00:13 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -569,12 +571,34 @@ main(int argc, char *argv[])
               mean_cortex_thickness);
     }
 
-    fprintf(fp,"# NTableCols 10\n");
+    if(DoGlobalStats){
+      char tmpstr[2000];
+      double atlas_icv=0;
+      double determinant = 0;
+      double etiv_scale_factor = 1948.106;
+      sprintf(tmpstr,"%s/%s/mri/transforms/talairach.xfm",sdir,sname);
+      atlas_icv = MRIestimateTIV(tmpstr,etiv_scale_factor,&determinant);
+      printf("atlas_icv (eTIV) = %d mm^3    (det: %3f )\n",(int)atlas_icv,determinant);
+      
+      double *BrainVolStats;
+      BrainVolStats = ComputeBrainVolumeStats(sname);
+      fprintf(fp,"# Measure BrainSeg, BrainSegVol, Brain Segmentation Volume, %f, mm^3\n",BrainVolStats[0]);
+      fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
+              BrainVolStats[1]);
+      fprintf(fp,"# Measure BrainSegNotVentSurf, BrainSegVolNotVentSurf, Brain Segmentation Volume Without Ventricles from Surf, %f, mm^3\n",
+	      BrainVolStats[14]);
+      fprintf(fp,"# Measure Cortex, CortexVol Total cortical gray matter volume, %f, mm^3\n",BrainVolStats[7]);
+      fprintf(fp,"# Measure SupraTentorial, SupraTentorialVol, Supratentorial volume, %f, mm^3\n",BrainVolStats[2]);
+      fprintf(fp,"# Measure SupraTentorialNotVent, SupraTentorialVolNotVent, Supratentorial volume, %f, mm^3\n",BrainVolStats[3]);
+      fprintf(fp,"# Measure EstimatedTotalIntraCranialVol, eTIV, Estimated Total Intracranial Volume, %f, mm^3\n",atlas_icv);
+    }
 
+    fprintf(fp,"# NTableCols 10\n");
+    
     fprintf(fp,"# TableCol  1 ColHeader StructName\n");
     fprintf(fp,"# TableCol  1 FieldName Structure Name\n");
     fprintf(fp,"# TableCol  1 Units     NA\n");
-
+    
     fprintf(fp,"# TableCol  2 ColHeader NumVert\n");
     fprintf(fp,"# TableCol  2 FieldName Number of Vertices\n");
     fprintf(fp,"# TableCol  2 Units     unitless\n");
@@ -1077,6 +1101,11 @@ get_option(int argc, char *argv[])
     crosscheck = 1;
     printf("INFO: will cross-check cortex NumVert and SurfArea with "
            "sum of all annotation structures.\n");
+  }
+  else if (!stricmp(option, "noglobal"))
+  {
+    DoGlobalStats = 0;
+    printf("INFO: not computing global stats\n");
   }
   else switch (toupper(*option))
     {

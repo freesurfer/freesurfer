@@ -55,6 +55,8 @@
       <explanation>Smooth thicknessmap # of iterations before using it</explanation>
       <argument>-c &lt;ctab file&gt;</argument>
       <explanation>Output annotation files's colortable to text file</explanation>
+      <argument>-noglobal</argument>
+      <explanation>Do not compute global brain stats</explanation>
     </optional-flagged>
   </arguments>
   <outputs>
