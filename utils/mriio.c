@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/20 23:49:53 $
- *    $Revision: 1.413 $
+ *    $Date: 2014/11/21 19:15:01 $
+ *    $Revision: 1.414 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -12769,7 +12769,6 @@ mghRead(const char *fname, int read_volume, int frame)
       if (znzreadFloatEx(&(mri->te), fp))
         if (znzreadFloatEx(&(mri->ti), fp))
           if (znzreadFloatEx(&(mri->fov), fp))
-	    //if (znzreadFloatEx(&(mri->FieldStrength), fp)) // not backwards compat
             ;
     }
   }
@@ -12780,20 +12779,18 @@ mghRead(const char *fname, int read_volume, int frame)
     char *fnamedir;
     char tmpstr[1000];
 
-    while ((tag = znzTAGreadStart(fp, &len)) != 0)
-    {
-      switch (tag)
-      {
+    while (1)  {
+      tag = znzTAGreadStart(fp, &len);
+      //printf("tag %d\n",tag);
+      if(tag == 0) break;
+
+      switch (tag)      {
+
       case TAG_MRI_FRAME:
-#if 0
-        mri->frames = (MRI_FRAME *)calloc(mri->nframes, sizeof(MRI_FRAME)) ;
-        if (mri->frames == NULL)
-          ErrorExit(ERROR_NOMEMORY, "mghRead(%s): could not allocate %d MRI_FRAMEs", fname, mri->nframes) ;
-#endif
-        
         if (znzTAGreadMRIframes(fp, mri, len) != NO_ERROR)
           fprintf(stderr, "couldn't read frame structure from file\n") ;
         break ;
+
       case TAG_OLD_COLORTABLE:
         /* We have a color table, read it with CTABreadFromBinary. If it
            fails, it will print its own error message. */
@@ -12803,9 +12800,9 @@ mghRead(const char *fname, int read_volume, int frame)
           fprintf(stderr, "colortable with %d entries read (originally %s)\n",
                   mri->ct->nentries, mri->ct->fname);
         break ;
+
       case TAG_OLD_MGH_XFORM:
       case TAG_MGH_XFORM:
-
         // First, try a path relative to fname (not the abs path)
         fnamedir = fio_dirname(fname);
         sprintf(tmpstr,"%s/transforms/talairach.xfm",fnamedir);
@@ -12840,16 +12837,6 @@ mghRead(const char *fname, int read_volume, int frame)
             (mri->transform_fname)[0] = '\0';
           }
         }
-/* freakin' annoying and useless warning message:
-        else
-        {
-          fprintf(stderr,
-                  "Can't find the talairach xform '%s'\n",
-                  mri->transform_fname);
-          fprintf(stderr, "Transform is not loaded into mri\n");
-          // should we do something to transform_fname?
-        }
-*/
         break ;
 
       case TAG_CMDLINE:
@@ -12870,6 +12857,11 @@ mghRead(const char *fname, int read_volume, int frame)
       case TAG_PEDIR:
 	mri->pedir = (char*)calloc(len+1,sizeof(char));
         znzread(mri->pedir,sizeof(char),len,fp);
+        break;
+
+      case TAG_FIELDSTRENGTH:
+	//znzreadFloatEx(&(mri->FieldStrength), fp); // Performs byte swap not in znzTAGwrite()
+	znzTAGreadFloat(&(mri->FieldStrength), fp);
         break;
 
       default:
@@ -13069,7 +13061,6 @@ mghWrite(MRI *mri, const char *fname, int frame)
   znzwriteFloat(mri->te, fp) ;
   znzwriteFloat(mri->ti, fp) ;
   znzwriteFloat(mri->fov, fp); 
-  //znzwriteFloat(mri->FieldStrength, fp); // not backwards compat
 
   // if mri->transform_fname has non-zero length
   // I write a tag with strlength and write it
@@ -13095,6 +13086,7 @@ mghWrite(MRI *mri, const char *fname, int frame)
   if(mri->AutoAlign) znzWriteMatrix(fp, mri->AutoAlign);
   if(mri->pedir) znzTAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir)+1);
   else znzTAGwrite(fp, TAG_PEDIR, "UNKNOWN", strlen("UNKNOWN"));
+  znzTAGwrite(fp, TAG_FIELDSTRENGTH, (void *)(&mri->FieldStrength), sizeof(mri->FieldStrength));
 
   znzTAGwriteMRIframes(fp, mri);
 
