@@ -11,7 +11,7 @@ from fsutils import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.38 2014/04/30 19:44:34 greve Exp $
+# $Id: asegstats2table,v 1.39 2014/11/21 22:27:54 greve Exp $
 
 # globals
 l = aseglogger
@@ -110,7 +110,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.38 2014/04/30 19:44:34 greve Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.39 2014/11/21 22:27:54 greve Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -130,6 +130,7 @@ def options_parse():
     h_stats = 'use `fname` instead of "aseg.stats"'
     h_subdir = 'use `subdir` instead of "stats/"'
     h_tr = 'transpose the table ( default is subjects in rows and segmentations in cols)' 
+    h_etiv = 'report volume as percent estimated total intracranial volume' 
     h_t = '(REQUIRED) the output tablefile'
     h_deli = 'delimiter between measures in the table. default is tab (alt comma, space, semicolon )' 
     h_skip = 'if a subject does not have stats file, skip it'
@@ -177,6 +178,8 @@ def options_parse():
                       default='tab', help=h_deli)
     parser.add_option('', '--transpose', action='store_true', dest='transposeflag',
                       default=False, help=h_tr)
+    parser.add_option('', '--etiv', action='store_true', dest='etivflag',
+                      default=False, help=h_etiv)
     parser.add_option('--skip', action='store_true', dest='skipflag',
                       default=False, help=h_skip)
     parser.add_option('-v', '--debug', action='store_true', dest='verboseflag',
@@ -563,6 +566,24 @@ if __name__=="__main__":
     # and merge them up, clean them up etc. More in the documentation of the fn.
     print 'Building the table..'
     rows, columns, table = sanitize_table(options, pretable)
+
+    if(options.etivflag):
+        try:
+            for row in rows:
+                etiv = table[row]['EstimatedTotalIntraCranialVol'];
+                for col in columns:
+                    if(col == 'lhSurfaceHoles'): continue; 
+                    if(col == 'rhSurfaceHoles'): continue; 
+                    if(col == 'SurfaceHoles'): continue; 
+                    if(col == 'BrainSegVol-to-eTIV'): continue; 
+                    if(col == 'MaskVol-to-eTIV'): continue; 
+                    v = table[row][col];
+                    table[row][col] = 100*v/etiv;
+
+        except:
+            print "ERROR: --etiv, cannot find EstimatedTotalIntraCranialVol in list"
+            sys.exit(1)
+    # end etiv scaling
 
     # Write this table ( in memory ) to disk.. function uses TableWriter class
     print 'Writing the table to %s' %options.outputfile
