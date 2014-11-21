@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/04/14 18:54:08 $
- *    $Revision: 1.23 $
+ *    $Author: greve $
+ *    $Date: 2014/11/21 17:52:30 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,7 @@
 #define TAG_SCALAR_DOUBLE           40
 #define TAG_PEDIR                   41
 #define TAG_MRI_FRAME               42
+#define TAG_FIELDSTRENGTH           43
 
 int TAGreadStart(FILE *fp, long long *plen) ;
 int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) ;
@@ -70,6 +71,7 @@ int znzTAGwriteCommandLine(znzFile fp, char *cmd_line) ;
 int znzTAGwrite(znzFile fp, int tag, void *buf, long long len) ;
 int znzWriteMatrix(znzFile fp, MATRIX *M);
 MATRIX *znzReadMatrix(znzFile fp);
+int znzTAGreadFloat(float *pf, znzFile fp);
 
 int znzWriteAutoAlignMatrix(znzFile fp, MATRIX *M);
 MATRIX *znzReadAutoAlignMatrix(znzFile fp);

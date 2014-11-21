@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/06/17 02:37:48 $
- *    $Revision: 1.15 $
+ *    $Author: greve $
+ *    $Date: 2014/11/21 17:52:30 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,7 @@
 
 #include "fio.h"
 #include "error.h"
+#include "machine.h"
 #include "tags.h"
 
 int
@@ -239,10 +240,14 @@ znzTAGwriteStart(znzFile fp, int tag, long long *phere, long long len)
   return(NO_ERROR) ;
 }
 
+/*
+  Note: TAGwrite()  is not compatible with znzreadFloatEx()
+  because TAGwrite() does not do a byte order swap. Use
+  znzTAGreadFloat() instead of znzreadFloatEx().
+ */
 int znzTAGwrite(znzFile fp, int tag, void *buf, long long len)
 {
   long long here ;
-
   znzTAGwriteStart(fp, tag, &here, len) ;
   znzwrite(buf, sizeof(char), len, fp) ;
   znzTAGwriteEnd(fp, here) ;
@@ -295,6 +300,24 @@ int znzWriteMatrix(znzFile fp, MATRIX *M)
   znzTAGwriteEnd(fp, len) ;
   return(NO_ERROR) ;
 }
+
+/*
+  Note: znzTAGreadFloat() is compatible with
+  TAGwrite(). znzreadFloatEx() is not compatible with TAGwrite()
+  because it performs a byte order swap. Use znzTAGreadFloat() instead
+  of znzreadFloatEx().
+ */
+int znzTAGreadFloat(float *pf, znzFile fp)
+{
+  int ret;
+  ret = znzreadFloatEx(pf, fp);
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  // Now unswap if needed
+  *pf = swapFloat(*pf) ;
+#endif
+  return ret;
+}
+
 
 MATRIX *znzReadMatrix(znzFile fp)
 {
