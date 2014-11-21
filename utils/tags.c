@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/21 17:52:30 $
- *    $Revision: 1.16 $
+ *    $Date: 2014/11/21 19:07:43 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -319,20 +319,26 @@ int znzTAGreadFloat(float *pf, znzFile fp)
 }
 
 
+/*
+  \fn MATRIX *znzReadMatrix(znzFile fp)
+  Different than znzReadAutoAlignMatrix(znzFile fp) in that
+  this function includes a znzTAGreadStart() which is not
+  included in znzReadAutoAlignMatrix()
+ */
 MATRIX *znzReadMatrix(znzFile fp)
 {
-  /* no fscanf equivalent in zlib!! have to hack it */
   char buf[MATRIX_STRLEN];
   MATRIX *M;
   char ch[100];
   int  ret ;
   long long here, len ;
   
+  /* no fscanf equivalent in zlib!! have to hack it */
   znzTAGreadStart(fp, &len) ;
   M = MatrixAlloc(4,4,MATRIX_REAL);
-  here = znztell(fp) ;
+  here = znztell(fp) ; // not used?
   ret = znzread(buf, sizeof(unsigned char), MATRIX_STRLEN, fp) ;
-  here = znztell(fp) ;
+  here = znztell(fp) ; // not used?
   sscanf(buf,"%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f", ch, 
          &(M->rptr[1][1]),
          &(M->rptr[1][2]),
@@ -357,6 +363,7 @@ MATRIX *znzReadMatrix(znzFile fp)
 
 int znzWriteAutoAlignMatrix(znzFile fp, MATRIX *M)
 {
+  // This does not appear to be used
   long long here ;
   char buf[16*100];
   long long len;
@@ -375,22 +382,17 @@ int znzWriteAutoAlignMatrix(znzFile fp, MATRIX *M)
   return(NO_ERROR) ;
 }
 
+/*
+ \fn MATRIX *znzReadAutoAlignMatrix(znzFile fp)
+ Compatible with znzWriteMatrix(znzFile fp, MATRIX *M)
+*/
 MATRIX *znzReadAutoAlignMatrix(znzFile fp)
 {
-  /* no fscanf equivalent in zlib!! have to hack it */
-  char buf[16*100];
-  bzero(buf,16*100);
-  
-  int cnt = 0;
-  int c = 0;
-  while ( (c = znzgetc(fp)) != '\0' )
-  {
-    buf[cnt] = c;
-    cnt++;
-  }
-  znzseek(fp, -1, SEEK_CUR);
-  
   MATRIX *M;
+  char buf[MATRIX_STRLEN];
+
+  /* no fscanf equivalent in zlib!! have to hack it */
+  znzread(buf, sizeof(unsigned char), MATRIX_STRLEN, fp) ;
   M = MatrixAlloc(4,4,MATRIX_REAL);
   char ch[100];
   sscanf(buf,"%s %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f", ch, 
