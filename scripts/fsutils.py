@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.17 2014/04/30 19:44:34 greve Exp $
+# $Id: fsutils.py,v 1.18 2014/11/21 23:06:43 greve Exp $
 import os
 import logging
 import sys
@@ -227,6 +227,16 @@ class AparcStatsParser(StatsParser):
         # measures which are found at the beginning of files. 
         self.fp.seek(0)
         for line in self.fp:
+            beg_struct_tuple = (('# Measure EstimatedTotalIntraCranialVol, eTIV', 'eTIV'),)
+            for start, structn in beg_struct_tuple:
+                if line.startswith(start):
+                    strlst = line.split(',')
+                    self.parc_measure_map[structn] = float( strlst[3])
+            beg_struct_tuple = (('# Measure BrainSegNotVent, BrainSegVolNotVent', 'BrainSegVolNotVent'),)
+            for start, structn in beg_struct_tuple:
+                if line.startswith(start):
+                    strlst = line.split(',')
+                    self.parc_measure_map[structn] = float( strlst[3])
             if measure == 'area':
                 beg_struct_tuple = (
                     ('# Measure Cortex, WhiteSurfArea,', 'WhiteSurfArea'),
