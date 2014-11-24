@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:38 $
-#    $Revision: 1.9 $
+#    $Author: greve $
+#    $Date: 2014/11/24 18:30:47 $
+#    $Revision: 1.10 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 # aparc2feat
 #
 
-set VERSION = '$Id: aparc2feat,v 1.9 2011/03/02 20:16:38 nicks Exp $';
+set VERSION = '$Id: aparc2feat,v 1.10 2014/11/24 18:30:47 greve Exp $';
 set FeatDirList = ();
 set HemiList = (rh lh)
 set debug = 0;
@@ -75,7 +75,8 @@ foreach FeatDir ($FeatDirList)
   echo "subject is $subject" | tee -a $LF
 
   set reg_anat2exf = $FeatDir/reg/freesurfer/anat2exf.register.dat
-  set subject = `cat $reg_anat2exf| head -n 1`;
+  #set subject = `cat $reg_anat2exf| head -n 1`;
+  set subject = `reg2subject --r $reg_anat2exf`;
 
   foreach hemi ($HemiList)
     if(-e $FeatDir/example_func.img)    set fslext = .img

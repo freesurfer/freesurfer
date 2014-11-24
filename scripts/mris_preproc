@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/09/18 20:33:51 $
-#    $Revision: 1.70 $
+#    $Date: 2014/11/24 18:30:48 $
+#    $Revision: 1.71 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.70 2014/09/18 20:33:51 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.71 2014/11/24 18:30:48 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -546,6 +546,7 @@ while( $#argv != 0 )
     case "--target":
       if ( $#argv == 0) goto arg1err;
       set target = $argv[1]; shift;
+      set SrcSurfReg = $target.sphere.reg
       breaksw
 
     case "--fwhm-src":
@@ -1020,7 +1021,7 @@ usage_exit:
   echo "USAGE: mris_prepoc"
   echo ""
   echo "  --out outfile"
-  echo "  --target subject"
+  echo "  --target TargetSubject (requires ?h.TargetSubject.sphere.reg)"
   echo "  --hemi hemi "
   echo ""
   echo "  --meas surfmeas"
@@ -1112,10 +1113,13 @@ COMMAND-LINE ARGUMENTS
 
 Save output here.
 
---target subject
+--target TargetSubject
 
 Subject to use as the common-space. All the input data will be
-resampled to the surface of this subject.
+resampled to the surface of this subject.  TargetSubject is created
+with make_average_subject.  Each input subject must have a
+surf/?h.TargetSubject.sphere.reg file. This can be created with
+surfreg --s inputsubject --t TargetSubject.
 
 --hemi hemi
 

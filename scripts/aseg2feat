@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:38 $
-#    $Revision: 1.16 $
+#    $Author: greve $
+#    $Date: 2014/11/24 18:30:47 $
+#    $Revision: 1.17 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 # aseg2feat
 #
 
-set VERSION = '$Id: aseg2feat,v 1.16 2011/03/02 20:16:38 nicks Exp $';
+set VERSION = '$Id: aseg2feat,v 1.17 2014/11/24 18:30:47 greve Exp $';
 set FeatDirList = ();
 set debug = 0;
 set usedev = 0;
@@ -88,7 +88,8 @@ foreach FeatDir ($FeatDirList)
   else
     set reg_anat2exf = $FeatDir/reg/freesurfer/anat2std.register.dat
   endif
-  set subject = `cat $reg_anat2exf| head -n 1`;
+  #set subject = `cat $reg_anat2exf| head -n 1`;
+  set subject = `reg2subject --r $reg_anat2exf`;
 
   set L2V = mri_label2vol
   if($usedev) set L2V = $DEV/$L2V/$L2V
