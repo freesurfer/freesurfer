@@ -26,6 +26,7 @@ FSF_FILES=\
 	checkmincdir \
 	check-sliceres-sess \
 	clusterspec2mask \
+	cluster-sess \
 	cmpanalyses-sess \
 	cmpsesssnr-sess \
 	cmpsnr-sess \
