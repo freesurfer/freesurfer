@@ -1,0 +1,452 @@
+#! /bin/csh -f
+
+#
+# cluster-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2014/11/24 19:32:13 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: cluster-sess,v 1.1 2014/11/24 19:32:13 greve Exp $';
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M%S'`"
+
+set analysis = ();
+set flacfile = ();
+set geometry = volume
+set subject = ();
+set thresh = ()
+set csdbase = cache
+set simsign = abs
+
+set OutParent = ();
+set nolog = 0;
+set monly = 0;
+set MLF = ();
+set LF = ();
+
+set ConList = ();
+
+set Bonferroni = 0;
+set SimDir = $FREESURFER_HOME/average/mult-comp-cor
+set CacheLabel = cortex;
+set annot = aparc
+set cwpvalthresh = .05
+
+set PrintHelp = 0;
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set StudyDir = `pwd`;
+
+if($#analysis) then
+  # analysis, not flac file
+  set analysisname = $analysis
+  set fsd = `getana -a $analysis -t fsd`;
+  set PerSession = `getana -a $analysis -t IsPerSession`
+  set IsNative = `getana -a $analysis -t IsNative`
+  set IsSurface = `getana -a $analysis -t IsSurface`
+  if(! $IsSurface) then
+    echo "ERROR: this is not a surface-based analysis"
+    echo "This program can only be run on surface-based analyses"
+    exit 1;
+  endif
+  set subject0 = `getana -a $analysis -t subject`
+  set hemi     = `getana -a $analysis -t hemi`
+  echo "Surface data $subject0 $hemi"
+  set dt = `getana -a $analysis -t designtype`
+  if($dt == "abblocked") set RequireContrasts = 0;
+  if($dt == "retinotopy") set RequireContrasts = 0;
+  set contrasts = `getana -a $analysis -t contrasts`
+  if($#contrasts == 0) then
+    echo "ERORR: no contrasts in $analysis."
+    echo "  Create contrasts with mkcontrast-sess or run with -no-con-ok."
+    exit 1;
+  endif
+endif
+
+##### Create a log file ######
+if($#LF == 0) then
+if($nolog) then
+  set LF = /dev/null
+else
+  if($#OutParent == 0) then
+    set logdir = `pwd`/log;
+  else
+    set logdir = $OutParent/log;
+  endif
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "WARNING: could not create $logdir"
+    set LF = /dev/null
+  else
+    set LF = $logdir/cluster-sess-$fsd-$analysis-$DateStr.log
+    if(-e $LF) mv $LF $LF.old
+  endif
+endif
+endif
+echo "--------------------------------------------------------------"
+echo "cluster-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "cluster-sess log file" >> $LF
+echo $0        >> $LF
+echo $inputargs  >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+
+set ConList = `getana -a $analysis -t contrasts`
+
+### Go through each session ###
+@ nthsess = 0;
+@ nprocs = 0;
+foreach sess ($SessList)
+  @ nthsess = $nthsess + 1;
+  set sessbase = `basename $sess`;
+  set sessdir  = `dirname  $sess`;
+
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  set self = `cat $sess/subjectname`;
+
+  set funcdir = $sess/$fsd
+  set anadir = $sess/$fsd/$analysisname
+  if($#OutParent == 0) then
+    set anadir = $sess/$fsd/$analysisname
+  else
+    set anadir = $OutParent/$sessbase/$fsd/$analysisname
+  endif
+  echo anadir = $anadir | tee -a $LF
+
+  set fwhmfile = $anadir/fwhm.dat
+  if(! -e $fwhmfile) then
+    echo "ERROR: cannot find $fwhmfile." | tee -a $LF
+    echo "You must run selxavg3-sess with --fwhm" | tee -a $LF
+    exit 1;
+  endif
+  set fwhm = `cat $fwhmfile`;
+  set fwhmStr = `perl -e "printf('"'%02d'"',int ( $fwhm+.5 ) ) "`
+  echo "fwhm $fwhm $fwhmStr" | tee -a $LF
+  if($subject != self) set subject = $subject0
+  if($subject == self) set subject = $self
+  set csd = $SimDir/$subject/$hemi/$CacheLabel/fwhm$fwhmStr/$simsign/th$threshStr/mc-z.csd
+  if(! -e $csd) then
+    echo "ERROR: cannot find $csd" | tee -a $LF
+    exit 1;
+  endif
+
+  set mask = `stem2fname $anadir/mask`
+  set ext  = `stem2fmt $anadir/mask`
+  foreach contrast ($ConList)
+    set condir = $anadir/$contrast
+    set sig = $condir/sig.$ext
+    set sum = $condir/$csdbase.th$threshStr.$simsign.cluster.table
+    set vwsig = $condir/$csdbase.sig.voxel.$ext
+    set cwsig = $condir/$csdbase.sig.cluster.$ext
+    set msig  = $condir/$csdbase.sig.masked.$ext
+    set ocn   = $condir/$csdbase.sig.ocn.$ext
+    set oannot = $condir/$csdbase.sig.ocn.annot
+    set cmd = (mri_surfcluster --subject $subject --hemi $hemi  --mask $mask \
+      --thmin $thresh --sign $simsign \
+      --surf white --csd $csd --in $sig --cwsig $cwsig --vwsig $vwsig --ocn $ocn \
+      --oannot $oannot --annot $annot --sum $sum --no-fixmni --cwpvalthresh $cwpvalthresh)
+    if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
+    echo $cmd | tee -a $LF
+    $cmd
+    if($status) exit 1;
+  end
+
+end # Loop over sessions #
+
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`" | tee -a $LF
+
+echo " " | tee -a $LF
+echo "cluster-sess completed" | tee -a $LF
+echo " " | tee -a $LF
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-analysis":
+    case "--analysis":
+    case "-a":
+    case "--a":
+      if ( $#argv == 0) goto arg1err;
+      if($#analysis) then
+        echo "ERROR: you have specified the analysis twice"
+        exit 1
+      endif
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-outparent":
+    case "-op":
+      if ( $#argv == 0) goto arg1err;
+      set OutParent = $1; shift;
+      breaksw
+
+    case "-log":
+      if( $#argv < 1) goto arg1err;
+      set LF =  $1; shift;
+      breaksw
+
+    case "--cache":
+    case "-cache":
+      if( $#argv < 2) goto arg2err;
+      set thresh = $argv[1]; shift;
+      set simsign = $argv[1]; shift;
+      set thresh = `printf %2.1f $thresh`
+      if($thresh != 1.3 && $thresh != 2.0 && $thresh != 2.3 && \
+         $thresh != 3.0 && $thresh != 3.3 && $thresh != 4.0) then
+         echo "ERROR: thresh = $thresh, must be 1.3, 2.0, 2.3, 3.0, 3.3, 4.0"
+         exit 1;
+      endif
+      set threshStr = `perl -e "print 10*$thresh"`;
+      set csdbase = cache
+      breaksw
+
+    case "--thresh":
+    case "-thresh":
+      if( $#argv < 1) goto arg1err;
+      set thresh = $argv[1]; shift;
+      set thresh = `printf %2.1f $thresh`
+      if($thresh != 1.3 && $thresh != 2.0 && $thresh != 2.3 && \
+         $thresh != 3.0 && $thresh != 3.3 && $thresh != 4.0) then
+         echo "ERROR: thresh = $thresh, must be 1.3, 2.0, 2.3, 3.0, 3.3, 4.0"
+         exit 1;
+      endif
+      set threshStr = `perl -e "print 10*$thresh"`;
+      breaksw
+
+    case "--sign":
+    case "-sign":
+      if( $#argv < 1) goto arg1err;
+      set simsign = $argv[1]; shift;
+      breaksw
+
+    case "--cache-dir":
+    case "-cache-dir":
+      if( $#argv < 1) goto arg1err;
+      set CacheDir = $argv[1]; shift;
+      breaksw
+
+    case "--cache-label":
+    case "-cache-label":
+      if( $#argv < 1) goto arg1err;
+      set CacheLabel = $argv[1]; shift;
+      breaksw
+
+    case "--cwp":
+    case "-cwp":
+      if( $#argv < 1) goto arg1err;
+      set cwpvalthresh =  $1; shift;
+      breaksw
+
+    case "--2spaces":
+    case "-2spaces":
+      set Bonferroni = 2;
+      breaksw
+    case "--3spaces":
+    case "-3spaces":
+      set Bonferroni = 3;
+      breaksw
+
+    case "--a2009s":
+    case "-a2009s":
+      set annot = "aparc.a2009s"
+      breaksw
+    case "--annot":
+    case "-annot":
+      if( $#argv < 1) goto arg1err;
+      set annot = $argv[1]; shift;
+      breaksw
+
+    case "--fwhm-override":
+      if($#argv < 1) goto arg1err;
+      set fwhmOverride = $argv[1]; shift;
+      breaksw
+
+    case "--c"
+    case "-c"
+      if( $#argv < 1) goto arg1err;
+      set DoContrasts = 1;
+      set ConList = ($ConList $argv[1]); shift
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+    echo "ERROR: no sessions specified"
+    exit 1
+  endif
+  if($#thresh == 0) then
+    echo "ERROR: no cluster-forming threshold specified specified, use -thresh"
+    exit 1
+  endif
+  if($#analysis == 0) then
+    echo "ERROR: no analysis name specified"
+    exit 1
+  endif
+  if(! -d $analysis ) then
+    echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+    exit 1;
+  endif
+  if(! -e $analysis/analysis.info ) then
+    echo "ERROR: analysis $analysis/analysis.info does not exist, see mkanalysis-sess"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: cluster-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis analysisname : name of functional analysis"
+  echo "   -thresh threshold : cluster-forming threshold (-log10(p))"
+  echo ""
+  echo "Optional Arguments:";
+  echo "   -c c1 <-c c2 ...> : compute contrasts c1, c2, ... (default is to compute all)"
+  echo "   -cwp thresh : cluster p-value thresh ($cwpvalthresh)"
+  echo "   -sign SIGN : pos, neg, abs (default is abs)"
+  echo "   -2spaces, -3spaces : additinonal Bonferroni correction across 2 or 3 spaces (eg, lh, rh)"
+  echo "   -a2009s : use aparc.a2009s instead of aparc for reporting region of vertex max"
+  echo "   -annot annot : use annot instead of aparc for reporting region of vertex max"
+  echo "   -cache threshold sign"
+  echo "   -cache-dir dir : default is FREESURFER_HOME/average/mult-comp-cor"
+  echo "   -cache-label label : default is cortex"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other args"
+  echo "   -version       : print version and exit"
+  echo "   -debug"
+  echo "   -nolog         : do not create a log file"
+  echo "   -log logfile   : specify log file explicitly"
+  echo "   -outparent dir : save output to this dir instead of in session"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Performs correction for multiple comparisons using cluster-wise and voxel-wise correction
+based on simulations for an individual subject. You must have run selxavg3-sess with
+--fwhm to compute the FWHM on an individual basis. See mri_glmfit-sim --help for more
+information. Currently only works on surface-based analysis.
+
