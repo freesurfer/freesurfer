@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/11/05 05:18:44 $
- *    $Revision: 1.107 $
+ *    $Author: greve $
+ *    $Date: 2014/11/24 20:09:20 $
+ *    $Revision: 1.108 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -247,13 +247,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.107 2014/11/05 05:18:44 nicks Exp $",
+   "$Id: mri_ca_label.c,v 1.108 2014/11/24 20:09:20 greve Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.107 2014/11/05 05:18:44 nicks Exp $",
+           "$Id: mri_ca_label.c,v 1.108 2014/11/24 20:09:20 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -870,8 +870,8 @@ int main(int argc, char *argv[])
         FILE *logfp ;
         char base_name[STRLEN] ;
 
-        FileNameOnly(out_fname, base_name) ;
-        FileNameRemoveExtension(base_name, base_name) ;
+        //FileNameOnly(out_fname, base_name) ;
+        FileNameRemoveExtension(out_fname, base_name) ;
         if (Gdiag & DIAG_WRITE)
         {
           char fname[STRLEN] ;
