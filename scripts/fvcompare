@@ -1,0 +1,352 @@
+#!/bin/tcsh -f
+# fvcompare
+
+set VERSION = '$Id: fvcompare,v 1.1 2014/11/24 21:58:12 greve Exp $';
+
+set subject1 = ();
+set subject2 = ();
+set SD1 = ();
+set SD2 = ();
+set vollist = ();
+set seglist = ();
+set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
+set segopacity = 1;
+set surflist = (white pial);
+set surfcolor1 = (yellow red);
+set surfcolor2 = (green blue);
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set name1 = "s1"
+set name2 = "s2"
+set grayscale = (":grayscale=0,255")
+set NoSeg = 0;
+set NoSurf = 0;
+set hemilist = (lh rh)
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+#========================================================
+
+set cmd = (freeview )
+foreach vol ($vollist)
+  foreach s (1 2)
+    if($s == 1) then
+      set subject = $subject1
+      set surfcolor = ($surfcolor1);
+      set name = $name1;
+    endif
+    if($s == 2) then
+      set subject = $subject2
+      set surfcolor = ($surfcolor2);
+      set name = $name2;
+    endif
+    set sname = `basename $subject`
+    set volbase = `basename $vol .mgz`
+    set cue = $name-$volbase
+    set v = $subject/mri/$vol
+    set cmd = ($cmd -v "$v":"name=$cue$grayscale")
+  end
+end
+foreach seg ($seglist)
+  foreach s (1 2)
+    if($s == 1) then
+      set subject = $subject1
+      set surfcolor = ($surfcolor1);
+      set name = $name1;
+    endif
+    if($s == 2) then
+      set subject = $subject2
+      set surfcolor = ($surfcolor2);
+      set name = $name2;
+    endif
+    set segbase = `basename $seg .mgz`
+    set cue = $name-$segbase
+    set v = $subject/mri/$seg
+    set cmd = ($cmd -v "$v":"lut=$segcolor":"opacity=$segopacity":"colormap=lut":"name=$cue")
+  end
+end
+foreach hemi ($hemilist)
+  @ nth = 0;
+  foreach surf ($surflist)
+    @ nth = $nth + 1;
+    foreach s (1 2)
+      if($s == 1) then
+        set subject = $subject1
+        set surfcolor = ($surfcolor1);
+        set name = $name1;
+      endif
+      if($s == 2) then
+        set subject = $subject2
+        set surfcolor = ($surfcolor2);
+        set name = $name2;
+      endif
+      set cue = "$name-$hemi.$surf"
+      set cmd = ($cmd --surface "$subject/surf/$hemi.$surf":"edgecolor=$surfcolor[$nth]":"name=$cue")
+    end
+  end
+end
+
+echo $cmd
+$cmd
+
+#========================================================
+
+echo "fvcompare Done"
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject1 = $argv[1]; shift;
+      set subject2 = $subject1;
+      breaksw
+
+    case "--s1":
+      if($#argv < 1) goto arg1err;
+      set subject1 = $argv[1]; shift;
+      breaksw
+
+    case "--name1":
+    case "--n1":
+      if($#argv < 1) goto arg1err;
+      set name1 = $argv[1]; shift;
+      breaksw
+
+    case "--name2":
+    case "--n2":
+      if($#argv < 1) goto arg2err;
+      set name2 = $argv[1]; shift;
+      breaksw
+
+    case "--s2":
+      if($#argv < 1) goto arg1err;
+      set subject2 = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--sd1":
+      if($#argv < 1) goto arg1err;
+      set SD1 = $argv[1]; shift;
+      breaksw
+
+    case "--sd2":
+      if($#argv < 1) goto arg1err;
+      set SD2 = $argv[1]; shift;
+      breaksw
+
+    case "--vol":
+      if($#argv < 1) goto arg1err;
+      set vollist = ($vollist $argv[1]); shift;
+      breaksw
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set seglist = ($seglist $argv[1]); shift;
+      breaksw
+
+    case "--seg-color":
+      if($#argv < 1) goto arg1err;
+      set segcolor = $argv[1]; shift;
+      breaksw
+
+    case "--no-seg":
+      set NoSeg = 1;
+      breaksw
+
+    case "--no-surf":
+      set NoSurf = 1;
+      breaksw
+
+    case "--opacity":
+      if($#argv < 1) goto arg1err;
+      set segopacity = $argv[1]; shift;
+      breaksw
+
+    case "--lh":
+      set hemilist = (lh)
+      breaksw
+    case "--rh":
+      set hemilist = (rh)
+      breaksw
+
+    case "--gray":
+    case "--grayscale":
+      if($#argv < 2) goto arg2err;
+      set g1 = $argv[1]; shift;
+      set g2 = $argv[1]; shift;
+      set grayscale = (":grayscale=$g1,$g2")
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#SD1 == 0) set SD1 = $SUBJECTS_DIR
+if($#SD2 == 0) set SD2 = $SUBJECTS_DIR
+
+if($#subject1 == 0) then
+  echo "ERROR: must spec subject1"
+  exit 1;
+endif
+if(! -e $subject1) then
+  set subject1tmp = $SD1/$subject1
+  if(! -e $subject1tmp) then
+    echo "ERROR: cannot find $subject1"
+  endif
+  set subject1 = $subject1tmp;
+endif
+
+if($#subject2 == 0) then
+  echo "ERROR: must spec subject2"
+  exit 1;
+endif
+if(! -e $subject2) then
+  set subject2tmp = $SD2/$subject2
+  if(! -e $subject2tmp) then
+    echo "ERROR: cannot find $subject2"
+  endif
+  set subject2 = $subject2tmp;
+endif
+
+if($#vollist == 0) set vollist = (orig.mgz)
+if($#seglist == 0) set seglist = (aparc+aseg.mgz)
+
+if($NoSeg) set seglist = ()
+if($NoSurf) set surflist = ()
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fvcompare"
+  echo "  --s1 subject1 --s2 subject2"
+  echo "  --s subject --sd1 SD1 --sd2 SD2"
+  echo "  --n1 name1 --n2 name2 (default s1 and s2)"
+  echo "  --vol volname (as found in subject/mri; default is orig.mgz, can have multiple)"
+  echo "  --seg segname (as found in subject/mri; default is aparc+aseg.mgz, can have multiple)"
+  echo "  --no-seg : do not display segmentations"
+  echo "  --lh, --rh : only display left or right hemi"
+  echo "  --no-surf : do not display surfaces"
+  echo "  --gray min max : set gray scale levels (default is 0 255)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Simultaneously loads volume, segmentation, and surface data from two
+subjects in freeview, eg, for comparing across time or for comparing
+across different analysis methods. The two subjects can be in the same
+or different SUBJECTS_DIRs. No registration is applied.  If the name
+option is used, then the given name is prepended to the volume or
+surface name (default is "s1" and "s2")
+
+If the two subjects are in the same SUBJECTS_DIR, then run something
+like
+
+fvcompare --s1  subject1 --s2 subject2
+
+If they are in different SUBJECTS_DIRs, then run something like
+
+fvcompare --s1 subject1 --sd1 DEV_SUBJECTS_DIR --s2 subject2 --sd2 STD_SUBJECTS_DIR \
+  --n1 dev --n2 stable 
+
+If the subjects have the same name but in different SUBJECTS_DIR, then 
+
+fvcompare --s  subject --sd1 SUBJECTS_DIR1 --sd2 SUBJECTS_DIR2
+
