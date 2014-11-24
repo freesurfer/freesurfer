@@ -62,6 +62,7 @@ fscalc.fsl \
 fsgd_parser.py \
 fsl_sub_mgh \
 fsutils.py \
+fvcompare \
 gtmseg \
 tkmeditfv \
 tksurferfv \
