@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/11/24 18:30:48 $
-#    $Revision: 1.71 $
+#    $Date: 2014/11/24 18:31:59 $
+#    $Revision: 1.72 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.71 2014/11/24 18:30:48 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.72 2014/11/24 18:31:59 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -546,7 +546,7 @@ while( $#argv != 0 )
     case "--target":
       if ( $#argv == 0) goto arg1err;
       set target = $argv[1]; shift;
-      set SrcSurfReg = $target.sphere.reg
+      if($target != fsaverage) set SrcSurfReg = $target.sphere.reg
       breaksw
 
     case "--fwhm-src":
