@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/21 03:14:18 $
- *    $Revision: 1.159 $
+ *    $Date: 2014/11/25 18:52:49 $
+ *    $Revision: 1.160 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -99,7 +99,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   int nmoscols, nmosrows;
   int mosrow, moscol, mosindex;
   int err,OutOfBounds,IsMosaic;
-  int row, col, slice, frame;
+  int row, col, slice, frame, fid;
   unsigned short *pixeldata;
   MRI *vol, *voltmp;
   char **SeriesList;
@@ -486,8 +486,12 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
       // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
       IsCompressed = 1;
       sprintf(tmpfile,"%s/%s.tmp.decompressed.dcm.XXXXXX",env->tmpdir,env->user);
-      pc = mktemp(tmpfile);
-      sprintf(tmpfile,"%s",pc);
+      fid = mkstemp(tmpfile);
+      if(fid == -1) {
+	printf("ERROR: could not create temp file for decompression %d\n",fid);
+	exit(1);
+      }
+      close(fid);
       if(strncmp(sdfi->TransferSyntaxUID,jpegCompressed_UID,19)==0){
 	printf("JPEG compressed, decompressing\n");
 	sprintf(tmpfilestdout,"%s.dcmdjpeg.out",tmpfile);
@@ -5920,9 +5924,9 @@ int alphasort(const void *a, const void *b)
   --------------------------------------------------------------*/
 MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 {
-  char **FileNames, *dcmdir, *pc;
+  char **FileNames, *dcmdir;
   DICOMInfo RefDCMInfo, TmpDCMInfo, **dcminfo;
-  int nfiles, nframes,nslices, r, c, s, f, err;
+  int nfiles, nframes,nslices, r, c, s, f, err, fid;
   int ndcmfiles, nthfile, mritype=0,nvox;
   unsigned short *v16=NULL;
   unsigned char  *v08=NULL;
@@ -6212,8 +6216,12 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 	  // setenv DCMDICTPATH /usr/pubsw/packages/dcmtk/current/share/dcmtk/dicom.dic???
 	  IsCompressed = 1;
 	  sprintf(tmpfile,"%s/%s.tmp.decompressed.dcm.XXXXXX",env->tmpdir,env->user);
-	  pc = mktemp(tmpfile);
-	  sprintf(tmpfile,"%s",pc);
+	  fid = mkstemp(tmpfile);
+	  if(fid == -1) {
+	    printf("ERROR: could not create temp file for decompression %d\n",fid);
+	    exit(1);
+	  }
+	  close(fid);
 	  if(strncmp(dcminfo[nthfile]->TransferSyntaxUID,jpegCompressed_UID,19)==0){
 	    printf("JPEG compressed, decompressing\n");
 	    sprintf(tmpfilestdout,"%s.dcmdjpeg.out",tmpfile);
