@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/02 03:01:37 $
- *    $Revision: 1.7 $
+ *    $Date: 2014/11/25 22:43:38 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.7 2014/11/02 03:01:37 mreuter Exp $";
+    "$Id: lta_convert.cpp,v 1.8 2014/11/25 22:43:38 mreuter Exp $";
 char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
@@ -708,14 +708,14 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.transin = string(argv[1]);
     P.intype = intypes::NIFTYREG;
     nargs = 1;
-    cout << "--inreg: " << P.transin << " input Nifty Reg transform." << endl;
+    cout << "--inniftyreg: " << P.transin << " input Nifty Reg transform." << endl;
   }
   else if (!strcmp(option, "INITK"))
   {
     P.transin = string(argv[1]);
     P.intype = intypes::ITK;
     nargs = 1;
-    cout << "--inreg: " << P.transin << " input ITK txt transform." << endl;
+    cout << "--initk: " << P.transin << " input ITK txt transform." << endl;
   }
   else if (!strcmp(option, "OUTLTA") )
   {

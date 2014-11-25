@@ -43,6 +43,8 @@
       <explanation>input transform of TK REG type (deprecated format)</explanation>
       <argument>--inniftyreg &lt;inniftyreg.dat&gt;</argument>
       <explanation>input transform of Nifty Reg type (inverse RAS2RAS)</explanation>
+      <argument>--initk &lt;in.itk&gt;</argument>
+      <explanation>input transform from ITK (also ANTS)</explanation>
       <intro>At least one output is required:</intro>
       <argument>--outlta &lt;out.lta&gt;</argument>
       <explanation>output linear transform (LTA Freesurfer format)</explanation>
@@ -52,6 +54,8 @@
       <explanation>output transform in mni/xfm format</explanation>
       <argument>--outreg &lt;reg.dat&gt;</argument>
       <explanation>output transform in reg dat format</explanation>
+      <argument>--outitk &lt;out.itk&gt;</argument>
+      <explanation>output transform in ITK txt format</explanation>      
     </required-flagged>
     <optional-flagged>      
       <argument>--invert</argument>
@@ -78,7 +82,14 @@ coordinates). For TKREG/register.dat type matrices, src=mov and trg=ref/targ.</i
   
 lta_convert --infsl fsl.mat --outlta my.lta --src src.nii --trg trg.nii
 
-converts FSL matrix to FreeSurfer LTA, adding missing src and target geometry info.</example>
+converts FSL matrix to FreeSurfer LTA, adding missing src and target geometry info (the images used when fsl.mat was created).</example>
+  <example>Convert ANTS/ITK transform to LTA (FreeSurfer):
+
+First convert the ANTS binary mat file to ITK text file format and then to lta (adding src and trg geometry info, from images that were used to create the transform in ANTS):
+
+$ANTSPATH/ConvertTransformFile 3 3D_antsAffine.mat 3D_antsAffine.txt
+  
+lta_convert --initk 3D_antsAffine.txt --outlta 3D_antsAffine.lta --src src.nii --trg trg.nii </example>
   <example>Invert transform:
   
 lta_convert --inlta in.lta --outlta out-inverse.lta --invert
