@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/07/24 21:37:42 $
- *    $Revision: 1.82 $
+ *    $Date: 2014/11/25 18:33:02 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -146,14 +146,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.82 2014/07/24 21:37:42 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.83 2014/11/25 18:33:02 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.82 2014/07/24 21:37:42 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.83 2014/11/25 18:33:02 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -527,7 +527,7 @@ main(int argc, char *argv[])
       ErrorExit
       (ERROR_NOFILE,
        "%s: could not read aseg from file %s", Progname, aseg_fname) ;
-    if (!mriConformed(mri_aseg))
+    if (conform && !mriConformed(mri_aseg))
     {
       ErrorExit(ERROR_UNSUPPORTED, "%s: aseg volume %s must be conformed",
                 Progname, aseg_fname) ;
