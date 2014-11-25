@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/10/30 16:18:12 $
-#    $Revision: 1.63 $
+#    $Date: 2014/11/25 18:40:44 $
+#    $Revision: 1.64 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.63 2014/10/30 16:18:12 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.64 2014/11/25 18:40:44 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -696,8 +696,10 @@ check_params:
       set ToVol = 0;
       set trgsubject = `getana -a $analysis -t subject`
       if($trgsubject == self) then 
-        echo "ERROR: analysis space is self surface, not supported"
-        exit 1;
+        # This will work if all the session are the same subject
+        echo "INFO: trgsubject is self, this will fail unless all sessions are the same subject"
+        #echo "ERROR: analysis space is self surface, not supported"
+        #exit 1;
       endif
       set hemilist  = `getana -a $analysis -t hemi`
       set DoResample = 0;
