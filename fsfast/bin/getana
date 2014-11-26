@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/11/26 01:00:56 $
-#    $Revision: 1.13 $
+#    $Date: 2014/11/26 01:16:40 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.13 2014/11/26 01:00:56 greve Exp $';
+set VERSION = '$Id: getana,v 1.14 2014/11/26 01:16:40 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -169,8 +169,9 @@ switch ($tag)
   case "RawRes":
   case "res":
     set IsMNI305 = `getana -a $analysis -t IsMNI305`
-    if(! $IsMNI305) then
-      echo "ERROR: $analysis is not mni305-based"
+    set IsCVS = `getana -a $analysis -t IsCVS`
+    if(! $IsMNI305 && ! $IsCVS) then
+      echo "ERROR: $analysis is not mni305- or cvs-based"
       exit 1;
     endif
     set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
