@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/10/30 16:18:12 $
-#    $Revision: 1.54 $
+#    $Date: 2014/11/26 01:16:57 $
+#    $Revision: 1.55 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.54 2014/10/30 16:18:12 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.55 2014/11/26 01:16:57 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -70,6 +70,7 @@ set ToSurf = 0;
 set subject = ();
 set hemi = ();
 set ToMNI305 = 0;
+set ToCVS = 0;
 set RawRes = 2;
 set RegDOF = 6;
 set regfile = ();
@@ -271,7 +272,7 @@ foreach sess ($SessList)
     if($status) exit 1;
   endif
 
-  if($ToMNI305) then
+  if($ToMNI305 || $ToCVS) then
     set cmd = (rawfunc2tal-sess -fwhm $fwhm )
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
     if($RawRes == 1) set cmd = ($cmd -1mm)
@@ -284,6 +285,7 @@ foreach sess ($SessList)
     if(! $ApplySubCortMask) set cmd = ($cmd -no-subcort-mask)
     if($PerRun)   set cmd = ($cmd -per-run)
     if($PerSess) set cmd = ($cmd -per-session)
+    if($ToCVS) set cmd = ($cmd -cvs)
     echo "$sessid To MNI305 -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -549,6 +551,15 @@ while( $#argv != 0 )
     case "-mni305":
       set RawRes = 2;
       set ToMNI305 = 1;
+      set ToCVS = 0;
+      #set PerRun = 1;
+      #set PerSess = 0;
+      breaksw
+
+    case "-cvs":
+      set RawRes = 2;
+      set ToMNI305 = 0;
+      set ToCVS = 1;
       #set PerRun = 1;
       #set PerSess = 0;
       breaksw
@@ -627,7 +638,8 @@ while( $#argv != 0 )
         set hemi    = `getana -a $analysis -t hemi`;
       endif
       set ToMNI305 = `getana -a $analysis -t IsMNI305`;
-      if($ToMNI305) then
+      set ToCVS    = `getana -a $analysis -t IsCVS`;
+      if($ToMNI305 || $ToCVS) then
         set RawRes = `getana -a $analysis -t RawRes`;
       endif
       breaksw
@@ -739,9 +751,9 @@ check_params:
     set stcoutstem = $mcoutstem
   endif
 
-  if($ToSurf || $ToMNI305) then
+  if($ToSurf || $ToMNI305 || $ToCVS) then
     if($#fwhm == 0) then
-      echo "ERROR: must specify -fwhm with -surface or -mni305."
+      echo "ERROR: must specify -fwhm with -surface or -mni305 or -cvs."
       echo "       Set it to 0 for no smoothing"
       exit 1;
     endif
@@ -817,6 +829,7 @@ usage_exit:
   echo "  -surface subject hemi : set hemi to lhrh to do both"
   echo "  -mni305-2mm    : sample raw data to mni305 at 2mm (same as -mni305)"
   echo "  -mni305-1mm    : sample raw data to mni305 at 1mm"
+  echo "  -cvs : sample raw data to cvs_avg35_inMNI152 at 2mm (not with -mni305)"
   echo ""
   echo "Session Arguments (some combination required)"
   echo "  -sf sessidfile  ..."
