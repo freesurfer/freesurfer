@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2014/11/13 19:49:36 $
- *    $Revision: 1.105 $
+ *    $Author: greve $
+ *    $Date: 2014/11/26 23:05:35 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,7 @@
 #include "talairachex.h"
 #include "fftutils.h"
 #include "mrinorm.h"
+#include "timer.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -7489,4 +7490,259 @@ MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label, int 
 
 //  printf("%d voxels thresholded due to insufficient neighbors\n", total) ;
   return(mri_dst) ;
+}
+
+/*
+  \fn MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
+  \brief Apply 2D motion blurring to a volume.  Motion blurring is
+  smoothing in 1D along a radius with the amount of smoothing changing
+  with distance from the center. Each slice is blurred in the exact
+  same way. The center does not need to be inside the volume. The
+  parameters are controlled through the MB2D structure.  The basic
+  implementation is to create a line passing through a given voxel and
+  the center. A segment of this line is selected based on the FHWM at
+  that point. The input image is sampled every DeltaD along that line
+  and convolved with the Gaussian kernel.
+ */
+MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
+{
+  int c;
+  struct timeb timer;
+
+  if(mb->Interp != SAMPLE_NEAREST && mb->Interp != SAMPLE_TRILINEAR){
+    printf("ERROR: MRImotionBlur2D(): Interp = %d, must be %d or %d\n",
+	   mb->Interp,SAMPLE_NEAREST,SAMPLE_TRILINEAR);
+    return(NULL);
+  }
+
+  if(out == NULL){
+    out = MRIcloneBySpace(src, MRI_FLOAT, -1);
+    if(out == NULL) return(NULL);
+  }
+
+  // These are two structures to save slice-based parameters
+  if(mb->d0)    MRIfree(&mb->d0);
+  if(mb->theta) MRIfree(&mb->theta);
+  if(mb->fwhm)  MRIfree(&mb->fwhm);
+  if(mb->dmin)  MRIfree(&mb->dmin);
+  if(mb->nd)    MRIfree(&mb->nd);
+  mb->theta = MRIalloc(src->width,src->height,1,MRI_FLOAT);
+  mb->dmin  = MRIalloc(src->width,src->height,1,MRI_FLOAT);
+  mb->fwhm  = MRIalloc(src->width,src->height,1,MRI_FLOAT);
+  mb->nd    = MRIalloc(src->width,src->height,1,MRI_FLOAT);
+  mb->d0    = MRIalloc(src->width,src->height,1,MRI_FLOAT);
+  MRIcopyHeader(src,mb->theta);
+  MRIcopyHeader(src,mb->dmin);
+  MRIcopyHeader(src,mb->fwhm);
+  MRIcopyHeader(src,mb->nd);
+  MRIcopyHeader(src,mb->d0);
+
+  TimerStart(&timer);
+
+  // Fill the slice-based parameters
+  #ifdef _OPENMP
+  #pragma omp parallel for
+  #endif
+  for(c=0; c < out->width; c++){
+    int r;
+    for(r=0; r < out->height; r++){
+      double theta, dmin,fwhm, dx, dy, d0, stddev, dlim;
+      int dc,dr,nd,ndlim;
+      dc = c + mb->cR - mb->c0; // #cols from center
+      dr = r + mb->rR - mb->r0; // #rows from center
+      theta = atan2(dr,dc); // Angle relative to center
+      dx = dc*src->xsize; // mm distance in x from center
+      dy = dr*src->ysize; // mm distance in y from center
+      d0 = sqrt(dx*dx + dy*dy); // mm dist to cur vox
+      fwhm = mb->slope*d0; // compute FWHM based on distance
+      stddev = fwhm/sqrt(log(256.0));
+      ndlim = ceil(mb->cutoff*stddev/mb->DeltaD);
+      nd = 2*ndlim+1; // number of samples to integrate over
+      dlim = ndlim * mb->DeltaD; // sets the min and (implicitly) the max
+      dmin = d0 - dlim; // distance at which to start the integration
+      MRIsetVoxVal(mb->theta,c,r,0,0,theta);
+      MRIsetVoxVal(mb->fwhm,c,r,0,0,fwhm);
+      MRIsetVoxVal(mb->dmin,c,r,0,0,dmin);
+      MRIsetVoxVal(mb->nd,c,r,0,0,nd);
+      MRIsetVoxVal(mb->d0,c,r,0,0,d0);
+    }
+  }
+
+  // Apply the smoothing
+  #ifdef _OPENMP
+  #pragma omp parallel for
+  #endif
+  for(c=0; c < out->width; c++){
+    int r;
+    for(r=0; r < out->height; r++){
+      double cd, rd, theta, dmin,fwhm, *kernel, ksum, d0, stddev, d;
+      double vsrc=0,vdst,x,y,cosTheta,sinTheta,dd;
+      double coef11=0,coef12=0,coef21=0,coef22=0,cT,rT;
+      int s,f,nd,nthd,cdi=0,rdi=0,c1=0,c2=0,r1=0,r2=0;
+      theta = MRIgetVoxVal(mb->theta,c,r,0,0);
+      fwhm  = MRIgetVoxVal(mb->fwhm,c,r,0,0);
+      dmin  = MRIgetVoxVal(mb->dmin,c,r,0,0);
+      nd    = MRIgetVoxVal(mb->nd,c,r,0,0);
+      d0    = MRIgetVoxVal(mb->d0,c,r,0,0);
+      stddev = fwhm/sqrt(log(256.0));
+
+      if(stddev == 0){
+	for(s=0; s < src->depth; s++){
+	  for(f=0; f < src->nframes; f++){
+	    vsrc = MRIgetVoxVal(src,c,r,s,f);
+	    MRIsetVoxVal(out,c,r,s,f,vsrc);
+	  } // slice
+	} // frame
+	continue;
+      }
+
+      // Compute the smoothing kernel
+      kernel  = (double *) calloc(nd,sizeof(double));
+      ksum = 0;
+      for(nthd = 0; nthd < nd; nthd++){
+	dd = dmin + nthd*mb->DeltaD - d0; // mm dist to cur voxel
+	kernel[nthd] = exp(-dd*dd/(2*stddev*stddev));
+	ksum += kernel[nthd];
+      }
+      for(nthd = 0; nthd < nd; nthd++)	kernel[nthd] /= ksum;
+
+      cosTheta = cos(theta);
+      sinTheta = sin(theta);
+      for(nthd = 0; nthd < nd; nthd++) {
+	d = dmin + nthd*mb->DeltaD; // mm distance from center to this point
+	x = d*cosTheta; // mm x distance from center to this point
+	y = d*sinTheta; // mm y distance from center to this point
+	cd = mb->c0 + x/src->xsize - mb->cR; // float col in REGION of this point
+	rd = mb->r0 + y/src->ysize - mb->rR; // float row in REGION of this point
+	if(mb->Interp == SAMPLE_NEAREST){
+	  // Compute nearest here so don't have to in slice/frame loop
+	  cdi = nint(cd);
+	  rdi = nint(rd);
+	  if(cdi < 0) continue;
+	  if(cdi >= src->width) continue;
+	  if(rdi < 0) continue;
+	  if(rdi >= src->height) continue;
+	}
+	if(mb->Interp == SAMPLE_TRILINEAR){
+	  // Compute coefficients here so don't have to in slice/frame loop
+	  c1 = floor(cd);
+	  c2 = ceil(cd);
+	  r1 = floor(rd);
+	  r2 = ceil(rd);
+	  if(c1 < 0) continue;
+	  if(c1 >= src->width) continue;
+	  if(c2 < 0) continue;
+	  if(c2 >= src->width) continue;
+	  if(r1 < 0) continue;
+	  if(r1 >= src->height) continue;
+	  if(r2 < 0) continue;
+	  if(r2 >= src->height) continue;
+	  cT = cd-c1;
+	  rT = rd-r1;
+	  coef11 = (1-cT)*(1-rT);
+	  coef12 = (1-cT)*rT;
+	  coef21 = cT*(1-rT);
+	  coef22 = cT*rT;
+	}
+	// Loop through all the slices and frames
+	for(s=0; s < src->depth; s++){
+	  for(f=0; f < src->nframes; f++){
+	    if(mb->Interp == SAMPLE_NEAREST)
+	      vsrc = MRIgetVoxVal(src,cdi,rdi,s,f);
+	    if(mb->Interp == SAMPLE_TRILINEAR)
+	      vsrc = coef11*MRIgetVoxVal(src,c1,r1,s,f) +
+		     coef12*MRIgetVoxVal(src,c1,r2,s,f) +
+		     coef21*MRIgetVoxVal(src,c2,r1,s,f) +
+  		     coef22*MRIgetVoxVal(src,c2,r2,s,f);
+	    vdst = MRIgetVoxVal(out,c,r,s,f);
+	    vdst += vsrc*kernel[nthd];
+	    MRIsetVoxVal(out,c,r,s,f,vdst);
+	  } // slice
+	} // frame
+      } // dist
+      free(kernel);
+    } // row
+  } // col
+  printf("  motion blur took %6.4f sec\n",TimerStop(&timer)/1000.0);fflush(stdout);
+
+  return(out);
+}
+
+
+int MB2Dfree(MB2D **pmb)
+{
+  MB2D *mb = *pmb;
+
+  if(mb->d0)    MRIfree(&mb->d0);
+  if(mb->theta) MRIfree(&mb->theta);
+  if(mb->fwhm)  MRIfree(&mb->fwhm);
+  if(mb->dmin)  MRIfree(&mb->dmin);
+  if(mb->nd)    MRIfree(&mb->nd);
+  free(mb);
+  pmb = NULL;
+  return(0);
+}
+
+
+MB2D *MB2Dcopy(MB2D *src, int CopyMRI, MB2D *copy)
+{
+  
+  if(copy == NULL) copy = (MB2D *) calloc(sizeof(MB2D),1);
+  copy->slope = src->slope;
+  copy->DeltaD = src->DeltaD;
+  copy->c0 = src->c0;
+  copy->r0 = src->r0;
+  copy->cutoff = src->cutoff;
+  copy->Interp = src->Interp;
+  copy->cR = src->cR;
+  copy->rR = src->rR;
+
+  if(CopyMRI){
+    if(copy->d0)    MRIfree(&copy->d0);
+    if(copy->theta) MRIfree(&copy->theta);
+    if(copy->fwhm)  MRIfree(&copy->fwhm);
+    if(copy->dmin)  MRIfree(&copy->dmin);
+    if(copy->nd)    MRIfree(&copy->nd);
+    copy->d0    = MRIcopy(src->d0,NULL);
+    copy->theta = MRIcopy(src->theta,NULL);
+    copy->fwhm  = MRIcopy(src->fwhm,NULL);
+    copy->dmin  = MRIcopy(src->dmin,NULL);
+    copy->nd    = MRIcopy(src->nd,NULL);
+  }
+  return(copy);
+}
+
+/*
+  \fn MRI *MB2Dgrid(MRI *template, int skip, MRI *outvol)
+  \brief Creates a grid of ones separated by skip. All the
+  slices are the same. Good for testing MRImotionBlur2D().
+*/
+MRI *MB2Dgrid(MRI *template, int skip, MRI *outvol)
+{
+  int c,r,s, c0,r0,dc, dr, f;
+  double radmax;
+
+  if(outvol == NULL){
+    outvol = MRIcloneBySpace(template, MRI_FLOAT,1);
+    if (outvol == NULL) return(NULL);
+  }
+  // Make sure it is 0
+  MRIconst(outvol->width,outvol->height,outvol->depth,1, 0,outvol);
+  c0 = nint(template->width/2.0);
+  r0 = nint(template->height/2.0);
+  radmax = sqrt(2)*template->width/2;
+  for(dc = -radmax; dc < radmax; dc += skip){
+    c = nint(c0 + dc);
+    if(c < 0) continue;
+    if(c >= template->width) continue;
+    for(dr = -radmax; dr < radmax; dr += skip){
+      r = r0 + dr;
+      if(r < 0) continue;
+      if(r >= template->width) continue;
+      for(s = 0; s < outvol->depth; s++)
+	for(f=0; f < outvol->nframes; f++)
+	  MRIsetVoxVal(outvol,c,r,s,f,1);
+    } // r
+  } //c
+  return(outvol);
 }

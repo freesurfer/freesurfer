@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/20 23:45:11 $
- *    $Revision: 1.472 $
+ *    $Date: 2014/11/26 23:05:35 $
+ *    $Revision: 1.473 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -244,6 +244,25 @@ typedef struct
   MRI_FRAME   *frames ;
 }
 MRI_IMAGE, MRI ;
+
+typedef struct 
+{
+  double slope;
+  int c0,r0; // center of motion in full volume space
+  int cR,rR; // col and row of first voxel of region in full volume space
+  double DeltaD; // sample spacing along radius
+  double cutoff; // number of stddevs to cut off kernel
+  int Interp; // SAMPLE_NEAREST or SAMPLE_TRILINEAR
+  MRI *d0;    // Image of distance to voxel from center
+  MRI *theta; // Image of angle of voxel
+  MRI *fwhm;  // Image of FWHM at voxel
+  MRI *dmin;  // Image of start distance (cut off)
+  MRI *nd;    // Image of number of samples 
+} MOTIONBLUR2D, MB2D;
+MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out);
+int MB2Dfree(MB2D **pmb);
+MB2D *MB2Dcopy(MB2D *src, int CopyMRI, MB2D *copy);
+MRI *MB2Dgrid(MRI *mbtemplate, int skip, MRI *outvol);
 
 MATRIX *MRIcopyFramesToMatrixRows(MRI *mri, MATRIX *m_dst, int start_frame, int nframes, int dst_row) ;
 MATRIX *MRIxfmCRS2XYZ( const MRI *mri, int base ); /* Native Vox2RAS Matrix
