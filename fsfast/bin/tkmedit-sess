@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/10/30 16:18:12 $
-#    $Revision: 1.37 $
+#    $Date: 2014/11/26 01:00:56 $
+#    $Revision: 1.38 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.37 2014/10/30 16:18:12 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.38 2014/11/26 01:00:56 greve Exp $';
 set inputargs = ($argv);
 
 set sessid  = ();
@@ -92,6 +92,7 @@ if($#analysis != 0) then
   endif
   set fsd = `getana -a $analysis -t fsd`;
   set UseTalairach = `getana -a $analysis -t IsMNI305`;
+  set UseCVS = `getana -a $analysis -t IsCVS`;
   set IsFIR = `getana -a $analysis -t IsFIR`;
 else if($#flac) then
   set fsd = `cat $flac | awk '{if($1 == "fsd") print $2}'`
@@ -109,6 +110,7 @@ if($#mapanalysis != 0) then
     exit 1;
   endif
   set MapUseTalairach = `getana -a $mapanalysis -t IsMNI305`;
+  set MapUseCVS = `getana -a $analysis -t IsCVS`;
   if($UseTalairach != $MapUseTalairach) then
     if($MapUseTalairach) then
       echo "ERROR: map analysis $mapanalysis is talairach-based."
@@ -132,18 +134,23 @@ endif
 
 # Get subject name (and maybe reg)
 if(! $UseTalairach) then 
-  set regfile = $sess/$fsd/$regfile
-  if(! -e $regfile ) then
-    echo "ERROR: cannot find $regfile"
-    exit 1;
+  if(! $UseCVS) then
+    set regfile = $sess/$fsd/$regfile
+    if(! -e $regfile ) then
+      echo "ERROR: cannot find $regfile"
+      exit 1;
+    endif
+    # get the full path the regfile
+    set d = `dirname $regfile`;
+    pushd $d > /dev/null
+    set d = `pwd`;
+    popd > /dev/null
+    set regfile = $d/`basename $regfile`;
+    set subject = `reg2subject --r $regfile`;
+  else
+    set subject = cvs_avg35_inMNI152
+    set regfile = ();
   endif
-  # get the full path the regfile
-  set d = `dirname $regfile`;
-  pushd $d > /dev/null
-  set d = `pwd`;
-  popd > /dev/null
-  set regfile = $d/`basename $regfile`;
-  set subject = `reg2subject --r $regfile`;
 else
   set regfile = ();
   set subject = fsaverage

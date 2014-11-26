@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2014/10/30 15:43:34 $
-%    $Revision: 1.68 $
+%    $Date: 2014/11/26 01:00:56 $
+%    $Revision: 1.69 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -141,6 +141,9 @@ while(1)
     flac.RawSpaceType = sscanf(tline,'%*s %s',1);
     flac.RawSpace = sscanf(tline,'%*s %*s %s',1);
     if(strcmp(flac.RawSpace,'mni305'))
+      flac.RawSpaceRes = sscanf(tline,'%*s %*s %*s %f',1); 
+    end
+    if(strcmp(flac.RawSpace,'cvs_avg35_inMNI152'))
       flac.RawSpaceRes = sscanf(tline,'%*s %*s %*s %f',1); 
     end
     if(strcmp(flac.RawSpaceType,'surface'))

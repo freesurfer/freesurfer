@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/01/13 17:35:28 $
-#    $Revision: 1.12 $
+#    $Date: 2014/11/26 01:00:56 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.12 2014/01/13 17:35:28 greve Exp $';
+set VERSION = '$Id: getana,v 1.13 2014/11/26 01:00:56 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -92,6 +92,9 @@ switch ($tag)
     else if($RawSpace[2] == "mni305") then 
       set res = $RawSpace[3];
       set funcstem = $smstem.mni305.$res"mm"$expkey
+    else if($RawSpace[2] == "cvs_avg35_inMNI152") then 
+      set res = $RawSpace[3];
+      set funcstem = $smstem.cvs_avg35_inMNI152.$res"mm"$expkey
     else
       set funcstem = $smstem
     endif
@@ -178,6 +181,12 @@ switch ($tag)
     set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
     set result = 0;
     if($tmp[2] == mni305) set result = 1;
+    breaksw;
+
+  case "IsCVS":
+    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    set result = 0;
+    if($tmp[2] == cvs_avg35_inMNI152) set result = 1;
     breaksw;
 
   case "IsPerSession":
