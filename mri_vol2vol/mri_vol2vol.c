@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/06/26 18:20:17 $
- *    $Revision: 1.86 $
+ *    $Date: 2014/11/26 00:28:59 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -480,7 +480,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.86 2014/06/26 18:20:17 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.87 2014/11/26 00:28:59 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -604,14 +604,15 @@ int main(int argc, char **argv) {
   AcquireCUDADevice();
 #endif
 
+  vg_isEqual_Threshold = 10e-4;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.86 2014/06/26 18:20:17 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.87 2014/11/26 00:28:59 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.86 2014/06/26 18:20:17 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.87 2014/11/26 00:28:59 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
