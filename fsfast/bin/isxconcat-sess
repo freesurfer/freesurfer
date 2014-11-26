@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/11/25 18:40:44 $
-#    $Revision: 1.64 $
+#    $Date: 2014/11/26 01:24:17 $
+#    $Revision: 1.65 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.64 2014/11/25 18:40:44 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.65 2014/11/26 01:24:17 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -236,7 +236,7 @@ foreach hemi ($hemilist)
   $cmd            |& tee -a $LF
   if($status) exit 1;
 
-  if($hemi == mni305) then
+  if($hemi == mni305 || $hemi == cvs_avg35_inMNI152) then
     # Take intersection of single mask and subcort mask
     set maskvol2 = $outdir/"$SpStr"subcort.mask.$FSF_OUTPUT_FORMAT
     set cmd = (mri_mask $maskvol $subcortmask $maskvol2)
@@ -401,7 +401,7 @@ end # Loop over hemi
 
 if($DoAnats) then
   foreach hemi ($hemilist)
-    if($hemi != mni305) then
+    if($hemi != mni305 && $hemi != cvs_avg35_inMNI152) then
       foreach mapname (thickness curv sulc)
         set outvol = $outdir/$hemi.$mapname.sm00.$FSF_OUTPUT_FORMAT
         set cmd = (isxconcat0-sess -o $outvol $sessargs \
@@ -711,6 +711,13 @@ check_params:
       set hemilist = (mni305)
       set DoResample = 0;
     endif
+    set UseCVS = `getana -a $analysis -t IsCVS`;
+    if($UseCVS) then
+      set ToSurf = 0;
+      set ToVol = 1;
+      set hemilist = (cvs_avg35_inMNI152)
+      set DoResample = 0;
+    endif
     # Get the h-file, usually for FIRs
     if($#GetHRF == 0) set GetHRF = `getana -a $analysis -t IsFIR`;
     if($GetHRF) set anamaplist = ($anamaplist h);
@@ -798,6 +805,7 @@ check_params:
   else
     set subcortmask = $SUBJECTS_DIR/fsaverage/mri/subcort.mask.1mm.mgz
   endif
+  if($UseCVS) set subcortmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/subcort.mask.mgz
   if(! -e $subcortmask) then
     echo "ERROR: cannot find $subcortmask"
     exit 1;
