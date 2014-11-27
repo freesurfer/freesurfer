@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/11 19:38:46 $
- *    $Revision: 1.24 $
+ *    $Date: 2014/11/27 03:36:26 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1271,8 +1271,6 @@ int Seg2NbrNonBrainWrapper(char *subject, char *segname, COLOR_TABLE *ctab, char
   fflush(stdout);
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  SUBJECTS_DIR = "/autofs/cluster/con_009/users/greve/fdg-pvc/FSMR";
-
   sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,segname);
   seg = MRIread(tmpstr);
   if(seg == NULL) exit(1);
@@ -1295,6 +1293,8 @@ int Seg2NbrNonBrainWrapper(char *subject, char *segname, COLOR_TABLE *ctab, char
   fclose(fp);
 
   MRIfree(&seg);
+
+  printf("Seg2NbrNonBrainWrapper() done\n"); fflush(stdout);
 
   return(0);
 }
@@ -1338,10 +1338,15 @@ SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm)
   voxsize = seg->xsize*seg->ysize*seg->zsize;
   printf("threshmm = %g, threshvox = %lf voxsize = %lf\n",threshmm,threshvox,voxsize);
 
+  printf("Allocating hitmap\n"); fflush(stdout);
   hitmap = MRIallocSequence(seg->width,seg->height,seg->depth,MRI_UCHAR,nsegs);
+  if(hitmap == NULL) exit(1);
+  printf("Copying header\n"); fflush(stdout);
   MRIcopyHeader(seg,hitmap);
+  printf("Copying pulse params\n"); fflush(stdout);
   MRIcopyPulseParameters(seg,hitmap);
 
+  printf("Starting loop\n"); fflush(stdout);
   // Go through each source segmentation voxel
   for(c=0; c < seg->width; c++){
     for(r=0; r < seg->height; r++){
@@ -1393,6 +1398,8 @@ SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm)
 
   // This can be used to verify
   //MRIwrite(hitmap,"hitmap.mgh");
+  printf("Freeing hitmap\n"); fflush(stdout);
+  MRIfree(&hitmap);
 
   segstat = (SEGSTAT *) calloc(sizeof(SEGSTAT),1);
   segstat->nentries = nsegs;
@@ -1412,7 +1419,6 @@ SEGSTAT *Seg2NbrNonBrain(MRI *seg, COLOR_TABLE *ctab, double threshmm)
     segstat->entry[nthseg].mean = segcount[nthseg]*voxsize;
   }
 
-  MRIfree(&hitmap);
   free(segnolist);
   if(FreeCTab) CTABfree(&ctab);
   return(segstat);
