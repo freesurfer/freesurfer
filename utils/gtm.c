@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/09 23:46:16 $
- *    $Revision: 1.24 $
+ *    $Date: 2014/11/27 03:34:59 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1452,8 +1452,9 @@ int GTMbuildX(GTM *gtm)
   #endif
   for(nthseg = 0; nthseg < gtm->nsegs; nthseg++){
     int segid,k,c,r,s;
-    MRI *nthsegpvf=NULL,*nthsegpvfbb=NULL,*nthsegpvfbbsm=NULL;
+    MRI *nthsegpvf=NULL,*nthsegpvfbb=NULL,*nthsegpvfbbsm=NULL,*nthsegpvfbbsmmb=NULL;
     MRI_REGION *region;
+    MB2D *mb;
     segid = gtm->segidlist[nthseg];
     //printf("nthseg = %d, %d %6.4f\n",nthseg,segid,TimerStop(&timer)/1000.0);fflush(stdout);
     if(gtm->DoVoxFracCor)
@@ -1461,21 +1462,36 @@ int GTMbuildX(GTM *gtm)
     else
       nthsegpvf = MRIbinarizeMatch(gtm->gtmseg,&segid,1,0,NULL); // or get binary mask
     // Extract a region for the seg. This speeds up smoothing.
-    region      = REGIONgetBoundingBox(nthsegpvf,gtm->nPad); // tight+pad bounding box 
+    region = REGIONgetBoundingBox(nthsegpvf,gtm->nPad); // tight+pad bounding box 
     if(region->dx <0 ){
-      printf("ERROR: creating region for nthseg=%d, segid=%d, %s\n",nthseg,segid,gtm->ctGTMSeg->entries[segid]->name);
-      printf("It may be that there are no voxels for this seg when mapped into the input space. \nCheck %s/aux/seg.nii.gz and the registration\n",gtm->OutDir);
+      printf("ERROR: creating region for nthseg=%d, segid=%d, %s\n",
+	     nthseg,segid,gtm->ctGTMSeg->entries[segid]->name);
+      printf("It may be that there are no voxels for this seg when mapped "
+	     "into the input space. \nCheck %s/aux/seg.nii.gz and the registration\n",
+	     gtm->OutDir);
       err++;
       continue;
     }
     nthsegpvfbb = MRIextractRegion(nthsegpvf, NULL, region) ; // extract BB
     if(nthsegpvfbb == NULL){
-      printf("ERROR: extracting nthseg=%d, segid=%d, %s\n",nthseg,segid,gtm->ctGTMSeg->entries[segid]->name);
-      printf("It may be that there are no voxels for this seg when mapped into the input space. \nCheck %s/aux/seg.nii.gz and the registration\n",gtm->OutDir);
+      printf("ERROR: extracting nthseg=%d, segid=%d, %s\n",
+	     nthseg,segid,gtm->ctGTMSeg->entries[segid]->name);
+      printf("It may be that there are no voxels for this seg when mapped "
+	     "into the input space. \nCheck %s/aux/seg.nii.gz and the registration\n",
+	     gtm->OutDir);
       err++;
       continue;
     }
     nthsegpvfbbsm = MRIgaussianSmoothNI(nthsegpvfbb, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+    if(gtm->mb){
+      // Order of operations should not matter
+      mb = MB2Dcopy(gtm->mb,0,NULL);
+      mb->cR = region->x;
+      mb->rR = region->y;
+      nthsegpvfbbsmmb = MRImotionBlur2D(nthsegpvfbbsm, mb, NULL);
+      MRIfree(&nthsegpvfbbsm);
+      nthsegpvfbbsm = nthsegpvfbbsmmb;
+    }
     // Fill X, creating X in this order makes it consistent with matlab
     // Note: y must be ordered in the same way. See GTMvol2mat()
     k = 0;
@@ -1488,16 +1504,19 @@ int GTMbuildX(GTM *gtm)
 	  if(r < region->y || r >= region->y+region->dy)  continue;
 	  if(s < region->z || s >= region->z+region->dz)  continue;
 	  // do not use k+1 here because it has already been incr above
-	  gtm->X->rptr[k][nthseg+1] = 
-	    MRIgetVoxVal(nthsegpvfbbsm,c-region->x,r-region->y,s-region->z,0);
 	  gtm->X0->rptr[k][nthseg+1] = 
 	    MRIgetVoxVal(nthsegpvfbb,c-region->x,r-region->y,s-region->z,0);
+
+	  gtm->X->rptr[k][nthseg+1] = 
+	    MRIgetVoxVal(nthsegpvfbbsm,c-region->x,r-region->y,s-region->z,0);
+
 	}
       }
     }
     MRIfree(&nthsegpvf);
     MRIfree(&nthsegpvfbb);
     MRIfree(&nthsegpvfbbsm);
+    if(gtm->mb) MB2Dfree(&mb);
   }
   printf(" Build time %6.4f, err = %d\n",TimerStop(&timer)/1000.0,err);fflush(stdout);
   if(err) gtm->X = NULL;

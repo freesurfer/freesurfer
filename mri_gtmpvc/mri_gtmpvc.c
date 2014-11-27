@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/09 23:46:49 $
- *    $Revision: 1.38 $
+ *    $Date: 2014/11/27 03:34:59 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.38 2014/11/09 23:46:49 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.39 2014/11/27 03:34:59 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.38 2014/11/09 23:46:49 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.39 2014/11/27 03:34:59 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -428,6 +428,14 @@ int main(int argc, char *argv[])
   if(OutSegFile){
     err=MRIwrite(gtm->gtmseg,OutSegFile);
     if(err) exit(1);
+  }
+  
+  if(gtm->mb){
+    gtm->mb->Interp = SAMPLE_NEAREST;
+    gtm->mb->cutoff = 4;
+    gtm->mb->c0 = gtm->yvol->width/2.0;
+    gtm->mb->r0 = gtm->yvol->height/2.0;
+    gtm->mb->DeltaD = gtm->yvol->xsize;
   }
 
   // Create GTM matrix
@@ -973,6 +981,12 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--psf-slice")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&gtm->sFWHM);
+      nargsused = 1;
+    } 
+    else if(!strcasecmp(option, "--mb")){
+      if(nargc < 1) CMDargNErr(option,1);
+      gtm->mb = (MB2D *) calloc(sizeof(MB2D),1);
+      sscanf(pargv[0],"%lf",&gtm->mb->slope);
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--apply-fwhm")){
