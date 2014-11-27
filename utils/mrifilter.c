@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/26 23:05:35 $
- *    $Revision: 1.106 $
+ *    $Date: 2014/11/27 03:33:50 $
+ *    $Revision: 1.107 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7494,20 +7494,26 @@ MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label, int 
 
 /*
   \fn MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
-  \brief Apply 2D motion blurring to a volume.  Motion blurring is
-  smoothing in 1D along a radius with the amount of smoothing changing
-  with distance from the center. Each slice is blurred in the exact
-  same way. The center does not need to be inside the volume. The
-  parameters are controlled through the MB2D structure.  The basic
-  implementation is to create a line passing through a given voxel and
-  the center. A segment of this line is selected based on the FHWM at
-  that point. The input image is sampled every DeltaD along that line
-  and convolved with the Gaussian kernel.
+  \brief Apply 2D motion (ie, radial) blurring to a volume.  Motion
+  blurring is smoothing in 1D along a radius with the amount of
+  smoothing changing with distance from the center. Each slice is
+  blurred in the exact same way. The center does not need to be inside
+  the volume. The parameters are controlled through the MB2D
+  structure.  The basic implementation is to create a line passing
+  through a given voxel and the center. A segment of this line is
+  selected based on the FHWM at that point. The input image is sampled
+  every DeltaD along that line and convolved with the Gaussian
+  kernel. Cannot be done in-place.
  */
 MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
 {
   int c;
   struct timeb timer;
+
+  if(src == out){
+    printf("ERROR: MRImotionBlur2D(): cannot be done in-place\n");
+    return(NULL);
+  }
 
   if(mb->Interp != SAMPLE_NEAREST && mb->Interp != SAMPLE_TRILINEAR){
     printf("ERROR: MRImotionBlur2D(): Interp = %d, must be %d or %d\n",
@@ -7519,6 +7525,9 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
     out = MRIcloneBySpace(src, MRI_FLOAT, -1);
     if(out == NULL) return(NULL);
   }
+
+  //printf("MB: c0=%d, r0=%d, cR=%d, rR=%d\n",mb->c0,mb->r0,mb->cR,mb->rR);
+  //fflush(stdout);
 
   // These are two structures to save slice-based parameters
   if(mb->d0)    MRIfree(&mb->d0);
@@ -7663,7 +7672,7 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
       free(kernel);
     } // row
   } // col
-  printf("  motion blur took %6.4f sec\n",TimerStop(&timer)/1000.0);fflush(stdout);
+  //printf("  motion blur took %6.4f sec\n",TimerStop(&timer)/1000.0);fflush(stdout);
 
   return(out);
 }
