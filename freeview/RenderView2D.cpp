@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/12 21:36:06 $
- *    $Revision: 1.69 $
+ *    $Date: 2014/12/01 20:35:06 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -521,16 +521,31 @@ bool RenderView2D::SetSliceNumber( int nNum )
   vtkImageData* imagedata = mri->GetImageData();
   int nPlane = GetViewPlane();
   int* dim = imagedata->GetDimensions();
-  double* voxelsize = imagedata->GetSpacing();
-  double* orig = imagedata->GetOrigin();
   if ( nNum < 0 || nNum >= dim[nPlane] )
   {
     return false;
   }
 
+  int slice[3];
   double pos[3];
   lc_mri->GetSlicePosition( pos );
-  pos[nPlane] = orig[nPlane] + nNum * voxelsize[nPlane];
+  mri->TargetToRAS(pos, pos);
+  mri->RASToOriginalIndex(pos, slice);
+  QString ostr = mri->GetOrientationString();
+  int nOrigPlane = nPlane;
+  char ch[3][3] = {"RL", "AP", "IS"};
+  for (int i = 0; i < 3; i++)
+  {
+    if (ostr[i] == ch[nPlane][0] || ostr[i] == ch[nPlane][1])
+    {
+      nOrigPlane = i;
+      break;
+    }
+  }
+  slice[nOrigPlane] = nNum;
+  mri->OriginalIndexToRAS( slice, pos );
+  mri->RASToTarget( pos, pos );
+
   MainWindow::GetMainWindow()->SetSlicePosition( pos );
   lc_mri->SetCursorRASPosition( pos );
   return true;

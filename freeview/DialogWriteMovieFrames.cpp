@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/01 17:34:57 $
- *    $Revision: 1.10 $
+ *    $Date: 2014/12/01 20:35:06 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,7 @@
 #include "Layer.h"
 #include "LayerMRI.h"
 #include <vtkImageData.h>
+#include <QDebug>
 
 DialogWriteMovieFrames::DialogWriteMovieFrames(QWidget *parent) :
   QDialog(parent),
@@ -143,6 +144,7 @@ void DialogWriteMovieFrames::OnWrite()
     QMessageBox::warning(this, "Error", "Step size can not be 0.");
     return;
   }
+  m_strPrefix = ui->lineEditFilenamePrefix->text().trimmed();
   if (m_strOutputDir[m_strOutputDir.length()-1] != '/' &&
       m_strOutputDir[m_strOutputDir.length()-1] != '\\')
   {
@@ -207,9 +209,11 @@ void DialogWriteMovieFrames::OnTimeOut()
   if (nIndex == 0)    // slice
   {
     int nStart = m_nStartNumber+m_nStepSize*m_nStepCount;
-    fn = QString("%1frame%2.%3").arg(m_strOutputDir)
+    qDebug() << nStart;
+    fn = QString("%1%4%2.%3").arg(m_strOutputDir)
          .arg(nStart, 3, 10, QChar('0'))
-         .arg(ui->comboBoxExtension->currentText());
+         .arg(ui->comboBoxExtension->currentText())
+         .arg(m_strPrefix);
     m_view->SaveScreenShot( fn,settings.AntiAliasing, settings.Magnification );
     if ( !((RenderView2D*)m_view)->SetSliceNumber( nStart + m_nStepSize ) )
     {
@@ -219,9 +223,10 @@ void DialogWriteMovieFrames::OnTimeOut()
   else if (nIndex == 1)  // frame
   {
     int nStart = m_nStartNumber+m_nStepSize*m_nStepCount;
-    fn = QString("%1frame%2.%3").arg(m_strOutputDir)
+    fn = QString("%1%4%2.%3").arg(m_strOutputDir)
          .arg(nStart, 3, 10, QChar('0'))
-         .arg(ui->comboBoxExtension->currentText());
+         .arg(ui->comboBoxExtension->currentText())
+         .arg(m_strPrefix);
     m_view->SaveScreenShot( fn,settings.AntiAliasing, settings.Magnification );
     LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer( "MRI" ));
     if (layer)
@@ -229,9 +234,10 @@ void DialogWriteMovieFrames::OnTimeOut()
   }
   else          // angle
   {
-    fn = QString("%1frame%2.%3").arg(m_strOutputDir)
+    fn = QString("%1%4%2.%3").arg(m_strOutputDir)
          .arg(m_nStepCount, 3, 10, QChar('0'))
-         .arg(ui->comboBoxExtension->currentText());
+         .arg(ui->comboBoxExtension->currentText())
+         .arg(m_strPrefix);
     m_view->SaveScreenShot( fn, settings.AntiAliasing, settings.Magnification );
     CameraOperations ops;
     ops << CameraOperation("azimuth", m_nStepSize);
