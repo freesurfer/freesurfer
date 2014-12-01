@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/01 19:10:07 $
- *    $Revision: 1.22 $
+ *    $Date: 2014/12/01 18:14:07 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -292,12 +292,14 @@ void SurfaceAnnotation::MapAnnotationColor( unsigned char* colordata )
   int* indices = (m_bShowOutline ? m_nOutlineIndices : m_nIndices);
   for ( int i = 0; i < m_nIndexSize; i++ )
   {
-    if (indices[i] >= 0)
+    if (indices[i] > 0)
     {
-      CTABrgbAtIndexi( m_lut, indices[i], c, c+1, c+2 );
-      colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
-      colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );
-      colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
+      if (CTABrgbAtIndexi( m_lut, indices[i], c, c+1, c+2 ) == 0) // no error
+      {
+        colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
+        colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );
+        colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
+      }
     }
   }
 }

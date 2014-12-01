@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/12 21:36:06 $
- *    $Revision: 1.29 $
+ *    $Date: 2014/12/01 18:14:07 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1417,7 +1417,6 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   mMaxGenericThreshold = mMaxVoxelValue;
   mMinContourThreshold = mHeatScaleMidThreshold;
   mMaxContourThreshold = mMaxVoxelValue;
-
 }
 
 void LayerPropertyMRI::SetMinMaxGenericThreshold ( double iMin, double iMax )
