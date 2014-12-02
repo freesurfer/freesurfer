@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/11/06 17:06:24 $
-#    $Revision: 1.496 $
+#    $Author: zkaufman $
+#    $Date: 2014/12/02 18:07:05 $
+#    $Revision: 1.497 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.496 2014/11/06 17:06:24 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.497 2014/12/02 18:07:05 zkaufman Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -51,6 +51,7 @@ if($?SET_FS_CMD_TIMING) set DoTime = 1;
 set fs_time = "";
 set ErrorFile = /dev/null
 set cmd = ();
+set T2volHippoSF = ();
 
 set tcsh61706 = (`tcsh --version | grep "6\.17\.06"`)
 if ("$tcsh61706" != "") then
@@ -206,7 +207,10 @@ set DoAffineBase = 0; # if 1, allow affine when creating base (fix calibration)
 set UseCubic = 1; # if 1, use cubic spline when mri_convert does conform step
 
 # Hippocampal subfields:
-set DoGEMS = 0;      # if 1, will run the hippocampal subfields processing
+set DoGEMS = 0;      # if 1, will run the old hippocampal subfields processing (in vivo atlas, Dickerson data)
+set DoHippoSFnewT1 = 0;  # if 1, will run the new hippocampal subfield segmentation, ex vivo atlas (only T1 input)
+set DoHippoSFnewT1T2 = 0;  # if 1, will run the new hippocampal subfield segmentation, ex vivo atlas (using additional image)
+set UseOnlyT2 = 0;  # for DoHippoSFnewT1T2: if this is 0, we use T1 and additional channel (multispectral). If 1, we use only additional image
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -4815,7 +4819,8 @@ endif # DoLabelExvivoEC
 
 #--------------                        -----------------#
 #-------------- Hippocampal Subfields  -----------------#
-##-------------   -hippo-subfields     -----------------#
+##------------- -hippocampalsubfields  -----------------#
+##------------- -hippocampalsubfields-multi  -----------#
 #--------------                        -----------------#
 if($DoGEMS) then
   set GEMSF = ($subjdir/scripts/hippo-subfields.log)
@@ -5068,6 +5073,238 @@ if($DoVnoMatchCheck) then
     reconbatchjobs $LF $CMDFS |& tee -a $LF
     if($status) goto error_exit;
   endif
+endif
+
+
+#--------------                                                      -----------------#
+#-------------- Hippocampal Subfields  (new, ex vivo atlas, only T1) -----------------#
+#--------------                                                      -----------------#
+if($DoHippoSFnewT1) then
+  set HSFNEW = ($subjdir/scripts/hippocampalsubfields-T1.log)
+  rm -f $HSFNEW
+  echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF |& tee -a $HSFNEW
+  echo "#@# New Hippocampal Subfields processing (only T1 input) `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFNEW
+
+
+  # Test whether module is installed; otherwise, point user to its website
+
+  if ( ! -e ${FREESURFER_HOME}/newHippoSF/bin/segmentSFnewT1.sh ) then
+    echo "ERROR: cannot find executables for new hippocampal subfield module."
+    echo "       You need to install NewHippocampalSubfields to run this module."
+    echo "       Please visit https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields"
+    echo "       (or alternately disable the new hippocampal subfield processing)."
+    goto error_exit;
+  endif
+
+
+
+  if ( ! -e ${FREESURFER_HOME}/MCRv80/bin/glnxa64/libdctprocess.so   && ! -e ${FREESURFER_HOME}/MCRv80/bin/maci64/libdctprocess.jnilib  ) then
+    echo "ERROR: cannot find Matlab 2012b runtime in ${FREESURFER_HOME}/MCRv80"
+    echo "       Either: "
+    echo "           a) install the full version of the new hippocampal subfield module."
+    echo "           b) make sure that: "
+    echo "             ${FREESURFER_HOME}/MCRv80 "
+    echo "             is a link to an existing Matlab 2012b installation, e.g., /usr/local/matlab/8.0/"
+    echo "     "
+    echo "       Please visit https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields for further details."
+    goto error_exit;
+  endif
+
+
+  if (-e ${subjdir}/mri/wmparc.mgz && \
+      -e ${subjdir}/mri/norm.mgz && \
+      -e ${subjdir}/mri/transforms/talairach.xfm ) then
+
+
+    # do hippocampal processing
+
+    set cmd = ( ${FREESURFER_HOME}/newHippoSF/bin/segmentSFnewT1.sh \
+        ${FREESURFER_HOME}/MCRv80 \
+        $FREESURFER_HOME \
+        $subjid  \
+        $SUBJECTS_DIR \
+        left )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $HSFNEW
+    if($status) goto error_exit;
+
+    set cmd = ( ${FREESURFER_HOME}/newHippoSF/bin/segmentSFnewT1.sh \
+        ${FREESURFER_HOME}/MCRv80 \
+        $FREESURFER_HOME \
+        $subjid  \
+        $SUBJECTS_DIR \
+        right )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $HSFNEW
+    if($status) goto error_exit;
+
+    echo $cmd > $touchdir/hippo-subfields-new-T1.touch
+
+  else
+    echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for the subject."
+    echo "ERROR: Maybe, run recon-all again or disable (new) hippocampal subfields processing."
+    goto error_exit;
+  endif #checking of wmparc.mgz, norm.mgz and talairach.xfm
+endif
+
+
+
+
+#--------------                                                     -----------------#
+#-------------- Hippocampal Subfields  (new, ex vivo atlas, T1+T2)  -----------------#
+#--------------                                                     -----------------#
+if($DoHippoSFnewT1T2) then 
+
+  if($UseOnlyT2) then
+
+    set HSFNEW = ($subjdir/scripts/hippocampalsubfields-T2.log)
+    rm -f $HSFNEW
+    echo "#--------------------------------------------" \
+        |& tee -a $LF |& tee -a $CF |& tee -a $HSFNEW
+    echo "#@# New Hippocampal Subfields processing (only additional volume) `date`" \
+        |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFNEW
+  
+  
+    # Test whether module is installed; otherwise, point user to its website
+  
+    if ( ! -e ${FREESURFER_HOME}/newHippoSF/bin/segmentSFnewT2.sh ) then
+      echo "ERROR: cannot find executables for new hippocampal subfield module."
+      echo "       You need to install NewHippocampalSubfields to run this module."
+      echo "       Please visit https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields"
+      echo "       (or alternately disable the new hippocampal subfield processing)."
+      goto error_exit;
+    endif
+  
+  
+    if ( ! -e ${FREESURFER_HOME}/MCRv80/bin/glnxa64/libdctprocess.so    && ! -e ${FREESURFER_HOME}/MCRv80/bin/maci64/libdctprocess.jnilib ) then
+      echo "ERROR: cannot find Matlab 2012b runtime in ${FREESURFER_HOME}/MCRv80"
+      echo "       Either: "
+      echo "           a) install the full version of the new hippocampal subfield module."
+      echo "           b) make sure that: "
+      echo "             ${FREESURFER_HOME}/MCRv80 "
+      echo "             is a link to an existing Matlab 2012b installation, e.g., /usr/local/matlab/8.0/"
+      echo "     "
+      echo "       Please visit https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields for further details."
+      goto error_exit;
+    endif
+  
+
+    if (-e ${subjdir}/mri/wmparc.mgz && \
+        -e ${subjdir}/mri/norm.mgz && \
+        -e ${subjdir}/mri/transforms/talairach.xfm ) then
+  
+  
+      # do hippocampal processing
+  
+      set cmd = ( ${FREESURFER_HOME}/newHippoSF/bin/segmentSFnewT2.sh \
+          ${FREESURFER_HOME}/MCRv80 \
+          $FREESURFER_HOME \
+          $subjid  \
+          $SUBJECTS_DIR \
+          $T2volHippoSF \
+          left )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $HSFNEW
+      if($status) goto error_exit;
+  
+  
+      set cmd = ( ${FREESURFER_HOME}/newHippoSF/bin/segmentSFnewT2.sh \
+          ${FREESURFER_HOME}/MCRv80 \
+          $FREESURFER_HOME \
+          $subjid  \
+          $SUBJECTS_DIR \
+          $T2volHippoSF \
+          right )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $HSFNEW
+      if($status) goto error_exit;
+  
+      echo $cmd > $touchdir/hippo-subfields-new-T2.touch
+  
+    else
+      echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for the subject."
+      echo "ERROR: Maybe, run recon-all again or disable (new) hippocampal subfields processing."
+      goto error_exit;
+    endif #checking of wmparc.mgz, norm.mgz and talairach.xfm
+
+
+  else
+
+    set HSFNEW = ($subjdir/scripts/hippocampalsubfields-T1T2.log)
+    rm -f $HSFNEW
+    echo "#--------------------------------------------" \
+        |& tee -a $LF |& tee -a $CF |& tee -a $HSFNEW
+    echo "#@# New Hippocampal Subfields processing (T1 + additional volume) `date`" \
+        |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFNEW
+  
+  
+    # Test whether module is installed; otherwise, point user to its website
+  
+    if ( ! -e ${FREESURFER_HOME}/newHippoSF/bin/segmentSFnewT1T2.sh ) then
+      echo "ERROR: cannot find executables for new hippocampal subfield module."
+      echo "       You need to install NewHippocampalSubfields to run this module."
+      echo "       Please visit https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields"
+      echo "       (or alternately disable the new hippocampal subfield processing)."
+      goto error_exit;
+    endif
+  
+  
+  
+    if ( ! -e ${FREESURFER_HOME}/MCRv80/bin/glnxa64/libdctprocess.so    && ! -e ${FREESURFER_HOME}/MCRv80/bin/maci64/libdctprocess.jnilib ) then
+      echo "ERROR: cannot find Matlab 2012b runtime in ${FREESURFER_HOME}/MCRv80"
+      echo "       Either: "
+      echo "           a) install the full version of the new hippocampal subfield module."
+      echo "           b) make sure that: "
+      echo "             ${FREESURFER_HOME}/MCRv80 "
+      echo "             is a link to an existing Matlab 2012b installation, e.g., /usr/local/matlab/8.0/"
+      echo "     "
+      echo "       Please visit https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields for further details."
+      goto error_exit;
+    endif
+  
+
+    if (-e ${subjdir}/mri/wmparc.mgz && \
+        -e ${subjdir}/mri/norm.mgz && \
+        -e ${subjdir}/mri/transforms/talairach.xfm ) then
+  
+  
+      # do hippocampal processing
+  
+      set cmd = ( ${FREESURFER_HOME}/newHippoSF/bin/segmentSFnewT1T2.sh \
+          ${FREESURFER_HOME}/MCRv80 \
+          $FREESURFER_HOME \
+          $subjid  \
+          $SUBJECTS_DIR \
+          $T2volHippoSF \
+          left )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $HSFNEW
+      if($status) goto error_exit;
+  
+  
+      set cmd = ( ${FREESURFER_HOME}/newHippoSF/bin/segmentSFnewT1T2.sh \
+          ${FREESURFER_HOME}/MCRv80 \
+          $FREESURFER_HOME \
+          $subjid  \
+          $SUBJECTS_DIR \
+          $T2volHippoSF \
+          right )
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $HSFNEW
+      if($status) goto error_exit;
+  
+      echo $cmd > $touchdir/hippo-subfields-new-T1T2.touch
+  
+    else
+      echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for the subject."
+      echo "ERROR: Maybe, run recon-all again or disable (new) hippocampal subfields processing."
+      goto error_exit;
+    endif #checking of wmparc.mgz, norm.mgz and talairach.xfm
+
+  endif
+
 endif
 
 
@@ -6820,9 +7057,44 @@ while( $#argv != 0 )
       setenv OMP_NUM_THREADS 4
       breaksw
 
-    # hippocampal subfield processing
+    # hippocampal subfield processing (in vivo atlas, Dickerson data)
     case "-hippo-subfields":
-      set DoGEMS = 1;
+      set DoGEMS = 1; 
+      breaksw;
+
+    # hippocampal subfield processing (ex vivo atlas, only T1)
+    case "-hippocampalsubfields":
+      set DoHippoSFnewT1 = 1;
+      breaksw;
+
+    # hippocampal subfield processing (ex vivo atlas, multispectral)
+    case "-hippocampalsubfields-multi":
+      set DoHippoSFnewT1T2 = 1;
+      if( $#argv < 1) goto arg1err;
+      set T2volHippoSF = "$argv[1]"; shift;
+      if(! -e "$T2volHippoSF") then
+        echo "ERROR: cannot find $T2volHippoSF"
+        goto error_exit;
+      endif
+      if (-d "$T2volHippoSF") then
+        echo "ERROR: You cannot give the hippocampal subfield segmentation a folder as an input. It must be an image file."
+        goto error_exit;
+      endif
+      if(! -r "$T2volHippoSF") then
+        echo "ERROR: $T2volHippoSF exists but is not readable"
+        goto error_exit;
+      endif
+      set InVolDir  = `dirname  "$T2volHippoSF"`;
+      set InVolBase = `basename "$T2volHippoSF"`;
+      pushd $InVolDir > /dev/null
+      set InVolDir = `pwd`;
+      popd > /dev/null
+      set T2volHippoSF = "$InVolDir/$InVolBase";
+      breaksw;
+
+    # new hippocampal subfield processing: use only additional volume in segmentation
+    case "-use-only-additional":
+      set UseOnlyT2 = 1;
       breaksw;
 
     case "-cubic":
@@ -7266,7 +7538,7 @@ check_params:
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
      ! $DoLabelExvivoEC && ! $DoPialSurfs && \
-     ! $DoGEMS && ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
+     ! $DoGEMS && ! $DoHippoSFnewT1 && ! $DoHippoSFnewT1T2 && ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && \
      ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg ) then
      echo "ERROR: nothing to do. You must specify an operation to perform by adding"
