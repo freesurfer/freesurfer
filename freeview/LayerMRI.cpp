@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/12 21:36:06 $
- *    $Revision: 1.152 $
+ *    $Date: 2014/12/03 19:28:49 $
+ *    $Revision: 1.153 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +78,7 @@
 #include "LayerSurface.h"
 #include "vtkImageResample.h"
 #include "vtkImageExtractComponents.h"
+#include "vtkMaskPoints.h"
 #include <QVariantMap>
 
 extern "C"
@@ -1453,7 +1454,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
     vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
   }
-  else
+  else if (GetProperty()->GetVectorRepresentation() == LayerPropertyMRI::VR_Line)
   {
     vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( polydata );
     vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( polydata );
@@ -1519,7 +1520,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
 
-
+          if (!bNormalizeVector)
+            vtkMath::Normalize( v );  // normalize v for color computing
           c[0] = (int)(fabs( v[0] *255 ) );
           c[1] = (int)(fabs( v[1] *255 ) );
           c[2] = (int)(fabs( v[2] *255 ) );
@@ -1574,6 +1576,9 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
                                    pt[2] - scale * v[2] );
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
+
+          if (!bNormalizeVector)
+            vtkMath::Normalize( v );  // normalize v for color computing
           c[0] = (int)(fabs( v[0] *255 ) );
           c[1] = (int)(fabs( v[1] *255 ) );
           c[2] = (int)(fabs( v[2] *255 ) );
@@ -1628,6 +1633,9 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
                                    pt[2] - scale * v[2] );
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
+
+          if (!bNormalizeVector)
+            vtkMath::Normalize( v );  // normalize v for color computing
           c[0] = (int)(fabs( v[0] *255 ) );
           c[1] = (int)(fabs( v[1] *255 ) );
           c[2] = (int)(fabs( v[2] *255 ) );
