@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/27 03:34:59 $
- *    $Revision: 1.25 $
+ *    $Date: 2014/12/04 23:22:59 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2085,7 +2085,7 @@ int GTMrvarGM(GTM *gtm)
     for(s=0; s < gtm->yvol->depth; s++){
       for(c=0; c < gtm->yvol->width; c++){
 	for(r=0; r < gtm->yvol->height; r++){
-	  if(MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
+	  if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
 	  n++;
 	  segid = MRIgetVoxVal(gtm->gtmseg,c,r,s,0);
 	  tt = ct->entries[segid]->TissueType;
