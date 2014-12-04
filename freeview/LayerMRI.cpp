@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/12/03 19:28:49 $
- *    $Revision: 1.153 $
+ *    $Date: 2014/12/04 14:04:07 $
+ *    $Revision: 1.154 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -125,7 +125,11 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
     vtkSmartPointer<vtkPolyDataMapper> mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
     m_glyphActor2D[i]->SetMapper( mapper );
     m_glyphActor3D[i]->SetMapper( mapper2 );
-
+    m_vectorDotActor2D[i] = vtkActor::New();
+    m_vectorDotActor2D[i]->SetMapper(vtkSmartPointer<vtkPolyDataMapper>::New());
+    m_vectorDotActor2D[i]->SetProperty( m_vectorDotActor2D[i]->MakeProperty() );
+    m_vectorDotActor2D[i]->GetProperty()->SetPointSize(3);
+    m_vectorDotActor2D[i]->GetProperty()->SetInterpolationToFlat();
     m_projectionMapActor[i] = vtkImageActor::New();
   }
 
@@ -172,6 +176,7 @@ LayerMRI::~LayerMRI()
     m_sliceActor3D[i]->Delete();
     m_glyphActor2D[i]->Delete();
     m_glyphActor3D[i]->Delete();
+    m_vectorDotActor2D[i]->Delete();
     m_projectionMapActor[i]->Delete();
   }
 
@@ -918,6 +923,8 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
   if ( GetProperty()->GetDisplayVector() || GetProperty()->GetDisplayTensor() )
   {
     renderer->AddViewProp( m_glyphActor2D[nPlane] );
+    if (GetProperty()->GetVectorRepresentation() == LayerPropertyMRI::VR_Direction_Line)
+      renderer->AddViewProp(m_vectorDotActor2D[nPlane]);
   }
   else
   {
@@ -931,6 +938,7 @@ void LayerMRI::Remove2DProps( vtkRenderer* renderer, int nPlane )
   if ( GetProperty()->GetDisplayVector() || GetProperty()->GetDisplayTensor() )
   {
     renderer->RemoveViewProp( m_glyphActor2D[nPlane] );
+    renderer->RemoveViewProp(m_vectorDotActor2D[nPlane]);
   }
   else
   {
@@ -1110,6 +1118,8 @@ void LayerMRI::SetVisible( bool bVisible )
     m_sliceActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
     m_glyphActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
     m_glyphActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
+    m_vectorDotActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
+
     m_projectionMapActor[i]->SetVisibility( bVisible && GetProperty()->GetShowProjectionMap() );
   }
   m_actorContour->SetVisibility( bVisible ? 1 : 0 );
@@ -1443,8 +1453,8 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   int nCnt = 0;
   bool bNormalizeVector = GetProperty()->GetNormalizeVector();
   double scale_overall = GetProperty()->GetVectorScale();
-
-  if ( GetProperty()->GetVectorRepresentation() == LayerPropertyMRI::VR_Bar )
+  int nVectorRep = GetProperty()->GetVectorRepresentation();
+  if ( nVectorRep == LayerPropertyMRI::VR_Bar )
   {
     vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
     tube->SetInput( polydata );
@@ -1454,10 +1464,19 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
     vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( tube->GetOutput() );
   }
-  else if (GetProperty()->GetVectorRepresentation() == LayerPropertyMRI::VR_Line)
+  else
   {
     vtkPolyDataMapper::SafeDownCast( m_glyphActor2D[nPlane]->GetMapper() )->SetInput( polydata );
     vtkPolyDataMapper::SafeDownCast( m_glyphActor3D[nPlane]->GetMapper() )->SetInput( polydata );
+
+    if (nVectorRep == LayerPropertyMRI::VR_Direction_Line)
+    {
+      vtkSmartPointer<vtkMaskPoints> pts = vtkSmartPointer<vtkMaskPoints>::New();
+      pts->GenerateVerticesOn();
+      pts->SetOnRatio(2);
+      pts->SetInput(polydata);
+      vtkPolyDataMapper::SafeDownCast( m_vectorDotActor2D[nPlane]->GetMapper() )->SetInputConnection( pts->GetOutputPort() );
+    }
   }
 
   QString orient = GetOrientationString();
@@ -1472,6 +1491,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   double scale = scale_overall;
   if (!bNormalizeVector)
     scale *= GetProperty()->GetVectorDisplayScale();
+
   switch ( nPlane )
   {
   case 0:
@@ -1520,11 +1540,18 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
 
-          if (!bNormalizeVector)
-            vtkMath::Normalize( v );  // normalize v for color computing
-          c[0] = (int)(fabs( v[0] *255 ) );
-          c[1] = (int)(fabs( v[1] *255 ) );
-          c[2] = (int)(fabs( v[2] *255 ) );
+          if (nVectorRep == LayerPropertyMRI::VR_Direction_Line)
+          {
+            GetColorWheelColor(v, nPlane, c);
+          }
+          else
+          {
+            if (!bNormalizeVector)
+              vtkMath::Normalize( v );  // normalize v for color computing
+            c[0] = (int)(fabs( v[0] *255 ) );
+            c[1] = (int)(fabs( v[1] *255 ) );
+            c[2] = (int)(fabs( v[2] *255 ) );
+          }
           scalars->InsertNextTupleValue( c );
           scalars->InsertNextTupleValue( c );
         }
@@ -1577,11 +1604,18 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
 
-          if (!bNormalizeVector)
-            vtkMath::Normalize( v );  // normalize v for color computing
-          c[0] = (int)(fabs( v[0] *255 ) );
-          c[1] = (int)(fabs( v[1] *255 ) );
-          c[2] = (int)(fabs( v[2] *255 ) );
+          if (nVectorRep == LayerPropertyMRI::VR_Direction_Line)
+          {
+            GetColorWheelColor(v, nPlane, c);
+          }
+          else
+          {
+            if (!bNormalizeVector)
+              vtkMath::Normalize( v );  // normalize v for color computing
+            c[0] = (int)(fabs( v[0] *255 ) );
+            c[1] = (int)(fabs( v[1] *255 ) );
+            c[2] = (int)(fabs( v[2] *255 ) );
+          }
           scalars->InsertNextTupleValue( c );
           scalars->InsertNextTupleValue( c );
         }
@@ -1634,11 +1668,18 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
 
-          if (!bNormalizeVector)
-            vtkMath::Normalize( v );  // normalize v for color computing
-          c[0] = (int)(fabs( v[0] *255 ) );
-          c[1] = (int)(fabs( v[1] *255 ) );
-          c[2] = (int)(fabs( v[2] *255 ) );
+          if (nVectorRep == LayerPropertyMRI::VR_Direction_Line)
+          {
+            GetColorWheelColor(v, nPlane, c);
+          }
+          else
+          {
+            if (!bNormalizeVector)
+              vtkMath::Normalize( v );  // normalize v for color computing
+            c[0] = (int)(fabs( v[0] *255 ) );
+            c[1] = (int)(fabs( v[1] *255 ) );
+            c[2] = (int)(fabs( v[2] *255 ) );
+          }
           scalars->InsertNextTupleValue( c );
           scalars->InsertNextTupleValue( c );
         }
@@ -1650,6 +1691,25 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   }
 
   emit ActorUpdated();
+}
+
+void LayerMRI::GetColorWheelColor(double *v, int nPlane, unsigned char *c_out)
+{
+  double x = v[0], y = v[1];
+  if (nPlane == 0)
+    x = v[2];
+  else if (nPlane == 1)
+    y = v[2];
+  double v1[2] = {x, y}, v2[2] = {1, 0};
+  vtkMath::Normalize2D(v1);
+  double angle = acos(vtkMath::Dot2D(v1, v2))/(2*vtkMath::Pi());
+  if (y < 0)
+    angle = 1 - angle;
+  double hsv[3] = {angle, 1, 1}, rgb[3];
+  vtkMath::HSVToRGB(hsv, rgb);
+  c_out[0] = (int)(rgb[0]*255);
+  c_out[1] = (int)(rgb[1]*255);
+  c_out[2] = (int)(rgb[2]*255);
 }
 
 void LayerMRI::UpdateTensorActor()

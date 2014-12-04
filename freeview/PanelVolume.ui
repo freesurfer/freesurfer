@@ -155,7 +155,12 @@
        <widget class="QComboBox" name="comboBoxRenderObject">
         <item>
          <property name="text">
-          <string>Simple line</string>
+          <string>Line</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Line with direction</string>
          </property>
         </item>
         <item>

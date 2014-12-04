@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/12 21:36:06 $
- *    $Revision: 1.97 $
+ *    $Date: 2014/12/04 14:04:07 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -465,7 +465,8 @@ void PanelVolume::DoUpdateWidgets()
     ui->comboBoxRenderObject->clear();
     if ( layer->GetProperty()->GetDisplayVector() )
     {
-      ui->comboBoxRenderObject->addItem( "Simple Line" );
+      ui->comboBoxRenderObject->addItem( "Line" );
+      ui->comboBoxRenderObject->addItem( "Line With Direction" );
       ui->comboBoxRenderObject->addItem( "3D Bar (slow!)" );
       ui->comboBoxRenderObject->setCurrentIndex( layer->GetProperty()->GetVectorRepresentation() );
       ui->comboBoxInversion->setCurrentIndex( layer->GetProperty()->GetVectorInversion() );

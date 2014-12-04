@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:21 $
- *    $Revision: 1.94 $
+ *    $Date: 2014/12/04 14:04:07 $
+ *    $Revision: 1.95 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -368,6 +368,7 @@ protected:
   void InitializeActors();
   void ConnectProperty();
   void UpdateTensorActor( int nPlane, vtkImageData* imagedata = NULL );
+  void GetColorWheelColor(double* v, int plane, unsigned char* c_out);
 
   std::vector<int> GetVoxelIndicesBetweenPoints( int* n0, int* n1 );
   void BuildTensorGlyph( vtkImageData* imagedata,
@@ -400,6 +401,7 @@ protected:
   vtkImageActor*  m_sliceActor3D[3];
 
   vtkActor*       m_glyphActor2D[3];
+  vtkActor*       m_vectorDotActor2D[3];
   vtkActor*       m_glyphActor3D[3];
 
   vtkImageActor*  m_projectionMapActor[3];

@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/12 21:36:06 $
- *    $Revision: 1.17 $
+ *    $Date: 2014/12/04 14:04:07 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,7 +68,7 @@ public:
 
   enum VectorRepresentation
   {
-    VR_Line = 0, VR_Bar
+    VR_Line = 0, VR_Direction_Line, VR_Bar
   };
 
   enum TensorRepresentation
