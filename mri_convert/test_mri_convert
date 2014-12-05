@@ -8,9 +8,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/05/02 21:02:42 $
-#    $Revision: 1.8 $
+#    $Author: zkaufman $
+#    $Date: 2014/12/05 20:37:07 $
+#    $Revision: 1.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_convert,v 1.8 2011/05/02 21:02:42 nicks Exp $'
+set VERSION='$Id: test_mri_convert,v 1.9 2014/12/05 20:37:07 zkaufman Exp $'
 
 umask 002
 
@@ -39,6 +39,9 @@ gunzip -c testdata.tar.gz | tar xvf -
 #
 
 cd testdata
+
+setenv FREESURFER_HOME ../../distribution
+setenv SUBJECTS_DIR ""
 
 # --conform function
 set cmd=(../mri_convert rawavg.mgz orig.mgz --conform)
