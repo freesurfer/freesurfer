@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/30 18:48:33 $
- *    $Revision: 1.26 $
+ *    $Date: 2014/12/08 19:36:41 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,7 +30,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.26 2014/03/30 18:48:33 greve Exp $
+  $Id: mri_surf2vol.c,v 1.27 2014/12/08 19:36:41 greve Exp $
 */
 
 #include <stdio.h>
@@ -71,7 +71,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_surf2vol.c,v 1.26 2014/03/30 18:48:33 greve Exp $";
+  "$Id: mri_surf2vol.c,v 1.27 2014/12/08 19:36:41 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -128,6 +128,11 @@ float ProjFracStart=0.0, ProjFracDelta=0.05, ProjFracStop=1.0;
 int DoAddVal = 0;
 double AddVal = 0;
 
+int narray = 0;
+MRI_SURFACE *surfarray[100];
+MRI *overlayarray[100], *ribbon=NULL;
+LTA *ArrayLTA=NULL;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   float ipr, bpr, intensity, v;
@@ -139,7 +144,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_surf2vol.c,v 1.26 2014/03/30 18:48:33 greve Exp $",
+           "$Id: mri_surf2vol.c,v 1.27 2014/12/08 19:36:41 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -160,6 +165,39 @@ int main(int argc, char **argv) {
   if (gdiagno > -1) Gdiag_no = gdiagno;
 
   check_options();
+
+  if(narray > 0){
+    if(ribbon == NULL){
+      sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",fsenv->SUBJECTS_DIR,subject);
+      printf("Loading %s\n",tmpstr);
+      ribbon = MRIread(tmpstr);
+      if(ribbon==NULL) exit(1);
+    }
+    OutVol = MRIsurf2VolOpt(ribbon, surfarray, overlayarray,
+			    narray, ArrayLTA, NULL);
+    if(OutVol == NULL) exit(1);
+    if(DoAddVal){
+      printf("Adding %lf to non-zero voxels\n",AddVal);
+      for (c=0; c < OutVol->width; c++) {
+	for (r=0; r < OutVol->height; r++) {
+	  for (s=0; s < OutVol->depth; s++) {
+	    for (f=0; f < OutVol->nframes; f++) {
+	      v = MRIgetVoxVal(OutVol,c,r,s,f);
+	      if (v == 0) continue;
+	      MRIsetVoxVal(OutVol,c,r,s,f, v + AddVal);
+	    }
+	  }
+	}
+      }
+    }
+    printf("INFO: writing output volume to %s\n",outvolpath);
+    //MRIwriteType(OutVol,outvolpath,outvolfmtid);
+    MRIwrite(OutVol,outvolpath);
+    exit(0);
+  }
+
+  //--------------------------------------------------------------------
+
 
   if (UseVolRegIdentity) {
     printf("Using identity matrix for registration\n");
@@ -421,6 +459,8 @@ static int parse_commandline(int argc, char **argv) {
     } else if (istringnmatch(option, "--sd",4)) {
       if (nargc < 1) argnerr(option,1);
       subjectsdir = pargv[0];
+      setenv("SUBJECTS_DIR",pargv[0],1);
+      fsenv = FSENVgetenv();
       nargsused = 1;
     } else if (istringnmatch(option, "--surfval",0) || istringnmatch(option, "--sval",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -514,7 +554,8 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         vtxvolfmtid = string_to_type(vtxvolfmt);
       }
-    } else if (istringnmatch(option, "--template",6)) {
+    } 
+    else if (istringnmatch(option, "--template",6)) {
       if (nargc < 1) argnerr(option,1);
       tempvolpath = pargv[0];
       nargsused = 1;
@@ -523,7 +564,30 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         tempvolfmtid = string_to_type(tempvolfmt);
       }
-    } else if (istringnmatch(option, "--merge",7)) {
+    } 
+    else if (istringnmatch(option, "--so",4)) {
+      if(nargc < 2) argnerr(option,2);
+      surfarray[narray] = MRISread(pargv[0]);
+      if(surfarray[narray] == NULL) exit (1);
+      overlayarray[narray] = MRIread(pargv[1]);
+      if(overlayarray[narray] == NULL) exit (1);
+      narray ++;
+      nargsused = 2;
+    } 
+    else if (istringnmatch(option, "--lta",5)) {
+      if(nargc < 1) argnerr(option,1);
+      ArrayLTA = LTAread(pargv[0]);
+      if(ArrayLTA == NULL) exit(1);
+      subject = ArrayLTA->subject;
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--ribbon",8)) {
+      if(nargc < 1) argnerr(option,1);
+      ribbon = MRIread(pargv[0]);
+      if(ribbon == NULL) exit(1);
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--merge",7)) {
       if (nargc < 1) argnerr(option,1);
       mergevolpath = pargv[0];
       nargsused = 1;
@@ -574,7 +638,16 @@ static void usage_exit(void) {
 /* --------------------------------------------- */
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
+  printf("  \n");
+  printf("  Method 1\n");
+  printf("  --so surface overlay : path to surface and matching overlay \n");
+  printf("  --lta ltafile : registration file\n");
+  printf("  --o outfile : path to output volume\n");
+  printf("  --subject subject : when not specifying LTA or ribbon\n");
+  printf("  --ribbon ribbonfile : when not specifying LTA or subject\n");
+  printf("  \n");
   printf("\n");
+  printf("  Method 2\n");
   printf("  --surfval surfvalpath <fmt>\n");
   printf("  --mkmask : make a mask instead of loading surfval\n");
   printf("  --hemi hemisphere (lh or rh)\n");
@@ -586,14 +659,12 @@ static void print_usage(void) {
   printf("  --identity subjid : use identity (must supply subject name)\n");
   printf("  --subject subject : override subject in reg \n");
   printf("  --template vol : output like this volume\n");
-  printf("  \n");
   printf("  --fstal res : use fs talairach registration\n");
-  printf("  \n");
   printf("  --merge vol : merge with this vol (becomes template)\n");
-  printf("  \n");
-  printf("  --o outfile      : output volume path id\n");
+  printf("  --o outfile      : path to output volume\n");
   printf("  --vtxvol vtxfile : vertex map volume path id\n");
   printf("  \n");
+  printf("  Applies to both methods\n");
   printf("  --add const : add constant value to each non-zore output voxel\n");
   printf("  --sd subjectsdir : FreeSurfer subjects' directory\n");
   printf("  --help    : hidden secrets of success\n");
@@ -609,7 +680,34 @@ static void print_help(void) {
 
   printf
   (
-    "Resamples a surface into a volume. \n"
+    "Resamples a surface into a volume using one of two methods. \n"
+    "\n"
+    "Method 1 (new method)\n"
+    "  This method fills the ribbon by construction using ribbon.mgz\n"
+    "\n"
+    "  --so surface overlay\n"
+    "     Specify full path to a surface (eg, lh.white) and full path to the overlay.\n"
+    "     Multiple --so flags are possible. Eg, to fill both lh and rh or specify one\n"
+    "     overlay for white and another for pial.\n"
+    "\n"
+    "  --lta LTA : registration file\n"
+    "     LTA contains info about the output space. Do not specify if you want the\n"
+    "     the output to be in conformed space (but spec --subject or --ribbon)\n"
+    "\n"
+    "  --subject subjectname \n"
+    "      For use when LTA is not used or does not have a subjectname\n"
+    "\n"
+    "  --ribbon ribbonfile\n"
+    "      Specify path to ribbon rather than using ribbon.mgz\n"
+    "\n"
+    "Example: to create a conformed volume with the thickness\n"
+    "  mri_surf2vol --o thickness-in-volume.nii.gz --subject bert \\\n"
+    "     --so $SUBJECTS_DIR/bert/surf/lh.white $SUBJECTS_DIR/bert/surf/lh.thickness \\\n"
+    "     --so $SUBJECTS_DIR/bert/surf/rh.white $SUBJECTS_DIR/bert/surf/rh.thickness \n"
+    "\n"
+    "Method 2 (old method)\n"
+    "  Option not to fill the ribbon. Ribbon fill uses projection instead of construction\n"
+    "  and so can leave some holes.\n"
     "\n"
     "FLAGS AND ARGUMENTS\n"
     "\n"
@@ -769,6 +867,19 @@ static void argnerr(char *option, int n) {
 
 /* --------------------------------------------- */
 static void check_options(void) {
+  if(narray > 0){
+    if(ribbon == NULL && ArrayLTA == NULL && subject == NULL){
+      printf("ERROR: if not specifying LTA or subject, then must specify ribbon\n");
+      exit(1);
+    }
+    if(outvolpath == NULL){
+      printf("ERROR: must specify an output \n");
+      exit(1);
+    }
+    return;
+  }
+
+
   if (! mksurfmask ) {
     if (surfvalpath == NULL) {
       printf("A surface value path must be supplied\n");
