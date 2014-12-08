@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/11/14 19:08:12 $
- *    $Revision: 1.551 $
+ *    $Author: fischl $
+ *    $Date: 2014/12/08 22:14:50 $
+ *    $Revision: 1.552 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.551 $";
+const char *MRI_C_VERSION = "$Revision: 1.552 $";
 
 
 /*-----------------------------------------------------
@@ -5615,6 +5615,7 @@ MRIaverage(MRI *mri_src, int dof, MRI *mri_dst)
       }
     }
   }
+  mri_dst->dof++ ;
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
