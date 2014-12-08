@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/08 18:43:57 $
- *    $Revision: 1.50 $
+ *    $Date: 2014/12/08 19:42:27 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1506,56 +1506,6 @@ int ind2crs(int *c, int *r, int *s, int ind, int ncols, int nrows, int nslcs)
   *c  = (int ) i;
 
   return(0);
-}
-/*-------------------------------------------------------------*/
-int MatrixFill(MATRIX *M, float val)
-{
-  int r,c;
-
-  for (r=0;r < M->rows; r++)
-  {
-    for (c=0; c < M->cols; c++)
-    {
-      M->rptr[r+1][c+1] = val;
-    }
-  }
-  return(0);
-}
-/*-------------------------------------------------------------*/
-MATRIX * RandMatrix(int rows, int cols)
-{
-  int r,c;
-  MATRIX *M;
-
-  M = MatrixAlloc(rows, cols, MATRIX_REAL);
-
-  for (r=0;r < M->rows; r++)
-  {
-    for (c=0; c < M->cols; c++)
-    {
-      M->rptr[r+1][c+1] = drand48();
-    }
-  }
-  return(M);
-  ;
-}
-/*-------------------------------------------------------------*/
-MATRIX * ConstMatrix(int rows, int cols, float val)
-{
-  int r,c;
-  MATRIX *M;
-
-  M = MatrixAlloc(rows, cols, MATRIX_REAL);
-
-  for (r=0;r < M->rows; r++)
-  {
-    for (c=0; c < M->cols; c++)
-    {
-      M->rptr[r+1][c+1] = val;
-    }
-  }
-  return(M);
-  ;
 }
 
 

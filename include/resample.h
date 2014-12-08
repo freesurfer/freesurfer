@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/08 18:43:57 $
- *    $Revision: 1.24 $
+ *    $Date: 2014/12/08 19:42:26 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,9 +65,6 @@ int ProjNormFracThickNbr(float *x, float *y, float *z, MRI_SURFACE *surf,
 
 
 MRI * MRILoadBVolume(char *stem);
-MATRIX * RandMatrix(int nrows, int ncols);
-MATRIX * ConstMatrix(int nrows, int ncols, float val);
-int MatrixFill(MATRIX *M, float val);
 
 MATRIX * FOVQuantMatrix(int ncols, int nrows, int nslcs,
                         float colres, float rowres, float slcres  );
