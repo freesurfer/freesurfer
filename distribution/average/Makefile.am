@@ -95,7 +95,7 @@ foo_otherdatafiles=fsaverage.tar.gz fsaverage_sym.tar.gz \
         V1_average.tar.gz \
 	fsaverage3.tar.gz fsaverage4.tar.gz \
 	fsaverage5.tar.gz fsaverage6.tar.gz fsaverage7.tar.gz \
-	EC_average.tar.gz mult-comp-cor.tar.gz \
+	EC_average.tar.gz mult-comp-cor.tar.gz Yeo_Brainmap_MNI152.tar.gz \
 	build_gcs_morph.csh cvs_avg35.tar.gz cvs_avg35_inMNI152.tar.gz
 
 
@@ -170,6 +170,13 @@ install:
 	mv $(top_builddir)/distribution/average/mult-comp-cor \
 		$(DESTDIR)$(prefix)/average
 	chmod -R 775 $(DESTDIR)$(prefix)/average/mult-comp-cor
+	rm -Rf $(DESTDIR)$(prefix)/average/Yeo_Brainmap_MNI152
+	rm -Rf $(top_builddir)/distribution/average/Yeo_Brainmap_MNI152
+	gunzip -c $(top_srcdir)/distribution/average/Yeo_Brainmap_MNI152.tar.gz | tar xvf -
+	pwd
+	mv $(top_builddir)/distribution/average/Yeo_Brainmap_MNI152 \
+		$(DESTDIR)$(prefix)/average
+	chmod -R 775 $(DESTDIR)$(prefix)/average/Yeo_Brainmap_MNI152
 	cd surf; make install
 	cd Yeo_JNeurophysiol11_MNI152; make install
 	cd Buckner_JNeurophysiol11_MNI152; make install
@@ -188,6 +195,7 @@ uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
 	rm -f $(DESTDIR)$(bindir)/predict_v1.sh
 	rm -Rf $(DESTDIR)$(prefix)/average/mult-comp-cor
+	rm -Rf $(DESTDIR)$(prefix)/average/Yeo_Brainmap_MNI152
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
