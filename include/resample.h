@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/20 21:21:23 $
- *    $Revision: 1.23 $
+ *    $Date: 2014/12/08 18:43:57 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,6 +133,8 @@ MRI *surf2surf_nnf(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
 MRI *MRImapSurf2VolClosest(MRIS *surf, MRI *vol,
                            MATRIX *Ma2v, float projfrac);
 int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map);
+MRI *MRIsurf2VolOpt(MRI *ribbon, MRIS **surfs, MRI **overlays, 
+		    int nsurfs, LTA *Q, MRI *volsurf);
 
 MRI *MRIaseg2vol(MRI *aseg, MATRIX *tkR, MRI *voltemp,
                  double fthresh, MRI **pvolhit,COLOR_TABLE *ct);

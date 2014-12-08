@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/20 21:21:23 $
- *    $Revision: 1.49 $
+ *    $Date: 2014/12/08 18:43:57 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1559,15 +1559,198 @@ MATRIX * ConstMatrix(int rows, int cols, float val)
 }
 
 
+/*
+  \fn MRI *MRIsurf2VolOpt(MRI *ribbon, MRIS **surfs, MRI **overlays, 
+		    int nsurfs, LTA *Q, MRI *volsurf)
+
+  \brief Maps surface vertex values to the volume filling the entire
+  ribbon. Loops through all the voxels in the volume but only fills
+  values that are within the ribbon (3,42). Multiple (nsurfs) surfaces
+  can be passed; this number must match the number of overlays.  For a
+  given ribbon voxel, the nearest vertex to each of the nsurf surfs is
+  determined. The voxel gets the value of this vertex in the overlay
+  corresponding to the closest surface. Ribbon is assumed to be in the
+  conformed space. If Q is null, the output volume matches the
+  ribbon. If Q is non-null, then the output volume matches either the
+  src or dst depending on which one is NOT the ribbon (ie, the
+  direction of Q does not matter). This function differs from
+  MRIsurf2Vol() in that this one will always fill the ribbon (by
+  construction).
+
+  This function can be used in several ways. If both lh and rh are to
+  be filled, then surfs[0] = lh, surfs[1] = rh, overlays[0] =
+  lhoverlay, overlays[1] = rhoverlay. Alternatively, if there are
+  multiple overlay layers, eg, at white and pial, then surfs[0] =
+  lh.white, surfs[1] = lh.pial, overlays[0] = lh.white.overlay,
+  overlays[1] = lh.pial.overlay.
+
+ */
+MRI *MRIsurf2VolOpt(MRI *ribbon, MRIS **surfs, MRI **overlays, 
+		    int nsurfs, LTA *Q, MRI *volsurf)
+{
+  int n,c,r,s,f,nmin, vtxno,vtxnomin=0, nframes, ribval,cR,rR,sR;
+  MHT **hash=NULL;
+  int UseHash = 1;
+  MATRIX *T, *invR, *M, *surfRAS=NULL,*crs,*R,*crsRibbon;
+  VERTEX v;
+  float dmin, d, val;
+  LTA *V=NULL, *Q2;
+
+  // Make sure that each overlay has the same number of frames
+  for(n=0; n<nsurfs; n++){
+    if(overlays[n]->nframes != overlays[0]->nframes){
+      printf("ERROR: MRIsurf2VolOpt(): overlay dim mismatch %d\n",n);
+      return(NULL);
+    }
+  }
+
+  if(Q && !LTAmriIsSource(Q,ribbon) && !LTAmriIsTarget(Q,ribbon)){
+    printf("ERROR: MRIsurf2VolOpt(): ribbon is neither source nor target\n");
+    return(NULL);
+  }
+
+  if(Q == NULL)
+    Q2 = TransformRegDat2LTA(ribbon, ribbon, NULL);// regdat unrelated, just a way to get LTA
+  else {
+    if(LTAmriIsSource(Q,ribbon))  {
+      printf("MRIsurf2VolOpt(): ribbon is source\n");
+      Q2 = LTAcopy(Q,NULL);
+    }
+    else {
+      printf("MRIsurf2VolOpt(): inverting LTA\n");
+      Q2 = LTAinvert(Q,NULL);
+    }
+  }
+  // Now Q2 goes from output volume to ribbon
+
+  nframes = overlays[0]->nframes;
+  if(volsurf == NULL){
+    volsurf = MRIallocFromVolGeom(&(Q2->xforms[0].dst), MRI_FLOAT, nframes, 0);
+    if (volsurf==NULL){
+      printf("ERROR: MRIsurf2VolOpt(): could not alloc\n");
+      return(NULL);
+    }
+    MRIcopyPulseParameters(overlays[0],volsurf);
+  }
+  // else should make sure that Q2->xforms[0]->src is consistent with volsurf
+
+  // Get outputCRS to ribbonCRS
+  V = LTAcopy(Q2,NULL);
+  V = LTAchangeType(V,LINEAR_VOX_TO_VOX);
+  LTAfillInverse(V);
+
+  // M converts output CRS to surface RAS
+  R = TransformLTA2RegDat(Q2); // As a regdat, it maps from ribbonRAS to outRAS
+  R = MatrixInverse(R,NULL);
+  T = MRIxfmCRS2XYZtkreg(volsurf);
+  invR = MatrixInverse(R,NULL);
+  M = MatrixMultiply(invR,T,NULL);
+
+  if(UseHash){
+    hash = (MHT **) calloc(sizeof(MHT *),nsurfs);
+    for(n=0; n<nsurfs; n++){
+      hash[n] = MHTfillVertexTableRes(surfs[n], NULL,CURRENT_VERTICES,16);
+    }
+  }
+
+  crs = MatrixAlloc(4,1,MATRIX_REAL);
+  crs->rptr[4][1] = 1;
+  crsRibbon = MatrixAlloc(4,1,MATRIX_REAL);
+  surfRAS = MatrixAlloc(4,1,MATRIX_REAL);
+  for(c=0; c < volsurf->width; c++){
+    for(r=0; r < volsurf->height; r++){
+      for(s=0; s < volsurf->depth; s++){
+	// Make sure the output voxel is in the ribbon
+	crs->rptr[1][1] = c;
+	crs->rptr[2][1] = r;
+	crs->rptr[3][1] = s;
+	crsRibbon = MatrixMultiply(V->inv_xforms[0].m_L,crs,crsRibbon);
+	cR = nint(crsRibbon->rptr[1][1]);
+	rR = nint(crsRibbon->rptr[1][2]);
+	sR = nint(crsRibbon->rptr[1][3]);
+	if(cR < 0 || cR >= ribbon->width) continue;
+	if(rR < 0 || rR >= ribbon->height) continue;
+	if(sR < 0 || sR >= ribbon->depth) continue;
+	ribval = MRIgetVoxVal(ribbon,cR,rR,sR,0);
+	if(ribval != 3 && ribval != 42) {
+	  for(f=0; f < nframes; f++) MRIsetVoxVal(volsurf,c,r,s,f, 0);
+	  continue;
+	}
+	// Compute the surface location of this point
+	surfRAS = MatrixMultiply(M,crs,surfRAS);
+	v.x = surfRAS->rptr[1][1];
+	v.y = surfRAS->rptr[2][1];
+	v.z = surfRAS->rptr[3][1];
+	// Find surface vertex with closest location
+	dmin = 1000;
+	nmin = -1;
+	d = 999;
+	vtxnomin = -1;
+	for(n=0; n<nsurfs; n++){
+	  if(surfs[n]->hemisphere == LEFT_HEMISPHERE  && ribval !=  3) continue;
+	  if(surfs[n]->hemisphere == RIGHT_HEMISPHERE && ribval != 42) continue;
+
+	  if(UseHash) vtxno = MHTfindClosestVertexNo(hash[n],surfs[n],&v,&d);
+	  else        vtxno = MRISfindClosestVertex(surfs[n],v.x,v.y,v.z,&d);
+	  if(vtxno < 0){
+	    printf("ERROR: MRIsurf2VolOpt(): No Match: %3d %3d %3d    %6.2f %6.2f %6.2f\n",c,r,s,v.x,v.y,v.z);
+	    vtxno = MRISfindClosestVertex(surfs[n],v.x,v.y,v.z,&d);
+	    printf("%d    %d %d %d     %g %g %g  %5d\n",n,c,r,s,v.x,v.y,v.z,vtxno);
+	    printf("V -------------------------\n");
+	    MatrixPrint(stdout,V->inv_xforms[0].m_L);
+	    fflush(stdout);
+	    printf("T = [\n");
+	    MatrixPrint(stdout,T);
+	    printf("R = [\n");
+	    MatrixPrint(stdout,R);
+	    printf("M = [\n");
+	    MatrixPrint(stdout,M);
+	    fflush(stdout);
+	    return(NULL);
+	  }
+	  if(d < dmin){
+	    dmin = d;
+	    nmin = n; // index of surface with closest vertex
+	    vtxnomin = vtxno;
+	  }
+	} // surfs
+	// This can happen if only one hemi is specified but the voxel is in the other
+	if(nmin == -1) continue;
+	// Assign value from vertex to voxel
+	for(f=0; f < nframes; f++){
+	  val = MRIgetVoxVal(overlays[nmin],vtxnomin,0,0,f);
+	  MRIsetVoxVal(volsurf,c,r,s,f, val);
+	}
+      } // slice
+    } // row
+  } //col
+
+  if(UseHash) for(n=0; n<nsurfs; n++) if(UseHash) MHTfree(&hash[n]);
+
+  fflush(stdout);
+  MatrixFree(&T);
+  MatrixFree(&invR);
+  MatrixFree(&R);
+  MatrixFree(&surfRAS);
+  MatrixFree(&M);
+  LTAfree(&V);
+  LTAfree(&Q2);
+  return(volsurf);
+}
+
+
 /*-------------------------------------------------------------------
-  MRIsurf2Vol() - the purpose of this function is to resample values
+  \fn int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map)
+  \brief the purpose of this function is to resample values
   from a surface to a volume. Most of the real work is done in the
   creation of map, which has the same size as vol; each voxel in map
   has the vertex number of the corresponding point on the surface. If
   there is no corresponding point, then the value will be -1. See
   MRImapSurf2VolClosest().  MRI vol must have already been allocated.
-  Returns -1 on error, otherwise returns the number of voxels in
-  the volume that have been hit by the surface.
+  Returns -1 on error, otherwise returns the number of voxels in the
+  volume that have been hit by the surface. This function differs from
+  MRIsurf2VolOpt() in that Opt will always fill the ribbon (by
+  construction). Filling by projection can leave holes.
   ----------------------------------------------------------------*/
 int MRIsurf2Vol(MRI *surfvals, MRI *vol, MRI *map)
 {
