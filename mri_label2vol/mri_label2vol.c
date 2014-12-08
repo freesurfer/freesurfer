@@ -14,8 +14,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/07 19:50:17 $
- *    $Revision: 1.45 $
+ *    $Date: 2014/12/08 21:11:54 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,8 @@
 #include "colortab.h"
 #include "cmdargs.h"
 #include "region.h"
+#include "resample.h"
+#include "fsenv.h"
 
 #define PROJ_TYPE_NONE 0
 #define PROJ_TYPE_ABS  1
@@ -78,7 +80,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.45 2014/03/07 19:50:17 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.46 2014/12/08 21:11:54 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -137,6 +139,12 @@ int LabelCodeOffset = 0;
 COLOR_TABLE *ctTissueType=NULL;
 int UpsampleFactor = -1;
 double resmm=0;
+int FillRibbon = 0;
+LTA *lta=NULL;
+
+MRI *MRIsurfaceLabel2VolOpt(MRI *ribbon, MRIS *surf, LABEL **labels, int nlabels, LTA *Q, 
+			    int DoStatThresh, double StatThresh, int DoLabelStatVol, 
+			    MRI *vollabel);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -146,15 +154,18 @@ int main(int argc, char **argv) {
   float x,y,z,voxvol;
   int c,r,s, oob, nhits, nhitsmax, nhitsmax_label;
   MRI *LabelVol;
-
+  FSENV *fsenv;
+  MRI *ribbon;
+  char tmpstr[2000];
+  LABEL **labels;
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.45 2014/03/07 19:50:17 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.46 2014/12/08 21:11:54 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.45 2014/03/07 19:50:17 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.46 2014/12/08 21:11:54 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -173,62 +184,64 @@ int main(int argc, char **argv) {
   dump_options(stdout);
   printf("%s\n",vcid);
 
-  // Load the template volume
-  TempVol = MRIreadHeader(TempVolId,MRI_VOLUME_TYPE_UNKNOWN);
-  if (TempVol == NULL) {
-    printf("ERROR: reading %s header\n",TempVolId);
+  if(TempVolId){
+    // Load the template volume
+    TempVol = MRIreadHeader(TempVolId,MRI_VOLUME_TYPE_UNKNOWN);
+    if (TempVol == NULL) {
+      printf("ERROR: reading %s header\n",TempVolId);
     exit(1);
-  }
-  if (!UseNativeVox2RAS)
-    Tvox2ras = MRIxfmCRS2XYZtkreg(TempVol);
-  else
-    Tvox2ras = MRIgetVoxelToRasXform(TempVol);
+    }
+    if (!UseNativeVox2RAS)
+      Tvox2ras = MRIxfmCRS2XYZtkreg(TempVol);
+    else
+      Tvox2ras = MRIgetVoxelToRasXform(TempVol);
 
-  Tras2vox = MatrixInverse(Tvox2ras,NULL);
-  printf("Template RAS-to-Vox: --------\n");
-  MatrixPrint(stdout,Tras2vox);
+    Tras2vox = MatrixInverse(Tvox2ras,NULL);
+    printf("Template RAS-to-Vox: --------\n");
+    MatrixPrint(stdout,Tras2vox);
 
-  TempVoxVol = TempVol->xsize * TempVol->ysize * TempVol->zsize;
-  nHitsThresh = FillThresh*TempVoxVol/LabelVoxVol;
-  printf("Template Voxel Volume: %g\n",TempVoxVol);
-  printf("nHits Thresh: %g\n",nHitsThresh);
+    TempVoxVol = TempVol->xsize * TempVol->ysize * TempVol->zsize;
+    nHitsThresh = FillThresh*TempVoxVol/LabelVoxVol;
+    printf("Template Voxel Volume: %g\n",TempVoxVol);
+    printf("nHits Thresh: %g\n",nHitsThresh);
 
-  if(RegMatFile != NULL) {
-    // Load registration matrix
-    printf("Loading registration from %s\n",RegMatFile);
-    err = regio_read_register(RegMatFile, &regsubject, &ipr, &bpr,
-                              &intensity, &R, &float2int);
-    if (err) exit(1);
-  } 
-  else {
-    if(RegHeader){    
-      // RegHeader
-      printf("Computing registration based on header\n");
-      LabelVol = MRIreadHeader(LabelVolFile, MRI_VOLUME_TYPE_UNKNOWN);
-      if(LabelVol == NULL){
-	printf("ERROR: reading %s\n",LabelVolFile);
-	exit(1);
+    if(RegMatFile != NULL) {
+      // Load registration matrix
+      printf("Loading registration from %s\n",RegMatFile);
+      err = regio_read_register(RegMatFile, &regsubject, &ipr, &bpr,
+				&intensity, &R, &float2int);
+      if (err) exit(1);
+    } 
+    else {
+      if(RegHeader){    
+	// RegHeader
+	printf("Computing registration based on header\n");
+	LabelVol = MRIreadHeader(LabelVolFile, MRI_VOLUME_TYPE_UNKNOWN);
+	if(LabelVol == NULL){
+	  printf("ERROR: reading %s\n",LabelVolFile);
+	  exit(1);
+	}
+	R = MRItkRegMtx(LabelVol, TempVol, NULL);
       }
-      R = MRItkRegMtx(LabelVol, TempVol, NULL);
+      if(RegIdentity){
+	printf("Using Identity Matrix\n");
+	R = MatrixIdentity(4,NULL);
+      }
     }
-    if(RegIdentity){
-      printf("Using Identity Matrix\n");
-      R = MatrixIdentity(4,NULL);
-    }
-  }
-  printf("RegMat: --------\n");
-  MatrixPrint(stdout,R);
-  if (InvertMtx) {
-    printf("Inverting matrix\n");
-    MatrixInverse(R,R);
     printf("RegMat: --------\n");
     MatrixPrint(stdout,R);
+    if (InvertMtx) {
+      printf("Inverting matrix\n");
+      MatrixInverse(R,R);
+      printf("RegMat: --------\n");
+      MatrixPrint(stdout,R);
+    }
+    
+    MatrixMultiply(Tras2vox,R,Tras2vox);
+    
+    printf("Label RAS-to-Vox: --------\n");
+    MatrixPrint(stdout,Tras2vox);
   }
-
-  MatrixMultiply(Tras2vox,R,Tras2vox);
-
-  printf("Label RAS-to-Vox: --------\n");
-  MatrixPrint(stdout,Tras2vox);
 
   if (SurfNeeded) {
     // Load the surface used for projection
@@ -302,6 +315,50 @@ int main(int argc, char **argv) {
     ASegLabelList = NthLabelMap(ASeg, &nlabels);
   }
   printf("nlabels = %d\n",nlabels);
+
+  if(FillRibbon){
+    fsenv = FSENVgetenv();
+    sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",fsenv->SUBJECTS_DIR,subject);
+    printf("Loading %s\n",tmpstr);
+    ribbon = MRIread(tmpstr);
+    if(ribbon==NULL) exit(1);
+    
+    labels = (LABEL **) calloc(sizeof(LABEL *),nlabels);
+    for(nthlabel = 0; nthlabel < nlabels; nthlabel++) {
+      if(AnnotFile == NULL && ASegFSpec == NULL) {
+	printf("Loading %s\n",LabelList[nthlabel]);
+	labels[nthlabel] = LabelRead(NULL, LabelList[nthlabel]);
+	if(labels[nthlabel] == NULL) {
+	  printf("ERROR reading %s\n",LabelList[nthlabel]);
+	  exit(1);
+	}
+      }
+      if(AnnotFile != NULL) {
+	labels[nthlabel] = annotation2label(nthlabel,Surf);
+	if(labels[nthlabel] == NULL) continue;
+      }
+    }
+
+    printf("Mapping\n");
+    OutVol = MRIsurfaceLabel2VolOpt(ribbon, Surf, labels, nlabels, lta,
+				    DoStatThresh, StatThresh, 0, NULL);
+    MRIaddCommandLine(OutVol, cmdline) ;
+    err=MRIwrite(OutVol,OutVolId);
+    if(err) exit(err);
+    
+    if(DoLabelStatVol) {
+      printf("Mapping stats\n");
+      LabelStatVol = MRIsurfaceLabel2VolOpt(ribbon, Surf, labels, nlabels, lta,
+					    DoStatThresh, StatThresh, DoLabelStatVol, NULL);
+      err=MRIwrite(LabelStatVol,LabelStatVolFSpec);
+      if(err) exit(err);
+    }
+    exit(0);
+  }
+  //---------------------------------------------------------------
+
+
+
 
   // Create hit volume based on template, one frame for each label
   printf("Allocating Hit Volume (%ld) voxels\n",
@@ -508,6 +565,7 @@ static int parse_commandline(int argc, char **argv) {
       ctTissueType = TissueTypeSchema(NULL,"default-jan-2014");
     else if (!strcasecmp(option, "--ttype+head")) 
       ctTissueType = TissueTypeSchema(NULL,"default-jan-2014+head");
+    else if (!strcasecmp(option, "--fill-ribbon")) FillRibbon = 1;
 
     else if (!strcmp(option, "--surf")) {
       if (nargc < 1) argnerr(option,1);
@@ -552,6 +610,12 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--reg")) {
       if (nargc < 1) argnerr(option,1);
       RegMatFile = pargv[0];
+      nargsused = 1;
+    } else if (!strcmp(option, "--lta")) {
+      if (nargc < 1) argnerr(option,1);
+      lta = LTAread(pargv[0]);
+      if(lta == NULL) exit(1);
+      subject = lta->subject;
       nargsused = 1;
     } else if (!strcmp(option, "--fillthresh")) {
       if (nargc < 1) argnerr(option,1);
@@ -685,6 +749,7 @@ static void print_usage(void) {
   printf("   --fillthresh thresh : between 0 and 1 (def 0)\n");
   printf("   --labvoxvol voxvol : volume of each label point (def 1mm3)\n");
   printf("   --proj type start stop delta\n");
+  printf("   --fill-ribbon\n");
   printf("\n");
   printf("   --subject subjectid : needed with --proj or --annot\n");
   printf("   --hemi hemi : needed with --proj or --annot\n");
@@ -975,7 +1040,7 @@ static void argnerr(char *option, int n) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (DoProj) SurfNeeded = 1;
+  if(DoProj || FillRibbon) SurfNeeded = 1;
 
   if(UseAParcPlusASeg && subject == NULL && RegMatFile == NULL){
     printf("ERROR: you must spec --subject or --reg with --aparc+aseg\n");
@@ -987,35 +1052,35 @@ static void check_options(void) {
     printf("ERROR: you must spec at least one label or annot file\n");
     exit(1);
   }
-  if (nlabels != 0 && AnnotFile != NULL) {
+  if(nlabels != 0 && AnnotFile != NULL) {
     printf("ERROR: you cannot specify a label AND an annot file\n");
     exit(1);
   }
-  if (nlabels != 0 && ASegFSpec != NULL) {
+  if(nlabels != 0 && ASegFSpec != NULL) {
     printf("ERROR: you cannot specify a label AND an aseg file\n");
     exit(1);
   }
-  if (AnnotFile != NULL && ASegFSpec != NULL) {
+  if(AnnotFile != NULL && ASegFSpec != NULL) {
     printf("ERROR: you cannot specify an annot file AND an aseg file\n");
     exit(1);
   }
-  if (OutVolId == NULL) {
+  if(OutVolId == NULL) {
     printf("ERROR: no output specified\n");
     exit(1);
   }
-  if (SurfNeeded) {
-    if (subject == NULL) {
+  if(SurfNeeded) {
+    if(subject == NULL) {
       printf("ERROR: subject needed in order to load surface.\n");
       exit(1);
     }
-    if (hemi == NULL) {
+    if(hemi == NULL) {
       printf("ERROR: hemi needed in order to load surface.\n");
       exit(1);
     }
   }
   if(subject != NULL && !DoProj && AnnotFile==NULL && !UseAParcPlusASeg)
     printf("INFO: subject not needed, igorning.\n");
-  if(hemi != NULL && !DoProj && AnnotFile==NULL)
+  if(hemi != NULL && !DoProj && AnnotFile==NULL && !FillRibbon)
     printf("INFO: hemi not needed, igorning.\n");
 
   if(DoLabelStatVol && nlabels == 0){
@@ -1052,7 +1117,7 @@ static void check_options(void) {
       exit(1);
     }
   }
-  if(TempVolId == NULL){
+  if(TempVolId == NULL && !FillRibbon){
     printf("ERROR: must specify template volume with --temp\n");
     exit(1);
   }
@@ -1220,3 +1285,31 @@ static int *NthLabelMap(MRI *aseg, int *nlabels) {
   free(tmpmap);
   return(labelmap);
 }
+
+MRI *MRIsurfaceLabel2VolOpt(MRI *ribbon, MRIS *surf, LABEL **labels, int nlabels, LTA *Q, 
+			    int DoStatThresh, double StatThresh, int DoLabelStatVol, 
+			    MRI *vollabel)
+{
+  MRI *overlay;
+  int vtxno, nthlabel, nthpoint;
+  LABEL *label;
+  double val;
+
+  overlay = MRIalloc(surf->nvertices,1,1,MRI_FLOAT);
+  for(nthlabel = 0; nthlabel < nlabels; nthlabel++){
+    label = labels[nthlabel];
+    for (nthpoint = 0; nthpoint < label->n_points; nthpoint++) {
+      if(DoStatThresh) 	if(label->lv[nthpoint].stat < StatThresh) continue; 
+      vtxno = label->lv[nthpoint].vno;
+      if(DoLabelStatVol) val = label->lv[nthpoint].stat;
+      else               val = 1.0;
+      MRIsetVoxVal(overlay,vtxno,0,0,0,val);
+    }
+  }  
+
+  vollabel = MRIsurf2VolOpt(ribbon, &surf, &overlay, 1, Q, vollabel);
+  MRIfree(&overlay);
+  return(vollabel);
+}
+
+
