@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/08 19:36:41 $
- *    $Revision: 1.27 $
+ *    $Date: 2014/12/08 19:49:02 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,7 +30,7 @@
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    2/27/02
   Purpose: converts values on a surface to a volume
-  $Id: mri_surf2vol.c,v 1.27 2014/12/08 19:36:41 greve Exp $
+  $Id: mri_surf2vol.c,v 1.28 2014/12/08 19:49:02 greve Exp $
 */
 
 #include <stdio.h>
@@ -71,7 +71,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_surf2vol.c,v 1.27 2014/12/08 19:36:41 greve Exp $";
+  "$Id: mri_surf2vol.c,v 1.28 2014/12/08 19:49:02 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_surf2vol.c,v 1.27 2014/12/08 19:36:41 greve Exp $",
+           "$Id: mri_surf2vol.c,v 1.28 2014/12/08 19:49:02 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -189,6 +189,29 @@ int main(int argc, char **argv) {
 	  }
 	}
       }
+    }
+    /* Read in the merge volume */
+    if(mergevolpath) {
+      printf("Merging with %s\n",mergevolpath);
+      TempVol = MRIread(mergevolpath);
+      if (TempVol == NULL) {
+	printf("mri_surf2vol ERROR: reading %s\n",mergevolpath);
+	exit(1);
+      }
+      for (c=0; c < OutVol->width; c++) {
+	for (r=0; r < OutVol->height; r++) {
+	  for (s=0; s < OutVol->depth; s++) {
+	    v = MRIgetVoxVal(OutVol,c,r,s,0);
+	    if (v == -1) {
+	      // output is zero, replace with mergevol
+	      for (f=0; f < OutVol->nframes; f++) {
+		v = MRIgetVoxVal(TempVol,c,r,s,f);
+		MRIsetVoxVal(OutVol,c,r,s,f,v);
+	      } //frame
+	    }
+	  } //slice
+	} //row
+      } //col
     }
     printf("INFO: writing output volume to %s\n",outvolpath);
     //MRIwriteType(OutVol,outvolpath,outvolfmtid);
@@ -645,6 +668,7 @@ static void print_usage(void) {
   printf("  --o outfile : path to output volume\n");
   printf("  --subject subject : when not specifying LTA or ribbon\n");
   printf("  --ribbon ribbonfile : when not specifying LTA or subject\n");
+  printf("  --merge vol : merge with this vol, replacing surface values\n");
   printf("  \n");
   printf("\n");
   printf("  Method 2\n");
@@ -695,10 +719,15 @@ static void print_help(void) {
     "     the output to be in conformed space (but spec --subject or --ribbon)\n"
     "\n"
     "  --subject subjectname \n"
-    "      For use when LTA is not used or does not have a subjectname\n"
+    "     For use when LTA is not used or does not have a subjectname\n"
     "\n"
     "  --ribbon ribbonfile\n"
-    "      Specify path to ribbon rather than using ribbon.mgz\n"
+    "     Specify path to ribbon rather than using ribbon.mgz\n"
+    "\n"
+    "  --merge mergevolume\n"
+    "     Merge the output volume with this volume. Ie, each voxel that is not\n"
+    "     assigned a value from the surface inherits its value from the merge\n"
+    "     volume. \n"
     "\n"
     "Example: to create a conformed volume with the thickness\n"
     "  mri_surf2vol --o thickness-in-volume.nii.gz --subject bert \\\n"
