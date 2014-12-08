@@ -20,8 +20,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/09/26 16:41:57 $
- *    $Revision: 1.73 $
+ *    $Date: 2014/12/08 22:14:37 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -221,14 +221,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.73 2014/09/26 16:41:57 fischl Exp $",
+   "$Id: mri_ms_fitparms.c,v 1.74 2014/12/08 22:14:37 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
             argc, argv,
-            "$Id: mri_ms_fitparms.c,v 1.73 2014/09/26 16:41:57 fischl Exp $",
+            "$Id: mri_ms_fitparms.c,v 1.74 2014/12/08 22:14:37 fischl Exp $",
             "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -316,6 +316,7 @@ main(int argc, char *argv[])
     if (mri_flash[nvolumes] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read volume %s",
                 Progname, in_fname) ;
+    mri_flash[nvolumes]->dof = 1 ;
     if (dx > 0)   // extract subimage
     {
       MRI *mri_tmp = MRIextract(mri_flash[nvolumes], NULL, xo, yo, zo, dx, dy, dz) ;
@@ -582,8 +583,11 @@ main(int argc, char *argv[])
     int j, iter ; /* should exit when M_reg's converge. */
     LTA *lta;
 
-    printf("using %d FLASH volumes to estimate tissue parameters.\n",
-           nvolumes) ;
+    printf("using %d FLASH volumes (%d total) to estimate tissue parameters.\n",
+           nvolumes, nvolumes_total) ;
+    for (j = 0 ; j < nvolumes ; j++)
+      printf("dof[%d] = %d ... ", j, mri_flash[j]->dof) ;
+    printf("\n") ;
     mri_T1 = MRIcloneDifferentType(mri_flash[0], MRI_FLOAT) ;
     mri_PD = MRIcloneDifferentType(mri_flash[0], MRI_FLOAT) ;
     mri_sse = MRIcloneDifferentType(mri_flash[0], MRI_FLOAT) ;
@@ -1342,7 +1346,7 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
   int      i, j, x, y, z, indx, min_indx, max_indx, best_indx, center_indx,
            stepindx;
   int      width=mri_T1->width, height=mri_T1->height, depth=mri_T1->depth,
-           nvalues=MAX_NVALS, nevals;
+    nvalues=MAX_NVALS, nevals, total_dof; 
   int      nstep=11, step[11]= {1024,512,256,128,64,32,16,8,4,2,1};
   MRI      *mri ;
   MATRIX   *voxvec1, *voxvec2, *rasvec1, *rasvec2, *m_xform = NULL ;
@@ -1359,10 +1363,12 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
   voxvec2 = MatrixCopy(voxvec1, NULL);
   rasvec1 = MatrixCopy(voxvec1, NULL);
   rasvec2 = MatrixCopy(voxvec1, NULL);
-  for (j = 0 ; j < nvolumes ; j++)
+
+  for (total_dof = j = 0 ; j < nvolumes ; j++)
   {
     vox2ras[j] = MatrixCopy(mri_flash[j]->register_mat, NULL);
     ras2vox[j] = MatrixInverse(vox2ras[j], NULL);
+    total_dof += mri_flash[j]->dof ;
   }
 
   PD = 1;
@@ -1376,7 +1382,7 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
       val =
         SignalTableValues[i][j] =
           FLASHforwardModel(mri->flip_angle, mri->tr, PD, T1) ;
-      ss += val*val;
+      ss += mri->dof*val*val;
     }
     norm = SignalTableNorm[i] = sqrt(ss);
     if (norm>0)
@@ -1425,7 +1431,7 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
 	  if (!devFinite(val))
 	    DiagBreak() ;
           ImageValues[j] = val;
-          ss += val*val;
+          ss += mri->dof*val*val;
         }
         norm = sqrt(ss);
         if (norm>0)
@@ -1449,7 +1455,7 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
               for (j = 0 ; j < nvolumes ; j++)
               {
                 err = ImageValues[j]-SignalTableValues[indx][j];
-                se += err*err;
+                se += mri_flash[j]->dof*err*err;
               }
               if (se<best_se)
               {
@@ -1509,13 +1515,13 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
             err = pred_val-ImageValues[j]*norm;
 	    if (!devFinite(err))
 	      DiagBreak() ;
-            sse += err*err;
+            sse += mri_flash[j]->dof*err*err;
 	    if (!devFinite(sse))
 	      DiagBreak() ;
           }
         }
 
-        total_sse += sse ;
+        total_sse += (sse/(double)total_dof) ;
 	if (!devFinite(total_sse))
 	  DiagBreak() ;
         MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse));
@@ -1552,7 +1558,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
   int      j, x, y, z, indx, min_indx, max_indx, best_indx, center_indx, \
   stepindx;
   int      width=mri_T1->width, height=mri_T1->height, depth=mri_T1->depth, \
-                                       nvalues=MAX_NVALS, nevals;
+    nvalues=MAX_NVALS, nevals, total_dof;
   int      nstep=11, step[11]= {1024,512,256,128,64,32,16,8,4,2,1};
   MRI      *mri ;
   MATRIX   *voxvec1, *voxvec2, *rasvec1, *rasvec2, *m_vox2vox;
@@ -1574,8 +1580,9 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
   voxvec2 = MatrixCopy(voxvec1, NULL);
   rasvec1 = MatrixCopy(voxvec1, NULL);
   rasvec2 = MatrixCopy(voxvec1, NULL);
-  for (j = 0 ; j < nvolumes ; j++)
+  for (total_dof = j = 0 ; j < nvolumes ; j++)
   {
+    total_dof += mri_flash[j]->dof ;
     vox2ras[j] = MatrixCopy(mri_flash[j]->register_mat, NULL);
     ras2vox[j] = MatrixInverse(vox2ras[j], NULL);
   }
@@ -1612,7 +1619,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
             MRIsampleVolumeType(mri, xf, yf, zf, &val, InterpMethod) ;
           }
           ImageValues[j] = val;
-          ss += val*val;
+          ss += mri->dof*val*val;
         }
         inorm = sqrt(ss);
         if (inorm>0)
@@ -1665,7 +1672,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
                   SignalTableValues[indx][j] =
                     FLASHforwardModel(faf_scale*mri->flip_angle,
                                       mri->tr, PD, T1) ;
-                ss += val*val;
+                ss += mri->dof*val*val;
               }
               norm = SignalTableNorm[indx] = sqrt(ss);
               if (norm>0)
@@ -1677,7 +1684,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
               for (j = 0 ; j < nvolumes ; j++)
               {
                 err = ImageValues[j]-SignalTableValues[indx][j];
-                se += err*err;
+                se += mri_flash[j]->dof*err*err;
               }
               if (se<best_se)
               {
@@ -1716,11 +1723,11 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
           mri = mri_flash_synth[j] ;
           err = FLASHforwardModel(faf_scale*mri->flip_angle,
                                   mri->tr, PD, T1)-ImageValues[j]*inorm;
-          sse += err*err;
+          sse += mri_flash[j]->dof*err*err;
 	  if (!devFinite(sse))
 	    DiagBreak() ;
         }
-        total_sse += sse ;
+        total_sse += (sse/(double)total_dof) ;
 	if (!devFinite(total_sse))
 	  DiagBreak() ;
         MRIsetVoxVal(mri_sse, x, y, z, 0, sqrt(sse/(double)nvolumes));
@@ -2685,6 +2692,7 @@ average_volumes_with_different_echo_times(MRI **mri_flash,
     averaged[i] = 1 ;
     mri_avg = MRIcopy(mri_all_flash[i], NULL) ;
     mri_avg->register_mat = MRIgetVoxelToRasXform(mri_all_flash[nvolumes]);
+    mri_avg->dof = 1 ;
     navgs = 1 ;
     for (j = i+1 ; j < nvolumes_total ; j++)
     {
@@ -2762,6 +2770,7 @@ average_volumes_with_different_echo_times_and_set_Mreg(MRI **mri_flash,
     }
 
     mri_avg->register_mat = MRIgetVoxelToRasXform(mri_all_flash[nvolumes]);
+    mri_avg->dof = 1 ;
     navgs = 1 ;
     for (j = i+1 ; j < nvolumes_total ; j++)
     {
