@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/04 23:22:59 $
- *    $Revision: 1.26 $
+ *    $Date: 2014/12/10 05:30:53 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -710,13 +710,14 @@ int GTMsolve(GTM *gtm)
     exit(1);
   }
 
-  printf("Computing  XtX ... ");fflush(stdout);
+  if(! gtm->Optimizing) printf("Computing  XtX ... ");fflush(stdout);
   TimerStart(&timer);
   gtm->XtX = MatrixMtM(gtm->X,gtm->XtX);
-  printf(" %4.1f sec\n",TimerStop(&timer)/1000.0);fflush(stdout);
+  if(! gtm->Optimizing) printf(" %4.1f sec\n",TimerStop(&timer)/1000.0);fflush(stdout);
 
   gtm->iXtX = MatrixInverse(gtm->XtX,gtm->iXtX);
   if(gtm->iXtX==NULL){
+    if(gtm->Optimizing) return(1);
     gtm->XtXcond = MatrixConditionNumber(gtm->XtX);
     printf("ERROR: matrix cannot be inverted, cond=%g\n",gtm->XtXcond);
     return(1);
@@ -1483,7 +1484,7 @@ int GTMbuildX(GTM *gtm)
       continue;
     }
     nthsegpvfbbsm = MRIgaussianSmoothNI(nthsegpvfbb, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
-    if(gtm->mb){
+    if(gtm->UseMB){
       // Order of operations should not matter
       mb = MB2Dcopy(gtm->mb,0,NULL);
       mb->cR = region->x;
@@ -1504,8 +1505,9 @@ int GTMbuildX(GTM *gtm)
 	  if(r < region->y || r >= region->y+region->dy)  continue;
 	  if(s < region->z || s >= region->z+region->dz)  continue;
 	  // do not use k+1 here because it has already been incr above
-	  gtm->X0->rptr[k][nthseg+1] = 
-	    MRIgetVoxVal(nthsegpvfbb,c-region->x,r-region->y,s-region->z,0);
+	  if(! gtm->Optimizing)
+	    gtm->X0->rptr[k][nthseg+1] = 
+	      MRIgetVoxVal(nthsegpvfbb,c-region->x,r-region->y,s-region->z,0);
 
 	  gtm->X->rptr[k][nthseg+1] = 
 	    MRIgetVoxVal(nthsegpvfbbsm,c-region->x,r-region->y,s-region->z,0);
@@ -1516,9 +1518,9 @@ int GTMbuildX(GTM *gtm)
     MRIfree(&nthsegpvf);
     MRIfree(&nthsegpvfbb);
     MRIfree(&nthsegpvfbbsm);
-    if(gtm->mb) MB2Dfree(&mb);
+    if(gtm->UseMB) MB2Dfree(&mb);
   }
-  printf(" Build time %6.4f, err = %d\n",TimerStop(&timer)/1000.0,err);fflush(stdout);
+  if(! gtm->Optimizing) printf(" Build time %6.4f, err = %d\n",TimerStop(&timer)/1000.0,err);fflush(stdout);
   if(err) gtm->X = NULL;
 
   return(0);
@@ -2096,13 +2098,15 @@ int GTMrvarGM(GTM *gtm)
       }
     }
     gtm->rvargm->rptr[1][f+1] = sum/nhits;
-    if(f==0) printf("rvargm %2d %6.4f\n",f,gtm->rvargm->rptr[1][f+1]);
+    if(f==0 && ! gtm->Optimizing) printf("rvargm %2d %6.4f\n",f,gtm->rvargm->rptr[1][f+1]);
   }
 
-  sprintf(tmpstr,"%s/rvar.gm.dat",gtm->AuxDir);
-  fp = fopen(tmpstr,"w");
-  for(f=0; f < gtm->res->cols; f++) fprintf(fp,"%30.20f\n",gtm->rvargm->rptr[1][f+1]);
-  fclose(fp);
+  if(! gtm->Optimizing){
+    sprintf(tmpstr,"%s/rvar.gm.dat",gtm->AuxDir);
+    fp = fopen(tmpstr,"w");
+    for(f=0; f < gtm->res->cols; f++) fprintf(fp,"%30.20f\n",gtm->rvargm->rptr[1][f+1]);
+    fclose(fp);
+  }
 
   if(gtm->rescale){
     sprintf(tmpstr,"%s/rvar.gm.unscaled.dat",gtm->AuxDir);

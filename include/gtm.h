@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/27 03:34:59 $
- *    $Revision: 1.19 $
+ *    $Date: 2014/12/10 05:30:53 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,7 +88,8 @@ typedef struct
   MRI *mask;     // binary mask in PET space
   double cFWHM, rFWHM, sFWHM; // assumed FWHM of PSF
   double cStd, rStd, sStd; // PSF FWHM converted to standard dev
-  MB2D *mb; // for motion blurring
+  int UseMB;// = 1 for radial/motion blurring
+  MB2D *mb; // for radial/motion blurring
   int nframes; // one place to get the number of input frames
   MRI *anatconf;   // header of conformed anatomical
 
@@ -167,6 +168,8 @@ typedef struct
 
   char *OutDir, *AuxDir; // output folder, auxiliary output folder
   FILE *logfp;  // log file pointer
+
+  int Optimizing; // set to 1 if currently optimzing
 } GTM;
 
 

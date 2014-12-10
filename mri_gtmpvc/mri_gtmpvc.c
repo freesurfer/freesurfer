@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/27 03:34:59 $
- *    $Revision: 1.39 $
+ *    $Date: 2014/12/10 05:30:53 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.39 2014/11/27 03:34:59 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.40 2014/12/10 05:30:53 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.39 2014/11/27 03:34:59 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.40 2014/12/10 05:30:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -102,18 +102,8 @@ struct utsname uts;
 
 typedef struct 
 {
+  int schema;
   GTM  *gtm;
-  LTA  *anat2pet0,*anat2pet; // has subject name
-  char *gtmsegfile;
-  char *pvfsegfile;
-  char *wsurf;
-  char *psurf;
-  int USF;
-  COLOR_TABLE *ctPVFSeg;
-  MRI *gtmseganat, *gtmsegmu, *pvfseganat, *pvfseg;
-  MRIS *lhw, *lhp, *rhw, *rhp;
-  LTA *anat2gtmsegmu, *gtmsegmu2anat,*gtmsegmu2pet;
-  LTA *pvfseg2anat,*pvfseg2pet,*anat2pvfseg;
   float params[100];
   int nparams;
   double ftol;
@@ -124,7 +114,16 @@ typedef struct
   double tLastEval;
 } GTMOPT;
 int GTMOPTsetup(GTMOPT *gtmopt);
-double GTMOPTcost(GTMOPT *gtmopt);
+double GTMcostPSF(GTM *gtm);
+int GTMOPTnParams(GTMOPT *gtmopt);
+int GTMOPTparams2GTM(GTMOPT *gtmopt);
+int GTMOPTgtm2Params(GTMOPT *gtmopt);
+#define GTMOPT_ISO_3D 1
+#define GTMOPT_ISO_2D 2
+#define GTMOPT_ISO_1D 3
+#define GTMOPT_ISO_3D_MB 4
+#define GTMOPT_ISO_2D_MB 5
+#define GTMOPT_ISO_1D_MB 6
 
 float compute_powell_cost(float *p);
 int MinPowell();
@@ -214,6 +213,9 @@ int main(int argc, char *argv[])
   gtm->automask_reduce_fov = 1;
   gtm->DoVoxFracCor = 1;  
   gtm->rbvsegres = 0;
+  gtmopt = (GTMOPT *) calloc(sizeof(GTMOPT),1);
+  gtmopt->gtm = gtm;
+  gtm->mb = (MB2D *) calloc(sizeof(MB2D),1);
 
   Progname = argv[0] ;
   argc --;
@@ -388,6 +390,7 @@ int main(int argc, char *argv[])
   fprintf(logfp,"nmask = %d, nsegs = %d, excluding segid=0\n",gtm->nmask,gtm->nsegs);
   fprintf(logfp,"FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
   fprintf(logfp,"Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
+  if(gtm->UseMB) fprintf(logfp,"MB: %g\n",gtm->mb->slope);
   fprintf(logfp,"nPad %d, PadThresh %g\n",gtm->nPad,gtm->PadThresh);
 
   for(n=0; n < gtm->nContrasts; n++){
@@ -436,6 +439,22 @@ int main(int argc, char *argv[])
     gtm->mb->c0 = gtm->yvol->width/2.0;
     gtm->mb->r0 = gtm->yvol->height/2.0;
     gtm->mb->DeltaD = gtm->yvol->xsize;
+  }
+
+  if(DoOpt){
+    printf("Starting optimization %d\n",gtmopt->schema);
+    fprintf(logfp,"Starting optimization %d\n",gtmopt->schema);
+    gtmopt_powell = gtmopt;
+    int RescaleSave = gtm->rescale;
+    gtm->rescale = 0; // important to turn off
+    gtm->Optimizing = 1;
+    GTMOPTsetup(gtmopt);
+    MinPowell();
+    gtm->rescale = RescaleSave;
+    gtm->Optimizing = 0;
+    fprintf(logfp,"FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
+    fprintf(logfp,"Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
+    if(gtm->UseMB) fprintf(logfp,"MB: %g\n",gtm->mb->slope);
   }
 
   // Create GTM matrix
@@ -881,7 +900,6 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     else if(!strcasecmp(option, "--no-reduce-fov")) gtm->automask_reduce_fov = 0;
-    else if(!strcasecmp(option, "--opt")) DoOpt=1;
     else if(!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
       if(nargc < 1) CMDargNErr(option,1);
       setenv("SUBJECTS_DIR",pargv[0],1);
@@ -960,6 +978,12 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--opt")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&gtmopt->schema);
+      DoOpt=1;
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--psf")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&psfFWHM);
@@ -985,8 +1009,8 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if(!strcasecmp(option, "--mb")){
       if(nargc < 1) CMDargNErr(option,1);
-      gtm->mb = (MB2D *) calloc(sizeof(MB2D),1);
       sscanf(pargv[0],"%lf",&gtm->mb->slope);
+      gtm->UseMB = 1;
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--apply-fwhm")){
@@ -1506,202 +1530,6 @@ MRI *MRIdownSmoothUp(MRI *src, int Fc, int Fr, int Fs,
 
   return(dst);
 }
-/*-------------------------------------------------------------------------------*/
-int GTMOPTsetup(GTMOPT *gtmopt)
-{
-  char *subject, *SUBJECTS_DIR;
-  //gtmopt->gtmsegfile="petseg+head.mgz";
-  //gtmopt->pvfsegfile="petseg+head.mgz";
-  gtmopt->gtmsegfile="petseg.mgz";
-  gtmopt->pvfsegfile="petseg.mgz";
-  gtmopt->wsurf = "white";
-  gtmopt->psurf = "pial";
-  gtmopt->USF = 1;
-  gtmopt->ftol= 1e-8;
-  gtmopt->linmintol= 5e-3;
-  gtmopt->nitersmax = 4;
-  gtmopt->nparams = 6;
-
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  subject = gtmopt->anat2pet->subject;
-
-  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,gtmopt->pvfsegfile);
-  printf("Loading %s\n",tmpstr);
-  gtmopt->pvfseganat = MRIread(tmpstr);
-  if(gtmopt->pvfseganat==NULL) exit(1);
-  
-  sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,gtmopt->wsurf);
-  gtmopt->lhw = MRISread(tmpstr);
-  if(gtmopt->lhw==NULL) exit(1);
-
-  sprintf(tmpstr,"%s/%s/surf/lh.%s",SUBJECTS_DIR,subject,gtmopt->psurf);
-  gtmopt->lhp = MRISread(tmpstr);
-  if(gtmopt->lhp==NULL) exit(1);
-
-  sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,gtmopt->wsurf);
-  gtmopt->rhw = MRISread(tmpstr);
-  if(gtmopt->rhw==NULL) exit(1);
-
-  sprintf(tmpstr,"%s/%s/surf/rh.%s",SUBJECTS_DIR,subject,gtmopt->psurf);
-  gtmopt->rhp = MRISread(tmpstr);
-  if(gtmopt->rhp==NULL) exit(1);
-
-  // Create a high resolution segmentation used to create PVF
-  gtmopt->pvfseg = MRIhiresSeg(gtmopt->pvfseganat,
-			       gtmopt->lhw,gtmopt->lhp,gtmopt->rhw,gtmopt->rhp, 
-			       gtmopt->USF, &gtmopt->anat2pvfseg);
-  if(gtmopt->pvfseg == NULL) return(1);
-  gtmopt->pvfseg2anat = LTAinvert(gtmopt->anat2pvfseg,NULL);
-
-  sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subject,gtmopt->gtmsegfile);
-  gtmopt->gtmseganat = MRIread(tmpstr);
-  if(gtmopt->gtmseganat==NULL) exit(1);
-  gtmopt->gtmsegmu = MRImaskAndUpsample(gtmopt->gtmseganat, NULL, gtmopt->USF, 2, 0, &gtmopt->anat2gtmsegmu);
-  gtmopt->gtmsegmu2anat = LTAinvert(gtmopt->anat2gtmsegmu,NULL);
-
-  GTMsetNMask(gtmopt->gtm);
-  GTMmatrixY(gtmopt->gtm);
-  GTMpsfStd(gtmopt->gtm); 
-  GTMnPad(gtmopt->gtm);   
-
-  return(0);
-}
-/*--------------------------------------------------------------------------*/
-double GTMOPTcost(GTMOPT *gtmopt)
-{
-  MRI *hitvol;
-  int nTT;
-  LTA *ltaArray[2];
-  struct timeb timer;
-  TimerStart(&timer);
-
-  //printf("GTMOPTcost() USF=%d\n",gtmopt->USF);
-  nTT = gtmopt->gtm->ctGTMSeg->ctabTissueType->nentries-1;
-
-  ltaArray[0] = gtmopt->pvfseg2anat;
-  ltaArray[1] = gtmopt->anat2pet;
-  gtmopt->pvfseg2pet = LTAconcat(ltaArray,2,1);
-  //printf("Computing PVF\n");
-  LTAfree(&gtmopt->pvfseg2pet);
-
-  ltaArray[0] = gtmopt->gtmsegmu2anat;
-  ltaArray[1] = gtmopt->anat2pet;
-  gtmopt->gtmsegmu2pet = LTAconcat(ltaArray,2,1);
-  if(gtmopt->gtm->gtmseg) MRIfree(&gtmopt->gtm->gtmseg);
-  gtmopt->gtm->gtmseg = 
-    MRIaseg2volMU(gtmopt->gtmsegmu, gtmopt->gtmsegmu2pet, 0.0, &hitvol, -1, gtmopt->gtm->ctGTMSeg);
-  if(gtmopt->gtm->gtmseg == NULL) return(-1);
-  //printf("  aseg2vol t = %g\n",TimerStop(&timer)/1000.0);fflush(stdout);
-  LTAfree(&gtmopt->gtmsegmu2pet);
-
-  GTMsegidlist(gtmopt->gtm);
-  GTMbuildX(gtm);
-  //printf("  buildX t = %g\n",TimerStop(&timer)/1000.0);fflush(stdout);
-  if(gtm->X==NULL) return(-1);
-  GTMsolve(gtm);
-
-  gtmopt->tLastEval = TimerStop(&timer)/1000.0;
-  return(0);
-}
-
-/*---------------------------------------------------------*/
-int MinPowell()
-{
-  extern GTMOPT *gtmopt_powell;
-  GTMOPT *gtmopt = gtmopt_powell;
-  float *pPowel, **xi;
-  int    r, c, n,dof;
-  struct timeb timer;
-
-  TimerStart(&timer);
-  dof = gtmopt->nparams;
-
-  printf("Init Powel Params dof = %d\n",dof);
-  pPowel = vector(1, dof) ;
-  for(n=0; n < dof; n++) pPowel[n+1] = gtmopt->params[n];
-  //pPowel[1] =  .0897;
-  //pPowel[2] =  .2102;
-  //pPowel[3] = -.2905;
-  //pPowel[4] = 0;
-  //pPowel[5] = 0;
-  //pPowel[6] = 0;
-
-  xi = matrix(1, dof, 1, dof) ;
-  for (r = 1 ; r <= dof ; r++) {
-    for (c = 1 ; c <= dof ; c++) {
-      xi[r][c] = r == c ? 1 : 0 ;
-    }
-  }
-
-  OpenPowell2(pPowel, xi, dof, gtmopt->ftol, gtmopt->linmintol, gtmopt->nitersmax, 
-	      &gtmopt->niters, &gtmopt->fret, compute_powell_cost);
-  printf("Powell done niters = %d\n",gtmopt->niters);
-  printf("OptTimeSec %4.1f sec\n",TimerStop(&timer)/1000.0);
-  printf("OptTimeMin %5.2f sec\n",(TimerStop(&timer)/1000.0)/60);
-  printf("nEvals %d\n",gtmopt->nCostEvaluations);
-  printf("EvalTimeSec %4.1f sec\n",(TimerStop(&timer)/1000.0)/gtmopt->nCostEvaluations);
-  fflush(stdout);
-  for(n=0; n < dof; n++) gtmopt->params[n] = pPowel[n+1];
-  gtmopt->anat2pet = LTAcopy(gtmopt->anat2pet0,gtmopt->anat2pet);
-  LTAapplyAffineParametersTKR(gtmopt->anat2pet, gtmopt->params, gtmopt->nparams, gtmopt->anat2pet);
-  printf("#@# %4d  ",gtmopt->nCostEvaluations);
-  for(n=0; n<gtmopt->nparams; n++) printf("%10.6f ",gtmopt->params[n]);
-  printf("\n");
-
-  free_matrix(xi, 1, dof, 1, dof);
-  free_vector(pPowel, 1, dof);
-  return(NO_ERROR) ;
-}
-/*--------------------------------------------------------------------------*/
-float compute_powell_cost(float *pPowel) 
-{
-  extern GTMOPT *gtmopt_powell;
-  GTMOPT *gtmopt = gtmopt_powell;
-  int n,newmin;
-  float pp[100],curcost;
-  static float initcost=-1,mincost=-1,ppmin[100];
-  FILE *fp=NULL;
-  
-  for(n=0; n<gtmopt->nparams; n++) pp[n] = pPowel[n+1];
-
-  gtmopt->anat2pet = LTAcopy(gtmopt->anat2pet0,gtmopt->anat2pet);
-  LTAapplyAffineParametersTKR(gtmopt->anat2pet, pp, gtmopt->nparams, gtmopt->anat2pet);
-  GTMOPTcost(gtmopt);
-  curcost = gtmopt->gtm->rvar->rptr[1][1];
-  newmin = 0;
-  if(initcost<0) {
-    newmin = 1;
-    initcost = curcost;
-    mincost = curcost;
-    for(n=0; n<gtmopt->nparams; n++) ppmin[n] = pp[n];
-    printf("InitialCost %f\n",initcost);
-    fp=fopen("costs.dat","w");
-  }
-  else fp=fopen("costs.dat","a");
-
-  if(mincost > curcost) {
-    newmin = 1;
-    mincost = curcost;
-    for(n=0; n<gtmopt->nparams; n++) ppmin[n] = pp[n];
-  }
-
-  fprintf(fp,"%4d  ",gtmopt->nCostEvaluations);
-  for(n=0; n<gtmopt->nparams; n++) fprintf(fp,"%12.8f ",pp[n]);
-  fprintf(fp,"  %12.10f \n",curcost/initcost);
-  fflush(fp);
-  fclose(fp);
-
-  if(newmin){
-    printf("#@# %4d  ",gtmopt->nCostEvaluations);
-    for(n=0; n<gtmopt->nparams; n++) printf("%7.3f ",ppmin[n]);
-    printf("  %5.1f %8.6f\n",gtmopt->tLastEval,mincost/initcost);
-    fflush(stdout);
-  }
-
-  gtmopt->nCostEvaluations++;
-  return((float)gtmopt->gtm->rvar->rptr[1][1]);
-}
-
 /*--------------------------------------------------------------------------*/
 LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *outlta)
 {
@@ -1769,27 +1597,282 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
   return(outlta);
 }
 
-
-MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg)
+/*-------------------------------------------------------------------------------*/
+int GTMOPTsetup(GTMOPT *gtmopt)
 {
-  int n,ntot;
-  MRI *mri;
-  float voxsize;
+  int err;
+  GTMsetNMask(gtmopt->gtm);
+  GTMmatrixY(gtmopt->gtm);
+  GTMpsfStd(gtmopt->gtm); 
+  GTMnPad(gtmopt->gtm);   
 
-  voxsize = seg->xsize * seg->ysize * seg->zsize;
+  err = GTMOPTnParams(gtmopt);
+  if(err) exit(1);
 
-  ntot = 0;
-  for(n=1; n < ct->nentries; n++) if(ct->entries[n]) ntot++;
-  mri = MRIalloc(ntot,1,1,MRI_FLOAT);
+  if(gtmopt->schema == GTMOPT_ISO_3D_MB ||
+     gtmopt->schema == GTMOPT_ISO_2D_MB ||
+     gtmopt->schema == GTMOPT_ISO_1D_MB){
+    gtmopt->gtm->UseMB = 1;
+    gtmopt->gtm->mb->Interp = SAMPLE_NEAREST;
+    gtmopt->gtm->mb->cutoff = 4;
+    gtmopt->gtm->mb->c0 = gtmopt->gtm->yvol->width/2.0;
+    gtmopt->gtm->mb->r0 = gtmopt->gtm->yvol->height/2.0;
+    gtmopt->gtm->mb->DeltaD = gtmopt->gtm->yvol->xsize;
+  }
+  GTMOPTgtm2Params(gtmopt);
+  gtmopt->ftol= 1e-8;
+  gtmopt->linmintol= 5e-3;
+  gtmopt->nitersmax = 4;
 
-  ntot = 0;
-  for(n=1; n < ct->nentries; n++) 
-    if(ct->entries[n]) {
-      MRIsetVoxVal(mri,ntot,0,0,0, voxsize*ct->entries[n]->count);
-      ntot++;
-    }
+  return(0);
+}
+/*--------------------------------------------------------------------------*/
+double GTMcostPSF(GTM *gtm)
+{
+  int err;
+  struct timeb timer;
+  TimerStart(&timer);
 
-  return(mri);
+  GTMpsfStd(gtm);
+
+  GTMbuildX(gtm);
+  if(gtm->X==NULL) exit(1);
+
+  err=GTMsolve(gtm); 
+  if(err) {
+    // matrix not invertible
+    gtm->rvarUnscaled->rptr[1][1] = 10e10;
+    return(10e10);
+  }
+  //printf("   Build-and-Solve Time %4.1f sec\n",TimerStop(&timer)/1000.0);fflush(stdout);
+  GTMrvarGM(gtm);
+
+  fflush(stdout);
+  return(gtm->rvarUnscaled->rptr[1][1]);
+}
+/*--------------------------------------------------------------------------*/
+float compute_powell_cost(float *pPowel) 
+{
+  extern GTMOPT *gtmopt_powell;
+  GTMOPT *gtmopt = gtmopt_powell;
+  int n,newmin;
+  float curcost;
+  static float initcost=-1,mincost=-1,ppmin[100];
+  FILE *fp=NULL;
+  char tmpstr[2000];
+
+  for(n=0; n < gtmopt->nparams; n++) gtmopt->params[n] = pPowel[n+1];
+  GTMOPTparams2GTM(gtmopt);
+  
+  if(gtmopt->gtm->cFWHM < 0) return(10e10);
+  if(gtmopt->gtm->rFWHM < 0) return(10e10);
+  if(gtmopt->gtm->sFWHM < 0) return(10e10);
+  if(gtmopt->gtm->UseMB && gtmopt->gtm->mb->slope < 0) return(10e10);
+
+  // compute cost
+  curcost = GTMcostPSF(gtmopt->gtm);
+
+  newmin = 0;
+  sprintf(tmpstr,"%s/costs.dat",gtmopt->gtm->AuxDir);
+  if(initcost<0) {
+    newmin = 1;
+    initcost = curcost;
+    mincost = curcost;
+    for(n=0; n<gtmopt->nparams; n++) ppmin[n] = gtmopt->params[n];
+    printf("InitialCost %f %f\n",initcost,gtm->rvargm->rptr[1][1]);
+    fp=fopen(tmpstr,"w");
+  }
+  else fp=fopen(tmpstr,"a");
+
+  if(mincost > curcost) {
+    newmin = 1;
+    mincost = curcost;
+    for(n=0; n<gtmopt->nparams; n++) ppmin[n] = gtmopt->params[n];
+  }
+
+  fprintf(fp,"%4d  ",gtmopt->nCostEvaluations);
+  for(n=0; n<gtmopt->nparams; n++) fprintf(fp,"%12.8f ",gtmopt->params[n]);
+  fprintf(fp,"  %12.10f %12.5f %12.5f\n",curcost/initcost,curcost,gtm->rvargm->rptr[1][1]);
+  fflush(fp);
+  fclose(fp);
+
+  if(newmin){
+    printf("#@# %4d  ",gtmopt->nCostEvaluations);
+    for(n=0; n<gtmopt->nparams; n++) printf("%7.3f ",ppmin[n]);
+    printf("  %5.1f %8.6f\n",gtmopt->tLastEval,mincost/initcost);
+    fflush(stdout);
+  }
+
+  gtmopt->nCostEvaluations++;
+  return((float)curcost);
 }
 
+/*---------------------------------------------------------*/
+int MinPowell()
+{
+  extern GTMOPT *gtmopt_powell;
+  GTMOPT *gtmopt = gtmopt_powell;
+  float *pPowel, **xi;
+  int    r, c, n,dof;
+  struct timeb timer;
+  GTM *gtm = gtmopt_powell->gtm;
+
+  TimerStart(&timer);
+  dof = gtmopt->nparams;
+
+  printf("\n\n---------------------------------\n");
+  printf("Init Powel Params dof = %d\n",dof);
+  pPowel = vector(1, dof) ;
+  for(n=0; n < dof; n++) pPowel[n+1] = gtmopt->params[n];
+
+  xi = matrix(1, dof, 1, dof) ;
+  for (r = 1 ; r <= dof ; r++) {
+    for (c = 1 ; c <= dof ; c++) {
+      xi[r][c] = r == c ? 1 : 0 ;
+    }
+  }
+  printf("Starting OpenPowel2()\n");
+  OpenPowell2(pPowel, xi, dof, gtmopt->ftol, gtmopt->linmintol, gtmopt->nitersmax, 
+	      &gtmopt->niters, &gtmopt->fret, compute_powell_cost);
+  printf("Powell done niters = %d\n",gtmopt->niters);
+  printf("OptTimeSec %4.1f sec\n",TimerStop(&timer)/1000.0);
+  printf("OptTimeMin %5.2f min\n",(TimerStop(&timer)/1000.0)/60);
+  printf("nEvals %d\n",gtmopt->nCostEvaluations);
+  printf("EvalTimeSec %4.1f sec\n",(TimerStop(&timer)/1000.0)/gtmopt->nCostEvaluations);
+  fflush(stdout);
+  fprintf(gtm->logfp,"Optimum parameters: ");
+  printf("Optimum parameters: ");
+  for(n=0; n < dof; n++){
+    gtmopt->params[n] = pPowel[n+1];
+    fprintf(gtm->logfp,"%f ",pPowel[n+1]);
+    printf("%f ",pPowel[n+1]);
+  }
+  fprintf(gtm->logfp,"\n");
+  printf("\n");
+
+  for(n=0; n < gtmopt->nparams; n++) gtmopt->params[n] = pPowel[n+1];
+  GTMOPTparams2GTM(gtmopt);
+
+  free_matrix(xi, 1, dof, 1, dof);
+  free_vector(pPowel, 1, dof);
+  printf("\n\n---------------------------------\n");
+  return(NO_ERROR) ;
+}
+
+/*--------------------------------------------*/
+int GTMOPTnParams(GTMOPT *gtmopt)
+{
+  int np;
+  switch(gtmopt->schema){
+  case GTMOPT_ISO_3D:
+    np = 1;
+    break;
+  case GTMOPT_ISO_2D:
+    np = 2;
+    break;
+  case GTMOPT_ISO_1D:
+    np = 3;
+    break;
+  case GTMOPT_ISO_3D_MB:
+    np = 2;
+    break;
+  case GTMOPT_ISO_2D_MB:
+    np = 3;
+    break;
+  case GTMOPT_ISO_1D_MB:
+    np = 4;
+    break;
+  default:
+    printf("ERROR: schema %d not recognized\n",gtmopt->schema);
+    return(1);
+  }
+  gtmopt->nparams = np;
+  return(0);
+}
+
+int GTMOPTparams2GTM(GTMOPT *gtmopt)
+{
+  switch(gtmopt->schema){
+  case GTMOPT_ISO_3D:
+    gtmopt->gtm->cFWHM = gtmopt->params[0];
+    gtmopt->gtm->rFWHM = gtmopt->params[0];
+    gtmopt->gtm->sFWHM = gtmopt->params[0];
+    break;
+
+  case GTMOPT_ISO_2D:
+    gtmopt->gtm->cFWHM = gtmopt->params[0];
+    gtmopt->gtm->rFWHM = gtmopt->params[0];
+    gtmopt->gtm->sFWHM = gtmopt->params[1];
+    break;
+
+  case GTMOPT_ISO_1D:
+    gtmopt->gtm->cFWHM = gtmopt->params[0];
+    gtmopt->gtm->rFWHM = gtmopt->params[1];
+    gtmopt->gtm->sFWHM = gtmopt->params[2];
+    break;
+
+  case GTMOPT_ISO_3D_MB:
+    gtmopt->gtm->cFWHM = gtmopt->params[0];
+    gtmopt->gtm->rFWHM = gtmopt->params[0];
+    gtmopt->gtm->sFWHM = gtmopt->params[0];
+    gtmopt->gtm->mb->slope = gtmopt->params[1];
+    break;
+
+  case GTMOPT_ISO_2D_MB:
+    gtmopt->gtm->cFWHM = gtmopt->params[0];
+    gtmopt->gtm->rFWHM = gtmopt->params[0];
+    gtmopt->gtm->sFWHM = gtmopt->params[1];
+    gtmopt->gtm->mb->slope = gtmopt->params[2];
+    break;
+
+  case GTMOPT_ISO_1D_MB:
+    gtmopt->gtm->cFWHM = gtmopt->params[0];
+    gtmopt->gtm->rFWHM = gtmopt->params[1];
+    gtmopt->gtm->sFWHM = gtmopt->params[2];
+    gtmopt->gtm->mb->slope = gtmopt->params[3];
+    break;
+
+  default:
+    printf("ERROR: schema %d not recognized\n",gtmopt->schema);
+    return(1);
+  }
+  return(0);
+}
+
+int GTMOPTgtm2Params(GTMOPT *gtmopt)
+{
+  switch(gtmopt->schema){
+  case GTMOPT_ISO_3D:
+    gtmopt->params[0] = gtmopt->gtm->cFWHM;
+    break;
+  case GTMOPT_ISO_2D:
+    gtmopt->params[0] = gtmopt->gtm->cFWHM;
+    gtmopt->params[1] = gtmopt->gtm->sFWHM;
+    break;
+  case GTMOPT_ISO_1D:
+    gtmopt->params[0] = gtmopt->gtm->cFWHM;
+    gtmopt->params[1] = gtmopt->gtm->rFWHM;
+    gtmopt->params[2] = gtmopt->gtm->sFWHM;
+    break;
+  case GTMOPT_ISO_3D_MB:
+    gtmopt->params[0] = gtmopt->gtm->cFWHM;
+    gtmopt->params[1] = gtmopt->gtm->mb->slope;
+    break;
+  case GTMOPT_ISO_2D_MB:
+    gtmopt->params[0] = gtmopt->gtm->cFWHM;
+    gtmopt->params[1] = gtmopt->gtm->sFWHM;
+    gtmopt->params[2] = gtmopt->gtm->mb->slope;
+    break;
+  case GTMOPT_ISO_1D_MB:
+    gtmopt->params[0] = gtmopt->gtm->cFWHM;
+    gtmopt->params[1] = gtmopt->gtm->rFWHM;
+    gtmopt->params[2] = gtmopt->gtm->sFWHM;
+    gtmopt->params[3] = gtmopt->gtm->mb->slope;
+    break;
+  default:
+    printf("ERROR: schema %d not recognized\n",gtmopt->schema);
+    return(1);
+  }
+  return(0);
+}
 
