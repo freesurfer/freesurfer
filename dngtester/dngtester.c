@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/08/25 02:14:22 $
- *    $Revision: 1.56 $
+ *    $Date: 2014/12/10 22:13:29 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -210,8 +210,6 @@ MATRIX *gdfContrastDOSSDeleteMe(FSGD *fsgd, float *wClass, float *wCovar) {
 
 FSGD *LoadFactorFile(char *fname);
 int FSGDFactorsPrint(FSGD *gd, FILE *fp);
-MRI *MRIsurf2VolOpt(MRI *tempvol, MRIS **surfs, MRI **overlays, int nsurfs, 
-		    MRI *ribbon, MATRIX *R, MRI *volsurf);
 MRI *FillSeg(MRI *seg, COLOR_TABLE *ctab, MRI *vol);
 MRI *MRIdownSmoothUp(MRI *src, int Fc, int Fr, int Fs, 
 		     double cFWHM, double rFWHM, double sFWHM, 
@@ -365,17 +363,6 @@ int main(int argc, char **argv)
 
   exit(0);
 
-  mri = MRIread(argv[1]); // template
-  mri2 = MRIread(argv[2]); // ribbon
-  regio_read_register(argv[3], &subject, &inplaneres, &betplaneres, &intensity,  &R, &float2int);
-  surfs[0]    = MRISread(argv[4]); // surf
-  mriarray[0] = MRIread(argv[5]); // overlay
-  surfs[1]    = MRISread(argv[6]); // surf
-  mriarray[1] = MRIread(argv[7]); // overlay
-  mri4 = MRIsurf2VolOpt(mri, surfs, mriarray, 2, mri2, R, NULL);
-  MRIwrite(mri4,"mri4.nii");
-
-  exit(0);
 
   // FSGD ---------------------------------------
   fsgd = LoadFactorFile(argv[1]);
@@ -3468,110 +3455,6 @@ int FSGDFactorsPrint(FSGD *gd, FILE *fp)
 
 
 // dmax, proj
-
-MRI *MRIsurf2VolOpt(MRI *tempvol, MRIS **surfs, MRI **overlays, int nsurfs, 
-		    MRI *ribbon, MATRIX *R, MRI *volsurf)
-{
-  int n,c,r,s,f,nmin, vtxno,vtxnomin=0, nframes, ribval;
-  MHT **hash=NULL;
-  int UseHash = 1;
-  MATRIX *T, *invR, *M, *surfRAS=NULL,*crs;
-  VERTEX v;
-  float dmin, d, val;
-
-  for(n=0; n<nsurfs; n++){
-    //if(surfs[n]->hemisphere == LEFT_HEMISPHERE) continue;
-    //if(surfs[n]->hemisphere == RIGHT_HEMISPHERE) continue;
-    if(overlays[n]->nframes != overlays[0]->nframes){
-      printf("ERROR: MRIsurf2VolOpt(): overlay dim mismatch %d\n",n);
-      return(NULL);
-    }
-  }
-  if(MRIdimMismatch(tempvol,ribbon,0)){
-    printf("ERROR: MRIsurf2VolOpt(): tempvol/ribbon mismatch\n");
-    return(NULL);
-  }
-
-  nframes = overlays[0]->nframes;
-  if(volsurf == NULL){
-    volsurf = MRIallocSequence(tempvol->width, tempvol->height, tempvol->depth,
-                              MRI_FLOAT, nframes);
-    if (volsurf==NULL){
-      printf("ERROR: MRIsurf2VolOpt(): could not alloc\n");
-      return(NULL);
-    }
-    MRIcopyHeader(tempvol,volsurf);
-  }
-
-  if(UseHash){
-    hash = (MHT **) calloc(sizeof(MHT *),nsurfs);
-    for(n=0; n<nsurfs; n++){
-      hash[n] = MHTfillVertexTableRes(surfs[n], NULL,CURRENT_VERTICES,16);
-    }
-  }
-
-  // M converts tempvol CRS to surface RAS
-  T = MRIxfmCRS2XYZtkreg(tempvol);
-  invR = MatrixInverse(R,NULL);
-  M = MatrixMultiply(invR,T,NULL);
-  MatrixFree(&T);
-  MatrixFree(&invR);
-
-  crs = MatrixAlloc(4,1,MATRIX_REAL);
-  crs->rptr[4][1] = 1;
-  for(c=0; c < tempvol->width; c++){
-    for(r=0; r < tempvol->height; r++){
-      for(s=0; s < tempvol->depth; s++){
-	ribval = MRIgetVoxVal(ribbon,c,r,s,0);
-	if(ribval != 3 && ribval != 42) {
-	  //for(f=0; f < nframes; f++) MRIsetVoxVal(volsurf,c,r,s,f, 0);
-	  continue;
-	}
-	crs->rptr[1][1] = c;
-	crs->rptr[2][1] = r;
-	crs->rptr[3][1] = s;
-	surfRAS = MatrixMultiply(M,crs,surfRAS);
-	v.x = surfRAS->rptr[1][1];
-	v.y = surfRAS->rptr[2][1];
-	v.z = surfRAS->rptr[3][1];
-	dmin = 1000;
-	nmin = -1;
-	for(n=0; n<nsurfs; n++){
-	  if(surfs[n]->hemisphere == LEFT_HEMISPHERE  && ribval !=  3) continue;
-	  if(surfs[n]->hemisphere == RIGHT_HEMISPHERE && ribval != 42) continue;
-
-	  if(UseHash) vtxno = MHTfindClosestVertexNo(hash[n],surfs[n],&v,&d);
-	  else        vtxno = MRISfindClosestVertex(surfs[n],v.x,v.y,v.z,&d);
-	  //printf("%d %d %d %d %g %g %g  %5d\n",n,c,r,s,v.x,v.y,v.z,vtxno);
-	  if(vtxno < 0){
-	    printf("MRIsurf2VolOpt(): No Match: %3d %3d %3d  %6.2f %6.2f %6.2f\n",c,r,s,v.x,v.y,v.z);
-	    vtxno = MRISfindClosestVertex(surfs[n],v.x,v.y,v.z,&d);
-	    printf("%d %d %d %d %g %g %g  %5d\n",n,c,r,s,v.x,v.y,v.z,vtxno);
-	    //continue;
-	  }
-	  if(d < dmin){
-	    dmin = d;
-	    nmin = n;
-	    vtxnomin = vtxno;
-	  }
-	} // surfs
-	if(nmin == -1){
-	  //printf("MRIsurf2VolOpt(): No Match: %3d %3d %3d  %6.2f %6.2f %6.2f\n",c,r,s,v.x,v.y,v.z);
-	  continue;
-	}
-	for(f=0; f < nframes; f++){
-	  val = MRIgetVoxVal(overlays[nmin],vtxnomin,0,0,f);
-	  MRIsetVoxVal(volsurf,c,r,s,f, val);
-	}
-      } // slice
-    } // row
-  } //col
-
-  if(UseHash) for(n=0; n<nsurfs; n++) if(UseHash) MHTfree(&hash[n]);
-
-  MatrixFree(&surfRAS);
-  return(volsurf);
-}
 
 MRI *FillSeg(MRI *seg, COLOR_TABLE *ctab, MRI *vol)
 {
