@@ -3,7 +3,7 @@
 if ($#argv < 2 || $#argv > 3) then
   echo "xfmrot <transform file> <input vector file> [<output vector file>]"
   echo
-  echo "Transform file can be an eddy_correct log file or a simple .mat file."
+  echo "Transform file can be an eddy_correct/eddy log file or a .mat file."
   echo "Input vector file can be formatted in 3 rows or 3 columns."
   echo "Output vector file will have the same format as input."
   exit 1
@@ -20,13 +20,17 @@ endif
 
 grep -q processing $xforms
 if (! $status) then					# eddy_correct log file
-  set xfmtype = eddy
+  set xfmtype = eddy_correct
   set matfile = /tmp/xfmrot.$$.mat
-else if (`wc -l $xforms | awk '{print $1}'` == 4) then  # .mat file
+else if (`head -n 1 $xforms | wc -w` == 16) then	# eddy log file
+  set xfmtype = eddy
+  set matfile = ()
+else if (`wc -w $xforms | awk '{print $1}'` == 16 && \
+         `wc -l $xforms | awk '{print $1}'` == 4) then	# .mat file
   set xfmtype = mat
   set matfile = $xforms
 else
-  echo "ERROR: Transform file should be an eddy_correct log file or a .mat file"
+  echo "ERROR: Transform file should be eddy_correct/eddy log file or .mat file"
   exit 1
 endif
 
@@ -62,18 +66,38 @@ set xyzr = ()
 
 @ k = 1
 while ($k <= $nvec)
-  if ($xfmtype == eddy) then
-    awk "NR >= ($k-1)*8 + 4 && NR <= ($k-1)*8 + 7" $xforms > $matfile
+  if ($#matfile) then		# Read affine transform matrix
+    if ($xfmtype == eddy_correct) then
+      awk "NR >= ($k-1)*8 + 4 && NR <= ($k-1)*8 + 7" $xforms > $matfile
+    endif
+
+    set R = `avscale --allparams $matfile \
+             | awk 'NR >= 2 && NR <= 5 {print $1, $2, $3}'`
+    set R = `echo $R | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
+  else				# Read rotation angles directly
+    set angles = `awk -v k=$k 'NR == k {print $4, $5, $6}' $xforms`
+    set angles = `echo $angles | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
+
+    set ax = "$angles[1]"
+    set ay = "$angles[2]"
+    set az = "$angles[3]"
+
+    set R = ( `echo "c($ay)*c($az)" | bc -l` \
+              `echo "s($ax)*s($ay)*c($az) - c($ax)*s($az)" | bc -l` \
+              `echo "c($ax)*s($ay)*c($az) + s($ax)*s($az)" | bc -l` \
+              `echo "c($ay)*s($az)" | bc -l` \
+              `echo "s($ax)*s($ay)*s($az) + c($ay)*c($az)" | bc -l` \
+              `echo "c($ax)*s($ay)*s($az) - s($ax)*c($az)" | bc -l` \
+              `echo "-s($ay)" | bc -l` \
+              `echo "s($ax)*c($ay)" | bc -l` \
+              `echo "c($ax)*c($ay)" | bc -l` )
   endif
 
-  set R = `avscale --allparams $matfile | awk 'NR >= 2 && NR <= 5'`
-  set R = `echo $R | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
-
-  set x = `echo "$R[1] * $xx[$k] + $R[2]  * $yy[$k] + $R[3]  * $zz[$k]" | bc -l`
+  set x = `echo "$R[1] * $xx[$k] + $R[2] * $yy[$k] + $R[3] * $zz[$k]" | bc -l`
   set x = `printf '%1.7f' $x`
-  set y = `echo "$R[5] * $xx[$k] + $R[6]  * $yy[$k] + $R[7]  * $zz[$k]" | bc -l`
+  set y = `echo "$R[4] * $xx[$k] + $R[5] * $yy[$k] + $R[6] * $zz[$k]" | bc -l`
   set y = `printf '%1.7f' $y`
-  set z = `echo "$R[9] * $xx[$k] + $R[10] * $yy[$k] + $R[11] * $zz[$k]" | bc -l`
+  set z = `echo "$R[7] * $xx[$k] + $R[8] * $yy[$k] + $R[9] * $zz[$k]" | bc -l`
   set z = `printf '%1.7f' $z`
 
   if ($vectype == rows) then
