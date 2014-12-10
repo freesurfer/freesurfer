@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/10 05:30:53 $
- *    $Revision: 1.40 $
+ *    $Date: 2014/12/10 20:58:47 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.40 2014/12/10 05:30:53 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.41 2014/12/10 20:58:47 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.40 2014/12/10 05:30:53 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.41 2014/12/10 20:58:47 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -134,7 +134,7 @@ char *OutBetaFile=NULL,*OutBetaVarFile=NULL,*OutXtXFile=NULL;
 char *SrcBetaFile=NULL;
 int SynthOnly=0,SaveSynth=0;
 int GTMSynthSeed=0,GTMSynthReps=1;
-double SynthPSFFWHMCol=0,SynthPSFFWHMRow=0,SynthPSFFWHMSlice=0;
+double SynthPSFFWHMCol=0,SynthPSFFWHMRow=0,SynthPSFFWHMSlice=0,SynthPSFMBSlope=0;
 double SynthPSFStdCol=0,SynthPSFStdRow=0,SynthPSFStdSlice=0;
 MATRIX *srcbeta;
 double psfFWHM=-1;
@@ -455,6 +455,11 @@ int main(int argc, char *argv[])
     fprintf(logfp,"FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
     fprintf(logfp,"Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
     if(gtm->UseMB) fprintf(logfp,"MB: %g\n",gtm->mb->slope);
+    sprintf(tmpstr,"%s/opt.params.dat",AuxDir);
+    fp = fopen(tmpstr,"w");
+    for(n=0; n < gtmopt->nparams; n++) fprintf(fp,"%lf ",gtmopt->params[n]);
+    fprintf(fp,"\n");
+    fclose(fp);
   }
 
   // Create GTM matrix
@@ -494,10 +499,24 @@ int main(int argc, char *argv[])
 
   if(DoSimulation){
     printf("Synthsizing using supplied beta %s\n",SrcBetaFile);
+    fprintf(logfp,"GTMSynth: Seed=%d, Reps=%d\n",GTMSynthSeed,GTMSynthReps);
     gtm->beta = srcbeta;
     GTMsynth(gtm,GTMSynthSeed,GTMSynthReps);
     printf("Smoothing synthsized %g %g %g\n",SynthPSFStdCol,SynthPSFStdRow,SynthPSFStdSlice);
     gtm->ysynthsm = MRIgaussianSmoothNI(gtm->ysynth,SynthPSFStdCol,SynthPSFStdRow,SynthPSFStdSlice,NULL);
+    if(SynthPSFMBSlope > 0){
+      printf("MB2D smoothing by %g\n",SynthPSFMBSlope);
+      MB2D *mbtmp = (MB2D *) calloc(sizeof(MB2D),1);
+      mbtmp->slope = SynthPSFMBSlope;
+      mbtmp->Interp = SAMPLE_NEAREST;
+      mbtmp->cutoff = 4;
+      mbtmp->c0 = gtm->yvol->width/2.0;
+      mbtmp->r0 = gtm->yvol->height/2.0;
+      mbtmp->DeltaD = gtm->yvol->xsize;
+      mritmp = MRImotionBlur2D(gtm->ysynthsm, mbtmp, NULL);
+      MRIfree(&gtm->ysynthsm);
+      gtm->ysynthsm = mritmp;
+    }
     if(SaveSynth){
       sprintf(tmpstr,"%s/synth.nii.gz",OutDir);
       MRIwrite(gtm->ysynthsm,tmpstr);
@@ -1201,14 +1220,15 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if(!strcasecmp(option, "--synth")) {
-      if(nargc < 6) CMDargNErr(option,6);
+      if(nargc < 7) CMDargNErr(option,7);
       SrcBetaFile = pargv[0];
       sscanf(pargv[1],"%lf",&SynthPSFFWHMCol);
       sscanf(pargv[2],"%lf",&SynthPSFFWHMRow);
       sscanf(pargv[3],"%lf",&SynthPSFFWHMSlice);
-      sscanf(pargv[4],"%d",&GTMSynthSeed);
+      sscanf(pargv[4],"%lf",&SynthPSFMBSlope);
+      sscanf(pargv[5],"%d",&GTMSynthSeed);
       if(GTMSynthSeed < 0) GTMSynthSeed = PDFtodSeed();
-      sscanf(pargv[5],"%d",&GTMSynthReps);
+      sscanf(pargv[6],"%d",&GTMSynthReps);
       mritmp = MRIread(SrcBetaFile);
       if(mritmp == NULL) exit(1);
       MATRIX *srcbetaT = fMRItoMatrix(mritmp,NULL);
@@ -1218,7 +1238,7 @@ static int parse_commandline(int argc, char **argv) {
       SynthPSFStdRow   = SynthPSFFWHMRow/sqrt(log(256.0));
       SynthPSFStdSlice = SynthPSFFWHMSlice/sqrt(log(256.0));
       DoSimulation = 1;
-      nargsused = 6;
+      nargsused = 7;
     } 
     else if(!strcasecmp(option, "--synth-only")) {SynthOnly = 1;SaveSynth = 1;}
     else if(!strcasecmp(option, "--save-synth")) SaveSynth = 1;
@@ -1364,9 +1384,15 @@ static void check_options(void)
     SegVolFile = strcpyalloc(tmpstr);
   }
 
-  sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,gtm->anat2pet->subject);
-  gtm->anatconf = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
-  if(gtm->anatconf == NULL) exit(1);
+  if(DoRBV){
+    sprintf(tmpstr,"%s/%s/mri/orig.mgz",SUBJECTS_DIR,gtm->anat2pet->subject);
+    gtm->anatconf = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+    if(gtm->anatconf == NULL){
+      printf("ERROR: loading %s\n",tmpstr);
+      printf(" This is needed for RBV\n");
+      exit(1);
+    }
+  }
 
   if(gtm->cFWHM < 0 || gtm->rFWHM < 0 || gtm->sFWHM < 0){
     printf("ERROR: must spec psf FWHM\n");
