@@ -1,12 +1,16 @@
 #!/bin/tcsh -f
 # fvcompare
 
-set VERSION = '$Id: fvcompare,v 1.1 2014/11/24 21:58:12 greve Exp $';
+set VERSION = '$Id: fvcompare,v 1.2 2014/12/10 21:19:10 greve Exp $';
 
 set subject1 = ();
 set subject2 = ();
+set subject3 = ();
+set subject4 = ();
 set SD1 = ();
 set SD2 = ();
+set SD3 = ();
+set SD4 = ();
 set vollist = ();
 set seglist = ();
 set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
@@ -14,15 +18,20 @@ set segopacity = 1;
 set surflist = (white pial);
 set surfcolor1 = (yellow red);
 set surfcolor2 = (green blue);
+set surfcolor3 = (green blue);
+set surfcolor4 = (green blue);
 set tmpdir = ();
 set cleanup = 1;
 set LF = ();
 set name1 = "s1"
 set name2 = "s2"
+set name3 = "s3"
+set name4 = "s4"
 set grayscale = (":grayscale=0,255")
 set NoSeg = 0;
 set NoSurf = 0;
 set hemilist = (lh rh)
+set snolist = (1 2)
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -46,7 +55,7 @@ check_params_return:
 
 set cmd = (freeview )
 foreach vol ($vollist)
-  foreach s (1 2)
+  foreach s ($snolist)
     if($s == 1) then
       set subject = $subject1
       set surfcolor = ($surfcolor1);
@@ -56,6 +65,16 @@ foreach vol ($vollist)
       set subject = $subject2
       set surfcolor = ($surfcolor2);
       set name = $name2;
+    endif
+    if($s == 3) then
+      set subject = $subject3
+      set surfcolor = ($surfcolor3);
+      set name = $name3;
+    endif
+    if($s == 4) then
+      set subject = $subject4
+      set surfcolor = ($surfcolor4);
+      set name = $name4;
     endif
     set sname = `basename $subject`
     set volbase = `basename $vol .mgz`
@@ -65,7 +84,7 @@ foreach vol ($vollist)
   end
 end
 foreach seg ($seglist)
-  foreach s (1 2)
+  foreach s ($snolist)
     if($s == 1) then
       set subject = $subject1
       set surfcolor = ($surfcolor1);
@@ -75,6 +94,16 @@ foreach seg ($seglist)
       set subject = $subject2
       set surfcolor = ($surfcolor2);
       set name = $name2;
+    endif
+    if($s == 3) then
+      set subject = $subject3
+      set surfcolor = ($surfcolor3);
+      set name = $name3;
+    endif
+    if($s == 4) then
+      set subject = $subject4
+      set surfcolor = ($surfcolor4);
+      set name = $name4;
     endif
     set segbase = `basename $seg .mgz`
     set cue = $name-$segbase
@@ -86,7 +115,7 @@ foreach hemi ($hemilist)
   @ nth = 0;
   foreach surf ($surflist)
     @ nth = $nth + 1;
-    foreach s (1 2)
+    foreach s ($snolist)
       if($s == 1) then
         set subject = $subject1
         set surfcolor = ($surfcolor1);
@@ -96,6 +125,16 @@ foreach hemi ($hemilist)
         set subject = $subject2
         set surfcolor = ($surfcolor2);
         set name = $name2;
+      endif
+      if($s == 3) then
+        set subject = $subject3
+        set surfcolor = ($surfcolor3);
+        set name = $name3;
+      endif
+      if($s == 4) then
+        set subject = $subject4
+        set surfcolor = ($surfcolor4);
+        set name = $name4;
       endif
       set cue = "$name-$hemi.$surf"
       set cmd = ($cmd --surface "$subject/surf/$hemi.$surf":"edgecolor=$surfcolor[$nth]":"name=$cue")
@@ -146,15 +185,37 @@ while( $#argv != 0 )
       set name1 = $argv[1]; shift;
       breaksw
 
+    case "--s2":
+      if($#argv < 1) goto arg1err;
+      set subject2 = $argv[1]; shift;
+      breaksw
+
     case "--name2":
     case "--n2":
       if($#argv < 1) goto arg2err;
       set name2 = $argv[1]; shift;
       breaksw
 
-    case "--s2":
+    case "--s3":
       if($#argv < 1) goto arg1err;
-      set subject2 = $argv[1]; shift;
+      set subject3 = $argv[1]; shift;
+      breaksw
+
+    case "--name3":
+    case "--n3":
+      if($#argv < 1) goto arg2err;
+      set name3 = $argv[1]; shift;
+      breaksw
+
+    case "--s4":
+      if($#argv < 1) goto arg1err;
+      set subject4 = $argv[1]; shift;
+      breaksw
+
+    case "--name4":
+    case "--n4":
+      if($#argv < 1) goto arg2err;
+      set name4 = $argv[1]; shift;
       breaksw
 
     case "--sd":
@@ -170,6 +231,36 @@ while( $#argv != 0 )
     case "--sd2":
       if($#argv < 1) goto arg1err;
       set SD2 = $argv[1]; shift;
+      breaksw
+
+    case "--sd3":
+      if($#argv < 1) goto arg1err;
+      set SD3 = $argv[1]; shift;
+      breaksw
+
+    case "--sd4":
+      if($#argv < 1) goto arg1err;
+      set SD4 = $argv[1]; shift;
+      breaksw
+
+    case "--c1":
+      if($#argv < 2) goto arg2err;
+      set surfcolor1 = ($argv[1] $argv[2]); shift; shift;
+      breaksw
+
+    case "--c2":
+      if($#argv < 2) goto arg2err;
+      set surfcolor2 = ($argv[1] $argv[2]); shift; shift;
+      breaksw
+
+    case "--c3":
+      if($#argv < 2) goto arg2err;
+      set surfcolor3 = ($argv[1] $argv[2]); shift; shift;
+      breaksw
+
+    case "--c4":
+      if($#argv < 2) goto arg2err;
+      set surfcolor4 = ($argv[1] $argv[2]); shift; shift;
       breaksw
 
     case "--vol":
@@ -262,6 +353,8 @@ check_params:
 
 if($#SD1 == 0) set SD1 = $SUBJECTS_DIR
 if($#SD2 == 0) set SD2 = $SUBJECTS_DIR
+if($#SD3 == 0) set SD3 = $SUBJECTS_DIR
+if($#SD4 == 0) set SD4 = $SUBJECTS_DIR
 
 if($#subject1 == 0) then
   echo "ERROR: must spec subject1"
@@ -286,6 +379,9 @@ if(! -e $subject2) then
   endif
   set subject2 = $subject2tmp;
 endif
+
+if($#subject3) set snolist = ($snolist 3)
+if($#subject4) set snolist = ($snolist 4)
 
 if($#vollist == 0) set vollist = (orig.mgz)
 if($#seglist == 0) set seglist = (aparc+aseg.mgz)
@@ -313,6 +409,8 @@ usage_exit:
   echo "  --s1 subject1 --s2 subject2"
   echo "  --s subject --sd1 SD1 --sd2 SD2"
   echo "  --n1 name1 --n2 name2 (default s1 and s2)"
+  echo "  --c1 whitecolor1 pialcolor1 ... : set surface colors"
+  echo " Note you can add two more subjects using --s3, --n3, --c3, --s4, etc"
   echo "  --vol volname (as found in subject/mri; default is orig.mgz, can have multiple)"
   echo "  --seg segname (as found in subject/mri; default is aparc+aseg.mgz, can have multiple)"
   echo "  --no-seg : do not display segmentations"
