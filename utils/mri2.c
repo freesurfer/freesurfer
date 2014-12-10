@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/30 19:22:47 $
- *    $Revision: 1.111 $
+ *    $Date: 2014/12/10 05:30:08 $
+ *    $Revision: 1.112 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5130,4 +5130,32 @@ MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlis
   free(hitlist);
   MRIfree(&seg);
   return(newseg);
+}
+
+/*
+\fn MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg)
+\brief Creates an MRI structure with number of columns equal to the
+number of non-null entries in the table. The value is set the to count
+for that entry in the ctab.
+*/
+MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg)
+{
+  int n,ntot;
+  MRI *mri;
+  float voxsize;
+
+  voxsize = seg->xsize * seg->ysize * seg->zsize;
+
+  ntot = 0;
+  for(n=1; n < ct->nentries; n++) if(ct->entries[n]) ntot++;
+  mri = MRIalloc(ntot,1,1,MRI_FLOAT);
+
+  ntot = 0;
+  for(n=1; n < ct->nentries; n++) 
+    if(ct->entries[n]) {
+      MRIsetVoxVal(mri,ntot,0,0,0, voxsize*ct->entries[n]->count);
+      ntot++;
+    }
+
+  return(mri);
 }
