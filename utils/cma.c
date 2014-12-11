@@ -8,11 +8,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/11/27 03:36:26 $
- *    $Revision: 1.25 $
+ *    $Author: nicks $
+ *    $Date: 2014/12/11 15:34:37 $
+ *    $Revision: 1.26 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -918,7 +918,7 @@ double *ComputeBrainVolumeStats(char *subject)
   sprintf(tmpstr,"%s/%s/mri/brainmask.mgz",SUBJECTS_DIR,subject);
   brainmask = MRIread(tmpstr); if(brainmask == NULL) return(NULL);
 
-  sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
+  sprintf(tmpstr,"%s/%s/mri/aseg.presurf.mgz",SUBJECTS_DIR,subject);
   aseg = MRIread(tmpstr); if(aseg == NULL) return(NULL);
 
   sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
