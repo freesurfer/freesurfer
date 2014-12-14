@@ -15,7 +15,7 @@ proc PrintUsage { } {
   puts "  -noinfodump : do not create infodump file"
   puts ""
   puts "  -scanonly file : only scan the directory and put result in file"
-  puts "  -log file : explicilty set log file"
+  puts "  -log file : explicitly set log file"
   puts "  -nspmzeropad N : set frame number zero padding width for SPM"
   puts "  -no-unpackerr     : do not try to unpack runs with errors"
   puts ""
@@ -63,7 +63,7 @@ puts "  -run RunNumber Subdir Format Name"
 puts ""
 puts "     Specifies unpacking rules from the command-line."
 puts ""
-puts "  -cfgfile file"
+puts "  -cfg file"
 puts ""
 puts "     Specifies unpacking rules using the given file."
 puts ""
@@ -305,7 +305,7 @@ puts "7. Same as 6 but use MGZ and NIFTI formats:"
 puts ""
 puts "   Create a configuration file with the contents"
 puts ""
-puts "         2 Sag8Min MGZ    mpgrage1.mgz"
+puts "         2 Sag8Min MGZ    mprage1.mgz"
 puts "         7 bold    NII    f-ep2d-07.nii"
 puts ""
 puts "OTHER OUTPUT"
@@ -331,7 +331,7 @@ puts "sequence programmer to assure that the output files conform to this"
 puts "standard. For more information, send email to:  "
 puts "             analysis-bugs@nmr.mgh.harvard.edu."
 puts ""
-puts "Fails on supermosiacs."
+puts "Fails on supermosaics."
 puts ""
 puts "Does not compute the TR properly if there is a temporal gap between"
 puts "volumes."
@@ -357,7 +357,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.23 2008/12/15 21:42:16 greve Exp $}
+puts {$Id: unpacksdcmdir,v 1.24 2014/12/14 23:06:20 jonp Exp $}
 
 exit 1;
 
@@ -687,7 +687,7 @@ proc CheckUnpackCfgDuplication { unpackcfg } {
 #------------------------------------------------------------------#
 proc CheckUnpackCfgFormat { unpackcfg } {
   # Checks that all the formats listed in the unpacking
-  # congfiguration are valid.
+  # configuration are valid.
   global LF;
 
   set nruns [llength $unpackcfg];
@@ -889,7 +889,7 @@ set mriconvert mri_convert
 
 # Dump some info to the screen
 puts "";
-puts {$Id: unpacksdcmdir,v 1.23 2008/12/15 21:42:16 greve Exp $};
+puts {$Id: unpacksdcmdir,v 1.24 2014/12/14 23:06:20 jonp Exp $};
 puts "";
 puts [pwd];
 puts "$argv"
@@ -938,7 +938,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.23 2008/12/15 21:42:16 greve Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.24 2014/12/14 23:06:20 jonp Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -993,7 +993,7 @@ set ParsePipeDone 0
 set pct -1
 while { ! $ParsePipeDone } {
 
-   after 10; # Give status every 10 milisecond
+   after 10; # Give status every 10 millisecond
 
    set ParsePipeDone [ReadParsePipe $ParsePipeId];
 
@@ -1126,7 +1126,7 @@ if { $scanonly } {
   exit 0; 
 }
 
-# Create upackcfg from Sequence Configuration #
+# Create unpackcfg from Sequence Configuration #
 if { [info exists seqcfgfile] } {
   set SeqCfgList [ReadSeqCfg $seqcfgfile];
 }
