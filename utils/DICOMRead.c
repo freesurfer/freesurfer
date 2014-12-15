@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/15 22:40:27 $
- *    $Revision: 1.162 $
+ *    $Date: 2014/12/15 23:45:55 $
+ *    $Revision: 1.163 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1533,8 +1533,8 @@ int AllocElementData(DCM_ELEMENT *e)
 char *ElementValueString(DCM_ELEMENT *e, int DoBackslash) {
   char* evstring;
   int n,len;
-  char tmpstr[2000];
-  char tmpstr2[2000];
+  char tmpstr[20000];
+  char tmpstr2[20000];
 
   memset(&tmpstr[0],0,2000);
 
@@ -1549,7 +1549,6 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash) {
   case DCM_IS:
   case DCM_LO:
   case DCM_LT:
-  case DCM_OB:
   case DCM_OW:
   case DCM_PN:
   case DCM_SH:
@@ -1558,6 +1557,14 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash) {
   case DCM_TM:
   case DCM_UI:
     sprintf(tmpstr,"%s",e->d.string);
+    break;
+  case DCM_OB:
+    for(n = 0; n < e->length; n++){
+      if(isprint(e->d.string[n])) tmpstr[n] = e->d.string[n];
+      else	                  tmpstr[n] = ' ';
+
+    }
+    //printf("%s\n",tmpstr);
     break;
   case DCM_SS:
     sprintf(tmpstr,"%d",(int)(*(e->d.ss)));
