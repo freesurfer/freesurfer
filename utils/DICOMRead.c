@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/25 18:52:49 $
- *    $Revision: 1.160 $
+ *    $Date: 2014/12/15 21:22:38 $
+ *    $Revision: 1.161 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1484,6 +1484,7 @@ int AllocElementData(DCM_ELEMENT *e)
   case DCM_OW:
   case DCM_PN:
   case DCM_SH:
+  case DCM_UN: // unknown
   case DCM_ST:
   case DCM_TM:
   case DCM_UI:
@@ -1519,12 +1520,78 @@ int AllocElementData(DCM_ELEMENT *e)
     return(1);
     break;
   default:
-    fprintf(stderr,"AllocElementData: %d unrecognized",e->representation);
+    fprintf(stderr,"AllocElementData: %d unrecognized\n",e->representation);
     return(1);
   }
 
   return(0);
 }
+/*---------------------------------------------------------------
+  ElementValueString() - returns the value of the element as a
+  null terminated string. Does not parse multiple valued elements.
+  For string elements, it just copies the string and adds a
+  terminator. For others, it just uses sprrintf.
+  ---------------------------------------------------------------*/
+char *ElementValueString(DCM_ELEMENT *e, int DoBackslash) {
+  char* evstring;
+  int n,len;
+  char tmpstr[2000];
+
+  memset(&tmpstr[0],0,2000);
+
+  switch (e->representation) {
+
+  case DCM_AE:
+  case DCM_AS:
+  case DCM_CS:
+  case DCM_DA:
+  case DCM_DS:
+  case DCM_DT:
+  case DCM_IS:
+  case DCM_LO:
+  case DCM_LT:
+  case DCM_OB:
+  case DCM_OW:
+  case DCM_PN:
+  case DCM_SH:
+  case DCM_UN: // unknown
+  case DCM_ST:
+  case DCM_TM:
+  case DCM_UI:
+    sprintf(tmpstr,"%s",e->d.string);
+    break;
+  case DCM_SS:
+    sprintf(tmpstr,"%d",(int)(*(e->d.ss)));
+    break;
+  case DCM_SL:
+    sprintf(tmpstr,"%ld",(long)(*(e->d.sl)));
+    break;
+  case DCM_UL:
+    sprintf(tmpstr,"%ld",(long)(*(e->d.ul)));
+    break;
+  case DCM_US:
+    sprintf(tmpstr,"%d",(int)(*(e->d.us)));
+    break;
+  case DCM_AT:
+    sprintf(tmpstr,"%ld",(long)(*(e->d.at)));
+    break;
+  default:
+    fprintf(stderr,"ElementValueSting: %d unrecognized",e->representation);
+    return(NULL);
+  }
+
+  len = strlen(tmpstr);
+  evstring = (char *) calloc(len+1,sizeof(char));
+  memmove(evstring,tmpstr,len+1);
+
+  if(DoBackslash){
+    // replace backslashes with spaces
+    for(n=0; n < len; n++) if(evstring[n] == '\\') evstring[n] = ' ';
+  }
+
+  return(evstring);
+}
+
 /*-------------------------------------------------------------------
   FreeElementData() - frees memory allocated for the data portion of
   the element structure. Returns 1 if there's an error (otherwise 0).

@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/10/14 19:49:46 $
- *    $Revision: 1.40 $
+ *    $Date: 2014/12/15 21:22:38 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.40 2014/10/14 19:49:46 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.41 2014/12/15 21:22:38 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -105,7 +105,6 @@ int DoPartialDump = 1;
 //DCM_OBJECT *GetObjectFromFile(char *fname, unsigned long options);
 int DumpElement(FILE *fp, DCM_ELEMENT *e);
 char *RepString(int RepCode);
-char *ElementValueString(DCM_ELEMENT *e);
 int PartialDump(char *dicomfile, FILE *fp);
 int DumpSiemensASCII(char *dicomfile, FILE *fpout);
 int DumpSiemensASCIIAlt(char *dicomfile, FILE *fpout);
@@ -145,7 +144,7 @@ int main(int argc, char **argv) {
   int n,nvoxs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.40 2014/10/14 19:49:46 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.41 2014/12/15 21:22:38 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -232,7 +231,7 @@ int main(int argc, char **argv) {
   cond = DCM_GetElementValue(&object, &element, &rtnLength, &Ctx);
   if (cond != DCM_NORMAL) {
     COND_DumpConditions();
-    printf("ERROR: DCM_GetElementValue()\n");
+    printf("ERROR: DCM_GetElementValue(), cond = %d\n",(int)cond);
     exit(1);
   }
 
@@ -256,10 +255,10 @@ int main(int argc, char **argv) {
   case QRY_VALUE:
     if (!GettingPixelData) {
       if (outputfile == NULL)
-        printf("%s\n",ElementValueString(&element));
+        printf("%s\n",ElementValueString(&element,DoBackslash));
       else {
         fp = fopen(outputfile,"w");
-        fprintf(fp,"%s\n",ElementValueString(&element));
+        fprintf(fp,"%s\n",ElementValueString(&element,DoBackslash));
         fclose(fp);
       }
     } 
@@ -682,7 +681,7 @@ int DumpElement(FILE *fp, DCM_ELEMENT *e) {
   fprintf(fp,"desc %s\n",e->description);
   fprintf(fp,"mult %ld\n",e->multiplicity);
   fprintf(fp,"len %d\n",e->length);
-  s = ElementValueString(e);
+  s = ElementValueString(e,DoBackslash);
   fprintf(fp,"%s\n",s);
   if (s) free(s);
 
@@ -773,71 +772,6 @@ char *RepString(int RepCode) {
   return(repstring);
 }
 /*---------------------------------------------------------------*/
-/*---------------------------------------------------------------
-  ElementValueString() - returns the value of the element as a
-  null terminated string. Does not parse multiple valued elements.
-  For string elements, it just copies the string and adds a
-  terminator. For others, it just uses sprrintf.
-  ---------------------------------------------------------------*/
-char *ElementValueString(DCM_ELEMENT *e) {
-  // declared at top of file:  extern char tmpstr[TMPSTRLEN];
-  char* evstring;
-  int n,len;
-
-  memset(&tmpstr[0],0,TMPSTRLEN);
-
-  switch (e->representation) {
-
-  case DCM_AE:
-  case DCM_AS:
-  case DCM_CS:
-  case DCM_DA:
-  case DCM_DS:
-  case DCM_DT:
-  case DCM_IS:
-  case DCM_LO:
-  case DCM_LT:
-  case DCM_OB:
-  case DCM_OW:
-  case DCM_PN:
-  case DCM_SH:
-  case DCM_ST:
-  case DCM_TM:
-  case DCM_UI:
-    sprintf(tmpstr,"%s",e->d.string);
-    break;
-  case DCM_SS:
-    sprintf(tmpstr,"%d",(int)(*(e->d.ss)));
-    break;
-  case DCM_SL:
-    sprintf(tmpstr,"%ld",(long)(*(e->d.sl)));
-    break;
-  case DCM_UL:
-    sprintf(tmpstr,"%ld",(long)(*(e->d.ul)));
-    break;
-  case DCM_US:
-    sprintf(tmpstr,"%d",(int)(*(e->d.us)));
-    break;
-  case DCM_AT:
-    sprintf(tmpstr,"%ld",(long)(*(e->d.at)));
-    break;
-  default:
-    fprintf(stderr,"ElementValueSting: %d unrecognized",e->representation);
-    return(NULL);
-  }
-
-  len = strlen(tmpstr);
-  evstring = (char *) calloc(len+1,sizeof(char));
-  memmove(evstring,tmpstr,len+1);
-
-  if(DoBackslash){
-    // replace backslashes with spaces
-    for(n=0; n < len; n++) if(evstring[n] == '\\') evstring[n] = ' ';
-  }
-
-  return(evstring);
-}
-
 /*------------------------------------------------------*/
 int GetDimLength(char *dicomfile, int dimtype) {
   int dimlength;

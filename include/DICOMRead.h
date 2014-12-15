@@ -7,8 +7,8 @@
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/20 23:45:11 $
- *    $Revision: 1.34 $
+ *    $Date: 2014/12/15 21:22:38 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -270,6 +270,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume);
 
 DCM_ELEMENT *GetElementFromFile(const char *dicomfile, long grpid, long elid);
 int AllocElementData(DCM_ELEMENT *e);
+char *ElementValueString(DCM_ELEMENT *e, int DoBackslash);
 int FreeElementData(DCM_ELEMENT *e);
 DCM_ELEMENT *GetElementFromFile(const char *dicomfile, long grpid, long elid);
 DCM_OBJECT *GetObjectFromFile(const char *fname, unsigned long options);
