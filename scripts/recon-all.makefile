@@ -6,12 +6,11 @@ all: $(subj) autorecon1 autorecon2 autorecon3
 #---------------------- A U T O R E C O N  1 --------------------------
 RAW=$(subj)/mri/rawavg.mgz
 ORIG=$(subj)/mri/orig.mgz
-NU=$(subj)/mri/nu.mgz
 TAL=$(subj)/mri/transforms/talairach.auto.xfm
 CP=$(wildcard $(subj)/tmp/control.dat)
 T1=$(subj)/mri/T1.mgz
 BRAINMASK=$(subj)/mri/brainmask.mgz
-AUTORECON1=$(RAW) $(ORIG) $(NU) $(TAL) $(T1) $(BRAINMASK)
+AUTORECON1=$(RAW) $(ORIG) $(TAL) $(T1) $(BRAINMASK)
 
 autorecon1: $(AUTORECON1)
 
@@ -24,30 +23,28 @@ $(ORIG): $(RAW)
 $(TAL): $(ORIG)
 	recon-all -s $(subj) -talairach -tal-check
 
-$(NU): $(ORIG) $(TAL)
-	recon-all -s $(subj) -nuintensitycor
-
 $(T1): $(NU) $(CP)
 	recon-all -s $(subj) -normalization
 
-$(BRAINMASK): $(T1)
+$(BRAINMASK): $(T1) $(TAL)
 	recon-all -s $(subj) -skullstrip
 
 
 #------------------- A U T O R E C O N   2   V O L	----------------------
+NU=$(subj)/mri/nu.mgz
 TAL_LTA=$(subj)/mri/transforms/talairach.lta
 NORM=$(subj)/mri/norm.mgz
 TAL_M3Z=$(subj)/mri/transforms/talairach.m3z
 NU_NONECK=$(subj)/mri/nu_noneck.mgz
 TAL_SKULL_LTA=$(subj)/mri/transforms/talairach_with_skull_2.lta
-ASEG=$(subj)/mri/aseg.mgz
+ASEG_PRESURF=$(subj)/mri/aseg.presurf.mgz
 # ASEG_TOUCH can be used as a dependency target in some targets instead of
 # aseg.mgz because aseg.mgz can change in autorecon3 as a result of edits
 # via the surfaces.
 # the ASEG_TOUCH file is created after the aseg is first created.
 ASEG_TOUCH=$(subj)/touch/asegmerge.touch
-SUBCORTICAL=$(TAL_LTA) $(NORM) $(TAL_M3Z) $(NU_NONECK) $(TAL_SKULL_LTA) \
-	$(ASEG)
+SUBCORTICAL=$(NU) $(TAL_LTA) $(NORM) $(TAL_M3Z) $(NU_NONECK) \
+	$(TAL_SKULL_LTA) $(ASEG_PRESURF)
 BRAIN=$(subj)/mri/brain.mgz
 BRAINFINALSURFS=$(subj)/mri/brain.finalsurfs.mgz
 WM=$(subj)/mri/wm.mgz
@@ -61,6 +58,9 @@ AUTORECON2_VOL=$(SUBCORTICAL) $(BRAIN) $(BRAINFINALSURFS) $(WM) $(FILLED)
 autorecon2-vol: $(AUTORECON2_VOL)
 
 autorecon2-volonly: autorecon2-vol
+
+$(NU): $(ORIG) $(BRAINMASK) $(TAL)
+	recon-all -s $(subj) -nuintensitycor
 
 $(TAL_LTA): $(BRAINMASK) $(NU)
 	recon-all -s $(subj) -gcareg
@@ -77,18 +77,18 @@ $(NU_NONECK): $(TAL_M3Z) $(NU)
 $(TAL_SKULL_LTA): $(NU_NONECK) $(TAL_LTA)
 	recon-all -s $(subj) -skull-lta
 
-$(ASEG): $(NORM) $(TAL_M3Z)
+$(ASEG_PRESURF): $(NORM) $(TAL_M3Z)
 	recon-all -s $(subj) -calabel
 
 $(CP):
 
-$(BRAIN): $(BRAINMASK) $(NORM) $(ASEG) $(CP)
+$(BRAIN): $(BRAINMASK) $(NORM) $(ASEG_PRESURF) $(CP)
 	recon-all -s $(subj) -normalization2
 
 $(BRAINFINALSURFS): $(BRAIN) $(BRAINMASK)
 	recon-all -s $(subj) -maskbfs
 
-$(WM): $(BRAIN) $(ASEG) $(NORM)
+$(WM): $(BRAIN) $(ASEG_PRESURF) $(NORM)
 	recon-all -s $(subj) -segmentation
 
 $(SEED_PONS):
@@ -99,7 +99,8 @@ $(SEED_LH):
 
 $(SEED_RH):
 
-$(FILLED): $(WM) $(ASEG) $(TAL_LTA) $(SEED_PONS) $(SEED_CC) $(SEED_LH) $(SEED_RH)
+$(FILLED): $(WM) $(ASEG_PRESURF) $(TAL_LTA) \
+	$(SEED_PONS) $(SEED_CC) $(SEED_LH) $(SEED_RH)
 	recon-all -s $(subj) -fill
 
 
@@ -158,10 +159,10 @@ AUTORECON2=$(AUTORECON2_VOL) $(AUTORECON2_SURF)
 
 autorecon2: $(AUTORECON2)
 
-$(ORIG_NOFIX_LH): $(FILLED)
+$(ORIG_NOFIX_LH): $(FILLED) $(NORM)
 	recon-all -s $(subj) -hemi lh -tessellate
 
-$(ORIG_NOFIX_RH): $(FILLED)
+$(ORIG_NOFIX_RH): $(FILLED) $(NORM)
 	recon-all -s $(subj) -hemi rh -tessellate
 
 $(SMOOTHWM_NOFIX_LH): $(ORIG_NOFIX_LH)
@@ -206,18 +207,6 @@ $(AREA_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
 $(AREA_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH)
 	recon-all -s $(subj) -hemi rh -white
 
-$(AREA_MID_LH): $(AREA_LH)
-	recon-all -s $(subj) -hemi lh -surfvolume
-
-$(AREA_MID_RH): $(AREA_RH)
-	recon-all -s $(subj) -hemi rh -surfvolume
-
-$(VOLUME_LH): $(AREA_MID_LH) # should depend on thickness too
-	recon-all -s $(subj) -hemi lh -surfvolume
-
-$(VOLUME_RH): $(AREA_MID_RH) # should depend on thickness too
-	recon-all -s $(subj) -hemi rh -surfvolume
-
 $(SMOOTHWM_LH): $(WHITE_LH)
 	recon-all -s $(subj) -hemi lh -smooth2
 
@@ -226,15 +215,19 @@ $(SMOOTHWM_RH): $(WHITE_RH)
 
 $(INFLATED_LH): $(ORIG_LH) $(WHITE_LH)
 	recon-all -s $(subj) -hemi lh -inflate2
+	recon-all -s $(subj) -hemi lh -curvHK
 
 $(INFLATED_RH): $(ORIG_RH) $(WHITE_RH)
 	recon-all -s $(subj) -hemi rh -inflate2
+	recon-all -s $(subj) -hemi rh -curvHK
 
 $(SULC_LH): $(WHITE_LH)
 	recon-all -s $(subj) -hemi lh -inflate2
+	recon-all -s $(subj) -hemi lh -curvstats
 
 $(SULC_RH): $(WHITE_RH)
 	recon-all -s $(subj) -hemi rh -inflate2
+	recon-all -s $(subj) -hemi rh -curvstats
 
 #---------------------- A U T O R E C O N	 3 --------------------------
 SPHERE_LH=$(LH).sphere
@@ -259,11 +252,19 @@ APARC_A2009S_ANNOT_LH=$(subj)/label/lh.aparc.a2009s.annot
 APARC_A2009S_ANNOT_RH=$(subj)/label/rh.aparc.a2009s.annot
 APARC_A2009S_STATS_LH=$(subj)/stats/lh.aparc.a2009s.stats
 APARC_A2009S_STATS_RH=$(subj)/stats/rh.aparc.a2009s.stats
+PCTSURFCON_LH=$(subj)/surf/lh.w-g.pct.mgh
+PCTSURFCON_RH=$(subj)/surf/rh.w-g.pct.mgh
 RIBBON_LH=$(subj)/mri/lh.ribbon.mgz
 RIBBON_RH=$(subj)/mri/rh.ribbon.mgz
+ASEG_HYPOS=$(subj)/mri/aseg.presurf.hypos.mgz
+ASEG=$(subj)/mri/aseg.mgz
 ASEG_STATS=$(subj)/stats/aseg.stats
 APARC_ASEG=$(subj)/mri/aparc+aseg.mgz
 WMPARC=$(subj)/stats/wmparc.stats
+BALABELS_LH=$(subj)/label/lh.BA1.label
+BALABELS_RH=$(subj)/label/rh.BA1.label
+EXVIVO_EC_LH=$(subj)/label/lh.entorhinal_exvivo.label
+EXVIVO_EC_RH=$(subj)/label/rh.entorhinal_exvivo.label
 
 AUTORECON3=$(SPHERE_LH) $(SPHERE_RH) \
 	$(SPHERE_REG_LH) $(SPHERE_REG_RH) \
@@ -275,16 +276,20 @@ AUTORECON3=$(SPHERE_LH) $(SPHERE_RH) \
 	$(APARC_STATS_LH) $(APARC_STATS_RH) \
 	$(APARC_A2009S_ANNOT_LH) $(APARC_A2009S_ANNOT_RH) \
 	$(APARC_A2009S_STATS_LH) $(APARC_A2009S_STATS_RH) \
+	$(APARC_DKT40_ANNOT_LH) $(APARC_DKT40_ANNOT_RH) \
+	$(APARC_DKT40_STATS_LH) $(APARC_DKT40_STATS_RH) \
+	$(PCTSURFCON_LH) $(PCTSURFCON_RH) \
 	$(RIBBON_LH) $(RIBBON_RH) \
-	$(ASEG_STATS) \
-	$(APARC_ASEG) $(WMPARC)
+	$(ASEG_HYPOS) $(ASEG) $(ASEG_STATS) \
+	$(APARC_ASEG) $(WMPARC) \
+	$(BALABELS_LH) $(BALABELS_RH) $(EXVIVO_EC_LH) $(EXVIVO_EC_RH)
 
 autorecon3: $(AUTORECON3)
 
-$(SPHERE_LH): $(INFLATED_LH)
+$(SPHERE_LH): $(INFLATED_LH) $(SMOOTHWM_LH)
 	recon-all -s $(subj) -hemi lh -sphere
 
-$(SPHERE_RH): $(INFLATED_RH)
+$(SPHERE_RH): $(INFLATED_RH) $(SMOOTHWM_RH)
 	recon-all -s $(subj) -hemi rh -sphere
 
 $(SPHERE_REG_LH): $(SPHERE_LH)
@@ -305,41 +310,75 @@ $(AVG_CURV_LH): $(SPHERE_REG_LH)
 $(AVG_CURV_RH): $(SPHERE_REG_RH)
 	recon-all -s $(subj) -hemi rh -avgcurv
 
-$(APARC_ANNOT_LH): $(SPHERE_REG_LH)
+$(APARC_ANNOT_LH): $(SPHERE_REG_LH) $(ASEG_PRESURF)
 	recon-all -s $(subj) -hemi lh -cortparc
 
-$(APARC_ANNOT_RH): $(SPHERE_REG_RH)
+$(APARC_ANNOT_RH): $(SPHERE_REG_RH) $(ASEG_PRESURF)
 	recon-all -s $(subj) -hemi rh -cortparc
 
-$(PIAL_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH) $(WHITE_LH)
+$(PIAL_LH): $(ASEG_PRESURF) $(BRAINFINALSURFS) $(WM) $(FILLED) \
+	$(ORIG_LH) $(WHITE_LH) $(APARC_ANNOT_LH)
 	recon-all -s $(subj) -hemi lh -pial
 
-$(PIAL_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH) $(WHITE_RH)
+$(PIAL_RH): $(ASEG_PRESURF) $(BRAINFINALSURFS) $(WM) $(FILLED) \
+	$(ORIG_RH) $(WHITE_RH) $(APARC_ANNOT_RH)
 	recon-all -s $(subj) -hemi rh -pial
 
-$(THICKNESS_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH) $(WHITE_LH)
+$(THICKNESS_LH): $(ASEG_PRESURF) $(BRAINFINALSURFS) $(WM) $(FILLED) \
+	$(ORIG_LH) $(WHITE_LH) $(APARC_ANNOT_LH)
 	recon-all -s $(subj) -hemi lh -pial
 
-$(THICKNESS_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH) $(WHITE_LH)
+$(THICKNESS_RH): $(ASEG_PRESURF) $(BRAINFINALSURFS) $(WM) $(FILLED) \
+	$(ORIG_RH) $(WHITE_RH) $(APARC_ANNOT_RH)
 	recon-all -s $(subj) -hemi rh -pial
 
-$(APARC_STATS_LH): $(APARC_ANNOT_LH)
+$(AREA_MID_LH): $(AREA_LH)
+	recon-all -s $(subj) -hemi lh -surfvolume
+
+$(AREA_MID_RH): $(AREA_RH)
+	recon-all -s $(subj) -hemi rh -surfvolume
+
+$(VOLUME_LH): $(AREA_MID_LH) $(THICKNESS_LH)
+	recon-all -s $(subj) -hemi lh -surfvolume
+
+$(VOLUME_RH): $(AREA_MID_RH) $(THICKNESS_LH)
+	recon-all -s $(subj) -hemi rh -surfvolume
+
+$(APARC_STATS_LH): $(APARC_ANNOT_LH) $(PIAL_LH)
 	recon-all -s $(subj) -hemi lh -parcstats
 
-$(APARC_STATS_RH): $(APARC_ANNOT_RH)
+$(APARC_STATS_RH): $(APARC_ANNOT_RH) $(PIAL_RH) 
 	recon-all -s $(subj) -hemi rh -parcstats
 
-$(APARC_A2009S_ANNOT_LH): $(SPHERE_REG_LH)
+$(APARC_A2009S_ANNOT_LH): $(SPHERE_REG_LH) $(WHITE_LH) $(ASEG_PRESURF)
 	recon-all -s $(subj) -hemi lh -cortparc2
 
-$(APARC_A2009S_ANNOT_RH): $(SPHERE_REG_RH)
+$(APARC_A2009S_ANNOT_RH): $(SPHERE_REG_RH) $(WHITE_RH) $(ASEG_PRESURF)
 	recon-all -s $(subj) -hemi rh -cortparc2
 
-$(APARC_A2009S_STATS_LH): $(APARC_A2009S_ANNOT_LH)
+$(APARC_A2009S_STATS_LH): $(APARC_A2009S_ANNOT_LH) $(PIAL_LH)
 	recon-all -s $(subj) -hemi lh -parcstats2
 
-$(APARC_A2009S_STATS_RH): $(APARC_A2009S_ANNOT_RH)
+$(APARC_A2009S_STATS_RH): $(APARC_A2009S_ANNOT_RH) $(PIAL_RH)
 	recon-all -s $(subj) -hemi rh -parcstats2
+
+$(APARC_DKT40_ANNOT_LH): $(SPHERE_REG_LH) $(WHITE_LH) $(ASEG_PRESURF)
+	recon-all -s $(subj) -hemi lh -cortparc3
+
+$(APARC_DKT40_ANNOT_RH): $(SPHERE_REG_RH) $(WHITE_RH) $(ASEG_PRESURF)
+	recon-all -s $(subj) -hemi rh -cortparc3
+
+$(APARC_DKT40_STATS_LH): $(APARC_DKT40_ANNOT_LH) $(PIAL_LH)
+	recon-all -s $(subj) -hemi lh -parcstats3
+
+$(APARC_DKT40_STATS_RH): $(APARC_DKT40_ANNOT_RH) $(PIAL_RH)
+	recon-all -s $(subj) -hemi rh -parcstats3
+
+$(PCTSURFCON_LH): $(ORIG) $(WHITE_LH)
+	recon-all -s $(subj) -hemi lh -pctsurfcon
+
+$(PCTSURFCON_RH): $(ORIG) $(WHITE_RH)
+	recon-all -s $(subj) -hemi rh -pctsurfcon
 
 $(RIBBON_LH): $(ORIG) $(WHITE_LH) $(PIAL_LH)
 	recon-all -s $(subj) -hemi lh -cortribbon
@@ -347,15 +386,33 @@ $(RIBBON_LH): $(ORIG) $(WHITE_LH) $(PIAL_LH)
 $(RIBBON_RH): $(ORIG) $(WHITE_RH) $(PIAL_RH)
 	recon-all -s $(subj) -hemi rh -cortribbon
 
-$(ASEG_STATS): $(ASEG) $(WHITE_LH) $(WHITE_RH) $(PIAL_LH) $(PIAL_RH)
-	recon-all -s $(subj) -segstats
+$(ASEG_HYPOS): $(ASEG_PRESURF) $(WHITE_LH) $(WHITE_RH)
+	recon-all -s $(subj) -hyporelabel
 
-$(APARC_ASEG): $(ASEG) $(RIBBON_LH) $(RIBBON_RH) \
+$(APARC_ASEG): $(ASEG_HYPOS) $(RIBBON_LH) $(RIBBON_RH) \
 	$(APARC_ANNOT_LH) $(APARC_ANNOT_RH)
 	recon-all -s $(subj) -aparc2aseg
 
+$(ASEG): $(APARC_ASEG)
+	recon-all -s $(subj) -apas2aseg
+
+$(ASEG_STATS): $(ASEG)
+	recon-all -s $(subj) -segstats
+
 $(WMPARC): $(APARC_ASEG) $(RIBBON_LH) $(RIBBON_RH)
 	recon-all -s $(subj) -wmparc
+
+$(BALABELS_LH): $(SPHERE_REG_LH)
+	recon-all -s $(subj) -hemi lh -balabels
+
+$(BALABELS_RH): $(SPHERE_REG_RH)
+	recon-all -s $(subj) -hemi rh -balabels
+
+$(EXVIVO_EC_LH): $(SPHERE_REG_LH)
+	recon-all -s $(subj) -hemi lh -label-exvivo-ec
+
+$(EXVIVO_EC_RH): $(SPHERE_REG_RH)
+	recon-all -s $(subj) -hemi rh -label-exvivo-ec
 
 contrasurfreg: $(CONTRA_REG_LH) $(CONTRA_REG_RH)
 
