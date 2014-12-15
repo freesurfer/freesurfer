@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/15 21:22:38 $
- *    $Revision: 1.161 $
+ *    $Date: 2014/12/15 22:40:27 $
+ *    $Revision: 1.162 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1512,12 +1512,10 @@ int AllocElementData(DCM_ELEMENT *e)
     e->d.at = (DCM_TAG *) calloc(1, sizeof(DCM_TAG));
     break;
   case DCM_FD:
-    fprintf(stderr,"Element is of type double, not supported by CTN\n");
-    return(1);
+    e->d.fd = (double *) calloc(e->multiplicity,sizeof(double));
     break;
   case DCM_FL:
-    fprintf(stderr,"Element is of type float, not supported by CTN\n");
-    return(1);
+    e->d.fl = (float *) calloc(1,sizeof(float));
     break;
   default:
     fprintf(stderr,"AllocElementData: %d unrecognized\n",e->representation);
@@ -1536,6 +1534,7 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash) {
   char* evstring;
   int n,len;
   char tmpstr[2000];
+  char tmpstr2[2000];
 
   memset(&tmpstr[0],0,2000);
 
@@ -1575,8 +1574,22 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash) {
   case DCM_AT:
     sprintf(tmpstr,"%ld",(long)(*(e->d.at)));
     break;
+  case DCM_FL:
+    sprintf(tmpstr,"%f ",(float)(e->d.fd[0]));
+    for(n=1; n < e->multiplicity; n++){
+      sprintf(tmpstr2,"%s %f ",tmpstr,(float)(e->d.fd[n]));
+      sprintf(tmpstr,"%s",tmpstr2);
+    }
+    break;
+  case DCM_FD:
+    sprintf(tmpstr,"%lf ",(double)(e->d.fd[0]));
+    for(n=1; n < e->multiplicity; n++){
+      sprintf(tmpstr2,"%s %lf ",tmpstr,(double)(e->d.fd[n]));
+      sprintf(tmpstr,"%s",tmpstr2);
+    }
+    break;
   default:
-    fprintf(stderr,"ElementValueSting: %d unrecognized",e->representation);
+    fprintf(stderr,"ElementValueString: %d unrecognized",e->representation);
     return(NULL);
   }
 
@@ -1653,12 +1666,10 @@ int FreeElementData(DCM_ELEMENT *e)
     e->d.at = NULL;
     break;
   case DCM_FD:
-    fprintf(stderr,"Element is of type double, not supported by CTN\n");
-    return(1);
+    free(e->d.fd);
     break;
   case DCM_FL:
-    fprintf(stderr,"Element is of type float, not supported by CTN\n");
-    return(1);
+    free(e->d.fl);
     break;
   default:
     fprintf(stderr,"FreeElementData: %d unrecognized",e->representation);
