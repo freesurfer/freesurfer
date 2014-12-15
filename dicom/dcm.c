@@ -1,3 +1,6 @@
+/* Modified Dec 15 2014 by DNG to handle double and float. The changes
+were not extensive. Not sure how robust it is but it seems to work. */
+
 /*
   Copyright (C) 1993, 1994, RSNA and Washington University
 
@@ -86,9 +89,9 @@
 **  and convert the object to and from its "stream" representation.
 **  In addition, the package can parse a file which contains a stream
 **  and create its internal object.
-** Last Update:   $Author: nicks $, $Date: 2009/09/24 20:46:40 $
+** Last Update:   $Author: greve $, $Date: 2014/12/15 22:39:45 $
 ** Source File:   $RCSfile: dcm.c,v $
-** Revision:    $Revision: 1.32 $
+** Revision:    $Revision: 1.33 $
 ** Status:    $State: Exp $
 */
 
@@ -1121,9 +1124,13 @@ DCM_GetString(DCM_OBJECT** callerObject, DCM_TAG tag) {
 
   switch (e.representation) {
   case DCM_AT:
-  case DCM_FD:
-  case DCM_FL:
     strcpy(tmp, "<Unimplemented>");
+    break;
+  case DCM_FD:
+    sprintf(tmp, "%f", *e.d.fd);
+    break;
+  case DCM_FL:
+    sprintf(tmp, "%f", *e.d.fl);
     break;
   case DCM_SL:
     sprintf(tmp, "%d", *e.d.sl);
@@ -1714,9 +1721,13 @@ DCM_DumpElements(DCM_OBJECT ** callerObject, long vm) {
           (void) printf("%s\n", scratch);
           break;
         case DCM_DD:
-        case DCM_FD:
-        case DCM_FL:
           (void) printf("Unimplemented\n");
+          break;
+        case DCM_FD:
+          (void) printf("%lf\n",*elementItem->element.d.fd);
+          break;
+        case DCM_FL:
+          (void) printf("%lf\n",*elementItem->element.d.fd);
           break;
         case DCM_DS:
         case DCM_IS:

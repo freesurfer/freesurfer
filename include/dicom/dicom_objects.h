@@ -42,9 +42,9 @@
 ** Intent:  This file contains definitions and function prototypes
 **   for the OBJECT facility which allows the user to
 **   manipulate DICOM Objects.
-** Last Update:  $Author: nicks $, $Date: 2006/12/29 02:09:01 $
+** Last Update:  $Author: greve $, $Date: 2014/12/15 22:39:45 $
 ** Source File:  $RCSfile: dicom_objects.h,v $
-** Revision:  $Revision: 1.6 $
+** Revision:  $Revision: 1.7 $
 ** Status:  $State: Exp $
 */
 
@@ -131,6 +131,8 @@ extern "C"
       LST_HEAD *sq;
       DCM_TAG *at;
       LST_HEAD* fragments;
+      float *fl; // added by dng
+      double *fd; // added by dng
     }   d;
   }
   DCM_ELEMENT;
