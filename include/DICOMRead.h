@@ -7,8 +7,8 @@
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/15 21:22:38 $
- *    $Revision: 1.35 $
+ *    $Date: 2014/12/16 21:09:33 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -319,6 +319,14 @@ char **ReadSiemensSeries(const char *ListFile, int *nList,const char *dcmfile);
 SDCMFILEINFO **LoadSiemensSeriesInfo(char **SeriesList, int nList);
 char *sdcmExtractNumarisVer(const char *e_18_1020, int *Maj, int *Min, int *MinMin);
 int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi);
+int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec);
+int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec);
+int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec);
+int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec);
+int dcmImageDirCosObject(DCM_OBJECT *dcm, double *Vcx, double *Vcy, double *Vcz, double *Vrx, double *Vry, double *Vrz);
+MATRIX *ImageDirCos2Slice(double Vcx, double Vcy, double Vcz,
+			  double Vrx, double Vry, double Vrz,
+			  double *Vsx, double *Vsy, double *Vsz);
 
 #ifdef SunOS
 /* kteich - this typedef is to keep the compiler from complaining

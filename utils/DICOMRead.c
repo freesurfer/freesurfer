@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/15 23:45:55 $
- *    $Revision: 1.163 $
+ *    $Date: 2014/12/16 21:09:32 $
+ *    $Revision: 1.164 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1561,8 +1561,8 @@ char *ElementValueString(DCM_ELEMENT *e, int DoBackslash) {
   case DCM_OB:
     for(n = 0; n < e->length; n++){
       if(isprint(e->d.string[n])) tmpstr[n] = e->d.string[n];
+      else if(e->d.string[n]=='\r' || e->d.string[n]=='\n' || e->d.string[n]=='\v') tmpstr[n] = '\n';
       else	                  tmpstr[n] = ' ';
-
     }
     //printf("%s\n",tmpstr);
     break;
@@ -7288,6 +7288,454 @@ int DICOMRead(const char *FileName, MRI **mri, int ReadImage)
 
   return 0;
 }
+
+
+/*
+  \fn int dcmGetDWIParams()
+  \brief Extracts DWI parameters (bvals and bvecs) from a dicom file
+  (Siemens or GE).  The gradient direction should be in voxel
+  coordinates. Returns non-zero if there is a problem. If it cannot find
+  the bvalues and bvects, then zero is still returned but bvals and bvecs
+  are set to 0.
+ */
+int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
+{
+  DCM_ELEMENT *e;
+  CONDITION cond;
+  DCM_TAG tag;
+  unsigned int rtnLength;
+  void *Ctx = NULL;
+  int err;
+
+  *pbval = 0;
+  *pxbvec = 0;
+  *pybvec = 0;
+  *pzbvec = 0;
+
+  Ctx = NULL;
+  tag=DCM_MAKETAG(0x8, 0x70);
+  e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+  cond = DCM_GetElement(&dcm, tag, e);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  AllocElementData(e);
+  cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+
+  if(strcmp(e->d.string,"SIEMENS") == 0 || strcmp(e->d.string,"SIEMENS ") == 0){
+    if(Gdiag_no > 0)
+      printf("Attempting to get DWI Parameters from Siemens DICOM\n");
+    err = dcmGetDWIParamsSiemens(dcm, pbval, pxbvec, pybvec, pzbvec);
+    if(err) return(err);
+  }
+  else if(strcmp(e->d.string,"GE MEDICAL SYSTEMS") == 0){
+    if(Gdiag_no > 0)
+      printf("Attempting to get DWI Parameters from GE DICOM\n");
+    err = dcmGetDWIParamsGE(dcm, pbval, pxbvec, pybvec, pzbvec);
+    if(err) return(err);
+  }
+  else {
+    printf("ERROR: don't know how to get DWI parameters from %s\n",e->d.string);
+    fflush(stdout);
+    return(1);
+  }
+  FreeElementData(e);
+
+  if(*pbval == 0){
+    *pxbvec = 0;
+    *pybvec = 0;
+    *pzbvec = 0;
+  }
+
+  return(0);
+}
+
+/*
+  \fn int dcmGetDWIParamsGE()
+  \brief Extracts DWI info from a GE file. No transformation is
+   applied to the gradients because it is assumed that they are in
+   voxel space already. However, gradients are converted to RAS.
+   Returns 0 if no error.
+*/
+int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
+{
+  DCM_ELEMENT *e;
+  CONDITION cond;
+  DCM_TAG tag;
+  int n;
+  unsigned int rtnLength;
+  void *Ctx = NULL;
+
+  *pbval = 0;
+  *pxbvec = 0;
+  *pybvec = 0;
+  *pzbvec = 0;
+
+  // bvalue 
+  Ctx = NULL;
+  tag=DCM_MAKETAG(0x43,0x1039);
+  e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+  cond = DCM_GetElement(&dcm, tag, e);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  AllocElementData(e);
+  cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  for(n=0; n < strlen(e->d.string); n++)
+    if(e->d.string[n] == '\\') e->d.string[n] = ' ';
+  free(e);
+
+  // x part of gradient vector
+  Ctx = NULL;
+  tag=DCM_MAKETAG(0x19,0x10bb);
+  e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+  cond = DCM_GetElement(&dcm, tag, e);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  AllocElementData(e);
+  cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  (*pxbvec) *= -1; // convert from LPS to RAS
+  free(e);
+
+  // y part of gradient vector
+  Ctx = NULL;
+  tag=DCM_MAKETAG(0x19,0x10bc);
+  e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+  cond = DCM_GetElement(&dcm, tag, e);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  AllocElementData(e);
+  cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  (*pybvec) *= -1; // convert from LPS to RAS
+  free(e);
+
+  // z part of gradient vector
+  Ctx = NULL;
+  tag=DCM_MAKETAG(0x19,0x10bd);
+  e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+  cond = DCM_GetElement(&dcm, tag, e);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  AllocElementData(e);
+  cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  sscanf(e->d.string,"%lf",pzbvec);
+  free(e);
+
+  if(*pbval == 0){
+    *pxbvec = 0;
+    *pybvec = 0;
+    *pzbvec = 0;
+  }
+
+  if(Gdiag_no > 0) printf("%lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec);
+
+  return(0);
+}
+
+
+/*
+  \fn int dcmGetDWIParamsSiemens()
+  \brief Extracts DWI info from a Siemens file, transforms gradients
+  to voxel coordinates. First, looks for bval tag 0x19 0x100c. If this
+  exists, then gets bvec from 0x100e. If not, then uses an alternative
+  method. Returns 0 if everything ok. Gradients transformed to RAS.
+ */
+int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
+{
+  DCM_ELEMENT *e;
+  CONDITION cond;
+  DCM_TAG tag;
+  unsigned int rtnLength;
+  void * Ctx = NULL;
+  int err;
+  double Vcx, Vcy, Vcz, Vrx, Vry, Vrz, Vsx, Vsy, Vsz;
+  MATRIX *Mdc, *G, *G2;
+  
+  *pbval = 0;
+  *pxbvec = 0;
+  *pybvec = 0;
+  *pzbvec = 0;
+
+  // Get the bvalue
+  Ctx = NULL;
+  tag=DCM_MAKETAG(0x19,0x100c);
+  e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+  cond = DCM_GetElement(&dcm, tag, e);
+  if(cond != DCM_NORMAL){
+    // The bvalue tag does not exist, try alternative method
+    err = dcmGetDWIParamsSiemensAlt(dcm, pbval, pxbvec, pybvec, pzbvec);
+    if(err) return(err);
+  }
+  else {
+    // The bvalue tag does exist, get gradients
+    AllocElementData(e);
+    cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+    if(cond != DCM_NORMAL){free(e);return(1);}
+    sscanf(e->d.string,"%lf",pbval);
+    free(e);
+    
+    Ctx = NULL;
+    tag=DCM_MAKETAG(0x19,0x100e);
+    e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+    cond = DCM_GetElement(&dcm, tag, e);
+    if(cond != DCM_NORMAL){free(e);return(1);}
+    AllocElementData(e);
+    cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+    if(cond != DCM_NORMAL){free(e);return(1);}
+    *pxbvec = e->d.fd[0];
+    *pybvec = e->d.fd[1];
+    *pzbvec = e->d.fd[2];
+    (*pxbvec) *= -1; // convert from LPS to RAS
+    (*pybvec) *= -1; // convert from LPS to RAS
+  }
+  free(e);
+
+  err = dcmImageDirCosObject(dcm,&Vcx,&Vcy,&Vcz,&Vrx,&Vry,&Vrz);
+  if(err) return(1);
+
+  if(*pbval == 0){
+    *pxbvec = 0;
+    *pybvec = 0;
+    *pzbvec = 0;
+  }
+
+  Mdc = ImageDirCos2Slice(Vcx,Vcy,Vcz, Vrx,Vry,Vrz, &Vsx,&Vsy,&Vsz);
+  G = MatrixAlloc(3,1,MATRIX_REAL);
+  G->rptr[1][1] = *pxbvec;
+  G->rptr[2][1] = *pybvec;
+  G->rptr[3][1] = *pzbvec;
+  G2 = MatrixMultiplyD(Mdc,G,NULL);
+  if(Gdiag_no > 0){
+    printf("Transforming gradient directions into voxel coordinates\n");
+    printf("DC: %f %f %f \n%f %f %f\n%f %f %f\n",Vcx,Vcy,Vcz,Vrx,Vry,Vrz,Vsx,Vsy,Vsz);
+    printf("Before: %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec);
+  }
+  *pxbvec = G2->rptr[1][1];
+  *pybvec = G2->rptr[2][1];
+  *pzbvec = G2->rptr[3][1];
+  MatrixFree(&Mdc);
+  MatrixFree(&G);
+  MatrixFree(&G2);
+
+  if(Gdiag_no > 0)  printf("After:  %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec);
+  return(0);
+}
+
+/*
+  \fn int dcmGetDWIParamsSiemensAlt()
+  \brief This is an alternative method to extract DWI info from a
+  Siemens file. It looks in 0x29 0x1010. This should be a nasty string
+  with all kinds of control characters, etc.  It looks for key words
+  in this string and extracts values based on proximity to the key
+  word. The gradients are NOT transformed to image space. Gradients 
+  transformed to RAS. This alternate method is probably less reliable
+  than the main method.
+ */
+int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
+{
+  DCM_ELEMENT *e;
+  CONDITION cond;
+  DCM_TAG tag;
+  unsigned int rtnLength;
+  void * Ctx = NULL;
+  int n,m,k,bval_flag,bvec_flag;
+  char c, tmpstr[2000];
+  double val;
+
+  *pbval = 0;
+  *pxbvec = 0;
+  *pybvec = 0;
+  *pzbvec = 0;
+
+  // Get the nasty string
+  Ctx = NULL;
+  tag=DCM_MAKETAG(0x29,0x1010);
+  e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+  cond = DCM_GetElement(&dcm, tag, e);
+  if(cond != DCM_NORMAL){free(e);return(3);}
+  AllocElementData(e);
+  cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+  if(cond != DCM_NORMAL){free(e);return(4);}
+
+  // Scroll through the nasty string and find the keywords
+  bval_flag = 0;
+  bvec_flag = 0;
+  for(n=0; n < e->length; n++){
+    c = e->d.string[n];
+    if(c == 'B'){
+      sscanf(&(e->d.string[n]),"%s",tmpstr);
+      if(strcmp(tmpstr,"B_value") == 0) {
+	for(m=n; m < e->length; m++){
+	  c = e->d.string[m];
+	  if(isdigit(c)) {
+	    sscanf(&(e->d.string[m]),"%lf",pbval);
+	    bval_flag = 1;
+	      if(Gdiag_no > 0) printf("bval = %lf\n",*pbval);
+	    break;
+	  } // if
+	} // for m
+	// Skip past the number just read
+	while(isdigit(c) || c == '.'){
+	  if(m >= e->length) break;
+	  m = m + 1;
+	  c = e->d.string[m];
+	}
+	n = m;
+      } // B_value
+    } // B
+    if(c == 'D'){
+      sscanf(&(e->d.string[n]),"%s",tmpstr);
+      if(strcmp(tmpstr,"DiffusionGradientDirection") == 0) {
+	for(k=0; k < 3; k++){
+	  for(m=n; m < e->length; m++){
+	    c = e->d.string[m];
+	    if(isdigit(c) || c == '-' || c == '+' || c == '.') {
+	      sscanf(&(e->d.string[m]),"%lf",&val);
+	      if(Gdiag_no > 0) printf("k=%d, val = %lf\n",k,val);
+	      if(k==0) *pxbvec = -val; // convert from LPS to RAS
+	      if(k==1) *pybvec = -val; // convert from LPS to RAS
+	      if(k==2) *pzbvec = val;
+	      bvec_flag ++;
+	      break;
+	    }// if
+	  } // m
+	  // Skip past the number just read
+	  while(isdigit(c) || c == '-' || c == '+' || c == '.') {
+	    if(m >= e->length) break;
+	    m = m + 1;
+	    c = e->d.string[m];
+	  }
+	  n = m;
+	} // k
+      } //Gradient
+    } // D
+  } // loop over characters
+
+  if(*pbval == 0){
+    *pxbvec = 0;
+    *pybvec = 0;
+    *pzbvec = 0;
+  }
+
+  if(! bval_flag) return(1);
+
+  if(bvec_flag != 3){
+    printf("WARNING: found bvalue but not bvector (%d)\n",bvec_flag);
+    return(2);
+  }
+
+  if(Gdiag_no > 0) printf("%lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec);
+
+  return(0);
+}
+
+
+/*
+  \fn int dcmImageDirCosObject()
+  \brief Extracts the direction cosine for the image from the DCM object.
+  Differs from dcmImageDirCos() in that it uses an object instead of 
+  opening a file. Returns 1 if error, 0 otherwise.
+ */
+int dcmImageDirCosObject(DCM_OBJECT *dcm,
+			 double *Vcx, double *Vcy, double *Vcz,
+			 double *Vrx, double *Vry, double *Vrz)
+{
+  DCM_ELEMENT *e;
+  CONDITION cond;
+  DCM_TAG tag;
+  unsigned int rtnLength;
+  void * Ctx = NULL;
+  int n, nbs;
+  char *s;
+  double rms;
+
+  /* Load the direction cosines - this is a string of the form:
+     Vcx\Vcy\Vcz\Vrx\Vry\Vrz */
+  Ctx = NULL;
+  tag=DCM_MAKETAG(0x0020,0x0037);
+  e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+  cond = DCM_GetElement(&dcm, tag, e);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  AllocElementData(e);
+  cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+  if(cond != DCM_NORMAL){free(e);return(1);}
+  s = e->d.string;
+
+  /* replace back slashes with spaces */
+  nbs = 0;
+  for (n = 0; n < strlen(s); n++) {
+    if (s[n] == '\\') {
+      s[n] = ' ';
+      nbs ++;
+    }
+  }
+  if (nbs != 5) return(1);
+
+  sscanf(s,"%lf %lf %lf %lf %lf %lf ",Vcx,Vcy,Vcz,Vrx,Vry,Vrz);
+
+  /* Convert Vc from LPS to RAS and Normalize */
+  rms = sqrt((*Vcx)*(*Vcx) + (*Vcy)*(*Vcy) + (*Vcz)*(*Vcz)) ;
+  (*Vcx) /= -rms;
+  (*Vcy) /= -rms;
+  (*Vcz) /= +rms;
+
+  /* Convert Vr from LPS to RAS and Normalize */
+  rms = sqrt((*Vrx)*(*Vrx) + (*Vry)*(*Vry) + (*Vrz)*(*Vrz)) ;
+  (*Vrx) /= -rms;
+  (*Vry) /= -rms;
+  (*Vrz) /= +rms;
+
+  FreeElementData(e);
+  free(e);
+
+  return(0);
+}
+
+
+/*
+  \fn MATRIX *ImageDirCos2Slice()
+  \brief Computes the slice direction cosine given the image direction
+  cosine. Uses a cross-product. The sign of the slice direction cosine
+  will be arbitrary.
+ */
+MATRIX *ImageDirCos2Slice(double Vcx, double Vcy, double Vcz,
+		      double Vrx, double Vry, double Vrz,
+		      double *Vsx, double *Vsy, double *Vsz)
+{
+  VECTOR *Vc, *Vr, *Vs;
+  MATRIX *Mdc;
+  
+  Vc = MatrixAlloc(3,1,MATRIX_REAL);
+  Vr = MatrixAlloc(3,1,MATRIX_REAL);
+
+  Vc->rptr[1][1] = Vcx;
+  Vc->rptr[1][2] = Vcy;
+  Vc->rptr[1][3] = Vcz;
+  Vr->rptr[1][1] = Vrx;
+  Vr->rptr[1][2] = Vry;
+  Vr->rptr[1][3] = Vrz;
+
+  Vs = VectorCrossProduct(Vc,Vr,NULL);
+  *Vsx = Vs->rptr[1][1];
+  *Vsy = Vs->rptr[2][1];
+  *Vsz = Vs->rptr[3][1];
+
+  MatrixFree(&Vc);
+  MatrixFree(&Vr);
+  MatrixFree(&Vs);
+
+  Mdc = MatrixAlloc(3,3,MATRIX_REAL);
+  Mdc->rptr[1][1] = Vcx;
+  Mdc->rptr[2][1] = Vcy;
+  Mdc->rptr[3][1] = Vcz;
+  Mdc->rptr[1][2] = Vrx;
+  Mdc->rptr[2][2] = Vry;
+  Mdc->rptr[3][2] = Vrz;
+  Mdc->rptr[1][3] = *Vsx;
+  Mdc->rptr[2][3] = *Vsy;
+  Mdc->rptr[3][3] = *Vsz;
+
+  return(Mdc);
+}
+
 
 #if 0
 /* 9/25/01 This version does not assume that the series number is good */

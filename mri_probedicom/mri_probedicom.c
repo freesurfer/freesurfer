@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/15 21:22:38 $
- *    $Revision: 1.41 $
+ *    $Date: 2014/12/16 21:09:33 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,10 +60,11 @@
 #include "bfileio.h"
 #include "proto.h"
 #include "version.h"
+#include "cmdargs.h"
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.41 2014/12/15 21:22:38 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.42 2014/12/16 21:09:33 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -76,7 +77,6 @@ static void argnerr(char *option, int n);
 static int  singledash(char *flag);
 int GetDirective(char *directivestring);
 int GetDimLength(char *dicomfile, int dimtype);
-//DCM_ELEMENT *GetElementFromFile(char *dicomfile, long grpid, long elid);
 
 #define QRY_FILETYPE        0
 #define QRY_TAG             1
@@ -86,6 +86,7 @@ int GetDimLength(char *dicomfile, int dimtype);
 #define QRY_LENGTH          5
 #define QRY_VALUE           6
 #define QRY_HAS_PIXEL_DATA  7
+#define QRY_DWI             8
 
 char* dicomfile = NULL;
 char* directivestring = NULL;
@@ -129,6 +130,7 @@ int DoAltDump = 0;
 int GetMax = 0;
 int GetSiemensCrit = 0;
 
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   DCM_OBJECT *object;
@@ -141,10 +143,11 @@ int main(int argc, char **argv) {
   int nargs;
   short *pixeldata;
   short minpixel, maxpixel;
-  int n,nvoxs;
+  int n,nvoxs,err;
+  double bval, xbvec, ybvec, zbvec;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.41 2014/12/15 21:22:38 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.42 2014/12/16 21:09:33 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -191,26 +194,32 @@ int main(int argc, char **argv) {
     fprintf(stderr,"ERROR: cannot determine file type\n");
     exit(1);
   }/*--------------------------------------------------------------*/
+
   if(!IsDICOM(dicomfile)) {
     setenv("FS_DICOM_DEBUG","1",1);
     IsDICOM(dicomfile);
     fprintf(stderr,"ERROR: %s is not a dicom file or some other problem\n",dicomfile);
     exit(1);
   }
-  if (DisplayImage) {
+  if(DisplayImage) {
     RenderImage(argc,argv);
     return(0);
   }
 
-  tag = DCM_MAKETAG(grouptag,elementtag);
-
-  COND_PopCondition(1);
   object = GetObjectFromFile(dicomfile, 0);
+
+  if(directive == QRY_DWI) {
+    err = dcmGetDWIParams(object, &bval, &xbvec, &ybvec, &zbvec);
+    printf("%lf %lf %lf %lf\n",bval, xbvec, ybvec, zbvec);
+    return(0);
+  }
+
+  tag = DCM_MAKETAG(grouptag,elementtag);
+  COND_PopCondition(1);
   if(object == NULL){
     printf("ERROR: GetObjectFromFile()\n");
     exit(1);
   }
-
   COND_PopCondition(1);
   cond = DCM_GetElement(&object, tag, &element);
   if (directive == QRY_HAS_PIXEL_DATA) {
@@ -218,15 +227,12 @@ int main(int argc, char **argv) {
     if(cond == DCM_NORMAL)  printf("1\n");
     exit(0);
   }
-
   if(cond != DCM_NORMAL) {
     COND_DumpConditions();
     printf("ERROR: DCM_GetElement()\n");
     exit(1);
   }
-
   AllocElementData(&element);
-
   COND_PopCondition(1);
   cond = DCM_GetElementValue(&object, &element, &rtnLength, &Ctx);
   if (cond != DCM_NORMAL) {
@@ -343,6 +349,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-name")) DoPatientName = 0;
     else if (!strcasecmp(option, "--alt"))   DoAltDump = 1;
     else if (!strcasecmp(option, "--siemens-crit"))  GetSiemensCrit = 1;
+    else if (!strcasecmp(option, "--diag")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&Gdiag_no);
+      nargsused = 1;
+    } 
 
     /* -------- source volume inputs ------ */
     else if (!strcmp(option, "--i")) {
@@ -445,7 +456,7 @@ static void print_usage(void) {
   fprintf(stdout, "\n");
   fprintf(stdout, "   --i dicomfile     : path to dicom file \n");
   fprintf(stdout, "   --t group element : dicom group and element\n");
-  fprintf(stdout, "   --d directive     : <val>, length, filetype, tag, desc, mult, rep, haspixel \n");
+  fprintf(stdout, "   --d directive     : <val>, length, filetype, tag, desc, mult, rep, haspixel, dwi \n");
   fprintf(stdout, "   --max             : print max of pixel data\n");
   fprintf(stdout, "   --no-name         : do not print patient name (10,10) with dump \n");
   fprintf(stdout, "   --view            : view the image  \n");
@@ -536,6 +547,7 @@ static void print_help(void) {
     "        mult - multiplicity\n"
     "        rep  - representation\n"
     "        haspixel  - file has pixel data in it 1 (or 0 if not) (probes 0x7FE0,0x10)\n"
+    "        dwi - prints out bval and bvecs (or all 0s if not there)\n"
     "\n"
     "  --no-name\n"
     "\n"
@@ -635,9 +647,10 @@ static void check_options(void) {
   directive = GetDirective(directivestring);
 
   if (!DisplayImage) {
-    if (directive != QRY_FILETYPE && (grouptag == -1 || elementtag == -1)) {
+    if (directive != QRY_FILETYPE && directive != QRY_DWI && (grouptag == -1 || elementtag == -1)) {
       fprintf(stderr,"ERROR: must specify group and element when querying %s\n",
               directivestring);
+      printf("%d\n",directive);
       exit(1);
     }
   }
@@ -655,14 +668,15 @@ static void check_options(void) {
 }
 /* ------------------------------------------------------------ */
 int GetDirective(char *directivestring) {
-  if (! strncasecmp(directivestring,"filetype",1)) return(QRY_FILETYPE);
-  if (! strncasecmp(directivestring,"tag",1)) return(QRY_TAG);
-  if (! strncasecmp(directivestring,"representation",1)) return(QRY_REPRESENTATION);
-  if (! strncasecmp(directivestring,"description",1)) return(QRY_DESCRIPTION);
-  if (! strncasecmp(directivestring,"multiplicity",1)) return(QRY_MULTIPLICITY);
-  if (! strncasecmp(directivestring,"length",1)) return(QRY_LENGTH);
-  if (! strncasecmp(directivestring,"value",1)) return(QRY_VALUE);
-  if (! strncasecmp(directivestring,"haspixel",1)){
+  if (! strcasecmp(directivestring,"filetype")) return(QRY_FILETYPE);
+  if (! strcasecmp(directivestring,"tag")) return(QRY_TAG);
+  if (! strcasecmp(directivestring,"representation")) return(QRY_REPRESENTATION);
+  if (! strcasecmp(directivestring,"description")) return(QRY_DESCRIPTION);
+  if (! strcasecmp(directivestring,"multiplicity")) return(QRY_MULTIPLICITY);
+  if (! strcasecmp(directivestring,"length")) return(QRY_LENGTH);
+  if (! strcasecmp(directivestring,"value")) return(QRY_VALUE);
+  if (! strcasecmp(directivestring,"dwi")) return(QRY_DWI);
+  if (! strcasecmp(directivestring,"haspixel")){
     grouptag = 0x7FE0;
     elementtag = 0x10;
     return(QRY_HAS_PIXEL_DATA);
@@ -1557,5 +1571,3 @@ int DCMCompare(char *dcmfile1, char *dcmfile2)
   }
   return(isdiff);
 }
-
-
