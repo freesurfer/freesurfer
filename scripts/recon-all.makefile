@@ -213,19 +213,19 @@ $(SMOOTHWM_LH): $(WHITE_LH)
 $(SMOOTHWM_RH): $(WHITE_RH)
 	recon-all -s $(subj) -hemi rh -smooth2
 
-$(INFLATED_LH): $(ORIG_LH) $(WHITE_LH)
+$(INFLATED_LH): $(SMOOTHWM_LH) $(WHITE_LH)
 	recon-all -s $(subj) -hemi lh -inflate2
 	recon-all -s $(subj) -hemi lh -curvHK
 
-$(INFLATED_RH): $(ORIG_RH) $(WHITE_RH)
+$(INFLATED_RH): $(SMOOTHWM_RH) $(WHITE_RH)
 	recon-all -s $(subj) -hemi rh -inflate2
 	recon-all -s $(subj) -hemi rh -curvHK
 
-$(SULC_LH): $(WHITE_LH)
+$(SULC_LH): $(SMOOTHWM_LH) $(WHITE_LH)
 	recon-all -s $(subj) -hemi lh -inflate2
 	recon-all -s $(subj) -hemi lh -curvstats
 
-$(SULC_RH): $(WHITE_RH)
+$(SULC_RH): $(SMOOTHWM_RH) $(WHITE_RH)
 	recon-all -s $(subj) -hemi rh -inflate2
 	recon-all -s $(subj) -hemi rh -curvstats
 
