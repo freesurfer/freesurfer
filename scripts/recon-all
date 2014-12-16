@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2014/12/02 18:07:05 $
-#    $Revision: 1.497 $
+#    $Author: nicks $
+#    $Date: 2014/12/16 19:30:58 $
+#    $Revision: 1.498 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.497 2014/12/02 18:07:05 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.498 2014/12/16 19:30:58 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3371,8 +3371,6 @@ if($DoCurvHK) then
     set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
     set cmd = (mris_curvature -w $xopts $hemi.white)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    set CMDF = mris_curvature_white_${hemi}.cmd
-    echo "$cmd" > $CMDF
     if($DoParallel) then
       set CMDF = mris_curvature_white_${hemi}.cmd
       echo "$cmd" > $CMDF
@@ -3388,8 +3386,6 @@ if($DoCurvHK) then
     set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
     set cmd = ($cmd $xopts $hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    set CMDF = mris_curvature_inflated_${hemi}.cmd
-    echo "$cmd" > $CMDF
     if($DoParallel) then
       set CMDF = mris_curvature_inflated_${hemi}.cmd
       echo "$cmd" > $CMDF
