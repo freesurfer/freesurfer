@@ -121,7 +121,6 @@ INFLATED_LH=$(LH).inflated
 INFLATED_RH=$(RH).inflated
 WHITE_LH=$(LH).white
 WHITE_RH=$(RH).white
-CURV_RH=$(RH).curv
 CURV_LH=$(LH).curv
 CURV_RH=$(RH).curv
 AREA_LH=$(LH).area
@@ -132,10 +131,12 @@ VOLUME_LH=$(LH).volume
 VOLUME_RH=$(RH).volume
 SMOOTHWM_LH=$(LH).smoothwm
 SMOOTHWM_RH=$(RH).smoothwm
-INFLATED_LH=$(LH).inflated
-INFLATED_RH=$(RH).inflated
 SULC_LH=$(LH).sulc
 SULC_RH=$(RH).sulc
+CURV_HK_LH=$(LH).inflated.H
+CURV_HK_RH=$(RH).inflated.K
+CURVSTATS_LH=$(subj)/stats/lh.curv.stats
+CURVSTATS_RH=$(subj)/stats/rh.curv.stats
 
 AUTORECON2_SURF=$(ORIG_NOFIX_LH) $(ORIG_NOFIX_RH) \
 	$(SMOOTHWM_NOFIX_LH) $(SMOOTHWM_NOFIX_RH) \
@@ -149,7 +150,9 @@ AUTORECON2_SURF=$(ORIG_NOFIX_LH) $(ORIG_NOFIX_RH) \
 	$(VOLUME_LH) $(VOLUME_RH) \
 	$(SMOOTHWM_LH) $(SMOOTHWM_RH) \
 	$(INFLATED_LH) $(INFLATED_RH) \
-	$(SULC_LH) $(SULC_RH)
+	$(SULC_LH) $(SULC_RH) \
+	$(CURV_HK_LH) $(CURV_HK_RH) \
+	$(CURVSTATS_LH) $(CURVSTATS_RH)
 
 autorecon2-surf: $(AUTORECON2_SURF)
 
@@ -215,19 +218,28 @@ $(SMOOTHWM_RH): $(WHITE_RH)
 
 $(INFLATED_LH): $(SMOOTHWM_LH) $(WHITE_LH)
 	recon-all -s $(subj) -hemi lh -inflate2
-	recon-all -s $(subj) -hemi lh -curvHK
 
 $(INFLATED_RH): $(SMOOTHWM_RH) $(WHITE_RH)
 	recon-all -s $(subj) -hemi rh -inflate2
-	recon-all -s $(subj) -hemi rh -curvHK
 
 $(SULC_LH): $(SMOOTHWM_LH) $(WHITE_LH)
 	recon-all -s $(subj) -hemi lh -inflate2
-	recon-all -s $(subj) -hemi lh -curvstats
 
 $(SULC_RH): $(SMOOTHWM_RH) $(WHITE_RH)
 	recon-all -s $(subj) -hemi rh -inflate2
+
+$(CURV_HK_LH): $(INFLATED_LH) $(WHITE_LH)
+	recon-all -s $(subj) -hemi lh -curvHK
+
+$(CURV_HK_RH): $(INFLATED_RH) $(WHITE_RH)
+	recon-all -s $(subj) -hemi rh -curvHK
+
+$(CURVSTATS_LH): $(SMOOTHWM_LH) $(CURV_LH) $(SULC_LH)
+	recon-all -s $(subj) -hemi lh -curvstats
+
+$(CURVSTATS_RH): $(SMOOTHWM_RH) $(CURV_RH) $(SULC_RH)
 	recon-all -s $(subj) -hemi rh -curvstats
+
 
 #---------------------- A U T O R E C O N	 3 --------------------------
 SPHERE_LH=$(LH).sphere
