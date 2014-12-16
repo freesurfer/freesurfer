@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/16 21:09:33 $
- *    $Revision: 1.42 $
+ *    $Date: 2014/12/16 23:39:13 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,7 +64,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.42 2014/12/16 21:09:33 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.43 2014/12/16 23:39:13 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
   double bval, xbvec, ybvec, zbvec;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.42 2014/12/16 21:09:33 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.43 2014/12/16 23:39:13 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
   if(directive == QRY_DWI) {
     err = dcmGetDWIParams(object, &bval, &xbvec, &ybvec, &zbvec);
     printf("%lf %lf %lf %lf\n",bval, xbvec, ybvec, zbvec);
-    return(0);
+    return(err);
   }
 
   tag = DCM_MAKETAG(grouptag,elementtag);
