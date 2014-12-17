@@ -7,8 +7,8 @@
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/16 21:09:33 $
- *    $Revision: 1.36 $
+ *    $Date: 2014/12/17 00:09:08 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -153,6 +153,7 @@ typedef struct
     FieldStrength;
   short EchoNumber;
   char *PhEncDir;
+  double bval, bvecx, bvecy, bvecz;
 
   // pixels
   void *PixelData;
@@ -217,6 +218,7 @@ typedef struct
   int    nthDirection;  /* also for DWI */
   int UseSliceScaleFactor; /* for slice-by-slice scaling (0020,4000) */
   double SliceScaleFactor; /* for slice-by-slice scaling (0020,4000) */
+  double bval, bvecx, bvecy, bvecz;
 
   int   ErrorFlag;   /* Set for error, eg, aborted run */
 

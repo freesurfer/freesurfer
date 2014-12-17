@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/16 21:09:32 $
- *    $Revision: 1.164 $
+ *    $Date: 2014/12/17 00:09:08 $
+ *    $Revision: 1.165 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -103,16 +103,14 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   unsigned short *pixeldata;
   MRI *vol, *voltmp;
   char **SeriesList;
-  char *tmpstring,*pc=NULL,*pc2=NULL;
+  char *tmpstring;
   int Maj, Min, MinMin;
   double xs,ys,zs,xe,ye,ze,d,MinSliceScaleFactor,val;
-  int nnlist, nthdir;
-  DTI *dti;
-  int TryDTI = 1, DoDTI = 1;
+  int nnlist;
   int vol_datatype;
   FSENV *env;
   char tmpfile[2000],tmpfilestdout[2000],*FileNameUse,cmd[4000];
-  int IsCompressed;
+  int IsCompressed,IsDWI;
   extern int sliceDirCosPresent; // set when no ascii header
 
   xs=ys=zs=xe=ye=ze=d=0.; /* to avoid compiler warnings */
@@ -350,84 +348,6 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   // Load the AutoAlign Matrix, if one is there
   vol->AutoAlign = sdcmAutoAlignMatrix(dcmfile);
 
-  // Load DTI bvecs/bvals, if you can. If the procedure fails for some reason
-  // you can setenv UNPACK_MGH_DTI 0.
-  pc  = SiemensAsciiTag(dcmfile,"sDiffusion.lDiffDirections",0);
-  pc2 = SiemensAsciiTag(dcmfile,"sWiPMemBlock.alFree[8]",0);
-  if(pc != NULL && pc2 != NULL)
-  {
-    printf("This looks like an MGH DTI volume\n");
-    if(getenv("UNPACK_MGH_DTI") != NULL)
-    {
-      sscanf(getenv("UNPACK_MGH_DTI"),"%d",&TryDTI);
-    }
-    else
-    {
-      TryDTI = 1;
-    }
-    if(TryDTI)
-    {
-      DoDTI = 1;
-    }
-    else
-    {
-      DoDTI = 0;
-    }
-    if(! DoDTI)
-    {
-      printf("  but not getting bvec info because UNPACK_MGH_DTI is 0\n");
-    }
-  }
-  else
-  {
-    DoDTI = 0;
-  }
-  if(DoDTI && ! sdfi->IsMosaic)
-  {
-    printf("DTI is in non-moasic form, so cannot extract bvals/bvects\n");
-    DoDTI = 0;
-  }
-  if(DoDTI)
-  {
-    printf("MGH DTI SeqPack Info\n");
-    // Get b Values from header, based on sequence name.
-    // Problem: nthfile = nthvolume when mosaics are used, 
-    // but not for non-mosaics.
-    vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
-    for (nthfile = 0; nthfile < nlist; nthfile ++)
-    {
-      // Go thru all the files in order to get all the directions
-      sdfi = sdfi_list[nthfile];
-      DTIparsePulseSeqName(sdfi->PulseSequence,
-                           &sdfi->bValue, &sdfi->nthDirection);
-      nthdir = sdfi->nthDirection;
-      vol->bvals->rptr[nthfile+1][1] = sdfi->bValue;
-      printf("%d %s %lf %d\n",nthfile,sdfi->PulseSequence,
-             sdfi->bValue, sdfi->nthDirection);
-    }
-    // Have to get vectors from archive
-    dti = DTIstructFromSiemensAscii(dcmfile);
-    if(dti == NULL)
-    {
-      printf("There was an error when tyring to load the gradient directions\n");
-      printf("If you 'setenv UNPACK_MGH_DTI 0', it will not attempt to load\n");
-      printf("the gradients\n");
-      exit(1);
-    }
-    //vol->bvals = MatrixCopy(dti->bValue,NULL);
-    vol->bvecs = MatrixCopy(dti->GradDir,NULL);
-    DTIfree(&dti);
-  }
-  if(pc)
-  {
-    free(pc);
-  }
-  if(pc2)
-  {
-    free(pc2);
-  }
-
-
   /* Return now if we're not loading pixel data */
   if (!LoadVolume)
   {
@@ -468,11 +388,19 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
          sdfi_list[0]->UseSliceScaleFactor,
          sdfi_list[0]->SliceScaleFactor);
   MinSliceScaleFactor = sdfi_list[0]->SliceScaleFactor;
-  for(nthfile = 0; nthfile < nlist; nthfile ++)
+  for(nthfile = 0; nthfile < nlist; nthfile ++){
     if(MinSliceScaleFactor > sdfi_list[nthfile]->SliceScaleFactor)
-    {
       MinSliceScaleFactor = sdfi_list[nthfile]->SliceScaleFactor;
-    }
+  }
+
+  IsDWI = 0;
+  for(nthfile = 0; nthfile < nlist; nthfile ++)
+    if(sdfi_list[nthfile]->bval > 0) IsDWI = 1;
+  printf("IsDWI = %d\n",IsDWI);
+  if(IsDWI){
+    vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
+    vol->bvecs = MatrixAlloc(nframes,3,MATRIX_REAL);
+  }
 
   env = FSENVgetenv();
   for (nthfile = 0; nthfile < nlist; nthfile ++){
@@ -588,6 +516,12 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
           }
         }
       }
+      if(IsDWI){
+	vol->bvals->rptr[frame+1][1] = sdfi->bval;
+	vol->bvecs->rptr[frame+1][1] = sdfi->bvecx;
+	vol->bvecs->rptr[frame+1][2] = sdfi->bvecy;
+	vol->bvecs->rptr[frame+1][3] = sdfi->bvecz;
+      }
       frame ++;
       if (frame >= nframes)
       {
@@ -602,20 +536,14 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
       frame = nthfile;
       nmoscols = sdfi->NImageCols;
       nmosrows = sdfi->NImageRows;
-      for (row=0; row < nrows; row++)
-      {
-        for (col=0; col < ncols; col++)
-        {
-          for (slice=0; slice < nslices; slice++)
-          {
+      for (row=0; row < nrows; row++)  {
+        for (col=0; col < ncols; col++) {
+          for (slice=0; slice < nslices; slice++) {
             /* compute the mosaic col and row from the volume
                col, row , and slice */
-            err = VolSS2MosSS(col, row, slice,
-                              ncols, nrows,
-                              nmoscols, nmosrows,
-                              &moscol, &mosrow, &OutOfBounds);
-            if (err || OutOfBounds)
-            {
+            err = VolSS2MosSS(col, row, slice,ncols, nrows, nmoscols, nmosrows, 
+			      &moscol, &mosrow, &OutOfBounds);
+            if (err || OutOfBounds) {
               FreeElementData(element);
               free(element);
               MRIfree(&vol);
@@ -623,17 +551,21 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
             }
             /* Compute the linear index into the block of pixel data */
             mosindex = moscol + mosrow * nmoscols;
-            if (sdfi->UseSliceScaleFactor)
-            {
+            if (sdfi->UseSliceScaleFactor){
               val = ((float)*(pixeldata + mosindex))/sdfi->SliceScaleFactor;
               MRIFseq_vox(vol,col,row,slice,frame) = val;
             }
             else
-            {
               MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata + mosindex);
-            }
+            
           }
         }
+      }
+      if(IsDWI){
+	vol->bvals->rptr[frame+1][1] = sdfi->bval;
+	vol->bvecs->rptr[frame+1][1] = sdfi->bvecx;
+	vol->bvecs->rptr[frame+1][2] = sdfi->bvecy;
+	vol->bvecs->rptr[frame+1][3] = sdfi->bvecz;
       }
     }
 
@@ -2574,9 +2506,10 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
   int l;
   unsigned short ustmp=0;
   double dtmp=0;
-  char *strtmp, *strtmp2;
+  char *strtmp, *strtmp2,*pc;
   int retval, nDiffDirections, nB0;
   double xr,xa,xs,yr,ya,ys, zr,za,zs;
+  int DoDWI;
 
   if (! IsSiemensDICOM(dcmfile) )
   {
@@ -2866,11 +2799,38 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
     sdcmIsMosaic(dcmfile, &(sdcmfi->VolDim[0]), &(sdcmfi->VolDim[1]),
                  &(sdcmfi->VolDim[2]), &(sdcmfi->NFrames) );
   }
-  else
-  {
+  else {
     sdcmfi->VolDim[0] = sdcmfi->NImageCols;
     sdcmfi->VolDim[1] = sdcmfi->NImageRows;
   }
+
+  DoDWI = 1;
+  pc = getenv("FS_LOAD_DWI");
+  if(pc == NULL) DoDWI = 1;
+  else if(strcmp(pc,"0")==0) DoDWI = 0;
+
+  if(DoDWI){
+    double bval, xbvec, ybvec, zbvec;
+    int err;
+    err = dcmGetDWIParams(object, &bval, &xbvec, &ybvec, &zbvec);
+    if(err){
+      printf("ERROR: GetSDCMFileInfo(): dcmGetDWIParams() %d\n",err);
+      return(NULL);
+    }
+    if(Gdiag_no > 0) printf("GetSDCMFileInfo(): DWI: %s %d %lf %lf %lf %lf\n",
+			    dcmfile,err,bval, xbvec, ybvec, zbvec);
+    sdcmfi->bval = bval;
+    sdcmfi->bvecx = xbvec;
+    sdcmfi->bvecy = ybvec;
+    sdcmfi->bvecz = zbvec;
+  }
+  else{
+    sdcmfi->bval = 0;
+    sdcmfi->bvecx = 0;
+    sdcmfi->bvecy = 0;
+    sdcmfi->bvecz = 0;
+  }
+
 
   // cleanup Ascii storage
   SiemensAsciiTagEx(dcmfile, (char *) 0, 1);
@@ -4874,7 +4834,8 @@ CONDITION GetDICOMInfo(const char *fname,
   double *tmp=(double*)calloc(10, sizeof(double));
   short *itmp=(short*)calloc(3, sizeof(short));
   int i;
-  char *strtmp=NULL;
+  char *strtmp=NULL,*pc;
+  int DoDWI;
 
   // Transfer Syntax UIDs
   // see http://www.psychology.nottingham.ac.uk/staff/cr1/dicom.html
@@ -5335,7 +5296,32 @@ CONDITION GetDICOMInfo(const char *fname,
     dcminfo->PhEncDir = deblank(strtmp);
     free(strtmp);
   }
-  //printf("PE Dir %s\n",dcminfo->PhEncDir);
+
+  DoDWI = 1;
+  pc = getenv("FS_LOAD_DWI");
+  if(pc == NULL) DoDWI = 1;
+  else if(strcmp(pc,"0")==0) DoDWI = 0;
+
+  if(DoDWI){
+    double bval, xbvec, ybvec, zbvec;
+    int err;
+    err = dcmGetDWIParams(*object, &bval, &xbvec, &ybvec, &zbvec);
+    if(err){
+      printf("ERROR: GetDICOMInfo(): dcmGetDWIParams() %d\n",err);
+      return((CONDITION)1);
+    }
+    if(Gdiag_no > 0) printf("GetDICOMInfo(): DWI: %s %d %lf %lf %lf %lf\n",fname,err,bval, xbvec, ybvec, zbvec);
+    dcminfo->bval = bval;
+    dcminfo->bvecx = xbvec;
+    dcminfo->bvecy = ybvec;
+    dcminfo->bvecz = zbvec;
+  }
+  else{
+    dcminfo->bval = 0;
+    dcminfo->bvecx = 0;
+    dcminfo->bvecy = 0;
+    dcminfo->bvecz = 0;
+  }
 
   // pixel data
   if(ReadImage)
@@ -6012,7 +5998,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   char **FileNames, *dcmdir;
   DICOMInfo RefDCMInfo, TmpDCMInfo, **dcminfo;
   int nfiles, nframes,nslices, r, c, s, f, err, fid;
-  int ndcmfiles, nthfile, mritype=0,nvox;
+  int ndcmfiles, nthfile, mritype=0,nvox,IsDWI;
   unsigned short *v16=NULL;
   unsigned char  *v08=NULL;
   DCM_ELEMENT *element;
@@ -6184,6 +6170,14 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   mri->xsize   = RefDCMInfo.xsize;
   mri->ysize   = RefDCMInfo.ysize;
   mri->zsize   = RefDCMInfo.SliceThickness;
+
+  IsDWI = 0;
+  for (nthfile = 0; nthfile < ndcmfiles; nthfile ++) if(dcminfo[nthfile]->bval > 0) IsDWI=1;
+  printf("IsDWI = %d\n",IsDWI);
+  if(IsDWI){
+    mri->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
+    mri->bvecs = MatrixAlloc(nframes,3,MATRIX_REAL);
+  }
 
   if (getenv("FS_FIX_DICOMS"))
   {
@@ -6359,6 +6353,12 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
             }
           }
         }
+	if(IsDWI){
+	  mri->bvals->rptr[f+1][1] = dcminfo[nthfile]->bval;
+	  mri->bvecs->rptr[f+1][1] = dcminfo[nthfile]->bvecx;
+	  mri->bvecs->rptr[f+1][2] = dcminfo[nthfile]->bvecy;
+	  mri->bvecs->rptr[f+1][3] = dcminfo[nthfile]->bvecz;
+	}
         FreeElementData(element);
         free(element);
         nthfile++;
@@ -7316,10 +7316,10 @@ int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybv
   tag=DCM_MAKETAG(0x8, 0x70);
   e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
   cond = DCM_GetElement(&dcm, tag, e);
-  if(cond != DCM_NORMAL){free(e);return(1);}
+  if(cond != DCM_NORMAL){free(e);return(10);}
   AllocElementData(e);
   cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
-  if(cond != DCM_NORMAL){free(e);return(1);}
+  if(cond != DCM_NORMAL){free(e);return(10);}
 
   if(strcmp(e->d.string,"SIEMENS") == 0 || strcmp(e->d.string,"SIEMENS ") == 0){
     if(Gdiag_no > 0)
@@ -7375,12 +7375,13 @@ int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *py
   tag=DCM_MAKETAG(0x43,0x1039);
   e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
   cond = DCM_GetElement(&dcm, tag, e);
-  if(cond != DCM_NORMAL){free(e);return(1);}
+  if(cond != DCM_NORMAL){free(e);return(7);}
   AllocElementData(e);
   cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
-  if(cond != DCM_NORMAL){free(e);return(1);}
+  if(cond != DCM_NORMAL){free(e);return(7);}
   for(n=0; n < strlen(e->d.string); n++)
     if(e->d.string[n] == '\\') e->d.string[n] = ' ';
+  sscanf(e->d.string,"%lf",pbval);
   free(e);
 
   // x part of gradient vector
@@ -7388,10 +7389,11 @@ int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *py
   tag=DCM_MAKETAG(0x19,0x10bb);
   e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
   cond = DCM_GetElement(&dcm, tag, e);
-  if(cond != DCM_NORMAL){free(e);return(1);}
+  if(cond != DCM_NORMAL){free(e);return(7);}
   AllocElementData(e);
   cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
-  if(cond != DCM_NORMAL){free(e);return(1);}
+  if(cond != DCM_NORMAL){free(e);return(7);}
+  sscanf(e->d.string,"%lf",pxbvec);
   (*pxbvec) *= -1; // convert from LPS to RAS
   free(e);
 
@@ -7400,10 +7402,11 @@ int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *py
   tag=DCM_MAKETAG(0x19,0x10bc);
   e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
   cond = DCM_GetElement(&dcm, tag, e);
-  if(cond != DCM_NORMAL){free(e);return(1);}
+  if(cond != DCM_NORMAL){free(e);return(7);}
   AllocElementData(e);
   cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
-  if(cond != DCM_NORMAL){free(e);return(1);}
+  if(cond != DCM_NORMAL){free(e);return(7);}
+  sscanf(e->d.string,"%lf",pybvec);
   (*pybvec) *= -1; // convert from LPS to RAS
   free(e);
 
@@ -7412,10 +7415,10 @@ int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *py
   tag=DCM_MAKETAG(0x19,0x10bd);
   e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
   cond = DCM_GetElement(&dcm, tag, e);
-  if(cond != DCM_NORMAL){free(e);return(1);}
+  if(cond != DCM_NORMAL){free(e);return(7);}
   AllocElementData(e);
   cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
-  if(cond != DCM_NORMAL){free(e);return(1);}
+  if(cond != DCM_NORMAL){free(e);return(7);}
   sscanf(e->d.string,"%lf",pzbvec);
   free(e);
 
@@ -7468,28 +7471,30 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
     // The bvalue tag does exist, get gradients
     AllocElementData(e);
     cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
-    if(cond != DCM_NORMAL){free(e);return(1);}
+    if(cond != DCM_NORMAL){free(e);return(6);}
     sscanf(e->d.string,"%lf",pbval);
     free(e);
     
-    Ctx = NULL;
-    tag=DCM_MAKETAG(0x19,0x100e);
-    e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
-    cond = DCM_GetElement(&dcm, tag, e);
-    if(cond != DCM_NORMAL){free(e);return(1);}
-    AllocElementData(e);
-    cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
-    if(cond != DCM_NORMAL){free(e);return(1);}
-    *pxbvec = e->d.fd[0];
-    *pybvec = e->d.fd[1];
-    *pzbvec = e->d.fd[2];
-    (*pxbvec) *= -1; // convert from LPS to RAS
-    (*pybvec) *= -1; // convert from LPS to RAS
+    if(*pbval > 0){
+      Ctx = NULL;
+      tag=DCM_MAKETAG(0x19,0x100e);
+      e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+      cond = DCM_GetElement(&dcm, tag, e);
+      if(cond != DCM_NORMAL){free(e);return(7);}
+      AllocElementData(e);
+      cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+      if(cond != DCM_NORMAL){free(e);return(8);}
+      *pxbvec = e->d.fd[0];
+      *pybvec = e->d.fd[1];
+      *pzbvec = e->d.fd[2];
+      (*pxbvec) *= -1; // convert from LPS to RAS
+      (*pybvec) *= -1; // convert from LPS to RAS
+      free(e);
+    }
   }
-  free(e);
 
   err = dcmImageDirCosObject(dcm,&Vcx,&Vcy,&Vcz,&Vrx,&Vry,&Vrz);
-  if(err) return(1);
+  if(err) return(9);
 
   if(*pbval == 0){
     *pxbvec = 0;
@@ -7497,6 +7502,7 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
     *pzbvec = 0;
   }
 
+  // Sign of slice DC is arbitrary, but it should not matter (?)
   Mdc = ImageDirCos2Slice(Vcx,Vcy,Vcz, Vrx,Vry,Vrz, &Vsx,&Vsy,&Vsz);
   G = MatrixAlloc(3,1,MATRIX_REAL);
   G->rptr[1][1] = *pxbvec;
@@ -7615,7 +7621,7 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
     *pzbvec = 0;
   }
 
-  if(! bval_flag) return(1);
+  if(! bval_flag) return(0);
 
   if(bvec_flag != 3){
     printf("WARNING: found bvalue but not bvector (%d)\n",bvec_flag);

@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/21 19:15:01 $
- *    $Revision: 1.414 $
+ *    $Date: 2014/12/17 00:09:08 $
+ *    $Revision: 1.415 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1421,9 +1421,9 @@ int MRIwriteType(MRI *mri, const char *fname, int type)
   if(fstem == NULL) return(error);
 
   printf("Saving bvals and bvecs\n");
-  sprintf(tmpstr,"%s.mghdti.bvals",fstem);
+  sprintf(tmpstr,"%s.bvals",fstem);
   DTIwriteBValues(mri->bvals, tmpstr);
-  sprintf(tmpstr,"%s.mghdti.bvecs",fstem);
+  sprintf(tmpstr,"%s.bvecs",fstem);
   DTIwriteBVectors(mri->bvecs, tmpstr);
   free(fstem);
 
