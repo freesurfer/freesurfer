@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/09/11 21:42:56 $
- *    $Revision: 1.214 $
+ *    $Date: 2014/12/17 00:09:19 $
+ *    $Revision: 1.215 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.214 2014/09/11 21:42:56 greve Exp $",
+   "$Id: mri_convert.c,v 1.215 2014/12/17 00:09:19 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.214 2014/09/11 21:42:56 greve Exp $",
+      "$Id: mri_convert.c,v 1.215 2014/12/17 00:09:19 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1354,6 +1354,8 @@ int main(int argc, char *argv[])
         exit(1);
       }
     }
+    else if (strcmp(argv[i], "--diag") == 0 )
+      get_ints(argc, argv, &i, &Gdiag_no, 1);
     else if (strcmp(argv[i], "--mra") == 0 )
     {
       /* This flag forces DICOMread to first use 18,50 to get the slice thickness instead
@@ -1665,7 +1667,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.214 2014/09/11 21:42:56 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.215 2014/12/17 00:09:19 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
