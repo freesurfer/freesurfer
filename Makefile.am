@@ -348,7 +348,8 @@ MISCDIRS=\
 	hiam_register \
   spline3 \
 	swi_processing \
-	nmovie_qt
+	nmovie_qt \
+	HippoSF
 
 # ordering is important here for proper 'make check' and 'make distcheck' function
 SUBDIRS=\
