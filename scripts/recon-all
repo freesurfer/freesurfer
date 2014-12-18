@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/12/17 21:26:30 $
-#    $Revision: 1.500 $
+#    $Date: 2014/12/18 19:36:01 $
+#    $Revision: 1.501 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.500 2014/12/17 21:26:30 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.501 2014/12/18 19:36:01 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4812,6 +4812,146 @@ if ($DoLabelExvivoEC) then
 endif # DoLabelExvivoEC
 
 
+#--------------                        -----------------#
+#--------------  Hippocampal Subfields -----------------#
+##-----------   -hippocampal-subfields-T1  -------------#
+##-----------   -hippocampal-subfields-T1T2  -----------#
+##-----------   -hippocampal-subfields-T2  -------------#
+#--------------                        -----------------#
+
+# sanity-checks and hemilist conversion first...
+if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then
+
+  if ( ! -e ${FREESURFER_HOME}/MCRv80/bin/glnxa64/libdctprocess.so \
+    && ! -e ${FREESURFER_HOME}/MCRv80/bin/maci64/libdctprocess.jnilib  ) then
+    echo "     "
+    echo "ERROR: cannot find Matlab 2012b runtime in location:"
+    echo "     "
+    echo "${FREESURFER_HOME}/MCRv80"
+    echo "     "
+    echo "It is looking for either: "
+    echo "  bin/glnxa64/libdctprocess.so    (Linux 64b) or"
+    echo "  bin/maci64/libdctprocess.jnilib (Mac 64b)"
+    echo "You will need the Matlab Compiler Runtime (MCR) for Matlab 2012b."
+    echo "For further details, please visit:"
+    echo "     "
+    echo "https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields"
+    echo "     "
+    echo "Or you can symlink your Matlab 2012b install, or a downloaded MCR"
+    echo "install, to a directory named MCRv80 in your FREESURFER_HOME" 
+    echo "The MCR is available here:"
+    echo "     "
+    echo "http://www.mathworks.com/products/compiler/mcr/index.html"
+    echo "     "
+    goto error_exit;
+  endif
+
+  # then check for necessary data from default freesurfer processing
+  if (! -e ${subjdir}/mri/wmparc.mgz || \
+      ! -e ${subjdir}/mri/norm.mgz || \
+      ! -e ${subjdir}/mri/transforms/talairach.xfm ) then
+    echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for the subject."
+    echo "ERROR: Maybe, run recon-all again or disable hippocampal subfields processing."
+    goto error_exit;
+  endif #checking of wmparc.mgz, norm.mgz and talairach.xfm
+
+  # these tools assume 'left' and 'right' instead of our usual 'lh' and 'rh'
+  if($#hemilist == 1) then
+    if ("$hemilist" == "lh") set hippohemilist=(left)
+    if ("$hemilist" == "rh") set hippohemilist=(right)
+  else
+    set hippohemilist=(left right)
+  endif
+endif
+
+#--------------                        -----------------#
+##-----------   -hippocampal-subfields-T1  -------------#
+#--------------                        -----------------#
+if($DoHippoSF_T1) then
+  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T1.log)
+  rm -f $HSFLOG
+  echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+  echo "#@# Hippocampal Subfields processing (T1 only) $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+
+  # do hippocampal processing using just T1 data
+  foreach hemi ($hippohemilist)
+    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T1.sh \
+      ${FREESURFER_HOME}/MCRv80 \
+      $FREESURFER_HOME \
+      $subjid  \
+      $SUBJECTS_DIR \
+      $hemi )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
+    if($status) goto error_exit;
+  end
+
+  echo $cmd > $touchdir/hippo-subfields-T1.touch
+endif
+
+#--------------                        -----------------#
+##------------- -hippocampal-subfields-T1T2  -----------#
+#--------------                        -----------------#
+if($DoHippoSF_T1T2) then 
+  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T1T2.log)
+  rm -f $HSFLOG
+  echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+  echo "#@# Hippocampal Subfields processing (T1 + T2 volume) $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+
+  # do hippocampal processing
+  foreach hemi ($hippohemilist)
+    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T1T2.sh \
+      ${FREESURFER_HOME}/MCRv80 \
+      $FREESURFER_HOME \
+      $subjid  \
+      $SUBJECTS_DIR \
+      $T2volHippoSF \
+      $hemi )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
+    if($status) goto error_exit;
+  end
+
+  echo $cmd > $touchdir/hippo-subfields-T1T2.touch
+endif
+
+#--------------                        -----------------#
+##------------- -hippocampal-subfields-T2  -------------#
+#--------------                        -----------------#
+if($DoHippoSF_T2) then 
+
+  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T2.log)
+  rm -f $HSFLOG
+  echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+  echo "#@# Hippocampal Subfields processing (T2 only) $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+  
+  # do hippocampal processing
+  foreach hemi ($hippohemilist)
+    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T2.sh \
+      ${FREESURFER_HOME}/MCRv80 \
+      $FREESURFER_HOME \
+      $subjid  \
+      $SUBJECTS_DIR \
+      $T2volHippoSF \
+      $hemi )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
+    if($status) goto error_exit;
+  end
+  
+  echo $cmd > $touchdir/hippo-subfields-T2.touch
+endif
+
+
 #--------                          --------#
 #-------- Local Gyrification Index --------#
 ##-------           -lgi           --------#
@@ -4996,129 +5136,6 @@ if($DoVnoMatchCheck) then
     reconbatchjobs $LF $CMDFS |& tee -a $LF
     if($status) goto error_exit;
   endif
-endif
-
-
-#--------------                        -----------------#
-#--------------  Hippocampal Subfields -----------------#
-##-----------   -hippocampal-subfields-T1  -------------#
-##-----------   -hippocampal-subfields-T1T2  -----------#
-##-----------   -hippocampal-subfields-T2  -------------#
-#--------------                        -----------------#
-
-# sanity-checks and hemilist conversion first...
-if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then
-
-  if ( ! -e ${FREESURFER_HOME}/MCRv80/bin/glnxa64/libdctprocess.so \
-    && ! -e ${FREESURFER_HOME}/MCRv80/bin/maci64/libdctprocess.jnilib  ) then
-    echo "ERROR: cannot find Matlab 2012b runtime in ${FREESURFER_HOME}/MCRv80"
-    echo "make sure that ${FREESURFER_HOME}/MCRv80 is a link to an existing "
-    echo "Matlab 2012b installation, e.g., /usr/local/matlab/8.0/"
-    echo "     "
-    echo "Please visit https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields for further details."
-    goto error_exit;
-  endif
-
-  # then check for necessary data from default freesurfer processing
-  if (! -e ${subjdir}/mri/wmparc.mgz || \
-      ! -e ${subjdir}/mri/norm.mgz || \
-      ! -e ${subjdir}/mri/transforms/talairach.xfm ) then
-    echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for the subject."
-    echo "ERROR: Maybe, run recon-all again or disable hippocampal subfields processing."
-    goto error_exit;
-  endif #checking of wmparc.mgz, norm.mgz and talairach.xfm
-
-  # these tools assume 'left' and 'right' instead of our usual 'lh' and 'rh'
-  if($#hemilist == 1) then
-    if ("$hemilist" == "lh") set hippohemilist=(left)
-    if ("$hemilist" == "rh") set hippohemilist=(right)
-  else
-    set hippohemilist=(left right)
-  endif
-endif
-
-#--------------                        -----------------#
-##-----------   -hippocampal-subfields-T1  -------------#
-#--------------                        -----------------#
-if($DoHippoSF_T1) then
-  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T1.log)
-  rm -f $HSFLOG
-  echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-  echo "#@# Hippocampal Subfields processing (T1 only) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-
-  # do hippocampal processing using just T1 data
-  foreach hemi ($hippohemilist)
-    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T1.sh \
-      ${FREESURFER_HOME}/MCRv80 \
-      $FREESURFER_HOME \
-      $subjid  \
-      $SUBJECTS_DIR \
-      $hemi )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
-    if($status) goto error_exit;
-  end
-
-  echo $cmd > $touchdir/hippo-subfields-T1.touch
-endif
-
-#--------------                        -----------------#
-##------------- -hippocampal-subfields-T1T2  -----------#
-#--------------                        -----------------#
-if($DoHippoSF_T1T2) then 
-  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T1T2.log)
-  rm -f $HSFLOG
-  echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-  echo "#@# Hippocampal Subfields processing (T1 + T2 volume) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-
-  # do hippocampal processing
-  foreach hemi ($hippohemilist)
-    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T1T2.sh \
-      ${FREESURFER_HOME}/MCRv80 \
-      $FREESURFER_HOME \
-      $subjid  \
-      $SUBJECTS_DIR \
-      $T2volHippoSF \
-      $hemi )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
-    if($status) goto error_exit;
-  end
-
-  echo $cmd > $touchdir/hippo-subfields-T1T2.touch
-endif
-
-#--------------                        -----------------#
-##------------- -hippocampal-subfields-T2  -------------#
-#--------------                        -----------------#
-if($DoHippoSF_T2) then 
-
-  set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T2.log)
-  rm -f $HSFLOG
-  echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-  echo "#@# Hippocampal Subfields processing (T2 only) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-  
-  # do hippocampal processing
-  foreach hemi ($hippohemilist)
-    set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T2.sh \
-      ${FREESURFER_HOME}/MCRv80 \
-      $FREESURFER_HOME \
-      $subjid  \
-      $SUBJECTS_DIR \
-      $T2volHippoSF \
-      $hemi )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
-    if($status) goto error_exit;
-  end
-  
-  echo $cmd > $touchdir/hippo-subfields-T2.touch
 endif
 
 
