@@ -2,6 +2,9 @@
 # Makefile.am for HippoSF
 #
 
+if HAVE_MAC_OSX
+else
+
 # these the runtime-compiled binaries (and wrappers) for Linux x86_64
 
 dist_bin_SCRIPTS = \
@@ -17,3 +20,5 @@ run_segmentSubjectT2_autoEstimateAlveusML.sh
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+endif # install if not a Mac (default is Linux 64b)
