@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.51 2014/10/24 22:49:14 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.52 2014/12/18 17:16:41 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -30,6 +30,7 @@ set Bonferroni = 0;
 set ReportCentroid = 0;
 set annot = aparc
 set IsPVR = 0;
+set DoY = 1
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -140,15 +141,18 @@ while($#glmfitcmd)
   case "--table"
   case "--y"
     set y = $glmfitcmd[1]; shift glmfitcmd;
+    if($DoY) then
     if(! -e $y) then
       set y = $glmfitcwd/$y
       if(! -e $y) then
         set y = $glmdir/`basename $y`
         if(! -e $y) then
           echo "ERROR: cannot find $y"
+          echo "If you do not have this file, run with --no-y as the first option"
           exit 1;
         endif
       endif
+    endif
     endif
     if("$flag" == "--table") set UseTable = 1;
     breaksw
@@ -549,14 +553,16 @@ foreach conname ($conlist)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
-    # Create an average "waveform" for each cluster
-    set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
-    set cmd = (mri_segstats --seg $ocn --exclude 0 --i $y \
-     --avgwf $avgwf --sum /tmp/mri_glmfit-sim.junk.$$)
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
-    rm -f /tmp/mri_glmfit-sim.junk.$$
+    if($DoY) then
+      # Create an average "waveform" for each cluster
+      set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
+      set cmd = (mri_segstats --seg $ocn --exclude 0  \
+       --i $y  --sum /tmp/mri_glmfit-sim.junk.$$)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      rm -f /tmp/mri_glmfit-sim.junk.$$
+    endif
   endif
 
   if($anattype == volume) then
@@ -579,14 +585,16 @@ foreach conname ($conlist)
     $cmd | tee -a $LF
     if($status) exit 1;
 
-    # Create an average "waveform" for each cluster
-    set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
-    set cmd = (mri_segstats --seg $ocn --exclude 0 --i $y \
-     --avgwf $avgwf --sum /tmp/mri_glmfit-sim.junk.$$)
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
-    rm -f /tmp/mri_glmfit-sim.junk.$$
+    if($DoY) then
+      # Create an average "waveform" for each cluster
+      set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
+      set cmd = (mri_segstats --seg $ocn --exclude 0 \
+       --i $y --avgwf $avgwf --sum /tmp/mri_glmfit-sim.junk.$$)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      rm -f /tmp/mri_glmfit-sim.junk.$$
+    endif
 
     if($UseGRF) then
       set ocnanat = $glmdir/$conname/$csdbase.sig.ocn.anat.$ext
@@ -798,6 +806,10 @@ while( $#argv != 0 )
       set DiagCluster = 1;
       breaksw
 
+    case "--no-y":
+      set DoY = 0;
+      breaksw
+
     case "--debug":
       set verbose = 1;
       set echo = 1;
@@ -899,7 +911,7 @@ usage_exit:
   echo " --seed seed : set simluation seed"
   echo " --fwhm-override fwhm : override fwhm in glmdir":
   echo " --uniform min max : use uniform PDF instead of gaussian":
-  echo ""
+  echo " --no-y : do not compute means of each subject in each cluster"
   echo " --help"
   echo ""
 
@@ -1102,5 +1114,12 @@ used for debugging.
 
 Override fwhm in glmdir with given value. This is mostly
 used for debugging.
+
+--no-y
+
+Do not compute means of each subject in each cluster. This computation
+requires the y input file which might not be available in all cases.
+When using this option, put it first on the command-line.
+
 
 
