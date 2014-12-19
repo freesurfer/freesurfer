@@ -1,19 +1,28 @@
 #
-# Makefile.am for HippoSF
+# Makefile.am for HippoSF/linux_x86_64
 #
 
-if HAVE_MAC_OSX
-else
-
-# these the runtime-compiled binaries (and wrappers) for Linux x86_64
-
 dist_bin_SCRIPTS = \
-segmentSubjectT1_autoEstimateAlveusML \
-segmentSubjectT1T2_autoEstimateAlveusML \
-segmentSubjectT2_autoEstimateAlveusML \
-run_segmentSubjectT1_autoEstimateAlveusML.sh \
-run_segmentSubjectT1T2_autoEstimateAlveusML.sh \
-run_segmentSubjectT2_autoEstimateAlveusML.sh
+	run_segmentSubjectT1_autoEstimateAlveusML.sh \
+	run_segmentSubjectT1T2_autoEstimateAlveusML.sh \
+	run_segmentSubjectT2_autoEstimateAlveusML.sh
+
+#
+# We handle the  binary files differently because binary 
+# files are treated as a separate compenent to the 
+# repository, and thus may not be present at compile time.
+#
+
+foodir=$(prefix)/bin
+
+foo_binaryfiles = \
+	segmentSubjectT1_autoEstimateAlveusML \
+	segmentSubjectT1T2_autoEstimateAlveusML \
+	segmentSubjectT2_autoEstimateAlveusML
+
+install-data-local:
+	test -z $(foodir) || $(mkdir_p) $(foodir)
+	$(INSTALL) -m 755 $(foo_binaryfiles) $(foodir)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
@@ -21,4 +30,3 @@ run_segmentSubjectT2_autoEstimateAlveusML.sh
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
-endif # install if not a Mac (default is Linux 64b)
