@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/17 00:09:08 $
- *    $Revision: 1.165 $
+ *    $Date: 2014/12/20 18:41:50 $
+ *    $Revision: 1.166 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2806,8 +2806,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
 
   DoDWI = 1;
   pc = getenv("FS_LOAD_DWI");
-  if(pc == NULL) DoDWI = 1;
-  else if(strcmp(pc,"0")==0) DoDWI = 0;
+  if(pc == NULL) DoDWI = 0;
+  else if(strcmp(pc,"1")==1) DoDWI = 1;
 
   if(DoDWI){
     double bval, xbvec, ybvec, zbvec;
@@ -5299,8 +5299,8 @@ CONDITION GetDICOMInfo(const char *fname,
 
   DoDWI = 1;
   pc = getenv("FS_LOAD_DWI");
-  if(pc == NULL) DoDWI = 1;
-  else if(strcmp(pc,"0")==0) DoDWI = 0;
+  if(pc == NULL) DoDWI = 0;
+  else if(strcmp(pc,"1")==1) DoDWI = 1;
 
   if(DoDWI){
     double bval, xbvec, ybvec, zbvec;
