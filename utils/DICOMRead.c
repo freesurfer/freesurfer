@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/20 18:41:50 $
- *    $Revision: 1.166 $
+ *    $Date: 2014/12/22 22:59:17 $
+ *    $Revision: 1.167 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2806,8 +2806,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
 
   DoDWI = 1;
   pc = getenv("FS_LOAD_DWI");
-  if(pc == NULL) DoDWI = 0;
-  else if(strcmp(pc,"1")==1) DoDWI = 1;
+  if(pc == NULL) DoDWI = 1;
+  else if(strcmp(pc,"0")==0) DoDWI = 0;
 
   if(DoDWI){
     double bval, xbvec, ybvec, zbvec;
@@ -5299,8 +5299,8 @@ CONDITION GetDICOMInfo(const char *fname,
 
   DoDWI = 1;
   pc = getenv("FS_LOAD_DWI");
-  if(pc == NULL) DoDWI = 0;
-  else if(strcmp(pc,"1")==1) DoDWI = 1;
+  if(pc == NULL) DoDWI = 1;
+  else if(strcmp(pc,"0")==0) DoDWI = 0;
 
   if(DoDWI){
     double bval, xbvec, ybvec, zbvec;
@@ -7306,6 +7306,7 @@ int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybv
   unsigned int rtnLength;
   void *Ctx = NULL;
   int err;
+  double rms;
 
   *pbval = 0;
   *pxbvec = 0;
@@ -7340,6 +7341,14 @@ int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybv
   }
   FreeElementData(e);
 
+  rms = sqrt((*pxbvec)*(*pxbvec) + (*pybvec)*(*pybvec) + (*pzbvec)*(*pzbvec));
+  if(Gdiag_no > 0) printf("%lf %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec,rms);
+  if(*pbval != 0 && (fabs(*pxbvec) > 1.0 || fabs(*pybvec) > 1.0 || fabs(*pzbvec) > 1.0 ||
+		     fabs(rms-1) > .001) ){
+    printf("%lf %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec,rms);
+    printf("WARNING: These don't look like reasonable DWI params\n");
+  }
+
   if(*pbval == 0){
     *pxbvec = 0;
     *pybvec = 0;
@@ -7364,6 +7373,8 @@ int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *py
   int n;
   unsigned int rtnLength;
   void *Ctx = NULL;
+
+  if(Gdiag_no > 0) printf("Entering dcmGetDWIParamsGE()\n");
 
   *pbval = 0;
   *pxbvec = 0;
@@ -7422,13 +7433,13 @@ int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *py
   sscanf(e->d.string,"%lf",pzbvec);
   free(e);
 
+  if(Gdiag_no > 0) printf("%lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec);
+
   if(*pbval == 0){
     *pxbvec = 0;
     *pybvec = 0;
     *pzbvec = 0;
   }
-
-  if(Gdiag_no > 0) printf("%lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec);
 
   return(0);
 }
@@ -7452,6 +7463,8 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
   double Vcx, Vcy, Vcz, Vrx, Vry, Vrz, Vsx, Vsy, Vsz;
   MATRIX *Mdc, *G, *G2;
   
+  if(Gdiag_no > 0) printf("Entering dcmGetDWIParamsSiemens()\n");
+
   *pbval = 0;
   *pxbvec = 0;
   *pybvec = 0;
@@ -7531,9 +7544,11 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
   Siemens file. It looks in 0x29 0x1010. This should be a nasty string
   with all kinds of control characters, etc.  It looks for key words
   in this string and extracts values based on proximity to the key
-  word. The gradients are NOT transformed to image space. Gradients 
+  word. The gradients are NOT transformed to image space. Gradients
   transformed to RAS. This alternate method is probably less reliable
-  than the main method.
+  than the main method and is probably only needed for older scanners.
+  To report non-zero values for the 4 params, the bvalue must be > 0,
+  the abs(bvecs) must be < 1, and the rms must be close to 1.
  */
 int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
 {
@@ -7544,7 +7559,9 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
   void * Ctx = NULL;
   int n,m,k,bval_flag,bvec_flag;
   char c, tmpstr[2000];
-  double val;
+  double val,rms;
+
+  if(Gdiag_no > 0) printf("Entering dcmGetDWIParamsSiemensAlt()\n");
 
   *pbval = 0;
   *pxbvec = 0;
@@ -7615,10 +7632,18 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
     } // D
   } // loop over characters
 
-  if(*pbval == 0){
+
+  // Have to check that the values are reasonable because we are just grabbing
+  // numbers from a file. 
+  rms = sqrt((*pxbvec)*(*pxbvec) + (*pybvec)*(*pybvec) + (*pzbvec)*(*pzbvec));
+  if(Gdiag_no > 0) printf("%lf %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec,rms);
+  if(*pbval == 0 || fabs(*pxbvec) > 1.0 || fabs(*pybvec) > 1.0 || fabs(*pzbvec) > 1.0 ||
+     fabs(rms-1) > .001){
+    *pbval = 0;
     *pxbvec = 0;
     *pybvec = 0;
     *pzbvec = 0;
+    if(Gdiag_no > 0) printf("These don't look like reasonable DWI params, so I'm setting to 0\n");
   }
 
   if(! bval_flag) return(0);
@@ -7628,7 +7653,6 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
     return(2);
   }
 
-  if(Gdiag_no > 0) printf("%lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec);
 
   return(0);
 }
