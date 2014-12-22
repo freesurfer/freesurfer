@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/12/13 18:18:27 $
- *    $Revision: 1.37 $
+ *    $Date: 2014/12/22 19:54:19 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,7 +148,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.37 2012/12/13 18:18:27 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.38 2014/12/22 19:54:19 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -277,6 +277,12 @@ int main(int argc, char *argv[]) {
   if (!synth) {
     InVals = MRIread(inpath);
     if (InVals == NULL) exit(1);
+    if(InVals->type != MRI_FLOAT){
+      printf("Changing input type to float\n");
+      mritmp = MRISeqchangeType(InVals, MRI_FLOAT, 0, 0, 0);
+      MRIfree(&InVals);
+      InVals = mritmp;
+    }
   } else {
     printf("Synthesizing %d frames, Seed = %d\n",nframes,SynthSeed);
     InVals = MRIrandn(surf->nvertices, 1, 1, nframes,0, 1, NULL);
