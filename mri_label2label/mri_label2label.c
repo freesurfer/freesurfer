@@ -40,8 +40,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/04/16 18:30:15 $
- *    $Revision: 1.46 $
+ *    $Date: 2014/12/22 19:59:18 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,7 +90,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.46 2013/04/16 18:30:15 greve Exp $";
+  "$Id: mri_label2label.c,v 1.47 2014/12/22 19:59:18 greve Exp $";
 char *Progname = NULL;
 
 static int label_erode = 0 ;
@@ -167,6 +167,8 @@ int DoRescale = 1;
 int DoOutMaskStat = 0;
 
 int UseScannerCoords = 0;
+char *DminminFile=NULL;
+MRI *mritmp=NULL;
 
 /*-------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -175,8 +177,8 @@ int main(int argc, char **argv) {
   MHT *TrgHash, *SrcHash=NULL, *PaintHash=NULL;
   VERTEX *srcvtx, *trgvtx, *trgregvtx;
   VERTEX v;
-  int n,srcvtxno,trgvtxno,allzero,nrevhits;
-  float dmin, projdist=0.0, dx, dy, dz;
+  int n,srcvtxno,trgvtxno,allzero,nrevhits,srcvtxnominmin;
+  float dmin, dminmin, projdist=0.0, dx, dy, dz;
   float SubjRadius, Scale;
   char fname[2000];
   int nSrcLabel, nTrgLabel;
@@ -188,7 +190,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv,
-     "$Id: mri_label2label.c,v 1.46 2013/04/16 18:30:15 greve Exp $",
+     "$Id: mri_label2label.c,v 1.47 2014/12/22 19:59:18 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -506,6 +508,8 @@ int main(int argc, char **argv) {
     /* Loop through each source label and map its xyz to target */
     allzero = 1;
     m = 0;
+    dminmin = 10e10;
+    srcvtxnominmin = 0;
     for (n = 0; n < srclabel->n_points; n++) {
 
       /* vertex number of the source label */
@@ -519,6 +523,10 @@ int main(int argc, char **argv) {
           srcvtxno = MRISfindClosestVertex(PaintSurf,v.x,v.y,v.z,&dmin);
 	if(debug) printf("%3d %6d (%5.2f,%5.2f,%5.2f) %g\n",n,srcvtxno,v.x,v.y,v.z,dmin);
         if (dmin > PaintMax) continue;
+	if(dmin < dminmin){
+	  dminmin = dmin;
+	  srcvtxnominmin = srcvtxno;
+	}
       } else {
         srcvtxno = srclabel->lv[n].vno;
         if (srcvtxno < 0 || srcvtxno >= SrcSurfReg->nvertices) {
@@ -531,6 +539,7 @@ int main(int argc, char **argv) {
                  n,srcvtxno, SrcSurfReg->nvertices);
           exit(1);
         }
+
       }
 
       if (srcvtxno != 0) allzero = 0;
@@ -574,6 +583,15 @@ int main(int argc, char **argv) {
       m++;
     }
     printf("INFO: found  %d nlabel points\n",m);
+    if(DoPaint){
+      printf("dminmin = %lf at source vertex %d\n",dminmin,srcvtxnominmin);
+      if(DminminFile){
+	mritmp = MRIalloc(SrcSurfReg->nvertices,1,1,MRI_INT);
+	MRIsetVoxVal(mritmp,srcvtxnominmin,0,0,0, 1);
+	err = MRIwrite(mritmp,DminminFile);
+	if(err) exit(1);
+      }
+    }
 
     /* Do reverse loop here: (1) go through each target vertex
        not already in the label, (2) find closest source vertex,
@@ -938,7 +956,8 @@ static int parse_commandline(int argc, char **argv) {
       if (!strcmp(regmethod,"surf")) regmethod = "surface";
       if (!strcmp(regmethod,"vol"))  regmethod = "volume";
       nargsused = 1;
-    } else if (!strcmp(option, "--paint")) {
+    } 
+    else if (!strcmp(option, "--paint")) {
       if (nargc < 2) argnerr(option,2);
       sscanf(pargv[0],"%lf",&PaintMax);
       DoPaint = 1;
@@ -947,11 +966,18 @@ static int parse_commandline(int argc, char **argv) {
       regmethod = "surface";
       PaintSurfName = pargv[1];
       nargsused = 2;
-    } else if (!strcmp(option, "--xfm")) {
+    } 
+    else if (!strcmp(option, "--dminmin")) {
+      if (nargc < 1) argnerr(option,1);
+      DminminFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--xfm")) {
       if (nargc < 1) argnerr(option,1);
       XFMFile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--reg")) {
+    } 
+    else if (!strcmp(option, "--reg")) {
       if (nargc < 1) argnerr(option,1);
       RegFile = pargv[0];
       regmethod = "volume";
@@ -1020,7 +1046,7 @@ static void print_usage(void) {
 
   printf("\n");
   printf("   --paint dmax surfname : map to closest vertex on source surfname if d < dmax\n");
-  printf("     uses white surface and surface regmethod.\n");
+  printf("   --dmindmin overlayfile : bin mask with vertex of closest label point when painting\n");
   printf("\n");
   printf("   --srcmask     surfvalfile thresh <format>\n");
   printf("   --srcmasksign sign (<abs>,pos,neg)\n");
