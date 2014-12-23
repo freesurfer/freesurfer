@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/10 20:58:47 $
- *    $Revision: 1.41 $
+ *    $Date: 2014/12/23 03:34:52 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.41 2014/12/10 20:58:47 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.42 2014/12/23 03:34:52 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.41 2014/12/10 20:58:47 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.42 2014/12/23 03:34:52 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1444,6 +1444,13 @@ static void check_options(void)
   }
   gtm->nframes = gtm->yvol->nframes ;
   printf("  done loading input %d frames\n",gtm->nframes);fflush(stdout);
+
+  if(gtm->yvol->type != MRI_FLOAT){
+    printf("Changing input type to float\n");
+    mritmp = MRISeqchangeType(gtm->yvol, MRI_FLOAT, 0, 0, 0);
+    MRIfree(&gtm->yvol);
+    gtm->yvol = mritmp;
+  }
 
   if(regidentity){
     printf("Using identity registration\n");
