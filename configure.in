@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/12/17 00:15:33 $
-#    $Revision: 1.626 $
+#    $Author: zkaufman $
+#    $Date: 2014/12/23 15:21:28 $
+#    $Revision: 1.627 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3583,6 +3583,7 @@ AC_OUTPUT([Makefile
            hiam_make_template/Makefile
            HippoSF/Makefile
            HippoSF/linux_x86_64/Makefile
+           HippoSF/mac_osx/Makefile
            hipsstubs/Makefile
            histo_register/Makefile
            histo_register/SimpleBaseLib/Makefile
