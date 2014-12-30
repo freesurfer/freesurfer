@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/22 22:59:17 $
- *    $Revision: 1.167 $
+ *    $Date: 2014/12/30 23:24:39 $
+ *    $Revision: 1.168 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2815,6 +2815,7 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
     err = dcmGetDWIParams(object, &bval, &xbvec, &ybvec, &zbvec);
     if(err){
       printf("ERROR: GetSDCMFileInfo(): dcmGetDWIParams() %d\n",err);
+      printf("DICOM File: %s\n",dcmfile);
       return(NULL);
     }
     if(Gdiag_no > 0) printf("GetSDCMFileInfo(): DWI: %s %d %lf %lf %lf %lf\n",
@@ -5308,6 +5309,7 @@ CONDITION GetDICOMInfo(const char *fname,
     err = dcmGetDWIParams(*object, &bval, &xbvec, &ybvec, &zbvec);
     if(err){
       printf("ERROR: GetDICOMInfo(): dcmGetDWIParams() %d\n",err);
+      printf("DICOM File: %s\n",fname);
       return((CONDITION)1);
     }
     if(Gdiag_no > 0) printf("GetDICOMInfo(): DWI: %s %d %lf %lf %lf %lf\n",fname,err,bval, xbvec, ybvec, zbvec);
