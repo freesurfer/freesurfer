@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/30 23:24:39 $
- *    $Revision: 1.168 $
+ *    $Date: 2015/01/05 20:39:47 $
+ *    $Revision: 1.169 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7543,14 +7543,19 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
 /*
   \fn int dcmGetDWIParamsSiemensAlt()
   \brief This is an alternative method to extract DWI info from a
-  Siemens file. It looks in 0x29 0x1010. This should be a nasty string
-  with all kinds of control characters, etc.  It looks for key words
-  in this string and extracts values based on proximity to the key
-  word. The gradients are NOT transformed to image space. Gradients
-  transformed to RAS. This alternate method is probably less reliable
-  than the main method and is probably only needed for older scanners.
-  To report non-zero values for the 4 params, the bvalue must be > 0,
-  the abs(bvecs) must be < 1, and the rms must be close to 1.
+  Siemens file. It looks in 0x29 0x1010. This is a nasty string with
+  all kinds of control characters, etc.  It looks for key words in
+  this string and blindly extracts values based on proximity to the
+  key word. The gradients are NOT transformed to image
+  space. Gradients are transformed to RAS. This alternate method is
+  probably less reliable than the main method and is probably only
+  needed for older scanners.  To report non-zero values for the 4
+  params, the bvalue must be present and > 0, there must be 3 bvecs
+  found, the abs(bvecs) must be < 1, and the rms must be close to 1.
+  This routine is unreliable and quite finicky because it is just
+  looking for key words. The string may contain the key words even if 
+  the sequence was not diffusion weighted. This makes it hard to
+  do error checking.
  */
 int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
 {
@@ -7634,27 +7639,30 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
     } // D
   } // loop over characters
 
+  rms = sqrt((*pxbvec)*(*pxbvec) + (*pybvec)*(*pybvec) + (*pzbvec)*(*pzbvec));
+  if(Gdiag_no > 0) printf("%lf %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec,rms);
+
+  if(! bval_flag || bvec_flag != 3){
+    *pbval = 0;
+    *pxbvec = 0;
+    *pybvec = 0;
+    *pzbvec = 0;
+    return(0);
+  }
 
   // Have to check that the values are reasonable because we are just grabbing
   // numbers from a file. 
-  rms = sqrt((*pxbvec)*(*pxbvec) + (*pybvec)*(*pybvec) + (*pzbvec)*(*pzbvec));
-  if(Gdiag_no > 0) printf("%lf %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec,rms);
   if(*pbval == 0 || fabs(*pxbvec) > 1.0 || fabs(*pybvec) > 1.0 || fabs(*pzbvec) > 1.0 ||
      fabs(rms-1) > .001){
     *pbval = 0;
     *pxbvec = 0;
     *pybvec = 0;
     *pzbvec = 0;
-    if(Gdiag_no > 0) printf("These don't look like reasonable DWI params, so I'm setting to 0\n");
+    if(Gdiag_no > 0){
+      printf("%lf %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec,rms);
+      printf("These don't look like reasonable DWI params, so I'm setting to 0\n");
+    }
   }
-
-  if(! bval_flag) return(0);
-
-  if(bvec_flag != 3){
-    printf("WARNING: found bvalue but not bvector (%d)\n",bvec_flag);
-    return(2);
-  }
-
 
   return(0);
 }
