@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:22 $
- *    $Revision: 1.26 $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -95,6 +95,7 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
 
   connect( mProperty, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) );
   connect( mProperty, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
+  connect( mProperty, SIGNAL(ThresholdChanged(double)), this, SLOT(UpdateThreshold()));
 }
 
 LayerROI::~LayerROI()
@@ -113,7 +114,7 @@ bool LayerROI::LoadROIFromFile( const QString& filename )
     return false;
   }
 
-  m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
+  m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume(), GetProperty()->GetThreshold() );
 
   m_sFilename = filename;
 
@@ -190,6 +191,15 @@ void LayerROI::UpdateColorMap ()
   // m_sliceActor2D[i]->GetProperty()->SetColor(1, 0, 0);
 
   emit ActorUpdated();
+}
+
+void LayerROI::UpdateThreshold()
+{
+  if (m_label)
+  {
+    m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume(), GetProperty()->GetThreshold() );
+    emit ActorUpdated();
+  }
 }
 
 void LayerROI::Append2DProps( vtkRenderer* renderer, int nPlane )
@@ -328,7 +338,6 @@ bool LayerROI::HasProp( vtkProp* prop )
 bool LayerROI::DoRotate( std::vector<RotationElement>& rotations )
 {
   m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
-
   return true;
 }
 

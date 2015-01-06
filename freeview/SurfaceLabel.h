@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/01 19:10:07 $
- *    $Revision: 1.9 $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,13 +75,20 @@ public:
     return m_bVisible;
   }
 
+  double GetThreshold()
+  {
+    return m_dThreshold;
+  }
+
 Q_SIGNALS:
   void SurfaceLabelChanged();
 
 public slots:
   void SetVisible(bool flag);
+  void SetThreshold(double th);
 
 private:
+  void UpdateOutline();
 
   LABEL*        m_label;
   QString       m_strName;
@@ -91,6 +98,7 @@ private:
   bool          m_bShowOutline;
   bool          m_bVisible;
   int*          m_nOutlineIndices;
+  double        m_dThreshold;
 };
 
 #endif

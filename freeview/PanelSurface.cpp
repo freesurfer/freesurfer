@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/15 17:04:21 $
- *    $Revision: 1.56 $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.57 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,7 +76,9 @@ PanelSurface::PanelSurface(QWidget *parent) :
   m_widgetsLabel << ui->colorpickerLabelColor
                  << ui->labelLabelColor
                  << ui->checkBoxLabelOutline
-                 << ui->treeWidgetLabels;
+                 << ui->treeWidgetLabels
+                 << ui->labelLabelThreshold
+                 << ui->lineEditLabelThreshold;
 
   m_widgetsSpline << ui->colorpickerSplineColor
                   << ui->labelSplineColor
@@ -338,6 +340,8 @@ void PanelSurface::DoUpdateWidgets()
     double* rgb = layer->GetActiveLabel()->GetColor();
     ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
     ui->checkBoxLabelOutline->setChecked(layer->GetActiveLabel()->GetShowOutline());
+
+    ChangeLineEditNumber(ui->lineEditLabelThreshold, layer->GetActiveLabel()->GetThreshold());
   }
 
   ui->treeWidgetLabels->clear();
@@ -353,6 +357,7 @@ void PanelSurface::DoUpdateWidgets()
       if (layer->GetActiveLabel() == label)
         ui->treeWidgetLabels->setCurrentItem(item);
     }
+    ui->pushButtonDeleteLabel->setEnabled(layer->GetNumberOfLabels() > 0);
   }
 
   if ( layer && layer->GetActiveAnnotation() )
@@ -459,6 +464,17 @@ void PanelSurface::OnLineEditSlope( const QString& text )
   }
 }
 
+void PanelSurface::OnLineEditLabelThreshold(const QString &text)
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  bool bOK;
+  double dval = text.toDouble( &bOK );
+  if (surf && surf->GetActiveLabel() && bOK)
+  {
+    surf->GetActiveLabel()->SetThreshold(dval);
+  }
+}
+
 void PanelSurface::OnComboOverlay( int nSel_in )
 {
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
@@ -521,6 +537,24 @@ void PanelSurface::OnButtonLoadLabel()
 {
   MainWindow::GetMainWindow()->LoadSurfaceLabel();
   UpdateWidgets();
+}
+
+void PanelSurface::OnButtonDeleteLabel()
+{
+  QTreeWidgetItem* item = ui->treeWidgetLabels->currentItem();
+  if (!item)
+    return;
+
+  SurfaceLabel* label = qobject_cast<SurfaceLabel*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+  if ( label )
+  {
+    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+    if ( surf )
+    {
+      surf->DeleteLabel(label);
+      UpdateWidgets();
+    }
+  }
 }
 
 void PanelSurface::OnComboVector( int nSel )
@@ -599,6 +633,20 @@ void PanelSurface::OnLabelItemChanged(QTreeWidgetItem *item)
   if ( label )
   {
     label->SetVisible( item->checkState( 0 ) == Qt::Checked );
+  }
+}
+
+void PanelSurface::OnLabelItemDoubleClicked(QTreeWidgetItem *item)
+{
+  SurfaceLabel* label = qobject_cast<SurfaceLabel*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+  if ( label )
+  {
+    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+    if ( surf )
+    {
+      surf->MoveLabelToTop(label);
+      UpdateWidgets();
+    }
   }
 }
 

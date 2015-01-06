@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:22 $
- *    $Revision: 1.20 $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +78,7 @@ public:
 protected slots:
   void UpdateOpacity();
   void UpdateColorMap();
+  void UpdateThreshold();
 
 protected:
   bool DoRotate( std::vector<RotationElement>& rotations );

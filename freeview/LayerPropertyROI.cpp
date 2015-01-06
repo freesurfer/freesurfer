@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include <assert.h>
 #include "LayerPropertyROI.h"
 #include "vtkRGBAColorTransferFunction.h"
+#include <QDebug>
 
 using namespace std;
 
@@ -40,6 +41,7 @@ LayerPropertyROI::LayerPropertyROI ( QObject* parent) : LayerProperty( parent )
   mRGB[0] = 1;
   mRGB[1] = 1;
   mRGB[2] = 0;
+  m_dThreshold = 0;
 
   mLUTTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 // mLUTTable->ClampingOff();
@@ -47,6 +49,7 @@ LayerPropertyROI::LayerPropertyROI ( QObject* parent) : LayerProperty( parent )
 
   connect( this, SIGNAL(ColorMapChanged()), this, SIGNAL(PropertyChanged()) );
   connect( this, SIGNAL(OpacityChanged(double)), this, SIGNAL(PropertyChanged()) );
+  connect( this, SIGNAL(ThresholdChanged(double)), this, SIGNAL(PropertyChanged()));
 }
 
 LayerPropertyROI::~LayerPropertyROI ()
@@ -95,3 +98,11 @@ void LayerPropertyROI::SetOpacity( double opacity )
   }
 }
 
+void LayerPropertyROI::SetThreshold(double th)
+{
+  if (th != m_dThreshold)
+  {
+    m_dThreshold = th;
+    emit ThresholdChanged( th );
+  }
+}

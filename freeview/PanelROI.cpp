@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/07 02:20:33 $
- *    $Revision: 1.20 $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,6 +84,17 @@ void PanelROI::OnSliderOpacity(int nVal)
   }
 }
 
+void PanelROI::OnEditThreshold(QString text)
+{
+  bool ok;
+  double th = text.trimmed().toDouble(&ok);
+  LayerROI* layer = GetCurrentLayer<LayerROI*>();
+  if ( ok && layer )
+  {
+    layer->GetProperty()->SetThreshold(th);
+  }
+}
+
 void PanelROI::DoUpdateWidgets()
 {
   BlockAllSignals( true );
@@ -119,6 +130,8 @@ void PanelROI::DoUpdateWidgets()
 
     ui->lineEditFileName->setText( MyUtils::Win32PathProof(layer->GetFileName()) );
     ui->lineEditFileName->setCursorPosition( ui->lineEditFileName->text().size() );
+
+    ChangeLineEditNumber(ui->lineEditThreshold, layer->GetProperty()->GetThreshold());
   }
   ui->doubleSpinBoxOpacity->setEnabled( layer );
   ui->colorPickerColor->setEnabled( layer );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:21 $
- *    $Revision: 1.23 $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -217,7 +217,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
   }
 }
 
-void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
+void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double threshold )
 {
   if ( !m_label )
   {
@@ -233,25 +233,29 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
           dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
   for ( int i = 0; i < m_label->n_points; i++ )
   {
-    pos[0] = m_label->lv[i].x;
-    pos[1] = m_label->lv[i].y;
-    pos[2] = m_label->lv[i].z;
-    if ( m_label->coords == LABEL_COORDS_VOXEL )
+    if (m_label->lv[i].stat > threshold)
     {
-      MRIvoxelToWorld(ref_vol->GetMRI(), pos[0], pos[1], pos[2], pos, pos+1, pos+2);
-    }
-    else if (m_label->coords == LABEL_COORDS_TKREG_RAS)
-    {
-      ref_vol->TkRegToNativeRAS( pos, pos );
-    }
-    ref_vol->NativeRASToRAS( pos, pos );
-    ref_vol->RASToTargetIndex( pos, n );
-    if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
-         n[2] >= 0 && n[2] < dim[2] )
-    {
-      rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, 1 );
+      pos[0] = m_label->lv[i].x;
+      pos[1] = m_label->lv[i].y;
+      pos[2] = m_label->lv[i].z;
+      if ( m_label->coords == LABEL_COORDS_VOXEL )
+      {
+        MRIvoxelToWorld(ref_vol->GetMRI(), pos[0], pos[1], pos[2], pos, pos+1, pos+2);
+      }
+      else if (m_label->coords == LABEL_COORDS_TKREG_RAS)
+      {
+        ref_vol->TkRegToNativeRAS( pos, pos );
+      }
+      ref_vol->NativeRASToRAS( pos, pos );
+      ref_vol->RASToTargetIndex( pos, n );
+      if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
+           n[2] >= 0 && n[2] < dim[2] )
+      {
+        rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, 1 );
+      }
     }
   }
+  rasImage->Modified();
 }
 
 bool FSLabel::LabelWrite( const QString& filename )

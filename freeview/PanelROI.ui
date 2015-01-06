@@ -145,6 +145,40 @@
         </property>
        </widget>
       </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="labelColor_2">
+        <property name="text">
+         <string>Threshold</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QLineEdit" name="lineEditThreshold">
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
      </layout>
     </item>
     <item>
@@ -210,8 +244,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>249</x>
-     <y>243</y>
+     <x>248</x>
+     <y>98</y>
     </hint>
     <hint type="destinationlabel">
      <x>56</x>
@@ -219,8 +253,25 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>lineEditThreshold</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>PanelROI</receiver>
+   <slot>OnEditThreshold(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>150</x>
+     <y>146</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>502</x>
+     <y>225</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnSliderOpacity(int)</slot>
+  <slot>OnEditThreshold(QString)</slot>
  </slots>
 </ui>

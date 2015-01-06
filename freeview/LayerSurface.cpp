@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/01 19:10:07 $
- *    $Revision: 1.105 $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -463,10 +463,10 @@ bool LayerSurface::LoadLabelFromFile( const QString& filename )
     label->SetName( fi.fileName() );
   }
 
-  m_labels.push_back( label );
+  m_labels.insert(0, label);
   connect(label, SIGNAL(SurfaceLabelChanged()), this, SLOT(UpdateColorMap()));
 
-  SetActiveLabel( m_labels.size() - 1 );
+  SetActiveLabel( 0 );
 
   UpdateOverlay(false);
 
@@ -1548,6 +1548,51 @@ void LayerSurface::SetActiveLabel( int n )
   }
 }
 
+void LayerSurface::MoveLabelToTop(SurfaceLabel *label)
+{
+  SurfaceLabel* activeLabel = GetActiveLabel();
+  for (int i = 0; i < m_labels.size(); i++)
+  {
+    if (label == m_labels[i])
+    {
+      m_labels.removeAt(i);
+      m_labels.insert(0, label);
+      SetActiveLabel(activeLabel);
+
+      UpdateOverlay(false);
+      emit Modified();
+      emit ActorChanged();
+      return;
+    }
+  }
+}
+
+void LayerSurface::DeleteLabel(SurfaceLabel *label)
+{
+  SurfaceLabel* activeLabel = GetActiveLabel();
+  for (int i = 0; i < m_labels.size(); i++)
+  {
+    if (label == m_labels[i])
+    {
+      m_labels.removeAt(i);
+      if (activeLabel == label)
+      {
+        if (m_labels.isEmpty())
+          m_nActiveLabel = -1;
+        else
+        {
+          if (i >= m_labels.size())
+            SetActiveLabel(m_labels.size()-1);
+          else
+            SetActiveLabel(i);
+        }
+      }
+      delete label;
+      return;
+    }
+  }
+}
+
 void LayerSurface::SetActiveLabel(SurfaceLabel *label)
 {
   for (int i = 0; i < m_labels.size(); i++)
@@ -1562,7 +1607,7 @@ void LayerSurface::SetActiveLabel(SurfaceLabel *label)
 
 void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
 {
-  for ( int i = 0; i < m_labels.size(); i++ )
+  for ( int i = m_labels.size()-1; i >= 0; i-- )
   {
     if (m_labels[i]->IsVisible())
       m_labels[i]->MapLabel( data, nVertexCount );

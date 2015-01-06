@@ -40,7 +40,6 @@
       <property name="bottomMargin">
        <number>0</number>
       </property>
-      
       <item>
        <widget class="QToolBar" name="toolbar">
         <property name="iconSize">
@@ -58,7 +57,7 @@
         <addaction name="actionLockLayer"/>
        </widget>
       </item>
-<item>
+      <item>
        <widget class="QToolBar" name="toolbar2">
         <property name="iconSize">
          <size>
@@ -432,11 +431,56 @@
         </item>
        </widget>
       </item>
+      <item row="14" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout22_3">
+        <item>
+         <widget class="QCheckBox" name="checkBoxAnnotationOutline">
+          <property name="text">
+           <string>Show outline only</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_30">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
       <item row="15" column="0">
        <widget class="QLabel" name="labelLabel">
         <property name="text">
          <string>Label</string>
         </property>
+       </widget>
+      </item>
+      <item row="16" column="1">
+       <widget class="QTreeWidget" name="treeWidgetLabels">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>70</height>
+         </size>
+        </property>
+        <property name="rootIsDecorated">
+         <bool>false</bool>
+        </property>
+        <property name="headerHidden">
+         <bool>true</bool>
+        </property>
+        <column>
+         <property name="text">
+          <string notr="true">1</string>
+         </property>
+        </column>
        </widget>
       </item>
       <item row="17" column="0">
@@ -477,13 +521,56 @@
        </layout>
       </item>
       <item row="18" column="0">
+       <widget class="QLabel" name="labelLabelThreshold">
+        <property name="text">
+         <string>Threshold</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="18" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout22_4">
+        <item>
+         <widget class="QLineEdit" name="lineEditLabelThreshold">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_31">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="19" column="0">
        <widget class="QLabel" name="labelEdgeColor">
         <property name="text">
          <string>Edge color</string>
         </property>
        </widget>
       </item>
-      <item row="18" column="1">
+      <item row="19" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23">
         <item>
          <widget class="QtColorPicker" name="colorpickerEdgeColor" native="true"/>
@@ -503,14 +590,14 @@
         </item>
        </layout>
       </item>
-      <item row="19" column="0">
+      <item row="20" column="0">
        <widget class="QLabel" name="labelEdgeThickness">
         <property name="text">
          <string>Edge thickness</string>
         </property>
        </widget>
       </item>
-      <item row="19" column="1">
+      <item row="20" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
          <widget class="QSpinBox" name="spinBoxEdgeThickness"/>
@@ -530,17 +617,17 @@
         </item>
        </layout>
       </item>
-      <item row="20" column="0">
+      <item row="21" column="0">
        <widget class="QLabel" name="labelVectorDisplay">
         <property name="text">
          <string>Vector display</string>
         </property>
        </widget>
       </item>
-      <item row="20" column="1">
+      <item row="21" column="1">
        <widget class="QComboBox" name="comboBoxVectorDisplay"/>
       </item>
-      <item row="21" column="0">
+      <item row="22" column="0">
        <widget class="QLabel" name="labelVectorColor">
         <property name="text">
          <string>Color</string>
@@ -550,7 +637,7 @@
         </property>
        </widget>
       </item>
-      <item row="21" column="1">
+      <item row="22" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout24">
         <item>
          <widget class="QtColorPicker" name="colorpickerVectorColor" native="true"/>
@@ -570,7 +657,7 @@
         </item>
        </layout>
       </item>
-      <item row="22" column="0">
+      <item row="23" column="0">
        <widget class="QLabel" name="labelVectorPointSize">
         <property name="text">
          <string>Point size</string>
@@ -580,7 +667,7 @@
         </property>
        </widget>
       </item>
-      <item row="22" column="1">
+      <item row="23" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QSpinBox" name="spinBoxVectorPointSize">
@@ -607,51 +694,17 @@
         </item>
        </layout>
       </item>
-      <item row="26" column="0">
-       <widget class="QLabel" name="labelPositionOffset">
-        <property name="text">
-         <string>Position offset</string>
-        </property>
-       </widget>
-      </item>
-      <item row="26" column="1">
-       <widget class="QLineEdit" name="lineEditPositionOffset"/>
-      </item>
-      <item row="14" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout22_3">
-        <item>
-         <widget class="QCheckBox" name="checkBoxAnnotationOutline">
-          <property name="text">
-           <string>Show outline only</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_30">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="23" column="0">
+      <item row="24" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
          <string>Spline display</string>
         </property>
        </widget>
       </item>
-      <item row="23" column="1">
+      <item row="24" column="1">
        <widget class="QComboBox" name="comboBoxSplineDisplay"/>
       </item>
-      <item row="24" column="0">
+      <item row="25" column="0">
        <widget class="QLabel" name="labelSplineColor">
         <property name="text">
          <string>Color</string>
@@ -661,7 +714,7 @@
         </property>
        </widget>
       </item>
-      <item row="24" column="1">
+      <item row="25" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23_2">
         <item>
          <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
@@ -681,40 +734,43 @@
         </item>
        </layout>
       </item>
-      <item row="25" column="1">
+      <item row="26" column="1">
        <widget class="QCheckBox" name="checkBoxSplineProjection">
         <property name="text">
          <string>Project on 2D view</string>
         </property>
        </widget>
       </item>
-      <item row="16" column="1">
-       <widget class="QTreeWidget" name="treeWidgetLabels">
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>70</height>
-         </size>
+      <item row="27" column="0">
+       <widget class="QLabel" name="labelPositionOffset">
+        <property name="text">
+         <string>Position offset</string>
         </property>
-        <property name="rootIsDecorated">
-         <bool>false</bool>
-        </property>
-        <property name="headerHidden">
-         <bool>true</bool>
-        </property>
-        <column>
-         <property name="text">
-          <string notr="true">1</string>
-         </property>
-        </column>
        </widget>
       </item>
+      <item row="27" column="1">
+       <widget class="QLineEdit" name="lineEditPositionOffset"/>
+      </item>
       <item row="15" column="1">
-       <widget class="QPushButton" name="pushButtonLoadLabel">
-        <property name="text">
-         <string>Load Label</string>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="horizontalLayout22_5">
+        <item>
+         <widget class="QPushButton" name="pushButtonLoadLabel">
+          <property name="text">
+           <string>Load</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButtonDeleteLabel">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Delete</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>
@@ -1029,7 +1085,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>748</y>
+     <y>781</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -1045,7 +1101,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>912</y>
+     <y>945</y>
     </hint>
     <hint type="destinationlabel">
      <x>486</x>
@@ -1061,7 +1117,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>330</x>
-     <y>833</y>
+     <y>866</y>
     </hint>
     <hint type="destinationlabel">
      <x>398</x>
@@ -1077,7 +1133,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>279</x>
-     <y>565</y>
+     <y>567</y>
     </hint>
     <hint type="destinationlabel">
      <x>513</x>
@@ -1108,8 +1164,8 @@
    <slot>OnButtonLoadLabel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
-     <y>558</y>
+     <x>213</x>
+     <y>559</y>
     </hint>
     <hint type="destinationlabel">
      <x>489</x>
@@ -1149,6 +1205,54 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>lineEditLabelThreshold</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnLineEditLabelThreshold(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>142</x>
+     <y>679</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>662</x>
+     <y>688</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>treeWidgetLabels</sender>
+   <signal>itemDoubleClicked(QTreeWidgetItem*,int)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnLabelItemDoubleClicked(QTreeWidgetItem*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>311</x>
+     <y>583</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>803</x>
+     <y>659</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonDeleteLabel</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnButtonDeleteLabel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>293</x>
+     <y>547</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>506</x>
+     <y>586</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnSliderOpacity(int)</slot>
@@ -1169,5 +1273,8 @@
   <slot>OnButtonLoadLabel()</slot>
   <slot>OnToggleOverlay(bool)</slot>
   <slot>OnToggleAnnotation(bool)</slot>
+  <slot>OnLineEditLabelThreshold(QString)</slot>
+  <slot>OnLabelItemDoubleClicked(QTreeWidgetItem*)</slot>
+  <slot>OnButtonDeleteLabel()</slot>
  </slots>
 </ui>

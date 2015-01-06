@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/12 21:36:06 $
- *    $Revision: 1.292 $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.293 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5481,12 +5481,13 @@ void MainWindow::LoadSurfaceAnnotationFile( const QString& filename )
 
 void MainWindow::LoadSurfaceLabel()
 {
-  QString filename = QFileDialog::getOpenFileName( this, "Select label file",
+  QStringList filenames = QFileDialog::getOpenFileNames( this, "Select label files",
                      AutoSelectLastDir( "label" ),
                      "Label files (*)");
-  if ( !filename.isEmpty())
+  if ( !filenames.isEmpty())
   {
-     this->LoadSurfaceLabelFile( filename );
+    for (int i = 0; i < filenames.size(); i++)
+     this->LoadSurfaceLabelFile( filenames[i] );
   }
 }
 

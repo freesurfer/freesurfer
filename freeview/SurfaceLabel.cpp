@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/01 19:10:07 $
- *    $Revision: 1.13 $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +41,8 @@ SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
   m_label( NULL ),
   m_surface( surf ),
   m_bVisible( true ),
-  m_nOutlineIndices(NULL)
+  m_nOutlineIndices(NULL),
+  m_dThreshold(0)
 {
   m_rgbColor[0] = 1.0;
   m_rgbColor[1] = 1.0;
@@ -105,8 +106,34 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
     m_bTkReg = false;
   }
 
+  // update vno if it is -1
+  MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
+  MHT* hash = MHTfillVertexTableRes(mris, NULL,
+                                    CURRENT_VERTICES, 16);
+  for (int i = 0; i < m_label->n_points; i++)
+  {
+    if (m_label->lv[i].vno < 0)
+    {
+      VERTEX v;
+      v.x = m_label->lv[i].x;
+      v.y = m_label->lv[i].y;
+      v.z = m_label->lv[i].z;
+      float dmin;
+      int vtxno = MHTfindClosestVertexNo(hash, mris, &v, &dmin);
+      if (vtxno >= 0)
+        m_label->lv[i].vno = vtxno;
+    }
+  }
+
   // create outline
   m_nOutlineIndices = new int[m_label->n_points];
+  UpdateOutline();
+
+  return true;
+}
+
+void SurfaceLabel::UpdateOutline()
+{
   VERTEX *v;
   MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
   MRISclearMarks(mris);
@@ -114,7 +141,7 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   for (int n = 0 ; n < m_label->n_points ; n++)
   {
     m_nOutlineIndices[n] = 0;
-    if (m_label->lv[n].vno >= 0)
+    if (m_label->lv[n].vno >= 0) // && m_label->lv[n].stat > m_dThreshold)
     {
       v = &mris->vertices[m_label->lv[n].vno] ;
       if (v->ripflag)
@@ -130,8 +157,6 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
       }
     }
   }
-
-  return true;
 }
 
 void SurfaceLabel::SetColor( double r, double g, double b )
@@ -141,6 +166,15 @@ void SurfaceLabel::SetColor( double r, double g, double b )
   m_rgbColor[2] = b;
 
 //  emit SurfaceLabelChanged();
+}
+
+void SurfaceLabel::SetThreshold(double th)
+{
+  if (th != m_dThreshold)
+  {
+    m_dThreshold = th;
+    emit SurfaceLabelChanged();
+  }
 }
 
 void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
@@ -164,7 +198,10 @@ void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
       {
         opacity = 0;
       }
-      opacity = 1;    // ignore opacity for now
+      if (m_label->lv[i].stat > m_dThreshold)
+        opacity = 1;
+      else
+        opacity = 0;
       colordata[vno*4]    = ( int )( colordata[vno*4]   * ( 1 - opacity ) + m_rgbColor[0] * 255 * opacity );
       colordata[vno*4+1]  = ( int )( colordata[vno*4+1] * ( 1 - opacity ) + m_rgbColor[1] * 255 * opacity );
       colordata[vno*4+2]  = ( int )( colordata[vno*4+2] * ( 1 - opacity ) + m_rgbColor[2] * 255 * opacity );

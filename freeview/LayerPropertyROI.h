@@ -10,9 +10,9 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,11 @@ public:
   }
   void SetColor( double r, double g, double b );
 
+  double GetThreshold() const
+  {
+    return m_dThreshold;
+  }
+
   vtkRGBAColorTransferFunction* GetLookupTable() const;
 
 public slots:
@@ -64,10 +69,12 @@ public slots:
   {
     SetColor( c.redF(), c.greenF(), c.blueF() );
   }
+  void SetThreshold(double th);
 
 signals:
   void OpacityChanged( double opacity );
   void ColorMapChanged();
+  void ThresholdChanged(double th);
 
 private:
   void SetColorMapChanged();
@@ -80,6 +87,7 @@ private:
 
   double mOpacity;
   double mRGB[3];
+  double m_dThreshold;
 };
 
 #endif

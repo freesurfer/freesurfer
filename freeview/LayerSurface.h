@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/09 20:56:03 $
- *    $Revision: 1.64 $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -189,6 +189,9 @@ public:
 
   void SetActiveLabel( int n );
   void SetActiveLabel(SurfaceLabel* label);
+
+  void DeleteLabel(SurfaceLabel* label);
+  void MoveLabelToTop(SurfaceLabel* label);
 
   void SetRefVolume(LayerMRI* ref);
 

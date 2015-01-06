@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.13 $
+ *    $Author: rpwang $
+ *    $Date: 2015/01/06 20:46:12 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@ protected:
 
 protected slots:
   void OnSliderOpacity( int val );
+  void OnEditThreshold(QString text);
 
 private:
   Ui::PanelROI *ui;
