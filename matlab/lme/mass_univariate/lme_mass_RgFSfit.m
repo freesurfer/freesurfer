@@ -28,12 +28,12 @@ function [stats,st,a,b] = lme_mass_RgFSfit(X,Zcols,Y,ni,Dist,model,prs,e)
 % b: Estimate of the second parameter of the spatial correlation matrix (
 % empty for spatial models with a single parameter).
 %
-% $Revision: 1.1 $  $Date: 2013/02/23 21:05:16 $
+% $Revision: 1.2 $  $Date: 2015/01/06 17:14:55 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2013/02/23 21:05:16 $
-%    $Revision: 1.1 $
+%    $Author: mreuter $
+%    $Date: 2015/01/06 17:14:55 $
+%    $Revision: 1.2 $
 % References: 
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 

@@ -12,7 +12,7 @@ function pthresh = lme_mass_FDR(p,fdr)
 % assumption of "independence or positive dependence",
 % which should be "reasonable for imaging data".
 %
-% $Id: lme_mass_FDR.m,v 1.1 2013/02/23 21:05:16 nicks Exp $
+% $Id: lme_mass_FDR.m,v 1.2 2015/01/06 17:14:55 mreuter Exp $
 %
 
 if(nargin ~= 2)

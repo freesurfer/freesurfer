@@ -11,12 +11,12 @@ function [Y,mri] = fs_read_Y(Y_fname)
 % Y: Data matrix (nmxnv, nm total # of maps, nv #vertices). 
 % mri: Mri structure.
 %
-% $Revision: 1.1 $  $Date: 2013/02/23 21:05:16 $
+% $Revision: 1.2 $  $Date: 2015/01/06 17:14:50 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2013/02/23 21:05:16 $
-%    $Revision: 1.1 $
+%    $Author: mreuter $
+%    $Date: 2015/01/06 17:14:50 $
+%    $Revision: 1.2 $
 %
 
 if nargin < 1

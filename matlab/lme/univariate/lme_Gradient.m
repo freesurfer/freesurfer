@@ -19,12 +19,12 @@ function gr = lme_Gradient(X,Zcols,W,invH,L,phi,re,ni)
 % Output
 % gr: Gradient vector.
 %
-% $Revision: 1.1 $  $Date: 2013/02/23 21:05:17 $
+% $Revision: 1.2 $  $Date: 2015/01/06 17:14:57 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2013/02/23 21:05:17 $
-%    $Revision: 1.1 $
+%    $Author: mreuter $
+%    $Date: 2015/01/06 17:14:57 $
+%    $Revision: 1.2 $
 %
 m = length(ni);
 q = length(Zcols);

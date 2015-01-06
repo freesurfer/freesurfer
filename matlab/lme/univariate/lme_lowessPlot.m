@@ -14,12 +14,12 @@ function lme_lowessPlot(time,y,bw,group)
 % points).
 %
 %
-% $Revision: 1.1 $  $Date: 2013/02/23 21:05:17 $
+% $Revision: 1.2 $  $Date: 2015/01/06 17:14:57 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2013/02/23 21:05:17 $
-%    $Revision: 1.1 $
+%    $Author: mreuter $
+%    $Date: 2015/01/06 17:14:57 $
+%    $Revision: 1.2 $
 % References:  W.S.Cleveland, "Robust Locally Weighted Regression and 
 % Smoothing Scatterplots", _J. of the American Statistical Ass._, Vol 74, 
 % No. 368 (Dec.,1979), pp. 829-836.

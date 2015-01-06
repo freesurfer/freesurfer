@@ -13,12 +13,12 @@ function fs_write_fstats(fstats,mri,fname,data_type)
 % of three strings: 'fval' (signed F-statistic map), 'pval' (signed p-value map) 
 % or 'sig' (Freesurfer significance map -log10(pval).*sgn).
 %
-% $Revision: 1.1 $  $Date: 2013/02/23 21:05:16 $
+% $Revision: 1.2 $  $Date: 2015/01/06 17:14:50 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2013/02/23 21:05:16 $
-%    $Revision: 1.1 $
+%    $Author: mreuter $
+%    $Date: 2015/01/06 17:14:50 $
+%    $Revision: 1.2 $
 %
 if nargin < 4
     error('Too few inputs');

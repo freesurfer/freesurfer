@@ -13,12 +13,12 @@ function Surf = fs_read_surf(fname)
 % indices, 1-based, t=#triangles and Surf.coord = 3 x nv matrix of 
 % coordinates, nv=#vertices.
 %
-% $Revision: 1.1 $  $Date: 2013/02/23 21:05:16 $
+% $Revision: 1.2 $  $Date: 2015/01/06 17:14:50 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2013/02/23 21:05:16 $
-%    $Revision: 1.1 $
+%    $Author: mreuter $
+%    $Date: 2015/01/06 17:14:50 $
+%    $Revision: 1.2 $
 %
 [coord,faces] = read_surf(fname);
 Surf.tri = uint32(faces + 1);

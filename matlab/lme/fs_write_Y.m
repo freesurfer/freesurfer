@@ -8,12 +8,12 @@ function fs_write_Y(Y,mri,fname)
 % mri: Mri structure (read with fs_read_Y).
 % fname: Output file name.
 %
-% $Revision: 1.1 $  $Date: 2013/02/23 21:05:16 $
+% $Revision: 1.2 $  $Date: 2015/01/06 17:14:50 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2013/02/23 21:05:16 $
-%    $Revision: 1.1 $
+%    $Author: mreuter $
+%    $Date: 2015/01/06 17:14:50 $
+%    $Revision: 1.2 $
 %
 if nargin < 3
     error('Too few inputs');

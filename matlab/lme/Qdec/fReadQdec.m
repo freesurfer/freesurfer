@@ -9,12 +9,12 @@ function Qdec = fReadQdec(fname)
 % Output
 % Qdec: Two dimensional cell string array with the data.
 %
-% $Revision: 1.1 $  $Date: 2013/02/23 21:05:16 $
+% $Revision: 1.2 $  $Date: 2015/01/06 17:14:53 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2013/02/23 21:05:16 $
-%    $Revision: 1.1 $
+%    $Author: mreuter $
+%    $Date: 2015/01/06 17:14:53 $
+%    $Revision: 1.2 $
 %
 fid = fopen(fname);
 tline = fgetl(fid);
@@ -22,11 +22,11 @@ Qdec = [];
 i = 1;
 while ischar(tline)
     j = 1;
-    [str,remain] = strtok(tline, ' ');   
+    [str,remain] = strtok(tline);   
     while ~isempty(str)
         Qdec{i,j} = str;
         j = j + 1;
-        [str,remain] = strtok(remain, ' ');
+        [str,remain] = strtok(remain);
     end
     i = i + 1;
     tline = fgetl(fid);
