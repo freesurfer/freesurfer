@@ -21,8 +21,8 @@
 #
 # CVS Revision Info:
 #    $Author: lzollei $
-#    $Date: 2013/07/09 16:01:24 $
-#    $Revision: 1.46 $
+#    $Date: 2015/01/07 15:41:40 $
+#    $Revision: 1.47 $
 #
 # Copyright © 2010-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -36,7 +36,7 @@
 #
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.46 2013/07/09 16:01:24 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.47 2015/01/07 15:41:40 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -561,6 +561,7 @@ endif
 
 endif # int-based registration
 
+set filesToDelete = ()
 if ($cleanup) then # deleting tm3d file!
   echo Cleaning up ...
   if ($UseAseg && $UseInt) then
@@ -855,10 +856,11 @@ check_params:
     endif
   endif
 
-  if($templateid == $movingid) then
+  if(($templateid == $movingid) && ($TEMPLATE_DIR == $SUBJECTS_DIR)) then
     echo "ERROR: the moving and the template subjects need to be different!"
     exit 1;
   endif
+
 
   if($templateid == $FStemplate) then
     set usingFStemplate = 1;
