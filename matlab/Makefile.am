@@ -10,6 +10,10 @@ lmegeofilesdir=$(prefix)/matlab/lme/geodesic
 lmemassunifilesdir=$(prefix)/matlab/lme/mass_univariate
 lmeunifilesdir=$(prefix)/matlab/lme/univariate
 lmeQdecfilesdir=$(prefix)/matlab/lme/Qdec
+survivalfilesdir=$(prefix)/matlab/Survival
+survivalexdatafilesdir=$(prefix)/matlab/Survival/ex_data
+survivalmassunifilesdir=$(prefix)/matlab/Survival/mass_univariate
+survivalunifilesdir=$(prefix)/matlab/Survival/univariate
 
 mfiles_DATA=\
 	angles2rotmat.m \
@@ -243,6 +247,35 @@ lmeQdecfiles_DATA=\
 	lme/Qdec/Qdec2num.m \
 	lme/Qdec/rmQdecCol.m
 
+survivalfiles_DATA=\
+	Survival/SStat_lmeX_ext.m
+
+survivalexdatafiles_DATA=\
+	Survival/ex_data/addicts.mat \
+	Survival/ex_data/addicts.dat \
+	Survival/ex_data/Qdec_addicts.dat \
+	Survival/ex_data/vets.dat \
+	Survival/ex_data/vets.mat
+
+survivalmassunifiles_DATA=\
+	Survival/mass_univariate/SStat_mass_FDR.m \
+	Survival/mass_univariate/SStat_mass_FDR2.m \
+	Survival/mass_univariate/SStat_mass_HR.m \
+	Survival/mass_univariate/SStat_mass_CoxPH.m \
+	Survival/mass_univariate/SStat_mass_PHTest.m \
+	Survival/mass_univariate/parfor_progress.m \
+	Survival/mass_univariate/SStat_mass_CoxExt.m \
+	Survival/mass_univariate/SStat_mass_CoxStratPH.m
+
+survivalunifiles_DATA=\
+	Survival/univariate/SStat_PHTest.m \
+	Survival/univariate/SStat_CoxExt.m \
+	Survival/univariate/SStat_KM.m \
+	Survival/univariate/SStat_CoxPH.m \
+	Survival/univariate/SStat_X_ext.m \
+	Survival/univariate/SStat_CoxStratPH.m \
+	Survival/univariate/SStat_HR.m
+
 foo_datafiles=lme/geodesic/geodesic_src.tar.gz
 
 
@@ -255,7 +288,11 @@ EXTRA_DIST=$(mfiles_DATA) \
 	$(lmegeofiles_DATA) \
 	$(lmeunifiles_DATA) \
 	$(lmemassunifiles_DATA) \
-	$(lmeQdecfiles_DATA)
+	$(lmeQdecfiles_DATA) \
+	$(survivalfiles_DATA) \
+	$(survivalexdatafiles_DATA) \
+	$(survivalmassunifiles_DATA) \
+	$(survivalunifiles_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
