@@ -7,9 +7,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/11/06 03:20:09 $
-#    $Revision: 1.2 $
+#    $Author: zkaufman $
+#    $Date: 2015/01/08 22:12:37 $
+#    $Revision: 1.3 $
 #
 # Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_ca_label,v 1.2 2014/11/06 03:20:09 nicks Exp $'
+set VERSION='$Id: test_mri_ca_label,v 1.3 2015/01/08 22:12:37 zkaufman Exp $'
 
 umask 002
 
@@ -43,7 +43,6 @@ cd testdata
 set log = (../test_mri_ca_label.log)
 set threads=( 1 8 )
 if ($?SKIP_MRI_CALABEL_1CPU_TEST) set threads=( 8 )
-if ("`uname -s`" == "Darwin") set threads=( 1 )
 #goto compare
 
 if (-e $log) rm -f $log 
