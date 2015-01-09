@@ -1139,6 +1139,8 @@ void Blood::RemoveLengthOutliers() {
 // Do main computation for priors
 //
 void Blood::ComputePriors() {
+  int maxtries;
+
   cout << "Matching streamline ends" << endl;
   MatchStreamlineEnds();
 
@@ -1165,7 +1167,9 @@ void Blood::ComputePriors() {
     ComputeShapePrior(true);
   }
 
-  for (int itry = 1; itry <= mNumStrEnds; itry++) {
+  maxtries = mNumStrEnds - mExcludedStreamlines.size();
+
+  for (int itry = 1; itry <= maxtries; itry++) {
     bool retry = false;
 
     mCenterStreamline.clear();
@@ -1187,7 +1191,7 @@ void Blood::ComputePriors() {
              << itry << endl;
         retry = true;
 
-        if (itry < mNumStrEnds)
+        if (itry < maxtries)
           break;
       }
     }
