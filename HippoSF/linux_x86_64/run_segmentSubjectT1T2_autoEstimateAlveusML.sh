@@ -14,7 +14,7 @@ else
   echo Setting up environment variables
   MCRROOT="$1"
   echo ---
-  LD_LIBRARY_PATH=.:${MCRROOT}/runtime/glnxa64 ;
+  LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.:${MCRROOT}/runtime/glnxa64 ;
   LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MCRROOT}/bin/glnxa64 ;
   LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MCRROOT}/sys/os/glnxa64;
 	MCRJRE=${MCRROOT}/sys/java/jre/glnxa64/jre/lib/amd64 ;
@@ -33,7 +33,14 @@ else
       args="${args} ${token}" 
       shift
   done
+
+  RANDOMNUMBER=$(od -vAn -N4 -tu4 < /dev/urandom) ;
+  MCR_CACHE_ROOT=$( echo "/tmp/MCR_${RANDOMNUMBER}/" | tr -d ' ' ) ;
+  export MCR_CACHE_ROOT;
   "${exe_dir}"/segmentSubjectT1T2_autoEstimateAlveusML $args
+  rm -rf $MCR_CACHE_ROOT
+
+
 fi
 exit
 
