@@ -14,7 +14,7 @@ else
   echo Setting up environment variables
   MCRROOT="$1"
   echo ---
-  DYLD_LIBRARY_PATH=.:${MCRROOT}/runtime/maci64 ;
+  DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:.:${MCRROOT}/runtime/maci64 ;
   DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${MCRROOT}/bin/maci64 ;
   DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:${MCRROOT}/sys/os/maci64;
   XAPPLRESDIR=${MCRROOT}/X11/app-defaults ;
@@ -28,7 +28,15 @@ else
       args="${args} ${token}" 
       shift
   done
+
+  RANDOMNUMBER=$(od -vAn -N4 -tu4 < /dev/urandom) ;
+  MCR_CACHE_ROOT=$( echo "/tmp/MCR_${RANDOMNUMBER}/" | tr -d ' ' ) ;
+  export MCR_CACHE_ROOT;
   "${exe_dir}"/segmentSubjectT2_autoEstimateAlveusML.app/Contents/MacOS/segmentSubjectT2_autoEstimateAlveusML $args
+  rm -rf $MCR_CACHE_ROOT
+
+
+  
 fi
 exit
 
