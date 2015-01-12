@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2014/08/26 21:25:12 $
- *    $Revision: 1.21 $
+ *    $Author: greve $
+ *    $Date: 2015/01/12 18:40:49 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include "diag.h"
 
 extern char *crypt(const char *, const char *);
 
@@ -103,6 +104,8 @@ void chklc(void)
 
   sprintf(lfilename,"%s/.lic%s",dirname, "ense");
 
+  if(Gdiag_no > 0) printf("Trying licence file %s\n",lfilename);
+
   lfile = fopen(lfilename,"r");
   if (lfile == NULL)
   {
@@ -112,6 +115,7 @@ void chklc(void)
       exit(-1);
     }
     sprintf(lfilename,"%s/lic%s",dirname, "ense.txt");
+    if(Gdiag_no > 0) printf("Now trying licence file %s\n",lfilename);
     lfile = fopen(lfilename,"r");
   }
   if (lfile == NULL)
@@ -129,8 +133,15 @@ void chklc(void)
   fscanf(lfile,"%s\n",magic);
   fscanf(lfile,"%s\n",key);
   fscanf(lfile,"%s\n",key2); 
-
   sprintf(gkey,"%s.%s",email,magic);
+
+  if(Gdiag_no > 0) {
+    printf("email %s\n",email);
+    printf("magic %s\n",magic);
+    printf("key   %s\n",key);
+    printf("key2  %s\n",key2);
+    printf("gkey  %s\n",gkey);
+  }
   
   // This code is meant to provide backwards compatibility
   // of freesurfer license checking. Unfortunately previous 
@@ -142,12 +153,18 @@ void chklc(void)
   if (strcmp(key2, "") != 0)
   {
     // We have a 4 line license file.
+    if(Gdiag_no > 0) printf("4 line license file\n");
     strcpy(key,key2);
     crypt_gkey = crypt(gkey,"FS");
+    if(crypt_gkey == NULL){
+      printf("ERROR: crypt() returned null with 4-line file\n");
+      exit(1);
+    }
   } 
   else 
   {
     // We have a 3 line license file.
+    if(Gdiag_no > 0) printf("3 line license file\n");
     #ifdef Darwin
       // On Darwin systems the key produced with a salt of '*C'
       // is different than that produced on Linux. So to be backwards
@@ -155,8 +172,16 @@ void chklc(void)
       crypt_gkey = key;
     #else 
       crypt_gkey = crypt(gkey,"*C");
+      if(crypt_gkey == NULL){
+	printf("ERROR: crypt() returned null with 3-line file\n");
+	printf("If you are running CentOS version 7 or higher you may need a new FreeSurfer license file\n");
+        printf("See https://surfer.nmr.mgh.harvard.edu/registration.html\n");
+	exit(1);
+      }
     #endif
   }
+
+  if(Gdiag_no > 0) printf("crypt_gkey %s\n",crypt_gkey);
 
   if (strcmp(key,crypt_gkey)!=0)
   {
@@ -172,6 +197,7 @@ void chklc(void)
   free(lfilename);
   fclose(lfile) ;
 
+  if(Gdiag_no > 0) printf("chklc() done\n");
   return;
 }
 
