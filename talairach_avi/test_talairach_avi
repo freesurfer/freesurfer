@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/01/13 01:40:40 $
-#    $Revision: 1.10 $
+#    $Date: 2015/01/13 01:43:31 $
+#    $Revision: 1.11 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_talairach_avi,v 1.10 2015/01/13 01:40:40 nicks Exp $'
+set VERSION='$Id: test_talairach_avi,v 1.11 2015/01/13 01:43:31 nicks Exp $'
 
 umask 002
 
@@ -50,6 +50,8 @@ endif
 #
 set cmd=(../lta_convert/lta_convert --inmni tal.xfm --outlta tal.lta \
     --src nu.mgz --trg mni305.cor.mgz)
+echo ""
+echo $cmd
 $cmd >& test_talairach_avi.log
 if ($status != 0) then
   echo "$cmd FAILED"
