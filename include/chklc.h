@@ -6,9 +6,9 @@
 /*
  * Original Author: 
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2014/04/11 18:37:09 $
- *    $Revision: 1.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/01/13 21:00:09 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,5 +27,6 @@
 
 void chklc(void) ;
 int  chklc2(char* msg);
+void cmp_glib_version(void);
 
 #endif

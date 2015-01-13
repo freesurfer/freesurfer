@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/01/12 18:40:49 $
- *    $Revision: 1.22 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/01/13 21:00:11 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,6 +22,9 @@
  *
  */
 
+#ifndef Darwin
+#include <gnu/libc-version.h>
+#endif
 #include <unistd.h>
 #include <const.h>
 #include <stdio.h>
@@ -29,6 +32,7 @@
 #include <string.h>
 #include <errno.h>
 #include "diag.h"
+#include <chklc.h>
 
 extern char *crypt(const char *, const char *);
 
@@ -46,7 +50,7 @@ static const char* licmsg =
 "--------------------------------------------------------------------------\n"
 "ERROR: FreeSurfer license file %s not found.\n"
 "  If you are outside the NMR-Martinos Center,\n"
-"  go to http://surfer.nmr.mgh.harvard.edu to \n"
+"  go to http://surfer.nmr.mgh.harvard.edu/registration.html to \n"
 "  get a valid license file (it's free).\n"
 "  If you are inside the NMR-Martinos Center,\n"
 "  make sure to source the standard environment.\n"
@@ -56,7 +60,7 @@ static const char* licmsg2 =
 "--------------------------------------------------------------------------\n"
 "ERROR: Invalid FreeSurfer license key found in license file %s\n"
 "  If you are outside the NMR-Martinos Center,\n"
-"  go to http://surfer.nmr.mgh.harvard.edu to \n"
+"  go to http://surfer.nmr.mgh.harvard.edu/registration.html to \n"
 "  get a valid license file (it's free).\n"
 "  If you are inside the NMR-Martinos Center,\n"
 "  make sure to source the standard environment.\n"
@@ -164,20 +168,15 @@ void chklc(void)
   else 
   {
     // We have a 3 line license file.
-    if(Gdiag_no > 0) printf("3 line license file\n");
+    if(Gdiag_no > 0) printf("3 line license file\n"); 
     #ifdef Darwin
       // On Darwin systems the key produced with a salt of '*C'
       // is different than that produced on Linux. So to be backwards
       // compatible we must avoid the call to crypt.
       crypt_gkey = key;
     #else 
+      cmp_glib_version();
       crypt_gkey = crypt(gkey,"*C");
-      if(crypt_gkey == NULL){
-	printf("ERROR: crypt() returned null with 3-line file\n");
-	printf("If you are running CentOS version 7 or higher you may need a new FreeSurfer license file\n");
-        printf("See https://surfer.nmr.mgh.harvard.edu/registration.html\n");
-	exit(1);
-      }
     #endif
   }
 
@@ -321,6 +320,7 @@ int chklc2(char* msg)
       // compatible we must avoid the call to crypt.
       crypt_gkey = key;
     #else 
+      cmp_glib_version();
       crypt_gkey = crypt(gkey,"*C");
     #endif
   }
@@ -344,3 +344,32 @@ int chklc2(char* msg)
   return 1;
 }
 
+#ifndef Darwin
+void cmp_glib_version(void)
+{
+   
+  int i;
+  char* GNU_LIBC_VERSION_MAX = "2.15";
+  int glibc_max[2], glibc_current[2];
+  static const char* new_license_msg =
+"--------------------------------------------------------------------------\n"
+"GNU libc version: %s\n"
+"ERROR: Systems running GNU glibc version greater than %s\n"
+"  require a newly formatted license file (it's free). Please\n" 
+"  download a new one from the following page:\n"
+"  http://surfer.nmr.mgh.harvard.edu/registration.html\n"
+"--------------------------------------------------------------------------\n";
+
+  sscanf(GNU_LIBC_VERSION_MAX, "%d.%d", &glibc_max[0], &glibc_max[1]);
+  sscanf(gnu_get_libc_version(), "%d.%d", &glibc_current[0], &glibc_current[1]); 
+
+  for (i = 0; i < 2; i++) {
+    if (glibc_current[i] > glibc_max[i])
+    {
+      printf(new_license_msg, gnu_get_libc_version(), GNU_LIBC_VERSION_MAX);
+      exit(-1);
+    }
+  }
+
+}
+#endif
