@@ -8,10 +8,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/12/18 19:36:01 $
-#    $Revision: 1.501 $
+#    $Date: 2015/01/13 22:19:03 $
+#    $Revision: 1.502 $
 #
-# Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.501 2014/12/18 19:36:01 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.502 2015/01/13 22:19:03 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -162,7 +162,8 @@ set target = fsaverage # see DoQdecCache
 set SmoothCortexOnly = 1; # For -qcache. smooths only within ?h.cortex.label
 
 set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
-set UseYa3tTalAtlas = 0; # if 1, use 3T18yoSchwartz young-adult 3T atlas for tal_avi
+set UseYa3tTalAtlas = 1; # if 1, use 3T18yoSchwartz young-adult 3T atlas
+                         # for tal_avi (recommended as default by Avi S.)
 set CustomTalAtlas = ""; # -custom-tal-atlas <name of atlas in average dir>
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
 set MakefileTarget = () # argument to recon-all -make
@@ -694,6 +695,9 @@ if($DoCleanCW256) then
 endif
 if($DoCleanTal) then
   set cmd = (mv -f $subjdir/mri/transforms/talairach.xfm $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/orig_nu.mgz $subjdir/trash)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd  |& tee -a $LF
 endif
@@ -1618,12 +1622,14 @@ talairach:
       # this orig_nu.mgz uses the full head, whereas nu.mgz is created using
       # the brainmask, and also talairach.xfm to find the white matter ball.
       set tal_input = orig_nu.mgz
-      set cmd = (mri_nu_correct.mni \
-        --n 1 --proto-iters 1000 --distance 50 --no-rescale \
-        --i orig.mgz --o $tal_input)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd >& orig_nu.log
-      if($status) goto error_exit;
+      if ( ! -e $tal_input) then
+        set cmd = (mri_nu_correct.mni \
+          --n 1 --proto-iters 1000 --distance 50 --no-rescale \
+          --i orig.mgz --o $tal_input)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd >& orig_nu.log
+        if($status) goto error_exit;
+      endif
     endif
     if ($UseMincMritotal) then
       # use the MINC mritotal utility
@@ -1685,30 +1691,14 @@ if($DoTalCheck) then
   set xopts = `fsr-getxopts talairach_afd $XOptsFile`;
   set xfm = transforms/talairach.xfm
   set cmd = (talairach_afd -T 0.005 -xfm $xfm $xopts)
+  set afdTestFailed = 0;
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
     if($status) then
-      # IF Talairach alignment was run
-      # AND it was using the avi synder method
-      # AND this check failed,
-      # THEN try Talairach alignment using MINC mritotal tool
-      # ELSE error exit
-      if($DoTalairach && ! $UseMincMritotal && ! $longitudinal) then
-        echo "INFO: Attempting MINC mritotal to perform Talairach align" \
-          |& tee -a $LF
-        set UseMincMritotal = 1;
-        set DoCleanTal = 1;
-        goto talairach;
-      else
-        echo "Manual Talairach alignment may be necessary, or" |& tee -a $LF
-        echo "include the -notal-check flag to skip this test," |& tee -a $LF
-        echo "making sure the -notal-check flag follows -all" |& tee -a $LF
-        echo "or -autorecon1 in the command string." |& tee -a $LF
-        echo "See http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach" |& tee -a $LF
-        goto error_exit;
-      endif
+      set handleTalErrors = 1;
+      goto handle_tal_error;
     endif
   endif
   # now run Avi's QA check on the results found in talairach_avi.log
@@ -1729,7 +1719,8 @@ if($DoTalCheck) then
         echo "ERROR: ${cmd} failed!  See logfile ${qalog}" |& tee -a $LF
         goto error_exit;
       endif
-# tal_QC_AZS disabled.  failing in weird ways. getting caught in infinite 'test' loops.
+# tal_QC_AZS disabled:
+# failing in weird ways. getting caught in infinite 'test' loops.
 if (0) then
       $fs_time $cmd2 >& $qalog2
       set tal_QC_AZS_status = $status
@@ -1748,6 +1739,7 @@ endif
       set zscore=`echo "scale=0;(${talAviQA} - ${mean}) / ${std}" | bc`
       echo "z-score: ${zscore}" |& tee -a $LF
       set zscoreThreshold=(-9) # conservative value, but catches M.Harms subjs.
+# tal_QC_AZS disabled:
 if (0) then
       # second set:
       if ( ! $tal_QC_AZS_status ) then
@@ -1761,29 +1753,50 @@ if (0) then
         set atlaserrlo=0
       endif
 else
-  set talAviQA2=0
-  set atlaserrhi=0
-  set atlaserrlo=0
+      set talAviQA2=0
+      set atlaserrhi=0
+      set atlaserrlo=0
 endif
-
-      # check both:
+      # check scores:
+      set handleTalErrors = 0;
       if (($zscore < $zscoreThreshold) || $atlaserrhi || $atlaserrlo) then
         echo "ERROR: Talairach QA check failed!" |& tee -a $LF
-        echo "       z-score = ${zscore} <= ${zscoreThreshold} = threshold\n" \
-             "      atlas xform error = $talAviQA2 < -60 | > 24" \
+        echo "z-score of ${zscore} is <= threshold of ${zscoreThreshold}\n" \
              |& tee -a $LF
-        echo "Manual Talairach alignment may be necessary, or" |& tee -a $LF
+# tal_QC_AZS disabled:
+if (0) then
+        echo "or the atlas xform error of $talAviQA2 is < -60 | > 24" \
+             |& tee -a $LF
+endif
+        set handleTalErrors = 1;
+      endif
+handle_tal_error:
+      if ($handleTalErrors) then
+        echo "\nManual Talairach alignment may be necessary, or" |& tee -a $LF
         echo "include the -notal-check flag to skip this test," |& tee -a $LF
         echo "making sure the -notal-check flag follows -all" |& tee -a $LF
         echo "or -autorecon1 in the command string." |& tee -a $LF
-        echo "See http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach" |& tee -a $LF
+        echo "See:\n" |& tee -a $LF
+        echo "http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach" \
+            |& tee -a $LF
+        echo "" |& tee -a $LF
         # IF Talairach alignment was run
-        # AND it was using the avi synder method
-        # AND this check failed,
-        # THEN try Talairach alignment using MINC mritotal tool
+        # AND it was using the avi synder method (w/Schwartz atlas as default)
+        # AND a check failed,
+        # THEN first retry avi method using older 711-2C atlas 
+        # THEN (if that fails) try Talairach alignment using MINC mritotal tool
         # ELSE error exit
-        if($DoTalairach && ! $UseMincMritotal && ! $longitudinal) then
-          echo "INFO: Attempting MINC mritotal to perform Talairach align" \
+        if($DoTalairach && ! $UseMincMritotal && ! $longitudinal && \
+           $UseYa3tTalAtlas ) then
+          echo "INFO: Retrying Talairach align using 711-2C atlas...\n" \
+            |& tee -a $LF
+          set UseYa3tTalAtlas = 0; # revert to 711-C atlas
+          set CustomTalAtlas = (711-2C_as_mni_average_305)
+          set UseMincMritotal = 0;
+          set DoCleanTal = 1;
+          goto talairach;
+        else if($DoTalairach && ! $UseMincMritotal && ! $longitudinal) then
+          echo "INFO: Trying MINC mritotal to perform Talairach align...\n" \
             |& tee -a $LF
           set UseMincMritotal = 1;
           set DoCleanTal = 1;
@@ -1811,7 +1824,8 @@ if($DoNormalization) then
   set xopts = `fsr-getxopts mri_normalize $XOptsFile`;
   if ( $longitudinal && $UseLongbaseCtrlVol) then
     # longitudinal processing stream AND using ctrl_vol.mgz from base:
-    if( ! -e $longbasedir/mri/ctrl_vol.mgz || ! -e $longbasedir/mri/bias_vol.mgz ) then
+    if( ! -e $longbasedir/mri/ctrl_vol.mgz || \
+        ! -e $longbasedir/mri/bias_vol.mgz ) then
       echo "Recompute intensity norm to create $longbaseid ctrl_vol.mgz" \
         |& tee -a $LF
       set cmd = (mri_normalize)
