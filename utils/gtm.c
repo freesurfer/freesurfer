@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/10 05:30:53 $
- *    $Revision: 1.27 $
+ *    $Date: 2015/01/13 20:28:29 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1223,32 +1223,12 @@ int GTMrbv0(GTM *gtm)
  */
 int GTMmgpvc(GTM *gtm)
 {
-  int c,r,s,f,n,nthseg,segid,found,nhits;
-  double sum,vgmpsf,vwmpsf,vwmtac,vtac,vmgtac;
+  int c,r,s,f;
+  double vgmpsf,vwmpsf,vwmtac,vtac,vmgtac;
   MRI *ctxpvf, *subctxpvf, *wmpvf, *gmpvf,*wmpvfpsf;
 
   // Compute the MG reference TAC
-  gtm->mg_reftac = MatrixAlloc(gtm->yvol->nframes,1,MATRIX_REAL);
-  for(f=0; f < gtm->yvol->nframes; f++){
-    nhits = 0;
-    sum = 0;
-    for(nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
-      segid = gtm->segidlist[nthseg];
-      found = 0;
-      for(n=0; n < gtm->n_mg_refids; n++) {
-	if(segid == gtm->mg_refids[n]) {
-	  found = 1;
-	  nhits++;
-	  break;
-	}
-      }
-      if(!found) continue;
-      sum += gtm->beta->rptr[nthseg+1][f+1];
-      printf("   n=%d, nthseg=%d %g\n",n,nthseg,gtm->beta->rptr[nthseg+1][f+1]);
-    }
-    gtm->mg_reftac->rptr[f+1][1] = sum/nhits;
-    printf("   wm tac %2d %2d %g\n",f,nhits,gtm->mg_reftac->rptr[f+1][1]);
-  }
+  GTMmgRefTAC(gtm);
 
   if(gtm->mg) MRIfree(&gtm->mg);
   gtm->mg = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth,
@@ -1290,6 +1270,36 @@ int GTMmgpvc(GTM *gtm)
   MRIfree(&wmpvf);
   MRIfree(&gmpvf);
   MRIfree(&wmpvfpsf);
+  return(0);
+}
+
+// Compute the MG reference TAC
+int GTMmgRefTAC(GTM *gtm)
+{
+  int f,nhits,n,found,nthseg,segid;
+  double sum;
+
+  gtm->mg_reftac = MatrixAlloc(gtm->yvol->nframes,1,MATRIX_REAL);
+  for(f=0; f < gtm->yvol->nframes; f++){
+    nhits = 0;
+    sum = 0;
+    for(nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
+      segid = gtm->segidlist[nthseg];
+      found = 0;
+      for(n=0; n < gtm->n_mg_refids; n++) {
+	if(segid == gtm->mg_refids[n]) {
+	  found = 1;
+	  nhits++;
+	  break;
+	}
+      }
+      if(!found) continue;
+      sum += gtm->beta->rptr[nthseg+1][f+1];
+      printf("   n=%d, nthseg=%d %g\n",n,nthseg,gtm->beta->rptr[nthseg+1][f+1]);
+    }
+    gtm->mg_reftac->rptr[f+1][1] = sum/nhits;
+    printf("   wm tac %2d %2d %g\n",f,nhits,gtm->mg_reftac->rptr[f+1][1]);
+  }
   return(0);
 }
 /*--------------------------------------------------------------------------*/
