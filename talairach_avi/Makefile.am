@@ -212,7 +212,7 @@ foo:
 
 check_PROGRAMS=foo
 
-#TESTS=test_libg2c test_talairach_avi $(top_builddir)/scripts/help_xml_validate
+TESTS=test_libg2c test_talairach_avi $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
 	rm -f $(BUILT_SOURCES) 
