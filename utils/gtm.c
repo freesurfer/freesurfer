@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/13 20:28:29 $
- *    $Revision: 1.28 $
+ *    $Date: 2015/01/14 20:55:52 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1218,17 +1218,75 @@ int GTMrbv0(GTM *gtm)
 /*--------------------------------------------------------------------------*/
 /*
   \fn int GTMmgpvc(GTM *gtm)
+  \brief GLM-based modified Muller-Gartner PVC.  Residualizes input
+  wrt the GLM estimate of the non-target tissue, the divides the
+  residual by the fraction of the target in a voxel. Target=1 means
+  cortex only, Target=2 means subcorticalgm only, Target=3 means both
+  cortical and subcortical GM. Tissue type IDs are hard-coded.
+ */
+int GTMmgxpvc(GTM *gtm, int Target)
+{
+  int nthseg,segid,r,tt,f;
+  MATRIX *betaNotTarg, *yNotTarg, *ydiff;
+  double sum;
+
+  // Set beta values to 0 if they are not in the target tissue type(s)
+  betaNotTarg = MatrixAlloc(gtm->beta->rows,gtm->beta->cols,MATRIX_REAL);
+  for(nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
+    segid = gtm->segidlist[nthseg];
+    tt = gtm->ctGTMSeg->entries[segid]->TissueType;
+    if(Target == 1 && tt == 1) continue;
+    if(Target == 2 && tt == 2) continue;
+    if(Target == 3 && (tt == 1 || tt == 2)) continue;
+    for(f=0; f < gtm->nframes; f++) 
+      betaNotTarg->rptr[nthseg+1][f+1] = gtm->beta->rptr[nthseg+1][f+1];
+  }
+
+  // Compute the estimate of the image without the target
+  yNotTarg = MatrixMultiplyD(gtm->X,betaNotTarg,NULL);
+  // Subtract to resdiualize the PET wrt the non-target tissue
+  ydiff = MatrixSubtract(gtm->y,yNotTarg,NULL);
+
+  // Scale by the fraction of target tissue type in voxel
+  for(r=0; r < gtm->X->rows; r++){
+    sum = 0;
+    for(nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
+      segid = gtm->segidlist[nthseg];
+      tt = gtm->ctGTMSeg->entries[segid]->TissueType;
+      if(Target == 1 && tt != 1) continue;
+      if(Target == 2 && tt != 2) continue;
+      if(Target == 3 && tt != 1 && tt != 2) continue;
+      sum += gtm->X->rptr[r+1][nthseg+1];
+    }
+    if(sum < gtm->mgx_gmthresh)
+      for(f=0; f < gtm->nframes; f++) ydiff->rptr[r+1][f+1] = 0;
+    else
+      for(f=0; f < gtm->nframes; f++) ydiff->rptr[r+1][f+1] /= sum;
+  }
+
+  if(Target == 1) gtm->mgx_ctx    = GTMmat2vol(gtm, ydiff, NULL);
+  if(Target == 2) gtm->mgx_subctx = GTMmat2vol(gtm, ydiff, NULL);
+  if(Target == 3) gtm->mgx_gm     = GTMmat2vol(gtm, ydiff, NULL);
+
+  MatrixFree(&betaNotTarg);
+  MatrixFree(&yNotTarg);
+  MatrixFree(&ydiff);
+
+  return(0);
+}
+
+/*--------------------------------------------------------------------------*/
+/*
+  \fn int GTMmgpvc(GTM *gtm)
   \brief Performs Muller-Gartner PVC. Hardcodes tissue type IDs to 
-  be 0=cortex, 1=subcortexgm, 2=WM.
+  be frame0=cortex, frame1=subcortexgm, frame2=WM.
  */
 int GTMmgpvc(GTM *gtm)
 {
   int c,r,s,f;
   double vgmpsf,vwmpsf,vwmtac,vtac,vmgtac;
-  MRI *ctxpvf, *subctxpvf, *wmpvf, *gmpvf,*wmpvfpsf;
-
-  // Compute the MG reference TAC
-  GTMmgRefTAC(gtm);
+  //MRI *ctxpvf, *subctxpvf, *gmpvf;
+  MRI *wmpvf, *wmpvfpsf;
 
   if(gtm->mg) MRIfree(&gtm->mg);
   gtm->mg = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth,
@@ -1236,17 +1294,30 @@ int GTMmgpvc(GTM *gtm)
   if(gtm->mg == NULL) return(1);
   MRIcopyHeader(gtm->yvol,gtm->mg);
 
+  // This is now done outside
   // Compute gray matter PVF with smoothing
-  ctxpvf    = fMRIframe(gtm->ttpvf,0,NULL); // cortex PVF
-  subctxpvf = fMRIframe(gtm->ttpvf,1,NULL); // subcortex GM PVF
-  gmpvf = MRIadd(ctxpvf,subctxpvf,NULL); // All GM PVF
-  // Smooth GM PVF by PSF
-  gtm->gmpvfpsf = MRIgaussianSmoothNI(gmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  //ctxpvf    = fMRIframe(gtm->ttpvf,0,NULL); // cortex PVF
+  //subctxpvf = fMRIframe(gtm->ttpvf,1,NULL); // subcortex GM PVF
+  //gmpvf = MRIadd(ctxpvf,subctxpvf,NULL); // All GM PVF
+  // Smooth GM PVF by PSF, need to include MB
+  //gtm->gmpvfpsf = MRIgaussianSmoothNI(gmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  // Need to add MB here
 
   // WM PVF
   wmpvf = fMRIframe(gtm->ttpvf,2,NULL); 
   // Smooth WM PVF by PSF
   wmpvfpsf = MRIgaussianSmoothNI(wmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  if(gtm->UseMB){
+    MB2D *mb;
+    MRI *mritmp;
+    mb = MB2Dcopy(gtm->mb,0,NULL);
+    mb->cR = 0;
+    mb->rR = 0;
+    mritmp = MRImotionBlur2D(wmpvfpsf, mb, NULL);
+    MRIfree(&wmpvfpsf);
+    wmpvfpsf = mritmp;
+    MB2Dfree(&mb);
+  }
 
   // Finally, do the actual MG correction
   for(c=0; c < gtm->yvol->width; c++){ // crs order not important
@@ -1265,10 +1336,8 @@ int GTMmgpvc(GTM *gtm)
       }
     }
   }
-  MRIfree(&ctxpvf);
-  MRIfree(&subctxpvf);
+  //MRIfree(&ctxpvf);  MRIfree(&subctxpvf);  MRIfree(&gmpvf);
   MRIfree(&wmpvf);
-  MRIfree(&gmpvf);
   MRIfree(&wmpvfpsf);
   return(0);
 }
@@ -1328,6 +1397,7 @@ int GTMmeltzerpvc(GTM *gtm)
   MRIadd(gmwmpvf,wmpvf,gmwmpvf); // All GM+WM PVF
   // Smooth GMWM PVF by PSF
   gmwmpvfpsf = MRIgaussianSmoothNI(gmwmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  // Need to add MB here
 
   // Finally, do the actual Meltzer correction
   for(c=0; c < gtm->yvol->width; c++){ // crs order not important
@@ -1397,6 +1467,17 @@ int GTMsmoothSynth(GTM *gtm)
 {
   if(gtm->ysynth == NULL) GTMsynth(gtm,0,0);
   gtm->ysynthsm = MRIgaussianSmoothNI(gtm->ysynth, gtm->cStd, gtm->rStd, gtm->sStd, gtm->ysynthsm);
+  if(gtm->UseMB){
+    MB2D *mb;
+    MRI *mritmp;
+    mb = MB2Dcopy(gtm->mb,0,NULL);
+    mb->cR = 0;
+    mb->rR = 0;
+    mritmp = MRImotionBlur2D(gtm->ysynthsm, mb, NULL);
+    MRIfree(&gtm->ysynthsm);
+    gtm->ysynthsm = mritmp;
+    MB2Dfree(&mb);
+  }
   return(0);
 }
 
@@ -1502,6 +1583,7 @@ int GTMbuildX(GTM *gtm)
       nthsegpvfbbsmmb = MRImotionBlur2D(nthsegpvfbbsm, mb, NULL);
       MRIfree(&nthsegpvfbbsm);
       nthsegpvfbbsm = nthsegpvfbbsmmb;
+      MB2Dfree(&mb);
     }
     // Fill X, creating X in this order makes it consistent with matlab
     // Note: y must be ordered in the same way. See GTMvol2mat()
@@ -1528,7 +1610,6 @@ int GTMbuildX(GTM *gtm)
     MRIfree(&nthsegpvf);
     MRIfree(&nthsegpvfbb);
     MRIfree(&nthsegpvfbbsm);
-    if(gtm->UseMB) MB2Dfree(&mb);
   }
   if(! gtm->Optimizing) printf(" Build time %6.4f, err = %d\n",TimerStop(&timer)/1000.0,err);fflush(stdout);
   if(err) gtm->X = NULL;
@@ -2033,7 +2114,7 @@ int GTMautoMask(GTM *gtm)
   LTAfree(&lta);
   // Threshold it at 0.5 to give the mask
   MRIbinarize(gtm->mask,gtm->mask,0.5,0,1);
-  // Smooth binary mask
+  // Smooth binary mask - MB not super important here
   std = gtm->automask_fwhm/sqrt(log(256.0)); // convert fwhm to std
   MRIgaussianSmoothNI(gtm->mask, std,std,std, gtm->mask);
   // Binarize again to get final mask
@@ -2147,6 +2228,7 @@ MRI **GTMlocal(GTM *gtm, MRI **pvc)
   nTT = gtm->ttpvf->nframes;
 
   pvfpsf = MRIgaussianSmoothNI(gtm->ttpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  // Need to add MB here
 
   if(pvc == NULL){
     pvc = (MRI **)calloc(sizeof(MRI*),nTT);

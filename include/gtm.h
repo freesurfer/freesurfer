@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/13 20:28:29 $
- *    $Revision: 1.21 $
+ *    $Date: 2015/01/14 20:55:52 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -142,10 +142,13 @@ typedef struct
 
   int DoMGPVC; // Muller-Gartner
   MRI *mg; // MG output volume
-  double mg_gmthresh; // GM PVF threshold 
+  double mg_gmthresh; // GM PVF threshold
   int n_mg_refids,mg_refids[100]; // WM reference seg IDs
   MATRIX *mg_reftac; // WM reference TAC
   MRI *gmpvfpsf; // GM PVF smoothed by PSF
+  int DoMGXPVC; // Muller-Gartner X 
+  double mgx_gmthresh; // GM PVF threshold
+  MRI *mgx_ctx, *mgx_subctx, *mgx_gm; // MG output volume
 
   int DoMeltzerPVC; // Meltzer method
   MRI *meltzer; // MG output volume
@@ -195,6 +198,7 @@ int GTMrbvseg(GTM *gtm);
 int GTMrbv(GTM *gtm);
 int GTMmgRefTAC(GTM *gtm);
 int GTMmgpvc(GTM *gtm);
+int GTMmgxpvc(GTM *gtm, int Target);
 int GTMmeltzerpvc(GTM *gtm);
 MATRIX *GTMvol2mat(GTM *gtm, MRI *vol, MATRIX *m);
 MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol);

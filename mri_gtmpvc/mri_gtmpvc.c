@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/23 03:34:52 $
- *    $Revision: 1.42 $
+ *    $Date: 2015/01/14 20:55:52 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.42 2014/12/23 03:34:52 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.43 2015/01/14 20:55:52 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.42 2014/12/23 03:34:52 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.43 2015/01/14 20:55:52 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -216,6 +216,7 @@ int main(int argc, char *argv[])
   gtmopt = (GTMOPT *) calloc(sizeof(GTMOPT),1);
   gtmopt->gtm = gtm;
   gtm->mb = (MB2D *) calloc(sizeof(MB2D),1);
+  gtm->DoSteadyState = 0;
 
   Progname = argv[0] ;
   argc --;
@@ -486,6 +487,30 @@ int main(int argc, char *argv[])
   sprintf(tmpstr,"%s/pvf.nii.gz",AuxDir);
   MRIwrite(gtm->ttpvf,tmpstr);
 
+  // Compute gray matter PVF with smoothing
+  MRI *ctxpvf, *subctxpvf, *gmpvf;
+  ctxpvf    = fMRIframe(gtm->ttpvf,0,NULL); // cortex PVF
+  subctxpvf = fMRIframe(gtm->ttpvf,1,NULL); // subcortex GM PVF
+  gmpvf = MRIadd(ctxpvf,subctxpvf,NULL); // All GM PVF
+  // Smooth GM PVF by PSF
+  gtm->gmpvfpsf = MRIgaussianSmoothNI(gmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
+  if(gtm->UseMB){
+    MB2D *mb;
+    MRI *mritmp;
+    mb = MB2Dcopy(gtm->mb,0,NULL);
+    mb->cR = 0;
+    mb->rR = 0;
+    mritmp = MRImotionBlur2D(gtm->gmpvfpsf, mb, NULL);
+    MRIfree(&gtm->gmpvfpsf);
+    gtm->gmpvfpsf = mritmp;
+    MB2Dfree(&mb);
+  }
+  MRIfree(&ctxpvf);
+  MRIfree(&subctxpvf);
+  MRIfree(&gmpvf);
+  sprintf(tmpstr,"%s/gm.pvf.psf.nii.gz",AuxDir);
+  MRIwrite(gtm->gmpvfpsf, tmpstr);
+
   sprintf(tmpstr,"%s/hrseg2pet.lta",AuxDir);
   LTAwrite(gtm->seg2pet,tmpstr);
   sprintf(tmpstr,"%s/anat2pet.lta",AuxDir);
@@ -581,6 +606,42 @@ int main(int argc, char *argv[])
   fprintf(logfp,"GTM-Solve-Time %4.1f sec\n",TimerStop(&mytimer)/1000.0);fflush(logfp);
   if(Gdiag_no > 0) PrintMemUsage(stdout);
   PrintMemUsage(logfp);
+
+  if(gtm->DoMGPVC){
+    printf("Performing MG PVC\n");
+    if(Gdiag_no > 0) PrintMemUsage(stdout);
+    fprintf(logfp,"MG PVC\n");
+    GTMmgRefTAC(gtm);
+    GTMmgpvc(gtm);
+    sprintf(tmpstr,"%s/mg.nii.gz",OutDir);
+    MGPVCFile = strcpyalloc(tmpstr);
+    err = MRIwrite(gtm->mg,MGPVCFile);
+    if(err) exit(1);
+    if(Gdiag_no > 0) printf("done with mgpvc\n");
+    fprintf(logfp,"done with mgpvc\n");
+    sprintf(tmpstr,"%s/mg.reftac.dat",AuxDir);
+    GTMwriteMGRefTAC(gtm, tmpstr);
+  }
+
+  if(gtm->DoMGXPVC){
+    printf("Performing MGX PVC\n");
+    if(Gdiag_no > 0) PrintMemUsage(stdout);
+    fprintf(logfp,"MGX PVC\n");
+    GTMmgxpvc(gtm,1);
+    GTMmgxpvc(gtm,2);
+    GTMmgxpvc(gtm,3);
+    sprintf(tmpstr,"%s/mgx.ctxgm.nii.gz",OutDir);
+    err = MRIwrite(gtm->mgx_ctx,tmpstr);
+    if(err) exit(1);
+    sprintf(tmpstr,"%s/mgx.subctxgm.nii.gz",OutDir);
+    err = MRIwrite(gtm->mgx_subctx,tmpstr);
+    if(err) exit(1);
+    sprintf(tmpstr,"%s/mgx.gm.nii.gz",OutDir);
+    err = MRIwrite(gtm->mgx_gm,tmpstr);
+    if(err) exit(1);
+    if(Gdiag_no > 0) printf("done with mgxpvc\n");
+    fprintf(logfp,"done with mgxpvc\n");
+  }
 
   printf("Computing percent TT in each ROI\n");
   GTMttPercent(gtm);
@@ -770,22 +831,6 @@ int main(int argc, char *argv[])
   if(err) exit(1);
   MRIfree(&mritmp);
 
-  if(gtm->DoMGPVC){
-    printf("Performing MG PVC\n");
-    if(Gdiag_no > 0) PrintMemUsage(stdout);
-    sprintf(tmpstr,"%s/mg.nii.gz",OutDir);
-    MGPVCFile = strcpyalloc(tmpstr);
-    fprintf(logfp,"MG PVC\n");
-    GTMmgpvc(gtm);
-    err = MRIwrite(gtm->mg,MGPVCFile);
-    if(err) exit(1);
-    if(Gdiag_no > 0) printf("done with mgpvc\n");
-    fprintf(logfp,"done with mgpvc\n");
-    sprintf(tmpstr,"%s/mg.reftac.dat",AuxDir);
-    GTMwriteMGRefTAC(gtm, tmpstr);
-    sprintf(tmpstr,"%s/gm.pvf.psf.nii.gz",AuxDir);
-    MRIwrite(gtm->gmpvfpsf, tmpstr);
-  }
     
   if(gtm->DoMeltzerPVC){
     printf("Performing Meltzer PVC\n");
@@ -1119,6 +1164,12 @@ static int parse_commandline(int argc, char **argv) {
       gtm->mg_refids[m] = 5002; m++;
       gtm->n_mg_refids = m;
     }
+    else if(!strcasecmp(option, "--mgx")){
+      if(nargc < 1) CMDargNErr(option,1);
+      gtm->DoMGXPVC = 1;
+      sscanf(pargv[0],"%lf",&gtm->mgx_gmthresh);
+      nargsused = 1;
+    } 
     else if(!strcasecmp(option, "--km-ref")) {
       if(nargc < 1) CMDargNErr(option,1);
       gtm->DoKMRef = 1;
@@ -1314,6 +1365,7 @@ static void print_usage(void) {
   printf("   --mg gmthresh RefId1 RefId2 ...: perform Mueller-Gaertner PVC, gmthresh is min gm pvf bet 0 and 1\n");
   printf("   --mg-ref-cerebral-wm : set MG RefIds to 2 and 41\n");
   printf("   --mg-ref-lobes-wm : set MG RefIds to those for lobes when using wm subseg\n");
+  printf("   --mgx gmxthresh : GLM-based Mueller-Gaertner PVC, gmxthresh is min gm pvf bet 0 and 1\n");
   printf("   --km-ref RefId1 RefId2 ... : compute reference TAC for KM as mean of given RefIds\n");
   printf("   --km-hb  RefId1 RefId2 ... : compute HiBinding TAC for KM as mean of given RefIds\n");
   printf("   --ss bpc scale dcf : steady-state analysis spec blood plasma concentration, unit scale\n");
