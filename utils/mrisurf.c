@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/11/06 01:36:50 $
- *    $Revision: 1.765 $
+ *    $Author: fischl $
+ *    $Date: 2015/01/14 02:05:33 $
+ *    $Revision: 1.766 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.765 2014/11/06 01:36:50 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.766 2015/01/14 02:05:33 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -6738,7 +6738,7 @@ MRISregister(MRI_SURFACE *mris, MRI_SP *mrisp_template,
 #if 1
       parms->mrisp = MRISPblur(mrisp, NULL, sigma, 0) ;
       parms->mrisp_template = MRISPblur(mrisp_template, NULL, sigma, ino) ;
-      MRISPblur(parms->mrisp_template,
+      MRISPblur(mrisp_template,
                 parms->mrisp_template,
                 sigma,
                 ino+1) ; /* variances */
