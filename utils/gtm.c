@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/14 20:55:52 $
- *    $Revision: 1.29 $
+ *    $Date: 2015/01/14 22:14:57 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -574,6 +574,63 @@ int WriteVRFStats(char *fname, GTM *gtm)
 
   return(0);
 }
+/*------------------------------------------------------------------*/
+/*
+  \fn int GTMglobalStats(GTM *gtm)
+  \brief Computes global mean for GM, GM+WM, and GM+WM+CSF, each
+  weighted according to number of voxels in each ROI.
+*/
+int GTMglobalStats(GTM *gtm)
+{
+  int nthseg,segid,tt,f,ngm,ngmwm,ngmwmcsf;
+  double v;
+
+  gtm->glob_gm = MatrixAlloc(gtm->nframes,1,MATRIX_REAL);
+  gtm->glob_gmwm = MatrixAlloc(gtm->nframes,1,MATRIX_REAL);
+  gtm->glob_gmwmcsf = MatrixAlloc(gtm->nframes,1,MATRIX_REAL);
+  ngm = 0;
+  ngmwm = 0;
+  ngmwmcsf = 0;
+
+  for(nthseg = 0; nthseg < gtm->nsegs; nthseg++) {
+    segid = gtm->segidlist[nthseg];
+    tt = gtm->ctGTMSeg->entries[segid]->TissueType;
+    if(tt == 1 || tt == 2){
+      ngm += gtm->nvox->rptr[nthseg+1][1];
+      for(f=0; f < gtm->nframes; f++) {
+	v = gtm->beta->rptr[nthseg+1][f+1] * gtm->nvox->rptr[nthseg+1][1];
+	gtm->glob_gm->rptr[f+1][1] += v;
+      }
+    }
+    if(tt == 1 || tt == 2 || tt == 3){
+      ngmwm += gtm->nvox->rptr[nthseg+1][1];
+      for(f=0; f < gtm->nframes; f++) {
+	v = gtm->beta->rptr[nthseg+1][f+1] * gtm->nvox->rptr[nthseg+1][1];
+	gtm->glob_gmwm->rptr[f+1][1] += v;
+      }
+    }
+    if(tt == 1 || tt == 2 || tt == 3 || tt == 4){
+      ngmwmcsf += gtm->nvox->rptr[nthseg+1][1];
+      for(f=0; f < gtm->nframes; f++) {
+	v = gtm->beta->rptr[nthseg+1][f+1] * gtm->nvox->rptr[nthseg+1][1];
+	gtm->glob_gmwmcsf->rptr[f+1][1] += v;
+      }
+    }
+  }
+
+  printf("Global S: %f %f %f\n",gtm->glob_gm->rptr[1][1],
+	 gtm->glob_gmwm->rptr[1][1],gtm->glob_gmwmcsf->rptr[1][1]);
+  printf("Global N: %d %d %d\n",ngm,ngmwm,ngmwmcsf);
+
+  for(f=0; f < gtm->nframes; f++){
+    gtm->glob_gm->rptr[f+1][1] /= ngm;
+    gtm->glob_gmwm->rptr[f+1][1] /= ngmwm;
+    gtm->glob_gmwmcsf->rptr[f+1][1] /= ngmwmcsf;
+  }
+
+  return(0);
+}
+
 /*------------------------------------------------------------------*/
 /*
   \fn int GTMfree(GTM **pGTM)

@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/14 20:55:52 $
- *    $Revision: 1.43 $
+ *    $Date: 2015/01/14 22:14:57 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.43 2015/01/14 20:55:52 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.44 2015/01/14 22:14:57 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.43 2015/01/14 20:55:52 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.44 2015/01/14 22:14:57 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -607,6 +607,36 @@ int main(int argc, char *argv[])
   if(Gdiag_no > 0) PrintMemUsage(stdout);
   PrintMemUsage(logfp);
 
+  GTMsegrvar(gtm);
+  VRFStats(gtm, &vrfmean, &vrfmin, &vrfmax);
+
+  // VRF in each seg
+  sprintf(tmpstr,"%s/seg.vrf.nii.gz",AuxDir);
+  printf("Writing seg vrf to %s\n",tmpstr);
+  mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, 1);
+  for(c=0; c < gtm->nsegs; c++) MRIsetVoxVal(mritmp,c,0,0,0, gtm->vrf->rptr[c+1][1]);
+  err=MRIwrite(mritmp,tmpstr);
+  if(err) exit(1);
+  MRIfree(&mritmp);
+
+  // NVox in each seg measured in PET space
+  sprintf(tmpstr,"%s/seg.nvox.nii.gz",AuxDir);
+  printf("Writing seg nvox to %s\n",tmpstr);
+  mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, 1);
+  for(c=0; c < gtm->nsegs; c++) MRIsetVoxVal(mritmp,c,0,0,0, gtm->nvox->rptr[c+1][1]);
+  err=MRIwrite(mritmp,tmpstr);
+  if(err) exit(1);
+  MRIfree(&mritmp);
+
+  printf("Computing global stats\n");
+  GTMglobalStats(gtm);
+  sprintf(tmpstr,"%s/global.gm.dat",AuxDir);
+  MatrixWriteTxt(tmpstr,gtm->glob_gm);
+  sprintf(tmpstr,"%s/global.gmwm.dat",AuxDir);
+  MatrixWriteTxt(tmpstr,gtm->glob_gmwm);
+  sprintf(tmpstr,"%s/global.gmwmcsf.dat",AuxDir);
+  MatrixWriteTxt(tmpstr,gtm->glob_gmwmcsf);
+
   if(gtm->DoMGPVC){
     printf("Performing MG PVC\n");
     if(Gdiag_no > 0) PrintMemUsage(stdout);
@@ -685,8 +715,6 @@ int main(int argc, char *argv[])
     fclose(fp);
   }
 
-  GTMsegrvar(gtm);
-  VRFStats(gtm, &vrfmean, &vrfmin, &vrfmax);
 
   printf("Writing GTM beta estimates to %s\n",OutBetaFile);
   mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, gtm->yvol->nframes);
@@ -813,23 +841,6 @@ int main(int argc, char *argv[])
   if(err) exit(1);
   MRIfree(&mritmp);
 
-  // VRF in each seg
-  sprintf(tmpstr,"%s/seg.vrf.nii.gz",AuxDir);
-  printf("Writing seg vrf to %s\n",tmpstr);
-  mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, 1);
-  for(c=0; c < gtm->nsegs; c++) MRIsetVoxVal(mritmp,c,0,0,0, gtm->vrf->rptr[c+1][1]);
-  err=MRIwrite(mritmp,tmpstr);
-  if(err) exit(1);
-  MRIfree(&mritmp);
-
-  // NVox in each seg measured in PET space
-  sprintf(tmpstr,"%s/seg.nvox.nii.gz",AuxDir);
-  printf("Writing seg nvox to %s\n",tmpstr);
-  mritmp = MRIallocSequence(gtm->nsegs, 1, 1, MRI_FLOAT, 1);
-  for(c=0; c < gtm->nsegs; c++) MRIsetVoxVal(mritmp,c,0,0,0, gtm->nvox->rptr[c+1][1]);
-  err=MRIwrite(mritmp,tmpstr);
-  if(err) exit(1);
-  MRIfree(&mritmp);
 
     
   if(gtm->DoMeltzerPVC){
@@ -1960,4 +1971,6 @@ int GTMOPTgtm2Params(GTMOPT *gtmopt)
   }
   return(0);
 }
+
+
 

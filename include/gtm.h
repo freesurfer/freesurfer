@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/14 20:55:52 $
- *    $Revision: 1.22 $
+ *    $Date: 2015/01/14 22:14:57 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -131,6 +131,8 @@ typedef struct
   int nContrasts;
   GTMCON *contrasts[100];
 
+  MATRIX *glob_gm, *glob_gmwm, *glob_gmwmcsf; // global means
+
   MRI *rbv; // RBV computed volume
   MRI *rbvsegmean; // seg mean in RBV, used for QA
   MRI *rbvseg; // may be different than anatseg if rbvsegres used
@@ -220,6 +222,7 @@ int GTMcheckRefIds(GTM *gtm);
 int GTMrefTAC(GTM *gtm);
 int VRFStats(GTM *gtm, double *vrfmean, double *vrfmin, double *vrfmax);
 int WriteVRFStats(char *fname, GTM *gtm);
+int GTMglobalStats(GTM *gtm);
 MRI **GTMlocal(GTM *gtm, MRI **pvc);
 int GTMttPercent(GTM *gtm);
 
