@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:42 $
- *    $Revision: 1.27 $
+ *    $Author: greve $
+ *    $Date: 2015/01/15 19:25:33 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,7 @@
  */
 
 
-// $Id: dti.c,v 1.27 2011/03/02 00:04:42 nicks Exp $
+// $Id: dti.c,v 1.28 2015/01/15 19:25:33 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,7 +49,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.27 2011/03/02 00:04:42 nicks Exp $");
+  return("$Id: dti.c,v 1.28 2015/01/15 19:25:33 greve Exp $");
 }
 /* --------------------------------------------- */
 int DTIfree(DTI **pdti)
@@ -1055,7 +1055,7 @@ int DTIwriteBVectors(MATRIX *bvecs,const char *bvecfile)
     return(1);
   }
   for(n=1; n < bvecs->rows+1; n++) 
-    fprintf(fp,"%f %f %f\n",bvecs->rptr[n][1],bvecs->rptr[n][2],bvecs->rptr[n][3]);
+    fprintf(fp,"%16.14f %16.14f %16.14f\n",bvecs->rptr[n][1],bvecs->rptr[n][2],bvecs->rptr[n][3]);
   fclose(fp);
   return(0);
 }
