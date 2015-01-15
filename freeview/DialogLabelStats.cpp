@@ -54,9 +54,18 @@ void DialogLabelStats::UpdateStats()
     ui->labelCount->setText(QString::number(nCount));
     ui->labelArea->setText(QString("%3 mm2").arg(fArea));
     if (mri)
+    {
       ui->labelMean->setText(QString("%1 +/- %2").arg(mean).arg(sd));
+      if (sd > 0)
+        ui->labelSNR->setText(QString("%1").arg(mean/sd));
+      else
+        ui->labelSNR->setText("N/A");
+    }
     else
+    {
       ui->labelMean->clear();
+      ui->labelSNR->clear();
+    }
   }
   else if (roi) // update ROI
   {
@@ -65,9 +74,18 @@ void DialogLabelStats::UpdateStats()
     ui->labelCount->setText(QString::number(nCount));
     ui->labelArea->setText(QString("%3 mm2").arg(fArea));
     if (mri)
+    {
       ui->labelMean->setText(QString("%1 +/- %2").arg(mean).arg(sd));
+      if (sd > 0)
+        ui->labelSNR->setText(QString("%1").arg(mean/sd));
+      else
+        ui->labelSNR->setText("N/A");
+    }
     else
+    {
       ui->labelMean->clear();
+      ui->labelSNR->clear();
+    }
   }
 }
 
