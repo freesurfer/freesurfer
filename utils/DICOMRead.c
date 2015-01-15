@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/05 20:39:47 $
- *    $Revision: 1.169 $
+ *    $Date: 2015/01/15 23:00:37 $
+ *    $Revision: 1.170 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7463,7 +7463,7 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
   void * Ctx = NULL;
   int err;
   double Vcx, Vcy, Vcz, Vrx, Vry, Vrz, Vsx, Vsy, Vsz;
-  MATRIX *Mdc, *G, *G2;
+  MATRIX *Mdc, *G, *G2, *iMdc;
   
   if(Gdiag_no > 0) printf("Entering dcmGetDWIParamsSiemens()\n");
 
@@ -7517,22 +7517,29 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
     *pzbvec = 0;
   }
 
-  // Sign of slice DC is arbitrary, but it should not matter (?)
+  /* Mdc maps from vox coords to scanner coords.
+     ImageDirCos2Slice() just computes the slice DC using a cross
+     product of the in-plane DC. This makes the sign of slice DC is
+     arbitrary, but it should not matter (?)*/
   Mdc = ImageDirCos2Slice(Vcx,Vcy,Vcz, Vrx,Vry,Vrz, &Vsx,&Vsy,&Vsz);
+  iMdc = MatrixInverse(Mdc,NULL); // iMdc maps from scanner coords to vox coords
   G = MatrixAlloc(3,1,MATRIX_REAL);
   G->rptr[1][1] = *pxbvec;
   G->rptr[2][1] = *pybvec;
   G->rptr[3][1] = *pzbvec;
-  G2 = MatrixMultiplyD(Mdc,G,NULL);
+  G2 = MatrixMultiplyD(iMdc,G,NULL);
   if(Gdiag_no > 0){
     printf("Transforming gradient directions into voxel coordinates\n");
     printf("DC: %f %f %f \n%f %f %f\n%f %f %f\n",Vcx,Vcy,Vcz,Vrx,Vry,Vrz,Vsx,Vsy,Vsz);
+    printf("iMdc = \n");
+    MatrixPrint(stdout,iMdc);
     printf("Before: %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec);
   }
   *pxbvec = G2->rptr[1][1];
   *pybvec = G2->rptr[2][1];
   *pzbvec = G2->rptr[3][1];
   MatrixFree(&Mdc);
+  MatrixFree(&iMdc);
   MatrixFree(&G);
   MatrixFree(&G2);
 
