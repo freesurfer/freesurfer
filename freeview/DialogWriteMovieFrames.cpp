@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/12/01 20:35:06 $
- *    $Revision: 1.11 $
+ *    $Date: 2015/01/16 18:17:54 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,7 @@
 #include "LayerMRI.h"
 #include <vtkImageData.h>
 #include <QDebug>
+#include <QSettings>
 
 DialogWriteMovieFrames::DialogWriteMovieFrames(QWidget *parent) :
   QDialog(parent),
@@ -43,10 +44,14 @@ DialogWriteMovieFrames::DialogWriteMovieFrames(QWidget *parent) :
           this, SLOT(UpdateUI()));
   m_timer.setInterval(1000);
   connect(&m_timer, SIGNAL(timeout()), this, SLOT(OnTimeOut()));
+  QSettings s;
+  ui->lineEditOutputLocation->setText(s.value("MovieFrames/OutputLocation").toString());
 }
 
 DialogWriteMovieFrames::~DialogWriteMovieFrames()
 {
+  QSettings s;
+  s.setValue("MovieFrames/OutputLocation", ui->lineEditOutputLocation->text().trimmed());
   delete ui;
 }
 
@@ -127,6 +132,11 @@ void DialogWriteMovieFrames::OnOpen()
 
 void DialogWriteMovieFrames::OnWrite()
 {
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  SettingsScreenshot ss = mainwnd->GetScreenShotSettings();
+  ss.HideCoords = !ui->checkBoxShowAnnotations->isChecked();
+  mainwnd->SetScreenShotSettings(ss);
+
   m_strOutputDir = ui->lineEditOutputLocation->text().trimmed();
   if (m_strOutputDir.isEmpty())
   {
@@ -152,7 +162,6 @@ void DialogWriteMovieFrames::OnWrite()
   }
   m_nStepSize = ui->spinBoxStep->value();
   m_nStartNumber = ui->spinBoxStart->value();
-  m_nStepSize = ui->spinBoxStep->value();
   m_nStepCount = 0;
   m_nTotalSteps = 1;
   int nIndex = ui->comboBoxFlyThrough->currentIndex();
@@ -166,7 +175,7 @@ void DialogWriteMovieFrames::OnWrite()
     }
     if (layer)
     {
-      m_nTotalSteps = ui->spinBoxEnd->value()-ui->spinBoxStart->value()+1;
+      m_nTotalSteps = (ui->spinBoxEnd->value()-ui->spinBoxStart->value())/m_nStepSize+1;
     }
     ((RenderView2D*)m_view)->SetSliceNumber( m_nStartNumber );
   }
@@ -176,13 +185,13 @@ void DialogWriteMovieFrames::OnWrite()
     Layer* layer = mwnd->GetActiveLayer( "MRI" );
     if (layer)
     {
-      m_nTotalSteps = ui->spinBoxEnd->value()-ui->spinBoxStart->value()+1;
+      m_nTotalSteps = (ui->spinBoxEnd->value()-ui->spinBoxStart->value())/m_nStepSize+1;
       ((LayerMRI*)layer)->SetActiveFrame(m_nStartNumber);
     }
   }
   else // angle
   {
-    m_nTotalSteps = ui->spinBoxEnd->value()-ui->spinBoxStart->value()+1;
+    m_nTotalSteps = (ui->spinBoxEnd->value()-ui->spinBoxStart->value())/m_nStepSize+1;
   }
 
   if (m_nTotalSteps < 1)
@@ -206,16 +215,16 @@ void DialogWriteMovieFrames::OnTimeOut()
   QString fn;
   SettingsScreenshot settings = MainWindow::GetMainWindow()->GetScreenShotSettings();
   int nIndex = ui->comboBoxFlyThrough->currentIndex();
+  int nFieldWidth = qMax(3, ui->spinBoxEnd->text().size());
   if (nIndex == 0)    // slice
   {
     int nStart = m_nStartNumber+m_nStepSize*m_nStepCount;
-    qDebug() << nStart;
-    fn = QString("%1%4%2.%3").arg(m_strOutputDir)
-         .arg(nStart, 3, 10, QChar('0'))
-         .arg(ui->comboBoxExtension->currentText())
-         .arg(m_strPrefix);
+    fn = QString("%1%2%3.%4").arg(m_strOutputDir)
+         .arg(m_strPrefix)
+         .arg(nStart, nFieldWidth, 10, QLatin1Char('0'))
+         .arg(ui->comboBoxExtension->currentText());
     m_view->SaveScreenShot( fn,settings.AntiAliasing, settings.Magnification );
-    if ( !((RenderView2D*)m_view)->SetSliceNumber( nStart + m_nStepSize ) )
+    if ( m_nStepCount+1 >= m_nTotalSteps || !((RenderView2D*)m_view)->SetSliceNumber( nStart + m_nStepSize ) )
     {
       OnAbort();
     }
@@ -223,21 +232,21 @@ void DialogWriteMovieFrames::OnTimeOut()
   else if (nIndex == 1)  // frame
   {
     int nStart = m_nStartNumber+m_nStepSize*m_nStepCount;
-    fn = QString("%1%4%2.%3").arg(m_strOutputDir)
-         .arg(nStart, 3, 10, QChar('0'))
-         .arg(ui->comboBoxExtension->currentText())
-         .arg(m_strPrefix);
+    fn = QString("%1%2%3.%4").arg(m_strOutputDir)
+         .arg(m_strPrefix)
+         .arg(nStart, nFieldWidth, 10, QLatin1Char('0'))
+         .arg(ui->comboBoxExtension->currentText());
     m_view->SaveScreenShot( fn,settings.AntiAliasing, settings.Magnification );
     LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer( "MRI" ));
-    if (layer)
+    if (m_nStepCount+1 < m_nTotalSteps && layer)
       layer->SetActiveFrame(nStart + m_nStepSize);
   }
   else          // angle
   {
-    fn = QString("%1%4%2.%3").arg(m_strOutputDir)
-         .arg(m_nStepCount, 3, 10, QChar('0'))
-         .arg(ui->comboBoxExtension->currentText())
-         .arg(m_strPrefix);
+    fn = QString("%1%2%3.%4").arg(m_strOutputDir)
+        .arg(m_strPrefix)
+         .arg(m_nStepCount, 3, 10, QLatin1Char('0'))
+         .arg(ui->comboBoxExtension->currentText());
     m_view->SaveScreenShot( fn, settings.AntiAliasing, settings.Magnification );
     CameraOperations ops;
     ops << CameraOperation("azimuth", m_nStepSize);

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/12/05 21:06:10 $
- *    $Revision: 1.9 $
+ *    $Date: 2015/01/16 18:17:54 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -668,7 +668,7 @@ void LayerPointSet::UpdateOpacity()
   for ( int i = 0; i < 3; i++ )
   {
     m_actorSlice[i]->GetProperty()->SetOpacity( GetProperty()->GetOpacity() );
-    m_actorSplineSlice[i]->GetProperty()->SetOpacity( GetProperty()->GetOpacity() );
+    m_actorSplineSlice[i]->GetProperty()->SetOpacity(GetProperty()->GetOpacity() );
   }
   emit ActorUpdated();
 }
