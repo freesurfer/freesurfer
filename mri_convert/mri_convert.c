@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/01/16 19:01:39 $
- *    $Revision: 1.216 $
+ *    $Date: 2015/01/16 19:45:39 $
+ *    $Revision: 1.217 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.216 2015/01/16 19:01:39 fischl Exp $",
+   "$Id: mri_convert.c,v 1.217 2015/01/16 19:45:39 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.216 2015/01/16 19:01:39 fischl Exp $",
+      "$Id: mri_convert.c,v 1.217 2015/01/16 19:45:39 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1667,7 +1667,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.216 2015/01/16 19:01:39 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.217 2015/01/16 19:45:39 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -1766,16 +1766,20 @@ int main(int argc, char *argv[])
       exit(1);
     }
 
+#if 0
     if (out_volume_type == MGH_MORPH)
     {
       GCA_MORPH *gcam ;
-      
+
+      if (mri->nframes != 3)
+	ErrorExit(ERROR_UNSUPPORTED, "%s: input volume must have 3 frames not %d to write to warp", Progname, mri->nframes) ;
       gcam = GCAMalloc(mri->width, mri->height, mri->depth) ;
       GCAMinit(gcam, mri, NULL, NULL, 0) ;
-
+      GCAMreadWarpFromMRI( gcam, mri );
       GCAMwrite(gcam, out_name) ;
       exit(0) ;
     }
+#endif
 
     /* ----- smooth the parcellation if requested ----- */
     if (smooth_parcellation_flag)
