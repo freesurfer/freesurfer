@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/12/17 00:09:19 $
- *    $Revision: 1.215 $
+ *    $Author: fischl $
+ *    $Date: 2015/01/16 19:01:39 $
+ *    $Revision: 1.216 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.215 2014/12/17 00:09:19 greve Exp $",
+   "$Id: mri_convert.c,v 1.216 2015/01/16 19:01:39 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -339,7 +339,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.215 2014/12/17 00:09:19 greve Exp $",
+      "$Id: mri_convert.c,v 1.216 2015/01/16 19:01:39 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1548,10 +1548,10 @@ int main(int argc, char *argv[])
         out_volume_type = mri_identify(out_name);
         if (out_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
         {
-          fprintf(stderr,
-                  "%s: can't determine type of output volume\n",
-                  Progname);
-          exit(1);
+	  fprintf(stderr,
+		  "%s: can't determine type of output volume\n",
+		  Progname);
+	  exit(1);
         }
       }
     }
@@ -1667,7 +1667,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.215 2014/12/17 00:09:19 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.216 2015/01/16 19:01:39 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -1764,6 +1764,17 @@ int main(int argc, char *argv[])
         MRIfree(&mri_in_like);
       }
       exit(1);
+    }
+
+    if (out_volume_type == MGH_MORPH)
+    {
+      GCA_MORPH *gcam ;
+      
+      gcam = GCAMalloc(mri->width, mri->height, mri->depth) ;
+      GCAMinit(gcam, mri, NULL, NULL, 0) ;
+
+      GCAMwrite(gcam, out_name) ;
+      exit(0) ;
     }
 
     /* ----- smooth the parcellation if requested ----- */
