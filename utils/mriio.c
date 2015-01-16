@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/12/17 00:09:08 $
- *    $Revision: 1.415 $
+ *    $Author: fischl $
+ *    $Date: 2015/01/16 19:46:09 $
+ *    $Revision: 1.416 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1282,6 +1282,8 @@ int MRIwriteType(MRI *mri, const char *fname, int type)
   {
     GCA_MORPH *gcam ;
     
+    if (mri->nframes != 3)
+      ErrorReturn(-1, (ERROR_UNSUPPORTED, "MRIwriteType: gcam - input mri must have 3 frames, not %d", mri->nframes)) ;
     gcam = GCAMalloc(mri->width, mri->height, mri->depth) ;
     GCAMinitVolGeom(gcam, mri, mri) ;
     GCAMinit(gcam, mri, NULL, NULL, 0) ;
