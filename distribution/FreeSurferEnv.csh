@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.80 2011/03/29 22:06:13 greve Exp $
+# $Id: FreeSurferEnv.csh,v 1.81 2015/01/16 19:10:00 zkaufman Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.80 2011/03/29 22:06:13 greve Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.81 2015/01/16 19:10:00 zkaufman Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -205,7 +205,7 @@ if( ! $?NO_FSFAST) then
         echo "fshome = getenv('FREESURFER_HOME');"                     >> $SUF
         echo "fsmatlab = sprintf('%s/matlab',fshome);"                 >> $SUF
         echo "if (exist(fsmatlab) == 7)"                               >> $SUF
-        echo "    path(path,fsmatlab);"                                >> $SUF
+        echo "    addpath(genpath(fsmatlab));"                         >> $SUF
         echo "end"                                                     >> $SUF
         echo "clear fshome fsmatlab;"                                  >> $SUF
         echo "%-----------------------------------------------------%" >> $SUF
@@ -235,7 +235,7 @@ if( ! $?NO_FSFAST) then
             echo "fshome = getenv('FREESURFER_HOME');"
             echo "fsmatlab = sprintf('%s/matlab',fshome);"
             echo "if (exist(fsmatlab) == 7)"
-            echo "    path(path,fsmatlab);"
+            echo "    addpath(genpath(fsmatlab));"
             echo "end"
             echo "clear fshome fsmatlab;"
             echo "fsfasthome = getenv('FSFAST_HOME');"

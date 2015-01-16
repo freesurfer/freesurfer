@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.52 2011/03/29 22:06:13 greve Exp $
+# $Id: FreeSurferEnv.sh,v 1.53 2015/01/16 19:10:00 zkaufman Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.52 2011/03/29 22:06:13 greve Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.53 2015/01/16 19:10:00 zkaufman Exp $'
 
 ## Print help if --help or -help is specified
 if [ $# -gt 1 ]; then
@@ -218,7 +218,7 @@ if [[ -z "$NO_FSFAST" ]]; then
         echo "fshome = getenv('FREESURFER_HOME');"                     >> $SUF
         echo "fsmatlab = sprintf('%s/matlab',fshome);"                 >> $SUF
         echo "if (exist(fsmatlab) == 7)"                               >> $SUF
-        echo "    path(path,fsmatlab);"                                >> $SUF
+        echo "    addpath(genpath(fsmatlab));"                         >> $SUF
         echo "end"                                                     >> $SUF
         echo "clear fshome fsmatlab;"                                  >> $SUF
         echo "%-----------------------------------------------------%" >> $SUF
@@ -248,7 +248,7 @@ if [[ -z "$NO_FSFAST" ]]; then
             echo "fshome = getenv('FREESURFER_HOME');"
             echo "fsmatlab = sprintf('%s/matlab',fshome);"
             echo "if (exist(fsmatlab) == 7)"
-            echo "    path(path,fsmatlab);"
+            echo "    addpath(genpath(fsmatlab));"
             echo "end"
             echo "clear fshome fsmatlab;"
             echo "fsfasthome = getenv('FSFAST_HOME');"
