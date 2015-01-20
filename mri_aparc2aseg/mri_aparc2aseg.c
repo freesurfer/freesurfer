@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/17 21:19:27 $
- *    $Revision: 1.45 $
+ *    $Date: 2015/01/20 17:58:27 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.45 2014/03/17 21:19:27 greve Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.46 2015/01/20 17:58:27 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -122,6 +122,7 @@ int main(int argc, char **argv)
 {
   int nargs, err, asegid, c, r, s, nctx, annot,vtxno,nripped;
   int annotid, IsCortex=0, IsWM=0, IsHypo=0, hemi=0, segval=0;
+  int IsCblumCtx = 0;
   int RibbonVal=0,nbrute=0;
   float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0;
 
@@ -422,101 +423,67 @@ int main(int argc, char **argv)
   nbrute = 0;
 
   // Go through each voxel in the aseg
-  for (c=0; c < ASeg->width; c++)
-  {
+  for (c=0; c < ASeg->width; c++){
     printf("%3d ",c);
-    if (c%20 ==19)
-    {
-      printf("\n");
-    }
+    if (c%20 ==19) printf("\n");
     fflush(stdout);
-    for (r=0; r < ASeg->height; r++)
-    {
-      for (s=0; s < ASeg->depth; s++)
-      {
-
+    for (r=0; r < ASeg->height; r++)    {
+      for (s=0; s < ASeg->depth; s++)      {
         asegid = MRIgetVoxVal(ASeg,c,r,s,0);
-        if (asegid == 3 || asegid == 42)
-        {
-          IsCortex = 1;
-        }
-        else
-        {
-          IsCortex = 0;
-        }
-        if (asegid >= 77 && asegid <= 82)
-        {
-          IsHypo = 1;
-        }
-        else
-        {
-          IsHypo = 0;
-        }
-        if (asegid == 2 || asegid == 41)
-        {
-          IsWM = 1;
-        }
-        else
-        {
-          IsWM = 0;
-        }
-        if (IsHypo && LabelHypoAsWM && MRIgetVoxVal(filled,c,r,s,0))
-        {
-          IsWM = 1;
-        }
+        if(asegid == 3 || asegid == 42) IsCortex = 1;
+        else                            IsCortex = 0;
+        if(asegid >= 77 && asegid <= 82) IsHypo = 1;
+        else                             IsHypo = 0;
+        if(asegid == 2 || asegid == 41)  IsWM = 1;
+        else                             IsWM = 0;
+        if(asegid == 8 || asegid == 47 || asegid == 172)  IsCblumCtx = 1;
+        else                             IsCblumCtx = 0;
+        if(IsHypo && LabelHypoAsWM && MRIgetVoxVal(filled,c,r,s,0)) IsWM = 1;
 
         // integrate surface information
         //
         // Only Do This for GM,WM or Unknown labels in the ASEG !!!
-        //
-        // priority is given to the ribbon computed from the surface
-        // namely
+        // priority is given to the ribbon computed from the surface namely
+	//  aseg=SubCortGM => keep GM (unless possibly CblumCtx)
         //  ribbon=GM => GM
         //  aseg=GM AND ribbon=WM => WM
         //  ribbon=UNKNOWN => UNKNOWN
-        if (UseNewRibbon && ( IsCortex || IsWM || asegid==0 ) )
-        {
-          RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
-          MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
-          if (RibbonVal==2 || RibbonVal==41)
-          {
-            IsWM = 1;
-            IsCortex = 0;
-          }
-          else if (RibbonVal==3 || RibbonVal==42)
-          {
-            IsWM = 0;
-            IsCortex = 1;
-          }
-          if (RibbonVal==0)
-          {
-            IsWM = 0;
-            IsCortex = 0;
-          }
+        if(UseNewRibbon){
+	  if(IsCortex || IsWM || asegid==0 || IsCblumCtx) {
+	    RibbonVal = MRIgetVoxVal(RibbonSeg,c,r,s,0);
+	    if(!IsCblumCtx) MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
+	    if(RibbonVal==2 || RibbonVal==41) {
+	      // Ribbon says it is WM
+	      IsWM = 1;
+	      IsCortex = 0;
+	    }
+	    else if(RibbonVal==3 || RibbonVal==42) {
+	      // Ribbon says it is Ctx
+	      IsWM = 0;
+	      IsCortex = 1;
+	      if(IsCblumCtx) MRIsetVoxVal(ASeg,c,r,s,0, RibbonVal);
+	    }
+	    if(RibbonVal==0)  {
+	      // Ribbon says it is unknown
+	      IsWM = 0;
+	      IsCortex = 0;
+	    }
+	  }
         }
 
         // If it's not labeled as cortex or wm in the aseg, skip
-        if (!IsCortex && !IsWM)
-        {
-          continue;
-        }
+        if(!IsCortex && !IsWM) continue;
 
         // If it's wm but not labeling wm, skip
-        if (IsWM && !LabelWM)
-        {
-          continue;
-        }
+        if(IsWM && !LabelWM) continue;
 
         // Check whether this point is in the ribbon
-        if (UseRibbon)
-        {
+        if(UseRibbon) {
           lhRibbonVal = MRIgetVoxVal(lhRibbon,c,r,s,0);
           rhRibbonVal = MRIgetVoxVal(rhRibbon,c,r,s,0);
-          if (IsCortex)
-          {
-            // ASeg says it's in cortex
-            if (lhRibbonVal < 0.5 && rhRibbonVal < 0.5)
-            {
+          if(IsCortex) {
+            // ASeg says it's in cortex, or other logic says so
+            if (lhRibbonVal < 0.5 && rhRibbonVal < 0.5) {
               // but it is not part of the ribbon,
               // so set it to unknown (0) and go to the next voxel.
               MRIsetVoxVal(ASeg,c,r,s,0,0);
