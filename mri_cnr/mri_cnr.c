@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.9 $
+ *    $Author: fischl $
+ *    $Date: 2015/01/21 20:53:56 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mri_cnr.c,v 1.9 2011/03/02 00:04:14 nicks Exp $";
+static char vcid[] = "$Id: mri_cnr.c,v 1.10 2015/01/21 20:53:56 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -60,6 +60,9 @@ static double dist_in, dist_out, step_in, step_out ;
 static int interp = SAMPLE_TRILINEAR ;
 
 static LABEL *lh_area, *rh_area ;
+
+static int only_total = 0 ;
+
 int
 main(int argc, char *argv[]) {
   char        **av, *mri_name,  fname[STRLEN], *hemi, *path ;
@@ -69,7 +72,7 @@ main(int argc, char *argv[]) {
   double      cnr_total, cnr = 0.0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.9 2011/03/02 00:04:14 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.10 2015/01/21 20:53:56 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -113,12 +116,12 @@ main(int argc, char *argv[]) {
     for (i = 2 ; i < argc ; i++) {
       mri_name = argv[i] ;
       if (!j)
-        printf("processing MRI volume %s...\n", mri_name) ;
+        fprintf(stderr, "processing MRI volume %s...\n", mri_name) ;
       mri = MRIread(mri_name) ;
       if (!mri)
         ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume %s", Progname, mri_name) ;
       if (!j && !FZERO(mri->tr))
-        printf("TR = %2.1f msec, flip angle = %2.0f degrees, TE = %2.1f msec\n",
+        fprintf(stderr, "TR = %2.1f msec, flip angle = %2.0f degrees, TE = %2.1f msec\n",
                mri->tr, DEGREES(mri->flip_angle), mri->te) ;
 
       if (0)
@@ -133,13 +136,15 @@ main(int argc, char *argv[]) {
       if (j == LEFT_HEMISPHERE)
       {
         cnr = compute_volume_cnr(mris, mri, log_fname) ;
-        printf("%s CNR = %2.3f\n", hemi, cnr) ;
+	if (only_total == 0)
+	  printf("%s CNR = %2.3f\n", hemi, cnr) ;
       }
       else {
         double rh_cnr ;
         rh_cnr = compute_volume_cnr(mris, mri, log_fname) ;
         cnr = (cnr + rh_cnr) / 2.0 ;
-        printf("%s CNR = %2.3f\n", hemi, rh_cnr) ;
+	if (only_total == 0)
+	  printf("%s CNR = %2.3f\n", hemi, rh_cnr) ;
       }
 
       if (slope_fname)
@@ -165,7 +170,10 @@ main(int argc, char *argv[]) {
     cnr_total += cnr ;
     MRISfree(&mris) ;
   }
-  printf("total CNR = %2.3f\n", cnr/(double)((argc-2))) ;
+  if (only_total == 0)
+    printf("total CNR = %2.3f\n", cnr/(double)((argc-2))) ;
+  else
+    printf("%2.3f\n", cnr/(double)((argc-2))) ;
 
   exit(0) ;
   return(0) ;  /* for ansi */
@@ -188,7 +196,7 @@ get_option(int argc, char *argv[]) {
     print_version() ;
   else if (!stricmp(option, "label"))
   {
-    printf("reading lh and rh labels from %s and %s\n", argv[2], argv[3]) ;
+    fprintf(stderr, "reading lh and rh labels from %s and %s\n", argv[2], argv[3]) ;
     lh_area = LabelRead(NULL, argv[2]) ;
     if (lh_area == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load label %s", Progname, argv[2]) ;
@@ -211,6 +219,10 @@ get_option(int argc, char *argv[]) {
     step_out = atof(argv[6]) ;
     nargs = 5 ;
     break ;
+    case 'T':
+      only_total = 1 ;
+      fprintf(stderr, "stdout will only have total CNR\n") ;
+      break ;
     case 'V':
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;
@@ -318,15 +330,17 @@ compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
   gray_var = gray_var / ((double)mris->nvertices*2.0) - gray_mean*gray_mean ;
   csf_var = csf_var / (double)mris->nvertices - csf_mean*csf_mean ;
 
-  printf("\twhite = %2.1f+-%2.1f, gray = %2.1f+-%2.1f, csf = %2.1f+-%2.1f\n",
-         white_mean, sqrt(white_var), gray_mean, sqrt(gray_var),
-         csf_mean, sqrt(csf_var)) ;
+  if (only_total == 0)
+    printf("\twhite = %2.1f+-%2.1f, gray = %2.1f+-%2.1f, csf = %2.1f+-%2.1f\n",
+	   white_mean, sqrt(white_var), gray_mean, sqrt(gray_var),
+	   csf_mean, sqrt(csf_var)) ;
 
   gray_white_cnr = SQR(gray_mean - white_mean) / (gray_var+white_var) ;
   gray_csf_cnr = SQR(gray_mean - csf_mean) / (gray_var+csf_var) ;
 
-  printf("\tgray/white CNR = %2.3f, gray/csf CNR = %2.3f\n",
-         gray_white_cnr, gray_csf_cnr) ;
+  if (only_total == 0)
+    printf("\tgray/white CNR = %2.3f, gray/csf CNR = %2.3f\n",
+	   gray_white_cnr, gray_csf_cnr) ;
 
   if (log_fname)
   {
