@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/01/16 19:46:09 $
- *    $Revision: 1.416 $
+ *    $Author: greve $
+ *    $Date: 2015/01/21 17:29:58 $
+ *    $Revision: 1.417 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -10541,8 +10541,8 @@ static MRI *niiRead(const char *fname, int read_volume)
                        fname));
   }
 
-  if (hdr.dim[0] != 2 && hdr.dim[0] != 3 && hdr.dim[0] != 4)
-  {
+  //  if (hdr.dim[0] != 2 && hdr.dim[0] != 3 && hdr.dim[0] != 4){
+  if (hdr.dim[0] < 1 || hdr.dim[0] > 5){
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED,
                  "niiRead(): %hd dimensions in %s; unsupported",
@@ -10611,6 +10611,11 @@ static MRI *niiRead(const char *fname, int read_volume)
 
   if (hdr.dim[0] < 4) nslices = 1;
   else                nslices = hdr.dim[4];
+
+  // put extra dims in frames
+  if(hdr.dim[0] > 4 && hdr.dim[5] > 0) nslices *= hdr.dim[5];
+  if(Gdiag_no > 0) 
+    printf("niiRead(): hdr.dim %d %d %d %d %d %d\n",hdr.dim[0],hdr.dim[1],hdr.dim[2],hdr.dim[3],hdr.dim[4],hdr.dim[5]);
 
   if (hdr.scl_slope == 0)
   {
