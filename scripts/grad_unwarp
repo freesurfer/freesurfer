@@ -3,11 +3,11 @@
 #
 # grad_unwarp - convert, unwarp, and resample dicom files
 #
-# Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
+# Original Author: Silvester Czanner
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.14 $
+#    $Date: 2015/01/22 17:02:50 $
+#    $Revision: 1.15 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 
-set VERSION = '$Id: grad_unwarp,v 1.14 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: grad_unwarp,v 1.15 2015/01/22 17:02:50 nicks Exp $';
 
 set inputargs = ($argv);
 
