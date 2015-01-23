@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.14 $
+ *    $Date: 2015/01/23 20:14:13 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,7 @@
 #define PANELROI_H
 
 #include "PanelLayer.h"
+#include <QList>
 
 namespace Ui
 {
@@ -46,10 +47,13 @@ protected:
 
 protected slots:
   void OnSliderOpacity( int val );
-  void OnEditThreshold(QString text);
+  void OnEditThreshold(const QString& text);
+  void OnEditHeatscaleMin(const QString& text);
+  void OnEditHeatscaleMax(const QString& text);
 
 private:
   Ui::PanelROI *ui;
+  QList<QWidget*>   m_listWidgetsHeatscale;
 };
 
 #endif // PANELROI_H

@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.5 $
+ *    $Date: 2015/01/23 20:14:13 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,6 +42,7 @@ LayerPropertyROI::LayerPropertyROI ( QObject* parent) : LayerProperty( parent )
   mRGB[1] = 1;
   mRGB[2] = 0;
   m_dThreshold = 0;
+  m_nColorCode = SolidColor;
 
   mLUTTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 // mLUTTable->ClampingOff();
@@ -65,11 +66,24 @@ void LayerPropertyROI::SetColorMapChanged()
 {
   assert( mLUTTable.GetPointer() );
 
-  mLUTTable->RemoveAllPoints();
-  mLUTTable->AddRGBAPoint( 1-0.001, 0, 0, 0, 0 );
-  mLUTTable->AddRGBAPoint( 1,    mRGB[0], mRGB[1], mRGB[2], 1 );
-  mLUTTable->AddRGBAPoint( 100,  mRGB[0], mRGB[1], mRGB[2], 1 );
-
+  switch (m_nColorCode)
+  {
+  case SolidColor:
+    mLUTTable->RemoveAllPoints();
+    mLUTTable->AddRGBAPoint( m_dValueRange[0]-0.0001, 0, 0, 0, 0 );
+    mLUTTable->AddRGBAPoint( m_dValueRange[0],  mRGB[0], mRGB[1], mRGB[2], 1 );
+    mLUTTable->AddRGBAPoint( m_dValueRange[1],  mRGB[0], mRGB[1], mRGB[2], 1 );
+    mLUTTable->AddRGBAPoint( m_dValueRange[1]+0.0001, 0, 0, 0, 0 );
+    break;
+  case Heatscale:
+    mLUTTable->RemoveAllPoints();
+    mLUTTable->AddRGBAPoint( -m_dHeatscaleMax, 0, 1, 1, 1 );
+    mLUTTable->AddRGBAPoint( -m_dHeatscaleMin, 0, 0, 1, 1 );
+    mLUTTable->AddRGBAPoint(  0, 0, 0, 0, 0 );
+    mLUTTable->AddRGBAPoint(  m_dHeatscaleMin, 1, 0, 0, 1 );
+    mLUTTable->AddRGBAPoint(  m_dHeatscaleMax, 1, 1, 0, 1 );
+    break;
+  }
   mLUTTable->Build();
 
   // Notify the layers that use the color map stuff.
@@ -82,6 +96,41 @@ void LayerPropertyROI::SetColor ( double r, double g, double b )
   mRGB[1] = g;
   mRGB[2] = b;
   this->SetColorMapChanged();
+}
+
+void LayerPropertyROI::SetColorCode(int nCode)
+{
+  if (m_nColorCode != nCode)
+  {
+    m_nColorCode = nCode;
+    SetColorMapChanged();
+  }
+}
+
+void LayerPropertyROI::SetHeatscaleMax(double val)
+{
+  if (m_dHeatscaleMax != val)
+  {
+    m_dHeatscaleMax = val;
+    SetColorMapChanged();
+  }
+}
+
+
+void LayerPropertyROI::SetHeatscaleMin(double val)
+{
+  if (m_dHeatscaleMin != val)
+  {
+    m_dHeatscaleMin = val;
+    SetColorMapChanged();
+  }
+}
+
+void LayerPropertyROI::SetHeatscaleValues(double dMin, double dMax)
+{
+  m_dHeatscaleMin = dMin;
+  m_dHeatscaleMax = dMax;
+  SetColorMapChanged();
 }
 
 double LayerPropertyROI::GetOpacity() const

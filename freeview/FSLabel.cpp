@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.24 $
+ *    $Date: 2015/01/23 20:14:12 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -251,7 +251,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
       if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
            n[2] >= 0 && n[2] < dim[2] )
       {
-        rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, 1 );
+        rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, m_label->lv[i].stat );
       }
     }
   }
@@ -298,4 +298,19 @@ bool FSLabel::GetCentroidRASPosition(double* pos, FSVolume* ref_vol)
   }
   else
     return false;
+}
+
+void FSLabel::GetStatsRange(double *range)
+{
+  if (m_label && m_label->n_points > 0)
+  {
+    range[0] = range[1] = m_label->lv[0].stat;
+    for (int i = 1; i < m_label->n_points; i++)
+    {
+      if (range[0] > m_label->lv[i].stat)
+        range[0] = m_label->lv[i].stat;
+      if (range[1] < m_label->lv[i].stat)
+        range[1] = m_label->lv[i].stat;
+    }
+  }
 }

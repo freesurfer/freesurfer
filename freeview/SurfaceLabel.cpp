@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.14 $
+ *    $Date: 2015/01/23 20:14:13 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,7 @@
 #include "MyUtils.h"
 #include <QFile>
 #include <QDebug>
+#include "vtkRGBAColorTransferFunction.h"
 
 SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
   QObject( surf ),
@@ -42,7 +43,10 @@ SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
   m_surface( surf ),
   m_bVisible( true ),
   m_nOutlineIndices(NULL),
-  m_dThreshold(0)
+  m_dThreshold(0),
+  m_nColorCode(SolidColor),
+  m_dHeatscaleMin(0),
+  m_dHeatscaleMax(1)
 {
   m_rgbColor[0] = 1.0;
   m_rgbColor[1] = 1.0;
@@ -50,6 +54,8 @@ SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
 
   SetShowOutline(false);
   SetColor(1.0, 1.0, 0);
+  m_lut = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
+  UpdateLut();
 }
 
 SurfaceLabel::~SurfaceLabel ()
@@ -62,6 +68,16 @@ SurfaceLabel::~SurfaceLabel ()
     delete[] m_nOutlineIndices;
 }
 
+void SurfaceLabel::UpdateLut()
+{
+  m_lut->RemoveAllPoints();
+  m_lut->AddRGBAPoint( -m_dHeatscaleMax, 0, 1, 1, 1 );
+  m_lut->AddRGBAPoint( -m_dHeatscaleMin, 0, 0, 1, 1 );
+  m_lut->AddRGBAPoint(  0, 0, 0, 0, 0 );
+  m_lut->AddRGBAPoint(  m_dHeatscaleMin, 1, 0, 0, 1 );
+  m_lut->AddRGBAPoint(  m_dHeatscaleMax, 1, 1, 0, 1 );
+  m_lut->Build();
+}
 
 QString SurfaceLabel::GetName()
 {
@@ -110,6 +126,9 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
   MHT* hash = MHTfillVertexTableRes(mris, NULL,
                                     CURRENT_VERTICES, 16);
+
+  if (m_label->n_points > 0)
+    m_dHeatscaleMin = m_dHeatscaleMax = m_label->lv[0].stat;
   for (int i = 0; i < m_label->n_points; i++)
   {
     if (m_label->lv[i].vno < 0)
@@ -123,11 +142,16 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
       if (vtxno >= 0)
         m_label->lv[i].vno = vtxno;
     }
+    if (m_label->lv[i].stat < m_dHeatscaleMin)
+      m_dHeatscaleMin = m_label->lv[i].stat;
+    else if (m_label->lv[i].stat > m_dHeatscaleMax)
+      m_dHeatscaleMax = m_label->lv[i].stat;
   }
 
   // create outline
   m_nOutlineIndices = new int[m_label->n_points];
   UpdateOutline();
+  UpdateLut();
 
   return true;
 }
@@ -177,6 +201,35 @@ void SurfaceLabel::SetThreshold(double th)
   }
 }
 
+void SurfaceLabel::SetColorCode(int nCode)
+{
+  if (m_nColorCode != nCode)
+  {
+    m_nColorCode = nCode;
+    emit SurfaceLabelChanged();
+  }
+}
+
+void SurfaceLabel::SetHeatscaleMin(double dval)
+{
+  if (dval != m_dHeatscaleMin)
+  {
+    m_dHeatscaleMin = dval;
+    UpdateLut();
+    emit SurfaceLabelChanged();
+  }
+}
+
+void SurfaceLabel::SetHeatscaleMax(double dval)
+{
+  if (dval != m_dHeatscaleMax)
+  {
+    m_dHeatscaleMax = dval;
+    UpdateLut();
+    emit SurfaceLabelChanged();
+  }
+}
+
 void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
 {
   if ( !m_label)
@@ -189,22 +242,19 @@ void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
     int vno = m_label->lv[i].vno;
     if ( vno < nVertexCount && (!m_bShowOutline || m_nOutlineIndices[i] > 0) )
     {
-      double opacity = m_label->lv[i].stat;
-      if ( opacity > 1 )
-      {
-        opacity = 1;
-      }
-      else if ( opacity < 0 )
-      {
-        opacity = 0;
-      }
+      double opacity = 1;
       if (m_label->lv[i].stat > m_dThreshold)
         opacity = 1;
       else
         opacity = 0;
-      colordata[vno*4]    = ( int )( colordata[vno*4]   * ( 1 - opacity ) + m_rgbColor[0] * 255 * opacity );
-      colordata[vno*4+1]  = ( int )( colordata[vno*4+1] * ( 1 - opacity ) + m_rgbColor[1] * 255 * opacity );
-      colordata[vno*4+2]  = ( int )( colordata[vno*4+2] * ( 1 - opacity ) + m_rgbColor[2] * 255 * opacity );
+      double rgb[4] = { m_rgbColor[0], m_rgbColor[1], m_rgbColor[2], 1 };
+      if (m_nColorCode == Heatscale)
+      {
+        m_lut->GetColor(m_label->lv[i].stat, rgb);
+      }
+      colordata[vno*4]    = ( int )( colordata[vno*4]   * ( 1 - opacity ) + rgb[0] * 255 * opacity );
+      colordata[vno*4+1]  = ( int )( colordata[vno*4+1] * ( 1 - opacity ) + rgb[1] * 255 * opacity );
+      colordata[vno*4+2]  = ( int )( colordata[vno*4+2] * ( 1 - opacity ) + rgb[2] * 255 * opacity );
     }
   }
 }

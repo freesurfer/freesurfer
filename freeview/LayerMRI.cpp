@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/12/04 14:04:07 $
- *    $Revision: 1.154 $
+ *    $Date: 2015/01/23 20:14:12 $
+ *    $Revision: 1.155 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -995,6 +995,7 @@ void LayerMRI::SetSlicePositionToWorldCenter()
 
 void LayerMRI::OnSlicePositionChanged( int nPlane )
 {
+  qDebug() << "onSlicePositionChanged" << nPlane << this;
   if ( m_volumeSource == NULL || nPlane < 0 || nPlane > 2)
   {
     return;

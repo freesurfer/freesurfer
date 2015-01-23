@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.5 $
+ *    $Date: 2015/01/23 20:14:13 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,7 +61,25 @@ public:
     return m_dThreshold;
   }
 
+  int GetColorCode()
+  {
+    return m_nColorCode;
+  }
+
+  double GetHeatscaleMin()
+  {
+    return m_dHeatscaleMin;
+  }
+
+  double GetHeatscaleMax()
+  {
+    return m_dHeatscaleMax;
+  }
+
+
   vtkRGBAColorTransferFunction* GetLookupTable() const;
+
+  enum ColorCode { SolidColor = 0, Heatscale };
 
 public slots:
   void SetOpacity( double opacity );
@@ -70,6 +88,19 @@ public slots:
     SetColor( c.redF(), c.greenF(), c.blueF() );
   }
   void SetThreshold(double th);
+
+  void SetHeatscaleMin(double val);
+  void SetHeatscaleMax(double val);
+  void SetHeatscaleValues(double dMin, double dMax);
+
+  void SetValueRange(double range[2])
+  {
+    m_dValueRange[0] = range[0];
+    m_dValueRange[1] = range[1];
+    SetColorMapChanged();
+  }
+
+  void SetColorCode(int nCode);
 
 signals:
   void OpacityChanged( double opacity );
@@ -88,6 +119,11 @@ private:
   double mOpacity;
   double mRGB[3];
   double m_dThreshold;
+  int    m_nColorCode;
+
+  double m_dHeatscaleMin;
+  double m_dHeatscaleMax;
+  double m_dValueRange[2];
 };
 
 #endif

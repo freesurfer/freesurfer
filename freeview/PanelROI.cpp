@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.21 $
+ *    $Date: 2015/01/23 20:14:13 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,9 @@ PanelROI::PanelROI(QWidget *parent) :
     ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionCloseROI);
     ui->toolbar->insertAction(ui->actionMoveLayerUp, mainwnd->ui->actionSaveROI);
     ui->toolbar->insertSeparator(ui->actionMoveLayerUp);
+
+    m_listWidgetsHeatscale << ui->labelHeatscaleRange
+                           << ui->lineEditHeatscaleMin << ui->lineEditHeatscaleMax;
   }
 }
 
@@ -65,6 +68,7 @@ void PanelROI::ConnectLayer( Layer* layer_in )
   connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->colorPickerColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetColor(QColor)) );
+  connect( ui->comboBoxColorMap, SIGNAL(currentIndexChanged(int)), p, SLOT(SetColorCode(int)));
 }
 
 void PanelROI::DoIdle()
@@ -84,7 +88,7 @@ void PanelROI::OnSliderOpacity(int nVal)
   }
 }
 
-void PanelROI::OnEditThreshold(QString text)
+void PanelROI::OnEditThreshold(const QString& text)
 {
   bool ok;
   double th = text.trimmed().toDouble(&ok);
@@ -92,6 +96,28 @@ void PanelROI::OnEditThreshold(QString text)
   if ( ok && layer )
   {
     layer->GetProperty()->SetThreshold(th);
+  }
+}
+
+void PanelROI::OnEditHeatscaleMin(const QString &text)
+{
+  bool ok;
+  double val = text.trimmed().toDouble(&ok);
+  LayerROI* layer = GetCurrentLayer<LayerROI*>();
+  if ( ok && layer )
+  {
+    layer->GetProperty()->SetHeatscaleMin(val);
+  }
+}
+
+void PanelROI::OnEditHeatscaleMax(const QString &text)
+{
+  bool ok;
+  double val = text.trimmed().toDouble(&ok);
+  LayerROI* layer = GetCurrentLayer<LayerROI*>();
+  if ( ok && layer )
+  {
+    layer->GetProperty()->SetHeatscaleMax(val);
   }
 }
 
@@ -132,7 +158,15 @@ void PanelROI::DoUpdateWidgets()
     ui->lineEditFileName->setCursorPosition( ui->lineEditFileName->text().size() );
 
     ChangeLineEditNumber(ui->lineEditThreshold, layer->GetProperty()->GetThreshold());
+
+    ui->comboBoxColorMap->setCurrentIndex(layer->GetProperty()->GetColorCode());
+    ShowWidgets(m_listWidgetsHeatscale, layer->GetProperty()->GetColorCode() == LayerPropertyROI::Heatscale);
+    ui->colorPickerColor->setVisible(layer->GetProperty()->GetColorCode() == LayerPropertyROI::SolidColor);
+
+    ChangeLineEditNumber(ui->lineEditHeatscaleMin, layer->GetProperty()->GetHeatscaleMin());
+    ChangeLineEditNumber(ui->lineEditHeatscaleMax, layer->GetProperty()->GetHeatscaleMax());
   }
+
   ui->doubleSpinBoxOpacity->setEnabled( layer );
   ui->colorPickerColor->setEnabled( layer );
   ui->sliderOpacity->setEnabled( layer );

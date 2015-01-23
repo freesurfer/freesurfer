@@ -24,8 +24,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>332</width>
-     <height>1030</height>
+     <width>317</width>
+     <height>1046</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -493,34 +493,7 @@
         </property>
        </widget>
       </item>
-      <item row="17" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout22">
-        <item>
-         <widget class="QtColorPicker" name="colorpickerLabelColor" native="true"/>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="checkBoxLabelOutline">
-          <property name="text">
-           <string>Show outline only</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_22">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="18" column="0">
+      <item row="19" column="0">
        <widget class="QLabel" name="labelLabelThreshold">
         <property name="text">
          <string>Threshold</string>
@@ -530,7 +503,7 @@
         </property>
        </widget>
       </item>
-      <item row="18" column="1">
+      <item row="19" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout22_4">
         <item>
          <widget class="QLineEdit" name="lineEditLabelThreshold">
@@ -563,14 +536,14 @@
         </item>
        </layout>
       </item>
-      <item row="19" column="0">
+      <item row="21" column="0">
        <widget class="QLabel" name="labelEdgeColor">
         <property name="text">
          <string>Edge color</string>
         </property>
        </widget>
       </item>
-      <item row="19" column="1">
+      <item row="21" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23">
         <item>
          <widget class="QtColorPicker" name="colorpickerEdgeColor" native="true"/>
@@ -590,14 +563,14 @@
         </item>
        </layout>
       </item>
-      <item row="20" column="0">
+      <item row="22" column="0">
        <widget class="QLabel" name="labelEdgeThickness">
         <property name="text">
          <string>Edge thickness</string>
         </property>
        </widget>
       </item>
-      <item row="20" column="1">
+      <item row="22" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_17">
         <item>
          <widget class="QSpinBox" name="spinBoxEdgeThickness"/>
@@ -617,17 +590,17 @@
         </item>
        </layout>
       </item>
-      <item row="21" column="0">
+      <item row="23" column="0">
        <widget class="QLabel" name="labelVectorDisplay">
         <property name="text">
          <string>Vector display</string>
         </property>
        </widget>
       </item>
-      <item row="21" column="1">
+      <item row="23" column="1">
        <widget class="QComboBox" name="comboBoxVectorDisplay"/>
       </item>
-      <item row="22" column="0">
+      <item row="24" column="0">
        <widget class="QLabel" name="labelVectorColor">
         <property name="text">
          <string>Color</string>
@@ -637,7 +610,7 @@
         </property>
        </widget>
       </item>
-      <item row="22" column="1">
+      <item row="24" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout24">
         <item>
          <widget class="QtColorPicker" name="colorpickerVectorColor" native="true"/>
@@ -657,7 +630,7 @@
         </item>
        </layout>
       </item>
-      <item row="23" column="0">
+      <item row="25" column="0">
        <widget class="QLabel" name="labelVectorPointSize">
         <property name="text">
          <string>Point size</string>
@@ -667,7 +640,7 @@
         </property>
        </widget>
       </item>
-      <item row="23" column="1">
+      <item row="25" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QSpinBox" name="spinBoxVectorPointSize">
@@ -694,17 +667,17 @@
         </item>
        </layout>
       </item>
-      <item row="24" column="0">
+      <item row="26" column="0">
        <widget class="QLabel" name="label">
         <property name="text">
          <string>Spline display</string>
         </property>
        </widget>
       </item>
-      <item row="24" column="1">
+      <item row="26" column="1">
        <widget class="QComboBox" name="comboBoxSplineDisplay"/>
       </item>
-      <item row="25" column="0">
+      <item row="27" column="0">
        <widget class="QLabel" name="labelSplineColor">
         <property name="text">
          <string>Color</string>
@@ -714,7 +687,7 @@
         </property>
        </widget>
       </item>
-      <item row="25" column="1">
+      <item row="27" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23_2">
         <item>
          <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
@@ -734,21 +707,21 @@
         </item>
        </layout>
       </item>
-      <item row="26" column="1">
+      <item row="28" column="1">
        <widget class="QCheckBox" name="checkBoxSplineProjection">
         <property name="text">
          <string>Project on 2D view</string>
         </property>
        </widget>
       </item>
-      <item row="27" column="0">
+      <item row="29" column="0">
        <widget class="QLabel" name="labelPositionOffset">
         <property name="text">
          <string>Position offset</string>
         </property>
        </widget>
       </item>
-      <item row="27" column="1">
+      <item row="29" column="1">
        <widget class="QLineEdit" name="lineEditPositionOffset"/>
       </item>
       <item row="15" column="1">
@@ -771,6 +744,113 @@
          </widget>
         </item>
        </layout>
+      </item>
+      <item row="17" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout22">
+        <item>
+         <widget class="QComboBox" name="comboBoxLabelColorCode">
+          <item>
+           <property name="text">
+            <string>Solid Color</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Heatscale</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
+         <widget class="QtColorPicker" name="colorpickerLabelColor" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>15</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_22">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="20" column="1">
+       <widget class="QCheckBox" name="checkBoxLabelOutline">
+        <property name="text">
+         <string>Show outline only</string>
+        </property>
+       </widget>
+      </item>
+      <item row="18" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout22_6">
+        <item>
+         <widget class="QLineEdit" name="lineEditLabelHeatscaleMin">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditLabelHeatscaleMax">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_32">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="18" column="0">
+       <widget class="QLabel" name="labelHeatscaleRange">
+        <property name="text">
+         <string>Min/Max</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -940,8 +1020,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>268</x>
-     <y>134</y>
+     <x>253</x>
+     <y>136</y>
     </hint>
     <hint type="destinationlabel">
      <x>368</x>
@@ -956,7 +1036,7 @@
    <slot>OnComboCurvature(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
+     <x>315</x>
      <y>337</y>
     </hint>
     <hint type="destinationlabel">
@@ -972,7 +1052,7 @@
    <slot>OnSliderMidPoint(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
+     <x>233</x>
      <y>364</y>
     </hint>
     <hint type="destinationlabel">
@@ -988,7 +1068,7 @@
    <slot>OnSliderSlope(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
+     <x>233</x>
      <y>397</y>
     </hint>
     <hint type="destinationlabel">
@@ -1004,7 +1084,7 @@
    <slot>OnLineEditMidPoint(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>329</x>
+     <x>314</x>
      <y>369</y>
     </hint>
     <hint type="destinationlabel">
@@ -1020,7 +1100,7 @@
    <slot>OnLineEditSlope(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>329</x>
+     <x>314</x>
      <y>402</y>
     </hint>
     <hint type="destinationlabel">
@@ -1036,7 +1116,7 @@
    <slot>OnComboOverlay(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
+     <x>315</x>
      <y>434</y>
     </hint>
     <hint type="destinationlabel">
@@ -1052,7 +1132,7 @@
    <slot>OnButtonConfigureOverlay()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
+     <x>315</x>
      <y>466</y>
     </hint>
     <hint type="destinationlabel">
@@ -1068,7 +1148,7 @@
    <slot>OnComboAnnotation(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
+     <x>315</x>
      <y>497</y>
     </hint>
     <hint type="destinationlabel">
@@ -1084,8 +1164,8 @@
    <slot>OnComboVector(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
-     <y>781</y>
+     <x>315</x>
+     <y>847</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -1100,8 +1180,8 @@
    <slot>OnEditPositionOffset()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
-     <y>945</y>
+     <x>315</x>
+     <y>1011</y>
     </hint>
     <hint type="destinationlabel">
      <x>486</x>
@@ -1116,8 +1196,8 @@
    <slot>OnComboSpline(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
-     <y>866</y>
+     <x>315</x>
+     <y>932</y>
     </hint>
     <hint type="destinationlabel">
      <x>398</x>
@@ -1164,7 +1244,7 @@
    <slot>OnButtonLoadLabel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>213</x>
+     <x>206</x>
      <y>559</y>
     </hint>
     <hint type="destinationlabel">
@@ -1212,8 +1292,8 @@
    <slot>OnLineEditLabelThreshold(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>142</x>
-     <y>679</y>
+     <x>178</x>
+     <y>734</y>
     </hint>
     <hint type="destinationlabel">
      <x>662</x>
@@ -1253,6 +1333,54 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>comboBoxLabelColorCode</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnComboLabelColorCode(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>148</x>
+     <y>655</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>623</x>
+     <y>717</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditLabelHeatscaleMin</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnLineEditLabelHeatscaleMin(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>165</x>
+     <y>691</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>518</x>
+     <y>745</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditLabelHeatscaleMax</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnLineEditLabelHeatscaleMax(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>251</x>
+     <y>692</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>605</x>
+     <y>707</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnSliderOpacity(int)</slot>
@@ -1276,5 +1404,8 @@
   <slot>OnLineEditLabelThreshold(QString)</slot>
   <slot>OnLabelItemDoubleClicked(QTreeWidgetItem*)</slot>
   <slot>OnButtonDeleteLabel()</slot>
+  <slot>OnComboLabelColorCode(int)</slot>
+  <slot>OnLineEditLabelHeatscaleMin(QString)</slot>
+  <slot>OnLineEditLabelHeatscaleMax(QString)</slot>
  </slots>
 </ui>

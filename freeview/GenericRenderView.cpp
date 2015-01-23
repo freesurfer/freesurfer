@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2015/01/23 20:14:12 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,7 @@
 #include <QMouseEvent>
 #include <QString>
 #include <QFileInfo>
+#include <QDateTime>
 #include <QDebug>
 
 #define MAX_KEY_LIGHT   1.8
@@ -175,6 +176,7 @@ void GenericRenderView::Render()
 //  if (GetInteractor()->GetEnabled())
 //    GetInteractor()->Render();
 //  else
+//  qDebug() << "render" << this << QDateTime::currentDateTime().toMSecsSinceEpoch();
   GetRenderWindow()->Render();
 
 //  setCursor(old_cursor);

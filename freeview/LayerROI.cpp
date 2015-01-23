@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.27 $
+ *    $Date: 2015/01/23 20:14:13 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,7 +79,7 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
     // m_imageData->DeepCopy( m_layerSource->GetRASVolume() );
 
     m_imageData->SetNumberOfScalarComponents( 1 );
-    m_imageData->SetScalarTypeToUnsignedChar();
+    m_imageData->SetScalarTypeToFloat();
     m_imageData->SetOrigin( GetWorldOrigin() );
     m_imageData->SetSpacing( GetWorldVoxelSize() );
     m_imageData->SetDimensions( ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
@@ -113,6 +113,10 @@ bool LayerROI::LoadROIFromFile( const QString& filename )
   {
     return false;
   }
+  double range[2];
+  m_label->GetStatsRange(range);
+  GetProperty()->SetHeatscaleValues(range[0], range[1]);
+  GetProperty()->SetValueRange(range);
 
   m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume(), GetProperty()->GetThreshold() );
 

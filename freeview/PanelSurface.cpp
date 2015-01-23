@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.57 $
+ *    $Date: 2015/01/23 20:14:13 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,7 +78,10 @@ PanelSurface::PanelSurface(QWidget *parent) :
                  << ui->checkBoxLabelOutline
                  << ui->treeWidgetLabels
                  << ui->labelLabelThreshold
-                 << ui->lineEditLabelThreshold;
+                 << ui->lineEditLabelThreshold
+                 << ui->lineEditLabelHeatscaleMin
+                 << ui->lineEditLabelHeatscaleMax
+                 << ui->labelHeatscaleRange;
 
   m_widgetsSpline << ui->colorpickerSplineColor
                   << ui->labelSplineColor
@@ -311,39 +314,6 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxAnnotation->setCurrentIndex( layer ? 1 + layer->GetActiveAnnotationIndex() : 0 );
 
   // update label controls
-  /*
-  ui->comboBoxLabel->clear();
-  if ( layer )
-  {
-    ui->comboBoxLabel->addItem( "Off" );
-    if ( layer->GetNumberOfLabels() > 0 )
-    {
-      for ( int i = 0; i < layer->GetNumberOfLabels(); i++ )
-      {
-        ui->comboBoxLabel->addItem( layer->GetLabel( i )->GetName() );
-      }
-    }
-  }
-  ui->comboBoxLabel->addItem( "Load from file..." );
-  if ( layer && layer->GetActiveLabelIndex() >= 0 )
-  {
-    ui->comboBoxLabel->setCurrentIndex( layer->GetActiveLabelIndex()+1 );
-  }
-  else
-  {
-    ui->comboBoxLabel->setCurrentIndex( 0 );
-  }
-  */
-
-  if ( layer && layer->GetActiveLabel() )
-  {
-    double* rgb = layer->GetActiveLabel()->GetColor();
-    ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
-    ui->checkBoxLabelOutline->setChecked(layer->GetActiveLabel()->GetShowOutline());
-
-    ChangeLineEditNumber(ui->lineEditLabelThreshold, layer->GetActiveLabel()->GetThreshold());
-  }
-
   ui->treeWidgetLabels->clear();
   if (layer)
   {
@@ -373,6 +343,22 @@ void PanelSurface::DoUpdateWidgets()
   ShowWidgets( m_widgetsMesh,     layer && layer->GetProperty()->GetSurfaceRenderMode() != LayerPropertySurface::SM_Surface );
   ShowWidgets( m_widgetsLabel,    layer && layer->GetActiveLabelIndex() >= 0 );
   ShowWidgets(m_widgetsSpline, spline && spline->IsValid() && spline->IsVisible());
+  if (layer && layer->GetActiveLabel())
+  {
+    SurfaceLabel* label = layer->GetActiveLabel();
+    double* rgb = label->GetColor();
+    ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+    ui->checkBoxLabelOutline->setChecked(label->GetShowOutline());
+
+    ChangeLineEditNumber(ui->lineEditLabelThreshold, label->GetThreshold());
+    ChangeLineEditNumber(ui->lineEditLabelHeatscaleMin, label->GetHeatscaleMin());
+    ChangeLineEditNumber(ui->lineEditLabelHeatscaleMax, label->GetHeatscaleMax());
+    ui->comboBoxLabelColorCode->setCurrentIndex(label->GetColorCode());
+    ui->labelHeatscaleRange->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
+    ui->lineEditLabelHeatscaleMin->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
+    ui->lineEditLabelHeatscaleMax->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
+    ui->colorpickerLabelColor->setVisible(label->GetColorCode() == SurfaceLabel::SolidColor);
+  }
   ui->checkBoxAnnotationOutline->setVisible(layer && layer->GetActiveAnnotation());
   ui->colorpickerSurfaceColor->setEnabled( layer ); // && nCurvatureMap != LayerPropertySurface::CM_Threshold );
 
@@ -659,13 +645,6 @@ void PanelSurface::OnCurrentLabelItemChanged(QTreeWidgetItem *item)
     if ( surf )
     {
       surf->SetActiveLabel(label);
-      double* rgb = label->GetColor();
-      ui->colorpickerLabelColor->blockSignals(true);
-      ui->checkBoxLabelOutline->blockSignals(true);
-      ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
-      ui->checkBoxLabelOutline->setChecked(label->GetShowOutline());
-      ui->colorpickerLabelColor->blockSignals(false);
-      ui->checkBoxLabelOutline->blockSignals(false);
     }
   }
 }
@@ -688,3 +667,33 @@ void PanelSurface::OnToggleAnnotation(bool bShow)
   }
 }
 
+void PanelSurface::OnComboLabelColorCode(int nSel)
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf && surf->GetActiveLabel() )
+  {
+    surf->GetActiveLabel()->SetColorCode(nSel);
+  }
+}
+
+void PanelSurface::OnLineEditLabelHeatscaleMin(const QString &text)
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  bool bOK;
+  double dval = text.toDouble( &bOK );
+  if (surf && surf->GetActiveLabel() && bOK)
+  {
+    surf->GetActiveLabel()->SetHeatscaleMin(dval);
+  }
+}
+
+void PanelSurface::OnLineEditLabelHeatscaleMax(const QString &text)
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  bool bOK;
+  double dval = text.toDouble( &bOK );
+  if (surf && surf->GetActiveLabel() && bOK)
+  {
+    surf->GetActiveLabel()->SetHeatscaleMax(dval);
+  }
+}

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.106 $
+ *    $Date: 2015/01/23 20:14:13 $
+ *    $Revision: 1.107 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -131,6 +131,7 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   connect( p, SIGNAL(PositionChanged(double, double, double)),
            this, SLOT(UpdateROIPosition(double, double, double)));
   connect( p, SIGNAL(OverlayChanged()), this, SLOT(UpdateOverlay()));
+  connect(this, SIGNAL(ActiveLabelChanged(int)), p, SIGNAL(PropertyChanged()));
 
   if (m_volumeRef)
     connect( m_volumeRef, SIGNAL(destroyed()), this, SLOT(ResetVolumeRef()), Qt::UniqueConnection);
@@ -465,6 +466,7 @@ bool LayerSurface::LoadLabelFromFile( const QString& filename )
 
   m_labels.insert(0, label);
   connect(label, SIGNAL(SurfaceLabelChanged()), this, SLOT(UpdateColorMap()));
+  connect(label, SIGNAL(SurfaceLabelChanged()), GetProperty(), SIGNAL(PropertyChanged()));
 
   SetActiveLabel( 0 );
 

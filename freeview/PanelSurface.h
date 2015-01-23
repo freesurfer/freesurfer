@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.30 $
+ *    $Date: 2015/01/23 20:14:13 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,6 +57,9 @@ protected slots:
   void OnLineEditMidPoint( const QString& text );
   void OnLineEditSlope( const QString& text );
   void OnLineEditLabelThreshold(const QString& text);
+  void OnLineEditLabelHeatscaleMin(const QString& text);
+  void OnLineEditLabelHeatscaleMax(const QString& text);
+  void OnComboLabelColorCode(int nSel);
   void OnComboOverlay( int nSel );
   void OnComboAnnotation( int nSel );
 //  void OnComboLabel( int nSel );

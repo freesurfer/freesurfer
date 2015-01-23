@@ -67,6 +67,7 @@
 #include "vtkUnsignedCharArray.h"
 #include "vtkImageData.h"
 #include "vtkPointData.h"
+#include <QDebug>
 
 // function to get VTK keysyms from ascii characters
 static const char* ascii_to_key_sym(int);
@@ -435,6 +436,7 @@ void QVTKWidget::moveEvent(QMoveEvent* e)
  */
 void QVTKWidget::paintEvent(QPaintEvent* )
 {
+//  qDebug() << "paint" << this;
   vtkRenderWindowInteractor* iren = NULL;
   if(this->mRenWin)
   {

@@ -121,7 +121,28 @@
       <item row="3" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <widget class="QtColorPicker" name="colorPickerColor" native="true"/>
+         <widget class="QComboBox" name="comboBoxColorMap">
+          <item>
+           <property name="text">
+            <string>Solid Color</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Heatscale</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
+         <widget class="QtColorPicker" name="colorPickerColor" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>15</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
         </item>
         <item>
          <spacer name="horizontalSpacer">
@@ -145,14 +166,14 @@
         </property>
        </widget>
       </item>
-      <item row="4" column="0">
+      <item row="6" column="0">
        <widget class="QLabel" name="labelColor_2">
         <property name="text">
          <string>Threshold</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
+      <item row="6" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QLineEdit" name="lineEditThreshold">
@@ -178,6 +199,53 @@
          </spacer>
         </item>
        </layout>
+      </item>
+      <item row="4" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QLineEdit" name="lineEditHeatscaleMin">
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditHeatscaleMax">
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_4">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="labelHeatscaleRange">
+        <property name="text">
+         <string>Min/Max</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -261,7 +329,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>150</x>
-     <y>146</y>
+     <y>202</y>
     </hint>
     <hint type="destinationlabel">
      <x>502</x>
@@ -269,9 +337,43 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>lineEditHeatscaleMin</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>PanelROI</receiver>
+   <slot>OnEditHeatscaleMin(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>162</x>
+     <y>156</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>421</x>
+     <y>352</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditHeatscaleMax</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>PanelROI</receiver>
+   <slot>OnEditHeatscaleMax(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>284</x>
+     <y>160</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>507</x>
+     <y>197</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnSliderOpacity(int)</slot>
   <slot>OnEditThreshold(QString)</slot>
+  <slot>OnEditHeatscaleMin(QString)</slot>
+  <slot>OnEditHeatscaleMax(QString)</slot>
  </slots>
 </ui>

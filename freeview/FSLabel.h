@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.16 $
+ *    $Date: 2015/01/23 20:14:12 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,8 @@ public:
   void UpdateRASImage( vtkImageData* rasImage_out, FSVolume* ref_vol, double threshold = -1e10 );
 
   bool GetCentroidRASPosition(double* pos, FSVolume* ref_vol);
+
+  void GetStatsRange(double* range);
 
 protected:
   LABEL*   m_label;

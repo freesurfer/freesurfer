@@ -52,7 +52,7 @@ void DialogLabelStats::UpdateStats()
     label->GetCurrentLabelStats( mainwnd->GetMainViewId(), &fLabel, &nCount, &fArea, mri, &mean, &sd );
     ui->labelLabel->setText(QString::number((int)fLabel));
     ui->labelCount->setText(QString::number(nCount));
-    ui->labelArea->setText(QString("%3 mm2").arg(fArea));
+    ui->labelArea->setText(QString("%1 mm2").arg(fArea));
     if (mri)
     {
       ui->labelMean->setText(QString("%1 +/- %2").arg(mean).arg(sd));
@@ -72,7 +72,7 @@ void DialogLabelStats::UpdateStats()
     roi->GetStats( mainwnd->GetMainViewId(), &nCount, &fArea, mri, &mean, &sd );
     ui->labelLabel->setText(roi->GetName());
     ui->labelCount->setText(QString::number(nCount));
-    ui->labelArea->setText(QString("%3 mm2").arg(fArea));
+    ui->labelArea->setText(QString("%1 mm2").arg(fArea));
     if (mri)
     {
       ui->labelMean->setText(QString("%1 +/- %2").arg(mean).arg(sd));
