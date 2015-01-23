@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/14 22:14:57 $
- *    $Revision: 1.44 $
+ *    $Date: 2015/01/23 23:29:02 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.44 2015/01/14 22:14:57 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.45 2015/01/23 23:29:02 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.44 2015/01/14 22:14:57 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.45 2015/01/23 23:29:02 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1125,6 +1125,11 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--meltzer")) {
       gtm->DoMeltzerPVC = 1;
       gtm->meltzer_thresh = .01;
+      if(CMDnthIsArg(nargc, pargv, 0)){
+	sscanf(pargv[0],"%lf",&gtm->meltzer_thresh);
+	nargsused = 1;
+      }
+      printf("Meltzer threshold = %lf\n",gtm->meltzer_thresh);
     }
     else if(!strcasecmp(option, "--lgtm")) {
       if(nargc < 2) CMDargNErr(option,2);
