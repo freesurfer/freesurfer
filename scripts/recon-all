@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/01/13 22:19:03 $
-#    $Revision: 1.502 $
+#    $Date: 2015/01/24 13:10:37 $
+#    $Revision: 1.503 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.502 2015/01/13 22:19:03 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.503 2015/01/24 13:10:37 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1760,7 +1760,7 @@ endif
       # check scores:
       set handleTalErrors = 0;
       if (($zscore < $zscoreThreshold) || $atlaserrhi || $atlaserrlo) then
-        echo "ERROR: Talairach QA check failed!" |& tee -a $LF
+        echo "WARNING: Talairach QA check failed!" |& tee -a $LF
         echo "z-score of ${zscore} is <= threshold of ${zscoreThreshold}\n" \
              |& tee -a $LF
 # tal_QC_AZS disabled:
@@ -1802,6 +1802,7 @@ handle_tal_error:
           set DoCleanTal = 1;
           goto talairach;
         else
+          echo "\nERROR: Talairach failed!\n" |& tee -a $LF
           goto error_exit;
         endif
       endif
@@ -6402,7 +6403,8 @@ while( $#argv != 0 )
       set DoLabelExvivoEC  = 1;
       breaksw
 
-    # skips unnecessary steps when refining pial surface only
+    # skips unnecessary steps (sphere reg) in autorecon3 when refining pial surface only
+    case "-autorecon3-T2pial":
     case "-T2pial-only":
       set DoT2pial         = 1;
       set DoParcStats      = 1;
@@ -6892,16 +6894,17 @@ while( $#argv != 0 )
       source $FREESURFER_HOME/bin/cuda_setup
       breaksw;
 
-    case "-openmp":
-      if ( $#argv < 1) goto arg1err;
-      setenv OMP_NUM_THREADS $argv[1]; shift;
-      breaksw;
-
     case "-parallel":
       set DoParallel = 1;
       # the user can override this thread count with -openmp
       setenv OMP_NUM_THREADS 4
       breaksw
+
+    case "-openmp":
+      # located after -parallel so as to allow threadcount override
+      if ( $#argv < 1) goto arg1err;
+      setenv OMP_NUM_THREADS $argv[1]; shift;
+      breaksw;
 
     # hippocampal subfield processing (in vivo atlas, Dickerson data)
     case "-hippo-subfields":
