@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/01/24 13:10:37 $
-#    $Revision: 1.503 $
+#    $Date: 2015/01/24 16:20:39 $
+#    $Revision: 1.504 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.503 2015/01/24 13:10:37 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.504 2015/01/24 16:20:39 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4091,6 +4091,30 @@ if($DoPialSurfs || $DoT2pial || $DoFLAIRpial || $DoSurfVolume) then
 endif
 
 
+#----------------                 ------------------#
+#---------------- Cortical Ribbon ------------------#
+##---------------   -cortribbon   ------------------#
+#----------------                 ------------------#
+if($DoCortRibbonVolMask) then
+  echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+  echo "#@# Cortical ribbon mask `date`" \
+      |& tee -a $SF|& tee -a $LF|& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set xopts = `fsr-getxopts mris_volmask $XOptsFile`;
+  set cmd = (mris_volmask \
+    --aseg_name aseg.presurf \
+    --label_left_white   2 --label_left_ribbon   3 \
+    --label_right_white 41 --label_right_ribbon 42 \
+    --save_ribbon $subjid)
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/cortical_ribbon.touch
+endif
+
+
 #----------                          -----------#
 #---------- Surface Anatomical Stats -----------#
 ##---------       -parcstats         -----------#
@@ -4332,30 +4356,6 @@ if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
     reconbatchjobs $LF $CMDFS |& tee -a $LF
     if($status) goto error_exit;
   endif
-endif
-
-
-#----------------                 ------------------#
-#---------------- Cortical Ribbon ------------------#
-##---------------   -cortribbon   ------------------#
-#----------------                 ------------------#
-if($DoCortRibbonVolMask) then
-  echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-  echo "#@# Cortical ribbon mask `date`" \
-      |& tee -a $SF|& tee -a $LF|& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mris_volmask $XOptsFile`;
-  set cmd = (mris_volmask \
-    --aseg_name aseg.presurf \
-    --label_left_white   2 --label_left_ribbon   3 \
-    --label_right_white 41 --label_right_ribbon 42 \
-    --save_ribbon $subjid)
-  $PWD |& tee -a $LF
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/cortical_ribbon.touch
 endif
 
 
@@ -6052,6 +6052,13 @@ while( $#argv != 0 )
       set DoSurfVolume = 1;
       breaksw;
 
+    case "-cortribbon":
+      set DoCortRibbonVolMask = 1;
+      breaksw
+    case "-nocortribbon":
+      set DoCortRibbonVolMask = 0;
+      breaksw
+
     case "-parcstats":
       set DoParcStats = 1;
       breaksw
@@ -6093,13 +6100,6 @@ while( $#argv != 0 )
     case "-nopctsurfcon":
     case "-no-pctsurfcon":
       set DoPctSurfCon = 0;
-      breaksw
-
-    case "-cortribbon":
-      set DoCortRibbonVolMask = 1;
-      breaksw
-    case "-nocortribbon":
-      set DoCortRibbonVolMask = 0;
       breaksw
 
     case "-hyporelabel":
@@ -6230,13 +6230,13 @@ while( $#argv != 0 )
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
+      set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
       set DoPctSurfCon     = 1;
-      set DoCortRibbonVolMask = 1;
       set DoRelabelHypos   = 1;
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
@@ -6365,12 +6365,12 @@ while( $#argv != 0 )
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
       set DoPctSurfCon     = 1;
+      set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
-      set DoCortRibbonVolMask = 1;
       set DoRelabelHypos   = 1;
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
@@ -6387,13 +6387,13 @@ while( $#argv != 0 )
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
+      set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
       set DoPctSurfCon     = 1;
-      set DoCortRibbonVolMask = 1;
       set DoRelabelHypos   = 1;
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
@@ -6407,13 +6407,13 @@ while( $#argv != 0 )
     case "-autorecon3-T2pial":
     case "-T2pial-only":
       set DoT2pial         = 1;
+      set DoCortRibbonVolMask = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
       set DoPctSurfCon     = 1;
-      set DoCortRibbonVolMask = 1;
       set DoRelabelHypos   = 1;
       set DoAParc2ASeg     = 1;
       set DoAPas2ASeg      = 1;
@@ -6450,13 +6450,13 @@ while( $#argv != 0 )
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
       set DoPialSurfs      = 1;
+      set DoCortRibbonVolMask = 0;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
       set DoCortParc3      = 1;
       set DoParcStats3     = 1;
       set DoPctSurfCon     = 1;
-      set DoCortRibbonVolMask = 0;
       set DoRelabelHypos   = 1;
       set DoAParc2ASeg     = 0;
       set DoAPas2ASeg      = 0;
@@ -8363,6 +8363,13 @@ adding ?h.area(.white) to ?h.area.pial, then dividing by two.  Then
 ?h.volume is created by multiplying ?.mid.area with ?h.thickness.
 This step is also run at the end of the -pial step.
 
+Cortical Ribbon Mask (-<no>cortribbon)
+
+Creates binary volume masks of the cortical ribbon, ie, each voxel is
+either a 1 or 0 depending upon whether it falls in the ribbon or not.
+Saved as ?h.ribbon.mgz.  Uses mgz regardless of whether the -mgz
+option is used.
+
 Parcellation Statistics (-<no>parcstats, -<no>parcstats2, -<no>parcstats3)
 
 Runs mris_anatomical_stats to create a summary table of cortical
@@ -8375,13 +8382,6 @@ curvature 8. integrated rectified Gaussian wm curvature 9. folding index
 For -parcstats, the file is saved in stats/?h.aparc.stats.
 For -parcstats2, the file is saved in stats/?h.aparc.${DESTRIEUX_NAME}.stats.
 For -parcstats3, the file is saved in stats/?h.aparc.${DKTATLAS40_NAME}.stats.
-
-Cortical Ribbon Mask (-<no>cortribbon)
-
-Creates binary volume masks of the cortical ribbon, ie, each voxel is
-either a 1 or 0 depending upon whether it falls in the ribbon or not.
-Saved as ?h.ribbon.mgz.  Uses mgz regardless of whether the -mgz
-option is used.
 
 Curvature Statistics  (-<no>curvstats)
 
