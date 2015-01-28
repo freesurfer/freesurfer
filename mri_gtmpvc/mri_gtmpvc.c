@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/23 23:29:02 $
- *    $Revision: 1.45 $
+ *    $Date: 2015/01/28 02:21:06 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.45 2015/01/23 23:29:02 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.46 2015/01/28 02:21:06 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.45 2015/01/23 23:29:02 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.46 2015/01/28 02:21:06 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1057,6 +1057,8 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&gtmopt->schema);
       DoOpt=1;
+      SaveYhat=1;
+      SaveEres=1;
       nargsused = 1;
     }
     else if(!strcasecmp(option, "--psf")){
