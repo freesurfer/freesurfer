@@ -11,8 +11,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/09 22:33:13 $
- *    $Revision: 1.11 $
+ *    $Date: 2015/01/28 00:54:17 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_concatenate_lta.c,v 1.11 2014/07/09 22:33:13 greve Exp $",
+           "$Id: mri_concatenate_lta.c,v 1.12 2015/01/28 00:54:17 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -302,8 +302,10 @@ int main(int argc, char *argv[])
   lta_total->xforms[0].y0 = 0;
   lta_total->xforms[0].z0 = 0;
   lta_total->xforms[0].sigma = 1.0f;
-  if(strlen(lta1->subject) > 0)  strcpy(lta_total->subject,lta1->subject);
-  else if(strlen(lta2->subject) > 0) strcpy(lta_total->subject,lta2->subject);
+  if(strlen(lta1->subject) > 0 && strcmp(lta1->subject,"subject-unknown") !=0)  
+    strcpy(lta_total->subject,lta1->subject);
+  else if(strlen(lta2->subject) > 0 && strcmp(lta2->subject,"subject-unknown") !=0)  
+    strcpy(lta_total->subject,lta2->subject);
   lta_total->fscale = lta1->fscale;
 
   type = TransformFileNameType(ltafn_total);
