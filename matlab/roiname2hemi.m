@@ -7,6 +7,7 @@ function [hemi, hemistr, roibasename, roicontraname] = roiname2hemi(roiname,ncut
 % roicontraname is name of the contralateral roi (no cut)
 % ncut - remove ncut characters from the end of roiname before
 %   determining hemi
+% If roiname is a string array, then it is run on each member
 
 if(nargin ~= 1 & nargin ~= 2) 
   fprintf('[hemi, hemistr, roibasename, roicontraname] = roiname2hemi(roiname,<ncut>)\n');
@@ -16,8 +17,22 @@ end
 if(~exist('ncut','var')) ncut = []; end
 if(isempty(ncut)) ncut = 0; end
 
-% order of lhhemilist must be same as rhhemilist
+if(size(roiname,1) > 1)
+  hemi = zeros(size(roiname,1),1);
+  hemistr = '';
+  roibasename = '';
+  roicontraname = '';
+  for n = 1:size(roiname,1)
+    [hemin hemistrn roibasenamen roicontranamen] = roiname2hemi(roiname(n,:),ncut);
+    hemi(n) = hemin; 
+    hemistr = strvcat(hemistr,hemistrn);
+    roibasename = strvcat(roibasename,roibasenamen);
+    roicontraname = strvcat(roicontraname,roicontranamen);
+  end
+  return;
+end
 
+% order of lhhemilist must be same as rhhemilist
 lhhemistringlist = strvcat('Left-','Left_','ctx-lh-','wm-lh-','lh_');
 nlhhemistrings = size(lhhemistringlist,1);
 rhhemistringlist = strvcat('Right-','Right_','ctx-rh-','wm-rh-','rh_');
