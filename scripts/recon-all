@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2015/01/24 16:20:39 $
-#    $Revision: 1.504 $
+#    $Author: mreuter $
+#    $Date: 2015/01/30 16:33:21 $
+#    $Revision: 1.505 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.504 2015/01/24 16:20:39 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.505 2015/01/30 16:33:21 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1082,7 +1082,8 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
 
     # check if geometry differs across time
     if ( "$s" != "$BaseSubjsList[1]" ) then
-      set cmd = (  mri_diff --notallow-pix ${SUBJECTS_DIR}/$s/mri/rawavg.mgz \
+      set cmd = (  mri_diff --notallow-pix --notallow-geo \
+                       ${SUBJECTS_DIR}/$s/mri/rawavg.mgz \
                        ${SUBJECTS_DIR}/$BaseSubjsList[1]/mri/rawavg.mgz )
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) then
@@ -1094,8 +1095,10 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
 
   if ( "$geodiff" == "1" ) then
     echo "\n*******************************************************************************" |& tee -a $LF
-    echo "WARNING: Image geometries differ across time, maybe due to aquisition changes?" |& tee -a $LF
-    echo "         This can potentially bias a longitudinal study! Will continue in 10s." |& tee -a $LF
+    echo "WARNING: Image parameters differ across time, maybe due to aquisition changes?" |& tee -a $LF
+    echo "         Consistent changes in, e.g., resolution can potentially bias a " |& tee -a $LF
+    echo "         longitudinal study! You can check image parameters by running mri_info" |& tee -a $LF
+    echo "         on each input image. Will continue in 10 seconds ..." |& tee -a $LF
     echo "*******************************************************************************\n" |& tee -a $LF
     sleep 10
   endif
