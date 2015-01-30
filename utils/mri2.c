@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/12/10 05:30:08 $
- *    $Revision: 1.112 $
+ *    $Author: lzollei $
+ *    $Date: 2015/01/30 15:38:59 $
+ *    $Revision: 1.113 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -335,14 +335,14 @@ int mri_minmax(MRI *vol, float *min, float *max)
       {
         for (f=0;f<vol->nframes;f++)
         {
-          val = MRIFseq_vox(vol,c,r,s,f);
+          val = MRIgetVoxVal(vol,c,r,s,f); //MRIFseq_vox(vol,c,r,s,f);
           if (*min > val) *min = val;
           if (*max < val) *max = val;
         }
       }
     }
   }
-  printf("volmin = %g, volmax = %g\n",*min,*max);
+  //printf("volmin = %g, volmax = %g\n",*min,*max);
   return(0);
 }
 /*--------------------------------------------------------
@@ -883,6 +883,154 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   printf( "Total     : %9.3f ms\n", GetChronometerValue( &tTotal ) );
   printf( "%s: Done\n", __FUNCTION__ );
 #endif
+
+  return(0);
+}
+int MRIvol2VolR(MRI *src, MRI *targ, MATRIX *Vt2s,
+               int InterpCode, float param, MATRIX* RRot)
+{
+  int   ct,  rt,  st,  f;
+  int   ics, irs, iss;
+  float fcs, frs, fss;
+  float *valvect;
+  int sinchw;
+  Real rval;
+  MATRIX *V2Rsrc=NULL, *invV2Rsrc=NULL, *V2Rtarg=NULL;
+  int FreeMats=0;
+
+  MATRIX *RRotT, *Tensor, *RotTensor;
+  VECTOR *Vector, *RotVector;
+  RRotT  = MatrixIdentity(3,NULL);
+  Tensor = MatrixIdentity(3,NULL);
+  RotTensor = MatrixIdentity(3,NULL);
+  RRotT = MatrixTranspose(RRot,NULL);
+  Vector = VectorAlloc(3, MATRIX_REAL);
+  RotVector = VectorAlloc(3, MATRIX_REAL);
+
+  int nframes = targ->nframes; printf("Number of frames: %d\n", nframes);
+  if (src->nframes != nframes)
+  {
+    printf("ERROR: MRIvol2volR: source and target have different number "
+           "of frames\n");
+    return(1);
+  }
+  if (nframes!=3 && nframes!=9) 
+    {
+      printf("MRIvol2VolR: Wrong number of frames. Exiting!\n"); 
+      return 1;
+    }
+
+  // Compute vox2vox matrix based on vox2ras of src and target.
+  // Assumes that src and targ have same RAS space.
+  if (Vt2s == NULL)
+  {
+    V2Rsrc = MRIxfmCRS2XYZ(src,0);
+    invV2Rsrc = MatrixInverse(V2Rsrc,NULL);
+    V2Rtarg = MRIxfmCRS2XYZ(targ,0);
+    Vt2s = MatrixMultiply(invV2Rsrc,V2Rtarg,NULL);
+    FreeMats = 1;
+  }
+  if (Gdiag_no > 0)
+  {
+    printf("MRIvol2VolR: Vt2s Matrix (%d)\n",FreeMats);
+    MatrixPrint(stdout,Vt2s);
+  }
+
+  sinchw = nint(param);
+  valvect = (float *) calloc(sizeof(float),src->nframes);
+
+  for (ct=0; ct < targ->width; ct++)
+  {
+    for (rt=0; rt < targ->height; rt++)
+    {
+      for (st=0; st < targ->depth; st++)
+      {
+
+        /* Column in source corresponding to CRS in Target */
+        fcs = Vt2s->rptr[1][1] * ct + Vt2s->rptr[1][2] * rt +
+              Vt2s->rptr[1][3] * st + Vt2s->rptr[1][4] ;
+        ics = nint(fcs);
+        if (ics < 0 || ics >= src->width) continue;
+
+        /* Row in source corresponding to CRS in Target */
+        frs = Vt2s->rptr[2][1] * ct + Vt2s->rptr[2][2] * rt +
+              Vt2s->rptr[2][3] * st + Vt2s->rptr[2][4] ;
+        irs = nint(frs);
+        if (irs < 0 || irs >= src->height) continue;
+
+        /* Slice in source corresponding to CRS in Target */
+        fss = Vt2s->rptr[3][1] * ct + Vt2s->rptr[3][2] * rt +
+              Vt2s->rptr[3][3] * st + Vt2s->rptr[3][4] ;
+        iss = nint(fss);
+        if (iss < 0 || iss >= src->depth) continue;
+
+        /* Assign output volume values */
+        if (InterpCode == SAMPLE_TRILINEAR)
+          MRIsampleSeqVolume(src, fcs, frs, fss, valvect,
+                             0, src->nframes-1) ;
+        else
+        {
+          for (f=0; f < src->nframes ; f++)
+          {
+            switch (InterpCode)
+            {
+            case SAMPLE_NEAREST:
+              valvect[f] = MRIgetVoxVal(src,ics,irs,iss,f);
+              break ;
+            case SAMPLE_SINC:      /* no multi-frame */
+              MRIsincSampleVolume(src, fcs, frs, fss, sinchw, &rval) ;
+              valvect[f] = rval;
+              break ;
+            }
+          }
+        }
+
+	// Two scenarios: either a 3-frame volume (eg.: eigvecs) or
+	// a 9-frame volume (eg.: tensors)
+
+	if(nframes == 3)
+	  {
+	    int col;
+	    for (col=1; col <= 3; col++)
+	      VECTOR_ELT(Vector,col) = valvect[col-1];
+	    
+	    RotVector = MatrixMultiply(RRot, Vector, NULL) ;
+	    //printf("RotVector:\n");
+	    //MatrixPrint(stdout,RotVector);
+	    //printf("Vec Loop\n");
+	    for (col=1; col <= 3; col++)
+	      {
+		MRIsetVoxVal(targ,ct,rt,st,col-1,VECTOR_ELT(RotVector,col));
+	      }
+	  }
+	else//if(nframes == 9)
+	  {
+	    int row, col;
+	    for (row=1; row <= 3; row++)
+	      for (col=1; col <= 3; col++)
+		Tensor->rptr[row][col] = valvect[(row-1)*3+col-1];
+	    RotTensor = MatrixMultiply(RRot, MatrixMultiply(Tensor,RRotT,NULL), NULL);
+	    //printf("RotTensor:\n");
+	    //MatrixPrint(stdout,RotTensor);
+	    //	    printf("Tensor Loop\n");
+	    for (row=1; row <= 3; row++)
+	      for (col=1; col <= 3; col++)
+		{
+		  MRIsetVoxVal(targ,ct,rt,st,(row-1)*3+col-1,RotTensor->rptr[row][col]);
+		}
+	  }	
+      } /* target col */
+    } /* target row */
+  } /* target slice */
+
+  free(valvect);
+  if (FreeMats)
+  {
+    MatrixFree(&V2Rsrc);
+    MatrixFree(&invV2Rsrc);
+    MatrixFree(&V2Rtarg);
+    MatrixFree(&Vt2s);
+  }
 
   return(0);
 }
@@ -1695,7 +1843,6 @@ MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask)
 {
   int c,r,s,f,n,premask;
   double val,m;
-
   premask = 1;
   if (!mask)
   {
@@ -1716,11 +1863,11 @@ MRI *MRIframeBinarize(MRI *mri, double thresh, MRI *mask)
           if (m < 0.5) continue;
         }
         n = 0;
-        for (f=0; f < mri->nframes; f++)
-        {
-          val = MRIgetVoxVal(mri,c,r,s,f);
+        for (f=0; f < mri->nframes; f++)	
+	  {
+	    val = MRIgetVoxVal(mri,c,r,s,f);          
           if (fabs(val) > thresh) n++;
-        }
+	  }
         if (n == mri->nframes) MRIsetVoxVal(mask,c,r,s,0,1);
         else                  MRIsetVoxVal(mask,c,r,s,0,0);
       }
