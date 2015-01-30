@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/30 22:14:34 $
- *    $Revision: 1.24 $
+ *    $Date: 2015/01/30 22:46:48 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -156,6 +156,7 @@ typedef struct
   MRI *meltzer; // MG output volume
   double MeltzerBinThresh; // Binarize GM+WM PVF before smoothing, 0 turns off bin
   double MeltzerMaskThresh; // Post-smoothing GM+WM PVF mask threshold 
+  MRI *mzseg; // means of MZ over each seg
 
   int DoLGTMPVC; // Local GTM
   LGTM *lgtm;

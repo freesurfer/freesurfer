@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/30 22:14:34 $
- *    $Revision: 1.31 $
+ *    $Date: 2015/01/30 22:46:48 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1436,9 +1436,9 @@ int GTMmgRefTAC(GTM *gtm)
  */
 int GTMmeltzerpvc(GTM *gtm)
 {
-  int c,r,s,f;
-  double vgmwmpsf,v;
-  MRI *ctxpvf, *subctxpvf, *wmpvf, *gmwmpvf,*gmwmpvfpsf,*mritmp;
+  int c,r,s,f,k,segid,nhits;
+  double vgmwmpsf,v,sum;
+  MRI *ctxpvf, *subctxpvf, *wmpvf, *gmwmpvf,*gmwmpvfpsf,*mritmp,*nhitseg;
 
   if(gtm->meltzer) MRIfree(&gtm->meltzer);
   gtm->meltzer = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth,
@@ -1466,17 +1466,36 @@ int GTMmeltzerpvc(GTM *gtm)
   // Need to add MB here
 
   // Finally, do the actual Meltzer correction
+  gtm->mzseg = MRIallocSequence(gtm->nsegs,1,1,MRI_FLOAT,gtm->nframes);
+  nhitseg = MRIallocSequence(gtm->nsegs,1,1,MRI_INT,gtm->nframes);
   for(c=0; c < gtm->yvol->width; c++){ // crs order not important
     for(r=0; r < gtm->yvol->height; r++){
       for(s=0; s < gtm->yvol->depth; s++){
 	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue; 
+	segid = MRIgetVoxVal(gtm->gtmseg,c,r,s,0);
+	for(k=0; k < gtm->nsegs; k++) if(segid == gtm->segidlist[k]) break;
+	nhits = MRIgetVoxVal(nhitseg,k,0,0,0) + 1;
 	vgmwmpsf = MRIgetVoxVal(gmwmpvfpsf,c,r,s,0);
 	if(vgmwmpsf < gtm->MeltzerMaskThresh) continue; 
+	// count as a hit only if seg is inside the div mask
+	// should probably only count it if it is inside the bin mask
+	// but if bin thresh is low, this probably won't make a difference
+	MRIsetVoxVal(nhitseg,k,0,0,0,nhits); 
 	for(f=0; f < gtm->yvol->nframes; f++){
 	  v = MRIgetVoxVal(gtm->yvol,c,r,s,f);
 	  MRIsetVoxVal(gtm->meltzer,c,r,s,f, v/vgmwmpsf);
+	  sum = MRIgetVoxVal(gtm->mzseg,k,0,0,f) + v/vgmwmpsf;
+	  MRIsetVoxVal(gtm->mzseg,k,0,0,f,sum);
 	}
       }
+    }
+  }
+  for(k=0; k < gtm->nsegs; k++){
+    nhits = MRIgetVoxVal(nhitseg,k,0,0,0);
+    if(nhits==0) continue; // prob neither GM or WM
+    for(f=0; f < gtm->yvol->nframes; f++){
+      sum = MRIgetVoxVal(gtm->mzseg,k,0,0,f);
+      MRIsetVoxVal(gtm->mzseg,k,0,0,f,sum/nhits);
     }
   }
   MRIfree(&ctxpvf);
@@ -1484,6 +1503,7 @@ int GTMmeltzerpvc(GTM *gtm)
   MRIfree(&wmpvf);
   MRIfree(&gmwmpvf);
   MRIfree(&gmwmpvfpsf);
+  MRIfree(&nhitseg);
   return(0);
 }
 

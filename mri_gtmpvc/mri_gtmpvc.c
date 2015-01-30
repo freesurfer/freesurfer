@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/30 22:14:34 $
- *    $Revision: 1.47 $
+ *    $Date: 2015/01/30 22:46:48 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.47 2015/01/30 22:14:34 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.48 2015/01/30 22:46:48 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.47 2015/01/30 22:14:34 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.48 2015/01/30 22:46:48 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -851,6 +851,9 @@ int main(int argc, char *argv[])
     sprintf(tmpstr,"%s/meltzer.nii.gz",OutDir);
     MeltzerPVCFile = strcpyalloc(tmpstr);
     err = MRIwrite(gtm->meltzer,MeltzerPVCFile);
+    if(err) exit(1);
+    sprintf(tmpstr,"%s/aux/meltzer.seg.nii.gz",OutDir);
+    err = MRIwrite(gtm->mzseg,tmpstr);
     if(err) exit(1);
     if(Gdiag_no > 0) printf("done with meltzer pvc\n");
     fprintf(logfp,"done with meltzer pvc\n");
