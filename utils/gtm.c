@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/14 22:14:57 $
- *    $Revision: 1.30 $
+ *    $Date: 2015/01/30 22:14:34 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1438,7 +1438,7 @@ int GTMmeltzerpvc(GTM *gtm)
 {
   int c,r,s,f;
   double vgmwmpsf,v;
-  MRI *ctxpvf, *subctxpvf, *wmpvf, *gmwmpvf,*gmwmpvfpsf;
+  MRI *ctxpvf, *subctxpvf, *wmpvf, *gmwmpvf,*gmwmpvfpsf,*mritmp;
 
   if(gtm->meltzer) MRIfree(&gtm->meltzer);
   gtm->meltzer = MRIallocSequence(gtm->yvol->width, gtm->yvol->height, gtm->yvol->depth,
@@ -1452,6 +1452,15 @@ int GTMmeltzerpvc(GTM *gtm)
   wmpvf     = fMRIframe(gtm->ttpvf,2,NULL); // WM PVF
   gmwmpvf = MRIadd(ctxpvf,subctxpvf,NULL); // All GM PVF
   MRIadd(gmwmpvf,wmpvf,gmwmpvf); // All GM+WM PVF
+
+  // Setting BinThresh to 0 turns off binarization
+  if(gtm->MeltzerBinThresh > 0.0){
+    printf("Binarizing melzter mask before smoothing %lf\n",gtm->MeltzerBinThresh);
+    mritmp = MRIbinarize(gmwmpvf,NULL,gtm->MeltzerBinThresh,0,1);
+    MRIfree(&gmwmpvf);
+    gmwmpvf = mritmp;
+  }
+
   // Smooth GMWM PVF by PSF
   gmwmpvfpsf = MRIgaussianSmoothNI(gmwmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
   // Need to add MB here
@@ -1462,7 +1471,7 @@ int GTMmeltzerpvc(GTM *gtm)
       for(s=0; s < gtm->yvol->depth; s++){
 	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue; 
 	vgmwmpsf = MRIgetVoxVal(gmwmpvfpsf,c,r,s,0);
-	if(vgmwmpsf < gtm->meltzer_thresh) continue; 
+	if(vgmwmpsf < gtm->MeltzerMaskThresh) continue; 
 	for(f=0; f < gtm->yvol->nframes; f++){
 	  v = MRIgetVoxVal(gtm->yvol,c,r,s,f);
 	  MRIsetVoxVal(gtm->meltzer,c,r,s,f, v/vgmwmpsf);

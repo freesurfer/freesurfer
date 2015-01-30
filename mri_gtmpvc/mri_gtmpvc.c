@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/28 02:21:06 $
- *    $Revision: 1.46 $
+ *    $Date: 2015/01/30 22:14:34 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.46 2015/01/28 02:21:06 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.47 2015/01/30 22:14:34 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.46 2015/01/28 02:21:06 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.47 2015/01/30 22:14:34 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -393,6 +393,8 @@ int main(int argc, char *argv[])
   fprintf(logfp,"Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
   if(gtm->UseMB) fprintf(logfp,"MB: %g\n",gtm->mb->slope);
   fprintf(logfp,"nPad %d, PadThresh %g\n",gtm->nPad,gtm->PadThresh);
+  if(gtm->DoMeltzerPVC) fprintf(logfp,"Meltzer: %lf %lf\n",
+			     gtm->MeltzerMaskThresh,gtm->MeltzerBinThresh);
 
   for(n=0; n < gtm->nContrasts; n++){
     if(gtm->contrasts[n]->C->cols != gtm->nsegs){
@@ -840,8 +842,6 @@ int main(int argc, char *argv[])
   err=MRIwrite(mritmp,tmpstr);
   if(err) exit(1);
   MRIfree(&mritmp);
-
-
     
   if(gtm->DoMeltzerPVC){
     printf("Performing Meltzer PVC\n");
@@ -1125,13 +1125,12 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = nth;
     }
     else if(!strcasecmp(option, "--meltzer")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%lf",&gtm->MeltzerBinThresh);
+      sscanf(pargv[1],"%lf",&gtm->MeltzerMaskThresh);
       gtm->DoMeltzerPVC = 1;
-      gtm->meltzer_thresh = .01;
-      if(CMDnthIsArg(nargc, pargv, 0)){
-	sscanf(pargv[0],"%lf",&gtm->meltzer_thresh);
-	nargsused = 1;
-      }
-      printf("Meltzer threshold = %lf\n",gtm->meltzer_thresh);
+      printf("Meltzer thresholds %lf %lf\n",gtm->MeltzerBinThresh,gtm->MeltzerMaskThresh);
+      nargsused = 2;
     }
     else if(!strcasecmp(option, "--lgtm")) {
       if(nargc < 2) CMDargNErr(option,2);
