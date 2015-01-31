@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/30 22:46:48 $
- *    $Revision: 1.32 $
+ *    $Date: 2015/01/31 18:12:58 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1459,6 +1459,10 @@ int GTMmeltzerpvc(GTM *gtm)
     mritmp = MRIbinarize(gmwmpvf,NULL,gtm->MeltzerBinThresh,0,1);
     MRIfree(&gmwmpvf);
     gmwmpvf = mritmp;
+    if(gtm->MeltzerNDil > 0){
+      printf("Dilating melzter mask %d\n",gtm->MeltzerNDil);
+      for(k=0; k<gtm->MeltzerNDil; k++) MRIdilate(gmwmpvf,gmwmpvf);
+    }
   }
 
   // Smooth GMWM PVF by PSF
