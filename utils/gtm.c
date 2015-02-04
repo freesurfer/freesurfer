@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/31 18:12:58 $
- *    $Revision: 1.33 $
+ *    $Date: 2015/02/04 23:29:34 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1543,6 +1543,7 @@ int GTMsynth(GTM *gtm, int NoiseSeed, int nReps)
     mritmp = MRIrandexp(gtm->ysynth, gtm->mask, NoiseSeed, nReps, NULL);
     MRIfree(&gtm->ysynth);
     gtm->ysynth=mritmp;
+    gtm->nframes = nReps;
   }
     
   return(0);
