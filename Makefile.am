@@ -2,6 +2,8 @@
 ## Makefile.am
 ##
 
+ACLOCAL_AMFLAGS=-I m4
+
 foodir=$(prefix)
 foo_DATA=LICENSE NOTICE README AUTHORS INSTALL COPYING
 
@@ -330,8 +332,8 @@ STATSDIRS=\
 	optseq2 \
 	stat_normalize
 
+#GEMS
 MISCDIRS=\
-	GEMS \
 	histo_register \
 	histo_compute_joint_density \
 	histo_register_block \
