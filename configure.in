@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2014/12/23 15:21:28 $
-#    $Revision: 1.627 $
+#    $Date: 2015/02/05 23:27:31 $
+#    $Revision: 1.628 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -164,6 +164,7 @@ AC_SUBST(build_vendor)
 AC_SUBST(host_vendor)
 AC_SUBST(host)
 AM_INIT_AUTOMAKE(tar-ustar)
+#AM_INIT_AUTOMAKE([subdir-objects no-exeext tar-ustar])
 AC_CONFIG_SRCDIR([config.h.in])
 AM_CONFIG_HEADER([config.h])
 
@@ -223,14 +224,13 @@ fi
 # a libtool which when run gives CDPATH errors. the workaround
 # is to use the libtool on the system.
 if test "$ac_have_gcc_44" = "yes"; then
-  AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
-  cp /usr/bin/libtool .
-fi
-
-# when building on the Mac, use the autotool package provided by FreeSurfer. 
-if test `uname -s` = "Darwin"; then
-  AC_MSG_NOTICE(Copying /usr/bin/glibtool overtop the PROG_LIBTOOL)   
-  cp /usr/pubsw/packages/autotools/bin/libtool .
+    if test `uname -s` = "Darwin"; then
+        AC_MSG_NOTICE(Copying /opt/local/bin/glibtool overtop the PROG_LIBTOOL)
+        cp /opt/local/bin/glibtool ./libtool
+    else
+        AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
+        cp /usr/bin/libtool .
+    fi
 fi
 
 ################################################################
@@ -518,7 +518,7 @@ case "${target}" in
  FFLAGS="-g -O3 -msse2 -mfpmath=sse"
  ac_have_sse_mathfun=yes
  ;;
- x86_64-*)
+ x86_64-*linux*)
  OS=Linux
  OS_CPPFLAGS="$DEADCODE_STRIP"
  OS_LDFLAGS="$DEADCODE_STRIP"
@@ -3536,10 +3536,12 @@ AC_SUBST(TESTS_ENVIRONMENT)
 #########################################################################
 # output
 #########################################################################
+
+#GEMS/Makefile
+#GEMS/data/Makefile
+#GEMS/scripts/Makefile
+
 AC_OUTPUT([Makefile
-           GEMS/Makefile
-           GEMS/data/Makefile
-           GEMS/scripts/Makefile
            check_siemens_dir/Makefile
            cudatest/Makefile
            cudatest/gcatest/Makefile
