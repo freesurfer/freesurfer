@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.19 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:41 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
 #include "histo.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_ms_refine.c,v 1.19 2011/03/02 00:04:33 nicks Exp $";
+static char vcid[] = "$Id: mris_ms_refine.c,v 1.20 2015/02/05 23:34:41 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -331,7 +331,7 @@ main(int argc, char *argv[]) {
   EXTRA_PARMS   ep ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.19 2011/03/02 00:04:33 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.20 2015/02/05 23:34:41 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1310,7 +1310,7 @@ ms_errfunc_sse(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
     wm_total += fabs(white_delta) ;
     pial_total += fabs(pial_delta) ;
 #endif
-    if (!finite(sse))
+    if (!isfinite(sse))
       DiagBreak() ;
     total_sse += sse ;
     if (Gdiag_no == vno)
@@ -1357,7 +1357,7 @@ ms_errfunc_rms(MRI_SURFACE *mris, INTEGRATION_PARMS *parms) {
     rms = sqrt((white_delta*white_delta) + (pial_delta*pial_delta)) ;
 #endif
     rms_total += rms ;
-    if (!finite(rms))
+    if (!isfinite(rms))
       DiagBreak() ;
     if (Gdiag_no == vno)
       printf("v %d: rms = %2.3f\n", vno, rms) ;
@@ -2650,7 +2650,7 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
       MRIsampleVolumeType(mri, x, y, z, &image_vals[i][j], sample_type) ;
       if (j > orig_pial_index)
         DiagBreak() ;
-      if (!finite(image_vals[i][j]))
+      if (!isfinite(image_vals[i][j]))
         DiagBreak() ;
 #endif
     }
@@ -2830,7 +2830,7 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
           T1_gm < ep->cv_min_gm_T1[vno] || T1_gm > ep->cv_max_gm_T1[vno])
         continue ;
 
-      if (!finite(sse))
+      if (!isfinite(sse))
         ErrorPrintf(ERROR_BADPARM, "sse not finite at v %d", vno) ;
 
       if (sse < best_sse || best_sse < 0) {
@@ -2929,7 +2929,7 @@ compute_optimal_parameters(MRI_SURFACE *mris, int vno,
                              cortical_dist, best_T1_wm, best_PD_wm,
                              best_T1_gm, best_PD_gm, best_T1_csf,
                              best_PD_csf, plot_stuff, T1_vals, PD_vals, vno) ;
-    if (!finite(sse))
+    if (!isfinite(sse))
       ErrorPrintf(ERROR_BADPARM, "sse not finite at v %d", vno) ;
 
   }
@@ -3001,7 +3001,7 @@ compute_vertex_sse(EXTRA_PARMS *ep, Real image_vals[MAX_FLASH_VOLUMES][MAX_SAMPL
                             T1_wm, PD_wm, T1_gm, PD_gm, T1_csf, PD_csf) ;
       error = scale*(image_vals[i][j] - predicted_val) ;
       sse += (error*error) ;
-      if (!finite(sse)) {
+      if (!isfinite(sse)) {
         printf("sse not finite predicted_val=%2.1f, "
                "tissue parms=(%2.0f,%2.0f,%2.0f|%2.0f, %2.0f, %2.0f)\n",
                predicted_val, T1_wm, PD_wm, T1_gm, PD_gm, T1_csf, PD_csf) ;
@@ -3203,7 +3203,7 @@ sample_parameter_map(MRI_SURFACE *mris, MRI *mri, MRI *mri_res,
       HISTOplot(histo, "histo.plt") ;
       HISTOplot(hsmooth, "hsmooth.plt") ;
     }
-    if (!finite(parm))
+    if (!isfinite(parm))
       ErrorPrintf(ERROR_BADPARM, "sample_parameter_map(%s): vno %d, parm = %2.2f, total_wt = %2.2f\n",
                   name, vno, parm, total_wt) ;
   }
@@ -3817,7 +3817,7 @@ compute_T1_PD(Real *image_vals, MRI **mri_flash, int nvolumes,
       best_PD = norm_im / upper_norm ;
       best_sse = upper_sse ;
     }
-    if (!finite(best_PD)) {
+    if (!isfinite(best_PD)) {
       printf("best_PD is not finite at %d (%2.1f)\n", mid_j, mid_T1) ;
       DiagBreak() ;
       exit(0) ;
@@ -3872,8 +3872,8 @@ scale_all_images(MRI **mri_flash, int nvolumes, MRI_SURFACE *mris, float target_
     compute_T1_PD(mean_wm, mri_flash, nvolumes, &T1, &PD) ;
     T1_wm_total += T1 ;
     PD_wm_total += PD ;
-    if (!finite(T1) || !finite(PD) ||
-        !finite(T1_wm_total) || !finite(PD_wm_total))
+    if (!isfinite(T1) || !isfinite(PD) ||
+        !isfinite(T1_wm_total) || !isfinite(PD_wm_total))
       DiagBreak() ;
     ep->cv_wm_T1[vno] = T1 ;
     ep->cv_wm_PD[vno] = PD ;

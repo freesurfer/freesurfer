@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:41 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,7 +42,7 @@
 #include "sig.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_multiscale_stats.c,v 1.5 2011/03/02 00:04:33 nicks Exp $";
+static char vcid[] = "$Id: mris_multiscale_stats.c,v 1.6 2015/02/05 23:34:41 zkaufman Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -169,7 +169,7 @@ main(int argc, char *argv[]) {
   int          msec, minutes, seconds ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_multiscale_stats.c,v 1.5 2011/03/02 00:04:33 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_multiscale_stats.c,v 1.6 2015/02/05 23:34:41 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -792,7 +792,7 @@ cvector_compute_t_test(float *c1_mean, float *c1_var,
       pvals[i] = -log10(sig) ;
     else
       pvals[i] = log10(sig) ;
-    if (!finite(numer) || !finite(denom) || !finite(pvals[i])
+    if (!isfinite(numer) || !isfinite(denom) || !isfinite(pvals[i])
         || i == Gdiag_no)
       DiagBreak() ;
   }

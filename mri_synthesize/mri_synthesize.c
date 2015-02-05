@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.18 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:40 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,7 +42,7 @@
 #include "tags.h"
 #include "flash.h"
 
-static char vcid[] = "$Id: mri_synthesize.c,v 1.18 2011/03/02 00:04:25 nicks Exp $";
+static char vcid[] = "$Id: mri_synthesize.c,v 1.19 2015/02/05 23:34:40 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -107,10 +107,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_synthesize.c,v 1.18 2011/03/02 00:04:25 nicks Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_synthesize.c,v 1.19 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.18 2011/03/02 00:04:25 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_synthesize.c,v 1.19 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -465,7 +465,7 @@ MRIsynthesize(MRI *mri_T1, MRI *mri_PD, MRI *mri_T2star, MRI *mri_dst, double TR
         } else
           flash = FLASHforwardModel(T1, PD, TR, alpha, TE) ;
         MRIsetVoxVal(mri_dst, x, y, z, 0, flash) ;
-        if (!finite(flash))
+        if (!isfinite(flash))
           DiagBreak() ;
       }
     }

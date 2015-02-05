@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.6 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:40 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,7 +79,7 @@ main(int argc, char *argv[]) {
   float         std ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_change_map.c,v 1.6 2011/03/02 00:04:14 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_change_map.c,v 1.7 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -486,7 +486,7 @@ MRIcomputeChangeMap(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_change,
           p = HISTOgetCount(hg, fabs(dif));
           p = 1.0 - 1.0*p ;
           logp = -log10(p) ;
-          if (finite(logp) == 0 || (DZERO(logp) && p < .1))
+          if (isfinite(logp) == 0 || (DZERO(logp) && p < .1))
             MRIsetVoxVal(mri_big, x1, y1, z1, 0, 1) ;
           else
             MRIsetVoxVal(mri_change, x1, y1, z1, 0, logp) ;

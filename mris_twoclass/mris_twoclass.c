@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.12 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:41 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "sig.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_twoclass.c,v 1.12 2011/03/02 00:04:34 nicks Exp $";
+static char vcid[] = "$Id: mris_twoclass.c,v 1.13 2015/02/05 23:34:41 zkaufman Exp $";
 
 
 /*-------------------------------- CONSTANTS -----------------------------*/
@@ -255,7 +255,7 @@ main(int argc, char *argv[]) {
     fp = fopen("scalespace.dat", "w") ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_twoclass.c,v 1.12 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_twoclass.c,v 1.13 2015/02/05 23:34:41 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1819,7 +1819,7 @@ cvector_average_in_label(float *v, LABEL *area, int num) {
   double avg ;
 
   for (avg = 0.0, i = 0 ; i < area->n_points ; i++) {
-    if (!finite(v[area->lv[i].vno]))
+    if (!isfinite(v[area->lv[i].vno]))
       DiagBreak() ;
     avg += v[area->lv[i].vno] ;
   }

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/05/05 23:16:38 $
- *    $Revision: 1.8 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:41 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -236,7 +236,7 @@ VectorLogLikelihood(VECTOR *v, VECTOR *v_mean, VECTOR *v_var)
       var = 1.0 ;
     }
     ll = SQR(val-mean) / (2*var) ;
-    if (!finite(ll) || !finite(total_ll))
+    if (!isfinite(ll) || !isfinite(total_ll))
     {
       DiagBreak() ;
     }
@@ -594,7 +594,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_segment.c,v 1.8 2011/05/05 23:16:38 nicks Exp $",
+           "$Id: mris_segment.c,v 1.9 2015/02/05 23:34:41 zkaufman Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {

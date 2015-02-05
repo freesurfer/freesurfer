@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.16 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:40 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,9 +31,9 @@
 // original date  :
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2011/03/02 00:04:24 $
-// Revision       : $Revision: 1.16 $
+// Revision Author: $Author: zkaufman $
+// Revision Date  : $Date: 2015/02/05 23:34:40 $
+// Revision       : $Revision: 1.17 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -172,7 +172,7 @@ main(int argc, char *argv[]) {
   MATRIX *M_reg, *vox_s2vox_t; // *m_coronalras_src2trg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_rigid_register.c,v 1.16 2011/03/02 00:04:24 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_rigid_register.c,v 1.17 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -925,7 +925,7 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target, MATRIX *M_reg, MRI *m
             continue ;
           num++ ;
           new_scale += val1 / val2 ;
-          if (!finite(new_scale))
+          if (!isfinite(new_scale))
             DiagBreak()  ;
         }
       }

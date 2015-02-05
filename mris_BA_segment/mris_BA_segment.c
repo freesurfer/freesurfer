@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:26 $
- *    $Revision: 1.3 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:40 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_BA_segment.c,v 1.3 2011/03/02 00:04:26 nicks Exp $";
+static char vcid[] = "$Id: mris_BA_segment.c,v 1.4 2015/02/05 23:34:40 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -76,7 +76,7 @@ main(int argc, char *argv[])
   MRI           *mri ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_BA_segment.c,v 1.3 2011/03/02 00:04:26 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_BA_segment.c,v 1.4 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -359,7 +359,7 @@ compute_MT_log_likelihood(MRI_SURFACE *mris, MRI *mri_profiles, int vno0, double
       ll_vno += -SQR(u_interior[i]-val) / (2*v_interior[i]) ;
     }
     ll += ll_vno ;
-    if (!finite(ll))
+    if (!isfinite(ll))
       DiagBreak() ;
   }
   if (num == 0)

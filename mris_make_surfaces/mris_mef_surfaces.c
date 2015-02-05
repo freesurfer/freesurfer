@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:33 $
- *    $Revision: 1.6 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:41 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "label.h"
 
 static char vcid[] = 
-"$Id: mris_mef_surfaces.c,v 1.6 2011/03/02 00:04:33 nicks Exp $";
+"$Id: mris_mef_surfaces.c,v 1.7 2015/02/05 23:34:41 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -197,14 +197,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_mef_surfaces.c,v 1.6 2011/03/02 00:04:33 nicks Exp $", 
+     "$Id: mris_mef_surfaces.c,v 1.7 2015/02/05 23:34:41 zkaufman Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_mef_surfaces.c,v 1.6 2011/03/02 00:04:33 nicks Exp $", 
+     "$Id: mris_mef_surfaces.c,v 1.7 2015/02/05 23:34:41 zkaufman Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1351,7 +1351,7 @@ MRIScomputeBorderValues_MEF_WHITE(MRI_SURFACE *mris,
           break ;
       }
       outward_dist = dist-step_size/2 ;
-      if (!finite(outward_dist))
+      if (!isfinite(outward_dist))
         DiagBreak() ;
       if (inward_dist <= 0 || outward_dist >= 0)
         break ;
@@ -1732,7 +1732,7 @@ MRIScomputeBorderValues_MEF_PIAL(MRI_SURFACE *mris,
           break ;
       }
       outward_dist = dist;
-      if (!finite(outward_dist))
+      if (!isfinite(outward_dist))
         DiagBreak() ;
       if (outward_dist >= (0.5*step_size))
         break ;

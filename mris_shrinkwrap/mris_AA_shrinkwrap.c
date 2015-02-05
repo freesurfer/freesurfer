@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:41 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 static double compute_surface_dist_sse(MRI_SURFACE *mris, MRI *mri_dist) ;
 static int MRISrepositionToInnerSkull(MRI_SURFACE *mris, MRI *mri_smooth, INTEGRATION_PARMS *parms) ;
 
-static char vcid[] = "$Id: mris_AA_shrinkwrap.c,v 1.5 2011/03/02 00:04:34 nicks Exp $";
+static char vcid[] = "$Id: mris_AA_shrinkwrap.c,v 1.6 2015/02/05 23:34:41 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -121,7 +121,7 @@ main(int argc, char *argv[]) {
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_AA_shrinkwrap.c,v 1.5 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_AA_shrinkwrap.c,v 1.6 2015/02/05 23:34:41 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -682,7 +682,7 @@ compute_surface_sse(MRI_SURFACE *mris, MRI *mri, float sample_dist) {
     if (v->ripflag)
       continue ;
 
-    if (!finite(v->x) || !finite(v->y) || !finite(v->z))
+    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
       DiagBreak() ;
     // sample outside - want bright stuff out here
     nx = v->nx ;
@@ -760,7 +760,7 @@ MRISprojectOntoTranslatedSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, do
     v->y = y-dy;
     v->z = z-dz;
 
-    if (!finite(v->x) || !finite(v->y) || !finite(v->z))
+    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
       DiagBreak() ;
 
     /*    if ((Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)*/

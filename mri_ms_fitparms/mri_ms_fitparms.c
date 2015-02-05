@@ -19,9 +19,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/12/08 22:14:37 $
- *    $Revision: 1.74 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:40 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -221,14 +221,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.74 2014/12/08 22:14:37 fischl Exp $",
+   "$Id: mri_ms_fitparms.c,v 1.75 2015/02/05 23:34:40 zkaufman Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
             argc, argv,
-            "$Id: mri_ms_fitparms.c,v 1.74 2014/12/08 22:14:37 fischl Exp $",
+            "$Id: mri_ms_fitparms.c,v 1.75 2015/02/05 23:34:40 zkaufman Exp $",
             "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -3095,7 +3095,7 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
           else
             MRIsampleVolumeType(mri_flash[e], xf, yf, zf,
                                 &val, InterpMethod) ;
-          if (val <= 0 || !finite(val))
+          if (val <= 0 || !isfinite(val))
           {
             val = 1E-6 ;
           }
@@ -3116,7 +3116,7 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
         {
           DiagBreak() ;
         }
-        if (!finite(T2star))
+        if (!isfinite(T2star))
         {
           T2star = 0 ;
         }

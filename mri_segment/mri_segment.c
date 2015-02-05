@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/07/29 17:51:35 $
- *    $Revision: 1.42 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:40 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
  *
  */
 
-const char *MRI_SEGMENT_VERSION = "$Revision: 1.42 $";
+const char *MRI_SEGMENT_VERSION = "$Revision: 1.43 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_segment.c,v 1.42 2014/07/29 17:51:35 fischl Exp $",
+           "$Id: mri_segment.c,v 1.43 2015/02/05 23:34:40 zkaufman Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -210,8 +210,8 @@ main(int argc, char *argv[])
     MRIcomputeClassStatistics(mri_src, mri_tmp, gray_low, WHITE_MATTER_MEAN,
                               &white_mean, &white_sigma, &gray_mean,
                               &gray_sigma) ;
-    if (!finite(white_mean) || !finite(white_sigma) ||
-        !finite(gray_mean) || !finite(gray_sigma))
+    if (!isfinite(white_mean) || !isfinite(white_sigma) ||
+        !isfinite(gray_mean) || !isfinite(gray_sigma))
       ErrorExit
       (ERROR_BADPARM,
        "%s: class statistics not finite - check input volume!",

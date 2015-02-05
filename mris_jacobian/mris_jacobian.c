@@ -5,9 +5,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.10 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:40 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,7 +38,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_jacobian.c,v 1.10 2011/03/02 00:04:32 nicks Exp $";
+  "$Id: mris_jacobian.c,v 1.11 2015/02/05 23:34:40 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -67,7 +67,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_jacobian.c,v 1.10 2011/03/02 00:04:32 nicks Exp $",
+           "$Id: mris_jacobian.c,v 1.11 2015/02/05 23:34:40 zkaufman Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -241,7 +241,7 @@ compute_area_ratios(MRI_SURFACE *mris, int noscale)
       v->origarea = SMALL ;
     }
     v->curv = v->area / (v->origarea*area_scale) ;
-    if (!finite(v->curv))
+    if (!isfinite(v->curv))
       ErrorPrintf
       (ERROR_BADPARM,
        "vertex %d not finite (area %2.1f, origarea %2.1f, scale %2.1f",
@@ -273,7 +273,7 @@ log_ratios(MRI_SURFACE *mris)
       v->curv = SMALL ;
     }
     v->curv = log10(v->curv) ;
-    if (!finite(v->curv))
+    if (!isfinite(v->curv))
     {
       ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
     }
@@ -307,7 +307,7 @@ invert_ratios(MRI_SURFACE *mris)
     {
       v->curv = -1/v->curv ;
     }
-    if (!finite(v->curv))
+    if (!isfinite(v->curv))
     {
       ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
     }

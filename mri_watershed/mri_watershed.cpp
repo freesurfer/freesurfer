@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/11/08 22:17:40 $
- *    $Revision: 1.97 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/05 23:34:40 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.97 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.98 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -838,7 +838,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.97 2011/11/08 22:17:40 nicks Exp $",
+   "$Id: mri_watershed.cpp,v 1.98 2015/02/05 23:34:40 zkaufman Exp $",
    "$Name:  $",
    cmdline);
 
@@ -851,7 +851,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.97 2011/11/08 22:17:40 nicks Exp $",
+           "$Id: mri_watershed.cpp,v 1.98 2015/02/05 23:34:40 zkaufman Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -2826,7 +2826,7 @@ void analyseWM(double *tab,MRI_variables *MRI_var)
     a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
     b=-(a*Sx-Sy)/n;
 
-    if (DZERO(a) || !finite(a))
+    if (DZERO(a) || !isfinite(a))
     {
       Error("\n Interpolation problem in the white matter curve analysis\n");
     }
@@ -2885,7 +2885,7 @@ void analyseWM(double *tab,MRI_variables *MRI_var)
     a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
     b=-(a*Sx-Sy)/n;
 
-    if (DZERO(a) || !finite(a))
+    if (DZERO(a) || !isfinite(a))
     {
       Error("\n Interpolation problem in the white matter analysis");
     }
@@ -5447,7 +5447,7 @@ void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
     // assuming the height of GM_intensity and CSF_intensity are the same
     int denom = (MRI_var->CSF_MAX[j] + MRI_var->GM_intensity[j] -
                  MRI_var->GM_MIN[j] - MRI_var->CSF_intens[j]);
-    if (DZERO(denom) || !finite(denom))
+    if (DZERO(denom) || !isfinite(denom))
     {
       fprintf(stdout, "\n Problem with MRI_var->TRANSITION_intensity\n");
       MRI_var->TRANSITION_intensity[j]= 0;
@@ -5771,7 +5771,7 @@ void analyseCSF(unsigned long CSF_percent[6][256],
   a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
 
-  if (DZERO(a) || !finite(a))
+  if (DZERO(a) || !isfinite(a))
   {
     fprintf(stdout, "\n Problem with the least square "
             "interpolation for CSF_MAX");
@@ -5837,7 +5837,7 @@ void analyseCSF(unsigned long CSF_percent[6][256],
   a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
 
-  if (DZERO(a) || !finite(a))
+  if (DZERO(a) || !isfinite(a))
     fprintf(stdout, "\n Problem with the least square "
             "interpolation for CSF_MIN");
   else
@@ -5977,7 +5977,7 @@ void analyseGM(unsigned long CSF_percent[6][256],
   a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
 
-  if (DZERO(a) || !finite(a))
+  if (DZERO(a) || !isfinite(a))
     fprintf(stdout,
             "\n Problem with the least square interpolation "
             "in GM_MIN calculation.");
@@ -6054,7 +6054,7 @@ void analyseGM(unsigned long CSF_percent[6][256],
 
   a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
-  if (DZERO(a) || !finite(a))
+  if (DZERO(a) || !isfinite(a))
     fprintf(stdout, "\n (2) Problem with the least square "
             "interpolation in GM_MIN calculation.");
   else
@@ -7787,7 +7787,7 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
     }
 
     delta = (src - target) / std ;
-    if (!finite(delta))
+    if (!isfinite(delta))
     {
       continue;
     }
