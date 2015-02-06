@@ -357,7 +357,7 @@ puts "Douglas N. Greve, Ph.D., MGH-NMR Center"
 puts ""
 puts "VERSION"
 puts ""
-puts {$Id: unpacksdcmdir,v 1.24 2014/12/14 23:06:20 jonp Exp $}
+puts {$Id: unpacksdcmdir,v 1.25 2015/02/06 19:19:50 greve Exp $}
 
 exit 1;
 
@@ -889,7 +889,7 @@ set mriconvert mri_convert
 
 # Dump some info to the screen
 puts "";
-puts {$Id: unpacksdcmdir,v 1.24 2014/12/14 23:06:20 jonp Exp $};
+puts {$Id: unpacksdcmdir,v 1.25 2015/02/06 19:19:50 greve Exp $};
 puts "";
 puts [pwd];
 puts "$argv"
@@ -938,7 +938,7 @@ if [catch {open $LogFile w} LF] {
 }
 puts "INFO: Logfile is $LogFile"
 puts $LF "Log file created by unpacksdcmdir"
-puts $LF {$Id: unpacksdcmdir,v 1.24 2014/12/14 23:06:20 jonp Exp $};
+puts $LF {$Id: unpacksdcmdir,v 1.25 2015/02/06 19:19:50 greve Exp $};
 puts $LF "$LogFile"
 puts $LF [pwd];
 puts $LF [exec date];
@@ -973,7 +973,8 @@ puts $LF "mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $sta
 flush $LF
 set ParsePipeId [open \
 "|mri_parse_sdcmdir --sortbyrun --d $dicomdir --o $sumfile --status $statfile 2>@ stdout" r];
-fconfigure $ParsePipeId -blocking 0
+#fconfigure $ParsePipeId -blocking 0; #  Note: blocking means that
+# errors cannot be caught on close
 flush $LF
 
 # Wait until the statfile is created (or timeout after 20)
@@ -1012,10 +1013,12 @@ flush stdout
 foreach line  $ParsePipeContents {
   puts $LF $line 
 }
+# This error catch does nothing with -blocking 0
 set err [ catch { close $ParsePipeId } ];
 if { $err } {
   puts $LF "ERROR: parsing $dicomdir "
   puts "ERROR: parsing $dicomdir "
+  puts "See logfile $LogFile for more details"
   exit 1;
 }
 file delete -force $statfile
@@ -1115,6 +1118,7 @@ if { $nthline == 0 } {
     puts "at the beginning of this process but can no long be found."
     exit 1;
   }
+  puts "See logfile $LogFile for more details"
   exit 1;
 }
 
