@@ -32,10 +32,10 @@ $cmd3
 if ($status) exit $status
 echo $cmd4
 $cmd4
-#if ($status) exit $status
-echo $cmd5
-$cmd5
 if ($status) exit $status
+#echo $cmd5
+#$cmd5
+#if ($status) exit $status
 echo $cmd6
 $cmd6
 if ($status) exit $status
