@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/15 23:00:37 $
- *    $Revision: 1.170 $
+ *    $Date: 2015/02/06 18:54:18 $
+ *    $Revision: 1.171 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7587,10 +7587,12 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
   tag=DCM_MAKETAG(0x29,0x1010);
   e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
   cond = DCM_GetElement(&dcm, tag, e);
-  if(cond != DCM_NORMAL){free(e);return(3);}
+  // If string is not there, assume it is not DWI
+  if(cond != DCM_NORMAL){free(e);return(0);}
   AllocElementData(e);
   cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
-  if(cond != DCM_NORMAL){free(e);return(4);}
+  // If string has no value, assume it is not DWI
+  if(cond != DCM_NORMAL){free(e);return(0);}
 
   // Scroll through the nasty string and find the keywords
   bval_flag = 0;
