@@ -7,7 +7,7 @@
 
 set cmd1=(rm -rf autom4te.cache)
 if ( "`uname -s`" == "Darwin" ) then 
-    set cmd2=(glibtoolize --force)
+    set cmd2=(glibtoolize)
 else
     set cmd2=(libtoolize --force)
 endif
