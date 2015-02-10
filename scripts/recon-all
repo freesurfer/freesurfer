@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2015/01/30 16:33:21 $
-#    $Revision: 1.505 $
+#    $Author: nicks $
+#    $Date: 2015/02/10 21:58:12 $
+#    $Revision: 1.506 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.505 2015/01/30 16:33:21 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.506 2015/02/10 21:58:12 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1863,6 +1863,16 @@ if($DoNormalization) then
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   else
+    if ( $longitudinal && ! -e orig_nu.mgz ) then
+      # the longitudinal stream skips the talairach step, so orig_nu doesnt
+      # get created, so create it now...
+      set cmd = (mri_nu_correct.mni \
+        --n 1 --proto-iters 1000 --distance 50 --no-rescale \
+        --i orig.mgz --o orig_nu.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd >& orig_nu.log
+      if($status) goto error_exit;
+    endif
     # for cross, base (and long if not useLongBaseCtrlVol) processing streams:
     set cmd = (mri_normalize -g $NormMaxGrad);
     if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
