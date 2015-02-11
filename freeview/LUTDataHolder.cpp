@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/14 16:58:21 $
- *    $Revision: 1.19 $
+ *    $Date: 2015/02/11 15:50:20 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -137,7 +137,8 @@ COLOR_TABLE* LUTDataHolder::GetColorTable( const QString& name )
   for ( int i = 0; i < GetCount(); i++ )
   {
     if ( m_tables[i].name == name ||
-         QFileInfo(m_tables[i].filename).canonicalFilePath() == QFileInfo(name).canonicalFilePath() )
+         (QFileInfo(m_tables[i].filename).canonicalFilePath() == QFileInfo(name).canonicalFilePath() &&
+          !QFileInfo(name).canonicalFilePath().isEmpty()) )
     {
       return m_tables[i].table;
     }
