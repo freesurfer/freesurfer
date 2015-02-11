@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/12/01 18:14:07 $
- *    $Revision: 1.30 $
+ *    $Date: 2015/02/11 17:51:17 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -524,18 +524,27 @@ void LayerPropertyMRI::UpdateLUTTable()
     mLUTTable->AddRGBAPoint( 0, 0, 0, 0, 0 );
     int cEntries;
     CTABgetNumberOfTotalEntries( mFreeSurferCTAB, &cEntries );
+    bool last_is_valid = true;
     for ( int nEntry = 1; nEntry < cEntries; nEntry++ )
     {
       int bValid;
       CTABisEntryValid( mFreeSurferCTAB, nEntry, &bValid );
       if ( bValid )
       {
+        if (!last_is_valid)
+        {
+          mLUTTable->AddRGBAPoint( nEntry, 0, 0, 0, 0 );
+          last_is_valid = true;
+        }
         float red, green, blue, alpha;
         CTABrgbaAtIndexf( mFreeSurferCTAB, nEntry, &red, &green, &blue, &alpha );
         mLUTTable->AddRGBAPoint( nEntry, red, green, blue, 1 );
       }
-      else
+      else if (last_is_valid)
+      {
         mLUTTable->AddRGBAPoint( nEntry, 0, 0, 0, 0 );
+        last_is_valid = false;
+      }
     }
     mLUTTable->AddRGBAPoint( cEntries, 0, 0, 0, 0 );
     mLUTTable->Build();
