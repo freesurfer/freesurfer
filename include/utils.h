@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/09/25 18:28:00 $
- *    $Revision: 1.54 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/02/12 15:48:36 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,6 +58,9 @@ int    QuadEqual(double a1, double a2) ;
 void   fComplementCode(double *pdIn, double *pdOut, int iLen) ;
 #ifndef _HOME_
 char *fgetl(char *s, int n, FILE *fp) ;
+#endif
+#ifndef isfinite 
+#define isfinite(x) (finite(x))
 #endif
 
 int  IntSqrt(int n) ;
