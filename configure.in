@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/02/06 23:16:59 $
-#    $Revision: 1.629 $
+#    $Date: 2015/02/12 22:50:02 $
+#    $Revision: 1.630 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -231,6 +231,13 @@ if (test ! `uname -s` = "Darwin") && (test "$ac_have_gcc_44" = "yes"); then
     AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
     cp /usr/bin/libtool .
 fi
+
+# Temporary fix until I can get all version of OSX building
+if (test `uname -n` = "gust.nmr.mgh.harvard.edu"); then
+    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
+    cp /usr/pubsw/packages/autotools/bin/libtool .
+fi
+
 
 ################################################################
 # Checks for header files.
