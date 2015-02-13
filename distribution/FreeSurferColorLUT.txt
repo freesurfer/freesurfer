@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.99 2014/11/20 19:21:00 greve Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.100 2015/02/13 17:27:05 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -1096,7 +1096,7 @@
 #
 
 #No.    Label Name:                         R   G   B   A
-9000    ctx-lh-prefrontal                   30  5   30  0
+9000    ctx-lh-prefrontal                   50  100 30  0
 9001    ctx-lh-primary-motor                30  100 45  0
 9002    ctx-lh-premotor                     130 100 165 0
 9003    ctx-lh-temporal                     105 25  5   0
@@ -1104,7 +1104,7 @@
 9005    ctx-lh-prim-sec-somatosensory       225 20  105 0
 9006    ctx-lh-occipital                    225 20  15  0
 
-9500    ctx-rh-prefrontal                   30  55  30  0
+9500    ctx-rh-prefrontal                   50  200  30  0
 9501    ctx-rh-primary-motor                30  150 45  0
 9502    ctx-rh-premotor                     130 150 165 0
 9503    ctx-rh-temporal                     105 75  5   0
