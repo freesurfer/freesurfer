@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/02/10 21:58:12 $
-#    $Revision: 1.506 $
+#    $Date: 2015/02/16 16:49:33 $
+#    $Revision: 1.507 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.506 2015/02/10 21:58:12 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.507 2015/02/16 16:49:33 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3860,7 +3860,10 @@ if($DoPialSurfs) then
           -long -max 3.5)
     else
       # default stream:
-      set cmd = (mris_make_surfaces)
+      # NJS: -orig_pial white and -fix_mtl added 16Feb2015 per BF
+      set cmd = (mris_make_surfaces \
+          -orig_pial white \
+          -fix_mtl)
     endif
     if ($UseAseg) then
       set cmd = ($cmd -aseg ../mri/aseg.presurf)
