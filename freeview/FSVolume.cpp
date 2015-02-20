@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/12 21:36:06 $
- *    $Revision: 1.98 $
+ *    $Date: 2015/02/20 19:33:02 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -681,7 +681,10 @@ bool FSVolume::SaveRegistration( const QString& filename )
   }
 
   getVolGeom( m_MRI, &srcG );
-  getVolGeom( m_MRIRef, &dstG );
+  if (m_MRIRef)
+    getVolGeom( m_MRIRef, &dstG );
+  else
+    getVolGeom( m_MRI, &dstG );
   lta->xforms[0].src = srcG;
   lta->xforms[0].dst = dstG;
 
