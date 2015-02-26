@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 21:26:52 $
- *    $Revision: 1.16 $
+ *    $Date: 2015/02/26 21:52:52 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -189,7 +189,7 @@ void SurfaceLabel::SetColor( double r, double g, double b )
   m_rgbColor[1] = g;
   m_rgbColor[2] = b;
 
-//  emit SurfaceLabelChanged();
+  emit SurfaceLabelChanged();
 }
 
 void SurfaceLabel::SetThreshold(double th)
@@ -262,6 +262,7 @@ void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
 void SurfaceLabel::SetShowOutline(bool bOutline)
 {
   m_bShowOutline = bOutline;
+  emit SurfaceLabelChanged();
 }
 
 void SurfaceLabel::SetVisible(bool flag)

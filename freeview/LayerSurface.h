@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 21:26:52 $
- *    $Revision: 1.66 $
+ *    $Date: 2015/02/26 21:52:52 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -260,6 +260,8 @@ public slots:
 
   void SetCurrentVertex(int n);
 
+  void UpdateColorMap();
+
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
@@ -276,7 +278,6 @@ Q_SIGNALS:
 
 protected slots:
   void UpdateOpacity();
-  void UpdateColorMap();
   void UpdateEdgeThickness();
   void UpdateVectorPointSize();
   void UpdateRenderMode();

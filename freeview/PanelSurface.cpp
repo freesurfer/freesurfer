@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 21:26:52 $
- *    $Revision: 1.59 $
+ *    $Date: 2015/02/26 21:52:52 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,6 +110,9 @@ PanelSurface::PanelSurface(QWidget *parent) :
            m_wndConfigureOverlay, SLOT(OnActiveSurfaceChanged(Layer*)));
   connect(m_wndConfigureOverlay, SIGNAL(ActiveFrameChanged()), mainwnd, SLOT(UpdateInfoPanel()));
   connect(mainwnd, SIGNAL(SlicePositionChanged()), m_wndConfigureOverlay, SLOT(OnCurrentVertexChanged()));
+
+  connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
+  connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
 }
 
 PanelSurface::~PanelSurface()
@@ -149,8 +152,8 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect( ui->spinBoxEdgeThickness, SIGNAL(valueChanged(int)), p, SLOT(SetEdgeThickness(int)) );
   connect( ui->spinBoxVectorPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVectorPointSize(int)) );
   connect( ui->spinBoxVertexPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVertexPointSize(int)) );
-  connect( ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), layer, SLOT(SetActiveLabelColor(QColor)));
-  connect( ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveLabelOutline(bool)));
+//  connect( ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), layer, SLOT(SetActiveLabelColor(QColor)));
+//  connect( ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveLabelOutline(bool)));
   connect( ui->checkBoxAnnotationOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveAnnotationOutline(bool)));
 
   SurfaceSpline* spline = layer->GetSpline();
@@ -484,8 +487,11 @@ void PanelSurface::OnLineEditLabelThreshold(const QString &text)
     QList<SurfaceLabel*> labels = GetSelectedLabels();
     foreach (SurfaceLabel* label, labels)
     {
+      label->blockSignals(true);
       label->SetThreshold(dval);
+      label->blockSignals(false);
     }
+    surf->UpdateColorMap();
   }
 }
 
@@ -701,7 +707,12 @@ void PanelSurface::OnComboLabelColorCode(int nSel)
   {
     QList<SurfaceLabel*> labels = GetSelectedLabels();
     foreach (SurfaceLabel* label, labels)
+    {
+      label->blockSignals(true);
       label->SetColorCode(nSel);
+      label->blockSignals(false);
+    }
+    surf->UpdateColorMap();
   }
 }
 
@@ -710,9 +721,16 @@ void PanelSurface::OnLineEditLabelHeatscaleMin(const QString &text)
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   bool bOK;
   double dval = text.toDouble( &bOK );
-  if (surf && surf->GetActiveLabel() && bOK)
+  if (surf && bOK)
   {
-    surf->GetActiveLabel()->SetHeatscaleMin(dval);
+    QList<SurfaceLabel*> labels = GetSelectedLabels();
+    foreach (SurfaceLabel* label, labels)
+    {
+      label->blockSignals(true);
+      label->SetHeatscaleMin(dval);
+      label->blockSignals(false);
+    }
+    surf->UpdateColorMap();
   }
 }
 
@@ -721,8 +739,47 @@ void PanelSurface::OnLineEditLabelHeatscaleMax(const QString &text)
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   bool bOK;
   double dval = text.toDouble( &bOK );
-  if (surf && surf->GetActiveLabel() && bOK)
+  if (surf && bOK)
   {
-    surf->GetActiveLabel()->SetHeatscaleMax(dval);
+    QList<SurfaceLabel*> labels = GetSelectedLabels();
+    foreach (SurfaceLabel* label, labels)
+    {
+      label->blockSignals(true);
+      label->SetHeatscaleMax(dval);
+      label->blockSignals(false);
+    }
+    surf->UpdateColorMap();
+  }
+}
+
+void PanelSurface::OnCheckBoxLabelOutline(bool outline)
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf )
+  {
+    QList<SurfaceLabel*> labels = GetSelectedLabels();
+    foreach (SurfaceLabel* label, labels)
+    {
+      label->blockSignals(true);
+      label->SetShowOutline(outline);
+      label->blockSignals(false);
+    }
+    surf->UpdateColorMap();
+  }
+}
+
+void PanelSurface::OnColorPickerLabelColor(const QColor &color)
+{
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf )
+  {
+    QList<SurfaceLabel*> labels = GetSelectedLabels();
+    foreach (SurfaceLabel* label, labels)
+    {
+      label->blockSignals(true);
+      label->SetColor(color.redF(), color.greenF(), color.blueF());
+      label->blockSignals(false);
+    }
+    surf->UpdateColorMap();
   }
 }
