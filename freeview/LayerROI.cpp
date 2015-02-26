@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/23 20:14:13 $
- *    $Revision: 1.28 $
+ *    $Date: 2015/02/26 22:37:48 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -190,9 +190,9 @@ void LayerROI::UpdateColorMap ()
 {
   for ( int i = 0; i < 3; i++ )
   {
-    mColorMap[i]->SetLookupTable( GetProperty()->GetLookupTable() );
+      mColorMap[i]->SetLookupTable( GetProperty()->GetLookupTable() );
+  //    m_sliceActor2D[i]->GetProperty()->SetColor(1, 0, 0);
   }
-  // m_sliceActor2D[i]->GetProperty()->SetColor(1, 0, 0);
 
   emit ActorUpdated();
 }

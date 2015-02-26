@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 21:52:52 $
- *    $Revision: 1.17 $
+ *    $Date: 2015/02/26 22:37:48 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -268,5 +268,5 @@ void SurfaceLabel::SetShowOutline(bool bOutline)
 void SurfaceLabel::SetVisible(bool flag)
 {
   m_bVisible = flag;
-  emit SurfaceLabelChanged();
+  emit SurfaceLabelVisibilityChanged();
 }

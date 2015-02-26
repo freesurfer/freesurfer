@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/23 20:14:13 $
- *    $Revision: 1.6 $
+ *    $Date: 2015/02/26 22:37:48 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,8 @@ LayerPropertyROI::LayerPropertyROI ( QObject* parent) : LayerProperty( parent )
   mRGB[2] = 0;
   m_dThreshold = 0;
   m_nColorCode = SolidColor;
+  m_dValueRange[0] = 0;
+  m_dValueRange[1] = 1;
 
   mLUTTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 // mLUTTable->ClampingOff();
@@ -70,10 +72,16 @@ void LayerPropertyROI::SetColorMapChanged()
   {
   case SolidColor:
     mLUTTable->RemoveAllPoints();
+    /*
     mLUTTable->AddRGBAPoint( m_dValueRange[0]-0.0001, 0, 0, 0, 0 );
     mLUTTable->AddRGBAPoint( m_dValueRange[0],  mRGB[0], mRGB[1], mRGB[2], 1 );
     mLUTTable->AddRGBAPoint( m_dValueRange[1],  mRGB[0], mRGB[1], mRGB[2], 1 );
     mLUTTable->AddRGBAPoint( m_dValueRange[1]+0.0001, 0, 0, 0, 0 );
+    */
+    mLUTTable->AddRGBAPoint( 1-0.0001, 0, 0, 0, 0 );
+    mLUTTable->AddRGBAPoint( 1,  mRGB[0], mRGB[1], mRGB[2], 1 );
+    mLUTTable->AddRGBAPoint( 1+0.0001, 0, 0, 0, 0 );
+
     break;
   case Heatscale:
     mLUTTable->RemoveAllPoints();

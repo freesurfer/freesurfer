@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 21:52:52 $
- *    $Revision: 1.33 $
+ *    $Date: 2015/02/26 22:37:48 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,6 +77,7 @@ protected slots:
   void OnToggleAnnotation(bool bShow);
   void OnColorPickerLabelColor(const QColor& color);
   void OnCheckBoxLabelOutline(bool outline);
+  void UpdateLabelWidgets();
 
 private:
   QList<SurfaceLabel*> GetSelectedLabels();

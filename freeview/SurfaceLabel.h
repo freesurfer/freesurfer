@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/23 20:14:13 $
- *    $Revision: 1.11 $
+ *    $Date: 2015/02/26 22:37:48 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -100,6 +100,7 @@ public:
 
 Q_SIGNALS:
   void SurfaceLabelChanged();
+  void SurfaceLabelVisibilityChanged();
 
 public slots:
   void SetVisible(bool flag);

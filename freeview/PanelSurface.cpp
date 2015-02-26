@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 21:52:52 $
- *    $Revision: 1.60 $
+ *    $Date: 2015/02/26 22:37:48 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -375,6 +375,31 @@ void PanelSurface::DoUpdateWidgets()
   BlockAllSignals( false );
 }
 
+void PanelSurface::UpdateLabelWidgets()
+{
+  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+  if (layer && layer->GetActiveLabel())
+  {
+    BlockAllSignals(true);
+
+    SurfaceLabel* label = layer->GetActiveLabel();
+    double* rgb = label->GetColor();
+    ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+    ui->checkBoxLabelOutline->setChecked(label->GetShowOutline());
+
+    ChangeLineEditNumber(ui->lineEditLabelThreshold, label->GetThreshold());
+    ChangeLineEditNumber(ui->lineEditLabelHeatscaleMin, label->GetHeatscaleMin());
+    ChangeLineEditNumber(ui->lineEditLabelHeatscaleMax, label->GetHeatscaleMax());
+    ui->comboBoxLabelColorCode->setCurrentIndex(label->GetColorCode());
+    ui->labelHeatscaleRange->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
+    ui->lineEditLabelHeatscaleMin->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
+    ui->lineEditLabelHeatscaleMax->setVisible(label->GetColorCode() == SurfaceLabel::Heatscale);
+    ui->colorpickerLabelColor->setVisible(label->GetColorCode() == SurfaceLabel::SolidColor);
+
+    BlockAllSignals(false);
+  }
+}
+
 QList<SurfaceLabel*> PanelSurface::GetSelectedLabels()
 {
   QList<SurfaceLabel*> selected_labels;
@@ -533,26 +558,6 @@ void PanelSurface::OnComboAnnotation( int nSel_in )
   }
 }
 
-/*
-void PanelSurface::OnComboLabel( int nSel_in )
-{
-  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
-  if ( surf )
-  {
-    int nSel = nSel_in - 1;
-    if ( nSel >= surf->GetNumberOfLabels() )
-    {
-      MainWindow::GetMainWindow()->LoadSurfaceLabel();
-    }
-    else
-    {
-      surf->SetActiveLabel( nSel );
-    }
-    UpdateWidgets();
-  }
-}
-*/
-
 void PanelSurface::OnButtonLoadLabel()
 {
   MainWindow::GetMainWindow()->LoadSurfaceLabel();
@@ -677,7 +682,10 @@ void PanelSurface::OnCurrentLabelItemChanged(QTreeWidgetItem *item)
     LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
     if ( surf )
     {
+      surf->blockSignals(true);
       surf->SetActiveLabel(label);
+      surf->blockSignals(false);
+      UpdateLabelWidgets();
     }
   }
 }

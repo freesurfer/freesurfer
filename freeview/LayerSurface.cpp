@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 21:26:52 $
- *    $Revision: 1.108 $
+ *    $Date: 2015/02/26 22:37:48 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -467,6 +467,7 @@ bool LayerSurface::LoadLabelFromFile( const QString& filename )
   m_labels.insert(0, label);
   connect(label, SIGNAL(SurfaceLabelChanged()), this, SLOT(UpdateColorMap()));
   connect(label, SIGNAL(SurfaceLabelChanged()), GetProperty(), SIGNAL(PropertyChanged()));
+  connect(label, SIGNAL(SurfaceLabelVisibilityChanged()), this, SLOT(UpdateColorMap()));
 
   SetActiveLabel( 0 );
 
