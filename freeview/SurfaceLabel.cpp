@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/23 20:14:13 $
- *    $Revision: 1.15 $
+ *    $Date: 2015/02/26 21:26:52 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -243,7 +243,7 @@ void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
     if ( vno < nVertexCount && (!m_bShowOutline || m_nOutlineIndices[i] > 0) )
     {
       double opacity = 1;
-      if (m_label->lv[i].stat > m_dThreshold)
+      if (m_label->lv[i].stat >= m_dThreshold)
         opacity = 1;
       else
         opacity = 0;

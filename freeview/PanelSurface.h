@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/23 20:14:13 $
- *    $Revision: 1.31 $
+ *    $Date: 2015/02/26 21:26:52 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,7 @@ class PanelSurface;
 
 class QAction;
 class WindowConfigureOverlay;
+class SurfaceLabel;
 
 class PanelSurface : public PanelLayer
 {
@@ -76,6 +77,8 @@ protected slots:
   void OnToggleAnnotation(bool bShow);
 
 private:
+  QList<SurfaceLabel*> GetSelectedLabels();
+
   Ui::PanelSurface *ui;
 
   QList<QWidget*>  m_widgetsMidPoint;

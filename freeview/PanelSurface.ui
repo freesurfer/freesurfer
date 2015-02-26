@@ -470,6 +470,9 @@
           <height>70</height>
          </size>
         </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::ExtendedSelection</enum>
+        </property>
         <property name="rootIsDecorated">
          <bool>false</bool>
         </property>

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.65 $
+ *    $Date: 2015/02/26 21:26:52 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -263,6 +263,7 @@ public slots:
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
+  void SurfaceLabelDeleted( SurfaceLabel* );
   void SurfaceOverlayAdded( SurfaceOverlay* );
   void SurfaceOverlyDataUpdated();
   void SurfaceCurvatureLoaded();

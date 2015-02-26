@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/23 20:14:13 $
- *    $Revision: 1.58 $
+ *    $Date: 2015/02/26 21:26:52 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,7 +133,7 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
            this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( layer, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
            this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
-  connect( layer, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)), this, SLOT(UpdateWidgets()));
+  connect( layer, SIGNAL(SurfaceLabelDeleted(SurfaceLabel*)), this, SLOT(UpdateWidgets()));
   connect( layer, SIGNAL(SurfaceCurvatureLoaded()), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(SurfaceVectorLoaded()), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(SurfaceOverlayAdded(SurfaceOverlay*)), this, SLOT(UpdateWidgets()) );
@@ -314,6 +314,9 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxAnnotation->setCurrentIndex( layer ? 1 + layer->GetActiveAnnotationIndex() : 0 );
 
   // update label controls
+  QList<SurfaceLabel*> selected_labels;
+  if (layer && ui->treeWidgetLabels->topLevelItemCount() == layer->GetNumberOfLabels())
+    selected_labels = GetSelectedLabels();
   ui->treeWidgetLabels->clear();
   if (layer)
   {
@@ -326,6 +329,10 @@ void PanelSurface::DoUpdateWidgets()
       item->setCheckState(0, label->IsVisible() ? Qt::Checked : Qt::Unchecked);
       if (layer->GetActiveLabel() == label)
         ui->treeWidgetLabels->setCurrentItem(item);
+      if (selected_labels.contains(label))
+      {
+        item->setSelected(true);
+      }
     }
     ui->pushButtonDeleteLabel->setEnabled(layer->GetNumberOfLabels() > 0);
   }
@@ -342,7 +349,7 @@ void PanelSurface::DoUpdateWidgets()
   ShowWidgets( m_widgetsVertex,   ui->checkBoxShowVertices->isChecked() );
   ShowWidgets( m_widgetsMesh,     layer && layer->GetProperty()->GetSurfaceRenderMode() != LayerPropertySurface::SM_Surface );
   ShowWidgets( m_widgetsLabel,    layer && layer->GetActiveLabelIndex() >= 0 );
-  ShowWidgets(m_widgetsSpline, spline && spline->IsValid() && spline->IsVisible());
+  ShowWidgets( m_widgetsSpline, spline && spline->IsValid() && spline->IsVisible());
   if (layer && layer->GetActiveLabel())
   {
     SurfaceLabel* label = layer->GetActiveLabel();
@@ -363,6 +370,17 @@ void PanelSurface::DoUpdateWidgets()
   ui->colorpickerSurfaceColor->setEnabled( layer ); // && nCurvatureMap != LayerPropertySurface::CM_Threshold );
 
   BlockAllSignals( false );
+}
+
+QList<SurfaceLabel*> PanelSurface::GetSelectedLabels()
+{
+  QList<SurfaceLabel*> selected_labels;
+  QList<QTreeWidgetItem*> selected_items = ui->treeWidgetLabels->selectedItems();
+  foreach (QTreeWidgetItem* item, selected_items)
+  {
+    selected_labels << qobject_cast<SurfaceLabel*>(item->data(0, Qt::UserRole).value<QObject*>());
+  }
+  return selected_labels;
 }
 
 void PanelSurface::OnChangeSurfaceType( QAction* act )
@@ -455,9 +473,19 @@ void PanelSurface::OnLineEditLabelThreshold(const QString &text)
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   bool bOK;
   double dval = text.toDouble( &bOK );
+  /*
   if (surf && surf->GetActiveLabel() && bOK)
   {
     surf->GetActiveLabel()->SetThreshold(dval);
+  }
+  */
+  if (surf && bOK)
+  {
+    QList<SurfaceLabel*> labels = GetSelectedLabels();
+    foreach (SurfaceLabel* label, labels)
+    {
+      label->SetThreshold(dval);
+    }
   }
 }
 
@@ -538,7 +566,6 @@ void PanelSurface::OnButtonDeleteLabel()
     if ( surf )
     {
       surf->DeleteLabel(label);
-      UpdateWidgets();
     }
   }
 }
@@ -670,9 +697,11 @@ void PanelSurface::OnToggleAnnotation(bool bShow)
 void PanelSurface::OnComboLabelColorCode(int nSel)
 {
   LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
-  if ( surf && surf->GetActiveLabel() )
+  if ( surf )
   {
-    surf->GetActiveLabel()->SetColorCode(nSel);
+    QList<SurfaceLabel*> labels = GetSelectedLabels();
+    foreach (SurfaceLabel* label, labels)
+      label->SetColorCode(nSel);
   }
 }
 
