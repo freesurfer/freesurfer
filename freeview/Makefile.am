@@ -101,7 +101,8 @@ BUILT_SOURCES = \
 	moc_LayerPropertySurface.cpp \
 	moc_LayerROI.cpp \
 	moc_LayerSurface.cpp \
-	moc_LayerTreeWidget.cpp \
+    moc_LayerTreeWidget.cpp \
+    moc_LabelTreeWidget.cpp \
 	moc_LayerVolumeBase.cpp \
 	moc_LayerMRI.cpp \
 	moc_MainWindow.cpp \
