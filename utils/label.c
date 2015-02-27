@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/11/26 18:03:41 $
- *    $Revision: 1.120 $
+ *    $Date: 2015/02/27 15:38:37 $
+ *    $Revision: 1.121 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3333,7 +3333,7 @@ LabelMaskSurfaceVolume(LABEL *area, MRI *mri, float nonmask_val)
   return(NO_ERROR) ;
 }
 int
-LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz)
+LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz, int *pvno)
 {
   int    vno, num, n  ;
   VERTEX *v ;
@@ -3356,6 +3356,26 @@ LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz
   *px = xc / num ;
   *py = yc / num ;
   *pz = zc / num ;
+  if (pvno != NULL)
+  {
+    int vno_closest ;
+    double min_dist, dist ;
+
+    xc /= num ; yc /= num;  zc /= num ;
+    vno_closest = -1 ; min_dist = 1e10 ;
+    for (n = 0 ; n < area->n_points ; n++)
+    {
+      vno = area->lv[n].vno ;
+      v = &mris->vertices[vno] ;
+      dist = SQR(v->x-xc)+SQR(v->y-yc)+SQR(v->z-zc) ;
+      if (dist < min_dist)
+      {
+	min_dist = dist ;
+	vno_closest = vno ;
+      }
+    }
+    *pvno = vno_closest ;
+  }
   return(NO_ERROR) ;
 }
 
