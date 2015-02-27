@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/17 22:57:21 $
- *    $Revision: 1.61 $
+ *    $Date: 2015/02/27 15:39:14 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -160,7 +160,7 @@ LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area,
 LABEL *LabelClone(LABEL *a)  ;
 int LabelCropPosterior(LABEL *area, float anterior_dist) ;
 int LabelCropAnterior(LABEL *area, float anterior_dist) ;
-int LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz) ;
+int LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz, int *pvno) ;
 int LabelSetVals(MRI_SURFACE *mris, LABEL *area, float fillval) ;
 int LabelAddToMark(LABEL *area, MRI_SURFACE *mris, int val_to_add) ;
 LABEL *LabelTransform(LABEL *area_in, TRANSFORM *xform, MRI *mri, LABEL *area_out) ;
