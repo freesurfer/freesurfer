@@ -157,7 +157,8 @@ SOURCES += \
     VolumeFilterClose.cpp \
     DialogSetCamera.cpp \
     DialogThresholdVolume.cpp \
-    DialogVolumeSegmentation.cpp
+    DialogVolumeSegmentation.cpp \
+    LabelTreeWidget.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -304,7 +305,8 @@ HEADERS  += \
     VolumeFilterClose.h \
     DialogSetCamera.h \
     DialogThresholdVolume.h \
-    DialogVolumeSegmentation.h
+    DialogVolumeSegmentation.h \
+    LabelTreeWidget.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

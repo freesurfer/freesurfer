@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 22:37:48 $
- *    $Revision: 1.18 $
+ *    $Date: 2015/02/27 17:55:27 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -269,4 +269,9 @@ void SurfaceLabel::SetVisible(bool flag)
 {
   m_bVisible = flag;
   emit SurfaceLabelVisibilityChanged();
+}
+
+bool SurfaceLabel::GetCentroid(double *x, double *y, double *z, int *nvo)
+{
+  return (LabelCentroid(m_label, m_surface->GetSourceSurface()->GetMRIS(), x, y, z, nvo) == 0);
 }

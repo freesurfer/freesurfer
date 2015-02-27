@@ -237,6 +237,7 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	LayerSurface.cpp \
 	LayerTreeWidget.cpp \
 	LayerVolumeBase.cpp \
+    LabelTreeWidget.cpp \
 	LivewireTool.cpp \
 	LUTDataHolder.cpp \
 	main.cpp \
@@ -372,6 +373,7 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	LayerROI.h \
 	LayerSurface.h \
 	LayerTreeWidget.h \
+    LabelTreeWidget.h \
 	LayerVolumeBase.h \
 	LayerMRI.h \
 	LivewireTool.h \

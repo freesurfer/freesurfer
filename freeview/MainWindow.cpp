@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.293 $
+ *    $Date: 2015/02/27 17:55:27 $
+ *    $Revision: 1.294 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -6592,8 +6592,18 @@ void MainWindow::OnGoToROI()
 {
   LayerROI* roi = (LayerROI*)GetActiveLayer("ROI");
   double pos[3];
-  if (roi->GetCentroidPosition(pos))
+  if (roi && roi->GetCentroidPosition(pos))
     SetSlicePosition(pos);
+}
+
+void MainWindow::OnGoToSurfaceLabel()
+{
+  LayerSurface* surf = (LayerSurface*)GetActiveLayer("Surface");
+  double pos[3];
+  if (surf && surf->GetActiveLabelCentroidPosition(pos))
+  {
+    SetSlicePosition(pos);
+  }
 }
 
 void MainWindow::CommandLoadFCD(const QStringList& cmd )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 22:37:48 $
- *    $Revision: 1.61 $
+ *    $Date: 2015/02/27 17:55:27 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,6 +113,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
 
   connect(ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxLabelOutline(bool)));
   connect(ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerLabelColor(QColor)));
+  connect(ui->treeWidgetLabels, SIGNAL(MenuGoToCentroid()), mainwnd, SLOT(OnGoToSurfaceLabel()));
 }
 
 PanelSurface::~PanelSurface()
@@ -791,3 +792,4 @@ void PanelSurface::OnColorPickerLabelColor(const QColor &color)
     surf->UpdateColorMap();
   }
 }
+

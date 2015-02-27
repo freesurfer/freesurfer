@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 22:37:48 $
- *    $Revision: 1.109 $
+ *    $Date: 2015/02/27 17:55:27 $
+ *    $Revision: 1.110 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1765,4 +1765,15 @@ bool LayerSurface::GetCorrelationOverlayDataAtVertex(int nVert, float *output, i
 bool LayerSurface::IsInflated()
 {
   return GetFileName().toLower().contains("inflated");
+}
+
+bool LayerSurface::GetActiveLabelCentroidPosition(double *pos)
+{
+  SurfaceLabel* label = GetActiveLabel();
+  int nvo;
+  double x, y, z;
+  if (label && label->GetCentroid(&x, &y, &z, &nvo))
+  {
+    return GetTargetAtVertex(nvo, pos);
+  }
 }
