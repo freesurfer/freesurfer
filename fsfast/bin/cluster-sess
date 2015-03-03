@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/11/24 19:32:13 $
-#    $Revision: 1.1 $
+#    $Date: 2015/03/03 16:46:27 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: cluster-sess,v 1.1 2014/11/24 19:32:13 greve Exp $';
+set VERSION = '$Id: cluster-sess,v 1.2 2015/03/03 16:46:27 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -45,7 +45,7 @@ set LF = ();
 set ConList = ();
 
 set Bonferroni = 0;
-set SimDir = $FREESURFER_HOME/average/mult-comp-cor
+set CacheDir = $FREESURFER_HOME/average/mult-comp-cor
 set CacheLabel = cortex;
 set annot = aparc
 set cwpvalthresh = .05
@@ -179,7 +179,7 @@ foreach sess ($SessList)
   echo "fwhm $fwhm $fwhmStr" | tee -a $LF
   if($subject != self) set subject = $subject0
   if($subject == self) set subject = $self
-  set csd = $SimDir/$subject/$hemi/$CacheLabel/fwhm$fwhmStr/$simsign/th$threshStr/mc-z.csd
+  set csd = $CacheDir/$subject/$hemi/$CacheLabel/fwhm$fwhmStr/$simsign/th$threshStr/mc-z.csd
   if(! -e $csd) then
     echo "ERROR: cannot find $csd" | tee -a $LF
     exit 1;
