@@ -11,8 +11,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/28 00:54:17 $
- *    $Revision: 1.12 $
+ *    $Date: 2015/03/03 16:46:59 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,7 @@ static int  ltaMNIwrite(LTA *lta, char *fname);
 
 static int invert1 = 0;
 static int invert2 = 0;
+static int invertout = 0;
 
 static int out_type = 0;
 
@@ -75,7 +76,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_concatenate_lta.c,v 1.12 2015/01/28 00:54:17 greve Exp $",
+           "$Id: mri_concatenate_lta.c,v 1.13 2015/03/03 16:46:59 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -308,6 +309,14 @@ int main(int argc, char *argv[])
     strcpy(lta_total->subject,lta2->subject);
   lta_total->fscale = lta1->fscale;
 
+  if(invertout){
+    LTA *ltatmp;
+    printf("Inverting output LTA\n");
+    ltatmp = LTAinvert(lta_total,NULL);
+    LTAfree(&lta_total);
+    lta_total = ltatmp;
+  }
+
   type = TransformFileNameType(ltafn_total);
   if (type == MNI_TRANSFORM_TYPE)
   {
@@ -382,6 +391,8 @@ static void usage(int exit_val)
           "  -invert1           invert lta_1 before applying it\n") ;
   fprintf(fout,
           "  -invert2           invert lta_2 before applying it\n") ;
+  fprintf(fout,
+          "  -invertout         invert output lta\n") ;
   fprintf(fout,
           "  -out_type          set final LTA type: 0 VOX2VOX (default)\n") ;
   fprintf(fout,
@@ -487,6 +498,11 @@ get_option(int argc, char *argv[])
   {
     invert2 = 1;
     fprintf(stderr, "invert the second LTA before applying it \n");
+  }
+  else if (!stricmp(option, "invertout"))
+  {
+    invertout = 1;
+    fprintf(stderr, "invert the output LTA\n");
   }
   else
   {
