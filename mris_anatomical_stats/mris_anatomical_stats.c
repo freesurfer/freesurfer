@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/11/21 23:00:13 $
- *    $Revision: 1.75 $
+ *    $Author: fischl $
+ *    $Date: 2015/03/04 13:36:41 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,7 +42,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.75 2014/11/21 23:00:13 greve Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.76 2015/03/04 13:36:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -112,7 +112,7 @@ main(int argc, char *argv[])
   FILE          *log_fp = NULL ;
   VERTEX        *v ;
   HISTOGRAM     *histo_gray ;
-  MRI           *ThicknessMap = NULL;
+  MRI           *SurfaceMap = NULL;
   struct utsname uts;
   char          *cmdline, full_name[STRLEN] ;
   int           num_cortex_vertices = 0;
@@ -122,7 +122,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.75 2014/11/21 23:00:13 greve Exp $",
+           "$Id: mris_anatomical_stats.c,v 1.76 2015/03/04 13:36:41 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -255,17 +255,28 @@ main(int argc, char *argv[])
 
   if (nsmooth > 0)
   {
-    printf("Smooth thickness map with %d iterations on surface\n", nsmooth);
-    ThicknessMap = MRIcopyMRIS(NULL, mris, 0, "curv");
-    if (ThicknessMap == NULL)
+    printf("Smooth thickness and area map with %d iterations on surface\n", nsmooth);
+    SurfaceMap = MRIcopyMRIS(NULL, mris, 0, "curv");
+    if (SurfaceMap == NULL)
     {
-      printf("Unable to copy thickness data to a MRI volume \n");
+      printf("Unable to copy thickness data to an MRI volume \n");
     }
     else
     {
-      MRISsmoothMRI(mris, ThicknessMap, nsmooth, NULL,ThicknessMap);
-      MRIScopyMRI(mris, ThicknessMap, 0, "curv");
-      MRIfree(&ThicknessMap);
+      MRISsmoothMRI(mris, SurfaceMap, nsmooth, NULL,SurfaceMap);
+      MRIScopyMRI(mris, SurfaceMap, 0, "curv");
+      MRIfree(&SurfaceMap);
+    }
+    SurfaceMap = MRIcopyMRIS(NULL, mris, 0, "area");
+    if (SurfaceMap == NULL)
+    {
+      printf("Unable to copy thickness data to an  MRI volume \n");
+    }
+    else
+    {
+      MRISsmoothMRI(mris, SurfaceMap, nsmooth, NULL,SurfaceMap);
+      MRIScopyMRI(mris, SurfaceMap, 0, "area");
+      MRIfree(&SurfaceMap);
     }
   }
 
@@ -345,7 +356,7 @@ main(int argc, char *argv[])
     area = LabelRead(NULL, fname) ;
     if (!area)
     {
-      ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", sname) ;
+      ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", sname,fname) ;
     }
     for (n = 0; n < area->n_points; n++) {
       if(area->lv[n].vno >= mris->nvertices){
@@ -1006,9 +1017,9 @@ main(int argc, char *argv[])
   {
     MRIfree(&mri_orig);
   }
-  if (ThicknessMap)
+  if (SurfaceMap)
   {
-    MRIfree(&ThicknessMap);
+    MRIfree(&SurfaceMap);
   }
 
   exit(0) ;
