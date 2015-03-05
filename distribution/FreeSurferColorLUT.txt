@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.100 2015/02/13 17:27:05 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.101 2015/03/05 19:09:00 zkaufman Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -178,9 +178,10 @@
 170 brainstem                               119 159 176 0
 171 DCG                                     119 0   176 0
 172 Vermis                                  119 100 176 0
-173 Midbrain                                119 200 176 0
-174 Pons                                    119 159 100 0
-175 Medulla                                 119 159 200 0
+173 Midbrain                                242 104 76  0
+174 Pons                                    206 195 58  0
+175 Medulla                                 119 159 176 0
+178 SCP                                     142 182 0   0
 
 #176 Right-Basal-Ganglia   found in babies/children section above
 177 Vermis-White-Matter                     119  50 176 0
