@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/02/06 18:54:18 $
- *    $Revision: 1.171 $
+ *    $Date: 2015/03/06 21:42:37 $
+ *    $Revision: 1.172 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7571,8 +7571,8 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
   DCM_TAG tag;
   unsigned int rtnLength;
   void * Ctx = NULL;
-  int n,m,k,bval_flag,bvec_flag;
-  char c, tmpstr[2000];
+  int n,m,k,bval_flag,bvec_flag,Allow;
+  char c, tmpstr[2000], *pc;
   double val,rms;
 
   if(Gdiag_no > 0) printf("Entering dcmGetDWIParamsSiemensAlt()\n");
@@ -7581,6 +7581,18 @@ int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, do
   *pxbvec = 0;
   *pybvec = 0;
   *pzbvec = 0;
+
+  Allow = 1;
+  pc = getenv("FS_ALLOW_DWI_SIEMENS_ALT");
+  if(pc == NULL) Allow = 0;
+  else if(strcmp(pc,"0")==0) Allow = 0;
+  if(! Allow) {
+    if(Gdiag_no > 0) {
+      printf("Not attempting dcmGetDWIParamsSiemensAlt(), to allow");
+      printf("  setenv FS_ALLOW_DWI_SIEMENS_ALT 1\n");
+    }
+    return(0);
+  }
 
   // Get the nasty string
   Ctx = NULL;
