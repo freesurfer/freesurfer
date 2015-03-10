@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/03/10 14:57:20 $
-#    $Revision: 1.632 $
+#    $Date: 2015/03/10 19:45:11 $
+#    $Revision: 1.633 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -223,15 +223,14 @@ fi
 # hack: when building with gcc 4.4.*, AC_PROC_LIBTOOL creates
 # a libtool which when run gives CDPATH errors. the workaround
 # is to use the libtool on the system.
+if (test ! `uname -s` = "Darwin") && (test "$ac_have_gcc_44" = "yes"); then
+    AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
+    cp /usr/bin/libtool .
+fi
 if test `uname -s` = "Darwin"; then
     AC_MSG_NOTICE(Copying /opt/local/bin/glibtool overtop the PROG_LIBTOOL)
     cp /opt/local/bin/glibtool ./libtool
 fi
-
-#if (test ! `uname -s` = "Darwin") && (test "$ac_have_gcc_44" = "yes"); then
-#    AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
-#    cp /usr/bin/libtool .
-#fi
 
 # Temporary fix until I can get all version of OSX building
 #if (test `uname -n` = "gust.nmr.mgh.harvard.edu"); then
