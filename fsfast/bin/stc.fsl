@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/28 20:38:08 $
-#    $Revision: 1.8 $
+#    $Date: 2015/03/10 20:30:38 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: stc.fsl,v 1.8 2011/03/28 20:38:08 greve Exp $'
+set VERSION = '$Id: stc.fsl,v 1.9 2015/03/10 20:30:38 greve Exp $'
 set debug = 0;
 set cmdargs = ($argv);
 set PrintHelp = 0;
@@ -33,6 +33,7 @@ set outfunc = ();
 set SliceSeq = ();
 set OutDataType = ();
 set OutScale = ();
+set ngroups = 1; # number of SMS slice groups
 
 set tmpdir = ();
 set cleanup = 1;
@@ -85,64 +86,14 @@ if($status) exit 1;
 set nslices = `cat $tmpfile`;
 echo "nslices =  $nslices" |& tee -a $LF
 
-# Choose the proper slice sequence for siemens default
-if($SliceSeq == siemens) then
-  # Determine whether the number of slices is odd
-  set isodd = `echo "$nslices%2" | bc`;
-  echo "isodd = $isodd" |& tee -a $LF
-  if($isodd)   set SliceSeq = odd
-  if(! $isodd) set SliceSeq = even
-  echo "Changing siemens slice seq to $SliceSeq"|& tee -a $LF
-endif
+set sdf = $tmpdir/sdf.txt
+set cmd = (slicedelay --nslices $nslices --$SliceSeq --o $sdf --ngroups $ngroups)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
 
-# slice acq order file
-set saof = $tmpdir/saof.dat 
-rm -f $saof
-
-# Construct the slice sequence
-switch($SliceSeq)
-  case "odd":
-    @ nthslice = 1
-    while($nthslice <= $nslices)
-      echo $nthslice >> $saof
-      @ nthslice = $nthslice + 2;
-    end
-    @ nthslice = 2
-    while($nthslice <= $nslices)
-      echo $nthslice >> $saof
-      @ nthslice = $nthslice + 2;
-    end
-    breaksw
-  case "even":
-    @ nthslice = 2
-    while($nthslice <= $nslices)
-      echo $nthslice >> $saof
-      @ nthslice = $nthslice + 2;
-    end
-    @ nthslice = 1
-    while($nthslice <= $nslices)
-      echo $nthslice >> $saof
-      @ nthslice = $nthslice + 2;
-    end
-    breaksw
-  case "up":
-    @ nthslice = 1
-    while($nthslice <= $nslices)
-      echo $nthslice >> $saof
-      @ nthslice = $nthslice + 1;
-    end
-    breaksw
-  case "down":
-    @ nthslice = $nslices
-    while($nthslice > 0)
-      echo $nthslice >> $saof
-      @ nthslice = $nthslice - 1;
-    end
-    breaksw
-endsw
-
-echo "---------- Slice Sequence ---------------" | tee -a $LF
-cat $saof | tee -a $LF
+echo "---------- Slice Delay (fraction of TR) ---------------" | tee -a $LF
+cat $sdf | tee -a $LF
 echo "-----------------------------------------" | tee -a $LF
 
 # Convert the input to analyze
@@ -157,7 +108,7 @@ set intmpmat = $tmpdir/in.mat
 # Apply slicetimer
 setenv FSLOUTPUTTYPE NIFTI
 set outtmp = $tmpdir/out.nii
-set cmd = (slicetimer.fsl -i $intmp -o $outtmp --ocustom=$saof)
+set cmd = (slicetimer.fsl -i $intmp -o $outtmp --tcustom=$sdf)
 pwd |& tee -a $LF
 echo $cmd  |& tee -a $LF
 $cmd  |& tee -a $LF
@@ -167,10 +118,6 @@ if(! -e $outtmp) then
   echo "ERROR: failed to create $outtmp" |& tee -a $LF
   exit 1;
 endif
-set outtmpmat = $tmpdir/out.mat
-
-# Copy the matfile
-# cp $intmpmat $outtmpmat 
 
 # Convert back to the output
 set cmd = (mri_convert $outtmp $outfunc)
@@ -207,6 +154,11 @@ while( $#argv != 0 )
     case "--o":
       if ( $#argv == 0) goto arg1err;
       set outfunc = $argv[1]; shift;
+      breaksw
+
+    case "--ngroups":
+      if ( $#argv == 0) goto arg1err;
+      set ngroups = $argv[1]; shift;
       breaksw
 
     case "--tmp":
@@ -297,6 +249,7 @@ usage_exit:
   echo "   --odd  : interleaved starting on first slice"
   echo "   --even : interleaved starting on second slice"
   echo "   --siemens : use siemens default slice timing" 
+  echo "   --ngroups ngroups : number of SMS slice groups"
 
   echo "   --debug"
   echo "   --tmp tmpdir     : use tmpdir as temporary directory"
