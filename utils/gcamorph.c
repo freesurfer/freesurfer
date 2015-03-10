@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2014/09/02 20:42:50 $
- *    $Revision: 1.288 $
+ *    $Author: greve $
+ *    $Date: 2015/03/10 23:04:18 $
+ *    $Revision: 1.289 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -537,73 +537,65 @@ GCAMwrite( const GCA_MORPH *gcam, const char *fname )
 }
 
 /*-------------------------------------------------------------------------
-  GCAMwriteInverse() - saves GCAM inverse to
-  talairach.m3z.inv.{x,y,z}.mgh in the same directory as the GCAM (ie,
-  mri/transforms). It does not write the GCAM. If the inverse already
-  exists, it is NOT read in and will be overwritten.
+  GCAMwriteInverse() - saves GCAM inverse to basename(gcamfname).inv.m3z 
+  in the same directory as the GCAM (eg, mri/transforms).
 
   This function can be run in  one of two ways:
     1. GCAMwriteInverse(gcamfile,NULL) - reads in gcam, inverts,
        saves inverse, then frees gcam.
-    2. GCAMwriteInverse(gcamfile,gcam) - pass gcam as arg. If
-       it has not been inverted, then it computes the inverse.
-       It then saves the inverse (does not free gcam).
+    2. GCAMwriteInverse(gcamfile,gcam) - pass gcam as arg. 
+       Computes the inverse then saves the inverse (does not free gcam).
+       Note that the GCAM will be inverted!
 
   If the inverse must be computed, then it reads in the header for
   mri/orig.mgz. See also GCAMreadAndInvert().
   -----------------------------------------------------------------*/
 int GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam)
 {
-  char *gcamdir, *mridir, tmpstr[2000];
+  char *gcamdir, *mridir, tmpstr[2000], *gcambase;
   MRI *mri;
   int freegcam;
 
   // Read in gcam if not passed
   freegcam=0;
-  if (gcam == NULL)
-  {
+  if(gcam == NULL){
     printf("Reading %s \n",gcamfname);
     gcam = GCAMread(gcamfname);
-    if (gcam == NULL)
-    {
-      return(1);
-    }
+    if (gcam == NULL) return(1);
     freegcam=1;
   }
   gcamdir  = fio_dirname(gcamfname);
 
-  // Check whether inverse has been computed, if not, do so now
-  if (gcam->mri_xind == NULL)
-  {
-    // Need a template MRI in order to compute inverse
-    mridir   = fio_dirname(gcamdir);
-    //sprintf(tmpstr,"%s/orig.mgz",mridir);
-    sprintf(tmpstr, "%s", (gcam->image).fname);
-    mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
-    if (mri==NULL)
-    {
-      printf("ERROR: reading %s\n",tmpstr);
-      GCAMfree(&gcam);
+  // Need a template MRI in order to compute inverse
+  mridir  = fio_dirname(gcamdir);
+  sprintf(tmpstr, "%s", (gcam->image).fname);
+  if(! fio_FileExistsReadable(tmpstr)){
+    sprintf(tmpstr,"%s/orig.mgz",mridir);
+    if(! fio_FileExistsReadable(tmpstr)){
+      printf("ERROR: cannot find template for %s\n",gcamfname);
       return(1);
     }
-    printf("Inverting GCAM\n");
-    GCAMinvert(gcam, mri);
-    free(mridir);
   }
-
-  printf("Saving inverse \n");
-  sprintf(tmpstr,"%s/talairach.m3z.inv.x.mgz",gcamdir);
-  MRIwrite(gcam->mri_xind,tmpstr);
-  sprintf(tmpstr,"%s/talairach.m3z.inv.y.mgz",gcamdir);
-  MRIwrite(gcam->mri_yind,tmpstr);
-  sprintf(tmpstr,"%s/talairach.m3z.inv.z.mgz",gcamdir);
-  MRIwrite(gcam->mri_zind,tmpstr);
-
-  if (freegcam)
-  {
+  mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
+  if(mri==NULL){
+    printf("ERROR: reading %s\n",tmpstr);
     GCAMfree(&gcam);
+    return(1);
   }
+
+  // Invert
+  printf("Inverting GCAM\n");
+  GCAMinvert(gcam, mri);
+  free(mridir);
+
+  gcambase = fio_basename(gcamfname, ".m3z");
+  sprintf(tmpstr,"%s.inv.m3z",gcambase);
+  printf("Saving inverse to %s\n",tmpstr);
+  GCAMwrite(gcam, tmpstr);
+
+  if(freegcam) GCAMfree(&gcam);
   free(gcamdir);
+  free(gcambase);
 
   return(0);
 }
