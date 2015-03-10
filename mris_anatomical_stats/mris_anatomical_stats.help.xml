@@ -81,6 +81,7 @@
     <explanation>unitless, a la Van Essen</explanation>
   </outputs>
 	<example>mris_anatomical_stats -a subjid/label/lh.aparc.annot -b subjid lh</example>
+	<example>mris_anatomical_stats -l lh.cortex.label -b subjid lh</example>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 	<see-also>mris_curvature_stats</see-also>
 </help>
