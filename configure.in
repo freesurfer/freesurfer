@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/03/04 05:19:46 $
-#    $Revision: 1.631 $
+#    $Date: 2015/03/10 14:57:20 $
+#    $Revision: 1.632 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -227,23 +227,23 @@ if test `uname -s` = "Darwin"; then
     AC_MSG_NOTICE(Copying /opt/local/bin/glibtool overtop the PROG_LIBTOOL)
     cp /opt/local/bin/glibtool ./libtool
 fi
-if (test ! `uname -s` = "Darwin") && (test "$ac_have_gcc_44" = "yes"); then
-    AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
-    cp /usr/bin/libtool .
-fi
+
+#if (test ! `uname -s` = "Darwin") && (test "$ac_have_gcc_44" = "yes"); then
+#    AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
+#    cp /usr/bin/libtool .
+#fi
 
 # Temporary fix until I can get all version of OSX building
-if (test `uname -n` = "gust.nmr.mgh.harvard.edu"); then
-    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
-    cp /usr/pubsw/packages/autotools/bin/libtool .
-fi
-
+#if (test `uname -n` = "gust.nmr.mgh.harvard.edu"); then
+#    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
+#    cp /usr/pubsw/packages/autotools/bin/libtool .
+#fi
 
 # Temporary fix until I can get all version of OSX building
-if (test `uname -n` = "aspasia.nmr.mgh.harvard.edu"); then
-    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
-    cp /usr/pubsw/packages/autotools/bin/libtool .
-fi
+# if (test `uname -n` = "aspasia.nmr.mgh.harvard.edu"); then
+#    AC_MSG_NOTICE(Copying /usr/pubsw/packages/autotools/bin/libtool overtop the PROG_LIBTOOL)
+#    cp /usr/pubsw/packages/autotools/bin/libtool .
+# fi
 
 ################################################################
 # Checks for header files.
