@@ -205,6 +205,7 @@ setlabelstat\
 sfa2fieldsign \
 show_tal \
 skip_long_make_checks \
+slicedelay \
 sphere_subject \
 sphere_subject-lh \
 sphere_subject-rh \
