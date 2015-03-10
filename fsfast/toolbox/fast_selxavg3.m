@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.110 2014/11/11 18:42:45 greve Exp $
+% $Id: fast_selxavg3.m,v 1.111 2015/03/10 21:07:07 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2014/11/11 18:42:45 $
-%    $Revision: 1.110 $
+%    $Date: 2015/03/10 21:07:07 $
+%    $Revision: 1.111 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -31,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.110 2014/11/11 18:42:45 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.111 2015/03/10 21:07:07 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -58,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.110 2014/11/11 18:42:45 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.111 2015/03/10 21:07:07 greve Exp $';
 
 % remove non-mask when analyzing. This does not change the results
 % at all, it just prevents the processing of voxels that are
@@ -638,7 +638,12 @@ if(DoGLMFit)
   
   % Save AR1 mean
   rho1mn = mri;
-  rho1mn.vol = mean(rho1.vol,4);
+
+  % This logic is needed for Octave
+  if(size(rho1.vol,4)==1) rho1mn.vol= rho1.vol
+  else                    rho1mn.vol = mean(rho1.vol,4);
+  end
+
   rho1mn.vol(indmaskout) = 0; % mask out
   rho1mnfile = sprintf('%s/rho1mn.%s',outanadir,ext);
   MRIwrite(rho1mn,rho1mnfile);
