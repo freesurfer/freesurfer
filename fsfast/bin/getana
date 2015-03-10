@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/11/26 01:16:40 $
-#    $Revision: 1.14 $
+#    $Date: 2015/03/10 20:47:17 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.14 2014/11/26 01:16:40 greve Exp $';
+set VERSION = '$Id: getana,v 1.15 2015/03/10 20:47:17 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -210,6 +210,13 @@ switch ($tag)
   case "stc":
   case "RawSTC":
     set result = `cat $info | awk '{if($1 == "RawSTC") print $2}'`
+    breaksw;
+
+  case "ngroups":
+  case "nslicegroups":
+  case "nSliceGroups":
+    set result = `cat $info | awk '{if($1 == "nSliceGroups") print $2}'`
+    if($#result == 0) set result = 1
     breaksw;
 
   case "expkey":
@@ -537,4 +544,7 @@ tags:
    period
    taskreg
    contrasts
+   stc
+   RawSTC
+   nslicegroups
 

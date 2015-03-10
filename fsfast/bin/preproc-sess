@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/11/26 01:16:57 $
-#    $Revision: 1.55 $
+#    $Date: 2015/03/10 20:47:17 $
+#    $Revision: 1.56 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.55 2014/11/26 01:16:57 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.56 2015/03/10 20:47:17 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -46,6 +46,7 @@ set UseSmoothMask = 0;
 set fwhm     = ();
 set surffwhm = ();
 set SliceOrder = ();
+set nSliceGroups = 1;
 set fsd      = ();
 set mcrun    = ();
 set mctargstem = ();
@@ -240,7 +241,7 @@ foreach sess ($SessList)
   endif
 
   if($DoSTC) then
-    set cmd = (stc-sess -i $stcinstem -o $stcoutstem)
+    set cmd = (stc-sess -i $stcinstem -o $stcoutstem -ngroups $nSliceGroups)
     if($#SliceOrder) set cmd = ($cmd -so $SliceOrder)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
@@ -526,6 +527,11 @@ while( $#argv != 0 )
       set DoSTC = 1;
       breaksw
 
+    case "-ngroups":
+      if ( $#argv == 0) goto arg1err;
+      set nSliceGroups = $argv[1]; shift;
+      breaksw
+
     case "-no-smooth":
     case "-nosmooth":
       set DoVolSmooth = 0;
@@ -632,6 +638,7 @@ while( $#argv != 0 )
       set SliceOrder = `getana -a $analysis -t stc`;
       if($SliceOrder != none) set DoSTC = 1;
       if($SliceOrder == none) set SliceOrder = ();
+      set nSliceGroups = `getana -a $analysis -t nslicegroups`;
       set ToSurf = `getana -a $analysis -t IsSurface`;
       if($ToSurf) then
         set subject = `getana -a $analysis -t subject`;
@@ -825,7 +832,8 @@ usage_exit:
   echo "  -update        : only run a stage if input is newer than output (default)"
   echo "  -force         : force reprocessing of all stages (turns off -update)"
   echo "  -no-update     : same as -force"
-  echo "  -sliceorder so : turn on slice timing correction with the given slice order"
+  echo "  -sliceorder so : turn on slice timing correction (STC) with the given slice order"
+  echo "  -ngroups nSliceGroups : number of SMS slice groups for STC"
   echo "  -surface subject hemi : set hemi to lhrh to do both"
   echo "  -mni305-2mm    : sample raw data to mni305 at 2mm (same as -mni305)"
   echo "  -mni305-1mm    : sample raw data to mni305 at 1mm"

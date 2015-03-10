@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/11/26 01:00:56 $
-#    $Revision: 1.74 $
+#    $Date: 2015/03/10 20:47:17 $
+#    $Revision: 1.75 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.74 2014/11/26 01:00:56 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.75 2015/03/10 20:47:17 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -37,6 +37,7 @@ set RawHemi = ();
 set RawRes = ();
 set RawFWHM = ();
 set RawSTC = none;
+set nSliceGroups = 1;
 set ExpKey = ();
 set mcstem = ();
 set funcstem = ();
@@ -143,6 +144,7 @@ if($RawSpaceType == surface) echo "RawSpace surface $RawSpace $RawHemi" | tee -a
 echo "mask $maskstem" | tee -a $flac
 echo "RawFWHM $RawFWHM" | tee -a $flac
 if($#RawSTC) echo "RawSTC $RawSTC" | tee -a $flac
+echo "nSliceGroups $nSliceGroups" | tee -a $flac
 if($#ExpKey) echo "ExpKey $ExpKey" | tee -a $flac
 echo "UseB0DC $UseB0DC" | tee -a $flac
 echo "ApplySubCortMask $ApplySubCortMask" | tee -a $flac
@@ -427,6 +429,11 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set RawFWHM = $argv[1]; shift;
       set RawFWHM = `perl -e "print sprintf('%g',$RawFWHM)"`; # strip leading 0s
+      breaksw
+
+    case "-ngroups":
+      if ( $#argv == 0) goto arg1err;
+      set nSliceGroups = $argv[1]; shift;
       breaksw
 
     case "-reg-dof":
@@ -801,6 +808,7 @@ usage_exit:
   echo "  -native               : leave raw data in native functional space"
   echo "  -fwhm FWHMmm : spatially smooth input by FWHM (in mm) in proper space"
   echo "  -stc SliceOrder : slice-time correct using the name of the SliceOrder (default none)"
+  echo "  -ngroups nSliceGroups : number of SMS slice groups for STC"
   echo "  -reg-dof DOF    : use given DOF when performing registration (default is $RegDOF)"
   echo "  -fsd FSD        : functional subdirectory (eg, bold)"
   echo "  -per-run : to be used when you run preproc-sess -per-run"
