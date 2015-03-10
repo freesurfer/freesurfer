@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.101 2015/03/05 19:09:00 zkaufman Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.102 2015/03/10 20:10:00 nicks Exp $
 
 #No. Label Name:                            R   G   B   A
 
