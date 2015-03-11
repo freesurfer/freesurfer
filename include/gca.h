@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/08/05 17:03:03 $
- *    $Revision: 1.125 $
+ *    $Author: greve $
+ *    $Date: 2015/03/11 15:39:35 $
+ *    $Revision: 1.126 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -320,6 +320,8 @@ int        GCAtransformAndWriteSampleMeans(GCA *gca, MRI *mri,
 int        GCAcomputeSampleCoords(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
                                   int nsamples,TRANSFORM *transform) ;
 MRI        *GCAmri(GCA *gca, MRI *mri) ;
+MRI        *GCAtoMLLabel(GCA *gca, MRI *mri);
+MRI        *GCAtoAPrioriMax(GCA *gca, MRI *mri);
 MRI        *GCAlabelMri(GCA *gca, MRI *mri, int label, TRANSFORM *transform) ;
 MRI        *GCAbuildMostLikelyVolume(GCA *gca, MRI *mri) ;
 MRI        *GCAbuildMostLikelyVolumeForStructure( const GCA *gca,

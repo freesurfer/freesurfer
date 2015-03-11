@@ -15,9 +15,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/10/31 14:53:05 $
- *    $Revision: 1.326 $
+ *    $Author: greve $
+ *    $Date: 2015/03/11 15:39:35 $
+ *    $Revision: 1.327 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -6785,9 +6785,115 @@ GCAwriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas, int nsamples,
   MRIfree(&mri_dst) ;
   return(NO_ERROR) ;
 }
+/*--------------------------------------------------------------------------*/
+/*
+  \fn MRI *GCAtoMLLabel(GCA *gca, MRI *mri)
+  \brief Creates a seg volume with the most likely a priori label in the GCA
+ */
+MRI *GCAtoMLLabel(GCA *gca, MRI *mri)
+{
+  int width, height, depth, x;
 
-MRI *
-GCAmri(GCA *gca, MRI *mri)
+  width  = gca->node_width ;
+  height = gca->node_height ;
+  depth  = gca->node_depth ;
+
+  if (!mri){
+    mri = MRIallocSequence(width,height,depth, MRI_INT, 1);
+    mri->xsize = gca->xsize*gca->node_spacing;
+    mri->ysize = gca->ysize*gca->node_spacing;
+    mri->zsize = gca->zsize*gca->node_spacing;
+  }
+  // in order to create the gca volume, the volume must have the same 
+  // direction cosines
+  GCAcopyDCToMRI(gca, mri);
+
+  for(x = 0 ; x < width ; x++) {
+    int nmax, y, z, xp, yp, zp, n, xn, yn, zn ;
+    double pmax;
+    GC1D      *gc ;
+    GCA_PRIOR *gcap ;
+    for(y = 0 ; y < height ; y++) {
+      for(z = 0 ; z < depth ; z++)  {
+	if(GCAvoxelToPrior(gca, mri, x, y, z, &xp, &yp, &zp)) continue;
+	if(GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn)) continue;
+	gcap = &gca->priors[xp][yp][zp] ;
+	if(gcap==NULL) continue;
+	pmax = 0;
+	nmax = -1;
+	for(n = 0 ; n < gcap->nlabels ; n++) {
+	  gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
+	  if(!gc) continue;
+	  if(pmax < gcap->priors[n]){
+	    pmax = gcap->priors[n];
+	    nmax = n;
+	  }
+        }
+	if(nmax == -1) continue;
+	MRIsetVoxVal(mri, x, y, z, 0, gcap->labels[nmax]);
+      }
+    }
+  }
+  return(mri) ;
+}
+/*---------------------------------------------------------------------------------*/
+/*
+  \fn MRI *GCAtoAPrioriMax(GCA *gca, MRI *mri)
+  \brief Creates a volume with the probability of the most likely a priori 
+  label in the GCA
+ */
+MRI *GCAtoAPrioriMax(GCA *gca, MRI *mri)
+{
+  int width, height, depth, x;
+
+  width  = gca->node_width ;
+  height = gca->node_height ;
+  depth  = gca->node_depth ;
+
+  if (!mri){
+    mri = MRIallocSequence(width,height,depth, MRI_FLOAT, 1);
+    mri->xsize = gca->xsize*gca->node_spacing;
+    mri->ysize = gca->ysize*gca->node_spacing;
+    mri->zsize = gca->zsize*gca->node_spacing;
+  }
+  // in order to create the gca volume, the volume must have the same 
+  // direction cosines
+  GCAcopyDCToMRI(gca, mri);
+
+  for(x = 0 ; x < width ; x++) {
+    int nmax, y, z, xp, yp, zp, n, xn, yn, zn ;
+    double pmax;
+    GC1D      *gc ;
+    GCA_PRIOR *gcap ;
+    for(y = 0 ; y < height ; y++) {
+      for(z = 0 ; z < depth ; z++)  {
+	MRIsetVoxVal(mri, x, y, z, 0, 0);
+	if(GCAvoxelToPrior(gca, mri, x, y, z, &xp, &yp, &zp)) continue;
+	if(GCAvoxelToNode(gca, mri, x, y, z, &xn, &yn, &zn)) continue;
+	gcap = &gca->priors[xp][yp][zp] ;
+	if(gcap==NULL) continue;
+	pmax = 0;
+	nmax = -1;
+	for(n = 0 ; n < gcap->nlabels ; n++) {
+	  gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
+	  if(!gc) continue;
+	  if(pmax < gcap->priors[n]){
+	    pmax = gcap->priors[n];
+	    nmax = n;
+	  }
+        }
+	if(nmax == -1) continue;
+	if(gcap->labels[nmax] == 0) continue;
+	MRIsetVoxVal(mri, x, y, z, 0, pmax);
+      }
+    }
+  }
+
+  return(mri) ;
+}
+
+/*--------------------------------------------------------------------------------*/
+MRI *GCAmri(GCA *gca, MRI *mri)
 {
   int       frame, width, height, depth, x, y, z, xp, yp, zp, n, xn, yn, zn ;
   float     val ;
