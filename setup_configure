@@ -7,7 +7,7 @@
 
 set cmd1=(rm -rf autom4te.cache)
 if ( "`uname -s`" == "Darwin" ) then 
-    set cmd2=(glibtoolize)
+    set cmd2=(glibtoolize --force)
 else
     set cmd2=(libtoolize --force)
 endif
@@ -32,10 +32,10 @@ $cmd3
 if ($status) exit $status
 echo $cmd4
 $cmd4
-if ($status) exit $status
-#echo $cmd5
-#$cmd5
 #if ($status) exit $status
+echo $cmd5
+$cmd5
+if ($status) exit $status
 echo $cmd6
 $cmd6
 if ($status) exit $status
