@@ -1,5 +1,6 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.52 2014/12/18 17:16:41 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.53 2015/03/11 15:49:41 greve Exp $';
+setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
 
