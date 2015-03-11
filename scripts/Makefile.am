@@ -169,6 +169,7 @@ print_unique_labels.csh \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \
+polyorder \
 rbbr \
 rcbf-prep \
 rebuild_gca_atlas.csh \
