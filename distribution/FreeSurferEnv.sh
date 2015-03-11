@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.53 2015/01/16 19:10:00 zkaufman Exp $
+# $Id: FreeSurferEnv.sh,v 1.54 2015/03/11 21:21:33 zkaufman Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.53 2015/01/16 19:10:00 zkaufman Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.54 2015/03/11 21:21:33 zkaufman Exp $'
 
 ## Print help if --help or -help is specified
 if [ $# -gt 1 ]; then
@@ -381,6 +381,11 @@ fi
 ### - Freeview directory should be in the path - MacOS only - ### 
 if [ -d $FREESURFER_HOME/bin/freeview.app ]; then
     PATH=$FREESURFER_HOME/bin/freeview.app/Contents/MacOS/:$PATH
+fi
+
+### - Add gcc libs to DYLD_LIBRARY_PATH - MacOS only - ###
+if [ -d $FREESURFER_HOME/lib/gcc ]; then
+    export DYLD_LIBRARY_PATH=$FREESURFER_HOME/lib/gcc:$DYLD_LIBRARY_PATH
 fi
 
 ### ----------- VXL (shared lib support) ------------ ####
