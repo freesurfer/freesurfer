@@ -1,0 +1,143 @@
+#!/bin/tcsh -f
+# polyorder
+
+set VERSION = '$Id: polyorder,v 1.1 2015/03/11 20:44:06 greve Exp $';
+
+set fCutOffHz = ();
+set ntp = ();
+set TRsec = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set b1a = .3654
+set b1b = .3405
+set bext1a = `echo "$b1a/($TRsec*$ntp)" | bc -l`
+set bext1b = `echo "$b1b/($TRsec*$ntp)" | bc -l`
+
+set order = `perl -e "print int( ($fCutOffHz-$bext1a)/$bext1b +0.5)"`
+echo "$order"
+if($order >= $ntp) then
+  echo "ERROR: order = $order exceeds number of time points $ntp"
+  echo "you must reduce the cutoff frequency"
+  exit 1;
+endif
+
+exit 0;
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--ntp":
+      if($#argv < 1) goto arg1err;
+      set ntp = $argv[1]; shift;
+      breaksw
+
+    case "--TR":
+      if($#argv < 1) goto arg1err;
+      set TRsec = $argv[1]; shift;
+      breaksw
+
+    case "--cutoff":
+      if($#argv < 1) goto arg1err;
+      set fCutOffHz = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#ntp == 0) then
+  echo "ERROR: must spec ntp"
+  exit 1;
+endif
+if($#TRsec == 0) then
+  echo "ERROR: must spec TR in seconds"
+  exit 1;
+endif
+if($#fCutOffHz == 0) then
+  echo "ERROR: must spec cutoff frequency in Hz"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "polyorder --help"
+  echo "  --ntp ntp : number of time points (ie, number of TRs)"
+  echo "  --TR TRsec : TR in seconds"
+  echo "  --cutoff fCutOffHz : cutoff frequency in Hz"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the order of polynomial regressors needed to achieve a
+highpass filter with the given cutoff frequency. This can then be
+entered into mkanalysis-sess with the --polyfit option. Note that the
+value here depends on the number of time points and the TR.  If these
+change from run to run, then the order of the polynomials will need to
+change.
+
+Example:
+
+polyorder --ntp 100 --TR 2 --cutoff 0.05
+28
+
