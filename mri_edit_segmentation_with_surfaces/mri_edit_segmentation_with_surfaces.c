@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: lindemer $
- *    $Date: 2014/07/30 20:19:32 $
- *    $Revision: 1.21 $
+ *    $Date: 2015/03/12 18:33:27 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.21 2014/07/30 20:19:32 lindemer Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.22 2015/03/12 18:33:27 lindemer Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -82,6 +82,8 @@ static MRI *mri_vals = NULL ;
 static GCA *gca = NULL ;
 static TRANSFORM *transform = NULL ;
 
+static char *config_file;
+
 int
 main(int argc, char *argv[])
 {
@@ -91,6 +93,9 @@ main(int argc, char *argv[])
   MRI_SURFACE   *mris ;
   MRI           *mri_aseg, *mri_tmp = NULL, *mri_inputs = NULL ;
   float         *thickness ;
+  //Added by Emily  
+  //WMSA          *newWMSA;
+  
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -109,7 +114,9 @@ main(int argc, char *argv[])
   {
     usage_exit() ;
   }
-
+  //ADDED BY EMILY 02/20/15
+  //FILE *config = fopen(config_file,"r");
+  ///
   in_aseg_name = argv[1] ;
   surf_dir = argv[2] ;
   out_aseg_name = argv[argc-1] ;
@@ -232,8 +239,9 @@ main(int argc, char *argv[])
       MRIfree(&mri_aseg) ;
       mri_aseg = mri_tmp ;
     }
-
-    //MRIwmsaHalo(mri_inputs, mri_aseg, 3);
+    
+    //Needs to be removed once Emily's stuff below is fixed
+    MRIwmsaHalo(mri_inputs, mri_aseg, 3);
 
   }
 
@@ -244,10 +252,15 @@ main(int argc, char *argv[])
     edit_unknowns(mri_aseg, mri_vals) ;
   }
 #endif
+
+  //Added by Emily
+
+  /*newWMSA = populateWMSA(config,mri_aseg);
   printf("Fixing halos... \n") ; 
-	MRIwmsaHalo(mri_inputs, mri_aseg, 3);
+	MRIwmsaHalo2(newWMSA, 3);
   printf("Finished fixing halos...\n");
   fflush(stdout) ; 
+  */
 
   printf("writing modified segmentation to %s...\n", out_aseg_name) ;
   MRIwrite(mri_aseg, out_aseg_name) ;
@@ -283,6 +296,13 @@ get_option(int argc, char *argv[])
     annot_name = argv[2] ;
     nargs = 2 ;
     printf("using annotation file %s...\n", annot_name) ;
+  }
+  //ADDED BY EMILY 02/20/15
+  else if (!stricmp(option, "-config"))
+  {
+    config_file = argv[2] ;
+    nargs = 2 ;
+    printf("using config file %s...\n", config_file) ;
   }
   else if (!stricmp(option, "hypo"))
   {
@@ -910,6 +930,66 @@ static int relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits)
   return(NO_ERROR) ;
 }
 
+
+
+//Helper method to populate a WMSA struct w/ user's input
+//ADDED BY EMILY 02/20/15
+
+/*static WMSA populateWMSA(FILE *config, MRI *seg ){
+ 
+  //THIS STILL NEEDS TO BE MEMORY ALLOCATED
+  WMSA *newWMSA;
+  MRI *T1;
+  MRI *T2;
+  MRI *PD;
+  MRI *FLAIR;
+  char line[256];
+  int i = 0, j = 0, k=0,l=0;
+
+  while(fgets(line,sizeof(line),config)){
+    strtok(line," ");
+    switch line
+      //NEED TO MAKE SURE WE PUT THE T1 in as the first modality! (not in config file) 
+      //It should be the "norm.mgz" 
+      case "T2"
+        //THESE SHOULDN'T GO IN AS STRINGS, THEY SHOULD GO IN AS MRIs
+        char *p = (char *)strtok(NULL," ");
+        newWMSA.modalities[i]=p;
+        i++;
+      case "PD"
+        char *p = (char *)strtok(NULL," ");
+        newWMSA.modalities[i]=p;
+        i++;
+      case "FLAIR"
+        char *p = (char *)strtok(NULL," ");
+        newWMSA.modalities[i]=p;
+        i++;
+      case "segs"
+        char *p = (char *)strtok(NULL," ");
+        while(p!=NULL){
+          newWMSA.segs[j]=atoi(p);
+          j++;
+        }
+      case "hardthresh"
+        char *p = (char *)strtok(NULL," ");
+        while(p!=NULL){
+          newWMSA.hardthresh[k]=atoi(p);
+          k++;
+        }
+      case "softthresh"
+        char *p = (char *)strtok(NULL," ");
+        while(p!=NULL){
+          newWMSA.softthresh[l]=atoi(p);
+          l++;
+        }
+      default
+        continue;
+  }  
+
+  return newWMSA;
+}*/
+
+//--------------------END EMILY'S SECTION -------------------
 
 #if 0
 int
