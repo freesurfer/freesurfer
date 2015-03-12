@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/11 15:39:35 $
- *    $Revision: 1.126 $
+ *    $Author: lindemer $
+ *    $Date: 2015/03/12 18:36:13 $
+ *    $Revision: 1.127 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -201,6 +201,22 @@ typedef struct
 }
 GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
+typedef struct
+{
+  //array of seg IDs so we don't just test WM, vent, and caudate
+  int          *tissues;
+  MRI          *modalities ;
+  //re:thresholds. We want 3 thresholds for each tissue type:
+  //hardthresh (if dont care about how many WMSA neighbors) 
+  //softthresh (if we care about WMSA neighbors)
+  //neighborthresh (how many neighbors we use to test the 
+  float        *hardthresh ;
+  float        *softthresh;
+  int	       clustersize;
+  MRI          *seg ;
+  //need to add registration file, not sure what type this is
+  }
+WMSA;
 
 int  GCAsetFlashParameters(GCA *gca, double *TRs, double *FAs, double *TEs) ;
 int  GCAunifyVariance(GCA *gca) ;
@@ -495,6 +511,7 @@ double GCAgibbsImpossibleConfiguration(GCA *gca,
                                        int x, int y, int z,
                                        TRANSFORM *transform) ;
 MRI *GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform);
+int GCAdistWMvWMSA(MRI *mri_inputs, int x, int y, int z, int h, GCA *gca) ;
 double GCAimagePosteriorLogProbability(GCA *gca, MRI *mri_labels, MRI *mri_inputs, TRANSFORM *transform) ;
 double GCAwindowPosteriorLogProbability(GCA *gca, MRI *mri_labels, MRI *mri_inputs, TRANSFORM *transform, int x0, int y0, int z0, int whalf) ;
 int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;
