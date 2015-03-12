@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/11/26 23:05:35 $
- *    $Revision: 1.473 $
+ *    $Author: lindemer $
+ *    $Date: 2015/03/12 18:35:53 $
+ *    $Revision: 1.474 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -129,7 +129,6 @@ typedef struct
   long D3_ramp ;
   long D3_flat ;
   double D3_amp ;
- 
   long D4_ramp ;
   long D4_flat ;
   double D4_amp ;
@@ -1208,7 +1207,10 @@ int  MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled,
                                float *pmean_gm, float *psigma_gm) ;
 
 int MRIwmsaHalo(MRI *mri_inputs, MRI *mri_labeled, int n) ; 
+//int MRIwmsaHalo2(WMSA *wmsa, int n) ;
 int MRIcomputeNbhdMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, int label, int x, int y, int z, int nbhd, MATRIX **p_mcov, VECTOR **p_vmeans) ;
+int MRIcomputeLabelMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans, int *labels, int nbhd) ;
+
 int MRIcomputeWMMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
 int MRIcomputeWMSAMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
 int MRIcomputeCaudateMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX **p_mcov, VECTOR **p_vmeans) ;
