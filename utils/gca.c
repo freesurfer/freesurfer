@@ -15,9 +15,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/11 15:39:35 $
- *    $Revision: 1.327 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:55 $
+ *    $Revision: 1.328 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -9507,7 +9507,7 @@ GCAimagePosteriorLogProbability(GCA *gca,
                                               x, y, z,
                                               transform);
         num++ ;
-        if (!finite(log_posterior))
+        if (!isfinite(log_posterior))
         {
           DiagBreak() ;
         }
@@ -15210,7 +15210,7 @@ GCAlabelMode(GCA *gca, int label, float *modes)
             {
               b = nint(gc->means[r]) ;
               h->counts[b] += prior ;
-              if (!finite(gc->means[r]))
+              if (!isfinite(gc->means[r]))
               {
                 DiagBreak() ;
               }
@@ -15298,7 +15298,7 @@ GCAclassMode(GCA *gca, int class, float *modes)
             {
               b = nint(gc->means[r]) ;
               h->counts[b] += prior ;
-              if (!finite(gc->means[r]))
+              if (!isfinite(gc->means[r]))
               {
                 DiagBreak() ;
               }
@@ -15357,7 +15357,7 @@ GCAlabelMean(GCA *gca, int label, float *means)
             for (r = 0 ; r < gca->ninputs ; r++)
             {
               means[r] += gc->means[r]*prior ;
-              if (!finite(gc->means[r]))
+              if (!isfinite(gc->means[r]))
               {
                 DiagBreak() ;
               }
@@ -15412,7 +15412,7 @@ GCAlabelVar(GCA *gca, int label, float *vars)
               for (c = r ; c < gca->ninputs ; c++, v++)
               {
                 vars[r] += gc->covars[v]*prior ;
-                if (!finite(vars[r]))
+                if (!isfinite(vars[r]))
                 {
                   DiagBreak() ;
                 }
@@ -15486,7 +15486,7 @@ GCAclassMean(GCA *gca, int class, float *means)
             for (r = 0 ; r < gca->ninputs ; r++)
             {
               means[r] += gc->means[r]*prior ;
-              if (!finite(gc->means[r]))
+              if (!isfinite(gc->means[r]))
               {
                 DiagBreak() ;
               }
@@ -15765,7 +15765,7 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
                       for (f = 0 ; f < gca->ninputs ; f++)
                       {
                         means[f] += prior*gc->means[f] ;
-                        if (!finite(means[f] / wt))
+                        if (!isfinite(means[f] / wt))
                         {
                           DiagBreak() ;
                         }
@@ -15783,13 +15783,13 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
             }
             for (f = 0 ; f < gca->ninputs ; f++)
             {
-              if (!finite(means[f] / wt))
+              if (!isfinite(means[f] / wt))
               {
                 DiagBreak() ;
               }
               MRIFseq_vox(mri_means, xn, yn, zn, f)
               = means[f] / wt ;
-              if (!finite(MRIFseq_vox(mri_means,xn,yn,zn,f)))
+              if (!isfinite(MRIFseq_vox(mri_means,xn,yn,zn,f)))
               {
                 DiagBreak() ;
               }
@@ -15820,7 +15820,7 @@ GCAmeanFilterConditionalDensities(GCA *gca, float navgs)
               {
                 gc->means[f] =
                   MRIFseq_vox(mri_means, xn, yn, zn, f) ;
-                if (!finite(gc->means[f]))
+                if (!isfinite(gc->means[f]))
                 {
                   DiagBreak() ;
                 }
@@ -16630,7 +16630,7 @@ gcaCheck(GCA *gca)
 	    if (gcan->labels[n] > 1 && gc->means[0] < 1 && gc->ntraining > 10)
 	      DiagBreak() ;
             for (c = r ; c < gca->ninputs ; c++, v++)
-              if (!finite(gc->means[r]) || !finite(gc->covars[v]))
+              if (!isfinite(gc->means[r]) || !isfinite(gc->covars[v]))
               {
                 ret = ERROR_BADPARM ;
                 DiagBreak() ;
@@ -19440,7 +19440,7 @@ GCAlabelMeanFromImage(GCA *gca, TRANSFORM *transform,
             {
               MRIsampleVolumeFrame(mri, xv, yv, zv, r, &val) ;
               means[r] += val*prior ;
-              if (!finite(gc->means[r]))
+              if (!isfinite(gc->means[r]))
               {
                 DiagBreak() ;
               }
@@ -20291,7 +20291,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                   delta_i /= fabs(delta_i) ;  // make it +-1
                 }
               }
-              if (!finite(delta_i) || !finite(delta_j))
+              if (!isfinite(delta_i) || !isfinite(delta_j))
               {
                 DiagBreak() ;
                 break ;
@@ -22529,7 +22529,7 @@ GCAcomputeRenormalizationWithAlignment
                   delta_i /= fabs(delta_i) ;  // make it +-1
                 }
               }
-              if (!finite(delta_i) || !finite(delta_j))
+              if (!isfinite(delta_i) || !isfinite(delta_j))
               {
                 DiagBreak() ;
                 break ;
@@ -22768,7 +22768,7 @@ GCAapplyRenormalization(GCA *gca,
                 delta_i /= fabs(delta_i) ;  // make it +-1
               }
             }
-            if (!finite(delta_i) || !finite(delta_j))
+            if (!isfinite(delta_i) || !isfinite(delta_j))
             {
               DiagBreak() ;
               break ;
@@ -23176,7 +23176,7 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
                   delta_i /= fabs(delta_i) ;  // make it +-1
                 }
               }
-              if (!finite(delta_i) || !finite(delta_j))
+              if (!isfinite(delta_i) || !isfinite(delta_j))
               {
                 DiagBreak() ;
                 break ;
@@ -25079,7 +25079,7 @@ gcaGetLabelHistogram(GCA *gca, int label, int frame, int border)
                   b = h_gca->nbins - 1 ;
               }
               h_gca->counts[b] += prior ;
-              if (!finite(gc->means[frame]))
+              if (!isfinite(gc->means[frame]))
                 DiagBreak() ;
             }
           }
@@ -26254,7 +26254,7 @@ GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform,
         {
           MRIsetVoxVal(mri_posterior, x, y, z, 0, log_p) ;
         }
-        if (!finite(log_p))
+        if (!isfinite(log_p))
         {
           DiagBreak() ;
         }
@@ -26610,7 +26610,7 @@ compute_posterior_scale_change(GCA *gca,
           }
           num[ind]++ ;
           dk[ind] += plike * prior * dist / (fabs(dist)) ;
-          if (!finite(dk[ind]))
+          if (!isfinite(dk[ind]))
           {
             DiagBreak() ;
           }
@@ -26621,7 +26621,7 @@ compute_posterior_scale_change(GCA *gca,
   for (l = 0 ; l < nlabels ; l++)
     if (num[l] > 0)
     {
-      if (!finite(dk[l]))
+      if (!isfinite(dk[l]))
       {
         DiagBreak() ;
       }
@@ -26939,7 +26939,7 @@ GCAcomputeMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform)
             entropy += p[c] * log(p[c]) ;
           }
           num++ ;
-          if (!finite(entropy))
+          if (!isfinite(entropy))
           {
             DiagBreak() ;
           }
@@ -28514,7 +28514,7 @@ GCAsmooth(GCA *gca, double sigma)
             DiagBreak() ;
           }
           gcan->labels[n] = gcan_total->labels[n] ;
-          if (!finite(gcan->gcs[n].means[0]))
+          if (!isfinite(gcan->gcs[n].means[0]))
           {
             DiagBreak() ;
           }
@@ -28577,7 +28577,7 @@ GCAsmooth(GCA *gca, double sigma)
           GC1D *gc ;
           gcap->labels[n] = gcap_total->labels[n] ;
           gcap->priors[n] = gcap_total->priors[n] ;
-          if (!finite(gcap->priors[n]))
+          if (!isfinite(gcap->priors[n]))
           {
             DiagBreak() ;
           }
@@ -28662,7 +28662,7 @@ GCAnodeDownsample2(GCA *gca)
             DiagBreak() ;
           }
           gcan->labels[n] = gcan_total->labels[n] ;
-          if (!finite(gcan->gcs[n].means[0]))
+          if (!isfinite(gcan->gcs[n].means[0]))
           {
             DiagBreak() ;
           }
@@ -28725,7 +28725,7 @@ GCAnodeDownsample2(GCA *gca)
           GC1D *gc ;
           gcap->labels[n] = gcap_total->labels[n] ;
           gcap->priors[n] = gcap_total->priors[n] ;
-          if (!finite(gcap->priors[n]))
+          if (!isfinite(gcap->priors[n]))
           {
             DiagBreak() ;
           }

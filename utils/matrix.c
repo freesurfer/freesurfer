@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/05/16 22:19:03 $
- *    $Revision: 1.145 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:56 $
+ *    $Revision: 1.146 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -213,7 +213,7 @@ MatrixInverse( const MATRIX *mIn, MATRIX *mOut)
       switch (mOut->type)
       {
       case MATRIX_REAL:
-        if (!finite(*MATRIX_RELT(mOut, i, j)))
+        if (!isfinite(*MATRIX_RELT(mOut, i, j)))
         {
           if (alloced)
             MatrixFree(&mOut) ;
@@ -221,8 +221,8 @@ MatrixInverse( const MATRIX *mIn, MATRIX *mOut)
         }
         break ;
       case MATRIX_COMPLEX:
-        if (!finite(MATRIX_CELT_REAL(mOut, i, j)) ||
-            !finite(MATRIX_CELT_IMAG(mOut, i, j)))
+        if (!isfinite(MATRIX_CELT_REAL(mOut, i, j)) ||
+            !isfinite(MATRIX_CELT_IMAG(mOut, i, j)))
         {
           if (alloced)
             MatrixFree(&mOut) ;
@@ -2918,7 +2918,7 @@ MatrixCheck(MATRIX *m)
   {
     for (c = 1 ; c <= cols ; c++)
     {
-      if (!finite(*MATRIX_RELT(m, r, c)))
+      if (!isfinite(*MATRIX_RELT(m, r, c)))
         return(ERROR_BADPARM) ;
     }
   }
@@ -4061,7 +4061,7 @@ MatrixCheckFinite(MATRIX *m)
   for (r = 1 ; r < m->rows ; r++)
     for (c = 1 ; c < m->cols ; c++)
     {
-      if (!finite(*MATRIX_RELT(m, r, c)))
+      if (!isfinite(*MATRIX_RELT(m, r, c)))
       {
         DiagBreak() ;
         retval = ERROR_BADPARM ;

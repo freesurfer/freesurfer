@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/01/29 22:15:47 $
- *    $Revision: 1.79 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:56 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1636,7 +1636,7 @@ mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, double l_intensity,
         sse += delta * delta * mri_in->thick ;
         if (sse > 2000)
           DiagBreak() ;
-        if (!finite(sse))
+        if (!isfinite(sse))
           DiagBreak() ;
       }
     }
@@ -3888,7 +3888,7 @@ m3dAreaTerm(MORPH_3D *m3d, double l_area, int i, int j, int k,
     fprintf(stdout, "node (%d,%d,%d) has no areal term!\n", i, j, k) ;
     /*    return(m3dDistanceTerm(m3d, 10*l_area, i, j, k, pdx, pdy, pdz)) ;*/
   }
-  if (!finite(*pdx) || !finite(*pdy) || !finite(*pdz))
+  if (!isfinite(*pdx) || !isfinite(*pdy) || !isfinite(*pdz))
     DiagBreak() ;
   return(NO_ERROR) ;
 }
@@ -4899,7 +4899,7 @@ static int
 finitep(float f)
 {
   return(1) ;
-  if (!finite(f))
+  if (!isfinite(f))
     return(0) ;
   if (fabs(f) > 1e5)
     return(0) ;
@@ -7892,7 +7892,7 @@ computeRigidAlignmentErrorFunctional(float *p)
         sse += delta * delta ;
         if (sse > 2000)
           DiagBreak() ;
-        if (!finite(sse))
+        if (!isfinite(sse))
           DiagBreak() ;
       }
     }

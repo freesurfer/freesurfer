@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/09/25 18:28:18 $
- *    $Revision: 1.91 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:57 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1019,6 +1019,7 @@ int devIsnan(float value)
 
   return(0);
 } /* end devIsnan() */
+
 
 /* non-zero if neither infinite nor NaN, 0 otherwise */
 int devFinite(float value)

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:15 $
- *    $Revision: 1.9 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:24:06 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,7 +110,7 @@ main(int argc, char *argv[]) {
   struct timeb start ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_estimate_tissue_parms.c,v 1.9 2011/03/02 00:04:15 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_estimate_tissue_parms.c,v 1.10 2015/03/12 20:24:06 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -336,12 +336,12 @@ main(int argc, char *argv[]) {
           last_T1 = MRISvox(mri_T1, x, y, z) ;
           last_PD = MRISvox(mri_PD, x, y, z) ;
           total_rms += sqrt(sse/nvolumes) ;
-          if (!finite(total_rms))
+          if (!isfinite(total_rms))
             DiagBreak() ;
         }
       }
       avg_rms = total_rms / nvox ;
-      if (!finite(avg_rms))
+      if (!isfinite(avg_rms))
         DiagBreak() ;
     }
   }
@@ -748,7 +748,7 @@ computeVoxelSSE(MRI **mri_flash, int nflash, int x,
     err = (MRISvox(mri,x,y,z)- estimate) ;
     sse += err*err ;
   }
-  if (!finite(sse))
+  if (!isfinite(sse))
     DiagBreak() ;
   return(sse) ;
 }

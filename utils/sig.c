@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.23 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:57 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -138,7 +138,7 @@ double sigt(double t,int df)
     else             sig = sig2;
   }
 
-  if (!finite(sig))
+  if (!isfinite(sig))
     printf("### Numerical error: sigt(%e,%d) = %e\n",t,df,sig);
   if (sig > 1.0) sig = 1.0;
 

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/08/07 22:11:13 $
- *    $Revision: 1.37 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:55 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -397,7 +397,7 @@ DiagShowPctDone(float pct_done, int nprints)
 int
 check_finite(char *where, double what)
 {
-  if (!finite(what))
+  if (!isfinite(what))
   {
     ErrorPrintf(ERROR_BADPARM, "%s not finite!\n",where) ;
     DiagBreak() ;

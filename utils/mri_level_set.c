@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.7 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -243,7 +243,7 @@ MRIregionGrow(MRI *mri_src, MRI *mri_distance, float x0, float y0,float z0,
                (dxx+dzz)*SQR(dy) +
                (dxx+dyy)*SQR(dz) -
                2.0 * (dx*dy*dxy + dx*dz*dxz + dy*dz*dyz)) / denom ;
-          if (!finite(km))
+          if (!isfinite(km))
             km = 0.0 ;
 
           /* speed function F based on normal and curvature */

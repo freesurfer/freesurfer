@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/01/21 17:29:58 $
- *    $Revision: 1.417 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:56 $
+ *    $Revision: 1.418 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -15145,7 +15145,7 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
       for (z = 0 ; z < mri_dst->depth ; z++)  {
 	for (f = 0 ; f < mri_dst->nframes ; f++)  {
 	  val = MRIgetVoxVal(mri_dst, x, y, z, f) ;
-	  if(!finite(val)){
+	  if(!isfinite(val)){
 	    nans++ ;
 	    MRIsetVoxVal(mri_dst, x, y, z, f, 0) ;
 	  }

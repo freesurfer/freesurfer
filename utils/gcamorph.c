@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/10 23:04:18 $
- *    $Revision: 1.289 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:55 $
+ *    $Revision: 1.290 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -8153,7 +8153,7 @@ gcamClearMomentum(GCA_MORPH *gcam)
 int
 finitep(float f)
 {
-  if (!finite(f))
+  if (!isfinite(f))
   {
     return(0) ;
   }
@@ -17145,7 +17145,7 @@ gcamExpansionEnergy(GCA_MORPH *gcam, MRI *mri)
                 continue ;
               }
               sse_node += error_n*error_n - error_0*error_0  ;
-              if (!finite(sse))
+              if (!isfinite(sse))
               {
                 DiagBreak() ;
               }
@@ -17200,14 +17200,14 @@ gcamExpansionEnergy(GCA_MORPH *gcam, MRI *mri)
                 continue ;
               }
               sse_node += error_0*error_0 - error_n*error_n  ;
-              if (!finite(sse))
+              if (!isfinite(sse))
               {
                 DiagBreak() ;
               }
             }
           }
         }
-        if (sse_node < 0 || !finite(sse_node))
+        if (sse_node < 0 || !isfinite(sse_node))
         {
           DiagBreak() ;
         }
@@ -18271,7 +18271,7 @@ gcamMultiscaleEnergy(GCA_MORPH *gcam, MRI *mri)
           for (n = 0 ; n < gcap->nlabels ; n++)
           {
             pval = GCAcomputePosteriorDensity(gcap, gcan, -1, n, vals, gca->ninputs, xn,yn,zn,gca) ;
-            if (!finite(pval))
+            if (!isfinite(pval))
             {
               DiagBreak() ;
             }
@@ -18394,7 +18394,7 @@ gcamMultiscaleTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_multisca
             }
             Ierror = gc->means[0] - vals[0] ;  // divided by covars[0]?
             pval = GCAcomputePosteriorDensity(gcap, gcan, -1, n, vals, gca->ninputs,xn,yn,zn,gca) ;
-            if (!finite(pval))
+            if (!isfinite(pval))
             {
               DiagBreak() ;
             }
@@ -18754,7 +18754,7 @@ GCAMlogPosterior(GCA_MORPH *gcam, MRI *mri_inputs)
             max_p = p ;
             best_label = gcap->labels[n] ;
           }
-          if (!finite(p))
+          if (!isfinite(p))
           {
             p = 0 ;
           }

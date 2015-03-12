@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/01/14 02:05:33 $
- *    $Revision: 1.766 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:56 $
+ *    $Revision: 1.767 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.766 2015/01/14 02:05:33 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.767 2015/03/12 20:22:56 zkaufman Exp $");
 }
 
 /*-----------------------------------------------------
@@ -5390,7 +5390,7 @@ MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius)
     z2 = z*z;
 
     d = (-1.0+(float)radius/sqrt(x2+z2)) ;
-    if (!finite(d))
+    if (!isfinite(d))
     {
       ErrorPrintf
       (ERROR_BADPARM,
@@ -5403,7 +5403,7 @@ MRISprojectOntoCylinder(MRI_SURFACE *mris, float radius)
     v->x = x+dx ;
     v->z = z+dz;
 
-    if (!finite(v->x) || !finite(v->y) || !finite(v->z))
+    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
     {
       DiagBreak() ;
     }
@@ -5484,7 +5484,7 @@ MRISprojectOntoSphere(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, double r)
     v->y = y-dy;
     v->z = z-dz;
 
-    if (!finite(v->x) || !finite(v->y) || !finite(v->z))
+    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
     {
       DiagBreak() ;
     }
@@ -5611,7 +5611,7 @@ MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     g = 2*(x2/a4+y2/b4+z2/c4);
     h = x2/a2+y2/b2+z2/c2-1;
     d = (-g+(float)sqrt((double)(g*g-4*f*h)))/(2*f);
-    if (!finite(d))
+    if (!isfinite(d))
     {
       ErrorPrintf(ERROR_BADPARM,
                   "point (%2.2f,%2.2f,%2.2f) cannot be projected on ell "
@@ -5627,7 +5627,7 @@ MRISprojectOntoEllipsoid(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     v->y = y+dy;
     v->z = z+dz;
 
-    if (!finite(v->x) || !finite(v->y) || !finite(v->z))
+    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
     {
       DiagBreak() ;
     }
@@ -9530,7 +9530,7 @@ mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       delta = deltaAngle(face->angle[ano], face->orig_angle[ano]);
       sse_angle += delta*delta ;
     }
-    if (!finite(sse_area) || !finite(sse_angle))
+    if (!isfinite(sse_area) || !isfinite(sse_angle))
       ErrorExit(ERROR_BADPARM,
                 "sse (%f, %f) is not finite at face %d!\n",
                 sse_area,sse_angle,fno);
@@ -9745,7 +9745,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 #endif
         sse_angle += delta*delta ;
       }
-      if (!finite(sse_area) || !finite(sse_angle))
+      if (!isfinite(sse_area) || !isfinite(sse_angle))
       {
         ErrorExit(ERROR_BADPARM, "sse not finite at face %d!\n",fno);
       }
@@ -9996,7 +9996,7 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
 #endif
         sse_angle += delta*delta ;
       }
-      if (!finite(sse_area) || !finite(sse_angle))
+      if (!isfinite(sse_area) || !isfinite(sse_angle))
       {
         ErrorExit(ERROR_BADPARM, "sse not finite at face %d!\n",fno);
       }
@@ -10251,7 +10251,7 @@ mrisComputeNonlinearAreaSSE(MRI_SURFACE *mris)
 #endif
 
     sse += error ;
-    if (!finite(sse) || !finite(error))
+    if (!isfinite(sse) || !isfinite(error))
     {
       ErrorExit(ERROR_BADPARM, "nlin area sse not finite at face %d!\n",fno);
     }
@@ -12133,7 +12133,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       fprintf(stdout,
               "(a,b,c) = (%2.3f, %2.3f, %2.3f), predicted min at %2.3f\n",
               a, b, c, -b/a) ;
-    if (!finite(a))
+    if (!isfinite(a))
     {
       DiagBreak() ;
     }
@@ -12148,7 +12148,7 @@ mrisLineMinimize(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 
     dt_in[N] = 0 ;
     sse_out[N++] = starting_sse ;
-    if (finite(a) && !FZERO(a))
+    if (isfinite(a) && !FZERO(a))
     {
       float new_min_delta ;
 
@@ -12528,7 +12528,7 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,
       fprintf(stdout,
               "(a,b,c) = (%2.3f, %2.3f, %2.3f), predicted min at %2.3f\n",
               a, b, c, -b/a) ;
-    if (!finite(a))
+    if (!isfinite(a))
     {
       DiagBreak() ;
     }
@@ -12542,7 +12542,7 @@ mrisLineMinimizeCUDA(MRI_CUDA_SURFACE *mrisc,
 
     dt_in[N] = 0 ;
     sse_out[N++] = starting_sse ;
-    if (finite(a) && !FZERO(a))
+    if (isfinite(a) && !FZERO(a))
     {
       float new_min_delta ;
 
@@ -13640,7 +13640,7 @@ MRISwriteCurvatureToWFile(MRI_SURFACE *mris, const char *fname)
   {
     fwrite3(k,fp);
     f = mris->vertices[k].curv;
-    if (!finite(f))
+    if (!isfinite(f))
       ErrorPrintf(ERROR_BADPARM,
                   "MRISwriteCurvatureToWFile(%s): val at vertex %d is not"
                   "finite", fname, k) ;
@@ -13745,7 +13745,7 @@ MRISwriteValues(MRI_SURFACE *mris, const char *sname)
     {
       fwrite3(k,fp);
       f = mris->vertices[k].val;
-      if (!finite(f))
+      if (!isfinite(f))
         ErrorPrintf(ERROR_BADPARM,
                     "MRISwriteValues(%s): val at vertex %d is not finite",
                     fname, k) ;
@@ -13861,7 +13861,7 @@ MRISwriteD(MRI_SURFACE *mris, const char *sname)
     {
       fwrite3(k,fp);
       f = mris->vertices[k].d;
-      if (!finite(f))
+      if (!isfinite(f))
         ErrorPrintf(ERROR_BADPARM,
                     "MRISwriteD(%s): v->d at vertex %d is not finite",
                     fname, k) ;
@@ -18904,7 +18904,7 @@ int MRISsmoothOnSphere(MRIS *mris, int niters)
         v->ty = y/v->vnum;
         v->tz = z/v->vnum;
       }
-      if (!finite(v->tx))
+      if (!isfinite(v->tx))
       {
         DiagBreak() ;
       }
@@ -18914,7 +18914,7 @@ int MRISsmoothOnSphere(MRIS *mris, int niters)
     {
       v=&mris->vertices[n];
       sphericalProjection(v->tx,v->ty,v->tz,&v->x,&v->y,&v->z);
-      if (!finite(v->x))
+      if (!isfinite(v->x))
       {
         DiagBreak() ;
       }
@@ -19057,11 +19057,11 @@ int mrisApplyGradientPositiveAreaPreserving(MRI_SURFACE *mris, double dt)
       continue ;
     }
 
-    if (!finite(v->x) || !finite(v->y) || !finite(v->z))
+    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
     {
       ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n",vno) ;
     }
-    if (!finite(v->dx) || !finite(v->dy) || !finite(v->dz))
+    if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz))
     {
       ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n",vno) ;
     }
@@ -19148,10 +19148,10 @@ MRISapplyGradient(MRI_SURFACE *mris, double dt)
       if (v->ripflag)
         continue ;
 
-      if (!finite(v->x) || !finite(v->y) || !finite(v->z))
+      if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
         ErrorPrintf(ERROR_BADPARM,
                     "vertex %d position is not finite!\n",vno) ;
-      if (!finite(v->dx) || !finite(v->dy) || !finite(v->dz))
+      if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz))
         ErrorPrintf(ERROR_BADPARM,
                     "vertex %d position is not finite!\n",vno) ;
       v->x += dt*v->dx ;
@@ -19303,7 +19303,7 @@ MRIStotalVariationDifference(MRI_SURFACE *mris)
     delta = fabs(v->k1 - v->k2) ;
     delta *= delta ;
     var += v->area * delta ;
-    if (!finite(var))
+    if (!isfinite(var))
       ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n",
                   vno) ;
   }
@@ -19335,7 +19335,7 @@ MRIStotalVariation(MRI_SURFACE *mris)
     }
     delta = v->k1 * v->k1 + v->k2 * v->k2 ;
     var += v->area * delta ;
-    if (!finite(var))
+    if (!isfinite(var))
       ErrorPrintf(ERROR_BADPARM, "curvature at vertex %d is not finite!\n",
                   vno) ;
   }
@@ -23221,7 +23221,7 @@ mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       else
         v_sse += delta*delta ;
 
-      if (!finite(delta) || !finite(v_sse))
+      if (!isfinite(delta) || !isfinite(v_sse))
         DiagBreak() ;
     }
     if (v_sse > 10000)
@@ -23231,7 +23231,7 @@ mrisComputeDistanceError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       parms->dist_error[vno] = v_sse ;
 
     sse_dist += v_sse ;
-    if (!finite(sse_dist) || !finite(v_sse))
+    if (!isfinite(sse_dist) || !isfinite(v_sse))
       DiagBreak() ;
   }
 
@@ -23351,13 +23351,13 @@ mrisComputeNonlinearDistanceSSE(MRI_SURFACE *mris)
       ratio = dist_scale*v->dist[n] / v->dist_orig[n] ;
       delta = log(1+exp(ratio)) ;
       v_sse += delta ;
-      if (!finite(delta) || !finite(v_sse))
+      if (!isfinite(delta) || !isfinite(v_sse))
       {
         DiagBreak() ;
       }
     }
     sse_dist += v_sse ;
-    if (!finite(sse_dist) || !finite(v_sse))
+    if (!isfinite(sse_dist) || !isfinite(v_sse))
     {
       DiagBreak() ;
     }
@@ -23850,11 +23850,11 @@ ashburnerTriangleEnergy(MRI_SURFACE *mris, int fno, double lambda)
   s11 = ((a+d)/2) + sqrt((4*b*c + (a-d)*(a-d)) / 2);
   s22 = ((a+d)/2) - sqrt((4*b*c + (a-d)*(a-d)) / 2);
 #endif
-  if (!finite(s11))
+  if (!isfinite(s11))
   {
     return(log(SMALL)*log(SMALL)) ;
   }
-  if (!finite(s22))
+  if (!isfinite(s22))
   {
     return(log(SMALL)*log(SMALL)) ;
   }
@@ -23874,7 +23874,7 @@ ashburnerTriangleEnergy(MRI_SURFACE *mris, int fno, double lambda)
 
   energy = lambda * (1 + det) * (s11 + s22) ;  // log and square of snn already taken
 
-  if (!finite(energy))
+  if (!isfinite(energy))
   {
     DiagBreak() ;
   }
@@ -23900,7 +23900,7 @@ mrisSampleAshburnerTriangleEnergy(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARM
   for (sse_total = 0.0, n = 0 ; n < v->num ; n++)
   {
     sse = ashburnerTriangleEnergy(mris, v->f[n], parms->l_ashburner_lambda) ;
-    if (sse < 0 || !finite(sse))
+    if (sse < 0 || !isfinite(sse))
     {
       DiagBreak() ;
     }
@@ -25586,7 +25586,7 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht,
         dx /= norm ;
         dy /= norm ;
         dz /= norm ;
-        if (!finite(dx) || !finite(dy) || !finite(dz))
+        if (!isfinite(dx) || !isfinite(dy) || !isfinite(dz))
         {
           DiagBreak() ;
         }
@@ -29796,7 +29796,7 @@ mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
       max_delta = fabs(delta) ;
       max_vno = vno ;
     }
-    if (!finite(target) || !finite(delta))
+    if (!isfinite(target) || !isfinite(delta))
     {
       DiagBreak() ;
     }
@@ -30103,7 +30103,7 @@ mrisComputeCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     {
       max_mag = mag ;
     }
-    if (!finite(v->dx) || !finite(v->dy) || !finite(v->dz))
+    if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz))
     {
       DiagBreak() ;
       ErrorExit(ERROR_BADPARM,
@@ -30255,7 +30255,7 @@ static int mrisComputeVectorCorrelationTerm(MRI_SURFACE *mris,
     {
       max_mag = mag ;
     }
-    if (!finite(v->dx) || !finite(v->dy) || !finite(v->dz))
+    if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz))
     {
       DiagBreak() ;
       ErrorExit
@@ -30505,7 +30505,7 @@ mrisComputePolarCorrelationTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     {
       max_mag = mag ;
     }
-    if (!finite(v->dx) || !finite(v->dy) || !finite(v->dz))
+    if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz))
     {
       DiagBreak() ;
       ErrorExit
@@ -37734,7 +37734,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         }
       }
       outward_dist = dist-step_size/2 ;
-      if (!finite(outward_dist))
+      if (!isfinite(outward_dist))
       {
         DiagBreak() ;
       }
@@ -39296,7 +39296,7 @@ MRIScomputeGraySurfaceValues(MRI_SURFACE *mris,MRI *mri_brain,MRI *mri_smooth,
         }
       }
     }
-    if (!finite(min_val) || !finite(max_mag) || !finite(mag))
+    if (!isfinite(min_val) || !isfinite(max_mag) || !isfinite(mag))
     {
       DiagBreak() ;
     }
@@ -40982,7 +40982,7 @@ MRISaccumulateStandardErrorsInVolume(MRI_SURFACE *mris, MRI *mri,
       mris_sigma = vertex->val  ;
       mri_sigma = mris_sigma*SQR(mris_dof) + mri_sigma*SQR(mri_dof) ;
       mri_sigma /= SQR(ndof) ;
-      if (!finite(mri_sigma))
+      if (!isfinite(mri_sigma))
       {
         fprintf(stderr, "variance not finite at vno %d!\n", vno) ;
         DiagBreak() ;
@@ -42058,13 +42058,13 @@ mrisReadTriangleFileVertexPositionsOnly(const char *fname)
 #if 0
     v->label = NO_LABEL ;
 #endif
-    if (fabs(v->x) > 10000 || !finite(v->x))
+    if (fabs(v->x) > 10000 || !isfinite(v->x))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!",
                 Progname, vno, v->x) ;
-    if (fabs(v->y) > 10000 || !finite(v->y))
+    if (fabs(v->y) > 10000 || !isfinite(v->y))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d y coordinate %f!",
                 Progname, vno, v->y) ;
-    if (fabs(v->z) > 10000 || !finite(v->z))
+    if (fabs(v->z) > 10000 || !isfinite(v->z))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!",
                 Progname, vno, v->z) ;
   }
@@ -42189,13 +42189,13 @@ mrisReadTriangleFile(const char *fname, double pct_over)
     v->label = NO_LABEL ;
 #endif
     v->num = 0;   /* will figure it out */
-    if (fabs(v->x) > 10000 || !finite(v->x))
+    if (fabs(v->x) > 10000 || !isfinite(v->x))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d x coordinate %f!",
                 Progname, vno, v->x) ;
-    if (fabs(v->y) > 10000 || !finite(v->y))
+    if (fabs(v->y) > 10000 || !isfinite(v->y))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d y coordinate %f!",
                 Progname, vno, v->y) ;
-    if (fabs(v->z) > 10000 || !finite(v->z))
+    if (fabs(v->z) > 10000 || !isfinite(v->z))
       ErrorExit(ERROR_BADFILE, "%s: vertex %d z coordinate %f!",
                 Progname, vno, v->z) ;
   }
@@ -53663,7 +53663,7 @@ static double estimateSquaredRadius(MRIS *mris,
     R2+=SQR(mris->vertices[n].x-cx)+
         SQR(mris->vertices[n].y-cy)+
         SQR(mris->vertices[n].z-cz);
-    if (!finite(R2))
+    if (!isfinite(R2))
     {
       DiagBreak() ;
     }
@@ -53989,7 +53989,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris,
       continue ;
     }
 
-    if (!finite(v->x) || !finite(v->y) || !finite(v->z))
+    if (!isfinite(v->x) || !isfinite(v->y) || !isfinite(v->z))
     {
       ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n",vno) ;
     }
@@ -54000,7 +54000,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris,
 
     if (which_gradient)
     {
-      if (!finite(v->odx) || !finite(v->ody) || !finite(v->odz))
+      if (!isfinite(v->odx) || !isfinite(v->ody) || !isfinite(v->odz))
       {
         ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n",vno) ;
       }
@@ -54012,7 +54012,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris,
     }
     else
     {
-      if (!finite(v->dx) || !finite(v->dy) || !finite(v->dz))
+      if (!isfinite(v->dx) || !isfinite(v->dy) || !isfinite(v->dz))
       {
         ErrorPrintf(ERROR_BADPARM, "vertex %d position is not finite!\n",vno) ;
       }
@@ -61018,7 +61018,7 @@ mrisComputeDefectNormalDotLogLikelihood
       ll += log(h_dot->counts[bin]) ;
     }
     total_ll += ll / v->vnum ;
-    if (!finite(total_ll))
+    if (!isfinite(total_ll))
     {
       DiagBreak() ;
     }
@@ -61093,7 +61093,7 @@ mrisComputeDefectMRILogUnlikelihood
       ll += log(1-h_border->counts[nint(val)]) ;
     }
 
-    if (!finite(ll))
+    if (!isfinite(ll))
     {
       DiagBreak() ;
     }
@@ -61254,7 +61254,7 @@ mrisComputeDefectCurvatureLogLikelihood
       bin = h_k2->nbins-1 ;
     }
     total_ll += log(h_k2->counts[bin]) ;
-    if (!finite(total_ll))
+    if (!isfinite(total_ll))
     {
       DiagBreak() ;
     }
@@ -61697,7 +61697,7 @@ mrisComputeDefectMRILogLikelihood
           bin = h_grad->nbins-1 ;
         }
         /*   ll += log(h_grad->counts[bin]) ;*/
-        if (!finite(ll))
+        if (!isfinite(ll))
         {
           DiagBreak() ;
         }
@@ -61782,7 +61782,7 @@ mrisComputeDefectMRILogLikelihood
         }
       }
 
-      if (!finite(total))
+      if (!isfinite(total))
       {
         DiagBreak() ;
       }
@@ -61964,7 +61964,7 @@ mrisComputeDefectMRIEnergy
         }
       }
 
-      if (!finite(total))
+      if (!isfinite(total))
       {
         DiagBreak() ;
       }
@@ -62094,7 +62094,7 @@ mrisComputeDefectCurvatureEnergy
       dz = vn->origz - v->origz ;
       dot = dx*nx + dy*ny + dz*nz ;
       vtotal += (dot*dot) ;
-      if (!finite(vtotal))
+      if (!isfinite(vtotal))
       {
         DiagBreak() ;
       }
@@ -62226,7 +62226,7 @@ mrisComputeDefectQuadraticCurvatureEnergy
     v_A = MatrixMultiply(m_R_inv, v_Y, v_A) ;
     a = VECTOR_ELT(v_A, 1) ;
     b = VECTOR_ELT(v_A, 2) ;
-    if (!finite(b))
+    if (!isfinite(b))
     {
       DiagBreak() ;
     }
@@ -65113,7 +65113,7 @@ static int mrisComputeOptimalRetessellation
     {
       fitness_sigma = sqrt(fitness_sigma) ;
     }
-    if (!finite(fitness_sigma))
+    if (!isfinite(fitness_sigma))
     {
       DiagBreak() ;
     }
@@ -75534,7 +75534,7 @@ MRISnormalSpringTermWithGaussianCurvature
     sy = l_spring*nc*ny ;
     sz = l_spring*nc*nz ;
     scale = pow(fabs(vertex->K), gaussian_norm) ;
-    if (!finite(scale))
+    if (!isfinite(scale))
     {
       scale = 0 ;
     }
@@ -75601,7 +75601,7 @@ MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris,
       sx = sx/n; sy = sy/n; sz = sz/n;
     }
     scale = pow(fabs(vertex->K), gaussian_norm) ;
-    if (!finite(scale))
+    if (!isfinite(scale))
     {
       scale = 0 ;
     }
@@ -84690,7 +84690,7 @@ mrisComputeNegativeLogPosterior2D(MRI_SURFACE *mris,
 	if (DZERO(pval))
 	  pval = 1e-20 ;
 	ll = -log10(pval) ;
-	if (!finite(ll))
+	if (!isfinite(ll))
 	  DiagBreak() ;
 	sse += ll ;
 	nvox++ ;

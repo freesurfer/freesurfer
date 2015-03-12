@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.8 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:57 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -261,7 +261,7 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
         break ;
       }
 
-      if (!finite(dot))
+      if (!isfinite(dot))
         DiagBreak() ;
       dot_matrix[i][j] = dot_matrix[j][i] = dot ;
     }
@@ -286,7 +286,7 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
 
       da_old[k] = step_size*da ;
     }
-    if (!finite(da_old[k]))
+    if (!isfinite(da_old[k]))
       DiagBreak() ;
 
     /* build permutation */
@@ -378,13 +378,13 @@ SVMtrain(SVM *svm, float **x, float *y, int ntraining, double C,
       if (ai >= C)
         ai = C ;
       dai = ai - svm->alpha[i] ;
-      if (!finite(dai))
+      if (!isfinite(dai))
         DiagBreak() ;
 
       /* move i and j by equal and opposite amounts */
       daj = -dai * y[i] / y[j] ;
 
-      if (!finite(daj))
+      if (!isfinite(daj))
         DiagBreak() ;
       /* update jth alpha and make sure it stays in the feasible region */
       aj = svm->alpha[j] + daj ;
@@ -765,7 +765,7 @@ svm_linear_dot(int ninputs, float *xi, float *xj)
   for (dot = 0.0, k = 0 ; k < ninputs ; k++)
   {
     dot += xi[k] * xj[k] ;
-    if (!finite(dot))
+    if (!isfinite(dot))
       DiagBreak() ;
   }
   return(1+dot) ;

@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/11/03 18:10:44 $
- *    $Revision: 1.84 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:56 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,6 +38,7 @@
 #include "diag.h"
 #include "macros.h"
 #include "fio.h"
+#include "utils.h"
 
 /*-----------------------------------------------------
   Parameters:
@@ -2855,7 +2856,7 @@ HISTO2Dsmooth(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma)
 	  total += kernel[i] * (float)histo_src->counts[b1k][b2k] ;
 	  if ((float)histo_src->counts[b1k][b2k] >  0.00027)
 	    DiagBreak() ;
-	  if (!finite(norm) || !finite(total) || !finite(kernel[i]))
+	  if (!isfinite(norm) || !isfinite(total) || !isfinite(kernel[i]))
 	    DiagBreak() ;
 	}
       if (b1 == Gx && b2 == Gy)
@@ -2946,7 +2947,7 @@ HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float si
 	  total += k * (float)histo_src->counts[b1k][b2k] ;
 	  if ((float)histo_src->counts[b1k][b2k] >  0.00027)
 	    DiagBreak() ;
-	  if (!finite(norm) || !finite(total) || !finite(k))
+	  if (!isfinite(norm) || !isfinite(total) || !isfinite(k))
 	    DiagBreak() ;
 	}
       if (b1 == Gx && b2 == Gy)
@@ -3078,7 +3079,7 @@ HISTO2DsmoothAnisotropic(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float si
 	  total += k * (float)histo_src->counts[b1k][b2k] ;
 	  if ((float)histo_src->counts[b1k][b2k] >  0.00027)
 	    DiagBreak() ;
-	  if (!finite(norm) || !finite(total) || !finite(k))
+	  if (!isfinite(norm) || !isfinite(total) || !isfinite(k))
 	    DiagBreak() ;
 	}
       if (b1 == Gx && b2 == Gy)
@@ -3184,7 +3185,7 @@ HISTO2DsmoothBins1(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma)
 
 	norm += kernel[x] ;
 	total += kernel[x] * (float)histo_src->counts[b1k][b2] ;
-	if (!finite(norm) || !finite(total) || !finite(kernel[x]))
+	if (!isfinite(norm) || !isfinite(total) || !isfinite(kernel[x]))
 	  DiagBreak() ;
       }
       if (b1 == Gx && b2 == Gy)
@@ -3279,7 +3280,7 @@ HISTO2DsmoothBins2(HISTOGRAM2D *histo_src, HISTOGRAM2D *histo_dst,float sigma)
 
 	norm += kernel[x] ;
 	total += kernel[x] * (float)histo_src->counts[b1][b2k] ;
-	if (!finite(norm) || !finite(total) || !finite(kernel[x]))
+	if (!isfinite(norm) || !isfinite(total) || !isfinite(kernel[x]))
 	  DiagBreak() ;
       }
       if (b1 == Gx && b2 == Gy)

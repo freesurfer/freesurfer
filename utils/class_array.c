@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/10/06 01:24:09 $
- *    $Revision: 1.7 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:55 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,18 +105,18 @@ CAbuildInputsAtVoxel(VOXEL_LIST *vl, int i,
   input = 0 ;
   if (which_inputs & CA_INPUT_DTRANS)
     svm_inputs[input++] = MRIgetVoxVal(mri_dtrans, x, y, z, 0) ;
-  if (!finite(svm_inputs[input-1]))
+  if (!isfinite(svm_inputs[input-1]))
     DiagBreak() ;
   if (which_inputs & CA_INPUT_DTRANS_GRAD)
   {
     svm_inputs[input++] = MRIgetVoxVal(mri_dtrans_grad, x, y, z, 0) ;
-    if (!finite(svm_inputs[input-1]))
+    if (!isfinite(svm_inputs[input-1]))
       DiagBreak() ;
     svm_inputs[input++] = MRIgetVoxVal(mri_dtrans_grad, x, y, z, 1) ;
-    if (!finite(svm_inputs[input-1]))
+    if (!isfinite(svm_inputs[input-1]))
       DiagBreak() ;
     svm_inputs[input++] = MRIgetVoxVal(mri_dtrans_grad, x, y, z, 2) ;
-    if (!finite(svm_inputs[input-1]))
+    if (!isfinite(svm_inputs[input-1]))
       DiagBreak() ;
   }
   for (xk = -whalf ; xk <= whalf ; xk++)
@@ -130,7 +130,7 @@ CAbuildInputsAtVoxel(VOXEL_LIST *vl, int i,
           if (which_inputs & CA_INPUT_INTENSITY)
           {
             svm_inputs[input++] = MRIgetVoxVal(mri_smooth[s], xi, yi, zi, 0) ;
-            if (!finite(svm_inputs[input-1]))
+            if (!isfinite(svm_inputs[input-1]))
               DiagBreak() ;
           }
           if (which_inputs & CA_INPUT_GRADIENT)
@@ -143,20 +143,20 @@ CAbuildInputsAtVoxel(VOXEL_LIST *vl, int i,
           if (which_inputs & CA_INPUT_LAPLACIAN)
           {
             svm_inputs[input++] = MRIgetVoxVal(mri_laplacian[s], xi, yi, zi, 0) ;
-            if (!finite(svm_inputs[input-1]))
+            if (!isfinite(svm_inputs[input-1]))
               DiagBreak() ;
           }
           if (which_inputs & CA_INPUT_D2I_S)
           {
             svm_inputs[input++] = MRIgetVoxVal(mri_2nd_deriv_s[s], xi, yi, zi, 0) ;
-            if (!finite(svm_inputs[input-1]))
+            if (!isfinite(svm_inputs[input-1]))
               DiagBreak() ;
           }
         }
       }
 
   for (input = 0 ; input < ninputs ; input++)
-    if (!finite(svm_inputs[input]))
+    if (!isfinite(svm_inputs[input]))
       DiagBreak() ;
   return(svm_inputs) ;
 }

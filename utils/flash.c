@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:43 $
- *    $Revision: 1.8 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:55 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -286,7 +286,7 @@ compute_T1_PD(int nvolumes,
       best_PD = norm_im / upper_norm ;
       best_sse = upper_sse ;
     }
-    if (!finite(best_PD))
+    if (!isfinite(best_PD))
     {
       printf("best_PD is not finite at %d (%2.1f)\n", mid_j, mid_T1) ;
       DiagBreak() ;

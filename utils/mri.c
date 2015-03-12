@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lindemer $
- *    $Date: 2015/03/12 18:34:45 $
- *    $Revision: 1.553 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:56 $
+ *    $Revision: 1.554 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.553 $";
+const char *MRI_C_VERSION = "$Revision: 1.554 $";
 
 
 /*-----------------------------------------------------
@@ -15109,7 +15109,7 @@ MRI *MRIrandexp(MRI *mrimean, MRI *binmask, unsigned long int seed, int nreps, M
 	    while(q < FLT_MIN) q = RFdrawVal(rfs);
 	    v = (log(L)-log(L*q))/L;
 	    MRIsetVoxVal(mrirandexp,c,r,s,f2,v);
-	    if(!finite(v)){
+	    if(!isfinite(v)){
 	      printf("WARNING: MRIrandexp(): voxel not finite\n");
 	      printf("%3d %3d %3d %2d mu = %lf; L = %lf; q=%30.30lf; v=%lf;\n",c,r,s,f2,mu,L,q,v);
 	      fflush(stdout);

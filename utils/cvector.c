@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:42 $
- *    $Revision: 1.3 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/12 20:22:55 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -439,7 +439,7 @@ cvector_average_in_label(float *v, LABEL *area, int num)
 
   for (avg = 0.0, i = 0 ; i < area->n_points ; i++)
   {
-    if (!finite(v[area->lv[i].vno]))
+    if (!isfinite(v[area->lv[i].vno]))
       DiagBreak() ;
     avg += v[area->lv[i].vno] ;
   }
