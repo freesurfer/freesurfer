@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.82 2015/03/11 21:21:33 zkaufman Exp $
+# $Id: FreeSurferEnv.csh,v 1.83 2015/03/13 18:45:59 zkaufman Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.82 2015/03/11 21:21:33 zkaufman Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.83 2015/03/13 18:45:59 zkaufman Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -375,11 +375,11 @@ if ( -e $FREESURFER_HOME/bin/freeview.app ) then
 endif
 
 ### - Add gcc libs to DYLD_LIBRARY_PATH - MacOS only - ###
-if ( -e $FREESURFER_HOME/lib/gcc ) then
+if ( -e $FREESURFER_HOME/lib/gcc/lib ) then
     if(! $?DYLD_LIBRARY_PATH ) then
-        setenv DYLD_LIBRARY_PATH $FREESURFER_HOME/lib/gcc
+        setenv DYLD_LIBRARY_PATH $FREESURFER_HOME/lib/gcc/lib
     else
-        setenv DYLD_LIBRARY_PATH "$FREESURFER_HOME/lib/gcc":"$DYLD_LIBRARY_PATH"
+        setenv DYLD_LIBRARY_PATH "$FREESURFER_HOME/lib/gcc/lib":"$DYLD_LIBRARY_PATH"
     endif
 
 endif
