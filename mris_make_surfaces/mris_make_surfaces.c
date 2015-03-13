@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/11/03 18:08:57 $
- *    $Revision: 1.153 $
+ *    $Date: 2015/03/13 21:10:49 $
+ *    $Revision: 1.154 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.153 2014/11/03 18:08:57 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.154 2015/03/13 21:10:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -273,13 +273,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.153 2014/11/03 18:08:57 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.154 2015/03/13 21:10:49 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.153 2014/11/03 18:08:57 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.154 2015/03/13 21:10:49 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -3966,10 +3966,11 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   {
     int bin ;
     bin = HISTOfindBinWithCount(hcdf, 0.01) ;
+//    bin = HISTOfindBinWithCount(hcdf, 0.005) ;  // changed to work better with CIMBI data
     printf("min bin %d (%2.1f) found with count %2.3f\n", bin, hcdf->bins[bin], hcdf->counts[bin]) ;
     if (hcdf->bins[bin] > min_gray)
     {
-      printf("resetting min gray %2.1f based on CDF\n", min_gray) ;
+      printf("resetting min gray %2.1f based on CDF to %2.1f\n", min_gray, hcdf->bins[bin]) ;
       min_gray = hcdf->bins[bin];
     }
 
@@ -3977,14 +3978,10 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     printf("max bin %d (%2.1f) found with count %2.3f\n", bin, hcdf_rev->bins[bin], hcdf_rev->counts[bin]) ;
     if (hcdf_rev->bins[bin] < max_gray)
     {
-      printf("resetting max gray %2.1f based on CDF\n", max_gray) ;
+      printf("resetting max gray %2.1f based on CDF to %2.1f\n", max_gray, hcdf_rev->bins[bin]) ;
       max_gray = hcdf_rev->bins[bin];
     }
   }
-  printf("locating cortical regions not in the range [%2.2f %2.2f], "
-         "gm=%2.2f+-%2.2f, and vertices in regions > %2.1f\n",
-         min_gray, max_gray, mn, sig, mn-.5*sig) ;
-
   if (T2_min >= 0)
   {
     min_gray = T2_min ;
@@ -3995,6 +3992,9 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     max_gray = T2_max ;
     printf("using user specified max gray threshold %2.1f\n", max_gray) ;
   }
+  printf("locating cortical regions not in the range [%2.2f %2.2f], "
+         "gm=%2.2f+-%2.2f, and vertices in regions > %2.1f\n",
+         min_gray, max_gray, mn, sig, mn-.5*sig) ;
 
   for (n = 0 ; n < nlabels ; n++)
   {
@@ -4008,21 +4008,18 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     v->targy = v->y ;
     v->targz = v->z ;
     if (v->ripflag)
-    {
       continue ;
-    }
+
     if (vno == Gdiag_no)
-    {
       DiagBreak() ;
-    }
+
     nx = v->x - v->whitex ;
     ny = v->y - v->whitey ;
     nz = v->z - v->whitez ;
     thickness = sqrt(SQR(nx)+SQR(ny)+SQR(nz)) ;
     if (FZERO(thickness))
-    {
       continue ;
-    }
+
     MRISvertexToVoxel(mris, v, mri_T2, &xv, &yv, &zv) ;
     nx /= thickness ;
     ny /= thickness ;
@@ -4036,16 +4033,16 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
       if (val <= 0)
-      {
         continue ;
-      }
+
       if (MRIgetVoxVal(mri_filled, nint(xv), nint(yv), nint(zv), 0) > 0)
-      {
         break ;
-      }
+
 
       if (val < min_gray || val > max_gray)
       {
+	if (vno == Gdiag_no)
+	  printf("illegal intensity %2.1f found at d=%2.2f, vox=(%2.1f, %2.1f, %2.1f)\n", val, d,xv,yv,zv) ;
         found_bad_intensity = 1 ;
         break ;
       }
@@ -4242,11 +4239,17 @@ find_and_mark_pinched_regions(MRI_SURFACE *mris,
   max_gray = mean+nstd_above*std ;
   min_gray = mean-nstd_below*std ;
 
-
   HISTOrobustGaussianFit(h, .9, &mn, &sig) ;
-  HISTOplot(h, "h.plt") ;
-  max_gray = mn+nstd_above*sig ;
-  min_gray = mn-nstd_below*sig ;
+  if (Gdiag & DIAG_WRITE)
+    HISTOplot(h, "h.plt") ;
+  if (T2_max < 0)
+    max_gray = mn+nstd_above*sig ;
+  else
+    max_gray = T2_max ;
+  if (T2_min < 0)
+    min_gray = mn-nstd_below*sig ;
+  else
+    min_gray = T2_min ;
   printf("locating cortical regions not in the range [%2.2f %2.2f], "
          "gm=%2.2f+-%2.2f, and vertices in regions > %2.1f\n",
          min_gray, max_gray, mn, sig, mn-.5*sig) ;
