@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/10/30 16:18:12 $
-#    $Revision: 1.22 $
+#    $Date: 2015/03/13 23:31:17 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.22 2014/10/30 16:18:12 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.23 2015/03/13 23:31:17 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -419,6 +419,8 @@ while( $#argv != 0 )
       set UseFreeview = 1;
       breaksw
 
+    case "-no-fv":
+    case "-no-freeview":
     case "-tks":
     case "-tksurfer":
       set UseFreeview = 0;
