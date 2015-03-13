@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/31 18:12:58 $
- *    $Revision: 1.49 $
+ *    $Date: 2015/03/13 22:22:31 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.49 2015/01/31 18:12:58 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.50 2015/03/13 22:22:31 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.49 2015/01/31 18:12:58 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.50 2015/03/13 22:22:31 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -174,6 +174,7 @@ int DoSimulation = 0;
 int DoVoxFracCorTmp;
 int Frame = -1;
 MRI **lgtmpvc;
+int DoRegHeader=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -274,6 +275,8 @@ int main(int argc, char *argv[])
   gtm->ctGTMSeg = CTABreadASCII(tmpstr);
   if(gtm->ctGTMSeg == NULL) exit(1);
   if(Gdiag_no > 0) printf("  done loading ctab\n");fflush(stdout);
+  if(DoRegHeader)
+    gtm->anat2pet = TransformRegDat2LTA(gtm->anatseg, gtm->yvol, NULL);
 
   sprintf(tmpstr,"%s.lta",stem);
   if(fio_FileExistsReadable(tmpstr)){
@@ -1007,6 +1010,9 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
 
+    else if(!strcmp(option, "--regheader") || !strcmp(option, "--reg-header"))
+      DoRegHeader = 1;
+
     else if(!strcmp(option, "--reg")){
       if(nargc < 1) CMDargNErr(option,1);
       regfile = pargv[0];
@@ -1364,6 +1370,7 @@ static void print_usage(void) {
   printf("   --psf psfmm : scanner PSF FWHM in mm\n");
   printf("   --seg segfile : anatomical segmentation to define regions for GTM\n");
   printf("   --reg reg.lta : LTA registration file that maps anatomical to PET\n");
+  printf("   --regheader : assume input and seg share scanner space\n");
   printf("   --o   outdir    : output directory\n");
   printf("\n");
   printf("   --mask volfile : ignore areas outside of the mask (in input vol space)\n");
@@ -1450,6 +1457,10 @@ static void check_options(void)
     exit(1);
   }
   if(! fio_FileExistsReadable(SegVolFile)){
+    if(DoRegHeader){
+      printf("ERROR: cannot find seg vol %s\n",SegVolFile);
+      exit(1);
+    }
     sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,gtm->anat2pet->subject,SegVolFile);
     if(! fio_FileExistsReadable(tmpstr)){
       printf("ERROR: cannot find seg vol %s or %s\n",SegVolFile,tmpstr);
@@ -1531,8 +1542,12 @@ static void check_options(void)
     gtm->anat2pet = TransformRegDat2LTA(gtm->yvol, gtm->yvol, NULL);
   }
   else {
-    if(regfile == NULL){
-      printf("ERROR: must spec regfile \n");
+    if(regfile != NULL && DoRegHeader){
+      printf("ERROR: cannot spec both regfile and --regheader\n");
+      exit(1);
+    }
+    if(regfile == NULL && DoRegHeader == 0){
+      printf("ERROR: must spec regfile or --regheader \n");
       exit(1);
     }
   }
