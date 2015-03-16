@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/10/30 15:35:42 $
- *    $Revision: 1.29 $
+ *    $Date: 2015/03/16 17:19:04 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,7 +47,7 @@ extern int fsgdf_AllowSubjRep;
 
 #define FSGDF_NCLASSES_MAX  128
 #define FSGDF_NVARS_MAX     128
-#define FSGDF_NINPUTS_MAX  10000
+#define FSGDF_NINPUTS_MAX  20000
 
 #define FSGD_FACTOR_DISCRETE 1
 #define FSGD_FACTOR_CONTINUOUS 2
