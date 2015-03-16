@@ -108,7 +108,7 @@ BUILT_SOURCES = \
 	moc_MainWindow.cpp \
 	moc_PanelLayer.cpp \
 	moc_PanelPointSet.cpp \
-  moc_PanelROI.cpp \
+    moc_PanelROI.cpp \
 	moc_PanelSurface.cpp \
 	moc_PanelVolume.cpp \
 	moc_qtcolorpicker.cpp \

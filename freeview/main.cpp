@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/12 21:36:06 $
- *    $Revision: 1.51 $
+ *    $Date: 2015/03/16 19:24:28 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -117,6 +117,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "ras", "ras", "<X> <Y> <Z>", "Set cursor location at the given RAS coordinate.", 3, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "slice", "slice", "<X> <Y> <Z>", "Set cursor location at the given slice numbers of the first loaded volume.", 3, 3 ),
     CmdLineEntry( CMD_LINE_SWITCH, "timecourse", "timecourse", "", "Show time course window." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "transform-volume", "transform-volume", "", "Show transform volume window." ),
     CmdLineEntry( CMD_LINE_SWITCH, "colorscale", "colorscale", "", "Show color scale bar on the main view." ),
     CmdLineEntry( CMD_LINE_OPTION, "cmd", "command", "<FILE>", "Load freeview commands from a text file.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "hide", "hide", "<LAYER_TYPE>", "Hide the current layer. This is useful for loading comands by -cmd option. Valid LAYER_TYPEs are volume, surface, label, etc.", 1, 1 ),

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2015/03/16 19:24:28 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,7 @@ public:
   void EnableWidgets( const QList<QWidget*>& widgets, bool bEnable );
 
   void ChangeLineEditText( QLineEdit* w, const QString& strg );
-  void ChangeLineEditNumber( QLineEdit* w, double val );
+  void ChangeLineEditNumber( QLineEdit* w, double val, int precise = 2, bool ignoreFocus = false );
   void ChangeSpinBoxValue( QSpinBox* w, int nVal );
   void ChangeDoubleSpinBoxValue( QDoubleSpinBox* w, double dVal );
   void BlockAllSignals(QWidget* w, bool bBlock);

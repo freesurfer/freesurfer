@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/12 21:16:51 $
- *    $Revision: 1.5 $
+ *    $Date: 2015/03/16 19:24:28 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,9 +60,9 @@ void UIUpdateHelper::ChangeLineEditText( QLineEdit* w, const QString& strg )
   w->blockSignals( false );
 }
 
-void UIUpdateHelper::ChangeLineEditNumber( QLineEdit* w, double val )
+void UIUpdateHelper::ChangeLineEditNumber( QLineEdit* w, double val, int precise, bool ignoreFocus )
 {
-  if (w->hasFocus())
+  if (w->hasFocus() && !ignoreFocus)
     return;
 
   bool bOK;
@@ -79,7 +79,7 @@ void UIUpdateHelper::ChangeLineEditNumber( QLineEdit* w, double val )
   }
   else
   {
-    strg = QString::number(val, 'f', (val>1?2:-1));
+    strg = QString::number(val, 'f', (val>1?precise:-1));
     while (strg[strg.size()-1] == '0')
     {
       strg = strg.left(strg.size()-1);

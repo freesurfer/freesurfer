@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/12 21:36:05 $
- *    $Revision: 1.22 $
+ *    $Date: 2015/03/16 19:24:27 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,6 +39,10 @@
 #include <QDebug>
 #include <QButtonGroup>
 
+#define ROTATION_INCREMENT    0.5
+#define TRANSLATION_INCREMENT 0.5
+#define SCALE_INCREMENT       0.05
+
 extern "C"
 {
 #include "mri.h"
@@ -47,6 +51,9 @@ extern "C"
 DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
   QDialog(parent),
   UIUpdateHelper(),
+  m_dIncrementRotate(ROTATION_INCREMENT),
+  m_dIncrementTranslate(TRANSLATION_INCREMENT),
+  m_dIncrementScale(SCALE_INCREMENT),
   ui(new Ui::DialogTransformVolume)
 {
   ui->setupUi(this);
@@ -65,9 +72,9 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
   m_comboRotate[0] = ui->comboBoxRotateX;
   m_comboRotate[1] = ui->comboBoxRotateY;
   m_comboRotate[2] = ui->comboBoxRotateZ;
-  m_sliderRotate[0] = ui->horizontalSliderRotateX;
-  m_sliderRotate[1] = ui->horizontalSliderRotateY;
-  m_sliderRotate[2] = ui->horizontalSliderRotateZ;
+  m_sliderRotate[0] = ui->scrollBarRotateX;
+  m_sliderRotate[1] = ui->scrollBarRotateY;
+  m_sliderRotate[2] = ui->scrollBarRotateZ;
   m_textAngle[0] = ui->lineEditRotateX;
   m_textAngle[1] = ui->lineEditRotateY;
   m_textAngle[2] = ui->lineEditRotateZ;
@@ -159,8 +166,8 @@ void DialogTransformVolume::UpdateUI( int scope )
       layer->GetTranslate( pos );
       for ( int i = 0; i < 3; i++ )
       {
-        int range = (int)( ws[i] / vs[i] + 0.5 ) * 2;
-        int npos = (int)(pos[i] / vs[i]) + range/2;
+        int range = (int)(ws[i]/m_dIncrementTranslate+0.5) * 2;
+        int npos = (int)(pos[i]/m_dIncrementTranslate) + range/2;
         m_scrollTranslate[i]->setRange(0, range);
         m_scrollTranslate[i]->setValue(npos);
         ChangeLineEditNumber(m_textTranslate[i], pos[i]);
@@ -170,15 +177,16 @@ void DialogTransformVolume::UpdateUI( int scope )
     {
       double scale[3];
       layer->GetScale( scale );
+      int nmax = m_scrollScale[0]->maximum();
       for ( int i = 0; i < 3; i++ )
       {
         if ( scale[i] >= 1 )
         {
-          m_scrollScale[i]->setValue( 50 + (int)( (scale[i]-1.0)*50 ) );
+          m_scrollScale[i]->setValue( nmax/2 + (int)( (scale[i]-1.0)*nmax/2 ) );
         }
         else
         {
-          m_scrollScale[i]->setValue( 50 - (int)( (1.0-scale[i])*100 ) );
+          m_scrollScale[i]->setValue( nmax/2 - (int)( (1.0-scale[i])*nmax ) );
         }
 
         ChangeLineEditNumber(m_textScale[i], scale[i]);
@@ -198,7 +206,7 @@ void DialogTransformVolume::UpdateUI( int scope )
         val -= 360;
       while (angle[i] < -180)
         val += 360;
-      m_sliderRotate[i]->setValue((int)val);
+      m_sliderRotate[i]->setValue((int)(val*2));
       ChangeLineEditNumber(m_textAngle[i], angle[i]);
     }
 
@@ -525,7 +533,7 @@ void DialogTransformVolume::RespondTextTranslate( int n )
         double* vs = layer->GetWorldVoxelSize();
         int range = m_scrollTranslate[n]->maximum();
         m_scrollTranslate[n]->blockSignals(true);
-        m_scrollTranslate[n]->setValue(range/2 + (int)( pos[n] / vs[n] ) );
+        m_scrollTranslate[n]->setValue(range/2 + (int)( pos[n] / m_dIncrementTranslate ) );
         m_scrollTranslate[n]->blockSignals(false);
         UpdateUI( 1 );
       }
@@ -544,11 +552,10 @@ void DialogTransformVolume::RespondScrollTranslate( int n )
       layer->GetTranslate( pos );
       int range = m_scrollTranslate[n]->maximum();
       int npos = m_scrollTranslate[n]->value();
-      double* vs = layer->GetWorldVoxelSize();
-      pos[n] = ( npos - range/2 ) * vs[n];
+      pos[n] = ( npos - range/2 ) * m_dIncrementTranslate;
       layer->SetTranslate( pos );
       MainWindow::GetMainWindow()->RequestRedraw();
-      ChangeLineEditNumber(m_textTranslate[n], pos[n] );
+      ChangeLineEditNumber(m_textTranslate[n], pos[n], 2, true);
       UpdateUI( 1 );
     }
   }
@@ -577,7 +584,7 @@ void DialogTransformVolume::RespondTextRotate( int n )
           dvalue += 360;
 
         m_sliderRotate[n]->blockSignals(true);
-        m_sliderRotate[n]->setValue( (int)dvalue );
+        m_sliderRotate[n]->setValue( (int)(dvalue*2) );
         m_sliderRotate[n]->blockSignals(false);
         UpdateUI( 1 );
       }
@@ -594,10 +601,10 @@ void DialogTransformVolume::RespondSliderRotate( int n )
     {
       double angle[3];
       layer->GetRotate( angle );
-      angle[n] = m_sliderRotate[n]->value();
+      angle[n] = m_sliderRotate[n]->value()/2.0;
       layer->SetRotate( angle, ui->radioButtonAroundCenter->isChecked() );
       MainWindow::GetMainWindow()->RequestRedraw();
-      ChangeLineEditNumber(m_textAngle[n], angle[n] );
+      ChangeLineEditNumber(m_textAngle[n], angle[n], 2, true );
       UpdateUI( 1 );
     }
   }
@@ -651,13 +658,14 @@ void DialogTransformVolume::RespondTextScale( int n )
         MainWindow::GetMainWindow()->RequestRedraw();
 
         m_scrollScale[n]->blockSignals(true);
+        int nmax = m_scrollScale[n]->maximum();
         if ( dvalue >= 1 )
         {
-          m_scrollScale[n]->setValue( 50 + (int)( (dvalue-1.0)*50 ) );
+          m_scrollScale[n]->setValue( nmax/2 + (int)( (dvalue-1.0)*nmax/2 ) );
         }
         else
         {
-          m_scrollScale[n]->setValue( 50 - (int)( (1.0-dvalue)*100 ) );
+          m_scrollScale[n]->setValue( nmax/2 - (int)( (1.0-dvalue)*nmax ) );
         }
         m_scrollScale[n]->blockSignals(false);
         UpdateUI( 0 );
@@ -674,18 +682,19 @@ void DialogTransformVolume::RespondScrollScale( int n )
     double scale[3];
     layer->GetScale( scale );
     int npos = m_scrollScale[n]->value();
-    if ( npos >= 50 )
+    double nmax = m_scrollScale[n]->maximum();
+    if ( npos >= nmax/2 )
     {
-      scale[n] = ( npos - 50 ) / 50.0 + 1.0;
+      scale[n] = ( npos - nmax/2 ) / (nmax/2) + 1.0;
     }
     else
     {
-      scale[n] = ( npos - 50 ) / 100.0 + 1.0;
+      scale[n] = ( npos - nmax/2 ) / nmax + 1.0;
     }
     layer->SetScale( scale );
     MainWindow::GetMainWindow()->RequestRedraw();
 
-    ChangeLineEditNumber( m_textScale[n], scale[n] );
+    ChangeLineEditNumber( m_textScale[n], scale[n], 4, true );
     UpdateUI( 0 );
   }
 }

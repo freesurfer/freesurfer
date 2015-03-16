@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/27 17:55:27 $
- *    $Revision: 1.294 $
+ *    $Date: 2015/03/16 19:24:28 $
+ *    $Revision: 1.295 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -700,6 +700,8 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     floatingArgs << tmp_ar[i].c_str();
   }
+
+  m_bShowTransformWindow = parser->Found( "transform-volume" );
 
   bool bReverseOrder = parser->Found("rorder");
   if ( parser->Found("cmd", &sa))
@@ -3444,7 +3446,14 @@ void MainWindow::CommandLoadSurfaceAnnotation( const QStringList& cmd )
 
 void MainWindow::CommandLoadSurfaceLabel( const QStringList& cmd )
 {
-  LoadSurfaceLabelFile( cmd[1] );
+  if (!LoadSurfaceLabelFile( cmd[1] ))
+  {
+    if (!m_scripts.isEmpty())
+    {
+      if (m_scripts[0].at(0).toLower() == "loadsurfacelabel")
+        m_scripts.removeAt(0);
+    }
+  }
 }
 
 void MainWindow::CommandLoadSurfaceSpline(const QStringList &cmd)
@@ -5069,6 +5078,12 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
         }
       }
       m_views[3]->ResetCameraClippingRange();
+
+      if (m_bShowTransformWindow)
+      {
+        this->OnTransformVolume();
+        m_bShowTransformWindow = false;
+      }
     }
     else
     {
@@ -5491,13 +5506,15 @@ void MainWindow::LoadSurfaceLabel()
   }
 }
 
-void MainWindow::LoadSurfaceLabelFile( const QString& filename )
+bool MainWindow::LoadSurfaceLabelFile( const QString& filename )
 {
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer && !layer->LoadLabelFromFile( filename ))
   {
     QMessageBox::warning(this, "Error", QString("Could not load label from %1").arg(filename));
+    return false;
   }
+  return true;
 }
 
 void MainWindow::LoadSurfaceSpline()

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/23 17:10:43 $
- *    $Revision: 1.16 $
+ *    $Date: 2015/03/16 19:24:27 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -112,7 +112,7 @@ private:
 
   QCheckBox*   m_checkRotate[3];
   QComboBox*   m_comboRotate[3];
-  QSlider*     m_sliderRotate[3];
+  QScrollBar*     m_sliderRotate[3];
   QLineEdit*   m_textAngle[3];
   QScrollBar*    m_scrollTranslate[3];
   QLineEdit*     m_textTranslate[3];
@@ -121,6 +121,9 @@ private:
   QList<QtColorPicker*> m_colorPickerLandmark;
   QList<QPushButton*>   m_btnPickLandmark;
   QList<QComboBox*> m_comboLandmark;
+  double        m_dIncrementRotate;
+  double        m_dIncrementScale;
+  double        m_dIncrementTranslate;
 };
 
 #endif // DIALOGTRANSFORMVOLUME_H
