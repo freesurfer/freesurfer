@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2015/02/16 17:34:07 $
-#    $Revision: 1.508 $
+#    $Author: greve $
+#    $Date: 2015/03/16 21:22:59 $
+#    $Revision: 1.509 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.508 2015/02/16 17:34:07 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.509 2015/03/16 21:22:59 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -185,6 +185,7 @@ setenv OMP_NUM_THREADS 1 # -openmp <num_threads> allows specifying more threads
 set DoParallel = 0; # if 1, then run with -openmp 4, and run rh/lh stages in parallel
 
 set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
+set T2max = ();
 set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
 
 # Longitudinal processing:
@@ -4024,8 +4025,10 @@ if($DoT2pial || $DoFLAIRpial) then
     set cmd = ($cmd -nowhite)
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     # if using a T2 or FLAIR to remove dura that might be confused with pial...
-    if ($DoT2pial) set cmd = ($cmd -T2 ../mri/T2 \
-        -nsigma_above 2 -nsigma_below 5)
+    if($DoT2pial) then
+      set cmd = ($cmd -T2 ../mri/T2 -nsigma_above 2 -nsigma_below 5)
+      if($#T2max) set cmd = ($cmd -T2_max $T2max);
+    endif
     if ($DoFLAIRpial) set cmd = ($cmd -FLAIR ../mri/FLAIR \
         -nsigma_above 3 -nsigma_below 3)
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
@@ -5356,6 +5359,13 @@ while( $#argv != 0 )
       popd > /dev/null
       set InputT2Vol = "$T2InVolDir/$T2InVolBase";
       set DoConvertT2Input = 1;
+      breaksw
+
+    case "-t2max"
+    case "-T2max"
+    case "-T2_max"
+      if( $#argv < 1) goto arg1err;
+      set T2max = "$argv[1]"; shift;
       breaksw
 
     case "-FLAIR"
