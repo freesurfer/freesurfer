@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/03/10 19:45:11 $
-#    $Revision: 1.633 $
+#    $Date: 2015/03/18 15:11:55 $
+#    $Revision: 1.634 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -201,32 +201,36 @@ fi
 
 # check for gcc 4.4.*, which supports openmp, and requires some special
 # handling in regards to AC_PROC_LIBTOOL
-ac_have_gcc_44="no"
+ac_have_gcc_4="no"
 if test "${CC}" = "gcc"; then
-  gcc --version | head -n 1 | awk '{print $2 $3}' | grep "(GCC)4.4." >& /dev/null
+  gcc --version | head -n 1 | awk '{print $2 $3}' | grep "(GCC)4." >& /dev/null
   if test "$?" = "0"; then
-    AC_MSG_NOTICE(Have gcc 4.4)
-    ac_have_gcc_44="yes"
+    AC_MSG_NOTICE(Have gcc 4.x)
+    ac_have_gcc_4="yes"
   fi
 fi
 
 # Mac gcc 4.4 is provided by Macport, and outputs a slightly different
 # format when typing gcc --version, so lets test for it.
-if (test "${CC}" = "gcc") && (test "$ac_have_gcc_44" = "no"); then
-  gcc --version | head -n 1  | awk '{print $3}' | grep "gcc44" >& /dev/null
+if (test "${CC}" = "gcc") && (test "$ac_have_gcc_4" = "no"); then
+  gcc --version | head -n 1  | awk '{print $3}' | grep "gcc4" >& /dev/null
    if test "$?" = "0"; then
-    AC_MSG_NOTICE(Have gcc 4.4)
-    ac_have_gcc_44="yes"
+    AC_MSG_NOTICE(Have gcc 4.x)
+    ac_have_gcc_4="yes"
   fi
 fi
 
-# hack: when building with gcc 4.4.*, AC_PROC_LIBTOOL creates
-# a libtool which when run gives CDPATH errors. the workaround
-# is to use the libtool on the system.
-if (test ! `uname -s` = "Darwin") && (test "$ac_have_gcc_44" = "yes"); then
+# When the version of gcc and installed autools
+# begins to "diverge", the configure script needs
+# to copy libtool from /usr/bin (/opt/local/bin on OSX) 
+# into dev. If gcc autotools are "around the same" 
+# than this copying doesnt need to occur. 
+# But since it doesnt hurt lets just always do it.
+if test ! `uname -s` = "Darwin"; then
     AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
     cp /usr/bin/libtool .
 fi
+
 if test `uname -s` = "Darwin"; then
     AC_MSG_NOTICE(Copying /opt/local/bin/glibtool overtop the PROG_LIBTOOL)
     cp /opt/local/bin/glibtool ./libtool
@@ -369,39 +373,45 @@ AC_SUBST(LIB_G2C_A)
 # expect that shared libg2c exists, which it may not if we are forcing the
 # use of a static libg2c.a, so find the static libblas and liblapack.
 # the fem_elastic build dir uses LIB_BLAS_A and LIB_LAPACK_A
-LIB_BLAS_A=""
+LIB_BLAS=""
 if test -e /usr/local/lib/libblas.a ; then
-  LIB_BLAS_A="/usr/local/lib/libblas.a"
+  LIB_BLAS="/usr/local/lib/libblas.a"
 fi
 if test -e /usr/lib/libblas.a ; then
-  LIB_BLAS_A="/usr/lib/libblas.a"
+  LIB_BLAS="/usr/lib/libblas.a"
 fi
 if test -e /usr/lib64/libblas.a ; then
-  LIB_BLAS_A="/usr/lib64/libblas.a"
+  LIB_BLAS="/usr/lib64/libblas.a"
+fi
+if test -e /usr/lib64/libblas.so ; then
+  LIB_BLAS="/usr/lib64/libblas.so"
 fi
 if test "$host" = "powerpc64-suse-linux"; then
   if test -e /usr/lib/libblas.a ; then
-    LIB_BLAS_A="/usr/lib/libblas.a"
+    LIB_BLAS="/usr/lib/libblas.a"
   fi
 fi
-AC_SUBST(LIB_BLAS_A)
+AC_SUBST(LIB_BLAS)
 
-LIB_LAPACK_A=""
+LIB_LAPACK=""
 if test -e /usr/local/lib/liblapack.a ; then
-  LIB_LAPACK_A="/usr/local/lib/liblapack.a"
+  LIB_LAPACK="/usr/local/lib/liblapack.a"
 fi
 if test -e /usr/lib/liblapack.a ; then
-  LIB_LAPACK_A="/usr/lib/liblapack.a"
+  LIB_LAPACK="/usr/lib/liblapack.a"
 fi
 if test -e /usr/lib64/liblapack.a ; then
-  LIB_LAPACK_A="/usr/lib64/liblapack.a"
+  LIB_LAPACK="/usr/lib64/liblapack.a"
+fi
+if test -e /usr/lib64/liblapack.so ; then
+  LIB_LAPACK="/usr/lib64/liblapack.so"
 fi
 if test "$host" = "powerpc64-suse-linux"; then
   if test -e /usr/lib/liblapack.a ; then
-    LIB_LAPACK_A="/usr/lib/liblapack.a"
+    LIB_LAPACK="/usr/lib/liblapack.a"
   fi
 fi
-AC_SUBST(LIB_LAPACK_A)
+AC_SUBST(LIB_LAPACK)
 
 # libnetcdf is now installed by default on centos6 computers
 # at the Center. We want it to compile against the static 
@@ -713,11 +723,11 @@ AC_ARG_ENABLE(openmp,
  ])
 
 # gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
-if test "$ac_have_gcc_44" = "yes"; then
+if test "$ac_have_gcc_4" = "yes"; then
   ac_have_openmp=yes
   CPPFLAGS="$CPPFLAGS -fopenmp -DHAVE_OPENMP"
   LDFLAGS="$LDFLAGS -fopenmp"
-  AC_MSG_NOTICE(Using OpenMP with gcc 4.4)
+  AC_MSG_NOTICE(Using OpenMP with gcc 4.x)
 fi
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
 
@@ -2767,14 +2777,18 @@ if test "$itk_apps" = "yes"; then
 
   # ITK v3.16.0 needs libuuid for function `gdcm::Util::GenerateUUID'
   if test -e /usr/lib/libuuid.a ; then
-     LIB_UUID_A="/usr/lib/libuuid.a"
-     AC_SUBST(LIB_UUID_A)
+     LIB_UUID="/usr/lib/libuuid.a"
+     AC_SUBST(LIB_UUID)
   fi
   if test -e /usr/lib64/libuuid.a ; then
-     LIB_UUID_A="/usr/lib64/libuuid.a"
-     AC_SUBST(LIB_UUID_A)
+     LIB_UUID="/usr/lib64/libuuid.a"
+     AC_SUBST(LIB_UUID)
   fi
-  LIBS_ITK="$LIBS_ITK $LIB_UUID_A"
+  if test -e /usr/lib64/libuuid.so ; then
+     LIB_UUID="/usr/lib64/libuuid.so"
+     AC_SUBST(LIB_UUID)
+  fi 
+  LIBS_ITK="$LIBS_ITK $LIB_UUID"
 else
   AC_MSG_RESULT([Not building ITK apps.])
 fi
@@ -3552,6 +3566,9 @@ AC_SUBST(TESTS_ENVIRONMENT)
 #GEMS/data/Makefile
 #GEMS/scripts/Makefile
 
+#           histo_register/Makefile
+#           histo_register/SimpleBaseLib/Makefile
+#           histo_register/ParticleVideoLib/Makefile
 AC_OUTPUT([Makefile
            check_siemens_dir/Makefile
            cudatest/Makefile
@@ -3598,9 +3615,6 @@ AC_OUTPUT([Makefile
            HippoSF/linux_x86_64/Makefile
            HippoSF/mac_osx/Makefile
            hipsstubs/Makefile
-           histo_register/Makefile
-           histo_register/SimpleBaseLib/Makefile
-           histo_register/ParticleVideoLib/Makefile
            histo_segment/Makefile
            histo_synthesize/Makefile
            histo_compute_joint_density/Makefile
