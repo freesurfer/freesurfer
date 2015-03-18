@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/10/30 05:54:13 $
- *    $Revision: 1.100 $
+ *    $Author: fischl $
+ *    $Date: 2015/03/18 12:31:57 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,6 +75,8 @@ static double TEs[MAX_GCA_INPUTS] ;
 static int bigvent = 0 ;
 static int skull = 0 ;  /* if 1, aligning to image with skull */
 static int rigid = 0 ;
+
+GCA_SAMPLE *Ggcas ;
 
 #define MAX_SCALE_PCT 0.15
 static float max_scale_pct = MAX_SCALE_PCT ;
@@ -223,7 +225,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.100 2014/10/30 05:54:13 nicks Exp $",
+     "$Id: mri_em_register.c,v 1.101 2015/03/18 12:31:57 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -733,6 +735,7 @@ main(int argc, char *argv[])
       parms.gcas = GCAfindStableSamples
                    (gca, &nsamples,spacing,
                     min_prior,exclude_list,unknown_nbr_spacing, vent_spacing) ;
+    Ggcas = parms.gcas ;  // for diags
     mark_gcas_classes(parms.gcas, nsamples) ;
     printf("************************************************\n");
     printf("spacing=%d, using %d sample points, tol=%2.2e...\n",
@@ -875,6 +878,19 @@ main(int argc, char *argv[])
   // add src and dst info
   getVolGeom(mri_in, &parms.lta->xforms[0].src);
   getVolGeom(mri_dst, &parms.lta->xforms[0].dst);
+  if (parms.lta->type == LINEAR_VOX_TO_VOX)  /* convert back to voxel */
+  {
+    MATRIX *m_voxsize, *m_tmp ;
+    printf("accounting for voxel sizes in final transform\n") ;
+    m_voxsize = MatrixIdentity(4, NULL) ;
+    *MATRIX_RELT(m_voxsize, 1,1) = mri_in->xsize ;
+    *MATRIX_RELT(m_voxsize, 2,2) = mri_in->ysize ;
+    *MATRIX_RELT(m_voxsize, 3,3) = mri_in->zsize ;
+    m_tmp = MatrixMultiply(m_voxsize, parms.lta->xforms[0].m_L,NULL) ;
+    MatrixCopy(m_tmp, parms.lta->xforms[0].m_L) ;
+    MatrixFree(&m_voxsize) ; MatrixFree(&m_tmp) ;
+  }
+
   LTAwriteEx(parms.lta, out_fname) ;
 
   ///////////////////////////////////////////// end of writing transform
