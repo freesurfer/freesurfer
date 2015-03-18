@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/03/18 15:11:55 $
-#    $Revision: 1.634 $
+#    $Date: 2015/03/18 19:17:56 $
+#    $Revision: 1.635 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3566,9 +3566,6 @@ AC_SUBST(TESTS_ENVIRONMENT)
 #GEMS/data/Makefile
 #GEMS/scripts/Makefile
 
-#           histo_register/Makefile
-#           histo_register/SimpleBaseLib/Makefile
-#           histo_register/ParticleVideoLib/Makefile
 AC_OUTPUT([Makefile
            check_siemens_dir/Makefile
            cudatest/Makefile
@@ -3617,6 +3614,9 @@ AC_OUTPUT([Makefile
            hipsstubs/Makefile
            histo_segment/Makefile
            histo_synthesize/Makefile
+           histo_register/Makefile
+           histo_register/SimpleBaseLib/Makefile
+           histo_register/ParticleVideoLib/Makefile
            histo_compute_joint_density/Makefile
            histo_register_block/Makefile
            images/Makefile

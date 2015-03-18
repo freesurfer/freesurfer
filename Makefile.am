@@ -334,7 +334,6 @@ STATSDIRS=\
 
 #GEMS
 
-#histo_register \
 MISCDIRS=\
 	histo_compute_joint_density \
 	histo_register_block \
@@ -349,7 +348,8 @@ MISCDIRS=\
 	hiam_make_surfaces\
 	hiam_make_template\
 	hiam_register \
-  spline3 \
+    histo_register \
+    spline3 \
 	swi_processing \
 	nmovie_qt \
 	HippoSF
