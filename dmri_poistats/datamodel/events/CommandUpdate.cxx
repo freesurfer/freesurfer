@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cstddef>
+
 
 // I need to include this for ofstream to work for some reason...
 #include <itkImageSeriesReader.h>

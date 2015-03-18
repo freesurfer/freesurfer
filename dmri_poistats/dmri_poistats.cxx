@@ -25,6 +25,7 @@
 #include <iostream>
 #include <string>
 #include <cstdlib>
+#include <cstddef>
 
 // for reading in the cosine directions because itk doesn't do it properly
 #include <nifti1_io.h>

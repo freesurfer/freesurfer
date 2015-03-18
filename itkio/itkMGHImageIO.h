@@ -4,6 +4,7 @@
 #define H_ITK_IMAGE_IO_H
 
 // STL includes
+#include <cstddef>
 
 // ITK includes
 #include "itkImageIOBase.h"

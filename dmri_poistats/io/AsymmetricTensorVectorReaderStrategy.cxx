@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <itkImageSeriesReader.h>
 
 #include "AsymmetricTensorVectorReaderStrategy.h"

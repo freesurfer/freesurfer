@@ -537,7 +537,7 @@ freeview_LDADD		= $(QT_LIBS) \
 	-lvtkCommon -lvtksys -lvtkGenericFiltering \
 	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
+	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) -lX11 \
 	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
 	-lpetscvec -lpetsc -lmpich -lpmpich
@@ -614,10 +614,10 @@ freeview_LDADD		= $(QT_LIBS)	\
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
   -lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
-  $(ITK_LIBS) \
+  $(ITK_LIBS) -lX11 \
   $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
   -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
-  $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
+  $(LIB_GFORTRAN) $(LIB_LAPACK) $(LIB_BLAS) $(LIB_G2C_A) $(LIB_GFORTRAN)
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk enviro vars
 # and if the OS is MACOSX have a different install-hook to create a bundle

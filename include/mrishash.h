@@ -9,9 +9,9 @@
 /*
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.25 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/18 17:04:00 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,7 +83,8 @@ typedef struct
 
 // TABLE_SIZE dimensions for array of hash buckets. As defined here
 // TABLE_SIZE = 400.
-#define TABLE_SIZE     ((int)(FIELD_OF_VIEW / VOXEL_RES))
+//#define TABLE_SIZE     ((int)(FIELD_OF_VIEW / VOXEL_RES))
+#define TABLE_SIZE     400
 
 #define WORLD_TO_VOLUME(mht,x)   (((x)+FIELD_OF_VIEW/2)/((mht)->vres))
 #define WORLD_TO_VOXEL(mht,x)    ((int)(WORLD_TO_VOLUME(mht,x)))

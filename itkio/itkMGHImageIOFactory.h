@@ -2,8 +2,10 @@
 #ifndef H_ITK_MGH_IMAGE_IO_FACTORY_H
 #define H_ITK_MGH_IMAGE_IO_FACTORY_H
 
+#include <cstddef>
 #include "itkObjectFactoryBase.h"
 #include "itkImageIOBase.h"
+
 
 namespace itk
 {

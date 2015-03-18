@@ -4,6 +4,8 @@
 #include "itkMGHImageIO.h"
 #include "itkVersion.h"
 
+#include <cstddef>
+
 namespace itk
 {
 

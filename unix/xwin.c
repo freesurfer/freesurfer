@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:41 $
- *    $Revision: 1.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/18 17:02:48 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -122,7 +122,6 @@ long eventmask;
   unsigned long valuemask ;
   XSetWindowAttributes xswa ;
   XVisualInfo xinfo ;
-  int ret ;
 
   /**** open display and screen ****/
   xwin->display = XOpenDisplay(displayname);
@@ -155,9 +154,6 @@ long eventmask;
                                      BlackPixel(xwin->display,xwin->screen),
                                      WhitePixel(xwin->display,xwin->screen));
 #else
-
-  ret = XMatchVisualInfo(xwin->display, DefaultScreen(xwin->display),
-                         8, GrayScale, &xinfo) ;
 
   /*  if (ret == False)  always use default visual */
   xinfo.visual = DefaultVisual(xwin->display, xwin->screen) ;
@@ -279,7 +275,6 @@ void
 xDrawLine(xwindow_type *xwin, int x0, int y0, int x1, int y1, int color,
           int style)
 {
-  int ox, oy ;
   GC  gc ;
 
   if (!xwin) return ;
@@ -290,8 +285,6 @@ xDrawLine(xwindow_type *xwin, int x0, int y0, int x1, int y1, int color,
   x1 *= xwin->scale ;
   y1 *= xwin->scale ;
 
-  ox = xwin->xsize / 2 ;
-  oy = xwin->ysize / 2 ;
 #if 0
   x0 += ox ;
   x1 += ox ;
@@ -367,16 +360,12 @@ xDrawLines(xwindow_type *xwin, XSegment *segs, int nsegs, int color)
 void
 xDrawCircle(xwindow_type *xwin, int x0, int y0, int radius, int color)
 {
-  int ox, oy ;
-
   if (!xwin) return ;
 
   x0 *= xwin->scale ;
   y0 *= xwin->scale ;
   radius *= xwin->scale ;
 
-  ox = xwin->xsize / 2 ;
-  oy = xwin->ysize / 2 ;
 #if 0
   x0 += ox ;
   y0 = oy - y0 ;

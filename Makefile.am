@@ -333,8 +333,9 @@ STATSDIRS=\
 	stat_normalize
 
 #GEMS
+
+#histo_register \
 MISCDIRS=\
-	histo_register \
 	histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \

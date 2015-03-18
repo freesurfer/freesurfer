@@ -1,5 +1,6 @@
 
 #include <fstream>
+#include <cstddef>
 
 #include "itkMGHImageIO.h"
 

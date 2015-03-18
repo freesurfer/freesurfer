@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:41 $
- *    $Revision: 1.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/18 17:02:48 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -634,18 +634,9 @@ GLenum tkoInitPixmap(long x, long y)   /* marty */
   static Pixmap pixmap;
   static GLXPixmap glxpixmap;
   static GLXContext cx;
-  GLenum overlayFlag;
 
   if (!xDisplay && !tkoInitDisplay()) return(GL_FALSE);
 
-  if (TKO_HAS_OVERLAY(w.type))
-  {
-    overlayFlag = GL_TRUE;
-  }
-  else
-  {
-    overlayFlag = GL_FALSE;
-  }
   w.type &= ~TKO_OVERLAY;
 
   if (w.dmPolicy == TKO_MINIMUM_CRITERIA)
