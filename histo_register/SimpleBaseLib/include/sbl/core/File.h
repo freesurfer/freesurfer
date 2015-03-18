@@ -3,6 +3,8 @@
 #include <sbl/core/String.h>
 #include <sbl/math/Vector.h>
 #include <stdio.h>
+#include <zlib.h>
+
 namespace sbl {
 
 
@@ -152,7 +154,7 @@ protected:
     FILE *m_file;
 
     // zlib file handle (if any)
-    void *m_gzFile;
+    gzFile m_gzFile;
 
 private:
 

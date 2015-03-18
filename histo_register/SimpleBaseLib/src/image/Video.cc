@@ -1,5 +1,5 @@
 // Licensed under MIT license; see license.txt.
-
+#include <cstddef>
 #include <sbl/image/Video.h>
 #include <sbl/core/StringUtil.h>
 #include <sbl/math/MathUtil.h>

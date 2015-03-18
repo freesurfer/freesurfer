@@ -1,5 +1,6 @@
 // Licensed under MIT license; see license.txt.
 
+#include <cstddef> 
 #include <sbl/image/ImageUtil.h>
 #include <sbl/core/Command.h> // for filter registry
 #include <sbl/math/MathUtil.h>

@@ -1,5 +1,6 @@
 // Licensed under MIT license; see license.txt.
 
+#include <cstddef>
 #include <sbl/image/ImageTransform.h>
 #include <sbl/math/MathUtil.h>
 #ifdef USE_OPENCV

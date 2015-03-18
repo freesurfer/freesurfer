@@ -1,5 +1,6 @@
 // Licensed under MIT license; see license.txt.
 
+#include <cstddef> 
 #include <sbl/math/MatrixUtil.h>
 #include <sbl/core/Display.h>
 #include <sbl/math/MathUtil.h>
