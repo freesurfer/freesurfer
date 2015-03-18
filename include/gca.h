@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lindemer $
- *    $Date: 2015/03/12 18:36:13 $
- *    $Revision: 1.127 $
+ *    $Author: fischl $
+ *    $Date: 2015/03/18 13:27:29 $
+ *    $Revision: 1.128 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -426,6 +426,7 @@ int   GCApriorToNode( const GCA *gca,
 		      int *pxn, int *pyn, int *pzn);
 int   GCAfreeGibbs(GCA *gca) ;
 GC1D *GCAfindPriorGC( const GCA *gca, int xp, int yp, int zp,int label) ;
+MATRIX *GCAgetPriorToSourceVoxelMatrix( GCA *gca, const MRI *mri, TRANSFORM *transform) ;
 int  GCApriorToSourceVoxel( GCA *gca,
 			    const MRI *mri, TRANSFORM *transform,
 			    const int xp, const int yp, const int zp,
