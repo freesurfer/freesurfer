@@ -15,9 +15,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:55 $
- *    $Revision: 1.328 $
+ *    $Author: fischl $
+ *    $Date: 2015/03/18 15:22:57 $
+ *    $Revision: 1.329 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1675,6 +1675,33 @@ GCAsourceVoxelToNode( const GCA *gca, MRI *mri, TRANSFORM *transform,
 }
 
 //////////////////////////////////////////////////////////////////////
+// get the matrix that transforms prior coordinates into source voxel coords
+////////////////////////////////////////////////////////////////////
+MATRIX *
+GCAgetPriorToSourceVoxelMatrix( GCA *gca, const MRI *mri, TRANSFORM *transform)
+{
+  MATRIX *rasFromPrior = gca->prior_i_to_r__;
+  // extract_i_to_r(gca->mri_prior__);
+  MATRIX *voxelFromRAS = gca->mri_tal__->r_to_i__; // extract_r_to_i(mri);
+  MATRIX *m_prior2voxel, *m_prior2source_voxel, *m_voxsize, *m_tmp ;
+  LTA *lta = (LTA *) transform->xform;
+
+  // go to the template voxel position
+//  GCApriorToVoxelReal(gca, gca->mri_tal__, xp, yp, zp, &xt, &yt, &zt);
+  m_prior2voxel = MatrixMultiply(voxelFromRAS, rasFromPrior, NULL);
+  if (transform->type != LINEAR_VOX_TO_VOX) // from src to talairach volume
+    ErrorExit(ERROR_BADPARM,
+	      "GCApriorToSourceVoxelMatrix: needs vox-to-vox transform") ;
+  m_tmp = MatrixMultiply(lta->inv_xforms[0].m_L, m_prior2voxel, NULL) ;
+  m_voxsize = MatrixIdentity(4, NULL) ;
+  *MATRIX_RELT(m_voxsize, 1,1) = 1.0/mri->xsize ;
+  *MATRIX_RELT(m_voxsize, 2,2) = 1.0/mri->ysize ;
+  *MATRIX_RELT(m_voxsize, 3,3) = 1.0/mri->zsize ;
+  m_prior2source_voxel  = MatrixMultiply(m_voxsize, m_tmp, NULL) ;
+  MatrixFree(&m_prior2voxel) ; MatrixFree(&m_voxsize) ; MatrixFree(&m_tmp) ;
+  return(m_prior2source_voxel) ;
+}
+//////////////////////////////////////////////////////////////////////
 // transform from node->template->source
 ////////////////////////////////////////////////////////////////////
 int
@@ -1731,6 +1758,9 @@ GCApriorToSourceVoxelFloat( GCA *gca,
       xv = xc;
       yv = yc;
       zv = zc;
+      xv = xc/mri->xsize;
+      yv = yc/mri->ysize;
+      zv = zc/mri->zsize;
     }
     else
       ErrorExit(ERROR_BADPARM,
@@ -5077,14 +5107,16 @@ GCAcomputeLogSampleProbability(GCA *gca,
                                int nsamples,
                                double clamp)
 {
-  int        width, height, depth, i;
+  int        i, tid, nthreads;
   double     total_log_p;
+  MATRIX     *m_prior2source_voxel = NULL ;
+  VECTOR     *v_src[_MAX_FS_THREADS], *v_dst[_MAX_FS_THREADS] ;
+
 //  double     outside_log_p = 0.;
 
   /* go through each GC in the sample and compute the probability of
      the image at that point.
   */
-  width = mri_inputs->width ; height = mri_inputs->height; depth = mri_inputs->depth ;
   // store inverse transformation .. forward:input->gca template,
   // inv: gca template->input
   TransformInvert(transform, mri_inputs) ;
@@ -5097,7 +5129,41 @@ GCAcomputeLogSampleProbability(GCA *gca,
    multimodal inputs. Removing did not seem to slow it down much.
   */
 #ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+:total_log_p)
+  #pragma omp parallel
+  {
+    nthreads = omp_get_num_threads();
+  }
+#else
+  nthreads = 1;
+#endif
+  for (tid = 0 ; tid < nthreads ; tid++)
+  {
+    v_src[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    v_dst[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    *MATRIX_RELT(v_src[tid], 4, 1) = 1.0 ;
+    *MATRIX_RELT(v_dst[tid], 4, 1) = 1.0 ;
+  }    
+
+  m_prior2source_voxel = GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs,transform);
+
+#if 0
+  {
+    Real xf, yf, zf ;
+    int xp, yp, zp, x, y, z ;
+
+    tid = 0 ;
+    V3_X(v_src[tid]) = xp = gcas[0].xp ; V3_Y(v_src[tid]) = yp = gcas[0].yp ; V3_Z(v_src[tid]) = zp = gcas[0].zp ;
+    MatrixMultiply(m_prior2source_voxel, v_src[tid], v_dst[tid]) ;
+    xf = V3_X(v_dst[tid]) ; yf = V3_Y(v_dst[tid]) ; zf = V3_Z(v_dst[tid]) ;
+
+    // if it is inside the source voxel
+    GCApriorToSourceVoxel(gca, mri_inputs, transform, xp, yp, zp, &x, &y, &z) ;
+    DiagBreak() ;
+  }
+#endif
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(gcas, tid, m_prior2source_voxel) reduction(+:total_log_p)
 #endif
   for (i = 0 ; i < nsamples ; i++)
   {
@@ -5105,6 +5171,11 @@ GCAcomputeLogSampleProbability(GCA *gca,
     double log_p;
     float  vals[MAX_GCA_INPUTS] ;
 
+#ifdef HAVE_OPENMP
+    tid = omp_get_thread_num();
+#else
+    tid = 0;
+#endif
     /////////////////// diag code /////////////////////////////
     if (i == Gdiag_no)
       DiagBreak() ;
@@ -5114,11 +5185,18 @@ GCAcomputeLogSampleProbability(GCA *gca,
       DiagBreak() ;
     ///////////////////////////////////////////////////////////
 
-    // get prior coordinates
+    // get prior coordinates in source volume
+#if 1
+    V3_X(v_src[tid]) = xp = gcas[i].xp ; V3_Y(v_src[tid]) = yp = gcas[i].yp ; V3_Z(v_src[tid]) = zp = gcas[i].zp ;
+    MatrixMultiply(m_prior2source_voxel, v_src[tid], v_dst[tid]) ;
+    x = nint(V3_X(v_dst[tid])) ; y = nint(V3_Y(v_dst[tid])) ; z = nint(V3_Z(v_dst[tid])) ;
+    if (MRIindexNotInVolume(mri_inputs, x, y, z) == 0) {
+#else
     xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ;
+    if (!GCApriorToSourceVoxel(gca, mri_inputs, transform, xp, yp, zp, &x, &y, &z)) {
+#endif
 
     // if it is inside the source voxel
-    if (!GCApriorToSourceVoxel(gca, mri_inputs, transform, xp, yp, zp, &x, &y, &z)) {
       if (x == Gx && y == Gy && z == Gz)
         DiagBreak() ;
 
@@ -5146,6 +5224,13 @@ GCAcomputeLogSampleProbability(GCA *gca,
   }
   fflush(stdout) ;
 
+  for (tid = 0 ; tid < nthreads ; tid++)
+  {
+    VectorFree(&v_src[tid]) ;
+    VectorFree(&v_dst[tid]) ;
+  }
+  if (m_prior2source_voxel)
+    MatrixFree(&m_prior2source_voxel) ;
   return((float)total_log_p/nsamples) ;
 }
 
@@ -28773,6 +28858,10 @@ GCAsourceVoxelToPriorReal(GCA *gca, MRI *mri, TRANSFORM *transform,
       xt = xrt;
       yt = yrt;
       zt = zrt;
+      // BRF - fixed to work with highres volumes
+      xt = xrt*mri->xsize;
+      yt = yrt*mri->ysize;
+      zt = zrt*mri->zsize;
       // TransformSample(transform, xv, yv, zv, &xt, &yt, &zt) ;
     }
     else
