@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/05/30 17:36:50 $
- *    $Revision: 1.30 $
+ *    $Date: 2015/03/19 13:22:55 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -414,6 +414,8 @@ int MRISdivideAnnotation(MRI_SURFACE *mris, int *nunits) {
   for (i = 0 ; i < mris->ct->nentries ; i++) {
     if (i == Gdiag_no)
       DiagBreak() ;
+    if (mris->ct->entries[i] == NULL)
+      continue ;
     *(ct->entries[i]) = *(mris->ct->entries[i]) ;
     for (j = 0 ; done[i] > 1 && j < done[i] ; j++) {
       int offset, new_index, ri, gi, bi, found ;
