@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/10/06 12:47:46 $
- *    $Revision: 1.6 $
+ *    $Date: 2015/03/19 22:13:48 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -141,13 +141,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.6 2011/10/06 12:47:46 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.7 2015/03/19 22:13:48 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.6 2011/10/06 12:47:46 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.7 2015/03/19 22:13:48 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -338,6 +338,7 @@ main(int argc, char *argv[])
   }
 
   // now do cross-time normalization to bring each timepoint closer to the mean at each location
+  if (mri_in->nframes > 1)
   {
     MRI   *mri_frame1, *mri_frame2, *mri_tmp ;
     double rms_before, rms_after ;
@@ -362,6 +363,7 @@ main(int argc, char *argv[])
   }
 
   // try to bring the images closer to each other at each voxel where they seem to come from the same distribution
+  if (mri_in->nframes > 1)
   {
     MRI   *mri_frame1, *mri_frame2 ;
     double rms_after ;
