@@ -537,7 +537,7 @@ freeview_LDADD		= $(QT_LIBS) \
 	-lvtkCommon -lvtksys -lvtkGenericFiltering \
 	-lvtkexoIIc -lvtkNetCDF $(VTK_NETCDFCXX_LIB) \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) -lX11 \
+	-lvtkWidgets -lvtkHybrid $(VTK_HDF5_LIB) \
 	-lvtkIO	$(VTK_LSDYNA_LIB) -lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
 	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
 	-lpetscvec -lpetsc -lmpich -lpmpich
