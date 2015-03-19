@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/03/18 19:17:56 $
-#    $Revision: 1.635 $
+#    $Date: 2015/03/19 21:54:53 $
+#    $Revision: 1.636 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2628,10 +2628,14 @@ if test "x$GTS_DIR" = "x"; then
   if test -d "/usr/pubsw/packages/gts/current" ; then
     GTS_DIR=/usr/pubsw/packages/gts/current
   fi
+else
+  if ! test -d "$GTS_DIR" ; then
+    GTS_DIR=""
+  fi
 fi
 
 # use the handy wx-config utility to get the compiler and linker flags
-if test ! "x$GTS_DIR" = "x"; then
+if ! test "x$GTS_DIR" = "x"; then
   AC_MSG_RESULT([Enabled building of GTS apps.])
   GTSCONFIG="${GTS_DIR}/bin/gts-config"
   GTS_CFLAGS="`${GTSCONFIG} --cflags`"
@@ -2646,6 +2650,7 @@ AM_CONDITIONAL(HAVE_GTS_LIBS, test ! "x$GTS_DIR" = "x")
 AC_SUBST(GTS_CFLAGS)
 AC_SUBST(GTS_LIBS)
 AC_SUBST(GTS_DIR)
+
 
 ################################################################
 # ITK
