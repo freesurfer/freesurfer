@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/03/18 13:27:29 $
- *    $Revision: 1.128 $
+ *    $Date: 2015/03/20 15:01:09 $
+ *    $Revision: 1.129 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -388,9 +388,11 @@ double GCAcomputeMeanEntropy(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCArenormalize(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
 int  GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform) ;
 int  GCAmapRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp,const  char *base_name, LTA **plta, int handle_expanded_ventricles);
+int  GCAmapRenormalizeWithAlignmentLongitudinal(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp,const  char *base_name, LTA **plta, int handle_expanded_ventricles);
 int  GCAseqRenormalizeWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp,const char *base_name, LTA **plta, int handle_expanded_ventricles, float *old_label_scales, float *old_label_offsets, float *old_label_peaks, int *old_label_computed);
 int  GCAmapRenormalizeWithHistograms(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp,const char *base_name, float *old_label_scales, float *old_label_offsets, float *old_label_peaks, int *old_label_computed);
 int  GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, const  char *base_name, LTA **plta, int handle_expanded_ventricles, float *plabel_scales, float *plabel_offsets, float *plabel_peaks, int *plabel_computed);
+int  GCAcomputeRenormalizationWithAlignmentLongitudinal(GCA *gca, MRI *mri, TRANSFORM *transform, FILE *logfp, const  char *base_name, LTA **plta, int handle_expanded_ventricles, float *plabel_scales, float *plabel_offsets, float *plabel_peaks, int *plabel_computed);
 int  GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
                             int wsize, float pthresh) ;
 int  GCArenormalizeLabels(MRI *mri_in, MRI *mri_labeled, GCA *gca, TRANSFORM *transform) ;
