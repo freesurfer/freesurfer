@@ -91,7 +91,7 @@ LineProfTest_LDADD=\
   $(ITK_LIBS) \
   $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp \
   -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
-  $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS) $(LIB_G2C) $(LIB_GFORTRAN)
+  $(LIB_GFORTRAN) $(LIB_LAPACK) $(LIB_BLAS) $(LIB_G2C_A) $(LIB_GFORTRAN)
 endif
 
 endif
