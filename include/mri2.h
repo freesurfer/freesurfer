@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/10 05:31:17 $
- *    $Revision: 1.65 $
+ *    $Date: 2015/03/23 20:50:14 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -140,6 +140,7 @@ MRI *MRIunsegmentWM(MRI *seg, MRIS *lhw, MRIS *rhw, int *segidlist, int nlist, L
 MRI *MRIrelabelHypoHemi(MRI *seg, MRIS *lhw, MRIS *rhw, LTA *anat2seg, MRI *wmseg);
 MRI *MRIrelabelNonWMHypos(MRI *seg0, int *segidlist, int nsegs, int *outsegidlist);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
+MRI *MRIconformedTemplate(MRI *mri, int conform_width, double conform_size, int KeepDC);
 
 #if defined(__cplusplus)
 };

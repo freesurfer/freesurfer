@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/01/16 19:45:39 $
- *    $Revision: 1.217 $
+ *    $Author: greve $
+ *    $Date: 2015/03/23 20:50:14 $
+ *    $Revision: 1.218 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,6 +84,7 @@ int main(int argc, char *argv[])
   int conform_min;  // conform to the smallest dimension
   int conform_width;
   int conform_width_256_flag;
+  int ConfKeepDC = 0;
   int parse_only_flag;
   int reorder_flag;
   int reorder4_vals[4];
@@ -214,7 +215,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.217 2015/01/16 19:45:39 fischl Exp $",
+   "$Id: mri_convert.c,v 1.218 2015/03/23 20:50:14 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -339,7 +340,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.217 2015/01/16 19:45:39 fischl Exp $",
+      "$Id: mri_convert.c,v 1.218 2015/03/23 20:50:14 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -453,6 +454,11 @@ int main(int argc, char *argv[])
              strcmp(argv[i], "--conform") == 0)
     {
       conform_flag = TRUE;
+    }
+    else if (strcmp(argv[i], "--conform-dc") == 0)
+    {
+      conform_flag = TRUE;
+      ConfKeepDC = 1;
     }
     else if (strcmp(argv[i], "--cw256") == 0)
     {
@@ -1667,7 +1673,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.217 2015/01/16 19:45:39 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.218 2015/03/23 20:50:14 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -2593,35 +2599,7 @@ int main(int argc, char *argv[])
           conform_width = MRIfindRightSize(mri, conform_size);
         }
       }
-      template->width =
-      template->height = template->depth = conform_width;
-      template->imnr0 = 1;
-      template->imnr1 = conform_width;
-      template->type = MRI_UCHAR;
-      template->thick = conform_size;
-      template->ps = conform_size;
-      template->xsize =
-      template->ysize = template->zsize = conform_size;
-      printf("Original Data has (%g, %g, %g) mm size "
-             "and (%d, %d, %d) voxels.\n",
-             mri->xsize, mri->ysize, mri->zsize,
-             mri->width, mri->height, mri->depth);
-      printf("Data is conformed to %g mm size and "
-             "%d voxels for all directions\n",
-             conform_size, conform_width);
-      template->xstart = template->ystart =
-      template->zstart = - conform_width/2;
-      template->xend =
-      template->yend = template->zend = conform_width/2;
-      template->x_r = -1.0;
-      template->x_a =  0.0;
-      template->x_s =  0.0;
-      template->y_r =  0.0;
-      template->y_a =  0.0;
-      template->y_s = -1.0;
-      template->z_r =  0.0;
-      template->z_a =  1.0;
-      template->z_s =  0.0;
+      template = MRIconformedTemplate(mri, conform_width, conform_size, ConfKeepDC);
     }
     else if ( voxel_size_flag )
     {
@@ -3551,5 +3529,6 @@ void usage(FILE *stream)
 {
   outputHelpXml(mri_convert_help_xml,mri_convert_help_xml_len);
 } /* end usage() */
+
 
 /* EOF */
