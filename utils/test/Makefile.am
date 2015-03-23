@@ -46,9 +46,9 @@ CPPUNIT_CHECKS=test_nr_wrapper test_matrix
 else
 CPPUNIT_CHECKS=
 endif
-check_PROGRAMS=foo $(CHECKS) $(CPPUNIT_CHECKS)
+#check_PROGRAMS=foo $(CHECKS) $(CPPUNIT_CHECKS)
 
-TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
+#TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
 
 mnitest_SOURCES=mnitest.cpp
 i2rtest_SOURCES=i2rtest.cpp
