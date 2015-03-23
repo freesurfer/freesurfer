@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/03/20 06:15:19 $
-#    $Revision: 1.637 $
+#    $Date: 2015/03/23 19:18:02 $
+#    $Revision: 1.638 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -372,9 +372,6 @@ fi
 if test -e /usr/lib64/libblas.a ; then
   LIB_BLAS="/usr/lib64/libblas.a"
 fi
-if test -e /usr/lib64/libblas.so ; then
-  LIB_BLAS="/usr/lib64/libblas.so"
-fi
 if test "$host" = "powerpc64-suse-linux"; then
   if test -e /usr/lib/libblas.a ; then
     LIB_BLAS="/usr/lib/libblas.a"
@@ -391,9 +388,6 @@ if test -e /usr/lib/liblapack.a ; then
 fi
 if test -e /usr/lib64/liblapack.a ; then
   LIB_LAPACK="/usr/lib64/liblapack.a"
-fi
-if test -e /usr/lib64/liblapack.so ; then
-  LIB_LAPACK="/usr/lib64/liblapack.so"
 fi
 if test "$host" = "powerpc64-suse-linux"; then
   if test -e /usr/lib/liblapack.a ; then
@@ -670,6 +664,11 @@ fi
 if test -e /usr/lib64/libgfortran.a ; then
   LIB_GFORTRAN="/usr/lib64/libgfortran.a"
 fi
+# centos7 installation location 
+if test -e /usr/lib/gcc/x86_64-redhat-linux/4.8.2/libgfortran.a ; then
+  LIB_GFORTRAN="/usr/lib64/libgfortran.a"
+fi
+
 
 AC_SUBST(LIB_GFORTRAN)
 AM_CONDITIONAL(HAVE_GFORTRAN, test ! "x$LIB_GFORTRAN" = "x" )
@@ -1141,7 +1140,9 @@ if test "x$x_includes" = "xNONE"; then
   x_includes=
 fi
 if test "x$x_includes" = "x"; then
-  x_includes=/usr/X11R6/include
+  if test -d "/usr/X11R6/include" ; then
+    x_includes=/usr/X11R6/include
+  fi
 fi
 AC_MSG_NOTICE([x_includes set to $x_includes  \
 If not correct specify using --x-includes=])
@@ -1163,6 +1164,11 @@ if test "x$x_libraries" = "x"; then
   if test -d "/usr/X11R6/lib64" ; then
     x_libraries=/usr/X11R6/lib64
   fi
+  # centos7 location
+  if test -e "/lib64/libX11.so" ; then
+    x_libraries=/lib64
+  fi
+
 fi
 AC_MSG_NOTICE([x_libraries set to $x_libraries  \
 If not correct specify using --x-libraries=])
