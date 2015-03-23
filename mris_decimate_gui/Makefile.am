@@ -13,7 +13,8 @@ AM_CXXFLAGS=\
 	-I$(top_srcdir)/vtkutils \
 	-I$(top_srcdir)/mris_decimate_gui/res \
 	-I$(top_srcdir)/mris_decimate \
-	$(WXWIDGETS_CXXFLAGS) $(GTS_CFLAGS)
+	$(WXWIDGETS_CXXFLAGS) $(GTS_CFLAGS) \
+	$(X_LIBS)
 
 if ENABLE_WXWIDGETS_APPS
 if HAVE_GTS_LIBS
