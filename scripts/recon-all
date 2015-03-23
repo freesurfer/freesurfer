@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/03/16 21:22:59 $
-#    $Revision: 1.509 $
+#    $Date: 2015/03/23 21:02:12 $
+#    $Revision: 1.510 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.509 2015/03/16 21:22:59 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.510 2015/03/23 21:02:12 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -105,6 +105,7 @@ set WSUseTalXfm = 0;    # 1=use talairach.xfm instead of talairach_with_skull
 set DoGcut = 0;         # 1=run mri_gcut after mri_watershed
 set NuIterations = 1;   # Number of iterations for nu intensity correction
 set ConformMin = 0;     # 1=conformed to min dimension
+set ConformKeepDC = 0;  # Keep volume direction cosines when conforming
 set HiRes = 0;          # 1=hires option (conformed to min dimension)
 set Norm3dIters = ();   # passed as -n to *both* mri_normalize runs
 set NormMaxGrad = 1;    # passed as -g to *both* mri_normalize runs
@@ -1524,6 +1525,7 @@ if($DoMotionCor) then
   # conform to COR FOV but keep mgz format.
   set cmd = (mri_convert $rawavg $origvol)
   if($UseCubic) set cmd = ($cmd -rt cubic)
+  if($ConformKeepDC) set cmd = ($cmd --conform-dc)
   if($ConformMin) then
     set cmd = ($cmd --conform_min)
   else
@@ -6743,6 +6745,11 @@ while( $#argv != 0 )
     case "-cm":
       set ConformMin = 1;
       echo "INFO: all volumes are conformed to the min voxel size"
+      breaksw
+
+    case "-conform-dc":
+      set ConformKeepDC = 1;
+      echo "INFO: keeping DC when conforming"
       breaksw
 
     case "-hires":
