@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/03/23 19:18:02 $
-#    $Revision: 1.638 $
+#    $Date: 2015/03/23 22:31:25 $
+#    $Revision: 1.639 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -946,9 +946,18 @@ if test "$CPUTYPE" = "NO"; then
       esac
       ;;
     x86_64-*)
-      CPUCAPS=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
+      # this is the only was I found to determine 
+      if test -e "/proc/cpuinfo" ; then
+        CPUCAPS=`cat /proc/cpuinfo | egrep "model name" | head -n1`
+      fi
+      if test "x$CPUCAPS" = "x" ; then 
+        CPUCAPS=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
+      fi
       CPUTYPE=x86_64
       case "$CPUCAPS" in
+        *Xeon*E5-*)
+        CPUTYPE=intel_haswell
+        ;;
         AMDAthlon64)
         CPUTYPE=athlon64
         ;;
@@ -975,6 +984,9 @@ AC_SUBST(CPUTYPE)
 
 # now set the flags
 case "$CPUTYPE" in
+  intel_haswell)
+     CPUFLAGS="-march=core-avx2 -m64"
+     ;;
   pentium3)
 #     CPUFLAGS="-march=pentium3"
      CPUFLAGS=""
