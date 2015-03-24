@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2015/03/24 18:51:27 $
- *    $Revision: 1.5 $
+ *    $Date: 2015/03/24 19:14:52 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ main(int argc, char *argv[]) {
   LABEL        *label ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.5 2015/03/24 18:51:27 mreuter Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.6 2015/03/24 19:14:52 mreuter Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -208,7 +208,7 @@ print_usage(void) {
   printf("\t-sdir <path> : use <path> as the SUBJECTS_DIR instead of environment\n") ;
   printf("\t-surf <name> : use <name> as the surface (default 'inflated')\n") ;
   printf("\t-writesurf   : write output to a surface file (not a patch)\n") ;
-  printf("\t               (use .vtk or .stl in filename to only write the mesh covered\n") ;
-  printf("\t                by the label, saving it in FS format will save full surface)\n") ;
+  printf("\t               (use .stl in filename to only write the mesh covered by\n") ;
+  printf("\t                the label, saving it in FS format will save full surface)\n") ;
   exit(1) ;
 }
