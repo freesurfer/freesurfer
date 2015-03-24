@@ -192,6 +192,7 @@ renormalize_subject \
 renormalize_subject_keep_editting \
 renormalize_T1_subject \
 reregister_subject_mixed \
+rmcr \
 rtview \
 run-qdec-glm \
 segment_monkey \
