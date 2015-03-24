@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/23 14:37:42 $
- *    $Revision: 1.4 $
+ *    $Author: mreuter $
+ *    $Date: 2015/03/24 18:51:27 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,10 +49,13 @@ static int verbose = 0 ;
 
 
 static char subjects_dir[STRLEN] = "" ;
+static char surface[STRLEN] = "inflated" ;
 
 static int nerode = 0 ;
 static int ndilate = 0 ;
 static int nclose = 0 ;
+
+static int writesurf = 0;
 
 
 int
@@ -64,7 +67,7 @@ main(int argc, char *argv[]) {
   LABEL        *label ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.4 2011/03/23 14:37:42 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.5 2015/03/24 18:51:27 mreuter Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -98,7 +101,7 @@ main(int argc, char *argv[]) {
     strcpy(subjects_dir, cp) ;
   }
 
-  sprintf(surf_name,"%s/%s/surf/%s.inflated",subjects_dir,subject_name,hemi);
+  sprintf(surf_name,"%s/%s/surf/%s.%s",subjects_dir,subject_name,hemi,surface);
   fprintf(stderr, "reading %s...\n", surf_name) ;
   mris = MRISread(surf_name) ;
   if (!mris)
@@ -118,7 +121,13 @@ main(int argc, char *argv[]) {
 
   LabelRipRestOfSurface(label, mris) ;
   MRISripFaces(mris) ;
-  MRISwritePatch(mris, out_fname) ;
+  if (writesurf)
+  {
+     MRISwrite(mris, out_fname) ;
+  }
+  else
+     MRISwritePatch(mris, out_fname) ;
+
   if (verbose)
     fprintf(stderr, "done.\n") ;
   exit(0) ;
@@ -160,6 +169,18 @@ get_option(int argc, char *argv[]) {
     printf("using SUBJECTS_DIR = %s\n", subjects_dir) ;
     nargs = 1;
   }
+  else if (!stricmp(option, "writesurf"))
+  {
+    writesurf = 1;
+    printf("writing surface output\n") ;
+    nargs = 0;
+  }
+  else if (!stricmp(option, "surf"))
+  {
+    strcpy(surface, argv[2]) ;
+    printf("using surface = %s\n", surface) ;
+    nargs = 1;
+  }
   else switch (toupper(*option)) {
   case 'V':
     verbose = !verbose ;
@@ -184,6 +205,10 @@ print_usage(void) {
   printf("\t-dilate <n>  : dilate the label <n> times before creating the patch\n") ;
   printf("\t-erode <n>   : erode the label <n> times before creating the patch\n") ;
   printf("\t-close <n>   : close the label <n> times before creating the patch\n") ;
-  printf("\t-sdir <path> : use <path> as the SUBJECTS_DIR instead of the environment variable\n") ;
+  printf("\t-sdir <path> : use <path> as the SUBJECTS_DIR instead of environment\n") ;
+  printf("\t-surf <name> : use <name> as the surface (default 'inflated')\n") ;
+  printf("\t-writesurf   : write output to a surface file (not a patch)\n") ;
+  printf("\t               (use .vtk or .stl in filename to only write the mesh covered\n") ;
+  printf("\t                by the label, saving it in FS format will save full surface)\n") ;
   exit(1) ;
 }
