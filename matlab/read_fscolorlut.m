@@ -12,8 +12,8 @@ function [code, name, rgbv, tt] = read_fscolorlut(fname)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2014/05/22 20:03:29 $
-%    $Revision: 1.7 $
+%    $Date: 2015/03/24 17:57:53 $
+%    $Revision: 1.8 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -63,7 +63,7 @@ while(1)
   code(nthitem,1) = c;
   name = strvcat(name,n');
   rgbv(nthitem,:) = [r g b v];
-  if(~isempty(t)) tt(nthitem) = t; end
+  if(~isempty(t)) tt(nthitem,1) = t; end
 
   nthitem = nthitem + 1;
 end
