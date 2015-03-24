@@ -8,9 +8,9 @@
 #
 # Original Author: Martin Reuter
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2013/05/17 15:14:08 $
-#    $Revision: 1.21 $
+#    $Author: ltirrell $
+#    $Date: 2015/03/24 19:52:00 $
+#    $Revision: 1.22 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -252,6 +252,18 @@ This way you can run several base/longitudinal streams with different parameters
 the same cross sectional runs.
 
 
+SUBMITTED SCRIPTS
+=================
+The commands that were submitted will be saved in <cdir,bdir,ldir>/scripts_submitted by default. 
+You can set a different location to save all the submitted scripts using the --scriptsdir flag. 
+
+NOTE: The recon-all script that was used to run these commands is also copied to these 
+scripts directories.  This is to insure that all subjects will be processed with the same
+parameters if recon-all is being actively developed while long_submit_jobs is running
+(which could be days).  Pass the --update-recon-all flag to copy the version from
+$FREESURFER_HOME/bin/ and use this for subsequent processing.
+
+
 REFERENCES
 ==========
 
@@ -280,7 +292,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.21 2013/05/17 15:14:08 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.22 2015/03/24 19:52:00 ltirrell Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -288,6 +300,7 @@ def options_parse():
     h_cdir      = '(REQUIRED) use subjects dir for cross sectionals'
     h_bdir      = 'use subjects dir for base runs (default: inherit from cross)'
     h_ldir      = 'use subjects dir for long runs (default: inherit from base)'
+    h_scriptsdir = 'change the location of where all submitted scripts are saved (default: <cdir,bdir,ldir>/scripts_submitted)'
 
     h_cross     = 'process the cross sectionals'
     h_base      = 'process the bases'
@@ -304,11 +317,12 @@ def options_parse():
     h_skip      = '0 (exit on missing), 1 (default, skip instead of exit), 2 (skip instead of wait)'
     h_skiperror = 'skip re-submission if run had errors earlier (default: resubmit if not running)'
     h_check     = 'check if all longitudinals are done'
+    h_update_recon_all = 'replace the local copy of recon-all with $FREESURFER_HOME/bin/recon-all'
     h_pause     = 'pause in sec between submissions (default: 13)'
     h_max       = 'max num of jobs of this user (default: 100)'
     h_queue     = 'special queue to submit'
     h_mem       = 'mem to request (default: 7 Gig), only used in -base submission'
-    
+
     # Add options 
 
     # Sepcify inputs
@@ -318,7 +332,8 @@ def options_parse():
     parser.add_option('--cdir' , dest='cdir' , help=h_cdir)
     parser.add_option('--bdir' , dest='bdir' , help=h_bdir)
     parser.add_option('--ldir' , dest='ldir' , help=h_ldir)
-    
+    parser.add_option('--scriptsdir' , dest='scriptsdir' , help=h_scriptsdir)
+
     # do computations:
     parser.add_option('--cross', action='store_true', dest='cross', help=h_cross , default=False)
     parser.add_option('--base' , action='store_true', dest='base' , help=h_base  , default=False)
@@ -336,6 +351,7 @@ def options_parse():
     parser.add_option('--skip', dest='skip',  help=h_skip , default=1, type="int")
     parser.add_option('--skiperror'  , action='store_true', dest='skiperror',  help=h_skiperror , default=False)
     parser.add_option('--check', action='store_true', dest='check',  help=h_check , default=False)
+    parser.add_option('--update-recon-all', dest='update_recon_all', action='store_true', help=h_update_recon_all, default=False)
 
     parser.add_option('--pause' , dest='pause' , help=h_pause, default=13, type="float")
     parser.add_option('--max'   , dest='max'   , help=h_max, default=100, type="int")
@@ -360,7 +376,7 @@ def options_parse():
     # extensive error checks
     if options.qdec is None or options.cdir is None:
         parser.print_help()
-        print '\nERROR: Specify --qedc and --cdir'
+        print '\nERROR: Specify --qdec and --cdir'
         sys.exit(1)
 
     # setting all to true if not manually selected through parameters (unless check is true):
@@ -381,6 +397,27 @@ def options_parse():
     options.cdir = os.path.abspath(options.cdir)
     options.bdir = os.path.abspath(options.bdir)
     options.ldir = os.path.abspath(options.ldir)
+
+
+    # Creates a new scriptdir for each subject dir (cross, base and long)
+    # If a scriptsdir is given, all scripts will be saved there
+    if options.scriptsdir is None:
+        options.c_scriptsdir = os.path.join(options.cdir, 'scripts_submitted')
+        options.b_scriptsdir = os.path.join(options.bdir, 'scripts_submitted')
+        options.l_scriptsdir = os.path.join(options.ldir, 'scripts_submitted')
+
+    if options.scriptsdir is not None:
+        scriptsdir = os.path.abspath(options.scriptsdir)
+        options.c_scriptsdir = scriptsdir
+        options.b_scriptsdir = scriptsdir
+        options.l_scriptsdir = scriptsdir
+
+    if not os.path.exists(options.c_scriptsdir):
+        os.mkdir(options.c_scriptsdir)
+    if not os.path.exists(options.b_scriptsdir):
+        os.mkdir(options.b_scriptsdir)
+    if not os.path.exists(options.l_scriptsdir):
+        os.mkdir(options.l_scriptsdir)            
     
         
     if options.cflags is None:
@@ -403,7 +440,7 @@ def cp_recall(odir):
     fshome = os.getenv('FREESURFER_HOME')
     recall = os.path.join(fshome,"bin","recon-all")
     orecall= os.path.join(odir,"recon-all")
-    if not os.path.exists(orecall):
+    if not os.path.exists(orecall) or options.update_recon_all:
         shutil.copy(recall,orecall)
 #    else:
 #        print "Warning: recon-all already exists in "+odir+" !\n"        
@@ -465,7 +502,7 @@ def run_cross(qdectable,options):
         sys.exit(1)
 
     # copy recon-all to cross dir:
-    recall = cp_recall(options.cdir)
+    recall = cp_recall(options.c_scriptsdir)
     
     done     = []
     running  = []
@@ -532,7 +569,7 @@ def run_cross(qdectable,options):
             # create tp cross sectionally:
             cmd = recall+" -s "+tpid+" -sd "+options.cdir+" "+options.cflags
             if not options.simulate or options.simfiles:
-                cmdf=os.path.join(options.cdir,tpid+"-cross.cmdf")
+                cmdf=os.path.join(options.c_scriptsdir,tpid+"-cross.cmdf")
                 f = open(cmdf, 'w')
                 f.write(cmd+"\n")
                 f.close()
@@ -573,7 +610,7 @@ def run_base(qdectable,options):
         os.mkdir(options.bdir)
         
     # copy recon-all to base dir:
-    recall = cp_recall(options.bdir)
+    recall = cp_recall(options.b_scriptsdir)
    
     done     = []
     running  = []
@@ -706,7 +743,7 @@ def run_base(qdectable,options):
             
         cmd = recall+" -sd "+options.bdir+baseflag+subjectid+tps+" "+options.bflags
         if not options.simulate or options.simfiles:
-            cmdf=os.path.join(options.bdir,subjectid+"-base.cmdf")
+            cmdf=os.path.join(options.b_scriptsdir,subjectid+"-base.cmdf")
             f = open(cmdf, 'w')
             f.write(cmd+"\n")
             f.close()
@@ -747,7 +784,7 @@ def run_long(qdectable,options):
         os.mkdir(options.ldir)
         
     # copy recon-all to long dir:
-    recall = cp_recall(options.ldir)
+    recall = cp_recall(options.l_scriptsdir)
     
     done     = []
     running  = []
@@ -906,7 +943,7 @@ def run_long(qdectable,options):
             
             cmd = recall+" -sd "+options.ldir+" -long "+tpid+" "+subjectid+" "+options.lflags
             if not options.simulate or options.simfiles:
-                cmdf=os.path.join(options.ldir,tpid+"-long.cmdf")
+                cmdf=os.path.join(options.l_scriptsdir,tpid+"-long.cmdf")
                 f = open(cmdf, 'w')
                 f.write(cmd+"\n")
                 f.close()
