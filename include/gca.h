@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/03/20 15:01:09 $
- *    $Revision: 1.129 $
+ *    $Author: greve $
+ *    $Date: 2015/03/24 17:57:19 $
+ *    $Revision: 1.130 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -203,20 +203,22 @@ GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 
 typedef struct
 {
-  //array of seg IDs so we don't just test WM, vent, and caudate
-  int          *tissues;
-  MRI          *modalities ;
-  //re:thresholds. We want 3 thresholds for each tissue type:
+  MRI *modalities; // each mode in a differnt frame
+  int niters; // number of halo-growing iterations (3)
+  // reference tissue seg IDs (eg, WM, vent, and caudate)
+  int nreftissues; 
+  int *reftissues;
+  //re:thresholds. We want 2 thresholds for each ref tissue
   //hardthresh (if dont care about how many WMSA neighbors) 
   //softthresh (if we care about WMSA neighbors)
-  //neighborthresh (how many neighbors we use to test the 
-  float        *hardthresh ;
-  float        *softthresh;
-  int	       clustersize;
-  MRI          *seg ;
+  //these threshs are compared to MD so not modality spec
+  double *hardthresh ;
+  double *softthresh;
+  int nbrthresh; // min number of nbrs to use softthresh (3)
+  int nbrwhalf;  // look within +/- whalf voxels for neighboring WMSA (3)
+  MRI *seg ; // updated label
   //need to add registration file, not sure what type this is
-  }
-WMSA;
+} WMSA;
 
 int  GCAsetFlashParameters(GCA *gca, double *TRs, double *FAs, double *TEs) ;
 int  GCAunifyVariance(GCA *gca) ;
@@ -515,6 +517,11 @@ double GCAgibbsImpossibleConfiguration(GCA *gca,
                                        TRANSFORM *transform) ;
 MRI *GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform);
 int GCAdistWMvWMSA(MRI *mri_inputs, int x, int y, int z, int h, GCA *gca) ;
+
+WMSA *WMSAalloc(int nreftissues);
+int MRIwmsaHalo(MRI *mri_inputs, MRI *mri_labeled, int n) ; 
+int MRIwmsaHalo2(WMSA *wmsa);
+
 double GCAimagePosteriorLogProbability(GCA *gca, MRI *mri_labels, MRI *mri_inputs, TRANSFORM *transform) ;
 double GCAwindowPosteriorLogProbability(GCA *gca, MRI *mri_labels, MRI *mri_inputs, TRANSFORM *transform, int x0, int y0, int z0, int whalf) ;
 int copy_gcs(int nlabels, GC1D *gcs_src, GC1D *gcs_dst, int ninputs) ;

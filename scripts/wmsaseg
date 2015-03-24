@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # wmsaseg
 
-set VERSION = '$Id: wmsaseg,v 1.1 2014/04/14 20:34:00 greve Exp $';
+set VERSION = '$Id: wmsaseg,v 1.2 2015/03/24 17:57:20 greve Exp $';
 #set VERSION = "`ls -l $0`"
 set gca = $FREESURFER_HOME/average/wmsa_new_eesmith.gca
 
@@ -16,6 +16,7 @@ set RegOnly = 0;
 set DoCANorm = 1;
 set origsubject = ();
 set GetOrigFromLong = 0;
+set Halo = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -161,7 +162,9 @@ if($status) exit 1;
   
 date |& tee -a $LF
 set wmsasegedit = $outdir/wmsa.edited.mgz
-set cmd = (mri_edit_segmentation_with_surfaces -gca $gca $talm3z $wmsaseg \
+set cmd = (mri_edit_segmentation_with_surfaces)
+if($#Halo) set cmd = ($cmd -halo$Halo)
+set cmd = ($cmd -gca $gca $talm3z $wmsaseg \
   $SUBJECTS_DIR/$subject/surf $t1norm $pdnorm $t2norm $wmsasegedit)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
@@ -248,6 +251,14 @@ while( $#argv != 0 )
 
     case "--reg-only":
       set RegOnly = 1;
+      breaksw
+
+    case "--halo1":
+      set Halo = 1;
+      breaksw
+
+    case "--halo2":
+      set Halo = 2;
       breaksw
 
     case "--no-canorm":
@@ -355,6 +366,8 @@ usage_exit:
   echo "  --no-canorm : do not run mri_ca_norm (eg, if used another)"
   echo "  --init-spm : default is fsl"
   echo "  --reg-only : only perform registration"
+  echo "  --halo1"
+  echo "  --halo2"
   echo ""
 
   if(! $PrintHelp) exit 1;

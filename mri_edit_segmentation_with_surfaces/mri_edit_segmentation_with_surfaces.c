@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lindemer $
- *    $Date: 2015/03/12 18:33:27 $
- *    $Revision: 1.22 $
+ *    $Author: greve $
+ *    $Date: 2015/03/24 17:57:20 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.22 2015/03/12 18:33:27 lindemer Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.23 2015/03/24 17:57:20 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -83,19 +83,18 @@ static GCA *gca = NULL ;
 static TRANSFORM *transform = NULL ;
 
 static char *config_file;
+int Halo = 0;
 
 int
 main(int argc, char *argv[])
 {
   char          **av, *hemi, fname[STRLEN], *in_fname,
                 *in_aseg_name, *out_aseg_name, *surf_dir ;
-  int           ac, nargs, h, i, ninputs, input;
+  int           ac, nargs, h, i, ninputs, input, n;
   MRI_SURFACE   *mris ;
   MRI           *mri_aseg, *mri_tmp = NULL, *mri_inputs = NULL ;
   float         *thickness ;
-  //Added by Emily  
-  //WMSA          *newWMSA;
-  
+  WMSA *newWMSA=NULL;
 
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
@@ -155,18 +154,28 @@ main(int argc, char *argv[])
               Progname, in_aseg_name) ;
   }
 
-  for (i = 0 ; i < 2 ; i++)
-  {
-    for (h = 0 ; h <= 1 ; h++)
-    {
-      if (h == 0)
-      {
-        hemi = "lh" ;
-      }
-      else
-      {
-        hemi = "rh" ;
-      }
+  if(Halo == 2) {
+    printf("Setting up WMSA Halo 2\n");
+    newWMSA = WMSAalloc(6);
+    newWMSA->niters = 3;
+    newWMSA->reftissues[0] = Left_Cerebral_White_Matter;
+    newWMSA->reftissues[1] = Right_Cerebral_White_Matter;
+    newWMSA->reftissues[2] = Left_Lateral_Ventricle;
+    newWMSA->reftissues[3] = Right_Lateral_Ventricle;
+    newWMSA->reftissues[4] = Left_Caudate;
+    newWMSA->reftissues[5] = Right_Caudate;
+    for(n=0; n < 6; n++) {
+      newWMSA->hardthresh[n] = 7;
+      newWMSA->softthresh[n] = 3;
+    }
+    newWMSA->nbrthresh = 3;
+    newWMSA->nbrwhalf = 3;
+  }
+
+  for (i = 0 ; i < 2 ; i++)  {
+    for (h = 0 ; h <= 1 ; h++)    {
+      if (h == 0) hemi = "lh" ;
+      else        hemi = "rh" ;
       sprintf(fname, "%s/%s.%s", surf_dir, hemi, surf_name)  ;
       printf("reading input surface %s...\n", fname) ;
       mris = MRISread(fname) ;
@@ -174,19 +183,15 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, fname) ;
       if (MRISreadPialCoordinates(mris, "pial") != NO_ERROR)
-      {
         ErrorExit(Gerror, "") ;
-      }
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
       MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
       MRIScomputeMetricProperties(mris) ;
       MRISsmoothSurfaceNormals(mris, 10) ;   /* remove kinks in surface */
       thickness = MRISreadCurvatureVector(mris, "thickness") ;
       if (thickness == NULL)
-      {
         ErrorExit(ERROR_NOFILE, "%s: could not read thickness file for %s\n",
                   Progname,fname) ;
-      }
 
 
       if (MRISreadAnnotation(mris, annot_name) != NO_ERROR)
@@ -214,13 +219,11 @@ main(int argc, char *argv[])
       printf("%s: editing hippocampal complex...\n", hemi) ;
       edit_hippocampal_complex(mri_aseg, mris, h, annot_name, thickness) ;
 #endif
-      if (which_edits & HYPO_EDITS)
-      {
+      if (which_edits & HYPO_EDITS){
         printf("%s: relabeling hypointensities...\n", hemi) ;
         relabel_hypointensities(mri_aseg, mri_inputs, mris, h, gca, transform) ;
       }
-      if (which_edits & (CORTEX_EDITS | CEREBELLUM_EDITS))
-      {
+      if (which_edits & (CORTEX_EDITS | CEREBELLUM_EDITS))      {
         printf("%s: relabeling gray matter voxels.\n", hemi) ;
 	printf("Which edits are: %i\n", which_edits);
         relabel_gray_matter(mri_aseg, mris, which_edits) ;
@@ -228,8 +231,7 @@ main(int argc, char *argv[])
       MRISfree(&mris) ;
       free(thickness) ;
     }
-    if (transform && i == 0)
-    {
+    if (transform && i == 0)  {
       TransformInvert(transform, mri_inputs) ;
       mri_tmp = GCAlabelWMandWMSAs(gca,
                                    mri_inputs,
@@ -241,7 +243,17 @@ main(int argc, char *argv[])
     }
     
     //Needs to be removed once Emily's stuff below is fixed
-    MRIwmsaHalo(mri_inputs, mri_aseg, 3);
+    if(Halo == 1) {
+      printf("WMSA Halo 1\n");
+      MRIwmsaHalo(mri_inputs, mri_aseg, 3);
+    }
+    if(Halo == 2) {
+      printf("Starting WMSA Halo 2\n");
+      newWMSA->modalities = mri_inputs;
+      newWMSA->seg = mri_aseg;
+      MRIwmsaHalo2(newWMSA);
+      printf("WMSA Halo 2 done\n");
+    }
 
   }
 
@@ -253,14 +265,6 @@ main(int argc, char *argv[])
   }
 #endif
 
-  //Added by Emily
-
-  /*newWMSA = populateWMSA(config,mri_aseg);
-  printf("Fixing halos... \n") ; 
-	MRIwmsaHalo2(newWMSA, 3);
-  printf("Finished fixing halos...\n");
-  fflush(stdout) ; 
-  */
 
   printf("writing modified segmentation to %s...\n", out_aseg_name) ;
   MRIwrite(mri_aseg, out_aseg_name) ;
@@ -283,6 +287,7 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
+  //printf("option = %s\n",option);
   if (!stricmp(option, "-help"))
   {
     print_help() ;
@@ -303,6 +308,18 @@ get_option(int argc, char *argv[])
     config_file = argv[2] ;
     nargs = 2 ;
     printf("using config file %s...\n", config_file) ;
+  }
+  else if (!stricmp(option, "halo1"))
+  {
+    printf("using wmsa halo1 ...\n");
+    Halo = 1;
+    nargs = 0 ;
+  }
+  else if (!stricmp(option, "halo2"))
+  {
+    printf("using wmsa halo2 ...\n");
+    Halo = 2;
+    nargs = 0 ;
   }
   else if (!stricmp(option, "hypo"))
   {

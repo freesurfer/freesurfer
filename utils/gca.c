@@ -15,9 +15,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/03/19 22:13:58 $
- *    $Revision: 1.330 $
+ *    $Author: greve $
+ *    $Date: 2015/03/24 17:57:19 $
+ *    $Revision: 1.331 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30877,3 +30877,333 @@ MRI *GCAsampleToVolWMSAprob(MRI *mri, GCA *gca, TRANSFORM *transform, MRI *out)
 }
 
 
+
+//n is the half neighborhood size
+//relabels a given voxel to WMSA if it was not already
+//and if its mahalanobis distance to WMSAs is closer to that of WM 
+//as determined by the labeled voxels in a n-half neighborhood
+int MRIwmsaHalo(MRI *mri_inputs, MRI *mri_labeled, int n)
+{ 
+
+	int h, label, nwm, nwmsa, ngm, x, y, z, wmsa_label, wm_label, gm_label, a, b, changed;
+	double wm_mdist=0, wmsa_mdist=0, caudate_mdist=0, vent_mdist=0;
+	VECTOR *v_vals=NULL, *wm_means, *wmsa_means, *caudate_means, *vent_means;
+  MATRIX *wmsa_cov, *wm_cov, *caudate_cov, *vent_cov, *m_inv_cov_wmsa=NULL, *m_inv_cov_wm=NULL, *m_inv_cov_caudate=NULL, *m_inv_cov_vent=NULL;
+  MRI *label_copy=NULL;
+
+  //Use ENTIRE wm 
+  MRIcomputeWMMeansandCovariances(mri_inputs,mri_labeled,&wm_cov,&wm_means);
+  m_inv_cov_wm = MatrixAlloc(wm_cov->rows, wm_cov->cols, wm_cov->type) ;
+  MatrixInverse(wm_cov, m_inv_cov_wm) ;
+
+  MRIcomputeWMSAMeansandCovariances(mri_inputs,mri_labeled,&wmsa_cov,&wmsa_means);
+  m_inv_cov_wmsa = MatrixAlloc(wmsa_cov->rows, wmsa_cov->cols, wmsa_cov->type) ;
+  MatrixInverse(wmsa_cov, m_inv_cov_wmsa) ;
+
+  MRIcomputeCaudateMeansandCovariances(mri_inputs,mri_labeled,&caudate_cov,&caudate_means);
+  m_inv_cov_caudate = MatrixAlloc(caudate_cov->rows,caudate_cov->cols,caudate_cov->type) ;
+  MatrixInverse(caudate_cov,m_inv_cov_caudate) ;
+
+  MRIcomputeVentMeansandCovariances(mri_inputs,mri_labeled,&vent_cov,&vent_means);
+  m_inv_cov_vent = MatrixAlloc(vent_cov->rows,vent_cov->cols,vent_cov->type) ;
+  MatrixInverse(vent_cov,m_inv_cov_vent) ; 
+  
+  changed = 1;
+  //b = 1;
+  //while(changed > 0)
+  //{   
+  for (b = 0; b<2; b++)
+  {
+  changed = 0;
+	v_vals = VectorAlloc(mri_inputs->nframes, MATRIX_REAL) ; 
+
+  printf("copying label file...\n");
+  label_copy = MRIcopy(mri_labeled, NULL);
+  printf("Finished copying label file...\n");
+ 
+	for (h=0; h<2; h++)
+	{
+	
+		if(h==0)
+		   {
+		     wmsa_label = Right_WM_hypointensities;
+		     wm_label = Right_Cerebral_White_Matter;
+         gm_label = Right_Cerebral_Cortex;
+        }
+		  else
+		  {
+		    wmsa_label = Left_WM_hypointensities;
+		    wm_label = Left_Cerebral_White_Matter;
+        gm_label = Left_Cerebral_Cortex;
+		  }
+
+		for (x = 0; x< mri_labeled->width; x++)
+		{
+			for (y=0; y< mri_labeled->height; y++)
+			{
+				for (z=0; z<mri_labeled->depth; z++)
+				{
+			
+        
+					 label = MRIvox(label_copy,x,y,z);
+  			 	
+					 nwm = MRIlabelsInNbhd(label_copy, x, y, z, n, wm_label);
+					 nwmsa = MRIlabelsInNbhd(label_copy, x, y, z, n, wmsa_label);
+           ngm = MRIlabelsInNbhd(label_copy, x, y, z, 1, gm_label);
+          
+          if (nwmsa < 1 || ngm > 0 )
+          //if (nwmsa < 1 || nwm < 1 || ngm > 0)   
+          //if (nwm < n || ngm > 0)            
+              continue ;					
+					
+          for (a = 0; a<mri_inputs->nframes; a++)
+						{
+						 VECTOR_ELT(v_vals,a+1) = MRIgetVoxVal(mri_inputs,x,y,z,a);					
+						}
+          //printf("Computing means and covariances\n");
+          //fflush(stdout);
+					//MRIcomputeNbhdMeansandCovariances(mri_inputs, label_copy, wm_label, x, y, z, n, &wm_cov, &wm_means);
+          //printf("Computing means and covariances\n");
+          //fflush(stdout);
+					//MRIcomputeNbhdMeansandCovariances(mri_inputs, label_copy, wmsa_label, x, y, z, n, &wmsa_cov, &wmsa_means);
+	        //printf("finished\n");
+          //fflush(stdout);
+
+          //m_inv_cov_wm = MatrixAlloc(wm_cov->rows, wm_cov->cols, wm_cov->type) ;
+          //m_inv_cov_wmsa = MatrixAlloc(wmsa_cov->rows, wmsa_cov->cols, wmsa_cov->type) ;
+
+          //printf("Calculating WMSA inv matrix\n");
+          //fflush(stdout);
+					//MatrixInverse(wmsa_cov, m_inv_cov_wmsa) ;
+          //printf("Done calculating WMSA inv matrix\n") ;
+          //fflush(stdout);
+
+
+          //printf("Calculating WM inv matrix\n");
+          //fflush(stdout);
+ 				  //MatrixInverse(wm_cov, m_inv_cov_wm) ;
+          //printf("Done calculating WM inv matrix\n") ;
+          //fflush(stdout);
+
+					wmsa_mdist = MatrixMahalanobisDistance(wmsa_means, m_inv_cov_wmsa, v_vals) ;
+          
+          if (x == Gx && y == Gy && z == Gz )
+            printf("WM_mdist is %f and WMSA_mdist is %f for voxel %d, %d, %d\n", wm_mdist, wmsa_mdist, x, y, z) ;
+
+          if(IS_WM(label))
+            {
+					   wm_mdist = MatrixMahalanobisDistance(wm_means, m_inv_cov_wm, v_vals) ;
+              if( (VECTOR_ELT(v_vals,1) < VECTOR_ELT(wm_means,1)) && 
+                  (VECTOR_ELT(v_vals,2) > VECTOR_ELT(wm_means,2)) && 
+                  (VECTOR_ELT(v_vals,3) > VECTOR_ELT(wm_means,3)) && 
+                  ((7*wmsa_mdist<wm_mdist) || (3*wmsa_mdist<wm_mdist && nwmsa>3)))
+                  {
+						        MRIsetVoxVal(mri_labeled,x,y,z,0,wmsa_label);
+                    changed++ ; 
+					        }
+              }
+           if(IS_CAUDATE(label))
+            {
+					   caudate_mdist = MatrixMahalanobisDistance(caudate_means, m_inv_cov_caudate, v_vals) ;
+              if( (VECTOR_ELT(v_vals,1) < VECTOR_ELT(caudate_means,1)) && 
+                  (VECTOR_ELT(v_vals,2) > VECTOR_ELT(caudate_means,2)) && 
+                  (VECTOR_ELT(v_vals,3) > VECTOR_ELT(caudate_means,3)) && 
+                  ((7*wmsa_mdist<caudate_mdist) || (2*wmsa_mdist<caudate_mdist && nwmsa>3)))
+                  {
+						        MRIsetVoxVal(mri_labeled,x,y,z,0,wmsa_label);
+                    changed++ ; 
+					        }
+              }
+
+            if(IS_VENTRICLE(label))
+            {
+					    vent_mdist = MatrixMahalanobisDistance(vent_means, m_inv_cov_vent, v_vals) ;
+              printf("T1 mean for vent is %f\n", VECTOR_ELT(vent_means,1));
+              printf("PD mean for vent is %f\n", VECTOR_ELT(vent_means,2));
+              printf("T2 mean for vent is %f\n", VECTOR_ELT(vent_means,3));
+              printf("T1 val for voxel %d, %d, %d, is %f\n", x, y, z, VECTOR_ELT(v_vals,1));
+              //printf("Voxel %d, %d, %d is ventricle...\n", x, y, z);
+              //printf("Ventricle m dist is: %f\n", vent_mdist) ;
+              //printf("WMSA m dist is: %f\n", wmsa_mdist) ; 
+              if( (VECTOR_ELT(v_vals,1) > 2*VECTOR_ELT(vent_means,1)) && 
+                  ((7*wmsa_mdist<vent_mdist) || (wmsa_mdist<vent_mdist && nwmsa>3)))
+             //  if( (VECTOR_ELT(v_vals,1) > 2*VECTOR_ELT(vent_means,1)) && 
+               //   ((7*wmsa_mdist<vent_mdist)))
+                  {
+						        MRIsetVoxVal(mri_labeled,x,y,z,0,wmsa_label);
+                    changed++ ; 
+					        }
+              }
+          
+		  		}
+		   }
+	  }
+  }
+  printf("Iteration %d, %d halo voxels changed to WMSA\n", b, changed);
+  fflush(stdout) ; 
+  //b++;
+  MRIfree(&label_copy); 
+  }
+  MatrixFree(&wm_cov);
+  MatrixFree(&wm_means);
+  MatrixFree(&m_inv_cov_wm);
+  MatrixFree(&wmsa_cov);
+  MatrixFree(&wmsa_means);
+  MatrixFree(&m_inv_cov_wmsa);
+	return(NO_ERROR);
+}
+
+WMSA *WMSAalloc(int nreftissues)
+{
+  WMSA *wmsa;
+  wmsa = (WMSA *)calloc(sizeof(WMSA),1);
+  wmsa->nreftissues = nreftissues;
+  wmsa->reftissues = (int *) calloc(nreftissues,sizeof(int));
+  wmsa->hardthresh = (double *) calloc(nreftissues,sizeof(double));
+  wmsa->softthresh = (double *) calloc(nreftissues,sizeof(double));
+  return(wmsa);
+}
+
+int MRIwmsaHalo2(WMSA *wmsa)
+{ 
+  int ok, i, j, k, a, b, c, d, x, y, z, changed, nwmsa1, nwmsa2, nwmsa, ngm1, ngm2, ngm, nmatches, label;
+  int wmsa_labels[] = {78, 79}; 
+  int gm_labels[] = {3, 42};
+  double reftissue_dist = 0, wmsa_mdist;
+  MRI *label_copy=NULL; 
+  MATRIX *v_vals;
+  VECTOR *reftissue_means[100], *wmsa_means=NULL;
+  MATRIX *reftissue_covs[100], *reftissue_inv_covs[100], *wmsa_covs=NULL, *wmsa_inv_covs=NULL;
+  int nreftissues = wmsa->nreftissues;
+  int nmodalities = wmsa->modalities->nframes;
+  int wmsacomp[nreftissues][nmodalities];
+  int llabel[1];
+  
+  //For each ref tissue, compute the means for each modality and covariance matrix across all modalities
+  // 0 = dont use any neighbors
+  print("size %d\n",(int)sizeof(llabel));
+  for(i=0; i<nreftissues; i++) {
+    llabel[0]=wmsa->reftissues[i];
+    MRIcomputeLabelMeansandCovariances2(wmsa->modalities,wmsa->seg,&reftissue_covs[i],&reftissue_means[i],&llabel[0],1,0);
+    reftissue_inv_covs[i] = MatrixInverse(reftissue_covs[i],NULL);
+  }
+
+  // Means and Cov of WMSA voxels
+  MRIcomputeLabelMeansandCovariances2(wmsa->modalities,wmsa->seg,&wmsa_covs,&wmsa_means,wmsa_labels,2,0);
+  wmsa_inv_covs = MatrixInverse(wmsa_covs, NULL);
+
+  //For each modality, we need to figure out if the mean of ref tissues 
+  //are greater or less than the means of WMSA. 1 means greater.
+  for (j=0; j<nreftissues; j++)   {
+    for (k=0; k<nmodalities; k++) {
+      if(reftissue_means[j]->rptr[1][k+1] < wmsa_means->rptr[1][k+1]) wmsacomp[j][k] = 0 ;
+      else                                                         wmsacomp[j][k] = 1 ;
+    }
+  }
+   
+  //set up vector for voxel intensities for each modality
+  v_vals = VectorAlloc(wmsa->modalities->nframes, MATRIX_REAL) ; 
+
+  //perform iterations of halo-growing (default should be 3)
+  for (b = 0; b < wmsa->niters; b++) {
+    changed = 0;
+
+    //create a static copy of the label file so we can dynamically update the true label file
+    label_copy = MRIcopy(wmsa->seg, NULL);
+ 
+    for (x = 0; x< wmsa->seg->width; x++) {
+      for (y=0; y< wmsa->seg->height; y++) {
+	for (z=0; z< wmsa->seg->depth; z++) {
+	  //get segmentation label for this voxel
+	  label = MRIvox(label_copy,x,y,z);
+
+	  // If label is already WMSA skip it
+	  if( (label == wmsa_labels[0]) || (label == wmsa_labels[1]) ) continue;
+  			 	 
+	  //Only continue with voxel if its label matches one of the user's seg inputs
+	  ok = 0;
+	  for(c = 0; c < nreftissues; c++){
+	    if(label == wmsa->reftissues[c]){
+	      ok = 1;
+	      break;
+	    }
+	  }
+	  if(!ok) continue;  
+	  // To get here, the voxel must be one of the reference tissues
+	  // c is now the nth reference tissue
+
+	  //find number WMSA and GM neighbors
+	  nwmsa1 = MRIlabelsInNbhd(label_copy, x, y, z, wmsa->nbrwhalf, wmsa_labels[0]); // lh
+	  nwmsa2 = MRIlabelsInNbhd(label_copy, x, y, z, wmsa->nbrwhalf, wmsa_labels[1]); // rh
+	  nwmsa = nwmsa1 + nwmsa2; // one of them will probably be 0
+	  ngm1 = MRIlabelsInNbhd(label_copy, x, y, z, 1, gm_labels[0]); // lh
+	  ngm2 = MRIlabelsInNbhd(label_copy, x, y,z, 1, gm_labels[1]);  // rh
+	  ngm = ngm1 + ngm2; // one of them will probably be 0
+          
+	  //Ignore this voxel if it has 0 WMSA neighbors or a single GM neighbor
+	  if(nwmsa < 1 || ngm > 0 ) continue ;					
+
+	  //Extract voxel intensities for each modality
+	  for(a = 0; a < nmodalities; a++)
+	    v_vals->rptr[a+1][1] = MRIgetVoxVal(wmsa->modalities,x,y,z,a);					
+
+	  // If this vox is really a WMSA, then each modality at this voxel should have 
+	  // the same intensity relationship with WMSA as the reference tissue. 
+	  //Use wmsacomp matrix to check if voxel vals should be higher or lower than seg of interest 
+	  // If wmsacomp=1, then 
+	  nmatches = 0;
+	  for(d = 0; d < nmodalities; d ++){
+	    if(wmsacomp[c][d] == 0){ // meanWMSA > meanRefTissue
+	      if(v_vals->rptr[d+1][1] < reftissue_means[c]->rptr[d+1][1]) nmatches = nmatches + 1;    
+	    }
+	    else // meanWMSA < meanRefTissue
+	      if(v_vals->rptr[d+1][1] > reftissue_means[c]->rptr[d+1][1]) nmatches = nmatches + 1;    
+	    
+	  } // modality
+	  if(nmatches != nmodalities) continue;
+
+	  //Compute MD of this voxel from WMSA
+	  wmsa_mdist = MatrixMahalanobisDistance(wmsa_means, wmsa_inv_covs, v_vals) ;
+	  
+	  // Compute distance to ref tissue
+	  reftissue_dist = MatrixMahalanobisDistance(reftissue_means[c],reftissue_inv_covs[c],v_vals);
+	  
+	  // Impose distance contraints
+	  ok = 0;
+	  // Fraction of Dist to WMSA is less than distance to ref tissue
+	  if(wmsa->hardthresh[c]*wmsa_mdist < reftissue_dist) ok = 1;
+	  // Fraction of Dist to WMSA is less than distance to ref tissue and 
+	  // there are enough WMSA neighbors (default should be 3)
+	  if(wmsa->softthresh[c]*wmsa_mdist < reftissue_dist && nwmsa > wmsa->nbrthresh) ok = 1;
+	  if(!ok) continue;
+	    
+	  if(nwmsa1 > nwmsa2){ // left hemisphere
+	    MRIsetVoxVal(wmsa->seg,x,y,z,0,wmsa_labels[0]);
+	    changed++;
+	  }
+	  else{ // right hemi
+	    MRIsetVoxVal(wmsa->seg,x,y,z,0,wmsa_labels[1]);
+	    changed++;
+	  }
+	} // for z 
+      } // for y
+    } // for x
+
+    printf("Iteration %d, %d halo voxels changed to WMSA\n", b, changed);
+    fflush(stdout) ; 
+    // if changed == 0, should we bail out?
+
+    MRIfree(&label_copy); 
+  } // for b
+
+  for(i=0; i<nreftissues; i++) {
+    MatrixFree(&reftissue_covs[i]);
+    MatrixFree(&reftissue_means[i]);
+    MatrixFree(&reftissue_inv_covs[i]);
+  }
+  MatrixFree(&v_vals);
+  MatrixFree(&wmsa_covs);
+  MatrixFree(&wmsa_means);
+  MatrixFree(&wmsa_inv_covs);
+  return(NO_ERROR);
+}

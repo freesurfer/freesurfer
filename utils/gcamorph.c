@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:55 $
- *    $Revision: 1.290 $
+ *    $Author: greve $
+ *    $Date: 2015/03/24 17:57:19 $
+ *    $Revision: 1.291 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -589,7 +589,7 @@ int GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam)
   free(mridir);
 
   gcambase = fio_basename(gcamfname, ".m3z");
-  sprintf(tmpstr,"%s.inv.m3z",gcambase);
+  sprintf(tmpstr,"%s/%s.inv.m3z",gcamdir,gcambase);
   printf("Saving inverse to %s\n",tmpstr);
   GCAMwrite(gcam, tmpstr);
 
