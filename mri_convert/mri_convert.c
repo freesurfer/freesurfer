@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/23 20:50:14 $
- *    $Revision: 1.218 $
+ *    $Date: 2015/03/24 17:25:41 $
+ *    $Revision: 1.219 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,7 @@
 #include "cma.h"
 #include "fsinit.h"
 #include "fio.h"
+#include "mri_conform.h"
 
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
@@ -215,7 +216,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.218 2015/03/23 20:50:14 greve Exp $",
+   "$Id: mri_convert.c,v 1.219 2015/03/24 17:25:41 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -340,7 +341,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.218 2015/03/23 20:50:14 greve Exp $",
+      "$Id: mri_convert.c,v 1.219 2015/03/24 17:25:41 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1673,7 +1674,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.218 2015/03/23 20:50:14 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.219 2015/03/24 17:25:41 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0

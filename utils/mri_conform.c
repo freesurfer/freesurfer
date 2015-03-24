@@ -6,9 +6,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:48 $
- *    $Revision: 1.36 $
+ *    $Author: greve $
+ *    $Date: 2015/03/24 17:25:41 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,18 +76,23 @@ MATRIX *MRIgetConformMatrix(MRI *mri)
 
 MRI *MRIconform(MRI *mri)
 {
-
   MRI *templ, *mri2, *res;
+  int conform_width;
+  double conform_size;
+  int KeepDC;
 
   res = MRIcopy(mri, NULL); /* don't mess with the input */
 
-  if (res->ras_good_flag == 0)
-  {
-    setDirectionCosine(res, MRI_CORONAL);
-  }
+  if(res->ras_good_flag == 0) setDirectionCosine(res, MRI_CORONAL);
 
+  conform_width = 256;
+  conform_size = 1;
+  KeepDC = 0;
+
+#if 0
+  templ = MRIconformedTemplate(mri, conform_width, conform_size, KeepDC);
+#else
   templ = MRIallocHeader(256, 256, 256, MRI_UCHAR, mri->nframes);
-
   templ->imnr0 = 1;
   templ->imnr1 = 256;
   templ->thick = 1.0;
@@ -105,6 +110,7 @@ MRI *MRIconform(MRI *mri)
   templ->te = mri->te ;
   templ->flip_angle = mri->flip_angle ;
   templ->ti = mri->ti ;
+#endif
 
   /* ----- change type if necessary ----- */
   if (res->type != templ->type)
@@ -140,7 +146,123 @@ MRI *MRIconform(MRI *mri)
     res = mri2;
   }
 
+  MRIfree(&templ);
   return(res);
 
 }  /*  end MRIconform()  */
 
+MRI *MRIconformedTemplate(MRI *mri, int conform_width, double conform_size, int KeepDC)
+{
+  MRI *template;
+  char ostr[4];
+  int iLR, iIS, iAP, Nvox[3],FoV[3],conform_FoV,c;
+  double delta[3],pad,step;
+  MATRIX *K,*invK,*Smri,*Stemp;
+
+  template = MRIallocHeader(conform_width,conform_width,conform_width,
+			    MRI_UCHAR, mri->nframes);
+  MRIcopyHeader(mri,template);
+  MRIcopyPulseParameters(mri,template);
+  template->imnr0 = 1;
+  template->imnr1 = conform_width;
+  template->thick = conform_size;
+  template->ps = conform_size;
+  template->xsize  = template->ysize  = template->zsize = conform_size;
+  template->xstart = template->ystart = template->zstart = - conform_width/2;
+  template->xend   = template->yend   = template->zend = conform_width/2;
+
+  if(KeepDC){
+    conform_FoV = conform_width*conform_size;
+    MRIdircosToOrientationString(mri,ostr);
+    for(iLR=0; iLR < 3; iLR++) if(ostr[iLR] == 'L' || ostr[iLR] == 'R') break;
+    for(iIS=0; iIS < 3; iIS++) if(ostr[iIS] == 'I' || ostr[iIS] == 'S') break;
+    for(iAP=0; iAP < 3; iAP++) if(ostr[iAP] == 'A' || ostr[iAP] == 'P') break;
+    printf("keeping DC %d %d %d\n",iLR,iIS,iAP);
+    printf("ostr %s, width %d, size %g\n",ostr,conform_width,conform_size);
+
+    Nvox[0] = mri->width;
+    Nvox[1] = mri->height;
+    Nvox[2] = mri->depth;
+    delta[0] = mri->xsize;
+    delta[1] = mri->ysize;
+    delta[2] = mri->zsize;
+    for(c=0; c < 3; c++) FoV[c] = Nvox[c]*delta[c];
+
+    // K maps voxels in mri to voxels in template
+    K = MatrixAlloc(4,4,MATRIX_REAL);
+    K->rptr[4][4] = 1;
+
+    // If the delta=conform_size, then no interpolation will result
+    // Otherwise, there will be interpolation that depends on voxel size
+    // Using round() forces no interpolation at the edge of the FoV
+    // pad is the number of conformed voxels of padding when Nvox != conform_width
+    // set pad this way makes the C_RASs be about the same under general conditions
+
+    step = delta[iLR]/conform_size;
+    pad = round(((conform_FoV-FoV[iLR])/2.0)/conform_size);
+    if(ostr[iLR] == 'L'){
+      K->rptr[1][iLR+1] = step;
+      K->rptr[1][4] = pad;
+    }
+    else {
+      K->rptr[1][iLR+1] = -step;
+      K->rptr[1][4] = conform_width - pad;
+    }
+
+    step = delta[iIS]/conform_size;
+    pad = round(((conform_FoV-FoV[iIS])/2.0)/conform_size);
+    if(ostr[iIS] == 'I'){
+      K->rptr[2][iIS+1] = step;
+      K->rptr[2][4] = pad;
+    }
+    else {
+      K->rptr[2][iIS+1] = -step;
+      K->rptr[2][4] = conform_width - pad;
+    }
+
+    step = delta[iAP]/conform_size;
+    pad = round(((conform_FoV-FoV[iAP])/2.0)/conform_size);
+    if(ostr[iAP] == 'A'){
+      K->rptr[3][iAP+1] = step;
+      K->rptr[3][4] = pad;
+    }
+    else {
+      K->rptr[3][iAP+1] = -step;
+      K->rptr[3][4] = conform_width - pad;
+    }
+
+    invK = MatrixInverse(K,NULL);
+    Smri = MRIxfmCRS2XYZ(mri,0);
+    Stemp = MatrixMultiplyD(Smri,invK,NULL);
+    MRIsetVox2RASFromMatrix(template, Stemp);
+
+    printf("K ---------------\n");
+    MatrixPrint(stdout,K);
+    printf("Kinv ---------------\n");
+    MatrixPrint(stdout,invK);
+    printf("Smri ---------------\n");
+    MatrixPrint(stdout,Smri);
+    printf("Stemp ---------------\n");
+    MatrixPrint(stdout,Stemp);
+    printf("----------------------\n");
+
+    MatrixFree(&K);
+    MatrixFree(&invK);
+    MatrixFree(&Smri);
+    MatrixFree(&Stemp);
+  }
+  else{
+    // replicates old method exactly
+    template->x_r = -1.0;
+    template->x_a =  0.0;
+    template->x_s =  0.0;
+    template->y_r =  0.0;
+    template->y_a =  0.0;
+    template->y_s = -1.0;
+    template->z_r =  0.0;
+    template->z_a =  1.0;
+    template->z_s =  0.0;
+  }
+
+  return(template);
+}

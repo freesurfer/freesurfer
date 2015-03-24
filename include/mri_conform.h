@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.5 $
+ *    $Author: greve $
+ *    $Date: 2015/03/24 17:25:41 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 
 MRI *MRIconform(MRI *mri);
 MATRIX *MRIgetConformMatrix(MRI *mri);
+MRI *MRIconformedTemplate(MRI *mri, int conform_width, double conform_size, int KeepDC);
 
 /*  EOF  */
 
