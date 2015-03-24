@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tkmeditfv
 
-set VERSION = '$Id: tkregisterfv,v 1.6 2015/03/13 23:30:34 greve Exp $';
+set VERSION = '$Id: tkregisterfv,v 1.7 2015/03/24 17:53:13 greve Exp $';
 
 set subject = ();
 set movvol = ();
@@ -21,6 +21,7 @@ set auxreglist = ();
 set segvol0 = ();
 set segvol = ();
 set Plane = cor
+set ShowConfig = 1;
 
 set tmpdir = ();
 set cleanup = 1;
@@ -53,7 +54,9 @@ set tSecStart = `date '+%s'`;
 if(! $UseTkRegister) then
   ### FreeView ####----------------------------------------------
   if(! -e $reg) then
-    set cmd = (tkregister2_cmdl --mov $movvol --targ $targ --regheader --reg /tmp/tmp.reg.$$.dat --ltaout $reg --regheader)
+    # Create registration if needed
+    set cmd = (tkregister2_cmdl --mov $movvol --targ $targ --regheader \
+      --reg /tmp/tmp.reg.$$.dat --ltaout $reg --regheader)
     if($#subject) set cmd = ($cmd --s $subject)
     echo $cmd 
     $cmd 
@@ -65,7 +68,8 @@ if(! $UseTkRegister) then
     rm /tmp/tmp.reg.$$.dat
   endif
   set cmd = (freeview)
-  #set cmd = ($cmd -viewport $Plane) # currently causes FV to crash
+  if($ShowConfig)  set cmd = ($cmd -transform-volume)
+  set cmd = ($cmd -viewport $Plane) # currently causes FV to crash
   set cmd = ($cmd -v $targ":"visible=0)
   @ nthaux = 0;
   foreach aux ($auxlist)
@@ -118,9 +122,9 @@ while( $#argv != 0 )
 
     case "--targ":
       if($#argv < 1) goto arg1err;
-      set targvol = $argv[1]; shift;
-      if(! -e $targvol) then
-        echo "ERROR: cannot find $targvol"
+      set targ = $argv[1]; shift;
+      if(! -e $targ) then
+        echo "ERROR: cannot find $targ"
         exit 1;
       endif
       breaksw
@@ -148,7 +152,7 @@ while( $#argv != 0 )
 
     case "--fstarg":
       if($#argv < 1) goto arg1err;
-      set fstargvol = $argv[1]; shift;
+      set fstarg = $argv[1]; shift;
       breaksw
 
     case "--subject":
@@ -192,10 +196,16 @@ while( $#argv != 0 )
       set segopacity = $argv[1]; shift;
       breaksw
 
+    case "--lta":
     case "--reg":
       if($#argv < 1) goto arg1err;
       set reg = $argv[1]; shift;
       set reg = `getfullpath $reg`
+      breaksw
+
+    case "--reg-header":
+    case "--regheader":
+      set regheader = 1;
       breaksw
 
     case "--surfs":
@@ -254,6 +264,10 @@ while( $#argv != 0 )
       if($Plane == cor) set Plane = coronal
       if($Plane == sag) set Plane = sagittal
       if($Plane == ax)  set Plane = axial
+      breaksw
+
+    case "--no-config"
+      set ShowConfig = 0;
       breaksw
 
     case "--tkregister":
@@ -385,10 +399,25 @@ arg2err:
 usage_exit:
   echo ""
   echo "This is a script that runs freeview with arguments like tkregister."
-  echo "Not all tkregister functionality is replicated."
+  echo "Not all tkregister functionality is replicated. Only uses LTA files."
   echo ""
   echo "tkregisterfv --mov mov --targ targ --reg reg.lta --s subject "
   echo "  --aux vol1 reg1 --aux vol2 reg2 ..."
+  echo ""
+  echo "  --fstarg volume : spec volume instead of $fstarg"
+  echo "  --sd SUBJECTS_DIR"  
+  echo "  --seg segvolume : load segvolume as well"  
+  echo "  --aseg : load aseg.mgz as seg volume"  
+  echo "  --aparc+aseg : load aparc+aseg.mgz as seg volume"  
+  echo "  --opacity opacity : set seg opacity"
+  echo "  --surfs : load lh and rh wm surfs"
+  echo "  --pial-surfs : load pial surfs instead of wm surfs"
+  echo "  --all-surfs : load both pial and wm surfs"
+  echo "  --lh-only, --rh-only : surface hemisphere"
+  echo "  --surf surfname : explicit path to surf to load"
+  echo "  --aux-surf auxsurfname : explicit path to surf to load"
+  echo "  --plane plane : cor, sag, ax"
+  echo "  --no-config : do not automatically raise transform config window"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION
