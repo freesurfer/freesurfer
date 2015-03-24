@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/03/13 23:31:17 $
-#    $Revision: 1.39 $
+#    $Date: 2015/03/24 19:26:16 $
+#    $Revision: 1.40 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.39 2015/03/13 23:31:17 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.40 2015/03/24 19:26:16 greve Exp $';
 set inputargs = ($argv);
 
 set sessid  = ();
@@ -40,7 +40,9 @@ set ShowSurfs = 0;
 set ToSelf = 0; # show tal on subjects anatomy
 set RegDOF = 6;
 set regfile = ();
-set UseFreeview = 0;
+
+if($?FSF_USE_FV == 0) setenv FSF_USE_FV 1
+set UseFreeview = $FSF_USE_FV
 
 set subject  = ();
 set mainvol  = orig.mgz;
@@ -263,10 +265,12 @@ else
   set cmd = (freeview  -v $mdir/$mainvol)
   if($#auxvol) set cmd = ($cmd -v $mdir/$auxvol)
   if($#segvol) set cmd = ($cmd -v "$mdir/$segvol":"lut=$segcolor":"opacity=$segopacity":"colormap=lut")
-  set fmid = `echo "($fthresh+$fmax)/2"|bc -l`
-  set fvopt = ($mapconcatfile":"colormap=heat":"heatscale=$fthresh,$fmid,$fmax)
-  if($#regfile) set fvopt = ($fvopt":"reg=$regfile)
-  set cmd = ($cmd -v $fvopt -viewport coronal -colorscale)
+  if($#mapconcatfile) then
+    set fmid = `echo "($fthresh+$fmax)/2"|bc -l`
+    set fvopt = ($mapconcatfile":"colormap=heat":"heatscale=$fthresh,$fmid,$fmax)
+    if($#regfile) set fvopt = ($fvopt":"reg=$regfile)
+    set cmd = ($cmd -v $fvopt -viewport coronal -colorscale)
+  endif
   #set cmd = ($cmd -timecourse)
 endif
 
