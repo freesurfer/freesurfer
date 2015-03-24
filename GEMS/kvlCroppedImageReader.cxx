@@ -7,9 +7,9 @@
 /*
  * Original Author: Koen Van Leemput
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/15 21:17:39 $
- *    $Revision: 1.3 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/24 14:49:31 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,6 +22,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
+#include <cstddef>
 #include "kvlCroppedImageReader.h"
 
 

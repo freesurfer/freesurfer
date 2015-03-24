@@ -7,9 +7,9 @@
 /*
  * Original Author: Koen Van Leemput
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/15 21:17:40 $
- *    $Revision: 1.3 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/24 14:49:31 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -99,12 +99,12 @@ int main( int argc, char* argv[] )
     ProbabilityImageType::ConstPointer  probabilityImage = reader->GetOutput();
 
     // Loop over all voxels
-    itk::ImageRegionConstIterator< ProbabilityImageType >   it( probabilityImage,
+    itk::ImageRegionConstIterator< ProbabilityImageType >   itt( probabilityImage,
         probabilityImage->GetBufferedRegion() );
     float  volumeInVoxels = 0.0f;
-    for ( ; !it.IsAtEnd(); ++it )
+    for ( ; !itt.IsAtEnd(); ++itt )
     {
-      volumeInVoxels += it.Value() / 255.0f;
+      volumeInVoxels += itt.Value() / 255.0f;
     } // End loop over all voxels
 
 

@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include "kvlAtlasMeshBuilder.h"
 
 #include "kvlAtlasMeshCollectionModelLikelihoodCalculator.h"
