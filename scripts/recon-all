@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/03/23 21:02:12 $
-#    $Revision: 1.510 $
+#    $Date: 2015/03/24 16:52:31 $
+#    $Revision: 1.511 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.510 2015/03/23 21:02:12 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.511 2015/03/24 16:52:31 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -761,14 +761,26 @@ if($DoCleanXopts) then
   if($RunIt) $cmd  |& tee -a $LF
 endif
 if($DoCleanT2) then
-  set cmd = (mv -f $subjdir/mri/T2.mgz $subjdir/trash)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd  |& tee -a $LF
+  set mdir = $subjdir/mri
+  set flist = ($mdir/T2.mgz $mdir/transforms/T2raw.lta $mdir/transforms/T2raw.auto.lta)
+  foreach f ($flist)
+    if(-e $f) then
+      set cmd = (mv -f $f $subjdir/trash)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd  |& tee -a $LF
+    endif
+  end
 endif
 if($DoCleanFLAIR) then
-  set cmd = (mv -f $subjdir/mri/FLAIR.mgz $subjdir/trash)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd  |& tee -a $LF
+  set mdir = $subjdir/mri
+  set flist = ($mdir/FLAIR.mgz $mdir/transforms/FLAIRraw.lta $mdir/transforms/FLAIRraw.auto.lta)
+  foreach f ($flist)
+    if(-e $f) then
+      set cmd = (mv -f $f $subjdir/trash)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd  |& tee -a $LF
+    endif
+  end
 endif
 
 #------------ Handle Seed Points for Fill/Cut, and Watershed ---------------#
@@ -3959,17 +3971,31 @@ if($DoT2pial || $DoFLAIRpial) then
 
     else #regular processing, register T2flairraw to T1 and create lta
 
+      set LTAAuto = $mdir/transforms/${t2flair}raw.auto.lta 
+      set LTAMan = $mdir/transforms/${t2flair}raw.lta 
+      set DontCopy = 0
+      if(-e $LTAAuto && -e $LTAMan) then
+        set DontCopy = `diff $LTAAuto $LTAMan | grep -v \# | grep -v filename | wc -l`
+      endif
+
       # first create a T2/FLAIR that is registered to the T1s
       set xopts = `fsr-getxopts bbregister $XOptsFile`;
       set bbcmd = (bbregister \
           --s $subjid \
           --mov $t2flairraw \
-          --lta $mdir/transforms/${t2flair}raw.lta \
+          --lta $LTAAuto \
           --init-$BBRInit \
           --T2 $xopts)
       echo "\n $bbcmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $bbcmd |& tee -a $LF
       if($status) goto error_exit;
+
+      if($DontCopy == 0) then
+        set cmd = (cp $LTAAuto $LTAMan)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
 
     endif
 
