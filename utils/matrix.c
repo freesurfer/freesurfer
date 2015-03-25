@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:56 $
- *    $Revision: 1.146 $
+ *    $Author: greve $
+ *    $Date: 2015/03/25 21:06:43 $
+ *    $Revision: 1.147 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4624,3 +4624,104 @@ double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh)
   }
   return(dmax);
 }
+
+/*
+  \fn MATRIX *MatrixColNullSpace(MATRIX *M, int *err)
+  \brief Computes the column null space of the given matrix using
+  SVD. By definition, N'*M = 0 (or close to 0). If there is no null
+  space then returns a null matrix. The number of rows of M must be >=
+  number of columns or else a null matrix is returned and
+  err=1. Otherwise err=0.
+ */
+MATRIX *MatrixColNullSpace(MATRIX *M, int *err)
+{
+  MATRIX *u, *s, *v, *M2;
+  int dim,r,c,dimmax,ndim;
+  double thresh=0;
+  MATRIX *N;
+
+  *err = 0;
+
+  if(M->rows < M->cols){
+    // Not sure why this does not work, but all singular values come out 0
+    printf("ERROR: MatrixColNullSpace(): rows (%d) must be >= cols (%d)\n",
+	   M->rows,M->cols);
+    *err = 1; // can't just return a null matrix
+    return(NULL);
+  }
+
+  dimmax = MAX(M->rows,M->cols);
+
+  if(M->rows > M->cols){
+    // Create a square matrix by padding extra colums with 0
+    M2 = MatrixAlloc(M->rows, M->rows, MATRIX_REAL);
+    for(r=1; r <= M->rows; r++){
+      for(c=1; c <= M->cols; c++){
+	M2->rptr[r][c] = M->rptr[r][c];
+      }
+    }
+  }
+  else M2 = MatrixCopy(M,NULL);
+
+  // Compute SVD M2 = u*s*v'
+  u = MatrixCopy(M2,NULL); // It's done in-place so make a copy
+  s = RVectorAlloc(M2->cols, MATRIX_REAL) ;
+  v = MatrixAlloc(M2->cols, M2->cols, MATRIX_REAL);
+  OpenSvdcmp(u, s, v) ;
+
+  // Determine dimension
+  if(fabs(s->rptr[1][1]) > .00000001){
+    //printf("s1 = %e\n",s->rptr[1][1]);
+    thresh = dimmax*s->rptr[1][1]*.0000001; // not sure
+    for(dim=1; dim <= s->cols; dim++) if(s->rptr[1][dim] < thresh) break;
+    dim--;
+  }
+  else dim = 0;
+
+  ndim = M->rows-dim; //  dim of the null space
+  if(Gdiag_no > 0) printf("MatrixNullSpace(): dim = %d, ndim = %d, %e\n",dim,ndim,thresh);
+
+  // Definition of null space: N'*M = 0
+  N = NULL;
+  if(dim != dimmax){
+    N = MatrixAlloc(M->rows, ndim, MATRIX_REAL);
+    for(r=1; r <= M->rows; r++){
+      for(c=1; c <= ndim; c++){
+	N->rptr[r][c] = u->rptr[r][c+dim];
+      }
+    }
+  }
+
+  if(0){
+    // Test that N'*M is close to 0
+    MATRIX *Nt,*P;
+    double pmax=0;
+    Nt = MatrixTranspose(N,NULL);
+    P = MatrixMultiplyD(Nt,M,NULL);
+    for(r=1; r <= Nt->rows; r++){
+      for(c=1; c <= M->cols; c++){
+	if(fabs(P->rptr[r][c]) > pmax) pmax = fabs(P->rptr[r][c]);
+	if(fabs(P->rptr[r][c]) > 10e-6)
+	  printf("TEST: MatrixNullSpace(): %d %d %e\n",r,c,P->rptr[r][c]);
+      }
+    }
+    printf("TEST: MatrixNullSpace(): pmax %le\n",pmax);
+    MatrixFree(&Nt);
+    MatrixFree(&P);
+  }
+
+  //MatrixWriteTxt("m.mtx",M2);
+  //MatrixWriteTxt("u.mtx",u);
+  //MatrixWriteTxt("s.mtx",s);
+  //MatrixWriteTxt("v.mtx",v);
+  //MatrixWriteTxt("n.mtx",N);
+
+  MatrixFree(&u);
+  MatrixFree(&s);
+  MatrixFree(&v);
+  MatrixFree(&M2);
+
+  return(N);
+}
+
+

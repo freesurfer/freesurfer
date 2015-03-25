@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/05/16 22:19:03 $
- *    $Revision: 1.87 $
+ *    $Date: 2015/03/25 21:06:44 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -309,6 +309,7 @@ MATRIX *MatrixAtB(MATRIX *A, MATRIX *B, MATRIX *mout);
 MATRIX *MatrixSkew(MATRIX *y, MATRIX *s);
 MATRIX *MatrixKurtosis(MATRIX *y, MATRIX *k);
 double MatrixMaxAbsDiff(MATRIX *m1, MATRIX *m2, double dthresh);
+MATRIX *MatrixColNullSpace(MATRIX *M, int *err);
 
 #if defined(__cplusplus)
 };
