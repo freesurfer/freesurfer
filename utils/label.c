@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/02/27 15:38:37 $
- *    $Revision: 1.121 $
+ *    $Author: mreuter $
+ *    $Date: 2015/03/25 13:54:06 $
+ *    $Revision: 1.122 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -663,8 +663,8 @@ LabelWrite(LABEL *area, const char *label_name)
   }
   else
   {
-    cp = strstr(lname, ".label") ;
-    if (cp)
+    cp = strrchr(lname, '.') ;
+    if (cp && stricmp(cp, ".label") == 0)
     {
       strcpy(fname, label_name) ;
     }
