@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/03/23 22:31:25 $
-#    $Revision: 1.639 $
+#    $Author: fischl $
+#    $Date: 2015/03/26 16:59:42 $
+#    $Revision: 1.640 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3667,6 +3667,7 @@ AC_OUTPUT([Makefile
            mri_bc_sc_bias_correct/Makefile
            mri_binarize/Makefile
            mri_build_priors/Makefile
+           mri_cal_renormalize_gca/Makefile
            mri_ca_label/Makefile
            mri_ca_normalize/Makefile
            mri_ca_register/Makefile
@@ -3804,6 +3805,7 @@ AC_OUTPUT([Makefile
            mri_vol2roi/Makefile
            mri_vol2surf/Makefile
            mri_vol2vol/Makefile
+           mris_copy_header/Makefile
            mris_segmentation_stats/Makefile
            mris_simulate_atrophy/Makefile
            mris_rf_label/Makefile
@@ -3933,6 +3935,7 @@ AC_OUTPUT([Makefile
            mris_compute_volume_fractions/Makefile
            nmovie/Makefile
            oct_train/Makefile
+           oct_register_mosaic/Makefile
 	   nmovie_qt/Makefile
            optseq2/Makefile
            orient_mri/Makefile

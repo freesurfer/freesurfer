@@ -8,7 +8,8 @@ foodir=$(prefix)
 foo_DATA=LICENSE NOTICE README AUTHORS INSTALL COPYING
 
 OCTSUBDIRS=\
-	oct_train 
+	oct_train \
+	oct_register_mosaic 
 
 DMRISUBDIRS=\
 	dmri_poistats \
@@ -51,6 +52,7 @@ MRISUBDIRS=\
 	mri_binarize \
 	mri_build_priors \
 	mri_ca_label \
+	mri_cal_renormalize_gca \
 	mri_divide_segmentation \
 	mri_gtmpvc \
 	mri_rf_label \
@@ -211,6 +213,7 @@ MRISSUBDIRS=\
 	label2flat \
 	spherical_stats \
 	tridec \
+	mris_copy_header \
 	mris_segmentation_stats \
 	mris_simulate_atrophy \
 	mris_register_to_volume \
