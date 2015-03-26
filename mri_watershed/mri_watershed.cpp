@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:40 $
- *    $Revision: 1.98 $
+ *    $Author: fischl $
+ *    $Date: 2015/03/26 19:46:52 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.98 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.99 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +40,7 @@ const char *MRI_WATERSHED_VERSION = "$Revision: 1.98 $";
 #include <fstream>
 #include <iomanip>
 #include <vector>
+
 
 #define INDIVIDUAL_TIMERS 0
 
@@ -85,6 +86,7 @@ extern "C"
 #include "transform.h"
 
 #include "talairachex.h"
+#include "mri_circulars.h"
 }
 
 #define WM_CONST 110 /* not used anymore */
@@ -277,7 +279,6 @@ static int type_changed = 0 ;
 static int conformed = 0 ;
 
 static int old_type ;
-
 
 #ifndef __OPTIMIZE__
 // this routine is slow and should be used only for diagnostics
@@ -838,7 +839,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.98 2015/02/05 23:34:40 zkaufman Exp $",
+   "$Id: mri_watershed.cpp,v 1.99 2015/03/26 19:46:52 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -851,7 +852,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.98 2015/02/05 23:34:40 zkaufman Exp $",
+           "$Id: mri_watershed.cpp,v 1.99 2015/03/26 19:46:52 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1057,8 +1058,27 @@ int main(int argc, char *argv[])
 
   if (mriConformed(mri_with_skull) == 0)
   {
+    MATRIX *m_conform, *m_tmp ;
+    MRI *mri_tmp ;
+
     printf("conforming input...\n") ;
-    mri_with_skull = MRIconform(mri_with_skull) ;
+    mri_tmp = MRIconform(mri_with_skull) ;
+    if (parms->transform)
+    {
+      LTA *lta = (LTA *) (parms->transform->xform);
+
+      printf("updating LTA to account for conformation\n") ;
+      m_conform = MRIgetResampleMatrix(mri_with_skull, mri_tmp);
+      m_tmp = MatrixMultiply(m_conform, lta->xforms[0].m_L, NULL) ;
+      MatrixCopy(m_tmp, lta->xforms[0].m_L) ; 
+//    MatrixPrint(stdout, m_conform) ;
+//    MatrixPrint(stdout, lta->xforms[0].m_L) ;
+     MRIcopyVolGeomFromMRI(mri_tmp, &lta->xforms[0].src) ;
+      MatrixFree(&m_conform) ;  MatrixFree(&m_tmp) ; 
+    }
+
+    MRIfree(&mri_with_skull) ;
+    mri_with_skull = mri_tmp ;
     conformed = 1 ;
   }
   else if (mri_with_skull->type!=MRI_UCHAR)
