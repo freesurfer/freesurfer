@@ -1,0 +1,155 @@
+<html>
+<body>
+<basefont face="sans-serif"></basefont>
+
+
+<h1>NAME</h1>
+<p>mri_ca_register</p>
+
+<h1>SYNOPSIS</h1>
+<p>mri_ca_register &lt;invol&gt; &lt;template&gt; &lt;outvol&gt;</p>
+
+<h1>DESCRIPTION</h1>
+<p>This generates a multi-dimensional talairach transform from a gca file and talairach.lta file</p>
+
+<h1>POSITIONAL ARGUMENTS</h1>
+<table border="3">
+<tr><th>Argument</th><th>Explanation</th></tr>
+<tr>
+<td>invol</td><td>input volume</td></tr>
+<tr>
+<td>template</td><td>template in gca format</td></tr>
+<tr>
+<td>outvol</td><td>output volume in m3d format</td></tr>
+</table>
+
+
+<h1>REQUIRED-FLAGGED ARGUMENTS</h1>
+<h3>*******************************************************************************************</h3>
+
+
+<h1>OPTIONAL-FLAGGED ARGUMENTS</h1>
+<table border="3">
+<tr><th>Argument</th><th>Explanation</th></tr>
+<tr>
+<td>-tol</td><td>defines convergence of registration</td></tr>
+<tr>
+<td>-mask</td><td>specifies volume to use as a mask</td></tr>
+<tr>
+<td>-T</td><td>transform in lta format</td></tr>
+<tr>
+<td>-level</td><td>defines how many surrounding voxels will be used in interpolations, default is 6</td></tr>
+<tr>
+<td>-ri</td><td>allows reading of multiple intensity normalization</td></tr>
+<tr>
+<td>-align</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-invert-and-save gcamfile</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-dist distance</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-regularize regularize</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-regularize-mean regularizemean</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-scale_smoothness smoothness</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-nobright </td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-renormalize</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-read_lta </td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-smoothness smoothness</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-samples samples</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-nsmall nsmall</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-fixed</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-optimal</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-noneg noneg</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-wm</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-min_avgs &lt;n&gt;</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-tl</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-relabel relable</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-relabel_avgs relable_avgs</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-reset_avgs reset_avgs</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-vf vf_fname</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-diag diagfname</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-tr tr</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-te te</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-example T1 seg</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-&lt;no&gt;bigventricles</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-uncompress</td><td>&nbsp;</td>
+</tr>
+<tr>
+<td>-secondpassrenorm</td></tr>
+</table>
+
+
+<h1>OUTPUTS</h1>
+<table border="3">
+<tr><th>Output</th><th>Explanation</th></tr>
+<tr>
+<td>outvol</td><td>multidimensional transform in m3d format</td></tr>
+</table>
+
+
+<h1>EXAMPLE 1</h1>
+<p>mri_ca_register -levels 6 -mask subject1/mri/brain -T subject1/mri/transforms/talairach_one.lta subject1/mri/norm_one.mgh single_one.gca subject1/mri/transforms/talairach_one.m3d </p>
+
+<h1>EXAMPLE 2</h1>
+<p>mri_ca_register -tol 1 -mask subject1/mri/brain -T subject1/mri/transforms/talairach_multi.lta subject1/mri/norm_multi.mgh multi_one.gca subject1/mri/transforms/talairach_multi.m3d</p>
+
+<h1>BUGS</h1>
+<p>None</p>
+
+<h1>REPORTING</h1>
+<p>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</p>
+
+<h1>SEE-ALSO</h1>
+<p>*****************************************************************************</p></html>
+</body>

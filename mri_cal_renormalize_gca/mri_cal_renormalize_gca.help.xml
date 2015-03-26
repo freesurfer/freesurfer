@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mri_ca_register</name>
+	<synopsis>mri_ca_register &lt;invol&gt; &lt;template&gt; &lt;outvol&gt;</synopsis>
+	<description>This generates a multi-dimensional talairach transform from a gca file and talairach.lta file</description>
+  <arguments>
+    <positional>
+      <argument>invol</argument>
+      <explanation>input volume</explanation>
+      <argument>template</argument>
+      <explanation>template in gca format</explanation>
+      <argument>outvol</argument>
+      <explanation>output volume in m3d format</explanation>
+    </positional>
+    <required-flagged>
+      <intro>*******************************************************************************************</intro>
+    </required-flagged>
+    <optional-flagged>
+      <argument>-tol</argument>
+      <explanation>defines convergence of registration</explanation>
+      <argument>-mask</argument>
+      <explanation>specifies volume to use as a mask</explanation>
+      <argument>-T</argument>
+      <explanation>transform in lta format</explanation>
+      <argument>-level</argument>
+      <explanation>defines how many surrounding voxels will be used in interpolations, default is 6</explanation>
+      <argument>-ri</argument>
+      <explanation>allows reading of multiple intensity normalization</explanation>
+      <argument>-align</argument>
+      <argument>-invert-and-save gcamfile</argument>
+      <argument>-dist distance</argument>
+      <argument>-regularize regularize</argument>
+      <argument>-regularize-mean regularizemean</argument>
+      <argument>-scale_smoothness smoothness</argument>
+      <argument>-nobright </argument>
+      <argument>-renormalize</argument>
+      <argument>-read_lta </argument>
+      <argument>-smoothness smoothness</argument>
+      <argument>-samples samples</argument>
+      <argument>-nsmall nsmall</argument>
+      <argument>-fixed</argument>
+      <argument>-optimal</argument>
+      <argument>-noneg noneg</argument>
+      <argument>-wm</argument>
+      <argument>-min_avgs &lt;n&gt;</argument>
+      <argument>-tl</argument>
+      <argument>-relabel relable</argument>
+      <argument>-relabel_avgs relable_avgs</argument>
+      <argument>-reset_avgs reset_avgs</argument>
+      <argument>-vf vf_fname</argument>
+      <argument>-diag diagfname</argument>
+      <argument>-tr tr</argument>
+      <argument>-te te</argument>
+      <argument>-example T1 seg</argument>
+      <argument>-&lt;no&gt;bigventricles</argument>
+      <argument>-uncompress</argument>
+      <argument>-secondpassrenorm</argument>
+    </optional-flagged>
+  </arguments>
+  <outputs>
+    <output>outvol</output>
+    <explanation>multidimensional transform in m3d format</explanation>
+  </outputs>
+	<example>mri_ca_register -levels 6 -mask subject1/mri/brain -T subject1/mri/transforms/talairach_one.lta subject1/mri/norm_one.mgh single_one.gca subject1/mri/transforms/talairach_one.m3d </example>
+	<example>mri_ca_register -tol 1 -mask subject1/mri/brain -T subject1/mri/transforms/talairach_multi.lta subject1/mri/norm_multi.mgh multi_one.gca subject1/mri/transforms/talairach_multi.m3d</example>
+  <bugs>None</bugs>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>*****************************************************************************</see-also>
+</help>
