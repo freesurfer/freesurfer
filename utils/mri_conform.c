@@ -6,9 +6,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/24 17:25:41 $
- *    $Revision: 1.37 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/03/26 23:18:22 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,10 @@
 #include "error.h"
 #include "histo.h"
 #include "mri_conform.h"
+
+/*-------------------------------------------------------------------*/
+double round(double); // why is this never defined?!?
+/*-------------------------------------------------------------------*/
 
 extern int errno;
 
