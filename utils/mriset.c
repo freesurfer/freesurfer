@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/10/18 21:21:12 $
- *    $Revision: 1.91 $
+ *    $Author: greve $
+ *    $Date: 2015/03/27 22:19:53 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2725,9 +2725,11 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
   int     width, height, depth, nframes, x, y, z, f, mask_val ;
   float   val ;
 
-  if (mri_src->width != mri_mask->width ||
-      mri_src->height != mri_mask->height ||
-      mri_src->depth != mri_mask->depth)
+  if (mri_src->width != mri_mask->width || mri_src->height != mri_mask->height ||
+      mri_src->depth != mri_mask->depth || mri_src->xsize != mri_mask->xsize ||
+      mri_src->ysize != mri_mask->ysize || mri_src->zsize != mri_mask->zsize ||
+      mri_src->c_r != mri_mask->c_r || mri_src->c_a != mri_mask->c_a ||
+      mri_src->c_s != mri_mask->c_s)
     return(MRImaskDifferentGeometry(mri_src, mri_mask, mri_dst,mask,out_val));
 
   MRIcheckVolDims(mri_src, mri_mask);
