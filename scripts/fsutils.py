@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.18 2014/11/21 23:06:43 greve Exp $
+# $Id: fsutils.py,v 1.19 2015/03/27 16:40:35 greve Exp $
 import os
 import logging
 import sys
@@ -158,6 +158,9 @@ class AsegStatsParser(StatsParser):
                         ('# Measure lhCorticalWhiteMatter, lhCorticalWhiteMatterVol,','lhCorticalWhiteMatterVol'),
                         ('# Measure rhCorticalWhiteMatter, rhCorticalWhiteMatterVol,','rhCorticalWhiteMatterVol'),
                         ('# Measure CorticalWhiteMatter, CorticalWhiteMatterVol,','CorticalWhiteMatterVol'),
+                        ('# Measure lhCerebralWhiteMatter, lhCerebralWhiteMatterVol,','lhCerebralWhiteMatterVol'),
+                        ('# Measure rhCerebralWhiteMatter, rhCerebralWhiteMatterVol,','rhCerebralWhiteMatterVol'),
+                        ('# Measure CerebralWhiteMatter, CerebralWhiteMatterVol,','CerebralWhiteMatterVol'),
                         ('# Measure SubCortGray, SubCortGrayVol,','SubCortGrayVol'),
                         ('# Measure TotalGray, TotalGrayVol,','TotalGrayVol'),
                         ('# Measure SuperTentorial, SuperTentorialVol,','SuperTentorialVol'),
