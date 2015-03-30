@@ -78,6 +78,8 @@ fsfget \
 getfullpath \
 get_label_thickness \
 grad_unwarp \
+groupstats \
+groupstatsdiff \
 help_xml_validate \
 inflate_subject \
 inflate_subject3 \
