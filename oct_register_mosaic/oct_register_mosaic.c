@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/03/27 00:42:25 $
- *    $Revision: 1.1 $
+ *    $Date: 2015/03/30 15:39:11 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,10 +113,10 @@ main(int argc, char *argv[]) {
   double       energy, best_energy, prev_best_energy, dxd, dyd ;
   int          x0[MAX_IMAGES], y0[MAX_IMAGES], xbest[MAX_IMAGES], ybest[MAX_IMAGES] ; 
   double       x0d[MAX_IMAGES], y0d[MAX_IMAGES], ax[MAX_IMAGES], ay[MAX_IMAGES] ;
-  HISTOGRAM    *h0, *h1 ;
+  HISTOGRAM    *h0 = NULL, *h1 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: oct_register_mosaic.c,v 1.1 2015/03/27 00:42:25 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: oct_register_mosaic.c,v 1.2 2015/03/30 15:39:11 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -178,6 +178,8 @@ main(int argc, char *argv[]) {
     else
     {
       float      a, b ;
+      if (h0 == NULL)
+	h0 = MRIhistogram(mri[i], 256) ;
       h1 = MRIhistogram(mri[i], 256) ;
       HISTOfindLinearFit(h1, h0, .8, 1.2, -10, 10, &a, &b) ;
       printf("scaling image %d intensities by %2.3f x + %2.0f to match baseline image\n", i, a, b) ;
@@ -513,7 +515,7 @@ compute_mosaic_energy(MRI *mri_mosaic, int nimages)
 
   energy =  0.0 ;
   nonzero = overlap_voxels = 0 ;
-#if 1
+#ifdef HAVE_OPENMP
 #pragma omp parallel for reduction (+:overlap_voxels,nonzero,energy)  
 #endif
   for (x = 0 ; x < mri_mosaic->width ; x++)
