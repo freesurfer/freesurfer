@@ -1,0 +1,347 @@
+#!/bin/tcsh -f
+# groupstatsdiff
+
+set VERSION = '$Id: groupstatsdiff,v 1.1 2015/03/30 19:20:35 greve Exp $';
+
+set g1dir = ();
+set g2dir = ();
+set DoMaps = 1;
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set outdir = ()
+set surflist = (white)
+set DoOSGM = 0;
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+
+mkdir -p $outdir/rois $outdir/maps
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/groupstatsdiff.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for groupstatsdiff" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+set mapmeaslist  = `cat $g1dir/mapmeas.list.txt`
+set hemilist     = `cat $g1dir/hemi.list.txt`
+set aparclist    = `cat $g1dir/aparc.list.txt`
+set fwhmlist     = `cat $g1dir/fwhm.list.txt`
+
+if($DoOSGM) then
+   set gcmd = (--osgm)
+else
+  set gcmd = (--fsgd $fsgd)
+endif
+
+#========================================================
+
+# APARC Stats ----------------------------------------------------
+foreach aparc ($aparclist)
+  foreach surf ($surflist)
+    if($aparc == aparc.a2009s && $surf == pial) continue;
+    foreach hemi ($hemilist)
+      foreach meas (area thickness volume meancurv)
+        set parc = $aparc
+        if($surf == pial) set parc = pial.$aparc; # only aparc
+        set table1 = $g1dir/rois/$parc.$hemi.$surf.$meas.dat
+        set table2 = $g2dir/rois/$parc.$hemi.$surf.$meas.dat
+        set difftable = $outdir/rois/diff.$parc.$hemi.$surf.$meas.dat
+        set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
+        echo "#C# $cmd" | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+        set glmdir = $outdir/rois/glm.diff.$parc.$hemi.$surf.$meas
+        set cmd = (mri_glmfit --table $difftable --glmdir $glmdir $gcmd)
+        echo "#C# $cmd"  | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      end # meas
+    end # hemi
+  end # surf
+end # aparc
+
+# ASEG Stats ----------------------------------------------------
+foreach hemi ($hemilist other)
+  foreach meas (volume mean)
+    set b = aseg.$hemi.$meas
+    if($meas == mean) set b = aseg.$hemi.intensity
+    set table1 =  $g1dir/rois/$b.dat
+    set table2 =  $g2dir/rois/$b.dat
+    set difftable = $outdir/rois/diff.$b.dat
+    set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
+    echo "#C# $cmd" | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    set glmdir = $outdir/rois/glm.diff.$b
+    set cmd = (mri_glmfit --table $difftable --glmdir $glmdir $gcmd)
+    echo "#C# $cmd"  | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  end # meas
+end # hemi
+
+# WMParc Stats --------------------------------------------
+set table1 =  $g1dir/rois/wmparc.vol.dat
+set table2 =  $g2dir/rois/wmparc.vol.dat
+set difftable = $outdir/rois/diff.wmparc.vol
+set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
+echo "#C# $cmd" | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+set glmdir = $outdir/rois/glm.diff.wmparc.vol
+set cmd = (mri_glmfit --table $difftable --glmdir $glmdir $gcmd)
+echo "#C# $cmd"  | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# Maps and GLM ---------------------------------------
+if($DoMaps) then
+  foreach meas ($mapmeaslist)
+    foreach hemi ($hemilist)
+      foreach fwhm ($fwhmlist)
+        set fwhmstr = `printf %02d $fwhm`
+        set sm1file =  $g1dir/maps/$meas.$hemi.sm$fwhmstr.mgh
+        set sm2file =  $g2dir/maps/$meas.$hemi.sm$fwhmstr.mgh
+        # Compute the difference
+        set smdifffile = $outdir/maps/diff.$meas.$hemi.sm$fwhmstr.mgh	
+        set cmd = (fscalc $sm1file sub $sm2file -o $smdifffile)
+        echo "#C# $cmd"  | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+        # glm ------------------------
+        set glmdir = $outdir/maps/glm.diff.$meas.$hemi.sm$fwhmstr
+        set cmd = (mri_glmfit --surface fsaverage $hemi --y $smdifffile --glmdir $glmdir $gcmd)
+        echo "#C# $cmd"  | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+        set cmd = (mri_glmfit-sim --glmdir $glmdir --cwp .05 --cache 1.3 abs --2spaces)
+        echo "#C# $cmd"  | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      end # fwhm
+    end # hemi
+  end #meas
+endif
+
+#========================================================
+# Done
+
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "groupstatsdiff-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "groupstatsdiff Done" |& tee -a $LF
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--g1":
+      if($#argv < 1) goto arg1err;
+      set g1dir = $argv[1]; shift;
+      if(! -e $g1dir) then
+        echo "ERROR: cannot find $g1dir"
+        exit 1;
+      endif
+      breaksw
+
+    case "--g2":
+      if($#argv < 1) goto arg2err;
+      set g2dir = $argv[1]; shift;
+      if(! -e $g2dir) then
+        echo "ERROR: cannot find $g2dir"
+        exit 1;
+      endif
+      breaksw
+
+    case "--osgm":
+      set DoOSGM = 1;
+      breaksw
+
+    case "--no-maps":
+      set DoMaps = 0;
+      breaksw
+
+    case "--lh":
+      set hemilist = (lh)
+      breaksw
+
+    case "--rh":
+      set hemilist = (rh)
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+if($#g1dir == 0) then
+  echo "ERROR: must spec --g1"
+  exit 1;
+endif
+if($#g2dir == 0) then
+  echo "ERROR: must spec --g2"
+  exit 1;
+endif
+if($#outdir == 0) then
+  echo "ERROR: Must specify output folder"
+  exit 1;
+endif
+set fsgd1 = $g1dir/group.fsgd
+set fsgd2 = $g2dir/group.fsgd
+set n = `diff $fsgd1 $fsgd2 | wc -l`
+if($n != 0) then
+  echo "ERROR: fsgd files $fsgd1 and $fsgd2 are not the same"
+  exit 1; 
+endif
+set fsgd = $g1dir/group.fsgd
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "groupstatsdiff "
+  echo "  --g1 group1dir : output folder from groupstats"
+  echo "  --g2 group2dir : output folder from groupstats"
+  echo "  --o output : output folder for difference"
+  echo "  --no-maps : only analyze ROI data"
+  echo "  --osgm : use OSGM instead of native FSGD"
+  echo "  "
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is a script run on two outputs of groupstats with the intention
+of evaluating the differences between two different recon-all analyses
+(eg, two versions of FS, same version but different platforms, same
+version but different parameters). The groupstats script is run
+separately on each of the analyses, storing the output in group1dir
+and group2dir which are then passed to this script.
+
+This script can be run in two different modes, either with --osgm
+(one-sample-group-mean) or without in which case it will use the FSGD
+file from the groupstats run. If groupstats was run with OSGM, then
+these two are the same. Use OSGM when simply looking at the difference
+between the two analyses. Use the native FSGD when look at whether
+there is an interaction between effect of interest (eg, age) and the 
+two analyses.
+
+One can then evaluate the differences with something like
+
+tksurfer fsaverage lh inflated -aparc \
+   -ov diffdir/maps/glm.diff.thickness.lh.sm10/osgm/sig.mgh \
+   -t diffdir/maps/diff.thickness.lh.sm10.mgh
+
+The map will indicate OSGM differences and the "time" course will show
+the paired differences in each subject. If you want to dig deeper into
+a particular subject, then try using fvcompare.
+
+Other maps that can be examined are: thickness, area, volume.
+
+
