@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/03/24 16:52:31 $
-#    $Revision: 1.511 $
+#    $Author: zkaufman $
+#    $Date: 2015/03/30 17:14:21 $
+#    $Revision: 1.512 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.511 2015/03/24 16:52:31 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.512 2015/03/30 17:14:21 zkaufman Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -213,6 +213,9 @@ set DoHippoSF_T1 = 0;  # if 1, run hippo subfield seg, exvivo atlas (only T1)
 set DoHippoSF_T1T2 = 0;# if 1, run hippo subfield seg, exvivo atlas (T1 and T2)
 set DoHippoSF_T2 = 0;  # if 1, run hippo subfield seg, exvivo atlas (only T2)
 set T2volHippoSF = ();
+
+# Brainstem substructures
+set DoBSsubst = 0;
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -4881,9 +4884,12 @@ endif # DoLabelExvivoEC
 ##-----------   -hippocampal-subfields-T1T2  -----------#
 ##-----------   -hippocampal-subfields-T2  -------------#
 #--------------                        -----------------#
+#--------------  Brainstem Substructures ---------------#
+##-----------   -brainstem-structures  -----------------#
+#--------------                        -----------------#
 
-# sanity-checks and hemilist conversion first...
-if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then
+# For substructure segmentation of hippocampus or brainstem: check if Matlab runtime is there
+if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2 || $DoBSsubst) then      
 
   if ( ! -e ${FREESURFER_HOME}/MCRv80/bin/glnxa64/libdctprocess.so \
     && ! -e ${FREESURFER_HOME}/MCRv80/bin/maci64/libdctprocess.jnilib  ) then
@@ -4898,18 +4904,24 @@ if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then
     echo "You will need the Matlab Compiler Runtime (MCR) for Matlab 2012b."
     echo "For further details, please visit:"
     echo "     "
-    echo "https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields"
-    echo "     "
-    echo "Or you can symlink your Matlab 2012b install, or a downloaded MCR"
-    echo "install, to a directory named MCRv80 in your FREESURFER_HOME" 
-    echo "The MCR is available here:"
-    echo "     "
-    echo "http://www.mathworks.com/products/compiler/mcr/index.html"
+    echo "https://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime"
     echo "     "
     goto error_exit;
   endif
+endif
 
-  # then check for necessary data from default freesurfer processing
+# brainstem structures: make sure required files from from default freesurfer processing are in there
+if ($DoBSsubst) then 
+  if (! -e ${subjdir}/mri/aseg.mgz || \
+      ! -e ${subjdir}/mri/norm.mgz ) then
+    echo "ERROR: cannot find norm.mgz or aseg.mgz for the subject."
+    echo "ERROR: Maybe, run recon-all again or disable segmentation of brainstem substructures."
+    goto error_exit;
+  endif #checking of aseg.mgz and norm.mgz 
+endif
+
+# hippocampal subfields: make sure required files from default freesurfer processing are in there, and convert hemilist
+if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then 
   if (! -e ${subjdir}/mri/wmparc.mgz || \
       ! -e ${subjdir}/mri/norm.mgz || \
       ! -e ${subjdir}/mri/transforms/talairach.xfm ) then
@@ -4925,6 +4937,32 @@ if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then
   else
     set hippohemilist=(left right)
   endif
+endif
+
+
+#--------------                        -----------------#
+##-----------   -brainstem-structures  -----------------#
+#--------------                        -----------------#
+if($DoBSsubst) then
+  set BSSLOG = ($subjdir/scripts/brainstem-structures.log)
+  rm -f $BSSLOG
+  echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF |& tee -a $BSSLOG
+  echo "#@# Segmentation of brainstem substructures  `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $BSSLOG
+
+  # segmentation of brainstem structures
+  set cmd = ( ${FREESURFER_HOME}/bin/segmentBS.sh \
+    ${FREESURFER_HOME}/MCRv80 \
+    $FREESURFER_HOME \
+    $subjid  \
+    $SUBJECTS_DIR )
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  echo "See log file: $BSSLOG"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $BSSLOG
+  if($status) goto error_exit;
+
+  echo $cmd > $touchdir/brainstem-structures.touch
 endif
 
 #--------------                        -----------------#
@@ -6990,6 +7028,13 @@ while( $#argv != 0 )
       set T2volHippoSF = "$argv[1]"; shift;
       breaksw;
 
+    # processing of brainstem substructures
+    case "-brainstem-structures":
+      set DoBSsubst = 1;
+      breaksw;
+
+
+   
     case "-cubic":
       set UseCubic = 1;
       breaksw
@@ -7452,7 +7497,7 @@ check_params:
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
      ! $DoLabelExvivoEC && ! $DoPialSurfs && \
-     ! $DoHippoSF_T1 && ! $DoHippoSF_T1T2 && ! $DoHippoSF_T2 && \
+     ! $DoHippoSF_T1 && ! $DoHippoSF_T1T2 && ! $DoHippoSF_T2 &&  ! $DoBSsubst && \
      ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && \
      ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg ) then
