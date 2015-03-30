@@ -597,7 +597,7 @@
         <item row="2" column="0" colspan="2">
          <widget class="QCheckBox" name="checkBoxSetMidToMin">
           <property name="text">
-           <string>Set Mid to Min</string>
+           <string>Autoset Mid</string>
           </property>
          </widget>
         </item>
