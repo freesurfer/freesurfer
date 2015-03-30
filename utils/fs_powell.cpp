@@ -112,6 +112,8 @@ public:
  * 
 
  */
+void (*powell_iteration_func)(float *p, int nparms) = NULL;
+
 vnl_nonlinear_minimizer::ReturnCodes
 fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
 //double p[], double **xi, int n
@@ -143,8 +145,19 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
     double fp = fret;
     int ibig=0;
     double del=0.0;
-    printf("  powell nthiter %d\n",(int)num_iterations_);
+    printf("  powell nthiter %d: fret = %f\n",(int)num_iterations_, fret);
+    if (powell_iteration_func)
+    {
+      float *float_parms = (float *)calloc(n+1, sizeof(float)) ;
 
+      // indexing p at 1 because of NR legacy
+      for ( int i=0; i< n; i++ )
+      {
+	float_parms[ i+1 ] = static_cast< float >( p( i ) );
+      }
+      (*powell_iteration_func)(float_parms, n) ;
+      free(float_parms) ;
+    }
     for (int i=0;i<n;i++)
     {
       if(verbose_) printf("    param %3d  nthiter %2d\n",(int)i, (int)num_iterations_);
