@@ -15,6 +15,7 @@ def print_help():
   print "  --percent2 compute percent diff with respect to table2";
   print "  --mul mulval : multiply by mulval";
   print "  --div divval : divide by divval";
+  print "  --common : compute diff on common segs (may reorder)";
   print "  --debug : print out debugging info";
   return 0;
 #end def print_help:
@@ -34,6 +35,7 @@ def parse_args(argv):
   global DoPercent;
   global MulVal;
   global DivVal;
+  global AllowCommon;
 
   del argv[0]; # get past program name (like shift)
 
@@ -62,6 +64,8 @@ def parse_args(argv):
       DoPercent = 2;
     elif(flag == "--percent"):
       DoPercent = 3;
+    elif(flag == "--common"):
+      AllowCommon = 1;
     elif(flag == "--debug"):
       debug = 1;
     else:
@@ -113,6 +117,7 @@ tablediff=();
 DoPercent = 0;
 MulVal = 1;
 DivVal = 1;
+AllowCommon = 0;
 
 nargs = len(sys.argv) - 1;
 if(nargs == 0):
@@ -131,6 +136,7 @@ except:
 #endtry
 header1 = fp.readline();
 collist1 = header1.split();
+meas1 = collist1[0];
 del collist1[0]; # remove Measure:xxx
 ncols1 = len(collist1);
 nrows1 = 0;
@@ -149,6 +155,7 @@ except:
 fp = open(table2, 'r');
 header2 = fp.readline();
 collist2 = header2.split();
+meas2 = collist2[0];
 del collist2[0]; # remove Measure:xxx
 ncols2 = len(collist2);
 nrows2 = 0;
@@ -166,9 +173,21 @@ if(nrows1 != nrows2):
   print "ERROR: rows are not equal %d %d" % (nrows1,nrows2);
   sys.exit(0);
 #end
-if(ncols1 != ncols2):
-  print "ERROR: cols are not equal %d %d" % (ncols1,ncols2);
-  sys.exit(0);
+
+DoCommon = 0;
+comcollist = list(set(collist1) & set(collist2));
+ncolscom = len(comcollist);
+if(ncols1 != ncolscom or ncols2 != ncolscom):
+  if(AllowCommon): 
+    print "INFO: cols have different segs, doing common segs (%d,%d)" % (ncols1,ncols2);
+    DoCommon = 1;
+    ncols1 = ncolscom;
+    ncols2 = ncolscom;
+  else:
+    print "ERROR: cols have different segs (%d,%d)" % (ncols1,ncols2);
+    print "  Use --common to only compute the difference on the common segs"
+    sys.exit(0);
+  #end
 #end
 
 # Read in table 1
@@ -183,7 +202,13 @@ for line in fp:
   del linesplit[0];
   col = 0;
   for v in linesplit:
-    m1[row][col] = float(v);
+    k = col;
+    item = collist1[col];
+    if(DoCommon): 
+      if item in comcollist: k = comcollist.index(item);
+      else: continue
+    #endif
+    m1[row][k] = float(v);
     col = col + 1;
   #endfor
   row = row + 1;
@@ -202,7 +227,13 @@ for line in fp:
   del linesplit[0];
   col = 0;
   for v in linesplit:
-    m2[row][col] = float(v);
+    k = col;
+    item = collist2[col];
+    if(DoCommon): 
+      if item in comcollist: k = comcollist.index(item);
+      else: continue
+    #endif
+    m2[row][k] = float(v);
     col = col + 1;
   #endfor
   row = row + 1;
@@ -221,7 +252,14 @@ if(DoPercent):
 #end
 
 fp = open(tablediff,'w');
-fp.write(header);
+if(DoCommon): 
+  fp.write(meas1);
+  fp.write(" ");
+  for item in comcollist: 
+    fp.write(item);
+    fp.write(" ");
+  fp.write("\n");
+else: fp.write(header);
 for row in range(0, nrows1):
   fp.write("%s " % subjlist1[row]);
   for col in range(0, ncols1):
