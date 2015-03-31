@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/31 19:39:58 $
- *    $Revision: 1.16 $
+ *    $Date: 2015/03/31 22:12:23 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.16 2015/03/31 19:39:58 greve Exp $
+// $Id: fsglm.h,v 1.17 2015/03/31 22:12:23 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -67,7 +67,8 @@ typedef struct {
   MATRIX *gamma[GLMMAT_NCONTRASTS_MAX];
   double F[GLMMAT_NCONTRASTS_MAX];
   double p[GLMMAT_NCONTRASTS_MAX];
-  double z[GLMMAT_NCONTRASTS_MAX];
+  double z[GLMMAT_NCONTRASTS_MAX]; // z derived from p
+  double pcc[GLMMAT_NCONTRASTS_MAX]; // partial correlation coef
 
   /* When ReScaleX=1, rescale cols of X before computing inv(X'*X), 
      then rescale X'*X and inv(X'*X) so that it is transparent.*/
@@ -84,6 +85,20 @@ typedef struct {
   MATRIX *igCVM[GLMMAT_NCONTRASTS_MAX];
   MATRIX *gtigCVM[GLMMAT_NCONTRASTS_MAX];
 
+  // These are elements used to compute pcc
+  int DoPCC;
+  MATRIX *XCt[GLMMAT_NCONTRASTS_MAX]; // X*C'
+  MATRIX *Dt[GLMMAT_NCONTRASTS_MAX]; // Null space of C
+  MATRIX *XDt[GLMMAT_NCONTRASTS_MAX]; // X*D'
+  MATRIX *RD[GLMMAT_NCONTRASTS_MAX]; // Residual forming matrix of XDt
+  MATRIX *Xcd[GLMMAT_NCONTRASTS_MAX]; // RD * XCt
+  MATRIX *Xcdt[GLMMAT_NCONTRASTS_MAX]; // Xcd'
+  MATRIX *sumXcd[GLMMAT_NCONTRASTS_MAX]; // sum of columns of Xcd
+  MATRIX *sumXcd2[GLMMAT_NCONTRASTS_MAX]; // sum of columns squared of Xcd
+  MATRIX *yhatd[GLMMAT_NCONTRASTS_MAX]; // RD*yhat
+  MATRIX *Xcdyhatd[GLMMAT_NCONTRASTS_MAX]; // Xcd*yhatd
+  MATRIX *sumyhatd[GLMMAT_NCONTRASTS_MAX]; // sum(yhatd)
+  MATRIX *sumyhatd2[GLMMAT_NCONTRASTS_MAX]; // sum(yhatd.^2)
 }
 GLMMAT;
 

@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/31 19:39:59 $
- *    $Revision: 1.234 $
+ *    $Date: 2015/03/31 22:12:23 $
+ *    $Revision: 1.235 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -203,8 +203,10 @@ The outputs will be saved in mgh format as:
   contrast1name/ - directory for each contrast (see --C)
     C.dat - copy of contrast matrix
     gamma.mgh - contrast (G above)
-    F.mgh - F-ratio
+    F.mgh - F-ratio (t = sign(gamma)*sqrt(F) for t-test contrasts)
     sig.mgh - significance from F-test (actually -log10(p))
+    z.mgh - z map computed from the p-value
+    pcc.mgh - partial correlation coefficient (for t-tests)
 
 --y inputfile
 
@@ -558,7 +560,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.234 2015/03/31 19:39:59 greve Exp $";
+"$Id: mri_glmfit.c,v 1.235 2015/03/31 22:12:23 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -737,6 +739,7 @@ MRI *MRIconjunct3(MRI *sig1, MRI *sig2, MRI *sig3, MRI *mask, MRI *c123);
 int NSplits=0, SplitNo=0;
 int SplitMin, SplitMax, nPerSplit, RandSplit;
 int DoFisher = 0; 
+int DoPCC=0;
 
 double GLMEfficiency(MATRIX *X, MATRIX *C);
 
@@ -777,6 +780,7 @@ int main(int argc, char **argv) {
   check_options();
   if (checkoptsonly) return(0);
 
+  mriglm->glm->DoPCC = DoPCC;
   mriglm->glm->ReScaleX = ReScaleX;
 
   // Seed the random number generator just in case
@@ -1518,6 +1522,7 @@ int main(int argc, char **argv) {
   }
 
   // Compute Contrast-related matrices
+  if(DoPCC) mriglm->glm->X = mriglm->Xg;
   GLMcMatrices(mriglm->glm);
 
   if (pcaSave) {
@@ -1999,6 +2004,11 @@ int main(int argc, char **argv) {
       sprintf(tmpstr,"%s/%s/cnr.%s",GLMDir,mriglm->glm->Cname[n],format);
       MRIwrite(cnr,tmpstr);
       MRIfree(&cnr);
+      if(mriglm->glm->DoPCC){
+	// Write out the pcc
+	sprintf(tmpstr,"%s/%s/pcc.%s",GLMDir,mriglm->glm->Cname[n],format);
+	MRIwrite(mriglm->pcc[n],tmpstr);
+      }
     }
 
     // If it is t-test (ie, one row) then apply the sign
@@ -2312,7 +2322,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--w-inv"))  weightinv = 1;
     else if (!strcasecmp(option, "--w-sqrt")) weightsqrt = 1;
     else if (!strcasecmp(option, "--perm-1")) OneSamplePerm = 1;
-    else if (!strcasecmp(option, "--osgm"))   OneSampleGroupMean = 1;
+    else if (!strcasecmp(option, "--osgm"))   {OneSampleGroupMean = 1; DoPCC = 0;}
     else if (!strcasecmp(option, "--diag-cluster")) DiagCluster = 1;
     else if (!strcasecmp(option, "--perm-force")) PermForce = 1;
     else if (!strcasecmp(option, "--logy")) logflag = 1;
@@ -2333,6 +2343,8 @@ static int parse_commandline(int argc, char **argv) {
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--fsgd-rescale")) fsgdReScale = 1; 
     else if (!strcasecmp(option, "--fisher"))      DoFisher = 1; 
+    else if (!strcasecmp(option, "--pcc"))         DoPCC = 1; 
+    else if (!strcasecmp(option, "--no-pcc"))      DoPCC = 0; 
     else if (!strcasecmp(option, "--rescale-x"))   ReScaleX = 1; 
     else if (!strcasecmp(option, "--no-rescale-x")) ReScaleX = 0; 
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
@@ -2642,6 +2654,7 @@ static int parse_commandline(int argc, char **argv) {
       if(CMDnthIsArg(nargc, pargv, 1)){
         bvalfile = pargv[0];
         bvecfile = pargv[1];
+	DoPCC = 0;
         nargsused = 2;
       }
       else{
@@ -2669,6 +2682,7 @@ static int parse_commandline(int argc, char **argv) {
       RTM_intCr = MatrixCumTrapZ(RTM_Cr, RTM_TimeMin, NULL);
       prunemask = 0;
       NoContrastsOK = 1;
+      DoPCC = 0;
       nargsused = 2;
     } 
     else if (!strcmp(option, "--mrtm2")) {
@@ -2693,11 +2707,13 @@ static int parse_commandline(int argc, char **argv) {
 	MRTM2_x1->rptr[k+1][1] = (RTM_Cr->rptr[k+1][1]/MRTM2_k2p + RTM_intCr->rptr[k+1][1]);
       prunemask = 0;
       NoContrastsOK = 1;
+      DoPCC = 0;
       nargsused = 3;
     } 
     else if (!strcmp(option, "--pvr")) {
       if (nargc < 1) CMDargNErr(option,1);
       pvrFiles[npvr] = pargv[0];
+      DoPCC = 0;
       npvr++;
       nargsused = 1;
     } else if (!strcmp(option, "--glmdir") || !strcmp(option, "--o")) {
@@ -2839,6 +2855,7 @@ printf("   --yhat-save : save signal estimate (yhat)\n");
 printf("   --eres-save : save residual error (eres)\n");
 printf("   --eres-scm : save residual error spatial correlation matrix (eres.scm). Big!\n");
 printf("   --y-out y.out.mgh : save input after pre-processing\n");
+printf("   --no-pcc : do not compute partial correlation coefficient\n");
 printf("\n");
 printf("   --surf subject hemi <surfname> : needed for some flags (uses white by default)\n");
 printf("\n");
@@ -2970,8 +2987,10 @@ printf("  cond.mgh - design matrix condition at each voxel (with --save-cond)\n"
 printf("  contrast1name/ - directory for each contrast (see --C)\n");
 printf("    C.dat - copy of contrast matrix\n");
 printf("    gamma.mgh - contrast (G above)\n");
-printf("    F.mgh - F-ratio\n");
+printf("    F.mgh - F-ratio (t = sign(gamma)*sqrt(F) for t-test contrasts)\n");
 printf("    sig.mgh - significance from F-test (actually -log10(p))\n");
+printf("    z.mgh - z map computed from the p-value\n");
+printf("    pcc.mgh - partial correlation coefficient (for t-tests)\n");
 printf("\n");
 printf("--y inputfile\n");
 printf("\n");
@@ -3005,16 +3024,14 @@ printf("one column for each variable for each class). The first NClass columns\n
 printf("are for the first variable, etc. If neither of these models works for\n");
 printf("you, you will have to specify the design matrix manually (with --X).\n");
 printf("\n");
-printf("--fsgd-rescale\n");
+printf("--no-rescale-x\n");
 printf("\n");
-printf("This will perform a rescaling of each continuous variable based on all\n");
-printf("the values for that variable regardless of class. The scale is such\n");
-printf("that the new standard deviation is 1. In principle, rescaling should\n");
-printf("not affect the p-values, but it will improve the conditioning of the\n");
-printf("design matrix which will affect the final output. Rescaling makes the\n");
-printf("regression coefficients harder to interpret. A better approach would\n");
-printf("be to rescale the columns of X, then rescale the betas to account for\n");
-printf("this (this will have to wait for the next version).\n");
+printf("By default the inverse of the covariance of the desgin matrix is\n");
+printf("computed by rescaling each column of the design matrix prior to the \n");
+printf("inverse computation, then rescaling back afterwards. This helps\n");
+printf("with designs that are badly scaled. This is completely transparent\n");
+printf("to the user. This flag turns this feature off so that the inverse\n");
+printf("is computed directly from the design matrix.\n");
 printf("\n");
 printf("--X design matrix file\n");
 printf("\n");
@@ -3415,6 +3432,12 @@ static void check_options(void) {
     printf("ERROR: cannot have --w and --wg\n");
     exit(1);
   }
+  if(DoPCC && npvr != 0){
+    printf("ERROR: cannot have compute pcc with pvr\n");
+    exit(1);
+  }
+
+
   return;
 }
 

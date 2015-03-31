@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/31 19:39:59 $
- *    $Revision: 1.31 $
+ *    $Date: 2015/03/31 22:12:23 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.31 2015/03/31 19:39:59 greve Exp $
+// $Id: fsglm.c,v 1.32 2015/03/31 22:12:23 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -153,7 +153,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.31 2015/03/31 19:39:59 greve Exp $");
+  return("$Id: fsglm.c,v 1.32 2015/03/31 22:12:23 greve Exp $");
 }
 
 
@@ -202,6 +202,7 @@ GLMMAT *GLMalloc(void)
   glm->iXtX = NULL;
   glm->Xty  = NULL;
 
+  glm->DoPCC = 0;
   glm->ncontrasts = 0;
 
   for (n=0; n < GLMMAT_NCONTRASTS_MAX; n++){
@@ -221,11 +222,16 @@ GLMMAT *GLMalloc(void)
     glm->F[n] = 0;
     glm->p[n] = 0;
     glm->z[n] = 0;
+    glm->pcc[n] = 0;
 
     glm->Ct[n] = NULL;
     glm->CiXtX[n] = NULL;
     glm->CiXtXCt[n] = NULL;
-    glm->igCVM[n] = NULL;
+
+    glm->XCt[n] = NULL;
+    glm->Dt[n] = NULL;
+    glm->XDt[n] = NULL;
+    glm->RD[n] = NULL;
 
     glm->igCVM[n] = NULL;
     glm->gammat[n] = NULL;
@@ -331,6 +337,18 @@ int GLMfree(GLMMAT **pglm)
     if (glm->gamma0[n])      MatrixFree(&glm->gamma0[n]);
     if (glm->gammat[n])      MatrixFree(&glm->gammat[n]);
     if (glm->gtigCVM[n])     MatrixFree(&glm->gtigCVM[n]);
+    if (glm->XCt[n])         MatrixFree(&glm->XCt[n]);
+    if (glm->Dt[n])          MatrixFree(&glm->Dt[n]);
+    if (glm->XDt[n])         MatrixFree(&glm->XDt[n]);
+    if (glm->RD[n])          MatrixFree(&glm->RD[n]);
+    if (glm->Xcd[n])         MatrixFree(&glm->Xcd[n]);
+    if (glm->Xcdt[n])         MatrixFree(&glm->Xcdt[n]);
+    if (glm->sumXcd[n])      MatrixFree(&glm->sumXcd[n]);
+    if (glm->sumXcd2[n])     MatrixFree(&glm->sumXcd2[n]);
+    if (glm->yhatd[n])     MatrixFree(&glm->yhatd[n]);
+    if (glm->Xcdyhatd[n])     MatrixFree(&glm->Xcdyhatd[n]);
+    if (glm->sumyhatd[n])     MatrixFree(&glm->sumyhatd[n]);
+    if (glm->sumyhatd2[n])     MatrixFree(&glm->sumyhatd2[n]);
   }
   free(*pglm);
   *pglm = NULL;
@@ -347,11 +365,36 @@ int GLMfree(GLMMAT **pglm)
   ----------------------------------------------------------------*/
 int GLMcMatrices(GLMMAT *glm)
 {
-  int n;
-  for (n=0; n < glm->ncontrasts; n++)
-  {
+  int n, err;
+
+  for (n=0; n < glm->ncontrasts; n++){
     glm->Ct[n]   = MatrixTranspose(glm->C[n],NULL);
     glm->Mpmf[n] = GLMpmfMatrix(glm->C[n],&glm->Ccond[n],NULL);
+
+    if( glm->C[n]->rows == 1 &&  glm->DoPCC ){
+      // These are for the computation of partial correlation coef
+      // design matrix projected onto contrast space
+      glm->XCt[n]  = MatrixMultiplyD(glm->X,glm->Ct[n],NULL);
+      // null space of contrast space    
+      glm->Dt[n]   = MatrixColNullSpace(glm->Ct[n],&err);
+      // design matrix projected onto contrast null space (nuisance reg space)
+      glm->XDt[n]  = MatrixMultiplyD(glm->X,glm->Dt[n],NULL);
+      glm->RD[n]   = MatrixResidualForming(glm->XDt[n],NULL);
+      if(glm->RD[n] == NULL){
+	printf("RD is not invertable n = %d\n",n);
+	MatrixWriteTxt("X.mtx",glm->X);
+	MatrixWriteTxt("C.mtx",glm->C[n]);
+	MatrixWriteTxt("Dt.mtx",glm->Dt[n]);
+	MatrixWriteTxt("XDt.mtx",glm->XDt[n]);
+	exit(1);
+      }
+      // Orthogonalize Xc wrt the nuisance regressors (yhat too, but later)
+      glm->Xcd[n] = MatrixMultiplyD(glm->RD[n],glm->XCt[n],NULL);
+      glm->Xcdt[n] = MatrixTranspose(glm->Xcd[n],NULL);
+      glm->sumXcd[n] = MatrixSum(glm->Xcd[n], 1, NULL);
+      glm->sumXcd2[n] = MatrixSumSquare(glm->Xcd[n], 1, NULL);
+    }
+
   }
   return(0);
 }
@@ -472,7 +515,7 @@ int GLMtest(GLMMAT *glm)
   int n;
   double dtmp;
   static MATRIX *F=NULL,*mtmp=NULL;
-  static   RFS *rfs=NULL;
+  static RFS *rfs=NULL;
 
   if(rfs == NULL){
     rfs = RFspecInit(0,NULL);
@@ -485,6 +528,7 @@ int GLMtest(GLMMAT *glm)
       glm->F[n] = 0;
       glm->p[n] = 1;
       glm->z[n] = 0;
+      glm->pcc[n] = 0;
     }
     return(0);
   }
@@ -519,7 +563,20 @@ int GLMtest(GLMMAT *glm)
       glm->F[n]        = F->rptr[1][1];
       glm->p[n]        = sc_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->dof);
       glm->z[n]        = RFp2StatVal(rfs,glm->p[n]/2.0);
-      if(glm->C[n]->rows ==1 && glm->gamma[n]->rptr[1][1] < 0) glm->z[n] *= -1;
+      if(glm->C[n]->rows == 1 && glm->gamma[n]->rptr[1][1] < 0) glm->z[n] *= -1;
+
+      if(glm->C[n]->rows == 1 && glm->DoPCC){
+	// compute partial correlation coefficient (pcc)
+	glm->yhatd[n]     = MatrixMultiplyD(glm->RD[n],glm->yhat,glm->yhatd[n]);
+	glm->Xcdyhatd[n]  = MatrixMultiplyD(glm->Xcdt[n],glm->yhatd[n],glm->Xcdyhatd[n]);
+	glm->sumyhatd[n]  = MatrixSum(glm->yhatd[n],1,glm->sumyhatd[n]);
+	glm->sumyhatd2[n] = MatrixSumSquare(glm->yhatd[n],1,glm->sumyhatd2[n]);
+	glm->sumyhatd2[n]->rptr[1][1] +=  (glm->dof * glm->rvar);
+	glm->pcc[n] = (glm->Xcdyhatd[n]->rptr[1][1] - glm->sumXcd[n]->rptr[1][1]*glm->sumyhatd[n]->rptr[1][1])/
+	  sqrt( (glm->sumXcd2[n]->rptr[1][1] - glm->sumXcd[n]->rptr[1][1]*glm->sumXcd[n]->rptr[1][1]) *
+		(glm->sumyhatd2[n]->rptr[1][1] - glm->sumyhatd[n]->rptr[1][1]*glm->sumyhatd[n]->rptr[1][1]));
+      }
+
     }
     else
     {
@@ -528,6 +585,7 @@ int GLMtest(GLMMAT *glm)
       glm->F[n]        = 0;
       glm->p[n]        = 1;
       glm->z[n]        = 0;
+      glm->pcc[n]      = 0;
     }
     if (glm->ypmfflag[n])
       glm->ypmf[n] = MatrixMultiplyD(glm->Mpmf[n],glm->beta,glm->ypmf[n]);
