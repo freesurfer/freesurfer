@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/31 20:27:34 $
- *    $Revision: 1.149 $
+ *    $Date: 2015/03/31 22:04:03 $
+ *    $Revision: 1.150 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3199,6 +3199,7 @@ MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
       printf("ERROR: MatrixSum: dimension mismatch\n");
       return(NULL);
     }
+    msum = MatrixZero(outrows,outcols,NULL);
   }
 
   if ( (dim ==1 && m->rows > 1) || (dim == 2 && m->cols > 1) )
@@ -3247,6 +3248,7 @@ MATRIX *MatrixSumSquare(MATRIX *m, int dim, MATRIX *msumsq)
       printf("ERROR: MatrixSum: dimension mismatch\n");
       return(NULL);
     }
+    msumsq = MatrixZero(outrows,outcols,msumsq);
   }
 
   if ( (dim ==1 && m->rows > 1) || (dim == 2 && m->cols > 1) )  {
