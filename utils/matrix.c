@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/31 20:09:00 $
- *    $Revision: 1.148 $
+ *    $Date: 2015/03/31 20:27:34 $
+ *    $Revision: 1.149 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3170,7 +3170,11 @@ MATRIX *MatrixZero(int rows, int cols, MATRIX *X)
 }
 
 
-/*----------------------------------------------------------------*/
+/*-------------------------------------------------------------------*/
+/*!
+  \fn MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
+  \brief Computes the sum given matrix
+ */
 MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
 {
   int outrows, outcols;
@@ -3217,6 +3221,48 @@ MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum)
   }
 
   return(msum);
+}
+/*-------------------------------------------------------------------*/
+/*!
+  \fn MATRIX *MatrixSumSquare(MATRIX *m, int dim, MATRIX *msumsq)
+  \brief Computes the sum of the squares of the given matrix
+ */
+MATRIX *MatrixSumSquare(MATRIX *m, int dim, MATRIX *msumsq)
+{
+  int outrows, outcols;
+  int r,c;
+
+  if (dim==1){ /* sum over the rows */
+    outrows = 1;
+    outcols = m->cols;
+  }
+  else{       /* sum over the cols */
+    outrows = m->rows;
+    outcols = 1;
+  }
+
+  if (msumsq == NULL) msumsq = MatrixZero(outrows,outcols,NULL);
+  else{
+    if (msumsq->rows != outrows || msumsq->cols != outcols){
+      printf("ERROR: MatrixSum: dimension mismatch\n");
+      return(NULL);
+    }
+  }
+
+  if ( (dim ==1 && m->rows > 1) || (dim == 2 && m->cols > 1) )  {
+    for (r=1; r <= m->rows; r++)    {
+      for (c=1; c <= m->cols; c++)      {
+        if (dim==1) msumsq->rptr[1][c] += (m->rptr[r][c]*m->rptr[r][c]);
+        else        msumsq->rptr[r][1] += (m->rptr[r][c]*m->rptr[r][c]);
+      }
+    }
+  }
+  else  { /* Just copy vector to output */
+    if(dim==1) for (c=1; c <= m->cols; c++) msumsq->rptr[1][c] = (m->rptr[1][c]*m->rptr[1][c]);
+    else       for (r=1; r <= m->rows; r++) msumsq->rptr[r][1] = (m->rptr[r][1]*m->rptr[r][1]);
+  }
+
+  return(msumsq);
 }
 /*----------------------------------------------------------------*/
 double MatrixSumElts(MATRIX *m)

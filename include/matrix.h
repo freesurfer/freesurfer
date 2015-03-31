@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/31 20:09:00 $
- *    $Revision: 1.89 $
+ *    $Date: 2015/03/31 20:27:34 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -268,6 +268,7 @@ MATRIX *MatrixConstVal(float val, int rows, int cols, MATRIX *X);
 MATRIX *MatrixZero(int rows, int cols, MATRIX *X);
 double  MatrixSumElts(MATRIX *m) ;
 MATRIX *MatrixSum(MATRIX *m, int dim, MATRIX *msum);
+MATRIX *MatrixSumSquare(MATRIX *m, int dim, MATRIX *msumsq);
 MATRIX *MatrixDRand48(int rows, int cols, MATRIX *m);
 MATRIX *MatrixDRand48ZeroMean(int rows, int cols, MATRIX *m) ;
 MATRIX *MatrixSimilarityTransform(MATRIX *m_src, MATRIX *m_mul, MATRIX *m_dst);
