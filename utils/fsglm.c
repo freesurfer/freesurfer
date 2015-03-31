@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/10/23 21:51:11 $
- *    $Revision: 1.30 $
+ *    $Date: 2015/03/31 19:39:59 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.30 2012/10/23 21:51:11 greve Exp $
+// $Id: fsglm.c,v 1.31 2015/03/31 19:39:59 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -145,13 +145,15 @@
 #include "fsglm.h"
 #include "timer.h"
 #include "numerics.h"
+#include "randomfields.h"
+#undef X
 
 
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.30 2012/10/23 21:51:11 greve Exp $");
+  return("$Id: fsglm.c,v 1.31 2015/03/31 19:39:59 greve Exp $");
 }
 
 
@@ -218,6 +220,7 @@ GLMMAT *GLMalloc(void)
 
     glm->F[n] = 0;
     glm->p[n] = 0;
+    glm->z[n] = 0;
 
     glm->Ct[n] = NULL;
     glm->CiXtX[n] = NULL;
@@ -230,7 +233,6 @@ GLMMAT *GLMalloc(void)
   }
   return(glm);
 }
-
 
 /*--------------------------------------------------------------------
   GLMdof() - computes DOF = #Xrows - #Xcols
@@ -470,12 +472,19 @@ int GLMtest(GLMMAT *glm)
   int n;
   double dtmp;
   static MATRIX *F=NULL,*mtmp=NULL;
+  static   RFS *rfs=NULL;
+
+  if(rfs == NULL){
+    rfs = RFspecInit(0,NULL);
+    rfs->name = strcpyalloc("z");
+  }
 
   if (glm->ill_cond_flag) {
     // If it's ill cond, just return F=0
     for (n = 0; n < glm->ncontrasts; n++) {
       glm->F[n] = 0;
       glm->p[n] = 1;
+      glm->z[n] = 0;
     }
     return(0);
   }
@@ -504,13 +513,13 @@ int GLMtest(GLMMAT *glm)
     glm->gCVM[n]   = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
     mtmp           = MatrixInverse(glm->CiXtXCt[n],glm->igCVM[n]);
     if (mtmp != NULL && glm->rvar > FLT_MIN)  {
-      glm->igCVM[n]    =
-        MatrixScalarMul(glm->igCVM[n],1.0/dtmp,glm->igCVM[n]);
-      glm->gtigCVM[n]  =
-        MatrixMultiplyD(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
+      glm->igCVM[n]    = MatrixScalarMul(glm->igCVM[n],1.0/dtmp,glm->igCVM[n]);
+      glm->gtigCVM[n]  = MatrixMultiplyD(glm->gammat[n],glm->igCVM[n],glm->gtigCVM[n]);
       F                = MatrixMultiplyD(glm->gtigCVM[n],glm->gamma[n],F);
       glm->F[n]        = F->rptr[1][1];
       glm->p[n]        = sc_cdf_fdist_Q(glm->F[n],glm->C[n]->rows,glm->dof);
+      glm->z[n]        = RFp2StatVal(rfs,glm->p[n]/2.0);
+      if(glm->C[n]->rows ==1 && glm->gamma[n]->rptr[1][1] < 0) glm->z[n] *= -1;
     }
     else
     {
@@ -518,6 +527,7 @@ int GLMtest(GLMMAT *glm)
       // happening, should probably use a mask.
       glm->F[n]        = 0;
       glm->p[n]        = 1;
+      glm->z[n]        = 0;
     }
     if (glm->ypmfflag[n])
       glm->ypmf[n] = MatrixMultiplyD(glm->Mpmf[n],glm->beta,glm->ypmf[n]);

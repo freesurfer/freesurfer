@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/03 20:17:42 $
- *    $Revision: 1.233 $
+ *    $Date: 2015/03/31 19:39:59 $
+ *    $Revision: 1.234 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -558,7 +558,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.233 2014/07/03 20:17:42 greve Exp $";
+"$Id: mri_glmfit.c,v 1.234 2015/03/31 19:39:59 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -2007,6 +2007,10 @@ int main(int argc, char **argv) {
     // Write out the sig
     sprintf(tmpstr,"%s/%s/sig.%s",GLMDir,mriglm->glm->Cname[n],format);
     MRIwrite(sig,tmpstr);
+
+    // Write out the z
+    sprintf(tmpstr,"%s/%s/z.%s",GLMDir,mriglm->glm->Cname[n],format);
+    MRIwrite(mriglm->z[n],tmpstr);
 
     // Find and save the max sig
     sigmax = MRIframeMax(sig,0,mriglm->mask,0,&cmax,&rmax,&smax);

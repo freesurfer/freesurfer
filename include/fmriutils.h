@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/19 18:27:12 $
- *    $Revision: 1.50 $
+ *    $Date: 2015/03/31 19:39:58 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,7 @@ typedef struct
   MRI *gammaVar[100]; // gamma variance (t-tests only)
   MRI *F[100];       // F = gamma'*inv(C*inv(XtX)C')*gamma/(rvar*J)
   MRI *p[100];       // p = significance of the F
+  MRI *z[100];       // z derived from p
   MRI *ypmf[100];    // partial model fit for each contrast
   MRI *FrameMask;    // Exclude a frame at a voxel if 0
 }

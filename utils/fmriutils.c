@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/19 18:27:13 $
- *    $Revision: 1.77 $
+ *    $Date: 2015/03/31 19:39:59 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.77 2014/02/19 18:27:13 greve Exp $
+  $Id: fmriutils.c,v 1.78 2015/03/31 19:39:59 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -61,7 +61,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.77 2014/02/19 18:27:13 greve Exp $");
+  return("$Id: fmriutils.c,v 1.78 2015/03/31 19:39:59 greve Exp $");
 }
 
 
@@ -1120,6 +1120,8 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
       MRIcopyHeader(mriglm->y,mriglm->F[n]);
       mriglm->p[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
       MRIcopyHeader(mriglm->y,mriglm->p[n]);
+      mriglm->z[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
+      MRIcopyHeader(mriglm->y,mriglm->z[n]);
       if (mriglm->glm->ypmfflag[n])
       {
         mriglm->ypmf[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
@@ -1185,6 +1187,7 @@ int MRIglmFitAndTest(MRIGLM *mriglm)
 	    MRIsetVoxVal(mriglm->gammaVar[n],c,r,s,0,mriglm->glm->gCVM[n]->rptr[1][1]);
           MRIsetVoxVal(mriglm->F[n],c,r,s,0,mriglm->glm->F[n]);
           MRIsetVoxVal(mriglm->p[n],c,r,s,0,mriglm->glm->p[n]);
+          MRIsetVoxVal(mriglm->z[n],c,r,s,0,mriglm->glm->z[n]);
           if (mriglm->glm->ypmfflag[n])
             MRIfromMatrix(mriglm->ypmf[n], c, r, s, mriglm->glm->ypmf[n],mriglm->FrameMask);
         }
@@ -1340,6 +1343,8 @@ int MRIglmTest(MRIGLM *mriglm)
       MRIcopyHeader(mriglm->y,mriglm->F[n]);
       mriglm->p[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
       MRIcopyHeader(mriglm->y,mriglm->p[n]);
+      mriglm->z[n] = MRIallocSequence(nc, nr, ns,MRI_FLOAT, 1);
+      MRIcopyHeader(mriglm->y,mriglm->z[n]);
       if (mriglm->glm->ypmfflag[n])
       {
         mriglm->ypmf[n] = MRIallocSequence(nc,nr,ns,MRI_FLOAT,nf);
@@ -1385,6 +1390,7 @@ int MRIglmTest(MRIGLM *mriglm)
 	    MRIsetVoxVal(mriglm->gammaVar[n],c,r,s,0,mriglm->glm->gCVM[n]->rptr[1][1]);
           MRIsetVoxVal(mriglm->F[n],c,r,s,0,mriglm->glm->F[n]);
           MRIsetVoxVal(mriglm->p[n],c,r,s,0,mriglm->glm->p[n]);
+          MRIsetVoxVal(mriglm->z[n],c,r,s,0,mriglm->glm->z[n]);
           if (mriglm->glm->ypmfflag[n])
             MRIfromMatrix(mriglm->ypmf[n], c, r, s, mriglm->glm->ypmf[n],mriglm->FrameMask);
         }
