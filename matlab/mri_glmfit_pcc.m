@@ -9,14 +9,14 @@ function r = mri_glmfit_pcc(glmdir)
 % too).  The output will be two files called pcc.ext and z.ext where
 % ext is the file format extension found in the glmdir folder.
 %
-% $Id: mri_glmfit_pcc.m,v 1.1 2013/04/09 17:47:50 greve Exp $
+% $Id: mri_glmfit_pcc.m,v 1.2 2015/03/31 21:23:53 greve Exp $
 
 %
 % Original Author: Douglas Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2013/04/09 17:47:50 $
-%    $Revision: 1.1 $
+%    $Date: 2015/03/31 21:23:53 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -75,7 +75,7 @@ for nthcon = 1:ncon
   C = load(cdat);
   rhomat = fast_glm_pcc(betamat(:,indmask),X,C,rvarmat(indmask));
   rho = beta;
-  rho.vol = zeros(size(rho.vol));
+  rho.vol = zeros(size(rho.vol(:,:,:,1)));
   rho.vol(indmask) = rhomat;
   fname = sprintf('%s/%s/pcc.%s',glmdir,conname,fmt);  
   MRIwrite(rho,fname);
