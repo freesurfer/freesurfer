@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/25 21:06:43 $
- *    $Revision: 1.147 $
+ *    $Date: 2015/03/31 20:09:00 $
+ *    $Revision: 1.148 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -406,8 +406,10 @@ MATRIX *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
   register double val;
   MATRIX   *m_tmp1 = NULL, *m_tmp2 = NULL ;
 
-  if (!m1) ErrorExit(ERROR_BADPARM,"MatrixMultiplyD(): m1 is null!\n") ;
-  if (!m2) ErrorExit(ERROR_BADPARM,"MatrixMultiplyD(): m2 is null!\n") ;
+  if (!m1) 
+    ErrorExit(ERROR_BADPARM,"MatrixMultiplyD(): m1 is null!\n") ;
+  if (!m2) 
+    ErrorExit(ERROR_BADPARM,"MatrixMultiplyD(): m2 is null!\n") ;
   if (m1->cols != m2->rows){
     char tmpstr[500];
     sprintf(tmpstr,"MatrixMultiplyD(): m1 cols %d does not match m2 rows %d\n %s %d\n",
@@ -4724,4 +4726,36 @@ MATRIX *MatrixColNullSpace(MATRIX *M, int *err)
   return(N);
 }
 
+/*
+  \fn MATRIX *MatrixResidualForming(MATRIX *X, MATRIX *R)
+  \brief Computes the residual forming matrix 
+    R = I - X*inv(X'*X)*X';
+ */
+MATRIX *MatrixResidualForming(MATRIX *X, MATRIX *R)
+{
+  MATRIX *Xt, *XtX, *iXtX, *I, *XiXtX, *XiXtXXt;
+
+  Xt = MatrixTranspose(X,NULL);
+  XtX = MatrixMultiplyD(Xt,X,NULL);
+  iXtX = MatrixInverse(XtX,NULL);
+  if(iXtX == NULL){
+    printf("ERROR: MatrixResidualForming(): X is not invertable\n");
+    MatrixFree(&Xt);
+    MatrixFree(&XtX);
+    return(NULL);
+  }
+  I = MatrixIdentity(X->rows,NULL);
+  XiXtX = MatrixMultiplyD(X,iXtX,NULL);
+  XiXtXXt = MatrixMultiplyD(XiXtX,Xt,NULL);
+  R = MatrixSubtract(I,XiXtXXt,R);
+
+  MatrixFree(&Xt);
+  MatrixFree(&XtX);
+  MatrixFree(&iXtX);
+  MatrixFree(&I);
+  MatrixFree(&XiXtX);
+  MatrixFree(&XiXtXXt);
+
+  return(R);
+}
 
