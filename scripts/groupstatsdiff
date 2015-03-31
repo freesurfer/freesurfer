@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # groupstatsdiff
 
-set VERSION = '$Id: groupstatsdiff,v 1.1 2015/03/30 19:20:35 greve Exp $';
+set VERSION = '$Id: groupstatsdiff,v 1.2 2015/03/31 23:13:03 greve Exp $';
 
 set g1dir = ();
 set g2dir = ();
@@ -12,6 +12,7 @@ set LF = ();
 set outdir = ()
 set surflist = (white)
 set DoOSGM = 0;
+set DoCommon = 1;
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -78,6 +79,7 @@ foreach aparc ($aparclist)
         set table2 = $g2dir/rois/$parc.$hemi.$surf.$meas.dat
         set difftable = $outdir/rois/diff.$parc.$hemi.$surf.$meas.dat
         set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
+        if($DoCommon) set cmd = ($cmd --common)
         echo "#C# $cmd" | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;
@@ -100,6 +102,7 @@ foreach hemi ($hemilist other)
     set table2 =  $g2dir/rois/$b.dat
     set difftable = $outdir/rois/diff.$b.dat
     set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
+    if($DoCommon) set cmd = ($cmd --common)
     echo "#C# $cmd" | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -116,6 +119,7 @@ set table1 =  $g1dir/rois/wmparc.vol.dat
 set table2 =  $g2dir/rois/wmparc.vol.dat
 set difftable = $outdir/rois/diff.wmparc.vol
 set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
+if($DoCommon) set cmd = ($cmd --common)
 echo "#C# $cmd" | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
@@ -206,6 +210,13 @@ while( $#argv != 0 )
 
     case "--osgm":
       set DoOSGM = 1;
+      breaksw
+
+    case "--common":
+      set DoCommon = 1;
+      breaksw
+    case "--no-common":
+      set DoCommon = 0;
       breaksw
 
     case "--no-maps":
@@ -307,6 +318,7 @@ usage_exit:
   echo "  --o output : output folder for difference"
   echo "  --no-maps : only analyze ROI data"
   echo "  --osgm : use OSGM instead of native FSGD"
+  echo "  --no-common : do not select common segs when running stattablediff"
   echo "  "
 
   if(! $PrintHelp) exit 1;
