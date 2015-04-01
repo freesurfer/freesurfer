@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/03/30 17:14:21 $
-#    $Revision: 1.512 $
+#    $Author: greve $
+#    $Date: 2015/04/01 17:14:51 $
+#    $Revision: 1.513 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.512 2015/03/30 17:14:21 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.513 2015/04/01 17:14:51 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -6837,6 +6837,14 @@ while( $#argv != 0 )
       set DoAPas2ASeg      = 0;
       set DoWMParc         = 0;
       set DoCortRibbonVolMask = 0;
+      breaksw
+
+    case "-use-aseg":
+      set UseAseg = 1;
+      breaksw
+
+    case "-no-use-aseg":
+      set UseAseg = 0;
       breaksw
 
     case "-noneg":
