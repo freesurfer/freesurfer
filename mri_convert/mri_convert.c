@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/24 17:25:41 $
- *    $Revision: 1.219 $
+ *    $Author: fischl $
+ *    $Date: 2015/04/01 22:01:42 $
+ *    $Revision: 1.220 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,6 +72,7 @@ int SplitFrames=0;
 /*-------------------------------------------------------------*/
 int main(int argc, char *argv[])
 {
+  int outside_val = 0 ;
   int nargs = 0;
   MRI *mri, *mri2, *template, *mri_in_like;
   int i,err=0;
@@ -216,7 +217,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.219 2015/03/24 17:25:41 greve Exp $",
+   "$Id: mri_convert.c,v 1.220 2015/04/01 22:01:42 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -341,7 +342,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.219 2015/03/24 17:25:41 greve Exp $",
+      "$Id: mri_convert.c,v 1.220 2015/04/01 22:01:42 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -365,6 +366,11 @@ int main(int argc, char *argv[])
     {
       get_ints(argc, argv, &i, reorder4_vals, 4);
       reorder4_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "-oval") == 0 || strcmp(argv[i], "--outside_val") == 0)
+    {
+      get_ints(argc, argv, &i, &outside_val, 1);
+      printf("setting outside val to %d\n", outside_val) ;
     }
     else if(strcmp(argv[i], "--debug") == 0)
     {
@@ -1674,7 +1680,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.219 2015/03/24 17:25:41 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.220 2015/04/01 22:01:42 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -1894,6 +1900,8 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  if (outside_val > 0)
+    mri->outside_val = outside_val ;
   if(UpsampleFlag){
     printf("UpsampleFactor = %d\n",UpsampleFactor);
     mritmp = MRIupsampleN(mri, NULL, UpsampleFactor);

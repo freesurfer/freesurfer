@@ -115,6 +115,9 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>angle in radians </explanation>
       <argument>--autoalign mtxfile </argument>
       <explanation>text file with autoalign matrix </explanation>
+      <argument>-oval  val</argument>
+      <argument>--outside_val  val</argument>
+      <explanation>set the values outside of the image that may rotate in if a transform is applied to val </explanation>
       <intro>APPLYING TRANSFORMS (INCLUDING TALAIRACH) </intro>
       <argument>--apply_transform xfmfile (-T or -at) </argument>
       <explanation>apply tranform given by xfm or m3z files </explanation> 
