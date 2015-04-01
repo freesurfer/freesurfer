@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/24 17:57:20 $
- *    $Revision: 1.555 $
+ *    $Author: fischl $
+ *    $Date: 2015/04/01 22:00:43 $
+ *    $Revision: 1.556 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.555 $";
+const char *MRI_C_VERSION = "$Revision: 1.556 $";
 
 
 /*-----------------------------------------------------
@@ -12328,6 +12328,12 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
   else
     MRIclear(mri_dst) ;
 
+  if (!FZERO(mri_src->outside_val))
+  {
+    MRIsetValues(mri_dst, mri_src->outside_val) ;
+    mri_dst->outside_val = mri_src->outside_val ;
+  }
+    
   MRI_BSPLINE * bspline = NULL;
   if (InterpMethod == SAMPLE_CUBIC_BSPLINE)
     bspline = MRItoBSpline(mri_src,NULL,3);
