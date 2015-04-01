@@ -12,8 +12,8 @@
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/20 22:47:08 $
- *    $Revision: 1.64 $
+ *    $Date: 2015/04/01 19:22:33 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2222,6 +2222,7 @@ COLOR_TABLE *TissueTypeSchemaDefaultHead(COLOR_TABLE *ct)
     case Left_Cerebellum_Cortex:
     case Right_Cerebellum_Cortex:
     case 172: // Vermis
+    case 179: // Floculus
     case Left_Hippocampus:
     case Right_Hippocampus:
     case Left_Amygdala:

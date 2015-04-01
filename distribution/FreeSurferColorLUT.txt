@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.102 2015/03/10 20:10:00 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.103 2015/04/01 19:22:33 greve Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -181,10 +181,11 @@
 173 Midbrain                                242 104 76  0
 174 Pons                                    206 195 58  0
 175 Medulla                                 119 159 176 0
+177 Vermis-White-Matter                     119  50 176 0
 178 SCP                                     142 182 0   0
+179 Floculus                                 19 100 176 0
 
 #176 Right-Basal-Ganglia   found in babies/children section above
-177 Vermis-White-Matter                     119  50 176 0
 
 180 Left-Cortical-Dysplasia                 73  61  139 0
 181 Right-Cortical-Dysplasia                73  62  139 0
