@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/11/25 18:33:02 $
- *    $Revision: 1.83 $
+ *    $Author: greve $
+ *    $Date: 2015/04/01 19:12:05 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,7 +69,7 @@ static MRI *add_interior_points(MRI *mri_src, MRI *mri_vals,
                                 MRI_SURFACE *mris_interior1,
                                 MRI_SURFACE *mris_interior2,
                                 MRI *mri_aseg, MRI *mri_dst) ;
-static int conform = 1 ;
+static int conform = 0;
 static int gentle_flag = 0 ;
 static int nosnr = 1 ;
 static double min_dist = 2.5 ; // mm away from border in -surface
@@ -146,14 +146,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.83 2014/11/25 18:33:02 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.84 2015/04/01 19:12:05 greve Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.83 2014/11/25 18:33:02 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.84 2015/04/01 19:12:05 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
