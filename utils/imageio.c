@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/04/14 18:58:13 $
- *    $Revision: 1.51 $
+ *    $Date: 2015/04/01 20:44:38 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -408,7 +408,8 @@ ImageFReadHeader(FILE *fp, const char*fname)
   switch (type)
   {
   case TIFF_IMAGE:
-    TiffReadHeader(buf, I) ;
+    if (TiffReadHeader(buf, I) == NULL)
+      return(NULL) ;
     break ;
   case RGBI_IMAGE:
     RGBReadHeader(buf, I);
@@ -503,6 +504,8 @@ ImageRead(const char*fname)
   {
   case TIFF_IMAGE:
     I = TiffReadImage(buf, frame) ;
+    if (I == NULL)
+      return(NULL) ;
     break ;
   case MATLAB_IMAGE:
     DiagPrintf(DIAG_WRITE,
@@ -873,9 +876,13 @@ TiffReadImage(const char*fname, int frame0)
   // fill order is LSB or MSB TIFFReadScanLine() handles it automatically
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_FILLORDER, &fillorder);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_COMPRESSION, &compression);
-  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_XRESOLUTION, &xres);
-  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_YRESOLUTION, &yres);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_RESOLUTIONUNIT, &resunit);
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_XRESOLUTION, &xres);
+  if (ret == 0)
+    xres = resunit == 1 ? .1 : (10*2.54) ;
+  ret = TIFFGetFieldDefaulted(tif, TIFFTAG_YRESOLUTION, &yres);
+  if (ret == 0)
+    yres = resunit == 1 ? .1 : (10*2.54) ;
 
   // orientation
   // #define TIFFTAG_ORIENTATION             274     /* +image orientation */
