@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/04/02 17:15:50 $
-#    $Revision: 1.44 $
+#    $Date: 2015/04/02 17:23:18 $
+#    $Revision: 1.45 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.44 2015/04/02 17:15:50 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.45 2015/04/02 17:23:18 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -57,6 +57,9 @@ set costfun = 'nmi';
 if(! $?FS_SPMREG_USE_BIN)  setenv FS_SPMREG_USE_BIN 0
 set usebin = $FS_SPMREG_USE_BIN
 set mcrroot = /usr/pubsw/common/matlab/8.3
+if($?FS_MCRROOT) then
+  set mcrroot = $FS_MCRROOT
+endif
 
 if($?FS_SPMREG_MATLAB) then
   set matlab = $FS_SPMREG_MATLAB
@@ -578,6 +581,13 @@ check_params:
   if($#frame && $midframe) then
     echo "ERROR: cannot --frame AND --mid-frame"
     exit 1;
+  endif
+
+  if($usebin) then
+   if(! -e $mcrroot) then
+     echo "ERROR: cannot find MCRROOT $mcrroot"
+     exit 1;
+   endif
   endif
 
 goto check_params_return;
