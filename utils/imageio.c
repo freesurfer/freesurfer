@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/04/01 20:44:38 $
- *    $Revision: 1.52 $
+ *    $Date: 2015/04/02 22:04:56 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1012,7 +1012,7 @@ TiffReadImage(const char*fname, int frame0)
   {
   case 3: // cm
   case 1: // no units 
-    I->sizepix = 1 / res ;
+    I->sizepix = 100 / res ;
     I->xsize = 100.0 / xres ; // mm
     I->ysize = 100.0 / yres ; // mm
     break ;
@@ -1284,6 +1284,10 @@ TiffWriteImage(IMAGE *I, const char*fname, int frame)
     TIFFSetField(out, TIFFTAG_BITSPERSAMPLE, bits_per_sample);
     TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+    TIFFSetField(out, TIFFTAG_RESOLUTIONUNIT, RESUNIT_INCH);
+    TIFFSetField(out, TIFFTAG_XRESOLUTION, (double)nint(2.54*10.0/I->xsize));
+    TIFFSetField(out, TIFFTAG_YRESOLUTION, (double)nint(2.54*10.0/I->ysize));
+    
     TIFFSetField(out, TIFFTAG_COMPRESSION, COMPRESSION_DEFLATE);
     /* write out the data, line by line */
     for (row = 0; row < I->rows; row++)
