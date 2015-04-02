@@ -70,6 +70,7 @@ tkregisterfv \
 stem2fname \
 freesurfer \
 fs_lib_check \
+fs_spmreg.glnxa64 \
 fs_time \
 fsl_rigid_register \
 fslregister \
