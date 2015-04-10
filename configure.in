@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2015/03/26 16:59:42 $
-#    $Revision: 1.640 $
+#    $Author: zkaufman $
+#    $Date: 2015/04/10 19:44:27 $
+#    $Revision: 1.641 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -518,8 +518,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
- FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ CPPFLAGS="-g -O0 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
+ FFLAGS="-g -O0 -msse2 -mfpmath=sse"
  ac_have_sse_mathfun=yes
  ;;
  x86_64-*linux*)
@@ -531,8 +531,8 @@ case "${target}" in
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
  # note: gcc 4.4 flags -ftree-vectorize -msse4.1 dont help over just -msse2
- CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
- FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ CPPFLAGS="-g -O0 -msse2 -mfpmath=sse $WALL $WERROR"
+ FFLAGS="-g -O0 -msse2 -mfpmath=sse"
  ac_have_sse_mathfun=yes
  TEEM_32BIT=0
  ;;
@@ -543,7 +543,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CPPFLAGS="-g -O2 $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="-g -O0 $WALL $WERROR $LFS_CFLAGS"
  TEEM_32BIT=0
  ;;
  *-apple-darwin*)
@@ -554,8 +554,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
- CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
- FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ CPPFLAGS="-g -O0 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
+ FFLAGS="-g -O0 -msse2 -mfpmath=sse"
  FCLIBS="-L/usr/lib -lgcc"
  ;;
  i*86-*-solaris*)
@@ -565,7 +565,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O2 $WALL $WERROR $NUPRAG"
+ CPPFLAGS="-g -O0 $WALL $WERROR $NUPRAG"
  ;;
  i*86-pc-cygwin)
  OS=Windows_NT
@@ -574,7 +574,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=
  SHARED_CFLAGS=
  SHARED_LDFLAGS=
- CPPFLAGS="-g -O2 $WALL $WERROR $NUPRAG"
+ CPPFLAGS="-g -O0 $WALL $WERROR $NUPRAG"
  ;;
  powerpc64-*-linux-gnu*)
  OS=Linux
@@ -583,7 +583,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O2 $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="-g -O0 $WALL $WERROR $LFS_CFLAGS"
  ;;
  powerpc64-suse-linux)
  OS=Linux
@@ -592,7 +592,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O2 $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="-g -O0 $WALL $WERROR $LFS_CFLAGS"
   ;;
 esac
 AC_SUBST(OS)
