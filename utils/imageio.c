@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/04/02 22:04:56 $
- *    $Revision: 1.53 $
+ *    $Date: 2015/04/10 19:34:24 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -849,7 +849,7 @@ TiffReadImage(const char*fname, int frame0)
   float    r, g, b, y;
   float    *pf;
 #endif
-  int      scanlinesize;
+  int      scanlinesize, extra_samples;
   int      index = 0;
   float    xres, yres, res ;
 
@@ -965,6 +965,7 @@ TiffReadImage(const char*fname, int frame0)
       break;
     }
   }
+  extra_samples = 0 ;
   switch (nsamples)
   {
   case 1:
@@ -985,6 +986,10 @@ TiffReadImage(const char*fname, int frame0)
       break;
     }
     break;
+  case 4:
+    extra_samples = 1 ;
+    nsamples = 3 ;
+    // no break
   case 3:
     switch (bits_per_sample)
     {
@@ -1010,14 +1015,14 @@ TiffReadImage(const char*fname, int frame0)
   res = (xres+yres)/2 ;
   switch (resunit)
   {
-  case 3: // cm
-  case 1: // no units 
+  case RESUNIT_CENTIMETER: // 3 - cm
+  case RESUNIT_NONE:       // 1 - no units 
     I->sizepix = 100 / res ;
     I->xsize = 100.0 / xres ; // mm
     I->ysize = 100.0 / yres ; // mm
     break ;
   default:
-  case 2: // inches
+  case RESUNIT_INCH:        // 2 - inches
     I->sizepix = 2.54 / res ;
     I->xsize = 10.0*2.54 / xres ;  // mm
     I->ysize = 10.0*2.54 / yres ;  // mm
@@ -1028,8 +1033,14 @@ TiffReadImage(const char*fname, int frame0)
 
   for (frame=0;frame<nframe;frame++)
   {
+    int planar_config, fillorder ;
     TIFFSetDirectory(tif,frame);
 
+    ret = TIFFGetFieldDefaulted(tif, TIFFTAG_FILLORDER, &fillorder);
+    ret = TIFFGetFieldDefaulted(tif, TIFFTAG_PLANARCONFIG, &planar_config);
+    if (planar_config == PLANARCONFIG_SEPARATE)
+      ErrorReturn(NULL, (ERROR_UNSUPPORTED, "TiffReadImage:  PLANARCONFIG_SEPARATE unsupported")) ;
+    // else planar_config ==  PLANARCONFIG_CONTIG
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGEWIDTH, &width);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_IMAGELENGTH, &height);
     ret = TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
@@ -1073,6 +1084,70 @@ TiffReadImage(const char*fname, int frame0)
           ErrorReturn(NULL,
                       (ERROR_BADFILE,
                        "TiffReadImage:  TIFFReadScanline returned error"));
+	if (bits_per_sample == 1)   // unpack bitmap
+	{
+	  unsigned char *bitmap, bitmask ;
+	  unsigned int   byte_, col, bit, b ;
+	  bitmap = (unsigned char *)calloc(scanlinesize, sizeof(unsigned char)) ;
+	  
+	  memmove(bitmap, buf, scanlinesize) ;
+	  for (col = b = 0 ; b < scanlinesize ; b++, col += 8)
+	  {
+	    byte_ = bitmap[b] ;
+	    if (byte_ > 0)
+	      DiagBreak() ;
+	    if (fillorder == FILLORDER_LSB2MSB)
+	    {
+	      for (bitmask = 0x01, bit = 0 ; bit < 8 ; bit++)
+	      {
+		if (col+bit== Gx && index == Gy)
+		  DiagBreak() ;
+		*IMAGEpix(I,col+bit,index) = ((byte_ & bitmask) > 0) ;
+		bitmask = bitmask << 1 ;
+	      }
+	    }
+	    else // fillorder == FILLORDER_MSB2LSB
+	    {
+	      for (bitmask = 0x01<<7, bit = 0 ; bit < 8 ; bit++)
+	      {
+		if (col+bit== Gx && index == Gy)
+		  DiagBreak() ;
+		*IMAGEpix(I,col+bit,index) = ((byte_ & bitmask) > 0) ;
+		bitmask = bitmask >> 1 ;
+	      }
+	    }
+	  }
+
+	  free(bitmap) ;
+	}
+      }
+      else if (nsamples == 4) // RGB model + alpha
+      {
+	int s ;
+	unsigned char *ipix ;
+	ipix = (unsigned char *)calloc(scanlinesize, sizeof(unsigned char)) ;
+	buf = (tdata_t *)ipix ;
+        switch (bits_per_sample)
+        {
+        default:
+        case 8:
+//          buf = (tdata_t*) IMAGERGBpix(I, 0, index);
+          if (TIFFReadScanline(tif, buf, row, 0) < 0) // row must be sequentially read for compressed data
+            ErrorReturn(NULL,
+                        (ERROR_BADFILE,
+                         "TiffReadImage:  TIFFReadScanline returned error"));
+	  
+        }
+	for (s = 0 ; s < width ; s++)
+	{
+	  unsigned char *opix ;
+	  opix = IMAGERGBpix(I, s, index) ;
+	  *opix++ = *ipix ;
+	  *opix++ = *(ipix+1) ;
+	  *opix++ = *(ipix+2) ;
+	  ipix += nsamples ;
+	}
+	free(buf) ;
       }
       else if (nsamples == 3) // RGB model
       {
@@ -1165,7 +1240,7 @@ static IMAGE *
 TiffReadHeader(const char*fname, IMAGE *I)
 {
   TIFF  *tif = TIFFOpen(fname, "r");
-  int   ret, width, height, bits_per_sample ;
+  int   ret, width, height, bits_per_sample, extra_samples ;
   short nsamples ;
   int type = PFBYTE; // just make compiler happy
   if (!tif)
@@ -1176,6 +1251,7 @@ TiffReadHeader(const char*fname, IMAGE *I)
   TIFFGetFieldDefaulted(tif, TIFFTAG_SAMPLESPERPIXEL, &nsamples);
   ret = TIFFGetFieldDefaulted(tif, TIFFTAG_BITSPERSAMPLE, &bits_per_sample);
 
+  extra_samples = 0 ;
   switch (nsamples)
   {
   case 1:
@@ -1193,6 +1269,9 @@ TiffReadHeader(const char*fname, IMAGE *I)
       break ;
     }
     break;
+  case 4:
+    extra_samples = 1 ;
+    // no break 
   case 3:
     switch (bits_per_sample)
     {
