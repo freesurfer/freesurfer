@@ -1,6 +1,7 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.150 2014/11/21 21:30:52 zkaufman Exp $'
+
+set ID='$Id: build_release_type.csh,v 1.151 2015/04/10 20:32:04 zkaufman Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -33,7 +34,7 @@ set FAILURE_MAIL_LIST=(\
     rudolph@nmr.mgh.harvard.edu \
     ayendiki@nmr.mgh.harvard.edu \
     zkaufman@nmr.mgh.harvard.edu)
-#set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
+set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 
 setenv OSTYPE `uname -s`
 if ("$OSTYPE" == "linux") setenv OSTYPE Linux
@@ -44,7 +45,8 @@ set OS=${OSTYPE}
 
 if ("$OSTYPE" == "Darwin") then
   # Mac OS X chmod and chgrp need -L flag to follow symbolic links
-  set change_flags=(-RL)
+  #set change_flags=(-RL)
+  set change_flags=(-R)
 else
   set change_flags=(-R)
 endif
@@ -96,6 +98,7 @@ endif
 set SCRIPT_DIR=${SPACE_FS}/build/scripts
 set LOG_DIR=${SPACE_FS}/build/logs
 
+
 # dev build use latest-and-greatest package libs
 # stable build use explicit package versions (for stability)
 if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
@@ -105,6 +108,7 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
+  set GCCDIR=/usr/pubsw/packages/gcc/4.4.7
   setenv FSLDIR /usr/pubsw/packages/fsl/4.1.9
   setenv DCMTKDIR /usr/pubsw/packages/dcmtk/3.6.0
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
@@ -118,6 +122,7 @@ else
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
+  set GCCDIR=/usr/pubsw/packages/gcc/current
   setenv FSLDIR /usr/pubsw/packages/fsl/current
   setenv DCMTKDIR /usr/pubsw/packages/dcmtk/current
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
@@ -149,7 +154,7 @@ chmod g+w $OUTPUTF
 set BEGIN_TIME=`date`
 echo $BEGIN_TIME >>& $OUTPUTF
 set TIME_STAMP=`date +%Y%m%d`
-
+set INSTALL_DIR_TEMP=${INSTALL_DIR}_${TIME_STAMP}
 #goto symlinks
 
 
@@ -422,17 +427,18 @@ if (-e autom4te.cache) rm -rf autom4te.cache >>& $OUTPUTF
 echo "CMD: libtoolize --force" >>& $OUTPUTF
 if ( "${OSTYPE}" == "Linux") libtoolize --force >>& $OUTPUTF
 if ( "${OSTYPE}" == "Darwin") glibtoolize --force >>& $OUTPUTF
-echo "CMD: autoreconf --force" >>& $OUTPUTF
-autoreconf --force >>& $OUTPUTF
 echo "CMD: aclocal" >>& $OUTPUTF
 aclocal --version >>& $OUTPUTF
 aclocal >>& $OUTPUTF
-echo "CMD: autoconf" >>& $OUTPUTF
-autoconf --version >>& $OUTPUTF
-autoconf >>& $OUTPUTF
 echo "CMD: automake" >>& $OUTPUTF
 automake --version >>& $OUTPUTF
-automake -a >>& $OUTPUTF
+automake --add-missing -Wno-portability >>& $OUTPUTF
+echo "CMD: autoreconf --force" >>& $OUTPUTF
+autoreconf --force >>& $OUTPUTF
+echo "CMD: autoconf" >>& $OUTPUTF
+autoconf --version >>& $OUTPUTF
+autoconf -Wno-portability >>& $OUTPUTF
+
 if ($status != 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build FAILED after automake"
   tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
@@ -448,18 +454,17 @@ if ($status != 0) then
   exit 1
 endif
 echo "CMD: ./configure..." >>& $OUTPUTF
-# notice that the configure command sets 'bindir' to /bin-new, overriding
-# the default /bin.  later, after make install, bin-new is moved to /bin.
-# this is to minimize disruption of machines running recon-all.
+# notice that the configure command sets 'prefix' to ${INSTALL_DIR_TEMP}.  
+# later, after make install, ${INSTALL_DIR_TEMP} is moved to ${INSTALL_DIR}.
+# this ensure a clean installation and minimizes disruption of machines 
+# running recon-all.
 set ENAB_NMR="--enable-nmr-install"
 if ("${RELEASE_TYPE}" == "stable-pub") then
   # public build doesn't get the extra special stuff
   set ENAB_NMR=""
 endif
-setenv FREESURFER_HOME $INSTALL_DIR
 set cnfgr=(${SRC_DIR}/configure)
-set cnfgr=($cnfgr --prefix=${FREESURFER_HOME})
-set cnfgr=($cnfgr --bindir=${INSTALL_DIR}/bin-new)
+set cnfgr=($cnfgr --prefix=${INSTALL_DIR_TEMP})
 set cnfgr=($cnfgr $ENAB_NMR)
 if (("${RELEASE_TYPE}" == "stable") || \
     ("${RELEASE_TYPE}" == "stable-pub")) then
@@ -579,6 +584,7 @@ endif
 set CURRENT_TIME=`date`
 echo "Running make check: $CURRENT_TIME" >>& $OUTPUTF
 if ($?SKIP_ALL_MAKE_CHECKS) goto make_check_done
+#goto make_check_done
 if ("$RELEASE_TYPE" != "stable-pub") then
   echo "########################################################" >>& $OUTPUTF
   echo "Make check $BUILD_DIR" >>& $OUTPUTF
@@ -626,15 +632,13 @@ make_check_done:
 #
 # make install
 ######################################################################
-# (recall that configure sets $bindir to bin-new/ instead of /bin, 
-# to minimize disruption of machines using contents of /bin)
+# (recall that configure sets $prefix to $INSTALL_DIR_TEMP instead of $INSTALL_DIR, 
+# to minimize disruption of machines using contents of $INSTALL_DIR)
 set CURRENT_TIME=`date`
 echo "Running make install: $CURRENT_TIME" >>& $OUTPUTF
-echo "CMD: rm -Rf ${INSTALL_DIR}/bin-new" >>& $OUTPUTF
-if (-e ${INSTALL_DIR}/bin-new) rm -rf ${INSTALL_DIR}/bin-new >>& $OUTPUTF
+echo "CMD: rm -Rf ${INSTALL_DIR_TEMP}" >>& $OUTPUTF
+if (-e ${INSTALL_DIR_TEMP}) rm -rf ${INSTALL_DIR_TEMP} >>& $OUTPUTF
 if ("${RELEASE_TYPE}" == "stable-pub") then
-  echo "CMD: rm -Rf ${INSTALL_DIR}/*" >>& $OUTPUTF
-  rm -rf ${INSTALL_DIR}/* >>& $OUTPUTF
   # make release does make install, and runs some extra commands that
   # remove stuff not intended for public release
   echo "Building public stable" >>& $OUTPUTF
@@ -675,28 +679,28 @@ if ($makestatus != 0) then
   chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
   chgrp fsbuild ${BUILD_DIR}/config.h.in >>& $OUTPUTF
   # and the fsaverage in the subjects dir...
-  echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage" \
+  echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR_TEMP}/subjects/fsaverage" \
     >>& $OUTPUTF
-  chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
-  chgrp ${change_flags} fsbuild ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
+  chmod ${change_flags} g+rw ${INSTALL_DIR_TEMP}/subjects/fsaverage >>& $OUTPUTF
+  chgrp ${change_flags} fsbuild ${INSTALL_DIR_TEMP}/subjects/fsaverage >>& $OUTPUTF
   exit 1  
 endif
 # delete the files in the EXCLUDE_FILES_rm_cmds list which were created from
 # the EXCLUDE_FILES section of each Makefile.am by the top-level Makefile.extra
 # when make release was run (which is done only during a stable-pub build)
-if ( -e {$INSTALL_DIR}/EXCLUDE_FILES_rm_cmds ) then
-  echo "CMD: cat ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds" >>& $OUTPUTF
-  cat ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds >>& $OUTPUTF
-  echo "CMD: source ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds" >>& $OUTPUTF
-  source ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds >>& $OUTPUTF
-  echo "CMD: mv -f ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds /tmp" >>& $OUTPUTF
-  mv -f ${INSTALL_DIR}/EXCLUDE_FILES_rm_cmds /tmp
+if ( -e {$INSTALL_DIR_TEMP}/EXCLUDE_FILES_rm_cmds ) then
+  echo "CMD: cat ${INSTALL_DIR_TEMP}/EXCLUDE_FILES_rm_cmds" >>& $OUTPUTF
+  cat ${INSTALL_DIR_TEMP}/EXCLUDE_FILES_rm_cmds >>& $OUTPUTF
+  echo "CMD: source ${INSTALL_DIR_TEMP}/EXCLUDE_FILES_rm_cmds" >>& $OUTPUTF
+  source ${INSTALL_DIR_TEMP}/EXCLUDE_FILES_rm_cmds >>& $OUTPUTF
+  echo "CMD: mv -f ${INSTALL_DIR_TEMP}/EXCLUDE_FILES_rm_cmds /tmp" >>& $OUTPUTF
+  mv -f ${INSTALL_DIR_TEMP}/EXCLUDE_FILES_rm_cmds /tmp
 endif
 
 # strip symbols from binaries, greatly reducing their size
 if ("${RELEASE_TYPE}" == "stable-pub") then
-  echo "CMD: strip -v ${INSTALL_DIR}/bin-new/*" >>& $OUTPUTF
-  cd ${INSTALL_DIR}/bin-new
+  echo "CMD: strip -v ${INSTALL_DIR_TEMP}/bin/*" >>& $OUTPUTF
+  cd ${INSTALL_DIR_TEMP}/bin
   rm -vf ${OUTPUTF}-strip.log >>& $OUTPUTF
   foreach f (`ls -d *`)
     strip -v $f >>& ${OUTPUTF}-strip.log
@@ -705,70 +709,29 @@ if ("${RELEASE_TYPE}" == "stable-pub") then
 endif
 
 #
-# Shift bin/ to bin-old/ to keep old versions.
-# Move bin/ to bin-old/ instead of copy, to avoid core dumps if some script
-# is using a binary in bin/.
-# Move newly created bin-new/ to bin/.
-# This series of mv's minimizes the time window where the /bin directory
+# Move INSTALL_DIR to INSTALL_DIR.old 
+# Move newly created INSTALL_DIR_TEMP to INSTALL_DIR
+# This series of mv's minimizes the time window where the INSTALL_DIR directory
 # would appear empty to a machine trying to reference its contents in recon-all
-if (("${RELEASE_TYPE}" == "stable") && ("$OSTYPE" == "Linux")) then
-  echo "CMD: rm -Rf ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
-  rm -Rf ${INSTALL_DIR}/bin-old >>& $OUTPUTF
-  echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old" >>& $OUTPUTF
-  mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin-old >>& $OUTPUTF
-else
-  # instead of trying to delete bin/ directory ( which wouldn't delete if
-  # it has NFS lock files ), we just mv the bin/ directory to bin.delete/
-  # if bin.delete/ already exists move it to bin.delete.<datestamp>..
-  # once NFS lock is removed ( once the user quits the process ), this will take care
-  # of automatically deleting the "delete" directories
-  if ( -d ${INSTALL_DIR}/bin.deleteme ) then
-    echo "CMD: rm -Rf ${INSTALL_DIR}/bin.deleteme* " >>& $OUTPUTF
-    rm -Rf ${INSTALL_DIR}/bin.deleteme*
-    # if it still exists, we have the NFS lock files inside, so just mv
-    if ( -d ${INSTALL_DIR}/bin.deleteme ) then
-	    # datestamp is yearmonthdate_hourminute
-	    set DATESTAMP=`date +%y%m%d_%H%M` 
-	    echo "CMD: mv ${INSTALL_DIR}/bin.deleteme ${INSTALL_DIR}/bin.deleteme.${DATESTAMP} " >>& $OUTPUTF
-	    mv ${INSTALL_DIR}/bin.deleteme ${INSTALL_DIR}/bin.deleteme.${DATESTAMP}
-    endif
-  endif
-  if ( -d ${INSTALL_DIR}/bin ) then
-    echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin.deleteme " >>& $OUTPUTF
-    mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin.deleteme
-    if ($status != 0) then
-      set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
-      tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
-      rm -f ${FAILED_FILE}
-      touch ${FAILED_FILE}
-      # set group write bit on files changed by make tools:
-      echo "CMD: chgrp ${change_flags} fsbuild ${BUILD_DIR}" >>& $OUTPUTF
-      chgrp ${change_flags} fsbuild ${BUILD_DIR} >>& $OUTPUTF
-      echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
-      chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
-      chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
-      chgrp fsbuild ${BUILD_DIR}/config.h.in >>& $OUTPUTF
-      # and the fsaverage in the subjects dir...
-      echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage" \
-        >>& $OUTPUTF
-      chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
-      chgrp ${change_flags} fsbuild ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
-      exit 1
-    endif  
-  endif
+if ( -d ${INSTALL_DIR}.old ) then
+  echo "CMD: rm -Rf ${INSTALL_DIR}.old" >>& $OUTPUTF
+  rm -Rf ${INSTALL_DIR}.old >>& $OUTPUTF
 endif
-echo "CMD: mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin" >>& $OUTPUTF
-mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin >>& $OUTPUTF
+if ( -d ${INSTALL_DIR} ) then
+  echo "CMD: mv ${INSTALL_DIR} ${INSTALL_DIR}.old" >>& $OUTPUTF
+  mv ${INSTALL_DIR} ${INSTALL_DIR}.old >>& $OUTPUTF
+endif
+echo "CMD: mv ${INSTALL_DIR_TEMP} ${INSTALL_DIR}" >>& $OUTPUTF
+mv ${INSTALL_DIR_TEMP} ${INSTALL_DIR} >>& $OUTPUTF
+echo "CMD: rm -Rf ${INSTALL_DIR}.old" >>& $OUTPUTF
+rm -Rf ${INSTALL_DIR}.old >>& $OUTPUTF
 
-# one final step is to change the freeview script path in Macs
-# Basically the end of freeview script has "open <BINPATH>/Freeview.app
-# But because of our bin-new procedure, even if we rename the directory bin-new to bin,
-# the path inside the freeview script remains "bin-new".. change that to point to bin
-#if ("$HOSTNAME" == "hima") then
-#    sed s/bin-new/bin/ ${INSTALL_DIR}/bin/freeview > ${INSTALL_DIR}/bin/freeview.new
-#    mv ${INSTALL_DIR}/bin/freeview.new ${INSTALL_DIR}/bin/freeview
-#    chmod a+x ${INSTALL_DIR}/bin/freeview
-#endif
+# 
+# Point to a  license file
+#
+setenv LICENSE_FILE "../../.license"
+echo "CMD: ln -s ${LICENSE_FILE} ${INSTALL_DIR}/.license" >>& $OUTPUTF
+ln -s ${LICENSE_FILE} ${INSTALL_DIR}/.license >>& $OUTPUTF
 
 #
 # fix qdec.bin for centos6_x86_64: for as yet unknown reasons, qdec core
@@ -907,11 +870,12 @@ symlinks:
 ######################################################################
 # Mac uses Qt frameworks for freeview, which are included in the
 # Freeview.app bundle. So remove the qt symlink in the 
-# $FREESURFER_HOME/lib directory
+# ${INSTALL_DIR}/lib directory
 set CURRENT_TIME=`date`
 if ("$OSTYPE" == "Darwin") then
    echo "Running fix mac libs: $CURRENT_TIME" >>& $OUTPUTF
    rm ${INSTALL_DIR}/lib/qt
+   ln -s ${GCCDIR} ${INSTALL_DIR}/lib/gcc
 endif
 
 # Until we are building 64-bit GUIs on the Mac, we need to link
