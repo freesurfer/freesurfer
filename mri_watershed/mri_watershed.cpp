@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/03/26 19:46:52 $
- *    $Revision: 1.99 $
+ *    $Date: 2015/04/10 20:17:28 $
+ *    $Revision: 1.100 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.99 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.100 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -839,7 +839,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.99 2015/03/26 19:46:52 fischl Exp $",
+   "$Id: mri_watershed.cpp,v 1.100 2015/04/10 20:17:28 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -852,7 +852,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.99 2015/03/26 19:46:52 fischl Exp $",
+           "$Id: mri_watershed.cpp,v 1.100 2015/04/10 20:17:28 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -2522,6 +2522,8 @@ int Pre_CharSorting(STRIP_PARMS *parms,MRI_variables *MRI_var)
         j < 0 || j >= MRI_var->mri_src->height ||
         k < 0 || k >= MRI_var->mri_src->depth)
     {
+      printf("WM coord (%d, %d, %d) out of bounds (%d, %d, %d), normalization failed?\n", 
+	     i, j, k,  MRI_var->mri_src->width, MRI_var->mri_src->height, MRI_var->mri_src->depth);
       Error("indices out of bounds\n");
     }
 
