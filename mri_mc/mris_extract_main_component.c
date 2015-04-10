@@ -6,9 +6,9 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.7 $
+ *    $Author: fischl $
+ *    $Date: 2015/04/10 20:16:29 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,8 @@ int main(int argc, char *argv[])
     usage_exit(-1);
   }
   mris_in=MRISread(argv[1]);
+  if (mris_in == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not load surface %s", Progname, argv[1]) ;
   mris_out=MRISextractMainComponent(mris_in,0,1,0);
   MRISwrite(mris_out,argv[2]);
   MRISfree(&mris_out);
