@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2013/08/05 18:10:52 $
-#    $Revision: 1.23 $
+#    $Date: 2015/04/10 19:59:40 $
+#    $Revision: 1.24 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -142,7 +142,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.23 2013/08/05 18:10:52 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.24 2015/04/10 19:59:40 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -272,7 +272,7 @@ def options_parse():
         options.out_spc = crosslong+options.stats+'.'+options.meas+'-spc.dat'
     else:
         options.do_spc = True
-    if optioins.resid > 0 and options.out_resid is None:
+    if options.resid > 0 and options.out_resid is None:
         options.out_resid = crosslong+options.stats+'.'+options.meas+'-resid'+str(options.resid)+'.dat'
     if options.resid == 0 and options.out_resid is None:
         options.out_resid = crosslong+options.stats+'.'+options.meas+'-resid-mean.dat'
