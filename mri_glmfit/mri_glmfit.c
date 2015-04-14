@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/31 22:13:45 $
- *    $Revision: 1.236 $
+ *    $Date: 2015/04/14 16:50:22 $
+ *    $Revision: 1.237 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -560,7 +560,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.236 2015/03/31 22:13:45 greve Exp $";
+"$Id: mri_glmfit.c,v 1.237 2015/04/14 16:50:22 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -752,6 +752,11 @@ int main(int argc, char **argv) {
   FILE *fp;
   double Ccond, dtmp, threshadj, eff;
   char *tmpstr2=NULL;
+
+  //Ct = MatrixConstVal(1,1,1,NULL);
+  //CCt = MatrixColNullSpace(Ct,&n);
+  //printf("n=%d %d\n",n,CCt==NULL);
+  //exit(1);
 
   eresfwhm = -1;
   csd = CSDalloc();
@@ -2004,7 +2009,7 @@ int main(int argc, char **argv) {
       sprintf(tmpstr,"%s/%s/cnr.%s",GLMDir,mriglm->glm->Cname[n],format);
       MRIwrite(cnr,tmpstr);
       MRIfree(&cnr);
-      if(mriglm->glm->DoPCC){
+      if(mriglm->glm->Dt[n] != NULL){
 	// Write out the pcc
 	sprintf(tmpstr,"%s/%s/pcc.%s",GLMDir,mriglm->glm->Cname[n],format);
 	MRIwrite(mriglm->pcc[n],tmpstr);

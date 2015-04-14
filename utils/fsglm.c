@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/31 22:12:23 $
- *    $Revision: 1.32 $
+ *    $Date: 2015/04/14 16:50:22 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.32 2015/03/31 22:12:23 greve Exp $
+// $Id: fsglm.c,v 1.33 2015/04/14 16:50:22 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -153,7 +153,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.32 2015/03/31 22:12:23 greve Exp $");
+  return("$Id: fsglm.c,v 1.33 2015/04/14 16:50:22 greve Exp $");
 }
 
 
@@ -373,10 +373,11 @@ int GLMcMatrices(GLMMAT *glm)
 
     if( glm->C[n]->rows == 1 &&  glm->DoPCC ){
       // These are for the computation of partial correlation coef
-      // design matrix projected onto contrast space
-      glm->XCt[n]  = MatrixMultiplyD(glm->X,glm->Ct[n],NULL);
       // null space of contrast space    
-      glm->Dt[n]   = MatrixColNullSpace(glm->Ct[n],&err);
+      glm->Dt[n] = MatrixColNullSpace(glm->Ct[n],&err);
+      if(glm->Dt[n] == NULL) continue;
+      // design matrix projected onto contrast space
+      glm->XCt[n] = MatrixMultiplyD(glm->X,glm->Ct[n],NULL);
       // design matrix projected onto contrast null space (nuisance reg space)
       glm->XDt[n]  = MatrixMultiplyD(glm->X,glm->Dt[n],NULL);
       glm->RD[n]   = MatrixResidualForming(glm->XDt[n],NULL);
@@ -394,6 +395,7 @@ int GLMcMatrices(GLMMAT *glm)
       glm->sumXcd[n] = MatrixSum(glm->Xcd[n], 1, NULL);
       glm->sumXcd2[n] = MatrixSumSquare(glm->Xcd[n], 1, NULL);
     }
+    else glm->Dt[n] = NULL; // make sure
 
   }
   return(0);
@@ -565,7 +567,7 @@ int GLMtest(GLMMAT *glm)
       glm->z[n]        = RFp2StatVal(rfs,glm->p[n]/2.0);
       if(glm->C[n]->rows == 1 && glm->gamma[n]->rptr[1][1] < 0) glm->z[n] *= -1;
 
-      if(glm->C[n]->rows == 1 && glm->DoPCC){
+      if(glm->Dt[n] != NULL){
 	// compute partial correlation coefficient (pcc)
 	glm->yhatd[n]     = MatrixMultiplyD(glm->RD[n],glm->yhat,glm->yhatd[n]);
 	glm->Xcdyhatd[n]  = MatrixMultiplyD(glm->Xcdt[n],glm->yhatd[n],glm->Xcdyhatd[n]);
@@ -576,7 +578,7 @@ int GLMtest(GLMMAT *glm)
 	  sqrt( (glm->sumXcd2[n]->rptr[1][1] - glm->sumXcd[n]->rptr[1][1]*glm->sumXcd[n]->rptr[1][1]) *
 		(glm->sumyhatd2[n]->rptr[1][1] - glm->sumyhatd[n]->rptr[1][1]*glm->sumyhatd[n]->rptr[1][1]));
       }
-
+      else  glm->pcc[n] = 0;
     }
     else
     {
