@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/31 22:04:03 $
- *    $Revision: 1.150 $
+ *    $Date: 2015/04/14 16:50:42 $
+ *    $Revision: 1.151 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -405,14 +405,18 @@ MATRIX *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
   register float *r1, *r2 ;
   register double val;
   MATRIX   *m_tmp1 = NULL, *m_tmp2 = NULL ;
+  char tmpstr[1000];
 
-  if (!m1) 
-    ErrorExit(ERROR_BADPARM,"MatrixMultiplyD(): m1 is null!\n") ;
-  if (!m2) 
-    ErrorExit(ERROR_BADPARM,"MatrixMultiplyD(): m2 is null!\n") ;
+  if (!m1){
+    sprintf(tmpstr,"MatrixMultiplyD(): m1 is null\n break %s:%d\n",__FILE__,__LINE__);
+    ErrorExit(ERROR_BADPARM,tmpstr);
+  }
+  if (!m2){
+    sprintf(tmpstr,"MatrixMultiplyD(): m2 is null\n break %s:%d\n",__FILE__,__LINE__);
+    ErrorExit(ERROR_BADPARM,tmpstr);
+  }
   if (m1->cols != m2->rows){
-    char tmpstr[500];
-    sprintf(tmpstr,"MatrixMultiplyD(): m1 cols %d does not match m2 rows %d\n %s %d\n",
+    sprintf(tmpstr,"MatrixMultiplyD(): m1 cols %d does not match m2 rows %d\n break %s:%d\n",
 	    m1->cols, m2->rows,__FILE__,__LINE__);
     ErrorReturn(NULL,(ERROR_BADPARM,"%s",tmpstr));
   }
