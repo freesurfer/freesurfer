@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/14 16:50:22 $
- *    $Revision: 1.237 $
+ *    $Date: 2015/04/15 19:59:34 $
+ *    $Revision: 1.238 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -560,7 +560,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.237 2015/04/14 16:50:22 greve Exp $";
+"$Id: mri_glmfit.c,v 1.238 2015/04/15 19:59:34 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1229,6 +1229,8 @@ int main(int argc, char **argv) {
     }
     printf("Found %d points in label.\n",clabel->n_points);
     mriglm->mask = MRISlabel2Mask(surf, clabel, NULL);
+    MRIcopyHeader(mriglm->y,mriglm->mask);
+    MRIcopyPulseParameters(mriglm->y,mriglm->mask);
     mritmp = mri_reshape(mriglm->mask, mriglm->y->width,
                          mriglm->y->height, mriglm->y->depth, 1);
     MRIfree(&mriglm->mask);
