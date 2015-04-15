@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/14 16:50:22 $
- *    $Revision: 1.33 $
+ *    $Date: 2015/04/15 19:55:39 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.33 2015/04/14 16:50:22 greve Exp $
+// $Id: fsglm.c,v 1.34 2015/04/15 19:55:39 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -153,7 +153,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.33 2015/04/14 16:50:22 greve Exp $");
+  return("$Id: fsglm.c,v 1.34 2015/04/15 19:55:39 greve Exp $");
 }
 
 
@@ -804,12 +804,12 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
 
   sprintf(fname,"%s/dof.dat",dumpdir);
   fp = fopen(fname,"w");
-  fprintf(fp,"%lf",glm->dof);
+  fprintf(fp,"%lf\n",glm->dof);
   fclose(fp);
 
   sprintf(fname,"%s/ill_cond_flag.dat",dumpdir);
   fp = fopen(fname,"w");
-  fprintf(fp,"%d",glm->ill_cond_flag);
+  fprintf(fp,"%d\n",glm->ill_cond_flag);
   fclose(fp);
   if (glm->ill_cond_flag) return(0);
 
@@ -824,12 +824,12 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
 
   sprintf(fname,"%s/rvar.dat",dumpdir);
   fp = fopen(fname,"w");
-  fprintf(fp,"%lf",glm->rvar);
+  fprintf(fp,"%lf\n",glm->rvar);
   fclose(fp);
 
   sprintf(fname,"%s/ncontrasts.dat",dumpdir);
   fp = fopen(fname,"w");
-  fprintf(fp,"%d",glm->ncontrasts);
+  fprintf(fp,"%d\n",glm->ncontrasts);
   fclose(fp);
 
   for (c=0; c < glm->ncontrasts; c++)
@@ -845,7 +845,7 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
 
     sprintf(fname,"%s/Ccond.dat",condir);
     fp = fopen(fname,"w");
-    fprintf(fp,"%f",glm->Ccond[c]);
+    fprintf(fp,"%f\n",glm->Ccond[c]);
     fclose(fp);
 
     sprintf(fname,"%s/Mpmf.dat",condir);
@@ -860,12 +860,12 @@ int GLMdump(char *dumpdir, GLMMAT *glm)
 
     sprintf(fname,"%s/F.dat",condir);
     fp = fopen(fname,"w");
-    fprintf(fp,"%lf",glm->F[c]);
+    fprintf(fp,"%lf\n",glm->F[c]);
     fclose(fp);
 
     sprintf(fname,"%s/p.dat",condir);
     fp = fopen(fname,"w");
-    fprintf(fp,"%le",glm->p[c]);
+    fprintf(fp,"%le\n",glm->p[c]);
     fclose(fp);
 
     if (glm->ypmfflag[c])
