@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/24 17:25:41 $
- *    $Revision: 1.115 $
+ *    $Date: 2015/04/15 19:53:01 $
+ *    $Revision: 1.116 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -451,6 +451,8 @@ MRI *mri_binarize(MRI *vol, float thresh, char *tail, int invert,
     voltmp = MRIallocSequence(vol->width,vol->height,vol->depth,
                               MRI_FLOAT,vol->nframes);
     if (voltmp == NULL) return(NULL);
+    MRIcopyHeader(vol,voltmp);
+    MRIcopyPulseParameters(vol,voltmp);
   }
   else voltmp = volbin;
 
@@ -632,6 +634,7 @@ MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes)
   if (outvol == NULL) return(NULL);
 
   MRIcopyHeader(vol, outvol); /* does not change dimensions */
+  MRIcopyPulseParameters(vol, outvol);
 
   //printf("vol1: %d %d %d %d %d\n",vol->width,vol->height,
   // vol->depth,vol->nframes,mri_sizeof(vol));
