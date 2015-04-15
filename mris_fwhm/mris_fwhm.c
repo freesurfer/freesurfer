@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/22 19:54:19 $
- *    $Revision: 1.38 $
+ *    $Date: 2015/04/15 22:38:30 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,7 +148,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.38 2014/12/22 19:54:19 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.39 2015/04/15 22:38:30 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -196,6 +196,9 @@ double DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile);
 int DHvtxno=0, DHniters=0;
 char *DHfile = NULL;
 int UseCortexLabel = 0;
+int   prunemask = 0;
+float prune_thr = FLT_MIN;
+char *outmaskpath=NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -313,6 +316,17 @@ int main(int argc, char *argv[]) {
     if (maskinv) MRImaskInvert(mask,mask);
     printf("Found %d voxels in mask\n",MRInMask(mask));
   }
+
+  if(prunemask){
+    printf("Pruning voxels by thr: %e\n", prune_thr);
+    mask = MRIframeBinarize(InVals,FLT_MIN,mask);
+  }
+  if(outmaskpath){
+    printf("Saving final mask to %s\n",outmaskpath);
+    err = MRIwrite(mask,outmaskpath);
+    if(err) exit(1);
+  }
+
 
   if(DoDetrend) {
     Ntp = InVals->nframes;
@@ -450,6 +464,13 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--synth")) synth = 1;
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
     else if (!strcasecmp(option, "--no-detrend")) DoDetrend = 0;
+    else if (!strcasecmp(option, "--prune"))    prunemask = 1;
+    else if (!strcasecmp(option, "--no-prune")) prunemask = 0;
+    else if (!strcasecmp(option, "--prune_thr")){
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&prune_thr); 
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--sqr")) DoSqr = 1;
     else if (!strcasecmp(option, "--fast")) setenv("USE_FAST_SURF_SMOOTHER","1",1);
     else if (!strcasecmp(option, "--no-fast")) setenv("USE_FAST_SURF_SMOOTHER","0",1);
@@ -494,9 +515,15 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       inpath = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--mask")) {
+    } 
+    else if (!strcasecmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
       maskpath = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--out-mask")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outmaskpath = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--label")) {
@@ -599,6 +626,9 @@ static void print_usage(void) {
   printf("   --dat datfile (only contains fwhm)\n");
   printf("   --ar1dat ar1datfile (contains ar1mean ar1std)\n");
   printf("   --ar1 ar1vol : save spatial ar1 as an overlay\n");
+  printf("   --prune - remove any voxel that is zero in any subject (after any inversion)\n");
+  printf("   --no-prune - do not prune (default)\n");
+  printf("   --out-mask outmask : save final mask\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
   printf("   --niters-only <niters> : only report on niters for fwhm\n");
