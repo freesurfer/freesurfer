@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/04/10 20:32:03 $
-#    $Revision: 1.642 $
+#    $Date: 2015/04/15 15:45:04 $
+#    $Revision: 1.643 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2375,6 +2375,20 @@ AC_ARG_WITH(vtk-cocoa-dir,
      ac_vtk_cocoa_dir="$withval"
      VTK_COCOA_DIR=$ac_vtk_cocoa_dir
   ])
+
+if test ! "$disable_gui_build" = "YES"; then
+  if test "x$VTK_COCOA_DIR" = "x"; then
+    # if a VTK cocoa root was not supplied, but one exists in the
+    # default packages path at the NMR Center, then use that:
+    if test -d "/usr/pubsw/packages/vtk/5.6.1_cocoa" ; then
+      withval=/usr/pubsw/packages/vtk/5.6.1_cocoa
+      ac_vtk_cocoa_includes="$withval/include"
+      ac_vtk_cocoa_libraries="$withval"/lib
+      ac_vtk_cocoa_dir="$withval"
+      VTK_COCOA_DIR=$ac_vtk_cocoa_dir
+    fi
+  fi
+fi
 
 if test ! "$ac_vtk_cocoa_includes" = "NO"; then
   AC_MSG_RESULT(VTK cocoa directory is $withval)
