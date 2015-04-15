@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/27 22:19:53 $
- *    $Revision: 1.92 $
+ *    $Date: 2015/04/15 20:03:00 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2729,8 +2729,13 @@ MRImask(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int mask, float out_val)
       mri_src->depth != mri_mask->depth || mri_src->xsize != mri_mask->xsize ||
       mri_src->ysize != mri_mask->ysize || mri_src->zsize != mri_mask->zsize ||
       mri_src->c_r != mri_mask->c_r || mri_src->c_a != mri_mask->c_a ||
-      mri_src->c_s != mri_mask->c_s)
+      mri_src->c_s != mri_mask->c_s){
+    // This may be too clever in some cases, eg, with surfaces the geometry
+    // is meaningless. Consider checking ras_good_flag, but I don't know
+    // if that will always be correct
+    printf("INFO: MRImask() using MRImaskDifferentGeometry()\n");
     return(MRImaskDifferentGeometry(mri_src, mri_mask, mri_dst,mask,out_val));
+  }
 
   MRIcheckVolDims(mri_src, mri_mask);
 
