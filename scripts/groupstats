@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # groupstats
 
-set VERSION = '$Id: groupstats,v 1.1 2015/03/30 19:19:52 greve Exp $';
+set VERSION = '$Id: groupstats,v 1.2 2015/04/15 22:39:16 greve Exp $';
 
 set fsgd = ();
 set slist = ();
@@ -193,7 +193,7 @@ if($DoMaps) then
         set smfile =  $outdir/maps/$meas.$hemi.sm$fwhmstr.mgh
         if(! -e $smfile || $OverWrite) then
           set cmd = (mris_fwhm --no-detrend --fwhm $fwhm --i $outfile --o $smfile \
-             --cortex --s fsaverage --hemi $hemi)
+             --cortex --s fsaverage --hemi $hemi --smooth-only --prune)
           echo "#C# $cmd"  | tee -a $LF
           $cmd | tee -a $LF
           if($status) exit 1;
