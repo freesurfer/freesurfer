@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/15 19:25:33 $
- *    $Revision: 1.28 $
+ *    $Date: 2015/04/16 18:49:31 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,7 @@
  */
 
 
-// $Id: dti.c,v 1.28 2015/01/15 19:25:33 greve Exp $
+// $Id: dti.c,v 1.29 2015/04/16 18:49:31 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,7 +49,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.28 2015/01/15 19:25:33 greve Exp $");
+  return("$Id: dti.c,v 1.29 2015/04/16 18:49:31 greve Exp $");
 }
 /* --------------------------------------------- */
 int DTIfree(DTI **pdti)
@@ -1195,5 +1195,47 @@ MRI *DTIradialDiffusivity(MRI *evals, MRI *mask, MRI *RD)
   }
 
   return(RD);
+}
+
+int DTIbvecChangeSpace(MRI *vol, int desired_bvec_space)
+{
+  int b, i, f;
+  MATRIX *Mdc,*M, *bvec;
+
+  b = desired_bvec_space;
+  if(vol->bvecs == NULL){
+    printf("ERROR: DTIbvecChangeSpace(): bvec is NULL\n");
+    return(1);
+  }
+
+  if(vol->bvec_space == desired_bvec_space) return(0);
+
+  if(b != BVEC_SPACE_SCANNER && b != BVEC_SPACE_VOXEL){
+    printf("ERROR: DTIbvecChangeSpace(): desired_bvec_space = %d, must be %d or %d\n",
+	   b,BVEC_SPACE_SCANNER,BVEC_SPACE_VOXEL);
+    return(1);
+  }
+
+  /* Mdc maps from vox coords to scanner coords.*/
+  Mdc = MRImatrixOfDirectionCosines(vol, NULL);
+  if(b == BVEC_SPACE_SCANNER) M = Mdc; // voxel to scanner
+  if(b == BVEC_SPACE_VOXEL)   M = MatrixInverse(Mdc,NULL); // scanner to voxel
+
+  // Apply M to each bvec
+  bvec = MatrixAlloc(4,1,MATRIX_REAL);
+  bvec->rptr[4][1] = 1;
+  for(f=1; f <= vol->bvecs->rows; f++) {
+    for(i=1;i<=3;i++)   bvec->rptr[i][1] = vol->bvecs->rptr[f][i];
+    MatrixMultiplyD(M,bvec,bvec);
+    for(i=1;i<=3;i++) vol->bvecs->rptr[f][i] = bvec->rptr[i][1];
+  }
+
+  MatrixFree(&bvec);
+  if(M != Mdc) MatrixFree(&M);
+  MatrixFree(&Mdc);  
+
+  vol->bvec_space = desired_bvec_space;
+
+  return(0);
 }
 

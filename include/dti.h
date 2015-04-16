@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.17 $
+ *    $Author: greve $
+ *    $Date: 2015/04/16 18:49:31 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,7 @@
  */
 
 
-// $Id: dti.h,v 1.17 2011/03/02 00:04:09 nicks Exp $
+// $Id: dti.h,v 1.18 2015/04/16 18:49:31 greve Exp $
 
 #ifndef DTI_INC
 #define DTI_INC
@@ -74,5 +74,6 @@ int DTIwriteBValues(MATRIX *bvals,const  char *bvalfile);
 DTI *DTIstructFromBFiles(const char *bvalfile,const  char *bvecfile);
 int DTIparsePulseSeqName(const char *pulseseq, double *bValue, int *nthDirection);
 int DTIisFSLBVec(const char *fname);
+int DTIbvecChangeSpace(MRI *vol, int desired_bvec_space);
 
 #endif //#ifndef FSENV_INC

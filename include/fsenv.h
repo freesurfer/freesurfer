@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/20 23:05:06 $
- *    $Revision: 1.6 $
+ *    $Date: 2015/04/16 18:49:31 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,7 @@ typedef struct
   char *machine;   // eg, i686
   char *tmpdir;    // folder for temporary files
   COLOR_TABLE *ctab; // FREESURFER_HOME/FreeSurferColorLUT.txt
+  int desired_bvec_space; // for DWI
 }
 FSENV;
 

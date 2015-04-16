@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:56 $
- *    $Revision: 1.418 $
+ *    $Author: greve $
+ *    $Date: 2015/04/16 18:49:31 $
+ *    $Revision: 1.419 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1425,7 +1425,11 @@ int MRIwriteType(MRI *mri, const char *fname, int type)
   printf("Saving bvals and bvecs\n");
   sprintf(tmpstr,"%s.bvals",fstem);
   DTIwriteBValues(mri->bvals, tmpstr);
-  sprintf(tmpstr,"%s.bvecs",fstem);
+  switch(mri->bvec_space){
+  case BVEC_SPACE_SCANNER:  sprintf(tmpstr,"%s.scanner_space.bvecs",fstem); break;
+  case BVEC_SPACE_VOXEL:    sprintf(tmpstr,"%s.voxel_space.bvecs",fstem); break;
+  default: sprintf(tmpstr,"%s.unknown_space.bvecs",fstem); break;
+  }
   DTIwriteBVectors(mri->bvecs, tmpstr);
   free(fstem);
 

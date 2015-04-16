@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/24 17:57:19 $
- *    $Revision: 1.475 $
+ *    $Date: 2015/04/16 18:49:31 $
+ *    $Revision: 1.476 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,6 +72,10 @@ extern "C" {
 #define FRAME_TYPE_DIFFUSION_AUGMENTED  1
 
 #define MRInvox(mri)  ((mri)->width * (mri)->height * (mri)->depth * (mri)->nframes)
+
+#define BVEC_SPACE_UNKNOWN 0
+#define BVEC_SPACE_SCANNER 1
+#define BVEC_SPACE_VOXEL   2
 
 typedef struct
 {
@@ -228,6 +232,7 @@ typedef struct
 
   MATRIX *AutoAlign; // For Andre
   MATRIX *bvals, *bvecs; 
+  int bvec_space; // 0=unknown, 1=scanner, 2=voxel
 
   // "Chunking" memory management. "Chunking" is where the entire 4D
   // volume is allocated one big buffer.

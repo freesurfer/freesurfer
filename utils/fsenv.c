@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/20 23:04:46 $
- *    $Revision: 1.6 $
+ *    $Date: 2015/04/16 18:49:31 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,12 +34,13 @@
 #include "fsenv.h"
 #include "utils.h"
 #include "version.h"
+#include "mri.h"
 
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *FSENVsrcVersion(void)
 {
-  return("$Id: fsenv.c,v 1.6 2014/11/20 23:04:46 greve Exp $");
+  return("$Id: fsenv.c,v 1.7 2015/04/16 18:49:31 greve Exp $");
 }
 
 FSENV *FSENVgetenv(void)
@@ -92,6 +93,19 @@ FSENV *FSENVgetenv(void)
   pc = getenv("FREESURFER_TMP_DIR");
   if(pc != NULL) fsenv->tmpdir = strcpyalloc(pc);
   else fsenv->tmpdir = strcpyalloc("/tmp");
+
+  // for DWI when dicoms are read
+  pc = getenv("FS_DESIRED_BVEC_SPACE");
+  if(pc != NULL) {
+    int b;
+    sscanf(pc,"%d",&b);
+    if(b != BVEC_SPACE_SCANNER && b != BVEC_SPACE_VOXEL){
+      printf("ERROR: FS_DESIRED_BVEC_SPACE = %s, must be %d or %d\n",pc,BVEC_SPACE_SCANNER,BVEC_SPACE_VOXEL);
+      return(NULL);
+    }
+    fsenv->desired_bvec_space = b;
+  }
+  else  fsenv->desired_bvec_space = BVEC_SPACE_VOXEL;
 
   return(fsenv);
 }
