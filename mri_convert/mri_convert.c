@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/04/01 22:01:42 $
- *    $Revision: 1.220 $
+ *    $Author: greve $
+ *    $Date: 2015/04/16 18:56:00 $
+ *    $Revision: 1.221 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.220 2015/04/01 22:01:42 fischl Exp $",
+   "$Id: mri_convert.c,v 1.221 2015/04/16 18:56:00 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.220 2015/04/01 22:01:42 fischl Exp $",
+      "$Id: mri_convert.c,v 1.221 2015/04/16 18:56:00 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -475,6 +475,18 @@ int main(int argc, char *argv[])
     else if (strcmp(argv[i], "--sphinx") == 0 )
     {
       sphinx_flag = TRUE;
+    }
+    else if (strcmp(argv[i], "--bvec-scanner") == 0 )
+    {
+      // force bvecs to be in scanner space. only applies when
+      // reading dicoms
+      setenv("FS_DESIRED_BVEC_SPACE","1",1);
+    }
+    else if (strcmp(argv[i], "--bvec-voxel") == 0 )
+    {
+      // force bvecs to be in voxel space. only applies when
+      // reading dicoms.
+      setenv("FS_DESIRED_BVEC_SPACE","2",1);
     }
     else if(strcmp(argv[i], "--autoalign") == 0)
     {
@@ -1680,7 +1692,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.220 2015/04/01 22:01:42 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.221 2015/04/16 18:56:00 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
