@@ -33,10 +33,10 @@ if ("$OS" == "Linux") then
   set grepstatus=$status
 endif
 
-if ("$OS" == "Darwin") then
-  otool -L ./gauss_4dfp | grep libquadmath
-  set grepstatus=$status
-endif
+#if ("$OS" == "Darwin") then
+#  otool -L ./gauss_4dfp | grep libquadmath
+#  set grepstatus=$status
+#endif
 
 if ( ! $grepstatus ) then
   echo "ERROR: gauss_4dfp built against shared gfortran libs!"
