@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/04/01 17:14:51 $
-#    $Revision: 1.513 $
+#    $Author: nicks $
+#    $Date: 2015/04/17 00:03:55 $
+#    $Revision: 1.514 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.513 2015/04/01 17:14:51 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.514 2015/04/17 00:03:55 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4616,8 +4616,8 @@ endif
 ##-------      -balabels       --------#
 #--------                      --------#
 # Create Brodmann area labels by mapping from fsaverage,
-# then create the ?h.BA.annot file from these labels,
-# then generate a ?h.BA.stats file from that annot.
+# then create the ?h.BA_exvivo.annot file from these labels,
+# then generate a ?h.BA_exvivo.stats file from that annot.
 if ($DoBaLabels) then
   cd $subjdir/label
   $PWD |& tee -a $LF
@@ -4631,7 +4631,7 @@ if ($DoBaLabels) then
   else
     # check if the latest-greatest fsaverage is here (which would not be
     # the case if running on subjects processed by an older version)
-    if ( ! -e $SUBJECTS_DIR/fsaverage/label/lh.perirhinal.label) then
+    if ( ! -e $SUBJECTS_DIR/fsaverage/label/lh.perirhinal_exvivo.label) then
       echo "INFO: fsaverage subject does not have perirhinal labels!" \
         |& tee -a $LF |& tee -a $CF
       set HaveFsAverage=0;
@@ -4655,13 +4655,24 @@ if ($DoBaLabels) then
   foreach hemi ($hemilist)
     echo "#--------------------------------------------" \
         |& tee -a $LF |& tee -a $CF
-    echo "#@# BA Labels $hemi `date`" \
+    echo "#@# BA_exvivo Labels $hemi `date`" \
         |& tee -a $SF |& tee -a $LF |& tee -a $CF
 
     # generate label
     set CMDFS = () # see earlier notes on -parallel implementation
-    foreach balabel (BA1 BA2 BA3a BA3b BA4a BA4p BA6 BA44 BA45 \
-                     V1 V2 MT perirhinal)
+    foreach balabel (BA1_exvivo \
+                     BA2_exvivo \
+                     BA3a_exvivo \
+                     BA3b_exvivo \
+                     BA4a_exvivo \
+                     BA4p_exvivo \
+                     BA6_exvivo \
+                     BA44_exvivo \
+                     BA45_exvivo \
+                     V1_exvivo \
+                     V2_exvivo \
+                     MT_exvivo \
+                     perirhinal_exvivo)
       set cmd=(mri_label2label \
         --srcsubject fsaverage \
         --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label \
@@ -4686,8 +4697,18 @@ if ($DoBaLabels) then
 
     # generate .thresh labels
     set CMDFS = () # see earlier notes on -parallel implementation
-    foreach balabel (BA1 BA2 BA3a BA3b BA4a BA4p BA6 BA44 BA45 \
-                      V1 V2 MT)
+    foreach balabel (BA1_exvivo \
+                     BA2_exvivo \
+                     BA3a_exvivo \
+                     BA3b_exvivo \
+                     BA4a_exvivo \
+                     BA4p_exvivo \
+                     BA6_exvivo \
+                     BA44_exvivo \
+                     BA45_exvivo \
+                     V1_exvivo \
+                     V2_exvivo \
+                     MT_exvivo)
       set cmd=(mri_label2label \
         --srcsubject fsaverage \
         --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.thresh.label \
@@ -4715,23 +4736,23 @@ if ($DoBaLabels) then
         --s $subjid \
         --hemi $hemi \
         --ctab $FREESURFER_HOME/average/colortable_BA.txt \
-        --l $hemi.BA1.label \
-        --l $hemi.BA2.label \
-        --l $hemi.BA3a.label \
-        --l $hemi.BA3b.label \
-        --l $hemi.BA4a.label \
-        --l $hemi.BA4p.label \
-        --l $hemi.BA6.label \
-        --l $hemi.BA44.label \
-        --l $hemi.BA45.label \
-        --l $hemi.V1.label \
-        --l $hemi.V2.label \
-        --l $hemi.MT.label \
-        --l $hemi.perirhinal.label \
-        --a BA \
+        --l $hemi.BA1_exvivo.label \
+        --l $hemi.BA2_exvivo.label \
+        --l $hemi.BA3a_exvivo.label \
+        --l $hemi.BA3b_exvivo.label \
+        --l $hemi.BA4a_exvivo.label \
+        --l $hemi.BA4p_exvivo.label \
+        --l $hemi.BA6_exvivo.label \
+        --l $hemi.BA44_exvivo.label \
+        --l $hemi.BA45_exvivo.label \
+        --l $hemi.V1_exvivo.label \
+        --l $hemi.V2_exvivo.label \
+        --l $hemi.MT_exvivo.label \
+        --l $hemi.perirhinal_exvivo.label \
+        --a BA_exvivo \
         --maxstatwinner \
         --noverbose )
-    if($RunIt) if ( -e ./$hemi.BA.annot) rm -fv ./$hemi.BA.annot
+    if($RunIt) if ( -e ./$hemi.BA_exvivo.annot) rm -fv ./$hemi.BA_exvivo.annot
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -4741,30 +4762,30 @@ if ($DoBaLabels) then
         --s $subjid \
         --hemi $hemi \
         --ctab $FREESURFER_HOME/average/colortable_BA.txt \
-        --l $hemi.BA1.thresh.label \
-        --l $hemi.BA2.thresh.label \
-        --l $hemi.BA3a.thresh.label \
-        --l $hemi.BA3b.thresh.label \
-        --l $hemi.BA4a.thresh.label \
-        --l $hemi.BA4p.thresh.label \
-        --l $hemi.BA6.thresh.label \
-        --l $hemi.BA44.thresh.label \
-        --l $hemi.BA45.thresh.label \
-        --l $hemi.V1.thresh.label \
-        --l $hemi.V2.thresh.label \
-        --l $hemi.MT.thresh.label \
-        --a BA.thresh \
+        --l $hemi.BA1_exvivo.thresh.label \
+        --l $hemi.BA2_exvivo.thresh.label \
+        --l $hemi.BA3a_exvivo.thresh.label \
+        --l $hemi.BA3b_exvivo.thresh.label \
+        --l $hemi.BA4a_exvivo.thresh.label \
+        --l $hemi.BA4p_exvivo.thresh.label \
+        --l $hemi.BA6_exvivo.thresh.label \
+        --l $hemi.BA44_exvivo.thresh.label \
+        --l $hemi.BA45_exvivo.thresh.label \
+        --l $hemi.V1_exvivo.thresh.label \
+        --l $hemi.V2_exvivo.thresh.label \
+        --l $hemi.MT_exvivo.thresh.label \
+        --a BA_exvivo.thresh \
         --maxstatwinner \
         --noverbose )
-    if($RunIt) if ( -e ./$hemi.BA.thresh.annot) rm -fv ./$hemi.BA.thresh.annot
+    if($RunIt) if ( -e ./$hemi.BA_exvivo.thresh.annot) rm -fv ./$hemi.BA_exvivo.thresh.annot
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
     # generate stats
-    set annot = ./$hemi.BA.annot
-    set stats = ../stats/$hemi.BA.stats
-    set ctab  = ./BA.ctab
+    set annot = ./$hemi.BA_exvivo.annot
+    set stats = ../stats/$hemi.BA_exvivo.stats
+    set ctab  = ./BA_exvivo.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats -mgz -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi white);
@@ -4773,9 +4794,9 @@ if ($DoBaLabels) then
     if($status) goto error_exit;
 
     # generate .thresh stats
-    set annot = ./$hemi.BA.thresh.annot
-    set stats = ../stats/$hemi.BA.thresh.stats
-    set ctab  = ./BA.thresh.ctab
+    set annot = ./$hemi.BA_exvivo.thresh.annot
+    set stats = ../stats/$hemi.BA_exvivo.thresh.stats
+    set ctab  = ./BA_exvivo.thresh.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats -mgz -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi white);
@@ -6820,23 +6841,9 @@ while( $#argv != 0 )
       set HiRes = 1;
       set ConformMin = 1;
       echo "INFO: hi-res volumes are conformed to the min voxel size"
-      # dont use atlas for skull strip:
-      set WSAtlas = 0;
-      set WSGcaAtlas = 0;
-      # -noaseg flags:
-      set UseAseg          = 0;
-      set DoGCAReg         = 0;
-      set DoRemoveNeck     = 0;
-      set DoSkullLTA       = 0;
-      set DoCANormalize    = 0;
-      set DoCAReg          = 0;
-      set DoCALabel        = 0;
-      set DoSegStats       = 0;
-      set NoNormMGZ        = 1;
-      set DoAParc2ASeg     = 0;
-      set DoAPas2ASeg      = 0;
-      set DoWMParc         = 0;
-      set DoCortRibbonVolMask = 0;
+      # per testing by Natalia Zaretskaya, Mar 2015, the flags which
+      # normally disable the aseg steps are no longer necessary (which
+      # means aseg.mgz can be created with hi-res data).
       breaksw
 
     case "-use-aseg":
@@ -8083,8 +8090,9 @@ Create a label of V1, based on Hinds et al., NeuroImage 39 (2008) 1585-1599.
 -ba_labels
 
 Creates Brodmann area labels of BA1, BA2, BA3a, BA3b, BA4a, BA4p, BA6, BA44,
-BA45, V1, V2, and V5/MT by mapping labels from the 'fsaverage' subject.
-The 'fsaverage' subject must exist within the SUBJECTS_DIR.  Based on:
+BA45, V1, V2, and V5/MT (and perirhinal) by mapping labels from the 
+'fsaverage' subject, which must exist within the SUBJECTS_DIR.  
+Based on:
 "Cortical Folding Patterns and Predicting Cytoarchitecture", Fischl et al.,
 Cerebral Cortex 2007.
 
