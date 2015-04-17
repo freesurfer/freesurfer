@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/04/15 15:45:04 $
-#    $Revision: 1.643 $
+#    $Date: 2015/04/17 18:18:38 $
+#    $Revision: 1.644 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -201,11 +201,13 @@ fi
 
 # check for gcc 4.4 and higher which supports openmp.
 ac_have_gcc_44="no"
-if (test "${CC}" = "gcc") && (test "$ac_have_gcc_44" = "no"); then
-  gcc --version | grep " 4\.[4-9]\.[0-9]" >& /dev/null
-   if test "$?" = "0"; then
+if (test "${CC}" = "gcc"); then
+  gcc --version | grep " 4\.@<:@4-9@:>@" >& /dev/null
+  if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc 4.x where x >= 4)
     ac_have_gcc_44="yes"
+  else 
+    AC_MSG_NOTICE(Do no have gcc 4.x where x >= 4)
   fi
 fi
 
