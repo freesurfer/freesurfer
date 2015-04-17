@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/13 22:22:31 $
- *    $Revision: 1.50 $
+ *    $Date: 2015/04/17 20:17:50 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.50 2015/03/13 22:22:31 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.51 2015/04/17 20:17:50 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.50 2015/03/13 22:22:31 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.51 2015/04/17 20:17:50 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -175,6 +175,8 @@ int DoVoxFracCorTmp;
 int Frame = -1;
 MRI **lgtmpvc;
 int DoRegHeader=0;
+int MergeHypos=0;
+int DoGMRvar = 1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -269,12 +271,23 @@ int main(int argc, char *argv[])
   if(Gdiag_no > 0) PrintMemUsage(stdout);
 
   stem = IDstemFromName(SegVolFile);
-  sprintf(tmpstr,"%s.ctab",stem);
-  printf("Loading seg ctab %s\n",tmpstr);fflush(stdout);
-  fprintf(logfp,"Loading ctab %s\n",tmpstr);fflush(logfp);
-  gtm->ctGTMSeg = CTABreadASCII(tmpstr);
-  if(gtm->ctGTMSeg == NULL) exit(1);
-  if(Gdiag_no > 0) printf("  done loading ctab\n");fflush(stdout);
+  if(gtm->ctGTMSeg == NULL){
+    sprintf(tmpstr,"%s.ctab",stem);
+    printf("Loading seg ctab %s\n",tmpstr);fflush(stdout);
+    fprintf(logfp,"Loading ctab %s\n",tmpstr);fflush(logfp);
+    gtm->ctGTMSeg = CTABreadASCII(tmpstr);
+    if(gtm->ctGTMSeg == NULL) exit(1);
+    if(Gdiag_no > 0) printf("  done loading ctab\n");fflush(stdout);
+  }
+  if(MergeHypos && gtm->ctGTMSeg->entries[77] == NULL){
+    gtm->ctGTMSeg->entries[77] = (CTE*) malloc(sizeof(CTE));
+    sprintf(gtm->ctGTMSeg->entries[77]->name,"WM-hypointensities");
+    gtm->ctGTMSeg->entries[77]->ri = 255;
+    gtm->ctGTMSeg->entries[77]->gi = 148;
+    gtm->ctGTMSeg->entries[77]->bi =  10;
+    gtm->ctGTMSeg->entries[77]->ai = 255;
+  }
+
   if(DoRegHeader)
     gtm->anat2pet = TransformRegDat2LTA(gtm->anatseg, gtm->yvol, NULL);
 
@@ -796,7 +809,7 @@ int main(int argc, char *argv[])
     printf("mri_gtmpvc-runtime %5.2f min\n",TimerStop(&timer)/60000.0);
     exit(0);
   }
-  GTMrvarGM(gtm);
+  if(DoGMRvar) GTMrvarGM(gtm);
 
   // Write the number of voxels in the mask
   sprintf(tmpstr,"%s/nmask.dat",AuxDir);
@@ -968,6 +981,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--no-vox-frac-cor")) gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-vox-frac")) gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-vfc"))      gtm->DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--no-gm-rvar"))  DoGMRvar = 0;
     else if(!strcasecmp(option, "--auto-mask")){
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%lf",&gtm->automask_fwhm);
@@ -1276,6 +1290,7 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 2;
     } 
     else if(!strcasecmp(option, "--merge-hypos")) {
+      MergeHypos=1;
       gtm->SrcReplace[gtm->nReplace]=78; gtm->TrgReplace[gtm->nReplace]=77; gtm->nReplace++;
       gtm->SrcReplace[gtm->nReplace]=79; gtm->TrgReplace[gtm->nReplace]=77; gtm->nReplace++;
     } 
@@ -1385,6 +1400,7 @@ static void print_usage(void) {
   printf("   --replace Id1 Id2 : replace seg Id1 with seg Id2\n");
   printf("   --replace-file : file with a list of Ids to replace\n");
   printf("   --reg-identity : assume that input is in anatomical space \n");
+  printf("   --rescale Id1 <Id2...>  : specify reference region(s) used to rescale (default is pons)\n");
   printf("   --no-rescale   : do not global rescale such that mean of reference region is scaleref\n");
   printf("   --scale-refval refval : scale such that mean in reference region is refval\n");
   printf("\n");
