@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/06 21:42:37 $
- *    $Revision: 1.172 $
+ *    $Date: 2015/04/20 17:44:04 $
+ *    $Revision: 1.173 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@ void *malloc(size_t size);
 #include "macros.h" // DEGREES
 #include "dti.h"
 #include "fsenv.h"
+#include "dti.h"
 
 #define _DICOMRead_SRC
 #include "DICOMRead.h"
@@ -400,6 +401,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   if(IsDWI){
     vol->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
     vol->bvecs = MatrixAlloc(nframes,3,MATRIX_REAL);
+    vol->bvec_space = BVEC_SPACE_VOXEL;
   }
 
   env = FSENVgetenv();
@@ -592,6 +594,13 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   else
   {
     printf("INFO: no Siemens slice order reversal detected (good!). \n");
+  }
+
+  if(IsDWI){
+    if(env->desired_bvec_space == BVEC_SPACE_SCANNER){
+      printf("Converting bvec to scanner space\n");
+      DTIbvecChangeSpace(vol, BVEC_SPACE_SCANNER);
+    }
   }
 
   while (nlist--)
@@ -6179,6 +6188,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   if(IsDWI){
     mri->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
     mri->bvecs = MatrixAlloc(nframes,3,MATRIX_REAL);
+    mri->bvec_space = BVEC_SPACE_VOXEL;
   }
 
   if (getenv("FS_FIX_DICOMS"))
@@ -6372,6 +6382,13 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   for (nthfile = 0; nthfile < ndcmfiles; nthfile ++)
     free(dcminfo[nthfile]);
   free(dcminfo);
+
+  if(IsDWI){
+    if(env->desired_bvec_space == BVEC_SPACE_SCANNER){
+      printf("Converting bvec to scanner space\n");
+      DTIbvecChangeSpace(mri, BVEC_SPACE_SCANNER);
+    }
+  }
 
   FSENVfree(&env);
 
