@@ -7,8 +7,8 @@
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/17 00:09:08 $
- *    $Revision: 1.37 $
+ *    $Date: 2015/04/20 21:56:32 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -323,6 +323,7 @@ char *sdcmExtractNumarisVer(const char *e_18_1020, int *Maj, int *Min, int *MinM
 int sdfiIsSliceOrderReversed(SDCMFILEINFO *sdfi);
 int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec);
 int dcmGetDWIParamsGE(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec);
+int dcmGetDWIParamsPhilips(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec);
 int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec);
 int dcmGetDWIParamsSiemensAlt(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec);
 int dcmImageDirCosObject(DCM_OBJECT *dcm, double *Vcx, double *Vcy, double *Vcz, double *Vrx, double *Vry, double *Vrz);
