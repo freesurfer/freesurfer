@@ -4,11 +4,10 @@
  *
  */
 /*
- * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/20 17:44:04 $
- *    $Revision: 1.173 $
+ *    $Date: 2015/04/20 20:43:50 $
+ *    $Revision: 1.174 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -6009,7 +6008,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   char **FileNames, *dcmdir;
   DICOMInfo RefDCMInfo, TmpDCMInfo, **dcminfo;
   int nfiles, nframes,nslices, r, c, s, f, err, fid;
-  int ndcmfiles, nthfile, mritype=0,nvox,IsDWI;
+  int ndcmfiles, nthfile, mritype=0,nvox,IsDWI,IsPhilipsDWI;
   unsigned short *v16=NULL;
   unsigned char  *v08=NULL;
   DCM_ELEMENT *element;
@@ -6125,6 +6124,12 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
              dcminfo[nthfile]->FileName);
     }
   }
+  IsDWI = 0;
+  for (nthfile = 0; nthfile < ndcmfiles; nthfile ++) if(dcminfo[nthfile]->bval > 0) IsDWI=1;
+  IsPhilipsDWI = 0;
+  if(IsDWI && strcmp(dcminfo[0]->Manufacturer,"Philips Medical Systems ") == 0) IsPhilipsDWI = 1;
+  printf("IsDWI = %d, IsPhilipsDWI = %d\n",IsDWI,IsPhilipsDWI);
+
   printf("Counting frames\n");
   nframes = DCMCountFrames(dcminfo, ndcmfiles);
   nslices = ndcmfiles/nframes;
@@ -6149,6 +6154,12 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   }
   // update reference
   memmove(&RefDCMInfo,dcminfo[0],sizeof(DICOMInfo));
+
+  if(IsPhilipsDWI){
+    // Philips puts the mean DWI as the last frame
+    nframes = nframes - 1;
+    printf("This is a philips DWI, so ignorning the last frame, nframes = %d\n",nframes);
+  }
 
   mritype = MRI_SHORT;
   if (LoadVolume)
@@ -6182,13 +6193,11 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   mri->ysize   = RefDCMInfo.ysize;
   mri->zsize   = RefDCMInfo.SliceThickness;
 
-  IsDWI = 0;
-  for (nthfile = 0; nthfile < ndcmfiles; nthfile ++) if(dcminfo[nthfile]->bval > 0) IsDWI=1;
-  printf("IsDWI = %d\n",IsDWI);
   if(IsDWI){
     mri->bvals = MatrixAlloc(nframes,1,MATRIX_REAL);
     mri->bvecs = MatrixAlloc(nframes,3,MATRIX_REAL);
     mri->bvec_space = BVEC_SPACE_VOXEL;
+    if(IsPhilipsDWI) mri->bvec_space = BVEC_SPACE_SCANNER;
   }
 
   if (getenv("FS_FIX_DICOMS"))
@@ -6375,6 +6384,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
         free(element);
         nthfile++;
       } // frame
+      if(IsPhilipsDWI) nthfile++; // skip the last file
       exec_progress_callback(f, nframes, s, nslices);
     } // slice
   } // 16 bit
@@ -6383,12 +6393,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
     free(dcminfo[nthfile]);
   free(dcminfo);
 
-  if(IsDWI){
-    if(env->desired_bvec_space == BVEC_SPACE_SCANNER){
-      printf("Converting bvec to scanner space\n");
-      DTIbvecChangeSpace(mri, BVEC_SPACE_SCANNER);
-    }
-  }
+  if(IsDWI) DTIbvecChangeSpace(mri, env->desired_bvec_space);
 
   FSENVfree(&env);
 
@@ -7353,8 +7358,15 @@ int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybv
     err = dcmGetDWIParamsGE(dcm, pbval, pxbvec, pybvec, pzbvec);
     if(err) return(err);
   }
+  else if(strcmp(e->d.string,"Philips Medical Systems ") == 0){
+    // Note: need space at the end of 'Systems' above
+    if(Gdiag_no > 0)
+      printf("Attempting to get DWI Parameters from Phlips DICOM\n");
+    err = dcmGetDWIParamsPhilips(dcm, pbval, pxbvec, pybvec, pzbvec);
+    if(err) return(err);
+  }
   else {
-    printf("ERROR: don't know how to get DWI parameters from %s\n",e->d.string);
+    printf("ERROR: don't know how to get DWI parameters from --%s--\n",e->d.string);
     fflush(stdout);
     return(1);
   }
@@ -7362,10 +7374,11 @@ int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybv
 
   rms = sqrt((*pxbvec)*(*pxbvec) + (*pybvec)*(*pybvec) + (*pzbvec)*(*pzbvec));
   if(Gdiag_no > 0) printf("%lf %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec,rms);
+
   if(*pbval != 0 && (fabs(*pxbvec) > 1.0 || fabs(*pybvec) > 1.0 || fabs(*pzbvec) > 1.0 ||
-		     fabs(rms-1) > .001) ){
-    printf("%lf %lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec,rms);
-    printf("WARNING: These don't look like reasonable DWI params\n");
+		     fabs(rms-1) > .001) && fabs(rms) > .001 ){
+    printf("%lf %lf %lf %lf %lf \n",*pbval,*pxbvec,*pybvec,*pzbvec,rms);
+    printf("WARNING: These don't look like reasonable DWI params.\n");
   }
 
   if(*pbval == 0){
@@ -7376,6 +7389,61 @@ int dcmGetDWIParams(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybv
 
   return(0);
 }
+
+int dcmGetDWIParamsPhilips(DCM_OBJECT *dcm, double *pbval, double *pxbvec, double *pybvec, double *pzbvec)
+{
+  DCM_ELEMENT *e;
+  CONDITION cond;
+  DCM_TAG tag;
+  unsigned int rtnLength;
+  void *Ctx = NULL;
+
+  if(Gdiag_no > 0) printf("Entering dcmGetDWIParamsPhilips()\n");
+
+  *pbval = 0;
+  *pxbvec = 0;
+  *pybvec = 0;
+  *pzbvec = 0;
+
+  // bvalue 
+  Ctx = NULL;
+  tag=DCM_MAKETAG(0x18,0x9087);
+  e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+  cond = DCM_GetElement(&dcm, tag, e);
+  if(cond != DCM_NORMAL){free(e);return(7);}
+  AllocElementData(e);
+  cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+  if(cond != DCM_NORMAL){free(e);return(8);}
+  *pbval = e->d.fd[0];
+  free(e);
+
+  // gradient vector
+  Ctx = NULL;
+  tag=DCM_MAKETAG(0x18,0x9089);
+  e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
+  cond = DCM_GetElement(&dcm, tag, e);
+  if(cond != DCM_NORMAL){free(e);return(9);}
+  AllocElementData(e);
+  cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
+  if(cond != DCM_NORMAL){free(e);return(10);}
+  // Not sure about the sign here. LZ gave DNG some bvecs that appear to be
+  // (+1,-1,-1), but changing
+  (*pxbvec) = -1*e->d.fd[0]; // ???
+  (*pybvec) = -1*e->d.fd[1]; // ???
+  (*pzbvec) = +1*e->d.fd[2]; // ???
+  free(e);
+
+  if(Gdiag_no > 0) printf("%lf %lf %lf %lf\n",*pbval,*pxbvec,*pybvec,*pzbvec);
+
+  if(*pbval == 0){
+    *pxbvec = 0;
+    *pybvec = 0;
+    *pzbvec = 0;
+  }
+
+  return(0);
+}
+
 
 /*
   \fn int dcmGetDWIParamsGE()
