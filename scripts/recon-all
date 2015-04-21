@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/04/17 00:03:55 $
-#    $Revision: 1.514 $
+#    $Date: 2015/04/21 18:35:22 $
+#    $Revision: 1.515 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.514 2015/04/17 00:03:55 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.515 2015/04/21 18:35:22 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3931,6 +3931,7 @@ if($DoT2pial || $DoFLAIRpial) then
 
   set mdir=$SUBJECTS_DIR/${subjid}/mri
   set sdir=$SUBJECTS_DIR/${subjid}/surf
+  set tdir=$SUBJECTS_DIR/${subjid}/touch
 
   if (! -e $mdir/${t2flair}.mgz) then
 
@@ -4036,8 +4037,11 @@ if($DoT2pial || $DoFLAIRpial) then
     set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
     set nv1=(`mris_info $sdir/${hemi}.pial |& grep nvertices`)
     set nv2=(`mris_info $sdir/${hemi}.wo${t2flair}.pial |& grep nvertices`)
+    set touch1=($tdir/${hemi}.pial_refine.touch)
+    set touch2=($tdir/${hemi}.pial_surface.touch)
     if ( (! -e $sdir/${hemi}.wo${t2flair}.pial) || \
-         ("$nv1" != "$nv2") ) then
+         ("$nv1" != "$nv2") || \
+         (`UpdateNeeded $touch1 $touch2`) ) then
       set cmd = (cp -v $sdir/${hemi}.pial $sdir/${hemi}.wo${t2flair}.pial)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
