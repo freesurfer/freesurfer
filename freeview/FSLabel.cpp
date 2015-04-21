@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/26 22:37:48 $
- *    $Revision: 1.27 $
+ *    $Date: 2015/04/21 00:45:25 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -233,7 +233,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
           dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
   for ( int i = 0; i < m_label->n_points; i++ )
   {
-  //  if (m_label->lv[i].stat >= threshold)
+    if (m_label->lv[i].stat >= threshold)
     {
       pos[0] = m_label->lv[i].x;
       pos[1] = m_label->lv[i].y;

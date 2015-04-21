@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/03/30 19:59:02 $
- *    $Revision: 1.32 $
+ *    $Date: 2015/04/21 00:45:25 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -539,6 +539,7 @@ void LayerPropertyMRI::UpdateLUTTable()
         float red, green, blue, alpha;
         CTABrgbaAtIndexf( mFreeSurferCTAB, nEntry, &red, &green, &blue, &alpha );
         mLUTTable->AddRGBAPoint( nEntry, red, green, blue, 1 );
+      //  if (nEntry == 9500) qDebug() << nEntry << red << green << blue;
       }
       else if (last_is_valid)
       {

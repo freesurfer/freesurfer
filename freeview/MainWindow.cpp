@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/03/16 19:24:28 $
- *    $Revision: 1.295 $
+ *    $Date: 2015/04/21 00:45:25 $
+ *    $Revision: 1.296 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2521,6 +2521,8 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
   QString fn = options[0];
   QString ref;
   QColor color = Qt::yellow;
+  double opacity = 1;
+  double threshold = 0;
   for ( int i = 1; i < options.size(); i++ )
   {
     QString strg = options[i];
@@ -2539,6 +2541,14 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
         if (!color.isValid())
           color = Qt::yellow;
       }
+      else if (option == "opacity")
+      {
+        opacity = argu.toDouble();
+      }
+      else if (option == "threshold")
+      {
+        threshold = argu.toDouble();
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
@@ -2546,7 +2556,7 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
     }
   }
 
-  LoadROIFile( fn, ref, color );
+  LoadROIFile( fn, ref, color, opacity, threshold );
 }
 
 void MainWindow::CommandLoadTrack(const QStringList &cmd)
@@ -4586,7 +4596,7 @@ void MainWindow::OnLoadROI()
   }
 }
 
-void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const QColor& color )
+void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const QColor& color, double opacity, double threshold )
 {
   LayerMRI* ref = NULL;
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
@@ -4621,6 +4631,8 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const Q
   LayerROI* roi = new LayerROI( ref );
   roi->SetName( QFileInfo(fn).completeBaseName()  );
   roi->GetProperty()->SetColor(color);
+  roi->GetProperty()->SetOpacity(opacity);
+  roi->GetProperty()->SetThreshold(threshold);
   if ( roi->LoadROIFromFile( fn ) )
   {
     LayerCollection* col_roi = GetLayerCollection( "ROI" );
