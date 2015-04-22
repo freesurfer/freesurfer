@@ -12,7 +12,8 @@
 #                      [-fshome <FREESURFER_HOME>]
 #
 #   the defaults are:
-#     <reference subj source dir> = /space/freesurfer/test/subjects/`uname -p`
+#     <reference subj source dir> = 
+# /space/freesurfer/subjects/test/weekly_test/subjects/`uname -p`
 #     <reference subjid> = bert
 #     <test subject dest dir> = /tmp
 #     <test subjid> = bert
@@ -32,10 +33,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2012/08/27 18:05:51 $
-#    $Revision: 1.38 $
+#    $Date: 2015/04/22 19:24:12 $
+#    $Revision: 1.39 $
 #
-# Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -48,11 +49,11 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.38 2012/08/27 18:05:51 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.39 2015/04/22 19:24:12 nicks Exp $'
 
-set MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+set MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu)
 # failure mailing list:
-set FMAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+set FMAIL_LIST=(zkaufman@nmr.mgh.harvard.edu)
 
 limit coredumpsize unlimited
 
@@ -69,7 +70,7 @@ if ($?SET_ECHO_1) set echo=1
 # setup defaults:
 set PROC=`uname -p`
 # reference subject: per machine processor type
-set SUBJ_REF_DIR=/space/freesurfer/test/subjects/$PROC
+set SUBJ_REF_DIR=/space/freesurfer/subjects/test/weekly_test/subjects/$PROC
 # name of reference subject:
 set REF_SUBJ=bert
 # this is where the recon-all results will go (the test subject):
@@ -128,7 +129,7 @@ while( $#argv != 0 )
       echo "                   [-fshome <FREESURFER_HOME>]"
       echo "                   [-norecon]"
       echo "\nthe defaults are:"
-      echo "  <reference subj source dir> = /space/freesurfer/test/subjects/$PROC"
+      echo "  <reference subj source dir> = /space/freesurfer/subjects/test/weekly_test/subjects/$PROC"
       echo "  <reference subjid> = bert"
       echo "  <test subject dest dir> = /tmp"
       echo "  <test subjid> = bert"
@@ -167,7 +168,7 @@ echo "FREESURFER_HOME: $FREESURFER_HOME"
 if (-e $SUBJECTS_DIR/test_recon-all_FAILED) then
     set msg="Prior $PROC test_recon-all FAILED on $HOST! Fix it!"
     echo ${msg}
-    mail -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
+    mail -v -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
     exit 1
 endif
 
@@ -179,7 +180,7 @@ if (-e $SUBJECTS_DIR/$TEST_SUBJ) then
   if ($?SKIP_RECON) goto continue1
     set msg="$PROC test_recon-all already running on $HOST !"
     echo ${msg}
-    mail -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
+    mail -v -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
     exit 1
   continue1:
 endif
@@ -194,7 +195,7 @@ ln -s $SUBJ_REF_DIR/$REF_SUBJ $SUBJECTS_DIR/ref_subj
 if ($status) then
     set msg="test_recon-all FAILED to create ref_subj symlink!"
     echo ${msg}
-    mail -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
+    mail -v -s "${msg}" $MAIL_LIST < /dev/null > /dev/null
     exit 1
 endif
 
@@ -202,7 +203,7 @@ endif
 #
 # setup and begin logging
 #
-set LOG_DIR=/space/freesurfer/test/logs/$PROC/$TEST_SUBJ
+set LOG_DIR=/space/freesurfer/subjects/test/weekly_test/logs/$PROC/$TEST_SUBJ
 mkdir -p $LOG_DIR
 set OUTPUTF=$LOG_DIR/test_recon-all.txt
 set RECON_LOG=$SUBJECTS_DIR/$TEST_SUBJ/scripts/recon-all.log
@@ -225,7 +226,7 @@ sleep 5
 grep pubsw `which nu_correct`
 if ( ! $status ) then
     echo "***FAILED :: MNI tools built using /usr/pubsw/perl!"  >>& $OUTPUTF
-    mail -s "test_recon-all -all FAILED: MNI tools build using /usr/pubsw/perl!" $FMAIL_LIST < $RECON_LOG
+    mail -v -s "test_recon-all -all FAILED: MNI tools build using /usr/pubsw/perl!" $FMAIL_LIST < $RECON_LOG
     cp -f $RECON_LOG $LOG_DIR/
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
@@ -256,7 +257,7 @@ foreach invol ($INVOL_LIST)
 end
 if ($#INVOL == "0") then
     echo "***FAILED :: no input volumes found"  >>& $OUTPUTF
-    mail -s "test_recon-all -all FAILED: no input volumes found" $FMAIL_LIST < $RECON_LOG
+    mail -v -s "test_recon-all -all FAILED: no input volumes found" $FMAIL_LIST < $RECON_LOG
     cp -f $RECON_LOG $LOG_DIR/
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
@@ -279,7 +280,7 @@ if ($RunIt) then
   /usr/bin/time $cmd >& $SUBJECTS_DIR/recon-all.log.txt
   if ($status != 0) then
     echo "***FAILED :: $PROC recon-all -all"  >>& $OUTPUTF
-    mail -s "test_recon-all -all FAILED on $PROC" $FMAIL_LIST < $RECON_LOG
+    mail -v -s "test_recon-all -all FAILED on $PROC" $FMAIL_LIST < $RECON_LOG
     cp -f $RECON_LOG $LOG_DIR/
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
@@ -301,7 +302,7 @@ if (-e $SUBJECTS_DIR/$TEST_SUBJ/scripts/IsRunning.lh+rh) then
     echo "$PROC test_recon-all FAILED"  >>& $OUTPUTF
     echo "IsRunning.lh+rh flag exists: recon-all did not finish" >>& $OUTPUTF
     echo "Check recon-all.log to pinpoint failure" >>& $OUTPUTF
-    mail -s "test_recon-all FAILED on $PROC" $FMAIL_LIST < $OUTPUTF
+    mail -v -s "test_recon-all FAILED on $PROC" $FMAIL_LIST < $OUTPUTF
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
@@ -317,7 +318,7 @@ compare:
 if (! -e $SUBJECTS_DIR/$TEST_SUBJ) then
     echo "$PROC test_recon-all FAILED"  >>& $OUTPUTF
     echo "missing $SUBJECTS_DIR/$TEST_SUBJ" >>& $OUTPUTF
-    mail -s "test_recon-all FAILED on $PROC" $FMAIL_LIST < $OUTPUTF
+    mail -v -s "test_recon-all FAILED on $PROC" $FMAIL_LIST < $OUTPUTF
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
@@ -760,7 +761,7 @@ if ($?FOUND_ERROR) then
   echo "Consult diff logs in $LOG_DIR for details" >>& $OUTPUTF
   echo "Output SUBJECTS_DIR is $SUBJECTS_DIR" >>& $OUTPUTF
   if ($RunIt) then
-    mail -s "test_recon-all $TEST_SUBJ FAILURE(s) on $PROC (${HOST})" \
+    mail -v -s "test_recon-all $TEST_SUBJ FAILURE(s) on $PROC (${HOST})" \
         $FMAIL_LIST < $OUTPUTF
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
@@ -770,7 +771,7 @@ else
   echo "Success running test_recon-all $TEST_SUBJ on $PROC (${HOST})" \
     >>& $OUTPUTF
   if ($RunIt) then
-    mail -s "test_recon-all $TEST_SUBJ success on $PROC (${HOST})" \
+    mail -v -s "test_recon-all $TEST_SUBJ success on $PROC (${HOST})" \
       $MAIL_LIST < $OUTPUTF
     exit 0
   endif
