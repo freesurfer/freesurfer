@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/16 18:49:31 $
- *    $Revision: 1.29 $
+ *    $Date: 2015/04/22 16:49:32 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,7 @@
  */
 
 
-// $Id: dti.c,v 1.29 2015/04/16 18:49:31 greve Exp $
+// $Id: dti.c,v 1.30 2015/04/22 16:49:32 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,13 +43,14 @@
 #include "mri2.h"
 #include "fmriutils.h"
 #include "DICOMRead.h"
+#include "diag.h"
 #include "dti.h"
 
 /* --------------------------------------------- */
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.29 2015/04/16 18:49:31 greve Exp $");
+  return("$Id: dti.c,v 1.30 2015/04/22 16:49:32 greve Exp $");
 }
 /* --------------------------------------------- */
 int DTIfree(DTI **pdti)
@@ -1220,6 +1221,13 @@ int DTIbvecChangeSpace(MRI *vol, int desired_bvec_space)
   Mdc = MRImatrixOfDirectionCosines(vol, NULL);
   if(b == BVEC_SPACE_SCANNER) M = Mdc; // voxel to scanner
   if(b == BVEC_SPACE_VOXEL)   M = MatrixInverse(Mdc,NULL); // scanner to voxel
+
+  if(Gdiag_no > 0){
+    printf("DTIbvecChangeSpace(): transforming gradient directions from %d to %d\n",vol->bvec_space,desired_bvec_space);
+    printf("M------------------------------\n");
+    MatrixPrint(stdout,M);
+    printf("------------------------------\n");
+  }
 
   // Apply M to each bvec
   bvec = MatrixAlloc(4,1,MATRIX_REAL);
