@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # groupstatsdiff
 
-set VERSION = '$Id: groupstatsdiff,v 1.3 2015/04/22 15:41:47 greve Exp $';
+set VERSION = '$Id: groupstatsdiff,v 1.4 2015/04/23 21:57:49 greve Exp $';
 
 set g1dir = ();
 set g2dir = ();
@@ -72,7 +72,7 @@ foreach aparc ($aparclist)
   foreach surf ($surflist)
     if($aparc == aparc.a2009s && $surf == pial) continue;
     foreach hemi ($hemilist)
-      foreach meas (area thickness volume meancurv)
+      foreach meas ($mapmeaslist)
         set parc = $aparc
         if($surf == pial) set parc = pial.$aparc; # only aparc
         set table1 = $g1dir/rois/$parc.$hemi.$surf.$meas.dat
