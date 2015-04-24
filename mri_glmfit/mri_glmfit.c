@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/15 19:59:34 $
- *    $Revision: 1.238 $
+ *    $Date: 2015/04/24 22:03:25 $
+ *    $Revision: 1.239 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,8 @@ USAGE: ./mri_glmfit
    --C contrast1.mtx <--C contrast2.mtx ...>
    --osgm : construct X and C as a one-sample group mean
    --no-contrasts-ok : do not fail if no contrasts specified
+   --dti bvals bvecs : do DTI analysis using bvals and bvecs
+   --dti X.txt : do DTI analysis using provided matrix
 
    --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors
    --selfreg col row slice   : self-regressor from index col row slice
@@ -560,7 +562,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.238 2015/04/15 19:59:34 greve Exp $";
+"$Id: mri_glmfit.c,v 1.239 2015/04/24 22:03:25 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -932,7 +934,7 @@ int main(int argc, char **argv) {
   // X ---------------------------------------------------------
   //Load global X------------------------------------------------
   if((XFile != NULL) | usedti) {
-    if(usedti == 0) {
+    if(usedti != 1) {
       mriglm->Xg = MatrixReadTxt(XFile, NULL);
       if (mriglm->Xg==NULL) mriglm->Xg = MatlabRead(XFile);
       if (mriglm->Xg==NULL) {
@@ -940,10 +942,14 @@ int main(int argc, char **argv) {
         printf("Could not load as text or matlab4");
         exit(1);
       }
-    } else {
+      if(usedti == 2) {
+	dti = (DTI*) calloc(sizeof(DTI),1);
+	dti->B = mriglm->Xg;
+      }
+    } 
+    else {
       printf("Using DTI\n");
-      if(XFile != NULL) dti = DTIstructFromSiemensAscii(XFile);
-      else dti = DTIstructFromBFiles(bvalfile,bvecfile);
+      dti = DTIstructFromBFiles(bvalfile,bvecfile);
       if (dti==NULL) exit(1);
       sprintf(tmpstr,"%s/bvals.dat",GLMDir);
       DTIwriteBValues(dti->bValue, tmpstr);
@@ -2662,13 +2668,16 @@ static int parse_commandline(int argc, char **argv) {
         bvalfile = pargv[0];
         bvecfile = pargv[1];
 	DoPCC = 0;
+	usedti=1;
         nargsused = 2;
       }
-      else{
+      else {
+	// input matrix to use in analysis
         XFile = pargv[0];
+	usedti=2;
         nargsused = 1;
       }
-      usedti=1;
+      DoPCC = 0;
       logflag = 1;
       format = "nii.gz";
       ComputeFWHM = 0;
