@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/03/04 13:36:41 $
- *    $Revision: 1.76 $
+ *    $Date: 2015/04/24 17:35:23 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,7 +42,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.76 2015/03/04 13:36:41 fischl Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.77 2015/04/24 17:35:23 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -72,6 +72,7 @@ int    MRISreplaceAnnotations(MRI_SURFACE *mris,
                               int in_annotation,
                               int out_annotation) ;
 char *Progname ;
+static char *suffix = "" ;
 static double sigma = 0.0f ;
 static float ignore_below = 0 ;
 static float ignore_above = 20 ;
@@ -122,7 +123,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.76 2015/03/04 13:36:41 fischl Exp $",
+           "$Id: mris_anatomical_stats.c,v 1.77 2015/04/24 17:35:23 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -592,7 +593,9 @@ main(int argc, char *argv[])
       printf("atlas_icv (eTIV) = %d mm^3    (det: %3f )\n",(int)atlas_icv,determinant);
       
       double *BrainVolStats;
-      BrainVolStats = ComputeBrainVolumeStats(sname);
+      BrainVolStats = ComputeBrainVolumeStats(sname,suffix, sdir);
+      if (BrainVolStats == NULL)
+	exit(1) ;
       fprintf(fp,"# Measure BrainSeg, BrainSegVol, Brain Segmentation Volume, %f, mm^3\n",BrainVolStats[0]);
       fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
               BrainVolStats[1]);
@@ -1046,6 +1049,11 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "-version"))
   {
     print_version() ;
+  }
+  else if (!stricmp(option, "suffix"))
+  {
+    suffix = argv[2] ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "log"))
   {
