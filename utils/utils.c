@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:57 $
- *    $Revision: 1.92 $
+ *    $Author: fischl $
+ *    $Date: 2015/04/24 17:37:21 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -608,6 +608,7 @@ FileNumberOfEntries(const char *fname)
       fclose(fp) ;
 
       break ;
+    case UNKNOWN_FILE:  // assume it is text if it has no extension or modifieer
     case TEXT_FILE:
       fp = fopen(buf, "rb") ;
       if (!fp)
@@ -626,7 +627,7 @@ FileNumberOfEntries(const char *fname)
       break ;
     case MATLAB_FILE:
     default:
-      nentries = 1 ;
+      nentries = -1 ;
       break ;
     }
   }
