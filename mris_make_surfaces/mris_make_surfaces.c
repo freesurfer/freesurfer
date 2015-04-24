@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/03/13 21:10:49 $
- *    $Revision: 1.154 $
+ *    $Date: 2015/04/24 20:08:45 $
+ *    $Revision: 1.155 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.154 2015/03/13 21:10:49 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.155 2015/04/24 20:08:45 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -273,13 +273,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.154 2015/03/13 21:10:49 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.155 2015/04/24 20:08:45 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.154 2015/03/13 21:10:49 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.155 2015/04/24 20:08:45 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -3182,7 +3182,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
             int which, int fix_mtl)
 {
   int vno, label, contra_wm_label, nvox=0, total_vox=0, adjacent=0;
-  int wm_label, gm_label, nlabels, n, index, annotation ;
+  int wm_label, gm_label, nlabels, n, index, annotation, entorhinal_index ;
   VERTEX   *v ;
   double   xv, yv, zv, val, xs, ys, zs, d, nx, ny, nz ;
   LABEL    **labels ;
@@ -3231,6 +3231,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     MRISclearMarks(mris) ;
   }
 #endif
+  CTABfindName(mris->ct, "entorhinal", &entorhinal_index);
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -3239,11 +3240,17 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       v->marked = 1 ; // it was ripped previously - it should still be excluded
       continue ;
     }
+
+    CTABfindAnnotation(mris->ct, v->annotation, &index);
+
     if (vno == Gdiag_no )
     {
+      printf("vno %d: annotation %x, index %d, EC %d\n", vno, v->annotation, index, entorhinal_index) ;
       DiagBreak() ;
     }
 
+    if (index == entorhinal_index)  // don't freeze vertices that are in EC and very close to hippocampus
+      continue ;
     // search outwards
     for (d = 0 ; d <= 2 ; d += 0.5)
     {
@@ -3279,7 +3286,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           label == Right_Caudate ||
           label == Left_Pallidum ||
           IS_CC(label) ||
-          ((IS_HIPPO(label)  || IS_AMYGDALA(label)) && fix_mtl) ||
+          ((IS_HIPPO(label)  || IS_AMYGDALA(label)) && fix_mtl)  ||
           label == Right_Pallidum ||
           label == Right_Thalamus_Proper ||
           label == Left_Thalamus_Proper ||
