@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/04/01 22:00:43 $
- *    $Revision: 1.556 $
+ *    $Date: 2015/04/24 17:34:01 $
+ *    $Revision: 1.557 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.556 $";
+const char *MRI_C_VERSION = "$Revision: 1.557 $";
 
 
 /*-----------------------------------------------------
@@ -5713,11 +5713,11 @@ MRI *MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
   depth = mri1->depth ;
 
   if (!mri_dst) {
-    mri_dst = MRIalloc(width, height, depth, mri1->type) ;
+    mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
     MRIcopyHeader(mri1, mri_dst) ;
   }
 
-  if (mri1->type != MRI_UCHAR || mri2->type != MRI_UCHAR)
+  if (mri1->type != MRI_UCHAR || mri2->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
   {
     double val1, val2, dst ;
 
@@ -7465,7 +7465,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
 {
   int      width, height, depth, x, y, yp, w, h, d,
   xm, ym, zm, format ;
-  float    fmin, fmax, frac ;
+  float    fmin, fmax, frac, xres, yres ;
   double     val ;
   int src_slice_direction;
   int xsign, ysign;
@@ -7511,6 +7511,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
       w = width;
       h = height;
       d = depth;
+      xres = mri->xsize ; yres = mri->ysize ;
       xsign = (mri->x_r > 0) ? -1 : 1;
       ysign = (mri->y_s > 0) ? -1 : 1;
       break;
@@ -7518,6 +7519,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
       w = depth;
       h = height;
       d = width;
+      xres = mri->zsize ; yres = mri->ysize ;
       xsign = (mri->z_a > 0) ?  1 : -1;
       ysign = (mri->y_s > 0) ? -1 : 1;
       break;
@@ -7525,6 +7527,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
       w = width;
       h = depth;
       d = height;
+      xres = mri->xsize ; yres = mri->zsize ;
       xsign = (mri->x_r > 0) ? -1 : 1;
       ysign = (mri->z_a > 0) ? 1 : -1;
       break;
@@ -7606,6 +7609,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     ErrorReturn(NULL, (ERROR_BADPARM, "MRItoImageView: bad slice %d\n",slice));
     
 
+  I->xsize = xres ; I->ysize = yres ;
 #if 0
   format = (mri->type == MRI_UCHAR) ? PFBYTE :
            mri->type == MRI_INT   ? PFINT :
@@ -7813,6 +7817,8 @@ MRItoImage(MRI *mri, IMAGE *I, int slice)
                    mri->type == MRI_FLOAT ? PFFLOAT : PFBYTE, 1) ;
   }
 
+  I->xsize = mri->xsize ;
+  I->ysize = mri->ysize ;
   for (y = 0 ; y < height ; y++)
   {
     yp = height - (y+1) ;
