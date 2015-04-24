@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/27 16:40:34 $
- *    $Revision: 1.110 $
+ *    $Author: fischl $
+ *    $Date: 2015/04/24 17:36:11 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -106,7 +106,7 @@ float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.110 2015/03/27 16:40:34 greve Exp $";
+  "$Id: mri_segstats.c,v 1.111 2015/04/24 17:36:11 fischl Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -496,7 +496,7 @@ int main(int argc, char **argv)
     sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
     if(fio_FileExistsReadable(tmpstr)){
       printf("Getting Brain Volume Statistics\n");
-      BrainVolStats = ComputeBrainVolumeStats(subject);
+      BrainVolStats = ComputeBrainVolumeStats(subject, NULL,NULL);
       if(BrainVolStats == NULL) exit(1);
     }
     else{
@@ -2304,7 +2304,7 @@ int CountEdits(char *subject, char *outfile)
   atlas_icv = MRIestimateTIV(tmpstr,etiv_scale_factor,&determinant);
 
   double *BrainVolStats=NULL;
-  BrainVolStats = ComputeBrainVolumeStats(subject);
+  BrainVolStats = ComputeBrainVolumeStats(subject,NULL,NULL);
   double MaskVolToETIV;
   MaskVolToETIV = BrainVolStats[12]/atlas_icv;
   free(BrainVolStats);
