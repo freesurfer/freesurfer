@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/12/11 15:34:37 $
- *    $Revision: 1.26 $
+ *    $Author: fischl $
+ *    $Date: 2015/04/24 17:37:00 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -875,7 +875,7 @@ surface-based analysis. It also computes the same values based on
 volume-based analysis to check against the surface-based results.
 \param subject
 */
-double *ComputeBrainVolumeStats(char *subject)
+double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir)
 {
   char tmpstr[2000];
   char *SUBJECTS_DIR;
@@ -893,24 +893,30 @@ double *ComputeBrainVolumeStats(char *subject)
   double OptChiasmVol, CSFVol;
   double *stats=NULL;
 
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  if (suffix == NULL)
+    suffix = "" ;
 
-  sprintf(tmpstr,"%s/%s/surf/lh.white",SUBJECTS_DIR,subject);
+  if (sdir)
+    SUBJECTS_DIR = sdir ;
+  else
+    SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+
+  sprintf(tmpstr,"%s/%s/surf/lh.white%s",SUBJECTS_DIR,subject,suffix);
   mris = MRISread(tmpstr); if(mris==NULL) return(NULL);
   lhwhitevolTot = MRISvolumeInSurf(mris);
   MRISfree(&mris);
 
-  sprintf(tmpstr,"%s/%s/surf/rh.white",SUBJECTS_DIR,subject);
+  sprintf(tmpstr,"%s/%s/surf/rh.white%s",SUBJECTS_DIR,subject,suffix);
   mris = MRISread(tmpstr); if(mris==NULL) return(NULL);
   rhwhitevolTot = MRISvolumeInSurf(mris);
   MRISfree(&mris);
 
-  sprintf(tmpstr,"%s/%s/surf/lh.pial",SUBJECTS_DIR,subject);
+  sprintf(tmpstr,"%s/%s/surf/lh.pial%s",SUBJECTS_DIR,subject,suffix);
   mris = MRISread(tmpstr); if(mris==NULL) return(NULL);
   lhpialvolTot = MRISvolumeInSurf(mris);
   MRISfree(&mris);
 
-  sprintf(tmpstr,"%s/%s/surf/rh.pial",SUBJECTS_DIR,subject);
+  sprintf(tmpstr,"%s/%s/surf/rh.pial%s",SUBJECTS_DIR,subject,suffix);
   mris = MRISread(tmpstr); if(mris==NULL) return(NULL);
   rhpialvolTot = MRISvolumeInSurf(mris);
   MRISfree(&mris);
@@ -918,8 +924,16 @@ double *ComputeBrainVolumeStats(char *subject)
   sprintf(tmpstr,"%s/%s/mri/brainmask.mgz",SUBJECTS_DIR,subject);
   brainmask = MRIread(tmpstr); if(brainmask == NULL) return(NULL);
 
-  sprintf(tmpstr,"%s/%s/mri/aseg.presurf.mgz",SUBJECTS_DIR,subject);
-  aseg = MRIread(tmpstr); if(aseg == NULL) return(NULL);
+  sprintf(tmpstr,"%s/%s/mri/aseg.presurf%s.mgz",SUBJECTS_DIR,subject,suffix);
+  if(FileExists(tmpstr) == 0)
+  {
+    printf("%s doesn't exist, using old naming conventions\n", tmpstr) ;
+    sprintf(tmpstr,"%s/%s/mri/aseg%s.mgz",SUBJECTS_DIR,subject,suffix);
+    if (FileExists(tmpstr) == 0)
+      sprintf(tmpstr,"%s/%s/mri/aseg.long%s.mgz",SUBJECTS_DIR,subject,suffix);
+  }
+  aseg = MRIread(tmpstr); 
+  if (aseg == NULL) return(NULL) ;
 
   sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
   if(fio_FileExistsReadable(tmpstr)){
