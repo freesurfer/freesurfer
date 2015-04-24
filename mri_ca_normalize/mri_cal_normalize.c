@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/03/19 22:13:48 $
- *    $Revision: 1.7 $
+ *    $Date: 2015/04/24 17:34:58 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,16 +62,17 @@ static double bias_sigma = 4.0 ;
 static float min_prior = 0.6 ;
 static FILE *diag_fp = NULL ;
 
+static MRI *scale_all_images(MRI *mri_in, MRI *mri_out) ;
 static int normalize_timepoints_with_parzen_window(MRI *mri, double cross_time_sigma) ;
-static int normalize_timepoints_with_samples(MRI *mri, GCA_SAMPLE *gcas, int nsamples, int nsoap) ;
+//static int normalize_timepoints_with_samples(MRI *mri, GCA_SAMPLE *gcas, int nsamples, int nsoap) ;
 static int normalize_timepoints(MRI *mri, double thresh, double cross_time_sigma) ;
 static void usage_exit(int code) ;
 static int get_option(int argc, char *argv[]) ;
 static int copy_ctrl_points_to_volume(GCA_SAMPLE *gcas, int nsamples, 
                                       MRI *mri_ctrl, int frame) ;
+static int discard_control_points_with_different_labels(GCA_SAMPLE *gcas, int nsamples, MRI *mri_aseg) ;
 
-static char *seg_fname = NULL ;
-static char *long_seg_fname = NULL ;
+static char *aseg_fname = "aseg.mgz" ;
 static char *renormalization_fname = NULL ;
 static double TR = 0.0, TE = 0.0, alpha = 0.0 ;
 static char *tissue_parms_fname = NULL ;
@@ -129,7 +130,7 @@ int
 main(int argc, char *argv[])
 {
   char         *gca_fname, *in_fname, *out_fname, **av, *xform_fname, fname[STRLEN] ;
-  MRI          *mri_in, *mri_norm = NULL, *mri_tmp, *mri_ctrl = NULL ;
+  MRI          *mri_in, *mri_norm = NULL, *mri_tmp, *mri_ctrl = NULL, *mri_aseg ;
   GCA          *gca ;
   int          ac, nargs, nsamples, msec, minutes, seconds;
   int          i, struct_samples, norm_samples = 0, n, input, ninputs ;
@@ -141,13 +142,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.7 2015/03/19 22:13:48 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.8 2015/04/24 17:34:58 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.7 2015/03/19 22:13:48 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.8 2015/04/24 17:34:58 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -247,6 +248,7 @@ main(int argc, char *argv[])
                   "%s: could not allocate input volume %dx%dx%dx%d",
                   mri_tmp->width,mri_tmp->height,mri_tmp->depth,ninputs) ;
       MRIcopyHeader(mri_tmp, mri_in) ;
+      mri_aseg = MRIclone(mri_in, NULL) ;
     }
 
     if (mask_fname)
@@ -266,10 +268,17 @@ main(int argc, char *argv[])
     }
     MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
     MRIfree(&mri_tmp) ;
+    sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_fname) ;
+    mri_tmp = MRIread(fname) ;
+    if (!mri_tmp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s", Progname, fname) ;
+    MRIcopyFrame(mri_tmp, mri_aseg, 0, input) ;
+    MRIfree(&mri_tmp) ;
   }
   MRIaddCommandLine(mri_in, cmdline) ;
 
-  GCAhistoScaleImageIntensitiesLongitudinal(gca, mri_in, 1) ;
+//  GCAhistoScaleImageIntensitiesLongitudinal(gca, mri_in, 1) ;
+  scale_all_images(mri_in, mri_in) ;
 
   {
     int j ;
@@ -296,6 +305,7 @@ main(int argc, char *argv[])
                                             ctl_point_pct) ;
           discard_unlikely_control_points(gca, gcas_struct, struct_samples, mri_in, transform,
                                           cma_label_to_name(normalization_structures[i])) ;
+	  discard_control_points_with_different_labels(gcas_struct, struct_samples, mri_aseg) ;
           if (mri_ctrl && ctrl_point_fname) // store the samples
             copy_ctrl_points_to_volume(gcas_struct, struct_samples, mri_ctrl, n-1) ;
           if (i)
@@ -311,7 +321,12 @@ main(int argc, char *argv[])
             gcas_norm = gcas_struct ; norm_samples = struct_samples ;
           }
         }
-        
+
+	if (norm_samples == 0)
+	{
+	  printf("could not find control points for region %d\n", n) ;
+	  continue ;
+	}
         printf("using %d total control points "
                  "for intensity normalization...\n", norm_samples) ;
         if (normalized_transformed_sample_fname)
@@ -324,7 +339,7 @@ main(int argc, char *argv[])
         {
           char fname[STRLEN] ;
           sprintf(fname, "norm%d.mgz", n) ;
-          printf("writing normalized volume to %s...\n", fname) ;
+          printf("writing normalized volume to %s\n", fname) ;
           MRIwrite(mri_norm, fname) ;
           sprintf(fname, "norm_samples%d.mgz", n) ;
           GCAtransformAndWriteSamples(gca, mri_in, gcas_norm, norm_samples,
@@ -338,7 +353,9 @@ main(int argc, char *argv[])
   }
 
   // now do cross-time normalization to bring each timepoint closer to the mean at each location
-  if (mri_in->nframes > 1)
+#if 0
+  // seems to hurt more than it helps in some cases
+  if (mri_in->nframes > 1 && norm_samples > 0)
   {
     MRI   *mri_frame1, *mri_frame2, *mri_tmp ;
     double rms_before, rms_after ;
@@ -357,10 +374,11 @@ main(int argc, char *argv[])
       mri_frame1 = MRIcopyFrame(mri_in, NULL, 0, 0) ;
       mri_frame2 = MRIcopyFrame(mri_in, NULL, 1, 0) ;
       rms_after = MRIrmsDiff(mri_frame1, mri_frame2) ;
-      MRIfree(&mri_frame1) ; MRIfree(&mri_frame2) ;
       printf("RMS after (%d) = %2.2f\n", i, rms_after) ;
+      MRIfree(&mri_frame1) ; MRIfree(&mri_frame2) ;
     }
   }
+#endif
 
   // try to bring the images closer to each other at each voxel where they seem to come from the same distribution
   if (mri_in->nframes > 1)
@@ -383,7 +401,7 @@ main(int argc, char *argv[])
   for (input = 0 ; input < ninputs ; input++)
   {
     sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, subjects[input], base_name, out_fname) ;
-    printf("writing normalized volume to %s...\n", fname) ;
+    printf("writing normalized volume to %s\n", fname) ;
     if (MRIwriteFrame(mri_in, fname, input)  != NO_ERROR)
       ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",Progname, fname);
   }
@@ -396,7 +414,6 @@ main(int argc, char *argv[])
   }
   MRIfree(&mri_in) ;
 
-  printf("freeing GCA...") ;
   if (gca)
     GCAfree(&gca) ;
   printf("done.\n") ;
@@ -440,19 +457,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
   }
-  else if (!strcmp(option, "SEG"))
+  else if (!strcmp(option, "ASEG"))
   {
-    seg_fname = argv[2] ;
+    aseg_fname = argv[2] ;
     nargs = 1 ;
     printf("using segmentation volume %s to generate control points...\n",
-           seg_fname) ;
-  }
-  else if (!strcmp(option, "LONG"))
-  {
-    long_seg_fname = argv[2] ;
-    nargs = 1 ;
-    printf("using longitudinal segmentation volume %s to generate control points...\n",
-           long_seg_fname) ;
+           aseg_fname) ;
   }
   else if (!stricmp(option, "LH"))
   {
@@ -1050,8 +1060,18 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
         peak = HISTOfindLastPeak(hsmooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
       else
         peak = HISTOfindHighestPeakInRegion(hsmooth, 0, h->nbins-1) ;
+
       end = HISTOfindEndOfPeak(hsmooth, peak, 0.01) ;
       start = HISTOfindStartOfPeak(hsmooth, peak, 0.01) ;
+      if (gca->ninputs == 1) 
+      {
+	int opeak ;
+        opeak = HISTOfindFirstPeak(hsmooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+	if (hsmooth->bins[opeak] < start)
+	{
+	  start = HISTOfindStartOfPeak(hsmooth, opeak, 0.01) ;
+	}
+      }
       for (mean_ratio = 0.0, i = 0 ; i < nsamples ; i++)
       {
         mean_ratio += hsmooth->bins[peak] / gcas[i].means[0];
@@ -1153,6 +1173,7 @@ copy_ctrl_points_to_volume(GCA_SAMPLE *gcas, int nsamples, MRI *mri_ctrl, int fr
   return(NO_ERROR) ;
 }
 
+#if 0
 static int
 normalize_timepoints_with_samples(MRI *mri, GCA_SAMPLE *gcas, int nsamples, int nsoap)
 {
@@ -1210,6 +1231,7 @@ normalize_timepoints_with_samples(MRI *mri, GCA_SAMPLE *gcas, int nsamples, int 
   MRIfree(&mri_bias) ; MRIfree(&mri_target) ; MRIfree(&mri_ctrl) ;
   return(NO_ERROR) ;
 }
+#endif
 static int
 normalize_timepoints(MRI *mri, double thresh, double cross_time_sigma)
 {
@@ -1321,4 +1343,66 @@ normalize_timepoints_with_parzen_window(MRI *mri, double cross_time_sigma)
   return(NO_ERROR) ;
 }
 
+
+#define HBINS 1000
+
+static MRI *
+scale_all_images(MRI *mri_in, MRI *mri_out)
+{
+  HISTOGRAM *h ;
+  int       t, b ;
+  MRI       *mri_ratio, *mri_f0, *mri_f ;
+  float     scale ;
+
+  if (mri_out == NULL)
+    mri_out = MRIcopy(mri_in, NULL) ;
+
+  
+  mri_f0 = MRIcopyFrame(mri_in, NULL, 0, 0) ;
+  MRIthresholdRangeInto(mri_f0, mri_f0, 50, 120) ;
+
+  for (t = 1 ; t < mri_in->nframes ; t++)
+  {
+    mri_f = MRIcopyFrame(mri_in, NULL, t, 0) ;
+    mri_ratio = MRIdivide(mri_f0, mri_f, NULL) ;
+    h = MRIhistogram(mri_ratio, HBINS) ;
+    b = HISTOfindHighestPeakInRegion(h, 1, h->nbins) ;   // ignore zero bin
+    scale = h->bins[b] ;
+    printf("scaling image %d by %2.3f\n", t, scale) ;
+    MRIscalarMul(mri_f, mri_f, scale) ;
+    MRIcopyFrame(mri_f, mri_out, 0, t) ;
+
+    MRIfree(&mri_f) ; MRIfree(&mri_ratio) ; HISTOfree(&h) ;
+  }
+
+  MRIfree(&mri_f0) ;
+  return(mri_out) ;
+}
+static int
+discard_control_points_with_different_labels(GCA_SAMPLE *gcas, int nsamples, MRI *mri_aseg)
+{
+  int i, x, y, z, f, delete_this_sample, deleted = 0, label, label2 ;
+
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    x = nint(gcas[i].x) ; y = nint(gcas[i].y) ; z = nint(gcas[i].z);
+    label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+    delete_this_sample = IS_HYPO(label) ;
+    for (f = 1 ; f < mri_aseg->nframes ; f++)
+    {
+      label2 = MRIgetVoxVal(mri_aseg, x, y, z, f) ;
+      if (label2 != label || IS_HYPO(label2))
+      {
+	delete_this_sample = 1 ;
+	break ;
+      }
+    }
+    if (delete_this_sample)
+    {
+      gcas[i].label = 0 ; deleted++ ;
+    }
+  }
+  printf("%d control points deleted due to different labels across time\n", deleted) ;
+  return(deleted) ;
+}
 
