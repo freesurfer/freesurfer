@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/04/24 17:34:01 $
- *    $Revision: 1.557 $
+ *    $Date: 2015/04/25 15:52:37 $
+ *    $Revision: 1.558 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.557 $";
+const char *MRI_C_VERSION = "$Revision: 1.558 $";
 
 
 /*-----------------------------------------------------
@@ -7465,7 +7465,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
 {
   int      width, height, depth, x, y, yp, w, h, d,
   xm, ym, zm, format ;
-  float    fmin, fmax, frac, xres, yres ;
+  float    fmin, fmax, frac, xres = 1.0, yres = 1.0;
   double     val ;
   int src_slice_direction;
   int xsign, ysign;
