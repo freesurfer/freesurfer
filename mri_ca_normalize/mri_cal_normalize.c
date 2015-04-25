@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/04/24 17:34:58 $
- *    $Revision: 1.8 $
+ *    $Date: 2015/04/25 23:35:04 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -130,7 +130,7 @@ int
 main(int argc, char *argv[])
 {
   char         *gca_fname, *in_fname, *out_fname, **av, *xform_fname, fname[STRLEN] ;
-  MRI          *mri_in, *mri_norm = NULL, *mri_tmp, *mri_ctrl = NULL, *mri_aseg ;
+  MRI          *mri_in, *mri_norm = NULL, *mri_tmp, *mri_ctrl = NULL, *mri_aseg = NULL ;
   GCA          *gca ;
   int          ac, nargs, nsamples, msec, minutes, seconds;
   int          i, struct_samples, norm_samples = 0, n, input, ninputs ;
@@ -142,13 +142,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.8 2015/04/24 17:34:58 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.9 2015/04/25 23:35:04 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.8 2015/04/24 17:34:58 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.9 2015/04/25 23:35:04 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
