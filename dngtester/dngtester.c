@@ -6,9 +6,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/12/10 22:13:29 $
- *    $Revision: 1.57 $
+ *    $Author: fischl $
+ *    $Date: 2015/04/26 12:07:05 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -896,7 +896,7 @@ paramflist[239] = "/cluster/con/9/users/greve/fsaverage_sym-data/149/surf/lrreg/
 
   exit(0);
 
-  stats = ComputeBrainVolumeStats(argv[1]);
+  stats = ComputeBrainVolumeStats(argv[1],NULL,NULL);
   for(k=0; k<11; k++) printf("%2d  %g\n",k+1,stats[k]);
   exit(0);
 
