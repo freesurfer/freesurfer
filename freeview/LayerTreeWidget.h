@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/02 19:28:32 $
- *    $Revision: 1.10 $
+ *    $Date: 2015/04/27 16:24:26 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,7 @@ public:
 
   void contextMenuEvent(QContextMenuEvent *e);
   void mousePressEvent(QMouseEvent *event);
+  void mouseMoveEvent(QMouseEvent *event);
   void mouseReleaseEvent(QMouseEvent *event);
 
 signals:
@@ -73,6 +74,7 @@ protected:
 
   MyItemDelegate* m_itemDelegate;
   QRect         rectCheckbox;
+  bool          m_bCheckBoxClicked;
 };
 
 

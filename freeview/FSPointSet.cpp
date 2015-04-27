@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/12/03 17:48:27 $
- *    $Revision: 1.12 $
+ *    $Date: 2015/04/27 16:24:26 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,7 +214,7 @@ void FSPointSet::LabelToPointSet( PointSet& points_out, FSVolume* ref_vol )
 {
   if ( !m_label )
   {
-    cerr << "Label is empty\n";
+  //  cerr << "Label is empty\n";
     return;
   }
 

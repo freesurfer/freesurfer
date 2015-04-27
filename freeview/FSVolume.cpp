@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/20 19:33:02 $
- *    $Revision: 1.99 $
+ *    $Date: 2015/04/27 16:24:26 $
+ *    $Revision: 1.100 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -628,14 +628,29 @@ vtkTransform* FSVolume::GetTransform()
   return m_transform;
 }
 
-bool FSVolume::SaveRegistration( const QString& filename )
+MATRIX* FSVolume::GetTransformMatrixInRAS()
 {
   vtkMatrix4x4* mat = m_transform->GetMatrix();
-  MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
+  MATRIX* m1 = MatrixAlloc( 4, 4, MATRIX_REAL );
   for ( int i = 0; i < 16; i++ )
   {
-    *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
+    *MATRIX_RELT(m1, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
   }
+
+  MATRIX* t2r = GetTargetToRASMatrix();
+  MATRIX* r2t = MatrixInverse(t2r, NULL);
+  MATRIX* m2 = MatrixMultiply(m1, r2t, NULL);
+  MATRIX* m = MatrixMultiply(t2r, m2, NULL);
+  MatrixFree(&r2t);
+  MatrixFree(&t2r);
+  MatrixFree(&m2);
+  MatrixFree(&m1);
+  return m;
+}
+
+bool FSVolume::SaveRegistration( const QString& filename )
+{
+  MATRIX* m = GetTransformMatrixInRAS();
 
   LINEAR_TRANSFORM *lt;
   VOL_GEOM srcG, dstG;
@@ -715,34 +730,33 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
   }
 
   // check if transformation needed
-  vtkMatrix4x4* mat = m_transform->GetMatrix();
   bool bTransformed = false;
   bool bRefTransformed = false;
-  if (MyUtils::IsIdentity( mat->Element ))
+  MATRIX* m = GetTransformMatrixInRAS();
+  vtkMatrix4x4* mat = vtkSmartPointer<vtkMatrix4x4>::New();
+  for ( int i = 0; i < 16; i++ )
+  {
+    mat->Element[i/4][i%4] = *MATRIX_RELT(m, (i/4)+1, (i%4)+1);
+  }
+
+//  Do not call MatrixIsIdentity. It only checks the rotation part.
+//  if (MatrixIsIdentity(m))
+  if (MyUtils::IsIdentity(mat->Element))
   {
     if (m_volumeRef)
     {
-      mat = m_volumeRef->m_transform->GetMatrix();
+      MatrixFree(&m);
+      m = m_volumeRef->GetTransformMatrixInRAS();
+      for ( int i = 0; i < 16; i++ )
+      {
+        mat->Element[i/4][i%4] = *MATRIX_RELT(m, (i/4)+1, (i%4)+1);
+      }
       bRefTransformed = true;
     }
   }
-  if ( !MyUtils::IsIdentity( mat->Element ) )
+  //  if (!MatrixIsIdentity(m))
+  if ( !MyUtils::IsIdentity(mat->Element) )
   {
-    MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
-    for ( int i = 0; i < 16; i++ )
-    {
-      *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
-    }
-    /*
-    if (!MyUtils::IsOblique(mat->Element))
-    {
-      for ( int i = 0; i < 16; i++ )
-      {
-        if (i < 12 && (i%4) < 3 && fabs(mat->Element[i/4][i%4]) < 1e-5)
-          *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = 0;
-      }
-    }
-    */
     if ( resample ) // && MyUtils::IsOblique(mat->Element))
     {
       // find out the output voxel bounds

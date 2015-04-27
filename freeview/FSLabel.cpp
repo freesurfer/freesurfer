@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/04/21 00:45:25 $
- *    $Revision: 1.28 $
+ *    $Date: 2015/04/27 16:24:26 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -221,7 +221,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
 {
   if ( !m_label )
   {
-    cerr << "Label is empty\n";
+ //   cerr << "Label is empty\n";
     return;
   }
 

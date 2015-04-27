@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/07/21 16:49:05 $
- *    $Revision: 1.15 $
+ *    $Date: 2015/04/27 16:24:26 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,6 +94,7 @@ void LayerTreeWidget::mousePressEvent(QMouseEvent *event)
     if (item && item->childCount() == 0
         && event->x() < rectCheckbox.right() && event->x() > rectCheckbox.left())
     {
+      m_bCheckBoxClicked = true;
       return;
     }
     QTreeWidget::mousePressEvent(event);
@@ -109,10 +110,19 @@ void LayerTreeWidget::mouseReleaseEvent(QMouseEvent *event)
         && event->x() < rectCheckbox.right() && event->x() > rectCheckbox.left())
     {
       item->setCheckState(0, item->checkState(0) == Qt::Checked ? Qt::Unchecked : Qt::Checked);
+      m_bCheckBoxClicked = false;
       return;
     }
     QTreeWidget::mouseReleaseEvent(event);
   }
+  m_bCheckBoxClicked = false;
+}
+
+void LayerTreeWidget::mouseMoveEvent(QMouseEvent *event)
+{
+  if (m_bCheckBoxClicked)
+    return;
+  QTreeWidget::mouseMoveEvent(event);
 }
 
 void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
