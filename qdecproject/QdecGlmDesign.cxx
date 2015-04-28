@@ -11,9 +11,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/06/14 16:56:48 $
- *    $Revision: 1.22 $
+ *    $Author: mreuter $
+ *    $Date: 2015/04/28 14:34:48 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -239,9 +239,14 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
       this->mNuisanceFactors.push_back( qf );
     }
   }
-  if ( 0 == (this->mDiscreteFactors.size() + this->mContinuousFactors.size()) )
+//  if ( 0 == (this->mDiscreteFactors.size() + this->mContinuousFactors.size()) )
+//  {
+//    fprintf( stderr,"ERROR: QdecGlmDesign::Create: zero factors!\n" );
+//    return -1;
+//  }
+  if ( this->mDataTable == NULL || 0 == this->mDataTable->GetNumberOfSubjects() )
   {
-    fprintf( stderr,"ERROR: QdecGlmDesign::Create: zero factors!\n" );
+    fprintf( stderr,"ERROR: QdecGlmDesign::Create: empty data table!\n" );
     return -1;
   }
 
