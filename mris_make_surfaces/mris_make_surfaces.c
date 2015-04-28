@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/04/24 20:08:45 $
- *    $Revision: 1.155 $
+ *    $Date: 2015/04/28 20:09:24 $
+ *    $Revision: 1.156 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.155 2015/04/24 20:08:45 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.156 2015/04/28 20:09:24 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -273,13 +273,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.155 2015/04/24 20:08:45 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.156 2015/04/28 20:09:24 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.155 2015/04/24 20:08:45 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.156 2015/04/28 20:09:24 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -3231,7 +3231,10 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     MRISclearMarks(mris) ;
   }
 #endif
-  CTABfindName(mris->ct, "entorhinal", &entorhinal_index);
+  if (mris->ct)
+    CTABfindName(mris->ct, "entorhinal", &entorhinal_index);
+  else
+    entorhinal_index = -1 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -3241,7 +3244,8 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       continue ;
     }
 
-    CTABfindAnnotation(mris->ct, v->annotation, &index);
+    if (mris->ct)
+      CTABfindAnnotation(mris->ct, v->annotation, &index);
 
     if (vno == Gdiag_no )
     {
@@ -3249,7 +3253,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       DiagBreak() ;
     }
 
-    if (index == entorhinal_index)  // don't freeze vertices that are in EC and very close to hippocampus
+    if (mris->ct && index == entorhinal_index)  // don't freeze vertices that are in EC and very close to hippocampus
       continue ;
     // search outwards
     for (d = 0 ; d <= 2 ; d += 0.5)
@@ -3488,7 +3492,10 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     int index ;
 
     v = &mris->vertices[Gdiag_no] ;
-    CTABfindAnnotation(mris->ct, v->annotation, &index);
+    if (mris->ct)
+      CTABfindAnnotation(mris->ct, v->annotation, &index);
+    else
+      index = -1 ;
     printf("v %d: ripflag = %d before connected components, annot %d (%d)\n",
            Gdiag_no, v->marked, v->annotation, index) ;
     if (v->marked == 0)
