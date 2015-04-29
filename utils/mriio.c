@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/16 18:49:31 $
- *    $Revision: 1.419 $
+ *    $Date: 2015/04/29 20:47:21 $
+ *    $Revision: 1.420 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -380,7 +380,9 @@ float MRIfindMinSize(MRI *mri, int *conform_width)
     fmax = (fdepth > fheight) ? fdepth : fheight;
   }
 
-  *conform_width = (int) ceil(fmax/minsize);
+  
+  *conform_width = (int) ceil(nint(fmax/minsize*10000)/10000); 
+  // used to be: *conform_width = (int) ceil(fmax/minsize);
   // just to make sure that if smaller than 256, use 256 anyway
   if (*conform_width < 256)
   {
