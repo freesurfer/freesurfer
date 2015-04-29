@@ -1,4 +1,4 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
 
 if (  $#argv < 5 ) then
   echo "Software requires 5 arguments"
