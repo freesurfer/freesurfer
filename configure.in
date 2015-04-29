@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/04/17 18:18:38 $
-#    $Revision: 1.644 $
+#    $Author: iglesias $
+#    $Date: 2015/04/29 16:43:34 $
+#    $Revision: 1.645 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3595,6 +3595,9 @@ AC_SUBST(TESTS_ENVIRONMENT)
 #GEMS/scripts/Makefile
 
 AC_OUTPUT([Makefile
+           BrainstemSS/Makefile
+           BrainstemSS/linux_x86_64/Makefile
+           BrainstemSS/mac_osx/Makefile
            check_siemens_dir/Makefile
            cudatest/Makefile
            cudatest/gcatest/Makefile

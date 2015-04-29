@@ -355,7 +355,8 @@ MISCDIRS=\
     spline3 \
 	swi_processing \
 	nmovie_qt \
-	HippoSF
+	HippoSF \
+        BrainstemSS
 
 # ordering is important here for proper 'make check' and 'make distcheck' function
 SUBDIRS=\
