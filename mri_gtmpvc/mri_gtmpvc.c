@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/20 17:42:41 $
- *    $Revision: 1.52 $
+ *    $Date: 2015/04/29 20:59:53 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.52 2015/04/20 17:42:41 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.53 2015/04/29 20:59:53 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.52 2015/04/20 17:42:41 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.53 2015/04/29 20:59:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -177,6 +177,8 @@ MRI **lgtmpvc;
 int DoRegHeader=0;
 int MergeHypos=0;
 int DoGMRvar = 1;
+int DoSimAnatSeg=0;
+MRI *GTMsimAnatSeg(GTM *gtm);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -847,6 +849,15 @@ int main(int argc, char *argv[])
   fprintf(fp,"%20.15lf\n",gtm->XtXcond);
   fclose(fp);
 
+  if(DoSimAnatSeg){
+    MRI *voltmp;
+    printf("Simulating anat seg\n");
+    voltmp = GTMsimAnatSeg(gtm);
+    sprintf(tmpstr,"%s/anat.seg.sim.nii.gz",AuxDir);
+    MRIwrite(voltmp,tmpstr);
+    MRIfree(&voltmp);
+  }
+
   // Res variance in each seg
   sprintf(tmpstr,"%s/seg.rvar.nii.gz",AuxDir);
   printf("Writing seg rvar estimates to %s\n",tmpstr);
@@ -983,6 +994,7 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--no-vox-frac")) gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-vfc"))      gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-gm-rvar"))  DoGMRvar = 0;
+    else if(!strcasecmp(option, "--sim-anat-seg"))  DoSimAnatSeg=1;
     else if(!strcasecmp(option, "--auto-mask")){
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%lf",&gtm->automask_fwhm);
@@ -2014,6 +2026,35 @@ int GTMOPTgtm2Params(GTMOPT *gtmopt)
   }
   return(0);
 }
+
+/*!
+  \fn MRI *GTMsimAnatSeg(GTM *gtm)
+  \brief Constructs a volume in the anat seg space by filling in values from
+  the GTM analysis at each voxel. No smoothing is done. First frame only.
+ */
+MRI *GTMsimAnatSeg(GTM *gtm)
+{
+  int c,r,s,segid,nthseg;
+  MRI *vol,*seg;
+
+  seg = gtm->anatseg;
+  vol = MRIcloneBySpace(seg, MRI_FLOAT, 1);
+
+  for(c=0; c < seg->width; c++){
+    for(r=0; r < seg->height; r++){
+      for(s=0; s < seg->depth; s++){
+	segid = MRIgetVoxVal(seg,c,r,s,0);
+	if(segid == 0) continue;
+	for(nthseg = 0; nthseg < gtm->nsegs; nthseg++)
+	  if(segid == gtm->segidlist[nthseg]) break;
+	MRIsetVoxVal(vol,c,r,s,0,gtm->beta->rptr[nthseg+1][1]);
+      }
+    }
+  }
+
+  return(vol);
+}
+
 
 
 
