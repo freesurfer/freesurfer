@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2015/04/21 18:35:22 $
-#    $Revision: 1.515 $
+#    $Author: iglesias $
+#    $Date: 2015/04/30 10:48:03 $
+#    $Revision: 1.516 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.515 2015/04/21 18:35:22 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.516 2015/04/30 10:48:03 iglesias Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4926,11 +4926,27 @@ if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2 || $DoBSsubst) then
     echo "It is looking for either: "
     echo "  bin/glnxa64/libdctprocess.so    (Linux 64b) or"
     echo "  bin/maci64/libdctprocess.jnilib (Mac 64b)"
-    echo "You will need the Matlab Compiler Runtime (MCR) for Matlab 2012b."
+    echo " "
+    echo "You will need the Matlab Compiler Runtime (MCR) for Matlab 2012b." 
+    echo "To do so, please run the following commands (you might need root permissions):"
+    echo " "
+    echo "LINUX:"
+    echo " "
+    echo "cd ${FREESURFER_HOME}"
+    echo "curl "\""http://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime?action=AttachFile&do=get&target=runtime2012bLinux.tar.gz"\"" -o "\""runtime2012b.tar.gz"\"""
+    echo "tar xvf runtime2012b.tar.gz"
+    echo " "
+    echo "MAC:"
+    echo " "
+    echo "cd ${FREESURFER_HOME}"
+    echo "curl "\""http://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime?action=AttachFile&do=get&target=runtime2012bMAC.tar.gz"\"" -o "\""runtime2012b.tar.gz"\"""
+    echo "tar xvf runtime2012b.tar.gz"
+    echo " "
+    echo " "
     echo "For further details, please visit:"
     echo "     "
     echo "https://surfer.nmr.mgh.harvard.edu/fswiki/MatlabRuntime"
-    echo "     "
+    echo " "
     goto error_exit;
   endif
 endif
