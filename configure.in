@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: iglesias $
-#    $Date: 2015/04/29 16:43:34 $
-#    $Revision: 1.645 $
+#    $Author: zkaufman $
+#    $Date: 2015/05/01 19:00:25 $
+#    $Revision: 1.646 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3590,11 +3590,11 @@ AC_SUBST(TESTS_ENVIRONMENT)
 # output
 #########################################################################
 
-#GEMS/Makefile
-#GEMS/data/Makefile
-#GEMS/scripts/Makefile
 
 AC_OUTPUT([Makefile
+           GEMS/Makefile
+           GEMS/data/Makefile
+           GEMS/scripts/Makefile
            BrainstemSS/Makefile
            BrainstemSS/linux_x86_64/Makefile
            BrainstemSS/mac_osx/Makefile

@@ -335,9 +335,9 @@ STATSDIRS=\
 	optseq2 \
 	stat_normalize
 
-#GEMS
 
 MISCDIRS=\
+    GEMS \
 	histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
