@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/24 22:03:25 $
- *    $Revision: 1.239 $
+ *    $Date: 2015/05/01 22:26:09 $
+ *    $Revision: 1.240 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -562,7 +562,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.239 2015/04/24 22:03:25 greve Exp $";
+"$Id: mri_glmfit.c,v 1.240 2015/05/01 22:26:09 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -2011,7 +2011,7 @@ int main(int argc, char **argv) {
       }
     }
 
-    // Compute and Save CNR
+    // Compute and Save CNR and PCC
     if(mriglm->glm->C[n]->rows == 1){
       cnr = MRIdivide(mriglm->gamma[n], rstd, NULL) ;
       sprintf(tmpstr,"%s/%s/cnr.%s",GLMDir,mriglm->glm->Cname[n],format);
@@ -2657,6 +2657,7 @@ static int parse_commandline(int argc, char **argv) {
       weightinv = 1;
       weightsqrt = 1;
       nargsused = 1;
+      DoPCC = 0; 
     } else if (!strcmp(option, "--X")) {
       if (nargc < 1) CMDargNErr(option,1);
       XFile = pargv[0];
@@ -3657,11 +3658,11 @@ double GLMEfficiency(MATRIX *X, MATRIX *C)
   Xt = MatrixTranspose(X,NULL);
   Ct = MatrixTranspose(C,NULL);
 
-  XtX = MatrixMultiply(Xt,X,NULL);
+  XtX = MatrixMultiplyD(Xt,X,NULL);
   iXtX = MatrixInverse(XtX,NULL);
   // M = C*inv(X'*X)*C'
-  A = MatrixMultiply(C,iXtX,NULL);
-  M = MatrixMultiply(A,Ct,NULL);
+  A = MatrixMultiplyD(C,iXtX,NULL);
+  M = MatrixMultiplyD(A,Ct,NULL);
 
   efficiency = 1/MatrixTrace(M);
 
