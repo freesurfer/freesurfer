@@ -242,7 +242,7 @@ namespace gmm {
   template<typename T>  void wsvector<T>::resize(size_type n) {
     if (n < nbl) {
       iterator it = this->begin(), itf = it, ite = this->end();
-      while (it != ite) { ++itf; if (it->first >= n) erase(it); it = itf; }
+      while (it != ite) { ++itf; if (it->first >= n) this->erase(it); it = itf; }
     }
     nbl = n;
   }
