@@ -7,9 +7,9 @@
 /*
  * Original Author: Koen Van Leemput
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/15 21:17:38 $
- *    $Revision: 1.3 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/05/04 13:44:29 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3011,7 +3011,7 @@ AtlasMeshCollection
     if ( upsampledPositions[ meshNumber ]->Size() != upsampledReferencePosition->Size() )
     {
       std::cerr << "Upsampling failed because of numerical inaccuracies!" << std::endl;
-      return false;
+      return NULL;
     }
   }
 

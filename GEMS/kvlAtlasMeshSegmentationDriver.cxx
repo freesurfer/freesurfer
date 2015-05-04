@@ -7,9 +7,9 @@
 /*
  * Original Author: Koen Van Leemput
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/15 21:17:39 $
- *    $Revision: 1.3 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/05/04 13:44:29 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -164,9 +164,9 @@ AtlasMeshSegmentationDriver
   {
     // Generate a mesh from scratch
     const unsigned int  meshSize[] = { 2, 2, 2 };
-    const unsigned int  domainSize[] = { m_OriginalImageOriginalRegion.GetSize( 0 ),
-                                         m_OriginalImageOriginalRegion.GetSize( 1 ),
-                                         m_OriginalImageOriginalRegion.GetSize( 2 )
+    const unsigned int  domainSize[] = { (unsigned int) m_OriginalImageOriginalRegion.GetSize( 0 ),
+                                         (unsigned int) m_OriginalImageOriginalRegion.GetSize( 1 ),
+                                         (unsigned int) m_OriginalImageOriginalRegion.GetSize( 2 )
                                        };
     const float K = 1000.0f;
     const unsigned int numberOfClasses = 1;

@@ -7,9 +7,9 @@
 /*
  * Original Author: Koen Van Leemput
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/15 21:17:39 $
- *    $Revision: 1.3 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/05/04 13:44:29 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,9 +147,9 @@ int main( int argc, char* argv[] )
     {
       // Create a simple mesh atlas, as required by the segmenter
       const unsigned int  meshSize[] = { 2, 2, 2 };
-      unsigned int  domainSize[] = { reader->GetImage()->GetBufferedRegion().GetSize( 0 ),
-                                     reader->GetImage()->GetBufferedRegion().GetSize( 1 ),
-                                     reader->GetImage()->GetBufferedRegion().GetSize( 2 )
+      unsigned int  domainSize[] = { (unsigned int) reader->GetImage()->GetBufferedRegion().GetSize( 0 ),
+                                     (unsigned int) reader->GetImage()->GetBufferedRegion().GetSize( 1 ),
+                                     (unsigned int) reader->GetImage()->GetBufferedRegion().GetSize( 2 )
                                    };
       const float K = 1000.0f;
       const unsigned int numberOfClasses = 1;

@@ -7,9 +7,9 @@
 /*
  * Original Author: Koen Van Leemput
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/15 21:17:39 $
- *    $Revision: 1.3 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/05/04 13:44:29 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,7 +76,7 @@ int main( int argc, char* argv[] )
     typedef itk::AutoCropLabelMapFilter< LabelMapType >  CropperType;
     CropperType::Pointer  cropper = CropperType::New();
     cropper->SetInput( imageToLabelFilter->GetOutput() );
-    CropperType::SizeType  border = {{ borderWidth, borderWidth, borderWidth }};
+    CropperType::SizeType  border = {{  (CropperType::SizeType::SizeValueType) borderWidth, (CropperType::SizeType::SizeValueType) borderWidth, (CropperType::SizeType::SizeValueType) borderWidth }};
     cropper->SetCropBorder( border );
 
 
