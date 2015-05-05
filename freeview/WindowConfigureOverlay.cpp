@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/08 20:40:28 $
- *    $Revision: 1.19 $
+ *    $Date: 2015/05/05 18:53:40 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,7 @@ WindowConfigureOverlay::WindowConfigureOverlay(QWidget *parent) :
   ui->widgetColorPicker->setCurrentColor(Qt::green);
   ui->buttonBox->button(QDialogButtonBox::Apply)->setAutoDefault(true);
   connect(ui->widgetHistogram, SIGNAL(MarkerChanged()), this, SLOT(OnHistogramMarkerChanged()));
+  connect(ui->checkBoxApplyToAll, SIGNAL(toggled(bool)), this, SLOT(OnCheckApplyToAll(bool)));
   m_layerSurface = NULL;
   QSettings settings;
   QVariant v = settings.value("WindowConfigureOverlay/Geometry");
@@ -254,7 +255,30 @@ void WindowConfigureOverlay::OnApply()
         m_layerSurface->GetActiveOverlay()->UpdateSmooth();
       else
         p->EmitColorMapChanged();
+      if (ui->checkBoxApplyToAll->isChecked())
+      {
+        for (int i = 0; i < m_layerSurface->GetNumberOfOverlays(); i++)
+        {
+          SurfaceOverlay* so = m_layerSurface->GetOverlay(i);
+          if (so != m_layerSurface->GetActiveOverlay())
+          {
+            so->GetProperty()->Copy(p);
+            if (smooth_changed)
+              so->UpdateSmooth();
+            else
+              so->GetProperty()->EmitColorMapChanged();
+          }
+        }
+      }
     }
+}
+
+void WindowConfigureOverlay::OnCheckApplyToAll(bool bChecked)
+{
+  if (bChecked)
+  {
+    OnApply();
+  }
 }
 
 bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )

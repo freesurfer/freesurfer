@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.8 $
+ *    $Date: 2015/05/05 18:53:39 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,8 @@ public:
 
   enum COLOR_SCALE  { CS_Heat = 0, CS_GreenRed, CS_BlueRed, CS_ColorWheel, CS_Custom };
   enum COLOR_METHOD { CM_Linear = 0, CM_LinearOpaque, CM_Piecewise };
+
+  void Copy(SurfaceOverlayProperty* p);
 
   double GetOpacity() const;
   void SetOpacity( double opacity );

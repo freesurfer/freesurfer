@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/04/21 00:45:26 $
- *    $Revision: 1.156 $
+ *    $Date: 2015/05/05 18:53:39 $
+ *    $Revision: 1.157 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -427,6 +427,8 @@ protected slots:
   void OnResetView();
   void OnSavePoint();
   void OnGoToPoint();
+  void OnToolSaveCamera();
+  void OnToolLoadCamera(const QString& fn = "");
   void OnShowAnnotation(bool bShow);
   void OnShowColorBar(bool bShow);
   void OnCopy();

@@ -1,4 +1,4 @@
-QT       += core gui
+QT       += core gui script
 
 TARGET = freeview
 TEMPLATE = app
@@ -158,7 +158,8 @@ SOURCES += \
     DialogSetCamera.cpp \
     DialogThresholdVolume.cpp \
     DialogVolumeSegmentation.cpp \
-    LabelTreeWidget.cpp
+    LabelTreeWidget.cpp \
+    Json.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -306,7 +307,8 @@ HEADERS  += \
     DialogSetCamera.h \
     DialogThresholdVolume.h \
     DialogVolumeSegmentation.h \
-    LabelTreeWidget.h
+    LabelTreeWidget.h \
+    Json.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

@@ -375,9 +375,13 @@
     <addaction name="actionSavePoint"/>
     <addaction name="actionGoToPoint"/>
     <addaction name="separator"/>
+    <addaction name="actionSaveCamera"/>
+    <addaction name="actionLoadCamera"/>
+    <addaction name="separator"/>
     <addaction name="actionShowLabelStats"/>
     <addaction name="separator"/>
     <addaction name="actionPlot"/>
+    <addaction name="separator"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -1467,6 +1471,16 @@
   <action name="actionVolumeSegmentation">
    <property name="text">
     <string>Segment Label Volume...</string>
+   </property>
+  </action>
+  <action name="actionSaveCamera">
+   <property name="text">
+    <string>Save Camera...</string>
+   </property>
+  </action>
+  <action name="actionLoadCamera">
+   <property name="text">
+    <string>Load Camera...</string>
    </property>
   </action>
  </widget>
@@ -2944,6 +2958,38 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionLoadCamera</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToolLoadCamera()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSaveCamera</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnToolSaveCamera()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -3035,5 +3081,7 @@
   <slot>OnViewSetCamera()</slot>
   <slot>OnThresholdVolume()</slot>
   <slot>OnSegmentVolume()</slot>
+  <slot>OnToolSaveCamera()</slot>
+  <slot>OnToolLoadCamera()</slot>
  </slots>
 </ui>

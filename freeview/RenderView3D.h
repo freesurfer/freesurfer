@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/11 21:40:57 $
- *    $Revision: 1.40 $
+ *    $Date: 2015/05/05 18:53:39 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,6 +105,10 @@ public:
   void PickCurrentSurfaceVertex(int posX, int posY);
 
   void ShowSlice(int nPlane, bool bshow);
+
+  QVariantMap GetCamera();
+
+  void SetCamera(const QVariantMap& cam);
 
 signals:
   void SurfaceVertexClicked();

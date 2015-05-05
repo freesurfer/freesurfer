@@ -495,6 +495,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogThresholdVolume.h \
   DialogVolumeSegmentation.cpp \
   DialogVolumeSegmentation.h \
+  Json.cpp \
+  Json.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc

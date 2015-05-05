@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.8 $
+ *    $Date: 2015/05/05 18:53:39 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,34 @@ SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
 SurfaceOverlayProperty::~SurfaceOverlayProperty ()
 {
   m_lut->Delete();
+}
+
+void SurfaceOverlayProperty::Copy(SurfaceOverlayProperty *p)
+{
+  m_dOpacity = p->m_dOpacity;
+  m_bColorInverse = p->m_bColorInverse;
+  m_bColorTruncate = p->m_bColorTruncate;
+  m_bClearLower = p->m_bClearLower;
+  m_bClearHigher = p->m_bClearHigher;
+  m_bSmooth = p->m_bSmooth;
+  m_nSmoothSteps = p->m_nSmoothSteps;
+  m_bUsePercentile = p->m_bUsePercentile;
+  m_dOffset = p->m_dOffset;
+  m_nColorScale = p->m_nColorScale;
+  m_nColorMethod = p->m_nColorMethod;
+  m_dMinPoint = p->m_dMinPoint;
+  m_dMidPoint = p->m_dMidPoint;
+  m_dMaxPoint = p->m_dMaxPoint;
+  m_customScale = p->m_customScale;
+  m_dMinStop = p->m_dMinStop;
+  m_dMaxStop = p->m_dMaxStop;
+  for (int i = 0; i < 3; i++)
+  {
+    m_colorMin[i] = p->m_colorMin[i];
+    m_colorMid[i] = p->m_colorMid[i];
+    m_colorMax[i] = p->m_colorMax[i];
+  }
+  SetColorScale(m_nColorScale);
 }
 
 void SurfaceOverlayProperty::Reset()
@@ -218,7 +246,8 @@ void SurfaceOverlayProperty::SetColorScale( int nScale )
     {
       QColor c = m_customScale.at(i).second;
       m_lut->AddRGBAPoint(m_customScale.at(i).first + m_dOffset, c.redF(), c.greenF(), c.blueF(), 1);
-    }
+    }  SetColorScale(m_nColorScale);
+
   }
 
   m_lut->Build();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/04/21 00:45:25 $
- *    $Revision: 1.296 $
+ *    $Date: 2015/05/05 18:53:39 $
+ *    $Revision: 1.297 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -106,6 +106,7 @@
 #include "DialogThresholdVolume.h"
 #include "DialogVolumeSegmentation.h"
 #include <QProcessEnvironment>
+#include "Json.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -1309,6 +1310,8 @@ void MainWindow::OnIdle()
   ui->actionVolumeFilterOpen->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionVolumeFilterClose->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
   ui->actionSetCamera->setEnabled(bHasLayer);
+  ui->actionSaveCamera->setEnabled(bHasLayer && GetMainView() == ui->view3D);
+  ui->actionLoadCamera->setEnabled(bHasLayer && GetMainView() == ui->view3D);
 
   ui->actionLoadConnectome->setEnabled( !bBusy );  
   ui->actionCloseConnectome ->setEnabled( !bBusy && GetActiveLayer( "CMAT"));
@@ -3741,23 +3744,30 @@ void MainWindow::CommandZoom( const QStringList& cmd )
 
 void MainWindow::CommandSetCamera(const QStringList &cmd)
 {
-  bool bOK;
-  CameraOperations ops;
-  for (int i = 1; i < cmd.size(); i+=2)
+  if (cmd[1].toLower() == "load")
   {
-    double dValue = cmd[i+1].toDouble(&bOK);
-    if (!bOK)
-    {
-      cerr << "Invalid input value for " << cmd[i].toAscii().constData() << ".\n";
-      return;
-    }
-    else
-    {
-      ops << CameraOperation(cmd[i], dValue);
-    }
+    OnToolLoadCamera(cmd[2]);
   }
-  m_views[3]->SetCameraOperations(ops);
-  m_views[3]->ResetCameraClippingRange();
+  else
+  {
+    bool bOK;
+    CameraOperations ops;
+    for (int i = 1; i < cmd.size(); i+=2)
+    {
+      double dValue = cmd[i+1].toDouble(&bOK);
+      if (!bOK)
+      {
+        cerr << "Invalid input value for " << cmd[i].toAscii().constData() << ".\n";
+        return;
+      }
+      else
+      {
+        ops << CameraOperation(cmd[i], dValue);
+      }
+    }
+    m_views[3]->SetCameraOperations(ops);
+    m_views[3]->ResetCameraClippingRange();
+  }
   m_views[3]->RequestRedraw();
 }
 
@@ -6738,4 +6748,42 @@ void MainWindow::OnViewSetCamera()
 {
   m_dlgSetCamera->show();
   m_dlgSetCamera->raise();
+}
+
+void MainWindow::OnToolSaveCamera()
+{
+  QString fn = QFileDialog::getSaveFileName(this, "Save Camera", m_strLastDir, "All files (*)");
+  if (!fn.isEmpty())
+  {
+    Json json;
+    QVariantMap cam = ui->view3D->GetCamera();
+    QFile file(fn);
+    if (file.open(QIODevice::WriteOnly))
+    {
+      file.write(json.encode(cam).toUtf8());
+      file.close();
+    }
+  }
+}
+
+void MainWindow::OnToolLoadCamera(const QString& fn_in)
+{
+  QString fn = fn_in;
+  if (fn.isEmpty())
+    fn = QFileDialog::getOpenFileName(this, "Load Camera", m_strLastDir, "All files (*)");
+  if (!fn.isEmpty())
+  {
+    QFile file(fn);
+    if (file.open(QIODevice::ReadOnly))
+    {
+      Json json;
+      QVariantMap cam = json.decode(file.readAll());
+      file.close();
+      ui->view3D->SetCamera(cam);
+    }
+    else
+    {
+      qWarning() << "Can not open camera file " << fn;
+    }
+  }
 }

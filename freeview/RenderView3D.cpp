@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/11 21:40:57 $
- *    $Revision: 1.75 $
+ *    $Date: 2015/05/05 18:53:39 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1125,4 +1125,73 @@ void RenderView3D::OnShowSlice(bool bShow)
     SetShowSliceFrames(m_bShowSliceFrames);
     RefreshAllActors();
   }
+}
+
+void RenderView3D::SetCamera(const QVariantMap &info)
+{
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  if (cam)
+  {
+    if (!info.contains("Position") || !info.contains("FocalPoint") ||
+        !info.contains("ViewUp") || !info.contains("ViewAngle"))
+      return;
+    double pos[3], focal_pt[3], view_up[3], clip_range[2];
+    QVariantMap map = info["Position"].toMap();
+    pos[0] = map["x"].toDouble();
+    pos[1] = map["y"].toDouble();
+    pos[2] = map["z"].toDouble();
+    cam->SetPosition(pos);
+    map = info["FocalPoint"].toMap();
+    focal_pt[0] = map["x"].toDouble();
+    focal_pt[1] = map["y"].toDouble();
+    focal_pt[2] = map["z"].toDouble();
+    cam->SetFocalPoint(focal_pt);
+    map = info["ViewUp"].toMap();
+    view_up[0] = map["x"].toDouble();
+    view_up[1] = map["y"].toDouble();
+    view_up[2] = map["z"].toDouble();
+    cam->SetViewUp(view_up);
+    cam->SetViewAngle(info["ViewAngle"].toDouble());
+//    map = info["ClippingRange"].toMap();
+//    clip_range[0] = map["near"].toDouble();
+//    clip_range[1] = map["far"].toDouble();
+//    cam->SetClippingRange(clip_range);
+    m_renderer->ResetCameraClippingRange();
+    Render();
+  }
+}
+
+QVariantMap RenderView3D::GetCamera()
+{
+  QVariantMap info;
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  if (cam)
+  {
+    double pos[3], focal_pt[3], view_up[3],clip_range[2];
+    cam->GetPosition(pos);
+    cam->GetFocalPoint(focal_pt);
+    cam->GetViewUp(view_up);
+    QVariantMap map;
+    map["x"] = pos[0];
+    map["y"] = pos[1];
+    map["z"] = pos[2];
+    info["Position"] = map;
+    map.clear();
+    map["x"] = focal_pt[0];
+    map["y"] = focal_pt[1];
+    map["z"] = focal_pt[2];
+    info["FocalPoint"] = map;
+    map.clear();
+    map["x"] = view_up[0];
+    map["y"] = view_up[1];
+    map["z"] = view_up[2];
+    info["ViewUp"] = map;
+    info["ViewAngle"] = cam->GetViewAngle();
+//    map.clear();
+//    cam->GetClippingRange(clip_range);
+//    map["near"] = clip_range[0];
+//    map["far"] = clip_range[1];
+//    info["ClippingRange"] = map;
+  }
+  return info;
 }
