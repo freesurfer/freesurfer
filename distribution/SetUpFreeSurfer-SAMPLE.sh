@@ -10,12 +10,18 @@
 
 # Set this to the location of the freesurfer installation.
 if [ -z $FREESURFER_HOME ]; then
-    export FREESURFER_HOME=REPLACE_WITH_PREFIX
+    echo " ERROR: Environment variable FREESURFER_HOME must be defined prior to sourcing Freesurfer." 
+    return
 fi
 
 # Set this to your subjects/ dir, usually freesurfer/subjects/
 if [ -z $SUBJECTS_DIR ]; then
     export SUBJECTS_DIR=$FREESURFER_HOME/subjects
+fi
+
+# Set tutorial data location in subjects dir, usually freesurfer/subjects/
+if [ -z $TUTORIAL_DATA ]; then
+    export TUTORIAL_DATA=$SUBJECTS_DIR/tutorial_data
 fi
 
 # Set this to your functional sessions dir, usually freesurfer/sessions/

@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.83 2015/03/13 18:45:59 zkaufman Exp $
+# $Id: FreeSurferEnv.csh,v 1.84 2015/05/05 20:18:43 zkaufman Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.83 2015/03/13 18:45:59 zkaufman Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.84 2015/05/05 20:18:43 zkaufman Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -190,6 +190,10 @@ if( $output ) then
     echo "FSFAST_HOME       $FSFAST_HOME"
     echo "FSF_OUTPUT_FORMAT $FSF_OUTPUT_FORMAT"
     echo "SUBJECTS_DIR      $SUBJECTS_DIR"
+endif
+
+if (($?TUTORIAL_DATA) && ( -d $TUTORIAL_DATA)) then
+    echo "TUTORIAL_DATA     $TUTORIAL_DATA"
 endif
 
 ######## --------- Functional Analysis Stuff ----------- #######
