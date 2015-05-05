@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/29 20:59:53 $
- *    $Revision: 1.53 $
+ *    $Date: 2015/05/05 19:41:48 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.53 2015/04/29 20:59:53 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.54 2015/05/05 19:41:48 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.53 2015/04/29 20:59:53 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.54 2015/05/05 19:41:48 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -330,14 +330,10 @@ int main(int argc, char *argv[])
     fprintf(logfp,"Failed tissue type check\n");
     exit(1);
   }
+
   printf("Pruning ctab\n"); fflush(stdout);
   gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
   if(Gdiag_no > 0) printf("  done pruning ctab\n"); fflush(stdout);
-
-  gtm->volperseg = CTABcount2MRI(gtm->ctGTMSeg, gtm->anatseg);
-  sprintf(tmpstr,"%s/seg.vol.nii.gz",AuxDir);
-  MRIwrite(gtm->volperseg,tmpstr);
-  printf("done with seg vol\n"); fflush(stdout);
 
   if(ttReduce > 0) {
     MRI *ttseg;
@@ -354,6 +350,11 @@ int main(int argc, char *argv[])
     CTABfree(&gtm->ctGTMSeg);
     gtm->ctGTMSeg = ctTT;
   }
+
+  gtm->volperseg = CTABcount2MRI(gtm->ctGTMSeg, gtm->anatseg);
+  sprintf(tmpstr,"%s/seg.vol.nii.gz",AuxDir);
+  MRIwrite(gtm->volperseg,tmpstr);
+  printf("done with seg vol\n"); fflush(stdout);
 
   if(ApplyFWHM > 0){
     double cStdApply, rStdApply, sStdApply;
