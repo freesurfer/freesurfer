@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/02/04 23:29:34 $
- *    $Revision: 1.34 $
+ *    $Date: 2015/05/05 19:40:22 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1478,6 +1478,9 @@ int GTMmeltzerpvc(GTM *gtm)
 	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue; 
 	segid = MRIgetVoxVal(gtm->gtmseg,c,r,s,0);
 	for(k=0; k < gtm->nsegs; k++) if(segid == gtm->segidlist[k]) break;
+	// check if not in list, can happen if PET space>AnatSpace and 0
+	// not defined in anatseg
+	if(k==gtm->nsegs) continue;
 	nhits = MRIgetVoxVal(nhitseg,k,0,0,0) + 1;
 	vgmwmpsf = MRIgetVoxVal(gmwmpvfpsf,c,r,s,0);
 	if(vgmwmpsf < gtm->MeltzerMaskThresh) continue; 
@@ -2272,6 +2275,15 @@ int GTMrvarGM(GTM *gtm)
 	  if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
 	  n++;
 	  segid = MRIgetVoxVal(gtm->gtmseg,c,r,s,0);
+	  // check if not in list, can happen if PET space>AnatSpace and 0
+	  // not defined in anatseg
+	  if(ct->entries[segid] == NULL){
+	    printf("WARNING: GTMrvarGM(): segid=%d (%d,%d,%d) does not exist in ctab\n",segid,c,r,s);
+	    //CTABwriteFileASCIItt(gtm->ctGTMSeg,"GTMrvarGM.ctab");
+	    //MRIwrite(gtm->gtmseg,"GTMrvarGM.gtmseg.mgz");
+	    //exit(1);
+	    continue;
+	  }
 	  tt = ct->entries[segid]->TissueType;
 	  if(tt != 1 && tt != 2) continue; // not GM (hardcoded)
 	  sum += ((double)gtm->res->rptr[n+1][f+1]*gtm->res->rptr[n+1][f+1]);
