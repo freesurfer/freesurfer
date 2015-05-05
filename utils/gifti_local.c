@@ -10,8 +10,8 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2014/06/20 00:02:36 $
- *    $Revision: 1.34 $
+ *    $Date: 2015/05/05 01:21:58 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1975,17 +1975,32 @@ int MRISwriteGIFTI(MRIS* mris,
       //                                       mris->ct->entries[idx]->bi);
       //printf("%8.8X\n",labeltable.key[idx]);
 
-      labeltable.label[idx] = strcpyalloc(mris->ct->entries[idx]->name);
+      if (mris->ct->entries[idx]->name)
+      {
+        //printf("idx=%d, name=%s\n",idx,mris->ct->entries[idx]->name);
+        labeltable.label[idx] = strcpyalloc(mris->ct->entries[idx]->name);
+      }
+      else
+      {
+        char tmpname[30];
+        sprintf(tmpname,"unknown_%d",idx);
+        printf("idx=%d, name=NULL, assigned as %s (is the colortable correct?)\n",idx,tmpname);
+        labeltable.label[idx] = strcpyalloc(tmpname);
+      }
 
-      rgba[0] = mris->ct->entries[idx]->rf;
-      rgba[1] = mris->ct->entries[idx]->gf;
-      rgba[2] = mris->ct->entries[idx]->bf;
-      rgba[3] = 1.0f;
-      if ((0 == strcmp(labeltable.label[idx],"unknown")) ||
+      if (( ! mris->ct->entries[idx]->name) ||
+          (0 == strcmp(labeltable.label[idx],"unknown")) ||
           (0 == strcmp(labeltable.label[idx],"Unknown")))
       {
         // make certain unknown region is completely empty, invisible
         rgba[0] = rgba[1] = rgba[2] = rgba[3] = 0.0f;
+      }
+      else
+      {
+        rgba[0] = mris->ct->entries[idx]->rf;
+        rgba[1] = mris->ct->entries[idx]->gf;
+        rgba[2] = mris->ct->entries[idx]->bf;
+        rgba[3] = 1.0f;
       }
       rgba += 4; // next color
       /*
