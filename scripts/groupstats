@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # groupstats
 
-set VERSION = '$Id: groupstats,v 1.5 2015/04/24 21:04:30 greve Exp $';
+set VERSION = '$Id: groupstats,v 1.6 2015/05/05 21:47:46 greve Exp $';
 
 set fsgd = ();
 set slist = ();
@@ -96,6 +96,19 @@ echo $fwhmlist   > $outdir/fwhm.list.txt
 
 #========================================================
 
+# BA label files changed name with version 6 to add "_exvivo"
+# Detect it with this. Below, make output files use original name
+set BAex = ""
+set f0 = $SUBJECTS_DIR/$slist[1]/stats/lh.BA.stats
+if(! -e $f0) then
+  set f = $SUBJECTS_DIR/$slist[1]/stats/lh.BA_exvivo.stats
+  if(! -e $f) then
+    echo "ERROR: cannot find $f0 or $f"
+    exit 1;
+  endif
+  set BAex = "_exvivo"
+endif
+
 # APARC Stats ----------------------------------------------------
 foreach aparc ($aparclist)
   foreach surf ($surflist)
@@ -103,15 +116,16 @@ foreach aparc ($aparclist)
     foreach hemi ($hemilist)
       foreach meas ($mapmeaslist)
         set parc = $aparc
+	if($aparc == BA) set parc = BA$BAex
         if($surf == pial) set parc = pial.$aparc; # only aparc
-        set outfile = $outdir/rois/$parc.$hemi.$surf.$meas.dat
+        set outfile = $outdir/rois/$aparc.$hemi.$surf.$meas.dat
         if(! -e $outfile || $OverWrite) then
           set cmd = (aparcstats2table --subjects $slist --hemi $hemi \
              -m $meas -t $outfile -p $parc)
           echo "#C# $cmd" | tee -a $LF
           $cmd | tee -a $LF
           if($status) exit 1;
-          set glmdir = $outdir/rois/glm.$parc.$hemi.$surf.$meas
+          set glmdir = $outdir/rois/glm.$aparc.$hemi.$surf.$meas
           set cmd = (mri_glmfit --table $outfile --fsgd $fsgd --glmdir $glmdir)
           echo "#C# $cmd"  | tee -a $LF
           $cmd | tee -a $LF
