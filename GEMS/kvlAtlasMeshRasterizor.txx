@@ -3,7 +3,6 @@
 
 #include "GL/gl.h"
 
-
 #if 1
   // Better precision
   #define TRIANGLE_WALK_DOUBLE 1
@@ -774,7 +773,7 @@ AtlasMeshRasterizor< TFragmentProcessor >
          return;
 #endif
 
-      if (IS_INF_OR_NAN(area) || area == 0.0F)
+      if (area == 0.0F)
          return;
 
       oneOverArea = 1.0F / area;
