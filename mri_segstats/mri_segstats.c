@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2015/05/05 22:30:35 $
- *    $Revision: 1.112 $
+ *    $Date: 2015/05/05 22:32:40 $
+ *    $Revision: 1.113 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -106,7 +106,7 @@ float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.112 2015/05/05 22:30:35 nicks Exp $";
+  "$Id: mri_segstats.c,v 1.113 2015/05/05 22:32:40 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1152,13 +1152,13 @@ int main(int argc, char **argv)
     if(DoSurfWMVol)
     {
       fprintf(fp,"# Measure lhCerebralWhiteMatter, lhCerebralWhiteMatterVol, "
-              "Left hemisphere cortical white matter volume, %f, mm^3\n",
+              "Left hemisphere cerebral white matter volume, %f, mm^3\n",
               BrainVolStats[9]);
       fprintf(fp,"# Measure rhCerebralWhiteMatter, rhCerebralWhiteMatterVol, "
-              "Right hemisphere cortical white matter volume, %f, mm^3\n",
+              "Right hemisphere cerebral white matter volume, %f, mm^3\n",
               BrainVolStats[10]);
       fprintf(fp,"# Measure CerebralWhiteMatter, CerebralWhiteMatterVol, "
-              "Total cortical white matter volume, %f, mm^3\n",
+              "Total cerebral white matter volume, %f, mm^3\n",
               BrainVolStats[11]);
     }
     if(DoSubCortGrayVol)
