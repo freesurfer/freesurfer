@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#############################################################
+##
+## This script is used to download the Freesurfer tutorial
+## data onto the users machine. 
+## 
+## At the time of writing this script, the tutorial data 
+## is between 3-4Gigs. And that represents only a subset
+## of the entire tutorial data set required to run all 
+## commands in the tutorial.
+## 
+## The tutorial data will be downloaded into the directory
+## specified by the TUTORIAL_DATA environment variable, which
+## by default is set to $FREESURFER_HOME/subjects/tutorial_data. 
+## However, the user has the ability to override this location 
+## either at the time of script execution, or by modifying the the
+## TUTORIAL_DATA environment variable.
+#############################################################
+
+if [ $# -ne 0 ]; then 
+    echo "\"$(basename $0)\" accepts no arguments."
+    exit 1
+fi
+
+## This script will only work if the
+## TUTORIAL_DATA environment variable is defined.
+if [ -z "$TUTORIAL_DATA" ]; then
+    echo " Environment variable TUTORIAL_DATA needs to"
+    echo " either be set in the SetupFreesurfer.(c)sh file,"
+    echo " or defined prior to sourcing FreeSurfer."
+    exit 1
+fi
+
+## If TUTORIAL_DATA is defined but 
+## does not exist then lets create it.
+if [ ! -d "$TUTORIAL_DATA" ]; then
+    cmd=`mkdir -p $TUTORIAL_DATA`
+    echo $cmd
+    $cmd
+fi
+
+## Begin download
+echo    " Tutorial data will be downloaded and installed"
+echo    " into the location specified by the TUTORIAL_DATA"
+echo    " environment varible:
+echo    " $TUTORIAL_DATA"
+read -p " Shall I proceed? [y/n/Abort]: "
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    mkdir -p $TUTORIAL_DATA
+    if [ ! -d "$TUTORIAL_DATA" ]; then
+        echo "Unable to create $TUTORIAL_DATA"
+        exit 1
+    fi
+    rsync -ztrlv --progress rsync://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/* $TUTORIAL_DATA
+    exit 0
+else
+    exit 1
+fi
