@@ -19,7 +19,8 @@ endif
 dist_bin_SCRIPTS = \
 segmentSF_T1.sh \
 segmentSF_T1T2.sh \
-segmentSF_T2.sh
+segmentSF_T2.sh \
+quantifyHippocampalSubfields.sh
 
 install-data-local:
 	test -z $(foodir) || $(mkdir_p) $(foodir)
