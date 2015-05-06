@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: iglesias $
-#    $Date: 2015/04/30 11:29:01 $
-#    $Revision: 1.517 $
+#    $Author: nicks $
+#    $Date: 2015/05/06 00:27:32 $
+#    $Revision: 1.518 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.517 2015/04/30 11:29:01 iglesias Exp $';
+set VERSION = '$Id: recon-all,v 1.518 2015/05/06 00:27:32 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4635,8 +4635,8 @@ if ($DoBaLabels) then
   else
     # check if the latest-greatest fsaverage is here (which would not be
     # the case if running on subjects processed by an older version)
-    if ( ! -e $SUBJECTS_DIR/fsaverage/label/lh.perirhinal_exvivo.label) then
-      echo "INFO: fsaverage subject does not have perirhinal labels!" \
+    if ( ! -e $SUBJECTS_DIR/fsaverage/label/lh.entorhinal_exvivo.thresh.label) then
+      echo "INFO: fsaverage subject does not have uptodate *rhinal labels!" \
         |& tee -a $LF |& tee -a $CF
       set HaveFsAverage=0;
       set cmd=(rm -Rf fsaverage)
@@ -4676,6 +4676,7 @@ if ($DoBaLabels) then
                      V1_exvivo \
                      V2_exvivo \
                      MT_exvivo \
+                     entorhinal_exvivo \
                      perirhinal_exvivo)
       set cmd=(mri_label2label \
         --srcsubject fsaverage \
@@ -4712,7 +4713,9 @@ if ($DoBaLabels) then
                      BA45_exvivo \
                      V1_exvivo \
                      V2_exvivo \
-                     MT_exvivo)
+                     MT_exvivo \
+                     entorhinal_exvivo \
+                     perirhinal_exvivo)
       set cmd=(mri_label2label \
         --srcsubject fsaverage \
         --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.thresh.label \
@@ -4752,6 +4755,7 @@ if ($DoBaLabels) then
         --l $hemi.V1_exvivo.label \
         --l $hemi.V2_exvivo.label \
         --l $hemi.MT_exvivo.label \
+        --l $hemi.entorhinal_exvivo.label \
         --l $hemi.perirhinal_exvivo.label \
         --a BA_exvivo \
         --maxstatwinner \
@@ -4778,6 +4782,8 @@ if ($DoBaLabels) then
         --l $hemi.V1_exvivo.thresh.label \
         --l $hemi.V2_exvivo.thresh.label \
         --l $hemi.MT_exvivo.thresh.label \
+        --l $hemi.entorhinal_exvivo.thresh.label \
+        --l $hemi.perirhinal_exvivo.thresh.label \
         --a BA_exvivo.thresh \
         --maxstatwinner \
         --noverbose )
@@ -4851,10 +4857,10 @@ endif
 
 #--------                          --------#
 #-------- Entorhinal Cortex Labels --------#
-##-------    -label-exvivo-ec      --------#
+##-------  -label-exvivo-ec-avg    --------#
 #--------                          --------#
 # create entorhinal cortex labels by mapping from exvivo subjects,
-# then generate ?h.entorhinal_exvivo.stats files
+# then generate ?h.EC_exvivo_average.stats files
 if ($DoLabelExvivoEC) then
   cd $subjdir/label
   $PWD |& tee -a $LF
@@ -4884,14 +4890,14 @@ if ($DoLabelExvivoEC) then
                  label ${hemi}.entorhinal \
                  $hemi sphere.reg \
                  ${hemi}.EC_average \
-                 ${hemi}.entorhinal_exvivo.label)
+                 ${hemi}.EC_exvivo_average.label)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
     # generate stats
-    set label = ./$hemi.entorhinal_exvivo.label
-    set stats = ../stats/$hemi.entorhinal_exvivo.stats
+    set label = ./$hemi.EC_exvivo_average.label
+    set stats = ../stats/$hemi.EC_exvivo_average.stats
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats -mgz -f $stats \
             -b -l $label $xopts $subjid $hemi white);
@@ -6305,21 +6311,21 @@ while( $#argv != 0 )
       set DoLabelV1 = 1;
       breaksw;
 
-    case "-label_exvivo_ec":
-    case "-label-exvivo-ec":
-    case "-label_exvivo_EC":
-    case "-label-exvivo-EC":
+    case "-label_exvivo_ec_avg":
+    case "-label-exvivo-ec-avg":
+    case "-label_exvivo_EC_avg":
+    case "-label-exvivo-EC-avg":
       set DoLabelExvivoEC = 1;
       breaksw;
 
-    case "-nolabel_exvivo_ec":
-    case "-nolabel-exvivo-ec":
-    case "-nolabel_exvivo_EC":
-    case "-nolabel-exvivo-EC":
-    case "-no_label_exvivo_ec":
-    case "-no-label-exvivo-ec":
-    case "-no_label_exvivo_EC":
-    case "-no-label-exvivo-EC":
+    case "-nolabel_exvivo_ec_avg":
+    case "-nolabel-exvivo-ec-avg":
+    case "-nolabel_exvivo_EC_avg":
+    case "-nolabel-exvivo-EC-avg":
+    case "-no_label_exvivo_ec_avg":
+    case "-no-label-exvivo-ec-avg":
+    case "-no_label_exvivo_EC_avg":
+    case "-no-label-exvivo-EC-avg":
       set DoLabelExvivoEC = 0;
       breaksw;
 
