@@ -30,9 +30,11 @@ EXTRA_DIST=$(foo_DATA) $(foo_SCRIPTS) \
 	SetUpFreeSurfer-SAMPLE.csh SetUpFreeSurfer-SAMPLE.sh
 
 SetUpFreeSurfer.csh: SetUpFreeSurfer-SAMPLE.csh
+	cat $< > $@
 	chmod a+x $@
 
 SetUpFreeSurfer.sh: SetUpFreeSurfer-SAMPLE.sh
+	cat $< > $@
 	chmod a+x $@
 
 # Our release target. Include files to be excluded here. They will be
