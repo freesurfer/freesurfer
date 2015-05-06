@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.56 2015/05/05 20:18:43 zkaufman Exp $
+# $Id: FreeSurferEnv.sh,v 1.57 2015/05/06 21:36:41 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.56 2015/05/05 20:18:43 zkaufman Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.57 2015/05/06 21:36:41 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [ $# -gt 1 ]; then
@@ -204,8 +204,10 @@ if [[ $output == 1 ]]; then
     echo "SUBJECTS_DIR      $SUBJECTS_DIR"
 fi
 
-if [ ! -z $TUTORIAL_DATA ] && [ -d $TUTORIAL_DATA ]; then
+if [ ! -z $TUTORIAL_DATA ]; then
+    if [ -d $TUTORIAL_DATA ]; then
     echo "TUTORIAL_DATA     $TUTORIAL_DATA"
+    fi
 fi
 
 ######## --------- Functional Analysis Stuff ----------- #######
