@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/05/06 00:27:32 $
-#    $Revision: 1.518 $
+#    $Date: 2015/05/07 19:23:16 $
+#    $Revision: 1.519 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.518 2015/05/06 00:27:32 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.519 2015/05/07 19:23:16 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5018,13 +5018,14 @@ endif
 if($DoHippoSF_T1) then
   set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T1.log)
   rm -f $HSFLOG
-  echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-  echo "#@# Hippocampal Subfields processing (T1 only) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
 
   # do hippocampal processing using just T1 data
   foreach hemi ($hippohemilist)
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+    echo "#@# Hippocampal Subfields processing (T1 only) $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+    
     set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T1.sh \
       ${FREESURFER_HOME}/MCRv80 \
       $FREESURFER_HOME \
@@ -5046,13 +5047,14 @@ endif
 if($DoHippoSF_T1T2) then 
   set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T1T2.log)
   rm -f $HSFLOG
-  echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-  echo "#@# Hippocampal Subfields processing (T1 + T2 volume) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
 
   # do hippocampal processing
   foreach hemi ($hippohemilist)
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+    echo "#@# Hippocampal Subfields processing (T1 + T2 volume) $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+
     set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T1T2.sh \
       ${FREESURFER_HOME}/MCRv80 \
       $FREESURFER_HOME \
@@ -5076,13 +5078,14 @@ if($DoHippoSF_T2) then
 
   set HSFLOG = ($subjdir/scripts/hippocampal-subfields-T2.log)
   rm -f $HSFLOG
-  echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-  echo "#@# Hippocampal Subfields processing (T2 only) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
   
   # do hippocampal processing
   foreach hemi ($hippohemilist)
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+    echo "#@# Hippocampal Subfields processing (T2 only) $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+
     set cmd = ( ${FREESURFER_HOME}/bin/segmentSF_T2.sh \
       ${FREESURFER_HOME}/MCRv80 \
       $FREESURFER_HOME \
