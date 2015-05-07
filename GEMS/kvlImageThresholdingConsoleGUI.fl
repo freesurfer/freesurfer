@@ -9,7 +9,8 @@ class kvlImageThresholdingConsoleGUI {open
     Fl_Window m_Window {
       label kvlImageThresholdingConsole
       callback {exit( 0 );} open
-      xywh {637 24 1280 1030} type Double visible
+      xywh {637 24 1280 1030} type Double resizable visible
+
     } {
       Fl_Group m_ImageViewer {
         callback {//this->SelectTriangleContainingPoint( Fl::event_x(), m_ImageViewer->h() - Fl::event_y() );} open
