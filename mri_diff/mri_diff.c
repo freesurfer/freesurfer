@@ -20,8 +20,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/28 18:27:09 $
- *    $Revision: 1.34 $
+ *    $Date: 2015/05/08 21:51:53 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -172,7 +172,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.34 2014/03/28 18:27:09 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.35 2015/05/08 21:51:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -442,7 +442,7 @@ int main(int argc, char *argv[]) {
             if (diff && verbose) {
               printf("diff %12.8f at %d %d %d %d\n",diff,c,r,s,f);
             }
-	    if(diff != 0) ndiff++;
+	    if(diff > pixthresh) ndiff++;
             SumSqDiff += (diff*diff);
             SumSqErr  += (diff*diff);
             if(AbsDiff)   diff = fabs(diff);
