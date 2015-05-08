@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/11/26 01:24:17 $
-#    $Revision: 1.65 $
+#    $Date: 2015/05/08 18:58:39 $
+#    $Revision: 1.66 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.65 2014/11/26 01:24:17 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.66 2015/05/08 18:58:39 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -801,9 +801,9 @@ check_params:
   if($#regfile == 0) set regfile = register.dof$RegDOF.lta
 
   if($talres == 2) then
-    set subcortmask = $SUBJECTS_DIR/fsaverage/mri.2mm/subcort.mask.mgz
+    set subcortmask = $SUBJECTS_DIR/$trgsubject/mri.2mm/subcort.mask.mgz
   else
-    set subcortmask = $SUBJECTS_DIR/fsaverage/mri/subcort.mask.1mm.mgz
+    set subcortmask = $SUBJECTS_DIR/$trgsubject/mri/subcort.mask.1mm.mgz
   endif
   if($UseCVS) set subcortmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/subcort.mask.mgz
   if(! -e $subcortmask) then
