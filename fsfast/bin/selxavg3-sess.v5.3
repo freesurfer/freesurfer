@@ -1,0 +1,678 @@
+#! /bin/csh -f
+
+#
+# selxavg3-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2015/05/08 21:03:14 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: selxavg3-sess.v5.3,v 1.1 2015/05/08 21:03:14 greve Exp $'
+
+set inputargs = ($argv);
+set DateStr = "`date '+%y%m%d%H%M%S'`"
+
+set analysis = ();
+set flacfile = ();
+set geometry = volume
+set subject = ();
+set perrun = 0;
+set jkrun  = 0;
+set DoPreProc = 1;
+
+set OutParent = ();
+set nolog = 0;
+set monly = 0;
+set MLF = ();
+set LF = ();
+
+set DoGLMFit = 1;
+set DoContrasts = 1;
+set ConList = ();
+set DoFWHM = 0;
+set SaveRes = 0;
+set MatlabSaveRes = 0;
+set SaveResUnwhitened = 0;
+set RequireContrasts = 1;
+set Overwrite = 0;
+
+set DoSynth = 0;
+set SynthNoiseAmp = 1;
+set SynthNoiseAR1 = .3;
+set SynthSignalAmp = 0;
+set SynthSeed = -1;
+set ReduceToMask = 1;
+set threads = "-singleCompThread"; # one single thread
+
+set UseOctave = 0;
+if($?FS_USE_OCTAVE) then
+  set UseOctave = $FS_USE_OCTAVE
+endif
+
+set PrintHelp = 0;
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set StudyDir = `pwd`;
+
+if($#analysis) then
+  # analysis, not flac file
+  set analysisname = $analysis
+  set fsd = `getana -a $analysis -t fsd`;
+  set PerSession = `getana -a $analysis -t IsPerSession`
+  set IsNative = `getana -a $analysis -t IsNative`
+  set IsSurface = `getana -a $analysis -t IsSurface`
+  if($IsSurface) then
+    set subject = `getana -a $analysis -t subject`
+    set hemi    = `getana -a $analysis -t hemi`
+    echo "Surface data $subject $hemi"
+  endif
+  set dt = `getana -a $analysis -t designtype`
+  if($dt == "abblocked") set RequireContrasts = 0;
+  if($dt == "retinotopy") set RequireContrasts = 0;
+  set contrasts = `getana -a $analysis -t contrasts`
+  if($#contrasts == 0 && $RequireContrasts) then
+    echo "ERORR: no contrasts in $analysis."
+    echo "  Create contrasts with mkcontrast-sess or run with -no-con-ok."
+    exit 1;
+  endif
+endif
+
+##### Create a log file ######
+if($#LF == 0) then
+if($nolog) then
+  set LF = /dev/null
+else
+  if($#OutParent == 0) then
+    set logdir = `pwd`/log;
+  else
+    set logdir = $OutParent/log;
+  endif
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "WARNING: could not create $logdir"
+    set LF = /dev/null
+  else
+    set LF = $logdir/selxavg3-sess-$fsd-$analysis-$DateStr.log
+    if(-e $LF) mv $LF $LF.old
+  endif
+endif
+endif
+echo "--------------------------------------------------------------"
+echo "selxavg3-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "selxavg3-sess log file" >> $LF
+echo $0        >> $LF
+echo $inputargs  >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+uname -a      >> $LF
+date          >> $LF
+
+set StartTime = `date`;
+
+if($SaveRes || $SaveResUnwhitened) set MatlabSaveRes = 1;
+
+# Dont run preproc if funcstem specified
+set funcstemspec  = `getana -a $analysis -t funcstem-specified`
+if($funcstemspec) set DoPreProc = 0;
+
+### Preprocess each session ####
+if($DoPreProc) then
+  foreach sess ($SessList)
+    set sessbase = `basename $sess`;
+    set sessdir  = `dirname  $sess`;
+    set cmd = (preproc-sess -s $sessbase -d $sessdir -a $analysis -nolog);
+    #if($IsNative) set cmd = ($cmd -no-reg); # they can run with -no-preproc
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  end
+endif
+
+if($#MLF == 0) set MLF = /tmp/selxavg3-sess-$$.m
+rm -f $MLF
+echo "% `date`  " >> $MLF
+echo "% `pwd`  " >> $MLF
+echo "% $flacfile $analysis  " >> $MLF
+echo "  " >> $MLF
+echo "  " >> $MLF
+
+set okfile = /tmp/selxavg3-sess-$$.ok
+rm -f $okfile
+
+set parname  = `getana -a $analysis -t parname`
+set funcstem = `getana -a $analysis -t funcstem`
+set rlf = `getana -a $analysis -t runlistfile`
+set ConList = `getana -a $analysis -t contrasts`
+
+### Go through each session ###
+@ nthsess = 0;
+@ nprocs = 0;
+foreach sess ($SessList)
+  @ nthsess = $nthsess + 1;
+  set sessbase = `basename $sess`;
+  set sessdir  = `dirname  $sess`;
+
+  echo "-------------------------------------------" |& tee -a $LF
+  echo "$sess " |& tee -a $LF
+  date |& tee -a $LF
+
+  if(! -d $sess) then
+    echo "ERROR: $sess does not exist"   |& tee -a $LF
+    exit 1;
+  endif
+
+  set funcdir = $sess/$fsd
+  set anadir = $sess/$fsd/$analysisname
+  if($#OutParent == 0) then
+    set anadir = $sess/$fsd/$analysisname
+  else
+    set anadir = $OutParent/$sessbase/$fsd/$analysisname
+  endif
+  echo anadir = $anadir | tee -a $LF
+
+  set DoGLMFit = 0;
+  if($Overwrite || $perrun) set DoGLMFit = 1;
+  set beta = `stem2fname $anadir/beta`
+  if($status) set DoGLMFit = 1;  # Beta file does not exist
+  if($DoGLMFit == 0) then
+    # Ouput beta exists, check against dependencies
+    set deplist = ($analysis/analysis.info);
+    set RunList = (`getrunlist $sess/$fsd $rlf`);
+    set funclist = ()
+    foreach Run ($RunList)
+      set funcstempath = $sess/$fsd/$Run/$funcstem;
+      set func = `stem2fname $funcstempath`;
+      if($status) then
+        echo "ERROR: cannot find $funcstempath"
+        exit 1;
+      endif
+      set deplist = ($deplist $func);
+      if($#parname) then
+        set parfile = $sess/$fsd/$Run/$parname
+        if(! -e $parfile) then
+          echo "ERROR: cannot find $parfile"
+          exit 1;
+        endif
+        set deplist = ($deplist $parfile);
+      endif
+    end
+    set DoGLMFit = `UpdateNeeded $beta $deplist`
+    #ls -lt $beta $deplist
+  endif
+
+  set DoContrasts = 0;
+  if($Overwrite) set DoContrasts = 1;
+  if($DoGLMFit)  set DoContrasts = 1;
+  foreach con ($ConList)
+    # Check whether output contrast exists
+    set ces = `stem2fname $anadir/$con/ces`
+    if($status) set DoContrasts = 1;
+    # Check dependencies
+    set deplist = ($beta)
+    set mat = $analysis/$con.mat
+    if(-e $mat)  set deplist = ($deplist $mat)
+    set tmp = `UpdateNeeded $ces $deplist`
+    if($tmp) set DoContrasts = 1;
+  end
+
+  set UpdateNeeded = 0;
+  if($DoGLMFit || $DoContrasts) set UpdateNeeded = 1; 
+  if($monly || $perrun) set UpdateNeeded = 1; 
+
+  echo "DoGLMFit = $DoGLMFit"
+  echo "DoContrasts = $DoContrasts"
+  echo "UpdateNeeded = $UpdateNeeded"
+
+  if($UpdateNeeded == 0) then
+    echo "    $sessbase $Run Update not needed" | tee -a $LF
+    continue
+  endif
+
+  # -- If it gets here, then an update is needed --
+  @ nprocs = $nprocs + 1;
+
+  if(! $monly && ! $perrun && $DoGLMFit) then
+    rm -f $anadir/* $anadir/*/*sig* $anadir/*/*cnr* $anadir/*/*ces* >& /dev/null
+  endif
+
+  echo "%--------------------------------" >> $MLF
+  echo "sxa3pwd = '`pwd`'">> $MLF
+  echo "sxa3cmd = '$0 $inputargs'">> $MLF
+  echo "which fast_selxavg3"               >> $MLF
+  echo "okfile         = '$okfile';"       >> $MLF
+  echo "if(fast_fileexists(okfile)) delete(okfile); end" >> $MLF
+  echo "monly          = $monly;"          >> $MLF
+  echo "perrun         = $perrun;"         >> $MLF
+  echo "jkrun          = $jkrun;"          >> $MLF
+  echo "DoGLMFit       = $DoGLMFit;"       >> $MLF
+  echo "DoContrasts    = $DoContrasts;"    >> $MLF
+  echo "ConList        = splitstring('$ConList');" >> $MLF
+  echo "DoSynth        = $DoSynth;"        >> $MLF
+  echo "SynthNoiseAmp  = $SynthNoiseAmp;"  >> $MLF
+  echo "SynthNoiseAR1  = $SynthNoiseAR1;"  >> $MLF
+  echo "SynthSignalAmp = $SynthSignalAmp;" >> $MLF
+  echo "SynthSeed      = $SynthSeed;"      >> $MLF
+  echo "sess           = '$sess';"         >> $MLF
+  echo "ReduceToMask   = $ReduceToMask;"   >> $MLF
+  echo "analysis = '$analysis';" >> $MLF
+  echo "flacname = '$flacfile';" >> $MLF
+  echo "outtop = '$OutParent';" >> $MLF
+  echo "DoFWHM = $DoFWHM;" >> $MLF
+  echo "MatlabSaveRes = $MatlabSaveRes;" >> $MLF
+  echo "SaveResUnwhitened = $SaveResUnwhitened;" >> $MLF
+  echo "fast_selxavg3;" >> $MLF
+  echo "if(~fast_fileexists(okfile) && ~monly); quit; end" >> $MLF
+  if($#SessList > 1 && ! $monly)  then
+    echo "clear all;" >> $MLF
+    echo "pack;" >> $MLF
+  endif
+  echo "  " >> $MLF
+  echo "  " >> $MLF
+
+end # Loop over sessions #
+if(! $monly ) echo "quit;" >> $MLF
+
+echo "------------------------------------------" >> $LF
+cat $MLF >> $LF
+echo "------------------------------------------" >> $LF
+
+if(! $monly && $nprocs > 0) then
+  echo "------------------------------------------" | tee -a $LF
+  if($UseOctave == 0) then
+    echo "------- matlab output --------------------" | tee -a $LF
+    cat $MLF | matlab -display iconic $threads | tee -a $LF
+  else
+    echo "------- octave output --------------------" | tee -a $LF
+    echo LD_LIBRARY_PATH $LD_LIBRARY_PATH
+    cat $MLF | $FS_OCTAVE_BIN  |& tee -a $LF
+  endif
+  echo "------------------------------------------" | tee -a $LF
+  rm $MLF
+  if(! -e $okfile) then
+    echo "ERROR: fast_selxavg3() failed\n";
+    exit 1;
+  endif
+  rm -f $okfile
+  # Copy the fs build, etc
+  foreach sess ($SessList)
+    set sessbase = `basename $sess`;
+    set sessdir  = `dirname  $sess`;
+    if($#OutParent == 0) then
+      set anadir = $sess/$fsd/$analysisname
+    else
+      set anadir = $OutParent/$sessbase/$fsd/$analysisname
+    endif
+    cp $FREESURFER_HOME/build-stamp.txt $anadir/fs.build-stamp.txt
+    cp $analysis/analysis.info $anadir
+  end
+  # The computing of FWHM is now done in fast_selxavg3
+endif
+
+if($nprocs == 0) then
+  echo "INFO: no data sets needed processing" | tee -a $LF
+  exit 0;
+endif
+
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`" | tee -a $LF
+
+echo " " | tee -a $LF
+echo "selxavg3-sess completed" | tee -a $LF
+echo " " | tee -a $LF
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-analysis":
+    case "-a":
+      if ( $#argv == 0) goto arg1err;
+      if($#analysis) then
+        echo "ERROR: you have specified the analysis twice"
+        exit 1
+      endif
+      set analysis = $argv[1]; shift;
+      set analysis = `basename $analysis`; # remove trailing /
+      breaksw
+
+    case "-flac":
+      if ( $#argv == 0) goto arg1err;
+      set flacfile = $argv[1]; shift;
+      breaksw
+
+    case "-outparent":
+    case "-op":
+      if ( $#argv == 0) goto arg1err;
+      set OutParent = $1; shift;
+      breaksw
+
+    case "-log":
+      if( $#argv < 1) goto arg1err;
+      set LF =  $1; shift;
+      breaksw
+
+    case "-monly":
+      if( $#argv < 1) goto arg1err;
+      set MLF =  $1; shift;
+      set monly = 1;
+      set DoPreProc = 0;
+      breaksw
+
+    case "-contrasts-only":
+    case "-co":
+      set DoGLMFit = 0;
+      set DoContrasts = 1;
+      breaksw
+
+    case "-c"
+      if( $#argv < 1) goto arg1err;
+      set DoContrasts = 1;
+      set ConList = ($ConList $argv[1]); shift
+      breaksw
+
+    case "-run-wise":
+    case "-per-run":
+    case "-perrun":
+      set perrun = 1;
+      breaksw
+
+    case "-no-preproc":
+      set DoPreProc = 0;
+      breaksw
+
+    case "-jkrun":
+      set jkrun = 1;
+      breaksw
+
+    case "-svres":
+      set SaveRes = 1;
+      breaksw
+
+    case "-svres-unwhitened":
+    case "-svres-uw":
+      set SaveResUnwhitened = 1;
+      breaksw
+
+    case "-no-con-ok":
+      set RequireContrasts = 0;
+      breaksw
+
+    case "-no-fwhm":
+      set DoFWHM = 0;
+      breaksw
+
+    case "-fwhm":
+      set DoFWHM = 1;
+      breaksw
+
+    case "-force":
+    case "-overwrite":
+      set Overwrite = 1;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-octave":
+      set UseOctave = 1
+      breaksw
+
+    case "-no-reduce-to-mask":
+      # remove non-mask when analyzing. This does not change the
+      # results at all, it just prevents the processing of voxels that
+      # are already zero. It reduces the memory load and speeds things
+      # up. For the surface, it creates identical results as when
+      # reduction is not done. For the volume, everything is the same
+      # except the fsnr and rho volumes. There are a few voxels at the
+      # edge of the volume that are not masked out when redction is
+      # not done. I have no idea why. This flag is provided for
+      # backwards compatibility
+      set ReduceToMask = 0;
+      breaksw
+
+    case "-matlab":
+      set UseOctave = 0;
+      breaksw
+
+    case "-no-octave":
+    case "-matlab":
+      set UseOctave = 0;
+      breaksw
+
+    case "-max-threads":
+      set threads = ""
+      breaksw
+  
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-synth":
+      set DoSynth = 1;
+      breaksw
+
+    case "-synth-signal-amp":
+      if($#argv < 1) goto arg1err;
+      set SynthSignalAmp = $1; shift;
+      set DoSynth = 1;
+      breaksw
+
+    case "-synth-noise-amp":
+      if($#argv < 1) goto arg1err;
+      set SynthNoiseAmp = $1; shift;
+      set DoSynth = 1;
+      breaksw
+
+    case "-synth-noise-ar1":
+      if($#argv < 1) goto arg1err;
+      set SynthNoiseAR1 = $1; shift;
+      set DoSynth = 1;
+      breaksw
+
+    case "-g":
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+    echo "ERROR: no sessions specified"
+    exit 1
+  endif
+  if($#analysis == 0 && $flacfile == 0) then
+    echo "ERROR: no analysis name or flac file specified"
+    exit 1
+  endif
+  if($#analysis != 0) then 
+    if(! -d $analysis ) then
+      echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+      exit 1;
+    endif
+    if(! -e $analysis/analysis.info ) then
+      echo "ERROR: analysis $analysis/analysis.info does not exist, see mkanalysis-sess"
+      exit 1;
+    endif
+  endif
+  if($#flacfile != 0) then
+    if(! -e $flacfile ) then
+      echo "ERROR: flac file $flacfile does not exist"
+      exit 1;
+    endif
+  endif
+  if($perrun && $jkrun) then
+    echo "ERROR: cannot -run-wise AND -jkrun"
+    exit 1
+  endif
+
+  if($UseOctave) then
+    if($?FS_OCTAVE_LIB == 0) then
+      echo "ERROR: you must set the FS_OCTAVE_LIB environment variable"
+      exit 1;
+    endif
+    if(! -e $FS_OCTAVE_LIB) then
+      echo "ERROR: cannot find $FS_OCTAVE_LIB"
+      exit 1;
+    endif
+    if($?FS_OCTAVE_BIN == 0) then
+      echo "ERROR: you must set the FS_OCTAVE_BIN environment variable"
+      exit 1;
+    endif
+    if(! -x $FS_OCTAVE_BIN) then
+      echo "ERROR: cannot find or execute $FS_OCTAVE_BIN"
+      exit 1;
+    endif
+    if($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH ""
+    if($#LD_LIBRARY_PATH == 0) then 
+      setenv LD_LIBRARY_PATH $FS_OCTAVE_LIB
+    else
+      setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:$FS_OCTAVE_LIB
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: selxavg3-sess"
+  echo ""
+  echo "Required Arguments:";
+  echo "   -analysis analysisname : name of functional analysis"
+  echo ""
+  echo "Optional Arguments:";
+  echo ""
+  echo "   -overwrite      : delete analysis if session of already analyzed"
+  echo "   -contrasts-only : only compute contrasts (estimation already done) <-co>"
+  echo "   -c c1 <-c c2 ...> : compute contrasts c1, c2, ... (default is to compute all)"
+  echo "   -no-con-ok      : run even if no contrasts in analysis"
+  echo "   -fwhm          : compute FWHM of residual"
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "Other args"
+  echo "   -no-preproc    : do not run preprocessing"
+  echo "   -svres          : save residuals (usually not needed)"
+  echo "   -svres-unwhitened : save unwhitened residuals (usually not needed)"
+  echo "   -run-wise        : analyze each run separately"
+  echo "   -version       : print version and exit"
+  echo "   -debug"
+  echo "   -nolog         : do not create a log file"
+  echo "   -log logfile   : specify log file explicitly"
+  echo "   -outparent dir : save output to this dir instead of in session"
+  echo "   -max-threads   : use all CPUs (default is to use 1)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program performs the first-level fMRI analysis. Specify the
+analysis configuration with -analysis. This is the configuration
+created with mkanalysis-sess. The analysis should already have
+contrasts created (by mkcontrast-sess), though you can add
+contrasts afterwards.
+
+By default, selxavg3-sess will check the preprocessing to make
+sure that it has been run properly (turn off with -no-preproc).
+
+By default, it will only run the analysis on data sets that actually
+need to be re-run based on the time stamps of the input data. To force
+a re-analysis run with -force or -overwrite.
+
+This program will construct the design matrix for each run, fit the
+GLM, save regression coefficients, compute contrasts and significances
+of contrasts. The runs are combined together so the output is the
+average across runs (some would call this a "second-level" analysis).
+
+This program requires matlab or octave.
+
