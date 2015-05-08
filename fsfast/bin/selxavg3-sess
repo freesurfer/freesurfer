@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/10/15 22:02:08 $
-#    $Revision: 1.62 $
+#    $Date: 2015/05/08 21:01:55 $
+#    $Revision: 1.63 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.62 2014/10/15 22:02:08 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.63 2015/05/08 21:01:55 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -59,6 +59,8 @@ set SynthSignalAmp = 0;
 set SynthSeed = -1;
 set ReduceToMask = 1;
 set threads = "-singleCompThread"; # one single thread
+if(! $?FS_SXA3_USE_BIN)  setenv FS_SXA3_USE_BIN 0
+if(! $?FS_MCRROOT) setenv FS_MCRROOT /usr/pubsw/common/matlab/8.3
 
 set UseOctave = 0;
 if($?FS_USE_OCTAVE) then
@@ -169,13 +171,18 @@ if($DoPreProc) then
   end
 endif
 
-if($#MLF == 0) set MLF = /tmp/selxavg3-sess-$$.m
-rm -f $MLF
-echo "% `date`  " >> $MLF
-echo "% `pwd`  " >> $MLF
-echo "% $flacfile $analysis  " >> $MLF
-echo "  " >> $MLF
-echo "  " >> $MLF
+if($FS_SXA3_USE_BIN == 0) then
+  if($#MLF == 0) set MLF = /tmp/selxavg3-sess-$$.m
+  rm -f $MLF
+  echo "% `date`  " >> $MLF
+  echo "% `pwd`  " >> $MLF
+  echo "% $flacfile $analysis  " >> $MLF
+  echo "which fast_selxavg3" >> $MLF
+  echo "which fast_ldanaflac" >> $MLF
+  echo "which MRIread" >> $MLF
+  echo "  " >> $MLF
+  echo "  " >> $MLF
+endif
 
 set okfile = /tmp/selxavg3-sess-$$.ok
 rm -f $okfile
@@ -276,77 +283,106 @@ foreach sess ($SessList)
     rm -f $anadir/* $anadir/*/*sig* $anadir/*/*cnr* $anadir/*/*ces* >& /dev/null
   endif
 
-  echo "%--------------------------------" >> $MLF
-  echo "sxa3pwd = '`pwd`'">> $MLF
-  echo "sxa3cmd = '$0 $inputargs'">> $MLF
-  echo "which fast_selxavg3"               >> $MLF
-  echo "okfile         = '$okfile';"       >> $MLF
-  echo "if(fast_fileexists(okfile)) delete(okfile); end" >> $MLF
-  echo "monly          = $monly;"          >> $MLF
-  echo "perrun         = $perrun;"         >> $MLF
-  echo "jkrun          = $jkrun;"          >> $MLF
-  echo "DoGLMFit       = $DoGLMFit;"       >> $MLF
-  echo "DoContrasts    = $DoContrasts;"    >> $MLF
-  echo "ConList        = splitstring('$ConList');" >> $MLF
-  echo "DoSynth        = $DoSynth;"        >> $MLF
-  echo "SynthNoiseAmp  = $SynthNoiseAmp;"  >> $MLF
-  echo "SynthNoiseAR1  = $SynthNoiseAR1;"  >> $MLF
-  echo "SynthSignalAmp = $SynthSignalAmp;" >> $MLF
-  echo "SynthSeed      = $SynthSeed;"      >> $MLF
-  echo "sess           = '$sess';"         >> $MLF
-  echo "ReduceToMask   = $ReduceToMask;"   >> $MLF
-  echo "analysis = '$analysis';" >> $MLF
-  echo "flacname = '$flacfile';" >> $MLF
-  echo "outtop = '$OutParent';" >> $MLF
-  echo "DoFWHM = $DoFWHM;" >> $MLF
-  echo "MatlabSaveRes = $MatlabSaveRes;" >> $MLF
-  echo "SaveResUnwhitened = $SaveResUnwhitened;" >> $MLF
-  echo "fast_selxavg3;" >> $MLF
-  echo "if(~fast_fileexists(okfile) && ~monly); quit; end" >> $MLF
-  if($#SessList > 1 && ! $monly)  then
-    echo "clear all;" >> $MLF
-    echo "pack;" >> $MLF
-  endif
-  echo "  " >> $MLF
-  echo "  " >> $MLF
+  mkdir -p $anadir
+  set config = $anadir/sxa3.config.txt
+  rm -f $config
+  echo "sxa3pwd  `pwd`">> $config
+  echo "sxa3cmd  $0 $inputargs">> $config
+  echo "okfile          $okfile"       >> $config
+  echo "monly           $monly"          >> $config
+  echo "perrun          $perrun"         >> $config
+  echo "jkrun           $jkrun"          >> $config
+  echo "DoGLMFit        $DoGLMFit"       >> $config
+  echo "DoContrasts     $DoContrasts"    >> $config
+  echo "DoSynth         $DoSynth"        >> $config
+  echo "SynthNoiseAmp   $SynthNoiseAmp"  >> $config
+  echo "SynthNoiseAR1   $SynthNoiseAR1"  >> $config
+  echo "SynthSignalAmp  $SynthSignalAmp" >> $config
+  echo "SynthSeed       $SynthSeed"      >> $config
+  echo "sess            $sess"         >> $config
+  echo "ReduceToMask    $ReduceToMask"   >> $config
+  echo "analysis  $analysis" >> $config
+  echo "flacname  $flacfile" >> $config
+  echo "outtop  $OutParent" >> $config
+  echo "DoFWHM  $DoFWHM" >> $config
+  echo "MatlabSaveRes  $MatlabSaveRes" >> $config
+  echo "SaveResUnwhitened  $SaveResUnwhitened" >> $config
+  echo "ConList  $ConList" >> $config
+  echo $config
 
-end # Loop over sessions #
-if(! $monly ) echo "quit;" >> $MLF
-
-echo "------------------------------------------" >> $LF
-cat $MLF >> $LF
-echo "------------------------------------------" >> $LF
-
-if(! $monly && $nprocs > 0) then
-  echo "------------------------------------------" | tee -a $LF
-  if($UseOctave == 0) then
-    echo "------- matlab output --------------------" | tee -a $LF
-    cat $MLF | matlab -display iconic $threads | tee -a $LF
-  else
-    echo "------- octave output --------------------" | tee -a $LF
-    echo LD_LIBRARY_PATH $LD_LIBRARY_PATH
-    cat $MLF | $FS_OCTAVE_BIN  |& tee -a $LF
-  endif
-  echo "------------------------------------------" | tee -a $LF
-  rm $MLF
-  if(! -e $okfile) then
-    echo "ERROR: fast_selxavg3() failed\n";
-    exit 1;
-  endif
-  rm -f $okfile
-  # Copy the fs build, etc
-  foreach sess ($SessList)
-    set sessbase = `basename $sess`;
-    set sessdir  = `dirname  $sess`;
-    if($#OutParent == 0) then
-      set anadir = $sess/$fsd/$analysisname
-    else
-      set anadir = $OutParent/$sessbase/$fsd/$analysisname
+  if($FS_SXA3_USE_BIN == 0) then
+    echo "fast_selxavg3b('$config')" >> $MLF
+    if(! $monly) then
+      echo "if(~fast_fileexists('$okfile')); quit; end" >> $MLF
     endif
+    if($#SessList > 1 && ! $monly)  then
+      echo "clear all;" >> $MLF
+      echo "pack;" >> $MLF
+    endif
+    echo "%--------------------------------" >> $MLF
+    echo "  " >> $MLF
+    echo "  " >> $MLF
+  else
+    echo "FS_MCRROOT $FS_MCRROOT " 
+    if($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH
+    setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/runtime/glnxa64"
+    setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/bin/glnxa64"
+    setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/sys/os/glnxa64"
+    echo "LD_LIBRARY_PATH $LD_LIBRARY_PATH" 
+    set cmd = (fast_selxavg3b.glnxa64 $config)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    if(! -e $okfile) then
+      echo "ERROR: fast_selxavg3() failed\n";
+      exit 1;
+    endif
+    rm -f $okfile
     cp $FREESURFER_HOME/build-stamp.txt $anadir/fs.build-stamp.txt
     cp $analysis/analysis.info $anadir
-  end
-  # The computing of FWHM is now done in fast_selxavg3
+  endif
+
+end # Loop over sessions #
+
+if($FS_SXA3_USE_BIN == 0) then
+  if($monly == 0) echo "quit;" >> $MLF
+  echo "MLF is $MLF" | tee -a $LF
+
+  echo "------------------------------------------" >> $LF
+  cat $MLF >> $LF
+  echo "------------------------------------------" >> $LF
+
+  if(! $monly && $nprocs > 0) then
+    echo "------------------------------------------" | tee -a $LF
+    if($UseOctave == 0) then
+      echo "------- matlab output --------------------" | tee -a $LF
+      cat $MLF | matlab -display iconic $threads | tee -a $LF
+    else
+      echo "------- octave output --------------------" | tee -a $LF
+      echo LD_LIBRARY_PATH $LD_LIBRARY_PATH
+      cat $MLF | $FS_OCTAVE_BIN  |& tee -a $LF
+    endif
+    echo "------------------------------------------" | tee -a $LF
+    rm $MLF
+    if(! -e $okfile) then
+      echo "ERROR: fast_selxavg3() failed\n";
+      exit 1;
+    endif
+    rm -f $okfile
+    # Copy the fs build, etc
+    foreach sess ($SessList)
+      set sessbase = `basename $sess`;
+      set sessdir  = `dirname  $sess`;
+      if($#OutParent == 0) then
+        set anadir = $sess/$fsd/$analysisname
+      else
+        set anadir = $OutParent/$sessbase/$fsd/$analysisname
+      endif
+      cp $FREESURFER_HOME/build-stamp.txt $anadir/fs.build-stamp.txt
+      cp $analysis/analysis.info $anadir
+    end
+    # The computing of FWHM is now done in fast_selxavg3
+  endif
 endif
 
 if($nprocs == 0) then
@@ -405,6 +441,22 @@ while( $#argv != 0 )
       set MLF =  $1; shift;
       set monly = 1;
       set DoPreProc = 0;
+      setenv FS_SXA3_USE_BIN 0
+      breaksw
+
+    case "-bin":
+      setenv FS_SXA3_USE_BIN 1
+      set monly = 0;
+      breaksw
+
+    case "-no-bin":
+      setenv FS_SXA3_USE_BIN 0
+      breaksw
+
+    case "-mcr":
+      if ( $#argv < 1) goto arg1err;
+      setenv FS_MCRROOT $argv[1]; shift;
+      setenv FS_SXA3_USE_BIN 1
       breaksw
 
     case "-contrasts-only":
