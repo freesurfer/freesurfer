@@ -1,0 +1,501 @@
+#! /bin/csh -f
+
+#
+# mkcontrast -- make a contrast matrix
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2015/05/08 22:01:05 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set MKCONTRAST_VER = '$Id: mkcontrast2,v 1.1 2015/05/08 22:01:05 greve Exp $';
+
+set CorrIdeal = 0;
+set monly = 0;
+set mfile = ();
+set cmtxfile = ();
+set nconds  = 0;
+set wcond = ();
+set sumconds = 0;
+set ndelays = 0;
+set wdelay  = ();
+set sumdelays = 0;
+set TER = ();
+set TPreStim = 0;
+set TimeWindow = 0;
+set IsFIR = 0;
+set ShowCMtx = 0;
+set datfile = ();
+set wpsa = (); # weights for pre-stim avg
+set RmPreStim = 0;
+set sxadat = ();
+set anadir = ();
+set CNorm = 1;
+set setwcond = 0;
+set setwdelay = 0;
+
+set nircorr = 0;
+set rdelta = ();
+set rtau   = ();
+set config = ()
+set configdelete = 1;
+
+if(! $?FS_MKCON_USE_BIN)  setenv FS_MKCON_USE_BIN 0
+if(! $?FS_MCRROOT) setenv FS_MCRROOT /usr/pubsw/common/matlab/8.3
+
+if ( $#argv == 0 ) then
+  echo "USAGE: mkcontrast [-options] -o cmtxmatfile ";
+  echo ""
+  echo "Option Set 1:";
+  echo "   -nconds  nconds       : number of conditions (excl fix)"
+  echo "   -wcond  cw1 cw2 ...   : weight of each condition"
+  echo "   -sumconds             : sum conditions"
+  echo "   -ndelays ndelays      : number of delays points in HDR"
+  echo "   -wdelay dw1 dw2 ...   : weight of each delay"
+  echo "   -wpsa   dw1 dw2 ...   : weight of each delay for pre-stim avg"
+  echo "   -sumdelays            : sum delays"
+  echo "   -rmprestim            : remove prestim baseline (ER only)"
+  echo "   -sxadat file          : dat file from selxavg"
+  echo "   -anadir anadir        : analysis dir created with mkanalysis-sess"
+  echo "   -TER TER              : Estimation resolution (sec)"
+  echo "   -prestim TPreStim     : Estimation prestimulus period (0) (sec)"
+  echo ""
+  echo "Option Set 2:";
+  echo "   -rmprestim            : remove prestim baseline (ER only)"
+  echo "   -nconds  nconds       : number of conditions (excl fix)"
+  echo "   -wcond  cw1 cw2 ...   : weight of each condition"
+  echo "   -sumconds             : sum conditions"
+  echo "   -ndelays ndelays      : number of delays points in HDR"
+  echo "   -sumdelays            : sum delays"
+  echo "   -ircorr nircorr       : correlate with nircorr ideal HDIRs"
+  echo "   -deltarange dmin dmax ...  : delta range of ideal HDIR"
+  echo "   -taurange   tmin tmax ...  : tau range of ideal HDIR"
+  echo "   -sxadat file          : dat file from selxavg"
+  echo "   -TER TER              : Estimation resolution (sec)"
+  echo "   -prestim TPreStim     : Estimation prestimulus period (0) (sec)"
+  echo ""
+  echo "  $MKCONTRAST_VER"
+  echo ""
+  exit 1;
+endif
+
+echo "  $MKCONTRAST_VER"
+
+set UseOctave = 0;
+if($?FS_USE_OCTAVE) then
+  set UseOctave = $FS_USE_OCTAVE
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+goto dump_params;
+dump_params_return:
+
+if($monly) then
+  set TARGET = "tee $mfile"
+  rm -f $mfile;
+else
+  if($UseOctave == 0) then
+    set MATLAB = `getmatlab`;
+    if($status) then
+      echo "ERROR: cannot find matlab. Is it in your path?"
+      exit 1;
+    endif
+    set TARGET =  "$MATLAB -display iconic"
+  else
+    set TARGET = $FS_OCTAVE_BIN;
+  endif
+endif  
+
+if($#rdelta == 0) set rdelta = (0 0);
+if($#rtau   == 0) set rtau   = (0 0);
+if($#TER    == 0) set TER    = 1;
+
+set OutDir = `dirname $cmtxfile`;
+if("$OutDir" != ".") mkdir -p $OutDir
+
+#---------------------------------------------------------------#
+# Create config file compatible with mkcontrast2.m
+if($#config == 0) set config = /tmp/mkcontrast2.config.$$.txt
+rm -f $config
+tee $config <<EOF
+  cmtxfile  $cmtxfile
+  monly  $monly
+  NCond   $nconds
+  WCond   $wcond
+  NDelay  $ndelays
+  WDelay  $wdelay
+  TER         $TER
+  sumconds   $sumconds
+  sumdelays  $sumdelays
+  nircorr  $nircorr
+  TPreStim  $TPreStim
+  RmPreStim  $RmPreStim
+  rdelta     $rdelta
+  rtau       $rtau
+  ndelays    $ndelays
+  CNorm      $CNorm
+  setwdelay  $setwdelay
+  setwcond   $setwcond
+EOF
+
+if($FS_MKCON_USE_BIN == 0) then
+  if($#mfile == 0) set mfile = /tmp/mkcontrast2.$$.m
+  rm -f $mfile
+  echo "Matlab file is $mfile"
+  echo "mkcontrast2m('$config');" >> $mfile
+  if($monly) exit 1;
+  echo "quit;" >> $mfile
+  cat $mfile | $MATLAB -nosplash -display iconic -nodesktop 
+  rm $mfile
+else
+  echo "FS_MCRROOT $FS_MCRROOT " 
+  if($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH
+  setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/runtime/glnxa64"
+  setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/bin/glnxa64"
+  setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/sys/os/glnxa64"
+  echo "LD_LIBRARY_PATH $LD_LIBRARY_PATH" 
+  set cmd = (mkcontrast2m.glnxa64 $config)
+  echo $cmd 
+  $cmd 
+  if($status) exit 1;
+  if($configdelete) rm $config
+endif
+
+if($status) exit $status
+exit 0;
+#-------------------------------------------------------------#
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o":
+      if( $#argv == 0) goto arg1err;
+      if( $#cmtxfile != 0 ) then
+        echo ERROR: only one cmtxfile allowed.
+        exit 1
+      endif
+      set cmtxfile = $argv[1]; shift;
+      breaksw
+
+    case "-anadir":
+      if( $#argv == 0) goto arg1err;
+      set anadir = $argv[1]; shift;
+      if(! -e $anadir) then
+         echo "ERROR: cannot find $anadir"
+         exit 1;
+      endif
+      set TER  = `getana -a $anadir -t TER`;
+      set TimeWindow  = `getana -a $anadir -t timewindow`;
+      set ndelays  = `getana -a $anadir -t npercond`;
+      set nconds   = `getana -a $anadir -t nconditions`;
+      set PreStim  = `getana -a $anadir -t prestim`;
+      set IsFIR    = `getana -a $anadir -t IsFIR`;
+      breaksw
+
+    case "-sxadat":
+      if( $#argv == 0) goto arg1err;
+      set sxadat = $argv[1]; shift;
+      if(! -e $sxadat) then
+         echo "ERROR: cannot find $sxadat"
+         exit 1;
+      endif
+      set tmp = `grep Nh $sxadat`;
+      set ndelays = $tmp[2];
+      set tmp = `grep nCond $sxadat`;
+      @ nconds = $tmp[2] - 1;
+      set tmp = `grep TER $sxadat`;
+      set TER = $tmp[2];
+      set tmp = `grep TPreStim $sxadat`;
+      set TPreStim = $tmp[2];
+      set tmp = `grep TimeWindow $sxadat`;
+      set TimeWindow = $tmp[2];
+      set tmp = `grep GammaFit $sxadat`;
+      set GammaFit = $tmp[2];
+      breaksw
+
+    case "-nconds":
+      if( $#argv == 0) goto arg1err;
+      set nconds = $argv[1]; shift;
+      breaksw
+
+    case "-wcond":
+      if( $#argv < $nconds) then
+        echo "ERROR: need at least $nconds weights for -wcond";
+        exit 1;
+      endif
+      set wcond = ();
+      @ c = 0;
+      while($c < $nconds)
+        set wcond = ($wcond $argv[1]); shift;
+        @ c = $c + 1;
+      end
+      breaksw
+
+    # These are just flags to indicate that they were set manually
+    case "-setwcond"
+      set setwcond = 1;
+      breaksw
+    case "-setwdelay"
+      set setwdelay = 1;
+      breaksw
+
+    case "-rmprestim"
+      set RmPreStim = 1;
+      breaksw
+
+    case "-sumconds"
+      set sumconds = 1;
+      breaksw
+
+    case "-ndelays":
+      if( $#argv == 0) goto arg1err;
+      set ndelays = $argv[1]; shift;
+      breaksw
+
+    case "-wdelay":
+      if( $#argv < $ndelays) then
+        echo "ERROR: need at least $ndelays weights for -wdelay";
+        exit 1;
+      endif
+      set wdelay = ();
+      @ d = 0;
+      while($d < $ndelays)
+        set wdelay = ($wdelay $argv[1]); shift;
+        @ d = $d + 1;
+      end
+      breaksw
+
+    case "-wpsa":
+      if( $#argv < $ndelays) then
+        echo "ERROR: need at least $ndelays weights for -wpsa";
+        exit 1;
+      endif
+      set wpsa = ();
+      @ d = 0;
+      while($d < $ndelays)
+        set wpsa = ($wpsa $argv[1]); shift;
+        @ d = $d + 1;
+      end
+      breaksw
+
+    case "-sumdelays"
+      set sumdelays = 1;
+      breaksw
+
+    case "-ircorr":
+      if( $#argv == 0) goto arg1err;
+      set nircorr = $argv[1]; shift;
+      set CorrIdeal = 1;
+      breaksw
+
+    case "-TER":
+      if( $#argv == 0) goto arg1err;
+      set TER = $argv[1]; shift;
+      breaksw
+
+    case "-prestim":
+    case "-tprestim":
+    case "-tps":
+      if( $#argv == 0) goto arg1err;
+      set TPreStim = $argv[1]; shift;
+      breaksw
+
+    case "-deltarange":
+    case "-dr":
+      if( $#argv == < 2) then
+        echo "ERROR: -deltarange option requires 2 arguments"
+        exit 1;
+      endif
+      set rdelta = ($argv[1] $argv[2]); shift;shift;
+      breaksw
+
+    case "-taurange":
+    case "-tr":
+      if( $#argv == < 2) then
+        echo "ERROR: -taurange option requires 2 arguments"
+        exit 1;
+      endif
+      set rtau = ($argv[1] $argv[2]); shift;shift;
+      breaksw
+
+    case "-nocnorm":
+      set CNorm = 0;
+      breaksw;
+
+    case "-monly":
+      if( $#argv == 0) goto arg1err;
+      set mfile  = $argv[1]; shift;
+      set monly  = 1; 
+      setenv FS_MKCON_USE_BIN 0
+      breaksw
+
+    case "-bin":
+      setenv FS_MKCON_USE_BIN 1
+      set monly = 0;
+      breaksw
+
+    case "-no-bin":
+      setenv FS_MKCON_USE_BIN 0
+      breaksw
+
+    case "-mcr":
+      if ( $#argv < 1) goto arg1err;
+      setenv FS_MCRROOT $argv[1]; shift;
+      setenv FS_MKCON_USE_BIN 1
+      breaksw
+
+    case "-config":
+      if( $#argv == 0) goto arg1err;
+      set config = $argv[1]; shift;
+      set configdelete = 0;
+      breaksw
+
+    case "-octave":
+      set UseOctave = 1;
+      breaksw
+
+    case "-matlab":
+    case "-no-octave":
+      set UseOctave = 0;
+      breaksw
+
+    case "-debug":
+    case "-verbose":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+  if($#cmtxfile != 1) then
+     echo "ERROR: must specify an output file";
+     exit 1
+  endif
+  if($nconds < 1) then
+     echo "ERROR: must specify the number of conditions"
+     exit 1;
+  endif
+  if($ndelays < 1) then
+     echo "ERROR: must specify the number of delays"
+     exit 1;
+  endif
+  if( ( $#rdelta != 0 || $#rtau != 0) && $nircorr == 0) then
+    echo "ERROR: must use -ircorr with -deltarange and -taurange";
+    exit 1;
+  endif
+  if( $nircorr != 0) then
+    if( $#rdelta != 2 ) then
+      echo "ERROR: must specify -deltarange with ircorr";
+      exit 1;
+    endif
+    if($#rtau != 2) then
+      echo "ERROR: must specify -taurange with ircorr";
+      exit 1;
+    endif
+    if($#TER != 1) then
+      echo "ERROR: must specify TER with ircorr";
+      exit 1;
+    endif
+    if($#TPreStim == 0) then
+      echo "ERROR: must specify TPreStim with ircorr";
+      exit 1;
+    endif
+  endif
+
+  if($RmPreStim != 0 && $#sxadat == 0 && $#anadir == 0) then
+    echo "ERROR: need sxadat or anadir with -rmprestim"
+    exit 1;
+  endif
+
+  if($RmPreStim != 0 && ! $IsFIR) then
+    echo "ERROR: need an FIR model to remove prestim baseline"
+    exit 1;
+  endif
+
+  if($UseOctave) then
+    if($?FS_OCTAVE_LIB == 0) then
+      echo "ERROR: you must set the FS_OCTAVE_LIB environment variable"
+      exit 1;
+    endif
+    if(! -e $FS_OCTAVE_LIB) then
+      echo "ERROR: cannot find $FS_OCTAVE_LIB"
+      exit 1;
+    endif
+    if($?FS_OCTAVE_BIN == 0) then
+      echo "ERROR: you must set the FS_OCTAVE_BIN environment variable"
+      exit 1;
+    endif
+    if(! -x $FS_OCTAVE_BIN) then
+      echo "ERROR: cannot find or execute $FS_OCTAVE_BIN"
+      exit 1;
+    endif
+    if($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH ""
+    if($#LD_LIBRARY_PATH == 0) then 
+      setenv LD_LIBRARY_PATH $FS_OCTAVE_LIB
+    else
+      setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:$FS_OCTAVE_LIB
+    endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+dump_params:
+  echo "cmtxfile  $cmtxfile"
+  echo "nconds    $nconds,  wcond  $wcond"
+  echo "ndelays   $ndelays, wdelay $wdelay"
+  echo "ndelays   $ndelays, wpsa   $wpsa"
+  echo "sumconds  $sumconds"
+  echo "sumdelays $sumdelays"
+  echo "nircorr   $nircorr"
+  echo "TER       $TER"
+  echo "rdelta    $rdelta"
+  echo "rtau      $rtau"
+goto dump_params_return;
+############--------------##################
+
