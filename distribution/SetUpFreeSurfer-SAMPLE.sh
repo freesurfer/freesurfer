@@ -19,11 +19,6 @@ if [ -z $SUBJECTS_DIR ]; then
     export SUBJECTS_DIR=$FREESURFER_HOME/subjects
 fi
 
-# Set tutorial data location in subjects dir, usually freesurfer/subjects/
-if [ -z $TUTORIAL_DATA ]; then
-    export TUTORIAL_DATA=$SUBJECTS_DIR/tutorial_data
-fi
-
 # Set this to your functional sessions dir, usually freesurfer/sessions/
 if [ -z $FUNCTIONALS_DIR ]; then
     export FUNCTIONALS_DIR=$FREESURFER_HOME/sessions

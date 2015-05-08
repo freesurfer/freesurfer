@@ -19,11 +19,6 @@ if (! $?SUBJECTS_DIR) then
     setenv SUBJECTS_DIR $FREESURFER_HOME/subjects
 endif
 
-# Set tutorial data location in subjects dir, usually freesurfer/subjects/
-if (! $?TUTORIAL_DATA) then
-    setenv TUTORIAL_DATA $SUBJECTS_DIR/tutorial_data
-endif
-
 # Set this to your functional sessions dir, usually freesurfer/sessions/
 if (! $?FUNCTIONALS_DIR) then
     setenv FUNCTIONALS_DIR $FREESURFER_HOME/sessions

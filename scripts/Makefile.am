@@ -72,6 +72,8 @@ freesurfer \
 fs_lib_check \
 fs_spmreg.glnxa64 \
 fs_time \
+fs_tutorial_data \
+fs_update \
 fsl_rigid_register \
 fslregister \
 fsl.5.0.2.xyztrans.sch \

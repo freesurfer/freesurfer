@@ -11,49 +11,66 @@
 ## commands in the tutorial.
 ## 
 ## The tutorial data will be downloaded into the directory
-## specified by the TUTORIAL_DATA environment variable, which
-## by default is set to $FREESURFER_HOME/subjects/tutorial_data. 
-## However, the user has the ability to override this location 
-## either at the time of script execution, or by modifying the the
-## TUTORIAL_DATA environment variable.
+## specified by the TUTORIAL_DATA environment variable, or 
+## if undefined than it is installed to $FREESURFER_HOME/subjects/tutorial_data.
 #############################################################
 
-if [ $# -ne 0 ]; then 
-    echo "\"$(basename $0)\" accepts no arguments."
-    exit 1
+show_usage() { 
+echo " Example usages:"
+echo  
+echo " 1) Tutorial data will be downloaded into TUTORIAL_DATA directory,"
+echo "    or in FREESURFER_HOME/subjects by default:"
+echo
+echo " $> fs_tutorial_data"
+echo
+echo 
+echo " 2) Tuturial data will by downloaded into directory specified at command line:"
+echo
+echo " $> fs_tutorial_data <absolute_path>"
+echo
+echo 
+echo " 3) Show help:"
+echo 
+echo " $> fs_update -h, -help, --help"
+echo 
+} 
+
+if [[ $1 = "-h" ]] || [[ $1 = "-help" ]] || [[ $1 = "--help" ]]; then 
+  show_usage
+  exit 0
+fi  
+
+## FREESURFER_HOME must be defined.
+if [ -z "$FREESURFER_HOME" ]; then
+  echo " ERROR: Environment variable FREESURFER_HOME must be defined."
+  exit 1
 fi
 
-## This script will only work if the
-## TUTORIAL_DATA environment variable is defined.
-if [ -z "$TUTORIAL_DATA" ]; then
-    echo " Environment variable TUTORIAL_DATA needs to"
-    echo " either be set in the SetupFreesurfer.(c)sh file,"
-    echo " or defined prior to sourcing FreeSurfer."
-    exit 1
-fi
-
-## If TUTORIAL_DATA is defined but 
-## does not exist then lets create it.
-if [ ! -d "$TUTORIAL_DATA" ]; then
-    cmd=`mkdir -p $TUTORIAL_DATA`
-    echo $cmd
-    $cmd
+## Figure out where we want to install this data.
+if [[ $# -eq 0 ]]; then
+  if [[ -z "$TUTORIAL_DATA" ]] || [[ ! -d "$TUTORIAL_DATA" ]] ; then
+    TUTORIAL_DATA=$FREESURFER_HOME/subjects/tutorial_data
+  fi
+elif [[ $# -eq 1 ]]; then
+    if [[ -d $1 ]]; then 
+      TUTORIAL_DATA=$1/tutorial_data
+    else
+      echo " ERROR: $1 does not exist."
+      exit 1
+    fi
+else
+  echo " fs_update only accepts 1 argument."
+  show_usage
+  exit 1
 fi
 
 ## Begin download
-echo    " Tutorial data will be downloaded and installed"
-echo    " into the location specified by the TUTORIAL_DATA"
-echo    " environment varible:
+echo    " Tutorial data will be downloaded and installed into:" 
 echo    " $TUTORIAL_DATA"
 read -p " Shall I proceed? [y/n/Abort]: "
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    mkdir -p $TUTORIAL_DATA
-    if [ ! -d "$TUTORIAL_DATA" ]; then
-        echo "Unable to create $TUTORIAL_DATA"
-        exit 1
-    fi
-    rsync -ztrlv --progress rsync://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/* $TUTORIAL_DATA
+    rsync -ztrlv --progress rsync://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/ $TUTORIAL_DATA
     exit 0
 else
     exit 1
