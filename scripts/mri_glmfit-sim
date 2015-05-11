@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.53 2015/03/11 15:49:41 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.54 2015/05/11 22:06:25 greve Exp $';
 setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
@@ -558,7 +558,7 @@ foreach conname ($conlist)
       # Create an average "waveform" for each cluster
       set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
       set cmd = (mri_segstats --seg $ocn --exclude 0  \
-       --i $y  --sum /tmp/mri_glmfit-sim.junk.$$)
+       --i $y  --avgwf $avgwf --sum /tmp/mri_glmfit-sim.junk.$$)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
