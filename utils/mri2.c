@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/15 19:53:01 $
- *    $Revision: 1.116 $
+ *    $Date: 2015/05/12 16:46:21 $
+ *    $Revision: 1.117 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2534,6 +2534,39 @@ MRI *MRIchecker(MRI *mri, MRI *checker)
   }
   return(checker);
 }
+
+/*---------------------------------------------------------------*/
+/*!
+  \fn MRI *MRIgrid(MRI *mri, int dc, int dr, int ds, float val, MRI *grid)
+  \brief Creates a grid pattern. 
+*/
+MRI *MRIgrid(MRI *mri, int dc, int dr, int ds, float val, MRI *grid)
+{
+  int c,r,s,f;
+
+  if (grid == NULL){
+    grid = MRIallocSequence(mri->width,mri->height,mri->depth,
+                               MRI_FLOAT,mri->nframes);
+    if(grid == NULL) return(NULL);
+    MRIcopyHeader(mri,grid);
+    grid->type = MRI_FLOAT;
+  }
+
+  // Make sure everyone is 0
+  MRIconst(mri->width,mri->height,mri->depth,mri->nframes, 0, grid);
+
+  for (c=0; c < mri->width; c += dc) {
+    for (r=0; r < mri->height; r += dr) {
+      for (s=0; s < mri->depth; s += ds) {
+        for (f=0; f < mri->nframes; f++) {
+          MRIsetVoxVal(grid,c,r,s,f,val);
+        }
+      }
+    }
+  }
+  return(grid);
+}
+
 
 /*-----------------------------------------------------------*/
 /*!

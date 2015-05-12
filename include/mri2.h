@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/24 17:25:41 $
- *    $Revision: 1.67 $
+ *    $Date: 2015/05/12 16:46:21 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,6 +83,7 @@ int MRImakeVox2VoxReg(MRI* targ, MRI* mov,
                       mriTransformRef* transform);
 double MRIsum2All(MRI *mri);
 MRI *MRIchecker(MRI *mri, MRI *checker);
+MRI *MRIgrid(MRI *mri, int dc, int dr, int ds, float val, MRI *grid);
 MRI *MRIcrop(MRI *mri,int c1, int r1, int s1, int c2, int r2, int s2);
 MRI *MRIuncrop(MRI *mri, MRI *crop, int c1, int r1, int s1, int c2, int r2, int s2);
 MRI *MRIreverseSlices(MRI *in, MRI *out);
