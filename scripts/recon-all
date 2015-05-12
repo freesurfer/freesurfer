@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/05/07 19:23:16 $
-#    $Revision: 1.519 $
+#    $Date: 2015/05/12 19:06:35 $
+#    $Revision: 1.520 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.519 2015/05/07 19:23:16 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.520 2015/05/12 19:06:35 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -6386,7 +6386,6 @@ while( $#argv != 0 )
       set DoSegStats       = 1;
       set DoWMParc         = 1;
       set DoBaLabels       = 1;
-      set DoLabelExvivoEC  = 1;
       breaksw
 
     case "-autorecon1":
@@ -6519,7 +6518,6 @@ while( $#argv != 0 )
       set DoAPas2ASeg      = 1;
       set DoWMParc         = 1;
       set DoBaLabels       = 1;
-      set DoLabelExvivoEC  = 1;
       breaksw
 
     case "-autorecon3":
@@ -6543,7 +6541,6 @@ while( $#argv != 0 )
       set DoSegStats       = 1;
       set DoWMParc         = 1;
       set DoBaLabels       = 1;
-      set DoLabelExvivoEC  = 1;
       breaksw
 
     # skips unnecessary steps (sphere reg) in autorecon3 when refining pial surface only
@@ -6563,7 +6560,6 @@ while( $#argv != 0 )
       set DoSegStats       = 1;
       set DoWMParc         = 1;
       set DoBaLabels       = 1;
-      set DoLabelExvivoEC  = 1;
       breaksw
 
     case "-autorecon-hemi":
@@ -6606,7 +6602,6 @@ while( $#argv != 0 )
       set DoWMParc         = 0;
       set DoSegStats       = 0;
       set DoBaLabels       = 1;
-      set DoLabelExvivoEC  = 1;
       breaksw
 
 #-------------------------------------------------#
