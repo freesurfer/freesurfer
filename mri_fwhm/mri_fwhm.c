@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/12 17:11:58 $
- *    $Revision: 1.31 $
+ *    $Date: 2015/05/12 17:39:16 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -255,7 +255,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.31 2015/05/12 17:11:58 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.32 2015/05/12 17:39:16 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -759,22 +759,24 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
     else if (!strcasecmp(option, "--mb-rad")) {
-      if (nargc < 1) CMDargNErr(option,1);
+      if (nargc < 2) CMDargNErr(option,2);
       mb2drad = (MB2D *) calloc(sizeof(MB2D),1);
       mb2drad->type = MB_RADIAL;
       mb2drad->cutoff = 4;// number of stddevs to cut off kernel
       mb2drad->Interp = SAMPLE_NEAREST;
-      sscanf(pargv[0],"%lf",&mb2drad->slope);
-      nargsused = 1;
+      sscanf(pargv[0],"%lf",&mb2drad->offset);
+      sscanf(pargv[1],"%lf",&mb2drad->slope);
+      nargsused = 2;
     }
     else if (!strcasecmp(option, "--mb-tan")) {
-      if (nargc < 1) CMDargNErr(option,1);
+      if (nargc < 2) CMDargNErr(option,2);
       mb2dtan = (MB2D *) calloc(sizeof(MB2D),1);
       mb2dtan->type = MB_TANGENTIAL;
       mb2dtan->cutoff = 4;
       mb2dtan->Interp = SAMPLE_NEAREST;
-      sscanf(pargv[0],"%lf",&mb2dtan->slope);
-      nargsused = 1;
+      sscanf(pargv[0],"%lf",&mb2dtan->offset);
+      sscanf(pargv[1],"%lf",&mb2dtan->slope);
+      nargsused = 2;
     }
     else if (!strcasecmp(option, "--median")) {
       if (nargc < 1) CMDargNErr(option,1);

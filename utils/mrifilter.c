@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/12 17:06:11 $
- *    $Revision: 1.108 $
+ *    $Date: 2015/05/12 17:43:14 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7526,8 +7526,9 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
     if(out == NULL) return(NULL);
   }
 
-  printf("MB: %d %lf %d c0=%d, r0=%d, cR=%d, rR=%d\n",mb->type,mb->slope,mb->Interp,mb->c0,mb->r0,mb->cR,mb->rR);
-  fflush(stdout);
+  //printf("MB: %d offset=%lf, slope=%lf %d c0=%d, r0=%d, cR=%d, rR=%d\n",
+  //	 mb->type,mb->offset,mb->slope,mb->Interp,mb->c0,mb->r0,mb->cR,mb->rR);
+  //fflush(stdout);
 
   // These are two structures to save slice-based parameters
   if(mb->d0)    MRIfree(&mb->d0);
@@ -7563,7 +7564,7 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
       dx = dc*src->xsize; // mm distance in x from center
       dy = dr*src->ysize; // mm distance in y from center
       d0 = sqrt(dx*dx + dy*dy); // mm dist to cur vox
-      fwhm = mb->slope*d0; // compute FWHM based on distance
+      fwhm = mb->offset + mb->slope*d0; // compute FWHM based on distance
       stddev = fwhm/sqrt(log(256.0));
       ndlim = ceil(mb->cutoff*stddev/mb->DeltaD);
       nd = 2*ndlim+1; // number of samples to integrate over
@@ -7714,6 +7715,8 @@ MB2D *MB2Dcopy(MB2D *src, int CopyMRI, MB2D *copy)
 {
   
   if(copy == NULL) copy = (MB2D *) calloc(sizeof(MB2D),1);
+  copy->type = src->type;
+  copy->offset = src->offset;
   copy->slope = src->slope;
   copy->DeltaD = src->DeltaD;
   copy->c0 = src->c0;
