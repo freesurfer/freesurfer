@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/16 18:49:31 $
- *    $Revision: 1.476 $
+ *    $Date: 2015/05/12 17:06:11 $
+ *    $Revision: 1.477 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,6 +76,9 @@ extern "C" {
 #define BVEC_SPACE_UNKNOWN 0
 #define BVEC_SPACE_SCANNER 1
 #define BVEC_SPACE_VOXEL   2
+
+#define MB_RADIAL 0
+#define MB_TANGENTIAL 1
 
 typedef struct
 {
@@ -250,6 +253,7 @@ MRI_IMAGE, MRI ;
 
 typedef struct 
 {
+  int type; // MB_RADIAL or MB_TANGENTIAL
   double slope;
   int c0,r0; // center of motion in full volume space
   int cR,rR; // col and row of first voxel of region in full volume space

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/27 03:33:50 $
- *    $Revision: 1.107 $
+ *    $Date: 2015/05/12 17:06:11 $
+ *    $Revision: 1.108 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7526,8 +7526,8 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
     if(out == NULL) return(NULL);
   }
 
-  //printf("MB: c0=%d, r0=%d, cR=%d, rR=%d\n",mb->c0,mb->r0,mb->cR,mb->rR);
-  //fflush(stdout);
+  printf("MB: %d %lf %d c0=%d, r0=%d, cR=%d, rR=%d\n",mb->type,mb->slope,mb->Interp,mb->c0,mb->r0,mb->cR,mb->rR);
+  fflush(stdout);
 
   // These are two structures to save slice-based parameters
   if(mb->d0)    MRIfree(&mb->d0);
@@ -7584,8 +7584,9 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
   for(c=0; c < out->width; c++){
     int r;
     for(r=0; r < out->height; r++){
-      double cd, rd, theta, dmin,fwhm, *kernel, ksum, d0, stddev, d;
-      double vsrc=0,vdst,x,y,cosTheta,sinTheta,dd;
+      double cd, rd, theta, dmin,fwhm, *kernel, ksum, d0, stddev, d=0;
+      double vsrc=0,vdst,x,y,cosTheta=0,sinTheta=0,dd;
+      double thetaarc=0, thetadelta=0,thetastart=0;
       double coef11=0,coef12=0,coef21=0,coef22=0,cT,rT;
       int s,f,nd,nthd,cdi=0,rdi=0,c1=0,c2=0,r1=0,r2=0;
       theta = MRIgetVoxVal(mb->theta,c,r,0,0);
@@ -7615,10 +7616,25 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
       }
       for(nthd = 0; nthd < nd; nthd++)	kernel[nthd] /= ksum;
 
-      cosTheta = cos(theta);
-      sinTheta = sin(theta);
+      if(mb->type == MB_TANGENTIAL){
+	thetaarc = mb->DeltaD*nd/d0; // tot angle of integration arc
+	thetadelta = mb->DeltaD/d0; // rad angle of each step
+	thetastart = theta-thetaarc/2.0; // abs angle of integ start point
+	d = d0;
+      }
+      if(mb->type == MB_RADIAL){
+	cosTheta = cos(theta);
+	sinTheta = sin(theta);
+      }
+
       for(nthd = 0; nthd < nd; nthd++) {
-	d = dmin + nthd*mb->DeltaD; // mm distance from center to this point
+	if(mb->type == MB_RADIAL)
+	  d = dmin + nthd*mb->DeltaD; // mm distance from center to this point
+	else{ // Tangential smoothing
+	  theta = thetastart + nthd*thetadelta; // distance along circle in rads
+	  cosTheta = cos(theta);
+	  sinTheta = sin(theta);
+	}
 	x = d*cosTheta; // mm x distance from center to this point
 	y = d*sinTheta; // mm y distance from center to this point
 	cd = mb->c0 + x/src->xsize - mb->cR; // float col in REGION of this point
@@ -7666,9 +7682,10 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
 	    vdst = MRIgetVoxVal(out,c,r,s,f);
 	    vdst += vsrc*kernel[nthd];
 	    MRIsetVoxVal(out,c,r,s,f,vdst);
+
 	  } // slice
 	} // frame
-      } // dist
+      } // nthd dist
       free(kernel);
     } // row
   } // col
