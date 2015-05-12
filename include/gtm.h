@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/01/31 18:12:58 $
- *    $Revision: 1.26 $
+ *    $Date: 2015/05/12 13:45:01 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -122,6 +122,7 @@ typedef struct
   MATRIX *X,*X0;
   MATRIX *y, *XtX, *iXtX, *Xty, *beta, *res, *yhat,*betavar;
   MATRIX *rvar,*rvargm,*rvarUnscaled; // residual variance, all vox and only GM
+  MATRIX *som; // spillover matrix
   int dof;
   double XtXcond;
   MRI *ysynth,*ysynthsm; // synthesized vs yhat
@@ -228,5 +229,7 @@ int WriteVRFStats(char *fname, GTM *gtm);
 int GTMglobalStats(GTM *gtm);
 MRI **GTMlocal(GTM *gtm, MRI **pvc);
 int GTMttPercent(GTM *gtm);
+int GTMsom(GTM *gtm);
+int GTMsegid2nthseg(GTM *gtm, int segid);
 
 #endif

@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/05 19:40:22 $
- *    $Revision: 1.35 $
+ *    $Date: 2015/05/12 13:45:01 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -799,6 +799,7 @@ int GTMsolve(GTM *gtm)
   }
   gtm->kurtosis = MatrixKurtosis(gtm->res,gtm->kurtosis);
   gtm->skew     = MatrixSkew(gtm->res,gtm->skew);
+
   return(0);
 }
 /*-----------------------------------------------------------------*/
@@ -2564,4 +2565,20 @@ int GTMttPercent(GTM *gtm)
   return(0);
 }
 
-
+/*
+  \fn int GTMsegid2nthseg(GTM *gtm, int segid)
+  \breif Returns the nthseg of the given segid
+ */
+int GTMsegid2nthseg(GTM *gtm, int segid)
+{
+  int nthseg, ok;
+  ok = 0;
+  for(nthseg = 0; nthseg < gtm->nsegs; nthseg++){
+    if(segid == gtm->segidlist[nthseg]) {
+      ok = 1;
+      break;
+    }
+  }
+  if(! ok) return(-1);
+  return(nthseg);
+}
