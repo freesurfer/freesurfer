@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/05 19:41:48 $
- *    $Revision: 1.54 $
+ *    $Date: 2015/05/12 13:45:31 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.54 2015/05/05 19:41:48 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.55 2015/05/12 13:45:31 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.54 2015/05/05 19:41:48 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.55 2015/05/12 13:45:31 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -178,6 +178,7 @@ int DoRegHeader=0;
 int MergeHypos=0;
 int DoGMRvar = 1;
 int DoSimAnatSeg=0;
+int DoGTMMat = 0;
 MRI *GTMsimAnatSeg(GTM *gtm);
 
 /*---------------------------------------------------------------*/
@@ -629,6 +630,32 @@ int main(int argc, char *argv[])
   if(Gdiag_no > 0) PrintMemUsage(stdout);
   PrintMemUsage(logfp);
 
+  if(gtm->X0 && DoGTMMat){
+    MATRIX *X0tX0, *X0t,*X0tX,*iX0tX0,*gtmmat;
+    printf("Computing actual GTM Matrix\n"); fflush(stdout);
+    X0tX0 = MatrixMtM(gtm->X0,NULL);
+    iX0tX0 = MatrixInverse(X0tX0,NULL);
+
+    X0t = MatrixTranspose(gtm->X0,NULL);
+    X0tX = MatrixMultiplyD(X0t,gtm->X,NULL);
+    gtmmat = MatrixMultiplyD(iX0tX0,X0tX,NULL);
+    sprintf(tmpstr,"%s/gtm.mat",AuxDir);
+    MatrixWriteTxt(tmpstr,gtmmat);
+    gtmmat = MatrixInverse(gtmmat,gtmmat);
+    sprintf(tmpstr,"%s/gtm.inv.mat",AuxDir);
+    MatrixWriteTxt(tmpstr,gtmmat);
+    printf("done computing gtm matrix\n"); fflush(stdout);
+    MatrixFree(&X0t);
+    MatrixFree(&X0tX0);
+    MatrixFree(&X0tX);
+    MatrixFree(&gtmmat);
+    printf("Comuting SOM\n"); fflush(stdout);
+    GTMsom(gtm);
+    sprintf(tmpstr,"%s/som.mat",AuxDir);
+    MatrixWriteTxt(tmpstr,gtm->som);
+    printf("done SOM\n"); fflush(stdout);
+  }
+
   GTMsegrvar(gtm);
   VRFStats(gtm, &vrfmean, &vrfmin, &vrfmax);
 
@@ -777,6 +804,7 @@ int main(int argc, char *argv[])
   
   printf("Freeing X0\n");
   MatrixFree(&gtm->X0);
+
 
   if(yhatFile|| yhatFullFoVFile){
     printf("Smoothing synthesized ... ");fflush(stdout); TimerStart(&mytimer) ;
@@ -992,6 +1020,8 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if(!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if(!strcasecmp(option, "--no-vox-frac-cor")) gtm->DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--gtmmat")) DoGTMMat = 1;
+    else if(!strcasecmp(option, "--no-gtmmat")) DoGTMMat = 0;
     else if(!strcasecmp(option, "--no-vox-frac")) gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-vfc"))      gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-gm-rvar"))  DoGMRvar = 0;
@@ -2056,6 +2086,53 @@ MRI *GTMsimAnatSeg(GTM *gtm)
   return(vol);
 }
 
+/*
+  SOM(rowsegid,colsegid) is an nsegs-by-nsegs matrix. The contribution
+  to NoPVC rowsegid from GTM colsegid. This does not have to be a
+  symmetric matrix but it will probably be fairly close. Prior to
+  normalizationo, the sum of a given row should equal to the actual
+  estimated NoPVC value for that ROI.
+ */
+int GTMsom(GTM *gtm)
+{
+  int rthseg, cthseg, k, f, c,r,s,segid;
+  double val,cbeta,sum;
 
+  gtm->som = MatrixAlloc(gtm->nsegs,gtm->nsegs,MATRIX_REAL);
 
+  f = 0; // only one frame with the matrix
+  for(cthseg=0; cthseg < gtm->nsegs; cthseg++){
+    k = 0;
+    cbeta = gtm->beta->rptr[cthseg+1][f+1];
+    for(s=0; s < gtm->yvol->depth; s++){ // crs order is important here!
+      for(c=0; c < gtm->yvol->width; c++){
+	for(r=0; r < gtm->yvol->height; r++){
+	  if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
+	  val = cbeta*gtm->X->rptr[k+1][cthseg+1];
+	  segid = MRIgetVoxVal(gtm->gtmseg,c,r,s,0);
+	  if(segid != 0) {
+	    rthseg = GTMsegid2nthseg(gtm,segid);
+	    gtm->som->rptr[rthseg+1][cthseg+1] += val;
+	  }
+	  k++;
+	}
+      }
+    }
+  } // cthseg
+    
+  /* Normalize SOM(rNoPVC,cGTM) is the proportion that cGTM
+     contributes to rNoPVC, ie, it is the amount of spill-out of
+     cGTM into rNoPVC. */
+  if(0){ // Do normalization later
+    for(rthseg=0; rthseg < gtm->nsegs; rthseg++){
+      sum = 0;
+      for(cthseg=0; cthseg < gtm->nsegs; cthseg++)
+	sum += gtm->som->rptr[rthseg+1][cthseg+1];
+      for(cthseg=0; cthseg < gtm->nsegs; cthseg++)
+	gtm->som->rptr[rthseg+1][cthseg+1] /= sum;
+    }
+  }
+    
+  return(0);
+}
 
