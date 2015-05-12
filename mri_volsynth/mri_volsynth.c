@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/06 20:55:40 $
- *    $Revision: 1.53 $
+ *    $Date: 2015/05/12 16:52:57 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,7 +65,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.53 2014/03/06 20:55:40 greve Exp $";
+"$Id: mri_volsynth.c,v 1.54 2015/05/12 16:52:57 greve Exp $";
 
 char *Progname = NULL;
 
@@ -128,6 +128,7 @@ int DoAbs=0;
 MRI *fMRIhsynth(MRI *res, MRI *mask, int DoTNorm);
 MPoint *ctrpoints=NULL, *crsctrpoints=NULL;
 int nctrpoints=0, CPUseRealRAS;
+int cgridspace=8, rgridspace=8, sgridspace=2;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -335,6 +336,11 @@ int main(int argc, char **argv)
   else if (strcmp(pdfname,"checker")==0) {
     printf("Checker \n");
     mri=MRIchecker(mritemp,NULL);
+    if(!mri) exit(1);
+  } 
+  else if (strcmp(pdfname,"grid")==0) {
+    printf("Grid %d %d %d\n",cgridspace,rgridspace,sgridspace);
+    mri=MRIgrid(mritemp,cgridspace,rgridspace,sgridspace,1,NULL);
     if(!mri) exit(1);
   } 
   else if (strcmp(pdfname,"sliceno")==0) {
@@ -719,7 +725,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&gausstd);
       nargsused = 1;
-    } else if (!strcmp(option, "--delta-crsf")) {
+    } 
+    else if (!strcmp(option, "--grid")) {
+      if(nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%d",&cgridspace);
+      sscanf(pargv[1],"%d",&rgridspace);
+      sscanf(pargv[2],"%d",&sgridspace);
+      pdfname = "grid";
+      nargsused = 3;
+    } 
+    else if (!strcmp(option, "--delta-crsf")) {
       if (nargc < 4) argnerr(option,4);
       sscanf(pargv[0],"%d",&delta_crsf[0]);
       sscanf(pargv[1],"%d",&delta_crsf[1]);
@@ -793,7 +808,8 @@ static void print_usage(void) {
   printf("   --seed seed (default is time-based auto)\n");
   printf("   --seedfile fname : write seed value to this file\n");
   printf("   --pdf pdfname : <gaussian>, uniform, const, delta, \n");
-  printf("      sphere, z, t, F, chi2, voxcrs, checker, sliceno, indexno, crs\n");
+  printf("      sphere, z, t, F, chi2, voxcrs, checker, sliceno, indexno\n");
+  printf("      crs, grid\n");
   printf("   --bb c r s dc dr ds : bounding box (In=ValA, Out=ValB)\n");
   printf("   --gmean mean : use mean for gaussian (def is 0)\n");
   printf("   --gstd  std  : use std for gaussian standard dev (def is 1)\n");
@@ -801,6 +817,7 @@ static void print_usage(void) {
   printf("   --delta-val val : set delta value to val. Default is 1.\n");
   printf("   --delta-val-off offval : set delta background value to offval. "
          "Default is 0.\n");
+  printf("   --grid dcol, drow, dslice\n");
   printf("   --dof dof : dof for t and chi2 \n");
   printf("   --dof-num numdof : numerator dof for F\n");
   printf("   --dof-den dendof : denomenator dof for F\n");
@@ -1058,7 +1075,6 @@ MRI *fMRIhsynth(MRI *res, MRI *mask, int DoTNorm)
   if(DoTNorm) MRIfree(&tvar);
   return(hsynth);
 }
-
 
 
 
