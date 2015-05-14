@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/11/06 02:06:29 $
- *    $Revision: 1.11 $
+ *    $Date: 2015/05/14 17:38:33 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,7 +41,7 @@
 #include "version.h"
 
 static char vcid[] = 
-"$Id: mri_relabel_hypointensities.c,v 1.11 2014/11/06 02:06:29 fischl Exp $";
+"$Id: mri_relabel_hypointensities.c,v 1.12 2015/05/14 17:38:33 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,13 +69,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_relabel_hypointensities.c,v 1.11 2014/11/06 02:06:29 fischl Exp $",
+   "$Id: mri_relabel_hypointensities.c,v 1.12 2015/05/14 17:38:33 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_relabel_hypointensities.c,v 1.11 2014/11/06 02:06:29 fischl Exp $",
+           "$Id: mri_relabel_hypointensities.c,v 1.12 2015/05/14 17:38:33 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -208,6 +208,10 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
   VERTEX           *v ;
   float            dx, dy, dz, dot, dist ;
   Real             xw, yw, zw ;
+  MRI              *mri_dist ;
+
+  mri_dist = MRIcloneDifferentType(mri, MRI_FLOAT) ;
+  MRIScomputeDistanceToSurface(mris, mri_dist, mri_dist->xsize) ;
 
   mht = MHTfillVertexTableRes(mris,NULL, CURRENT_VERTICES, 8.0f) ;
   for (changed = x = 0 ; x < mri->width ; x++) {
@@ -235,6 +239,9 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
         {
           dot = -1 ;
           dist = 1000 ;
+	  dist = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
+	  if (dist > 0)
+	    dot = 1 ;
         } else {
           dx = xw - v->x ;
           dy = yw - v->y ;
@@ -251,7 +258,7 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
   }
 
   printf("%d voxels changed to hypointensity...\n", changed) ;
-  MHTfree(&mht) ;
+  MHTfree(&mht) ; MRIfree(&mri_dist) ;
   return(NO_ERROR) ;
 }
 
