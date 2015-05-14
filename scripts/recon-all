@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2015/05/12 19:06:35 $
-#    $Revision: 1.520 $
+#    $Author: iglesias $
+#    $Date: 2015/05/14 22:07:52 $
+#    $Revision: 1.521 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.520 2015/05/12 19:06:35 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.521 2015/05/14 22:07:52 iglesias Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5061,7 +5061,8 @@ if($DoHippoSF_T1T2) then
       $subjid  \
       $SUBJECTS_DIR \
       $T2volHippoSF \
-      $hemi )
+      $hemi \
+      $UserSuffix )
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
@@ -5092,7 +5093,8 @@ if($DoHippoSF_T2) then
       $subjid  \
       $SUBJECTS_DIR \
       $T2volHippoSF \
-      $hemi )
+      $hemi \
+      $UserSuffix )
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
@@ -7058,13 +7060,15 @@ while( $#argv != 0 )
     # hippocampal subfield processing (ex vivo atlas, multispectral)
     case "-hippocampal-subfields-T1T2":
       set DoHippoSF_T1T2 = 1;
-      if( $#argv < 1) goto arg1err;
+      if( $#argv < 2) goto arg1err;
       set T2volHippoSF = "$argv[1]"; shift;
+      set UserSuffix = "$argv[1]"; shift;
       breaksw;
     case "-hippocampal-subfields-T2":
       set DoHippoSF_T2 = 1;
-      if( $#argv < 1) goto arg1err;
+      if( $#argv < 2) goto arg1err;
       set T2volHippoSF = "$argv[1]"; shift;
+      set UserSuffix = "$argv[1]"; shift;
       breaksw;
 
     # processing of brainstem substructures
