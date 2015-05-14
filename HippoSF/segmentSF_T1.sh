@@ -23,7 +23,7 @@ set K="0.05";
 set SIDE=$5;
 set OPTIMIZER="ConjGrad";
 set MRFCONSTANT="0";
-set SUFFIX="v1.0";
+set SUFFIX="v10";
 
 # command
 set cmd="$SCRIPTPATH/run_segmentSubjectT1_autoEstimateAlveusML.sh $RUNTIME $SUBJECTNAME $SUBJECTDIR $RESOLUTION $ATLASMESH $ATLASDUMP $LUT $K $SIDE $OPTIMIZER $SUFFIX ${FREESURFER_HOME}/bin/ $MRFCONSTANT"

@@ -15,12 +15,12 @@ function doIt {
 
 
 if [ $# -le 1 ]; then
-  echo "Usage: $0 nameOfSubdirs outputFile [subjectsDirectory]"
+  echo "Usage: $0 suffix outputFile [subjectsDirectory]"
   exit -1
 fi
 
 
-subdirname=$1
+suffix=$1
 outputfile=$2;
 resultsDirectory=$SUBJECTS_DIR
 if [ $# -ge 3 ]; then
@@ -30,8 +30,8 @@ fi
 # Show what we have
 echo "Gathering results from subjects in: "
 echo "   $resultsDirectory "
-echo "Using the subdirectory name: "
-echo "   $subdirname"
+echo "Using the suffix name: "
+echo "   $suffix"
 echo "And writing them to: "
 echo "   $outputfile "
 
@@ -54,8 +54,8 @@ for i in `eval echo {1..$numberOfSubjects}`; do
   subjectName=`echo "${subjectName//\/}"` # strips the /
 
   # Files with volumes
-  leftVolFile="$resultsDirectory/$subjectName/mri/$subdirname/left/volumesHippo.txt"
-  rightVolFile="$resultsDirectory/$subjectName/mri/$subdirname/right/volumesHippo.txt"
+  leftVolFile="$resultsDirectory/$subjectName/mri/lh.hippoSfVolumes-${suffix}.v10.txt"
+  rightVolFile="$resultsDirectory/$subjectName/mri/rh.hippoSfVolumes-${suffix}.v10.txt"
 
   # If they exist, collect data
   if [ -f $leftVolFile ] && [ -f $rightVolFile ]; then
