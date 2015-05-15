@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/05/14 17:38:33 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2015/05/15 18:44:10 $
+ *    $Revision: 1.13 $
  *
- * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -40,8 +40,8 @@
 #include "cma.h"
 #include "version.h"
 
-static char vcid[] = 
-"$Id: mri_relabel_hypointensities.c,v 1.12 2015/05/14 17:38:33 fischl Exp $";
+static char vcid[] =
+  "$Id: mri_relabel_hypointensities.c,v 1.13 2015/05/15 18:44:10 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,16 +69,15 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_relabel_hypointensities.c,v 1.12 2015/05/14 17:38:33 fischl Exp $",
+   "$Id: mri_relabel_hypointensities.c,v 1.13 2015/05/15 18:44:10 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_relabel_hypointensities.c,v 1.12 2015/05/14 17:38:33 fischl Exp $",
+           "$Id: mri_relabel_hypointensities.c,v 1.13 2015/05/15 18:44:10 nicks Exp $",
            "$Name:  $");
-  if (nargs && argc - nargs == 1)
-  {
+  if (nargs && argc - nargs == 1) {
     exit (0);
   }
   argc -= nargs;
@@ -238,10 +237,10 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
                            assume it is hypointensity */
         {
           dot = -1 ;
-          dist = 1000 ;
-	  dist = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
-	  if (dist > 0)
-	    dot = 1 ;
+          dist = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
+          if (dist > 0) {
+            dot = 1 ;
+          }
         } else {
           dx = xw - v->x ;
           dy = yw - v->y ;
@@ -258,7 +257,8 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right)
   }
 
   printf("%d voxels changed to hypointensity...\n", changed) ;
-  MHTfree(&mht) ; MRIfree(&mri_dist) ;
+  MHTfree(&mht) ;
+  MRIfree(&mri_dist) ;
   return(NO_ERROR) ;
 }
 
