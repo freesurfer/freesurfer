@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/13 19:59:27 $
- *    $Revision: 1.29 $
+ *    $Date: 2015/05/18 20:55:37 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,7 +64,7 @@ public:
 
   static double CalculateCorrelationCoefficient(float* x, float* y, int n);
 
-  static bool IsIdentity( double m[4][4] );
+  static bool IsIdentity( double m[4][4], double scale = 1.0 );
 
   static bool IsOblique( double m[4][4] );
 
@@ -176,12 +176,19 @@ void MyUtils::FreeMatrix(T** p, int ny)
   p = 0;
 }
 
-inline bool MyUtils::IsIdentity( double m[4][4] )
+inline bool MyUtils::IsIdentity( double m[4][4], double scale )
 {
-  return ( m[0][0] == 1 && m[0][1] == 0 && m[0][2] == 0 && m[0][3] == 0 &&
-           m[1][0] == 0 && m[1][1] == 1 && m[1][2] == 0 && m[1][3] == 0 &&
-           m[2][0] == 0 && m[2][1] == 0 && m[2][2] == 1 && m[2][3] == 0 &&
-           m[3][0] == 0 && m[3][1] == 0 && m[3][2] == 0 && m[3][3] == 1 );
+  for (int i = 0; i < 4; i++)
+  {
+    for (int j = 0; j < 4; j++)
+    {
+      if (i == j && qAbs(m[i][j]-1) > 1e-6)
+        return false;
+      else if (i != j && qAbs(m[i][j]) > scale*1e-4)
+        return false;
+    }
+  }
+  return true;
 }
 
 inline bool MyUtils::IsOblique( double m[4][4] )

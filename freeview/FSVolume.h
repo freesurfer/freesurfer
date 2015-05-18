@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/04/27 16:24:26 $
- *    $Revision: 1.46 $
+ *    $Date: 2015/05/18 20:55:37 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -185,6 +185,8 @@ public:
   void SetCroppingBounds( double* bound );
 
   vtkTransform* GetTransform();
+
+  void ConvertTransformFromTargetToRAS(vtkMatrix4x4* target_in, vtkMatrix4x4* ras_out);
 
   void SetConform( bool bConform );
 

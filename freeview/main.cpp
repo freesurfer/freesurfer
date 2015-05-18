@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/04/21 00:45:26 $
- *    $Revision: 1.53 $
+ *    $Date: 2015/05/18 20:55:37 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "error.h"
+#include <QFile>
 extern "C"
 {
 #include "fsinit.h"

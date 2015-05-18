@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/26 16:03:59 $
- *    $Revision: 1.156 $
+ *    $Date: 2015/05/18 20:55:37 $
+ *    $Revision: 1.157 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -458,7 +458,7 @@ bool LayerMRI::SaveVolume()
 bool LayerMRI::IsTransformed()
 {
   vtkMatrix4x4* mat = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() )->GetMatrix();
-  return !MyUtils::IsIdentity( mat->Element );
+  return !MyUtils::IsIdentity( mat->Element, qMin(m_dWorldVoxelSize[0], qMin(m_dWorldVoxelSize[1], m_dWorldVoxelSize[2])) );
 }
 
 void LayerMRI::DoRestore()
@@ -599,6 +599,9 @@ void LayerMRI::DoTransform(int sample_method)
   slice_tr->Translate( -m_dTranslate[0], -m_dTranslate[1], -m_dTranslate[2] );
   ras_tr->Translate( m_dTranslate );
 
+  // new approach, directly convert to ras_tr
+  ras_tr->Identity();
+  m_volumeSource->ConvertTransformFromTargetToRAS(slice_tr->GetMatrix(), ras_tr->GetMatrix());
 
   for ( int i = 0; i < 3; i++ )
   {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/04/27 16:24:26 $
- *    $Revision: 1.100 $
+ *    $Date: 2015/05/18 20:55:37 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -631,21 +631,37 @@ vtkTransform* FSVolume::GetTransform()
 MATRIX* FSVolume::GetTransformMatrixInRAS()
 {
   vtkMatrix4x4* mat = m_transform->GetMatrix();
+  MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
+  for ( int i = 0; i < 16; i++ )
+  {
+    *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
+  }
+  return m;
+}
+
+void FSVolume::ConvertTransformFromTargetToRAS(vtkMatrix4x4 *target_in, vtkMatrix4x4 *ras_out)
+{
   MATRIX* m1 = MatrixAlloc( 4, 4, MATRIX_REAL );
   for ( int i = 0; i < 16; i++ )
   {
-    *MATRIX_RELT(m1, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
+    *MATRIX_RELT(m1, (i/4)+1, (i%4)+1) = target_in->Element[i/4][i%4];
   }
 
   MATRIX* t2r = GetTargetToRASMatrix();
   MATRIX* r2t = MatrixInverse(t2r, NULL);
-  MATRIX* m2 = MatrixMultiply(m1, r2t, NULL);
+  MATRIX* m1_inverse = MatrixInverse(m1, NULL);
+  MATRIX* m2 = MatrixMultiply(m1_inverse, r2t, NULL);
   MATRIX* m = MatrixMultiply(t2r, m2, NULL);
+  for ( int i = 0; i < 16; i++ )
+  {
+    ras_out->Element[i/4][i%4] = *MATRIX_RELT(m, (i/4)+1, (i%4)+1);
+  }
   MatrixFree(&r2t);
   MatrixFree(&t2r);
   MatrixFree(&m2);
   MatrixFree(&m1);
-  return m;
+  MatrixFree(&m1_inverse);
+  MatrixFree(&m);
 }
 
 bool FSVolume::SaveRegistration( const QString& filename )
@@ -733,7 +749,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
   bool bTransformed = false;
   bool bRefTransformed = false;
   MATRIX* m = GetTransformMatrixInRAS();
-  vtkMatrix4x4* mat = vtkSmartPointer<vtkMatrix4x4>::New();
+  vtkSmartPointer<vtkMatrix4x4> mat = vtkSmartPointer<vtkMatrix4x4>::New();
   for ( int i = 0; i < 16; i++ )
   {
     mat->Element[i/4][i%4] = *MATRIX_RELT(m, (i/4)+1, (i%4)+1);
@@ -741,7 +757,8 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
 
 //  Do not call MatrixIsIdentity. It only checks the rotation part.
 //  if (MatrixIsIdentity(m))
-  if (MyUtils::IsIdentity(mat->Element))
+  double scale = qMin(m_MRITemp->xsize, qMin(m_MRITemp->ysize, m_MRITemp->zsize));
+  if (MyUtils::IsIdentity(mat->Element, scale))
   {
     if (m_volumeRef)
     {
@@ -755,7 +772,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
     }
   }
   //  if (!MatrixIsIdentity(m))
-  if ( !MyUtils::IsIdentity(mat->Element) )
+  if ( !MyUtils::IsIdentity(mat->Element, scale) )
   {
     if ( resample ) // && MyUtils::IsOblique(mat->Element))
     {
