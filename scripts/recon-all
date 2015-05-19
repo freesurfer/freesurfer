@@ -7,11 +7,11 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: iglesias $
-#    $Date: 2015/05/14 22:07:52 $
-#    $Revision: 1.521 $
+#    $Author: nicks $
+#    $Date: 2015/05/19 21:40:08 $
+#    $Revision: 1.522 $
 #
-# Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright Â© 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.521 2015/05/14 22:07:52 iglesias Exp $';
+set VERSION = '$Id: recon-all,v 1.522 2015/05/19 21:40:08 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -77,6 +77,7 @@ set DoCleanWM    = 0;
 set DoCleanXopts = 0;
 set DoCleanT2    = 0;
 set DoCleanFLAIR = 0;
+set DoSuperClean = 0;
 
 set DoShowEdits  = 0;
 
@@ -784,6 +785,25 @@ if($DoCleanFLAIR) then
       if($RunIt) $cmd  |& tee -a $LF
     endif
   end
+endif
+
+if($DoSuperClean) then
+  set cmd = (rm -Rfv \
+    $subjdir/bem \
+    $subjdir/label \
+    $subjdir/src \
+    $subjdir/stats \
+    $subjdir/surf \
+    $subjdir/tmp \
+    $subjdir/touch \
+    $subjdir/trash \
+    $subjdir/mri/transforms \
+    $subjdir/mri/subfield*)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (rm -v $subjdir/mri/* $subjdir/mri/.xdebug*)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
 endif
 
 #------------ Handle Seed Points for Fill/Cut, and Watershed ---------------#
@@ -2097,7 +2117,13 @@ skullstrip:
     # the reconbatchjobs script will append each job output to $LF
     if($RunIt) then
       reconbatchjobs $LF $CMDFS
-      if($status) goto error_exit;
+      if($status) then
+        # don't exit, since some may encounter 'preflood height' failures
+        echo "WARNING: Some multi-skullstrip operations may have failed!" \
+            |& tee -a $LF |& tee -a $CF
+        echo "         Continuing multi-skullstrip with the others..." \
+            |& tee -a $LF |& tee -a $CF
+      endif
     endif
 
     # brainmask volumes actually need to be T1 volumes, because while
@@ -2134,6 +2160,7 @@ skullstrip:
     foreach vol ( $SS_VOLUMES )
       foreach pfh ( $PREFLOOD_HEIGHTS )
         set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
+        if ( ! -e $BMA) continue;
         set LTA = transforms/talairach_with_skull.lta
         set cmd = (mri_log_likelihood -orig T1.mgz $BMA)
         set cmd = ($cmd $xopts ${GCADIR}/$GCA $LTA)
@@ -4105,7 +4132,8 @@ if($DoT2pial || $DoFLAIRpial) then
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-      if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
+      if(-e $subjdir/mri/.xdebug_mris_calc) rm -f $subjdir/mri/.xdebug_mris_calc
+      if(-e $subjdir/surf/.xdebug_mris_calc) rm -f $subjdir/surf/.xdebug_mris_calc
       echo $cmd > $touchdir/$hemi.surfvolume.touch
     end # Loop over hemilist
   endif
@@ -4140,7 +4168,8 @@ if($DoPialSurfs || $DoT2pial || $DoFLAIRpial || $DoSurfVolume) then
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-    if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
+    if(-e $subjdir/mri/.xdebug_mris_calc) rm -f $subjdir/mri/.xdebug_mris_calc
+    if(-e $subjdir/surf/.xdebug_mris_calc) rm -f $subjdir/surf/.xdebug_mris_calc
     echo $cmd > $touchdir/$hemi.surfvolume.touch
   end # Loop over hemilist
 endif
@@ -6739,6 +6768,11 @@ while( $#argv != 0 )
       set DoCleanFLAIR = 1;
       breaksw
 
+    case "-superclean":
+    case "-super-clean":
+      set DoSuperClean = 1;
+      breaksw
+
     case "-waitfor":
       if ( $#argv < 1) goto arg1err;
       set WaitForFile = $argv[1]; shift;
@@ -7542,7 +7576,7 @@ check_params:
      ! $DoLabelExvivoEC && ! $DoPialSurfs && \
      ! $DoHippoSF_T1 && ! $DoHippoSF_T1T2 && ! $DoHippoSF_T2 &&  ! $DoBSsubst && \
      ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
-     ! $DoConvertT2Input && ! $DoConvertFlairInput && \
+     ! $DoConvertT2Input && ! $DoConvertFlairInput && ! $DoSuperClean &&\
      ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg ) then
      echo "ERROR: nothing to do. You must specify an operation to perform by adding"
      echo "flags. Eg, -all, -autorecon1, -autorecon2, -autorecon3, etc."
@@ -8744,7 +8778,7 @@ J. Seidman, Jill Goldstein, David Kennedy, Verne Caviness, Nikos
 Makris, Bruce Rosen, and Anders M. Dale.  Automatically Parcellating
 the Human Cerebral Cortex. Cerebral Cortex January 2004; 14:11-22.
 
-[10] Fischl B, Salat DH, van der Kouwe AJW, Makris N, Ségonne F, Dale
+[10] Fischl B, Salat DH, van der Kouwe AJW, Makris N, SÃ©gonne F, Dale
 AM. Sequence-Independent  Segmentation of Magnetic Resonance Images.
 NeuroImage 23 Suppl 1, S69-84.
 
