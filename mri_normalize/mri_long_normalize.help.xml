@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , references*, reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT references (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mri_long_normalize</name>
+	<synopsis>mri__long_normalize &lt;input vol&gt; &lt;base-tp file&gt; &lt;output vol&gt;</synopsis>
+	<description>Normalize the white-matter, optionally based on control points. The input volume is converted into a new volume where white matter image values all range around 110.</description>
+  <arguments>
+    <positional>
+      <argument>&lt;input vol&gt;</argument>
+      <explanation>input mri volume file</explanation>
+      <argument>&lt;output vol&gt;</argument>
+      <explanation>output mri volume file</explanation>
+    </positional>
+    <required-flagged>
+      <intro>None</intro>
+    </required-flagged>
+    <optional-flagged>
+      <argument>-n &lt;int n&gt;</argument>
+      <explanation>use n 3d normalization iterations (default=2)</explanation>
+      <argument>-no1d</argument>
+      <explanation>disable 1d normalization</explanation>
+      <argument>-sigma sigma</argument>
+      <explanation>smooth bias field</explanation>
+      <argument>-a aseg</argument>
+      <argument>-v Gvx Gvy Gvz</argument>
+      <explanation>for debugging</explanation>
+      <argument>-d Gx Gy Gz</argument>
+      <explanation>for debugging</explanation>
+      <argument>-r controlpoints biasfield</argument>
+      <explanation>for reading</explanation>
+      <argument>-u or -h</argument>
+      <explanation>print usage</explanation>
+ </optional-flagged>
+  </arguments>
+	<example>mri_normalize SUBJECT/mri/nu.mgz SUBJECT/mri/T1.mgz
+
+Uses the nu volume (nonuniformity corrected volume), and creates the T1 volume, with white matter voxels around 110 image value</example>
+	<example>mri_long_normalize -aseg aseg.mgz -mask brainmask.mgz	norm.mgz $SUBJECTS_DIR/bert_base/base-tps brain.mgz
+
+Uses the norm volume, and creates the brain volume, making use of the aseg and masking with brainmask</example>
+  <references>"Cortical Surface-Based Analysis I: Segmentation and Surface Reconstruction", Dale, A.M., Fischl, B., Sereno, M.I. (1999) NeuroImage 9(2):179-194
+</references>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>nu_correct, mri_fill</see-also>
+</help>
