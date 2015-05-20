@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/12/01 20:35:06 $
- *    $Revision: 1.11 $
+ *    $Date: 2015/05/20 15:52:26 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,7 @@ private:
   RenderView* m_view;
   QTimer      m_timer;
   int         m_nStepSize;
+  double      m_dStepSize;
   int         m_nStartNumber;
   QString     m_strOutputDir;
   QString     m_strPrefix;

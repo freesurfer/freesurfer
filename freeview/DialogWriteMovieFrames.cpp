@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/16 18:17:54 $
- *    $Revision: 1.12 $
+ *    $Date: 2015/05/20 15:52:26 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,8 @@ DialogWriteMovieFrames::DialogWriteMovieFrames(QWidget *parent) :
   ui(new Ui::DialogWriteMovieFrames)
 {
   ui->setupUi(this);
+  ui->doubleSpinBoxStep->hide();
+  ui->labelSliceStepDouble->hide();
   connect(MainWindow::GetMainWindow(), SIGNAL(MainViewChanged(int)),
           this, SLOT(UpdateUI()));
   m_timer.setInterval(1000);
@@ -91,6 +93,13 @@ void DialogWriteMovieFrames::UpdateUI(bool bUpdateNumbers)
       ui->comboBoxFlyThrough->setItemData(1, (mri->GetNumberOfFrames()>1?33:0), Qt::UserRole-1);
     }
   }
+  QList<QWidget*> widgets = findChildren<QWidget*>();
+  foreach (QWidget* w, widgets)
+  {
+    if (w != ui->pushButtonAbort && w != ui->pushButtonClose && w != ui->pushButtonWrite)
+      w->setEnabled(!m_timer.isActive());
+  }
+
   ui->pushButtonAbort->setEnabled(m_timer.isActive());
   ui->pushButtonClose->setEnabled(!m_timer.isActive());
   ui->pushButtonWrite->setEnabled(!m_timer.isActive());
@@ -117,6 +126,10 @@ void DialogWriteMovieFrames::OnComboBoxFlyThrough(int nIndex)
       ui->spinBoxEnd->setValue(360);
     }
     ui->spinBoxStart->setValue(0);
+    ui->doubleSpinBoxStep->setVisible(nIndex == 2);
+    ui->labelSliceStepDouble->setVisible(nIndex == 2);
+    ui->labelSliceStep->setVisible(nIndex != 2);
+    ui->spinBoxStep->setVisible(nIndex != 2);
   }
 }
 
@@ -161,6 +174,7 @@ void DialogWriteMovieFrames::OnWrite()
     m_strOutputDir += QDir::separator();
   }
   m_nStepSize = ui->spinBoxStep->value();
+  m_dStepSize = ui->doubleSpinBoxStep->value();
   m_nStartNumber = ui->spinBoxStart->value();
   m_nStepCount = 0;
   m_nTotalSteps = 1;
@@ -191,7 +205,7 @@ void DialogWriteMovieFrames::OnWrite()
   }
   else // angle
   {
-    m_nTotalSteps = (ui->spinBoxEnd->value()-ui->spinBoxStart->value())/m_nStepSize+1;
+    m_nTotalSteps = (ui->spinBoxEnd->value()-ui->spinBoxStart->value())/m_dStepSize+1;
   }
 
   if (m_nTotalSteps < 1)
@@ -249,7 +263,7 @@ void DialogWriteMovieFrames::OnTimeOut()
          .arg(ui->comboBoxExtension->currentText());
     m_view->SaveScreenShot( fn, settings.AntiAliasing, settings.Magnification );
     CameraOperations ops;
-    ops << CameraOperation("azimuth", m_nStepSize);
+    ops << CameraOperation("azimuth", m_dStepSize);
     m_view->SetCameraOperations(ops);
   }
 

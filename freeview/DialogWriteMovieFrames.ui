@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>443</width>
-    <height>409</height>
+    <height>439</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -211,6 +211,29 @@
        </property>
       </widget>
      </item>
+     <item row="7" column="0">
+      <widget class="QLabel" name="labelSliceStepDouble">
+       <property name="text">
+        <string>Step size</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QDoubleSpinBox" name="doubleSpinBoxStep">
+       <property name="minimum">
+        <double>0.010000000000000</double>
+       </property>
+       <property name="maximum">
+        <double>100.000000000000000</double>
+       </property>
+       <property name="singleStep">
+        <double>0.250000000000000</double>
+       </property>
+       <property name="value">
+        <double>1.000000000000000</double>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -332,8 +355,8 @@
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>415</x>
-     <y>317</y>
+     <x>432</x>
+     <y>428</y>
     </hint>
     <hint type="destinationlabel">
      <x>425</x>
@@ -348,11 +371,11 @@
    <slot>OnOpen()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>467</x>
-     <y>60</y>
+     <x>432</x>
+     <y>75</y>
     </hint>
     <hint type="destinationlabel">
-     <x>469</x>
+     <x>442</x>
      <y>104</y>
     </hint>
    </hints>
@@ -364,8 +387,8 @@
    <slot>OnAbort()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>78</x>
-     <y>342</y>
+     <x>88</x>
+     <y>428</y>
     </hint>
     <hint type="destinationlabel">
      <x>155</x>
@@ -380,8 +403,8 @@
    <slot>OnWrite()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>381</x>
-     <y>342</y>
+     <x>346</x>
+     <y>428</y>
     </hint>
     <hint type="destinationlabel">
      <x>292</x>
@@ -396,8 +419,8 @@
    <slot>close()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>467</x>
-     <y>342</y>
+     <x>432</x>
+     <y>428</y>
     </hint>
     <hint type="destinationlabel">
      <x>381</x>
@@ -412,11 +435,11 @@
    <slot>OnComboBoxFlyThrough(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>208</x>
-     <y>111</y>
+     <x>231</x>
+     <y>168</y>
     </hint>
     <hint type="destinationlabel">
-     <x>707</x>
+     <x>442</x>
      <y>167</y>
     </hint>
    </hints>
