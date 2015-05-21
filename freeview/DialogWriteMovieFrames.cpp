@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/05/20 15:52:26 $
- *    $Revision: 1.13 $
+ *    $Date: 2015/05/21 16:29:33 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -121,16 +121,16 @@ void DialogWriteMovieFrames::OnComboBoxFlyThrough(int nIndex)
     {
       ui->spinBoxEnd->setValue(mri->GetNumberOfFrames()-1);
     }
-    else if (nIndex == 2)
-    {
-      ui->spinBoxEnd->setValue(360);
-    }
-    ui->spinBoxStart->setValue(0);
-    ui->doubleSpinBoxStep->setVisible(nIndex == 2);
-    ui->labelSliceStepDouble->setVisible(nIndex == 2);
-    ui->labelSliceStep->setVisible(nIndex != 2);
-    ui->spinBoxStep->setVisible(nIndex != 2);
   }
+  if (nIndex == 2)
+  {
+    ui->spinBoxEnd->setValue(360);
+  }
+  ui->spinBoxStart->setValue(0);
+  ui->doubleSpinBoxStep->setVisible(nIndex == 2);
+  ui->labelSliceStepDouble->setVisible(nIndex == 2);
+  ui->labelSliceStep->setVisible(nIndex != 2);
+  ui->spinBoxStep->setVisible(nIndex != 2);
 }
 
 void DialogWriteMovieFrames::OnOpen()
