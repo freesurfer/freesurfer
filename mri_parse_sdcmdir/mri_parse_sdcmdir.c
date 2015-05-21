@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.21 $
+ *    $Author: greve $
+ *    $Date: 2015/05/21 16:37:12 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@ extern int isblank(int c);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.21 2011/03/02 00:04:23 nicks Exp $";
+static char vcid[] = "$Id: mri_parse_sdcmdir.c,v 1.22 2015/05/21 16:37:12 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -95,8 +95,12 @@ int main(int argc, char **argv) {
   int nlist;
   int NRuns;
   int nthfile;
-  char *fname, *psname, *protoname;
+  char *fname, *psname, *protoname,*pc;
   int PrevRunNo;
+
+  // no need to try to load dwi here
+  pc = getenv("FS_LOAD_DWI");
+  if(pc == NULL)  setenv("FS_LOAD_DWI","0",1);
 
   Progname = argv[0] ;
   argc --;
@@ -244,7 +248,7 @@ static int parse_commandline(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.21 2011/03/02 00:04:23 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_parse_sdcmdir.c,v 1.22 2015/05/21 16:37:12 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -266,6 +270,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--verbose")) verbose = 1;
+    else if (!strcasecmp(option, "--dwi"))  setenv("FS_LOAD_DWI","1",1);
     else if (!strcmp(option, "--d")) {
       if (nargc < 1) argnerr(option,1);
       sdicomdir = pargv[0];
@@ -315,6 +320,7 @@ static void print_usage(void) {
   fprintf(stdout, "   --o outfile    : write results to outfile (default is stdout)\n");
   fprintf(stdout, "   --sortbyrun    : assign run numbers\n");
   fprintf(stdout, "   --summarize    : only print out info for run leaders\n");
+  fprintf(stdout, "   --dwi          : try to read dwi params. Generally no need to.\n");
   fprintf(stdout, "   --help         : how to use this program \n");
   fprintf(stdout, "\n");
 }
