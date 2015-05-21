@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/05/08 18:58:39 $
-#    $Revision: 1.66 $
+#    $Date: 2015/05/21 17:45:00 $
+#    $Revision: 1.67 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.66 2015/05/08 18:58:39 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.67 2015/05/21 17:45:00 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -800,17 +800,18 @@ check_params:
   endif
   if($#regfile == 0) set regfile = register.dof$RegDOF.lta
 
-  if($talres == 2) then
-    set subcortmask = $SUBJECTS_DIR/$trgsubject/mri.2mm/subcort.mask.mgz
-  else
-    set subcortmask = $SUBJECTS_DIR/$trgsubject/mri/subcort.mask.1mm.mgz
+  if($hemilist[1] == mni305 || $UseCVS) then
+    if($talres == 2) then
+      set subcortmask = $SUBJECTS_DIR/$trgsubject/mri.2mm/subcort.mask.mgz
+    else
+      set subcortmask = $SUBJECTS_DIR/$trgsubject/mri/subcort.mask.1mm.mgz
+    endif
+    if($UseCVS) set subcortmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/subcort.mask.mgz
+    if(! -e $subcortmask) then
+      echo "ERROR: cannot find $subcortmask"
+      exit 1;
+    endif
   endif
-  if($UseCVS) set subcortmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/subcort.mask.mgz
-  if(! -e $subcortmask) then
-    echo "ERROR: cannot find $subcortmask"
-    exit 1;
-  endif
-
 
 goto check_params_return;
 ############--------------##################
