@@ -6,8 +6,8 @@
 /*
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/20 20:43:50 $
- *    $Revision: 1.174 $
+ *    $Date: 2015/05/21 16:38:44 $
+ *    $Revision: 1.175 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2824,6 +2824,7 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
     if(err){
       printf("ERROR: GetSDCMFileInfo(): dcmGetDWIParams() %d\n",err);
       printf("DICOM File: %s\n",dcmfile);
+      printf("break %s:%d\n",__FILE__,__LINE__);
       return(NULL);
     }
     if(Gdiag_no > 0) printf("GetSDCMFileInfo(): DWI: %s %d %lf %lf %lf %lf\n",
@@ -5318,6 +5319,7 @@ CONDITION GetDICOMInfo(const char *fname,
     if(err){
       printf("ERROR: GetDICOMInfo(): dcmGetDWIParams() %d\n",err);
       printf("DICOM File: %s\n",fname);
+      printf("break %s:%d\n",__FILE__,__LINE__);
       return((CONDITION)1);
     }
     if(Gdiag_no > 0) printf("GetDICOMInfo(): DWI: %s %d %lf %lf %lf %lf\n",fname,err,bval, xbvec, ybvec, zbvec);
@@ -7564,11 +7566,13 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
   cond = DCM_GetElement(&dcm, tag, e);
   if(cond != DCM_NORMAL){
     // The bvalue tag does not exist, try alternative method
+    if(Gdiag_no > 0) printf("  bval 0x19,0x100c does not exist, try alternative method\n");
     err = dcmGetDWIParamsSiemensAlt(dcm, pbval, pxbvec, pybvec, pzbvec);
     if(err) return(err);
   }
   else {
     // The bvalue tag does exist, get gradients
+    if(Gdiag_no > 0) printf("  bval 0x19,0x100c does exist, getting gradients\n");
     AllocElementData(e);
     cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
     if(cond != DCM_NORMAL){free(e);return(6);}
@@ -7580,10 +7584,17 @@ int dcmGetDWIParamsSiemens(DCM_OBJECT *dcm, double *pbval, double *pxbvec, doubl
       tag=DCM_MAKETAG(0x19,0x100e);
       e = (DCM_ELEMENT *) calloc(1,sizeof(DCM_ELEMENT));
       cond = DCM_GetElement(&dcm, tag, e);
-      if(cond != DCM_NORMAL){free(e);return(7);}
+      if(cond != DCM_NORMAL){
+	if(Gdiag_no > 0) printf("  bvec 0x19,0x100e does not exist, returning 7\n");
+	free(e);
+	return(7);
+      }
       AllocElementData(e);
       cond = DCM_GetElementValue(&dcm, e, &rtnLength, &Ctx);
-      if(cond != DCM_NORMAL){free(e);return(8);}
+      if(cond != DCM_NORMAL){
+	if(Gdiag_no > 0) printf("  could not get bvec 0x19,0x100e returning 8\n");
+	free(e);return(8);
+      }
       *pxbvec = e->d.fd[0];
       *pybvec = e->d.fd[1];
       *pzbvec = e->d.fd[2];
