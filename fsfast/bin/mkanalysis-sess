@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/03/10 20:47:17 $
-#    $Revision: 1.75 $
+#    $Date: 2015/05/21 17:49:20 $
+#    $Revision: 1.76 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.75 2015/03/10 20:47:17 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.76 2015/05/21 17:49:20 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -36,6 +36,7 @@ set RawSpace = ();
 set RawHemi = ();
 set RawRes = ();
 set RawFWHM = ();
+set volsurffwhm = (); # smooth in the volume, for testing
 set RawSTC = none;
 set nSliceGroups = 1;
 set ExpKey = ();
@@ -143,6 +144,7 @@ if($RawSpace == cvs_avg35_inMNI152)  echo "RawSpace volume cvs_avg35_inMNI152 $R
 if($RawSpaceType == surface) echo "RawSpace surface $RawSpace $RawHemi" | tee -a $flac
 echo "mask $maskstem" | tee -a $flac
 echo "RawFWHM $RawFWHM" | tee -a $flac
+if($#volsurffwhm) echo "VolSurfFWHM $volsurffwhm" | tee -a $flac
 if($#RawSTC) echo "RawSTC $RawSTC" | tee -a $flac
 echo "nSliceGroups $nSliceGroups" | tee -a $flac
 if($#ExpKey) echo "ExpKey $ExpKey" | tee -a $flac
@@ -429,6 +431,11 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set RawFWHM = $argv[1]; shift;
       set RawFWHM = `perl -e "print sprintf('%g',$RawFWHM)"`; # strip leading 0s
+      breaksw
+
+    case "-volsurffwhm":
+      if($#argv < 1) goto arg1err;
+      set volsurffwhm = $argv[1]; shift;
       breaksw
 
     case "-ngroups":

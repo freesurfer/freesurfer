@@ -3,7 +3,7 @@ function stem = flac_funcstem(flac,maskflag)
 % Determines the funcstem or maskstem. Should be
 % consistent with the getana script.
 % 
-% $Id: flac_funcstem.m,v 1.3 2014/11/26 01:00:56 greve Exp $
+% $Id: flac_funcstem.m,v 1.4 2015/05/21 17:49:21 greve Exp $
 
 stem = [];
 if(nargin < 1 | nargin > 2)
@@ -30,7 +30,12 @@ if(~maskflag)
   elseif(strcmp(flac.RawSpace,'cvs_avg35_inMNI152'))
     stem = sprintf('%s%s.sm%g.cvs_avg35_inMNI152.%dmm%s',flac.mcstem,stc,flac.rawfwhm,flac.RawSpaceRes,ExpKey);
   else % surface
-    stem = sprintf('%s%s.sm%g.%s.%s%s',flac.mcstem,stc,flac.rawfwhm,flac.subject,flac.hemi,ExpKey);
+    if(isempty(flac.volsurffwhm))
+      stem = sprintf('%s%s.sm%g.%s.%s%s',flac.mcstem,stc,flac.rawfwhm,flac.subject,flac.hemi,ExpKey);
+    else
+      % Smooth in the volume before sampling on the surface
+      stem = sprintf('%s%s.vsm%g.sm%g.%s.%s%s',flac.mcstem,stc,flac.volsurffwhm,flac.rawfwhm,flac.subject,flac.hemi,ExpKey);
+    end
   end
 else
   % Return maskstem

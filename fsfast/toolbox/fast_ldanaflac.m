@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2014/11/26 01:00:56 $
-%    $Revision: 1.69 $
+%    $Date: 2015/05/21 17:49:21 $
+%    $Revision: 1.70 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -99,6 +99,7 @@ while(1)
    case 'OverrideTR',  flac.OverrideTR  = sscanf(tline,'%*s %d',1);
    case 'RegDOF',      flac.RegDOF      = sscanf(tline,'%*s %d',1);
    case 'RawFWHM',     flac.rawfwhm     = sscanf(tline,'%*s %f',1);
+   case 'VolSurfFWHM', flac.volsurffwhm = sscanf(tline,'%*s %f',1);
    case 'RawSTC',      flac.stc         = sscanf(tline,'%*s %s',1);
    case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
    case 'acffwhm',     flac.acffwhm     = sscanf(tline,'%*s %f',1);

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/03/10 20:47:17 $
-#    $Revision: 1.56 $
+#    $Date: 2015/05/21 17:49:20 $
+#    $Revision: 1.57 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.56 2015/03/10 20:47:17 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.57 2015/05/21 17:49:20 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -45,6 +45,7 @@ set maskstem   = brain;
 set UseSmoothMask = 0;
 set fwhm     = ();
 set surffwhm = ();
+set volsurffwhm  = (); # for testing
 set SliceOrder = ();
 set nSliceGroups = 1;
 set fsd      = ();
@@ -267,6 +268,7 @@ foreach sess ($SessList)
     if($UseB0DC)    set cmd = ($cmd -b0dc)
     if($PerRun)   set cmd = ($cmd -per-run)
     if($PerSess) set cmd = ($cmd -per-session)
+    if($#volsurffwhm) set cmd = ($cmd -volsurffwhm $volsurffwhm) # for testing
     echo "$sessid To Surface -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -448,6 +450,11 @@ while( $#argv != 0 )
         set DoSurfSmooth = 1;
         set DoSmooth = 1;
       endif
+      breaksw
+
+    case "-volsurffwhm":
+      if($#argv < 1) goto arg1err;
+      set volsurffwhm = $argv[1]; shift;
       breaksw
 
     case "-regfile":
