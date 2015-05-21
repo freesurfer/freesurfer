@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2015/05/21 14:57:40 $
- *    $Revision: 1.115 $
+ *    $Author: greve $
+ *    $Date: 2015/05/21 15:44:56 $
+ *    $Revision: 1.116 $
  *
  * Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -106,7 +106,7 @@ float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.115 2015/05/21 14:57:40 nicks Exp $";
+  "$Id: mri_segstats.c,v 1.116 2015/05/21 15:44:56 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -767,6 +767,11 @@ int main(int argc, char **argv)
   }
 
   printf("Found %3d segmentations\n",nsegid);
+  if(nsegid == 0){
+    printf("ERROR: no segmentations to report\n");
+    exit(1);
+  }
+
   printf("Computing statistics for each segmentation\n");
   fflush(stdout);
 
