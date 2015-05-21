@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/12 13:45:01 $
- *    $Revision: 1.36 $
+ *    $Date: 2015/05/21 17:38:53 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1365,10 +1365,21 @@ int GTMmgpvc(GTM *gtm)
   wmpvf = fMRIframe(gtm->ttpvf,2,NULL); 
   // Smooth WM PVF by PSF
   wmpvfpsf = MRIgaussianSmoothNI(wmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
-  if(gtm->UseMB){
+  if(gtm->UseMBrad){
     MB2D *mb;
     MRI *mritmp;
-    mb = MB2Dcopy(gtm->mb,0,NULL);
+    mb = MB2Dcopy(gtm->mbrad,0,NULL);
+    mb->cR = 0;
+    mb->rR = 0;
+    mritmp = MRImotionBlur2D(wmpvfpsf, mb, NULL);
+    MRIfree(&wmpvfpsf);
+    wmpvfpsf = mritmp;
+    MB2Dfree(&mb);
+  }
+  if(gtm->UseMBtan){
+    MB2D *mb;
+    MRI *mritmp;
+    mb = MB2Dcopy(gtm->mbtan,0,NULL);
     mb->cR = 0;
     mb->rR = 0;
     mritmp = MRImotionBlur2D(wmpvfpsf, mb, NULL);
@@ -1562,10 +1573,21 @@ int GTMsmoothSynth(GTM *gtm)
 {
   if(gtm->ysynth == NULL) GTMsynth(gtm,0,0);
   gtm->ysynthsm = MRIgaussianSmoothNI(gtm->ysynth, gtm->cStd, gtm->rStd, gtm->sStd, gtm->ysynthsm);
-  if(gtm->UseMB){
+  if(gtm->UseMBrad){
     MB2D *mb;
     MRI *mritmp;
-    mb = MB2Dcopy(gtm->mb,0,NULL);
+    mb = MB2Dcopy(gtm->mbrad,0,NULL);
+    mb->cR = 0;
+    mb->rR = 0;
+    mritmp = MRImotionBlur2D(gtm->ysynthsm, mb, NULL);
+    MRIfree(&gtm->ysynthsm);
+    gtm->ysynthsm = mritmp;
+    MB2Dfree(&mb);
+  }
+  if(gtm->UseMBtan){
+    MB2D *mb;
+    MRI *mritmp;
+    mb = MB2Dcopy(gtm->mbtan,0,NULL);
     mb->cR = 0;
     mb->rR = 0;
     mritmp = MRImotionBlur2D(gtm->ysynthsm, mb, NULL);
@@ -1670,9 +1692,19 @@ int GTMbuildX(GTM *gtm)
       continue;
     }
     nthsegpvfbbsm = MRIgaussianSmoothNI(nthsegpvfbb, gtm->cStd, gtm->rStd, gtm->sStd, NULL);
-    if(gtm->UseMB){
+    if(gtm->UseMBrad){
       // Order of operations should not matter
-      mb = MB2Dcopy(gtm->mb,0,NULL);
+      mb = MB2Dcopy(gtm->mbrad,0,NULL);
+      mb->cR = region->x;
+      mb->rR = region->y;
+      nthsegpvfbbsmmb = MRImotionBlur2D(nthsegpvfbbsm, mb, NULL);
+      MRIfree(&nthsegpvfbbsm);
+      nthsegpvfbbsm = nthsegpvfbbsmmb;
+      MB2Dfree(&mb);
+    }
+    if(gtm->UseMBtan){
+      // Order of operations should not matter
+      mb = MB2Dcopy(gtm->mbtan,0,NULL);
       mb->cR = region->x;
       mb->rR = region->y;
       nthsegpvfbbsmmb = MRImotionBlur2D(nthsegpvfbbsm, mb, NULL);

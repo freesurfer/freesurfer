@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/12 13:45:01 $
- *    $Revision: 1.27 $
+ *    $Date: 2015/05/21 17:38:53 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -88,8 +88,10 @@ typedef struct
   MRI *mask;     // binary mask in PET space
   double cFWHM, rFWHM, sFWHM; // assumed FWHM of PSF
   double cStd, rStd, sStd; // PSF FWHM converted to standard dev
-  int UseMB;// = 1 for radial/motion blurring
-  MB2D *mb; // for radial/motion blurring
+  int UseMBrad;// = 1 for radial blurring
+  MB2D *mbrad; // for radial/motion blurring
+  int UseMBtan;// = 1 for tangential blurring
+  MB2D *mbtan; // for tangential/motion blurring
   int nframes; // one place to get the number of input frames
   MRI *anatconf;   // header of conformed anatomical
 

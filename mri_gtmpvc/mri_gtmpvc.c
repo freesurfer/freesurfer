@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/12 13:45:31 $
- *    $Revision: 1.55 $
+ *    $Date: 2015/05/21 17:38:53 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.55 2015/05/12 13:45:31 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.56 2015/05/21 17:38:53 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.55 2015/05/12 13:45:31 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.56 2015/05/21 17:38:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -124,6 +124,8 @@ int GTMOPTgtm2Params(GTMOPT *gtmopt);
 #define GTMOPT_ISO_3D_MB 4
 #define GTMOPT_ISO_2D_MB 5
 #define GTMOPT_ISO_1D_MB 6
+#define GTMOPT_ISO_MBZ 7
+#define GTMOPT_ISO_MB3 8
 
 float compute_powell_cost(float *p);
 int MinPowell();
@@ -179,6 +181,7 @@ int MergeHypos=0;
 int DoGMRvar = 1;
 int DoSimAnatSeg=0;
 int DoGTMMat = 0;
+int nPadOverride = -1;
 MRI *GTMsimAnatSeg(GTM *gtm);
 
 /*---------------------------------------------------------------*/
@@ -221,7 +224,11 @@ int main(int argc, char *argv[])
   gtm->rbvsegres = 0;
   gtmopt = (GTMOPT *) calloc(sizeof(GTMOPT),1);
   gtmopt->gtm = gtm;
-  gtm->mb = (MB2D *) calloc(sizeof(MB2D),1);
+  gtmopt->ftol= 1e-8;
+  gtmopt->linmintol= .001;
+  gtmopt->nitersmax = 5;
+  gtm->mbrad = (MB2D *) calloc(sizeof(MB2D),1);
+  gtm->mbtan = (MB2D *) calloc(sizeof(MB2D),1);
   gtm->DoSteadyState = 0;
 
   Progname = argv[0] ;
@@ -372,7 +379,8 @@ int main(int argc, char *argv[])
 
   // These have to be done before automask
   GTMpsfStd(gtm); 
-  GTMnPad(gtm);   
+  if(nPadOverride < 0) GTMnPad(gtm);   
+  else gtm->nPad = nPadOverride;
 
   if(MaskVolFile){
     printf("Loading mask %s\n",MaskVolFile);fflush(stdout);
@@ -412,7 +420,8 @@ int main(int argc, char *argv[])
   fprintf(logfp,"nmask = %d, nsegs = %d, excluding segid=0\n",gtm->nmask,gtm->nsegs);
   fprintf(logfp,"FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
   fprintf(logfp,"Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
-  if(gtm->UseMB) fprintf(logfp,"MB: %g\n",gtm->mb->slope);
+  if(gtm->UseMBrad) fprintf(logfp,"MB Rad: %g\n",gtm->mbrad->slope);
+  if(gtm->UseMBtan) fprintf(logfp,"MB Tan: %g\n",gtm->mbtan->slope);
   fprintf(logfp,"nPad %d, PadThresh %g\n",gtm->nPad,gtm->PadThresh);
   if(gtm->DoMeltzerPVC) fprintf(logfp,"Meltzer: %lf %lf %d\n",
 				gtm->MeltzerMaskThresh,gtm->MeltzerBinThresh,gtm->MeltzerNDil);
@@ -457,12 +466,21 @@ int main(int argc, char *argv[])
     if(err) exit(1);
   }
   
-  if(gtm->mb){
-    gtm->mb->Interp = SAMPLE_NEAREST;
-    gtm->mb->cutoff = 4;
-    gtm->mb->c0 = gtm->yvol->width/2.0;
-    gtm->mb->r0 = gtm->yvol->height/2.0;
-    gtm->mb->DeltaD = gtm->yvol->xsize;
+  if(gtm->UseMBrad){
+    gtm->mbrad->type = MB_RADIAL;
+    gtm->mbrad->Interp = SAMPLE_NEAREST;
+    gtm->mbrad->cutoff = 4;
+    gtm->mbrad->c0 = gtm->yvol->width/2.0;
+    gtm->mbrad->r0 = gtm->yvol->height/2.0;
+    gtm->mbrad->DeltaD = gtm->yvol->xsize/2.0;
+  }
+  if(gtm->UseMBtan){
+    gtm->mbtan->type = MB_TANGENTIAL;
+    gtm->mbtan->Interp = SAMPLE_NEAREST;
+    gtm->mbtan->cutoff = 4;
+    gtm->mbtan->c0 = gtm->yvol->width/2.0;
+    gtm->mbtan->r0 = gtm->yvol->height/2.0;
+    gtm->mbtan->DeltaD = gtm->yvol->xsize/2.0;
   }
 
   if(DoOpt){
@@ -478,7 +496,8 @@ int main(int argc, char *argv[])
     gtm->Optimizing = 0;
     fprintf(logfp,"FWHM: %g %g %g\n",gtm->cFWHM,gtm->rFWHM,gtm->sFWHM);
     fprintf(logfp,"Std:  %g %g %g\n",gtm->cStd,gtm->rStd,gtm->sStd);
-    if(gtm->UseMB) fprintf(logfp,"MB: %g\n",gtm->mb->slope);
+    if(gtm->UseMBrad) fprintf(logfp,"MB Rad: %g %g\n",gtm->mbrad->offset,gtm->mbrad->slope);
+    if(gtm->UseMBtan) fprintf(logfp,"MB Tan: %g %g\n",gtm->mbtan->offset,gtm->mbtan->slope);
     sprintf(tmpstr,"%s/opt.params.dat",AuxDir);
     fp = fopen(tmpstr,"w");
     for(n=0; n < gtmopt->nparams; n++) fprintf(fp,"%lf ",gtmopt->params[n]);
@@ -517,10 +536,21 @@ int main(int argc, char *argv[])
   gmpvf = MRIadd(ctxpvf,subctxpvf,NULL); // All GM PVF
   // Smooth GM PVF by PSF
   gtm->gmpvfpsf = MRIgaussianSmoothNI(gmpvf,gtm->cStd, gtm->rStd, gtm->sStd, NULL);
-  if(gtm->UseMB){
+  if(gtm->UseMBrad){
     MB2D *mb;
     MRI *mritmp;
-    mb = MB2Dcopy(gtm->mb,0,NULL);
+    mb = MB2Dcopy(gtm->mbrad,0,NULL);
+    mb->cR = 0;
+    mb->rR = 0;
+    mritmp = MRImotionBlur2D(gtm->gmpvfpsf, mb, NULL);
+    MRIfree(&gtm->gmpvfpsf);
+    gtm->gmpvfpsf = mritmp;
+    MB2Dfree(&mb);
+  }
+  if(gtm->UseMBtan){
+    MB2D *mb;
+    MRI *mritmp;
+    mb = MB2Dcopy(gtm->mbtan,0,NULL);
     mb->cR = 0;
     mb->rR = 0;
     mritmp = MRImotionBlur2D(gtm->gmpvfpsf, mb, NULL);
@@ -560,7 +590,7 @@ int main(int argc, char *argv[])
       mbtmp->cutoff = 4;
       mbtmp->c0 = gtm->yvol->width/2.0;
       mbtmp->r0 = gtm->yvol->height/2.0;
-      mbtmp->DeltaD = gtm->yvol->xsize;
+      mbtmp->DeltaD = gtm->yvol->xsize/2.0;
       mritmp = MRImotionBlur2D(gtm->ysynthsm, mbtmp, NULL);
       MRIfree(&gtm->ysynthsm);
       gtm->ysynthsm = mritmp;
@@ -1038,6 +1068,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&Frame);
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--npad")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nPadOverride);
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--no-reduce-fov")) gtm->automask_reduce_fov = 0;
     else if(!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -1056,7 +1091,10 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     }
 
-    else if(!strcasecmp(option, "--tt-reduce")) ttReduce = 1;
+    else if(!strcasecmp(option, "--tt-reduce")){
+      ttReduce = 1;
+      gtm->scale_refids[0] = 3; // probably WM
+    }
     else if(!strcasecmp(option, "--no-mask_rbv_to_brain")) gtm->mask_rbv_to_brain = 0;
     else if(!strcasecmp(option, "--default-seg-merge"))
       GTMdefaultSegReplacmentList(&gtm->nReplace,&(gtm->SrcReplace[0]),&(gtm->TrgReplace[0]));
@@ -1124,9 +1162,17 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&gtmopt->schema);
       DoOpt=1;
+      SaveInput=1;
       SaveYhat=1;
       SaveEres=1;
       nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--opt-tol")) {
+      if(nargc < 3) CMDargNErr(option,3);
+      sscanf(pargv[0],"%d",&gtmopt->nitersmax);
+      sscanf(pargv[1],"%lf",&gtmopt->ftol);
+      sscanf(pargv[2],"%lf",&gtmopt->linmintol);
+      nargsused = 3;
     }
     else if(!strcasecmp(option, "--psf")){
       if(nargc < 1) CMDargNErr(option,1);
@@ -1151,11 +1197,19 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&gtm->sFWHM);
       nargsused = 1;
     } 
-    else if(!strcasecmp(option, "--mb")){
+    else if(!strcasecmp(option, "--mb-rad")){
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%lf",&gtm->mbrad->offset);
+      sscanf(pargv[1],"%lf",&gtm->mbrad->slope);
+      gtm->UseMBrad = 1;
+      nargsused = 2;
+    } 
+    else if(!strcasecmp(option, "--mb-tan")){
       if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&gtm->mb->slope);
-      gtm->UseMB = 1;
-      nargsused = 1;
+      sscanf(pargv[0],"%lf",&gtm->mbtan->offset);
+      sscanf(pargv[1],"%lf",&gtm->mbtan->slope);
+      gtm->UseMBtan = 1; 
+      nargsused = 2;
     } 
     else if(!strcasecmp(option, "--apply-fwhm")){
       // apply to input for testing
@@ -1664,7 +1718,7 @@ static void dump_options(FILE *fp) {
     fprintf(fp,"SegId replacement list\n");
     GTMprintReplaceList(fp, gtm->nReplace, gtm->SrcReplace, gtm->TrgReplace);
   }
-  fprintf(fp,"ApplyXFM %d: ",ApplyXFM);
+  //fprintf(fp,"ApplyXFM %d: ",ApplyXFM);
   for(n=0; n < 6; n++) fprintf(fp,"%6.4f ",pxfm[n]);
   fprintf(fp,"\n");
   if(gtm->DoSteadyState){
@@ -1793,18 +1847,26 @@ int GTMOPTsetup(GTMOPT *gtmopt)
 
   if(gtmopt->schema == GTMOPT_ISO_3D_MB ||
      gtmopt->schema == GTMOPT_ISO_2D_MB ||
-     gtmopt->schema == GTMOPT_ISO_1D_MB){
-    gtmopt->gtm->UseMB = 1;
-    gtmopt->gtm->mb->Interp = SAMPLE_NEAREST;
-    gtmopt->gtm->mb->cutoff = 4;
-    gtmopt->gtm->mb->c0 = gtmopt->gtm->yvol->width/2.0;
-    gtmopt->gtm->mb->r0 = gtmopt->gtm->yvol->height/2.0;
-    gtmopt->gtm->mb->DeltaD = gtmopt->gtm->yvol->xsize;
+     gtmopt->schema == GTMOPT_ISO_1D_MB ||
+     gtmopt->schema == GTMOPT_ISO_MBZ || 
+     gtmopt->schema == GTMOPT_ISO_MB3){
+    gtmopt->gtm->UseMBrad = 1;
+    gtmopt->gtm->mbrad->Interp = SAMPLE_NEAREST;
+    gtmopt->gtm->mbrad->cutoff = 4;
+    gtmopt->gtm->mbrad->c0 = gtmopt->gtm->yvol->width/2.0;
+    gtmopt->gtm->mbrad->r0 = gtmopt->gtm->yvol->height/2.0;
+    gtmopt->gtm->mbrad->DeltaD = gtmopt->gtm->yvol->xsize/2.0;
+  }
+  if(gtmopt->schema == GTMOPT_ISO_MBZ ||
+     gtmopt->schema == GTMOPT_ISO_MB3){
+    gtmopt->gtm->UseMBtan = 1;
+    gtmopt->gtm->mbtan->Interp = SAMPLE_NEAREST;
+    gtmopt->gtm->mbtan->cutoff = 4;
+    gtmopt->gtm->mbtan->c0 = gtmopt->gtm->yvol->width/2.0;
+    gtmopt->gtm->mbtan->r0 = gtmopt->gtm->yvol->height/2.0;
+    gtmopt->gtm->mbtan->DeltaD = gtmopt->gtm->yvol->xsize/2.0;
   }
   GTMOPTgtm2Params(gtmopt);
-  gtmopt->ftol= 1e-8;
-  gtmopt->linmintol= 5e-3;
-  gtmopt->nitersmax = 4;
 
   return(0);
 }
@@ -1849,7 +1911,10 @@ float compute_powell_cost(float *pPowel)
   if(gtmopt->gtm->cFWHM < 0) return(10e10);
   if(gtmopt->gtm->rFWHM < 0) return(10e10);
   if(gtmopt->gtm->sFWHM < 0) return(10e10);
-  if(gtmopt->gtm->UseMB && gtmopt->gtm->mb->slope < 0) return(10e10);
+  if(gtmopt->gtm->UseMBrad && gtmopt->gtm->mbrad->offset < 0) return(10e10);
+  if(gtmopt->gtm->UseMBrad && gtmopt->gtm->mbrad->slope < 0) return(10e10);
+  if(gtmopt->gtm->UseMBtan && gtmopt->gtm->mbtan->offset < 0) return(10e10);
+  if(gtmopt->gtm->UseMBtan && gtmopt->gtm->mbtan->slope < 0) return(10e10);
 
   // compute cost
   curcost = GTMcostPSF(gtmopt->gtm);
@@ -1964,6 +2029,12 @@ int GTMOPTnParams(GTMOPT *gtmopt)
   case GTMOPT_ISO_1D_MB:
     np = 4;
     break;
+  case GTMOPT_ISO_MBZ:
+    np = 5;
+    break;
+  case GTMOPT_ISO_MB3:
+    np = 7;
+    break;
   default:
     printf("ERROR: schema %d not recognized\n",gtmopt->schema);
     return(1);
@@ -1997,21 +2068,39 @@ int GTMOPTparams2GTM(GTMOPT *gtmopt)
     gtmopt->gtm->cFWHM = gtmopt->params[0];
     gtmopt->gtm->rFWHM = gtmopt->params[0];
     gtmopt->gtm->sFWHM = gtmopt->params[0];
-    gtmopt->gtm->mb->slope = gtmopt->params[1];
+    gtmopt->gtm->mbrad->slope = gtmopt->params[1];
     break;
 
   case GTMOPT_ISO_2D_MB:
     gtmopt->gtm->cFWHM = gtmopt->params[0];
     gtmopt->gtm->rFWHM = gtmopt->params[0];
     gtmopt->gtm->sFWHM = gtmopt->params[1];
-    gtmopt->gtm->mb->slope = gtmopt->params[2];
+    gtmopt->gtm->mbrad->slope = gtmopt->params[2];
     break;
 
   case GTMOPT_ISO_1D_MB:
     gtmopt->gtm->cFWHM = gtmopt->params[0];
     gtmopt->gtm->rFWHM = gtmopt->params[1];
     gtmopt->gtm->sFWHM = gtmopt->params[2];
-    gtmopt->gtm->mb->slope = gtmopt->params[3];
+    gtmopt->gtm->mbrad->slope = gtmopt->params[3];
+    break;
+
+  case GTMOPT_ISO_MBZ:
+    gtmopt->gtm->sFWHM = gtmopt->params[0];
+    gtmopt->gtm->mbrad->offset = gtmopt->params[1];
+    gtmopt->gtm->mbrad->slope = gtmopt->params[2];
+    gtmopt->gtm->mbtan->offset = gtmopt->params[3];
+    gtmopt->gtm->mbtan->slope = gtmopt->params[4];;
+    break;
+
+  case GTMOPT_ISO_MB3:
+    gtmopt->gtm->cFWHM = gtmopt->params[0];
+    gtmopt->gtm->rFWHM = gtmopt->params[1];
+    gtmopt->gtm->sFWHM = gtmopt->params[2];
+    gtmopt->gtm->mbrad->offset = gtmopt->params[3];
+    gtmopt->gtm->mbrad->slope = gtmopt->params[4];
+    gtmopt->gtm->mbtan->offset = gtmopt->params[5];
+    gtmopt->gtm->mbtan->slope = gtmopt->params[6];;
     break;
 
   default:
@@ -2038,18 +2127,34 @@ int GTMOPTgtm2Params(GTMOPT *gtmopt)
     break;
   case GTMOPT_ISO_3D_MB:
     gtmopt->params[0] = gtmopt->gtm->cFWHM;
-    gtmopt->params[1] = gtmopt->gtm->mb->slope;
+    gtmopt->params[1] = gtmopt->gtm->mbrad->slope;
     break;
   case GTMOPT_ISO_2D_MB:
     gtmopt->params[0] = gtmopt->gtm->cFWHM;
     gtmopt->params[1] = gtmopt->gtm->sFWHM;
-    gtmopt->params[2] = gtmopt->gtm->mb->slope;
+    gtmopt->params[2] = gtmopt->gtm->mbrad->slope;
     break;
   case GTMOPT_ISO_1D_MB:
     gtmopt->params[0] = gtmopt->gtm->cFWHM;
     gtmopt->params[1] = gtmopt->gtm->rFWHM;
     gtmopt->params[2] = gtmopt->gtm->sFWHM;
-    gtmopt->params[3] = gtmopt->gtm->mb->slope;
+    gtmopt->params[3] = gtmopt->gtm->mbrad->slope;
+    break;
+  case GTMOPT_ISO_MBZ:
+    gtmopt->params[0] = gtmopt->gtm->sFWHM;
+    gtmopt->params[1] = gtmopt->gtm->mbrad->offset;
+    gtmopt->params[2] = gtmopt->gtm->mbrad->slope;
+    gtmopt->params[3] = gtmopt->gtm->mbtan->offset;
+    gtmopt->params[4] = gtmopt->gtm->mbtan->slope;
+    break;
+  case GTMOPT_ISO_MB3:
+    gtmopt->params[0] = gtmopt->gtm->cFWHM;
+    gtmopt->params[1] = gtmopt->gtm->rFWHM;
+    gtmopt->params[2] = gtmopt->gtm->sFWHM;
+    gtmopt->params[3] = gtmopt->gtm->mbrad->offset;
+    gtmopt->params[4] = gtmopt->gtm->mbrad->slope;
+    gtmopt->params[5] = gtmopt->gtm->mbtan->offset;
+    gtmopt->params[6] = gtmopt->gtm->mbtan->slope;
     break;
   default:
     printf("ERROR: schema %d not recognized\n",gtmopt->schema);
