@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/11/24 18:31:59 $
-#    $Revision: 1.72 $
+#    $Date: 2015/05/21 17:41:18 $
+#    $Revision: 1.73 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.72 2014/11/24 18:31:59 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.73 2015/05/21 17:41:18 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -275,6 +275,8 @@ foreach subj ($subjlist)
       set tcache = $subjpath/$surfdir/$trghemi.$srchemi.$CacheOutFile
     endif
     # Smooth in the target space
+    #   Need to add pruning here, ie, mask out any zero-valued voxels 
+    #   before smoothing in addtion to the cortex mask
     if($#fwhmtarg || $#niterstarg) then
       set cmd = (mri_surf2surf --hemi $trghemi --s $target )
       set cmd = ($cmd --sval $tval)
