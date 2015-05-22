@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/05/21 16:29:33 $
- *    $Revision: 1.14 $
+ *    $Date: 2015/05/22 18:17:10 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -229,7 +229,7 @@ void DialogWriteMovieFrames::OnTimeOut()
   QString fn;
   SettingsScreenshot settings = MainWindow::GetMainWindow()->GetScreenShotSettings();
   int nIndex = ui->comboBoxFlyThrough->currentIndex();
-  int nFieldWidth = qMax(3, ui->spinBoxEnd->text().size());
+  int nFieldWidth = qMax(3, QString::number(m_nTotalSteps).size());
   if (nIndex == 0)    // slice
   {
     int nStart = m_nStartNumber+m_nStepSize*m_nStepCount;
@@ -259,7 +259,7 @@ void DialogWriteMovieFrames::OnTimeOut()
   {
     fn = QString("%1%2%3.%4").arg(m_strOutputDir)
         .arg(m_strPrefix)
-         .arg(m_nStepCount, 3, 10, QLatin1Char('0'))
+         .arg(m_nStepCount, nFieldWidth, 10, QLatin1Char('0'))
          .arg(ui->comboBoxExtension->currentText());
     m_view->SaveScreenShot( fn, settings.AntiAliasing, settings.Magnification );
     CameraOperations ops;
