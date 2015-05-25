@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.111 $
+ *    $Author: fischl $
+ *    $Date: 2015/05/25 16:36:44 $
+ *    $Revision: 1.112 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1390,6 +1390,8 @@ ImageRescale(IMAGE *inImage, IMAGE *outImage, float scale)
   else
     ImageScaleDown(inImage, outImage, scale) ;
 
+  outImage->xsize = inImage->xsize / scale ;
+  outImage->ysize = inImage->ysize / scale ;
   return(outImage) ;
 }
 /*----------------------------------------------------------------------

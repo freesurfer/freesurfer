@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/04/25 15:52:37 $
- *    $Revision: 1.558 $
+ *    $Date: 2015/05/25 16:36:44 $
+ *    $Revision: 1.559 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.558 $";
+const char *MRI_C_VERSION = "$Revision: 1.559 $";
 
 
 /*-----------------------------------------------------
@@ -7609,7 +7609,6 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
     ErrorReturn(NULL, (ERROR_BADPARM, "MRItoImageView: bad slice %d\n",slice));
     
 
-  I->xsize = xres ; I->ysize = yres ;
 #if 0
   format = (mri->type == MRI_UCHAR) ? PFBYTE :
            mri->type == MRI_INT   ? PFINT :
@@ -7627,6 +7626,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
   }
   if (!I)
     I = ImageAlloc(h, w, format, 1) ;
+  I->xsize = xres ; I->ysize = yres ;
 
   fmin = 10000000 ;
   fmax = -fmin ;
