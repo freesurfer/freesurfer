@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/05/21 17:45:00 $
-#    $Revision: 1.67 $
+#    $Date: 2015/05/29 19:48:38 $
+#    $Revision: 1.68 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.67 2015/05/21 17:45:00 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.68 2015/05/29 19:48:38 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -335,6 +335,18 @@ foreach hemi ($hemilist)
          if($status) exit 1;
        endif
 
+       if($#fsgd) then
+         set base = `basename $fsgd .fsgd`
+         if(! $DoPercent) set glmdir = $outcondir/glm.$base"$SpStr2"
+         if($DoPercent) set glmdir = $outcondir/glm.$base"$SpStr2"
+         set cmd = (mri_glmfit --fsgd $fsgd --y $y --glmdir $glmdir --kurtosis)
+         set cmd = ($cmd --mask $maskvol --nii --kurtosis)
+         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
+         echo $cmd |& tee -a $LF
+         $cmd |& tee -a $LF
+         if($status) exit 1;
+       endif
+
        if($DoFFX) then
          if(! $DoPercent) set glmdir = $outcondir/osgm.ffx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.ffx.pct"$SpStr2"
@@ -567,6 +579,7 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $fsgd"
         exit 0;
       endif
+      set DoOSGM = 1;
       breaksw
 
     case "-tmpdir":
