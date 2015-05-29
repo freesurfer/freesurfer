@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/03/10 20:47:17 $
-#    $Revision: 1.15 $
+#    $Date: 2015/05/29 19:50:20 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.15 2015/03/10 20:47:17 greve Exp $';
+set VERSION = '$Id: getana,v 1.16 2015/05/29 19:50:20 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -66,9 +66,14 @@ switch ($tag)
   case "smstem":
     set stcstem = `getana -a $analysis -t stcstem`
     set fwhm   = `getana -a $analysis -t RawFWHM`
+    set volsurffwhm   = `getana -a $analysis -t VolSurfFWHM`
     #if($fwhm != 0) set result = $stcstem.sm$fwhm
     #if($fwhm == 0) set result = $stcstem
-    set result = $stcstem.sm$fwhm
+    if($#volsurffwhm == 0) then
+      set result = $stcstem.sm$fwhm
+    else
+      set result = $stcstem.vsm$volsurffwhm.sm$fwhm
+    endif
     breaksw;
 
   case "funcstem-specified":
@@ -135,6 +140,10 @@ switch ($tag)
 
   case "RawFWHM":
     set result = `cat $info | awk '{if($1 == "RawFWHM") print $2}'`
+    breaksw;
+
+  case "VolSurfFWHM":
+    set result = `cat $info | awk '{if($1 == "VolSurfFWHM") print $2}'`
     breaksw;
 
   case "RawSpace":
