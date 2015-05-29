@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/12 17:43:14 $
- *    $Revision: 1.109 $
+ *    $Date: 2015/05/29 19:52:36 $
+ *    $Revision: 1.110 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7526,9 +7526,11 @@ MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out)
     if(out == NULL) return(NULL);
   }
 
-  //printf("MB: %d offset=%lf, slope=%lf %d c0=%d, r0=%d, cR=%d, rR=%d\n",
-  //	 mb->type,mb->offset,mb->slope,mb->Interp,mb->c0,mb->r0,mb->cR,mb->rR);
-  //fflush(stdout);
+  if(Gdiag_no > 0){
+    printf("MB: type=%d cutoff=%lf, DeltaD=%lf, offset=%lf, slope=%lf %d c0=%d, r0=%d, cR=%d, rR=%d\n",
+	   mb->type,mb->cutoff,mb->DeltaD,mb->offset,mb->slope,mb->Interp,mb->c0,mb->r0,mb->cR,mb->rR);
+    fflush(stdout);
+  }
 
   // These are two structures to save slice-based parameters
   if(mb->d0)    MRIfree(&mb->d0);
