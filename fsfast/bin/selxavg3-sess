@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/05/08 21:54:48 $
-#    $Revision: 1.64 $
+#    $Date: 2015/05/29 19:47:39 $
+#    $Revision: 1.65 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.64 2015/05/08 21:54:48 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.65 2015/05/29 19:47:39 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -141,14 +141,14 @@ echo "--------------------------------------------------------------"
 echo "selxavg3-sess logfile is $LF"
 echo "--------------------------------------------------------------"
 
-echo "selxavg3-sess log file" >> $LF
-echo $0        >> $LF
-echo $inputargs  >> $LF
-echo $VERSION >> $LF
-id            >> $LF
-pwd           >> $LF
-uname -a      >> $LF
-date          >> $LF
+echo "selxavg3-sess log file" | tee -a $LF
+echo $0        | tee -a $LF
+echo $inputargs  | tee -a $LF
+echo $VERSION | tee -a $LF
+id            | tee -a $LF
+pwd           | tee -a $LF
+uname -a      | tee -a $LF
+date          | tee -a $LF
 
 set StartTime = `date`;
 
@@ -348,9 +348,9 @@ if($FS_SXA3_USE_BIN == 0) then
   if($monly == 0) echo "quit;" >> $MLF
   echo "MLF is $MLF" | tee -a $LF
 
-  echo "------------------------------------------" >> $LF
-  cat $MLF >> $LF
-  echo "------------------------------------------" >> $LF
+  echo "------------------------------------------" | tee -a $LF
+  cat $MLF | tee -a $LF
+  echo "------------------------------------------" | tee -a $LF
 
   if(! $monly && $nprocs > 0) then
     echo "------------------------------------------" | tee -a $LF
