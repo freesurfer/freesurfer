@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/05/20 21:58:38 $
-#    $Revision: 1.523 $
+#    $Date: 2015/06/01 16:40:09 $
+#    $Revision: 1.524 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.523 2015/05/20 21:58:38 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.524 2015/06/01 16:40:09 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3258,8 +3258,12 @@ if($DoFix && ( ! $longitudinal )) then
     set cmd = (rm ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd
-    if($UseNewTopoFix) then
-      # Copy *h.orig_corrected to *h.orig
+    if( -e ../surf/$hemi.orig_corrected ) then
+      # Copy *h.orig_corrected to *h.orig.  orig_corrected is created
+      # by mris_topo_fixer, which runs only when mris_fix_topology fails,
+      # which could happen for one hemi and not the other, so check
+      # if it exists prior to the copy instead of checking the
+      # UseNewTopoFix flag.
       set cmd = (cp ../surf/$hemi.orig_corrected ../surf/$hemi.orig )
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd
