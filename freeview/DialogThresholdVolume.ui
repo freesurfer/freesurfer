@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>428</width>
-    <height>161</height>
+    <height>204</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -138,6 +138,55 @@
        </property>
       </widget>
      </item>
+     <item row="3" column="1">
+      <widget class="QCheckBox" name="checkBoxReplaceIn">
+       <property name="text">
+        <string>Replace In value with</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLineEdit" name="lineEditInValue">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>70</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>1</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
+      <widget class="QCheckBox" name="checkBoxReplaceOut">
+       <property name="text">
+        <string>Replace Out value with</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="2">
+      <widget class="QLineEdit" name="lineEditOutValue">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>70</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>0</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>
@@ -203,11 +252,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>385</x>
-     <y>141</y>
+     <y>179</y>
     </hint>
     <hint type="destinationlabel">
      <x>381</x>
-     <y>222</y>
+     <y>198</y>
     </hint>
    </hints>
   </connection>
@@ -219,11 +268,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>199</x>
-     <y>138</y>
+     <y>176</y>
     </hint>
     <hint type="destinationlabel">
      <x>295</x>
-     <y>223</y>
+     <y>198</y>
     </hint>
    </hints>
   </connection>
@@ -235,11 +284,43 @@
    <hints>
     <hint type="sourcelabel">
      <x>301</x>
-     <y>139</y>
+     <y>177</y>
     </hint>
     <hint type="destinationlabel">
      <x>291</x>
-     <y>289</y>
+     <y>198</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxReplaceIn</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditInValue</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>159</x>
+     <y>106</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>248</x>
+     <y>104</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxReplaceOut</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditOutValue</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>164</x>
+     <y>134</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>261</x>
+     <y>135</y>
     </hint>
    </hints>
   </connection>

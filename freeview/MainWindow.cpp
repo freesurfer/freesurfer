@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/05/05 18:53:39 $
- *    $Revision: 1.297 $
+ *    $Date: 2015/06/03 20:56:14 $
+ *    $Revision: 1.298 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,6 +71,7 @@
 #include "VolumeFilterDilate.h"
 #include "VolumeFilterOpen.h"
 #include "VolumeFilterClose.h"
+#include "VolumeFilterThreshold.h"
 #include "DialogVolumeFilter.h"
 #include "DialogGradientFilter.h"
 #include "Cursor2D.h"
@@ -107,6 +108,7 @@
 #include "DialogVolumeSegmentation.h"
 #include <QProcessEnvironment>
 #include "Json.h"
+#include "DialogThresholdFilter.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -5915,6 +5917,29 @@ void MainWindow::OnVolumeFilterGradient()
       mri->ResetWindowLevel();
     }
   }
+}
+
+void MainWindow::OnVolumeFilterThreshold()
+{
+//  LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+//  if ( mri )
+//  {
+//    VolumeFilterThreshold* filter = new VolumeFilterThreshold( mri, mri );
+//    DialogThresholdFilter dlg(this);
+//    if ( dlg.exec() == QDialog::Accepted )
+//    {
+//      double th[2];
+//      dlg.GetThreshold(th);
+//      filter->SetThreshold(th);
+//      filter->SetReplaceIn(dlg.GetReplaceIn());
+//      filter->SetReplaceOut(dlg.GetReplaceOut());
+//      filter->SetInValue(dlg.GetInValue());
+//      filter->SetOutValue(dlg.GetOutValue());
+//      m_threadVolumeFilter->ExecuteFilter(filter);
+//      if (dlg.GetReplaceIn() || dlg.GetReplaceOut())
+//        mri->ResetWindowLevel();
+//    }
+//  }
 }
 
 void MainWindow::OnVolumeFilterSobel()

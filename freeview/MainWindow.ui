@@ -1483,6 +1483,11 @@
     <string>Load Camera...</string>
    </property>
   </action>
+  <action name="actionVolumeThreshold">
+   <property name="text">
+    <string>Threshold</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -2990,6 +2995,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionVolumeThreshold</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnVolumeFilterThreshold()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -3083,5 +3104,6 @@
   <slot>OnSegmentVolume()</slot>
   <slot>OnToolSaveCamera()</slot>
   <slot>OnToolLoadCamera()</slot>
+  <slot>OnVolumeFilterThreshold()</slot>
  </slots>
 </ui>

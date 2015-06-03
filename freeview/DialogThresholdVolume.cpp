@@ -27,7 +27,9 @@ void DialogThresholdVolume::OnButtonRun()
       th_high = 1e20;
     target->Threshold(ui->lineEditTargetFrame->text().trimmed().toInt(), src,
                       ui->lineEditSourceFrame->text().trimmed().toInt(),
-                      ui->lineEditLowThreshold->text().trimmed().toDouble(), th_high);
+                      ui->lineEditLowThreshold->text().trimmed().toDouble(), th_high,
+                      ui->checkBoxReplaceIn->isChecked(), ui->lineEditInValue->text().trimmed().toDouble(),
+                      ui->checkBoxReplaceOut->isChecked(), ui->lineEditOutValue->text().trimmed().toDouble());
   }
 }
 

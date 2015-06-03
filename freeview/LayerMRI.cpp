@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/05/18 20:55:37 $
- *    $Revision: 1.157 $
+ *    $Date: 2015/06/03 20:56:14 $
+ *    $Revision: 1.158 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3130,7 +3130,8 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
   GetProperty()->EmitChangeSignal();
 }
 
-void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low, double th_high)
+void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low, double th_high,
+                         bool replace_in, double in_value, bool replace_out, double out_value)
 {
   if (!m_imageDataBackup.GetPointer())
   {
@@ -3141,7 +3142,7 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
   {
     for (int i = 0; i < GetNumberOfFrames(); i++)
     {
-      Threshold(i, src, src_frame, th_low, th_high);
+      Threshold(i, src, src_frame, th_low, th_high, replace_in, in_value, replace_out, out_value);
     }
   }
   else
@@ -3178,6 +3179,41 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
     int nFrames = target_image->GetNumberOfScalarComponents();
     int nBytes = target_image->GetScalarSize();
     char* backup_ptr = (char*)m_imageDataBackup->GetScalarPointer();
+    char in_value_ptr[16], out_value_ptr[16];
+    switch (target_image->GetScalarType())
+    {
+    case VTK_CHAR:
+    case VTK_SIGNED_CHAR:
+    case VTK_UNSIGNED_CHAR:
+      in_value_ptr[0] = in_value;
+      out_value_ptr[0] = out_value;
+      break;
+    case VTK_SHORT:
+      ((short*)in_value_ptr)[0] = in_value;
+      ((short*)out_value_ptr)[0] = out_value;
+      break;
+    case VTK_UNSIGNED_SHORT:
+      ((unsigned short*)in_value_ptr)[0] = in_value;
+      ((unsigned short*)out_value_ptr)[0] = out_value;
+      break;
+    case VTK_INT:
+      ((int*)in_value_ptr)[0] = in_value;
+      ((int*)out_value_ptr)[0] = out_value;
+      break;
+    case VTK_UNSIGNED_INT:
+      ((unsigned int*)in_value_ptr)[0] = in_value;
+      ((unsigned int*)out_value_ptr)[0] = out_value;
+      break;
+    case VTK_FLOAT:
+      ((float*)in_value_ptr)[0] = in_value;
+      ((float*)out_value_ptr)[0] = out_value;
+      break;
+    case VTK_DOUBLE:
+      ((double*)in_value_ptr)[0] = in_value;
+      ((double*)out_value_ptr)[0] = out_value;
+      break;
+    }
+
     for (int i = 0; i < dim[0]; i++)
     {
       for (int j = 0; j < dim[1]; j++)
@@ -3187,9 +3223,19 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
           int n = k*dim[0]*dim[1] + j*dim[0] + i;
           int offset = (n*nFrames+frame)*nBytes;
           if (src_ptr[n] < 1)
-            memset(target_ptr + offset, 0, nBytes);
+          {
+            if (replace_out)
+              memcpy(target_ptr + offset, out_value_ptr, nBytes);
+            else
+              memcpy(target_ptr + offset, backup_ptr + offset, nBytes);
+          }
           else
-            memcpy(target_ptr + offset, backup_ptr + offset, nBytes);
+          {
+            if (replace_in)
+              memcpy(target_ptr + offset, in_value_ptr, nBytes);
+            else
+              memcpy(target_ptr + offset, backup_ptr + offset, nBytes);
+          }
         }
       }
     }

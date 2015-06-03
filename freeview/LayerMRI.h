@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/12/04 14:04:07 $
- *    $Revision: 1.95 $
+ *    $Date: 2015/06/03 20:56:14 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -302,7 +302,7 @@ public:
 
   bool HasValidHistogram();
 
-  void Threshold(int frame, LayerMRI* src, int src_frame, double th_low, double th_high);
+  void Threshold(int frame, LayerMRI* src, int src_frame, double th_low, double th_high, bool replace_in, double in_value, bool replace_out, double out_value);
 
   bool Segment(int min_label_index, int max_label_index, int min_num_of_voxels);
 
