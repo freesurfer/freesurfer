@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/06/01 16:40:09 $
-#    $Revision: 1.524 $
+#    $Date: 2015/06/03 19:22:32 $
+#    $Revision: 1.525 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.524 2015/06/01 16:40:09 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.525 2015/06/03 19:22:32 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -207,7 +207,8 @@ set robust_template_avg_arg = 1; # construct template from: 0 Mean, 1 Median
 set DoNuIntensityCor3T = 0; # if 1, use Zheng, Chee, Zagorodnov params for 3T
 set DoAddTp = 0; # if 1, then 'fake'-add this timepoint to long subj set
 set DoAffineBase = 0; # if 1, allow affine when creating base (fix calibration)
-set UseCubic = 1; # if 1, use cubic spline when mri_convert does conform step
+set UseCubic = 0; # if 1, use cubic spline when mri_convert does conform step
+set UseFixMtl = 0; # if 1, add -fix_mtl flag to make_surfaces
 
 # Hippocampal subfields:
 set DoHippoSF_T1 = 0;  # if 1, run hippo subfield seg, exvivo atlas (only T1)
@@ -3258,11 +3259,11 @@ if($DoFix && ( ! $longitudinal )) then
     set cmd = (rm ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd
-    if( -e ../surf/$hemi.orig_corrected ) then
+    if($UseNewTopoFix && -e ../surf/$hemi.orig_corrected ) then
       # Copy *h.orig_corrected to *h.orig.  orig_corrected is created
       # by mris_topo_fixer, which runs only when mris_fix_topology fails,
       # which could happen for one hemi and not the other, so check
-      # if it exists prior to the copy instead of checking the
+      # if it exists prior to the copy in addition to checking the
       # UseNewTopoFix flag.
       set cmd = (cp ../surf/$hemi.orig_corrected ../surf/$hemi.orig )
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -3908,11 +3909,14 @@ if($DoPialSurfs) then
           -long -max 3.5)
     else
       # default stream:
-      # NJS: -orig_pial white and -fix_mtl added 16Feb2015 per BF
+      # NJS: -orig_pial white added 16Feb2015 per BF
       set cmd = (mris_make_surfaces \
           -orig_white white \
-          -orig_pial white \
-          -fix_mtl)
+          -orig_pial white)
+      if ($UseFixMtl) then
+        # NJS: now external flag option, 3Jun2015
+        set cmd = ($cmd -fix_mtl)
+      endif
     endif
     if ($UseAseg) then
       set cmd = ($cmd -aseg ../mri/aseg.presurf)
@@ -7122,6 +7126,17 @@ while( $#argv != 0 )
     case "-no-cubic":
     case "-no_cubic":
       set UseCubic = 0;
+      breaksw
+
+    case "-fix_mtl":
+    case "-fix-mtl":
+      set UseFixMtl = 1;
+      breaksw
+    case "-nofix_mtl":
+    case "-nofix-mtl":
+    case "-no_fix_mtl":
+    case "-no-fix-mtl":
+      set UseFixMtl = 0;
       breaksw
 
     case "-T2pial":
