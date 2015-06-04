@@ -11,11 +11,11 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/06/04 15:44:50 $
- *    $Revision: 1.52 $
+ *    $Author: nicks $
+ *    $Date: 2015/06/04 20:50:50 $
+ *    $Revision: 1.53 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -52,18 +52,17 @@
 #include "macros.h"
 #include "version.h"
 #include "fio.h"
-#include "xDebug.h"
 #include "mri_identify.h"
 #include "label.h"
 
-#define  STRBUF       65536
+#define  STRBUF         65536
 #define  MAX_FILES      1000
 #define  CO( x )        fprintf(stdout, ( x ))
 #define  CE( x )        fprintf(stderr, ( x ))
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.52 2015/06/04 15:44:50 greve Exp $";
+  "$Id: mris_calc.c,v 1.53 2015/06/04 20:50:50 nicks Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -424,7 +423,10 @@ double  fn_masked(float af_A, float af_B)
 // Simple functions on one argument
 double fn_log10(float af_A)
 {
-  if(af_A == 0) return(0);
+  if(af_A == 0)
+  {
+    return(0);
+  }
   return (log10(af_A));
 }
 double fn_abs(float af_A)
@@ -441,7 +443,10 @@ double fn_sqr(float af_A)
 }
 double fn_not(float af_A)
 {
-  if(af_A > 0.5) return(0);
+  if(af_A > 0.5)
+  {
+    return(0);
+  }
   return(1);
 }
 double fn_sqrt(float af_A)
@@ -468,21 +473,30 @@ double fn_sign(float af_A)
 
 double fn_zeroCount(float af_A)
 {
-    static int          count = 0;
-    if(af_A == 0.0)     count++;
-    return count;
+  static int          count = 0;
+  if(af_A == 0.0)
+  {
+    count++;
+  }
+  return count;
 }
 double fn_negCount(float af_A)
 {
-    static int          count = 0;
-    if(af_A < 0.0)      count++;
-    return count;
+  static int          count = 0;
+  if(af_A < 0.0)
+  {
+    count++;
+  }
+  return count;
 }
 double fn_posCount(float af_A)
 {
-    static int          count = 0;
-    if(af_A > 0.0)      count++;
-    return count;
+  static int          count = 0;
+  if(af_A > 0.0)
+  {
+    count++;
+  }
+  return count;
 }
 
 double fn_min(float af_A)
@@ -720,7 +734,6 @@ verbosity_set(void)
 void
 init(void)
 {
-  InitDebugging( "mris_calc" );
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 }
@@ -1413,7 +1426,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.52 2015/06/04 15:44:50 greve Exp $",
+           "$Id: mris_calc.c,v 1.53 2015/06/04 20:50:50 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -2075,7 +2088,7 @@ CURV_arrayProgress_print(
       fflush(G_FP);
     }
   }
-  
+
   if(acurrent == asize-1)
   {
     fprintf(G_FP, "] ");
