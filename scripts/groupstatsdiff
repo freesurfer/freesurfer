@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # groupstatsdiff
 
-set VERSION = '$Id: groupstatsdiff,v 1.7 2015/06/02 14:48:07 greve Exp $';
+set VERSION = '$Id: groupstatsdiff,v 1.8 2015/06/04 15:49:51 greve Exp $';
 
 set g1dir = ();
 set g2dir = ();
@@ -156,9 +156,9 @@ if($DoMaps) then
         set fwhmstr = `printf %02d $fwhm`
         set sm1file =  $g1dir/maps/$meas.$hemi.sm$fwhmstr.mgh
         set sm2file =  $g2dir/maps/$meas.$hemi.sm$fwhmstr.mgh
-        # Compute the difference
+        # Compute the difference, set to 0 any voxel where either input is 0
         set smdifffile = $outdir/maps/diff.$meas.$hemi.sm$fwhmstr.mgh	
-        set cmd = (fscalc $sm1file sub $sm2file -o $smdifffile)
+        set cmd = (fscalc $sm1file sub0 $sm2file -o $smdifffile)
         echo "#C# $cmd"  | tee -a $LF
         $cmd | tee -a $LF
         if($status) exit 1;
