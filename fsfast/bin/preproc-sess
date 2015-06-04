@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/05/29 19:49:44 $
-#    $Revision: 1.58 $
+#    $Date: 2015/06/04 17:42:11 $
+#    $Revision: 1.59 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.58 2015/05/29 19:49:44 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.59 2015/06/04 17:42:11 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -217,6 +217,8 @@ foreach sess ($SessList)
     set cmd = (mkbrainmask-sess -maskstem $maskstem)
     set cmd = ($cmd -fsd $fsd)
     set cmd = ($cmd -s $sessid -d $sessparent)
+    if($PerRun)     set cmd = ($cmd -per-run)
+    if($PerSess) set cmd = ($cmd -per-session)
     if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
     if($nolog) set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
@@ -867,9 +869,10 @@ usage_exit:
   echo "  -nomc     : don't do motion correction"
   echo "  -nostc    : don't do slice-timing correction"
   echo "  -nosmooth : don't do smoothing"
-  echo "  -nomask   : don't make brain mask"
+  echo "  -nomask   : don't create brain mask"
   echo "  -noreg    : don't do registration"
   echo "  -noinorm  : don't do inorm"
+  echo "  -no-subcort-mask : do not apply subcortical masking"
   echo ""
   echo "  -mcin   mcinstem    : stem to use as input  to MC"
   echo "  -mcout  mcoutstem   : stem to use as output of MC"
