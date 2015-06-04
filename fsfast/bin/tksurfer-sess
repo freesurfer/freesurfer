@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/03/24 19:26:16 $
-#    $Revision: 1.24 $
+#    $Date: 2015/06/04 20:52:51 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.24 2015/03/24 19:26:16 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.25 2015/06/04 20:52:51 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -39,6 +39,8 @@ set fmax    = 4;
 set DoAllContrasts = 0;
 set TCL = ();
 set FWHM = ();
+set DoWhite = 1;
+set DoPial = 1;
 
 set Delink = 0;
 set UseVol2Surf = 1;
@@ -289,8 +291,8 @@ foreach sess ($SessList)
     # FreeView via tksurferfv
     set cmd = (tksurferfv $trgsubjectuse $hemi $surf -overlay $mapconcatfile)
     if($#annot) set cmd = ($cmd -annot $annot)
-    if($surf != white) set cmd = ($cmd -surf white);
-    if($surf != pial) set cmd = ($cmd -surf pial);
+    if($surf != white && $DoWhite) set cmd = ($cmd -surf white);
+    if($surf != pial && $DoPial) set cmd = ($cmd -surf pial);
     if($surf != inflated) set cmd = ($cmd -surf inflated);
     set cmd = ($cmd -fminmax $fthresh $fmax)
   endif
@@ -446,6 +448,20 @@ while( $#argv != 0 )
 
     case "-nohdr":
       set ShowHDR = 0;
+      breaksw
+
+    case "-no-white":
+      set DoWhite = 0;
+      breaksw
+    case "-white":
+      set DoWhite = 1;
+      breaksw
+
+    case "-no-pial":
+      set DoPial = 0;
+      breaksw
+    case "-pial":
+      set DoPial = 1;
       breaksw
 
     case "-delink":
@@ -643,8 +659,10 @@ usage_exit:
   echo "   -interp method : interpolation for volume analyses"
   echo "   -fwhm fwhm : surface smooth by fwhm (only necessary for volume analyses)"
   echo "   -tcl script.tcl  : run tksurfer with tcl script"
-  echo "   -freeview : display with freeview (cannot display HRFs)"
+  echo "   -freeview : display with freeview (default, cannot display HRFs)"
   echo "   -tksurfer  : display with tksurfer"
+  echo "   -no-white : do not display white surface (freeview only)"
+  echo "   -no-pial  : do not display pial surface (freeview only)"
   echo ""
   echo "   -d  sessdir  ..."
   echo ""
