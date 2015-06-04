@@ -35,12 +35,18 @@
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = &lt;file1&gt; + &lt;file2&gt;</explanation>
       <argument>sub</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = &lt;file1&gt; - &lt;file2&gt;</explanation>
+      <argument>sub0</argument>
+      <explanation>Same as sub but sets output to 0 if either input is 0</explanation>
       <argument>mul</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = &lt;file1&gt; * &lt;file2&gt;.</explanation>
       <argument>div</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = &lt;file1&gt; / &lt;file2&gt;</explanation>
       <argument>pow</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = pow(&lt;file1&gt;,&lt;file2&gt;)</explanation>
+      <argument>pctdiff</argument>
+      <explanation>2 inputs and 1 output. &lt;outputFile&gt; = (&lt;file1&gt;-&lt;file2&gt;)/((&lt;file1&gt;+&lt;file2&gt;+FLT_MIN)/2)</explanation>
+      <argument>pctdiff0</argument>
+      <explanation>Same as pctdiff0 but sets output to 0 if either input is 0</explanation>
       <argument>norm</argument>
       <explanation>1 inputs and 1 output. &lt;outputFile&gt; = norm(&lt;file1&gt;). This creates an output file such that all values are constrained (normalized) between 0.0 and 1.0.</explanation>
       <explanation>
