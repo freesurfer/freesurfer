@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/05/29 19:48:38 $
-#    $Revision: 1.68 $
+#    $Date: 2015/06/04 17:35:35 $
+#    $Revision: 1.69 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.68 2015/05/29 19:48:38 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.69 2015/06/04 17:35:35 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -340,7 +340,7 @@ foreach hemi ($hemilist)
          if(! $DoPercent) set glmdir = $outcondir/glm.$base"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/glm.$base"$SpStr2"
          set cmd = (mri_glmfit --fsgd $fsgd --y $y --glmdir $glmdir --kurtosis)
-         set cmd = ($cmd --mask $maskvol --nii --kurtosis)
+         set cmd = ($cmd --mask $maskvol --nii --kurtosis --no-contrasts-ok)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
