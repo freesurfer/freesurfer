@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/03/24 19:26:16 $
-#    $Revision: 1.40 $
+#    $Date: 2015/06/04 17:40:36 $
+#    $Revision: 1.41 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.40 2015/03/24 19:26:16 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.41 2015/06/04 17:40:36 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -91,24 +91,32 @@ if($#BBRSumFile) then
     set sessid = `basename $sess`
     if($PerSess) then
       set reg = $sess/$fsd/$regfilename
-      if(! -e $reg.mincost) then
-        echo "ERROR: cannot find costfile $reg.mincost"
-        echo "Make sure to run register-sess using -bbr"
-        exit 1;
+      set mincostfile = $reg.mincost
+      if(! -e $mincostfile) then
+        set mincostfile = $sess/$fsd/`basename $reg .lta`.dat.mincost
+        if(! -e $mincostfile) then
+          echo "ERROR: cannot find costfile $mincostfile"
+          echo "Make sure to run register-sess using -bbr"
+          exit 1;
+        endif
       endif
-      set mincost = `cat $reg.mincost | awk '{print $1}'`
+      set mincost = `cat $mincostfile | awk '{print $1}'`
       printf "%-10s %6.4f\n" $sessid $mincost | tee -a $BBRSumFile
       continue
     else
       set RunList = `getrunlist $sess/$fsd $RunListFile`;
       foreach Run ($RunList)
         set reg = $sess/$fsd/$Run/$regfilename
-        if(! -e $reg.mincost) then
-          echo "ERROR: cannot find costfile $reg.mincost"
-          echo "Make sure to run register-sess using -bbr"
-          exit 1;
+        set mincostfile = $reg.mincost
+        if(! -e $mincostfile) then
+          set mincostfile = $sess/$fsd/$Run/`basename $reg .lta`.dat.mincost
+          if(! -e $mincostfile) then
+            echo "ERROR: cannot find costfile $mincostfile"
+            echo "Make sure to run register-sess using -bbr"
+            exit 1;
+          endif
         endif
-        set mincost = `cat $reg.mincost | awk '{print $1}'`
+        set mincost = `cat $mincostfile | awk '{print $1}'`
         printf "%-10s %s %6.4f\n" $sessid $Run $mincost | tee -a $BBRSumFile
       end 
     endif
