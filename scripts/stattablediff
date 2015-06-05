@@ -16,6 +16,7 @@ def print_help():
   print "  --mul mulval : multiply by mulval";
   print "  --div divval : divide by divval";
   print "  --common : compute diff on common segs (may reorder)";
+  print "  --rm-exvivo : remove the string 'exvivo' from the column header"
   print "  --debug : print out debugging info";
   return 0;
 #end def print_help:
@@ -36,6 +37,7 @@ def parse_args(argv):
   global MulVal;
   global DivVal;
   global AllowCommon;
+  global RmExvivo;
 
   del argv[0]; # get past program name (like shift)
 
@@ -66,6 +68,8 @@ def parse_args(argv):
       DoPercent = 3;
     elif(flag == "--common"):
       AllowCommon = 1;
+    elif(flag == "--rm-exvivo"):
+      RmExvivo = 1;
     elif(flag == "--debug"):
       debug = 1;
     else:
@@ -118,6 +122,7 @@ DoPercent = 0;
 MulVal = 1;
 DivVal = 1;
 AllowCommon = 0;
+RmExvivo = 0;
 
 nargs = len(sys.argv) - 1;
 if(nargs == 0):
@@ -135,6 +140,7 @@ except:
   sys.exit(1);
 #endtry
 header1 = fp.readline();
+if(RmExvivo): header1 = header1.replace("_exvivo","");
 collist1 = header1.split();
 meas1 = collist1[0];
 del collist1[0]; # remove Measure:xxx
@@ -154,6 +160,7 @@ except:
 #endtry
 fp = open(table2, 'r');
 header2 = fp.readline();
+if(RmExvivo): header2 = header2.replace("_exvivo","");
 collist2 = header2.split();
 meas2 = collist2[0];
 del collist2[0]; # remove Measure:xxx
