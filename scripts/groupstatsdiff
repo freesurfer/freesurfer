@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # groupstatsdiff
 
-set VERSION = '$Id: groupstatsdiff,v 1.9 2015/06/04 15:52:27 greve Exp $';
+set VERSION = '$Id: groupstatsdiff,v 1.10 2015/06/05 22:40:21 greve Exp $';
 
 set g1dir = ();
 set g2dir = ();
@@ -89,7 +89,10 @@ foreach aparc ($aparclist)
         set table1 = $g1dir/rois/$parc.$hemi.$surf.$meas.dat
         set table2 = $g2dir/rois/$parc.$hemi.$surf.$meas.dat
         set difftable = $outdir/rois/diff.$parc.$hemi.$surf.$meas.dat
+        # --rm-exvivo removes the string 'exvivo' from the ROI name
+        # to make 6.0 compatible with 5.3
         set cmd = (stattablediff --t1 $table1 --t2 $table2 --o $difftable --percent)
+        set cmd = ($cmd --rm-exvivo)
         if($DoCommon) set cmd = ($cmd --common)
         echo "#C# $cmd" | tee -a $LF
         $cmd | tee -a $LF
