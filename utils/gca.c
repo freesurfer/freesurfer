@@ -15,11 +15,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/24 17:57:19 $
- *    $Revision: 1.331 $
+ *    $Author: nicks $
+ *    $Date: 2015/06/08 20:20:06 $
+ *    $Revision: 1.332 $
  *
- * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -26333,9 +26333,13 @@ gcaGetLabelHistogram(GCA *gca, int label, int frame, int border)
   for (b = 0 ; b < h_gca->nbins ; b++)
     h_gca->bins[b] = b ;
 
-#ifdef HAVE_OPENMP
-#pragma omp parallel for
-#endif
+//NJS: 8June2015 commented-out parallelizing this loop as testing found that
+//mri_em_register would sometimes give different results.  unknown as to why,
+//but perhaps h_gca->counts[b] += prior is not thread-safe.  
+//parallelizing this loop only trimmed two seconds from em_reg.
+//ifdef HAVE_OPENMP
+//pragma omp parallel for
+//endif
   for (zn = 0 ; zn < gca->node_depth ; zn++)
   {
     GCA_NODE  *gcan ;
