@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/29 20:47:21 $
- *    $Revision: 1.420 $
+ *    $Date: 2015/06/08 18:17:24 $
+ *    $Revision: 1.421 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -6697,7 +6697,9 @@ static MRI *analyzeRead(const char *fname, int read_volume)
   if (N_Zero_Pad_Input < 0) fclose(fp);
 
   printf("  analyzeRead() roi_scale %13.9f\n",hdr->dime.roi_scale);
-  if(fabs(hdr->dime.roi_scale-1) > FLT_EPSILON && fabs(hdr->dime.roi_scale) > FLT_EPSILON){
+  if(getenv("FS_ANALYZE_NO_RESCALE") != NULL) printf("FS_ANALYZE_NO_RESCALE set, so not rescaling\n");
+  if(fabs(hdr->dime.roi_scale-1) > FLT_EPSILON && fabs(hdr->dime.roi_scale) > FLT_EPSILON &&
+     getenv("FS_ANALYZE_NO_RESCALE") == NULL){
     // Rescale if it is neither 1 nor 0
     if(mri->type != MRI_FLOAT){
       MRI *mritmp;
