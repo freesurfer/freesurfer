@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/16 18:56:00 $
- *    $Revision: 1.221 $
+ *    $Date: 2015/06/08 18:22:26 $
+ *    $Revision: 1.222 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.221 2015/04/16 18:56:00 greve Exp $",
+   "$Id: mri_convert.c,v 1.222 2015/06/08 18:22:26 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.221 2015/04/16 18:56:00 greve Exp $",
+      "$Id: mri_convert.c,v 1.222 2015/06/08 18:22:26 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -487,6 +487,10 @@ int main(int argc, char *argv[])
       // force bvecs to be in voxel space. only applies when
       // reading dicoms.
       setenv("FS_DESIRED_BVEC_SPACE","2",1);
+    }
+    else if (strcmp(argv[i], "--no-analyze-rescale") == 0 ){
+      // Turns off rescaling of analyze files
+      setenv("FS_ANALYZE_NO_RESCALE","1",1);
     }
     else if(strcmp(argv[i], "--autoalign") == 0)
     {
@@ -1692,7 +1696,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.221 2015/04/16 18:56:00 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.222 2015/06/08 18:22:26 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
