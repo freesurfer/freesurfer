@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/06/09 00:00:10 $
-#    $Revision: 1.527 $
+#    $Date: 2015/06/09 20:47:20 $
+#    $Revision: 1.528 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.527 2015/06/09 00:00:10 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.528 2015/06/09 20:47:20 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -182,13 +182,18 @@ set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
-set UseCPsWithCaNorm = 0 # -canorm-usecps flag allows usage of control points with ca_norm
-setenv OMP_NUM_THREADS 1 # -openmp <num_threads> allows specifying more threads
-set DoParallel = 0; # if 1, then run with -openmp 4, and run rh/lh stages in parallel
-
+set UseCPsWithCaNorm = 0 # -canorm-usecps enable control points with ca_norm
 set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
 set T2max = ();
 set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
+
+# set multi-threaded stuff to single-threaded/cpu for cluster politeness
+# various binaries (em_reg, ca_reg, mris_sphere) have OpenMP enabled code
+setenv OMP_NUM_THREADS 1 # -openmp <num_threads> allows specifying more threads
+# hippocampal subfields processing uses ITK threading
+setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 1 # -itkthreads <num_threads>
+set DoParallel = 0; # if 1, then run with -openmp 4 and -itkthreads 4, 
+                    # and run rh/lh stages in parallel
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -7075,6 +7080,8 @@ while( $#argv != 0 )
       set DoParallel = 1;
       # the user can override this thread count with -openmp
       setenv OMP_NUM_THREADS 4
+      # override: -itkthreads <num_threads>
+      setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 4
       breaksw
 
     case "-openmp":
@@ -7082,6 +7089,13 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       setenv OMP_NUM_THREADS $argv[1]; shift;
       breaksw;
+
+    case "-itkthreads":
+      # located after -parallel so as to allow threadcount override
+      if ( $#argv < 1) goto arg1err;
+      setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS $argv[1]; shift;
+      breaksw;
+
 
     # hippocampal subfield processing (in vivo atlas, Dickerson data)
     case "-hippo-subfields":
@@ -7113,7 +7127,6 @@ while( $#argv != 0 )
     case "-brainstem-structures":
       set DoBSsubst = 1;
       breaksw;
-
 
    
     case "-cubic":
