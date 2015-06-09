@@ -10,7 +10,8 @@ TAL=$(subj)/mri/transforms/talairach.auto.xfm
 CP=$(wildcard $(subj)/tmp/control.dat)
 T1=$(subj)/mri/T1.mgz
 BRAINMASK=$(subj)/mri/brainmask.mgz
-AUTORECON1=$(RAW) $(ORIG) $(TAL) $(T1) $(BRAINMASK)
+NU=$(subj)/mri/nu.mgz
+AUTORECON1=$(RAW) $(ORIG) $(TAL) $(T1) $(BRAINMASK) $(NU)
 
 autorecon1: $(AUTORECON1)
 
@@ -29,9 +30,12 @@ $(T1): $(NU) $(CP)
 $(BRAINMASK): $(T1) $(TAL)
 	recon-all -s $(subj) -skullstrip
 
+$(NU): $(ORIG) $(BRAINMASK) $(TAL)
+	recon-all -s $(subj) -nuintensitycor
+
+
 
 #------------------- A U T O R E C O N   2   V O L	----------------------
-NU=$(subj)/mri/nu.mgz
 TAL_LTA=$(subj)/mri/transforms/talairach.lta
 NORM=$(subj)/mri/norm.mgz
 TAL_M3Z=$(subj)/mri/transforms/talairach.m3z
@@ -43,7 +47,7 @@ ASEG_PRESURF=$(subj)/mri/aseg.presurf.mgz
 # via the surfaces.
 # the ASEG_TOUCH file is created after the aseg is first created.
 ASEG_TOUCH=$(subj)/touch/asegmerge.touch
-SUBCORTICAL=$(NU) $(TAL_LTA) $(NORM) $(TAL_M3Z) $(NU_NONECK) \
+SUBCORTICAL=$(TAL_LTA) $(NORM) $(TAL_M3Z) $(NU_NONECK) \
 	$(TAL_SKULL_LTA) $(ASEG_PRESURF)
 BRAIN=$(subj)/mri/brain.mgz
 BRAINFINALSURFS=$(subj)/mri/brain.finalsurfs.mgz
@@ -58,9 +62,6 @@ AUTORECON2_VOL=$(SUBCORTICAL) $(BRAIN) $(BRAINFINALSURFS) $(WM) $(FILLED)
 autorecon2-vol: $(AUTORECON2_VOL)
 
 autorecon2-volonly: autorecon2-vol
-
-$(NU): $(ORIG) $(BRAINMASK) $(TAL)
-	recon-all -s $(subj) -nuintensitycor
 
 $(TAL_LTA): $(BRAINMASK) $(NU)
 	recon-all -s $(subj) -gcareg
@@ -277,10 +278,8 @@ ASEG=$(subj)/mri/aseg.mgz
 ASEG_STATS=$(subj)/stats/aseg.stats
 APARC_ASEG=$(subj)/mri/aparc+aseg.mgz
 WMPARC=$(subj)/stats/wmparc.stats
-BALABELS_LH=$(subj)/label/lh.BA1.label
-BALABELS_RH=$(subj)/label/rh.BA1.label
-EXVIVO_EC_LH=$(subj)/label/lh.entorhinal_exvivo.label
-EXVIVO_EC_RH=$(subj)/label/rh.entorhinal_exvivo.label
+BALABELS_LH=$(subj)/label/lh.BA1_exvivo.label
+BALABELS_RH=$(subj)/label/rh.BA1_exvivo.label
 
 AUTORECON3=$(SPHERE_LH) $(SPHERE_RH) \
 	$(SPHERE_REG_LH) $(SPHERE_REG_RH) \
@@ -298,7 +297,7 @@ AUTORECON3=$(SPHERE_LH) $(SPHERE_RH) \
 	$(RIBBON_LH) $(RIBBON_RH) \
 	$(ASEG_HYPOS) $(ASEG) $(ASEG_STATS) \
 	$(APARC_ASEG) $(WMPARC) \
-	$(BALABELS_LH) $(BALABELS_RH) $(EXVIVO_EC_LH) $(EXVIVO_EC_RH)
+	$(BALABELS_LH) $(BALABELS_RH)
 
 autorecon3: $(AUTORECON3)
 
@@ -423,12 +422,6 @@ $(BALABELS_LH): $(SPHERE_REG_LH)
 
 $(BALABELS_RH): $(SPHERE_REG_RH)
 	recon-all -s $(subj) -hemi rh -balabels
-
-$(EXVIVO_EC_LH): $(SPHERE_REG_LH)
-	recon-all -s $(subj) -hemi lh -label-exvivo-ec
-
-$(EXVIVO_EC_RH): $(SPHERE_REG_RH)
-	recon-all -s $(subj) -hemi rh -label-exvivo-ec
 
 contrasurfreg: $(CONTRA_REG_LH) $(CONTRA_REG_RH)
 

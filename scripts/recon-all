@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/06/04 16:29:27 $
-#    $Revision: 1.526 $
+#    $Author: nicks $
+#    $Date: 2015/06/09 00:00:10 $
+#    $Revision: 1.527 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.526 2015/06/04 16:29:27 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.527 2015/06/09 00:00:10 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2291,11 +2291,6 @@ skullstrip:
 endif
 
 
-#-----------             -------------#
-##---------- AUTORECON 2 -------------#
-#-----------             -------------#
-
-
 #-----------                         -----------#
 #----------- Nu Intensity Correction -----------#
 ##----------     -nuintensitycor     -----------#
@@ -2357,6 +2352,12 @@ if($DoNuIntensityCor) then
   touch $touchdir/nu.touch
 endif
 
+
+
+
+#-----------             -------------#
+##---------- AUTORECON 2 -------------#
+#-----------             -------------#
 
 #--------------                   ---------------#
 #-------------- GCA Registration  ---------------#
@@ -6431,10 +6432,10 @@ while( $#argv != 0 )
       set DoTalCheck       = 1;
       set DoNormalization  = 1;
       set DoSkullStrip     = 1;
+      set DoNuIntensityCor = 1;
       breaksw
 
     case "-autorecon2":
-      set DoNuIntensityCor = 1;
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
@@ -6459,7 +6460,6 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2-volonly":
-      set DoNuIntensityCor = 1;
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
@@ -6490,7 +6490,6 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2-inflate1":
-      set DoNuIntensityCor = 1;
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
       set DoSkullLTA       = 1;
@@ -7892,10 +7891,10 @@ a step, use -nostep (eg -noskullstrip).
 Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
 
   -<no>motioncor        < 5 min
-  -<no>nuintensitycor     3 min
   -<no>talairach          4 min
   -<no>normalization      3 min
   -<no>skullstrip         1 min
+  -<no>nuintensitycor     3 min
   -<no>gcareg             8 min
   -<no>canorm             1 min
   -<no>careg             10 hours
