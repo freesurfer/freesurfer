@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/29 19:52:36 $
- *    $Revision: 1.110 $
+ *    $Date: 2015/06/09 21:01:49 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3108,7 +3108,21 @@ MRI *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, double std, MRI *targ)
 
   // Mask the source so that values outside the mask are 0
   // so that they will not affect the values inside the mask
-  srcmasked = MRImask(src,binmask,NULL,0.0,0.0);
+  //srcmasked = MRImask(src,binmask,NULL,0.0,0.0);
+  // Can't use MRImask here because it might run 
+  // MRImaskDifferentGeometry() if the geometry is even slightly off
+  // so just do it by hand here
+
+  srcmasked = MRIcopy(src,NULL);
+  for(c=0; c < src->width; c++){
+    for(r=0; r < src->height; r++){
+      for(s=0; s < src->depth; s++){
+        m = MRIgetVoxVal(binmask,c,r,s,0);
+        if(m >= 0.5) continue;
+	for(f=0; f < src->nframes; f++) MRIsetVoxVal(srcmasked,c,r,s,f,0.0);
+      }
+    }
+  }
 
   // Smooth the masked source
   targ = MRIgaussianSmooth(srcmasked, std, 1, targ); //1 means sum(g)=1
