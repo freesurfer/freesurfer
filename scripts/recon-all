@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/06/10 16:23:26 $
-#    $Revision: 1.529 $
+#    $Date: 2015/06/10 19:48:35 $
+#    $Revision: 1.530 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.529 2015/06/10 16:23:26 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.530 2015/06/10 19:48:35 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -7911,52 +7911,58 @@ They also allow users to include/exclude a step from a clustered
 DIRECTIVE. To include a step, use -step (eg, -skullstrip). To exclude
 a step, use -nostep (eg -noskullstrip).
 
-Run times are approximate for an AMD Opteron 64bit 2.5GHz processor:
+Run times are approximate for an Intel Xeon E5-2643 64bit 3.4GHz processor:
 
-  -<no>motioncor        < 5 min
-  -<no>talairach          4 min
-  -<no>normalization      3 min
-  -<no>skullstrip         1 min
-  -<no>nuintensitycor     3 min
-  -<no>gcareg             8 min
+  -<no>motioncor          2 min
+  -<no>talairach        < 1 min
+  -<no>normalization      2 min
+  -<no>skullstrip        15 min
+  -<no>nuintensitycor     1 min
+  -<no>gcareg            15 min
   -<no>canorm             1 min
-  -<no>careg             10 hours
+  -<no>careg              1 hour
   -<no>careginv           1 min
-  -<no>rmneck             3 min
-  -<no>skull-lta          9 min
-  -<no>calabel           30 min
+  -<no>rmneck             1 min
+  -<no>skull-lta         12 min
+  -<no>calabel           34 min
   -<no>normalization2     3 min
-  -<no>segmentation       4 min
+  -<no>maskbfs          < 1 min
+  -<no>segmentation       1 min
   -<no>fill               1 min
   -<no>tessellate       < 1 min     per hemisphere
   -<no>smooth1          < 1 min     per hemisphere
   -<no>inflate1           1 min     per hemisphere
-  -<no>qsphere           16 min     per hemisphere
-  -<no>fix              1-9 hours   per hemisphere
-  -<no>euler            < 1 min     per hemisphere
+  -<no>qsphere            3 min     per hemisphere
+  -<no>fix               15 min     per hemisphere
+  -<no>white              3 min     per hemisphere
   -<no>smooth2          < 1 min     per hemisphere
-  -<no>inflate2           2 min     per hemisphere
-  -<no>white              1 hour    per hemisphere
-  -<no>sphere           1-2 hours   per hemisphere
-  -<no>surfreg            1 hour    per hemisphere
+  -<no>inflate2         < 1 min     per hemisphere
+  -<no>curvHK           < 1 min     per hemisphere
+  -<no>curvstats        < 1 min     per hemisphere
+  -<no>sphere            40 min     per hemisphere
+  -<no>surfreg           50 min     per hemisphere
   -<no>jacobian_white   < 1 min     per hemisphere
-  -<no>contrasurfreg      1 hour    per hemisphere
   -<no>avgcurv          < 1 min     per hemisphere
   -<no>cortparc           1 min     per hemisphere
+  -<no>pial               4 min     per hemisphere
+  -<no>surfvolune       < 1 min     per hemisphere
+  -<no>cortribbon        15 min
   -<no>parcstats        < 1 min     per hemisphere
   -<no>cortparc2          1 min     per hemisphere
   -<no>parcstats2       < 1 min     per hemisphere
   -<no>cortparc3          1 min     per hemisphere
   -<no>parcstats3       < 1 min     per hemisphere
-  -<no>pial               1 hour    per hemisphere
-  -<no>cortribbon        20 min
+  -<no>pctsurfcon       < 1 min     per hemisphere
+  -<no>hyporelabel      < 1 min     per hemisphere
   -<no>aparc2aseg         1 min
   -<no>apas2aseg          1 min
-  -<no>segstats          10 min
-  -<no>wmparc            20 min
+  -<no>segstats           3 min
+  -<no>wmparc             7 min
+  -<no>balabels           1 min
 
-  -all                20-40 hours   both hemipheres
+  -all                    7 hours   both hemipheres
 
+If -parallel is specified, total runtime is halved.
 
 EXPERT PREFERENCES
 
