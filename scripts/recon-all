@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/06/10 19:48:35 $
-#    $Revision: 1.530 $
+#    $Date: 2015/06/10 20:24:20 $
+#    $Revision: 1.531 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.530 2015/06/10 19:48:35 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.531 2015/06/10 20:24:20 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -7958,11 +7958,11 @@ Run times are approximate for an Intel Xeon E5-2643 64bit 3.4GHz processor:
   -<no>apas2aseg          1 min
   -<no>segstats           3 min
   -<no>wmparc             7 min
-  -<no>balabels           1 min
+  -<no>balabels           5 min     per hemisphere
 
   -all                    7 hours   both hemipheres
 
-If -parallel is specified, total runtime is halved.
+If -parallel is specified, runtime is reduced to 3 hours.
 
 EXPERT PREFERENCES
 
