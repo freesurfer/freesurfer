@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/06/09 20:47:20 $
-#    $Revision: 1.528 $
+#    $Date: 2015/06/10 16:23:26 $
+#    $Revision: 1.529 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.528 2015/06/09 20:47:20 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.529 2015/06/10 16:23:26 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -182,6 +182,7 @@ set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
+set UseMaskNuCorrect = 1; # if 1, nu_correct runs with -mask brainmask.mgz
 set UseCPsWithCaNorm = 0 # -canorm-usecps enable control points with ca_norm
 set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
 set T2max = ();
@@ -2339,7 +2340,7 @@ if($DoNuIntensityCor) then
   # add the mask, as per c.larsen, bias-field correction is known to work
   # much better when the brain area is properly masked, in this case by
   # brainmask.mgz.  the MaskVol env var is read by mri_nu_correct.mni
-  set cmd = ($cmd --mask brainmask.mgz $xopts)
+  if ($UseMaskNuCorrect) set cmd = ($cmd --mask brainmask.mgz)
   # add user-specified option (from an 'experts file')
   set cmd = ($cmd $xopts)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -5808,6 +5809,15 @@ while( $#argv != 0 )
       breaksw
     case "-nonuintensitycor":
       set DoNuIntensityCor = 0;
+      breaksw
+
+    case "-nuintensitycor-mask":
+      set DoNuIntensityCor = 1;
+      set UseMaskNuCorrect = 1;
+      breaksw
+    case "-nuintensitycor-nomask":
+      set DoNuIntensityCor = 1;
+      set UseMaskNuCorrect = 0;
       breaksw
 
     case "-nuintensitycor-3T":
