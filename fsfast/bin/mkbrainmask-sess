@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/10/30 16:18:12 $
-#    $Revision: 1.24 $
+#    $Date: 2015/06/10 20:04:34 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask-sess,v 1.24 2014/10/30 16:18:12 greve Exp $'
+set VERSION = '$Id: mkbrainmask-sess,v 1.25 2015/06/10 20:04:34 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -129,7 +129,8 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  set mask = $maskdir/$maskstem.$outfmt;
+  set mask = $maskdir/$maskstem.$outfmt; 
+  set maske3 = $maskdir/$maskstem.e3.$outfmt;
   set UpdateNeeded = 0;
   if(! $UpdateOnly) set UpdateNeeded = 1;
   if(`UpdateNeeded $mask $template $reg`) set UpdateNeeded = 1;
@@ -140,17 +141,24 @@ foreach sess ($SessList)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
+    # Create a second mask eroded by 3 to compute the mean
+    set cmd = (mri_binarize --i $mask --min 0.5 \
+      --zero-edges --erode $ne3erodes --o $maske3)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
   else
     echo "$sessid Update not needed for session-level mask"| tee -a $LF
   endif
 
+  set RunList = `getrunlist . $RunListFile`;
+  if($status || $#RunList == 0) then
+    echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+    exit 1;
+  endif
+
   if($PerRun) then
     ### Run-level masks --------------------------
-    set RunList = `getrunlist . $RunListFile`;
-    if($status || $#RunList == 0) then
-      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
-      exit 1;
-    endif
 
     foreach Run ($RunList)
 
@@ -188,28 +196,35 @@ foreach sess ($SessList)
       else
         echo "$sessid Update not needed for run $Run mask" | tee -a $LF
       endif
+    end # Run Loop
+  endif # PerSession or perRun
 
-      # Compute the global mean in the eroded mask from the 4D volume
-      set meanval = $Run/global.meanval.dat
-      set avgwf   = $Run/global.waveform.dat
-      set fstem = `cat $Run/template.log | grep FUNCSTEM | awk '{print $2}'`
-      set ffile = `stem2fname $Run/$fstem`;
-      set UpdateNeeded = 0;
-      if(! $UpdateOnly)   set UpdateNeeded = 1;
-      if(! $UpdateNeeded) set UpdateNeeded = `UpdateNeeded $meanval $maske3 $ffile`
-      if(! $UpdateNeeded) set UpdateNeeded = `UpdateNeeded $avgwf   $maske3 $ffile`
-      if($UpdateNeeded) then
-        set cmd = (meanval --i $ffile --m $maske3 --o $meanval --avgwf $avgwf);
-        echo $cmd | tee -a $LF
-        $cmd | tee -a $LF
-        if($status) exit 1;
-      else
-        echo "$sessid Update not needed for run $Run meanval" | tee -a $LF
-      endif
-
-    end # Run
-
-  endif # Session or Run
+  foreach Run ($RunList)
+    # Compute the global mean in the eroded mask from the 4D volume
+    # This creates a different global mean with the same name as per-run
+    # Not great, but probably not a problem
+    if($PerRun) then
+      set maske3 = $Run/$maskdir/$maskstem.e3.$outfmt;
+    else
+      set maske3 = $maskdir/$maskstem.e3.$outfmt;
+    endif
+    set meanval = $Run/global.meanval.dat
+    set avgwf   = $Run/global.waveform.dat
+    set fstem = `cat $Run/template.log | grep FUNCSTEM | awk '{print $2}'`
+    set ffile = `stem2fname $Run/$fstem`;
+    set UpdateNeeded = 0;
+    if(! $UpdateOnly)   set UpdateNeeded = 1;
+    if(! $UpdateNeeded) set UpdateNeeded = `UpdateNeeded $meanval $maske3 $ffile`
+    if(! $UpdateNeeded) set UpdateNeeded = `UpdateNeeded $avgwf   $maske3 $ffile`
+    if($UpdateNeeded) then
+      set cmd = (meanval --i $ffile --m $maske3 --o $meanval --avgwf $avgwf);
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    else
+      echo "$sessid Update not needed for run $Run meanval" | tee -a $LF
+    endif
+  end # Run
 
 end # Session
 
