@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/11/26 00:33:19 $
-#    $Revision: 1.24 $
+#    $Date: 2015/06/10 20:24:39 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.24 2014/11/26 00:33:19 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.25 2015/06/10 20:24:39 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -109,9 +109,10 @@ foreach sess ($SessList)
   pwd >> $LF
   echo $0 $inputargs  >> $LF 
   echo UpdateOnly $UpdateOnly >> $LF 
+  set subject = `cat $sess/subjectname`
 
   echo "------------------------------ " |& tee -a $LF
-  echo "$nthsess/$#SessList $sessid" |& tee -a $LF
+  echo "$nthsess/$#SessList $sessid $subject" |& tee -a $LF
 
   ## Make sure the functional subdirectory exists ##
   if(! -e $sess/$fsd) then
@@ -142,44 +143,8 @@ foreach sess ($SessList)
       echo "Try running mkbrainmask-sess" | tee -a $LF
       exit 1;
     endif
+    # Create the mask in the mni305/CVS space, create .pr then merge later
     set outmask = $sess/$fsd/$maskdir/$maskstem$ExpKey.$outfmt
-  endif
-
-  set RunList = `getrunlist $sess/$fsd $RunListFile`;
-  if($status) then
-    echo "$RunList" |& tee -a $LF
-    exit 1;
-  endif
-
-  foreach Run ($RunList)
-    echo "  $nthsess/$#SessList $sessid $Run ----------------" |& tee -a $LF
-    echo "    `date`"  |& tee -a $LF
-    set funcdir = $sess/$fsd/$Run
-
-    set invol = `stem2fname $funcdir/$instem`
-    if($status) then
-      echo "$invol" |& tee -a $LF
-      exit 1;
-    endif
-
-    if($PerRun) then
-      set reg = $sess/$fsd/$Run/$regfile
-      if(! -e $reg) then
-        echo "ERROR: cannot find $reg" | tee -a $LF
-        echo "Try running register-sess with -per-run" | tee -a $LF
-        exit 1;
-      endif
-      set maskstempath = $sess/$fsd/$maskdir/$maskname
-      set mask = `stem2fname $maskstempath`
-      if($status) then
-        echo "$mask" | tee -a $LF
-        echo "Try running mkbrainmask-sess with -per-run" | tee -a $LF
-        exit 1;
-      endif
-      set outmask = $sess/$fsd/$Run/$maskdir/$maskstem$ExpKey.$outfmt
-    endif
-
-    # Create the mask
     set UpdateNeeded = `UpdateNeeded $outmask $reg $mask $b0dcmap`;
     if(! $UpdateOnly) set UpdateNeeded = 1;    
     if($UpdateNeeded) then
@@ -189,7 +154,7 @@ foreach sess ($SessList)
           --no-save-reg --o $outmask)
         if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
       else
-        set gcam = $SUBJECTS_DIR/fsf01anat/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
+        set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
 	if(! -e $gcam) then
           echo "ERROR: cannot find $gcam" | tee -a $LF
           exit 1;
@@ -203,8 +168,129 @@ foreach sess ($SessList)
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
+      # Take intersection with whole brain or subcort mask
+      set mask = $brainmask
+      if($ApplySubCortMask) set mask = $subcortmask
+      set cmd = (mri_mask $outmask $mask $outmask)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
     else
       echo "$outmask does not need updating" | tee -a $LF
+    endif
+  endif
+
+  set RunList = `getrunlist $sess/$fsd $RunListFile`;
+  if($status) then
+    echo "$RunList" |& tee -a $LF
+    exit 1;
+  endif
+
+  # Build masks for each run
+  if($PerRun) then
+    foreach Run ($RunList)
+      echo "  $nthsess/$#SessList $sessid $Run ----------------" |& tee -a $LF
+      echo "    `date`"  |& tee -a $LF
+      set funcdir = $sess/$fsd/$Run
+
+      set reg = $sess/$fsd/$Run/$regfile
+      if(! -e $reg) then
+        echo "ERROR: cannot find $reg" | tee -a $LF
+        echo "Try running register-sess with -per-run" | tee -a $LF
+        exit 1;
+      endif
+      set maskstempath = $sess/$fsd/$Run/$maskdir/$maskname
+      set mask = `stem2fname $maskstempath`
+      if($status) then
+        echo "$mask" | tee -a $LF
+        echo "Try running mkbrainmask-sess with -per-run" | tee -a $LF
+        exit 1;
+      endif
+
+      # Create the mask in the mni305/CVS space, create .pr then merge later
+      set outmask = $sess/$fsd/$Run/$maskdir/$maskstem$ExpKey.pr.$outfmt
+      set UpdateNeeded = `UpdateNeeded $outmask $reg $mask $b0dcmap`;
+      if(! $UpdateOnly) set UpdateNeeded = 1;    
+      if($UpdateNeeded) then
+        if($UseCVS == 0) then
+          set cmd = (mri_vol2vol --mov $mask --reg $reg \
+            --tal --talres $res --talxfm $talxfm --nearest \
+            --no-save-reg --o $outmask)
+          if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+        else
+          set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
+          if(! -e $gcam) then
+            echo "ERROR: cannot find $gcam" | tee -a $LF
+            exit 1;
+          endif
+          set dstreg = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/register.lta
+          set cmd = (mri_vol2vol --gcam $mask $reg $gcam $dstreg)
+          if($UseB0DC) set cmd = ($cmd $b0dcmap)
+          if(! $UseB0DC) set cmd = ($cmd 0)
+          set cmd = ($cmd 0 $outmask)
+        endif
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+        # Take intersection with whole brain
+        set mask = $brainmask
+        if($ApplySubCortMask) set mask = $subcortmask
+        set cmd = (mri_mask $outmask $mask $outmask)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      else
+        echo "$outmask does not need updating" | tee -a $LF
+      endif
+    end  # Loop over runs
+
+    # Merge run-level masks and prune
+    set prmasklist = ()
+    foreach Run ($RunList)
+      set prmask = $sess/$fsd/$Run/$maskdir/$maskstem$ExpKey.pr.$outfmt
+      set prmasklist = ($prmasklist $prmask)
+    end
+    set finalmask = $sess/$fsd/$maskdir/$maskstem$ExpKey.$outfmt
+    set UpdateNeeded = `UpdateNeeded $finalmask $prmasklist`;
+    if(! $UpdateOnly) set UpdateNeeded = 1;    
+    if($UpdateNeeded) then
+      set cmd = (mri_concat --o $finalmask --mean $prmasklist)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;      
+      set cmd = (mri_binarize --i $finalmask --min 10e-10 --o $finalmask)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;      
+      # Now copy it to each run, remove the .pr
+      foreach Run ($RunList)
+        set prmask = $sess/$fsd/$Run/$maskdir/$maskstem$ExpKey.$outfmt
+        cp $finalmask $prmask |& tee -a $LF
+        if($status) exit 1;      
+      end
+    else
+      echo "$finalmask does not need updating" | tee -a $LF
+    endif
+  endif
+
+  # Convert the native functional space data to mni305/cvs
+  foreach Run ($RunList)
+    echo "  $nthsess/$#SessList $sessid $Run ----------------" |& tee -a $LF
+    echo "    `date`"  |& tee -a $LF
+    set funcdir = $sess/$fsd/$Run
+
+    # Get the mask and reg to use
+    if($PerRun) then
+      set outmask = $sess/$fsd/$Run/$maskdir/$maskstem.$ExpKey.$outfmt
+      set reg = $sess/$fsd/$Run/$regfile
+    else
+      set outmask = $sess/$fsd/$maskdir/$maskstem.$ExpKey.$outfmt
+      set reg = $sess/$fsd/$regfile
+    endif
+    set invol = `stem2fname $funcdir/$instem`
+    if($status) then
+      echo "$invol" |& tee -a $LF
+      exit 1;
     endif
 
     set outvol = $funcdir/$outstem$ExpKey.$outfmt
@@ -215,34 +301,13 @@ foreach sess ($SessList)
       continue
     endif
 
-    if($ApplySubCortMask) then
-      if($UseCVS == 0) then
-        if($res == 2) then
-          set subcortmask = $FREESURFER_HOME/subjects/fsaverage/mri.2mm/subcort.mask.mgz
-        else
-          set subcortmask = $FREESURFER_HOME/subjects/fsaverage/mri/subcort.mask.1mm.mgz
-        endif
-      else
-        set subcortmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/subcort.mask.mgz
-      endif
-      if(! -e $subcortmask) then
-        echo "ERROR: cannot find $subcortmask"      
-        exit 1;
-      endif
-      set cmd = (mri_mask $outmask $subcortmask $outmask)
-      echo $cmd | tee -a $LF
-      $cmd | tee -a $LF
-      if($status) exit 1;
-    endif
-
-    # Convert the native functional space data
     if($UseCVS == 0) then
       set cmd = (mri_vol2vol --mov $invol --reg $reg \
         --tal --talres $res --talxfm $talxfm --interp $interp \
         --no-save-reg --o $outvol)
       if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
     else
-      set gcam = $SUBJECTS_DIR/fsf01anat/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
+      set gcam = $SUBJECTS_DIR/$subject/cvs/final_CVSmorph_tocvs_avg35_inMNI152.m3z
       if(! -e $gcam) then
         echo "ERROR: cannot find $gcam" | tee -a $LF
         exit 1;
@@ -261,7 +326,7 @@ foreach sess ($SessList)
     if($fwhm > 0) then
       set cmd = (mri_fwhm --i $outvol --o $outvol --smooth-only) 
       if($#fwhm)   set cmd = ($cmd --fwhm $fwhm); # 3D smoothing
-      if($ApplySubCortMask && $MaskedSmoothing) set cmd = ($cmd --mask $outmask)
+      if($MaskedSmoothing) set cmd = ($cmd --mask $outmask)
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) exit 1;
@@ -472,6 +537,24 @@ if($#regfile == 0) then
   if(! $UseB0DC) set regfile = register.dof$RegDOF.lta
   if($UseB0DC)   set regfile = register.dof$RegDOF.b0dc.lta
 endif
+
+if($UseCVS == 0) then
+  if($res == 2) then
+    set subcortmask = $FREESURFER_HOME/subjects/fsaverage/mri.2mm/subcort.mask.mgz
+    set brainmask = $FREESURFER_HOME/subjects/fsaverage/mri.2mm/brainmask.mgz
+  else
+    set subcortmask = $FREESURFER_HOME/subjects/fsaverage/mri/subcort.mask.1mm.mgz
+    set brainmask = $FREESURFER_HOME/subjects/fsaverage/mri/brainmask.mgz
+  endif
+else
+  set subcortmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/subcort.mask.mgz
+  set brainmask = $FREESURFER_HOME/subjects/cvs_avg35_inMNI152/mri.2mm/brainmask.mgz
+endif
+if($ApplySubCortMask && ! -e $subcortmask) then
+  echo "ERROR: cannot find $subcortmask"      
+  exit 1;
+endif
+
 
 goto check_params_return;
 ############--------------##################

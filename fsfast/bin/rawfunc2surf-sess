@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/05/21 17:49:20 $
-#    $Revision: 1.24 $
+#    $Date: 2015/06/10 20:24:39 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2surf-sess,v 1.24 2015/05/21 17:49:20 greve Exp $';
+set VERSION = '$Id: rawfunc2surf-sess,v 1.25 2015/06/10 20:24:39 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -131,43 +131,57 @@ foreach sess ($SessList)
     endif
   endif
 
-  foreach hemi ($hemilist)
-
-  if(! $PerRun) then
-    set reg = $sess/$fsd/$regfile
-    if(! -e $reg) then
-      echo "ERROR: cannot find $reg" | tee -a $LF
-      echo "Try running register-sess" | tee -a $LF
-      exit 1;
-    endif
-    set maskstempath = $sess/$fsd/$maskdir/$maskname
-    set mask = `stem2fname $maskstempath`
-    if($status) then
-      echo "$mask" | tee -a $LF
-      echo "Try running mkbrainmask-sess" | tee -a $LF
-      exit 1;
-    endif
-    set outmask = $sess/$fsd/$maskdir/$maskstem.$hemi$ExpKey.$outfmt
-  endif
-
   set RunList = `getrunlist $sess/$fsd $RunListFile`;
   if($status) then
     echo "$RunList" |& tee -a $LF
     exit 1;
   endif
 
-  foreach Run ($RunList)
-    echo "  $nthsess/$#SessList $sessid $Run $hemi ---------" |& tee -a $LF
-    echo "    `date`"  |& tee -a $LF
-    set funcdir = $sess/$fsd/$Run
-
-    set invol = `stem2fname $funcdir/$instem`
-    if($status) then
-      echo "$invol" |& tee -a $LF
-      exit 1;
+  # Handle masks first
+  foreach hemi ($hemilist)
+    if(! $PerRun) then
+      # Per-session
+      set reg = $sess/$fsd/$regfile
+      if(! -e $reg) then
+        echo "ERROR: cannot find $reg" | tee -a $LF
+        echo "Try running register-sess" | tee -a $LF
+        exit 1;
+      endif
+      set maskstempath = $sess/$fsd/$maskdir/$maskname
+      set mask = `stem2fname $maskstempath`
+      if($status) then
+        echo "$mask" | tee -a $LF
+        echo "Try running mkbrainmask-sess" | tee -a $LF
+        exit 1;
+      endif
+      set outmask = $sess/$fsd/$maskdir/$maskstem.$hemi$ExpKey.$outfmt
+      set UpdateNeeded = `UpdateNeeded $outmask $reg $mask $b0dcmap`;
+      if(! $UpdateOnly) set UpdateNeeded = 1;    
+      if($UpdateNeeded) then
+        set cmd = (mri_vol2surf --mov $mask --reg $reg \
+          --trgsubject $trgsubject --interp nearest --projfrac $ProjFrac\
+          --hemi $hemi --o $outmask --noreshape --cortex)
+        if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
+        if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+        set cmd = (mri_binarize --i $outmask --min .00001 --o $outmask)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      else
+        echo "$outmask does not need updating" | tee -a $LF
+      endif
+      continue;
     endif
 
-    if($PerRun) then
+    # Must be per-run to get here
+    foreach Run ($RunList)
+      echo "  $nthsess/$#SessList $sessid $Run $hemi ---------" |& tee -a $LF
+      echo "    `date`"  |& tee -a $LF
+      set funcdir = $sess/$fsd/$Run
+
       set reg = $sess/$fsd/$Run/$regfile
       if(! -e $reg) then
         echo "ERROR: cannot find $reg" | tee -a $LF
@@ -175,67 +189,119 @@ foreach sess ($SessList)
         exit 1;
       endif
       # Use only one mask for all runs so no pruning necessary
-      set maskstempath = $sess/$fsd/$maskdir/$maskname
-      #set maskstempath = $sess/$fsd/$Run/$maskdir/$maskname
+      #set maskstempath = $sess/$fsd/$maskdir/$maskname
+      # This creates problems when there is motion or
+      # or removed and replace subject in scanner
+      # So go back to using run-based mask
+      set maskstempath = $sess/$fsd/$Run/$maskdir/$maskname
       set mask = `stem2fname $maskstempath`
       if($status) then
         echo "$mask" | tee -a $LF
         echo "Try running mkbrainmask-sess with -per-run" | tee -a $LF
         exit 1;
       endif
-      set outmask = $sess/$fsd/$Run/$maskdir/$maskstem.$hemi$ExpKey.$outfmt
-    endif
 
-    # Mask
-    set UpdateNeeded = `UpdateNeeded $outmask $reg $mask $b0dcmap`;
+      # Create a .pr mask here, then merge them together into a single mask later
+      set outmask = $sess/$fsd/$Run/$maskdir/$maskstem.$hemi$ExpKey.pr.$outfmt
+      set UpdateNeeded = `UpdateNeeded $outmask $reg $mask $b0dcmap`;
+      if(! $UpdateOnly) set UpdateNeeded = 1;    
+      if($UpdateNeeded) then
+        set cmd = (mri_vol2surf --mov $mask --reg $reg \
+          --trgsubject $trgsubject --interp nearest --projfrac $ProjFrac\
+          --hemi $hemi --o $outmask --noreshape --cortex)
+        if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
+        if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+        set cmd = (mri_binarize --i $outmask --min .00001 --o $outmask)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      else
+        echo "$outmask does not need updating" | tee -a $LF
+      endif
+    end # loop over runs
+
+    # Merge run-level masks and prune
+    set prmasklist = ()
+    foreach Run ($RunList)
+      set prmask = $sess/$fsd/$Run/$maskdir/$maskstem.$hemi$ExpKey.pr.$outfmt
+      set prmasklist = ($prmasklist $prmask)
+    end
+    set finalmask = $sess/$fsd/$maskdir/$maskstem.$hemi$ExpKey.pr.$outfmt
+    set UpdateNeeded = `UpdateNeeded $finalmask $prmasklist`;
     if(! $UpdateOnly) set UpdateNeeded = 1;    
     if($UpdateNeeded) then
-      set cmd = (mri_vol2surf --mov $mask --reg $reg \
-        --trgsubject $trgsubject --interp nearest --projfrac $ProjFrac\
-        --hemi $hemi --o $outmask --noreshape --cortex)
+      set cmd = (mri_concat --o $finalmask --mean $prmasklist)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;      
+      set cmd = (mri_binarize --i $finalmask --min 10e-10 --o $finalmask)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;      
+      # Now copy it to each run, remove the .pr
+      foreach Run ($RunList)
+        set prmask = $sess/$fsd/$Run/$maskdir/$maskstem.$hemi$ExpKey.$outfmt
+        cp $finalmask $prmask |& tee -a $LF
+        if($status) exit 1;      
+      end
+    else
+      echo "$finalmask does not need updating" | tee -a $LF
+    endif
+  end # loop over hemi
+
+  # Now do time series data
+  foreach hemi ($hemilist)
+    foreach Run ($RunList)
+      echo "  $nthsess/$#SessList $sessid $Run $hemi ---------" |& tee -a $LF
+      echo "    `date`"  |& tee -a $LF
+      set funcdir = $sess/$fsd/$Run
+      set invol = `stem2fname $funcdir/$instem`
+      if($status) then
+        echo "$invol" |& tee -a $LF
+        exit 1;
+      endif
+
+      # Get the mask and reg to use
+      if($PerRun) then
+        set outmask = $sess/$fsd/$Run/$maskdir/$maskstem.$hemi$ExpKey.$outfmt
+        set reg = $sess/$fsd/$Run/$regfile
+      else
+        set outmask = $sess/$fsd/$maskdir/$maskstem.$hemi$ExpKey.$outfmt
+        set reg = $sess/$fsd/$regfile
+      endif
+
+      set outvol = $funcdir/$outstem.$hemi$ExpKey.$outfmt
+      set UpdateNeeded = `UpdateNeeded $outvol $invol $reg $outmask`;
+      if(! $UpdateOnly) set UpdateNeeded = 1;
+      if($UpdateNeeded == 0) then
+        echo "    $sessid $Run Update not needed" | tee -a $LF
+        continue
+      endif
+
+      set cmd = (mri_vol2surf --mov $invol --reg $reg \
+        --trgsubject $trgsubject --interp $interp --projfrac $ProjFrac\
+        --hemi $hemi --o $outvol --noreshape --cortex)
       if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
       if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
+      if($#volsurffwhm) set cmd = ($cmd --fwhm $volsurffwhm) # dont do for mask
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
-      set cmd = (mri_binarize --i $outmask --min .00001 --o $outmask)
-      echo $cmd | tee -a $LF
-      $cmd | tee -a $LF
-    else
-      echo "$outmask does not need updating" | tee -a $LF
-    endif
 
-    set outvol = $funcdir/$outstem.$hemi$ExpKey.$outfmt
-    set UpdateNeeded = `UpdateNeeded $outvol $invol $reg $outmask`;
-    if(! $UpdateOnly) set UpdateNeeded = 1;
-    if($UpdateNeeded == 0) then
-      echo "    $sessid $Run Update not needed" | tee -a $LF
-      continue
-    endif
-
-    # Raw data
-    set cmd = (mri_vol2surf --mov $invol --reg $reg \
-      --trgsubject $trgsubject --interp $interp --projfrac $ProjFrac\
-      --hemi $hemi --o $outvol --noreshape --cortex)
-    if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
-    if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
-    if($#volsurffwhm) set cmd = ($cmd --fwhm $volsurffwhm) # dont do for mask
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
-
-    # Smooth raw data within mask
-    if($fwhm != 0) then
-      if($SaveUnsmoothed) cp $outvol $funcdir/$outstem0.$hemi$ExpKey.$outfmt
-      set cmd = (mris_fwhm --s $trgsubject --hemi $hemi --smooth-only \
-        --i $outvol --fwhm $fwhm --o $outvol --mask $outmask )
-      echo $cmd | tee -a $LF
-      $cmd | tee -a $LF
-      if($status) exit 1;
-    endif
-
-  end  # Loop over runs
-end # Loop over hemis
+      # Smooth raw data within mask
+      if($fwhm != 0) then
+        if($SaveUnsmoothed) cp $outvol $funcdir/$outstem0.$hemi$ExpKey.$outfmt
+        set cmd = (mris_fwhm --s $trgsubject --hemi $hemi --smooth-only \
+          --i $outvol --fwhm $fwhm --o $outvol --mask $outmask --no-detrend)
+        echo $cmd | tee -a $LF
+        $cmd | tee -a $LF
+        if($status) exit 1;
+      endif
+    end  # Loop over runs
+  end # Loop over hemis
 
 end  # foreach sess ($SessList)
 
