@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/21 17:38:53 $
- *    $Revision: 1.37 $
+ *    $Date: 2015/06/10 19:59:48 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -831,7 +831,7 @@ MRI *GTMmat2vol(GTM *gtm, MATRIX *m, MRI *vol)
     for(c=0; c < gtm->yvol->width; c++){
       for(r=0; r < gtm->yvol->height; r++){
 	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
-	for(f=0; f < gtm->yvol->nframes; f++)
+	for(f=0; f < m->cols; f++)
 	  MRIsetVoxVal(vol,c,r,s,f,m->rptr[k+1][f+1]);
 	k++;
       }
