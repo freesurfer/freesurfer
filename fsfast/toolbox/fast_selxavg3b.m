@@ -4,8 +4,13 @@ function err = fast_selxavg3b(configfile)
 % argument. This can be compiled for use with the matlab run-time
 % compiler. It (either compiled or uncompiled version) is run by
 % selxavg3-sess instead of  fast_selxavg3.m
-
-% $Id: fast_selxavg3b.m,v 1.1 2015/05/08 21:00:43 greve Exp $
+% To compile run
+%   unalias matlab
+%   set path = ( /usr/pubsw/common/matlab/8.3/bin/ $path )
+%   mcc  -m -v -R -singleCompThread fast_selxavg3b.m
+%   cp fast_selxavg3b $DEV/fsfast/bin/fast_selxavg3b.glnxa64
+%
+% $Id: fast_selxavg3b.m,v 1.2 2015/06/10 20:27:26 greve Exp $
 
 
 %
@@ -14,8 +19,8 @@ function err = fast_selxavg3b(configfile)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2015/05/08 21:00:43 $
-%    $Revision: 1.1 $
+%    $Date: 2015/06/10 20:27:26 $
+%    $Revision: 1.2 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -82,7 +87,7 @@ fprintf('\n');
 fprintf('#@# %s ###############################\n',sessname);
 fprintf('%s\n',sess);
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3b.m,v 1.1 2015/05/08 21:00:43 greve Exp $\n');
+fprintf('$Id: fast_selxavg3b.m,v 1.2 2015/06/10 20:27:26 greve Exp $\n');
 fprintf('-------------------------\n');
 
 if(isempty(outtop)) outtop = fast_dirname(sess); end
@@ -106,7 +111,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3b.m,v 1.1 2015/05/08 21:00:43 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3b.m,v 1.2 2015/06/10 20:27:26 greve Exp $';
 
 % remove non-mask when analyzing. This does not change the results
 % at all, it just prevents the processing of voxels that are
@@ -232,6 +237,11 @@ for nthouter = outer_runlist
 
   indmask = find(mask.vol);
   nmask = length(indmask);
+  outmaskdatfile = sprintf('%s/nmask.dat',outanadir);
+  fpmask = fopen(outmaskdatfile,'w');
+  fprintf(fpmask,'%d\n',nmask);
+  fclose(fpmask);
+  
   indmaskout = find(~mask.vol);
   nslices = mask.volsize(3);
   nvox = prod(mask.volsize);
@@ -698,7 +708,7 @@ if(DoGLMFit)
   rho1mn = mri;
 
   % This logic is needed for Octave
-  if(size(rho1.vol,4)==1) rho1mn.vol= rho1.vol
+  if(size(rho1.vol,4)==1) rho1mn.vol= rho1.vol;
   else                    rho1mn.vol = mean(rho1.vol,4);
   end
 
@@ -1164,6 +1174,7 @@ if(DoContrasts)
       sig.vol = fsig.vol .* sign(ces.vol);
       fname = sprintf('%s/sig.%s',outcondir,ext);
       MRIwrite(sig,fname);
+
       cesvar = mri;
       cesvar.vol = fast_mat2vol(cesvarmat,mri.volsize);
       fname = sprintf('%s/cesvar.%s',outcondir,ext);
@@ -1172,6 +1183,17 @@ if(DoContrasts)
       cesvarpct.vol = (100.^2)*cesvar.vol./(baseline.vol.^2);
       fname = sprintf('%s/cesvarpct.%s',outcondir,ext);
       MRIwrite(cesvarpct,fname);
+    
+      if(0)
+	cesstd = mri;
+	cesstd.vol = fast_mat2vol(sqrt(cesvarmat),mri.volsize);
+	fname = sprintf('%s/cesstd.%s',outcondir,ext);
+	MRIwrite(cesstd,fname);
+	cesstdpct = mri;
+	cesstdpct.vol = (100.^2)*cesstd.vol./(baseline.vol.^2);
+	fname = sprintf('%s/cesstdpct.%s',outcondir,ext);
+	MRIwrite(cesstdpct,fname);
+      end
     
       cnr = mri;
       cnr.vol = zeros(cnr.volsize);
