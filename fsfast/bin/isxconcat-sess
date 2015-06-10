@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/06/04 17:35:35 $
-#    $Revision: 1.69 $
+#    $Date: 2015/06/10 20:46:35 $
+#    $Revision: 1.70 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.69 2015/06/04 17:35:35 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.70 2015/06/10 20:46:35 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -155,11 +155,12 @@ set StartTime = `date`;
 if($#flac == 0) cp $analysis/analysis.* $outdir
 
 # Go thru each session, get DOF, etc
-set sessinfofile = $outtop/sess.info.txt
+set sessinfofile = $outtop/$analysis/sess.info.txt
 set subjlistfile = $outtop/subjectlist.txt
 set grouplistfiletmp = $outtop/grouplist.tmp.txt 
 rm -f $sessinfofile $subjlistfile $grouplistfiletmp
 @ DOF = 0;
+@ nthsess = 0;
 foreach sess ($SessList)
   set sessid = `basename $sess`;
   echo $sessid >> $grouplistfiletmp
@@ -172,20 +173,24 @@ foreach sess ($SessList)
   @ dofsess = `cat $doffile`;
   @ DOF = $DOF + $dofsess;
 
-  set bstampfile = $sess/$fsd/$analysis/fs.build-stamp.txt
-  if(-e $bstampfile) then
-    set bstamp = `cat $bstampfile`
-    # This fails on mac, no -c option
-    #set mdate = `stat -c %y $bstampfile | awk '{print $1}'`
-    set mdate = ();
-  else
-    set bstamp = ();
-    set mdate = ();
+  set fsnrfile = $sess/$fsd/$analysis/raw.fsnr.dat
+  if(! -e $fsnrfile) then
+    echo "ERROR: cannot find $fsnrfile" 
+    exit 1;
   endif
+  set fsnr = `cat $fsnrfile`
+
+  set nmaskfile = $sess/$fsd/$analysis/nmask.dat
+  if(! -e $nmaskfile) then
+    echo "ERROR: cannot find $nmaskfile" 
+    exit 1;
+  endif
+  set nmask = `cat $nmaskfile`
 
   set srcsubject = `cat $sess/subjectname`
-  echo "$sessid $srcsubject $dofsess $mdate $bstamp" >> $sessinfofile
+  echo "$nthsess $sessid $srcsubject $dofsess $fsnr $nmask" >> $sessinfofile
   echo "$srcsubject" >> $subjlistfile
+  @ nthsess = $nthsess + 1
 end
 set ffxdofdat = $outdir/ffxdof.dat
 echo $DOF > $ffxdofdat
@@ -316,7 +321,7 @@ foreach hemi ($hemilist)
        if($DoWRFX) then
          if(! $DoPercent) set glmdir = $outcondir/osgm.wrfx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.wrfx.pct"$SpStr2"
-         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --nii)
+         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --$FSF_OUTPUT_FORMAT)
          set cmd = ($cmd --mask $maskvol --wls $yffxvar --kurtosis)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
          echo $cmd |& tee -a $LF
@@ -328,7 +333,7 @@ foreach hemi ($hemilist)
          if(! $DoPercent) set glmdir = $outcondir/osgm.rfx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.rfx.pct"$SpStr2"
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --kurtosis)
-         set cmd = ($cmd --mask $maskvol --nii --kurtosis)
+         set cmd = ($cmd --mask $maskvol --$FSF_OUTPUT_FORMAT --kurtosis)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
@@ -340,7 +345,7 @@ foreach hemi ($hemilist)
          if(! $DoPercent) set glmdir = $outcondir/glm.$base"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/glm.$base"$SpStr2"
          set cmd = (mri_glmfit --fsgd $fsgd --y $y --glmdir $glmdir --kurtosis)
-         set cmd = ($cmd --mask $maskvol --nii --kurtosis --no-contrasts-ok)
+         set cmd = ($cmd --mask $maskvol --$FSF_OUTPUT_FORMAT --kurtosis --no-contrasts-ok)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
@@ -352,7 +357,7 @@ foreach hemi ($hemilist)
          if($DoPercent) set glmdir = $outcondir/osgm.ffx.pct"$SpStr2"
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --kurtosis)
          set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
-         set cmd = ($cmd --ffxdofdat $ffxdofdat --nii)
+         set cmd = ($cmd --ffxdofdat $ffxdofdat --$FSF_OUTPUT_FORMAT)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
