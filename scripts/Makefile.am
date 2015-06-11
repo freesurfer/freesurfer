@@ -127,6 +127,7 @@ map_all_labels \
 map_all_labels-lh \
 map_central_sulcus \
 map_to_base \
+mcparams2reg \
 meanval \
 mergeseg \
 merge_stats_tables \
