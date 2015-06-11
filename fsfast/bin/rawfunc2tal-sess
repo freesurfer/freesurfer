@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/06/10 20:24:39 $
-#    $Revision: 1.25 $
+#    $Date: 2015/06/11 19:16:05 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.25 2015/06/10 20:24:39 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.26 2015/06/11 19:16:05 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -281,10 +281,10 @@ foreach sess ($SessList)
 
     # Get the mask and reg to use
     if($PerRun) then
-      set outmask = $sess/$fsd/$Run/$maskdir/$maskstem.$ExpKey.$outfmt
+      set outmask = $sess/$fsd/$Run/$maskdir/$maskstem$ExpKey.$outfmt
       set reg = $sess/$fsd/$Run/$regfile
     else
-      set outmask = $sess/$fsd/$maskdir/$maskstem.$ExpKey.$outfmt
+      set outmask = $sess/$fsd/$maskdir/$maskstem$ExpKey.$outfmt
       set reg = $sess/$fsd/$regfile
     endif
     set invol = `stem2fname $funcdir/$instem`
