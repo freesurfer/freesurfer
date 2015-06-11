@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/04/23 17:36:10 $
- *    $Revision: 1.22 $
+ *    $Author: fischl $
+ *    $Date: 2015/06/11 15:21:20 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "transform.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.22 2013/04/23 17:36:10 greve Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.23 2015/06/11 15:21:20 fischl Exp $";
 
 void usage(int exit_val);
 
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.22 2013/04/23 17:36:10 greve Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.23 2015/06/11 15:21:20 fischl Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
   {
@@ -127,11 +127,11 @@ int main(int argc, char *argv[])
               Progname, argv[2]) ;
   mri_mask_orig = MRIcopy(mri_mask, NULL) ;
 
-  if(mri_src->width != mri_mask->width)
-  {
-    printf("ERROR: dimension mismatch between source and mask\n");
-    exit(1);
-  }
+//  if(mri_src->width != mri_mask->width)
+//  {
+//    printf("ERROR: dimension mismatch between source and mask\n");
+//    exit(1);
+//  }
 
   printf("DoAbs = %d\n",DoAbs);
 
