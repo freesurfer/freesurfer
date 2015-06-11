@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/06/04 17:42:11 $
-#    $Revision: 1.59 $
+#    $Date: 2015/06/11 18:36:39 $
+#    $Revision: 1.60 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.59 2015/06/04 17:42:11 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.60 2015/06/11 18:36:39 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -84,6 +84,7 @@ set InitHeader = 0;
 set IntermediateFSD = ()
 set IntermediateStem = ()
 set contrast = bold
+set UseCortexLabel = 1;
 
 set nskip = 0; # for inorm
 set nolog = 0;
@@ -271,6 +272,7 @@ foreach sess ($SessList)
     if($PerRun)   set cmd = ($cmd -per-run)
     if($PerSess) set cmd = ($cmd -per-session)
     if($#volsurffwhm) set cmd = ($cmd -volsurffwhm $volsurffwhm) # for testing
+    if(! $UseCortexLabel) set cmd = ($cmd -no-cortex-label)
     echo "$sessid To Surface -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -680,6 +682,13 @@ while( $#argv != 0 )
       set DoMask = 0;
       breaksw
 
+    case "-no-cortex-label":
+      set UseCortexLabel = 0;
+      breaksw
+    case "-cortex-label":
+      set UseCortexLabel = 1;
+      breaksw
+
     case "-update":
       set UpdateOnly = 1;
       breaksw
@@ -894,6 +903,7 @@ usage_exit:
   echo "  -regfile regfile   : registration file for use with -surf-fwhm (register.dat)"
   echo "  -projfrac frac : projection fraction for use with -surf-fwhm (0.5)"
   echo "  -projfrac-avg  : average over ribbon (not with -projfrac)"
+  echo "  -no-cortex-label : do not use cortex label for masking surfaces"
   echo ""
 
   if(! $PrintHelp) exit 1;
