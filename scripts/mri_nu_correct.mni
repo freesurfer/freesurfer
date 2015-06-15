@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2014/09/18 19:21:13 $
-#    $Revision: 1.20 $
+#    $Date: 2015/06/15 21:49:55 $
+#    $Revision: 1.21 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -23,7 +23,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.20 2014/09/18 19:21:13 nicks Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.21 2015/06/15 21:49:55 nicks Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -135,7 +135,9 @@ while($nthIter <= $nIters)
   @ nthIter = $nthIter + 1;
   echo " " |& tee -a $LF
 end
-if($#MaskVol) rm -f $tmpdir/mask.mnc $tmpdir/mask.imp $tmpdir/mask.mgz
+if($#MaskVol && $cleanup) then
+  rm -f $tmpdir/mask.mnc $tmpdir/mask.imp $tmpdir/mask.mgz
+endif
 echo " " |& tee -a $LF
 echo " " |& tee -a $LF
 
