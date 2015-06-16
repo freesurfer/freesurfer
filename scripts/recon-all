@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/06/10 20:24:20 $
-#    $Revision: 1.531 $
+#    $Date: 2015/06/16 01:26:57 $
+#    $Revision: 1.532 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.531 2015/06/10 20:24:20 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.532 2015/06/16 01:26:57 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -104,7 +104,7 @@ set WSGcaAtlas  = 1;    # 1=use GCA atlas and registration to do skull strip
 set WSUseTalXfm = 0;    # 1=use talairach.xfm instead of talairach_with_skull
                         # to do atlas alignment during mri_watershed
 set DoGcut = 0;         # 1=run mri_gcut after mri_watershed
-set NuIterations = 1;   # Number of iterations for nu intensity correction
+set NuIterations = 2;   # Number of iterations for nu intensity correction
 set ConformMin = 0;     # 1=conformed to min dimension
 set ConformKeepDC = 0;  # Keep volume direction cosines when conforming
 set HiRes = 0;          # 1=hires option (conformed to min dimension)
@@ -183,6 +183,7 @@ set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
 set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
 set UseMaskNuCorrect = 1; # if 1, nu_correct runs with -mask brainmask.mgz
+set DilateMaskNuCorrect = (3); # grow nu_correct mask by this amount
 set UseCPsWithCaNorm = 0 # -canorm-usecps enable control points with ca_norm
 set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
 set T2max = ();
@@ -1667,14 +1668,12 @@ talairach:
       # this orig_nu.mgz uses the full head, whereas nu.mgz is created using
       # the brainmask, and also talairach.xfm to find the white matter ball.
       set tal_input = orig_nu.mgz
-      if ( ! -e $tal_input) then
-        set cmd = (mri_nu_correct.mni \
-          --n 1 --proto-iters 1000 --distance 50 --no-rescale \
-          --i orig.mgz --o $tal_input)
-        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd >& orig_nu.log
-        if($status) goto error_exit;
-      endif
+      set cmd = (mri_nu_correct.mni \
+        --n 1 --proto-iters 1000 --distance 50 --no-rescale \
+        --i orig.mgz --o $tal_input)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd >& orig_nu.log
+      if($status) goto error_exit;
     endif
     if ($UseMincMritotal) then
       # use the MINC mritotal utility
@@ -2308,7 +2307,7 @@ if($DoNuIntensityCor) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
-  set cmd = (mri_nu_correct.mni --i orig.mgz --o nu.mgz --proto-iters 1000)
+  set cmd = (mri_nu_correct.mni --i orig.mgz --o nu.mgz)
   # to fix a problem with mri_nu_correct.mni messing with the histogramming
   # in some odd subjects (due to voxels outside the brain, which has the
   # effect of altering white matter intensity interpretation downstream),
@@ -2329,18 +2328,27 @@ if($DoNuIntensityCor) then
   endif
   # --cm for hi-res support:
   if ($ConformMin) set cmd = ($cmd --cm)
+  # -3T support:
   if ($DoNuIntensityCor3T) then
-    # params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
+    # 3T params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
     # "Improvement of brain segmentation accuracy by optimizing
     # non-uniformity correction using N3"
+    # namely specifying iterations, proto-iters and distance: 
     set NuIterations = 1;
-    set cmd = ($cmd --distance 50)
+    set cmd = ($cmd --proto-iters 1000 --distance 50)
   endif
   set cmd = ($cmd --n $NuIterations)
+  # per c.larsen, set convergence stop setting to allow fully converged:
+  set cmd = ($cmd --stop 1e-5)
   # add the mask, as per c.larsen, bias-field correction is known to work
   # much better when the brain area is properly masked, in this case by
   # brainmask.mgz.  the MaskVol env var is read by mri_nu_correct.mni
-  if ($UseMaskNuCorrect) set cmd = ($cmd --mask brainmask.mgz)
+  if ($UseMaskNuCorrect) then
+    set cmd = ($cmd --mask brainmask.mgz)
+    if ($#DilateMaskNuCorrect) then
+      set cmd = ($cmd --mask-dilate $DilateMaskNuCorrect)
+    endif
+  endif
   # add user-specified option (from an 'experts file')
   set cmd = ($cmd $xopts)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -5818,6 +5826,17 @@ while( $#argv != 0 )
     case "-nuintensitycor-nomask":
       set DoNuIntensityCor = 1;
       set UseMaskNuCorrect = 0;
+      breaksw
+    case "-nuintensitycor-mask-dilate":
+      set DoNuIntensityCor = 1;
+      set UseMaskNuCorrect = 1;
+      if ( $#argv < 1) goto arg1err;
+      set DilateMaskNuCorrect = $argv[1]; shift;
+      breaksw
+    case "-nuintensitycor-mask-nodilate":
+      set DoNuIntensityCor = 1;
+      set UseMaskNuCorrect = 1;
+      set DilateMaskNuCorrect = ();
       breaksw
 
     case "-nuintensitycor-3T":
