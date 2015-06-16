@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/12/05 21:06:10 $
- *    $Revision: 1.8 $
+ *    $Date: 2015/06/16 20:34:51 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -154,8 +154,8 @@ void PanelPointSet::DoUpdateWidgets()
     ui->sliderMid->setValue( (int)( ( layer->GetProperty()->GetHeatScaleMid() - fMin ) / ( fMax - fMin ) * 100 ) );
     ui->sliderMax->setValue( (int)( ( layer->GetProperty()->GetHeatScaleMax() - fMin ) / ( fMax - fMin ) * 100 ) );
     ui->sliderOffset->setValue( (int)( ( layer->GetProperty()->GetHeatScaleOffset() + fMax ) / ( fMax + fMax ) * 100 ) );
-    ChangeLineEditNumber( ui->lineEditMid, layer->GetProperty()->GetHeatScaleMin() );
-    ChangeLineEditNumber( ui->lineEditMin, layer->GetProperty()->GetHeatScaleMid() );
+    ChangeLineEditNumber( ui->lineEditMin, layer->GetProperty()->GetHeatScaleMin() );
+    ChangeLineEditNumber( ui->lineEditMid, layer->GetProperty()->GetHeatScaleMid() );
     ChangeLineEditNumber( ui->lineEditMax, layer->GetProperty()->GetHeatScaleMax() );
     ChangeLineEditNumber( ui->lineEditOffset, layer->GetProperty()->GetHeatScaleOffset() );
 
