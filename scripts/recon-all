@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/06/16 01:26:57 $
-#    $Revision: 1.532 $
+#    $Date: 2015/06/18 00:21:28 $
+#    $Revision: 1.533 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.532 2015/06/16 01:26:57 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.533 2015/06/18 00:21:28 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -83,7 +83,7 @@ set DoShowEdits  = 0;
 
 set InputList = ();
 
-# Expert preferences
+# parameter defaults (most can be overriden with flags)
 set XOptsFile = ();
 set XOptsClean = 0; # Delete a pre-existing xopts file
 set XOptsUse   = 1; # Use a pre-existing xopts file (default '1': always use)
@@ -94,6 +94,19 @@ set PonsSeedCRS = (); # SeedCRS center of pons for mri_fill #
 set CCSeedCRS = ();   # SeedCRS center of corpus callosum for mri_fill #
 set RHSeedCRS = ();   # SeedCRS point in the right hemi wm for mri_fill #
 set LHSeedCRS = ();   # SeedCRS point in the left  hemi wm for mri_fill #
+
+set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
+set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
+set UseYa3tTalAtlas = 0; # if 1, use 3T18yoSchwartz young-adult 3T atlas
+                         # for tal_avi (recommended as 3T default by Avi S.)
+set CustomTalAtlas = ""; # -custom-tal-atlas <name of atlas in average dir>
+
+set NuIterations = 1;   # Number of wrapper iterations for nu_correct
+set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
+                       # to run mri_make_uchar to correct histogram problem
+set UseMaskNuCorrect = 1; # if 1, nu_correct runs with -mask brainmask.mgz
+set DilateMaskNuCorrect = (); # grow nu_correct mask by this amount
+
 set WaterShed = 1;      # 0=no WS, 1= WS normal, 2 = WS only, 3 = WS+1st
 set WSLess    = 0;      # Shrinks skull surface
 set WSMore    = 0;      # Expands skull surface
@@ -104,7 +117,6 @@ set WSGcaAtlas  = 1;    # 1=use GCA atlas and registration to do skull strip
 set WSUseTalXfm = 0;    # 1=use talairach.xfm instead of talairach_with_skull
                         # to do atlas alignment during mri_watershed
 set DoGcut = 0;         # 1=run mri_gcut after mri_watershed
-set NuIterations = 2;   # Number of iterations for nu intensity correction
 set ConformMin = 0;     # 1=conformed to min dimension
 set ConformKeepDC = 0;  # Keep volume direction cosines when conforming
 set HiRes = 0;          # 1=hires option (conformed to min dimension)
@@ -157,16 +169,12 @@ set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
 set measurelist = ( thickness area area.pial volume curv sulc \
                     white.K white.H jacobian_white w-g.pct.mgh )
                      # ^ these are the files smoothed by DoQdecCache (-qcache)
-set UserMeasureList = 0; # if 1, then 'measurelist' gets additional -measure args
+set UserMeasureList = 0; # if 1, then 'measurelist' gets -measure args
 set measuredir = (); # for specifying an alternate path to measure files
 set fwhmlist = ( 0 5 10 15 20 25 ) # see DoQdecCache
 set target = fsaverage # see DoQdecCache
 set SmoothCortexOnly = 1; # For -qcache. smooths only within ?h.cortex.label
 
-set UseMincMritotal = 0; # if 1, then use the BIC-MNI mritotal tal reg tools
-set UseYa3tTalAtlas = 1; # if 1, use 3T18yoSchwartz young-adult 3T atlas
-                         # for tal_avi (recommended as default by Avi S.)
-set CustomTalAtlas = ""; # -custom-tal-atlas <name of atlas in average dir>
 set DoMakefile = 0; # if 1, run make -f recon-all.makefile $(MakefileTarget)
 set MakefileTarget = () # argument to recon-all -make
 set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
@@ -179,11 +187,6 @@ set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
 set GetCuda = 0; # if 1 (-get-cuda) then print cuda info and exit
 set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
                      # mris_make_surfaces to bypass usage of parcellation
-set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
-                       # to run mri_make_uchar to correct histogram problem
-set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
-set UseMaskNuCorrect = 1; # if 1, nu_correct runs with -mask brainmask.mgz
-set DilateMaskNuCorrect = (3); # grow nu_correct mask by this amount
 set UseCPsWithCaNorm = 0 # -canorm-usecps enable control points with ca_norm
 set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
 set T2max = ();
@@ -204,7 +207,7 @@ set tpNid = ();
 set longbasetotpN_regfile = ();   # reg file to align longbase to current subj
 set UseConcatLtaTal = 0; # if 1, use mri_concatenate_lta during tal creation
 set UseLongbaseCtrlVol = 0;   # if 1, use ctrl volume of longbase in norm step
-set UseLongbaseWMedits = 0;   # if 1, use transfer wm edits from base (default from cross)
+set UseLongbaseWMedits = 0;   # if 1, xfer wm edits from base (default is cross)
 set UseAsegFusion = 1; # if 0, dont create 'fused' asegs from timepoints
 set DoCreateBaseSubj = 0; # if 1, create the 'base' subject used in longitud
 set BaseSubjInvol = (orig.mgz); # -base-invol allows using some other file
@@ -1658,6 +1661,7 @@ talairach:
     set cmd = (cp $longbasedir/mri/$tal_xfm $subjdir/mri/$xfma)
   else
     # default processing:
+    # first run bias correction...
     if ($DoTalairachUseNu) then
       # note that this only works if nu exists
       # this is used as an alternative if tal is giving bad results
@@ -1666,15 +1670,25 @@ talairach:
       # default: run one pass of nu_correct, as its been found that scans
       # with strong bias fields can cause talairach_avi to fail.  note that
       # this orig_nu.mgz uses the full head, whereas nu.mgz is created using
-      # the brainmask, and also talairach.xfm to find the white matter ball.
+      # the brainmask, and talairach.xfm used to find the white matter ball.
       set tal_input = orig_nu.mgz
-      set cmd = (mri_nu_correct.mni \
-        --n 1 --proto-iters 1000 --distance 50 --no-rescale \
-        --i orig.mgz --o $tal_input)
+      set cmd = (mri_nu_correct.mni --no-rescale --i orig.mgz --o $tal_input)
+      # -3T flag support:
+      if ($DoNuIntensityCor3T) then
+        # 3T params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
+        # "Improvement of brain segmentation accuracy by optimizing
+        # non-uniformity correction using N3"
+        # namely specifying iterations, proto-iters and distance: 
+        set cmd = ($cmd --n 1 --proto-iters 1000 --distance 50)
+      else
+      # 1.5T default:
+        set cmd = ($cmd --n 1 --proto-iters 1000 --distance 200)
+      endif
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd >& orig_nu.log
+      if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
+    # now run the talairach registration...
     if ($UseMincMritotal) then
       # use the MINC mritotal utility
       set xopts = `fsr-getxopts talairach $XOptsFile`;
@@ -1696,6 +1710,10 @@ talairach:
     endif
   endif
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if ( ! $UseMincMritotal) then
+    echo "talairach_avi log file is transforms/talairach_avi.log..." \
+        |& tee -a $LF |& tee -a $CF
+  endif
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
 
@@ -1814,6 +1832,7 @@ if (0) then
 endif
         set handleTalErrors = 1;
       endif
+
 handle_tal_error:
       if ($handleTalErrors) then
         echo "\nManual Talairach alignment may be necessary, or" |& tee -a $LF
@@ -1825,17 +1844,16 @@ handle_tal_error:
             |& tee -a $LF
         echo "" |& tee -a $LF
         # IF Talairach alignment was run
-        # AND it was using the avi synder method (w/Schwartz atlas as default)
+        # AND it was using the default (711-2C) atlas
         # AND a check failed,
-        # THEN first retry avi method using older 711-2C atlas 
+        # THEN first retry avi method using newer 3T Schwartz atlas 
         # THEN (if that fails) try Talairach alignment using MINC mritotal tool
         # ELSE error exit
         if($DoTalairach && ! $UseMincMritotal && ! $longitudinal && \
-           $UseYa3tTalAtlas ) then
-          echo "INFO: Retrying Talairach align using 711-2C atlas...\n" \
+           ! $UseYa3tTalAtlas ) then
+          echo "INFO: Retrying Talairach align using 3T-based atlas...\n" \
             |& tee -a $LF
-          set UseYa3tTalAtlas = 0; # revert to 711-C atlas
-          set CustomTalAtlas = (711-2C_as_mni_average_305)
+          set UseYa3tTalAtlas = 1; # try 3T-based atlas
           set UseMincMritotal = 0;
           set DoCleanTal = 1;
           goto talairach;
@@ -1904,12 +1922,21 @@ if($DoNormalization) then
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   else
-    if ( $longitudinal && ! -e orig_nu.mgz ) then
+    if ( $longitudinal ) then
       # the longitudinal stream skips the talairach step, so orig_nu doesnt
       # get created, so create it now...
-      set cmd = (mri_nu_correct.mni \
-        --n 1 --proto-iters 1000 --distance 50 --no-rescale \
-        --i orig.mgz --o orig_nu.mgz)
+      set cmd = (mri_nu_correct.mni --no-rescale --i orig.mgz --o orig_nu.mgz)
+      # -3T flag support:
+      if ($DoNuIntensityCor3T) then
+        # 3T params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
+        # "Improvement of brain segmentation accuracy by optimizing
+        # non-uniformity correction using N3"
+        # namely specifying iterations, proto-iters and distance: 
+        set cmd = ($cmd --n 1 --proto-iters 1000 --distance 50)
+      else
+      # 1.5T default:
+        set cmd = ($cmd --n 1 --proto-iters 1000 --distance 200)
+      endif
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd >& orig_nu.log
       if($status) goto error_exit;
@@ -2328,21 +2355,24 @@ if($DoNuIntensityCor) then
   endif
   # --cm for hi-res support:
   if ($ConformMin) set cmd = ($cmd --cm)
-  # -3T support:
+  # -3T flag support:
   if ($DoNuIntensityCor3T) then
     # 3T params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
     # "Improvement of brain segmentation accuracy by optimizing
     # non-uniformity correction using N3"
     # namely specifying iterations, proto-iters and distance: 
-    set NuIterations = 1;
-    set cmd = ($cmd --proto-iters 1000 --distance 50)
+    set cmd = ($cmd --n 1 --proto-iters 1000 --distance 50)
+  else
+  # 1.5T default:
+    set cmd = ($cmd --n $NuIterations --proto-iters 1000 --distance 200)
   endif
-  set cmd = ($cmd --n $NuIterations)
-  # per c.larsen, set convergence stop setting to allow fully converged:
-  set cmd = ($cmd --stop 1e-5)
+  # per c.larsen, decrease convergence threshold (default is 0.001)
+  set cmd = ($cmd --stop 1e-4)
+  # per c.larsen, decrease shrink parameter: finer sampling (default is 4)
+  set cmd = ($cmd --shrink 3)
   # add the mask, as per c.larsen, bias-field correction is known to work
   # much better when the brain area is properly masked, in this case by
-  # brainmask.mgz.  the MaskVol env var is read by mri_nu_correct.mni
+  # brainmask.mgz.
   if ($UseMaskNuCorrect) then
     set cmd = ($cmd --mask brainmask.mgz)
     if ($#DilateMaskNuCorrect) then
@@ -2363,6 +2393,13 @@ if($DoNuIntensityCor) then
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   endif
+  # for debug, create difference volume between orig and nu
+  set cmd = (mri_diff orig.mgz nu.mgz --diff diff-orig-nu.mgz)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+  endif
+  # done:
   touch $touchdir/nu.touch
 endif
 
@@ -5655,6 +5692,12 @@ while( $#argv != 0 )
       set DoRobustMotionCor = 0;
       breaksw
 
+    case "-3T":
+    case "-3t":
+      set UseYa3tTalAtlas = 1;
+      set DoNuIntensityCor3T = 1;
+      breaksw
+
     case "-talairach":
       set DoTalairach = 1;
       breaksw
@@ -5663,6 +5706,7 @@ while( $#argv != 0 )
       set DoTalairachUseNu = 1;
       breaksw
     case "-notalairach":
+    case "-no-talairach":
       set DoTalairach = 0;
       set DoTalCheck = 0;
       breaksw
@@ -5676,6 +5720,20 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set CustomTalAtlas = $argv[1]; shift;
       breaksw
+
+    case "-tal-check":
+    case "-talairach-check":
+    case "-talcheck":
+      set DoTalCheck = 1;
+      breaksw;
+    case "-notal-check":
+    case "-notalairach-check":
+    case "-no-tal-check":
+    case "-no-talairach-check":
+    case "-notalcheck":
+    case "-no-talcheck":
+      set DoTalCheck = 0;
+      breaksw;
 
     case "-deface":
       set DoDeface = 1;
@@ -5842,12 +5900,6 @@ while( $#argv != 0 )
     case "-nuintensitycor-3T":
     case "-nuintensitycor-3t":
       set DoNuIntensityCor = 1;
-      set DoNuIntensityCor3T = 1;
-      breaksw
-
-    case "-3T":
-    case "-3t":
-      set UseYa3tTalAtlas = 1;
       set DoNuIntensityCor3T = 1;
       breaksw
 
@@ -6992,18 +7044,6 @@ while( $#argv != 0 )
       set NoWMSA = 1;
       breaksw;
 
-    case "-tal-check":
-    case "-talcheck":
-      set DoTalCheck = 1;
-      breaksw;
-
-    case "-notal-check":
-    case "-no-tal-check":
-    case "-notalcheck":
-    case "-no-talcheck":
-      set DoTalCheck = 0;
-      breaksw;
-
     case "-avgcurvtifpath":
       if ( $#argv < 1) goto arg1err;
       set AvgCurvTifPath = $argv[1]; shift;
@@ -7789,7 +7829,7 @@ usage_exit:
   echo "  -washu_mprage : assume scan parameters are Wash.U. MP-RAGE protocol."
   echo "                  both mprage flags affect mri_normalize and mri_segment,"
   echo "                  and assumes a darker gm."
-#  echo "  -schwartzya3t-atlas : for tal reg, use special young adult 3T atlas"
+  echo "  -schwartzya3t-atlas : for tal reg, use special young adult 3T atlas"
   echo ""
   echo "  -use-gpu : use GPU versions of mri_em_register, mri_ca_register,"
   echo "             mris_inflate and mris_sphere"

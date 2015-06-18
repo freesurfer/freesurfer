@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.57 2015/05/06 21:36:41 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.58 2015/06/18 00:21:28 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.57 2015/05/06 21:36:41 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.58 2015/06/18 00:21:28 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [ $# -gt 1 ]; then
@@ -309,7 +309,10 @@ if [ -z "$NO_MINC" ]; then
     fi
     ## nu_correct and other MINC tools require a path to perl
     if [ -z "$MNI_PERL5LIB" ]; then
-        if [ -e $MINC_LIB_DIR/perl5/5.8.8 ]; then
+        if [ -e $FREESURFER_HOME/mni/share/perl5 ]; then
+            # Linux CentOS6 w/ mni 1.5 build
+            export MNI_PERL5LIB="$FREESURFER_HOME/mni/share/perl5"
+        elif [ -e $MINC_LIB_DIR/perl5/5.8.8 ]; then
             # Linux CentOS5:
             export MNI_PERL5LIB="$MINC_LIB_DIR/perl5/5.8.8"
         elif [ -e $MINC_LIB_DIR/../Library/Perl/Updates/5.10.0 ]; then

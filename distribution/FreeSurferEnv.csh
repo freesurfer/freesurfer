@@ -5,10 +5,10 @@
 # Note:    The bash equivalent script is FreeSurferEnv.sh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.csh,v 1.85 2015/05/06 21:36:40 nicks Exp $
+# $Id: FreeSurferEnv.csh,v 1.86 2015/06/18 00:21:28 nicks Exp $
 #############################################################################
 
-set VERSION = '$Id: FreeSurferEnv.csh,v 1.85 2015/05/06 21:36:40 nicks Exp $'
+set VERSION = '$Id: FreeSurferEnv.csh,v 1.86 2015/06/18 00:21:28 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if (("$1" == "--help") || ("$1" == "-help")) then
@@ -297,7 +297,10 @@ if(! $?NO_MINC) then
     endif
     ## nu_correct and other MINC tools require a path to mni perl scripts
     if (! $?MNI_PERL5LIB) then
-        if ( -e $MINC_LIB_DIR/perl5/5.8.8) then
+        if ( -e $FREESURFER_HOME/mni/share/perl5) then
+            # Linux CentOS 6 w/ mni/1.5 build:
+            setenv MNI_PERL5LIB       "$FREESURFER_HOME/mni/share/perl5"
+        else if ( -e $MINC_LIB_DIR/perl5/5.8.8) then
             # Linux CentOS5:
             setenv MNI_PERL5LIB       "$MINC_LIB_DIR/perl5/5.8.8"
         else if ( -e $MINC_LIB_DIR/perl5/5.8.5) then
