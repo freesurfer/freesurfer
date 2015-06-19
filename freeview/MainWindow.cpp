@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/06/03 20:56:14 $
- *    $Revision: 1.298 $
+ *    $Date: 2015/06/19 18:21:50 $
+ *    $Revision: 1.299 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1595,6 +1595,10 @@ void MainWindow::RunScript()
   else if ( cmd == "setpointsetradius" )
   {
     CommandSetPointSetRadius( sa );
+  }
+  else if (cmd == "setpointsetheatmap")
+  {
+    CommandSetPointSetHeatmap( sa );
   }
   else if ( cmd == "setdisplayvector" )
   {
@@ -3484,6 +3488,7 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
   QString spline_color = "null";
   QString radius = "0";
   QString spline_radius = "0";
+  QString spline_heatmap;
   for ( int i = 1; i < options.size(); i++ )
   {
     QString strg = options[i];
@@ -3508,6 +3513,10 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
       {
         spline_radius = argu;
       }
+      else if (option == "splineheatmap" || option == "heatmap")
+      {
+        spline_heatmap = argu;
+      }
       else if ( option == "name" )
       {
         m_scripts.insert( 0, QStringList("setlayername") << "PointSet" << argu );
@@ -3531,6 +3540,10 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
   if ( radius != "0" || spline_radius != "0" )
   {
     m_scripts.insert( 0, QStringList("setpointsetradius") << radius << spline_radius );
+  }
+  if (!spline_heatmap.isEmpty())
+  {
+    m_scripts.insert( 0, QStringList("setpointsetheatmap") << spline_heatmap.split(",", QString::SkipEmptyParts));
   }
 
   LoadWayPointsFile( fn );
@@ -3650,6 +3663,35 @@ void MainWindow::CommandSetPointSetRadius( const QStringList& cmd )
       {
         cerr << "Invalid spline radius.\n";
       }
+    }
+  }
+}
+
+void MainWindow::CommandSetPointSetHeatmap(const QStringList &cmd)
+{
+  LayerPointSet* wp = (LayerPointSet*)GetLayerCollection( "PointSet" )->GetActiveLayer();
+  if ( wp )
+  {
+    if (wp->GetProperty()->LoadScalarsFromFile(cmd[1]))
+    {
+      if (cmd.size() >= 3)
+      {
+        wp->GetProperty()->SetHeatScaleMin(cmd[2].toDouble());
+      }
+      if (cmd.size() == 4)
+      {
+        wp->GetProperty()->SetHeatScaleMax(cmd[3].toDouble());
+        wp->GetProperty()->SetHeatScaleMid((cmd[2].toDouble()+cmd[3].toDouble())/2.0);
+      }
+      else if (cmd.size() > 4)
+      {
+        wp->GetProperty()->SetHeatScaleMid(cmd[3].toDouble());
+        wp->GetProperty()->SetHeatScaleMax(cmd[4].toDouble());
+      }
+    }
+    else
+    {
+      cerr << "Could not load scalar map from file " << qPrintable(cmd[1]) << "\n";
     }
   }
 }

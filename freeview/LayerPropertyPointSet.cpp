@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/06/16 20:34:51 $
- *    $Revision: 1.10 $
+ *    $Date: 2015/06/19 18:21:50 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -257,11 +257,11 @@ void LayerPropertyPointSet::SetScalarLayer( LayerMRI* layer )
 {
   if ( m_nScalarType != ScalarLayer || m_layerScalar != layer )
   {
+    SaveHeatscaleSettings();
     m_nScalarType = ScalarLayer;
     m_layerScalar = layer;
-//   if ( layer )
-//     layer->AddListener( this );
-    UpdateScalarValues();
+    if (!RestoreHeatscaleSettings(layer->GetName()))
+      UpdateScalarValues();
     this->SetColorMapChanged();
     emit ScalarLayerChanged( layer );
   }
@@ -271,11 +271,46 @@ void LayerPropertyPointSet::SetScalarSet( int n )
 {
   if ( n < (int)m_scalarSets.size() && n >= 0 )
   {
+    SaveHeatscaleSettings();
     m_nScalarType = ScalarSet;
     m_nScalarSet = n;
-    UpdateScalarValues();
+    if (!RestoreHeatscaleSettings(m_scalarSets[n].strName))
+      UpdateScalarValues();
     this->SetColorMapChanged();
     emit ScalarSetChanged();
+  }
+}
+
+void LayerPropertyPointSet::SaveHeatscaleSettings()
+{
+  QString name;
+  if (m_nScalarType == ScalarSet && m_nScalarSet >= 0)
+    name = m_scalarSets[m_nScalarSet].strName;
+  else if (m_nScalarType == ScalarLayer && m_layerScalar)
+    name = m_layerScalar->GetName();
+  if (!name.isEmpty())
+  {
+    QVariantMap map;
+    map["Min"] = m_dHeatScaleMin;
+    map["Mid"] = m_dHeatScaleMid;
+    map["Max"] = m_dHeatScaleMax;
+    map["Offset"] = m_dHeatScaleOffset;
+    m_mapHeatscaleSettings[name] = map;
+  }
+}
+
+bool LayerPropertyPointSet::RestoreHeatscaleSettings(const QString &name)
+{
+  if (!m_mapHeatscaleSettings.contains(name))
+    return false;
+  else
+  {
+    QVariantMap map = m_mapHeatscaleSettings[name].toMap();
+    m_dHeatScaleMin = map["Min"].toDouble();
+    m_dHeatScaleMid = map["Mid"].toDouble();
+    m_dHeatScaleMax = map["Max"].toDouble();
+    m_dHeatScaleOffset = map["Offset"].toDouble();
+    return true;
   }
 }
 
@@ -324,7 +359,7 @@ bool LayerPropertyPointSet::LoadScalarsFromFile( const QString& filename )
   QFile file(filename);
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
   {
-    cerr << qPrintable(file.errorString()) << "\n";;
+    cerr << qPrintable(file.errorString()) << "\n";
     return false;
   }
 
@@ -365,6 +400,7 @@ bool LayerPropertyPointSet::LoadScalarsFromFile( const QString& filename )
 
   m_scalarSets.push_back( sv );
   SetScalarSet( m_scalarSets.size() - 1 );
+  SetColorMap(LayerPropertyPointSet::HeatScale);
 
   return true;
 }

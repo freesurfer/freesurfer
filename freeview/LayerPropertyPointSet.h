@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/19 20:25:17 $
- *    $Revision: 1.5 $
+ *    $Date: 2015/06/19 18:21:50 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -208,6 +208,9 @@ private:
   void LoadSettings();
   void SaveSettings();
 
+  bool RestoreHeatscaleSettings(const QString& name);
+  void SaveHeatscaleSettings();
+
   //BTX
 
   // Color tables --------------------------------------------------------
@@ -236,6 +239,7 @@ private:
   LayerMRI*   m_layerScalar;
   int         m_nScalarSet;
   std::vector< ScalarValues >  m_scalarSets;
+  QVariantMap m_mapHeatscaleSettings;
 };
 
 #endif

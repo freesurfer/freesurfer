@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/05/05 18:53:39 $
- *    $Revision: 1.41 $
+ *    $Date: 2015/06/19 18:21:50 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 class vtkActor;
 class vtkProp;
 class vtkCubeSource;
+class vtkCubeAxesActor;
 class Cursor3D;
 class SurfaceRegion;
 class Interactor3DNavigate;
@@ -150,12 +151,14 @@ private:
   vtkSmartPointer<vtkActor> m_actorSliceBoundingBox[3];
   vtkSmartPointer<vtkCubeSource>  m_cubeSliceBoundingBox[3];
   vtkSmartPointer<vtkAnnotatedCubeActor> m_actorAnnotatedCube;
+  vtkSmartPointer<vtkCubeAxesActor>          m_actorAxesActor;
 
   double  m_dBounds[6];
   double  m_dBoundingTolerance;
   int     m_nSliceHighlighted;
 
   bool    m_bShowSliceFrames;
+  bool    m_bShowAxes;
 
   double  m_dIntersectPoint[3];
   Interactor3DNavigate*   m_interactorNavigate;

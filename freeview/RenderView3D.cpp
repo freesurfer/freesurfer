@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/05/05 18:53:39 $
- *    $Revision: 1.76 $
+ *    $Date: 2015/06/19 18:21:50 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,6 +59,8 @@
 #include <vtkScalarBarActor.h>
 #include "vtkRGBAColorTransferFunction.h"
 #include <vtkAnnotatedCubeActor.h>
+#include <vtkCubeAxesActor.h>
+#include <vtkTextProperty.h>
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
@@ -68,6 +70,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   this->GetRenderWindow()->GetInteractor()->SetStillUpdateRate(0.01);
 
   m_bShowSliceFrames = true;
+  m_bShowAxes = true;
   for ( int i = 0; i < 3; i++ )
   {
     m_actorSliceFrames[i] = vtkSmartPointer<vtkActor>::New();
@@ -94,6 +97,17 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   connect(m_cursor3D, SIGNAL(Updated()), this, SLOT(RequestRedraw()));
 
   m_actorScalarBar->SetNumberOfLabels( 4 );
+
+  m_actorAxesActor = vtkSmartPointer<vtkCubeAxesActor>::New();
+  m_actorAxesActor->XAxisLabelVisibilityOn();
+  m_actorAxesActor->YAxisLabelVisibilityOn();
+  m_actorAxesActor->ZAxisLabelVisibilityOn();
+  m_actorAxesActor->SetXTitle("");
+  m_actorAxesActor->SetYTitle("");
+  m_actorAxesActor->SetZTitle("");
+  m_actorAxesActor->SetFlyModeToClosestTriad();
+  m_actorAxesActor->SetCamera(m_renderer->GetActiveCamera());
+
 
   SetInteractionMode(IM_Navigate);
 }
@@ -202,19 +216,18 @@ void RenderView3D::UpdateSliceFrames()
 
   for ( int i = 0; i < 3; i++ )
   {
-    double bounds[6];
+    double bds[6];
     for ( int n = 0; n < 3; n++ )
     {
-      bounds[n*2]   = m_dBounds[n*2] - m_dBoundingTolerance;
-      bounds[n*2+1] = m_dBounds[n*2+1] + m_dBoundingTolerance;
+      bds[n*2]   = m_dBounds[n*2] - m_dBoundingTolerance;
+      bds[n*2+1] = m_dBounds[n*2+1] + m_dBoundingTolerance;
     }
 
-    bounds[i*2] = slicepos[i] - m_dBoundingTolerance;
-    bounds[i*2+1] = slicepos[i] + m_dBoundingTolerance;
-    m_cubeSliceBoundingBox[i]->SetBounds( bounds );
+    bds[i*2] = slicepos[i] - m_dBoundingTolerance;
+    bds[i*2+1] = slicepos[i] + m_dBoundingTolerance;
+    m_cubeSliceBoundingBox[i]->SetBounds( bds );
     m_actorSliceBoundingBox[i]->GetMapper()->Update();
   }
-
   RequestRedraw();
 }
 
@@ -273,8 +286,12 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
     }
   }
 
+//  if (m_bShowAxes)
+//    m_renderer->AddViewProp(m_actorAxesActor);
+
 //    mainwnd->GetConnectivityData()->AppendProps( m_renderer );
   mainwnd->GetVolumeCropper()->Append3DProps( m_renderer );
+
 
   m_renderer->ResetCameraClippingRange();
   RenderView::RefreshAllActors(bForScreenShot);
@@ -941,6 +958,9 @@ bool RenderView3D::UpdateBounds()
   UpdateSliceFrames();
   if (dMaxLength > 0)
     m_cursor3D->RebuildActor(dMaxLength/256);
+
+  // update axis
+  m_actorAxesActor->SetBounds(m_dBounds);
 
   return true;
 }
