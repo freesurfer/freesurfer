@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/05/22 18:17:10 $
- *    $Revision: 1.15 $
+ *    $Date: 2015/06/19 22:01:26 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -205,7 +205,7 @@ void DialogWriteMovieFrames::OnWrite()
   }
   else // angle
   {
-    m_nTotalSteps = (ui->spinBoxEnd->value()-ui->spinBoxStart->value())/m_dStepSize+1;
+    m_nTotalSteps = (int)((ui->spinBoxEnd->value()-ui->spinBoxStart->value())/m_dStepSize+1);
   }
 
   if (m_nTotalSteps < 1)
