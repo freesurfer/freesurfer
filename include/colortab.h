@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/10/07 15:29:50 $
- *    $Revision: 1.37 $
+ *    $Author: rpwang $
+ *    $Date: 2015/06/22 19:13:33 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,6 +72,8 @@ COLOR_TABLE, CT ;
    structures found in fname (duplicates are skipped with a warning).
 */
 COLOR_TABLE *CTABreadASCII(const char *fname);
+COLOR_TABLE *CTABreadASCII2(const char *fname, int checkDuplicateNames);
+
 extern int ctabDuplicates;
 
 /* Reads and writes a table to and from a binary stream. In this

@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/04/01 19:22:33 $
- *    $Revision: 1.65 $
+ *    $Author: rpwang $
+ *    $Date: 2015/06/22 19:13:33 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,13 @@ int ctabDuplicates;
 COLOR_TABLE *CTABreadASCII(const char *fname)
 Reads in 7th column as tissue type
   ----------------------------------------------------------------*/
+
 COLOR_TABLE *CTABreadASCII(const char *fname)
+{
+  return CTABreadASCII2(fname, 1);
+}
+
+COLOR_TABLE *CTABreadASCII2(const char *fname, int checkDuplicateNames)
 {
   COLOR_TABLE *ct;
   char        line[STRLEN], *cp;
@@ -184,7 +190,8 @@ COLOR_TABLE *CTABreadASCII(const char *fname)
 
   fclose(fp);
 
-  CTABfindDuplicateNames(ct);
+  if (checkDuplicateNames)
+    CTABfindDuplicateNames(ct);
 
   //CTABfindDuplicateAnnotations(ct);
 
