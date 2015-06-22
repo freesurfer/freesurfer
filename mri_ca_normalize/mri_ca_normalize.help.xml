@@ -51,6 +51,8 @@
       <explanation>smoothing sigma for bias field if control points specified (def=4)</explanation>
       <argument>-fsamples &lt;filename&gt;</argument>
       <explanation>write control points to filename</explanation>
+      <argument>-dilate &lt;niters&gt;</argument>
+      <explanation>dilate the brain mask niters times before masking</explanation>
       <argument>-nsamples &lt;filename&gt;</argument>
       <explanation>write transformed normalization control points to filename</explanation>
       <argument>-mask &lt;mri_vol&gt;</argument>
