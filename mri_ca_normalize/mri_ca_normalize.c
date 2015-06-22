@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/05/21 15:15:02 $
- *    $Revision: 1.62 $
+ *    $Date: 2015/06/22 18:25:25 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,8 @@ MRI *normalizeFromLabel
 (MRI *mri_in, MRI *mri_dst, MRI *mri_seg, double *fas) ;
 static MRI *normalize_from_segmentation_volume
 (MRI *mri_src, MRI *mri_dst, MRI *mri_seg, int *structs, int nstructs) ;
+
+static int dilate_mask = 0 ;
 
 static double TRs[MAX_GCA_INPUTS] ;
 static double fas[MAX_GCA_INPUTS] ;
@@ -161,13 +163,13 @@ main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.62 2012/05/21 15:15:02 fischl Exp $",
+   "$Id: mri_ca_normalize.c,v 1.63 2015/06/22 18:25:25 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.62 2012/05/21 15:15:02 fischl Exp $",
+           "$Id: mri_ca_normalize.c,v 1.63 2015/06/22 18:25:25 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -391,6 +393,20 @@ main(int argc, char *argv[])
       if (noedit == 0)
 	MRIreplaceValues(mri_mask, mri_mask, WM_EDITED_OFF_VAL, 0) ;
       MRIclose(mri_mask, mri_mask) ;
+      if (dilate_mask)
+      {
+	int i ;
+	MRI *mri_mask_tmp = MRIclone(mri_mask, NULL) ;
+	printf("dilating mask %d times\n", dilate_mask) ;
+	for (i = 0 ; i < dilate_mask ; i++)
+	{
+	  MRIdilate(mri_mask, mri_mask_tmp) ;
+	  MRIcopy(mri_mask_tmp, mri_mask) ;
+	}
+	MRIfree(&mri_mask_tmp) ;
+      }
+
+
       MRImask(mri_tmp, mri_mask, mri_tmp, 0, 0) ;
       MRIfree(&mri_mask) ;
     }
@@ -786,6 +802,12 @@ get_option(int argc, char *argv[])
     bias_sigma = atof(argv[2]) ;
     nargs = 1 ;
     printf("smoothing bias field with sigma = %2.1f\n", bias_sigma) ;
+  }
+  else if (!strcmp(option, "DILATE") || !strcmp(option, "DILATE_MASK"))
+  {
+    dilate_mask = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("dilating brain mask %d times\n", dilate_mask) ;
   }
   else if (!strcmp(option, "DIAG"))
   {
