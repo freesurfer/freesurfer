@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/12/01 20:35:06 $
- *    $Revision: 1.70 $
+ *    $Date: 2015/06/22 19:14:31 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -292,6 +292,16 @@ void RenderView2D::OnSlicePositionChanged()
   UpdateAnnotation();
 
   RenderView::OnSlicePositionChanged();
+}
+
+void RenderView2D::CenterAtCursor()
+{
+  double slicePos[3];
+  MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->GetSlicePosition( slicePos );
+  PanToWorld(slicePos);
+  Update2DOverlay();
+  UpdateAnnotation();
+  RequestRedraw();
 }
 
 void RenderView2D::MousePositionToRAS( int posX, int posY, double* pos )

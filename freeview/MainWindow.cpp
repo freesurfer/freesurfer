@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/06/19 18:21:50 $
- *    $Revision: 1.299 $
+ *    $Date: 2015/06/22 19:14:31 $
+ *    $Revision: 1.300 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1089,10 +1089,16 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     }
   }
 
+  if (parser->Found("cc"))
+  {
+    AddScript(QStringList("center"));
+  }
+
   if (parser->Found("fly", &sa))
   {
 
   }
+
 
   if ( parser->Found("quit"))
     AddScript(QStringList("quit") );
@@ -1507,6 +1513,11 @@ void MainWindow::RunScript()
   else if ( cmd == "quit" || cmd == "exit" )
   {
     close();
+  }
+  else if (cmd == "center")
+  {
+    for (int i = 0; i < 3; i++)
+      ((RenderView2D*)m_views[i])->CenterAtCursor();
   }
   else if ( cmd == "setviewport" )
   {
@@ -5022,25 +5033,18 @@ void MainWindow::OnCloseTrack()
 
 void MainWindow::OnLoadSurface()
 {
+  // user getSaveFilename as a hack to allow adding options next to filename
   QStringList filenames = QFileDialog::getOpenFileNames( this, "Select surface file",
                           AutoSelectLastDir( "surf" ),
-                          "Surface files (*)");
+                          "Surface files (*)", 0, QFileDialog::DontConfirmOverwrite);
   if ( !filenames.isEmpty() )
   {
     for ( int i = 0; i < filenames.size(); i++ )
     {
-      AddScript(QStringList("loadsurface") << filenames[i]);
+      if (!filenames[i].trimmed().isEmpty())
+        AddScript(QStringList("loadsurface") << filenames[i]);
     }
   }
-  /*
-  DialogLoadSurface dlg(this);
-  if (dlg.exec() == QDialog::Accepted)
-  {
-    QString fn = dlg.GetFilename();
-    QStringList sup_files = dlg.GetSupFiles();
-    AddScript(QString("loadsurface %1:sup_files=%2").arg(fn).arg(sup_files.join(",")));
-  }
-  */
 }
 
 void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_patch, const QString& fn_target,

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/02 19:28:32 $
- *    $Revision: 1.35 $
+ *    $Date: 2015/06/22 19:14:31 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -120,6 +120,7 @@ public slots:
   void UpdateAnnotation();
   void Update2DOverlay();
   void ShowCoordinateAnnotation( bool bShow );
+  void CenterAtCursor();
 
 signals:
   void RegionSelected( Region2D* );
