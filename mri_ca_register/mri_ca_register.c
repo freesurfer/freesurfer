@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/10/30 05:55:20 $
- *    $Revision: 1.92 $
+ *    $Author: fischl $
+ *    $Date: 2015/06/24 16:03:22 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -89,6 +89,7 @@ static double TEs[MAX_GCA_INPUTS] ;
 char         *Progname ;
 static GCA_MORPH_PARMS  parms ;
 
+static float gsmooth_sigma = -1 ;
 static int ninsertions = 0 ;
 static int insert_labels[MAX_INSERTIONS] ;
 static int insert_intensities[MAX_INSERTIONS] ;
@@ -238,7 +239,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.92 2014/10/30 05:55:20 nicks Exp $",
+           "$Id: mri_ca_register.c,v 1.93 2015/06/24 16:03:22 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -395,6 +396,13 @@ main(int argc, char *argv[])
     GCAremoveLabel(gca, Left_Cerebellum_White_Matter) ;
     GCAremoveLabel(gca, Right_Cerebellum_White_Matter) ;
     GCAremoveLabel(gca, Right_Cerebellum_Cortex) ;
+  }
+  if (gsmooth_sigma > 0)
+  {
+    GCA *gca_smooth ;
+    gca_smooth = GCAsmooth(gca, gsmooth_sigma) ;
+    GCAfree(&gca) ;
+    gca = gca_smooth ;
   }
   /////////////////////////////////////////////////////////////////
   // Remapping GCA
@@ -1280,12 +1288,15 @@ main(int argc, char *argv[])
     }
     else
     {
-      MRI  *mri_gca /*, *mri_tmp*/ ;
-      mri_gca = MRIclone(mri_inputs, NULL) ;
+      MRI  *mri_gca ;
+
+      mri_gca = MRIalloc(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, MRI_FLOAT) ;
+      MRIcopyHeader(mri_inputs, mri_gca) ;
       GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
 #if 0
       if (mri_gca->nframes > 1)
       {
+	 MRI *mri_tmp ;
         printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
         mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
         MRIfree(&mri_gca) ;
@@ -1465,7 +1476,9 @@ main(int argc, char *argv[])
         }
         else
         {
-          mri_gca = MRIclone(mri_inputs, NULL) ;
+//          mri_gca = MRIclone(mri_inputs, NULL) ;
+	  mri_gca = MRIalloc(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, MRI_FLOAT) ;
+	  MRIcopyHeader(mri_inputs, mri_gca) ;
           GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
           if (mri_gca->nframes > 1)
           {
@@ -1643,6 +1656,13 @@ get_option(int argc, char *argv[])
     parms.l_distance = atof(argv[2]) ;
     nargs = 1 ;
     printf("l_dist = %2.2f\n", parms.l_distance) ;
+  }
+  else if (!stricmp(option, "GSMOOTH"))
+  {
+    gsmooth_sigma = atof(argv[2]) ;
+    printf("smoothing atlas with a Gaussian with sigma = %2.2f mm\n",
+           gsmooth_sigma) ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "REGULARIZE"))
   {
