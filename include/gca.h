@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/24 17:57:19 $
- *    $Revision: 1.130 $
+ *    $Author: fischl $
+ *    $Date: 2015/06/24 19:32:57 $
+ *    $Revision: 1.131 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -220,6 +220,16 @@ typedef struct
   //need to add registration file, not sure what type this is
 } WMSA;
 
+typedef struct
+{
+  int   label ;
+  float prob ;
+  int   index ;
+}
+LABEL_PROB ;
+
+int compare_sort_probabilities(const void *plp1, const void *plp2);
+
 int  GCAsetFlashParameters(GCA *gca, double *TRs, double *FAs, double *TEs) ;
 int  GCAunifyVariance(GCA *gca) ;
 int GCAvoxelToPriorReal( const GCA *gca, const MRI *mri,
@@ -423,6 +433,8 @@ int     GCAhisto(GCA *gca, int nbins, int **pcounts) ;
 int     GCAcomputeVoxelLikelihoods(GCA *gca, MRI *mri_in, int x, int y, int z,
                                    TRANSFORM *transform, int *labels, double *likelihoods);
 GCA_PRIOR *getGCAP(GCA *gca, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv) ;
+GCA_NODE *getGCAN(GCA *gca,  MRI *mri, TRANSFORM *transform, int xv, int yv, int zv) ;
+double GCAimageLikelihoodAtNode(GCA *gca, GCA_NODE *gcan, float *vals, int label) ;
 int      GCAisLeftHemisphere(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z) ;
 float getPrior(GCA_PRIOR *gcap, int label) ;
 int   GCApriorToNode( const GCA *gca,
@@ -480,6 +492,7 @@ int    GCAreplaceLabels(GCA *gca, int in_label, int out_label) ;
 ///////////////////////////////////////////////////////////////////
 
 // setting up global node and prior volume parameters
+void GCAinitLabelsFromMRI(GCA *gca, MRI *mri_labels) ;
 void GCAsetup(GCA *gca);
 void GCAreinit(MRI *mri, GCA *gca); // reinit gca with mri values
 void GCAcleanup(GCA *gca);
