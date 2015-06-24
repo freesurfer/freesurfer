@@ -10,8 +10,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/03/18 12:31:57 $
- *    $Revision: 1.101 $
+ *    $Date: 2015/06/24 16:03:05 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -200,6 +200,30 @@ static double blur_sigma = 0.0f ;
 static double ctl_point_pct = DEFAULT_CTL_POINT_PCT ;
 static int nsamples = NSAMPLES ;
 
+static MRI *
+apply_transform(MRI *mri, GCA *gca, MATRIX *m_L) 
+{
+  MRI *mri_aligned ;
+
+  mri->nframes = 1 ;
+  Glta->xforms[0].m_L = m_L ;
+  mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
+  GCAcopyDCToMRI(gca, mri_aligned) ;
+  mri->nframes = gca->ninputs ;
+
+  if (mri->xsize < gca->xsize || mri->ysize < gca->ysize || mri->zsize < gca->zsize)
+  {
+    MRI *mri_tmp ;
+    mri_tmp = MRIextract(mri_aligned, NULL, 0, 0, 0, gca->width, gca->height, gca->depth) ;
+    GCAcopyDCToMRI(gca, mri_tmp) ;
+    MRIfree(&mri_aligned) ;
+    mri_aligned = mri_tmp ;
+    mri_aligned->xsize = gca->xsize ; mri_aligned->ysize = gca->ysize ; mri_aligned->zsize = gca->zsize ;
+  }
+  return(mri_aligned) ;
+}
+
+
 int
 main(int argc, char *argv[])
 {
@@ -225,7 +249,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.101 2015/03/18 12:31:57 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.102 2015/06/24 16:03:05 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -676,6 +700,7 @@ main(int argc, char *argv[])
   //////////////////// if -t is not used
   if (!transform_loaded)   /* wasn't preloaded */
   {
+    MATRIX *m_voxsize, *m_tmp ;
     // allocate only one transform
     // mri_in is used only to set x0, y0, z0
     // Note that vox-to-vox transform
@@ -684,6 +709,14 @@ main(int argc, char *argv[])
     ////////////////////////////////////////////////////
     // now start working (remember this is vox-to-vox transform)
     parms.lta->xforms[0].m_L = MatrixIdentity(4, NULL) ;
+    printf("accounting for voxel sizes in initial transform\n") ;
+    m_voxsize = MatrixIdentity(4, NULL) ;
+    *MATRIX_RELT(m_voxsize, 1,1) = mri_in->xsize ;
+    *MATRIX_RELT(m_voxsize, 2,2) = mri_in->ysize ;
+    *MATRIX_RELT(m_voxsize, 3,3) = mri_in->zsize ;
+    m_tmp = MatrixMultiply(m_voxsize, parms.lta->xforms[0].m_L,NULL) ;
+    MatrixCopy(m_tmp, parms.lta->xforms[0].m_L) ;
+    MatrixFree(&m_voxsize) ; MatrixFree(&m_tmp) ;
   }
 
   //////////  -b option ///////////////////////////////////////////////////
@@ -779,11 +812,7 @@ main(int argc, char *argv[])
   {
     MRI *mri_aligned ;
 
-    mri_in->nframes = 1 ;
-    mri_aligned =
-      MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
-    GCAcopyDCToMRI(gca, mri_aligned) ;
-    mri_in->nframes = gca->ninputs ;
+    mri_aligned = apply_transform(mri_in, gca, parms.lta->xforms[0].m_L) ;
     sprintf(fname, "%s%03d", parms.base_name, parms.start_t) ;
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
     sprintf(fname, "%s%03d.mgz", parms.base_name, parms.start_t) ;
@@ -835,12 +864,7 @@ main(int argc, char *argv[])
   {
     MRI *mri_aligned ;
 
-    mri_in->nframes = 1 ;
-    mri_aligned =
-      MRIlinearTransform(mri_in, NULL, parms.lta->xforms[0].m_L) ;
-    GCAcopyDCToMRI(gca, mri_aligned) ;
-    mri_in->nframes = gca->ninputs ;
-    sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
+    mri_aligned = apply_transform(mri_in, gca, parms.lta->xforms[0].m_L) ;
     sprintf(fname, "%s%03d", parms.base_name, parms.start_t) ;
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
     MRIfree(&mri_aligned) ;
@@ -878,18 +902,6 @@ main(int argc, char *argv[])
   // add src and dst info
   getVolGeom(mri_in, &parms.lta->xforms[0].src);
   getVolGeom(mri_dst, &parms.lta->xforms[0].dst);
-  if (parms.lta->type == LINEAR_VOX_TO_VOX)  /* convert back to voxel */
-  {
-    MATRIX *m_voxsize, *m_tmp ;
-    printf("accounting for voxel sizes in final transform\n") ;
-    m_voxsize = MatrixIdentity(4, NULL) ;
-    *MATRIX_RELT(m_voxsize, 1,1) = mri_in->xsize ;
-    *MATRIX_RELT(m_voxsize, 2,2) = mri_in->ysize ;
-    *MATRIX_RELT(m_voxsize, 3,3) = mri_in->zsize ;
-    m_tmp = MatrixMultiply(m_voxsize, parms.lta->xforms[0].m_L,NULL) ;
-    MatrixCopy(m_tmp, parms.lta->xforms[0].m_L) ;
-    MatrixFree(&m_voxsize) ; MatrixFree(&m_tmp) ;
-  }
 
   LTAwriteEx(parms.lta, out_fname) ;
 
@@ -1210,11 +1222,7 @@ register_mri
     MRI *mri_aligned ;
     char fname[STRLEN] ;
 
-    mri_in->nframes = 1 ;
-    mri_aligned =
-      MRIlinearTransform(mri_in, NULL, parms->lta->xforms[0].m_L) ;
-    GCAcopyDCToMRI(gca, mri_aligned) ;
-    mri_in->nframes = gca->ninputs ;
+    mri_aligned = apply_transform(mri_in, gca, parms->lta->xforms[0].m_L) ;
     sprintf(fname, "%s_after_alignment", parms->base_name) ;
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
     MRIfree(&mri_aligned) ;
@@ -1319,8 +1327,7 @@ find_optimal_transform
 	MRI  *mri_aligned ;
 	
 	Glta->xforms[0].m_L = m_L ;
-	mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-	GCAcopyDCToMRI(gca, mri_aligned) ;
+	mri_aligned = apply_transform(mri, gca, m_L) ;
 	sprintf(fname, "%s_before_intensity.mgz", parms.base_name) ;
 	printf("writing snapshot to %s...\n", fname) ;
 	fflush(stdout);
@@ -1336,10 +1343,9 @@ find_optimal_transform
       char fname[STRLEN] ;
       MRI  *mri_aligned ;
       
-      Glta->xforms[0].m_L = m_L ;
-      mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-      GCAcopyDCToMRI(gca, mri_aligned) ;
+      mri_aligned = apply_transform(mri, gca, m_L) ;
       sprintf(fname, "%s000.mgz", parms.base_name) ;
+
       printf("writing snapshot to %s...\n", fname) ;
       fflush(stdout);
       MRIwrite(mri_aligned, fname) ;
@@ -1505,8 +1511,7 @@ find_optimal_transform
       char fname[STRLEN] ;
       MRI *mri_aligned ;
 
-      mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-      GCAcopyDCToMRI(gca, mri_aligned) ;
+      mri_aligned = apply_transform(mri, gca, m_L) ;
       sprintf(fname, "%s%03d", parms.base_name, parms.start_t) ;
       MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
       sprintf(fname, "%s%03d.mgz", parms.base_name, parms.start_t) ;
@@ -1569,8 +1574,7 @@ find_optimal_transform
       char fname[STRLEN] ;
       MRI *mri_aligned ;
 
-      mri_aligned = MRIlinearTransform(mri, NULL, m_L) ;
-      GCAcopyDCToMRI(gca, mri_aligned) ;
+      mri_aligned = apply_transform(mri, gca, m_L) ;
       sprintf(fname, "%s%03d", parms.base_name, parms.start_t+niter+1) ;
       MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
       sprintf(fname, "%s%03d.mgz",
