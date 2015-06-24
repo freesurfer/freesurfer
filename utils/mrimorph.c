@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:56 $
- *    $Revision: 1.80 $
+ *    $Author: fischl $
+ *    $Date: 2015/06/24 16:02:47 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1662,6 +1662,7 @@ writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
   MRI   *mri_tmp ;
   char  fname[STRLEN] ;
   TRANSFORM transform ;
+  GCA       *gca ;
 
   if (!(Gdiag & DIAG_WRITE))
     return(NO_ERROR) ;
@@ -1682,6 +1683,17 @@ writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
   mri_tmp = LTAtransform(mri, NULL, parms->lta) ;
 #endif
 #endif
+  gca = parms->gca_red ;
+  if (mri->xsize < gca->xsize || mri->ysize < gca->ysize || mri->zsize < gca->zsize)
+  {
+    MRI *mri_extracted ;
+    mri_extracted = MRIextract(mri_tmp, NULL, 0, 0, 0, gca->width, gca->height, gca->depth) ;
+    GCAcopyDCToMRI(gca, mri_extracted) ;
+    MRIfree(&mri_tmp) ;
+    mri_tmp = mri_extracted ;
+    mri_tmp->xsize = gca->xsize ; mri_tmp->ysize = gca->ysize ; mri_tmp->zsize = gca->zsize ;
+  }
+
   if ((n % 50*parms->write_iterations) == 0 && DIAG_VERBOSE_ON)
   {
     sprintf(fname, "%s%3.3d.mgh", parms->base_name, n) ;
