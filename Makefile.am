@@ -18,6 +18,7 @@ DMRISUBDIRS=\
 GLSUBDIRS=\
 	glut \
 	mris2rgb \
+	nmovie \
 	mris_show \
 	stim_polar \
 	tkmedit \
