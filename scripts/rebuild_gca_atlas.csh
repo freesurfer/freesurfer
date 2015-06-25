@@ -5,19 +5,21 @@
 #
 # This script builds the subcortical atlas from a set of manually labelled
 # training data sets.
-# The user should call the script under a cluster machine (seychelles).
+# The user should call the script under a cluster machine (launchpad).
 # In addition, a "subjects.csh" script should be available under the
 # $SUBJECTS_DIR/scripts directory, which defines the training subject names
 # and the first subject ($ONE_SUBJECT) to be used for building the initial
-# template. Eg. /space/dijon/32/users/xhan/RBnew/scripts/subjects.csh
+# template. Eg. /space/freesurfer/subjects/atlases/aseg_atlas/scripts/subjects.csh
 # A talairach registration should be generated for this first subject as well,
 # in order to align the final atlas to the Talairach space.
 # The registration file should be put under
 # $SUBJECTS_DIR/$ONE_SUBJECT/mri/transforms/$TAL_MAN
 # The script assumes the existence of following files under
-# each subject's mri directory: nu.mgz, brain.mgz, nu_noneck.mgz and
+# each subject's mri directory: nu.mgz, brainmask.mgz, nu_noneck.mgz and
 # seg_edited.mgz, where seg_edited.mgz is the manually labelled volume
 # from which the training data is derived.
+# Make sure that brainmask.mgz has been carefully inspected to ensure no
+# brain has been stripped.
 # The final atlas is stored as:
 #  $SUBJECTS_DIR/average/${GCA_PRE}_all_`date +%F`.gca
 # where ${GCA_PRE} specifies the prefix (default is 'RB').
@@ -26,10 +28,10 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.22 $
+#    $Date: 2015/06/25 15:31:31 $
+#    $Revision: 1.23 $
 #
-# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -42,7 +44,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.22 2011/03/02 20:16:39 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.23 2015/06/25 15:31:31 nicks Exp $';
 
 #set echo=1
 
@@ -59,11 +61,8 @@ endif
 set DATE=(`date +%F`)
 
 # pbs special configure options:
-if ( `hostname` == "seychelles") then
-    set PBCONF="-l nodes=1:opteron -m $USER"
-else
-    set PBCONF="-m $USER"
-endif
+setenv OMP_NUM_THREADS 3
+set PBCONF="-m $USER -n $OMP_NUM_THREADS"
 
 # optionally choose to not run commands (but commands are echoed
 # in logfile) by setting RunIt=0
@@ -107,7 +106,7 @@ echo "\n\n" >>& $LF
 #
 set SEG_VOL=(seg_edited.mgz) # filename (symlink) for manual segmentation
 set ORIG_VOL=(nu.mgz)
-set MASK_VOL=(brain.mgz) # filename for brain mask
+set MASK_VOL=(brainmask.mgz) # filename for brain mask
 set T1_NONECK=(nu_noneck.mgz) # file to build the atlas gca_with_skull
 set TAL_MAN=(talairach_man.xfm) # optional manual tal registration file
 set INPUTS=(${SEG_VOL} ${ORIG_VOL} ${MASK_VOL} ${T1_NONECK})
