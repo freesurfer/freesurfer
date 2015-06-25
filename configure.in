@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/06/03 16:19:59 $
-#    $Revision: 1.649 $
+#    $Date: 2015/06/25 18:02:44 $
+#    $Revision: 1.650 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3964,7 +3964,6 @@ AC_OUTPUT([Makefile
            mrisp_paint/Makefile
            mris_longitudinal_surfaces/Makefile
            mris_compute_volume_fractions/Makefile
-           nmovie/Makefile
            oct_train/Makefile
            oct_register_mosaic/Makefile
 	   nmovie_qt/Makefile
