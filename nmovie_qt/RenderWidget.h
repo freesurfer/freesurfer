@@ -14,6 +14,10 @@ public:
     void paintEvent(QPaintEvent *);
     void resizeEvent(QResizeEvent *);
 
+    void mousePressEvent(QMouseEvent *);
+    void mouseMoveEvent(QMouseEvent *);
+    void mouseReleaseEvent(QMouseEvent *);
+
     int LoadImages(const QStringList& filenames);
 
     void SetCurrentImageIndex(int n);
@@ -40,6 +44,8 @@ private:
   QList<QImage> m_resizedImages;
   bool   m_bSwing;
   int    m_nInterval;
+  int    m_nY;
+  bool   m_bPressed;
 };
 
 #endif // RENDERWIDGET_H

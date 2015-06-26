@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QPainter>
 #include <QFileInfo>
+#include <QMouseEvent>
 
 RenderWidget::RenderWidget(QWidget *parent) :
     QGLWidget(parent),
@@ -69,6 +70,47 @@ void RenderWidget::resizeEvent(QResizeEvent *)
   m_resizedImages.clear();
   for (int i = 0; i < m_images.size(); i++)
     m_resizedImages << QImage();
+}
+
+void RenderWidget::mousePressEvent(QMouseEvent *e)
+{
+  if (e->button() == Qt::LeftButton)
+  {
+    m_bPressed = true;
+    m_nY = e->y();
+  }
+}
+
+void RenderWidget::mouseMoveEvent(QMouseEvent *e)
+{
+  if (m_bPressed)
+  {
+    int d = e->y()-m_nY;
+    int nStepSize = 1;
+    if (d >= nStepSize)
+    {
+      do {
+        OnForward();
+        d -= nStepSize;
+      }
+      while (d > 0);
+      m_nY = e->y();
+    }
+    else if (d <= -nStepSize)
+    {
+      do {
+        OnBack();
+        d += nStepSize;
+      }
+      while (d < 0);
+      m_nY = e->y();
+    }
+  }
+}
+
+void RenderWidget::mouseReleaseEvent(QMouseEvent *e)
+{
+  m_bPressed = false;
 }
 
 void RenderWidget::OnLoop()
