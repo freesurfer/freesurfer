@@ -24,7 +24,7 @@ $(ORIG): $(RAW)
 $(TAL): $(ORIG)
 	recon-all -s $(subj) -talairach -tal-check
 
-$(T1): $(NU) $(CP)
+$(T1): $(TAL) $(CP)
 	recon-all -s $(subj) -normalization
 
 $(BRAINMASK): $(T1) $(TAL)

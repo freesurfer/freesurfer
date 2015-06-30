@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2015/06/19 21:30:31 $
-#    $Revision: 1.534 $
+#    $Date: 2015/06/30 21:43:42 $
+#    $Revision: 1.535 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.534 2015/06/19 21:30:31 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.535 2015/06/30 21:43:42 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -191,9 +191,15 @@ set DoT2pial = 0; # if 1, mris_make_surfaces refines pial using T2
 set T2max = ();
 set DoFLAIRpial = 0; # if 1, mris_make_surfaces refines pial using FLAIR
 
-# set multi-threaded stuff to single-threaded/cpu for cluster politeness
-# various binaries (em_reg, ca_reg, mris_sphere) have OpenMP enabled code
-setenv OMP_NUM_THREADS 1 # -openmp <num_threads> allows specifying more threads
+# set multi-threaded stuff to single-threaded/cpu for cluster politeness.
+# various binaries (em_reg, ca_reg, mris_sphere) have OpenMP enabled code.
+# -openmp <num_threads> allows specifying more threads.
+# to support -make, where recon-all is re-entrant, look for FS_OMP_NUM_THREADS
+if ($?FS_OMP_NUM_THREADS) then
+  setenv OMP_NUM_THREADS $FS_OMP_NUM_THREADS # var declared in -openmp
+else
+  setenv OMP_NUM_THREADS 1 # default is one thread, -openmp will override
+endif
 # hippocampal subfields processing uses ITK threading
 setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 1 # -itkthreads <num_threads>
 set DoParallel = 0; # if 1, then run with -openmp 4 and -itkthreads 4, 
@@ -7169,6 +7175,7 @@ while( $#argv != 0 )
       set DoParallel = 1;
       # the user can override this thread count with -openmp
       setenv OMP_NUM_THREADS 4
+      setenv FS_OMP_NUM_THREADS 4 # support for re-entrant recon-all
       # override: -itkthreads <num_threads>
       setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 4
       breaksw
@@ -7177,6 +7184,7 @@ while( $#argv != 0 )
       # located after -parallel so as to allow threadcount override
       if ( $#argv < 1) goto arg1err;
       setenv OMP_NUM_THREADS $argv[1]; shift;
+      setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS # re-entrant recon-all
       breaksw;
 
     case "-itkthreads":
