@@ -14,15 +14,13 @@ else
   echo Setting up environment variables
   MCRROOT="$1"
   echo ---
-  LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.:${MCRROOT}/runtime/glnxa64 ;
-  LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MCRROOT}/bin/glnxa64 ;
-  LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MCRROOT}/sys/os/glnxa64;
-	MCRJRE=${MCRROOT}/sys/java/jre/glnxa64/jre/lib/amd64 ;
-	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MCRJRE}/native_threads ; 
-	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MCRJRE}/server ;
-	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MCRJRE}/client ;
-	LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${MCRJRE} ;  
+
+  MCRJRE=${MCRROOT}/sys/java/jre/glnxa64/jre/lib/amd64 ;
+
+  LD_LIBRARY_PATH=.:${MCRROOT}/runtime/glnxa64:${MCRROOT}/bin/glnxa64:${MCRROOT}/sys/os/glnxa64:${MCRJRE}/native_threads:${MCRJRE}/server:${MCRJRE}/client:${MCRJRE}:$LD_LIBRARY_PATH ;
+
   XAPPLRESDIR=${MCRROOT}/X11/app-defaults ;
+
   export LD_LIBRARY_PATH;
   export XAPPLRESDIR;
   echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
