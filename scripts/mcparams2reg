@@ -5,7 +5,7 @@
 # matrix of MC regressors. It will create all regressors. The
 # order and delay can be set.
 
-# $Id: mcparams2reg,v 1.1 2015/06/11 20:00:47 greve Exp $
+# $Id: mcparams2reg,v 1.2 2015/07/02 18:37:04 greve Exp $
 
 import sys;
 import os;
@@ -103,7 +103,7 @@ class MCRegClass:
         tpdelay = tp-delay;
         if(tpdelay < 0): tpdelay = 0;
         for k in range(0,6):
-          self.X[tp,c] = pow(self.mcparams[tpdelay,k],order);
+          self.X[tp,c] = pow(self.mcparams[tp,k]-self.mcparams[tpdelay,k],order);
           c = c + 1;
         #end for k 
       # end for odset
