@@ -1,0 +1,96 @@
+#!/bin/tcsh -f
+
+#
+# test_mri_ca_register
+#
+# execute mri_ca_register and check results against expected results
+#
+# Original Author: Nick Schmansky
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2015/07/03 02:44:21 $
+#    $Revision: 1.1 $
+#
+# Copyright © 2015 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+#
+
+set VERSION='$Id: test_mri_ca_register,v 1.1 2015/07/03 02:44:21 nicks Exp $'
+
+umask 002
+
+#
+# extract testing data
+#
+gunzip -c testdata.tar.gz | tar xvf -
+
+#
+# run mri_ca_register using typical input file formats
+#
+
+cd testdata
+
+setenv FREESURFER_HOME ../../distribution
+setenv SUBJECTS_DIR ""
+
+# test data was created with 1 thread, but we're testing with 4 because
+# the results should be the same
+setenv OMP_NUM_THREADS 8
+
+# usage in recon-all: 
+set cmd=(../mri_ca_register \
+    -nobigventricles \
+    -T talairach.lta \
+    -align-after \
+    -mask brainmask.mgz \
+    norm.mgz \
+    $FREESURFER_HOME/average/RB_all_2008-03-26.gca \
+    talairach.m3z)
+
+echo ""
+$cmd
+if ($status != 0) then
+  echo "mri_ca_register FAILED"
+  exit 1
+endif
+
+echo ""
+echo ""
+echo ""
+
+#
+# compare expected results with actual (produced) results
+#
+
+set REF_VOL = ref_talairach.m3z
+set TST_VOL = talairach.m3z
+if ( "`uname -p`" == "powerpc" ) set REF_VOL = ref_talairach.m3z
+set cmd=(../../mri_diff/mri_diff --debug \
+            $REF_VOL $TST_VOL );
+echo ""
+echo $cmd
+$cmd
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+#
+# cleanup
+#
+cd ..
+rm -Rf testdata
+
+echo ""
+echo "test_mri_ca_register passed all tests"
+exit 0

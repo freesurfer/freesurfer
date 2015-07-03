@@ -46,7 +46,16 @@ mri_ca_register_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 endif
 # endif BUILDCUDA
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mri_ca_register/testdata.tar.gz"; then \
+		cp -v $(top_srcdir)/mri_ca_register/testdata.tar.gz \
+					$(top_builddir)/mri_ca_register/; fi;
+
+check_PROGRAMS=foo
+
+TESTS=test_mri_ca_register $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
 	rm -f $(BUILT_SOURCES)
