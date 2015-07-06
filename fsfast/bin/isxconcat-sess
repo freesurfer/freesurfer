@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/06/10 20:46:35 $
-#    $Revision: 1.70 $
+#    $Date: 2015/07/06 22:00:13 $
+#    $Revision: 1.71 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.70 2015/06/10 20:46:35 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.71 2015/07/06 22:00:13 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -182,10 +182,11 @@ foreach sess ($SessList)
 
   set nmaskfile = $sess/$fsd/$analysis/nmask.dat
   if(! -e $nmaskfile) then
-    echo "ERROR: cannot find $nmaskfile" 
-    exit 1;
+    echo "WARNING: cannot find $nmaskfile" 
+    set nmask = -1
+  else
+    set nmask = `cat $nmaskfile`
   endif
-  set nmask = `cat $nmaskfile`
 
   set srcsubject = `cat $sess/subjectname`
   echo "$nthsess $sessid $srcsubject $dofsess $fsnr $nmask" >> $sessinfofile
