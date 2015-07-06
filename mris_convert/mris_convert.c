@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/06/20 00:06:52 $
- *    $Revision: 1.44 $
+ *    $Author: greve $
+ *    $Date: 2015/07/06 16:37:22 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,11 +41,12 @@
 #include "matrix.h"
 #include "transform.h"
 #include "gifti_local.h"
+#include "mri_identify.h"
 
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.44 2014/06/20 00:06:52 nicks Exp $";
+  "$Id: mris_convert.c,v 1.45 2015/07/06 16:37:22 greve Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -128,7 +129,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_convert.c,v 1.44 2014/06/20 00:06:52 nicks Exp $",
+           "$Id: mris_convert.c,v 1.45 2015/07/06 16:37:22 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -689,6 +690,31 @@ get_option(int argc, char *argv[])
     annot_file_flag = 1;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "-volume")){
+    // This little bit of code is self-contained, run like
+    // mris_convert --volume lh.white lh.pial lh.volume
+    // to compute vertex-wise volume. Better than using
+    // thickness * midarea
+    MRIS *w, *p;
+    MRI *mrisvol;
+    int err;
+    w = MRISread(argv[2]);
+    if(!w) exit(1);
+    p = MRISread(argv[3]);
+    if(!p) exit(1);
+    mrisvol = MRISvolumeTH3(w, p, NULL);
+    if(IDextensionFromName(argv[4])){
+      // output file has a known extention
+      err = MRIwrite(mrisvol,argv[4]);
+    }
+    else{
+      // otherwise assume it is a curv file
+      MRIScopyMRI(w, mrisvol, 0, "curv");
+      err = MRISwriteCurvature(w,argv[4]);
+    }
+    if(err) exit(1);
+    exit(0);
+  }
   else if (!stricmp(option, "-da_num"))
   {
     sscanf(argv[2],"%d",&gifti_da_num);
@@ -852,6 +878,7 @@ print_help(void)
   printf( "  --userealras : set the useRealRAS flag in the surface file to 1 \n") ;
   printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
   printf( "  --cras_correction : shift center to scanner coordinate center \n") ;
+  printf( "  --volume ?h.white ?h.pial ?h.volume : compute vertex-wise volume, no other args needed\n") ;
   printf( "\n") ;
   printf( "These file formats are supported:\n") ;
   printf( "  ASCII:       .asc\n");
