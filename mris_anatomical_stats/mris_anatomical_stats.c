@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/04/24 17:35:23 $
- *    $Revision: 1.77 $
+ *    $Author: greve $
+ *    $Date: 2015/07/06 21:58:51 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,9 +40,10 @@
 #include "version.h"
 #include "colortab.h"
 #include "cma.h"
+#include "mrisutils.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.77 2015/04/24 17:35:23 fischl Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.78 2015/07/06 21:58:51 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -99,14 +100,15 @@ static int DoGlobalStats = 1;
 
 #define MAX_INDICES 50000
 static char *names[MAX_INDICES];
+int UseTH3Vol = 0;
 
 int
 main(int argc, char *argv[])
 {
   char          **av, *hemi, *sname, *cp, fname[STRLEN], *surf_name ;
   int           ac, nargs, vno,n ;
-  MRI_SURFACE   *mris ;
-  MRI           *mri_wm, *mri_kernel = NULL, *mri_orig ;
+  MRI_SURFACE   *mris, *mrisw, *mrisp ;
+  MRI           *mri_wm, *mri_kernel = NULL, *mri_orig, *mrisvol=NULL ;
   double        gray_volume, wm_volume;
   double        mean_abs_mean_curvature, mean_abs_gaussian_curvature;
   double        intrinsic_curvature_index, folding_index ;
@@ -123,7 +125,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.77 2015/04/24 17:35:23 fischl Exp $",
+           "$Id: mris_anatomical_stats.c,v 1.78 2015/07/06 21:58:51 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -225,6 +227,30 @@ main(int argc, char *argv[])
     printf("cannot currently be used with an average subject. \n");
     printf("\n");
     exit(1);
+  }
+
+  if(UseTH3Vol){
+    MRI *ctxmask;
+    LABEL *label;
+    double totvol;
+    printf("Using TH3 vertex volume calc\n");
+    sprintf(fname,"%s/%s/surf/%s.white", sdir, sname, hemi);
+    mrisw = MRISread(fname);
+    if(!mrisw) exit(1);
+    sprintf(fname,"%s/%s/surf/%s.pial", sdir, sname, hemi);
+    mrisp = MRISread(fname);
+    if(!mrisp) exit(1);
+    sprintf(fname,"%s/%s/label/%s.cortex.label",sdir,sname,hemi);
+    label = LabelRead(NULL, fname);
+    if(label == NULL) exit(1);
+    ctxmask = MRISlabel2Mask(mrisw, label, NULL);
+    if(ctxmask == NULL) exit(1);
+    LabelFree(&label);
+    mrisvol = MRISvolumeTH3(mrisw, mrisp, NULL, ctxmask,&totvol);
+    if(mrisvol == NULL) exit(1);
+    MRISfree(&mrisw);
+    MRISfree(&mrisp);
+    MRIfree(&ctxmask);
   }
 
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
@@ -699,18 +725,9 @@ main(int argc, char *argv[])
       }
       avg_thick /= VERTICES_PER_FACE ;
       volume = (avg_thick * f->area) ;
-      if (v0_index >= 0)
-      {
-        volumes[v0_index] += volume/VERTICES_PER_FACE ;
-      }
-      if (v1_index >= 0)
-      {
-        volumes[v1_index] += volume/VERTICES_PER_FACE ;
-      }
-      if (v2_index >= 0)
-      {
-        volumes[v2_index] += volume/VERTICES_PER_FACE ;
-      }
+      if(v0_index >= 0) volumes[v0_index] += volume/VERTICES_PER_FACE ;
+      if(v1_index >= 0) volumes[v1_index] += volume/VERTICES_PER_FACE ;
+      if(v2_index >= 0) volumes[v2_index] += volume/VERTICES_PER_FACE ;
     }
 
     // now do pial surface
@@ -854,6 +871,23 @@ main(int argc, char *argv[])
 
       volumes[i] /= 2 ;
       thickness_vars[i] /= dofs[i] ;
+
+      if(UseTH3Vol){
+	// compute volumes for each annotation based on TH3
+	// This overwrites whatever is in "volumes"
+	// This is pretty inefficient way to do it, but this whole
+	// binary is a total cluster and needs to be rewritten
+	for (vno = 0 ; vno < mris->nvertices ; vno++) {
+	  v0 = &mris->vertices[vno] ;
+	  if(v0->marked < 0) continue ;
+	  volumes[v0->marked] = 0;
+	}
+	for (vno = 0 ; vno < mris->nvertices ; vno++) {
+	  v0 = &mris->vertices[vno] ;
+	  if(v0->marked < 0) continue ;
+	  volumes[v0->marked] += MRIgetVoxVal(mrisvol,vno,0,0,0);
+	}
+      }
 
       /* output */
 
@@ -1125,6 +1159,14 @@ get_option(int argc, char *argv[])
   {
     DoGlobalStats = 0;
     printf("INFO: not computing global stats\n");
+  }
+  else if (!stricmp(option, "th3")){
+    UseTH3Vol = 1;
+    printf("INFO: using TH3 volume calc\n");
+  }
+  else if (!stricmp(option, "no-th3")){
+    UseTH3Vol = 0;
+    printf("INFO: NOT using TH3 volume calc\n");
   }
   else switch (toupper(*option))
     {

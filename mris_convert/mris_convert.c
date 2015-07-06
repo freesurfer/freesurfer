@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/07/06 16:37:22 $
- *    $Revision: 1.45 $
+ *    $Date: 2015/07/06 21:58:51 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,11 +42,12 @@
 #include "transform.h"
 #include "gifti_local.h"
 #include "mri_identify.h"
+#include "fsenv.h"
 
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.45 2015/07/06 16:37:22 greve Exp $";
+  "$Id: mris_convert.c,v 1.46 2015/07/06 21:58:51 greve Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -112,6 +113,7 @@ static int cras_correction = 0;
 
 int DeleteCommands = 0;
 int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
+int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile);
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -129,7 +131,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_convert.c,v 1.45 2015/07/06 16:37:22 greve Exp $",
+           "$Id: mris_convert.c,v 1.46 2015/07/06 21:58:51 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -692,28 +694,12 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "-volume")){
     // This little bit of code is self-contained, run like
-    // mris_convert --volume lh.white lh.pial lh.volume
+    // mris_convert --volume subject hemi outcurv
     // to compute vertex-wise volume. Better than using
     // thickness * midarea
-    MRIS *w, *p;
-    MRI *mrisvol;
     int err;
-    w = MRISread(argv[2]);
-    if(!w) exit(1);
-    p = MRISread(argv[3]);
-    if(!p) exit(1);
-    mrisvol = MRISvolumeTH3(w, p, NULL);
-    if(IDextensionFromName(argv[4])){
-      // output file has a known extention
-      err = MRIwrite(mrisvol,argv[4]);
-    }
-    else{
-      // otherwise assume it is a curv file
-      MRIScopyMRI(w, mrisvol, 0, "curv");
-      err = MRISwriteCurvature(w,argv[4]);
-    }
-    if(err) exit(1);
-    exit(0);
+    err = ComputeMRISvolumeTH3(argv[2],argv[3],1,argv[4]);
+    exit(err);
   }
   else if (!stricmp(option, "-da_num"))
   {
@@ -1078,4 +1064,54 @@ int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
 
   return(0);
 }
+
+int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
+{
+  MRIS *w, *p;
+  MRI *mrisvol;
+  int err=0;
+  double totvol;
+  FSENV *env;
+  char fname[2000];
+  LABEL *label;
+  MRI *mask=NULL;
+
+  env = FSENVgetenv();
+  sprintf(fname,"%s/%s/surf/%s.white",env->SUBJECTS_DIR,subject,hemi);
+  w = MRISread(fname);
+  if(!w) return(1);
+  sprintf(fname,"%s/%s/surf/%s.pial",env->SUBJECTS_DIR,subject,hemi);
+  p = MRISread(fname);
+  if(!p) return(1);
+
+  if(DoMask){
+    sprintf(fname,"%s/%s/label/%s.cortex.label",env->SUBJECTS_DIR,subject,hemi);
+    printf("masking with %s\n",fname);
+    label = LabelRead(NULL, fname);
+    if(label == NULL) return(1);
+    mask = MRISlabel2Mask(w, label, NULL);
+    if(mask == NULL) return(1);
+    LabelFree(&label);
+  }
+
+  mrisvol = MRISvolumeTH3(w, p, NULL, mask, &totvol);
+  printf("#@# %s %s %g\n",subject,hemi,totvol);
+
+  if(IDextensionFromName(outfile)){
+    // output file has a known extention
+    err = MRIwrite(mrisvol,outfile);
+  }
+  else{
+    // otherwise assume it is a curv file
+    MRIScopyMRI(w, mrisvol, 0, "curv");
+    err = MRISwriteCurvature(w,outfile);
+  }
+  MRISfree(&w);
+  MRISfree(&p);
+  MRIfree(&mrisvol);
+  if(mask) MRIfree(&mask);
+
+  return(err);
+}
+
 

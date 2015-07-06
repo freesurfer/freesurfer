@@ -7,8 +7,8 @@
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/21 16:57:46 $
- *    $Revision: 1.45 $
+ *    $Date: 2015/07/06 21:58:51 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1830,6 +1830,116 @@ double MRISvolumeInSurf(MRIS *mris)
 
   total_volume /= 3.0;
   return(total_volume);
+}
+/*!
+  \fn MRISvolumeTH3(MRIS *w, MRIS *p, MRI *vol)
+  \brief Compute vertex-wise volume based on dividing each obliquely truncated 
+  trilateral pyramid into three tetrahedra. Based on Anderson M. Winkler's
+  srf2vol matlab script.
+  \params w is white surface, p is pial. Output is an MRI struct of size nvertices
+ */
+MRI *MRISvolumeTH3(MRIS *w, MRIS *p, MRI *vol, MRI *mask, double *totvol)
+{
+  MRI *facevol;
+  int nthface,v1,v2,v3;
+  int vno, nfacenbrs, nthfacenbr,nbrfaceno;
+  MATRIX *Ap, *Bp, *Cp, *Aw, *Bw, *Cw;
+  MATRIX *C1=NULL,*C2=NULL,*C3=NULL;
+  double T1,T2,T3,volsum,dval,vtxvolsum;
+  VERTEX *vtx;
+
+  if(!vol) vol = MRIalloc(w->nvertices,1,1,MRI_FLOAT);
+
+  Ap = MatrixAlloc(3,1,MATRIX_REAL);
+  Bp = MatrixAlloc(3,1,MATRIX_REAL);
+  Cp = MatrixAlloc(3,1,MATRIX_REAL);
+  Aw = MatrixAlloc(3,1,MATRIX_REAL);
+  Bw = MatrixAlloc(3,1,MATRIX_REAL);
+  Cw = MatrixAlloc(3,1,MATRIX_REAL);
+
+  facevol = MRIalloc(w->nfaces,1,1,MRI_FLOAT);
+  volsum = 0.0;
+  for(nthface = 0; nthface < w->nfaces; nthface++){
+    MRIsetVoxVal(facevol,nthface,0,0,0,0.0);
+    if(w->faces[nthface].ripflag) continue ;
+
+    v1 = w->faces[nthface].v[0];
+    v2 = w->faces[nthface].v[1];
+    v3 = w->faces[nthface].v[2];
+
+    Ap->rptr[1][1] = p->vertices[v1].x;
+    Ap->rptr[2][1] = p->vertices[v1].y;
+    Ap->rptr[3][1] = p->vertices[v1].z;
+    Bp->rptr[1][1] = p->vertices[v2].x;
+    Bp->rptr[2][1] = p->vertices[v2].y;
+    Bp->rptr[3][1] = p->vertices[v2].z;
+    Cp->rptr[1][1] = p->vertices[v3].x;
+    Cp->rptr[2][1] = p->vertices[v3].y;
+    Cp->rptr[3][1] = p->vertices[v3].z;
+
+    Aw->rptr[1][1] = w->vertices[v1].x;
+    Aw->rptr[2][1] = w->vertices[v1].y;
+    Aw->rptr[3][1] = w->vertices[v1].z;
+    Bw->rptr[1][1] = w->vertices[v2].x;
+    Bw->rptr[2][1] = w->vertices[v2].y;
+    Bw->rptr[3][1] = w->vertices[v2].z;
+    Cw->rptr[1][1] = w->vertices[v3].x;
+    Cw->rptr[2][1] = w->vertices[v3].y;
+    Cw->rptr[3][1] = w->vertices[v3].z;
+
+    //As the Ap is the common vertex for all three, it can be used as the origin.
+    Bp = MatrixSubtract(Bp,Ap,Bp);
+    Cp = MatrixSubtract(Cp,Ap,Cp);
+    Aw = MatrixSubtract(Aw,Ap,Aw);
+    Bw = MatrixSubtract(Bw,Ap,Bw);
+    Cw = MatrixSubtract(Cw,Ap,Cw);
+
+    // The next lines compute the volume for each, using a scalar triple product:
+    C1 = VectorCrossProduct(Bw, Cw, C1);
+    T1 = fabs(V3_DOT(Aw,C1));
+
+    C2 = VectorCrossProduct(Cp, Bw, C2);
+    T2 = fabs(V3_DOT(Bp,C2));
+
+    C3 = VectorCrossProduct(Cw, Bw, C3);
+    T3 = fabs(V3_DOT(Cp,C3));
+
+    dval = (T1+T2+T3)/6.0;
+    MRIsetVoxVal(facevol,nthface,0,0,0,dval);
+    volsum += dval;
+  }
+  printf("Total face volume %g\n",volsum);
+  
+  vtxvolsum = 0;
+  for(vno = 0 ; vno < w->nvertices ; vno++) {
+    vtx = &w->vertices[vno] ;
+    if(vtx->ripflag) continue ;
+    if(mask && MRIgetVoxVal(mask,vno,0,0,0) < 0.5) continue;
+    nfacenbrs = w->vertices[vno].num;
+    volsum = 0.0;
+    for(nthfacenbr = 0 ; nthfacenbr < nfacenbrs ; nthfacenbr++){
+      nbrfaceno = w->vertices[vno].f[nthfacenbr];
+      volsum += (MRIgetVoxVal(facevol,nbrfaceno,0,0,0)/3.0);
+      // divide by 3 because each face participates in 3 vertices
+    }
+    MRIsetVoxVal(vol,vno,0,0,0,volsum);
+    vtxvolsum += volsum;
+  }
+  printf("Total vertex volume %g (mask=%d)\n",vtxvolsum,mask==NULL);
+  *totvol = vtxvolsum;
+
+  MRIfree(&facevol);
+  MatrixFree(&Ap);
+  MatrixFree(&Bp);
+  MatrixFree(&Cp);
+  MatrixFree(&Aw);
+  MatrixFree(&Bw);
+  MatrixFree(&Cw);
+  MatrixFree(&C1);
+  MatrixFree(&C2);
+  MatrixFree(&C3);
+
+  return(vol);
 }
 
 /*
