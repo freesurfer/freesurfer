@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/06/22 19:14:31 $
- *    $Revision: 1.21 $
+ *    $Date: 2015/07/07 19:24:39 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -209,7 +209,7 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const QString& filename )
   // otherwise, load and create a new lut entry
   else
   {
-    ct = CTABreadASCII2( filename_full.toAscii().data(), 0);
+    ct = CTABreadASCII2( filename_full.toAscii().data(), 0);  // do not check duplicate names because it could take a long time
     if ( ct )
     {
       ColorTableData ctd;

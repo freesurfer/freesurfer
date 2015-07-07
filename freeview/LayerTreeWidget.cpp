@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/04/27 16:24:26 $
- *    $Revision: 1.16 $
+ *    $Date: 2015/07/07 19:24:39 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -352,4 +352,35 @@ void LayerTreeWidget::OnSaveVisibleVolumes()
     }
   }
   MainWindow::GetMainWindow()->SaveLayers(visibles);
+}
+
+void LayerTreeWidget::SelectAll()
+{
+  QList<QTreeWidgetItem*> items;
+  for (int i = 0; i < topLevelItemCount(); i++)
+  {
+    QTreeWidgetItem* topItem = topLevelItem(i);
+    for (int j = 0; j < topItem->childCount(); j++)
+      items << topItem->child(j);
+  }
+  foreach (QTreeWidgetItem* item, items)
+  {
+    item->setSelected(true);
+  }
+}
+
+void LayerTreeWidget::DeselectAll()
+{
+
+  QList<QTreeWidgetItem*> items;
+  for (int i = 0; i < topLevelItemCount(); i++)
+  {
+    QTreeWidgetItem* topItem = topLevelItem(i);
+    for (int j = 0; j < topItem->childCount(); j++)
+      items << topItem->child(j);
+  }
+  foreach (QTreeWidgetItem* item, items)
+  {
+    item->setSelected(false);
+  }
 }

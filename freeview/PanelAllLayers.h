@@ -39,6 +39,8 @@ public slots:
   void OnLayerChanged();
 
   void UpdateWidgets();
+  void SelectAllLayers();
+  void DeselectAllLayers();
 
 private:
   void AddLayers(QList<Layer*> layers, const QString& cat_name, Layer* activeLayer,

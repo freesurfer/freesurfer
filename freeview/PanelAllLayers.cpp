@@ -423,3 +423,13 @@ void PanelAllLayers::UpdateWidgets()
   if (panel)
     panel->UpdateWidgets();
 }
+
+void PanelAllLayers::SelectAllLayers()
+{
+  ui->treeWidgetLayers->SelectAll();
+}
+
+void PanelAllLayers::DeselectAllLayers()
+{
+  ui->treeWidgetLayers->DeselectAll();
+}

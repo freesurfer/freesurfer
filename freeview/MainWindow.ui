@@ -330,6 +330,9 @@
     <addaction name="actionTogglePointSetVisibility"/>
     <addaction name="separator"/>
     <addaction name="actionToggleAllSurfaces"/>
+    <addaction name="separator"/>
+    <addaction name="actionSelectAllLayers"/>
+    <addaction name="actionDeselectAllLayers"/>
    </widget>
    <widget class="QMenu" name="menuAction">
     <property name="title">
@@ -1488,6 +1491,22 @@
     <string>Threshold</string>
    </property>
   </action>
+  <action name="actionSelectAllLayers">
+   <property name="text">
+    <string>Select All Layers</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+A</string>
+   </property>
+  </action>
+  <action name="actionDeselectAllLayers">
+   <property name="text">
+    <string>Deselect All Layers</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+D</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
@@ -1517,6 +1536,10 @@
    <extends>QWidget</extends>
    <header>PanelAllLayers.h</header>
    <container>1</container>
+   <slots>
+    <slot>SelectAllLayers()</slot>
+    <slot>DeselectAllLayers()</slot>
+   </slots>
   </customwidget>
  </customwidgets>
  <resources>
@@ -3008,6 +3031,38 @@
     <hint type="destinationlabel">
      <x>606</x>
      <y>435</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionSelectAllLayers</sender>
+   <signal>triggered()</signal>
+   <receiver>widgetAllLayers</receiver>
+   <slot>SelectAllLayers()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>49</x>
+     <y>466</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actionDeselectAllLayers</sender>
+   <signal>triggered()</signal>
+   <receiver>widgetAllLayers</receiver>
+   <slot>DeselectAllLayers()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>49</x>
+     <y>466</y>
     </hint>
    </hints>
   </connection>
