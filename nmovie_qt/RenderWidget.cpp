@@ -42,7 +42,7 @@ void RenderWidget::SetCurrentImageIndex(int n)
 {
   m_nCurrentImageIndex = n;
   repaint();
-  emit CurrentImageChanged(m_images[n]);
+  emit CurrentImageChanged(m_images[n], n);
 }
 
 void RenderWidget::paintEvent(QPaintEvent *)
@@ -139,7 +139,7 @@ void RenderWidget::OnForward()
 {
   int n = m_nCurrentImageIndex+1;
   if (n > m_images.size()-1)
-    n = m_images.size()-1;
+    n = 0;
   SetCurrentImageIndex(n);
 }
 

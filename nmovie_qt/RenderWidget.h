@@ -20,10 +20,14 @@ public:
 
     int LoadImages(const QStringList& filenames);
 
-    void SetCurrentImageIndex(int n);
+
+    int GetNumberOfImages()
+    {
+      return m_images.size();
+    }
 
 signals:
-    void CurrentImageChanged(const QImage& image );
+    void CurrentImageChanged(const QImage& image, int nIndex );
     void ErrorMessage(const QString& msg);
 
 public slots:
@@ -35,6 +39,7 @@ public slots:
   void SetSpeed(int n);
   void SetAutoResize(bool bAuto);
   void OnTimer();
+  void SetCurrentImageIndex(int n);
 
 private:
   QTimer m_timerRender;

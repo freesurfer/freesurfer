@@ -22,7 +22,7 @@ public:
     void keyPressEvent(QKeyEvent *);
 
 protected slots:
-    void OnCurrentImageChanged(const QImage& image);
+    void OnCurrentImageChanged(const QImage& image, int n);
 
 private:
     Ui::MainWindow *ui;

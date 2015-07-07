@@ -12,8 +12,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->mainToolBar->hide();
     QSettings s;
     restoreGeometry(s.value("MainWindow/Geometry").toByteArray());
-    connect(ui->widgetRender, SIGNAL(CurrentImageChanged(QImage)),
-            this, SLOT(OnCurrentImageChanged(QImage)));
+    connect(ui->widgetRender, SIGNAL(CurrentImageChanged(QImage, int)),
+            this, SLOT(OnCurrentImageChanged(QImage, int)));
+    connect(ui->sliderFrame, SIGNAL(valueChanged(int)), ui->widgetRender, SLOT(SetCurrentImageIndex(int)));
 }
 
 MainWindow::~MainWindow()
@@ -34,6 +35,7 @@ void MainWindow::Load(int argc, char *argv[])
     QMessageBox::warning(this, "Error Loading", "No image file was loaded successfully.");
     close();
   }
+  ui->sliderFrame->setRange(0, ui->widgetRender->GetNumberOfImages()-1);
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *e)
@@ -42,10 +44,15 @@ void MainWindow::keyPressEvent(QKeyEvent *e)
     ui->widgetRender->OnBack();
   else if (e->key() == Qt::Key_Right)
     ui->widgetRender->OnForward();
+  else if (e->key() == Qt::Key_Escape)
+    close();
 }
 
-void MainWindow::OnCurrentImageChanged(const QImage &image)
+void MainWindow::OnCurrentImageChanged(const QImage &image, int n)
 {
   setWindowTitle(image.text("FileName") + " - nmovie");
 //  ui->statusBar->showMessage(image.text("FullPath") + QString("  [%1 x %2]").arg(image.width()).arg(image.height()));
+  ui->sliderFrame->blockSignals(true);
+  ui->sliderFrame->setValue(n);
+  ui->sliderFrame->blockSignals(false);
 }
