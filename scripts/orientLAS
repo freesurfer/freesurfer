@@ -7,8 +7,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2015/05/06 20:04:17 $
-#    $Revision: 1.1 $
+#    $Date: 2015/07/07 21:55:17 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -56,13 +56,62 @@ set indeterm = `mri_info $in | grep determinant | awk '{print $3}'`
 echo "INFO: input image orientation is $inorient"
 echo "INFO: input image determinant is $indeterm"
 
+# Find how input axes need to be inverted or swapped to convert to LAS
 set sign = `echo $inorient | sed "s/[LAS]/+\ /g; s/[RPI]/-\ /g"`
 set order = `echo $inorient | sed "s/[LR]/1\ /; s/[AP]/2\ /; s/[IS]/3\ /"`
 
-set cmd = (mri_convert --out_orientation LAS $in $out)
+# Input direction cosines
+set cdc =  `mri_info --cdc $in`
+set rdc =  `mri_info --rdc $in`
+set sdc =  `mri_info --sdc $in`
+
+set xyzR = ($cdc[1] $rdc[1] $sdc[1])
+set xyzA = ($cdc[2] $rdc[2] $sdc[2])
+set xyzS = ($cdc[3] $rdc[3] $sdc[3])
+
+# Output direction cosines
+foreach k (1 2 3)
+  if ($order[$k] == 1) then
+    set cdc_new = `echo $xyzR[$k] $xyzA[$k] $xyzS[$k] \
+                   | awk -v sgn=$sign[$k]1 '{print sgn*$1, sgn*$2, sgn*$3}'`
+  else if ($order[$k] == 2) then
+    set rdc_new = `echo $xyzR[$k] $xyzA[$k] $xyzS[$k] \
+                   | awk -v sgn=$sign[$k]1 '{print sgn*$1, sgn*$2, sgn*$3}'`
+  else if ($order[$k] == 3) then
+    set sdc_new = `echo $xyzR[$k] $xyzA[$k] $xyzS[$k] \
+                   | awk -v sgn=$sign[$k]1 '{print sgn*$1, sgn*$2, sgn*$3}'`
+  endif
+end
+
+# Input origin
+set cras = `mri_info --cras $in`
+set dx = `mri_info --cres $in`
+set dy = `mri_info --rres $in`
+set dz = `mri_info --sres $in`
+
+# Output origin
+set cras_new = ()
+foreach k (1 2 3)
+  set cras_new = ( $cras_new \
+    `echo $cras[$k] $cdc_new[$k] $rdc_new[$k] $sdc_new[$k] \
+                    $cdc[$k] $rdc[$k] $sdc[$k] \
+     | awk -v dx=$dx -v dy=$dy -v dz=$dz \
+           '{print $1 + ($2-$5)*dx/2 + ($3-$6)*dy/2 + ($4-$7)*dz/2}'` )
+end
+
+# Convert to the output direction cosines and origin without interpolating
+set cmd = mri_convert
+set cmd = ($cmd -oid $cdc_new)
+set cmd = ($cmd -ojd $rdc_new)
+set cmd = ($cmd -okd $sdc_new)
+set cmd = ($cmd -oc  $cras_new)
+set cmd = ($cmd -rt  nearest)
+set cmd = ($cmd $in)
+set cmd = ($cmd $out)
 echo $cmd
 $cmd
 
+# Convert input gradient table, if present
 set inbase = `echo $in | awk -v FS=.nii '{print $1}'`
 set outbase = `echo $out | awk -v FS=.nii '{print $1}'`
 
@@ -146,8 +195,7 @@ usage:
     echo "Usage:"
     echo "  $0 inputimage outputimage [--check]"
     echo
-    echo "Convert image to LAS orientation by rearranging image data and"
-    echo "changing the orientation in the header accordingly."
+    echo "Convert image to LAS orientation"
     echo
     echo "The input image must be in NIfTI format. The output image"
     echo "will be in NIfTI format with LAS orientation."
