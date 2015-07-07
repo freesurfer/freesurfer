@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/06/22 19:14:31 $
- *    $Revision: 1.300 $
+ *    $Date: 2015/07/07 20:52:19 $
+ *    $Revision: 1.301 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1077,6 +1077,11 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     this->AddScript(QStringList("showcolorscale"));
   }
 
+  if (parser->Found("cc"))
+  {
+    AddScript(QStringList("center"));
+  }
+
   if ( parser->Found( "ss", &sa ) )
   {
     QString mag_factor = "1";
@@ -1087,11 +1092,6 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     {
       this->AddScript( QStringList("quit") );
     }
-  }
-
-  if (parser->Found("cc"))
-  {
-    AddScript(QStringList("center"));
   }
 
   if (parser->Found("fly", &sa))
