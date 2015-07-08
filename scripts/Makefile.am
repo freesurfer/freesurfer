@@ -249,6 +249,7 @@ UpdateNeeded \
 usbtree \
 vno_match_check \
 qt_setup \
+vertexvol \
 vol2segavg \
 vol2symsurf \
 vsm-smooth \
