@@ -70,7 +70,6 @@ tkregisterfv \
 stem2fname \
 freesurfer \
 fs_lib_check \
-fs_spmreg.glnxa64 \
 fs_time \
 fs_tutorial_data \
 fs_update \
@@ -310,6 +309,8 @@ tksurfer.tcl \
 tkUtils.tcl \
 fsgdfPlot.tcl
 
+foo_datafiles=fs_spmreg.glnxa64
+
 xmldir=$(prefix)/docs/xml
 xml_DATA=bbregister.help.xml mri_motion_correct.fsl.help.xml \
 	mri_nu_correct.mni.help.xml template.help.xml
@@ -335,6 +336,10 @@ install-exec-hook:
 		>> $(DESTDIR)$(bindir)/fsfget
 	chmod a+x $(DESTDIR)$(bindir)/fsfget
 	$(top_builddir)/utils/fsPrintHelp $(srcdir)/bbregister.help.xml >> $(DESTDIR)$(bindir)/bbregister
+
+install-data-local:
+	test -z $(DESTDIR)$(bindir) || $(mkdir_p) $(DESTDIR)$(bindir)
+		$(INSTALL_DATA) $(foo_datafiles) $(DESTDIR)$(bindir)
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/unpacksdcmdir.tcl

@@ -5,7 +5,7 @@
 SUBDIRS=
 
 foodir=$(prefix)/fsafd
-foo_DATA=\
+foo_datafiles=
 	TalairachingCovariance.adf \
 	TalairachingMean.adf \
 	TalairachingProbas.adf
@@ -23,7 +23,9 @@ foo_DATA=\
 #	lh.EV90.mgh \
 #	lh.ThicknessMatrix.mgh
 
-EXTRA_DIST=$(foo_DATA)
+install-data-local:
+	test -z $(foodir) || $(mkdir_p) $(foodir)
+		$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

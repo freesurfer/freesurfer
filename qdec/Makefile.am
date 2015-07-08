@@ -1,6 +1,6 @@
 foodir=$(prefix)/lib/images
 
-foo_DATA=qdec_splash.png
+foo_datafiles=qdec_splash.png
 
 AM_CPPFLAGS=-I$(top_srcdir)/include $(TCL_CFLAGS) \
 	-I/usr/include/libxml2
@@ -84,6 +84,10 @@ install-exec-hook:qdec
 	chmod a+x $(DESTDIR)$(bindir)/qdec
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/qdec.bin; fi
+
+install-data-local:
+	test -z $(foodir) || $(mkdir_p) $(foodir)
+		$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/qdec.bin

@@ -250,7 +250,7 @@ lmeQdecfiles_DATA=\
 survivalfiles_DATA=\
 	Survival/SStat_lmeX_ext.m
 
-survivalexdatafiles_DATA=\
+survivalexdatafiles_datafiles=\
 	Survival/ex_data/addicts.mat \
 	Survival/ex_data/addicts.dat \
 	Survival/ex_data/Qdec_addicts.dat \
@@ -276,8 +276,7 @@ survivalunifiles_DATA=\
 	Survival/univariate/SStat_CoxStratPH.m \
 	Survival/univariate/SStat_HR.m
 
-foo_datafiles=lme/geodesic/geodesic_src.tar.gz
-
+foo_datafiles=lme/geodesic/geodesic_src.tar.gz $(survivalexdatafiles_datafiles)
 
 install-data-local:
 	test -z $(foodir) || $(mkdir_p) $(foodir)
