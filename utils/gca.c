@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/07/08 01:21:46 $
- *    $Revision: 1.334 $
+ *    $Date: 2015/07/08 20:48:18 $
+ *    $Revision: 1.335 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <errno.h>
+
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
@@ -67,6 +68,10 @@
 
 #if WITH_DMALLOC
 #include <dmalloc.h>
+#endif
+
+#ifdef HAVE_OPENMP
+#undef HAVE_OPENMP
 #endif
 
 extern const char* Progname;
@@ -4101,7 +4106,7 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
      classifiers statistics based on this voxel's intensity and label.
   */
   width = mri_inputs->width ; height = mri_inputs->height; depth = mri_inputs->depth ; num_pv = 0 ;
-//#if 0
+//if 0
 //ifdef HAVE_OPENMP
 //pragma omp parallel for reduction(+: num_pv)
 //endif
@@ -8709,9 +8714,9 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
      classifiers statistics based on this voxel's intensity and label.
   */
   // mark changed location
-#ifdef HAVE_OPENMP
-#pragma omp parallel for 
-#endif
+//ifdef HAVE_OPENMP
+//pragma omp parallel for 
+//endif
   for (x = 0 ; x < width ; x++)
   {
     int y, z ;
@@ -8828,7 +8833,9 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
       MRIcopyHeader(mri_inputs, mri_probs) ;
     }
 
-//#pragma omp parallel for reduction(+: nchanged)
+#ifdef HAVE_OPENMP
+//pragma omp parallel for reduction(+: nchanged)
+#endif
     for (index = 0 ; index < nindices ; index++)
     {
       int x, y, z, n, label, old_label ;
@@ -20011,9 +20018,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         h_mri->bins[i] = (i+1)*h_mri->bin_size ;
       }
 
-#ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+:num)
-#endif
+//ifdef HAVE_OPENMP
+//pragma omp parallel for reduction(+:num)
+//endif
       for (num = x = 0 ; x < mri_aligned->width ; x++)
       {
 	int y, z, bin ;
