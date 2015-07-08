@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/06/24 16:02:46 $
- *    $Revision: 1.333 $
+ *    $Date: 2015/07/08 01:21:46 $
+ *    $Revision: 1.334 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4101,9 +4101,10 @@ GCAlabel(MRI *mri_inputs, GCA *gca, MRI *mri_dst, TRANSFORM *transform)
      classifiers statistics based on this voxel's intensity and label.
   */
   width = mri_inputs->width ; height = mri_inputs->height; depth = mri_inputs->depth ; num_pv = 0 ;
-#ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+: num_pv)
-#endif
+//#if 0
+//ifdef HAVE_OPENMP
+//pragma omp parallel for reduction(+: num_pv)
+//endif
   for (x = 0 ; x < width ; x++)
   {
     int y, z, n, label, max_n, xn, yn, zn ;
@@ -9260,9 +9261,9 @@ GCAgibbsImageLogPosterior(GCA *gca, MRI *mri_labels, MRI *mri_inputs,
   width = mri_labels->width ; height = mri_labels->height ; depth = mri_labels->depth ;
 
   total_log_posterior = 0.0 ;
-#ifdef HAVE_OPENMP
-#pragma omp parallel for reduction(+: total_log_posterior)
-#endif
+//ifdef HAVE_OPENMP
+//pragma omp parallel for reduction(+: total_log_posterior)
+//endif
   for (x = 0 ; x < width ; x++)
   {
     int    y, z ;
@@ -17808,18 +17809,24 @@ double
 covariance_determinant( const GC1D *gc, const int ninputs)
 {
   double det ;
-  static MATRIX *m_cov = NULL ;
+  int tid ;
+  static MATRIX *m_cov[_MAX_FS_THREADS] ;
 
   if (ninputs == 1)
   {
     return(gc->covars[0]) ;
   }
-  if (m_cov && (m_cov->rows != ninputs || m_cov->cols != ninputs))
+#ifdef HAVE_OPENMP
+    tid = omp_get_thread_num();
+#else
+    tid = 0;
+#endif
+  if (m_cov[tid] && (m_cov[tid]->rows != ninputs || m_cov[tid]->cols != ninputs))
   {
-    MatrixFree(&m_cov) ;
+    MatrixFree(&m_cov[tid]) ;
   }
-  m_cov = load_covariance_matrix(gc, m_cov, ninputs) ;
-  det = MatrixDeterminant(m_cov) ;
+  m_cov[tid] = load_covariance_matrix(gc, m_cov[tid], ninputs) ;
+  det = MatrixDeterminant(m_cov[tid]) ;
 #if 0
   if (det <= 0)
   {
@@ -25743,7 +25750,7 @@ GCAreplaceImpossibleLabels(MRI *mri_inputs, GCA *gca,
             }
           }
           if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-            printf("changing label at (%d, %d, %d) from %s (%d) to %s (%d)\n",
+            printf("GCAreplaceImpossibleLabels: changing label at (%d, %d, %d) from %s (%d) to %s (%d)\n",
                    x, y, z,
                    cma_label_to_name(nint(MRIgetVoxVal(mri_out_labels,
                                                        x,y,z,0))),
