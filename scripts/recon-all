@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2015/06/30 21:43:42 $
-#    $Revision: 1.535 $
+#    $Author: greve $
+#    $Date: 2015/07/08 15:55:13 $
+#    $Revision: 1.536 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.535 2015/06/30 21:43:42 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.536 2015/07/08 15:55:13 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -164,6 +164,7 @@ set DoConformWidth256 = 0 # if 1, then conform to 256^3 during
 set NoNormMGZ = 0; # set to 1 when -nosubcortseg or -noaseg flag is used,
                    # which causes norm.mgz not to used during inorm2 step
 set NoWMSA = 0;      # if 1, then -nowmsa flag is added to mri_ca_label
+set TH3Flag = 1;   #  turns on new vertex-wise volume calc for mris_anat_stats and ?h.volume
 set DoQdecCache = 0; # if 1, then create smoothed fsaverage surface files
 set measurelist = ( thickness area area.pial volume curv sulc \
                     white.K white.H jacobian_white w-g.pct.mgh )
@@ -409,7 +410,7 @@ if(-e $bstampfile0) then
 endif
 rm -f $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
 if($#PatchDir) echo "$PatchDir" > $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
-
+cp $bstampfile0 $SUBJECTS_DIR/$subjid/scripts/lastcall.build-stamp.txt
 
 if ($DoMakefile) then
   setenv RECONALL_MAKE_SUBJECT $subjid
@@ -4201,27 +4202,14 @@ if($DoT2pial || $DoFLAIRpial) then
   # redo ?h.volume files
   if(-e $subjdir/surf/rh.volume || -e $subjdir/surf/lh.volume) then
     foreach hemi ($hemilist)
-      echo "#--------------------------------------------" \
-        |& tee -a $LF |& tee -a $CF
-      echo "#@# Surf Volume $hemi `date`" \
-        |& tee -a $SF |& tee -a $LF |& tee -a $CF
+      echo "#--------------------------------------------" |& tee -a $LF |& tee -a $CF
+      echo "#@# Surf Volume $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
       cd $subjdir/surf > /dev/null
       $PWD |& tee -a $LF
-      set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
+      set cmd = (vertexvol --s $subjid --$hemi -$TH3Opt)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-      set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      set cmd=(mris_calc -o ${hemi}.volume)
-      set cmd=($cmd ${hemi}.area.mid mul ${hemi}.thickness)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-      if(-e $subjdir/mri/.xdebug_mris_calc) rm -f $subjdir/mri/.xdebug_mris_calc
-      if(-e $subjdir/surf/.xdebug_mris_calc) rm -f $subjdir/surf/.xdebug_mris_calc
       echo $cmd > $touchdir/$hemi.surfvolume.touch
     end # Loop over hemilist
   endif
@@ -4243,25 +4231,12 @@ if($DoPialSurfs || $DoT2pial || $DoFLAIRpial || $DoSurfVolume) then
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/surf > /dev/null
     $PWD |& tee -a $LF
-    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    set cmd = (vertexvol --s $subjid --$hemi -$TH3Opt)
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set cmd=(mris_calc -o ${hemi}.volume)
-    set cmd=($cmd ${hemi}.area.mid mul ${hemi}.thickness)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    if(-e $subjdir/mri/.xdebug_mris_calc) rm -f $subjdir/mri/.xdebug_mris_calc
-    if(-e $subjdir/surf/.xdebug_mris_calc) rm -f $subjdir/surf/.xdebug_mris_calc
     echo $cmd > $touchdir/$hemi.surfvolume.touch
   end # Loop over hemilist
 endif
-
 
 #----------------                 ------------------#
 #---------------- Cortical Ribbon ------------------#
@@ -4306,7 +4281,7 @@ if($DoParcStats) then
     foreach surfname (white pial)
       if($surfname == white) set stats = ../stats/$hemi.aparc.stats
       if($surfname == pial)  set stats = ../stats/$hemi.aparc.pial.stats
-      set cmd = (mris_anatomical_stats -mgz)
+      set cmd = (mris_anatomical_stats $TH3Opt -mgz)
       if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
       set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts \
         $subjid $hemi $surfname);
@@ -4391,7 +4366,7 @@ if($DoParcStats2) then
     set stats = ../stats/$hemi.aparc.${DESTRIEUX_NAME}.stats
     set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz)
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
     if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
     set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4474,7 +4449,7 @@ if($DoParcStats3) then
     set stats = ../stats/$hemi.aparc.${DKTATLAS40_NAME}.stats
     set ctab  = ../label/aparc.annot.${DKTATLAS40_NAME}.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz)
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
     if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
     set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4914,7 +4889,7 @@ if ($DoBaLabels) then
     set stats = ../stats/$hemi.BA_exvivo.stats
     set ctab  = ./BA_exvivo.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz -f $stats \
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -4925,7 +4900,7 @@ if ($DoBaLabels) then
     set stats = ../stats/$hemi.BA_exvivo.thresh.stats
     set ctab  = ./BA_exvivo.thresh.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz -f $stats \
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -5016,7 +4991,7 @@ if ($DoLabelExvivoEC) then
     set label = ./$hemi.EC_exvivo_average.label
     set stats = ../stats/$hemi.EC_exvivo_average.stats
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz -f $stats \
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
             -b -l $label $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -6781,6 +6756,14 @@ while( $#argv != 0 )
       set NoRandomness = 0;
       breaksw
 
+    # -th3 turns on new volume calc for mris_anat_stats
+    case "-th3":
+      set TH3Flag = 1
+      breaksw
+    case "-no-th3":
+      set TH3Flag = 0
+      breaksw
+
     case "-rng-seed":
       set NoRandomness = 1;
       set RngSeed = $argv[1]; shift;
@@ -7385,6 +7368,9 @@ check_params:
     popd > /dev/null
 
     set subjdir = $SUBJECTS_DIR/$subjid
+
+    if($TH3Flag)   set TH3Opt = "-th3"
+    if(! $TH3Flag) set TH3Opt = "-no-th3"
 
     #------------ Longitudinal ---------------#
     if($longitudinal) then
