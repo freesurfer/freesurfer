@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/07/07 20:52:19 $
- *    $Revision: 1.301 $
+ *    $Date: 2015/07/09 19:06:33 $
+ *    $Revision: 1.302 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1099,7 +1099,6 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
 
   }
 
-
   if ( parser->Found("quit"))
     AddScript(QStringList("quit") );
 
@@ -1679,6 +1678,12 @@ void MainWindow::RunScript()
   {
     CommandSaveLayer(sa);
   }
+  m_bScriptRunning = false;
+}
+
+void MainWindow::ClearScripts()
+{
+  m_scripts.clear();
   m_bScriptRunning = false;
 }
 
@@ -5081,6 +5086,7 @@ void MainWindow::OnCloseSurface()
 
 void MainWindow::OnIOError( Layer* layer, int jobtype )
 {
+  ClearScripts();
   QString msg = QString("Failed to load %1 ").arg(layer->GetEndType());
   if (jobtype != ThreadIOWorker::JT_LoadSurfaceOverlay)
   {
