@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/07/08 15:55:13 $
-#    $Revision: 1.536 $
+#    $Date: 2015/07/09 18:04:14 $
+#    $Revision: 1.537 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.536 2015/07/08 15:55:13 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.537 2015/07/09 18:04:14 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -467,7 +467,9 @@ set touchdir = $subjdir/touch
 # Create cmd and env files from scratch
 if(! $DoVersionsOnly) then
   set CF = ($subjdir/scripts/$CF_DEFAULT_NAME)
-  rm -f $CF
+  # rm -f $CF, let it accumulate commands
+  echo "\n\n#---------------------------------" >> $CF
+  echo "# New invocation of recon-all `date` " >> $CF
   # Create a separate file for the env
   set ENVF = $subjdir/scripts/recon-all.env
   if(-e $ENVF) mv $ENVF $ENVF.bak
