@@ -276,11 +276,15 @@ survivalunifiles_DATA=\
 	Survival/univariate/SStat_CoxStratPH.m \
 	Survival/univariate/SStat_HR.m
 
-foo_datafiles=lme/geodesic/geodesic_src.tar.gz $(survivalexdatafiles_datafiles)
+foo_datafiles=lme/geodesic/geodesic_src.tar.gz
 
 install-data-local:
+	test -z $(survivalexdatafilesdir) || $(mkdir_p) $(survivalexdatafilesdir)
+	$(INSTALL_DATA) $(survivalexdatafiles_datafiles) $(survivalexdatafilesdir)
 	test -z $(foodir) || $(mkdir_p) $(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
+
+
 
 EXTRA_DIST=$(mfiles_DATA) \
 	$(lmefiles_DATA) \

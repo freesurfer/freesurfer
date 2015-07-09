@@ -5,8 +5,8 @@
 SUBDIRS=
 
 foodir=$(prefix)/fsafd
-foo_datafiles=
-	TalairachingCovariance.adf \
+
+foo_datafiles=TalairachingCovariance.adf \
 	TalairachingMean.adf \
 	TalairachingProbas.adf
 
@@ -25,7 +25,7 @@ foo_datafiles=
 
 install-data-local:
 	test -z $(foodir) || $(mkdir_p) $(foodir)
-		$(INSTALL_DATA) $(foo_datafiles) $(foodir)
+	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
