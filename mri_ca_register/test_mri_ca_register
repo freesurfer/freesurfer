@@ -7,9 +7,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2015/07/03 02:44:21 $
-#    $Revision: 1.1 $
+#    $Author: zkaufman $
+#    $Date: 2015/07/09 22:37:02 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_ca_register,v 1.1 2015/07/03 02:44:21 nicks Exp $'
+set VERSION='$Id: test_mri_ca_register,v 1.2 2015/07/09 22:37:02 zkaufman Exp $'
 
 umask 002
 
@@ -34,7 +34,7 @@ umask 002
 gunzip -c testdata.tar.gz | tar xvf -
 
 #
-# run mri_ca_register using typical input file formats
+# run mri_ca_register using typical input file fommats
 #
 
 cd testdata
@@ -71,9 +71,13 @@ echo ""
 # compare expected results with actual (produced) results
 #
 
-set REF_VOL = ref_talairach.m3z
+set OS=`uname -s`
+if ("$OS" == "Darwin") then
+  set REF_VOL = ref_talairach_osx.m3z
+else
+  set REF_VOL = ref_talairach.m3z
+endif
 set TST_VOL = talairach.m3z
-if ( "`uname -p`" == "powerpc" ) set REF_VOL = ref_talairach.m3z
 set cmd=(../../mri_diff/mri_diff --debug \
             $REF_VOL $TST_VOL );
 echo ""
