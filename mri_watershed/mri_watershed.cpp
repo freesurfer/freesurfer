@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/04/10 20:17:28 $
- *    $Revision: 1.100 $
+ *    $Author: greve $
+ *    $Date: 2015/07/10 18:57:33 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.100 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.101 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -279,6 +279,7 @@ static int type_changed = 0 ;
 static int conformed = 0 ;
 
 static int old_type ;
+int CopyOnly = 0;
 
 #ifndef __OPTIMIZE__
 // this routine is slow and should be used only for diagnostics
@@ -531,6 +532,12 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
     parms->skull_type=-1;
     nargs = 0 ;
     fprintf(stdout,"Mode:          surface shrunk\n") ;
+  }
+  else if (!strcmp(option, "copy"))
+  {
+    CopyOnly = 1;
+    nargs = 0 ;
+    fprintf(stdout,"Simply copying input to output\n") ;
   }
   else if (!strcmp(option, "wat+temp"))
   {
@@ -839,7 +846,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.100 2015/04/10 20:17:28 fischl Exp $",
+   "$Id: mri_watershed.cpp,v 1.101 2015/07/10 18:57:33 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -852,7 +859,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.100 2015/04/10 20:17:28 fischl Exp $",
+           "$Id: mri_watershed.cpp,v 1.101 2015/07/10 18:57:33 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -883,6 +890,18 @@ int main(int argc, char *argv[])
           "\nThe input file is %s"
           "\nThe output file is %s\n",
           in_fname,out_fname);
+
+  if(CopyOnly){
+    MRI *mricp;
+    int err;
+    printf("Info: simply copying input to output and exiting\n");
+    mricp = MRIread(in_fname);
+    if(mricp == NULL) exit(1);
+    err = MRIwrite(mricp,out_fname);
+    printf("mri_watershed done\n");
+    exit(err);
+  }
+
 
   if (( parms->Tregion ||
         parms->seedprior ||

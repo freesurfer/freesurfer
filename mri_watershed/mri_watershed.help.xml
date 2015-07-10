@@ -61,6 +61,8 @@ You can use one of the first five flags to change these default parms.
       <explanation>dont use (seedpoints using atlas information)</explanation> 
       <argument>-no-ta</argument>
       <explanation>dont use (template deformation using atlas information)</explanation> 
+      <argument>-copy</argument>
+      <explanation>Just copy input to output, ignore other options</explanation> 
 
 
       <argument>-atlas</argument>
