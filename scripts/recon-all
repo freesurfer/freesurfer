@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/07/09 18:04:14 $
-#    $Revision: 1.537 $
+#    $Date: 2015/07/10 18:58:40 $
+#    $Revision: 1.538 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.537 2015/07/09 18:04:14 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.538 2015/07/10 18:58:40 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -115,6 +115,8 @@ set WSAtlas     = 0;    # 0=don't use atlas, 1=use atlas (for skull strip)
 set WSGcaAtlas  = 1;    # 1=use GCA atlas and registration to do skull strip
 set WSUseTalXfm = 0;    # 1=use talairach.xfm instead of talairach_with_skull
                         # to do atlas alignment during mri_watershed
+set WSCopy = 0;         # Simply copy input to output ignoring other opts, 
+                        # for when brain is already stripped
 set DoGcut = 0;         # 1=run mri_gcut after mri_watershed
 set ConformMin = 0;     # 1=conformed to min dimension
 set ConformKeepDC = 0;  # Keep volume direction cosines when conforming
@@ -2092,6 +2094,7 @@ skullstrip:
   if($WSLess) set opts = ($opts -less);
   if($WSMore) set opts = ($opts -more);
   if($WSAtlas) set opts = ($opts -atlas);
+  if($WSCopy) set opts = ($opts -copy);
   if($#WSSeedPoint != 0) set opts = ($opts -s $WSSeedPoint);
   if($#WSPctPreFlood != 0) then
     set opts = ($opts -h $WSPctPreFlood);
@@ -5867,6 +5870,8 @@ while( $#argv != 0 )
       set WSUseTalXfm = 1; breaksw
     case "-no-wstalxfm":
       set WSUseTalXfm = 0; breaksw
+    case "-wscopy":
+      set WSCopy = 1; breaksw
 
     case "-gcut":
       set DoGcut = 1;
