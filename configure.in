@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/06/25 19:46:50 $
-#    $Revision: 1.651 $
+#    $Author: greve $
+#    $Date: 2015/07/15 21:54:58 $
+#    $Revision: 1.652 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3849,6 +3849,7 @@ AC_OUTPUT([Makefile
            mri_warp_convert/Makefile
            mri_watershed/Makefile
            mri_watershed/brain_volume/Makefile
+           mri_wbc/Makefile
            mri_wmfilter/Makefile
            mri_xcorr/Makefile
            mri_xvolavg/Makefile
