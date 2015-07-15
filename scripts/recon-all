@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/07/10 18:58:40 $
-#    $Revision: 1.538 $
+#    $Author: mreuter $
+#    $Date: 2015/07/15 22:39:40 $
+#    $Revision: 1.539 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.538 2015/07/10 18:58:40 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.539 2015/07/15 22:39:40 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1015,6 +1015,7 @@ if($longitudinal) then
       echo " $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
       if($status) goto error_exit;
+      set UseControlPoints = 1;
     endif
   endif
 endif
