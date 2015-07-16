@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/07/16 17:21:40 $
- *    $Revision: 1.2 $
+ *    $Date: 2015/07/16 19:00:31 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,12 +59,14 @@ typedef struct {
   MRI *volmask, *lhmask, *rhmask;
   int nvolmask, nlhmask, nrhmask, ntot,nframes;
   MRI *volcon, *lhcon, *rhcon;
+  MRI *volconS, *lhconS, *rhconS;
+  MRI *volconL, *lhconL, *rhconL;
   MRI *coordtype, *vertexno, *xyz;
   MRI *f, *fnorm;
   double rhothresh;
   int DoDist;
   double distthresh;
-  MRI *con;
+  MRI *con,*conS,*conL;
   int DoMat;
   MATRIX *M;
 } WBC;
@@ -84,7 +86,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_wbc.c,v 1.2 2015/07/16 17:21:40 greve Exp $";
+static char vcid[] = "$Id: mri_wbc.c,v 1.3 2015/07/16 19:00:31 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -98,6 +100,8 @@ typedef struct {
   char *frh, *rhsurface, *rhlabel, *rhmask;
   double rhothresh, distthresh;
   char *volcon, *lhcon, *rhcon;
+  char *volconS, *lhconS, *rhconS;
+  char *volconL, *lhconL, *rhconL;
   int DoDist, DoMat;
   char *matfile;
 } CMDARGS;
@@ -179,8 +183,37 @@ int main(int argc, char *argv[]) {
   WBCprep(wbc);
   WholeBrainCon(wbc);
   WBCfinish(wbc);
-  err = MRIwrite(wbc->volcon,cmdargs->volcon);
-  if(err) exit(1);
+
+  if(cmdargs->volcon){
+    err = MRIwrite(wbc->volcon,cmdargs->volcon);
+    if(err) exit(1);
+    if(wbc->DoDist){
+      err = MRIwrite(wbc->volconS,cmdargs->volconS);
+      if(err) exit(1);
+      err = MRIwrite(wbc->volconL,cmdargs->volconL);
+      if(err) exit(1);
+    }
+  }
+  if(cmdargs->lhcon){
+    err = MRIwrite(wbc->lhcon,cmdargs->lhcon);
+    if(err) exit(1);
+    if(wbc->DoDist){
+      err = MRIwrite(wbc->lhconS,cmdargs->lhconS);
+      if(err) exit(1);
+      err = MRIwrite(wbc->lhconL,cmdargs->lhconL);
+      if(err) exit(1);
+    }
+  }
+  if(cmdargs->rhcon){
+    err = MRIwrite(wbc->rhcon,cmdargs->rhcon);
+    if(err) exit(1);
+    if(wbc->DoDist){
+      err = MRIwrite(wbc->rhconS,cmdargs->rhconS);
+      if(err) exit(1);
+      err = MRIwrite(wbc->rhconL,cmdargs->rhconL);
+      if(err) exit(1);
+    }
+  }
 
   if(wbc->DoMat){
     err = MatrixWriteTxt(cmdargs->matfile,wbc->M);
@@ -264,6 +297,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--dist")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&cmdargs->distthresh);
+      cmdargs->DoDist = 1;
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--volcon")) {
@@ -281,6 +315,37 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->rhcon = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--volconS")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->volconS = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--lhconS")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->lhconS = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--rhconS")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->rhconS = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--volconL")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->volconL = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--lhconL")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->lhconL = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--rhconL")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->rhconL = pargv[0];
+      nargsused = 1;
+    } 
+
     else if (!strcasecmp(option, "--mat")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->matfile = pargv[0];
@@ -408,7 +473,7 @@ static void dump_options(FILE *fp) {
 /*******************************************************************************/
 MRI *WholeBrainCon(WBC *wbc)
 {
-  MRI **conth;
+  MRI **conth,**conSth,**conLth;
   int nthreads;
   long nperthread0,*nperthread,ntot;
   int threadno;
@@ -438,17 +503,9 @@ MRI *WholeBrainCon(WBC *wbc)
   nperthread0 = nint((double)npairs/nthreads - 1);
   printf("ntot = %d, nthreads = %d, npairs = %ld, nperthread0 = %ld\n",wbc->ntot,nthreads,npairs,nperthread0);
 
-  conth = (MRI **) calloc(sizeof(MRI*),nthreads);
   nperthread = (long *) calloc(sizeof(long),nthreads);
   ntot = 0;
   for(threadno=0; threadno < nthreads; threadno++){
-    int nf = 1;
-    if(wbc->DoDist) nf = 3;
-    conth[threadno] = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, nf);
-    if(conth[threadno]==NULL) {
-      printf("ERROR: conth %d: could not alloc\n",threadno);
-      return(NULL);
-    }
     nperthread[threadno] = nperthread0; // number of pairs per thread
     ntot += nperthread0;
   }
@@ -460,6 +517,19 @@ MRI *WholeBrainCon(WBC *wbc)
     ntot += nperthread[threadno];
   }
   printf("ntotpairs = %ld vs npairs %ld, diff %ld\n",ntot,npairs,ntot-npairs); // should be equal
+
+  conth = (MRI **) calloc(sizeof(MRI*),nthreads);
+  if(wbc->DoDist){
+    conSth = (MRI **) calloc(sizeof(MRI*),nthreads);
+    conLth = (MRI **) calloc(sizeof(MRI*),nthreads);
+  }
+  for(threadno=0; threadno < nthreads; threadno++){
+    conth[threadno] = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, 1);
+    if(wbc->DoDist){
+      conSth[threadno] = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, 1);
+      conLth[threadno] = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, 1);
+    }
+  }
 
   k1a = (int *)calloc(sizeof(int),nthreads);
   k1b = (int *)calloc(sizeof(int),nthreads);
@@ -484,6 +554,7 @@ MRI *WholeBrainCon(WBC *wbc)
     int  k1, k2, t, n, thno, q, ct1, ct2;
     int k1start,k1stop,k2start,k2stop,k2min,k2max;
     double rho,dx,dy,dz,dist,*pf1,*pf2,x1,y1,z1,x2,y2,z2;
+    MRI *conDth;
     thno = threadno;
     #ifdef _OPENMP
     thno = omp_get_thread_num(); // actual thread number
@@ -539,25 +610,42 @@ MRI *WholeBrainCon(WBC *wbc)
 	  else                       q = 2; // long dist
 	}
 	else q = 2; // long dist
-	n = MRIgetVoxVal(conth[thno],k1,0,0,q);
-	MRIsetVoxVal(conth[thno],k1,0,0,q,n+1);
-	n = MRIgetVoxVal(conth[thno],k2,0,0,q);
-	MRIsetVoxVal(conth[thno],k2,0,0,q,n+1);
+
+	if(q == 1) conDth = conSth[thno];
+	if(q == 2) conDth = conLth[thno];
+	n = MRIgetVoxVal(conDth,k1,0,0,0);
+	MRIsetVoxVal(conDth,k1,0,0,0,n+1);
+	n = MRIgetVoxVal(conDth,k2,0,0,0);
+	MRIsetVoxVal(conDth,k2,0,0,0,n+1);
       } // k2
     } // k1
   } // thread
 
   // Sum up the threads
-  for(threadno=0; threadno < nthreads; threadno++)
+  for(threadno=0; threadno < nthreads; threadno++){
     MRIadd(wbc->con,conth[threadno],wbc->con);
+    if(wbc->DoDist){
+      MRIadd(wbc->conS,conSth[threadno],wbc->conS);
+      MRIadd(wbc->conL,conLth[threadno],wbc->conL);
+    }
+  }
 
   // Divide number of connections by total possible
   printf("Scaling by ntot %d\n",wbc->ntot);
   MRImultiplyConst(wbc->con,1.0/wbc->ntot,wbc->con);
+  if(wbc->DoDist){
+    MRImultiplyConst(wbc->conS,1.0/wbc->ntot,wbc->conS);
+    MRImultiplyConst(wbc->conL,1.0/wbc->ntot,wbc->conL);
+  }
 
   // Clean up
-  for(threadno=0; threadno < nthreads; threadno++)
+  for(threadno=0; threadno < nthreads; threadno++){
     MRIfree(&conth[threadno]);
+    if(wbc->DoDist){
+      MRIfree(&conSth[threadno]);
+      MRIfree(&conLth[threadno]);
+    }
+  }
   free(k1a);
   free(k1b);
   free(k2a);
@@ -576,7 +664,7 @@ int WBCprep(WBC *wbc)
   MATRIX *V, *crs, *xyz=NULL;
   double val;
 
-  if(wbc->fvol) wbc->nframes = wbc->fvol->nframes;
+  if(wbc->fvol)     wbc->nframes = wbc->fvol->nframes;
   else if(wbc->flh) wbc->nframes = wbc->flh->nframes;
   else if(wbc->frh) wbc->nframes = wbc->frh->nframes;
 
@@ -666,12 +754,10 @@ int WBCprep(WBC *wbc)
   // normalize by stddev
   wbc->fnorm = MRIframeNorm(wbc->f, NULL, NULL);  
 
-  int nf = 1;
-  if(wbc->DoDist) nf = 3;
-  wbc->con = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, nf);
-  if(wbc->con==NULL) {
-    printf("ERROR: WBCprep(): could not alloc con\n");
-    return(1);
+  wbc->con = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, 1);
+  if(wbc->DoDist){
+    wbc->conS = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, 1);
+    wbc->conL = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, 1);
   }
 
   return(0);
@@ -679,49 +765,85 @@ int WBCprep(WBC *wbc)
 
 int WBCfinish(WBC *wbc)
 {
-  int nf = 1,nthvox, c,r,s,t,vtxno;
+  int nthvox, c,r,s,vtxno;
   double val;
-
-  if(wbc->DoDist) nf = 3;
 
   nthvox = 0;
   if(wbc->fvol){
-    wbc->volcon = MRIallocSequence(wbc->fvol->width,wbc->fvol->height,wbc->fvol->depth,MRI_FLOAT,nf);
+    wbc->volcon = MRIallocSequence(wbc->fvol->width,wbc->fvol->height,wbc->fvol->depth,MRI_FLOAT,1);
     MRIcopyHeader(wbc->fvol,wbc->volcon);
     MRIcopyPulseParameters(wbc->fvol,wbc->volcon);
+    if(wbc->DoDist){
+      wbc->volconS = MRIallocSequence(wbc->fvol->width,wbc->fvol->height,wbc->fvol->depth,MRI_FLOAT,1);
+      MRIcopyHeader(wbc->fvol,wbc->volconS);
+      MRIcopyPulseParameters(wbc->fvol,wbc->volconS);
+      wbc->volconL = MRIallocSequence(wbc->fvol->width,wbc->fvol->height,wbc->fvol->depth,MRI_FLOAT,1);
+      MRIcopyHeader(wbc->fvol,wbc->volconL);
+      MRIcopyPulseParameters(wbc->fvol,wbc->volconL);
+    }
     for(s=0; s < wbc->fvol->depth; s++){
       for(c=0; c < wbc->fvol->width; c++){
 	for(r=0; r < wbc->fvol->height; r++){
 	  if(wbc->volmask && MRIgetVoxVal(wbc->volmask,c,r,s,0) < 0.5) continue;
-	  for(t=0; t < nf; t++){
-	    val = MRIgetVoxVal(wbc->con,nthvox,0,0,t);
-	    MRIsetVoxVal(wbc->volcon,c,r,s,t,val);
-	  } // time
+	  val = MRIgetVoxVal(wbc->con,nthvox,0,0,0);
+	  MRIsetVoxVal(wbc->volcon,c,r,s,0,val);
+	  if(wbc->DoDist){
+	    val = MRIgetVoxVal(wbc->conS,nthvox,0,0,0);
+	    MRIsetVoxVal(wbc->volconS,c,r,s,0,val);
+	    val = MRIgetVoxVal(wbc->conL,nthvox,0,0,0);
+	    MRIsetVoxVal(wbc->volconL,c,r,s,0,val);
+	  }
 	  nthvox ++;
 	} // row
       } // col
     } // slice
   }
   if(wbc->flh){
+    wbc->lhcon = MRIallocSequence(wbc->flh->width,wbc->flh->height,wbc->flh->depth,MRI_FLOAT,1);
     MRIcopyHeader(wbc->flh,wbc->lhcon);
     MRIcopyPulseParameters(wbc->flh,wbc->lhcon);
+    if(wbc->DoDist){
+      wbc->lhconS = MRIallocSequence(wbc->flh->width,wbc->flh->height,wbc->flh->depth,MRI_FLOAT,1);
+      MRIcopyHeader(wbc->flh,wbc->lhconS);
+      MRIcopyPulseParameters(wbc->flh,wbc->lhconS);
+      wbc->lhconL = MRIallocSequence(wbc->flh->width,wbc->flh->height,wbc->flh->depth,MRI_FLOAT,1);
+      MRIcopyHeader(wbc->flh,wbc->lhconL);
+      MRIcopyPulseParameters(wbc->flh,wbc->lhconL);
+    }
     for(vtxno = 0; vtxno < wbc->flh->width; vtxno++){
       if(wbc->lhmask && MRIgetVoxVal(wbc->lhmask,vtxno,0,0,0) < 0.5) continue;
-      for(t=0; t < wbc->flh->nframes; t++){
-	val = MRIgetVoxVal(wbc->con,nthvox,0,0,t);
-	MRIsetVoxVal(wbc->lhcon,vtxno,0,0,t,val);
-      } // time
+      val = MRIgetVoxVal(wbc->con,nthvox,0,0,0);
+      MRIsetVoxVal(wbc->lhcon,vtxno,0,0,0,val);
+      if(wbc->DoDist){
+	val = MRIgetVoxVal(wbc->conS,nthvox,0,0,0);
+	MRIsetVoxVal(wbc->lhconS,vtxno,0,0,0,val);
+	val = MRIgetVoxVal(wbc->conL,nthvox,0,0,0);
+	MRIsetVoxVal(wbc->lhconL,vtxno,0,0,0,val);
+      }
     } // vertex
   }
   if(wbc->frh){
+    wbc->rhcon = MRIallocSequence(wbc->frh->width,wbc->frh->height,wbc->frh->depth,MRI_FLOAT,1);
     MRIcopyHeader(wbc->frh,wbc->rhcon);
     MRIcopyPulseParameters(wbc->frh,wbc->rhcon);
+    if(wbc->DoDist){
+      wbc->rhconS = MRIallocSequence(wbc->frh->width,wbc->frh->height,wbc->frh->depth,MRI_FLOAT,1);
+      MRIcopyHeader(wbc->frh,wbc->rhconS);
+      MRIcopyPulseParameters(wbc->frh,wbc->rhconS);
+      wbc->rhconL = MRIallocSequence(wbc->frh->width,wbc->frh->height,wbc->frh->depth,MRI_FLOAT,1);
+      MRIcopyHeader(wbc->frh,wbc->rhconL);
+      MRIcopyPulseParameters(wbc->frh,wbc->rhconL);
+    }
     for(vtxno = 0; vtxno < wbc->frh->width; vtxno++){
       if(wbc->rhmask && MRIgetVoxVal(wbc->rhmask,vtxno,0,0,0) < 0.5) continue;
-      for(t=0; t < wbc->frh->nframes; t++){
-	val = MRIgetVoxVal(wbc->con,nthvox,0,0,t);
-	MRIsetVoxVal(wbc->rhcon,vtxno,0,0,t,val);
-      } // time
+      val = MRIgetVoxVal(wbc->con,nthvox,0,0,0);
+      MRIsetVoxVal(wbc->rhcon,vtxno,0,0,0,val);
+      if(wbc->DoDist){
+	val = MRIgetVoxVal(wbc->conS,nthvox,0,0,0);
+	MRIsetVoxVal(wbc->rhconS,vtxno,0,0,0,val);
+	val = MRIgetVoxVal(wbc->conL,nthvox,0,0,0);
+	MRIsetVoxVal(wbc->rhconL,vtxno,0,0,0,val);
+      }
     } // vertex
   }
   return(0);
