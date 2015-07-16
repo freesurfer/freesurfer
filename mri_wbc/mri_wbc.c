@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/07/15 21:54:08 $
- *    $Revision: 1.1 $
+ *    $Date: 2015/07/16 17:21:40 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ typedef struct {
   MRIS *lh, *rh, *lhsph, *rhsph;
   LABEL *lhlabel, *rhlabel;
   MRI *volmask, *lhmask, *rhmask;
-  int nvolmask, nlhmask, nrhmask, ntot;
+  int nvolmask, nlhmask, nrhmask, ntot,nframes;
   MRI *volcon, *lhcon, *rhcon;
   MRI *coordtype, *vertexno, *xyz;
   MRI *f, *fnorm;
@@ -72,6 +72,8 @@ typedef struct {
 MRI *WholeBrainCon(WBC *wbc);
 int WBCfinish(WBC *wbc);
 int WBCprep(WBC *wbc);
+int Index2UpperSubscript(int N, long i, int *r, int *c);
+int Index2UpperSubscriptTest(int seed);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -82,7 +84,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_wbc.c,v 1.1 2015/07/15 21:54:08 greve Exp $";
+static char vcid[] = "$Id: mri_wbc.c,v 1.2 2015/07/16 17:21:40 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -96,6 +98,8 @@ typedef struct {
   char *frh, *rhsurface, *rhlabel, *rhmask;
   double rhothresh, distthresh;
   char *volcon, *lhcon, *rhcon;
+  int DoDist, DoMat;
+  char *matfile;
 } CMDARGS;
 
 CMDARGS *cmdargs;
@@ -106,6 +110,10 @@ int main(int argc, char *argv[]) {
   WBC *wbc;
 
   cmdargs = (CMDARGS *)calloc(sizeof(CMDARGS),1);
+  cmdargs->rhothresh = 0.2;
+  cmdargs->distthresh = 10;
+  cmdargs->DoDist = 0;
+  cmdargs->DoMat = 0;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -127,9 +135,9 @@ int main(int argc, char *argv[]) {
 
   wbc = calloc(sizeof(WBC),1);
   wbc->rhothresh = cmdargs->rhothresh;
-  wbc->distthresh = 10;
-  wbc->DoDist = 0;
-  wbc->DoMat = 0;
+  wbc->distthresh = cmdargs->distthresh;
+  wbc->DoDist = cmdargs->DoDist;
+  wbc->DoMat = cmdargs->DoMat;
 
   if(cmdargs->fvol){
     wbc->fvol = MRIread(cmdargs->fvol);
@@ -139,12 +147,45 @@ int main(int argc, char *argv[]) {
     wbc->volmask = MRIread(cmdargs->volmask);
     if(wbc->volmask == NULL) exit(1);
   }
+  if(cmdargs->flh){
+    wbc->flh = MRIread(cmdargs->flh);
+    if(wbc->flh == NULL) exit(1);
+    wbc->lh  = MRISread(cmdargs->lhsurface);
+    if(wbc->lh == NULL) exit(1);
+    if(cmdargs->lhlabel){
+      wbc->lhlabel = LabelRead(NULL, cmdargs->lhlabel);
+      if(wbc->lhlabel == NULL) exit(1);
+    }
+    if(cmdargs->lhmask){
+      wbc->lhmask = MRIread(cmdargs->lhmask);
+      if(wbc->lhmask == NULL) exit(1);
+    }
+  }
+  if(cmdargs->frh){
+    wbc->frh = MRIread(cmdargs->frh);
+    if(wbc->frh == NULL) exit(1);
+    wbc->rh  = MRISread(cmdargs->rhsurface);
+    if(wbc->rh == NULL) exit(1);
+    if(cmdargs->rhlabel){
+      wbc->rhlabel = LabelRead(NULL, cmdargs->rhlabel);
+      if(wbc->rhlabel == NULL) exit(1);
+    }
+    if(cmdargs->rhmask){
+      wbc->rhmask = MRIread(cmdargs->rhmask);
+      if(wbc->rhmask == NULL) exit(1);
+    }
+  }
 
   WBCprep(wbc);
   WholeBrainCon(wbc);
   WBCfinish(wbc);
   err = MRIwrite(wbc->volcon,cmdargs->volcon);
   if(err) exit(1);
+
+  if(wbc->DoMat){
+    err = MatrixWriteTxt(cmdargs->matfile,wbc->M);
+    if(err) exit(1);    
+  }
 
   exit(0);
 }
@@ -240,6 +281,29 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->rhcon = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--mat")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->matfile = pargv[0];
+      cmdargs->DoMat = 1;
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--uppersub-test")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      int N, err;
+      sscanf(pargv[0],"%d",&N);
+      err = Index2UpperSubscriptTest(N);
+      exit(err);
+      nargsused = 1;
+    }
+    else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
+      if(nargc < 1) CMDargNErr(option,1);
+      int nthreads;
+      sscanf(pargv[0],"%d",&nthreads);
+      #ifdef _OPENMP
+      omp_set_num_threads(nthreads);
+      #endif
+      nargsused = 1;
+    } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -274,6 +338,7 @@ static void print_usage(void) {
   printf("   --rho rhothresh\n");
   printf("   --dist distthresh\n");
   printf("\n");
+  printf("   --threads nthreads\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -299,6 +364,30 @@ static void check_options(void) {
     printf("ERROR: no input\n");
     exit(1);
   }
+  if(cmdargs->fvol == NULL && cmdargs->volcon != NULL){
+    printf("ERROR: cannot have --volcon without --fvol\n");
+    exit(1);
+  }
+  if(cmdargs->fvol != NULL && cmdargs->volcon == NULL){
+    printf("ERROR: need --volcon output with --fvol\n");
+    exit(1);
+  }
+  if(cmdargs->flh == NULL && cmdargs->lhcon != NULL){
+    printf("ERROR: cannot have --lhcon without --lh\n");
+    exit(1);
+  }
+  if(cmdargs->flh != NULL && cmdargs->lhcon == NULL){
+    printf("ERROR: need --lhcon output with --lh\n");
+    exit(1);
+  }
+  if(cmdargs->frh == NULL && cmdargs->rhcon != NULL){
+    printf("ERROR: cannot have --rhcon without --rh\n");
+    exit(1);
+  }
+  if(cmdargs->frh != NULL && cmdargs->rhcon == NULL){
+    printf("ERROR: need --rhcon output with --rh\n");
+    exit(1);
+  }
 
   return;
 }
@@ -321,11 +410,13 @@ MRI *WholeBrainCon(WBC *wbc)
 {
   MRI **conth;
   int nthreads;
-  int nperthread0,npairs,*nperthread,ntot;
-  int **k1thread,**k2thread,threadno;
-  int k1,k2,nthpair; // note: these are redefined in loop
+  long nperthread0,*nperthread,ntot;
+  int threadno;
+  long npairs,ia,ib;
+  int k1; // note: these are redefined in loop
   struct timeb timer;
   double **pf;
+  int *k1a,*k1b,*k2a,*k2b;
 
   // Load time courses into a pointer structure
   pf = (double **) calloc(sizeof(double *),wbc->ntot);
@@ -343,12 +434,12 @@ MRI *WholeBrainCon(WBC *wbc)
   #ifdef _OPENMP
   nthreads = omp_get_max_threads();
   #endif
-  npairs = wbc->ntot*(wbc->ntot-1)/2;
+  npairs = (long)wbc->ntot*(wbc->ntot-1)/2;
   nperthread0 = nint((double)npairs/nthreads - 1);
-  printf("ntot = %d, nthreads = %d, npairs = %d, nperthread0 = %d\n",wbc->ntot,nthreads,npairs,nperthread0);
+  printf("ntot = %d, nthreads = %d, npairs = %ld, nperthread0 = %ld\n",wbc->ntot,nthreads,npairs,nperthread0);
 
   conth = (MRI **) calloc(sizeof(MRI*),nthreads);
-  nperthread = (int *) calloc(sizeof(int),nthreads);
+  nperthread = (long *) calloc(sizeof(long),nthreads);
   ntot = 0;
   for(threadno=0; threadno < nthreads; threadno++){
     int nf = 1;
@@ -362,97 +453,99 @@ MRI *WholeBrainCon(WBC *wbc)
     ntot += nperthread0;
   }
   if(ntot != npairs) nperthread[nthreads-1] += npairs-ntot;
-
-  k1thread = (int **)calloc(sizeof(int*),nthreads);
-  k2thread = (int **)calloc(sizeof(int*),nthreads);
-  for(threadno=0; threadno < nthreads; threadno++){
-    k1thread[threadno] = (int *)calloc(sizeof(int),nperthread[threadno]);
-    k2thread[threadno] = (int *)calloc(sizeof(int),nperthread[threadno]);
-  }
-
   // This is just a test
   ntot = 0;
   for(threadno=0; threadno < nthreads; threadno++){
-    printf("thread %d %d\n",threadno,nperthread[threadno]);
+    printf("thread %d %ld\n",threadno,nperthread[threadno]);
     ntot += nperthread[threadno];
   }
-  printf("ntot = %d vs npairs %d\n",ntot,npairs); // should be equal
+  printf("ntotpairs = %ld vs npairs %ld, diff %ld\n",ntot,npairs,ntot-npairs); // should be equal
 
-  // Assign k1,k2 pairs to each thread
-  nthpair = 0;
-  threadno = 0;
-  for(k1 = 0; k1 < wbc->ntot; k1++){
-    for(k2 = k1+1; k2 < wbc->ntot; k2++){
-      k1thread[threadno][nthpair] = k1;
-      k2thread[threadno][nthpair] = k2;
-      nthpair = nthpair + 1;
-      if(nthpair >= nperthread[threadno]){
-	nthpair = 0;
-	threadno ++;
-      }
-    }
+  k1a = (int *)calloc(sizeof(int),nthreads);
+  k1b = (int *)calloc(sizeof(int),nthreads);
+  k2a = (int *)calloc(sizeof(int),nthreads);
+  k2b = (int *)calloc(sizeof(int),nthreads);
+  ia = 0;
+  for(threadno=0; threadno < nthreads; threadno++){
+    ib = ia + nperthread[threadno];
+    Index2UpperSubscript(wbc->ntot, ia, &k1a[threadno], &k2a[threadno]);
+    Index2UpperSubscript(wbc->ntot, ib-1, &k1b[threadno], &k2b[threadno]);
+    printf("thread %d %12ld %12ld   %7d %7d   %7d %7d\n",threadno,ia,ib,
+	   k1a[threadno],k2a[threadno], k1b[threadno],k2b[threadno]);
+    ia = ib;
   }
-
+  
+  printf("Starting WBC loop rho thresh %lf\n",wbc->rhothresh); fflush(stdout);
   TimerStart(&timer);
   #ifdef _OPENMP
   #pragma omp parallel for 
   #endif
   for(threadno = 0; threadno < nthreads; threadno ++){
-    int  k1, k2, t, n, thno,nthpair, q, ct1, ct2;
+    int  k1, k2, t, n, thno, q, ct1, ct2;
+    int k1start,k1stop,k2start,k2stop,k2min,k2max;
     double rho,dx,dy,dz,dist,*pf1,*pf2,x1,y1,z1,x2,y2,z2;
     thno = threadno;
     #ifdef _OPENMP
     thno = omp_get_thread_num(); // actual thread number
     #endif
-    for(nthpair = 0; nthpair < nperthread[thno]; nthpair++){
-      k1 = k1thread[thno][nthpair];
-      k2 = k2thread[thno][nthpair];
 
-      rho = 0;
-      pf1 = pf[k1];
-      pf2 = pf[k2];
-      for(t=0; t < wbc->f->nframes; t++){
-	rho += (*pf1) * (*pf2);
-	pf1++;
-	pf2++;
-      }
-      if(wbc->M != NULL){
-	wbc->M->rptr[k1+1][k2+1] = rho;
-	wbc->M->rptr[k2+1][k1+1] = rho;
-      }
-      if(fabs(rho) < wbc->rhothresh) continue;
+    k1start = k1a[thno];
+    k1stop  = k1b[thno];
+    k2start = k2a[thno];
+    k2stop  = k2b[thno];
 
-      n = MRIgetVoxVal(conth[thno],k1,0,0,0);
-      MRIsetVoxVal(conth[thno],k1,0,0,0,n+1);
-      n = MRIgetVoxVal(conth[thno],k2,0,0,0);
-      MRIsetVoxVal(conth[thno],k2,0,0,0,n+1);
+    for(k1=k1start; k1<=k1stop; k1++){
+      if(k1 == k1start) k2min = k2start;
+      else              k2min = k1+1;
+      if(k1 == k1stop)  k2max = k2stop;
+      else              k2max = wbc->ntot-1;
+      for(k2=k2min; k2<=k2max; k2++){
 
-      if(!wbc->DoDist) continue;
-
-      ct1 = MRIgetVoxVal(wbc->coordtype,k1,0,0,0);
-      ct2 = MRIgetVoxVal(wbc->coordtype,k2,0,0,0);
-      if(ct1 == ct2){
-	x1 = MRIgetVoxVal(wbc->xyz,k1,0,0,0);
-	y1 = MRIgetVoxVal(wbc->xyz,k1,0,0,1);
-	z1 = MRIgetVoxVal(wbc->xyz,k1,0,0,2);
-	x2 = MRIgetVoxVal(wbc->xyz,k2,0,0,0);
-	y2 = MRIgetVoxVal(wbc->xyz,k2,0,0,1);
-	z2 = MRIgetVoxVal(wbc->xyz,k2,0,0,2);
-	dx = x1-x2;
-	dy = y1-y2;
-	dz = z1-z2;
-	dist = sqrt(dx*dx + dy*dy + dz*dz);
-	if(dist < wbc->distthresh) q = 1; // short dist
-	else                       q = 2; // long dist
-      }
-      else q = 2; // long dist
-      n = MRIgetVoxVal(conth[thno],k1,0,0,q);
-      MRIsetVoxVal(conth[thno],k1,0,0,q,n+1);
-      n = MRIgetVoxVal(conth[thno],k2,0,0,q);
-      MRIsetVoxVal(conth[thno],k2,0,0,q,n+1);
-
-    } // k2
-  } // k1
+	rho = 0;
+	pf1 = pf[k1];
+	pf2 = pf[k2];
+	for(t=0; t < wbc->f->nframes; t++){
+	  rho += (*pf1) * (*pf2);
+	  pf1++;
+	  pf2++;
+	}
+	if(wbc->M != NULL){
+	  wbc->M->rptr[k1+1][k2+1] = rho;
+	  wbc->M->rptr[k2+1][k1+1] = rho;
+	}
+	if(fabs(rho) < wbc->rhothresh) continue;
+	
+	n = MRIgetVoxVal(conth[thno],k1,0,0,0);
+	MRIsetVoxVal(conth[thno],k1,0,0,0,n+1);
+	n = MRIgetVoxVal(conth[thno],k2,0,0,0);
+	MRIsetVoxVal(conth[thno],k2,0,0,0,n+1);
+	
+	if(!wbc->DoDist) continue;
+	
+	ct1 = MRIgetVoxVal(wbc->coordtype,k1,0,0,0);
+	ct2 = MRIgetVoxVal(wbc->coordtype,k2,0,0,0);
+	if(ct1 == ct2){
+	  x1 = MRIgetVoxVal(wbc->xyz,k1,0,0,0);
+	  y1 = MRIgetVoxVal(wbc->xyz,k1,0,0,1);
+	  z1 = MRIgetVoxVal(wbc->xyz,k1,0,0,2);
+	  x2 = MRIgetVoxVal(wbc->xyz,k2,0,0,0);
+	  y2 = MRIgetVoxVal(wbc->xyz,k2,0,0,1);
+	  z2 = MRIgetVoxVal(wbc->xyz,k2,0,0,2);
+	  dx = x1-x2;
+	  dy = y1-y2;
+	  dz = z1-z2;
+	  dist = sqrt(dx*dx + dy*dy + dz*dz);
+	  if(dist < wbc->distthresh) q = 1; // short dist
+	  else                       q = 2; // long dist
+	}
+	else q = 2; // long dist
+	n = MRIgetVoxVal(conth[thno],k1,0,0,q);
+	MRIsetVoxVal(conth[thno],k1,0,0,q,n+1);
+	n = MRIgetVoxVal(conth[thno],k2,0,0,q);
+	MRIsetVoxVal(conth[thno],k2,0,0,q,n+1);
+      } // k2
+    } // k1
+  } // thread
 
   // Sum up the threads
   for(threadno=0; threadno < nthreads; threadno++)
@@ -463,14 +556,13 @@ MRI *WholeBrainCon(WBC *wbc)
   MRImultiplyConst(wbc->con,1.0/wbc->ntot,wbc->con);
 
   // Clean up
-  for(threadno=0; threadno < nthreads; threadno++){
+  for(threadno=0; threadno < nthreads; threadno++)
     MRIfree(&conth[threadno]);
-    free(k1thread[threadno]);
-    free(k2thread[threadno]);
-  }
+  free(k1a);
+  free(k1b);
+  free(k2a);
+  free(k2b);
   free(conth);
-  free(k1thread);
-  free(k2thread);
   for(k1 = 0; k1 < wbc->ntot; k1++) free(pf[k1]);
   free(pf);
 
@@ -483,6 +575,10 @@ int WBCprep(WBC *wbc)
   int nthvox, c, r, s, t, k, vtxno;
   MATRIX *V, *crs, *xyz=NULL;
   double val;
+
+  if(wbc->fvol) wbc->nframes = wbc->fvol->nframes;
+  else if(wbc->flh) wbc->nframes = wbc->flh->nframes;
+  else if(wbc->frh) wbc->nframes = wbc->frh->nframes;
 
   if(wbc->lhlabel) wbc->lhmask = MRISlabel2Mask(wbc->lh,wbc->lhlabel,NULL);
   if(wbc->rhlabel) wbc->rhmask = MRISlabel2Mask(wbc->rh,wbc->lhlabel,NULL);
@@ -509,7 +605,7 @@ int WBCprep(WBC *wbc)
   wbc->coordtype = MRIalloc(wbc->ntot,1,1,MRI_INT);
   wbc->vertexno  = MRIalloc(wbc->ntot,1,1,MRI_INT);
   wbc->xyz       = MRIallocSequence(wbc->ntot,1,1,MRI_FLOAT,3);
-  wbc->f = MRIallocSequence(wbc->ntot,1,1,MRI_FLOAT,wbc->fvol->nframes);
+  wbc->f = MRIallocSequence(wbc->ntot,1,1,MRI_FLOAT,wbc->nframes);
 
   nthvox = 0;
   if(wbc->fvol){
@@ -526,7 +622,7 @@ int WBCprep(WBC *wbc)
 	  crs->rptr[3][1] = s;
 	  xyz = MatrixMultiplyD(V,crs,xyz);
 	  for(k=0; k < 3; k++) MRIsetVoxVal(wbc->xyz,nthvox,0,0,k, xyz->rptr[k+1][1]);
-	  for(t=0; t < wbc->fvol->nframes; t++){
+	  for(t=0; t < wbc->nframes; t++){
 	    val = MRIgetVoxVal(wbc->fvol,c,r,s,t);
 	    MRIsetVoxVal(wbc->f,nthvox,0,0,t,val);
 	  } // time
@@ -630,4 +726,55 @@ int WBCfinish(WBC *wbc)
   }
   return(0);
 }
+
+/*!
+  \fn int Index2UpperSubscript(int N, long i, int *r, int *c)
+  \brief Computes the row and col of the ith index in an upper
+  triangular matrix ignoring the diagonal and lower triangular
+  components. The application for this involves evaluating pairs
+  of items in a list excluding self-comparisons (diag) and 
+  reverse comparisons (lower). See also Index2UpperSubscriptTest().
+  Row, col, and index are all 0-based.
+ */
+int Index2UpperSubscript(int N, long i, int *r, int *c)
+{
+  long i1,r1,c1,ir1;
+  i1 = i + 1;
+  r1 = ceil((-(1-2.0*N) - sqrt( pow((1-2.0*N),2) - 8.0*i1))/2.0);
+  ir1 = N*r1 - (r1*(r1+1))/2;
+  c1 = N - (ir1-i1);
+  *r = r1 - 1;
+  *c = c1 - 1;
+  return(0);
+}
+
+/*!
+  \fn int Index2UpperSubscriptTest(int N)
+  \brief Test for Index2UpperSubscript()
+ */
+int Index2UpperSubscriptTest(int N)
+{
+  int r, c, rt, ct;
+  long i,err;
+
+  printf("Index2UpperSubscriptTest(): N = %d\n",N);
+  err = 0;
+  i = 0;
+  for(r=0; r < N-1; r++){
+    for(c=r+1; c < N; c++){
+      Index2UpperSubscript(N, i, &rt, &ct);
+      if(r != rt || c != ct) {
+	err++;
+	printf("ERROR: %4d %4d %4ld  %4d %4d\n",r,c,i,rt,ct);
+      }
+      i = i + 1;
+    }
+  }
+  printf("Found %ld errors\n",err);
+  if(err) return(1);
+
+  return(0);
+}
+
+
 
