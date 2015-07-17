@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/07/16 19:41:39 $
- *    $Revision: 1.4 $
+ *    $Date: 2015/07/17 19:18:30 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "macros.h"
 #include "utils.h"
@@ -51,13 +53,28 @@
 #include "timer.h"
 #include "mrimorph.h"
 #include "fmriutils.h"
+#include "fsenv.h"
+#include "matfile.h"
+#include "icosahedron.h"
+
+typedef struct {
+  double distthresh;
+  int nframes,voldim;
+  double volres,*wf;
+  int nshorttarg[2],nlongtarg[2];
+  int nshort[2],nlong[2];
+  int nshortvol,nlongvol;
+  int v0,c0,r0,s0,c2;
+  int ForceFail;
+} WBCSYNTH;
 
 typedef struct {
   MRI *fvol, *flh, *frh;
+  int nframes;
   MRIS *lh, *rh, *lhsph, *rhsph;
   LABEL *lhlabel, *rhlabel;
   MRI *volmask, *lhmask, *rhmask;
-  int nvolmask, nlhmask, nrhmask, ntot,nframes;
+  int nvolmask, nlhmask, nrhmask, ntot;
   MRI *volcon, *lhcon, *rhcon;
   MRI *volconS, *lhconS, *rhconS;
   MRI *volconL, *lhconL, *rhconL;
@@ -68,13 +85,18 @@ typedef struct {
   int DoDist;
   double distthresh;
   MRI *con,*conS,*conL;
-  int DoMat;
+  int DoMat,DoTest;
   MATRIX *M;
+  WBCSYNTH *wbcsynth;
 } WBC;
 
 MRI *WholeBrainCon(WBC *wbc);
 int WBCfinish(WBC *wbc);
 int WBCprep(WBC *wbc);
+int WBCnframes(WBC *wbc);
+int WBCsynth(WBC *wbc);
+WBC *WBCtestSynth(WBC *wbc);
+int WBCtestCheck(WBC *wbc);
 int Index2UpperSubscript(int N, long i, int *r, int *c);
 int Index2UpperSubscriptTest(int seed);
 
@@ -87,7 +109,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_wbc.c,v 1.4 2015/07/16 19:41:39 greve Exp $";
+static char vcid[] = "$Id: mri_wbc.c,v 1.5 2015/07/17 19:18:30 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -103,11 +125,13 @@ typedef struct {
   int nrholist;
   double distthresh;
   int DoDist;
+  char *outdir;
   char *volcon, *lhcon, *rhcon;
   char *volconS, *lhconS, *rhconS;
   char *volconL, *lhconL, *rhconL;
   int DoMat;
   char *matfile;
+  int DoTest,ForceFail,SaveTest;
 } CMDARGS;
 
 CMDARGS *cmdargs;
@@ -122,6 +146,7 @@ int main(int argc, char *argv[]) {
   cmdargs->DoDist = 0;
   cmdargs->DoMat = 0;
   cmdargs->nrholist = 0;
+  cmdargs->ForceFail = 0;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -141,6 +166,15 @@ int main(int argc, char *argv[]) {
   if (checkoptsonly) return(0);
   dump_options(stdout);
 
+  if(cmdargs->outdir){
+    err = mkdir(cmdargs->outdir,0777);
+    if(err != 0 && errno != EEXIST) {
+      printf("ERROR: creating directory %s\n",cmdargs->outdir);
+      perror(NULL);
+      exit(1);
+    }
+  }
+
   wbc = calloc(sizeof(WBC),1);
   wbc->distthresh = cmdargs->distthresh;
   wbc->DoDist = cmdargs->DoDist;
@@ -148,47 +182,74 @@ int main(int argc, char *argv[]) {
   for(n=0; n < cmdargs->nrholist; n++)
     wbc->rholist[n] = cmdargs->rholist[n];
   wbc->nrholist = cmdargs->nrholist;
+  wbc->DoTest = cmdargs->DoTest;
 
-  if(cmdargs->fvol){
-    wbc->fvol = MRIread(cmdargs->fvol);
-    if(wbc->fvol == NULL) exit(1);
-  }
-  if(cmdargs->volmask){
-    wbc->volmask = MRIread(cmdargs->volmask);
-    if(wbc->volmask == NULL) exit(1);
-  }
-  if(cmdargs->flh){
-    wbc->flh = MRIread(cmdargs->flh);
-    if(wbc->flh == NULL) exit(1);
-    wbc->lh  = MRISread(cmdargs->lhsurface);
-    if(wbc->lh == NULL) exit(1);
-    if(cmdargs->lhlabel){
-      wbc->lhlabel = LabelRead(NULL, cmdargs->lhlabel);
-      if(wbc->lhlabel == NULL) exit(1);
+  if(wbc->DoTest == 0){
+    if(cmdargs->fvol){
+      wbc->fvol = MRIread(cmdargs->fvol);
+      if(wbc->fvol == NULL) exit(1);
     }
-    if(cmdargs->lhmask){
-      wbc->lhmask = MRIread(cmdargs->lhmask);
-      if(wbc->lhmask == NULL) exit(1);
+    if(cmdargs->volmask){
+      wbc->volmask = MRIread(cmdargs->volmask);
+      if(wbc->volmask == NULL) exit(1);
+    }
+    if(cmdargs->flh){
+      wbc->flh = MRIread(cmdargs->flh);
+      if(wbc->flh == NULL) exit(1);
+      wbc->lh  = MRISread(cmdargs->lhsurface);
+      if(wbc->lh == NULL) exit(1);
+      if(cmdargs->lhlabel){
+	wbc->lhlabel = LabelRead(NULL, cmdargs->lhlabel);
+	if(wbc->lhlabel == NULL) exit(1);
+      }
+      if(cmdargs->lhmask){
+	wbc->lhmask = MRIread(cmdargs->lhmask);
+	if(wbc->lhmask == NULL) exit(1);
+      }
+    }
+    if(cmdargs->frh){
+      wbc->frh = MRIread(cmdargs->frh);
+      if(wbc->frh == NULL) exit(1);
+      wbc->rh  = MRISread(cmdargs->rhsurface);
+      if(wbc->rh == NULL) exit(1);
+      if(cmdargs->rhlabel){
+	wbc->rhlabel = LabelRead(NULL, cmdargs->rhlabel);
+	if(wbc->rhlabel == NULL) exit(1);
+      }
+      if(cmdargs->rhmask){
+	wbc->rhmask = MRIread(cmdargs->rhmask);
+	if(wbc->rhmask == NULL) exit(1);
+      }
     }
   }
-  if(cmdargs->frh){
-    wbc->frh = MRIread(cmdargs->frh);
-    if(wbc->frh == NULL) exit(1);
-    wbc->rh  = MRISread(cmdargs->rhsurface);
-    if(wbc->rh == NULL) exit(1);
-    if(cmdargs->rhlabel){
-      wbc->rhlabel = LabelRead(NULL, cmdargs->rhlabel);
-      if(wbc->rhlabel == NULL) exit(1);
-    }
-    if(cmdargs->rhmask){
-      wbc->rhmask = MRIread(cmdargs->rhmask);
-      if(wbc->rhmask == NULL) exit(1);
-    }
+  else {
+    wbc->wbcsynth = (WBCSYNTH *)calloc(sizeof(WBCSYNTH),1);
+    wbc->wbcsynth->volres = 3.5;
+    wbc->wbcsynth->voldim = 32;
+    wbc->wbcsynth->nframes = 5;
+    wbc->wbcsynth->nshorttarg[0] = 10;
+    wbc->wbcsynth->nlongtarg[0] = 20;
+    wbc->wbcsynth->nshorttarg[1] = 15;
+    wbc->wbcsynth->nlongtarg[1] = 25;
+    wbc->wbcsynth->ForceFail = cmdargs->ForceFail;
+    WBCtestSynth(wbc);
   }
+
+  err = WBCnframes(wbc);
+  if(err) exit(1);
 
   WBCprep(wbc);
   WholeBrainCon(wbc);
   WBCfinish(wbc);
+
+  if(wbc->DoMat){
+    printf("Writing matfile %s\n",cmdargs->matfile);
+    err = MatlabWrite(wbc->M,cmdargs->matfile,"M");
+    if(err) exit(1);    
+  }
+  if(wbc->DoTest){
+    err = WBCtestCheck(wbc);
+  }
 
   if(cmdargs->volcon){
     err = MRIwrite(wbc->volcon,cmdargs->volcon);
@@ -221,11 +282,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  if(wbc->DoMat){
-    err = MatrixWriteTxt(cmdargs->matfile,wbc->M);
-    if(err) exit(1);    
-  }
-
   exit(0);
 }
 
@@ -256,6 +312,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--fvol")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->fvol = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--o")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->outdir = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--volmask")) {
@@ -352,7 +413,6 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->rhconL = pargv[0];
       nargsused = 1;
     } 
-
     else if (!strcasecmp(option, "--mat")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->matfile = pargv[0];
@@ -367,6 +427,20 @@ static int parse_commandline(int argc, char **argv) {
       exit(err);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--test")) {
+      cmdargs->DoTest = 1;
+      nargsused = 0;
+    }
+    else if (!strcasecmp(option, "--test-fail")) {
+      cmdargs->DoTest = 1;
+      cmdargs->ForceFail = 1;
+      nargsused = 0;
+    }
+    else if (!strcasecmp(option, "--save-test")) {
+      cmdargs->DoTest = 1;
+      cmdargs->SaveTest = 1;
+      nargsused = 0;
+    }
     else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
       if(nargc < 1) CMDargNErr(option,1);
       int nthreads;
@@ -376,6 +450,13 @@ static int parse_commandline(int argc, char **argv) {
       #endif
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--diag")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&Gdiag_no);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--diag-show"))    Gdiag = (Gdiag & DIAG_SHOW);
+    else if (!strcasecmp(option, "--diag-verbose")) Gdiag = (Gdiag & DIAG_VERBOSE);
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -432,33 +513,46 @@ static void print_version(void) {
 }
 /* -------------------------------------------------------- */
 static void check_options(void) {
-  if(cmdargs->fvol == NULL && cmdargs->flh == NULL && cmdargs->frh == NULL){
+  char tmpstr[2000];
+  if((cmdargs->outdir == NULL && !cmdargs->DoTest) || 
+     (cmdargs->outdir == NULL && cmdargs->SaveTest)){
+    printf("ERROR: no output\n");
+    exit(1);
+  }
+  if(cmdargs->fvol == NULL && cmdargs->flh == NULL && 
+     cmdargs->frh == NULL && !cmdargs->DoTest){
     printf("ERROR: no input\n");
     exit(1);
   }
-  if(cmdargs->fvol == NULL && cmdargs->volcon != NULL){
-    printf("ERROR: cannot have --volcon without --fvol\n");
-    exit(1);
+  if(cmdargs->fvol != NULL || cmdargs->SaveTest){
+    sprintf(tmpstr,"%s/vol.con.nii.gz",cmdargs->outdir);
+    cmdargs->volcon = strcpyalloc(tmpstr);
+    if(cmdargs->DoDist){
+      sprintf(tmpstr,"%s/vol.conS.nii.gz",cmdargs->outdir);
+      cmdargs->volconS = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/vol.conL.nii.gz",cmdargs->outdir);
+      cmdargs->volconL = strcpyalloc(tmpstr);
+    }
   }
-  if(cmdargs->fvol != NULL && cmdargs->volcon == NULL){
-    printf("ERROR: need --volcon output with --fvol\n");
-    exit(1);
+  if(cmdargs->flh != NULL || cmdargs->SaveTest){
+    sprintf(tmpstr,"%s/lh.con.nii.gz",cmdargs->outdir);
+    cmdargs->lhcon = strcpyalloc(tmpstr);
+    if(cmdargs->DoDist){
+      sprintf(tmpstr,"%s/lh.conS.nii.gz",cmdargs->outdir);
+      cmdargs->lhconS = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/lh.conL.nii.gz",cmdargs->outdir);
+      cmdargs->lhconL = strcpyalloc(tmpstr);
+    }
   }
-  if(cmdargs->flh == NULL && cmdargs->lhcon != NULL){
-    printf("ERROR: cannot have --lhcon without --lh\n");
-    exit(1);
-  }
-  if(cmdargs->flh != NULL && cmdargs->lhcon == NULL){
-    printf("ERROR: need --lhcon output with --lh\n");
-    exit(1);
-  }
-  if(cmdargs->frh == NULL && cmdargs->rhcon != NULL){
-    printf("ERROR: cannot have --rhcon without --rh\n");
-    exit(1);
-  }
-  if(cmdargs->frh != NULL && cmdargs->rhcon == NULL){
-    printf("ERROR: need --rhcon output with --rh\n");
-    exit(1);
+  if(cmdargs->frh != NULL || cmdargs->SaveTest){
+    sprintf(tmpstr,"%s/rh.con.nii.gz",cmdargs->outdir);
+    cmdargs->rhcon = strcpyalloc(tmpstr);
+    if(cmdargs->DoDist){
+      sprintf(tmpstr,"%s/rh.conS.nii.gz",cmdargs->outdir);
+      cmdargs->rhconS = strcpyalloc(tmpstr);
+      sprintf(tmpstr,"%s/rh.conL.nii.gz",cmdargs->outdir);
+      cmdargs->rhconL = strcpyalloc(tmpstr);
+    }
   }
   if(cmdargs->nrholist == 0){
     cmdargs->rholist[0] = 0.2;
@@ -512,8 +606,11 @@ MRI *WholeBrainCon(WBC *wbc)
   #endif
   npairs = (long)wbc->ntot*(wbc->ntot-1)/2;
   nperthread0 = nint((double)npairs/nthreads - 1);
-  printf("ntot = %d, nthreads = %d, npairs = %ld, nperthread0 = %ld\n",wbc->ntot,nthreads,npairs,nperthread0);
+  if(nperthread0 <= 0) nperthread0 = 1;
+  printf("ntot = %d, nthreads = %d, npairs = %ld, nperthread0 = %ld\n",
+	 wbc->ntot,nthreads,npairs,nperthread0);
 
+  // Compute number of pairs per thread
   nperthread = (long *) calloc(sizeof(long),nthreads);
   ntot = 0;
   for(threadno=0; threadno < nthreads; threadno++){
@@ -521,14 +618,8 @@ MRI *WholeBrainCon(WBC *wbc)
     ntot += nperthread0;
   }
   if(ntot != npairs) nperthread[nthreads-1] += npairs-ntot;
-  // This is just a test
-  ntot = 0;
-  for(threadno=0; threadno < nthreads; threadno++){
-    printf("thread %d %ld\n",threadno,nperthread[threadno]);
-    ntot += nperthread[threadno];
-  }
-  printf("ntotpairs = %ld vs npairs %ld, diff %ld\n",ntot,npairs,ntot-npairs); // should be equal
 
+  // Allocate con volumes for each thread
   conth = (MRI **) calloc(sizeof(MRI*),nthreads);
   if(wbc->DoDist){
     conSth = (MRI **) calloc(sizeof(MRI*),nthreads);
@@ -541,6 +632,14 @@ MRI *WholeBrainCon(WBC *wbc)
       conLth[threadno] = MRIallocSequence(wbc->ntot, 1,1, MRI_FLOAT, wbc->nrholist);
     }
   }
+
+  // This is just a test
+  ntot = 0;
+  for(threadno=0; threadno < nthreads; threadno++){
+    printf("thread %d %ld\n",threadno,nperthread[threadno]);
+    ntot += nperthread[threadno];
+  }
+  printf("ntotpairs = %ld vs npairs %ld, diff %ld\n",ntot,npairs,ntot-npairs); // should be equal
 
   k1a = (int *)calloc(sizeof(int),nthreads);
   k1b = (int *)calloc(sizeof(int),nthreads);
@@ -657,11 +756,11 @@ MRI *WholeBrainCon(WBC *wbc)
   }
 
   // Divide number of connections by total possible
-  printf("Scaling by ntot %d\n",wbc->ntot);
-  MRImultiplyConst(wbc->con,1.0/wbc->ntot,wbc->con);
+  printf("Scaling by ntot-1 %d\n",wbc->ntot-1);
+  MRImultiplyConst(wbc->con,1.0/(wbc->ntot-1),wbc->con);
   if(wbc->DoDist){
-    MRImultiplyConst(wbc->conS,1.0/wbc->ntot,wbc->conS);
-    MRImultiplyConst(wbc->conL,1.0/wbc->ntot,wbc->conL);
+    MRImultiplyConst(wbc->conS,1.0/(wbc->ntot-1),wbc->conS);
+    MRImultiplyConst(wbc->conL,1.0/(wbc->ntot-1),wbc->conL);
   }
 
   // Clean up
@@ -723,6 +822,12 @@ int WBCprep(WBC *wbc)
 
   nthvox = 0;
   if(wbc->fvol){
+    // Not sure it is necessary/useful to map into a particular mm space as
+    // long as it is a mm space so the distance threshold is right. This tkreg
+    // space does not match that of the surface, but this should be ok becase
+    // we never compute the distance from volume to surface, it is always
+    // long distance. If this turns out not to be the case, then will need
+    // a registraion matrix
     V = MRIxfmCRS2XYZtkreg(wbc->fvol);
     crs = MatrixAlloc(4,1,MATRIX_REAL);
     crs->rptr[4][1] = 1;
@@ -760,6 +865,7 @@ int WBCprep(WBC *wbc)
 	val = MRIgetVoxVal(wbc->flh,vtxno,0,0,t);
 	MRIsetVoxVal(wbc->f,nthvox,0,0,t,val);
       } // time
+      nthvox ++;
     } // vertex
   }
   if(wbc->frh){
@@ -774,6 +880,7 @@ int WBCprep(WBC *wbc)
 	val = MRIgetVoxVal(wbc->frh,vtxno,0,0,t);
 	MRIsetVoxVal(wbc->f,nthvox,0,0,t,val);
       } // time
+      nthvox ++;
     } // vertex
   }
 
@@ -850,6 +957,7 @@ int WBCfinish(WBC *wbc)
 	  MRIsetVoxVal(wbc->lhconL,vtxno,0,0,nthrho,val);
 	}
       } // rho
+      nthvox ++;
     } // vertex
   }
   if(wbc->frh){
@@ -876,6 +984,7 @@ int WBCfinish(WBC *wbc)
 	  MRIsetVoxVal(wbc->rhconL,vtxno,0,0,nthrho,val);
 	}
       } // rho
+      nthvox ++;
     } // vertex
   }
   return(0);
@@ -930,5 +1039,297 @@ int Index2UpperSubscriptTest(int N)
   return(0);
 }
 
+/*!
+  \fn int WBCnframes(WBC *wbc)
+  \brief get the number of frames and checks that all are
+  consistent. Returns 0 if ok, 1 if an error.
+ */
+int WBCnframes(WBC *wbc)
+{
+  if(wbc->fvol){
+    wbc->nframes = wbc->fvol->nframes;
+    if(wbc->flh){
+      if(wbc->fvol->nframes != wbc->flh->nframes){
+	printf("ERROR: nframes mismatch fvol and flh %d %d\n",
+	       wbc->fvol->nframes,wbc->flh->nframes);
+	return(1);
+      }
+    }
+    if(wbc->frh){
+      if(wbc->fvol->nframes != wbc->frh->nframes){
+	printf("ERROR: nframes mismatch fvol and frh %d %d\n",
+	       wbc->fvol->nframes,wbc->frh->nframes);
+	return(1);
+      }
+    }
+  }
+  if(wbc->flh && wbc->frh){
+    wbc->nframes = wbc->flh->nframes;
+    if(wbc->flh->nframes != wbc->frh->nframes){
+      printf("ERROR: nframes mismatch flh and frh %d %d\n",
+	     wbc->flh->nframes,wbc->frh->nframes);
+      return(1);
+    }
+  }
+  printf("nframes = %d\n",wbc->nframes);
+  return(0);
+}
+
+WBC *WBCtestSynth(WBC *wbc)
+{
+  FSENV *fsenv;
+  double x0,y0,z0,x,y,z,dx,dy,dz,d,volres,*wf,dmax;
+  int nshort,nlong,t,vno,hemi,voldim,nframes,c0,r0,s0,c2;
+  char tmpstr[2000],*hemistr;
+  MRIS *surf;
+  MRI *func,*mask;
+
+  fsenv = FSENVgetenv();
+  volres = wbc->wbcsynth->volres;
+  voldim = wbc->wbcsynth->voldim;
+  nframes = wbc->wbcsynth->nframes;
+  wbc->nframes = nframes;
+
+  if(wbc->wbcsynth->ForceFail) wbc->wbcsynth->distthresh = 2*wbc->distthresh;
+  else                         wbc->wbcsynth->distthresh = wbc->distthresh;
+
+  dmax = 0;
+  //if(fabs(wbc->distthresh - wbc->wbcsynth->distthresh) < .00001) dmax = 10e10;
+
+  // create synthetic time seriesa
+  wf = (double *) calloc(sizeof(double),wbc->nframes);
+  for(t=0; t < wbc->nframes; t++) wf[t] = drand48()-0.5;
+  wbc->wbcsynth->wf = wf;
+
+  wbc->fvol = MRIallocSequence(voldim,voldim,voldim,MRI_FLOAT,wbc->nframes);
+  wbc->fvol->xsize = volres;
+  wbc->fvol->ysize = volres;
+  wbc->fvol->zsize = volres;
+  wbc->fvol->tr    = 2000;
+
+  wbc->volmask = MRIallocSequence(voldim,voldim,voldim,MRI_FLOAT,1);
+  wbc->volmask->xsize = volres;
+  wbc->volmask->ysize = volres;
+  wbc->volmask->zsize = volres;
+  wbc->volmask->tr    = 2000;
+
+  c0 = nint(wbc->fvol->width/2.0);
+  r0 = nint(wbc->fvol->height/2.0);
+  s0 = nint(wbc->fvol->depth/2.0);
+  // Column for "long" connections
+  c2 = c0 + ceil(wbc->wbcsynth->distthresh/volres)+1;
+  if(wbc->wbcsynth->ForceFail) c2 = c0 + floor(wbc->distthresh/volres)-1;
+  printf("synth vol: %d %d %d, c2=%d, res=%lf, dim=%d\n",
+	 c0,r0,s0,c2,volres,voldim);
+  wbc->wbcsynth->c0 = c0;
+  wbc->wbcsynth->r0 = r0;
+  wbc->wbcsynth->s0 = s0;
+  wbc->wbcsynth->c2 = c2;
+  for(t=0; t < wbc->nframes; t++){
+    // Set crs0 to have 2 short connections 
+    MRIsetVoxVal(wbc->fvol,c0,r0,s0,t,wf[t]);
+    MRIsetVoxVal(wbc->fvol,c0,r0+1,s0,t,wf[t]);
+    MRIsetVoxVal(wbc->fvol,c0,r0-1,s0,t,wf[t]);
+    // and 2 longs plus the longs from the surfaces
+    MRIsetVoxVal(wbc->fvol,c2,r0,s0,t,wf[t]);
+    MRIsetVoxVal(wbc->fvol,c2,r0+1,s0,t,wf[t]);
+    if(wbc->wbcsynth->ForceFail) MRIsetVoxVal(wbc->fvol,c2,r0+1,s0+1,t,wf[t]);
+  }
+  MRIsetVoxVal(wbc->volmask,c0,r0,s0,0,1);
+  MRIsetVoxVal(wbc->volmask,c0,r0+1,s0,0,1);
+  MRIsetVoxVal(wbc->volmask,c0,r0-1,s0,0,1);
+  MRIsetVoxVal(wbc->volmask,c2,r0,s0,0,1);
+  MRIsetVoxVal(wbc->volmask,c2,r0+1,s0,0,1);
+  MRIsetVoxVal(wbc->volmask,c2,r0+1,s0+1,0,1);   // mask but no signal, unless ForceFail
+  MRIsetVoxVal(wbc->volmask,c2,r0+1,s0-1,0,1); // mask but no signal
+  wbc->wbcsynth->nshortvol = 2; // number of short con to/from crs0
+  wbc->wbcsynth->nlongvol = 2;  // number of long con to/from crs0
+
+  wbc->wbcsynth->v0 = 0;
+  for(hemi = 0; hemi < 2; hemi++){
+    if(hemi == 0) hemistr = "lh";
+    else          hemistr = "rh";
+
+    sprintf(tmpstr,"%s/subjects/fsaverage/surf/%s.white",fsenv->FREESURFER_HOME,hemistr);
+    surf = MRISread(tmpstr);
+    //sprintf(tmpstr,"%s/subjects/fsaverage/label/%s.aparc.annot",fsenv->FREESURFER_HOME,hemistr);
+    //err = MRISreadAnnotation(surf, tmpstr);
+
+    func = MRIallocSequence(surf->nvertices,1,1,MRI_FLOAT,wbc->nframes);
+    func->tr = 2000;
+    mask = MRIallocSequence(surf->nvertices,1,1,MRI_FLOAT,1);
+
+    // set the first vertex waveform
+    MRIsetVoxVal(mask,0,0,0,0,1);
+    for(t=0; t < wbc->nframes; t++) MRIsetVoxVal(func,0,0,0,t,wf[t]);
+    
+    x0 = surf->vertices[0].x;
+    y0 = surf->vertices[0].y;
+    z0 = surf->vertices[0].z;
+    nshort = 0;
+    nlong  = 0;
+    for(vno = 0; vno < surf->nvertices; vno++){
+      x = surf->vertices[vno].x;
+      y = surf->vertices[vno].y;
+      z = surf->vertices[vno].z;
+      dx = (x-x0);
+      dy = (y-y0);
+      dz = (z-z0);
+      d = sqrt(dx*dx + dy*dy + dz*dz);
+      if(d < .9*wbc->wbcsynth->distthresh && nshort < wbc->wbcsynth->nshorttarg[hemi]){
+	for(t=0; t < wbc->nframes; t++) MRIsetVoxVal(func,vno,0,0,t,wf[t]);
+	MRIsetVoxVal(mask,vno,0,0,0,1);
+	//printf("%s short %d %d\n",hemistr,nshort,vno);
+	nshort ++;
+      }
+      if(d > 1.1*wbc->wbcsynth->distthresh && nlong < wbc->wbcsynth->nlongtarg[hemi]){
+	for(t=0; t < wbc->nframes; t++) MRIsetVoxVal(func,vno,0,0,t,wf[t]);
+	MRIsetVoxVal(mask,vno,0,0,0,1);
+	//printf("%s long %d %d\n",hemistr,nlong,vno);
+	nlong ++;
+      }
+    }
+    wbc->wbcsynth->nshort[hemi] = nshort - 1; // remove self
+    wbc->wbcsynth->nlong[hemi] = nlong;
+    printf("%s short %d long %d\n",hemistr,nshort,nlong);
+    if(hemi == 0) {
+      wbc->lh = surf;
+      wbc->flh = func;
+      wbc->lhmask = mask;
+    }
+    else {
+      wbc->rh = surf;
+      wbc->frh = func;
+      wbc->rhmask = mask;
+    }
+  } // hemi
 
 
+  return(wbc);
+}
+
+int WBCtestCheck(WBC *wbc)
+{
+  int n,nexp,v0,c0,r0,s0,err;
+
+  v0 = wbc->wbcsynth->v0;
+  c0 = wbc->wbcsynth->c0;
+  r0 = wbc->wbcsynth->r0;
+  s0 = wbc->wbcsynth->s0;
+
+  printf("WBCtestCheck(): ------------\n");
+  printf("Vol short=%d, long=%d\n",wbc->wbcsynth->nshortvol,wbc->wbcsynth->nlongvol);
+  printf("LH short=%d, long=%d\n",wbc->wbcsynth->nshort[0],wbc->wbcsynth->nlong[0]);
+  printf("RH short=%d, long=%d\n",wbc->wbcsynth->nshort[1],wbc->wbcsynth->nlong[1]);
+  printf("DistThresh: wbc = %lf, synth = %lf\n",wbc->distthresh,wbc->wbcsynth->distthresh);
+  printf("ForceFail: %d\n",wbc->wbcsynth->ForceFail);
+
+  err = 0;
+
+  // expected number of cons from lhv0, rhv0, or crs0 to/from everyone else
+  nexp = wbc->wbcsynth->nshortvol + wbc->wbcsynth->nlongvol +
+    wbc->wbcsynth->nshort[0] + wbc->wbcsynth->nlong[0] +
+    wbc->wbcsynth->nshort[1] + wbc->wbcsynth->nlong[1];
+  // The above numbers exclude self from the shorts. There are 3 "selves"
+  // so add 3, but then subtract one to account for the self for which
+  // the comutation is being done, so +2.
+  nexp += 2;
+  printf("Expecting %d total connections\n",nexp);
+  n = nint(MRIgetVoxVal(wbc->volcon,c0,r0,s0,0)*(wbc->ntot-1));
+  printf("  Vol %d ",n);
+  if(n != nexp){
+    printf(" ERROR\n");
+    err++;
+  } else  printf(" PASS\n");
+  n = nint(MRIgetVoxVal(wbc->lhcon,v0,0,0,0)*(wbc->ntot-1));
+  printf("  lh %d ",n);
+  if(n != nexp){
+    printf(" ERROR\n");
+    err++;
+  } else  printf(" PASS\n");
+  n = nint(MRIgetVoxVal(wbc->rhcon,v0,0,0,0)*(wbc->ntot-1));
+  printf("  rh %d ",n);
+  if(n != nexp){
+    printf(" ERROR\n");
+    err++;
+  } else  printf(" PASS\n");
+
+  nexp = wbc->wbcsynth->nshortvol;
+  printf("Volume short: expecting %3d  ",nexp);
+  n = nint(MRIgetVoxVal(wbc->volconS,c0,r0,s0,0)*(wbc->ntot-1));
+  printf("found %4d ",n);
+  if(n != nexp){
+    printf(" ERROR\n");
+    err++;
+  } else  printf(" PASS\n");
+
+  nexp = wbc->wbcsynth->nlongvol +
+    wbc->wbcsynth->nshort[0] + wbc->wbcsynth->nlong[0] +
+    wbc->wbcsynth->nshort[1] + wbc->wbcsynth->nlong[1];
+  nexp += 2;
+  printf("Volume long:  expecting %3d  ",nexp);
+  n = nint(MRIgetVoxVal(wbc->volconL,c0,r0,s0,0)*(wbc->ntot-1));
+  printf("found %4d ",n);
+  if(n != nexp){
+    printf(" ERROR\n");
+    err++;
+  } else  printf(" PASS\n");
+
+  nexp = wbc->wbcsynth->nshort[0];
+  printf("lh short:       expecting %3d  ",nexp);
+  n = nint(MRIgetVoxVal(wbc->lhconS,v0,0,0,0)*(wbc->ntot-1));
+  printf("found %4d ",n);
+  if(n != nexp){
+    printf(" ERROR\n");
+    err++;
+  } else  printf(" PASS\n");
+
+  nexp = wbc->wbcsynth->nshortvol + wbc->wbcsynth->nlongvol +
+    wbc->wbcsynth->nlong[0] +
+    wbc->wbcsynth->nshort[1] + wbc->wbcsynth->nlong[1];
+  nexp += 2;
+  printf("lh long:        expecting %3d  ",nexp);
+  n = nint(MRIgetVoxVal(wbc->lhconL,v0,0,0,0)*(wbc->ntot-1));
+  printf("found %4d ",n);
+  if(n != nexp){
+    printf(" ERROR\n");
+    err++;
+  } else  printf(" PASS\n");
+
+  nexp = wbc->wbcsynth->nshort[1];
+  printf("rh short:       expecting %3d  ",nexp);
+  n = nint(MRIgetVoxVal(wbc->rhconS,v0,0,0,0)*(wbc->ntot-1));
+  printf("found %4d ",n);
+  if(n != nexp){
+    printf(" ERROR\n");
+    err++;
+  } else  printf(" PASS\n");
+
+  nexp = wbc->wbcsynth->nshortvol + wbc->wbcsynth->nlongvol +
+    wbc->wbcsynth->nshort[0] + wbc->wbcsynth->nlong[0] +
+    wbc->wbcsynth->nlong[1];
+  nexp += 2;
+  printf("rh long:        expecting %3d  ",nexp);
+  n = nint(MRIgetVoxVal(wbc->rhconL,v0,0,0,0)*(wbc->ntot-1));
+  printf("found %4d ",n);
+  if(n != nexp){
+    printf(" ERROR\n");
+    err++;
+  } else  printf(" PASS\n");
+
+  if(err){
+    printf("Overall FAILED with %d errors\n",err);
+    if(wbc->wbcsynth->ForceFail){
+      printf(" ... but, a failure was forced, so this is a good thing\n");
+      if(err != 9){
+	printf(" ... however, expected 9 errors but got %d\n",err);
+	return(err);
+      }
+      return(0);
+    }
+    return(err);
+  }
+
+  printf("Overall PASS\n");
+  return(0);
+}
