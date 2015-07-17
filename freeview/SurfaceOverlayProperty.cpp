@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/05/05 18:53:39 $
- *    $Revision: 1.9 $
+ *    $Date: 2015/07/17 16:20:35 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -246,8 +246,7 @@ void SurfaceOverlayProperty::SetColorScale( int nScale )
     {
       QColor c = m_customScale.at(i).second;
       m_lut->AddRGBAPoint(m_customScale.at(i).first + m_dOffset, c.redF(), c.greenF(), c.blueF(), 1);
-    }  SetColorScale(m_nColorScale);
-
+    }
   }
 
   m_lut->Build();
