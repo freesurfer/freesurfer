@@ -7,9 +7,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/07/17 19:18:30 $
- *    $Revision: 1.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/07/21 15:01:51 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,14 +71,14 @@ typedef struct {
 typedef struct {
   MRI *fvol, *flh, *frh;
   int nframes;
-  MRIS *lh, *rh, *lhsph, *rhsph;
+  MRIS *lh, *rh, *lh2, *rh2;
   LABEL *lhlabel, *rhlabel;
-  MRI *volmask, *lhmask, *rhmask;
+  MRI *volmask, *lhmask, *rhmask, *lhvtxvol, *rhvtxvol;
   int nvolmask, nlhmask, nrhmask, ntot;
   MRI *volcon, *lhcon, *rhcon;
   MRI *volconS, *lhconS, *rhconS;
   MRI *volconL, *lhconL, *rhconL;
-  MRI *coordtype, *vertexno, *xyz;
+  MRI *coordtype, *vertexno, *xyz, *xyz2, *vvol;
   MRI *f, *fnorm;
   double rholist[100];
   int nrholist;
@@ -109,7 +109,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_wbc.c,v 1.5 2015/07/17 19:18:30 greve Exp $";
+static char vcid[] = "$Id: mri_wbc.c,v 1.7 2015/07/21 15:01:51 zkaufman Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -119,8 +119,8 @@ struct utsname uts;
 typedef struct {
   char *fvol;
   char *volmask;
-  char *flh, *lhsurface, *lhlabel, *lhmask;
-  char *frh, *rhsurface, *rhlabel, *rhmask;
+  char *flh, *lhsurface, *lhsurface2, *lhlabel, *lhmask;
+  char *frh, *rhsurface, *rhsurface2, *rhlabel, *rhmask;
   double rholist[100];
   int nrholist;
   double distthresh;
@@ -206,6 +206,10 @@ int main(int argc, char *argv[]) {
 	wbc->lhmask = MRIread(cmdargs->lhmask);
 	if(wbc->lhmask == NULL) exit(1);
       }
+      if(cmdargs->lhsurface2) {
+	wbc->lh2 = MRISread(cmdargs->lhsurface2);
+	if(wbc->lh2 == NULL) exit(1);
+      }
     }
     if(cmdargs->frh){
       wbc->frh = MRIread(cmdargs->frh);
@@ -219,6 +223,10 @@ int main(int argc, char *argv[]) {
       if(cmdargs->rhmask){
 	wbc->rhmask = MRIread(cmdargs->rhmask);
 	if(wbc->rhmask == NULL) exit(1);
+      }
+      if(cmdargs->rhsurface2) {
+	wbc->rh2 = MRISread(cmdargs->rhsurface2);
+	if(wbc->rh2 == NULL) exit(1);
       }
     }
   }
@@ -329,6 +337,10 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->flh = pargv[0];
       cmdargs->lhsurface = pargv[1];
       nargsused = 2;
+      if(CMDnthIsArg(nargc, pargv, 2)) {
+	cmdargs->lhsurface = pargv[2];
+        nargsused ++;
+      } 
     } 
     else if (!strcasecmp(option, "--lhmask")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -345,6 +357,10 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->frh = pargv[0];
       cmdargs->rhsurface = pargv[1];
       nargsused = 2;
+      if(CMDnthIsArg(nargc, pargv, 2)) {
+	cmdargs->rhsurface = pargv[2];
+        nargsused ++;
+      } 
     } 
     else if (!strcasecmp(option, "--rhmask")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -480,11 +496,11 @@ static void print_usage(void) {
   printf("   --fvol volfile : functional volume\n");
   printf("   --volmask volfile : mask for functional volume \n");
   printf("\n");
-  printf("   --lh lhffile lh.surface : functional surface lh\n");
+  printf("   --lh lhffile lh.surface <lh.inflated>: functional surface lh\n");
   printf("   --lhmask lhfile : mask for lh functional surface\n");
   printf("   --lhlabel lhlabel : label mask for lh functional surface\n");
   printf("\n");
-  printf("   --rh rhffile rh.surface: functional surface rh\n");
+  printf("   --rh rhffile rh.surface <rh.inflated>: functional surface rh\n");
   printf("   --rhmask rhfile : mask for rh functional surface\n");
   printf("   --rhlabel rhlabel : label mask for rh functional surface\n");
   printf("\n");
@@ -578,7 +594,7 @@ static void dump_options(FILE *fp) {
 /*******************************************************************************/
 MRI *WholeBrainCon(WBC *wbc)
 {
-  MRI **conth,**conSth,**conLth;
+  MRI **conth, **conSth=NULL, **conLth=NULL;
   int nthreads,nthrho;
   long nperthread0,*nperthread,ntot;
   int threadno;
@@ -605,7 +621,7 @@ MRI *WholeBrainCon(WBC *wbc)
   nthreads = omp_get_max_threads();
   #endif
   npairs = (long)wbc->ntot*(wbc->ntot-1)/2;
-  nperthread0 = nint((double)npairs/nthreads - 1);
+  nperthread0 = (long)round((double)npairs/nthreads - 1); // don't use nint(), need long
   if(nperthread0 <= 0) nperthread0 = 1;
   printf("ntot = %d, nthreads = %d, npairs = %ld, nperthread0 = %ld\n",
 	 wbc->ntot,nthreads,npairs,nperthread0);
@@ -668,6 +684,7 @@ MRI *WholeBrainCon(WBC *wbc)
   for(threadno = 0; threadno < nthreads; threadno ++){
     int  k1, k2, t, n, thno, q, ct1, ct2;
     int k1start,k1stop,k2start,k2stop,k2min,k2max,nthrho;
+    long nthpair;
     double rho,dx,dy,dz,dist,*pf1,*pf2,x1,y1,z1,x2,y2,z2;
     double rhothresh;
     MRI *conDth;
@@ -681,13 +698,19 @@ MRI *WholeBrainCon(WBC *wbc)
     k2start = k2a[thno];
     k2stop  = k2b[thno];
 
+    nthpair = 0;
     for(k1=k1start; k1<=k1stop; k1++){
       if(k1 == k1start) k2min = k2start;
       else              k2min = k1+1;
       if(k1 == k1stop)  k2max = k2stop;
       else              k2max = wbc->ntot-1;
       for(k2=k2min; k2<=k2max; k2++){
-
+	nthpair ++;
+	if(thno == 0 && (nthpair == 1 || (nthpair % (long)1e8 == 0))){
+	  printf("%4.1f%%, t=%5.1f min\n",nthreads*100.0*nthpair/npairs,
+		 TimerStop(&timer)/60000.0);
+	  fflush(stdout);
+	}
 	rho = 0;
 	pf1 = pf[k1];
 	pf2 = pf[k2];
@@ -728,6 +751,32 @@ MRI *WholeBrainCon(WBC *wbc)
 	  dist = sqrt(dx*dx + dy*dy + dz*dz);
 	  if(dist < wbc->distthresh) q = 1; // short dist
 	  else                       q = 2; // long dist
+	  if(q==1 && ((wbc->lh2 && ct1 == 1) || (wbc->rh2 && ct1 == 2))){
+	    /* Surface point that has been declared short using the
+	    first surface (prob ?h.white). Now check with the second
+	    surface (prob ?h.inflated). This can only cause a short to
+	    be recoded to long. The problem this is attempting to
+	    solve is that it is very expensive to compute the actual
+	    distance between two surface points. The actual distance is
+	    always >= the euclidean dist between the ?h.white points, so,
+	    if that distance is > thresh, it must be a long connection.
+	    If it is shorter, then it could be a short connection or 
+	    it could be a long with a short euclidean (eg, jumping across
+	    a gyrus or sulcus) so this checks the inflated. The problem
+	    with the inflated is that it is not distortion-free.
+	    */
+	    x1 = MRIgetVoxVal(wbc->xyz2,k1,0,0,0);
+	    y1 = MRIgetVoxVal(wbc->xyz2,k1,0,0,1);
+	    z1 = MRIgetVoxVal(wbc->xyz2,k1,0,0,2);
+	    x2 = MRIgetVoxVal(wbc->xyz2,k2,0,0,0);
+	    y2 = MRIgetVoxVal(wbc->xyz2,k2,0,0,1);
+	    z2 = MRIgetVoxVal(wbc->xyz2,k2,0,0,2);
+	    dx = x1-x2;
+	    dy = y1-y2;
+	    dz = z1-z2;
+	    dist = sqrt(dx*dx + dy*dy + dz*dz);
+	    if(dist >= wbc->distthresh) q = 2; // long dist
+	  }
 	}
 	else q = 2; // long dist
 	if(q == 1) conDth = conSth[thno];
@@ -787,14 +836,14 @@ int WBCprep(WBC *wbc)
 {
   int nthvox, c, r, s, t, k, vtxno;
   MATRIX *V, *crs, *xyz=NULL;
-  double val;
+  double val,voxvolume;
 
   if(wbc->fvol)     wbc->nframes = wbc->fvol->nframes;
   else if(wbc->flh) wbc->nframes = wbc->flh->nframes;
   else if(wbc->frh) wbc->nframes = wbc->frh->nframes;
 
   if(wbc->lhlabel) wbc->lhmask = MRISlabel2Mask(wbc->lh,wbc->lhlabel,NULL);
-  if(wbc->rhlabel) wbc->rhmask = MRISlabel2Mask(wbc->rh,wbc->lhlabel,NULL);
+  if(wbc->rhlabel) wbc->rhmask = MRISlabel2Mask(wbc->rh,wbc->rhlabel,NULL);
 
   wbc->nvolmask = 0;
   wbc->nlhmask = 0;
@@ -816,8 +865,10 @@ int WBCprep(WBC *wbc)
   printf("nmask %d %d %d   %d\n",wbc->nvolmask,wbc->nlhmask,wbc->nrhmask,wbc->ntot);
 
   wbc->coordtype = MRIalloc(wbc->ntot,1,1,MRI_INT);
+  wbc->vvol      = MRIallocSequence(wbc->ntot,1,1,MRI_FLOAT,1); // vertex/voxel volume
   wbc->vertexno  = MRIalloc(wbc->ntot,1,1,MRI_INT);
   wbc->xyz       = MRIallocSequence(wbc->ntot,1,1,MRI_FLOAT,3);
+  if(wbc->lh2 || wbc->rh2) wbc->xyz2 = MRIallocSequence(wbc->ntot,1,1,MRI_FLOAT,3);
   wbc->f = MRIallocSequence(wbc->ntot,1,1,MRI_FLOAT,wbc->nframes);
 
   nthvox = 0;
@@ -828,6 +879,7 @@ int WBCprep(WBC *wbc)
     // we never compute the distance from volume to surface, it is always
     // long distance. If this turns out not to be the case, then will need
     // a registraion matrix
+    voxvolume = wbc->fvol->xsize * wbc->fvol->ysize * wbc->fvol->zsize;
     V = MRIxfmCRS2XYZtkreg(wbc->fvol);
     crs = MatrixAlloc(4,1,MATRIX_REAL);
     crs->rptr[4][1] = 1;
@@ -836,6 +888,7 @@ int WBCprep(WBC *wbc)
 	for(r=0; r < wbc->fvol->height; r++){
 	  if(wbc->volmask && MRIgetVoxVal(wbc->volmask,c,r,s,0) < 0.5) continue;
 	  MRIsetVoxVal(wbc->coordtype,nthvox,0,0,0, 0);
+	  MRIsetVoxVal(wbc->vvol,nthvox,0,0,0, voxvolume);
 	  crs->rptr[1][1] = c;
 	  crs->rptr[2][1] = r;
 	  crs->rptr[3][1] = s;
@@ -861,6 +914,11 @@ int WBCprep(WBC *wbc)
       MRIsetVoxVal(wbc->xyz,nthvox,0,0,0, wbc->lh->vertices[vtxno].x);
       MRIsetVoxVal(wbc->xyz,nthvox,0,0,1, wbc->lh->vertices[vtxno].y);
       MRIsetVoxVal(wbc->xyz,nthvox,0,0,2, wbc->lh->vertices[vtxno].z);
+      if(wbc->lh2){
+	MRIsetVoxVal(wbc->xyz2,nthvox,0,0,0, wbc->lh->vertices[vtxno].x);
+	MRIsetVoxVal(wbc->xyz2,nthvox,0,0,1, wbc->lh->vertices[vtxno].y);
+	MRIsetVoxVal(wbc->xyz2,nthvox,0,0,2, wbc->lh->vertices[vtxno].z);
+      }
       for(t=0; t < wbc->flh->nframes; t++){
 	val = MRIgetVoxVal(wbc->flh,vtxno,0,0,t);
 	MRIsetVoxVal(wbc->f,nthvox,0,0,t,val);
@@ -876,6 +934,11 @@ int WBCprep(WBC *wbc)
       MRIsetVoxVal(wbc->xyz,nthvox,0,0,0, wbc->rh->vertices[vtxno].x);
       MRIsetVoxVal(wbc->xyz,nthvox,0,0,1, wbc->rh->vertices[vtxno].y);
       MRIsetVoxVal(wbc->xyz,nthvox,0,0,2, wbc->rh->vertices[vtxno].z);
+      if(wbc->rh2){
+	MRIsetVoxVal(wbc->xyz2,nthvox,0,0,0, wbc->rh->vertices[vtxno].x);
+	MRIsetVoxVal(wbc->xyz2,nthvox,0,0,1, wbc->rh->vertices[vtxno].y);
+	MRIsetVoxVal(wbc->xyz2,nthvox,0,0,2, wbc->rh->vertices[vtxno].z);
+      }
       for(t=0; t < wbc->frh->nframes; t++){
 	val = MRIgetVoxVal(wbc->frh,vtxno,0,0,t);
 	MRIsetVoxVal(wbc->f,nthvox,0,0,t,val);
@@ -993,7 +1056,7 @@ int WBCfinish(WBC *wbc)
 /*!
   \fn int Index2UpperSubscript(int N, long i, int *r, int *c)
   \brief Computes the row and col of the ith index in an upper
-  triangular matrix ignoring the diagonal and lower triangular
+  triangular N-x-N matrix ignoring the diagonal and lower triangular
   components. The application for this involves evaluating pairs
   of items in a list excluding self-comparisons (diag) and 
   reverse comparisons (lower). See also Index2UpperSubscriptTest().
@@ -1081,7 +1144,7 @@ WBC *WBCtestSynth(WBC *wbc)
   double x0,y0,z0,x,y,z,dx,dy,dz,d,volres,*wf,dmax;
   int nshort,nlong,t,vno,hemi,voldim,nframes,c0,r0,s0,c2;
   char tmpstr[2000],*hemistr;
-  MRIS *surf;
+  MRIS *surf,*surf2;
   MRI *func,*mask;
 
   fsenv = FSENVgetenv();
@@ -1152,6 +1215,8 @@ WBC *WBCtestSynth(WBC *wbc)
 
     sprintf(tmpstr,"%s/subjects/fsaverage/surf/%s.white",fsenv->FREESURFER_HOME,hemistr);
     surf = MRISread(tmpstr);
+    sprintf(tmpstr,"%s/subjects/fsaverage/surf/%s.inflated",fsenv->FREESURFER_HOME,hemistr);
+    surf2 = MRISread(tmpstr);
     //sprintf(tmpstr,"%s/subjects/fsaverage/label/%s.aparc.annot",fsenv->FREESURFER_HOME,hemistr);
     //err = MRISreadAnnotation(surf, tmpstr);
 
@@ -1194,11 +1259,13 @@ WBC *WBCtestSynth(WBC *wbc)
     printf("%s short %d long %d\n",hemistr,nshort,nlong);
     if(hemi == 0) {
       wbc->lh = surf;
+      wbc->lh2 = surf2;
       wbc->flh = func;
       wbc->lhmask = mask;
     }
     else {
       wbc->rh = surf;
+      wbc->rh2 = surf2;
       wbc->frh = func;
       wbc->rhmask = mask;
     }
