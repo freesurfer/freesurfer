@@ -131,7 +131,7 @@ void RenderWidget::OnBack()
 {
   int n = m_nCurrentImageIndex-1;
   if (n < 0)
-    n = 0;
+    n = m_images.size()-1;
   SetCurrentImageIndex(n);
 }
 
