@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2015/07/21 15:01:51 $
- *    $Revision: 1.7 $
+ *    $Date: 2015/07/22 21:51:35 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,8 @@
 #include "fsenv.h"
 #include "matfile.h"
 #include "icosahedron.h"
+
+double round(double x);
 
 typedef struct {
   double distthresh;
@@ -109,7 +111,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_wbc.c,v 1.7 2015/07/21 15:01:51 zkaufman Exp $";
+static char vcid[] = "$Id: mri_wbc.c,v 1.8 2015/07/22 21:51:35 zkaufman Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
