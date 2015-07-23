@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/06/03 20:56:14 $
- *    $Revision: 1.158 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/07/22 21:50:38 $
+ *    $Revision: 1.159 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3185,24 +3185,24 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
     case VTK_CHAR:
     case VTK_SIGNED_CHAR:
     case VTK_UNSIGNED_CHAR:
-      in_value_ptr[0] = in_value;
-      out_value_ptr[0] = out_value;
+      in_value_ptr[0] = (char)in_value;
+      out_value_ptr[0] = (char)out_value;
       break;
     case VTK_SHORT:
-      ((short*)in_value_ptr)[0] = in_value;
-      ((short*)out_value_ptr)[0] = out_value;
+      ((short*)in_value_ptr)[0] = (short)in_value;
+      ((short*)out_value_ptr)[0] = (short)out_value;
       break;
     case VTK_UNSIGNED_SHORT:
-      ((unsigned short*)in_value_ptr)[0] = in_value;
-      ((unsigned short*)out_value_ptr)[0] = out_value;
+      ((unsigned short*)in_value_ptr)[0] = (short)in_value;
+      ((unsigned short*)out_value_ptr)[0] = (short)out_value;
       break;
     case VTK_INT:
-      ((int*)in_value_ptr)[0] = in_value;
-      ((int*)out_value_ptr)[0] = out_value;
+      ((int*)in_value_ptr)[0] = (int)in_value;
+      ((int*)out_value_ptr)[0] = (int)out_value;
       break;
     case VTK_UNSIGNED_INT:
-      ((unsigned int*)in_value_ptr)[0] = in_value;
-      ((unsigned int*)out_value_ptr)[0] = out_value;
+      ((unsigned int*)in_value_ptr)[0] = (int)in_value;
+      ((unsigned int*)out_value_ptr)[0] = (int)out_value;
       break;
     case VTK_FLOAT:
       ((float*)in_value_ptr)[0] = in_value;
