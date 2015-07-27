@@ -66,6 +66,12 @@
       <argument>-olog</argument>
       <explanation>log file for 'overall' Dice
 (mean excluding wm, gm and accumbens)</explanation>
+      <argument>-cortex (0/1)</argument>
+      <explanation>if (0/1) is nonzero, exclude cerebral cortex
+	  labels from all calculation</explanation>
+      <argument>-wm (0/1)</argument>
+      <explanation>if (0/1) is nonzero, exclude cerebral white matter
+	  labels from all calculation</explanation>
     </optional-flagged>
   </arguments>
   <example>mri_compute_seg_overlap manual_seg.mgz aseg.mgz
