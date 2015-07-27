@@ -5,9 +5,9 @@
  *
  * Original Author: Krish Subramaniam 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2015/07/27 15:01:45 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -128,9 +128,9 @@ class MRISDistanceField
         if (bbox.minc[0] < 0) bbox.minc[0] = 0;
         if (bbox.minc[1] < 0) bbox.minc[0] = 0;
         if (bbox.minc[2] < 0) bbox.minc[0] = 0;
-        if (bbox.maxc[0] > mri_distfield->width)  bbox.maxc[0] = mri_distfield->width;
-        if (bbox.maxc[1] > mri_distfield->height) bbox.maxc[1] = mri_distfield->height;
-        if (bbox.maxc[2] > mri_distfield->depth)  bbox.maxc[2] = mri_distfield->depth;
+        if (bbox.maxc[0] >= mri_distfield->width)  bbox.maxc[0] = mri_distfield->width-1;
+        if (bbox.maxc[1] >= mri_distfield->height) bbox.maxc[1] = mri_distfield->height-1;
+        if (bbox.maxc[2] >= mri_distfield->depth)  bbox.maxc[2] = mri_distfield->depth-1;
 
         // for all voxels in the bounding box
         for ( int i=bbox.minc[0]; i<=bbox.maxc[0]; i++)
