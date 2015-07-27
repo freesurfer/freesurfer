@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/07/06 21:58:51 $
- *    $Revision: 1.46 $
+ *    $Date: 2015/07/24 16:13:39 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,7 +47,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-  "$Id: mris_convert.c,v 1.46 2015/07/06 21:58:51 greve Exp $";
+  "$Id: mris_convert.c,v 1.47 2015/07/24 16:13:39 greve Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -109,11 +109,13 @@ static int write_vertex_neighbors = 0;
 static int combinesurfs_flag = 0;
 static int userealras_flag = 0;
 static MRI *VolGeomMRI=NULL;
-static int cras_correction = 0;
+static int cras_add = 0;
+static int cras_subtract = 0;
+static int ToScanner = 0;
+static int ToTkr = 0;
 
 int DeleteCommands = 0;
 int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
-int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile);
 
 /*-------------------------------- FUNCTIONS ----------------------------*/
 
@@ -131,7 +133,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_convert.c,v 1.46 2015/07/06 21:58:51 greve Exp $",
+           "$Id: mris_convert.c,v 1.47 2015/07/24 16:13:39 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -295,20 +297,21 @@ main(int argc, char *argv[])
     mris->useRealRAS = 1;
   }
 
-  if(cras_correction)
-  {
-    printf("Changing CRAS to scanner coordinates\n");
-    mris->useRealRAS = 1;
-    int vno;
-    for (vno=0; vno < mris->nvertices; vno++)
-    {
-      mris->vertices[vno].x += mris->vg.c_r;
-      mris->vertices[vno].y += mris->vg.c_a;
-      mris->vertices[vno].z += mris->vg.c_s;
-      mris->xctr = mris->vg.c_r;
-      mris->yctr = mris->vg.c_a;
-      mris->zctr = mris->vg.c_s;
-    }
+  if(cras_add){
+    printf("Adding scanner CRAS to surface xyz\n");
+    MRISshiftCRAS(mris, 1);
+  }
+  if(cras_subtract){
+    printf("Subtracting scanner CRAS from surface xyz\n");
+    MRISshiftCRAS(mris, -1);
+  }
+  if(ToScanner){
+    printf("Converting from tkr to scanner coordinates\n");
+    MRIStkr2Scanner(mris);
+  }
+  if(ToTkr){
+    printf("Converting from scanner to tkr coordinates\n");
+    MRISscanner2Tkr(mris);
   }
 
   if (talxfmsubject)
@@ -737,9 +740,31 @@ get_option(int argc, char *argv[])
   {
     userealras_flag = 1;
   }
-  else if (!stricmp(option, "-cras_correction"))
-  {
-    cras_correction = 1;
+  else if (!stricmp(option, "-cras_correction") ||
+	   !stricmp(option, "-cras_add") ){
+    cras_add = 1;
+    cras_subtract = 0;
+    ToScanner = 0;
+    ToTkr = 0;
+  }
+  else if (!stricmp(option, "-cras_remove") ||
+	   !stricmp(option, "-cras_subtract") ){
+    cras_add = 0;
+    cras_subtract = 1;
+    ToScanner = 0;
+    ToTkr = 0;
+  }
+  else if (!stricmp(option, "-to-scanner")){
+    ToScanner = 1;
+    ToTkr = 0;
+    cras_add = 0;
+    cras_subtract = 0;
+  }
+  else if (!stricmp(option, "-to-tkr")){
+    ToScanner = 0;
+    ToTkr = 1;
+    cras_add = 0;
+    cras_subtract = 0;
   }
   else if (!stricmp(option, "-vol-geom"))
   {
@@ -863,8 +888,13 @@ print_help(void)
   printf( "  --delete-cmds : delete command lines in surface\n") ;
   printf( "  --userealras : set the useRealRAS flag in the surface file to 1 \n") ;
   printf( "  --vol-geom MRIVol : use MRIVol to set the volume geometry\n") ;
-  printf( "  --cras_correction : shift center to scanner coordinate center \n") ;
+  printf( "  --to-scanner : convert coordinates from native FS (tkr) coords to scanner coords\n") ;
+  printf( "  --to-tkr : convert coordinates from scanner coords to native FS (tkr) coords \n") ;
   printf( "  --volume ?h.white ?h.pial ?h.volume : compute vertex-wise volume, no other args needed\n") ;
+  printf( "  Note: --cras_add and --cras_subtract are depricated. They are included for backwards compatability\n") ;
+  printf( "    Use --to-tkr and --to-scanner instead\n") ;
+  printf( "  --cras_add : shift center to scanner coordinate center (was --cras_correction, which still works)\n") ;
+  printf( "  --cras_subtract : shift center from scanner coordinate center (reverses --cras_add)\n") ;
   printf( "\n") ;
   printf( "These file formats are supported:\n") ;
   printf( "  ASCII:       .asc\n");
@@ -1064,54 +1094,4 @@ int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname)
 
   return(0);
 }
-
-int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
-{
-  MRIS *w, *p;
-  MRI *mrisvol;
-  int err=0;
-  double totvol;
-  FSENV *env;
-  char fname[2000];
-  LABEL *label;
-  MRI *mask=NULL;
-
-  env = FSENVgetenv();
-  sprintf(fname,"%s/%s/surf/%s.white",env->SUBJECTS_DIR,subject,hemi);
-  w = MRISread(fname);
-  if(!w) return(1);
-  sprintf(fname,"%s/%s/surf/%s.pial",env->SUBJECTS_DIR,subject,hemi);
-  p = MRISread(fname);
-  if(!p) return(1);
-
-  if(DoMask){
-    sprintf(fname,"%s/%s/label/%s.cortex.label",env->SUBJECTS_DIR,subject,hemi);
-    printf("masking with %s\n",fname);
-    label = LabelRead(NULL, fname);
-    if(label == NULL) return(1);
-    mask = MRISlabel2Mask(w, label, NULL);
-    if(mask == NULL) return(1);
-    LabelFree(&label);
-  }
-
-  mrisvol = MRISvolumeTH3(w, p, NULL, mask, &totvol);
-  printf("#@# %s %s %g\n",subject,hemi,totvol);
-
-  if(IDextensionFromName(outfile)){
-    // output file has a known extention
-    err = MRIwrite(mrisvol,outfile);
-  }
-  else{
-    // otherwise assume it is a curv file
-    MRIScopyMRI(w, mrisvol, 0, "curv");
-    err = MRISwriteCurvature(w,outfile);
-  }
-  MRISfree(&w);
-  MRISfree(&p);
-  MRIfree(&mrisvol);
-  if(mask) MRIfree(&mask);
-
-  return(err);
-}
-
 
