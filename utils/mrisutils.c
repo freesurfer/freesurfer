@@ -7,8 +7,8 @@
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/07/06 21:58:51 $
- *    $Revision: 1.46 $
+ *    $Date: 2015/07/24 16:13:39 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,8 @@
 #include "sig.h"
 #include "annotation.h"
 #include "mrisegment.h"
+#include "fsenv.h"
+#include "mri_identify.h"
 
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
@@ -2730,7 +2732,7 @@ int MRISsetPialUnknownToWhite(const MRIS *white, MRIS *pial)
   return(0);
 }
 
-/*
+/*!
   \fn int MRISripUnknown(MRIS *surf)
   \brief Sets the ripflag = 1 in places where the annotation is unknown
  */
@@ -2748,3 +2750,149 @@ int MRISripUnknown(MRIS *surf)
   }
   return(0);
 }
+
+/*!
+  \fn int MRISshiftCRAS(MRIS *mris, int shift)
+  \brief Shift surface xyz by scanner CRAS. This is not too useful but
+  replicates some behavior in mris_convert that has been used by
+  HCP. It results in the surface xyz being converted to (+1) or from
+  (-1) scanner coords when the input is non-oblique. Better to use
+  MRIStkr2Scanner() or MRISscanner2Tkr() which will have the same
+  result for non-oblique but do the right thing for oblique.
+ */
+int MRISshiftCRAS(MRIS *mris, int shift)
+{
+  double dx,dy,dz;
+  int vno;
+
+  if(shift == +1){
+    mris->useRealRAS = 1;
+    dx = +mris->vg.c_r;
+    dy = +mris->vg.c_a;
+    dz = +mris->vg.c_s;
+    mris->xctr = mris->vg.c_r;
+    mris->yctr = mris->vg.c_a;
+    mris->zctr = mris->vg.c_s;
+  }
+  else {
+    mris->useRealRAS = 0;
+    dx = -mris->vg.c_r;
+    dy = -mris->vg.c_a;
+    dz = -mris->vg.c_s;
+    mris->xctr = 0;
+    mris->yctr = 0;
+    mris->zctr = 0;
+  }
+  for (vno=0; vno < mris->nvertices; vno++){
+    mris->vertices[vno].x += dx;
+    mris->vertices[vno].y += dy;
+    mris->vertices[vno].z += dz;
+  }
+  return(0);
+}
+
+/*!
+  \fn int MRIStkr2Scanner(MRIS *mris)
+  \brief Convert surface xyz coords from tkregister space (ie, the
+  native space that the surface xyz coords are generated in) to
+  scanner space. The surface coords must be in tkr space, no checking
+  is done to make sure. Use MRISscanner2Tkr() to reverse.
+  Sets mris->useRealRAS = 1;
+ */
+int MRIStkr2Scanner(MRIS *mris)
+{
+  MATRIX *M, *T, *Tinv, *S;
+
+  //S = VGgetVoxelToRasXform(&mris->vg,NULL,0); // this is wrong
+  S = vg_i_to_r(&mris->vg);
+  T = TkrVox2RASfromVolGeom(&mris->vg);
+  Tinv = MatrixInverse(T,NULL);
+  M = MatrixMultiply(S,Tinv,NULL);
+  MRISmatrixMultiply(mris,M);
+  mris->useRealRAS = 1;
+  MatrixFree(&S);
+  MatrixFree(&T);
+  MatrixFree(&Tinv);
+  MatrixFree(&M);
+  return(0);
+}
+/*!
+  \fn int MRISscanner2Tkr(MRIS *mris)
+  \brief Convert surface xyz coords from scanner space to tkregister
+  space (ie, the native space that the surface xyz coords are
+  generated in). The surface coords must be in scanner space, no
+  checking is done to make sure. Use MRIStkr2Scanner() to reverse.
+  Sets mris->useRealRAS = 0;
+ */
+int MRISscanner2Tkr(MRIS *mris)
+{
+  MATRIX *Q, *T, *Sinv, *S;
+
+  //S = VGgetVoxelToRasXform(&mris->vg,NULL,0); // this is wrong
+  S = vg_i_to_r(&mris->vg);
+  Sinv = MatrixInverse(S,NULL);
+  T = TkrVox2RASfromVolGeom(&mris->vg);
+  Q = MatrixMultiply(T,Sinv,NULL);
+  MRISmatrixMultiply(mris,Q);
+  mris->useRealRAS = 0;
+
+  MatrixFree(&S);
+  MatrixFree(&T);
+  MatrixFree(&Sinv);
+  MatrixFree(&Q);
+  return(0);
+}
+
+/*!
+  \fn int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
+  \brief Computes and saves the vertex-wise volume of cortex using TH3.
+ */
+int ComputeMRISvolumeTH3(char *subject, char *hemi, int DoMask, char *outfile)
+{
+  MRIS *w, *p;
+  MRI *mrisvol;
+  int err=0;
+  double totvol;
+  FSENV *env;
+  char fname[2000];
+  LABEL *label;
+  MRI *mask=NULL;
+
+  env = FSENVgetenv();
+  sprintf(fname,"%s/%s/surf/%s.white",env->SUBJECTS_DIR,subject,hemi);
+  w = MRISread(fname);
+  if(!w) return(1);
+  sprintf(fname,"%s/%s/surf/%s.pial",env->SUBJECTS_DIR,subject,hemi);
+  p = MRISread(fname);
+  if(!p) return(1);
+
+  if(DoMask){
+    sprintf(fname,"%s/%s/label/%s.cortex.label",env->SUBJECTS_DIR,subject,hemi);
+    printf("masking with %s\n",fname);
+    label = LabelRead(NULL, fname);
+    if(label == NULL) return(1);
+    mask = MRISlabel2Mask(w, label, NULL);
+    if(mask == NULL) return(1);
+    LabelFree(&label);
+  }
+
+  mrisvol = MRISvolumeTH3(w, p, NULL, mask, &totvol);
+  printf("#@# %s %s %g\n",subject,hemi,totvol);
+
+  if(IDextensionFromName(outfile)){
+    // output file has a known extention
+    err = MRIwrite(mrisvol,outfile);
+  }
+  else{
+    // otherwise assume it is a curv file
+    MRIScopyMRI(w, mrisvol, 0, "curv");
+    err = MRISwriteCurvature(w,outfile);
+  }
+  MRISfree(&w);
+  MRISfree(&p);
+  MRIfree(&mrisvol);
+  if(mask) MRIfree(&mask);
+
+  return(err);
+}
+
