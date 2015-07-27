@@ -10,9 +10,9 @@
 /*
  * Original Authors: Xiao Han, Nick Schmansky
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2013/02/06 19:21:07 $
- *    $Revision: 1.15 $
+ *    $Author: fischl $
+ *    $Date: 2015/07/24 13:48:04 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,9 @@
 #include "fio.h"
 #include "version.h"
 #include "cma.h"
+
+static int do_cortex = 1 ;
+static int do_wm = 1 ;
 
 static void usage(int exit_val);
 static int  get_option(int argc, char *argv[]) ;
@@ -122,7 +125,7 @@ int main(int argc, char *argv[])
   char **av;
   int width, height, depth, x, y, z, f, nframes;
   int v1, v2;
-  int i;
+  int i, skipped;
   FILE *log_fp;
 
   int Volume_union[MAX_CLASSES];
@@ -142,7 +145,7 @@ int main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.15 2013/02/06 19:21:07 nicks Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.16 2015/07/24 13:48:04 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -308,16 +311,28 @@ int main(int argc, char *argv[])
   }
   else
   {
-    for (i=0; i < num_labels; i++)
+    for (skipped = i=0; i < num_labels; i++)
     {
+      if (do_cortex == 0 && IS_CORTEX(labels_of_interest[i]))
+      {
+	skipped++ ;
+	continue ;
+      }
+      if (do_wm == 0 && IS_WHITE_CLASS(labels_of_interest[i]))
+      {
+	skipped++ ;
+	continue ;
+      }
+      
       printf("correct ratio for label %d = %g\n",
              labels_of_interest[i], correct_ratio[labels_of_interest[i]]);
       mean1 += correct_ratio[labels_of_interest[i]];
       std1 += correct_ratio[labels_of_interest[i]] *
-              correct_ratio[labels_of_interest[i]];
+	correct_ratio[labels_of_interest[i]];
     }
-    mean1 /= num_labels;
-    std1 /= num_labels;
+
+    mean1 /= (num_labels-skipped);
+    std1 /= (num_labels-skipped);
     std1 = sqrt(std1 - mean1*mean1);
     printf("mean +/- std = %6.4f +/- %6.4f\n", mean1, std1);
   }
@@ -349,16 +364,26 @@ int main(int argc, char *argv[])
   }
   else
   {
-    for (i=0; i < num_labels; i++)
+    for (skipped=i=0; i < num_labels; i++)
     {
+      if (do_cortex == 0 && IS_CORTEX(labels_of_interest[i]))
+      {
+	skipped++ ;
+	continue ;
+      }
+      if (do_wm == 0 && IS_WHITE_CLASS(labels_of_interest[i]))
+      {
+	skipped++ ;
+	continue ;
+      }
       printf("label %d = %g\n",
              labels_of_interest[i], correct_ratio2[labels_of_interest[i]]);
       mean2 += correct_ratio2[labels_of_interest[i]];
       std2 += correct_ratio2[labels_of_interest[i]] *
               correct_ratio2[labels_of_interest[i]];
     }
-    mean2 /= num_labels;
-    std2 /= num_labels;
+    mean2 /= (num_labels-skipped);
+    std2 /= (num_labels-skipped);
     std2 = sqrt(std2 - mean2*mean2);
     printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
   }
@@ -380,6 +405,11 @@ int main(int argc, char *argv[])
     {
       for (i=0; i < num_labels; i++)
       {
+	if (do_cortex == 0 && IS_CORTEX(labels_of_interest[i]))
+	  continue ;
+	if (do_wm == 0 && IS_WHITE_CLASS(labels_of_interest[i]))
+	  continue ;
+
         fprintf(log_fp, "%6.4f ", correct_ratio2[labels_of_interest[i]]);
       }
     }
@@ -477,6 +507,18 @@ static int get_option(int argc, char *argv[])
     olog_fname = argv[2];
     nargs = 1;
     fprintf(stderr, "logging overall Dice to %s\n", olog_fname) ;
+  }
+  else if (!stricmp(option, "wm"))
+  {
+    do_wm = atoi(argv[2]);
+    nargs = 1;
+    fprintf(stderr, "%sincluding cerebral white matter\n", do_wm ? "" : "NOT ") ;
+  }
+  else if (!stricmp(option, "cortex"))
+  {
+    do_cortex = atoi(argv[2]);
+    nargs = 1;
+    fprintf(stderr, "%sincluding cerebral cortex\n", do_cortex ? "" : "NOT ") ;
   }
   else
   {
