@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/16 23:39:13 $
- *    $Revision: 1.43 $
+ *    $Date: 2015/07/28 18:24:08 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,7 +64,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.43 2014/12/16 23:39:13 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.44 2015/07/28 18:24:08 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -100,6 +100,7 @@ int GettingPixelData = 0;
 FILE *fp;
 int DisplayImage = 0;
 int DoPartialDump = 1;
+int DoTConvertSec = 0;
 
 //int AllocElement(DCM_ELEMENT *e);
 //int FreeElement(DCM_ELEMENT *e);
@@ -118,6 +119,7 @@ int DCMCompare(char *dcmfile1, char *dcmfile2);
 static char tmpstr[TMPSTRLEN];
 
 int RenderImage(int argc, char **argv);
+double ConvertTimeStringToSec(char *tstring);
 int ImageWidth;
 int ImageHeight;
 GLubyte *ImageBuff;
@@ -147,7 +149,7 @@ int main(int argc, char **argv) {
   double bval, xbvec, ybvec, zbvec;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.43 2014/12/16 23:39:13 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.44 2015/07/28 18:24:08 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -260,11 +262,21 @@ int main(int argc, char **argv) {
     break;
   case QRY_VALUE:
     if (!GettingPixelData) {
-      if (outputfile == NULL)
-        printf("%s\n",ElementValueString(&element,DoBackslash));
+      char *estring = ElementValueString(&element,DoBackslash);
+      if(outputfile == NULL){
+	if(DoTConvertSec){
+	  double tsec = ConvertTimeStringToSec(estring);
+	  printf("%lf\n",tsec);
+	} 
+	else printf("%s\n",estring);
+      }
       else {
         fp = fopen(outputfile,"w");
-        fprintf(fp,"%s\n",ElementValueString(&element,DoBackslash));
+	if(DoTConvertSec){
+	  double tsec = ConvertTimeStringToSec(estring);
+	  fprintf(fp,"%lf\n",tsec);
+	} 
+	else fprintf(fp,"%s\n",estring);
         fclose(fp);
       }
     } 
@@ -354,6 +366,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--tsec"))  DoTConvertSec = 1;
 
     /* -------- source volume inputs ------ */
     else if (!strcmp(option, "--i")) {
@@ -468,6 +481,7 @@ static void print_usage(void) {
   fprintf(stdout, "   --backslash       : replace backslashes with spaces\n");
   fprintf(stdout, "   --siemens-crit    : include tag 51,1016 in dump\n");
   fprintf(stdout, "   --alt             : print alt ascii header\n");
+  fprintf(stdout, "   --tsec            : convert value to number of seconds (assuming HHMMSS.FFF)\n");
   fprintf(stdout, "   --help            : how to use this program \n");
   fprintf(stdout, "\n");
 }
@@ -1571,3 +1585,35 @@ int DCMCompare(char *dcmfile1, char *dcmfile2)
   }
   return(isdiff);
 }
+
+/*!
+  \fn double ConvertTimeStringToSec(char *tstring)
+  \brief convert a string of the format HHMMSS.FFFF
+  to number of seconds. HH=0:23 hours.
+ */
+double ConvertTimeStringToSec(char *tstring)
+{
+  char str[3];
+  double h,m,s,f,tsec;
+
+  str[0] = tstring[0];
+  str[1] = tstring[1];
+  sscanf(str,"%lf",&h);
+
+  str[0] = tstring[2];
+  str[1] = tstring[3];
+  sscanf(str,"%lf",&m);
+
+  str[0] = tstring[4];
+  str[1] = tstring[5];
+  sscanf(str,"%lf",&s);
+  sscanf(&tstring[6],"%lf",&f);
+
+  tsec = 60*60*h + 60*m + s + f;
+
+  if(Gdiag_no > 0) printf("%s %lf %lf %lf %lf %lf\n",tstring,h,m,s,f,tsec);
+
+  return(tsec);
+}
+
+
