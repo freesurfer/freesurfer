@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/02/13 23:51:55 $
- *    $Revision: 1.69 $
+ *    $Date: 2015/07/27 20:52:08 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,10 @@
 #include <stdlib.h>
 #include <math.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <sys/utsname.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "mri.h"
 #include "macros.h"
@@ -44,6 +48,10 @@
 #include "cma.h"
 #include "flash.h"
 #include "version.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -99,6 +107,12 @@ static int do_sanity_check = 0;
 static int do_fix_badsubjs = 0;
 static int sanity_check_badsubj_count = 0;
 static int AllowMisMatch=0;
+#ifdef _OPENMP
+  int n_omp_threads;
+#endif
+char *DoneFile = NULL;
+int WriteDoneFile(char *DoneFile, int code);
+char *cmdline, cwd[2000];
 
 int
 main(int argc, char *argv[])
@@ -119,6 +133,8 @@ main(int argc, char *argv[])
 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+  cmdline = argv2cmdline(argc,argv);
+  getcwd(cwd,2000);
 
   TimerStart(&start) ;
 
@@ -129,8 +145,9 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.69 2015/02/13 23:51:55 greve Exp $",
+           "$Id: mri_ca_train.c,v 1.70 2015/07/27 20:52:08 greve Exp $",
            "$Name:  $");
+
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -144,6 +161,18 @@ main(int argc, char *argv[])
     argc -= nargs ;
     argv += nargs ;
   }
+  SetErrorExitDoneFile(DoneFile);
+  printf("\n");
+  printf("setenv SUBJECTS_DIR %s\n",getenv("SUBJECTS_DIR"));
+  printf("cd %s\n",cwd);
+  printf("%s\n\n",cmdline);
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+  n_omp_threads = omp_get_num_threads(); 
+  printf("\n== Number of threads available to %s for OpenMP = %d == \n",
+         Progname, n_omp_threads);
+#endif
 
   if (!strlen(subjects_dir)) /* hasn't been set on command line */
   {
@@ -159,7 +188,7 @@ main(int argc, char *argv[])
   if (heq_fname)
   {
     mri_eq = MRIread(heq_fname) ;
-    if (!mri_eq)
+    if(!mri_eq)
       ErrorExit(ERROR_NOFILE,
                 "%s: could not read histogram equalization volume %s",
                 Progname, heq_fname) ;
@@ -318,8 +347,7 @@ main(int argc, char *argv[])
                   subjects_dir, subject_name, input_names[input]);
           mri_tmp = MRIreadInfo(fname) ;
           if (!mri_tmp)
-            ErrorExit
-            (ERROR_NOFILE,
+            ErrorExit(ERROR_NOFILE,
              "%s: could not read image from file %s", Progname, fname) ;
 	  if (force_inputs)
 	  {
@@ -1002,6 +1030,10 @@ main(int argc, char *argv[])
   seconds = seconds % 60 ;
   printf("classifier array training took %d minutes"
          " and %d seconds.\n", minutes, seconds) ;
+  
+  ErrorWriteDoneFile(DoneFile, 0);
+  printf("mri_ca_train done\n");
+
   exit(0) ;
   return(0) ;
 }
@@ -1018,7 +1050,21 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "GRADIENT"))
+  if (!stricmp(option, "threads") || !stricmp(option, "nthreads")){
+#ifdef _OPENMP
+    sscanf(argv[2],"%d",&n_omp_threads);
+    omp_set_num_threads(n_omp_threads);
+#endif
+    nargs = 1;
+  }
+  else if(!stricmp(option, "done")) {
+    // This file gets created when process is finished.
+    // Text content is either 0 (no error) or 1 (error)
+    // Calling process must make sure it does not exist
+    DoneFile = argv[2];
+    nargs = 1;
+  }
+  else if (!stricmp(option, "GRADIENT"))
   {
     parms.use_gradient = 1 ;
     ninputs += 3 ;  /* components of the gradient */
@@ -1304,6 +1350,8 @@ usage_exit(int code)
    "                          can specify multiple inputs.  "
    "If not specified, \"orig\" is used\n"
    "\t-check          - conduct sanity-check of labels for obvious edit errors"
+   "\t-threads N : specify number of threads to use (also -nthreads)"
+   "\t-done DoneFile : create DoneFile when done, (contents: 0=ok, 1=error)"
    "\n"
   );
   exit(code) ;
