@@ -15,9 +15,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/07/08 20:48:18 $
- *    $Revision: 1.335 $
+ *    $Author: greve $
+ *    $Date: 2015/07/27 19:38:24 $
+ *    $Revision: 1.336 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7374,6 +7374,10 @@ gcaRegionStats(GCA *gca, int x, int y, int z, int wsize,
           {
             DiagBreak() ;
           }
+	  if(label > MAX_DIFFERENT_LABELS){
+	    printf("ERROR: label = %d > %d n = %d, xyzi = %d %d %d\n",label,MAX_DIFFERENT_LABELS,n,xi,yi,zi);
+	    fflush(stdout);
+	  }
           gc = GCAfindPriorGC(gca, xi, yi, zi, label) ;
           if (gc)
           {
