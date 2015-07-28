@@ -63,6 +63,7 @@ fsgd_parser.py \
 fsl_sub_mgh \
 fsutils.py \
 fvcompare \
+gca-apply \
 gtmseg \
 tkmeditfv \
 tksurferfv \
