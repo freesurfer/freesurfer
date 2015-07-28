@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/05/23 17:36:46 $
- *    $Revision: 1.23 $
+ *    $Author: greve $
+ *    $Date: 2015/07/27 20:49:29 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,6 +57,7 @@ static int (*error_vprintf)(const char *fmt, va_list args) = vprintf ;
 static int (*error_vfprintf)(FILE *fp,const char *fmt,va_list args) = vfprintf;
 static void (*error_exit)(int ecode) = NULL ;
 static void rgb_error(char *error_str) ;
+static char *ErrorExitDoneFile = NULL;
 
 /*-----------------------------------------------------
                       GLOBAL DATA
@@ -68,6 +69,11 @@ int Gerror = NO_ERROR ;
                     GLOBAL FUNCTIONS
 -------------------------------------------------------*/
 
+void SetErrorExitDoneFile(char *DoneFile)
+{
+  extern char *ErrorExitDoneFile;
+  ErrorExitDoneFile = DoneFile;
+}
 
 /*-----------------------------------------------------
         Parameters:
@@ -125,6 +131,7 @@ void
 ErrorExit(int ecode, const char *fmt, ...)
 {
   va_list  args ;
+  extern char *ErrorExitDoneFile;
 
   Gerror = ecode ;
   va_start(args, fmt) ;
@@ -137,12 +144,40 @@ ErrorExit(int ecode, const char *fmt, ...)
   if (hipserrno)
     perr(ecode, "Hips error:") ;
 
+  if(ErrorExitDoneFile != NULL) {
+    // This creates a text file with the value of 1. This can
+    // be used to let another process know that this process
+    // is finshed and exited with an error. Good when submitting
+    // to cluster
+    ErrorWriteDoneFile(ErrorExitDoneFile, 1);
+  }
+
   if (error_exit)
     (*error_exit)(ecode) ;
   else
     exit(ecode) ;
 }
 
+/*!
+  \fn int ErrorWriteDoneFile(char *DoneFile, int errorcode)
+  \brief This creates a text file with the contents being
+  errorcode. This can be used to let another process know that this
+  process is finshed and exited with or without an error. Good when
+  submitting to cluster. The basic idea is to use 
+  SetErrorExitDoneFile(char *DoneFile) to set the file for 
+  ErrorExit(). If no error occurs during processing, then
+  the process should run ErrorWriteDoneFile(DoneFile, 0);
+ */
+int ErrorWriteDoneFile(char *DoneFile, int errorcode)
+{
+  FILE *fp;
+  if(DoneFile == NULL) return(0);
+  fp = fopen(DoneFile,"w");
+  if(fp == NULL) return(1);
+  fprintf(fp,"%d\n",errorcode);
+  fclose(fp);
+  return(0);
+}
 
 /*-----------------------------------------------------
         Parameters:
