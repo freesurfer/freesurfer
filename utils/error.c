@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/07/27 20:49:29 $
- *    $Revision: 1.24 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/07/28 21:24:19 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ static int (*error_vprintf)(const char *fmt, va_list args) = vprintf ;
 static int (*error_vfprintf)(FILE *fp,const char *fmt,va_list args) = vfprintf;
 static void (*error_exit)(int ecode) = NULL ;
 static void rgb_error(char *error_str) ;
-static char *ErrorExitDoneFile = NULL;
+char *ErrorExitDoneFile = NULL;
 
 /*-----------------------------------------------------
                       GLOBAL DATA
