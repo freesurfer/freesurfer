@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.20 $
+ *    $Author: greve $
+ *    $Date: 2015/07/27 20:49:35 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,8 @@ int     ErrorInit(char *fname,
 int     ErrorSetExitFunc(void (*exit_func)(int ecode)) ;
 void    ErrorExit(int ecode, const char *fmt, ...) ;
 int     ErrorPrintf(int ecode, const char *fmt, ...) ;
+void    SetErrorExitDoneFile(char *DoneFile);
+int ErrorWriteDoneFile(char *DoneFile, int errorcode);
 #define ErrorReturn(ret, args)  { ErrorPrintf args ; return(ret) ; }
 
 #define ESCAPE   ErrorExit
