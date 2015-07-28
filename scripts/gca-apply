@@ -1,0 +1,342 @@
+#!/bin/tcsh -f
+# gca-apply
+
+set VERSION = '$Id: gca-apply,v 1.2 2015/07/28 00:51:04 greve Exp $';
+
+set gca = ();
+set subject = ();
+set norm = ();
+set gcabase = ()
+set GCARegIterations = ();
+set DoSegStats = 1;
+
+set Overwrite = 0;
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+if($?FS_OMP_NUM_THREADS) then
+  setenv OMP_NUM_THREADS $FS_OMP_NUM_THREADS 
+else
+  setenv OMP_NUM_THREADS 1
+endif
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+
+set outdir = $SUBJECTS_DIR/$subject/mri
+#if($#tmpdir == 0) then
+#  if(-e /scratch)   set tmpdir = /scratch/tmpdir.gca-apply.$$
+#  if(! -e /scratch) set tmpdir = $outdir/tmpdir.gca-apply.$$
+#endif
+#mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $outdir/gca-apply.$gcabase.log
+if($LF != /dev/null && -e $LF) mv $LF $LF.bak
+echo "Log file for gca-apply" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+cd $mdir
+
+# mri_em_register
+set opts = (-mask brainmask.mgz)
+set opts = ($opts -uns 3) # used by recon-all, but not with skull
+# but docs imply it is only with skull that it should be used
+set cmd = (mri_em_register $opts nu.mgz $gca transforms/$gcabase.lta)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# mri_ca_normlize
+set norm = norm.$gcabase.mgz
+set cmd = (mri_ca_normalize -mask brainmask.mgz nu.mgz $gca \
+  transforms/$gcabase.lta $norm)
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# mri_ca_register
+set opts = (-align-after -mask brainmask.mgz -T transforms/$gcabase.lta)
+set opts = ($opts -nobigventricles) # Used by recon-all
+# These are not used by recon-all but used in rebuild_gca_atlas.csh
+#set opts = ($opts -smooth 1.0 -levels 2) 
+set cmd = (mri_ca_register $opts $norm $gca transforms/$gcabase.m3z)
+if($#GCARegIterations) set cmd = ($cmd -gcareg-iters $GCARegIterations)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# mri_ca_label
+set opts = (-align)
+#set opts = ($opts -nobigventricles) # not used in recon-all, used in rebuild_gca_atlas.csh
+set cmd = (mri_ca_label $opts $norm transforms/$gcabase.m3z $gca $gcabase.aseg.mgz)
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+# Compute segstats
+set cmd = (mri_segstats --seg $gcabase.aseg.mgz \
+  --sum ../stats/$gcabase.stats \
+  --in $norm --pv $norm --empty --excludeid 0 \
+  --ctab $FREESURFER_HOME/ASegStatsLUT.txt --subject $subject \
+  --in-intensity-name norm.$gcabase --in-intensity-units MR )
+echo $cmd |& tee -a $LF
+$cmd |& tee -a $LF
+if($status) exit 1;
+
+#========================================================
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "gca-apply-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "gca-apply-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "gca-apply Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--gca":
+      if($#argv < 1) goto arg1err;
+      set gca = $argv[1]; shift;
+      if(! -e $gca) then
+        echo "ERROR: cannot find $gca"
+        exit 1;
+      endif
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--base":
+      if($#argv < 1) goto arg1err;
+      set gcabase = $argv[1]; shift;
+      breaksw
+
+    case "--overwrite":
+      set Overwrite = 1;
+      breaksw
+
+    case "--no-segstats":
+      set DoSegStats = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--gcareg-iters":
+      # For testing, to make ca_reg run faster
+      if($#argv < 1) goto arg1err;
+      set GCARegIterations = $argv[1]; shift;
+      breaksw
+
+    case "--threads":
+    case "--nthreads":
+      if($#argv < 1) goto arg1err;
+      setenv OMP_NUM_THREADS $argv[1]; shift
+      breaksw
+
+    case "-sd":
+    case "--sd":
+      if ( $#argv < 1) goto arg1err;
+      setenv  SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#gca == 0) then
+  echo "ERROR: must spec gca"
+  exit 1;
+endif
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+set sdir = $SUBJECTS_DIR/$subject
+set mdir = $sdir/mri
+if(! -e $sdir) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+foreach f ($mdir/brainmask.mgz $mdir/nu.mgz)
+  if(! -e $f) then
+    echo "ERROR: cannot find $f"
+    exit 1;
+  endif
+end
+# Check whether the outputs already exist
+if($#gcabase == 0) set gcabase = `basename $gca .gca`
+set lta   = $mdir/transforms/$gcabase.lta
+set norm  = $mdir/norm.$gcabase.mgz
+set m3z   = $mdir/transforms/$gcabase.m3z
+set aseg  = $mdir/$gcabase.aseg.mgz
+set stats = $sdir/stats/$gcabase.stats
+if(-e $lta && ! $Overwrite) then
+  echo "ERROR: $lta already exists"
+  exit 1;
+endif
+if(-e $norm && ! $Overwrite) then
+  echo "ERROR: $norm already exists"
+  exit 1;
+endif
+if(-e $m3z && ! $Overwrite) then
+  echo "ERROR: $m3z already exists"
+  exit 1;
+endif
+if(-e $aseg && ! $Overwrite) then
+  echo "ERROR: $aseg already exists"
+  exit 1;
+endif
+if(-e $stats && ! $Overwrite) then
+  echo "ERROR: $stats already exists"
+  exit 1;
+endif
+
+set gca = `getfullpath $gca`
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "gca-apply : apply a gca, including em_reg, ca_norm, ca_reg, and ca_label"
+  echo "  --gca gcafile"
+  echo "  --s subject"
+  echo ""
+  echo " Other options"
+  echo "  --overwrite : overwrite lta, norm, m3z, and aseg if they exist"
+  echo "  --nthreads nthreads : control number of OMP threads"
+  echo "  --base gcabase : use gcabase when naming output files (default is basename gcafile)"
+  echo "  --no-segstats : do not compute segstats "
+  echo "  --sd SUBJECTS_DIR, or -sd "
+  echo ""
+  echo "  --gcareg-iters : set to 1, only for testing"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Applies a GCA, performing the steps of mri_em_register,
+mri_ca_normalize, mri_ca_register, and mri_ca_label (and possibly
+mri_segstats). This script is designed to replicate the stages in
+recon-all but does not overwrite any of those files. Single threaded,
+this script may take 8 hours or so because mri_ca_register is done.
+
+Creates files with the names:
+
+gcabase.lta
+gcabase.m3z
+norm.gcabase.mgz
+gcabase.aseg.mgz
+gcabase.stats
+
+Where gcabase is either `basename gcafile` or whatever is passed with --gcabase
+
+When computing segstats, it uses partial volume correction with norm.gcabase.mgz.
+
+Requires that brainmask.mgz and nu.mgz be present.
+
