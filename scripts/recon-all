@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2015/07/15 22:39:40 $
-#    $Revision: 1.539 $
+#    $Author: greve $
+#    $Date: 2015/07/29 12:46:57 $
+#    $Revision: 1.540 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.539 2015/07/15 22:39:40 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.540 2015/07/29 12:46:57 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -246,6 +246,9 @@ set face_template  = face.gca
 set GCA      = RB_all_2014-08-21.gca
 set GCASkull = RB_all_withskull_2014-08-21.gca
 set GCADIR   = "${FREESURFER_HOME}/average"
+set GCAOutputName = ();
+set GCARegIterations = ();
+set GCARegTol  = ();
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "${FREESURFER_HOME}/average"
@@ -357,6 +360,7 @@ set DoVnoMatchCheck  = 0;
 
 set DoIsRunning  = 1;
 set IsRunningFile  = ();
+set DoneFile = ();
 
 setenv LANG C # Required by MNI tool
 
@@ -548,6 +552,10 @@ if ("`uname -s`" == "Darwin") then
   /usr/bin/top -l 1 | grep PhysMem >> $LF
   echo "" >> $LF
 endif
+if($?PBS_JOBID) then
+  # If the job has been submitted to launchpad, get jobid
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
 
 ## gather all versions here
 echo "########################################" >> $LF
@@ -614,8 +622,10 @@ if($DoVersionsOnly) exit 0;
 set ErrorFile = $subjdir/scripts/recon-all.error
 rm -f $ErrorFile
 # Delete the done file. This is created when recon-all exits normally
-set DoneFile = $subjdir/scripts/recon-all.done
-rm -f $DoneFile
+if($#DoneFile == 0) then
+  set DoneFile = $subjdir/scripts/recon-all.done
+  rm -f $DoneFile
+endif
 
 # ------------ Create the IsRunning File --------- #
 if($DoIsRunning) then
@@ -662,6 +672,9 @@ if($DoIsRunning) then
   echo "OS `uname -s`"       >> $IsRunningFile
   uname -a         >> $IsRunningFile
   echo $VERSION    >> $IsRunningFile
+  if($?PBS_JOBID) then
+    echo "pbsjob $PBS_JOBID"  >> $IsRunningFile
+  endif
 endif
 
 # ------- Check FREESURFER_HOME consistency --------------#
@@ -2415,6 +2428,8 @@ if($DoNuIntensityCor) then
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   # Add xfm to nu
+  # Why is this done here instead of after talairach.xfm is created?
+  # To assure that it gets propagated?
   set cmd = (mri_add_xform_to_header -c \
              $subjdir/mri/transforms/talairach.xfm \
              nu.mgz nu.mgz)
@@ -2473,9 +2488,10 @@ if($DoGCAReg) then
                   transforms/talairach.lta)
     else
       # default processing:
+      set lta = transforms/talairach.lta
+      if($#GCAOutputName) set lta = transforms/talairach.$GCAOutputName.lta
       set cmd = ($cmd -uns 3 -mask brainmask.mgz $xopts \
-                  nu.mgz ${GCADIR}/$GCA \
-                  transforms/talairach.lta)
+                  nu.mgz ${GCADIR}/$GCA $lta)
     endif
   endif
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2495,6 +2511,15 @@ if($DoCANormalize) then
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
 
+  set lta = transforms/talairach.lta
+  set norm = norm.mgz
+  set ctrl_pts = ctrl_pts.mgz
+  if($#GCAOutputName) then
+    set lta = transforms/talairach.$GCAOutputName.lta
+    set norm = norm.$GCAOutputName.mgz
+    set ctrl_pts = ctrl_pts.$GCAOutputName.mgz
+  endif
+
   if ($longitudinal) then
     # longitudinal processing:
     # cp aseg from base to current TP:
@@ -2513,7 +2538,7 @@ if($DoCANormalize) then
     set cmd = ($cmd -long aseg_${longbaseid}.mgz)
   else
     # default stream
-    set cmd = ($cmd -c ctrl_pts.mgz)
+    set cmd = ($cmd -c $ctrl_pts)
   endif
   set cmd = ($cmd -mask brainmask.mgz $xopts)
   if($DoCreateBaseSubj) then
@@ -2524,8 +2549,8 @@ if($DoCANormalize) then
     # default stream
     set cmd = ($cmd nu.mgz)
   endif
-  set cmd = ($cmd ${GCADIR}/$GCA)
-  set cmd = ($cmd transforms/talairach.lta norm.mgz)
+
+  set cmd = ($cmd ${GCADIR}/$GCA $lta $norm)
 
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -2548,11 +2573,20 @@ if($DoCAReg) then
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile`;
   set cmd = (mri_ca_register)
   if($UseCuda) set cmd = (mri_ca_register_cuda)
+  if($#GCARegIterations) set cmd = ($cmd -n $GCARegIterations)
+  if($#GCARegTol) set cmd = ($cmd -tol $GCARegTol)
+  set m3z = transforms/talairach.m3z
+  set norm = norm.mgz
+  if($#GCAOutputName) then
+    set lta = transforms/talairach.$GCAOutputName.lta
+    set m3z = transforms/talairach.$GCAOutputName.m3z
+    set norm = norm.$GCAOutputName.mgz
+  endif
   if($UnCompress) set cmd = ($cmd -uncompress)
   if($BigVentricles) set cmd = ($cmd -bigventricles)
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   if($DoSecondPassRenorm) set cmd = ($cmd -secondpassrenorm)
-  if( ! $longitudinal) set cmd = ($cmd -T transforms/talairach.lta)
+  if( ! $longitudinal) set cmd = ($cmd -T $lta)
   if($UseTWMControlPoints) set cmd = ($cmd -twm $TWMControlPointsFile)
   if ( $longitudinal ) then
     # here is tpN's longitudinal command
@@ -2562,11 +2596,10 @@ if($DoCAReg) then
                 -l $longbasedir/mri/transforms/talairach.m3z \
                 identity.nofile)
   endif
+
   set cmd = ($cmd $UseCAAlignAfter)
   set cmd = ($cmd -mask brainmask.mgz)
-  set cmd = ($cmd $xopts norm.mgz \
-             ${GCADIR}/$GCA \
-             transforms/talairach.m3z)
+  set cmd = ($cmd $xopts $norm ${GCADIR}/$GCA $m3z)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   set st = $status
@@ -5494,6 +5527,9 @@ error_exit:
     echo "PWD `pwd`" >> $ErrorFile
     echo "CMD $cmd"  >> $ErrorFile
   endif
+  if($?DoneFile) then
+    echo "1" > $DoneFile
+  endif
   # Finally exit
   exit 1;
 endif
@@ -6530,6 +6566,35 @@ while( $#argv != 0 )
       set DoNuIntensityCor = 1;
       breaksw
 
+    case "-gcatrain-iter":
+      if($#argv < 2) goto arg2err;
+      set gcafile = $argv[1]; shift;
+      if(! -e $gcafile) then
+        echo "ERROR: cannot find $gcafile"
+        exit 1;
+      endif
+      set gcafile = `getfullpath $gcafile`
+      set GCA    = `basename $gcafile`
+      set GCADIR = `dirname $gcafile`
+      set GCAOutputName = $argv[1]; shift;
+      set DoGCAReg         = 1;
+      set DoRemoveNeck     = 0;
+      set DoSkullLTA       = 0;
+      set DoCANormalize    = 1;
+      set DoCAReg          = 1;
+      set DoCALabel        = 0;
+      set DoSegStats       = 0;
+      breaksw
+
+    case "-gcareg-iters":
+      if($#argv < 1) goto arg1err;
+      set GCARegIterations = $argv[1]; shift;
+      breaksw
+    case "-gcareg-tol":
+      if($#argv < 1) goto arg1err;
+      set GCARegTol = $argv[1]; shift;
+      breaksw
+
     case "-autorecon2":
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
@@ -6913,6 +6978,12 @@ while( $#argv != 0 )
       set AppendStatus = 0;
       breaksw
 
+    case "-done":
+      if ( $#argv < 1) goto arg1err;
+      set DoneFile = $argv[1]; shift;
+      rm -f $DoneFile
+      breaksw
+
     case "-log":
       if ( $#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -6957,6 +7028,13 @@ while( $#argv != 0 )
 
     case "-no-isrunning":
       set DoIsRunning = 0;
+      breaksw
+
+    case "-threads"
+    case "-nthreads"
+      if($#argv < 1) goto arg1err;
+      setenv OMP_NUM_THREADS $argv[1]; shift;
+      setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS
       breaksw
 
     case "-force":
@@ -7575,7 +7653,7 @@ check_params:
     exit 1;
   endif
 
-  if(! -e ${GCADIR}/$GCASkull ) then
+  if(! -e ${GCADIR}/$GCASkull && ($DoSkullLTA || $DoSkullStrip)) then
     echo "ERROR: cannot find ${GCADIR}/$GCASkull" \
       |& tee -a $LF
     exit 1;
