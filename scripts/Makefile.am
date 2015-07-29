@@ -340,7 +340,7 @@ install-exec-hook:
 
 install-data-local:
 	test -z $(DESTDIR)$(bindir) || $(mkdir_p) $(DESTDIR)$(bindir)
-		$(INSTALL_DATA) $(foo_datafiles) $(DESTDIR)$(bindir)
+		$(INSTALL_SCRIPT) $(foo_datafiles) $(DESTDIR)$(bindir)
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
