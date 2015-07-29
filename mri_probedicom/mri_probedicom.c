@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/07/28 18:24:08 $
- *    $Revision: 1.44 $
+ *    $Date: 2015/07/28 21:51:22 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,7 +64,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.44 2015/07/28 18:24:08 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.45 2015/07/28 21:51:22 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
   double bval, xbvec, ybvec, zbvec;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.44 2015/07/28 18:24:08 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.45 2015/07/28 21:51:22 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1595,6 +1595,7 @@ double ConvertTimeStringToSec(char *tstring)
 {
   char str[3];
   double h,m,s,f,tsec;
+  str[2] = '\0';
 
   str[0] = tstring[0];
   str[1] = tstring[1];
@@ -1611,7 +1612,7 @@ double ConvertTimeStringToSec(char *tstring)
 
   tsec = 60*60*h + 60*m + s + f;
 
-  if(Gdiag_no > 0) printf("%s %lf %lf %lf %lf %lf\n",tstring,h,m,s,f,tsec);
+  if(Gdiag_no > 0) printf("--%s-- %lf %lf %lf %lf %lf\n",tstring,h,m,s,f,tsec);
 
   return(tsec);
 }
