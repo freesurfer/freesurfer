@@ -1,14 +1,15 @@
 #!/bin/tcsh -f
 # gca-apply
 
-set VERSION = '$Id: gca-apply,v 1.2 2015/07/28 00:51:04 greve Exp $';
+set VERSION = '$Id: gca-apply,v 1.4 2015/07/31 15:46:52 greve Exp $';
 
 set gca = ();
 set subject = ();
 set norm = ();
 set gcabase = ()
 set GCARegIterations = ();
-set DoSegStats = 1;
+set DiceSeg = ();
+set DiceFile = ();
 
 set Overwrite = 0;
 set tmpdir = ();
@@ -113,6 +114,14 @@ echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
+if($#DiceSeg) then
+  set cmd = (mri_compute_seg_overlap -cortex 0 -L ../$DiceFile \
+    $gcabase.aseg.mgz $DiceSeg)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
+
 #========================================================
 # Cleanup
 # if($cleanup) rm -rf $tmpdir
@@ -197,6 +206,12 @@ while( $#argv != 0 )
       setenv  SUBJECTS_DIR $argv[1]; shift;
       breaksw
 
+    case "--dice":
+      if($#argv < 2) goto arg2err;
+      set DiceSeg = $argv[1]; shift;
+      set DiceFile = $argv[1]; shift;
+      breaksw
+
     case "--tmp":
     case "--tmpdir":
       if($#argv < 1) goto arg1err;
@@ -259,6 +274,7 @@ set norm  = $mdir/norm.$gcabase.mgz
 set m3z   = $mdir/transforms/$gcabase.m3z
 set aseg  = $mdir/$gcabase.aseg.mgz
 set stats = $sdir/stats/$gcabase.stats
+
 if(-e $lta && ! $Overwrite) then
   echo "ERROR: $lta already exists"
   exit 1;
@@ -277,6 +293,11 @@ if(-e $aseg && ! $Overwrite) then
 endif
 if(-e $stats && ! $Overwrite) then
   echo "ERROR: $stats already exists"
+  exit 1;
+endif
+
+if($#DiceSeg && ! -e $mdir/$DiceSeg) then
+  echo "ERROR: cannot find $mdir/$DiceSeg"
   exit 1;
 endif
 
@@ -308,6 +329,7 @@ usage_exit:
   echo "  --base gcabase : use gcabase when naming output files (default is basename gcafile)"
   echo "  --no-segstats : do not compute segstats "
   echo "  --sd SUBJECTS_DIR, or -sd "
+  echo "  --dice DiceSeg DiceFile "
   echo ""
   echo "  --gcareg-iters : set to 1, only for testing"
   echo ""
@@ -338,5 +360,13 @@ Where gcabase is either `basename gcafile` or whatever is passed with --gcabase
 
 When computing segstats, it uses partial volume correction with norm.gcabase.mgz.
 
-Requires that brainmask.mgz and nu.mgz be present.
+Requires that brainmask.mgz and nu.mgz be present and ideally created in the same
+way as when the atlas was trained on the training subjects. When using gcatrain,
+the brainmask.mgz and nu.mgz are created with:
+
+recon-all -s subject -autorecon1 -no-talcheck
+
+If --dice is specified, then the dice coefficient is computed using
+mri_compute_seg_overlap using $SUBJECTS_DIR/$subject/mri/$DiceSeg
+and the output will be put in $SUBJECTS_DIR/$subject/$DiceFile
 
