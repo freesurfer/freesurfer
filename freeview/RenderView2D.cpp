@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/06/22 19:14:31 $
- *    $Revision: 1.71 $
+ *    $Date: 2015/07/30 20:22:19 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -245,11 +245,14 @@ void RenderView2D::UpdateCursorRASPosition( int posX, int posY, bool bSnapToVert
     foreach (Layer* layer, layers)
     {
       LayerSurface* surf = qobject_cast<LayerSurface*>(layer);
-      int nVertex = surf->GetVertexIndexAtTarget( pos, NULL );
-      if (nVertex >= 0)
+      if (surf->IsVisible())
       {
-        if (surf->GetTargetAtVertex(nVertex, pos))
-          break;
+        int nVertex = surf->GetVertexIndexAtTarget( pos, NULL );
+        if (nVertex >= 0)
+        {
+          if (surf->GetTargetAtVertex(nVertex, pos))
+            break;
+        }
       }
     }
   }
