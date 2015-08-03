@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/24 20:35:10 $
- *    $Revision: 1.34 $
+ *    $Date: 2015/07/30 20:22:19 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
 
   if ( !view->hasFocus() )
   {
-    return Interactor2D::ProcessMouseDownEvent( event, renderview );
+      return Interactor2D::ProcessMouseDownEvent( event, renderview );
   }
 
   PreprocessMouseEvent(event);
@@ -77,7 +77,14 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
   {
     if ( (event->modifiers() & CONTROL_MODIFIER ) && (event->modifiers() & Qt::ShiftModifier) )
     {
-      return Interactor2D::ProcessMouseDownEvent( event, renderview );
+      if (event->button() == Qt::LeftButton)
+      {
+        view->UpdateCursorRASPosition( event->x(), event->y());
+        view->RequestRedraw();
+        return false;
+      }
+      else
+        return Interactor2D::ProcessMouseDownEvent( event, renderview );
     }
 
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( m_strLayerTypeName );
@@ -436,7 +443,7 @@ bool Interactor2DVolumeEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView* 
   }
   else if (event->modifiers() & Qt::ShiftModifier && event->key() == Qt::Key_C)
   {
-    m_bColorPicking = true;
+    m_bColorPicking = !m_bColorPicking;
     return false;
   }
   else if (event->key() == Qt::Key_Escape)
