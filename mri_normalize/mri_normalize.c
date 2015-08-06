@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/04/01 19:12:05 $
- *    $Revision: 1.84 $
+ *    $Author: fischl $
+ *    $Date: 2015/08/05 19:24:14 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -146,14 +146,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.84 2015/04/01 19:12:05 greve Exp $",
+   "$Id: mri_normalize.c,v 1.85 2015/08/05 19:24:14 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.84 2015/04/01 19:12:05 greve Exp $",
+           "$Id: mri_normalize.c,v 1.85 2015/08/05 19:24:14 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -335,7 +335,8 @@ main(int argc, char *argv[])
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       MRIwrite(mri_dist, "d.mgz");
-      MRIwrite(mri_dist_sup, "dm.mgz");
+      if (mri_dist_sup)
+	MRIwrite(mri_dist_sup, "dm.mgz");
       MRIwrite(mri_ctrl, "c.mgz");
     }
     MRIeraseBorderPlanes(mri_ctrl, 4) ;
