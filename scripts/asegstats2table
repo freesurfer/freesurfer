@@ -11,7 +11,7 @@ from fsutils import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.39 2014/11/21 22:27:54 greve Exp $
+# $Id: asegstats2table,v 1.40 2015/08/05 17:45:18 greve Exp $
 
 # globals
 l = aseglogger
@@ -110,7 +110,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.39 2014/11/21 22:27:54 greve Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.40 2015/08/05 17:45:18 greve Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -553,8 +553,13 @@ if __name__=="__main__":
                 print 'Skipping ' + str(e)
                 continue
             else:
-                print 'ERROR: The stats file '+str(e)+' is not found or is too small to be a valid statsfile'
-                print 'Use --skip flag to automatically skip bad stats files'
+                print "";
+                if(not os.path.exists(str(e))):
+                    print 'ERROR: Cannot find stats file '+str(e);
+                else:
+                    print 'ERROR: The stats file '+str(e)+' is too small to be a valid statsfile'
+                print 'Use --skip flag to automatically skip bad or missing stats files'
+                print "";
                 sys.exit(1)
         nmeasures = len(measurelist);
         if(nth == 1): nmeasures0 = nmeasures;
