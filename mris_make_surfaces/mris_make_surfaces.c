@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/04/28 20:09:24 $
- *    $Revision: 1.156 $
+ *    $Date: 2015/08/05 19:26:19 $
+ *    $Revision: 1.158 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.156 2015/04/28 20:09:24 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.158 2015/08/05 19:26:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,6 +73,8 @@ static int find_and_mark_pinched_regions(MRI_SURFACE *mris,
 static float T2_max = -1 ;
 static float T2_min = -1 ;
 
+static int above_set = 0 ;
+static int below_set = 0 ;
 static int compute_pial_target_locations(MRI_SURFACE *mris,
 					 MRI *mri_T2,
 					 float nstd_below,
@@ -81,7 +83,9 @@ static int compute_pial_target_locations(MRI_SURFACE *mris,
 					 int nlabels,
 					 int contrast_type,
 					 float T2_min,
-					 float T2_max) ;
+					 float T2_max,
+                                         int below_set,
+                                         int above_set) ;
 static int compute_label_normal(MRI *mri_aseg, int x0, int y0, int z0,
                                 int label, int whalf,
                                 double *pnx, double *pny,
@@ -273,13 +277,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.156 2015/04/28 20:09:24 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.158 2015/08/05 19:26:19 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.156 2015/04/28 20:09:24 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.158 2015/08/05 19:26:19 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1526,7 +1530,7 @@ main(int argc, char *argv[])
         compute_pial_target_locations(mris, mri_flair,
                                       nsigma_below, nsigma_above,
                                       labels, nlabels,
-                                      CONTRAST_FLAIR, T2_min, T2_max) ;
+                                      CONTRAST_FLAIR, T2_min, T2_max, below_set, above_set) ;
 
         if (Gdiag & DIAG_WRITE)
         {
@@ -1657,7 +1661,7 @@ main(int argc, char *argv[])
           compute_pial_target_locations(mris, mri_T2,
                                         nsigma_below, nsigma_above,
                                         labels, nlabels,
-                                        CONTRAST_T2, T2_min, T2_max) ;
+                                        CONTRAST_T2, T2_min, T2_max, below_set, above_set) ;
         }
 
         if (Gdiag & DIAG_WRITE)
@@ -2118,6 +2122,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "nsigma_above") ||
            !stricmp(option, "nsigmas_above"))
   {
+    above_set = 1 ;
     nsigma_above = atof(argv[2]) ;
     fprintf(stderr,
             "using T2 threshold of %2.2f sigmas above the mean (default=2)\n",
@@ -2127,6 +2132,7 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "nsigma_below") ||
            !stricmp(option, "nsigmas_below"))
   {
+    below_set = 1 ;
     nsigma_below = atof(argv[2]) ;
     fprintf(stderr,
             "using T2 threshold of %2.2f sigmas below the mean (default=2)\n",
@@ -3864,7 +3870,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
                               float nstd_above,
                               LABEL **labels,
                               int nlabels,
-                              int contrast_type, float T2_min, float T2_max)
+                              int contrast_type, float T2_min, float T2_max, int below_set, int above_set)
 {
   Real      val, xs, ys, zs, xv, yv, zv, d, mean, std ;
   int       vno, num_in, num_out, found_bad_intensity;
@@ -3977,23 +3983,30 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   }
   max_gray = mn+nstd_above*sig ;
   min_gray = mn-nstd_below*sig ;
+  if (!above_set || !below_set)
   {
     int bin ;
     bin = HISTOfindBinWithCount(hcdf, 0.01) ;
 //    bin = HISTOfindBinWithCount(hcdf, 0.005) ;  // changed to work better with CIMBI data
-    printf("min bin %d (%2.1f) found with count %2.3f\n", bin, hcdf->bins[bin], hcdf->counts[bin]) ;
-    if (hcdf->bins[bin] > min_gray)
+    if (!below_set)
     {
-      printf("resetting min gray %2.1f based on CDF to %2.1f\n", min_gray, hcdf->bins[bin]) ;
-      min_gray = hcdf->bins[bin];
+      printf("min bin %d (%2.1f) found with count %2.3f\n", bin, hcdf->bins[bin], hcdf->counts[bin]) ;
+      if (hcdf->bins[bin] > min_gray)
+      {
+	printf("resetting min gray %2.1f based on CDF to %2.1f\n", min_gray, hcdf->bins[bin]) ;
+	min_gray = hcdf->bins[bin];
+      }
     }
 
-    bin = HISTOfindBinWithCount(hcdf_rev, 0.01) ;
-    printf("max bin %d (%2.1f) found with count %2.3f\n", bin, hcdf_rev->bins[bin], hcdf_rev->counts[bin]) ;
-    if (hcdf_rev->bins[bin] < max_gray)
+    if (!above_set)
     {
-      printf("resetting max gray %2.1f based on CDF to %2.1f\n", max_gray, hcdf_rev->bins[bin]) ;
-      max_gray = hcdf_rev->bins[bin];
+      bin = HISTOfindBinWithCount(hcdf_rev, 0.01) ;
+      printf("max bin %d (%2.1f) found with count %2.3f\n", bin, hcdf_rev->bins[bin], hcdf_rev->counts[bin]) ;
+      if (hcdf_rev->bins[bin] < max_gray)
+      {
+	printf("resetting max gray %2.1f based on CDF to %2.1f\n", max_gray, hcdf_rev->bins[bin]) ;
+	max_gray = hcdf_rev->bins[bin];
+      }
     }
   }
   if (T2_min >= 0)
@@ -4131,8 +4144,11 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       }
       if (d > max_outward_dist)  // couldn't find pial surface
       {
+	v->marked = 0 ;
         d = 0 ;
       }
+      else
+	v->marked = 1 ;
       if (d > 0)
       {
         d -= SAMPLE_DIST ;
