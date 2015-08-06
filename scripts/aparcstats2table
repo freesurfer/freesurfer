@@ -9,7 +9,7 @@ from fsutils import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.26 2014/11/21 23:17:19 greve Exp $
+# $Id: aparcstats2table,v 1.27 2015/08/05 17:22:52 greve Exp $
 
 # globals
 l = aparclogger
@@ -88,7 +88,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.26 2014/11/21 23:17:19 greve Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.27 2015/08/05 17:22:52 greve Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -379,8 +379,13 @@ if __name__=="__main__":
                 print 'Skipping ' + str(e)
                 continue
             else:
-                print 'ERROR: The stats file '+str(e)+' is not found or is too small to be a valid statsfile'
-                print 'Use --skip flag to automatically skip bad stats files'
+                print "";
+                if(not os.path.exists(str(e))):
+                    print 'ERROR: Cannot find stats file '+str(e);
+                else:
+                    print 'ERROR: The stats file '+str(e)+' is too small to be a valid statsfile'
+                    print 'Use --skip flag to automatically skip bad stats files'
+                print "";
                 sys.exit(1)
         
         pretable.append( (specifier, parc_measure_map)) 
