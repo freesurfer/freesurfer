@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # gca-apply
 
-set VERSION = '$Id: gca-apply,v 1.4 2015/07/31 15:46:52 greve Exp $';
+set VERSION = '$Id: gca-apply,v 1.5 2015/08/07 14:49:49 greve Exp $';
 
 set gca = ();
 set subject = ();
@@ -52,7 +52,7 @@ set outdir = $SUBJECTS_DIR/$subject/mri
 #mkdir -p $tmpdir
 
 # Set up log file
-if($#LF == 0) set LF = $outdir/gca-apply.$gcabase.log
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/gca-apply.$gcabase.log
 if($LF != /dev/null && -e $LF) mv $LF $LF.bak
 echo "Log file for gca-apply" >> $LF
 date  | tee -a $LF
@@ -115,7 +115,7 @@ $cmd |& tee -a $LF
 if($status) exit 1;
 
 if($#DiceSeg) then
-  set cmd = (mri_compute_seg_overlap -cortex 0 -L ../$DiceFile \
+  set cmd = (mri_compute_seg_overlap -cortex 0 -L $DiceFile \
     $gcabase.aseg.mgz $DiceSeg)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
