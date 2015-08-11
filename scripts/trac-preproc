@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2014/07/03 08:46:30 $
-#    $Revision: 1.51 $
+#    $Date: 2015/08/10 23:18:38 $
+#    $Revision: 1.52 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.51 2014/07/03 08:46:30 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.52 2015/08/10 23:18:38 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -930,18 +930,20 @@ if ($dointer && $dobase) then
   echo "#-------------------------------------" |& tee -a $LF
   echo "#@# Inter-subject registration (base template) `date`" |& tee -a $LF
 
-  # Affine registration from MNI template to base template
-  # Hack: Using one time point for now!
-  set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
+  if ($doregmni) then
+    # Affine registration from MNI template to base template
+    # Hack: Using one time point for now!
+    set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
 
-  set cmd = cp
-  set cmd = ($cmd $xfmdir_t/mni2anatorig.mat)
-  set cmd = ($cmd $xfmdir_t/anatorig2mni.mat)
-  set cmd = ($cmd $xfmdir)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
+    set cmd = cp
+    set cmd = ($cmd $xfmdir_t/mni2anatorig.mat)
+    set cmd = ($cmd $xfmdir_t/anatorig2mni.mat)
+    set cmd = ($cmd $xfmdir)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
   endif
 endif
 
