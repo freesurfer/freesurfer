@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/04/02 19:42:01 $
- *    $Revision: 1.81 $
+ *    $Date: 2015/08/17 21:17:20 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -282,6 +282,7 @@ MRI *MRIaffineDisplacment(MRI *mri, MATRIX *R);
 
 int LTAmriIsSource(const LTA *lta, const MRI *mri);
 int LTAmriIsTarget(const LTA *lta, const MRI *mri);
+LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type);
 
 #if defined(__cplusplus)
 };

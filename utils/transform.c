@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/09 22:50:42 $
- *    $Revision: 1.176 $
+ *    $Date: 2015/08/17 21:17:20 $
+ *    $Revision: 1.177 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5419,7 +5419,7 @@ int LTAmriIsSource(const LTA *lta, const MRI *mri)
   IsSource = vg_isEqual(&lta->xforms[0].src, &mrivg);
   return(IsSource);
 }
-/*
+/*!
   \fn int LTAmriIsTarget(const LTA *lta, const MRI *mri)
   \brief Returns 1 if the geometry in mri matches that in
   lta->xforms[num_xforms-1].dst, otherwise returns 0.
@@ -5432,4 +5432,18 @@ int LTAmriIsTarget(const LTA *lta, const MRI *mri)
   nxforms = lta->num_xforms;
   IsTarget = vg_isEqual(&lta->xforms[nxforms-1].dst, &mrivg);
   return(IsTarget);
+}
+/*!
+  \fn LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type)
+  \brief Create an LTA of the given type with the given matrix
+ */
+LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type)
+{
+  LTA *lta;
+  lta = LTAalloc(1,NULL);
+  LTAsetVolGeom(lta, src, dst) ;
+  lta->xforms[0].m_L = MatrixCopy(T,NULL);
+  lta->xforms[0].type = type;
+  lta->type = type;
+  return(lta);
 }
