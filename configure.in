@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/07/15 21:54:58 $
-#    $Revision: 1.652 $
+#    $Date: 2015/08/17 21:47:48 $
+#    $Revision: 1.653 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3714,6 +3714,7 @@ AC_OUTPUT([Makefile
            mri_cht2p/Makefile
            mri_cnr/Makefile
            mri_compile_edits/Makefile
+	   mri_coreg/Makefile
            mri_update_gca/Makefile
            mri_compute_overlap/Makefile
            mri_compute_seg_overlap/Makefile
