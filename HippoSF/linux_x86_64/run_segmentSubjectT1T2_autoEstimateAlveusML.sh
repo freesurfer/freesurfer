@@ -23,6 +23,9 @@ else
 
   export LD_LIBRARY_PATH;
   export XAPPLRESDIR;
+  
+  unset JAVA_TOOL_OPTIONS
+
   echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
   shift 1
   args=
