@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/06/22 19:28:17 $
- *    $Revision: 1.560 $
+ *    $Author: greve $
+ *    $Date: 2015/08/17 21:19:06 $
+ *    $Revision: 1.561 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.560 $";
+const char *MRI_C_VERSION = "$Revision: 1.561 $";
 
 
 /*-----------------------------------------------------
@@ -17993,6 +17993,9 @@ MRIcopyVolGeomFromMRI( const MRI *mri, VOL_GEOM *vg)
   vg->y_s = mri->y_s ;
   vg->z_s = mri->z_s ;
   vg->c_s = mri->c_s ;
+  vg->width = mri->width;
+  vg->height = mri->height;
+  vg->depth = mri->depth;
   vg->valid = mri->ras_good_flag ;
   strcpy(vg->fname, mri->fname) ;
   return(NO_ERROR) ;
