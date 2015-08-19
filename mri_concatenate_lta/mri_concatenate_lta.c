@@ -11,8 +11,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/03/03 16:46:59 $
- *    $Revision: 1.13 $
+ *    $Date: 2015/08/19 16:35:05 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,9 @@ static char *tal_src_file = 0;
 static char *tal_dst_file = 0;
 static MRI *tal_src = 0;
 static MRI *tal_dst = 0;
+static int DoRMSDiff = 0;
+static double RMSDiffRad = 0;
+static char *RMSDiffFile = NULL;
 
 int main(int argc, char *argv[])
 {
@@ -76,7 +79,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_concatenate_lta.c,v 1.13 2015/03/03 16:46:59 greve Exp $",
+           "$Id: mri_concatenate_lta.c,v 1.15 2015/08/19 16:35:05 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -93,10 +96,7 @@ int main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc != 4)
-  {
-    usage(1);
-  }
+  if((DoRMSDiff == 0 && argc != 4) || (DoRMSDiff == 1 && argc != 3)) usage(1);
 
   ltafn1 = argv[1];
   ltafn2 = argv[2];
@@ -238,6 +238,21 @@ int main(int argc, char *argv[])
     copyVolGeom(&vgtmp, &lt->src);
   }
 
+  if(DoRMSDiff){
+    double rms;
+    FILE *fp;
+    LTAchangeType(lta1,REGISTER_DAT);
+    LTAchangeType(lta2,REGISTER_DAT);
+    rms = RMSregDiffMJ(lta1->xforms[0].m_L, lta2->xforms[0].m_L, RMSDiffRad);
+    if(strcmp(RMSDiffFile,"nofile") != 0){
+      fp = fopen(RMSDiffFile,"w");
+      fprintf(fp,"%20.10lf\n",rms);
+      fclose(fp);
+    }
+    printf("rms %20.10lf\n",rms);
+    exit(0);
+  }
+
   if (vg_isEqual(&lta1->xforms[0].dst, &lta2->xforms[0].src) == 0)
   {
     /*    ErrorExit(ERROR_BADFILE,
@@ -374,7 +389,7 @@ static void usage(int exit_val)
   fprintf(fout,
           "Short description: concatenates two consecutive LTA transformations \n") ;
   fprintf(fout,
-          "                   into one overall transformation.\n\n") ;
+          "                   into one overall transformation, Out = LTA2*LTA1\n") ;
   fprintf(fout,
           "Required arguments\n\n");
   fprintf(fout,
@@ -382,7 +397,7 @@ static void usage(int exit_val)
   fprintf(fout,
           "  lta_2              maps dst1(src2) to dst2 \n") ;
   fprintf(fout,
-          "  lta_final          the combined LTA maps: src1 to dst2.\n\n") ;
+          "  lta_final          the combined LTA maps: src1 to dst2 = LTA2*LTA1\n\n") ;
   fprintf(fout, "Optional arguments\n\n");
   fprintf(fout,
           "  -tal file1 file2   if lta2 is talairach.xfm specify src (file1) and\n"
@@ -397,8 +412,15 @@ static void usage(int exit_val)
           "  -out_type          set final LTA type: 0 VOX2VOX (default)\n") ;
   fprintf(fout,
           "                                         1 RAS2RAS\n\n") ;
+  fprintf(fout, "\n");
+  fprintf(fout, "-rmsdiff radius outputfile : computes RMS diff between transforms using MJ's formula\n");
+  fprintf(fout, "   a radius of 70 is suggested. RMS will be saved in outputfile unless outputfile = nofile\n");
+  fprintf(fout, "   Eg, mri_concatenate_lta -rmsdiff 70 rms.dat lta1 lta2, note: no output lta\n");
+  fprintf(fout, "\n");
   fprintf(fout, "You can use 'identity.nofile' as the filename for lta2\n") ;
   fprintf(fout, "  e.g.: %s -invert1 lta1.lta identity.nofile inv1.lta\n\n",Progname) ;
+
+
   exit(exit_val);
 
 }  /*  end usage()  */
@@ -503,6 +525,14 @@ get_option(int argc, char *argv[])
   {
     invertout = 1;
     fprintf(stderr, "invert the output LTA\n");
+  }
+  else if (!stricmp(option, "rmsdiff"))
+  {
+    DoRMSDiff = 1;
+    sscanf(argv[2],"%lf",&RMSDiffRad);
+    RMSDiffFile = argv[3];
+    fprintf(stderr, "Computing RMS diff Rad=%lf\n",RMSDiffRad);
+    nargs = 2;
   }
   else
   {
