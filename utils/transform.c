@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/08/17 21:17:20 $
- *    $Revision: 1.177 $
+ *    $Date: 2015/08/19 16:34:29 $
+ *    $Revision: 1.178 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5446,4 +5446,47 @@ LTA *LTAcreate(MRI *src, MRI *dst, MATRIX *T, int type)
   lta->xforms[0].type = type;
   lta->type = type;
   return(lta);
+}
+
+/*!
+  \fn double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius)
+  \brief Computes the average RMS differences between the two registration
+  matrices within a sphere of the given radius. Suggest radius=70.
+  Based on Jenkinson, et al, NI 2002 and tech report tr99mj1.pdf.
+  Typical usage: 
+    LTAchangeType(lta1,REGISTER_DAT);
+    LTAchangeType(lta2,REGISTER_DAT);
+    rms = RMSregDiffMJ(lta1->xforms[0].m_L, lta2->xforms[0].m_L, 70);
+ */
+double RMSregDiffMJ(MATRIX *T1, MATRIX *T2, double radius)
+{
+  MATRIX *Q, *M, *t, *Mt, *MtM, *tt, *ttt;
+  int c,r;
+  double rms, MtMtrace;
+
+  Q = MatrixSubtract(T1,T2,NULL);
+  M = MatrixAlloc(3,3,MATRIX_REAL);
+  t = MatrixAlloc(3,1,MATRIX_REAL);
+  for(r=1; r <= 3; r++){
+    for(c=1; c <= 3; c++) M->rptr[r][c] = Q->rptr[r][c];
+    t->rptr[r][1] = Q->rptr[r][4];
+  }
+  Mt = MatrixTranspose(M,NULL);
+  MtM = MatrixMultiplyD(Mt,M,NULL);
+  MtMtrace = MatrixTrace(MtM);
+
+  tt = MatrixTranspose(t,NULL);
+  ttt = MatrixMultiplyD(tt,t,NULL);  
+
+  rms = sqrt(radius*radius*MtMtrace/5.0 + ttt->rptr[1][1]);
+
+  MatrixFree(&Q);
+  MatrixFree(&M);
+  MatrixFree(&Mt);
+  MatrixFree(&MtM);
+  MatrixFree(&t);
+  MatrixFree(&tt);
+  MatrixFree(&ttt);
+
+  return(rms);
 }
