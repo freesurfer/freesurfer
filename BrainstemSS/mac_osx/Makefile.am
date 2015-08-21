@@ -15,7 +15,7 @@ dist_bin_SCRIPTS = \
 foodir=$(prefix)/bin
 
 install-data-local:
-	cp -R segmentSubject.app $(foodir)
+	cp --remove-destination -RL segmentSubject.app $(foodir)
 	chmod -R 755 $(foodir)/segmentSubject.app
 
 # Our release target. Include files to be excluded here. They will be
