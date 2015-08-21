@@ -56,6 +56,7 @@ class Aeon {		// One point in time
                   const int NumTract, const float FminPath,
                   const char *BaseXfmFile);
     MRI *GetMask() const;
+    MRI *GetBaseMask() const;
     float GetDx() const;
     float GetDy() const;
     float GetDz() const;

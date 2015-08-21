@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/08/20 04:06:21 $
- *    $Revision: 1.8 $
+ *    $Date: 2015/08/21 21:05:30 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,7 +71,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.8 2015/08/20 04:06:21 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.13 2015/08/21 21:05:30 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -102,7 +102,7 @@ CMDARGS *cmdargs;
 
 MRI *MRIrescaleToUChar(MRI *mri, MRI *ucmri, double sat);
 unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs);
-MATRIX *MRIgetVoxelToVoxelXformBase(MRI *mri_src, MRI *mri_dst, MATRIX *R, MATRIX *m_vox2vox, int base);
+MATRIX *MRIgetVoxelToVoxelXformBase(MRI *mri_src, MRI *mri_dst, MATRIX *SrcRAS2DstRAS, MATRIX *SrcVox2DstVox, int base);
 
 double **conv1dmat(double **M, int rows, int cols, double *v, int nv, int dim, 
 		   double **C, int *pcrows, int *pcols);
@@ -158,6 +158,7 @@ double COREGsamp(unsigned char *f, const double c, const double r, const double 
 		  const int ncols, const int nrows, const int nslices);
 double NMICost(double **H, int cols, int rows);
 MATRIX *COREGmatrix(double *p0, int np, MATRIX *M);
+double *COREGparams9(MATRIX *M9, double *p);
 int COREGprint(FILE *fp, COREG *coreg);
 
 COREG *coreg;
@@ -251,13 +252,19 @@ int main(int argc, char *argv[]) {
   }
 
   if(cmdargs->cras0){
-    printf("Setting cras to 0 for ref and mov\n");
-    coreg->ref->c_r = 0;
-    coreg->ref->c_a = 0;
-    coreg->ref->c_s = 0;
-    coreg->mov->c_r = 0;
-    coreg->mov->c_a = 0;
-    coreg->mov->c_s = 0;
+    printf("Setting cras translation parameters to align centers\n");
+    MATRIX *Vref, *Vmov, *invVref, *M;
+    Vref = MRIxfmCRS2XYZ(coreg->ref, 0);
+    Vmov = MRIxfmCRS2XYZ(coreg->mov, 0);
+    invVref = MatrixInverse(Vref,NULL);
+    M = MatrixMultiplyD(Vmov,invVref,NULL);
+    cmdargs->params[0] = M->rptr[1][4];
+    cmdargs->params[1] = M->rptr[2][4];
+    cmdargs->params[2] = M->rptr[3][4];
+    MatrixFree(&Vref);
+    MatrixFree(&Vmov);
+    MatrixFree(&invVref);
+    MatrixFree(&M);
   }
 
   coreg->histfwhm[0] = 7;
@@ -311,11 +318,15 @@ int main(int argc, char *argv[]) {
   coreg->sep = 4;
   COREGcost(coreg);
   printf("Init cost %15.10lf\n",coreg->cost);
-  printf("nhits = %d out of %d, %5.1f\n",coreg->nhits,coreg->nvoxmov,coreg->pcthits);
+  printf("nhits = %d out of %d, Percent Overlap: %5.1f\n",coreg->nhits,coreg->nvoxmov,coreg->pcthits);
   if(coreg->nhits == 0){
     printf("ERROR: mov and ref do not overlap\n");
     exit(1);
   }
+  printf("Initial  RefRAS-to-MovRAS\n");
+  MatrixPrint(stdout,coreg->M);
+  printf("Initial  RefVox-to-MovVox\n");
+  MatrixPrint(stdout,coreg->V2V);
   if(cmdargs->DoInitCostOnly) exit(0);
 
   for(n=0; n < coreg->nsep; n++){
@@ -338,6 +349,11 @@ int main(int argc, char *argv[]) {
     err = LTAwrite(lta,cmdargs->regdat);
     if(err) exit(1);
   }
+
+  printf("Final  RefRAS-to-MovRAS\n");
+  MatrixPrint(stdout,coreg->M);
+ printf("Final  RefVox-to-MovVox\n");
+  MatrixPrint(stdout,coreg->V2V);
 
   printf("mri_coreg RunTimeSec %4.1f sec\n",TimerStop(&timer)/1000.0);
   printf("mri_coreg done\n\n");
@@ -424,10 +440,24 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&cmdargs->dof);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--6")) cmdargs->dof = 6;
+    else if (!strcasecmp(option, "--9")) cmdargs->dof = 9;
+    else if (!strcasecmp(option, "--12")) cmdargs->dof = 12;
     else if (!strcasecmp(option, "--nitersmax")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&cmdargs->nitersmax);
       nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--mat2par")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      LTA *lta;
+      lta = LTAread(pargv[0]);
+      if(lta==NULL) exit(1);
+      LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+      LTAinvert(lta,lta);
+      COREGparams9(lta->xforms[0].m_L,NULL);
+      nargsused = 1;
+      exit(0);
     } 
     else if (!strcasecmp(option, "--ftol")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -450,6 +480,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&cmdargs->params[0]);
       sscanf(pargv[1],"%lf",&cmdargs->params[1]);
       sscanf(pargv[2],"%lf",&cmdargs->params[2]);
+      cmdargs->cras0 = 0;
       nargsused = 3;
     } 
     else if (!strcasecmp(option, "--rot")) {
@@ -520,7 +551,7 @@ static void print_usage(void) {
   printf("   --reg reg.lta : output registration (can use --lta too)\n");
   printf("\n");
   printf("   --s subject \n");
-  printf("   --dof DOF : default is %d\n",cmdargs->dof);
+  printf("   --dof DOF : default is %d (also: --6, --9, --12)\n",cmdargs->dof);
   printf("   --ref-mask refmaskvol : mask ref with refmaskvol\n");
   printf("   --mov-mask movmaskvol : mask ref with movmaskvol\n");
   printf("   --threads nthreads\n");
@@ -529,11 +560,11 @@ static void print_usage(void) {
   printf("   --no-coord-dither: turn off coordinate dithering\n");
   printf("   --no-intensity-dither: turn off intensity dithering\n");
   printf("   --sep voxsep1 <--sep voxsep2> : set spatial scales (def is 2 and 4)\n");
-  printf("   --trans Tx Ty Tz : initial translation in mm\n");
+  printf("   --trans Tx Ty Tz : initial translation in mm (implies --no-cras0)\n");
   printf("   --rot   Rx Ry Rz : initial rotation in deg\n");
   printf("   --scale Sx Sy Sz : initial scale\n");
   printf("   --shear Hxy Hxz Hyz : initial shear\n");
-  printf("   --no-cras0 : do not set cras=0 for both mov and ref\n");
+  printf("   --no-cras0 : do not Sett translation parameters to align centers of mov and ref\n");
   printf("   --regheader : same as no-cras0\n");
   printf("   --nitersmax n : default is %d\n",cmdargs->nitersmax);
   printf("   --ftol ftol : default is %5.3le\n",cmdargs->ftol);
@@ -688,7 +719,8 @@ int COREGhist(COREG *coreg)
   nthreads = omp_get_max_threads();
   #endif
   HH = (double **)calloc(sizeof(double*),nthreads);
-  for(n=0; n < nthreads; n++) HH[n] = (double *)calloc(sizeof(double),256*256);
+  for(n=0; n < nthreads; n++) 
+    HH[n] = (double *)calloc(sizeof(double),256*256);
 
   nhits = 0;
   #ifdef _OPENMP
@@ -761,7 +793,7 @@ int COREGhist(COREG *coreg)
 
   // This is good for computing whether and how much the mov and ref overlap
   coreg->nhits = nhits;
-  coreg->pcthits = (double) 100.0*nhits/coreg->nvoxmov;
+  coreg->pcthits = pow(coreg->sep,3)*(double) 100.0*nhits/coreg->nvoxmov;
 
   return(nhits);
 }
@@ -838,22 +870,22 @@ unsigned char *MRItoUCharVect(MRI *mri, RFS *rfs)
   return(a);
 }
 
-MATRIX *MRIgetVoxelToVoxelXformBase(MRI *mri_src, MRI *mri_dst, MATRIX *R, MATRIX *m_vox2vox, int base)
+MATRIX *MRIgetVoxelToVoxelXformBase(MRI *mri_src, MRI *mri_dst, MATRIX *SrcRAS2DstRAS, MATRIX *SrcVox2DstVox, int base)
 {
   MATRIX *m_ras2vox_dst, *m_vox2ras_src, *m_vox2ras_dst ;
   m_vox2ras_src = MRIxfmCRS2XYZ(mri_src, base);
   m_vox2ras_dst = MRIxfmCRS2XYZ(mri_dst, base);
   m_ras2vox_dst = MatrixInverse(m_vox2ras_dst,NULL);
-  if(R){
-    m_vox2vox = MatrixMultiplyD(m_ras2vox_dst, R, m_vox2vox) ;
-    MatrixMultiplyD(m_vox2vox, m_vox2ras_src, m_vox2vox) ;
+  if(SrcRAS2DstRAS){
+    SrcVox2DstVox = MatrixMultiplyD(m_ras2vox_dst, SrcRAS2DstRAS, SrcVox2DstVox) ;
+    MatrixMultiplyD(SrcVox2DstVox, m_vox2ras_src, SrcVox2DstVox);
   } 
-  else  m_vox2vox = MatrixMultiplyD(m_ras2vox_dst, m_vox2ras_src, m_vox2vox) ;
+  else  SrcVox2DstVox = MatrixMultiplyD(m_ras2vox_dst, m_vox2ras_src, SrcVox2DstVox) ;
 
   MatrixFree(&m_vox2ras_dst);
   MatrixFree(&m_vox2ras_src) ;
   MatrixFree(&m_ras2vox_dst) ;
-  return(m_vox2vox) ;
+  return(SrcVox2DstVox) ;
 }
 
 /*!
@@ -1066,6 +1098,14 @@ double NMICost(double **H, int cols, int rows)
   return(cost);
 }
 
+/*!
+  \fn MATRIX *COREGmatrix(double *p0, int np, MATRIX *M)
+  \brief Computes a RAS-to-RAS transformation matrix given
+  the parameters. p0[0-2] translation, p0[3-5] rotation
+  in degrees, p0[6-8] scale, p[9-11] shear. 
+  M = T*R1*R2*R3*SCALE*SHEAR
+  Consistent with COREGparams9()
+ */
 MATRIX *COREGmatrix(double *p0, int np, MATRIX *M)
 {
   MATRIX *T, *R1, *R2, *R3, *R, *ZZ, *S;
@@ -1137,6 +1177,46 @@ MATRIX *COREGmatrix(double *p0, int np, MATRIX *M)
   return(M);
 }
 
+/*!
+  \fn double *COREGparams9(MATRIX *M9, double *p)
+  \brief Extracts parameter from a 9 dof transformation matrix.
+  This is consistent with COREGmatrix(). Still need to figure
+  out how to do 12 dof. Note: p will be alloced to 12.
+  Angles are in degrees.
+ */
+double *COREGparams9(MATRIX *M9, double *p)
+{
+  double sum;
+  int n, c, r;
+  MATRIX *R;
+
+  if(p==NULL) p = (double*) calloc(12,sizeof(double));
+
+  // translation
+  for(r=0; r < 3; r++) p[r] = M9->rptr[r+1][4];
+
+  // R is the rotation matrix
+  R = MatrixAlloc(3,3,MATRIX_REAL);
+  for(c=0; c < 3; c++){
+    sum = 0;
+    for(r=0; r < 3; r++) sum += (M9->rptr[r+1][c+1]*M9->rptr[r+1][c+1]);
+    p[c+6] = sqrt(sum); //scale
+    for(r=0; r < 3; r++) R->rptr[r+1][c+1] = M9->rptr[r+1][c+1]/sqrt(sum);
+  }
+
+  // extract rotation params
+  p[3] = atan2(R->rptr[2][3],R->rptr[3][3])*180/M_PI;
+  p[4] = atan2(R->rptr[1][3],sqrt(pow(R->rptr[2][3],2) + pow(R->rptr[3][3],2)))*180/M_PI;
+  p[5] = atan2(R->rptr[1][2],R->rptr[1][1])*180/M_PI;
+
+  MatrixFree(&R);
+
+  for(n=0; n < 9; n++) printf("%10.8lf ",p[n]);
+  printf("\n");
+
+  return(p);
+}
+
 
 double COREGcost(COREG *coreg)
 {
@@ -1145,7 +1225,7 @@ double COREGcost(COREG *coreg)
   int r,c,n,lim1,lim2,ng1,ng2;
   int H1rows,H1cols,Hrows,Hcols;
 
-  // FuncRAS-to-AnatRAS
+  // RefRAS-to-MovRAS
   coreg->M = COREGmatrix(coreg->params, coreg->nparams, coreg->M);
 
   // AnatVox-to-FuncVox
@@ -1181,7 +1261,7 @@ double COREGcost(COREG *coreg)
     g2[n+lim2] = exp(-(n*n)/(2*(std2*std2)))/(std2*sqrt(2*M_PI));
     sum += g2[n+lim2]; 
   }
-  for(n=0; n <= ng2; n++) g2[n] /= sum;
+  for(n=0; n < ng2; n++) g2[n] /= sum;
 
   // Apply filters
   H1 = conv1dmat(coreg->H0, 256, 256, g2, ng2, 2, NULL,&H1rows,&H1cols);
@@ -1285,13 +1365,15 @@ int COREGMinPowell()
   //printf("EvalTimeSec %4.1f sec\n",(TimerStop(&timer)/1000.0)/coreg->nCostEvaluations);
   fflush(stdout);
 
-  printf("Final cost %20.15lf\n ",coreg->fret);
   printf("Final parameters ");
   for(n=0; n < coreg->nparams; n++){
     coreg->params[n] = pPowel[n+1];
     printf("%12.8f ",coreg->params[n]);
   }
   printf("\n");
+
+  COREGcost(coreg);
+  printf("Final cost %20.15lf\n ",coreg->cost);
 
   free_matrix(xi, 1, dof, 1, dof);
   free_vector(pPowel, 1, dof);
@@ -1415,6 +1497,11 @@ int COREGprint(FILE *fp, COREG *coreg)
   fprintf(fp,"linmintol %5.3le\n",coreg->linmintol);
   fprintf(fp,"SatPct %lf\n",coreg->SatPct);
   fprintf(fp,"Hist FWHM %lf %lf\n",coreg->histfwhm[0],coreg->histfwhm[1]);
+#ifdef _OPENMP
+  fprintf(fp,"nthreads %d\n",omp_get_max_threads());
+#else
+  fprintf(fp,"nthreads %d\n",1);
+#endif
   return(0);
 }
 

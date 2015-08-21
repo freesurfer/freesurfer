@@ -10,9 +10,9 @@
 /*
  * Original Authors: Xiao Han, Nick Schmansky
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/07/24 13:48:04 $
- *    $Revision: 1.16 $
+ *    $Author: greve $
+ *    $Date: 2015/08/21 16:33:59 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -116,7 +116,9 @@ static int isOverallDiceLabel(int volVal)
 int all_labels_flag = FALSE;
 int num_all_labels = 0;
 int all_labels_of_interest[MAX_CLASSES];
-
+COLOR_TABLE *ctab=NULL;
+char *table_fname;
+FILE *tablefp;
 
 int main(int argc, char *argv[])
 {
@@ -145,7 +147,7 @@ int main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.16 2015/07/24 13:48:04 fischl Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.17 2015/08/21 16:33:59 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -296,11 +298,9 @@ int main(int argc, char *argv[])
     {
       if(correct_ratio[i] > 0.0) // This will include zero overlap areas as well (not just non-existing labels. If it is a problem, should flag existing labels....
       {
-        printf("correct ratio for label %d = %g\n",
-               i, correct_ratio[i]);
+        printf("correct ratio for label %d = %g\n",i, correct_ratio[i]);
         mean1 += correct_ratio[i];
-        std1 += correct_ratio[i] *
-                correct_ratio[i];
+        std1 += correct_ratio[i] * correct_ratio[i];
         num_all_labels++;
       }
     }
@@ -337,6 +337,8 @@ int main(int argc, char *argv[])
     printf("mean +/- std = %6.4f +/- %6.4f\n", mean1, std1);
   }
 
+  if(table_fname) tablefp = fopen(table_fname, "w") ;
+
   printf("Dice Coefficients:\n");
   // printf("ratio of overlap to volume of input1:\n");
   mean2 = 0;
@@ -349,11 +351,10 @@ int main(int argc, char *argv[])
       if(correct_ratio2[i] > 0.0) // This will include zero overlap areas as well (not just non-existing labels. If it is a problem, should flag existing labels....
       {
         all_labels_of_interest[num_all_labels] = i;
-        printf("label %d = %g\n",
-               i, correct_ratio2[i]);
+	if(ctab == NULL) printf("label %d = %g\n",i, correct_ratio2[i]);
+	else             printf("%4d %s %8.6lf\n",i, ctab->entries[i]->name,correct_ratio2[i]);
         mean2 += correct_ratio2[i];
-        std2 += correct_ratio2[i] *
-                correct_ratio2[i];
+        std2 += correct_ratio2[i]*correct_ratio2[i];
         num_all_labels++;
       }
     }
@@ -362,31 +363,37 @@ int main(int argc, char *argv[])
     std2 = sqrt(std2 - mean2*mean2);
     printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
   }
-  else
-  {
-    for (skipped=i=0; i < num_labels; i++)
-    {
-      if (do_cortex == 0 && IS_CORTEX(labels_of_interest[i]))
-      {
+  else  {
+    for (skipped=i=0; i < num_labels; i++)    {
+      if (do_cortex == 0 && IS_CORTEX(labels_of_interest[i]))      {
 	skipped++ ;
 	continue ;
       }
-      if (do_wm == 0 && IS_WHITE_CLASS(labels_of_interest[i]))
-      {
+      if (do_wm == 0 && IS_WHITE_CLASS(labels_of_interest[i]))      {
 	skipped++ ;
 	continue ;
       }
-      printf("label %d = %g\n",
-             labels_of_interest[i], correct_ratio2[labels_of_interest[i]]);
+      int j = labels_of_interest[i];
+      double voldiff;
+      voldiff = 100*(Volume_from1[j]-Volume_from2[j])/(0.5*((Volume_from1[j]+Volume_from2[j])));
+      if(ctab == NULL) printf("label %d = %g\n",j, correct_ratio2[j]);
+      else             printf("%4d  %-30s %8.6lf %8.6lf %6d %6d %9.4lf\n",
+			      j,ctab->entries[j]->name,correct_ratio[j],correct_ratio2[j],
+			      Volume_from1[j],Volume_from2[j],voldiff);
+      if(table_fname) fprintf(tablefp,"%4d  %-30s %8.6lf %8.6lf %6d %6d %9.4lf\n",
+			      j,ctab->entries[j]->name,correct_ratio[j],correct_ratio2[j],
+			      Volume_from1[j],Volume_from2[j],voldiff);
+
+
       mean2 += correct_ratio2[labels_of_interest[i]];
-      std2 += correct_ratio2[labels_of_interest[i]] *
-              correct_ratio2[labels_of_interest[i]];
+      std2 += correct_ratio2[labels_of_interest[i]] * correct_ratio2[labels_of_interest[i]];
     }
     mean2 /= (num_labels-skipped);
     std2 /= (num_labels-skipped);
     std2 = sqrt(std2 - mean2*mean2);
     printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
   }
+  if(table_fname) fclose(tablefp);
 
   if (log_fname != NULL)
   {
@@ -495,6 +502,20 @@ static int get_option(int argc, char *argv[])
     log_fname = argv[2];
     nargs = 1;
     fprintf(stderr, "logging individual Dice to %s\n", log_fname) ;
+  }
+  else if (!stricmp(option, "default-ctab")){
+    char tmpstr[2000];
+    sprintf(tmpstr,"%s/FreeSurferColorLUT.txt",getenv("FREESURFER_HOME"));
+    ctab = CTABreadASCII(tmpstr);
+    printf("Using ctab %s\n",tmpstr);
+  }
+  else if (!stricmp(option, "table")){
+    char tmpstr[2000];
+    table_fname = argv[2];
+    nargs = 1;
+    sprintf(tmpstr,"%s/FreeSurferColorLUT.txt",getenv("FREESURFER_HOME"));
+    ctab = CTABreadASCII(tmpstr);
+    printf("Using ctab %s\n",tmpstr);
   }
   else if (!stricmp(option, "slog"))
   {

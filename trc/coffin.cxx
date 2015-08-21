@@ -231,6 +231,12 @@ void Aeon::ReadData(const char *RootDir, const char *DwiFile,
 MRI *Aeon::GetMask() const { return mMask; }
 
 //
+// Return a pointer to this time point's base template mask
+// (null if running in cross-sectional mode)
+//
+MRI *Aeon::GetBaseMask() const { return mBaseMask; }
+
+//
 // Return this time point's spatial resolution
 //
 float Aeon::GetDx() const { return mMask->xsize; }
@@ -1124,7 +1130,7 @@ Coffin::Coffin(const char *OutDir, vector<char *> InDirList,
     }
     Aeon::SetBaseMask(mMask);
   }
-  else		// No base needed when there is a single time point
+  else		// No base needed when running in cross-sectional mode
     Aeon::SetBaseMask(0);
 
   // Read diffusion data, anatomical segmentation, and transform to atlas
@@ -3414,16 +3420,16 @@ void Coffin::SavePathPosterior(bool IsPathAccepted) {
 // Save current path as an MCMC sample
 //
 void Coffin::SavePath() {
-  // If needed, downsample from base to native space
-  if (mDwi.size() > 1)
+  // If in longitudinal mode, downsample from base to native space
+  if (mDwi[0].GetBaseMask())
     RemoveDuplicatePathPoints();
 
   // Save current path for each time point
   for (vector<Aeon>::iterator idwi = mDwi.begin(); idwi < mDwi.end(); idwi++)
     idwi->SavePath();
 
-  // If there are multiple time points, also save current path in base space
-  if (mDwi.size() > 1)
+  // If in longitudinal mode, also save current path in base space
+  if (mDwi[0].GetBaseMask())
     Aeon::SaveBasePath(mPathPoints);
 
   // Keep track of MAP path
