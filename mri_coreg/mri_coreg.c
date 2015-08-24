@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/08/21 21:05:30 $
- *    $Revision: 1.13 $
+ *    $Date: 2015/08/22 20:24:10 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,6 +59,7 @@
 #include "cpputils.h"
 #include "numerics.h"
 #include "randomfields.h"
+#include "mri_conform.h"
 
 double round(double x);
 
@@ -71,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.13 2015/08/21 21:05:30 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.14 2015/08/22 20:24:10 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -96,6 +97,7 @@ typedef struct {
   int cras0;
   double ftol,linmintol;
   int nitersmax;
+  int refconf;
 } CMDARGS;
 
 CMDARGS *cmdargs;
@@ -160,6 +162,7 @@ double NMICost(double **H, int cols, int rows);
 MATRIX *COREGmatrix(double *p0, int np, MATRIX *M);
 double *COREGparams9(MATRIX *M9, double *p);
 int COREGprint(FILE *fp, COREG *coreg);
+MRI *MRIconformNoScale(MRI *mri, MRI *mric);
 
 COREG *coreg;
 FSENV *fsenv;
@@ -190,6 +193,7 @@ int main(int argc, char *argv[]) {
   cmdargs->nitersmax = 4;
   cmdargs->ftol = 10e-8;
   cmdargs->linmintol = .001;
+  cmdargs->refconf = 0;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -220,6 +224,13 @@ int main(int argc, char *argv[]) {
   printf("Reading in ref %s\n",cmdargs->ref);  
   coreg->ref = MRIread(cmdargs->ref);
   if(!coreg->ref) exit(1);
+  if(cmdargs->refconf){
+    MRI *mritmp;
+    printf("Conforming ref (no scaling or rehistogramming)\n");
+    mritmp = MRIconformNoScale(coreg->ref,NULL);
+    MRIfree(&coreg->ref);
+    coreg->ref = mritmp; 
+  }
 
   if(cmdargs->refmask){
     printf("Reading in refmask %s\n",cmdargs->refmask);
@@ -394,6 +405,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--cras0")) cmdargs->cras0 = 1;
     else if (!strcasecmp(option, "--no-cras0"))  cmdargs->cras0 = 0;
     else if (!strcasecmp(option, "--regheader")) cmdargs->cras0 = 0;
+    else if (!strcasecmp(option, "--conf-ref"))  cmdargs->refconf = 1;
 
     else if (!strcasecmp(option, "--mov")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -459,6 +471,27 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
       exit(0);
     } 
+    else if (!strcasecmp(option, "--rms")) {
+      if(nargc < 2) CMDargNErr(option,4);
+      double rms,RMSDiffRad;
+      FILE *fp;
+      LTA *lta1,*lta2;
+      char *RMSDiffFile;
+      sscanf(argv[1],"%lf",&RMSDiffRad);
+      RMSDiffFile = argv[1];
+      lta1 = LTAread(pargv[2]); if(lta1==NULL) exit(1);
+      LTAchangeType(lta1,REGISTER_DAT);
+      lta2 = LTAread(pargv[3]); if(lta2==NULL) exit(1);
+      LTAchangeType(lta2,REGISTER_DAT);
+      rms = RMSregDiffMJ(lta1->xforms[0].m_L, lta2->xforms[0].m_L, RMSDiffRad);
+      if(strcmp(RMSDiffFile,"nofile") != 0){
+	fp = fopen(RMSDiffFile,"w");
+	fprintf(fp,"%20.10lf\n",rms);
+	fclose(fp);
+      }
+      printf("rms %20.10lf\n",rms);
+      exit(0);
+    }
     else if (!strcasecmp(option, "--ftol")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&cmdargs->ftol);
@@ -569,6 +602,7 @@ static void print_usage(void) {
   printf("   --nitersmax n : default is %d\n",cmdargs->nitersmax);
   printf("   --ftol ftol : default is %5.3le\n",cmdargs->ftol);
   printf("   --linmintol linmintol : default is %5.3le\n",cmdargs->linmintol);
+  printf("   --conf-ref : conform the refernece without rescaling (good for gca)");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -1505,3 +1539,24 @@ int COREGprint(FILE *fp, COREG *coreg)
   return(0);
 }
 
+MRI *MRIconformNoScale(MRI *mri, MRI *mric)
+{
+  MRI *mritmp;
+
+  // Get a geometry template, this rescales though
+  mritmp = MRIconform(mri);
+  // This does not generate exactly the same as mri_convert
+
+  if(mric == NULL){
+    mric = MRIallocSequence(mritmp->width,mritmp->height,mritmp->depth,MRI_FLOAT,mritmp->nframes);
+    MRIcopyHeader(mritmp,mric);
+    MRIcopyPulseParameters(mritmp,mric);
+  }
+  // Map input to geometry template
+  mric = MRIresample(mri, mritmp, SAMPLE_NEAREST);
+
+  sprintf(mric->fname,"%s/Conformed",mri->fname);
+  MRIfree(&mritmp);
+
+  return(mric);
+}
