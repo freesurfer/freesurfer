@@ -17,11 +17,11 @@ dist_bin_SCRIPTS = \
 foodir=$(prefix)/bin
 
 install-data-local:
-	cp -R segmentSubjectT1_autoEstimateAlveusML.app $(foodir)
+	cp -RL segmentSubjectT1_autoEstimateAlveusML.app $(foodir)
 	chmod -R 755 $(foodir)/segmentSubjectT1_autoEstimateAlveusML.app
-	cp -R segmentSubjectT1T2_autoEstimateAlveusML.app $(foodir)
+	cp -RL segmentSubjectT1T2_autoEstimateAlveusML.app $(foodir)
 	chmod -R 755 $(foodir)/segmentSubjectT1T2_autoEstimateAlveusML.app
-	cp -R segmentSubjectT2_autoEstimateAlveusML.app $(foodir)
+	cp -RL segmentSubjectT2_autoEstimateAlveusML.app $(foodir)
 	chmod -R 755 $(foodir)/segmentSubjectT2_autoEstimateAlveusML.app
 
 # Our release target. Include files to be excluded here. They will be
