@@ -48,8 +48,11 @@ fi
 
 ## Figure out where we want to install this data.
 if [[ $# -eq 0 ]]; then
-  if [[ -z "$TUTORIAL_DATA" ]] || [[ ! -d "$TUTORIAL_DATA" ]] ; then
+  if [[ -z "$TUTORIAL_DATA" ]]; then
     TUTORIAL_DATA=$FREESURFER_HOME/subjects/tutorial_data
+  fi
+  if [[ ! -d "$TUTORIAL_DATA" ]]; then
+    mkdir -p "$TUTORIAL_DATA"
   fi
 elif [[ $# -eq 1 ]]; then
     if [[ -d $1 ]]; then 
