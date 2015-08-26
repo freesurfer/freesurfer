@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/06/22 18:25:25 $
- *    $Revision: 1.63 $
+ *    $Date: 2015/08/26 16:50:50 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -163,13 +163,13 @@ main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.63 2015/06/22 18:25:25 fischl Exp $",
+   "$Id: mri_ca_normalize.c,v 1.64 2015/08/26 16:50:50 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.63 2015/06/22 18:25:25 fischl Exp $",
+           "$Id: mri_ca_normalize.c,v 1.64 2015/08/26 16:50:50 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -565,6 +565,15 @@ main(int argc, char *argv[])
     if (sample_fname)
       GCAtransformAndWriteSamples
       (gca, mri_in, gcas, nsamples, sample_fname, transform) ;
+
+    if (Gx >= 0)
+    {
+      int xp, yp, zp, xn, yn, zn ;
+
+      GCAsourceVoxelToPrior(gca, mri_ctrl, transform, Gx, Gy, Gz, &xp, &yp, &zp);
+      GCAsourceVoxelToNode(gca, mri_ctrl, transform, Gx, Gy, Gz, &xn, &yn, &zn);
+      printf("source voxel (%d, %d, %d) maps to prior (%d, %d, %d)\n", Gx, Gy, Gz, xn, yn, zn) ;
+    }
 
     for (j = 0 ; j < 1 ; j++)
     {

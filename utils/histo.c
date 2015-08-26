@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:56 $
- *    $Revision: 1.85 $
+ *    $Author: fischl $
+ *    $Date: 2015/08/26 16:49:55 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1140,7 +1140,7 @@ HISTOplot(HISTOGRAM *histo, char *fname)
       break ;
 
   for (bin_no = bmin ; bin_no <= bmax ; bin_no++)
-    fprintf(fp, "%f  %f\n", histo->bins[bin_no], histo->counts[bin_no]) ;
+    fprintf(fp, "%f  %10.10f\n", histo->bins[bin_no], histo->counts[bin_no]) ;
   fclose(fp) ;
 
   return(NO_ERROR) ;
@@ -1869,6 +1869,11 @@ HISTOinit(HISTOGRAM *h, int nbins, double mn, double mx)
   else
     HISTOclear(h, h);
 
+  if (mx <= mn)
+  {
+    mx = (double)(h->nbins-1) ;
+    mn = 0 ;
+  }
   h->min = mn ; h->max = mx ;
   h->bin_size = (mx - mn) / (nbins-1) ;
   if (h->bin_size <= 0)

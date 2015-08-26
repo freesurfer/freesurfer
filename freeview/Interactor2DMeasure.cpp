@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/04 17:23:20 $
- *    $Revision: 1.14 $
+ *    $Date: 2015/08/24 19:16:46 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,10 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView*
   {
     if ( ( event->modifiers() & CONTROL_MODIFIER ) && ( event->modifiers() & Qt::ShiftModifier ) )
     {
-      return Interactor2D::ProcessMouseDownEvent( event, renderview );
+      view->UpdateCursorRASPosition( event->x(), event->y());
+      view->RequestRedraw();
+      return false;
+    //  return Interactor2D::ProcessMouseDownEvent( event, renderview );
     }
 
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );

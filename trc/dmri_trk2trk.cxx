@@ -10,8 +10,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2015/08/21 19:42:39 $
- *    $Revision: 1.17 $
+ *    $Date: 2015/08/25 22:18:14 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -73,7 +73,8 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_trk2trk";
 
-int doInvNonlin = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1;
+int doInvNonlin = 0, doFill = 0, doMean = 0, doNth = 0, strNum = -1,
+    lengthMin = -1, lengthMax = -1;
 unsigned int nTract = 0;
 char *inDir = NULL,
      *outDir = NULL,
@@ -185,7 +186,9 @@ int main(int argc, char **argv) {
         // Read a streamline from input file
         trkreader.GetNextTrackData(npts, rawpts);
 
-        if (doNth && nstr != strNum) {
+        if ( (doNth && nstr != strNum) ||
+             (lengthMin > -1 && npts <= lengthMin) ||
+             (lengthMax > -1 && npts >= lengthMax) ) {
           delete[] rawpts;
           nstr++;
           continue;
@@ -232,7 +235,9 @@ int main(int argc, char **argv) {
           point.push_back(val);
 
         if (point.empty()) {		// Empty line marks end of streamline
-          if (!doNth || nstr == strNum)
+          if ( (!doNth || nstr == strNum) &&
+               (lengthMin == -1 || (int) newpts.size()/3 > lengthMin) &&
+               (lengthMax == -1 || (int) newpts.size()/3 < lengthMax) )
             streamlines.push_back(newpts);
 
           newpts.clear();
@@ -358,7 +363,7 @@ int main(int argc, char **argv) {
         streamlines.erase(streamlines.begin() + kstr);
     }
 
-    if (doMean) {
+    if (doMean && !streamlines.empty()) {
       unsigned int nstr = streamlines.size(), lmin, kmax, nstrout, kstrmean = 0;
       float dmin = numeric_limits<float>::infinity();
       vector<bool> isout(nstr);
@@ -815,6 +820,16 @@ static int parse_commandline(int argc, char **argv) {
         nargsused++;
       }
     }
+    else if (!strcasecmp(option, "--lmin")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%d", &lengthMin);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--lmax")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0], "%d", &lengthMax);
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--mean"))
       doMean = 1;
     else if (!strcasecmp(option, "--nth")) {
@@ -875,6 +890,10 @@ static void print_usage(void)
   << "     Inclusion mask(s), applied to all input .trk files" << endl
   << "   --emask <file> [...]:" << endl
   << "     Exclusion mask(s), applied to all input .trk files" << endl
+  << "   --lmin <num>:" << endl
+  << "     Only save streamlines with length greater than this number" << endl
+  << "   --lmax <num>:" << endl
+  << "     Only save streamlines with length smaller than this number" << endl
   << "   --mean:" << endl
   << "     Only save the mean streamline (Default: save all)" << endl
   << "   --nth <num>:" << endl
@@ -888,11 +907,12 @@ static void print_usage(void)
   << endl
   << "Order of operations (all optional):" << endl
   << "   1. Keep n-th streamline only" << endl
-  << "   2. Apply affine transform" << endl
-  << "   3. Apply non-linear transform" << endl
-  << "   4. Apply inclusion mask(s)" << endl
-  << "   5. Apply exclusion mask(s)" << endl
-  << "   6. Find mean streamline" << endl
+  << "   2. Apply streamline length threshold(s)" << endl
+  << "   3. Apply affine transform" << endl
+  << "   4. Apply non-linear transform" << endl
+  << "   5. Apply inclusion mask(s)" << endl
+  << "   6. Apply exclusion mask(s)" << endl
+  << "   7. Find mean streamline" << endl
   << endl;
 }
 
@@ -1016,6 +1036,24 @@ static void dump_options(FILE *fp) {
       cout << " " << *istr;
     cout << endl;
   }
+  if (!incMaskList.empty()) {
+    cout << "Inclusion mask volumes:";
+    for (vector<char *>::const_iterator istr = incMaskList.begin();
+                                        istr < incMaskList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
+  }
+  if (!excMaskList.empty()) {
+    cout << "Exclusion mask volumes:";
+    for (vector<char *>::const_iterator istr = excMaskList.begin();
+                                        istr < excMaskList.end(); istr++)
+      cout << " " << *istr;
+    cout << endl;
+  }
+  if (lengthMin > -1)
+    cout << "Lower length threshold: " << lengthMin << endl;
+  if (lengthMax > -1)
+    cout << "Upper length threshold: " << lengthMax << endl;
   cout << "Input reference: " << inRefFile << endl;
   cout << "Output reference: " << outRefFile << endl;
   if (affineXfmFile)

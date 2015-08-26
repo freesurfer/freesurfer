@@ -10,8 +10,8 @@
  * CUDA version : Richard Edgar
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/06/24 16:03:05 $
- *    $Revision: 1.102 $
+ *    $Date: 2015/08/26 16:51:09 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -249,7 +249,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.102 2015/06/24 16:03:05 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.103 2015/08/26 16:51:09 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -788,7 +788,7 @@ main(int argc, char *argv[])
     // calculate log_p
     log_p = local_GCAcomputeLogSampleProbability
       (gca, parms.gcas, mri_in, ((LTA *)(transform->xform))->xforms[0].m_L, nsamples, exvivo, Gclamp) ;
-    printf("pass %d, spacing %d: log(p) = %2.1f (old=%2.1f)\n",
+    printf("pass %d, spacing %d: log(p) = %2.3f (old=%2.3f)\n",
            i+1, spacing, log_p, old_log_p) ;
     GCAfreeSamples(&parms.gcas, nsamples) ;
     parms.tol *= 10 ;
@@ -1377,7 +1377,7 @@ find_optimal_transform
       fflush(stdout);
     }
 
-    printf("initial log_p = %2.1f\n", max_log_p) ;
+    printf("initial log_p = %2.3f\n", max_log_p) ;
     ///////////////////////////////////////////////////////////////////////
 #if 0
 #if 1
@@ -1438,7 +1438,7 @@ find_optimal_transform
     *MATRIX_RELT(m_L, 3, 4) = dz ;
     max_log_p = local_GCAcomputeLogSampleProbability
       (gca, gcas, mri, m_L,nsamples, exvivo, Gclamp) ;
-    printf("initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.1f\n",
+    printf("initial translation: (%2.1f, %2.1f, %2.1f): log p = %2.3f\n",
            dx,dy,dz, max_log_p) ;
 #else ///////////////this is executed  ////////////////////////////////////
     fprintf(stdout, "************************************************\n");
@@ -1597,8 +1597,8 @@ find_optimal_transform
       MRIfree(&mri_aligned) ;
     }
     fprintf(stdout,
-            "Result so far: scale %2.3f: max_log_p=%2.1f, "
-            "old_max_log_p =%2.1f (thresh=%2.1f)\n",
+            "Result so far: scale %2.3f: max_log_p=%2.3f, "
+            "old_max_log_p =%2.3f (thresh=%2.1f)\n",
             scale,max_log_p, old_max, old_max+fabs(tol*old_max)) ;
     MatrixPrint(stdout, m_L);
     fflush(stdout);
@@ -2438,7 +2438,7 @@ find_optimal_linear_xform
 
     if (Gdiag & DIAG_SHOW)
     {
-      printf("  max log p = %2.1f @ R=(%2.3f,%2.3f,%2.3f),"
+      printf("  max log p = %2.3f @ R=(%2.3f,%2.3f,%2.3f),"
              "S=(%2.3f,%2.3f,%2.3f), T=(%2.1f,%2.1f,%2.1f)\n",
              max_log_p, DEGREES(x_max_rot), DEGREES(y_max_rot),
              DEGREES(z_max_rot),x_max_scale, y_max_scale, z_max_scale,

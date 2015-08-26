@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/25 00:04:02 $
- *    $Revision: 1.2 $
+ *    $Date: 2015/08/24 19:16:46 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -133,7 +133,7 @@ void WidgetGroupPlot::paintEvent(QPaintEvent *e)
       {
         p.setBrush(c);
         QRectF rcf = QRectF(pts[i]-QPointF(dSpacing/2, 0),
-                            QPointF(pts[i].x()+dSpacing/2, rc_plot.bottom()-(0-dMin)/(dMax-dMin)*rc_plot.height())).normalized();
+                            QPointF(pts[i].x()+dSpacing/2, rc_plot.height()/*-(0-dMin)/(dMax-dMin)*rc_plot.height())*/)).normalized();
         bHit = rcf.contains(m_ptCurrent);
         if (bHit)
           p.setBrush(c.lighter());

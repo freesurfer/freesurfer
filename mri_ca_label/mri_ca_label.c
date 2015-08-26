@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/11/24 20:09:20 $
- *    $Revision: 1.108 $
+ *    $Author: fischl $
+ *    $Date: 2015/08/26 16:46:38 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -247,13 +247,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.108 2014/11/24 20:09:20 greve Exp $",
+   "$Id: mri_ca_label.c,v 1.109 2015/08/26 16:46:38 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.108 2014/11/24 20:09:20 greve Exp $",
+           "$Id: mri_ca_label.c,v 1.109 2015/08/26 16:46:38 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -3987,7 +3987,7 @@ GCAlabelWMandWMSAs( GCA *gca,
                 ((2*wmsa_dist < wm_dist) && (2*wmsa_mdist < wm_mdist)))
               {
                 if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-                  printf("changing label from %s to %s\n",
+                  printf("GCAlabelWMandWMSAs 1: changing label from %s to %s\n",
                          cma_label_to_name(label),
                          cma_label_to_name(wmsa_label)) ;
                 if (label == Unknown)
@@ -4081,7 +4081,7 @@ GCAlabelWMandWMSAs( GCA *gca,
                    fabs(VECTOR_ELT(v_dif_label,3))))
               {
                 if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-                  printf("changing label from %s to %s\n",
+                  printf("GCAlabelWMandWMSAs 2: changing label from %s to %s\n",
                          cma_label_to_name(label),
                          cma_label_to_name(wmsa_label)) ;
                 label = wmsa_label ;
@@ -4102,7 +4102,7 @@ GCAlabelWMandWMSAs( GCA *gca,
                   (wmsa_dist*3 < wm_dist))
               {
                 if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-                  printf("changing label from %s to %s\n",
+                  printf("GCAlabelWMandWMSAs 3: changing label from %s to %s\n",
                          cma_label_to_name(label),
                          cma_label_to_name(wmsa_label)) ;
                 if (label == Unknown)
@@ -4126,7 +4126,7 @@ GCAlabelWMandWMSAs( GCA *gca,
                    fabs(VECTOR_ELT(v_dif_label,3))))
               {
                 if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-                  printf("changing label from %s to %s\n",
+                  printf("GCAlabelWMandWMSAs 4: changing label from %s to %s\n",
                          cma_label_to_name(label),
                          cma_label_to_name(wmsa_label)) ;
                 if (label == Unknown)
@@ -4281,15 +4281,25 @@ MRIexpandVentricles(MRI *mri_labeled_src,
   VOXLIST   *vl = NULL ;
   int       nadded, x, y, z, label, i, n ;
   MRI       *mri_dilated = NULL, *mri_border = NULL ;
+  float     label_means[MAX_CMA_LABELS], label_stds[MAX_CMA_LABELS], vdist, ldist, val ;
 
   if (mri_labeled == NULL)
   {
     mri_labeled = MRIcopy(mri_labeled_src, NULL) ;
   }
 
+  for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
+  {
+    GCAlabelMean(gca, label, &label_means[label]) ;
+    GCAlabelVar(gca, label, &label_stds[label]) ;
+    label_stds[label] = sqrt(label_stds[label]) ;
+  }
+
   mri_vent = MRIclone(mri_labeled_src, NULL) ;
   MRIcopyLabel(mri_labeled_src, mri_vent, Left_Lateral_Ventricle) ;
   MRIcopyLabel(mri_labeled_src, mri_vent, Right_Lateral_Ventricle) ;
+  MRIcopyLabel(mri_labeled_src, mri_vent, Left_Inf_Lat_Vent) ;
+  MRIcopyLabel(mri_labeled_src, mri_vent, Right_Inf_Lat_Vent) ;
 //  MRIcopyLabel(mri_labeled_src, mri_vent, Third_Ventricle) ;
   MRIbinarize(mri_vent, mri_vent, 1, 0, 1) ;
   mean = MRImeanAndStdInLabel(mri_inputs, mri_vent, 1, &std) ;
@@ -4308,11 +4318,17 @@ MRIexpandVentricles(MRI *mri_labeled_src,
       x = vl->xi[i] ;
       y = vl->yi[i] ;
       z = vl->zi[i] ;
-      if (x == Gx && y == Gy && z == Gz)
-      {
+      if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
         DiagBreak() ;
-      }
-      if (MRIgetVoxVal(mri_inputs, x, y, z, 0) < thresh)
+
+      label = MRIgetVoxVal(mri_labeled, x, y, z, 0)  ;
+      if (EXCLUDED(label))
+	continue ;
+
+      val =  MRIgetVoxVal(mri_inputs, x, y, z, 0) ;
+      vdist = sqrt(SQR((val - mean) / std)) ;
+      ldist = sqrt(SQR((val - label_means[label]) / label_stds[label])) ;
+      if (vdist < 0.5*ldist)
       {
         label = MRIgetVoxVal(mri_labeled_src, x, y, z, 0) ;
         if (!EXCLUDED(label))
@@ -4325,35 +4341,48 @@ MRIexpandVentricles(MRI *mri_labeled_src,
     MRIclear(mri_dilated) ;
     MRIclear(mri_border) ;
   }
+  printf("adding %d ventricular labels\n", nadded) ;
+
   for (x = 0 ; x < mri_vent->width;  x++)
     for (y = 0 ; y < mri_vent->height;  y++)
       for (z = 0 ; z < mri_vent->depth;  z++)
       {
-        if (x == Gx && y == Gy && z == Gz)
-        {
+        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
           DiagBreak() ;
-        }
+
         if (MRIgetVoxVal(mri_vent, x, y, z, 0) > 0 && 
             MRIgetVoxVal(mri_vent_orig, x, y, z, 0)  == 0) 
         {// new ventricle label
-          int lh, rh, third ;
+          int lh, rh, third, lhi, rhi ;
           lh = MRIlabelsInNbhd(mri_labeled_src, x, y, z, 
                                num_expansions, Left_Lateral_Ventricle) ;
+          lhi = MRIlabelsInNbhd(mri_labeled_src, x, y, z, 
+                               num_expansions, Left_Inf_Lat_Vent) ;
           rh = MRIlabelsInNbhd(mri_labeled_src, x, y, z, 
                                num_expansions, Right_Lateral_Ventricle) ;
+          rhi = MRIlabelsInNbhd(mri_labeled_src, x, y, z, 
+                               num_expansions, Right_Inf_Lat_Vent) ;
           third = MRIlabelsInNbhd(mri_labeled_src, x, y, z, 
                                   num_expansions, Third_Ventricle) ;
-          if (lh > rh && lh > third)
+          if (lh > rh && lh > third && lh > lhi && lh > rhi)
           {
             label = Left_Lateral_Ventricle ;
           }
-          else if (rh > third)
+          else if (rh > third && rh > lhi && rh > rhi)
           {
             label = Right_Lateral_Ventricle ;
           }
-          else
+          else if (third > lhi && third > rhi)
           {
             label = Third_Ventricle ;
+          }
+	  else if (lhi > rhi)
+          {
+            label = Left_Inf_Lat_Vent ;
+          }
+	  else
+          {
+            label = Right_Inf_Lat_Vent ;
           }
           MRIsetVoxVal(mri_labeled, x, y, z, 0, label) ;
         }
@@ -4771,7 +4800,7 @@ change_unlikely_voxels(GCA *gca,
     MRIsetVoxVal(mri_dst_label, x, y, z, 0, max_label) ; // use prior label
     if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
     {
-      printf("changing label at (%d, %d, %d) from %s to %s\n",
+      printf("change_unlikely_voxels 1: changing label at (%d, %d, %d) from %s to %s\n",
              Ggca_x, Ggca_y, Ggca_z, 
              cma_label_to_name(label_to_change),
              cma_label_to_name(max_label));
@@ -4801,7 +4830,7 @@ change_unlikely_voxels(GCA *gca,
     }
     if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
     {
-      printf("changing label at (%d, %d, %d) from %s to %s\n",
+      printf("change_unlikely_voxels 2: changing label at (%d, %d, %d) from %s to %s\n",
              Ggca_x, Ggca_y, Ggca_z,
              cma_label_to_name(label_to_change),
              cma_label_to_name(max_label));

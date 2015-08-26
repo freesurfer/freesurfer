@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/24 17:57:19 $
- *    $Revision: 1.291 $
+ *    $Author: fischl $
+ *    $Date: 2015/08/26 16:47:19 $
+ *    $Revision: 1.292 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -21442,10 +21442,22 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   double            val, base_sigma, pct_change, rms, last_rms = 0.0, orig_dt, l_orig_smooth, min_dt, l_orig_elastic, l_elastic, tol,
     start_rms, end_rms ;
   MRI_SEGMENTATION *mseg ;
-  MRI              *mri_vent, *mri_lh, *mri_rh, *mri_vent_atlas, *mri_smooth, *mri_kernel ;
+  MRI              *mri_vent, *mri_lh, *mri_rh, *mri_vent_atlas, *mri_smooth, *mri_kernel, *mri_lhi, *mri_rhi ;
   TRANSFORM        *trans ;
   GCA_MORPH_NODE   *gcamn ;
   float            thresh, lh_means[MAX_GCA_INPUTS], rh_means[MAX_GCA_INPUTS], lh_var[MAX_GCA_INPUTS], rh_var[MAX_GCA_INPUTS], std ;
+  float            fmin, fmax, new_thresh ;
+  HISTOGRAM        *hv, *hvs, *hc, *hcs ;
+  double           likelihoods[MAX_GCA_LABELS],lmax ;
+  int              labels[MAX_GCA_LABELS], nlabels, max_label ;
+  double           cmean, csigma, vmean, vsigma ;
+  TRANSFORM        transform ;
+  float            cmeans_lh[MAX_GCA_INPUTS], cmeans_rh[MAX_GCA_INPUTS] ;
+
+
+  transform.type = MORPH_3D_TYPE;
+  transform.xform = (void *)gcam ;
+
 
   mri_kernel = MRIgaussian1d(parms->sigma, 100) ;
   mri_smooth = MRIconvolveGaussian(mri, NULL, mri_kernel) ;
@@ -21455,13 +21467,23 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   GCAlabelMean(gcam->gca, Right_Lateral_Ventricle, rh_means) ;
   GCAlabelVar(gcam->gca, Right_Lateral_Ventricle, rh_var) ;
   GCAlabelVar(gcam->gca, Left_Lateral_Ventricle, lh_var) ;
-  thresh = (lh_means[0] + rh_means[0]) / 2 ;
-  std = sqrt((lh_var[0] + rh_var[0]) / 2.0) ;
-  printf("using threshold %2.1f +- %2.1f for initial ventricular estimate\n", thresh, std) ;
+  GCAlabelMean(gcam->gca, Left_Caudate, cmeans_lh) ;
+  GCAlabelMean(gcam->gca, Right_Caudate, cmeans_rh) ;
+  cmean = (cmeans_lh[0] + cmeans_rh[0]) / 2 ;
+  vmean = (lh_means[0] + rh_means[0]) / 2 ;
+  thresh = (vmean+cmean)/2 ;
+  vsigma = std = sqrt((lh_var[0] + rh_var[0]) / 2.0) ;
+  GCAlabelVar(gcam->gca, Right_Caudate, rh_var) ;
+  GCAlabelVar(gcam->gca, Left_Caudate, lh_var) ;
+  csigma = sqrt((lh_var[0] + rh_var[0]) / 2.0) ;
+  printf("using threshold %2.1f from atlas ventricle (%2.1f +- %2.1f) and caudate (%2.1f +- %2.1f) distributions for initial ventricular estimate\n", 
+	 thresh, vmean, vsigma, cmean, csigma) ;
 
   mri_vent_atlas = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_SHORT) ;
   MRIsetResolution(mri_vent_atlas, gcam->atlas.xsize*gcam->spacing, gcam->atlas.ysize*gcam->spacing, gcam->atlas.zsize*gcam->spacing) ;
   MRIreInitCache(mri_vent_atlas) ;
+  mri_lhi = MRIclone(mri_vent_atlas, NULL) ;
+  mri_rhi = MRIclone(mri_vent_atlas, NULL) ;
   mri_lh = MRIclone(mri_vent_atlas, NULL) ;
   mri_rh = MRIclone(mri_vent_atlas, NULL) ;
   trans = (TRANSFORM *)calloc(1, sizeof(TRANSFORM)) ;
@@ -21474,6 +21496,10 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 	if (x == Gx && y == Gy && z == Gz)
 	  DiagBreak() ;
         gcamn = &gcam->nodes[x][y][z] ;
+	if (nint(gcamn->x) == Gvx &&
+	    nint(gcamn->y) == Gvy &&
+	    nint(gcamn->z) == Gvz)
+	  DiagBreak() ;
 	MRIsampleVolume(mri, gcamn->x, gcamn->y, gcamn->z, &val) ;
 	if (val > thresh)
 	  continue ;
@@ -21482,6 +21508,8 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 	label = most_likely_label(gcam, trans,  x,  y,  z, mri) ;
 	switch (label)
 	{
+	case Left_Inf_Lat_Vent:      MRIsetVoxVal(mri_lhi, x, y, z, 0, 1) ; break ;
+	case Right_Inf_Lat_Vent:      MRIsetVoxVal(mri_rhi, x, y, z, 0, 1) ; break ;
 	case Left_Lateral_Ventricle: MRIsetVoxVal(mri_lh, x, y, z, 0, 1) ; break ;
 	case Right_Lateral_Ventricle: MRIsetVoxVal(mri_rh, x, y, z, 0, 1) ; break ;
 	default: break ;
@@ -21490,20 +21518,67 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 
 
 //  MRIwrite(mri_lh, "lh.mgz") ; MRIwrite(mri_rh, "rh.mgz") ;
+// left  lateral ventricle
   mseg  = MRIsegment(mri_lh, 1, 1) ; 
   n = MRIfindMaxSegmentNumber(mseg) ;
   MRIsegmentFill(mseg, n, mri_vent_atlas, 1) ; 
   MRIsegmentFree(&mseg) ;
+
+// right  lateral ventricle
   mseg  = MRIsegment(mri_rh, 1, 1) ; 
   n = MRIfindMaxSegmentNumber(mseg) ;
   MRIsegmentFill(mseg, n, mri_vent_atlas, 1) ; 
   MRIsegmentFree(&mseg) ;
-//  MRIwrite(mri_vent_atlas, "v.mgz") ; 
+
+// right inferior lateral ventricle
+  mseg  = MRIsegment(mri_rhi, 1, 1) ; 
+  n = MRIfindMaxSegmentNumber(mseg) ;
+  MRIsegmentFill(mseg, n, mri_vent_atlas, 1) ; 
+  MRIsegmentFree(&mseg) ;
+  
+// left inferior lateral ventricle
+  mseg  = MRIsegment(mri_lhi, 1, 1) ; 
+  n = MRIfindMaxSegmentNumber(mseg) ;
+  MRIsegmentFill(mseg, n, mri_vent_atlas, 1) ; 
+  MRIsegmentFree(&mseg) ;
+
+  if (Gdiag & DIAG_WRITE)
+  {
+    printf("writing ventricular labels to ventricles.atlas.mgz\n");
+    MRIwrite(mri_vent_atlas, "ventricles.atlas.mgz") ; 
+  }
+  MRIfree(&mri_lh) ; MRIfree(&mri_rh) ; MRIfree(&mri_lhi) ; MRIfree(&mri_rhi) ;
+
   mri_vent = MRIclone(mri, NULL) ;
+  MRIvalRange(mri, &fmin, &fmax) ;
+  hv = HISTOalloc((int)ceil(fmax)) ;
+  HISTOinit(hv, hv->nbins,  0, hv->nbins-1) ;
+  hc = HISTOalloc((int)ceil(fmax)) ;
+  HISTOinit(hc, hc->nbins,  0, hc->nbins-1) ;
   for (x = 0 ; x < mri->width ; x++)
     for (y = 0 ; y < mri->height ; y++)
       for (z = 0 ; z < mri->depth ; z++)
       {
+	if (x == Gvx && y == Gvy && z == Gvz)
+	  DiagBreak() ;
+	nlabels = GCAcomputeVoxelLikelihoods(gcam->gca,
+					     mri, x, y, z,
+					     &transform,
+					     labels, likelihoods);
+	max_label = -1 ;
+	for (n = 0, lmax = -100000 ; n < nlabels ; n++)
+	{
+	  if (likelihoods[n] > lmax)
+	  {
+	    lmax = likelihoods[n] ;
+	    max_label = labels[n] ;
+	  }
+	}
+	if (IS_VENTRICLE(max_label))
+	  HISTOaddSample(hv, MRIgetVoxVal(mri, x, y, z, 0), -1, -1) ;
+	if (IS_CAUDATE(max_label))
+	  HISTOaddSample(hc, MRIgetVoxVal(mri, x, y, z, 0), -1, -1) ;
+	
 	if (x == Gx && y == Gy && z == Gz)
 	  DiagBreak() ;
 	if (GCAsourceVoxelToPrior(gcam->gca, mri, trans, x, y, z, &xp, &yp, &zp) != NO_ERROR)
@@ -21511,8 +21586,64 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 	if ((MRIgetVoxVal(mri_vent_atlas, xp, yp, zp, 0) > 0) && MRIgetVoxVal(mri, x, y, z, 0) <= thresh)
 	  MRIsetVoxVal(mri_vent, x, y, z, 0, 1) ;
       }
-  grow_ventricles(mri_vent, mri, 3, thresh) ;
+  hvs = HISTOsmooth(hv, NULL, 2) ;
+  hcs = HISTOsmooth(hc, NULL, 2) ;
+  HISTOrobustGaussianFit(hv, .1,  &vmean, &vsigma) ;
+  HISTOrobustGaussianFit(hc, .1,  &cmean, &csigma) ;
+  if (Gdiag & DIAG_WRITE)
+  {
+    HISTOplot(hv, "h.vent.plt") ;
+    HISTOplot(hvs, "hs.vent.plt") ;
+    HISTOplot(hc, "h.caudate.plt") ;
+    HISTOplot(hcs, "hs.caudate.plt") ;
+  }
+  if (cmean < vmean+2*vsigma)   // caudate mean must be wrong - don't use it in threshold
+  {
+    GCAlabelMean(gcam->gca, Left_Caudate, cmeans_lh) ;
+    GCAlabelMean(gcam->gca, Right_Caudate, cmeans_rh) ;
+    cmean = (cmeans_lh[0] + cmeans_rh[0]) / 2 ;
+    new_thresh = MIN(vmean+3*vsigma, (3*vmean + 2*cmean) / 5) ;
+    printf("caudate distribution could not be robustly estimated - using atlas caudate (%2.1f) and ventricle density (%2.1f + 2*%2.1f) to set threshold %2.1f\n",
+	   cmean, vmean, vsigma, new_thresh) ;
+  }
+  else
+  {
+    new_thresh = (csigma*vmean + vsigma*cmean) / (csigma + vsigma) ;
+    printf("using robust Gaussian fitting - new thresh at %2.1f (V: %2.1f +- %2.1f, C: %2.1f +- %2.1f, )\n", 
+	   new_thresh, vmean,vsigma, cmean, csigma) ;
+  }
 
+/* do some sanity checking on threshold. Don't let it get crazy big, but also
+   make sure that caudate can be found (with huge ventricles it may fail
+*/
+  if (new_thresh < thresh+4*std)
+    thresh = new_thresh ;
+  else
+  {
+    thresh = thresh+4*std ;
+    printf("reducing threshold to %2.1f\n",  thresh) ;
+  }
+  MRIerode(mri_vent, mri_vent) ;
+  grow_ventricles(mri_vent, mri, 3, thresh) ;
+  grow_ventricles(mri_vent, mri, 4, thresh) ;
+
+  HISTOfree(&hv) ;  MRIfree(&mri_vent_atlas) ;
+
+  hv = MRIhistogramLabel(mri, mri_vent, 1, 0) ;
+  if (Gdiag & DIAG_WRITE)
+  {
+    printf("writing ventricular labels to ventricles.image.mgz\n");
+    MRIwrite(mri_vent, "ventricles.image.mgz") ; 
+    HISTOplot(hv, "h.vent2.plt") ;
+  }
+#if 0
+  HISTOrobustGaussianFit(hv, .1,  &vmean, &vsigma) ;
+  thresh = vmean + 2*vsigma ;
+  printf("reestimating ventricles with final threshold %2.1f = %2.1f + 2 * %2.1f\n", thresh, vmean, vsigma) ;
+  grow_ventricles(mri_vent, mri, 3, thresh) ;
+#endif
+
+  HISTOfree(&hc) ; HISTOfree(&hcs) ; HISTOfree(&hv) ; HISTOfree(&hvs) ;
   if (FZERO(parms->min_sigma))
   {
     parms->min_sigma = 0.4 ;
@@ -21777,7 +21908,7 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     parms->log_fp = NULL ;
   }
 
-  MRIfree(&mri_smooth) ;
+  MRIfree(&mri_smooth) ;  MRIfree(&mri_vent) ;
   return(NO_ERROR) ;
 }
 

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:22 $
- *    $Revision: 1.15 $
+ *    $Author: fischl $
+ *    $Date: 2015/08/24 18:22:05 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,7 +68,7 @@ main(int argc, char *argv[]) {
   Real   xw, yw, zw, xv, yv, zv, val;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.15 2011/03/02 00:04:22 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_label_vals.c,v 1.16 2015/08/24 18:22:05 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -336,7 +336,7 @@ get_option(int argc, char *argv[]) {
 static void
 usage_exit(int code) {
   printf("usage: %s [options] <volume> <label file>\n",  Progname) ;
-  printf("where optins are\n");
+  printf("where options are\n");
   printf("   -cras   label created in the coordinates where c_(r,a,s) != 0\n");
   printf("             if it did not work, try using this option.\n");
   // printf("   -q      quiet\n");

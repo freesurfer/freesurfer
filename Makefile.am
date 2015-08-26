@@ -53,6 +53,7 @@ MRISUBDIRS=\
 	mri_binarize \
 	mri_build_priors \
 	mri_ca_label \
+        mri_correct_segmentations \
 	mri_cal_renormalize_gca \
 	mri_divide_segmentation \
 	mri_gtmpvc \
@@ -74,7 +75,7 @@ MRISUBDIRS=\
 	mri_cnr \
 	mri_compute_overlap \
 	mri_concat \
-	mri_concatenate_gcam \
+        mri_concatenate_gcam \
 	mri_convert \
 	mri_convert_mdh \
 	mri_copy_values \

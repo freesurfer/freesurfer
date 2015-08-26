@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/07/06 21:58:51 $
- *    $Revision: 1.383 $
+ *    $Author: fischl $
+ *    $Date: 2015/08/26 16:49:08 $
+ *    $Revision: 1.384 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1153,6 +1153,7 @@ int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris,
                                            int which) ;
 int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs) ;
+int   MRISsoapBubbleTargetVertexPositions(MRI_SURFACE *mris, int navgs) ;
 MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
                                   MRI *mri) ;
 #if 0
@@ -1163,6 +1164,8 @@ int   MRISmeasureCorticalThickness(MRI_SURFACE *mris, int nbhd_size,
                                    float max_thickness) ;
 #endif
 
+#include "mrishash.h"
+int  MRISmeasureThicknessFromCorrespondence(MRI_SURFACE *mris, MHT *mht, float max_thick) ;
 int MRISfindClosestOrigVertices(MRI_SURFACE *mris, int nbhd_size) ;
 int MRISfindClosestPialVerticesCanonicalCoords(MRI_SURFACE *mris, int nbhd_size) ;
 
@@ -1484,7 +1487,6 @@ typedef struct
 }
 MRI_SURFACE_ARRAY, MSA ;
 #if 1
-#include "mrishash.h"
 float  MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,
                              float x0, float y0, float z0,
                              float nx, float ny, float nz) ;

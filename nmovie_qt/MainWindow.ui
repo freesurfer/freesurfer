@@ -390,21 +390,5 @@
     </hint>
    </hints>
   </connection>
-  <connection>
-   <sender>toolButtonQuit_2</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>widgetRender</receiver>
-   <slot>SetAutoResize(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>790</x>
-     <y>29</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>783</x>
-     <y>60</y>
-    </hint>
-   </hints>
-  </connection>
  </connections>
 </ui>

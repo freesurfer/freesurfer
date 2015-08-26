@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/08/21 18:55:05 $
-#    $Revision: 1.654 $
+#    $Date: 2015/08/25 16:29:16 $
+#    $Revision: 1.656 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3704,6 +3704,7 @@ AC_OUTPUT([Makefile
            mri_ca_register/Makefile
            mri_ca_tissue_parms/Makefile
            mri_ca_train/Makefile
+           mri_correct_segmentations/Makefile
            mri_divide_segmentation/Makefile
            mri_gtmpvc/Makefile
            mri_rf_label/Makefile
@@ -3720,7 +3721,7 @@ AC_OUTPUT([Makefile
            mri_compute_seg_overlap/Makefile
            mri_concat/Makefile
            mri_concatenate_gcam/Makefile
-           mri_concatenate_lta/Makefile
+     	   mri_concatenate_lta/Makefile
            mri_convert/Makefile
            mri_convert_mdh/Makefile
            mri_copy_values/Makefile

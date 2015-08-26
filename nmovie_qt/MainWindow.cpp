@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include <QSettings>
 #include <QKeyEvent>
+#include <QAction>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -10,6 +11,10 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->mainToolBar->hide();
+    QAction* act = new QAction(this);
+    act->setShortcut(QKeySequence("Ctrl+Q"));
+    connect(act, SIGNAL(triggered()), SLOT(close()));
+    addAction(act);
     QSettings s;
     restoreGeometry(s.value("MainWindow/Geometry").toByteArray());
     connect(ui->widgetRender, SIGNAL(CurrentImageChanged(QImage, int)),

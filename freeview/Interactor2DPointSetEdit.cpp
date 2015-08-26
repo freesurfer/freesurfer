@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2015/08/24 19:16:46 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,10 @@ bool Interactor2DPointSetEdit::ProcessMouseDownEvent( QMouseEvent* event, Render
   {
     if ( event->modifiers() & CONTROL_MODIFIER && event->modifiers() & Qt::ShiftModifier )
     {
-      return Interactor2D::ProcessMouseDownEvent( event, renderview );
+      view->UpdateCursorRASPosition( event->x(), event->y());
+      view->RequestRedraw();
+      return false;
+      //  return Interactor2D::ProcessMouseDownEvent( event, renderview );
     }
 
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "PointSet" );
