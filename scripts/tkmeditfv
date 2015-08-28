@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tkmeditfv
 
-set VERSION = '$Id: tkmeditfv,v 1.16 2015/07/06 16:17:56 greve Exp $';
+set VERSION = '$Id: tkmeditfv,v 1.17 2015/08/28 17:57:54 greve Exp $';
 
 set subject = ();
 set overlay = ();
@@ -14,6 +14,8 @@ set segctab = ();
 set auxsegvol = ();
 set auxsegvol0 = ();
 set auxsegctab = ();
+set segvollist = ();
+set segcolorlist = ();
 set surflist = ();
 set surflist0 = ();
 set surfcolor = ();
@@ -70,6 +72,11 @@ if(! $UseTkMedit) then
   if($#auxvol) set cmd = ($cmd -v $auxvol)
   if($#segvol) set cmd = ($cmd -v "$segvol":"lut=$segcolor":"opacity=$segopacity":"colormap=lut")
   if($#auxsegvol) set cmd = ($cmd -v "$auxsegvol":"lut=$auxsegcolor":"opacity=$segopacity":"colormap=lut")
+  @ nth = 0;
+  foreach v ($segvollist) 
+    @ nth = $nth + 1;
+    set cmd = ($cmd -v "$v":"lut=$segcolorlist[$nth]":"opacity=$segopacity":"colormap=lut")
+  end
   if($#label) set cmd = ($cmd -l $label)
   foreach ov ($overlay)
     #set fmid = `echo "($fthresh+$fmax)/2"|bc -l`
@@ -161,6 +168,21 @@ while( $#argv != 0 )
       if(! `isargflag $argv`) then
         set segcolor = $argv[1]; shift;
       endif
+      breaksw
+
+    case "-seg2":
+      # This is a slightly embarassing hack to have more than two
+      # seg volumes in freeview. I should reprogram it so that 
+      # the main and aux seg are just part of the segvollist
+      if($#argv < 1) goto arg1err;
+      set segvol2 = $argv[1]; shift;
+      if(! `isargflag $argv`) then
+        set segcolor2 = $argv[1]; shift;
+      else
+        set segcolor2 = $FREESURFER_HOME/FreeSurferColorLUT.txt
+      endif
+      set segvollist = ($segvollist $segvol2)
+      set segcolorlist = ($segcolorlist $segcolor2)
       breaksw
 
     case "-aux-seg":
@@ -506,6 +528,7 @@ usage_exit:
   echo "-vol volume1 <-vol volume2> : load extra volumes "
   echo "-crs col row slice : place cursor at given location and center FoV"
   echo "-zoom Zoom : set zoom level"
+  echo "-seg2 seg3 <-seg2 seg4> : add segs beyond -seg and -aux-seg"
   echo ""
   if(! $PrintHelp) exit 1;
   echo $VERSION

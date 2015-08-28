@@ -10,8 +10,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2015/08/25 22:18:14 $
- *    $Revision: 1.19 $
+ *    $Date: 2015/08/27 18:59:42 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,12 +148,12 @@ int main(int argc, char **argv) {
 
   // Read inclusion masks
   for (vector<char *>::const_iterator imask = incMaskList.begin();
-                                      imask < incMaskList.end(); imask ++)
+                                      imask < incMaskList.end(); imask++)
     incMask.push_back(MRIread(*imask));
 
   // Read exclusion masks
   for (vector<char *>::const_iterator imask = excMaskList.begin();
-                                      imask < excMaskList.end(); imask ++)
+                                      imask < excMaskList.end(); imask++)
     excMask.push_back(MRIread(*imask));
 
   for (unsigned int itract = 0; itract < nTract; itract++) {
@@ -326,19 +326,36 @@ int main(int argc, char **argv) {
 
       // There must be at least one point that intersects each inclusion mask
       for (vector<MRI *>::const_iterator imask = incMask.begin();
-                                         imask < incMask.end(); imask ++) {
+                                         imask < incMask.end(); imask++) {
         dokeep = false;
 
         for (vector<float>::const_iterator ipt = streamlines[kstr].begin();
                                            ipt < streamlines[kstr].end();
-                                           ipt += 3)
-          if ( (ipt[0] > -1) && (ipt[0] < (*imask)->width) &&
-               (ipt[1] > -1) && (ipt[1] < (*imask)->height) &&
-               (ipt[2] > -1) && (ipt[2] < (*imask)->depth) &&
-               (MRIgetVoxVal(*imask, ipt[0], ipt[1], ipt[2], 0) > 0) ) {
+                                           ipt += 3) {
+          int ix = (int) round(ipt[0]),
+              iy = (int) round(ipt[1]),
+              iz = (int) round(ipt[2]);
+
+          if (ix < 0)                   ix = 0;
+          if (ix >= outvol->width)      ix = outvol->width-1;
+          if (iy < 0)                   iy = 0;
+          if (iy >= outvol->height)     iy = outvol->height-1;
+          if (iz < 0)                   iz = 0;
+          if (iz >= outvol->depth)      iz = outvol->depth-1;
+
+          if (MRIgetVoxVal(*imask, ix, iy, iz, 0) > 0) {
              dokeep = true;
              break;
           }
+        }
+
+        if (!dokeep)
+          break;
+      }
+
+      if (!dokeep) {
+        streamlines.erase(streamlines.begin() + kstr);
+        continue;
       }
 
       // There must be no point that intersects any exclusion mask
@@ -346,14 +363,23 @@ int main(int argc, char **argv) {
                                          ipt < streamlines[kstr].end();
                                          ipt += 3) {
         for (vector<MRI *>::const_iterator imask = excMask.begin();
-                                           imask < excMask.end(); imask ++)
-          if ( (ipt[0] > -1) && (ipt[0] < (*imask)->width) &&
-               (ipt[1] > -1) && (ipt[1] < (*imask)->height) &&
-               (ipt[2] > -1) && (ipt[2] < (*imask)->depth) &&
-               !(MRIgetVoxVal(*imask, ipt[0], ipt[1], ipt[2], 0) > 0) ) {
+                                           imask < excMask.end(); imask++) {
+          int ix = (int) round(ipt[0]),
+              iy = (int) round(ipt[1]),
+              iz = (int) round(ipt[2]);
+
+          if (ix < 0)                   ix = 0;
+          if (ix >= outvol->width)      ix = outvol->width-1;
+          if (iy < 0)                   iy = 0;
+          if (iy >= outvol->height)     iy = outvol->height-1;
+          if (iz < 0)                   iz = 0;
+          if (iz >= outvol->depth)      iz = outvol->depth-1;
+
+          if (MRIgetVoxVal(*imask, ix, iy, iz, 0) > 0) {
             dokeep = false;
             break;
           }
+        }
 
         if (!dokeep)
           break;

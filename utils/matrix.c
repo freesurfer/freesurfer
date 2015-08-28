@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/14 16:50:42 $
- *    $Revision: 1.151 $
+ *    $Date: 2015/08/28 18:02:33 $
+ *    $Revision: 1.152 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -431,11 +431,13 @@ MATRIX *MatrixMultiplyD( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
     if (!m3)
       return(NULL) ;
   }
-  else if ((m3->rows != m1->rows) || (m3->cols != m2->cols))
+  else if ((m3->rows != m1->rows) || (m3->cols != m2->cols)){
+    printf("MatrixMultiplyD(): m1/m2 dim mismatch\n break %s:%d\n",__FILE__,__LINE__);
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
-                 "MatrixMultiply: (%d x %d) * (%d x %d) != (%d x %d)\n",
+                 "MatrixMultiplyD: (%d x %d) * (%d x %d) != (%d x %d)\n",
                  m1->rows, m1->cols, m2->rows, m2->cols, m3->rows, m3->cols)) ;
+  }
 
   if (m3 == m2)
   {
@@ -550,11 +552,13 @@ MATRIX *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
     ErrorExit(ERROR_BADPARM,
               "MatrixMultiply: m2 is null!\n") ;
 
-  if (m1->cols != m2->rows)
+  if (m1->cols != m2->rows){
+    printf("MatrixMultiply(): m1/m2 dim mismatch\n break %s:%d\n",__FILE__,__LINE__);
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
                  "MatrixMultiply: m1 cols %d does not match m2 rows %d\n",
                  m1->cols, m2->rows)) ;
+  }
 
   if (!m3)
   {
@@ -566,11 +570,13 @@ MATRIX *MatrixMultiply( const MATRIX *m1, const MATRIX *m2, MATRIX *m3)
     if (!m3)
       return(NULL) ;
   }
-  else if ((m3->rows != m1->rows) || (m3->cols != m2->cols))
+  else if ((m3->rows != m1->rows) || (m3->cols != m2->cols)){
+    printf("MatrixMultiply(): m3 dim mismatch\n break %s:%d\n",__FILE__,__LINE__);
     ErrorReturn(NULL,
                 (ERROR_BADPARM,
                  "MatrixMultiply: (%d x %d) * (%d x %d) != (%d x %d)\n",
                  m1->rows, m1->cols, m2->rows, m2->cols, m3->rows, m3->cols)) ;
+  }
 
   if (m3 == m2)
   {

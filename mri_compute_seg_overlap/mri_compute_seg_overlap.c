@@ -11,8 +11,8 @@
  * Original Authors: Xiao Han, Nick Schmansky
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/08/21 16:33:59 $
- *    $Revision: 1.17 $
+ *    $Date: 2015/08/28 18:05:30 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.17 2015/08/21 16:33:59 greve Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.18 2015/08/28 18:05:30 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -207,24 +207,14 @@ int main(int argc, char *argv[])
   subcorvolume1 = 0;
   subcorvolume2 = 0;
 
-  for (f = 0 ; f < nframes ; f++)
-  {
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        for (x = 0 ; x < width ; x++)
-        {
+  for (f = 0 ; f < nframes ; f++)  {
+    for (z = 0 ; z < depth ; z++)    {
+      for (y = 0 ; y < height ; y++)      {
+        for (x = 0 ; x < width ; x++)        {
           v1 = (int) MRIgetVoxVal(mri_seg1,x,y,z,f);
           v2 = (int) MRIgetVoxVal(mri_seg2,x,y,z,f);
 
-          if (v1 > MAX_CLASS_NUM ||
-              v1 <= 0 ||
-              v2 > MAX_CLASS_NUM ||
-              v2 <= 0)
-          {
-            continue;
-          }
+          if (v1 > MAX_CLASS_NUM || v1 <= 0 || v2 > MAX_CLASS_NUM || v2 <= 0) continue;
 
           /* do not include these in the overall Dice coefficient calculations:
              Left/Right-Cerebral-White-Matter (labels 2 and 41),
@@ -232,45 +222,24 @@ int main(int argc, char *argv[])
              Left/Right-Accumbens-area (labels 26 and 58)
              Notice that these labels are not included in the 'if' checks: */
 
-          if (v1 == v2)
-          {
-            if (all_labels_flag)
-            {
-              subcorvolume_overlap++;
-            }
-            else if (isOverallDiceLabel(v1))
-            {
-              subcorvolume_overlap++;
-            }
+          if (v1 == v2){
+            if (all_labels_flag)             subcorvolume_overlap++;
+            else if (isOverallDiceLabel(v1)) subcorvolume_overlap++;
           }
 
-          if (all_labels_flag)
-          {
-            subcorvolume1++;
-          }
-          else if (isOverallDiceLabel(v1))
-          {
-            subcorvolume1++;
-          }
-          if (all_labels_flag)
-          {
-            subcorvolume2++;
-          }
-          else if (isOverallDiceLabel(v2))
-          {
-            subcorvolume2++;
-          }
+          if(all_labels_flag)              subcorvolume1++;
+          else if (isOverallDiceLabel(v1)) subcorvolume1++;
+          if (all_labels_flag)             subcorvolume2++;
+          else if (isOverallDiceLabel(v2)) subcorvolume2++;
 
           Volume_from1[v1]++;
           Volume_from2[v2]++;
 
-          if (v1 == v2)
-          {
+          if (v1 == v2) {
             Volume_overlap[v1]++;
             Volume_union[v1]++;
           }
-          else
-          {
+          else {
             Volume_union[v1]++;
             Volume_union[v2]++;
           }
@@ -377,12 +346,12 @@ int main(int argc, char *argv[])
       double voldiff;
       voldiff = 100*(Volume_from1[j]-Volume_from2[j])/(0.5*((Volume_from1[j]+Volume_from2[j])));
       if(ctab == NULL) printf("label %d = %g\n",j, correct_ratio2[j]);
-      else             printf("%4d  %-30s %8.6lf %8.6lf %6d %6d %9.4lf\n",
+      else             printf("%4d  %-30s %8.6lf %8.6lf %6d %6d %6d %9.4lf\n",
 			      j,ctab->entries[j]->name,correct_ratio[j],correct_ratio2[j],
-			      Volume_from1[j],Volume_from2[j],voldiff);
-      if(table_fname) fprintf(tablefp,"%4d  %-30s %8.6lf %8.6lf %6d %6d %9.4lf\n",
+			      Volume_from1[j],Volume_from2[j],Volume_overlap[j],voldiff);
+      if(table_fname) fprintf(tablefp,"%4d  %-30s %8.6lf %8.6lf %6d %6d %6d %9.4lf\n",
 			      j,ctab->entries[j]->name,correct_ratio[j],correct_ratio2[j],
-			      Volume_from1[j],Volume_from2[j],voldiff);
+			      Volume_from1[j],Volume_from2[j],Volume_overlap[j],voldiff);
 
 
       mean2 += correct_ratio2[labels_of_interest[i]];

@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/29 19:51:24 $
- *    $Revision: 1.57 $
+ *    $Date: 2015/08/28 18:03:49 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.57 2015/05/29 19:51:24 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.58 2015/08/28 18:03:49 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.57 2015/05/29 19:51:24 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.58 2015/08/28 18:03:49 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1094,6 +1094,7 @@ static int parse_commandline(int argc, char **argv) {
       }
       nargsused = 1;
     }
+    else if(!strcmp(option, "--ctab-default"))  gtm->ctGTMSeg = TissueTypeSchemaDefaultHead(NULL);
 
     else if(!strcasecmp(option, "--tt-reduce")){
       ttReduce = 1;

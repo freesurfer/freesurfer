@@ -1,17 +1,20 @@
 #!/bin/tcsh -f
 # gca-apply
 
-set VERSION = '$Id: gca-apply,v 1.6 2015/08/19 15:57:40 greve Exp $';
+set VERSION = '$Id: gca-apply,v 1.7 2015/08/28 17:53:58 greve Exp $';
 
 set gca = ();
 set subject = ();
 set norm = ();
+set outdir = ()
+set input = ();
 set gcabase = ()
 set GCARegIterations = ();
 set DiceSeg = ();
 set DiceFile = ();
 set SrcLTA = ();
 set SrcNorm = ();
+set UseCoreg = 0;
 
 set Overwrite = 0;
 set tmpdir = ();
@@ -46,15 +49,14 @@ check_params_return:
 set StartTime = `date`;
 set tSecStart = `date '+%s'`;
 
-set outdir = $SUBJECTS_DIR/$subject/mri
-#if($#tmpdir == 0) then
-#  if(-e /scratch)   set tmpdir = /scratch/tmpdir.gca-apply.$$
-#  if(! -e /scratch) set tmpdir = $outdir/tmpdir.gca-apply.$$
-#endif
-#mkdir -p $tmpdir
+if($#outdir) then
+  mkdir -p $outdir
+  if($#LF == 0) set LF = $outdir/gca-apply.$gcabase.log
+  set outdir = `getfullpath $outdir`
+endif
 
 # Set up log file
-if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/gca-apply.$gcabase.log
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/gca-apply.$gcabase.log
 if($LF != /dev/null && -e $LF) mv $LF $LF.bak
 echo "Log file for gca-apply" >> $LF
 date  | tee -a $LF
@@ -71,12 +73,21 @@ uname -a  | tee -a $LF
 cd $mdir
 
 # mri_em_register
-set LTA = transforms/$gcabase.lta
+if($#outdir == 0) then
+  set LTA = transforms/$gcabase.lta
+else
+  set LTA = $outdir/$gcabase.lta
+endif
 if($#SrcLTA == 0) then
-  set opts = (-mask brainmask.mgz)
-  set opts = ($opts -uns 3) # used by recon-all, but not with skull
-  # but docs imply it is only with skull that it should be used
-  set cmd = (mri_em_register $opts nu.mgz $gca $LTA)
+  if($UseCoreg == 0) then
+    set opts = (-mask brainmask.mgz)
+    set opts = ($opts -uns 3) # used by recon-all, but not with skull
+    # but docs imply it is only with skull that it should be used
+    set cmd = (mri_em_register $opts $input $gca $LTA)
+  else
+    set cmd = (mri_coreg --dof 9 --threads $OMP_NUM_THREADS \
+      --mov brainmask.mgz --targ $gca --conf-ref --reg $LTA)
+  endif
 else
   set cmd = (cp $SrcLTA $LTA)
 endif
@@ -85,10 +96,13 @@ $cmd |& tee -a $LF
 if($status) exit 1;
 
 # mri_ca_normlize
-set norm = norm.$gcabase.mgz
+if($#outdir == 0) then
+  set norm = norm.$gcabase.mgz
+else
+  set norm = $outdir/norm.$gcabase.mgz
+endif
 if($#SrcNorm == 0) then
-  set cmd = (mri_ca_normalize -mask brainmask.mgz nu.mgz $gca \
-    transforms/$gcabase.lta $norm)
+  set cmd = (mri_ca_normalize -mask brainmask.mgz $input $gca $LTA $norm)
 else
   set cmd = (cp $SrcNorm $norm)
 endif
@@ -97,27 +111,41 @@ $cmd |& tee -a $LF
 if($status) exit 1;
 
 # mri_ca_register
+if($#outdir == 0) then
+  set m3z = transforms/$gcabase.m3z
+else
+  set m3z = $outdir/$gcabase.m3z
+endif
 set opts = (-align-after -mask brainmask.mgz -T $LTA)
 set opts = ($opts -nobigventricles) # Used by recon-all
 # These are not used by recon-all but used in rebuild_gca_atlas.csh
 #set opts = ($opts -smooth 1.0 -levels 2) 
-set cmd = (mri_ca_register $opts $norm $gca transforms/$gcabase.m3z)
+set cmd = (mri_ca_register $opts $norm $gca $m3z)
 if($#GCARegIterations) set cmd = ($cmd -gcareg-iters $GCARegIterations)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
 # mri_ca_label
+if($#outdir == 0) then
+  set aseg = $gcabase.aseg.mgz
+else
+  set aseg = $outdir/$gcabase.aseg.mgz
+endif
 set opts = (-align)
 #set opts = ($opts -nobigventricles) # not used in recon-all, used in rebuild_gca_atlas.csh
-set cmd = (mri_ca_label $opts $norm transforms/$gcabase.m3z $gca $gcabase.aseg.mgz)
+set cmd = (mri_ca_label $opts $norm $m3z $gca $aseg)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
 # Compute segstats
-set cmd = (mri_segstats --seg $gcabase.aseg.mgz \
-  --sum ../stats/$gcabase.stats \
+if($#outdir == 0) then
+  set statsfile = ../stats/$gcabase.stats
+else
+  set statsfile = $outdir/$gcabase.stats
+endif
+set cmd = (mri_segstats --seg $aseg --sum $statsfile \
   --in $norm --pv $norm --empty --excludeid 0 \
   --ctab $FREESURFER_HOME/ASegStatsLUT.txt --subject $subject \
   --in-intensity-name norm.$gcabase --in-intensity-units MR )
@@ -127,7 +155,7 @@ if($status) exit 1;
 
 if($#DiceSeg) then
   set cmd = (mri_compute_seg_overlap -cortex 0 -L $DiceFile \
-    $gcabase.aseg.mgz $DiceSeg)
+    -table $DiceFile.table $gcabase.aseg.mgz $DiceSeg)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -174,6 +202,16 @@ while( $#argv != 0 )
     case "--s":
       if($#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outdir = $argv[1]; shift;
+      breaksw
+
+    case "--input":
+      if($#argv < 1) goto arg1err;
+      set input = $argv[1]; shift;
       breaksw
 
     case "--base":
@@ -237,6 +275,13 @@ while( $#argv != 0 )
       set SrcNorm = `getfullpath $SrcNorm`
       breaksw
 
+    case "--coreg":
+      set UseCoreg = 1;
+      breaksw
+    case "--no-coreg":
+      set UseCoreg = 0;
+      breaksw
+
     case "--dice":
       if($#argv < 2) goto arg2err;
       set DiceSeg = $argv[1]; shift;
@@ -292,7 +337,8 @@ if(! -e $sdir) then
   echo "ERROR: cannot find $subject"
   exit 1;
 endif
-foreach f ($mdir/brainmask.mgz $mdir/nu.mgz)
+if($#input == 0) set input = nu.mgz
+foreach f ($mdir/brainmask.mgz $mdir/$input)
   if(! -e $f) then
     echo "ERROR: cannot find $f"
     exit 1;
@@ -363,6 +409,9 @@ usage_exit:
   echo "  --dice DiceSeg DiceFile "
   echo "  --lta SrcLTA : use SrcLTA instead of running mri_em_register "
   echo "  --norm SrcNorm : use SrcNorm instead of running mri_ca_normalize "
+  echo "  --input input.mgz : defalt is nu.mgz "
+  echo "  --o outdir : use this for output instead of SUBJECTS_DIR "
+  echo "  --coreg : use mri_coreg instead of mri_em_register (--no-coreg)"
   echo ""
   echo "  --gcareg-iters : set to 1, only for testing"
   echo ""
@@ -393,9 +442,10 @@ Where gcabase is either `basename gcafile` or whatever is passed with --gcabase
 
 When computing segstats, it uses partial volume correction with norm.gcabase.mgz.
 
-Requires that brainmask.mgz and nu.mgz be present and ideally created in the same
-way as when the atlas was trained on the training subjects. When using gcatrain,
-the brainmask.mgz and nu.mgz are created with:
+Requires that brainmask.mgz and nu.mgz (or --input instead of nu.mgz)
+be present and ideally created in the same way as when the atlas was
+trained on the training subjects. When using gcatrain, the
+brainmask.mgz and nu.mgz are created with:
 
 recon-all -s subject -autorecon1 -no-talcheck
 

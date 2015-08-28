@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/08/22 20:24:10 $
- *    $Revision: 1.14 $
+ *    $Date: 2015/08/28 18:01:18 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.14 2015/08/22 20:24:10 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.15 2015/08/28 18:01:18 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -369,9 +369,11 @@ int main(int argc, char *argv[]) {
   printf("mri_coreg RunTimeSec %4.1f sec\n",TimerStop(&timer)/1000.0);
   printf("mri_coreg done\n\n");
 
-  printf("To check run:\n");
-  printf("   tkregister --mov %s --targ %s --reg %s ",cmdargs->mov,cmdargs->ref,cmdargs->outreg);
-  if(cmdargs->subject) printf("--s %s --surfs ",cmdargs->subject);
+  if(! cmdargs->refconf){
+    printf("To check run:\n");
+    printf("   tkregisterfv --mov %s --targ %s --reg %s ",cmdargs->mov,cmdargs->ref,cmdargs->outreg);
+    if(cmdargs->subject) printf("--s %s --surfs ",cmdargs->subject);
+  }
   printf("\n\n");
 
   exit(0);
@@ -477,8 +479,8 @@ static int parse_commandline(int argc, char **argv) {
       FILE *fp;
       LTA *lta1,*lta2;
       char *RMSDiffFile;
-      sscanf(argv[1],"%lf",&RMSDiffRad);
-      RMSDiffFile = argv[1];
+      sscanf(pargv[0],"%lf",&RMSDiffRad);
+      RMSDiffFile = pargv[1];
       lta1 = LTAread(pargv[2]); if(lta1==NULL) exit(1);
       LTAchangeType(lta1,REGISTER_DAT);
       lta2 = LTAread(pargv[3]); if(lta2==NULL) exit(1);
@@ -616,7 +618,7 @@ static void print_usage(void) {
 static void print_help(void) {
   print_usage() ;
   printf("This is a program that performs a linear registration between\n");
-  printf("two volumes in a way that should more-or-less replicate spm_coreg\n");
+  printf("two volumes in a way that should more-or-less replicates spm_coreg\n");
   printf("as called by the FreeSurfer program spmregister. \n");
   exit(1) ;
 }
