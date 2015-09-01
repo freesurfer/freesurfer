@@ -32,7 +32,7 @@ if ENABLE_TCLTK_APPS
 # of all cortech-licensed software)
 install-exec-hook:
 	mv -v $(DESTDIR)$(bindir)/tkregister2_cmdl $(DESTDIR)$(prefix)/tktools/
-	rm -vf $(DESTDIR)$(bindir)/tkregister*
+	rm -vf $(DESTDIR)$(bindir)/tkregister $(DESTDIR)$(bindir)/tkregister2
 	cp $(top_builddir)/tkregister2/tkregister2 \
 		$(DESTDIR)$(prefix)/tktools/tkregister2.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tkregister2
