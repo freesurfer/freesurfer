@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2014/06/22 13:24:59 $
- *    $Revision: 1.15 $
+ *    $Date: 2015/08/29 04:14:27 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,11 +148,8 @@ int main(int argc, char **argv) {
     WriteHeader(outVoxFile);
 
     ofstream fvox(outVoxFile, ios::app);
-    fvox << "# pathway start" << endl;
-    if (inTrcDir > 0)			// Probabilistic paths
-      fvox << "x y z AD RD MD FA AD_Avg RD_Avg MD_Avg FA_Avg" << endl;
-    else				// Deterministic paths
-      fvox << "x y z AD RD MD FA" << endl;
+    fvox << "# pathway start" << endl
+         << "x y z AD RD MD FA AD_Avg RD_Avg MD_Avg FA_Avg" << endl;
     fvox.close();
   }
 
@@ -443,7 +440,7 @@ int main(int argc, char **argv) {
 
     // Measures by voxel on median streamline
     if (outVoxFile)
-      myblood.WriteValuesCenter(meas, outVoxFile);
+      myblood.WriteValuesPointwise(meas, outVoxFile);
 
     // Save median streamline
     if (outMedianFile)

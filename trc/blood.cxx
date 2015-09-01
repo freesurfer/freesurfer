@@ -4123,25 +4123,76 @@ vector<float> Blood::ComputeAvgCenter(vector<MRI *> &ValueVolumes) {
 }
 
 //
-// Write values of input volumes along center streamline
+// Write values of input volumes point-wise along streamlines
 //
-void Blood::WriteValuesCenter(vector<MRI *> &ValueVolumes,
-                              const char *TextFile) {
+void Blood::WriteValuesPointwise(vector<MRI *> &ValueVolumes,
+                                 const char *TextFile) {
+  vector<float> valsum(ValueVolumes.size());
+  vector<float>::iterator ivalsum;
   ofstream outfile(TextFile, ios::app);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
     exit(1);
   }
 
-  cout << "Writing values along center streamline to " << TextFile << endl;
+  cout << "Writing point-wise values along streamlines to " << TextFile << endl;
 
   for (vector<int>::const_iterator ipt = mCenterStreamline.begin();
                                    ipt < mCenterStreamline.end(); ipt += 3) {
+    int nsamp = 0;
+
+    // Write coordinates of this point
     outfile << ipt[0] << " " << ipt[1] << " " << ipt[2];
 
+    // Write value of each input volume at this point
     for (vector<MRI *>::const_iterator ivol = ValueVolumes.begin();
                                        ivol < ValueVolumes.end(); ivol++)
       outfile << " " << MRIgetVoxVal(*ivol, ipt[0], ipt[1], ipt[2], 0);
+
+    // Find closest point on each streamline
+    fill(valsum.begin(), valsum.end(), 0.0);
+
+    for (vector< vector<int> >::const_iterator ipath = mStreamlines.begin();
+                                               ipath < mStreamlines.end();
+                                               ipath++) {
+      int dmin = 1000000;
+      vector<int>::const_iterator iptmin = ipath->begin();
+
+      for (vector<int>::const_iterator ipathpt = ipath->begin();
+                                       ipathpt < ipath->end();
+                                       ipathpt += 3) {
+        int dist = 0;
+
+        for (int k = 0; k < 3; k++) {
+          const int diff = ipathpt[k] - ipt[k];
+          dist += diff*diff;
+        }
+
+        if (dist < dmin) {
+          dmin = dist;
+          iptmin = ipathpt;
+        }
+      }
+
+      nsamp++;
+
+      ivalsum = valsum.begin();
+
+      for (vector<MRI *>::const_iterator ivol = ValueVolumes.begin();
+                                         ivol < ValueVolumes.end(); ivol++) {
+        *ivalsum += MRIgetVoxVal(*ivol, iptmin[0], iptmin[1], iptmin[2], 0);
+        ivalsum++;
+      }
+    }
+
+    // Write average value from each input volume around this point
+    ivalsum = valsum.begin();
+
+    for (vector<MRI *>::const_iterator ivol = ValueVolumes.begin();
+                                       ivol < ValueVolumes.end(); ivol++) {
+      outfile << " " << *ivalsum / nsamp;
+      ivalsum++;
+    }
 
     outfile << endl;
   }

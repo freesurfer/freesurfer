@@ -10,8 +10,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2015/08/27 18:59:42 $
- *    $Revision: 1.20 $
+ *    $Date: 2015/08/28 20:33:54 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -337,11 +337,11 @@ int main(int argc, char **argv) {
               iz = (int) round(ipt[2]);
 
           if (ix < 0)                   ix = 0;
-          if (ix >= outvol->width)      ix = outvol->width-1;
+          if (ix >= (*imask)->width)    ix = (*imask)->width-1;
           if (iy < 0)                   iy = 0;
-          if (iy >= outvol->height)     iy = outvol->height-1;
+          if (iy >= (*imask)->height)   iy = (*imask)->height-1;
           if (iz < 0)                   iz = 0;
-          if (iz >= outvol->depth)      iz = outvol->depth-1;
+          if (iz >= (*imask)->depth)    iz = (*imask)->depth-1;
 
           if (MRIgetVoxVal(*imask, ix, iy, iz, 0) > 0) {
              dokeep = true;
@@ -369,11 +369,11 @@ int main(int argc, char **argv) {
               iz = (int) round(ipt[2]);
 
           if (ix < 0)                   ix = 0;
-          if (ix >= outvol->width)      ix = outvol->width-1;
+          if (ix >= (*imask)->width)    ix = (*imask)->width-1;
           if (iy < 0)                   iy = 0;
-          if (iy >= outvol->height)     iy = outvol->height-1;
+          if (iy >= (*imask)->height)   iy = (*imask)->height-1;
           if (iz < 0)                   iz = 0;
-          if (iz >= outvol->depth)      iz = outvol->depth-1;
+          if (iz >= (*imask)->depth)    iz = (*imask)->depth-1;
 
           if (MRIgetVoxVal(*imask, ix, iy, iz, 0) > 0) {
             dokeep = false;

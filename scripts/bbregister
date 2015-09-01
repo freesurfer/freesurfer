@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/10/27 16:20:28 $
-#    $Revision: 1.67 $
+#    $Date: 2015/08/28 18:52:39 $
+#    $Revision: 1.68 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.67 2014/10/27 16:20:28 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.68 2015/08/28 18:52:39 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -35,6 +35,7 @@ set outfsl = ();
 set outlta = ();
 set InitFSL = 0;
 set InitSPM = 0;
+set InitCoreg = 0;
 set InitRR = 0;
 set SPMUseNII = 0;
 set InitHeader = 0;
@@ -100,6 +101,12 @@ set nolog = 0;
 
 set DoInitBest = 0;
 set InitBestList = ()
+
+if($?FS_OMP_NUM_THREADS) then
+  setenv OMP_NUM_THREADS $FS_OMP_NUM_THREADS 
+else
+  setenv OMP_NUM_THREADS 1
+endif
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e -version | wc -l`
@@ -235,6 +242,13 @@ if($#InitReg == 0) then
       --tmp $tmpdir/spmregister)
     if($nolog) set cmd = ($cmd --nolog)
     if($SPMUseNII) set cmd = ($cmd --nii)
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+  if($InitCoreg) then
+    set cmd = (mri_coreg --s $subject --mov $regvol --regdat $InitReg \
+      --reg $tmpdir/mri_coreg.lta --nthreads $FS_OMP_NUM_THREADS --dof $DOF)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -567,9 +581,23 @@ while( $#argv != 0 )
       set outlta = $argv[1]; shift;
       breaksw
 
+    case "--fsl-swap-trans":
+      set FSLSwapTrans = 1;
+      breaksw
+
+    case "--init-coreg":
+      set InitFSL = 0;
+      set InitSPM = 0;
+      set InitCoreg = 1;
+      set InitRR = 0;
+      set InitHeader = 0;
+      set InitReg = ();
+      breaksw
+ 
     case "--init-rr":
       set InitFSL = 0;
       set InitSPM = 0;
+      set InitCoreg = 0;
       set InitRR = 1;
       set InitHeader = 0;
       set InitReg = ();
@@ -578,18 +606,16 @@ while( $#argv != 0 )
     case "--init-fsl":
       set InitFSL = 1;
       set InitSPM = 0;
+      set InitCoreg = 0;
       set InitRR = 0;
       set InitHeader = 0;
       set InitReg = ();
       breaksw
  
-    case "--fsl-swap-trans":
-      set FSLSwapTrans = 1;
-      breaksw
-
     case "--init-spm":
       set InitFSL = 0;
       set InitSPM = 1;
+      set InitCoreg = 0;
       set InitRR = 0;
       set InitHeader = 0;
       set InitReg = ();
@@ -604,6 +630,7 @@ while( $#argv != 0 )
     case "--init-header":
       set InitFSL = 0;
       set InitSPM = 0;
+      set InitCoreg = 0;
       set InitHeader = 1;
       set InitReg = ();
       breaksw
@@ -618,6 +645,7 @@ while( $#argv != 0 )
       set subject = `reg2subject --r $InitReg`
       set InitFSL = 0;
       set InitSPM = 0;
+      set InitCoreg = 0;
       set InitHeader = 0;
       breaksw
 
@@ -918,6 +946,15 @@ while( $#argv != 0 )
     case "--init-best-rr":
       set InitBestList = ($InitBestList rr); 
       breaksw
+    case "--init-best-coreg":
+      set InitBestList = ($InitBestList coreg); 
+      breaksw
+
+    case "--threads"
+    case "--nthreads"
+      setenv OMP_NUM_THREADS $nthreads
+      setenv FS_OMP_NUM_THREADS $nthreads
+      breaksw
 
     case "--tmp":
     case "--tmpdir":
@@ -1001,16 +1038,16 @@ check_params:
   endif
 
   if(! $DoInitBest) then
-    if(! $InitFSL && ! $InitSPM && ! $InitRR && ! $InitHeader && ! $#InitReg) then
+    if(! $InitFSL && ! $InitSPM && ! $InitCoreg && ! $InitRR && ! $InitHeader && ! $#InitReg) then
       echo "ERROR: must spec an init method"
       exit 1;
     endif
   else
-    if($InitFSL || $InitSPM || $InitRR || $InitHeader || $#InitReg) then
+    if($InitFSL || $InitSPM ||  $InitCoreg || $InitRR || $InitHeader || $#InitReg) then
       echo "ERROR: cannot spec an init method with --init-best"
       exit 1;
     endif
-    if($#InitBestList == 0) set InitBestList = (fsl spm rr header)
+    if($#InitBestList == 0) set InitBestList = (fsl spm coreg rr header)
     if($#InitBestList == 1) then
       echo "ERROR: must use more than one init method with --init-best"
       exit 1;

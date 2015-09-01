@@ -79,8 +79,8 @@ class Blood {
     std::vector<float> ComputeAvgPath(std::vector<MRI *> &ValueVolumes);
     std::vector<float> ComputeWeightAvgPath(std::vector<MRI *> &ValueVolumes);
     std::vector<float> ComputeAvgCenter(std::vector<MRI *> &ValueVolumes);
-    void WriteValuesCenter(std::vector<MRI *> &ValueVolumes,
-                           const char *TextFile);
+    void WriteValuesPointwise(std::vector<MRI *> &ValueVolumes,
+                              const char *TextFile);
     int GetVolume();
     int GetNumStr();
     int GetLengthMin();

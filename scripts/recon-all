@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: iglesias $
-#    $Date: 2015/08/21 10:57:29 $
-#    $Revision: 1.543 $
+#    $Author: greve $
+#    $Date: 2015/08/28 18:59:37 $
+#    $Revision: 1.545 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.543 2015/08/21 10:57:29 iglesias Exp $';
+set VERSION = '$Id: recon-all,v 1.545 2015/08/28 18:59:37 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -7278,13 +7278,13 @@ while( $#argv != 0 )
     # hippocampal subfield processing (ex vivo atlas, multispectral)
     case "-hippocampal-subfields-T1T2":
       set DoHippoSF_T1T2 = 1;
-      if( $#argv < 2) goto arg2err;
+      if( $#argv < 2) goto arg1err;
       set T2volHippoSF = "$argv[1]"; shift;
       set UserSuffix = "$argv[1]"; shift;
       breaksw;
     case "-hippocampal-subfields-T2":
       set DoHippoSF_T2 = 1;
-      if( $#argv < 2) goto arg2err;
+      if( $#argv < 2) goto arg1err;
       set T2volHippoSF = "$argv[1]"; shift;
       set UserSuffix = "$argv[1]"; shift;
       breaksw;
@@ -7369,12 +7369,6 @@ goto parse_args_return;
 
 #-------------------------------------------------#
 arg1err:
-#-------------------------------------------------#
-  echo "ERROR: flag $flag requires one argument"
-  exit 1
-
-#-------------------------------------------------#
-arg2err:
 #-------------------------------------------------#
   echo "ERROR: flag $flag requires one argument"
   exit 1
@@ -7942,12 +7936,6 @@ usage_exit:
   echo "  -waitfor file : wait for file to appear before beginning"
   echo "  -notify  file : create this file after finishing"
   echo ""
-  echo " Substructures (Optional)"
-  echo "  -hippocampal-subfields-T1 : segmentation of hippocampal subfields based on T1"
-  echo "  -hippocampal-subfields-T2  file : subfield segmentation based on provided file"
-  echo "  -hippocampal-subfields-T1T2  file : segmentation based on T1 and file simultaneously"
-  echo "  -brainstem-structures : segmentation of brainstem structures (medulla, pons, SCP, midbrain)"
-  echo ""
   echo " Status and Log files (Optional)"
   echo "  -log     file : default is scripts/recon-all.log"
   echo "  -status  file : default is scripts/recon-all-status.log"
@@ -8448,36 +8436,6 @@ that each hemisphere can be run separately by specifying the -hemi
 flag.
 
 
-SEGMENTATION OF SUBSTRUCTURES
-
-FreeSurfer has two modules for producing segmentations at the sub-
-structure level: one for the hippocampus [14], and one for the 
-brainstem [15]. The hippocampal module is based on a statistical atlas
-of the hippocampal formation built upon ex vivo MRI scans acquired at
-ultra high resolution (ca. 0.1 mm). This atlas is used in conjunction
-with a Bayesian inference  algorithm to produce a parcellation of the 
-hippocampus into 13 substructures. The algorithm is robust against 
-changes in MRI contrast, and has 3 modes of operation:
-
--hippocampal-subfields-T1: uses the main 1mm T1 image processed by recon-all
--hippocampal-subfields-T2: uses a separate image, typically a higher resolution T2
--hippocampal-subfields-T1T2: uses both simultaneously
-
-More information about this module can be found here:
-https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields
-
-FreeSurfer also has a brainstem module that produces segmentations for
-the medulla, pons, SCP and midbrain. The segmentation algorithm is very 
-similar to that of the hippocampal module - though the atlas was built
-with standard resolution in vivo MRI scans. In order to segment these
-structure from the 1mm T1 data, you can use the flag:
-
--brainstem-structures 
-
-Further information can be found in:
-https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures
-
-
 LOG AND STATUS FILES
 
 By default, log and status files are created in subjid/scripts. The
@@ -8517,7 +8475,7 @@ the volume mri/orig.mgz. If no runs are found, then it looks for
 a volume in mri/orig (or mri/orig.mgz). If that volume is there, then
 it is used in subsequent processes as if it was the motion corrected
 volume. If no volume is found, then the process exits with errors.
-The motion correction step uses a robust registration [16] procedure
+The motion correction step uses a robust registration [14] procedure
 to produce highly accurate registrations of the brain, ignoring outlier
 regions, such as differen cropping planes, jaw, neck, eye movement etc.
 
@@ -8818,7 +8776,7 @@ LONGITUDINAL PROCESSING
 
 The longitudinal processing scheme aims to incorporate the subject-wise
 correlation of longitudinal data into the processing stream in order to
-increase sensitivity and repeatability, see [16-18]. Care is taken to
+increase sensitivity and repeatability, see [14-16]. Care is taken to
 avoid introduction of asymmetry-induced bias.
 
 Here is a summary of the longitudinal workflow, where tpN refers to the
@@ -9036,21 +8994,14 @@ upgrade and manufacturer, (2006) NeuroImage, 32(1):180-194.
 [13] Schaer et al., A Surface-based Approach to Quantify Local Cortical
 Gyrification (2007) IEEE Transactions on Medical Imaging.
 
-[14] Iglesias, et al. A computational atlas of the hippocampal formation using 
-ex vivo, ultra-high resolution MRI: Application to adaptive segmentation of in vivo
-MRI, (2015) NeuroImage, 115: 117-137.  http://dx.doi.org/10.1016/j.neuroimage.2015.04.042
-
-[15] Iglesias, et al., Bayesian segmentation of brainstem structures in MRI, (2015)
-NeuroImage, 113: 184-195. http://dx.doi.org/10.1016/j.neuroimage.2015.02.065
-
-[16] Martin Reuter, H Diana Rosas, Bruce Fischl.
+[14] Martin Reuter, H Diana Rosas, Bruce Fischl.
 Highly Accurate Inverse Consistent Registration: A Robust Approach.
 NeuroImage 53(4), 1181-1196, 2010. http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
 
-[17] Martin Reuter, Bruce Fischl.
+[15] Martin Reuter, Bruce Fischl.
 Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing.
 NeuroImage 51(1), 19-21, 2011. http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
 
-[18] Martin Reuter, Nicholas J Schmansky, H Diana Rosas, Bruce Fischl.
+[16] Martin Reuter, Nicholas J Schmansky, H Diana Rosas, Bruce Fischl.
 Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
 NeuroImage 61(4), 1402-1418, 2012. http://dx.doi.org/10.1016/j.neuroimage.2012.02.084

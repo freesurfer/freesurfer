@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/08/28 18:01:18 $
- *    $Revision: 1.15 $
+ *    $Date: 2015/08/31 16:21:46 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.15 2015/08/28 18:01:18 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.16 2015/08/31 16:21:46 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -137,7 +137,7 @@ typedef struct {
   float fret;
   int nitersmax,niters;
   int startmin;
-  int nhits,nvoxmov;
+  int nhits,nvoxref;
   double pcthits;
   int DoCoordDither;
   RFS *crfs;
@@ -219,7 +219,6 @@ int main(int argc, char *argv[]) {
   printf("Reading in mov %s\n",cmdargs->mov);
   coreg->mov = MRIread(cmdargs->mov);
   if(!coreg->mov) exit(1);
-  coreg->nvoxmov = coreg->mov->width * coreg->mov->height * coreg->mov->depth;
 
   printf("Reading in ref %s\n",cmdargs->ref);  
   coreg->ref = MRIread(cmdargs->ref);
@@ -231,6 +230,7 @@ int main(int argc, char *argv[]) {
     MRIfree(&coreg->ref);
     coreg->ref = mritmp; 
   }
+  coreg->nvoxref = coreg->ref->width * coreg->ref->height * coreg->ref->depth;
 
   if(cmdargs->refmask){
     printf("Reading in refmask %s\n",cmdargs->refmask);
@@ -264,18 +264,36 @@ int main(int argc, char *argv[]) {
 
   if(cmdargs->cras0){
     printf("Setting cras translation parameters to align centers\n");
-    MATRIX *Vref, *Vmov, *invVref, *M;
+    MATRIX *Vref, *Vmov, *Imidref, *Imidmov, *Pmidref, *Pmidmov;
+
+    // Compute the location of the middle voxel in ref
     Vref = MRIxfmCRS2XYZ(coreg->ref, 0);
+    Imidref = MatrixAlloc(4,1,MATRIX_REAL);
+    Imidref->rptr[1][1] = (coreg->ref->width-1)/2.0;
+    Imidref->rptr[2][1] = (coreg->ref->height-1)/2.0;
+    Imidref->rptr[3][1] = (coreg->ref->depth-1)/2.0;
+    Imidref->rptr[4][1] = 1;
+    Pmidref = MatrixMultiply(Vref,Imidref,NULL);
+
+    // Compute the location of the middle voxel in mov
     Vmov = MRIxfmCRS2XYZ(coreg->mov, 0);
-    invVref = MatrixInverse(Vref,NULL);
-    M = MatrixMultiplyD(Vmov,invVref,NULL);
-    cmdargs->params[0] = M->rptr[1][4];
-    cmdargs->params[1] = M->rptr[2][4];
-    cmdargs->params[2] = M->rptr[3][4];
+    Imidmov = MatrixAlloc(4,1,MATRIX_REAL);
+    Imidmov->rptr[1][1] = (coreg->mov->width-1)/2.0;
+    Imidmov->rptr[2][1] = (coreg->mov->height-1)/2.0;
+    Imidmov->rptr[3][1] = (coreg->mov->depth-1)/2.0;
+    Imidmov->rptr[4][1] = 1;
+    Pmidmov = MatrixMultiply(Vmov,Imidmov,NULL);
+
+    // Set translation to make them equal
+    cmdargs->params[0] = Pmidmov->rptr[1][1] - Pmidref->rptr[1][1];
+    cmdargs->params[1] = Pmidmov->rptr[2][1] - Pmidref->rptr[2][1];
+    cmdargs->params[2] = Pmidmov->rptr[3][1] - Pmidref->rptr[3][1];
     MatrixFree(&Vref);
     MatrixFree(&Vmov);
-    MatrixFree(&invVref);
-    MatrixFree(&M);
+    MatrixFree(&Imidref);
+    MatrixFree(&Imidmov);
+    MatrixFree(&Pmidref);
+    MatrixFree(&Pmidmov);
   }
 
   coreg->histfwhm[0] = 7;
@@ -329,7 +347,7 @@ int main(int argc, char *argv[]) {
   coreg->sep = 4;
   COREGcost(coreg);
   printf("Init cost %15.10lf\n",coreg->cost);
-  printf("nhits = %d out of %d, Percent Overlap: %5.1f\n",coreg->nhits,coreg->nvoxmov,coreg->pcthits);
+  printf("nhits = %d out of %d, Percent Overlap: %5.1f\n",coreg->nhits,coreg->nvoxref,coreg->pcthits);
   if(coreg->nhits == 0){
     printf("ERROR: mov and ref do not overlap\n");
     exit(1);
@@ -829,7 +847,7 @@ int COREGhist(COREG *coreg)
 
   // This is good for computing whether and how much the mov and ref overlap
   coreg->nhits = nhits;
-  coreg->pcthits = pow(coreg->sep,3)*(double) 100.0*nhits/coreg->nvoxmov;
+  coreg->pcthits = pow(coreg->sep,3)*(double) 100.0*nhits/coreg->nvoxref;
 
   return(nhits);
 }
