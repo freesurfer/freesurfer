@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/08/17 21:19:06 $
- *    $Revision: 1.561 $
+ *    $Author: lzollei $
+ *    $Date: 2015/09/02 18:34:04 $
+ *    $Revision: 1.562 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.561 $";
+const char *MRI_C_VERSION = "$Revision: 1.562 $";
 
 
 /*-----------------------------------------------------
@@ -4765,31 +4765,31 @@ MRIupperthresholdAllFrames(MRI *mri_src, MRI *mri_dst, float threshold)
     for (y = 0 ; y < height ; y++)
     {
       for (x = 0 ; x < width ; x++)
+	{
+	  n = 0;
+	  for (f = 0 ; f < frame ; f++) 
 	    {
-	      n = 0;
-	      for (f = 0 ; f < frame ; f++) 
-        {
-          val = MRIgetVoxVal(mri_src, x, y, z, f) ;
-          if (val > threshold) n++;
-        }
-	      if(n > 0) 
-        { 
-          val = threshold;
-          for (f = 0 ; f < frame ; f++) 
-            MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
-        }
-	      else
-        { 
-          for (f = 0 ; f < frame ; f++) 
-          {
-            val = MRIgetVoxVal(mri_src, x, y, z, f);
-            MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
-          }
-        }
+	      val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+	      if (val > threshold) n++;
 	    }
+	  if(n > 0) 
+	    { 
+	      //val = threshold; LZ 12202012
+	      val = 0;
+	      for (f = 0 ; f < frame ; f++) 
+		MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+	    }
+	  else
+	    { 
+	      for (f = 0 ; f < frame ; f++) 
+		{
+		  val = MRIgetVoxVal(mri_src, x, y, z, f);
+		  MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+		}
+	    }
+	}
     }
   }
-  
   return(mri_dst) ;
 }
 // Only threshold the specified frame
@@ -4865,8 +4865,9 @@ MRIupperthresholdFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame)
           if (w == frame-1)
           {	    
             if (val > threshold)
-              val = threshold ;
-            MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
+              //val = threshold ;
+	      //MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
+	      MRIsetVoxVal(mri_dst, x, y, z, frame-1, 0) ;
           }
           else 
             MRIsetVoxVal(mri_dst, x, y, z, w, val) ;
@@ -4963,6 +4964,51 @@ MRIinvertContrast(MRI *mri_src, MRI *mri_dst, float threshold)
 
   return(mri_dst) ;
 }
+
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  threshold an MRI.
+  ------------------------------------------------------*/
+MRI *
+MRIbinarizeNoThreshold(MRI *mri_src, MRI *mri_dst)
+{
+  int     width, height, depth, f, z ;
+
+  if (!mri_dst)
+    mri_dst = MRIclone(mri_src, NULL) ;
+
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
+
+  for (f = 0 ; f < mri_src->nframes ; f++)
+  {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
+    for (z = 0 ; z < depth ; z++)
+    {
+    double    val ;
+    int       x, y ;
+
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+          if (val > 0)
+            val = 1 ;
+	  MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+        }
+      }
+    }
+  }
+
+  return(mri_dst) ;
+}
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -17319,11 +17365,21 @@ MRIextractRegionAndPad(MRI *mri_src, MRI *mri_dst, MRI_REGION *region, int pad)
     box.dx = mri_src->width ;
     box.dy = mri_src->height ;
     box.dz = mri_src->depth ;
+    // LZ
+    printf("(box.dx, box.dy, box.dz) = (%d, %d, %d)\n", box.dx, box.dy, box.dz) ;
+
   }
+  // LZ
+  //printf("(box.dx, box.dy, box.dz) = (%d, %d, %d)\n", box.dx, box.dy, box.dz) ;
+  printf("(region->dx, region->dy, region->dz) = (%d, %d, %d)\n", region->dx, region->dy, region->dz) ;
   mri_dst =
     MRIallocSequence
     (region->dx+2*pad, region->dy+2*pad, region->dz+2*pad, mri_src->type,mri_src->nframes) ;
   MRIcopyHeader(mri_src, mri_dst) ;
+  // LZ
+  //printf("(box.dx, box.dy, box.dz) = (%d, %d, %d)\n", box.dx, box.dy, box.dz) ;
+  printf("(region->dx, region->dy, region->dz) = (%d, %d, %d)\n", region->dx, region->dy, region->dz) ;
+
   mri_tmp = MRIextractInto(mri_src, NULL, region->x, region->y, region->z,
                            region->dx, region->dy, region->dz, 0, 0, 0) ;
   MRIextractInto(mri_tmp, mri_dst, 0, 0, 0, region->dx, region->dy, region->dz, pad, pad, pad);
