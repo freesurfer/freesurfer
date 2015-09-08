@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2012/11/28 12:19:16 $
- *    $Revision: 1.9 $
+ *    $Date: 2015/09/02 18:33:01 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -38,7 +38,7 @@
 #include "macros.h"
 
 static char vcid[] =
-  "$Id: mri_threshold.c,v 1.9 2012/11/28 12:19:16 lzollei Exp $";
+  "$Id: mri_threshold.c,v 1.10 2015/09/02 18:33:01 lzollei Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -62,10 +62,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.9 2012/11/28 12:19:16 lzollei Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.10 2015/09/02 18:33:01 lzollei Exp $", "$Name:  $", cmdline);
   /* rkt: check for and handle version tag */
   Progname = argv[0] ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.9 2012/11/28 12:19:16 lzollei Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.10 2015/09/02 18:33:01 lzollei Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -112,8 +112,13 @@ main(int argc, char *argv[]) {
     }
 
   if (binarize > 0)
-    MRIbinarize(mri_out, mri_out, thresh, 0, binarize) ;
-
+    {
+      if (upperthreshold == 0)
+	MRIbinarize(mri_out, mri_out, thresh, 0, binarize) ;
+      else
+	MRIbinarizeNoThreshold(mri_out, mri_out) ;
+    }
+  
   printf("writing output to %s.\n", out_fname) ;
   MRIaddCommandLine(mri_out, cmdline) ;
   MRIwrite(mri_out, out_fname) ;
@@ -121,6 +126,7 @@ main(int argc, char *argv[]) {
   exit(0) ;
   return(0) ;  /* for ansi */
 }
+
 
 /*----------------------------------------------------------------------
             Parameters:
