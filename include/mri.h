@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/05/12 17:39:16 $
- *    $Revision: 1.478 $
+ *    $Author: lzollei $
+ *    $Date: 2015/09/02 18:34:36 $
+ *    $Revision: 1.479 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -570,6 +570,7 @@ MRI   *MRIthresholdFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame)
 MRI   *MRIupperthresholdFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame) ;
 MRI   *MRIinvert(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIinvertContrast(MRI *mri_src, MRI *mri_dst, float threshold) ;
+MRI   *MRIbinarizeNoThreshold(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold,
                    float low_val, float hi_val) ;
 MRI   *MRIthresholdRangeInto(MRI *mri_src, MRI *mri_dst,
@@ -663,6 +664,7 @@ MRI   *MRIintersect(MRI *mri1, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIcomplement(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2) ;
 MRI   *MRIand(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
+MRI   *MRIandVal(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
 MRI   *MRIor(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
 MRI   *MRIorVal(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh) ;
 MRI   *MRInot(MRI *mri_src, MRI *mri_dst) ;
