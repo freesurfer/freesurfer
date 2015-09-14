@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/08/12 15:22:42 $
- *    $Revision: 1.21 $
+ *    $Author: fischl $
+ *    $Date: 2015/09/14 12:25:01 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 
-static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.21 2014/08/12 15:22:42 greve Exp $";
+static char vcid[] = "$Id: mri_compute_volume_fractions.c,v 1.22 2015/09/14 12:25:01 fischl Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -509,21 +509,24 @@ static void check_options(void) {
     printf("ERROR: template volume needed with register.dat file or --reg-header\n");
     exit(1);
   }
-  if(regtype == REGISTER_DAT){
-    char *subjecttmp;
-    subjecttmp = regio_read_subject(regfile);
-    if(subjecttmp==NULL) exit(1);
-    sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subjecttmp,asegfile);
-    aseg2vol = ltaReadRegisterDat(regfile, TempVolFile, tmpstr);
-    if(aseg2vol == NULL){
-      printf("ERROR: reading %s\n",regfile);
-      printf("  maybe something wrong with %s\n",tmpstr);
-      exit(1);
+  if (!RegHeader)
+  {
+    if(regtype == REGISTER_DAT){
+      char *subjecttmp;
+      subjecttmp = regio_read_subject(regfile);
+      if(subjecttmp==NULL) exit(1);
+      sprintf(tmpstr,"%s/%s/mri/%s",SUBJECTS_DIR,subjecttmp,asegfile);
+      aseg2vol = ltaReadRegisterDat(regfile, TempVolFile, tmpstr);
+      if(aseg2vol == NULL){
+	printf("ERROR: reading %s\n",regfile);
+	printf("  maybe something wrong with %s\n",tmpstr);
+	exit(1);
+      }
+      free(subjecttmp);
     }
-    free(subjecttmp);
+    else aseg2vol = LTAread(regfile);
+    if(debug) LTAprint(stdout,aseg2vol);
   }
-  else aseg2vol = LTAread(regfile);
-  if(debug) LTAprint(stdout,aseg2vol);
 
   if(!RegHeader){
     if(subjectoverride == NULL) subject = aseg2vol->subject;
