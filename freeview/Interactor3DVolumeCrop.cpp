@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2015/09/15 18:29:04 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@ bool Interactor3DVolumeCrop::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
   m_nMousePosY = event->y();
 
   if ( MainWindow::GetMainWindow()->GetVolumeCropper()->IsShown() &&
-       view->PickCroppingBound( m_nMousePosX, m_nMousePosY ) )
+      view->PickCroppingBound( m_nMousePosX, m_nMousePosY ) )
   {
     UpdateCursor( event, view );
     m_bCropping = true;

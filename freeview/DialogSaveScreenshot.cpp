@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/22 21:21:26 $
- *    $Revision: 1.9 $
+ *    $Date: 2015/09/16 20:36:43 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,28 +30,34 @@
 #include <QMessageBox>
 #include <QFileInfo>
 #include <QSettings>
+#include <QDebug>
 
 DialogSaveScreenshot::DialogSaveScreenshot(QWidget *parent) :
   QDialog(parent),
   ui(new Ui::DialogSaveScreenshot)
 {
   ui->setupUi(this);
-  QSettings settings;
-  ui->lineEditFileName->setText(settings.value("ScreenShot/LastSavedFile").toString());
+//  QSettings settings;
+//  ui->lineEditFileName->setText(settings.value("ScreenShot/LastSavedFile").toString());
+  m_strLastDir = QDir::currentPath();
+  qDebug() << m_strLastDir;
 }
 
 DialogSaveScreenshot::~DialogSaveScreenshot()
 {
-  QSettings settings;
-  settings.setValue("ScreenShot/LastSavedFile", GetFileName());
+//  QSettings settings;
+//  settings.setValue("ScreenShot/LastSavedFile", GetFileName());
   delete ui;
 }
 
 
 QString DialogSaveScreenshot::GetFileName()
 {
-  QString filename = MyUtils::CygwinPathProof(ui->lineEditFileName->text().trimmed());;
-  return QFileInfo(QDir::current(), filename).absoluteFilePath();
+  QString filename = ui->lineEditFileName->text().trimmed();
+  if (!filename.isEmpty())
+    return QFileInfo(QDir::current(), filename).absoluteFilePath();
+  else
+    return "";
 }
 
 void DialogSaveScreenshot::SetSettings( SettingsScreenshot s )
@@ -104,6 +110,7 @@ void DialogSaveScreenshot::OnSave()
     QMessageBox::warning(this, "Error", "Failed to save screenshot. Please make sure the directory exists and writable.");
     return;
   }
+  m_strLastDir = QFileInfo(GetFileName()).absolutePath();
 
   if (!ui->checkBoxKeepWindow->isChecked())
   {

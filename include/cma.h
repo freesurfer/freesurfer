@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/04/24 17:37:54 $
- *    $Revision: 1.76 $
+ *    $Date: 2015/09/15 19:01:30 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -465,6 +465,7 @@ extern "C" {
 #define IS_VENTRICLE(l)  (IS_LAT_VENT(l) || IS_INF_LAT_VENT(l) || ((l) == Third_Ventricle) || ((l) == Fourth_Ventricle))
 #define IS_CAUDATE(l) (((l) == Left_Caudate) || ((l) == Right_Caudate))
 #define IS_PUTAMEN(l) (((l) == Left_Putamen) || ((l) == Right_Putamen))
+#define IS_ACCUMBENS(l) (((l) == Left_Accumbens_area) || ((l) == Right_Accumbens_area))
 #define IS_PALLIDUM(l) (((l) == Left_Pallidum) || ((l) == Right_Pallidum))
 
 #define LABEL_WITH_NO_TOPOLOGY_CONSTRAINT(l) (\

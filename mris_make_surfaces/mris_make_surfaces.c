@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/08/05 19:26:19 $
- *    $Revision: 1.158 $
+ *    $Date: 2015/09/15 19:01:19 $
+ *    $Revision: 1.159 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.158 2015/08/05 19:26:19 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.159 2015/09/15 19:01:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -277,13 +277,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.158 2015/08/05 19:26:19 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.159 2015/09/15 19:01:19 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.158 2015/08/05 19:26:19 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.159 2015/09/15 19:01:19 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -3270,6 +3270,11 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
       label = nint(val) ;
+      if (vno == Gdiag_no)
+      {
+	printf("vno $%d: dist %2.2f - %s (%d)\n", vno, d, cma_label_to_name(label), label) ;
+	DiagBreak() ;
+      }
       if (d > 0 && label == gm_label)
 	break ;  // cortical gray matter of this hemisphere - doesn't matter what is outside it
       if (label == contra_wm_label ||
@@ -3327,7 +3332,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
     MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
     label = nint(val) ;
-    if (label == Left_Putamen || label == Right_Putamen)
+    if (IS_PUTAMEN(label))
     {
       compute_label_normal(mri_aseg, xv, yv, zv, label, 3, &nx, &ny, &nz, 1) ;
     }
@@ -3351,7 +3356,12 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xv, &yv, &zv);
         MRIsampleVolumeType(mri_aseg, xv, yv, zv, &val, SAMPLE_NEAREST) ;
         label = nint(val) ;
-        if (label == Left_Putamen || label == Right_Putamen)
+	if (vno == Gdiag_no)
+	{
+	  printf("vno $%d: dist %2.2f - %s (%d)\n", vno, -d, cma_label_to_name(label), label) ;
+	  DiagBreak() ;
+	}
+        if (IS_PUTAMEN(label) || IS_ACCUMBENS(label))
         {
           compute_label_normal(mri_aseg, xv, yv, zv, label, 3,
                                &nx, &ny, &nz, 1) ;
@@ -3361,16 +3371,28 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
             {
               DiagBreak() ;
             }
-            MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
-            MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
-            v->val = val ;
-            v->d = 0 ;
-            v->marked = 1 ;
-            if (Gdiag & DIAG_SHOW && vno == Gdiag_no)
-            {
-              printf("marking vertex %d as adjacent to putamen in insula\n",
-                     vno);
-            }
+	    if (IS_ACCUMBENS(label))
+	    {
+	      v->d = 0 ;
+	      v->marked = 1 ;
+	      if (Gdiag & DIAG_SHOW && vno == Gdiag_no)
+	      {
+		printf("marking vertex %d as adjacent to accumbens on midline\n", vno);
+	      }
+	    }
+	    else
+	    {
+	      MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+	      MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+	      v->val = val ;
+	      v->d = 0 ;
+	      v->marked = 1 ;
+	      if (Gdiag & DIAG_SHOW && vno == Gdiag_no)
+	      {
+		printf("marking vertex %d as adjacent to putamen in insula\n", vno);
+	      }
+	    }
+	    break ;
           }
         }
       }

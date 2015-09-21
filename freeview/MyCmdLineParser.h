@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/04 18:12:43 $
- *    $Revision: 1.13 $
+ *    $Date: 2015/09/15 18:29:04 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,8 @@
 #include <string>
 #include <vector>
 #include <QStringList>
+#include "stdio.h"
+#include "stdlib.h"
 
 using namespace std;
 
@@ -72,6 +74,16 @@ struct CmdLineEntry
     description = desc;
     minArguments = nMinArguments;
     maxArguments = nMaxArguments;
+  }
+
+  void Print()
+  {
+    printf("-%s -%s ", shortName, longName);
+    foreach(string s, arguments)
+    {
+      printf("%s ", s.c_str());
+    }
+    printf("\n"); fflush(0);
   }
 };
 

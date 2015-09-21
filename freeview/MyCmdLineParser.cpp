@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/04 18:12:43 $
- *    $Revision: 1.20 $
+ *    $Date: 2015/09/15 18:29:04 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -485,6 +485,41 @@ bool MyCmdLineParser::Parse(const string_array& args)
   {
     PrintHelp();
     bSucceed = false;
+  }
+
+  // a hack to allow special global settings for volume and surface
+  // not elegant to have it here
+  QString default_colormap, default_edgecolor;
+  for (size_t i = 0; i < m_cmdLineEntries.size(); i++)
+  {
+    if (QString(m_cmdLineEntries[i].shortName) == "colormap")
+      default_colormap = m_cmdLineEntries[i].arguments[0].c_str();
+    else if (QString(m_cmdLineEntries[i].shortName) == "edgecolor")
+      default_edgecolor = m_cmdLineEntries[i].arguments[0].c_str();
+    else if (QString(m_cmdLineEntries[i].shortName) == "v" && !default_colormap.isEmpty())
+    {
+      string_array new_args, old_args = m_cmdLineEntries[i].arguments;
+      for (size_t n = 0; n < old_args.size(); n++)
+      {
+        QString strg = QString::fromStdString(old_args[n]);
+        if (!strg.contains(":colormap="))
+          strg = strg + ":colormap=" + default_colormap;
+        new_args.push_back(strg.toStdString());
+      }
+      m_cmdLineEntries[i].arguments = new_args;
+    }
+    else if (QString(m_cmdLineEntries[i].shortName) == "f" && !default_edgecolor.isEmpty())
+    {
+      string_array new_args, old_args = m_cmdLineEntries[i].arguments;
+      for (size_t n = 0; n < old_args.size(); n++)
+      {
+        QString strg = QString::fromStdString(old_args[n]);
+        if (!strg.contains(":edgecolor="))
+          strg = strg + ":edgecolor=" + default_edgecolor;
+        new_args.push_back(strg.toStdString());
+      }
+      m_cmdLineEntries[i].arguments = new_args;
+    }
   }
 
   return bSucceed;

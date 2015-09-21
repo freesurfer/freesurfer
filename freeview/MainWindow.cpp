@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/07/09 19:06:33 $
- *    $Revision: 1.302 $
+ *    $Date: 2015/09/15 18:29:04 $
+ *    $Revision: 1.303 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,10 +735,10 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   {
     m_defaultSettings["Smoothed"] = true;
   }
-  if ( parser->Found( "colormap", &sa ))
-  {
-    this->SetDefaultColorMapType(sa[0]);
-  }
+//  if ( parser->Found( "colormap", &sa ))
+//  {
+//    this->SetDefaultColorMapType(sa[0]);
+//  }
   if ( parser->Found( "viewport", &sa ) )
   {
     QString strg = sa[0].toLower();
