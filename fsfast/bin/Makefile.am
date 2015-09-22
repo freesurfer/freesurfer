@@ -150,6 +150,7 @@ FSF_FILES=\
 	mkbrainmask-sess \
 	mkcmanova-sess \
 	mkcontrast \
+	mkcontrast2 \
 	mkcontrast-sess \
 	mkdesignmtx \
 	mkdesmtx-sess \

@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/08/28 18:59:37 $
-#    $Revision: 1.545 $
+#    $Date: 2015/09/21 19:58:30 $
+#    $Revision: 1.546 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.545 2015/08/28 18:59:37 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.546 2015/09/21 19:58:30 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -103,7 +103,7 @@ set CustomTalAtlas = ""; # -custom-tal-atlas <name of atlas in average dir>
 
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
-set UseMaskNuCorrect = 1; # if 1, nu_correct runs with -mask brainmask.mgz
+set UseMaskNuCorrect = 0; # if 1, nu_correct runs with -mask brainmask.mgz
 set DilateMaskNuCorrect = (); # grow nu_correct mask by this amount
 
 set WaterShed = 1;      # 0=no WS, 1= WS normal, 2 = WS only, 3 = WS+1st
@@ -277,7 +277,7 @@ set DKTATLAS40_GCS = DKTatlas40.gcs
 set DKTATLAS40_NAME = DKTatlas40
 
 # Initialization method for BBR
-set BBRInit = fsl; # others are spm, header, rr, best
+set BBRInit = coreg; # others are spm, header, rr, best
 
 # Set this to 0 to do everything but run the command.
 # This is good for debugging.
@@ -7339,6 +7339,9 @@ while( $#argv != 0 )
       set DoFLAIRpial = 0;
       breaksw
 
+    case "-bbr-init-coreg"
+      set BBRInit = coreg;
+      breaksw
     case "-bbr-init-fsl"
       set BBRInit = fsl;
       breaksw

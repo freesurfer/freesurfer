@@ -25,7 +25,7 @@
 <help>
 	<name>bbregister</name>
 	<synopsis>bbregister --s &lt;subj&gt; --mov &lt;volid&gt; --reg &lt;regfile&gt; \
-&#09;--init-&lt;type&gt; --&lt;contrast&gt;</synopsis>
+&#09;--&lt;contrast&gt;</synopsis>
 	<description>This program performs within-subject, cross-modal registration using a boundary-based cost function. The registration is constrained to be 6 DOF (rigid). It is required that you have an anatomical scan of the subject that has been analyzed in freesurfer.</description>
   <arguments>
     <positional><intro>None</intro></positional>
@@ -37,13 +37,13 @@
       <argument>--reg register.dat</argument>
       <explanation>Output FreeSurfer (tkregister-style) registration file (simple text).</explanation>
 
-      <intro>Initialization Arguments (one required)</intro>
+      <intro>Initialization Arguments</intro>
+      <argument>--init-coreg (Default)</argument>
+      <explanation>Initialize the FreeSurfer mri_coreg program.</explanation>
       <argument>--init-rr</argument>
       <explanation>Initialize using NMI as implemented in mri_robust_register.</explanation>
       <argument>--init-fsl</argument>
       <explanation>Initialize using FSL FLIRT (requires that FSL be installed).</explanation>
-      <argument>--init-coreg</argument>
-      <explanation>Initialize the FreeSurfer mri_coreg program.</explanation>
       <argument>--init-spm</argument>
       <explanation>Initialize using SPM spm_coreg (requires that SPM and matlab be installed).</explanation>
       <argument>--init-header</argument>

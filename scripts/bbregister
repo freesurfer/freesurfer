@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/08/28 18:52:39 $
-#    $Revision: 1.68 $
+#    $Date: 2015/09/21 19:39:41 $
+#    $Revision: 1.69 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.68 2015/08/28 18:52:39 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.69 2015/09/21 19:39:41 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -35,7 +35,7 @@ set outfsl = ();
 set outlta = ();
 set InitFSL = 0;
 set InitSPM = 0;
-set InitCoreg = 0;
+set InitCoreg = 1;
 set InitRR = 0;
 set SPMUseNII = 0;
 set InitHeader = 0;
@@ -248,7 +248,7 @@ if($#InitReg == 0) then
   endif
   if($InitCoreg) then
     set cmd = (mri_coreg --s $subject --mov $regvol --regdat $InitReg \
-      --reg $tmpdir/mri_coreg.lta --nthreads $FS_OMP_NUM_THREADS --dof $DOF)
+      --reg $tmpdir/mri_coreg.lta --nthreads $OMP_NUM_THREADS --dof $DOF)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -1093,7 +1093,7 @@ if($PrintHelp) then
   cat $0 | \
     awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 else
-  echo "Usage: bbregister --s <subj> --mov <volid> --reg <regfile> --init-<type> --<contrast>"
+  echo "Usage: bbregister --s <subj> --mov <volid> --reg <regfile> --<contrast>"
   echo "Help:  bbregister --help"
 endif
 
