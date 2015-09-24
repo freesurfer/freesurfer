@@ -63,12 +63,16 @@ Important Note: For best performance the input images should all have the same i
       <explanation>map everthing to init TP# (init TP is not resampled)</explanation>
       <argument>--iscale</argument>
       <explanation>allow also intensity scaling (default off)</explanation>
+      <argument>--iscaleonly</argument>
+      <explanation>only perform iscale (no transformation, default off)</explanation>
       <argument>--iscalein &lt;is1.txt&gt; &lt;is2.txt&gt; ...</argument>
       <explanation>use initial intensity scales</explanation>
       <argument>--iscaleout &lt;is1.txt&gt; &lt;is2.txt&gt; ...</argument>
       <explanation>output final intensity scales (will activate --iscale)</explanation>
       <argument>--ixforms &lt;t1.lta&gt; &lt;t2.lta&gt; ...</argument>
       <explanation>use initial transforms (lta) on source  ('id'=identity)</explanation>
+      <argument>--masks &lt;mask1.mgz&gt; ...</argument>
+      <explanation>input masks applied to movables</explanation>
       <argument>--vox2vox</argument>
       <explanation>output VOX2VOX lta file (default is RAS2RAS)</explanation>
       <argument>--leastsquares</argument>
@@ -83,6 +87,8 @@ Important Note: For best performance the input images should all have the same i
       <explanation>stop iterations when all tp transform updates fall below &lt;real&gt; (if #tp>2 default 0.03, else 0.01 for 2tp reg.)</explanation>
       <argument>--subsample &lt;#&gt;</argument>
       <explanation>subsample if dim &gt; # on all axes (default no subs.)</explanation>
+      <argument>--nomulti</argument>
+      <explanation>do not use multi-resolution (only highest resolution)</explanation>
       <argument>--floattype</argument>
       <explanation>convert images to float internally (default: keep input type)</explanation> 
       <argument>--finalnearest</argument>

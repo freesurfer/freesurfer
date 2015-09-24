@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/18 16:14:42 $
- *    $Revision: 1.7 $
+ *    $Date: 2015/09/22 19:55:12 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,7 +82,7 @@ public:
   virtual std::string getClassName() {return "RegRobust";}
   
 protected:
-  virtual void computeIterativeRegistration(int n, double epsit, MRI * mriS,
+  virtual void computeIterativeRegistrationFull(int n, double epsit, MRI * mriS,
       MRI* mriT, const vnl_matrix<double> &Minit, double iscaleinit);
   //! To call the actual registration step
   template<class T> void iterativeRegistrationHelper(int nmax, double epsit,
@@ -341,7 +341,7 @@ void RegRobust::iterativeRegistrationHelper(int nmax, double epsit, MRI * mriS,
     MRIcopyHeader(mriT, mri_weights);
     mri_weights->type = MRI_FLOAT;
     mri_weights->outside_val = 1; 
-    if (symmetry)
+    if (symmetry && ! iscaleonly)
       mri_weights = MyMRI::MRIlinearTransform(mri_hweights, mri_weights, mh2);
     else
       mri_weights = MRIcopy(mri_hweights, mri_weights);

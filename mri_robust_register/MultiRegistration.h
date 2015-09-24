@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/01/30 21:57:01 $
- *    $Revision: 1.22 $
+ *    $Date: 2015/09/22 20:57:47 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,18 +58,20 @@ class MultiRegistration
 {
 public:
   MultiRegistration() :
-      outdir("./"), transonly(false), rigid(true), robust(true), sat(4.685), satit(
-          false), debug(0), iscale(false), subsamplesize(-1), highit(-1), fixvoxel(
-          false), keeptype(false), average(1), doubleprec(false), backupweights(
-          false), sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), mri_mean(NULL)
+      outdir("./"), transonly(false), rigid(true), robust(true), sat(4.685),
+          satit(false), debug(0), iscale(false), iscaleonly(false),
+          nomulti(false), subsamplesize(-1), highit(-1), fixvoxel(false),
+          keeptype(false), average(1), doubleprec(false), backupweights(false),
+          sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), mri_mean(NULL)
   {
   }
 
   MultiRegistration(const std::vector<std::string> mov) :
-      outdir("./"), transonly(false), rigid(true), robust(true), sat(4.685), satit(
-          false), debug(0), iscale(false), subsamplesize(-1), highit(-1), fixvoxel(
-          false), keeptype(false), average(1), doubleprec(false), backupweights(
-          false), sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), mri_mean(NULL)
+      outdir("./"), transonly(false), rigid(true), robust(true), sat(4.685),
+          satit(false), debug(0), iscale(false), iscaleonly(false),
+          nomulti(false), subsamplesize(-1), highit(-1), fixvoxel(false),
+          keeptype(false), average(1), doubleprec(false), backupweights(false),
+          sampletype(SAMPLE_CUBIC_BSPLINE), crascenter(false), mri_mean(NULL)
   {
     loadMovables(mov);
   }
@@ -104,7 +106,7 @@ public:
       bool oneminusweights);
 
   //! Load all inputs
-  int loadMovables(const std::vector<std::string> pmov);
+  int loadMovables(const std::vector<std::string> &pmov, const std::vector<std::string>& masks = std::vector<std::string>());
   //! Load initial transforms
   int loadLTAs(const std::vector<std::string> nltas);
   //! Load initial intensity scales
@@ -161,6 +163,18 @@ public:
   void setIscale(bool i)
   {
     iscale = i;
+  }
+
+  //! Toggle only intensity scaling (no spacial transform)
+  void setIscaleOnly(bool i)
+  {
+    iscaleonly = i;
+  }
+
+  //! Toggle multi-res or only high res
+  void setNoMulti(bool i)
+  {
+    nomulti = i;
   }
 
   //! Toggle fixed voxel???
@@ -270,6 +284,8 @@ private:
   bool satit;
   int debug;
   bool iscale;
+  bool iscaleonly;
+  bool nomulti;
   int subsamplesize;
   int highit;
 

@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/04/04 21:28:50 $
- *    $Revision: 1.4 $
+ *    $Date: 2015/09/22 19:55:12 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1381,6 +1381,59 @@ public:
     ret[0] = fx;
     ret[1] = fy;
     ret[2] = fz;
+    return ret;
+  }
+
+};
+
+/** \class TransformIdentity
+ * \brief Describes Identity (no geometric transform) (0 DOF) 
+ */
+class Transform3dIdentity: public Transformation
+{
+public:
+  Transform3dIdentity()
+  {
+  }
+
+  Transform3dIdentity(const std::vector<double> &p)
+  {
+  }
+
+  Transform3dIdentity(const vnl_vector<float> &v)
+  {
+  }
+
+  Transform3dIdentity(const vnl_vector<double> &v)
+  {
+  }
+
+  virtual ~Transform3dIdentity()
+  {}
+  
+  inline virtual unsigned int getDOF() const
+  {
+    return 0;
+  }
+
+  inline virtual vnl_vector<double> getSteps() const
+  {
+    vnl_vector<double> v;
+    return v;
+  }
+
+  virtual vnl_matrix_fixed<double, 4, 4> getMatrix() const
+  {
+    vnl_matrix_fixed<double, 4, 4> ret;
+    ret.set_identity();
+    return ret;
+  }
+
+  inline virtual vnl_vector<double> getGradient(const unsigned int& x,
+      const float& fx, const unsigned int& y, const float& fy,
+      const unsigned int& z, const float& fz) const
+  {
+    vnl_vector<double> ret;
     return ret;
   }
 

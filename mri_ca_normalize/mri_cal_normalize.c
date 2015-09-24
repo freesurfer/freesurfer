@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/04/25 23:35:04 $
- *    $Revision: 1.9 $
+ *    $Author: mreuter $
+ *    $Date: 2015/09/22 13:26:37 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@ static float min_prior = 0.6 ;
 static FILE *diag_fp = NULL ;
 
 static MRI *scale_all_images(MRI *mri_in, MRI *mri_out) ;
-static int normalize_timepoints_with_parzen_window(MRI *mri, double cross_time_sigma) ;
+static MRI *normalize_timepoints_with_parzen_window(MRI *mri_in, MRI *mri_out, double cross_time_sigma) ;
 //static int normalize_timepoints_with_samples(MRI *mri, GCA_SAMPLE *gcas, int nsamples, int nsoap) ;
 static int normalize_timepoints(MRI *mri, double thresh, double cross_time_sigma) ;
 static void usage_exit(int code) ;
@@ -95,12 +95,13 @@ static int  discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas_struct, i
                                             MRI *mri_in, TRANSFORM *transform, char *name) ;
 
 /*
-  command line consists of three inputs:
+  command line consists of these inputs:
 
-  argv[1]  - input volume
-  argv[2]  - atlas (gca)
-  argv[3]  - transform (lta/xfm/m3d)
-  argv[4]  - output volume
+  argv[1]  - base tps file
+  argv[2]  - input volume name 
+  argv[3]  - atlas (gca)
+  argv[4]  - transform (lta/xfm/m3d)
+  argv[5]  - output volume name
 */
 
 #define DEFAULT_CTL_POINT_PCT   .25
@@ -124,6 +125,8 @@ static int nregions = 3 ;  /* divide each struct into 3x3x3 regions */
 static char *ctrl_point_fname = NULL ;
 static char *read_ctrl_point_fname = NULL ;
 
+static int longinput = 0;
+
 #define MAX_TIMEPOINTS 2000
 static char *subjects[MAX_TIMEPOINTS] ;
 int
@@ -137,18 +140,18 @@ main(int argc, char *argv[])
   struct timeb start ;
   GCA_SAMPLE   *gcas, *gcas_norm = NULL, *gcas_struct ;
   TRANSFORM    *transform = NULL ;
-  char         cmdline[CMD_LINE_LEN], line[STRLEN], *cp, subject[STRLEN], sdir[STRLEN], base_name[STRLEN] ;
+  char         cmdline[CMD_LINE_LEN], line[STRLEN], *cp, sdir[STRLEN], base_name[STRLEN] ;
   FILE         *fp ;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.9 2015/04/25 23:35:04 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.10 2015/09/22 13:26:37 mreuter Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.9 2015/04/25 23:35:04 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.10 2015/09/22 13:26:37 mreuter Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -172,7 +175,7 @@ main(int argc, char *argv[])
   if (argc < 6)
     ErrorExit
       (ERROR_BADPARM,
-       "usage: %s [<options>] <longitudinal time point file> <in vol> <atlas> <transform file> <out vol> \n",
+       "usage: %s [<options>] <longitudinal time point file> <in vol name> <atlas> <transform file> <out vol name> \n",
        Progname) ;
   in_fname = argv[2] ;
   gca_fname = argv[3] ;
@@ -224,12 +227,15 @@ main(int argc, char *argv[])
   printf("processing %d timepoints in SUBJECTS_DIR %s...\n", ninputs, sdir) ;
   for (input = 0 ; input < ninputs ; input++)
   {
-    sprintf(subject, "%s.long.%s", subjects[input], base_name) ;
-    printf("reading subject %s - %d of %d\n", subject, input+1, ninputs) ;
-    sprintf(fname, "%s/%s/mri/%s", sdir, subject, in_fname) ;
+    printf("reading subject %d of %d: %s \n", input+1, ninputs, subjects[input]) ;
+    if (longinput)
+      sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, subjects[input], base_name, in_fname) ;
+    else
+      sprintf(fname, "%s/%s/longtp/%s/%s", sdir, base_name, subjects[input], in_fname) ;
+    
     mri_tmp = MRIread(fname) ;
     if (!mri_tmp)
-      ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
+      ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s . If you are trying to run this on top of existing longitudinal data, switch on -longinput.",
                 Progname, fname) ;
     MRImakePositive(mri_tmp, mri_tmp) ;
     if (mri_tmp && ctrl_point_fname && !mri_ctrl)
@@ -268,7 +274,10 @@ main(int argc, char *argv[])
     }
     MRIcopyFrame(mri_tmp, mri_in, 0, input) ;
     MRIfree(&mri_tmp) ;
-    sprintf(fname, "%s/%s/mri/%s", sdir, subject, aseg_fname) ;
+    if (longinput)
+      sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, subjects[input], base_name, aseg_fname) ;
+    else
+      sprintf(fname, "%s/%s/longtp/%s/%s", sdir, base_name, subjects[input], aseg_fname) ;     
     mri_tmp = MRIread(fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s", Progname, fname) ;
@@ -278,7 +287,10 @@ main(int argc, char *argv[])
   MRIaddCommandLine(mri_in, cmdline) ;
 
 //  GCAhistoScaleImageIntensitiesLongitudinal(gca, mri_in, 1) ;
+
+if (0) 
   scale_all_images(mri_in, mri_in) ;
+
 
   {
     int j ;
@@ -305,7 +317,7 @@ main(int argc, char *argv[])
                                             ctl_point_pct) ;
           discard_unlikely_control_points(gca, gcas_struct, struct_samples, mri_in, transform,
                                           cma_label_to_name(normalization_structures[i])) ;
-	  discard_control_points_with_different_labels(gcas_struct, struct_samples, mri_aseg) ;
+          discard_control_points_with_different_labels(gcas_struct, struct_samples, mri_aseg) ;
           if (mri_ctrl && ctrl_point_fname) // store the samples
             copy_ctrl_points_to_volume(gcas_struct, struct_samples, mri_ctrl, n-1) ;
           if (i)
@@ -389,19 +401,27 @@ main(int argc, char *argv[])
     if (0)
       normalize_timepoints(mri_in, 2.0, cross_time_sigma) ;
     else
-      normalize_timepoints_with_parzen_window(mri_in, cross_time_sigma) ;
+    {
+      MRI * mri_temp = normalize_timepoints_with_parzen_window(mri_in, NULL, cross_time_sigma) ;
+      MRIfree(&mri_in);
+      mri_in = mri_temp;
+    }
       
     mri_frame1 = MRIcopyFrame(mri_in, NULL, 0, 0) ;
     mri_frame2 = MRIcopyFrame(mri_in, NULL, 1, 0) ;
     rms_after = MRIrmsDiff(mri_frame1, mri_frame2) ;
     MRIfree(&mri_frame1) ; MRIfree(&mri_frame2) ;
-    printf("RMS after intensity cohering  = %2.2f (sigma=%2.2f)\n", rms_after, cross_time_sigma) ;
+    printf("RMS (first 2 inputs) after intensity cohering  = %2.2f (sigma=%2.2f)\n", rms_after, cross_time_sigma) ;
   }
 
   for (input = 0 ; input < ninputs ; input++)
   {
-    sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, subjects[input], base_name, out_fname) ;
-    printf("writing normalized volume to %s\n", fname) ;
+    if (longinput)
+      sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, subjects[input], base_name, out_fname) ;
+    else
+      sprintf(fname, "%s/%s/longtp/%s/%s", sdir, base_name, subjects[input], out_fname) ;
+    
+      printf("writing normalized volume to %s\n", fname) ;
     if (MRIwriteFrame(mri_in, fname, input)  != NO_ERROR)
       ErrorExit(ERROR_BADFILE, "%s: could not write normalized volume to %s",Progname, fname);
   }
@@ -485,6 +505,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     file_only = 1 ;
     printf("only using control points from file %s\n", ctl_point_fname) ;
+  }
+  else if (!strcmp(option, "LONGINPUT"))
+  {
+    longinput = 1;
+    printf("reading inputs from longitudinal directories\n") ; 
   }
   else if (!strcmp(option, "SIGMA"))
   {
@@ -1119,7 +1144,7 @@ usage_exit(int code)
   printf("\t<transform>                  ex. transforms/talairach.lta "
          "(or 'noxform') \n");
   printf("\noptions:\n");
-  printf("\t-seg <filename>              aseg file, to help normalization\n");
+  printf("\t-aseg <filename>             aseg file, to help normalization\n");
   printf("\t-sigma <bias sigma>          smoothing sigma for bias field if control points specified (def=4)\n");
   printf("\t-fsamples <filename>         write control points to filename\n");
   printf("\t-nsamples <filename>         write transformed "
@@ -1129,6 +1154,8 @@ usage_exit(int code)
          "from filename\n");
   printf("\t-fonly <filename>            only use control points "
          "from filename\n");
+  printf("\t-longinput                   load aseg and nu from <tp>.long.<base> dirs, "
+         "instead of <base>/longtp subdirs.\n");
   printf("\t-diag <filename>             write to log file\n");
   printf("\t-debug_voxel <x> <y> <z>     debug voxel\n");
   printf("\t-debug_node <x> <y> <z>      debug node\n");
@@ -1311,36 +1338,36 @@ normalize_timepoints(MRI *mri, double thresh, double cross_time_sigma)
 
 
 
-static int
-normalize_timepoints_with_parzen_window(MRI *mri, double cross_time_sigma)
+static MRI *
+normalize_timepoints_with_parzen_window(MRI *mri_in, MRI *mri_out, double cross_time_sigma)
 {
   int   frame1, frame2, x, y, z ;
-  double val0, val, total, g, norm, total_norm ;
-
-  norm = 1 / sqrt(2 * M_PI * SQR(cross_time_sigma)) ;
-  for (x = 0 ; x < mri->width ; x++)
-    for (y = 0 ; y < mri->height ; y++)
-      for (z = 0 ; z < mri->depth ; z++)
+  double val0, val, total, g, total_norm ;
+  double s = -0.5 / SQR(cross_time_sigma);
+  if (mri_out == NULL)
+    mri_out = MRIclone(mri_in, NULL) ;
+  for (x = 0 ; x < mri_in->width ; x++)
+    for (y = 0 ; y < mri_in->height ; y++)
+      for (z = 0 ; z < mri_in->depth ; z++)
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        for (frame1 = 0 ; frame1 < mri->nframes ; frame1++)
+        for (frame1 = 0 ; frame1 < mri_in->nframes ; frame1++)
         {
-          val0 = MRIgetVoxVal(mri, x, y, z, frame1) ;
-          for (total = total_norm = 0.0, frame2 = 0 ; frame2 < mri->nframes ; frame2++)
+          val0 = MRIgetVoxVal(mri_in, x, y, z, frame1) ;
+          for (total = total_norm = 0.0, frame2 = 0 ; frame2 < mri_in->nframes ; frame2++)
           {
-            val = MRIgetVoxVal(mri, x, y, z, frame2) ;
-            g = norm * exp( - SQR(val-val0) / (2 * SQR(cross_time_sigma))) ;
+            val = MRIgetVoxVal(mri_in, x, y, z, frame2) ;
+            g = exp( SQR(val-val0) * s) ;
             total += g*val ; 
             total_norm += g ;
           }
           total /= total_norm ;
-          MRIsetVoxVal(mri, x, y, z, frame1, total) ;
+          MRIsetVoxVal(mri_out, x, y, z, frame1, total) ;
         }
       }
 
-
-  return(NO_ERROR) ;
+  return(mri_out) ;
 }
 
 
@@ -1355,7 +1382,7 @@ scale_all_images(MRI *mri_in, MRI *mri_out)
   float     scale ;
 
   if (mri_out == NULL)
-    mri_out = MRIcopy(mri_in, NULL) ;
+    mri_out = MRIclone(mri_in, NULL) ;
 
   
   mri_f0 = MRIcopyFrame(mri_in, NULL, 0, 0) ;
@@ -1368,7 +1395,7 @@ scale_all_images(MRI *mri_in, MRI *mri_out)
     h = MRIhistogram(mri_ratio, HBINS) ;
     b = HISTOfindHighestPeakInRegion(h, 1, h->nbins) ;   // ignore zero bin
     scale = h->bins[b] ;
-    printf("scaling image %d by %2.3f\n", t, scale) ;
+    printf("scaling image %d by %2.3f\n", t+1, scale) ;
     MRIscalarMul(mri_f, mri_f, scale) ;
     MRIcopyFrame(mri_f, mri_out, 0, t) ;
 
@@ -1378,6 +1405,7 @@ scale_all_images(MRI *mri_in, MRI *mri_out)
   MRIfree(&mri_f0) ;
   return(mri_out) ;
 }
+
 static int
 discard_control_points_with_different_labels(GCA_SAMPLE *gcas, int nsamples, MRI *mri_aseg)
 {

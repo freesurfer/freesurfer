@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/08/31 16:21:46 $
- *    $Revision: 1.16 $
+ *    $Date: 2015/09/22 14:17:45 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.16 2015/08/31 16:21:46 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.18 2015/09/22 14:17:45 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -98,6 +98,9 @@ typedef struct {
   double ftol,linmintol;
   int nitersmax;
   int refconf;
+  char *logcost;
+  int DoBF; 
+  double BFLim;
 } CMDARGS;
 
 CMDARGS *cmdargs;
@@ -145,6 +148,7 @@ typedef struct {
   int DoIntensityDither;
   RFS *refirfs,*movirfs;
   int DoSmoothing;
+  FILE *fplogcost;
 } COREG;
 
 double COREGcost(COREG *coreg);
@@ -163,6 +167,7 @@ MATRIX *COREGmatrix(double *p0, int np, MATRIX *M);
 double *COREGparams9(MATRIX *M9, double *p);
 int COREGprint(FILE *fp, COREG *coreg);
 MRI *MRIconformNoScale(MRI *mri, MRI *mric);
+int COREGoptBruteForce(COREG *coreg, double lim0, int niters, int n1d);
 
 COREG *coreg;
 FSENV *fsenv;
@@ -194,6 +199,8 @@ int main(int argc, char *argv[]) {
   cmdargs->ftol = 10e-8;
   cmdargs->linmintol = .001;
   cmdargs->refconf = 0;
+  cmdargs->DoBF = 1;
+  cmdargs->BFLim = 30;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -343,6 +350,14 @@ int main(int argc, char *argv[]) {
 
   COREGpreproc(coreg);
 
+  if(cmdargs->logcost){
+    coreg->fplogcost = fopen(cmdargs->logcost,"w");
+    if(coreg->fplogcost == NULL){
+      printf("ERROR: could not open %s for writing\n",cmdargs->logcost);
+      exit(1);
+    }
+  }
+
   printf("Testing if mov and target overlap\n");
   coreg->sep = 4;
   COREGcost(coreg);
@@ -361,9 +376,11 @@ int main(int argc, char *argv[]) {
   for(n=0; n < coreg->nsep; n++){
     coreg->sep = coreg->seplist[n];
     printf("sep = %d -----------------------------------\n",coreg->sep);
+    if(n==0 && cmdargs->DoBF) COREGoptBruteForce(coreg, cmdargs->BFLim, 1, 10);
     coreg->startmin = 1;
     COREGMinPowell();
   }
+  if(coreg->fplogcost) fclose(coreg->fplogcost);
 
   MATRIX *invV2V;
   invV2V = MatrixInverse(coreg->V2V,NULL);
@@ -381,7 +398,7 @@ int main(int argc, char *argv[]) {
 
   printf("Final  RefRAS-to-MovRAS\n");
   MatrixPrint(stdout,coreg->M);
- printf("Final  RefVox-to-MovVox\n");
+  printf("Final  RefVox-to-MovVox\n");
   MatrixPrint(stdout,coreg->V2V);
 
   printf("mri_coreg RunTimeSec %4.1f sec\n",TimerStop(&timer)/1000.0);
@@ -426,6 +443,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-cras0"))  cmdargs->cras0 = 0;
     else if (!strcasecmp(option, "--regheader")) cmdargs->cras0 = 0;
     else if (!strcasecmp(option, "--conf-ref"))  cmdargs->refconf = 1;
+    else if (!strcasecmp(option, "--bf"))  cmdargs->DoBF = 1;
+    else if (!strcasecmp(option, "--no-bf"))  cmdargs->DoBF = 0;
 
     else if (!strcasecmp(option, "--mov")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -457,6 +476,11 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->regdat = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--log-cost")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->logcost = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--s")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->subject = pargv[0];
@@ -470,6 +494,12 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--dof")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&cmdargs->dof);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--bf-lim")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->DoBF = 1;
+      sscanf(pargv[0],"%lf",&cmdargs->BFLim);
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--6")) cmdargs->dof = 6;
@@ -623,6 +653,8 @@ static void print_usage(void) {
   printf("   --ftol ftol : default is %5.3le\n",cmdargs->ftol);
   printf("   --linmintol linmintol : default is %5.3le\n",cmdargs->linmintol);
   printf("   --conf-ref : conform the refernece without rescaling (good for gca)");
+  printf("   --no-bf : do not do brute force search");
+  printf("   --bf-lim lim : constrain brute force search to +/-lim");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -689,6 +721,8 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
   fprintf(fp,"cras0    %d\n",cmdargs->cras0);
+  fprintf(fp,"bf       %d\n",cmdargs->DoBF);
+  fprintf(fp,"bflim    %lf\n",cmdargs->BFLim);
   return;
 }
 
@@ -1334,6 +1368,16 @@ double COREGcost(COREG *coreg)
   free(g1); g1=NULL;
   free(g2); g2=NULL;
 
+  if(coreg->fplogcost){
+    FILE *fp;
+    fp = coreg->fplogcost;
+    fprintf(fp,"%2d %4d  ",coreg->sep,coreg->nCostEvaluations);
+    for(n=0; n<coreg->nparams; n++) fprintf(fp,"%7.5f ",coreg->params[n]);
+    fprintf(fp,"  %9.7f\n",coreg->cost);
+    fflush(fp);
+  }
+  coreg->nCostEvaluations++;
+
   return(coreg->cost);
 }
 
@@ -1383,7 +1427,6 @@ float COREGcostPowell(float *pPowel)
     fflush(stdout);
   }
 
-  coreg->nCostEvaluations++;
   return((float)curcost);
 }
 
@@ -1580,3 +1623,58 @@ MRI *MRIconformNoScale(MRI *mri, MRI *mric)
 
   return(mric);
 }
+
+int COREGoptBruteForce(COREG *coreg, double lim0, int niters, int n1d)
+{
+  int iter,nthp,nth1d,n,newmin;
+  double curcost,mincost;
+  double p,pmin,pmax,pdelta=0,popt;
+  double lim;
+  FILE *fp;
+  int dof;
+
+  dof = 6;
+  if(coreg->nparams < 6) dof = coreg->nparams;
+
+  printf("COREGoptBruteForce() %g %d %d\n",lim0,niters,n1d);
+
+  mincost = 10e10;
+  lim = lim0;
+  for(iter = 0; iter < niters; iter++){
+    for(nthp = 0; nthp < dof; nthp++){
+      pmin = coreg->params[nthp] - lim;
+      pmax = coreg->params[nthp] + lim;
+      pdelta = (pmax-pmin)/n1d;
+
+      nth1d = 0;
+      popt = coreg->params[nthp];
+      newmin = 0;
+      for(p=pmin; p<=pmax; p+=pdelta){
+	coreg->params[nthp] = p;
+	curcost = COREGcost(coreg);
+	if(mincost > curcost){
+	  mincost = curcost;
+	  popt = p;
+	  newmin = 1;
+	}
+	nth1d++;
+      } // 1d min
+      coreg->params[nthp] = popt;
+
+    } // parameter
+
+    fp = stdout;
+    fprintf(fp,"#BF# sep=%2d iter=%d lim=%4.1f delta=%4.2lf ",coreg->sep,iter,lim,pdelta);
+    for(n=0; n<coreg->nparams; n++) fprintf(fp,"%9.5f ",coreg->params[n]);
+    fprintf(fp,"  %9.7f\n",mincost);
+    fflush(fp);
+
+    lim = lim/n1d;
+  } // iteration
+
+
+  return(0);
+}
+
+
+

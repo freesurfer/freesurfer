@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/18 16:14:42 $
- *    $Revision: 1.11 $
+ *    $Date: 2015/09/22 19:55:12 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,7 +64,7 @@ public:
   void setTolerance(double tol) {xtol=tol;ftol=tol;}
 
   //! The Powell way of doing iterative registration
-  virtual void computeIterativeRegistration(int n, double epsit, MRI * mriS,
+  virtual void computeIterativeRegistrationFull(int n, double epsit, MRI * mriS,
       MRI* mriT, const vnl_matrix<double> &Minit, double iscaleinit);
       
   //! The static cost function for the Powell minimizer

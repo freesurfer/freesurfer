@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/15 04:50:07 $
- *    $Revision: 1.25 $
+ *    $Date: 2015/09/23 20:21:10 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@ extern "C"
 #include <vnl/vnl_matrix_fixed.h>
 #include <vnl/vnl_matrix.h>
 #include <vnl/algo/vnl_symmetric_eigensystem.h>
+#include <vnl/vnl_det.h>
 
 using namespace std;
 
@@ -1294,12 +1295,15 @@ vnl_matrix_fixed<double, 3, 3> CostFunctions::orientation(MRI *i)
 
   // make det positive:
   //double d = MatrixDeterminant(evec);
-  double d = SymEig.determinant();
+  double d = vnl_det(evec);
+  //vnl_matlab_print(vcl_cerr,evec,"evec",vnl_matlab_print_format_long);
+  //cout << " det = " << d << endl;
   if (d < 0)
   {
     //cout << "Orientation: neg. determinant ..  fixing" << endl;
     for (int r = 0; r < 3; r++)
       evec[r][0] = -evec[r][0];
+    //vnl_matlab_print(vcl_cerr,evec,"evec2",vnl_matlab_print_format_long);
   }
 
   //cout << " evals: " << eval[0] << " " << eval[1] << " " << eval[2] << endl;

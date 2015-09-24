@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/18 16:14:42 $
- *    $Revision: 1.75 $
+ *    $Date: 2015/09/22 19:55:12 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -97,6 +97,7 @@ struct Parameters
   bool lta_vox2vox;
   bool affine;
   bool iscale;
+  bool iscaleonly;
   bool transonly;
   bool isoscale;
   string transform;
@@ -136,7 +137,7 @@ struct Parameters
   double powelltol;
 };
 static struct Parameters P =
-{ "", "", "", "", "", "", "", "", "", "", "", false, false, false, false, false,
+{ "", "", "", "", "", "", "", "", "", "", "", false, false, false, false, false, false,
     false, false, false, false, "", false, 5, 0.01, SAT, "", "", SSAMPLE, 0,
     NULL, NULL, false, false, true, false, 1, -1, false, 0.16, true, true, "",
     "", -1, -1, Registration::ROB,
@@ -148,7 +149,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.75 2014/11/18 16:14:42 mreuter Exp $";
+    "$Id: mri_robust_register.cpp,v 1.76 2015/09/22 19:55:12 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -1446,6 +1447,9 @@ static void initRegistration(Registration & R, Parameters & P)
   if (P.isoscale)
     R.setIsoscale();
   R.setIscale(P.iscale);
+  if (P.iscaleonly)
+    R.setIscaleOnly();
+    
   //R.setRobust(!P.leastsquares);
   //R.setSaturation(P.sat);
   R.setVerbose(P.verbose); // set before debug, as debug sets its own verbose level
@@ -1853,6 +1857,18 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.iscale = true;
     cout << "--iscale: Enableing intensity scaling!" << endl;
   }
+  else if (!strcmp(option, "ISCALEONLY") )
+  {
+    P.iscaleonly = true;
+    P.iscale = true;
+    P.affine = false;
+    P.isoscale = false;
+    P.initscaling = false;
+    P.transonly = false;
+    P.initorient = false;
+    P.inittrans= false;
+    cout << "--iscaleonly: No geometric transform, only iscale!" << endl;
+  }
   else if (!strcmp(option, "TRANSONLY"))
   {
     P.transonly = true;
@@ -2230,11 +2246,19 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
     exit(1);
   }
 
-  bool test1 = (P.mov != "" && P.dst != "" && P.lta != "");
+  bool test1 = (P.mov != "" && P.dst != "");
   if (!test1)
   {
     printUsage();
-    cerr << endl << endl << "ERROR: Please specify --mov --dst and --lta !  "
+    cerr << endl << endl << "ERROR: Please specify --mov and --dst !  "
+        << endl << endl;
+    exit(1);
+  }
+  bool test1b = (P.lta != "" || P.iscaleonly);
+  if (!test1b)
+  {
+    printUsage();
+    cerr << endl << endl << "ERROR: Please specify --lta !  "
         << endl << endl;
     exit(1);
   }

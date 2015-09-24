@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/18 16:14:42 $
- *    $Revision: 1.90 $
+ *    $Date: 2015/09/23 20:35:57 $
+ *    $Revision: 1.93 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -115,7 +115,7 @@ void Registration::computeIterativeRegistration(int nmax, double epsit)
 
   // wraping private routine
   // parameters need to be set by caller vial set methods:
-  computeIterativeRegistration(nmax, epsit, mri_source, mri_target,
+  computeIterativeRegistrationFull(nmax, epsit, mri_source, mri_target,
       getMinitResampled(), iscaleinit);
 
 }
@@ -918,7 +918,7 @@ void Registration::computeMultiresRegistration(int stopres, int n, double epsit)
     }
     if (r == 0 && highit > 0)
       m = highit;
-    computeIterativeRegistration(m, epsit, gpS[r], gpT[r], md.first, md.second);
+    computeIterativeRegistrationFull(m, epsit, gpS[r], gpT[r], md.first, md.second);
     cmd.first = Mfinal;
     cmd.second = iscalefinal;
 
@@ -3272,13 +3272,19 @@ vnl_matrix_fixed<double, 4, 4> Registration::initializeTransform(MRI *mriS,
   //bool initorient = true;
   if (initorient)
   {
-    if (verbose > 1)
-      cout << "     -- trying to use orientation info\n";
+    if (verbose > 0)
+      cout << "     -- trying to use orientation info (--initorient) \n";
     // find orientation:
     //MATRIX * evT = CostFunctions::orientation(mriT);
     //MATRIX * evS = CostFunctions::orientation(mriS);
     vnl_matrix_fixed<double, 3, 3> evT = CostFunctions::orientation(mriT);
     vnl_matrix_fixed<double, 3, 3> evS = CostFunctions::orientation(mriS);
+
+    if (verbose > 1)
+    {
+      vnl_matlab_print(vcl_cerr,evT,"evT",vnl_matlab_print_format_long);
+      vnl_matlab_print(vcl_cerr,evS,"evS",vnl_matlab_print_format_long);
+    }
 
     // adjust orientation (flip) to target
     int fcount = 0;
@@ -3297,6 +3303,8 @@ vnl_matrix_fixed<double, 4, 4> Registration::initializeTransform(MRI *mriS,
       }
       if (d < 0) // flip
       {
+        if (verbose > 1)
+          cout << "       --- flipping column " << c+1 <<" \n";
         fcount++;
         for (int r = 0; r < 3; r++)
           evS[r][c] = -evS[r][c];
@@ -3640,7 +3648,7 @@ bool Registration::reorientSource()
   MatrixFree(&v2v);
   MRIfree(&mri_temp);
 
-//  if (debug)
+  if (debug)
   {
     string fn = getName() + "-mriS-reorder.mgz";
     cout << "   Writing reordered source as " << fn << endl;
@@ -3711,12 +3719,22 @@ void Registration::setTransformation(bool is2d)
     else
       trans = new Transform3dIsoscale;
   }
-  else
+  else if (affine)
   {
     if (is2d)
       trans = new Transform2dAffine;
     else
       trans = new Transform3dAffine;
+  }
+  else
+  {
+    trans = new Transform3dIdentity; // no geometric transform
+    if (! iscale) // should never get here as --iscaleonly switches on --iscale
+    {
+       ErrorExit(ERROR_BADPARM,
+          "Registration::setTransformation please specify either --iscale or a transformation model\n");
+
+    }
   }
 }
 
@@ -4535,8 +4553,26 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double, 4, 4>& M,
     double iscaleval, MRI * mriS, MRI* mriT, MRI *& mri_Swarp, MRI*& mri_Twarp,
     vnl_matrix_fixed<double, 4, 4>& mh, vnl_matrix_fixed<double, 4, 4>& mhi)
 {
-
-  if (symmetry)
+  if (verbose > 1)
+    std::cout << " Registration::mapToNewSpace " << std::endl;
+    
+  if (iscaleonly)
+  {
+    mh.set_identity();
+    mhi.set_identity();
+    // adjust intensity   
+    if (verbose > 1)
+      std::cout << "   - adjusting only intensity ( " << iscaleval << " ) "
+          << std::endl;
+    // ISCALECHANGE:
+    double si = sqrt(iscaleval);
+    mri_Swarp = MyMRI::MRIvalscale(mriS, mri_Swarp, si);
+    mri_Twarp = MyMRI::MRIvalscale(mriT, mri_Twarp, 1.0 / si);
+    mri_Swarp->outside_val = mriS->outside_val;
+    mri_Twarp->outside_val = mriT->outside_val;
+    return;
+  }
+  else if (symmetry)
   {
     // here symmetrically warp both images SQRT(M)
     // this keeps the problem symmetric
@@ -4576,7 +4612,7 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double, 4, 4>& M,
     mri_Swarp = MyMRI::MRIlinearTransform(mriS, mri_Swarp, mh);
     if (mri_Twarp)
       MRIfree(&mri_Twarp);
-    mri_Twarp = MRIclone(mriS, NULL); // bring them to same space (just use src geometry) !! symmetry slightly destroyed here!!
+    mri_Twarp = MRIclone(mriS, NULL); // set source geometry here: bring them to same space !! symmetry slightly destroyed here!!
     mri_Twarp = MyMRI::MRIlinearTransform(mriT, mri_Twarp, mhi);
     //cout << " Ss : " << mri_Swarp->width << " " << mri_Swarp->height << " " << mri_Swarp->depth << endl;
     //cout << " Ts : " << mri_Twarp->width << " " << mri_Twarp->height << " " << mri_Twarp->depth << endl;
@@ -4584,6 +4620,21 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double, 4, 4>& M,
     //   a) keep inputs at their input size in setSourceTarget
     //   b) compute overlap here (bbox)
     //   c) compute image dimensions based on bbox
+
+    // adjust intensity symmetrically 
+    if (iscale)
+    {
+      if (verbose > 1)
+        std::cout << "   - adjusting intensity ( " << iscaleval << " ) "
+            << std::endl;
+      // ISCALECHANGE:
+      double si = sqrt(iscaleval);
+      MyMRI::MRIvalscale(mri_Swarp, mri_Swarp, si);
+      MyMRI::MRIvalscale(mri_Twarp, mri_Twarp, 1.0 / si);
+    }
+    mri_Swarp->outside_val = mriS->outside_val;
+    mri_Twarp->outside_val = mriT->outside_val;
+    return;
   }
   else // resample at target location (using target geometry)
   {
@@ -4591,7 +4642,7 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double, 4, 4>& M,
       std::cout << "   - resampling MOV to DST " << std::endl;
     if (mri_Swarp)
       MRIfree(&mri_Swarp);
-    mri_Swarp = MRIclone(mriT, NULL);
+    mri_Swarp = MRIclone(mriT, NULL); // set target geometry here
     mh = M;
 //       // 2D correction
 //       if ( mriS->depth == 1)
@@ -4607,22 +4658,21 @@ void Registration::mapToNewSpace(const vnl_matrix_fixed<double, 4, 4>& M,
     mri_Swarp = MyMRI::MRIlinearTransform(mriS, mri_Swarp, mh);
     mhi.set_identity();
     if (!mri_Twarp)
-      mri_Twarp = MRIcopy(mriT, NULL);
+      mri_Twarp = MRIcopy(mriT, mri_Twarp);
+      
+    // adjust intensity of source
+    if (iscale)
+    {
+      if (verbose > 1)
+        std::cout << "   - adjusting intensity ( " << iscaleval << " ) "
+            << std::endl;
+      // ISCALECHANGE:
+      MyMRI::MRIvalscale(mri_Swarp, mri_Swarp, iscaleval);
+    }
+    mri_Swarp->outside_val = mriS->outside_val;
+    mri_Twarp->outside_val = mriT->outside_val;
+    return;
   }
-
-  // adjust intensity   
-  if (iscale)
-  {
-    if (verbose > 1)
-      std::cout << "   - adjusting intensity ( " << iscaleval << " ) "
-          << std::endl;
-    // ISCALECHANGE:
-    double si = sqrt(iscaleval);
-    MyMRI::MRIvalscale(mri_Swarp, mri_Swarp, si);
-    MyMRI::MRIvalscale(mri_Twarp, mri_Twarp, 1.0 / si);
-  }
-  mri_Swarp->outside_val = mriS->outside_val;
-  mri_Twarp->outside_val = mriT->outside_val;
 
 }
 

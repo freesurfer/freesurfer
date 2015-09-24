@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2013/05/21 18:03:15 $
- *    $Revision: 1.48 $
+ *    $Date: 2015/09/22 20:57:47 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,6 +94,7 @@ using namespace std;
 struct Parameters
 {
   vector<std::string> mov;
+  vector<std::string> masks;
   string mean;
   vector<string> iltas;
   vector<string> nltas;
@@ -103,8 +104,10 @@ struct Parameters
   bool lta_vox2vox;
   bool affine;
   bool iscale;
+  bool iscaleonly;
   bool transonly;
   bool leastsquares;
+  bool nomulti;
   int iterate;
   double epsit;
   double sat;
@@ -130,8 +133,8 @@ struct Parameters
 
 // Initializations:
 static struct Parameters P =
-{ vector<string>(0), "", vector<string>(0), vector<string>(0), vector<string>(
-    0), false, false, false, false, false, false, false, 5, -1.0, SAT, vector<
+{ vector<string>(0), vector<string>(0), "", vector<string>(0), vector<string>(0), vector<string>(
+    0), false, false, false, false, false, false, false, false, false, 5, -1.0, SAT, vector<
     string>(0), 0, 1, -1, false, false, SSAMPLE, false, false, "", false, true,
     vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false};
 
@@ -139,7 +142,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_template.cpp,v 1.48 2013/05/21 18:03:15 mreuter Exp $";
+    "$Id: mri_robust_template.cpp,v 1.51 2015/09/22 20:57:47 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -216,8 +219,10 @@ int main(int argc, char *argv[])
     }
     MR.setDebug(P.debug);
     MR.setRigid(!P.affine);
-    MR.setIscale(P.iscale);
     MR.setTransonly(P.transonly);
+    MR.setIscale(P.iscale);
+    MR.setIscaleOnly(P.iscale);
+    MR.setNoMulti(P.nomulti);
     MR.setRobust(!P.leastsquares);
     MR.setSaturation(P.sat);
     MR.setSatit(P.satit);
@@ -236,7 +241,7 @@ int main(int argc, char *argv[])
     //int nnin = (int) P.mov.size();
     //assert (P.mov.size() >1);
     //assert (MR.loadMovables(P.mov)==nin);
-    int nin = MR.loadMovables(P.mov);
+    int nin = MR.loadMovables(P.mov,P.masks);
     assert( nin > 1);
 
     // load initial ltas if set:
@@ -470,6 +475,22 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     assert(nargs > 0);
     cout << "--lta: Will output LTA transforms" << endl;
   }
+  else if (!strcmp(option, "MASKS"))
+  {
+    nargs = 0;
+    do
+    {
+      option = argv[nargs + 1];
+      if (option[0] != '-')
+      {
+        nargs++;
+        P.masks.push_back(string(argv[nargs]));
+        //cout << "Using "<< P.nltas.back() << " as LTA." << endl;
+      }
+    } while (nargs + 1 < argc && option[0] != '-');
+    assert(nargs > 0);
+    cout << "--masks: Will use masks on inputs." << endl;
+  }
   else if (!strcmp(option, "ISCALEOUT"))
   {
     nargs = 0;
@@ -545,6 +566,19 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.transonly = true;
     cout << "--transonly: Using only translation!" << endl;
+  }
+  else if (!strcmp(option, "ISCALEONLY"))
+  {
+    P.iscale = true;
+    P.iscaleonly = true;
+    P.transonly = false;
+    P.affine = false;
+    cout << "--iscaleonly: Computing only global scaling!" << endl;
+  }
+  else if (!strcmp(option, "NOMULTI"))
+  {
+    P.nomulti = true;
+    cout << "--nomulti: process highest resolution only!" << endl;
   }
   else if (!strcmp(option, "LEASTSQUARES") || !strcmp(option, "L"))
   {
@@ -825,7 +859,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
   {
     ntest = false;
     cerr
-        << "ERROR: Number of filnames for --iscalein should agree with number of init LTAs (--ixforms)!"
+        << "ERROR: Number of filenames for --iscalein should agree with number of init LTAs (--ixforms)!"
         << endl;
     exit(1);
   }

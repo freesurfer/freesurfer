@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/06 21:53:33 $
- *    $Revision: 1.3 $
+ *    $Date: 2015/09/22 19:55:12 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,7 +53,7 @@ void RegRobust::clear() // initialize registration (keep source and target and g
     MRIfree(&mri_hweights);
 }
 
-void RegRobust::computeIterativeRegistration(int nmax, double epsit, MRI * mriS,
+void RegRobust::computeIterativeRegistrationFull(int nmax, double epsit, MRI * mriS,
     MRI* mriT, const vnl_matrix<double>& m, double scaleinit)
 // private routine, as called from multiregistration (passing mriS and mriT...)
 // computes iterative registration (recomputing A and b in each step)
@@ -126,7 +126,7 @@ void RegRobust::findSatMultiRes(const vnl_matrix<double> &mi, double scaleinit)
     int vv = verbose;
     if (verbose == 1)
       verbose = 0;
-    computeIterativeRegistration(n, 0.05, gpS[r], gpT[r], md.first, md.second);
+    computeIterativeRegistrationFull(n, 0.05, gpS[r], gpT[r], md.first, md.second);
     cmd.first = Mfinal;
     cmd.second = iscalefinal;
     verbose = vv;

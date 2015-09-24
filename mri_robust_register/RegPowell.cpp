@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/18 16:14:42 $
- *    $Revision: 1.25 $
+ *    $Date: 2015/09/22 19:55:12 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -311,10 +311,10 @@ double RegPowell::costFunction(const vnl_vector<double>& p)
 /** Computes 4x4 matrix and iscale value in members iscalefinal and Mfinal.
  nmax and epsit are ignored
  */
-void RegPowell::computeIterativeRegistration(int nmax, double epsit, MRI * mriS,
+void RegPowell::computeIterativeRegistrationFull(int nmax, double epsit, MRI * mriS,
     MRI* mriT, const vnl_matrix<double> & m, double scaleinit)
 {
-  cout << "RegPowell::computeIterativeRegistration" << endl;
+  cout << "RegPowell::computeIterativeRegistrationFull" << endl;
   cout << " sym: " << symmetry << endl;
 
   if (!mriS)

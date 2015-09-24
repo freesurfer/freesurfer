@@ -70,6 +70,8 @@ If most of the brain is labeled outlier (red/yellow), try to set the saturation 
       <argument>--iscale </argument>
       <explanation>estimate intensity scale factor (default no).
 Highly recommended for unnormalized images when using ROB or ROBENT!</explanation>
+      <argument>--iscaleonly</argument>
+      <explanation>only perform iscale (no transformation, default off)</explanation>
       <argument>--iscaleout &lt;fname.txt&gt;</argument>
       <explanation>output text file for iscale value (will activate --iscale). Default: no iscale output</explanation>
       <argument>--iscalein &lt;fname.txt&gt;</argument>

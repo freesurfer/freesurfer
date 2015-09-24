@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/18 16:14:42 $
- *    $Revision: 1.60 $
+ *    $Date: 2015/09/22 19:55:12 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,12 +72,12 @@ public:
 
   //! Default constructor
   Registration() :
-      iscale(false), transonly(false), rigid(true), isoscale(false), trans(
-          NULL), subsamplesize(-1), minsize(-1), maxsize(-1), debug(0), verbose(
-          1), initorient(false), inittransform(true), initscaling(false), highit(
-          -1), mri_source(NULL), mri_target(NULL), iscaleinit(1.0), iscalefinal(
-          1.0), doubleprec(false), symmetry(true), sampletype(SAMPLE_TRILINEAR), resample(
-          false), costfun(ROB), converged(false)
+      iscale(false), iscaleonly(false), transonly(false), rigid(true), isoscale(false),
+          affine(false), trans(NULL), subsamplesize(-1), minsize(-1), maxsize(-1),
+          debug(0), verbose(1),initorient(false), inittransform(true), initscaling(false),
+          highit(-1), mri_source(NULL), mri_target(NULL), iscaleinit(1.0),
+          iscalefinal(1.0), doubleprec(false), symmetry(true),
+          sampletype(SAMPLE_TRILINEAR), resample(false), costfun(ROB), converged(false)
   {
   }
 
@@ -106,6 +106,22 @@ public:
     rigid = false;
     transonly = true;
     isoscale = false;
+    affine = false;
+    iscaleonly = false;
+  }
+
+  //! Allow only iscale
+  void setIscaleOnly()
+  {
+    rigid = false;
+    transonly = false;
+    isoscale = false;
+    affine = false;
+    iscale = true;
+    initorient = false;
+    inittransform = false;
+    initscaling = false;
+    iscaleonly = true;
   }
 
   //! Allow only rigid (default)
@@ -114,6 +130,8 @@ public:
     rigid = true;
     transonly = false;
     isoscale = false;
+    affine = false;
+    iscaleonly = false;
   }
 
   //! Allow rigid and isotropic scaling
@@ -122,6 +140,8 @@ public:
     rigid = false;
     transonly = false;
     isoscale = true;
+    affine = false;
+    iscaleonly = false;
   }
 
   //! Allow affine transform
@@ -130,6 +150,8 @@ public:
     rigid = false;
     transonly = false;
     isoscale = false;
+    affine = true;
+    iscaleonly = false;
   }
 
   //! Specify iteration number on highest level
@@ -156,7 +178,7 @@ public:
     verbose = i;
   }
 
-  //! Specify wether global intensity scale is to be estimated
+  //! Specify whether global intensity scale is to be estimated
   void setIscale(bool i)
   {
     iscale = i;
@@ -201,7 +223,7 @@ public:
   //! Specify name for debug output
   void setName(const std::string &n);
 
-  //! If inittransform is true, specify wether additionally init orientation
+  //! If inittransform is true, specify whether additionally init orientation
   void setInitOrient(bool io)
   {
     initorient = io;
@@ -226,7 +248,7 @@ public:
   }
 
   // void setWLimit( double d)      {wlimit = d;};
-  //! Specify wether registration is symmetric or at target space
+  //! Specify whether registration is symmetric or at target space
   void setSymmetry(bool b)
   {
     symmetry = b;
@@ -337,7 +359,7 @@ protected:
 //  std::pair < vnl_matrix_fixed <double,4,4 >, double> computeRegistrationStep(MRI * mriS = NULL, MRI* mriT = NULL);
 
   //! IterativeRegistrationHelper 
-  virtual void computeIterativeRegistration(int n, double epsit, MRI * mriS,
+  virtual void computeIterativeRegistrationFull(int n, double epsit, MRI * mriS,
       MRI* mriT, const vnl_matrix<double> &Minit, double iscaleinit) =0;
   //template < class T > void iterativeRegistrationHelper( int nmax,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double >& m, double scaleinit);
 
@@ -382,9 +404,11 @@ protected:
 
 //  double sat;
   bool iscale;
+  bool iscaleonly;
   bool transonly;
   bool rigid;
   bool isoscale;
+  bool affine;
   Transformation * trans;
 //  int rtype;
   int subsamplesize;

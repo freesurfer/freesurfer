@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/10/20 15:08:02 $
- *    $Revision: 1.53 $
+ *    $Date: 2015/09/22 20:57:47 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -140,12 +140,15 @@ unsigned int MultiRegistration::getSeed()
  \brief Loads the movable volumes as specified on command line
  \param P  Paramters for the initialization
  */
-int MultiRegistration::loadMovables(const std::vector<std::string> pmov)
+int MultiRegistration::loadMovables(const std::vector<std::string>& pmov,const std::vector<std::string>& pmasks)
 {
 
   assert(mri_mov.size () == 0);
   int n = (int) pmov.size();
-  mov = pmov; // copy of input filenames
+  int m = (int) pmasks.size();
+  assert (n==m || m == 0);
+  
+  mov = pmov; // local copy of input filenames
   if (n == 1) // try read 4D volume
   {
     cout << "trying to read 4D source '" << mov[0] << "'..." << endl;
@@ -164,12 +167,37 @@ int MultiRegistration::loadMovables(const std::vector<std::string> pmov)
       cerr << "    Pass several inputs, or 4D input volume" << endl;
       exit(1);
     }
+    
+    MRI *mask4d = NULL;
+    if (m == 1)
+    {
+      mask4d = MRIread(pmasks[0].c_str());
+      if (!mri4d)
+      {
+        ErrorExit(ERROR_NOFILE,
+          "MultiRegistration::loadMovables: could not open input volume %s.\n",
+          pmasks[0].c_str());
+      }
+      m = mask4d->nframes;
+      if (n != m)
+      {
+        cerr << "ERROR: frame count in mask does not agree with frames in mov!" << endl;
+        exit(1);
+      }
+    } 
     mov.resize(n);
     mri_mov.resize(n);
     mri_bsplines.resize(n, NULL);
     for (int i = 0; i < n; i++)
     {
       mri_mov[i] = MRIcopyFrame(mri4d, NULL, i, 0);
+      if (m>0)
+      {
+        cout << "masking source frame " << i << " ..." << endl;
+        MRI *mask = MRIcopyFrame(mask4d, NULL, i, 0);
+        mri_mov[i] = MRImaskZero(mri_mov[i], mask, mri_mov[i]);
+        MRIfree(&mask);
+      }
       if (sampletype == SAMPLE_CUBIC_BSPLINE)
       {
         cout << "converting source frame " << i << " to bspline ..." << endl;
@@ -180,6 +208,7 @@ int MultiRegistration::loadMovables(const std::vector<std::string> pmov)
       mov[i] = oss.str();
     }
     MRIfree(&mri4d);
+    MRIfree(&mask4d);
   }
   else //several inputs;
   {
@@ -209,6 +238,27 @@ int MultiRegistration::loadMovables(const std::vector<std::string> pmov)
         msize[i] = mri_mov[i]->ysize;
       if (mri_mov[i]->zsize < msize[i])
         msize[i] = mri_mov[i]->zsize;
+
+      if (m>0)
+      {
+        cout << "masking source frame " << i << " ..." << endl;
+        MRI *mask = MRIread(pmasks[i].c_str());
+        if (!mask)
+        {
+          ErrorExit(ERROR_NOFILE,
+            "MultiRegistration::loadMovables: could not open mask volume %s.\n",
+            pmasks[i].c_str());
+        }
+        if (mask->nframes != 1)
+        {
+          ErrorExit(ERROR_NOFILE,
+            "MultiRegistration::loadMovables: only pass single frame mask %s.\n",
+            pmasks[i].c_str());
+        }
+        mri_mov[i] = MRImaskZero(mri_mov[i], mask, mri_mov[i]);
+        MRIfree(&mask);
+      }
+
 
       if (sampletype == SAMPLE_CUBIC_BSPLINE)
       {
@@ -319,6 +369,9 @@ void MultiRegistration::initRegistration(RegRobust & R)
   R.setIscale(iscale);
   if (transonly)
     R.setTransonly();
+  if (iscaleonly)
+    R.setIscaleOnly();
+    
   R.setCost(Registration::ROB);
   R.setSaturation(sat);
   R.setDoublePrec(doubleprec);
@@ -355,31 +408,49 @@ bool MultiRegistration::mapAndAverageMov(int itdebug)
   assert(mri_warps.size() == nin);
   assert(ltas.size() == nin);
   assert(intensities.size() == nin);
-
-  cout << "mapping movs and creating initial template..." << endl;
-  if (iscale)
-    cout << " allow intensity scaling" << endl;
-  for (unsigned int i = 0; i < nin; i++)
+  
+  if (iscaleonly)
   {
-    if (mri_warps[i])
-      MRIfree(&mri_warps[i]);
-    // use geometry from ltas
-    // (if initXforms was called, this is the center of mass of all tps)
-    if (sampletype == SAMPLE_CUBIC_BSPLINE)
-      mri_warps[i] = LTAtransformBSpline(mri_bsplines[i], NULL, ltas[i]);
-    else
-      mri_warps[i] = LTAtransformInterp(mri_mov[i], NULL, ltas[i], sampletype);
-    MRIcopyPulseParameters(mri_mov[i], mri_warps[i]);
-    if (iscale)
+    cout << "creating intitial template (iscale only)" << endl;
+    for (unsigned int i = 0; i < nin; i++)
     {
-      mri_warps[i] = MyMRI::MRIvalscale(mri_warps[i], mri_warps[i],
+      mri_warps[i] = MyMRI::MRIvalscale(mri_mov[i], mri_warps[i],
           intensities[i]);
+      if (debug)
+      {
+        ostringstream oss;
+        oss << outdir << "tp" << i + 1 << "_to_template-it" << itdebug << ".mgz";
+        MRIwrite(mri_warps[i], oss.str().c_str());
+      }
     }
-    if (debug)
+  }
+  else
+  {
+    cout << "mapping movs and creating initial template..." << endl;
+    if (iscale)
+      cout << " allow intensity scaling" << endl;
+    for (unsigned int i = 0; i < nin; i++)
     {
-      ostringstream oss;
-      oss << outdir << "tp" << i + 1 << "_to_template-it" << itdebug << ".mgz";
-      MRIwrite(mri_warps[i], oss.str().c_str());
+      if (mri_warps[i])
+        MRIfree(&mri_warps[i]);
+      // use geometry from ltas
+      // (if initXforms was called, this is the center of mass of all tps)
+      if (sampletype == SAMPLE_CUBIC_BSPLINE)
+        mri_warps[i] = LTAtransformBSpline(mri_bsplines[i], NULL, ltas[i]);
+      else
+        mri_warps[i] = LTAtransformInterp(mri_mov[i], NULL, ltas[i], sampletype);
+      MRIcopyPulseParameters(mri_mov[i], mri_warps[i]);
+      if (iscale)
+      {
+        mri_warps[i] = MyMRI::MRIvalscale(mri_warps[i], mri_warps[i],
+            intensities[i]);
+      }
+      if (debug)
+      {
+        ostringstream oss;
+        oss << outdir << "tp" << i + 1 << "_to_template-it" << itdebug << ".mgz";
+        MRIwrite(mri_warps[i], oss.str().c_str());
+      }
     }
   }
   mri_mean = averageSet(mri_warps, mri_mean, average, sat);
@@ -559,7 +630,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
       // on higher iterations use subsamplesize as passed on commandline
       int subsamp = subsamplesize;
       // simplify first steps (only if we do not have good transforms):
-      if (!havexforms && itcount <= 4 && noxformits[itcount - 1] > 0)
+      if (!iscaleonly && !havexforms && itcount <= 4 && noxformits[itcount - 1] > 0)
       {
         switch (itcount)
         {
@@ -586,9 +657,17 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
 
 #ifdef HAVE_OPENMP
 #pragma omp critical
-#endif  
-      cout << " - running multi-resolutional registration on TP " << i + 1 << "..." << endl;
-      R.computeMultiresRegistration(maxres, iterate, epsit);
+#endif 
+      if (nomulti || iscaleonly)
+      {
+        cout << " - running high-res registration on TP " << i + 1 << "..." << endl;
+        R.computeIterativeRegistration(iterate, epsit); 
+      }
+      else
+      {
+        cout << " - running multi-resolutional registration on TP " << i + 1 << "..." << endl;
+        R.computeMultiresRegistration(maxres, iterate, epsit);
+      }
 
       Md.first = R.getFinalVox2Vox();
       Md.second = R.getFinalIscale();
@@ -846,7 +925,14 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit,
 
   //!!!! what if iscale init was passed? needs fixing, if this is used at all?
   R.setMinitOrig(minit);
-  R.computeMultiresRegistration(maxres, iterate, epsit);
+  if (nomulti)
+  {
+    R.computeIterativeRegistration(iterate, epsit); 
+  }
+  else
+  {
+    R.computeMultiresRegistration(maxres, iterate, epsit);
+  }
   Md.first = R.getFinalVox2Vox();
   Md.second = R.getFinalIscale();
   //if (minit) MatrixFree(&minit);
@@ -1264,7 +1350,14 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     // compute Alignment (maxres,iterate,epsit) are passed above
     if (satit)
       R.findSaturation();
-    R.computeMultiresRegistration(maxres, iterate, epsit);
+    if (nomulti)
+    {
+      R.computeIterativeRegistration(iterate, epsit); 
+    }
+    else
+    {
+      R.computeMultiresRegistration(maxres, iterate, epsit);
+    }
     Md[i].first = R.getFinalVox2Vox();
     Md[i].second = R.getFinalIscale();
     converged[i] = R.getConverged();
@@ -1986,7 +2079,8 @@ bool MultiRegistration::initialAverageSet()
 // or converge very slowly (has not happened yet).
 // therefore we find an initial coarse alignment by using moments
 // initial ltas are also returned
-  cout << " initialAverageSet based on centroid translation" << flush;
+  std::cout << " MultiRegistration::initialAverageSet " << std::endl;
+
   assert(mri_mov.size() > 1);
   int n = (int) mri_mov.size();
   if ((int) ltas.size() != n)
@@ -1995,71 +2089,94 @@ bool MultiRegistration::initialAverageSet()
     ltas.resize(n, NULL);
   }
 
-  // compute input centroids and common centroid
-  vector<double> centroid(3, 0.0);
-  vector<vector<double> > centroids(n);
-  for (int i = 0; i < n; i++)
+  if (iscaleonly)
   {
-    centroids[i] = CostFunctions::centroid(mri_mov[i]);
-    MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[i]);
-    vnl_matrix_fixed<double, 4, 4> tpi_v2r(
-        MyMatrix::convertMATRIX2VNL(mv2r_temp));
-    MatrixFree(&mv2r_temp);
-    vnl_vector_fixed<double, 4> ncenter;
-    for (uint ii = 0; ii < 3; ii++)
-      ncenter[ii] = centroids[i][ii];
-    ncenter[3] = 1.0;
-    // map to RAS:
-    ncenter = tpi_v2r * ncenter;
-    for (uint ii = 0; ii < 3; ii++)
-      centroids[i][ii] = ncenter[ii];
-
-    //cout << " Centroid [ " << i << " ] = " << centroids[i][0] << " " << centroids[i][1] << " " << centroids[i][2] << endl;
-    centroid[0] += centroids[i][0];
-    centroid[1] += centroids[i][1];
-    centroid[2] += centroids[i][2];
+    std::cout << "    -- averaging without alignment (iscale only)" << std::endl;
+  
+    if (!mri_mean) // all inputs should be in same space for this!!!
+    {
+      mri_mean = MRIclone(mri_mov[0], NULL);   
+    }
+    
+  
+    MATRIX* Mtrans = MatrixIdentity(4, NULL);
+    for (int i = 0; i < n; i++)
+    {
+      assert(ltas[i] == NULL);
+      ltas[i] = MyMatrix::RASmatrix2LTA(Mtrans, mri_mov[i], mri_mean);
+    }  
+  
   }
-  centroid[0] /= n;
-  centroid[1] /= n;
-  centroid[2] /= n;
-  //cout << " Centroid : " << centroid[0] << " " << centroid[1] << " " << centroid[2]  << endl;
-
-  if (!mri_mean) //default:
+  else
   {
-    // take geometry from set[0] and set RAS center at joint center of mass
-    mri_mean = MRIclone(mri_mov[0], NULL);
-    // map average centroid from TPI vox space to mean RAS space:
-    MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[0]);
-    vnl_matrix_fixed<double, 4, 4> tpi_v2r(
-        MyMatrix::convertMATRIX2VNL(mv2r_temp));
-    MatrixFree(&mv2r_temp);
-    vnl_vector_fixed<double, 4> ncenter;
-    for (uint ii = 0; ii < 3; ii++)
-      ncenter[ii] = centroid[ii];
-    ncenter[3] = 1.0;
-    // map to RAS:
-    ncenter = tpi_v2r * ncenter;
-    // set new center in geometry
-    for (uint ii = 0; ii < 3; ii++)
-      centroid[ii] = ncenter[ii];
-    mri_mean->c_r = ncenter[0];
-    mri_mean->c_a = ncenter[1];
-    mri_mean->c_s = ncenter[2];
-    mri_mean->ras_good_flag = 1;
-    MRIreInitCache(mri_mean);
+    std::cout << "    -- aligning image centroids (translation)" << std::endl;
+    // compute input centroids and common centroid
+    vector<double> centroid(3, 0.0);
+    vector<vector<double> > centroids(n);
+    for (int i = 0; i < n; i++)
+    {
+      centroids[i] = CostFunctions::centroid(mri_mov[i]);
+      MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[i]);
+      vnl_matrix_fixed<double, 4, 4> tpi_v2r(
+          MyMatrix::convertMATRIX2VNL(mv2r_temp));
+      MatrixFree(&mv2r_temp);
+      vnl_vector_fixed<double, 4> ncenter;
+      for (uint ii = 0; ii < 3; ii++)
+        ncenter[ii] = centroids[i][ii];
+      ncenter[3] = 1.0;
+      // map to RAS:
+      ncenter = tpi_v2r * ncenter;
+      for (uint ii = 0; ii < 3; ii++)
+        centroids[i][ii] = ncenter[ii];
+  
+      //cout << " Centroid [ " << i << " ] = " << centroids[i][0] << " " << centroids[i][1] << " " << centroids[i][2] << endl;
+      centroid[0] += centroids[i][0];
+      centroid[1] += centroids[i][1];
+      centroid[2] += centroids[i][2];
+    }
+    centroid[0] /= n;
+    centroid[1] /= n;
+    centroid[2] /= n;
+    //cout << " Centroid : " << centroid[0] << " " << centroid[1] << " " << centroid[2]  << endl;
+  
+    if (!mri_mean) //default:
+    {
+      // take geometry from set[0] and set RAS center at joint center of mass
+      mri_mean = MRIclone(mri_mov[0], NULL);
+      // map average centroid from TPI vox space to mean RAS space:
+      MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[0]);
+      vnl_matrix_fixed<double, 4, 4> tpi_v2r(
+          MyMatrix::convertMATRIX2VNL(mv2r_temp));
+      MatrixFree(&mv2r_temp);
+      vnl_vector_fixed<double, 4> ncenter;
+      for (uint ii = 0; ii < 3; ii++)
+        ncenter[ii] = centroid[ii];
+      ncenter[3] = 1.0;
+      // map to RAS:
+      ncenter = tpi_v2r * ncenter;
+      // set new center in geometry
+      for (uint ii = 0; ii < 3; ii++)
+        centroid[ii] = ncenter[ii];
+      mri_mean->c_r = ncenter[0];
+      mri_mean->c_a = ncenter[1];
+      mri_mean->c_s = ncenter[2];
+      mri_mean->ras_good_flag = 1;
+      MRIreInitCache(mri_mean);
+    }
+  
+    // create maps (lta) to centered image
+    MATRIX* Mtrans = MatrixIdentity(4, NULL);
+    for (int i = 0; i < n; i++)
+    {
+      Mtrans->rptr[1][4] = centroid[0] - centroids[i][0];
+      Mtrans->rptr[2][4] = centroid[1] - centroids[i][1];
+      Mtrans->rptr[3][4] = centroid[2] - centroids[i][2];
+      // set initial ltas as maps to the blurry mean
+      assert(ltas[i] == NULL);
+      ltas[i] = MyMatrix::RASmatrix2LTA(Mtrans, mri_mov[i], mri_mean);
+    }
   }
 
-  // create maps (lta) to centered image
-  MATRIX* Mtrans = MatrixIdentity(4, NULL);
-  for (int i = 0; i < n; i++)
-  {
-    Mtrans->rptr[1][4] = centroid[0] - centroids[i][0];
-    Mtrans->rptr[2][4] = centroid[1] - centroids[i][1];
-    Mtrans->rptr[3][4] = centroid[2] - centroids[i][2];
-    // set initial ltas as maps to the blurry mean
-    assert(ltas[i] == NULL);
-    ltas[i] = MyMatrix::RASmatrix2LTA(Mtrans, mri_mov[i], mri_mean);
-  }
   // map source to average space and create mri_mean
   mapAndAverageMov(0);
 
