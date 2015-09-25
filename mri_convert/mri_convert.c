@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/06/08 18:22:26 $
- *    $Revision: 1.222 $
+ *    $Author: fischl $
+ *    $Date: 2015/09/24 21:25:48 $
+ *    $Revision: 1.223 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.222 2015/06/08 18:22:26 greve Exp $",
+   "$Id: mri_convert.c,v 1.223 2015/09/24 21:25:48 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.222 2015/06/08 18:22:26 greve Exp $",
+      "$Id: mri_convert.c,v 1.223 2015/09/24 21:25:48 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1696,7 +1696,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.222 2015/06/08 18:22:26 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.223 2015/09/24 21:25:48 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -3469,8 +3469,8 @@ void get_ints(int argc, char *argv[], int *pos, int *vals, int nvals)
     if (*ep != '\0')
     {
       fprintf(stderr, "\n%s: error converting \"%s\" to an "
-              "integer for %s flag\n",
-              Progname, argv[*pos+i+1], argv[*pos]);
+              "integer for %s flag, incorrect # of args (need %d)?\n",
+              Progname, argv[*pos+i+1], argv[*pos], nvals);
       usage_message(stdout);
       exit(1);
     }
@@ -3511,8 +3511,8 @@ void get_floats(int argc, char *argv[], int *pos, float *vals, int nvals)
     if (*ep != '\0')
     {
       fprintf(stderr, "\n%s: error converting \"%s\" to a "
-              "float for %s flag\n",
-              Progname, argv[*pos+i+1], argv[*pos]);
+              "float for %s flag: incorrect # of args? Need %d\n",
+              Progname, argv[*pos+i+1], argv[*pos],nvals);
       usage_message(stdout);
       exit(1);
     }

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2015/09/02 18:34:04 $
- *    $Revision: 1.562 $
+ *    $Author: fischl $
+ *    $Date: 2015/09/25 14:29:25 $
+ *    $Revision: 1.563 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.562 $";
+const char *MRI_C_VERSION = "$Revision: 1.563 $";
 
 
 /*-----------------------------------------------------
@@ -19148,3 +19148,145 @@ int MRIcomputeVentMeansandCovariances(MRI *mri_inputs, MRI *mri_labeled, MATRIX 
 
 }
 
+/*
+  build and return a mosaic of images contained in the array mri[nimages]. The
+  returned image will have the same ras2vox as mri[0] with a different center.
+  The second frame of the returned image will have the count of the number of input
+  voxels that mapped to each output voxel. If any of the inputs have 2 frames, the 
+  second frame is assumed to be a count (that is, it was a previously created
+  mosaic.
+*/
+MRI *
+MRImakeMosaic(MRI **mri, int nimages, int rectify) 
+{
+  float    x0, x1, y0, y1, z0, z1, sum, minval;
+  MRI      *mri_mosaic ;
+  int      i, width, height, depth, x, y, z, xd, yd, zd, count ;
+  MATRIX   *m_vox2ras, *m_vox2vox, *m_tmp ;
+  VECTOR   *v_vox1, *v_vox2;
+
+  v_vox1 = VectorAlloc(4, MATRIX_REAL) ;
+  v_vox2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v_vox1,4) = 1.0 ; VECTOR_ELT(v_vox2,4) = 1.0 ;
+
+  x1 = y1 = z1 = 0 ;    // max vals in ras coords
+  x0 = y0 = z0 = 1e8 ;  // min vals in ras coords
+  
+  for (i = 1 ; i < nimages ; i++)
+  {
+    m_vox2vox = MRIgetVoxelToVoxelXform(mri[i], mri[0]) ;
+
+    for (x = 0 ; x < mri[i]->width ; x++)
+      for (y = 0 ; y < mri[i]->height ; y++)
+	for (z = 0 ; z < mri[i]->depth ; z++)
+	{
+	  V3_X(v_vox1) = x ; V3_Y(v_vox1) = y ; V3_Z(v_vox1) = z ;
+	  MatrixMultiply(m_vox2vox, v_vox1, v_vox2) ;
+	  xd = nint(V3_X(v_vox2)) ;  yd = nint(V3_Y(v_vox2)) ; zd = nint(V3_Z(v_vox2)) ;
+	  if (xd < x0)
+	    x0 = xd ;
+	  if (xd > x1)
+	    x1 = xd ;
+
+	  if (yd < y0)
+	    y0 = yd ;
+	  if (yd > y1)
+	    y1 = yd ;
+
+	  if (zd < z0)
+	    z0 = zd ;
+	  if (zd > z1)
+	    z1 = zd ;
+	}
+    MatrixFree(&m_vox2vox) ;
+  }
+  width = ceil(x1-x0+1) ; height = ceil(y1-y0+1) ; depth = ceil(z1-z0+1) ;
+
+  if (Gdiag & DIAG_SHOW)
+    printf("max extent (%2.0f, %2.0f, %2.0f) --> (%2.0f, %2.0f, %2.0f) = (%d x %d x %d)\n",
+	   x0, x0, x0, x1, x1, x1, width, height, depth);
+  
+  mri_mosaic = MRIallocSequence(width, height, depth, MRI_FLOAT, 2) ;
+  MRIcopyHeader(mri[0], mri_mosaic) ;
+  m_vox2ras = MRIgetVoxelToRasXform(mri[0]) ;
+  m_vox2vox = MatrixIdentity(4, NULL) ;
+  *MATRIX_RELT(m_vox2vox, 1, 4) = x0 ;
+  *MATRIX_RELT(m_vox2vox, 2, 4) = y0 ;
+  *MATRIX_RELT(m_vox2vox, 3, 4) = z0 ;
+  m_tmp = MatrixMultiply(m_vox2ras, m_vox2vox,NULL) ;
+  MRIsetVox2RASFromMatrix(mri_mosaic, m_tmp) ;
+  MatrixFree(&m_vox2ras) ; MatrixFree(&m_vox2vox) ; MatrixFree(&m_tmp) ;
+
+  for (i =  0 ; i < nimages ; i++)
+  {
+    float  val ;
+
+    m_vox2vox = MRIgetVoxelToVoxelXform(mri[i], mri_mosaic) ;
+    for (x = 0 ; x < mri[i]->width ; x++)
+    {
+      for (y = 0 ; y < mri[i]->height ; y++)
+      {
+	for (z = 0 ; z < mri[i]->depth ; z++)
+	{
+	  V3_X(v_vox1) = x ; V3_Y(v_vox1) = y ; V3_Z(v_vox1) = z ;
+	  MatrixMultiply(m_vox2vox, v_vox1, v_vox2) ;
+	  xd = nint(V3_X(v_vox2)) ;  yd = nint(V3_Y(v_vox2)) ; zd = nint(V3_Z(v_vox2)) ;
+
+	  if (MRIindexNotInVolume(mri_mosaic, xd, yd, zd))
+	    continue ;
+	  count = (int)MRIgetVoxVal(mri_mosaic, xd, yd, zd, 1) ;
+	  val = MRIgetVoxVal(mri[i], x, y, z, 0) ;
+	  sum = MRIgetVoxVal(mri_mosaic, xd, yd, zd, 0) ;
+	  if (mri[i]->nframes > 1)  // adding to a previously existing mosaic
+	  {
+	    int old_count ;
+	    old_count = (int)MRIgetVoxVal(mri[i], x, y, z, 1) ;
+	    count += old_count ;
+	    sum += (old_count*val) ;
+	  }
+	  else
+	  {
+	    count++ ;
+	    sum += val ;
+	  }
+	  MRIsetVoxVal(mri_mosaic, xd, yd, zd, 1, count) ;
+	  MRIsetVoxVal(mri_mosaic, xd, yd, zd, 0, sum) ;
+	}
+      }
+    }
+    MatrixFree(&m_vox2vox) ;
+  }
+
+  minval = 0 ;
+  for (xd = 0 ; xd < mri_mosaic->width ; xd++)
+    for (yd = 0 ; yd < mri_mosaic->height ; yd++)
+      for (zd = 0 ; zd < mri_mosaic->depth ; zd++)
+      {
+	sum = MRIgetVoxVal(mri_mosaic, xd, yd, zd, 0) ;
+	count = MRIgetVoxVal(mri_mosaic, xd, yd, zd, 1) ;
+	if (count > 0)
+	{
+	  sum /= count ;
+	  MRIsetVoxVal(mri_mosaic, xd, yd, zd, 0, sum) ;
+	  if (sum < minval)
+	    minval = sum ;
+	}
+      }
+  if (rectify)
+  {
+    for (xd = 0 ; xd < mri_mosaic->width ; xd++)
+      for (yd = 0 ; yd < mri_mosaic->height ; yd++)
+	for (zd = 0 ; zd < mri_mosaic->depth ; zd++)
+	{
+	  sum = MRIgetVoxVal(mri_mosaic, xd, yd, zd, 0) ;
+	  count = MRIgetVoxVal(mri_mosaic, xd, yd, zd, 1) ;
+	  if (count > 0)
+	  {
+	    sum -= (minval) ;
+	    MRIsetVoxVal(mri_mosaic, xd, yd, zd, 0, sum) ;
+	  }
+	}
+  }
+  VectorFree(&v_vox1) ; VectorFree(&v_vox2) ;
+  return(mri_mosaic) ;
+}

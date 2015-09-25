@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2015/09/02 18:34:36 $
- *    $Revision: 1.479 $
+ *    $Author: fischl $
+ *    $Date: 2015/09/25 14:29:34 $
+ *    $Revision: 1.480 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -319,6 +319,8 @@ size_t MRIsizeof(int mritype);
 
 char * MRIprecisionString(int PrecisionCode);
 int MRIprecisionCode(char *PrecisionString);
+
+MRI *MRImakeMosaic(MRI **mri, int nimages, int rectify) ; 
 
 int MRIareNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z) ;
 float  MRIfindNearestNonzero(MRI *mri,

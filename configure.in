@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/08/25 16:29:16 $
-#    $Revision: 1.656 $
+#    $Author: fischl $
+#    $Date: 2015/09/25 16:05:38 $
+#    $Revision: 1.657 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3723,6 +3723,7 @@ AC_OUTPUT([Makefile
            mri_concatenate_gcam/Makefile
      	   mri_concatenate_lta/Makefile
            mri_convert/Makefile
+           mri_mosaic/Makefile
            mri_convert_mdh/Makefile
            mri_copy_values/Makefile
            mri_cor2label/Makefile

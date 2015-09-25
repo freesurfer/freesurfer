@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/09/23 17:47:09 $
- *    $Revision: 1.15 $
+ *    $Author: fischl $
+ *    $Date: 2015/09/24 17:51:45 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,7 @@
 #include "region.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.15 2014/09/23 17:47:09 greve Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.16 2015/09/24 17:51:45 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -57,6 +57,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static int crop = 1 ;
 static int no_offset = 0 ;
 static int filter_type = FILTER_MINMAX ;
 static float gaussian_sigma = GAUSSIAN_SIGMA ;
@@ -87,7 +88,7 @@ main(int argc, char *argv[]) {
   MRI_REGION  region, clip_region ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.15 2014/09/23 17:47:09 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.16 2015/09/24 17:51:45 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -123,7 +124,15 @@ main(int argc, char *argv[]) {
   } else
     mri_blur = NULL ;
 
-  MRIboundingBox(mri_full, 0, &clip_region) ;
+  if (crop)
+    MRIboundingBox(mri_full, 0, &clip_region) ;
+  else
+  {
+    clip_region.x = clip_region.y = clip_region.z = 0 ;
+    clip_region.dx = mri_full->width-1 ;
+    clip_region.dy = mri_full->height-1 ;
+    clip_region.dz = mri_full->depth-1 ;
+  }
   REGIONexpand(&clip_region, &clip_region, (filter_window_size+1)/2) ;
   mri_src = MRIextractRegion(mri_full, NULL, &clip_region) ;
   width = mri_src->width ;
@@ -136,177 +145,196 @@ main(int argc, char *argv[]) {
 
   printf("filter number: %d\n",filter_type);
 
-  for (z = 0 ; z < depth ; z += region_size) {
-    for (y = 0 ; y < height ; y += region_size) {
-      DiagHeartbeat((float)(z*height+y) / (float)(height*(depth-1))) ;
-      for (x = 0 ; x < width ; x += region_size) {
-        region.x = x ;
-        region.y = y ;
-        region.z = z ;
-        region.dx = region.dy = region.dz = region_size ;
-        if (region.x == 142)
-          DiagBreak() ;
-        REGIONexpand(&region, &region, (filter_window_size+1)/2) ;
-        MRIclipRegion(mri_src, &region, &region) ;
-        if (region.x == 142)
-          DiagBreak() ;
-
-        /* check for < 0 width regions */
-        xborder = x-region.x ;
-        yborder = y-region.y ;
-        zborder = z-region.z ;
-        xrborder = MAX(0, (region.dx-xborder) - region_size) ;
-        yrborder = MAX(0, (region.dy-yborder) - region_size) ;
-        zrborder = MAX(0, (region.dz-zborder) - region_size) ;
+  if (crop == 0 && no_offset)
+  {
+    MRI *mri_tmp ;
+    printf("disabling regional filtering\n") ;
+    switch (filter_type)
+    {
+    default:
+    case FILTER_GAUSSIAN:
+      mri_tmp = MRIconvolveGaussian(mri_full, NULL, mri_gaussian) ;
+      if (!mri_tmp)
+	ErrorExit(ERROR_NOMEMORY,
+		  "%s: could not allocate temporary buffer space",Progname);
+      break ;
+    }
+    MRIcopy(mri_tmp, mri_full) ;
+    MRIfree(&mri_tmp) ;
+  }
+  else
+  {
+    for (z = 0 ; z < depth ; z += region_size) 
+    {
+      for (y = 0 ; y < height ; y += region_size) 
+      {
+	DiagHeartbeat((float)(z*height+y) / (float)(height*(depth-1))) ;
+	for (x = 0 ; x < width ; x += region_size) 
+	{
+	  region.x = x ; region.y = y ; region.z = z ;
+	  region.dx = region.dy = region.dz = region_size ;
+	  if (region.x == 142)
+	    DiagBreak() ;
+	  REGIONexpand(&region, &region, (filter_window_size+1)/2) ;
+	  MRIclipRegion(mri_src, &region, &region) ;
+	  if (region.x == 142)
+	    DiagBreak() ;
+	  
+	  /* check for < 0 width regions */
+	  xborder = x-region.x ; yborder = y-region.y ; zborder = z-region.z ;
+	  xrborder = MAX(0, (region.dx-xborder) - region_size) ;
+	  yrborder = MAX(0, (region.dy-yborder) - region_size) ;
+	  zrborder = MAX(0, (region.dz-zborder) - region_size) ;
 #if 0
-        if (region.dx < 2*xborder || region.dy<2*yborder||region.dz<2*zborder)
-          continue ;
+	  if (region.dx < 2*xborder || region.dy<2*yborder||region.dz<2*zborder)
+	    continue ;
 #endif
-
-        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-          fprintf(stderr, "extracting region (%d, %d, %d) --> (%d, %d, %d)...",
-                  region.x,region.y,region.z, region.x+region.dx-1,
-                  region.y+region.dy-1,region.z+region.dz-1) ;
-        mri_clip = MRIextractRegion(mri_src, NULL, &region) ;
-        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-          fprintf(stderr, "done.\nsmoothing region and up-sampling...") ;
-
-        if (mri_blur)   /* smooth the input image to generate offset field */
-          mri_smooth = MRIconvolveGaussian(mri_clip, NULL, mri_blur) ;
-        else
-          mri_smooth = MRIcopy(mri_clip, NULL) ;  /* no smoothing */
-        if (!mri_smooth)
-          ErrorExit(ERROR_BADPARM, "%s: image smoothing failed", Progname) ;
-
-        /* now up-sample the smoothed image, and compute offset field in
-           up-sampled domain */
-        mri_up = MRIupsample2(mri_smooth, NULL) ;
-        if (!mri_up)
-          ErrorExit(ERROR_BADPARM, "%s: up sampling failed", Progname) ;
-        MRIfree(&mri_smooth) ;
-        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-          fprintf(stderr, "done.\n") ;
-        mri_smooth = mri_up ;
-        mri_grad = MRIsobel(mri_smooth, NULL, NULL) ;
-        mri_dir = MRIclone(mri_smooth, NULL) ;
-        MRIfree(&mri_smooth) ;
-        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-          fprintf(stderr, "computing direction map...") ;
-        mri_direction =
-          MRIoffsetDirection(mri_grad, offset_window_size, NULL, mri_dir) ;
-
-        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-          fprintf(stderr, "computing offset magnitudes...") ;
-        MRIfree(&mri_grad) ;
-        mri_offset =
-          MRIoffsetMagnitude(mri_direction, NULL, offset_search_len);
-        MRIfree(&mri_direction) ;
-        if (!mri_offset)
-          ErrorExit(ERROR_NOMEMORY,
-                    "%s: offset calculation failed", Progname) ;
-        if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-          fprintf(stderr, "done.\nfiltering image...") ;
-        mri_filter_src = MRIupsample2(mri_clip, NULL) ;
-        MRIfree(&mri_clip) ;
-
-	//-----------------------------------------------------------
-        switch (filter_type) {
-        case FILTER_CPOLV_MEDIAN:
-	  if(x==0 && y==0 && z==0) printf("filter type: cpolv median\n");
-          mri_polv = MRIplaneOfLeastVarianceNormal(mri_filter_src,NULL,5);
-          mri_filter_dst =
-            MRIpolvMedian(mri_filter_src, NULL, mri_polv,filter_window_size);
-          MRIfree(&mri_polv) ;
-          break ;
-        case FILTER_GAUSSIAN:
-	  if(x==0 && y==0 && z==0) printf("filter type: gaussian\n");
-          mri_filter_dst =
-            MRIconvolveGaussian(mri_filter_src, NULL, mri_gaussian) ;
-          if (!mri_filter_dst)
-            ErrorExit(ERROR_NOMEMORY,
-                      "%s: could not allocate temporary buffer space",Progname);
-          break ;
-        case FILTER_MEDIAN:
-	  if(x==0 && y==0 && z==0) printf("filter type: median\n");
-          mri_filter_dst = MRImedian(mri_filter_src,NULL,filter_window_size, NULL);
-          if (!mri_filter_dst)
-            ErrorExit(ERROR_NOMEMORY,
-                      "%s: could not allocate temporary buffer space",Progname);
-          break ;
-        case FILTER_MEAN:
-	  if(x==0 && y==0 && z==0) printf("filter type: mean\n");
-          mri_filter_dst = MRImean(mri_filter_src, NULL, filter_window_size) ;
-          if (!mri_filter_dst)
-            ErrorExit(ERROR_NOMEMORY,
-                      "%s: could not allocate temporary buffer space",Progname);
-          break ;
-        case FILTER_MINMAX:
-	  if(x==0 && y==0 && z==0) printf("filter type: minmax\n");
-          mri_filter_dst =
-            MRIminmax(mri_filter_src, NULL, mri_dir, filter_window_size) ;
-          if (!mri_filter_dst)
-            ErrorExit(ERROR_NOMEMORY,
-                      "%s: could not allocate space for filtered image",
-                      Progname) ;
-          break ;
-        default:
-	  if(x==0 && y==0 && z==0) printf("filter type: none\n");
-          mri_filter_dst = MRIcopy(mri_filter_src, NULL) ; /* no filtering */
-          break ;
-        }
-        MRIfree(&mri_dir) ;
-        MRIfree(&mri_filter_src) ;
-
-        if (no_offset)
-        {
-          mri_filtered = MRIcopy(mri_filter_dst, NULL) ;
-        }
-        else
-        {
-          if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-            fprintf(stderr, "applying offset field...") ;
-          if (Gdiag & DIAG_WRITE)
-            MRIwrite(mri_filter_dst, "minmax.mgz") ;
-          mri_filtered = MRIapplyOffset(mri_filter_dst, NULL, mri_offset) ;
-          if (!mri_filtered)
-            ErrorExit(ERROR_NOMEMORY,
-                      "%s: could not allocate filtered image", Progname) ;
-          if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
-            fprintf(stderr, "done.\n") ;
-          if (region.x == 142)
-          DiagBreak() ;
-          MRIfree(&mri_offset) ;
-        }
-        MRIfree(&mri_filter_dst) ;
-        if (Gdiag & DIAG_WRITE)
-          MRIwrite(mri_filtered, "upfilt.mgz") ;
-        mri_tmp = MRIdownsample2(mri_filtered, NULL) ;
-        MRIfree(&mri_filtered) ;
-        if (Gdiag & DIAG_WRITE)
-          MRIwrite(mri_tmp, "downfilt.mgz") ;
-        region.x += xborder ;
-        region.y += yborder ;
-        region.z += zborder ;
+	  
+	  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+	    fprintf(stderr, "extracting region (%d, %d, %d) --> (%d, %d, %d)...",
+		    region.x,region.y,region.z, region.x+region.dx-1,
+		    region.y+region.dy-1,region.z+region.dz-1) ;
+	  mri_clip = MRIextractRegion(mri_src, NULL, &region) ;
+	  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+	    fprintf(stderr, "done.\nsmoothing region and up-sampling...") ;
+	  
+	  if (mri_blur)   /* smooth the input image to generate offset field */
+	    mri_smooth = MRIconvolveGaussian(mri_clip, NULL, mri_blur) ;
+	  else
+	    mri_smooth = MRIcopy(mri_clip, NULL) ;  /* no smoothing */
+	  if (!mri_smooth)
+	    ErrorExit(ERROR_BADPARM, "%s: image smoothing failed", Progname) ;
+	  
+	  /* now up-sample the smoothed image, and compute offset field in
+	     up-sampled domain */
+	  mri_up = MRIupsample2(mri_smooth, NULL) ;
+	  if (!mri_up)
+	    ErrorExit(ERROR_BADPARM, "%s: up sampling failed", Progname) ;
+	  MRIfree(&mri_smooth) ;
+	  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+	    fprintf(stderr, "done.\n") ;
+	  mri_smooth = mri_up ;
+	  mri_grad = MRIsobel(mri_smooth, NULL, NULL) ;
+	  mri_dir = MRIclone(mri_smooth, NULL) ;
+	  MRIfree(&mri_smooth) ;
+	  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+	    fprintf(stderr, "computing direction map...") ;
+	  mri_direction =
+	    MRIoffsetDirection(mri_grad, offset_window_size, NULL, mri_dir) ;
+	  
+	  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+	    fprintf(stderr, "computing offset magnitudes...") ;
+	  MRIfree(&mri_grad) ;
+	  mri_offset =
+	    MRIoffsetMagnitude(mri_direction, NULL, offset_search_len);
+	  MRIfree(&mri_direction) ;
+	  if (!mri_offset)
+	    ErrorExit(ERROR_NOMEMORY,
+		      "%s: offset calculation failed", Progname) ;
+	  if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+	    fprintf(stderr, "done.\nfiltering image...") ;
+	  mri_filter_src = MRIupsample2(mri_clip, NULL) ;
+	  MRIfree(&mri_clip) ;
+	  
+	  //-----------------------------------------------------------
+	  switch (filter_type) {
+	  case FILTER_CPOLV_MEDIAN:
+	    if(x==0 && y==0 && z==0) printf("filter type: cpolv median\n");
+	    mri_polv = MRIplaneOfLeastVarianceNormal(mri_filter_src,NULL,5);
+	    mri_filter_dst =
+	      MRIpolvMedian(mri_filter_src, NULL, mri_polv,filter_window_size);
+	    MRIfree(&mri_polv) ;
+	    break ;
+	  case FILTER_GAUSSIAN:
+	    if(x==0 && y==0 && z==0) printf("filter type: gaussian\n");
+	    mri_filter_dst =
+	      MRIconvolveGaussian(mri_filter_src, NULL, mri_gaussian) ;
+	    if (!mri_filter_dst)
+	      ErrorExit(ERROR_NOMEMORY,
+			"%s: could not allocate temporary buffer space",Progname);
+	    break ;
+	  case FILTER_MEDIAN:
+	    if(x==0 && y==0 && z==0) printf("filter type: median\n");
+	    mri_filter_dst = MRImedian(mri_filter_src,NULL,filter_window_size, NULL);
+	    if (!mri_filter_dst)
+	      ErrorExit(ERROR_NOMEMORY,
+			"%s: could not allocate temporary buffer space",Progname);
+	    break ;
+	  case FILTER_MEAN:
+	    if(x==0 && y==0 && z==0) printf("filter type: mean\n");
+	    mri_filter_dst = MRImean(mri_filter_src, NULL, filter_window_size) ;
+	    if (!mri_filter_dst)
+	      ErrorExit(ERROR_NOMEMORY,
+			"%s: could not allocate temporary buffer space",Progname);
+	    break ;
+	  case FILTER_MINMAX:
+	    if(x==0 && y==0 && z==0) printf("filter type: minmax\n");
+	    mri_filter_dst =
+	      MRIminmax(mri_filter_src, NULL, mri_dir, filter_window_size) ;
+	    if (!mri_filter_dst)
+	      ErrorExit(ERROR_NOMEMORY,
+			"%s: could not allocate space for filtered image",
+			Progname) ;
+	    break ;
+	  default:
+	    if(x==0 && y==0 && z==0) printf("filter type: none\n");
+	    mri_filter_dst = MRIcopy(mri_filter_src, NULL) ; /* no filtering */
+	    break ;
+	  }
+	  MRIfree(&mri_dir) ;
+	  MRIfree(&mri_filter_src) ;
+	  
+	  if (no_offset)
+	  {
+	    mri_filtered = MRIcopy(mri_filter_dst, NULL) ;
+	  }
+	  else
+	  {
+	    if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+	      fprintf(stderr, "applying offset field...") ;
+	    if (Gdiag & DIAG_WRITE)
+	      MRIwrite(mri_filter_dst, "minmax.mgz") ;
+	    mri_filtered = MRIapplyOffset(mri_filter_dst, NULL, mri_offset) ;
+	    if (!mri_filtered)
+	      ErrorExit(ERROR_NOMEMORY,
+			"%s: could not allocate filtered image", Progname) ;
+	    if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
+	      fprintf(stderr, "done.\n") ;
+	    if (region.x == 142)
+	      DiagBreak() ;
+	    MRIfree(&mri_offset) ;
+	  }
+	  MRIfree(&mri_filter_dst) ;
+	  if (Gdiag & DIAG_WRITE)
+	    MRIwrite(mri_filtered, "upfilt.mgz") ;
+	  mri_tmp = MRIdownsample2(mri_filtered, NULL) ;
+	  MRIfree(&mri_filtered) ;
+	  if (Gdiag & DIAG_WRITE)
+	    MRIwrite(mri_tmp, "downfilt.mgz") ;
+	  region.x += xborder ;
+	  region.y += yborder ;
+	  region.z += zborder ;
 #if 0
-        region.dx -=2*xborder;
-        region.dy-= 2*yborder;
-        region.dz -= 2 * zborder;
+	  region.dx -=2*xborder;
+	  region.dy-= 2*yborder;
+	  region.dz -= 2 * zborder;
 #else
-        region.dx -= xrborder + xborder;
-        region.dy -= yrborder + yborder;
-        region.dz -= zrborder + zborder;
+	  region.dx -= xrborder + xborder;
+	  region.dy -= yrborder + yborder;
+	  region.dz -= zrborder + zborder;
 #endif
-        if (region.dx <= 0 || region.dy <= 0 || region.dz <= 0) {
-          fprintf(stderr, "invalid region: (%d,%d,%d) --> (%d,%d,%d)\n",
-                  region.x,region.y,region.z,region.dx,region.dy,region.dz);
-        } else
-          MRIextractIntoRegion(mri_tmp,mri_dst,xborder,yborder,zborder,&region);
-        MRIfree(&mri_tmp);
+	  if (region.dx <= 0 || region.dy <= 0 || region.dz <= 0) {
+	    fprintf(stderr, "invalid region: (%d,%d,%d) --> (%d,%d,%d)\n",
+		    region.x,region.y,region.z,region.dx,region.dy,region.dz);
+	  } else
+	    MRIextractIntoRegion(mri_tmp,mri_dst,xborder,yborder,zborder,&region);
+	  MRIfree(&mri_tmp);
+	}
       }
     }
+    MRIextractIntoRegion(mri_dst,mri_full, 0, 0, 0, &clip_region);
+    MRIfree(&mri_dst) ;
   }
-  MRIextractIntoRegion(mri_dst,mri_full, 0, 0, 0, &clip_region);
-  MRIfree(&mri_dst) ;
   if (DIAG_VERBOSE_ON && (Gdiag & DIAG_SHOW))
     fprintf(stderr, "writing output image %s...", out_fname) ;
   MRIwrite(mri_full, out_fname) ;
@@ -347,6 +375,8 @@ get_option(int argc, char *argv[]) {
     filter_type = FILTER_MEDIAN ;
   else if (!stricmp(option, "none"))
     filter_type = FILTER_NONE ;
+  else if (!stricmp(option, "nc"))
+    crop = 0 ;
   else if (!stricmp(option, "mean"))
     filter_type = FILTER_MEAN ;
   else if (!stricmp(option, "-version"))
@@ -455,6 +485,8 @@ print_help(void) {
           "  -mean             - filter with mean instead of median.\n") ;
   printf("  -cplov    - filter with cplov (whatever that is).\n") ;
   printf("  -minmax   - filter with minmax (whatever that is)\n") ;
+  printf("  -n        - don't use offsets (just apply standard filters)\n") ;
+  printf("  -nc       - don't crop to >0 region of image\n") ;
   fprintf(stderr,
           "  -w <window size>  - specify window used for offset calculation "
           "(default=%d).\n", OFFSET_WSIZE) ;
