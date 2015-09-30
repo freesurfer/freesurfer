@@ -15,9 +15,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/07/27 19:38:24 $
- *    $Revision: 1.336 $
+ *    $Author: fischl $
+ *    $Date: 2015/09/29 19:19:10 $
+ *    $Revision: 1.337 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -11591,9 +11591,7 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
   double  mean, sigma ;
   double    val ;
 
-  width = mri_in->width ;
-  height = mri_in->height ;
-  depth = mri_in->depth ;
+  width = mri_in->width ; height = mri_in->height ; depth = mri_in->depth ;
   mri_dst = mri_in;
   mri_ctrl = MRIalloc(width, height, depth, MRI_UCHAR) ;
   MRIcopyHeader(mri_in, mri_ctrl);
@@ -11627,15 +11625,12 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
       for (x = 0 ; x < width ; x++)
       {
         if (x == Gx && y == Gy && z == Gz)
-        {
           DiagBreak() ;
-        }
+
         MRISvox(mri_bias, x,y,z) = NO_BIAS ;  /* by default */
         if (MRIvox(mri_ctrl, x, y, z) != CONTROL_MARKED)
           /* not read from file */
-        {
           continue ;
-        }
 
         if (nsamples == 0)   /* only using file control points */
         {
@@ -11657,18 +11652,16 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
             gcan = &gca->nodes[xn][yn][zn] ;
             gcap = getGCAP(gca, mri_dst, transform, x, y, z) ;
             if (gcap==NULL)
-            {
               continue;
-            }
+
             max_p = 0 ;
             for (max_n = -1, n = 0 ; n < gcan->nlabels ; n++)
             {
               if ((0 == IS_WM(gcan->labels[n])) &&
                   (0 == IS_CEREBELLAR_WM(gcan->labels[n])) &&
                   (gcan->labels[n] != Brain_Stem))
-              {
                 continue ;
-              }
+
               gc = &gcan->gcs[n] ;
               if (getPrior(gcap, gcan->labels[n]) >= max_p)
               {
@@ -11678,9 +11671,8 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
             }
             if (max_n < 0)
               /* couldn't find any valid label at this location */
-            {
               continue ;
-            }
+
             gc = &gcan->gcs[max_n] ;
 
 
@@ -11694,17 +11686,13 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
               (float)NO_BIAS*((float)gc->means[input_index]/val) ;
 
             if (bias < 100 || bias > 5000)
-            {
               DiagBreak() ;
-            }
+
             if (bias < MIN_BIAS)
-            {
               bias = MIN_BIAS ;
-            }
+
             if (bias > MAX_BIAS)
-            {
               bias = MAX_BIAS ;
-            }
 
             MRISvox(mri_bias, x, y, z) = (short)nint(bias) ;
           }
@@ -11718,9 +11706,7 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
   for (n = 0 ; n < nsamples ; n++)
   {
     if (gcas[n].xp == Ggca_x && gcas[n].yp == Ggca_y && gcas[n].zp == Ggca_z)
-    {
       DiagBreak() ;
-    }
 
 #if 0
     if (!GCApriorToSourceVoxel(gca, mri_dst, transform,
@@ -11963,11 +11949,26 @@ GCAnormalizeSamplesAllChannels(MRI *mri_in,
 
   mri_dst = MRIcopy(mri_in, NULL);
 
-  for (input = 0; input < gca->ninputs; input++)
+  if (gca->ninputs== 1 && mri_dst->nframes > 1)  // normalize each frame
   {
-    GCAnormalizeSamplesOneChannel(mri_dst, gca, gcas, nsamples,
-                                  transform, ctl_point_fname, input,
-                                  bias_sigma);
+    for (input = 0; input < mri_dst->nframes; input++)
+    {
+      MRI *mri_frame = MRIcopyFrame(mri_dst, NULL, input, 0) ;
+      GCAnormalizeSamplesOneChannel(mri_frame, gca, gcas, nsamples,
+				    transform, ctl_point_fname, 0,
+				    bias_sigma);
+      MRIcopyFrame(mri_frame, mri_dst, 0, input) ;
+      MRIfree(&mri_frame) ;
+    }
+  }
+  else
+  {
+    for (input = 0; input < gca->ninputs; input++)
+    {
+      GCAnormalizeSamplesOneChannel(mri_dst, gca, gcas, nsamples,
+				    transform, ctl_point_fname, input,
+				    bias_sigma);
+    }
   }
 
   return (mri_dst);

@@ -251,6 +251,7 @@ MFILES=\
 	fast_selfreqavg.m \
 	fast_selxavg2.m \
 	fast_selxavg3.m \
+	fast_selxavg3b.m \
 	fast_selxavg.m \
 	fast_sesscfg_struct.m \
 	fast_sigmoid.m \
