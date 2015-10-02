@@ -93,6 +93,7 @@ MRISUBDIRS=\
 	mri_extract_conditions \
 	mri_extract_label \
 	mri_fcili \
+	mri_fdr \
 	mri_fieldsign \
 	mri_fill \
 	mri_fit_bias \

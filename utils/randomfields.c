@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/12 20:22:57 $
- *    $Revision: 1.15 $
+ *    $Author: greve $
+ *    $Date: 2015/10/01 16:35:03 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
 // Return the CVS version of this file.
 const char *RFSrcVersion(void)
 {
-  return("$Id: randomfields.c,v 1.15 2015/03/12 20:22:57 zkaufman Exp $");
+  return("$Id: randomfields.c,v 1.16 2015/10/01 16:35:03 greve Exp $");
 }
 
 /*-------------------------------------------------------------------*/
@@ -649,7 +649,7 @@ double RFprobZCluster(double clustersize, double vzthresh,
   // less accurate.
 
   // Equation 3
-  beta = pow(lgamma(D/2+1)*Em/(S*phiu),2/D);
+  beta = pow(tgamma(D/2+1)*Em/(S*phiu),2/D);
 
   // Prob that number of voxels in a cluster (n) exceeds k (Bet Eq 2 and 3)
   Pnk = exp( -beta * pow(k,2.0/D) );

@@ -10,6 +10,7 @@ foodir=$(prefix)/average
 
 GCA=\
 	face.gca \
+	RB_all_2015-08-04.gca \
 	RB_all_2014-08-21.gca \
 	RB_all_withskull_2014-08-21.gca \
 	talairach_mixed_with_skull.gca \

@@ -64,6 +64,9 @@ fsl_sub_mgh \
 fsutils.py \
 fvcompare \
 gca-apply \
+gcatrain \
+gcaprepone \
+gcainit \
 gtmseg \
 tkmeditfv \
 tksurferfv \
