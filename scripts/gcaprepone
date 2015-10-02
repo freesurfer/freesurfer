@@ -1,0 +1,311 @@
+#!/bin/tcsh -f
+# gcaprepone
+
+set VERSION = '$Id: gcaprepone,v 1.1 2015/10/02 16:12:16 greve Exp $';
+
+set gcadir = ();
+set subject = ();
+set DoneFile = ();
+set cmd = ();
+set UseMaskNuCorrect = 0;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $gcadir
+pushd $gcadir > /dev/null
+set gcadir = `pwd`;
+popd > /dev/null
+mkdir -p $gcadir/scripts
+setenv SUBJECTS_DIR $gcadir
+mkdir -p $gcadir/$subject/mri/transforms
+mkdir -p $gcadir/$subject/mri/orig
+
+# Set up log file
+mkdir -p $gcadir/log
+if($#LF == 0) set LF = $gcadir/log/gcaprepone.$subject.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for gcaprepone" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  | tee -a $LF
+endif
+
+#========================================================
+set mantal = `cat $gcadir/scripts/mantal.txt`
+set manseg = `cat $gcadir/scripts/manseg.txt`
+set initsubject = `cat $gcadir/scripts/initsubject.txt`
+set IsInitSubject = 0;
+if($initsubject == $subject) set IsInitSubject = 1;
+echo "IsInitSubject $IsInitSubject" | tee -a $LF
+
+# Source data
+set srcsd = $src_subjects_dir/$subject
+set srcmriodir = $srcsd/mri/orig
+
+# Copy source data
+set vollist = (`find "$srcmriodir" -iname "[0-9][0-9][0-9].mgz" -print`)
+foreach vol ($vollist)
+  set cmd = (cp $vol $gcadir/$subject/mri/orig)
+  pwd | tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+end
+
+set ControlPointsFile = $src_subjects_dir/$subject/tmp/control.dat
+if(-e $ControlPointsFile) then
+  mkdir -p $gcadir/$subject/tmp
+  set cmd = (cp $ControlPointsFile $gcadir/$subject/tmp)
+  pwd | tee -a $LF
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+endif
+
+# Copy manual segmentations
+set cmd = (cp $srcsd/mri/$manseg $gcadir/$subject/mri)
+pwd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+if($IsInitSubject) then
+  # Copy talairach transform if this is the init subject
+  set cmd = (cp $srcsd/mri/transforms/$mantal $gcadir/$subject/mri/transforms)
+  pwd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  # Make a link to the init subject
+  rm -f init.subject
+  pushd $gcadir > /dev/null
+  set cmd = (ln -s $initsubject init.subject)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) goto error_exit;
+  popd > /dev/null
+  # create a file to indicate this is the init subject
+  touch $gcadir/$subject/gcatrain.init.subject
+endif
+
+# Run recon-all
+set rcalog = $SUBJECTS_DIR/$subject/scripts/recon-all.prep.log
+set rcadone = $SUBJECTS_DIR/$subject/scripts/recon-all.prep.done
+set cmd = (recon-all -s $subject -autorecon1 -log $rcalog)
+set cmd = ($cmd -done $rcadone); # not with older version of FS
+set cmd = ($cmd -no-talcheck); # only to speed it up
+# set cmd = ($cmd -nuintensitycor-nomask) # this is default now in recon-all
+echo $cmd  | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Add xfm to manseg or else other programs complain
+# Dont use mantal because only init subject has mantal
+set xfm = $SUBJECTS_DIR/$subject/mri/transforms/talairach.xfm
+set vol = $SUBJECTS_DIR/$subject/mri/$manseg
+set cmd = (mri_add_xform_to_header $xfm $vol $vol)
+pwd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+#========================================================
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Gcaprepone-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Gcaprepone-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "gcaprepone Done" |& tee -a $LF
+echo ""|& tee -a $LF
+
+if($#DoneFile) then
+  echo $DoneFile
+  echo "0" > $DoneFile
+endif
+
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR: $cmd"  |& tee -a $LF
+date  |& tee -a $LF
+echo "gcaprepone exited with errors"  |& tee -a $LF
+if($#DoneFile) then
+  echo $DoneFile
+  echo "1" > $DoneFile
+endif
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--g":
+      if($#argv < 1) goto arg1err;
+      set gcadir = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      set src_subjects_dir = $argv[1]; shift;
+      breaksw
+
+    case "--threads"
+    case "--nthreads"
+      if($#argv < 1) goto arg1err;
+      setenv OMP_NUM_THREADS $argv[1]; shift;
+      setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS
+      breaksw
+
+    case "--done":
+      if($#argv < 1) goto arg1err;
+      set DoneFile = $argv[1]; shift;
+      rm -f $DoneFile
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--nuintensitycor-nomask":
+      set UseMaskNuCorrect = 0;
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#gcadir == 0) then
+  echo "ERROR: must spec gcadir"
+  exit 1;
+endif
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+
+# All checks for existence of files has been done in gcatrain
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "gcaprepone"
+  echo " --o gcadir : (to be the new SUBJECTS_DIR)"
+  echo " --s subject"
+  echo " --init-subject : this is the init subject"
+  echo " --sd SUBJECTS_DIR : for source data "
+  echo " --done DoneFile"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+

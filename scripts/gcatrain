@@ -1,0 +1,683 @@
+#!/bin/tcsh -f
+# gcatrain
+
+set VERSION = '$Id: gcatrain,v 1.1 2015/10/02 16:12:16 greve Exp $';
+setenv REQUIRE_FS_MATCH 1
+
+set gcadir = ();
+set subjectlist = ();
+set initsubject = (); # eg, 990104_vc700
+set xsubjectlist = (); # subjects to exclude
+set mantal = (); # eg, talairach_man.xfm
+set manseg = (); # eg,  seg_edited10.mgz
+set maskvol = brainmask.mgz
+set niters = ()
+set pbconf = ()
+set nthreads = 1;
+set DoInit = 1;
+set GCARegIterations = ();
+set GCARegTol = ();
+set Submit = 1
+set gcainitdone = ();
+
+#set GCARegIterations = 1;
+#set nthreads = 4;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $gcadir
+pushd $gcadir > /dev/null
+set gcadir = `pwd`;
+popd > /dev/null
+mkdir -p $gcadir/scripts
+mkdir -p $gcadir/log/done
+
+set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
+set bstampfile = $gcadir/log/build-stamp.txt
+if(! -e $bstampfile) cp $bstampfile0 $bstampfile
+set bstamp0 = `cat $bstampfile0`
+set bstamp  = `cat $bstampfile`
+if("$bstamp0" != "$bstamp") then
+  if($REQUIRE_FS_MATCH) then
+    echo "ERROR: FreeSurfer build stamps do not match"
+    echo "Subject Stamp: $bstamp"
+    echo "Current Stamp: $bstamp0"
+    echo ""
+    exit 1;
+  else
+    echo "INFO: FreeSurfer build stamps do not match"
+  endif
+endif
+
+# Set up log file
+mkdir -p $gcadir/log
+if($#LF == 0) set LF = $gcadir/log/gcatrain.Y$year.M$month.D$day.H$hour.log
+if($LF != /dev/null && -e $LF) mv -f $LF $LF.bak
+echo "Log file for gcatrain" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+echo "Subject Stamp: $bstamp" | tee -a $LF
+echo "Current Stamp: $bstamp0" | tee -a $LF
+
+#========================================================
+set src_subjects_dir = $SUBJECTS_DIR
+setenv SUBJECTS_DIR $gcadir
+
+# Save subject list, etc, as text files in scripts dir
+if(! -e $gcadir/scripts/subjectlist.txt) then
+  foreach subject ($subjectlist)
+    echo $subject >> $gcadir/scripts/subjectlist.txt
+  end
+  echo "$initsubject" > $gcadir/scripts/initsubject.txt
+  echo "$mantal" > $gcadir/scripts/mantal.txt
+  echo "$manseg" > $gcadir/scripts/manseg.txt
+  echo "$src_subjects_dir" > $gcadir/scripts/src_subjects_dir.txt
+endif
+
+# Make sure that initsubject is in the list of subjects
+# to be preped, but don't replicate if init is already there
+set subjectlist2 = ($initsubject);
+foreach subject ($subjectlist)
+  if($subject != $initsubject) set subjectlist2 = ($subjectlist2 $subject);
+end
+
+# Preparation: copy data and recon-all -autorecon1
+echo "\n\n" | tee -a $LF
+echo "Staring preparation `date`" | tee -a $LF
+@ nth = 0;
+foreach subject ($subjectlist2)
+  echo "\n\n" | tee -a $LF
+  @ nth = $nth + 1;
+  set donefile = $gcadir/log/done/gcaprep.$subject.done
+  if(-e $donefile) then
+    echo "#@# gcaprepone $nth/$#subjectlist $subject prep not needed" | tee -a $LF
+    continue;
+  endif
+  echo "#@# gcaprepone $nth/$#subjectlist $subject `date`" | tee -a $LF
+  rm -f $donefile
+  set cmd = (gcaprepone --g $gcadir --s $subject --sd $src_subjects_dir \
+    --done $donefile --nthreads $nthreads)
+  echo $cmd | tee -a $LF
+  if($Submit) then
+    pbsubmit -l nodes=1:ppn=$nthreads $pbconf -c "$cmd" |& tee -a $LF
+    sleep 10
+  else
+    $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+end
+echo "\n\n" | tee -a $LF
+
+# Wait for initsubject to finish prep
+@ nthloop = 0
+while(1 && $Submit && $DoInit)
+  @ nthloop = $nthloop + 1
+  set break = 1
+  set donefile = $gcadir/log/done/gcaprep.$initsubject.done
+  if(! -e $donefile) then
+    set break = 0
+  else
+    set err = `cat $donefile`
+    if("$err" == 1) then
+      echo "WARNING: $initsubject had an error during gcaprepone" | tee -a $LF
+      # Do more or something else here?
+    endif
+  endif
+  if($break) break;
+  echo "Loop waiting on intitsubject $initsubject prep `date`" | tee -a $LF
+  sleep 300
+end
+echo "\n\n" | tee -a $LF
+
+# Now run gcainit
+if($DoInit) then
+  echo "Staring init subject `date`" | tee -a $LF
+  set gcainitdone = $gcadir/log/done/gcainit.$initsubject.done
+  if(-e $gcainitdone) then
+    echo "gcainit not needed for $initsubject"
+  else
+    rm -f $gcainitdone
+    set cmd = (gcainit --g $gcadir --done $gcainitdone  --nthreads $nthreads)
+    echo $cmd | tee -a $LF
+    if($Submit) then
+      pbsubmit -l nodes=1:ppn=$nthreads $pbconf -c "$cmd" |& tee -a $LF
+      sleep 10
+    else
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  endif
+  echo "\n\n" | tee -a $LF
+endif
+
+# Wait for the gcainit and rest of the prep jobs to finish
+@ nthloop = 0
+while(1 && $Submit)
+  @ nthloop = $nthloop + 1
+  set break = 1
+  @ nwaiting = 0
+  foreach subject ($subjectlist)
+    set donefile = $gcadir/log/done/gcaprep.$subject.done
+    if(! -e $donefile) then
+      set break = 0
+      @ nwaiting = $nwaiting + 1
+    else
+      set err = `cat $donefile`
+      if("$err" == 1) then
+        echo "WARNING: $subject had an error during gcaprepone" | tee -a $LF
+        # Do more or something else here?
+      endif
+    endif
+  end
+  if($DoInit) then
+    if(! -e $gcainitdone ) then
+      set break = 0
+      @ nwaiting = $nwaiting + 1
+    endif
+  endif
+  if($break) break;
+  echo "Loop $nthloop waiting on gcainit or $nwaiting subjects prep `date`" | tee -a $LF
+  sleep 60
+end
+echo "\n\n" | tee -a $LF
+
+# Start training iterations
+@ iter = 1; # Reg to init above is first iteration
+while($iter < $niters)
+  @ iter = $iter + 1
+  echo "\n\nTraining Iteration $iter `date`" | tee -a $LF
+  set iterstr = `printf %02d $iter`
+  @ srciter = $iter - 1
+  set srciterstr = `printf %02d $srciter`
+  set srcgca = $gcadir/gca/gca.i$srciterstr.gca 
+  # Register each subject to the source gca
+  foreach subject ($subjectlist)  
+    echo "\n\n" | tee -a $LF
+    set donefile = $gcadir/log/done/gcareg.$subject.$iterstr.done
+    if(-e $donefile) then
+      echo "#@# iter $iterstr gcareg $nth/$#subjectlist $subject gcareg not needed" | tee -a $LF
+      continue;
+    endif
+    echo "#@# iter $iterstr gcareg $nth/$#subjectlist $subject gcareg " | tee -a $LF
+    set rcalog = $gcadir/$subject/scripts/recon-all.i$iterstr.log
+    set cmd = (recon-all -s $subject -gcatrain-iter $srcgca i$iterstr  \
+      -log $rcalog -done $donefile -nthreads $nthreads -sd $gcadir)
+    if($#GCARegIterations) set cmd = ($cmd -gcareg-iters $GCARegIterations)
+    if($#GCARegTol)        set cmd = ($cmd -gcareg-tol $GCARegTol)
+    set cmd = ($cmd -coreg)
+    echo $cmd | tee -a $LF
+    if($Submit) then
+      pbsubmit -l nodes=1:ppn=$nthreads $pbconf -c "$cmd" |& tee -a $LF
+      sleep 10
+    else
+      $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+  end # subject
+  echo "\n\n" | tee -a $LF
+
+  # Wait for the gcareg to finish
+  if($Submit) echo "Waiting for gcareg jobs `date`" | tee -a $LF
+  @ nthloop = 0
+  while(1 && $Submit)
+    @ nthloop = $nthloop + 1
+    set break = 1
+    @ nwaiting = 0
+    foreach subject ($subjectlist)
+      set donefile = $gcadir/log/done/gcareg.$subject.$iterstr.done
+      if(! -e $donefile) then
+        set break = 0
+        @ nwaiting = $nwaiting + 1
+      else
+        set err = `cat $donefile`
+        if("$err" == 1) then
+          echo "WARNING: $subject had an error during $iter gcareg" | tee -a $LF
+          # Do more or something else here?
+        endif
+      endif
+    end
+    if($break) break;
+    echo "$iter Loop $nthloop waiting on $nwaiting subjects mri_ca_register `date`" | tee -a $LF
+    sleep 600
+  end
+  echo "\n\n" | tee -a $LF
+
+  # Now train the atlas for this iteration
+  set trggca = $gcadir/gca/gca.i$iterstr.gca
+  if(-e $trggca) then
+    echo "#@# iter $iterstr gca exists, continuing" | tee -a $LF
+    continue
+  endif
+
+  set m3z = talairach.i$iterstr.m3z
+  set normname = norm.i$iterstr.mgz
+  set cmd = (mri_ca_train -prior_spacing 2 -node_spacing 4 -mask $maskvol \
+    -parc_dir $manseg -xform $m3z -T1 $normname $subjectlist $trggca)
+  echo $cmd | tee -a $LF
+  rm -f $trggca; # use this as the done file, need better
+  echo "" | tee -a $LF
+  if($Submit) then
+    set LFCAT = $gcadir/log/mri_ca_train.i$iterstr.log
+    rm -f $LFCAT
+    echo "#@# Submitting mri_ca_train iter $iterstr" | tee -a $LF
+    pbsubmit -l nodes=1:ppn=$nthreads $pbconf -c "$cmd | tee $LFCAT" |& tee -a $LF
+    echo "" | tee -a $LF
+    sleep 10
+  else
+    echo "\n\n #%# mri_ca_train `date`" | tee -a $LF
+    $cmd |& tee $LFCAT |& tee -a $LF
+    if($status) goto error_exit;
+    echo "\n\n" | tee -a $LF
+  endif
+
+  # Wait for atlas to be done before exiting
+  @ nthloop = 0
+  while(1 && $Submit)
+    @ nthloop = $nthloop + 1
+    if(-e $trggca) break;
+    echo "Loop $nthloop waiting for mri_ca_train $trggca `date`" | tee -a $LF
+    sleep 300  
+  end
+  echo "\n\n" | tee -a $LF
+
+  # If do anything here then need to change continue above
+
+end # iter
+
+#========================================================
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Gcatrain-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Gcatrain-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "gcatrain Done" |& tee -a $LF
+echo ""|& tee -a $LF
+
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR: $cmd"  |& tee -a $LF
+date  |& tee -a $LF
+echo "gcatrain exited with errors"  |& tee -a $LF
+#if($#DoneFile) then
+#  echo $DoneFile
+#  echo "1" > $DoneFile
+#endif
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--g":
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set gcadir = $argv[1]; shift;
+      breaksw
+
+    case "--niters":
+      if($#argv < 1) goto arg1err;
+      set niters = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      set subjectlist = ($subjectlist $subject);
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      set SUBJECTS_DIR = $argv[1]; shift;
+      breaksw
+
+    case "--init":
+      if($#argv < 2) goto arg2err;
+      set initsubject = $argv[1]; shift;
+      set mantal = $argv[1]; shift;
+      breaksw
+
+    case "--f":
+      if($#argv < 1) goto arg1err;
+      set fname = $argv[1]; shift;
+      if(! -e $fname) then
+        echo "ERROR: cannot find $f"
+        exit 1;
+      endif
+      set subjectlist = ($subjectlist `cat $fname`);
+      breaksw
+
+    case "--x":
+      if($#argv < 1) goto arg1err;
+      set fname = $argv[1]; shift;
+      if(! -e $fname) then
+        echo "ERROR: cannot find $f"
+        exit 1;
+      endif
+      set xsubjectlist = ($xsubjectlist `cat $fname`);
+      breaksw
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set manseg = $argv[1]; shift;
+      breaksw
+
+    case "--no-submit":
+      set Submit = 0
+      breaksw
+
+    case "--threads"
+    case "--nthreads"
+      set nthreads = $argv[1]; shift;
+      setenv OMP_NUM_THREADS $nthreads
+      setenv FS_OMP_NUM_THREADS $nthreads
+      breaksw
+
+    case "--gcareg-iters":
+      # For testing, to make ca_reg run faster
+      if($#argv < 1) goto arg1err;
+      set GCARegIterations = $argv[1]; shift;
+      breaksw
+    case "--gcareg-tol":
+      # For testing, to make ca_reg run faster
+      if($#argv < 1) goto arg1err;
+      set GCARegTol = $argv[1]; shift;
+      breaksw
+
+    case "--no-strict":
+      setenv REQUIRE_FS_MATCH 0
+      breaksw
+
+    case "--pb":
+      if($#argv < 1) goto arg1err;
+      set pb = $argv[1]; shift;
+      set pbconf = ($pbconf $pb)
+      breaksw
+
+    case "--pb-m":
+      set pbconf = ($pbconf "-m $USER")
+      breaksw
+
+    case "--prep-only":
+      set niters = 1;
+      set DoInit = 0;
+      breaksw
+
+    case "--nu10":
+      set path = (/usr/pubsw/packages/mni/1.4/bin $path )
+      breaksw
+
+    case "--nu12":
+      set path = (/usr/pubsw/packages/mni/current/bin $path )
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#gcadir == 0) then
+  echo "ERROR: must spec gcadir"
+  exit 1;
+endif
+
+if(-e $gcadir) then
+  if($#subjectlist != 0) then
+    echo "ERROR: cannot spec subjects if gcadir already exists"
+    exit 1;
+  endif
+  if($#initsubject != 0) then
+    echo "ERROR: cannot spec initsubject if gcadir already exists"
+    exit 1;
+  endif
+  if($#manseg != 0) then
+    echo "ERROR: cannot spec manseg if gcadir already exists"
+    exit 1;
+  endif
+  if($#mantal != 0) then
+    echo "ERROR: cannot spec mantal if gcadir already exists"
+    exit 1;
+  endif
+  setenv SUBJECTS_DIR `cat $gcadir/scripts/src_subjects_dir.txt`
+  set subjectlist = `cat $gcadir/scripts/subjectlist.txt`
+  set initsubject = `cat $gcadir/scripts/initsubject.txt`
+  set mantal = `cat $gcadir/scripts/mantal.txt`
+  set manseg = `cat $gcadir/scripts/manseg.txt`
+  if( -e $gcadir/scripts/xsubjectlist.txt) then
+    set xsubjectlist = `cat $gcadir/scripts/xsubjectlist.txt`
+  endif
+else
+  if($#subjectlist == 0) then
+    echo "ERROR: must spec subjects"
+    exit 1;
+  endif
+  if($#initsubject == 0) then
+    echo "ERROR: must spec init subject"
+    exit 1;
+  endif
+endif
+
+# Not sure if I really want the xsubjectlist stuff here
+if($#xsubjectlist) then
+  foreach xsubject ($xsubjectlist)
+    if($initsubject == $xsubject) then
+      echo "ERROR: cannot exclude the initsubject"
+      exit 1;
+    endif
+  end
+  set subjectlisttmp = ()
+  foreach subject ($subjectlist)
+    set keep = 1
+    foreach xsubject ($xsubjectlist)
+      if($subject == $xsubject) then
+        set keep = 0;
+	break;
+      endif
+    end
+    if($keep) set subjectlisttmp = ($subjectlisttmp $subject)
+  end
+  set subjectlist = $subjectlisttmp;
+endif
+
+foreach subject ($subjectlist $initsubject)
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subject/mri/$manseg) then
+    echo "ERROR: cannot find $subject/mri/$manseg"
+    exit 1;
+  endif
+  set mriodir = $SUBJECTS_DIR/$subject/mri/orig
+  set vollist = (`find "$mriodir" -iname "[0-9][0-9][0-9].mgz" -print`)
+  if($#vollist == 0) then
+    echo "ERROR: cannot find any input volumes in $mriodir"
+    exit 1;
+  endif
+end
+
+if(! -e $SUBJECTS_DIR/$initsubject/mri/transforms/$mantal) then
+  echo "ERROR: cannot find $SUBJECTS_DIR/$initsubject/mri/transforms/$mantal"
+  exit 1;
+endif
+
+if($#niters == 0) then
+  echo "ERROR: Must spec number of iterations"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "gcatrain --help"
+  echo " --g gcadir : (to be the new SUBJECTS_DIR)"
+  echo " --niters niters : number of iterations"
+  echo " --nthreads nthreads"
+  echo " --no-submit : run serially, do not pbsubmit"
+  echo " --pb-m : mail to user when jobs are pbsubmitted or finished"
+  echo " The first time you run it you must specify the following"
+  echo "   --f subjectlistfile"
+  echo "   --seg seg_edited.mgz "
+  echo "   --init initsubject talairach_man.xfm"
+  echo "   --sd SUBJECTS_DIR : for source data"
+  echo ""
+  echo " --x xfile : exclude the subjects in xfile, good for jack-knifing"
+  echo " --no-strict : do not require FS build stamps to match across iteration"
+  echo " --gcareg-iters : set to 1 for testing"
+  echo " --prep-only"
+  echo " --nu10"
+  echo " --nu12 : default"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+gcatrain builds a GCA from a group of manually labeled subjects.
+It is meant to replace rebuild_gca_atlas.csh.
+
+Example - build gca from all the subjects listed in subjestlist.txt
+using 990104_vc700 as the initialization subject. Use the file
+called talairach_man.xfm in 990104_vc700/mri/transforms as the
+initial registration. Use seg_edited10.mgz as the manually defined
+segmentation. Two iterations will be performed (the first being the
+simple creation of the GCA from the initial subject). Four threads
+will be used. The output will go into a folder called rb10-gcatrain
+
+gcatrain --f subjectlist.txt --init 990104_vc700 talairach_man.xfm 
+  --seg seg_edited10.mgz --niters 2 --g rb10-gcatrain --nthreads 4 
+
+This script creates a new SUBJECTS_DIR tree in rb10-gcatrain.  For
+each subject, the "prepone" script is run. This copies the raw data
+from each subjects mri/orig folder to the subjects dir in the output
+folder and runs recon-all far enough to create the nu.mgz. It also
+copies the manual segmentations and the xfm for the init subject.
+Once this is done, the source data are no longer used. 
+
+It then runs "grcainit" on the initial subject. This run
+mri_ca_normalize on the init subject and builds the first gca (stored
+in outdir/gca/gca.i01.gca).
+
+It then loops through all subjects pbsubmitting recon-all to perform
+mri_em_register, mri_ca_normalize, and mri_ca_register to gca.i01.gca
+(outputs are coded with i02). When all subjects are finished for this
+loop, then mri_ca_train is run to create gca.i02.gca. If more than two
+iterations were specified, then the above loop is repeated.
+
+If you want to perform more iterations, run gcatrain like this
+
+gcatrain --niters 3 --g rb10-gcatrain --nthreads 4 
+
+It will see that the first two iterations have already been performed
+and will proceed with the third iteration.
+
+Future modifications may be to allow for more than one init subject.
