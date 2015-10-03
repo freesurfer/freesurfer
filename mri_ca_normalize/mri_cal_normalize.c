@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2015/09/22 13:26:37 $
- *    $Revision: 1.10 $
+ *    $Date: 2015/10/02 17:12:53 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -145,13 +145,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.10 2015/09/22 13:26:37 mreuter Exp $",
+     "$Id: mri_cal_normalize.c,v 1.11 2015/10/02 17:12:53 mreuter Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.10 2015/09/22 13:26:37 mreuter Exp $",
+     "$Id: mri_cal_normalize.c,v 1.11 2015/10/02 17:12:53 mreuter Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -288,6 +288,7 @@ main(int argc, char *argv[])
 
 //  GCAhistoScaleImageIntensitiesLongitudinal(gca, mri_in, 1) ;
 
+// don't do this (there are still bugs, I think. Instead use robust template with --iscaleonly if necessary at all).
 if (0) 
   scale_all_images(mri_in, mri_in) ;
 
