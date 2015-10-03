@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/03/26 17:00:41 $
- *    $Revision: 1.1 $
+ *    $Author: mreuter $
+ *    $Date: 2015/10/02 17:16:23 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,8 @@ static int novar = 0 ;
 static void usage_exit(int code) ;
 static int get_option(int argc, char *argv[]) ;
 
+static int longinput = 0;
+
 
 /*
   command line consists of three inputs:
@@ -75,18 +77,18 @@ main(int argc, char *argv[])
   int          input, ninputs ;
   struct timeb start ;
   TRANSFORM    *transform ;
-  char         cmdline[CMD_LINE_LEN], line[STRLEN], *cp, subject[STRLEN], sdir[STRLEN], base_name[STRLEN] ;
+  char         cmdline[CMD_LINE_LEN], line[STRLEN], *cp, sdir[STRLEN], base_name[STRLEN] ;
   FILE         *fp ;
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_renormalize_gca.c,v 1.1 2015/03/26 17:00:41 fischl Exp $",
+     "$Id: mri_cal_renormalize_gca.c,v 1.2 2015/10/02 17:16:23 mreuter Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_renormalize_gca.c,v 1.1 2015/03/26 17:00:41 fischl Exp $",
+     "$Id: mri_cal_renormalize_gca.c,v 1.2 2015/10/02 17:16:23 mreuter Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -156,9 +158,12 @@ main(int argc, char *argv[])
   printf("processing %d timepoints in SUBJECTS_DIR %s...\n", ninputs, sdir) ;
   for (input = 0 ; input < ninputs ; input++)
   {
-    sprintf(subject, "%s.long.%s", subjects[input], base_name) ;
-    printf("reading subject %s - %d of %d\n", subject, input+1, ninputs) ;
-    sprintf(fname, "%s/%s/mri/%s", sdir, subject, in_fname) ;
+    printf("reading subject %d of %d: %s \n", input+1, ninputs, subjects[input]) ;
+    if (longinput)
+      sprintf(fname, "%s/%s.long.%s/mri/%s", sdir, subjects[input], base_name, in_fname) ;
+    else
+      sprintf(fname, "%s/%s/longtp/%s/%s", sdir, base_name, subjects[input], in_fname) ;
+
     mri_tmp = MRIread(fname) ;
     if (!mri_tmp)
       ErrorExit(ERROR_NOFILE, "%s: could not read input MR volume from %s",
@@ -272,6 +277,11 @@ get_option(int argc, char *argv[])
     novar = 1 ;
     printf("not using variance estimates\n") ;
   }
+  else if (!strcmp(option, "LONGINPUT"))
+  {
+    longinput = 1;
+    printf("reading inputs from longitudinal directories\n") ; 
+  }
   else switch (*option)
   {
   case 'W':
@@ -318,6 +328,8 @@ usage_exit(int code)
          "from filename\n");
   printf("\t-fonly <filename>            only use control points "
          "from filename\n");
+  printf("\t-longinput                   load inputs from <tp>.long.<base> dirs, "
+         "instead of <base>/longtp subdirs.\n");
   printf("\t-diag <filename>             write to log file\n");
   printf("\t-debug_voxel <x> <y> <z>     debug voxel\n");
   printf("\t-debug_node <x> <y> <z>      debug node\n");
