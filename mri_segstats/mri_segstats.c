@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/07/02 15:52:06 $
- *    $Revision: 1.117 $
+ *    $Author: greve $
+ *    $Date: 2015/10/05 23:59:50 $
+ *    $Revision: 1.118 $
  *
  * Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -106,7 +106,7 @@ float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.117 2015/07/02 15:52:06 fischl Exp $";
+  "$Id: mri_segstats.c,v 1.118 2015/10/05 23:59:50 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1050,6 +1050,9 @@ int main(int argc, char **argv)
               "Brain Segmentation Volume Without Ventricles from Surf, %f, mm^3\n",
               BrainVolStats[14]);
     }
+    fprintf(fp,"# Measure VentricleChoroidVol, VentricleChoroidVol, "
+	    "Volume of ventricles and choroid plexus, %f, mm^3\n",
+	    BrainVolStats[15]);
     if(DoSurfCtxVol)
     {
       // Does this include the non-cortical areas of the surface?

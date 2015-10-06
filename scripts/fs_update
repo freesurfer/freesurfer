@@ -23,16 +23,14 @@
 show_usage() { 
 echo " Usage:"
 echo  
-echo " Do a complete update:"
-echo " $> fs_update" 
+echo " Update \$FREESURFER_HOME:"
+echo "   $> fs_update" 
 echo
-echo " Only update certain files:"
-echo " $> fs_update bin/mri_convert subjects/fsaverge"
+echo " Update only certain files (directories copied recusrsively):"
+echo "   $> fs_update bin/mri_convert subjects/fsaverge"
 echo
 echo " Show help:"
-echo " $> fs_update -h, -help, --help"
-echo 
-echo "If an argument is a directory, the directory will be updated recursively."
+echo "   $> fs_update -h, -help, --help"
 echo 
 } 
  

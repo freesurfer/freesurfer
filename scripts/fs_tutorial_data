@@ -16,24 +16,26 @@
 #############################################################
 
 show_usage() { 
-echo " Example usages:"
+echo " Usages:"
 echo  
-echo " 1) Download tutorial data into FREESURFER_HOME/subjects/tutorial_data" 
-echo "    or into directory defined by TUTORIAL_DATA environment variable (if it exists)."
+echo " Tutorial data will be downloaded into TUTORIAL_DATA directory,"
+echo "    or in FREESURFER_HOME/subjects by default:"
 echo
-echo "   $> fs_tutorial_data"
+echo " $> fs_tutorial_data" 
+echo
 echo 
-echo " 2) Download tutorial data into directory specified at command line:"
+echo " 2) Tuturial data will by downloaded into directory specified at command line:"
 echo
-echo "   $> fs_tutorial_data <absolute_path>"
+echo " $> fs_tutorial_data <absolute_path>"
 echo
+echo 
 echo " 3) Show help:"
 echo 
-echo "   $> fs_update -h, -help, --h, --help"
+echo " $> fs_update -h, -help, --help"
 echo 
 } 
 
-if [[ $1 = "-h" ]] || [[ $1 = "--h" ]] || [[ $1 = "-help" ]] || [[ $1 = "--help" ]] ; then 
+if [[ $1 = "-h" ]] || [[ $1 = "-help" ]] || [[ $1 = "--help" ]]; then 
   show_usage
   exit 0
 fi  
@@ -70,12 +72,7 @@ echo    " Tutorial data will be downloaded and installed into:"
 echo
 echo    "   $TUTORIAL_DATA"
 echo
-echo    " When running the freesurfer tutorials, set the TUTORIAL_DATA"
-echo    " enironment variable to the directory above. For example:"
-echo
-echo    "   export TUTORIAL_DATA=$TUTORIAL_DATA"
-echo
-read -p " Shall I proceed? [y/n/abort]: "
+read -p " Shall I proceed? [y/n/Abort]: "
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     rsync -ztrlv --progress rsync://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/ $TUTORIAL_DATA

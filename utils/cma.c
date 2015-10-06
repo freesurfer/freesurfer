@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/04/24 17:37:00 $
- *    $Revision: 1.27 $
+ *    $Author: greve $
+ *    $Date: 2015/10/05 23:59:03 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1095,7 +1095,7 @@ double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir)
     rhCtxGM = 0;
   }
 
-  stats = (double*)calloc(15,sizeof(double));
+  stats = (double*)calloc(16,sizeof(double));
   stats[0] = BrainSegVol;
   stats[1] = BrainSegVolNotVent;
   stats[2] = SupraTentVol;
@@ -1111,6 +1111,7 @@ double *ComputeBrainVolumeStats(char *subject, char *suffix, char *sdir)
   stats[12] = MaskVol;
   stats[13] = eSTVnv; // voxel-based supratentorial not vent volume
   stats[14] = eBSVnvSurf; // surface-based brain  not vent volume
+  stats[15] = VentChorVol; // volume of ventricles + choroid
 
   return(stats);
 }
