@@ -1,0 +1,327 @@
+#!/bin/tcsh -f
+# jkgcatrain
+
+set VERSION = '$Id: jkgcatrain,v 1.1 2015/10/05 17:35:08 greve Exp $';
+
+set gcadir = ();
+set nthreads = 1;
+set iter = ();
+set DoneFile = ();
+set Submit = 1;
+set pbconf = ();
+
+set maskvol = brainmask.mgz
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $gcadir
+pushd $gcadir > /dev/null
+set gcadir = `pwd`;
+popd > /dev/null
+mkdir -p $gcadir/gca
+
+setenv SUBJECTS_DIR $gcadir
+
+# Set up log file
+mkdir -p $gcadir/log
+if($#LF == 0) set LF = $gcadir/log/jkgcatrain.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for jkgcatrain" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  | tee -a $LF
+endif
+
+#========================================================
+
+set manseg = `cat $gcadir/scripts/manseg.txt`
+set subjectlist0 = `cat $gcadir/scripts/subjectlist.txt`;
+
+foreach xsubject ($subjectlist0)
+
+  set subjectlist = ();
+  foreach subject ($subjectlist0)
+    if($subject != $xsubject) set subjectlist = ($subjectlist $subject);
+  end
+
+  set trggca = $gcadir/gca/x.$xsubject.gca.i$iterstr.gca
+  if(-e $trggca) then
+    echo "#@# iter $iterstr gca exists, continuing" | tee -a $LF
+    continue
+  endif
+
+  set m3z = talairach.i$iterstr.m3z
+  set normname = norm.i$iterstr.mgz
+  set cmd = (mri_ca_train -prior_spacing 2 -node_spacing 4 -mask $maskvol \
+      -parc_dir $manseg -xform $m3z -T1 $normname $subjectlist $trggca)
+  echo $cmd | tee -a $LF
+  rm -f $trggca; # use this as the done file, need better
+  echo "" | tee -a $LF
+  set LFCAT = $gcadir/log/mri_ca_train.i$iterstr.x.$xsubject.log
+  rm -f $LFCAT
+  if($Submit) then
+    echo "#@# Submitting mri_ca_train iter $iterstr xsubject $xsubject" | tee -a $LF
+    pbsubmit -l nodes=1:ppn=$nthreads $pbconf -c "$cmd | tee $LFCAT" |& tee -a $LF
+    echo "" | tee -a $LF
+    sleep 10
+  else
+    echo "#@# mri_ca_train iter $iterstr xsubject $xsubject `date`" | tee -a $LF
+    $cmd |& tee $LFCAT |& tee -a $LF
+    if($status) goto error_exit;
+    echo "\n\n" | tee -a $LF
+  endif
+end # loop over xsubject
+
+# Wait for atlas to be done before exiting
+@ nthloop = 0
+while(1 && $Submit)
+  @ nthloop = $nthloop + 1
+  foreach xsubject ($subjectlist0)
+    set trggca = $gcadir/gca/x.$xsubject.gca.i$iterstr.gca
+    set break = 1
+    @ nwaiting = 0
+    set trggca = $gcadir/gca/x.$xsubject.gca.i$iterstr.gca
+    if(! -e $trggca) then
+      set break = 0
+      @ nwaiting = $nwaiting + 1
+    end
+    if($break) break;
+    echo "$iter Loop $nthloop waiting on $nwaiting xsubjects mri_ca_train `date`" | tee -a $LF
+    sleep 600
+  end
+end
+
+#========================================================
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Jkgcatrain-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Jkgcatrain-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "jkgcatrain Done" |& tee -a $LF
+echo ""|& tee -a $LF
+if($#DoneFile) then
+  echo $DoneFile
+  echo "0" > $DoneFile
+endif
+
+exit 0
+
+############--------------##################
+error_exit:
+echo "ERROR: $cmd"  |& tee -a $LF
+date  |& tee -a $LF
+echo "jkgcatrain exited with errors"  |& tee -a $LF
+if($#DoneFile) then
+  echo $DoneFile
+  echo "1" > $DoneFile
+endif
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--g":
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set gcadir = $argv[1]; shift;
+      breaksw
+
+    case "--no-submit":
+      set Submit = 0
+      breaksw
+
+    case "--iter":
+      if($#argv < 1) goto arg1err;
+      set iter = $argv[1]; shift;
+      breaksw
+
+    case "--done":
+      if($#argv < 1) goto arg1err;
+      set DoneFile = $argv[1]; shift;
+      rm -f $DoneFile
+      breaksw
+
+    case "--threads"
+    case "--nthreads"
+      set nthreads = $argv[1]; shift;
+      setenv OMP_NUM_THREADS $nthreads
+      setenv FS_OMP_NUM_THREADS $nthreads
+      breaksw
+
+    case "--pb":
+      if($#argv < 1) goto arg1err;
+      set pb = $argv[1]; shift;
+      set pbconf = ($pbconf $pb)
+      breaksw
+
+    case "--pb-m":
+      set pbconf = ($pbconf "-m $USER")
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#gcadir == 0) then
+  echo "ERROR: must spec gcadir"
+  exit 1;
+endif
+
+if($#iter == 0) then
+  echo "ERROR: Need to set iteration"
+  exit 1;
+endif
+set iterstr = `printf %02d $iter`
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "jkgcatrain : jackknife training of gca "
+  echo " --g gcadir : output of gcatrain"
+  echo " --iter iterno : iteraction number (usually 2)"
+  echo " --nthreads nthreads"
+  echo " --no-submit : run serially, do not pbsubmit"
+  echo " --pb-m : mail to user when jobs are pbsubmitted or finished"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This script is meant to be run after gcatrain. gcatrain creates and
+populates a new SUBJECTS_DIR, runs initial recon-all on all subjects,
+creates an initial gca from one subject, then normalizes and registers
+all subjects to this gca, and creates a new gca from all
+subjects. This script uses this data to create new gcas from all
+subjects except one.  A loop is run to leave out a different subject
+each time. By default, the mri_ca_register jobs are pbsubmited. This
+script is much faster than running gcatrain multiple times leaving out
+a subject because the registration to the initial gca only needs to be
+done once.
+
+Example:
+
+gcatrain --g all39 --niters 2 --nthreads 4 --f slist.txt \
+  --sd subjects/atlases/aseg_atlas \
+  --init 990104_vc700 talairach_man.xfm --seg seg_edited10.mgz
+
+jkgcatrain --g all39 --iter 2 --threads 4
+
+Creates all39/gca/x.$subject.gca.i02.gca for all subjects
+
+
+# To test peformance, run
+foreach subject (`cat all39/scripts/subjectlist.txt`)
+  gca-apply --s $subject --gca all39/gca/x.$subject.gca.i02.gca \
+    --sd all39 --dice seg_edited10.mgz dice.x.$subject.gca.i02.dat
+end
+
+
