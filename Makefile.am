@@ -432,7 +432,7 @@ install-data-hook:
 		fi; \
 	fi;
 	if test ! "x$(DCMTKDIR)" = "x" ; then \
-		if test -e $(DCMTKLDIR) ; then \
+		if test -e $(DCMTKDIR) ; then \
 			cp -f $(DCMTKDIR)/bin/dcmdjpeg $(DESTDIR)$(bindir)/dcmdjpeg.fs ; \
 			cp -f $(DCMTKDIR)/bin/dcmdrle $(DESTDIR)$(bindir)/dcmdrle.fs ; \
 		fi; \
