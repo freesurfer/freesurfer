@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/07/22 21:50:38 $
- *    $Revision: 1.159 $
+ *    $Author: rpwang $
+ *    $Date: 2015/10/08 17:32:32 $
+ *    $Revision: 1.160 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -751,7 +751,7 @@ void LayerMRI::InitializeActors()
     mColorMap[i]->SetLookupTable( GetProperty()->GetGrayScaleTable() );
     mColorMap[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
     mColorMap[i]->SetOutputFormatToRGBA();
-    mColorMap[i]->PassAlphaToOutputOn();
+    mColorMap[i]->PassAlphaToOutputOff();
 
     //
     // Prop in scene with plane mesh and texture.

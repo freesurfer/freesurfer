@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/23 20:41:52 $
- *    $Revision: 1.12 $
+ *    $Date: 2015/10/07 20:01:59 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,14 +48,6 @@ Region2DRectangle::Region2DRectangle( RenderView2D* view ) :
   m_actorRect->GetProperty()->SetColor( 1, 0, 0 );
   m_actorRect->GetProperty()->SetOpacity( 0.6 );
 //  m_actorRect->VisibilityOff();
-
-  m_actorText = vtkSmartPointer<vtkTextActor>::New();
-  m_actorText->SetTextScaleModeToNone();
-  m_actorText->GetTextProperty()->SetColor( 1, 1, 1 );
-  m_actorText->GetTextProperty()->ShadowOn();
-  m_actorText->GetTextProperty()->SetFontSize( 16 );
-  m_actorText->GetTextProperty()->SetFontFamilyToTimes();
-  m_actorText->GetTextProperty()->SetJustificationToCentered();
 
   Highlight( true );
 }

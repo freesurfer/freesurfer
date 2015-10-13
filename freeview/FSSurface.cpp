@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/14 18:08:32 $
- *    $Revision: 1.74 $
+ *    $Date: 2015/10/07 20:01:59 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,7 +68,8 @@ FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
   m_nActiveSurface( SurfaceMain ),
   m_volumeRef( ref ),
   m_nActiveVector( -1 ),
-  m_bSharedMRIS(false)
+  m_bSharedMRIS(false),
+  m_dMaxSegmentLength(10.0)
 {
   m_polydata = vtkSmartPointer<vtkPolyData>::New();
   m_polydataVector = vtkSmartPointer<vtkPolyData>::New();
@@ -770,13 +771,14 @@ void FSSurface::GetNormalAtVertex( int nVertex, double* vec_out )
 
 void FSSurface::UpdatePolyData()
 {
-  UpdatePolyData( m_MRIS, m_polydata, m_polydataVertices, m_polydataWireframes );
+  UpdatePolyData( m_MRIS, m_polydata, m_polydataVertices, m_polydataWireframes, true );
 }
 
 void FSSurface::UpdatePolyData( MRIS* mris,
                                 vtkPolyData* polydata,
                                 vtkPolyData* polydata_verts,
-                                vtkPolyData* polydata_wireframe )
+                                vtkPolyData* polydata_wireframe,
+                                bool create_segs)
 {
   // Allocate all our arrays.
   int cVertices = mris->nvertices;
@@ -858,6 +860,7 @@ void FSSurface::UpdatePolyData( MRIS* mris,
     lines->Allocate( cFaces * 6 );
   }
   vtkIdType face[VERTICES_PER_FACE];
+  float dx = 0, dy = 0, dz = 0;
   for ( int fno = 0; fno < cFaces; fno++ )
   {
     if ( mris->faces[fno].ripflag == 0 )
@@ -873,7 +876,24 @@ void FSSurface::UpdatePolyData( MRIS* mris,
         vtkIdType t[2] = { face[0], face[2] };
         lines->InsertNextCell( 2, t );
       }
+      if (create_segs)
+      {
+        dx = qMax(dx, qAbs(mris->vertices[face[0]].x - mris->vertices[face[1]].x));
+        dx = qMax(dx, qAbs(mris->vertices[face[1]].x - mris->vertices[face[2]].x));
+        dx = qMax(dx, qAbs(mris->vertices[face[0]].x - mris->vertices[face[2]].x));
+        dy = qMax(dy, qAbs(mris->vertices[face[0]].y - mris->vertices[face[1]].y));
+        dy = qMax(dy, qAbs(mris->vertices[face[1]].y - mris->vertices[face[2]].y));
+        dy = qMax(dy, qAbs(mris->vertices[face[0]].y - mris->vertices[face[2]].y));
+        dz = qMax(dz, qAbs(mris->vertices[face[0]].z - mris->vertices[face[1]].z));
+        dz = qMax(dz, qAbs(mris->vertices[face[1]].z - mris->vertices[face[2]].z));
+        dz = qMax(dz, qAbs(mris->vertices[face[0]].z - mris->vertices[face[2]].z));
+      }
     }
+  }
+  if (create_segs)
+  {
+    m_dMaxSegmentLength = sqrt(dx*dx+dy*dy+dz*dz);
+  //  qDebug() << m_dMaxSegmentLength;
   }
 
   polydata->SetPoints( newPoints );

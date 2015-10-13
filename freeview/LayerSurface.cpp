@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/27 17:55:27 $
- *    $Revision: 1.110 $
+ *    $Date: 2015/10/07 20:01:59 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,8 @@
 #include "SurfaceOverlay.h"
 #include "SurfaceSpline.h"
 #include "vtkMaskPoints.h"
+#include "vtkExtractPolyDataGeometry.h"
+#include "vtkBox.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -263,7 +265,7 @@ bool LayerSurface::LoadVectorFromFile( )
 
 void LayerSurface::UpdateVectorActor2D()
 {
-  if ( m_surfaceSource )
+  if ( m_surfaceSource && m_surfaceSource->GetActiveVector() >= 0 )
   {
     for ( int i = 0; i < 3; i++ )
     {
@@ -559,19 +561,34 @@ void LayerSurface::InitializeActors()
     mReslicePlane[i]->SetOrigin( 0, 0, 0 );
     mReslicePlane[i]->SetNormal( (i==0), (i==1), (i==2) );
 
-    vtkSmartPointer<vtkCutter> cutter =
+    double bounds[6];
+    m_surfaceSource->GetPolyData()->GetBounds(bounds);
+    {
+      bounds[i*2] = (bounds[i*2]+bounds[i*2+1])/2-0;
+      bounds[i*2+1] = bounds[i*2]+20;
+    }
+    m_box[i] = vtkSmartPointer<vtkBox>::New();
+    m_box[i]->SetBounds(bounds);
+    vtkSmartPointer<vtkExtractPolyDataGeometry> extract = vtkSmartPointer<vtkExtractPolyDataGeometry>::New();
+    extract->SetInput(m_surfaceSource->GetPolyData());
+    extract->ExtractInsideOn();
+    extract->ExtractBoundaryCellsOn();
+    extract->SetImplicitFunction(m_box[i]);
+
+    m_cutter[i] =
       vtkSmartPointer<vtkCutter>::New();
-    cutter->SetInput( m_surfaceSource->GetPolyData() );
-    cutter->SetCutFunction( mReslicePlane[i] );
+    m_cutter[i]->SetInputConnection( extract->GetOutputPort() );
+    m_cutter[i]->SetCutFunction( mReslicePlane[i] );
+    m_cutter[i]->GenerateCutScalarsOff();
 
     //
     // Mappers for the lines.
     //
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputConnection( cutter->GetOutputPort() );
+    mapper->SetInputConnection( m_cutter[i]->GetOutputPort() );
 //   mapper->SetInputConnection( 1, cutter->GetOutputPort( 1 ) );
     vtkSmartPointer<vtkPolyDataMapper> mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper2->SetInputConnection( cutter->GetOutputPort() );
+    mapper2->SetInputConnection( m_cutter[i]->GetOutputPort() );
     //
     // Actors in the scene, drawing the mapped lines.
     //
@@ -590,11 +607,11 @@ void LayerSurface::InitializeActors()
 //    m_sliceActor3D[i]->GetProperty()->SetInterpolationToFlat();
 
     vtkSmartPointer<vtkPolyDataMapper> mapper3 = vtkSmartPointer<vtkPolyDataMapper>::New();
-    vtkSmartPointer<vtkMaskPoints> pts = vtkSmartPointer<vtkMaskPoints>::New();
-    pts->GenerateVerticesOn();
-    pts->SetOnRatio(1);
-    pts->SetInputConnection(cutter->GetOutputPort());
-    mapper3->SetInputConnection( pts->GetOutputPort() );
+//    vtkSmartPointer<vtkMaskPoints> pts = vtkSmartPointer<vtkMaskPoints>::New();
+//    pts->GenerateVerticesOn();
+//    pts->SetOnRatio(1);
+//    pts->SetInputConnection(m_cutter[i]->GetOutputPort());
+    mapper3->SetInputConnection( m_cutter[i]->GetOutputPort() );
     mapper3->ScalarVisibilityOff();
     m_vertexActor2D[i]->SetMapper(mapper3);
     m_vertexActor2D[i]->SetProperty( m_vertexActor2D[i]->MakeProperty() );
@@ -779,6 +796,8 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
   }
 
   double* pos = GetProperty()->GetPosition();
+  double bounds[6];
+  m_surfaceSource->GetPolyData()->GetBounds(bounds);
   switch ( nPlane )
   {
   case 0:
@@ -800,6 +819,10 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
     m_vectorActor2D[2]->SetPosition( pos[0], pos[1], -1.0 );
     break;
   }
+  double dLen = m_surfaceSource->GetMaxSegmentLength();
+  bounds[nPlane*2] = m_dSlicePosition[nPlane]-dLen/2;
+  bounds[nPlane*2+1] = bounds[nPlane*2]+dLen/2;
+  m_box[nPlane]->SetBounds(bounds);
 
   // update mapper so the polydata is current
   if ( IsVisible() && GetActiveVector() >= 0 )

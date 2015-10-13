@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/04 22:05:26 $
- *    $Revision: 1.45 $
+ *    $Date: 2015/10/07 20:01:59 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -214,6 +214,11 @@ public:
     m_volumeRef = NULL;
   }
 
+  double GetMaxSegmentLength()
+  {
+    return m_dMaxSegmentLength;
+  }
+
 protected:
   bool InitializeData(const QString& vector_filename = QString(),
                   const QString& patch_filename = QString(),
@@ -222,7 +227,7 @@ protected:
   void UpdatePolyData();
   void UpdatePolyData( MRIS* mris, vtkPolyData* polydata,
                        vtkPolyData* polydata_verts = NULL,
-                       vtkPolyData* polydata_wireframe = NULL );
+                       vtkPolyData* polydata_wireframe = NULL, bool create_segs = false );
   void UpdateVerticesAndNormals();
   void ComputeNormals();
   void NormalFace(int fac, int n, float *norm );
@@ -309,6 +314,8 @@ protected:
   bool     m_bValidVolumeGeometry;
 
   bool      m_bSharedMRIS;
+
+  double    m_dMaxSegmentLength;
 };
 
 #endif

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/23 20:41:52 $
- *    $Revision: 1.10 $
+ *    $Date: 2015/10/07 20:01:59 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,9 +28,12 @@
 
 #include <QObject>
 #include <QStringList>
+#include <vtkSmartPointer.h>
+
 
 class RenderView2D;
 class vtkRenderer;
+class vtkTextActor;
 
 class Region2D : public QObject
 {
@@ -85,6 +88,8 @@ protected:
   RenderView2D* m_view;
   QString       m_strShortStats;
   QStringList   m_strsLongStats;
+  vtkSmartPointer<vtkTextActor> m_actorText;
+
 };
 
 #endif

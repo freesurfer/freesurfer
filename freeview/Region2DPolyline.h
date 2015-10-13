@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/23 20:41:52 $
- *    $Revision: 1.7 $
+ *    $Date: 2015/10/07 20:01:59 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,7 +71,6 @@ protected:
 
   vtkSmartPointer<vtkActor2D>   m_actorPolyline;
   vtkSmartPointer<vtkActor2D>   m_actorPoints;
-  vtkSmartPointer<vtkTextActor> m_actorText;
 
   struct ScreenPoint
   {

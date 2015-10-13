@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/27 17:55:27 $
- *    $Revision: 1.68 $
+ *    $Date: 2015/10/07 20:01:59 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,8 @@ class vtkImageData;
 class vtkPlane;
 class vtkDecimatePro;
 class vtkProp;
+class vtkCutter;
+class vtkBox;
 class LayerPropertySurface;
 class FSSurface;
 class LayerMRI;
@@ -318,6 +320,9 @@ protected:
   vtkSmartPointer<vtkActor>   m_vertexActor;
   vtkSmartPointer<vtkActor>   m_vertexActor2D[3];
   vtkSmartPointer<vtkActor>   m_wireframeActor;
+
+  vtkSmartPointer<vtkCutter>  m_cutter[3];
+  vtkSmartPointer<vtkBox>     m_box[3];
 
   QList<SurfaceOverlay*>    m_overlays;
   int         m_nActiveOverlay;

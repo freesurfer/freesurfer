@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/02/27 21:05:45 $
- *    $Revision: 1.11 $
+ *    $Date: 2015/10/07 20:01:59 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,12 +52,6 @@ Region2DPolyline::Region2DPolyline( RenderView2D* view, bool bSpline ) :
   m_actorPoints->GetProperty()->SetOpacity( 0.75 );
   m_actorPoints->GetProperty()->SetPointSize( 5 );
 
-  m_actorText = vtkSmartPointer<vtkTextActor>::New();
-  m_actorText->SetTextScaleMode( vtkTextActor::TEXT_SCALE_MODE_NONE );
-  m_actorText->GetTextProperty()->SetColor( 1, 1, 1 );
-  m_actorText->GetTextProperty()->ShadowOn();
-  m_actorText->GetTextProperty()->SetShadowOffset( 1, 1 );
-  m_actorText->GetTextProperty()->SetFontSize( 15 );
   Highlight( true );
 }
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/01/23 20:41:52 $
- *    $Revision: 1.11 $
+ *    $Date: 2015/10/07 20:01:59 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,7 +80,6 @@ protected:
   int GetRange( double[3][2] );
 
   vtkSmartPointer<vtkActor2D>   m_actorRect;
-  vtkSmartPointer<vtkTextActor> m_actorText;
   int       m_nX1, m_nX2, m_nY1, m_nY2;
   double    m_dPt[4][3];       // rect in world coordinate
 

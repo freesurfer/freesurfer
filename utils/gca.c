@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/09/29 19:19:10 $
- *    $Revision: 1.337 $
+ *    $Date: 2015/10/10 17:28:51 $
+ *    $Revision: 1.338 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -11887,14 +11887,11 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
       for (x = 0 ; x < width ; x++)
       {
         if (x == Gx && y == Gy && z == Gz)
-        {
           DiagBreak() ;
-        }
+
         bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
         if (bias < 0)
-        {
           DiagBreak() ;
-        }
 
         MRIsampleVolumeFrame(mri_in, x, y, z, input_index, &val) ;
         val *= bias ;   /* corrected value */
@@ -11902,30 +11899,13 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
         {
         case MRI_UCHAR:
           if (val < 0)
-          {
             val = 0 ;
-          }
           else if (val > 255)
-          {
             val = 255 ;
-          }
-          MRIseq_vox(mri_dst, x, y, z, input_index) =
-            (BUFTYPE)nint(val) ;
-          break ;
-        case MRI_SHORT:
-          MRISseq_vox(mri_dst, x, y, z, input_index) =
-            (short)nint(val) ;
-          break ;
-        case MRI_FLOAT:
-          MRIFseq_vox(mri_dst, x, y, z, input_index) = val ;
-          break ;
-        default:
-          ErrorPrintf(ERROR_UNSUPPORTED,
-                      "GCAnormalizeSamples: unsupported input type %d",
-                      mri_in->type);
-          break ;
-        }
-
+	default:
+	  break ;
+	}
+	MRIsetVoxVal(mri_dst, x, y, z, input_index, val) ;
       }
     }
   }
@@ -16184,6 +16164,17 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     {
       mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 1, h_mri->nbins);
     }
+    {
+      double mn, std ;
+      HISTOrobustGaussianFit(h_smooth, .1, &mn, &std) ;
+      printf("robust fit to distribution - %2.0f +- %2.1f\n", mn, std) ;
+      if (std > 10)
+      {
+	printf("distribution too broad for accurate scaling - disabling\n") ;
+	mri_peak = HISTOfindBin(h_smooth, wm_means[r]) ;
+      }
+    }
+                      
     if ((h_mri->nbins <= mri_peak) || (mri_peak < 0))
     {
       printf("WARNING2: gca.c::GCAhistoScaleImageIntensities: "
@@ -16194,6 +16185,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     {
       mri_peak = h_smooth->bins[mri_peak] ;
     }
+
     printf("after smoothing, mri peak at %d, scaling input intensities "
            "by %2.3f\n", mri_peak, wm_means[r]/mri_peak) ;
 #if 0

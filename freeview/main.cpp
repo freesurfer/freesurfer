@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/09/15 18:29:04 $
- *    $Revision: 1.57 $
+ *    $Date: 2015/10/07 20:01:59 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "t", "track", "<FILE>...", "Load one or more track files.\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "recon", "recon", "<SUBJECT_NAME>...", "Load a series of pre-defined volumes and surfaces of given subject(s).\n", 1, 1000 ),
     CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<FILE> <MAGIFICATION_FACTOR>", "Take a screen shot of the main viewport and then quit the program. Default value for magnification factor is 1", 1, 2 ),
-    CmdLineEntry( CMD_LINE_OPTION, "fly", "fly-through", "<START_SLICE_NUMBER> <END_SLICE_NUMBER> <PREFIX>", "Fly through slices and take screenshot of each slice", 1, 3 ),
+//    CmdLineEntry( CMD_LINE_OPTION, "fly", "fly-through", "<START_SLICE_NUMBER> <END_SLICE_NUMBER> <PREFIX>", "Fly through slices and take screenshot of each slice", 1, 3 ),
     CmdLineEntry( CMD_LINE_OPTION, "viewport", "viewport", "<NAME>", "Set the main viewport as given. Accepted names are 'sagittal' or 'x', 'coronal' or 'y', 'axial' or 'z' and '3d'.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "viewsize", "viewsize", "<width> <height>", "Set the size of the main viewport. The size of the whole window will be changed accordingly.", 2, 2 ),
     CmdLineEntry( CMD_LINE_OPTION, "zoom", "zoom", "<FACTOR>", "Set zoom factor of the main viewport.", 1, 1 ),
