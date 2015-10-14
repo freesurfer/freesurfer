@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2014/10/30 16:18:12 $
-#    $Revision: 1.17 $
+#    $Date: 2015/10/14 01:07:16 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.17 2014/10/30 16:18:12 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.18 2015/10/14 01:07:16 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -34,7 +34,7 @@ set regmethod = bbregister
 set RegDOF = 6;
 set regfilename = ();
 set fstargvol = "brainmask";
-set bbrinit = "--init-fsl";
+set bbrinit = "--init-coreg";
 set InitWithSess = 0;
 set BBRTolF = ()
 set BBRTol1D = ()
@@ -345,6 +345,11 @@ while( $#argv != 0 )
     case "-b0dcor":
     case "-vsm":
       set UseB0DC = 1;
+      breaksw
+
+    case "-init-coreg":
+    case "-bbr-init-coreg":
+      set bbrinit = "--init-coreg"
       breaksw
 
     case "-init-fsl":

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/06/11 18:36:39 $
-#    $Revision: 1.60 $
+#    $Date: 2015/10/14 01:06:28 $
+#    $Revision: 1.61 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.60 2015/06/11 18:36:39 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.61 2015/10/14 01:06:28 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -78,7 +78,8 @@ set RegDOF = 6;
 set regfile = ();
 set UseB0DC = 0;
 set ApplySubCortMask = 1;
-set InitFSL = 1;
+set InitCoReg = 1;
+set InitFSL = 0;
 set InitSPM = 0;
 set InitHeader = 0;
 set IntermediateFSD = ()
@@ -204,8 +205,9 @@ foreach sess ($SessList)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($UseB0DC)    set cmd = ($cmd -b0dc)
-    if($InitFSL) set cmd = ($cmd -init-fsl)
-    if($InitSPM) set cmd = ($cmd -init-spm)
+    if($InitCoReg) set cmd = ($cmd -init-coreg)
+    if($InitFSL)   set cmd = ($cmd -init-fsl)
+    if($InitSPM)   set cmd = ($cmd -init-spm)
     if($InitHeader) set cmd = ($cmd -init-header)
     if($#IntermediateFSD) set cmd = ($cmd -bbr-int $IntermediateFSD $IntermediateStem)
     echo "$sessid Registration -----------------------------" |& tee -a $LF
@@ -608,17 +610,26 @@ while( $#argv != 0 )
       set ApplySubCortMask = 0;
       breaksw
 
+    case "-init-coreg":
+      set InitCoReg = 1;
+      set InitFSL = 0;
+      set InitSPM = 0;
+      set InitHeader = 0;
+      breaksw
     case "-init-fsl":
+      set InitCoReg = 0;
       set InitFSL = 1;
       set InitSPM = 0;
       set InitHeader = 0;
       breaksw
     case "-init-spm":
+      set InitCoReg = 0;
       set InitFSL = 0;
       set InitSPM = 1;
       set InitHeader = 0;
       breaksw
     case "-init-header":
+      set InitCoReg = 0;
       set InitFSL = 0;
       set InitSPM = 0;
       set InitHeader = 1;

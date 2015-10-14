@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # jkgcatrain
 
-set VERSION = '$Id: jkgcatrain,v 1.1 2015/10/05 17:35:08 greve Exp $';
+set VERSION = '$Id: jkgcatrain,v 1.2 2015/10/14 01:10:01 greve Exp $';
 
 set gcadir = ();
 set nthreads = 1;
@@ -9,6 +9,8 @@ set iter = ();
 set DoneFile = ();
 set Submit = 1;
 set pbconf = ();
+set m3z = ();
+set normname = ();
 
 set maskvol = brainmask.mgz
 
@@ -52,7 +54,7 @@ setenv SUBJECTS_DIR $gcadir
 
 # Set up log file
 mkdir -p $gcadir/log
-if($#LF == 0) set LF = $gcadir/log/jkgcatrain.log
+if($#LF == 0) set LF = $gcadir/log/jkgcatrain.Y$year.M$month.D$day.H$hour.log
 if($LF != /dev/null) rm -f $LF
 echo "Log file for jkgcatrain" >> $LF
 date  | tee -a $LF
@@ -73,7 +75,12 @@ endif
 set manseg = `cat $gcadir/scripts/manseg.txt`
 set subjectlist0 = `cat $gcadir/scripts/subjectlist.txt`;
 
+if($#m3z == 0) set m3z = talairach.i$iterstr.m3z
+if($#normname == 0) set normname = norm.i$iterstr.mgz
+
 foreach xsubject ($subjectlist0)
+
+  echo "#@@# xsubject $xsubject `date` ----------------------- " | tee -a $LF
 
   set subjectlist = ();
   foreach subject ($subjectlist0)
@@ -86,8 +93,6 @@ foreach xsubject ($subjectlist0)
     continue
   endif
 
-  set m3z = talairach.i$iterstr.m3z
-  set normname = norm.i$iterstr.mgz
   set cmd = (mri_ca_train -prior_spacing 2 -node_spacing 4 -mask $maskvol \
       -parc_dir $manseg -xform $m3z -T1 $normname $subjectlist $trggca)
   echo $cmd | tee -a $LF
@@ -96,7 +101,7 @@ foreach xsubject ($subjectlist0)
   set LFCAT = $gcadir/log/mri_ca_train.i$iterstr.x.$xsubject.log
   rm -f $LFCAT
   if($Submit) then
-    echo "#@# Submitting mri_ca_train iter $iterstr xsubject $xsubject" | tee -a $LF
+    echo "#@# Submitting mri_ca_train iter $iterstr xsubject $xsubject `date`" | tee -a $LF
     pbsubmit -l nodes=1:ppn=$nthreads $pbconf -c "$cmd | tee $LFCAT" |& tee -a $LF
     echo "" | tee -a $LF
     sleep 10
@@ -107,8 +112,11 @@ foreach xsubject ($subjectlist0)
     echo "\n\n" | tee -a $LF
   endif
 end # loop over xsubject
+echo "Done submitting `date`" | tee -a $LF
 
-# Wait for atlas to be done before exiting
+echo "Waiting for atlas to be done before exiting" | tee -a $LF
+exit 0
+
 @ nthloop = 0
 while(1 && $Submit)
   @ nthloop = $nthloop + 1
@@ -120,11 +128,11 @@ while(1 && $Submit)
     if(! -e $trggca) then
       set break = 0
       @ nwaiting = $nwaiting + 1
-    end
-    if($break) break;
-    echo "$iter Loop $nthloop waiting on $nwaiting xsubjects mri_ca_train `date`" | tee -a $LF
-    sleep 600
+    endif
   end
+  if($break) break;
+  echo "$iter Loop $nthloop waiting on $nwaiting xsubjects mri_ca_train `date`" | tee -a $LF
+  sleep 300
 end
 
 #========================================================
@@ -208,6 +216,12 @@ while( $#argv != 0 )
       set pbconf = ($pbconf "-m $USER")
       breaksw
 
+    case "--rebuild-gca":
+      set m3z = talairach_one.m3z
+      set normname = norm.mgz
+      set iter = 2
+      breaksw
+
     case "--log":
       if($#argv < 1) goto arg1err;
       set LF = $argv[1]; shift;
@@ -286,6 +300,7 @@ usage_exit:
   echo " --nthreads nthreads"
   echo " --no-submit : run serially, do not pbsubmit"
   echo " --pb-m : mail to user when jobs are pbsubmitted or finished"
+  echo " --rebuild-gca, m3z = talairach_one.m3z, normname = norm.mgz, iter = 2":
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -320,8 +335,35 @@ Creates all39/gca/x.$subject.gca.i02.gca for all subjects
 
 # To test peformance, run
 foreach subject (`cat all39/scripts/subjectlist.txt`)
-  gca-apply --s $subject --gca all39/gca/x.$subject.gca.i02.gca \
-    --sd all39 --dice seg_edited10.mgz dice.x.$subject.gca.i02.dat
+  echo "---------------------------"
+  date
+  set cmd = (gca-apply --s $subject --gca all39/gca/x.$subject.gca.i02.gca \
+    --sd `pwd`/all39 --dice seg_edited10.mgz dice.x.$subject.gca.i02.dat)
+  set cmd = ($cmd --overwrite --threads 4)
+  echo $cmd
+  pbsubmit -l nodes=1:ppn=4 -c "$cmd"
+  sleep 5
+end
+
+foreach subject (`cat scripts/subjectlist.txt`)
+  echo "---------------------------"
+  date
+  set cmd = ($DEV/scripts/gca-apply --s $subject --gca gca/x.$subject.gca.i02.gca)
+  set cmd = ($cmd --overwrite)
+  echo $cmd
+  pbsubmit -l nodes=1:ppn=1 -c "$cmd"
+  sleep 5
+end
+
+foreach subject (`cat scripts/subjectlist.txt`)
+  set gcabase = x.$subject.gca.i02
+  pushd $subject/mri
+  set DiceFile = dice.x.$subject.gca.i02.dat
+  set DiceSeg = seg_edited10.mgz
+  set cmd = (mri_compute_seg_overlap -cortex 0 -L $DiceFile -table $DiceFile.table $gcabase.aseg.mgz $DiceSeg)
+  echo $cmd
+  $cmd
+  popd
 end
 
 

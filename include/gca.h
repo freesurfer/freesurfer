@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/06/24 19:32:57 $
- *    $Revision: 1.131 $
+ *    $Date: 2015/10/13 20:16:46 $
+ *    $Revision: 1.132 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -196,7 +196,8 @@ typedef struct
   MATRIX       *tal_i_to_r__;
   MATRIX       *tal_r_to_i__;
   MATRIX       *tmp__;
-	int          total_training ;
+  int          total_training ;
+  int          max_label ;
   COLOR_TABLE  *ct ;
 }
 GAUSSIAN_CLASSIFIER_ARRAY, GCA ;

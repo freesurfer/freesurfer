@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/10/10 17:28:51 $
- *    $Revision: 1.338 $
+ *    $Date: 2015/10/13 20:17:04 $
+ *    $Revision: 1.339 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -99,7 +99,7 @@ static int total_pruned = 0 ;
 /* less than this, and the covariance matrix is poorly conditioned */
 
 #define MAX_LABELS_PER_GCAN         50
-#define MAX_DIFFERENT_LABELS        500
+#define MAX_DIFFERENT_LABELS        5000
 #define MIN_VAR                     (5*5)   /* should make this configurable */
 #define BIG_AND_NEGATIVE            -10000000.0
 #define VERY_UNLIKELY               1e-10
@@ -2521,10 +2521,6 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
       for (z = 0 ; z < depth ; z++)
       {
         /// debugging /////////////////////////////////////
-        if (x == Gx && y == Gy && z == Gz)
-        {
-          DiagBreak() ;
-        }
         if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
         {
           DiagBreak() ;
@@ -2534,6 +2530,8 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
 
         // get the segmented voxel label
         label = nint(MRIgetVoxVal(mri_labels, x, y, z,0)) ;
+	if (label > gca->max_label)
+	  gca->max_label = label ;
 #if 0
         if (!label)
         {
@@ -3029,6 +3027,8 @@ GCAread(const char *fname)
             gc = &gcan->gcs[n] ;
             znzread1(&tempZNZ, file);
             gcan->labels[n] = (unsigned short)tempZNZ;
+	    if (gcan->labels[n] > gca->max_label)
+	      gca->max_label = gcan->labels[n] ;
             for (r = 0 ; r < gca->ninputs ; r++)
             {
               gc->means[r] = znzreadFloat(file) ;
@@ -3256,6 +3256,8 @@ GCAread(const char *fname)
             {
               gcap->labels[n] = (unsigned short)znzreadInt(file) ;
             }
+	    if (gcap->labels[n] > gca->max_label)
+	      gca->max_label = gcap->labels[n] ;
             gcap->priors[n] = znzreadFloat(file) ;
           }
         }
@@ -6423,6 +6425,10 @@ GCAfindStableSamples(GCA *gca,
   float prior_stride, x, y, z, min_unknown[MAX_GCA_INPUTS];
   float max_unknown[MAX_GCA_INPUTS], prior_factor ;
   MRI   *mri_filled, *mri_vent_dist = NULL ;
+
+  if (gca->max_label >= MAX_DIFFERENT_LABELS)
+    ErrorExit(ERROR_UNSUPPORTED, "GCAfindStableSamples: max label %d too large (%d)\n",
+	      gca->max_label, MAX_DIFFERENT_LABELS) ;
 
 #define MIN_UNKNOWN_DIST  2
 
