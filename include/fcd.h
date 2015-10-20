@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/04/01 00:43:10 $
- *    $Revision: 1.5 $
+ *    $Author: rpwang $
+ *    $Date: 2015/10/16 17:31:25 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,6 +37,8 @@ typedef struct
 {
   MRI_SURFACE *mris_lh ;
   MRI_SURFACE *mris_rh ;
+  MRI_SURFACE *mris_lh_pial;
+  MRI_SURFACE *mris_rh_pial;
   MRI         *mri_aseg ;
   MRI         *mri_aparc ;
   MRI         *mri_norm ;
@@ -44,6 +46,7 @@ typedef struct
   MRI         *mri_t2 ;
   MRI         *mri_thickness_increase ;
   MRI         *mri_thickness_decrease ;
+  MRI         *mri_thickness_difference;
   MRI         *lh_thickness_on_lh ;  // thickness of lh mapped to lh
   MRI         *lh_thickness_on_rh ;  // thickness of lh mapped to rh
   MRI         *rh_thickness_on_lh ;  // thickness of rh mapped to lh

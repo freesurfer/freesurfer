@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/10/13 20:16:46 $
- *    $Revision: 1.132 $
+ *    $Date: 2015/10/16 15:18:53 $
+ *    $Revision: 1.133 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,8 @@ extern double MIN_PRIOR_FACTOR, MAX_PRIOR_FACTOR, PRIOR_FACTOR ;   // sorry, too
 #endif
 
 #define MIN_PRIOR  0.5
-#define MAX_GCA_INPUTS 1000
+#define MAX_GCA_INPUTS 100  // changed (BRF)
+//#define MAX_GCA_INPUTS 1000
 /* GCA types *************/
 #define GCA_NORMAL     0  // standard way to create GCA
 #define GCA_FLASH      1  // used flash data to create GCA

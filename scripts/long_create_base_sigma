@@ -1,0 +1,302 @@
+#! /bin/tcsh -f
+#
+# long_create_base_sigma
+#
+# Performs a joint normalization and atlas renormalization at specific
+# sigma smoothing level. This is usually done as part of the base stream
+# but can be performed to add files for a different sigma level to an
+# existing base. 
+#
+# Original Author: Martin Reuter
+# CVS Revision Info:
+#    $Author: mreuter $
+#    $Date: 2015/10/20 18:14:41 $
+#    $Revision: 1.2 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+
+set VERSION = '$Id: long_create_base_sigma,v 1.2 2015/10/20 18:14:41 mreuter Exp $';
+
+if ($#argv < 2) then
+  echo ""
+  echo '  long_create_base_sigma <base-id> <sigma> [optional params]';
+  echo ""
+  echo "  Performs a joint normalization and atlas renormalization at specific"
+  echo "  sigma smoothing level. This is usually done as part of the base stream"
+  echo "  but can be performed to add files for a different sigma level to an"
+  echo "  existing base. "
+  echo ""
+  echo "  Positional parameters:"
+  echo "   <base-id> : subject ID of the base"
+  echo "   <sigma>   : int of sigma smoothing (usually 2..6)"
+  echo "  Optional parameters:
+  echo "   -force    : force creation even if sigma exists in base"
+  echo "   -gca      : specify FS global GCA atlas"
+  echo "   -sd       : specify SUBJECTS_DIR"
+  echo ""
+  echo "  Inputs :"
+  echo "   - aligned nu.mgz (or norm.mgz) from all time points"
+  echo "   - aligned aseg.mgz (mapped from cross) for all time points"
+  echo "   - brainmask.mgz and talairach.m3z from the base"
+  echo "   - the FS global GCA atlas"
+  echo ""
+  echo "  Outputs:"
+  echo "   - norm for each tp in: basedir/longtp/<tpid>/norm.long.s<sigma>.mgz"
+  echo "   - renormalized subject-specific GCA: basedir/longtp/base.s<sigma>.gca"
+  echo ""
+  echo "  Note: "
+  echo "  This script is also called from within recon-all base stream."
+  echo "  For it to work, we need the talairach.xfm in the base, so"
+  echo "  the base needs to be run at least till -careg." 
+  echo "  It also loads the (mapped) asegs from the cross runs."
+  echo ""
+  echo "  More info on longitudinal processing at:"
+  echo "  http://surfer.nmr.mgh.harvard.edu/fswiki/LongitudinalProcessing"
+  echo ""
+  echo ""
+  exit 1;  
+endif
+
+if(! $?FREESURFER_HOME ) then
+  echo "\nERROR: environment variable FREESURFER_HOME not set"
+  echo "  this can be done by setting it in the shell before executing\n"
+  exit 1;
+endif
+
+############# PARSE COMMAND LINE AND SET DEFAULTS #############################
+
+set cmdline   = ($argv);
+set GCADIR    = "${FREESURFER_HOME}/average"
+set GCA       = RB_all_2015-08-04.gca
+set GCA       = RB_all_2014-08-21.gca
+set RunIt     = 1
+set subjid    = $argv[1]; shift;
+set subjdir   = $SUBJECTS_DIR/$subjid
+set LongSigma = $argv[1]; shift;
+set force     = 0
+set gca       = $GCADIR/$GCA
+
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "-sd":
+      if ( $#argv < 1) goto arg1err;
+      setenv  SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "-force":
+      set force = 1;
+      breaksw
+
+    case "-gca":
+      if ( $#argv < 1) goto arg1err;
+      set gca = $argv[1]; shift;
+      breaksw
+
+  endsw
+
+end
+
+
+##################  CHECKING #########################################
+
+
+if(! $?SUBJECTS_DIR ) then
+  echo ""
+  echo "ERROR: environment variable SUBJECTS_DIR not set"
+  echo "  this can be done by setting it in the shell before executing"
+  echo "  or passing with the -sd flag."
+  echo ""
+  exit 1;
+endif
+
+if(! -e $SUBJECTS_DIR ) then
+  echo ""
+  echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+  echo ""
+  exit 1;
+endif
+
+echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
+
+#check if base is there:
+if(! -e $subjdir) then
+  echo "\nERROR: cannot find $subjdir\n"
+  exit 1;
+endif
+
+# Check if bast-tps file is there:
+if ( ! -e $subjdir/base-tps ) then
+  echo ""
+  echo "ERROR: It appears that the -base templateID that you passed:"
+  echo "       -base $subjid"
+  echo "       is an existing regular (cross sectional) run!"
+  echo "       It is missing the base-tps file, created during"
+  echo "       the -base run. Please make sure you are passing"
+  echo "       an existing base."
+  echo ""
+  exit 1;
+endif
+
+# Load tpnids      
+set tpNids = (`cat ${subjdir}/base-tps`)
+      
+# Check for necessary files in base:
+if ( ! -e ${subjdir}/mri/brainmask.mgz ) then
+        echo ""
+        echo "ERROR: The bsae $subjid is missing data:"
+        echo "       mri/brainmask.mgz "
+        echo "       Make sure base is processed completely!"
+        echo ""
+        exit 1;  
+endif
+
+if ( ! -e ${subjdir}/mri/transforms/talairach.xfm ) then
+        echo ""
+        echo "ERROR: The base $subjid is missing data:"
+        echo "       mri/transforms/talairach.xfm "
+        echo "       Make sure base is processed completely!"
+        echo ""
+        exit 1;  
+endif
+
+# Check for necessary input files in longtp:
+foreach s (${tpNids})
+  if ( ! -e ${subjdir}/longtp/${s}/nu.mgz ) then
+        echo ""
+        echo "ERROR: The base $subjid is missing data:"
+        echo "       longtp/$s/nu.mgz"
+        echo "       Maybe the base was created withan older version of"
+        echo "       FreeSurfer or not run till -careg. "
+        echo "       Re-create the base from scratch."
+        echo ""
+        exit 1;  
+  endif
+  
+  if ( ! -e ${subjdir}/longtp/${s}/aseg_cross.mgz ) then
+        echo ""
+        echo "ERROR: The base $subjid is missing data:"
+        echo "       longtp/$s/aseg_cross.mgz"
+        echo "       Maybe the base was created withan older version of"
+        echo "       FreeSurfer or not run till -careg. "
+        echo "       Re-create the base from scratch."
+        echo ""
+        exit 1;  
+  endif
+end
+
+# check for sigma file
+set recreate = 0
+if ( -e $subjdir/base-sigmas ) then
+  set BaseSigmasList = (`cat ${subjdir}/base-sigmas`) 
+  foreach s (${BaseSigmasList})
+    if ( "$LongSigma" == "$s" ) then
+      set recreate = 1
+      break
+    endif
+  end
+  if ($recreate && ! $force ) then
+          echo ""
+          echo "ERROR: Sigma $LongSigma is already contained in: $subjid/base-sigmas "
+          echo "       Delete the line with this sigma from base-sigmas to"
+          echo "       force re-processing (or if you call long_create_base_sigma"
+          echo "       directly specify -force flag)."
+          echo ""
+          exit 1;
+  endif
+endif
+      
+      
+      
+##################  PROCESSING #########################################
+
+# 1. mri_cal_normalize
+# Runs a joint intensity normalization for each subject.
+# Input:
+#  - aligned nu.mgz (or norm.mgz) from all time points
+#  - aligned aseg.mgz (mapped from cross) for all time points
+#  - brainmask.mgz and talairach.m3z from the base
+#  - the FS global GCA atlas
+# Outputs:
+#  - a new norm (longtp/<tpid>/norm.long.s<sigma>.mgz) for each time point.
+#
+# Internally it does:
+# a) scale all images (histo scaling)
+# b) gca find all samples
+# c) foreach region and each structure find control points
+# d) discard unlikely control points
+# e) discard control points with different labels (based on asegs)
+# f) normalize all channels of this region with common set of control points
+# g) now do joint cross time normalization (weighted average, parzen window)
+# Attention: aseg.mgz from cross are mapped at the beginning of the base stream, 
+# so cross needs to be finished before processing base!
+# also base needs to be processed up to -careg
+#
+set cmd = (mri_cal_normalize)
+set cmd = ($cmd -cross_time_sigma $LongSigma)
+set cmd = ($cmd -aseg aseg_cross.mgz)
+set cmd = ($cmd -mask $subjdir/mri/brainmask.mgz)
+set cmd = ($cmd $subjdir/base-tps)
+set cmd = ($cmd nu.mgz)
+set cmd = ($cmd $gca)
+set cmd = ($cmd $subjdir/mri/transforms/talairach.m3z)
+set cmd = ($cmd norm.long.s${LongSigma}.mgz )
+echo "\n $cmd \n" 
+if ($RunIt) $cmd 
+if ($status) exit $status;
+
+
+# 2. mri_cal_renormalize_gca
+# Runs atlas "renormalization" and creates specific GCA for each base to reduce variability.
+# Does one histo fitting and keeps it fixed (see Han 07 paper)
+# It assumes, however, that all time points come from the same scanner 
+# (which should be true in a longitudinal study). If not true, it may make 
+# sense to do a atlas renormalization for each scanner/protocol (not implemented). 
+# Inputs:
+#  - New norm files of all time points (from step 1)
+#  - the FS global GCA
+#  - Base talairach.m3z 
+# Output:
+#  - New renormalized gca for this base as longtp/base.s<sigma>.gca
+#
+set cmd = (mri_cal_renormalize_gca)
+set cmd = ($cmd $subjdir/base-tps)
+set cmd = ($cmd norm.long.s${LongSigma}.mgz )
+set cmd = ($cmd $gca )
+set cmd = ($cmd $subjdir/mri/transforms/talairach.m3z )
+set cmd = ($cmd $subjdir/longtp/base.s${LongSigma}.gca )
+echo "\n $cmd \n" 
+if ($RunIt) $cmd 
+if ($status) exit $status;
+
+
+  
+################## FINALIZING ###########################################
+
+# adding this sigma to list:
+if ( ! $recreate) echo $LongSigma >> $subjdir/base-sigmas
+
+exit 0
+
+################## ERRORS ###########################################
+
+#-------------------------------------------------#
+arg1err:
+#-------------------------------------------------#
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+

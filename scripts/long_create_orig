@@ -1,0 +1,318 @@
+#! /bin/tcsh -f
+#
+# long_create_orig
+#
+# Creates rawavg orig and aseg in the output directory by mapping,
+# averaging (and conforming) from original cross sectional 001... inputs.
+#
+# Original Author: Martin Reuter
+# CVS Revision Info:
+#    $Author: mreuter $
+#    $Date: 2015/10/19 21:17:56 $
+#    $Revision: 1.1 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+
+set VERSION = '$Id: long_create_orig,v 1.1 2015/10/19 21:17:56 mreuter Exp $';
+
+if ($#argv < 1) then
+  echo
+  echo '  long_create_orig <base-id> (<tp-id>)';
+  echo   
+  echo "  Maps, conforms and averages (motioncorrect) raw inputs from "
+  echo "  cross sectional directory to base space. If tp-id is ommitted"
+  echo "  performs operation on all time points in base."
+  echo
+  echo "  Output directory by default is <SUBJECTS_DIR>/<base-id>/longtp/<tp-id>"
+  echo 
+  echo "  Note: "
+  echo "  This script is called from within recon-all."
+  echo "  There is usually no need to call it directly."
+  echo 
+  echo "  More info on longitudinal processing at:"
+  echo "  http://surfer.nmr.mgh.harvard.edu/fswiki/LongitudinalProcessing"
+  echo
+  echo
+  exit 1;  
+endif
+
+if(! $?FREESURFER_HOME ) then
+  echo "\nERROR: environment variable FREESURFER_HOME not set"
+  echo "  this can be done by setting it in the shell before executing\n"
+  exit 1;
+endif
+
+if(! $?SUBJECTS_DIR ) then
+  echo "\nERROR: environment variable SUBJECTS_DIR not set"
+  echo "  this can be done by setting it in the shell before executing\n"
+  exit 1;
+endif
+
+if(! -e $SUBJECTS_DIR ) then
+  echo "\nERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist.\n"
+  exit 1;
+endif
+
+echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
+
+set RunIt = 1
+set baseid = $1
+set basedir = $SUBJECTS_DIR/$baseid
+
+#check if base is there:
+if(! -e $basedir) then
+  echo "\nERROR: cannot find $basedir\n"
+  exit 1;
+endif
+
+
+set tpNids = (`cat ${basedir}/base-tps`)
+if ($#argv > 1) then
+  set tpNids  = $2
+endif
+
+
+# Loop over tpNids
+foreach tpNid ($tpNids)
+
+   echo "\n=== Working on tp $tpNid ===\n"
+   
+   set outdir = $basedir/longtp/$tpNid
+   if(! -e $outdir) then
+      mkdir -p $outdir
+   endif
+   
+   set CrossList = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].mgz`;
+   set origvol = $outdir/orig.mgz
+   set rawvol  = $outdir/rawavg.mgz
+   set asegvol = $outdir/aseg_cross.mgz
+   set tpNtobase_regfile = ${basedir}/mri/transforms/${tpNid}_to_${baseid}.lta
+   if(! -e $tpNtobase_regfile) then
+     echo "\nERROR: cannot find $tpNtobase_regfile\n"
+     exit 1;
+   endif
+
+
+   # first we map the cross asegs over (simple), the rest of this file is
+   # for the more complex creation and mapping of rawavg and orig to avoid
+   # repeated resampling steps.
+   set asegcross = ${SUBJECTS_DIR}/${tpNid}/mri/aseg.mgz
+   if(! -e $asegcross) then
+     echo "\nERROR: cannot find ${asegcross}\n"
+     exit 1;
+   endif
+   set cmd = (mri_convert -at $tpNtobase_regfile )
+   set cmd = ($cmd -rt nearest)
+   set cmd = ($cmd $asegcross)
+   set cmd = ($cmd ${asegvol})
+   echo "\n $cmd \n" 
+   if($RunIt) $cmd 
+   if($status) exit 1;
+
+
+   # in order to create orig.mgz in LONG we need at least 001.mgz in CROSS:
+   if ( ! -e ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz ) then
+      echo "ERROR: no CROSS run data found in ${SUBJECTS_DIR}/${tpNid}/mri/orig/. Make sure to"
+      echo "have a volume called 001.mgz there."
+      echo "If you have a second run of data call it 002.mgz, etc."
+      echo "See also: http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Conversion" 
+      exit 1;
+   endif
+
+
+   # use orig/00?.mgz from cross:
+   if($#CrossList == 1) then
+      # if only single input, directly resample to base space
+      set cmd = (mri_convert -at $tpNtobase_regfile -odt uchar)
+      set cmd = ($cmd -rt cubic)
+      set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz)
+      set cmd = ($cmd ${origvol})
+      echo "\n $cmd \n" 
+      if($RunIt) $cmd 
+      if($status) exit 1;
+      # also create rawavg (usually float) image
+      set cmd = (mri_convert -at $tpNtobase_regfile )
+      set cmd = ($cmd -rt cubic)
+      set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz)
+      set cmd = ($cmd ${rawvol})
+      echo "\n $cmd \n"
+      if($RunIt) $cmd 
+      if($status) exit 1;
+      goto motioncor_post_process
+   endif
+
+   set CrossLtas = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].lta`;
+   set CrossIscales = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9]-iscale.txt`;
+   if ( $#CrossLtas > 0 ) then
+      # check if one lta for each mgz:
+      # here we could better check if really each 00?.mgz has its own 00?.lta in future
+      if ( $#CrossList != $#CrossLtas ) then
+        echo "ERROR: Orig 00?.mgz runs and number of 00?.lta files must agree in" 
+        echo "${SUBJECTS_DIR}/${tpNid}/mri/orig/" 
+        exit 1;
+      endif
+      #copy ltas:
+      cd $outdir
+      set cmd = (cp -vf ${CrossLtas} ./)
+      echo "\n $cmd \n" 
+      if($RunIt) $cmd 
+      if($status) exit 1;
+      #copy iscales if available:
+      if ($#CrossIscales > 0) then
+        # here we could better check if really each 00?.mgz has its own iscale file in future
+        if ( $#CrossList != $#CrossIscales ) then
+          echo "ERROR: Orig 00?.mgz runs and number of 00?-iscale.txt files must agree in"
+          echo "${SUBJECTS_DIR}/${tpNid}/mri/orig/"
+          exit 1;
+        endif
+        cd $outdir
+        set cmd = (cp -vf ${CrossIscales} ./)
+        echo "\n $cmd \n" 
+        if($RunIt) $cmd 
+        if($status) exit 1;
+      endif
+    else
+      # else the ltas don't exist (maybe because 5.0 or fsl was used,
+      # they are created by 5.1+ in cross sectional stream)
+      # if more than one input, re-receate the ltas:
+      if($#CrossList > 1) then
+        # set output names for ltas and iscales in long dir
+        set LongLtas = ""
+        set LongIscales = ""
+        foreach nthid ($CrossList)
+          set nthname=`basename $nthid .mgz`
+          set nthdir=$outdir
+          set nthlta=${nthdir}/${nthname}.lta
+          set LongLtas=($LongLtas $nthlta)
+          set LongIscales=($LongIscales $nthdir/${nthname}-iscale.txt)
+        end
+        # perform motion correction again to obtain the ltas (but in output dir, don't touch cross):
+        set rawavg  = $outdir/rawavg_temp.mgz
+        # the output rawavg_temp will be ignored and not used for anything
+        # we only need the ltas and iscales!
+        set cmd = (mri_robust_template)
+        set cmd = ($cmd --mov ${CrossList})
+        set cmd = ($cmd --average 1)
+        set cmd = ($cmd --template ${rawavg})
+        set cmd = ($cmd --satit)
+        set cmd = ($cmd --inittp 1)
+        set cmd = ($cmd --fixtp)
+        set cmd = ($cmd --noit)
+        set cmd = ($cmd --iscale)
+        set cmd = ($cmd --iscaleout $LongIscales)
+        set cmd = ($cmd --subsample 200)
+        set cmd = ($cmd --lta $LongLtas)
+        echo "#-----------------------------------------------"
+        $PWD 
+        echo "\n $cmd \n" 
+        if($RunIt) then
+          $cmd 
+          if($status) exit 1;
+        endif
+        # better get rid of rawavg to avoid confusion
+        # as it is not in the base/long space, but in 001.mgz space
+        set cmd = (rm -f $rawavg )
+        echo "\n $cmd \n" 
+        if($RunIt) then
+          $cmd 
+          if($status) exit 1;
+        endif
+
+      else
+        # we should never get here, this case hase been dealt with above
+        echo Only single run - should not get here
+        exit 1;
+      endif
+    endif
+
+    # now we have the ltas in outdir 
+    set LongLtas = `ls $outdir/[0-9][0-9][0-9].lta`;
+    set LongIscales = `ls $outdir/[0-9][0-9][0-9]-iscale.txt`;
+
+    # concat ltas (e.g. 002 -> 001 -> base/orig.mgz)
+    set ConcatLtas = ""
+    foreach nthlta ($LongLtas)
+      set nthname=`basename $nthlta .lta`
+      set nthdir=$outdir/
+      set concatlta=$outdir/${nthname}-long.lta
+      set ConcatLtas=($ConcatLtas $concatlta)
+      set cmd = (mri_concatenate_lta $nthlta $tpNtobase_regfile $concatlta)
+      echo "\n $cmd \n" 
+      if($RunIt)  $cmd
+      if($status) exit 1;
+    end
+
+    # use mri_robust_template just to create the average in base orig space:
+    set cmd = (mri_robust_template)
+    set cmd = ($cmd --mov ${CrossList})
+    set cmd = ($cmd --average 1)
+    set cmd = ($cmd --ixforms ${ConcatLtas})
+    if ($#LongIscales > 0) then
+      set cmd = ($cmd --iscalein ${LongIscales})
+    endif
+    set cmd = ($cmd --noit)
+    set cmd = ($cmd --template ${rawvol})
+    echo "\n $cmd \n" 
+    if($RunIt) then
+      $cmd
+      if($status) exit 1;
+    endif
+
+    # make sure orig is uchar:
+    set cmd = (mri_convert -odt uchar ${rawvol} ${origvol})
+    echo "\n $cmd \n" 
+    if($RunIt) then
+      $cmd 
+      if($status) exit 1;
+    endif
+
+    goto motioncor_post_process
+
+
+  # copied from recon all, FOV check probably not necessary in long
+  # would have failed in cross. 
+  motioncor_post_process:
+
+  # does not need to exist, no ouput written there
+  # only needed to fix talairach info below
+  set longsubjdir = $SUBJECTS_DIR/${tpNid}.long.$baseid
+
+
+  # check if FOV > 256 and error exit if so
+  set FOV=`mri_info ${origvol} | grep fov: | awk '{print $2}'`
+  set FOV_gt_256=`echo "${FOV} > 256" | bc`
+  if ($FOV_gt_256) then
+    echo "\n****************************************" |& tee -a $LF
+    echo "ERROR! FOV=${FOV} > 256" |& tee -a $LF
+    echo "Include the flag -cw256 with recon-all!" |& tee -a $LF
+    echo "Inspect orig.mgz to ensure the head is fully visible." |& tee -a $LF
+    echo "****************************************\n" |& tee -a $LF
+    exit 1;
+  endif
+
+
+  # Add xfm to orig, even though it does not exist yet. This is a
+  # compromise to keep from having to change the time stamp of
+  # the orig volume after talairaching.
+  set cmd = (mri_add_xform_to_header -c \
+             $longsubjdir/mri/transforms/talairach.xfm \
+             $origvol $origvol)
+  echo "\n $cmd \n" 
+  if($RunIt) then
+    $cmd 
+    if($status) exit 1;
+  endif
+
+end #foreach loop
+

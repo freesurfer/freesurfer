@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/07/07 19:24:39 $
- *    $Revision: 1.17 $
+ *    $Date: 2015/10/16 18:50:39 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -152,6 +152,14 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
 
   MainWindow* wnd = MainWindow::GetMainWindow();
   QMenu* menu = new QMenu(this);
+
+//  if (layer)
+//  {
+//    QAction* act = new QAction("Rename", this);
+//    connect(act, SIGNAL(triggered()), this, SLOT(OnEditName()));
+//    menu->addAction(act);
+//    menu->addSeparator();
+//  }
 
   if (type == "MRI" || type.isEmpty())
   {
@@ -325,6 +333,19 @@ void LayerTreeWidget::OnHideAllInfo()
     Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
     if (layer)
       layer->GetProperty()->SetShowInfo(false);
+  }
+}
+
+void LayerTreeWidget::OnEditName()
+{
+  QTreeWidgetItem* item = this->currentItem();
+  if (item)
+  {
+    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    if (layer)
+    {
+
+    }
   }
 }
 

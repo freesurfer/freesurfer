@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/10/01 21:20:26 $
-#    $Revision: 1.547 $
+#    $Author: mreuter $
+#    $Date: 2015/10/19 21:17:06 $
+#    $Revision: 1.548 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.547 2015/10/01 21:20:26 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.548 2015/10/19 21:17:06 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1234,7 +1234,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
         $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
       endif
-      # use affine reg to init rigid reg on norm,.mgz (fine tuning)
+      # use affine reg to init rigid reg on norm.mgz (fine tuning)
       # not sure if it is really necessary
       set cmd = (mri_robust_template --mov ${normInVols})
       set cmd = ($cmd --lta ${ltaXforms})

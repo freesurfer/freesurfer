@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/04/01 00:43:10 $
- *    $Revision: 1.13 $
+ *    $Author: rpwang $
+ *    $Date: 2015/10/16 17:31:25 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,6 +102,13 @@ FCDloadData(char *sdir, char *subject)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load lh pial vertices") ;
   }
 
+  sprintf(fname, "%s/%s/surf/lh.pial", sdir, subject) ;
+  fcd->mris_lh_pial = MRISread(fname) ;
+  if (fcd->mris_lh_pial == NULL)
+  {
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
+  }
+
   exec_progress_callback(1, 12, 0, 1) ;
   sprintf(fname, "%s/%s/surf/rh.white", sdir, subject) ;
   fcd->mris_rh = MRISread(fname) ;
@@ -113,6 +120,13 @@ FCDloadData(char *sdir, char *subject)
   if (MRISreadPialCoordinates(fcd->mris_rh, "pial") != NO_ERROR)
   {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load rh pial vertices") ;
+  }
+
+  sprintf(fname, "%s/%s/surf/rh.pial", sdir, subject) ;
+  fcd->mris_rh_pial = MRISread(fname) ;
+  if (fcd->mris_rh_pial == NULL)
+  {
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
 
   exec_progress_callback(2, 12, 0, 1) ;
@@ -194,6 +208,7 @@ FCDloadData(char *sdir, char *subject)
     MRIcloneDifferentType(fcd->mri_aseg, MRI_FLOAT) ;
   fcd->mri_thickness_decrease = 
     MRIcloneDifferentType(fcd->mri_aseg, MRI_FLOAT) ;
+  fcd->mri_thickness_difference = MRIadd(fcd->mri_thickness_increase, fcd->mri_thickness_decrease, NULL);
 
   exec_progress_callback(6, 12, 0, 1) ;
   sprintf(fname, "%s/%s/surf/lh.rh.thickness.smooth0.mgz", sdir, subject) ;
@@ -545,6 +560,8 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
   }
   sort_labels(fcd) ;
 
+  MRIadd(fcd->mri_thickness_increase, fcd->mri_thickness_decrease, fcd->mri_thickness_difference);
+
   for (s = 0 ; s < mriseg->nsegments ; s++)
   {
     printf("%s: %2.3fmm\n", fcd->label_names[s], fcd->labels[s]->avg_stat) ;
@@ -587,6 +604,14 @@ FCDfree(FCD_DATA **pfcd)
   {
     MRISfree(&fcd->mris_rh) ;
   }
+  if (fcd->mris_lh_pial)
+  {
+    MRISfree(&fcd->mris_lh_pial);
+  }
+  if (fcd->mris_rh_pial)
+  {
+    MRISfree(&fcd->mris_rh_pial);
+  }
   if (fcd->mri_aseg)
   {
     MRIfree(&fcd->mri_aseg) ;
@@ -610,6 +635,10 @@ FCDfree(FCD_DATA **pfcd)
   if (fcd->mri_thickness_decrease)
   {
     MRIfree(&fcd->mri_thickness_decrease) ;
+  }
+  if (fcd->mri_thickness_difference)
+  {
+    MRIfree(&fcd->mri_thickness_difference);
   }
   if (fcd->lh_thickness_on_lh)
   {

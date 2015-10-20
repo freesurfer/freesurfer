@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/09/24 21:25:48 $
- *    $Revision: 1.223 $
+ *    $Date: 2015/10/19 18:48:26 $
+ *    $Revision: 1.225 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.223 2015/09/24 21:25:48 fischl Exp $",
+   "$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.223 2015/09/24 21:25:48 fischl Exp $",
+      "$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1696,7 +1696,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.223 2015/09/24 21:25:48 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -2908,11 +2908,15 @@ int main(int argc, char *argv[])
       // option has no effect! -xh
       TRANSFORM *tran = TransformRead(transform_fname);
       // check whether the volume to be morphed and the morph have the same dimensions
+      if (tran == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read xform from %s\n",
+		  Progname, transform_fname) ;
       if (invert_transform_flag == 0)
       {
         printf("morphing to atlas with resample type %d\n", resample_type_val) ;
         mri_transformed =
            GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0, resample_type_val) ;
+	useVolGeomToMRI(&((GCA_MORPH *)tran->xform)->atlas, template) ;
       }
       else // invert
       {

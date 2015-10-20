@@ -109,6 +109,8 @@ label_subject_mixed \
 labels_union \
 labels_intersect \
 labels_disjoint \
+long_create_base_sigma \
+long_create_orig \
 long_mris_slopes \
 long_stats_slopes \
 long_stats_combine \

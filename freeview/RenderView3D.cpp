@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/06/19 18:21:50 $
- *    $Revision: 1.77 $
+ *    $Date: 2015/10/16 17:31:25 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,6 +68,12 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
 {
   this->GetRenderWindow()->GetInteractor()->SetDesiredUpdateRate(30);
   this->GetRenderWindow()->GetInteractor()->SetStillUpdateRate(0.01);
+
+ GetRenderWindow()->SetAlphaBitPlanes(0);
+ GetRenderWindow()->SetMultiSamples(0);
+ GetRenderer()->SetUseDepthPeeling(true);
+ GetRenderer()->SetMaximumNumberOfPeels(4);
+ GetRenderer()->SetOcclusionRatio(0);
 
   m_bShowSliceFrames = true;
   m_bShowAxes = true;

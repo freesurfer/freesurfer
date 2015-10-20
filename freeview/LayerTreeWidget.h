@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/07/07 19:24:39 $
- *    $Revision: 1.12 $
+ *    $Date: 2015/10/16 17:31:25 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,7 @@ public slots:
   void OnShowAllInfo();
   void OnHideAllInfo();
   void OnSetColorMap();
+  void OnEditName();
   void OnSaveVisibleVolumes();
   void SelectAll();
   void DeselectAll();

@@ -6,8 +6,8 @@
 /*
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/21 16:38:44 $
- *    $Revision: 1.175 $
+ *    $Date: 2015/10/15 22:21:13 $
+ *    $Revision: 1.176 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1689,7 +1689,7 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
   static int MAX_ASCIILIST = 512;
   static int INCREMENT = 64;
 
-  int i;
+  int i,k;
   FILE *fp;
   char buf[1024];
   char command[1024+32];
@@ -1742,7 +1742,21 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
     }
     // initialized to be zero
 
-    strcpy(filename, dcmfile);
+    // Copy dcmfile to filename. If dcmfilename has parentheses then
+    // the unix strings command below will fail. The code below puts
+    // backslashes in front of any parens
+    memset(&filename[0],0,1024);
+    k = 0;
+    for(i=0; i<strlen(dcmfile); i++){
+      if(dcmfile[i] == '(' || dcmfile[i] == ')' ||
+	 dcmfile[i] == '[' || dcmfile[i] == ']'){
+	filename[k] = 92; // 92 is ascii dec for backslash
+	k++;
+      }
+      filename[k] = dcmfile[i];
+      k++;
+    }
+
     // free allocated list of strings
     for (i=0; i < count; ++i)
     {

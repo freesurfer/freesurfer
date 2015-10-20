@@ -101,10 +101,12 @@ protected:
   LayerMRI*   m_mri_flair;
   LayerMRI*   m_mri_t2;
   LayerMRI*   m_mri_aseg;
-  LayerMRI*   m_mri_increase;
-  LayerMRI*   m_mri_decrease;
+  LayerMRI*   m_mri_difference;
+//  LayerMRI*   m_mri_decrease;
   LayerSurface* m_surf_lh;
   LayerSurface* m_surf_rh;
+  LayerSurface* m_surf_lh_pial;
+  LayerSurface* m_surf_rh_pial;
 
   vtkSmartPointer<vtkImageActor>  m_sliceActor2D[3];
   vtkSmartPointer<vtkImageActor>  m_sliceActor3D[3];
