@@ -7,9 +7,9 @@
 /*
  * Original Author: Nick S.?
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2013/12/19 21:31:47 $
- *    $Revision: 1.18 $
+ *    $Author: fischl $
+ *    $Date: 2015/10/20 20:07:19 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,12 +52,18 @@ static void print_help(void) ;
 
 static int quiet = 0 ;
 static int all_flag = 0 ;
+static int total_flag = 0 ;
+
+static MRI *mri_mask = NULL ;
 
 static int in_label = -1 ;
 static int out_label = -1 ;
 
 static int isSeg  = 0;
 
+#define MAX_STRINGS 100
+static char *strings[MAX_STRINGS] ;
+static int nstrings = 0 ;
 int
 main(int argc, char *argv[]) {
   char   **av ;
@@ -73,7 +79,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_compute_overlap.c,v 1.18 2013/12/19 21:31:47 lzollei Exp $",
+           "$Id: mri_compute_overlap.c,v 1.19 2015/10/20 20:07:19 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -93,7 +99,7 @@ main(int argc, char *argv[]) {
     argv += nargs ;
   }
 
-  if (argc < 3)
+  if (argc < 3 || (argc < 2 && total_flag))
     usage_exit(1) ;
 
   mri1 = MRIread(argv[1]) ;
@@ -121,6 +127,41 @@ main(int argc, char *argv[]) {
   
   nlabels = total_nvox1 = total_nvox2 = total_nshared = 0;
   total_nunion = 0 ;
+  if (total_flag)
+  {
+    int  f, x, y, z, total, total_same, v1, v2, mask, s ;
+
+    for (f = total = total_same = 0 ; f < mri1->nframes ; f++)
+    for (x = 0 ; x < mri1->width ; x++)
+      for (y = 0 ; y < mri1->height ; y++)
+	for (z = 0 ; z < mri1->depth ; z++)
+	{
+	  if (mri_mask)
+	    mask = MRIgetVoxVal(mri_mask, x, y, z, f) ;
+	  else
+	    mask = 1 ;
+	  if (mask)
+	  {
+	    total++ ;
+	    v1 = nint(MRIgetVoxVal(mri1, x, y, z, f)) ;
+	    v2 = nint(MRIgetVoxVal(mri2, x, y, z, f)) ;
+	    if (v1 == v2)
+	      total_same++ ;
+	  }
+	}
+
+    if (log_fp)
+    {
+      for (s = 0 ; s < nstrings ; s++)
+	fprintf(log_fp, "%s ", strings[s]) ;
+      fprintf(log_fp, "%d %d %2.3f\n", total_same, total, (float)total_same/(float)total) ;
+      fclose(log_fp) ;
+    }
+    for (s = 0 ; s < nstrings ; s++)
+      printf("%s ", strings[s]) ;
+    printf("%s %s %d %d %2.3f\n", argv[1], argv[2], total_same, total, (float)total_same/(float)total) ;
+    exit(0) ;
+  }
   if (all_flag) {
     MRI *mri1_label = NULL, *mri2_label = NULL ;
     int lnoLimit = 1000;
@@ -283,7 +324,25 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option)) {
+  if (stricmp(option, "mask") == 0)
+  {
+    mri_mask = MRIread(argv[2]) ;
+    if (mri_mask == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read mask vol from %s\n",
+		Progname, argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (stricmp(option, "total") == 0)
+  {
+    total_flag = 1 ;
+    fprintf(stderr, "computing total # of matching voxels of any label\n") ;
+  }
+  else if (stricmp(option, "string") == 0)
+  {
+    strings[nstrings++] = argv[2] ;
+    nargs = 1 ;
+  }
+  else switch (toupper(*option)) {
   case 'T':
     in_label = atoi(argv[2]) ;
     out_label = atoi(argv[3]) ;
@@ -331,17 +390,20 @@ get_option(int argc, char *argv[]) {
   ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <volume 1> <volume 2> [label numbers]\n",
+  printf("usage: %s [options] <volume 1> <volume 2> ... <volume N> [label numbers]\n",
          Progname) ;
   
   printf("\n") ;
   printf("Options:\n") ;
-  printf("  -a compute overlap of all labels (if missing, labels of interest should be listed)\n");
-  printf("  -s show label name for segmentation\n");
-  printf("  -l <fname> filename to write results to\n");
-  printf("  -q do not display results on std display (default is false; if -l is used, this option is set)\n");
-  printf("  -t <l1>  <l2> translating label l1 to label l2\n");
-  printf("  -h print help\n");
+  printf("  -a\t\tcompute overlap of all labels (if missing, labels of interest should be listed)\n");
+  printf("  -s\t\tshow label name for segmentation\n");
+  printf("  -total\tcompute the total overlap (# of voxels that are the same)\n");
+  printf("  -mask <vol>\tlimit the domain of the calculation to the nonzero voxels in <vol>\n");
+
+  printf("  -l <fname>\tfilename to write results to\n");
+  printf("  -q\t\tdo not display results on std display (default is false; if -l is used, this option is set)\n");
+  printf("  -t <l1>  <l2>\ttranslating label l1 to label l2\n");
+  printf("  -h\t\tprint help\n");
 
   exit(code) ;
 }
