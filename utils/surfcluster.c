@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/07/15 15:55:54 $
- *    $Revision: 1.34 $
+ *    $Date: 2015/10/22 21:25:58 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.34 2013/07/15 15:55:54 greve Exp $");
+  return("$Id: surfcluster.c,v 1.35 2015/10/22 21:25:58 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -635,8 +635,11 @@ int sclustReMap(MRI_SURFACE *Surf, int nClusters, SCS *scs_sorted)
     //printf("new = %3d old = %3d\n",c,scs_sorted[c-1].clusterno);
   }
 
-  for (vtx = 0; vtx < Surf->nvertices; vtx++)
-    Surf->vertices[vtx].undefval = Orig2Sorted[Surf->vertices[vtx].undefval-1];
+  for (vtx = 0; vtx < Surf->nvertices; vtx++){
+    c = Surf->vertices[vtx].undefval-1;
+    if(c < 0) Surf->vertices[vtx].undefval = 0;
+    else  Surf->vertices[vtx].undefval = Orig2Sorted[c];
+  }
 
   // Change cluster numbers in table
   for (c=1; c <= nClusters; c++) scs_sorted[c-1].clusterno = c;
