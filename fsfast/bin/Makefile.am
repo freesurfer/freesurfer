@@ -109,11 +109,6 @@ FSF_FILES=\
 	glmfourier-sess \
 	glmstats \
 	groupreg-sess \
-	inorm \
-	inorm2 \
-	inorm3 \
-	inorm-sess \
-	intergroupavg-sess \
 	ipfsl \
 	isargflag \
 	isroiavg \
@@ -129,10 +124,6 @@ FSF_FILES=\
 	kmacfcond-sess \
 	kmacf-sess \
 	kmacfwht-sess \
-	ksgrinder \
-	ksgrinder-sess \
-	latgrinder-sess \
-	latgroup-sess \
 	lrst-blk \
 	lrst-blk-sess \
 	mc-afni \
@@ -141,9 +132,6 @@ FSF_FILES=\
 	mcparams2extreg \
 	mc-sess \
 	meanimg \
-	mergeanalyses-sess \
-	mergecontrasts-sess \
-	mergecontrasts-xsess \
 	mkanalysis-sess \
 	mkblockpar \
 	mkbrainmask \
@@ -173,7 +161,6 @@ FSF_FILES=\
 	parse-measasc \
 	plot-pve \
 	plot-twf-sess \
-	ppcheck-sess \
 	preproc-sess \
 	prmerge-sess \
 	qmedit \
@@ -210,19 +197,16 @@ FSF_FILES=\
 	surf-sess \
 	surfsmooth-sess \
 	sxacfg-get \
-	synthfmri \
-	synth-phenc \
 	synthrawroi \
 	synth-sess \
 	synthstudy \
-	synth-tr-sess \
 	tar-sess \
 	tkmedit-sess \
 	tkregister-sess \
 	tksurfer-sess \
-	txt2bfile \
 	vlrmerge \
-	zpadfmri
+	fast_selxavg3b.glnxa64 \
+	mkcontrast2m.glnxa64
 
 foo_SCRIPTS=$(FSF_FILES)
 
