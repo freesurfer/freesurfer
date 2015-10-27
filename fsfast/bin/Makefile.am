@@ -204,11 +204,15 @@ FSF_FILES=\
 	tkmedit-sess \
 	tkregister-sess \
 	tksurfer-sess \
-	vlrmerge \
-	fast_selxavg3b.glnxa64 \
-	mkcontrast2m.glnxa64
+	vlrmerge
 
 foo_SCRIPTS=$(FSF_FILES)
+
+foo_datafiles=fast_selxavg3b.glnxa64 mkcontrast2m.glnxa64
+
+install-data-local:
+	test -z $(DESTDIR)$(bindir) || $(mkdir_p) $(DESTDIR)$(bindir)
+		$(INSTALL_SCRIPT) $(foo_datafiles) $(DESTDIR)$(bindir)
 
 EXTRA_DIST=$(FSF_FILES)
 
