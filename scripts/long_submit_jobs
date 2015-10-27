@@ -8,9 +8,9 @@
 #
 # Original Author: Martin Reuter
 # CVS Revision Info:
-#    $Author: ltirrell $
-#    $Date: 2015/03/24 19:52:00 $
-#    $Revision: 1.22 $
+#    $Author: mreuter $
+#    $Date: 2015/10/22 22:03:41 $
+#    $Revision: 1.24 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -292,7 +292,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.22 2015/03/24 19:52:00 ltirrell Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.24 2015/10/22 22:03:41 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -412,11 +412,19 @@ def options_parse():
         options.b_scriptsdir = scriptsdir
         options.l_scriptsdir = scriptsdir
 
-    if not os.path.exists(options.c_scriptsdir):
+    # cdir must exist already as it contains the inputs
+    # for the others (bdir and ldir), create if necessary:
+    if not os.path.exists(options.bdir) and options.base:
+        os.mkdir(options.bdir)
+    if not os.path.exists(options.ldir) and options.long:
+        os.mkdir(options.ldir)            
+
+    # also create scriptsdir if necessary:
+    if not os.path.exists(options.c_scriptsdir) and options.cross:
         os.mkdir(options.c_scriptsdir)
-    if not os.path.exists(options.b_scriptsdir):
+    if not os.path.exists(options.b_scriptsdir) and options.base:
         os.mkdir(options.b_scriptsdir)
-    if not os.path.exists(options.l_scriptsdir):
+    if not os.path.exists(options.l_scriptsdir) and options.long:
         os.mkdir(options.l_scriptsdir)            
     
         
@@ -448,7 +456,7 @@ def cp_recall(odir):
 
     
 def wait_file(sdir,sid,lpath,interval):
-     # e.g. wait for norm.mgz in cross dirs while still running
+     # e.g. wait for files in cross dirs while still running
     fname = os.path.join(sdir,sid,lpath)
     frun  = os.path.join(sdir,sid,"scripts","IsRunning.lh+rh")
     waited=0
@@ -670,11 +678,12 @@ def run_base(qdectable,options):
             print 'TP id: '+tpid+'\n'
             tps = tps+" -tp "+tpid
 
-            requirement = os.path.join("mri","norm.mgz")
+            crossdepend = "aseg.mgz"
+            requirement = os.path.join("mri",crossdepend)
             status = check_file(options.cdir,tpid,requirement)
             
             if status >= 2: # not there and not running:
-                print "ERROR [base]: "+tpid+" (norm.mgz) does not exist or not readable in "+options.cdir;
+                print "ERROR [base]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir;
                 print "               and no IsRunning.lh+rh found!\n";
                 notexist.append( (subjectid,tpid) )
                 if options.simulate:
@@ -688,7 +697,7 @@ def run_base(qdectable,options):
             if status == 1: # not there and still running:
                 # if skipping >= 2: don't wait for complete base below
                 if options.skip >= 2:
-                    print "WARNING [base]: "+tpid+" missing norm.mgz. Skipping base..."
+                    print "WARNING [base]: "+tpid+" missing "+crossdepend+". Skipping base..."
                     if options.simulate:
                         continue # check other time points
                     skip = True
@@ -699,11 +708,11 @@ def run_base(qdectable,options):
             if options.simulate:
                 continue;
 
-            # wait for norm.mgz in cross dirs
+            # wait for crossdepend in cross dirs
             tpincdir =  os.path.join(options.cdir,tpid)
             status = wait_file(options.cdir,tpid,requirement,60)
             if status >= 2: # not there and not running:
-                print "ERROR [base]: "+tpid+" (norm.mgz) does not exist or not readable in "+options.cdir;
+                print "ERROR [base]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir;
                 print "               and no IsRunning.lh+rh found!\n";
                 notexist.append( (subjectid,tpid) )
                 if options.simulate:
@@ -852,11 +861,13 @@ def run_long(qdectable,options):
             tpid = tp[0]
             print 'CHECK TP cross: '+tpid+'\n'
             
-            requirement = os.path.join("mri","aseg.mgz")
+            
+            crossdepend = "aseg.mgz"
+            requirement = os.path.join("mri",crossdepend)
             status = check_file(options.cdir,tpid,requirement)
 
             if status >= 2: # not there and not running:
-                print "ERROR [long]: "+tpid+" (aseg.mgz) does not exist or not readable in "+options.cdir;
+                print "ERROR [long]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir;
                 print "               and no IsRunning.lh+rh found!\n";
                 notexist.append( (subjectid,tpid) )
                 if options.simulate:
@@ -870,7 +881,7 @@ def run_long(qdectable,options):
             if status == 1: # not there and still running:
                 # if skipping >= 2: don't wait for complete base below
                 if options.skip >= 2:
-                    print "WARNING [long]: "+tpid+" missing norm.mgz. Skipping longs ..."
+                    print "WARNING [long]: "+tpid+" missing "+crossdepend+". Skipping longs ..."
                     if options.simulate:
                         continue # check other time points
                     skip = True
@@ -883,7 +894,7 @@ def run_long(qdectable,options):
             # wait for requirement in cross dirs
             status = wait_file(options.cdir,tpid,requirement,60)
             if status >= 2: # not there and not running:
-                print "ERROR [long]: "+tpid+" (aseg.mgz) does not exist or not readable in "+options.cdir;
+                print "ERROR [long]: "+tpid+" ("+crossdepend+") does not exist or not readable in "+options.cdir;
                 print "               and no IsRunning.lh+rh found!\n";
                 notexist.append( (subjectid,tpid) )
                 if options.simulate:
