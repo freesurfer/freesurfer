@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/04/27 16:24:26 $
- *    $Revision: 1.99 $
+ *    $Date: 2015/10/27 20:09:02 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -552,8 +552,9 @@ void PanelVolume::DoUpdateWidgets()
     ShowWidgets( m_widgetlistNormalDisplay, bNormalDisplay );
     ShowWidgets( m_widgetlistGrayScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Grayscale );
     ShowWidgets( m_widgetlistHeatScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Heat );
-    ShowWidgets( m_widgetlistGenericColorMap, bNormalDisplay && nColorMap != LayerPropertyMRI::LUT &&
-                 nColorMap != LayerPropertyMRI::DirectionCoded );
+    ShowWidgets( m_widgetlistGenericColorMap, (bNormalDisplay && nColorMap != LayerPropertyMRI::LUT &&
+                 nColorMap != LayerPropertyMRI::DirectionCoded) ||
+                (layer && layer->IsTypeOf("DTI") && !layer->GetProperty()->GetDisplayVector()) );
     ShowWidgets( m_widgetlistLUT, bNormalDisplay && nColorMap == LayerPropertyMRI::LUT );
     ShowWidgets( m_widgetlistDirectionCode, bNormalDisplay && nColorMap == LayerPropertyMRI::DirectionCoded );
     ShowWidgets( m_widgetlistEditable, bNormalDisplay && layer->IsEditable() );

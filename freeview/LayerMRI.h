@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/06/03 20:56:14 $
- *    $Revision: 1.96 $
+ *    $Date: 2015/10/27 17:06:09 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -154,7 +154,7 @@ public:
 
   void TkRegToNativeRAS( const double* pos_in, double* pos_out );
 
-  int GetNumberOfFrames();
+  virtual int GetNumberOfFrames();
 
   void GetRASCenter( double* pt );
 

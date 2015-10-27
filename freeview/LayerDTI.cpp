@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/25 18:45:12 $
- *    $Revision: 1.20 $
+ *    $Date: 2015/10/27 19:31:09 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,8 +44,11 @@ LayerDTI::LayerDTI( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
     delete mProperty;
   }
 
+  m_vectorData = vtkFloatArray::New();
+
   mProperty = new LayerPropertyDTI( this );
   LayerMRI::ConnectProperty();
+
 
   SetEditable( false );
 }
@@ -57,6 +60,8 @@ LayerDTI::~LayerDTI()
 
   if (m_eigenvalueSource)
     delete m_eigenvalueSource;
+
+  m_vectorData->Delete();
 }
 
 bool LayerDTI::LoadDTIFromFile( )
@@ -113,6 +118,8 @@ void LayerDTI::InitializeDTIColorMap()
   double v[4] = { 0, 0, 0, 1 };
   int c[3];
   vtkDataArray* vectors = rasDTI->GetPointData()->GetScalars();
+//  qDebug() << vectors->GetDataTypeAsString();
+  m_vectorData->DeepCopy(vectors);
   vtkFloatArray* fas = vtkFloatArray::New();
   fas->DeepCopy( m_imageData->GetPointData()->GetScalars() );
   m_imageData->SetNumberOfScalarComponents( 2 );
@@ -130,11 +137,13 @@ void LayerDTI::InitializeDTIColorMap()
       }
     }
   }
+  float* ptr = (float*)m_imageData->GetScalarPointer();
   for ( int i = 0; i < nSize; i++ )
   {
     vectors->GetTuple( i, v );
     rotation_mat->MultiplyPoint( v, v );
     vtkMath::Normalize( v );
+    m_vectorData->SetTuple(i, v);
     double fa = fas->GetComponent( i, 0 );
     for ( int j = 0; j < 3; j++ )
     {
@@ -145,18 +154,13 @@ void LayerDTI::InitializeDTIColorMap()
       }
     }
     float scalar = c[0]*64*64 + c[1]*64 + c[2];
-    int x = i%dim[0];
-    int y = (i/dim[0])%dim[1];
-    int z = i/(dim[0]*dim[1]);
-    m_imageData->SetScalarComponentFromFloat( x, y, z, 0, fa );
-    m_imageData->SetScalarComponentFromFloat( x, y, z, 1, scalar );
-    /*
-    if ( wnd && nSize >= 5 && i%(nSize/5) == 0 )
-    {
-      event.SetInt( event.GetInt() + nProgressStep );
-      wxPostEvent( wnd, event );
-    }
-    */
+//    int x = i%dim[0];
+//    int y = (i/dim[0])%dim[1];
+//    int z = i/(dim[0]*dim[1]);
+//    m_imageData->SetScalarComponentFromFloat( x, y, z, 0, fa );
+//    m_imageData->SetScalarComponentFromFloat( x, y, z, 1, scalar );
+    *(ptr+i*2) = fa;
+    *(ptr+i*2+1) = scalar;
   }
   rotation_mat->Delete();
   fas->Delete();
@@ -171,6 +175,36 @@ void LayerDTI::UpdateColorMap()
       mColorMap[i]->SetLookupTable( GetProperty()->GetDirectionCodedTable() );
       mColorMap[i]->SetActiveComponent( 1 );
     }
+    if (m_imageData.GetPointer() && m_imageData->GetNumberOfScalarComponents() > 1)
+    {
+      int* dim = m_imageData->GetDimensions();
+      int nSize = dim[0]*dim[1]*dim[2];
+      float* ptr = (float*)m_imageData->GetScalarPointer();
+      double v[4] = {0, 0, 0, 1};
+      int c[3];
+      double dMin = GetProperty()->GetMinGenericThreshold(),
+          dMax = GetProperty()->GetMaxGenericThreshold();
+      if (dMax > dMin)
+      {
+        for ( int i = 0; i < nSize; i++ )
+        {
+          m_vectorData->GetTuple( i, v );
+          float fa = *(ptr+i*2);
+          for ( int j = 0; j < 3; j++ )
+          {
+            c[j] = (int)(fabs(v[j]) * (fa-dMin)/(dMax-dMin) * 64);
+            if ( c[j] > 63 )
+            {
+              c[j] = 63;
+            }
+          }
+          float scalar = c[0]*64*64 + c[1]*64 + c[2];
+          *(ptr+i*2+1) = scalar;
+        }
+      }
+      m_imageData->Modified();
+    }
+
     emit ActorUpdated();
   }
   else

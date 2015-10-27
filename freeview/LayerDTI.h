@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/09/19 19:00:50 $
- *    $Revision: 1.20 $
+ *    $Date: 2015/10/27 19:31:09 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include "vtkSmartPointer.h"
 
 class LayerPropertyDTI;
+class vtkDataArray;
 
 class LayerDTI : public LayerMRI
 {
@@ -67,6 +68,11 @@ public:
 
   bool GetVectorValue( double* pos_in, double* v_out );
 
+  int GetNumberOfFrames()
+  {
+    return 1;
+  }
+
 protected:
   bool DoRotate( std::vector<RotationElement>& rotations );
   void DoRestore();
@@ -80,6 +86,7 @@ protected:
 
   FSVolume*  m_eigenvalueSource;   // eigen values
   QString m_sEigenvalueFileName;
+  vtkDataArray* m_vectorData;
 };
 
 #endif

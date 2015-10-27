@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/08 17:32:32 $
- *    $Revision: 1.160 $
+ *    $Date: 2015/10/27 17:06:09 $
+ *    $Revision: 1.161 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1252,6 +1252,7 @@ std::vector<double> LayerMRI::GetMeanSegmentValues(std::vector<std::vector<doubl
 QList<double> LayerMRI::GetVoxelValueByOriginalIndexAllFrames(int i, int j, int k)
 {
   QList<double> list;
+  qDebug() << GetNumberOfFrames();
   for (int frame = 0; frame < GetNumberOfFrames(); frame++)
     list << m_volumeSource->GetVoxelValue( i, j, k, frame );
   return list;
