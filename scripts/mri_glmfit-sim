@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.55 2015/06/02 21:20:46 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.56 2015/11/03 19:30:55 greve Exp $';
 setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
@@ -78,7 +78,7 @@ endif
 if($nulltype != perm) then
   set fwhmfile = $glmdir/fwhm.dat
   if(! -e $fwhmfile) then
-    echo "ERROR: cannot find $fwhm"
+    echo "ERROR: cannot find $fwhmfile"
     exit 1;
   endif
   # This may be overridden
