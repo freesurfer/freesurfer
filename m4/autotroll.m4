@@ -158,8 +158,8 @@ dnl Memo: AC_ARG_WITH(package, help-string, [if-given], [if-not-given])
     && tmp_qt_paths="$tmp_qt_paths:/opt/local/libexec/qt4-mac/bin"
 
   if test x"$QT_PATH" = "x"; then
-    test -d /usr/pubsw/packages/qt/current/bin \
-      && tmp_qt_paths="$tmp_qt_paths:/usr/pubsw/packages/qt/current/bin"
+    test -d ${PACKAGES_DIR}/qt/current/bin \
+      && tmp_qt_paths="$tmp_qt_paths:${PACKAGES_DIR}/qt/current/bin"
   fi
  
   # Path to qt as installed by the official Qt Mac .dmg package.

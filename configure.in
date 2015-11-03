@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/09/30 21:49:12 $
-#    $Revision: 1.658 $
+#    $Author: zkaufman $
+#    $Date: 2015/11/03 21:50:59 $
+#    $Revision: 1.659 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -42,6 +42,24 @@ AC_CANONICAL_SYSTEM
 # Note: until all the warnings produced by icc are fixed in the source,
 # it is necessary to remove -Werror from CFLAGS (see WERROR in this file)
 ########################################################################
+
+##############################################################
+# allow user to specify root of multi-package directory,
+# such as one containing all freesurfer dependencies.
+##############################################################
+pkgs_dir="/usr/pubsw/packages"
+
+AC_ARG_WITH(pkgs-dir,
+[  --with-pkgs-dir=DIR     where the root of multiple pkgs are installed.],
+  [  pkgs_dir="$withval"
+  ])
+
+if test -e "$pkgs_dir"; then
+  PACKAGES_DIR=${pkgs_dir}
+  AC_MSG_RESULT([using '${PACKAGES_DIR}'])
+else
+  AC_MSG_ERROR([FATAL: ${pkgs_dir} not found])
+fi
 
 ################################################################
 # AMD Open64 Compiler
@@ -403,8 +421,8 @@ AC_SUBST(LIB_LAPACK)
 # version found in the mni library so that libnetcdf does 
 # not become a dependancy for users outside the Center.
 LIB_NETCDF=""
-if test -e /usr/pubsw/packages/mni/current/lib/libnetcdf.a ; then
-  LIB_NETCDF="/usr/pubsw/packages/mni/current/lib/libnetcdf.a"
+if test -e ${PACKAGES_DIR}/mni/current/lib/libnetcdf.a ; then
+  LIB_NETCDF="${PACKAGES_DIR}/mni/current/lib/libnetcdf.a"
 else
   LIB_NETCDF="-lnetcdf"
 fi
@@ -743,8 +761,8 @@ OPENCV_DIR="no"
 if test -n "$with_opencv"; then
   OPENCV_DIR="$with_opencv"
 else
-  if test -e /usr/pubsw/packages/opencv/current ; then
-    OPENCV_DIR="/usr/pubsw/packages/opencv/current"
+  if test -e ${PACKAGES_DIR}/opencv/current ; then
+    OPENCV_DIR="${PACKAGES_DIR}/opencv/current"
   fi
 fi
 if( test ! "x$OPENCV_DIR" = "xno" ) then
@@ -811,21 +829,23 @@ fi
 
 #############################################################
 # Nvidia CUDA enabling
-#############################################################
+############################################################
+CUDA_DIR=""
+with_cuda="no"
 AC_ARG_WITH([cuda],
    [  --with-cuda=PATH        prefix where cuda is installed [default=auto]])
 if test -n "$with_cuda"; then
   CUDA_DIR="$with_cuda"
 else
-  if test -e /usr/pubsw/packages/CUDA/current ; then
-    CUDA_DIR="/usr/pubsw/packages/CUDA/current"
+  if test -e ${PACKAGES_DIR}/CUDA/current ; then
+    CUDA_DIR="${PACKAGES_DIR}/CUDA/current"
   else
     if test -e /usr/local/cuda ; then
       CUDA_DIR="/usr/local/cuda"
     fi
   fi
 fi
-if( test ! "x$CUDA_DIR" = "xno" ) then
+if( test ! "x$CUDA_DIR" = "x" ) then
   LIB_CUDA=""
   AC_CHECK_LIB([cuda -L$CUDA_DIR/lib], [cuInit],[LIB_CUDA="-lcuda"],[])
   AC_SUBST(LIB_CUDA)
@@ -1211,36 +1231,6 @@ AC_SUBST(X_LIBS)
 
 AC_MSG_NOTICE([Checking for directory specification of 3rd-party libraries...])
 
-##############################################################
-# allow user to specify root of multi-package directory,
-# such as one containing all freesurfer dependencies.
-##############################################################
-ac_pkgs_includes="NO"
-ac_pkgs_libraries="NO"
-pkgs_includes=""
-pkgs_libraries=""
-
-AC_ARG_WITH(pkgs-dir,
-[  --with-pkgs-dir=DIR     where the root of multiple pkgs are installed.],
-  [  ac_pkgs_includes="$withval"/include
-     ac_pkgs_libraries="$withval"/lib
-  ])
-
-# modify CPPFLAGS and LDFLAGS
-if test ! "$ac_pkgs_includes" = "NO"; then
-  AC_MSG_RESULT([Packages directory is $withval])
-  pkgs_includes=-I$ac_pkgs_includes
-  CPPFLAGS="$CPPFLAGS $pkgs_includes"
-fi
-if test ! "$ac_pkgs_libraries" = "NO"; then
-  pkgs_libraries=-L$ac_pkgs_libraries
-  LDFLAGS="$LDFLAGS $pkgs_libraries"
-fi
-
-AC_SUBST(pkgs_includes)
-AC_SUBST(pkgs_libraries)
-
-
 #############################################################
 # MNI
 #############################################################
@@ -1261,8 +1251,8 @@ AC_ARG_WITH(mni-dir,
 if test "x$MNI_DIR" = "x"; then
   # if an MNI root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/mni/current" ; then
-    withval=/usr/pubsw/packages/mni/current
+  if test -d "${PACKAGES_DIR}/mni/current" ; then
+    withval=${PACKAGES_DIR}/mni/current
     MNI_DIR="$withval"
     ac_mni_includes="$withval"/include
     ac_mni_libraries="$withval"/lib
@@ -1280,6 +1270,21 @@ if test ! "$ac_mni_libraries" = "NO"; then
   MNI_LIBS=-L$ac_mni_libraries
 fi
 
+
+LIB_VOLUME_IO=""
+if test -e ${PACKAGES_DIR}/mni/current/lib/libvolume_io.a ; then
+  LIB_VOLUME_IO="${PACKAGES_DIR}/mni/current/lib/libvolume_io.a"
+else
+  LIB_VOLUME_IO="-lvolume_io"
+fi
+
+LIB_MINC=""
+if test -e ${PACKAGES_DIR}/mni/current/lib/libminc.a ; then
+  LIB_MINC="${PACKAGES_DIR}/mni/current/lib/libminc.a"
+else
+  LIB_MINC="-lminc"
+fi
+
 # these are the libs used by freesurfer:
 MINC2=NO
 if test -e "$ac_mni_libraries/libminc2.a" ; then
@@ -1287,7 +1292,7 @@ if test -e "$ac_mni_libraries/libminc2.a" ; then
   LIBS_MNI="$LIB_NETCDF -lhdf5 -lvolume_io2 -lminc2"
   MINC2=YES
 else
-  LIBS_MNI="$LIB_NETCDF -lvolume_io -lminc"
+  LIBS_MNI="$LIB_VOLUME_IO $LIB_MINC $LIB_NETCDF"
 fi
 
 AC_SUBST(MNI_CFLAGS)
@@ -1379,7 +1384,7 @@ AC_ARG_WITH(vxl-dir,
 # Vxl code within itk
 AC_ARG_WITH(itk-4.5.1-vxl,
   [  --with-itk-4.5.1-vxl     set paths to use VXL in NMR Center ITK v4.5.1.],
-  [  withval=/usr/pubsw/packages/itk/4.5.1
+  [  withval=${PACKAGES_DIR}/itk/4.5.1
      ac_vxl_includes="$withval"/include/ITK-4.5
      ac_vxl_libraries="$withval"/lib
      VXL_DIR="$withval"
@@ -1391,8 +1396,8 @@ AC_ARG_WITH(itk-4.5.1-vxl,
 if test "x$VXL_DIR" = "x"; then
   # if a VXL root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/vxl/current" ; then
-    withval=/usr/pubsw/packages/vxl/current
+  if test -d "${PACKAGES_DIR}/vxl/current" ; then
+    withval=${PACKAGES_DIR}/vxl/current
     VXL_DIR="$withval"
     if test -d "$withval/include/vxl"; then
       vxl_i="$withval/include/vxl"
@@ -1474,8 +1479,8 @@ AC_ARG_WITH(fltk-dir,
 if test "x$FLTK_DIR" = "x"; then
   # if a FLTK root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/fltk/current" ; then
-    withval=/usr/pubsw/packages/fltk/current
+  if test -d "${PACKAGES_DIR}/fltk/current" ; then
+    withval=${PACKAGES_DIR}/fltk/current
     FLTK_DIR="$withval"
     ac_fltk_dir="$withval"
     fltk_i="$withval"/include
@@ -1552,8 +1557,8 @@ AC_ARG_WITH(petsc-dir,
 if test "x$PETSC_DIR" = "x"; then
   # if a PETSC root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/petsc/current" ; then
-    withval=/usr/pubsw/packages/petsc/current
+  if test -d "${PACKAGES_DIR}/petsc/current" ; then
+    withval=${PACKAGES_DIR}/petsc/current
     PETSC_DIR="$withval"
     ac_petsc_dir="$withval"
     petsc_i="$withval"/include
@@ -1673,8 +1678,8 @@ if test "x$BOOST_DIR" = "x"; then
   # default packages path at the NMR Center, AND this is a mac,
   # then use that:
   if test "$OS" = "Darwin"; then
-    if test -d "/usr/pubsw/packages/boost/current" ; then
-      withval=/usr/pubsw/packages/boost/current
+    if test -d "${PACKAGES_DIR}/boost/current" ; then
+      withval=${PACKAGES_DIR}/boost/current
       BOOST_DIR="$withval"
       ac_boost_dir="$withval"
       boost_i="$withval"/include
@@ -1740,8 +1745,8 @@ AC_ARG_WITH(ann-dir,
 if test "x$ANN_DIR" = "x"; then
   # if a ANN root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/ann/current" ; then
-    withval=/usr/pubsw/packages/ann/current
+  if test -d "${PACKAGES_DIR}/ann/current" ; then
+    withval=${PACKAGES_DIR}/ann/current
     ANN_DIR="$withval"
     ac_ann_includes="$withval"/include
     ac_ann_libraries="$withval"/lib
@@ -1823,8 +1828,8 @@ AC_ARG_WITH(tcl-dir,
 if test "x$ac_tcl_dir" = "x"; then
   # if a Tcl/Tk/Tix/BLT root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/tcltktixblt/current" ; then
-    withval=/usr/pubsw/packages/tcltktixblt/current
+  if test -d "${PACKAGES_DIR}/tcltktixblt/current" ; then
+    withval=${PACKAGES_DIR}/tcltktixblt/current
     ac_tcl_dir="$withval"
     ac_tcl_includes="$withval"/include
     ac_tcl_libraries="$withval"/lib
@@ -1968,8 +1973,8 @@ AC_ARG_WITH(xawplus-dir,
 if test "x$ac_xawplus_dir" = "xNO"; then
   # if a Xawplus root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/xawplus/current" ; then
-    withval=/usr/pubsw/packages/xawplus/current
+  if test -d "${PACKAGES_DIR}/xawplus/current" ; then
+    withval=${PACKAGES_DIR}/xawplus/current
     ac_xawplus_dir="$withval"
     ac_xawplus_includes="$withval"/include
     ac_xawplus_libraries="$withval"/lib
@@ -2099,8 +2104,8 @@ fi
 if test -e "/usr/lib64/libjpeg.a"; then
   LIB_JPEG="/usr/lib64/libjpeg.a"
 fi
-if test -e "/usr/pubsw/packages/tiffjpegglut/current/lib/libjpeg.a"; then
-  LIB_JPEG="/usr/pubsw/packages/tiffjpegglut/current/lib/libjpeg.a"
+if test -e "${PACKAGES_DIR}/tiffjpegglut/current/lib/libjpeg.a"; then
+  LIB_JPEG="${PACKAGES_DIR}/tiffjpegglut/current/lib/libjpeg.a"
 fi
 if test -e "$ac_jpeg_libraries/libjpeg.a"; then
   LIB_JPEG="$ac_jpeg_libraries/libjpeg.a"
@@ -2182,7 +2187,7 @@ fi
 AM_CONDITIONAL(ENABLE_QT_APPS, ! test "x$QT_PATH" = "x")
 # hack: make sure our QT_LIBS overrides /usr/lib64 native Qt install
 # this is problematic on Centos6, where qt 4.6.3 is installed, but
-# we (at the NMR Center) want to use v4.7.1 in /usr/pubsw/packages/qt
+# we (at the NMR Center) want to use v4.7.1 in ${PACKAGES_DIR}/qt
 # and link-time errors (problem with 'detach_grow') appear if
 # qt 4.6.3 attempts to link because it is in /usr/lib64. this forces
 # an override:
@@ -2216,8 +2221,8 @@ AC_ARG_WITH(cppunit-dir,
 if test "x$ac_cppunit_dir" = "xNO"; then
   # if a CppUnit root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/cppunit/current" ; then
-    withval=/usr/pubsw/packages/cppunit/current
+  if test -d "${PACKAGES_DIR}/cppunit/current" ; then
+    withval=${PACKAGES_DIR}/cppunit/current
     ac_cppunit_includes="$withval"/include
     ac_cppunit_libraries="$withval"/lib
     ac_cppunit_bindir="$withval"/bin
@@ -2273,8 +2278,8 @@ if test ! "$disable_gui_build" = "YES"; then
   if test "x$VTK_DIR" = "x"; then
     # if a VTK root was not supplied, but one exists in the
     # default packages path at the NMR Center, then use that:
-    if test -d "/usr/pubsw/packages/vtk/current" ; then
-      withval=/usr/pubsw/packages/vtk/current
+    if test -d "${PACKAGES_DIR}/vtk/current" ; then
+      withval=${PACKAGES_DIR}/vtk/current
       ac_vtk_includes="$withval/include"
       ac_vtk_libraries="$withval"/lib
       ac_vtk_dir="$withval"
@@ -2394,8 +2399,8 @@ if test ! "$disable_gui_build" = "YES"; then
   if test "x$VTK_COCOA_DIR" = "x"; then
     # if a VTK cocoa root was not supplied, but one exists in the
     # default packages path at the NMR Center, then use that:
-    if test -d "/usr/pubsw/packages/vtk/5.6.1_cocoa" ; then
-      withval=/usr/pubsw/packages/vtk/5.6.1_cocoa
+    if test -d "${PACKAGES_DIR}/vtk/5.6.1_cocoa" ; then
+      withval=${PACKAGES_DIR}/vtk/5.6.1_cocoa
       ac_vtk_cocoa_includes="$withval/include"
       ac_vtk_cocoa_libraries="$withval"/lib
       ac_vtk_cocoa_dir="$withval"
@@ -2499,8 +2504,8 @@ AC_ARG_WITH(kwwidgets-dir,
 if test "x$KWWIDGETS_DIR" = "x"; then
   # if a KWWidgets root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/KWWidgets/current" ; then
-    withval=/usr/pubsw/packages/KWWidgets/current
+  if test -d "${PACKAGES_DIR}/KWWidgets/current" ; then
+    withval=${PACKAGES_DIR}/KWWidgets/current
     ac_kwwidgets_includes="$withval"/include/KWWidgets
     ac_kwwidgets_libraries="$withval"/lib/KWWidgets
     ac_kwwidgets_dir="$withval"
@@ -2573,8 +2578,8 @@ AC_ARG_WITH(wxwidgets-dir,
 if test "x$WXWIDGETS_DIR" = "x"; then
   # if a wxWidgets root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/wxWidgets/current" ; then
-    WXWIDGETS_DIR=/usr/pubsw/packages/wxWidgets/current
+  if test -d "${PACKAGES_DIR}/wxWidgets/current" ; then
+    WXWIDGETS_DIR=${PACKAGES_DIR}/wxWidgets/current
     wxw_apps="yes"
   fi
 fi
@@ -2660,8 +2665,8 @@ AC_ARG_WITH(gts-dir,
 if test "x$GTS_DIR" = "x"; then
   # if a gts root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/gts/current" ; then
-    GTS_DIR=/usr/pubsw/packages/gts/current
+  if test -d "${PACKAGES_DIR}/gts/current" ; then
+    GTS_DIR=${PACKAGES_DIR}/gts/current
   fi
 else
   if ! test -d "$GTS_DIR" ; then
@@ -2713,7 +2718,7 @@ AC_ARG_WITH(itk-dir,
 # Note: use with --with-itk-4.5.1-vxl flag, since default vxl doesnt work w4.5.1
 AC_ARG_WITH(itk-4.5.1,
   [  --with-itk-4.5.1        set paths to use NMR Center ITK v4.5.1.],
-  [  withval=/usr/pubsw/packages/itk/4.5.1
+  [  withval=${PACKAGES_DIR}/itk/4.5.1
      ac_itk_includes="$withval"/include/ITK-4.5
      ac_itk_libraries="$withval"/lib
      ITK_DIR="$withval"
@@ -2744,8 +2749,8 @@ fi
 if test "x$ITK_DIR" = "x"; then
   # if an ITK root was not supplied, but one exists in the
   # default packages path at the NMR Center, then use that:
-  if test -d "/usr/pubsw/packages/itk/current" ; then
-    withval=/usr/pubsw/packages/itk/current
+  if test -d "${PACKAGES_DIR}/itk/current" ; then
+    withval=${PACKAGES_DIR}/itk/current
     itk_i="$withval/include/InsightToolkit"
     ac_itk_includes="$itk_i $itk_i/Algorithms $itk_i/BasicFilters $itk_i/Common $itk_i/IO $itk_i/Numerics $itk_i/Numerics/Statistics $itk_i/Review $itk_i/Review/Statistics $itk_i/SpatialObject $itk_i/Utilities"
     ac_itk_libraries="$withval"/lib/InsightToolkit
@@ -2854,8 +2859,8 @@ GDCM_DIR=""
 AC_MSG_CHECKING(GDCM directory)
 
 if test "x$GDCM_DIR" = "x"; then
-  if test -d "/usr/pubsw/packages/gdcm/current" ; then
-    withval=/usr/pubsw/packages/gdcm/current
+  if test -d "${PACKAGES_DIR}/gdcm/current" ; then
+    withval=${PACKAGES_DIR}/gdcm/current
     gdcm_i="$withval/include/gdcm-2.4"
     ac_gdcm_includes="$gdcm_i $gdcm_i/gdcmjpeg $gdcm_i/gdcmopenjpeg $gdcm_i/gdcmcharls $gdcm_i/socketxx"
     ac_gdcm_libraries="$withval/lib"
