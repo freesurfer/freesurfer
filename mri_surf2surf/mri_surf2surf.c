@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/01/24 21:40:28 $
- *    $Revision: 1.101 $
+ *    $Date: 2015/11/02 21:22:04 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -375,7 +375,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.101 2014/01/24 21:40:28 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.102 2015/11/02 21:22:04 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -500,13 +500,13 @@ int main(int argc, char **argv)
   double area, a0, a1, a2, d, dmin, dmax, dsum;
   COLOR_TABLE *ctab=NULL;
   LABEL *MaskLabel;
-  MRI *mask = NULL, *mri2=NULL;
+  MRI *inmask = NULL, *outmask=NULL, *mri2=NULL;
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.101 2014/01/24 21:40:28 greve Exp $",
+    "$Id: mri_surf2surf.c,v 1.102 2015/11/02 21:22:04 greve Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -860,28 +860,29 @@ int main(int argc, char **argv)
            fwhm_Input,gstd_Input,nSmoothSteps_Input);
   }
 
+  if(LabelFile_Input != NULL) {
+    printf("Reading source subject label mask %s\n",LabelFile_Input);
+    MaskLabel = LabelRead(srcsubject, LabelFile_Input);
+    if(MaskLabel == NULL) exit(1);
+    inmask = MRISlabel2Mask(SrcSurfReg, MaskLabel, NULL);
+  } 
+  else inmask = NULL;
+
   if(nSmoothSteps_Input > 0) {
     if(! ConvGaussian) {
-      printf("------Reading smoothing mask label %s\n",LabelFile_Input);
-      if(LabelFile_Input != NULL) {
-        printf("Reading smoothing mask label %s\n",LabelFile_Input);
-        MaskLabel = LabelRead(srcsubject, LabelFile_Input);
-        if(MaskLabel == NULL) {
-          exit(1);
-        }
-        mask = MRISlabel2Mask(SrcSurfReg, MaskLabel, NULL);
-      } else {
-        mask = NULL;
-      }
       printf("NN smoothing input with n = %d\n",nSmoothSteps_Input);
-      MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, mask, SrcVals);
-      if(mask) {
-        MRIfree(&mask);
-      }
-    } else {
+      MRISsmoothMRI(SrcSurfReg, SrcVals, nSmoothSteps_Input, inmask, SrcVals);
+    } 
+    else {
       printf("Convolving with gaussian\n");
       MRISgaussianSmooth(SrcSurfReg, SrcVals, gstd_Input, SrcVals, 3.5);
       //MRIShksmooth(SrcSurfReg, SrcVals, gstd_Input, nSmoothSteps_Input, SrcVals);
+    }
+  }
+  else {
+    if(inmask){
+      printf("masking the input\n");
+      mritmp = MRImask(SrcVals,inmask,SrcVals,0,0);
     }
   }
 
@@ -1035,27 +1036,29 @@ int main(int argc, char **argv)
            " std = %lf, with %d iterations of nearest-neighbor smoothing\n",
            fwhm,gstd,nSmoothSteps);
   }
+
+  if(LabelFile != NULL) {
+    printf("Reading target space mask label %s\n",LabelFile);
+    MaskLabel = LabelRead(trgsubject, LabelFile);
+    if(MaskLabel == NULL) exit(1);
+    outmask = MRISlabel2Mask(TrgSurfReg, MaskLabel, NULL);
+  } 
+  else  outmask = NULL;
+
   if(nSmoothSteps > 0) {
     if(! ConvGaussian) {
-      if(LabelFile != NULL) {
-        printf("Reading smoothing mask label %s\n",LabelFile);
-        MaskLabel = LabelRead(trgsubject, LabelFile);
-        if(MaskLabel == NULL) {
-          exit(1);
-        }
-        mask = MRISlabel2Mask(TrgSurfReg, MaskLabel, NULL);
-      } else {
-        mask = NULL;
-      }
       printf("NN smoothing output with n = %d\n",nSmoothSteps);
-      MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, mask, TrgVals);
-      if(mask) {
-        MRIfree(&mask);
-      }
+      MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, outmask, TrgVals);
     } else {
       printf("Convolving with gaussian\n");
       MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals, 3.5);
       //MRIShksmooth(SrcSurfReg, SrcVals, gstd, nSmoothSteps, SrcVals);
+    }
+  }
+  else {
+    if(outmask){
+      printf("masking the input\n");
+      mritmp = MRImask(TrgVals,outmask,TrgVals,0,0);
     }
   }
 
@@ -2192,14 +2195,10 @@ static void check_options(void)
   }
 
   if(UseCortexLabel) {
-    if(fwhm_Input > 0 || nSmoothSteps_Input > 0) {
-      sprintf(tmpstr,"%s.cortex.label",srchemi);
-      LabelFile_Input = strcpyalloc(tmpstr);
-    }
-    if(fwhm > 0 || nSmoothSteps > 0) {
-      sprintf(tmpstr,"%s.cortex.label",trghemi);
-      LabelFile = strcpyalloc(tmpstr);
-    }
+    sprintf(tmpstr,"%s.cortex.label",srchemi);
+    LabelFile_Input = strcpyalloc(tmpstr);
+    sprintf(tmpstr,"%s.cortex.label",trghemi);
+    LabelFile = strcpyalloc(tmpstr);
   }
 
   return;

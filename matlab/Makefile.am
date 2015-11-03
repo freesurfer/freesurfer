@@ -40,6 +40,12 @@ mfiles_DATA=\
 	fs_ranksum.m \
 	fs_signrank.m \
         fsgettmppath.m \
+	irepierr.m \
+	irepifit.m \
+	irepifitvol.m \
+	irepistructure.m \
+	irepisynth.m \
+	irepitiming.m \
 	isdicomfile.m \
 	juelichmat2mat.m \
 	labelic.m \

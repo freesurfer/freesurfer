@@ -69,6 +69,8 @@ jkgcatrain \
 gcaprepone \
 gcainit \
 gtmseg \
+irepifitvol \
+irepifitvol.glnx64 \
 tkmeditfv \
 tksurferfv \
 tkregisterfv \

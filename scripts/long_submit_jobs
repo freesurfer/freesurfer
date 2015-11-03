@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2015/10/22 22:03:41 $
-#    $Revision: 1.24 $
+#    $Date: 2015/11/03 16:33:07 $
+#    $Revision: 1.25 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -261,7 +261,8 @@ NOTE: The recon-all script that was used to run these commands is also copied to
 scripts directories.  This is to insure that all subjects will be processed with the same
 parameters if recon-all is being actively developed while long_submit_jobs is running
 (which could be days).  Pass the --update-recon-all flag to copy the version from
-$FREESURFER_HOME/bin/ and use this for subsequent processing.
+$FREESURFER_HOME/bin/ and use this for subsequent processing. You can also pass a custom
+recon-all script via --use-recon-all <filename>.
 
 
 REFERENCES
@@ -292,7 +293,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.24 2015/10/22 22:03:41 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.25 2015/11/03 16:33:07 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -318,6 +319,7 @@ def options_parse():
     h_skiperror = 'skip re-submission if run had errors earlier (default: resubmit if not running)'
     h_check     = 'check if all longitudinals are done'
     h_update_recon_all = 'replace the local copy of recon-all with $FREESURFER_HOME/bin/recon-all'
+    h_use_recon_all = 'use custom recon-all for processing'
     h_pause     = 'pause in sec between submissions (default: 13)'
     h_max       = 'max num of jobs of this user (default: 100)'
     h_queue     = 'special queue to submit'
@@ -352,6 +354,7 @@ def options_parse():
     parser.add_option('--skiperror'  , action='store_true', dest='skiperror',  help=h_skiperror , default=False)
     parser.add_option('--check', action='store_true', dest='check',  help=h_check , default=False)
     parser.add_option('--update-recon-all', dest='update_recon_all', action='store_true', help=h_update_recon_all, default=False)
+    parser.add_option('--use-recon-all', dest='use_recon_all', help=h_use_recon_all)
 
     parser.add_option('--pause' , dest='pause' , help=h_pause, default=13, type="float")
     parser.add_option('--max'   , dest='max'   , help=h_max, default=100, type="int")
@@ -444,14 +447,23 @@ def options_parse():
 
 
 
-def cp_recall(odir):
-    fshome = os.getenv('FREESURFER_HOME')
-    recall = os.path.join(fshome,"bin","recon-all")
+def cp_recall(odir,recall,force):
+    if recall is None:
+        fshome = os.getenv('FREESURFER_HOME')
+        recall = os.path.join(fshome,"bin","recon-all")
+    else:
+        force = True
+    if not os.path.exists(recall):
+        print 'ERROR: recon-all: '+recall+' does not exist!\n'
+        sys.exit(1)
+    
     orecall= os.path.join(odir,"recon-all")
-    if not os.path.exists(orecall) or options.update_recon_all:
+#    if not os.path.exists(orecall) or options.update_recon_all:
+    if not os.path.exists(orecall) or force:
+        print "Caching "+recall+" in "+odir+" !\n"        
         shutil.copy(recall,orecall)
-#    else:
-#        print "Warning: recon-all already exists in "+odir+" !\n"        
+    else:
+        print "Using existing recon-all in "+odir+" !\n"        
     return orecall
 
     
@@ -510,7 +522,7 @@ def run_cross(qdectable,options):
         sys.exit(1)
 
     # copy recon-all to cross dir:
-    recall = cp_recall(options.c_scriptsdir)
+    recall = cp_recall(options.c_scriptsdir,options.use_recon_all, options.update_recon_all)
     
     done     = []
     running  = []
@@ -618,7 +630,7 @@ def run_base(qdectable,options):
         os.mkdir(options.bdir)
         
     # copy recon-all to base dir:
-    recall = cp_recall(options.b_scriptsdir)
+    recall = cp_recall(options.b_scriptsdir,options.use_recon_all, options.update_recon_all)
    
     done     = []
     running  = []
@@ -793,7 +805,7 @@ def run_long(qdectable,options):
         os.mkdir(options.ldir)
         
     # copy recon-all to long dir:
-    recall = cp_recall(options.l_scriptsdir)
+    recall = cp_recall(options.l_scriptsdir,options.use_recon_all, options.update_recon_all)
     
     done     = []
     running  = []

@@ -44,6 +44,16 @@ void DialogLabelStats::UpdateStats()
   }
   LayerROI* roi = (LayerROI*)mainwnd->GetActiveLayer("ROI");
 
+  if (mri)
+  {
+    if (mri->GetNumberOfFrames() > 1)
+      ui->labelVolume->setText(QString("%1 (frame %2)").arg(mri->GetName()).arg(mri->GetActiveFrame()));
+    else
+      ui->labelVolume->setText(mri->GetName());
+  }
+  else
+    ui->labelVolume->clear();
+
   float fLabel, fArea = 0;
   double mean, sd;
   int nCount = 0;
