@@ -1,0 +1,15 @@
+#!/bin/csh -f
+
+if(! $?FS_MCRROOT) setenv FS_MCRROOT /usr/pubsw/common/matlab/8.3
+
+if($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH
+setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/runtime/glnxa64"
+setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/bin/glnxa64"
+setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$FS_MCRROOT/sys/os/glnxa64"
+
+irepifitvol.glnx64 $argv
+
+exit $status
+
+
+
