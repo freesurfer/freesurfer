@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/03/10 20:30:38 $
-#    $Revision: 1.9 $
+#    $Date: 2015/11/04 16:18:54 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: stc.fsl,v 1.9 2015/03/10 20:30:38 greve Exp $'
+set VERSION = '$Id: stc.fsl,v 1.10 2015/11/04 16:18:54 greve Exp $'
 set debug = 0;
 set cmdargs = ($argv);
 set PrintHelp = 0;
@@ -34,6 +34,7 @@ set SliceSeq = ();
 set OutDataType = ();
 set OutScale = ();
 set ngroups = 1; # number of SMS slice groups
+set sdf = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -76,21 +77,23 @@ echo $cmdargs | tee -a $LF
 echo $VERSION | tee -a $LF
 hostname  | tee -a $LF
 
-# Get number of input slices
-set tmpfile = $tmpdir/nslices.dat
-set cmd = (mri_info --nslices --o $tmpfile $infunc);
-pwd |& tee -a $LF
-echo $cmd  |& tee -a $LF
-$cmd  |& tee -a $LF
-if($status) exit 1;
-set nslices = `cat $tmpfile`;
-echo "nslices =  $nslices" |& tee -a $LF
+if($#sdf == 0) then
+  # Get number of input slices
+  set tmpfile = $tmpdir/nslices.dat
+  set cmd = (mri_info --nslices --o $tmpfile $infunc);
+  pwd |& tee -a $LF
+  echo $cmd  |& tee -a $LF
+  $cmd  |& tee -a $LF
+  if($status) exit 1;
+  set nslices = `cat $tmpfile`;
+  echo "nslices =  $nslices" |& tee -a $LF
 
-set sdf = $tmpdir/sdf.txt
-set cmd = (slicedelay --nslices $nslices --$SliceSeq --o $sdf --ngroups $ngroups)
-echo $cmd | tee -a $LF
-$cmd | tee -a $LF
-if($status) exit 1;
+  set sdf = $tmpdir/sdf.txt
+  set cmd = (slicedelay --nslices $nslices --$SliceSeq --o $sdf --ngroups $ngroups)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
 
 echo "---------- Slice Delay (fraction of TR) ---------------" | tee -a $LF
 cat $sdf | tee -a $LF
@@ -161,6 +164,15 @@ while( $#argv != 0 )
       set ngroups = $argv[1]; shift;
       breaksw
 
+    case "--sdf":
+      if ( $#argv == 0) goto arg1err;
+      set sdf = $argv[1]; shift;
+      if(! -e $sdf) then
+        echo "ERROR: cannot find $sdf"
+        exit 1;
+      endif
+      breaksw
+
     case "--tmp":
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
@@ -224,8 +236,12 @@ if(! -e $infunc) then
   echo "ERROR: input functional $infunc does not exist"
   exit 1;
 endif
-if($#SliceSeq == 0) then
-  echo "ERROR: must supply a slice sequence "
+if($#SliceSeq == 0 && $#sdf == 0) then
+  echo "ERROR: must supply a slice sequence or sdf"
+  exit 1;
+endif
+if($#SliceSeq != 0 && $#sdf != 0) then
+  echo "ERROR: cannot specify both slice sequence and sdf"
   exit 1;
 endif
 goto check_params_return;
@@ -250,6 +266,7 @@ usage_exit:
   echo "   --even : interleaved starting on second slice"
   echo "   --siemens : use siemens default slice timing" 
   echo "   --ngroups ngroups : number of SMS slice groups"
+  echo "   --sdf sdfile : explicitly pass custom slice delay file"
 
   echo "   --debug"
   echo "   --tmp tmpdir     : use tmpdir as temporary directory"
@@ -305,8 +322,16 @@ Interleaved starting on second slice: 2 4 6 8 ... 1 3 5 7 ...
 
 --siemens
 
-If the number of slices is odd, then uses --odd. If the number of slices is even, 
-then uses --even.
+If the number of slices is odd, then uses --odd. If the number of
+slices is even, then uses --even.
+
+--sdf slicedelayfile
+
+Provide a text file that gives the slice delay of each slice in
+fractions of TR rather than computing it analytically from --up,
+--down, etc. Usually the middle of the TR has a value of 0.  The
+format should be the same as the output of the slicedelay program.
+This allows for arbitrary slice orders.
 
 NOTES
 

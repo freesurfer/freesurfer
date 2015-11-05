@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/03/10 20:47:17 $
-#    $Revision: 1.11 $
+#    $Date: 2015/11/04 16:29:45 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: stc-sess,v 1.11 2015/03/10 20:47:17 greve Exp $';
+set VERSION = '$Id: stc-sess,v 1.12 2015/11/04 16:29:45 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -33,7 +33,8 @@ set infmt  = bhdr;
 set outfmt = bhdr;
 set RunListFile = ();
 set fsd = bold;
-set SliceOrder = siemens
+set SliceOrder = ()
+set SliceDelayFile = ()
 set UpdateOnly = 0;
 set ngroups = 1; # number of slice groups for SMS
 set nolog     = 0;
@@ -112,12 +113,15 @@ foreach sess ($SessList)
 
     test $outfunc -nt $infunc
     if($status || ! $UpdateOnly || ! -e $outfunc) then
-      set cmd = (stc.fsl --i $infunc --o $outfunc --$SliceOrder --ngroups $ngroups)
+      set cmd = (stc.fsl --i $infunc --o $outfunc --ngroups $ngroups)
+      if($#SliceOrder) set cmd = ($cmd --$SliceOrder)
+      if($#SliceDelayFile) set cmd = ($cmd --sdf $SliceDelayFile)
       echo "---------------------------------------------"| tee -a $LF
       pwd | tee -a $LF
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
+      if($#SliceDelayFile) cp $SliceDelayFile $RunPath/$Run/$outstem.sdf
     else
       ls -lt $outfunc $infunc | tee -a $LF
       echo "Update not needed" | tee -a $LF
@@ -166,6 +170,15 @@ while( $#argv != 0 )
     case "-so":
       if ( $#argv == 0) goto arg1err;
       set SliceOrder = $argv[1]; shift;
+      breaksw
+
+    case "-sdf":
+      if ( $#argv == 0) goto arg1err;
+      set SliceDelayFile = $argv[1]; shift;
+      if(! -e $SliceDelayFile) then
+        echo "ERROR: cannot find $SliceDelayFile"
+        exit 1;
+      endif
       breaksw
 
     case "-infmt":
@@ -224,6 +237,16 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+if($#SliceDelayFile == 0 && $#SliceOrder == 0) then
+  echo "ERROR: must specify -so or -sdf"
+  exit 1;
+endif
+
+if($#SliceDelayFile != 0 && $#SliceOrder != 0) then
+  echo "ERROR: cannot specify both -so and -sdf"
+  exit 1;
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -240,6 +263,7 @@ usage_exit:
   echo "   -i instem "
   echo "   -o outstem "
   echo "   -so sliceorder : <siemens>, up, down, odd, even"
+  echo "   -sdf sdfile : explicitly pass custom slice delay file"
   echo "   -ngroups ngroups : number of slice groups (for use with SMS)"
   echo "   -infmt  fmt : input  format ($infmt)"
   echo "   -outfmt fmt : output format ($outfmt)"
@@ -289,6 +313,15 @@ shifted in time such that time=0 occurs at the middle of the TR
 instead of the beginning of the TR. Thus, you must subtract half
 a TR from the stimulus onsets. This can be done during
 mkanalysis-sess with "-timeoffset -1.0" for TR=2s.
+
+-sdf slicedelayfile
+
+Provide a text file that gives the slice delay of each slice in
+fractions of TR rather than computing it analytically from --up,
+--down, etc. Usually the middle of the TR has a value of 0.  The
+format should be the same as the output of the slicedelay program.
+This allows for arbitrary slice orders.
+
 
 Example:
 

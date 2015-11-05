@@ -9,9 +9,9 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/02/07 22:46:21 $
- *    $Revision: 1.35 $
+ *    $Author: fischl $
+ *    $Date: 2015/11/04 23:08:09 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,7 +59,7 @@
 #define LABEL_BORDER_CC 64
 #define MAX_CENTRAL_SLICES      500
 
-static int norm_thresh = 80 ;
+static int norm_thresh = 40 ;
 static double max_cc_rot = MAX_CC_ROT ;
 static int use_aseg = 1 ;
 static int write_lta = 0 ;
@@ -176,13 +176,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.35 2014/02/07 22:46:21 greve Exp $",
+   "$Id: mri_cc.c,v 1.36 2015/11/04 23:08:09 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.35 2014/02/07 22:46:21 greve Exp $",
+           "$Id: mri_cc.c,v 1.36 2015/11/04 23:08:09 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -693,9 +693,7 @@ main(int argc, char *argv[])
     MatrixFree(&mrot);
   }
   msec = TimerStop(&then) ;
-  fprintf(stdout,
-          "corpus callosum matter segmentation took %2.1f minutes\n",
-          (float)msec/(1000.0f*60.0f));
+  printf("corpus callosum segmentation took %2.1f minutes\n",(float)msec/(1000.0f*60.0f));
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     fclose(fp);

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/10/14 01:06:28 $
-#    $Revision: 1.61 $
+#    $Date: 2015/11/04 20:53:30 $
+#    $Revision: 1.62 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.61 2015/10/14 01:06:28 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.62 2015/11/04 20:53:30 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -47,6 +47,7 @@ set fwhm     = ();
 set surffwhm = ();
 set volsurffwhm  = (); # for testing
 set SliceOrder = ();
+set SliceDelayFile = ()
 set nSliceGroups = 1;
 set fsd      = ();
 set mcrun    = ();
@@ -249,6 +250,7 @@ foreach sess ($SessList)
   if($DoSTC) then
     set cmd = (stc-sess -i $stcinstem -o $stcoutstem -ngroups $nSliceGroups)
     if($#SliceOrder) set cmd = ($cmd -so $SliceOrder)
+    if($#SliceDelayFile) set cmd = ($cmd -sdf $SliceDelayFile)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
@@ -268,6 +270,7 @@ foreach sess ($SessList)
     if($subject != self) set cmd = ($cmd -trgsubject $subject)
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
+    if($#SliceDelayFile) set cmd = ($cmd -sdf $SliceDelayFile)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($UseB0DC)    set cmd = ($cmd -b0dc)
@@ -287,6 +290,7 @@ foreach sess ($SessList)
     if($RawRes == 1) set cmd = ($cmd -1mm)
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
+    if($#SliceDelayFile) set cmd = ($cmd -sdf $SliceDelayFile)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($UseB0DC)    set cmd = ($cmd -b0dc)
@@ -540,6 +544,16 @@ while( $#argv != 0 )
       set DoSTC = 1;
       breaksw
 
+    case "-sdf":
+      if ( $#argv == 0) goto arg1err;
+      set SliceDelayFile = $argv[1]; shift;
+      if(! -e $SliceDelayFile) then
+        echo "ERROR: cannot find $SliceDelayFile"
+        exit 1;
+      endif
+      set DoSTC = 1;
+      breaksw
+
     case "-ngroups":
       if ( $#argv == 0) goto arg1err;
       set nSliceGroups = $argv[1]; shift;
@@ -660,6 +674,11 @@ while( $#argv != 0 )
       set SliceOrder = `getana -a $analysis -t stc`;
       if($SliceOrder != none) set DoSTC = 1;
       if($SliceOrder == none) set SliceOrder = ();
+      set SliceDelayFile = `getana -a $analysis -t sdf`;
+      if($#SliceDelayFile != none) then
+        set DoSTC = 1;
+        set SliceDelayFile = $analysis/$SliceDelayFile
+      endif
       set nSliceGroups = `getana -a $analysis -t nslicegroups`;
       set ToSurf = `getana -a $analysis -t IsSurface`;
       if($ToSurf) then
@@ -784,7 +803,10 @@ check_params:
 
   if($DoSTC) then
     if($#stcinstem  == 0) set stcinstem  = $mcoutstem
-    if($#stcoutstem == 0) set stcoutstem = $stcinstem.$SliceOrder
+    if($#stcoutstem == 0) then
+      if($#SliceOrder)  set stcoutstem = $stcinstem.$SliceOrder
+      if($#SliceDelayFile)  set stcoutstem = $stcinstem.sdf
+    endif
   else
     set stcoutstem = $mcoutstem
   endif
@@ -836,6 +858,11 @@ check_params:
   if($#regfile == 0) then
     if(! $UseB0DC) set regfile = register.dof$RegDOF.lta
     if($UseB0DC)   set regfile = register.dof$RegDOF.b0dc.lta
+  endif
+
+  if($#SliceDelayFile != 0 && $#SliceOrder != 0) then
+    echo "ERROR: cannot specify both -so and -sdf"
+    exit 1;
   endif
 
 goto check_params_return;
@@ -972,6 +999,14 @@ the second slice for an even number. "up" is 1st, 2nd, 3rd,
 etc. "down" is last, next to last, etc. odd is 1st, 3rd, 5th, , etc,
 then 2nd, 4th, 6th, etc. "even" is 2nd, 4th, 6th, etc, then 1st, 3rd,
 5th, etc.  See also stc-sess.
+
+-sdf slicedelayfile
+
+Provide a text file that gives the slice delay of each slice in
+fractions of TR rather than computing it analytically from up,
+down, etc. Usually the middle of the TR has a value of 0.  The
+format should be the same as the output of the slicedelay program.
+This allows for arbitrary slice orders.
 
 -surface subject hemi
 

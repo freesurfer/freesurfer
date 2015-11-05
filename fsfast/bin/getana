@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/05/29 19:50:20 $
-#    $Revision: 1.16 $
+#    $Date: 2015/11/04 20:55:01 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.16 2015/05/29 19:50:20 greve Exp $';
+set VERSION = '$Id: getana,v 1.17 2015/11/04 20:55:01 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -58,9 +58,10 @@ switch ($tag)
   case "stcstem":
     set mcstem = `getana -a $analysis -t mcstem`
     set stc = `getana -a $analysis -t stc`
-    if($stc == none) set result = $mcstem
+    set sdf = `getana -a $analysis -t sdf`
+    if($stc == none && $sdf == none) set result = $mcstem
     if($stc != none) set result = $mcstem.$stc
-    
+    if($sdf != none) set result = $mcstem.sdf
     breaksw;
 
   case "smstem":
@@ -219,6 +220,11 @@ switch ($tag)
   case "stc":
   case "RawSTC":
     set result = `cat $info | awk '{if($1 == "RawSTC") print $2}'`
+    breaksw;
+
+  case "sdf":
+    set result = `cat $info | awk '{if($1 == "SliceDelayFile") print $2}'`
+    if($#result == 0) set result = "none";
     breaksw;
 
   case "ngroups":
@@ -555,5 +561,6 @@ tags:
    contrasts
    stc
    RawSTC
+   sdf
    nslicegroups
 

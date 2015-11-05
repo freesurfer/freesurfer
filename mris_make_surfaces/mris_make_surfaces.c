@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/09/15 19:01:19 $
- *    $Revision: 1.159 $
+ *    $Date: 2015/11/04 23:08:22 $
+ *    $Revision: 1.160 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.159 2015/09/15 19:01:19 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.160 2015/11/04 23:08:22 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -277,13 +277,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.159 2015/09/15 19:01:19 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.160 2015/11/04 23:08:22 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.159 2015/09/15 19:01:19 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.160 2015/11/04 23:08:22 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -3272,7 +3272,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       label = nint(val) ;
       if (vno == Gdiag_no)
       {
-	printf("vno $%d: dist %2.2f - %s (%d)\n", vno, d, cma_label_to_name(label), label) ;
+	printf("vno %d: dist %2.2f - %s (%d)\n", vno, d, cma_label_to_name(label), label) ;
 	DiagBreak() ;
       }
       if (d > 0 && label == gm_label)
@@ -3358,7 +3358,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         label = nint(val) ;
 	if (vno == Gdiag_no)
 	{
-	  printf("vno $%d: dist %2.2f - %s (%d)\n", vno, -d, cma_label_to_name(label), label) ;
+	  printf("vno %d: dist %2.2f - %s (%d)\n", vno, -d, cma_label_to_name(label), label) ;
 	  DiagBreak() ;
 	}
         if (IS_PUTAMEN(label) || IS_ACCUMBENS(label))
@@ -3511,6 +3511,25 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           v->d = 0 ;
           v->marked = 1 ;
         }
+      }
+    }
+    if (v->marked == 0)  // check to see if there is any cortical gm in the region in aseg
+    {
+      int whalf, lh, rh ;
+      whalf = which == GRAY_WHITE ? 5 : 3 ;
+      MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+      lh = MRIlabelsInNbhd(mri_aseg, xv, yv, zv, whalf, Left_Cerebral_Cortex) ;
+      rh = MRIlabelsInNbhd(mri_aseg, xv, yv, zv, whalf, Right_Cerebral_Cortex) ;
+      if (vno == Gdiag_no)
+	DiagBreak() ;
+      if (lh == 0 && rh  == 0)
+      {
+	MRIsampleVolume(mri_brain, xv, yv, zv, &val) ;
+	v->val = val ;
+	v->d = 0 ;
+	v->marked = 1 ;
+	if (vno == Gdiag_no)
+	  printf("no cortical GM found in vicinity - freezing vertex %d\n", vno) ;
       }
     }
   }

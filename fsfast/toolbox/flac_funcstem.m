@@ -3,7 +3,7 @@ function stem = flac_funcstem(flac,maskflag)
 % Determines the funcstem or maskstem. Should be
 % consistent with the getana script.
 % 
-% $Id: flac_funcstem.m,v 1.4 2015/05/21 17:49:21 greve Exp $
+% $Id: flac_funcstem.m,v 1.5 2015/11/04 20:53:30 greve Exp $
 
 stem = [];
 if(nargin < 1 | nargin > 2)
@@ -18,7 +18,9 @@ if(~isempty(flac.ExpKey)) ExpKey = sprintf('.%s',flac.ExpKey); end
 if(~maskflag)
   % Return funcstem
   if(strcmp(flac.stc,'none')) stc = ''; 
-  else stc = sprintf('.%s',flac.stc);
+    if(~isempty(flac.sdf)) stc = '.sdf'; end
+  else 
+    stc = sprintf('.%s',flac.stc);
   end
   if(strcmp(flac.RawSpace,'native'))
     if(flac.rawfwhm == 0) fwhmstr = '';
@@ -49,10 +51,6 @@ else
     stem = sprintf('%s.%s.%s%s',flac.mask,flac.subject,flac.hemi,ExpKey);
   end
 end  
-
-
-
-
 
 return;
 

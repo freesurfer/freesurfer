@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/05/21 17:41:18 $
-#    $Revision: 1.73 $
+#    $Date: 2015/11/04 20:59:55 $
+#    $Revision: 1.74 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.73 2015/05/21 17:41:18 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.74 2015/11/04 20:59:55 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -73,7 +73,7 @@ set CacheOutUpdate = 0;
 set CacheIn = 0;
 set MeasIn  = 0;
 set outdir = ();
-set SmoothCortexOnly = 0; # At some point, this should be the default
+set CortexOnly = 1; 
 set DoXHemi = 0;
 set DoXHemiOnly = 0; # do not include the non-xhemi
 set DualHemi = 0;
@@ -259,8 +259,8 @@ foreach subj ($subjlist)
     if($reshape)   set cmd = ($cmd --reshape);
     if(! $reshape)  set cmd = ($cmd --noreshape);
     if(! $hash)     set cmd = ($cmd --nohash);
-    if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
-    if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
+    if($CortexOnly)   set cmd = ($cmd --cortex)
+    if(! $CortexOnly) set cmd = ($cmd --no-cortex)
     echo "-----------------------"| tee -a $LF
     echo $cmd | tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
@@ -285,8 +285,8 @@ foreach subj ($subjlist)
       if($#niterstarg) set cmd = ($cmd --nsmooth-out $niterstarg)
       if($reshape)   set cmd = ($cmd --reshape);
       if(! $reshape)   set cmd = ($cmd --noreshape);
-      if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
-      if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
+      if($CortexOnly)   set cmd = ($cmd --cortex)
+      if(! $CortexOnly) set cmd = ($cmd --no-cortex)
       echo "-----------------------"| tee -a $LF
       echo $cmd | tee -a $LF
       if($RunIt) $cmd |& tee -a $LF
@@ -338,8 +338,8 @@ if(! $CacheOutOnly) then
     if($#niterstarg) set cmd = ($cmd --nsmooth-out $niterstarg)
     if($reshape)   set cmd = ($cmd --reshape);
     if(! $reshape)   set cmd = ($cmd --noreshape);
-    if($SmoothCortexOnly)   set cmd = ($cmd --cortex)
-    if(! $SmoothCortexOnly) set cmd = ($cmd --no-cortex)
+    if($CortexOnly)   set cmd = ($cmd --cortex)
+    if(! $CortexOnly) set cmd = ($cmd --no-cortex)
     echo "-----------------------"| tee -a $LF
     echo $cmd | tee -a $LF
     if($RunIt) $cmd |& tee -a $LF
@@ -573,12 +573,14 @@ while( $#argv != 0 )
       set niterstarg = $argv[1]; shift;
       breaksw
 
+    case "--cortex-only"
     case "--smooth-cortex-only"
-      set SmoothCortexOnly = 1;
+      set CortexOnly = 1;
       breaksw;
 
+    case "--no-cortex-only"
     case "--no-smooth-cortex-only"
-      set SmoothCortexOnly = 0;
+      set CortexOnly = 0;
       breaksw;
 
     case "--projfrac":
@@ -1058,8 +1060,8 @@ usage_exit:
   echo "  --niters niters : smooth by niters on the target surface"
   echo "  --niters-src niterssrc : smooth by niters on the source surface"
   echo ""
-  echo "  --smooth-cortex-only : only smooth cortex (ie, exclude medial wall)"
-  echo "  --no-smooth-cortex-only : default"
+  echo "  --no-cortex-only : include meidal wall"
+  echo "  --cortex-only : exclude medial wall (default)"
   echo ""
   echo "  --no-jac : turn off jacobian correction (automatically turned on for"
   echo "      area, area.mid, area.pial, and volume)"

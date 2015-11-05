@@ -6,9 +6,9 @@
 /*
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/07/24 16:13:39 $
- *    $Revision: 1.47 $
+ *    $Author: fischl $
+ *    $Date: 2015/11/04 23:07:37 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2084,6 +2084,23 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
     if (adjacent &&
         (double)nvox/(double)total_vox > 0.5) // more than 50% putamen
       v->marked = 0 ;
+
+    if (v->marked)  // check to see if there is any cortical gm in the region in aseg
+    {
+      int whalf, lh, rh ;
+      whalf = 5 ;
+      MRISvertexToVoxel(mris, v, mri_aseg, &xv, &yv, &zv) ;
+      lh = MRIlabelsInNbhd(mri_aseg, xv, yv, zv, whalf, Left_Cerebral_Cortex) ;
+      rh = MRIlabelsInNbhd(mri_aseg, xv, yv, zv, whalf, Right_Cerebral_Cortex) ;
+      if (vno == Gdiag_no)
+	DiagBreak() ;
+      if (lh == 0 && rh  == 0)
+      {
+	v->marked = 0 ;
+	if (vno == Gdiag_no)
+	  printf("no cortical GM found in vicinity - removing %d  vertex from cortex\n", vno) ;
+      }
+    }
   }
 
   // remove small holes that shouldn't be non-cortex
@@ -2092,6 +2109,26 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
     int   nlabels, n, i ;
 
     MRISinvertMarks(mris) ; // marked->not cortex now
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "%s.marked.orig.mgz", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh")  ;
+      MRISwriteMarked(mris, fname) ;
+    }
+    MRISdilateMarked(mris, 1) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "%s.marked.dilated.mgz", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh")  ;
+      MRISwriteMarked(mris, fname) ;
+    }
+    MRISerodeMarked(mris,1) ;    // do a first-order close on the non-cortex marks
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "%s.marked.closed.mgz", mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh")  ;
+      MRISwriteMarked(mris, fname) ;
+    }
     MRISsegmentMarked(mris, &label_array, &nlabels, 0) ;
     printf("%d non-cortical segments detected\n", nlabels) ;
     if (min_vertices < 0)  // means only keep max segment
@@ -2115,8 +2152,10 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
     }
     free(label_array) ;
   }
-  
+
   MRISinvertMarks(mris) ;  // marked --> is cortex again
+  if (Gdiag_no >= 0)
+    printf("v %d: is %sin cortex label\n", Gdiag_no, mris->vertices[Gdiag_no].marked ? "" : "NOT ") ;
   lcortex = LabelFromMarkedSurface(mris) ;
 
   MRIfree(&mri_aseg) ;  // a locally edited copy, not the original

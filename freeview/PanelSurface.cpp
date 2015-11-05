@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/02/27 17:55:27 $
- *    $Revision: 1.62 $
+ *    $Date: 2015/11/04 21:11:11 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,7 +102,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
   connect( ag, SIGNAL(triggered(QAction*)), this, SLOT(OnChangeSurfaceType(QAction*)));
 
   LayerCollection* lc = mainwnd->GetLayerCollection("Surface");
-  connect( ui->actionLockLayer, SIGNAL(toggled(bool)), lc, SLOT(LockCurrent(bool)) );
+  connect( ui->actionLockLayer, SIGNAL(toggled(bool)), this, SLOT(OnLockLayer(bool)) );
 
   m_wndConfigureOverlay = new WindowConfigureOverlay( this );
   m_wndConfigureOverlay->hide();
@@ -793,3 +793,11 @@ void PanelSurface::OnColorPickerLabelColor(const QColor &color)
   }
 }
 
+void PanelSurface::OnLockLayer(bool b)
+{
+  QList<LayerSurface*> layers = GetSelectedLayers<LayerSurface*>();
+  foreach (LayerSurface* layer, layers)
+  {
+    layer->Lock(b);
+  }
+}

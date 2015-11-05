@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2015/05/21 17:49:21 $
-%    $Revision: 1.70 $
+%    $Date: 2015/11/04 20:53:30 $
+%    $Revision: 1.71 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -101,6 +101,7 @@ while(1)
    case 'RawFWHM',     flac.rawfwhm     = sscanf(tline,'%*s %f',1);
    case 'VolSurfFWHM', flac.volsurffwhm = sscanf(tline,'%*s %f',1);
    case 'RawSTC',      flac.stc         = sscanf(tline,'%*s %s',1);
+   case 'SliceDelayFile', flac.sdf         = sscanf(tline,'%*s %s',1);
    case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
    case 'acffwhm',     flac.acffwhm     = sscanf(tline,'%*s %f',1);
    case 'acfsvd',      flac.acfsvd      = sscanf(tline,'%*s %d',1);
