@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/02 21:22:04 $
- *    $Revision: 1.102 $
+ *    $Date: 2015/11/05 22:07:33 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -375,7 +375,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.102 2015/11/02 21:22:04 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -484,6 +484,8 @@ struct utsname uts;
 char *cmdline, cwd[2000];
 char *TrgSurfVolFile=NULL;
 MRI  *TrgSurfVol=NULL;
+int   prunemask = 0;
+float prune_thr = FLT_MIN;
 
 /*---------------------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -506,7 +508,7 @@ int main(int argc, char **argv)
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_surf2surf.c,v 1.102 2015/11/02 21:22:04 greve Exp $",
+    "$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
@@ -868,6 +870,13 @@ int main(int argc, char **argv)
   } 
   else inmask = NULL;
 
+  // This removes voxels from the mask that do not have non-zero in every frame
+  // To prevent smoothing of those voxels into others
+  if(prunemask && nSmoothSteps_Input > 0) {
+    printf("Pruning input smoothing mask by thr: %e\n", prune_thr);
+    inmask = MRIframeBinarize(SrcVals,FLT_MIN,inmask);
+  }
+
   if(nSmoothSteps_Input > 0) {
     if(! ConvGaussian) {
       printf("NN smoothing input with n = %d\n",nSmoothSteps_Input);
@@ -1044,6 +1053,13 @@ int main(int argc, char **argv)
     outmask = MRISlabel2Mask(TrgSurfReg, MaskLabel, NULL);
   } 
   else  outmask = NULL;
+
+  // This removes voxels from the mask that do not have non-zero in every frame
+  // To prevent smoothing of those voxels into others
+  if(prunemask && nSmoothSteps > 0) {
+    printf("Pruning output smoothing mask by thr: %e\n", prune_thr);
+    outmask = MRIframeBinarize(SrcVals,FLT_MIN,outmask);
+  }
 
   if(nSmoothSteps > 0) {
     if(! ConvGaussian) {
@@ -1236,9 +1252,14 @@ static int parse_commandline(int argc, char **argv)
       print_version() ;
     }
 
-    else if (!strcasecmp(option, "--debug")) {
-      debug = 1;
-    } 
+    else if (!strcasecmp(option, "--debug")) debug = 1;
+    else if (!strcasecmp(option, "--prune"))    prunemask = 1;
+    else if (!strcasecmp(option, "--no-prune")) prunemask = 0;
+    else if (!strcasecmp(option, "--prune_thr")){
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&prune_thr); 
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--old"))UseOldSurf2Surf = 1;
     else if (!strcasecmp(option, "--new")) UseOldSurf2Surf = 0;
     else if (!strcasecmp(option, "--usehash")) {
@@ -1770,6 +1791,9 @@ static void print_usage(void)
   printf("   --ones  : replace input with 1s\n");
   printf("   --normvar : rescale so that stddev=1 (good with --synth)\n");
   printf("   --seed seed : seed for synth (default is auto)\n");
+  printf("   --prune - remove any voxel that is zero in any time point (for smoothing)\n");
+  printf("   --no-prune - do not prune (default)\n");
+
   printf("\n");
   printf("   --reg-diff reg2 : subtract reg2 from --reg (primarily for testing)\n");
   printf("   --rms rms.dat   : save rms of reg1-reg2 (primarily for testing)\n");

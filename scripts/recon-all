@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/10/29 14:25:19 $
-#    $Revision: 1.550 $
+#    $Author: greve $
+#    $Date: 2015/11/05 22:05:01 $
+#    $Revision: 1.551 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.550 2015/10/29 14:25:19 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.551 2015/11/05 22:05:01 greve Exp $';
 set ProgName = `basename $0`;
 set FullProgName = `readlink -f $0`;
 set inputargs = ($argv);
@@ -5332,6 +5332,10 @@ if ($DoQdecCache) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
     foreach measure ($measurelist)
+      set MeasFile=(${hemi}.${measure})
+      # strip .mgz from filename (does nothing if not .mgz extension):
+      set MeasFile=`basename ${MeasFile} .mgz`
+      set MeasFile=(${MeasFile}.${target})
       foreach fwhm ($fwhmlist)
         echo "#--------------------------------------------" \
             |& tee -a $LF |& tee -a $CF
@@ -5341,7 +5345,7 @@ if ($DoQdecCache) then
         # strip .mgz from filename (does nothing if not .mgz extension):
         set OutFile=`basename ${OutFile} .mgz`
         set OutFile=(${OutFile}.fwhm${fwhm}.${target})
-        set cmd=(mri_surf2surf \
+        set cmd=(mri_surf2surf --prune\
             --s ${target} \
             --hemi ${hemi} \
             --fwhm ${fwhm} \
