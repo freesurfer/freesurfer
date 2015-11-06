@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/08/26 16:48:39 $
- *    $Revision: 1.770 $
+ *    $Date: 2015/11/06 16:00:41 $
+ *    $Revision: 1.771 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.770 2015/08/26 16:48:39 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.771 2015/11/06 16:00:41 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -37668,7 +37668,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                         int which,
                         MRI *mri_mask,
                         double thresh,
-			int flags)
+			int flags,
+			MRI *mri_aseg)
 {
   double    val, x, y, z, max_mag_val, xw, yw, zw,mag,max_mag, max_mag_dist=0.0f,
                                                                previous_val, next_val, min_val,inward_dist,outward_dist,xw1,yw1,zw1,
@@ -37957,6 +37958,21 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         {
           break ;
         }
+	{
+	  int label ;
+	  label = MRIgetVoxVal(mri_aseg, nint(xw), nint(yw), nint(zw), 0) ;
+	  if (vno == Gdiag_no)
+	    printf("v %d: label distance %2.2f = %s @ (%d %d %d)\n",
+		   vno, dist, cma_label_to_name(label),nint(xw),nint(yw),nint(zw)) ;
+	  if ((mris->hemisphere == LEFT_HEMISPHERE && IS_RH_CLASS(label)) ||
+	      (mris->hemisphere == RIGHT_HEMISPHERE && IS_LH_CLASS(label)))
+	  {
+	  if (vno == Gdiag_no)
+	    printf("v %d: terminating search at distance %2.2f due to presence of contra tissue (%s)\n",
+		   vno, dist, cma_label_to_name(label)) ;
+	    break ;
+	  }
+	}
         if (which == GRAY_CSF)
         {
           /*
