@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/12/04 16:49:44 $
- *    $Revision: 1.29 $
+ *    $Author: mreuter $
+ *    $Date: 2015/11/06 18:39:04 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,7 +55,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.29 2013/12/04 16:49:44 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.30 2015/11/06 18:39:04 mreuter Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.29 2013/12/04 16:49:44 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.30 2015/11/06 18:39:04 mreuter Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -441,6 +441,7 @@ static void print_usage(void) {
   printf("   	The lobar annotation is saved to <LobesFile>.\n");
   printf("\n");
   printf("Output options:\n");
+  printf("   --label <int> : extract only single label \n");
   printf("   --labelbase  output will be base-XXX.label \n");
   printf("   --outdir dir :  output will be dir/hemi.name.label \n");
   printf("   --seg segfile : output will be a segmentation 'volume'\n");
