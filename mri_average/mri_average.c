@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/06/22 18:28:03 $
- *    $Revision: 1.43 $
+ *    $Author: fischl $
+ *    $Date: 2015/11/06 17:25:02 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -185,7 +185,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_average.c,v 1.43 2015/06/22 18:28:03 mreuter Exp $",
+           "$Id: mri_average.c,v 1.45 2015/11/06 17:25:02 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -580,11 +580,11 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     fprintf(stderr, "using tol = %2.3e\n", parms.tol) ;
   }
-  else if (!stricmp(option, "sqr"))
+  else if (!stricmp(option, "sqr") || !stricmp(option, "rms"))
   {
     sqr_images = 1 ;
     fprintf
-    (stderr, "making sqrt of sum of squares instead of average...\n") ;
+    (stderr, "computing sqrt of sum of squares instead of average (RMS)...\n") ;
   }
   else if (!stricmp(option, "conform"))
   {
@@ -713,7 +713,8 @@ usage_exit(int code)
   printf("\t-r <x> <y> <z>  rotation of "
          "second volume around each axis in degrees\n");
   printf("\t-m <float n>    use momentum n (default=0)\n");
-  printf("\t-sqr            take sum of squares instead of average\n") ;
+  printf("\t-sqr            compute sqrt of average of sum of squares (RMS)\n") ;
+  printf("\t-rms            compute sqrt of average of sum of squares (RMS)\n") ;
   printf("\t-u              print usage\n");
   printf("\t-p              compute %% \n");
   printf("\t-abs            take abs value of volume \n");
