@@ -6,8 +6,8 @@
 /*
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/10/15 22:21:13 $
- *    $Revision: 1.176 $
+ *    $Date: 2015/11/06 22:24:19 $
+ *    $Revision: 1.179 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -124,22 +124,16 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   int nend = global_progress_range[1];
   global_progress_range[1] = nstart + (nend-nstart)/3;
   if (SDCMListFile != NULL)
-  {
     SeriesList = ReadSiemensSeries(SDCMListFile, &nlist, dcmfile);
-  }
   else
-  {
     SeriesList = ScanSiemensSeries(dcmfile,&nlist);
-  }
 
-  if (SeriesList == NULL)
-  {
+  if (SeriesList == NULL)  {
     fprintf(stderr,"ERROR: could not find any files (SeriesList==NULL)\n");
     return(NULL);
   }
 
-  if (nlist == 0)
-  {
+  if (nlist == 0) {
     fprintf(stderr,"ERROR: could not find any files (nlist==0)\n");
     return(NULL);
   }
@@ -155,10 +149,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
 
   // free memory
   nnlist = nlist;
-  while (nnlist--)
-  {
-    free(SeriesList[nnlist]);
-  }
+  while (nnlist--) free(SeriesList[nnlist]);
   free(SeriesList);
 
   printf("INFO: sorting.\n");
@@ -167,14 +158,8 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   sdfiAssignRunNo2(sdfi_list, nlist);
 
   /* First File in the Run */
-  if(nthonly < 0)
-  {
-    sdfi = sdfi_list[0];
-  }
-  else
-  {
-    sdfi = sdfi_list[nthonly];
-  }
+  if(nthonly < 0) sdfi = sdfi_list[0];
+  else sdfi = sdfi_list[nthonly];
 
   /* There are some Siemens files don't have the slice dircos
      because they dont have ascii header (anonymization?).
@@ -184,13 +169,11 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
      slice dircos may be used to sort the files in the first
      place, but this should work either way.
   */
-  if (sliceDirCosPresent == 0)
-  {
+  if (sliceDirCosPresent == 0){
     printf("\n");
     printf("WARNING: file %s does not contain a Siemens ASCII header\n"
            "has this file been anonymized?\n",sdfi_list[0]->FileName);
-    if (sdfi_list[0]->IsMosaic)
-    {
+    if (sdfi_list[0]->IsMosaic){
       printf("ERROR: cannot unpack mosiacs without ASCII header\n");
       exit(1);
     }
@@ -219,10 +202,8 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   IsMosaic = sdfi->IsMosaic;
 
   // verify nthframe is within the range
-  if (nthonly >= 0)
-  {
-    if (nthonly > nframes-1)
-    {
+  if (nthonly >= 0) {
+    if (nthonly > nframes-1) {
       printf("ERROR: only has %d frames (%d - %d) but called for %d\n",
              nframes, 0, nframes-1, nthonly);
       fflush(stdout);
@@ -235,40 +216,29 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   fflush(stdout);
 
   /* PW 2012/09/06: If the Autoscale functor has been used, save the MRI
-                    structure as floats, otherwise use shorts
-  */
-  if (sdfi->UseSliceScaleFactor)
-  {
-    vol_datatype = MRI_FLOAT;
-  }
-  else
-  {
-    vol_datatype = MRI_SHORT;
-  }
+     structure as floats, otherwise use shorts  */
+  if(sdfi->UseSliceScaleFactor) vol_datatype = MRI_FLOAT;
+  else vol_datatype = MRI_SHORT;
+  printf("sdfi->UseSliceScaleFactor %d\n",sdfi->UseSliceScaleFactor);
+
+  // Use float if largest value is greater than short max
+  for(nthfile = 0; nthfile < nlist; nthfile ++)
+    if(sdfi_list[nthfile]->LargestValue >= pow(2.0,15)) vol_datatype = MRI_FLOAT;
+  printf("datatype = %d, short=%d, float=%d\n",vol_datatype,MRI_SHORT,MRI_FLOAT);
 
   /** Allocate an MRI structure **/
-  if (LoadVolume)
-  {
-    if (nthonly < 0)
-    {
-      vol = MRIallocSequence(ncols,nrows,nslices,vol_datatype,nframes);
-    }
-    else
-    {
-      vol = MRIallocSequence(ncols,nrows,nslices,vol_datatype,1);
-    }
-    if (vol==NULL)
-    {
+  if (LoadVolume)  {
+    if (nthonly < 0) vol = MRIallocSequence(ncols,nrows,nslices,vol_datatype,nframes);
+    else vol = MRIallocSequence(ncols,nrows,nslices,vol_datatype,1);
+    if (vol==NULL) {
       fprintf(stderr,"ERROR: could not alloc MRI volume\n");
       fflush(stderr);
       return(NULL);
     }
   }
-  else
-  {
+  else {
     vol = MRIallocHeader(ncols,nrows,nslices,vol_datatype,nframes);
-    if (vol==NULL)
-    {
+    if (vol==NULL) {
       fprintf(stderr,"ERROR: could not alloc MRI header \n");
       fflush(stderr);
       return(NULL);
@@ -296,16 +266,11 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   vol->ti    = sdfi->InversionTime;
   vol->flip_angle  = sdfi->FlipAngle;
   vol->FieldStrength  = sdfi->FieldStrength;
-  if (! sdfi->IsMosaic )
-  {
-    vol->tr    = sdfi->RepetitionTime;
-  }
-  else
-  {
+  if (! sdfi->IsMosaic ) vol->tr    = sdfi->RepetitionTime;
+  else {
     /* The TR definition will depend upon the software version */
     tmpstring = sdcmExtractNumarisVer(sdfi->NumarisVer, &Maj, &Min, &MinMin);
-    if(tmpstring != NULL)
-    {
+    if(tmpstring != NULL){
       printf("Numaris Version: %s Maj = %d, Min=%d, MinMin = %d \n",
              sdfi->NumarisVer, Maj, Min, MinMin);
     }
@@ -319,26 +284,16 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
       printf("Computing TR with number of slices\n");
       vol->tr = sdfi->RepetitionTime * (sdfi->VolDim[2]);
     }
-    else
-    {
-      vol->tr  = sdfi->RepetitionTime;
-    }
+    else vol->tr  = sdfi->RepetitionTime;
     /* Need to add any gap (eg, as in a hammer sequence */
     printf("Repetition Time = %g, TR = %g ms\n",
            sdfi->RepetitionTime,vol->tr);
-    if(tmpstring != NULL)
-    {
-      free(tmpstring);
-    }
+    if(tmpstring != NULL) free(tmpstring);
   }
 
   // Phase Enc Direction
-  if(sdfi->PhEncDir == NULL)
-  {
-    vol->pedir = strcpyalloc("UNKNOWN");
-  }
-  else
-  {
+  if(sdfi->PhEncDir == NULL) vol->pedir = strcpyalloc("UNKNOWN");
+  else  {
     vol->pedir = strcpyalloc(sdfi->PhEncDir);
     str_toupper(vol->pedir);
   }
@@ -349,8 +304,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   vol->AutoAlign = sdcmAutoAlignMatrix(dcmfile);
 
   /* Return now if we're not loading pixel data */
-  if (!LoadVolume)
-  {
+  if (!LoadVolume) {
     /* restore progress range */
     global_progress_range[0] = nstart;
     global_progress_range[1] = nend;
@@ -361,8 +315,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   /* Dump info about the first file to stdout */
   DumpSDCMFileInfo(stdout,sdfi);
   // verification of number of files vs. slices
-  if (nlist > nslices*nframes)
-  {
+  if (nlist > nslices*nframes) {
     fprintf(stderr, "ERROR: nlist (%d) > nslices (%d) x frames (%d)\n",
             nlist, nslices, nframes);
     fprintf(stderr, "ERROR: dump file list into fileinfo.txt.\n");
@@ -459,61 +412,40 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
 
     pixeldata = (unsigned short *)(element->d.string);
 
-    if (!IsMosaic)
-    {
+    if(!IsMosaic)  {
       /*---------------------------------------------*/
       /* It's not a mosaic -- load rows and cols from pixel data */
-      if (nthfile == 0)
-      {
+      if (nthfile == 0) {
         frame = 0;
         slice = 0;
       }
-      if (Gdiag_no > 0)
-      {
+      if (Gdiag_no > 0){
         printf("%3d %3d %3d    %s   %6.1f %6.1f %6.1f\n",
                nthfile,slice,frame,sdfi->FileName,
                sdfi->ImgPos[0],sdfi->ImgPos[1],sdfi->ImgPos[2]);
         fflush(stdout);
       }
-      if (nthonly <0)
-      {
-        for (row=0; row < nrows; row++)
-        {
-          for (col=0; col < ncols; col++)
-          {
-            if(sdfi->UseSliceScaleFactor)
-            {
+      if(nthonly <0) { // do all frames
+        for (row=0; row < nrows; row++)  {
+          for (col=0; col < ncols; col++) {
+            if(sdfi->UseSliceScaleFactor)  {
               /* PW 2012/09/06: Old way to scale data to the dynamic range of
                                 a SHORT, but now we're saving as FLOATs.. */
               //val = 8*MinSliceScaleFactor*(*(pixeldata++))/sdfi->SliceScaleFactor;
-
               val = ((float)*(pixeldata++))/sdfi->SliceScaleFactor;
-              MRIFseq_vox(vol,col,row,slice,frame) = val;
             }
-            else
-            {
-              val = *(pixeldata++);
-              MRISseq_vox(vol,col,row,slice,frame) = (short)nint(val);
-            }
+            else val = *(pixeldata++);
+	    MRIsetVoxVal(vol,col,row,slice,frame,val);
           }
         }
       }
       // only copy a particular frame
-      else if (frame == nthonly)
-      {
-        for (row=0; row < nrows; row++)
-        {
-          for (col=0; col < ncols; col++)
-          {
-            if (sdfi->UseSliceScaleFactor)
-            {
-              val = ((float)*(pixeldata++))/sdfi->SliceScaleFactor;
-              MRIFvox(vol,col,row,slice) = val;
-            }
-            else
-            {
-              MRISvox(vol,col,row,slice) = *(pixeldata++);
-            }
+      else if (frame == nthonly) {
+        for (row=0; row < nrows; row++) {
+          for (col=0; col < ncols; col++) {
+            if (sdfi->UseSliceScaleFactor) val = ((float)*(pixeldata++))/sdfi->SliceScaleFactor;
+            else  val = *(pixeldata++);
+	    MRIsetVoxVal(vol,col,row,slice,0,val);
           }
         }
       }
@@ -524,14 +456,12 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
 	vol->bvecs->rptr[frame+1][3] = sdfi->bvecz;
       }
       frame ++;
-      if (frame >= nframes)
-      {
+      if(frame >= nframes) {
         frame = 0;
         slice ++;
       }
     }
-    else
-    {
+    else{ // is a mosaic
       /*---------------------------------------------*/
       /* It is a mosaic -- load entire volume for this frame from pixel data */
       frame = nthfile;
@@ -552,13 +482,9 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
             }
             /* Compute the linear index into the block of pixel data */
             mosindex = moscol + mosrow * nmoscols;
-            if (sdfi->UseSliceScaleFactor){
-              val = ((float)*(pixeldata + mosindex))/sdfi->SliceScaleFactor;
-              MRIFseq_vox(vol,col,row,slice,frame) = val;
-            }
-            else
-              MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata + mosindex);
-            
+            if (sdfi->UseSliceScaleFactor)  val = ((float)*(pixeldata + mosindex))/sdfi->SliceScaleFactor;
+            else val = *(pixeldata + mosindex);
+	    MRIsetVoxVal(vol,col,row,slice,frame,val);
           }
         }
       }
@@ -581,8 +507,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
      Note that this does not have anything to do with the order in which
      the slices were acquired. However, if you assume a certain acquistion
      slice order model, it will be wrong unless this reversal is done.  */
-  if (sdfiIsSliceOrderReversed(sdfi_list[0]))
-  {
+  if (sdfiIsSliceOrderReversed(sdfi_list[0]))  {
     printf("INFO: detected a Siemens slice order reversal in mosaic, so\n");
     printf("      I'm going to reverse them back "
            "to their 'original' order.\n");
@@ -591,9 +516,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
     vol = voltmp;
   }
   else
-  {
     printf("INFO: no Siemens slice order reversal detected (good!). \n");
-  }
 
   if(IsDWI){
     if(env->desired_bvec_space == BVEC_SPACE_SCANNER){
@@ -602,57 +525,20 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
     }
   }
 
-  while (nlist--)
-  {
+  while (nlist--) {
     // free strings
-    if (sdfi_list[nlist]->FileName != NULL)
-    {
-      free(sdfi_list[nlist]->FileName);
-    }
-    if (sdfi_list[nlist]->StudyDate != NULL)
-    {
-      free(sdfi_list[nlist]->StudyDate);
-    }
-    if (sdfi_list[nlist]->StudyTime != NULL)
-    {
-      free(sdfi_list[nlist]->StudyTime);
-    }
-    if (sdfi_list[nlist]->PatientName != NULL)
-    {
-      free(sdfi_list[nlist]->PatientName);
-    }
-    if (sdfi_list[nlist]->SeriesTime != NULL)
-    {
-      free(sdfi_list[nlist]->SeriesTime);
-    }
-    if (sdfi_list[nlist]->AcquisitionTime != NULL)
-    {
-      free(sdfi_list[nlist]->AcquisitionTime);
-    }
-    if (sdfi_list[nlist]->ScannerModel != NULL)
-    {
-      free(sdfi_list[nlist]->ScannerModel);
-    }
-    if (sdfi_list[nlist]->NumarisVer != NULL)
-    {
-      free(sdfi_list[nlist]->NumarisVer);
-    }
-    if (sdfi_list[nlist]->PulseSequence != NULL)
-    {
-      free(sdfi_list[nlist]->PulseSequence);
-    }
-    if (sdfi_list[nlist]->ProtocolName != NULL)
-    {
-      free(sdfi_list[nlist]->ProtocolName);
-    }
-    if (sdfi_list[nlist]->PhEncDir != NULL)
-    {
-      free(sdfi_list[nlist]->PhEncDir);
-    }
-    if (sdfi_list[nlist]->TransferSyntaxUID != NULL)
-    {
-      free(sdfi_list[nlist]->TransferSyntaxUID);
-    }
+    if (sdfi_list[nlist]->FileName != NULL) free(sdfi_list[nlist]->FileName);
+    if (sdfi_list[nlist]->StudyDate != NULL) free(sdfi_list[nlist]->StudyDate);
+    if (sdfi_list[nlist]->StudyTime != NULL) free(sdfi_list[nlist]->StudyTime);
+    if (sdfi_list[nlist]->PatientName != NULL) free(sdfi_list[nlist]->PatientName);
+    if (sdfi_list[nlist]->SeriesTime != NULL) free(sdfi_list[nlist]->SeriesTime);
+    if (sdfi_list[nlist]->AcquisitionTime != NULL) free(sdfi_list[nlist]->AcquisitionTime);
+    if (sdfi_list[nlist]->ScannerModel != NULL) free(sdfi_list[nlist]->ScannerModel);
+    if (sdfi_list[nlist]->NumarisVer != NULL) free(sdfi_list[nlist]->NumarisVer);
+    if (sdfi_list[nlist]->PulseSequence != NULL) free(sdfi_list[nlist]->PulseSequence);
+    if (sdfi_list[nlist]->ProtocolName != NULL) free(sdfi_list[nlist]->ProtocolName);
+    if (sdfi_list[nlist]->PhEncDir != NULL) free(sdfi_list[nlist]->PhEncDir);
+    if (sdfi_list[nlist]->TransferSyntaxUID != NULL) free(sdfi_list[nlist]->TransferSyntaxUID);
     // free struct
     free(sdfi_list[nlist]);
   }
@@ -2525,6 +2411,7 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
   SDCMFILEINFO *sdcmfi;
   CONDITION cond;
   DCM_TAG tag;
+  DCM_ELEMENT *e;
   int l;
   unsigned short ustmp=0;
   double dtmp=0;
@@ -2656,14 +2543,11 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
 
   tag=DCM_MAKETAG(0x18, 0x82);
   cond=GetDoubleFromString(&object, tag, &dtmp);
-  if (cond == DCM_NORMAL)
-  {
-    sdcmfi->InversionTime = (float) dtmp;
-  }
-  else
-  {
-    sdcmfi->InversionTime = -1;
-  }
+  if (cond == DCM_NORMAL) sdcmfi->InversionTime = (float) dtmp;
+  else sdcmfi->InversionTime = -1;
+
+  e = GetElementFromFile(dcmfile, 0x28, 0x107);
+  sdcmfi->LargestValue = (float) *(e->d.us);
 
   /* Get the phase encode direction: should be COL or ROW */
   /* COL means that each row is a different phase encode (??)*/
@@ -7907,544 +7791,3 @@ MATRIX *ImageDirCos2Slice(double Vcx, double Vcy, double Vcz,
   return(Mdc);
 }
 
-
-#if 0
-/* 9/25/01 This version does not assume that the series number is good */
-MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume)
-{
-  char *dcmpath;
-  SDCMFILEINFO *sdfi;
-  DCM_ELEMENT *element;
-  SDCMFILEINFO **sdfi_list;
-  int nthfile;
-  int NRuns, *RunList, NRunList;
-  int nlist,n;
-  int ncols, nrows, nslices, nframes;
-  int nmoscols, nmosrows;
-  int mosrow, moscol, mosindex;
-  int err,OutOfBounds,IsMosaic;
-  int row, col, slice, frame;
-  unsigned short *pixeldata;
-  MRI *vol;
-  char **SeriesList;
-
-  slice = 0;
-  frame = 0; /* to avoid compiler warnings */
-
-  /* Get the directory of the DICOM data from dcmfile */
-  dcmpath = fio_dirname(dcmfile);
-
-  /* Get all the Siemens DICOM files from this directory */
-  printf("INFO: scanning path to Siemens DICOM DIR:\n   %s\n",dcmpath);
-  sdfi_list = ScanSiemensDCMDir(dcmpath, &nlist);
-  if (sdfi_list == NULL)
-  {
-    printf("ERROR: scanning directory %s\n",dcmpath);
-    return(NULL);
-  }
-  printf("INFO: found %d Siemens files\n",nlist);
-
-  /* Sort the files by Series, Slice Position, and Image Number */
-
-  /* Assign run numbers to each file (count number of runs)*/
-  printf("Assigning Run Numbers\n");
-  NRuns = sdfiAssignRunNo2(sdfi_list, nlist);
-  if (NRunList == 0)
-  {
-    printf("ERROR: sorting runs\n");
-    return(NULL);
-  }
-
-  /* Get a list of indices in sdfi_list of files that belong to dcmfile */
-  RunList = sdfiRunFileList(dcmfile, sdfi_list, nlist, &NRunList);
-  if (RunList == NULL)
-  {
-    return(NULL);
-  }
-
-  printf("INFO: found %d runs\n",NRuns);
-  printf("INFO: RunNo %d\n",sdfiRunNo(dcmfile,sdfi_list,nlist));
-  printf("INFO: found %d files in run\n",NRunList);
-  fflush(stdout);
-
-  /* First File in the Run */
-  sdfi = sdfi_list[RunList[0]];
-  sdfiFixImagePosition(sdfi);
-  sdfiVolCenter(sdfi);
-
-  /* for easy access */
-  ncols   = sdfi->VolDim[0];
-  nrows   = sdfi->VolDim[1];
-  nslices = sdfi->VolDim[2];
-  nframes = sdfi->NFrames;
-  IsMosaic = sdfi->IsMosaic;
-
-  printf("INFO: (%3d %3d %3d), nframes = %d, ismosaic=%d\n",
-         ncols,nrows,nslices,nframes,IsMosaic);
-  fflush(stdout);
-  fflush(stdout);
-
-  /** Allocate an MRI structure **/
-  if (LoadVolume)
-  {
-    vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,nframes);
-    if (vol==NULL)
-    {
-      fprintf(stderr,"ERROR: could not alloc MRI volume\n");
-      return(NULL);
-    }
-  }
-  else
-  {
-    vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT,nframes);
-    if (vol==NULL)
-    {
-      fprintf(stderr,"ERROR: could not alloc MRI header \n");
-      return(NULL);
-    }
-  }
-
-  /* set the various paramters for the mri structure */
-  vol->xsize = sdfi->VolRes[0];
-  vol->ysize = sdfi->VolRes[1];
-  vol->zsize = sdfi->VolRes[2];
-  vol->x_r   = sdfi->Vc[0];
-  vol->x_a   = sdfi->Vc[1];
-  vol->x_s   = sdfi->Vc[2];
-  vol->y_r   = sdfi->Vr[0];
-  vol->y_a   = sdfi->Vr[1];
-  vol->y_s   = sdfi->Vr[2];
-  vol->z_r   = sdfi->Vs[0];
-  vol->z_a   = sdfi->Vs[1];
-  vol->z_s   = sdfi->Vs[2];
-  vol->c_r   = sdfi->VolCenter[0];
-  vol->c_a   = sdfi->VolCenter[1];
-  vol->c_s   = sdfi->VolCenter[2];
-  vol->ras_good_flag = 1;
-  vol->te    = sdfi->EchoTime;
-  vol->ti    = sdfi->InversionTime;
-  vol->flip_angle  = sdfi->FlipAngle;
-  if (! sdfi->IsMosaic )
-  {
-    vol->tr    = sdfi->RepetitionTime;
-  }
-  else
-  {
-    vol->tr    = sdfi->RepetitionTime * (sdfi->VolDim[2]+1) / 1000.0;
-  }
-
-  /* Return now if we're not loading pixel data */
-  if (!LoadVolume)
-  {
-    free(RunList);
-    return(vol);
-  }
-
-  /* Dump info to stdout */
-  DumpSDCMFileInfo(stdout,sdfi);
-
-  /* ------- Go through each file in the Run ---------*/
-  for (nthfile = 0; nthfile < NRunList; nthfile ++)
-  {
-
-    sdfi = sdfi_list[RunList[nthfile]];
-
-    /* Get the pixel data */
-    element = GetElementFromFile(sdfi->FileName,0x7FE0,0x10);
-    if (element == NULL)
-    {
-      fprintf(stderr,"ERROR: reading pixel data from %s\n",sdfi->FileName);
-      MRIfree(&vol);
-    }
-    pixeldata = (unsigned short *)(element->d.string);
-
-    if (!IsMosaic)
-    {
-      /*---------------------------------------------*/
-      /* It's not a mosaic -- load rows and cols from pixel data */
-      if (nthfile == 0)
-      {
-        frame = 0;
-        slice = 0;
-      }
-#ifdef _DEBUG
-      printf("%3d %3d %3d %s \n",nthfile,slice,frame,sdfi->FileName);
-#endif
-      for (row=0; row < nrows; row++)
-      {
-        for (col=0; col < ncols; col++)
-        {
-          MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata++);
-        }
-      }
-      frame ++;
-      if (frame >= nframes)
-      {
-        frame = 0;
-        slice ++;
-      }
-    }
-    else
-    {
-      /*---------------------------------------------*/
-      /* It is a mosaic -- load entire volume for this frame from pixel data */
-      frame = nthfile;
-      nmoscols = sdfi->NImageCols;
-      nmosrows = sdfi->NImageRows;
-      for (row=0; row < nrows; row++)
-      {
-        for (col=0; col < ncols; col++)
-        {
-          for (slice=0; slice < nslices; slice++)
-          {
-            /* compute the mosaic col and row from the volume
-               col, row , and slice */
-            err = VolSS2MosSS(col, row, slice,
-                              ncols, nrows,
-                              nmoscols, nmosrows,
-                              &moscol, &mosrow, &OutOfBounds);
-            if (err || OutOfBounds)
-            {
-              FreeElementData(element);
-              free(element);
-              free(RunList);
-              MRIfree(&vol);
-              exit(1);
-            }
-            /* Compute the linear index into the block of pixel data */
-            mosindex = moscol + mosrow * nmoscols;
-            MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata + mosindex);
-          }
-        }
-      }
-    }
-
-    FreeElementData(element);
-    free(element);
-
-  }/* for nthfile */
-
-  free(RunList);
-
-  return(vol);
-}
-#endif
-
-#if 0
-/* This has been replaced by probing tag 18,88 */
-/*-----------------------------------------------------------------------
-  sdcmMosaicSliceRes() - computes the slice resolution as the distance
-  between the first two slices. The slice locations are obtained from
-  the Siemens ASCII header. One can get the slice thickness from tag
-  (18,50), but this will not include a skip. See also dcmGetVolRes().
-  -----------------------------------------------------------------------*/
-float sdcmMosaicSliceRes(const char *dcmfile)
-{
-  char * strtmp;
-  float x0, y0, z0;
-  float x1, y1, z1;
-  float thickness;
-
-  /* --- First Slice ---- */
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dSag",0);
-  if (strtmp != NULL)
-  {
-    sscanf(strtmp,"%f",&x0);
-    free(strtmp);
-  }
-  else
-  {
-    x0 = 0;
-  }
-
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dCor",0);
-  if (strtmp != NULL)
-  {
-    sscanf(strtmp,"%f",&y0);
-    free(strtmp);
-  }
-  else
-  {
-    y0 = 0;
-  }
-
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[0].sPosition.dTra",0);
-  if (strtmp != NULL)
-  {
-    sscanf(strtmp,"%f",&z0);
-    free(strtmp);
-  }
-  else
-  {
-    z0 = 0;
-  }
-
-  /* --- Second Slice ---- */
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dSag",0);
-  if (strtmp != NULL)
-  {
-    sscanf(strtmp,"%f",&x1);
-    free(strtmp);
-  }
-  else
-  {
-    x1 = 0;
-  }
-
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dCor",0);
-  if (strtmp != NULL)
-  {
-    sscanf(strtmp,"%f",&y1);
-    free(strtmp);
-  }
-  else
-  {
-    y1 = 0;
-  }
-
-  strtmp = SiemensAsciiTag(dcmfile,"sSliceArray.asSlice[1].sPosition.dTra",0);
-  if (strtmp != NULL)
-  {
-    sscanf(strtmp,"%f",&z1);
-    free(strtmp);
-  }
-  else
-  {
-    z1 = 0;
-  }
-
-  /* Compute distance between slices */
-  thickness = sqrt( (x0-x1)*(x0-x1) + (y0-y1)*(y0-y1) + (z0-z1)*(z0-z1) );
-
-  return(thickness);
-}
-
-#endif
-#if 0
-/*-----------------------------------------------------------------
-  sdcmLoadVolume() - this loads a volume stored in Siemens DICOM
-  format. It scans in the directory of dcmfile searching for all
-  Siemens DICOM files. It then determines which of these files belong
-  to the same run as dcmfile. If LoadVolume=1, then the pixel data is
-  loaded, otherwise, only the header info is assigned.
-
-  Determining which files belong in the same with dcmfile is a
-  tricky process. It requires that all files be queried. It also
-  requires that all runs be complete. A missing file will cause
-  the process to crash even if the file does not belong to the
-  same run as dcmfile.
-
-  Notes:
-  1. This works only for short data.
-  2. It handles mosaics but not supermosaics.
-  3. It assumes that slices within a mosaic are sorted in
-  anatomical order.
-  4. It handles multiple frames for mosaics and non-mosaics.
-  -----------------------------------------------------------------*/
-MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume)
-{
-  char *dcmpath;
-  SDCMFILEINFO *sdfi;
-  DCM_ELEMENT *element;
-  SDCMFILEINFO **sdfi_list;
-  int nthfile;
-  int NRuns, *RunList, NRunList;
-  int nlist;
-  int ncols, nrows, nslices, nframes;
-  int nmoscols, nmosrows;
-  int mosrow, moscol, mosindex;
-  int err,OutOfBounds,IsMosaic;
-  int row, col, slice, frame;
-  unsigned short *pixeldata;
-  MRI *vol;
-
-  /* Get the directory of the DICOM data from dcmfile */
-  dcmpath = fio_dirname(dcmfile);
-
-  /* Get all the Siemens DICOM files from this directory */
-  printf("INFO: scanning path to Siemens DICOM DIR:\n   %s\n",dcmpath);
-  sdfi_list = ScanSiemensDCMDir(dcmpath, &nlist);
-  if (sdfi_list == NULL)
-  {
-    printf("ERROR: scanning directory %s\n",dcmpath);
-    return(NULL);
-  }
-  printf("INFO: found %d Siemens files\n",nlist);
-
-  /* Sort the files by Series, Slice Position, and Image Number */
-  SortSDCMFileInfo(sdfi_list,nlist);
-
-  /* Assign run numbers to each file (count number of runs)*/
-  NRuns = sdfiAssignRunNo2(sdfi_list, nlist);
-  if (NRunList == 0)
-  {
-    printf("ERROR: sorting runs\n");
-    return(NULL);
-  }
-
-  /* Get a list of indices in sdfi_list of files that belong to dcmfile */
-  RunList = sdfiRunFileList(dcmfile, sdfi_list, nlist, &NRunList);
-  if (RunList == NULL)
-  {
-    return(NULL);
-  }
-
-  printf("INFO: found %d runs\n",NRuns);
-  printf("INFO: RunNo %d\n",sdfiRunNo(dcmfile,sdfi_list,nlist));
-  printf("INFO: found %d files in run\n",NRunList);
-
-  /* First File in the Run */
-  sdfi = sdfi_list[RunList[0]];
-  sdfiFixImagePosition(sdfi);
-  sdfiVolCenter(sdfi);
-
-  /* for easy access */
-  ncols   = sdfi->VolDim[0];
-  nrows   = sdfi->VolDim[1];
-  nslices = sdfi->VolDim[2];
-  nframes = sdfi->NFrames;
-  IsMosaic = sdfi->IsMosaic;
-
-  /** Allocate an MRI structure **/
-  if (LoadVolume)
-  {
-    vol = MRIallocSequence(ncols,nrows,nslices,MRI_SHORT,nframes);
-    if (vol==NULL)
-    {
-      fprintf(stderr,"ERROR: could not alloc MRI volume\n");
-      return(NULL);
-    }
-  }
-  else
-  {
-    vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT,nframes);
-    if (vol==NULL)
-    {
-      fprintf(stderr,"ERROR: could not alloc MRI header \n");
-      return(NULL);
-    }
-  }
-
-  /* set the various paramters for the mri structure */
-  vol->xsize = sdfi->VolRes[0];
-  vol->ysize = sdfi->VolRes[1];
-  vol->zsize = sdfi->VolRes[2];
-  vol->x_r   = sdfi->Vc[0];
-  vol->x_a   = sdfi->Vc[1];
-  vol->x_s   = sdfi->Vc[2];
-  vol->y_r   = sdfi->Vr[0];
-  vol->y_a   = sdfi->Vr[1];
-  vol->y_s   = sdfi->Vr[2];
-  vol->z_r   = sdfi->Vs[0];
-  vol->z_a   = sdfi->Vs[1];
-  vol->z_s   = sdfi->Vs[2];
-  vol->c_r   = sdfi->VolCenter[0];
-  vol->c_a   = sdfi->VolCenter[1];
-  vol->c_s   = sdfi->VolCenter[2];
-  vol->ras_good_flag = 1;
-  vol->te    = sdfi->EchoTime;
-  vol->ti    = sdfi->InversionTime;
-  vol->flip_angle  = sdfi->FlipAngle;
-  if (! sdfi->IsMosaic )
-  {
-    vol->tr    = sdfi->RepetitionTime;
-  }
-  else
-  {
-    vol->tr    = sdfi->RepetitionTime * sdfi->VolDim[2] / 1000.0;
-  }
-
-  /* Return now if we're not loading pixel data */
-  if (!LoadVolume)
-  {
-    free(RunList);
-    return(vol);
-  }
-
-  /* Dump info to stdout */
-  DumpSDCMFileInfo(stdout,sdfi);
-
-  /* ------- Go through each file in the Run ---------*/
-  for (nthfile = 0; nthfile < NRunList; nthfile ++)
-  {
-
-    sdfi = sdfi_list[RunList[nthfile]];
-
-    /* Get the pixel data */
-    element = GetElementFromFile(sdfi->FileName,0x7FE0,0x10);
-    if (element == NULL)
-    {
-      fprintf(stderr,"ERROR: reading pixel data from %s\n",sdfi->FileName);
-      MRIfree(&vol);
-    }
-    pixeldata = (unsigned short *)(element->d.string);
-
-    if (!IsMosaic)
-    {
-      /*---------------------------------------------*/
-      /* It's not a mosaic -- load rows and cols from pixel data */
-      if (nthfile == 0)
-      {
-        frame = 0;
-        slice = 0;
-      }
-      printf("%3d %3d %3d %s \n",nthfile,slice,frame,sdfi->FileName);
-      for (row=0; row < nrows; row++)
-      {
-        for (col=0; col < ncols; col++)
-        {
-          MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata++);
-        }
-      }
-      frame ++;
-      if (frame >= nframes)
-      {
-        frame = 0;
-        slice ++;
-      }
-    }
-    else
-    {
-      /*---------------------------------------------*/
-      /* It is a mosaic -- load entire volume for this frame from pixel data */
-      frame = nthfile;
-      nmoscols = sdfi->NImageCols;
-      nmosrows = sdfi->NImageRows;
-      for (row=0; row < nrows; row++)
-      {
-        for (col=0; col < ncols; col++)
-        {
-          for (slice=0; slice < nslices; slice++)
-          {
-            /* compute the mosaic col and row from the volume
-               col, row , and slice */
-            err = VolSS2MosSS(col, row, slice,
-                              ncols, nrows,
-                              nmoscols, nmosrows,
-                              &moscol, &mosrow, &OutOfBounds);
-            if (err || OutOfBounds)
-            {
-              FreeElementData(element);
-              free(element);
-              free(RunList);
-              MRIfree(&vol);
-              exit(1);
-            }
-            /* Compute the linear index into the block of pixel data */
-            mosindex = moscol + mosrow * nmoscols;
-            MRISseq_vox(vol,col,row,slice,frame) = *(pixeldata + mosindex);
-          }
-        }
-      }
-    }
-
-    FreeElementData(element);
-    free(element);
-
-  }/* for nthfile */
-
-  free(RunList);
-
-  return(vol);
-}
-#endif

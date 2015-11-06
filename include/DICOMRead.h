@@ -7,8 +7,8 @@
  * Original Author: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/20 21:56:32 $
- *    $Revision: 1.38 $
+ *    $Date: 2015/11/06 22:24:19 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -219,9 +219,8 @@ typedef struct
   int UseSliceScaleFactor; /* for slice-by-slice scaling (0020,4000) */
   double SliceScaleFactor; /* for slice-by-slice scaling (0020,4000) */
   double bval, bvecx, bvecy, bvecz;
-
+  float LargestValue; // 0x28, 0x107
   int   ErrorFlag;   /* Set for error, eg, aborted run */
-
 }
 SDCMFILEINFO;
 

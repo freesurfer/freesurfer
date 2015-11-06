@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/11/05 22:05:01 $
-#    $Revision: 1.551 $
+#    $Author: ltirrell $
+#    $Date: 2015/11/06 19:32:20 $
+#    $Revision: 1.552 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.551 2015/11/05 22:05:01 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.552 2015/11/06 19:32:20 ltirrell Exp $';
 set ProgName = `basename $0`;
 set FullProgName = `readlink -f $0`;
 set inputargs = ($argv);
@@ -8858,6 +8858,39 @@ Example:
 In this example, 'tnNsubjid' is the subject name (assumed processed in the
 cross-sectional stream) to add as a new timepoint and upon which to run
 the longitudinal stream (creating <tpNsubjid>.long.<longbasesubjid>).
+
+
+USING IMAGES FROM A 3T SCANNER 
+
+The -3T flag enables two specific options in recon-all for images acquired with
+a 3T scanner:  3T-specific NU intensity correction parameters are used in the 
+Non-Uniform normalization stage, and the Schwartz 3T atlas is used for 
+Talairach alignment.
+
+
+T2 OR FLAIR TO IMPROVE PIAL SURFACES
+
+Pial surfaces can be improved using the different contrast in T2 or FLAIR
+images. The original pial surfaces without T2/FLAIR data are saved as  
+?h.woT2.pial or ?h.woFLAIR.pial, and new ?h.pial surfaces are created.  One 
+example where this is useful is when there is dura in the brainmask.mgz that 
+isn't removed by skull stripping. The flags for these commands are:
+
+  -T2 <input T2 volume>  or -FLAIR <input FLAIR volume> 
+    (Specify the  path to the T2 or FLAIR image to use)
+  -T2pial or -FLAIRpial 
+    (Create new pial surfaces using T2 or FLAIR images)
+
+An example of running a subject through Freesurfer with a T2 image is:
+  
+  recon-all -s subjectname -i /path/to/input -T2 /path/to/T2_input -T2pial -all
+
+T2 or FLAIR images can also be used with Freesurfer subjects that have already
+been processed without them. Note that autorecon3 should also be re-ran to 
+compute statistics based on the new surfaces. For example:
+  
+  recon-all -s subjectname -T2 /path/to/T2_volume -T2pial -autorecon3
+
 
 MANUAL CHECKING AND EDITING OF SURFACES
 

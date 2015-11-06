@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2015/11/03 16:33:07 $
-#    $Revision: 1.25 $
+#    $Date: 2015/11/06 22:37:10 $
+#    $Revision: 1.27 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -293,7 +293,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.25 2015/11/03 16:33:07 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.27 2015/11/06 22:37:10 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -645,12 +645,10 @@ def run_base(qdectable,options):
         print '[BASE] Subject: '+subjectid+'\n'
         total = total+1
 
-        # check if 2 or more time points
+        # check if 1 or more time points
         if len(tplist) == 1 :
             less2 = less2 + 1
-            print 'WARNING: '+str(subjectid)+' has only single time point, processing upright as base'
-#            print 'WARNING: '+str(subjectid)+' has less than 2 time points, skipping ...'
-#            continue
+        #    print 'INFO: '+str(subjectid)+' has only single time point, processing upright as base'
         if len(tplist) == 0 :
             print 'ERROR: '+str(subjectid)+' has 0 time points? '
             sys.exit(1)
@@ -785,6 +783,7 @@ def run_base(qdectable,options):
     print "already running : "+str(len(running))
     print "dirs not exist  : "+str(len(notexist))
     print "skipped (errors): "+str(len(error))
+    print "single tp subjs : "+str(len(less2))
 
     return submitted
 
@@ -818,11 +817,7 @@ def run_long(qdectable,options):
         print '\n========================================\n'
         print '[LONG] Subject: '+subjectid+'\n'
 
-        # check if 2 or more time points
-        if len(tplist) == 1 :
-            print 'WARNING: '+str(subjectid)+' has only single time point, running long with upright base'
-#            print 'WARNING: '+str(subjectid)+' has less than 2 time points, skipping ...'
-#            continue
+        # check if 1 or more time points
         if len(tplist) == 0 :
             print 'ERROR: '+str(subjectid)+' has 0 time points? '
             sys.exit(1)
@@ -1015,12 +1010,6 @@ def check_long(qdectable,options):
         alltps = alltps + len(tplist)
         print '\n========================================\n'
         print '[CHECK] Subject: '+subjectid+'\n'
-
-        # check if 2 or more time points
-        if len(tplist) < 2 :
-            print 'WARNING: '+str(subjectid)+' has less than 2 time points, skipping ...'
-            continue
-
 
         # check / wait for ALL aseg.mgz in cross tps
         done = 0;
