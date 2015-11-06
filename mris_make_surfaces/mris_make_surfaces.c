@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/04 23:08:22 $
- *    $Revision: 1.160 $
+ *    $Date: 2015/11/06 16:00:27 $
+ *    $Revision: 1.161 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.160 2015/11/04 23:08:22 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.161 2015/11/06 16:00:27 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -106,11 +106,17 @@ static int fix_midline(MRI_SURFACE *mris,
                        MRI *mri_aseg,
                        MRI *mri_brain,
                        char *hemi, int which, int fix_mtl) ;
+#if 0
 static MRI *smooth_contra_hemi(MRI *mri_filled,
                                MRI *mri_src,
                                MRI *mri_dst,
                                float ipsi_label,
                                float contra_label) ;
+static MRI *smooth_contra_hemi_with_aseg(MRI *mri_filled,
+					 MRI *mri_src,
+					 MRI *mri_dst,
+					 char *hemi);
+#endif
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
 static void print_usage(void) ;
@@ -277,13 +283,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.160 2015/11/04 23:08:22 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.161 2015/11/06 16:00:27 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.160 2015/11/04 23:08:22 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.161 2015/11/06 16:00:27 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -476,19 +482,48 @@ main(int argc, char *argv[])
       MRIwrite(mri_T1, fname) ;
     }
   }
+  if (aseg_name)
+  {
+    char fname[STRLEN] ;
+    sprintf(fname, "%s/%s/mri/%s", sdir, sname, aseg_name) ;
+    if (MGZ)
+    {
+      strcat(fname, ".mgz");
+    }
+
+    fprintf(stderr, "reading volume %s...\n", fname) ;
+    mri_aseg = MRIread(fname) ;
+    if (mri_aseg == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s",
+                Progname, fname) ;
+  }
+  else
+  {
+    mri_aseg = NULL ;
+  }
+#if 0
   if (remove_contra)
   {
 #if 1
     /* remove other hemi */
-    MRIreplaceValues(mri_filled, mri_filled, RH_LABEL2, rh_label) ;
-    smooth_contra_hemi(mri_filled, mri_T1, mri_T1, label_val, replace_val) ;
+    if (mri_aseg)
+    {
+      smooth_contra_hemi_with_aseg(mri_aseg, mri_T1, mri_T1,  hemi) ;
+      if (mri_T1_white)
+	smooth_contra_hemi_with_aseg(mri_aseg, mri_T1_white, mri_T1_white, hemi) ;
+    }
+    else
+    {
+      MRIreplaceValues(mri_filled, mri_filled, RH_LABEL2, rh_label) ;
+      smooth_contra_hemi(mri_filled, mri_T1, mri_T1, label_val, replace_val) ;
+      if (mri_T1_white)
+	smooth_contra_hemi
+	  (mri_filled, mri_T1_white, mri_T1_white, label_val, replace_val) ;
+    }
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       MRIwrite(mri_T1, "smoothed.mgz") ;
     }
-    if (mri_T1_white)
-      smooth_contra_hemi
-      (mri_filled, mri_T1_white, mri_T1_white, label_val, replace_val) ;
 #else
     /* remove other hemi */
     MRIdilateLabel(mri_filled, mri_filled, replace_val, 1) ;
@@ -514,7 +549,7 @@ main(int argc, char *argv[])
       MRIwrite(mri_T1, "r.mgz") ;
     }
   }
-
+#endif  // if 0 for remove_contra
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, wm_name) ;
   if (MGZ)
   {
@@ -857,7 +892,7 @@ main(int argc, char *argv[])
          max_gray_at_csf_border, min_gray_at_csf_border,
          min_csf,(max_csf+min_gray_at_csf_border)/2,
          current_sigma, 2*max_thickness, parms.fp,
-         GRAY_CSF, mri_ratio, thresh, parms.flags) ;
+         GRAY_CSF, mri_ratio, thresh, parms.flags,mri_aseg) ;
       MRISaddToValues(mris, white_target_offset) ;
       {
         int i, vno ;
@@ -930,25 +965,6 @@ main(int argc, char *argv[])
       MRIfree(&mri_T1);
     }
     mri_T1 = mri_T1_white ; // T1 and T1_white is swapped
-  }
-  if (aseg_name)
-  {
-    char fname[STRLEN] ;
-    sprintf(fname, "%s/%s/mri/%s", sdir, sname, aseg_name) ;
-    if (MGZ)
-    {
-      strcat(fname, ".mgz");
-    }
-
-    fprintf(stderr, "reading volume %s...\n", fname) ;
-    mri_aseg = MRIread(fname) ;
-    if (mri_aseg == NULL)
-      ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s",
-                Progname, fname) ;
-  }
-  else
-  {
-    mri_aseg = NULL ;
   }
   current_sigma = white_sigma ;
   for (n_averages = max_white_averages, i = 0 ;
@@ -1047,7 +1063,7 @@ main(int argc, char *argv[])
                               MAX_WHITE, max_border_white, min_border_white,
                               min_gray_at_white_border,
                               max_border_white /*max_gray*/, current_sigma,
-                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, parms.flags) ;
+                              2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, parms.flags,mri_aseg) ;
       MRISfindExpansionRegions(mris) ;
     }
     if (vavgs)
@@ -1790,7 +1806,7 @@ main(int argc, char *argv[])
          max_gray_at_csf_border, min_gray_at_csf_border,
          min_csf,(max_csf+max_gray_at_csf_border)/2,
          current_sigma, 2*max_thickness, parms.fp,
-         GRAY_CSF, mri_mask, thresh, parms.flags) ;
+         GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg) ;
         MRImask(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 0) ;
       }
       if (!FZERO(pial_target_offset))
@@ -1944,7 +1960,7 @@ main(int argc, char *argv[])
          max_border_white, min_border_white,
          min_gray_at_white_border, max_border_white /*max_gray*/,
          current_sigma, 2*max_thickness, parms.fp,
-         GRAY_WHITE, NULL, 0, parms.flags) ;
+         GRAY_WHITE, NULL, 0, parms.flags, mri_aseg) ;
       MRISfindExpansionRegions(mris) ;
       if (vavgs)
       {
@@ -3155,6 +3171,7 @@ check_contrast_direction(MRI_SURFACE *mris,MRI *mri_T1)
   return(mean_inside - mean_outside) ;
 }
 
+#if 0
 static MRI *
 smooth_contra_hemi(MRI *mri_filled,
                    MRI *mri_src,
@@ -3182,6 +3199,76 @@ smooth_contra_hemi(MRI *mri_filled,
   return(mri_dst) ;
 }
 
+static MRI *
+smooth_contra_hemi_with_aseg(MRI *mri_aseg,
+			     MRI *mri_src,
+			     MRI *mri_dst,
+			     char *hemi)
+{
+  MRI    *mri_ctrl ;
+  int    is_left_hemi, x, y, z, label, ctrl ;
+
+  is_left_hemi = stricmp(hemi, "lh") == 0 ;
+
+  mri_dst = MRIcopy(mri_src, mri_dst) ;
+  mri_ctrl = MRIclone(mri_src, NULL) ;
+
+  printf("smoothing contralateral hemisphere with aseg...\n") ;
+  for (x = 0 ; x < mri_aseg->width ; x++)
+    for (y = 0 ; y < mri_aseg->height ; y++)
+      for (z = 0 ; z < mri_aseg->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+	ctrl = 0 ;
+	if (is_left_hemi)
+	{
+	  if (IS_LH_CLASS(label))
+	    ctrl = 1 ;
+	  else
+	  {
+	    if (MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Left_Cerebral_Cortex)) // adjacent to left cortex
+	    {
+	      // if it's cortex in the other hemi that is next to cortex in this hemi,smooth it out
+	      if (label == Right_Cerebral_Cortex)
+		ctrl = 0 ;
+	      else
+		ctrl = 1 ;  // if adjacent to cortex but not cortex in aseg, don't smooth since aseg isn't perfect
+	    }
+	  }
+	}
+	else // right hemisphere
+	{
+	  if (IS_RH_CLASS(label))
+	    ctrl = 1 ;
+	  else
+	  {
+	    if (MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Right_Cerebral_Cortex)) // adjacent to left cortex
+	    {
+	      // if it's cortex in the other hemi that is next to cortex in this hemi,smooth it out
+	      if (label == Left_Cerebral_Cortex)
+		ctrl = 0 ;
+	      else
+		ctrl = 1 ;  // if adjacent to cortex but not cortex in aseg, don't smooth since aseg isn't perfect
+	    }
+	  }
+	}
+	MRIsetVoxVal(mri_ctrl, x, y, z, 0, ctrl) ;
+      }
+
+  // do soap bubble smoothing within the contra hemi do blur out any boundaries
+  mri_dst = MRIsmoothLabel(mri_src, mri_ctrl, mri_dst, 10, 0, 1.0) ;
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
+    MRIwrite(mri_ctrl, "ctrl.mgz") ;
+    MRIwrite(mri_dst, "contra_smoothed.mgz") ;
+  }
+
+  MRIfree(&mri_ctrl) ;
+  return(mri_dst) ;
+}
+#endif
 
 static int
 fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
