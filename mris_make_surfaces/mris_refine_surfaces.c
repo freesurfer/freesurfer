@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/05/12 13:43:11 $
- *    $Revision: 1.21 $
+ *    $Author: zkaufman $
+ *    $Date: 2015/11/09 04:18:29 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "registerio.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.21 2013/05/12 13:43:11 fischl Exp $";
+"$Id: mris_refine_surfaces.c,v 1.22 2015/11/09 04:18:29 zkaufman Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -199,7 +199,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.21 2013/05/12 13:43:11 fischl Exp $", 
+     "$Id: mris_refine_surfaces.c,v 1.22 2015/11/09 04:18:29 zkaufman Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -826,7 +826,7 @@ main(int argc, char *argv[]) {
            max_gray_at_csf_border, min_gray_at_csf_border,
            min_csf,(max_csf+max_gray_at_csf_border)/2,
            current_sigma, 2*max_thickness, parms.fp,
-           GRAY_CSF, NULL, 0, parms.flags) ;
+           GRAY_CSF, NULL, 0, parms.flags, NULL) ;
 
       if (i == 0)
       {
