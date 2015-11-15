@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/03 19:49:10 $
- *    $Revision: 1.5 $
+ *    $Date: 2015/11/13 20:52:30 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_apply_reg.c,v 1.5 2013/12/03 19:49:10 greve Exp $
+// $Id: mris_apply_reg.c,v 1.6 2015/11/13 20:52:30 greve Exp $
 
 /*
   BEGINHELP
@@ -78,7 +78,7 @@ void usage_message(FILE *stream);
 void usage(FILE *stream);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_apply_reg.c,v 1.5 2013/12/03 19:49:10 greve Exp $";
+static char vcid[] = "$Id: mris_apply_reg.c,v 1.6 2015/11/13 20:52:30 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -96,6 +96,8 @@ int DoSynthRand = 0;
 int DoSynthOnes = 0;
 int SynthSeed = -1;
 char *AnnotFile = NULL;
+char *LabelFile = NULL;
+LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -159,6 +161,15 @@ int main(int argc, char *argv[]) {
     SrcVal = MRISannotIndex2Seg(SurfReg[0]);
     ctab = CTABdeepCopy(SurfReg[0]->ct);
   }
+  else if(LabelFile) {
+    LABEL *srclabel;
+    printf("Loading label %s\n",LabelFile);
+    srclabel = LabelRead(NULL, LabelFile);
+    if(srclabel == NULL) exit(1);
+    SrcVal = MRISlabel2Mask(SurfReg[0],srclabel,NULL);
+    printf("   %d points in input label\n",srclabel->n_points);
+    LabelFree(&srclabel);
+  }
   else {
     printf("Loading %s\n",SrcValFile);
     SrcVal = MRIread(SrcValFile);
@@ -177,6 +188,17 @@ int main(int argc, char *argv[]) {
     printf("Writing %s\n",TrgValFile);
     MRISwriteAnnotation(SurfReg[nsurfs-1], TrgValFile);
   } 
+  else if(LabelFile){
+    LABEL *label;
+    label = MRISmask2Label(SurfReg[nsurfs-1], TrgVal, 0, 10e-5);
+    printf("   %d points in output label\n",label->n_points);
+    err = LabelWrite(label,TrgValFile);
+    if(err){
+      printf("ERROR: writing label file %s\n",TrgValFile);
+      exit(1);
+    }
+    LabelFree(&label);
+  }
   else{
     printf("Writing %s\n",TrgValFile);
     MRIwrite(TrgVal,TrgValFile);
@@ -240,6 +262,17 @@ static int parse_commandline(int argc, char **argv) {
       ReverseMapFlag = 0;
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--sval-label") || !strcasecmp(option, "--src-label")){
+      if (nargc < 1) CMDargNErr(option,1);
+      LabelFile = pargv[0];
+      if(!fio_FileExistsReadable(LabelFile)){
+	printf("ERROR: %s does not exist or is not readable by you\n",LabelFile);
+	exit(1);
+      }
+      DoJac = 0;
+      ReverseMapFlag = 0;
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--trg") || !strcasecmp(option, "--tval") 
 	     || !strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -274,17 +307,21 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --src srcvalfile : source values\n");
-  printf("   --trg trgvalfile : output target values (--o)\n");
+  printf(" Input specifcation (pick one):\n");
+  printf("   --src srcvalfile : source values (surface overlay)\n");
+  printf("   --src-annot srcannotfile : source annotation (implies --no-rev)\n");
+  printf("   --src-label labelfile : source label (implies --no-rev)\n");
+  printf(" Output specifcation (format depends on type of input):\n");
+  printf("   --trg trgvalfile : (Can also use --o)\n");
+  printf(" Registration specifcation (srcreg1->trgreg1->srcreg2->trgreg2...):\n");
+  printf(" Need at least one --streg pair but can have any number\n");
   printf("   --streg srcreg1 trgreg1 : source and target reg files\n");
-  printf("     --streg srcreg2 trgreg2 : source and target reg files ...\n");
+  printf("   --streg srcreg2 trgreg2 : more source and target reg files ...\n");
   printf("\n");
   printf("   --jac : use jacobian correction\n");
   printf("   --no-rev : do not do reverse mapping\n");
   printf("   --randn : replace input with WGN\n");
   printf("   --ones  : replace input with ones\n");
-  printf("   --src-annot annot  : use annotation as input\n");
-  printf("      Turns on --no-rev. \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -297,7 +334,6 @@ static void print_usage(void) {
 /*--------------------------------------------------------------*/
 static void print_help(void) {
   print_usage() ;
-  printf("WARNING: this program is not yet tested!\n");
   usage(stdout);
   exit(1) ;
 }
@@ -309,8 +345,20 @@ static void print_version(void) {
 /*--------------------------------------------------------------*/
 static void check_options(void) {
   int n;
-  if(SrcValFile == NULL && AnnotFile == NULL){
+  if(SrcValFile == NULL && AnnotFile == NULL && LabelFile == NULL){
     printf("ERROR: need to specify source value file\n");
+    exit(1);
+  }
+  if(SrcValFile && AnnotFile){
+    printf("ERROR: cannot spec both --src and --src-annot\n");
+    exit(1);
+  }
+  if(SrcValFile && LabelFile){
+    printf("ERROR: cannot spec both --src and --src-label\n");
+    exit(1);
+  }
+  if(AnnotFile && LabelFile){
+    printf("ERROR: cannot spec both --src-annot and --src-label\n");
     exit(1);
   }
   if(TrgValFile == NULL){
@@ -354,3 +402,56 @@ void usage(FILE *stream)
 } /* end usage() */
 
 /* EOF */
+
+/*!
+  \fn LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh)
+  \brief Converts a surface overlay (mask) to a surface label. mask can be
+  non-binary.  Values over thresh are used. The mask value is set to
+  be the label stat.
+ */
+LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh)
+{
+  LABEL *label;
+  int c, r, s, n, vtxno;
+  double val;
+  VERTEX *v;
+
+  // Count number of points in the label
+  n = 0;
+  for(s=0; s < mask->depth; s++){
+    for(r=0; r < mask->height; r++){
+      for(c=0; c < mask->width; c++){
+	val = MRIgetVoxVal(mask,c,r,s,frame);
+	if(val < thresh) continue;
+	n++;
+      }
+    }
+  }
+
+  // Alloc
+  label = LabelAlloc(n,surf->subject_name,NULL);
+  label->n_points = n;
+
+  // Asign values
+  n = 0;
+  vtxno = -1;
+  for(s=0; s < mask->depth; s++){
+    for(r=0; r < mask->height; r++){
+      for(c=0; c < mask->width; c++){
+	vtxno++;
+	val = MRIgetVoxVal(mask,c,r,s,frame);
+	if(val < thresh) continue;
+	v = &surf->vertices[vtxno];
+	label->lv[n].vno = vtxno;
+	label->lv[n].x = v->x;
+	label->lv[n].y = v->y;
+	label->lv[n].z = v->z;
+	label->lv[n].stat = val;
+	n++;
+      }
+    }
+  }
+
+  return(label);
+}
+

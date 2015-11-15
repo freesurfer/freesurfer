@@ -13,8 +13,8 @@ IEEE Transaction on Pattern Analysis and Machine Intelligence, 2012.
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/09/05 13:00:57 $
- *    $Revision: 1.7 $
+ *    $Date: 2015/11/13 17:10:24 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1607,7 +1607,7 @@ SAEinputWeightsToMRI(SAE *sae, MRI *mri)
       mri = MRIallocSequence(wsize, wsize, wsize, MRI_FLOAT, sae->first->v_hidden->rows*sae->nlevels) ;
   }
 
-  useVolGeomToMRI(&sae->vg, mri);
+//  useVolGeomToMRI(&sae->vg, mri);
 
   for (frame = hidden = 0 ; hidden < sae->first->v_hidden->rows ; hidden++)
     for(i = 1, n = 0 ; n < sae->nlevels ; n++, frame++)

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/06 16:00:41 $
- *    $Revision: 1.771 $
+ *    $Date: 2015/11/14 17:06:17 $
+ *    $Revision: 1.772 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.771 2015/11/06 16:00:41 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.772 2015/11/14 17:06:17 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -4091,7 +4091,7 @@ mrisComputeOriginalVertexDistances(MRI_SURFACE *mris)
           continue ;
         }
         xd = v->origx - vn->origx ;
-        yd = v->y - vn->origy ;
+        yd = v->origy - vn->origy ;
         zd = v->origz - vn->origz ;
         d = xd*xd + yd*yd + zd*zd ;
         v->dist_orig[n] = sqrt(d) ;

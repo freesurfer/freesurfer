@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: ltirrell $
-#    $Date: 2015/11/06 19:32:20 $
-#    $Revision: 1.552 $
+#    $Author: mreuter $
+#    $Date: 2015/11/13 17:00:57 $
+#    $Revision: 1.553 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,9 +26,8 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.552 2015/11/06 19:32:20 ltirrell Exp $';
+set VERSION = '$Id: recon-all,v 1.553 2015/11/13 17:00:57 mreuter Exp $';
 set ProgName = `basename $0`;
-set FullProgName = `readlink -f $0`;
 set inputargs = ($argv);
 set subjid = ();
 set hemilist = (lh rh);
@@ -714,7 +713,11 @@ echo "status file for recon-all" >> $SF
 date >> $SF
 
 # Put a copy of myself (this script) in the scripts dir
-cp -v $FullProgName $subjdir/scripts/recon-all.local-copy
+if ("`uname -s`" == "Linux") then
+  set FullProgName = `readlink -f $0`; 
+  cp -v $FullProgName $subjdir/scripts/recon-all.local-copy
+endif
+
 
 # Wait for a file to appear #
 if($#WaitForFile != 0) then
@@ -1714,8 +1717,8 @@ talairach:
       endif
       # per c.larsen, decrease convergence threshold (default is 0.001)
       set cmd = ($cmd --stop 1e-4)
-      # per c.larsen, decrease shrink parameter: finer sampling (default is 4)
-      set cmd = ($cmd --shrink 2)
+      # use default sampling (shrink 4), higher res (2) will cause severe IO
+      set cmd = ($cmd --shrink 4)
       # allow expert-options override
       set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
       set cmd = ($cmd $xopts)
@@ -1974,8 +1977,8 @@ if($DoNormalization) then
       endif
       # per c.larsen, decrease convergence threshold (default is 0.001)
       set cmd = ($cmd --stop 1e-4)
-      # per c.larsen, decrease shrink parameter: finer sampling (default is 4)
-      set cmd = ($cmd --shrink 2)
+      # use default sampling (shrink 4), higher res (2) will cause severe IO
+      set cmd = ($cmd --shrink 4)
       # allow expert-options override
       set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
       set cmd = ($cmd $xopts)

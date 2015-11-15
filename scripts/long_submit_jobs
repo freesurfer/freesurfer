@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2015/11/06 22:37:10 $
-#    $Revision: 1.27 $
+#    $Date: 2015/11/13 17:01:50 $
+#    $Revision: 1.28 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -293,7 +293,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.27 2015/11/06 22:37:10 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.28 2015/11/13 17:01:50 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -783,7 +783,7 @@ def run_base(qdectable,options):
     print "already running : "+str(len(running))
     print "dirs not exist  : "+str(len(notexist))
     print "skipped (errors): "+str(len(error))
-    print "single tp subjs : "+str(len(less2))
+    print "single tp subjs : "+str(less2)
 
     return submitted
 

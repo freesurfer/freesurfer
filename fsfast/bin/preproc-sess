@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/11/04 20:53:30 $
-#    $Revision: 1.62 $
+#    $Date: 2015/11/13 16:38:53 $
+#    $Revision: 1.63 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.62 2015/11/04 20:53:30 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.63 2015/11/13 16:38:53 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -675,9 +675,11 @@ while( $#argv != 0 )
       if($SliceOrder != none) set DoSTC = 1;
       if($SliceOrder == none) set SliceOrder = ();
       set SliceDelayFile = `getana -a $analysis -t sdf`;
-      if($#SliceDelayFile != none) then
+      if($SliceDelayFile != none) then
         set DoSTC = 1;
         set SliceDelayFile = $analysis/$SliceDelayFile
+      else 
+        set SliceDelayFile = ()
       endif
       set nSliceGroups = `getana -a $analysis -t nslicegroups`;
       set ToSurf = `getana -a $analysis -t IsSurface`;
