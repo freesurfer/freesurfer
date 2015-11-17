@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/11/15 07:45:22 $
-#    $Revision: 1.554 $
+#    $Author: mreuter $
+#    $Date: 2015/11/17 14:18:41 $
+#    $Revision: 1.555 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.554 2015/11/15 07:45:22 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.555 2015/11/17 14:18:41 mreuter Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -1961,7 +1961,7 @@ if($DoNormalization) then
     if($status) goto error_exit;
   else
     if ( $longitudinal ) then
-      # the longitudinal stream skips the talairach step, so orig_nu doesnt
+      # the longitudinal stream skips the talairach step, so orig_nu does not
       # get created, so create it now...
       set cmd = (mri_nu_correct.mni --no-rescale --i orig.mgz --o orig_nu.mgz)
       # -3T flag support:
@@ -2414,8 +2414,8 @@ if($DoNuIntensityCor) then
   endif
   # per c.larsen, decrease convergence threshold (default is 0.001)
   set cmd = ($cmd --stop 1e-4)
-  # per c.larsen, decrease shrink parameter: finer sampling (default is 4)
-  set cmd = ($cmd --shrink 2)
+  # use default sampling (shrink 4), higher res (2) will cause severe IO
+  set cmd = ($cmd --shrink 4)
   # add the mask, as per c.larsen, bias-field correction is known to work
   # much better when the brain area is properly masked, in this case by
   # brainmask.mgz.
