@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/05/14 16:28:00 $
- *    $Revision: 1.19 $
+ *    $Date: 2015/11/16 20:15:24 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -332,10 +332,10 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
   EvSeq = (int *) calloc(sizeof(int),nSlotsTot);
   for (n=0;n < nevents; n++) EvSeq[n] = 1;
   /* Randomize the sequence of nulls and non-nulls*/
-  m=RandPermListLimit0(nSlotsTot,EvSeq,nNullMax,100000);
+  m=RandPermListLimit0(nSlotsTot,EvSeq,nNullMax,1000000);
   if (m < 0)
   {
-    printf("ERROR: could not enforce tNullMax=%g (ntries=100000)\n",tNullMax);
+    printf("ERROR: could not enforce tNullMax=%g (ntries=1000000)\n",tNullMax);
     printf("You will need to reduce the number of time points\n");
     printf("or increase the number of presentations.\n");
     return(NULL);
