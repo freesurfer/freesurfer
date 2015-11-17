@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/09/22 14:17:45 $
- *    $Revision: 1.18 $
+ *    $Date: 2015/11/16 22:30:18 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.18 2015/09/22 14:17:45 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.19 2015/11/16 22:30:18 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -101,6 +101,7 @@ typedef struct {
   char *logcost;
   int DoBF; 
   double BFLim;
+  char *outparamfile;
 } CMDARGS;
 
 CMDARGS *cmdargs;
@@ -400,6 +401,16 @@ int main(int argc, char *argv[]) {
   MatrixPrint(stdout,coreg->M);
   printf("Final  RefVox-to-MovVox\n");
   MatrixPrint(stdout,coreg->V2V);
+  printf("Final parameters ");
+  for(n=0; n < coreg->nparams; n++) printf("%7.4lf ",coreg->params[n]);
+  printf("\n");
+  if(cmdargs->outparamfile){
+    FILE *fp;
+    fp = fopen(cmdargs->outparamfile,"w");
+    for(n=0; n < coreg->nparams; n++) fprintf(fp,"%15.8lf ",coreg->params[n]);
+    fprintf(fp,"\n");
+    fclose(fp);
+  }
 
   printf("mri_coreg RunTimeSec %4.1f sec\n",TimerStop(&timer)/1000.0);
   printf("mri_coreg done\n\n");
@@ -474,6 +485,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--regdat")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->regdat = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--params")){
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->outparamfile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--log-cost")) {
@@ -647,6 +663,7 @@ static void print_usage(void) {
   printf("   --rot   Rx Ry Rz : initial rotation in deg\n");
   printf("   --scale Sx Sy Sz : initial scale\n");
   printf("   --shear Hxy Hxz Hyz : initial shear\n");
+  printf("   --params outparamfile : save parameters in this file\n");
   printf("   --no-cras0 : do not Sett translation parameters to align centers of mov and ref\n");
   printf("   --regheader : same as no-cras0\n");
   printf("   --nitersmax n : default is %d\n",cmdargs->nitersmax);
