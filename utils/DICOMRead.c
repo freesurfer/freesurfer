@@ -6,8 +6,8 @@
 /*
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/06 22:24:19 $
- *    $Revision: 1.179 $
+ *    $Date: 2015/11/18 18:55:42 $
+ *    $Revision: 1.180 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2547,7 +2547,8 @@ SDCMFILEINFO *GetSDCMFileInfo(const char *dcmfile)
   else sdcmfi->InversionTime = -1;
 
   e = GetElementFromFile(dcmfile, 0x28, 0x107);
-  sdcmfi->LargestValue = (float) *(e->d.us);
+  if(e) sdcmfi->LargestValue = (float) *(e->d.us);
+  else  sdcmfi->LargestValue = 0;
 
   /* Get the phase encode direction: should be COL or ROW */
   /* COL means that each row is a different phase encode (??)*/
