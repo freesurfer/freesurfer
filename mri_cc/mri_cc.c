@@ -10,8 +10,8 @@
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/04 23:08:09 $
- *    $Revision: 1.36 $
+ *    $Date: 2015/11/18 13:37:51 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -152,7 +152,7 @@ double findMinSize(MRI *mri)
 }
 
 
-#define MAX_CC_DIVISIONS 5
+#define MAX_CC_DIVISIONS 50
 static int cc_divisions = 5 ;
 
 int
@@ -176,13 +176,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.36 2015/11/04 23:08:09 fischl Exp $",
+   "$Id: mri_cc.c,v 1.37 2015/11/18 13:37:51 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.36 2015/11/04 23:08:09 fischl Exp $",
+           "$Id: mri_cc.c,v 1.37 2015/11/18 13:37:51 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1445,6 +1445,8 @@ get_option(int argc, char *argv[])
       break ;
     case 'D':
       cc_divisions = atoi(argv[2]) ;
+      if (cc_divisions > MAX_CC_DIVISIONS)
+	ErrorExit(ERROR_UNSUPPORTED, "%s: too many CC divisions specified (max = %d)\n", cc_divisions, MAX_CC_DIVISIONS) ;
       nargs = 1 ;
       printf("subdividing the cc into %d compartments\n", cc_divisions) ;
       break ;
