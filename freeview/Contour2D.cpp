@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.15 $
+ *    $Author: rpwang $
+ *    $Date: 2015/11/19 19:16:51 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -123,7 +123,7 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
   m_imageMaskRemove = vtkSmartPointer<vtkImageData>::New();
   m_imageMaskRemove->DeepCopy( m_imageMaskAdd );
   int* dim = m_imageMaskAdd->GetDimensions();
-  int size = dim[0]*dim[1]*dim[2];
+  long long size = ((long long)dim[0])*dim[1]*dim[2];
   memset( m_imageMaskAdd->GetScalarPointer(), 0, size );
   unsigned char* ptr = (unsigned char*)m_imageMaskRemove->GetScalarPointer();
   for ( int i = 0; i < size; i++ )

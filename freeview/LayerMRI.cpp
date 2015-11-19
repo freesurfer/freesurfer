@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/11/02 17:11:09 $
- *    $Revision: 1.162 $
+ *    $Date: 2015/11/19 19:16:51 $
+ *    $Revision: 1.163 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2981,7 +2981,7 @@ void LayerMRI::UpdateProjectionMap()
   //    image->SetOrigin( m_imageData->GetOrigin() );
       image->AllocateScalars();
       float* ptr = ( float* )image->GetScalarPointer();
-      memset(ptr, 0, sizeof(float)*dim[0]*dim[1]*dim[2]);
+      memset(ptr, 0, ((long long)sizeof(float))*dim[0]*dim[1]*dim[2]);
       ptrs[i] = ptr;
     }
     vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();

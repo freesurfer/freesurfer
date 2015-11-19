@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/27 19:31:09 $
- *    $Revision: 1.21 $
+ *    $Date: 2015/11/19 19:16:51 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,7 +114,7 @@ void LayerDTI::InitializeDTIColorMap()
 {
   vtkImageData* rasDTI = m_vectorSource->GetImageOutput();
   int* dim = rasDTI->GetDimensions();
-  int nSize = dim[0]*dim[1]*dim[2];
+  long long nSize = ((long long)dim[0])*dim[1]*dim[2];
   double v[4] = { 0, 0, 0, 1 };
   int c[3];
   vtkDataArray* vectors = rasDTI->GetPointData()->GetScalars();
@@ -138,7 +138,7 @@ void LayerDTI::InitializeDTIColorMap()
     }
   }
   float* ptr = (float*)m_imageData->GetScalarPointer();
-  for ( int i = 0; i < nSize; i++ )
+  for ( long long i = 0; i < nSize; i++ )
   {
     vectors->GetTuple( i, v );
     rotation_mat->MultiplyPoint( v, v );
@@ -178,7 +178,7 @@ void LayerDTI::UpdateColorMap()
     if (m_imageData.GetPointer() && m_imageData->GetNumberOfScalarComponents() > 1)
     {
       int* dim = m_imageData->GetDimensions();
-      int nSize = dim[0]*dim[1]*dim[2];
+      long long nSize = ((long long)dim[0])*dim[1]*dim[2];
       float* ptr = (float*)m_imageData->GetScalarPointer();
       double v[4] = {0, 0, 0, 1};
       int c[3];
@@ -186,7 +186,7 @@ void LayerDTI::UpdateColorMap()
           dMax = GetProperty()->GetMaxGenericThreshold();
       if (dMax > dMin)
       {
-        for ( int i = 0; i < nSize; i++ )
+        for ( long long i = 0; i < nSize; i++ )
         {
           m_vectorData->GetTuple( i, v );
           float fa = *(ptr+i*2);

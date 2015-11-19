@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/07/24 19:37:49 $
- *    $Revision: 1.27 $
+ *    $Date: 2015/11/19 19:16:51 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -913,8 +913,9 @@ bool LayerVolumeBase::CopyStructure( int nPlane, double* ras )
   }
 
   dim[nPlane] = 1;
-  char* mask = new char[dim[0]*dim[1]*dim[2]];
-  memset( mask, 0, dim[0]*dim[1]*dim[2] );
+  long long nsize = ((long long)dim[0])*dim[1]*dim[2];
+  char* mask = new char[nsize];
+  memset( mask, 0, nsize );
 
   if ( FloodFillByRAS( ras, nPlane, true, false, mask, true ) )
   {
@@ -956,7 +957,7 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
     int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
     item.data = new char[nSize];
     memset( item.data, 0, nSize );
-    int n = 0;
+    long long n = 0;
     for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
     {
       for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
@@ -978,7 +979,7 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
   {
     int nDim[3];
     m_imageData->GetDimensions( nDim );
-    int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
+    long long nSize = ((long long)nDim[0])*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
     QFile file(this->GenerateCacheFileName());
     if (!file.open(QIODevice::WriteOnly))
     {

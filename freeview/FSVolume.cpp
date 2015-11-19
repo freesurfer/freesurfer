@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/05/18 20:55:37 $
- *    $Revision: 1.101 $
+ *    $Date: 2015/11/19 19:16:51 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1894,7 +1894,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   vtkShortArray         *shortScalars = NULL;
   vtkLongArray          *longScalars = NULL;
   vtkFloatArray         *floatScalars = NULL;
-  int cValues;
+  vtkIdType cValues;
   int zElement=0;
 
   if ( m_MRI == NULL )
@@ -1903,10 +1903,10 @@ bool FSVolume::CreateImage( MRI* rasMRI )
     return false;
   }
 
-  int zX = rasMRI->width;
-  int zY = rasMRI->height;
-  int zZ = rasMRI->depth;
-  int zFrames = rasMRI->nframes;
+  vtkIdType zX = rasMRI->width;
+  vtkIdType zY = rasMRI->height;
+  vtkIdType zZ = rasMRI->depth;
+  vtkIdType zFrames = rasMRI->nframes;
 
   m_imageData = vtkSmartPointer<vtkImageData>::New();
   vtkImageData* imageData = m_imageData;
@@ -2037,7 +2037,7 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
   vtkShortArray         *shortScalars = NULL;
   vtkLongArray          *longScalars = NULL;
   vtkFloatArray         *floatScalars = NULL;
-  int cValues;
+  vtkIdType cValues;
   int zElement=0;
 
   if ( m_MRI == NULL )
@@ -2046,10 +2046,10 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
     return false;
   }
 
-  int zX = rasMRI->width;
-  int zY = rasMRI->height;
-  int zZ = rasMRI->depth;
-  int zFrames = rasMRI->nframes;
+  vtkIdType zX = rasMRI->width;
+  vtkIdType zY = rasMRI->height;
+  vtkIdType zZ = rasMRI->depth;
+  vtkIdType zFrames = rasMRI->nframes;
 
   m_imageData = vtkSmartPointer<vtkImageData>::New();
   vtkImageData* imageData = m_imageData;
@@ -2376,7 +2376,7 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
   int zZ = mri->depth;
   int zFrames = mri->nframes;
 
-  int nTuple = 0;
+  vtkIdType nTuple = 0;
   vtkDataArray *scalars = image->GetPointData()->GetScalars();
   int nProgressStep = 20;
   int nProgress = 0;
@@ -2425,65 +2425,6 @@ void FSVolume::CopyMRIDataToImage( MRI* mri,
     }
   }
 }
-
-/*
-void FSVolume::UpdateMRIToImage()
-{
-  vtkImageData* image = m_imageData;
-  MRI* mri = m_MRI;
-  int zFrames = mri->nframes;
-  int* dim = image->GetDimensions();
-  int zX = dim[0];
-  int zY = dim[1];
-  int zZ = dim[2];
-
-  int nTuple = 0;
-  vtkDataArray *scalars = image->GetPointData()->GetScalars();
-  scalars->Reset();
-  for ( int nZ = 0; nZ < zZ; nZ++ )
-  {
-    for ( int nY = 0; nY < zY; nY++ )
-    {
-      for ( int nX = 0; nX < zX; nX++ )
-      {
-        for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
-        {
-          switch ( mri->type )
-          {
-          case MRI_UCHAR:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_INT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIIseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_LONG:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRILseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_FLOAT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRIFseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          case MRI_SHORT:
-            scalars->SetComponent( nTuple, nFrame,
-                                   MRISseq_vox( mri, nX, nY, nZ, nFrame ) );
-            break;
-          default:
-            break;
-          }
-        }
-        nTuple++;
-      }
-    }
-  }
-
-  MRIvalRange( m_MRI, &m_fMinValue, &m_fMaxValue );
-
-  m_imageData->Modified();
-}
-*/
 
 vtkImageData* FSVolume::GetImageOutput()
 {
