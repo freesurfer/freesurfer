@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/06/10 19:59:48 $
- *    $Revision: 1.38 $
+ *    $Date: 2015/11/18 21:08:38 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2226,7 +2226,7 @@ int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, in
 */
 int GTMautoMask(GTM *gtm)
 {
-  LTA *lta,*pet2bbpet,*seg2bbpet,*anat2bbpet;
+  LTA *lta,*seg2bbpet,*anat2bbpet;
   double std;
   MRI *masktmp,*yvoltmp;
 
@@ -2255,11 +2255,13 @@ int GTMautoMask(GTM *gtm)
     fflush(stdout);
     masktmp = MRIextractRegion(gtm->mask, NULL, gtm->automaskRegion);
     yvoltmp = MRIextractRegion(gtm->yvol, NULL, gtm->automaskRegion);
-    pet2bbpet = TransformRegDat2LTA(gtm->yvol, yvoltmp, NULL);
-    seg2bbpet = LTAconcat2(gtm->seg2pet,pet2bbpet, 1);
+    // delete file name avoid confusion because it gets propogated to lta
+    memset(yvoltmp->fname,0,strlen(yvoltmp->fname)); 
+    gtm->pet2bbpet = TransformRegDat2LTA(gtm->yvol, yvoltmp, NULL);
+    seg2bbpet = LTAconcat2(gtm->seg2pet,gtm->pet2bbpet, 1);
     if(LTAmriIsSource(gtm->anat2pet,gtm->yvol)) lta = LTAinvert(gtm->anat2pet,NULL);        
     else                                        lta = LTAcopy(gtm->anat2pet,NULL);
-    anat2bbpet = LTAconcat2(lta,pet2bbpet,1);
+    anat2bbpet = LTAconcat2(lta,gtm->pet2bbpet,1);
     LTAfree(&lta);
     gtm->yvol_full_fov = MRIallocHeader(gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth,MRI_FLOAT,1);
     MRIcopyHeader(gtm->yvol,gtm->yvol_full_fov);
