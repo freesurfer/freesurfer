@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/08/28 18:03:49 $
- *    $Revision: 1.58 $
+ *    $Date: 2015/11/18 21:10:18 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.58 2015/08/28 18:03:49 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.59 2015/11/18 21:10:18 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.58 2015/08/28 18:03:49 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.59 2015/11/18 21:10:18 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -564,12 +564,18 @@ int main(int argc, char *argv[])
   sprintf(tmpstr,"%s/gm.pvf.psf.nii.gz",AuxDir);
   MRIwrite(gtm->gmpvfpsf, tmpstr);
 
-  sprintf(tmpstr,"%s/hrseg2pet.lta",AuxDir);
+  sprintf(tmpstr,"%s/hrseg2bbpet.lta",AuxDir);
   LTAwrite(gtm->seg2pet,tmpstr);
-  sprintf(tmpstr,"%s/anat2pet.lta",AuxDir);
+  sprintf(tmpstr,"%s/anat2bbpet.lta",AuxDir);
   LTAwrite(gtm->anat2pet,tmpstr);
   ltatmp = LTAinvert(gtm->anat2pet,NULL);
-  sprintf(tmpstr,"%s/pet2anat.lta",AuxDir);
+  sprintf(tmpstr,"%s/bbpet2anat.lta",AuxDir);
+  LTAwrite(ltatmp,tmpstr);
+  LTAfree(&ltatmp);
+  sprintf(tmpstr,"%s/pet2bbpet.lta",AuxDir);
+  LTAwrite(gtm->pet2bbpet,tmpstr);
+  ltatmp = LTAinvert(gtm->pet2bbpet,NULL);
+  sprintf(tmpstr,"%s/bbpet2pet.lta",AuxDir);
   LTAwrite(ltatmp,tmpstr);
   LTAfree(&ltatmp);
   //sprintf(tmpstr,"%s/anat2hrseg.lta",OutDir);
