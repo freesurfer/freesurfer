@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/21 17:38:53 $
- *    $Revision: 1.28 $
+ *    $Date: 2015/11/18 21:09:47 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -141,6 +141,7 @@ typedef struct
   MRI *rbvseg; // may be different than anatseg if rbvsegres used
   LTA *rbvseg2pet; // may be different than seg2pet if rbvsegres used
   LTA *anat2rbv; // conformed anat to RBV for convenience with mri_vol2vol
+  LTA *pet2bbpet; // maps from original pet space to boundingbox
   double rbvsegres;
   int mask_rbv_to_brain; // Reduce FoV of RBV to be tight to brain
   MRI *rbvsegmasked; 
