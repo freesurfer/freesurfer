@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/06/09 21:01:49 $
- *    $Revision: 1.111 $
+ *    $Date: 2015/11/20 17:18:10 $
+ *    $Revision: 1.112 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7134,7 +7134,10 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
     if(Gdiag_no > 0 && DIAG_VERBOSE_ON) printf("\n");
     // This is for scaling
     vc = MatrixAlloc(src->width,1,MATRIX_REAL) ;
-    for (c=0; c < src->width; c++) vc->rptr[c+1][1] = G->rptr[src->width/2][c+1];
+    if(src->width > 1)
+      for (c=0; c < src->width; c++) vc->rptr[c+1][1] = G->rptr[src->width/2][c+1];
+    else
+      vc->rptr[1][1] = 1;
     MatrixFree(&G);
   }
 
@@ -7167,7 +7170,10 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
 
     // This is for scaling
     vr = MatrixAlloc(src->height,1,MATRIX_REAL) ;
-    for (r=0; r < src->height; r++) vr->rptr[r+1][1] = G->rptr[src->height/2][r+1];
+    if(src->height > 1)
+      for (r=0; r < src->height; r++) vr->rptr[r+1][1] = G->rptr[src->height/2][r+1];
+    else
+      vr->rptr[1][1] = 1;
     MatrixFree(&G);
   }
 
@@ -7199,7 +7205,10 @@ MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
     if(Gdiag_no > 0) printf("\n");
     // This is for scaling
     vs = MatrixAlloc(src->depth,1,MATRIX_REAL) ;
-    for(s=0; s < src->depth; s++) vs->rptr[s+1][1] = G->rptr[src->depth/2][s+1];
+    if(src->depth > 1)
+      for(s=0; s < src->depth; s++) vs->rptr[s+1][1] = G->rptr[src->depth/2][s+1];
+    else
+      vs->rptr[1][1] = 1;
     MatrixFree(&G);
   }
 
