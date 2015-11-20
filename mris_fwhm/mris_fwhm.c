@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/04/15 22:38:30 $
- *    $Revision: 1.39 $
+ *    $Date: 2015/11/20 17:35:55 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,10 @@
 /*
 BEGINHELP
 
-Estimates the smoothness of a surface-based data set.
+This program has two functions:
+  1. Apply surface-based smoothing so surface overlay data.
+     This function overlaps with that in mri_surf2surf
+  2. Estimate the smoothness of a surface-based data set.
 
 --i input
 
@@ -71,15 +74,18 @@ Can use --h instead of --hemi.
 Detrend data with the matrix in x.mat. Ie, y = (I-inv(X'*X)*X')*y, where
 y is the input. x.mat must be a matlab4 matrix.
 
+--detrend order
+
+Detrend data with polynomial regressors upto order. If no output is specified,
+then order=0 by default. If an output is specified, then no detrending is done.
+
 --sum sumfile
 
 Prints ascii summary to sumfile.
 
 --fwhm fwhm
 
-Smooth by fwhm mm before estimating the fwhm. This is mainly good for
-debuggging. But with --out can also be used to smooth data on the
-surface (but might be better to use mri_surf2surf for this).
+Smooth input by fwhm mm.
 
 --niters-only <nitersfile>
 
@@ -87,12 +93,13 @@ Only report the number of iterations needed to achieve the FWHM given
 by fwhm. If nitersfile is specified, the number of iterations is 
 written to the file.
 
---out outfile
+--o outfile
 
 Save (possibly synthesized and/or smoothed) data to outfile. Automatically
 detects format. Format must be one accepted as by mri_convert. Note: do
 not use analyze or nifit as these cannot store more than 32k in a dimension.
-mri_surf2surf can store surface data in those formats.
+mri_surf2surf can store surface data in those formats. When an output
+is specified, detrending is turned off. Normally the mean is removed.
 
 --synth
 
@@ -148,7 +155,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.39 2015/04/15 22:38:30 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.40 2015/11/20 17:35:55 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -568,6 +575,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
       outpath = pargv[0];
+      DoDetrend = 0;
       nargsused = 1;
     } else if (!strcasecmp(option, "--group-area-test")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -609,7 +617,7 @@ static void usage_exit(void) {
 /* --------------------------------------------- */
 static void print_usage(void) {
   printf("USAGE: %s\n",Progname) ;
-  printf("\n");
+  printf("Smooths surface data and/or estimates FWHM\n");
   printf("   --i input\n");
   printf("   --subject subject (--s)\n");
   printf("   --hemi hemi (--h)\n");
@@ -618,7 +626,7 @@ static void print_usage(void) {
   printf("   --cortex : used hemi.cortex.label\n");
   printf("   --mask maskfile\n");
   printf("   --X x.mat : matlab4 detrending matrix\n");
-  printf("   --detrend order : polynomial detrending (default 0)\n");
+  printf("   --detrend order : polynomial detrending (default 0, turned off with output)\n");
   printf("   --smooth-only : only smooth (implies --no-detrend)\n");
   printf("   --no-detrend : turn of poly detrending \n");
   printf("   --sqr : compute square of input before smoothing\n");
@@ -650,7 +658,10 @@ static void print_usage(void) {
 static void print_help(void) {
   print_usage() ;
 printf("\n");
-printf("Estimates the smoothness of a surface-based data set.\n");
+printf("This program has two functions:\n");
+printf("  1. Apply surface-based smoothing so surface overlay data.\n");
+printf("     This function overlaps with that in mri_surf2surf\n");
+printf("  2. Estimate the smoothness of a surface-based data set.\n");
 printf("\n");
 printf("--i input\n");
 printf("\n");
@@ -694,15 +705,18 @@ printf("\n");
 printf("Detrend data with the matrix in x.mat. Ie, y = (I-inv(X'*X)*X')*y, where\n");
 printf("y is the input. x.mat must be a matlab4 matrix.\n");
 printf("\n");
+printf("--detrend order\n");
+printf("\n");
+printf("Detrend data with polynomial regressors upto order. If no output is specified,\n");
+printf("then order=0 by default. If an output is specified, then no detrending is done.\n");
+printf("\n");
 printf("--sum sumfile\n");
 printf("\n");
 printf("Prints ascii summary to sumfile.\n");
 printf("\n");
 printf("--fwhm fwhm\n");
 printf("\n");
-printf("Smooth by fwhm mm before estimating the fwhm. This is mainly good for\n");
-printf("debuggging. But with --out can also be used to smooth data on the\n");
-printf("surface (but might be better to use mri_surf2surf for this).\n");
+printf("Smooth input by fwhm mm.\n");
 printf("\n");
 printf("--niters-only <nitersfile>\n");
 printf("\n");
@@ -710,12 +724,13 @@ printf("Only report the number of iterations needed to achieve the FWHM given\n"
 printf("by fwhm. If nitersfile is specified, the number of iterations is \n");
 printf("written to the file.\n");
 printf("\n");
-printf("--out outfile\n");
+printf("--o outfile\n");
 printf("\n");
 printf("Save (possibly synthesized and/or smoothed) data to outfile. Automatically\n");
 printf("detects format. Format must be one accepted as by mri_convert. Note: do\n");
 printf("not use analyze or nifit as these cannot store more than 32k in a dimension.\n");
-printf("mri_surf2surf can store surface data in those formats.\n");
+printf("mri_surf2surf can store surface data in those formats. When an output\n");
+printf("is specified, detrending is turned off. Normally the mean is removed.\n");
 printf("\n");
 printf("--synth\n");
 printf("\n");
