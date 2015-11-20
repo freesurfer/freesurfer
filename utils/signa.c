@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.15 $
+ *    $Author: fischl $
+ *    $Date: 2015/11/20 15:47:57 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -222,7 +222,8 @@ is_signa(char *fname)
          (fabs(header.strtx) + fabs(header.endx) > .000001) &&
          (fabs(header.strtz) + fabs(header.endy) > .000001) &&
          (fabs(header.strty) + fabs(header.endz) > .000001) &&
-         fabs(header.ti) < 100000 && fabs(header.te) < 10000) ;
+         (fabs(header.ti) < 100000 && fabs(header.te) < 10000) &&
+	 (header.ti > 0 && header.imnr1 >= 0 && devFinite(header.psiz)));
 }
 
 
