@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.56 2015/11/03 19:30:55 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.57 2015/11/20 17:54:22 greve Exp $';
 setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
@@ -208,11 +208,16 @@ while($#glmfitcmd)
     set IsPVR = 1;
     shift glmfitcmd;
     breaksw
+  # Ignore these options that have two args
+  case "--rand-split"
+    shift glmfitcmd;
+    shift glmfitcmd;
+    breaksw
   default
     echo ""
     echo "WARNING: unrecognized mri_glmfit cmd option $flag"
     echo ""
-    sleep 10
+    #sleep 10
     #exit 1;
     breaksw 
   endsw
