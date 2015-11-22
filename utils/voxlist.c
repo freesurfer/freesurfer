@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2014/09/02 20:42:31 $
- *    $Revision: 1.30 $
+ *    $Author: fischl $
+ *    $Date: 2015/11/21 19:33:13 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -327,14 +327,12 @@ VLSTfree(VOXEL_LIST **pvl)
 
   if (!vl)
     return(ERROR_BADPARM) ;
-  free(vl->xi) ;
-  free(vl->yi) ;
-  free(vl->zi) ;
-  free(vl->xd) ;
-  free(vl->yd) ;
-  free(vl->zd) ;
-  free(vl->vsrc) ;
-  free(vl->vdst) ;
+  free(vl->xi) ; free(vl->yi) ; free(vl->zi) ;
+  free(vl->xd) ; free(vl->yd) ; free(vl->zd) ;
+
+  free(vl->vsrc) ; free(vl->vdst) ;
+  free(vl->fi) ;
+
   if (vl->t)
     free(vl->t) ;
   if (vl->mx)
