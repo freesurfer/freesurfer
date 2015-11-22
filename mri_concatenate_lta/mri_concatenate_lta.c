@@ -11,8 +11,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/08/19 16:35:05 $
- *    $Revision: 1.15 $
+ *    $Date: 2015/11/21 00:06:20 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,6 +63,7 @@ static MRI *tal_dst = 0;
 static int DoRMSDiff = 0;
 static double RMSDiffRad = 0;
 static char *RMSDiffFile = NULL;
+static char *subject = NULL;
 
 int main(int argc, char *argv[])
 {
@@ -79,7 +80,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_concatenate_lta.c,v 1.15 2015/08/19 16:35:05 greve Exp $",
+           "$Id: mri_concatenate_lta.c,v 1.16 2015/11/21 00:06:20 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -322,6 +323,7 @@ int main(int argc, char *argv[])
     strcpy(lta_total->subject,lta1->subject);
   else if(strlen(lta2->subject) > 0 && strcmp(lta2->subject,"subject-unknown") !=0)  
     strcpy(lta_total->subject,lta2->subject);
+  if(subject) strcpy(lta_total->subject,subject);
   lta_total->fscale = lta1->fscale;
 
   if(invertout){
@@ -412,6 +414,7 @@ static void usage(int exit_val)
           "  -out_type          set final LTA type: 0 VOX2VOX (default)\n") ;
   fprintf(fout,
           "                                         1 RAS2RAS\n\n") ;
+  fprintf(fout, "  -subject subject : set subject in output lta\n");
   fprintf(fout, "\n");
   fprintf(fout, "-rmsdiff radius outputfile : computes RMS diff between transforms using MJ's formula\n");
   fprintf(fout, "   a radius of 70 is suggested. RMS will be saved in outputfile unless outputfile = nofile\n");
@@ -533,6 +536,11 @@ get_option(int argc, char *argv[])
     RMSDiffFile = argv[3];
     fprintf(stderr, "Computing RMS diff Rad=%lf\n",RMSDiffRad);
     nargs = 2;
+  }
+  else if (!stricmp(option, "subject"))
+  {
+    subject = argv[2];
+    nargs = 1;
   }
   else
   {
