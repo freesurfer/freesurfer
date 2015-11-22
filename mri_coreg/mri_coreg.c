@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/16 22:30:18 $
- *    $Revision: 1.19 $
+ *    $Date: 2015/11/20 20:45:23 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.19 2015/11/16 22:30:18 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.20 2015/11/20 20:45:23 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -102,6 +102,8 @@ typedef struct {
   int DoBF; 
   double BFLim;
   char *outparamfile;
+  double fwhmc, fwhmr, fwhms;
+  int SmoothRef;
 } CMDARGS;
 
 CMDARGS *cmdargs;
@@ -202,6 +204,7 @@ int main(int argc, char *argv[]) {
   cmdargs->refconf = 0;
   cmdargs->DoBF = 1;
   cmdargs->BFLim = 30;
+  cmdargs->SmoothRef = 0;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -254,6 +257,16 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+  if(cmdargs->SmoothRef){
+    double stdc,stdr,stds;
+    stdc = cmdargs->fwhmc/sqrt(log(256.0));
+    stdr = cmdargs->fwhmr/sqrt(log(256.0));
+    stds = cmdargs->fwhms/sqrt(log(256.0));
+    printf("Smoothing ref by FWHM %5.2lf %5.2lf %5.2lf\n",cmdargs->fwhmc,cmdargs->fwhmr,cmdargs->fwhms);
+    MRIgaussianSmoothNI(coreg->ref, stdc, stdr, stds, coreg->ref);
+  }
+
 
   if(cmdargs->movmask){
     printf("Reading in movmask %s\n",cmdargs->movmask);
@@ -574,6 +587,15 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->nsep++;
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--ref-fwhm")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&cmdargs->fwhmc);
+      cmdargs->fwhmr = cmdargs->fwhmc;
+      cmdargs->fwhms = cmdargs->fwhmc;
+      cmdargs->SmoothRef = 1;
+      cmdargs->DoSmoothing = 0;
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--trans")) {
       if(nargc < 3) CMDargNErr(option,3);
       sscanf(pargv[0],"%lf",&cmdargs->params[0]);
@@ -672,6 +694,8 @@ static void print_usage(void) {
   printf("   --conf-ref : conform the refernece without rescaling (good for gca)");
   printf("   --no-bf : do not do brute force search");
   printf("   --bf-lim lim : constrain brute force search to +/-lim");
+  printf("   --no-smooth : do not apply smoothing to either ref or mov");
+  printf("   --ref-fwhm fwhm : apply smoothing to ref");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -740,6 +764,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"cras0    %d\n",cmdargs->cras0);
   fprintf(fp,"bf       %d\n",cmdargs->DoBF);
   fprintf(fp,"bflim    %lf\n",cmdargs->BFLim);
+  fprintf(fp,"SmoothRef %d\n",cmdargs->SmoothRef);
   return;
 }
 
