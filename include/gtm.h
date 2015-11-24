@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/18 21:09:47 $
- *    $Revision: 1.29 $
+ *    $Date: 2015/11/24 20:07:26 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,7 +96,7 @@ typedef struct
   MRI *anatconf;   // header of conformed anatomical
 
   double automask_fwhm,automask_thresh; // Use this FWHM instead of PSF when computing mask
-  int automask_reduce_fov; // Flag: reduce PET FoV to be tight to mask.
+  int reduce_fov; // Flag: reduce PET FoV to be tight to mask.
   MRI_REGION *automaskRegion; // Keep reduction region in case reinstate at original FoV
   MRI *yvol_full_fov; // Used to keep header of original FoV source data
   double PadThresh; // Used to dilate mask based on automask_fwhm
