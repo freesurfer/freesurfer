@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/18 21:10:18 $
- *    $Revision: 1.59 $
+ *    $Date: 2015/11/24 20:07:26 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.59 2015/11/18 21:10:18 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.60 2015/11/24 20:07:26 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.59 2015/11/18 21:10:18 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.60 2015/11/24 20:07:26 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -182,6 +182,9 @@ int DoGMRvar = 1;
 int DoSimAnatSeg=0;
 int DoGTMMat = 0;
 int nPadOverride = -1;
+// resolution that each pet voxel is divided into to create
+// PVF maps
+double segpvfresmm = 0.5; 
 MRI *GTMsimAnatSeg(GTM *gtm);
 
 /*---------------------------------------------------------------*/
@@ -219,7 +222,7 @@ int main(int argc, char *argv[])
   gtm->mask_rbv_to_brain = 1;
   gtm->nReplace = 0;
   gtm->nContrasts = 0;
-  gtm->automask_reduce_fov = 1;
+  gtm->reduce_fov = 1;
   gtm->DoVoxFracCor = 1;  
   gtm->rbvsegres = 0;
   gtmopt = (GTMOPT *) calloc(sizeof(GTMOPT),1);
@@ -401,10 +404,45 @@ int main(int argc, char *argv[])
     if(Gdiag_no > 0) printf("  done auto mask \n");fflush(stdout);
     if(Gdiag_no > 0) PrintMemUsage(stdout);
     PrintMemUsage(logfp);
+  }
+  else  gtm->mask=NULL; // should already be NULL
+
+  if(gtm->reduce_fov && gtm->mask){
+    LTA *seg2bbpet,*anat2bbpet,*lta;
+    MRI *masktmp,*yvoltmp;
+    printf("Automask, reducing FOV\n");
+    gtm->automaskRegion = REGIONgetBoundingBox(gtm->mask,1);
+    printf("region %d %d %d reduced to ",gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth);
+    REGIONprint(stdout, gtm->automaskRegion);
+    fflush(stdout);
+    masktmp = MRIextractRegion(gtm->mask, NULL, gtm->automaskRegion);
+    yvoltmp = MRIextractRegion(gtm->yvol, NULL, gtm->automaskRegion);
+    // delete file name avoid confusion because it gets propogated to lta
+    memset(yvoltmp->fname,0,strlen(yvoltmp->fname)); 
+    gtm->pet2bbpet = TransformRegDat2LTA(gtm->yvol, yvoltmp, NULL);
+    seg2bbpet = LTAconcat2(gtm->seg2pet,gtm->pet2bbpet, 1);
+    if(LTAmriIsSource(gtm->anat2pet,gtm->yvol)) lta = LTAinvert(gtm->anat2pet,NULL);        
+    else                                        lta = LTAcopy(gtm->anat2pet,NULL);
+    anat2bbpet = LTAconcat2(lta,gtm->pet2bbpet,1);
+    LTAfree(&lta);
+    gtm->yvol_full_fov = MRIallocHeader(gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth,MRI_FLOAT,1);
+    MRIcopyHeader(gtm->yvol,gtm->yvol_full_fov);
+    MRIcopyPulseParameters(gtm->yvol,gtm->yvol_full_fov);
+    MRIfree(&gtm->yvol);
+    gtm->yvol = yvoltmp;
+    MRIfree(&gtm->mask);
+    gtm->mask = masktmp;
+    LTAfree(&gtm->seg2pet);
+    gtm->seg2pet = seg2bbpet;
+    LTAfree(&gtm->anat2pet);
+    gtm->anat2pet = anat2bbpet;
+  }
+  else  gtm->pet2bbpet = TransformRegDat2LTA(gtm->yvol, gtm->yvol, NULL); // identity
+
+  if(gtm->mask){
     sprintf(tmpstr,"%s/mask.nii.gz",AuxDir);
     MRIwrite(gtm->mask,tmpstr);
   }
-  else  gtm->mask=NULL; // should already be NULL
 
   printf("Data load time %4.1f sec\n",TimerStop(&mytimer)/1000.0);
   fprintf(logfp,"Data load time %4.1f sec\n",TimerStop(&mytimer)/1000.0);
@@ -450,7 +488,7 @@ int main(int argc, char *argv[])
   printf("Computing Seg PVF \n");fflush(stdout);
   if(Gdiag_no > 0) PrintMemUsage(stdout);
   PrintMemUsage(logfp);
-  gtm->segpvf = MRIseg2SegPVF(gtm->anatseg, gtm->seg2pet, 0.5, gtm->segidlist, 
+  gtm->segpvf = MRIseg2SegPVF(gtm->anatseg, gtm->seg2pet, segpvfresmm, gtm->segidlist, 
 			      gtm->nsegs, gtm->mask, 0, NULL, gtm->segpvf);
   if(gtm->segpvf==NULL) exit(1);
   if(Gdiag_no > 0) PrintMemUsage(stdout);
@@ -1077,13 +1115,18 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&Frame);
       nargsused = 1;
     }
+    else if(!strcasecmp(option, "--segpvfres")){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&segpvfresmm);
+      nargsused = 1;
+    }
     else if(!strcasecmp(option, "--last-frame")) Frame = -2;
     else if(!strcasecmp(option, "--npad")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nPadOverride);
       nargsused = 1;
     }
-    else if(!strcasecmp(option, "--no-reduce-fov")) gtm->automask_reduce_fov = 0;
+    else if(!strcasecmp(option, "--no-reduce-fov")) gtm->reduce_fov = 0;
     else if(!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
       if(nargc < 1) CMDargNErr(option,1);
       setenv("SUBJECTS_DIR",pargv[0],1);
