@@ -10,8 +10,8 @@
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/18 13:37:51 $
- *    $Revision: 1.37 $
+ *    $Date: 2015/11/23 18:00:44 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -152,8 +152,9 @@ double findMinSize(MRI *mri)
 }
 
 
-#define MAX_CC_DIVISIONS 50
-static int cc_divisions = 5 ;
+#define MAX_CC_DIVISIONS     50
+#define DEFAULT_CC_DIVISIONS 5
+static int cc_divisions = DEFAULT_CC_DIVISIONS ;
 
 int
 main(int argc, char *argv[])
@@ -176,13 +177,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.37 2015/11/18 13:37:51 fischl Exp $",
+   "$Id: mri_cc.c,v 1.38 2015/11/23 18:00:44 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.37 2015/11/18 13:37:51 fischl Exp $",
+           "$Id: mri_cc.c,v 1.38 2015/11/23 18:00:44 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -439,7 +440,7 @@ main(int argc, char *argv[])
   {
     for (z = 0 ; z < mri_cc->depth ; z++)
     {
-      if ( MRIvox(mri_cc, xi, y, z) )
+      if ( nint(MRIgetVoxVal(mri_cc, xi, y, z, 0)) )
       {
         zf = (xi-means[0])*ez_x + (y-means[1])*ez_y + (z-means[2])*ez_z ;
         if (zf < zf_low)
@@ -465,7 +466,7 @@ main(int argc, char *argv[])
     {
       for ( k = 0 ; k < mri_cc->depth ; k++)
       {
-        if ( MRIvox(mri_cc, i, j, k)>0)
+        if ( nint(MRIgetVoxVal(mri_cc, i, j, k,0))>0)
         {
           zf = (i-means[0])*ez_x + (j-means[1])*ez_y + (k-means[2])*ez_z ;
           if ( zf>=zf_low-10 )
@@ -480,7 +481,7 @@ main(int argc, char *argv[])
               temp = cc_divisions-1;
             }
             volume[temp] +=1 ;
-            MRIvox(mri_cc, i, j, k)=(temp+1)*20+10;
+            MRIsetVoxVal(mri_cc, i, j, k, 0, (temp+1)*20+10);
           }
         }
       }
@@ -509,9 +510,9 @@ main(int argc, char *argv[])
       {
         for ( k = 0 ; k < mri_cc->depth ; k++)
         {
-          if ( MRIvox(mri_cc, i, j, k)>0)
+          if ( nint(MRIgetVoxVal(mri_cc, i, j, k, 0))>0)
           {
-            temp = ((MRIvox(mri_cc, i, j, k)-10)/20) - 1 ;
+            temp = ((nint(MRIgetVoxVal(mri_cc, i, j, k,0))-10)/20) - 1 ;
             if (temp < 0)
             {
               temp = 0 ;
@@ -520,28 +521,37 @@ main(int argc, char *argv[])
             {
               temp = cc_divisions-1 ;
             }
-            switch (temp)
-            {
-            default:
-            case 0:
-              label = CC_Posterior ;
-              break ;
-            case 1:
-              label = CC_Mid_Posterior ;
-              break ;
-            case 2:
-              label = CC_Central ;
-              break ;
-            case 3:
-              label = CC_Mid_Anterior ;
-              break ;
-            case 4:
-              label = CC_Anterior ;
-              break ;
-            }
+	    if (cc_divisions != DEFAULT_CC_DIVISIONS)
+	    {
+	      label = MIN_CC_EXTRA + temp ;
+	      if (label > 255)
+		label = 255 ;
+	    }
+	    else
+	    {
+	      switch (temp)
+	      {
+	      default:
+	      case 0:
+		label = CC_Posterior ;
+		break ;
+	      case 1:
+		label = CC_Mid_Posterior ;
+		break ;
+	      case 2:
+		label = CC_Central ;
+		break ;
+	      case 3:
+		label = CC_Mid_Anterior ;
+		break ;
+	      case 4:
+		label = CC_Anterior ;
+		break ;
+	      }
+	    }
             MRIsetVoxVal(mri_aseg, i, j, k, 0, label) ;
           }
-          else if (MRIvox(mri_fornix, i, j, k) > 0 && fornix)
+          else if (nint(MRIgetVoxVal(mri_fornix, i, j, k, 0)) > 0 && fornix)
           {
             MRIsetVoxVal(mri_aseg, i, j, k, 0, Fornix) ;
           }
@@ -558,23 +568,23 @@ main(int argc, char *argv[])
       {
         for ( k = 0 ; k < mri_cc->depth ; k++)
         {
-          label = MRIvox(mri_aseg, i, j, k) ;
+          label = nint(MRIgetVoxVal(mri_aseg, i, j, k, 0)) ;
           if (label != Left_Cerebral_White_Matter &&
               label != Right_Cerebral_White_Matter)
           {
             continue ;
           }
-          left_label = MRIvox(mri_aseg, i+1, j, k) ;
+          left_label = nint(MRIgetVoxVal(mri_aseg, i+1, j, k,0)) ;
           if (IS_CC(left_label) == 0)
           {
             continue ;
           }
-          right_label = MRIvox(mri_aseg, i-1, j, k) ;
+          right_label = nint(MRIgetVoxVal(mri_aseg, i-1, j, k, 0)) ;
           if (IS_CC(right_label) == 0)
           {
             continue ;
           }
-          MRIvox(mri_aseg, i, j, k) = left_label ;
+          MRIsetVoxVal(mri_aseg, i, j, k, 0, left_label) ;
         }
       }
     }
@@ -601,8 +611,7 @@ main(int argc, char *argv[])
             printf("error in mid anterior detected - correcting...\n") ;
             int k ;
             for (k = 0 ; k < seg->nvoxels ; k++)
-              MRIvox(mri_aseg, seg->voxels[k].x,
-                     seg->voxels[k].y, seg->voxels[k].z) = CC_Anterior ;
+              MRIsetVoxVal(mri_aseg, seg->voxels[k].x, seg->voxels[k].y, seg->voxels[k].z, 0, CC_Anterior) ;
           }
         }
       }
@@ -619,8 +628,7 @@ main(int argc, char *argv[])
             printf("error in mid anterior detected - correcting...\n") ;
             int k ;
             for (k = 0 ; k < seg->nvoxels ; k++)
-              MRIvox(mri_aseg, seg->voxels[k].x,
-                     seg->voxels[k].y, seg->voxels[k].z) = CC_Posterior ;
+              MRIsetVoxVal(mri_aseg, seg->voxels[k].x, seg->voxels[k].y, seg->voxels[k].z, 0, CC_Posterior) ;
           }
         }
       }
@@ -756,7 +764,7 @@ find_corpus_callosum(MRI *mri_tal,
     {
       for (y = yv-extension ; y < yv+extension ; y++)
       {
-        if (MRIvox(mri_tal, x, y, zv) >= WM_MIN_VAL)
+        if (nint(MRIgetVoxVal(mri_tal, x, y, zv, 0)) >= WM_MIN_VAL)
         {
           break ;
         }
@@ -766,7 +774,7 @@ find_corpus_callosum(MRI *mri_tal,
       if (y < yv+extension ) // within the region and bigger than so far
       {
         for (y1 = y, thickness = 0 ; y1 < slice_size ; y1++, thickness++)
-          if (!MRIvox(mri_tal, x, y1, zv)) // if becomes zero, then break out
+          if (!nint(MRIgetVoxVal(mri_tal, x, y1, zv,0))) // if becomes zero, then break out
           {
             break ;
           }
@@ -898,7 +906,7 @@ find_cc_slice(MRI *mri_tal,
       {
         for (jj = 0 ; jj < mri_filled->height ; jj++)
         {
-          if ( MRIvox(mri_filled, ii, jj, 0)>0 )
+          if ( nint(MRIgetVoxVal(mri_filled, ii, jj, 0,0))>0 )
           {
             area[slice]++;
           }
@@ -1032,13 +1040,13 @@ remove_fornix(MRI *mri_filled, int xv, int yv, int zv)
   {
     for (y = 1 ; y < height-1 ; y++)
     {
-      if ( MRIvox(mri_filled, x-1, y, 0) ||
-           MRIvox(mri_filled, x, y-1, 0) ||
-           MRIvox(mri_filled, x, y+1, 0) ||
-           MRIvox(mri_filled, x+1, y, 0) ||
-           MRIvox(mri_filled, x, y, 0) )
+      if ( nint(MRIgetVoxVal(mri_filled, x-1, y, 0, 0)) ||
+           nint(MRIgetVoxVal(mri_filled, x, y-1, 0, 0)) ||
+           nint(MRIgetVoxVal(mri_filled, x, y+1, 0, 0)) ||
+           nint(MRIgetVoxVal(mri_filled, x+1, y, 0, 0)) ||
+           nint(MRIgetVoxVal(mri_filled, x, y, 0, 0)) )
       {
-        MRIvox(mri_temp1,x,y,0)=100;
+        MRIsetVoxVal(mri_temp1,x,y,0,0,100);
       }
     }
   }
@@ -1048,13 +1056,13 @@ remove_fornix(MRI *mri_filled, int xv, int yv, int zv)
   {
     for (y = 1 ; y < height-1 ; y++)
     {
-      if ( MRIvox(mri_temp1, x-1, y, 0) &&
-           MRIvox(mri_temp1, x, y-1, 0) &&
-           MRIvox(mri_temp1, x, y+1, 0) &&
-           MRIvox(mri_temp1, x+1, y, 0) &&
-           MRIvox(mri_temp1, x, y, 0) )
+      if ( nint(MRIgetVoxVal(mri_temp1, x-1, y, 0, 0)) &&
+           nint(MRIgetVoxVal(mri_temp1, x, y-1, 0, 0)) &&
+           nint(MRIgetVoxVal(mri_temp1, x, y+1, 0, 0)) &&
+           nint(MRIgetVoxVal(mri_temp1, x+1, y, 0, 0)) &&
+           nint(MRIgetVoxVal(mri_temp1, x, y, 0, 0)) )
       {
-        MRIvox(mri_temp2,x,y,0)=100;
+        MRIsetVoxVal(mri_temp2,x,y,0, 0, 100);
       }
     }
   }
@@ -1063,7 +1071,7 @@ remove_fornix(MRI *mri_filled, int xv, int yv, int zv)
   {
     for (y = 0 ; y < height ; y++)
     {
-      if ( MRIvox(mri_temp2, x, y, 0) )
+      if ( nint(MRIgetVoxVal(mri_temp2, x, y, 0,0 )) )
       {
         if (x < xi_low)
         {
@@ -1092,8 +1100,8 @@ remove_fornix(MRI *mri_filled, int xv, int yv, int zv)
     {
       for (y = yi_high ; y < height ; y++)
       {
-        MRIvox(mri_temp2, x, y, 0) = 0;
-        MRIvox(mri_temp1, x, y, 0) = 0;
+        MRIsetVoxVal(mri_temp2, x, y, 0, 0, 0);
+        MRIsetVoxVal(mri_temp1, x, y, 0, 0, 0) ;
       }
     }
   }
@@ -1137,7 +1145,7 @@ remove_fornix(MRI *mri_filled, int xv, int yv, int zv)
             x1=x_edge;
             for (y=temp; y<256; y++)
             {
-              MRIvox(mri_filled, x_edge, y, 0) =0;
+              MRIsetVoxVal(mri_filled, x_edge, y, 0, 0, 0);
             }
           }
           flag = 2;
@@ -1157,7 +1165,7 @@ remove_fornix(MRI *mri_filled, int xv, int yv, int zv)
         {
           for (y=y_edge+1; y<256; y++)
           {
-            MRIvox(mri_filled, x_edge, y, 0) =0;
+            MRIsetVoxVal(mri_filled, x_edge, y, 0, 0, 0);
           }
         }
       }
@@ -1268,7 +1276,7 @@ remove_fornix(MRI *mri_filled, int xv, int yv, int zv)
            y<height;
            y++)
       {
-        MRIvox(mri_filled, x, y, 0)=0;
+        MRIsetVoxVal(mri_filled, x, y, 0, 0, 0) ;
       }
     }
   }
@@ -1296,7 +1304,7 @@ edge_detection(MRI *mri_temp, int edge_count, int signal)
       gap=0;
       while ( x_edge < 256)
       {
-        if (MRIvox(mri_temp, x_edge, y_edge, 0))
+        if (nint(MRIgetVoxVal(mri_temp, x_edge, y_edge, 0, 0)))
         {
           break ;
         }
@@ -1305,7 +1313,7 @@ edge_detection(MRI *mri_temp, int edge_count, int signal)
 
       while ( x_edge < 256 )
       {
-        if (!MRIvox(mri_temp, x_edge, y_edge, 0))
+        if (!nint(MRIgetVoxVal(mri_temp, x_edge, y_edge, 0, 0)))
         {
           break ;
         }
@@ -1318,7 +1326,7 @@ edge_detection(MRI *mri_temp, int edge_count, int signal)
 
       while ( x_edge < 256)
       {
-        if (MRIvox(mri_temp, x_edge, y_edge, 0))
+        if (MRIgetVoxVal(mri_temp, x_edge, y_edge, 0, 0))
         {
           break ;
         }
@@ -1344,7 +1352,7 @@ edge_detection(MRI *mri_temp, int edge_count, int signal)
   {
     while (y_edge < 256)
     {
-      if (MRIvox(mri_temp, x_edge, y_edge, 0))
+      if (nint(MRIgetVoxVal(mri_temp, x_edge, y_edge, 0, 0)))
       {
         break ;
       }
@@ -1353,7 +1361,7 @@ edge_detection(MRI *mri_temp, int edge_count, int signal)
 
     while ( y_edge < 256 )
     {
-      if (!MRIvox(mri_temp, x_edge, y_edge, 0))
+      if (!nint(MRIgetVoxVal(mri_temp, x_edge, y_edge, 0, 0)))
       {
         break ;
       }
@@ -2399,15 +2407,15 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
     for (x = xmin ; x <= xmax ; x++)
       for (y = ymax-10 ; y <= ymax ; y++)
       {
-        if (MRIvox(mri_slice_edited, x, y, 0) != LABEL_ERASE)
+        if (nint(MRIgetVoxVal(mri_slice_edited, x, y, 0, 0)) != LABEL_ERASE)
         {
           continue ;
         }
-        if ((MRIvox(mri_slice_edited, x-1, y, 0) == LABEL_IN_CC) &&
-            (MRIvox(mri_slice_edited, x-2, y, 0) == LABEL_IN_CC) &&
-            (MRIvox(mri_slice_edited, x-3, y, 0) == LABEL_IN_CC))
+        if ((nint(MRIgetVoxVal(mri_slice_edited, x-1, y, 0, 0)) == LABEL_IN_CC) &&
+            (nint(MRIgetVoxVal(mri_slice_edited, x-2, y, 0, 0)) == LABEL_IN_CC) &&
+            (nint(MRIgetVoxVal(mri_slice_edited, x-3, y, 0, 0)) == LABEL_IN_CC))
         {
-          MRIvox(mri_slice_edited, x, y, 0) = LABEL_IN_CC ;
+          MRIsetVoxVal(mri_slice_edited, x, y, 0, 0, LABEL_IN_CC) ;
         }
       }
 
