@@ -4,12 +4,14 @@ warnings.filterwarnings('ignore', '.*negative int.*')
 import os, sys, optparse
 import logging
 import csv
+
+# sys.path.append(os.environ['FREESURFER_HOME']+'/bin/') 
 import fsutils
 from fsutils import AparcStatsParser, BadFileError, aparclogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.27 2015/08/05 17:22:52 greve Exp $
+# $Id: aparcstats2table,v 1.28 2015/11/24 17:55:49 mreuter Exp $
 
 # globals
 l = aparclogger
@@ -88,7 +90,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.27 2015/08/05 17:22:52 greve Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.28 2015/11/24 17:55:49 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -223,7 +225,7 @@ def assemble_inputs(options):
         o.subjects=[]
         try:
             f = open(o.qdec, 'rb')
-            dialect = csv.Sniffer().sniff(f.read(1024))
+            dialect = csv.Sniffer().sniff(f.readline())
             f.seek(0)
             reader = csv.DictReader(f,dialect=dialect)
             #o.subjects = [row['fsid'] for row in reader]
@@ -240,7 +242,7 @@ def assemble_inputs(options):
         o.subjects=[]
         try:
             f = open(o.qdeclong, 'rb')
-            dialect = csv.Sniffer().sniff(f.read(1024))
+            dialect = csv.Sniffer().sniff(f.readline())
             f.seek(0)
             reader = csv.DictReader(f,dialect=dialect)
             #o.subjects = [(row['fsid']+'.long.'+row['fsid-base']) for row in reader]

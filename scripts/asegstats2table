@@ -6,12 +6,14 @@ import sys
 import optparse
 import logging
 import csv
+
+# sys.path.append(os.environ['FREESURFER_HOME']+'/bin/') 
 import fsutils
 from fsutils import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.40 2015/08/05 17:45:18 greve Exp $
+# $Id: asegstats2table,v 1.41 2015/11/24 17:55:49 mreuter Exp $
 
 # globals
 l = aseglogger
@@ -110,7 +112,7 @@ def options_parse():
     Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.40 2015/08/05 17:45:18 greve Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.41 2015/11/24 17:55:49 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -304,7 +306,7 @@ def assemble_inputs(o):
             o.subjects=[]
             try:
                 f = open(o.qdec, 'rb')
-                dialect = csv.Sniffer().sniff(f.read(1024))
+                dialect = csv.Sniffer().sniff(f.readline())
                 f.seek(0)
                 reader = csv.DictReader(f,dialect=dialect)
                 #o.subjects = [row['fsid'] for row in reader]
@@ -320,7 +322,7 @@ def assemble_inputs(o):
             o.subjects=[]
             try:
                 f = open(o.qdeclong, 'rb')
-                dialect = csv.Sniffer().sniff(f.read(1024))
+                dialect = csv.Sniffer().sniff(f.readline())
                 f.seek(0)
                 reader = csv.DictReader(f,dialect=dialect)
                 #o.subjects = [(row['fsid']+'.long.'+row['fsid-base']) for row in reader]
