@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/09/15 19:01:30 $
- *    $Revision: 1.77 $
+ *    $Date: 2015/11/24 17:49:36 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -199,6 +199,11 @@ extern "C" {
 #define Right_fimbria             200
 #endif
 
+// reserve 230-249 for more CC divisions
+
+#define MIN_CC_EXTRA      230
+#define MAX_CC_EXTRA      249
+
 #define Fornix            250
 #define CC_Posterior      251
 #define CC_Mid_Posterior  252
@@ -206,7 +211,7 @@ extern "C" {
 #define CC_Mid_Anterior   254
 #define CC_Anterior       255
 
-#define IS_CC(l) (l >= CC_Posterior && l <= CC_Anterior)
+#define IS_CC(l) ((l >= CC_Posterior && l <= CC_Anterior) || (l >= MIN_CC_EXTRA && l <= MAX_CC_EXTRA))
 
 #define VOXEL_UNCHANGED   256
 #define CSF_ExtraCerebral 257
