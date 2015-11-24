@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/11/06 01:38:58 $
- *    $Revision: 1.59 $
+ *    $Author: greve $
+ *    $Date: 2015/11/24 20:36:25 $
+ *    $Revision: 1.60 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,7 @@
 #endif // FS_CUDA
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.59 2014/11/06 01:38:58 nicks Exp $";
+  "$Id: mris_sphere.c,v 1.60 2015/11/24 20:36:25 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -125,13 +125,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.59 2014/11/06 01:38:58 nicks Exp $",
+   "$Id: mris_sphere.c,v 1.60 2015/11/24 20:36:25 greve Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.59 2014/11/06 01:38:58 nicks Exp $",
+           "$Id: mris_sphere.c,v 1.60 2015/11/24 20:36:25 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -411,6 +411,14 @@ main(int argc, char *argv[])
   msec = TimerStop(&then) ;
   fprintf(stderr, "spherical transformation took %2.2f hours\n",
           (float)msec/(1000.0f*60.0f*60.0f));
+  // Output formatted so it can be easily grepped
+#ifdef HAVE_OPENMP
+  n_omp_threads = omp_get_num_threads();
+  printf("FSRUNTIME@ mris_sphere %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
+#else
+  printf("FSRUNTIME@ mris_sphere %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),1);
+#endif
+
   exit(0) ;
   return(0) ;  /* for ansi */
 }
