@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/01/15 17:19:03 $
- *    $Revision: 1.61 $
+ *    $Date: 2015/11/24 20:36:25 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,9 @@
 #include <math.h>
 #include <ctype.h>
 #include <unistd.h>
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include "timer.h"
 #include "macros.h"
@@ -45,7 +48,7 @@
 #include "gcsa.h"
 
 static char vcid[] =
-  "$Id: mris_register.c,v 1.61 2013/01/15 17:19:03 greve Exp $";
+  "$Id: mris_register.c,v 1.62 2015/11/24 20:36:25 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -141,14 +144,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_register.c,v 1.61 2013/01/15 17:19:03 greve Exp $",
+   "$Id: mris_register.c,v 1.62 2015/11/24 20:36:25 greve Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_register.c,v 1.61 2013/01/15 17:19:03 greve Exp $",
+           "$Id: mris_register.c,v 1.62 2015/11/24 20:36:25 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -592,6 +595,16 @@ main(int argc, char *argv[])
 
   msec = TimerStop(&start) ;
   printf("registration took %2.2f hours\n",(float)msec/(1000.0f*60.0f*60.0f));
+
+  // Output formatted so it can be easily grepped
+#ifdef HAVE_OPENMP
+  int n_omp_threads = omp_get_num_threads();
+  printf("FSRUNTIME@ mris_register %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
+#else
+  printf("FSRUNTIME@ mris_register %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),1);
+#endif
+
+
   exit(0) ;
   return(0) ;  /* for ansi */
 }
