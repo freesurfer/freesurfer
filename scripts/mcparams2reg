@@ -5,7 +5,7 @@
 # matrix of MC regressors. It will create all regressors. The
 # order and delay can be set.
 
-# $Id: mcparams2reg,v 1.2 2015/07/02 18:37:04 greve Exp $
+# $Id: mcparams2reg,v 1.3 2015/11/24 20:09:36 greve Exp $
 
 import sys;
 import os;
@@ -26,6 +26,7 @@ class MCRegClass:
     self.ntp = 0;
     self.demean = 1;
     self.demeanmtx = 1;
+    self.DoFD = 0;
     self.version = "$Id";
     self.debug = 0;
   # end  def __init__(self, value=None):
@@ -60,7 +61,8 @@ class MCRegClass:
       self.ntp = self.ntp + 1;
     #end for line
     fp.close;
-    if(self.demean): self.DemeanParams();
+    # Convert mcdat angles to radians
+    if(self.mcpfiletype == 1): self.mcparams[:,0:3] = self.mcparams[:,0:3]*pi/180;
   # end load()
 
   #######################################
@@ -111,7 +113,66 @@ class MCRegClass:
     if(self.demeanmtx): self.DemeanMatrix();
   #end def CreateMatrix
 
+  def MotionMetrics(self):
+    xyz1 = self.mcparams[0:self.ntp-1,3:6];
+    xyz2 = self.mcparams[1:self.ntp,3:6];
+    #print self.mcparams;
+    dxyz = sqrt((xyz2 - xyz1)**2);
+    rot1 = self.mcparams[0:self.ntp-1,0:3];
+    rot2 = self.mcparams[1:self.ntp,0:3];
+    drot = 50*absolute(rot2 - rot1);
+    self.fdkvd = dxyz.sum(axis=1);
+    self.fdkvdmn = self.fdkvd.mean();
+    self.fdpow = dxyz.sum(axis=1) + drot.sum(axis=1);
+    self.fdpowmn = self.fdpow.mean();
+    self.fdrms = zeros((self.ntp-1,1));
+    for tp in range(0,self.ntp-1):
+      T1 = mcpar2mat(mcreg.mcparams[tp,:]);
+      T2 = mcpar2mat(mcreg.mcparams[tp+1,:]);
+      self.fdrms[tp] = RMSregDiffMJ(T1,T2,80);
+      # Radius = 80 matches flirt
+    #end
+    self.fdrmsmn = self.fdrms.mean();      
+  #end 
+
 #end class MCRegClass
+
+def mcpar2mat(params):
+  Txyz = identity(4);
+  Txyz[0,3] = params[3];
+  Txyz[1,3] = params[4];
+  Txyz[2,3] = params[5];
+  R1 = identity(4);
+  R1[1,1] = cos(params[0]);
+  R1[1,2] = sin(params[0]);
+  R1[2,1] = -sin(params[0]);
+  R1[2,2] = cos(params[0]);
+  R2 = identity(4);
+  R2[0,0] = cos(params[1]);
+  R2[0,2] = sin(params[1]);
+  R2[2,0] = -sin(params[1]);
+  R2[2,2] = cos(params[1]);
+  R3 = identity(4);
+  R3[0,0] = cos(params[2]);
+  R3[0,1] = sin(params[2]);
+  R3[1,0] = -sin(params[2]);
+  R3[1,1] = cos(params[2]);
+  T = dot(Txyz,R1);
+  T = dot(T,R2);
+  T = dot(T,R3);
+  return T;
+#end 
+
+def RMSregDiffMJ(T1,T2,radius):
+  Q = T1-T2;
+  M = Q[0:3,0:3];
+  t = Q[0:3,3];
+  MtM = dot(M.transpose(),M);
+  MtMtrace = trace(MtM);
+  ttt = dot(t.transpose(),t);
+  rms = sqrt(radius*radius*MtMtrace/5.0 + ttt);
+  return rms;
+#end
 
 #---------------------------------------------------------
 def print_help():
@@ -120,9 +181,11 @@ def print_help():
   print "  --mcdat mcpfile : as created by FSFAST";
   print "  --flirt mcpfile : as created by FSL MCFLIRT";
   print "  --od order delay (order >= 1, delay >= 0)";
+  print "  --fd : compute frame-wise displacment (output becomes this)";
   print "  --no-demean : do not demean parameters before computing matrix";
   print "  --no-demeanmtx : do not demean final matrix";
   print "  --debug : print out debugging info";
+  print ""
   return 0;
 #end def print_help:
 
@@ -161,6 +224,8 @@ def parse_args(argv):
         sys.exit(1);
       delay = int(argv[0]); del argv[0];
       mcreg.odsets.append([order, delay]);
+    elif(flag == "--fd"):
+      mcreg.DoFD = 1;
     elif(flag == "--demean"):
       mcreg.demean = 1;
     elif(flag == "--no-demean"):
@@ -190,8 +255,12 @@ def check_args():
     print "ERROR: mcpfile needed";
     sys.exit(1);
   #endif    
-  if(len(mcreg.odsets) == 0):
-    print "ERROR: at least one odset needed";
+  if(len(mcreg.odsets) == 0 and not mcreg.DoFD):
+    print "ERROR: at least one odset needed or --fd";
+    sys.exit(1);
+  #endif    
+  if(len(mcreg.odsets) != 0 and mcreg.DoFD):
+    print "ERROR: cannot spec --od and --fd";
     sys.exit(1);
   #endif    
   return 0;
@@ -219,6 +288,20 @@ check_args();
 
 print "%s" % (mcreg.version);
 
+mcreg.Load();
+mcreg.MotionMetrics();
+print "FD %g %g %g" % (mcreg.fdkvdmn,mcreg.fdpowmn,mcreg.fdrmsmn);
+
+if(mcreg.DoFD):
+  fp = open(mcreg.output,'w');
+  fp.write("%20.10f %20.10f %20.10f \n" % (mcreg.fdkvdmn,mcreg.fdpowmn,mcreg.fdrmsmn));
+  fp.close();
+  print "mcparams2reg done";
+  sys.exit(0);
+#endif
+
+if(mcreg.demean): mcreg.DemeanParams();
+
 mcreg.nodsets = len(mcreg.odsets);
 if(mcreg.debug):
   k = 0;
@@ -230,7 +313,6 @@ if(mcreg.debug):
   #endfor
 #endif
 
-mcreg.Load();
 
 if(mcreg.debug):
   print "n odsets = %d, %d, %d time points " % (mcreg.nodsets,mcreg.mcpfiletype,mcreg.ntp);
@@ -249,6 +331,8 @@ for tp in range(0,mcreg.X.shape[0]):
   #end for k
   fp.write("\n");
 #end for tp
+
+mcreg.MotionMetrics();
 
 print "mcparams2reg done";
 sys.exit(0);
