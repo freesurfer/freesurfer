@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/18 21:08:38 $
- *    $Revision: 1.39 $
+ *    $Date: 2015/11/24 20:07:26 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2226,9 +2226,8 @@ int GTMloadReplacmentList(const char *fname, int *nReplace, int *ReplaceThis, in
 */
 int GTMautoMask(GTM *gtm)
 {
-  LTA *lta,*seg2bbpet,*anat2bbpet;
+  LTA *lta;
   double std;
-  MRI *masktmp,*yvoltmp;
 
   gtm->mask = MRIalloc(gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth,MRI_FLOAT);
   MRIcopyHeader(gtm->yvol,gtm->mask);
@@ -2246,35 +2245,6 @@ int GTMautoMask(GTM *gtm)
   MRIgaussianSmoothNI(gtm->mask, std,std,std, gtm->mask);
   // Binarize again to get final mask
   MRIbinarize(gtm->mask,gtm->mask,gtm->automask_thresh,0,1);
-
-  if(gtm->automask_reduce_fov){
-    printf("Automask, reducing FOV\n");
-    gtm->automaskRegion = REGIONgetBoundingBox(gtm->mask,1);
-    printf("region %d %d %d reduced to ",gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth);
-    REGIONprint(stdout, gtm->automaskRegion);
-    fflush(stdout);
-    masktmp = MRIextractRegion(gtm->mask, NULL, gtm->automaskRegion);
-    yvoltmp = MRIextractRegion(gtm->yvol, NULL, gtm->automaskRegion);
-    // delete file name avoid confusion because it gets propogated to lta
-    memset(yvoltmp->fname,0,strlen(yvoltmp->fname)); 
-    gtm->pet2bbpet = TransformRegDat2LTA(gtm->yvol, yvoltmp, NULL);
-    seg2bbpet = LTAconcat2(gtm->seg2pet,gtm->pet2bbpet, 1);
-    if(LTAmriIsSource(gtm->anat2pet,gtm->yvol)) lta = LTAinvert(gtm->anat2pet,NULL);        
-    else                                        lta = LTAcopy(gtm->anat2pet,NULL);
-    anat2bbpet = LTAconcat2(lta,gtm->pet2bbpet,1);
-    LTAfree(&lta);
-    gtm->yvol_full_fov = MRIallocHeader(gtm->yvol->width,gtm->yvol->height,gtm->yvol->depth,MRI_FLOAT,1);
-    MRIcopyHeader(gtm->yvol,gtm->yvol_full_fov);
-    MRIcopyPulseParameters(gtm->yvol,gtm->yvol_full_fov);
-    MRIfree(&gtm->yvol);
-    gtm->yvol = yvoltmp;
-    MRIfree(&gtm->mask);
-    gtm->mask = masktmp;
-    LTAfree(&gtm->seg2pet);
-    gtm->seg2pet = seg2bbpet;
-    LTAfree(&gtm->anat2pet);
-    gtm->anat2pet = anat2bbpet;
-  }
 
   return(0);
 }
