@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/06/24 16:03:22 $
- *    $Revision: 1.93 $
+ *    $Author: greve $
+ *    $Date: 2015/11/24 20:36:25 $
+ *    $Revision: 1.94 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -239,7 +239,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.93 2015/06/24 16:03:22 fischl Exp $",
+           "$Id: mri_ca_register.c,v 1.94 2015/11/24 20:36:25 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1625,8 +1625,11 @@ main(int argc, char *argv[])
   hours = minutes / (60) ;
   minutes = minutes % 60 ;
   seconds = seconds % 60 ;
-  printf("registration took %d hours, %d minutes and %d seconds.\n",
+  printf("mri_ca_register took %d hours, %d minutes and %d seconds.\n",
          hours, minutes, seconds) ;
+
+  // Output formatted so it can be easily grepped
+  printf("FSRUNTIME@ mri_ca_register %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
 
 #ifdef FS_CUDA
   PrintGPUtimers();
