@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.48 $
+ *    $Author: greve $
+ *    $Date: 2015/11/24 20:36:25 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,9 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include "macros.h"
 #include "error.h"
@@ -53,7 +56,7 @@
 #endif // FS_CUDA
 
 static char vcid[] =
-  "$Id: mris_fix_topology.c,v 1.48 2011/03/02 00:04:32 nicks Exp $";
+  "$Id: mris_fix_topology.c,v 1.49 2015/11/24 20:36:25 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -110,7 +113,7 @@ main(int argc, char *argv[])
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_fix_topology.c,v 1.48 2011/03/02 00:04:32 nicks Exp $",
+   "$Id: mris_fix_topology.c,v 1.49 2015/11/24 20:36:25 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -119,7 +122,7 @@ main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.48 2011/03/02 00:04:32 nicks Exp $",
+     "$Id: mris_fix_topology.c,v 1.49 2015/11/24 20:36:25 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -329,6 +332,16 @@ main(int argc, char *argv[])
   msec = TimerStop(&then) ;
   fprintf(stderr,"topology fixing took %2.1f minutes\n",
           (float)msec/(60*1000.0f));
+
+  // Output formatted so it can be easily grepped
+#ifdef HAVE_OPENMP
+  int n_omp_threads = omp_get_num_threads();
+  printf("FSRUNTIME@ mris_fix_topology %s %7.4f hours %d threads\n",hemi,msec/(1000.0*60.0*60.0),n_omp_threads);
+#else
+  printf("FSRUNTIME@ mris_fix_topology %s %7.4f hours %d threads\n",hemi,msec/(1000.0*60.0*60.0),1);
+#endif
+
+
   exit(0) ;
   return(0) ;  /* for ansi */
 }
