@@ -9,8 +9,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2012/10/30 21:26:25 $
-#    $Revision: 1.17 $
+#    $Date: 2015/12/03 16:11:58 $
+#    $Revision: 1.18 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct2,v 1.17 2012/10/30 21:26:25 greve Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.18 2015/12/03 16:11:58 greve Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -410,7 +410,7 @@ check_params:
 
   # Create the tmp directory and get full path
   if($#tmpdir == 0) then
-    if(-e /scratch) then
+    if(-dw /scratch) then
       set tmpdir = /scratch/tmp-mri_motion_correct2-$$
     else
       set tmpdir = $outdir/tmp-mri_motion_correct2-$$

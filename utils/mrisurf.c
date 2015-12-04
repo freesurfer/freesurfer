@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/14 17:06:17 $
- *    $Revision: 1.772 $
+ *    $Date: 2015/12/03 01:53:21 $
+ *    $Revision: 1.774 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.772 2015/11/14 17:06:17 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.774 2015/12/03 01:53:21 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -42505,14 +42505,24 @@ MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
 
   Description
   ------------------------------------------------------*/
-#define MAX_HISTO 1000
 int
 MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
 {
-  int    histo[MAX_HISTO];
-  int    i, n, vno, ino, index, max_histo, max_index, nchanged, nzero ;
+  int    *histo;
+  int    i, n, vno, ino, index, max_histo, max_index, nchanged, nzero, max_val ;
   VERTEX *v, *vn ;
 
+  for (max_val = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->val > max_val)
+      max_val = v->val ;
+  }
+  histo = (int *)calloc(max_val+1, sizeof(int)) ;
+  if (histo == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRISmodeFilterVals: could not allocate histo array of %d ints", max_val+1) ;
+
+    
   MRISclearMarks(mris) ;  /* v->marked = 0 means it hasn't converged yet */
   for (ino  = 0 ; ino < niter ; ino++)
   {
@@ -42521,38 +42531,32 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
     {
       v = &mris->vertices[vno] ;
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
+
       if (v->ripflag || v->marked)
-      {
         continue ;
-      }
+
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
 
       if (nint(v->val) == 0)
-      {
         nzero++ ;
-      }
+
       // initialize
-      memset(histo, 0, sizeof(histo)) ;
+      memset(histo, 0, (max_val+1)*sizeof(*histo)) ;
       // create histogram
       for (n = 0 ; n < v->vnum ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
         index = (int)nint(vn->val) ;
-        if (index < 0 || index >= MAX_HISTO)
-        {
+        if (index < 0)
           continue ;
-        }
+
         histo[index]++ ;
       }
       max_histo = histo[0] ;
       max_index = 0 ;
-      for (i = 1 ; i < MAX_HISTO ; i++)
+      for (i = 1 ; i <= max_val ; i++)
       {
         if (histo[i] > max_histo)
         {
@@ -42566,22 +42570,19 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
-      {
         continue ;
-      }
+
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
+
       if (v->val != v->valbak)
       {
         v->marked = 0 ;  /* process it again */
         nchanged++ ;
       }
       else
-      {
         v->marked = 1 ;  /* didn't change */
-      }
+
       v->val = v->valbak ;
     }
 
@@ -42590,13 +42591,10 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag || v->marked == 1)
-      {
         continue ;
-      }
+
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
       for (n = 0 ; n < v->vnum ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
@@ -42605,10 +42603,9 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
     }
     printf("iter %d: %d changed, %d zero\n", ino, nchanged, nzero) ;
     if (!nchanged)
-    {
       break ;
-    }
   }
+  free(histo) ;
   MRISclearMarks(mris) ;
   return(NO_ERROR) ;
 }
@@ -42622,9 +42619,19 @@ MRISmodeFilterVals(MRI_SURFACE *mris, int niter)
 int
 MRISmodeFilterZeroVals(MRI_SURFACE *mris)
 {
-  int    histo[MAX_HISTO], i, n, vno, ino,
+  int    *histo, i, n, vno, ino, max_val,
          index, max_histo, max_index, nchanged, nzero ;
   VERTEX *v, *vn ;
+
+  for (max_val = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->val > max_val)
+      max_val = v->val ;
+  }
+  histo = (int *)calloc(max_val+1, sizeof(int)) ;
+  if (histo == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRISmodeFilterVals: could not allocate histo array of %d ints", max_val+1) ;
 
   MRISclearMarks(mris) ;  /* v->marked = 0 means it hasn't converged yet */
   ino = 0 ;
@@ -42635,36 +42642,32 @@ MRISmodeFilterZeroVals(MRI_SURFACE *mris)
     {
       v = &mris->vertices[vno] ;
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
+
       if (v->ripflag || v->marked)
-      {
         continue ;
-      }
-      if (vno == Gdiag_no)
-      {
-        DiagBreak() ;
-      }
 
       if (nint(v->val) == 0)
-      {
         nzero++ ;
+      else
+      {
+	v->valbak = v->val ;
+	continue ;  // only process vertices that have v->val == 0
       }
-      memset(histo, 0, sizeof(histo)) ;
+
+      memset(histo, 0, (max_val+1)*sizeof(*histo)) ;
       for (n = 0 ; n < v->vnum ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
         index = (int)nint(vn->val) ;
-        if (index < 0 || index >= MAX_HISTO)
-        {
+        if (index < 0)
           continue ;
-        }
+
         histo[index]++ ;
       }
       max_histo = 0 ;
       max_index = 0 ;
-      for (i = 1 ; i < MAX_HISTO ; i++)
+      for (i = 1 ; i <= max_val ; i++)
       {
         if (histo[i] > max_histo)
         {
@@ -42678,22 +42681,19 @@ MRISmodeFilterZeroVals(MRI_SURFACE *mris)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
-      {
         continue ;
-      }
+
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
+
       if (v->val != v->valbak)
       {
         v->marked = 0 ;  /* process it again */
         nchanged++ ;
       }
       else
-      {
         v->marked = 1 ;  /* didn't change */
-      }
+
       v->val = v->valbak ;
     }
 
@@ -42702,13 +42702,11 @@ MRISmodeFilterZeroVals(MRI_SURFACE *mris)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag || v->marked == 1)
-      {
         continue ;
-      }
+
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
+
       for (n = 0 ; n < v->vnum ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
@@ -42723,6 +42721,7 @@ MRISmodeFilterZeroVals(MRI_SURFACE *mris)
   }
   while (nchanged > 0 && nzero > 0) ;
   MRISclearMarks(mris) ;
+  free(histo) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -42732,20 +42731,32 @@ MRISmodeFilterZeroVals(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-#define MAX_ANNOTATION 20000
 int
 MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
 {
-  int    histo[MAX_ANNOTATION], i, n, vno, ino, index, max_histo,
-         max_annotation, annotations[MAX_ANNOTATION], nchanged = 0 ;
+  int    *histo, i, n, vno, ino, index, max_histo, max_val, max_a,
+         max_annotation, *annotations, nchanged = 0 ;
   VERTEX *v, *vn ;
+
+  for (max_a = max_val = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->val > max_val)
+      max_val = v->val ;
+    if (v->annotation > max_a)
+      max_a = v->annotation ;
+  }
+  histo = (int *)calloc(max_val+1, sizeof(int)) ;
+  if (histo == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRISmodeFilterVals: could not allocate histo array of %d ints", max_val+1) ;
+  annotations = (int *)calloc(max_a+1, sizeof(int)) ;
+  if (annotations == NULL)
+    ErrorExit(ERROR_NOMEMORY, "MRISmodeFilterVals: could not allocate annotation array of %d ints", max_val+1) ;
 
   //reset the annotation table using the surface's own
   //colortable when it's available
   if (mris->ct != NULL)
-  {
     set_atable_from_ctable(mris->ct);
-  }
 
   for (ino  = 0 ; ino < niter ; ino++)
   {
@@ -42753,43 +42764,27 @@ MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
-      {
         continue ;
-      }
-      if (vno == Gdiag_no)
-      {
-        DiagBreak() ;
-      }
 
-      memset(histo, 0, sizeof(histo)) ;
-      memset(annotations, 0, sizeof(annotations)) ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+
+      memset(histo, 0, (max_val+1)*sizeof(*histo)) ;
+      memset(annotations, 0, (max_a+1)*sizeof(*annotations)) ;
       for (n = 0 ; n < v->vtotal ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
         index = annotation_to_index(vn->annotation) ;
         if (index < 0)
-        {
           continue ;
-        }
-        if (index >= MAX_ANNOTATION)
-        {
-          fprintf(stderr,"\nERROR: index:%d >= MAX_ANNOTATION:%d in "
-                  "MRISmodeFilterAnnotations!\n",index,MAX_ANNOTATION);
-          exit(1);
-        }
+
         histo[index]++ ;
         annotations[index] = vn->annotation ;
       }
       index = annotation_to_index(v->annotation) ;
-      if (index >= MAX_ANNOTATION)
-      {
-        fprintf(stderr,"\nERROR: index:%d >= MAX_ANNOTATION:%d in "
-                "MRISmodeFilterAnnotations!\n",index,MAX_ANNOTATION);
-        exit(1);
-      }
       max_histo = histo[index] ;
       max_annotation = v->annotation ;
-      for (i = 1 ; i < MAX_ANNOTATION ; i++)
+      for (i = 1 ; i <= max_a ; i++)
       {
         if (histo[i] > max_histo)
         {
@@ -42803,26 +42798,23 @@ MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
-      {
         continue ;
-      }
+
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
+
       if (v->annotation != v->undefval)
-      {
         nchanged++ ;
-      }
+
       v->annotation = v->undefval ;
     }
     if (nchanged == 0)
-    {
       break ;
-    }
   }
   printf("%d filter iterations complete (%d requested, %d changed)\n",
          ino, niter, nchanged) ;
+
+  free(histo) ; free(annotations) ;
   return(NO_ERROR) ;
 }
 
@@ -64492,17 +64484,25 @@ static int mrisComputeOptimalRetessellation
 
   if (nedges > 200000)
   {
+#if 1
+    printf("XL defect detected...\n") ;
+    max_unchanged = MIN(max_unchanged, 1) ;
+    max_patches = MAX(MIN(max_patches, 3),1) ;
+    max_edges = MIN(max_edges, 25) ;
+#else
     //add some code here to select a good tessellation (ordering) FLO
-    //mrisRetessellateDefect(mris, mris_corrected,
-    // defect, vertex_trans, et, nedges, NULL, NULL) ;
-    tessellatePatch(mri,mris, mris_corrected,
-                    defect,vertex_trans, et, nedges, NULL, NULL,parms);
+    mrisRetessellateDefect(mris, mris_corrected,
+			   defect, vertex_trans, et, nedges, NULL, NULL) ;
+//    tessellatePatch(mri,mris, mris_corrected,
+//                    defect,vertex_trans, et, nedges, NULL, NULL,parms);
 
 
     return(NO_ERROR) ;
+#endif
   }
   else if (nedges > 100000)
   {
+    printf("L defect detected...\n") ;
     max_unchanged = MIN(max_unchanged, 1) ;
     max_patches = MAX(MIN(max_patches, 10),1) ;
     max_edges = MIN(max_edges, 100) ;
@@ -77573,6 +77573,19 @@ MRIScopyMarkedToMarked2(MRI_SURFACE *mris)
   {
     v = &mris->vertices[vno] ;
     v->marked2 = v->marked ;
+  }
+  return(NO_ERROR) ;
+}
+int
+MRIScopyValsToAnnotations(MRI_SURFACE *mris)
+{
+  int      vno ;
+  VERTEX   *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    v->annotation = v->val ;
   }
   return(NO_ERROR) ;
 }

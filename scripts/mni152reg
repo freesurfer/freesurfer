@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # mni152reg
 
-set VERSION = '$Id: mni152reg,v 1.10 2015/06/10 19:55:04 greve Exp $';
+set VERSION = '$Id: mni152reg,v 1.11 2015/12/03 16:11:58 greve Exp $';
 
 set subject = ();
 set res = 2;
@@ -58,7 +58,7 @@ echo $0 $inputargs | tee -a $LF
 echo "" | tee -a $LF
 uname -a  | tee -a $LF
 
-if(-e /scratch) then
+if(-dw /scratch) then
   set tmpdir = /scratch/mni152reg.$$
 else
   set tmpdir = $SUBJECTS_DIR/$subject/tmp/mni152reg.$$

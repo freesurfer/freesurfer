@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:34 $
- *    $Revision: 1.29 $
+ *    $Author: fischl $
+ *    $Date: 2015/11/30 20:34:27 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,7 @@
 #include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_sample_parc.c,v 1.29 2011/03/02 00:04:34 nicks Exp $";
+  "$Id: mris_sample_parc.c,v 1.30 2015/11/30 20:34:27 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -83,7 +83,7 @@ static int   replace_label = 0;
 static int   ntrans = 0 ;
 static int   trans_in[MAX_TRANS] ;
 static int   trans_out[MAX_TRANS] ;
-//#define MAX_LABEL 1000
+
 static int sample_from_vol_to_surf = 0 ;
 static char  *mask_fname = NULL ;
 static int   mask_val ;
@@ -102,7 +102,7 @@ main(int argc, char *argv[]) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_sample_parc.c,v 1.29 2011/03/02 00:04:34 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_sample_parc.c,v 1.30 2015/11/30 20:34:27 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -276,6 +276,7 @@ main(int argc, char *argv[]) {
     free(labels) ;
   }
 
+  MRIScopyValsToAnnotations(mris) ;
   if (fix_topology != 0)
     fix_label_topology(mris, fix_topology) ;
 
@@ -645,7 +646,7 @@ translate_indices_to_annotations(MRI_SURFACE *mris, char *translation_fname) {
 static int
 fix_label_topology(MRI_SURFACE *mris, int nvertices) {
   int    i, vno, nsegments, most_vertices, max_label;
-  int    label, j, iter, nchanged=0, max_index ;
+  int    label, j, iter, nchanged=0, max_index, gdiag_seg ;
   LABEL **segments ;
   VERTEX *v ;
 
@@ -661,7 +662,21 @@ fix_label_topology(MRI_SURFACE *mris, int nvertices) {
   do {
     nchanged = 0 ;
     MRISsegmentAnnotated(mris, &segments, &nsegments, 0) ;
+    gdiag_seg = -1 ;
+    if (Gdiag_no >= 0)  // find segment with Gdiag_no in it
+    {
+      for (i = 0 ; gdiag_seg < 0 && i < nsegments ; i++) 
+      {
+	for (j = 0 ; j < segments[i]->n_points ; j++)
+	  if (segments[i]->lv[j].vno == Gdiag_no)
+	  {
+	    gdiag_seg = i ;
+	    break ;
+	  }
+      }
+    }
 
+    
     for (i = 0 ; i < nsegments ; i++) {
       if (segments[i] == NULL)
         continue ;
@@ -688,6 +703,8 @@ fix_label_topology(MRI_SURFACE *mris, int nvertices) {
           continue ;
         if (mris->vertices[segments[j]->lv[0].vno].annotation != label)
           continue ;
+	if (j == gdiag_seg)
+	  DiagBreak() ;
         resegment_label(mris, segments[j]) ;
         nchanged++ ;
         LabelFree(&segments[j]) ;
@@ -699,7 +716,7 @@ fix_label_topology(MRI_SURFACE *mris, int nvertices) {
 
     free(segments) ;
     printf("pass %d: %d segments changed\n", iter+1, nchanged) ;
-  } while (nchanged > 0 && iter++ < 10) ;
+  } while (nchanged > 0 && iter++ < 10) ;  // can oscillate forever, so terminate after 10
 
   MRISclearMarks(mris) ;
   return(NO_ERROR) ;
@@ -707,9 +724,19 @@ fix_label_topology(MRI_SURFACE *mris, int nvertices) {
 
 static int
 resegment_label(MRI_SURFACE *mris, LABEL *segment) {
-  int    histo[MAX_LABEL], i, n, vno, ino, index;
+  int    *histo, max_label, i, n, vno, ino, index;
   int    max_histo, max_index, nchanged, lno, label ;
   VERTEX *v, *vn ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->val > max_label)
+      max_label = v->val ;
+  }
+  histo = (int *)calloc(max_label+1, sizeof(*histo)) ;
+  if (histo == NULL)
+    ErrorExit(ERROR_NOMEMORY, "resegment_label: could not allocate %d element histogram", max_label+1) ;
 
   label = mris->vertices[segment->lv[0].vno].annotation ;
   for (ino  = 0 ; ino < 100 ; ino++) {
@@ -722,18 +749,18 @@ resegment_label(MRI_SURFACE *mris, LABEL *segment) {
       if (v->val != label || v->ripflag)
         continue ;   /* already changed */
 
-      memset(histo, 0, sizeof(histo)) ;
+      memset(histo, 0, (max_label+1)*sizeof(*histo)) ;
       for (n = 0 ; n < v->vnum ; n++) {
         vn = &mris->vertices[v->v[n]] ;
         index = (int)nint(vn->val) ;
-        if (index < 0 || index > MAX_LABEL)
+        if (index < 0)
           continue ;
         if (vn->val != label)  /* don't care about same label */
           histo[index]++ ;
       }
       max_histo = histo[0] ;
       max_index = -1 ;
-      for (i = 0 ; i < MAX_LABEL ; i++) {
+      for (i = 0 ; i <= max_label ; i++) {
         if (histo[i] > max_histo) {
           max_histo = histo[i] ;
           max_index = i ;
@@ -758,6 +785,7 @@ resegment_label(MRI_SURFACE *mris, LABEL *segment) {
     if (!nchanged)
       break ;
   }
+  free(histo) ;
   return(NO_ERROR) ;
 }
 static int
@@ -768,6 +796,9 @@ replace_vertices_with_label(MRI_SURFACE *mris,
   int      vno, new_label, num=0 ;
   VERTEX   *v ;
   double   d, x, y, z, xw, yw, zw ;
+  MRI      *mri_tmp ;
+
+  mri_tmp = MRIreplaceValues(mri, NULL, label, 0) ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
@@ -784,7 +815,8 @@ replace_vertices_with_label(MRI_SURFACE *mris,
         y = v->y+d*v->ny ;
         z = v->z+d*v->nz ;
         MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
-        new_label = (int)MRIfindNearestNonzero(mri, wsize, xw, yw, zw, ((float)wsize-1)/2) ;
+//        new_label = (int)MRIfindNearestNonzero(mri, wsize, xw, yw, zw, ((float)wsize-1)/2) ;
+        new_label = (int)MRIfindNearestNonzero(mri_tmp, wsize, xw, yw, zw, -1) ;
         if (new_label != label) {
           v->annotation = v->val = new_label ;
           num++ ;
@@ -797,7 +829,7 @@ replace_vertices_with_label(MRI_SURFACE *mris,
         y = v->y+d*v->ny ;
         z = v->z+d*v->nz ;
         MRIsurfaceRASToVoxel(mri, x, y, z, &xw, &yw, &zw) ;
-        new_label = (int)MRIfindNearestNonzero(mri, wsize, xw, yw, zw, ((float)wsize-1)/2) ;
+        new_label = (int)MRIfindNearestNonzero(mri_tmp, wsize, xw, yw, zw, ((float)wsize-1)/2) ;
         if (new_label != label && new_label > 0) {
           v->annotation = v->val = new_label ;
           num++ ;
@@ -805,8 +837,15 @@ replace_vertices_with_label(MRI_SURFACE *mris,
         }
       }
     }
+    if (v->val == label)   // couldn't find a new label for it - replace it with 0 to mark it for later reprocessing
+    {
+      v->val = v->annotation = 0 ;
+      if (vno == Gdiag_no)
+	printf("replacing vertex %d label %d with 0 for later processing\n", vno, Gdiag_no) ;
+    }
   }
 
+  MRIfree(&mri_tmp) ;
   printf("%d vertex labels replaced\n", num) ;
   return(NO_ERROR) ;
 }

@@ -24,14 +24,11 @@
 
 <help>
 	<name>mri_cc</name>
-	<synopsis>mri_cc &lt;invol&gt; &lt;outvol&gt; &lt;subject name&gt;</synopsis>
+	<synopsis>mri_cc  &lt;subject name&gt;</synopsis>
 	<description>This program segments the corpus callosum into five separate labels in the subcortical segmentation volume 'aseg.mgz'. The divisions of the cc are equally spaced in terms of distance along the primary eigendirection (pretty much the long axis) of the cc. The lateral extent can be changed with the -T &lt;thickness&gt; parameter, where &lt;thickness&gt; is the distance off the midline (so -T 1 would result in the who CC being 3mm thick). The default is 2 so it's 5mm thick. The aseg.stats values should be volume.</description>
   <arguments>
     <positional>
-      <argument>invol</argument>
-      <explanation>input volume</explanation>
-      <argument>outvol</argument>
-      <explanation>output volume</explanation>
+      <argument>subject name</argument>
     </positional>
     <required-flagged>
     </required-flagged>

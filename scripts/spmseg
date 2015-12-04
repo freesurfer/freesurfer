@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # spmseg
 
-set VERSION = '$Id: spmseg,v 1.1 2014/09/11 18:01:34 greve Exp $';
+set VERSION = '$Id: spmseg,v 1.2 2015/12/03 16:11:58 greve Exp $';
 
 set subject = ();
 set invol = orig.mgz
@@ -49,8 +49,8 @@ goto check_params;
 check_params_return:
 
 if($#tmpdir == 0) then
-  if(-e /scratch)   set tmpdir = /scratch/tmpdir.spmseg.$$
-  if(! -e /scratch) set tmpdir = $SUBJECTS_DIR/$subject/tmp/tmpdir.spmseg.$$
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.spmseg.$$
+  if(! -dw /scratch) set tmpdir = $SUBJECTS_DIR/$subject/tmp/tmpdir.spmseg.$$
 endif
 mkdir -p $tmpdir
 

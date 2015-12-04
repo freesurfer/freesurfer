@@ -10,8 +10,8 @@
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/23 18:00:44 $
- *    $Revision: 1.38 $
+ *    $Date: 2015/12/04 13:59:56 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -177,13 +177,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.38 2015/11/23 18:00:44 fischl Exp $",
+   "$Id: mri_cc.c,v 1.39 2015/12/04 13:59:56 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.38 2015/11/23 18:00:44 fischl Exp $",
+           "$Id: mri_cc.c,v 1.39 2015/12/04 13:59:56 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1772,7 +1772,7 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
       }
   }
   if (xleft_min > xright_max)
-    ErrorExit(ERROR_UNSUPPORTED, "%s: no WM voxels found with norm > %d\n",
+    ErrorExit(ERROR_UNSUPPORTED, "%s: no WM voxels found with norm > %d -- check skull stripping\n",
 	      Progname, norm_thresh) ;
   xmin = MIN(xleft_min, xright_max)-1 ;
   xmax = MAX(xleft_min, xright_max)+1 ;

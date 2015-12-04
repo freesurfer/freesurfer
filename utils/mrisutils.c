@@ -7,8 +7,8 @@
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/04 23:07:37 $
- *    $Revision: 1.48 $
+ *    $Date: 2015/12/03 00:36:00 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2049,7 +2049,7 @@ LABEL *MRIScortexLabel(MRI_SURFACE *mris, MRI *mri_aseg, int min_vertices)
         v->marked = 0 ;
       }
     }
-    else if (right >= left)  // near right thalamus
+    else if (right && right >= left)  // near right thalamus
     {
       if (MRIlabelsInNbhd(mri_aseg, x, y, z, 2, Right_Lateral_Ventricle) > 0)
       {

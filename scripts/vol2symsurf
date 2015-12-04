@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # vol2symsurf
 
-set VERSION = '$Id: vol2symsurf,v 1.3 2014/10/27 16:18:12 greve Exp $';
+set VERSION = '$Id: vol2symsurf,v 1.4 2015/12/03 16:11:58 greve Exp $';
 
 set outstem = ();
 set outfmt = ();
@@ -53,8 +53,8 @@ set outdir = `pwd`;
 popd > /dev/null
 
 if($#tmpdir == 0) then
-  if(-e /scratch)   set tmpdir = /scratch/tmpdir.vol2symsurf.$$
-  if(! -e /scratch) set tmpdir = $outdir/tmpdir.vol2symsurf.$$
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.vol2symsurf.$$
+  if(! -dw /scratch) set tmpdir = $outdir/tmpdir.vol2symsurf.$$
 endif
 mkdir -p $tmpdir
 

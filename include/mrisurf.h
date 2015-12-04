@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/11/09 04:18:29 $
- *    $Revision: 1.385 $
+ *    $Author: fischl $
+ *    $Date: 2015/11/30 20:34:55 $
+ *    $Revision: 1.386 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -753,6 +753,7 @@ int          MRISreadValuesBak(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISreadImagValues(MRI_SURFACE *mris,const  char *fname) ;
 int          MRIScopyImagValuesToValues(MRI_SURFACE *mris) ;
 int          MRIScopyMarksToAnnotation(MRI_SURFACE *mris) ;
+int          MRIScopyValsToAnnotations(MRI_SURFACE *mris) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 int          MRIScopyStatsToValues(MRI_SURFACE *mris) ;
 

@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # fvcompare
 
-set VERSION = '$Id: fvcompare,v 1.4 2015/06/04 16:59:58 greve Exp $';
+set VERSION = '$Id: fvcompare,v 1.6 2015/12/02 20:17:00 greve Exp $';
 
 set subject1 = ();
 set subject2 = ();
@@ -16,10 +16,10 @@ set seglist = ();
 set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 set segopacity = 1;
 set surflist = (white pial);
-set surfcolor1 = (yellow red);
-set surfcolor2 = (green blue);
-set surfcolor3 = (green blue);
-set surfcolor4 = (green blue);
+set surfcolor1 = (yellow red blue);
+set surfcolor2 = (green blue blue);
+set surfcolor3 = (green blue blue);
+set surfcolor4 = (green blue blue);
 set tmpdir = ();
 set cleanup = 1;
 set LF = ();
@@ -29,9 +29,13 @@ set name3 = "s3"
 set name4 = "s4"
 set grayscale = (":grayscale=0,255")
 set NoSeg = 0;
-set NoSurf = 0;
+#set NoSurf = 0;
 set hemilist = (lh rh)
 set snolist = (1 2)
+set CursorCRS = ();
+set CenterCursor = 0;
+set Zoom = ();
+set annot = ();
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -137,10 +141,27 @@ foreach hemi ($hemilist)
         set name = $name4
       endif
       set cue = "$name-$hemi.$surf-$surfcolor[$nth]"
-      set cmd = ($cmd --surface "$subject/surf/$hemi.$surf":"edgecolor=$surfcolor[$nth]":"name=$cue")
+      set surfarg = "$subject/surf/$hemi.$surf":"edgecolor=$surfcolor[$nth]":"name=$cue"
+      if($#annot) then
+        if($s == 1) set SD = $SD1
+        if($s == 2) set SD = $SD2
+        if($s == 3) set SD = $SD3
+        if($s == 4) set SD = $SD4
+        set annotfile = $subject/label/$hemi.$annot
+        if(! -e $annotfile) then
+          echo "ERROR: cannot find $annotfile"
+          exit 1;
+        endif
+        set surfarg = "$surfarg":"annot=$annotfile":"edgethickness=0:annot_outline=1"
+      endif
+      set cmd = ($cmd --surface $surfarg)
     end
   end
 end
+
+if($#CursorCRS) set cmd = ($cmd -slice $CursorCRS)
+if($CenterCursor) set cmd = ($cmd -cc)
+if($#Zoom) set cmd = ($cmd -zoom $Zoom)
 
 echo $cmd
 $cmd
@@ -288,6 +309,7 @@ while( $#argv != 0 )
 
     case "--no-surf":
       set NoSurf = 1;
+      set surflist = ()
       breaksw
 
     case "--opacity":
@@ -302,12 +324,37 @@ while( $#argv != 0 )
       set hemilist = (rh)
       breaksw
 
+    case "--inflated":
+      set surflist = ($surflist inflated)
+      breaksw
+
     case "--gray":
     case "--grayscale":
       if($#argv < 2) goto arg2err;
       set g1 = $argv[1]; shift;
       set g2 = $argv[1]; shift;
       set grayscale = (":grayscale=$g1,$g2")
+      breaksw
+
+    case "--crs":
+      if($#argv < 3) goto arg3err;
+      set CursorCRS = ($argv[1-3]);
+      shift;shift;shift;
+      set CenterCursor = 1;
+      breaksw
+
+    case "--zoom":
+      if($#argv < 1) goto arg1err;
+      set Zoom = $argv[1]; shift;
+      breaksw
+
+    case "--annot":
+      if($#argv < 1) goto arg1err;
+      set annot = $argv[1]; shift;
+      breaksw
+
+    case "--aparc":
+      set annot = aparc.annot
       breaksw
 
     case "--log":
@@ -391,7 +438,7 @@ if($#vollist == 0) set vollist = (brainmask.mgz)
 if($#seglist == 0) set seglist = (aparc+aseg.mgz)
 
 if($NoSeg) set seglist = ()
-if($NoSurf) set surflist = ()
+#if($NoSurf) set surflist = ()
 
 goto check_params_return;
 ############--------------##################
@@ -422,6 +469,11 @@ usage_exit:
   echo "  --lh, --rh : only display left or right hemi"
   echo "  --no-surf : do not display surfaces"
   echo "  --gray min max : set gray scale levels (default is 0 255)"
+  echo "  --crs col row slice : place cursor at given location and center FoV"
+  echo "  --zoom Zoom : set zoom level"
+  echo "  --annot annotname :  loads annotname.annot onto surfaces"
+  echo "  --aparc : load aparc.annot onto surfaces"
+  echo "  --inflated : load inflated surfaces in addition to white and pial"
   echo ""
 
   if(! $PrintHelp) exit 1;

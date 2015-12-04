@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # xcerebralseg
 
-set VERSION = '$Id: xcerebralseg,v 1.8 2015/03/30 18:51:48 greve Exp $';
+set VERSION = '$Id: xcerebralseg,v 1.9 2015/12/03 16:11:59 greve Exp $';
 
 set outvol = apas+head.mgz
 set subject = ();
@@ -51,8 +51,8 @@ set min    = `date +%M`
 set sd = $SUBJECTS_DIR/$subject
 
 if($#tmpdir == 0) then
-  if(-e /scratch)   set tmpdir = /scratch/tmpdir.xcerebralseg.$$
-  if(! -e /scratch) set tmpdir = $sd/tmp/tmpdir.xcerebralseg.$$
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.xcerebralseg.$$
+  if(! -dw /scratch) set tmpdir = $sd/tmp/tmpdir.xcerebralseg.$$
 endif
 mkdir -p $tmpdir
 
