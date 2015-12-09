@@ -1,0 +1,41 @@
+sudo: false
+
+language: cpp
+
+compiler: gcc
+
+os: linux
+
+addons:
+  apt:
+    packages:
+     - build-essential
+     - libtool
+     - automake
+     - gfortran
+     - libglu1-mesa-dev
+     - freetype*
+     - uuid-dev
+     - libxmu-dev
+     - libxmu-headers
+     - libxi-dev
+     - libx11-dev
+     - libxt-dev
+     - libxaw7-dev
+     - liblapack-dev
+     - tcsh
+     - curl
+     - git
+
+install:
+  - curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz
+  - tar -xzvf centos6-x86_64-packages.tar.gz 
+  - rm centos6-x86_64-packages.tar.gz 
+  - cd centos6-x86_64-packages 
+  - ./setup.sh
+  - cd ..
+
+script:
+  - ./setup_configure
+  - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=/root/centos6-x86_64-packages --disable-Werror --disable-GUI-build && \
+  - make -j4
