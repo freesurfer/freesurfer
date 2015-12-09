@@ -11,7 +11,7 @@ if HAVE_OPENGL_LIBS
 bin_PROGRAMS = mri_probedicom
 mri_probedicom_SOURCES=mri_probedicom.c
 mri_probedicom_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	$(X_LIBS) $(LIBS_OPENGL) $(top_builddir)/glut/libglut.a
+	$(LIBS_OPENGL) $(top_builddir)/glut/libglut.a $(X_LIBS)
 mri_probedicom_LDFLAGS=
 else
 bin_PROGRAMS=
