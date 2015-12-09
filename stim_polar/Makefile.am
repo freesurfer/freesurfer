@@ -11,7 +11,7 @@ if HAVE_OPENGL_LIBS
 bin_PROGRAMS = stim_polar
 stim_polar_SOURCES=stim_polar.c $(top_srcdir)/utils/machine.c
 stim_polar_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	$(X_LIBS) $(LIBS_OPENGL) $(top_builddir)/glut/libglut.a
+	$(LIBS_OPENGL) $(top_builddir)/glut/libglut.a $(X_LIBS) 
 stim_polar_LDFLAGS=
 else
 bin_PROGRAMS=

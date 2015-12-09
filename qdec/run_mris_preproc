@@ -23,10 +23,15 @@ if ( "x$1" == "x--help" ) then
     exit 1
 endif
 
+source $FREESURFER_HOME/sources.csh
+
 if ( "x$1" == "x" ) then
     echo "Must specify a qdec.table.dat file as the input argument."
     exit 1
 endif
+
+
+
 if ( ! -e $1 ) then
     echo "File $1 does not exist."
     exit 1

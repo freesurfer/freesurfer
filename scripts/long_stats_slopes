@@ -8,9 +8,9 @@
 #
 # Original Author: Martin Reuter
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2015/04/10 19:59:40 $
-#    $Revision: 1.24 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/08 19:06:39 $
+#    $Revision: 1.25 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -34,6 +34,7 @@ import logging
 import subprocess
 import tempfile
 import shutil
+from sys import platform as _platform
 from subject_info import *
 from LongQdecTable import *
 
@@ -142,7 +143,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.24 2015/04/10 19:59:40 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.25 2015/12/08 19:06:39 zkaufman Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -394,7 +395,10 @@ if __name__=="__main__":
         sys.exit(1)
     print '\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n'
     os.environ['SUBJECTS_DIR'] =  subjectsdir
-    
+   
+    if _platform == "darwin":
+        os.environ['DYLD_LIBRARY_PATH'] = os.path.join(os.getenv('FREESURFER_HOME'), 'lib/gcc/lib')
+
     # process
     retcode = 0
     allavg = []

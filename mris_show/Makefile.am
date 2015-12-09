@@ -12,8 +12,8 @@ if HAVE_OPENGL_LIBS
 bin_PROGRAMS = mris_show
 mris_show_SOURCES=mris_show.c
 mris_show_LDADD= $(addprefix $(top_builddir)/,$(LIBS_MGH)) \
-	$(LIBS_OPENGL) $(top_builddir)/glut/libglut.a
-mris_show_LDFLAGS=$(X_LIBS)
+	$(LIBS_OPENGL) $(top_builddir)/glut/libglut.a $(X_LIBS)
+mris_show_LDFLAGS=
 else
 bin_PROGRAMS=
 endif

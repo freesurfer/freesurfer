@@ -8,8 +8,8 @@
  * Original Author: Koen Van Leemput
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2015/03/24 14:49:31 $
- *    $Revision: 1.4 $
+ *    $Date: 2015/12/09 20:20:56 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,6 +22,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
+#include <cstddef>
 #include "itkImageRegionConstIterator.h"
 #include "itkImageFileReader.h"
 #include "kvlCompressionLookupTable.h"

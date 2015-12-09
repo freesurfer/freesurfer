@@ -567,6 +567,7 @@ install-exec-hook:freeview
 	echo "    exit 0"	>> $(DESTDIR)$(bindir)/freeview
 	echo "  endif"	>> $(DESTDIR)$(bindir)/freeview
 	echo "endif"	>> $(DESTDIR)$(bindir)/freeview
+	echo "source \$$FREESURFER_HOME/sources.csh" >> $(DESTDIR)$(bindir)/freeview
 	echo "\$$FREESURFER_HOME/Freeview.app/Contents/MacOS/Freeview \$$*" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
 	chgrp -R admin $(DESTDIR)$(bindir)/../Freeview.app/

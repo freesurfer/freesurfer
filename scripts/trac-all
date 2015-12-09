@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: ayendiki $
-#    $Date: 2014/05/26 08:28:32 $
-#    $Revision: 1.56 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/09 20:02:53 $
+#    $Revision: 1.58 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.56 2014/05/26 08:28:32 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.58 2015/12/09 20:02:53 zkaufman Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -163,6 +163,8 @@ set nkeep = 5
 set doinitprop = 1
 set overwrite = 1
 set trcdir = $FREESURFER_HOME/bin
+
+source $FREESURFER_HOME/sources.csh
 
 # Parse command line arguments
 goto parse_args;

@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/11/03 21:50:59 $
-#    $Revision: 1.659 $
+#    $Date: 2015/12/09 20:20:55 $
+#    $Revision: 1.660 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -402,12 +402,12 @@ AC_SUBST(LIB_BLAS)
 LIB_LAPACK=""
 if test -e /usr/local/lib/liblapack.a ; then
   LIB_LAPACK="/usr/local/lib/liblapack.a"
-fi
-if test -e /usr/lib/liblapack.a ; then
+elif test -e /usr/lib/liblapack.a ; then
   LIB_LAPACK="/usr/lib/liblapack.a"
-fi
-if test -e /usr/lib64/liblapack.a ; then
+elif test -e /usr/lib64/liblapack.a ; then
   LIB_LAPACK="/usr/lib64/liblapack.a"
+elif test -e /usr/lib/lapack/liblapack.a ; then
+  LIB_LAPACK="/usr/lib/lapack/liblapack.a"
 fi
 if test "$host" = "powerpc64-suse-linux"; then
   if test -e /usr/lib/liblapack.a ; then
@@ -1207,6 +1207,9 @@ if test "x$x_libraries" = "x"; then
   if test -d "/usr/lib64" ; then
     x_libraries=/usr/lib64
   fi
+  if test -d "/usr/lib/x86_64-linux-gnu" ; then
+    x_libraries=/usr/lib/x86_64-linux-gnu
+  fi
   if test -d "/usr/X11R6/lib64" ; then
     x_libraries=/usr/X11R6/lib64
   fi
@@ -1214,6 +1217,7 @@ if test "x$x_libraries" = "x"; then
   if test -e "/lib64/libX11.so" ; then
     x_libraries=/lib64
   fi
+  
 
 fi
 AC_MSG_NOTICE([x_libraries set to $x_libraries  \
@@ -2006,6 +2010,13 @@ AC_ARG_ENABLE(xawplus-apps,
  [  --enable-xawplus-apps   enable building XawPlus-based apps],
  [ xawplus_apps="yes"
  ])
+
+
+AC_ARG_ENABLE(xawplus-apps,
+ [  --disable-tcltk-apps    disable building XawPlus-based apps],
+ [ xawplus_apps="NO"
+ ])
+
 
 if test "$disable_gui_build" = "YES"; then
   xawplus_apps="NO"
@@ -2824,12 +2835,13 @@ if test "$itk_apps" = "yes"; then
   if test -e /usr/lib/libuuid.a ; then
      LIB_UUID="/usr/lib/libuuid.a"
      AC_SUBST(LIB_UUID)
-  fi
-  if test -e /usr/lib64/libuuid.a ; then
+  elif test -e /usr/lib64/libuuid.a ; then
      LIB_UUID="/usr/lib64/libuuid.a"
      AC_SUBST(LIB_UUID)
-  fi
-  if test -e /usr/lib64/libuuid.so ; then
+  elif test -e /usr/lib/x86_64-linux-gnu/libuuid.a ; then
+     LIB_UUID="/usr/lib/x86_64-linux-gnu/libuuid.a"
+     AC_SUBST(LIB_UUID)
+  elif test -e /usr/lib64/libuuid.so ; then
      LIB_UUID="/usr/lib64/libuuid.so"
      AC_SUBST(LIB_UUID)
   fi 
@@ -3464,7 +3476,7 @@ Check config.log. Set LDFLAGS or --with-tcl-dir.])
     # check BLT24 (Fedora)
           AC_CHECK_LIB([BLT24 $LIB_BLT_JPEG],[Blt_Init],
           [LIB_BLT=-lBLT24],
-              [AC_MSG_ERROR([FATAL: libBLT not found. \
+              [AC_MSG_NOTICE([FATAL: libBLT not found. \
 Check config.log. Set LDFLAGS or --with-BLT-dir.])
           ])
         ])

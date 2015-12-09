@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: ayendiki $
-#    $Date: 2015/08/10 23:18:38 $
-#    $Revision: 1.52 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/09 20:02:53 $
+#    $Revision: 1.54 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.52 2015/08/10 23:18:38 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.54 2015/12/09 20:02:53 zkaufman Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -61,6 +61,8 @@ if ($n != 0) then
   echo $VERSION
   exit 0
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args
 parse_args_return:

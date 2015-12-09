@@ -21,6 +21,16 @@ check_PROGRAMS=foo
 
 TESTS=test_mri_glmfit
 
+# mri_glmfit is called by qdec. On Mac OSX
+# systems 10.11 (El Capitan) and greater implemented SIP
+# which necessitates a wrapper script to pass the DYLD_LIBRARY_PATH env var.
+
+install-exec-hook:
+	cp $(top_builddir)/mri_glmfit/mri_glmfit $(DESTDIR)$(bindir)/mri_glmfit.bin
+	echo "#!/bin/bash" > $(DESTDIR)$(bindir)/mri_glmfit
+	echo "source \$$FREESURFER_HOME/sources.sh" >> $(DESTDIR)$(bindir)/mri_glmfit
+	echo "mri_glmfit.bin \"\$$@\"" >> $(DESTDIR)$(bindir)/mri_glmfit
+
 EXTRA_DIST=test_mri_glmfit teststats.tar.gz
 
 # Our release target. Include files to be excluded here. They will be

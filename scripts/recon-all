@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2015/11/17 14:18:41 $
-#    $Revision: 1.555 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/09 20:02:53 $
+#    $Revision: 1.557 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.555 2015/11/17 14:18:41 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.557 2015/12/09 20:02:53 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -379,6 +379,8 @@ if($n != 0) then
   cat $FREESURFER_HOME/build-stamp.txt
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

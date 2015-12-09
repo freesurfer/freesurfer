@@ -20,8 +20,10 @@ foo_DATA= \
 foo_SCRIPTS= \
 	FreeSurferEnv.csh \
 	SetUpFreeSurfer.csh \
+	sources.csh \
 	FreeSurferEnv.sh \
-	SetUpFreeSurfer.sh
+	SetUpFreeSurfer.sh \
+	sources.sh
 
 clean-local:
 	rm -f SetUpFreeSurfer.csh SetUpFreeSurfer.sh

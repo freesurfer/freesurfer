@@ -13,7 +13,7 @@
 if ENABLE_TCLTK_APPS
 AM_CPPFLAGS=-I$(top_srcdir)/include $(TCL_CFLAGS)
 else
-AM_CPPFLAGS=-I$(top_srcdir)/include
+AM_CPPFLAGS=-I$(top_srcdir)/include $(TCL_CFLAGS)
 endif
 AM_LDFLAGS=
 

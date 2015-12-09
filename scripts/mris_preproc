@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/11/04 20:59:55 $
-#    $Revision: 1.74 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/09 20:02:53 $
+#    $Revision: 1.76 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.74 2015/11/04 20:59:55 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.76 2015/12/09 20:02:53 zkaufman Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -107,6 +107,8 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 # Parse the command-line arguments
 goto parse_args;

@@ -1,3 +1,4 @@
+#include <cstddef>
 #include "kvlRegisterer.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
