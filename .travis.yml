@@ -37,5 +37,5 @@ install:
 
 script:
   - ./setup_configure
-  - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=/root/centos6-x86_64-packages --disable-Werror --disable-GUI-build
+  - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build
   - make -j4
