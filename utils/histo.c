@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/08/26 16:49:55 $
- *    $Revision: 1.86 $
+ *    $Date: 2015/12/10 13:58:31 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3472,5 +3472,60 @@ HISTOksDistance(HISTOGRAM *h1, HISTOGRAM *h2)
 
   HISTOfree(&h1) ; HISTOfree(&h2) ;   // these were copied at the beginning, not the caller's version
   return(ks_dist) ;
+}
+
+HISTOGRAM    *
+HISTOeraseRightmostPeak(HISTOGRAM *hsrc, HISTOGRAM *hdst, int whalf, float min_pct, int min_val, int max_val) 
+{
+  int  bmin, bmax, b  ;
+
+  hdst = HISTOcopy(hsrc, hdst) ;
+
+  bmin = HISTOfindBin(hdst, min_val) ;
+  bmax = HISTOfindBin(hdst, max_val) ;
+  if (bmax <= 0 || bmax >= hdst->nbins)
+    bmax = hdst->nbins-1 ;
+  for (b = bmax ; b >= bmin ; b--)
+  {
+    if (HISTOisPeak(hdst, b, whalf))
+      break ;
+  }
+
+  if (b >= bmin)  // find a peak
+    HISTOerase(hdst, MAX(0,b-1), bmax) ;
+  return(hdst) ;
+}
+int
+HISTOerase(HISTOGRAM *h, int bmin, int bmax) 
+{
+  int   b ;
+
+  bmin = MAX(0, bmin) ;
+  bmax = MIN(h->nbins-1, bmax) ;
+  for (b = bmin ; b <= bmax ; b++)
+    h->counts[b] = 0 ;
+  if (bmax == h->nbins-1)
+    h->nbins = bmin-1 ;
+  return(NO_ERROR) ;
+}
+int
+HISTOisPeak(HISTOGRAM *h, int bin, int whalf) 
+{
+  int   b, bmin, bmax ;
+  float val ;
+
+  bmin = MAX(0, bin-whalf) ;
+  bmax = MIN(h->nbins-1, bin+whalf) ;
+  val = h->counts[bin] ;
+  if (bmin > bmax)
+    return(0) ;
+  for (b = bmin ; b <= bmax ; b++)
+  {
+    if (b == bin)
+      continue ;
+    if (h->counts[b] >= val)
+      return(0) ;
+  }
+  return(1) ;   // h->counts[bin] > all other vals in 2*whalf+1
 }
 
