@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:19 $
-#    $Revision: 1.6 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:31 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tdr-rcolmat,v 1.6 2007/01/09 22:41:19 nicks Exp $';
+set VERSION = '$Id: tdr-rcolmat,v 1.7 2015/12/10 22:51:31 zkaufman Exp $';
 
 set inputargs = ($argv);
 
@@ -49,6 +49,8 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

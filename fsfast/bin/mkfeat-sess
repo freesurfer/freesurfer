@@ -8,9 +8,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/06/27 06:13:08 $
-#    $Revision: 1.9 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:30 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 #
 
 
-set VERSION = '$Id: mkfeat-sess,v 1.9 2007/06/27 06:13:08 greve Exp $';
+set VERSION = '$Id: mkfeat-sess,v 1.10 2015/12/10 22:51:30 zkaufman Exp $';
 set inputargs = ($argv);
 
 set analysis  = ();
@@ -62,6 +62,8 @@ if($status || $#SessList == 0) then
   getsesspath $argv 
   exit 1;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

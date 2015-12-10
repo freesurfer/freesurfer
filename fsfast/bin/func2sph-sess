@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2008/05/13 20:43:21 $
-#    $Revision: 1.9 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:29 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 
 
-set VERSION = '$Id: func2sph-sess,v 1.9 2008/05/13 20:43:21 greve Exp $';
+set VERSION = '$Id: func2sph-sess,v 1.10 2015/12/10 22:51:29 zkaufman Exp $';
 
 set inputargs = ($argv);
 set analysis    = ();
@@ -108,6 +108,8 @@ if($status || $#SessList == 0) then
   echo "ERROR: cannot find any sessions" | tee -a $LF
   exit 1;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

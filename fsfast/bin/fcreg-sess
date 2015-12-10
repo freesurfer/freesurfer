@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcreg-sess
 #
-set VERSION    = '$Id: fcreg-sess,v 1.5 2009/12/14 18:47:32 greve Exp $';
+set VERSION    = '$Id: fcreg-sess,v 1.6 2015/12/10 22:51:29 zkaufman Exp $';
 set cmdargs = ($argv);
 
 set flac = ();
@@ -36,6 +36,8 @@ if($status || $#SessList == 0) then
   echo $SessList
   exit 1;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/05/08 22:01:05 $
-#    $Revision: 1.1 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:30 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set MKCONTRAST_VER = '$Id: mkcontrast2,v 1.1 2015/05/08 22:01:05 greve Exp $';
+set MKCONTRAST_VER = '$Id: mkcontrast2,v 1.2 2015/12/10 22:51:30 zkaufman Exp $';
 
 set CorrIdeal = 0;
 set monly = 0;
@@ -100,6 +100,8 @@ set UseOctave = 0;
 if($?FS_USE_OCTAVE) then
   set UseOctave = $FS_USE_OCTAVE
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

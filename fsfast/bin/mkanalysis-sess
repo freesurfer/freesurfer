@@ -6,9 +6,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/11/04 20:53:30 $
-#    $Revision: 1.77 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:30 $
+#    $Revision: 1.78 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.77 2015/11/04 20:53:30 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.78 2015/12/10 22:51:30 zkaufman Exp $';
 
 set analysis = ();
 set TR = ();
@@ -113,6 +113,8 @@ set sxacfg = "analysis.cfg"
 # Don't require Session Arguments #
 set SessList = `getsesspath $argv`;
 if($status || $#SessList == 0) set SessList = ();
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

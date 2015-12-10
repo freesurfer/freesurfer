@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2012/09/13 15:42:31 $
-#    $Revision: 1.9 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:30 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mc-afni2,v 1.9 2012/09/13 15:42:31 greve Exp $';
+set VERSION = '$Id: mc-afni2,v 1.10 2015/12/10 22:51:30 zkaufman Exp $';
 
 set invol = ();
 set outvol = ();
@@ -52,6 +52,8 @@ if($n != 0) then
   goto usage_exit;
   exit 1;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

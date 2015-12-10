@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2008/04/23 18:16:12 $
-#    $Revision: 1.4 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:29 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,8 @@ set SearchPathList = ();
 if(! $?AllowRedundant ) then
   set  AllowRedundant = 0;   # 1 for testing purposes only
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

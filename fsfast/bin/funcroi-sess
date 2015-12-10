@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2014/10/30 16:18:12 $
-#    $Revision: 1.4 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:29 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: funcroi-sess,v 1.4 2014/10/30 16:18:12 greve Exp $';
+set VERSION = '$Id: funcroi-sess,v 1.5 2015/12/10 22:51:29 zkaufman Exp $';
 
 set inputargs = ($argv);
 set analysis = ();
@@ -53,6 +53,8 @@ if($status || $#SessList == 0) then
   echo $SessList
   exit 1;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

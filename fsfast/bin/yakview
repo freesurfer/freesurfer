@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/11/14 00:07:05 $
-#    $Revision: 1.13 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:31 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
 
 
 
-set YAKVIEW_VER = '\$Id: yakview,v 1.13 2007/11/14 00:07:05 greve Exp $'
+set YAKVIEW_VER = '\$Id: yakview,v 1.14 2015/12/10 22:51:31 zkaufman Exp $'
 
 # Set Default Values #
 set imgstem = ();
@@ -105,6 +105,8 @@ echo "  yakview: $YAKVIEW_VER"
 
 set MATLAB = `getmatlab`;
 if($status) exit 1;
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

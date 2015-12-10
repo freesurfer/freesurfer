@@ -1,15 +1,15 @@
 #!/bin/csh -f
 # Gets subject name out of register.dat
-# $Id: reg2subj,v 1.1 2007/02/08 17:04:22 greve Exp $
+# $Id: reg2subj,v 1.2 2015/12/10 22:51:30 zkaufman Exp $
 
 #
 # reg2subj
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/02/08 17:04:22 $
-#    $Revision: 1.1 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:30 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,6 +23,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
+source $FREESURFER_HOME/sources.csh
 
 if($#argv != 1) then
   echo "reg2subj registerfile"

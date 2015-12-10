@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:16 $
-#    $Revision: 1.4 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:29 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: autoreg-sess,v 1.4 2007/01/09 22:41:16 nicks Exp $';
+set VERSION = '$Id: autoreg-sess,v 1.5 2015/12/10 22:51:29 zkaufman Exp $';
 set cmdargs = ($argv);
 
 set ScriptOnly = 0;
@@ -50,6 +50,8 @@ endif
 echo " "
 echo " "
 
+source $FREESURFER_HOME/sources.csh
+
 goto parse_args;
 parse_args_return:
 
@@ -64,7 +66,7 @@ endif
 echo "Logfile is $LF"
 
 echo "autreg-sess log file" >> $LF
-echo '$Id: autoreg-sess,v 1.4 2007/01/09 22:41:16 nicks Exp $'   >> $LF
+echo '$Id: autoreg-sess,v 1.5 2015/12/10 22:51:29 zkaufman Exp $'   >> $LF
 echo $0     >> $LF
 uname -a      >> $LF
 date          >> $LF

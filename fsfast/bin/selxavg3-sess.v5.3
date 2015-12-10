@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/05/08 21:03:14 $
-#    $Revision: 1.1 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:30 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess.v5.3,v 1.1 2015/05/08 21:03:14 greve Exp $'
+set VERSION = '$Id: selxavg3-sess.v5.3,v 1.2 2015/12/10 22:51:30 zkaufman Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -83,6 +83,8 @@ if($status || $#SessList == 0) then
   echo $SessList
   exit 1;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

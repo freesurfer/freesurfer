@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2008/04/04 20:43:18 $
-#    $Revision: 1.11 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:29 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set FUNC2TAL_VER = '$Id: func2tal,v 1.11 2008/04/04 20:43:18 greve Exp $';
+set FUNC2TAL_VER = '$Id: func2tal,v 1.12 2015/12/10 22:51:29 zkaufman Exp $';
 
 set inputargs = ($argv)
 
@@ -43,6 +43,8 @@ if($#argv == 0) then
   goto usage_exit;
   exit 1;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

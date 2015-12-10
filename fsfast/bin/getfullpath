@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:17 $
-#    $Revision: 1.2 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:29 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -21,7 +21,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
-
+source $FREESURFER_HOME/sources.csh
 
 if($#argv != 1) then
   echo "USAGE: getfullpath fname"

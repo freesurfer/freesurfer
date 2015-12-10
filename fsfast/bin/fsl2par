@@ -1,6 +1,6 @@
 #!/bin/csh -f
 
-set VERSION = '$Id: fsl2par,v 1.1 2009/03/06 21:41:27 greve Exp $';
+set VERSION = '$Id: fsl2par,v 1.2 2015/12/10 22:51:29 zkaufman Exp $';
 
 set inputargs = ($argv);
 
@@ -20,6 +20,8 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

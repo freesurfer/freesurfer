@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2007/04/02 17:27:06 $
-#    $Revision: 1.1 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:30 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: optseq.matlab,v 1.1 2007/04/02 17:27:06 greve Exp $';
+set VERSION = '$Id: optseq.matlab,v 1.2 2015/12/10 22:51:30 zkaufman Exp $';
 
 set pforder = 0;
 
@@ -102,6 +102,8 @@ set mailuser = ();
 set Nsessions = 1;
 set FindWorst = 0; # for testing purposes
 set MaxEffLimit = [];
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

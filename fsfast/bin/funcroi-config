@@ -4,9 +4,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2013/12/12 16:42:42 $
-#    $Revision: 1.12 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:29 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -21,7 +21,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.12 2013/12/12 16:42:42 greve Exp $';
+set VERSION = '$Id: funcroi-config,v 1.13 2015/12/10 22:51:29 zkaufman Exp $';
 
 set roiconfig = ();
 set label = ();
@@ -57,6 +57,8 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

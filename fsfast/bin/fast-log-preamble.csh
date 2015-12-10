@@ -1,9 +1,10 @@
 # fast-log-preamble
-# $Id: fast-log-preamble.csh,v 1.1 2003/03/04 21:22:08 greve Exp $
+# $Id: fast-log-preamble.csh,v 1.2 2015/12/10 22:51:29 zkaufman Exp $
 #
 # This file is meant to be sourced at the start of one of the FAST
 # scripts.  It prints out generic information that should be stored 
 # in the a log file.
+source $FREESURFER_HOME/sources.csh
 
 if(! $?FMRI_ANALYSIS_DIR) then
   echo "WARNING: FMRI_ANALYSIS_DIR environment variable is not defined"

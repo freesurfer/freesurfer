@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/11/04 16:18:54 $
-#    $Revision: 1.10 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:31 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: stc.fsl,v 1.10 2015/11/04 16:18:54 greve Exp $'
+set VERSION = '$Id: stc.fsl,v 1.11 2015/12/10 22:51:31 zkaufman Exp $'
 set debug = 0;
 set cmdargs = ($argv);
 set PrintHelp = 0;
@@ -47,6 +47,8 @@ if($n != 0) then
   goto usage_exit;
   exit 1;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/10/14 01:07:16 $
-#    $Revision: 1.18 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:30 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.18 2015/10/14 01:07:16 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.19 2015/12/10 22:51:30 zkaufman Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -72,6 +72,8 @@ set n = `echo $argv | grep -e -nolog | wc -l`
 if($n != 0) then
   set nolog = 1;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

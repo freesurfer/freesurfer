@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/05/08 19:02:42 $
-#    $Revision: 1.18 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:30 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.18 2015/05/08 19:02:42 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.19 2015/12/10 22:51:30 zkaufman Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -85,6 +85,8 @@ uname -a      >> $LF
 date          >> $LF
 echo "$argv"  >> $LF
 which mkcontrast >> $LF
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:16 $
-#    $Revision: 1.3 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:29 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: bvol2afni,v 1.3 2007/01/09 22:41:16 nicks Exp $'
+set VERSION = '$Id: bvol2afni,v 1.4 2015/12/10 22:51:29 zkaufman Exp $'
 
 if($#argv == 0) goto usage_exit;
 
@@ -37,6 +37,8 @@ endif
 set firstplane = ();    # First Frame (0-based)
 set nplanes = ();       # Number of Frames past first
 set cleanup = 1;
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

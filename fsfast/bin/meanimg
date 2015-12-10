@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.2 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:30 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: meanimg,v 1.2 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: meanimg,v 1.3 2015/12/10 22:51:30 zkaufman Exp $';
 
 set firstslice =  0;
 set instems  = ();
@@ -74,6 +74,8 @@ endif
 
 set MATLAB = `getmatlab`;
 if($status) exit 1;
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

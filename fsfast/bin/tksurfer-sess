@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/06/04 20:52:51 $
-#    $Revision: 1.25 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:31 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.25 2015/06/04 20:52:51 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.26 2015/12/10 22:51:31 zkaufman Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -76,6 +76,8 @@ if($status || $#SessList == 0) then
   echo $SessList
   exit 1;
 endif
+source $FREESURFER_HOME/sources.csh
+
 goto parse_args;
 parse_args_return:
 goto check_params;

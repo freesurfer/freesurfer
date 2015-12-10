@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2009/10/06 16:53:10 $
-#    $Revision: 1.5 $
+#    $Author: zkaufman $
+#    $Date: 2015/12/10 22:51:29 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -21,11 +21,11 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
-
+source $FREESURFER_HOME/sources.csh
 
 if($#argv != 1) then
   echo "USAGE: getnframes stem|fname "
-  echo '$Id: getnframes,v 1.5 2009/10/06 16:53:10 greve Exp $'
+  echo '$Id: getnframes,v 1.6 2015/12/10 22:51:29 zkaufman Exp $'
   exit 1;
 endif
 
