@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/09/25 14:29:25 $
- *    $Revision: 1.563 $
+ *    $Date: 2015/12/10 13:58:31 $
+ *    $Revision: 1.564 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.563 $";
+const char *MRI_C_VERSION = "$Revision: 1.564 $";
 
 
 /*-----------------------------------------------------
@@ -19289,4 +19289,32 @@ MRImakeMosaic(MRI **mri, int nimages, int rectify)
   }
   VectorFree(&v_vox1) ; VectorFree(&v_vox2) ;
   return(mri_mosaic) ;
+}
+double
+MRImeanAndVarianceInNbhd(MRI *mri, int wsize, int x, int y, int z, int frame, double *pvar)
+{
+  int   xk, yk, zk, xi, yi, zi, whalf, total ;
+  double mean,val, var ;
+
+  whalf = (wsize-1)/2 ;
+  for (mean = var = 0.0, total = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
+    zi = mri->zi[z+zk] ;
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = mri->yi[y+yk] ;
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
+        xi = mri->xi[x+xk] ;
+	val = MRIgetVoxVal(mri, xi, yi, zi,frame) ;
+	mean += val ;
+	var += val*val ;
+	total++ ;
+      }
+    }
+  }
+  mean/= total ;
+  var = (var/total - mean*mean) ;
+  *pvar = var ;
+  return(mean) ;
 }
