@@ -14,7 +14,7 @@ addons:
      - automake
      - gfortran
      - libglu1-mesa-dev
-     - freetype*
+     - libfreetype6-dev
      - uuid-dev
      - libxmu-dev
      - libxmu-headers
@@ -38,4 +38,4 @@ install:
 script:
   - ./setup_configure
   - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build
-  - make -j4
+  - make -j4 >& /dev/null
