@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/09/25 14:29:34 $
- *    $Revision: 1.480 $
+ *    $Date: 2015/12/10 13:58:49 $
+ *    $Revision: 1.481 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1446,6 +1446,7 @@ MRI *MRIsetValuesOutsideRegion(MRI *mri_src,
                                MRI_REGION *region,
                                MRI *mri_dst,
                                float val) ;
+double MRImeanAndVarianceInNbhd(MRI *mri, int wsize, int x, int y, int z, int frame, double *pvar) ;
 int MRIcountNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z) ;
 int MRImeanNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z, int frame) ;
 int MRImaxInNbhd(MRI *mri, int wsize, int x, int y, int z, int frame) ;
