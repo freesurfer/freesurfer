@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/08/24 15:52:18 $
- *    $Revision: 1.48 $
+ *    $Date: 2015/12/10 13:58:49 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -139,6 +139,9 @@ int       HISTOfindMaxDerivative(HISTOGRAM *h, double min_count, double max_coun
 double    HISTOrmsDifference(HISTOGRAM *h1, HISTOGRAM *h2) ;
 double    HISTOearthMoversDistance(HISTOGRAM *h1, HISTOGRAM *h2) ;
 double    HISTOksDistance(HISTOGRAM *h1, HISTOGRAM *h2)  ;
+HISTOGRAM    *HISTOeraseRightmostPeak(HISTOGRAM *hsrc, HISTOGRAM *hdst, int whalf, float min_pct, int min_val, int max_val) ;
+int       HISTOerase(HISTOGRAM *h, int bmin, int bmax)  ;
+int       HISTOisPeak(HISTOGRAM *h, int bin, int whalf) ;
 
 
 
