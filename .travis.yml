@@ -36,6 +36,10 @@ install:
   - cd ..
 
 script:
-  - ./setup_configure
-  - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build
-  - make -j4 >& /dev/null
+  - ./setup_configure >& build.log
+  - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build >>& build.log
+  - travis_wait 40 make -j4 >>& build.log
+
+after_failure:
+  - tail build.log
+  
