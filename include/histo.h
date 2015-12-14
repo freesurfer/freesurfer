@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/12/10 13:58:49 $
- *    $Revision: 1.49 $
+ *    $Date: 2015/12/10 21:18:21 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,7 +36,8 @@
 #define MAX_BINS  10000
 typedef struct
 {
-  int     nbins ;
+  int     max_bins ;  // total number allocated - should never change
+  int     nbins ;     // starts the same as max_bins, but can be less if the full range is not used
   float   *bins ;   /* upper end of the range that maps to this bin */
   float   *counts ; /* # of voxels which map to this bin */
   float   bin_size ;
