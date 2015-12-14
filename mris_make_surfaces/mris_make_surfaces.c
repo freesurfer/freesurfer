@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/06 16:00:27 $
- *    $Revision: 1.161 $
+ *    $Date: 2015/12/10 21:15:02 $
+ *    $Revision: 1.162 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.161 2015/11/06 16:00:27 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.162 2015/12/10 21:15:02 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -283,13 +283,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.161 2015/11/06 16:00:27 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.162 2015/12/10 21:15:02 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.161 2015/11/06 16:00:27 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.162 2015/12/10 21:15:02 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -677,7 +677,8 @@ main(int argc, char *argv[])
     }
     if (!max_gray_at_csf_border_set)
     {
-      max_gray_at_csf_border = gray_mean-0.5*gray_std ;
+//      max_gray_at_csf_border = gray_mean-0.5*gray_std ;
+      max_gray_at_csf_border = gray_mean-1.0*gray_std ;   // changed to push pial surfaces further out BRF 12/10/2015
     }
     if (!min_gray_at_csf_border_set)
     {
@@ -1874,6 +1875,40 @@ main(int argc, char *argv[])
       {
         mri_smooth = MRIcopy(mri_T1, NULL) ;
       }
+#if 1
+      if (j == 0 && i == 0)  // first time increase smoothness to prevent pinching when pushing out from white surface
+      {
+#if 1
+	INTEGRATION_PARMS  saved_parms ;
+	int k, start_t ;
+
+	printf("perforing initial smooth deformation to move away from white surface\n") ;
+	*(&saved_parms) = *(&parms) ;
+//	parms.l_intensity /= 5 ;
+	parms.dt /= 10 ;   // take small steps to unkink pinched areas
+//	parms.l_spring = 1 ;
+	parms.niterations = 10 ;
+	parms.l_surf_repulse /= 5 ;
+
+	for (k = 0 ; k < 3 ; k++)
+	{
+	  MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+	  MRIScomputeBorderValues
+	    (mris, mri_T1, mri_smooth, max_gray,
+	     max_gray_at_csf_border, min_gray_at_csf_border,
+	     min_csf,(max_csf+max_gray_at_csf_border)/2,
+	     current_sigma, 2*max_thickness, parms.fp,
+	     GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg) ;
+	}
+	start_t = parms.start_t ;
+	*(&parms) = *(&saved_parms) ;
+	parms.start_t = start_t ;
+	parms.l_surf_repulse = l_surf_repulse ;
+#else
+	parms.l_surf_repulse /= 5 ;
+#endif
+      }
+#endif
       MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
       /*    parms.l_nspring = 0 ;*/
       if (!n_averages)
