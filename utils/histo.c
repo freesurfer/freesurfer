@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/12/10 13:58:31 $
- *    $Revision: 1.87 $
+ *    $Date: 2015/12/13 16:35:23 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -121,7 +121,7 @@ HISTOrealloc(HISTOGRAM *histo, int nbins)
     ErrorExit(ERROR_NOMEMORY, 
               "HISTOrealloc(%d): could not allocate histogram",
               nbins) ;
-  histo->nbins = nbins ;
+  histo->max_bins = histo->nbins = nbins ;
 
   return(histo) ;
 }
@@ -150,7 +150,7 @@ HISTOalloc(int nbins)
     ErrorExit(ERROR_NOMEMORY, 
               "HISTOalloc(%d): could not allocate histogram",
               nbins) ;
-  histo->nbins = nbins ;
+  histo->max_bins = histo->nbins = nbins ;
 
   return(histo) ;
 }
@@ -1869,9 +1869,11 @@ HISTOinit(HISTOGRAM *h, int nbins, double mn, double mx)
   else
     HISTOclear(h, h);
 
+  if (nbins > h->max_bins)
+    ErrorExit(ERROR_BADPARM, "HISTOinit: nbins %d bigger than max bins %d\n", nbins,h->max_bins) ;
   if (mx <= mn)
   {
-    mx = (double)(h->nbins-1) ;
+    mx = (double)(h->max_bins-1) ;
     mn = 0 ;
   }
   h->min = mn ; h->max = mx ;
@@ -2016,6 +2018,8 @@ HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile,
   double    thresh, sigma, delta_sigma, max_sigma, predicted_val, val,
     sqrt_2pi, sse, best_sigma, best_sse, error, scale, mean ;
 
+  if (h->bin_size <= 0)
+    h->bin_size = 1 ;
   sqrt_2pi = sqrt(2*M_PI) ;
   hs = HISTOsmooth(h, NULL, 2.0/h->bin_size) ;
   peak = HISTOfindHighestPeakInRegion(hs, 0, hs->nbins) ;
