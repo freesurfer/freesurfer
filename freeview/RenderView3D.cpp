@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/16 17:31:25 $
- *    $Revision: 1.78 $
+ *    $Date: 2015/12/11 22:54:00 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -239,19 +239,105 @@ void RenderView3D::UpdateSliceFrames()
 
 void RenderView3D::UpdateViewByWorldCoordinate()
 {
-  vtkCamera* cam = m_renderer->GetActiveCamera();
-  double wcenter[3];
-  for ( int i = 0; i < 3; i++ )
-  {
-    wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
-  }
-  cam->SetFocalPoint( wcenter );
-  cam->SetPosition( wcenter[0] - ( m_dWorldSize[1] > m_dWorldSize[2] ? m_dWorldSize[1] : m_dWorldSize[2] ) *2.5,
-                    wcenter[1],
-                    wcenter[2]);
-  cam->SetViewUp( 0, 0, 1 );
-  m_renderer->ResetCameraClippingRange();
+    ResetViewLeft();
 }
+
+void RenderView3D::ResetViewAnterior()
+{
+    vtkCamera* cam = m_renderer->GetActiveCamera();
+    double wcenter[3];
+    for ( int i = 0; i < 3; i++ )
+    {
+      wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
+    }
+    cam->SetFocalPoint( wcenter );
+    cam->SetPosition( wcenter[0],
+                      wcenter[1] + qMax(m_dWorldSize[0], m_dWorldSize[2]) * 2.5,
+                      wcenter[2]);
+    cam->SetViewUp( 0, 0, 1 );
+    m_renderer->ResetCameraClippingRange();
+}
+
+void RenderView3D::ResetViewPosterior()
+{
+    vtkCamera* cam = m_renderer->GetActiveCamera();
+    double wcenter[3];
+    for ( int i = 0; i < 3; i++ )
+    {
+      wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
+    }
+    cam->SetFocalPoint( wcenter );
+    cam->SetPosition( wcenter[0],
+                      wcenter[1] - qMax(m_dWorldSize[0], m_dWorldSize[2]) * 2.5,
+                      wcenter[2]);
+    cam->SetViewUp( 0, 0, 1 );
+    m_renderer->ResetCameraClippingRange();
+}
+
+void RenderView3D::ResetViewInferior()
+{
+    vtkCamera* cam = m_renderer->GetActiveCamera();
+    double wcenter[3];
+    for ( int i = 0; i < 3; i++ )
+    {
+      wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
+    }
+    cam->SetFocalPoint( wcenter );
+    cam->SetPosition( wcenter[0],
+                      wcenter[1],
+                      wcenter[2] - qMax(m_dWorldSize[0], m_dWorldSize[1]) * 2.5);
+    cam->SetViewUp( 0, 1, 0 );
+    m_renderer->ResetCameraClippingRange();
+}
+
+void RenderView3D::ResetViewSuperior()
+{
+    vtkCamera* cam = m_renderer->GetActiveCamera();
+    double wcenter[3];
+    for ( int i = 0; i < 3; i++ )
+    {
+      wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
+    }
+    cam->SetFocalPoint( wcenter );
+    cam->SetPosition( wcenter[0],
+                      wcenter[1],
+                      wcenter[2] + qMax(m_dWorldSize[0], m_dWorldSize[1]) * 2.5);
+    cam->SetViewUp( 0, 1, 0 );
+    m_renderer->ResetCameraClippingRange();
+}
+
+void RenderView3D::ResetViewLeft()
+{
+    vtkCamera* cam = m_renderer->GetActiveCamera();
+    double wcenter[3];
+    for ( int i = 0; i < 3; i++ )
+    {
+      wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
+    }
+    cam->SetFocalPoint( wcenter );
+    cam->SetPosition( wcenter[0] - qMax(m_dWorldSize[1], m_dWorldSize[2]) *2.5,
+                      wcenter[1],
+                      wcenter[2]);
+    cam->SetViewUp( 0, 0, 1 );
+    m_renderer->ResetCameraClippingRange();
+}
+
+void RenderView3D::ResetViewRight()
+{
+    vtkCamera* cam = m_renderer->GetActiveCamera();
+    double wcenter[3];
+    for ( int i = 0; i < 3; i++ )
+    {
+      wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
+    }
+    cam->SetFocalPoint( wcenter );
+    cam->SetPosition( wcenter[0] + qMax(m_dWorldSize[1], m_dWorldSize[2]) *2.5,
+                      wcenter[1],
+                      wcenter[2]);
+    cam->SetViewUp( 0, 0, 1 );
+    m_renderer->ResetCameraClippingRange();
+}
+
 
 void RenderView3D::RefreshAllActors(bool bForScreenShot)
 {
@@ -1076,7 +1162,29 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   QList<Layer*> layers = mainwnd->GetLayers("Surface");
   layers << mainwnd->GetLayers("MRI");
   layers << mainwnd->GetLayers("PointSet");
-  QAction* act = new QAction("Show All Slices", this);
+
+  QMenu* submenu = menu->addMenu("Reset View");
+  QAction* act = new QAction("Right", this);
+  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewRight()));
+  submenu->addAction(act);
+  act = new QAction("Left", this);
+  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewLeft()));
+  submenu->addAction(act);
+  act = new QAction("Anterior", this);
+  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewAnterior()));
+  submenu->addAction(act);
+  act = new QAction("Posterior", this);
+  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewPosterior()));
+  submenu->addAction(act);
+  act = new QAction("Superior", this);
+  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewSuperior()));
+  submenu->addAction(act);
+  act = new QAction("Inferior", this);
+  connect(act, SIGNAL(triggered()), this, SLOT(ResetViewInferior()));
+  submenu->addAction(act);
+  menu->addSeparator();
+
+  act = new QAction("Show All Slices", this);
   act->setData(3);
   menu->addAction(act);
   connect(act, SIGNAL(triggered()), this, SLOT(OnShowSlice()));
