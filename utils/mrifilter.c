@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/11/20 17:18:10 $
- *    $Revision: 1.112 $
+ *    $Author: fischl $
+ *    $Date: 2015/12/11 13:40:32 $
+ *    $Revision: 1.113 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5822,6 +5822,8 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
     h_white->bins[bin] = min_val + bin ;
     h_gray->bins[bin] = min_val + bin ;
   }
+  HISTOinit(h_gray, h_gray->nbins, 0, 0) ;
+  HISTOinit(h_white, h_white->nbins, 0, 0) ;
 
   mri_border = MRImarkBorderVoxels(mri_labeled, NULL) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -5905,6 +5907,12 @@ MRIcomputeClassStatistics(MRI *mri_T1, MRI *mri_labeled, float gray_low,
     }
   }
 
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) // debugging  
+  {
+    double mn, st ;
+    HISTOrobustGaussianFit(h_gray, .1, &mn, &st) ; 
+    DiagBreak() ;
+  }
   peak = HISTOfindHighestPeakInRegion(h_white, 0, h_white->nbins) ;
   white_mode = h_white->bins[peak] ;
   peak = HISTOfindHighestPeakInRegion(h_gray, 0, h_gray->nbins) ;
