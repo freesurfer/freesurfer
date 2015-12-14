@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/12/03 01:53:21 $
- *    $Revision: 1.774 $
+ *    $Date: 2015/12/10 21:16:09 $
+ *    $Revision: 1.775 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.774 2015/12/03 01:53:21 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.775 2015/12/10 21:16:09 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -16216,6 +16216,191 @@ MRIScomputeMeanCurvature(MRI_SURFACE *mris)
   Description
   ------------------------------------------------------*/
 #if 1
+
+// these versions use a full 2D fit y = a x^2 + b y^2 + c x + d y + e, then use e as the error term
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  Fit a 2-d quadratic to the surface locally and compute the SSE as
+  the square of the constant term (the distance the quadratic fit surface 
+  is from going through the central vertex).  Move the
+  vertex in the normal direction to improve the fit.
+  ------------------------------------------------------*/
+static int
+mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
+{
+  MATRIX   *m_X, *m_X_inv ;
+  VECTOR   *v_Y, *v_n, *v_e1, *v_e2, *v_nbr, *v_P ;
+  int      vno, n ;
+  VERTEX   *v, *vn ;
+  float    ui, vi, a, e ;
+  FILE     *fp = NULL ; // for debugging
+
+  if (FZERO(l_curv))
+  {
+    return(NO_ERROR) ;
+  }
+
+  mrisComputeTangentPlanes(mris) ;
+  v_n = VectorAlloc(3, MATRIX_REAL) ;
+  v_P = VectorAlloc(5, MATRIX_REAL) ;
+  v_e1 = VectorAlloc(3, MATRIX_REAL) ;
+  v_e2 = VectorAlloc(3, MATRIX_REAL) ;
+  v_nbr = VectorAlloc(3, MATRIX_REAL) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    if (vno == Gdiag_no)
+      fp = fopen("qcurv.dat", "w") ;
+
+    v_Y = VectorAlloc(v->vtotal, MATRIX_REAL) ;    /* heights above TpS */
+    m_X = MatrixAlloc(v->vtotal, 5, MATRIX_REAL) ; /* 2-d quadratic fit */
+    VECTOR_LOAD(v_n, v->nx, v->ny, v->nz) ;
+    VECTOR_LOAD(v_e1, v->e1x, v->e1y, v->e1z) ;
+    VECTOR_LOAD(v_e2, v->e2x, v->e2y, v->e2z) ;
+    for (n = 0 ; n < v->vtotal ; n++)  /* build data matrices */
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      VERTEX_EDGE(v_nbr, v, vn) ;
+      VECTOR_ELT(v_Y, n+1) = V3_DOT(v_nbr, v_n) ;
+      ui = V3_DOT(v_e1, v_nbr) ;
+      vi = V3_DOT(v_e2, v_nbr) ;
+
+      *MATRIX_RELT(m_X, n+1, 1) = ui*ui ;
+      *MATRIX_RELT(m_X, n+1, 2) = vi*vi ;
+      *MATRIX_RELT(m_X, n+1, 3) = ui ;
+      *MATRIX_RELT(m_X, n+1, 4) = vi ;
+      *MATRIX_RELT(m_X, n+1, 5) = 1 ;
+      if (vno == Gdiag_no)
+	fprintf(fp, "%d %f %f %f\n", v->v[n], ui, vi, VECTOR_ELT(v_Y, n+1)) ;
+    }
+    if (vno == Gdiag_no)
+      fclose(fp) ;
+    m_X_inv = MatrixPseudoInverse(m_X, NULL) ;
+    if (!m_X_inv)
+    {
+      MatrixFree(&m_X) ;
+      VectorFree(&v_Y) ;
+      continue ;
+    }
+    v_P = MatrixMultiply(m_X_inv, v_Y, v_P) ;
+    a = VECTOR_ELT(v_P, 1) ;
+    e = VECTOR_ELT(v_P, 5) ;
+    e *= l_curv ;
+
+    v->dx += e * v->nx ; v->dy += e * v->ny ; v->dz += e * v->nz ;
+
+    if (vno == Gdiag_no)
+      fprintf(stdout, "v %d curvature term:      (%2.3f, %2.3f, %2.3f), "
+              "a=%2.2f, e=%2.1f\n",
+              vno, e*v->nx, e*v->ny, e*v->nz, a, e) ;
+    VectorFree(&v_Y) ;
+    MatrixFree(&m_X) ;
+    MatrixFree(&m_X_inv) ;
+  }
+
+  VectorFree(&v_n) ;
+  VectorFree(&v_e1) ;
+  VectorFree(&v_e2) ;
+  VectorFree(&v_nbr) ;
+  VectorFree(&v_P) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  Fit a 2-d quadratic to the surface locally and compute the SSE as
+  the square of the constant term (the distance the quadratic fit surface 
+  is from going through the central vertex)
+  ------------------------------------------------------*/
+static double
+mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
+{
+  MATRIX   *m_X, *m_X_inv ;
+  VECTOR   *v_Y, *v_n, *v_e1, *v_e2, *v_nbr, *v_P ;
+  int      vno, n ;
+  VERTEX   *v, *vn ;
+  float    ui, vi, a, e ;
+  double   sse = 0.0 ;
+
+  if (FZERO(l_curv))
+  {
+    return(NO_ERROR) ;
+  }
+
+  mrisComputeTangentPlanes(mris) ;
+  v_n = VectorAlloc(3, MATRIX_REAL) ;
+  v_P = VectorAlloc(5, MATRIX_REAL) ;
+  v_e1 = VectorAlloc(3, MATRIX_REAL) ;
+  v_e2 = VectorAlloc(3, MATRIX_REAL) ;
+  v_nbr = VectorAlloc(3, MATRIX_REAL) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+
+    v_Y = VectorAlloc(v->vtotal, MATRIX_REAL) ;    /* heights above TpS */
+    m_X = MatrixAlloc(v->vtotal, 5, MATRIX_REAL) ; /* 2-d quadratic fit */
+    VECTOR_LOAD(v_n, v->nx, v->ny, v->nz) ;
+    VECTOR_LOAD(v_e1, v->e1x, v->e1y, v->e1z) ;
+    VECTOR_LOAD(v_e2, v->e2x, v->e2y, v->e2z) ;
+    for (n = 0 ; n < v->vtotal ; n++)  /* build data matrices */
+    {
+      vn = &mris->vertices[v->v[n]] ;
+      VERTEX_EDGE(v_nbr, v, vn) ;
+      VECTOR_ELT(v_Y, n+1) = V3_DOT(v_nbr, v_n) ;
+      ui = V3_DOT(v_e1, v_nbr) ;
+      vi = V3_DOT(v_e2, v_nbr) ;
+
+      *MATRIX_RELT(m_X, n+1, 1) = ui*ui ;
+      *MATRIX_RELT(m_X, n+1, 2) = vi*vi ;
+      *MATRIX_RELT(m_X, n+1, 3) = ui ;
+      *MATRIX_RELT(m_X, n+1, 4) = vi ;
+      *MATRIX_RELT(m_X, n+1, 5) = 1 ;
+    }
+    m_X_inv = MatrixPseudoInverse(m_X, NULL) ;
+    if (!m_X_inv)
+    {
+      MatrixFree(&m_X) ;
+      VectorFree(&v_Y) ;
+      continue ;
+    }
+    v_P = MatrixMultiply(m_X_inv, v_Y, v_P) ;
+    a = VECTOR_ELT(v_P, 1) ;
+    e = VECTOR_ELT(v_P, 5) ;
+
+    sse += e*e ;
+    if (vno == Gdiag_no)
+      printf("v %d: e=%2.2f, curvature sse %2.2f\n", vno, e, e*e) ;
+
+    MatrixFree(&m_X) ;
+    MatrixFree(&m_X_inv) ;
+    VectorFree(&v_Y) ;
+  }
+
+  VectorFree(&v_n) ;
+  VectorFree(&v_e1) ;
+  VectorFree(&v_e2) ;
+  VectorFree(&v_nbr) ;
+  VectorFree(&v_P) ;
+  return(NO_ERROR) ;
+}
+#else
+
+// these versions use a 1d fit y = a*r^2 + b
 /*-----------------------------------------------------
   Parameters:
 
@@ -16233,6 +16418,7 @@ mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
   int      vno, n ;
   VERTEX   *v, *vn ;
   float    ui, vi, rsq, a, b ;
+  FILE     *fp ; // for debugging
 
   if (FZERO(l_curv))
   {
@@ -16249,9 +16435,11 @@ mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
-    {
       continue ;
-    }
+
+    if (vno == Gdiag_no)
+      fp = fopen("qcurv.dat", "w") ;
+
     v_Y = VectorAlloc(v->vtotal, MATRIX_REAL) ;    /* heights above TpS */
     m_R = MatrixAlloc(v->vtotal, 2, MATRIX_REAL) ; /* radial distances */
     VECTOR_LOAD(v_n, v->nx, v->ny, v->nz) ;
@@ -16267,7 +16455,12 @@ mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
       rsq = ui*ui + vi*vi ;
       *MATRIX_RELT(m_R, n+1, 1) = rsq ;
       *MATRIX_RELT(m_R, n+1, 2) = 1 ;
+
+      if (vno == Gdiag_no)
+	fprintf(fp, "%d %f %f %f %f\n", v->v[n], ui, vi, rsq, VECTOR_ELT(v_Y, n+1)) ;
     }
+    if (vno == Gdiag_no)
+      fclose(fp) ;
     m_R_inv = MatrixPseudoInverse(m_R, NULL) ;
     if (!m_R_inv)
     {
@@ -16278,17 +16471,15 @@ mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
     v_A = MatrixMultiply(m_R_inv, v_Y, v_A) ;
     a = VECTOR_ELT(v_A, 1) ;
     b = VECTOR_ELT(v_A, 2) ;
-    b *= l_curv ;
-    v->dx += b * v->nx ;
-    v->dy += b * v->ny ;
-    v->dz += b * v->nz ;
+
+    v->dx += b * v->nx ; v->dy += b * v->ny ; v->dz += b * v->nz ;
 
     if (vno == Gdiag_no)
       fprintf(stdout, "v %d curvature term:      (%2.3f, %2.3f, %2.3f), "
               "a=%2.2f, b=%2.1f\n",
               vno, b*v->nx, b*v->ny, b*v->nz, a, b) ;
-    MatrixFree(&m_R) ;
     VectorFree(&v_Y) ;
+    MatrixFree(&m_R) ;
     MatrixFree(&m_R_inv) ;
   }
 
@@ -16378,77 +16569,6 @@ mrisComputeQuadraticCurvatureSSE(MRI_SURFACE *mris, double l_curv)
   VectorFree(&v_nbr) ;
   VectorFree(&v_A) ;
   return(sse) ;
-}
-#else
-/*-----------------------------------------------------
-Parameters:
-
-Returns value:
-
-Description
-Fit a quadric to the surface locally and move the
-vertex in the normal direction to improve the fit.
-------------------------------------------------------*/
-static int
-mrisComputeQuadraticCurvatureTerm(MRI_SURFACE *mris, double l_curv)
-{
-  MATRIX   *m_R, *m_R_inv ;
-  VECTOR   *v_Y, *v_A, *v_n, *v_e1, *v_e2, *v_nbr ;
-  int      vno, n ;
-  VERTEX   *v, *vn ;
-  float    ui, vi, a, b, c ;
-
-  /* will set tangent plane basis to be principal directions */
-  MRIScomputeSecondFundamentalForm(mris) ;
-  v_n = VectorAlloc(3, MATRIX_REAL) ;
-  v_A = VectorAlloc(3, MATRIX_REAL) ;
-  v_e1 = VectorAlloc(3, MATRIX_REAL) ;
-  v_e2 = VectorAlloc(3, MATRIX_REAL) ;
-  v_nbr = VectorAlloc(3, MATRIX_REAL) ;
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
-    v = &mris->vertices[vno] ;
-    if (v->ripflag)
-    {
-      continue ;
-    }
-    v_Y = VectorAlloc(v->vtotal, MATRIX_REAL) ;    /* heights above TpS */
-    m_R = MatrixAlloc(v->vtotal, 3, MATRIX_REAL) ; /* radial distances */
-    VECTOR_LOAD(v_n, v->nx, v->ny, v->nz) ;
-    VECTOR_LOAD(v_e1, v->e1x, v->e1y, v->e1z) ;
-    VECTOR_LOAD(v_e2, v->e2x, v->e2y, v->e2z) ;
-    for (n = 0 ; n < v->vtotal ; n++)  /* build data matrices */
-    {
-      vn = &mris->vertices[v->v[n]] ;
-      VERTEX_EDGE(v_nbr, v, vn) ;
-      VECTOR_ELT(v_Y, n+1) = V3_DOT(v_nbr, v_n) ;
-      ui = V3_DOT(v_e1, v_nbr) ;
-      vi = V3_DOT(v_e2, v_nbr) ;
-      *MATRIX_RELT(m_R, n+1, 1) = ui*ui ;
-      *MATRIX_RELT(m_R, n+1, 2) = vi*vi ;
-      *MATRIX_RELT(m_R, n+1, 3) = 1 ;
-    }
-    m_R_inv = MatrixPseudoInverse(m_R, NULL) ;
-    v_A = MatrixMultiply(m_R_inv, v_Y, v_A) ;
-    a = VECTOR_ELT(v_A, 1) ;
-    b = VECTOR_ELT(v_A, 2) ;
-    c = VECTOR_ELT(v_A, 3) ;
-    c *= l_curv ;
-    v->dx += c * v->nx ;
-    v->dy += c * v->ny ;
-    v->dz += c * v->nz ;
-
-    MatrixFree(&m_R) ;
-    VectorFree(&v_Y) ;
-    MatrixFree(&m_R_inv) ;
-  }
-
-  VectorFree(&v_n) ;
-  VectorFree(&v_e1) ;
-  VectorFree(&v_e2) ;
-  VectorFree(&v_nbr) ;
-  VectorFree(&v_A) ;
-  return(NO_ERROR) ;
 }
 #endif
 #if 0
@@ -38174,6 +38294,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           printf("v %d: exterior gray matter detected, "
                  "ignoring large gradient at %2.3f (I=%2.1f)\n",
                  vno, max_mag_dist, max_mag_val) ;
+
         max_mag_val = -10 ;   /* don't worry about largest gradient */
         max_mag_dist = 0 ;
         num_changed++ ;
