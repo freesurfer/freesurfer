@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/16 18:50:39 $
- *    $Revision: 1.19 $
+ *    $Date: 2015/12/14 22:30:14 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,12 @@ LayerTreeWidget::LayerTreeWidget(QWidget *parent) :
 {
   m_itemDelegate = new MyItemDelegate(this);
   setItemDelegate(m_itemDelegate);
+
+//  QAction* act = new QAction("Select All", this);
+//  act->setShortcut(QKeySequence("Ctrl+A"));
+//  act->setShortcutContext(Qt::WidgetWithChildrenShortcut);
+//  connect(act, SIGNAL(triggered()), SLOT(selectAll()));
+//  this->addAction(act);
 }
 
 void LayerTreeWidget::drawRow( QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const
@@ -392,7 +398,6 @@ void LayerTreeWidget::SelectAll()
 
 void LayerTreeWidget::DeselectAll()
 {
-
   QList<QTreeWidgetItem*> items;
   for (int i = 0; i < topLevelItemCount(); i++)
   {
@@ -404,4 +409,21 @@ void LayerTreeWidget::DeselectAll()
   {
     item->setSelected(false);
   }
+}
+
+bool LayerTreeWidget::event(QEvent *e)
+{
+    if (e->type() == QEvent::ShortcutOverride || e->type() == QEvent::KeyPress)
+    {
+        QKeyEvent* ke = static_cast<QKeyEvent*>(e);
+        if ( ke )
+        {
+            if (ke->key()== Qt::Key_A && ke->modifiers() & Qt::ControlModifier)
+            {
+                SelectAll();
+                return true;
+            }
+        }
+    }
+    return QTreeWidget::event(e);
 }
