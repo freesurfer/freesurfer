@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2015/06/04 20:50:50 $
- *    $Revision: 1.53 $
+ *    $Author: greve $
+ *    $Date: 2015/12/14 23:18:58 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,9 @@
 #include "fio.h"
 #include "mri_identify.h"
 #include "label.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #define  STRBUF         65536
 #define  MAX_FILES      1000
@@ -62,7 +65,7 @@
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.53 2015/06/04 20:50:50 nicks Exp $";
+  "$Id: mris_calc.c,v 1.54 2015/12/14 23:18:58 greve Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -123,6 +126,7 @@ typedef enum _operation
   e_pow,
   e_sub,
   e_sub0,
+  e_sratio,
   e_pctdiff,
   e_pctdiff0,
   e_sqd,
@@ -174,6 +178,7 @@ const char* Gppch_operation[] =
   "pow",
   "subtract",
   "subtract0",
+  "sratio",
   "pctdiff",
   "pctdiff0",
   "square difference",
@@ -325,6 +330,13 @@ double fn_sub0(float af_A, float af_B)
   if(fabs(af_A) < 2.0*FLT_MIN) return(0);
   if(fabs(af_B) < 2.0*FLT_MIN) return(0);
   return (af_A - af_B);
+}
+double fn_sratio(float af_A, float af_B)
+{
+  if(fabs(af_A) < 2.0*FLT_MIN) return(0);
+  if(fabs(af_B) < 2.0*FLT_MIN) return(0);
+  if(af_A > af_B) return(af_A/(af_B + FLT_MIN));
+  return(-af_B/(af_A + FLT_MIN));
 }
 double fn_pctdiff(float af_A, float af_B)
 {
@@ -1426,7 +1438,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.53 2015/06/04 20:50:50 nicks Exp $",
+           "$Id: mris_calc.c,v 1.54 2015/12/14 23:18:58 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1550,6 +1562,16 @@ options_parse(int argc, char *argv[])
     Gb_file3      = 1;
     nargs           = 1;
   }
+  else if(!stricmp(option, "threads") || !stricmp(option, "nthreads") ){
+    int nthreads;
+    sscanf(argv[2],"%d",&nthreads);
+#ifdef _OPENMP
+    omp_set_num_threads(nthreads);
+#endif
+    printf("nthreads %d\n",nthreads);
+    nargs = 1;
+  } 
+
   else if (!stricmp(option, "-strictExtensions") || (toupper(*option) == 'E'))
   {
     Gb_strictExtensions = 1;
@@ -1646,6 +1668,10 @@ operation_lookup(
   else if(!strcmp(apch_operation, "sub0"))
   {
     e_op    = e_sub0;
+  }
+  else if(!strcmp(apch_operation, "sratio"))
+  {
+    e_op    = e_sratio;
   }
   else if(!strcmp(apch_operation, "pctdiff"))
   {
@@ -2131,6 +2157,7 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_add           ||
     e_op == e_sub           ||
     e_op == e_sub0          ||
+    e_op == e_sratio        ||
     e_op == e_pctdiff       ||
     e_op == e_pctdiff0      ||
     e_op == e_sqd           ||
@@ -2241,6 +2268,9 @@ CURV_process(void)
     break;
   case  e_sub0:
     CURV_functionRunABC(fn_sub0);
+    break;
+  case  e_sratio:
+    CURV_functionRunABC(fn_sratio);
     break;
   case  e_pctdiff:
     CURV_functionRunABC(fn_pctdiff);
@@ -2518,12 +2548,15 @@ CURV_functionRunABC( double (*F)(float f_A, float f_B) )
   //  o G_pf_arrayCurv3 is saved to G_pch_curvFile3
   //
   int   i;
-  double f_a = 0.;
-  double f_b = 0.;
-  double f_c = 0.;
 
+  #ifdef _OPENMP
+  #pragma omp parallel for 
+  #endif
   for(i=0; i<G_sizeCurv1; i++)
   {
+    double f_a = 0.;
+    double f_b = 0.;
+    double f_c = 0.;
     f_a                 = G_pf_arrayCurv1[i];
     f_b                 = G_pf_arrayCurv2[i];
     f_c                 = (F)(f_a, f_b);
@@ -2559,7 +2592,7 @@ CURV_functionRunAC( double (*F)(float f_A) )
   for(i=0; i<G_sizeCurv1; i++)
   {
     f_a                 = G_pf_arrayCurv1[i];
-    f_c                 = (F)(f_a);
+    f_c                = (F)(f_a);
     G_pf_arrayCurv3[i]  = f_c;
   }
   return f_c;
