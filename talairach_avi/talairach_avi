@@ -49,6 +49,8 @@ if($n != 0) then
   exit 0;
 endif
 
+source $FREESURFER_HOME/sources.csh
+
 # Parse the command-line arguments
 goto parse_args;
 parse_args_return:
