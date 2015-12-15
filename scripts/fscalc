@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # fscalc
 
-set VERSION = '$Id: fscalc,v 1.10 2015/06/04 15:45:41 greve Exp $';
+set VERSION = '$Id: fscalc,v 1.11 2015/12/14 23:22:22 greve Exp $';
 
 set outvol = ();
 set inops = ();
@@ -105,7 +105,8 @@ while($#inops)
      $op == eq  || $op == lt  || $op == lte   || $op == gt || \
      $op == gte || $op == upl || $op == lrl   || $op == and || \
      $op == or  || $op == andbw || $op == orbw || $op == masked ||\
-     $op == pow || $op == bcor || $op == pctdiff|| $op == pctdiff0) then
+     $op == pow || $op == bcor || $op == pctdiff || $op == pctdiff0 || \
+     $op == sratio) then
     set opok = 1;
     if($#inops == 0) then
       echo "ERROR: $op requires two arguments" | tee -a $LF
@@ -260,7 +261,7 @@ usage_exit:
   echo ""
   echo "fscalc input1 op <input2 op ...> --o outvol"
   echo ""
-  echo "Binary Ops: mul, div, mod, sub, sub0, pctdiff, pctdiff0, sqd, atan2, mag, eq, "
+  echo "Binary Ops: mul, div, mod, sub, sub0, sratio, pctdiff, pctdiff0, sqd, atan2, mag, eq, "
   echo " lt, lte, gt, gte, upl, lrl, and, or, andbw, orbw, masked, bcor"
   echo ""
   echo "Unary Ops: sqr, sqrt, abs, sign, norm, sig2p, not"
@@ -301,7 +302,7 @@ can be specified with --odt (uchar|short|int|float).
 Supported binary operations include:
 
 mul, div, mod, sub, sub0, sqd, atan2, mag, eq, lt, lte, gt, gte, upl, lrl,
-and, or, andbw, orbw, masked, sum (same as add), pctdiff, pctdiff0
+and, or, andbw, orbw, masked, sum (same as add), sratio, pctdiff, pctdiff0
 
 sub0 is the same as sub but returns 0 if either A or B are 0, same for pctdiff
 
