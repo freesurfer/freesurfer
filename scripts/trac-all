@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/12/09 20:02:53 $
-#    $Revision: 1.58 $
+#    $Author: ayendiki $
+#    $Date: 2015/12/15 18:31:38 $
+#    $Revision: 1.59 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.58 2015/12/09 20:02:53 zkaufman Exp $'
+set VERSION = '$Id: trac-all,v 1.59 2015/12/15 18:31:38 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1049,7 +1049,7 @@ if ($dostats) then
           if ($xspace == mni) then
             set cmd = ($cmd --ref $mnitemp)
           else if ($xspace == cvs) then
-            set cmd = ($cmd --ref $cvstempdir/$cvstemp)
+            set cmd = ($cmd --ref $cvstempdir/$cvstemp/mri/norm.mgz)
           endif
           set cmd = ($cmd --out   $statdir/$pathname.$avgmode)
 
