@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2015/09/22 19:55:12 $
- *    $Revision: 1.8 $
+ *    $Date: 2015/12/15 22:30:45 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@ class RegRobust: public Registration
   template<class T> friend class RegistrationStep;
 public:
   RegRobust() :
-      Registration(), sat(-1), wlimit(0.175), mri_weights(NULL), mri_hweights(
+      Registration(), sat(-1), wlimit(0.16), mri_weights(NULL), mri_hweights(
           NULL), mri_indexing(NULL)
   {
   }

@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2015/09/22 19:55:12 $
- *    $Revision: 1.4 $
+ *    $Date: 2015/12/15 22:30:45 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -340,7 +340,7 @@ double RegRobust::findSaturation()
       if (counter > 1)
         cout << "         min sat: " << satmin << " ( " << wmin
             << " ), max sat: " << satmax << " ( " << wmax << " ), sat diff: "
-            << satmax - satmin << endl;
+            << satmax - satmin << ", (wlimit=" << wlimit << ")"<< endl;
       cout << "     -- Iteration: " << counter << "  trying sat: " << sat
           << endl;
     }
