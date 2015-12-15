@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2015/09/22 20:57:47 $
- *    $Revision: 1.56 $
+ *    $Date: 2015/12/15 22:30:45 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1296,7 +1296,8 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
       << epsit << " ) : " << endl;
   assert(ltas.size() == mri_mov.size());
   assert(mri_mov.size() > 1);
-
+  if (debug) printParams();
+  
   int nin = (int) mri_mov.size();
 
   tpi--; // tpi 0....n-1
@@ -1343,7 +1344,8 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     RegRobust R;
     initRegistration(R); //set parameter
     //R.setRigid(); // stay rigid for averaging initial template space, after that allow affine
-    R.setVerbose(0);
+    if (debug) R.setVerbose(1);
+    else R.setVerbose(0);
     R.setSourceAndTarget(mri_mov[j], mri_mov[tpi], keeptype);
     R.setName(oss.str());
 
@@ -1369,9 +1371,17 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     if (i == 1)
     {
       centroid_temp += R.getCentroidT();
-      vnl_matlab_print(vcl_cout,R.getCentroidT(),"CentroidT",vnl_matlab_print_format_long);std::cout << std::endl;
+      if (debug)
+      {
+        vnl_matlab_print(vcl_cout,R.getCentroidT(),"CentroidT",vnl_matlab_print_format_long);
+        std::cout << std::endl;
+      }
     }
-    vnl_matlab_print(vcl_cout,R.getCentroidSinT(),"CentroidSinT",vnl_matlab_print_format_long);std::cout << std::endl;
+    if(debug)
+    {
+      vnl_matlab_print(vcl_cout,R.getCentroidSinT(),"CentroidSinT",vnl_matlab_print_format_long);
+      std::cout << std::endl;
+    }
 #ifdef HAVE_OPENMP
 #pragma omp critical
 #endif  
@@ -1381,8 +1391,12 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
   } // end for loop (initial registration to inittp)
 
   centroid = (1.0 / nin) * centroid;
-  vnl_matlab_print(vcl_cout,centroid,"Centroid",vnl_matlab_print_format_long);std::cout << std::endl;
-
+  if (debug)
+  {
+    vnl_matlab_print(vcl_cout,centroid,"Centroid",vnl_matlab_print_format_long);
+    std::cout << std::endl;
+  }
+  
   for (int i = 1; i < nin; i++)
   {
     if (!converged[i])
@@ -1500,16 +1514,16 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     vnl_matlab_print(vcl_cout,meanr,"meanr",vnl_matlab_print_format_long);std::cout << std::endl;  
 
     cout << " Determinant( meanr ) : " << vnl_determinant(meanr) << endl << endl;
-      cout << " Decompose into Rot * Shear * Scale : " << endl << endl;
-      vnl_matrix<double> Rot, Shear;
-      vnl_diag_matrix<double> Scale;
-      MyMatrix::Polar2Decomposition(meanr, Rot, Shear, Scale);
-      vnl_matlab_print(vcl_cout,Rot,"Rot",vnl_matlab_print_format_long);
-      cout << endl;
-      vnl_matlab_print(vcl_cout,Shear,"Shear",vnl_matlab_print_format_long);
-      cout << endl;
-      vnl_matlab_print(vcl_cout,Scale,"Scale",vnl_matlab_print_format_long);
-      cout << endl;
+    cout << " Decompose into Rot * Shear * Scale : " << endl << endl;
+    vnl_matrix<double> Rot, Shear;
+    vnl_diag_matrix<double> Scale;
+    MyMatrix::Polar2Decomposition(meanr, Rot, Shear, Scale);
+    vnl_matlab_print(vcl_cout,Rot,"Rot",vnl_matlab_print_format_long);
+    cout << endl;
+    vnl_matlab_print(vcl_cout,Shear,"Shear",vnl_matlab_print_format_long);
+    cout << endl;
+    vnl_matlab_print(vcl_cout,Scale,"Scale",vnl_matlab_print_format_long);
+    cout << endl;
   }
 
   // put back together to matrix in homogeneous coords
@@ -1529,8 +1543,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres,
     // center at the mean of all tp centroids mapped to the mean space
     // map average centroid from TPI vox space to mean RAS space:
     MATRIX * mv2r_temp = MRIgetVoxelToRasXform(mri_mov[tpi]);
-    vnl_matrix_fixed<double, 4, 4> tpi_v2r(
-        MyMatrix::convertMATRIX2VNL(mv2r_temp));
+    vnl_matrix_fixed<double, 4, 4> tpi_v2r(MyMatrix::convertMATRIX2VNL(mv2r_temp));
     MatrixFree(&mv2r_temp);
     //vnl_matlab_print(vcl_cout,tpi_v2r,"tpiv2r",vnl_matlab_print_format_long);std::cout << std::endl;
   

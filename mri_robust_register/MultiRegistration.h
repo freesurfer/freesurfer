@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2015/09/22 20:57:47 $
- *    $Revision: 1.24 $
+ *    $Date: 2015/12/15 21:20:46 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,10 +80,40 @@ public:
   {
     clear();
   }
+  
+  //! Print parameter settings
+  void printParams()
+  {
+    std::cout << std::boolalpha << std::endl;
+    std::cout << " MultiRegistration Parameters " << std::endl << std::endl;
+    std::cout << " Outdir:        " << outdir << std::endl;
+    std::cout << " TransOnly:     " << transonly << std::endl;
+    std::cout << " Rigid:         " << rigid << std::endl;
+    std::cout << " Robust:        " << robust << std::endl;
+    if (satit)
+      std::cout << " Satit:         " << satit << std::endl;
+    else
+      std::cout << " Sat:           " << sat << std::endl;
+    std::cout << " Iscale:        " << iscale<< std::endl;
+    std::cout << " IscaleOnly:    " << iscaleonly << std::endl;
+    std::cout << " NoMulti:       " << nomulti << std::endl;
+    std::cout << " SubsampleSize: " << subsamplesize << std::endl;
+    std::cout << " HighIt:        " << highit << std::endl;
+    std::cout << " FixVoxel:      " << fixvoxel << std::endl;
+    std::cout << " KeepType:      " << keeptype << std::endl;
+    std::cout << " Average:       " << average << std::endl;
+    std::cout << " DoublePrec:    " << doubleprec << std::endl;
+    std::cout << " BackupWeights: " << backupweights << std::endl;
+    std::cout << " SampleType:    " << sampletype<< std::endl;
+    std::cout << " CRASCenter:    " << crascenter<< std::endl;
+    std::cout << " Debug:         " << debug << std::endl;
+    std::cout <<  std::noboolalpha << std::endl;
+  
+  }
+  
 
   //! Initialize co-registration based on tpi
-  bool initialXforms(int tpi, bool fixtp, int regmaxres, int regitmax,
-      double regeps);
+  bool initialXforms(int tpi, bool fixtp, int regmaxres, int regitmax, double regeps);
   //! Iteratively estimate template in mid-space
   bool computeTemplate(int avitmax, double aveps, int regitmax, double regeps);
   //! Half way template (special case for two inputs)

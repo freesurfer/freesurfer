@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2015/09/22 20:57:47 $
- *    $Revision: 1.51 $
+ *    $Date: 2015/12/15 21:20:46 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -142,7 +142,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_template.cpp,v 1.51 2015/09/22 20:57:47 mreuter Exp $";
+    "$Id: mri_robust_template.cpp,v 1.52 2015/12/15 21:20:46 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -220,8 +220,10 @@ int main(int argc, char *argv[])
     MR.setDebug(P.debug);
     MR.setRigid(!P.affine);
     MR.setTransonly(P.transonly);
+    if (P.iscale) std::cout << "Setting iscale ..." << std::endl;
     MR.setIscale(P.iscale);
-    MR.setIscaleOnly(P.iscale);
+    if (P.iscaleonly) std::cout << "Setting iscaleonly ..." << std::endl;
+    MR.setIscaleOnly(P.iscaleonly);
     MR.setNoMulti(P.nomulti);
     MR.setRobust(!P.leastsquares);
     MR.setSaturation(P.sat);
@@ -274,7 +276,7 @@ int main(int argc, char *argv[])
           << P.seed << " )." << endl;
     }
 
-    if (P.noit) // no registration to mean space, only averaging
+    if (P.noit) // no registration to mean space, only initial reg. and averaging
     {
       // if no initial xforms are given, use initialization to median space
       //   by registering everything first to inittp
