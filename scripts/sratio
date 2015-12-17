@@ -2,7 +2,7 @@
 # sratio - signed ratio
 #   +A/B if A>B
 #   -B/A if B>A
-# $Id: sratio,v 1.7 2015/12/03 16:11:58 greve Exp $
+# $Id: sratio,v 1.8 2015/12/17 21:07:12 greve Exp $
 
 #
 # sratio
@@ -12,8 +12,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/12/03 16:11:58 $
-#    $Revision: 1.7 $
+#    $Date: 2015/12/17 21:07:12 $
+#    $Revision: 1.8 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -29,7 +29,7 @@
 
 setenv FSLOUTPUTTYPE NIFTI
 set tmpdir = ();
-set VERSION = '$Id: sratio,v 1.7 2015/12/03 16:11:58 greve Exp $';
+set VERSION = '$Id: sratio,v 1.8 2015/12/17 21:07:12 greve Exp $';
 set cleanup = 1;
 set LF = ();
 set A = ();
@@ -181,6 +181,8 @@ echo "Ended   at `date`" |& tee -a $LF
 echo "Sratio-Run-Time-Sec $tSecRun" |& tee -a $LF
 echo "Sratio-Run-Time-Hours $tRunHours" |& tee -a $LF
 echo " " |& tee -a $LF
+echo "tkmedit -f $A -aux $B -fminmax 1.01 1.2 -ov $sAdivB" |& tee -a $LF
+echo "" |& tee -a $LF
 echo "sratio Done" |& tee -a $LF
 exit 0
 
