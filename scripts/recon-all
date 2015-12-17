@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/12/09 20:02:53 $
-#    $Revision: 1.557 $
+#    $Date: 2015/12/16 16:40:12 $
+#    $Revision: 1.558 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.557 2015/12/09 20:02:53 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.558 2015/12/16 16:40:12 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -7960,6 +7960,14 @@ usage_exit:
   echo "  -noappend     : start new log and status files instead of appending"
   echo "  -no-isrunning : do not check whether this subject is currently being processed"
   echo ""
+  echo " Segmentation of substructures of hippocampus and brainstem"
+  echo "  -hippocampal-subfields-T1 : segmentation of hippocampal subfields using input T1 scan"
+  echo "  -hippocampal-subfields-T2 file ID : segmentation using an additional scan (given by file);"
+  echo "                                      ID is a user-defined identifier for the analysis"
+  echo "  -hippocampal-subfields-T1T2 file ID : segmentation using additional scan (given by file) and input T1"
+  echo "                                        simultaneously; ID is a user-defined identifier for the analysis"
+  echo "  -brainstem-structures : segmentation of brainstem structures"
+  echo ""
   echo " Other Arguments (Optional)"
   echo "  -sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
   echo "  -mail username  : mail user when done"
@@ -8138,6 +8146,39 @@ Run times are approximate for an Intel Xeon E5-2643 64bit 3.4GHz processor:
   -all                    7 hours   both hemipheres
 
 If -parallel is specified, runtime is reduced to 3 hours.
+
+
+SEGMENTATION OF HIPPOCAMPAL SUBFIELDS 
+
+The following flags can be used to obtain a segmentation of the hippocampal subfields.
+The method is described in [17], and you can find further information here:
+http://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields
+
+-hippocampal-subfields-T1 
+
+It uses the T1 scan which the recon-all stream has processed at 1 mm resolution. 
+
+-hippocampal-subfields-T2 file ID
+
+Instead of the 1 mm T1, it uses an additional scan ('file'), typically (but not necessarily)
+a T2 volume with higher resolution, at least in the coronal plane. It also requires a second
+argument ('ID'), which  uniquely identify the output in the mri directory; this is useful when
+different additional volumes are tried in this mode, in order to prevent files from being overwritten
+
+-hippocampal-subfields-T1T2 file ID
+
+This mode is very similar to the previous one, with the only difference that the 1 mm T1 and the 
+additional volumes are used simultaneously in the segmentation.
+
+
+SEGMENTATION OF BRAINSTEM STRUCTURES
+
+-brainstem-structures
+
+Performs segmentation of brains structures (medulla, pons, midbrain, SCP) on the T1 scan which the 
+recon-all stream has processed at 1 mm resolution. The method is described in [18]; you can read more at:
+http://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures
+
 
 EXPERT PREFERENCES
 
@@ -9056,3 +9097,17 @@ NeuroImage 51(1), 19-21, 2011. http://dx.doi.org/10.1016/j.neuroimage.2011.02.07
 [16] Martin Reuter, Nicholas J Schmansky, H Diana Rosas, Bruce Fischl.
 Within-Subject Template Estimation for Unbiased Longitudinal Image Analysis.
 NeuroImage 61(4), 1402-1418, 2012. http://dx.doi.org/10.1016/j.neuroimage.2012.02.084
+
+[17] Iglesias, J.E., Augustinack, J.C., Nguyen, K., Player, C.M., Player, A., Wright,
+M., Roy, N., Frosch, M.P., McKee, A.C., Wald, L.L., Fischl, B., and Van Leemput, K.,
+A computational atlas of the hippocampal formation using ex vivo, ultra-high resolution
+MRI: Application to adaptive segmentation of in vivo MRI.  Neuroimage 115, 2015, 117-137. 
+http://dx.doi.org/10.1016/j.neuroimage.2015.04.042
+
+[18] Iglesias, J.E., Van Leemput, K., Bhatt, P., Casillas, C., Dutt, S., Schuff, N.,
+Truran-Sacrey, D., Boxer, A., and Fischl, B., Bayesian segmentation of brainstem 
+structures in MRI. Neuroimage 113, 2015, 184-195.
+http://dx.doi.org/10.1016/j.neuroimage.2015.02.065
+
+
+
