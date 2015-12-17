@@ -43,6 +43,8 @@
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = &lt;file1&gt; / &lt;file2&gt;</explanation>
       <argument>pow</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = pow(&lt;file1&gt;,&lt;file2&gt;)</explanation>
+      <argument>sratio</argument>
+      <explanation>2 inputs and 1 output. &lt;outputFile&gt; =  file1/file2 if file1>file2 or -file2/file1 if file2>file1</explanation>
       <argument>pctdiff</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = (&lt;file1&gt;-&lt;file2&gt;)/((&lt;file1&gt;+&lt;file2&gt;+FLT_MIN)/2)</explanation>
       <argument>pctdiff0</argument>
