@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2014/11/25 22:43:38 $
- *    $Revision: 1.8 $
+ *    $Date: 2015/12/17 21:06:35 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.8 2014/11/25 22:43:38 mreuter Exp $";
+    "$Id: lta_convert.cpp,v 1.9 2015/12/17 21:06:35 mreuter Exp $";
 char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
@@ -307,6 +307,38 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
 //Parameters: 1.0899336847275212 -0.039727996262830335 0.03140529159493116 0.03896690477110579 1.0495356962743074 0.24617959701005143 -0.01840643428186128 -0.27758480101278094 1.059354268159089 -0.9666057029459277 -1.6941071744720673 7.8829725769991175
 //FixedParameters: 0 0 0
 
+  // read src and target mri header
+  MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
+  if (src == NULL)
+  {
+    cerr << "ERROR readITK: cannot read src MRI" << sname << endl;
+    exit(1);
+  }
+  MRI * trg = MRIreadHeader(tname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
+  if (trg == NULL)
+  {
+    cerr << "ERROR readITK: cannot read trg MRI" << tname << endl;
+    exit(1);
+  }
+  
+  // determine if 2D (and which dim is flat)
+  bool src3d = src->width >1 && src->height > 1 && src->depth > 1;
+  bool trg3d = trg->width >1 && trg->height > 1 && trg->depth > 1;
+  bool mri3d = src3d || trg3d;
+  int flatdim =-1;
+  if (src->width == 1 && trg->width ==1) flatdim = 1;
+  else if (src->height == 1 && trg->height ==1) flatdim = 2;
+  else if (src->depth == 1 && trg->depth ==1) flatdim = 3;
+  else
+  {
+    cerr << "ERROR readITK: 2D images but plane does not agree." << tname << endl;
+    exit(1);
+  }
+  int o1 = 0; 
+  int o2 = 0;
+  if (flatdim == 1) o1=1;
+  if (flatdim == 2) o2=1;
+
   LTA* lta = LTAalloc(1, NULL) ;
   LINEAR_TRANSFORM * lt = &lta->xforms[0] ;
   lt->sigma = 1.0f ;
@@ -315,10 +347,12 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
   
   std::ifstream transfile (xfname.c_str());
   MATRIX* m_L = MatrixAlloc(4,4,MATRIX_REAL);
+  m_L = MatrixIdentity(4,m_L);
   std::string str;
+  bool is3d = true;
   if(transfile.is_open())
   {
-    float v1,v2,v3;
+    float v1,v2,v3=0.0;
     while(!transfile.eof())
     {
       while (transfile.peek() == '#')
@@ -326,11 +360,26 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
       transfile >> str;
       if (str == "Transform:")
       {
-        getline(transfile,str);
+        //getline(transfile,str);
+        transfile >> str;
         std::cout << str <<std::endl;
+        if (str == "AffineTransform_double_2_2")
+          is3d = false;
+        else if (str != "AffineTransform_double_3_3")
+        {
+          std::cout << "ERROR readITK: Transform type unknown!"<< std::endl;
+          exit(1);    
+        }
+        if (!is3d && mri3d)
+        {
+          std::cout << "ERROR readITK: Transform is 2D but images 3D?"<< std::endl;
+          exit(1);    
+        }
       }
       else if (str == "Parameters:")
       { 
+       if (is3d)
+       {
         // convert to ras2ras (from lps2lps)
         // read and mult with diag(-1,-1,0,0) from left and right:
         transfile >> v1 >> v2 >> v3;
@@ -350,24 +399,45 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
         *MATRIX_RELT(m_L,1,4) = -v1;
         *MATRIX_RELT(m_L,2,4) = -v2;
         *MATRIX_RELT(m_L,3,4) = v3;
-        *MATRIX_RELT(m_L,4,1) = 0.0;
-        *MATRIX_RELT(m_L,4,2) = 0.0;
-        *MATRIX_RELT(m_L,4,3) = 0.0;
-        *MATRIX_RELT(m_L,4,4) = 1.0;   
-               
+        //*MATRIX_RELT(m_L,4,1) = 0.0;
+        //*MATRIX_RELT(m_L,4,2) = 0.0;
+        //*MATRIX_RELT(m_L,4,3) = 0.0;
+        //*MATRIX_RELT(m_L,4,4) = 1.0;   
+       }
+       else
+       {
+         transfile >> v1 >> v2 ;
+        *MATRIX_RELT(m_L,1+o1,1+o1) = v1;
+        *MATRIX_RELT(m_L,1+o1,2+o1+o2) = v2;
+       
+         transfile >> v1 >> v2 ;
+        *MATRIX_RELT(m_L,2+o1+o2,1+o1) = v1;
+        *MATRIX_RELT(m_L,2+o1+o2,2+o1+o2) = v2;
+             
+         transfile >> v1 >> v2 ;
+        *MATRIX_RELT(m_L,1+o1,4) = -v1;
+        *MATRIX_RELT(m_L,2+o1+o2,4) = -v2;
+        //*MATRIX_RELT(m_L,4,1) = 0.0;
+        //*MATRIX_RELT(m_L,4,2) = 0.0;
+        //*MATRIX_RELT(m_L,4,3) = 0.0;
+        //*MATRIX_RELT(m_L,4,4) = 1.0;   
+       }        
       }
       else if (str == "FixedParameters:")
       {
-        transfile >> v1>> v2 >> v3; // center of rotation ???
+        if (is3d)
+          transfile >> v1>> v2 >> v3; // center of rotation ???
+        else
+          transfile >> v1 >> v2;
         if (v1 != 0 || v2!=0 || v3!=0)
         {
-          std::cout << " fixedParameters not equal to zero (not implementd): " << v1 << " " << v2 << " " << v3 << std::endl;
+          std::cout << "ERROR readITK: fixedParameters not equal to zero (not implemented): " << v1 << " " << v2 << " " << v3 << std::endl;
           exit(1);
         }
       }
       else
       {
-         std::cout << str << " unknown!" <<std::endl;
+         std::cout <<"ERROR readITK: "<< str << " unknown!" <<std::endl;
          exit(1);
       }
     }
@@ -375,26 +445,12 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
   }
   else
   {
-    cerr << "readITK Error opening " << xfname << endl;
+    cerr << "ERROR readITK:  opening " << xfname << endl;
     exit(1);
   }
   
   lt->m_L = MatrixInverse( m_L, lt->m_L );
   MatrixFree(&m_L);
-  
-  // read src and target mri header
-  MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
-  if (src == NULL)
-  {
-    cerr << "ERROR readITK: cannot read src MRI" << sname << endl;
-    exit(1);
-  }
-  MRI * trg = MRIreadHeader(tname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
-  if (trg == NULL)
-  {
-    cerr << "ERROR readITK: cannot read trg MRI" << tname << endl;
-    exit(1);
-  }
   
   getVolGeom(src, &lta->xforms[0].src);
   getVolGeom(trg, &lta->xforms[0].dst);
@@ -774,6 +830,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.invert = true;
     cout << "--invert: will invert transform." << endl;
   }
+  else if (!strcmp(option, "HELP") )
+  {
+    printUsage();
+    exit(1);
+  }
 //  else if (!strcmp(option, "INTYPE") )
 //  {
 //    char* it = argv[1];
@@ -794,7 +855,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 //  }
   else
   {
-    cerr << endl << endl << "ERROR: Option: " << argv[0] << " unknown !! "
+    cerr << endl << endl << "ERROR: Option: " << argv[0] << " unknown (see --help) !! "
         << endl << endl;
     exit(1);
   }
