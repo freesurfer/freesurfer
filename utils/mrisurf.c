@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/12/10 21:16:09 $
- *    $Revision: 1.775 $
+ *    $Date: 2015/12/17 18:09:34 $
+ *    $Revision: 1.776 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.775 2015/12/10 21:16:09 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.776 2015/12/17 18:09:34 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -42855,24 +42855,23 @@ MRISmodeFilterZeroVals(MRI_SURFACE *mris)
 int
 MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
 {
-  int    *histo, i, n, vno, ino, index, max_histo, max_val, max_a,
+  int    *histo, i, n, vno, ino, index, max_histo, max_index,
          max_annotation, *annotations, nchanged = 0 ;
   VERTEX *v, *vn ;
 
-  for (max_a = max_val = vno = 0 ; vno < mris->nvertices ; vno++)
+  for (max_index = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    if (v->val > max_val)
-      max_val = v->val ;
-    if (v->annotation > max_a)
-      max_a = v->annotation ;
+    index = annotation_to_index(v->annotation) ;
+    if (index > max_index)
+      max_index = index ;
   }
-  histo = (int *)calloc(max_val+1, sizeof(int)) ;
+  histo = (int *)calloc(max_index+1, sizeof(int)) ;
   if (histo == NULL)
-    ErrorExit(ERROR_NOMEMORY, "MRISmodeFilterVals: could not allocate histo array of %d ints", max_val+1) ;
-  annotations = (int *)calloc(max_a+1, sizeof(int)) ;
+    ErrorExit(ERROR_NOMEMORY, "MRISmodeFilterVals: could not allocate histo array of %d ints", max_index+1) ;
+  annotations = (int *)calloc(max_index+1, sizeof(int)) ;
   if (annotations == NULL)
-    ErrorExit(ERROR_NOMEMORY, "MRISmodeFilterVals: could not allocate annotation array of %d ints", max_val+1) ;
+    ErrorExit(ERROR_NOMEMORY, "MRISmodeFilterVals: could not allocate annotation array of %d ints", max_index+1) ;
 
   //reset the annotation table using the surface's own
   //colortable when it's available
@@ -42890,8 +42889,8 @@ MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
       if (vno == Gdiag_no)
         DiagBreak() ;
 
-      memset(histo, 0, (max_val+1)*sizeof(*histo)) ;
-      memset(annotations, 0, (max_a+1)*sizeof(*annotations)) ;
+      memset(histo, 0, (max_index+1)*sizeof(*histo)) ;
+      memset(annotations, 0, (max_index+1)*sizeof(*annotations)) ;
       for (n = 0 ; n < v->vtotal ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
@@ -42903,9 +42902,17 @@ MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
         annotations[index] = vn->annotation ;
       }
       index = annotation_to_index(v->annotation) ;
-      max_histo = histo[index] ;
-      max_annotation = v->annotation ;
-      for (i = 1 ; i <= max_a ; i++)
+      if (index >= 0)
+      {
+	annotations[index] = v->annotation ;
+	histo[index]++ ;
+	max_histo = histo[index] ;
+	max_annotation = v->annotation ;
+      }
+      else
+	max_histo = max_annotation = 0 ;
+
+      for (i = 1 ; i <= max_index ; i++)
       {
         if (histo[i] > max_histo)
         {
