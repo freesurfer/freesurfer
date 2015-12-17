@@ -6,9 +6,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/03/26 23:18:22 $
- *    $Revision: 1.38 $
+ *    $Author: greve $
+ *    $Date: 2015/12/17 21:05:43 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -119,6 +119,7 @@ MRI *MRIconform(MRI *mri)
   /* ----- change type if necessary ----- */
   if (res->type != templ->type)
   {
+    // FALSE means don't rescale
     mri2 = MRIchangeType(res, templ->type, 0.0, 0.999, FALSE);
     MRIfree(&res);
     if (mri2 == NULL)
@@ -143,6 +144,7 @@ MRI *MRIconform(MRI *mri)
       res->z_a != templ->z_a || 
       res->z_s != templ->z_s)
   {
+    // Need to be able to spec CUBIC here
     mri2 = MRIresample(res, templ, SAMPLE_TRILINEAR);
     MRIfree(&res);
     if (mri2 == NULL)
