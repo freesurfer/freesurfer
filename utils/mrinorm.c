@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/10/16 22:23:15 $
- *    $Revision: 1.113 $
+ *    $Author: fischl $
+ *    $Date: 2015/12/17 14:41:58 $
+ *    $Revision: 1.114 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -494,7 +494,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
     mni->smooth_sigma = smooth_sigma ;
   }
   // look for talairach.xfm
-  if (mri->inverse_linear_transform)
+  if (mri->inverse_linear_transform) 
   {
     // create lta
     lta = LTAalloc(1, NULL) ;
@@ -1373,7 +1373,7 @@ MRInormFindControlPoints(MRI *mri_src, int wm_target, float intensity_above,
                       continue ;
                     }  /* only allow 4 (6 in 3-d)
                                      connectivity */
-                    if (val >= hi_thresh || val <= low_thresh)
+                    if (val > hi_thresh || val < low_thresh)
                     {
                       too_low = 1 ;
                     }
