@@ -6,8 +6,11 @@
 
 # Original Author: Avi Snyder, Washington University, Copyright 2007
 
-#$Header: /space/repo/1/dev/dev/talairach_avi/mpr2mni305,v 1.4 2009/06/03 16:01:38 nicks Exp $
+#$Header: /space/repo/1/dev/dev/talairach_avi/mpr2mni305,v 1.5 2015/12/18 23:56:21 zkaufman Exp $
 #$Log: mpr2mni305,v $
+#Revision 1.5  2015/12/18 23:56:21  zkaufman
+#Added sourcing file for OSX Ek Capitan
+#
 #Revision 1.4  2009/06/03 16:01:38  nicks
 #added --atlas to allow specifying an alternate target (namely SchwartzReactN32_as_orig)
 #
@@ -22,7 +25,7 @@
 #new talairach alignment utility, using Avi Snyders registration tools
 #
 
-set idstr = '$Id: mpr2mni305,v 1.4 2009/06/03 16:01:38 nicks Exp $'
+set idstr = '$Id: mpr2mni305,v 1.5 2015/12/18 23:56:21 zkaufman Exp $'
 set program = $0; set program = $program:t
 
 if (${#argv} < 1) then
