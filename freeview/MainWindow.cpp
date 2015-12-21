@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/27 17:06:09 $
- *    $Revision: 1.305 $
+ *    $Date: 2015/12/21 17:06:49 $
+ *    $Revision: 1.306 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1920,7 +1920,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       {
         m_scripts.insert( 0, QStringList("setlayername") << "MRI" << subArgu );
       }
-      else if ( subOption == "lock" )
+      else if ( subOption == "lock" || subOption == "locked" )
       {
         m_scripts.insert( 0, QStringList("locklayer") << "MRI" << subArgu );
       }
@@ -2804,7 +2804,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("setlayername") << "Surface" << subArgu );
         }
-        else if ( subOption == "lock" )
+        else if ( subOption == "lock" || subOption == "locked")
         {
           m_scripts.insert( 0, QStringList("locklayer") << "Surface" << subArgu );
         }
