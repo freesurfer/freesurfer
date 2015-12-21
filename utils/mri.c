@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/12/10 13:58:31 $
- *    $Revision: 1.564 $
+ *    $Author: mreuter $
+ *    $Date: 2015/12/21 19:08:52 $
+ *    $Revision: 1.565 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.564 $";
+const char *MRI_C_VERSION = "$Revision: 1.565 $";
 
 
 /*-----------------------------------------------------
@@ -16854,7 +16854,7 @@ MRIgetVoxelToVoxelXform(MRI *mri_src, MRI *mri_dst)
   return(m_vox2vox) ;
 }
 
-/*--------------------------------------------------------------
+/** --------------------------------------------------------------
   MRIfovCol(mri) - computes the edge-to-edge FOV in the column
   direction. fov is in mm.
   -------------------------------------------------------------*/
@@ -16881,7 +16881,7 @@ float MRIfovCol(MRI *mri)
   //printf("MRIfovCol() %g\n",fov);
   return(fov);
 }
-/* ---------------------------------------------------------------------
+/** ---------------------------------------------------------------------
    MRIorientationStringToDircos() - sets the direction cosines of to
    be that dictated by the Orientation String. This is helpful for
    setting the direction cosines when the information is not present
@@ -16962,7 +16962,7 @@ int MRIorientationStringToDircos(MRI *mri, char *ostr)
 
   return(0);
 }
-/* ---------------------------------------------------------------
+/** ---------------------------------------------------------------
    MRIcheckOrientationString() - this checks the orientation string
    to make sure that it is valid. "Valid" means that all axes are
    represented exactly once and no invalid characters are present
@@ -17050,7 +17050,7 @@ char *MRIcheckOrientationString(char *ostr)
 
   return(errstrret);
 }
-/*------------------------------------------------------------------
+/** ------------------------------------------------------------------
   MRIdircosToOrientationString() - examines the direction cosines and
   creates an Orientation String. The Orientation String is a three
   character string indicating the primary direction of each axis
@@ -17110,7 +17110,7 @@ int MRIdircosToOrientationString(MRI *mri, char *ostr)
   return(0);
 
 }
-/*-------------------------------------------------------------------
+/** -------------------------------------------------------------------
   MRIsliceDirectionName() - returns the name of the primary slice
   orientation base on the direction cosine. If mri->ras_good_flag=0,
   then "unknown" is returned.
@@ -17201,7 +17201,7 @@ MRIdistanceTransform(MRI *mri_src,
   return mri_dist;  
 }
 
-/*-------------------------------------------------------------------
+/** -------------------------------------------------------------------
   MRIreverseSliceOrder() - reverses the order of the slices WITHOUT
   changing the gemoetry information. This is specially desgined to
   undo the reversal that Siemens sometimes makes to volumes. If
@@ -17240,6 +17240,72 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol)
 
   return(outvol);
 }
+
+/** Reorders and reverses the image orientation and direction
+    cosines in the header to conform (LIA) coronal direction. 
+    Returns NULL if RAS good flag not set or if main axis 
+    ambiguous (should not happen).*/
+MRI *MRIconformSliceOrder(MRI *mri)
+{
+  if (! mri->ras_good_flag)
+  {
+    fprintf(stderr, "MRIconformSliceOrder: direction cosines not set.\n");
+    return(NULL);
+  }
+  
+  // vox2vox matrix from input mri to virtual LIA
+  float Mv2v[3][3];
+  Mv2v[0][0] = -mri->x_r;
+  Mv2v[1][0] = -mri->x_s;
+  Mv2v[2][0] =  mri->x_a;
+  Mv2v[0][1] = -mri->y_r;
+  Mv2v[1][1] = -mri->y_s;
+  Mv2v[2][1] =  mri->y_a;
+  Mv2v[0][2] = -mri->z_r;
+  Mv2v[1][2] = -mri->z_s;
+  Mv2v[2][2] =  mri->z_a;
+  
+  // determine max abs in each column and sign:
+  int xd = (Mv2v[0][0] < 0) ? -1 : 1;
+  int yd = (Mv2v[0][1] < 0) ? -1 : 1;
+  int zd = (Mv2v[0][2] < 0) ? -1 : 1;
+  
+  if (fabs(Mv2v[1][0]) > fabs(Mv2v[0][0]))
+    xd = (Mv2v[1][0] < 0) ? -2 : 2;
+  
+  if (fabs(Mv2v[2][0]) > fabs(Mv2v[0][0])
+      && fabs(Mv2v[2][0]) > fabs(Mv2v[1][0]))
+    xd = (Mv2v[2][0] < 0) ? -3 : 3;
+  
+  if (fabs(Mv2v[1][1]) > fabs(Mv2v[0][1]))
+    yd = (Mv2v[1][1] < 0) ? -2 : 2;
+    
+  if (fabs(Mv2v[2][1]) > fabs(Mv2v[0][1])
+      && fabs(Mv2v[2][1]) > fabs(Mv2v[1][1]))
+    yd = (Mv2v[2][1] < 0) ? -3 : 3;
+    
+  if (fabs(Mv2v[1][2]) > fabs(Mv2v[0][2]))
+    zd = (Mv2v[1][2] < 0) ? -2 : 2;
+    
+  if (fabs(Mv2v[2][2]) > fabs(Mv2v[0][2])
+      && fabs(Mv2v[2][2]) > fabs(Mv2v[1][2]))
+    zd = (Mv2v[2][2] < 0) ? -3 : 3;
+        
+  if (abs(xd) + abs(yd) + abs(zd) != 6)
+  {
+    fprintf(stderr, "MRIconformSliceOrder: order not clear ...\n");
+    fprintf(stderr, "xd: %d  yd: %d  zd: %d\n",xd,yd,zd);
+    return NULL;
+  }
+
+  // this reordering makes the vox2vox more like identity
+  MRI * mri_lia = MRIreorder(mri, NULL, xd, yd, zd);
+
+  return mri_lia;
+
+}
+
+
 
 #define NDIRS 3
 static int dirs[NDIRS][3] =
