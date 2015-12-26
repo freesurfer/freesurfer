@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-# $Id: vertexvol,v 1.1 2015/07/08 15:54:04 greve Exp $
+# $Id: vertexvol,v 1.2 2015/12/25 23:59:19 zkaufman Exp $
 
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -11,7 +11,7 @@
 #
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 
-set VERSION = '$Id: vertexvol,v 1.1 2015/07/08 15:54:04 greve Exp $';
+set VERSION = '$Id: vertexvol,v 1.2 2015/12/25 23:59:19 zkaufman Exp $';
 
 set outfile = ();
 set subject = ();
@@ -35,6 +35,9 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
+
 goto parse_args;
 parse_args_return:
 goto check_params;
