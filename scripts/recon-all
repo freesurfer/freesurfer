@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/12/16 16:40:12 $
-#    $Revision: 1.558 $
+#    $Author: greve $
+#    $Date: 2015/12/21 23:17:49 $
+#    $Revision: 1.559 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.558 2015/12/16 16:40:12 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.559 2015/12/21 23:17:49 greve Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -87,6 +87,7 @@ set XOptsFile = ();
 set XOptsClean = 0; # Delete a pre-existing xopts file
 set XOptsUse   = 1; # Use a pre-existing xopts file (default '1': always use)
 set XOptsOverwrite = 0; # Overwrite a pre-existing xopts file
+set TermScriptList = ();
 set ControlPointsFile = ();
 set TWMControlPointsFile = ();
 set PonsSeedCRS = (); # SeedCRS center of pons for mri_fill #
@@ -102,6 +103,7 @@ set CustomTalAtlas = ""; # -custom-tal-atlas <name of atlas in average dir>
 
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
+# Neither of these are used right now
 set UseMaskNuCorrect = 0; # if 1, nu_correct runs with -mask brainmask.mgz
 set DilateMaskNuCorrect = (); # grow nu_correct mask by this amount
 
@@ -117,6 +119,7 @@ set WSUseTalXfm = 0;    # 1=use talairach.xfm instead of talairach_with_skull
 set WSCopy = 0;         # Simply copy input to output ignoring other opts, 
                         # for when brain is already stripped
 set DoGcut = 0;         # 1=run mri_gcut after mri_watershed
+set NuIterations = 2;   # Number of iterations for nu intensity correction
 set ConformMin = 0;     # 1=conformed to min dimension
 set ConformKeepDC = 0;  # Keep volume direction cosines when conforming
 set HiRes = 0;          # 1=hires option (conformed to min dimension)
@@ -1714,13 +1717,10 @@ talairach:
         # namely specifying iterations, proto-iters and distance: 
         set cmd = ($cmd --n 1 --proto-iters 1000 --distance 50)
       else
-      # 1.5T default:
-        set cmd = ($cmd --n 1 --proto-iters 1000 --distance 200)
+        # 1.5T default: 
+        # DNG: changed distance from 200 to 50 to match 5.3 
+        set cmd = ($cmd --n 1 --proto-iters 1000 --distance 50)
       endif
-      # per c.larsen, decrease convergence threshold (default is 0.001)
-      set cmd = ($cmd --stop 1e-4)
-      # use default sampling (shrink 4), higher res (2) will cause severe IO
-      set cmd = ($cmd --shrink 4)
       # allow expert-options override
       set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
       set cmd = ($cmd $xopts)
@@ -1912,6 +1912,78 @@ handle_tal_error:
   endif
 endif
 
+#-----------                         -----------#
+#----------- Nu Intensity Correction -----------#
+##----------     -nuintensitycor     -----------#
+#-----------                         -----------#
+if($DoNuIntensityCor) then
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# Nu Intensity Correction `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
+  set cmd = (mri_nu_correct.mni --i orig.mgz --o nu.mgz)
+  # to fix a problem with mri_nu_correct.mni messing with the histogramming
+  # in some odd subjects (due to voxels outside the brain, which has the
+  # effect of altering white matter intensity interpretation downstream),
+  # the inclusion of talairach.xfm with mri_nu_correct.mni causes
+  # mri_make_uchar to run, which uses the Tal xform to find a ball of voxels
+  # that are mostly brain. The top of the intensity histogram in this ball
+  # will then be white matter, which allows us to center it at the desired
+  # value, approximately (110).
+  if ($DoNuMakeUchar) then
+    if ( ! -e transforms/talairach.xfm && $RunIt) then
+      echo "WARNING: transforms/talairach.xfm does not exist!" \
+        |& tee -a $LF
+      echo "It will not be used by mri_nu_correct.mni." \
+        |& tee -a $LF
+    else
+      set cmd = ($cmd --uchar transforms/talairach.xfm)
+    endif
+  endif
+  # --cm for hi-res support:
+  if ($ConformMin) set cmd = ($cmd --cm)
+  # -3T flag support:
+  if ($DoNuIntensityCor3T) then
+    # 3T params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
+    # "Improvement of brain segmentation accuracy by optimizing
+    # non-uniformity correction using N3"
+    # namely specifying iterations, proto-iters and distance: 
+    set NuIterations = 1;
+    set cmd = ($cmd --proto-iters 1000 --distance 50)
+  endif
+  # add user-specified option (from an 'experts file')
+  set cmd = ($cmd --n $NuIterations $xopts)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  # Add xfm to nu
+  set cmd = (mri_add_xform_to_header -c \
+             $subjdir/mri/transforms/talairach.xfm \
+             nu.mgz nu.mgz)
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) then
+    $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  if($?CREATE_NU_DIFF_FILES) then
+    # for debug, create difference volumes between orig and nu files
+    set cmd1 = (mri_diff orig.mgz orig_nu.mgz --diff diff-orig-orig_nu.mgz)
+    set cmd2 = (mri_diff orig.mgz nu.mgz --diff diff-orig-nu.mgz)
+    set cmd3 = (mri_diff orig_nu.mgz nu.mgz --diff diff-orig_nu-nu.mgz)
+    echo "\n $cmd1 \n" |& tee -a $LF |& tee -a $CF
+    echo "\n $cmd2 \n" |& tee -a $LF |& tee -a $CF
+    echo "\n $cmd3 \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd1 |& tee -a $LF
+      $fs_time $cmd2 |& tee -a $LF
+      $fs_time $cmd3 |& tee -a $LF
+    endif
+  endif
+  # done:
+  date > $touchdir/nu.touch
+endif
 
 #-----------                          -----------#
 #----------- Intensity Normalization1 -----------#
@@ -1956,7 +2028,7 @@ if($DoNormalization) then
     set cmd = (mri_normalize \
       -w $subjdir/mri/ctrl_vol.mgz $subjdir/mri/bias_vol.mgz \
       -l $longbasedir/mri/ctrl_vol.mgz $longbasedir/mri/bias_vol.mgz \
-      $subjdir/mri/orig_nu.mgz \
+      $subjdir/mri/nu.mgz \
       $subjdir/mri/T1.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -1977,10 +2049,6 @@ if($DoNormalization) then
       # 1.5T default:
         set cmd = ($cmd --n 1 --proto-iters 1000 --distance 200)
       endif
-      # per c.larsen, decrease convergence threshold (default is 0.001)
-      set cmd = ($cmd --stop 1e-4)
-      # use default sampling (shrink 4), higher res (2) will cause severe IO
-      set cmd = ($cmd --shrink 4)
       # allow expert-options override
       set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
       set cmd = ($cmd $xopts)
@@ -1999,7 +2067,7 @@ if($DoNormalization) then
     if($ConformMin)       set cmd = ($cmd -noconform)
     # in base create the ctrl_vol.mgz for init longs later:
     if($DoCreateBaseSubj) set cmd = ($cmd -W ctrl_vol.mgz bias_vol.mgz)
-    set cmd = ($cmd $xopts orig_nu.mgz T1.mgz)
+    set cmd = ($cmd $xopts nu.mgz T1.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -2138,7 +2206,7 @@ skullstrip:
         set cmd2 = (mri_em_register)
         if($UseCuda) set cmd2 = (mri_em_register_cuda)
         set cmd2 = ($cmd2 -skull)
-        set cmd2 = ($cmd2 $xopts2 orig_nu.mgz ${GCADIR}/$GCASkull)
+        set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
         set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
         echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) $fs_time $cmd2 |& tee -a $LF
@@ -2371,98 +2439,6 @@ skullstrip:
 endif
 
 
-#-----------                         -----------#
-#----------- Nu Intensity Correction -----------#
-##----------     -nuintensitycor     -----------#
-#-----------                         -----------#
-if($DoNuIntensityCor) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# Nu Intensity Correction `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
-  set cmd = (mri_nu_correct.mni --i orig.mgz --o nu.mgz)
-  # to fix a problem with mri_nu_correct.mni messing with the histogramming
-  # in some odd subjects (due to voxels outside the brain, which has the
-  # effect of altering white matter intensity interpretation downstream),
-  # the inclusion of talairach.xfm with mri_nu_correct.mni causes
-  # mri_make_uchar to run, which uses the Tal xform to find a ball of voxels
-  # that are mostly brain. The top of the intensity histogram in this ball
-  # will then be white matter, which allows us to center it at the desired
-  # value, approximately (110).
-  if ($DoNuMakeUchar) then
-    if ( ! -e transforms/talairach.xfm) then
-      echo "WARNING: transforms/talairach.xfm does not exist!" \
-        |& tee -a $LF
-      echo "It will not be used by mri_nu_correct.mni." \
-        |& tee -a $LF
-    else
-      set cmd = ($cmd --uchar transforms/talairach.xfm)
-    endif
-  endif
-  # --cm for hi-res support:
-  if ($ConformMin) set cmd = ($cmd --cm)
-  # -3T flag support:
-  if ($DoNuIntensityCor3T) then
-    # 3T params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
-    # "Improvement of brain segmentation accuracy by optimizing
-    # non-uniformity correction using N3"
-    # namely specifying iterations, proto-iters and distance: 
-    set cmd = ($cmd --n 1 --proto-iters 1000 --distance 50)
-  else
-  # 1.5T default:
-    set cmd = ($cmd --n 1 --proto-iters 1000 --distance 200)
-  endif
-  # per c.larsen, decrease convergence threshold (default is 0.001)
-  set cmd = ($cmd --stop 1e-4)
-  # use default sampling (shrink 4), higher res (2) will cause severe IO
-  set cmd = ($cmd --shrink 4)
-  # add the mask, as per c.larsen, bias-field correction is known to work
-  # much better when the brain area is properly masked, in this case by
-  # brainmask.mgz.
-  if ($UseMaskNuCorrect) then
-    set cmd = ($cmd --mask brainmask.mgz)
-    if ($#DilateMaskNuCorrect) then
-      set cmd = ($cmd --mask-dilate $DilateMaskNuCorrect)
-    endif
-  endif
-  # add user-specified option (from an 'experts file')
-  set cmd = ($cmd $xopts)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  # Add xfm to nu
-  # Why is this done here instead of after talairach.xfm is created?
-  # To assure that it gets propagated?
-  set cmd = (mri_add_xform_to_header -c \
-             $subjdir/mri/transforms/talairach.xfm \
-             nu.mgz nu.mgz)
-  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-  if($RunIt) then
-    $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  endif
-  if($?CREATE_NU_DIFF_FILES) then
-    # for debug, create difference volumes between orig and nu files
-    set cmd1 = (mri_diff orig.mgz orig_nu.mgz --diff diff-orig-orig_nu.mgz)
-    set cmd2 = (mri_diff orig.mgz nu.mgz --diff diff-orig-nu.mgz)
-    set cmd3 = (mri_diff orig_nu.mgz nu.mgz --diff diff-orig_nu-nu.mgz)
-    echo "\n $cmd1 \n" |& tee -a $LF |& tee -a $CF
-    echo "\n $cmd2 \n" |& tee -a $LF |& tee -a $CF
-    echo "\n $cmd3 \n" |& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd1 |& tee -a $LF
-      $fs_time $cmd2 |& tee -a $LF
-      $fs_time $cmd3 |& tee -a $LF
-    endif
-  endif
-  # done:
-  touch $touchdir/nu.touch
-endif
-
-
-
 
 #-----------             -------------#
 ##---------- AUTORECON 2 -------------#
@@ -2580,6 +2556,7 @@ if($DoCAReg) then
   if($UseCuda) set cmd = (mri_ca_register_cuda)
   if($#GCARegIterations) set cmd = ($cmd -n $GCARegIterations)
   if($#GCARegTol) set cmd = ($cmd -tol $GCARegTol)
+  set lta = transforms/talairach.lta
   set m3z = transforms/talairach.m3z
   set norm = norm.mgz
   if($#GCAOutputName) then
@@ -5431,7 +5408,21 @@ if($DoVnoMatchCheck) then
   endif
 endif
 
-
+if($#TermScriptList) then
+  echo "Running termination scripts ---------------" | tee -a $LF
+  cd $SUBJECTS_DIR
+  foreach TermScript ($TermScriptList)
+    echo "Termination script $TermScript --------------" | tee -a $LF
+    date | tee -a $LF
+    echo "cd `pwd`" | tee -a $LF
+    set cmd = ($TermScript $subjid)
+    echo $cmd  |& tee -a $LF
+    if($RunIt) $fs_time $cmd  |& tee -a $LF
+    if($status) goto error_exit;
+  end
+  echo "---------------------------------" |& tee -a $LF
+  echo "Done with termination scripts " |& tee -a $LF
+endif
 
 #--------------                    ----------------#
 ##-------------  END OF RECON-ALL  ----------------#
@@ -5725,8 +5716,8 @@ while( $#argv != 0 )
       breaksw
 
     case "-motioncor":
-    case "-mc":
-      set DoMotionCor = 1;
+    case "-mc": 
+     set DoMotionCor = 1;
       breaksw
     case "-nomotioncor":
     case "-nomc":
@@ -6869,6 +6860,17 @@ while( $#argv != 0 )
       set XOptsOverwrite = 1; # Overwrite pre-existing xopts
       breaksw
 
+    case "-termscript"
+      if( $#argv < 1) goto arg1err;
+      set ts = $argv[1]; shift
+      which $ts >& /dev/null
+      if($status) then
+        echo "ERROR: termination script $ts does not exist in your path"
+        exit 1;
+      endif
+      set TermScriptList = ($TermScriptList $ts);
+      breaksw
+
     case "-clean":
       set DoCleanCSDF  = 1;
       set DoCleanCW256 = 1;
@@ -7940,6 +7942,11 @@ usage_exit:
   echo "  -xopts-use       : use pre-existing expert options file"
   echo "  -xopts-clean     : delete pre-existing expert options file"
   echo "  -xopts-overwrite : overwrite pre-existing expert options file"
+  echo "  -termscript script : run script before exiting (multiple -termscript flags possible)"
+  echo "   This can be good for running custom post-processing after recon-all"
+  echo "   The script must be in your path. The subjid is passed as the only argument"
+  echo "   The current directory is changed to SUBJECTS_DIR before the script is run"
+  echo "   The script should exit with 0 unless there is an error"
   echo ""
   echo "  -mprage : assume scan parameters are MGH MP-RAGE protocol"
   echo "  -washu_mprage : assume scan parameters are Wash.U. MP-RAGE protocol."
