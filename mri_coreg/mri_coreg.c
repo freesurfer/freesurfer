@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/20 20:45:23 $
- *    $Revision: 1.20 $
+ *    $Date: 2015/12/30 03:05:36 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.20 2015/11/20 20:45:23 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.23 2015/12/30 03:05:36 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -101,9 +101,12 @@ typedef struct {
   char *logcost;
   int DoBF; 
   double BFLim;
+  int BFNSamp;
   char *outparamfile;
   double fwhmc, fwhmr, fwhms;
   int SmoothRef;
+  double SatPct;
+  int MovOOBFlag;
 } CMDARGS;
 
 CMDARGS *cmdargs;
@@ -152,6 +155,8 @@ typedef struct {
   RFS *refirfs,*movirfs;
   int DoSmoothing;
   FILE *fplogcost;
+  int MovOOBFlag;
+  int debug;
 } COREG;
 
 double COREGcost(COREG *coreg);
@@ -204,7 +209,10 @@ int main(int argc, char *argv[]) {
   cmdargs->refconf = 0;
   cmdargs->DoBF = 1;
   cmdargs->BFLim = 30;
+  cmdargs->BFNSamp = 30;
   cmdargs->SmoothRef = 0;
+  cmdargs->SatPct = 99.99;
+  cmdargs->MovOOBFlag = 0;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -323,12 +331,14 @@ int main(int argc, char *argv[]) {
   coreg->nitersmax = cmdargs->nitersmax;
   coreg->ftol = cmdargs->ftol;
   coreg->linmintol = cmdargs->linmintol;
-  coreg->SatPct = 99.99;
+  coreg->SatPct = cmdargs->SatPct;
   coreg->DoCoordDither = cmdargs->DoCoordDither;
   coreg->DoIntensityDither = cmdargs->DoIntensityDither;
   coreg->refirfs = NULL;
   coreg->movirfs = NULL;
   coreg->DoSmoothing = cmdargs->DoSmoothing;
+  coreg->MovOOBFlag = cmdargs->MovOOBFlag;
+  coreg->debug = debug;
 
   if(coreg->DoCoordDither){
     // Creating a dither volume is needed for thread safety
@@ -390,7 +400,7 @@ int main(int argc, char *argv[]) {
   for(n=0; n < coreg->nsep; n++){
     coreg->sep = coreg->seplist[n];
     printf("sep = %d -----------------------------------\n",coreg->sep);
-    if(n==0 && cmdargs->DoBF) COREGoptBruteForce(coreg, cmdargs->BFLim, 1, 10);
+    if(n==0 && cmdargs->DoBF) COREGoptBruteForce(coreg, cmdargs->BFLim, 1, cmdargs->BFNSamp);
     coreg->startmin = 1;
     COREGMinPowell();
   }
@@ -469,6 +479,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--conf-ref"))  cmdargs->refconf = 1;
     else if (!strcasecmp(option, "--bf"))  cmdargs->DoBF = 1;
     else if (!strcasecmp(option, "--no-bf"))  cmdargs->DoBF = 0;
+    else if (!strcasecmp(option, "--mov-oob"))  cmdargs->MovOOBFlag = 1;
+    else if (!strcasecmp(option, "--no-mov-oob"))  cmdargs->MovOOBFlag = 0;
 
     else if (!strcasecmp(option, "--mov")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -520,6 +532,11 @@ static int parse_commandline(int argc, char **argv) {
       setenv("SUBJECTS_DIR",pargv[0],1);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--sat")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&cmdargs->SatPct);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--dof")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&cmdargs->dof);
@@ -529,6 +546,12 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->DoBF = 1;
       sscanf(pargv[0],"%lf",&cmdargs->BFLim);
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--bf-nsamp")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->DoBF = 1;
+      sscanf(pargv[0],"%d",&cmdargs->BFNSamp);
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--6")) cmdargs->dof = 6;
@@ -691,11 +714,16 @@ static void print_usage(void) {
   printf("   --nitersmax n : default is %d\n",cmdargs->nitersmax);
   printf("   --ftol ftol : default is %5.3le\n",cmdargs->ftol);
   printf("   --linmintol linmintol : default is %5.3le\n",cmdargs->linmintol);
+  printf("   --sat SatPct : saturation threshold, default %5.3le\n",cmdargs->SatPct);
   printf("   --conf-ref : conform the refernece without rescaling (good for gca)");
-  printf("   --no-bf : do not do brute force search");
-  printf("   --bf-lim lim : constrain brute force search to +/-lim");
-  printf("   --no-smooth : do not apply smoothing to either ref or mov");
+  printf("   --no-bf : do not do brute force search\n");
+  printf("   --bf-lim lim : constrain brute force search to +/-lim\n");
+  printf("   --bf-nsamp nsamples : number of samples in brute force search\n");
+  printf("   --no-smooth : do not apply smoothing to either ref or mov\n");
   printf("   --ref-fwhm fwhm : apply smoothing to ref");
+  printf("   --mov-oob : count mov voxels that are out-of-bounds as 0");
+  printf("   --no-mov-oob : do not count mov voxels that are out-of-bounds as 0 (default)");
+  printf("   --mat2par reg.lta : extract parameters out of registration");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -761,10 +789,17 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
+  fprintf(fp,"dof    %d\n",cmdargs->dof);
+  fprintf(fp,"nsep    %d\n",cmdargs->nsep);
   fprintf(fp,"cras0    %d\n",cmdargs->cras0);
+  fprintf(fp,"ftol    %lf\n",cmdargs->ftol);
+  fprintf(fp,"linmintol    %lf\n",cmdargs->linmintol);
   fprintf(fp,"bf       %d\n",cmdargs->DoBF);
   fprintf(fp,"bflim    %lf\n",cmdargs->BFLim);
+  fprintf(fp,"bfnsamp    %d\n",cmdargs->BFNSamp);
   fprintf(fp,"SmoothRef %d\n",cmdargs->SmoothRef);
+  fprintf(fp,"SatPct    %lf\n",cmdargs->SatPct);
+  fprintf(fp,"MovOOB %d\n",cmdargs->MovOOBFlag);
   return;
 }
 
@@ -861,7 +896,7 @@ int COREGhist(COREG *coreg)
     double dcref,drref,dsref;
     double dcmov,drmov,dsmov;
     double vf, vg;
-    int   ivf, ivg;
+    int   ivf, ivg, oob;
     double *H;
     int threadno = 1;
     //int iran;
@@ -887,13 +922,19 @@ int COREGhist(COREG *coreg)
 	drmov  = V2V[1]*dcref + V2V[5]*drref + V2V[ 9]*dsref +  V2V[13];
 	dsmov  = V2V[2]*dcref + V2V[6]*drref + V2V[10]*dsref +  V2V[14];
 
-	if(dcmov < 0 || dcmov > coreg->mov->width-1)  continue;
-	if(drmov < 0 || drmov > coreg->mov->height-1) continue;
-	if(dsmov < 0 || dsmov > coreg->mov->depth-1)  continue;
-	nhits ++;
+	oob = 0;
+	if(dcmov < 0 || dcmov > coreg->mov->width-1)  oob = 1;
+	if(drmov < 0 || drmov > coreg->mov->height-1) oob = 1;
+	if(dsmov < 0 || dsmov > coreg->mov->depth-1)  oob = 1;
+	if(!oob) 
+	  vf = COREGsamp(coreg->f, dcmov, drmov, dsmov, coreg->mov->width,coreg->mov->height,coreg->mov->depth);
+	else {
+	  if(coreg->MovOOBFlag) vf = 0;
+	  else continue;
+	}
 
 	vg = COREGsamp(coreg->g, dcref, drref, dsref, coreg->ref->width,coreg->ref->height,coreg->ref->depth);
-	vf = COREGsamp(coreg->f, dcmov, drmov, dsmov, coreg->mov->width,coreg->mov->height,coreg->mov->depth);
+	nhits ++;
 
 	ivf = floor(vf);
 	ivg = floor(vg+0.5);
@@ -1673,12 +1714,18 @@ int COREGoptBruteForce(COREG *coreg, double lim0, int niters, int n1d)
   double p,pmin,pmax,pdelta=0,popt;
   double lim;
   FILE *fp;
-  int dof;
+  int dof,BakMovOOBFlag;
+
+  printf("COREGoptBruteForce() %g %d %d\n",lim0,niters,n1d);
 
   dof = 6;
   if(coreg->nparams < 6) dof = coreg->nparams;
 
-  printf("COREGoptBruteForce() %g %d %d\n",lim0,niters,n1d);
+  BakMovOOBFlag = coreg->MovOOBFlag;
+  if(coreg->MovOOBFlag == 0){
+    coreg->MovOOBFlag = 1;
+    printf("Turning on MovOOB for BruteForce Search\n");
+  }
 
   mincost = 10e10;
   lim = lim0;
@@ -1699,6 +1746,12 @@ int COREGoptBruteForce(COREG *coreg, double lim0, int niters, int n1d)
 	  popt = p;
 	  newmin = 1;
 	}
+	if(coreg->debug){
+	  printf("%2d %2d %3d",iter,nthp,nth1d);
+	  for(n=0; n<coreg->nparams; n++) printf("%9.5f ",coreg->params[n]);
+	  printf("  %9.7f %9.7f\n",curcost,mincost);
+	  fflush(stdout);
+	}
 	nth1d++;
       } // 1d min
       coreg->params[nthp] = popt;
@@ -1714,6 +1767,8 @@ int COREGoptBruteForce(COREG *coreg, double lim0, int niters, int n1d)
     lim = lim/n1d;
   } // iteration
 
+  if(BakMovOOBFlag == 0) printf("Turning  MovOOB back off after brute force search\n");
+  coreg->MovOOBFlag = BakMovOOBFlag;
 
   return(0);
 }

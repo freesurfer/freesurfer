@@ -8,9 +8,9 @@
 # Original Author: Nick Schmansky
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/12/18 23:56:21 $
-#    $Revision: 1.12 $
+#    $Author: greve $
+#    $Date: 2015/12/23 04:25:17 $
+#    $Revision: 1.13 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -23,10 +23,11 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: talairach_avi,v 1.12 2015/12/18 23:56:21 zkaufman Exp $'
+set VERSION = '$Id: talairach_avi,v 1.13 2015/12/23 04:25:17 greve Exp $'
 
 set InVol = ();
 set XFM = ();
+set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
 
 set LF = ();
 set debug = 0;
@@ -58,6 +59,8 @@ parse_args_return:
 # Check the command-line arguments
 goto check_params;
 check_params_return:
+
+set StartTime = `date`
 
 set OutDir = `dirname $XFM`;
 mkdir -p $OutDir;
@@ -96,8 +99,7 @@ endif
 
 # transform results back to mni305 space
 set cmd = (avi2talxfm \
-    $InVol \
-    $FREESURFER_HOME/average/mni305.cor.mgz \
+    $InVol $mni305\
     talsrcimg_to_${target}_t4_vox2vox.txt \
     ${XFM})
 echo $cmd >>& $LF
@@ -109,12 +111,20 @@ if($st) then
   exit 1;
 endif
 
+# Create an lta version of the xfm for convenience
+set cmd = (lta_convert --src $InVol --trg $mni305 \
+  --inxfm $XFM --outlta $XFM.lta --subject fsaverage)
+echo $cmd >>& $LF
+$cmd >>& $LF
+if($status) exit 1;
+
 rm -f talsrcimg*
 
 echo " " >>& $LF
 echo " " >>& $LF
-date >>& $LF
-echo "talairach_avi done" >>& $LF
+echo "Started at $StartTime" |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "talairach_avi done" |& tee -a $LF
 
 exit 0;
 ###############################################

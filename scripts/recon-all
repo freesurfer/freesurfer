@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/12/21 23:17:49 $
-#    $Revision: 1.559 $
+#    $Date: 2015/12/30 03:06:56 $
+#    $Revision: 1.560 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.559 2015/12/21 23:17:49 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.560 2015/12/30 03:06:56 greve Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -2621,7 +2621,7 @@ endif
 
 #------------                                    --------------#
 #------------ Removes neck and part of the face  --------------#
-##-----------              -rmneck               --------------#
+##----------- -rmneck, needed if doing SkullLTA  --------------#
 #------------                                    --------------#
 if($DoRemoveNeck) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
@@ -6048,7 +6048,7 @@ while( $#argv != 0 )
     case "-subcortseg":
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
-      set DoSkullLTA       = 1;
+      set DoSkullLTA       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
@@ -6516,7 +6516,7 @@ while( $#argv != 0 )
       set DoNuIntensityCor = 1;
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
-      set DoSkullLTA       = 1;
+      set DoSkullLTA       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
@@ -6598,7 +6598,7 @@ while( $#argv != 0 )
     case "-autorecon2":
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
-      set DoSkullLTA       = 1;
+      set DoSkullLTA       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
@@ -6622,7 +6622,7 @@ while( $#argv != 0 )
     case "-autorecon2-volonly":
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
-      set DoSkullLTA       = 1;
+      set DoSkullLTA       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;
@@ -6652,7 +6652,7 @@ while( $#argv != 0 )
     case "-autorecon2-inflate1":
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 1;
-      set DoSkullLTA       = 1;
+      set DoSkullLTA       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
       set DoCALabel        = 1;

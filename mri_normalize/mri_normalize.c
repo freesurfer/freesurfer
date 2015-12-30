@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/08/05 19:24:14 $
- *    $Revision: 1.85 $
+ *    $Date: 2015/12/23 17:30:35 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,10 @@
 #include "tags.h"
 #include "version.h"
 #include "cma.h"
+#include "transform.h"
+#include "gca.h"
 
+static MRI *build_outside_of_brain_mask(MRI *mri_src, GCA *gca, TRANSFORM *xform, double prior_thresh, int whalf)  ;
 MRI *MRIcombineDistanceTransforms(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst);
 static int remove_surface_outliers(MRI *mri_ctrl_src,
                                    MRI *mri_dist,
@@ -69,8 +72,12 @@ static MRI *add_interior_points(MRI *mri_src, MRI *mri_vals,
                                 MRI_SURFACE *mris_interior1,
                                 MRI_SURFACE *mris_interior2,
                                 MRI *mri_aseg, MRI *mri_dst) ;
+static GCA *gca ;
+static TRANSFORM *xform ;
+static int brain_distance = 1 ;
 static int conform = 0;
 static int gentle_flag = 0 ;
+static int noskull = 0 ;
 static int nosnr = 1 ;
 static double min_dist = 2.5 ; // mm away from border in -surface
 
@@ -146,14 +153,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.85 2015/08/05 19:24:14 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.88 2015/12/23 17:30:35 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.85 2015/08/05 19:24:14 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.88 2015/12/23 17:30:35 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -200,6 +207,13 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_NO_FILE, "%s: could not open source file %s",
               Progname, in_fname) ;
   MRIaddCommandLine(mri_src, cmdline) ;
+
+  if (gca)  // atlas and transform specified - build mask of regions that cannot have control points
+  {
+    mri_not_control = build_outside_of_brain_mask(mri_src, gca, xform, 0, brain_distance) ;
+    GCAfree(&gca) ;
+    TransformFree(&xform) ;
+  }
 
   if(nsurfs > 0)
   {
@@ -279,7 +293,7 @@ main(int argc, char *argv[])
       }
 //  MRIminAbs(mri_dist_one, mri_dist, mri_dist) ;
       MRIfree(&mri_dist_one) ;
-    }
+    }   // end of for i=1:nsurfs
     MRIscalarMul(mri_dist, mri_dist, -1) ;
 
     if (nonmax_suppress)
@@ -519,6 +533,13 @@ main(int argc, char *argv[])
     mri_src = mri_tmp ;
   }
 #endif
+
+  if (mri_src->type != MRI_FLOAT)
+  {
+    MRI *mri_tmp ;
+    mri_tmp = MRIchangeType(mri_src, MRI_FLOAT, 0, 255, 1) ;
+    MRIfree(&mri_src) ; mri_src = mri_tmp ;
+  }
 
   if(aseg_fname)
   {
@@ -797,6 +818,28 @@ main(int argc, char *argv[])
     MRIfree(&mri_bias) ;
   }
 
+  if (mri_dst->type != MRI_UCHAR)
+  {
+    MRI *mri_tmp ;
+    if (mriConformed(mri_dst))
+    {
+      int  x, y, z ;
+      float val ;
+      for (x = 0 ; x < mri_dst->width ; x++)
+	for (y = 0 ; y < mri_dst->height ; y++)
+	  for (z = 0 ; z < mri_dst->depth ; z++)
+	  {
+	    val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
+	    if (val < 0)
+	      val = 0 ;
+	    else if (val > 255)
+	      val = 255 ;
+	    MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+	  }
+    }
+    mri_tmp = MRIchangeType(mri_dst, MRI_UCHAR, 0, 255, 1) ;
+    MRIfree(&mri_dst) ; mri_dst = mri_tmp ;
+  }
   if (verbose)
   {
     printf("writing output to %s\n", out_fname) ;
@@ -850,11 +893,28 @@ get_option(int argc, char *argv[])
     printf("eroding interior of surface %d times\n", erode) ;
     nargs = 1 ;
   }
+  else if (!stricmp(option, "ATLAS"))
+  {
+    printf("reading gca and atlas transform from %s and %s\n", argv[2], argv[3]) ;
+    gca = GCAread(argv[2]) ;
+    xform = TransformRead(argv[3]) ;
+    brain_distance = atoi(argv[4]) ;
+    printf("reading gca from %s, xform from %s and setting brain distance to %d voxels\n",
+	   argv[2], argv[3], brain_distance) ;
+    nargs = 3 ;
+    if (!gca || !xform)
+      ErrorExit(ERROR_NOFILE, "%s: could not read gca (%s) or transform (%s)\n", Progname, argv[2], argv[3]) ;
+  }
   else if (!stricmp(option, "MASK"))
   {
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
+  else if (!stricmp(option, "NOSKULL"))
+  {
+    noskull = 1 ;
+    printf("assuming input volume has been skull stripped\n") ;
   }
   else if (!stricmp(option, "GRAD"))
   {
@@ -1747,5 +1807,36 @@ remove_outliers_near_surface(MRI *mri_ctrl, MRI *mri_dist, MRI *mri_dst, MRI *mr
       }
   printf("%d control points within %2.1fmm of the surface removed as intensity outliers\n", nremoved, min_dist) ;
   return(nremoved) ;
+}
+
+static MRI *
+build_outside_of_brain_mask(MRI *mri_src, GCA *gca, TRANSFORM *xform, double prior_thresh, int whalf) 
+{
+  MRI       *mri_outside_of_brain ;
+  int       x, y, z, xp, yp, zp, i, brain ;
+  GCA_PRIOR *gcap;
+
+
+  mri_outside_of_brain = MRIcloneDifferentType(mri_src, MRI_UCHAR) ;
+  for (x = 0 ; x < mri_src->width ; x++)
+    for (y = 0 ; y < mri_src->height ; y++)
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
+	if (GCAsourceVoxelToPrior(gca, mri_src, xform, x, y, z, &xp, &yp, &zp) != NO_ERROR)
+	{
+	  MRIsetVoxVal(mri_outside_of_brain, x, y, z, 0, 1) ;  // outside of FOV of atlas - definitely out of brain
+	  continue ;
+	}
+	gcap = &gca->priors[xp][yp][zp] ;
+	for (brain = i = 0 ; i < gcap->nlabels ; i++)
+	  if (IS_BRAIN(gcap->labels[i]))
+	    brain = 1 ;
+	if (brain == 0)
+	  MRIsetVoxVal(mri_outside_of_brain, x, y, z, 0, 1) ;
+      }
+
+  for (i = 0 ; i < whalf-1 ; i++)
+    MRIerode(mri_outside_of_brain, mri_outside_of_brain) ;
+  return(mri_outside_of_brain) ;
 }
 
