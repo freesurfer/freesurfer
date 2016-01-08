@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/07/16 01:29:22 $
- *    $Revision: 1.57 $
+ *    $Author: greve $
+ *    $Date: 2016/01/07 22:23:57 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2084,12 +2084,13 @@ FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
 
   /* Do the FDR */
   DebugNote( ("Running MRIfdr2vwth") );
-  eMRI = MRIfdr2vwth( this->mpData,
-                      nFrame,        /* 0-based frame number of input vol */
+  eMRI = MRIfdr2vwth( &this->mpData,
+		      1,
+                      &nFrame,        /* 0-based frame number of input vol */
                       iRate,         /* rate 0-1 */
                       iSign,         /* 0=all, +1=only pos, -1=only neg */
                       TRUE,          /* interp vals as -log10(p) */
-                      pLocalMaskVol, /* optional mask volume */
+                      &pLocalMaskVol, /* optional mask volume */
                       &newMin,       /* voxel-wise thresh (vwth) 0-1,
                                         or if log10flag, -log10(vwth) */
                       NULL );        /* option thresholded output */

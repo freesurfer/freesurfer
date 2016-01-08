@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/11/19 18:50:56 $
- *    $Revision: 1.19 $
+ *    $Date: 2016/01/07 23:28:11 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -109,6 +109,18 @@ tksurfer bert lh inflated -overlay nhits.mgh -fthresh 1.5
 
 Then File->Label->ImportAnnotation and select lh.myaparc.annot.
 
+EXAMPLE: 
+
+To create an annotation with a few labels from the aparc, run
+
+cd $SUBJECTS_DIR/yoursubject/label
+mri_annotation2label --hemi lh --subject yoursubject --outdir deleteme
+rm deleteme/lh.superiortemporal.label   # remove superior temporal, etc
+mris_label2annot --hemi lh --subject yoursubject --ctab aparc.annot.ctab
+   --ldir deletme --no-unknown --a myaparc
+tksurferfv yoursubject lh inflated -annot myaparc
+rm -r deletme
+
   ENDHELP
 */
 
@@ -161,7 +173,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mris_label2annot.c,v 1.19 2013/11/19 18:50:56 greve Exp $";
+"$Id: mris_label2annot.c,v 1.20 2016/01/07 23:28:11 greve Exp $";
 
 
 static int dilate_label_into_unknown(MRI_SURFACE *mris, int annot) ;
@@ -561,6 +573,18 @@ printf("\n");
 printf("tksurfer bert lh inflated -overlay nhits.mgh -fthresh 1.5\n");
 printf("\n");
 printf("Then File->Label->ImportAnnotation and select lh.myaparc.annot.\n");
+printf("\n");
+printf("EXAMPLE: \n");
+printf("\n");
+printf("To create an annotation with a few labels from the aparc, run\n");
+printf("\n");
+printf("cd $SUBJECTS_DIR/yoursubject/label\n");
+printf("mri_annotation2label --hemi lh --subject yoursubject --outdir deleteme\n");
+printf("rm deleteme/lh.superiortemporal.label   # remove superior temporal, etc\n");
+printf("mris_label2annot --hemi lh --subject yoursubject --ctab aparc.annot.ctab \n");
+printf("   --ldir deletme --no-unknown --a myaparc\n");
+printf("tksurferfv yoursubject lh inflated -annot myaparc\n");
+printf("rm -r deletme\n");
 printf("\n");
   exit(1) ;
 }

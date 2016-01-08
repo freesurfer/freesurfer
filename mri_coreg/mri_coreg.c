@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/12/30 03:05:36 $
- *    $Revision: 1.23 $
+ *    $Date: 2016/01/02 03:41:28 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.23 2015/12/30 03:05:36 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.24 2016/01/02 03:41:28 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -345,6 +345,8 @@ int main(int argc, char *argv[]) {
     printf("Creating random numbers for coordinate dithering\n");
     coreg->crfs = RFspecInit(53,NULL);
     coreg->crfs->name = strcpyalloc("uniform");
+    coreg->crfs->params[0] = 0;
+    coreg->crfs->params[1] = 1;
     coreg->cdither = MRIallocSequence(coreg->ref->width, coreg->ref->height, coreg->ref->depth, MRI_FLOAT,3);
     RFsynth(coreg->cdither, coreg->crfs, NULL);
   } else printf("NOT Creating random numbers for coordinate dithering\n");
@@ -352,6 +354,8 @@ int main(int argc, char *argv[]) {
     printf("Performing intensity dithering\n");
     coreg->refirfs = RFspecInit(53,NULL);
     coreg->refirfs->name = strcpyalloc("uniform");
+    coreg->refirfs->params[0] = 0;
+    coreg->refirfs->params[1] = 1;
     coreg->movirfs = RFspecInit(53,NULL);
     coreg->movirfs->name = strcpyalloc("uniform");
   } else printf("NOT Performing intensity dithering\n");
@@ -434,7 +438,7 @@ int main(int argc, char *argv[]) {
     fprintf(fp,"\n");
     fclose(fp);
   }
-
+  printf("nhits = %d out of %d, Percent Overlap: %5.1f\n",coreg->nhits,coreg->nvoxref,coreg->pcthits);
   printf("mri_coreg RunTimeSec %4.1f sec\n",TimerStop(&timer)/1000.0);
   printf("mri_coreg done\n\n");
 
@@ -703,7 +707,7 @@ static void print_usage(void) {
   printf("   --regdat reg.dat \n");
   printf("   --no-coord-dither: turn off coordinate dithering\n");
   printf("   --no-intensity-dither: turn off intensity dithering\n");
-  printf("   --sep voxsep1 <--sep voxsep2> : set spatial scales (def is 2 and 4)\n");
+  printf("   --sep voxsep1 <--sep voxsep2> : set spatial scales (def is 2 vox and 4 vox)\n");
   printf("   --trans Tx Ty Tz : initial translation in mm (implies --no-cras0)\n");
   printf("   --rot   Rx Ry Rz : initial rotation in deg\n");
   printf("   --scale Sx Sy Sz : initial scale\n");
@@ -715,15 +719,15 @@ static void print_usage(void) {
   printf("   --ftol ftol : default is %5.3le\n",cmdargs->ftol);
   printf("   --linmintol linmintol : default is %5.3le\n",cmdargs->linmintol);
   printf("   --sat SatPct : saturation threshold, default %5.3le\n",cmdargs->SatPct);
-  printf("   --conf-ref : conform the refernece without rescaling (good for gca)");
+  printf("   --conf-ref : conform the refernece without rescaling (good for gca)\n");
   printf("   --no-bf : do not do brute force search\n");
   printf("   --bf-lim lim : constrain brute force search to +/-lim\n");
   printf("   --bf-nsamp nsamples : number of samples in brute force search\n");
   printf("   --no-smooth : do not apply smoothing to either ref or mov\n");
-  printf("   --ref-fwhm fwhm : apply smoothing to ref");
-  printf("   --mov-oob : count mov voxels that are out-of-bounds as 0");
-  printf("   --no-mov-oob : do not count mov voxels that are out-of-bounds as 0 (default)");
-  printf("   --mat2par reg.lta : extract parameters out of registration");
+  printf("   --ref-fwhm fwhm : apply smoothing to ref\n");
+  printf("   --mov-oob : count mov voxels that are out-of-bounds as 0\n");
+  printf("   --no-mov-oob : do not count mov voxels that are out-of-bounds as 0 (default)\n");
+  printf("   --mat2par reg.lta : extract parameters out of registration\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -913,9 +917,13 @@ int COREGhist(COREG *coreg)
 	dsref  = sref;
 
 	if(coreg->DoCoordDither){
-	  dcref += MRIgetVoxVal(coreg->cdither,cref,rref,sref,0);
-	  drref += MRIgetVoxVal(coreg->cdither,cref,rref,sref,1);
-	  dsref += MRIgetVoxVal(coreg->cdither,cref,rref,sref,2);
+	  // dither is uniform(0,1), scale by separation to sample entire vol
+	  dcref += coreg->sep*MRIgetVoxVal(coreg->cdither,cref,rref,sref,0);
+	  drref += coreg->sep*MRIgetVoxVal(coreg->cdither,cref,rref,sref,1);
+	  dsref += coreg->sep*MRIgetVoxVal(coreg->cdither,cref,rref,sref,2);
+	  if(dcref > coreg->ref->width-1)  dcref = coreg->ref->width-1;
+	  if(drref > coreg->ref->height-1) drref = coreg->ref->height-1;
+	  if(dsref > coreg->ref->depth-1)  dsref = coreg->ref->depth-1;
 	}
 
 	dcmov  = V2V[0]*dcref + V2V[4]*drref + V2V[ 8]*dsref +  V2V[12];
@@ -926,15 +934,17 @@ int COREGhist(COREG *coreg)
 	if(dcmov < 0 || dcmov > coreg->mov->width-1)  oob = 1;
 	if(drmov < 0 || drmov > coreg->mov->height-1) oob = 1;
 	if(dsmov < 0 || dsmov > coreg->mov->depth-1)  oob = 1;
-	if(!oob) 
+	if(!oob) {
 	  vf = COREGsamp(coreg->f, dcmov, drmov, dsmov, coreg->mov->width,coreg->mov->height,coreg->mov->depth);
+	  nhits ++;
+	}
 	else {
 	  if(coreg->MovOOBFlag) vf = 0;
 	  else continue;
 	}
 
+
 	vg = COREGsamp(coreg->g, dcref, drref, dsref, coreg->ref->width,coreg->ref->height,coreg->ref->depth);
-	nhits ++;
 
 	ivf = floor(vf);
 	ivg = floor(vg+0.5);

@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/12/09 20:02:53 $
-#    $Revision: 1.71 $
+#    $Author: greve $
+#    $Date: 2016/01/07 23:18:03 $
+#    $Revision: 1.72 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.71 2015/12/09 20:02:53 zkaufman Exp $';
+set VERSION = '$Id: bbregister,v 1.72 2016/01/07 23:18:03 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -954,6 +954,8 @@ while( $#argv != 0 )
 
     case "--threads"
     case "--nthreads"
+      if($#argv < 1) goto arg1err;
+      set nthreads = $argv[1]; shift;
       setenv OMP_NUM_THREADS $nthreads
       setenv FS_OMP_NUM_THREADS $nthreads
       breaksw

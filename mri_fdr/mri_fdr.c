@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/09/30 21:48:49 $
- *    $Revision: 1.1 $
+ *    $Date: 2016/01/07 22:23:57 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fdr.c,v 1.1 2015/09/30 21:48:49 greve Exp $";
+static char vcid[] = "$Id: mri_fdr.c,v 1.2 2016/01/07 22:23:57 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -80,11 +80,13 @@ int checkoptsonly=0;
 struct utsname uts;
 
 typedef struct {
-  char *input;
-  char *mask;
+  int ninputs;
+  char *inputlist[100];
+  char *masklist[100];
+  char *outputlist[100];
+  int  defaultframe, framelist[100];
+  int log10flag, signid;
   double fdr;
-  char *output;
-  int log10flag, signid, frame;
   char *vthfile;
 } CMDARGS;
 
@@ -106,24 +108,28 @@ int PrintDoubleMatrix(FILE *fp, char *fmt, double **M, int rows, int cols);
 double *SumVectorDoubleMatrix(double **M, int rows, int cols, int dim, double *sumvect, int *nv);
 
 FSENV *fsenv;
-MRI *input, *mask=NULL, *output;
+MRI *inputlist[100], *masklist[100], *outputlist[100];
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs,err;
+  int nargs,err,n;
   struct timeb timer;
   double vthresh;
 
   TimerStart(&timer);
 
   cmdargs = (CMDARGS *)calloc(sizeof(CMDARGS),1);
-  cmdargs->input = NULL;
-  cmdargs->mask = NULL;
-  cmdargs->output = NULL;
+  cmdargs->ninputs = 0;
+  for(n=0; n < 100; n++){
+    cmdargs->inputlist[n] = NULL;
+    cmdargs->framelist[n] = -1;
+    cmdargs->masklist[n] = NULL;
+    cmdargs->outputlist[n] = NULL;
+  }
+  cmdargs->defaultframe = 0;
   cmdargs->fdr = -1;
   cmdargs->log10flag = 1;
   cmdargs->signid = 0;
-  cmdargs->frame = 0;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -142,27 +148,27 @@ int main(int argc, char *argv[]) {
   fsenv = FSENVgetenv();
   check_options();
   if(checkoptsonly) return(0);
+
   dump_options(stdout);
-
-  input = MRIread(cmdargs->input);
-  if(!input) exit(1);
-
-  if(cmdargs->mask){
-    mask = MRIread(cmdargs->mask);
-    if(!mask) exit(1);
+  for(n=0; n < cmdargs->ninputs; n++){
+    if(cmdargs->framelist[n] < 0) cmdargs->framelist[n] = cmdargs->defaultframe;
+    inputlist[n] = MRIread(cmdargs->inputlist[n]);
+    if(!inputlist[n]) exit(1);
+    if(cmdargs->masklist[n]){
+      masklist[n] = MRIread(cmdargs->masklist[n]);
+      if(!masklist[n]) exit(1);
+    }
+    if(cmdargs->outputlist[n]){
+      outputlist[n] = MRIallocSequence(inputlist[n]->width,inputlist[n]->height,
+				       inputlist[n]->depth,MRI_FLOAT,1);
+      if(outputlist[n] == NULL) exit(1);
+      MRIcopyHeader(inputlist[n], outputlist[n]); /* does not change dimensions */
+      MRIcopyPulseParameters(inputlist[n], outputlist[n]);
+    }
   }
 
-  output = NULL;
-  if(cmdargs->output){
-    output = MRIallocSequence(input->width,input->height,
-			      input->depth,MRI_FLOAT,1);
-    if(output == NULL) exit(1);
-    MRIcopyHeader(input, output); /* does not change dimensions */
-    MRIcopyPulseParameters(input, output);
-  }
-
-  err = MRIfdr2vwth(input, cmdargs->frame, cmdargs->fdr, cmdargs->signid,
-		    cmdargs->log10flag, mask, &vthresh,output);
+  err = MRIfdr2vwth(inputlist, cmdargs->ninputs, cmdargs->framelist, cmdargs->fdr, cmdargs->signid,
+		    cmdargs->log10flag, masklist, &vthresh,outputlist);
   printf("\nvoxel-wise-threshold %20.10lf\n",vthresh);
   printf("\n\n");
 
@@ -173,10 +179,12 @@ int main(int argc, char *argv[]) {
     fclose(fp);
   }
 
-  if(cmdargs->output){
-    printf("Writing to %s\n",cmdargs->output);
-    err = MRIwrite(output,cmdargs->output);
-    if(err) exit(1);
+  for(n=0; n < cmdargs->ninputs; n++){
+    if(cmdargs->outputlist[n]){
+      printf("Writing to %s\n",cmdargs->outputlist[n]);
+      err = MRIwrite(outputlist[n],cmdargs->outputlist[n]);
+      if(err) exit(1);
+    }
   }
 
   printf("mri_fdr done\n");
@@ -212,18 +220,22 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-log10p")) cmdargs->log10flag = 0;
     else if (!strcasecmp(option, "--i")) {
       if(nargc < 1) CMDargNErr(option,1);
-      cmdargs->input = pargv[0];
+      int k = cmdargs->ninputs;
+      cmdargs->inputlist[k] = pargv[0];
       nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--m")) {
-      if(nargc < 1) CMDargNErr(option,1);
-      cmdargs->mask = pargv[0];
-      nargsused = 1;
-    } 
-    else if (!strcasecmp(option, "--o")) {
-      if(nargc < 1) CMDargNErr(option,1);
-      cmdargs->output = pargv[0];
-      nargsused = 1;
+      if(CMDnthIsArg(nargc, pargv, 1)){
+	if(strcmp(pargv[1],"nomask") != 0) cmdargs->masklist[k] = pargv[1];
+        nargsused ++;
+	if(CMDnthIsArg(nargc, pargv, 2)){
+	  if(strcmp(pargv[2],"nooutput") != 0) cmdargs->outputlist[k] = pargv[2];
+	  nargsused ++;
+	  if(CMDnthIsArg(nargc, pargv, 3)){
+	    sscanf(pargv[3],"%d",&cmdargs->framelist[k]);
+	    nargsused ++;
+	  } 
+	} 
+      } 
+      cmdargs->ninputs++;
     } 
     else if (!strcasecmp(option, "--thfile")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -237,7 +249,7 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if (!strcasecmp(option, "--f")) {
       if(nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&cmdargs->frame);
+      sscanf(pargv[0],"%d",&cmdargs->defaultframe);
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--diag")) {
@@ -265,12 +277,11 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --i input : source volume or surface overlay\n");
+  printf("   --i input <mask> <output> <frame>: source volume or surface overlay\n");
+  printf("     --i input <mask> <output> <frame>: another source volume or surface overlay\n");
   printf("   --fdr FDR : value between 0 and 1, typically .05\n");
   printf("\n");
-  printf("   --m mask : binary mask\n");
-  printf("   --o output : thresholded volume or surface overlay\n");
-  printf("   --f frame : use frame as input (default is 0)\n");
+  printf("   --f defaultframe : use input frame when not specing frame in --i\n");
   printf("   --pos : only consider positive voxels\n");
   printf("   --neg : only consider negative voxels\n");
   printf("   --abs : consider all voxels regardless of sign (default)\n");
@@ -288,8 +299,25 @@ static void print_usage(void) {
 /* -------------------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
-  printf("This is a program that performs False Discovery Rate\n");
-  printf("correction.\n");
+  printf("This is a program that performs False Discovery Rate correction.\n");
+  printf("Basic usage:\n");
+  printf("  mri_fdr --fdr .05 --i sig.mgh mask.mgh output.mgh \n");
+  printf("To perform FDR on both the left and right hemis simultaneously:\n");
+  printf("  mri_fdr --fdr .05 --i lh.sig.mgh lh.mask.mgh lh.output.mgh \n");
+  printf("                    --i rh.sig.mgh rh.mask.mgh rh.output.mgh \n");
+  printf("Masks are optional\n");
+  printf("Outputs are optional (in which case you probably just want the threshold)\n");
+  printf("  You can capture the threshold in a text file with --thfile\n");
+  printf("The input is assumed to be -log10(p). If that is not the case then --no-log10p\n");
+  printf("Output threshold will be -log10(p) unless --no-log10p\n");
+  printf("If you want to spec an output but not a mask,  then set the mask file to 'nomask'\n");
+  printf("If you want to spec a frame but not an output, then set the output file to 'nooutput'\n");
+  printf("\n");
+  printf("  Thresholding of Statistical Maps in Functional Neuroimaging Using\n");
+  printf("  the False Discovery Rate.  Christopher R. Genovese, Nicole A. Lazar,\n");
+  printf("  Thomas E. Nichols (2002).  NeuroImage 15:870-878.\n");
+  printf("\n");
+
   exit(1) ;
 }
 /* -------------------------------------------------------- */
@@ -299,7 +327,7 @@ static void print_version(void) {
 }
 /* -------------------------------------------------------- */
 static void check_options(void) {
-  if(cmdargs->input == NULL){
+  if(cmdargs->ninputs == 0){
     printf("ERROR: must spec --i\n");
     exit(1);
   }
@@ -319,6 +347,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
-  fprintf(fp,"fdr     %lf\n",cmdargs->fdr);
+  fprintf(fp,"fdr       %lf\n",cmdargs->fdr);
+  fprintf(fp,"ninputs   %d\n",cmdargs->ninputs);
   return;
 }

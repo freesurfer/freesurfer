@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/08/17 17:47:29 $
- *    $Revision: 1.41 $
+ *    $Date: 2016/01/07 22:23:57 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.41 2014/08/17 17:47:29 greve Exp $
+// $Id: mri_binarize.c,v 1.42 2016/01/07 22:23:57 greve Exp $
 
 /*
   BEGINHELP
@@ -192,7 +192,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.41 2014/08/17 17:47:29 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.42 2016/01/07 22:23:57 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -304,7 +304,7 @@ int main(int argc, char *argv[]) {
   if(DoFDR){
     double FDRThresh;
     // 1 = assume -log10(p)
-    MRIfdr2vwth(InVol, frame, FDR, FDRSign, 1, MaskVol, &FDRThresh, NULL);
+    MRIfdr2vwth(&InVol, 1, &frame, FDR, FDRSign, 1, &MaskVol, &FDRThresh, NULL);
     printf("FDR %g, Sign=%d, Thresh = %g\n",FDR,FDRSign,FDRThresh);
     if(FDRSign == 0) {
       DoAbs = 1;

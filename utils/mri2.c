@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/12 16:46:21 $
- *    $Revision: 1.117 $
+ *    $Date: 2016/01/07 22:23:57 $
+ *    $Revision: 1.118 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1219,9 +1219,16 @@ int MRIdimMismatch( const MRI *v1, const MRI *v2, int frameflag )
 }
 
 /*---------------------------------------------------------------
+ \fn int MRIfdr2vwth(MRI **vollist, int nvols, int *framelist, double fdr, int signid,
+                int log10flag, MRI **masklist, double *vwth, MRI **ovollist)
+
   MRIfdr2vwth() - computes the voxel-wise threshold needed to realize
   the given False Discovery Rate (FDR) based on the values in the
-  given frame. Optionally thresholds the the MRI volume.
+  given frame. Optionally thresholds the the MRI volume. The input,
+  mask, frame, and output are provided as a list. When multiple inputs
+  are provided, then a single FDR threshold is computed over all
+  values from all inputs. Some masks in the masklist can be null.
+  Some outputs inthe outputlist can be null.
 
   frame - 0-based frame number of input volume to use
   fdr - false dicovery rate, between 0 and 1, eg: .05
@@ -1258,77 +1265,79 @@ int MRIdimMismatch( const MRI *v1, const MRI *v2, int frameflag )
   Thomas E. Nichols (2002).  NeuroImage 15:870-878.
 
   *----------------------------------------------------*/
-int MRIfdr2vwth(MRI *vol, int frame, double fdr, int signid,
-                int log10flag, MRI *mask, double *vwth, MRI *ovol)
+int MRIfdr2vwth(MRI **vollist, int nvols, int *framelist, double fdr, int signid,
+                int log10flag, MRI **masklist, double *vwth, MRI **ovollist)
 {
+  MRI *vol, *mask, *ovol;
   double *p=NULL, val=0.0, valnull=0.0, maskval;
-  int Nv, np, c, r ,s, maskflag=0;
+  int Nv, np, c, r ,s, frame,nthvol;
 
-  if (vol->nframes <= frame)
-  {
-    printf("ERROR: MRIfdr2vwth: frame = %d, must be < nframes = %d\n",
-           frame,vol->nframes);
-    return(1);
-  }
-  if (vol->type != MRI_FLOAT)
-  {
-    printf("ERROR: MRIfdr2vwth: input volume is not of type MRI_FLOAT\n");
-    return(1);
-  }
-  if (ovol != NULL)
-  {
-    if (ovol->type != MRI_FLOAT)
-    {
-      printf("ERROR: MRIfdr2vwth: output volume is not of type MRI_FLOAT\n");
+  Nv = 0;
+  for(nthvol = 0; nthvol < nvols; nthvol++){
+    vol = vollist[nthvol];
+    frame = framelist[nthvol];
+    ovol = NULL;
+    mask = NULL;
+    if(masklist) mask = masklist[nthvol];
+    if(ovollist) ovol = ovollist[nthvol];
+
+    if(vol->nframes <= frame)  {
+      printf("ERROR: MRIfdr2vwth: frame = %d, must be < nframes = %d\n",
+	     frame,vol->nframes);
       return(1);
     }
-    if (MRIdimMismatch(vol, ovol, 0))
-    {
-      printf("ERROR: MRIfdr2vwth: output/input dimension mismatch\n");
+    if (vol->type != MRI_FLOAT){
+      printf("ERROR: MRIfdr2vwth: input volume is not of type MRI_FLOAT\n");
       return(1);
     }
-  }
-  if (mask != NULL)
-  {
-    if (MRIdimMismatch(vol, mask, 0))
-    {
-      printf("ERROR: MRIfdr2vwth: mask/input dimension mismatch\n");
-      return(1);
+    if(ovollist != NULL && ovol != NULL){
+      if (ovol->type != MRI_FLOAT) {
+	printf("ERROR: MRIfdr2vwth: output volume is not of type MRI_FLOAT\n");
+	return(1);
+      }
+      if(MRIdimMismatch(vol, ovol, 0)) {
+	printf("ERROR: MRIfdr2vwth: output/input dimension mismatch\n");
+	return(1);
+      }
     }
-    maskflag = 1;
+    if(mask != NULL){
+      if(MRIdimMismatch(vol, mask, 0)){
+	printf("ERROR: MRIfdr2vwth: mask/input dimension mismatch\n");
+	return(1);
+      }
+    }
+    Nv += (vol->width * vol->height * vol->depth);
   }
 
-  Nv = vol->width * vol->height * vol->depth;
-  if (log10flag) valnull = 0;
-  else          valnull = 1;
-
+  // Package all the p-values into a vector
   p = (double *) calloc(Nv,sizeof(double));
   np = 0;
-  for (c=0; c < vol->width; c++)
-  {
-    for (r=0; r < vol->height; r++)
-    {
-      for (s=0; s < vol->depth; s++)
-      {
+  for(nthvol = 0; nthvol < nvols; nthvol++){
+    vol = vollist[nthvol];
+    frame = framelist[nthvol];
+    mask = NULL;
+    if(masklist) mask = masklist[nthvol];
+    for(c=0; c < vol->width; c++) {
+      for(r=0; r < vol->height; r++)  {
+	for(s=0; s < vol->depth; s++)  {
+	  if(mask){
+	    // Must be in the mask if using a mask
+	    maskval = MRIgetVoxVal(mask,c,r,s,0);
+	    if(maskval < 0.5)  continue;
+	  }
+	  val = MRIFseq_vox(vol,c,r,s,frame);
 
-        if (maskflag)
-        {
-          // Must be in the mask if using a mask
-          maskval = MRIgetVoxVal(mask,c,r,s,0);
-          if (maskval < 0.5)  continue;
-        }
-        val = MRIFseq_vox(vol,c,r,s,frame);
-
-        // Check the sign
-        if (signid == -1 && val > 0) continue;
-        if (signid == +1 && val < 0) continue;
-
-        // Get value, convert from log10 if needed
-        val = fabs(val);
-        if (log10flag) val = pow(10,-val);
-
-        p[np] = val;
-        np++;
+	  // Check the sign
+	  if(signid == -1 && val > 0) continue;
+	  if(signid == +1 && val < 0) continue;
+	  
+	  // Get value, convert from log10 if needed
+	  val = fabs(val);
+	  if(log10flag) val = pow(10,-val);
+	  
+	  p[np] = val;
+	  np++;
+	}
       }
     }
   }
@@ -1336,74 +1345,80 @@ int MRIfdr2vwth(MRI *vol, int frame, double fdr, int signid,
 
   // Check that something met the match criteria,
   // otherwise return an error
-  if (np==0)
-  {
+  if(np==0) {
     printf("ERROR: MRIfdr2vwth: no matching voxels found\n");
     free(p);
     return(1);
   }
 
+  // Compute the voxel-wise threshold using FDR
   *vwth = fdr2vwth(p,np,fdr);
+  printf("MRIfdr2vwth: vwth = %lf, log10(vwhth) = %lf\n",*vwth,-log10(*vwth));
   free(p);
 
-  if (ovol == NULL)
-  {
-    if (log10flag) *vwth = -log10(*vwth);
+  if(ovollist == NULL){
+    // return here if no output
+    if(log10flag) *vwth = -log10(*vwth);
     return(0);
   }
 
+  if(log10flag) valnull = 0;
+  else          valnull = 1;
+
   // Perform the thresholding
-  for (c=0; c < vol->width; c++)
-  {
-    for (r=0; r < vol->height; r++)
-    {
-      for (s=0; s < vol->depth; s++)
-      {
+  for(nthvol = 0; nthvol < nvols; nthvol++){
+    vol = vollist[nthvol];
+    frame = framelist[nthvol];
+    ovol = NULL;
+    mask = NULL;
+    if(masklist) mask = masklist[nthvol];
+    if(ovollist) ovol = ovollist[nthvol];
+    if(ovol==NULL) continue;
 
-        if (maskflag)
-        {
-          maskval = MRIgetVoxVal(mask,c,r,s,0);
-          if (maskval < 0.5)
-          {
-            // Set to null if out of mask
-            MRIFseq_vox(ovol,c,r,s,0) = valnull;
-            continue;
-          }
-        }
+    for (c=0; c < vol->width; c++)  {
+      for (r=0; r < vol->height; r++)    {
+	for (s=0; s < vol->depth; s++)      {
+	  
+	  if(mask){
+	    maskval = MRIgetVoxVal(mask,c,r,s,0);
+	    if(maskval < 0.5) {
+	      // Set to null if out of mask
+	      MRIFseq_vox(ovol,c,r,s,0) = valnull;
+	      continue;
+	    }
+	  }
 
-        val = MRIFseq_vox(vol,c,r,s,frame);
+	  val = MRIFseq_vox(vol,c,r,s,frame);
 
-        if (signid == -1 && val > 0)
-        {
-          // Set to null if wrong sign
-          MRIFseq_vox(ovol,c,r,s,0) = valnull;
-          continue;
-        }
-        if (signid == +1 && val < 0)
-        {
-          // Set to null if wrong sign
-          MRIFseq_vox(ovol,c,r,s,0) = valnull;
-          continue;
-        }
+	  if(signid == -1 && val > 0)  {
+	    // Set to null if wrong sign
+	    MRIFseq_vox(ovol,c,r,s,0) = valnull;
+	    continue;
+	  }
+	  if (signid == +1 && val < 0) {
+	    // Set to null if wrong sign
+	    MRIFseq_vox(ovol,c,r,s,0) = valnull;
+	    continue;
+	  }
 
-        val = fabs(val);
-        if (log10flag) val = pow(10,-val);
+	  val = fabs(val);
+	  if (log10flag) val = pow(10,-val);
 
-        if (val > *vwth)
-        {
-          // Set to null if greather than thresh
-          MRIFseq_vox(ovol,c,r,s,0) = valnull;
-          continue;
-        }
-
-        // Otherwise, it meets all criteria, so
-        // pass the original value through
-        MRIFseq_vox(ovol,c,r,s,0) =
-          MRIFseq_vox(vol,c,r,s,frame);
+	  if (val > *vwth){
+	    // Set to null if greather than thresh
+	    MRIFseq_vox(ovol,c,r,s,0) = valnull;
+	    continue;
+	  }
+	  
+	  // Otherwise, it meets all criteria, so
+	  // pass the original value through
+	  MRIFseq_vox(ovol,c,r,s,0) = MRIFseq_vox(vol,c,r,s,frame);
+	}
       }
     }
   }
-  if (log10flag) *vwth = -log10(*vwth);
+
+  if(log10flag) *vwth = -log10(*vwth);
 
   return(0);
 }
