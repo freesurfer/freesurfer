@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/01/02 03:41:28 $
- *    $Revision: 1.24 $
+ *    $Date: 2016/01/13 17:33:13 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.24 2016/01/02 03:41:28 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.25 2016/01/13 17:33:13 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -252,7 +252,7 @@ int main(int argc, char *argv[]) {
   coreg->nvoxref = coreg->ref->width * coreg->ref->height * coreg->ref->depth;
 
   if(cmdargs->refmask){
-    printf("Reading in refmask %s\n",cmdargs->refmask);
+    printf("Reading in and applying refmask %s\n",cmdargs->refmask);
     coreg->refmask = MRIread(cmdargs->refmask);
     if(!coreg->refmask) exit(1);
     int c,r,s,m;
@@ -501,6 +501,7 @@ static int parse_commandline(int argc, char **argv) {
       cmdargs->refmask = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--no-ref-mask")) cmdargs->refmask = NULL;
     else if (!strcasecmp(option, "--mov-mask")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->movmask = pargv[0];
@@ -529,6 +530,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--s")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->subject = pargv[0];
+      cmdargs->refmask = "aparc+aseg.mgz";
       nargsused = 1;
     } 
     else if(!strcmp(option, "--sd") || !strcmp(option, "-SDIR")) {
@@ -698,9 +700,10 @@ static void print_usage(void) {
   printf("   --ref refvol : target volume (can use --targ too)\n");
   printf("   --reg reg.lta : output registration (can use --lta too)\n");
   printf("\n");
-  printf("   --s subject \n");
+  printf("   --s subject (forces --ref-mask aparc+aseg.mgz)\n");
   printf("   --dof DOF : default is %d (also: --6, --9, --12)\n",cmdargs->dof);
   printf("   --ref-mask refmaskvol : mask ref with refmaskvol\n");
+  printf("   --no-ref-mask : do not mask ref (good to undo aparc+aseg.mgz, put AFTER --s)\n");
   printf("   --mov-mask movmaskvol : mask ref with movmaskvol\n");
   printf("   --threads nthreads\n");
   printf("   --sd SUBJECTS_DIR \n");

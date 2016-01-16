@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2013/12/18 03:52:11 $
- *    $Revision: 1.64 $
+ *    $Date: 2016/01/12 19:33:41 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,10 +61,10 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.64 2013/12/18 03:52:11 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.65 2016/01/12 19:33:41 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
-#define NInMAX 400000
+#define NInMAX 400000 // such a large number may break valgrind
 char *inlist[NInMAX];
 int ninputs = 0;
 char flist[NInMAX][2000];
@@ -955,10 +955,9 @@ static int parse_commandline(int argc, char **argv)
     {
       DoPCA = 1;
     }
-    else if (!strcasecmp(option, "--chunk"))
-    {
-      setenv("FS_USE_MRI_CHUNK","1",1);
-    }
+    else if (!strcasecmp(option, "--chunk")) setenv("FS_USE_MRI_CHUNK","1",1);
+    else if (!strcasecmp(option, "--no-chunk") ) unsetenv("FS_USE_MRI_CHUNK");
+      
     else if (!strcasecmp(option, "--scm"))
     {
       DoSCM = 1;

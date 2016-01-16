@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/12/21 19:08:52 $
- *    $Revision: 1.565 $
+ *    $Author: greve $
+ *    $Date: 2016/01/12 20:06:06 $
+ *    $Revision: 1.568 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.565 $";
+const char *MRI_C_VERSION = "$Revision: 1.568 $";
 
 
 /*-----------------------------------------------------
@@ -1222,9 +1222,9 @@ inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 
   if (mri->ischunked)
   {
-    unsigned char *p;
-    p = (unsigned char *)( mri->chunk ) + c + r*mri->bytes_per_row +
-        s*mri->bytes_per_slice + f*mri->bytes_per_vol;
+    void *p;
+    p = mri->chunk + c*mri->bytes_per_vox   + r*mri->bytes_per_row + 
+                     s*mri->bytes_per_slice + f*mri->bytes_per_vol;
     switch (mri->type)
     {
     case MRI_UCHAR:
@@ -1303,9 +1303,8 @@ inline int MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval)
   if (mri->ischunked)
   {
     void *p;
-  
-    p = mri->chunk + c + r*mri->bytes_per_row +
-        s*mri->bytes_per_slice + f*mri->bytes_per_vol;
+    p = mri->chunk + c*mri->bytes_per_vox   + r*mri->bytes_per_row + 
+                     s*mri->bytes_per_slice + f*mri->bytes_per_vol;
     switch (mri->type)
     {
     case MRI_UCHAR:
@@ -5875,7 +5874,7 @@ int MRIchunk(MRI **pmri)
 {
   MRI *mritmp;
   if ((*pmri)->ischunked) return(0);
-  printf("Chunking\n");
+  //printf("Chunking\n");
   mritmp = MRIallocChunk((*pmri)->width, (*pmri)->height, (*pmri)->depth,
                          (*pmri)->type, (*pmri)->nframes);
   if (mritmp == NULL) return(1);
@@ -6202,7 +6201,7 @@ MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
     ErrorReturn(NULL,
                 (ERROR_BADPARM, "MRIallocChunk(%d, %d, %d): bad parm",
                  width, height, depth)) ;
-  mri = MRIallocHeader(width, height, depth, type, 1) ;
+  mri = MRIallocHeader(width, height, depth, type, nframes) ;
   mri->nframes = nframes ;
   MRIinitHeader(mri) ;
 
@@ -6261,12 +6260,6 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
   MRI     *mri ;
   int     slice, row, bpp;
   BUFTYPE *buf ;
-
-  if (getenv("FS_USE_MRI_CHUNK") != NULL)
-  {
-    mri = MRIallocChunk(width, height, depth, type, nframes);
-    return(mri);
-  }
 
   mris_alloced++ ;
 
@@ -6383,6 +6376,17 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
          width,height,depth, nframes, slice, row) ;
     }
 #endif
+  }
+
+  // Create chunked volume here. Not super efficient because
+  // must create a new volume, copy the old volume, the dealloc
+  // the old. But it assure that all the above is done.
+  // To activate chunking setenv FS_USE_MRI_CHUNK 1
+  // to deactivate: unsetenv FS_USE_MRI_CHUNK or setenv FS_USE_MRI_CHUNK 0 
+  // Set it to anything other than 1
+  if(getenv("FS_USE_MRI_CHUNK") != NULL && strcmp(getenv("FS_USE_MRI_CHUNK"),"1")==0){
+    if(Gdiag_no > 0) printf("Chunking\n");
+    MRIchunk(&mri);
   }
 
   return(mri) ;
@@ -6551,6 +6555,8 @@ MRIfree(MRI **pmri)
     //printf("Freeing MRI Chunk\n");
     free(mri->chunk);
     mri->chunk = NULL;
+    for(slice = 0 ; slice < mri->depth*mri->nframes ; slice++)
+        if(mri->slices[slice]) free(mri->slices[slice]) ;
     free(mri->slices) ;
   }
 

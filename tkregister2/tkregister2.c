@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/26 21:31:58 $
- *    $Revision: 1.129 $
+ *    $Date: 2016/01/15 22:47:45 $
+ *    $Revision: 1.130 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.129 2014/02/26 21:31:58 greve Exp $";
+"$Id: tkregister2.c,v 1.130 2016/01/15 22:47:45 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -122,6 +122,7 @@ static char vcid[] =
 #include "resample.h"
 #include "pdf.h"
 #include "fmriutils.h"
+#include "mri_conform.h"
 
 /* Prototypes */
 
@@ -455,6 +456,7 @@ double angles[3] = {0,0,0};
 MATRIX *Mrot = NULL;
 double xyztrans[3] = {0,0,0};
 MATRIX *Mtrans = NULL;
+int conformTarget = 0;
 
 /**** ------------------ main() ------------------------------- ****/
 int Register(ClientData clientData,
@@ -662,6 +664,14 @@ int Register(ClientData clientData,
     if(targ_vol->nframes > 1){
       // extract the first frame if necessary
       mritmp = fMRIframe(targ_vol, 0, NULL);
+      MRIfree(&targ_vol);
+      targ_vol = mritmp;
+    }
+    if(conformTarget){
+      // only do this if the registration was computed to a conformed target
+      // this happens when running mri_em_register to a GCA. 
+      printf("Conforming target\n");
+      mritmp = MRIconform(targ_vol);
       MRIfree(&targ_vol);
       targ_vol = mritmp;
     }
@@ -1220,7 +1230,9 @@ static int parse_commandline(int argc, char **argv) {
         nargsused ++;
         targ_vol_fmt = checkfmt(fmt);
       }
-    } else if (!strcmp(option, "--seg")) {
+    } 
+    else if (!strcasecmp(option, "--conf-targ")) conformTarget = 1;
+    else if (!strcmp(option, "--seg")) {
       if (nargc < 1) argnerr(option,1);
       seg_vol_id = pargv[0];
       nargsused = 1;
@@ -1673,6 +1685,7 @@ static void print_usage(void) {
   printf("   --gdiagno n : set debug level\n");
   printf("   --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
   printf("   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
+  printf("   --conf-targ : conform target (assumes reg computed to conf target, eg, GCA)\n");
   printf("\n");
   //printf("   --svol svol.img (structural volume)\n");
 }
@@ -4958,7 +4971,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.129 2014/02/26 21:31:58 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.130 2016/01/15 22:47:45 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

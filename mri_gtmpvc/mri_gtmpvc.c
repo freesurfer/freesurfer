@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/24 20:07:26 $
- *    $Revision: 1.60 $
+ *    $Date: 2016/01/12 21:37:12 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.60 2015/11/24 20:07:26 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.61 2016/01/12 21:37:12 greve Exp $
 
 /*
   BEGINHELP
@@ -93,7 +93,7 @@ static void dump_options(FILE *fp);
 MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.60 2015/11/24 20:07:26 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.61 2016/01/12 21:37:12 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1103,6 +1103,8 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--no-vfc"))      gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-gm-rvar"))  DoGMRvar = 0;
     else if(!strcasecmp(option, "--sim-anat-seg"))  DoSimAnatSeg=1;
+    else if (!strcasecmp(option, "--chunk")) setenv("FS_USE_MRI_CHUNK","1",1);
+    else if (!strcasecmp(option, "--no-chunk") ) unsetenv("FS_USE_MRI_CHUNK");
     else if(!strcasecmp(option, "--auto-mask")){
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%lf",&gtm->automask_fwhm);
