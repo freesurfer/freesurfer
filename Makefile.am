@@ -437,6 +437,11 @@ install-data-hook:
 			cp -f $(DCMTKDIR)/bin/dcmdrle $(DESTDIR)$(bindir)/dcmdrle.fs ; \
 		fi; \
 	fi;
+	if test ! "x$(GDCMDIR)" = "x" ; then \
+		if test -e $(GDCMDIR) ; then \
+			cp -f $(GDCMDIR)/bin/gdcmconv $(DESTDIR)$(bindir)/gdcmconv.fs ; \
+		fi; \
+	fi;
 	if test ! "x$(AFNIDIR)" = "x" ; then \
 		if test -e $(AFNIDIR)/bin/3dvolreg ; then \
 			cp -f $(AFNIDIR)/bin/3dvolreg $(DESTDIR)$(bindir)/3dvolreg.afni ; \
