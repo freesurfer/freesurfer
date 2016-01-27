@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/12 20:06:06 $
- *    $Revision: 1.568 $
+ *    $Author: fischl $
+ *    $Date: 2016/01/27 19:14:05 $
+ *    $Revision: 1.569 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.568 $";
+const char *MRI_C_VERSION = "$Revision: 1.569 $";
 
 
 /*-----------------------------------------------------
@@ -6573,7 +6573,9 @@ MRIfree(MRI **pmri)
   if (mri->r_to_i__)    MatrixFree(&mri->r_to_i__);
   if (mri->AutoAlign)   MatrixFree(&mri->AutoAlign);
 
-  for (i = 0 ; i < mri->ncmds ; i++) free(mri->cmdlines[i]) ;
+  for (i = 0 ; i < mri->ncmds ; i++) 
+    if (mri->cmdlines[i])
+      free(mri->cmdlines[i]) ;
 
   if(mri->bvals) MatrixFree(&mri->bvals);
   if(mri->bvecs) MatrixFree(&mri->bvecs);
@@ -7952,6 +7954,11 @@ ImageToMRI(IMAGE *I)
     mri = MRIalloc(width, height, depth, type);
   else
     mri = MRIallocSequence(width, height, depth, type, nframes);
+
+  if (DZERO(I->xsize))
+    I->xsize = 1 ;
+  if (DZERO(I->ysize))
+    I->ysize = 1 ;
 
   MRIsetResolution(mri, I->xsize, I->ysize, 1) ;
   mri->nframes = nframes;
