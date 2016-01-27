@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/24 20:36:25 $
- *    $Revision: 1.94 $
+ *    $Date: 2016/01/20 23:42:15 $
+ *    $Revision: 1.95 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,6 +44,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
@@ -178,6 +180,8 @@ static int do_secondpass_renorm = 0;
 #define DEFAULT_CTL_POINT_PCT   .25
 static double ctl_point_pct = DEFAULT_CTL_POINT_PCT ;
 
+char *rusage_file=NULL;
+
 int
 main(int argc, char *argv[])
 {
@@ -239,7 +243,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.94 2015/11/24 20:36:25 greve Exp $",
+           "$Id: mri_ca_register.c,v 1.95 2016/01/20 23:42:15 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1628,6 +1632,10 @@ main(int argc, char *argv[])
   printf("mri_ca_register took %d hours, %d minutes and %d seconds.\n",
          hours, minutes, seconds) ;
 
+  // Print usage stats to the terminal (and a file is specified)
+  PrintRUsage(RUSAGE_SELF, "mri_ca_register ", stdout);
+  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
+
   // Output formatted so it can be easily grepped
   printf("FSRUNTIME@ mri_ca_register %7.4f hours %d threads\n",msec/(1000.0*60.0*60.0),n_omp_threads);
 
@@ -1910,6 +1918,12 @@ get_option(int argc, char *argv[])
     mask_fname = argv[2] ;
     nargs = 1 ;
     printf("using MR volume %s to mask input volume...\n", mask_fname) ;
+  }
+  else if (!stricmp(option, "RUSAGE"))
+  {
+    // resource usage
+    rusage_file = argv[2] ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "T2MASK"))
   {

@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/01/13 17:33:13 $
- *    $Revision: 1.25 $
+ *    $Date: 2016/01/20 23:42:39 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,8 @@
 #include "mri.h"
 #include "mri2.h"
 #include "mrisurf.h"
+#include <sys/time.h>
+#include <sys/resource.h>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -72,7 +74,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.25 2016/01/13 17:33:13 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.26 2016/01/20 23:42:39 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -107,6 +109,7 @@ typedef struct {
   int SmoothRef;
   double SatPct;
   int MovOOBFlag;
+  char *rusagefile;
 } CMDARGS;
 
 CMDARGS *cmdargs;
@@ -213,6 +216,7 @@ int main(int argc, char *argv[]) {
   cmdargs->SmoothRef = 0;
   cmdargs->SatPct = 99.99;
   cmdargs->MovOOBFlag = 0;
+  cmdargs->rusagefile = "";
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -424,6 +428,10 @@ int main(int argc, char *argv[]) {
     if(err) exit(1);
   }
 
+  // Print usage stats to the terminal (and a file is specified)
+  PrintRUsage(RUSAGE_SELF, "mri_coreg ", stdout);
+  if(cmdargs->rusagefile) WriteRUsage(RUSAGE_SELF, "", cmdargs->rusagefile);
+
   printf("Final  RefRAS-to-MovRAS\n");
   MatrixPrint(stdout,coreg->M);
   printf("Final  RefVox-to-MovVox\n");
@@ -440,7 +448,6 @@ int main(int argc, char *argv[]) {
   }
   printf("nhits = %d out of %d, Percent Overlap: %5.1f\n",coreg->nhits,coreg->nvoxref,coreg->pcthits);
   printf("mri_coreg RunTimeSec %4.1f sec\n",TimerStop(&timer)/1000.0);
-  printf("mri_coreg done\n\n");
 
   if(! cmdargs->refconf){
     printf("To check run:\n");
@@ -449,6 +456,7 @@ int main(int argc, char *argv[]) {
   }
   printf("\n\n");
 
+  printf("mri_coreg done\n\n");
   exit(0);
 }
 
@@ -486,6 +494,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mov-oob"))  cmdargs->MovOOBFlag = 1;
     else if (!strcasecmp(option, "--no-mov-oob"))  cmdargs->MovOOBFlag = 0;
 
+    else if (!strcasecmp(option, "--rusage")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      cmdargs->rusagefile = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--mov")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->mov = pargv[0];

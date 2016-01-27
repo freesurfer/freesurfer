@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/08/26 16:51:09 $
- *    $Revision: 1.103 $
+ *    $Author: greve $
+ *    $Date: 2016/01/20 23:42:15 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
@@ -223,6 +225,7 @@ apply_transform(MRI *mri, GCA *gca, MATRIX *m_L)
   return(mri_aligned) ;
 }
 
+char *rusage_file=NULL;
 
 int
 main(int argc, char *argv[])
@@ -249,7 +252,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.103 2015/08/26 16:51:09 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.104 2016/01/20 23:42:15 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1149,6 +1152,10 @@ main(int argc, char *argv[])
     MRIfree(&mri_in) ;
   }
 
+  // Print usage stats to the terminal (and a file is specified)
+  PrintRUsage(RUSAGE_SELF, "mris_sphere ", stdout);
+  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
+
   ///////////////////////////////////////////////////////////////
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
@@ -1790,6 +1797,12 @@ get_option(int argc, char *argv[])
     printf("aligning to atlas containing skull, "
            "setting unknown_nbr_spacing = %d\n",
            unknown_nbr_spacing) ;
+  }
+  else if (!stricmp(option, "rusage"))
+  {
+    // resource usage
+    rusage_file = argv[2] ;
+    nargs = 1 ;
   }
   else if (!strcmp(option, "NOCEREBELLUM"))
   {

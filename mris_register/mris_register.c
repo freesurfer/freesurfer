@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/24 20:36:25 $
- *    $Revision: 1.62 $
+ *    $Date: 2016/01/20 23:43:04 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,8 @@
 #include <math.h>
 #include <ctype.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
@@ -48,7 +50,7 @@
 #include "gcsa.h"
 
 static char vcid[] =
-  "$Id: mris_register.c,v 1.62 2015/11/24 20:36:25 greve Exp $";
+  "$Id: mris_register.c,v 1.63 2016/01/20 23:43:04 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -130,6 +132,7 @@ static int use_defaults = 1 ;
 
 static INTEGRATION_PARMS  parms ;
 static int remove_negative = 1 ;
+char *rusage_file=NULL;
 
 int
 main(int argc, char *argv[])
@@ -144,14 +147,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_register.c,v 1.62 2015/11/24 20:36:25 greve Exp $",
+   "$Id: mris_register.c,v 1.63 2016/01/20 23:43:04 greve Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_register.c,v 1.62 2015/11/24 20:36:25 greve Exp $",
+           "$Id: mris_register.c,v 1.63 2016/01/20 23:43:04 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -595,6 +598,10 @@ main(int argc, char *argv[])
 
   msec = TimerStop(&start) ;
   printf("registration took %2.2f hours\n",(float)msec/(1000.0f*60.0f*60.0f));
+
+  // Print usage stats to the terminal (and a file is specified)
+  PrintRUsage(RUSAGE_SELF, "mris_register ", stdout);
+  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
   // Output formatted so it can be easily grepped
 #ifdef HAVE_OPENMP
@@ -1045,6 +1052,12 @@ get_option(int argc, char *argv[])
     printf("setting overlay correlation coefficient to %2.1f\n", l_ocorr) ;
     nargs = 1 ;
     fprintf(stderr, "dt_decrease=%2.3f\n", parms.dt_decrease) ;
+  }
+  else if (!stricmp(option, "rusage"))
+  {
+    // resource usage
+    rusage_file = argv[2] ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "overlay"))
   {

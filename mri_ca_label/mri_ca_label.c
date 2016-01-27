@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/08/26 16:46:38 $
- *    $Revision: 1.109 $
+ *    $Author: greve $
+ *    $Date: 2016/01/20 23:42:14 $
+ *    $Revision: 1.110 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,8 @@
 #include <ctype.h>
 #include <sys/utsname.h>
 #include <unistd.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #ifdef HAVE_OPENMP // mrisurf.c has numerous parallelized functions
 #include <omp.h>
 #endif
@@ -230,6 +232,7 @@ static int expand_ventricle_flag = FALSE ;
 static int conform_flag = FALSE ;
 struct utsname uts;
 char *cmdline2, cwd[2000];
+char *rusage_file=NULL;
 
 int main(int argc, char *argv[])
 {
@@ -247,13 +250,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.109 2015/08/26 16:46:38 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.110 2016/01/20 23:42:14 greve Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.109 2015/08/26 16:46:38 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.110 2016/01/20 23:42:14 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1372,6 +1375,10 @@ int main(int argc, char *argv[])
   }
   MRIfree(&mri_inputs) ;
 
+  // Print usage stats to the terminal (and a file is specified)
+  PrintRUsage(RUSAGE_SELF, "mri_ca_label ", stdout);
+  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
+
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -1453,6 +1460,12 @@ get_option(int argc, char *argv[])
   else if (!stricmp(option, "SD"))
   {
     setenv("SUBJECTS_DIR",argv[2],1) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "rusage"))
+  {
+    // resource usage
+    rusage_file = argv[2] ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "-HELP")||!stricmp(option, "-USAGE"))

@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/07/10 18:57:33 $
- *    $Revision: 1.101 $
+ *    $Date: 2016/01/20 23:42:15 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.101 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.102 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +40,8 @@ const char *MRI_WATERSHED_VERSION = "$Revision: 1.101 $";
 #include <fstream>
 #include <iomanip>
 #include <vector>
-
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #define INDIVIDUAL_TIMERS 0
 
@@ -280,6 +281,7 @@ static int conformed = 0 ;
 
 static int old_type ;
 int CopyOnly = 0;
+char *rusage_file=NULL;
 
 #ifndef __OPTIMIZE__
 // this routine is slow and should be used only for diagnostics
@@ -566,6 +568,12 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
            "and writing it to %s...\n", argv[2], argv[3]) ;
     nargs = 2 ;
   }
+  else if (!strcmp(option, "rusage"))
+  {
+    // resource usage
+    rusage_file = argv[2] ;
+    nargs = 1 ;
+  }
   else if (!strcmp(option, "LABEL"))
   {
     parms->label=1;
@@ -846,7 +854,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.101 2015/07/10 18:57:33 greve Exp $",
+   "$Id: mri_watershed.cpp,v 1.102 2016/01/20 23:42:15 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -859,7 +867,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.101 2015/07/10 18:57:33 greve Exp $",
+           "$Id: mri_watershed.cpp,v 1.102 2016/01/20 23:42:15 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1208,7 +1216,11 @@ int main(int argc, char *argv[])
   MRIfree(&mri_mask) ;
 
   free(parms);
+  // Print usage stats to the terminal (and a file is specified)
+  PrintRUsage(RUSAGE_SELF, "mri_watershed ", stdout);
+  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
+  printf("mri_watershed done\n");
   return 0;
 }
 

@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/24 20:36:25 $
- *    $Revision: 1.49 $
+ *    $Date: 2016/01/20 23:42:15 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,8 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #ifdef HAVE_OPENMP
 #include <omp.h>
 #endif
@@ -56,7 +58,7 @@
 #endif // FS_CUDA
 
 static char vcid[] =
-  "$Id: mris_fix_topology.c,v 1.49 2015/11/24 20:36:25 greve Exp $";
+  "$Id: mris_fix_topology.c,v 1.50 2016/01/20 23:42:15 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -91,6 +93,7 @@ static TOPOLOGY_PARMS parms ;
 static int MGZ = 0; // set to 1 for MGZ
 
 static double pct_over = 1.1;
+char *rusage_file=NULL;
 
 int
 main(int argc, char *argv[])
@@ -113,7 +116,7 @@ main(int argc, char *argv[])
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_fix_topology.c,v 1.49 2015/11/24 20:36:25 greve Exp $",
+   "$Id: mris_fix_topology.c,v 1.50 2016/01/20 23:42:15 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -122,7 +125,7 @@ main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.49 2015/11/24 20:36:25 greve Exp $",
+     "$Id: mris_fix_topology.c,v 1.50 2016/01/20 23:42:15 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -329,6 +332,10 @@ main(int argc, char *argv[])
     MRISwrite(mris_corrected, fname) ;
   */
 
+  // Print usage stats to the terminal (and a file is specified)
+  PrintRUsage(RUSAGE_SELF, "mris_fix_topology ", stdout);
+  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
+
   msec = TimerStop(&then) ;
   fprintf(stderr,"topology fixing took %2.1f minutes\n",
           (float)msec/(60*1000.0f));
@@ -393,6 +400,12 @@ get_option(int argc, char *argv[])
      "smoothing spherical representation for %d iterations\n",
      sphere_smooth);
     nargs=1;
+  }
+  else if (!stricmp(option, "rusage"))
+  {
+    // resource usage
+    rusage_file = argv[2] ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "int"))
   {

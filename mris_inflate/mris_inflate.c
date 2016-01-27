@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2012/01/05 18:36:17 $
- *    $Revision: 1.44 $
+ *    $Date: 2016/01/20 23:42:15 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,8 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 #include "macros.h"
 #include "error.h"
@@ -49,7 +51,7 @@
 #endif // FS_CUDA
 
 static char vcid[] =
-  "$Id: mris_inflate.c,v 1.44 2012/01/05 18:36:17 greve Exp $";
+  "$Id: mris_inflate.c,v 1.45 2016/01/20 23:42:15 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -73,6 +75,7 @@ static float base_dt_scale = BASE_DT_SCALE ;
 
 static int SaveSulc = 1;
 static char *sulc_name = "sulc" ;
+char *rusage_file=NULL;
 
 int
 main(int argc, char *argv[])
@@ -88,7 +91,7 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_inflate.c,v 1.44 2012/01/05 18:36:17 greve Exp $",
+   "$Id: mris_inflate.c,v 1.45 2016/01/20 23:42:15 greve Exp $",
    "$Name:  $", cmdline);
 
 #ifdef FS_CUDA
@@ -99,7 +102,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_inflate.c,v 1.44 2012/01/05 18:36:17 greve Exp $",
+           "$Id: mris_inflate.c,v 1.45 2016/01/20 23:42:15 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -238,6 +241,10 @@ main(int argc, char *argv[])
     printf("Not saving sulc\n");
   }
 
+  // Print usage stats to the terminal (and a file is specified)
+  PrintRUsage(RUSAGE_SELF, "mris_inflate ", stdout);
+  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
+
   msec = TimerStop(&then) ;
   fprintf(stderr, "inflation took %2.1f minutes\n", (float)msec/(60*1000.0f));
 
@@ -275,6 +282,12 @@ get_option(int argc, char *argv[])
     strcpy(parms.base_name, argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "base name = %s\n", parms.base_name) ;
+  }
+  else if (!stricmp(option, "rusage"))
+  {
+    // resource usage
+    rusage_file = argv[2] ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "sulc"))
   {
