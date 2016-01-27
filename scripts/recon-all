@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2015/12/30 03:06:56 $
-#    $Revision: 1.560 $
+#    $Date: 2016/01/25 22:57:19 $
+#    $Revision: 1.563 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.560 2015/12/30 03:06:56 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.563 2016/01/25 22:57:19 greve Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -100,6 +100,7 @@ set DoTalairachUseNu = 0; # if 1, use nu.mgz as input to talairach stage
 set UseYa3tTalAtlas = 0; # if 1, use 3T18yoSchwartz young-adult 3T atlas
                          # for tal_avi (recommended as 3T default by Avi S.)
 set CustomTalAtlas = ""; # -custom-tal-atlas <name of atlas in average dir>
+set NoEMReg = 0; # Do not run mri_em_register. Instead convert tal.xfm to lta
 
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
@@ -419,7 +420,9 @@ if(-e $bstampfile0) then
   echo "Current Stamp: $bstamp0"
 endif
 rm -f $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
-if($#PatchDir) echo "$PatchDir" > $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
+if($?PatchDir) then
+  echo "$PatchDir" > $SUBJECTS_DIR/$subjid/scripts/patchdir.txt
+endif
 cp $bstampfile0 $SUBJECTS_DIR/$subjid/scripts/lastcall.build-stamp.txt
 
 if ($DoMakefile) then
@@ -1683,8 +1686,8 @@ talairach:
   echo "#@# Talairach `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
-  set xfm = transforms/talairach.xfm
   set xfma = transforms/talairach.auto.xfm
+  set xfm = transforms/talairach.xfm
   if ($longitudinal) then
     # longitudinal processing:
     if( -e $longbasedir/mri/$xfm) then
@@ -2194,6 +2197,7 @@ skullstrip:
   endif
 
   set cmd = (mri_watershed)
+  set cmd = ($cmd -rusage $touchdir/rusage.mri_watershed.dat) 
   set BM  = brainmask.mgz
 
   if ($WSGcaAtlas || $DoMultiStrip) then
@@ -2202,12 +2206,22 @@ skullstrip:
       # GCA registration (mri_em_register) to align to an atlas with a skull,
       # unless that file already exists
       if ( ! -e transforms/talairach_with_skull.lta || $DoCleanLta ) then
-        set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
-        set cmd2 = (mri_em_register)
-        if($UseCuda) set cmd2 = (mri_em_register_cuda)
-        set cmd2 = ($cmd2 -skull)
-        set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
-        set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
+        if($NoEMReg == 0) then
+          set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
+          set cmd2 = (mri_em_register)
+          if($UseCuda) set cmd2 = (mri_em_register_cuda)
+          set cmd2 = ($cmd2 -rusage $touchdir/rusage.mri_em_register.skull.dat) 
+          set cmd2 = ($cmd2 -skull)
+          set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
+          set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
+        else
+          # Convert talairach.xfm to LTA format
+          set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+          set xfm = transforms/talairach.xfm 
+          set lta = transforms/talairach_with_skull.lta
+          set cmd2 = (lta_convert --src orig.mgz --trg $mni305 \
+             --inxfm $xfm  --outlta $lta --subject fsaverage --ltavox2vox)
+        endif
         echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) $fs_time $cmd2 |& tee -a $LF
         if($status) goto error_exit;
@@ -2246,6 +2260,7 @@ skullstrip:
     foreach vol ( $SS_VOLUMES )
       foreach pfh ( $PREFLOOD_HEIGHTS )
         set cmd = (mri_watershed)
+        set cmd = ($cmd -rusage $touchdir/rusage.mri_watershed.dat) 
         set BMA_OLD = brainmask.auto.mgz
         set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
         if(-e $BMA_OLD && -e $BM && ! $DoCleanBM) then
@@ -2460,19 +2475,29 @@ if($DoGCAReg) then
                  transforms/talairach.lta )
 
   else
-    set cmd = (mri_em_register)
-    if($UseCuda) set cmd = (mri_em_register_cuda)
-    if($DoCreateBaseSubj) then
-      # base subj processing (norm_template instead of nu, and no mask needed):
-      set cmd = ($cmd -mask brainmask.mgz $xopts \
-                  norm_template.mgz ${GCADIR}/$GCA \
-                  transforms/talairach.lta)
+    if($NoEMReg == 0) then
+      set cmd = (mri_em_register)
+      if($UseCuda) set cmd = (mri_em_register_cuda)
+      set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
+      if($DoCreateBaseSubj) then
+        # base subj processing (norm_template instead of nu, and no mask needed):
+        set cmd = ($cmd -mask brainmask.mgz $xopts \
+                    norm_template.mgz ${GCADIR}/$GCA \
+                    transforms/talairach.lta)
+      else
+        # default processing:
+        set lta = transforms/talairach.lta
+        if($#GCAOutputName) set lta = transforms/talairach.$GCAOutputName.lta
+        set cmd = ($cmd -uns 3 -mask brainmask.mgz $xopts \
+                    nu.mgz ${GCADIR}/$GCA $lta)
+      endif
     else
-      # default processing:
+      set mni305 = $FREESURFER_HOME/average/mni305.cor.mgz
+      set xfm = transforms/talairach.xfm 
       set lta = transforms/talairach.lta
       if($#GCAOutputName) set lta = transforms/talairach.$GCAOutputName.lta
-      set cmd = ($cmd -uns 3 -mask brainmask.mgz $xopts \
-                  nu.mgz ${GCADIR}/$GCA $lta)
+      set cmd = (lta_convert --src orig.mgz --trg $mni305 \
+        --inxfm $xfm  --outlta $lta --subject fsaverage --ltavox2vox)
     endif
   endif
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2483,7 +2508,7 @@ endif
 
 
 #------------                         --------------#
-#------------ Canonical Normalization --------------#
+#----------- Canonical Intensity Normalization -----#
 ##-----------         -canorm         --------------#
 #------------                         --------------#
 if($DoCANormalize) then
@@ -2554,6 +2579,7 @@ if($DoCAReg) then
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile`;
   set cmd = (mri_ca_register)
   if($UseCuda) set cmd = (mri_ca_register_cuda)
+  set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.dat) 
   if($#GCARegIterations) set cmd = ($cmd -n $GCARegIterations)
   if($#GCARegTol) set cmd = ($cmd -tol $GCARegTol)
   set lta = transforms/talairach.lta
@@ -2609,6 +2635,7 @@ if($DoCARegInv) then
   #NJS: cuda version doesnt work will -invert-and-save:
   #if($UseCuda) set cmd = (mri_ca_register_cuda)
   set cmd = ($cmd -invert-and-save transforms/talairach.m3z)
+  set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.inv.dat) 
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) then
@@ -2642,7 +2669,6 @@ if($DoRemoveNeck) then
   if($status) goto error_exit;
   echo $cmd > $touchdir/mri_remove_neck.touch
 endif
-
 
 #------------                                       --------------#
 #------------ Recompute lta with skull but no neck  --------------#
@@ -2760,7 +2786,8 @@ if($DoCALabel) then
   #------------------- mri_ca_label ------------------------#
   # Run mri_ca_label to create aseg.auto_noCCseg.mgz
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
-  set cmd = (mri_ca_label -relabel_unlikely 9 .3 -prior 0.5)
+  set rusage = $touchdir/rusage.mri_ca_label.dat 
+  set cmd = (mri_ca_label -rusage $rusage -relabel_unlikely 9 .3 -prior 0.5)
   set cmd = ($cmd $UseCAAlign)
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
@@ -3243,7 +3270,7 @@ if($DoFix && ( ! $longitudinal )) then
   foreach hemi ($hemilist)
     echo "#--------------------------------------------" \
       |& tee -a $LF |& tee -a $CF
-    echo "#@# Fix Topology $hemi `date`" \
+    echo "#@# Fix Topology Copy $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
@@ -3264,8 +3291,11 @@ if($DoFix && ( ! $longitudinal )) then
   if($UseOldTopoFix) then
     set CMDFS = () # see earlier notes on -parallel implementation
     foreach hemi ($hemilist)
+      echo "#@# Fix Topology $hemi `date`" \
+        |& tee -a $SF |& tee -a $LF |& tee -a $CF
       set xopts = `fsr-getxopts mris_fix_topology $XOptsFile`;
       set cmd = (mris_fix_topology)
+      set cmd = ($cmd -rusage $touchdir/rusage.mris_fix_topology.$hemi.dat) 
       set cmd = ($cmd -mgz -sphere qsphere.nofix)
       if($FixWithGA) set cmd = ($cmd -ga)
       if($FixDiagOnly) set cmd = ($cmd -diagonly)
@@ -3296,7 +3326,7 @@ if($DoFix && ( ! $longitudinal )) then
         set defect_idx=`grep "total defect index" mris_euler_number.${hemi}.log | awk '{print $5}'`
         if("$defect_idx" != "0") then
           echo "mris_fix_topology failed on ${hemi}! (euler number != 2)" |& tee -a $LF
-          echo "Trying mris_topo_fixer on ${hemi}..." |& tee -a $LF
+          echo "Trying new mris_topo_fixer on ${hemi}..." |& tee -a $LF
           set UseNewTopoFix = 1
           set NewTopoFixHemiList = ($NewTopoFixHemiList $hemi)
           set UseOldTopoFix = 0
@@ -3513,6 +3543,7 @@ if($DoInflate2) then
     set xopts = `fsr-getxopts mris_inflate $XOptsFile`;
     set cmd = (mris_inflate)
     if($UseCuda) set cmd = (mris_inflate_cuda)
+    set cmd = ($cmd -rusage $touchdir/rusage.mris_inflate.$hemi.dat) 
     set cmd = ($cmd $xopts ../surf/$hemi.smoothwm \
                ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -3637,6 +3668,7 @@ if($DoSphere) then
       set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
       set cmd = (mris_sphere)
       if($UseCuda) set cmd = (mris_sphere_cuda)
+      set cmd = ($cmd -rusage $touchdir/rusage.mris_sphere.$hemi.dat) 
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
       if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
       set cmd = ($cmd $xopts)
@@ -3675,6 +3707,7 @@ if($DoSurfReg) then
     set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
     set xopts = `fsr-getxopts mris_register $XOptsFile`;
     set cmd = (mris_register -curv)
+    set cmd = ($cmd -rusage $touchdir/rusage.mris_register.$hemi.dat) 
     if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
     set cmd = ($cmd $xopts)
     if($longitudinal) then
@@ -4765,7 +4798,7 @@ if ($DoBaLabels) then
     set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage)
     echo "\n cd $SUBJECTS_DIR; $cmd; cd - \n"|& tee -a $LF |& tee -a $CF
     cd $SUBJECTS_DIR
-    if($RunIt && ! -e fsaverage) $fs_time $cmd |& tee -a $LF
+    if($RunIt && ! -e fsaverage) $cmd |& tee -a $LF
     cd -
   endif
 
@@ -4990,7 +5023,7 @@ if ($DoLabelExvivoEC) then
       set cmd=(ln -s $FREESURFER_HOME/subjects/${hemi}.EC_average)
       echo "\n cd $SUBJECTS_DIR; $cmd; cd - \n"|& tee -a $LF |& tee -a $CF
       cd $SUBJECTS_DIR
-      if($RunIt && ! -e ${hemi}.EC_average) $fs_time $cmd |& tee -a $LF
+      if($RunIt && ! -e ${hemi}.EC_average) $cmd |& tee -a $LF
       cd -
     endif
 
@@ -5264,7 +5297,7 @@ if ($DoQdecCache) then
     set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage)
     echo "\n cd $SUBJECTS_DIR; $cmd; cd - \n"|& tee -a $LF |& tee -a $CF
     cd $SUBJECTS_DIR
-    if($RunIt && ! -e fsaverage) $fs_time $cmd |& tee -a $LF
+    if($RunIt && ! -e fsaverage) $cmd |& tee -a $LF
     cd -
   endif
 
@@ -5428,8 +5461,14 @@ endif
 ##-------------  END OF RECON-ALL  ----------------#
 #--------------                    ----------------#
 
-echo "" |& tee -a $LF
-echo "#------------------------------------------" |& tee -a $LF
+if($?SET_FS_CMD_TIMING) then
+  # copy information about this process for profiling
+  cp /proc/$$/status $SUBJECTS_DIR/${subjid}/scripts/proc.status
+  # copy information about the cpu for profiling
+  cp /proc/cpuinfo $SUBJECTS_DIR/${subjid}/scripts/cpuinfo
+  chmod ug+w $SUBJECTS_DIR/${subjid}/scripts/proc.status $SUBJECTS_DIR/${subjid}/scripts/cpuinfo
+endif
+
 echo "" |& tee -a $LF
 
 set EndTime = `date`;
@@ -5449,19 +5488,21 @@ endif
 if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
 
 # Create the Done File
-echo "------------------------------" > $DoneFile
-echo "SUBJECT $subjid" >> $DoneFile
-echo "START_TIME $StartTime"     >> $DoneFile
-echo "END_TIME $EndTime"     >> $DoneFile
-echo "RUNTIME_HOURS $tRunHours" >> $DoneFile
-echo "USER $user"      >> $DoneFile
-echo "HOST `hostname`" >> $DoneFile
-echo "PROCESSOR `uname -m`" >> $DoneFile
-echo "OS `uname -s`"       >> $DoneFile
-echo "UNAME `uname -a`"  >> $DoneFile
-echo "VERSION $VERSION"    >> $DoneFile
-echo "CMDPATH $0"          >> $DoneFile
-echo "CMDARGS $argv0"      >> $DoneFile
+if($#DoneFile) then
+  echo "------------------------------" > $DoneFile
+  echo "SUBJECT $subjid" >> $DoneFile
+  echo "START_TIME $StartTime"     >> $DoneFile
+  echo "END_TIME $EndTime"     >> $DoneFile
+  echo "RUNTIME_HOURS $tRunHours" >> $DoneFile
+  echo "USER $user"      >> $DoneFile
+  echo "HOST `hostname`" >> $DoneFile
+  echo "PROCESSOR `uname -m`" >> $DoneFile
+  echo "OS `uname -s`"       >> $DoneFile
+  echo "UNAME `uname -a`"  >> $DoneFile
+  echo "VERSION $VERSION"    >> $DoneFile
+  echo "CMDPATH $0"          >> $DoneFile
+  echo "CMDARGS $argv0"      >> $DoneFile
+endif
 
 echo "recon-all -s $subjid finished without error at `date`" \
     |& tee -a $LF |& tee -a $SF
@@ -5527,7 +5568,7 @@ error_exit:
     echo "PWD `pwd`" >> $ErrorFile
     echo "CMD $cmd"  >> $ErrorFile
   endif
-  if($?DoneFile) then
+  if($#DoneFile) then
     echo "1" > $DoneFile
   endif
   # Finally exit
@@ -6829,6 +6870,13 @@ while( $#argv != 0 )
       set NoRandomness = 0;
       breaksw
 
+    case "-no-emreg":
+      set NoEMReg = 1;
+      breaksw
+    case "-emreg":
+      set NoEMReg = 0;
+      breaksw
+
     # -th3 turns on new volume calc for mris_anat_stats
     case "-th3":
       set TH3Flag = 1
@@ -7046,6 +7094,13 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       setenv OMP_NUM_THREADS $argv[1]; shift;
       setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS
+      breaksw
+
+    case "-chunk":
+      setenv FS_USE_MRI_CHUNK 1
+      breaksw
+    case "-no-chunk":
+      unsetenv FS_USE_MRI_CHUNK
       breaksw
 
     case "-force":
