@@ -33,8 +33,8 @@ function hdr = load_nifti(niftifile,hdronly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2014/10/15 22:01:26 $
-%    $Revision: 1.20 $
+%    $Date: 2016/01/19 21:18:27 $
+%    $Revision: 1.21 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -87,7 +87,7 @@ end
 hdr = load_nifti_hdr(niftifile);
 if(isempty(hdr)) 
   if(gzipped >=0) 
-    cmd = sprintf('rm %s', niftifile);
+    cmd = sprintf('rm -f %s', niftifile);
     [status result] = unix(cmd); 
     if(status)
       fprintf('cd %s\n',pwd);
@@ -106,7 +106,7 @@ if(nspatial == 163842) IsIco7 = 1; end
 
 % If only header is desired, return now
 if(hdronly) 
-  if(gzipped >=0) unix(sprintf('rm %s', niftifile)); end
+  if(gzipped >=0) unix(sprintf('rm -f %s', niftifile)); end
   if(IsIco7)
     % Reshape
     hdr.dim(2) = 163842;
@@ -144,7 +144,7 @@ switch(hdr.datatype)
   fclose(fp);
   if(gzipped >=0) 
     fprintf('Deleting temporary uncompressed file %s\n',niftifile);
-    unix(sprintf('rm %s', niftifile)); 
+    unix(sprintf('rm -f %s', niftifile)); 
   end
   return;
 end
@@ -152,7 +152,7 @@ end
 fclose(fp);
 if(gzipped >=0) 
   %fprintf('Deleting temporary uncompressed file %s\n',niftifile);
-  unix(sprintf('rm %s', niftifile)); 
+  unix(sprintf('rm -f %s', niftifile)); 
 end
 
 % Check that that many voxels were read in
@@ -173,9 +173,8 @@ end
 
 hdr.vol = reshape(hdr.vol, dim');
 if(hdr.scl_slope ~= 0)
-  fprintf('Rescaling NIFTI: slope = %g, intercept = %g\n',...
-	  hdr.scl_slope,hdr.scl_inter);
-  %fprintf('    Good luck, this has never been tested ... \n');
+  %fprintf('Rescaling NIFTI: slope = %g, intercept = %g\n',...
+  %	  hdr.scl_slope,hdr.scl_inter);
   hdr.vol = hdr.vol * hdr.scl_slope  + hdr.scl_inter;
 end
 
