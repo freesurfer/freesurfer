@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/09/22 19:55:12 $
- *    $Revision: 1.76 $
+ *    $Author: greve $
+ *    $Date: 2016/01/20 23:36:17 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -149,7 +149,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 static void initRegistration(Registration & R, Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_register.cpp,v 1.76 2015/09/22 19:55:12 mreuter Exp $";
+    "$Id: mri_robust_register.cpp,v 1.77 2016/01/20 23:36:17 greve Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -603,12 +603,6 @@ int main(int argc, char *argv[])
     // set the environment variable
     // to store mri as chunk in memory:
 //  setenv("FS_USE_MRI_CHUNK","",1) ;
-    if (getenv("FS_USE_MRI_CHUNK") != NULL)
-    {
-      cerr << "Error: do not set FS_USE_MRI_CHUNK while it is still buggy!"
-          << endl;
-      exit(1);
-    }
 
     // Default initialization
     int nargs = handle_version_option(argc, argv, vcid, "$Name:  $");

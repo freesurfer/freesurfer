@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/12/15 21:20:46 $
- *    $Revision: 1.52 $
+ *    $Author: greve $
+ *    $Date: 2016/01/20 23:36:17 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -142,7 +142,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_template.cpp,v 1.52 2015/12/15 21:20:46 mreuter Exp $";
+    "$Id: mri_robust_template.cpp,v 1.53 2016/01/20 23:36:17 greve Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -172,12 +172,6 @@ int main(int argc, char *argv[])
 //  setenv("SURFER_FRONTDOOR","",1) ;
     // to store mri as chunk in memory:
 //  setenv("FS_USE_MRI_CHUNK","",1) ;
-    if (getenv("FS_USE_MRI_CHUNK") != NULL)
-    {
-      cerr << "Error: do not set FS_USE_MRI_CHUNK while it is still buggy!"
-          << endl;
-      exit(1);
-    }
 
     // Default initialization
     int nargs = handle_version_option(argc, argv, vcid, "$Name:  $");
