@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (1/8/97)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/02/11 22:56:36 $
- *    $Revision: 1.44 $
+ *    $Date: 2016/01/21 14:52:55 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -355,7 +355,7 @@ static HISTOGRAM *
 mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
 {
   int        width, height, depth, x, y, z, bin_no, x0, y0, z0 ;
-  float      fmin, fmax, bin_size ;
+  float      fmin, fmax ;
   BUFTYPE    val, *psrc, bmin, bmax ;
   short      *spsrc ;
   float      *fpsrc ;
@@ -392,8 +392,8 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
       histo->nbins = nbins;
   }
   HISTOclear(histo, histo) ;
-
-  histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
+  HISTOinit(histo, nbins, fmin, fmax) ;
+//  histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
@@ -446,7 +446,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         spsrc = &MRISvox(mri, x0, y, z) ;
         for (x = x0 ; x < width ; x++)
         {
-          bin_no = nint((float)(*spsrc++ - fmin) / (float)bin_size) ;
+          bin_no = nint((float)(*spsrc++ - fmin) / (float)histo->bin_size) ;
           if (bin_no < 0)
             bin_no = 0 ;
           if (bin_no >= histo->nbins)
@@ -464,7 +464,7 @@ mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo, MRI_REGION *region)
         fpsrc = &MRIFvox(mri, x0, y, z) ;
         for (x = x0 ; x < width ; x++)
         {
-          bin_no = nint((float)(*fpsrc++ - fmin) / (float)bin_size) ;
+          bin_no = nint((float)(*fpsrc++ - fmin) / (float)histo->bin_size) ;
           if (bin_no < 0)
             bin_no = 0 ;
           if (bin_no >= histo->nbins)
@@ -810,24 +810,16 @@ MRIhistogram(MRI *mri, int nbins)
 {
   int        width, height, depth, x, y, z, bin_no, frame ;
   HISTOGRAM  *histo ;
-  float      fmin, fmax, bin_size ;
+  float      fmin, fmax ;
   double     val ;
 
   MRIvalRange(mri, &fmin, &fmax) ; // fmin = is wrong!
   if (!nbins)
-  {
     nbins = nint(fmax - fmin + 1.0) ;
-    bin_size = 1 ;
-  }
-  else
-    bin_size = (fmax - fmin + 1) / (float)nbins ;
   histo = HISTOalloc(nbins) ;
-  histo->bin_size = bin_size ;
+  HISTOinit(histo, nbins, fmin, fmax) ;
   width = mri->width ; height = mri->height ; depth = mri->depth ;
-  histo->min = fmin ; histo->max = histo->min + (histo->nbins-1)*histo->bin_size ;
 
-  for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
   for (frame = 0 ; frame < mri->nframes ; frame++)
   {
     for (z = 0 ; z < depth ; z++)
@@ -837,7 +829,7 @@ MRIhistogram(MRI *mri, int nbins)
         for (x = 0 ; x < width ; x++)
         {
           val = MRIgetVoxVal(mri, x, y, z, frame) ;
-          bin_no = nint((float)(val - fmin) / (float)bin_size) ;
+          bin_no = nint((float)(val - fmin) / (float)histo->bin_size) ;
           histo->counts[bin_no]++ ;
         }
       }
@@ -854,7 +846,7 @@ MRIhistogramLabelRegion(MRI *mri,
 {
   int        width, height, depth, x, y, z, bin_no, x0, x1, y0, y1, z0, z1 ;
   HISTOGRAM  *histo ;
-  float      fmin, fmax, bin_size ;
+  float      fmin, fmax ;
   BUFTYPE    *psrc ;
   int        val, bmin, bmax ;
   float      fval;
@@ -866,15 +858,10 @@ MRIhistogramLabelRegion(MRI *mri,
     nbins = nint(fmax - fmin + 1.0) ;
 
   histo = HISTOalloc(nbins) ;
+  HISTOinit(histo, nbins, fmin, fmax) ;
 
-  bin_size = (fmax - fmin + 1) / (float)nbins ;
-  width = mri->width ;
-  height = mri->height ;
-  depth = mri->depth ;
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
 
-  for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no)*bin_size+fmin ;
-  histo->bin_size = bin_size ;
   x0 = MAX(0, region->x) ;
   y0 = MAX(0, region->y) ;
   z0 = MAX(0, region->z) ;
@@ -897,17 +884,17 @@ MRIhistogramLabelRegion(MRI *mri,
           /* 0 -> x */
           psrc = &MRIvox(mri, x, y, z) ;
           val = *psrc++ ;
-          bin_no = nint((float)(val - bmin) / (float)bin_size) ;
+          bin_no = nint((float)(val - bmin) / (float)histo->bin_size) ;
           histo->counts[bin_no]++ ;
           break ;
         case MRI_SHORT:
           val = MRISvox(mri, x, y, z) ;
-          bin_no = nint((float)(val - bmin) / (float)bin_size) ;
+          bin_no = nint((float)(val - bmin) / (float)histo->bin_size) ;
           histo->counts[bin_no]++ ;
           break ;
         case MRI_FLOAT:
           fval = MRIFvox(mri, x, y, z);
-          bin_no = nint((fval - fmin) / (float)bin_size);
+          bin_no = nint((fval - fmin) / (float)histo->bin_size);
           histo->counts[bin_no]++;
           break;
 
@@ -935,7 +922,7 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
 {
   int        width, height, depth, x, y, z, bin_no ;
   HISTOGRAM  *histo ;
-  float      fmin, fmax, bin_size ;
+  float      fmin, fmax ;
   int        val, bmin, bmax ;
   float      fval;
 
@@ -946,18 +933,10 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
     nbins = nint(fmax - fmin + 1.0) ;
 
   histo = HISTOalloc(nbins) ;
+  HISTOinit(histo, nbins, fmin, fmax) ;
 
-  histo->bin_size = bin_size = (fmax - fmin) / (float)(nbins-1) ;
-  histo->min = fmin ;
-  histo->max = fmax ;
-  width = mri->width ;
-  height = mri->height ;
-  depth = mri->depth ;
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
 
-  // note that I think this is correct, 
-  // but other routines have off-by-1/2 type errors in them (BRF)!
-  for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no+1)*bin_size+fmin ;
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
@@ -971,7 +950,7 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
         case MRI_UCHAR:
           /* 0 -> x */
           val = MRIvox(mri, x, y, z) ;
-          bin_no = nint((float)(val - bmin) / (float)bin_size) ;
+          bin_no = nint((float)(val - bmin) / (float)histo->bin_size) ;
           if (bin_no == 0)
             DiagBreak() ;
           if (bin_no < 0)
@@ -982,7 +961,7 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
           break ;
         case MRI_SHORT:
           val = MRISvox(mri, x, y, z) ;
-          bin_no = nint((float)(val - bmin) / (float)bin_size) ;
+          bin_no = nint((float)(val - bmin) / (float)histo->bin_size) ;
           if (bin_no < 0)
             bin_no = 0 ;
           else if (bin_no >= histo->nbins)
@@ -991,7 +970,7 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
           break ;
         case MRI_FLOAT:
           fval = MRIFvox(mri, x, y, z);
-          bin_no = nint((fval - fmin) / (float)bin_size);
+          bin_no = nint((fval - fmin) / (float)histo->bin_size);
           if (bin_no < 0 || bin_no >= histo->nbins)
             DiagBreak() ;
           if (bin_no < 0)
@@ -1003,7 +982,7 @@ MRIhistogramLabel(MRI *mri, MRI *mri_labeled, int label, int nbins)
 
         default:
           fval = MRIgetVoxVal(mri, x, y, z, 0);
-          bin_no = nint((fval - fmin) / (float)bin_size);
+          bin_no = nint((fval - fmin) / (float)histo->bin_size);
           if (bin_no < 0 || bin_no >= histo->nbins)
             DiagBreak() ;
           if (bin_no < 0)
@@ -1342,7 +1321,7 @@ MRIhistogramVoxel(MRI *mri,
                   float thresh)
 {
   int               whalf ;
-  float             fmin, fmax, bin_size ;
+  float             fmin, fmax ;
   MRI_REGION        region ;
 
   whalf = (wsize-1)/2 ;
@@ -1365,8 +1344,7 @@ MRIhistogramVoxel(MRI *mri,
       histo->nbins = nbins;
   }
   HISTOclear(histo, histo) ;
-  bin_size = (fmax - fmin + 1) / (float)nbins ;
-  histo->bin_size = bin_size ;
+  HISTOinit(histo, nbins, fmin, fmax) ;
   
   if (mri_thresh == NULL)
     mriHistogramRegion
@@ -1383,8 +1361,8 @@ mriHistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
                                 MRI_REGION *region, MRI *mri_thresh, 
                                 float thresh)
 {
-  int        width, height, depth, x, y, z, bin_no, x0, y0, z0 ;
-  float      fmin, fmax, bin_size, val ;
+  int        width, height, depth, x, y, z, x0, y0, z0 ;
+  float      fmin, fmax, val ;
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
@@ -1439,10 +1417,7 @@ mriHistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
       histo->nbins = nbins;
   }
   HISTOclear(histo, histo) ;
-
-  histo->bin_size = bin_size = (fmax - fmin + 1) / (float)nbins ;
-  for (bin_no = 0 ; bin_no < nbins ; bin_no++)
-    histo->bins[bin_no] = (bin_no)*histo->bin_size+fmin ;
+  HISTOinit(histo, nbins, fmin, fmax) ;
 
   for (z = z0 ; z < depth ; z++)
   {
