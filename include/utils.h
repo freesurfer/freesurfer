@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/12 15:48:36 $
- *    $Revision: 1.55 $
+ *    $Author: greve $
+ *    $Date: 2016/01/20 23:38:54 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,6 +136,8 @@ void exec_progress_callback(int slice, int total_slices, int frame, int total_fr
 int  *compute_permutation(int num, int *vec)  ;
 int *GetMemUsage(int *u);
 int PrintMemUsage(FILE *fp);
+int PrintRUsage(int who, const char *pre, FILE *fp);
+int WriteRUsage(int who, const char *pre, char *fname);
 
 #if defined(__cplusplus)
 };
