@@ -15,9 +15,9 @@ function err = fast_svtable(tbl, rowid, colid, fname, base)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:05 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2016/01/20 23:37:31 $
+%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -76,6 +76,7 @@ for r = 0:size(rowid,1);
 end
 fprintf(fid,'\n');
 
+fclose(fid);
 err = 0;
 
 return;
