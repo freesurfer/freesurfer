@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/04/24 17:37:21 $
- *    $Revision: 1.93 $
+ *    $Author: greve $
+ *    $Date: 2016/01/20 23:38:54 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1671,6 +1671,7 @@ compute_permutation(int num, int *vec)
   return(vec) ;
 }
 
+// probably better to use getrusage(). see below
 int *GetMemUsage(int *u)
 {
   FILE *fp;
@@ -1708,4 +1709,54 @@ int PrintMemUsage(FILE *fp)
 	  u[0],u[1],u[2],u[3],u[4]);
   fflush(fp);
   return(0);
+}
+
+
+/* ---------------------------------------------------*/
+/*!
+  \fn int PrintRUsage(int who, char *pre, FILE *fp)
+  \brief Returns usage statistics. See man page for getrusage.
+  probably want: who = RUSAGE_SELF;
+  pre is a string that will start each line.
+*/
+int PrintRUsage(int who, const char *pre, FILE *fp)
+{
+  int err;
+  struct rusage u;
+  err = getrusage(who, &u);
+  if(err) return(err);
+  // user and system usage time in seconds
+  fprintf(fp,"%sutimesec    %lf\n",pre,u.ru_utime.tv_sec+u.ru_utime.tv_usec/1000000.0);
+  fprintf(fp,"%sstimesec    %lf\n",pre,u.ru_stime.tv_sec+u.ru_stime.tv_usec/1000000.0);
+  fprintf(fp,"%sru_maxrss   %ld\n",pre,u.ru_maxrss);        /* maximum resident set size */
+  fprintf(fp,"%sru_ixrss    %ld\n",pre,u.ru_ixrss);         /* integral shared memory size */
+  fprintf(fp,"%sru_idrss    %ld\n",pre,u.ru_idrss);         /* integral unshared data size */
+  fprintf(fp,"%sru_isrss    %ld\n",pre,u.ru_isrss);         /* integral unshared stack size */
+  fprintf(fp,"%sru_minflt   %ld\n",pre,u.ru_minflt);        /* page reclaims */
+  fprintf(fp,"%sru_majflt   %ld\n",pre,u.ru_majflt);        /* page faults */
+  fprintf(fp,"%sru_nswap    %ld\n",pre,u.ru_nswap);         /* swaps */
+  fprintf(fp,"%sru_inblock  %ld\n",pre,u.ru_inblock);       /* block input operations */
+  fprintf(fp,"%sru_oublock  %ld\n",pre,u.ru_oublock);       /* block output operations */
+  fprintf(fp,"%sru_msgsnd   %ld\n",pre,u.ru_msgsnd);        /* messages sent */
+  fprintf(fp,"%sru_msgrcv   %ld\n",pre,u.ru_msgrcv);        /* messages received */
+  fprintf(fp,"%sru_nsignals %ld\n",pre,u.ru_nsignals);      /* signals received */
+  fprintf(fp,"%sru_nvcsw    %ld\n",pre,u.ru_nvcsw);         /* voluntary context switches */
+  fprintf(fp,"%sru_nivcsw   %ld\n",pre,u.ru_nivcsw);        /* involuntary context switches */
+  return(0);
+}
+/* ---------------------------------------------------*/
+/*!
+  \fn int WriteRUsage(int who, char *pre, char *fname)
+  \brief Writes usage statistics to file fname. See man getrusage.
+  probably want: who = RUSAGE_SELF;
+  pre is a string that will start each line.
+*/
+int WriteRUsage(int who, const char *pre, char *fname)
+{
+  int err;
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(fp==NULL) return(1);
+  err = PrintRUsage(who, pre, fp);
+  return(err);
 }
