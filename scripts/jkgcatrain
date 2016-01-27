@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # jkgcatrain
 
-set VERSION = '$Id: jkgcatrain,v 1.2 2015/10/14 01:10:01 greve Exp $';
+set VERSION = '$Id: jkgcatrain,v 1.3 2016/01/25 23:00:22 greve Exp $';
 
 set gcadir = ();
 set nthreads = 1;
@@ -93,7 +93,7 @@ foreach xsubject ($subjectlist0)
     continue
   endif
 
-  set cmd = (mri_ca_train -prior_spacing 2 -node_spacing 4 -mask $maskvol \
+  set cmd = (fs_time mri_ca_train -prior_spacing 2 -node_spacing 4 -mask $maskvol \
       -parc_dir $manseg -xform $m3z -T1 $normname $subjectlist $trggca)
   echo $cmd | tee -a $LF
   rm -f $trggca; # use this as the done file, need better
@@ -115,7 +115,6 @@ end # loop over xsubject
 echo "Done submitting `date`" | tee -a $LF
 
 echo "Waiting for atlas to be done before exiting" | tee -a $LF
-exit 0
 
 @ nthloop = 0
 while(1 && $Submit)
@@ -217,6 +216,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--rebuild-gca":
+      # Mimics rebuild_gca script (?)
       set m3z = talairach_one.m3z
       set normname = norm.mgz
       set iter = 2
