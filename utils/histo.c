@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/12/13 16:35:23 $
- *    $Revision: 1.89 $
+ *    $Date: 2016/01/21 14:52:55 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1570,7 +1570,7 @@ HISTOfindBin(HISTOGRAM *h, float val)
   int b ;
 
   if (h->bin_size == 1)
-    return((int)val-h->min) ;
+    return((int)val-h->bins[0]) ;
 
   for (b = h->nbins-1 ; b > 0 ; b--)
     if (h->bins[b-1] < val)
@@ -2043,8 +2043,12 @@ HISTOrobustGaussianFit(HISTOGRAM *h, double max_percentile,
     bin = HISTOfindBinWithCount(hcdf, max_percentile) ;
     thresh = hcdf->bins[bin] ;  // threshold for computing variance
   }
-  else
+  else   // found a valid next valley. Now look backwards to find bulk of distribution
+  { 
+    while (h->counts[bin] < h->counts[peak]*max_percentile && bin > peak+1)  // don't fit way out on tails of distribution
+      bin-- ;
     thresh = h->bins[bin]-h->bins[peak] ;
+  }
   min_bin = HISTOfindBin(hz, -thresh) ;
   max_bin = HISTOfindBin(hz, thresh) ;
   if (hz->nbins == 0)
