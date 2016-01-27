@@ -30,8 +30,8 @@ function [vol, M, mr_parms, volsz] = load_mgh(fname,slices,frames,headeronly)
 % Original Author: Bruce Fischl
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2012/06/18 20:50:19 $
-%    $Revision: 1.21 $
+%    $Date: 2016/01/19 21:18:27 $
+%    $Revision: 1.22 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -94,7 +94,7 @@ end
 v       = fread(fid, 1, 'int') ; 
 if(isempty(v))
   fprintf('ERROR: problem reading fname\n');
-  if(gzipped >=0) unix(sprintf('rm %s', fname)); end
+  if(gzipped >=0) unix(sprintf('rm -f %s', fname)); end
 end
 ndim1   = fread(fid, 1, 'int') ; 
 ndim2   = fread(fid, 1, 'int') ; 
@@ -175,7 +175,7 @@ if(headeronly)
     end
   end
   fclose(fid);
-  if(gzipped >=0)  unix(sprintf('rm %s', fname));  end
+  if(gzipped >=0)  unix(sprintf('rm -f %s', fname));  end
   return;
 end
 
@@ -200,7 +200,7 @@ if(slices(1) <= 0 & frames(1) <= 0)
     end
   end
   fclose(fid) ;
-  if(gzipped >=0)  unix(sprintf('rm %s', fname));  end
+  if(gzipped >=0)  unix(sprintf('rm -f %s', fname));  end
   
   nread = prod(size(vol));
   if(nread ~= nv)
@@ -246,7 +246,7 @@ for frame = frames
       fprintf('ERROR: load_mgh: reading slice %d, frame %d\n',slice,frame);
       fprintf('  tried to read %d, actually read %d\n',nvslice,nread);
       fclose(fid);
-      if(gzipped >=0) unix(sprintf('rm %s', fname)); end
+      if(gzipped >=0) unix(sprintf('rm -f %s', fname)); end
       return;
     end
 
@@ -269,6 +269,6 @@ if(~feof(fid))
 end
 
 fclose(fid) ;
-if(gzipped >=0) unix(sprintf('rm %s', fname)); end
+if(gzipped >=0) unix(sprintf('rm -f %s', fname)); end
 
 return;
