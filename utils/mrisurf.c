@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/12/17 18:09:34 $
- *    $Revision: 1.776 $
+ *    $Date: 2016/01/22 20:24:17 $
+ *    $Revision: 1.777 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.776 2015/12/17 18:09:34 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.777 2016/01/22 20:24:17 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -18698,7 +18698,7 @@ MRISinflateBrain(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
         mrisAdaptiveTimeStep(mris, parms);
         break ;
       }
-      mrisTrackTotalDistance(mris) ;  /* update sulc */
+      mrisTrackTotalDistanceNew(mris) ;  /* update sulc */
       MRIScomputeMetricProperties(mris) ;
       sse = MRIScomputeSSE(mris, parms) ;
       rms_height = MRISrmsTPHeight(mris) ;
