@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/01/12 19:33:41 $
- *    $Revision: 1.65 $
+ *    $Date: 2016/01/20 23:39:49 $
+ *    $Revision: 1.66 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,8 @@
 #include <math.h>
 #include <float.h>
 #include <ctype.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 #include "macros.h"
 #include "mrisurf.h"
 #include "mrisutils.h"
@@ -61,7 +63,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.65 2016/01/12 19:33:41 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.66 2016/01/20 23:39:49 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000 // such a large number may break valgrind
@@ -130,6 +132,7 @@ MRI *PruneMask = NULL;
 int DoRMS = 0; // compute root-mean-square on multi-frame input
 int DoCumSum = 0;
 int DoFNorm = 0;
+char *rusage_file=NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -741,10 +744,10 @@ int main(int argc, char **argv)
 
   printf("Writing to %s\n",out);
   err = MRIwrite(mriout,out);
-  if(err)
-  {
-    exit(err);
-  }
+  if(err) exit(err);
+
+  if(debug) PrintRUsage(RUSAGE_SELF, "mri_ca_label ", stdout);
+  if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
   return(0);
 }
@@ -1021,6 +1024,12 @@ static int parse_commandline(int argc, char **argv)
         argnerr(option,1);
       }
       out = pargv[0];
+      nargsused = 1;
+    }
+    else if ( !strcmp(option, "--rusage") )
+    {
+      if (nargc < 1) argnerr(option,1);
+      rusage_file = pargv[0];
       nargsused = 1;
     }
     else if ( !strcmp(option, "--mask") )
