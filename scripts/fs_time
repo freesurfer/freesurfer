@@ -1,39 +1,225 @@
-#!/usr/bin/env perl
+#!/bin/tcsh -f
+# fs_time
 
-use warnings;
-use strict;
-use integer;
+set VERSION = '$Id: fs_time,v 1.10 2016/01/25 22:56:48 greve Exp $';
+set outfile = ();
+set key = ("@#@FSTIME ");
 
-my( $start, $stop );
-my( $elapsed, $secs, $mins, $hours );
-my( $command, $outString );
+if($?FSTIME_LOAD == 0) then
+  # Turn on by default
+  setenv FSTIME_LOAD 1
+endif
 
-# Get the command
-$command = "";
-while( <@ARGV> ) {
-    $command = $command." ".$_;
-}
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+@ nargs = $#argv - 1
+
+if($FSTIME_LOAD) then
+  set upt = `uptime | sed 's/,/ /g'`;
+  @ a = $#upt - 2
+  @ b = $#upt - 1
+  #echo "@#@FSLOADPRE $dt $argv[1] N $nargs $upt[$a] $upt[$b] $upt[$#upt]"
+  set upt = "L $upt[$a] $upt[$b] $upt[$#upt]"
+else
+  set upt = ""
+endif
+
+set dt = `date '+%Y:%m:%d:%H:%M:%S'`
+set fmt = "$key $dt $argv[1] N $nargs e %e S %S U %U P %P M %M F %F R %R W %W c %c w %w I %I O %O $upt"
+
+set cmd = /usr/bin/time
+if($#outfile) set cmd = ($cmd -o $outfile)
+$cmd  -f "$fmt" $argv
+set st = $status
+if($#outfile) cat $outfile
+
+if($FSTIME_LOAD) then
+  set dt = `date '+%Y:%m:%d:%H:%M:%S'`
+  set upt = `uptime | sed 's/,/ /g'`;
+  @ a = $#upt - 2
+  @ b = $#upt - 1
+  echo "@#@FSLOADPOST $dt $argv[1] N $nargs $upt[$a] $upt[$b] $upt[$#upt]"
+endif
+
+exit $st
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-o":
+      if($#argv < 1) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "-k":
+      if($#argv < 1) goto arg1err;
+      set key = $argv[1]; shift;
+      breaksw
+
+    case "-l":
+    case "-load":
+      setenv FSTIME_LOAD 1
+      breaksw
+    case "-no-load":
+      setenv FSTIME_LOAD 0
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      # must be at the start of the command to run
+      # put item back into the list
+      set argv = ($flag $argv)
+      break;
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if(! -e /usr/bin/time) then
+  echo "ERROR: cannot find /usr/bin/time"
+  exit 1;
+endif
+
+if($#argv == 0) then
+  goto usage_exit;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fs_time [options] command args"
+  echo " options:"
+  echo "  -o outputfile : save resource info into outputfile"
+  echo "  -k key"
+  echo "  -l : report on load averages as from uptime"
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is a frontend for the unix /usr/bin/time program to keep track of 
+resources used by a process. The basic usage is like that of time, ie,
+
+fs_time [options] command args
+
+It creates a formatted output that allows for easy processing. See below.
+
+If the env variable FSTIME_LOAD is set to 1 or not set at all, then
+uptime is run before and after each process to give the load on the
+system (see below for output)
+
+Default fs_time Output (see also the manual page for /usr/bin/time):
+1. Key (default is @#@FSTIME)
+2. Time stamp at the onset of execution
+3. Command name
+4. N Number of arguments passed to command
+5. e Elapsed real time in seconds . This is the total
+      amount of time from when the command started to when it ended regardless
+      of how much of the CPU it got.
+6. S Total number of CPU-seconds that the process spent in kernel mode.
+7. U Total number of CPU-seconds that the process spent in user mode.
+8. P Percentage of the CPU that this job got, computed as (U+S)/e.
+9. M Maximum resident set size of the process during its lifetime, in Kbytes.
+10. F Number  of major page faults that occurred while the process was running.  
+      These are faults where the page has to be read in from disk.
+11. R Number of minor, or recoverable, page faults.  These are
+   faults for pages that are not valid but which have not yet been
+   claimed by other virtual pages.  Thus the data in the page is
+   still valid but the system tables must be updated.
+12.  W Number of times the process was swapped out of main memory.
+13. c Number of times the process was context-switched involuntarily 
+    (because the time slice expired). 
+14. w Number of waits: times that the program was context-switched voluntarily, 
+    for instance while  waiting  for an I/O operation to complete.
+15. I Number of file system inputs by the process.
+16. O Number of file system outputs by the process.
+17. L L1 L5 L15 : load averages at 1, 5, and 15 min (with setenv FSTIME_LOAD 1)
+
+Example:
+
+fs_time -o resource.dat mri_convert orig.mgz myfile.mgz
+mri_convert orig.mgz myfile.mgz 
+reading from orig.mgz...
+TR=2730.00, TE=3.44, TI=1000.00, flip angle=7.00
+i_ras = (-1, 0, 0)
+j_ras = (2.38419e-07, 0, -1)
+k_ras = (-1.93715e-07, 1, 0)
+writing to myfile.mgz...
+@#@FSTIME 2016:01:21:18:27:08 mri_convert N 2 e 2.20 S 0.05 U 1.64 P 77% M 23628 F 0 R 5504 W 0 c 7 w 3 I 0 O 20408 
+
+The above command runs the mri_convert command with two arguments and
+produces the information about resources. It also creates a file
+resource.dat with the resource information. In this case, the above is
+interpreted as:
+
+@#@FSTIME  : key for easy searching/grepping
+mri_convert : command that was run
+2016:01:21:18:27:08 : time stamp at the onset of execution year:month:day:hour:min:sec
+N 2 : mri_convert was run with 2 arguments
+e 2.20 : total elapsed time in seconds from start to end
+S 0.05 : seconds spent in system mode
+U 1.64 : seconds specnt in user mode
+P 77%  : percent of cpu that process used (S+U)/e
+M 23628 : maximum memory size in Kbytes
+F 0 : no major page faults
+R 5504 : number of minor page faults
+W 0 : process was not swapped out of memory
+c 7 : seven involuntary context-switches
+w 3 : three voluntary context-switches
+I 0 : zero file system inputs by the process.
+O 20408 : Number of file system outputs by the process.
+
+If the env variable FSTIME_LOAD is set to 1, the output looks something like
+
+@#@FSLOADPOST 2016:01:23:15:11 mri_convert N 2 0.00 0.03 0.06
+
+The 3 numbers are the system load averages for the past 1, 5, and 15
+minutes as given by uptime.
 
 
-# Run it inside timer
-$start = time;
-system( $command );
-if ($? != 0) {
-    exit 1;
-}
-$stop = time;
-
-# Compute elapsed time
-$elapsed = int( $stop-$start );
-
-$hours = $elapsed / 3600;
-my $elapsed2 = $elapsed % 3600;
-
-$mins = $elapsed2 / 60;
-$secs = $elapsed2 % 60;
-
-
-# Print output
-$outString = sprintf( "\ntime:: %02d:%02d:%02d   elapsed:: %05d   cmd:: $ARGV[0]\n", $hours, $mins, $secs, $elapsed );
-
-printf STDERR $outString;
