@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/10/10 17:28:19 $
- *    $Revision: 1.65 $
+ *    $Date: 2016/01/29 18:22:07 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -166,13 +166,13 @@ main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.65 2015/10/10 17:28:19 fischl Exp $",
+   "$Id: mri_ca_normalize.c,v 1.67 2016/01/29 18:22:07 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.65 2015/10/10 17:28:19 fischl Exp $",
+           "$Id: mri_ca_normalize.c,v 1.67 2016/01/29 18:22:07 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1102,6 +1102,20 @@ find_control_points
 		continue ;
 	      }
 	    }
+	    else  // be more conservative
+	    {
+	      Real val_T1 ;
+	      MRIsampleVolumeFrame(mri_in, xv, yv, zv, 0, &val_T1) ;
+	      if (val_T1 < .75*MIN_WM_BIAS_PCT * DEFAULT_DESIRED_WHITE_MATTER_VALUE  ||
+		  val_T1 > 1.25*MAX_WM_BIAS_PCT  * DEFAULT_DESIRED_WHITE_MATTER_VALUE )
+	      {
+#if 1
+		if (mri_ctrl)
+		  MRIsetVoxVal(mri_ctrl, xv, yv, zv, 0, 3) ;
+		continue ;
+#endif
+	      }
+	    }
             if (uniform_region(gca, mri_in, transform,
                                xv, yv, zv,
                                image_wsize, &gcas[i], nsigma) == 0)
@@ -1612,8 +1626,7 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
         mean_ratio += hsmooth->bins[peak] / gcas[i].means[n];
       }
       mean_ratio /= (Real)nsamples ;
-      HISTOclearBins
-      (hsmooth, hsmooth, hsmooth->bins[start], hsmooth->bins[end])  ;
+      HISTOclearBins(hsmooth, hsmooth, hsmooth->bins[start], hsmooth->bins[end])  ;
       if (niter++ > 5)
       {
         break ;
@@ -1624,6 +1637,11 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
       }
     }
     while  (mean_ratio  < 0.5 || mean_ratio > 2.0) ;
+
+    if (fmin+start <  min_T1)
+      start = min_T1-fmin ;
+    if (fmin+end > max_T1)
+      end = max_T1-fmin ;
 
     printf("%s: limiting intensities to %2.1f --> %2.1f\n",
            name, fmin+start, fmin+end) ;
