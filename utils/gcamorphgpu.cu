@@ -7,9 +7,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/12/12 21:18:24 $
- *    $Revision: 1.55 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/04 20:23:05 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -345,11 +345,11 @@ void GCAmorphGPU::SendAll( const GCAM* src )
 
 
   GCAmorphGPU::tSendPack.Start();
-  for( unsigned int i=0; i<dims.x; i++ )
+  for( unsigned int k=0; k<dims.z; k++ )
   {
     for( unsigned int j=0; j<dims.y; j++ )
     {
-      for( unsigned int k=0; k<dims.z; k++ )
+      for( unsigned int i=0; i<dims.x; i++ )
       {
 
         // Get the 1d index (same for all arrays)
@@ -571,11 +571,11 @@ void GCAmorphGPU::RecvAll( GCAM* dst ) const
   GCAmorphGPU::tRecvTransfer.Stop();
 
   GCAmorphGPU::tRecvPack.Start();
-  for( unsigned int i=0; i<dims.x; i++ )
+  for( unsigned int k=0; k<dims.z; k++ )
   {
     for( unsigned int j=0; j<dims.y; j++ )
     {
-      for( unsigned int k=0; k<dims.z; k++ )
+      for( unsigned int i=0; i<dims.x; i++ )
       {
 
         // Get the 1d index (same for all arrays)

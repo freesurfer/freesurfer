@@ -10,9 +10,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/12/12 21:18:24 $
- *    $Revision: 1.10 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/04 20:23:04 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -116,7 +116,7 @@ int ComputeGradient( GPU::Classes::GCAmorphGPU& gcam,
   }
 
   // Do the log likelihood term
-  myTerms.LogLikelihood( gcam, mri, mri_smooth, parms->l_log_likelihood );
+  LogLikelihood( &myTerms, gcam, mri, mri_smooth, parms->l_log_likelihood );
 
 
   // Multiscale term unimplemented

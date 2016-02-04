@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2015/07/09 22:37:02 $
-#    $Revision: 1.2 $
+#    $Date: 2016/02/04 20:23:04 $
+#    $Revision: 1.3 $
 #
 # Copyright © 2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_ca_register,v 1.2 2015/07/09 22:37:02 zkaufman Exp $'
+set VERSION='$Id: test_mri_ca_register,v 1.3 2016/02/04 20:23:04 zkaufman Exp $'
 
 umask 002
 
@@ -47,7 +47,10 @@ setenv SUBJECTS_DIR ""
 setenv OMP_NUM_THREADS 8
 
 # usage in recon-all: 
-set cmd=(../mri_ca_register \
+
+set profile=""
+##set profile="valgrind --tool=callgrind"
+set cmd=($profile ../mri_ca_register_cuda \
     -nobigventricles \
     -T talairach.lta \
     -align-after \

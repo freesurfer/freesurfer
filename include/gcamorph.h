@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/04/02 21:03:08 $
- *    $Revision: 1.116 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/04 20:23:04 $
+ *    $Revision: 1.117 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -721,14 +721,14 @@ MRI *GCAMtoMRI(GCAM *gcam, MRI *mri);
 			     const MRI *mri_smooth,
 			     GCA_MORPH_PARMS *parms );
 
-  void GCAMregisterPipelineGPU( GCA_MORPH *gcam,
-				MRI *mri,
-				MRI *mri_smooth,
-				GCA_MORPH_PARMS *parms,
-				double *last_rms,
-				int *level_steps,
-				int i );
-
+  float GCAMregisterPipelineAndComputeRMSGPU( GCA_MORPH *gcam,
+					      MRI *mri,
+					      MRI *mri_smooth,
+					      GCA_MORPH_PARMS *parms,
+					      double *last_rms,
+					      int *level_steps,
+					      int i );
+  
 #endif
 
 #if defined(__cplusplus)

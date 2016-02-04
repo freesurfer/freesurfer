@@ -8,9 +8,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/12/12 21:18:23 $
- *    $Revision: 1.24 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/04 20:23:04 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -311,6 +311,31 @@ private:
 
 }
 }
+
+void LogLikelihood( const GPU::Algorithms::GCAmorphTerm* target,
+		    GPU::Classes::GCAmorphGPU& gcam,
+		    const GPU::Classes::MRIframeGPU<unsigned char>& mri,
+		    const GPU::Classes::MRIframeGPU<unsigned char>& mri_smooth,
+		    double l_log_likelihood );
+
+void LogLikelihood( const GPU::Algorithms::GCAmorphTerm* target,
+		    GPU::Classes::GCAmorphGPU& gcam,
+		    const GPU::Classes::MRIframeGPU<float>& mri,
+		    const GPU::Classes::MRIframeGPU<unsigned char>& mri_smooth,
+		    double l_log_likelihood );
+
+void LogLikelihood( const GPU::Algorithms::GCAmorphTerm* target,
+		    GPU::Classes::GCAmorphGPU& gcam,
+		    const GPU::Classes::MRIframeGPU<unsigned char>& mri,
+		    const GPU::Classes::MRIframeGPU<float>& mri_smooth,
+		    double l_log_likelihood );
+
+void LogLikelihood( const GPU::Algorithms::GCAmorphTerm* target,
+		    GPU::Classes::GCAmorphGPU& gcam,
+		    const GPU::Classes::MRIframeGPU<float>& mri,
+		    const GPU::Classes::MRIframeGPU<float>& mri_smooth,
+		    double l_log_likelihood );
+
 
 #endif
 

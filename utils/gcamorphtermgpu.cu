@@ -8,9 +8,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/12/12 21:18:24 $
- *    $Revision: 1.36 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/04 20:23:05 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include <thrust/device_new_allocator.h>
 #include <thrust/device_ptr.h>
 #include <thrust/reduce.h>
+#include <thrust/extrema.h>
 
 #include "macros.h"
 #include "cma.h"
@@ -2327,6 +2328,41 @@ int gcamLabelTermGPU( GCA_MORPH *gcam, const MRI *mri,
   }
 
   return( retVal );
+}
+
+
+
+
+void LogLikelihood( const GPU::Algorithms::GCAmorphTerm* target,
+		    GPU::Classes::GCAmorphGPU& gcam,
+		    const GPU::Classes::MRIframeGPU<unsigned char>& mri,
+		    const GPU::Classes::MRIframeGPU<unsigned char>& mri_smooth,
+		    double l_log_likelihood ) {
+  target->LogLikelihood(gcam, mri, mri_smooth, l_log_likelihood);
+}
+
+void LogLikelihood( const GPU::Algorithms::GCAmorphTerm* target,
+		    GPU::Classes::GCAmorphGPU& gcam,
+		    const GPU::Classes::MRIframeGPU<float>& mri,
+		    const GPU::Classes::MRIframeGPU<unsigned char>& mri_smooth,
+		    double l_log_likelihood ) {
+  target->LogLikelihood(gcam, mri, mri_smooth, l_log_likelihood);
+}
+
+void LogLikelihood( const GPU::Algorithms::GCAmorphTerm* target,
+		    GPU::Classes::GCAmorphGPU& gcam,
+		    const GPU::Classes::MRIframeGPU<unsigned char>& mri,
+		    const GPU::Classes::MRIframeGPU<float>& mri_smooth,
+		    double l_log_likelihood ) {
+  target->LogLikelihood(gcam, mri, mri_smooth, l_log_likelihood);
+}
+
+void LogLikelihood( const GPU::Algorithms::GCAmorphTerm* target,
+		    GPU::Classes::GCAmorphGPU& gcam,
+		    const GPU::Classes::MRIframeGPU<float>& mri,
+		    const GPU::Classes::MRIframeGPU<float>& mri_smooth,
+		    double l_log_likelihood ) {
+  target->LogLikelihood(gcam, mri, mri_smooth, l_log_likelihood);
 }
 
 

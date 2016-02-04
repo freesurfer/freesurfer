@@ -8,9 +8,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/12/15 21:47:47 $
- *    $Revision: 1.33 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/04 20:23:05 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -942,7 +942,7 @@ void MRIconvolve::ReleaseWorkspace( void ) const
   if( h_workspace != NULL )
   {
     MRIconvolve::tHostMem.Start();
-    CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
+    // CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
     h_workspace = NULL;
     workSize = 0;
     MRIconvolve::tHostMem.Stop();

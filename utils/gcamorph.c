@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/08/26 16:47:19 $
- *    $Revision: 1.292 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/04 20:23:04 $
+ *    $Revision: 1.293 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -852,20 +852,20 @@ GCA_MORPH *GCAMreadAndInvertNonTal(const char *gcamfname)
 }
 
 //! A thin pipeline segment to save a GPU copy
-void GCAMregisterPipeline( GCA_MORPH *gcam,
-                           MRI *mri,
-                           MRI *mri_smooth,
-                           GCA_MORPH_PARMS *parms,
-                           double *last_rms,
-                           int *level_steps,
-                           int i )
+double GCAMregisterPipelineAndComputeRMS( GCA_MORPH *gcam,
+					  MRI *mri,
+					  MRI *mri_smooth,
+					  GCA_MORPH_PARMS *parms,
+					  double *last_rms,
+					  int *level_steps,
+					  int i )
 {
-
+  double result;
 #ifdef GCAM_REGISTER_PIPELINE_GPU
   printf( "%s: On GPU\n", __FUNCTION__ );
 
-  GCAMregisterPipelineGPU( gcam, mri, mri_smooth, parms,
-                           last_rms, level_steps, i );
+  result = GCAMregisterPipelineAndComputeRMSGPU( gcam, mri, mri_smooth, parms,
+						 last_rms, level_steps, i );
 #else
   *last_rms = GCAMcomputeRMS( gcam, mri, parms );
   if( i==0 )
@@ -874,7 +874,100 @@ void GCAMregisterPipeline( GCA_MORPH *gcam,
   }
   *level_steps = parms->start_t;
   GCAMregisterLevel( gcam, mri, mri_smooth, parms);
+  result = GCAMcomputeRMS( gcam, mri, parms);
 #endif
+  return result;
+}
+
+void GCAMregister_pctLoop_saveBefore(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
+				     const int level) {
+  char fname[STRLEN] ;
+
+  MRI  *mri_gca, *mri_tmp ;
+  if (parms->diag_morph_from_atlas ) {
+    sprintf(fname, "%s_target", parms->base_name) ;
+    MRIwriteImageViews(mri, fname, IMAGE_SIZE) ;
+    sprintf(fname, "%s_target.mgz", parms->base_name) ;
+    printf("writing target volume to %s...\n", fname) ;
+    MRIwrite(mri, fname) ;
+  } else {
+    mri_gca = MRIclone(mri, NULL) ;
+    GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+    if (mri_gca->nframes > 1) {
+      printf("gcamorph: extracting %dth frame\n",
+	     mri_gca->nframes-1) ;
+      mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+      MRIfree(&mri_gca) ;
+	    mri_gca = mri_tmp ;
+    }
+    sprintf(fname, "%s_target%d", parms->base_name, level) ;
+    MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+    sprintf(fname, "%s_target%d.mgz", parms->base_name, level) ;
+    printf("writing target volume to %s...\n", fname) ;
+    MRIwrite(mri_gca, fname) ;
+    MRIfree(&mri_gca) ;
+  }
+}
+
+void GCAMregister_pctLoop_saveAfter(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms,
+				    const int level) {
+  char fname[STRLEN];
+  char path[STRLEN], fname_only[STRLEN] ;
+  FileNameOnly(parms->write_fname, fname_only) ;
+  FileNameRemoveExtension(fname_only, fname_only) ;
+  FileNamePath(parms->write_fname, path) ;
+  sprintf(fname, "%s/%s_level%d.m3z", path,fname_only,level);
+  // strcpy(fname, parms->write_fname) ;
+  printf("writing results of level to %s...\n", fname) ;
+  //            GCAMvoxToRas(gcam) ;
+  GCAMwrite(gcam, fname) ;
+  //            GCAMrasToVox(gcam, mri) ;
+}
+
+
+void GCAMregister_pctLoop(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
+			  const int level, MRI* mri_smooth,
+			  double* rms, double* last_rms, double* pct_change)
+{
+  int level_steps;
+
+  int i=0;
+
+  do {
+    if (((level != (parms->levels-1)) || (i > 0)) && parms->relabel) {
+      if (mri) {
+	GCAMcomputeLabels(mri, gcam) ;
+      }
+
+      if (parms->write_iterations != 0) {
+#ifdef GCAMORPH_ON_GPU
+	printf("######## GCAMregister_pctLoop_saveBefore not implemented on GPU #########\n");
+#else
+	GCAMregister_pctLoop_saveBefore(gcam, mri, parms, level);
+#endif
+      }
+    }
+      
+    parms->end_rms = *rms = GCAMregisterPipelineAndComputeRMS( gcam, mri, mri_smooth, parms,
+							       last_rms, &level_steps, i );
+    level_steps =
+      parms->start_t - level_steps ;   /* # of steps taken in
+					  GCAMregisterLevel */
+    if (level_steps == 0) {
+      level_steps = 1 ;
+    }
+    *pct_change = 100.0*((*last_rms)-(*rms))/(level_steps*(*last_rms)) ;
+#if 0
+    printf("iter %d: last rms %2.3f, rms %2.3f, pct_change %2.3f/iter\n",
+	   i+1, last_rms, rms, pct_change) ;
+#endif
+    i++;
+
+    if (i >= 0) {
+      /* don't bother iterating if not regridding */
+      break ;
+    }
+  } while (*pct_change > parms->tol) ;
 }
 
 
@@ -882,7 +975,7 @@ int
 GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
   char   fname[STRLEN] ;
-  int    level, i, level_steps, navgs, l2, relabel,
+  int    level, navgs, l2, relabel,
          orig_relabel, start_t = 0, passno ;
   MRI    *mri_smooth = NULL, *mri_kernel ;
   double base_sigma, pct_change, rms, last_rms = 0.0, label_dist,
@@ -1177,94 +1270,10 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
           start_t = parms->start_t ;
         }
 
-        i = 0 ;
-        do
-        {
-          if (((level != (parms->levels-1)) || (i > 0)) && parms->relabel)
-          {
-            if (mri)
-            {
-              GCAMcomputeLabels(mri, gcam) ;
-            }
-            if (parms->write_iterations != 0)
-            {
-              char fname[STRLEN] ;
-              MRI  *mri_gca, *mri_tmp ;
-	      if (parms->diag_morph_from_atlas )
-	      {
-		sprintf(fname, "%s_target", parms->base_name) ;
-		MRIwriteImageViews(mri, fname, IMAGE_SIZE) ;
-		sprintf(fname, "%s_target.mgz", parms->base_name) ;
-		printf("writing target volume to %s...\n", fname) ;
-		MRIwrite(mri, fname) ;
-	      }
-	      else
-	      {
-		mri_gca = MRIclone(mri, NULL) ;
-		GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
-		if (mri_gca->nframes > 1)
-		{
-		  printf("gcamorph: extracting %dth frame\n",
-			 mri_gca->nframes-1) ;
-		  mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
-		  MRIfree(&mri_gca) ;
-		  mri_gca = mri_tmp ;
-		}
-		sprintf(fname, "%s_target%d", parms->base_name, level) ;
-		MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
-		sprintf(fname, "%s_target%d.mgz", parms->base_name, level) ;
-		printf("writing target volume to %s...\n", fname) ;
-		MRIwrite(mri_gca, fname) ;
-		MRIfree(&mri_gca) ;
-	      }
-            }
-          }
+	GCAMregister_pctLoop(gcam, mri, parms,
+			     level, mri_smooth,
+			     &rms, &last_rms, &pct_change );
 
-          GCAMregisterPipeline( gcam, mri, mri_smooth, parms,
-                                &last_rms, &level_steps, i );
-
-
-          if (parms->write_fname &&
-              (((Gdiag & DIAG_WRITE)) || (getenv("WRITE_GCAM") != NULL)))
-          {
-            char path[STRLEN], fname_only[STRLEN] ;
-            FileNameOnly(parms->write_fname, fname_only) ;
-            FileNameRemoveExtension(fname_only, fname_only) ;
-            FileNamePath(parms->write_fname, path) ;
-            sprintf(fname, "%s/%s_level%d.m3z", path,fname_only,level);
-            // strcpy(fname, parms->write_fname) ;
-            printf("writing results of level to %s...\n", fname) ;
-            //            GCAMvoxToRas(gcam) ;
-            GCAMwrite(gcam, fname) ;
-            //            GCAMrasToVox(gcam, mri) ;
-          }
-          parms->end_rms = rms = GCAMcomputeRMS(gcam, mri, parms) ;
-          level_steps =
-            parms->start_t - level_steps ;   /* # of steps taken in
-                                                GCAMregisterLevel */
-          if (level_steps == 0)
-          {
-            level_steps = 1 ;
-          }
-          pct_change = 100.0*(last_rms-rms)/(level_steps*last_rms) ;
-#if 0
-          printf("iter %d: last rms %2.3f, rms %2.3f, pct_change %2.3f/iter\n",
-                 i+1, last_rms, rms, pct_change) ;
-#endif
-          i++ ;
-#if 0
-          if (parms->regrid == True)
-          {
-            GCAMregrid(gcam, mri, 0, parms, NULL) ;
-          }
-          else if (i >= 0)  /* don't bother iterating if not regridding */
-#else
-          if (i >= 0)  /* don't bother iterating if not regridding */
-          {
-            break ;
-          }
-#endif
-	} while (pct_change > parms->tol) ;
         parms->sigma /= 4 ;
         if (parms->sigma < parms->min_sigma)
         {
