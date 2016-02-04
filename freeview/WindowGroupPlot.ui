@@ -6,32 +6,75 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>505</width>
-    <height>367</height>
+    <width>670</width>
+    <height>473</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Group Plot</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>12</number>
+   </property>
+   <property name="bottomMargin">
+    <number>12</number>
+   </property>
    <item>
-    <widget class="WidgetGroupPlot" name="widgetPlot" native="true">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>1</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="minimumSize">
-      <size>
-       <width>400</width>
-       <height>300</height>
-      </size>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,0">
+     <item>
+      <widget class="WidgetGroupPlot" name="widgetPlot" native="true">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>1</horstretch>
+         <verstretch>1</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>400</width>
+         <height>300</height>
+        </size>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <property name="topMargin">
+        <number>15</number>
+       </property>
+       <property name="bottomMargin">
+        <number>30</number>
+       </property>
+       <item>
+        <widget class="QListWidget" name="listWidget">
+         <property name="flow">
+          <enum>QListView::TopToBottom</enum>
+         </property>
+         <property name="isWrapping" stdset="0">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
+     <property name="spacing">
+      <number>6</number>
+     </property>
+     <property name="leftMargin">
+      <number>20</number>
+     </property>
+     <item>
+      <widget class="QLabel" name="labelVertexNumber">
+       <property name="text">
+        <string>Vertex # 0</string>
+       </property>
+      </widget>
+     </item>
      <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
@@ -46,14 +89,61 @@
       </spacer>
      </item>
      <item>
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Variable</string>
-       </property>
+      <widget class="QComboBox" name="comboBoxConfigClass"/>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxConfigShape">
+       <item>
+        <property name="text">
+         <string>square</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>circle</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>triangle</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>diamond</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>plus</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>dot</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>asterisk</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>cross</string>
+        </property>
+       </item>
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBoxVariable"/>
+      <widget class="QtColorPicker" name="widgetConfigColor" native="true">
+       <property name="minimumSize">
+        <size>
+         <width>30</width>
+         <height>0</height>
+        </size>
+       </property>
+      </widget>
      </item>
      <item>
       <spacer name="horizontalSpacer_3">
@@ -65,45 +155,28 @@
        </property>
        <property name="sizeHint" stdset="0">
         <size>
-         <width>10</width>
+         <width>20</width>
          <height>5</height>
         </size>
        </property>
       </spacer>
      </item>
      <item>
-      <widget class="QLabel" name="label_2">
-       <property name="text">
-        <string>Style</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBoxPlotStyle">
+      <widget class="QComboBox" name="comboBoxViewBy">
        <item>
         <property name="text">
-         <string>Point</string>
+         <string>View by class</string>
         </property>
        </item>
        <item>
         <property name="text">
-         <string>Histogram</string>
+         <string>View by subject</string>
         </property>
        </item>
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>5</width>
-         <height>5</height>
-        </size>
-       </property>
-      </spacer>
+      <widget class="QComboBox" name="comboBoxVariable"/>
      </item>
     </layout>
    </item>
@@ -118,6 +191,16 @@
    <slots>
     <slot>SetCurrentVariableIndex(int)</slot>
     <slot>SetPlotType(int)</slot>
+   </slots>
+  </customwidget>
+  <customwidget>
+   <class>QtColorPicker</class>
+   <extends>QWidget</extends>
+   <header location="global">qtcolorpicker.h</header>
+   <container>1</container>
+   <slots>
+    <signal>colorChanged(QColor)</signal>
+    <signal>currentColorChanged(QColor)</signal>
    </slots>
   </customwidget>
  </customwidgets>
@@ -136,22 +219,6 @@
     <hint type="destinationlabel">
      <x>277</x>
      <y>290</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>comboBoxPlotStyle</sender>
-   <signal>currentIndexChanged(int)</signal>
-   <receiver>widgetPlot</receiver>
-   <slot>SetPlotType(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>353</x>
-     <y>341</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>343</x>
-     <y>282</y>
     </hint>
    </hints>
   </connection>

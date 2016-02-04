@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/12/21 17:06:49 $
- *    $Revision: 1.306 $
+ *    $Date: 2016/02/03 22:15:16 $
+ *    $Revision: 1.308 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -485,6 +485,7 @@ void MainWindow::LoadSettings()
   SetViewLayout( settings.value( "MainWindow/ViewLayout", VL_2x2 ).toInt() );
   SetMainView( settings.value( "MainWindow/MainView", MV_Sagittal ).toInt() );
   m_strLastDir = settings.value( "MainWindow/LastDir").toString();
+  m_strLastFsgdDir = settings.value( "MainWindow/LastFsgdDir").toString();
   m_settingsScreenshot.Magnification = settings.value("ScreenShot/Magnification", 1).toInt();
   m_settingsScreenshot.AntiAliasing = settings.value("ScreenShot/AntiAliasing", false).toBool();
   m_settingsScreenshot.HideCoords = settings.value("ScreenShot/HideAnnotation", true).toBool();
@@ -559,6 +560,7 @@ void MainWindow::SaveSettings()
   settings.setValue( "MainWindow/MainView",       this->m_nMainView );
   settings.setValue( "MainWindow/ViewLayout",     this->m_nViewLayout);
   settings.setValue( "MainWindow/LastDir",        m_strLastDir );
+  settings.setValue( "MainWindow/LastFsgdDir",        m_strLastFsgdDir );
   if (m_dlgSaveScreenshot)
   {
     SettingsScreenshot s = m_dlgSaveScreenshot->GetSettings();
@@ -5058,6 +5060,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   QFileInfo fi( filename );
   m_strLastDir = fi.absolutePath();
   LayerSurface* layer = new LayerSurface( m_layerVolumeRef );
+  connect(layer, SIGNAL(CurrentVertexChanged(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
   layer->SetName( fi.fileName() );
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
@@ -6584,7 +6587,7 @@ bool MainWindow::IsRepositioningSurface()
 
 void MainWindow::OnPlot()
 {
-  QString fn = QFileDialog::getOpenFileName(this, "Select FSGD File", m_strLastDir,
+  QString fn = QFileDialog::getOpenFileName(this, "Select FSGD File", m_strLastFsgdDir,
                                             "FSGD files (*.fsgd);;All files (*)");
   if (fn.isEmpty())
     return;
@@ -6598,7 +6601,7 @@ void MainWindow::OnPlot()
 
   this->m_wndGroupPlot->SetFsgdData(fsgd);
   this->m_wndGroupPlot->show();
-  m_strLastDir = QFileInfo(fn).absolutePath();
+  m_strLastFsgdDir = QFileInfo(fn).absolutePath();
 }
 
 void MainWindow::ToggleSplinePicking()

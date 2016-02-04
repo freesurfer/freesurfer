@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/04/25 00:04:02 $
- *    $Revision: 1.2 $
+ *    $Date: 2016/02/03 21:38:19 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,7 +35,8 @@
 FSGroupDescriptor::FSGroupDescriptor( QObject* parent ) : QObject( parent ),
   m_fsgd( NULL ),
   m_dXStart(0),
-  m_dXDelta(1)
+  m_dXDelta(1),
+  m_nVertexNum(-1)
 {}
 
 FSGroupDescriptor::~FSGroupDescriptor()
@@ -70,11 +71,12 @@ bool FSGroupDescriptor::Read( const QString& filename )
   }
   if (!bOK)
   {
-    cout << "Could not find XAxis tag in file. Using default one." << endl;
-    m_dXStart = 0;
-    m_dXDelta = 1;
+//    cout << "Could not find XAxis tag in file. Using default one." << endl;
+//    m_dXStart = 0;
+//    m_dXDelta = 1;
   }
   file.close();
+
 
   if ( m_fsgd )
   {
@@ -87,6 +89,10 @@ bool FSGroupDescriptor::Read( const QString& filename )
     cerr << "gdfRead failed\n";
     return false;
   }
+  float fMinValue, fMaxValue;
+  MRIvalRange( m_fsgd->data, &fMinValue, &fMaxValue );
+  m_dMeasurementRange[0] = fMinValue;
+  m_dMeasurementRange[1] = fMaxValue;
 
   FSGDVariable gdv;
   for (int i = 0; i < m_fsgd->nvariables; i++)
@@ -98,7 +104,7 @@ bool FSGroupDescriptor::Read( const QString& filename )
   QList<QColor> stockColors;
   stockColors << Qt::blue << Qt::red << Qt::green << Qt::yellow << Qt::cyan;
   QStringList stockMarkers;
-  stockMarkers << "plus" << "circle" << "point" << "cross" << "asterisk" << "triangle" << "rectangle" << "diamond" ;
+  stockMarkers << "square" << "circle" << "plus" << "dot" << "asterisk" << "triangle" << "cross" << "diamond" ;
   for (int i = 0; i < m_fsgd->nclasses; i++)
   {
     FSGDClass gdc;
@@ -118,7 +124,7 @@ bool FSGroupDescriptor::Read( const QString& filename )
     scd.subject_id = m_fsgd->subjid[i];
     for (int n = 0; n < m_fsgd->nvariables; n++)
       scd.variable_values << m_fsgd->varvals[i][n];
-    scd.class_id = m_fsgd->classlabel[m_fsgd->subjclassno[i]];
+    scd.class_id = m_fsgd->subjclassno[i];
     m_data << scd;
   }
 
@@ -147,6 +153,28 @@ bool FSGroupDescriptor::Read( const QString& filename )
   }
 
   m_title = m_fsgd->title;
+  m_measureName = m_fsgd->measname;
+  UpdateData(0);
 
   return true;
+}
+
+void FSGroupDescriptor::UpdateData(int nVertex)
+{
+    if (nVertex >= 0 && nVertex < m_fsgd->data->width)
+    {
+        m_nVertexNum = nVertex;
+        m_dMeasurementRange[0] = 1e10;
+        m_dMeasurementRange[1] = -1e10;
+        for (int i = 0; i < m_data.size(); i++)
+        {
+            float val;
+            gdfGetNthSubjectMeasurement(m_fsgd, i, nVertex, 0, 0, &val);
+            m_data[i].measurement = val;
+            if (m_dMeasurementRange[0] > val)
+                m_dMeasurementRange[0] = val;
+            else if (m_dMeasurementRange[1] < val)
+                m_dMeasurementRange[1] = val;
+        }
+    }
 }

@@ -107,6 +107,8 @@ protected:
   LayerSurface* m_surf_rh;
   LayerSurface* m_surf_lh_pial;
   LayerSurface* m_surf_rh_pial;
+  LayerSurface* m_surf_lh_sphere_d1;
+  LayerSurface* m_surf_rh_sphere_d1;
 
   vtkSmartPointer<vtkImageActor>  m_sliceActor2D[3];
   vtkSmartPointer<vtkImageActor>  m_sliceActor3D[3];

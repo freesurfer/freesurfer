@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/11/19 19:16:51 $
- *    $Revision: 1.102 $
+ *    $Date: 2016/02/03 21:38:19 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1768,7 +1768,8 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
       MRIsetResolution( rasMRI, voxelSize[0], voxelSize[1], voxelSize[2] );
 
       MATRIX* m1 = MRIgetVoxelToRasXform( m_MRI );
-
+      if (!m1)
+          m1 = MatrixIdentity(4, NULL);
       MATRIX* m_inv = MatrixInverse( m, NULL );
       MATRIX* m2 = MatrixMultiply( m1, m_inv, NULL );
 
@@ -2433,33 +2434,54 @@ vtkImageData* FSVolume::GetImageOutput()
 
 void FSVolume::CopyMatricesFromMRI ()
 {
-  if ( NULL == m_MRI )
-  {
-    return;
-  }
+    if ( NULL == m_MRI )
+    {
+      return;
+    }
 
-  MATRIX* m = MRIgetVoxelToRasXform( m_MRI );
-  for ( int i = 0; i < 16; i++ )
-  {
-    m_VoxelToRASMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
-  }
-  MatrixFree( &m );
+    MATRIX* m = MRIgetVoxelToRasXform( m_MRI );
+    if (m)
+    {
+        for ( int i = 0; i < 16; i++ )
+        {
+          m_VoxelToRASMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
+        }
+        MatrixFree( &m );
+    }
+    else
+    {
+        for ( int i = 0; i < 16; i++ )
+        {
+          m_VoxelToRASMatrix[i] = (i%5 ? 0:1);
+        }
+    }
 
-  m = MRIgetRasToVoxelXform( m_MRI );
-  for ( int i = 0; i < 16; i++ )
-  {
-    m_RASToVoxelMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
-  }
+    m = MRIgetRasToVoxelXform( m_MRI );
+    if (m)
+    {
+        for ( int i = 0; i < 16; i++ )
+        {
+            m_RASToVoxelMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
+        }
 
-  MATRIX* tkreg = MRIxfmCRS2XYZtkreg( m_MRI );
-  MATRIX* m1 = MatrixMultiply( tkreg, m, NULL );
-  for ( int i = 0; i < 16; i++ )
-  {
-    m_RASToTkRegMatrix[i] = (double) *MATRIX_RELT((m1),(i/4)+1,(i%4)+1);
-  }
-  MatrixFree( &tkreg );
-  MatrixFree( &m );
-  MatrixFree( &m1 );
+        MATRIX* tkreg = MRIxfmCRS2XYZtkreg( m_MRI );
+        MATRIX* m1 = MatrixMultiply( tkreg, m, NULL );
+        for ( int i = 0; i < 16; i++ )
+        {
+            m_RASToTkRegMatrix[i] = (double) *MATRIX_RELT((m1),(i/4)+1,(i%4)+1);
+        }
+        MatrixFree( &tkreg );
+        MatrixFree( &m );
+        MatrixFree( &m1 );
+    }
+    else
+    {
+        for ( int i = 0; i < 16; i++ )
+        {
+          m_RASToVoxelMatrix[i] = (i%5 ? 0:1);
+          m_RASToTkRegMatrix[i] = (i%5 ? 0:1);
+        }
+    }
 }
 
 void FSVolume::GetBounds ( float oRASBounds[6] )

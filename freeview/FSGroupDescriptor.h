@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/29 20:35:50 $
- *    $Revision: 1.1 $
+ *    $Date: 2016/02/03 21:38:19 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,8 +41,9 @@ class FSVolume;
 struct FSGDDataItem
 {
   QString subject_id;
-  QString class_id;
+  int class_id;
   QList<double> variable_values;
+  double measurement;
 };
 
 struct FSGDVariable
@@ -67,14 +68,18 @@ public:
 
   bool Read( const QString& filename );
 
+  void UpdateData(int nVertex);
+
   FSGD*   m_fsgd;
   double  m_dXStart;
   double  m_dXDelta;
-  QList<FSGDDataItem> m_data;
-  QList<FSGDVariable> m_variables;
   QList<FSGDClass>    m_classes;
+  QList<FSGDVariable> m_variables;
+  QList<FSGDDataItem> m_data;
+  int             m_nVertexNum;
   QString         m_title;
-
+  QString         m_measureName;
+  double m_dMeasurementRange[2];
 };
 
 #endif

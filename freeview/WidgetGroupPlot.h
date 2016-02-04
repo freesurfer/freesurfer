@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2012/03/29 20:35:50 $
- *    $Revision: 1.1 $
+ *    $Date: 2016/02/03 22:15:17 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,23 +53,32 @@ public slots:
   void SetAutoScale(bool bAuto);
   void SetCurrentVariableIndex(int n);
   void SetPlotType(int n);
+  void SetCurrentVertex(int nVertex);
+  void SetCurrentDataIndex(int n)
+  {
+      m_nCurrentDataIndex = n;
+      update();
+  }
 
 signals:
   void FrameChanged(int frame);
+  void CurrentDataIndexChanged(int nIndex);
 
-private:
-  void DrawMarker(QPainter* p, const QPointF& pt, const QString& marker, const QColor& c);
+public:
+  static void DrawMarker(QPainter* p, const QPointF& pt, const QString& marker, const QColor& c,
+                         double r, bool bHighlight = false);
+  void DrawMarker(QPainter* p, const QPointF& pt, const QString& marker, const QColor& c, bool bHighlight);
 
   double          m_dTR;
   double          m_dMin;
   double          m_dMax;
   bool            m_bAutoScale;
   QRectF          m_rectPlot;
-  QPointF         m_ptCurrent;
   FSGroupDescriptor*  m_fsgd;
+  int       m_nCurrentDataIndex;
 
-  int     m_nCurrentVariableIndex;
-  int     m_nPlotType;
+  int       m_nCurrentVariableIndex;
+  int       m_nPlotType;
 };
 
 #endif // WidgetGroupPlot_H
