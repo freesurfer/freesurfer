@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/16 17:31:25 $
- *    $Revision: 1.14 $
+ *    $Date: 2016/02/04 16:00:33 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -109,6 +109,13 @@ FCDloadData(char *sdir, char *subject)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
 
+  sprintf(fname, "%s/%s/surf/lh.sphere.d1.left_right", sdir, subject) ;
+  fcd->mris_lh_sphere_d1 = MRISread(fname) ;
+  if (fcd->mris_lh_sphere_d1 == NULL)
+  {
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
+  }
+
   exec_progress_callback(1, 12, 0, 1) ;
   sprintf(fname, "%s/%s/surf/rh.white", sdir, subject) ;
   fcd->mris_rh = MRISread(fname) ;
@@ -125,6 +132,13 @@ FCDloadData(char *sdir, char *subject)
   sprintf(fname, "%s/%s/surf/rh.pial", sdir, subject) ;
   fcd->mris_rh_pial = MRISread(fname) ;
   if (fcd->mris_rh_pial == NULL)
+  {
+    ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
+  }
+
+  sprintf(fname, "%s/%s/surf/rh.sphere.d1.left_right", sdir, subject) ;
+  fcd->mris_rh_sphere_d1 = MRISread(fname) ;
+  if (fcd->mris_rh_sphere_d1 == NULL)
   {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
@@ -612,6 +626,16 @@ FCDfree(FCD_DATA **pfcd)
   {
     MRISfree(&fcd->mris_rh_pial);
   }
+
+  if (fcd->mris_lh_sphere_d1)
+  {
+    MRISfree(&fcd->mris_lh_sphere_d1);
+  }
+  if (fcd->mris_rh_sphere_d1)
+  {
+    MRISfree(&fcd->mris_rh_sphere_d1);
+  }
+
   if (fcd->mri_aseg)
   {
     MRIfree(&fcd->mri_aseg) ;

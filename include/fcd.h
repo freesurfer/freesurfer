@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/16 17:31:25 $
- *    $Revision: 1.6 $
+ *    $Date: 2016/02/04 16:00:33 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,6 +39,8 @@ typedef struct
   MRI_SURFACE *mris_rh ;
   MRI_SURFACE *mris_lh_pial;
   MRI_SURFACE *mris_rh_pial;
+  MRI_SURFACE *mris_lh_sphere_d1;
+  MRI_SURFACE *mris_rh_sphere_d1;
   MRI         *mri_aseg ;
   MRI         *mri_aparc ;
   MRI         *mri_norm ;
