@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/04/22 16:22:08 $
- *    $Revision: 1.34 $
+ *    $Date: 2016/02/04 16:22:09 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1401,6 +1401,11 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   }
   mMinGrayscaleWindow = mMinVoxelValue;
   mMaxGrayscaleWindow = mMaxVoxelValue;
+  if (mSource->HasValidHistogram())
+  {
+      mMinGrayscaleWindow = mSource->GetHistoValueFromPercentile(0.05);
+      mMaxGrayscaleWindow = mSource->GetHistoValueFromPercentile(0.975);
+  }
   mMinVisibleValue = mMinVoxelValue - ( mMaxVoxelValue - mMinVoxelValue );
   mMaxVisibleValue = mMaxVoxelValue + ( mMaxVoxelValue - mMinVoxelValue );
   mWindowRange[0] = 0;
@@ -1411,6 +1416,10 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   double oneTenth;
   double highestAbsValue;
   highestAbsValue = qMax( fabs(mMinVoxelValue), fabs(mMaxVoxelValue) );
+  if (mSource->HasValidHistogram())
+  {
+      highestAbsValue = mMaxGrayscaleWindow;
+  }
   oneTenth = highestAbsValue / 10.0;
   mHeatScaleMinThreshold = mMinGrayscaleWindow;
   if (mHeatScaleMinThreshold < 0)
@@ -1421,10 +1430,10 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   // Init the colors in the heat scale. The editor will handle the
   // editing from here.
 
-  mMinGenericThreshold = mMinVoxelValue;
-  mMaxGenericThreshold = mMaxVoxelValue;
+  mMinGenericThreshold = mMinGrayscaleWindow;
+  mMaxGenericThreshold = mMaxGrayscaleWindow;
   mMinContourThreshold = mHeatScaleMidThreshold;
-  mMaxContourThreshold = mMaxVoxelValue;
+  mMaxContourThreshold = mMaxGrayscaleWindow;
 }
 
 void LayerPropertyMRI::SetMinMaxGenericThreshold ( double iMin, double iMax )
