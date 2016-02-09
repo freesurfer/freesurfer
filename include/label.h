@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/02/27 15:39:14 $
- *    $Revision: 1.62 $
+ *    $Date: 2016/02/09 02:28:03 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@ typedef struct
   int    coords ;             // one of the LABEL_COORDS* constants below
   int    n_points ;           /* # of points in area */
   char   name[STRLEN] ;       /* name of label file */
-  char   subject_name[100] ;  /* name of subject */
+  char   subject_name[STRLEN] ;  /* name of subject */
   LV     *lv ;                /* labeled vertices */
   General_transform transform ;   /* the next two are from this struct */
   Transform         *linear_transform ;
