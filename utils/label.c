@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/03/25 13:54:06 $
- *    $Revision: 1.122 $
+ *    $Author: fischl $
+ *    $Date: 2016/02/09 02:32:10 $
+ *    $Revision: 1.123 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -124,8 +124,8 @@ LabelReadFrom(const char *subject_name, FILE *fp)
     if (!cp) ErrorExit(ERROR_BADPARM,
                 "%s: no subject's directory specified in environment "
                 "(SUBJECTS_DIR)", Progname) ;
-    strcpy(subjects_dir, cp) ;
-    strcpy(area->subject_name, subject_name) ;
+    strncpy(subjects_dir, cp, STRLEN-1) ;
+    strncpy(area->subject_name, subject_name, STRLEN-1) ;
     area->linear_transform =
       labelLoadTransform(subject_name, subjects_dir, &area->transform) ;
     area->inverse_linear_transform =
