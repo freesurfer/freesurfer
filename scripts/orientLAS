@@ -7,8 +7,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2015/07/07 21:55:17 $
-#    $Revision: 1.2 $
+#    $Date: 2016/02/05 23:12:17 $
+#    $Revision: 1.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -60,6 +60,9 @@ echo "INFO: input image determinant is $indeterm"
 set sign = `echo $inorient | sed "s/[LAS]/+\ /g; s/[RPI]/-\ /g"`
 set order = `echo $inorient | sed "s/[LR]/1\ /; s/[AP]/2\ /; s/[IS]/3\ /"`
 
+# Input volume dimensions
+set dims = `mri_info --dim $in`
+
 # Input direction cosines
 set cdc =  `mri_info --cdc $in`
 set rdc =  `mri_info --rdc $in`
@@ -72,12 +75,15 @@ set xyzS = ($cdc[3] $rdc[3] $sdc[3])
 # Output direction cosines
 foreach k (1 2 3)
   if ($order[$k] == 1) then
+    set nx_new = $dims[$k]
     set cdc_new = `echo $xyzR[$k] $xyzA[$k] $xyzS[$k] \
                    | awk -v sgn=$sign[$k]1 '{print sgn*$1, sgn*$2, sgn*$3}'`
   else if ($order[$k] == 2) then
+    set ny_new = $dims[$k]
     set rdc_new = `echo $xyzR[$k] $xyzA[$k] $xyzS[$k] \
                    | awk -v sgn=$sign[$k]1 '{print sgn*$1, sgn*$2, sgn*$3}'`
   else if ($order[$k] == 3) then
+    set nz_new = $dims[$k]
     set sdc_new = `echo $xyzR[$k] $xyzA[$k] $xyzS[$k] \
                    | awk -v sgn=$sign[$k]1 '{print sgn*$1, sgn*$2, sgn*$3}'`
   endif
@@ -101,6 +107,9 @@ end
 
 # Convert to the output direction cosines and origin without interpolating
 set cmd = mri_convert
+set cmd = ($cmd -oni $nx_new)
+set cmd = ($cmd -onj $ny_new)
+set cmd = ($cmd -onk $nz_new)
 set cmd = ($cmd -oid $cdc_new)
 set cmd = ($cmd -ojd $rdc_new)
 set cmd = ($cmd -okd $sdc_new)
