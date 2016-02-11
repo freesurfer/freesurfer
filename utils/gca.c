@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/10/13 20:17:04 $
- *    $Revision: 1.339 $
+ *    $Date: 2016/02/11 16:53:19 $
+ *    $Revision: 1.340 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7720,7 +7720,7 @@ GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri,
   GCA_PRIOR *gcap ;
 
   mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_FLOAT) ;
-  MRIcopyHeader(mri, mri_dst);
+  MRIcopyHeader(mri, mri_dst); TransformSetMRIVolGeomToDst(transform, mri_dst) ;
 
   TransformInvert(transform, mri) ;
   for (n = 0 ; n < nsamples ; n++)
@@ -7854,7 +7854,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
   MRI    *mri_dst ;
 
   mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
-  MRIcopyHeader(mri, mri_dst);
+  MRIcopyHeader(mri, mri_dst);   TransformSetMRIVolGeomToDst(transform, mri_dst) ;
 
   TransformInvert(transform, mri) ;
   for (n = 0 ; n < nsamples ; n++)
@@ -16171,10 +16171,11 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
       mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 1, h_mri->nbins);
     }
     {
-      double mn, std ;
-      HISTOrobustGaussianFit(h_smooth, .1, &mn, &std) ;
+      double mn, std, std_thresh = 10 ;
+      HISTOrobustGaussianFit(h_smooth, .3, &mn, &std) ;
       printf("robust fit to distribution - %2.0f +- %2.1f\n", mn, std) ;
-      if (std > 10)
+      std_thresh *= (mn / wm_means[r]) ;
+      if (std > std_thresh)
       {
 	printf("distribution too broad for accurate scaling - disabling\n") ;
 	mri_peak = HISTOfindBin(h_smooth, wm_means[r]) ;
