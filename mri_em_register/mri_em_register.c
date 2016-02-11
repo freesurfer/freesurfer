@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:42:15 $
- *    $Revision: 1.104 $
+ *    $Author: fischl $
+ *    $Date: 2016/02/11 00:50:55 $
+ *    $Revision: 1.105 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -252,7 +252,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.104 2016/01/20 23:42:15 greve Exp $",
+     "$Id: mri_em_register.c,v 1.105 2016/02/11 00:50:55 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -870,6 +870,8 @@ main(int argc, char *argv[])
     mri_aligned = apply_transform(mri_in, gca, parms.lta->xforms[0].m_L) ;
     sprintf(fname, "%s%03d", parms.base_name, parms.start_t) ;
     MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
+    sprintf(fname, "%s%03d.mgz", parms.base_name, parms.start_t) ;
+    MRIwrite(mri_aligned, fname) ;
     MRIfree(&mri_aligned) ;
   }
   /////////////////////////////////////////////////////////////////////
@@ -1153,7 +1155,7 @@ main(int argc, char *argv[])
   }
 
   // Print usage stats to the terminal (and a file is specified)
-  PrintRUsage(RUSAGE_SELF, "mris_sphere ", stdout);
+  PrintRUsage(RUSAGE_SELF, "mri_em_register ", stdout);
   if(rusage_file) WriteRUsage(RUSAGE_SELF, "", rusage_file);
 
   ///////////////////////////////////////////////////////////////
