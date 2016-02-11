@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/12/09 20:02:53 $
-#    $Revision: 1.25 $
+#    $Author: nicks $
+#    $Date: 2016/02/11 20:24:09 $
+#    $Revision: 1.26 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -23,7 +23,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.25 2015/12/09 20:02:53 zkaufman Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.26 2016/02/11 20:24:09 nicks Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -79,6 +79,15 @@ echo $VERSION | tee -a $LF
 uname -a | tee -a $LF
 date | tee -a $LF
 nu_correct -version | tee -a $LF
+
+# check for existence of bc (binary calculator)
+# some minimal installs of centos do not have it
+set cmd = (which bc)
+$cmd
+if($status) then
+  echo "ERROR: OS is missing bc (binary calculator) utility" |& tee -a $LF
+  exit 1;
+endif
 
 if(! $#tmpdir) set tmpdir = $OutDir/tmp.mri_nu_correct.mni.$$
 mkdir -p $tmpdir
