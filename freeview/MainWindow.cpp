@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/03 22:15:16 $
- *    $Revision: 1.308 $
+ *    $Date: 2016/02/10 22:19:07 $
+ *    $Revision: 1.311 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -620,7 +620,7 @@ void MainWindow::closeEvent( QCloseEvent * event )
     QMessageBox msgbox(this);
     msgbox.setIcon(QMessageBox::Question);
     QAbstractButton* yesBtn = msgbox.addButton("Quit", QMessageBox::YesRole);
-    QAbstractButton* noBtn = msgbox.addButton("Cancel", QMessageBox::NoRole);
+    msgbox.addButton("Cancel", QMessageBox::NoRole);
     msgbox.setText(msg);
     msgbox.setWindowTitle("Warning");
     msgbox.exec();
@@ -1462,6 +1462,10 @@ void MainWindow::RunScript()
   else if ( cmd == "loadsurfacecurvature" )
   {
     CommandLoadSurfaceCurvature( sa );
+  }
+  else if (cmd == "setsurfacecurvaturemap")
+  {
+      CommandSetSurfaceCurvatureMap( sa);
   }
   else if ( cmd == "loadsurfaceoverlay" )
   {
@@ -2683,6 +2687,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("loadsurfacecurvature") << subArgu );
         }
+        else if ( subOption == "curvature_method" || subOption == "curvature_map")
+        {
+            m_scripts.insert(0, QStringList("setsurfacecurvaturemap") << subArgu);
+        }
         else if ( subOption == "overlay" || subOption == "correlation" )
         {
           // add script to load surface overlay files
@@ -3466,6 +3474,20 @@ void MainWindow::CommandLoadSurfaceVector( const QStringList& cmd )
 void MainWindow::CommandLoadSurfaceCurvature( const QStringList& cmd )
 {
   LoadSurfaceCurvatureFile( cmd[1] );
+}
+
+void MainWindow::CommandSetSurfaceCurvatureMap(const QStringList &cmd)
+{
+    LayerSurface* layer = qobject_cast<LayerSurface*>(GetActiveLayer("Surface"));
+    if ( layer )
+    {
+        int nMap = LayerPropertySurface::CM_Threshold;
+        if (cmd[1].toLower() == "off")
+            nMap = LayerPropertySurface::CM_Off;
+        else if (cmd[1].toLower() == "binary")
+            nMap = LayerPropertySurface::CM_Binary;
+        layer->GetProperty()->SetCurvatureMap(nMap);
+    }
 }
 
 void MainWindow::CommandLoadSurfaceOverlay( const QStringList& cmd )
@@ -5061,6 +5083,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   m_strLastDir = fi.absolutePath();
   LayerSurface* layer = new LayerSurface( m_layerVolumeRef );
   connect(layer, SIGNAL(CurrentVertexChanged(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
+  connect(ui->treeWidgetCursorInfo, SIGNAL(VertexChangeTriggered(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
   layer->SetName( fi.fileName() );
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
@@ -6596,11 +6619,13 @@ void MainWindow::OnPlot()
   if (!fsgd->Read(fn))
   {
     QMessageBox::warning(this, "Error", "Failed to load FSGD file.");
+    fsgd->deleteLater();
     return;
   }
 
   this->m_wndGroupPlot->SetFsgdData(fsgd);
   this->m_wndGroupPlot->show();
+  this->m_wndGroupPlot->SetCurrentVertex(0);
   m_strLastFsgdDir = QFileInfo(fn).absolutePath();
 }
 
@@ -6869,3 +6894,5 @@ void MainWindow::OnToolLoadCamera(const QString& fn_in)
     }
   }
 }
+
+

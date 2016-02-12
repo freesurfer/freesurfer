@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/03 21:38:19 $
- *    $Revision: 1.3 $
+ *    $Date: 2016/02/09 21:22:39 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -154,7 +154,7 @@ bool FSGroupDescriptor::Read( const QString& filename )
 
   m_title = m_fsgd->title;
   m_measureName = m_fsgd->measname;
-  UpdateData(0);
+//  UpdateData(0);
 
   return true;
 }

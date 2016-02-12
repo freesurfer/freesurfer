@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/03/06 15:12:15 $
- *    $Revision: 1.9 $
+ *    $Date: 2016/02/09 21:22:39 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,7 @@ public:
 
 signals:
   void RASChangeTriggered(double x, double y, double z);
+  void VertexChangeTriggered(int nVertex);
 
 public slots:
   void UpdateTrackVolumeAnnotation(Layer* layer, const QVariantMap& info);

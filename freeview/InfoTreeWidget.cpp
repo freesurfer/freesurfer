@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/08 22:14:51 $
- *    $Revision: 1.15 $
+ *    $Date: 2016/02/09 21:22:39 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -314,6 +314,7 @@ void InfoTreeWidget::OnEditFinished()
     if (bOK && qobject_cast<LayerSurface*>(layer)->GetTargetAtVertex(nVertex, ras))
     {
       bSuccess = true;
+      emit VertexChangeTriggered(nVertex);
     }
     else
     {

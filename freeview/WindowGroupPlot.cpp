@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/03 22:15:17 $
- *    $Revision: 1.3 $
+ *    $Date: 2016/02/09 21:22:39 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,8 +104,11 @@ void WindowGroupPlot::UpdateCurrentConfig(const QString& shape, const QColor& c)
 
 void WindowGroupPlot::SetCurrentVertex(int nVertex)
 {
-    ui->widgetPlot->SetCurrentVertex(nVertex);
-    ui->labelVertexNumber->setText(QString("Vertex # %1").arg(nVertex));
+    if (isVisible())
+    {
+        ui->widgetPlot->SetCurrentVertex(nVertex);
+        ui->labelVertexNumber->setText(QString("Vertex # %1").arg(nVertex));
+    }
 }
 
 void WindowGroupPlot::OnComboViewBy(int nIndex)
