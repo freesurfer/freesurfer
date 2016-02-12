@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2014/11/24 18:30:47 $
-#    $Revision: 1.10 $
+#    $Author: zkaufman $
+#    $Date: 2016/02/12 21:43:14 $
+#    $Revision: 1.11 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 # aparc2feat
 #
 
-set VERSION = '$Id: aparc2feat,v 1.10 2014/11/24 18:30:47 greve Exp $';
+set VERSION = '$Id: aparc2feat,v 1.11 2016/02/12 21:43:14 zkaufman Exp $';
 set FeatDirList = ();
 set HemiList = (rh lh)
 set debug = 0;
@@ -48,6 +48,8 @@ if($n != 0) then
   goto usage_exit;
   exit 1;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 # Parse the command-line arguments
 goto parse_args;

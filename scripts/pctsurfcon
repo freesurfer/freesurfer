@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2014/10/27 16:10:47 $
-#    $Revision: 1.14 $
+#    $Author: zkaufman $
+#    $Date: 2016/02/12 21:43:15 $
+#    $Revision: 1.15 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.14 2014/10/27 16:10:47 greve Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.15 2016/02/12 21:43:15 zkaufman Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -62,6 +62,8 @@ if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

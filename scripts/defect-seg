@@ -3,7 +3,7 @@
 
 # Creates segmentations and annotations for defect visualization
 
-set VERSION = '$Id: defect-seg,v 1.5 2012/12/10 21:17:00 greve Exp $';
+set VERSION = '$Id: defect-seg,v 1.6 2016/02/12 21:43:14 zkaufman Exp $';
 
 set subject = ();
 set PrintHelp = 0;
@@ -23,6 +23,8 @@ if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

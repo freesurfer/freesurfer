@@ -7,9 +7,9 @@
 #
 # Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:38 $
-#    $Revision: 1.6 $
+#    $Author: zkaufman $
+#    $Date: 2016/02/12 21:43:14 $
+#    $Revision: 1.7 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 # avg-surf-label
 #
 
-set VERSION = '$Id: avg-surf-label,v 1.6 2011/03/02 20:16:38 nicks Exp $';
+set VERSION = '$Id: avg-surf-label,v 1.7 2016/02/12 21:43:14 zkaufman Exp $';
 set inputargs = ($argv);
 set PrintHelp = 0;
 
@@ -53,6 +53,8 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.18 2013/02/11 19:49:06 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.19 2016/02/12 21:43:14 zkaufman Exp $';
 
 set SeriesInfo = ();
 
@@ -54,6 +54,9 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
+
 goto parse_args;
 parse_args_return:
 goto check_params;

@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # apas2aseg
 
-set VERSION = '$Id: apas2aseg,v 1.1 2014/08/14 22:25:53 greve Exp $';
+set VERSION = '$Id: apas2aseg,v 1.2 2016/02/12 21:43:14 zkaufman Exp $';
 
 set outdir = ();
 set subject = ();
@@ -25,6 +25,9 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
+
 goto parse_args;
 parse_args_return:
 goto check_params;

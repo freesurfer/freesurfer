@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2013/05/03 20:20:16 $
-#    $Revision: 1.45 $
+#    $Author: zkaufman $
+#    $Date: 2016/02/12 21:43:14 $
+#    $Revision: 1.46 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.45 2013/05/03 20:20:16 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.46 2016/02/12 21:43:14 zkaufman Exp $'
 set inputargs = ($argv);
 
 set KeepMean = 0;
@@ -84,6 +84,8 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:
