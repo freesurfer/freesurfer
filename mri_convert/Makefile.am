@@ -34,6 +34,17 @@ clean-local:
 
 EXTRA_DIST=test_mri_convert testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 
+# mri_convert is called by Eugenio's hippocampal subfield code.
+# Mac OSX systems 10.11 (El Capitan) and greater implemented SIP
+# which necessitates a wrapper script for all binaries called by 
+# other binaries to pass the DYLD_LIBRARY_PATH env var.
+
+install-exec-hook:
+	cp $(top_builddir)/mri_convert/mri_convert $(DESTDIR)$(bindir)/mri_convert.bin
+	echo "#!/bin/bash" > $(DESTDIR)$(bindir)/mri_convert
+	echo "source \$$FREESURFER_HOME/sources.sh" >> $(DESTDIR)$(bindir)/mri_convert
+	echo "mri_convert.bin \"\$$@\"" >> $(DESTDIR)$(bindir)/mri_convert
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

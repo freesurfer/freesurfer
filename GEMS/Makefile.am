@@ -837,9 +837,19 @@ install-exec-hook:kvlThresholdImage kvlEstimateAtlasParameters
 	echo "kvlEvaluateSegmentation.bin \$$argv" >> $(DESTDIR)$(bindir)/kvlEvaluateSegmentation
 	chmod a+x $(DESTDIR)$(bindir)/kvlEvaluateSegmentation
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
-	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/kvlEvaluateSegmentation.bin; fi
-
-
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/kvlEvaluateSegmentation.bin; fi 
+	cp $(top_builddir)/GEMS/kvlApplyTransform $(DESTDIR)$(bindir)/kvlApplyTransform.bin
+	echo "#!/bin/bash" > $(DESTDIR)$(bindir)/kvlApplyTransform
+	echo "source \$$FREESURFER_HOME/sources.sh" >> $(DESTDIR)$(bindir)/kvlApplyTransform
+	echo "kvlApplyTransform.bin \"\$$@\"" >> $(DESTDIR)$(bindir)/kvlApplyTransform
+	cp $(top_builddir)/GEMS/kvlAutoCrop $(DESTDIR)$(bindir)/kvlAutoCrop.bin
+	echo "#!/bin/bash" > $(DESTDIR)$(bindir)/kvlAutoCrop
+	echo "source \$$FREESURFER_HOME/sources.sh" >> $(DESTDIR)$(bindir)/kvlAutoCrop
+	echo "kvlAutoCrop.bin \"\$$@\"" >> $(DESTDIR)$(bindir)/kvlAutoCrop
+	cp $(top_builddir)/GEMS/kvlRegister $(DESTDIR)$(bindir)/kvlRegister.bin
+	echo "#!/bin/bash" > $(DESTDIR)$(bindir)/kvlRegister
+	echo "source \$$FREESURFER_HOME/sources.sh" >> $(DESTDIR)$(bindir)/kvlRegister
+	echo "kvlRegister.bin \"\$$@\"" >> $(DESTDIR)$(bindir)/kvlRegister
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/kvlThresholdImage.bin \

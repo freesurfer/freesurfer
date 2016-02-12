@@ -23,6 +23,17 @@ clean-local:
 
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
+# mri_mask is called by Eugenios hippocampal subfield binaries. 
+# Mac OSX systems 10.11 (El Capitan) and greater implemented SIP
+# which necessitates a wrapper script to all binaries called by other binaries
+# in order to pass the DYLD_LIBRARY_PATH env var.
+
+install-exec-hook:
+	cp $(top_builddir)/mri_mask/mri_mask $(DESTDIR)$(bindir)/mri_mask.bin
+	echo "#!/bin/bash" > $(DESTDIR)$(bindir)/mri_mask
+	echo "source \$$FREESURFER_HOME/sources.sh" >> $(DESTDIR)$(bindir)/mri_mask
+	echo "mri_mask.bin \"\$$@\"" >> $(DESTDIR)$(bindir)/mri_mask
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

@@ -78,6 +78,18 @@ EXTRA_DIST=Regression.h Regression.cpp Registration.h RegistrationStep.h \
 	testdata.tar.gz $(foo_DATA) Registration.cpp test_mri_robust_template \
 	$(BUILT_SOURCES) JointHisto.h RegRobust.h Transformation.h test_libgfortran
 
+# mri_robust_register is called by Eugenios hippocampal subfield binaries. 
+# Mac OSX systems 10.11 (El Capitan) and greater implemented SIP
+# which necessitates a wrapper script to all binaries called by other binaries
+# in order to pass the DYLD_LIBRARY_PATH env var.
+
+install-exec-hook:
+	cp $(top_builddir)/mri_robust_register/mri_robust_register $(DESTDIR)$(bindir)/mri_robust_register.bin
+	echo "#!/bin/bash" > $(DESTDIR)$(bindir)/mri_robust_register
+	echo "source \$$FREESURFER_HOME/sources.sh" >> $(DESTDIR)$(bindir)/mri_robust_register
+	echo "mri_robust_register.bin \"\$$@\"" >> $(DESTDIR)$(bindir)/mri_robust_register
+
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
