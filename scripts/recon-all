@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2016/02/11 20:24:09 $
-#    $Revision: 1.564 $
+#    $Date: 2016/02/16 16:28:23 $
+#    $Revision: 1.565 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.564 2016/02/11 20:24:09 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.565 2016/02/16 16:28:23 nicks Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -567,7 +567,7 @@ endif
 # check for existence of bc (binary calculator)                                                                                               
 # some minimal installs of centos do not have it
 set cmd = (which bc)
-$cmd
+$cmd >& /dev/null
 if($status) then
   echo "ERROR: OS is missing bc (binary calculator) utility" |& tee -a $LF
   exit 1;

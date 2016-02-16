@@ -8,7 +8,7 @@
 # Created: 07-16-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_reorient_LR.csh,v 1.8 2013/04/23 21:31:45 lzollei Exp $';
+set VERSION = '$Id: mri_reorient_LR.csh,v 1.9 2016/02/16 17:17:20 zkaufman Exp $';
 
 set inputvol      = ();
 set outputvol     = ();
@@ -31,6 +31,8 @@ if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

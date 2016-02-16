@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # rcbf-prep
 
-set VERSION = '$Id: rcbf-prep,v 1.4 2014/10/27 16:27:48 greve Exp $';
+set VERSION = '$Id: rcbf-prep,v 1.5 2016/02/16 17:17:20 zkaufman Exp $';
 setenv FSLOUTPUTTYPE NIFTI
 
 set outdir = ();
@@ -30,6 +30,8 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

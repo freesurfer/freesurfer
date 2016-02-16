@@ -16,7 +16,7 @@
 #  Dont convert volumes in mri/orig
 #
 
-set VERSION = '$Id: xhemireg,v 1.25 2013/08/29 18:49:33 greve Exp $';
+set VERSION = '$Id: xhemireg,v 1.26 2016/02/16 17:17:20 zkaufman Exp $';
 
 set subject = ();
 set srchemilist = ();
@@ -58,6 +58,8 @@ if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

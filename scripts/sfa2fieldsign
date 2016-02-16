@@ -2,7 +2,7 @@
 # sfa2fieldsign
 setenv FSLOUTPUTTYPE NIFTI
 
-set VERSION = '$Id: sfa2fieldsign,v 1.5 2014/10/27 16:23:54 greve Exp $';
+set VERSION = '$Id: sfa2fieldsign,v 1.6 2016/02/16 17:17:20 zkaufman Exp $';
 
 set sfadir = ();
 set regfile = ();
@@ -31,6 +31,8 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

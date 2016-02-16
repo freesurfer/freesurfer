@@ -8,9 +8,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2015/12/03 16:11:58 $
-#    $Revision: 1.18 $
+#    $Author: zkaufman $
+#    $Date: 2016/02/16 17:17:20 $
+#    $Revision: 1.19 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct2,v 1.18 2015/12/03 16:11:58 greve Exp $';
+set VERSION = '$Id: mri_motion_correct2,v 1.19 2016/02/16 17:17:20 zkaufman Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -64,6 +64,8 @@ if($n != 0) then
   strings $prog | grep mincaverage.c
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

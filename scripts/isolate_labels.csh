@@ -18,7 +18,7 @@ set outprefix = ()
 set keepvalues = 0
 
 set inputargs = ($argv);
-set VERSION = '$Id: isolate_labels.csh,v 1.1 2013/06/06 18:57:50 lzollei Exp $';
+set VERSION = '$Id: isolate_labels.csh,v 1.2 2016/02/16 17:17:20 zkaufman Exp $';
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -31,6 +31,8 @@ if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.57 2015/11/20 17:54:22 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.58 2016/02/16 17:17:20 zkaufman Exp $';
 setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
@@ -57,6 +57,8 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:

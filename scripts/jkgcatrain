@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # jkgcatrain
 
-set VERSION = '$Id: jkgcatrain,v 1.3 2016/01/25 23:00:22 greve Exp $';
+set VERSION = '$Id: jkgcatrain,v 1.5 2016/02/16 17:17:20 zkaufman Exp $';
 
 set gcadir = ();
 set nthreads = 1;
@@ -31,6 +31,9 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
+
 goto parse_args;
 parse_args_return:
 goto check_params;
@@ -114,8 +117,9 @@ foreach xsubject ($subjectlist0)
 end # loop over xsubject
 echo "Done submitting `date`" | tee -a $LF
 
+if(0) then
+# Waiting here does not really do much.
 echo "Waiting for atlas to be done before exiting" | tee -a $LF
-
 @ nthloop = 0
 while(1 && $Submit)
   @ nthloop = $nthloop + 1
@@ -133,6 +137,7 @@ while(1 && $Submit)
   echo "$iter Loop $nthloop waiting on $nwaiting xsubjects mri_ca_train `date`" | tee -a $LF
   sleep 300
 end
+endif
 
 #========================================================
 
@@ -334,21 +339,22 @@ Creates all39/gca/x.$subject.gca.i02.gca for all subjects
 
 
 # To test peformance, run
-foreach subject (`cat all39/scripts/subjectlist.txt`)
+foreach subject (`cat scripts/subjectlist.txt`)
   echo "---------------------------"
   date
-  set cmd = (gca-apply --s $subject --gca all39/gca/x.$subject.gca.i02.gca \
-    --sd `pwd`/all39 --dice seg_edited10.mgz dice.x.$subject.gca.i02.dat)
-  set cmd = ($cmd --overwrite --threads 4)
+  set cmd = (gca-apply --s $subject --gca gca/x.$subject.gca.i02.gca \
+    --sd `pwd` --dice seg_edited10.mgz dice.x.$subject.gca.i02.dat)
+  set cmd = ($cmd --lta $subject/mri/transforms/talairach.i02.lta)
+  set cmd = ($cmd --overwrite --threads 3)
   echo $cmd
-  pbsubmit -l nodes=1:ppn=4 -c "$cmd"
+  pbsubmit -l nodes=1:ppn=3 -c "$cmd"
   sleep 5
 end
 
 foreach subject (`cat scripts/subjectlist.txt`)
   echo "---------------------------"
   date
-  set cmd = ($DEV/scripts/gca-apply --s $subject --gca gca/x.$subject.gca.i02.gca)
+  set cmd = (gca-apply --s $subject --gca gca/x.$subject.gca.i02.gca)
   set cmd = ($cmd --overwrite)
   echo $cmd
   pbsubmit -l nodes=1:ppn=1 -c "$cmd"

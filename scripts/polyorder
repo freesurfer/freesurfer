@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # polyorder
 
-set VERSION = '$Id: polyorder,v 1.1 2015/03/11 20:44:06 greve Exp $';
+set VERSION = '$Id: polyorder,v 1.2 2016/02/16 17:17:20 zkaufman Exp $';
 
 set fCutOffHz = ();
 set ntp = ();
@@ -20,6 +20,9 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
+
 goto parse_args;
 parse_args_return:
 goto check_params;

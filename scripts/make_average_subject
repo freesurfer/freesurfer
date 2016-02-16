@@ -9,9 +9,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2014/02/25 19:07:09 $
-#    $Revision: 1.22 $
+#    $Author: zkaufman $
+#    $Date: 2016/02/16 17:17:20 $
+#    $Revision: 1.23 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -28,7 +28,7 @@
 # uncomment this to increase number of allowable open files:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_subject,v 1.22 2014/02/25 19:07:09 greve Exp $'
+set VERSION = '$Id: make_average_subject,v 1.23 2016/02/16 17:17:20 zkaufman Exp $'
 set PrintHelp = 0;
 set sdout = ();
 set average_subject = average;
@@ -46,6 +46,8 @@ if($#argv == 0) then
     goto usage_exit;
   endif
 endif
+
+source $FREESURFER_HOME/sources.csh
 
 goto parse_args;
 parse_args_return:
