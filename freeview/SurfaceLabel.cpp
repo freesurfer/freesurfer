@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.20 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,7 +96,7 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
     ::LabelFree( &m_label );
   }
 
-  m_label = ::LabelRead( NULL, filename.toUtf8().data() );
+  m_label = ::LabelRead( NULL, filename.toAscii().data() );
 
   if ( m_label == NULL )
   {

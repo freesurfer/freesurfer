@@ -46,14 +46,13 @@
 
 #ifndef QTCOLORPICKER_H
 #define QTCOLORPICKER_H
-#include <QtWidgets/QPushButton>
+#include <QtGui/QPushButton>
 #include <QtCore/QString>
-#include <QColor>
+#include <QtGui/QColor>
 
-#include <QtWidgets/QLabel>
+#include <QtGui/QLabel>
 #include <QtCore/QEvent>
-#include <QFocusEvent>
-#include <QWidget>
+#include <QtGui/QFocusEvent>
 
 #if defined(Q_WS_WIN)
 #  if !defined(QT_QTCOLORPICKER_EXPORT) && !defined(QT_QTCOLORPICKER_IMPORT)

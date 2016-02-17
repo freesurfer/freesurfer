@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.6 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -367,9 +367,9 @@ void WidgetGroupPlot::SetPlotType(int n)
 
 void WidgetGroupPlot::mousePressEvent(QMouseEvent *e)
 {
-    if (m_rectPlot.contains(e->localPos()))
+    if (m_rectPlot.contains(e->posF()))
     {
-        QPointF c_pt = e->localPos();
+        QPointF c_pt = e->posF();
         int nOldIndex = m_nCurrentDataIndex;
         m_nCurrentDataIndex = -1;
         int n = m_nCurrentVariableIndex;

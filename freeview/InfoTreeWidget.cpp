@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.17 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -464,8 +464,7 @@ void InfoTreeWidget::OnToggleShowInfo(bool bShow)
   QAction* act = qobject_cast<QAction*>(sender());
   if (act)
   {
-    //Layer* layer = qobject_cast<Layer*>(qVariantValue<QObject*>(act->data()));
-    Layer* layer = qobject_cast<Layer*>(act->data().value<QObject*>());
+    Layer* layer = qobject_cast<Layer*>(qVariantValue<QObject*>(act->data()));
     if (layer)
       layer->GetProperty()->SetShowInfo(bShow);
   }

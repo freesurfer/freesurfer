@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.164 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.165 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -263,8 +263,8 @@ bool LayerMRI::LoadVolumeFromFile( )
   m_volumeSource->SetConform( m_bConform );
   m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
 
-  if ( !m_volumeSource->MRIRead( m_sFilename.toUtf8().data(),
-                                 m_sRegFilename.size() > 0 ? m_sRegFilename.toUtf8().data() : NULL ) )
+  if ( !m_volumeSource->MRIRead( m_sFilename.toAscii().data(),
+                                 m_sRegFilename.size() > 0 ? m_sRegFilename.toAscii().data() : NULL ) )
   {
     return false;
   }
@@ -447,7 +447,7 @@ bool LayerMRI::SaveVolume()
 
   ::SetProgressCallback(ProgressCallback, 60, 100);
   int nSampleMethod = GetProperty()->GetResliceInterpolation();
-  bool bSaved = m_volumeSource->MRIWrite( m_sFilename.toUtf8().data(),
+  bool bSaved = m_volumeSource->MRIWrite( m_sFilename.toAscii().data(),
                                           nSampleMethod,
                                           m_bWriteResampled);
   m_bModified = !bSaved;
@@ -2631,7 +2631,7 @@ void LayerMRI::ResetSurfaceRegionIds()
 
 bool LayerMRI::SaveAllSurfaceRegions( const QString& fn )
 {
-  FILE* fp = fopen( fn.toUtf8().data(), "w" );
+  FILE* fp = fopen( fn.toAscii().data(), "w" );
   if ( !fp )
   {
     return false;
@@ -2657,7 +2657,7 @@ bool LayerMRI::SaveAllSurfaceRegions( const QString& fn )
 
 bool LayerMRI::LoadSurfaceRegions( const QString& fn )
 {
-  FILE* fp = fopen( fn.toUtf8().data(), "r" );
+  FILE* fp = fopen( fn.toAscii().data(), "r" );
   if ( !fp )
   {
     cerr << "Can not open file " << qPrintable(fn) << endl;
@@ -2885,7 +2885,7 @@ bool LayerMRI::SaveContourToFile(const QString &fn)
   filter->Update();
   vtkPolyDataWriter* writer = vtkPolyDataWriter::New();
   writer->SetInput( filter->GetOutput() );
-  writer->SetFileName( fn.toUtf8().constData() );
+  writer->SetFileName( fn.toAscii().constData() );
   bool ret = writer->Write();
   writer->Delete();
   return ret;

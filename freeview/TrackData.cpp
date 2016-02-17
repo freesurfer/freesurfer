@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.5 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,7 @@ bool TrackData::LoadFromFile(const QString &filename)
 {
   CTrackReader reader;
   TRACK_HEADER header;
-  if (!reader.Open(filename.toUtf8().constData(), &header))
+  if (!reader.Open(filename.toAscii().constData(), &header))
   {
     return false;
   }

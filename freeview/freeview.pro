@@ -1,5 +1,4 @@
-QT       += core gui script opengl
-QT += widgets
+QT       += core gui script
 
 TARGET = freeview
 TEMPLATE = app
@@ -375,11 +374,11 @@ QMAKE_CXXFLAGS += -Wno-deprecated -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE
                                   -Wno-write-strings -DDEVELOPMENT
 
 # set this to your local dev directory
-FREESURFER_DEV_DIR = /home/nmrclass/freesurfer_install/dev
+FREESURFER_DEV_DIR = /homes/5/rpwang/freesurfer/dev
 
 # set this to your local install bin directory
 # freeview.bin will be copied to that directory
-FREESURFER_BIN = /home/nmrclass/freesurfer_install/bin
+FREESURFER_BIN = /homes/5/rpwang/freesurfer/bin
 
 # for linux
 unix {

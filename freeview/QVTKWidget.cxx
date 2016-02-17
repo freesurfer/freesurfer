@@ -78,7 +78,7 @@ static const char* qt_key_to_key_sym(Qt::Key);
 static void dirty_cache(vtkObject *, unsigned long, void *, void *);
 
 /*! constructor */
-QVTKWidget::QVTKWidget(QWidget* p, Qt::WindowFlags f)
+QVTKWidget::QVTKWidget(QWidget* p, Qt::WFlags f)
   : QWidget(p, f | Qt::MSWindowsOwnDC), mRenWin(NULL),
     cachedImageCleanFlag(false),
     automaticImageCache(false), maxImageCacheRenderRate(1.0)
@@ -385,7 +385,7 @@ bool QVTKWidget::event(QEvent* e)
 
   if(QObject::event(e))
   {
-    return true;
+    return TRUE;
   }
 
   if(e->type() == QEvent::KeyPress)

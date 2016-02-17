@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.14 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -136,7 +136,7 @@ void Region2DRectangle::Update()
     {
       pt[i] = ( pt0[i] + pt2[i] ) / 2;
     }
-    m_actorText->SetInput( m_strShortStats.toUtf8().constData() );
+    m_actorText->SetInput( m_strShortStats.toAscii().constData() );
     m_actorText->SetPosition( pt );
   }
 }

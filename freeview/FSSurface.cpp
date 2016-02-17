@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:31 $
- *    $Revision: 1.76 $
+ *    $Date: 2016/02/17 20:36:45 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -168,7 +168,7 @@ bool FSSurface::MRISRead( const QString& filename,
   }
 
   try {
-    m_MRIS = ::MRISread( filename.toUtf8().data() );
+    m_MRIS = ::MRISread( filename.toAscii().data() );
   }
   catch (int ret)
   {
@@ -198,7 +198,7 @@ bool FSSurface::InitializeData(const QString &vector_filename,
 {
   if ( !patch_filename.isEmpty() )
   {
-    if ( ::MRISreadPatch( m_MRIS, patch_filename.toUtf8().data() ) != 0 )
+    if ( ::MRISreadPatch( m_MRIS, patch_filename.toAscii().data() ) != 0 )
     {
       cerr << "Can not load patch file " << qPrintable(patch_filename) << "\n";
     }
@@ -340,7 +340,7 @@ void FSSurface::LoadTargetSurface( const QString& filename )
 
   try
   {
-    m_MRISTarget = ::MRISread( filename.toUtf8().data() );
+    m_MRISTarget = ::MRISread( filename.toAscii().data() );
   }
   catch (int ret)
   {
@@ -367,7 +367,7 @@ bool FSSurface::MRISWrite( const QString& filename )
   int ret = 0;
   try
   {
-    ret = ::MRISwrite( m_MRIS, filename.toUtf8().data() );
+    ret = ::MRISwrite( m_MRIS, filename.toAscii().data() );
   }
   catch (int ret)
   {
@@ -384,7 +384,7 @@ bool FSSurface::MRISReadVectors( const QString& filename )
 
 bool FSSurface::LoadSurface( const QString& filename, int nSet )
 {
-  if ( ::MRISreadVertexPositions( m_MRIS, filename.toUtf8().data() ) != 0 )
+  if ( ::MRISreadVertexPositions( m_MRIS, filename.toAscii().data() ) != 0 )
   {
     cerr << "could not load surface from " << qPrintable(filename) << "\n";
     m_bSurfaceLoaded[nSet] = false;
@@ -407,7 +407,7 @@ bool FSSurface::LoadSurface( const QString& filename, int nSet )
 
 bool FSSurface::LoadCurvature( const QString& filename )
 {
-  if ( ::MRISreadCurvatureFile( m_MRIS, (char*)(filename.isEmpty() ? "curv" : filename.toUtf8().data() ) ) != 0 )
+  if ( ::MRISreadCurvatureFile( m_MRIS, (char*)(filename.isEmpty() ? "curv" : filename.toAscii().data() ) ) != 0 )
   {
     cerr << "could not read curvature from " << qPrintable(filename.isEmpty() ? "curv" : filename) << "\n";
     m_bCurvatureLoaded = false;
@@ -438,14 +438,14 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
                              float** data_out, int* nvertices_out, int* nframes_out,
                              bool bUseSecondHalfData )
 {
-//    int mritype = mri_identify((char*)( filename.toUtf8().data() ));
+//    int mritype = mri_identify((char*)( filename.toAscii().data() ));
 //    qDebug() << "mritype " << mritype;
-  MRI* mriheader = MRIreadHeader(filename.toUtf8().data(), MRI_VOLUME_TYPE_UNKNOWN);
+  MRI* mriheader = MRIreadHeader(filename.toAscii().data(), MRI_VOLUME_TYPE_UNKNOWN);
   if (mriheader && mriheader->width*mriheader->height*mriheader->depth != m_MRIS->nvertices &&
       mriheader->width*mriheader->height*mriheader->depth*mriheader->nframes != m_MRIS->nvertices )
   {
     // try load as volume
-    MRI* mri = MRIread(filename.toUtf8().data());
+    MRI* mri = MRIread(filename.toAscii().data());
     if (!mri)
     {
       cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
@@ -503,7 +503,7 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
   }
   else
   {
-    MRI* mri = MRIread(filename.toUtf8().data());
+    MRI* mri = MRIread(filename.toAscii().data());
     if (!mri)
     {
       cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
@@ -555,9 +555,9 @@ bool FSSurface::LoadOverlay( const QString& filename )
   float fMin = m_MRIS->min_curv;
   float fMax = m_MRIS->max_curv;
 
-  if ( ::MRISreadCurvatureFile( m_MRIS, (char*)( filename.toUtf8().data()) ) != 0 )
+  if ( ::MRISreadCurvatureFile( m_MRIS, (char*)( filename.toAscii().data()) ) != 0 )
   {
-    cerr << "could not read overlay data from " << filename.toUtf8().data() << "\n";
+    cerr << "could not read overlay data from " << filename.toAscii().data() << "\n";
     return false;
   }
   else
@@ -580,7 +580,7 @@ bool FSSurface::LoadOverlay( const QString& filename )
 
 bool FSSurface::LoadVectors( const QString& filename )
 {
-  MRI* mri = ::MRIread( filename.toUtf8().data() );
+  MRI* mri = ::MRIread( filename.toAscii().data() );
 
   VertexVectorItem vector;
   vector.name = QFileInfo( filename ).fileName();
@@ -600,7 +600,7 @@ bool FSSurface::LoadVectors( const QString& filename )
       return true;
     }
   }
-  else if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename.toUtf8().data() ) == 0 )
+  else if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename.toAscii().data() ) == 0 )
   {
     // compute vectors
     if ( ComputeVectors( m_MRIS, vector.data ) )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.22 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -141,7 +141,7 @@ bool MyCmdLineParser::Found( const char* ch, string_array* sa, int nIndex )
 bool MyCmdLineParser::Found( const QString flag, QStringList* args, int nIndex )
 {
   string_array sa;
-  bool ret = Found( flag.toUtf8().constData(), &sa, nIndex );
+  bool ret = Found( flag.toAscii().constData(), &sa, nIndex );
   if (ret)
   {
     args->clear();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.31 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -109,7 +109,7 @@ LayerROI::~LayerROI()
 
 bool LayerROI::LoadROIFromFile( const QString& filename )
 {
-  if ( !m_label->LabelRead( filename.toUtf8().data() ) )
+  if ( !m_label->LabelRead( filename.toAscii().data() ) )
   {
     return false;
   }
@@ -318,7 +318,7 @@ bool LayerROI::SaveROI( )
 
   m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
 
-  bool bSaved = m_label->LabelWrite( m_sFilename.toUtf8().data() );
+  bool bSaved = m_label->LabelWrite( m_sFilename.toAscii().data() );
   if ( !bSaved )
   {
     m_bModified = true;

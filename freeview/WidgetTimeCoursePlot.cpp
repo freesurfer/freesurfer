@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.7 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -183,7 +183,7 @@ void WidgetTimeCoursePlot::SetAutoScale(bool bAutoScale)
 
 void WidgetTimeCoursePlot::mousePressEvent(QMouseEvent *e)
 {
-  if (e->button() == Qt::LeftButton && m_rectPlot.contains(e->localPos()))
+  if (e->button() == Qt::LeftButton && m_rectPlot.contains(e->posF()))
   {
     double dSpacing = m_rectPlot.width() / (m_data.size()-1);
     int n = (int)((e->x() - m_rectPlot.left() ) / dSpacing + 0.5);
@@ -198,7 +198,7 @@ void WidgetTimeCoursePlot::mousePressEvent(QMouseEvent *e)
 
 void WidgetTimeCoursePlot::mouseMoveEvent(QMouseEvent *e)
 {
-  if (e->buttons() & Qt::LeftButton && m_rectPlot.contains(e->localPos()))
+  if (e->buttons() & Qt::LeftButton && m_rectPlot.contains(e->posF()))
   {
     double dSpacing = m_rectPlot.width() / (m_data.size()-1);
     int n = (int)((e->x() - m_rectPlot.left() ) / dSpacing + 0.5);

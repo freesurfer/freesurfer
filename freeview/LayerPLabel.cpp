@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.12 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -99,9 +99,9 @@ bool LayerPLabel::LoadVolumeFiles()
     }
 
     int r, g, b;
-    if ( CTABrgbAtIndexi( ct, CTABentryNameToIndex( fn.toUtf8().data(), ct ), &r, &g, &b ) != 0 &&
-         CTABrgbAtIndexi( ct, CTABentryNameToIndex( QString(fn).replace("-", "/").toUtf8().data(), ct ), &r, &g, &b ) != 0 &&
-         CTABrgbAtIndexi( ct, CTABentryNameToIndex( QString(fn).replace("-", "_").toUtf8().data(), ct ), &r, &g, &b ) != 0)
+    if ( CTABrgbAtIndexi( ct, CTABentryNameToIndex( fn.toAscii().data(), ct ), &r, &g, &b ) != 0 &&
+         CTABrgbAtIndexi( ct, CTABentryNameToIndex( QString(fn).replace("-", "/").toAscii().data(), ct ), &r, &g, &b ) != 0 &&
+         CTABrgbAtIndexi( ct, CTABentryNameToIndex( QString(fn).replace("-", "_").toAscii().data(), ct ), &r, &g, &b ) != 0)
     {
       cerr << "Can not find index for color name " << qPrintable(fn) << "\n";
       return false;

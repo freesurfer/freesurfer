@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.7 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@
 #define DEFAULT_FILL_LIGHT  0.25
 #define DEFAULT_BACK_LIGHT  0.2
 
-GenericRenderView::GenericRenderView(QWidget* parent, Qt::WindowFlags f) :
+GenericRenderView::GenericRenderView(QWidget* parent, Qt::WFlags f) :
   QVTKWidget(parent, f)
 {
   m_renderer = vtkRenderer::New();
@@ -265,7 +265,7 @@ bool GenericRenderView::SaveImage(const QString& filename, bool bAntiAliasing, i
   if (ext == "wrl")
   {
     vtkVRMLExporter* exporter = vtkVRMLExporter::New();
-    exporter->SetFileName(fn.toUtf8().data());
+    exporter->SetFileName(fn.toAscii().data());
     exporter->SetRenderWindow(GetRenderWindow());
     exporter->Write();
     exporter->Delete();
@@ -302,7 +302,7 @@ bool GenericRenderView::SaveImage(const QString& filename, bool bAntiAliasing, i
     image->SetInput(m_renderer);
     image->SetMagnification(nMag);
     writer->SetInput(image->GetOutput());
-    writer->SetFileName(fn.toUtf8().data());
+    writer->SetFileName(fn.toAscii().data());
     writer->Write();
     image->Delete();
     writer->Delete();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.60 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,29 +46,26 @@ extern "C"
 
 char* Progname;
 
-void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+void myMessageOutput(QtMsgType type, const char *msg)
 {
-  QByteArray localMsg = msg.toLocal8Bit();
   switch (type)
   {
   case QtDebugMsg:
-    fprintf(stdout, "%s\n", localMsg.constData());
+    fprintf(stdout, "%s\n", msg);
     fflush(0);
     break;
   case QtWarningMsg:
-    fprintf(stderr, "%s\n", localMsg.constData());
+    fprintf(stderr, "%s\n", msg);
     fflush(0);
     break;
   case QtCriticalMsg:
-    fprintf(stderr, "%s\n", localMsg.constData());
+    fprintf(stderr, "%s\n", msg);
     fflush(0);
     break;
   case QtFatalMsg:
-    fprintf(stderr, "%s\n", localMsg.constData());
+    fprintf(stderr, "%s\n", msg);
     fflush(0);
     abort();
-   default:
-      break;
   }
 }
 
@@ -86,7 +83,7 @@ int main(int argc, char *argv[])
   putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)
     putenv((char*)"LANG=en_US");
-  qInstallMessageHandler(myMessageOutput);
+  qInstallMsgHandler(myMessageOutput);
 
   LineProf::InitializePetsc();
 

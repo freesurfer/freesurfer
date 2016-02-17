@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang 
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 16:30:32 $
- *    $Revision: 1.14 $
+ *    $Date: 2016/02/17 20:36:46 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -117,6 +117,13 @@ LayerFCD::LayerFCD(LayerMRI* layerMRI,
   connect(m_surf_rh_pial, SIGNAL(destroyed()),
           this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
 
+  m_surf_lh_sphere_d1 = new LayerSurface(NULL);
+  m_surf_rh_sphere_d1 = new LayerSurface(NULL);
+  connect(m_surf_lh_sphere_d1, SIGNAL(destroyed()),
+          this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
+  connect(m_surf_rh_sphere_d1, SIGNAL(destroyed()),
+          this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
+
   m_worker = new LayerFCDWorkerThread(this);
   connect(m_worker, SIGNAL(started()), this, SIGNAL(StatusChanged()));
   connect(m_worker, SIGNAL(finished()), this, SIGNAL(StatusChanged()));
@@ -164,6 +171,14 @@ LayerFCD::~LayerFCD()
     if (m_surf_rh_pial)
     {
       m_fcd->mris_rh_pial = NULL;
+    }
+    if (m_surf_lh_sphere_d1)
+    {
+        m_fcd->mris_lh_sphere_d1 = NULL;
+    }
+    if (m_surf_rh_sphere_d1)
+    {
+        m_fcd->mris_rh_sphere_d1 = NULL;
     }
 
     FCDfree(&m_fcd);
@@ -224,8 +239,8 @@ bool LayerFCD::LoadFromFile()
   ::SetProgressCallback(ProgressCallback, 0, 50);
   try
   {
-    m_fcd = ::FCDloadData(m_sSubjectDir.toUtf8().data(), 
-                          m_sSubject.toUtf8().data());
+    m_fcd = ::FCDloadData(m_sSubjectDir.toAscii().data(), 
+                          m_sSubject.toAscii().data());
   }
   catch (int ret)
   {
@@ -412,6 +427,31 @@ void LayerFCD::MakeAllLayers()
     m_surf_lh_pial = NULL;
   }
 
+  if (m_fcd->mris_lh_sphere_d1)
+  {
+    LayerSurface* surf = m_surf_lh_sphere_d1;
+    if (m_layerSource)
+    {
+      surf->SetRefVolume(m_layerSource);
+    }
+    surf->SetName(GetName() + "_lh.sphere.d1");
+    if (!surf->CreateFromMRIS((void*)m_fcd->mris_lh_sphere_d1))
+    {
+      delete m_surf_lh_sphere_d1;
+      m_surf_lh_sphere_d1 = NULL;
+    }
+    else
+    {
+      surf->GetProperty()->SetEdgeColor(Qt::red);
+      surf->SetVisible(false);
+    }
+  }
+  else
+  {
+    delete m_surf_lh_sphere_d1;
+    m_surf_lh_sphere_d1 = NULL;
+  }
+
   if (m_fcd->mris_rh)
   {
     LayerSurface* surf = m_surf_rh;
@@ -454,6 +494,31 @@ void LayerFCD::MakeAllLayers()
   {
     delete m_surf_rh_pial;
     m_surf_rh_pial = NULL;
+  }
+
+  if (m_fcd->mris_rh_sphere_d1)
+  {
+    LayerSurface* surf = m_surf_rh_sphere_d1;
+    if (m_layerSource)
+    {
+      surf->SetRefVolume(m_layerSource);
+    }
+    surf->SetName(GetName() + "_rh.sphere.d1");
+    if (!surf->CreateFromMRIS((void*)m_fcd->mris_rh_sphere_d1))
+    {
+      delete m_surf_rh_sphere_d1;
+      m_surf_rh_sphere_d1 = NULL;
+    }
+    else
+    {
+      surf->GetProperty()->SetEdgeColor(Qt::red);
+      surf->SetVisible(false);
+    }
+  }
+  else
+  {
+    delete m_surf_rh_sphere_d1;
+    m_surf_rh_sphere_d1 = NULL;
   }
 }
 
@@ -870,6 +935,10 @@ QList<LayerSurface*> LayerFCD::GetSurfaceLayers()
   {
     layers << m_surf_lh_pial;
   }
+  if (m_surf_lh_sphere_d1)
+  {
+    layers << m_surf_lh_sphere_d1;
+  }
   if (m_surf_rh)
   {
     layers << m_surf_rh;
@@ -877,6 +946,10 @@ QList<LayerSurface*> LayerFCD::GetSurfaceLayers()
   if (m_surf_rh_pial)
   {
     layers << m_surf_rh_pial;
+  }
+  if (m_surf_rh_sphere_d1)
+  {
+    layers << m_surf_rh_sphere_d1;
   }
 
   return layers;
@@ -905,6 +978,14 @@ void LayerFCD::OnLayerDestroyed()
   else if (layer == m_surf_rh_pial)
   {
     m_surf_rh_pial = NULL;
+  }
+  else if (layer == m_surf_lh_sphere_d1)
+  {
+    m_surf_lh_sphere_d1 = NULL;
+  }
+  else if (layer == m_surf_rh_sphere_d1)
+  {
+    m_surf_rh_sphere_d1 = NULL;
   }
   else if (layer == m_mri_norm)
   {
