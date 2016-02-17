@@ -46,26 +46,29 @@ extern "C"
 
 char* Progname;
 
-void myMessageOutput(QtMsgType type, const char *msg)
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
+  QByteArray localMsg = msg.toLocal8Bit();
   switch (type)
   {
   case QtDebugMsg:
-    fprintf(stdout, "%s\n", msg);
+    fprintf(stdout, "%s\n", localMsg.constData());
     fflush(0);
     break;
   case QtWarningMsg:
-    fprintf(stderr, "%s\n", msg);
+    fprintf(stderr, "%s\n", localMsg.constData());
     fflush(0);
     break;
   case QtCriticalMsg:
-    fprintf(stderr, "%s\n", msg);
+    fprintf(stderr, "%s\n", localMsg.constData());
     fflush(0);
     break;
   case QtFatalMsg:
-    fprintf(stderr, "%s\n", msg);
+    fprintf(stderr, "%s\n", localMsg.constData());
     fflush(0);
     abort();
+   default:
+      break;
   }
 }
 
@@ -83,7 +86,7 @@ int main(int argc, char *argv[])
   putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)
     putenv((char*)"LANG=en_US");
-  qInstallMsgHandler(myMessageOutput);
+  qInstallMessageHandler(myMessageOutput);
 
   LineProf::InitializePetsc();
 

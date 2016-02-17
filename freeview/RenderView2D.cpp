@@ -603,7 +603,8 @@ void RenderView2D::OnDuplicateRegion()
   if (!act)
     return;
 
-  Region2D* reg = qobject_cast<Region2D*>(qVariantValue<QObject*>(act->data()));
+  //Region2D* reg = qobject_cast<Region2D*>(qVariantValue<QObject*>(act->data()));
+  Region2D* reg = qobject_cast<Region2D*>(act->data().value<QObject*>());
   if (reg)
   {
     reg = reg->Duplicate(this);

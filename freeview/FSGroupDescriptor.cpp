@@ -83,7 +83,7 @@ bool FSGroupDescriptor::Read( const QString& filename )
     ::gdfFree( &m_fsgd );
   }
 
-  m_fsgd = ::gdfRead( filename.toAscii().data(), 1 );
+  m_fsgd = ::gdfRead( filename.toUtf8().data(), 1 );
   if ( m_fsgd == NULL )
   {
     cerr << "gdfRead failed\n";

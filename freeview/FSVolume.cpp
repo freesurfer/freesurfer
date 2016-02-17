@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/03 21:38:19 $
- *    $Revision: 1.103 $
+ *    $Date: 2015/11/19 19:16:51 $
+ *    $Revision: 1.102 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -152,7 +152,7 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 
   try
   {
-    m_MRI = ::MRIread( filename.toAscii().data() );      // could be long process
+    m_MRI = ::MRIread( filename.toUtf8().data() );      // could be long process
   }
   catch (int ret)
   {
@@ -321,7 +321,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
   if ( ext == "xfm" )  // MNI style
   {
     MATRIX* m = NULL;
-    if ( regio_read_mincxfm( filename.toAscii().data(), &m, NULL ) != 0 )
+    if ( regio_read_mincxfm( filename.toUtf8().data(), &m, NULL ) != 0 )
     {
       return NULL;
     }
@@ -364,7 +364,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
     char* subject = NULL;
     float inplaneres, betplaneres, intensity;
     int float2int;
-    if ( regio_read_register( filename.toAscii().data(),
+    if ( regio_read_register( filename.toUtf8().data(),
                               &subject,
                               &inplaneres,
                               &betplaneres,
@@ -379,7 +379,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
   }
   else  // LTA style & all possible other styles
   {
-    TRANSFORM* FSXform = TransformRead( (char*)filename.toAscii().data() );
+    TRANSFORM* FSXform = TransformRead( (char*)filename.toUtf8().data() );
     if ( FSXform == NULL )
     {
       return false;
@@ -719,7 +719,7 @@ bool FSVolume::SaveRegistration( const QString& filename )
   lta->xforms[0].src = srcG;
   lta->xforms[0].dst = dstG;
 
-  FILE* fp = fopen( filename.toAscii().data(),"w" );
+  FILE* fp = fopen( filename.toUtf8().data(),"w" );
   bool ret = true;
   if( !fp )
   {
@@ -1027,7 +1027,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
   }
 
   // check if file is writable
-  FILE* fp = fopen( filename.toAscii().data(), "w" );
+  FILE* fp = fopen( filename.toUtf8().data(), "w" );
   if ( !fp )
   {
     cerr << "Failed to open file " << qPrintable(filename)
@@ -1044,7 +1044,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
   int err = 0;
   try
   {
-    err = ::MRIwrite( m_MRITemp, filename.toAscii().data() );
+    err = ::MRIwrite( m_MRITemp, filename.toUtf8().data() );
   }
   catch (int ret)
   {
@@ -1768,8 +1768,7 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
       MRIsetResolution( rasMRI, voxelSize[0], voxelSize[1], voxelSize[2] );
 
       MATRIX* m1 = MRIgetVoxelToRasXform( m_MRI );
-      if (!m1)
-          m1 = MatrixIdentity(4, NULL);
+
       MATRIX* m_inv = MatrixInverse( m, NULL );
       MATRIX* m2 = MatrixMultiply( m1, m_inv, NULL );
 
@@ -2434,54 +2433,33 @@ vtkImageData* FSVolume::GetImageOutput()
 
 void FSVolume::CopyMatricesFromMRI ()
 {
-    if ( NULL == m_MRI )
-    {
-      return;
-    }
+  if ( NULL == m_MRI )
+  {
+    return;
+  }
 
-    MATRIX* m = MRIgetVoxelToRasXform( m_MRI );
-    if (m)
-    {
-        for ( int i = 0; i < 16; i++ )
-        {
-          m_VoxelToRASMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
-        }
-        MatrixFree( &m );
-    }
-    else
-    {
-        for ( int i = 0; i < 16; i++ )
-        {
-          m_VoxelToRASMatrix[i] = (i%5 ? 0:1);
-        }
-    }
+  MATRIX* m = MRIgetVoxelToRasXform( m_MRI );
+  for ( int i = 0; i < 16; i++ )
+  {
+    m_VoxelToRASMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
+  }
+  MatrixFree( &m );
 
-    m = MRIgetRasToVoxelXform( m_MRI );
-    if (m)
-    {
-        for ( int i = 0; i < 16; i++ )
-        {
-            m_RASToVoxelMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
-        }
+  m = MRIgetRasToVoxelXform( m_MRI );
+  for ( int i = 0; i < 16; i++ )
+  {
+    m_RASToVoxelMatrix[i] = (double) *MATRIX_RELT((m),(i/4)+1,(i%4)+1);
+  }
 
-        MATRIX* tkreg = MRIxfmCRS2XYZtkreg( m_MRI );
-        MATRIX* m1 = MatrixMultiply( tkreg, m, NULL );
-        for ( int i = 0; i < 16; i++ )
-        {
-            m_RASToTkRegMatrix[i] = (double) *MATRIX_RELT((m1),(i/4)+1,(i%4)+1);
-        }
-        MatrixFree( &tkreg );
-        MatrixFree( &m );
-        MatrixFree( &m1 );
-    }
-    else
-    {
-        for ( int i = 0; i < 16; i++ )
-        {
-          m_RASToVoxelMatrix[i] = (i%5 ? 0:1);
-          m_RASToTkRegMatrix[i] = (i%5 ? 0:1);
-        }
-    }
+  MATRIX* tkreg = MRIxfmCRS2XYZtkreg( m_MRI );
+  MATRIX* m1 = MatrixMultiply( tkreg, m, NULL );
+  for ( int i = 0; i < 16; i++ )
+  {
+    m_RASToTkRegMatrix[i] = (double) *MATRIX_RELT((m1),(i/4)+1,(i%4)+1);
+  }
+  MatrixFree( &tkreg );
+  MatrixFree( &m );
+  MatrixFree( &m1 );
 }
 
 void FSVolume::GetBounds ( float oRASBounds[6] )

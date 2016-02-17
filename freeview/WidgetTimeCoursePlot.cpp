@@ -183,7 +183,7 @@ void WidgetTimeCoursePlot::SetAutoScale(bool bAutoScale)
 
 void WidgetTimeCoursePlot::mousePressEvent(QMouseEvent *e)
 {
-  if (e->button() == Qt::LeftButton && m_rectPlot.contains(e->posF()))
+  if (e->button() == Qt::LeftButton && m_rectPlot.contains(e->localPos()))
   {
     double dSpacing = m_rectPlot.width() / (m_data.size()-1);
     int n = (int)((e->x() - m_rectPlot.left() ) / dSpacing + 0.5);
@@ -198,7 +198,7 @@ void WidgetTimeCoursePlot::mousePressEvent(QMouseEvent *e)
 
 void WidgetTimeCoursePlot::mouseMoveEvent(QMouseEvent *e)
 {
-  if (e->buttons() & Qt::LeftButton && m_rectPlot.contains(e->posF()))
+  if (e->buttons() & Qt::LeftButton && m_rectPlot.contains(e->localPos()))
   {
     double dSpacing = m_rectPlot.width() / (m_data.size()-1);
     int n = (int)((e->x() - m_rectPlot.left() ) / dSpacing + 0.5);

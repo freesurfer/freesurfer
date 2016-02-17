@@ -20,7 +20,16 @@
    <property name="sizeConstraint">
     <enum>QLayout::SetFixedSize</enum>
    </property>
-   <property name="margin">
+   <property name="leftMargin">
+    <number>8</number>
+   </property>
+   <property name="topMargin">
+    <number>8</number>
+   </property>
+   <property name="rightMargin">
+    <number>8</number>
+   </property>
+   <property name="bottomMargin">
     <number>8</number>
    </property>
    <item>
@@ -1771,7 +1780,7 @@
    <sender>radioButtonRotateManual</sender>
    <signal>toggled(bool)</signal>
    <receiver>groupBox</receiver>
-   <slot>setShown(bool)</slot>
+   <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>62</x>
@@ -1787,7 +1796,7 @@
    <sender>radioButtonRotateManual</sender>
    <signal>toggled(bool)</signal>
    <receiver>groupBoxAxis</receiver>
-   <slot>setShown(bool)</slot>
+   <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>41</x>

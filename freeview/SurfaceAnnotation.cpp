@@ -94,7 +94,7 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
 
     int ret;
     try {
-      ret = MRISreadAnnotation( mris, fn.toAscii().data() );
+      ret = MRISreadAnnotation( mris, fn.toUtf8().data() );
     }
     catch (int return_code)
     {

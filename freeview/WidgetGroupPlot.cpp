@@ -367,9 +367,9 @@ void WidgetGroupPlot::SetPlotType(int n)
 
 void WidgetGroupPlot::mousePressEvent(QMouseEvent *e)
 {
-    if (m_rectPlot.contains(e->posF()))
+    if (m_rectPlot.contains(e->localPos()))
     {
-        QPointF c_pt = e->posF();
+        QPointF c_pt = e->localPos();
         int nOldIndex = m_nCurrentDataIndex;
         m_nCurrentDataIndex = -1;
         int n = m_nCurrentVariableIndex;

@@ -109,7 +109,7 @@ LayerROI::~LayerROI()
 
 bool LayerROI::LoadROIFromFile( const QString& filename )
 {
-  if ( !m_label->LabelRead( filename.toAscii().data() ) )
+  if ( !m_label->LabelRead( filename.toUtf8().data() ) )
   {
     return false;
   }
@@ -318,7 +318,7 @@ bool LayerROI::SaveROI( )
 
   m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
 
-  bool bSaved = m_label->LabelWrite( m_sFilename.toAscii().data() );
+  bool bSaved = m_label->LabelWrite( m_sFilename.toUtf8().data() );
   if ( !bSaved )
   {
     m_bModified = true;

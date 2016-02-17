@@ -464,7 +464,8 @@ void InfoTreeWidget::OnToggleShowInfo(bool bShow)
   QAction* act = qobject_cast<QAction*>(sender());
   if (act)
   {
-    Layer* layer = qobject_cast<Layer*>(qVariantValue<QObject*>(act->data()));
+    //Layer* layer = qobject_cast<Layer*>(qVariantValue<QObject*>(act->data()));
+    Layer* layer = qobject_cast<Layer*>(act->data().value<QObject*>());
     if (layer)
       layer->GetProperty()->SetShowInfo(bShow);
   }

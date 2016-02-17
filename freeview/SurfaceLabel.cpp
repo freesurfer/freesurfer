@@ -96,7 +96,7 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
     ::LabelFree( &m_label );
   }
 
-  m_label = ::LabelRead( NULL, filename.toAscii().data() );
+  m_label = ::LabelRead( NULL, filename.toUtf8().data() );
 
   if ( m_label == NULL )
   {

@@ -141,7 +141,7 @@ bool MyCmdLineParser::Found( const char* ch, string_array* sa, int nIndex )
 bool MyCmdLineParser::Found( const QString flag, QStringList* args, int nIndex )
 {
   string_array sa;
-  bool ret = Found( flag.toAscii().constData(), &sa, nIndex );
+  bool ret = Found( flag.toUtf8().constData(), &sa, nIndex );
   if (ret)
   {
     args->clear();

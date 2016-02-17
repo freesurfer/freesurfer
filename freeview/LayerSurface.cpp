@@ -245,7 +245,7 @@ bool LayerSurface::SaveSurface( )
     return false;
   }
 
-  return SaveSurface( m_sFilename.toAscii().data() );
+  return SaveSurface( m_sFilename.toUtf8().data() );
 }
 
 bool LayerSurface::LoadVectorFromFile( )

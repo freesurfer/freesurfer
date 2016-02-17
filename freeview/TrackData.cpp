@@ -43,7 +43,7 @@ bool TrackData::LoadFromFile(const QString &filename)
 {
   CTrackReader reader;
   TRACK_HEADER header;
-  if (!reader.Open(filename.toAscii().constData(), &header))
+  if (!reader.Open(filename.toUtf8().constData(), &header))
   {
     return false;
   }

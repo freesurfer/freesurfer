@@ -258,7 +258,7 @@ void SurfaceRegion::Highlight( bool bHighlight )
 
 bool SurfaceRegion::Write( const QString& fn )
 {
-  FILE* fp = fopen( fn.toAscii().data(), "w" );
+  FILE* fp = fopen( fn.toUtf8().data(), "w" );
   if ( !fp )
   {
     return false;
@@ -279,7 +279,7 @@ bool SurfaceRegion::WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum )
                  .arg( nNum );
   QFile file;
   file.open( fp, QIODevice::Append );
-  QByteArray ba = strg.toAscii();
+  QByteArray ba = strg.toUtf8();
   int nsize = file.write( ba );
   return nsize == ba.size();
 }
@@ -319,7 +319,7 @@ bool SurfaceRegion::WriteBody( FILE* fp )
   }
   QFile file;
   file.open( fp, QIODevice::Append );
-  QByteArray ba = strg.toAscii();
+  QByteArray ba = strg.toUtf8();
   int nsize = file.write( ba );
   return nsize == ba.size();
 }

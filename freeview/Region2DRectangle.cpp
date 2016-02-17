@@ -136,7 +136,7 @@ void Region2DRectangle::Update()
     {
       pt[i] = ( pt0[i] + pt2[i] ) / 2;
     }
-    m_actorText->SetInput( m_strShortStats.toAscii().constData() );
+    m_actorText->SetInput( m_strShortStats.toUtf8().constData() );
     m_actorText->SetPosition( pt );
   }
 }

@@ -60,7 +60,7 @@ bool FSPointSet::ReadAsLabel( const QString& filename )
     ::LabelFree( &m_label );
   }
 
-  m_label = ::LabelRead( NULL, filename.toAscii().data() );
+  m_label = ::LabelRead( NULL, filename.toUtf8().data() );
 
   if ( m_label == NULL )
   {
@@ -134,7 +134,7 @@ bool FSPointSet::ReadFromStringAsControlPoints(const QString &content)
 
 bool FSPointSet::WriteAsLabel( const QString& filename )
 {
-  int err = ::LabelWrite( m_label, filename.toAscii().data() );
+  int err = ::LabelWrite( m_label, filename.toUtf8().data() );
 
   if ( err != 0 )
   {

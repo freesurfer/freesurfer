@@ -211,7 +211,7 @@ void SurfaceOverlay::CopyCorrelationData(SurfaceOverlay *overlay)
 
 bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
 {
-  MRI* mri = ::MRIreadHeader( filename.toAscii().data(), -1 );
+  MRI* mri = ::MRIreadHeader( filename.toUtf8().data(), -1 );
   if ( mri == NULL )
   {
     cerr << "MRIread failed: unable to read from " << qPrintable(filename) << "\n";
@@ -227,7 +227,7 @@ bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
   MRIfree( &mri );
   ::SetProgressCallback(ProgressCallback, 0, 100);
   try {
-    mri = ::MRIread( filename.toAscii().data() );      // long process
+    mri = ::MRIread( filename.toUtf8().data() );      // long process
   }
   catch (int ret) {
       return false;
