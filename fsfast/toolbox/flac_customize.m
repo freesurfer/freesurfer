@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2012/10/22 15:43:55 $
-%    $Revision: 1.56 $
+%    $Date: 2016/02/17 00:02:29 $
+%    $Revision: 1.57 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -129,6 +129,7 @@ if(~isempty(flac.parfile) & ~strcmp(flac.parfile,'NONE'))
       fprintf('paradigm file to be 3-column or 4-column.\n');
       flacnew = []; return; 
     end
+    flacnew.par = par;
     % This is an error check (should not be needed)
     if(size(par,2) == 2 & flac.autostimdur)
       % Old-style Two-column par file with autostimdur, check for 0s
