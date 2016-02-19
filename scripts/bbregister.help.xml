@@ -40,8 +40,8 @@
       <intro>Initialization Arguments</intro>
       <argument>--init-coreg (Default)</argument>
       <explanation>Initialize the FreeSurfer mri_coreg program.</explanation>
-      <argument>--coreg-ref-mask</argument>
-      <explanation>Use aparc+aseg.mgz as a reference mask.</explanation>
+      <argument>--no-coreg-ref-mask</argument>
+      <explanation>Do NOT use aparc+aseg.mgz as a reference mask. It will not attempt to use aparc+aseg if it is not there. </explanation>
       <argument>--init-rr</argument>
       <explanation>Initialize using NMI as implemented in mri_robust_register.</explanation>
       <argument>--init-fsl</argument>
