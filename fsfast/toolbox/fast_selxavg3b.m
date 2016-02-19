@@ -10,7 +10,7 @@ function err = fast_selxavg3b(configfile)
 %   mcc  -m -v -R -singleCompThread fast_selxavg3b.m
 %   cp fast_selxavg3b $DEV/fsfast/bin/fast_selxavg3b.glnxa64
 %
-% $Id: fast_selxavg3b.m,v 1.2 2015/06/10 20:27:26 greve Exp $
+% $Id: fast_selxavg3b.m,v 1.3 2016/02/17 00:04:28 greve Exp $
 
 
 %
@@ -19,8 +19,8 @@ function err = fast_selxavg3b(configfile)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2015/06/10 20:27:26 $
-%    $Revision: 1.2 $
+%    $Date: 2016/02/17 00:04:28 $
+%    $Revision: 1.3 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -87,7 +87,7 @@ fprintf('\n');
 fprintf('#@# %s ###############################\n',sessname);
 fprintf('%s\n',sess);
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3b.m,v 1.2 2015/06/10 20:27:26 greve Exp $\n');
+fprintf('$Id: fast_selxavg3b.m,v 1.3 2016/02/17 00:04:28 greve Exp $\n');
 fprintf('-------------------------\n');
 
 if(isempty(outtop)) outtop = fast_dirname(sess); end
@@ -111,7 +111,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3b.m,v 1.2 2015/06/10 20:27:26 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3b.m,v 1.3 2016/02/17 00:04:28 greve Exp $';
 
 % remove non-mask when analyzing. This does not change the results
 % at all, it just prevents the processing of voxels that are
@@ -176,6 +176,7 @@ for nthouter = outer_runlist
 
   % Load and customize all the flacs
   clear runflac;
+  allpar = [];
   for nthrun = nthrunlist
     flac = flac0;
     flac.nthrun = nthrun;
@@ -186,8 +187,39 @@ for nthouter = outer_runlist
       return; 
     end
     runflac(nthrun).flac = flac;
+    allpar = [allpar; runflac(nthrun).flac.par];
   end
 
+  if(length(allpar)>0)
+    % Make sure condition ids are contiguous starting at 1
+    condidlist = unique(allpar(:,2));
+    condidlist = setdiff(condidlist,0);
+    fprintf('parfiles condition id list: ');
+    fprintf('%2d ',condidlist);  fprintf('\n');
+    fprintf(fplf,'parfiles condition id list: ');
+    fprintf(fplf,'%2d ',condidlist);  fprintf(fplf,'\n');
+    if(condidlist(1) ~= 1)
+      fprintf('ERROR: condition ids must be contiguous starting at 1\n');
+      fprintf(fplf,'ERROR: condition ids must be contiguous starting at 1\n');
+      if(~monly) quit;  end
+      return; 
+    end
+    if(length(find(diff(condidlist)~=1)))
+      fprintf('ERROR: condition ids are not contiguous\n');
+      fprintf(fplf,'ERROR: condition ids are not contiguous\n');
+      if(~monly) quit;  end
+      return; 
+    end
+    if(length(condidlist) ~= flac.ana.nconditions)
+      fprintf('ERROR: found %d non-null conditions, expected %d\n',...
+	      length(condidlist),flac.ana.nconditions);
+      fprintf(fplf,'ERROR: found %d non-null conditions, expected %d\n',...
+	      length(condidlist),flac.ana.nconditions);
+      if(~monly) quit;  end
+      return; 
+    end
+  end
+  
   if(~isempty(flac0.mask))
     % Load the brain mask
     if(flac0.PerSession)
