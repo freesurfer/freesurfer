@@ -6,8 +6,8 @@
 /*
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/18 18:55:42 $
- *    $Revision: 1.180 $
+ *    $Date: 2016/02/16 23:18:08 $
+ *    $Revision: 1.181 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4080,7 +4080,14 @@ int sdfiVolCenter(SDCMFILEINFO *sdfi)
   -----------------------------------------------------------------------*/
 int sdfiSameSlicePos(SDCMFILEINFO *sdfi1, SDCMFILEINFO *sdfi2)
 {
-  float eps = .000001;
+  static float eps = 0;
+  if(eps == 0){
+    char *pc;
+    pc = getenv("FS_SAME_SLICE_THRESH");
+    if(pc == NULL) eps = .000001;
+    else sscanf(pc,"%f",&eps);
+    printf("sdfiSameSlicePos() eps = %f\n",eps);
+  }
 
   if ( fabs(sdfi1->ImgPos[0] - sdfi2->ImgPos[0]) > eps )
   {
