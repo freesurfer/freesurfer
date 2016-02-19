@@ -600,7 +600,8 @@ AM_CXXFLAGS=\
 
 freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
 freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
-freeview_LDFLAGS	= $(QT_LDFLAGS) $(OS_LDFLAGS)
+freeview_LDFLAGS	= $(QT_LDFLAGS) $(OS_LDFLAGS) \
+	-Wl,--allow-multiple-definition 	
 freeview_LDADD		= $(QT_LIBS)	\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/vtkfsio/libvtkfsio.a \
