@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2016/02/13 22:52:19 $
-#    $Revision: 1.73 $
+#    $Date: 2016/02/17 21:07:31 $
+#    $Revision: 1.74 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.73 2016/02/13 22:52:19 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.74 2016/02/17 21:07:31 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -52,7 +52,7 @@ set featdir = ();
 set InitCostFile = ();
 set CostFailThresh = ();
 set fwhm = ();
-set CoRegRefMask = 0;
+set CoRegRefMask = 1;
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -251,8 +251,10 @@ if($#InitReg == 0) then
   endif
   if($InitCoreg) then
     set cmd = (mri_coreg --s $subject --mov $regvol --regdat $InitReg \
-      --reg $tmpdir/mri_coreg.lta --nthreads $OMP_NUM_THREADS --dof $DOF)
-    if($CoRegRefMask == 0) set cmd = ($cmd --no-ref-mask) # dont assume aparc+aseg is there
+      --reg $tmpdir/mri_coreg.lta --nthreads $OMP_NUM_THREADS --dof $DOF \
+      --sep 4 --ftol .0001 --linmintol .01)
+    set apas = $SUBJECTS_DIR/$subject/mri/aparc+aseg.mgz
+    if($CoRegRefMask == 0 || ! -e $apas) set cmd = ($cmd --no-ref-mask)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -653,6 +655,9 @@ while( $#argv != 0 )
       set InitHeader = 0;
       breaksw
 
+    case "--no-coreg-ref-mask":
+      set CoRegRefMask = 0;
+      breaksw
     case "--coreg-ref-mask":
       set CoRegRefMask = 1;
       breaksw
