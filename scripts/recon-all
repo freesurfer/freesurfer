@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2016/02/16 20:29:14 $
-#    $Revision: 1.566 $
+#    $Author: nicks $
+#    $Date: 2016/02/17 22:04:04 $
+#    $Revision: 1.567 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.566 2016/02/16 20:29:14 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.567 2016/02/17 22:04:04 nicks Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -4817,81 +4817,79 @@ if ($DoBaLabels) then
     echo "#@# BA_exvivo Labels $hemi `date`" \
         |& tee -a $SF |& tee -a $LF |& tee -a $CF
 
-    # generate label
-    set CMDFS = () # see earlier notes on -parallel implementation
-    foreach balabel (BA1_exvivo \
-                     BA2_exvivo \
-                     BA3a_exvivo \
-                     BA3b_exvivo \
-                     BA4a_exvivo \
-                     BA4p_exvivo \
-                     BA6_exvivo \
-                     BA44_exvivo \
-                     BA45_exvivo \
-                     V1_exvivo \
-                     V2_exvivo \
-                     MT_exvivo \
-                     entorhinal_exvivo \
-                     perirhinal_exvivo)
-      set cmd=(mri_label2label \
-        --srcsubject fsaverage \
-        --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label \
-        --trgsubject $subjid \
-        --trglabel ./${hemi}.${balabel}.label \
-        --hemi ${hemi} \
-        --regmethod surface)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($DoParallel) then
-        set CMDF = mri_label2label_${balabel}_${hemi}.cmd
-        echo "$cmd" > $CMDF
-        set CMDFS = ( $CMDFS $CMDF )
-      else
-        if($RunIt) $fs_time $cmd |& tee -a $LF
+    # need to split parallel processing into sets so as not to exceed 4GB
+    set EV_LABELS_1 = (BA1_exvivo \
+                       BA2_exvivo \
+                       BA3a_exvivo \
+                       BA3b_exvivo \
+                       BA4a_exvivo)
+    set EV_LABELS_2 = (BA4p_exvivo \
+                       BA6_exvivo \
+                       BA44_exvivo \
+                       BA45_exvivo)
+    set EV_LABELS_3 = (V1_exvivo \
+                       V2_exvivo \
+                       MT_exvivo \
+                       entorhinal_exvivo \
+                       perirhinal_exvivo)
+    set ALL_EV_LABELS = ("$EV_LABELS_1" "$EV_LABELS_2" "$EV_LABELS_3")
+    set EV_IDXS = (1 2 3)
+
+    # generate labels
+    # run in three sets, so as not to consume more than 4GB in parallel mode
+    foreach labelset ($EV_IDXS)
+      set CMDFS = () # see earlier notes on -parallel implementation
+      foreach balabel ( $ALL_EV_LABELS[$labelset] )
+        set cmd=(mri_label2label \
+          --srcsubject fsaverage \
+          --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label \
+          --trgsubject $subjid \
+          --trglabel ./${hemi}.${balabel}.label \
+          --hemi ${hemi} \
+          --regmethod surface)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($DoParallel) then
+          set CMDF = mri_label2label_${balabel}_${hemi}.cmd
+          echo "$cmd" > $CMDF
+          set CMDFS = ( $CMDFS $CMDF )
+        else
+          if($RunIt) $fs_time $cmd |& tee -a $LF
+          if($status) goto error_exit;
+        endif
+      end # balabel
+      if($RunIt && $DoParallel) then
+        reconbatchjobs $LF $CMDFS |& tee -a $LF
         if($status) goto error_exit;
       endif
-    end # balabel
-    if($RunIt && $DoParallel) then
-      reconbatchjobs $LF $CMDFS |& tee -a $LF
-      if($status) goto error_exit;
-    endif
+    end # labelset
 
     # generate .thresh labels
-    set CMDFS = () # see earlier notes on -parallel implementation
-    foreach balabel (BA1_exvivo \
-                     BA2_exvivo \
-                     BA3a_exvivo \
-                     BA3b_exvivo \
-                     BA4a_exvivo \
-                     BA4p_exvivo \
-                     BA6_exvivo \
-                     BA44_exvivo \
-                     BA45_exvivo \
-                     V1_exvivo \
-                     V2_exvivo \
-                     MT_exvivo \
-                     entorhinal_exvivo \
-                     perirhinal_exvivo)
-      set cmd=(mri_label2label \
-        --srcsubject fsaverage \
-        --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.thresh.label \
-        --trgsubject $subjid \
-        --trglabel ./${hemi}.${balabel}.thresh.label \
-        --hemi ${hemi} \
-        --regmethod surface)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($DoParallel) then
-        set CMDF = mri_label2label_${balabel}_${hemi}.cmd
-        echo "$cmd" > $CMDF
-        set CMDFS = ( $CMDFS $CMDF )
-      else
-        if($RunIt) $fs_time $cmd |& tee -a $LF
+    # run in three sets, so as not to consume more than 4GB in parallel mode
+    foreach labelset ($EV_IDXS)
+      set CMDFS = () # see earlier notes on -parallel implementation
+      foreach balabel ( $ALL_EV_LABELS[$labelset] )
+        set cmd=(mri_label2label \
+          --srcsubject fsaverage \
+          --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.thresh.label \
+          --trgsubject $subjid \
+          --trglabel ./${hemi}.${balabel}.thresh.label \
+          --hemi ${hemi} \
+          --regmethod surface)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($DoParallel) then
+          set CMDF = mri_label2label_${balabel}_${hemi}.cmd
+          echo "$cmd" > $CMDF
+          set CMDFS = ( $CMDFS $CMDF )
+        else
+          if($RunIt) $fs_time $cmd |& tee -a $LF
+          if($status) goto error_exit;
+        endif
+      end # balabel
+      if($RunIt && $DoParallel) then
+        reconbatchjobs $LF $CMDFS |& tee -a $LF
         if($status) goto error_exit;
       endif
-    end # balabel
-    if($RunIt && $DoParallel) then
-      reconbatchjobs $LF $CMDFS |& tee -a $LF
-      if($status) goto error_exit;
-    endif
+    end # labelsets
 
     # create .annot
     set cmd=(mris_label2annot \
