@@ -13,11 +13,10 @@ OCTSUBDIRS=\
 
 DMRISUBDIRS=\
 	dmri_poistats \
-  dmri_tensoreig  
+	dmri_tensoreig	
 
 GLSUBDIRS=\
 	glut \
-	mris2rgb \
 	nmovie \
 	mris_show \
 	stim_polar \
@@ -26,14 +25,15 @@ GLSUBDIRS=\
 	tksurfer \
 	mri_probedicom \
 	orient_mri \
-	qdec
+	qdec \
+	mris2rgb
 
 MRISUBDIRS=\
 	check_siemens_dir \
 	repair_siemens_file \
 	mkxsubjreg \
 	rbftest \
-  lta_convert \
+	lta_convert \
 	mri_interpolate \
 	mri_elastic_energy \
 	mri_jacobian \
@@ -53,7 +53,7 @@ MRISUBDIRS=\
 	mri_binarize \
 	mri_build_priors \
 	mri_ca_label \
-        mri_correct_segmentations \
+	mri_correct_segmentations \
 	mri_cal_renormalize_gca \
 	mri_divide_segmentation \
 	mri_gtmpvc \
@@ -75,7 +75,7 @@ MRISUBDIRS=\
 	mri_cnr \
 	mri_compute_overlap \
 	mri_concat \
-        mri_concatenate_gcam \
+	mri_concatenate_gcam \
 	mri_convert \
 	mri_mosaic \
 	mri_convert_mdh \
@@ -209,8 +209,6 @@ MRISUBDIRS=\
 	talairach_avi \
 	template
 
-#	mri_edit_seg_with_ribbons
-
 MRISSUBDIRS=\
 	label_area \
 	label_border \
@@ -292,7 +290,7 @@ MRISSUBDIRS=\
 	mris_ms_refine \
 	mris_diff \
 	mris_distance_to_label \
-        mris_register_label_map \
+	mris_register_label_map \
 	mris_register \
 	mris_left_right_register \
 	mris_congeal \
@@ -340,9 +338,7 @@ STATSDIRS=\
 	optseq2 \
 	stat_normalize
 
-
 MISCDIRS=\
-    GEMS \
 	histo_compute_joint_density \
 	histo_register_block \
 	regdat2xfm \
@@ -356,15 +352,15 @@ MISCDIRS=\
 	hiam_make_surfaces\
 	hiam_make_template\
 	hiam_register \
-    histo_register \
-    spline3 \
+	histo_register \
+	spline3 \
 	swi_processing \
 	nmovie_qt \
 	HippoSF \
-        BrainstemSS
+	BrainstemSS
 
 # ordering is important here for proper 'make check' and 'make distcheck' function
-SUBDIRS=\
+COREDIRS=\
 	include \
 	unix \
 	dicom \
@@ -384,27 +380,60 @@ SUBDIRS=\
 	itkio \
 	itkutils \
 	tetgen \
-  lineprof \
+	lineprof \
 	$(FSGDF) \
 	connectgraph \
 	qdecproject \
 	svm-lib \
 	scripts \
 	distribution \
-	$(GLSUBDIRS) \
-	$(MRISUBDIRS) \
-	$(MRISSUBDIRS) \
 	$(FSLUTILS) \
 	$(STATSDIRS) \
+	$(GLSUBDIRS)
+
+# dependent on COREDIRS
+OTHERDIRS=\
+	$(MRISUBDIRS) \
+	$(MRISSUBDIRS) \
 	$(MISCDIRS) \
 	$(DMRISUBDIRS) \
 	$(OCTSUBDIRS) \
 	fsfast \
 	matlab \
-	freeview \
 	qdec_glmfit \
-	cudatest \
+	cudatest
+
+# these have lots of files, each will maximize the multi-threaded make option (-j)
+BIGDIRS=\
+	freeview \
+	GEMS \
 	trc
+
+# SUBDIRS is the automake definition of the 'all' for make
+SUBDIRS=\
+	$(COREDIRS) \
+	$(OTHERDIRS) \
+	$(BIGDIRS)
+
+# this target is an ad-hoc way to run the build a lot faster
+# by launching makes in parallel, after the dependencies are
+# built.  also make is run multi-threaded, which speeds the
+# build within a directory.
+fastbuild:
+	@list='$(COREDIRS)'; \
+	for d in $$list; do \
+		cd "$$d"; make -j 16; cd - ; \
+	done
+	@list='$(OTHERDIRS)'; \
+	for d in $$list; do \
+		cd "$$d"; (make -j 16 &) ; sleep 0.4; cd - ; \
+	done
+	@list='$(BIGDIRS)'; \
+	for d in $$list; do \
+		cd "$$d"; (make -j 16); cd - ; \
+	done
+	sleep 10
+	make
 
 # build stamp and symlinks to necessary 3rd-party packages.
 # in the case of FSL, just copy the 'flirt' utility to our bin
