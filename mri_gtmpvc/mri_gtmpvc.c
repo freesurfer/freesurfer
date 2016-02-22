@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/01/12 21:37:12 $
- *    $Revision: 1.61 $
+ *    $Date: 2016/02/20 22:43:01 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.61 2016/01/12 21:37:12 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.63 2016/02/20 22:43:01 greve Exp $
 
 /*
   BEGINHELP
@@ -90,10 +90,9 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
-MRI *CTABcount2MRI(COLOR_TABLE *ct, MRI *seg);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.61 2016/01/12 21:37:12 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.63 2016/02/20 22:43:01 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -336,11 +335,6 @@ int main(int argc, char *argv[])
     GTMprintReplaceList(fp, gtm->nReplace, gtm->SrcReplace, gtm->TrgReplace);
     fclose(fp);
   }
-  if(CheckSegTissueType(gtm->anatseg, gtm->ctGTMSeg)){
-    printf("Failed tissue type check\n");
-    fprintf(logfp,"Failed tissue type check\n");
-    exit(1);
-  }
 
   printf("Pruning ctab\n"); fflush(stdout);
   gtm->ctGTMSeg = CTABpruneCTab(gtm->ctGTMSeg, gtm->anatseg);
@@ -361,6 +355,18 @@ int main(int argc, char *argv[])
     CTABfree(&gtm->ctGTMSeg);
     gtm->ctGTMSeg = ctTT;
   }
+
+  // This checks and sets the ctab entry count
+  printf("Checking tissue type\n"); fflush(stdout);
+  if(CheckSegTissueType(gtm->anatseg, gtm->ctGTMSeg)){
+    printf("Failed tissue type check\n");
+    fprintf(logfp,"Failed tissue type check\n");
+    exit(1);
+  }
+
+  //printf("Writing anat seg\n");
+  //sprintf(tmpstr,"%s/anat.seg.nii.gz",AuxDir);
+  //MRIwrite(gtm->anatseg,tmpstr);
 
   gtm->volperseg = CTABcount2MRI(gtm->ctGTMSeg, gtm->anatseg);
   sprintf(tmpstr,"%s/seg.vol.nii.gz",AuxDir);
@@ -496,6 +502,7 @@ int main(int argc, char *argv[])
 
   /* This creates a segmentation in the PET space based upon which Seg
      has the greated PVF (independent of PSF). (used by GTMsynth) */
+  // Note: this may have some dependency on order of the TTs
   printf("Computing Seg in input space \n");fflush(stdout);
   gtm->gtmseg = MRIsegPVF2Seg(gtm->segpvf, gtm->segidlist, gtm->nsegs, 
 			      gtm->ctGTMSeg, gtm->mask, gtm->gtmseg);
@@ -827,6 +834,10 @@ int main(int argc, char *argv[])
     printf("Writing beta to %s\n",betamatfile);
     MatlabWrite(gtm->beta, betamatfile, "beta");
   }
+  sprintf(tmpstr,"%s/XtX.mat",AuxDir);
+  MatlabWrite(gtm->XtX, tmpstr, "XtX");
+  sprintf(tmpstr,"%s/Xty.mat",AuxDir);
+  MatlabWrite(gtm->Xty, tmpstr, "Xty");
 
   if(gtm->rescale){
     // Rescaling is done during GTMsolve()
