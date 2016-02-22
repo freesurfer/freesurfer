@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/08 19:42:27 $
- *    $Revision: 1.51 $
+ *    $Date: 2016/02/20 22:43:17 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2288,6 +2288,7 @@ int VOXsegPVF2Seg(float *segpvfvox, int *segidlist, int nsegs, COLOR_TABLE *ct)
       }
     }
     // select the seg with the largest pvf from within the best TT 
+    // Note: this may have some dependency on order of the TTs
     vmax = 0;
     fmax = 0;
     for(f=0; f < nsegs; f++){
