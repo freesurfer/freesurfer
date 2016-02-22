@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2016/02/04 20:23:34 $
-#    $Revision: 1.661 $
+#    $Author: nicks $
+#    $Date: 2016/02/19 21:32:39 $
+#    $Revision: 1.662 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -28,6 +28,8 @@ AC_CONFIG_AUX_DIR([config])
 AC_MSG_NOTICE(Setting System...)
 # set target, build, host etc.
 AC_CANONICAL_SYSTEM
+
+AC_CONFIG_MACRO_DIR([m4])
 
 ########################################################################
 # To use the Intel C/C++ compiler, assuming it is installed here:
