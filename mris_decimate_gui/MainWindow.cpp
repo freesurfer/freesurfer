@@ -1,9 +1,9 @@
 /*
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:30 $
- *    $Revision: 1.4 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/24 16:28:03 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -84,7 +84,7 @@ protected:
 MainWindow::MainWindow( wxWindow* parent ) :
         MainWindowBase( parent ),
         m_origSurface(NULL),
-        m_currentFilePath("")
+        m_currentFilePath(_(""))
 {
     SetSize( 50, 50, 1024, 840 );
 
@@ -159,15 +159,15 @@ void MainWindow::OnFileExit( wxCommandEvent& event )
 
 void MainWindow::OnFileSave( wxCommandEvent& event )
 {
-    if (m_currentFilePath == "")
+    if (m_currentFilePath == _(""))
     {
         OnFileSaveAs(event);
         return;
     }
 
-    if (m_decimatePanel->SaveDecimatedSurface(m_currentFilePath.c_str()) != 0)
+    if (m_decimatePanel->SaveDecimatedSurface(m_currentFilePath.mb_str(wxConvUTF8)) != 0)
     {
-        wxMessageBox(wxString::Format("ERROR: Saving file '%s'", m_currentFilePath.c_str()), "ERROR");
+        wxMessageBox(wxString::Format(_("ERROR: Saving file '%s'"), m_currentFilePath.c_str()), _("ERROR"));
     }
     wxFileName fileName(m_currentFilePath);
     m_lastSaveDir = fileName.GetPath();
@@ -183,14 +183,14 @@ void MainWindow::OnFileSaveAs( wxCommandEvent& event )
     if (saveDialog->ShowModal() == wxID_OK)
     {
         m_currentFilePath = saveDialog->GetPath();
-        SetTitle(wxString::Format("mris_decimate_gui [%s]", m_currentFilePath.c_str()));
+        SetTitle(wxString::Format(_("mris_decimate_gui [%s]"), m_currentFilePath.c_str()));
         wxFileName fileName(m_currentFilePath);
         m_lastSaveDir = fileName.GetPath();
 
-        if (m_decimatePanel->SaveDecimatedSurface(m_currentFilePath.c_str()) != 0)
+        if (m_decimatePanel->SaveDecimatedSurface(m_currentFilePath.mb_str(wxConvUTF8)) != 0)
         {
-            wxMessageBox(wxString::Format("ERROR: Saving file '%s'", m_currentFilePath.c_str()),
-                         "ERROR");
+            wxMessageBox(wxString::Format(_("ERROR: Saving file '%s'"), m_currentFilePath.c_str()),
+                         _("ERROR"));
         }
     }
 }
@@ -199,17 +199,17 @@ void MainWindow::OnAbout( wxCommandEvent& event)
 {
 
     wxAboutDialogInfo info;
-    info.SetName("mris_decimate_gui");
+    info.SetName(_("mris_decimate_gui"));
 	wxString version =
 			wxString::FromAscii( __DATE__) +
     		_(" ") +
 		    wxString::FromAscii(__TIME__);
 
-    info.SetVersion( "1.0 (internal) \r\nbuild " + version);
-    info.SetDescription("This program provides tools to decimate and visualize freesurfer surfaces.");
-    info.SetCopyright("2010 Children's Hospital Boston\n"
+    info.SetVersion( _("1.0 (internal) \r\nbuild ") + version);
+    info.SetDescription(_("This program provides tools to decimate and visualize freesurfer surfaces."));
+    info.SetCopyright(_("2010 Children's Hospital Boston\n"
 	    			  "Daniel Ginsburg <daniel.ginsburg@childrens.harvard.edu>\n"
-	    			  "Rudolph Pienaar <rudolph.pienaar@childrens.harvard.edu>");
+	    			  "Rudolph Pienaar <rudolph.pienaar@childrens.harvard.edu>"));
     wxAboutBox(info);
 }
 
@@ -232,11 +232,11 @@ void MainWindow::OnClose( wxCloseEvent& event )
 
 void MainWindow::LoadSurface(const wxString& filePath)
 {
-    m_origSurface = MRISfastRead(filePath.c_str());
+    m_origSurface = MRISfastRead(filePath.mb_str(wxConvUTF8));
 
     if (m_origSurface == NULL)
     {
-        wxMessageBox(wxString::Format("ERROR: Loading file '%s'", filePath.c_str()), "ERROR");
+        wxMessageBox(wxString::Format(_("ERROR: Loading file '%s'"), filePath.c_str()), _("ERROR"));
     }
     else
     {
@@ -247,8 +247,8 @@ void MainWindow::LoadSurface(const wxString& filePath)
 
         m_saveSurface->Enable();
         m_saveSurfaceAs->Enable();
-        m_currentFilePath = "";
-        SetTitle(wxString::Format("mris_decimate_gui"));
+        m_currentFilePath = _("");
+        SetTitle(wxString::Format(_("mris_decimate_gui")));
     }
 }
 
@@ -351,7 +351,7 @@ void MainWindow::CommandCurvature( const wxArrayString& sa )
 
 void MainWindow::CommandFileSave( const wxArrayString& sa )
 {
-    if (m_decimatePanel->SaveDecimatedSurface(sa[1].c_str()) != 0)
+    if (m_decimatePanel->SaveDecimatedSurface(sa[1].mb_str(wxConvUTF8)) != 0)
     {
         std::cerr << "Error saving decimated surface to file: " << sa[1] << endl;
     }

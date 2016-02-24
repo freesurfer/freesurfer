@@ -1,9 +1,9 @@
 /*
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:31 $
- *    $Revision: 1.4 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/24 16:25:54 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -347,7 +347,7 @@ bool RenderPanel::SaveScreenshot(const wxString& filename)
     if ( HasExtension( fn, _("wrl") ) )
     {
         vtkVRMLExporter* exporter = vtkVRMLExporter::New();
-        exporter->SetFileName( fn );
+        exporter->SetFileName( fn.mb_str(wxConvUTF8) );
         exporter->SetRenderWindow( m_renWin->GetRenderWindow() );
         exporter->Write();
         exporter->Delete();

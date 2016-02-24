@@ -1,9 +1,9 @@
 /*
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:30 $
- *    $Revision: 1.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/24 16:25:54 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@ void DecimateProgressCallback(float percent, const char *msg, void *userData)
     wxProgressDialog *progress = (wxProgressDialog*)userData;
     if (progress)
     {
-        progress->Update((int)(percent * 100.0f), msg);
+        progress->Update((int)(percent * 100.0f), wxString::FromAscii(msg));
     }
 }
 
@@ -77,16 +77,16 @@ DecimatePanel::DecimatePanel( wxWindow* parent, RenderPanel *renderPanel) :
     m_decimatedSurface(NULL),
     m_lastSaveDir(NULL)
 {
-    m_curvatureTypes[e_None] = "None";
-    m_curvatureTypes[e_Gaussian] = "Gaussian";
-    m_curvatureTypes[e_Mean] = "Mean";
-    m_curvatureTypes[e_K1] = "K1";
-    m_curvatureTypes[e_K2] = "K2";
-    m_curvatureTypes[e_S] = "S";
-    m_curvatureTypes[e_C] = "C";
-    m_curvatureTypes[e_SI] = "SI";
-    m_curvatureTypes[e_BE] = "BE";
-    m_curvatureTypes[e_FI] = "FI";
+    m_curvatureTypes[e_None] = wxT("None");
+    m_curvatureTypes[e_Gaussian] = wxT("Gaussian");
+    m_curvatureTypes[e_Mean] = wxT("Mean");
+    m_curvatureTypes[e_K1] = wxT("K1");
+    m_curvatureTypes[e_K2] = wxT("K2");
+    m_curvatureTypes[e_S] = wxT("S");
+    m_curvatureTypes[e_C] = wxT("C");
+    m_curvatureTypes[e_SI] = wxT("SI");
+    m_curvatureTypes[e_BE] = wxT("BE");
+    m_curvatureTypes[e_FI] = wxT("FI");
 
     ResetToDefault();
 
@@ -153,8 +153,8 @@ DECIMATION_OPTIONS DecimatePanel::GetDecimationOptions() const
 ///
 void DecimatePanel::DoDecimate()
 {
-    wxProgressDialog *progress = new wxProgressDialog("Decimation Progress",
-        "Loading Surface...", 100, this);
+    wxProgressDialog *progress = new wxProgressDialog(wxT("Decimation Progress"),
+        wxT("Loading Surface..."), 100, this);
     progress->SetSize(300, 100);
 
     if (m_decimatedSurface != NULL)
@@ -168,10 +168,10 @@ void DecimatePanel::DoDecimate()
     decimateSurface(&m_decimatedSurface, options, DecimateProgressCallback, progress);
     m_renderPanel->SetSurface(m_decimatedSurface);
 
-	m_decTrianglesText->SetLabel(wxString::Format("%d", m_decimatedSurface->nfaces));
-	m_decVerticesText->SetLabel(wxString::Format("%d", m_decimatedSurface->nvertices));
-	m_decAvgVertexAreaText->SetLabel(wxString::Format("%.3f mm^2", m_decimatedSurface->avg_vertex_area));
-	m_decAvgVertexDistText->SetLabel(wxString::Format("%.3f mm", m_decimatedSurface->avg_vertex_dist));
+	m_decTrianglesText->SetLabel(wxString::Format(_T("%d"), m_decimatedSurface->nfaces));
+	m_decVerticesText->SetLabel(wxString::Format(_T("%d"), m_decimatedSurface->nvertices));
+	m_decAvgVertexAreaText->SetLabel(wxString::Format(_T("%.3f mm^2"), m_decimatedSurface->avg_vertex_area));
+	m_decAvgVertexDistText->SetLabel(wxString::Format(_T("%.3f mm"), m_decimatedSurface->avg_vertex_dist));
 	    
 	MRIScomputeMetricProperties(m_decimatedSurface);
 	MRISsetNeighborhoodSize(m_decimatedSurface, 2);
@@ -188,10 +188,10 @@ void DecimatePanel::SetOrigSurface(MRI_SURFACE *origSurface)
     m_origSurface = origSurface;
     if (m_origSurface != NULL)
     {
-		m_origTrianglesText->SetLabel(wxString::Format("%d", m_origSurface->nfaces));
-		m_origVerticesText->SetLabel(wxString::Format("%d", m_origSurface->nvertices));
-		m_origAvgVertexAreaText->SetLabel(wxString::Format("%.3f mm^2", m_origSurface->avg_vertex_area));
-		m_origAvgVertexDistText->SetLabel(wxString::Format("%.3f mm", m_origSurface->avg_vertex_dist));	
+		m_origTrianglesText->SetLabel(wxString::Format(wxT("%d"), m_origSurface->nfaces));
+		m_origVerticesText->SetLabel(wxString::Format(wxT("%d"), m_origSurface->nvertices));
+		m_origAvgVertexAreaText->SetLabel(wxString::Format(wxT("%.3f mm^2"), m_origSurface->avg_vertex_area));
+		m_origAvgVertexDistText->SetLabel(wxString::Format(wxT("%.3f mm"), m_origSurface->avg_vertex_dist));	
 
 		MRIScomputeMetricProperties(m_origSurface);
 		MRISsetNeighborhoodSize(m_origSurface, 2);
@@ -199,10 +199,10 @@ void DecimatePanel::SetOrigSurface(MRI_SURFACE *origSurface)
 	}
     else
     {
-		m_origTrianglesText->SetLabel("");
-		m_origVerticesText->SetLabel("");
-		m_origAvgVertexAreaText->SetLabel("");
-		m_origAvgVertexDistText->SetLabel("");		
+		m_origTrianglesText->SetLabel(wxT(""));
+		m_origVerticesText->SetLabel(wxT(""));
+		m_origAvgVertexAreaText->SetLabel(wxT(""));
+		m_origAvgVertexDistText->SetLabel(wxT(""));		
     }
 }
 
@@ -259,7 +259,7 @@ bool DecimatePanel::UpdateCurvature( const wxString& curvature )
 ///
 void DecimatePanel::SetDecimationLevel(float val)
 {
-    wxString valStr = wxString::Format("%.2f", val);
+    wxString valStr = wxString::Format(wxT("%.2f"), val);
     m_decimationLevelTextCtrl->Clear();
     m_decimationLevelTextCtrl->AppendText(valStr);
     m_decimationLevel = val;
@@ -270,7 +270,7 @@ void DecimatePanel::SetDecimationLevel(float val)
 ///
 void DecimatePanel::SetMinimumAngle(float val)
 {
-    wxString valStr = wxString::Format("%2.2f", val);
+    wxString valStr = wxString::Format(wxT("%2.2f"), val);
     m_minimumAngleTextCtrl->Clear();
     m_minimumAngleTextCtrl->AppendText(valStr);
     m_minimumAngle = val;
@@ -281,7 +281,7 @@ void DecimatePanel::SetMinimumAngle(float val)
 ///
 void DecimatePanel::SetMinValue(float val)
 {
-    wxString valStr = wxString::Format("%.2f", val);
+    wxString valStr = wxString::Format(wxT("%.2f"), val);
     m_minValueTextCtrl->Clear();
     m_minValueTextCtrl->AppendText(valStr);
     m_currentMinValue = val;
@@ -292,7 +292,7 @@ void DecimatePanel::SetMinValue(float val)
 ///
 void DecimatePanel::SetMaxValue(float val)
 {
-    wxString valStr = wxString::Format("%.2f", val);
+    wxString valStr = wxString::Format(wxT("%.2f"), val);
     m_maxValueTextCtrl->Clear();
     m_maxValueTextCtrl->AppendText(valStr);
     m_currentMaxValue = val;
@@ -403,12 +403,12 @@ void DecimatePanel::SetCurvatureType(int type)
 		            m_colorBarCheckBox->Disable();
 		            m_renderPanel->ShowHistogram(false);
 		            m_renderPanel->ShowColorBar(false);
-					m_decCurvatureRangeText->SetLabel("");
-					m_decCurvatureMeanText->SetLabel("");
-					m_decCurvatureStdDevText->SetLabel("");
-					m_origCurvatureRangeText->SetLabel("");
-					m_origCurvatureMeanText->SetLabel("");
-					m_origCurvatureStdDevText->SetLabel("");
+					m_decCurvatureRangeText->SetLabel(wxT(""));
+					m_decCurvatureMeanText->SetLabel(wxT(""));
+					m_decCurvatureStdDevText->SetLabel(wxT(""));
+					m_origCurvatureRangeText->SetLabel(wxT(""));
+					m_origCurvatureMeanText->SetLabel(wxT(""));
+					m_origCurvatureStdDevText->SetLabel(wxT(""));
 					return;
 		    }
 		}		
@@ -420,16 +420,16 @@ void DecimatePanel::SetCurvatureType(int type)
 
 		// Compute original surface stats and show values
 		ComputeStats(m_origSurface, minVal, maxVal, mean, sigma);
-		m_origCurvatureRangeText->SetLabel(wxString::Format("(%.2f, %.2f)", minVal, maxVal));
-		m_origCurvatureMeanText->SetLabel(wxString::Format("%.3f", mean));
-		m_origCurvatureStdDevText->SetLabel(wxString::Format("%.3f", sigma));
+		m_origCurvatureRangeText->SetLabel(wxString::Format(wxT("(%.2f, %.2f)"), minVal, maxVal));
+		m_origCurvatureMeanText->SetLabel(wxString::Format(wxT("%.3f"), mean));
+		m_origCurvatureStdDevText->SetLabel(wxString::Format(wxT("%.3f"), sigma));
 
 		
 		// Compute decimated surface stats and show values
 		ComputeStats(m_decimatedSurface, minVal, maxVal, mean, sigma);
-		m_decCurvatureRangeText->SetLabel(wxString::Format("(%.2f, %.2f)", minVal, maxVal));
-		m_decCurvatureMeanText->SetLabel(wxString::Format("%.3f", mean));
-		m_decCurvatureStdDevText->SetLabel(wxString::Format("%.3f", sigma));
+		m_decCurvatureRangeText->SetLabel(wxString::Format(wxT("(%.2f, %.2f)"), minVal, maxVal));
+		m_decCurvatureMeanText->SetLabel(wxString::Format(wxT("%.3f"), mean));
+		m_decCurvatureStdDevText->SetLabel(wxString::Format(wxT("%.3f"), sigma));
 	
         m_saveCurvatureButton->Enable();
         m_renderPanel->ShowCurvature(true);
@@ -480,17 +480,17 @@ void DecimatePanel::UpdateCameraInfo()
     {
         double vx, vy, vz;
         camera->GetViewUp( vx, vy, vz );
-        m_upVectorText->SetValue(wxString::Format("%.2f %.2f %.2f", vx, vy, vz));
+        m_upVectorText->SetValue(wxString::Format(wxT("%.2f %.2f %.2f"), vx, vy, vz));
         m_upVectorText->Enable();
 
         double px, py, pz;
         camera->GetPosition( px, py, pz );
-        m_cameraPositionText->SetValue(wxString::Format("%.2f %.2f %.2f", px, py, pz));
+        m_cameraPositionText->SetValue(wxString::Format(wxT("%.2f %.2f %.2f"), px, py, pz));
         m_cameraPositionText->Enable();
 
         double fx, fy, fz;
         camera->GetFocalPoint( fx, fy, fz );
-        m_focalPointText->SetValue(wxString::Format("%.2f %.2f %.2f", fx, fy, fz));
+        m_focalPointText->SetValue(wxString::Format(wxT("%.2f %.2f %.2f"), fx, fy, fz));
         m_focalPointText->Enable();
 
         m_setCameraButton->Enable();
@@ -505,7 +505,7 @@ void DecimatePanel::UpdateCameraInfo()
 ///
 bool DecimatePanel::ConvertStringVecToDoubles( const wxString& str, double *vec, int components)
 {
-    wxStringTokenizer tokenizer(str, " ,");
+    wxStringTokenizer tokenizer(str, wxT(" ,"));
     int count = 0;
 
     while ( tokenizer.HasMoreTokens() && count < components )
@@ -718,10 +718,10 @@ void DecimatePanel::OnSaveCurvatureClick( wxCommandEvent& event )
         wxFileName fileName(currentFilePath);
         *m_lastSaveDir = fileName.GetPath();
 
-        if (MRISwriteCurvature(m_decimatedSurface, currentFilePath) != 0)
+        if (MRISwriteCurvature(m_decimatedSurface, currentFilePath.mb_str(wxConvUTF8)) != 0)
         {
-            wxMessageBox(wxString::Format("ERROR: Saving file '%s'", currentFilePath.c_str()),
-                "ERROR");
+            wxMessageBox(wxString::Format(wxT("ERROR: Saving file '%s'"), currentFilePath.c_str()),
+                wxT("ERROR"));
         }
     }
 }
@@ -761,22 +761,22 @@ void DecimatePanel::OnSetCameraClick( wxCommandEvent& event )
     
     if( !ConvertStringVecToDoubles( m_cameraPositionText->GetValue(), pos, 3) )
     {
-        wxMessageBox(wxString::Format("ERROR: Could not convert to vector '%s'", m_cameraPositionText->GetValue().c_str()),
-                    "ERROR");
+        wxMessageBox(wxString::Format(wxT("ERROR: Could not convert to vector '%s'"), m_cameraPositionText->GetValue().c_str()),
+                    wxT("ERROR"));
         return;
     }
 
     if( !ConvertStringVecToDoubles( m_focalPointText->GetValue(), focalPoint, 3) )
     {
-        wxMessageBox(wxString::Format("ERROR: Could not convert to vector '%s'", m_focalPointText->GetValue().c_str()),
-                    "ERROR");
+        wxMessageBox(wxString::Format(wxT("ERROR: Could not convert to vector '%s'"), m_focalPointText->GetValue().c_str()),
+                    wxT("ERROR"));
         return;
     }
 
     if( !ConvertStringVecToDoubles( m_upVectorText->GetValue(), upVector, 3) )
     {
-        wxMessageBox(wxString::Format("ERROR: Could not convert to vector '%s'", m_upVectorText->GetValue().c_str()),
-                    "ERROR");
+        wxMessageBox(wxString::Format(wxT("ERROR: Could not convert to vector '%s'"), m_upVectorText->GetValue().c_str()),
+                    wxT("ERROR"));
         return;
     }
 
@@ -808,8 +808,8 @@ void DecimatePanel::OnSaveScreenshotClick( wxCommandEvent& event )
 
         if ( !m_renderPanel->SaveScreenshot(currentFilePath) )
         {
-            wxMessageBox(wxString::Format("ERROR: Failed to write image '%s'", currentFilePath.c_str()),
-                    "ERROR");
+            wxMessageBox(wxString::Format(wxT("ERROR: Failed to write image '%s'"), currentFilePath.c_str()),
+                    wxT("ERROR"));
             return;
         }
     }
