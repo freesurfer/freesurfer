@@ -163,3 +163,8 @@ vtkOrientMRIInteractorStyleView3D.h
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+clean-local:
+	-rm *Tcl.cxx OrientMRILibInit.cxx
+
+

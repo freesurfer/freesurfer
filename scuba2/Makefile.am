@@ -223,6 +223,9 @@ install-exec-hook:scuba2
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/scuba2.bin
 
+clean-local:
+	-rm *Tcl.cxx
+
 else
 bin_PROGRAMS = 
 

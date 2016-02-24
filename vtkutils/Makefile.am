@@ -189,3 +189,6 @@ IconLoaderTest.cxx IconLoaderTestIcons.txt testIconLoader
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+clean-local:
+	-rm *Tcl.cxx
