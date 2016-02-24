@@ -6,9 +6,9 @@
 /*
  * Original Author: Michael Landy - 12/28/90
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/09/23 18:25:30 $
- *    $Revision: 1.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/24 16:23:27 $
+ *    $Revision: 1.6 $
  *
  * Copyright (c) 1991 Michael Landy
  *
@@ -30,7 +30,7 @@
  * to an individual installation.
  */
 
-typedef unsigned long hsize_t; /* variable which can hold the size of an
+typedef unsigned long fs_hsize_t; /* variable which can hold the size of an
         image in bytes */
 #ifdef AIX
 #define HPUXORAIX
@@ -111,7 +111,7 @@ struct hips_histo
 {
   int nbins;
   int *histo;
-  hsize_t sizehist;
+  fs_hsize_t sizehist;
   h_boolean histodealloc;
   int pixel_format;
   Pixelval minbin;
@@ -210,7 +210,7 @@ struct hips_filter
 char *strsave(),*memalloc(),*formatheader(),*formatheadera();
 char *formatheaderc(),*hformatname(),*hformatname_f(),*hformatname_t();
 byte *halloc(),*hmalloc();
-hsize_t hsizepix();
+fs_hsize_t hsizepix();
 struct extpar *findparam(),*grepparam();
 FILE *hfopenr(),*ffopen(),*ffreopen();
 /* h_boolean getline(),swallownl(),hfgets(); */

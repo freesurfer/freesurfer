@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/05/25 16:36:44 $
- *    $Revision: 1.112 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/24 16:23:27 $
+ *    $Revision: 1.113 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -122,7 +122,7 @@ ImageAllocBuffer(IMAGE *I)
   int fcb,cb;
   long  npix ;
 
-  if (I->sizeimage == (hsize_t) 0)  /*dng*/
+  if (I->sizeimage == (fs_hsize_t) 0)  /*dng*/
   {
     I->imdealloc = (h_boolean) FALSE; /*dng*/
     return(NO_ERROR);
@@ -2427,7 +2427,7 @@ IMAGE *
 ImageMulScale(IMAGE *Isrc, IMAGE *Idst, Pixelval *p)
 {
   int    ecode;
-  hsize_t size ;
+  fs_hsize_t size ;
   float  real, imag, sreal, simag ;
   CPIX   *csrc, *cdst ;
 
@@ -2468,7 +2468,7 @@ ImageMulScale(IMAGE *Isrc, IMAGE *Idst, Pixelval *p)
 IMAGE *
 ImageAddScalar(IMAGE *Isrc, IMAGE *Idst, float scalar)
 {
-  hsize_t    size ;
+  fs_hsize_t    size ;
   float  *fpix ;
 
   if (!Idst)
@@ -2478,7 +2478,7 @@ ImageAddScalar(IMAGE *Isrc, IMAGE *Idst, float scalar)
   switch (Isrc->pixel_format)
   {
   case PFFLOAT:
-    size = Isrc->numpix * (hsize_t)Isrc->num_frame ;
+    size = Isrc->numpix * (fs_hsize_t)Isrc->num_frame ;
     fpix = IMAGEFpix(Isrc, 0, 0) ;
     while (size--)
       *fpix++ += scalar ;
@@ -2502,7 +2502,7 @@ ImageReplace(IMAGE *Isrc, IMAGE *Idst, float inpix, float outpix)
 {
   float  *fin, *fout ;
   byte   *cin, *cout, cinpix, coutpix ;
-  hsize_t    npix ;
+  fs_hsize_t    npix ;
 
   if (!Idst)
     Idst = ImageAlloc(Isrc->rows,Isrc->cols,Isrc->pixel_format,Isrc->num_frame);
@@ -2510,7 +2510,7 @@ ImageReplace(IMAGE *Isrc, IMAGE *Idst, float inpix, float outpix)
   if (Idst->pixel_format != Isrc->pixel_format)
     ErrorReturn(NULL, (ERROR_BADPARM, "ImageReplace: src and dst formats must match")) ;
 
-  npix = Isrc->numpix * (hsize_t)Isrc->num_frame ;
+  npix = Isrc->numpix * (fs_hsize_t)Isrc->num_frame ;
   switch (Isrc->pixel_format)
   {
   case PFFLOAT:

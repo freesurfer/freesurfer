@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2014/04/14 18:58:28 $
- *    $Revision: 1.4 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/24 16:23:27 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,8 +62,8 @@ struct header
   int pixel_format; /* The format of each pixel */
   int numcolor; /* The number of color frames per image */
   int numpix;  /* The number of pixels per stored frame */
-  hsize_t sizepix; /* The number of bytes per pixel */
-  hsize_t sizeimage; /* The number of bytes per stored frame */
+  fs_hsize_t sizepix; /* The number of bytes per pixel */
+  fs_hsize_t sizeimage; /* The number of bytes per stored frame */
   byte *image;  /* The image itself */
   h_boolean imdealloc; /* if nonzero, free image when requested */
   byte *firstpix; /* Pointer to first pixel (for ROI) */

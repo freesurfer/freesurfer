@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.6 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/24 16:23:27 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,7 +34,7 @@
 #else
 
 #define hmemset(buf, val, count)   huge_memset((huge char *)buf, (char)val, (long)count)
-#define hcalloc(n,size)            huge_alloc((hsize_t)n*size, 1)
+#define hcalloc(n,size)            huge_alloc((fs_hsize_t)n*size, 1)
 #define hmemcpy(Dst, Src, Count)   huge_memcpy((huge char *)Dst, (huge char *)Src, (long)Count)
 
 #endif
