@@ -4,6 +4,10 @@
 # exclude patterns (uncomment them if you want to use them):
 # *.[oa]
 # *~
+# a bit more complicated for GEMS to go first so that later patterns pick up ignores as well
+GEMS/*
+!GEMS/*.*
+!GEMS/*/
 CVS/
 *.[oa]
 Makefile
@@ -20,4 +24,6 @@ autom4te.cache/
 cpuflags.mak
 libtool
 stamp-h1
-
+# generated UI files
+ui_*.*
+moc_*.*
