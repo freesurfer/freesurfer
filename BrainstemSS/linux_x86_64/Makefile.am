@@ -17,8 +17,8 @@ foo_binaryfiles = \
 	SegmentSubject.bin
 
 install-data-local:
-	test -z $(foodir) || $(mkdir_p) $(foodir)
-	$(INSTALL) -m 755 $(foo_binaryfiles) $(foodir)
+	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
+	$(INSTALL) -m 755 $(foo_binaryfiles) $(DESTDIR)$(foodir)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

@@ -285,10 +285,10 @@ survivalunifiles_DATA=\
 foo_datafiles=lme/geodesic/geodesic_src.tar.gz
 
 install-data-local:
-	test -z $(survivalexdatafilesdir) || $(mkdir_p) $(survivalexdatafilesdir)
-	$(INSTALL_DATA) $(survivalexdatafiles_datafiles) $(survivalexdatafilesdir)
-	test -z $(foodir) || $(mkdir_p) $(foodir)
-	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
+	test -z $(DESTDIR)$(survivalexdatafilesdir) || $(mkdir_p) $(DESTDIR)$(survivalexdatafilesdir)
+	$(INSTALL_DATA) $(survivalexdatafiles_datafiles) $(DESTDIR)$(survivalexdatafilesdir)
+	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
+	$(INSTALL_DATA) $(foo_datafiles) $(DESTDIR)$(foodir)
 
 
 

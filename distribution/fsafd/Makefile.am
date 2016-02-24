@@ -24,8 +24,8 @@ foo_datafiles=TalairachingCovariance.adf \
 #	lh.ThicknessMatrix.mgh
 
 install-data-local:
-	test -z $(foodir) || $(mkdir_p) $(foodir)
-	$(INSTALL_DATA) $(foo_datafiles) $(foodir)
+	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
+	$(INSTALL_DATA) $(foo_datafiles) $(DESTDIR)$(foodir)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

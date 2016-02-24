@@ -4,7 +4,7 @@
 
 dist_bin_SCRIPTS = mri_cvs_register mri_cvs_check mri_cvs_data_copy
 
-foodir=$(DESTDIR)$(bindir)
+foodir=$(bindir)
 foo_DATA= \
 	id.xfm \
 	mri_cvs_requiredfiles.txt
