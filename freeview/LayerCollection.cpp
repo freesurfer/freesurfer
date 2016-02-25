@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/07 16:48:49 $
- *    $Revision: 1.42 $
+ *    $Date: 2016/02/23 19:13:52 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -161,6 +161,33 @@ bool LayerCollection::RemoveLayer( Layer* layer, bool deleteObject )
   }
 
   return false;
+}
+
+bool LayerCollection::RemoveLayers(QList<Layer *> layers)
+{
+    for ( int i = 0; i < m_layers.size(); i++ )
+    {
+        foreach (Layer* layer, layers)
+        {
+            if ( m_layers[i] == layer )
+            {
+                m_layers.erase( m_layers.begin() + i );
+                layer->deleteLater();
+                i--;
+                break;
+            }
+        }
+    }
+    if (m_layers.isEmpty())
+        SetActiveLayer(NULL);
+    else
+        SetActiveLayer(m_layers[0]);
+
+    foreach (Layer* layer, layers)
+    {
+        emit LayerRemoved( layer );
+    }
+    return true;
 }
 
 void LayerCollection::MoveLayerUp()

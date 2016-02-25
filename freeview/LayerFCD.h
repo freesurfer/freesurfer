@@ -31,7 +31,7 @@ public:
   ~LayerFCD();
 
   bool LoadFromFile();
-  bool Load(const QString& subdir, const QString& subject);
+  bool Load(const QString& subdir, const QString& subject, const QString& suffix = "");
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
   virtual void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
@@ -102,7 +102,6 @@ protected:
   LayerMRI*   m_mri_t2;
   LayerMRI*   m_mri_aseg;
   LayerMRI*   m_mri_difference;
-//  LayerMRI*   m_mri_decrease;
   LayerSurface* m_surf_lh;
   LayerSurface* m_surf_rh;
   LayerSurface* m_surf_lh_pial;
@@ -115,6 +114,7 @@ protected:
 
   QString   m_sSubjectDir;
   QString   m_sSubject;
+  QString   m_sSuffix;
 
   LayerFCDWorkerThread* m_worker;
 };

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/04 16:00:33 $
- *    $Revision: 1.15 $
+ *    $Date: 2016/02/25 17:58:23 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,34 +82,42 @@ most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg)
 
 
 FCD_DATA   *
-FCDloadData(char *sdir, char *subject)
+FCDloadData(char *sdir, char *subject, char* suffix_in)
 {
   FCD_DATA    *fcd ;
   char        fname[STRLEN] ;
   MRI         *mri_interior, *mri_dist, *mri_int_lh, *mri_int_rh, *mri_pvals ;
+  char        suffix[STRLEN] = "";
+
+  if (suffix_in)
+    sprintf(suffix, ".%s", suffix_in);
 
   fcd = (FCD_DATA *)calloc(1, sizeof(FCD_DATA)) ;
 
-  sprintf(fname, "%s/%s/surf/lh.white", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/lh.white%s", sdir, subject, suffix) ;
   fcd->mris_lh = MRISread(fname) ;
   if (fcd->mris_lh == NULL)
   {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
   MRISsaveVertexPositions(fcd->mris_lh, WHITE_VERTICES) ;
-  if (MRISreadPialCoordinates(fcd->mris_lh, "pial") != NO_ERROR)
+
+  char  pialname[STRLEN] = "pial";
+  if (suffix_in)
+    sprintf(pialname, "pial.%s", suffix_in);
+  if (MRISreadPialCoordinates(fcd->mris_lh, pialname) != NO_ERROR)
   {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load lh pial vertices") ;
   }
 
-  sprintf(fname, "%s/%s/surf/lh.pial", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/lh.pial%s", sdir, subject, suffix) ;
   fcd->mris_lh_pial = MRISread(fname) ;
   if (fcd->mris_lh_pial == NULL)
   {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
 
-  sprintf(fname, "%s/%s/surf/lh.sphere.d1.left_right", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/lh.sphere.d1.left_right%s", sdir, subject, suffix) ;
   fcd->mris_lh_sphere_d1 = MRISread(fname) ;
   if (fcd->mris_lh_sphere_d1 == NULL)
   {
@@ -117,26 +125,26 @@ FCDloadData(char *sdir, char *subject)
   }
 
   exec_progress_callback(1, 12, 0, 1) ;
-  sprintf(fname, "%s/%s/surf/rh.white", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/rh.white%s", sdir, subject, suffix) ;
   fcd->mris_rh = MRISread(fname) ;
   if (fcd->mris_rh == NULL)
   {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
   MRISsaveVertexPositions(fcd->mris_rh, WHITE_VERTICES) ;
-  if (MRISreadPialCoordinates(fcd->mris_rh, "pial") != NO_ERROR)
+  if (MRISreadPialCoordinates(fcd->mris_rh, pialname) != NO_ERROR)
   {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load rh pial vertices") ;
   }
 
-  sprintf(fname, "%s/%s/surf/rh.pial", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/rh.pial%s", sdir, subject, suffix) ;
   fcd->mris_rh_pial = MRISread(fname) ;
   if (fcd->mris_rh_pial == NULL)
   {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
 
-  sprintf(fname, "%s/%s/surf/rh.sphere.d1.left_right", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/rh.sphere.d1.left_right%s", sdir, subject, suffix) ;
   fcd->mris_rh_sphere_d1 = MRISread(fname) ;
   if (fcd->mris_rh_sphere_d1 == NULL)
   {
@@ -144,7 +152,7 @@ FCDloadData(char *sdir, char *subject)
   }
 
   exec_progress_callback(2, 12, 0, 1) ;
-  sprintf(fname, "%s/%s/mri/aseg.mgz", sdir, subject) ;
+  sprintf(fname, "%s/%s/mri/aseg%s.mgz", sdir, subject, suffix) ;
   fcd->mri_aseg = MRIread(fname) ;
   if (fcd->mri_aseg == NULL)
   {
@@ -152,7 +160,7 @@ FCDloadData(char *sdir, char *subject)
   }
 
   exec_progress_callback(3, 12, 0, 1) ;
-  sprintf(fname, "%s/%s/mri/aparc+aseg.mgz", sdir, subject) ;
+  sprintf(fname, "%s/%s/mri/aparc+aseg%s.mgz", sdir, subject, suffix) ;
   fcd->mri_aparc = MRIread(fname) ;
   if (fcd->mri_aparc == NULL)
   {
@@ -161,16 +169,16 @@ FCDloadData(char *sdir, char *subject)
 
   exec_progress_callback(4, 12, 0, 1) ;
   fcd->mri_flair = NULL;
-  sprintf(fname, "%s/%s/mri/flair.reg.norm.mgz", sdir, subject) ; 
+  sprintf(fname, "%s/%s/mri/flair.reg.norm%s.mgz", sdir, subject, suffix) ;
   if ( ! FileExists(fname))
   {
-    sprintf(fname, "%s/%s/mri/FLAIR.mgz", sdir, subject) ; 
+    sprintf(fname, "%s/%s/mri/FLAIR%s.mgz", sdir, subject, suffix) ;
     if ( ! FileExists(fname))
     {
-      sprintf(fname, "%s/%s/mri/FLAIRax.mgz", sdir, subject) ; 
+      sprintf(fname, "%s/%s/mri/FLAIRax%s.mgz", sdir, subject, suffix) ;
       if ( ! FileExists(fname))
       {
-        sprintf(fname, "%s/%s/mri/FLAIRcor.mgz", sdir, subject) ; 
+        sprintf(fname, "%s/%s/mri/FLAIRcor%s.mgz", sdir, subject, suffix) ;
         if ( ! FileExists(fname))
         {
           sprintf(fname, " ");
@@ -188,13 +196,13 @@ FCDloadData(char *sdir, char *subject)
   }
 
   fcd->mri_t2 = NULL;
-  sprintf(fname, "%s/%s/mri/T2.mgz", sdir, subject) ; 
+  sprintf(fname, "%s/%s/mri/T2%s.mgz", sdir, subject, suffix) ;
   if ( ! FileExists(fname))
   {
-    sprintf(fname, "%s/%s/mri/T2ax.mgz", sdir, subject) ; 
+    sprintf(fname, "%s/%s/mri/T2ax%s.mgz", sdir, subject, suffix) ;
     if ( ! FileExists(fname))
     {
-      sprintf(fname, "%s/%s/mri/T2cor.mgz", sdir, subject) ; 
+      sprintf(fname, "%s/%s/mri/T2cor%s.mgz", sdir, subject, suffix) ;
       if ( ! FileExists(fname))
       {
         sprintf(fname, " ");
@@ -211,7 +219,7 @@ FCDloadData(char *sdir, char *subject)
   }
 
   exec_progress_callback(5, 12, 0, 1) ;
-  sprintf(fname, "%s/%s/mri/norm.mgz", sdir, subject) ;
+  sprintf(fname, "%s/%s/mri/norm%s.mgz", sdir, subject, suffix) ;
   fcd->mri_norm = MRIread(fname) ;
   if (fcd->mri_norm == NULL)
   {
@@ -225,15 +233,15 @@ FCDloadData(char *sdir, char *subject)
   fcd->mri_thickness_difference = MRIadd(fcd->mri_thickness_increase, fcd->mri_thickness_decrease, NULL);
 
   exec_progress_callback(6, 12, 0, 1) ;
-  sprintf(fname, "%s/%s/surf/lh.rh.thickness.smooth0.mgz", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/lh.rh.thickness.smooth0%s.mgz", sdir, subject, suffix) ;
   fcd->rh_thickness_on_lh = MRIread(fname) ;
-  if (fcd->mri_aseg == NULL)
+  if (fcd->rh_thickness_on_lh == NULL)
   {
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
 
   exec_progress_callback(7, 12, 0, 1) ;
-  sprintf(fname, "%s/%s/surf/rh.thickness.mgz", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/rh.thickness%s.mgz", sdir, subject, suffix) ;
   fcd->rh_thickness_on_rh = MRIread(fname) ;
   if (fcd->rh_thickness_on_rh == NULL)
   {
@@ -241,7 +249,7 @@ FCDloadData(char *sdir, char *subject)
   }
 
   exec_progress_callback(8, 12, 0, 1) ;
-  sprintf(fname, "%s/%s/surf/lh.thickness.mgz", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/lh.thickness%s.mgz", sdir, subject, suffix) ;
   fcd->lh_thickness_on_lh = MRIread(fname) ;
   if (fcd->lh_thickness_on_lh == NULL)
   {
@@ -249,10 +257,10 @@ FCDloadData(char *sdir, char *subject)
   }
 
   exec_progress_callback(9, 12, 0, 1) ;
-  sprintf(fname, "%s/%s/surf/rh.lh.thickness.smooth0.mgz", sdir, subject) ;
+  sprintf(fname, "%s/%s/surf/rh.lh.thickness.smooth0%s.mgz", sdir, subject, suffix) ;
   if ( ! FileExists(fname))
   {
-    sprintf(fname, "%s/%s/surf/rh.lh.thickness.mgz", sdir, subject) ;
+    sprintf(fname, "%s/%s/surf/rh.lh.thickness%s.mgz", sdir, subject, suffix) ;
     if (fcd->lh_thickness_on_rh == NULL)
     {
       ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;

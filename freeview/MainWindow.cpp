@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.313 $
+ *    $Author: rpwang $
+ *    $Date: 2016/02/25 17:58:23 $
+ *    $Revision: 1.315 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -332,15 +332,6 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
     connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
             this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
-
-    /*
-    connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
-            ui->tabAllLayers, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
-    connect(m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
-            ui->tabAllLayers, SLOT(OnLayerAdded(Layer*)), Qt::QueuedConnection);
-    connect(m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
-            ui->tabAllLayers, SLOT(OnLayerRemoved(Layer*)), Qt::QueuedConnection);
-            */
   }
   for ( int i = 0; i < 4; i++ )
   {
@@ -912,6 +903,8 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   if (parser->Found("fcd", &sa))
   {
     QStringList script = QStringList("loadfcd") << sa[0] << sa[1];
+    if (sa.size() > 2)
+        script << sa[2];
     this->AddScript( script );
     m_defaultSettings["Smoothed"] = true;
   }
@@ -4428,24 +4421,30 @@ void MainWindow::LoadVolumeFile( const QString& filename,
 
 bool MainWindow::OnCloseVolume()
 {
-  LayerMRI* layer = (LayerMRI*)GetActiveLayer( "MRI" );
-  if ( !layer )
+  QList<Layer*> layers = GetSelectedLayers( "MRI" );
+  if ( layers.isEmpty() )
   {
     return false;
   }
-  if ( layer->IsModified() )
+  foreach (Layer* layer, layers)
   {
-    if ( QMessageBox::question( this, "Volume Not Saved",
-                                "Volume has been modifed and not been saved. Do you still want to continue?",
-                                QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
-    {
-      return false;
-    }
+      if ( qobject_cast<LayerMRI*>(layer)->IsModified() )
+      {
+        if ( QMessageBox::question( this, "Volume Not Saved",
+                                    "Volume has been modifed and not been saved. Do you still want to continue?",
+                                    QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+        {
+          return false;
+        }
+      }
   }
-  GetLayerCollection( "MRI" )->RemoveLayer( layer );
-  if (layer == m_layerVolumeRef)
+  GetLayerCollection( "MRI" )->RemoveLayers( layers );
+  foreach (Layer* layer, layers)
   {
-    m_layerVolumeRef = (LayerMRI*)GetActiveLayer("MRI");
+      if (layer == m_layerVolumeRef)
+      {
+        m_layerVolumeRef = (LayerMRI*)GetActiveLayer("MRI");
+      }
   }
   return true;
 }
@@ -4815,21 +4814,24 @@ void MainWindow::OnSaveROIAs()
 
 void MainWindow::OnCloseROI()
 {
-  LayerROI* layer = (LayerROI*)GetActiveLayer( "ROI" );
-  if ( !layer )
+  QList<Layer*> layers = GetSelectedLayers( "ROI" );
+  if ( layers.isEmpty() )
   {
     return;
   }
-  if ( layer->IsModified() )
+  foreach (Layer* layer, layers)
   {
-    if ( QMessageBox::question( this, "ROI Not Saved",
-                                "ROI has been modifed and not been saved. Do you still want to continue?",
-                                QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
-    {
-      return;
-    }
+      if ( qobject_cast<LayerROI*>(layer)->IsModified() )
+      {
+        if ( QMessageBox::question( this, "ROI Not Saved",
+                                    "ROI has been modifed and not been saved. Do you still want to continue?",
+                                    QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+        {
+          return;
+        }
+      }
   }
-  GetLayerCollection( "ROI" )->RemoveLayer( layer );
+  GetLayerCollection( "ROI" )->RemoveLayers( layers );
 }
 
 void MainWindow::OnNewPointSet()
@@ -5011,21 +5013,24 @@ void MainWindow::OnSavePointSetAs()
 
 void MainWindow::OnClosePointSet()
 {
-  LayerPointSet* layer = (LayerPointSet*)GetActiveLayer( "PointSet" );
-  if ( !layer )
+  QList<Layer*> layers = GetSelectedLayers( "PointSet" );
+  if ( layers.isEmpty() )
   {
     return;
   }
-  if ( layer->IsModified() )
+  foreach (Layer* layer, layers)
   {
-    if ( QMessageBox::question( this, "Point Set Not Saved",
-                                "Point set has been modifed and not been saved. Do you still want to continue?",
-                                QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
-    {
-      return;
-    }
+      if ( qobject_cast<LayerPointSet*>(layer)->IsModified() )
+      {
+        if ( QMessageBox::question( this, "Point Set Not Saved",
+                                    "Point set has been modifed and not been saved. Do you still want to continue?",
+                                    QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+        {
+          return;
+        }
+      }
   }
-  GetLayerCollection( "PointSet" )->RemoveLayer( layer );
+  GetLayerCollection( "PointSet" )->RemoveLayers( layers );
 }
 
 void MainWindow::OnLoadTrack()
@@ -5051,13 +5056,13 @@ void MainWindow::LoadTrackFile(const QString &fn)
 
 void MainWindow::OnCloseTrack()
 {
-  LayerTrack* layer = (LayerTrack*)GetActiveLayer( "Track" );
-  if ( !layer )
+  QList<Layer*> layers = GetSelectedLayers( "Track" );
+  if ( layers.isEmpty() )
   {
     return;
   }
 
-  GetLayerCollection( "Track" )->RemoveLayer( layer );
+  GetLayerCollection( "Track" )->RemoveLayers( layers );
 }
 
 void MainWindow::OnLoadSurface()
@@ -5101,13 +5106,13 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
 
 void MainWindow::OnCloseSurface()
 {
-  Layer* layer = GetActiveLayer( "Surface" );
-  if ( !layer )
+  QList<Layer*> layers = GetSelectedLayers("Surface");
+  if ( layers.isEmpty() )
   {
     return;
   }
 
-  GetLayerCollection( "Surface" )->RemoveLayer( layer );
+  GetLayerCollection( "Surface" )->RemoveLayers( layers );
 }
 
 void MainWindow::OnIOError( Layer* layer, int jobtype )
@@ -6757,20 +6762,24 @@ void MainWindow::CommandLoadFCD(const QStringList& cmd )
   if (cmd.size() < 3)
     return;
 
-  LoadFCD(cmd[1], cmd[2]);
+  LoadFCD(cmd[1], cmd[2], cmd.size() > 3? cmd[3] : "");
 }
 
-void MainWindow::LoadFCD(const QString &subdir, const QString &subject)
+void MainWindow::LoadFCD(const QString &subdir, const QString &subject, const QString& suffix)
 {
   LayerFCD* layer = new LayerFCD(m_layerVolumeRef);
   connect( layer->GetWorkerThread(), SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)));
   connect( layer->GetWorkerThread(), SIGNAL(started()), m_statusBar, SLOT(ShowProgress()));
   connect( layer->GetWorkerThread(), SIGNAL(finished()), m_statusBar, SLOT(HideProgress()));
-  layer->SetName(subject);
+  if (suffix.isEmpty())
+      layer->SetName(subject);
+  else
+      layer->SetName(subject + "." + suffix);
   layer->SetMRILayerCTAB(m_luts->GetColorTable(0));
   QVariantMap map;
   map["SubjectDir"] = subdir;
   map["Subject"] = subject;
+  map["Suffix"] = suffix;
   m_threadIOWorker->LoadFCD( layer, map );
 }
 

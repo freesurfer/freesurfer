@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/10 22:19:07 $
- *    $Revision: 1.162 $
+ *    $Date: 2016/02/25 17:58:23 $
+ *    $Revision: 1.163 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -298,7 +298,7 @@ protected:
   void LoadWayPointsFile        ( const QString& fn );
   void LoadControlPointsFile    ( const QString& fn );
   void LoadTrackFile            ( const QString& fn );
-  void LoadFCD        ( const QString& subdir, const QString& subject);
+  void LoadFCD        ( const QString& subdir, const QString& subject, const QString& suffix = "");
   void SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales );
   bool GetCursorRAS( double* ras_out, bool tkReg );
 

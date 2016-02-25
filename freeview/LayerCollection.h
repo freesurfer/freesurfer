@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/05/07 16:48:49 $
- *    $Revision: 1.32 $
+ *    $Date: 2016/02/23 19:13:52 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,7 @@ public:
 
   bool AddLayer( Layer* layer, bool initializeCoordinate = false );
   bool RemoveLayer( Layer* layer, bool deleteObject = true );
+  bool RemoveLayers( QList<Layer*> layers);
   bool MoveLayerUp( Layer* layer );
   bool MoveLayerDown( Layer* layer );
   bool MoveToTop( Layer* layer );

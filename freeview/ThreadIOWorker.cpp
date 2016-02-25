@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/01/22 21:45:18 $
- *    $Revision: 1.13 $
+ *    $Date: 2016/02/25 17:58:24 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -278,7 +278,7 @@ void ThreadIOWorker::run()
     LayerFCD* layer = qobject_cast<LayerFCD*>(m_layer);
     if (!layer)
       return;
-    if (!layer->Load(m_args["SubjectDir"].toString(), m_args["Subject"].toString()))
+    if (!layer->Load(m_args["SubjectDir"].toString(), m_args["Subject"].toString(), m_args["Suffix"].toString()))
     {
       emit Error(m_layer, m_nJobType);
     }
