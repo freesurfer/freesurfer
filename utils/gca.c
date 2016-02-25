@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/02/11 16:53:19 $
- *    $Revision: 1.340 $
+ *    $Date: 2016/02/25 15:30:40 $
+ *    $Revision: 1.341 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -71,7 +71,7 @@
 #endif
 
 #ifdef HAVE_OPENMP
-#undef HAVE_OPENMP
+//#undef HAVE_OPENMP
 #endif
 
 extern const char* Progname;
@@ -4314,9 +4314,9 @@ GCAlabelProbabilities(MRI *mri_inputs,
      voxel (and hence the classifier) to which it maps. Then update the
      classifiers statistics based on this voxel's intensity and label.
   */
-#ifdef HAVE_OPENMP
-#pragma omp parallel for
-#endif
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for
+//#endif
   for (x = 0 ; x < width ; x++)
   {
     int y, z, label, xn, yn, zn, n ;
@@ -8843,9 +8843,9 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
       MRIcopyHeader(mri_inputs, mri_probs) ;
     }
 
-#ifdef HAVE_OPENMP
+//#ifdef HAVE_OPENMP
 //pragma omp parallel for reduction(+: nchanged)
-#endif
+//#endif
     for (index = 0 ; index < nindices ; index++)
     {
       int x, y, z, n, label, old_label ;
@@ -19762,9 +19762,9 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         border = BORDER_SIZE ;
       }
       GCAbuildMostLikelyVolumeForStructure(gca, mri_seg, l, border, transform,mri_labels) ;
-#ifdef HAVE_OPENMP
-#pragma omp parallel for
-#endif
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for
+//#endif
       for (x = 0 ; x < mri_labels->width ; x++)
       {
 	int label, y, z ;
@@ -26025,9 +26025,9 @@ GCAbuildMostLikelyVolumeForStructure( const GCA *gca,
 
   // mri is prior if mri = NULL
   width = mri->width ; depth = mri->depth ; height = mri->height ;
-#ifdef HAVE_OPENMP
-#pragma omp parallel for
-#endif
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for
+//#endif
   for (z = 0 ; z < depth ; z++)
   {
     int x, y, xn, yn, zn, max_label,n, r, xp, yp, zp ;
@@ -26159,9 +26159,9 @@ GCAbuildMostLikelyVolumeForStructure( const GCA *gca,
   {
     mri_tmp = MRIcopy(mri, NULL) ;
 
-#ifdef HAVE_OPENMP
-#pragma omp parallel for
-#endif
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for
+//#endif
     for (z = 0 ; z < depth ; z++)
     {
       int y, xn, yn, zn, max_label,n, r, xp, yp, zp, x ;
