@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/12/10 21:15:02 $
- *    $Revision: 1.162 $
+ *    $Date: 2016/02/26 15:09:17 $
+ *    $Revision: 1.163 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,7 +56,7 @@
 #define CONTRAST_FLAIR 2
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.162 2015/12/10 21:15:02 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.163 2016/02/26 15:09:17 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -283,13 +283,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.162 2015/12/10 21:15:02 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.163 2016/02/26 15:09:17 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.162 2015/12/10 21:15:02 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.163 2016/02/26 15:09:17 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1560,7 +1560,6 @@ main(int argc, char *argv[])
           MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
         }
 //  parms.l_histo = 1 ;
-        parms.l_location = 1 ;
         parms.l_intensity = 0 ;
 	if (i == 0) // only the first time
 	{
@@ -2201,6 +2200,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "T2dura") || !stricmp(option, "T2"))
   {
+    parms.l_location = 1 ;
     flair_or_T2_name = argv[2] ;
     fprintf(stderr,
             "refining pial surfaces placement using T2 volume %s\n", 
@@ -2209,9 +2209,16 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "flair"))
   {
+    parms.l_location = 1 ;
     flair_or_T2_name = argv[2] ;
     fprintf(stderr,
             "deforming surfaces based on FLAIR volume %s\n", flair_or_T2_name) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "location"))
+  {
+    parms.l_location = atof(argv[2]) ;
+    printf("setting location term coefficent to l_location = %2.2f\n", parms.l_location) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "cortex"))
@@ -4035,14 +4042,14 @@ compute_pial_target_locations(MRI_SURFACE *mris,
                               int nlabels,
                               int contrast_type, float T2_min, float T2_max, int below_set, int above_set)
 {
-  Real      val, xs, ys, zs, xv, yv, zv, d, mean, std ;
+  Real      val, xs, ys, zs, xv, yv, zv, d, mean, std, xvf, yvf, zvf ;
   int       vno, num_in, num_out, found_bad_intensity;
-  int done, bin, niter, outside_of_white, n, histo_nbins ;
+  int done, bin, niter, outside_of_white, n, histo_nbins, outside_of_pial ;
   VERTEX    *v ;
   double min_gray, max_gray, thickness, nx, ny, nz, mn, mx, sig;
-  double last_white, max_outward_dist ;
+  double last_white, max_outward_dist, last_pial, conservative_nsigma = .5  ;
   HISTOGRAM *h, *hcdf, *hcdf_rev ;
-  MRI       *mri_filled ;
+  MRI       *mri_filled, *mri_filled_pial, *mri_tmp ;
   float     min_val, max_val ;
 
   MRIvalRange(mri_T2, &min_val, &max_val) ;
@@ -4053,7 +4060,14 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
   MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
   mri_filled = MRIclone(mri_T2, NULL) ;
-  MRISfillInterior(mris, mri_T2->xsize, mri_filled) ;
+  mri_tmp = MRISfillInterior(mris, mri_T2->xsize/2, NULL) ;
+  mri_filled = MRIextractRegionAndPad(mri_tmp, NULL, NULL, 30) ; MRIfree(&mri_tmp) ;
+  MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
+
+  MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
+//  mri_filled_pial = MRIclone(mri_T2, NULL) ;
+  mri_tmp = MRISfillInterior(mris, mri_T2->xsize/2, NULL) ;
+  mri_filled_pial = MRIextractRegionAndPad(mri_tmp, NULL, NULL, 30) ; MRIfree(&mri_tmp) ;
   MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
 
@@ -4066,16 +4080,12 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     {
       v = &mris->vertices[vno] ;
       if (v->ripflag)
-      {
         continue ;
-      }
+
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
-      nx = v->x - v->whitex ;
-      ny = v->y - v->whitey ;
-      nz = v->z - v->whitez ;
+
+      nx = v->x - v->whitex ; ny = v->y - v->whitey ; nz = v->z - v->whitez ;
       thickness = sqrt(SQR(nx)+SQR(ny)+SQR(nz)) ;
       if (FZERO(thickness))  // pial and white in same place - no cortex here
       {
@@ -4085,13 +4095,12 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       MRIsampleVolume(mri_T2, xv, yv, zv, &val) ;
       for (d = thickness/2 ; d <= thickness ; d += SAMPLE_DIST)
       {
-        xs = v->whitex + d*v->nx ;
-        ys = v->whitey + d*v->ny ;
-        zs = v->whitez + d*v->nz ;
+        xs = v->whitex + d*v->nx ; ys = v->whitey + d*v->ny ; zs = v->whitez + d*v->nz ;
         MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+        MRISsurfaceRASToVoxelCached(mris, mri_filled, xs, ys, zs, &xvf, &yvf, &zvf);
         MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
         if (val <= 0 &&
-            (MRIgetVoxVal(mri_filled, nint(xv), nint(yv), nint(zv), 0) > 0))
+            (MRIgetVoxVal(mri_filled, nint(xvf), nint(yvf), nint(zvf), 0) > 0))
         {
           continue ;
         }
@@ -4111,21 +4120,16 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     {
       done = (niter > 10) ;
       if (niter++ > 0)
-      {
         mx /= 2 ;
-      }
       else
-      {
         mx = 2*bin/(.9) ;  // first time - take an educated guess
-      }
+
       HISTOinit(h, histo_nbins, 0, mx) ;
       printf("compressed histogram detected, changing bin size to %f\n",
              h->bin_size) ;
     }
     else
-    {
       done = 1 ;
-    }
   }
   while (!done) ;
   mean /= num_in ;
@@ -4136,9 +4140,8 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 
   HISTOrobustGaussianFit(h, .9, &mn, &sig) ;
   if (Gdiag & DIAG_WRITE)
-  {
     HISTOplot(h, "h.plt") ;
-  }
+
   if (sig < 5)   // something failed in robust fit - use normal fits
   {
     printf("invalid robust sig %2.3f detected, using gaussian std %2.3f instead\n", sig, std) ;
@@ -4194,40 +4197,32 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   for (num_in = num_out = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
-    v->targx = v->x ;
-    v->targy = v->y ;
-    v->targz = v->z ;
+    v->targx = v->x ; v->targy = v->y ; v->targz = v->z ;
     if (v->ripflag)
       continue ;
 
     if (vno == Gdiag_no)
       DiagBreak() ;
 
-    nx = v->x - v->whitex ;
-    ny = v->y - v->whitey ;
-    nz = v->z - v->whitez ;
+    nx = v->x - v->whitex ; ny = v->y - v->whitey ; nz = v->z - v->whitez ;
     thickness = sqrt(SQR(nx)+SQR(ny)+SQR(nz)) ;
     if (FZERO(thickness))
       continue ;
 
     MRISvertexToVoxel(mris, v, mri_T2, &xv, &yv, &zv) ;
-    nx /= thickness ;
-    ny /= thickness ;
-    nz /= thickness ;
+    nx /= thickness ; ny /= thickness ; nz /= thickness ;
     found_bad_intensity = 0 ;
     for (d = thickness/2 ; d <= thickness ; d += SAMPLE_DIST)
     {
-      xs = v->whitex + d*nx ;
-      ys = v->whitey + d*ny ;
-      zs = v->whitez + d*nz ;
+      xs = v->whitex + d*nx ; ys = v->whitey + d*ny ; zs = v->whitez + d*nz ;
       MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
       MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
       if (val <= 0)
         continue ;
 
-      if (MRIgetVoxVal(mri_filled, nint(xv), nint(yv), nint(zv), 0) > 0)
+      MRISsurfaceRASToVoxelCached(mris, mri_filled, xs, ys, zs, &xvf, &yvf, &zvf);
+      if (MRIgetVoxVal(mri_filled, nint(xvf), nint(yvf), nint(zvf), 0) > 0)
         break ;
-
 
       if (val < min_gray || val > max_gray)
       {
@@ -4241,9 +4236,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     {
       num_in++ ;
       // target surface so interior is good value and exterior is bad gm value
-      v->targx = xs - (SAMPLE_DIST/2*nx) ;
-      v->targy = ys - (SAMPLE_DIST/2*ny) ;
-      v->targz = zs - (SAMPLE_DIST/2*nz) ;
+      v->targx = xs - (SAMPLE_DIST/2*nx) ; v->targy = ys - (SAMPLE_DIST/2*ny) ; v->targz = zs - (SAMPLE_DIST/2*nz) ;
       MRISsurfaceRASToVoxelCached(mris, mri_T2,
                                   v->targx, v->targy, v->targz,
                                   &xv, &yv, &zv);
@@ -4264,25 +4257,29 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       // check for valid ones in the exterior?
     {
       max_outward_dist = 1 ;  // only small deformations for now
-      outside_of_white = 0 ;
+      outside_of_white = outside_of_pial = 0 ;
       last_white = 0 ;
       for (d = 0 ; d <= max_outward_dist ; d += SAMPLE_DIST)
       {
-        xs = v->x + d*v->nx ;
-        ys = v->y + d*v->ny ;
-        zs = v->z + d*v->nz ;
+        xs = v->x + d*v->nx ; ys = v->y + d*v->ny ; zs = v->z + d*v->nz ;
         MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
-        if (MRIgetVoxVal(mri_filled, nint(xv), nint(yv), nint(zv), 0) == 0)
-        {
+        MRISsurfaceRASToVoxelCached(mris, mri_filled, xs, ys, zs, &xvf, &yvf, &zvf);
+        if (MRIgetVoxVal(mri_filled, nint(xvf), nint(yvf), nint(zvf), 0) == 0)
           outside_of_white = 1 ;
-        }
         else if (!outside_of_white)  // haven't gotten out of the wm yet - ignore intensities
         {
           last_white = d ;
           continue ;
         }
+	// check to see if we are outside of the pial surface
+        MRISsurfaceRASToVoxelCached(mris, mri_filled_pial, xs, ys, zs, &xvf, &yvf, &zvf);
+        if (MRIgetVoxVal(mri_filled_pial, nint(xvf), nint(yvf), nint(zvf), 0) == 0)
+          outside_of_pial = 1 ;
+        else if (outside_of_pial == 0)  // still inside of pial surface
+          last_pial = d ;
+
         if (outside_of_white &&
-            MRIgetVoxVal(mri_filled, nint(xv), nint(yv), nint(zv), 0) > 0)  // interior of wm surface, probably normals are messed up
+            MRIgetVoxVal(mri_filled, nint(xvf), nint(yvf), nint(zvf), 0) > 0)  // interior of wm surface, probably normals are messed up
         {
           if (d-last_white > .5)  // really out of white and not just grazing a corner of the surface
           {
@@ -4290,25 +4287,51 @@ compute_pial_target_locations(MRI_SURFACE *mris,
             break ;
           }
           else
-          {
             last_white = d ;  // didn't really leave wm
-          }
         }
         MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
         if (val < 0)
-        {
           continue ;
-        }
+
         // this is FLAIR-specific - look for dark stuff that isn't too close to white matter
         if ((val < mn-sig && d-last_white>1.2) ||  (val > mn+2*sig))  // only look for a very narrow range of intensities
-        {
           break ;
-        }
       }
       if (d > max_outward_dist)  // couldn't find pial surface
       {
-	v->marked = 0 ;
-        d = 0 ;
+	if (outside_of_pial > 0)
+	{
+	  if (vno == Gdiag_no)
+	    DiagBreak() ;
+	  outside_of_pial = 0 ;
+	  for (d = last_pial+SAMPLE_DIST ; d <= max_outward_dist ; d += SAMPLE_DIST)
+	  {
+	    xs = v->x + d*v->nx ; ys = v->y + d*v->ny ; zs = v->z + d*v->nz ;
+	    MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
+	    MRISsurfaceRASToVoxelCached(mris, mri_filled_pial, xs, ys, zs, &xvf, &yvf, &zvf);
+	    MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
+	    if (MRIgetVoxVal(mri_filled_pial, nint(xvf), nint(yvf), nint(zvf), 0) > 0)
+	    {
+	      if (outside_of_pial) // was outside and came back in - terminate search as we have crossed a sulcus
+	      {
+		if (d <= last_pial+SAMPLE_DIST)
+		  continue ;  // couldn't find any gm-looking stuff outside before re-entering surface
+		break ;  // made it some distance outside of pial so update target location and mark vertex
+	      }
+	    }
+	    if  ((val > mn+conservative_nsigma*sig) || (val < mn-conservative_nsigma*sig)) // not definitely gm - terminate
+	    {
+		if (d <= last_pial+SAMPLE_DIST)
+		  continue ;  // couldn't find any gm-looking stuff outside 
+		break ;  // made it some distance outside of pial so update target location and mark vertex
+	    }
+	  }
+	}
+	else
+	{
+	  v->marked = 0 ;
+	  d = 0 ;
+	}
       }
       else
 	v->marked = 1 ;
@@ -4317,9 +4340,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
         d -= SAMPLE_DIST ;
         num_out++ ;
       }
-      v->targx = v->x+d*v->nx ;
-      v->targy = v->y+d*v->ny ;
-      v->targz = v->z+d*v->nz ;
+      v->targx = v->x+d*v->nx ; v->targy = v->y+d*v->ny ; v->targz = v->z+d*v->nz ;
       MRISsurfaceRASToVoxelCached(mris, mri_T2,
                                   v->targx, v->targy, v->targz,
                                   &xv, &yv, &zv);
@@ -4333,7 +4354,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
                vno,d,v->targx,v->targy,v->targz, xv, yv, zv) ;
     }
   }
-  MRIfree(&mri_filled) ; HISTOfree(&h) ; HISTOfree(&hcdf) ; HISTOfree(&hcdf_rev) ;
+  MRIfree(&mri_filled) ; HISTOfree(&h) ; HISTOfree(&hcdf) ; HISTOfree(&hcdf_rev) ; MRIfree(&mri_filled_pial) ;
 
   printf("%d surface locations found to contain inconsistent "
          "values (%d in, %d out)\n",
