@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang 
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/25 17:58:23 $
- *    $Revision: 1.16 $
+ *    $Date: 2016/02/26 18:16:22 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -267,6 +267,9 @@ bool LayerFCD::LoadFromFile()
 
 void LayerFCD::MakeAllLayers()
 {
+  QString suffix_text;
+  if (!m_sSuffix.isEmpty())
+      suffix_text = "." + m_sSuffix;
   if (true)
   {
     LayerMRI* mri = m_mri_norm;
@@ -274,8 +277,10 @@ void LayerFCD::MakeAllLayers()
     {
       mri->SetRefVolume(m_layerSource->GetSourceVolume());
     }
-    mri->SetName(GetName() + ".norm");
+    mri->SetName(m_sSubject + ".norm");
     mri->SetFileName(m_fcd->mri_norm->fname);
+    if (!m_sSuffix.isEmpty() && mri->GetFileName().contains(suffix_text))
+        mri->SetName(m_sSubject + ".norm" + suffix_text);
     if ( mri->CreateFromMRIData((void*)m_fcd->mri_norm) )
     {
       if (!m_layerSource)
@@ -299,8 +304,10 @@ void LayerFCD::MakeAllLayers()
     {
       mri->SetRefVolume(m_layerSource->GetSourceVolume());
     }
-    mri->SetName(GetName() + ".flair");
+    mri->SetName(m_sSubject + ".flair");
     mri->SetFileName(m_fcd->mri_flair->fname);
+    if (!m_sSuffix.isEmpty() && mri->GetFileName().contains(suffix_text))
+        mri->SetName(m_sSubject + ".flair" + suffix_text);
     if ( !mri->CreateFromMRIData((void*)m_fcd->mri_flair) )
     {
       delete m_mri_flair;
@@ -320,8 +327,10 @@ void LayerFCD::MakeAllLayers()
     {
       mri->SetRefVolume(m_layerSource->GetSourceVolume());
     }
-    mri->SetName(GetName() + ".t2");
+    mri->SetName(m_sSubject + ".t2");
     mri->SetFileName(m_fcd->mri_t2->fname);
+    if (!m_sSuffix.isEmpty() && mri->GetFileName().contains(suffix_text))
+        mri->SetName(m_sSubject + ".t2" + suffix_text);
     if ( !mri->CreateFromMRIData((void*)m_fcd->mri_t2) )
     {
       delete m_mri_t2;
@@ -341,8 +350,10 @@ void LayerFCD::MakeAllLayers()
     {
       mri->SetRefVolume(m_layerSource->GetSourceVolume());
     }
-    mri->SetName(GetName() + ".aseg");
+    mri->SetName(m_sSubject + ".aseg");
     mri->SetFileName(m_fcd->mri_aseg->fname);
+    if (!m_sSuffix.isEmpty() && mri->GetFileName().contains(suffix_text))
+        mri->SetName(m_sSubject + ".aseg" + suffix_text);
     if ( mri->CreateFromMRIData((void*)m_fcd->mri_aseg) )
     {
       mri->GetProperty()->SetColorMap(LayerPropertyMRI::LUT);
@@ -367,7 +378,7 @@ void LayerFCD::MakeAllLayers()
     {
       mri->SetRefVolume(m_layerSource->GetSourceVolume());
     }
-    mri->SetName(GetName() + ".thickness_difference");
+    mri->SetName(m_sSubject + ".thickness_difference_lh-rh" + suffix_text);
 //    mri->SetFileName(m_fcd->mri_thickness_increase->fname);
     if ( mri->CreateFromMRIData((void*)m_fcd->mri_thickness_difference) )
     {
@@ -392,7 +403,10 @@ void LayerFCD::MakeAllLayers()
     {
       surf->SetRefVolume(m_layerSource);
     }
-    surf->SetName(GetName() + ".lh");
+    surf->SetName(m_sSubject + ".lh");
+    surf->SetFileName(m_fcd->mris_lh->fname);
+    if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
+        surf->SetName(m_sSubject + ".lh" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_lh))
     {
       delete m_surf_lh;
@@ -412,7 +426,10 @@ void LayerFCD::MakeAllLayers()
     {
       surf->SetRefVolume(m_layerSource);
     }
-    surf->SetName(GetName() + ".lh.pial");
+    surf->SetName(m_sSubject + ".lh.pial");
+    surf->SetFileName(m_fcd->mris_lh_pial->fname);
+    if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
+        surf->SetName(m_sSubject + ".lh.pial" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_lh_pial))
     {
       delete m_surf_lh_pial;
@@ -454,6 +471,7 @@ void LayerFCD::MakeAllLayers()
 //    m_surf_lh_sphere_d1 = NULL;
 //  }
 
+
   if (m_fcd->mris_rh)
   {
     LayerSurface* surf = m_surf_rh;
@@ -461,7 +479,10 @@ void LayerFCD::MakeAllLayers()
     {
       surf->SetRefVolume(m_layerSource);
     }
-    surf->SetName(GetName() + ".rh");
+    surf->SetName(m_sSubject + ".rh");
+    surf->SetFileName(m_fcd->mris_rh->fname);
+    if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
+        surf->SetName(m_sSubject + ".rh" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_rh))
     {
       delete m_surf_rh;
@@ -481,7 +502,10 @@ void LayerFCD::MakeAllLayers()
     {
       surf->SetRefVolume(m_layerSource);
     }
-    surf->SetName(GetName() + ".rh.pial");
+    surf->SetName(m_sSubject + ".rh.pial");
+    surf->SetFileName(m_fcd->mris_rh_pial->fname);
+    if (!m_sSuffix.isEmpty() && surf->GetFileName().contains(suffix_text))
+        surf->SetName(m_sSubject + ".rh.pial" + suffix_text);
     if (!surf->CreateFromMRIS((void*)m_fcd->mris_rh_pial))
     {
       delete m_surf_rh_pial;
@@ -511,7 +535,7 @@ void LayerFCD::MakeAllLayers()
 //      delete m_surf_rh_sphere_d1;
 //      m_surf_rh_sphere_d1 = NULL;
 //    }
-//    else
+//    elsesprintf(fname, "%s/%s/surf/rh.lh.thickness%s.mgz", sdir, subject
 //    {
 //      surf->GetProperty()->SetEdgeColor(Qt::red);
 //      surf->SetVisible(false);
