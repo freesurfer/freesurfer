@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2016/02/19 21:32:39 $
-#    $Revision: 1.662 $
+#    $Author: zkaufman $
+#    $Date: 2016/02/26 20:01:43 $
+#    $Revision: 1.663 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -4014,6 +4014,7 @@ AC_OUTPUT([Makefile
            talairach_afd/Makefile
            talairach_avi/Makefile
            template/Makefile
+	   test_gcamcomputelabels_boost/Makefile
            test_makevol/Makefile
            test_window_env/Makefile
            tetgen/Makefile

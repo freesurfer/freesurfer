@@ -251,7 +251,8 @@ libutils_main_SOURCES=\
 	gcalinearnode.cpp\
 	gcalinearprior.cpp \
 	cmat.c \
-	mris_compVolFrac.c
+	mris_compVolFrac.c \
+	gcamcomputeLabelsLinearCPU.cpp
 
 libutils_cephes_SOURCES=\
 	$(srcdir)/$(cephes_dir)/bdtr.c \

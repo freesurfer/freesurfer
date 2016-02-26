@@ -6,9 +6,9 @@
 /*
  * Original Authors: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2012/12/12 21:18:23 $
- *    $Revision: 1.11 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/26 20:01:43 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,18 +52,22 @@ class const_GCAnode_GC1D;
 class GCAlinearNode
 {
 public:
-  GCAlinearNode( void ) : xDim(0), yDim(0), zDim(0),
-    n4D(0), n5D(0), n6D(0),
-    gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
-    offsets4D(), offsets5D(), offsets6D(),
-    nodeMaxLabels(),
-    nodeTotalTraining(),
-    nodeLabels(),
-    means(), variances(),
-    nJustPriors(), nTraining(), regularised(),
-    gc1dDirecLabelPriors(),
-    gc1dDirecLabels(),
-    tExhume(), tInhume() {};
+  GCAlinearNode( void ) : hasGibbsNeighbourhood(true),
+			  xDim(0), yDim(0), zDim(0),
+			  n4D(0), n5D(0), n6D(0),
+			  gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
+			  offsets4D(), offsets5D(), offsets6D(),
+			  nodeMaxLabels(),
+			  nodeTotalTraining(),
+			  nodeLabels(),
+			  means(), variances(),
+			  nJustPriors(), nTraining(), regularised(),
+			  gc1dDirecLabelPriors(),
+			  gc1dDirecLabels(),
+			  tExhume(), tInhume() {};
+  
+  // -------------------------------------------------
+  bool hasGibbsNeighbourhood;
 
   // -------------------------------------------------
   // 3D data access

@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/04 20:23:04 $
- *    $Revision: 1.293 $
+ *    $Date: 2016/02/26 20:01:43 $
+ *    $Revision: 1.294 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,8 @@
 
 // Control which portions are done on the GPU
 #define SHOW_EXEC_LOC 0
+
+#define USE_LINEAR_GCA_COMPUTE_LABELS 0
 
 #ifdef FS_CUDA
 // GCAmorphGPU requires Fermi
@@ -115,6 +117,8 @@
 #ifndef FSIGN
 #define FSIGN(f)  (((f) < 0) ? -1 : 1)
 #endif
+
+#include "gcamcomputeLabelsLinearCPU.h"
 
 extern const char* Progname;
 
@@ -8183,6 +8187,34 @@ GCAMcomputeLabels(MRI *mri, GCA_MORPH *gcam)
   GCA_MORPH_NODE *gcamn ;
   GCA_PRIOR      *gcap ;
   GC1D           *gc ;
+
+  if( GCAM_VERSION==0 ) {
+    /*
+      Write out initial values to enable CUDA conversion
+      The above test is always going to false, but doing things
+      like this ensures that the following code remains compilable
+     */
+    static int nCalls = 0;
+    printf("%s: Call number %i\n;", __FUNCTION__, nCalls);
+    
+    const int nChars = 256;
+    char fNameMRI[nChars], fNameGCAM[nChars], fNameGCA[nChars];
+
+    snprintf(fNameMRI, nChars-1, "GCAMcompLabels%03i.mgz", nCalls);
+    snprintf(fNameGCAM, nChars-1, "GCAMcompLabels%03i.m3z", nCalls);
+    snprintf(fNameGCA, nChars-1, "GCAMcompLabels%03i.gca", nCalls);
+
+    MRIwrite(mri, fNameMRI);
+    GCAMwrite(gcam, fNameGCAM);
+    GCAwrite(gcam->gca, fNameGCA);
+
+    nCalls++;
+  }
+ 
+  // See if we should use the Linearised version of the GCA
+  if( USE_LINEAR_GCA_COMPUTE_LABELS ) {
+    return GCAMcomputeLabelsLinearCPU(mri, gcam);
+  }
 
   if (gcam->gca == NULL)
   {

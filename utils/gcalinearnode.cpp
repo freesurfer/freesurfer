@@ -6,9 +6,9 @@
 /*
  * Original Authors: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.11 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/26 20:01:43 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -119,77 +119,77 @@ void GCAlinearNode::Exhume( const GCA* const src ) {
     }
   }
 
-
-  // Compute 5D offsets
-  this->offsets5D.at(0) = 0;
-  std::partial_sum( nDirecAtGC1D.begin(), nDirecAtGC1D.end(),
-                    ++(this->offsets5D.begin() ) );
-
-  // Array to hold labels for each direction at each GC1D
-  vector<unsigned int> nLabelsDirecAtGC1D( this->n5D,
-      numeric_limits<unsigned int>::max() );
-
-  // Handle 5D data
-  for ( int ix=0; ix<this->xDim; ix++ ) {
-    for ( int iy=0; iy<this->yDim; iy++ ) {
-      for ( int iz=0; iz<this->zDim; iz++ ) {
-
-        const GCA_NODE* const gcan = &(src->nodes[ix][iy][iz]);
-
-        for ( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
-          const GC1D* const gc1d = &(gcan->gcs[iGC1D]);
-
-          for ( int iDirec=0;
-                iDirec<this->gc1dNeighbourDim;
-                iDirec++ ) {
-
-            nLabelsDirecAtGC1D.at( this->index5D(ix,iy,iz,iGC1D,iDirec) ) =
-              gc1d->nlabels[iDirec];
-
-          }
-        }
+  if( this->hasGibbsNeighbourhood ) {
+    // Compute 5D offsets
+    this->offsets5D.at(0) = 0;
+    std::partial_sum( nDirecAtGC1D.begin(), nDirecAtGC1D.end(),
+		      ++(this->offsets5D.begin() ) );
+    
+    // Array to hold labels for each direction at each GC1D
+    vector<unsigned int> nLabelsDirecAtGC1D( this->n5D,
+					     numeric_limits<unsigned int>::max() );
+    
+    // Handle 5D data
+    for ( int ix=0; ix<this->xDim; ix++ ) {
+      for ( int iy=0; iy<this->yDim; iy++ ) {
+	for ( int iz=0; iz<this->zDim; iz++ ) {
+	  
+	  const GCA_NODE* const gcan = &(src->nodes[ix][iy][iz]);
+	  
+	  for ( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
+	    const GC1D* const gc1d = &(gcan->gcs[iGC1D]);
+	    
+	    for ( int iDirec=0;
+		  iDirec<this->gc1dNeighbourDim;
+		  iDirec++ ) {
+	      
+	      nLabelsDirecAtGC1D.at( this->index5D(ix,iy,iz,iGC1D,iDirec) ) =
+		gc1d->nlabels[iDirec];
+	      
+	    }
+	  }
+	}
+      }
+    }
+    
+    
+    // Compute 6D offsets
+    this->offsets6D.at(0) = 0;
+    std::partial_sum( nLabelsDirecAtGC1D.begin(), nLabelsDirecAtGC1D.end(),
+		      ++(this->offsets6D.begin()) );
+    
+    // Handle 6D data
+    for ( int ix=0; ix<this->xDim; ix++ ) {
+      for ( int iy=0; iy<this->yDim; iy++ ) {
+	for ( int iz=0; iz<this->zDim; iz++ ) {
+	  
+	  const GCA_NODE* const gcan = &(src->nodes[ix][iy][iz]);
+	  
+	  for ( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
+	    const GC1D* const gc1d = &(gcan->gcs[iGC1D]);
+	    for ( int iDirec=0;
+		  iDirec<this->gc1dNeighbourDim;
+		  iDirec++ ) {
+	      
+	      for ( int iLabel=0;
+		    iLabel<this->nLabelsAtNodeGC1Ddirection
+		      (ix,iy,iz,iGC1D,iDirec);
+		    iLabel++ ) {
+		this->labelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec,iLabel) =
+		  gc1d->labels[iDirec][iLabel];
+		this->labelPriorsAtNodeGC1Ddirection
+		  (ix,iy,iz,iGC1D,iDirec,iLabel) =
+		  gc1d->label_priors[iDirec][iLabel];
+	      }
+	    }
+	  }
+	}
+	// End of per-voxel loop
       }
     }
   }
-
-
-  // Compute 6D offsets
-  this->offsets6D.at(0) = 0;
-  std::partial_sum( nLabelsDirecAtGC1D.begin(), nLabelsDirecAtGC1D.end(),
-                    ++(this->offsets6D.begin()) );
-
-  // Handle 6D data
-  for ( int ix=0; ix<this->xDim; ix++ ) {
-    for ( int iy=0; iy<this->yDim; iy++ ) {
-      for ( int iz=0; iz<this->zDim; iz++ ) {
-
-        const GCA_NODE* const gcan = &(src->nodes[ix][iy][iz]);
-
-        for ( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
-          const GC1D* const gc1d = &(gcan->gcs[iGC1D]);
-          for ( int iDirec=0;
-                iDirec<this->gc1dNeighbourDim;
-                iDirec++ ) {
-
-            for ( int iLabel=0;
-                  iLabel<this->nLabelsAtNodeGC1Ddirection
-                    (ix,iy,iz,iGC1D,iDirec);
-                  iLabel++ ) {
-              this->labelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec,iLabel) =
-                gc1d->labels[iDirec][iLabel];
-              this->labelPriorsAtNodeGC1Ddirection
-                (ix,iy,iz,iGC1D,iDirec,iLabel) =
-                gc1d->label_priors[iDirec][iLabel];
-            }
-          }
-        }
-        // End of per-voxel loop
-      }
-    }
-  }
-
+  
   this->tExhume.Stop();
-
 }
 
 // ====================================================
@@ -323,80 +323,80 @@ void GCAlinearNode::Inhume( GCA* dst ) const {
           gc1d->ntraining = g1d.nTraining();
           gc1d->regularized = g1d.regularised();
 
-          // Allocate the nlabels array
-          gc1d->nlabels = (short*)calloc( 
-            this->gc1dNeighbourDim, // Always 6/GIBBS_NEIGHBORHOOD
-            sizeof(short) );
-          if ( !(gc1d->nlabels) ) {
-            cerr << __FUNCTION__
-            << ": Allocation failure of nlabels"
-            << endl;
-            exit( EXIT_FAILURE );
-          }
-
-          // Allocate pointers for label_priors
-          gc1d->label_priors = (float**)calloc( this->gc1dNeighbourDim,
-                                                sizeof(float*) );
-          if ( !(gc1d->label_priors) ) {
-            cerr << __FUNCTION__
-            << ": Allocation failure of label_priors"
-            << endl;
-            exit( EXIT_FAILURE );
-          }
-
-          // Allocate pointers for labels
-          gc1d->labels = (unsigned short**)calloc( this->gc1dNeighbourDim,
-                         sizeof(unsigned short*) );
-          if ( !(gc1d->labels) ) {
-            cerr << __FUNCTION__
-            << ": Allocation failure of labels"
-            << endl;
-            exit( EXIT_FAILURE );
-          }
-
-          for ( int iDirec=0;
-                iDirec<this->gc1dNeighbourDim;
-                iDirec++ ) {
-
-            // Set the number
-            gc1d->nlabels[iDirec] = g1d.nLabels( iDirec );
-
-            // Allocate the memory
-            gc1d->label_priors[iDirec] = (float*)calloc( gc1d->nlabels[iDirec],
-                                         sizeof(float) );
-            if ( !(gc1d->label_priors[iDirec]) ) {
-              cerr << __FUNCTION__
-              << ": Allocation failure of label_priors"
-              << endl;
-              exit( EXIT_FAILURE );
-            }
-
-            gc1d->labels[iDirec] = 
-              (unsigned short*)calloc( gc1d->nlabels[iDirec],
-                                       sizeof(unsigned short) );
-            if ( !(gc1d->labels[iDirec]) ) {
-              cerr << __FUNCTION__
-              << ": Allocation failure of labels"
-              << endl;
-              exit( EXIT_FAILURE );
-            }
-
-            for ( int iLabel=0;
-                  iLabel<g1d.nLabels(iDirec);
-                  iLabel++ ) {
-              gc1d->labels[iDirec][iLabel] = g1d.labels(iDirec,iLabel);
-              gc1d->label_priors[iDirec][iLabel] = 
-                g1d.labelPriors(iDirec,iLabel);
-            }
+	  if( this->hasGibbsNeighbourhood ) {
+	    // Allocate the nlabels array
+	    gc1d->nlabels = (short*)calloc( 
+					   this->gc1dNeighbourDim, // Always 6/GIBBS_NEIGHBORHOOD
+					   sizeof(short) );
+	    if ( !(gc1d->nlabels) ) {
+	      cerr << __FUNCTION__
+		   << ": Allocation failure of nlabels"
+		   << endl;
+	      exit( EXIT_FAILURE );
+	    }
+	    
+	    // Allocate pointers for label_priors
+	    gc1d->label_priors = (float**)calloc( this->gc1dNeighbourDim,
+						  sizeof(float*) );
+	    if ( !(gc1d->label_priors) ) {
+	      cerr << __FUNCTION__
+		   << ": Allocation failure of label_priors"
+		   << endl;
+	      exit( EXIT_FAILURE );
+	    }
+	    
+	    // Allocate pointers for labels
+	    gc1d->labels = (unsigned short**)calloc( this->gc1dNeighbourDim,
+						     sizeof(unsigned short*) );
+	    if ( !(gc1d->labels) ) {
+	      cerr << __FUNCTION__
+		   << ": Allocation failure of labels"
+		   << endl;
+	      exit( EXIT_FAILURE );
+	    }
+	    
+	    for ( int iDirec=0;
+		  iDirec<this->gc1dNeighbourDim;
+		  iDirec++ ) {
+	      
+	      // Set the number
+	      gc1d->nlabels[iDirec] = g1d.nLabels( iDirec );
+	      
+	      // Allocate the memory
+	      gc1d->label_priors[iDirec] = (float*)calloc( gc1d->nlabels[iDirec],
+							   sizeof(float) );
+	      if ( !(gc1d->label_priors[iDirec]) ) {
+		cerr << __FUNCTION__
+		     << ": Allocation failure of label_priors"
+		     << endl;
+		exit( EXIT_FAILURE );
+	      }
+	      
+	      gc1d->labels[iDirec] = 
+		(unsigned short*)calloc( gc1d->nlabels[iDirec],
+					 sizeof(unsigned short) );
+	      if ( !(gc1d->labels[iDirec]) ) {
+		cerr << __FUNCTION__
+		     << ": Allocation failure of labels"
+		     << endl;
+		exit( EXIT_FAILURE );
+	      }
+	      
+	      for ( int iLabel=0;
+		    iLabel<g1d.nLabels(iDirec);
+		    iLabel++ ) {
+		gc1d->labels[iDirec][iLabel] = g1d.labels(iDirec,iLabel);
+		gc1d->label_priors[iDirec][iLabel] = 
+		  g1d.labelPriors(iDirec,iLabel);
+	      }
+	    }
           }
         }
       }
     }
   }
-
+  
   this->tInhume.Stop();
-
-
 }
 
 
@@ -474,9 +474,9 @@ void GCAlinearNode::ExtractDims( const GCA* const src ) {
   this->n5D = 0;
   this->n6D = 0;
 
-  for ( int ix=0; ix<this->xDim; ix++ ) {
+  for ( int iz=0; iz<this->zDim; iz++ ) {
     for ( int iy=0; iy<this->yDim; iy++ ) {
-      for ( int iz=0; iz<this->zDim; iz++ ) {
+      for ( int ix=0; ix<this->xDim; ix++ ) {
 
         const GCA_NODE* const gcan = &(src->nodes[ix][iy][iz]);
         this->n4D += gcan->nlabels;
@@ -486,11 +486,15 @@ void GCAlinearNode::ExtractDims( const GCA* const src ) {
           const GC1D* const gc1d = &(gcan->gcs[iGC1D]);
           this->n5D += GIBBS_NEIGHBORHOOD;
 
-          for ( unsigned int iNeighbour=0;
-                iNeighbour < GIBBS_NEIGHBORHOOD;
-                iNeighbour++ ) {
-            this->n6D += gc1d->nlabels[iNeighbour];
-          }
+	  if( !(src->flags & GCA_NO_MRF) ) {
+	    for ( unsigned int iNeighbour=0;
+		  iNeighbour < GIBBS_NEIGHBORHOOD;
+		  iNeighbour++ ) {
+	      this->n6D += gc1d->nlabels[iNeighbour];
+	    }
+	  } else {
+	    this->hasGibbsNeighbourhood = false;
+	  }
         }
       }
     }
