@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/11/21 19:33:13 $
- *    $Revision: 1.31 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/02/26 19:24:11 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -139,12 +139,9 @@ VLSTcreate(MRI *mri,
 
   skip++ ;  /* next voxel + amount to skip */
   for (nvox = f = 0 ; f < mri->nframes ; f+=skip)
-    for (x = 0 ; x < mri->width ; x+=skip)
-    {
-      for (y = 0 ; y < mri->height ; y+=skip)
-      {
-	for (z = 0 ; z < mri->depth ; z+=skip)
-	{
+    for (z = 0 ; z < mri->depth ; z+=skip) {
+      for (y = 0 ; y < mri->height ; y+=skip) {
+	for (x = 0 ; x < mri->width ; x+=skip) {
 	  if (x == Gx && y == Gy && z == Gz)
 	    DiagBreak() ;
 	  val = MRIgetVoxVal(mri, x, y, z, f) ;
@@ -190,25 +187,19 @@ VLSTcreate(MRI *mri,
     ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d voxel list\n",
               Progname, nvox) ;
   for (nvox = f = 0 ; f < mri->nframes ; f+=skip)
-    for (x = 0 ; x < mri->width ; x+=skip)
-    {
-      for (y = 0 ; y < mri->height ; y+=skip)
-      {
-	for (z = 0 ; z < mri->depth ; z+=skip)
-	{
+    for (z = 0 ; z < mri->depth ; z+=skip) {
+      for (y = 0 ; y < mri->height ; y+=skip) {
+	for (x = 0 ; x < mri->width ; x+=skip) {
 	  val = MRIgetVoxVal(mri, x, y, z, f) ;
-	  if (val >= low_val && val <= hi_val)
-	  {
+	  if (val >= low_val && val <= hi_val) {
 	    if (x == Gx && y == Gy && z == Gz)
 	      DiagBreak() ;
 	    if ((border_only == 0) ||
-		(MRIneighborsInRange(mri, x, y, z, f, low_val, hi_val) < 6))
-	    {
+		(MRIneighborsInRange(mri, x, y, z, f, low_val, hi_val) < 6)) {
 	      i = nvox++ ;
 	      if (i == Gdiag_no)
 		DiagBreak() ;
-	      if (x == Gx && y == Gy && z == Gz)
-	      {
+	      if (x == Gx && y == Gy && z == Gz) {
 		printf("voxel (%d, %d, %d) = %2.1f added to voxlist at %d\n",
 		       x, y, z, val, i) ;
 	      }

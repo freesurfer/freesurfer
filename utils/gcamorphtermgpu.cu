@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/04 20:23:05 $
- *    $Revision: 1.37 $
+ *    $Date: 2016/02/26 19:24:11 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1458,17 +1458,14 @@ int GCAmorphTerm::RemoveLabelOutliers( Freesurfer::GCAmorphCPU& gcam,
       val0 = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
       del = 0 ;
 
-      for (xo = -whalf ; xo <= whalf && !del ; xo++)
-      {
-        xv = mri_dist->xi[x+xo] ;
-        for (yo = -whalf ; yo <= whalf && !del; yo++)
-        {
-          yv = mri_dist->yi[y+yo] ;
-          for (zo = -whalf ; zo <= whalf && !del ; zo++)
-          {
-            zv = mri_dist->zi[z+zo] ;
+      for (zo = -whalf ; zo <= whalf && !del ; zo++) {
+	for (yo = -whalf ; yo <= whalf && !del; yo++) {
+	  for (xo = -whalf ; xo <= whalf && !del ; xo++) {
+	    xv = mri_dist->xi[x+xo] ;
+	    yv = mri_dist->yi[y+yo] ;
+	    zv = mri_dist->zi[z+zo] ;
             oval = MRIgetVoxVal(mri_dist, xv, yv, zv, 0);
-
+	    
             if (!FZERO(oval))
             {
               diff = fabs(oval - val0) ;
@@ -1561,14 +1558,16 @@ int GCAmorphTerm::RemoveLabelOutliers( Freesurfer::GCAmorphCPU& gcam,
             continue;
           }
 
-          for (xk = -1, num = 0, mean = 0.0 ; xk <= 1 ; xk++)
-          {
-            xi = mri_ctrl->xi[x+xk] ;
-            for (yk = -1 ; yk <= 1 ; yk++)
-            {
-              yi = mri_ctrl->yi[y+yk] ;
-              for (zk = -1 ; zk <= 1 ; zk++)
+	  num=0;
+	  mean=0;
+          for (zk = -1; zk <= 1 ; zk++)
+	  {
+	    for (yk = -1 ; yk <= 1 ; yk++)
+	    {
+              for (xk = -1 ; xk <= 1 ; xk++)
               {
+		xi = mri_ctrl->xi[x+xk] ;
+		yi = mri_ctrl->yi[y+yk] ;
                 zi = mri_ctrl->zi[z+zk];
 
 
