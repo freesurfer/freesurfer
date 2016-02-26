@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/12/23 17:30:52 $
- *    $Revision: 1.116 $
+ *    $Date: 2016/02/26 14:36:35 $
+ *    $Revision: 1.117 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1280,7 +1280,7 @@ MRInormFindControlPoints(MRI *mri_src, float wm_target, float intensity_above,
 
   /* doesn't make sense to look for 6-connected
      nbrs if the voxel size is less than 1mm */
-  if (mri_src->xsize > 0.9)     
+//  if (mri_src->xsize > 0.9)     
   {
     MRIcopy(mri_ctrl, mri_tmp) ;
     do
@@ -1948,8 +1948,8 @@ MRIbuildBiasImage(MRI *mri_src, MRI *mri_ctrl, MRI *mri_bias, float sigma)
   printf("performing soap bubble smoothing, sigma = %g...\n",sigma) ;
 #if 1
   MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel) ;
-  if (mri_src->xsize > 0.9) /* replace smoothed bias
-    with exact one for control points*/
+//  if (mri_src->xsize > 0.9) /* replace smoothed bias
+//    with exact one for control points*/
   {
     for (x = 0 ; x < mri_src->width ; x++)
     {
@@ -4717,7 +4717,7 @@ find_tissue_intensities(MRI *mri_src,
                         float *pgm,
                         float *pcsf)
 {
-  int        csf_peak, thresh_bin, bg_end, wm_peak, wm_valley;
+  int        csf_peak, thresh_bin /*, bg_end*/, wm_peak, wm_valley;
   int        gm_peak, gm_valley ;
   HISTOGRAM *h, *hsmooth, *hwm ;
   float      csf_thresh, wm_val ;
@@ -4757,16 +4757,21 @@ find_tissue_intensities(MRI *mri_src,
   {
     HISTOplot(h, "h0.plt") ;
   }
-  if (mriConformed(mri_src))
+  if (mriConformed(mri_src) || 1)
   {
     HISTOclearBins(h, h, 0, 5) ;
     hsmooth = HISTOsmooth(h, NULL, 2); ;
   }
   else
   {
+#if 0
     hsmooth = HISTOsmooth(h, NULL, 2) ;
+    // no idea how this worked
     HISTOclearBG(hsmooth, hsmooth, &bg_end) ;
     HISTOclearBins(h, h, 0, bg_end) ;
+#else
+    HISTOclearBins(h, h, 0, 20) ;
+#endif
     HISTOsmooth(h, hsmooth, 2) ;
   }
 
