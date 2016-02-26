@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2016/02/11 20:24:09 $
-#    $Revision: 1.26 $
+#    $Author: mreuter $
+#    $Date: 2016/02/26 16:19:49 $
+#    $Revision: 1.27 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -23,7 +23,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.26 2016/02/11 20:24:09 nicks Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.27 2016/02/26 16:19:49 mreuter Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -194,13 +194,16 @@ if ( ! -e $numnc) then
   echo "ERROR: file $numnc does not exist!" |& tee -a $LF
   exit 1;
 endif
-set cmd = (mri_convert ${HiRes} $numnc $OutVol --like $InVol)
+# (mr) omit ${HiRes} (-cm) flag here, as we reslice like $InVol anyway
+# this will prevent conversion to UCHAR for highres
+# we now do that below explicitly, similar to regular stream
+set cmd = (mri_convert $numnc $OutVol --like $InVol)
 if($UseFloat && $#HiRes == 0 && ! $DoUchar) set cmd = ($cmd --conform)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
 
-if($UseFloat && $#HiRes == 0 && $DoUchar) then
+if($UseFloat && $DoUchar) then
   set cmd = (mri_make_uchar $OutVol $talxfm $OutVol)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
