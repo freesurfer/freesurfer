@@ -10,6 +10,9 @@ GEMS/*
 !GEMS/*/
 CVS/
 *.[oa]
+*.log
+*_log.txt
+*.trs
 Makefile
 Makefile.in
 .deps/
