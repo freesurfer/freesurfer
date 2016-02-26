@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/10/19 18:48:26 $
- *    $Revision: 1.225 $
+ *    $Author: mreuter $
+ *    $Date: 2016/02/26 16:15:24 $
+ *    $Revision: 1.226 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $",
+   "$Id: mri_convert.c,v 1.226 2016/02/26 16:15:24 mreuter Exp $",
    "$Name:  $",
    cmdline);
 
@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $",
+      "$Id: mri_convert.c,v 1.226 2016/02/26 16:15:24 mreuter Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1696,7 +1696,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.225 2015/10/19 18:48:26 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.226 2016/02/26 16:15:24 mreuter Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -3022,34 +3022,43 @@ int main(int argc, char *argv[])
       printf("ERROR: MRISeqchangeType\n");
       exit(1);
     }
-    if (conform_flag)
-    {
-      MRImask(mri2, mri, mri2, 0, 0) ;  // make sure 0 maps to 0
-    }
+    /* (mr) now always map 0 to 0 (was only in conform case before)
+       should this be part of MRISeqchangeType? */
+    MRImask(mri2, mri, mri2, 0, 0) ;  // make sure 0 maps to 0
     MRIfree(&mri);
     mri = mri2;
   }
+  
+  /*printf("mri  vs.  template\n");
+  printf(" dim  ( %i , %i , %i ) vs ( %i , %i , %i )\n",mri->width,mri->height,mri->depth,template->width,template->height,template->depth);
+  printf(" size ( %.9g , %.9g , %.9g ) vs ( %.9g , %.9g , %.9g )\n",mri->xsize,mri->ysize,mri->zsize,template->xsize,template->ysize,template->zsize);
+  printf(" xras ( %.9g , %.9g , %.9g ) vs ( %.9g , %.9g , %.9g )\n",mri->x_r,mri->x_a,mri->x_s,template->x_r,template->x_a,template->x_s);
+  printf(" yras ( %.9g , %.9g , %.9g ) vs ( %.9g , %.9g , %.9g )\n",mri->y_r,mri->x_a,mri->y_s,template->y_r,template->y_a,template->y_s);
+  printf(" zras ( %.9g , %.9g , %.9g ) vs ( %.9g , %.9g , %.9g )\n",mri->z_r,mri->x_a,mri->z_s,template->z_r,template->z_a,template->z_s);
+  printf(" cras ( %.9g , %.9g , %.9g ) vs ( %.9g , %.9g , %.9g )\n",mri->c_r,mri->c_a,mri->c_s,template->c_r,template->c_a,template->c_s);
+  */
 
   /* ----- reslice if necessary and not performed during transform ----- */
+  float eps = 1e-05; /* (mr) do eps testing to avoid reslicing due to tiny differences, e.g. from IO */
   if (!out_like_flag
-   && (mri->xsize != template->xsize ||
-      mri->ysize != template->ysize ||
-      mri->zsize != template->zsize ||
+   && (fabs(mri->xsize - template->xsize) > eps ||
+      fabs(mri->ysize - template->ysize) > eps ||
+      fabs(mri->zsize - template->zsize) > eps ||
       mri->width != template->width ||
       mri->height != template->height ||
       mri->depth != template->depth ||
-      mri->x_r != template->x_r ||
-      mri->x_a != template->x_a ||
-      mri->x_s != template->x_s ||
-      mri->y_r != template->y_r ||
-      mri->y_a != template->y_a ||
-      mri->y_s != template->y_s ||
-      mri->z_r != template->z_r ||
-      mri->z_a != template->z_a ||
-      mri->z_s != template->z_s ||
-      mri->c_r != template->c_r ||
-      mri->c_a != template->c_a ||
-      mri->c_s != template->c_s))
+      fabs(mri->x_r - template->x_r) > eps ||
+      fabs(mri->x_a - template->x_a) > eps ||
+      fabs(mri->x_s - template->x_s) > eps ||
+      fabs(mri->y_r - template->y_r) > eps ||
+      fabs(mri->y_a - template->y_a) > eps ||
+      fabs(mri->y_s - template->y_s) > eps ||
+      fabs(mri->z_r - template->z_r) > eps ||
+      fabs(mri->z_a - template->z_a) > eps ||
+      fabs(mri->z_s - template->z_s) > eps ||
+      fabs(mri->c_r - template->c_r) > eps ||
+      fabs(mri->c_a - template->c_a) > eps ||
+      fabs(mri->c_s - template->c_s) > eps))
   {
     printf("Reslicing using ");
     switch (resample_type_val)
