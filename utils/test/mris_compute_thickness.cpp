@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.4 $
+ *    $Date: 2016/02/27 20:38:29 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ double3d ;
 
 static float max_thickness = 10.0 ;
 
-static char vcid[] = "$Id: mris_compute_thickness.cpp,v 1.4 2011/03/02 00:04:55 nicks Exp $";
+static char vcid[] = "$Id: mris_compute_thickness.cpp,v 1.5 2016/02/27 20:38:29 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -83,7 +83,7 @@ static int mrisSetVertexFaceIndex(MRI_SURFACE *mris, int vno, int fno);
 
 double v_to_f_distance(VERTEX *P0, MRI_SURFACE *mri_surf, int face_number, int debug);
 
-char *trgtypestring = "paint";
+const char *trgtypestring = "paint";
 int trgtype = MRI_VOLUME_TYPE_UNKNOWN;
 
 int debugflag = 0;
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
   FACE *face;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_thickness.cpp,v 1.4 2011/03/02 00:04:55 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_thickness.cpp,v 1.5 2016/02/27 20:38:29 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -259,13 +259,13 @@ int main(int argc, char *argv[])
        */
       /* MRIScopyMRI(BaseSurf, AvgVals, framesave, "val");*/
       /* MRISwriteValues(BaseSurf,fname); */
-      MRIScopyMRI(Surf1, resVal, framesave, "curv");
+      MRIScopyMRI(Surf1, resVal, framesave, (char*)"curv");
       MRISwriteCurvatureToWFile(Surf1,out_name);
 
     }
     else if (!strcmp(trgtypestring,"curv"))
     {
-      MRIScopyMRI(Surf1, resVal, framesave, "curv");
+      MRIScopyMRI(Surf1, resVal, framesave, (char*)"curv");
       MRISwriteCurvature(Surf1,out_name);
     }
     else

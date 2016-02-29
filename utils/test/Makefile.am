@@ -20,13 +20,15 @@ CHECKS=testcolortab \
 	test_mri_identify \
 	sc_test tiff_write_image
 
-BROKEN=difftool test_mriio mri_compute_stats \
+BROKEN=\
+	test_mriio mri_compute_stats \
   surftest mri_ms_LDA \
 	mri_fslmat_to_lta mri_concatenate_lta \
 	mri_transform_to_COR mri_compute_all_CNR \
-	mri_ms_compute_CNR mris_compute_thickness \
+	mri_ms_compute_CNR \
 	mri_apply_INU mri_edit_wm mri_apply_EM_mask \
-	mri_extract mri_ms_gca_EM
+	mri_extract \
+	difftool mris_compute_thickness mri_ms_gca_EM
 
 # trick to get test data into the build directory
 foo_SOURCES=
@@ -43,12 +45,15 @@ foo:
 
 if HAVE_CPPUNIT
 CPPUNIT_CHECKS=test_nr_wrapper test_matrix
+bin_PROGRAMS=$(CHECKS)
 else
 CPPUNIT_CHECKS=
+bin_PROGRAMS=$(CHECKS) test_nr_wrapper test_matrix
 endif
-#check_PROGRAMS=foo $(CHECKS) $(CPPUNIT_CHECKS)
 
-#TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
+check_PROGRAMS=foo $(CHECKS) $(CPPUNIT_CHECKS)
+
+TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
 
 mnitest_SOURCES=mnitest.cpp
 i2rtest_SOURCES=i2rtest.cpp

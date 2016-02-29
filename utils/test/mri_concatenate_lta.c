@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.5 $
+ *    $Date: 2016/02/27 20:38:29 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_concatenate_lta.c,v 1.5 2011/03/02 00:04:55 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_concatenate_lta.c,v 1.6 2016/02/27 20:38:29 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs ;
@@ -522,9 +522,9 @@ int  ltaMNIwrite(LTA *lta, char *fname)
     MRI *dst = 0;
     LT  *lt = 0;
     lt = &lta->xforms[0];
-    src = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR);
+    src = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR, 0);
     useVolGeomToMRI(&lt->src, src);
-    dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR);
+    dst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR, 0);
     useVolGeomToMRI(&lt->dst, dst);
     voxFromRAS = extract_r_to_i(src);
     tmp = MatrixMultiply(lta->xforms[0].m_L, voxFromRAS, NULL);
