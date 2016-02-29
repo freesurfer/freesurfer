@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.113 $
+ *    $Author: rpwang $
+ *    $Date: 2016/02/26 21:28:28 $
+ *    $Revision: 1.115 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1006,6 +1006,14 @@ bool LayerSurface::GetSurfaceRASAtVertex( int nVertex, double* ras )
   return m_surfaceSource->GetSurfaceRASAtVertex( nVertex, ras );
 }
 
+int LayerSurface::GetVertexAtSurfaceRAS(double *ras, double *distance)
+{
+    if (m_surfaceSource == NULL)
+        return -1;
+
+    return m_surfaceSource->FindVertexAtSurfaceRAS(ras, distance);
+}
+
 bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras )
 {
   if ( m_surfaceSource == NULL )
@@ -1799,4 +1807,13 @@ bool LayerSurface::GetActiveLabelCentroidPosition(double *pos)
   {
     return GetTargetAtVertex(nvo, pos);
   }
+}
+
+void LayerSurface::RemoveCurrentOverlay()
+{
+    if (m_nActiveOverlay >= 0)
+    {
+        m_overlays.removeAt(m_nActiveOverlay);
+        SetActiveOverlay(m_overlays.size()-1);
+    }
 }

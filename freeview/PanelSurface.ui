@@ -24,12 +24,21 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>317</width>
-     <height>1051</height>
+     <width>314</width>
+     <height>1119</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
-    <property name="margin">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
      <number>0</number>
     </property>
     <item>
@@ -79,294 +88,8 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
-       <widget class="QLabel" name="labelFileName">
-        <property name="text">
-         <string>File name</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="lineEditFileName"/>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="labelOpacity">
-        <property name="text">
-         <string>Opacity</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
-        <item>
-         <widget class="QSlider" name="sliderOpacity">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="value">
-           <number>100</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QDoubleSpinBox" name="doubleSpinBoxOpacity">
-          <property name="maximum">
-           <double>1.000000000000000</double>
-          </property>
-          <property name="singleStep">
-           <double>0.100000000000000</double>
-          </property>
-          <property name="value">
-           <double>1.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="labelSurfaceColor">
-        <property name="text">
-         <string>Color</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout21">
-        <item>
-         <widget class="QtColorPicker" name="colorpickerSurfaceColor" native="true"/>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_21">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="labelRender">
-        <property name="text">
-         <string>Render</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QComboBox" name="comboBoxRender">
-        <item>
-         <property name="text">
-          <string>Surface</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Mesh</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Surface &amp; mesh</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="labelMeshColor">
-        <property name="text">
-         <string>Mesh color</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="1">
-       <widget class="QComboBox" name="comboBoxMeshColor">
-        <item>
-         <property name="text">
-          <string>Same as surface</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Curvature</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Overlay</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Solid color</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="5" column="1">
-       <widget class="QCheckBox" name="checkBoxShowVertices">
-        <property name="text">
-         <string>Show vertices</string>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="0">
-       <widget class="QLabel" name="labelVertexColor">
-        <property name="text">
-         <string>Color</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="6" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout20">
-        <item>
-         <widget class="QtColorPicker" name="colorpickerVertexColor" native="true"/>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_20">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="7" column="0">
-       <widget class="QLabel" name="labelVertexPointSize">
-        <property name="text">
-         <string>Point size</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="7" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QSpinBox" name="spinBoxVertexPointSize">
-          <property name="minimum">
-           <number>1</number>
-          </property>
-          <property name="maximum">
-           <number>100</number>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="8" column="0">
-       <widget class="QLabel" name="labelCurvature">
-        <property name="text">
-         <string>Curvature</string>
-        </property>
-       </widget>
-      </item>
-      <item row="8" column="1">
-       <widget class="QComboBox" name="comboBoxCurvature">
-        <item>
-         <property name="text">
-          <string>Off</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Threshold</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Binary</string>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Reload...</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="9" column="0">
-       <widget class="QLabel" name="labelMidPoint">
-        <property name="text">
-         <string>Mid point</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="9" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_6">
-        <item>
-         <widget class="QSlider" name="sliderMidPoint">
-          <property name="maximum">
-           <number>100</number>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditMidPoint">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>75</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="10" column="0">
-       <widget class="QLabel" name="labelSlope">
-        <property name="text">
-         <string>Slope</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
+      <item row="28" column="1">
+       <widget class="QComboBox" name="comboBoxSplineDisplay"/>
       </item>
       <item row="10" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_10">
@@ -398,50 +121,20 @@
         </item>
        </layout>
       </item>
-      <item row="11" column="0">
-       <widget class="QLabel" name="labelOverlay">
+      <item row="0" column="0">
+       <widget class="QLabel" name="labelFileName">
         <property name="text">
-         <string>Overlay</string>
+         <string>File name</string>
         </property>
        </widget>
       </item>
-      <item row="11" column="1">
-       <widget class="QComboBox" name="comboBoxOverlay"/>
-      </item>
-      <item row="12" column="1">
-       <widget class="QPushButton" name="pushButtonConfigureOverlay">
-        <property name="text">
-         <string>Configure Overlay</string>
-        </property>
-       </widget>
-      </item>
-      <item row="13" column="0">
-       <widget class="QLabel" name="labelAnnotation">
-        <property name="text">
-         <string>Annotation</string>
-        </property>
-       </widget>
-      </item>
-      <item row="13" column="1">
-       <widget class="QComboBox" name="comboBoxAnnotation">
+      <item row="6" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout20">
         <item>
-         <property name="text">
-          <string>Off</string>
-         </property>
-        </item>
-       </widget>
-      </item>
-      <item row="14" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout22_3">
-        <item>
-         <widget class="QCheckBox" name="checkBoxAnnotationOutline">
-          <property name="text">
-           <string>Show outline only</string>
-          </property>
-         </widget>
+         <widget class="QtColorPicker" name="colorpickerVertexColor" native="true"/>
         </item>
         <item>
-         <spacer name="horizontalSpacer_30">
+         <spacer name="horizontalSpacer_20">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -455,14 +148,65 @@
         </item>
        </layout>
       </item>
+      <item row="8" column="0">
+       <widget class="QLabel" name="labelCurvature">
+        <property name="text">
+         <string>Curvature</string>
+        </property>
+       </widget>
+      </item>
       <item row="15" column="0">
+       <widget class="QLabel" name="labelAnnotation">
+        <property name="text">
+         <string>Annotation</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QCheckBox" name="checkBoxShowVertices">
+        <property name="text">
+         <string>Show vertices</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="labelMeshColor">
+        <property name="text">
+         <string>Mesh color</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="25" column="1">
+       <widget class="QComboBox" name="comboBoxVectorDisplay"/>
+      </item>
+      <item row="11" column="0">
+       <widget class="QLabel" name="labelOverlay">
+        <property name="text">
+         <string>Overlay</string>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="0">
+       <widget class="QLabel" name="labelMidPoint">
+        <property name="text">
+         <string>Mid point</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="17" column="0">
        <widget class="QLabel" name="labelLabel">
         <property name="text">
          <string>Label</string>
         </property>
        </widget>
       </item>
-      <item row="16" column="1">
+      <item row="18" column="1">
        <widget class="LabelTreeWidget" name="treeWidgetLabels">
         <property name="maximumSize">
          <size>
@@ -486,27 +230,7 @@
         </column>
        </widget>
       </item>
-      <item row="17" column="0">
-       <widget class="QLabel" name="labelLabelColor">
-        <property name="text">
-         <string>Color</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="19" column="0">
-       <widget class="QLabel" name="labelLabelThreshold">
-        <property name="text">
-         <string>Threshold</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="19" column="1">
+      <item row="21" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout22_4">
         <item>
          <widget class="QLineEdit" name="lineEditLabelThreshold">
@@ -539,87 +263,34 @@
         </item>
        </layout>
       </item>
-      <item row="21" column="0">
-       <widget class="QLabel" name="labelEdgeColor">
-        <property name="text">
-         <string>Edge color</string>
-        </property>
-       </widget>
-      </item>
-      <item row="21" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout23">
-        <item>
-         <widget class="QtColorPicker" name="colorpickerEdgeColor" native="true"/>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_23">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="22" column="0">
-       <widget class="QLabel" name="labelEdgeThickness">
-        <property name="text">
-         <string>Edge thickness</string>
-        </property>
-       </widget>
-      </item>
-      <item row="22" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_17">
-        <item>
-         <widget class="QSpinBox" name="spinBoxEdgeThickness"/>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="23" column="0">
+      <item row="25" column="0">
        <widget class="QLabel" name="labelVectorDisplay">
         <property name="text">
          <string>Vector display</string>
         </property>
        </widget>
       </item>
-      <item row="23" column="1">
-       <widget class="QComboBox" name="comboBoxVectorDisplay"/>
-      </item>
-      <item row="24" column="0">
-       <widget class="QLabel" name="labelVectorColor">
+      <item row="3" column="0">
+       <widget class="QLabel" name="labelRender">
         <property name="text">
-         <string>Color</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         <string>Render</string>
         </property>
        </widget>
       </item>
-      <item row="24" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout24">
+      <item row="22" column="1">
+       <widget class="QCheckBox" name="checkBoxLabelOutline">
+        <property name="text">
+         <string>Show outline only</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout21">
         <item>
-         <widget class="QtColorPicker" name="colorpickerVectorColor" native="true"/>
+         <widget class="QtColorPicker" name="colorpickerSurfaceColor" native="true"/>
         </item>
         <item>
-         <spacer name="horizontalSpacer_24">
+         <spacer name="horizontalSpacer_21">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
@@ -633,64 +304,7 @@
         </item>
        </layout>
       </item>
-      <item row="25" column="0">
-       <widget class="QLabel" name="labelVectorPointSize">
-        <property name="text">
-         <string>Point size</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="25" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout_3">
-        <item>
-         <widget class="QSpinBox" name="spinBoxVectorPointSize">
-          <property name="minimum">
-           <number>1</number>
-          </property>
-          <property name="maximum">
-           <number>100</number>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_3">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="26" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Spline display</string>
-        </property>
-       </widget>
-      </item>
-      <item row="26" column="1">
-       <widget class="QComboBox" name="comboBoxSplineDisplay"/>
-      </item>
-      <item row="27" column="0">
-       <widget class="QLabel" name="labelSplineColor">
-        <property name="text">
-         <string>Color</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item row="27" column="1">
+      <item row="29" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23_2">
         <item>
          <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
@@ -710,93 +324,73 @@
         </item>
        </layout>
       </item>
-      <item row="28" column="1">
-       <widget class="QCheckBox" name="checkBoxSplineProjection">
-        <property name="text">
-         <string>Project on 2D view</string>
-        </property>
-       </widget>
+      <item row="31" column="1">
+       <widget class="QLineEdit" name="lineEditPositionOffset"/>
       </item>
-      <item row="29" column="0">
+      <item row="31" column="0">
        <widget class="QLabel" name="labelPositionOffset">
         <property name="text">
          <string>Position offset</string>
         </property>
        </widget>
       </item>
-      <item row="29" column="1">
-       <widget class="QLineEdit" name="lineEditPositionOffset"/>
-      </item>
-      <item row="15" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout22_5">
-        <item>
-         <widget class="QPushButton" name="pushButtonLoadLabel">
-          <property name="text">
-           <string>Load</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButtonDeleteLabel">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <property name="text">
-           <string>Delete</string>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </item>
-      <item row="17" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout22">
-        <item>
-         <widget class="QComboBox" name="comboBoxLabelColorCode">
-          <item>
-           <property name="text">
-            <string>Solid Color</string>
-           </property>
-          </item>
-          <item>
-           <property name="text">
-            <string>Heatscale</string>
-           </property>
-          </item>
-         </widget>
-        </item>
-        <item>
-         <widget class="QtColorPicker" name="colorpickerLabelColor" native="true">
-          <property name="minimumSize">
-           <size>
-            <width>15</width>
-            <height>0</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_22">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
-      </item>
-      <item row="20" column="1">
-       <widget class="QCheckBox" name="checkBoxLabelOutline">
+      <item row="29" column="0">
+       <widget class="QLabel" name="labelSplineColor">
         <property name="text">
-         <string>Show outline only</string>
+         <string>Color</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
        </widget>
       </item>
-      <item row="18" column="1">
+      <item row="15" column="1">
+       <widget class="QComboBox" name="comboBoxAnnotation">
+        <item>
+         <property name="text">
+          <string>Off</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QSlider" name="sliderOpacity">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="value">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QDoubleSpinBox" name="doubleSpinBoxOpacity">
+          <property name="maximum">
+           <double>1.000000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>0.100000000000000</double>
+          </property>
+          <property name="value">
+           <double>1.000000000000000</double>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="labelOpacity">
+        <property name="text">
+         <string>Opacity</string>
+        </property>
+       </widget>
+      </item>
+      <item row="20" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout22_6">
         <item>
          <widget class="QLineEdit" name="lineEditLabelHeatscaleMin">
@@ -845,7 +439,7 @@
         </item>
        </layout>
       </item>
-      <item row="18" column="0">
+      <item row="20" column="0">
        <widget class="QLabel" name="labelHeatscaleRange">
         <property name="text">
          <string>Min/Max</string>
@@ -854,6 +448,432 @@
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
        </widget>
+      </item>
+      <item row="26" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout24">
+        <item>
+         <widget class="QtColorPicker" name="colorpickerVectorColor" native="true"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_24">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="labelSurfaceColor">
+        <property name="text">
+         <string>Color</string>
+        </property>
+       </widget>
+      </item>
+      <item row="27" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <item>
+         <widget class="QSpinBox" name="spinBoxVectorPointSize">
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>100</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="23" column="0">
+       <widget class="QLabel" name="labelEdgeColor">
+        <property name="text">
+         <string>Edge color</string>
+        </property>
+       </widget>
+      </item>
+      <item row="19" column="0">
+       <widget class="QLabel" name="labelLabelColor">
+        <property name="text">
+         <string>Color</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="24" column="0">
+       <widget class="QLabel" name="labelEdgeThickness">
+        <property name="text">
+         <string>Edge thickness</string>
+        </property>
+       </widget>
+      </item>
+      <item row="21" column="0">
+       <widget class="QLabel" name="labelLabelThreshold">
+        <property name="text">
+         <string>Threshold</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="30" column="1">
+       <widget class="QCheckBox" name="checkBoxSplineProjection">
+        <property name="text">
+         <string>Project on 2D view</string>
+        </property>
+       </widget>
+      </item>
+      <item row="23" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout23">
+        <item>
+         <widget class="QtColorPicker" name="colorpickerEdgeColor" native="true"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_23">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="7" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QSpinBox" name="spinBoxVertexPointSize">
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>100</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="6" column="0">
+       <widget class="QLabel" name="labelVertexColor">
+        <property name="text">
+         <string>Color</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="17" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout22_5">
+        <item>
+         <widget class="QPushButton" name="pushButtonLoadLabel">
+          <property name="text">
+           <string>Load</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButtonDeleteLabel">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Delete</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="8" column="1">
+       <widget class="QComboBox" name="comboBoxCurvature">
+        <item>
+         <property name="text">
+          <string>Off</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Threshold</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Binary</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Reload...</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="labelVertexPointSize">
+        <property name="text">
+         <string>Point size</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="9" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_6">
+        <item>
+         <widget class="QSlider" name="sliderMidPoint">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="lineEditMidPoint">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>75</width>
+            <height>16777215</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item row="11" column="1">
+       <widget class="QComboBox" name="comboBoxOverlay"/>
+      </item>
+      <item row="10" column="0">
+       <widget class="QLabel" name="labelSlope">
+        <property name="text">
+         <string>Slope</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="24" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_17">
+        <item>
+         <widget class="QSpinBox" name="spinBoxEdgeThickness"/>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="16" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout22_3">
+        <item>
+         <widget class="QCheckBox" name="checkBoxAnnotationOutline">
+          <property name="text">
+           <string>Show outline only</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_30">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="19" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout22">
+        <item>
+         <widget class="QComboBox" name="comboBoxLabelColorCode">
+          <item>
+           <property name="text">
+            <string>Solid Color</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Heatscale</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item>
+         <widget class="QtColorPicker" name="colorpickerLabelColor" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>15</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_22">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="lineEditFileName"/>
+      </item>
+      <item row="28" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Spline display</string>
+        </property>
+       </widget>
+      </item>
+      <item row="27" column="0">
+       <widget class="QLabel" name="labelVectorPointSize">
+        <property name="text">
+         <string>Point size</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="26" column="0">
+       <widget class="QLabel" name="labelVectorColor">
+        <property name="text">
+         <string>Color</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QComboBox" name="comboBoxMeshColor">
+        <item>
+         <property name="text">
+          <string>Same as surface</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Curvature</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Overlay</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Solid color</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="3" column="1">
+       <widget class="QComboBox" name="comboBoxRender">
+        <item>
+         <property name="text">
+          <string>Surface</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Mesh</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Surface &amp; mesh</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="12" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout_11">
+        <item>
+         <widget class="QPushButton" name="pushButtonConfigureOverlay">
+          <property name="text">
+           <string>Configure</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButtonRemoveOverlay">
+          <property name="text">
+           <string>Remove</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>
@@ -1028,8 +1048,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>253</x>
-     <y>136</y>
+     <x>241</x>
+     <y>145</y>
     </hint>
     <hint type="destinationlabel">
      <x>368</x>
@@ -1044,8 +1064,8 @@
    <slot>OnComboCurvature(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>337</y>
+     <x>312</x>
+     <y>358</y>
     </hint>
     <hint type="destinationlabel">
      <x>349</x>
@@ -1060,8 +1080,8 @@
    <slot>OnSliderMidPoint(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>233</x>
-     <y>364</y>
+     <x>230</x>
+     <y>388</y>
     </hint>
     <hint type="destinationlabel">
      <x>46</x>
@@ -1076,8 +1096,8 @@
    <slot>OnSliderSlope(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>233</x>
-     <y>397</y>
+     <x>230</x>
+     <y>423</y>
     </hint>
     <hint type="destinationlabel">
      <x>78</x>
@@ -1092,8 +1112,8 @@
    <slot>OnLineEditMidPoint(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>314</x>
-     <y>369</y>
+     <x>311</x>
+     <y>392</y>
     </hint>
     <hint type="destinationlabel">
      <x>326</x>
@@ -1108,8 +1128,8 @@
    <slot>OnLineEditSlope(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>314</x>
-     <y>402</y>
+     <x>311</x>
+     <y>427</y>
     </hint>
     <hint type="destinationlabel">
      <x>332</x>
@@ -1124,8 +1144,8 @@
    <slot>OnComboOverlay(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>434</y>
+     <x>312</x>
+     <y>461</y>
     </hint>
     <hint type="destinationlabel">
      <x>56</x>
@@ -1140,8 +1160,8 @@
    <slot>OnButtonConfigureOverlay()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>466</y>
+     <x>312</x>
+     <y>494</y>
     </hint>
     <hint type="destinationlabel">
      <x>350</x>
@@ -1156,8 +1176,8 @@
    <slot>OnComboAnnotation(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>497</y>
+     <x>312</x>
+     <y>560</y>
     </hint>
     <hint type="destinationlabel">
      <x>429</x>
@@ -1172,8 +1192,8 @@
    <slot>OnComboVector(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>847</y>
+     <x>312</x>
+     <y>939</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -1188,8 +1208,8 @@
    <slot>OnEditPositionOffset()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>1011</y>
+     <x>312</x>
+     <y>1114</y>
     </hint>
     <hint type="destinationlabel">
      <x>486</x>
@@ -1204,8 +1224,8 @@
    <slot>OnComboSpline(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>315</x>
-     <y>932</y>
+     <x>312</x>
+     <y>1030</y>
     </hint>
     <hint type="destinationlabel">
      <x>398</x>
@@ -1220,8 +1240,8 @@
    <slot>OnLabelItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>279</x>
-     <y>567</y>
+     <x>312</x>
+     <y>715</y>
     </hint>
     <hint type="destinationlabel">
      <x>513</x>
@@ -1236,8 +1256,8 @@
    <slot>OnCurrentLabelItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>228</x>
-     <y>567</y>
+     <x>312</x>
+     <y>715</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -1252,8 +1272,8 @@
    <slot>OnButtonLoadLabel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>206</x>
-     <y>559</y>
+     <x>211</x>
+     <y>624</y>
     </hint>
     <hint type="destinationlabel">
      <x>489</x>
@@ -1300,8 +1320,8 @@
    <slot>OnLineEditLabelThreshold(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>178</x>
-     <y>734</y>
+     <x>191</x>
+     <y>819</y>
     </hint>
     <hint type="destinationlabel">
      <x>662</x>
@@ -1316,8 +1336,8 @@
    <slot>OnLabelItemDoubleClicked(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>311</x>
-     <y>583</y>
+     <x>312</x>
+     <y>715</y>
     </hint>
     <hint type="destinationlabel">
      <x>803</x>
@@ -1332,8 +1352,8 @@
    <slot>OnButtonDeleteLabel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>293</x>
-     <y>547</y>
+     <x>311</x>
+     <y>624</y>
     </hint>
     <hint type="destinationlabel">
      <x>506</x>
@@ -1348,8 +1368,8 @@
    <slot>OnComboLabelColorCode(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>148</x>
-     <y>655</y>
+     <x>223</x>
+     <y>749</y>
     </hint>
     <hint type="destinationlabel">
      <x>623</x>
@@ -1364,8 +1384,8 @@
    <slot>OnLineEditLabelHeatscaleMin(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>165</x>
-     <y>691</y>
+     <x>191</x>
+     <y>784</y>
     </hint>
     <hint type="destinationlabel">
      <x>518</x>
@@ -1380,12 +1400,28 @@
    <slot>OnLineEditLabelHeatscaleMax(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>251</x>
-     <y>692</y>
+     <x>272</x>
+     <y>784</y>
     </hint>
     <hint type="destinationlabel">
      <x>605</x>
      <y>707</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRemoveOverlay</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnButtonRemoveOverlay()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>196</x>
+     <y>516</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>512</x>
+     <y>517</y>
     </hint>
    </hints>
   </connection>
@@ -1415,5 +1451,6 @@
   <slot>OnComboLabelColorCode(int)</slot>
   <slot>OnLineEditLabelHeatscaleMin(QString)</slot>
   <slot>OnLineEditLabelHeatscaleMax(QString)</slot>
+  <slot>OnButtonRemoveOverlay()</slot>
  </slots>
 </ui>

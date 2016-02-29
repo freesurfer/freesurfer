@@ -3,7 +3,7 @@
 #include "LayerFCD.h"
 #include "LayerPropertyFCD.h"
 #include "MainWindow.h"
-
+#include <QDebug>
 
 PanelFCD::PanelFCD(QWidget *parent) :
   PanelLayer("FCD", parent),
@@ -241,4 +241,9 @@ void PanelFCD::OnButtonRecompute()
     layer->GetProperty()->blockSignals(false);
     layer->Recompute();
   }
+}
+
+void PanelFCD::OnButtonGotoContralateral()
+{
+    MainWindow::GetMainWindow()->GoToContralateralPoint();
 }

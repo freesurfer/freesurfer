@@ -35,6 +35,7 @@ public slots:
   void OnSliderMinAreaChanged(int);
 
   void OnButtonRecompute();
+  void OnButtonGotoContralateral();
 
 protected:
   void DoUpdateWidgets();

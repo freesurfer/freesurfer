@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/07 20:01:59 $
- *    $Revision: 1.69 $
+ *    $Date: 2016/02/26 21:28:29 $
+ *    $Revision: 1.71 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -93,6 +93,8 @@ public:
 
   bool GetRASAtVertex       ( int nVertex, double* ras_out );
   bool GetSurfaceRASAtVertex( int nVertex, double* ras_out );
+
+  int GetVertexAtSurfaceRAS(double* ras, double* distance );
 
   bool GetTargetAtVertex( int nVertex, double* ras );
 
@@ -265,6 +267,8 @@ public slots:
   void SetCurrentVertex(int n);
 
   void UpdateColorMap();
+
+  void RemoveCurrentOverlay();
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );

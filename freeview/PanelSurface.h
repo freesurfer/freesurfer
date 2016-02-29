@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/11/04 21:11:11 $
- *    $Revision: 1.35 $
+ *    $Date: 2016/02/26 21:05:01 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,7 @@ protected slots:
   void OnComboVector( int nSel );
   void OnComboSpline(int nSel );
   void OnButtonConfigureOverlay();
+  void OnButtonRemoveOverlay();
   void OnEditPositionOffset();
   void OnLabelItemChanged(QTreeWidgetItem *item);
   void OnLabelItemDoubleClicked(QTreeWidgetItem* item);

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/25 17:58:23 $
- *    $Revision: 1.315 $
+ *    $Date: 2016/02/29 17:07:52 $
+ *    $Revision: 1.320 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -840,6 +840,16 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   }
   AddScripts(cmds);
 
+  if (parser->Found("fcd", &sa))
+  {
+    QStringList script = QStringList("loadfcd") << sa[0] << sa[1];
+    if (sa.size() > 2)
+        script << sa[2];
+    this->AddScript( script );
+    bHasVolume = true;
+    m_defaultSettings["Smoothed"] = true;
+  }
+
   nRepeats = parser->GetNumberOfRepeats( "dti" );
   for ( int n = 0; n < nRepeats; n++ )
   {
@@ -898,15 +908,6 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
       cmds = tempList;
     }
     AddScripts(cmds);
-  }
-
-  if (parser->Found("fcd", &sa))
-  {
-    QStringList script = QStringList("loadfcd") << sa[0] << sa[1];
-    if (sa.size() > 2)
-        script << sa[2];
-    this->AddScript( script );
-    m_defaultSettings["Smoothed"] = true;
   }
 
   cmds.clear();
@@ -5117,6 +5118,16 @@ void MainWindow::OnCloseSurface()
 
 void MainWindow::OnIOError( Layer* layer, int jobtype )
 {
+  bool bQuit = false;
+  foreach (QStringList list, m_scripts)
+  {
+      if (list[0] == "quit")
+      {
+          bQuit = true;
+          break;
+      }
+  }
+
   ClearScripts();
   QString msg = QString("Failed to load %1 ").arg(layer->GetEndType());
   if (jobtype != ThreadIOWorker::JT_LoadSurfaceOverlay)
@@ -5129,17 +5140,26 @@ void MainWindow::OnIOError( Layer* layer, int jobtype )
     {
       msg = "Failed to save surface to ";
     }
-    QMessageBox::warning( this, "Error", msg + layer->GetFileName() );
+    msg += layer->GetFileName();
+    if (!bQuit)
+        QMessageBox::warning( this, "Error", msg);
     if ( jobtype != ThreadIOWorker::JT_SaveVolume && jobtype != ThreadIOWorker::JT_SaveSurface )
       delete layer;
   }
   else
   {
-    QMessageBox::warning( this, "Error", msg + "overlay." );
+    msg += "overlay.";
+    if (!bQuit)
+        QMessageBox::warning( this, "Error", msg);
   }
   m_bProcessing = false;
   m_volumeSettings.clear();
   m_surfaceSettings.clear();
+  if (bQuit)
+  {
+      qDebug() << msg;
+      close();
+  }
 }
 
 void MainWindow::OnIOFinished( Layer* layer, int jobtype )
@@ -6904,4 +6924,18 @@ void MainWindow::OnToolLoadCamera(const QString& fn_in)
   }
 }
 
-
+void MainWindow::GoToContralateralPoint()
+{
+    LayerFCD* layer = qobject_cast<LayerFCD*>(GetActiveLayer("FCD"));
+    if ( layer )
+    {
+        double pos[3];
+        layer->GetSlicePosition(pos);
+        if (layer->GoToContralateralPoint(pos, pos))
+        {
+            SetSlicePosition(pos);
+            for (int i = 0; i < 3; i++)
+                m_views[i]->CenterAtWorldPosition(pos);
+        }
+    }
+}

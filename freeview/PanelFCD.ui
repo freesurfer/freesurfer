@@ -187,6 +187,17 @@ Voxels</string>
      </layout>
     </item>
     <item>
+     <layout class="QHBoxLayout" name="horizontalLayout_6">
+      <item>
+       <widget class="QPushButton" name="pushButtonGoToContralateral">
+        <property name="text">
+         <string>Go To Contralateral Point</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
      <widget class="QTreeWidget" name="treeWidgetLabels">
       <property name="showDropIndicator" stdset="0">
        <bool>false</bool>
@@ -466,6 +477,22 @@ Voxels</string>
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>pushButtonGoToContralateral</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnButtonGotoContralateral()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>286</x>
+     <y>166</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>296</x>
+     <y>486</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnSliderThresholdReleased()</slot>
@@ -481,5 +508,6 @@ Voxels</string>
   <slot>OnSliderThresholdChanged(int)</slot>
   <slot>OnSliderOpacityChanged(int)</slot>
   <slot>OnButtonRecompute()</slot>
+  <slot>OnButtonGotoContralateral()</slot>
  </slots>
 </ui>

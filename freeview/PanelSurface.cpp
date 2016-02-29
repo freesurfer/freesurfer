@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/11/04 21:11:11 $
- *    $Revision: 1.63 $
+ *    $Date: 2016/02/26 21:05:01 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -296,6 +296,7 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxOverlay->addItem( "Load correlation..." );
   ui->comboBoxOverlay->setCurrentIndex( layer ? 1 + layer->GetActiveOverlayIndex() : 0 );
   ui->pushButtonConfigureOverlay->setVisible( layer && layer->GetActiveOverlayIndex() >= 0 );
+  ui->pushButtonRemoveOverlay->setVisible(ui->pushButtonConfigureOverlay->isVisible());
   if ( ui->comboBoxOverlay->currentIndex() == 0 )
   {
     this->m_wndConfigureOverlay->hide();
@@ -621,6 +622,16 @@ void PanelSurface::OnComboSpline(int nSel)
 void PanelSurface::OnButtonConfigureOverlay()
 {
   m_wndConfigureOverlay->show();
+}
+
+void PanelSurface::OnButtonRemoveOverlay()
+{
+    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+    if ( surf )
+    {
+        surf->RemoveCurrentOverlay();
+    }
+    UpdateWidgets();
 }
 
 void PanelSurface::OnEditPositionOffset()

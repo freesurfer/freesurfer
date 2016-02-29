@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/12/11 22:54:00 $
- *    $Revision: 1.79 $
+ *    $Date: 2016/02/29 17:59:58 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,7 @@
 #include <vtkAnnotatedCubeActor.h>
 #include <vtkCubeAxesActor.h>
 #include <vtkTextProperty.h>
+#include <QFileInfo>
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
@@ -543,14 +544,33 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
       {
         if ( bCursor )
         {
-          lc_mri->SetCursorRASPosition( pos );
-          MainWindow::GetMainWindow()->SetSlicePosition( pos );
           if (layer)
           {
             lc_surface->SetActiveLayer(layer);
             LayerSurface* surf = (LayerSurface*)layer;
-            surf->SetCurrentVertex(surf->GetVertexIndexAtTarget(pos, NULL));
+            int nVertex = surf->GetVertexIndexAtTarget(pos, NULL);
+            surf->SetCurrentVertex(nVertex);
+            if (QFileInfo(surf->GetFileName()).fileName().contains("inflated"))
+            {
+                QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
+                foreach (Layer* s, layers)
+                {
+                    LayerSurface* f = (LayerSurface*)s;
+                    if (f != surf && QFileInfo(f->GetFileName()).fileName().contains("white"))
+                    {
+                        if (f->GetHemisphere() == surf->GetHemisphere() &&
+                            QFileInfo(f->GetFileName()).absolutePath() == QFileInfo(surf->GetFileName()).absolutePath())
+                        {
+                            f->SetCurrentVertex(nVertex);
+                            f->GetTargetAtVertex(nVertex, pos);
+                            break;
+                        }
+                    }
+                }
+            }
           }
+          lc_mri->SetCursorRASPosition( pos );
+          MainWindow::GetMainWindow()->SetSlicePosition( pos );
           emit SurfaceVertexClicked();
         }
         else
@@ -1234,6 +1254,14 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
     QAction* act = new QAction("Save IsoSurface As...", this);
     menu->addAction(act);
     connect(act, SIGNAL(triggered()), mainwnd, SLOT(OnSaveIsoSurface()));
+  }
+
+  if (!mainwnd->GetLayers("FCD").isEmpty())
+  {
+      menu->addSeparator();
+      QAction* act = new QAction("Go To Contralateral Point", this);
+      menu->addAction(act);
+      connect(act, SIGNAL(triggered()), mainwnd, SLOT(GoToContralateralPoint()));
   }
   menu->exec(event->globalPos());
 }

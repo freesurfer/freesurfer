@@ -69,6 +69,8 @@ public:
 
   QThread* GetWorkerThread();
 
+  bool GoToContralateralPoint(double* pos, double* pos_out);
+
 signals:
   void LabelsChanged();
   void StatusChanged();

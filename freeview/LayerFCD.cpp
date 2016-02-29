@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang 
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/26 18:16:22 $
- *    $Revision: 1.17 $
+ *    $Date: 2016/02/26 21:28:28 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -446,30 +446,29 @@ void LayerFCD::MakeAllLayers()
     m_surf_lh_pial = NULL;
   }
 
-//  if (m_fcd->mris_lh_sphere_d1)
-//  {
-//    LayerSurface* surf = m_surf_lh_sphere_d1;
-//    if (m_layerSource)
-//    {
-//      surf->SetRefVolume(m_layerSource);
-//    }
-//    surf->SetName(GetName() + "_lh.sphere.d1");
-//    if (!surf->CreateFromMRIS((void*)m_fcd->mris_lh_sphere_d1))
-//    {
-//      delete m_surf_lh_sphere_d1;
-//      m_surf_lh_sphere_d1 = NULL;
-//    }
-//    else
-//    {
-//      surf->GetProperty()->SetEdgeColor(Qt::red);
-//      surf->SetVisible(false);
-//    }
-//  }
-//  else
-//  {
-//    delete m_surf_lh_sphere_d1;
-//    m_surf_lh_sphere_d1 = NULL;
-//  }
+  if (m_fcd->mris_lh_sphere_d1)
+  {
+    LayerSurface* surf = m_surf_lh_sphere_d1;
+    if (m_layerSource)
+    {
+      surf->SetRefVolume(m_layerSource);
+    }
+    if (!surf->CreateFromMRIS((void*)m_fcd->mris_lh_sphere_d1))
+    {
+      delete m_surf_lh_sphere_d1;
+      m_surf_lh_sphere_d1 = NULL;
+    }
+    else
+    {
+      surf->GetProperty()->SetEdgeColor(Qt::red);
+      surf->SetVisible(false);
+    }
+  }
+  else
+  {
+    delete m_surf_lh_sphere_d1;
+    m_surf_lh_sphere_d1 = NULL;
+  }
 
 
   if (m_fcd->mris_rh)
@@ -522,30 +521,29 @@ void LayerFCD::MakeAllLayers()
     m_surf_rh_pial = NULL;
   }
 
-//  if (m_fcd->mris_rh_sphere_d1)
-//  {
-//    LayerSurface* surf = m_surf_rh_sphere_d1;
-//    if (m_layerSource)
-//    {
-//      surf->SetRefVolume(m_layerSource);
-//    }
-//    surf->SetName(GetName() + "_rh.sphere.d1");
-//    if (!surf->CreateFromMRIS((void*)m_fcd->mris_rh_sphere_d1))
-//    {
-//      delete m_surf_rh_sphere_d1;
-//      m_surf_rh_sphere_d1 = NULL;
-//    }
-//    elsesprintf(fname, "%s/%s/surf/rh.lh.thickness%s.mgz", sdir, subject
-//    {
-//      surf->GetProperty()->SetEdgeColor(Qt::red);
-//      surf->SetVisible(false);
-//    }
-//  }
-//  else
-//  {
-//    delete m_surf_rh_sphere_d1;
-//    m_surf_rh_sphere_d1 = NULL;
-//  }
+  if (m_fcd->mris_rh_sphere_d1)
+  {
+    LayerSurface* surf = m_surf_rh_sphere_d1;
+    if (m_layerSource)
+    {
+      surf->SetRefVolume(m_layerSource);
+    }
+    if (!surf->CreateFromMRIS((void*)m_fcd->mris_rh_sphere_d1))
+    {
+      delete m_surf_rh_sphere_d1;
+      m_surf_rh_sphere_d1 = NULL;
+    }
+    else
+    {
+      surf->GetProperty()->SetEdgeColor(Qt::red);
+      surf->SetVisible(false);
+    }
+  }
+  else
+  {
+    delete m_surf_rh_sphere_d1;
+    m_surf_rh_sphere_d1 = NULL;
+  }
 }
 
 
@@ -1029,4 +1027,55 @@ void LayerFCD::OnLayerDestroyed()
   {
     m_mri_difference = NULL;
   }
+}
+
+bool LayerFCD::GoToContralateralPoint(double *pos, double *pos_out)
+{
+    LayerSurface* oppo_surf = NULL;
+    bool bLeft = true;
+    int nVertex = m_surf_lh->GetVertexIndexAtTarget( pos, NULL );
+    if (nVertex < 0)
+    {
+        nVertex = m_surf_lh_pial->GetVertexIndexAtTarget(pos, NULL);
+        if (nVertex < 0)
+        {
+            bLeft = false;
+            nVertex = m_surf_rh->GetVertexIndexAtTarget( pos, NULL );
+            if (nVertex < 0)
+            {
+                nVertex = m_surf_rh_pial->GetVertexIndexAtTarget(pos, NULL);
+                oppo_surf = m_surf_lh_pial;
+            }
+            else
+                oppo_surf = m_surf_lh;
+        }
+        else
+            oppo_surf = m_surf_rh_pial;
+    }
+    else
+        oppo_surf = m_surf_rh;
+
+    if (nVertex < 0)
+    {
+        qDebug() << "Did not find any vertex at cursor";
+        return false;
+    }
+
+    double ras[3];
+    if (bLeft)
+    {
+        m_surf_lh_sphere_d1->GetSurfaceRASAtVertex(nVertex, ras);
+        nVertex = m_surf_rh_sphere_d1->GetVertexAtSurfaceRAS(ras, NULL);
+        if (nVertex < 0)
+            return false;
+    }
+    else
+    {
+        m_surf_rh_sphere_d1->GetSurfaceRASAtVertex(nVertex, ras);
+        nVertex = m_surf_lh_sphere_d1->GetVertexAtSurfaceRAS(ras, NULL);
+        if (nVertex < 0)
+            return false;
+    }
+    oppo_surf->GetTargetAtVertex(nVertex, pos_out);
+    return true;
 }
