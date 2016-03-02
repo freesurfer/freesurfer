@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/11/26 00:28:59 $
- *    $Revision: 1.87 $
+ *    $Date: 2016/03/02 16:17:48 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -423,6 +423,7 @@ ENDHELP --------------------------------------------------------------
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <ctype.h>
 
 #include "macros.h"
 #include "error.h"
@@ -480,7 +481,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.87 2014/11/26 00:28:59 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.88 2016/03/02 16:17:48 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -588,6 +589,8 @@ int DoFill=0;
 int DoFillConserve=0;
 int FillUpsample=2;
 MRI *MRIvol2volGCAM(MRI *src, LTA *srclta, GCA_MORPH *gcam, LTA *dstlta, MRI *vsm, int sample_type, MRI *dst);
+int DoMultiply=0;
+double MultiplyVal=0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -607,12 +610,12 @@ int main(int argc, char **argv) {
   vg_isEqual_Threshold = 10e-4;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.87 2014/11/26 00:28:59 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.88 2016/03/02 16:17:48 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.87 2014/11/26 00:28:59 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.88 2016/03/02 16:17:48 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1032,6 +1035,11 @@ int main(int argc, char **argv) {
     MRIfree(&out);
     out = crop;
   }
+  if(DoMultiply) {
+    printf("Multiplying by %lf\n",MultiplyVal);
+    MRImultiplyConst(out, MultiplyVal, out);
+  }
+
   err = MRIwrite(out,outvolfile);
   if(err){
     printf("ERROR: writing %s\n",outvolfile);
@@ -1301,7 +1309,20 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&CropScale);
       DoCrop = 1;
       nargsused = 1;
-    } else if(istringnmatch(option, "--slice-crop",12)) {
+    } 
+    else if ( !strcmp(option, "--mul") ){
+      if (nargc < 1)argnerr(option,1);
+      if(! isdigit(pargv[0][0]) && pargv[0][0] != '-' && 
+	 pargv[0][0] != '+' && pargv[0][0] != '.'){
+        printf("ERROR: value passed to the --mul flag must be a number\n");
+        printf("       If you want to multiply two images, use fscalc\n");
+        exit(1);
+      }
+      sscanf(pargv[0],"%lf",&MultiplyVal);
+      DoMultiply = 1;
+      nargsused = 1;
+    }
+    else if(istringnmatch(option, "--slice-crop",12)) {
       if(nargc < 2) argnerr(option,2);
       slice_crop_flag = 1;
       sscanf(pargv[0],"%d",&slice_crop_start);
@@ -1494,6 +1515,7 @@ printf("  --trilin            : trilinear interpolation (default)\n");
 printf("  --nearest           : nearest neighbor interpolation\n");
 printf("  --cubic             : cubic B-Spline interpolation\n");
 printf("  --interp interptype : interpolation cubic, trilin, nearest (def is trilin)\n");
+printf("   --mul mulval   : multiply output by mulval\n");
 printf("\n");
 printf("  --precision precisionid : output precision (def is float)\n");
 printf("  --keep-precision  : set output precision to that of input\n");
