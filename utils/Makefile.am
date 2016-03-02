@@ -6,7 +6,7 @@ NrrdIO_dir = NrrdIO
 cephes_dir = cephes
 test_dir = test
 
-SUBDIRS=$(NrrdIO_dir) $(cephes_dir) $(test_dir)
+SUBDIRS= . $(NrrdIO_dir) $(cephes_dir) $(test_dir)
 
 if HAVE_ITK_LIBS
 ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
@@ -362,27 +362,27 @@ libutils_cuda_a_SOURCES=\
 	$(libutils_main_SOURCES) \
 	$(libutils_cephes_SOURCES) \
 	$(libutils_nrrdio_SOURCES) \
-        mriframegpu.cu \
+	mriframegpu.cu \
 	devicemanagement.cu \
 	mriconvolve_cuda.cu \
-        mrivol2vol_cuda.cu \
+	mrivol2vol_cuda.cu \
 	mrisurf_cuda.cu \
-        affinegpu.cu\
-        mrimean_cuda.cu\
-        gcasgpu.cu\
-        cudatypeutils.cu\
-        gcamorphgpu.cu\
-        gcamorphenergygpu.cu\
-        gcamfots_cuda.cu\
-        gcamorphtermgpu.cu\
-        gcamorphcpu.cpp\
-        gcamcomputegradient_cuda.cu\
-        gcamregisterlevel_cuda.cu\
-        gcamregisterpipeline_cuda.cu\
-        mrilabels_cuda.cu\
-        gcanodegpu.cu\
-        gcapriorgpu.cu\
-        vecvolgpu.cu
+	affinegpu.cu\
+	mrimean_cuda.cu\
+	gcasgpu.cu\
+	cudatypeutils.cu\
+	gcamorphgpu.cu\
+	gcamorphenergygpu.cu\
+	gcamfots_cuda.cu\
+	gcamorphtermgpu.cu\
+	gcamorphcpu.cpp\
+	gcamcomputegradient_cuda.cu\
+	gcamregisterlevel_cuda.cu\
+	gcamregisterpipeline_cuda.cu\
+	mrilabels_cuda.cu\
+	gcanodegpu.cu\
+	gcapriorgpu.cu\
+	vecvolgpu.cu
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS) $(CUDA_GCA_CFLAGS)
 
