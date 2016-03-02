@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2016/02/26 20:01:43 $
-#    $Revision: 1.663 $
+#    $Author: nicks $
+#    $Date: 2016/02/29 19:36:09 $
+#    $Revision: 1.664 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -227,7 +227,7 @@ if (test "${CC}" = "gcc"); then
     AC_MSG_NOTICE(Have gcc 4.x where x >= 4)
     ac_have_gcc_44="yes"
   else 
-    AC_MSG_NOTICE(Do no have gcc 4.x where x >= 4)
+    AC_MSG_NOTICE(Do not have gcc 4.x where x >= 4)
   fi
 fi
 
