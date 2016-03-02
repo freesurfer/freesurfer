@@ -50,6 +50,7 @@ endif
 
 #TESTS=setup_test_data $(CHECKS) $(CPPUNIT_CHECKS) cleanup_test_data
 
+testcolortab_SOURCES=testcolortab.c
 mnitest_SOURCES=mnitest.cpp
 i2rtest_SOURCES=i2rtest.cpp
 icotest_SOURCES=icotest.cpp
