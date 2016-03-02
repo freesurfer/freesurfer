@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/05/23 17:10:43 $
- *    $Revision: 1.50 $
+ *    $Date: 2016/02/29 21:01:06 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,7 @@
 #include <QAction>
 #include <vtkCellPicker.h>
 #include <vtkRenderWindow.h>
+#include "MyUtils.h"
 
 #define SCALE_FACTOR  200
 
@@ -407,6 +408,30 @@ void RenderView::Zoom( double dFactor )
 
   emit ViewChanged();
   Render();
+}
+
+void RenderView::PanToWorld( double* pos )
+{
+  double focalPt[3], camPos[3], vproj[3];
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  cam->GetFocalPoint( focalPt );
+  cam->GetPosition( camPos );
+  cam->GetDirectionOfProjection( vproj );
+  double camDist = cam->GetDistance();
+
+  double dist = MyUtils::GetDistance( pos, focalPt );
+  double v[3];
+  MyUtils::GetVector( pos, focalPt, v );
+  dist *= MyUtils::Dot( vproj, v );
+
+  for ( int i = 0; i < 3; i++ )
+  {
+    focalPt[i] = pos[i] + vproj[i] * dist;
+    camPos[i] = focalPt[i] - vproj[i] * camDist;
+  }
+
+  cam->SetFocalPoint( focalPt );
+  cam->SetPosition( camPos );
 }
 
 void RenderView::CenterAtWorldPosition(double *pos)

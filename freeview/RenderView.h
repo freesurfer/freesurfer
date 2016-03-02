@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/14 19:32:55 $
- *    $Revision: 1.36 $
+ *    $Date: 2016/02/29 21:01:06 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,6 +94,7 @@ public slots:
   void MoveLeft();
   void MoveRight();
   void Zoom( double factor );
+  void PanToWorld(double* pos);
   void Reset();
   void SetAction( int nAction );
   void ShowScalarBar( bool bShow );

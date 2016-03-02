@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/29 17:59:58 $
- *    $Revision: 1.81 $
+ *    $Date: 2016/02/29 21:17:52 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,7 @@
 #include <vtkCubeAxesActor.h>
 #include <vtkTextProperty.h>
 #include <QFileInfo>
+#include "MyUtils.h"
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
@@ -241,6 +242,8 @@ void RenderView3D::UpdateSliceFrames()
 void RenderView3D::UpdateViewByWorldCoordinate()
 {
     ResetViewLeft();
+    m_renderer->GetActiveCamera()->SetViewAngle(30);
+    m_renderer->ResetCameraClippingRange();
 }
 
 void RenderView3D::ResetViewAnterior()
@@ -1356,4 +1359,26 @@ QVariantMap RenderView3D::GetCamera()
 //    info["ClippingRange"] = map;
   }
   return info;
+}
+
+void RenderView3D::ZoomAtCursor(int x, int y, double factor)
+{
+    double pt[3];
+    this->ScreenToWorld( x, y, 0, pt[0], pt[1], pt[2] );
+    vtkCamera* cam = m_renderer->GetActiveCamera();
+    if (cam)
+    {
+        double pos[3], vproj[3];
+        cam->GetPosition(pos);
+        MyUtils::GetVector(pos, pt, vproj);
+        double dist = cam->GetDistance();
+        for (int i = 0; i < 3; i++)
+        {
+            pt[i] = pos[i] + vproj[i]*dist;
+        }
+        PanToWorld(pt);
+        if (factor >= 1 || cam->GetViewAngle() < 90)
+            cam->Zoom(factor);
+        RequestRedraw();
+    }
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/25 20:32:35 $
- *    $Revision: 1.34 $
+ *    $Date: 2016/02/29 21:01:06 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,8 +51,8 @@ bool Interactor3D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  m_nMousePosX = event->x();
-  m_nMousePosY = event->y();
+  m_nMousePosX = m_nPressedPosX = event->x();
+  m_nMousePosY = m_nPressedPosY = event->y();
 
   view->CancelUpdateMouseRASPosition();
 
@@ -82,12 +82,12 @@ bool Interactor3D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  if (m_surfaceROI)
+  if (m_surfaceROI && (event->x() != m_nPressedPosX || event->y() != m_nPressedPosY))
   {
     m_surfaceROI->Close();
     view->RequestRedraw();
   }
-  else if ( event->x() == m_nMousePosX && event->y() == m_nMousePosY )
+  else if ( event->x() == m_nPressedPosX && event->y() == m_nPressedPosY )
   {
     if ( event->button() == Qt::LeftButton )
     {
@@ -95,11 +95,22 @@ bool Interactor3D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
       {
         view->PickCurrentSurfaceVertex(event->x(), event->y());
       }
+      else if (event->modifiers() & CONTROL_MODIFIER)
+      {
+        view->ZoomAtCursor(event->x(), event->y(), 2.0);
+      }
       else
       {
         view->UpdateCursorRASPosition( event->x(), event->y() );
         view->UpdateConnectivityDisplay();
       }
+    }
+    else if (event->button() == Qt::RightButton)
+    {
+        if (event->modifiers() & CONTROL_MODIFIER)
+        {
+            view->ZoomAtCursor(event->x(), event->y(), 0.5);
+        }
     }
   }
   else
@@ -198,6 +209,7 @@ bool Interactor3D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
   }
   else if ( nKeyCode == Qt::Key_Down )
   {
+
     view->MoveDown();
   }
   else if ( nKeyCode == Qt::Key_Left )
