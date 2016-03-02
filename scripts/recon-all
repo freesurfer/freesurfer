@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2016/02/25 18:47:17 $
-#    $Revision: 1.568 $
+#    $Date: 2016/03/02 17:56:44 $
+#    $Revision: 1.569 $
 #
 # Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.568 2016/02/25 18:47:17 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.569 2016/03/02 17:56:44 nicks Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -4626,11 +4626,11 @@ if($DoAParc2ASeg) then
       -e ${subjdir}/label/rh.aparc.${DKTATLAS40_NAME}.annot ) then
     set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
     set cmd = (mri_aparc2aseg --s $subjid --volmask \
-        --aseg aseg.presurf.hypos --${DKTATLAS40_NAME} $xopts)
+        --aseg aseg.presurf.hypos --annot aparc.${DKTATLAS40_NAME} $xopts)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-    echo $cmd > $touchdir/aparc.${DKTATLAS40}2aseg.touch
+    echo $cmd > $touchdir/aparc.${DKTATLAS40_NAME}2aseg.touch
   else
     echo "INFO: skipping ${DKTATLAS40_NAME} aparc2aseg" \
     |& tee -a $LF |& tee -a $CF
