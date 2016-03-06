@@ -6,8 +6,8 @@
 /*
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/02/16 23:18:08 $
- *    $Revision: 1.181 $
+ *    $Date: 2016/03/03 19:44:44 $
+ *    $Revision: 1.182 $
  *
  * Copyright © 2011-2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -377,12 +377,12 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
       if(strncmp(sdfi->TransferSyntaxUID,jpegCompressed_UID,19)==0){
 	printf("JPEG compressed, decompressing\n");
 	sprintf(tmpfilestdout,"%s.dcmdjpeg.out",tmpfile);
-	sprintf(cmd,"dcmdjpeg.fs +te %s %s >& %s",sdfi->FileName,tmpfile,tmpfilestdout); // shell?
+	sprintf(cmd,"fsdcmdecompress --i %s --o %s --jpeg >& %s",sdfi->FileName,tmpfile,tmpfilestdout);
       }
       if(strncmp(sdfi->TransferSyntaxUID,rllEncoded_UID,19)==0){
 	printf("RLE compressed, decompressing\n");
 	sprintf(tmpfilestdout,"%s.dcmdlrf.out",tmpfile);
-	sprintf(cmd,"dcmdrle.fs +te %s %s >& %s",sdfi->FileName,tmpfile,tmpfilestdout); // shell?
+	sprintf(cmd,"fsdcmdecompress --i %s --o %s --rle >& %s",sdfi->FileName,tmpfile,tmpfilestdout);
       }
       printf("cd %s\n",env->cwd);
       printf("%s\n",cmd);
@@ -6233,12 +6233,12 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
 	  if(strncmp(dcminfo[nthfile]->TransferSyntaxUID,jpegCompressed_UID,19)==0){
 	    printf("JPEG compressed, decompressing\n");
 	    sprintf(tmpfilestdout,"%s.dcmdjpeg.out",tmpfile);
-	    sprintf(cmd,"dcmdjpeg.fs +te %s %s >& %s",dcminfo[nthfile]->FileName,tmpfile,tmpfilestdout);
+	    sprintf(cmd,"fsdcmdecompress --i %s --o %s --jpeg >& %s",dcminfo[nthfile]->FileName,tmpfile,tmpfilestdout);
 	  }
 	  if(strncmp(dcminfo[nthfile]->TransferSyntaxUID,rllEncoded_UID,19)==0){
 	    printf("RLE compressed, decompressing\n");
 	    sprintf(tmpfilestdout,"%s.dcmdlrf.out",tmpfile);
-	    sprintf(cmd,"dcmdrle.fs +te %s %s >& %s",dcminfo[nthfile]->FileName,tmpfile,tmpfilestdout); 
+	    sprintf(cmd,"fsdcmdecompress --i %s --o %s --rle >& %s",dcminfo[nthfile]->FileName,tmpfile,tmpfilestdout);
 	  }
 	  printf("cd %s\n",env->cwd);
 	  printf("%s\n",cmd);
