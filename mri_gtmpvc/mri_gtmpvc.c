@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/02/20 22:43:01 $
- *    $Revision: 1.63 $
+ *    $Date: 2016/03/03 21:52:59 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.63 2016/02/20 22:43:01 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.65 2016/03/03 21:52:59 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.63 2016/02/20 22:43:01 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.65 2016/03/03 21:52:59 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -185,6 +185,7 @@ int nPadOverride = -1;
 // PVF maps
 double segpvfresmm = 0.5; 
 MRI *GTMsimAnatSeg(GTM *gtm);
+MRI *GTMnoPVC(GTM *gtm);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) 
@@ -192,7 +193,7 @@ int main(int argc, char *argv[])
   int nargs,err,c,f,n;
   double vrfmin,vrfmax,vrfmean;
   struct timeb  mytimer, timer;
-  MRI *gtmres;
+  MRI *gtmres,*nopvc;
   FILE *logfp,*fp;
   char *stem;
   LTA *ltatmp;
@@ -818,6 +819,11 @@ int main(int argc, char *argv[])
 
   printf("Freeing X\n");
   MatrixFree(&gtm->X);
+
+  nopvc = GTMnoPVC(gtm);
+  sprintf(tmpstr,"%s/nopvc.nii.gz",OutDir);
+  MRIwrite(nopvc,tmpstr);
+  MRIfree(&nopvc);
 
   if(SaveInput){
     if(gtm->rescale || gtm->DoSteadyState) sprintf(tmpstr,"%s/input.rescaled.nii.gz",OutDir);
@@ -2307,5 +2313,70 @@ int GTMsom(GTM *gtm)
   }
     
   return(0);
+}
+
+
+MRI *GTMnoPVC(GTM *gtm)
+{
+  MRI *nopvc;
+  int c,r,s,f,segid,rthseg,*nperseg,n,nhits,found;
+  double val, sum, scale;
+
+  nopvc = MRIallocSequence(gtm->nsegs,1,1,MRI_FLOAT,gtm->nframes);
+  MRIcopyHeader(gtm->yvol,nopvc);
+  MRIcopyPulseParameters(gtm->yvol,nopvc);
+
+  nperseg = (int *)calloc(gtm->nsegs,sizeof(int));
+
+  for(s=0; s < gtm->yvol->depth; s++){ 
+    for(c=0; c < gtm->yvol->width; c++){
+      for(r=0; r < gtm->yvol->height; r++){
+	if(gtm->mask && MRIgetVoxVal(gtm->mask,c,r,s,0) < 0.5) continue;
+	segid = MRIgetVoxVal(gtm->gtmseg,c,r,s,0);
+	if(segid == 0) continue;
+	rthseg = GTMsegid2nthseg(gtm,segid);
+	nperseg[rthseg]++;
+	for(f=0; f < gtm->nframes; f++){
+	  val = MRIgetVoxVal(gtm->yvol,c,r,s,f);
+	  sum = MRIgetVoxVal(nopvc,rthseg,0,0,f);
+	  MRIsetVoxVal(nopvc,rthseg,0,0,f,sum+val);
+	}
+      }
+    }
+  }
+  for(rthseg = 0; rthseg < gtm->nsegs; rthseg++){
+    if(nperseg[rthseg] == 0) continue;
+    for(f=0; f < gtm->nframes; f++){
+      sum = MRIgetVoxVal(nopvc,rthseg,0,0,f);
+      MRIsetVoxVal(nopvc,rthseg,0,0,f,sum/nperseg[rthseg]);
+    }
+  }
+  if(gtm->rescale){
+    // global rescaling
+    nhits = 0;
+    sum = 0;
+    for(f=0; f < gtm->yvol->nframes; f++){
+      for(rthseg = 0; rthseg < gtm->nsegs; rthseg++) {
+	segid = gtm->segidlist[rthseg];
+	found = 0;
+	for(n=0; n < gtm->n_scale_refids; n++) {
+	  if(segid == gtm->scale_refids[n]) {
+	    found = 1;
+	    nhits++;
+	    break;
+	  }
+	}
+	if(!found) continue;
+	sum += MRIgetVoxVal(nopvc,rthseg,0,0,f);
+      }
+    }
+    scale = gtm->scale_refval/(sum/nhits);
+    printf("nopvc multiplicative scale %g\n",scale);
+    fprintf(gtm->logfp,"nopvc multiplicative scale %g\n",scale);
+    MRImultiplyConst(nopvc,scale,nopvc);
+  }
+
+  free(nperseg);
+  return(nopvc);
 }
 
