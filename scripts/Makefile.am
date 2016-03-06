@@ -59,6 +59,7 @@ fname2ext \
 fname2stem \
 fscalc \
 fscalc.fsl \
+fsdcmdecompress \
 fsgd_parser.py \
 fsl_sub_mgh \
 fsutils.py \
