@@ -1,0 +1,292 @@
+#!/bin/tcsh -f
+# fsdcmdecompress - sources
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id: fsdcmdecompress,v 1.1 2016/03/03 19:37:13 greve Exp $';
+
+
+set infile = ();
+set outfile = ();
+set jpeg = 0;
+set rle = 0;
+set UseGDCM = 1;
+set UseDCMTK = 0;
+
+if($?FS_DCM_DECOMPRESS) then
+  if($FS_DCM_DECOMPRESS == DCMTK) then
+    set UseGDCM = 0;
+    set UseDCMTK = 1;
+  else if($FS_DCM_DECOMPRESS == GDCM) then
+    set UseGDCM = 1;
+    set UseDCMTK = 0;
+  else
+    echo "ERROR: fsdcmdecompress: environment variable FS_DCM_DECOMPRESS "
+    echo "is set to $FS_DCM_DECOMPRESS, must be either DCMTK or GDCM"
+    exit 1;
+  endif
+endif
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+# Set up log file
+if($#LF == 0) if($#LF == 0) set LF = $outdir/fsdcmdecompress.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for fsdcmdecompress" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+
+if($UseGDCM) then
+  set cmd = (gdcmconv.fs --raw $infile $outfile)
+endif
+
+if($UseDCMTK) then
+  if($jpeg) then
+    set cmd = (dcmdjpeg.fs +te $infile $outfile)
+  endif
+  if($rle) then
+    set cmd = (dcmdrle.fs +te $infile $outfile)
+  endif
+endif
+
+echo $cmd | tee -a $LF
+$cmd |& tee -a $LF
+if($status) goto error_exit;
+
+
+
+#========================================================
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Fsdcmdecompress-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Fsdcmdecompress-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "fsdcmdecompress Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR: fsdcmdecompress"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outfile = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set infile = $argv[1]; shift;
+      if(! -e $infile) then
+        echo "ERROR: cannot find $infile"
+        exit 1;
+      endif
+      breaksw
+
+    case "--gdcm":
+      set UseGDCM = 1;
+      set UseDCMTK = 0;
+      breaksw
+    case "--dcmtk":
+      set UseGDCM = 0;
+      set UseDCMTK = 1;
+      breaksw
+
+    # These only apply to GDCM, but DONT force UseDCMTK = 1;
+    case "--jpeg":
+      set jpeg = 1;
+      set rle = 0;
+      breaksw
+    case "--rle":
+      set jpeg = 0;
+      set rle = 1;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outfile == 0) then
+  echo "ERROR: must spec outfile"
+  exit 1;
+endif
+if($#infile == 0) then
+  echo "ERROR: must spec infile"
+  exit 1;
+endif
+if($UseDCMTK) then
+  if($jpeg == 0 && $rle == 0) then
+    echo "ERROR: with DCMTK you must spec --jpeg or --rle"
+    exit 1;
+  endif
+endif
+
+set outdir = `dirname $outfile`
+set cmd = (mkdir -p $outdir)
+echo $cmd
+$cmd
+if($status) then
+  echo "ERROR: cannot create $outdir, check permissions"
+  exit 1
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "fsdcmdecompress --help"
+  echo "  --i indcmfile --o outdcmfile"
+  echo "  --dcmtk : use either dcmdrle.fs or dcmdjpeg.fs"
+  echo "  --jpeg : DICOM is JPEG compressed, ignored without --dcmtk"
+  echo "  --rle  : DICOM is RLE compressed, ignored without --dcmtk"
+  echo "  --gdcm : use gdcmconv.fs (default)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is a frontend script for decompressing DICOM files using either
+GDCM http://gdcm.sourceforge.net/wiki/index.php/Gdcmconv or DCMTK
+http://dicom.offis.de/dcmtk. The original purpose is to call this
+script from a C binary using a system() call to create a decompressed
+file that the binary can then use the standard FreeSurfer libraries to
+read. There are several ways this utility can be used depending upon
+the converter and whether the input file is RLE or JPEG compressed.
+
+By default, gdcmconv is used. This utility figures out for itself
+whether a file is RLE or JPEG compressed. It seems to work in more
+cases than the DCMTK routines. In this case, --jpeg and --rle have 
+no effect. 
+
+The use of DCMTK routines can be specfied in one of two ways. First,
+one can add --dcmtk. Second, one can specify
+
+  setenv FS_DCM_DECOMPRESS DCMTK
+
+before running the script. In this way, the script can be controlled
+by simply setting an environment variable without needing to create a
+new binary. Remember that if DCMTK is used, then one must specify
+--jpeg or --rle. In the C code (DICOMRead.c), one of these will always
+be added to the command line, but they will not have an effect unless
+DCMTK is used.
