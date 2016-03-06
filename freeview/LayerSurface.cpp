@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/26 21:28:28 $
- *    $Revision: 1.115 $
+ *    $Date: 2016/03/03 19:12:32 $
+ *    $Revision: 1.116 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_bVector2DPendingUpdate( true ),
   m_bLoadAll(false),
   m_spline(NULL),
-  m_nCurrentVertex(-1)
+  m_nCurrentVertex(-1),
+  m_bVisibleIn3D(true)
 {
   m_strTypeNames.push_back( "Surface" );
   m_sPrimaryType = "Surface";
@@ -737,6 +738,9 @@ void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
 
 void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
+  if (!m_bVisibleIn3D)
+      return;
+
   for ( int i = 0; i < 3; i++ )
   {
     if (bSliceVisibility[i])
@@ -1815,5 +1819,14 @@ void LayerSurface::RemoveCurrentOverlay()
     {
         m_overlays.removeAt(m_nActiveOverlay);
         SetActiveOverlay(m_overlays.size()-1);
+    }
+}
+
+void LayerSurface::SetVisibleIn3D(bool bVisible)
+{
+    if (bVisible != m_bVisibleIn3D)
+    {
+        m_bVisibleIn3D = bVisible;
+        emit ActorChanged();
     }
 }

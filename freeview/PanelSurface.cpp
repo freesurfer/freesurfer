@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/26 21:05:01 $
- *    $Revision: 1.64 $
+ *    $Date: 2016/03/03 19:12:33 $
+ *    $Revision: 1.65 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -156,6 +156,7 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
 //  connect( ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), layer, SLOT(SetActiveLabelColor(QColor)));
 //  connect( ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveLabelOutline(bool)));
   connect( ui->checkBoxAnnotationOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveAnnotationOutline(bool)));
+  connect( ui->checkBoxHideIn3DView, SIGNAL(toggled(bool)), layer, SLOT(SetHideIn3D(bool)));
 
   SurfaceSpline* spline = layer->GetSpline();
   connect( ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), spline, SLOT(SetColor(QColor)));
@@ -216,6 +217,8 @@ void PanelSurface::DoUpdateWidgets()
   ui->lineEditFileName->clear();
   if ( layer )
   {
+    ui->checkBoxHideIn3DView->setChecked(!layer->GetVisibleIn3D());
+
     surf = layer->GetSourceSurface();
     ui->toolbar2->setVisible(surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) || surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) ||
                              surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) || surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );

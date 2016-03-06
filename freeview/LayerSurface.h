@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/26 21:28:29 $
- *    $Revision: 1.71 $
+ *    $Date: 2016/03/03 19:12:33 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -244,6 +244,11 @@ public:
 
   bool GetActiveLabelCentroidPosition(double* pos);
 
+  bool GetVisibleIn3D()
+  {
+      return m_bVisibleIn3D;
+  }
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay( bool bAskRedraw = true );
@@ -269,6 +274,13 @@ public slots:
   void UpdateColorMap();
 
   void RemoveCurrentOverlay();
+
+  void SetVisibleIn3D(bool bVisible);
+
+  void SetHideIn3D(bool bHide)
+  {
+      SetVisibleIn3D(!bHide);
+  }
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
@@ -345,6 +357,9 @@ protected:
   bool        m_bUndoable;
   bool        m_bVector2DPendingUpdate;
   bool        m_bLoadAll;
+
+  bool        m_bVisibleIn3D;
+
   QStringList m_listSupFiles;
 };
 
