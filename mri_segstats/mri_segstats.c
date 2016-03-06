@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/10/06 18:46:12 $
- *    $Revision: 1.119 $
+ *    $Date: 2016/03/02 22:30:05 $
+ *    $Revision: 1.120 $
  *
  * Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -106,7 +106,7 @@ float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.119 2015/10/06 18:46:12 greve Exp $";
+  "$Id: mri_segstats.c,v 1.120 2016/03/02 22:30:05 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1780,7 +1780,12 @@ static int parse_commandline(int argc, char **argv)
     {
       maskinvert = 1;
     }
-
+    else if ( !strcmp(option, "--sd") ) {
+      if (nargc < 1) argnerr(option,1);
+      SUBJECTS_DIR = pargv[0];
+      FSENVsetSUBJECTS_DIR(SUBJECTS_DIR);
+      nargsused = 1;
+    }
     else if ( !strcmp(option, "--sum") )
     {
       if (nargc < 1)
