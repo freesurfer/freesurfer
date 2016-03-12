@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/10/22 21:51:07 $
- *    $Revision: 1.28 $
+ *    $Date: 2016/03/10 16:19:40 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -203,8 +203,14 @@ template<class T>
 vnl_vector<T> Regression<T>::getRobustEstWAB(vnl_vector<T>& wfinal, double sat,
     double sig)
 {
-//   cout << "  Regression<T>::getRobustEstW( "<<sat<<" , "<<sig<<" ) " << endl;
-
+  if (verbose > 1)
+  {
+    cout << "  Regression<T>::getRobustEstWAB( "<<sat<<" , "<<sig<<" ) " ;
+    if (floatsvd) cout << "  FLOAT version " ;
+    else cout << "  DOUBLE version " ;
+    cout << endl;
+  }
+  
   // constants
   int MAXIT = 20;
   //double EPS = 2e-16;
@@ -216,14 +222,15 @@ vnl_vector<T> Regression<T>::getRobustEstWAB(vnl_vector<T>& wfinal, double sat,
   err[1] = 1e20;
   double sigma;
 
-  int arows = A->rows();
-  int acols = A->cols();
+  int arows = A->rows(); // large (voxels)
+  int acols = A->cols(); // small (parameters)
 
-  //vectors to avoid copying later:
-  vnl_vector<T> * r = new vnl_vector<T>();
+  //pre-alocate vectors
+  // init residuals (based on zero p, so r := b )
+  vnl_vector<T> * r = new vnl_vector<T>(*b);
   vnl_vector<T> * p = new vnl_vector<T>(acols);
   vnl_vector<T> * w = new vnl_vector<T>(arows);
-  w->fill(1.0);
+
 //  if (! w.valid() || ! r.valid() || !p.valild())
 //     ErrorExit(ERROR_NO_MEMORY,"Regression<T>::getRobustEstWAB could not allocate memory for w,r,p") ;
 
@@ -242,44 +249,35 @@ vnl_vector<T> Regression<T>::getRobustEstWAB(vnl_vector<T>& wfinal, double sat,
 
     if (count > 1)
     {
-      // store lastp (not necessary in first run as both are empty)
+      // store lastp (not necessary in first run)
+      // instead of copy, we swap pointers:
       vtmp = lastp;
       lastp = p;
       p = vtmp;
 
-      // recompute weights for next iteration (first run weights are 1)
       // store last weights
+      // instead of copy, we swap pointers:
       vtmp = lastw;
       lastw = w;
       w = vtmp;
-      // normalize r
-      sigma = getSigmaMAD(*r);
+    }
+    
+    // normalize r and compute weights (or rather w = sqrt of weights)
+    sigma = getSigmaMAD(*r);
+    if (sigma < EPS) // e.g. if images are identical
+    {
+      cout << "  Sigma too small: " << sigma << " (identical images?)" << endl;
+      w->fill(1.0);
+    }
+    else
+    {
       //cout << "Sigma: " << sigma << endl;
       *r *= (1.0 / sigma);
       // here we get sqrt of weights into w
       getSqrtTukeyDiaWeights(*r, *w, sat);
-      // free residuals (to reduce max memory load)
-      r->clear();
     }
-    else // first step, init weights based on zero p:
-    {
-      sigma = getSigmaMAD(*b);
-      if (sigma < EPS) // e.g. if images are identical
-      {
-        cout << "  Sigma too small: " << sigma << " (identical images?)"
-            << endl;
-      }
-      else
-      {
-        // normalize r
-        *r = *b;
-        *r *= (1.0 / sigma);
-        // here we get sqrt of weights into w
-        getSqrtTukeyDiaWeights(*r, *w, sat);
-        // free residuals (to reduce max memory load)
-        r->clear();
-      }
-    }
+    // free residuals (to reduce max memory load) seems to have no effect on speed
+    r->clear();
 
     // compute weighted least squares
     if (floatsvd)
@@ -316,29 +314,26 @@ vnl_vector<T> Regression<T>::getRobustEstWAB(vnl_vector<T>& wfinal, double sat,
   {
     // take previous values (since actual values made the error to increase)
     // cout << " last step was no improvement, taking values : "<<  count-1 << endl;
-    delete (p);
-    delete (w);
     pfinal = *lastp;
     wfinal = *lastw;
-    delete (lastw);
-    delete (lastp);
     if (verbose > 1)
       cout << "     Step: " << count - 2 << " ERR: " << err[count - 1] << endl;
     lasterror = err[count - 1];
   }
   else
   {
-    delete (lastw);
-    delete (lastp);
     pfinal = *p;
     wfinal = *w;
-    delete (p);
-    delete (w);
     if (verbose > 1)
       cout << "     Step: " << count - 1 << " ERR: " << err[count] << endl;
     lasterror = err[count];
   }
-
+  delete (p);
+  delete (w);
+  delete (lastw);
+  delete (lastp);
+      
+    
   // compute statistics on weights:
   double d = 0.0;
   double dd = 0.0;
@@ -369,148 +364,6 @@ vnl_vector<T> Regression<T>::getRobustEstWAB(vnl_vector<T>& wfinal, double sat,
   return pfinal;
 }
 
-// // old version (basically the same, the new version is a little cleaner and does not
-// // need as much memory (also avoids copying of data)
-//
-// vnl_vector< double > Regression<T>::getRobustEstWAB(vnl_vector< double >& w,double sat, double sig)
-// // solves overconstrained system A p = b using
-// // M estimators (Beaton and Tukey's biweigt function)
-// // returns vectors p and w (by reference as it is large)
-// // where p is the robust solution and w the used weights
-// // Method: iterative reweighted least squares
-// {
-// //   cout << "  Regression<T>::getRobustEstW( "<<sat<<" , "<<sig<<" ) " << endl;
-// 
-//   // constants
-//   int MAXIT = 20;
-//   //double EPS = 2e-16;
-//   double EPS = 2e-12;
-// 
-//   // variables
-//   vector < double > err(MAXIT+1);
-//   err[0] = numeric_limits<double>::infinity();
-//   err[1] = 1e20;
-//   int count = 1; 
-//   double sigma;
-// 
-//   int arows = A->rows();
-//   int acols = A->cols();
-//   
-//   vnl_vector < double > r(arows); 
-//   vnl_vector < double > p(acols); p.fill(0.0);
-//   w.set_size(arows); w.fill(1.0);
-// //  if (! w.valid() || ! r.valid() || !p.valild())
-// //     ErrorExit(ERROR_NO_MEMORY,"Regression<T>::getRobustEstWAB could not allocate memory for w,r,p") ;
-// 
-//   vnl_vector < double > lastr(arows);
-//   vnl_vector < double > lastp(acols);
-//   vnl_vector < double > lastw(arows);
-// //  if (! lastw.valid() || !lastr.valid() || !lastp.valid())
-// //     ErrorExit(ERROR_NO_MEMORY,"Regression<T>::getRobustEstWAB could not allocate memory for lastw,lastr,lastp") ;
-// 
-//   
-//   // iteration until we increase the error, we reach maxit or we have no error
-//   while ( err[count-1] > err[count] && count < MAXIT && err[count] > EPS )
-//   {
-//     // save previous values   (not necessary for first step)
-//     lastp = p;
-//     lastw = w; // probably avoid copying here by using pointers
-// 
-//     count++;
-// 
-//     //cout << " count: "<< count << endl;
-//     //cout << " memusage: " << endl;
-//     //print_mem_usage();
-//     
-//     
-//     // recompute weights
-//     if (count > 2)
-//     {
-//       sigma = getSigmaMAD(r);
-//       // normalize r
-//       r *= (1.0/sigma);
-//       getSqrtTukeyDiaWeights(r, w, sat); // here we get sqrt of weights into w
-//     }
-// 
-//     // use weights to get weighted least square estimate:
-//     p = getWeightedLSEst(w);
-// 
-//     // compute new residuals
-//     r = *b - (*A * p);
-//     
-//     // and total errors (using new p)
-//     // err = sum (w r^2) / sum (w)
-//     float swr = 0;
-//     float sw  = 0;
-//     for (unsigned int rr = 0;rr<r.size();rr++)
-//     {
-//       float t1 = w[rr];
-//       float t2 = r[rr];
-//       t1 *= t1; // remember w is the sqrt of the weights
-//       t2 *= t2;
-//       sw  += t1;
-//       swr += t1*t2;
-//     }
-//     err[count] = swr/sw;
-// 
-// //    cout << " Step: " << count-1 << " ERR: "<< err[count]<< endl;
-// //    cout << " p  : "<< endl;
-// //    MatrixPrintFmt(stdout,"% 2.8f",p);
-// //    cout << endl;
-// 
-//     // do not save values here, to be able to use lastp when exiting earlier due to increasing error
-//     // MatrixCopy(p, lastp);
-//     // MatrixCopy(w, lastw);
-// 
-//   }
-// 
-// 
-//   vnl_vector < double > * pfinal;
-//   vnl_vector < double > * wfinal;
-//   if (err[count]>err[count-1])
-//   {
-//     // take previous values (since actual values made the error to increase)
-//     // cout << " last step was no improvement, taking values : "<<  count-1 << endl;
-//     pfinal = &lastp;
-//     wfinal = &lastw;
-//     if (verbose > 1) cout << "     Step: " << count-2 << " ERR: "<< err[count-1]<< endl;
-//     lasterror = err[count-1];
-//   }
-//   else
-//   {
-//     pfinal = &p;
-//     wfinal = &w;
-//     if (verbose > 1) cout << "     Step: " << count-1 << " ERR: "<< err[count]<< endl;
-//     lasterror = err[count];
-//   }
-// 
-//   // compute statistics on weights:
-//   double d=0.0;
-//   double dd=0.0;
-//   double ddcount = 0;
-//   int zcount =  0;
-//   double val;
-//   for (unsigned int i = 0;i<wfinal->size();i++)
-//   {
-//     val = wfinal->operator[](i);
-//     d +=val ;
-//     if (fabs(b->operator[](i)) > 0.00001)
-//     {
-//       dd+= val ;
-//       ddcount++;
-//       if (val < 0.1) zcount++;
-//     }
-//   }
-//   d /= wfinal->size();
-//   dd /= ddcount;
-//   if (verbose > 1) cout << "          weights average: " << dd << "  zero: " << (double)zcount/ddcount << flush;
-//   //"  on significant b vals ( " << ddcount << " ): " << dd <<endl;
-//   lastweight = dd;
-//   lastzero   = (double)zcount/ddcount;
-//   
-//   if (err[count]>err[count-1]) w = lastw; //else w is already correct
-//   return *pfinal;
-//}
 
 /** Solving \f$ p = [A^T W A]^{-1} A^T W b\f$     (with \f$ W = diag(w_i^2) \f$ )
  done by computing \f$ M := \sqrt{W} A\f$ and  \f$ v := \sqrt{W} b\f$
@@ -781,6 +634,8 @@ double Regression<T>::getTukeyPartialSat(const vnl_vector<T>& r, double sat)
 
 /** Computes sqrt(weights) for a reweighted least squares approach.
  Returns elements of diag matrix W (as a column vector).
+ Input: r (residuals) and sat
+ Output: w sqrt of weights
  */
 template<class T>
 void Regression<T>::getSqrtTukeyDiaWeights(const vnl_vector<T>& r,
