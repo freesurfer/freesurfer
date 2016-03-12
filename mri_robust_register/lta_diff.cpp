@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/12/19 01:50:52 $
- *    $Revision: 1.26 $
+ *    $Date: 2016/03/10 16:57:29 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.26 2012/12/19 01:50:52 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.27 2016/03/10 16:57:29 mreuter Exp $";
 char *Progname = NULL;
 void writeVox2Vox(LTA * lta)
 {
@@ -534,6 +534,11 @@ int main(int argc, char *argv[])
   {
     disttype = atoi(argv[3]);
     assert(double(disttype) == atof(argv[3]));
+    if (disttype == 0) 
+    {
+      cerr << "ERROR: dist-type: \"" << argv[3] << "\" not valid, expecting <int>!" << endl;
+      exit(1);
+    }
   }
   if (argc > 4)
     d = atof(argv[4]);
