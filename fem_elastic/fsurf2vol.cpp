@@ -247,7 +247,7 @@ inv. transform = ATLAS->SRC space
 
 2. transport the SRC surface in the atlas space
 
-3. compute the elastic registratin from
+3. compute the elastic registration from
 
 ATLAS -> SRC
 
@@ -1229,7 +1229,7 @@ IoParams::IoParams()
   eltVolMax = 21;
   poissonRatio = .3f;
   YoungModulus = 10;
-  iSteps = 1; // by default, simple linear elastic model
+  iSteps = 1;    // by default, simple linear elastic model
   iEndStep = -1; // by default, do an extra step to finish converging
   surfSubsample = -1;
   bUseOldTopologySolver = false;
@@ -1272,7 +1272,7 @@ IoParams::parse(std::string& errMsg)
                                buffer, maxLen, &petscFlag);
   CHKERRQ(ierr);
   if ( petscFlag ) strAseg = buffer;
-  else std::cout << " No ASEG option present\n";
+  // else std::cout << " No ASEG option present\n";
 
   // Fixed Surfaces
   char option[maxLen];
