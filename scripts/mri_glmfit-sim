@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.58 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.59 2016/03/11 19:37:32 greve Exp $';
 setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
@@ -650,6 +650,7 @@ while( $#argv != 0 )
       set glmdir = $argv[1]; shift;
       breaksw
 
+    case "--mcsim":
     case "--cache":
       if( $#argv < 2) goto arg2err;
       set thresh = $argv[1]; shift;
@@ -664,11 +665,13 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--mczsim-dir":
     case "--cache-dir":
       if( $#argv < 1) goto arg1err;
       set CacheDir = $argv[1]; shift;
       breaksw
 
+    case "--mczsim-label":
     case "--cache-label":
       if( $#argv < 1) goto arg1err;
       set CacheLabel = $argv[1]; shift;
@@ -689,6 +692,15 @@ while( $#argv != 0 )
       endif
       set UseGRF = 1;
       set DoSim = 0;
+      breaksw
+
+    case "--perm":
+      if( $#argv < 3) goto arg4err;
+      set nulltype = perm;
+      set nsim = $argv[1]; shift;
+      set thresh = $argv[1]; shift;
+      set simsign = $argv[1]; shift;
+      set csdbase = perm.th$threshStr.$simsign
       breaksw
 
     case "--sim":
@@ -893,17 +905,21 @@ usage_exit:
   echo "mri_glmfit-sim"
   echo ""
   echo " --glmdir glmdir"
-  echo " --cwp thresh : cluster p-value thresh ($cwpvalthresh)"
+  echo " --cwp cwthresh : cluster-wise p-value threshold ($cwpvalthresh)"
   echo ""
-  echo " --cache threshold sign"
-  echo "   --cache-dir dir : default is FREESURFER_HOME/average/mult-comp-cor"
-  echo "   --cache-label label : default is cortex"
+  echo "Use pre-computed z-based monte-carlo simulations (see mri_mcsim)"
+  echo " --mczsim vwthreshold sign"
+  echo "If you have run your own simulations (mri_mcsim), then specify "
+  echo "   --mczsim-dir dir : default is FREESURFER_HOME/average/mult-comp-cor"
+  echo "   --mczsim-label label : default is cortex"
   echo ""
-  echo " --grf threshold sign : -log10(p) and pos or neg (volumes only)"
+  echo "Use permutation simulation"
+  echo " --perm nsim vwthreshold sign"
   echo ""
-  echo " --sim nulltype nsim threshold csdbase"
-  echo " --sim-sign sign : abs,pos,neg"
+  echo "Use Gaussian Random Fields (GRF), volumes only"
+  echo " --grf vwthreshold sign : -log10(p) and sign (pos or neg)"
   echo ""
+  echo "Correct for multiple spaces"
   echo " --2spaces : additional Bonferroni correction across 2 spaces (eg, lh, rh)"
   echo " --3spaces : additional Bonferroni correction across 3 spaces (eg, lh, rh, mni305)"
   echo ""
@@ -935,87 +951,49 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-This program is a script to run GLM-based simulations for corrections
-for multiple comparisons on the volume or the surface. It is a
-front-end for the mri_glmfit, mri_surfcluster, and mri_volcluster programs.
+This program is a script to run corrections for multiple comparisons
+(CMC) on the volume or the surface. It is a front-end for the
+mri_glmfit, mri_surfcluster, and mri_volcluster programs.
 
 To use this program:
 
 1. Run mri_glmfit on your data, giving it the glm directory
    (--glmdir), and all the other arguments.
 
-2. Choose whether you want to use a pre-cached simulation or whether
-   you want to run a new simulation. You should use a pre-cached
-   simulation if: this is a surface-based analysis, you are using
-   fsaverage (or equivalent), you have whole-brain data, you want to
-   use a voxel-wise threshold of 1.3, 2.0, 2.3, 3.0, 3.3, or 4.0, and
-   you are going to use an mc-z simulation.  Pre-cached will finish
-   after a few seconds, your own simulation will take hours or days.
+2. Choose a voxel-wise (cluster-forming) threshold vwthresh. The
+   vwthresh takes the value -log10(p) where p is the p-value.  So if
+   vwthresh = 2, then p<.01. You should understand the difference
+   between the cluster-forming threshold and the cluster-wise
+   threshold (--cwp). For mczsim, vwthresh must be 1.3, 2.0, 2.3, 3.0,
+   3.3, or 4.0 (unless you have simulated more values). There are no
+   good methods to choose this value. Typically 2 or 3 is used.
 
-2.a If you want to use a pre-cached, then specify "--cache threshold sign"
-    where threshold is the vertex-wise threshhold and sign is abs, pos,
-    or neg. Note: the csdbase will be set to cache.thresh.simsign (eg,
-    if the threshold was set to 1.3 and sign to pos, then cache.th13.pos.
-    Skip the remaining steps below.
+3. Choose the sign of the effect, either positive (pos), negative
+   (neg) or absolute/unsigned (abs). If you use --grf, then you can
+   only use pos or neg. If you have an a priori hypothesis (eg, group1
+   > group2), then choose positive. If you do not expect a particular
+   sign, then use abs. Choosing a sign will yield stronger results
+   (ie, smaller p-values), but you will lose voxels with the opposite
+   sign.
 
-2.b If you want to run your own simulation, then choose the type of
-    simulation (nulltype) you want to run. The choices are:
-    mc-z - synthesized, smoothed z-field (fast)
-    mc-full - fully synthesized, smoothed gaussian field (slowest)
-    perm - permutation on original data (probably fasted one)
+4. Choose the method. This will be either: (1) --mczsim z-based monte
+   carlo simulation (See surfer.nmr.mgh.harvard.edu/fswiki/BuildYourOwnMonteCarlo).
+   (2) --perm for permutation simulation, or (3) --grf for Gaussian Random Field
+   method (analytical). For permution, you must choose the number of simulation
+   iterations (typically 5000-1000); permutation may take a few hours to 
+   complete.
 
-3. Choose the voxel/vertex-wise threshhold used to define clusters. This
-   will be -log10(p), where p is the p-value. Eg, to use all voxels/vertices
-   with p < .01, then set the threshhold = 2.
+Now run the command, eg,
 
-4. Choose the number of iterations (nsim). This is usually 10,000
-   (which can take quite a while).
-
-5. Select the CSD base name (csdbase). CSD stands for "Cluster
-   Simulation Data". There will be a text file for each contrast with
-   the information about the null distribution. This file will be
-   called csdbase-contrast.csd, so the csdbase should be something
-   descriptive. Eg, if you have mc-z, with threshold=2, and sign=pos,
-   then setting csdbase to mc-z.pos.2 would be appropriate. If the 
-   CSD file exists, then you must delete it or run with --overwrite.
-
-6. Select the threshold sign (--sim-sign). This is the sign of the
-   threshold used to create the clusters for cluster-wise correction
-   of multiple comparisons. Options are abs (unsigned), pos
-   (positive), and neg (negative). If you have an a priori hypothesis
-   (eg, group1 > group2), then choose positive. If you don not know
-   the sign, then use abs. Choosing a sign will yield stronger results
-   (ie, smaller p-values), but you will lose the other sign.
-
-Now run the command:
-
-mri_glmfit-sim --glmdir glmdir \
-  --cache threshold sign
+mri_glmfit-sim --glmdir glmdir --mczsim 2 abs
 
 or
 
-mri_glmfit-sim --glmdir glmdir \
-  --sim nulltype nsim threshold csdbase \
-  --sim-sign sign
+mri_glmfit-sim --glmdir glmdir --sim perm 1000 3 abs
 
-Example,
-
-mri_glmfit-sim --glmdir lh.thickness.sm05 \
-  --cache 3  --sim-sign pos
-
-or
-
-mri_glmfit-sim --glmdir lh.thickness.sm05 \
-  --sim mc-z 10000 3 mc-z.pos.3 --sim-sign pos
-
-This will run mri_glmfit in simulation mode. It will find all the
-contrasts that you ran in the original invocation of mri_glmfit and
-create CSD files for them. It will use the mask and, for mc
-simulations, the FWHM found in the glmdir.
-
-It will then run mri_surfcluster or mri_volcluster for
-each contrast, using the sig volume as input and creating the
-following files in each contrast directory:
+The output will be in each contrast folder and will be something like
+the following (where csdbase will be "cache" with --mczsim or "perm"
+with --perm or "grf" with --grf)
 
 csdbase.sig.voxel.mgh 
 csdbase.sig.cluster.mgh 
@@ -1081,10 +1059,10 @@ launchpad computational cluster.
 --cwp cwpvalthresh
 --cwpvalthresh cwpvalthresh
 
-Only report clusters that have p < cwpvalthresh. Default is .05. If you
-want to change this after running a simulation, you do not need to 
-re-run the entire simulation. Just run mri_glmfit with the --no-sim
-option.
+Only report clusters that have p < cwpvalthresh. Default is .05. If
+you want to change this after running a permutation simulation, you do
+not need to re-run the entire simulation. Just run mri_glmfit with the
+--no-sim option.
 
 --2spaces
 --3spaces
@@ -1101,18 +1079,9 @@ structures, then use --3spaces. The correction applied is Bonferroni
 
 --no-sim csdbase
 
-Run this if you have already run the stimulation but just want to run
-the correction for multiple comparisons again to change the
-clusterwise threshold. "csdbase" is the same that was used in the
-orignial invocation to mri_glmfit-sim.  Eg, if this was your original
-mri_glmfit-sim command:
-
-  mri_glmfit-sim --glmdir lh.thickness.sm05 --cwp .05\
-    --sim mc-z 10000 3 mc-z.pos.3 --sim-sign pos
-
-But then then you wanted to re-run with a higher CWP, then
-
-  mri_glmfit-sim --glmdir lh.thickness.sm05 --no-sim mc-z.pos.3 --cwp .1
+Run this if you have already run the permutation stimulation but just
+want to run the correction for multiple comparisons again to change
+the clusterwise threshold. "csdbase" should be "perm"
 
 --seed seed
 
@@ -1129,6 +1098,4 @@ used for debugging.
 Do not compute means of each subject in each cluster. This computation
 requires the y input file which might not be available in all cases.
 When using this option, put it first on the command-line.
-
-
 
