@@ -1,6 +1,6 @@
 /**
  * @file Regression.h
- * @brief A class to solve overconstrained system A X = B
+ * @brief A class to solve overconstrained system A X = b
  *
  *   it uses either least squares (standard regression)
  *   or a robust estimator (Tukey's Biweight with iterative reweighted least
@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2012/09/21 23:05:16 $
- *    $Revision: 1.17 $
+ *    $Date: 2016/03/10 15:14:00 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,26 +58,20 @@ class Regression
 {
 public:
 
-  //! Constructor initializing A and B
+  //! Constructor initializing A and b
   Regression(vnl_matrix<T> & Ap, vnl_vector<T> & bp) :
-      A(&Ap), b(&bp), lasterror(-1), lastweight(-1), lastzero(-1), verbose(1), floatsvd(
-          false)
-  {
-  }
-  ;
-  //! Constructor initializing B (for simple case where x is single variable and A is (...1...)^T
+      A(&Ap), b(&bp), lasterror(-1), lastweight(-1), lastzero(-1), verbose(1), floatsvd(false)
+  {}
+
+  //! Constructor initializing b (for simple case where x is single variable and A is (...1...)^T
   Regression(vnl_vector<T> & bp) :
-      A(NULL), b(&bp), lasterror(-1), lastweight(-1), lastzero(-1), verbose(1), floatsvd(
-          false)
-  {
-  }
-  ;
+      A(NULL), b(&bp), lasterror(-1), lastweight(-1), lastzero(-1), verbose(1), floatsvd(false)
+  {}
 
   //! Robust solver
-  vnl_vector<T> getRobustEst(double sat = SATr, double sig = 1.4826);
+  vnl_vector<T> getRobustEst(double sat = SATr, double sig=1.4826);
   //! Robust solver (returning also the sqrtweights)
-  vnl_vector<T> getRobustEstW(vnl_vector<T>&w, double sat = SATr, double sig =
-      1.4826);
+  vnl_vector<T> getRobustEstW(vnl_vector<T>&w, double sat=SATr, double sig=1.4826);
 
   //! Least Squares
   vnl_vector<T> getLSEst();
@@ -90,17 +84,17 @@ public:
   {
     return lasterror;
   }
-  ;
+
   double getLastWeightPercent()
   {
     return lastweight;
   }
-  ;
+
   double getLastZeroWeightPercent()
   {
     return lastzero;
   }
-  ;
+
   //! Set verbose level
   void setVerbose(int v)
   {
@@ -110,6 +104,7 @@ public:
     if (v > 2)
       verbose = 2;
   }
+  
   //! Specify if SVD is float (also in double case)
   void setFloatSvd(bool b)
   {
@@ -120,18 +115,14 @@ public:
 
 protected:
 
-  vnl_vector<T> getRobustEstWAB(vnl_vector<T>&w, double sat = SATr, double sig =
-      1.4826);
-  double getRobustEstWB(vnl_vector<T>&w, double sat = SATr,
-      double sig = 1.4826);
+  vnl_vector<T> getRobustEstWAB(vnl_vector<T>&w, double sat = SATr, double sig = 1.4826);
+  double getRobustEstWB(vnl_vector<T>&w, double sat = SATr, double sig = 1.4826);
 
   T getSigmaMAD(const vnl_vector<T>& r, T d = 1.4826);
   T VectorMedian(const vnl_vector<T>& v);
 
-  void getSqrtTukeyDiaWeights(const vnl_vector<T>& r, vnl_vector<T> &w,
-      double sat = SATr);
-  void getTukeyBiweight(const vnl_vector<T>& r, vnl_vector<T> &w, double sat =
-      SATr);
+  void getSqrtTukeyDiaWeights(const vnl_vector<T>& r, vnl_vector<T> &w, double sat = SATr);
+  void getTukeyBiweight(const vnl_vector<T>& r, vnl_vector<T> &w, double sat = SATr);
   double getTukeyPartialSat(const vnl_vector<T>& r, double sat = SATr);
 
 private:
