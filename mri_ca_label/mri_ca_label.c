@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:42:14 $
- *    $Revision: 1.110 $
+ *    $Author: fischl $
+ *    $Date: 2016/03/08 13:57:56 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -250,13 +250,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.110 2016/01/20 23:42:14 greve Exp $",
+   "$Id: mri_ca_label.c,v 1.111 2016/03/08 13:57:56 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.110 2016/01/20 23:42:14 greve Exp $",
+           "$Id: mri_ca_label.c,v 1.111 2016/03/08 13:57:56 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1576,7 +1576,7 @@ get_option(int argc, char *argv[])
     Gyp = atoi(argv[3]) ;
     Gzp = atoi(argv[4]) ;
     nargs = 3 ;
-    printf("debugging node (%d, %d, %d)\n", Gx,Gy,Gz) ;
+    printf("debugging prior (%d, %d, %d)\n", Gxp,Gyp,Gzp) ;
   }
   else if (!stricmp(option, "DEBUG_LABEL"))
   {
