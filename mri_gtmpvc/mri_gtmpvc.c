@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/03/03 21:52:59 $
- *    $Revision: 1.65 $
+ *    $Date: 2016/03/11 23:29:42 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.65 2016/03/03 21:52:59 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.67 2016/03/11 23:29:42 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.65 2016/03/03 21:52:59 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.67 2016/03/11 23:29:42 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -107,6 +107,7 @@ typedef struct
   int nparams;
   double ftol;
   double linmintol;
+  int optgm;
   float fret;
   int niters,nitersmax;
   int nCostEvaluations;
@@ -230,6 +231,7 @@ int main(int argc, char *argv[])
   gtmopt->ftol= 1e-8;
   gtmopt->linmintol= .001;
   gtmopt->nitersmax = 5;
+  gtmopt->optgm = 0;
   gtm->mbrad = (MB2D *) calloc(sizeof(MB2D),1);
   gtm->mbtan = (MB2D *) calloc(sizeof(MB2D),1);
   gtm->DoSteadyState = 0;
@@ -530,8 +532,8 @@ int main(int argc, char *argv[])
   }
 
   if(DoOpt){
-    printf("Starting optimization %d\n",gtmopt->schema);
-    fprintf(logfp,"Starting optimization %d\n",gtmopt->schema);
+    printf("Starting optimization %d, optgm=%d\n",gtmopt->schema,gtmopt->optgm);
+    fprintf(logfp,"Starting optimization %d, optgm=%d\n",gtmopt->schema,gtmopt->optgm);
     gtmopt_powell = gtmopt;
     int RescaleSave = gtm->rescale;
     gtm->rescale = 0; // important to turn off
@@ -1113,11 +1115,12 @@ static int parse_commandline(int argc, char **argv) {
     else if(!strcasecmp(option, "--debug"))   debug = 1;
     else if(!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if(!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    else if(!strcasecmp(option, "--no-vox-frac-cor")) gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--gtmmat")) DoGTMMat = 1;
     else if(!strcasecmp(option, "--no-gtmmat")) DoGTMMat = 0;
-    else if(!strcasecmp(option, "--no-vox-frac")) gtm->DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--no-tfe"))      gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-vfc"))      gtm->DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--no-vox-frac")) gtm->DoVoxFracCor=0;
+    else if(!strcasecmp(option, "--no-vox-frac-cor")) gtm->DoVoxFracCor=0;
     else if(!strcasecmp(option, "--no-gm-rvar"))  DoGMRvar = 0;
     else if(!strcasecmp(option, "--sim-anat-seg"))  DoSimAnatSeg=1;
     else if (!strcasecmp(option, "--chunk")) setenv("FS_USE_MRI_CHUNK","1",1);
@@ -1247,6 +1250,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%lf",&gtmopt->linmintol);
       nargsused = 3;
     }
+    else if(!strcasecmp(option, "--opt-gm")) gtmopt->optgm = 1;
     else if(!strcasecmp(option, "--psf")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&psfFWHM);
@@ -1575,7 +1579,7 @@ static void print_usage(void) {
   printf("   --no-rescale   : do not global rescale such that mean of reference region is scaleref\n");
   printf("   --scale-refval refval : scale such that mean in reference region is refval\n");
   printf("\n");
-  printf("   --no-vox-frac-cor : do not use voxel fraction correction (with --psf 0 turns off PVC entirely)\n");
+  printf("   --no-tfe : do not correction for tissue fraction effect (with --psf 0 turns off PVC entirely)\n");
   printf("   --rbv             : perform RBV PVC\n");
   printf("   --rbv-res voxsize : set RBV voxel resolution (good for when standard res takes too much memory)\n");
   printf("   --mg gmthresh RefId1 RefId2 ...: perform Mueller-Gaertner PVC, gmthresh is min gm pvf bet 0 and 1\n");
@@ -1957,15 +1961,14 @@ double GTMcostPSF(GTM *gtm)
   if(gtm->X==NULL) exit(1);
 
   err=GTMsolve(gtm); 
+  GTMrvarGM(gtm);
   if(err) {
     // matrix not invertible
     gtm->rvarUnscaled->rptr[1][1] = 10e10;
     return(10e10);
   }
   //printf("   Build-and-Solve Time %4.1f sec\n",TimerStop(&timer)/1000.0);fflush(stdout);
-  GTMrvarGM(gtm);
-
-  fflush(stdout);
+  if(gtmopt->optgm) return(gtm->rvargm->rptr[1][1]);
   return(gtm->rvarUnscaled->rptr[1][1]);
 }
 /*--------------------------------------------------------------------------*/
