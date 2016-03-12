@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/03/12 00:54:15 $
-#    $Revision: 1.665 $
+#    $Date: 2016/03/12 22:28:56 $
+#    $Revision: 1.666 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -4014,7 +4014,6 @@ AC_OUTPUT([Makefile
            talairach_afd/Makefile
            talairach_avi/Makefile
            template/Makefile
-	   test_gcamcomputelabels_boost/Makefile
            test_makevol/Makefile
            test_window_env/Makefile
            tetgen/Makefile

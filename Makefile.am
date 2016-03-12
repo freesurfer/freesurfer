@@ -401,8 +401,7 @@ OTHERDIRS=\
 	fsfast \
 	matlab \
 	qdec_glmfit \
-	cudatest \
-	test_gcamcomputelabels_boost
+	cudatest
 
 # these have lots of files, each will maximize the multi-threaded make option (-j)
 BIGDIRS=\
