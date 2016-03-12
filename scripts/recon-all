@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2016/03/04 21:19:46 $
-#    $Revision: 1.570 $
+#    $Author: mreuter $
+#    $Date: 2016/03/09 22:17:32 $
+#    $Revision: 1.572 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.570 2016/03/04 21:19:46 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.572 2016/03/09 22:17:32 mreuter Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -4185,8 +4185,9 @@ if($DoT2pial || $DoFLAIRpial) then
     # both regular and long processing:
 
     # actually map the input (and make conform as the T1 target)
+    # this creates the ${t2flair}.prenorm.mgz
     set mapcmd = (mri_convert \
-        -odt short \
+        -odt float \
         -at $mdir/transforms/${t2flair}raw.lta)
     if($UseCubic) set mapcmd = ($mapcmd -rt cubic -ns 1)
     set mapcmd = ($mapcmd -rl $mdir/orig.mgz )
@@ -4198,16 +4199,29 @@ if($DoT2pial || $DoFLAIRpial) then
 
     # then give the T2/FLAIR a little normalizing
     # note: pre-normalized file remains for debug, with .prenorm in name
+    # this creates ${t2flair}.norm.mgz
     set normcmd = (mri_normalize \
         -sigma 0.5 -nonmax_suppress 0 -min_dist 1 \
         -aseg $mdir/aseg.presurf.mgz \
         -surface $sdir/rh.white identity.nofile \
         -surface $sdir/lh.white identity.nofile \
         $mdir/${t2flair}.prenorm.mgz \
-        $mdir/${t2flair}.mgz)
+        $mdir/${t2flair}.norm.mgz)
     echo "\n $normcmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $normcmd |& tee -a $LF
     if($status) goto error_exit;
+    
+    # then mask the T2/FLAIR 
+    # note: post-normalized file remains for debug, with .norm in name
+    # this creates ${t2flair}.mgz
+    set maskcmd = (mri_mask \
+        $mdir/${t2flair}.norm.mgz \
+        $mdir/brainmask.mgz \
+        $mdir/${t2flair}.mgz)
+    echo "\n $maskcmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $maskcmd |& tee -a $LF
+    if($status) goto error_exit;
+    
   endif
 
   set CMDFS = () # see earlier notes on -parallel implementation
