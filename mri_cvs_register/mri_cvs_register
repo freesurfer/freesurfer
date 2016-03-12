@@ -21,8 +21,8 @@
 #
 # CVS Revision Info:
 #    $Author: lzollei $
-#    $Date: 2015/01/07 15:41:40 $
-#    $Revision: 1.47 $
+#    $Date: 2016/03/06 21:31:56 $
+#    $Revision: 1.48 $
 #
 # Copyright © 2010-2012 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -36,7 +36,7 @@
 #
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.47 2015/01/07 15:41:40 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.48 2016/03/06 21:31:56 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -57,7 +57,7 @@ set BothHemis = 1
 set CleanSurfReg = 0
 set CleanElReg = 0
 set CleanVolReg = 0
-set openmpN = 1
+set openmpN = 0
 
 set FStemplate = cvs_avg35
 set usingFStemplate = 0
@@ -92,7 +92,10 @@ if (($UseAseg == 0) && ($UseInt == 0)) then
 endif
 
 ### 
-setenv OMP_NUM_THREADS $openmpN
+if ($openmpN > 0 ) then 
+  unsetenv OMP_NUM_THREADS
+  setenv OMP_NUM_THREADS $openmpN
+endif
 ###
 
 set StartTime = `date`;
