@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/29 17:07:52 $
- *    $Revision: 1.320 $
+ *    $Date: 2016/03/07 21:10:12 $
+ *    $Revision: 1.322 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -757,6 +757,15 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     //  return false;
     }
   }
+  if (parser->Found("layout", &sa))
+  {
+      int n = sa[0].toInt()-1;
+      if (n < 0)
+          n = 0;
+      else if (n > 3)
+          n = 3;
+      SetViewLayout(n);
+  }
   if (parser->Found("timecourse"))
   {
     ui->actionTimeCourse->setChecked(true);
@@ -1093,6 +1102,11 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
   if (parser->Found("fly", &sa))
   {
 
+  }
+
+  if (parser->Found("hide-3d-slices", &sa) )
+  {
+      ((RenderView3D*)m_views[3])->HideSlices();
   }
 
   if ( parser->Found("quit"))
@@ -1489,6 +1503,10 @@ void MainWindow::RunScript()
   {
     CommandLoadROI( sa );
   }
+  else if ( cmd == "gotoroi")
+  {
+    OnGoToROI(true);
+  }
   else if ( cmd == "loadwaypoints" )
   {
     CommandLoadWayPoints( sa );
@@ -1594,9 +1612,17 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceOverlayOpacity( sa );
   }
+  else if ( cmd == "setsurfaceoverlayframe")
+  {
+    CommandSetSurfaceOverlayFrame( sa );
+  }
   else if ( cmd == "setsurfaceoffset" )
   {
     CommandSetSurfaceOffset( sa );
+  }
+  else if ( cmd == "gotosurfacevertex")
+  {
+    CommandGoToSurfaceVertex( sa );
   }
   else if ( cmd == "setpointsetcolor" )
   {
@@ -1646,6 +1672,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceLabelColor( sa );
   }
+  else if (cmd == "gotosurfacelabel")
+  {
+    OnGoToSurfaceLabel(true);
+  }
   else if ( cmd == "setsurfaceannotationoutline" )
   {
     CommandSetSurfaceAnnotationOutline( sa );
@@ -1664,7 +1694,7 @@ void MainWindow::RunScript()
   }
   else if ( cmd == "gotolabel" || cmd == "gotostructure")
   {
-    CommandGotoLabel( sa );
+    CommandGoToLabel( sa );
   }
   else if (cmd == "showcolorscale")
   {
@@ -2574,6 +2604,10 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
       {
         threshold = argu.toDouble();
       }
+      else if (option == "centroid")
+      {
+        AddScript(QStringList("gotoroi"));
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
@@ -2610,7 +2644,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QStringList sup_files;
   QStringList valid_overlay_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold"
-                        << "overlay_rh" << "overlay_opacity" << "overlay_colormap";
+                        << "overlay_rh" << "overlay_opacity" << "overlay_colormap" << "overlay_frame";
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
     QStringList sa_fn = overlay_list[nOverlay].split(":");
@@ -2621,6 +2655,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QString labelColor;
     QString overlay_reg;
     QString overlay_opacity;
+    QString overlay_frame;
     QString overlay_method = "linearopaque";
     QStringList overlay_colormap;
     QStringList overlay_thresholds;
@@ -2644,6 +2679,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           overlay_opacity = subArgu;
         else if (subOption == "overlay_colormap")
           overlay_colormap = subArgu.split(",", QString::SkipEmptyParts);
+        else if (subOption == "overlay_frame")
+          overlay_frame = subArgu;
       }
     }
     if (overlay_reg.isEmpty())
@@ -2714,6 +2751,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
 
           if (!overlay_colormap.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlaycolormap") << overlay_colormap);
+
+          if (!overlay_frame.isEmpty())
+            m_scripts.insert(1, QStringList("setsurfaceoverlayframe") << overlay_frame);
         }
         else if ( subOption == "annot" || subOption == "annotation" )
         {
@@ -2775,6 +2815,20 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             }
           }
         }
+        else if (subOption == "label_centroid" || subOption == "labelcentroid")
+        {
+          if (!subArgu.isEmpty())
+          {
+            for (int i = 0; i < m_scripts.size(); i++)
+            {
+              if (m_scripts[i][0] == "loadsurfacelabel")
+              {
+                m_scripts.insert(i+1, QStringList("gotosurfacelabel"));
+                break;
+              }
+            }
+          }
+        }
         else if ( subOption == "vector" )
         {
           // add script to load surface vector files
@@ -2828,6 +2882,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         else if (subOption == "sup_files")
         {
           sup_files = subArgu.split(",",  QString::SkipEmptyParts);
+        }
+        else if (subOption == "goto")
+        {
+          m_scripts.insert(0, QStringList("gotosurfacevertex") << subArgu);
         }
         else if ( !valid_overlay_options.contains(subOption) )
         {
@@ -3145,6 +3203,30 @@ void MainWindow::CommandSetSurfaceOverlayOpacity(const QStringList &cmd)
   }
 }
 
+void MainWindow::CommandSetSurfaceOverlayFrame(const QStringList &cmd)
+{
+    LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+    if ( surf )
+    {
+      SurfaceOverlay* overlay = surf->GetActiveOverlay();
+      if ( overlay )
+      {
+        bool ok;
+        int frame = cmd[1].toInt(&ok);
+        if (ok)
+        {
+          overlay->SetActiveFrame(frame);
+          surf->UpdateOverlay(true);
+          overlay->EmitDataUpdated();
+        }
+        else
+        {
+          cerr << "Invalid input for overlay frame.\n";
+        }
+      }
+    }
+}
+
 void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
 {
   QStringList cmd = cmd_in;
@@ -3358,6 +3440,30 @@ void MainWindow::CommandSetDisplaySurfaceVertex(const QStringList &cmd)
   }
 }
 
+void MainWindow::CommandGoToSurfaceVertex(const QStringList &cmd)
+{
+    LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+    if ( surf )
+    {
+      bool bOK;
+      int nVertex = cmd[1].toInt(&bOK);
+      if ( !bOK )
+      {
+        cerr << "Invalid edge thickness value. Must be a integer.\n";
+      }
+      else
+      {
+        double pos[3];
+        if (surf->GetTargetAtVertex(nVertex, pos))
+        {
+            this->GetMainView()->CenterAtWorldPosition(pos);
+            GetLayerCollection("MRI")->SetCursorRASPosition( pos );
+            SetSlicePosition(pos);
+        }
+      }
+    }
+}
+
 void MainWindow::CommandSetSurfaceVertexColor(const QStringList &cmd)
 {
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
@@ -3420,7 +3526,7 @@ void MainWindow::CommandSetSurfaceOffset( const QStringList& cmd )
   }
 }
 
-void MainWindow::CommandGotoLabel(const QStringList &cmd)
+void MainWindow::CommandGoToLabel(const QStringList &cmd)
 {
   LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
   if ( mri )
@@ -5090,6 +5196,7 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   LayerSurface* layer = new LayerSurface( m_layerVolumeRef );
   connect(layer, SIGNAL(CurrentVertexChanged(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
   connect(ui->treeWidgetCursorInfo, SIGNAL(VertexChangeTriggered(int)), m_wndGroupPlot, SLOT(SetCurrentVertex(int)), Qt::UniqueConnection);
+  connect(layer, SIGNAL(SurfaceOverlyDataUpdated()), ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::UniqueConnection);
   layer->SetName( fi.fileName() );
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
@@ -6759,21 +6866,27 @@ QList<Layer*> MainWindow::GetSelectedLayers(const QString &layerType)
   return ui->widgetAllLayers->GetSelectedLayers(layerType);
 }
 
-void MainWindow::OnGoToROI()
+void MainWindow::OnGoToROI(bool center)
 {
   LayerROI* roi = (LayerROI*)GetActiveLayer("ROI");
   double pos[3];
   if (roi && roi->GetCentroidPosition(pos))
+  {
     SetSlicePosition(pos);
+    if (center)
+        GetMainView()->CenterAtWorldPosition(pos);
+  }
 }
 
-void MainWindow::OnGoToSurfaceLabel()
+void MainWindow::OnGoToSurfaceLabel(bool center)
 {
   LayerSurface* surf = (LayerSurface*)GetActiveLayer("Surface");
   double pos[3];
   if (surf && surf->GetActiveLabelCentroidPosition(pos))
   {
     SetSlicePosition(pos);
+    if (center)
+        GetMainView()->CenterAtWorldPosition(pos);
   }
 }
 

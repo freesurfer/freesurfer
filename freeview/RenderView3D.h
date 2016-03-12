@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/29 21:01:06 $
- *    $Revision: 1.44 $
+ *    $Date: 2016/03/07 20:17:21 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -128,6 +128,7 @@ public slots:
   void UpdateSurfaceCorrelationData();
   void SetShowAllSlices(bool bShow);
   void OnShowSlice(bool bShow = true);
+  void HideSlices();
   void ResetViewLeft();
   void ResetViewRight();
   void ResetViewSuperior();

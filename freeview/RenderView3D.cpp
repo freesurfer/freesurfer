@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/29 21:17:52 $
- *    $Revision: 1.83 $
+ *    $Date: 2016/03/07 20:17:21 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1290,6 +1290,14 @@ void RenderView3D::OnShowSlice(bool bShow)
     SetShowSliceFrames(m_bShowSliceFrames);
     RefreshAllActors();
   }
+}
+
+void RenderView3D::HideSlices()
+{
+    for (int i = 0; i < 3; i++)
+      m_bSliceVisibility[i] = false;
+    SetShowSliceFrames(false);
+    RefreshAllActors();
 }
 
 void RenderView3D::SetCamera(const QVariantMap &info)

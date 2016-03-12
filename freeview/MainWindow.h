@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/26 21:05:01 $
- *    $Revision: 1.164 $
+ *    $Date: 2016/03/07 21:10:12 $
+ *    $Revision: 1.166 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -343,12 +343,14 @@ protected:
   void CommandSetSurfaceOverlayMethod     ( const QStringList& cmd );
   void CommandSetSurfaceOverlayColormap   ( const QStringList& cmd );
   void CommandSetSurfaceOverlayOpacity    ( const QStringList& cmd );
+  void CommandSetSurfaceOverlayFrame      ( const QStringList& cmd );
   void CommandSetSurfaceColor   ( const QStringList& cmd );
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
   void CommandSetSurfaceEdgeThickness ( const QStringList& cmd );
   void CommandSetSurfaceOffset  ( const QStringList& cmd );
   void CommandSetSurfaceLabelOutline   ( const QStringList& cmd );
   void CommandSetSurfaceAnnotationOutline   ( const QStringList& cmd );
+  void CommandGoToSurfaceVertex        ( const QStringList& cmd );
   void CommandSetDisplaySurfaceVertex  ( const QStringList& cmd );
   void CommandSetSurfaceVertexColor ( const QStringList& cmd );
   void CommandSetSurfaceLabelColor  ( const QStringList& cmd );
@@ -366,7 +368,7 @@ protected:
   void CommandSetLayerName      ( const QStringList& cmd );
   void CommandSetVolumeMask     ( const QStringList& cmd );
   void CommandSetSmoothed       ( const QStringList& cmd );
-  void CommandGotoLabel         ( const QStringList& cmd );
+  void CommandGoToLabel         ( const QStringList& cmd );
   void CommandSaveLayer         ( const QStringList& cmd );
 
 public:
@@ -461,10 +463,10 @@ protected slots:
   void OnPlot();
   void OnLineProfile();
   void OnCycleSurfaceLabel();
-  void OnGoToROI();
+  void OnGoToROI(bool center = false);
   void OnLoadFCD();
   void OnCloseFCD();
-  void OnGoToSurfaceLabel();
+  void OnGoToSurfaceLabel(bool center = false);
 
   void OnViewSetCamera();
 
