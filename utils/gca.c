@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/02/25 15:30:40 $
- *    $Revision: 1.341 $
+ *    $Date: 2016/03/11 16:42:01 $
+ *    $Revision: 1.342 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1258,16 +1258,16 @@ GCAvoxelToPrior( const GCA *gca, const MRI *mri,
 
   GCAvoxelToPriorReal(gca, mri, xv, yv, zv, &xp, &yp, &zp);
 
-#if 0 // USE_ROUND
+#if  USE_ROUND
   ixp = (int) nint(xp);
   iyp = (int) nint(yp);
   izp = (int) nint(zp);
   if (ixp >= gca->prior_width)
-    ixp = gca->prior_width ;
+    ixp = gca->prior_width-1 ;
   if (iyp >= gca->prior_height)
-    iyp = gca->prior_height ;
+    iyp = gca->prior_height-1 ;
   if (izp >= gca->prior_depth)
-    izp = gca->prior_depth ;
+    izp = gca->prior_depth-1 ;
 #else
   ixp = (int) floor(xp);
   iyp = (int) floor(yp);
@@ -1443,9 +1443,9 @@ GCAsourceVoxelToPrior( const GCA *gca, MRI *mri, TRANSFORM *transform,
 {
   float   xt, yt, zt ;
   double    xrt, yrt, zrt;
-  int     retval ;
-
+  int     retval = NO_ERROR ;
   LTA *lta;
+
   if (transform->type != MORPH_3D_TYPE)
   {
     if (transform->type == LINEAR_VOX_TO_VOX)
@@ -1521,7 +1521,7 @@ GCAsourceVoxelToPrior( const GCA *gca, MRI *mri, TRANSFORM *transform,
   {
     *pzp = gca->prior_depth-1 ;
   }
-  return (NO_ERROR) ;
+  return (retval) ;
 }
 
 int
@@ -6434,7 +6434,7 @@ GCAfindStableSamples(GCA *gca,
 
   if (vent_spacing > 0)
   {
-    MRI *mri_labels = GCAbuildMostLikelyLabelVolume(gca) ;
+    MRI *mri_labels = GCAbuildMostLikelyLabelVolume(gca, NULL) ;
     MRI *mri_vent ;
     mri_vent = MRIclone(mri_labels, NULL) ;
     MRIcopyLabel(mri_labels, mri_vent, Left_Lateral_Ventricle) ;
@@ -17202,8 +17202,8 @@ GCAcomputeMAPlabelAtLocation(GCA *gca, int xp, int yp, int zp, float *vals,
     // calculate log_p
     log_p = gcaComputeLogDensity(gc,vals,
                                  gca->ninputs,
-                                 gcap->labels[n],
-                                 gcap->priors[n]);
+                                 gcap->priors[n],
+                                 gcap->labels[n]); 
     if (log_p > max_log_p)
     {
       max_log_p = log_p ;
@@ -26619,7 +26619,7 @@ static void  set_equilavent_classes(int *equivalent_classes)
 }
 
 
-MRI *GCAbuildMostLikelyLabelVolume(GCA *gca)
+MRI *GCAbuildMostLikelyLabelVolume(GCA *gca, MRI *mri)
 {
   /* this function creates a label volume and will be used to register
      a subject's manual label to it, as a way to get linear registration
@@ -26627,24 +26627,25 @@ MRI *GCAbuildMostLikelyLabelVolume(GCA *gca)
   int       x,  y, z, xn, yn, zn, width, depth, height, n, xp, yp, zp;
   GCA_NODE  *gcan ;
   GCA_PRIOR *gcap ;
-  MRI *mri;
   double    max_prior ;
   int       max_label ;
 
 #if 1
-  mri = MRIallocSequence(gca->prior_width, gca->prior_height,
-                         gca->prior_depth, MRI_FLOAT, gca->ninputs) ;
-  // hey create gca volume and thus copies gca prior values
-  mri->xsize = gca->xsize*gca->prior_spacing ;
-  mri->ysize = gca->ysize*gca->prior_spacing ;
-  mri->zsize = gca->zsize*gca->prior_spacing ;
-  // most likely volume should agree with direction cosines
-  GCAcopyDCToMRI(gca, mri);
+  if (mri == NULL)
+  {
+    mri = MRIallocSequence(gca->prior_width, gca->prior_height,
+			   gca->prior_depth, MRI_FLOAT, gca->ninputs) ;
+    // hey create gca volume and thus copies gca prior values
+    mri->xsize = gca->xsize*gca->prior_spacing ;
+    mri->ysize = gca->ysize*gca->prior_spacing ;
+    mri->zsize = gca->zsize*gca->prior_spacing ;
+    // most likely volume should agree with direction cosines
+    GCAcopyDCToMRI(gca, mri);
+  }
 #else
-
-  // most likely label volume should agree with direction cosines
+    
+    // most likely label volume should agree with direction cosines
   mri = MRIalloc(gca->width, gca->height, gca->depth, MRI_SHORT);
-
   mri->xsize = gca->xsize;
   mri->ysize = gca->ysize;
   mri->zsize = gca->zsize;

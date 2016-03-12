@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/06/08 18:17:24 $
- *    $Revision: 1.421 $
+ *    $Author: fischl $
+ *    $Date: 2016/03/11 16:43:25 $
+ *    $Revision: 1.422 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -15128,9 +15128,19 @@ readGCA(const char *fname, int start_frame, int end_frame)
     return(NULL) ;
   printf("reading frame %d of gca\n", start_frame) ;
   if (start_frame < 1)
-    mri = GCAbuildMostLikelyVolume(gca, NULL) ;
+  {
+    mri = MRIallocSequence(gca->width, gca->height, gca->depth, MRI_FLOAT, 1) ;
+    MRIsetResolution(mri, gca->xsize, gca->ysize, gca->zsize) ;
+    GCAcopyDCToMRI(gca, mri);
+    GCAbuildMostLikelyVolume(gca, mri) ;
+  }
   else if (start_frame < 2)
-    mri = GCAbuildMostLikelyLabelVolume(gca) ;
+  {
+    mri = MRIallocSequence(gca->width, gca->height, gca->depth, MRI_SHORT, 1) ;
+    MRIsetResolution(mri, gca->xsize, gca->ysize, gca->zsize) ;
+    GCAcopyDCToMRI(gca, mri);
+    GCAbuildMostLikelyLabelVolume(gca, mri) ;
+  }
   else 
   {
     printf("interpreting as probability volume\n") ;
