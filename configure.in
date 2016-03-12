@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2016/02/29 19:36:09 $
-#    $Revision: 1.664 $
+#    $Author: zkaufman $
+#    $Date: 2016/03/12 00:54:15 $
+#    $Revision: 1.665 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1686,7 +1686,7 @@ if test "x$BOOST_DIR" = "x"; then
   # if a Boost root was not supplied, but one exists in the
   # default packages path at the NMR Center, AND this is a mac,
   # then use that:
-  if test "$OS" = "Darwin"; then
+  # if test "$OS" = "Darwin"; then
     if test -d "${PACKAGES_DIR}/boost/current" ; then
       withval=${PACKAGES_DIR}/boost/current
       BOOST_DIR="$withval"
@@ -1695,7 +1695,7 @@ if test "x$BOOST_DIR" = "x"; then
       ac_boost_includes="$boost_i"
       ac_boost_libraries="$withval"/lib
     fi
-  fi
+  # fi
 fi
 
 AC_ARG_WITH(boost-include,
