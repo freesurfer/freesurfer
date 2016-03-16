@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/07/06 21:58:51 $
- *    $Revision: 1.78 $
+ *    $Date: 2016/03/14 15:15:34 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,7 @@
 #include "mrisutils.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.78 2015/07/06 21:58:51 greve Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.79 2016/03/14 15:15:34 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -100,7 +100,7 @@ static int DoGlobalStats = 1;
 
 #define MAX_INDICES 50000
 static char *names[MAX_INDICES];
-int UseTH3Vol = 0;
+int UseTH3Vol = 1;
 
 int
 main(int argc, char *argv[])
@@ -125,7 +125,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.78 2015/07/06 21:58:51 greve Exp $",
+           "$Id: mris_anatomical_stats.c,v 1.79 2016/03/14 15:15:34 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
