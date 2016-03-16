@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2016/03/15 21:17:52 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,8 @@
 #define TERMWIDGET_H
 
 #include <QWidget>
+#include <QSocketNotifier>
+#include <unistd.h> //Provides STDIN_FILENO
 
 namespace Ui
 {
@@ -116,6 +118,7 @@ public slots:
 protected slots:
   void OnCommandTriggered(const QString& cmd);
   void OnTimeOut();
+  void OnStdinActivated();
 
 private:
   void ScrollToBottom();
@@ -128,6 +131,7 @@ private:
   QString           m_bufferStdErr;
   QString           m_strLogColor;
   QString           m_strErrorColor;
+  QSocketNotifier   m_stdinNotifier;
 
   bool    m_bRedirectStdOutput;
   bool    m_bDuplicateStdOutput;

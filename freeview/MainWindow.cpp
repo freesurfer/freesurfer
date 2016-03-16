@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/07 21:10:12 $
- *    $Revision: 1.322 $
+ *    $Date: 2016/03/15 21:17:52 $
+ *    $Revision: 1.323 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1707,6 +1707,10 @@ void MainWindow::RunScript()
   else if (cmd == "savelayer")
   {
     CommandSaveLayer(sa);
+  }
+  else
+  {
+    cerr << "Command '" << qPrintable(cmd) << "' is not recognized." << endl;
   }
   m_bScriptRunning = false;
 }

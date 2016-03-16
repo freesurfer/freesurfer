@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/04 18:12:43 $
- *    $Revision: 1.5 $
+ *    $Date: 2016/03/15 21:17:52 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,7 +54,8 @@ TermWidget::TermWidget(QWidget *parent) :
   QWidget(parent),
   ui(new Ui::TermWidget),
   m_stdOut(0),
-  m_stdErr(0)
+  m_stdErr(0),
+  m_stdinNotifier(STDIN_FILENO, QSocketNotifier::Read)
 {
   ui->setupUi(this);
   setWindowFlags( Qt::Tool );
@@ -85,6 +86,8 @@ TermWidget::TermWidget(QWidget *parent) :
   QTimer* timer = new QTimer(this);
   connect(timer, SIGNAL(timeout()), this, SLOT(OnTimeOut()));
   timer->start(200);
+
+  connect(&m_stdinNotifier, SIGNAL(activated(int)), this, SLOT(OnStdinActivated()));
 }
 
 TermWidget::~TermWidget()
@@ -150,7 +153,7 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
   ScrollToBottom();
   m_bufferStdOut.clear();
   m_bufferStdErr.clear();
-  QStringList args = cmd.split(" ");
+  QStringList args = cmd.split(" ", QString::SkipEmptyParts);
   if (Known_Shell_Cmds.contains(args[0].toLower()))
   {
     AppendErrorString("This is not a shell. Only freeview commands are supported. Type '-h' for all the available commands.\n");
@@ -161,12 +164,32 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
   }
   else
   {
-    MainWindow::GetMainWindow()->ParseCommand(QString("freeview ") + strg);
+    if (strg[0] == '-')
+        MainWindow::GetMainWindow()->ParseCommand(QString("freeview ") + strg);
+    else
+        MainWindow::GetMainWindow()->AddScript(strg.split(" ", QString::SkipEmptyParts));
     if ( MainWindow::GetMainWindow()->IsBusy())
     {
       AppendErrorString("Still busy. Command is added to queue and will be executed later.\n");
     }
   }
+}
+
+void TermWidget::OnStdinActivated()
+{
+    m_stdinNotifier.setEnabled(false);
+
+    char sbuf[8192];
+    fgets(sbuf, sizeof(sbuf), stdin);
+    fflush(stdin);
+
+    QString line = QString::fromUtf8(sbuf).trimmed();
+    if (line.indexOf("freeview") == 0)
+    {
+        line = line.mid(8).trimmed();
+        OnCommandTriggered(line);
+    }
+    m_stdinNotifier.setEnabled(true);
 }
 
 void TermWidget::OnTimeOut()
