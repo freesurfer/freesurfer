@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/26 20:01:43 $
- *    $Revision: 1.294 $
+ *    $Author: fischl $
+ *    $Date: 2016/03/15 12:28:30 $
+ *    $Revision: 1.295 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7100,6 +7100,8 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
       {
         gcamn = &gcam->nodes[x][y][z] ;
 
+        if ((FZERO(gcamn->orig_area) || !devFinite(gcamn->area/gcamn->orig_area)) && gcamn->invalid == GCAM_VALID)
+	  DiagBreak() ;
 #if 0
         if (FZERO(gcamn->orig_area))
         {
@@ -7138,6 +7140,8 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
           xmax = x ;
           ymax = y ;
           zmax = z ;
+	  if (gcamn->invalid != GCAM_VALID || FZERO(gcamn->orig_area))
+	    DiagBreak() ;
         }
 	if (norm > parms->max_grad)
 	{
@@ -8382,12 +8386,12 @@ GCAMbuildMostLikelyVolume(GCA_MORPH *gcam, MRI *mri)
   // error check
   if (!mri)
     ErrorExit
-    (ERROR_BADPARM, "GCAbuildMostLikelyVolume called with null MRI.\n");
+    (ERROR_BADPARM, "GCAMbuildMostLikelyVolume called with null MRI.\n");
   if (mri->width != gcam->atlas.width
       || mri->height != gcam->atlas.height
       || mri->depth != gcam->atlas.depth)
     ErrorExit(ERROR_BADPARM, \
-              "GCAbuildMostLikelyVolume called with mri dimension "
+              "GCAMbuildMostLikelyVolume called with mri dimension "
               "being different from M3D.\n");
 
   // set direction cosines etc.
@@ -8529,12 +8533,12 @@ GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri)
   // error check
   if (!mri)
     ErrorExit
-    (ERROR_BADPARM, "GCAbuildMostLikelyVolume called with null MRI.\n");
+    (ERROR_BADPARM, "GCAMbuildVolume called with null MRI.\n");
   if (mri->width != gcam->atlas.width
       || mri->height != gcam->atlas.height
       || mri->depth != gcam->atlas.depth)
     ErrorExit(ERROR_BADPARM, \
-              "GCAbuildMostLikelyVolume called with mri dimension "
+              "GCAMbuildVolume called with mri dimension "
               "being different from M3D.\n");
 
   // set direction cosines etc.
@@ -8580,7 +8584,7 @@ GCAMbuildVolume(GCA_MORPH *gcam, MRI *mri)
               ErrorReturn
               (NULL,
                (ERROR_UNSUPPORTED,
-                "GCAMbuildMostLikelyVolume: unsupported image type %d",
+                "GCAMbuildVolume: unsupported image type %d",
                 mri->type)) ;
               break ;
             case MRI_SHORT:
@@ -8779,6 +8783,8 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
         MRIFvox(gcam->mri_zind, x, y, z) =
           MRIFvox(gcam->mri_zind, x, y, z)/(float)num ;
         MRIvox(mri_ctrl, x, y, z) = CONTROL_MARKED ;
+	if (num < .1)
+	  MRIsetVoxVal(mri_ctrl, x, y, z, 0, 0) ;
       }
     }
   }
@@ -10404,77 +10410,60 @@ void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
         */
         if (y == 0 || y == gcam->height-1 ||
             gcamn->y == 0 || gcamn->y == mri->height-1)
-        {
           continue;
-        }
 
         if( !IS_HIPPO(gcamn->label) && !IS_WM(gcamn->label) )
-        {
           continue;
-        }
 
         if ( !IS_WM(gcamn->label) )     /* only do white matter for now */
-        {
           continue;
-        }
 
-        if (fabs(2*x-107) <= 2 && fabs(2*y-162)<=2 && fabs(2*z-133)<=2)
-        {
-          DiagBreak() ;
-        }
-
+	if ((x == Gx && y == Gy && z == Gz) ||
+	    (x == Gx && (y-1) == Gy && z == Gz) ||
+	    (x == Gx && (y+1) == Gy && z == Gz))
+	  DiagBreak() ;
         gcamn_inf = &gcam->nodes[x][y+1][z] ;
         gcamn_sup = &gcam->nodes[x][y-1][z] ;
         if (
           ((IS_HIPPO(gcamn->label) && IS_WM(gcamn_inf->label)) ||
            (IS_WM(gcamn->label) && IS_HIPPO(gcamn_sup->label))) == 0)
-        {
           continue ;  /* only hippo above wm, or wm below hippo */
-        }
 
         if (nint(gcamn->x) == Gsx && nint(gcamn->z) == Gsz)
-        {
           DiagBreak() ;
-        }
+
+#if 0
+	load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs);
+        if (sqrt(GCAmahDist(gcamn->gc, vals, gcam->ninputs) < 0.25))  // added BRF 3/11/2016
+	  continue ;  // current label already explains intensities quite well
+#endif
+
         if (IS_HIPPO(gcamn->label))
-        {
           load_vals(mri, gcamn->x, gcamn->y+1, gcamn->z, vals, gcam->ninputs);
-        }
         else
-        {
           load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs);
-        }
 
 #if 0
         label = gcamMLElabelAtLocation(gcam, x, y, z, vals) ;
         if (IS_WM(label))  /* already has wm immediately inferior */
-        {
           continue ;
-        }
 #endif
         if (GCApriorToNode(gcam->gca, x, y, z, &xn, &yn, &zn) != NO_ERROR)
-        {
           continue ;
-        }
 
         if ((IS_HIPPO(gcamn->label) && gcamn->label == Left_Hippocampus) ||
             (IS_WM(gcamn->label) &&
              gcamn->label == Left_Cerebral_White_Matter))
-        {
           wm_label = Left_Cerebral_White_Matter ;
-        }
         else
-        {
           wm_label = Right_Cerebral_White_Matter ;
-        }
 
         wm_gc = GCAfindPriorGC(gcam->gca, x, y, z, wm_label) ;
 
         if (wm_gc == NULL)
-        {
           continue;
-        }
 
+	  
         gcan = GCAbuildRegionalGCAN(gcam->gca, xn, yn, zn, 3) ;
 
         // ventral DC is indistinguishible from temporal wm pretty much
@@ -10498,9 +10487,7 @@ void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
         {
           yi = gcamn->y+yk ;   /* sample inferiorly */
           if ((yi >= (mri->height-1)) || (yi <= 0))
-          {
             break ;
-          }
 
           if (mri_twm && MRIgetVoxVal(mri_twm, nint(gcamn->x), nint(yi), nint(gcamn->z), 0) >0)
           {
@@ -10513,38 +10500,26 @@ void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
           if (yk < 0)
           {
             if (IS_CSF(best_label))
-            {
               sup_ven++ ;
-            }
             else if (sup_ven < 3/SAMPLE_DIST)
-            {
               sup_ven = 0 ;
-            }
           }
 
           if (IS_CSF(best_label) &&
               sup_ven > 2/SAMPLE_DIST && yk < 0)
             // shouldn't have to go through CSF to get to wm superiorly
-          {
             min_dist = label_dist+1 ;
-          }
 
           if (best_label != gcamn->label)
-          {
             continue ;
-          }
 
           if (yk < 0 && IS_WM(best_label))
-          {
             sup_wm = 1 ;
-          }
 
           if (fabs(yk) < fabs(min_dist))
           {
             if (is_temporal_wm(gcam, mri, gcan, gcamn->x, yi, gcamn->z, gcam->ninputs))
-            {
               min_dist = yk ;
-            }
           }
         }
 
@@ -10553,9 +10528,7 @@ void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
            wm above then it means the wm is partial-volumed
            and don't trust estimate */
         if (sup_ven && sup_wm == 0)
-        {
           min_dist = label_dist+1 ;
-        }
 
         if (min_dist > label_dist)  /* couldn't find any labels that match */
         {
@@ -10569,9 +10542,7 @@ void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
           {
             yi = gcamn->y+yk ;
             if ((yi >= (mri->height-1)) || (yi <= 0))
-            {
               break ;
-            }
 
             load_vals(mri, gcamn->x, yi, gcamn->z, vals, gcam->ninputs) ;
             log_p = GCAcomputeConditionalLogDensity
@@ -10617,18 +10588,17 @@ void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
           }
         }
 
+	if (fabs(min_dist) > 7)
+	  DiagBreak() ;
+
         if (x == Gx && y == Gy && z == Gz)
-        {
           DiagBreak() ;
-        }
+
         if (x == Gx && y == (Gy-1) && z == Gz)
-        {
           DiagBreak() ;
-        }
+
         if (x == Gx && y == (Gy+1) && z == Gz)
-        {
           DiagBreak() ;
-        }
 
         gcamn->label_dist = MRIFvox(mri_dist, x, y, z) = min_dist ;
 #if 1
@@ -18203,7 +18173,7 @@ GCAMbuildLabelVolume(GCA_MORPH *gcam, MRI *mri)
       || mri->height != gcam->atlas.height
       || mri->depth != gcam->atlas.depth)
     ErrorExit(ERROR_BADPARM, \
-              "GCAbuildMostLikelyVolume called with mri dimension "
+              "GCAMbuildLabelVolume called with mri dimension "
               "being different from M3D.\n");
 
   // set direction cosines etc.
