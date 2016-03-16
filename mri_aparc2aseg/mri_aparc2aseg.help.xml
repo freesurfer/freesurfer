@@ -68,6 +68,8 @@ Note: The volumes of the cortical labels will be different than reported by mris
       <explanation>print out information on how to use this program</explanation>
       <argument>--version</argument>
       <explanation>print out version and exit</explanation>
+      <argument>--smooth_normals niters</argument>
+      <explanation>Change default (10) number of surface normal smoothing steps. This is used to prevent speckling of inaccurate voxels due (e.g.) the closest pial vertex being on the opposite bank of a sulcus.</explanation>
       <argument>--crs-test c r s</argument>
       <explanation>test mapping of col row slice</explanation>
     </optional-flagged>

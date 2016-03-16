@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/01/20 17:58:27 $
- *    $Revision: 1.46 $
+ *    $Author: fischl $
+ *    $Date: 2016/03/14 12:39:19 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.46 2015/01/20 17:58:27 greve Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.47 2016/03/14 12:39:19 fischl Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -109,6 +109,7 @@ static char *asegname = "aseg";
 static int baseoffset = 0;
 static float hashres = 16;
 
+static int normal_smoothing_iterations = 10 ;
 int crsTest = 0, ctest=0, rtest=0, stest=0;
 int UseHash = 1;
 
@@ -422,6 +423,11 @@ int main(int argc, char **argv)
   annotid = 0;
   nbrute = 0;
 
+  MRISsmoothSurfaceNormals(lhwhite, normal_smoothing_iterations) ;
+  MRISsmoothSurfaceNormals(lhpial, normal_smoothing_iterations) ;
+  MRISsmoothSurfaceNormals(rhpial, normal_smoothing_iterations) ;
+  MRISsmoothSurfaceNormals(rhwhite, normal_smoothing_iterations) ;
+
   // Go through each voxel in the aseg
   for (c=0; c < ASeg->width; c++){
     printf("%3d ",c);
@@ -429,6 +435,9 @@ int main(int argc, char **argv)
     fflush(stdout);
     for (r=0; r < ASeg->height; r++)    {
       for (s=0; s < ASeg->depth; s++)      {
+	if (c == Gx && r == Gy && s == Gz)
+	  DiagBreak() ;
+
         asegid = MRIgetVoxVal(ASeg,c,r,s,0);
         if(asegid == 3 || asegid == 42) IsCortex = 1;
         else                            IsCortex = 0;
@@ -534,22 +543,83 @@ int main(int argc, char **argv)
           rhpvtx = MRISfindClosestVertex(rhpial,vtx.x,vtx.y,vtx.z,&drhp);
         }
 
+	/* added some checks here to make sure closest vertex (usually pial but can be white) isn't on
+	   the other bank of a sulcus or through a thin white matter strand. This removes inaccurate voxels
+	   that used to speckle the aparc+aseg
+	*/
         if (lhwvtx < 0)
         {
           dlhw = 1000000000000000.0;
         }
+	else
+	{
+	  double dx, dy, dz, nx, ny, nz, xv, yv, zv, x1, y1, z1, dot ;
+	  VERTEX *v ;
+	  v = &lhwhite->vertices[lhwvtx] ;
+	  MRISvertexToVoxel(lhwhite, v, AParc, &xv, &yv, &zv) ;
+	  x1 = v->x + v->nx ;  y1 = v->y + v->ny ; z1 = v->z + v->nz ; 
+	  MRISsurfaceRASToVoxel(lhwhite, AParc, x1, y1, z1, &nx, &ny, &nz) ;
+	  nx -= xv ; ny -= yv ; nz -= zv ;  // normal in voxel coords
+	  dx = c-xv ; dy = r-yv ; dz = s-zv ;
+	  dot = dx*nx + dy*ny + dz*nz ;
+	  if (dot < 0)
+	    dlhw = 1000000000000000.0;
+	}
         if (lhpvtx < 0)
         {
           dlhp = 1000000000000000.0;
         }
+	else
+	{
+	  double dx, dy, dz, nx, ny, nz, xv, yv, zv, x1, y1, z1, dot ;
+	  VERTEX *v ;
+	  v = &lhpial->vertices[lhpvtx] ;
+	  MRISvertexToVoxel(lhpial, v, AParc, &xv, &yv, &zv) ;
+	  x1 = v->x + v->nx ;  y1 = v->y + v->ny ; z1 = v->z + v->nz ; 
+	  MRISsurfaceRASToVoxel(lhpial, AParc, x1, y1, z1, &nx, &ny, &nz) ;
+	  nx -= xv ; ny -= yv ; nz -= zv ;  // normal in voxel coords
+	  dx = c-xv ; dy = r-yv ; dz = s-zv ;
+	  dot = dx*nx + dy*ny + dz*nz ;
+	  if (dot > 0)   // pial surface normal should point in same direction as vector from voxel to vertex
+	    dlhp = 1000000000000000.0;
+	}
+
         if (rhwvtx < 0)
         {
           drhw = 1000000000000000.0;
         }
+	else
+	{
+	  double dx, dy, dz, nx, ny, nz, xv, yv, zv, x1, y1, z1, dot ;
+	  VERTEX *v ;
+	  v = &rhwhite->vertices[rhwvtx] ;
+	  MRISvertexToVoxel(rhwhite, v, AParc, &xv, &yv, &zv) ;
+	  x1 = v->x + v->nx ;  y1 = v->y + v->ny ; z1 = v->z + v->nz ; 
+	  MRISsurfaceRASToVoxel(rhwhite, AParc, x1, y1, z1, &nx, &ny, &nz) ;
+	  nx -= xv ; ny -= yv ; nz -= zv ;  // normal in voxel coords
+	  dx = c-xv ; dy = r-yv ; dz = s-zv ;
+	  dot = dx*nx + dy*ny + dz*nz ;
+	  if (dot < 0)
+	    drhw = 1000000000000000.0;
+	}
         if (rhpvtx < 0)
         {
           drhp = 1000000000000000.0;
         }
+	else
+	{
+	  double dx, dy, dz, nx, ny, nz, xv, yv, zv, x1, y1, z1, dot ;
+	  VERTEX *v ;
+	  v = &rhpial->vertices[rhpvtx] ;
+	  MRISvertexToVoxel(rhpial, v, AParc, &xv, &yv, &zv) ;
+	  x1 = v->x + v->nx ;  y1 = v->y + v->ny ; z1 = v->z + v->nz ; 
+	  MRISsurfaceRASToVoxel(rhpial, AParc, x1, y1, z1, &nx, &ny, &nz) ;
+	  nx -= xv ; ny -= yv ; nz -= zv ;  // normal in voxel coords
+	  dx = c-xv ; dy = r-yv ; dz = s-zv ;
+	  dot = dx*nx + dy*ny + dz*nz ;
+	  if (dot > 0)   // pial surface normal should point in same direction as vector from voxel to vertex
+	    drhp = 1000000000000000.0;
+	}
 
         if (dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0)
         {
@@ -812,6 +882,26 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))
     {
       debug = 1;
+    }
+    else if (!strcasecmp(option, "--debug_voxel"))
+    {
+      if (nargc < 3)
+      {
+        argnerr(option,3);
+      }
+      Gx = atoi(pargv[0]) ;
+      Gy = atoi(pargv[1]) ;
+      Gz = atoi(pargv[2]) ;
+      nargsused = 3;
+    }
+    else if (!strcasecmp(option, "--smooth_normals"))
+    {
+      if (nargc < 1)
+      {
+        argnerr(option,1);
+      }
+      normal_smoothing_iterations = atoi(pargv[0]) ;
+      nargsused = 1 ;
     }
     // This was --ribbon, but changed to --old-ribbon 4/17/08 DNG
     else if (!strcasecmp(option, "--old-ribbon"))
