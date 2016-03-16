@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2016/03/09 22:17:32 $
-#    $Revision: 1.572 $
+#    $Author: greve $
+#    $Date: 2016/03/15 15:58:30 $
+#    $Revision: 1.573 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.572 2016/03/09 22:17:32 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.573 2016/03/15 15:58:30 greve Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -162,7 +162,7 @@ set RngSeed = 1234   # seed for random number generator, used only when
 set DoMultiStrip = 0 # if 1, then multiple instances of mri_watershed and
                      # mri_em_register are run in order to determine the best
                      # skull-strip
-set IsMPRAGE = 0     # if 1, then -mprage added to mri_normalize/segment
+set IsMPRAGE = 1     # if 1, then -mprage added to mri_normalize/segment, turn off with -no-mprage
 set IsWashuMPRAGE = 0 # if 1, then -washu_mprage added to mri_normalize/segment
 set DoConformWidth256 = 0 # if 1, then conform to 256^3 during
                           # the mri_convert -conform step
@@ -7121,13 +7121,6 @@ while( $#argv != 0 )
       set DoIsRunning = 0;
       breaksw
 
-    case "-threads"
-    case "-nthreads"
-      if($#argv < 1) goto arg1err;
-      setenv OMP_NUM_THREADS $argv[1]; shift;
-      setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS
-      breaksw
-
     case "-chunk":
       setenv FS_USE_MRI_CHUNK 1
       breaksw
@@ -7223,6 +7216,10 @@ while( $#argv != 0 )
 
     case "-mprage":
       set IsMPRAGE = 1;
+      breaksw;
+
+    case "-no-mprage":
+      set IsMPRAGE = 0;
       breaksw;
 
     case "-washu_mprage":
@@ -7348,7 +7345,8 @@ while( $#argv != 0 )
       breaksw
 
     case "-openmp":
-      # located after -parallel so as to allow threadcount override
+    case "-threads"
+    case "-nthreads"
       if ( $#argv < 1) goto arg1err;
       setenv OMP_NUM_THREADS $argv[1]; shift;
       setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS # re-entrant recon-all
