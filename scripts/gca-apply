@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # gca-apply
 
-set VERSION = '$Id: gca-apply,v 1.9 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = '$Id: gca-apply,v 1.10 2016/03/15 16:10:37 greve Exp $';
 
 set gca = ();
 set subject = ();
@@ -15,6 +15,7 @@ set DiceFile = ();
 set SrcLTA = ();
 set SrcNorm = ();
 set UseCoreg = 0;
+set NoEMReg = 0;
 
 set Overwrite = 0;
 set tmpdir = ();
@@ -290,6 +291,13 @@ while( $#argv != 0 )
       set UseCoreg = 0;
       breaksw
 
+    case "--no-emreg":
+      set NoEMReg = 1;
+      breaksw
+    case "--emreg":
+      set NoEMReg = 0;
+      breaksw
+
     case "--dice":
       if($#argv < 2) goto arg2err;
       set DiceSeg = $argv[1]; shift;
@@ -352,6 +360,11 @@ foreach f ($mdir/brainmask.mgz $mdir/$input)
     exit 1;
   endif
 end
+
+if($NoEMReg) then
+  set SrcLTA = $mdir/transforms/talairach.lta
+endif
+
 # Check whether the outputs already exist
 if($#gcabase == 0) set gcabase = `basename $gca .gca`
 set lta   = $mdir/transforms/$gcabase.lta
