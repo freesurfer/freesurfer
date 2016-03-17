@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/02/09 02:32:10 $
- *    $Revision: 1.123 $
+ *    $Author: greve $
+ *    $Date: 2016/03/16 23:29:48 $
+ *    $Revision: 1.124 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3585,3 +3585,77 @@ LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
   return(ldst) ;
 }
 
+/*!
+  \fn LABEL *LabelBaryFill(MRIS *mris, LABEL *srclabel, double delta)
+  \brief Fills a surface-based label to points between the vertices
+  using barycentric coordinates.  The resulting label is not
+  surface-based since there will be points off the mesh. delta
+  controls how finely the face is filled. delta should be between 0
+  and 1.
+ */
+LABEL *LabelBaryFill(MRIS *mris, LABEL *srclabel, double delta)
+{
+  MRI *mri;
+  LABEL *outlabel;
+  int k,ok,n,vtxno,nPerTriangle,nTriangles,nthlab;
+  VERTEX *v1, *v2, *v3;
+  double x,y,z,l1,l2,l3;
+
+  mri = MRISlabel2Mask(mris,srclabel,NULL);
+
+  nPerTriangle = 0;
+  for(l1 = 0; l1 <= 1; l1 += .1){
+    for(l2 = 0; l2 <= 1; l2 += .1){
+      if(l1+l2 > 1) continue;
+      nPerTriangle++;
+    }
+  }	
+
+  nTriangles = 0;
+  for(k=0; k < mris->nfaces; k++){
+    ok = 0;
+    for(n=0; n < 3; n++){
+      vtxno = mris->faces[k].v[n];
+      if(MRIgetVoxVal(mri,vtxno,0,0,0) < 0.5) continue;
+      ok = 1;
+      break;
+    }
+    if(!ok) continue;
+    nTriangles++;
+  }
+  //printf("nPerTriangle = %d, nTriangles = %d, %d\n",nPerTriangle,nTriangles,nPerTriangle*nTriangles);
+
+  outlabel = LabelAlloc(nPerTriangle*nTriangles,srclabel->subject_name, NULL);
+  outlabel->n_points = nPerTriangle*nTriangles;
+  nthlab = 0;
+  for(k=0; k < mris->nfaces; k++){
+    ok = 0;
+    for(n=0; n < 3; n++){
+      vtxno = mris->faces[k].v[n];
+      if(MRIgetVoxVal(mri,vtxno,0,0,0) < 0.5) continue;
+      ok = 1;
+      break;
+    }
+    if(!ok) continue;
+    v1 = &(mris->vertices[mris->faces[k].v[0]]);
+    v2 = &(mris->vertices[mris->faces[k].v[1]]);
+    v3 = &(mris->vertices[mris->faces[k].v[2]]);
+    for(l1 = 0; l1 <= 1; l1 += .1){
+      for(l2 = 0; l2 <= 1; l2 += .1){
+	if(l1+l2 > 1) continue;
+	l3 = 1 - (l1+l2);
+	x = l1*v1->x + l2*v2->x + l3*v3->x;
+	y = l1*v1->y + l2*v2->y + l3*v3->y;
+	z = l1*v1->z + l2*v2->z + l3*v3->z;
+	outlabel->lv[nthlab].x = x;
+	outlabel->lv[nthlab].y = y;
+	outlabel->lv[nthlab].z = z;
+	nthlab++;
+      }
+    }	
+  }
+
+  MRIfree(&mri);
+
+  return(outlabel);
+}
