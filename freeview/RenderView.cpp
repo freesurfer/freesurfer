@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/29 21:01:06 $
- *    $Revision: 1.51 $
+ *    $Date: 2016/03/17 16:25:26 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -450,6 +450,21 @@ void RenderView::CenterAtWorldPosition(double *pos)
   ResetCameraClippingRange();
   RequestRedraw();
   emit ViewChanged();
+}
+
+void RenderView::AlignViewToNormal(double *v)
+{
+    vtkCamera* cam = m_renderer->GetActiveCamera();
+    double f_pos[3], dist;
+    cam->GetFocalPoint(f_pos);
+    dist = cam->GetDistance();
+    for (int i = 0; i < 3; i++)
+        f_pos[i] += dist*v[i];
+    cam->SetPosition(f_pos);
+    cam->OrthogonalizeViewUp();
+    ResetCameraClippingRange();
+    RequestRedraw();
+    emit ViewChanged();
 }
 
 int RenderView::GetAction()

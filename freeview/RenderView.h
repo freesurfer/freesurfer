@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/29 21:01:06 $
- *    $Revision: 1.37 $
+ *    $Date: 2016/03/17 16:25:26 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,6 +101,7 @@ public slots:
   void SetScalarBarLayer( Layer* layer );
   void SetScalarBarLayer( QAction* act );
   void CenterAtWorldPosition( double* pos );
+  void AlignViewToNormal(double* v);
 
 protected:
   virtual void paintEvent(QPaintEvent *event);

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/03 19:12:32 $
- *    $Revision: 1.116 $
+ *    $Date: 2016/03/17 16:25:26 $
+ *    $Revision: 1.117 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,6 +63,7 @@
 #include "vtkMaskPoints.h"
 #include "vtkExtractPolyDataGeometry.h"
 #include "vtkBox.h"
+#include "vtkDoubleArray.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -1829,4 +1830,10 @@ void LayerSurface::SetVisibleIn3D(bool bVisible)
         m_bVisibleIn3D = bVisible;
         emit ActorChanged();
     }
+}
+
+void LayerSurface::GetSmoothedVertexNormal(int nVertex, double *v_out)
+{
+    if (nVertex >= 0 && nVertex < this->GetNumberOfVertices())
+        m_surfaceSource->GetSmoothedNormal(nVertex, v_out);
 }

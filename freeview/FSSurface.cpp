@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:45 $
- *    $Revision: 1.77 $
+ *    $Author: rpwang $
+ *    $Date: 2016/03/17 16:25:26 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,6 +90,7 @@ FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
     m_bSurfaceLoaded[i] = false;
     m_HashTable[i] = NULL;
   }
+  m_fSmoothedNormal = NULL;
 
   m_targetToRasMatrix[0] = 1;
   m_targetToRasMatrix[1] = 0;
@@ -148,6 +149,9 @@ FSSurface::~FSSurface()
       MHTfree( &m_HashTable[i] );
     }
   }
+
+  if (m_fSmoothedNormal)
+      delete[] m_fSmoothedNormal;
 
   for ( size_t i = 0; i <  m_vertexVectors.size(); i++ )
   {
@@ -323,6 +327,8 @@ bool FSSurface::InitializeData(const QString &vector_filename,
   {
     LoadVectors ( vector_filename );
   }
+
+  UpdateSmoothedNormals();
 
   QFileInfo fi(m_MRIS->fname);
   if (QFileInfo(fi.absoluteDir(), fi.completeBaseName() + ".curv").exists())
@@ -910,6 +916,41 @@ void FSSurface::UpdatePolyData( MRIS* mris,
     polydata_wireframe->SetPoints( newPoints );
     polydata_wireframe->SetLines( lines );
   }
+}
+
+void FSSurface::UpdateSmoothedNormals()
+{
+    if ( m_fSmoothedNormal == NULL )
+    {
+      m_fSmoothedNormal = new VertexItem[m_MRIS->nvertices];
+      if ( !m_fSmoothedNormal )
+      {
+        cerr << "Can not allocate memory for normal sets.\n";
+        return;
+      }
+    }
+    MRISsmoothSurfaceNormals(m_MRIS, 50);
+    int nvertices = m_MRIS->nvertices;
+    float normal[3];
+    for ( int vno = 0; vno < nvertices; vno++ )
+    {
+      normal[0] = m_MRIS->vertices[vno].nx;
+      normal[1] = m_MRIS->vertices[vno].ny;
+      normal[2] = m_MRIS->vertices[vno].nz;
+      float orig[3] = { 0, 0, 0 };
+      this->ConvertSurfaceToRAS( orig, orig );
+      this->ConvertSurfaceToRAS( normal, normal );
+      m_targetToRasTransform->GetInverse()->TransformPoint(orig, orig);
+      m_targetToRasTransform->GetInverse()->TransformPoint(normal, normal);
+
+      for (int i = 0; i < 3; i++)
+        normal[i] = normal[i] - orig[i];
+      vtkMath::Normalize(normal);
+      m_fSmoothedNormal[vno].x = normal[0];
+      m_fSmoothedNormal[vno].y = normal[1];
+      m_fSmoothedNormal[vno].z = normal[2];
+    }
+    RestoreNormals(m_MRIS, SurfaceMain);
 }
 
 void FSSurface::UpdateVerticesAndNormals()

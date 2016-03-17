@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/03 19:12:33 $
- *    $Revision: 1.72 $
+ *    $Date: 2016/03/17 16:25:26 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -248,6 +248,8 @@ public:
   {
       return m_bVisibleIn3D;
   }
+
+  void GetSmoothedVertexNormal(int nVertex, double* v_out);
 
 public slots:
   void SetActiveSurface( int nSurfaceType );

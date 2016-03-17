@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/07 20:01:59 $
- *    $Revision: 1.46 $
+ *    $Date: 2016/03/17 16:25:26 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -219,6 +219,13 @@ public:
     return m_dMaxSegmentLength;
   }
 
+  void GetSmoothedNormal(int nVertex, double* v_out)
+  {
+      v_out[0] = m_fSmoothedNormal[nVertex].x;
+      v_out[1] = m_fSmoothedNormal[nVertex].y;
+      v_out[2] = m_fSmoothedNormal[nVertex].z;
+  }
+
 protected:
   bool InitializeData(const QString& vector_filename = QString(),
                   const QString& patch_filename = QString(),
@@ -238,6 +245,8 @@ protected:
   void LoadTargetSurface( const QString& filename );
   void UpdateVectors();
   void UpdateVertices();
+
+  void UpdateSmoothedNormals();
 
   void SaveNormals ( MRIS* mris, int nSet );
   void RestoreNormals ( MRIS* mris, int nSet );
@@ -296,6 +305,7 @@ protected:
 
   VertexItem*  m_fVertexSets[NUM_OF_VSETS];
   VertexItem*  m_fNormalSets[NUM_OF_VSETS];
+  VertexItem*  m_fSmoothedNormal;
 
   struct VertexVectorItem
   {

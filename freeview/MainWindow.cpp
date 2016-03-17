@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/15 21:17:52 $
- *    $Revision: 1.323 $
+ *    $Date: 2016/03/17 16:25:26 $
+ *    $Revision: 1.324 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3463,6 +3463,9 @@ void MainWindow::CommandGoToSurfaceVertex(const QStringList &cmd)
             this->GetMainView()->CenterAtWorldPosition(pos);
             GetLayerCollection("MRI")->SetCursorRASPosition( pos );
             SetSlicePosition(pos);
+            double v[3] = {1, 0, 0};
+            surf->GetSmoothedVertexNormal(nVertex, v);
+            m_views[3]->AlignViewToNormal(v);
         }
       }
     }
@@ -6890,7 +6893,16 @@ void MainWindow::OnGoToSurfaceLabel(bool center)
   {
     SetSlicePosition(pos);
     if (center)
+    {
         GetMainView()->CenterAtWorldPosition(pos);
+        int nVertex = surf->GetVertexIndexAtTarget(pos, NULL);
+        if (nVertex >= 0)
+        {
+            double v[3];
+            surf->GetSmoothedVertexNormal(nVertex, v);
+            m_views[3]->AlignViewToNormal(v);
+        }
+    }
   }
 }
 

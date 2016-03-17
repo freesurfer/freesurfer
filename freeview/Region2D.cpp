@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/07 20:01:59 $
- *    $Revision: 1.11 $
+ *    $Date: 2016/03/17 16:25:26 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,8 @@
 #include "RenderView2D.h"
 #include <vtkTextActor.h>
 #include <vtkTextProperty.h>
+#include <QClipboard>
+#include <QApplication>
 
 Region2D::Region2D( RenderView2D* view ) :
   QObject( view ),
@@ -46,6 +48,10 @@ Region2D::~Region2D()
 
 void Region2D::UpdateStats()
 {
+//  QString text = m_actorText->GetInput();
+//  QClipboard *clipboard = QApplication::clipboard();
+//  clipboard->setText(text);
+
   emit StatsUpdated();
 }
 
