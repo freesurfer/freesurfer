@@ -40,8 +40,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/12/22 19:59:18 $
- *    $Revision: 1.47 $
+ *    $Date: 2016/03/16 23:36:50 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,7 +90,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.47 2014/12/22 19:59:18 greve Exp $";
+  "$Id: mri_label2label.c,v 1.48 2016/03/16 23:36:50 greve Exp $";
 char *Progname = NULL;
 
 static int label_erode = 0 ;
@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv,
-     "$Id: mri_label2label.c,v 1.47 2014/12/22 19:59:18 greve Exp $",
+     "$Id: mri_label2label.c,v 1.48 2016/03/16 23:36:50 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -986,12 +986,30 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       OutMaskFile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--outstat")) {
+    } 
+    else if (!strcmp(option, "--outstat")) {
       if (nargc < 1) argnerr(option,1);
       OutMaskFile = pargv[0];
       DoOutMaskStat = 1;
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcmp(option, "--baryfill")) {
+      if (nargc < 4) argnerr(option,4);
+      MRIS *mris;
+      LABEL *lab,*outlab;
+      double delta;
+      mris = MRISread(pargv[0]);
+      if(mris==NULL) exit(1);
+      lab = LabelRead(NULL,pargv[1]);
+      if(lab==NULL) exit(1);
+      sscanf(pargv[2],"%lf",&delta);
+      printf("delta = %lf\n",delta);
+      outlab = LabelBaryFill(mris, lab, delta);
+      printf("writing to %s\n",pargv[3]);
+      LabelWrite(outlab, pargv[3]);
+      exit(0);
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -1047,6 +1065,7 @@ static void print_usage(void) {
   printf("\n");
   printf("   --paint dmax surfname : map to closest vertex on source surfname if d < dmax\n");
   printf("   --dmindmin overlayfile : bin mask with vertex of closest label point when painting\n");
+  printf("   --baryfill surf surflabel delta outlabel\n");
   printf("\n");
   printf("   --srcmask     surfvalfile thresh <format>\n");
   printf("   --srcmasksign sign (<abs>,pos,neg)\n");
