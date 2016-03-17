@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # tkmeditfv
 
-set VERSION = '$Id: tkregisterfv,v 1.8 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = '$Id: tkregisterfv,v 1.9 2016/03/16 21:34:54 greve Exp $';
 
 set subject = ();
 set movvol = ();
@@ -73,7 +73,8 @@ if(! $UseTkRegister) then
   set cmd = (freeview)
   if($ShowConfig)  set cmd = ($cmd -transform-volume)
   set cmd = ($cmd -viewport $Plane) # currently causes FV to crash
-  set cmd = ($cmd -v $targ":"visible=0)
+  set targname = `basename $targ`
+  set cmd = ($cmd -v $targ":"visible=0":"name=$targname"(targ)")
   @ nthaux = 0;
   foreach aux ($auxlist)
     @ nthaux = $nthaux + 1;
@@ -81,8 +82,9 @@ if(! $UseTkRegister) then
     if($auxreglist[$nthaux] != 0) set cmd = ($cmd $aux":"reg=$auxreglist[$nthaux])    
   end
   if($#segvol) set cmd = ($cmd -v "$segvol":"lut=$segcolor":"opacity=$segopacity":"colormap=lut")
-  if($#reg == 1) set cmd = ($cmd $movvol":"reg=$reg)
-  if($#reg == 0) set cmd = ($cmd $movvol)
+  set movname = `basename $movvol`
+  if($#reg == 1) set cmd = ($cmd $movvol":"name=$movname"(mov):"reg=$reg)
+  if($#reg == 0) set cmd = ($cmd $movvol":"name=$movname"(mov)")
   @ nth = 0;
   foreach surf ($surflist)
     @ nth = $nth + 1;
