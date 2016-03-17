@@ -7,9 +7,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/05/02 21:02:42 $
-#    $Revision: 1.7 $
+#    $Author: zkaufman $
+#    $Date: 2016/03/17 06:39:55 $
+#    $Revision: 1.8 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_ca_normalize,v 1.7 2011/05/02 21:02:42 nicks Exp $'
+set VERSION='$Id: test_mri_ca_normalize,v 1.8 2016/03/17 06:39:55 zkaufman Exp $'
 
 umask 002
 
@@ -41,7 +41,7 @@ set cmd=(./mri_ca_normalize \
     -mask brainmask.mgz \
     -c ctrl_pts.mgz \
     nu.mgz \
-    ../distribution/average/RB_all_2008-03-26.gca \
+    ../distribution/average/RB_all_2016-02-11.gca \
     talairach.lta \
     norm.mgz)
 echo $cmd

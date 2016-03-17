@@ -1,8 +1,9 @@
-number of vertices                      = 133299
-total surface area                      = 88262 mm^2
-total gray matter volume                = 244472 mm^3
-average cortical thickness              = 2.479 mm +- 0.895 mm
-average integrated rectified mean curvature     = 0.115
-average integrated rectified Gaussian curvature = 0.025
-folding index                           = 1386
-intrinsic curvature index               = 133.1
+Total vertex volume 247638 (mask=0)
+number of vertices                      = 132026
+total surface area                      = 88616 mm^2
+total gray matter volume                = 247638 mm^3
+average cortical thickness              = 2.565 mm +- 0.881 mm
+average integrated rectified mean curvature     = 0.120
+average integrated rectified Gaussian curvature = 0.026
+folding index                           = 1431
+intrinsic curvature index               = 137.3
