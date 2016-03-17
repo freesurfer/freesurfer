@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/17 16:25:26 $
- *    $Revision: 1.324 $
+ *    $Date: 2016/03/17 19:07:44 $
+ *    $Revision: 1.325 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,7 @@
 #include "MyUtils.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceOverlayProperty.h"
+#include "SurfaceLabel.h"
 #include "LayerPLabel.h"
 #include "LayerPointSet.h"
 #include "LayerPropertySurface.h"
@@ -1676,6 +1677,10 @@ void MainWindow::RunScript()
   {
     OnGoToSurfaceLabel(true);
   }
+  else if (cmd == "hidesurfacelabel")
+  {
+    CommandHideSurfaceLabel(sa);
+  }
   else if ( cmd == "setsurfaceannotationoutline" )
   {
     CommandSetSurfaceAnnotationOutline( sa );
@@ -2833,6 +2838,20 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             }
           }
         }
+        else if (subOption == "label_visible")
+        {
+          if (subArgu == "0" || subArgu == "false" || subArgu == "no")
+          {
+            for (int i = 0; i < m_scripts.size(); i++)
+            {
+              if (m_scripts[i][0] == "loadsurfacelabel")
+              {
+                m_scripts.insert(i+1, QStringList("hidesurfacelabel"));
+                break;
+              }
+            }
+          }
+        }
         else if ( subOption == "vector" )
         {
           // add script to load surface vector files
@@ -3169,6 +3188,15 @@ void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
       surf->SetActiveLabelOutline(true);
     }
   }
+}
+
+void MainWindow::CommandHideSurfaceLabel(const QStringList &cmd)
+{
+    LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+    if ( surf && surf->GetActiveLabel())
+    {
+      surf->GetActiveLabel()->SetVisible(false);
+    }
 }
 
 void MainWindow::CommandSetSurfaceAnnotationOutline(const QStringList &cmd)
