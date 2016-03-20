@@ -1,0 +1,216 @@
+#!/bin/tcsh -f
+# gcatrainskull
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set VERSION = '$Id: gcatrainskull,v 1.1 2016/03/20 17:21:19 greve Exp $';
+
+set gcadir = ();
+set RunIt = 1;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+pushd $gcadir >& /dev/null
+setenv SUBJECTS_DIR `pwd`
+popd >& /dev/null
+
+# Set up log file
+set LF = $gcadir/log/gcatrainskull.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for thalseg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+
+# rebuild_gca_atlas uses this lta, but might not be best
+# Should at least check that they are accurate for all subjs
+set tallta = talairach.i02.lta; 
+
+set manseg = `cat $gcadir/scripts/manseg.txt`
+set subjectlist = `cat $gcadir/scripts/subjectlist.txt`;
+
+set gca = $gcadir/gca/gca.skull.i02.gca 
+
+echo "Building GCA `date`" |& tee -a $LF
+set cmd = (mri_ca_train -prior_spacing 2 -node_spacing 4 \
+  -parc_dir $manseg  -xform $tallta -T1 nu.mgz $subjectlist $gca)
+echo $cmd |& tee -a $LF
+if($RunIt) then 
+  rm -f $gca
+  $cmd |& tee -a $LF
+  if($status) goto error_exit;
+endif
+
+#========================================================
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "gcatrainskull-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "gcatrainskull-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "gcatrainskull Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR:"
+
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--g":
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set gcadir = $argv[1]; shift;
+      if(! -e $gcadir) then
+        echo "ERROR: cannot find $gcadir"
+        exit 1;
+      endif
+      breaksw
+
+    case "--done":
+      if($#argv < 1) goto arg1err;
+      set DoneFile = $argv[1]; shift;
+      rm -f $DoneFile
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--norun":
+    case "--dontrun":
+      set RunIt = 0;
+      breaksw
+
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#gcadir == 0) then
+  echo "ERROR: must spec gcadir"
+  exit 1;
+endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "gcatrainskull --g gcatraindir"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
