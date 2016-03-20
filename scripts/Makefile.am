@@ -66,6 +66,7 @@ fsutils.py \
 fvcompare \
 gca-apply \
 gcatrain \
+gcatrainskull \
 jkgcatrain \
 gcaprepone \
 gcainit \
