@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/01/27 19:14:05 $
- *    $Revision: 1.569 $
+ *    $Date: 2016/03/20 14:12:27 $
+ *    $Revision: 1.570 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.569 $";
+const char *MRI_C_VERSION = "$Revision: 1.570 $";
 
 
 /*-----------------------------------------------------
@@ -2949,7 +2949,7 @@ MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
   default:
     ErrorReturn(ERROR_UNSUPPORTED,
                 (ERROR_UNSUPPORTED,
-                 "MRIvoxelToVoxel: unsupported slice direction %d",
+                  "MRIvoxelToVoxel: unsupported slice direction %d",
                  getSliceDirection(mri_src))) ;
   }
 
@@ -2959,9 +2959,17 @@ MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
       if either doesn't have a transform defined, assume they are in
       the same coordinate system.
     */
-    *pxt = xv ;
-    *pyt = yv ;
-    *pzt = zv ;
+    if (MRIgeometryMatched(mri_src, mri_dst) == 0)
+    {
+      MRIvoxelToWorld(mri_src, xv, yv, zv, &xw, &yw, &zw) ;
+      MRIworldToVoxel(mri_dst, xw, yw, zw, pxt, pyt, pzt) ;
+    }
+    else
+    {
+      *pxt = xv ;
+      *pyt = yv ;
+      *pzt = zv ;
+    }
   }
   else
   {
