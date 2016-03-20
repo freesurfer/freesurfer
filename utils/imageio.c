@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/04/10 19:34:24 $
- *    $Revision: 1.54 $
+ *    $Date: 2016/03/20 17:01:08 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1364,8 +1364,10 @@ TiffWriteImage(IMAGE *I, const char*fname, int frame)
     TIFFSetField(out, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     TIFFSetField(out, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
     TIFFSetField(out, TIFFTAG_RESOLUTIONUNIT, RESUNIT_INCH);
-    TIFFSetField(out, TIFFTAG_XRESOLUTION, (double)nint(2.54*10.0/I->xsize));
-    TIFFSetField(out, TIFFTAG_YRESOLUTION, (double)nint(2.54*10.0/I->ysize));
+    if (!FZERO(I->xsize)) 
+      TIFFSetField(out, TIFFTAG_XRESOLUTION, (double)nint(2.54*10.0/I->xsize));
+    if (!FZERO(I->ysize))
+      TIFFSetField(out, TIFFTAG_YRESOLUTION, (double)nint(2.54*10.0/I->ysize));
     
     TIFFSetField(out, TIFFTAG_COMPRESSION, COMPRESSION_DEFLATE);
     /* write out the data, line by line */
@@ -1401,6 +1403,7 @@ TiffWriteImage(IMAGE *I, const char*fname, int frame)
     TIFFWriteDirectory(out);
     I->image += I->sizeimage;
   }
+  printf("closing TIFF file\n") ;
   TIFFClose(out) ;
   I->image = timage;
 
