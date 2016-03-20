@@ -26,6 +26,9 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+
+source $FREESURFER_HOME/sources.csh
+
 goto parse_args;
 parse_args_return:
 goto check_params;
