@@ -50,6 +50,8 @@ Extra Notes:
       <explanation>Average curvature patterns navgs times</explanation>
       <argument>-N</argument>
       <explanation>Normalize curvature by variance.</explanation>
+      <argument>-f &lt;frame_number&gt;</argument>
+      <explanation>Paint frame number frame_number to output file. Default: 0</explanation>
       <argument>-S</argument>
       <explanation>Take square-root of output variable</explanation>
       <argument>-variance &lt;subject_name hemi field_no&gt;</argument>

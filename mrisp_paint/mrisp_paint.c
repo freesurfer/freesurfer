@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:35 $
- *    $Revision: 1.11 $
+ *    $Author: fischl $
+ *    $Date: 2016/03/22 14:47:57 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,7 +37,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mrisp_paint.c,v 1.11 2011/03/02 00:04:35 nicks Exp $";
+static char vcid[] = "$Id: mrisp_paint.c,v 1.12 2016/03/22 14:47:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -66,11 +66,14 @@ static char subjects_dir[STRLEN] ;
 static char *hemi=NULL;
 static char *subject_name;
 
+static int frame_number = 0  ;
+static int nframes = 1 ;
+
 int
 main(int argc, char *argv[])
 {
   char         **av, *surf_fname, *template_fname, *out_fname, *cp;
-  int          n,ac, nargs, param_no = 0 ;
+  int          n,ac, nargs ;
   float        sse,var;
   char fname[STRLEN];
   MRI_SURFACE  *mris ,*mris_var;
@@ -78,7 +81,7 @@ main(int argc, char *argv[])
   VERTEX *v;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mrisp_paint.c,v 1.11 2011/03/02 00:04:35 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mrisp_paint.c,v 1.12 2016/03/22 14:47:57 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -118,12 +121,8 @@ main(int argc, char *argv[])
     cp = strchr(template_fname, '#') ;
     if (cp)   /* # explicitly given */
     {
-      param_no = atoi(cp+1) ;
+      frame_number = atoi(cp+1) ;
       *cp = 0 ;
-    }
-    else
-    {
-      param_no = 0 ;
     }
   }
   else
@@ -131,12 +130,8 @@ main(int argc, char *argv[])
     cp = strchr(template_fname, '#') ;
     if (cp)   /* # explicitly given */
     {
-      param_no = atoi(cp+1) ;
+      frame_number = atoi(cp+1) ;
       *cp = 0 ;
-    }
-    else
-    {
-      param_no = 0 ;
     }
   }
   fprintf(stderr, "reading template parameterization from %s...\n",
@@ -148,11 +143,11 @@ main(int argc, char *argv[])
 
   if (normalize)
   {
-    MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
+    MRISnormalizeFromParameterization(mrisp, mris, frame_number) ;
   }
   else
   {
-    MRISfromParameterization(mrisp, mris, param_no) ;
+    MRISfromParameterization(mrisp, mris, frame_number) ;
   }
 
   MRISaverageCurvatures(mris, navgs) ;
@@ -209,7 +204,7 @@ main(int argc, char *argv[])
       v->curvbak=v->curv;
     }
     /* computing variance */
-    MRISfromParameterization(mrisp, mris_var, param_no+1) ;
+    MRISfromParameterization(mrisp, mris_var, frame_number+1) ;
     for (sse=0.0f,n=0 ; n < mris->nvertices; n++)
     {
       v=&mris_var->vertices[n];
@@ -266,6 +261,13 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
   }
+  else if (!stricmp(option, "NFRAMES")) // not implemented yet
+  {
+    nframes = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("writing out %d frames - NOT IMPLEMENTED YET\n", nframes) ;
+    exit(1) ;
+  }
   else if (!stricmp(option, "variance"))
   {
     variance=1;
@@ -286,6 +288,11 @@ get_option(int argc, char *argv[])
       navgs = atoi(argv[2]) ;
       nargs = 1 ;
       fprintf(stderr, "averaging curvature patterns %d times...\n", navgs) ;
+      break ;
+    case 'F':
+      frame_number = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("writing out frame %d\n", frame_number) ;
       break ;
     case 'N':
       normalize = 1 ;
