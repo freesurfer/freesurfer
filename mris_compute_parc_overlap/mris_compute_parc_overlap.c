@@ -32,9 +32,9 @@
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:30 $
- *    $Revision: 1.17 $
+ *    $Author: fischl $
+ *    $Date: 2016/03/22 16:14:39 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,7 +104,7 @@ static void padWhite(char* str, int maxLen);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.17 2011/03/02 00:04:30 nicks Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.18 2016/03/22 16:14:39 fischl Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -127,6 +127,7 @@ static int check_label1_xyz = 1;
 static int check_label2_xyz = 1;
 static char tmpstr[2000];
 static char *labelsfile=NULL; // optional file containing lists of label to chk
+static FILE *logfile = NULL ;
 
 int main(int argc, char *argv[])
 {
@@ -714,11 +715,15 @@ int main(int argc, char *argv[])
          "----------------------\n",
          dice_overlap*2.0/(float)(dice_surf1 + dice_surf2));
 
+  if (logfile)
+    fprintf(logfile, "%f\n", dice_overlap*2.0/(float)(dice_surf1 + dice_surf2)) ;
   /*
    * Calc and print mean-distance results
    */
   calcMeanMinLabelDistances();
 
+  if (logfile)
+    fclose(logfile) ;
   exit(0);
 
 }  /*  end main()  */
@@ -1143,6 +1148,9 @@ static void calcMeanMinLabelDistances(void)
          "-------------------------------------------\n",
          overallMeanMinDist);
 
+  if (logfile)
+    fprintf(logfile, "%f\n", overallMeanMinDist) ;
+
   // if any labels were skipped, print a warning...
   int cnt=0;
   for (cti=0; cti < MAX_SKIPPED_LABELS; cti++) if (skippedLabels[cti]) cnt++;
@@ -1195,6 +1203,7 @@ static void usage(int exit_val)
   fprintf(fout, "    --label2 labelfile     second .label file\n");
   fprintf(fout, "\nOptional:\n");
   fprintf(fout, "  --sd subj_dir            set SUBJECTS_DIR\n");
+  fprintf(fout, "  --log filename           output the overall DICE and min dist to filename\n");
   fprintf(fout, "  --label-list file        file containing labels to \n"
                 "                           check, one per line");
   fprintf(fout, "  --nocheck-label1-xyz     when loading label1 file, don't\n"
@@ -1325,6 +1334,14 @@ static int parse_commandline(int argc, char **argv)
       if (nargc < 1) argnerr(option,1);
       SUBJECTS_DIR = pargv[0];
       setenv("SUBJECTS_DIR",SUBJECTS_DIR,1);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--log"))
+    {
+      if (nargc < 1) argnerr(option,1);
+      logfile = fopen(pargv[0], "w");
+      if (logfile == NULL)
+	ErrorExit(ERROR_NOFILE, "could not open log file %s\n", pargv[0]) ;
       nargsused = 1;
     }
     else if (!strcmp(option, "--s"))
