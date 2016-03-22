@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/17 19:07:45 $
- *    $Revision: 1.67 $
+ *    $Date: 2016/03/22 19:25:59 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_OPTION, "viewsize", "viewsize", "<width> <height>", "Set the size of the main viewport. The size of the whole window will be changed accordingly.", 2, 2 ),
     CmdLineEntry( CMD_LINE_OPTION, "zoom", "zoom", "<FACTOR>", "Set zoom factor of the main viewport.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "cam", "camera", "<OPERATION1> <FACTOR1> <OPERATION2> <FACTOR2>...", "Set a series of camera operations for the 3D view. Valid operations are:\n\n'Azimuth' Rotate the camera about the view up vector centered at the focal point. The result is a horizontal rotation of the camera.\n\n'Dolly' Divide the camera's distance from the focal point by the given dolly value. Use a value greater than one to dolly-in toward the focal point, and use a value less than one to dolly-out away from the focal point.\n\n'Elevation' Rotate the camera about the cross product of the negative of the direction of projection and the view up vector, using the focal point as the center of rotation. The result is a vertical rotation of the scene.\n\n'Roll' Rotate the camera about the direction of projection. This will spin the camera about its axis.\n\n'Zoom' Same as 'Dolly'.\n\nNote that the order matters!\n\nFor example: '-cam dolly 1.5 azimuth 30' will zoom in the camera by 1.5 times and then rotate it along the view up vector by 30 degrees.\n", 2, 1000 ),
-    CmdLineEntry( CMD_LINE_OPTION, "ras", "ras", "<X> <Y> <Z>", "Set cursor location at the given RAS coordinate.", 3, 3 ),
+    CmdLineEntry( CMD_LINE_OPTION, "ras", "ras", "<X> <Y> <Z> [Option]", "Set cursor location at the given RAS coordinate. If option is given as 'tkreg', the entered coordinate is in tkreg coordinate.", 3, 4 ),
     CmdLineEntry( CMD_LINE_OPTION, "slice", "slice", "<X> <Y> <Z>", "Set cursor location at the given slice numbers of the first loaded volume.", 3, 3 ),
     CmdLineEntry( CMD_LINE_SWITCH, "cc", "center-at-cursor", "", "Center the view at cursor location." ),
     CmdLineEntry( CMD_LINE_SWITCH, "timecourse", "timecourse", "", "Show time course window." ),
@@ -131,6 +131,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-slices", "hide-3d-slices", "", "Hide slices in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
     CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "verbose", "verbose", "", "Print out a lot more information, such as vertex coordinate of each click, etc." ),
     CmdLineEntry( CMD_LINE_NONE )
   };
 

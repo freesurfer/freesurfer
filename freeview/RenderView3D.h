@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/07 20:17:21 $
- *    $Revision: 1.45 $
+ *    $Date: 2016/03/22 19:25:59 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,6 +39,7 @@ class Interactor3DMeasure;
 class Interactor3DVolumeCrop;
 class vtkAnnotatedCubeActor;
 class Layer;
+class LayerSurface;
 class SurfaceROI;
 
 class RenderView3D : public RenderView
@@ -114,7 +115,7 @@ public:
   void ZoomAtCursor(int x, int y, double factor);
 
 signals:
-  void SurfaceVertexClicked();
+  void SurfaceVertexClicked(LayerSurface* surf);
   void SurfaceRegionSelected(SurfaceRegion*);
   void SurfaceRegionRemoved(SurfaceRegion*);
   void VolumeTrackMouseOver(Layer* layer, const QVariantMap& info);

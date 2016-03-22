@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/07 20:17:21 $
- *    $Revision: 1.84 $
+ *    $Date: 2016/03/22 19:25:59 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -574,7 +574,8 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
           }
           lc_mri->SetCursorRASPosition( pos );
           MainWindow::GetMainWindow()->SetSlicePosition( pos );
-          emit SurfaceVertexClicked();
+          if (layer)
+            emit SurfaceVertexClicked((LayerSurface*)layer);
         }
         else
         {
@@ -627,7 +628,7 @@ void RenderView3D::PickCurrentSurfaceVertex(int posX, int posY)
     {
       LayerSurface* surf = (LayerSurface*)layer;
       surf->SetCurrentVertex(surf->GetVertexIndexAtTarget(pos, NULL));
-      emit SurfaceVertexClicked();
+      emit SurfaceVertexClicked(surf);
     }
   }
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/17 19:07:44 $
- *    $Revision: 1.167 $
+ *    $Date: 2016/03/22 19:25:59 $
+ *    $Revision: 1.168 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -498,6 +498,8 @@ protected slots:
 
   void UpdateInfoPanel();
 
+  void OnSurfaceVertexClicked(LayerSurface* surf);
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();
@@ -578,6 +580,8 @@ private:
   QVariantMap           m_surfaceSettings;
   QVariantMap           m_defaultSettings;
   bool                  m_bShowTransformWindow;
+
+  bool                  m_bVerbose;
 };
 
 #endif // MAINWINDOW_H

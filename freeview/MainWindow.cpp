@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/17 19:07:44 $
- *    $Revision: 1.325 $
+ *    $Date: 2016/03/22 19:25:59 $
+ *    $Revision: 1.326 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -235,6 +235,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
           m_dlgRepositionSurface, SLOT(UpdateUI()));
 //  connect(ui->view3D, SIGNAL(SurfaceVertexClicked()),
 //          m_dlgRepositionSurface, SLOT(OnSurfaceVertexClicked()));
+  connect(ui->view3D, SIGNAL(SurfaceVertexClicked(LayerSurface*)),
+          this, SLOT(OnSurfaceVertexClicked(LayerSurface*)));
   connect(this, SIGNAL(SurfaceRepositionVertexChanged()),
           m_dlgRepositionSurface, SLOT(UpdateVertex()), Qt::QueuedConnection);
   connect(this, SIGNAL(SurfaceRepositionIntensityChanged()),
@@ -1037,7 +1039,11 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
       std::cerr << "Invalid argument for 'ras'. Arguments must be valid float values.\n";
       return false;
     }
-    this->AddScript( QStringList("ras") << sa[0] << sa[1] << sa[2] );
+    QStringList script("ras");
+    script << sa[0] << sa[1] << sa[2];
+    if (sa.size() > 3)
+        script << sa[3];
+    this->AddScript( script );
   }
 
   if ( parser->Found( "slice", &sa ) )
@@ -1112,6 +1118,8 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
 
   if ( parser->Found("quit"))
     AddScript(QStringList("quit") );
+
+  m_bVerbose = parser->Found("verbose");
 
   return true;
 }
@@ -1728,6 +1736,11 @@ void MainWindow::ClearScripts()
 
 void MainWindow::CommandLoadCommand(const QStringList &sa)
 {
+  if (sa.size() < 2)
+  {
+    cerr << "No filename specified.\n";
+    return;
+  }
   QFile file(sa[1]);
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
   {
@@ -1750,6 +1763,7 @@ void MainWindow::CommandLoadCommand(const QStringList &sa)
 
 void MainWindow::CommandLoadSubject(const QStringList &sa)
 {
+
   QString subject_path = QProcessEnvironment::systemEnvironment().value("SUBJECTS_DIR");
   if (subject_path.isEmpty())
   {
@@ -1798,6 +1812,9 @@ void MainWindow::CommandHideLayer(const QStringList &sa)
 
 void MainWindow::CommandUnloadLayer(const QStringList &sa)
 {
+  if (sa.size() < 2)
+      return;
+
   QString type = sa[1].toLower();
   if (type == "volume" || type == "mri")
   {
@@ -4005,8 +4022,7 @@ void MainWindow::CommandSetRAS( const QStringList& cmd )
   }
   if ( bOK )
   {
-    LayerCollection* lc = GetLayerCollection( "MRI" );
-    LayerMRI* layer = (LayerMRI*)lc->GetLayer( 0 );
+    LayerMRI* layer = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
     if ( layer )
     {
       if ( cmd.size() > 4 && cmd[4] == "tkreg" )
@@ -4015,8 +4031,16 @@ void MainWindow::CommandSetRAS( const QStringList& cmd )
       }
       layer->RASToTarget( ras, ras );
     }
+    else
+    {
+        LayerSurface* surf = qobject_cast<LayerSurface*>(GetActiveLayer("Surface"));
+        if (surf && cmd.size() > 4 && cmd[4] == "tkreg")
+        {
+            surf->GetTargetAtSurfaceRAS(ras, ras);
+        }
+    }
     this->GetMainView()->CenterAtWorldPosition(ras);
-    lc->SetCursorRASPosition( ras );
+    GetLayerCollection("MRI")->SetCursorRASPosition( ras );
     SetSlicePosition( ras );
   }
   else
@@ -7093,6 +7117,22 @@ void MainWindow::GoToContralateralPoint()
             SetSlicePosition(pos);
             for (int i = 0; i < 3; i++)
                 m_views[i]->CenterAtWorldPosition(pos);
+        }
+    }
+}
+
+void MainWindow::OnSurfaceVertexClicked(LayerSurface *surf)
+{
+    if (m_bVerbose)
+    {
+        int nVert = surf->GetCurrentVertex();
+        if (nVert >= 0)
+        {
+            double ras[3], tkras[3];
+            surf->GetRASAtVertex(nVert, ras);
+            surf->GetSurfaceRASAtVertex(nVert, tkras);
+            qDebug() << "RAS: " << ras[0] << ras[1] << ras[2];
+            qDebug() << "SurfaceRAS: " << tkras[0] << tkras[1] << tkras[2];
         }
     }
 }
