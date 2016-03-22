@@ -150,7 +150,7 @@ domerr:
     t *= pow(x,a);
     t /= a;
     t *= w;
-    t *= lgamma(a+b) / (lgamma(a) * lgamma(b));
+    t *= tgamma(a+b) / (tgamma(a) * tgamma(b));
     goto done;
   }
   /* Resort to logarithms.  */
@@ -387,7 +387,7 @@ double a, b, x;
   u = a * log(x);
   if ( (a+b) < MAXGAM && fabs(u) < MAXLOG )
   {
-    t = lgamma(a+b)/(lgamma(a)*lgamma(b));
+    t = tgamma(a+b)/(tgamma(a)*tgamma(b));
     s = s * t * pow(x,a);
   }
   else
