@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2016/03/15 15:58:30 $
-#    $Revision: 1.573 $
+#    $Date: 2016/03/24 17:34:02 $
+#    $Revision: 1.575 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.573 2016/03/15 15:58:30 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.575 2016/03/24 17:34:02 greve Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -246,8 +246,8 @@ set brain_template = talairach_mixed_with_skull.gca
 set face_template  = face.gca
 
 # For subcortical segmentation
-set GCA      = RB_all_2016-02-11.gca; # RB_all_2014-08-21.gca
-set GCASkull = RB_all_withskull_2014-08-21.gca
+set GCA      = RB_all_2016-03-21.gca
+set GCASkull = RB_all_withskull_2016-03-21.gca
 set GCADIR   = "${FREESURFER_HOME}/average"
 set GCAOutputName = ();
 set GCARegIterations = ();
@@ -255,7 +255,8 @@ set GCARegTol  = ();
 
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "${FREESURFER_HOME}/average"
-set AvgCurvTif = average.curvature.filled.buckner40.tif
+#set AvgCurvTif = average.curvature.filled.buckner40.tif
+set AvgCurvTif = curvature.buckner40.2016-03-20.tif
 
 # Desikan-Killiany cortical parcellation atlas (-cortparc), as found in:
 # $FREESURFER_HOME/average/$hemi.$GCS
@@ -264,7 +265,8 @@ set AvgCurvTif = average.curvature.filled.buckner40.tif
 # color was gray, which looked like the default tksurfer surface color).
 set OLD_OLD_GCS = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs
 set OLD_GCS = curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
-set GCS = curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
+set NEW_OLD_GCS = curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
+set GCS = DKatlas.2016-03-20.vc922.gcs
 set GCSDIR = "${FREESURFER_HOME}/average"
 
 # Christophe Destrieux cortical parcellation atlas (-cortparc2):
