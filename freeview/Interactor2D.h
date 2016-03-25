@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.12 $
+ *    $Author: rpwang $
+ *    $Date: 2016/03/24 16:52:51 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@ public:
 
 signals:
   void Error( const QString& message, Layer* layer = NULL );
+  void CursorLocationClicked();
 
 protected:
   int  m_nMousePosX;

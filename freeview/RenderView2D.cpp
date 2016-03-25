@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/29 21:01:06 $
- *    $Revision: 1.75 $
+ *    $Date: 2016/03/24 16:52:51 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,6 +72,7 @@ RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
   connect(m_interactorVoxelEdit, SIGNAL(Error(QString)), this, SLOT(OnInteractorError(QString)));
   connect(m_interactorROIEdit, SIGNAL(Error(QString)), this, SLOT(OnInteractorError(QString)));
   connect(m_interactorPointSetEdit, SIGNAL(Error(QString)), this, SLOT(OnInteractorError(QString)));
+  connect(m_interactorNavigate, SIGNAL(CursorLocationClicked()), this, SIGNAL(CursorLocationClicked()));
   SetInteractionMode( IM_Navigate );
   m_dPreSlicePosition = -1e10;
 }

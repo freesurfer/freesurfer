@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/04/02 19:28:32 $
- *    $Revision: 1.40 $
+ *    $Date: 2016/03/24 16:52:51 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,6 +101,7 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
         else if (event->modifiers() & Qt::ShiftModifier)
           QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionVertexChanged()));
       }
+      emit CursorLocationClicked();
     }
   }
   else if ( event->button() == Qt::MidButton && ( event->modifiers() & Qt::ShiftModifier ) )

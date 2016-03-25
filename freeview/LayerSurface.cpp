@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/17 16:25:26 $
- *    $Revision: 1.117 $
+ *    $Date: 2016/03/24 16:52:51 $
+ *    $Revision: 1.118 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -982,6 +982,31 @@ void LayerSurface::GetSurfaceRASAtTarget( double* pos_in, double* ras_out )
   */
   m_surfaceSource->ConvertTargetToRAS( pos_o, pos_o );
   m_surfaceSource->ConvertRASToSurface( pos_o, ras_out );
+}
+
+void LayerSurface::GetSurfaceRASAtRAS(double* ras_in, double* tkras_out)
+{
+    if ( m_surfaceSource == NULL )
+    {
+      return;
+    }
+    m_surfaceSource->ConvertRASToSurface( ras_in, tkras_out );
+}
+
+void LayerSurface::GetRASAtTarget(double *pos_in, double *ras_out)
+{
+    if ( m_surfaceSource == NULL )
+    {
+      return;
+    }
+
+    double pos_o[3];
+    double* offset = GetProperty()->GetPosition();
+    for ( int i = 0; i < 3; i++ )
+    {
+      pos_o[i] = pos_in[i] - offset[i];
+    }
+    m_surfaceSource->ConvertTargetToRAS( pos_o, ras_out );
 }
 
 void LayerSurface::GetTargetAtSurfaceRAS( double* ras_in, double* pos_out )

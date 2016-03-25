@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/22 19:25:59 $
- *    $Revision: 1.326 $
+ *    $Date: 2016/03/24 16:52:51 $
+ *    $Revision: 1.327 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -184,6 +184,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(m_dlgTransformVolume, SIGNAL(CurrentLandmarkChanged(int)),
             ((RenderView2D*)m_views[i])->GetInteractorNavigate(),
             SLOT(SetCurrentLandmark(int)));
+    connect(m_views[i], SIGNAL(CursorLocationClicked()), this, SLOT(On2DCursorClicked()));
   }
 
   m_dlgCropVolume = new DialogCropVolume(this);
@@ -5449,7 +5450,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     {
     //  ShowNonModalMessage("Warning",
     //                      "Either this surface does not contain valid volume geometry information, or freeview failed to read the information. This surface may not align with volumes and other surfaces.");
-      cerr << "Did not find any volume geometry information in the surface" << endl;
+      cerr << "Did not find any volume 01" << endl;
     }
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
@@ -7129,10 +7130,39 @@ void MainWindow::OnSurfaceVertexClicked(LayerSurface *surf)
         if (nVert >= 0)
         {
             double ras[3], tkras[3];
-            surf->GetRASAtVertex(nVert, ras);
-            surf->GetSurfaceRASAtVertex(nVert, tkras);
-            qDebug() << "RAS: " << ras[0] << ras[1] << ras[2];
-            qDebug() << "SurfaceRAS: " << tkras[0] << tkras[1] << tkras[2];
+//            surf->GetRASAtVertex(nVert, ras);
+//            surf->GetSurfaceRASAtVertex(nVert, tkras);
+            surf->GetSlicePosition(ras);
+            surf->GetRASAtTarget(ras, ras);
+            surf->GetSurfaceRASAtRAS(ras, tkras);
+            cout << "RAS: " << ras[0] << " " << ras[1] << " " << ras[2] << endl;
+            cout << "SurfaceRAS: " << tkras[0] << " " << tkras[1] << " " << tkras[2] << endl;
+        }
+    }
+}
+
+void MainWindow::On2DCursorClicked()
+{
+    if (m_bVerbose)
+    {
+        LayerMRI* mri = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
+        LayerSurface* surf = qobject_cast<LayerSurface*>(GetActiveLayer("Surface"));
+        double ras[3], tkras[3];
+        if (mri)
+        {
+            mri->GetSlicePosition(ras);
+            mri->TargetToRAS(ras, ras);
+            mri->NativeRASToTkReg(ras, tkras);
+            cout << "RAS: " << ras[0] << " " << ras[1] << " " << ras[2] << endl;
+            cout << "tkReg: " << tkras[0] << " " << tkras[1] << " " <<  tkras[2] << endl;
+        }
+        else if (surf)
+        {
+            surf->GetSlicePosition(ras);
+            surf->GetRASAtTarget(ras, ras);
+            surf->GetSurfaceRASAtRAS(ras, tkras);
+            cout << "RAS: " << ras[0] << " " << ras[1] << " " << ras[2] << endl;
+            cout << "SurfaceRAS: " << tkras[0] << " " << tkras[1] << " " <<  tkras[2] << endl;
         }
     }
 }

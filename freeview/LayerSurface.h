@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/17 16:25:26 $
- *    $Revision: 1.73 $
+ *    $Date: 2016/03/24 16:52:51 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -100,7 +100,11 @@ public:
 
   void GetSurfaceRASAtTarget( double* pos_in, double* ras_out );
 
+  void GetRASAtTarget(double* pos_in, double* ras_out);
+
   void GetTargetAtSurfaceRAS( double* ras_in, double* pos_out );
+
+  void GetSurfaceRASAtRAS(double* ras_in, double* tkras_out);
 
   FSSurface* GetSourceSurface()
   {

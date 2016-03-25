@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/22 19:25:59 $
- *    $Revision: 1.85 $
+ *    $Date: 2016/03/24 16:52:51 $
+ *    $Revision: 1.86 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -566,6 +566,9 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
                         {
                             f->SetCurrentVertex(nVertex);
                             f->GetTargetAtVertex(nVertex, pos);
+                            double v[3];
+                            surf->GetSmoothedVertexNormal(nVertex, v);
+                            this->AlignViewToNormal(v);
                             break;
                         }
                     }
