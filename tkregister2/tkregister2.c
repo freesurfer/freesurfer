@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/01/15 22:47:45 $
- *    $Revision: 1.130 $
+ *    $Date: 2016/03/24 17:39:56 $
+ *    $Revision: 1.131 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.130 2016/01/15 22:47:45 greve Exp $";
+"$Id: tkregister2.c,v 1.131 2016/03/24 17:39:56 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1702,9 +1702,13 @@ static void print_help(void) {
 
     "SUMMARY\n"
     "\n"
+    "Note: consider using tkregisterfv which is a frontend for freeview\n"
+    "\n"
     "tkregister2 is a tool to assist in the manual tuning of the linear\n"
     "registration between two volumes, mainly for the purpose of\n"
-    "interacting with the FreeSurfer anatomical stream. "
+    "interacting with the FreeSurfer anatomical stream.\n"
+    "The output register.dat maps from target tkregRAS to mov tkregRAS\n"
+    "Note that this is reverse of what you might expect\n\n"
     "The GUI displays a\n"
     "window in which the user can toggle between the two volumes "
     "to see how\n"
@@ -4971,7 +4975,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.130 2016/01/15 22:47:45 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.131 2016/03/24 17:39:56 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
