@@ -36,7 +36,9 @@ GCS=\
 	rh.DKTatlas40.gcs \
 	lh.DKTatlas40.gcs \
 	rh.DKTatlas100.gcs \
-	lh.DKTatlas100.gcs
+	lh.DKTatlas100.gcs \
+	lh.DKatlas.2016-03-20.vc922.gcs \
+	rh.DKatlas.2016-03-20.vc922.gcs
 
 TIF=\
 	lh.average.curvature.filled.buckner40.tif \
@@ -45,7 +47,9 @@ TIF=\
 	rh.average.curvature.filled.buckner40.tif \
 	rh.average.CURVATURE.tif \
 	rh.average.tif \
-	rigidly_aligned_brain_template.tif
+	rigidly_aligned_brain_template.tif \
+	rh.curvature.buckner40.2016-03-20.tif \
+	lh.curvature.buckner40.2016-03-20.tif
 
 TXT=\
 	colortable_desikan_killiany.txt \
