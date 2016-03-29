@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2016/03/24 17:34:02 $
-#    $Revision: 1.575 $
+#    $Author: fischl $
+#    $Date: 2016/03/28 17:25:03 $
+#    $Revision: 1.576 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.575 2016/03/24 17:34:02 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.576 2016/03/28 17:25:03 fischl Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -266,7 +266,7 @@ set AvgCurvTif = curvature.buckner40.2016-03-20.tif
 set OLD_OLD_GCS = curvature.buckner40.filled.desikan_killiany.2007-06-20.gcs
 set OLD_GCS = curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
 set NEW_OLD_GCS = curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs
-set GCS = DKatlas.2016-03-20.vc922.gcs
+set GCS = DKatlas.2016-03-20.gcs
 set GCSDIR = "${FREESURFER_HOME}/average"
 
 # Christophe Destrieux cortical parcellation atlas (-cortparc2):
@@ -274,7 +274,8 @@ set OLD_OLD_DESTRIEUX_GCS = atlas2002_simple.gcs
 set OLD_OLD_DESTRIEUX_NAME = a2002s
 set OLD_DESTRIEUX_GCS = atlas2005_simple.gcs
 set OLD_DESTRIEUX_NAME = a2005s
-set DESTRIEUX_GCS = destrieux.simple.2009-07-29.gcs
+set NEW_OLD_DESTRIEUX_GCS = destrieux.simple.2009-07-29.gcs
+set DESTRIEUX_GCS = CDatlas.2016-03-20
 set DESTRIEUX_NAME = a2009s
 
 # Mindboggle cortical parcellation atlas (-cortparc3):
