@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/04/18 19:21:27 $
- *    $Revision: 1.14 $
+ *    $Date: 2016/03/29 15:34:14 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,6 +76,11 @@ public:
     return m_dEraseValue;
   }
 
+  bool GetCloning()
+  {
+      return m_bIsCloning;
+  }
+
 signals:
   void FillValueChanged(double);
   void EraseValueChanged(double);
@@ -95,6 +100,10 @@ public slots:
   {
     m_bFill3D = bVal;
   }
+  void SetCloning(bool bVal)
+  {
+      m_bIsCloning = bVal;
+  }
 
 protected:
   int  m_nBrushSize;
@@ -105,6 +114,7 @@ protected:
   bool m_bEnableExcludeRange;
   bool m_bDrawConnectedOnly;
   bool  m_bFill3D;
+  bool m_bIsCloning;
 
   double m_dFillValue;
   double m_dEraseValue;

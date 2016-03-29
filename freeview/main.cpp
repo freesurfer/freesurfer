@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/22 19:25:59 $
- *    $Revision: 1.68 $
+ *    $Date: 2016/03/29 15:34:15 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -131,6 +131,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "hide-3d-slices", "hide-3d-slices", "", "Hide slices in 3D view." ),
     CmdLineEntry( CMD_LINE_SWITCH, "quit", "quit", "", "Quit freeview. Useful for scripting or loading comands by -cmd option." ),
     CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "stdin", "stdin", "", "Listening stdin for freeview command sent by other programs." ),
     CmdLineEntry( CMD_LINE_SWITCH, "verbose", "verbose", "", "Print out a lot more information, such as vertex coordinate of each click, etc." ),
     CmdLineEntry( CMD_LINE_NONE )
   };

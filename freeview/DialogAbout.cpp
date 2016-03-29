@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/09/13 16:11:19 $
- *    $Revision: 1.6 $
+ *    $Date: 2016/03/29 15:34:14 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,6 +23,7 @@
  */
 #include "DialogAbout.h"
 #include "ui_DialogAbout.h"
+
 
 DialogAbout::DialogAbout(QWidget *parent) :
   QDialog(parent),

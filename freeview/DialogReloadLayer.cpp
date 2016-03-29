@@ -1,8 +1,6 @@
 #include "DialogReloadLayer.h"
 #include "ui_DialogReloadLayer.h"
 
-
-
 DialogReloadLayer::DialogReloadLayer(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::DialogReloadLayer)

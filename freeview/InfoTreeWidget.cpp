@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.18 $
+ *    $Author: rpwang $
+ *    $Date: 2016/03/29 15:34:14 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,7 @@
 #include <QShowEvent>
 #include <QDebug>
 #include <QMenu>
+
 
 InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
   QTreeWidget(parent),

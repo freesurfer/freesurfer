@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/15 21:17:52 $
- *    $Revision: 1.5 $
+ *    $Date: 2016/03/29 15:34:15 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -107,6 +107,8 @@ public:
     return m_bRedirectStdOutput;
   }
 
+  void EnableListeningStdin();
+
 public slots:
   void SetDarkTheme(bool bDark = true);
   void SetRedirectStdOutput(bool bRedir = true);
@@ -131,7 +133,7 @@ private:
   QString           m_bufferStdErr;
   QString           m_strLogColor;
   QString           m_strErrorColor;
-  QSocketNotifier   m_stdinNotifier;
+  QSocketNotifier*  m_stdinNotifier;
 
   bool    m_bRedirectStdOutput;
   bool    m_bDuplicateStdOutput;

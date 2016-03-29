@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/24 16:52:51 $
- *    $Revision: 1.327 $
+ *    $Date: 2016/03/29 19:27:16 $
+ *    $Revision: 1.329 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1121,6 +1121,9 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     AddScript(QStringList("quit") );
 
   m_bVerbose = parser->Found("verbose");
+
+  if (parser->Found("stdin"))
+      m_term->EnableListeningStdin();
 
   return true;
 }
@@ -7135,8 +7138,8 @@ void MainWindow::OnSurfaceVertexClicked(LayerSurface *surf)
             surf->GetSlicePosition(ras);
             surf->GetRASAtTarget(ras, ras);
             surf->GetSurfaceRASAtRAS(ras, tkras);
-            cout << "RAS: " << ras[0] << " " << ras[1] << " " << ras[2] << endl;
-            cout << "SurfaceRAS: " << tkras[0] << " " << tkras[1] << " " << tkras[2] << endl;
+            cout << "RAS: " << ras[0] << " " << ras[1] << " " << ras[2] << "\n";
+            cout << "SurfaceRAS: " << tkras[0] << " " << tkras[1] << " " << tkras[2] << "\n";
         }
     }
 }

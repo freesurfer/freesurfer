@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/07/24 19:37:49 $
- *    $Revision: 1.17 $
+ *    $Date: 2016/03/29 15:34:14 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -39,7 +39,8 @@ BrushProperty::BrushProperty (QObject* parent) : QObject(parent),
   m_bFill3D(false),
   m_layerRef( NULL ),
   m_dFillValue(1.0),
-  m_dEraseValue(0.0)
+  m_dEraseValue(0.0),
+  m_bIsCloning(false)
 {
   m_dDrawRange[0] = 0;
   m_dDrawRange[1] = 1000000;
@@ -139,7 +140,6 @@ void BrushProperty::SetDrawRange( double low, double high )
   m_dDrawRange[0] = low;
   m_dDrawRange[1] = high;
 }
-
 
 bool BrushProperty::GetDrawRangeEnabled()
 {

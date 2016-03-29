@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/15 21:17:52 $
- *    $Revision: 1.6 $
+ *    $Date: 2016/03/29 15:34:15 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,7 +55,7 @@ TermWidget::TermWidget(QWidget *parent) :
   ui(new Ui::TermWidget),
   m_stdOut(0),
   m_stdErr(0),
-  m_stdinNotifier(STDIN_FILENO, QSocketNotifier::Read)
+  m_stdinNotifier(NULL)
 {
   ui->setupUi(this);
   setWindowFlags( Qt::Tool );
@@ -86,8 +86,6 @@ TermWidget::TermWidget(QWidget *parent) :
   QTimer* timer = new QTimer(this);
   connect(timer, SIGNAL(timeout()), this, SLOT(OnTimeOut()));
   timer->start(200);
-
-  connect(&m_stdinNotifier, SIGNAL(activated(int)), this, SLOT(OnStdinActivated()));
 }
 
 TermWidget::~TermWidget()
@@ -97,6 +95,15 @@ TermWidget::~TermWidget()
 
   SetRedirectStdOutput(false);
   delete ui;
+}
+
+void TermWidget::EnableListeningStdin()
+{
+    if (!m_stdinNotifier)
+    {
+      m_stdinNotifier = new QSocketNotifier(STDIN_FILENO, QSocketNotifier::Read, this);
+      connect(m_stdinNotifier, SIGNAL(activated(int)), this, SLOT(OnStdinActivated()));
+    }
 }
 
 void TermWidget::SetRedirectStdOutput(bool bRedir)
@@ -177,7 +184,10 @@ void TermWidget::OnCommandTriggered(const QString &cmd)
 
 void TermWidget::OnStdinActivated()
 {
-    m_stdinNotifier.setEnabled(false);
+    if (!m_stdinNotifier)
+        return;
+
+    m_stdinNotifier->setEnabled(false);
 
     char sbuf[8192];
     fgets(sbuf, sizeof(sbuf), stdin);
@@ -189,7 +199,7 @@ void TermWidget::OnStdinActivated()
         line = line.mid(8).trimmed();
         OnCommandTriggered(line);
     }
-    m_stdinNotifier.setEnabled(true);
+    m_stdinNotifier->setEnabled(true);
 }
 
 void TermWidget::OnTimeOut()
