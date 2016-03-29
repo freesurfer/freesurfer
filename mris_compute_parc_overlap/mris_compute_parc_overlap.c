@@ -33,8 +33,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/03/22 16:14:39 $
- *    $Revision: 1.18 $
+ *    $Date: 2016/03/28 17:20:11 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,7 +104,7 @@ static void padWhite(char* str, int maxLen);
 
 char *Progname;
 static char vcid[] =
-  "$Id: mris_compute_parc_overlap.c,v 1.18 2016/03/22 16:14:39 fischl Exp $";
+  "$Id: mris_compute_parc_overlap.c,v 1.19 2016/03/28 17:20:11 fischl Exp $";
 static char *FREESURFER_HOME = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -342,6 +342,7 @@ int main(int argc, char *argv[])
   addToExcludedLabelsList(ct, "corpuscallosum"); //Desikan atlas
   addToExcludedLabelsList(ct, "Unknown"); //Christophe atlas
   addToExcludedLabelsList(ct, "Corpus_callosum"); //Christophe atlas
+  addToExcludedLabelsList(ct, "Medial_wall"); //Christophe atlas
 
   /*
    * if we are performing a label comparison, then get the annotation info
@@ -970,12 +971,13 @@ static void calcMeanMinLabelDistances(void)
           // sanity check: we should have found a minimum distance
           if (minDist==100000000) 
           {
-            printf("ERROR: minDist==100000000 "
+	    minDist = abs(surface1->yhi-surface1->ylo) ;
+            printf("ERROR: minDist==100000000 (%f) "
                    "(cti=%d,vno=%d,annotation1=0x%8.8X,annotation2=0x%8.8X)\n",
-                   cti,vno,
+                   minDist,cti,vno,
                    surf1BoundaryLabels[cti].annotation,
                    surf2BoundaryLabels[cti].annotation);
-            exit(1);
+//            exit(1);  in CD parcellation some folds may not occur
           }
           if (minDist < 0) // stupid sanity check
           {
@@ -1066,12 +1068,13 @@ static void calcMeanMinLabelDistances(void)
           // sanity check: we should have found a minimum distance
           if (minDist==100000000) 
           {
-            printf("ERROR: minDist==100000000 "
+	    minDist = abs(surface1->yhi-surface1->ylo) ;
+            printf("ERROR: minDist==100000000 (%f) "
                    "(cti=%d,vno=%d,annotation1=0x%8.8X,annotation2=0x%8.8X)\n",
-                   cti,vno,
+                   minDist, cti,vno,
                    surf1BoundaryLabels[cti].annotation,
                    surf2BoundaryLabels[cti].annotation);
-            exit(1);
+//            exit(1);  not an error - in CD parcellation some folds may not occur
           }
           // save away the min distance info for this vertex
           surf2BoundaryLabels[cti].meanMinDist += minDist;
@@ -1116,11 +1119,15 @@ static void calcMeanMinLabelDistances(void)
       if (surf1BoundaryLabels[cti].annotation != 
           surf2BoundaryLabels[cti].annotation)
       {
-        printf("ERROR: surf1BoundaryLabels[%d].annotation=0x%8.8X != "
-               "surf2BoundaryLabels[%d].annotation=0x%8.8X \n",
-               cti, surf1BoundaryLabels[cti].annotation,
-               cti, surf2BoundaryLabels[cti].annotation);
-        exit(1);
+	const char *n1, *n2 ;
+	n1  = CTABgetAnnotationName(surface1->ct, surf1BoundaryLabels[cti].annotation) ;
+	n2  = CTABgetAnnotationName(surface2->ct, surf2BoundaryLabels[cti].annotation) ;
+
+        printf("ERROR: surf1BoundaryLabels[%d].annotation=0x%8.8X (%s) != "
+               "surf2BoundaryLabels[%d].annotation=0x%8.8X (%s) \n",
+               cti, surf1BoundaryLabels[cti].annotation, n1,
+               cti, surf2BoundaryLabels[cti].annotation, n2);
+//        exit(1);   Not an error - in CD parcellation some folds may not occur
       }
       // calc the average
       float avg = surf1BoundaryLabels[cti].meanMinDist;
