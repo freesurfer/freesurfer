@@ -40,7 +40,9 @@ GCS=\
 	lh.DKatlas.2016-03-20.vc922.gcs \
 	rh.DKatlas.2016-03-20.vc922.gcs \
 	lh.DKatlas.2016-03-20.gcs \
-	rh.DKatlas.2016-03-20.gcs
+	rh.DKatlas.2016-03-20.gcs \
+    lh.CDatlas.2016-03-20.gcs \
+    rh.CDatlas.2016-03-20.gcs
 
 TIF=\
 	lh.average.curvature.filled.buckner40.tif \
