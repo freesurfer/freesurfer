@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2016/03/28 17:25:03 $
-#    $Revision: 1.576 $
+#    $Date: 2016/03/31 19:04:35 $
+#    $Revision: 1.577 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.576 2016/03/28 17:25:03 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.577 2016/03/31 19:04:35 fischl Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -275,7 +275,7 @@ set OLD_OLD_DESTRIEUX_NAME = a2002s
 set OLD_DESTRIEUX_GCS = atlas2005_simple.gcs
 set OLD_DESTRIEUX_NAME = a2005s
 set NEW_OLD_DESTRIEUX_GCS = destrieux.simple.2009-07-29.gcs
-set DESTRIEUX_GCS = CDatlas.2016-03-20
+set DESTRIEUX_GCS = CDatlas.2016-03-20.gcs
 set DESTRIEUX_NAME = a2009s
 
 # Mindboggle cortical parcellation atlas (-cortparc3):

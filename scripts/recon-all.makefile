@@ -30,7 +30,7 @@ $(T1): $(TAL) $(CP)
 $(BRAINMASK): $(T1) $(TAL)
 	recon-all -s $(subj) -skullstrip
 
-$(NU): $(ORIG) $(BRAINMASK) $(TAL)
+$(NU): $(ORIG) $(TAL)
 	recon-all -s $(subj) -nuintensitycor
 
 
