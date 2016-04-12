@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/10 22:19:07 $
- *    $Revision: 1.38 $
+ *    $Date: 2016/04/08 19:30:28 $
+ *    $Revision: 1.40 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -85,7 +85,6 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_nUpSampleMethod( UM_None ),
   m_nContourSmoothIterations( 5 ),
   mSource( NULL ),
-  m_bShowProjectionMap( false ),
   m_bRememberFrameSettings( false ),
   m_nActiveFrame( 0 ),
   m_bShowAsLabelContour( false ),
@@ -95,7 +94,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bAutoAdjustFrameLevel(false),
   m_bNormalizeVector(true),
   m_dVectorDisplayScale(1.0),
-  m_bHeatScaleAutoMid(true)
+  m_bHeatScaleAutoMid(true),
+  m_nProjectionMapType(0)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -105,6 +105,12 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_rgbContour[0] = 0.92;
   m_rgbContour[1] = 0.78;
   m_rgbContour[2] = 0.54;
+
+  for (int i = 0; i < 3; i++)
+  {
+      m_nProjectionMapRange[i*2] = 0;
+      m_nProjectionMapRange[i*2+1] = -1;
+  }
 
   mLUTTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 
@@ -1682,13 +1688,20 @@ void LayerPropertyMRI::SetContourSmoothIterations( int nIterations )
   }
 }
 
-void LayerPropertyMRI::SetShowProjectionMap(bool bShow)
+void LayerPropertyMRI::SetProjectionMapType(int nType)
 {
-  if (bShow != m_bShowProjectionMap)
-  {
-    m_bShowProjectionMap = bShow;
-    emit ProjectionMapShown(bShow);
-  }
+    if (nType != m_nProjectionMapType)
+    {
+        m_nProjectionMapType = nType;
+        emit ProjectionMapChanged();
+    }
+}
+
+void LayerPropertyMRI::SetProjectionMapRange(int n, int start, int end)
+{
+    m_nProjectionMapRange[n*2] = start;
+    m_nProjectionMapRange[n*2+1] = end;
+    emit ProjectionMapChanged();
 }
 
 void LayerPropertyMRI::SetRememberFrameSettings(bool bFlag)

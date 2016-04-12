@@ -15,19 +15,19 @@ function [Theta0,Re0] = lme_mass_fit_init(X,Zcols,Y,ni,maskvtx,prs)
 % ni: Vector whose entries are the number of repeated measures for each
 % subject (ordered according to X).
 % maskvtx: Mask's vertices (1-based). Default [] (all vertices included).
-% prs: Number of workers for parallel computing. Default 8;
+% prs: Number of workers for parallel computing. Default numcores;
 %
 % Output
 % Theta0: Matrix whose colums are estimators of the covariance components at.
 % each location.
 % Re0: Matrix of residual errors at each location (from OLS).
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:55 $
+% $Revision: 1.3 $  $Date: 2016/04/08 19:39:24 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:55 $
-%    $Revision: 1.2 $
+%    $Date: 2016/04/08 19:39:24 $
+%    $Revision: 1.3 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.
@@ -36,7 +36,7 @@ tic;
 if nargin < 4
     error('Too few inputs');
 elseif nargin < 6
-    prs = 8;
+    prs = feature('numcores');
     if nargin < 5
         maskvtx = [];
     end;
@@ -71,14 +71,35 @@ for i=1:m
     t1 = t1 + t2;
     posi = posf+1;
 end;
-if (prs==1) || (matlabpool('size') ~= prs)
-    if (matlabpool('size') > 0)
-        matlabpool close;
+if license('test','distrib_computing_toolbox')
+    if verLessThan('matlab','8.2.0.29')
+        if (prs==1) || (matlabpool('size') ~= prs)
+            if (matlabpool('size') > 0)
+                matlabpool close;
+            end;
+            if (prs>1)
+                matlabpool(prs);
+            end;
+        end;
+    else
+        pc = gcp('nocreate'); % If no pool, do not create new one.
+        if isempty(gcp('nocreate'))
+            if (prs>1)
+                parpool(prs);
+            end;
+        elseif (pc.NumWorkers  ~= prs) || (prs==1)
+            if  ~isempty(gcp('nocreate'))
+                delete(gcp('nocreate'))
+            end
+            if (prs>1)
+                parpool(prs);
+            end;
+        end;
     end;
-    if (prs>1)
-        matlabpool(prs);
-    end;
-end;
+else
+    display(' ');
+    display('Warning: Parallel Computing Toolbox missing, things will be real slow ...');
+end;   
 display(' ');
 display('Computing initial values ...');
 sinvX = pinv(X);

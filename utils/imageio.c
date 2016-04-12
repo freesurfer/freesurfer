@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/03/20 17:01:08 $
- *    $Revision: 1.55 $
+ *    $Date: 2016/04/11 01:10:21 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1403,7 +1403,7 @@ TiffWriteImage(IMAGE *I, const char*fname, int frame)
     TIFFWriteDirectory(out);
     I->image += I->sizeimage;
   }
-  printf("closing TIFF file\n") ;
+//  printf("closing TIFF file\n") ;
   TIFFClose(out) ;
   I->image = timage;
 

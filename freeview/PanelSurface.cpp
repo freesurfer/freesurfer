@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/03 19:12:33 $
- *    $Revision: 1.65 $
+ *    $Date: 2016/04/08 19:37:48 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -103,6 +103,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
 
   LayerCollection* lc = mainwnd->GetLayerCollection("Surface");
   connect( ui->actionLockLayer, SIGNAL(toggled(bool)), this, SLOT(OnLockLayer(bool)) );
+  connect( ui->actionMoveLayerUp, SIGNAL(triggered()), lc, SLOT(MoveLayerUp()));
+  connect( ui->actionMoveLayerDown, SIGNAL(triggered()), lc, SLOT(MoveLayerDown()));
 
   m_wndConfigureOverlay = new WindowConfigureOverlay( this );
   m_wndConfigureOverlay->hide();
@@ -137,6 +139,8 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
            this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( layer, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
            this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect( layer, SIGNAL(SurfaceRGBAdded()),
+           this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( layer, SIGNAL(SurfaceLabelDeleted(SurfaceLabel*)), this, SLOT(UpdateWidgets()));
   connect( layer, SIGNAL(SurfaceCurvatureLoaded()), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(SurfaceVectorLoaded()), this, SLOT(UpdateWidgets()) );
@@ -162,6 +166,7 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect( ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), spline, SLOT(SetColor(QColor)));
   connect(ui->checkBoxSplineProjection, SIGNAL(toggled(bool)), spline, SLOT(SetProjection(bool)));
   connect(spline, SIGNAL(SplineChanged()), this, SLOT(UpdateWidgets()));
+  connect(layer, SIGNAL(RGBMapChanged()), this, SLOT(UpdateWidgets()));
 }
 
 void PanelSurface::DoIdle()
@@ -186,6 +191,10 @@ void PanelSurface::DoIdle()
   ui->actionShowOverlay->setChecked(layer && layer->GetProperty()->GetShowOverlay());
   ui->actionShowAnnotation->setEnabled(layer && layer->GetNumberOfAnnotations() > 0);
   ui->actionShowAnnotation->setChecked(layer && layer->GetProperty()->GetShowAnnotation());
+  ui->actionMoveLayerUp->setEnabled(layer && m_layerCollection
+                                  && m_layerCollection->GetLayerIndex(layer) > 0);
+  ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
+                                  && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
   BlockAllSignals( false );
 }
 
@@ -254,6 +263,15 @@ void PanelSurface::DoUpdateWidgets()
     double* dPos = layer->GetProperty()->GetPosition();
     ChangeLineEditText( ui->lineEditPositionOffset, QString("%1 %2 %3").arg(dPos[0]).arg(dPos[1]).arg(dPos[2]) );
     ui->checkBoxShowInfo->setChecked( layer->GetProperty()->GetShowInfo() );
+
+    ui->colorpickerSurfaceColor->setVisible(layer->GetActiveRGBMap() < 0);
+    QStringList rgb_names = layer->GetRGBMapNames();
+    ui->comboBoxColor->clear();
+    ui->comboBoxColor->addItem("Solid Color");
+    for (int i = 0; i < rgb_names.size(); i++)
+        ui->comboBoxColor->addItem(rgb_names[i]);
+    ui->comboBoxColor->addItem("Load RGB map...");
+    ui->comboBoxColor->setCurrentIndex(layer->GetActiveRGBMap()+1);
   }
 
   // update vector controls
@@ -814,4 +832,21 @@ void PanelSurface::OnLockLayer(bool b)
   {
     layer->Lock(b);
   }
+}
+
+void PanelSurface::OnComboColor(int nSel)
+{
+    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+    if ( surf )
+    {
+        if (nSel == 0)
+            surf->SetActiveRGBMap(-1);
+        else if (nSel > surf->GetNumberOfRGBMaps())
+        {
+            if (!MainWindow::GetMainWindow()->LoadSurfaceRGBMap())
+                UpdateWidgets();
+        }
+        else
+            surf->SetActiveRGBMap(nSel-1);
+    }
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/27 20:09:02 $
- *    $Revision: 1.101 $
+ *    $Date: 2016/04/08 19:30:29 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -205,6 +205,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
   connect( ui->actionLockLayer, SIGNAL(toggled(bool)), this, SLOT(OnLockLayer(bool)) );
   connect( ui->actionMoveLayerUp, SIGNAL(triggered()), lc, SLOT(MoveLayerUp()));
   connect( ui->actionMoveLayerDown, SIGNAL(triggered()), lc, SLOT(MoveLayerDown()));
+
+  connect( mainwnd, SIGNAL(MainViewChanged(int)), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
 }
 
 PanelVolume::~PanelVolume()
@@ -235,7 +237,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxNormalizeVectors, SIGNAL(toggled(bool)), p, SLOT(SetNormalizeVector(bool)));
   connect( ui->comboBoxRenderObject, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorRepresentation(int)) );
   connect( ui->comboBoxInversion, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorInversion(int)) );
-  connect( ui->checkBoxProjectionMap, SIGNAL(toggled(bool)), p, SLOT(SetShowProjectionMap(bool)));
+  connect( ui->comboBoxProjectionMapType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnComboProjectionMapType(int)));
   if ( layer->IsTypeOf( "DTI" ) )
     connect( ui->comboBoxDirectionCode, SIGNAL(currentIndexChanged(int)),
              qobject_cast<LayerDTI*>(layer)->GetProperty(), SLOT(SetDirectionCode(int)) );
@@ -256,6 +258,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxUpsampleContour, SIGNAL(toggled(bool)), p, SLOT(SetContourUpsample(bool)));
   connect( ui->checkBoxRememberFrame, SIGNAL(toggled(bool)), p, SLOT(SetRememberFrameSettings(bool)));
   connect( ui->checkBoxAutoAdjustFrameLevel, SIGNAL(toggled(bool)), p, SLOT(SetAutoAdjustFrameLevel(bool)));
+  connect( ui->lineEditProjectionMapRange, SIGNAL(returnPressed()), this, SLOT(OnLineEditProjectionMapRangeChanged()));
 }
 
 void PanelVolume::DoIdle()
@@ -487,11 +490,23 @@ void PanelVolume::DoUpdateWidgets()
     ChangeLineEditNumber( ui->lineEditVectorScale, layer->GetProperty()->GetVectorDisplayScale());
 
     ui->checkBoxShowInfo->setChecked( layer->GetProperty()->GetShowInfo() );
-    ui->checkBoxProjectionMap->setChecked( layer->GetProperty()->GetShowProjectionMap());
 
     ui->checkBoxShowOutline->setChecked( layer->GetProperty()->GetShowLabelOutline() );
-    ui->checkBoxShowOutline->setVisible( !layer->IsTypeOf("DTI") );
-    ui->checkBoxProjectionMap->setVisible(!layer->IsTypeOf("DTI") );
+    ui->widgetProjectionMapType->setVisible(!layer->IsTypeOf("DTI") );
+    ui->widgetProjectionMapSettings->setVisible(ui->widgetProjectionMapType->isVisible() && layer->GetProperty()->GetShowProjectionMap());
+    ui->comboBoxProjectionMapType->setCurrentIndex(layer->GetProperty()->GetProjectionMapType());
+    int nRange[2];
+    int nPlane = MainWindow::GetMainWindow()->GetMainViewId();
+    if (nPlane > 2)
+        nPlane = 2;
+    layer->GetProperty()->GetProjectionMapRange(nPlane, nRange);
+    if (nRange[1] < 0)
+    {
+        int* dim = layer->GetImageData()->GetDimensions();
+        nRange[1] = dim[nPlane]-1;
+    }
+    ui->lineEditProjectionMapRange->setText(QString("%1, %2").arg(nRange[0]).arg(nRange[1]));
+    ui->checkBoxShowOutline->setVisible(ui->comboBoxProjectionMapType->currentIndex() == 0 && !layer->IsTypeOf("DTI"));
 
     //    ui->m_choiceUpSampleMethod->SetSelection( layer->GetProperty()->GetUpSampleMethod() );
     ui->checkBoxShowExistingLabels->setEnabled(!layer->GetAvailableLabels().isEmpty());
@@ -584,7 +599,7 @@ void PanelVolume::DoUpdateWidgets()
          ui->labelVectorScale->setVisible(false);
       }
     }
-    ui->checkBoxShowContour->setVisible( bNormalDisplay );
+    ui->checkBoxShowContour->setVisible( bNormalDisplay && !layer->GetProperty()->GetShowProjectionMap() );
     if (layer && ui->checkBoxShowContour->isChecked())
     {
       ui->checkBoxShowLabelContour->setChecked(layer->GetProperty()->GetShowAsLabelContour());
@@ -1421,4 +1436,51 @@ void PanelVolume::OnLineEditVectorDisplayScale(const QString &strg)
     if (ok && val > 0)
       layer->GetProperty()->SetVectorDisplayScale(val);
   }
+}
+
+void PanelVolume::OnComboProjectionMapType(int nType)
+{
+    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+    foreach (LayerMRI* layer, layers)
+    {
+        layer->GetProperty()->SetProjectionMapType(nType);
+    }
+    UpdateWidgets();
+}
+
+void PanelVolume::OnLineEditProjectionMapRangeChanged()
+{
+    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+    foreach (LayerMRI* layer, layers)
+    {
+        QStringList list = ui->lineEditProjectionMapRange->text().trimmed().split(",", QString::SkipEmptyParts);
+        if (list.size() < 2)
+            list = ui->lineEditProjectionMapRange->text().trimmed().split(" ", QString::SkipEmptyParts);
+
+        if (list.size() > 1)
+        {
+            int nRange[2] = {0, -1};
+            for (int i = 0; i < 2; i++)
+            {
+                bool ok;
+                nRange[i] = list[i].toInt(&ok);
+                if (!ok)
+                {
+                    UpdateWidgets();
+                    return;
+                }
+            }
+            int nPlane = MainWindow::GetMainWindow()->GetMainViewId();
+            if (nPlane > 2)
+                nPlane = 2;
+            int* dim = layer->GetImageData()->GetDimensions();
+            if (nRange[0] < 0)
+                nRange[0] = 0;
+            if (nRange[1] >= dim[nPlane])
+                nRange[1] = dim[nPlane]-1;
+            if (nRange[1] >= nRange[0])
+                layer->GetProperty()->SetProjectionMapRange(nPlane, nRange[0], nRange[1]);
+        }
+    }
+    UpdateWidgets();
 }

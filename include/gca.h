@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/03/11 16:42:14 $
- *    $Revision: 1.134 $
+ *    $Date: 2016/04/11 01:11:14 $
+ *    $Revision: 1.135 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,6 +76,10 @@ extern double MIN_PRIOR_FACTOR, MAX_PRIOR_FACTOR, PRIOR_FACTOR ;   // sorry, too
 #define GCA_ZGRAD             0x0008
 #define GCA_GRAD              (GCA_XGRAD | GCA_YGRAD | GCA_ZGRAD)
 #define GCA_NO_GCS            0x0010
+#define GCA_NO_LH             0x0020
+#define GCA_NO_RH             0x0040
+#define GCA_NO_CEREBELLUM     0x0080
+
 
 typedef struct
 {
@@ -267,6 +271,8 @@ int  GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv,
                     int *pyv, int *pzv) ;
 int  GCApriorToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn, int *pxv,
                      int *pyv, int *pzv) ;
+MRI  *GCAcomputeLikelihoodImage(GCA *gca, MRI *mri_inputs, MRI *mri_labeled, 
+				TRANSFORM *transform);
 double GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform,
                              int penalize_zero_brain, MRI *mri_orig) ;
 float GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,

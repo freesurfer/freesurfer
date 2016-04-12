@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/12/04 14:04:07 $
- *    $Revision: 1.18 $
+ *    $Date: 2016/04/08 19:30:28 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,6 +79,11 @@ public:
   enum UpSampleMethod
   {
     UM_None = 0, UM_NearestNeighbor, UM_Linear, UM_Cubic
+  };
+
+  enum ProjectionMapType
+  {
+    PM_None = 0, PM_Maximum, PM_Mean
   };
 
   QVariantMap GetSettings();
@@ -294,11 +299,6 @@ public:
     return m_nContourSmoothIterations;
   }
 
-  bool GetShowProjectionMap()
-  {
-    return m_bShowProjectionMap;
-  }
-
   bool GetRememberFrameSettings()
   {
     return m_bRememberFrameSettings;
@@ -352,6 +352,28 @@ public:
     return m_bHeatScaleAutoMid;
   }
 
+  int GetProjectionMapType()
+  {
+      return m_nProjectionMapType;
+  }
+
+  bool GetShowProjectionMap()
+  {
+      return m_nProjectionMapType > 0;
+  }
+
+  void GetProjectionMapRange(int n, int* nRange)
+  {
+      nRange[0] = m_nProjectionMapRange[n*2];
+      nRange[1] = m_nProjectionMapRange[n*2+1];
+  }
+
+  void GetProjectionMapRange(int* nRange)
+  {
+      for (int i = 0; i < 6; i++)
+          nRange[i] = m_nProjectionMapRange[i];
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetUpSampleMethod( int nUpSampleMethod );
@@ -382,7 +404,8 @@ public slots:
   {
     SetContourColor(c.redF(), c.greenF(), c.blueF());
   }
-  void SetShowProjectionMap(bool bShow);
+  void SetProjectionMapType(int nType);
+
   void SetRememberFrameSettings(bool bFlag);
 
   void SetLabelContourRange(double dmin, double dmax);
@@ -395,6 +418,8 @@ public slots:
 
   void SetAutoAdjustFrameLevel(bool b);
   void SetHeatScaleAutoMid(bool bAutoMid);
+
+  void SetProjectionMapRange(int n, int start, int end);
 
 signals:
   void ColorMapChanged();
@@ -409,7 +434,8 @@ signals:
   void ContourSmoothIterationChanged( int );
   void LabelOutlineChanged( bool bOutline );
   void UpSampleMethodChanged( int nMethod );
-  void ProjectionMapShown(bool bShown);
+  void ProjectionMapChanged();
+  void ProjectMapTypeChanged(int nType);
 
 private:
   void UpdateMinMaxValues();
@@ -493,9 +519,6 @@ private:
   bool    m_bShowLabelOutline;
   int     m_nUpSampleMethod;
 
-  bool    m_bShowProjectionMap;
-
-
   bool    m_bUsePercentile;
   bool    m_bAutoAdjustFrameLevel;
   QMap<int, QPair<double, double> > m_mapMinMaxValues;
@@ -507,6 +530,8 @@ private:
   QString mfnVolume;
   //ETX
 
+  int     m_nProjectionMapType;
+  int     m_nProjectionMapRange[6];
 };
 
 #endif

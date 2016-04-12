@@ -18,19 +18,19 @@ function [Theta0,Re0] = lme_mass_fit_EMinit(X,Zcols,Y,ni,maskvtx,nit,prs)
 % subject (ordered according to X).
 % maskvtx: Mask's vertices (1-based). Default [] (all vertices included).
 % nit: Number of Expectation Maximization iterations. Default 5.
-% prs: Number of workers for parallel computing. Default 8;
+% prs: Number of workers for parallel computing. Default numcores;
 %
 % Output
 % Theta0: Matrix whose colums are estimators of the covariance components at.
 % each location.
 % Re0: Matrix of residual errors at each location.
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:55 $
+% $Revision: 1.3 $  $Date: 2016/04/08 19:39:24 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:55 $
-%    $Revision: 1.2 $
+%    $Date: 2016/04/08 19:39:24 $
+%    $Revision: 1.3 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.
@@ -39,7 +39,7 @@ tic;
 if nargin < 4
     error('Too few inputs');
 elseif nargin < 7
-    prs = 8;
+    prs = feature('numcores');
     if nargin < 6
         nit = 5;
         if nargin < 5
@@ -130,8 +130,16 @@ Theta0 = zeros(nth,nv0);
 Theta0(:,maskvtx) = Theta1;
 Re0 = zeros(n,nv0);
 Re0(:,maskvtx) = Re1;
-if (matlabpool('size') > 0)
-    matlabpool close;
+if license('test','distrib_computing_toolbox')
+    if verLessThan('matlab','8.2.0.29')
+        if (matlabpool('size') > 0)
+            matlabpool close;
+        end;
+    else
+        if ~isempty(gcp('nocreate'))
+            delete(gcp('nocreate'))
+        end;
+    end;
 end;
 et = toc;
 display(['Total elapsed time is ' num2str(et/60) ' minutes.']);

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/11/03 17:25:22 $
- *    $Revision: 1.47 $
+ *    $Date: 2016/04/08 19:30:29 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,6 +94,10 @@ protected slots:
   void OnCheckUsePercentile(bool b);
 
   void OnLineEditVectorDisplayScale(const QString& strg);
+
+  void OnLineEditProjectionMapRangeChanged();
+
+  void OnComboProjectionMapType(int nType);
 
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );

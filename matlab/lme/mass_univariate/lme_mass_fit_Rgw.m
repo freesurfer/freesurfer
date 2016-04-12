@@ -32,7 +32,7 @@ function [stats,st] = lme_mass_fit_Rgw(X,Zcols,Y,ni,Th0,Rgs,Surf,fname,...
 % Default 'euc'.
 % sptm: Spatial model for the covariance matrix inside the regions. It can 
 % be 'exp' or 'gauss'. Default 'exp'.
-% prs: Number of workers for parallel computing. Default 8;
+% prs: Number of workers for parallel computing. Default numcores;
 % e: Convergence epsilon (gradient's norm). Default 10^-1;
 %
 % Output
@@ -41,12 +41,12 @@ function [stats,st] = lme_mass_fit_Rgw(X,Zcols,Y,ni,Th0,Rgs,Surf,fname,...
 % st: Array containing the termination state for each location.
 % (1 for convergence and 0 otherwise).
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:55 $
+% $Revision: 1.3 $  $Date: 2016/04/08 19:39:24 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:55 $
-%    $Revision: 1.2 $
+%    $Date: 2016/04/08 19:39:24 $
+%    $Revision: 1.3 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.
@@ -58,7 +58,7 @@ if nargin < 7
 elseif nargin < 12
         e = 10^-1;
         if nargin < 11
-            prs = 8;
+            prs = feature('numcores');
             if nargin < 10
                 sptm = 'exp';
                 if nargin < 9
@@ -111,14 +111,35 @@ end;
 %Initialization
 statstruct = struct('Bhat',[],'CovBhat',[],'phisqhat',[],'Dhat',[],...
     'Zcols',[],'invEI',[],'Pth',[],'Qthth',[],'lreml',-10^10);
-if (prs==1) || (matlabpool('size') ~= prs)
-    if (matlabpool('size') > 0)
-        matlabpool close;
+if license('test','distrib_computing_toolbox')
+    if verLessThan('matlab','8.2.0.29')
+        if (prs==1) || (matlabpool('size') ~= prs)
+            if (matlabpool('size') > 0)
+                matlabpool close;
+            end;
+            if (prs>1)
+                matlabpool(prs);
+            end;
+        end;
+    else
+        pc = gcp('nocreate'); % If no pool, do not create new one.
+        if isempty(gcp('nocreate'))
+            if (prs>1)
+                parpool(prs);
+            end;
+        elseif (pc.NumWorkers  ~= prs) || (prs==1)
+            if  ~isempty(gcp('nocreate'))
+                delete(gcp('nocreate'))
+            end
+            if (prs>1)
+                parpool(prs);
+            end;
+        end;
     end;
-    if (prs>1)
-        matlabpool(prs);
-    end;
-end;
+else
+    display(' ');
+    display('Warning: Parallel Computing Toolbox missing, things will be real slow ...');
+end;   
 prsnumloc = zeros(prs,1);
 parfor j=1:prs
     for i=1:prsnRg(j)
@@ -183,8 +204,16 @@ parfor j=1:prs
     end;
 end;
 parfor_progress(fn,0);
-if (matlabpool('size') > 0)
-    matlabpool close;
+if license('test','distrib_computing_toolbox')
+    if verLessThan('matlab','8.2.0.29')
+        if (matlabpool('size') > 0)
+            matlabpool close;
+        end;
+    else
+        if ~isempty(gcp('nocreate'))
+            delete(gcp('nocreate'))
+        end;
+    end;
 end;
 stats(1:nv0) = statstruct;
 st = false(nv0,1);

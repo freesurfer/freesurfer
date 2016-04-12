@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2016/03/31 19:04:35 $
-#    $Revision: 1.577 $
+#    $Date: 2016/04/11 01:12:19 $
+#    $Revision: 1.578 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.577 2016/03/31 19:04:35 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.578 2016/04/11 01:12:19 fischl Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -281,6 +281,8 @@ set DESTRIEUX_NAME = a2009s
 # Mindboggle cortical parcellation atlas (-cortparc3):
 set DKTATLAS40_GCS = DKTatlas40.gcs
 set DKTATLAS40_NAME = DKTatlas40
+set DKTATLAS_GCS = DKTatlas.2016-03-20.gcs
+set DKTATLAS_NAME = DKTatlas
 
 # Initialization method for BBR
 set BBRInit = coreg; # others are spm, header, rr, best
@@ -4481,8 +4483,8 @@ if($DoCortParc3) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
-    set CPAtlas = ${GCSDIR}/${hemi}.${DKTATLAS40_GCS}
-    set annot = ../label/$hemi.aparc.${DKTATLAS40_NAME}.annot
+    set CPAtlas = ${GCSDIR}/${hemi}.${DKTATLAS_GCS}
+    set annot = ../label/$hemi.aparc.${DKTATLAS_NAME}.annot
     set cmd = (mris_ca_label)
     if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
     if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.presurf.mgz)
@@ -4491,7 +4493,7 @@ if($DoCortParc3) then
     if($longitudinal) then
       # longitudinal:
       set cmd = ($cmd -long -R \
-                   $longbasedir/label/${hemi}.aparc.${DKTATLAS40_NAME}.annot)
+                   $longbasedir/label/${hemi}.aparc.${DKTATLAS_NAME}.annot)
     endif
     set cmd = ($cmd $subjid $hemi ../surf/$hemi.sphere.reg $CPAtlas $annot)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -4525,9 +4527,9 @@ if($DoParcStats3) then
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    set annot = ../label/$hemi.aparc.${DKTATLAS40_NAME}.annot
-    set stats = ../stats/$hemi.aparc.${DKTATLAS40_NAME}.stats
-    set ctab  = ../label/aparc.annot.${DKTATLAS40_NAME}.ctab
+    set annot = ../label/$hemi.aparc.${DKTATLAS_NAME}.annot
+    set stats = ../stats/$hemi.aparc.${DKTATLAS_NAME}.stats
+    set ctab  = ../label/aparc.annot.${DKTATLAS_NAME}.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
     if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
@@ -4611,7 +4613,7 @@ endif
 #-----------------               -----------------#
 if($DoAParc2ASeg) then
   set CMDFS = () # see earlier notes on -parallel implementation
-  foreach parc (aparc ${DESTRIEUX_NAME} ${DKTATLAS40_NAME})
+  foreach parc (aparc ${DESTRIEUX_NAME} ${DKTATLAS_NAME})
     echo "#-----------------------------------------" \
       |& tee -a $LF |& tee -a $CF
     echo "#@# AParc-to-ASeg ${parc} `date`" \
@@ -8919,7 +8921,7 @@ curvature 8. integrated rectified Gaussian wm curvature 9. folding index
 10. intrinsic curvature index.
 For -parcstats, the file is saved in stats/?h.aparc.stats.
 For -parcstats2, the file is saved in stats/?h.aparc.${DESTRIEUX_NAME}.stats.
-For -parcstats3, the file is saved in stats/?h.aparc.${DKTATLAS40_NAME}.stats.
+For -parcstats3, the file is saved in stats/?h.aparc.${DKTATLAS_NAME}.stats.
 
 Curvature Statistics  (-<no>curvstats)
 

@@ -1,5 +1,5 @@
-function s = irepistructure(TBI,nslices,ndummies,ntp,skip,InvDur,TI1,ROFlip)
-% s = irepistructure(skip,ndummies,nslices,ntp,InvDur,TBI,TI1,ROFlip)
+function s = irepistructure(TBI,nslices,ndummies,ntp,skip,PreInv,InvDur,TI1,ROFlip)
+% s = irepistructure(TBI,nslices,ndummies,ntp,skip,PreInv,InvDur,TI1,ROFlip)
 
 % Pulse sequence parameters
 s.TBI = TBI; % 2.092*1000; % time bet inversions in ms, like the TR
@@ -10,14 +10,17 @@ s.skip = skip; % slice permutation skip, eg 7
 s.InvDur = InvDur; % duration of inversion pulse, eg, 12
 s.TI1 = TI1; % time from end of inv to first readout
 s.ROFlip = ROFlip; % readout flip angle in degrees
-s.TBS = (s.TBI-s.TI1-s.InvDur)/s.nslices; % time between slices
+s.PreInv = PreInv; % subtract this from TBS of final slice
+s.TBS = (s.TBI-s.TI1-s.InvDur+s.PreInv)/s.nslices; % time between slices
 
 % Timing parameters
 s.tEvent = [];    % Time of event ms
 s.FlipEvent = []; % Degrees, can be 0
 s.IsReadOut = []; % 0 or 1 indicating event is a readout event
+s.TI = []; % Inversion time at readout
 s.EventSliceNo = []; % Anatomical slice number for event
 s.AcqSliceNo = [];   % Acquistion slice number for event
+s.Slice1PreInv = 0; % Set to 1 to model slice 1 acqed before inv
 
 % Could set timing here with call to irepitiming.m
 
@@ -25,12 +28,14 @@ s.AcqSliceNo = [];   % Acquistion slice number for event
 s.T1 = 1200; % msec
 s.eff = 1; % efficiency
 s.sigma = 0; % noise for rician model
+s.biexp = []; % biexponential T1 [fraction T1]
 
 % Cache this so improve speed for rician model
 s.lagsnr = [0:.1:10 11:20:10000]';
 % This has been commented out because it requires the 
 % stats toolbox, and compiled version won't run.
 % This data can just be cached and read in too
+% This will be used in irepisynth.m
 %s.lag  = laguerreL(0.5,-0.5*(s.lagsnr.^2));
 if(0)
   % To test

@@ -23,9 +23,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-117</y>
+     <y>0</y>
      <width>314</width>
-     <height>1147</height>
+     <height>1159</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -63,6 +63,8 @@
         <addaction name="actionShowOverlay"/>
         <addaction name="actionShowAnnotation"/>
         <addaction name="separator"/>
+        <addaction name="actionMoveLayerUp"/>
+        <addaction name="actionMoveLayerDown"/>
         <addaction name="actionLockLayer"/>
        </widget>
       </item>
@@ -131,7 +133,9 @@
       <item row="7" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout20">
         <item>
-         <widget class="QtColorPicker" name="colorpickerVertexColor" native="true"/>
+         <widget class="QtColorPicker" name="colorpickerVertexColor" native="true">
+          <zorder>comboBox</zorder>
+         </widget>
         </item>
         <item>
          <spacer name="horizontalSpacer_20">
@@ -287,20 +291,22 @@
       <item row="3" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout21">
         <item>
-         <widget class="QtColorPicker" name="colorpickerSurfaceColor" native="true"/>
+         <widget class="QComboBox" name="comboBoxColor">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>1</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <item>
+           <property name="text">
+            <string>Solid</string>
+           </property>
+          </item>
+         </widget>
         </item>
         <item>
-         <spacer name="horizontalSpacer_21">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
+         <widget class="QtColorPicker" name="colorpickerSurfaceColor" native="true"/>
         </item>
        </layout>
       </item>
@@ -1026,6 +1032,30 @@
     <string>Show Annotation</string>
    </property>
   </action>
+  <action name="actionMoveLayerUp">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/move_up.png</normaloff>:/resource/icons/move_up.png</iconset>
+   </property>
+   <property name="text">
+    <string>Move Layer Up</string>
+   </property>
+   <property name="toolTip">
+    <string>Up</string>
+   </property>
+  </action>
+  <action name="actionMoveLayerDown">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/move_down.png</normaloff>:/resource/icons/move_down.png</iconset>
+   </property>
+   <property name="text">
+    <string>Move Layer Down</string>
+   </property>
+   <property name="toolTip">
+    <string>Down</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -1167,8 +1197,8 @@
    <slot>OnButtonConfigureOverlay()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>312</x>
-     <y>494</y>
+     <x>204</x>
+     <y>507</y>
     </hint>
     <hint type="destinationlabel">
      <x>350</x>
@@ -1184,7 +1214,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>560</y>
+     <y>541</y>
     </hint>
     <hint type="destinationlabel">
      <x>429</x>
@@ -1200,7 +1230,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>939</y>
+     <y>920</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -1216,7 +1246,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>1114</y>
+     <y>1095</y>
     </hint>
     <hint type="destinationlabel">
      <x>486</x>
@@ -1232,7 +1262,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>1030</y>
+     <y>1011</y>
     </hint>
     <hint type="destinationlabel">
      <x>398</x>
@@ -1248,7 +1278,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>715</y>
+     <y>696</y>
     </hint>
     <hint type="destinationlabel">
      <x>513</x>
@@ -1264,7 +1294,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>715</y>
+     <y>696</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -1279,8 +1309,8 @@
    <slot>OnButtonLoadLabel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>211</x>
-     <y>624</y>
+     <x>204</x>
+     <y>605</y>
     </hint>
     <hint type="destinationlabel">
      <x>489</x>
@@ -1327,8 +1357,8 @@
    <slot>OnLineEditLabelThreshold(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>191</x>
-     <y>819</y>
+     <x>178</x>
+     <y>800</y>
     </hint>
     <hint type="destinationlabel">
      <x>662</x>
@@ -1344,7 +1374,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>715</y>
+     <y>696</y>
     </hint>
     <hint type="destinationlabel">
      <x>803</x>
@@ -1360,7 +1390,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>311</x>
-     <y>624</y>
+     <y>605</y>
     </hint>
     <hint type="destinationlabel">
      <x>506</x>
@@ -1375,8 +1405,8 @@
    <slot>OnComboLabelColorCode(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>223</x>
-     <y>749</y>
+     <x>200</x>
+     <y>730</y>
     </hint>
     <hint type="destinationlabel">
      <x>623</x>
@@ -1391,8 +1421,8 @@
    <slot>OnLineEditLabelHeatscaleMin(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>191</x>
-     <y>784</y>
+     <x>178</x>
+     <y>765</y>
     </hint>
     <hint type="destinationlabel">
      <x>518</x>
@@ -1407,8 +1437,8 @@
    <slot>OnLineEditLabelHeatscaleMax(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>272</x>
-     <y>784</y>
+     <x>259</x>
+     <y>765</y>
     </hint>
     <hint type="destinationlabel">
      <x>605</x>
@@ -1423,12 +1453,28 @@
    <slot>OnButtonRemoveOverlay()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>196</x>
-     <y>516</y>
+     <x>311</x>
+     <y>507</y>
     </hint>
     <hint type="destinationlabel">
      <x>512</x>
      <y>517</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxColor</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnComboColor(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>216</x>
+     <y>164</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>415</x>
+     <y>173</y>
     </hint>
    </hints>
   </connection>
@@ -1459,5 +1505,6 @@
   <slot>OnLineEditLabelHeatscaleMin(QString)</slot>
   <slot>OnLineEditLabelHeatscaleMax(QString)</slot>
   <slot>OnButtonRemoveOverlay()</slot>
+  <slot>OnComboColor(int)</slot>
  </slots>
 </ui>

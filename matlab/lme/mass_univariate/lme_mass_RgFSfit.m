@@ -16,7 +16,7 @@ function [stats,st,a,b] = lme_mass_RgFSfit(X,Zcols,Y,ni,Dist,model,prs,e)
 % the region.
 % model: Spatial model for the covariance matrix of the region. It can be
 % 'exp' or 'sph' or 'gauss'. Default 'exp'.
-% prs: Number of workers for parallel computing. Default 8;
+% prs: Number of workers for parallel computing. Default numcores;
 % e: Convergence epsilon (gradient's norm). Default 1;
 %
 % Output
@@ -28,12 +28,12 @@ function [stats,st,a,b] = lme_mass_RgFSfit(X,Zcols,Y,ni,Dist,model,prs,e)
 % b: Estimate of the second parameter of the spatial correlation matrix (
 % empty for spatial models with a single parameter).
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:55 $
+% $Revision: 1.3 $  $Date: 2016/04/08 19:39:24 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:55 $
-%    $Revision: 1.2 $
+%    $Date: 2016/04/08 19:39:24 $
+%    $Revision: 1.3 $
 % References: 
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
@@ -45,7 +45,7 @@ if nargin < 5
 elseif nargin < 8
     e = 0.1;
     if nargin < 7
-        prs = 8;
+        prs = feature('numcores');
         if nargin < 6
             model = 'exp';
         end;

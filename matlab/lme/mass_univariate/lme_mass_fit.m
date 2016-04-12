@@ -29,8 +29,8 @@ function [stats,st] = lme_mass_fit(X,Xcols,Xrows,Zcols,Y,ni,prs,e)
 % (according to X) for each voxel/vertex.
 % ni: Vector whose entries are the number of repeated measures for each
 % subject (ordered according to X) .
+% prs: Number of workers for parallel computing. Default numcores;
 % e: Convergence epsilon (gradient's norm). Default 10^-1;
-% prs: Number of workers for parallel computing. Default 8;
 %
 % Output
 % stats: Structure array containing statistiscs for every voxel/vertex (see
@@ -38,12 +38,12 @@ function [stats,st] = lme_mass_fit(X,Xcols,Xrows,Zcols,Y,ni,prs,e)
 % st: Array containing the termination state for voxel/vertex
 % (1 for convergence and 0 otherwise).
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:55 $
+% $Revision: 1.3 $  $Date: 2016/04/08 19:39:24 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:55 $
-%    $Revision: 1.2 $
+%    $Date: 2016/04/08 19:39:24 $
+%    $Revision: 1.3 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.
@@ -56,7 +56,7 @@ if nargin < 6
 elseif nargin < 8
     e = 10^-1;   
     if nargin < 7
-       prs = 8; 
+       prs = feature('numcores'); 
     end;
 end;
 [nm,nv] = size(Y);
@@ -120,14 +120,35 @@ end;
 stats(1:nv) = struct('Bhat',[],'CovBhat',[],'phisqhat',[],'Dhat',[],...
              'Zcols',[],'invEI',[],'Pth',[],'Qthth',[],'lreml',-10^10);
 st = false(nv,1);
-if (prs==1) || (matlabpool('size') ~= prs)
-    if (matlabpool('size') > 0)
-        matlabpool close;
+if license('test','distrib_computing_toolbox')
+    if verLessThan('matlab','8.2.0.29')
+        if (prs==1) || (matlabpool('size') ~= prs)
+            if (matlabpool('size') > 0)
+                matlabpool close;
+            end;
+            if (prs>1)
+                matlabpool(prs);
+            end;
+        end;
+    else
+        pc = gcp('nocreate'); % If no pool, do not create new one.
+        if isempty(gcp('nocreate'))
+            if (prs>1)
+                parpool(prs);
+            end;
+        elseif (pc.NumWorkers  ~= prs) || (prs==1)
+            if  ~isempty(gcp('nocreate'))
+                delete(gcp('nocreate'))
+            end
+            if (prs>1)
+                parpool(prs);
+            end;
+        end;
     end;
-    if (prs>1)
-        matlabpool(prs);
-    end;
-end;
+else
+    display(' ');
+    display('Warning: Parallel Computing Toolbox missing, things will be real slow ...');
+end;   
 display(' ');
 display('Starting model fitting at each location ...');
 display(' ');
@@ -189,8 +210,16 @@ else
     end;
 end;
 parfor_progress(fn,0);
-if (matlabpool('size') > 0)
-    matlabpool close;
+if license('test','distrib_computing_toolbox')
+    if verLessThan('matlab','8.2.0.29')
+        if (matlabpool('size') > 0)
+            matlabpool close;
+        end;
+    else
+        if ~isempty(gcp('nocreate'))
+            delete(gcp('nocreate'))
+        end;
+    end;
 end;
 %et = toc;
 %display(['Elapsed time is ' num2str(et/60) ' minutes.']);

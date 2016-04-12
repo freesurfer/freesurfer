@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/03/11 16:42:01 $
- *    $Revision: 1.342 $
+ *    $Date: 2016/04/11 01:11:00 $
+ *    $Revision: 1.343 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -15977,9 +15977,11 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
 
   float      gm_means[MAX_GCA_INPUTS], gray_white_CNR;
 
-  GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
+  if ((gca->flags & GCA_NO_LH ) == 0)
+    GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
   //GCAlabelMean(gca, Left_Cerebral_White_Matter, tmp) ;
-  GCAlabelMean(gca, Right_Cerebral_White_Matter, tmp) ;
+  if ((gca->flags & GCA_NO_RH ) == 0)
+    GCAlabelMean(gca, Right_Cerebral_White_Matter, tmp) ;
 
   // the following rule some times fails for BIRN data, so changed it
   // on 08-01-05 by xhan
@@ -15995,11 +15997,15 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     }
   }
 #else
-  GCAlabelMean(gca, Left_Cerebral_Cortex, gm_means) ;
+  if ((gca->flags & GCA_NO_LH ) == 0)
+    GCAlabelMean(gca, Left_Cerebral_Cortex, gm_means) ;
   for (r = 0 ; r < gca->ninputs ; r++)
   {
     // use modes instead of means
-    h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_White_Matter, r, 0) ;
+    if ((gca->flags & GCA_NO_LH ) == 0)
+      h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_White_Matter, r, 0) ;
+    else
+      h_gca = gcaGetLabelHistogram(gca, Right_Cerebral_White_Matter, r, 0) ;
     peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
     printf("resetting wm mean[%d]: %2.0f --> %2.0f\n",
            r, wm_means[r], h_gca->bins[peak]) ;
@@ -16010,7 +16016,10 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     }
     HISTOfree(&h_gca) ;
 
-    h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_Cortex, r, 0) ;
+    if ((gca->flags & GCA_NO_LH ) == 0)
+      h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_Cortex, r, 0) ;
+    else
+      h_gca = gcaGetLabelHistogram(gca, Right_Cerebral_Cortex, r, 0) ;
     peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
     gm_means[r] = h_gca->bins[peak] ;
     printf("resetting gm mean[%d]: %2.0f --> %2.0f\n",
@@ -27818,6 +27827,39 @@ GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform)
 }
 #endif
 
+MRI *
+GCAcomputeLikelihoodImage(GCA *gca, MRI *mri_inputs, MRI *mri_labeled, 
+			  TRANSFORM *transform)
+{
+  int        x, y, z, label ;
+  double     likelihood ;
+  float      vals[MAX_GCA_INPUTS] ;
+  MRI        *mri_likelihood ;
+  GC1D       *gc ;
+
+  mri_likelihood = MRIcloneDifferentType(mri_inputs, MRI_FLOAT) ;
+  if (mri_likelihood == NULL)
+    ErrorExit(ERROR_NOMEMORY, "%s: could allocate likelihood volume", Progname);
+
+  for (x = 0 ; x < mri_inputs->width ; x++)
+    for (y = 0 ; y < mri_inputs->height ; y++)
+      for (z = 0 ; z < mri_inputs->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	label = MRIgetVoxVal(mri_labeled, x, y, z, 0) ;
+	gc = GCAfindSourceGC(gca, mri_inputs, transform, x, y, z, label) ;
+	if (gc == NULL)
+	  continue ;   // outside of the domain of the classifiers - leave likelihood at 0
+	load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+	likelihood = GCAcomputeConditionalDensity(gc, vals, gca->ninputs, label) ;
+	if (DZERO(likelihood))
+	  likelihood = 1e-10;
+	MRIsetVoxVal(mri_likelihood, x, y, z, 0, -log10(likelihood)) ;
+      }
+
+  return(mri_likelihood) ;
+}
 #if 1
 static int
 gcaMaxPriorLabel(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z)
@@ -30539,6 +30581,10 @@ GCAremoveHemi(GCA *gca, int lh)
     }
   }
 
+  if (lh)
+    gca->flags |= GCA_NO_LH ;
+  else
+    gca->flags |= GCA_NO_RH ;
   return(NO_ERROR) ;
 }
 

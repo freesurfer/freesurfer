@@ -15,7 +15,7 @@ function [stats,st] = lme_mass_fit_vw(X,Zcols,Y,ni,maskvtx,fname,prs,e,Xrows)
 % maskvtx: Mask's vertices (1-based). Default [] (all vertices included).
 % fname: File name to save outputs. Default [] (no output is saved to any
 % file).
-% prs: Number of workers for parallel computing. Default 8;
+% prs: Number of workers for parallel computing. Default numcores;
 % e: Convergence epsilon (gradient's norm). Default 10^-1;
 % Xrows: Optional matrix (nmxnv) whos colums contain ones or zeros indicating 
 % which rows of X are/are not going to be considered at each voxel/vertex
@@ -28,12 +28,12 @@ function [stats,st] = lme_mass_fit_vw(X,Zcols,Y,ni,maskvtx,fname,prs,e,Xrows)
 % st: Array containing the termination state for each voxel/vertex
 % (1 for convergence and 0 otherwise).
 %
-% $Revision: 1.2 $  $Date: 2015/01/06 17:14:55 $
+% $Revision: 1.3 $  $Date: 2016/04/08 19:39:24 $
 % Original Author: Jorge Luis Bernal Rusiel 
 % CVS Revision Info:
 %    $Author: mreuter $
-%    $Date: 2015/01/06 17:14:55 $
-%    $Revision: 1.2 $
+%    $Date: 2016/04/08 19:39:24 $
+%    $Revision: 1.3 $
 % References: Bernal-Rusiel J.L., Greve D.N., Reuter M., Fischl B., Sabuncu
 % M.R., 2012. Statistical Analysis of Longitudinal Neuroimage Data with Linear 
 % Mixed Effects Models, NeuroImage, doi:10.1016/j.neuroimage.2012.10.065.
@@ -47,7 +47,7 @@ elseif nargin < 9
     if nargin < 8
         e = 10^-1;
         if nargin < 7
-            prs = 8;
+            prs = feature('numcores');
             if nargin < 6
                 fname = [];
                 if nargin < 5

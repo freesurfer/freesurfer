@@ -1,6 +1,6 @@
 function r = irepifitvol(varargin)
 
-version = '$Id: irepifitvol.m,v 1.1 2015/10/30 21:59:56 greve Exp $';
+version = '$Id: irepifitvol.m,v 1.2 2016/04/11 03:19:06 greve Exp $';
 r = 1;
 
 cmdargs.involfile = '';
@@ -13,8 +13,11 @@ cmdargs.nminexclude = 0;
 cmdargs.ndummies = 10;
 cmdargs.ROFlip = 65; % Readout flip angle degrees
 cmdargs.TBI = 2.092*1000; % ms, time bet inversions, like the TR
+cmdargs.PreInv = 14; % ms, subtract this from TBS of final slice
 cmdargs.TI1 = 24; % ms, time to first acq after inversion
 cmdargs.InvDur = 12; %  ms, duration of inversion pulse, "Prefill"
+cmdargs.SaveYHat = 0;
+cmdargs.Slice1PreInv = 0; % Set to 1 to model slice 1 acqed before inv
 
 %% Print useage if there are no arguments %%
 if(nargin == 0)
@@ -50,24 +53,28 @@ skip = cmdargs.skip;
 ndummies = cmdargs.ndummies;
 ROFlipDeg = cmdargs.ROFlip; 
 TBI = cmdargs.TBI; 
-TI1 = cmdargs.TI1;
+PreInv = cmdargs.PreInv;
 InvDur = cmdargs.InvDur;
+TI1 = cmdargs.TI1;
 
-s0 = irepistructure(TBI,nslices,ndummies,ntp,skip,InvDur,TI1,ROFlipDeg);
+s0 = irepistructure(TBI,nslices,ndummies,ntp,skip,PreInv,InvDur,TI1,ROFlipDeg);
+s0.Slice1PreInv = cmdargs.Slice1PreInv;
 s0 = irepitiming(s0);
 s0.nminexclude = cmdargs.nminexclude;
 s0.nexclude = cmdargs.nacqexclude;
-s0.T1 = [900:50:8000];
+s0.T1 = [500:50:8000];
 nT1 = length(s0.T1);
 
 fprintf('Skip = %d\n',cmdargs.skip);
 fprintf('ndummies = %d\n',cmdargs.ndummies);
-fprintf('ROFlip = %d\n',cmdargs.ROFlip);
-fprintf('TBI = %d\n',cmdargs.TBI);
-fprintf('TI1 = %d\n',cmdargs.TI1);
-fprintf('InvDur = %d\n',cmdargs.InvDur);
+fprintf('ROFlip = %f\n',cmdargs.ROFlip);
+fprintf('TBI = %f\n',cmdargs.TBI);
+fprintf('PreInv = %f\n',cmdargs.PreInv);
+fprintf('InvDur = %f\n',cmdargs.InvDur);
+fprintf('TI1 = %f\n',cmdargs.TI1);
 fprintf('NAcqEx = %d\n',cmdargs.nacqexclude);
 fprintf('NMinEx = %d\n',cmdargs.nminexclude);
+fprintf('Slice1PreInv = %d\n',cmdargs.Slice1PreInv);
 
 fname = sprintf('%s/info.mat',cmdargs.outdir);
 save(fname,'cmdargs','s0');
@@ -78,6 +85,10 @@ rstdmap = dce;
 rstdmap.vol = zeros(dce.volsize);
 M0map = dce;
 M0map.vol = zeros(dce.volsize);
+if(cmdargs.SaveYHat)
+  yhatmap = dce;
+  yhatmap.vol = zeros([dce.volsize ntp]);
+end
 
 for sliceno = 1:nslices
   fprintf('sliceno = %d/%d %g\n',sliceno,nslices,toc);  
@@ -103,43 +114,14 @@ for sliceno = 1:nslices
       M0map.vol(r,c,sliceno) = s3.M0(imin);
       rstdmap.vol(r,c,sliceno) = s3.rstd(imin);
 
-      if(0)
-      s4 = s0;
-      s4.sliceno = sliceno;
-      s4.y = y;
-      s4.nexclude = 2;
-      s4.nminexclude = 0;
-      s4.T1 = s3.T1(imin);
-      s4.sigma = .01;
-      parinit = [s4.T1 s4.sigma];
-      s4.parset = 2;
-      if( (r==50 & c==90) | (r==50 & c==98) )
-	[paropt fval exitflag opt] = fminsearch('irepierr',parinit,[],s4);
-	s4.T1 = paropt(1);
-	s4.sigma = paropt(2);
-	s4 = irepisynth(s4);
-	s4 = irepifit(s4);
+      if(cmdargs.SaveYHat)
+	yhatmap.vol(r,c,sliceno,:) = s3.yhat0(:,imin);
       end
-      if(r==50 & c==90)
-	sA = s3;
-	sA4 = s4;
-      end
-      if(r==50 & c==98)
-	sB = s3;
-	sB4 = s4;	
-	[mm iminA] = min(sA.rstd);
-	[mm iminB] = min(sB.rstd);
-	plot(sA.tRead,sA.y,sB.tRead,sB.y);
-	legend('A','B')
-	figure(1);plot(sA.tRead,sA.y,'*-',sA.tFit,sA.yFit,'o-',sA.tFit,sA.yhat(:,iminA),'md-')
-	figure(2);plot(sB.tRead,sB.y,'*-',sB.tFit,sB.yFit,'o-',sB.tFit,sB.yhat(:,iminB),'md-')
-	figure(3);plot(sA.tFit,sA.yFit,'o-',sB.tFit,sB.yFit,'md-')
-	keyboard
-      end
-      end
-      
+
     end
   end
+  fname = sprintf('%s/t1.nii.gz',cmdargs.outdir);
+  MRIwrite(t1map,fname);
 end
 
 fname = sprintf('%s/t1.nii.gz',cmdargs.outdir);
@@ -151,6 +133,12 @@ MRIwrite(M0map,fname);
 fname = sprintf('%s/rstd.nii.gz',cmdargs.outdir);
 MRIwrite(rstdmap,fname);
 
+if(cmdargs.SaveYHat)
+  fname = sprintf('%s/yhat.nii.gz',cmdargs.outdir);
+  MRIwrite(yhatmap,fname);
+end
+
+	
 fprintf('irepifitvol done t=%g\n',toc);
 
 return;
@@ -221,16 +209,27 @@ while(narg <= ninputargs)
     cmdargs.TBI = sscanf(inputargs{narg},'%f');
     narg = narg + 1;
     
-   case '--ti1',
+   case '--preinv',
     arg1check(flag,narg,ninputargs);
-    cmdargs.TI1 = sscanf(inputargs{narg},'%f');
+    cmdargs.PreInv = sscanf(inputargs{narg},'%f');
     narg = narg + 1;
     
    case '--invdur',
     arg1check(flag,narg,ninputargs);
     cmdargs.InvDur = sscanf(inputargs{narg},'%f');
     narg = narg + 1;
+
+   case '--ti1',
+    arg1check(flag,narg,ninputargs);
+    cmdargs.TI1 = sscanf(inputargs{narg},'%f');
+    narg = narg + 1;
     
+   case '--slice1preinv',
+    cmdargs.Slice1PreInv = 1; % Set to 1 to model slice 1 acqed before inv    
+    
+   case '--save-yhat',
+    cmdargs.SaveYHat = 1;    
+
    case '--c',
     arg1check(flag,narg,ninputargs);
     cmdargs.configfile = inputargs{narg};
@@ -298,8 +297,10 @@ function print_usage(cmdargs)
   fprintf(' --ndummies ndummies : number of dummy scans\n');
   fprintf(' --roflip FlipAngle : Readout flip angle (degrees)\n');
   fprintf(' --tbi TBI : time between inversions, like TR (ms)\n');
-  fprintf(' --ti1 TI1 : time from end of inv pulse to first readout (ms)\n');
+  fprintf(' --preinv PreInv : subtract from TBS of last slice (ms)\n');
   fprintf(' --invdur InvDur : duration of inv pulse (ms)\n');
+  fprintf(' --ti1 TI1 : time from end of inv pulse to first readout (ms)\n');
+  fprintf(' --slice1preinv : assume slice1 before inversion\n');
   fprintf(' Analysis parameters \n');
   fprintf(' --nacqex nacqex :  skip the first nacqex after inversion\n');
   fprintf(' --nminex nminex :  skip the nminex smallest time points\n');

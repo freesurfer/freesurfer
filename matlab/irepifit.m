@@ -14,14 +14,31 @@ s = irepisynth(s);
 s.X0 = s.yRead;
 
 s.iexclude1 = [];
-if(s.nexclude > 0) 
+if(s.nexclude > 0)
+  % Just skip the first n
+  % s.iexclude1 = [1:s.nexclude]';
+
+  % This skips time points according to a rule. If a given time
+  % point was the last acquired slice, then the next time point
+  % for that slice is skipped. 
+  %indSlice = find((s.EventSliceNo == s.sliceno | s.EventSliceNo < 0) & s.IsReadOut);
+  %nthSliceAcq = s.AcqSliceNo(indSlice);
+  %indLast = find(nthSliceAcq == s.nslices);
+  %if(~isempty(indLast))
+  %  indEx = indLast + 1;
+  %  ok = find(indEx <= s.ntp);
+  %  indEx = indEx(ok);
+  %else
+  %  indEx = [];    
+  %end
+  %s.iexclude1 = indEx;
+
+  % This skips time points of the first acquired slice after inversion
   indSlice = find(s.EventSliceNo == s.sliceno | s.EventSliceNo < 0);
   indROS = find(s.IsReadOut(indSlice));
   nthSliceAcq = s.AcqSliceNo(indSlice(indROS));
-  for n = 1:s.nexclude
-    kk = find(nthSliceAcq == n);
-    s.iexclude1 = [s.iexclude1 kk];
-  end
+  s.iexclude1 = find(nthSliceAcq <= s.nexclude);
+  %s.iexclude1 = find(nthSliceAcq > s.nexclude);
 end
 s.iexclude2 = [];
 if(s.nminexclude > 0)
@@ -38,8 +55,13 @@ else
 end
 s.indkeep = setdiff([1:s.ntp],s.iexclude);
 
+% remove the mean
+%s.X0 = s.X0-repmat(mean(s.X0),[size(s.X0,1) 1]);
+%s.y = s.y-mean(s.y);
+
 s.yFit = s.y(s.indkeep,:);
 s.X = s.X0(s.indkeep,:);
+
 s.tFit = s.tRead(s.indkeep);
 
 nX = size(s.X,2);

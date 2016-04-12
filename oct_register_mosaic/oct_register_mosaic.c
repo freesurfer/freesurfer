@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/03/30 15:39:11 $
- *    $Revision: 1.2 $
+ *    $Date: 2016/04/11 01:04:37 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,6 +46,7 @@
 #include "version.h"
 #include "numerics.h"
 #include "histo.h"
+#include "fsinit.h"
 
 #define DX_I  1
 #define DY_I  2
@@ -61,14 +62,17 @@
 #define NPARMS 2
 
 
+static int downsample = 0 ;
+static int undistort = 0 ;
 static char Gout_name[STRLEN] ;
 static double blur_sigma = 0.0 ;
 
-static int pad = 50 ;
+static int pad = 0 ;
 
 static float intensity_tolerance = 0.1 ;
 static float translation_tolerance = 0.025 ;
 
+static MRI *mosaic_images_with_xforms(MRI **mri, int nimages, int pad)  ;
 static int insert_image_into_mosaic(MRI *mri_mosaic, MRI *mri, double x0, double y0) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -103,24 +107,28 @@ static int niters = 100 ;
 
 int
 main(int argc, char *argv[]) {
-  char       **av, *mosaic_input_fname, *out_fname, *cp, line[STRLEN], fname[STRLEN] ;
+  char       **av, *mosaic_input_fname, *out_fname ;
   int         ac, nargs, msec, minutes, seconds, nimages, i ;
   int          dx, dy, n, *image_numbers, frame, dx_best, dy_best, skip ;
   struct timeb start ;
   MRI          *mri[MAX_IMAGES], *mri_orig[MAX_IMAGES], *mri_mosaic, *mri_smooth[MAX_IMAGES] ;
-  FILE         *fp ;
-  VOL_GEOM     vg;
+  FILE         *fp = NULL ;
   double       energy, best_energy, prev_best_energy, dxd, dyd ;
   int          x0[MAX_IMAGES], y0[MAX_IMAGES], xbest[MAX_IMAGES], ybest[MAX_IMAGES] ; 
   double       x0d[MAX_IMAGES], y0d[MAX_IMAGES], ax[MAX_IMAGES], ay[MAX_IMAGES] ;
-  HISTOGRAM    *h0 = NULL, *h1 ;
+//  HISTOGRAM    *h0 = NULL, *h1 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: oct_register_mosaic.c,v 1.2 2015/03/30 15:39:11 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: oct_register_mosaic.c,v 1.3 2016/04/11 01:04:37 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
+#ifdef HAVE_OPENMP
+  if (getenv("OMP_NUM_THREADS") == NULL)
+    omp_set_num_threads(1);
+#endif
+//  FSinit() ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
@@ -137,42 +145,83 @@ main(int argc, char *argv[]) {
   }
 
   mosaic_input_fname = argv[1] ;
-  out_fname = argv[2] ;
+  out_fname = argv[argc-1] ;
   if (argc < 2)
     usage_exit(1) ;
 
-  FileNameRemoveExtension(out_fname, Gout_name) ;
-  printf("reading mosaic file names and initial positions from %s\n", mosaic_input_fname) ;
+  if (argc == 3)
+  {
+    FileNameRemoveExtension(out_fname, Gout_name) ;
+    printf("reading mosaic file names and initial positions from %s\n", mosaic_input_fname) ;
+    
+    nimages = FileNumberOfEntries(mosaic_input_fname) ;
 
-  nimages = FileNumberOfEntries(mosaic_input_fname) ;
+    fp = fopen(mosaic_input_fname, "r") ;
+    if (fp == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not open input list file %s\n", Progname, mosaic_input_fname) ;
+  }
+  else
+  {
+    nimages = argc-2 ;
+  }
   printf("mosaicing %d images...\n", nimages) ;
 
-  fp = fopen(mosaic_input_fname, "r") ;
-  if (fp == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not open input list file %s\n", Progname, mosaic_input_fname) ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(downsample, blur_sigma)  shared(x0, y0, xbest, ybest, mri, mri_orig, ax, ay, mri_smooth)
+#endif
   for (i = 0 ; i < nimages ; i++)
   {
-    cp = fgetl(line, 199, fp) ;
-    sscanf(cp, "%d %d %s", &x0[i], &y0[i], fname) ;
-    printf("reading input volume %s at (%d, %d)\n", fname, x0[i], y0[i]) ;
+    VOL_GEOM   vg;
+    char      *cp, fname[STRLEN], line[STRLEN] ;
+    if (fp)
+    {
+      cp = fgetl(line, 199, fp) ;
+      sscanf(cp, "%d %d %s", &x0[i], &y0[i], fname) ;
+      printf("reading input volume %d of %d: %s at (%d, %d)\n", i+1, nimages, fname, x0[i], y0[i]) ;
+    }
+    else
+      strcpy(fname, argv[i+1]) ;
+  
+
     xbest[i] = x0[i] ; ybest[i] = y0[i] ;
     mri[i] = MRIread(fname) ;
     if (mri[i] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s\n", Progname, fname) ;
     getVolGeom(mri[i], &vg);
+    if (fp == NULL)
+      printf("reading input volume %d of %d %s at (%2.1f, %2.1f, %2.1f)\n", i+1, nimages, fname, vg.c_r, vg.c_a, vg.c_s) ;
     if (xsize > 0)
       vg.xsize = xsize ;
     if (ysize > 0)
       vg.ysize = ysize ;
     if (zsize > 0)
       vg.zsize = zsize ;
+    useVolGeomToMRI(&vg,mri[i]);
+
+    if (downsample)
+    {
+      MRI *mri_tmp ;
+      int d ;
+
+      for (d = 0 ; d < downsample ; d++)
+      {
+#if 0
+	mri_tmp = MRIdownsample2(mri[i], NULL) ;
+#else
+	mri_tmp = MRIreduce(mri[i], NULL) ;
+#endif
+	MRIfree(&mri[i]) ;
+	mri[i] = mri_tmp ;
+      }
+    }
 #if 0
     vg.c_r += (x0[i]*vg.xsize) ;
     vg.c_s -= (y0[i]*vg.ysize) ;
 #endif
-    useVolGeomToMRI(&vg,mri[i]);
+
     mri_orig[i] = MRIcopy(mri[i],NULL) ;
     sprintf(fname, "v%d.mgz", i);
+#if 0
     if (i == 0)
       h0 = MRIhistogram(mri[i], 256) ;
     else
@@ -185,6 +234,7 @@ main(int argc, char *argv[]) {
       printf("scaling image %d intensities by %2.3f x + %2.0f to match baseline image\n", i, a, b) ;
       MRIscaleIntensities(mri[i], mri[i], a, b) ;
     }
+#endif
     ax[i] = (mri[i]->width-1.0)/2.0 ;
     ay[i] = (mri[i]->height-1.0)/2.0 ;
     if (blur_sigma > 0)
@@ -198,42 +248,59 @@ main(int argc, char *argv[]) {
 
 //    MRIwrite(mri[i], fname) ;
   }
-  fclose(fp) ;
+  if (fp)
+    fclose(fp) ;
 
+  if (downsample > 0)
+      printf("final downsampling image size = %d x %d x %d, size %2.3f x %2.3f x %2.3f um^3\n", 
+	     mri[0]->width, mri[0]->height, mri[0]->depth,
+	     1000*mri[0]->xsize, 1000*mri[0]->ysize, 1000*mri[0]->zsize) ;
 
   {
     char fname[STRLEN], ext[STRLEN], orig_fname[STRLEN] ;
-
-    FileNameExtension(out_fname, ext) ;
-    FileNameRemoveExtension(out_fname, fname) ;
-    sprintf(orig_fname, "%s.orig.%s", fname, ext) ;
+    
+    if (fp)
+    {
+      FileNameExtension(out_fname, ext) ;
+      FileNameRemoveExtension(out_fname, fname) ;
+    }
+    else
+      sprintf(fname, "mosaic") ;
+      sprintf(orig_fname, "%s.orig.%s", fname, ext) ;
     for (i = 0 ; i < nimages ; i++)
     {
       x0d[i] = x0[i] ;
       y0d[i] = y0[i] ;
     }
-    mri_mosaic = undistort_and_mosaic_images(mri, x0d, y0d, nimages, ax, ay, a, b, c, d, NULL) ;
-    printf("writing mosaic with original translations to %s\n", orig_fname) ;
-    MRIwrite(mri_mosaic, orig_fname) ;
-    MRIfree(&mri_mosaic) ;
+    mri_mosaic = mosaic_images_with_xforms(mri, nimages, 0) ;
+    if (undistort)  // since this isn't the final image, save a copy
+    {
+      printf("writing mosaic with original translations to %s\n", orig_fname) ;
+      MRIwrite(mri_mosaic, orig_fname) ;
+    }
   }
 
-  mri_mosaic = mosaic_images(mri, x0, y0, nimages, pad) ;
-  MRIcopyHeader(mri[0], mri_mosaic) ;
-  MRIclear(mri_mosaic) ;
-  for (i = 0 ; i < nimages ; i++)
+  if (undistort)
   {
-    x0[i] += pad ;
-    y0[i] += pad ;
-    x0d[i] += pad ;
-    y0d[i] += pad ;
+    if (mri_mosaic)
+      MRIfree(&mri_mosaic) ;
+    mri_mosaic = mosaic_images(mri, x0, y0, nimages, pad) ;
+    MRIcopyHeader(mri[0], mri_mosaic) ;
+    MRIclear(mri_mosaic) ;
+    for (i = 0 ; i < nimages ; i++)
+    {
+      x0[i] += pad ;
+      y0[i] += pad ;
+      x0d[i] += pad ;
+      y0d[i] += pad ;
+    }
+    
+    mri_mosaic = build_best_mosaic(mri, mri_smooth, x0d,y0d, nimages) ;
   }
-
-  mri_mosaic = build_best_mosaic(mri, mri_smooth, x0d,y0d, nimages) ;
   printf("writing final mosaic to %s\n", out_fname) ;
   MRIwrite(mri_mosaic, out_fname) ;
   exit(0) ;
-
+  
   insert_image_into_mosaic(mri_mosaic, mri[0], x0d[0], y0d[0]) ;
   for (i = 1 ; i < nimages ; i++)
   {
@@ -400,10 +467,29 @@ get_option(int argc, char *argv[]) {
     printf("setting z voxel size to %2.6f\n", zsize) ;
   }
   else switch (toupper(*option)) {
+    case 'D':
+      downsample = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("downsampling input volumes %d times (a factor of %d) before mosaicing\n", downsample, (int)exp2(downsample)) ;
+      break ;
     case 'S':
       blur_sigma = atof(argv[2]) ;
       printf("blurring input with sigma=%2.2f\n", blur_sigma) ;
       nargs = 1 ;
+      break ;
+    case 'U':
+      undistort = 1 ;
+      printf("undistorting images before mosaicing\n") ;
+      break ;
+    case 'I':
+      Gdiag_no = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("debugging image # %d\n", Gdiag_no) ;
+      break ;
+    case 'P':
+      pad = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("padding final mosaic with %d voxels\n", pad) ;
       break ;
     case 'N':
       niters = atoi(argv[2]) ;
@@ -1128,4 +1214,277 @@ compute_powell_global_sse(float *p)
   MRIfree(&mri_mosaic) ;
   return(energy) ;
 }
+
+static MRI *
+mosaic_images_with_xforms(MRI **mri, int nimages, int pad) 
+{
+  double   xmin, ymin, zmin, xmax, ymax, zmax, x1, y1, z1 ;
+  MRI      *mri_mosaic, *mri_counts ;
+  int      i, width, height, depth, x ;
+  MATRIX   *m_vox2ras[MAX_IMAGES], *m_ras2vox ;
+  VECTOR   *v_ras, *v_vox ;
+
+  zmin = ymin = xmin = 10000000 ;
+  zmax = ymax = xmax = -ymin ;
+
+  v_ras = VectorAlloc(4, MATRIX_REAL) ;
+  v_vox = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v_ras, 4) = VECTOR_ELT(v_vox, 4) = 1.0 ;
+  for (i =  0 ; i < nimages ; i++)
+  {
+    int x, y, z ;
+    m_vox2ras[i] = MRIgetVoxelToRasXform(mri[i]) ;
+
+    for (x = 0 ; x < mri[i]->width ; x++)
+    {
+      for (y = 0 ; y < mri[i]->height ; y++)
+      {
+	for (z = 0 ; z < mri[i]->depth ; z++)
+	{
+	  if (x == Gx && y == Gy && z == Gz)
+	    DiagBreak() ;
+	  if (i == Gdiag_no && x == Gx && y == Gy && z == Gz)
+	    DiagBreak() ;
+
+	  V3_X(v_vox) = x ; V3_Y(v_vox) = y ; V3_Z(v_vox) = z ;
+	  MatrixMultiply(m_vox2ras[i], v_vox, v_ras) ;
+	  x1 = V3_X(v_ras) ; y1 = V3_Y(v_ras) ; z1 = V3_Z(v_ras) ;
+
+	  if (x1-pad < xmin)
+	    xmin = x1 - pad;
+	  if (y1-pad < ymin)
+	    ymin = y1-pad ;
+	  if (z1-pad < zmin)
+	    zmin = z1-pad ;
+
+	  if (x1+pad > xmax)
+	    xmax = x1+pad ;
+	  if (y1+pad > ymax)
+	    ymax = y1 + pad ;
+	  if (z1+pad > zmax)
+	    zmax = z1+pad ;
+	}
+      }
+    }
+  }
+  
+  width =  ceil((xmax - xmin ) / mri[0]->xsize) + 1 ;
+  height = ceil((ymax - ymin ) / mri[0]->ysize) + 1 ;
+  depth =  ceil((zmax - zmin ) / mri[0]->zsize) + 1 ;
+  mri_mosaic = MRIallocSequence(width, height, depth, MRI_FLOAT, 1) ;
+  MRIcopyHeader(mri[0], mri_mosaic) ;
+
+  //  compute vox2ras xform by mapping corners of RAS rectangle to corners of image
+  {
+    MATRIX  *m_vox, *m_ras, *m_vox2ras, *m_pinv ;
+
+    m_vox = MatrixAlloc(4, 8, MATRIX_REAL) ;
+    m_ras = MatrixAlloc(4, 8, MATRIX_REAL) ;
+
+    // (0,0,0)
+    *MATRIX_RELT(m_vox, 1, 1) = 0 ; 
+    *MATRIX_RELT(m_vox, 2, 1) = 0 ;
+    *MATRIX_RELT(m_vox, 3, 1) = 0 ; 
+    *MATRIX_RELT(m_vox, 4, 1) = 1 ;
+
+    *MATRIX_RELT(m_ras, 1, 1) = xmin ; 
+    *MATRIX_RELT(m_ras, 2, 1) = ymin ;
+    *MATRIX_RELT(m_ras, 3, 1) = zmin ; 
+    *MATRIX_RELT(m_ras, 4, 1) = 1 ;
+
+    // (1, 1, 1)
+    *MATRIX_RELT(m_vox, 1, 2) = width-1 ; 
+    *MATRIX_RELT(m_vox, 2, 2) = height-1 ;
+    *MATRIX_RELT(m_vox, 3, 2) = depth-1 ; 
+    *MATRIX_RELT(m_vox, 4, 2) = 1 ;
+
+    *MATRIX_RELT(m_ras, 1, 2) = xmax ; 
+    *MATRIX_RELT(m_ras, 2, 2) = ymax ;
+    *MATRIX_RELT(m_ras, 3, 2) = zmax ; 
+    *MATRIX_RELT(m_ras, 4, 2) = 1 ;
+
+    // (0, 1, 1)
+    *MATRIX_RELT(m_vox, 1, 3) = 0 ; 
+    *MATRIX_RELT(m_vox, 2, 3) = height-1 ;
+    *MATRIX_RELT(m_vox, 3, 3) = depth-1 ; 
+    *MATRIX_RELT(m_vox, 4, 3) = 1 ;
+
+    *MATRIX_RELT(m_ras, 1, 3) = xmin ; 
+    *MATRIX_RELT(m_ras, 2, 3) = ymax ;
+    *MATRIX_RELT(m_ras, 3, 3) = zmax ; 
+    *MATRIX_RELT(m_ras, 4, 3) = 1 ;
+
+    // (1, 0, 1)
+    *MATRIX_RELT(m_vox, 1, 4) = width-1 ; 
+    *MATRIX_RELT(m_vox, 2, 4) = 0 ;
+    *MATRIX_RELT(m_vox, 3, 4) = depth-1 ; 
+    *MATRIX_RELT(m_vox, 4, 4) = 1 ;
+
+    *MATRIX_RELT(m_ras, 1, 4) = xmax ; 
+    *MATRIX_RELT(m_ras, 2, 4) = ymin ;
+    *MATRIX_RELT(m_ras, 3, 4) = zmax ; 
+    *MATRIX_RELT(m_ras, 4, 4) = 1 ;
+
+    // (1, 1, 0)
+    *MATRIX_RELT(m_vox, 1, 5) = width-1 ; 
+    *MATRIX_RELT(m_vox, 2, 5) = height-1 ;
+    *MATRIX_RELT(m_vox, 3, 5) = 0 ; 
+    *MATRIX_RELT(m_vox, 4, 5) = 1 ;
+
+    *MATRIX_RELT(m_ras, 1, 5) = xmax ; 
+    *MATRIX_RELT(m_ras, 2, 5) = ymax ;
+    *MATRIX_RELT(m_ras, 3, 5) = zmin ; 
+    *MATRIX_RELT(m_ras, 4, 5) = 1 ;
+
+    // (1, 0, 0)
+    *MATRIX_RELT(m_vox, 1, 6) = width-1 ; 
+    *MATRIX_RELT(m_vox, 2, 6) = 0 ;
+    *MATRIX_RELT(m_vox, 3, 6) = 0 ; 
+    *MATRIX_RELT(m_vox, 4, 6) = 1 ;
+
+    *MATRIX_RELT(m_ras, 1, 6) = xmax ; 
+    *MATRIX_RELT(m_ras, 2, 6) = ymin ;
+    *MATRIX_RELT(m_ras, 3, 6) = zmin ; 
+    *MATRIX_RELT(m_ras, 4, 6) = 1 ;
+
+    // (0, 0, 1)
+    *MATRIX_RELT(m_vox, 1, 7) = 0 ; 
+    *MATRIX_RELT(m_vox, 2, 7) = 0 ;
+    *MATRIX_RELT(m_vox, 3, 7) = depth-1 ; 
+    *MATRIX_RELT(m_vox, 4, 7) = 1 ;
+
+    *MATRIX_RELT(m_ras, 1, 7) = xmin ; 
+    *MATRIX_RELT(m_ras, 2, 7) = ymin ;
+    *MATRIX_RELT(m_ras, 3, 7) = zmax ; 
+    *MATRIX_RELT(m_ras, 4, 7) = 1 ;
+
+    // (0, 1, 0)
+    *MATRIX_RELT(m_vox, 1, 8) = width-1 ; 
+    *MATRIX_RELT(m_vox, 2, 8) = 0 ;
+    *MATRIX_RELT(m_vox, 3, 8) = depth-1 ; 
+    *MATRIX_RELT(m_vox, 4, 8) = 1 ;
+
+    *MATRIX_RELT(m_ras, 1, 8) = xmax ; 
+    *MATRIX_RELT(m_ras, 2, 8) = ymin ;
+    *MATRIX_RELT(m_ras, 3, 8) = zmax ; 
+    *MATRIX_RELT(m_ras, 4, 8) = 1 ;
+
+    m_pinv = MatrixPseudoInverse(m_vox, NULL) ;
+    if (m_pinv == NULL)
+    {
+      MatrixPrint(stderr, m_vox) ;
+      MatrixPrint(stderr, m_ras) ;
+      ErrorExit(ERROR_BADPARM, "%s: could not invert vox coord matrix\n", Progname) ;
+    }
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    {
+      MatrixPrint(stderr, m_vox) ;
+      MatrixPrint(stderr, m_ras) ;
+    }
+    m_vox2ras = MatrixMultiply(m_ras, m_pinv, NULL) ;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    {
+      printf("setting vox2ras of mosaic to:\n") ;
+      MatrixPrint(stdout, m_vox2ras) ;
+    }
+    MRIsetVox2RASFromMatrix(mri_mosaic, m_vox2ras) ;
+
+    MatrixFree(&m_ras) ; MatrixFree(&m_vox) ; MatrixFree(&m_pinv) ; MatrixFree(&m_vox2ras) ;
+  }
+
+  printf("mosaic size = (%d x %d x %d) : (%2.2f-->%2.2f, %2.2f-->%2.2f, %2.2f-->%2.2f \n", 
+	 width, height, depth, xmin, xmax, ymin, ymax, zmin, zmax) ;
+
+  m_ras2vox = MRIgetRasToVoxelXform(mri_mosaic) ;
+  mri_counts = MRIclone(mri_mosaic, NULL) ;
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for 
+//#endif
+  for (i =  0 ; i < nimages ; i++)
+  {
+    int x, y, z, count, xm, ym, zm ;
+    float  val, sum ;
+    MATRIX *m_vox2vox ;
+    VECTOR *v_vox2 ;
+
+    v_vox2 = VectorAlloc(4, MATRIX_REAL) ; VECTOR_ELT(v_vox2, 4) = 1.0 ;
+    m_vox2vox = MRIgetVoxelToVoxelXform(mri[i], mri_mosaic) ;
+    for (x = 0 ; x < mri[i]->width ; x++)
+    {
+      for (y = 0 ; y < mri[i]->height ; y++)
+      {
+	for (z = 0 ; z < mri[i]->depth ; z++)
+	{
+	  V3_X(v_vox) = x ; V3_Y(v_vox) = y ; V3_Z(v_vox) = z ;
+	  MatrixMultiply(m_vox2vox, v_vox, v_vox2) ;
+	  if ( x== Gx && y == Gy && z == Gz)
+	    DiagBreak() ;
+	  xm = nint(V3_X(v_vox2)) ; ym = nint(V3_Y(v_vox2)) ; zm = nint(V3_Z(v_vox2)) ;
+
+	  if (xm == Gx && ym == Gy && zm == Gz)
+	    DiagBreak() ;
+	  if (MRIindexNotInVolume(mri_counts, xm, ym, zm) != 0)
+	  {
+	    static int first = 1 ;
+
+	    if (first)
+	    {
+	      MatrixMultiply(m_vox2ras[i], v_vox, v_ras) ;
+	      x1 = V3_X(v_ras) ; y1 = V3_Y(v_ras) ; z1 = V3_Z(v_ras) ;
+	      printf("image %d: voxel coord (%d %d %d) -> (%d %d %d), RAS (%2.2f, %2.2f %2.2f) OOB!\n",
+		     i, x, y, z, xm, ym, zm, x1, y1, z1) ;
+	    }
+	    first = 0 ;
+	    continue ;
+	  }
+	  count = (int)MRIgetVoxVal(mri_counts, xm, ym, zm, 0) ;
+	  count++ ;
+	  if (count > 1)
+	    DiagBreak() ;
+	  MRIsetVoxVal(mri_counts, xm, ym, zm, 0, count) ;
+	  sum = MRIgetVoxVal(mri_mosaic, xm, ym, zm, 0) ;
+	  val = MRIgetVoxVal(mri[i], x, y, z, 0) ;
+	  MRIsetVoxVal(mri_mosaic, xm, ym, zm, 0, val+sum) ;
+//	  MRIsetVoxVal(mri_mosaic, xm, ym, zm, i+1, val) ;
+	}
+      }
+    }
+    VectorFree(&v_vox2) ; MatrixFree(&m_vox2vox) ;
+  }
+  if (Gdiag & DIAG_WRITE)
+  {  MRIwrite(mri_mosaic, "m.mgz") ; MRIwrite(mri_counts, "c.mgz") ;}
+
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel for 
+//#endif
+  for (x = 0 ; x < mri_mosaic->width ; x++)
+  {
+    float sum, count ;
+    int   y, z ;
+    for (y = 0 ; y < mri_mosaic->height ; y++)
+    {
+      for (z = 0 ; z < mri_mosaic->depth ; z++)
+      {
+	if ( x== Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	count = MRIgetVoxVal(mri_counts, x, y, z, 0) ;
+	if (count <= 1)
+	  continue ;
+	sum = MRIgetVoxVal(mri_mosaic, x, y, z, 0) ;
+	MRIsetVoxVal(mri_mosaic, x, y, z, 0, sum/count) ;
+      }
+    }
+  }
+
+  if (Gdiag & DIAG_WRITE)
+    MRIwrite(mri_mosaic, "m2.mgz") ; 
+
+  for (i = 0 ; i < nimages ; i++)
+    MatrixFree(&m_vox2ras[i]) ;
+  VectorFree(&v_ras) ; VectorFree(&v_vox) ;
+  MatrixFree(&m_ras2vox) ;
+  MRIfree(&mri_counts) ;
+  return(mri_mosaic) ;
+}
+
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/29 19:27:16 $
- *    $Revision: 1.329 $
+ *    $Date: 2016/04/08 19:37:48 $
+ *    $Revision: 1.332 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5453,7 +5453,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     {
     //  ShowNonModalMessage("Warning",
     //                      "Either this surface does not contain valid volume geometry information, or freeview failed to read the information. This surface may not align with volumes and other surfaces.");
-      cerr << "Did not find any volume 01" << endl;
+      cerr << "Did not find any volume info" << endl;
     }
 
     m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
@@ -7138,8 +7138,8 @@ void MainWindow::OnSurfaceVertexClicked(LayerSurface *surf)
             surf->GetSlicePosition(ras);
             surf->GetRASAtTarget(ras, ras);
             surf->GetSurfaceRASAtRAS(ras, tkras);
-            cout << "RAS: " << ras[0] << " " << ras[1] << " " << ras[2] << "\n";
-            cout << "SurfaceRAS: " << tkras[0] << " " << tkras[1] << " " << tkras[2] << "\n";
+            printf("RAS: %.4f %.4f %.4f\n", ras[0], ras[1], ras[2]);
+            printf("SurfaceRAS: %.4f %.4f %.4f\n", tkras[0], tkras[1], tkras[2]);
         }
     }
 }
@@ -7156,16 +7156,40 @@ void MainWindow::On2DCursorClicked()
             mri->GetSlicePosition(ras);
             mri->TargetToRAS(ras, ras);
             mri->NativeRASToTkReg(ras, tkras);
-            cout << "RAS: " << ras[0] << " " << ras[1] << " " << ras[2] << endl;
-            cout << "tkReg: " << tkras[0] << " " << tkras[1] << " " <<  tkras[2] << endl;
+            printf("RAS: %.4f %.4f %.4f\n", ras[0], ras[1], ras[2]);
+            printf("tkReg: %.4f %.4f %.4f\n", tkras[0], tkras[1], tkras[2]);
         }
         else if (surf)
         {
             surf->GetSlicePosition(ras);
             surf->GetRASAtTarget(ras, ras);
             surf->GetSurfaceRASAtRAS(ras, tkras);
-            cout << "RAS: " << ras[0] << " " << ras[1] << " " << ras[2] << endl;
-            cout << "SurfaceRAS: " << tkras[0] << " " << tkras[1] << " " <<  tkras[2] << endl;
+            printf("RAS: %.4f %.4f %.4f\n", ras[0], ras[1], ras[2]);
+            printf("SurfaceRAS: %.4f %.4f %.4f\n", tkras[0], tkras[1], tkras[2]);
         }
     }
+}
+
+bool MainWindow::LoadSurfaceRGBMap(const QString& fn)
+{
+    QString filename = fn;
+    if (filename.isEmpty())
+        filename = QFileDialog::getOpenFileName( this, "Select RGB file",
+                                                 AutoSelectLastDir( "surf" ),
+                                                 "All files (*)");
+    if ( !filename.isEmpty() )
+    {
+        LayerSurface* layer = qobject_cast<LayerSurface*>(GetActiveLayer("Surface"));
+        if ( layer )
+        {
+            if (!layer->LoadRGBFromFile(filename))
+            {
+              ShowNonModalMessage("Error", "Can not load rgb file.");
+              return false;
+            }
+        }
+        return true;
+    }
+    else
+        return false;
 }

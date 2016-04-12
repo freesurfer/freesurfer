@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/26 21:05:01 $
- *    $Revision: 1.36 $
+ *    $Date: 2016/04/08 19:30:29 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,6 +66,7 @@ protected slots:
 //  void OnComboLabel( int nSel );
   void OnComboVector( int nSel );
   void OnComboSpline(int nSel );
+  void OnComboColor(int nSel);
   void OnButtonConfigureOverlay();
   void OnButtonRemoveOverlay();
   void OnEditPositionOffset();

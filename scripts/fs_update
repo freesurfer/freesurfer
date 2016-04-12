@@ -53,10 +53,10 @@ fi
 
 build=`cat $FREESURFER_HOME/build-stamp.txt`
 rsync_cmd="rsync -zbrlv --progress --suffix=.`date +%s`_bak rsync://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/patches/${build}"
-echo " Build is ${build}"
+echo    " Build is ${build}"
+echo  
+echo    "   Running this will update some of your freesurfer binaries."
 echo 
-
-echo    " Running this will update some of your freesurfer binaries."
 read -p " Shall I proceed? [y/n/Abort]: "
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then

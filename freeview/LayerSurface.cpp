@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/24 16:52:51 $
- *    $Revision: 1.118 $
+ *    $Date: 2016/04/08 19:30:28 $
+ *    $Revision: 1.119 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,7 +77,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_bLoadAll(false),
   m_spline(NULL),
   m_nCurrentVertex(-1),
-  m_bVisibleIn3D(true)
+  m_bVisibleIn3D(true),
+  m_nActiveRGBMap(-1)
 {
   m_strTypeNames.push_back( "Surface" );
   m_sPrimaryType = "Surface";
@@ -1169,7 +1170,8 @@ void LayerSurface::SetActiveOverlay( int nOverlay )
     if ( m_nActiveOverlay < 0 && nOverlay >= 0 )
     {
       this->GetProperty()->blockSignals(true);
-      this->GetProperty()->SetCurvatureMap( LayerPropertySurface::CM_Binary );
+      if (this->GetProperty()->GetCurvatureMap() == LayerPropertySurface::CM_Threshold)
+            this->GetProperty()->SetCurvatureMap( LayerPropertySurface::CM_Binary );
       this->GetProperty()->blockSignals(false);
     }
     m_nActiveOverlay = nOverlay;
@@ -1185,10 +1187,12 @@ void LayerSurface::SetActiveOverlay( const QString& name )
   for ( int i = 0; i < m_overlays.size(); i++ )
   {
     if ( m_overlays[i]->GetName() == name )
-    {
+    {        if (this->GetProperty()->GetCurvatureMap() == LayerPropertySurface::CM_Threshold)
+            this->GetProperty()->SetCurvatureMap( LayerPropertySurface::CM_Binary );
       SetActiveOverlay( i );
       return;
-    }
+    }        if (this->GetProperty()->GetCurvatureMap() == LayerPropertySurface::CM_Threshold)
+        this->GetProperty()->SetCurvatureMap( LayerPropertySurface::CM_Binary );
   }
 }
 
@@ -1285,7 +1289,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   vtkPolyData* polydata = mapper->GetInput();
   vtkPolyData* polydataWireframe = wf_mapper->GetInput();
   if ( (GetProperty()->GetShowOverlay() && m_nActiveOverlay >= 0) ||
-       (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0) )
+       (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0))
   {
     if ( mapper )
     {
@@ -1301,20 +1305,34 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
         polydataWireframe->GetPointData()->AddArray( array );
       }
       unsigned char* data = new unsigned char[ nCount*4 ];
-      if (polydata->GetPointData()->GetScalars("Curvature"))
+      if (polydata->GetPointData()->GetScalars("Curvature") && m_nActiveRGBMap < 0)
         GetProperty()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
       else
       {
-        double* c = GetProperty()->GetBinaryColor();
-        int r = (int)(c[0]*255);
-        int g = (int)(c[1]*255);
-        int b = (int)(c[2]*255);
-        for (int i = 0; i < nCount; i++)
+        if (m_nActiveRGBMap < 0)
         {
-          data[i*4] = r;
-          data[i*4+1] = g;
-          data[i*4+2] = b;
-          data[i*4+3] = 255;
+            double* c = GetProperty()->GetBinaryColor();
+            int r = (int)(c[0]*255);
+            int g = (int)(c[1]*255);
+            int b = (int)(c[2]*255);
+            for (int i = 0; i < nCount; i++)
+            {
+              data[i*4] = r;
+              data[i*4+1] = g;
+              data[i*4+2] = b;
+              data[i*4+3] = 255;
+            }
+        }
+        else
+        {
+            QList<int>& rgb = m_rgbMaps[m_nActiveRGBMap].data;
+            for (int i = 0; i < nCount; i++)
+            {
+                data[i*4] = rgb[i*3];
+                data[i*4+1] = rgb[i*3+1];
+                data[i*4+2] = rgb[i*3+2];
+                data[i*4+3] = 255;
+            }
         }
       }
       if (GetProperty()->GetShowOverlay() && m_nActiveOverlay >= 0)
@@ -1336,7 +1354,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   }
   else
   {
-    if ( m_labels.size() == 0 || m_nActiveLabel < 0)   // no labels
+    if ( (m_labels.size() == 0 || m_nActiveLabel < 0) && m_nActiveRGBMap < 0)   // no labels
     {
       polydata->GetPointData()->SetActiveScalars( "Curvature" );
       if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
@@ -1360,14 +1378,28 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
           polydataWireframe->GetPointData()->AddArray( array );
         }
         unsigned char* data = new unsigned char[ nCount*4 ];
-        if (polydata->GetPointData()->GetScalars("Curvature"))
+        if (polydata->GetPointData()->GetScalars("Curvature") && m_nActiveRGBMap < 0)
           GetProperty()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
         else
         {
-          double* dColor = GetProperty()->GetBinaryColor();
-          unsigned char rgba[4] = { (int)(dColor[0]*255), (int)(dColor[1]*255), (int)(dColor[2]*255), 255 };
-          for (int i = 0; i < nCount*4; i+=4)
-            memcpy(data+i, rgba, 4);
+            if (m_nActiveRGBMap < 0)
+            {
+                double* dColor = GetProperty()->GetBinaryColor();
+                unsigned char rgba[4] = { (int)(dColor[0]*255), (int)(dColor[1]*255), (int)(dColor[2]*255), 255 };
+                for (int i = 0; i < nCount*4; i+=4)
+                    memcpy(data+i, rgba, 4);
+            }
+            else
+            {
+                QList<int>& rgb = m_rgbMaps[m_nActiveRGBMap].data;
+                for (int i = 0; i < nCount; i++)
+                {
+                    data[i*4] = rgb[i*3];
+                    data[i*4+1] = rgb[i*3+1];
+                    data[i*4+2] = rgb[i*3+2];
+                    data[i*4+3] = 255;
+                }
+            }
         }
 
         MapLabels( data, nCount );
@@ -1418,7 +1450,7 @@ void LayerSurface::SetActiveAnnotation( int n )
 {
   if ( n < (int)m_annotations.size() )
   {
-    if ( m_nActiveAnnotation < 0 && n >= 0 )
+    if ( m_nActiveAnnotation < 0 && n >= 0 && this->GetProperty()->GetCurvatureMap() == LayerPropertySurface::CM_Threshold)
     {
       this->GetProperty()->SetCurvatureMap( LayerPropertySurface::CM_Binary );
     }
@@ -1861,4 +1893,122 @@ void LayerSurface::GetSmoothedVertexNormal(int nVertex, double *v_out)
 {
     if (nVertex >= 0 && nVertex < this->GetNumberOfVertices())
         m_surfaceSource->GetSmoothedNormal(nVertex, v_out);
+}
+
+bool LayerSurface::LoadRGBFromFile(const QString &filename)
+{
+    QString fn = filename;
+    fn.replace("~", QDir::homePath());
+    if (!QFile::exists(fn))
+    {
+      fn = QFileInfo(QFileInfo(m_sFilename).dir(), filename).absoluteFilePath();
+    }
+
+    RGBMap map;
+    map.name = QFileInfo(filename).completeBaseName();
+    if (QFileInfo(fn).suffix() == "txt")
+    {
+        QFile file(fn);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                  return false;
+        while (!file.atEnd())
+        {
+            QString line = file.readLine();
+            QStringList list = line.split(",", QString::SkipEmptyParts);
+            if (list.size() < 3)
+                list = line.split(" ", QString::SkipEmptyParts);
+            if (list.size() == 3)
+            {
+                for (int i = 0; i < 3; i++)
+                    map.data << (int)list[i].toDouble();
+            }
+        }
+        if (map.data.size() != GetNumberOfVertices()*3)
+        {
+            qDebug() << "data size does not match";
+            return false;
+        }
+    }
+    else
+    {
+        MRI* mri = ::MRIread( filename.toLatin1().data() );
+        if (!mri)
+            return false;
+        else if (mri->width != GetNumberOfVertices() || mri->height != 3)
+        {
+            qDebug() << "data size does not match";
+            MRIfree(&mri);
+            return false;
+        }
+
+        switch ( mri->type )
+        {
+        case MRI_UCHAR:
+            for (int i = 0; i < GetNumberOfVertices(); i++)
+                for (int j = 0; j < 3; j++)
+                    map.data << MRIseq_vox( mri, i, j, 0, 0 );
+            break;
+        case MRI_INT:
+            for (int i = 0; i < GetNumberOfVertices(); i++)
+                for (int j = 0; j < 3; j++)
+                    map.data << MRIIseq_vox( mri, i, j, 0, 0 );
+            break;
+
+        case MRI_LONG:
+            for (int i = 0; i < GetNumberOfVertices(); i++)
+                for (int j = 0; j < 3; j++)
+                    map.data << MRILseq_vox( mri, i, j, 0, 0 );
+            break;
+
+        case MRI_FLOAT:
+            for (int i = 0; i < GetNumberOfVertices(); i++)
+                for (int j = 0; j < 3; j++)
+                    map.data << (int)MRIFseq_vox( mri, i, j, 0, 0 );
+            break;
+
+        case MRI_SHORT:
+            for (int i = 0; i < GetNumberOfVertices(); i++)
+                for (int j = 0; j < 3; j++)
+                    map.data << MRISseq_vox( mri, i, j, 0, 0 );
+            break;
+        default:
+            MRIfree(&mri);
+            return false;
+        }
+        MRIfree(&mri);
+    }
+    m_rgbMaps << map;
+    SetActiveRGBMap(m_rgbMaps.size()-1);
+    emit SurfaceRGBAdded();
+    emit Modified();
+    return true;
+}
+
+
+void LayerSurface::SetActiveRGBMap(int n)
+{
+    if ( n < m_rgbMaps.size() )
+    {
+      if ( m_nActiveRGBMap < 0 && n >= 0 )
+      {
+        this->GetProperty()->blockSignals(true);
+        if (this->GetProperty()->GetCurvatureMap() == LayerPropertySurface::CM_Threshold)
+            this->GetProperty()->SetCurvatureMap( LayerPropertySurface::CM_Binary );
+        this->GetProperty()->blockSignals(false);
+      }
+      m_nActiveRGBMap = n;
+      UpdateOverlay(false);
+      emit ActiveOverlayChanged( m_nActiveOverlay );
+      emit ActorUpdated();
+//      GetProperty()->SetShowOverlay(true);
+      emit RGBMapChanged();
+    }
+}
+
+QStringList LayerSurface::GetRGBMapNames()
+{
+    QStringList list;
+    for (int i = 0; i < m_rgbMaps.size(); i++)
+        list << m_rgbMaps[i].name;
+    return list;
 }

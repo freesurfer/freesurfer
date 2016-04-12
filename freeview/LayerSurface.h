@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/24 16:52:51 $
- *    $Revision: 1.74 $
+ *    $Date: 2016/04/08 19:30:28 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,11 @@ class SurfaceLabel;
 class SurfaceROI;
 class SurfaceSpline;
 
+struct RGBMap {
+    QString name;
+    QList<int> data;
+};
+
 class LayerSurface : public LayerEditable
 {
   Q_OBJECT
@@ -68,6 +73,7 @@ public:
   bool LoadAnnotationFromFile( const QString& filename );
   bool LoadLabelFromFile( const QString& filename );
   bool LoadSplineFromFile(const QString& filename);
+  bool LoadRGBFromFile(const QString& filename);
   bool CreateFromMRIS(void* mris_ptr);
 
   void Append2DProps( vtkRenderer* renderer, int nPlane );
@@ -255,6 +261,20 @@ public:
 
   void GetSmoothedVertexNormal(int nVertex, double* v_out);
 
+  int GetActiveRGBMap()
+  {
+      return m_nActiveRGBMap;
+  }
+
+  void SetActiveRGBMap(int n);
+
+  QStringList GetRGBMapNames();
+
+  int GetNumberOfRGBMaps()
+  {
+      return m_rgbMaps.size();
+  }
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay( bool bAskRedraw = true );
@@ -291,6 +311,7 @@ public slots:
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
+  void SurfaceRGBAdded();
   void SurfaceLabelDeleted( SurfaceLabel* );
   void SurfaceOverlayAdded( SurfaceOverlay* );
   void SurfaceOverlyDataUpdated();
@@ -301,6 +322,7 @@ Q_SIGNALS:
   void ActiveAnnotationChanged( int n );
   void ActiveLabelChanged( int n );
   void CurrentVertexChanged(int n);
+  void RGBMapChanged();
 
 protected slots:
   void UpdateOpacity();
@@ -354,6 +376,9 @@ protected:
 
   QList<SurfaceLabel*>      m_labels;
   int         m_nActiveLabel;
+
+  QList<RGBMap>             m_rgbMaps;
+  int         m_nActiveRGBMap;
 
   int         m_nCurrentVertex;
 
