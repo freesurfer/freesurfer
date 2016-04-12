@@ -916,11 +916,12 @@ EXTRA_DIST=\
 endif
 endif
 
-clean-local:
-	rm -f kvlAtlasMeshViewingConsoleGUI.cxx kvlImageThresholdingConsoleGUI.cxx \
-	kvlImageViewingConsoleGUI.cxx kvlSegmentationEvaluationConsoleGUI.cxx \
-	kvlImageViewingConsoleGUI.h kvlAtlasMeshViewingConsoleGUI.h \
-	kvlSegmentationEvaluationConsoleGUI.h
+# When *.fl is modified, new *.cxx and *.h files should be committed.
+#clean-local:
+#	rm -f kvlAtlasMeshViewingConsoleGUI.cxx kvlImageThresholdingConsoleGUI.cxx \
+#	kvlImageViewingConsoleGUI.cxx kvlSegmentationEvaluationConsoleGUI.cxx \
+#	kvlImageViewingConsoleGUI.h kvlAtlasMeshViewingConsoleGUI.h \
+#	kvlSegmentationEvaluationConsoleGUI.h
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
