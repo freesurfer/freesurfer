@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/03/14 12:39:19 $
- *    $Revision: 1.47 $
+ *    $Author: greve $
+ *    $Date: 2016/04/14 15:31:19 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.47 2016/03/14 12:39:19 fischl Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.48 2016/04/14 15:31:19 greve Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -117,6 +117,7 @@ char *CtxSegFile = NULL;
 MRI *CtxSeg = NULL;
 
 int FixParaHipWM = 1;
+double BRFdotCheck(MRIS *surf, int vtxno, int c, int r, int s, MRI *AParc);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv)
@@ -126,6 +127,7 @@ int main(int argc, char **argv)
   int IsCblumCtx = 0;
   int RibbonVal=0,nbrute=0;
   float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0;
+  double dot ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -547,78 +549,28 @@ int main(int argc, char **argv)
 	   the other bank of a sulcus or through a thin white matter strand. This removes inaccurate voxels
 	   that used to speckle the aparc+aseg
 	*/
-        if (lhwvtx < 0)
-        {
-          dlhw = 1000000000000000.0;
-        }
-	else
-	{
-	  double dx, dy, dz, nx, ny, nz, xv, yv, zv, x1, y1, z1, dot ;
-	  VERTEX *v ;
-	  v = &lhwhite->vertices[lhwvtx] ;
-	  MRISvertexToVoxel(lhwhite, v, AParc, &xv, &yv, &zv) ;
-	  x1 = v->x + v->nx ;  y1 = v->y + v->ny ; z1 = v->z + v->nz ; 
-	  MRISsurfaceRASToVoxel(lhwhite, AParc, x1, y1, z1, &nx, &ny, &nz) ;
-	  nx -= xv ; ny -= yv ; nz -= zv ;  // normal in voxel coords
-	  dx = c-xv ; dy = r-yv ; dz = s-zv ;
-	  dot = dx*nx + dy*ny + dz*nz ;
-	  if (dot < 0)
-	    dlhw = 1000000000000000.0;
+        if (lhwvtx < 0)       dlhw = 1000000000000000.0;
+	else if(!LabelWM){
+	  dot = BRFdotCheck(lhwhite,lhwvtx,c,r,s,AParc);
+	  if (dot < 0) dlhw = 1000000000000000.0;
 	}
-        if (lhpvtx < 0)
-        {
-          dlhp = 1000000000000000.0;
-        }
-	else
-	{
-	  double dx, dy, dz, nx, ny, nz, xv, yv, zv, x1, y1, z1, dot ;
-	  VERTEX *v ;
-	  v = &lhpial->vertices[lhpvtx] ;
-	  MRISvertexToVoxel(lhpial, v, AParc, &xv, &yv, &zv) ;
-	  x1 = v->x + v->nx ;  y1 = v->y + v->ny ; z1 = v->z + v->nz ; 
-	  MRISsurfaceRASToVoxel(lhpial, AParc, x1, y1, z1, &nx, &ny, &nz) ;
-	  nx -= xv ; ny -= yv ; nz -= zv ;  // normal in voxel coords
-	  dx = c-xv ; dy = r-yv ; dz = s-zv ;
-	  dot = dx*nx + dy*ny + dz*nz ;
+
+        if (lhpvtx < 0) dlhp = 1000000000000000.0;
+	else if(!LabelWM){
+	  dot = BRFdotCheck(lhpial,lhpvtx,c,r,s,AParc);
 	  if (dot > 0)   // pial surface normal should point in same direction as vector from voxel to vertex
 	    dlhp = 1000000000000000.0;
 	}
 
-        if (rhwvtx < 0)
-        {
-          drhw = 1000000000000000.0;
-        }
-	else
-	{
-	  double dx, dy, dz, nx, ny, nz, xv, yv, zv, x1, y1, z1, dot ;
-	  VERTEX *v ;
-	  v = &rhwhite->vertices[rhwvtx] ;
-	  MRISvertexToVoxel(rhwhite, v, AParc, &xv, &yv, &zv) ;
-	  x1 = v->x + v->nx ;  y1 = v->y + v->ny ; z1 = v->z + v->nz ; 
-	  MRISsurfaceRASToVoxel(rhwhite, AParc, x1, y1, z1, &nx, &ny, &nz) ;
-	  nx -= xv ; ny -= yv ; nz -= zv ;  // normal in voxel coords
-	  dx = c-xv ; dy = r-yv ; dz = s-zv ;
-	  dot = dx*nx + dy*ny + dz*nz ;
-	  if (dot < 0)
-	    drhw = 1000000000000000.0;
+        if (rhwvtx < 0) drhw = 1000000000000000.0;
+	else if(!LabelWM){
+	  dot = BRFdotCheck(rhwhite,rhwvtx,c,r,s,AParc);
+	  if (dot < 0) drhw = 1000000000000000.0;
 	}
-        if (rhpvtx < 0)
-        {
-          drhp = 1000000000000000.0;
-        }
-	else
-	{
-	  double dx, dy, dz, nx, ny, nz, xv, yv, zv, x1, y1, z1, dot ;
-	  VERTEX *v ;
-	  v = &rhpial->vertices[rhpvtx] ;
-	  MRISvertexToVoxel(rhpial, v, AParc, &xv, &yv, &zv) ;
-	  x1 = v->x + v->nx ;  y1 = v->y + v->ny ; z1 = v->z + v->nz ; 
-	  MRISsurfaceRASToVoxel(rhpial, AParc, x1, y1, z1, &nx, &ny, &nz) ;
-	  nx -= xv ; ny -= yv ; nz -= zv ;  // normal in voxel coords
-	  dx = c-xv ; dy = r-yv ; dz = s-zv ;
-	  dot = dx*nx + dy*ny + dz*nz ;
-	  if (dot > 0)   // pial surface normal should point in same direction as vector from voxel to vertex
-	    drhp = 1000000000000000.0;
+        if (rhpvtx < 0) drhp = 1000000000000000.0;
+	else if(!LabelWM){
+	  dot = BRFdotCheck(rhpial,rhpvtx,c,r,s,AParc);
+	  if (dot > 0) drhp = 1000000000000000.0;
 	}
 
         if (dlhw <= dlhp && dlhw < drhw && dlhw < drhp && lhwvtx >= 0)
@@ -1372,3 +1324,22 @@ int CCSegment(MRI *seg, int segid, int segidunknown)
   MRIsegmentFree(&sgmnt);
   return(0);
 }
+
+/* BRF added some checks here to make sure closest vertex (usually
+   pial but can be white) isn't on the other bank of a sulcus or
+   through a thin white matter strand. This removes inaccurate voxels
+   that used to speckle the aparc+aseg */
+double BRFdotCheck(MRIS *surf, int vtxno, int c, int r, int s, MRI *AParc)
+{
+  double dx, dy, dz, nx, ny, nz, xv, yv, zv, x1, y1, z1, dot ;
+  VERTEX *v ;
+  v = &surf->vertices[vtxno] ;
+  MRISvertexToVoxel(surf, v, AParc, &xv, &yv, &zv) ;
+  x1 = v->x + v->nx ;  y1 = v->y + v->ny ; z1 = v->z + v->nz ; 
+  MRISsurfaceRASToVoxel(surf, AParc, x1, y1, z1, &nx, &ny, &nz) ;
+  nx -= xv ; ny -= yv ; nz -= zv ;  // normal in voxel coords
+  dx = c-xv ; dy = r-yv ; dz = s-zv ;
+  dot = dx*nx + dy*ny + dz*nz ;
+  return(dot);
+}
+
