@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/06 17:25:02 $
- *    $Revision: 1.45 $
+ *    $Date: 2016/04/14 20:19:14 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -185,7 +185,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_average.c,v 1.45 2015/11/06 17:25:02 fischl Exp $",
+           "$Id: mri_average.c,v 1.46 2016/04/14 20:19:14 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -621,6 +621,10 @@ get_option(int argc, char *argv[])
     window_flag = 1 ;
     fprintf(stderr, "applying hanning window to volumes...\n") ;
   }
+  else if (!stricmp(option, "help"))
+  {
+    usage_exit(0) ;
+  }
   else if (!stricmp(option, "noconform"))
   {
     conform = 0 ;
@@ -674,6 +678,7 @@ get_option(int argc, char *argv[])
       align = 1 ;
       fprintf(stderr, "aligning volumes before averaging...\n") ;
       break ;
+    case 'H':
     case '?':
     case 'U':
       usage_exit(0) ;
@@ -701,7 +706,7 @@ usage_exit(int code)
   printf("\t-F              read volumes from an input file (first argument is the input filename)\n") ;
   printf("\t-dt <float n>   set dt to n (default=1e-6)\n") ;
   printf("\t-tol <float n>  set tol to n (default=1e-5)\n") ;
-  printf("\t-conform        interpolate volume to be isotropic 1mm^3\n") ;
+  printf("\t-conform        interpolate volume to be isotropic 1mm^3 (this option is on by default)\n") ;
   printf("\t-noconform      inhibit isotropic volume interpolation\n");
   printf("\t-reduce <int n> reduce input images n (default=2) times\n") ;
   printf("\t-sinc <int n>   using sinc "
