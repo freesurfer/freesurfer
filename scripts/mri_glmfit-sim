@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.59 2016/03/11 19:37:32 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.60 2016/04/30 15:13:36 greve Exp $';
 setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
@@ -669,12 +669,16 @@ while( $#argv != 0 )
     case "--cache-dir":
       if( $#argv < 1) goto arg1err;
       set CacheDir = $argv[1]; shift;
+      set UseCache = 1;
+      set DoSim = 0;
       breaksw
 
     case "--mczsim-label":
     case "--cache-label":
       if( $#argv < 1) goto arg1err;
       set CacheLabel = $argv[1]; shift;
+      set UseCache = 1;
+      set DoSim = 0;
       breaksw
 
     case "--vol-subject":
