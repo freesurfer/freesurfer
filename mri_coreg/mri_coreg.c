@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/01/20 23:42:39 $
- *    $Revision: 1.26 $
+ *    $Date: 2016/04/30 15:11:49 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_coreg.c,v 1.26 2016/01/20 23:42:39 greve Exp $";
+static char vcid[] = "$Id: mri_coreg.c,v 1.27 2016/04/30 15:11:49 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -110,6 +110,7 @@ typedef struct {
   double SatPct;
   int MovOOBFlag;
   char *rusagefile;
+  int optschema;
 } CMDARGS;
 
 CMDARGS *cmdargs;
@@ -159,6 +160,7 @@ typedef struct {
   int DoSmoothing;
   FILE *fplogcost;
   int MovOOBFlag;
+  int optschema;
   int debug;
 } COREG;
 
@@ -174,11 +176,12 @@ long COREGvolIndex(int ncols, int nrows, int nslices, int c, int r, int s);
 double COREGsamp(unsigned char *f, const double c, const double r, const double s, 
 		  const int ncols, const int nrows, const int nslices);
 double NMICost(double **H, int cols, int rows);
-MATRIX *COREGmatrix(double *p0, int np, MATRIX *M);
+MATRIX *COREGmatrix(double *p, MATRIX *M);
 double *COREGparams9(MATRIX *M9, double *p);
 int COREGprint(FILE *fp, COREG *coreg);
 MRI *MRIconformNoScale(MRI *mri, MRI *mric);
 int COREGoptBruteForce(COREG *coreg, double lim0, int niters, int n1d);
+double *COREGoptSchema2MatrixPar(COREG *coreg, double *par);
 
 COREG *coreg;
 FSENV *fsenv;
@@ -216,6 +219,7 @@ int main(int argc, char *argv[]) {
   cmdargs->SmoothRef = 0;
   cmdargs->SatPct = 99.99;
   cmdargs->MovOOBFlag = 0;
+  cmdargs->optschema = 1;
   cmdargs->rusagefile = "";
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -342,6 +346,7 @@ int main(int argc, char *argv[]) {
   coreg->movirfs = NULL;
   coreg->DoSmoothing = cmdargs->DoSmoothing;
   coreg->MovOOBFlag = cmdargs->MovOOBFlag;
+  coreg->optschema = cmdargs->optschema;
   coreg->debug = debug;
 
   if(coreg->DoCoordDither){
@@ -559,8 +564,13 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--dof")) {
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&cmdargs->dof);
+      cmdargs->optschema = 1;
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--2dz"))   {
+      cmdargs->optschema = 2;
+      cmdargs->dof = 3;
+    }
     else if (!strcasecmp(option, "--bf-lim")) {
       if(nargc < 1) CMDargNErr(option,1);
       cmdargs->DoBF = 1;
@@ -820,6 +830,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"SmoothRef %d\n",cmdargs->SmoothRef);
   fprintf(fp,"SatPct    %lf\n",cmdargs->SatPct);
   fprintf(fp,"MovOOB %d\n",cmdargs->MovOOBFlag);
+  fprintf(fp,"optschema %d\n",cmdargs->optschema);
   return;
 }
 
@@ -944,12 +955,17 @@ int COREGhist(COREG *coreg)
 
 	dcmov  = V2V[0]*dcref + V2V[4]*drref + V2V[ 8]*dsref +  V2V[12];
 	drmov  = V2V[1]*dcref + V2V[5]*drref + V2V[ 9]*dsref +  V2V[13];
-	dsmov  = V2V[2]*dcref + V2V[6]*drref + V2V[10]*dsref +  V2V[14];
 
 	oob = 0;
 	if(dcmov < 0 || dcmov > coreg->mov->width-1)  oob = 1;
 	if(drmov < 0 || drmov > coreg->mov->height-1) oob = 1;
-	if(dsmov < 0 || dsmov > coreg->mov->depth-1)  oob = 1;
+
+	dsmov = 0;
+	if(coreg->optschema != 2){
+	  dsmov  = V2V[2]*dcref + V2V[6]*drref + V2V[10]*dsref +  V2V[14];
+	  if(dsmov < 0 || dsmov > coreg->mov->depth-1)  oob = 1;
+	}
+
 	if(!oob) {
 	  vf = COREGsamp(coreg->f, dcmov, drmov, dsmov, coreg->mov->width,coreg->mov->height,coreg->mov->depth);
 	  nhits ++;
@@ -1295,23 +1311,40 @@ double NMICost(double **H, int cols, int rows)
   return(cost);
 }
 
+double *COREGoptSchema2MatrixPar(COREG *coreg, double *par)
+{
+  int n;
+
+  if(par == NULL) par = (double *) calloc(12,sizeof(double));
+
+  switch(coreg->optschema){
+  case 1: 
+    for(n=0; n<12; n++) par[n] = 0;
+    par[6] = par[7] = par[8] = 1; // scaling
+    for(n=0; n<coreg->nparams;n++) par[n] = coreg->params[n];
+    break;
+  case 2: 
+    for(n=0; n<12; n++) par[n] = 0;
+    par[6] = par[7] = par[8] = 1; // scaling
+    par[0] = coreg->params[0]; // x trans
+    par[2] = coreg->params[1]; // z trans
+    par[4] = coreg->params[2]; // rotation about y
+    break;
+  }
+  return(par);
+}
 /*!
-  \fn MATRIX *COREGmatrix(double *p0, int np, MATRIX *M)
+  \fn MATRIX *COREGmatrix(double *p, MATRIX *M)
   \brief Computes a RAS-to-RAS transformation matrix given
-  the parameters. p0[0-2] translation, p0[3-5] rotation
-  in degrees, p0[6-8] scale, p[9-11] shear. 
+  the parameters. p[0-2] translation, p[3-5] rotation
+  in degrees, p[6-8] scale, p[9-11] shear. 
   M = T*R1*R2*R3*SCALE*SHEAR
   Consistent with COREGparams9()
  */
-MATRIX *COREGmatrix(double *p0, int np, MATRIX *M)
+MATRIX *COREGmatrix(double *p, MATRIX *M)
 {
   MATRIX *T, *R1, *R2, *R3, *R, *ZZ, *S;
-  double p[12];
-  int n;
-  for(n=0; n<12; n++) p[n] = 0;
-  p[6] = p[7] = p[8] = 1; // scaling
-  for(n=0; n<np; n++) p[n] = p0[n];
-
+  //int n;
   //printf("p = [");
   //for(n=0; n<np; n++) printf("%10.3lf ",p[n]);
   //printf("];\n");
@@ -1421,9 +1454,11 @@ double COREGcost(COREG *coreg)
   double *g1, *g2, sum, std1, std2;
   int r,c,n,lim1,lim2,ng1,ng2;
   int H1rows,H1cols,Hrows,Hcols;
+  static double *params=NULL;
 
   // RefRAS-to-MovRAS
-  coreg->M = COREGmatrix(coreg->params, coreg->nparams, coreg->M);
+  params = COREGoptSchema2MatrixPar(coreg, params);
+  coreg->M = COREGmatrix(params, coreg->M);
 
   // AnatVox-to-FuncVox
   coreg->V2V = MRIgetVoxelToVoxelXformBase(coreg->ref,coreg->mov,coreg->M,coreg->V2V,0);
