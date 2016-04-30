@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/03/17 06:39:55 $
-#    $Revision: 1.5 $
+#    $Date: 2016/04/30 16:10:38 $
+#    $Revision: 1.6 $
 #
 # Copyright © 2015 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,11 +24,11 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_ca_register,v 1.5 2016/03/17 06:39:55 zkaufman Exp $'
+set VERSION='$Id: test_mri_ca_register,v 1.6 2016/04/30 16:10:38 zkaufman Exp $'
 
 umask 002
 
-if ($SKIP_MRI_CA_REGISTER_TEST) then
+if ( $?SKIP_MRI_CA_REGISTER_TEST ) then
   exit 0
 endif
 

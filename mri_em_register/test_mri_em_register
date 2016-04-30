@@ -7,9 +7,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/11/04 18:38:37 $
-#    $Revision: 1.4 $
+#    $Author: zkaufman $
+#    $Date: 2016/04/30 16:10:38 $
+#    $Revision: 1.5 $
 #
 # Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_em_register,v 1.4 2014/11/04 18:38:37 nicks Exp $'
+set VERSION='$Id: test_mri_em_register,v 1.5 2016/04/30 16:10:38 zkaufman Exp $'
 
 umask 002
 
@@ -44,7 +44,7 @@ set log = (../test_mri_em_register.log)
 if (-e $log) rm -f $log 
 
 set threads=( 1 8 )
-if ($?SKIP_MRI_EMREG_1CPU_TEST) set threads=( 8 )
+if ( $?SKIP_MRI_EMREG_1CPU_TEST ) set threads=( 8 )
 
 foreach num ($threads)
 
