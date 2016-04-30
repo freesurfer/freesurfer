@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/03/11 23:29:42 $
- *    $Revision: 1.67 $
+ *    $Date: 2016/04/30 15:10:56 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.67 2016/03/11 23:29:42 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.68 2016/04/30 15:10:56 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.67 2016/03/11 23:29:42 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.68 2016/04/30 15:10:56 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -107,7 +107,7 @@ typedef struct
   int nparams;
   double ftol;
   double linmintol;
-  int optgm;
+  int optmask;
   float fret;
   int niters,nitersmax;
   int nCostEvaluations;
@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
   gtmopt->ftol= 1e-8;
   gtmopt->linmintol= .001;
   gtmopt->nitersmax = 5;
-  gtmopt->optgm = 0;
+  gtmopt->optmask = 0;
   gtm->mbrad = (MB2D *) calloc(sizeof(MB2D),1);
   gtm->mbtan = (MB2D *) calloc(sizeof(MB2D),1);
   gtm->DoSteadyState = 0;
@@ -532,8 +532,8 @@ int main(int argc, char *argv[])
   }
 
   if(DoOpt){
-    printf("Starting optimization %d, optgm=%d\n",gtmopt->schema,gtmopt->optgm);
-    fprintf(logfp,"Starting optimization %d, optgm=%d\n",gtmopt->schema,gtmopt->optgm);
+    printf("Starting optimization %d, optmask=%d\n",gtmopt->schema,gtmopt->optmask);
+    fprintf(logfp,"Starting optimization %d, optmask=%d\n",gtmopt->schema,gtmopt->optmask);
     gtmopt_powell = gtmopt;
     int RescaleSave = gtm->rescale;
     gtm->rescale = 0; // important to turn off
@@ -1250,7 +1250,8 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[2],"%lf",&gtmopt->linmintol);
       nargsused = 3;
     }
-    else if(!strcasecmp(option, "--opt-gm")) gtmopt->optgm = 1;
+    else if(!strcasecmp(option, "--opt-gm")) gtmopt->optmask = 1;
+    else if(!strcasecmp(option, "--opt-brain")) gtmopt->optmask = 2;
     else if(!strcasecmp(option, "--psf")){
       if(nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&psfFWHM);
@@ -1968,7 +1969,8 @@ double GTMcostPSF(GTM *gtm)
     return(10e10);
   }
   //printf("   Build-and-Solve Time %4.1f sec\n",TimerStop(&timer)/1000.0);fflush(stdout);
-  if(gtmopt->optgm) return(gtm->rvargm->rptr[1][1]);
+  if(gtmopt->optmask == 1) return(gtm->rvargm->rptr[1][1]);
+  if(gtmopt->optmask == 2) return(gtm->rvarbrain->rptr[1][1]);
   return(gtm->rvarUnscaled->rptr[1][1]);
 }
 /*--------------------------------------------------------------------------*/
