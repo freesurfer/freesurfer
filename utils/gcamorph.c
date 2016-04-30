@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/03/15 12:28:30 $
- *    $Revision: 1.295 $
+ *    $Date: 2016/04/30 02:37:29 $
+ *    $Revision: 1.296 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4166,7 +4166,7 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
                    i, j, k, cma_label_to_name(gcamn->label), gcamn->label) ;
           }
           /* gcam->neg++ ; */
-          gcam_neg_counter[tid] ++;
+	  gcam_neg_counter[tid] ++;
         }
 
         // Add to count of invalid locations
@@ -10434,7 +10434,7 @@ void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
 
 #if 0
 	load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs);
-        if (sqrt(GCAmahDist(gcamn->gc, vals, gcam->ninputs) < 0.25))  // added BRF 3/11/2016
+        if (sqrt(GCAmahDist(gcamn->gc, vals, gcam->ninputs) < 0.75))  // added BRF 3/11/2016
 	  continue ;  // current label already explains intensities quite well
 #endif
 
@@ -20630,9 +20630,8 @@ GCAMMSgibbsImageLogPosterior(GCAM_MS *gcam_ms, MRI *mri_labels, MRI *mri_inputs,
 int
 GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
 {
-  int             xp, yp, zp, last_neg, wsize, iter, max_iter, nbhd = 1, max_noprogress, noprogress, min_neg, i ;
-  double          dx, dy, dz, max_nbhd ;
-  GCA_MORPH_NODE  *gcamn ;
+  int             xp, last_neg, wsize, iter, max_iter, nbhd = 1, max_noprogress, noprogress, min_neg, i ;
+  double          max_nbhd ;
   MRI             *mri_warp_tmp = NULL, *mri_neg, *mri_neg_orig, *mri_neg_atlas ;
 
   wsize = 2*gcam->spacing+1 ;
@@ -20670,8 +20669,14 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
       MRIdilate(mri_neg_atlas, mri_neg_atlas) ;
     mri_warp_tmp = MRIcopy(mri_warp, mri_warp_tmp) ;
     last_neg = gcam->neg ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(gcam,mri_neg, mri_neg_atlas, mri_warp_tmp, mri_warp) schedule(static,1)
+#endif
     for (xp = 0 ; xp < gcam->width; xp++)
     {
+      GCA_MORPH_NODE  *gcamn ;
+      int     yp, zp ;
+      double  dx, dy, dz ;
       for (yp = 0 ; yp < gcam->height ; yp++)
       {
         for (zp = 0 ; zp < gcam->depth ; zp++)
