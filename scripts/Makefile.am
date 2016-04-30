@@ -243,7 +243,7 @@ tal_compare \
 talsegprob \
 tcl_setup \
 test_recon-all.csh \
-test_fs_tutorial.csh \
+test_tutorials.sh \
 thickdiffmap \
 trac-all \
 trac-paths \
