@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/04/11 01:04:37 $
- *    $Revision: 1.3 $
+ *    $Date: 2016/04/18 19:19:35 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,7 +72,7 @@ static int pad = 0 ;
 static float intensity_tolerance = 0.1 ;
 static float translation_tolerance = 0.025 ;
 
-static MRI *mosaic_images_with_xforms(MRI **mri, int nimages, int pad)  ;
+static MRI *mosaic_images_with_xforms(MRI **mri, int nimages, MRI *mri_weights, int pad)  ;
 static int insert_image_into_mosaic(MRI *mri_mosaic, MRI *mri, double x0, double y0) ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -105,13 +105,16 @@ static int niters = 100 ;
 #define MAX_IMAGES 10000
 #define MAX_TRANS 3
 
+static char *weight_fname = NULL ;
+
 int
 main(int argc, char *argv[]) {
   char       **av, *mosaic_input_fname, *out_fname ;
   int         ac, nargs, msec, minutes, seconds, nimages, i ;
   int          dx, dy, n, *image_numbers, frame, dx_best, dy_best, skip ;
   struct timeb start ;
-  MRI          *mri[MAX_IMAGES], *mri_orig[MAX_IMAGES], *mri_mosaic, *mri_smooth[MAX_IMAGES] ;
+  MRI          *mri[MAX_IMAGES], *mri_orig[MAX_IMAGES], *mri_mosaic, *mri_smooth[MAX_IMAGES],
+               *mri_weights  ;
   FILE         *fp = NULL ;
   double       energy, best_energy, prev_best_energy, dxd, dyd ;
   int          x0[MAX_IMAGES], y0[MAX_IMAGES], xbest[MAX_IMAGES], ybest[MAX_IMAGES] ; 
@@ -119,7 +122,7 @@ main(int argc, char *argv[]) {
 //  HISTOGRAM    *h0 = NULL, *h1 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: oct_register_mosaic.c,v 1.3 2016/04/11 01:04:37 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: oct_register_mosaic.c,v 1.4 2016/04/18 19:19:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -149,7 +152,7 @@ main(int argc, char *argv[]) {
   if (argc < 2)
     usage_exit(1) ;
 
-  if (argc == 3)
+  if (argc == 3 && 0)  // disable for now
   {
     FileNameRemoveExtension(out_fname, Gout_name) ;
     printf("reading mosaic file names and initial positions from %s\n", mosaic_input_fname) ;
@@ -272,7 +275,15 @@ main(int argc, char *argv[]) {
       x0d[i] = x0[i] ;
       y0d[i] = y0[i] ;
     }
-    mri_mosaic = mosaic_images_with_xforms(mri, nimages, 0) ;
+    if (weight_fname)
+    {
+      mri_weights = MRIread(weight_fname) ;
+      if (mri_weights == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read weights from %s", weight_fname) ;
+    }
+    else
+      mri_weights = NULL ;
+    mri_mosaic = mosaic_images_with_xforms(mri, nimages, mri_weights, 0) ;
     if (undistort)  // since this isn't the final image, save a copy
     {
       printf("writing mosaic with original translations to %s\n", orig_fname) ;
@@ -481,6 +492,11 @@ get_option(int argc, char *argv[]) {
       undistort = 1 ;
       printf("undistorting images before mosaicing\n") ;
       break ;
+    case 'W':
+      weight_fname = argv[2] ;
+      printf("using weighting file %s\n", weight_fname) ;
+      nargs = 1 ;
+      break ;
     case 'I':
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;
@@ -511,8 +527,11 @@ get_option(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <mosaic list file>  <output volume>\n",
-         Progname) ;
+  printf("usage 1: %s [options] <tile 1> <tile 2> ...  <output volume>\n", Progname) ;
+  printf("usage 2: %s [options] <mosaic list file>  <output volume>\n", Progname) ;
+  printf("\toptions:\n") ;
+  printf("\t-D <downsample>\t-\tuse Gaussian downsampling <downsample> times\n") ;
+  printf("\t-W <weight fname>\t-\tread tile of weights from <weight fname> and use it in tile averaging\n") ;
   exit(code) ;
 }
 static MRI *
@@ -1216,7 +1235,7 @@ compute_powell_global_sse(float *p)
 }
 
 static MRI *
-mosaic_images_with_xforms(MRI **mri, int nimages, int pad) 
+mosaic_images_with_xforms(MRI **mri, int nimages, MRI *mri_weights, int pad) 
 {
   double   xmin, ymin, zmin, xmax, ymax, zmax, x1, y1, z1 ;
   MRI      *mri_mosaic, *mri_counts ;
@@ -1402,8 +1421,8 @@ mosaic_images_with_xforms(MRI **mri, int nimages, int pad)
 //#endif
   for (i =  0 ; i < nimages ; i++)
   {
-    int x, y, z, count, xm, ym, zm ;
-    float  val, sum ;
+    int x, y, z, xm, ym, zm ;
+    float  val, sum, count, w ;
     MATRIX *m_vox2vox ;
     VECTOR *v_vox2 ;
 
@@ -1437,14 +1456,19 @@ mosaic_images_with_xforms(MRI **mri, int nimages, int pad)
 	    first = 0 ;
 	    continue ;
 	  }
-	  count = (int)MRIgetVoxVal(mri_counts, xm, ym, zm, 0) ;
-	  count++ ;
+	  count = MRIgetVoxVal(mri_counts, xm, ym, zm, 0) ;
+	  if (mri_weights)
+	    w = MRIgetVoxVal(mri_weights, x, y, z, 0) ; /* use confocal weighting */
+	  else
+	    w = 1 ;
+
+	  count = count + w ;
 	  if (count > 1)
 	    DiagBreak() ;
 	  MRIsetVoxVal(mri_counts, xm, ym, zm, 0, count) ;
 	  sum = MRIgetVoxVal(mri_mosaic, xm, ym, zm, 0) ;
 	  val = MRIgetVoxVal(mri[i], x, y, z, 0) ;
-	  MRIsetVoxVal(mri_mosaic, xm, ym, zm, 0, val+sum) ;
+	  MRIsetVoxVal(mri_mosaic, xm, ym, zm, 0, w*val+sum) ;
 //	  MRIsetVoxVal(mri_mosaic, xm, ym, zm, i+1, val) ;
 	}
       }
