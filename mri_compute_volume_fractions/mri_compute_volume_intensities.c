@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/03/01 21:36:49 $
- *    $Revision: 1.2 $
+ *    $Date: 2016/04/19 13:32:50 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,7 +91,7 @@ main(int argc, char *argv[])
   MRI         *mri_src, *mri_vfrac_wm, *mri_vfrac_cortex, *mri_vfrac_subcort, *mri_vfrac_csf, *mri_unpv_intensities ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_intensities.c,v 1.2 2013/03/01 21:36:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_volume_intensities.c,v 1.3 2016/04/19 13:32:50 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -178,7 +178,6 @@ get_option(int argc, char *argv[]) {
     if (whalf < 1)
       ErrorExit(ERROR_BADPARM, "half window size must be >= 1 to estimate unpartial-volumed intensities") ;
     nargs = 1 ;
-    break ;
     break ;
   case 'S':
     sigma = atof(argv[2]) ;

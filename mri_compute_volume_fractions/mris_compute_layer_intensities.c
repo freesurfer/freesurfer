@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 17:52:45 $
- *    $Revision: 1.8 $
+ *    $Date: 2016/04/19 13:31:39 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,12 +52,11 @@
 #define MAX_LAYERS     50
 
 static int nlayers = NLAYERS ;
-static char *LAMINAR_NAME = "gwdist";
 
 static double vfrac_thresh = -1 ;
 
 static char *subject_name = NULL ;
-static char *hemi = "lh" ;
+static char *hemi = NULL ;
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
@@ -87,7 +86,7 @@ main(int argc, char *argv[])
   MRI         *mri_intensities, *mri_volume_fractions, *mri_layer_intensities ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.8 2012/04/11 17:52:45 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_compute_layer_intensities.c,v 1.9 2016/04/19 13:31:39 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -109,17 +108,20 @@ main(int argc, char *argv[])
 
   TimerStart(&start) ;
 
+  if (hemi == NULL)
+    ErrorExit(ERROR_BADPARM, "%s: must specify -rh or -lh", Progname) ;
+
   mri_intensities = MRIread(argv[1]) ;
   if (mri_intensities == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load intensity volume from %s", Progname, argv[1]) ;
   mri_volume_fractions = MRIread(argv[2]) ;
   if (mri_volume_fractions == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not load volume fractions from %s", Progname, argv[2]) ;
-  if (FS_names && nlayers != 1)
-    ErrorExit(ERROR_UNSUPPORTED, "%s: if specifying FS_names must use -nlayers 1", Progname) ;
+  if (FS_names && subject_name == NULL)
+    ErrorExit(ERROR_UNSUPPORTED, "%s: if specifying FS_names must use -s <subject>", Progname) ;
   for (i = 0 ; i <= nlayers ; i++)
   {
-    if (FS_names && nlayers == 1)
+    if (FS_names && (i == 0 || i == nlayers))
     {
       char *sdir = getenv("SUBJECTS_DIR") ;
       if (i == 0)
@@ -131,7 +133,7 @@ main(int argc, char *argv[])
     {
       if (i == 10)
 	argv[3][strlen(argv[3])-1] = 0 ;  // make it layer010 not layer0010
-      sprintf(fname, "%s%d", argv[3], i) ;
+      sprintf(fname, "%s%3.3d", argv[3], i) ;
     }
     printf("reading laminar surface %s\n", fname) ;
     mris[i] = MRISread(fname) ;
@@ -211,11 +213,6 @@ get_option(int argc, char *argv[]) {
     printf("using half window size = %d\n", Gwhalf) ;
     nargs = 1 ;
     break ;
-    break ;
-  case 'N':
-    LAMINAR_NAME = argv[2] ;
-    printf("using %s as layer surface name\n", LAMINAR_NAME) ;
-    nargs = 1 ;
     break ;
   case 'S':
     subject_name = argv[2] ;
@@ -371,7 +368,9 @@ compute_layer_intensities(MRI *mri_intensities, MRI *mri_volume_fractions, MRI_S
 	FEQUAL(mris[0]->vertices[vno].z, mris[nlayers]->vertices[vno].z))
     {
       DiagBreak() ;
+#if 0
       continue ;   // pial and white in same place - vertex is not cortical and can't be estimated
+#endif
     }
     if (bin_size == 0)
       bin0 = 0 ;
