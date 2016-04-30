@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/19 19:57:35 $
- *    $Revision: 1.36 $
+ *    $Date: 2016/04/18 16:37:43 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -107,7 +107,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   m_widgetsContour << ui->labelContourColor
                    << ui->labelContourValue
                    << ui->lineEditContourValue
-                   << ui->colorPickerContour;
+                   << ui->colorPickerContour
+                   << ui->labelTipsContour;
 
   QTimer* timer = new QTimer( this );
   connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );

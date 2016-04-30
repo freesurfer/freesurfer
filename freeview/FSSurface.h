@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/17 16:25:26 $
- *    $Revision: 1.47 $
+ *    $Date: 2016/04/18 17:25:04 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -225,6 +225,8 @@ public:
       v_out[1] = m_fSmoothedNormal[nVertex].y;
       v_out[2] = m_fSmoothedNormal[nVertex].z;
   }
+
+  void GetVertexAtSurfaceType(int nVertex, int surface_type, double* v_out);
 
 protected:
   bool InitializeData(const QString& vector_filename = QString(),

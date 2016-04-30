@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.15 $
+ *    $Author: rpwang $
+ *    $Date: 2016/04/18 16:37:39 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,6 +34,13 @@ public:
   Interactor2DVoxelEdit( QObject* parent );
   virtual ~Interactor2DVoxelEdit()
   {}
+
+  // return true if to have parent Interactor2D continue processing the event
+  // return false to stop event from further processing
+  virtual bool ProcessMouseDownEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseUpEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessKeyDownEvent( QKeyEvent* event, RenderView* view );
+  virtual bool ProcessKeyUpEvent( QKeyEvent* event, RenderView* view );
 };
 
 #endif

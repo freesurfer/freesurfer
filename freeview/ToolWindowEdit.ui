@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>336</width>
-    <height>642</height>
+    <width>338</width>
+    <height>693</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -26,7 +26,16 @@
    <property name="sizeConstraint">
     <enum>QLayout::SetFixedSize</enum>
    </property>
-   <property name="margin">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
     <number>0</number>
    </property>
    <item>
@@ -566,14 +575,21 @@ connected to old labels</string>
       <widget class="QLabel" name="labelTips">
        <property name="text">
         <string>Tips:
-Ctrl + Alt + Left button to adjust contour.
+Shift + Ctrl + Left button to move cursor.
+Shift + C to pick color.
+Alt + L to turn on/off label outline display mode.</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labelTipsContour">
+       <property name="text">
+        <string>Ctrl + Alt + Left button to adjust contour.
 Left button to add pixels to contour.
 Shift + Left button to break contour.
 Ctrl + Left button to fill isolated contour.
-Shift + Ctrl + Left button to move cursor.
-Shift + C to pick color.
 Alt + H to show/hide contour.
-Alt + L to turn on/off label outline display mode.</string>
+</string>
        </property>
       </widget>
      </item>

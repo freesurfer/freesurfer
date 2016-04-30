@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/08 19:37:48 $
- *    $Revision: 1.332 $
+ *    $Date: 2016/04/18 19:34:13 $
+ *    $Revision: 1.336 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -123,7 +123,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_bProcessing(false),
   m_bSplinePicking(true),
   m_cmdParser(cmdParser)
-{ 
+{
   // must create layer collections first before setupui()
   m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
   m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
@@ -136,7 +136,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   // supplemental layers will not show on control panel
   m_layerCollections["Supplement"] = new LayerCollection( "Supplement", this);
   LayerLandmarks* landmarks = new LayerLandmarks(this);
-  m_layerCollections["Supplement"]->AddLayer(landmarks);  
+  m_layerCollections["Supplement"]->AddLayer(landmarks);
 
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
@@ -1275,7 +1275,7 @@ void MainWindow::OnIdle()
   ui->actionClosePointSet   ->setEnabled( !bBusy && layerPointSet );
   ui->actionCloseROI        ->setEnabled( !bBusy && layerROI );
   ui->actionCloseSurface    ->setEnabled( !bBusy && layerSurface );
-  ui->actionCloseVolume     ->setEnabled( !bBusy && layerVolume ); 
+  ui->actionCloseVolume     ->setEnabled( !bBusy && layerVolume );
   ui->actionCloseTrack      ->setEnabled( !bBusy && layerTrack );
   ui->actionReloadVolume    ->setEnabled( !bBusy && layerVolume );
   ui->actionReloadSurface    ->setEnabled( !bBusy && layerSurface );
@@ -1343,7 +1343,7 @@ void MainWindow::OnIdle()
   ui->actionSaveCamera->setEnabled(bHasLayer && GetMainView() == ui->view3D);
   ui->actionLoadCamera->setEnabled(bHasLayer && GetMainView() == ui->view3D);
 
-  ui->actionLoadConnectome->setEnabled( !bBusy );  
+  ui->actionLoadConnectome->setEnabled( !bBusy );
   ui->actionCloseConnectome ->setEnabled( !bBusy && GetActiveLayer( "CMAT"));
 
   ui->actionLoadFCD->setEnabled( !bBusy );
@@ -1775,18 +1775,22 @@ void MainWindow::CommandLoadSubject(const QStringList &sa)
     return;
   }
   subject_path += "/" + sa[1];
-  QString args = QString("freeview -v %1/mri/wm.mgz:colormap=heat "
-                         "%1/mri/brain.mgz "
-                         "%1/mri/orig.mgz "
+  QString args = QString("freeview -v "
+                         "%1/mri/orig.mgz:visible=0 "
+                         "%1/mri/brainmask.mgz "
+                         "%1/mri/wm.mgz:colormap=heat "
                          "%1/mri/aseg.mgz:colormap=lut "
                          "-f %1/surf/lh.white "
                          "%1/surf/rh.white "
                          "%1/surf/lh.pial:edgecolor=red "
                          "%1/surf/rh.pial:edgecolor=red "
-                         "%1/surf/lh.orig:edgecolor=green "
-                         "%1/surf/rh.orig:edgecolor=green "
+                         "%1/surf/lh.orig:edgecolor=green:visible=0 "
+                         "%1/surf/rh.orig:edgecolor=green:visible=0 "
                          "%1/surf/lh.inflated:annot=aparc:visible=0 "
                          "%1/surf/rh.inflated:annot=aparc:visible=0 ").arg(subject_path);
+  QString control_pt_file = QString("%1/tmp/control.dat").arg(subject_path);
+  if (QFile::exists(control_pt_file))
+      args += "-c " + control_pt_file;
   MyCmdLineParser parser(m_cmdParser);
   ParseCommand(&parser, args);
 }
@@ -2576,7 +2580,7 @@ void MainWindow::LoadConnectomeMatrixFile(const QString &fn_cmat, const QString 
   LayerConnectomeMatrix* layer = new LayerConnectomeMatrix(m_layerVolumeRef);
   layer->SetFileName(fn_cmat);
   layer->SetParcelFilename(fn_parcel);
-  layer->SetName(QFileInfo(fn_cmat).completeBaseName());  
+  layer->SetName(QFileInfo(fn_cmat).completeBaseName());
   COLOR_TABLE* ct = NULL;
   if (!fn_ctab.isEmpty())
     m_luts->LoadColorTable( fn_ctab );
@@ -5252,7 +5256,7 @@ void MainWindow::OnLoadSurface()
 }
 
 void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_patch, const QString& fn_target,
-                                  const QStringList& sup_files)
+                                  const QStringList& sup_files_in)
 {
   QFileInfo fi( filename );
   m_strLastDir = fi.absolutePath();
@@ -5265,6 +5269,17 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   if ( fullpath.isEmpty() )
   {
     fullpath = filename;
+  }
+  QStringList sup_files = sup_files_in;
+  if (fi.fileName().contains("inflated.nofix"))
+  {
+      if (!sup_files.contains("orig.nofix"))
+          sup_files << "orig.nofix";
+  }
+  else if (fi.fileName().contains("inflated"))
+  {
+      if (!sup_files.contains("white"))
+          sup_files << "white";
   }
   layer->SetFileName( fullpath );
   layer->SetPatchFileName( fn_patch );
@@ -5603,7 +5618,7 @@ bool MainWindow::UpdateSurfaceCorrelation(LayerSurface *layer)
 
 void MainWindow::OnCycleLayer()
 {
-  LayerCollection* lc = GetLayerCollection(ui->widgetAllLayers->GetCurrentLayerType());
+  LayerCollection* lc = GetLayerCollection(GetCurrentLayerType());
   if ( lc )
   {
     lc->CycleLayer(true, ui->viewAxial->GetInteractionMode() == RenderView2D::IM_ReconEdit);
@@ -5612,7 +5627,7 @@ void MainWindow::OnCycleLayer()
 
 void MainWindow::OnReverseCycleLayer()
 {
-  LayerCollection* lc = GetLayerCollection(ui->widgetAllLayers->GetCurrentLayerType());
+  LayerCollection* lc = GetLayerCollection(GetCurrentLayerType());
   if ( lc )
   {
     lc->CycleLayer( false, ui->viewAxial->GetInteractionMode() == RenderView2D::IM_ReconEdit );
@@ -5684,8 +5699,18 @@ QString MainWindow::AutoSelectLastDir( const QString& subdirectory )
   return AutoSelectLastDir( m_strLastDir, subdirectory );
 }
 
-QString MainWindow::AutoSelectLastDir( const QString& lastDir, const QString& subdir )
+QString MainWindow::AutoSelectLastDir( const QString& lastDir_in, const QString& subdir )
 {
+  // ignore lastDir_in if there is a selected layer
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  QString lastDir = lastDir_in;
+  QString layerType = mainwnd->GetCurrentLayerType();
+  if (!layerType.isEmpty())
+  {
+      Layer* layer = mainwnd->GetActiveLayer(layerType);
+      if (layer)
+          lastDir = QFileInfo(layer->GetFileName()).absolutePath();
+  }
   QDir dir( lastDir );
   QStringList stockdirs;
   stockdirs << "mri" << "label" << "scripts" << "surf" << "stats";
@@ -7141,6 +7166,13 @@ void MainWindow::OnSurfaceVertexClicked(LayerSurface *surf)
             printf("RAS: %.4f %.4f %.4f\n", ras[0], ras[1], ras[2]);
             printf("SurfaceRAS: %.4f %.4f %.4f\n", tkras[0], tkras[1], tkras[2]);
         }
+    }
+    if (surf->GetFileName().contains("inflated"))
+    {
+        double pos[3];
+        surf->GetSlicePosition(pos);
+        for (int i = 0; i < 3; i++)
+            m_views[i]->CenterAtWorldPosition(pos);
     }
 }
 

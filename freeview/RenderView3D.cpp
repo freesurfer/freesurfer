@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/24 16:52:51 $
- *    $Revision: 1.86 $
+ *    $Date: 2016/04/18 17:25:05 $
+ *    $Revision: 1.87 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,6 +63,7 @@
 #include <vtkTextProperty.h>
 #include <QFileInfo>
 #include "MyUtils.h"
+#include "FSSurface.h"
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
@@ -555,21 +556,33 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
             surf->SetCurrentVertex(nVertex);
             if (QFileInfo(surf->GetFileName()).fileName().contains("inflated"))
             {
-                QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
-                foreach (Layer* s, layers)
+                FSSurface* fsurf = surf->GetSourceSurface();
+                if (fsurf->IsSurfaceLoaded( FSSurface::SurfaceWhite ))
                 {
-                    LayerSurface* f = (LayerSurface*)s;
-                    if (f != surf && QFileInfo(f->GetFileName()).fileName().contains("white"))
+                    fsurf->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, pos);
+                    surf->GetTargetAtSurfaceRAS(pos, pos);
+                    double v[3];
+                    surf->GetSmoothedVertexNormal(nVertex, v);
+                    this->AlignViewToNormal(v);
+                }
+                else
+                {
+                    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
+                    foreach (Layer* s, layers)
                     {
-                        if (f->GetHemisphere() == surf->GetHemisphere() &&
-                            QFileInfo(f->GetFileName()).absolutePath() == QFileInfo(surf->GetFileName()).absolutePath())
+                        LayerSurface* f = (LayerSurface*)s;
+                        if (f != surf && QFileInfo(f->GetFileName()).fileName().contains("white"))
                         {
-                            f->SetCurrentVertex(nVertex);
-                            f->GetTargetAtVertex(nVertex, pos);
-                            double v[3];
-                            surf->GetSmoothedVertexNormal(nVertex, v);
-                            this->AlignViewToNormal(v);
-                            break;
+                            if (f->GetHemisphere() == surf->GetHemisphere() &&
+                                QFileInfo(f->GetFileName()).absolutePath() == QFileInfo(surf->GetFileName()).absolutePath())
+                            {
+                                f->SetCurrentVertex(nVertex);
+                                f->GetTargetAtVertex(nVertex, pos);
+                                double v[3];
+                                surf->GetSmoothedVertexNormal(nVertex, v);
+                                this->AlignViewToNormal(v);
+                                break;
+                            }
                         }
                     }
                 }

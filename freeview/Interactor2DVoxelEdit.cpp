@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.22 $
+ *    $Author: rpwang $
+ *    $Date: 2016/04/18 16:37:39 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,30 @@
  */
 
 #include "Interactor2DVoxelEdit.h"
+#include <QDebug>
+#include <QMouseEvent>
+#include <QKeyEvent>
 
 Interactor2DVoxelEdit::Interactor2DVoxelEdit( QObject* parent ) :
   Interactor2DVolumeEdit( "MRI", parent )
 {}
+
+bool Interactor2DVoxelEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderView* view )
+{
+    return Interactor2DVolumeEdit::ProcessMouseDownEvent(event, view);
+}
+
+bool Interactor2DVoxelEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView* view )
+{
+    return Interactor2DVolumeEdit::ProcessMouseUpEvent(event, view);
+}
+
+bool Interactor2DVoxelEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview )
+{
+  return Interactor2DVolumeEdit::ProcessKeyDownEvent(event, renderview);
+}
+
+bool Interactor2DVoxelEdit::ProcessKeyUpEvent( QKeyEvent* event, RenderView* renderview )
+{
+    return Interactor2DVolumeEdit::ProcessKeyUpEvent(event, renderview);
+}

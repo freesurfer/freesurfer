@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/17 16:25:26 $
- *    $Revision: 1.78 $
+ *    $Date: 2016/04/18 19:14:28 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -313,6 +313,8 @@ bool FSSurface::InitializeData(const QString &vector_filename,
       LoadSurface ( "orig",     SurfaceOriginal );
     if (sup_files.contains("inflated"))
       LoadSurface ( "inflated", SurfaceInflated );
+    if (sup_files.contains("orig.nofix"))
+      LoadSurface ( "orig.nofix",    SurfaceWhite );
   }
 
   RestoreVertices( m_MRIS, SurfaceMain );
@@ -1895,4 +1897,11 @@ void FSSurface::UndoReposition()
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );
   UpdateVerticesAndNormals();
+}
+
+void FSSurface::GetVertexAtSurfaceType(int nVertex, int surface_type, double *v_out)
+{
+    v_out[0] = m_fVertexSets[surface_type][nVertex].x;
+    v_out[1] = m_fVertexSets[surface_type][nVertex].y;
+    v_out[2] = m_fVertexSets[surface_type][nVertex].z;
 }
