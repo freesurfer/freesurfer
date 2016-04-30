@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/24 20:07:26 $
- *    $Revision: 1.40 $
+ *    $Date: 2016/04/30 15:10:51 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2261,18 +2261,21 @@ int GTMautoMask(GTM *gtm)
 int GTMrvarGM(GTM *gtm)
 {
   COLOR_TABLE *ct;
-  int f,s,c,r,n,nhits,segid,tt;
-  double sum;
+  int f,s,c,r,n,nhits,nhitsb,segid,tt;
+  double sum,sumb;
   FILE *fp;
   char tmpstr[2000];
 
   if(gtm->rvargm==NULL) gtm->rvargm = MatrixAlloc(1,gtm->res->cols,MATRIX_REAL);
+  if(gtm->rvarbrain==NULL) gtm->rvarbrain = MatrixAlloc(1,gtm->res->cols,MATRIX_REAL);
   ct = gtm->ctGTMSeg;
 
   for(f=0; f < gtm->res->cols; f++){
     sum = 0;
+    sumb = 0;
     n = -1;
     nhits = 0;
+    nhitsb = 0;
     // slice, col, row order is important here as is skipping the mask
     for(s=0; s < gtm->yvol->depth; s++){
       for(c=0; c < gtm->yvol->width; c++){
@@ -2290,14 +2293,24 @@ int GTMrvarGM(GTM *gtm)
 	    continue;
 	  }
 	  tt = ct->entries[segid]->TissueType;
-	  if(tt != 1 && tt != 2) continue; // not GM (hardcoded)
-	  sum += ((double)gtm->res->rptr[n+1][f+1]*gtm->res->rptr[n+1][f+1]);
-	  nhits ++;
+	  if(tt == 1 || tt == 2) {
+	    // GM (hardcoded)
+	    sum += ((double)gtm->res->rptr[n+1][f+1]*gtm->res->rptr[n+1][f+1]);
+	    nhits ++;
+	  }
+	  if(tt == 1 || tt == 2 || tt == 3) {
+	    // GM  or WM (hardcoded)
+	    sumb += ((double)gtm->res->rptr[n+1][f+1]*gtm->res->rptr[n+1][f+1]);
+	    nhitsb ++;
+	  }
+
 	}
       }
     }
     gtm->rvargm->rptr[1][f+1] = sum/nhits;
-    if(f==0 && ! gtm->Optimizing) printf("rvargm %2d %6.4f\n",f,gtm->rvargm->rptr[1][f+1]);
+    gtm->rvarbrain->rptr[1][f+1] = sumb/nhitsb;
+    if(f==0 && ! gtm->Optimizing) printf("rvargm %2d %6.4f %6.4f\n",
+	 f,gtm->rvargm->rptr[1][f+1],gtm->rvarbrain->rptr[1][f+1]);
   }
 
   if(! gtm->Optimizing){
@@ -2305,12 +2318,20 @@ int GTMrvarGM(GTM *gtm)
     fp = fopen(tmpstr,"w");
     for(f=0; f < gtm->res->cols; f++) fprintf(fp,"%30.20f\n",gtm->rvargm->rptr[1][f+1]);
     fclose(fp);
+    sprintf(tmpstr,"%s/rvar.brain.dat",gtm->AuxDir);
+    fp = fopen(tmpstr,"w");
+    for(f=0; f < gtm->res->cols; f++) fprintf(fp,"%30.20f\n",gtm->rvarbrain->rptr[1][f+1]);
+    fclose(fp);
   }
 
   if(gtm->rescale){
     sprintf(tmpstr,"%s/rvar.gm.unscaled.dat",gtm->AuxDir);
     fp = fopen(tmpstr,"w");
     for(f=0; f < gtm->res->cols; f++) fprintf(fp,"%30.20f\n",gtm->rvargm->rptr[1][f+1]/(gtm->scale*gtm->scale));
+    fclose(fp);
+    sprintf(tmpstr,"%s/rvar.brain.unscaled.dat",gtm->AuxDir);
+    fp = fopen(tmpstr,"w");
+    for(f=0; f < gtm->res->cols; f++) fprintf(fp,"%30.20f\n",gtm->rvarbrain->rptr[1][f+1]/(gtm->scale*gtm->scale));
     fclose(fp);
   }
 
