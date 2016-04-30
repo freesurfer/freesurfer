@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/24 20:07:26 $
- *    $Revision: 1.30 $
+ *    $Date: 2016/04/30 15:10:57 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -123,7 +123,7 @@ typedef struct
   // GLM stuff for GTM
   MATRIX *X,*X0;
   MATRIX *y, *XtX, *iXtX, *Xty, *beta, *res, *yhat,*betavar;
-  MATRIX *rvar,*rvargm,*rvarUnscaled; // residual variance, all vox and only GM
+  MATRIX *rvar,*rvargm,*rvarbrain,*rvarUnscaled; // residual variance, all vox and only GM
   MATRIX *som; // spillover matrix
   int dof;
   double XtXcond;
