@@ -6,7 +6,7 @@
 ## data onto the users machine. 
 ## 
 ## At the time of writing this script, the tutorial data 
-## is between 3-4Gigs. And that represents only a subset
+## is about 5Gigs. And that represents only a subset
 ## of the entire tutorial data set required to run all 
 ## commands in the tutorial.
 ## 
@@ -15,56 +15,47 @@
 ## if undefined than it is installed to $FREESURFER_HOME/subjects/tutorial_data.
 #############################################################
 
-show_usage() { 
-echo " Usages:"
-echo  
-echo " Tutorial data will be downloaded into TUTORIAL_DATA directory,"
-echo "    or in FREESURFER_HOME/subjects by default:"
-echo
-echo " $> fs_tutorial_data" 
-echo
-echo 
-echo " 2) Tuturial data will by downloaded into directory specified at command line:"
-echo
-echo " $> fs_tutorial_data <absolute_path>"
-echo
-echo 
-echo " 3) Show help:"
-echo 
-echo " $> fs_update -h, -help, --help"
-echo 
-} 
+HELP=" 
+ Usages:
+  
+ 1) Tutorial data will be downloaded into TUTORIAL_DATA.
+    If TUTORIAL_DATA is undefined, it will be downloaded
+    into $FREESURFER_HOME/subjects/tutorial_data
 
-if [[ $1 = "-h" ]] || [[ $1 = "-help" ]] || [[ $1 = "--help" ]]; then 
-  show_usage
-  exit 0
-fi  
+    $> fs_tutorial_data
 
-## FREESURFER_HOME must be defined.
-if [ -z "$FREESURFER_HOME" ]; then
-  echo " ERROR: Environment variable FREESURFER_HOME must be defined."
-  exit 1
-fi
+ 2) Tuturial data will by downloaded into TUTORIAL_DATA
+    with additional rsync flags:
+
+    $> fs_tutorial_data <rsync_options>
+
+ 3) Show help:
+ 
+    $> fs_update -h, -help, --help 
+"
+
+RSYNC_COMMAND="rsync -ztrlv --progress"
+
+while [[ $# > 0 ]]; do
+  key="$1"
+  case $key in
+    -h|-help|--h|--help)
+        echo "${HELP}"
+        exit 1
+        ;;
+    *) 
+        RSYNC_COMMAND="${RSYNC_COMMAND} ${key}"
+        ;;
+  esac
+  shift
+done
 
 ## Figure out where we want to install this data.
-if [[ $# -eq 0 ]]; then
-  if [[ -z "$TUTORIAL_DATA" ]]; then
-    TUTORIAL_DATA=$FREESURFER_HOME/subjects/tutorial_data
-  fi
-  if [[ ! -d "$TUTORIAL_DATA" ]]; then
-    mkdir -p "$TUTORIAL_DATA"
-  fi
-elif [[ $# -eq 1 ]]; then
-    if [[ -d $1 ]]; then 
-      TUTORIAL_DATA=$1
-    else
-      echo " ERROR: $1 does not exist."
-      exit 1
-    fi
-else
-  echo " fs_update only accepts 1 argument."
-  show_usage
-  exit 1
+if [[ -z "$TUTORIAL_DATA" ]]; then
+  TUTORIAL_DATA=$FREESURFER_HOME/subjects/tutorial_data
+fi
+if [[ ! -d "$TUTORIAL_DATA" ]]; then
+  mkdir -p "$TUTORIAL_DATA"
 fi
 
 ## Begin download
@@ -75,7 +66,7 @@ echo
 read -p " Shall I proceed? [y/n/Abort]: "
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-    rsync -ztrlv --progress rsync://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/ $TUTORIAL_DATA
+    ${RSYNC_COMMAND} rsync://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/ $TUTORIAL_DATA
     exit 0
 else
     exit 1
