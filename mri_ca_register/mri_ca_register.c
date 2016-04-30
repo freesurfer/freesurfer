@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:42:15 $
- *    $Revision: 1.95 $
+ *    $Author: fischl $
+ *    $Date: 2016/04/30 02:37:04 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -243,7 +243,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.95 2016/01/20 23:42:15 greve Exp $",
+           "$Id: mri_ca_register.c,v 1.96 2016/04/30 02:37:04 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1419,6 +1419,8 @@ main(int argc, char *argv[])
     parms.noneg = 0 ;
     printf("registering ventricular system...\n") ;
     GCAMregisterVentricles(gcam, mri_inputs, &parms) ;
+    GCAMregisterVentricles(gcam, mri_inputs, &parms) ;
+    GCAMregisterVentricles(gcam, mri_inputs, &parms) ;
     start_t = parms.start_t ;
     memmove(&parms, (const void *)&old_parms, sizeof(old_parms)) ;
     parms.start_t = start_t ;
@@ -1522,7 +1524,7 @@ main(int argc, char *argv[])
     }
     if (parms.noneg < 2)
     {
-#if 0
+#if 1
       parms.tol /= 5 ;  // reset parameters to previous level
       parms.l_smoothness /= 5 ;
       GCAMregister(gcam, mri_inputs, &parms) ;
