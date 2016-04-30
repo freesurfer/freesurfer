@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # groupstats
 
-set VERSION = '$Id: groupstats,v 1.7 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = '$Id: groupstats,v 1.8 2016/04/30 15:14:39 greve Exp $';
 
 set fsgd = ();
 set slist = ();
@@ -13,7 +13,8 @@ set LF = ();
 set outdir = ()
 set fwhmlist = ();
 set surflist = (white)
-set aparclist = (aparc BA aparc.a2009s aparc.DKTatlas40)
+#set aparclist = (aparc BA aparc.a2009s aparc.DKTatlas40)
+set aparclist = (aparc BA aparc.a2009s)
 set ASegLUT = $FREESURFER_HOME/ASegStatsLUT.txt
 set WMParcLUT = $FREESURFER_HOME/WMParcStatsLUT.txt
 set OverWrite = 0;
