@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/12/10 22:51:30 $
-#    $Revision: 1.67 $
+#    $Author: greve $
+#    $Date: 2016/05/10 03:24:18 $
+#    $Revision: 1.68 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.67 2015/12/10 22:51:30 zkaufman Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.68 2016/05/10 03:24:18 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -46,6 +46,7 @@ set DoGLMFit = 1;
 set DoContrasts = 1;
 set ConList = ();
 set DoFWHM = 0;
+set SaveYHat = 0;
 set SaveRes = 0;
 set MatlabSaveRes = 0;
 set SaveResUnwhitened = 0;
@@ -320,6 +321,7 @@ foreach sess ($SessList)
   echo "flacname  $flacfile" >> $config
   echo "outtop  $OutParent" >> $config
   echo "DoFWHM  $DoFWHM" >> $config
+  echo "MatlabSaveYHat  $SaveYHat" >> $config
   echo "MatlabSaveRes  $MatlabSaveRes" >> $config
   echo "SaveResUnwhitened  $SaveResUnwhitened" >> $config
   echo "ConList  $ConList" >> $config
@@ -500,6 +502,10 @@ while( $#argv != 0 )
 
     case "-jkrun":
       set jkrun = 1;
+      breaksw
+
+    case "-svyhat":
+      set SaveYHat = 1;
       breaksw
 
     case "-svres":

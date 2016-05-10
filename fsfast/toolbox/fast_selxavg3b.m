@@ -10,7 +10,7 @@ function err = fast_selxavg3b(configfile)
 %   mcc  -m -v -R -singleCompThread fast_selxavg3b.m
 %   cp fast_selxavg3b $DEV/fsfast/bin/fast_selxavg3b.glnxa64
 %
-% $Id: fast_selxavg3b.m,v 1.3 2016/02/17 00:04:28 greve Exp $
+% $Id: fast_selxavg3b.m,v 1.4 2016/05/04 22:16:47 greve Exp $
 
 
 %
@@ -19,8 +19,8 @@ function err = fast_selxavg3b(configfile)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2016/02/17 00:04:28 $
-%    $Revision: 1.3 $
+%    $Date: 2016/05/04 22:16:47 $
+%    $Revision: 1.4 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -75,6 +75,7 @@ while(1)
    case 'outtop', outtop = sscanf(tline,'%*s %s',1);
    case 'DoFWHM', DoFWHM = sscanf(tline,'%*s %d',1);
    case 'MatlabSaveRes', MatlabSaveRes = sscanf(tline,'%*s %d',1);
+   case 'MatlabSaveYHat', MatlabSaveYHat = sscanf(tline,'%*s %d',1);
    case 'SaveResUnwhitened', SaveResUnwhitened = sscanf(tline,'%*s %d',1);
    case 'ConList', ConList = tlinesplit(2:end,:);
   end % switch
@@ -87,7 +88,7 @@ fprintf('\n');
 fprintf('#@# %s ###############################\n',sessname);
 fprintf('%s\n',sess);
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3b.m,v 1.3 2016/02/17 00:04:28 greve Exp $\n');
+fprintf('$Id: fast_selxavg3b.m,v 1.4 2016/05/04 22:16:47 greve Exp $\n');
 fprintf('-------------------------\n');
 
 if(isempty(outtop)) outtop = fast_dirname(sess); end
@@ -111,7 +112,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3b.m,v 1.3 2016/02/17 00:04:28 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3b.m,v 1.4 2016/05/04 22:16:47 greve Exp $';
 
 % remove non-mask when analyzing. This does not change the results
 % at all, it just prevents the processing of voxels that are
@@ -603,6 +604,16 @@ if(DoGLMFit)
     Xrun = X(indrun,:);
     yhatrun = Xrun*betamat0;
     rrun = yrun - yhatrun;
+    if(MatlabSaveYHat)
+      outyhatdir = sprintf('%s/yhat',outanadir);
+      errmkd = mkdirp(outyhatdir);	
+      fname = sprintf('%s/yhat-%03d.%s',outyhatdir,nthrun,ext);
+      fprintf('Saving yhat to %s\n',fname);
+      rrunmri = mri;
+      rrunmri.vol = fast_mat2vol(yhatrun,mri.volsize);
+      MRIwrite(rrunmri,fname);
+    end
+    
     clear yhatrun;
 
     tmp =  sum(rrun.^2);
@@ -689,14 +700,8 @@ if(DoGLMFit)
       if(MatlabSaveRes | DoFWHM)
 	fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
 	rrunmri = mri;
-	if(flac0.ReduceToMask) 
-	  tmp = zeros(size(rrun,1),nvox);
-	  tmp(indmask) = rho1run;
-	  rrunmri.vol = fast_mat2vol(tmp,mri.volsize);
-	  clear tmp;
-	else
-	  rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
-	end
+	%rrunmri.vol = fast_mat2vol(yhatrun,mri.volsize);
+	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
 	MRIwrite(rrunmri,fname);
       end
     end
@@ -957,7 +962,7 @@ if(DoGLMFit)
 	end
 	MRIwrite(rrunmri,fname);
       end
-      
+     
       clear yrun yhatrun rrun rrunmri;
     end % run list
     rvarmat = rsse/DOF;
@@ -970,6 +975,7 @@ if(DoGLMFit)
     clear rvarmat0 betamat0;
   end % acfbins > 0
 
+ 
   % Mask or unmask betas and rvars
   if(flac0.ReduceToMask)
     % Unmask
@@ -1394,8 +1400,18 @@ if(DoContrasts)
 end % DoContrasts
 
 %------------------------------------------------------%
-if(~isempty(analysis) & DoGLMFit & strcmp(flac.designtype,'event-related'))
+% Check to make sure that each task ev as the same number
+% of regressors before saving the h.dat file
+evtaskind = flac_evtaskind(flac0);
+% number of regressors in each ev
+nregperev = zeros(length(evtaskind),1);
+for n = 1:length(evtaskind)
+  nregperev(n) = flac0.ev(evtaskind(n)).nreg;
+end
+nregperevunique = length(unique(nregperev));
 
+if(~isempty(analysis) & DoGLMFit & nregperevunique==1 & ...
+   strcmp(flac.designtype,'event-related'))
   % Construct selxavg-style h.dat strucutre for backwards compat
   SumXtX = Ctask*X'*X*Ctask';
   NTaskAvgs = nTask;

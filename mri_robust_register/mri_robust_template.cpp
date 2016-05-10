@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:36:17 $
- *    $Revision: 1.53 $
+ *    $Author: mreuter $
+ *    $Date: 2016/05/05 21:17:08 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -129,6 +129,8 @@ struct Parameters
   int highit;
   unsigned int seed;
   bool crascenter;
+  int pairiterate;
+  double pairepsit;
 };
 
 // Initializations:
@@ -136,13 +138,13 @@ static struct Parameters P =
 { vector<string>(0), vector<string>(0), "", vector<string>(0), vector<string>(0), vector<string>(
     0), false, false, false, false, false, false, false, false, false, 5, -1.0, SAT, vector<
     string>(0), 0, 1, -1, false, false, SSAMPLE, false, false, "", false, true,
-    vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false};
+    vector<string>(0), vector<string>(0), SAMPLE_CUBIC_BSPLINE, -1, 0 , false, 5, 0.01};
 
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: mri_robust_template.cpp,v 1.53 2016/01/20 23:36:17 greve Exp $";
+    "$Id: mri_robust_template.cpp,v 1.54 2016/05/05 21:17:08 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -331,8 +333,8 @@ int main(int argc, char *argv[])
       }
 
       // P.iterate and P.epsit are used for terminating the template iterations
-      // while 5 and 0.01 are default for the individual registrations
-      MR.computeTemplate(P.iterate, P.epsit, 5, 0.01);
+      // while 5 and 0.01 are default for the individual pairwise registrations
+      MR.computeTemplate(P.iterate, P.epsit, P.pairiterate, P.pairepsit);
       // if final interp not set in multireg, re-average with new type
       if (P.finalinterp != MR.getSampleType())
       {
@@ -587,7 +589,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.iterate = atoi(argv[1]);
     nargs = 1;
     cout << "--maxit: Performing maximal " << P.iterate
-        << " iterations on each resolution" << endl;
+        << " iterations on each resolution." << endl;
   }
   else if (!strcmp(option, "HIGHIT"))
   {
@@ -601,6 +603,20 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.epsit = atof(argv[1]);
     nargs = 1;
     cout << "--epsit: Stop iterations when change is less than " << P.epsit
+        << " . " << endl;
+  }
+  else if (!strcmp(option, "PAIRMAXIT"))
+  {
+    P.pairiterate = atoi(argv[1]);
+    nargs = 1;
+    cout << "--pairmaxit: Performing maximal " << P.pairiterate
+        << " iterations on each resolution for individual pairwise registrations." << endl;
+  }
+  else if (!strcmp(option, "PAIREPSIT"))
+  {
+    P.pairepsit = atof(argv[1]);
+    nargs = 1;
+    cout << "--pairepsit: Stop individual pairwise iterations when change is less than " << P.pairepsit
         << " . " << endl;
   }
   else if (!strcmp(option, "SAT"))

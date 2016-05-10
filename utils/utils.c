@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/01/20 23:38:54 $
- *    $Revision: 1.96 $
+ *    $Date: 2016/05/10 15:18:25 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1680,6 +1680,7 @@ int *GetMemUsage(int *u)
 
   if(u==NULL) u = (int*)calloc(sizeof(int),5);
   fp = fopen("/proc/self/status","r");
+  if(fp == NULL) return(u); // not there on MAC
 
   while (1) {
     r = fscanf(fp,"%s",tag);

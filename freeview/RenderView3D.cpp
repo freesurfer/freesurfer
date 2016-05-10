@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/18 17:25:05 $
- *    $Revision: 1.87 $
+ *    $Date: 2016/05/10 19:17:30 $
+ *    $Revision: 1.88 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -355,7 +355,7 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
   mainwnd->GetLayerCollection( "ROI" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "Surface" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "PointSet" )->Append3DProps( m_renderer, b );
-  mainwnd->GetLayerCollection( "Track" )->Append3DProps( m_renderer, b );
+  mainwnd->GetLayerCollection( "Tract" )->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "CMAT")->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "FCD")->Append3DProps( m_renderer, b );
   mainwnd->GetLayerCollection( "Supplement" )->Append3DProps( m_renderer, b );

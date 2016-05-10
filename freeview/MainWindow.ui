@@ -1244,7 +1244,7 @@
      <normaloff>:/resource/icons/track_load.png</normaloff>:/resource/icons/track_load.png</iconset>
    </property>
    <property name="text">
-    <string>Load Track...</string>
+    <string>Load Tract...</string>
    </property>
   </action>
   <action name="actionCloseTrack">
@@ -1253,7 +1253,7 @@
      <normaloff>:/resource/icons/track_delete.png</normaloff>:/resource/icons/track_delete.png</iconset>
    </property>
    <property name="text">
-    <string>Close Track</string>
+    <string>Close Tract</string>
    </property>
    <property name="toolTip">
     <string>Close Track</string>
@@ -1272,7 +1272,7 @@
   </action>
   <action name="actionLoadTrackVolume">
    <property name="text">
-    <string>Load Track Volume...</string>
+    <string>Load Tract Volume...</string>
    </property>
   </action>
   <action name="actionIncreaseOpacity">

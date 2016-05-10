@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/02/25 19:06:37 $
- *    $Revision: 1.112 $
+ *    $Date: 2016/05/10 03:23:20 $
+ *    $Revision: 1.113 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.112 2014/02/25 19:06:37 greve Exp $";
+"$Id: mri_segreg.c,v 1.113 2016/05/10 03:23:20 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -366,13 +366,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.112 2014/02/25 19:06:37 greve Exp $",
+     "$Id: mri_segreg.c,v 1.113 2016/05/10 03:23:20 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.112 2014/02/25 19:06:37 greve Exp $",
+     "$Id: mri_segreg.c,v 1.113 2016/05/10 03:23:20 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -706,7 +706,7 @@ int main(int argc, char **argv) {
                   fflush(stdout); fflush(fp);
                   
                 } else {
-                  if(nth == 0 || nth%1000 == 0){
+                  if(nth == 0 || nth%1000 == 0 || debug){
                     secCostTime = TimerStop(&mytimer)/1000.0 ;
                     printf("%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
                            nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);

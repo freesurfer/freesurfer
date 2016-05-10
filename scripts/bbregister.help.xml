@@ -34,9 +34,8 @@
       <explanation>FreeSurfer subject name as found in $SUBJECTS_DIR.</explanation>
       <argument>--mov volid</argument>
       <explanation>"Moveable" volume. This is the template for the cross-modal volume. Eg, for fMRI, it is the volume used for motion correction.</explanation>
-      <argument>--reg register.dat</argument>
-      <explanation>Output FreeSurfer (tkregister-style) registration file (simple text).</explanation>
-
+      <argument>--reg register.{dat,lta}</argument>
+      <explanation>Output FreeSurfer registration file (tkregister-style or LTA format).</explanation>
       <intro>Initialization Arguments</intro>
       <argument>--init-coreg (Default)</argument>
       <explanation>Initialize the FreeSurfer mri_coreg program.</explanation>

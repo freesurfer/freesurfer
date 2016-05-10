@@ -116,6 +116,10 @@ while( $#argv != 0 )
       setenv FREESURFER_HOME $argv[1]; shift;
       breaksw
 
+    case "-parallel":
+      setenv PARALLEL 1;
+      breaksw
+
     case "-norecon":
       setenv SKIP_RECON 1
       breaksw
@@ -273,6 +277,9 @@ if ($status) exit 1
 set cmd=(/tmp/recon-all)
 set cmd=($cmd -s $TEST_SUBJ $INVOL)
 set cmd=($cmd -all -debug -clean -norandomness -allowcoredump -time);
+if ($?PARALLEL) then
+  set cmd=($cmd -parallel)
+endif
 echo $cmd
 if ($RunIt) then
   cd $SUBJECTS_DIR

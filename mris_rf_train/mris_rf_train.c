@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/06/07 12:09:47 $
- *    $Revision: 1.1 $
+ *    $Date: 2016/05/09 15:30:45 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,9 @@
 #include "version.h"
 #include "rforest.h"
 #include "rfutils.h"
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 static char *class_names[] = 
 {
@@ -86,10 +89,10 @@ main(int argc, char *argv[]) {
   LABEL         *cortex_label, *training_label ;
   RANDOM_FOREST *rf ;
   double        **training_data ;
-  int           *training_classes, ntraining ;
+  int           *training_classes, ntraining, n_omp_threads;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_rf_train.c,v 1.1 2012/06/07 12:09:47 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_rf_train.c,v 1.2 2016/05/09 15:30:45 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -119,6 +122,20 @@ main(int argc, char *argv[]) {
     strcpy(sdir, cp) ;
   }
 
+  if (noverlays == 0)
+    ErrorExit(ERROR_NOFILE, "%s: must specify at least one training overlay with -overlay <overlay>",Progname);
+
+#ifdef HAVE_OPENMP
+  #pragma omp parallel
+  {
+    n_omp_threads = omp_get_num_threads();
+  }
+  printf("\n== Number of threads available to %s for OpenMP = %d == \n",
+         Progname, n_omp_threads);
+#else
+  n_omp_threads = 1;
+#endif
+
   nsubjects = argc-(ARGC_OFFSET+1) ;
   printf("training random forest classifier using %d subjects\n", nsubjects) ;
   for (n = ARGC_OFFSET ; n < argc-1 ; n++)
@@ -132,8 +149,8 @@ main(int argc, char *argv[]) {
     if (FileExists(fname) == 0)
     {
       sprintf(fname, "%s/%s/label/rh.%s.label", sdir, subject, label_name) ;
-    if (FileExists(fname) == 0)
-      ErrorExit(ERROR_NOFILE, "%s: subject %s has no training label for either hemisphere", Progname, subject) ;
+      if (FileExists(fname) == 0)
+	ErrorExit(ERROR_NOFILE, "%s: subject %s has no training label (%s) for either hemisphere", Progname, subject,fname) ;
       hemi = "rh" ;
     }
     else
@@ -156,6 +173,13 @@ main(int argc, char *argv[]) {
     if (cortex_label == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read cortex label %s\n", Progname, fname) ;
     LabelRipRestOfSurface(cortex_label, mris[sno]) ;
+    MRISreadCurvatureFile(mris[sno], "sulc") ;
+    {
+      int vno ;
+      for (vno = 0 ; vno < mris[sno]->nvertices ; vno++)
+	if (mris[sno]->vertices[vno].curv < 0)
+	  mris[sno]->vertices[vno].ripflag = 1 ;
+    }
 
     MRISclearMarks(mris[sno]) ;
     LabelFillUnassignedVertices(mris[sno], training_label, CURRENT_VERTICES);
@@ -231,28 +255,35 @@ get_option(int argc, char *argv[]) {
     printf("setting overlay[%d] = %s\n", noverlays,overlay_names[noverlays]) ;
     noverlays++ ;
     nargs = 1 ;
-  } else switch (toupper(*option)) {
-  case '?':
-  case 'U':
-    usage_exit(0) ;
+  } else 
+    switch (toupper(*option)) 
+    {
+    case '?':
+    case 'U':
+      usage_exit(0) ;
     break ;
-  case 'N':
-    nbhd_size = atof(argv[2]) ;
-    nargs = 1 ;
-    printf("using nbhd_size = %d\n", nbhd_size) ;
-    if (nbhd_size > 0)
-      ErrorExit(ERROR_UNSUPPORTED, "nsize>0 not supported yet", nbhd_size) ;
-    break ;
-  case 'T':
-    ntrees = atoi(argv[2]) ;
-    nargs = 1 ;
-    printf("training %d trees\n", ntrees) ;
-    break ;
-  default:
-    fprintf(stderr, "unknown option %s\n", argv[1]) ;
-    exit(1) ;
-    break ;
-  }
+    case 'L':
+      label_name = argv[2] ;
+      nargs = 1 ;
+      printf("using label %s to define FCD\n", label_name) ;
+      break ;
+    case 'N':
+      nbhd_size = atof(argv[2]) ;
+      nargs = 1 ;
+      printf("using nbhd_size = %d\n", nbhd_size) ;
+      if (nbhd_size > 0)
+	ErrorExit(ERROR_UNSUPPORTED, "nsize>0 not supported yet", nbhd_size) ;
+      break ;
+    case 'T':
+      ntrees = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("training %d trees\n", ntrees) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
 
   return(nargs) ;
 }

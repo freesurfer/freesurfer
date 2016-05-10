@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/06/07 02:20:33 $
- *    $Revision: 1.6 $
+ *    $Date: 2016/05/10 19:17:30 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,7 +31,7 @@
 #include "LayerPropertyTrack.h"
 
 PanelTrack::PanelTrack(QWidget *parent) :
-  PanelLayer("Track", parent),
+  PanelLayer("Tract", parent),
   ui(new Ui::PanelTrack)
 {
   ui->setupUi(this);

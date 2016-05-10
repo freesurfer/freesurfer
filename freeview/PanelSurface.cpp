@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/08 19:37:48 $
- *    $Revision: 1.67 $
+ *    $Date: 2016/05/10 19:17:30 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -229,8 +229,8 @@ void PanelSurface::DoUpdateWidgets()
     ui->checkBoxHideIn3DView->setChecked(!layer->GetVisibleIn3D());
 
     surf = layer->GetSourceSurface();
-    ui->toolbar2->setVisible(surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) || surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) ||
-                             surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) || surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
+//    ui->toolbar2->setVisible(surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) || surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) ||
+//                             surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) || surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
     ui->sliderOpacity->setValue( (int)( layer->GetProperty()->GetOpacity() * 100 ) );
     ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, layer->GetProperty()->GetOpacity() );
 

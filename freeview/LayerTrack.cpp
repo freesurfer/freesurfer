@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/05 20:03:33 $
- *    $Revision: 1.6 $
+ *    $Date: 2016/05/10 19:17:30 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@ LayerTrack::LayerTrack(LayerMRI* ref, QObject* parent) : Layer(parent),
   m_trackData(0),
   m_layerMRIRef(ref)
 {
-  this->m_strTypeNames << "Track";
+  this->m_strTypeNames << "Tract";
 
   mProperty = new LayerPropertyTrack( this );
   connect(mProperty, SIGNAL(ColorCodeChanged(int)), this, SLOT(UpdateColor()));

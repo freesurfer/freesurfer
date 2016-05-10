@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/03/08 13:57:56 $
- *    $Revision: 1.111 $
+ *    $Date: 2016/05/06 12:37:03 $
+ *    $Revision: 1.112 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -56,6 +56,7 @@
 #include "version.h"
 #include "fsinit.h"
 
+static char *write_likelihood = NULL ;
 static double PRIOR_FACTOR = 1.0 ;
 
 static char *read_renorm_fname = NULL ;
@@ -111,6 +112,7 @@ static MRI *GCArelabelUnlikely(GCA *gca,
                                TRANSFORM *transform,
                                MRI *mri_src_labeled,
                                MRI *mri_dst_labeled,
+			       MRI *mri_independent_posterior,
                                double prior_thresh,
                                int whalf)  ;
 static MRI *fix_putamen(GCA *gca,
@@ -239,7 +241,7 @@ int main(int argc, char *argv[])
   char         **av ;
   int          ac, nargs, extra ;
   char         *in_fname, *out_fname,  *gca_fname, *xform_fname;
-  MRI          *mri_inputs, *mri_labeled, *mri_fixed = NULL, *mri_tmp ;
+  MRI          *mri_inputs, *mri_labeled, *mri_fixed = NULL, *mri_tmp, *mri_independent_posterior = NULL ;
   int          msec, minutes, seconds, ninputs, input ;
   struct timeb start ;
   GCA          *gca ;
@@ -250,13 +252,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.111 2016/03/08 13:57:56 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.112 2016/05/06 12:37:03 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.111 2016/03/08 13:57:56 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.112 2016/05/06 12:37:03 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -831,6 +833,7 @@ int main(int argc, char *argv[])
       printf("labeling volume...\n") ;
       // create labeled volume by MAP rule
       mri_labeled = GCAlabel(mri_inputs, gca, NULL, transform) ;
+      mri_independent_posterior = MRIcopy(mri_labeled, NULL) ;
       // -wm fname option
       if (wm_fname)
       {
@@ -984,7 +987,7 @@ int main(int argc, char *argv[])
         if (reclassify_unlikely)
         {
           GCArelabelUnlikely(gca, mri_inputs, transform, 
-                             mri_labeled, mri_labeled, 
+                             mri_labeled, mri_labeled, mri_independent_posterior,
                              unlikely_prior_thresh, (unlikely_wsize-1)/2) ;
         }
         {
@@ -1200,6 +1203,15 @@ int main(int argc, char *argv[])
         GCAreclassifyUsingGibbsPriors
         (mri_inputs, gca, mri_labeled, transform, max_iter,
          mri_fixed, 0, NULL, PRIOR_FACTOR, PRIOR_FACTOR);
+        if (reclassify_unlikely)
+        {
+	  int w ;
+
+	  for (w = (unlikely_wsize-1)/2 ; w >= 1 ; w--)
+	    GCArelabelUnlikely(gca, mri_inputs, transform, 
+			       mri_labeled, mri_labeled, mri_independent_posterior,
+			       unlikely_prior_thresh, w) ;
+        }
       }
     }
   }
@@ -1373,6 +1385,29 @@ int main(int argc, char *argv[])
     MRIwrite(mri_probs, fname) ;
     MRIfree(&mri_probs) ;
   }
+  if (write_likelihood != NULL)
+  {
+    MRI *mri_probs ;
+    char fname[STRLEN] ;
+
+    mri_probs = GCAcomputeLikelihoodImage(gca, mri_inputs, mri_labeled, transform);
+    sprintf(fname, "%s", write_likelihood) ;
+    if (mask_volume_fname)
+    {
+      MRI *mri_mask ;
+      printf("reading volume %s for masking...\n", mask_volume_fname) ;
+      mri_mask = MRIread(mask_volume_fname) ;
+      if (!mri_mask)
+	ErrorExit(ERROR_NOFILE, "%s: could not read mask volume from %s",
+		  Progname, mask_volume_fname) ;
+      // if mask has some value > 1, then keep the original
+      // if      has some value < 1, then the value is set to 0
+      MRIthresholdMask(mri_probs, mri_mask, mri_probs, 1, 0) ; 
+    }
+    printf("writing likelihood image to to %s\n", fname) ;
+    MRIwrite(mri_probs, fname) ;
+    MRIfree(&mri_probs) ;
+  }
   MRIfree(&mri_inputs) ;
 
   // Print usage stats to the terminal (and a file is specified)
@@ -1539,6 +1574,13 @@ get_option(int argc, char *argv[])
     G_write_probs = argv[2] ;
     nargs = 1 ;
     printf("writing label probabilities to %s...\n", G_write_probs) ;
+  }
+  else if (!stricmp(option, "write_likelihood"))
+  {
+    write_likelihood = argv[2] ;
+    nargs = 1 ;
+    printf("writing image likelihoods unders labeling to %s...\n", 
+	   write_likelihood) ;
   }
   else if (!stricmp(option, "wmsa_probs"))
   {
@@ -4861,18 +4903,20 @@ GCArelabelUnlikely(GCA *gca,
                    TRANSFORM *transform, 
                    MRI *mri_src_labeled, 
                    MRI *mri_dst_labeled,
+                   MRI *mri_independent_posterior,
                    double prior_thresh,
                    int whalf)
 {
   int         x, y, z, nchanged, total_changed, i, nindices, 
-    label, index, nchanged_tmp  ;
+              label, index, w  ;
   short       *x_indices, *y_indices, *z_indices ;
-  VOXEL_LIST *vl ;
-  MRI        *mri_prior_labels, *mri_priors ;
-  double      prior, posterior_before, posterior_after  ;
+  MRI        *mri_prior_labels, *mri_priors, *mri_unchanged, *mri_tmp ;
+  double      prior  ;
 
   mri_prior_labels = MRIclone(mri_dst_labeled, NULL) ;
   mri_priors = MRIcloneDifferentType(mri_dst_labeled, MRI_FLOAT) ;
+  mri_unchanged = MRIcloneDifferentType(mri_dst_labeled, MRI_UCHAR) ;
+  mri_tmp = MRIclone(mri_unchanged, NULL) ;
 
   if (mri_dst_labeled == NULL)
   {
@@ -4899,18 +4943,30 @@ GCArelabelUnlikely(GCA *gca,
   z_indices = (short *)calloc(nindices, sizeof(short)) ;
   for (i = total_changed = 0 ; i < 5 ; i++)
   {
+    nchanged = 0 ;
     MRIcomputeVoxelPermutation(mri_inputs, x_indices, y_indices, z_indices) ;
-    for (nchanged = index = 0 ; index < nindices ; index++)
+#if 0 //def HAVE_OPENMP   doesn't work
+#pragma omp parallel for firstprivate(mri_independent_posterior, mri_inputs, gca, mri_prior_labels, whalf, prior_thresh, Ggca_x, Ggca_y, Ggca_z) shared(mri_unchanged, mri_priors,transform, x_indices,y_indices,z_indices, mri_dst_labeled) reduction(+:nchanged)
+#endif
+    for (index = 0 ; index < nindices ; index++)
     {
-      x = x_indices[index] ;
-      y = y_indices[index] ;
-      z = z_indices[index] ;
+      double      posterior_before, posterior_after  ;
+      int         label, x, y, z, nchanged_tmp ;
+      VOXEL_LIST  *vl ;
+
+      x = x_indices[index] ; y = y_indices[index] ; z = z_indices[index] ;
+      if ((int)MRIgetVoxVal(mri_unchanged, x, y, z, 0) == 1)
+	continue ;  // this nbhd not changed from last call
+
+      MRIsetVoxVal(mri_unchanged, x, y, z, 0, 1) ;
       label = MRIgetVoxVal(mri_dst_labeled, x, y, z, 0) ;
       if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-      {
         DiagBreak() ;
-      }
-      if (label == (int)MRIgetVoxVal(mri_prior_labels,x,y,z,0))
+
+      // don't process it if it the highest prior or the highest posterior
+      if ((label == (int)MRIgetVoxVal(mri_prior_labels,x,y,z,0) &&
+	   (mri_independent_posterior && 
+	    label == (int)MRIgetVoxVal(mri_independent_posterior,x,y,z,0))))
       {
         continue ;
       }
@@ -4936,9 +4992,8 @@ GCArelabelUnlikely(GCA *gca,
         (gca, transform, mri_dst_labeled, prior_thresh, 
          mri_prior_labels, mri_priors, x, y, z, whalf) ;
       if (vl == NULL)
-      {
         continue;
-      }
+
       if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
       {
         MRI *mri ;
@@ -4960,6 +5015,7 @@ GCArelabelUnlikely(GCA *gca,
       }
       else
       {
+	MRIsetVoxVal(mri_unchanged, x, y, z, 0, 0) ;
         nchanged += nchanged_tmp ;
         DiagBreak() ;
       }
@@ -4969,12 +5025,14 @@ GCArelabelUnlikely(GCA *gca,
     printf("%d voxels changed in iteration %d of "
            "unlikely voxel relabeling\n", nchanged, i) ;
     if (!nchanged)
-    {
       break ;
+    for (w = 0 ; w < whalf ; w++)
+    {
+      MRIerode(mri_unchanged, mri_tmp) ;
+      MRIcopy(mri_tmp, mri_unchanged) ;
     }
   }
 
-  MRIfree(&mri_prior_labels) ;
-  MRIfree(&mri_priors) ;
+  MRIfree(&mri_prior_labels) ; MRIfree(&mri_priors) ; MRIfree(&mri_unchanged) ; MRIfree(&mri_tmp) ;
   return(mri_dst_labeled) ;
 }

@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/03/24 17:39:56 $
- *    $Revision: 1.131 $
+ *    $Date: 2016/05/04 22:17:15 $
+ *    $Revision: 1.132 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.131 2016/03/24 17:39:56 greve Exp $";
+"$Id: tkregister2.c,v 1.132 2016/05/04 22:17:15 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1633,7 +1633,6 @@ static void print_usage(void) {
   printf("   --regheader-center : same as --regheader but aligns volume centers\n");
   printf("   --fsl-targ : use FSLDIR/data/standard/avg152T1.nii.gz\n");
   printf("   --fsl-targ-lr : use FSLDIR/data/standard/avg152T1_LR-marked.nii.gz\n");
-  printf("   --fstal : set mov to be tal and reg to be tal xfm  \n");
   printf("   --gca subject : check linear GCA registration  \n");
   printf("   --gca-skull subject : check linear 'with skull' GCA registration  \n");
   printf("   --no-zero-cras : do not zero target cras (done with --fstal)\n");
@@ -1650,6 +1649,8 @@ static void print_usage(void) {
   printf("   --surf-rgb R G B : set surface color (0-255) \n");
   printf("   --lh-only : only load/display left hemi \n");
   printf("   --rh-only : only load/display right hemi \n");
+  printf("   --fstal : set mov to be tal and reg to be taliarach.xfm  \n");
+  printf("   --talxfmname talxfmname : set mov to be tal and reg to be talxfmname  \n");
   printf("   --ixfm file : MNI-style inverse registration input matrix\n");
   printf("   --xfm file : MNI-style registration input matrix\n");
   printf("   --xfmout file : MNI-style registration output matrix\n");
@@ -4975,7 +4976,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.131 2016/03/24 17:39:56 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.132 2016/05/04 22:17:15 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

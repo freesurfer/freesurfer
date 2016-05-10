@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/01/21 20:53:56 $
- *    $Revision: 1.10 $
+ *    $Date: 2016/05/05 18:44:03 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,7 @@
 #include "version.h"
 #include "label.h"
 
-static char vcid[] = "$Id: mri_cnr.c,v 1.10 2015/01/21 20:53:56 fischl Exp $";
+static char vcid[] = "$Id: mri_cnr.c,v 1.11 2016/05/05 18:44:03 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -72,7 +72,7 @@ main(int argc, char *argv[]) {
   double      cnr_total, cnr = 0.0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.10 2015/01/21 20:53:56 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.11 2016/05/05 18:44:03 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -281,6 +281,7 @@ compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
   int     vno ;
   VERTEX  *v ;
 
+//  MRISsetVolumeForSurface(mris, mri);
   MRIScomputeMetricProperties(mris) ;
   gray_mean = gray_var = white_mean = white_var = csf_mean = csf_var = 0.0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
@@ -288,12 +289,14 @@ compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
     if (v->ripflag)
       continue ;
 
-    //MRIworldToVoxel(mri, v->x+v->nx, v->y+v->ny, v->z+v->nz, &x, &y, &z) ;
-    MRIsurfaceRASToVoxel(mri, v->x+v->nx, v->y+v->ny, v->z+v->nz, &x, &y, &z) ;
+    //MRIworldToVoxel(mri, v->x+v->nx, 
+    MRISsurfaceRASToVoxelCached(mris, mri, v->x+v->nx, v->y+v->ny, v->z+v->nz, &x, &y, &z) ;
+//    MRIsurfaceRASToVoxel(mri, v->x+v->nx, v->y+v->ny, v->z+v->nz, &x, &y, &z) ;
     MRIsampleVolume(mri, x, y, z, &csf) ;
     thickness = v->curv*.5 ;
     // MRIworldToVoxel(mri, v->x-thickness*v->nx, v->y-thickness*v->ny, v->z-thickness*v->nz, &x, &y, &z) ;
-    MRIsurfaceRASToVoxel(mri, v->x-thickness*v->nx, v->y-thickness*v->ny, v->z-thickness*v->nz, &x, &y, &z) ;
+//    MRIsurfaceRASToVoxel(mri, v->x-thickness*v->nx, v->y-thickness*v->ny, v->z-thickness*v->nz, &x, &y, &z) ;
+    MRISsurfaceRASToVoxelCached(mris, mri, v->x-thickness*v->nx, v->y-thickness*v->ny, v->z-thickness*v->nz, &x, &y, &z) ;
     MRIsampleVolume(mri, x, y, z, &gray) ;
 
     gray_var += (gray*gray) ;
@@ -309,11 +312,13 @@ compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
   for (white_var = gray_white_cnr = 0, vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     // MRIworldToVoxel(mri, v->x-v->nx, v->y-v->ny, v->z-v->nz, &x, &y, &z) ;
-    MRIsurfaceRASToVoxel(mri, v->x-v->nx, v->y-v->ny, v->z-v->nz, &x, &y, &z) ;
+//    MRIsurfaceRASToVoxel(mri, v->x-v->nx, v->y-v->ny, v->z-v->nz, &x, &y, &z) ;
+    MRISsurfaceRASToVoxelCached(mris, mri, v->x-v->nx, v->y-v->ny, v->z-v->nz, &x, &y, &z) ;
     MRIsampleVolume(mri, x, y, z, &white) ;
     thickness = v->curv*.5 ;
     // MRIworldToVoxel(mri, v->x+thickness*v->nx, v->y+thickness*v->ny, v->z+thickness*v->nz, &x, &y, &z) ;
-    MRIsurfaceRASToVoxel(mri, v->x+thickness*v->nx, v->y+thickness*v->ny, v->z+thickness*v->nz, &x, &y, &z) ;
+//    MRIsurfaceRASToVoxel(mri, v->x+thickness*v->nx, v->y+thickness*v->ny, v->z+thickness*v->nz, &x, &y, &z) ;
+    MRISsurfaceRASToVoxelCached(mris, mri, v->x+thickness*v->nx, v->y+thickness*v->ny, v->z+thickness*v->nz, &x, &y, &z) ;
     MRIsampleVolume(mri, x, y, z, &gray) ;
 
     gray_var += (gray*gray) ;

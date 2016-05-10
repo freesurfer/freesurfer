@@ -487,6 +487,7 @@ MFILES=\
 	maxmd.m \
 	mkanalysis_gui.m \
 	mkcontrast_gui.m \
+	mkcontrast2m.m \
 	mkdirp.m \
 	mkmosaic.m \
 	mkprestimcon.m \

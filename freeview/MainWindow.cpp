@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/18 19:34:13 $
- *    $Revision: 1.336 $
+ *    $Date: 2016/05/10 19:17:30 $
+ *    $Revision: 1.337 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -129,7 +129,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
   m_layerCollections["Surface"] = new LayerCollection( "Surface", this );
   m_layerCollections["PointSet"] = new LayerCollection( "PointSet", this );
-  m_layerCollections["Track"] = new LayerCollection( "Track", this );
+  m_layerCollections["Tract"] = new LayerCollection( "Tract", this );
   m_layerCollections["CMAT"] = new LayerCollection("CMAT", this);
   m_layerCollections["FCD"] = new LayerCollection("FCD", this);
 
@@ -1252,7 +1252,7 @@ void MainWindow::OnIdle()
   LayerSurface* layerSurface  = (LayerSurface*)GetActiveLayer( "Surface");
   LayerROI* layerROI  = (LayerROI*)GetActiveLayer( "ROI");
   LayerPointSet* layerPointSet  = (LayerPointSet*)GetActiveLayer( "PointSet");
-  LayerTrack* layerTrack  = (LayerTrack*)GetActiveLayer( "Track");
+  LayerTrack* layerTrack  = (LayerTrack*)GetActiveLayer( "Tract");
   bool bHasLabelLayer = false;
   QList<Layer*> volumes = GetLayers("MRI");
   foreach (Layer* layer, volumes)
@@ -4409,7 +4409,7 @@ LayerCollection* MainWindow::GetCurrentLayerCollection()
   }
   else if ( name == "Tracks" )
   {
-    lc = GetLayerCollection( "Track");
+    lc = GetLayerCollection( "Tract");
   }
   else if ( name == "All")
   {
@@ -4551,7 +4551,7 @@ void MainWindow::LoadVolumeFile( const QString& filename,
   bool bResample = bResample_in;
   if ( GetLayerCollection( "MRI")->IsEmpty())
   {
-    if (!GetLayerCollection( "Surface" )->IsEmpty() || !GetLayerCollection("Track")->IsEmpty())
+    if (!GetLayerCollection( "Surface" )->IsEmpty() || !GetLayerCollection("Tract")->IsEmpty())
     {
       bResample = true;
     }
@@ -5209,9 +5209,9 @@ void MainWindow::OnClosePointSet()
 
 void MainWindow::OnLoadTrack()
 {
-  QStringList filenames = QFileDialog::getOpenFileNames( this, "Select track file",
+  QStringList filenames = QFileDialog::getOpenFileNames( this, "Select tract file",
                           m_strLastDir,
-                          "Track files (*.trk);;All files (*)");
+                          "Tract files (*.trk);;All files (*)");
   if ( !filenames.isEmpty() )
   {
     for ( int i = 0; i < filenames.size(); i++ )
@@ -5230,13 +5230,13 @@ void MainWindow::LoadTrackFile(const QString &fn)
 
 void MainWindow::OnCloseTrack()
 {
-  QList<Layer*> layers = GetSelectedLayers( "Track" );
+  QList<Layer*> layers = GetSelectedLayers( "Tract" );
   if ( layers.isEmpty() )
   {
     return;
   }
 
-  GetLayerCollection( "Track" )->RemoveLayers( layers );
+  GetLayerCollection( "Tract" )->RemoveLayers( layers );
 }
 
 void MainWindow::OnLoadSurface()
@@ -5352,7 +5352,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
   m_statusBar->StopTimer();
   LayerCollection* lc_mri = GetLayerCollection( "MRI" );
   LayerCollection* lc_surface = GetLayerCollection( "Surface" );
-  LayerCollection* lc_track = GetLayerCollection( "Track" );
+  LayerCollection* lc_track = GetLayerCollection( "Tract" );
   if ( jobtype == ThreadIOWorker::JT_LoadVolume && layer->IsTypeOf( "MRI" ) )
   {
     LayerMRI* mri = qobject_cast<LayerMRI*>( layer );
@@ -5491,7 +5491,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     m_strLastDir = QFileInfo(((LayerSurface*)layer)->GetActiveOverlay()->GetFileName()).absolutePath();
     emit SlicePositionChanged();
   }
-  else if ( jobtype == ThreadIOWorker::JT_LoadTrack && layer->IsTypeOf("Track"))
+  else if ( jobtype == ThreadIOWorker::JT_LoadTrack && layer->IsTypeOf("Tract"))
   {
     LayerTrack* track = qobject_cast<LayerTrack*>( layer );
     lc_track->AddLayer( track );

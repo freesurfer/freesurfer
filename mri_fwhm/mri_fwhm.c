@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/12 17:39:16 $
- *    $Revision: 1.32 $
+ *    $Date: 2016/05/05 19:20:30 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -178,6 +178,10 @@ Implies --synth.
 
 Set TR (generally not too useful)
 
+--nthreads nthreads
+
+Set OPEN MP threads
+
 EXAMPLES:
 
 1. Measure the fwhm of an input data set, compute mask automatically by
@@ -233,6 +237,9 @@ double round(double x);
 #include "icosahedron.h"
 #include "pdf.h"
 #include "matfile.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 MRI *MRImaskedGaussianSmoothTo(MRI *invol, MRI *mask, double ToFWHM,
                                double tol, int nitersmax,
@@ -255,7 +262,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.32 2015/05/12 17:39:16 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.33 2016/05/05 19:20:30 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -883,7 +890,17 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&N_Zero_Pad_Input);
       InValsType = MRI_ANALYZE_FILE;
       nargsused = 1;
-    } else {
+    } 
+    else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
+      if(nargc < 1) CMDargNErr(option,1);
+      int nthreads;
+      sscanf(pargv[0],"%d",&nthreads);
+      #ifdef _OPENMP
+      omp_set_num_threads(nthreads);
+      #endif
+      nargsused = 1;
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -938,6 +955,7 @@ static void print_usage(void) {
   printf("   --nframesmin n : require at least this many frames\n");
   printf("   --ispm : input is spm-analyze. Set --i to stem.\n");
   printf("   --in_nspmzeropad nz : zero-padding for spm-analyze\n");
+  printf("   --nthreads nthreads : Set OPEN MP threads\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
