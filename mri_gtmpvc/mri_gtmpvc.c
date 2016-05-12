@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/04/30 15:10:56 $
- *    $Revision: 1.68 $
+ *    $Date: 2016/05/12 16:06:41 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.68 2016/04/30 15:10:56 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.69 2016/05/12 16:06:41 greve Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.68 2016/04/30 15:10:56 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.69 2016/05/12 16:06:41 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1603,8 +1603,8 @@ static void print_usage(void) {
   printf("   --save-yhat-full-fov : saves yhat in full FoV (if FoV was reduced)\n");
   printf("   --save-yhat0 : saves yhat prior to smoothing\n");
   printf("\n");
-  printf("   --synth gtmbeta C R S seed nreps : synthesize volume with gtmbeta as input\n");
-  printf("       spec all other inputs the same; CRS are PSF for col, row, slice\n");
+  printf("   --synth gtmbeta C R S MBs seed nreps : synthesize volume with gtmbeta as input\n");
+  printf("       spec all other inputs the same; CRS are PSF for col, row, slice, MBs motion blur slope\n");
   printf("       seed=0 for no noise, -1 for TOD seed. Turns on VFC for synth\n");
   printf("       but returns it to its specified value for analysis\n");
   printf("   --synth-only : exit after doing synthesis (implies --synth-save)\n");
