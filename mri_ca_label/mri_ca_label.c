@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/05/06 12:37:03 $
- *    $Revision: 1.112 $
+ *    $Date: 2016/05/13 18:02:49 $
+ *    $Revision: 1.113 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -252,13 +252,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.112 2016/05/06 12:37:03 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.113 2016/05/13 18:02:49 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.112 2016/05/06 12:37:03 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.113 2016/05/13 18:02:49 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -4770,6 +4770,8 @@ find_unlikely_voxels_in_region(GCA *gca,
       {
         zi = mri_labeled->zi[z+zk] ;
         label = MRIgetVoxVal(mri_labeled, xi, yi, zi, 0) ;
+	if (IS_WMSA(label))  // applying spatial priors to WMSAs doesn't work
+	  continue ;
         prior_label = MRIgetVoxVal(mri_prior_labels, xi, yi, zi, 0) ;
         if (label == prior_label)
         {
@@ -4806,6 +4808,8 @@ find_unlikely_voxels_in_region(GCA *gca,
           DiagBreak() ;
         }
         label = MRIgetVoxVal(mri_labeled, xi, yi, zi, 0) ;
+	if (IS_WMSA(label))  // applying spatial priors to WMSAs doesn't work
+	  continue ;
         prior_label = MRIgetVoxVal(mri_prior_labels, xi, yi, zi, 0) ;
         if (label == prior_label)
         {
@@ -4962,6 +4966,9 @@ GCArelabelUnlikely(GCA *gca,
       label = MRIgetVoxVal(mri_dst_labeled, x, y, z, 0) ;
       if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
         DiagBreak() ;
+
+      if (IS_WMSA(label))
+	continue ;
 
       // don't process it if it the highest prior or the highest posterior
       if ((label == (int)MRIgetVoxVal(mri_prior_labels,x,y,z,0) &&
