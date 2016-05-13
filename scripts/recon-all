@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2016/05/12 16:09:18 $
-#    $Revision: 1.579 $
+#    $Date: 2016/05/13 15:04:55 $
+#    $Revision: 1.580 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.579 2016/05/12 16:09:18 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.580 2016/05/13 15:04:55 greve Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -6125,7 +6125,7 @@ while( $#argv != 0 )
 
     case "-subcortseg":
       set DoGCAReg         = 1;
-      set DoRemoveNeck     = 1;
+      set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
@@ -6593,7 +6593,7 @@ while( $#argv != 0 )
       set DoSkullStrip     = 1;
       set DoNuIntensityCor = 1;
       set DoGCAReg         = 1;
-      set DoRemoveNeck     = 1;
+      set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
@@ -6675,7 +6675,7 @@ while( $#argv != 0 )
 
     case "-autorecon2":
       set DoGCAReg         = 1;
-      set DoRemoveNeck     = 1;
+      set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
@@ -6699,7 +6699,7 @@ while( $#argv != 0 )
 
     case "-autorecon2-volonly":
       set DoGCAReg         = 1;
-      set DoRemoveNeck     = 1;
+      set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
@@ -6729,7 +6729,7 @@ while( $#argv != 0 )
 
     case "-autorecon2-inflate1":
       set DoGCAReg         = 1;
-      set DoRemoveNeck     = 1;
+      set DoRemoveNeck     = 0;
       set DoSkullLTA       = 0;
       set DoCANormalize    = 1;
       set DoCAReg          = 1;
