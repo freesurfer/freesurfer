@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/01/21 14:52:55 $
- *    $Revision: 1.91 $
+ *    $Date: 2016/05/13 18:06:13 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1189,7 +1189,12 @@ HISTOaddSample(HISTOGRAM *histo, float val, float bmin, float bmax)
   if (bin_no < histo->nbins && bin_no >= 0)
     histo->counts[bin_no]++ ;
   else
-    DiagBreak() ;
+  {
+    if (bin_no < bmin)
+      histo->counts[0]++ ;
+    else if (bin_no >= histo->nbins)
+      histo->counts[histo->nbins-1]++ ;
+  }
 
   return(bin_no) ;
 }
