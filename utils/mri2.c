@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/07 22:23:57 $
- *    $Revision: 1.118 $
+ *    $Author: fischl $
+ *    $Date: 2016/06/07 16:35:33 $
+ *    $Revision: 1.120 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -722,11 +722,8 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
 #ifdef FS_CUDA
   int cudaReturn;
 #else
-  int   ct,  rt,  st,  f;
-  int   ics, irs, iss;
-  float fcs, frs, fss;
-  double rval;
-  float *valvect;
+  int   ct, tid, show_progress_thread ;
+  float *valvects[_MAX_FS_THREADS] ;
 #endif
   int sinchw;
   MATRIX *V2Rsrc=NULL, *invV2Rsrc=NULL, *V2Rtarg=NULL;
@@ -775,9 +772,6 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   }
 
   sinchw = nint(param);
-#ifndef FS_CUDA
-  valvect = (float *) calloc(sizeof(float),src->nframes);
-#endif
 
 #ifdef VERBOSE_MODE
   StartChronometer( &tSample );
@@ -797,8 +791,38 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   if (InterpCode == SAMPLE_CUBIC_BSPLINE)
     bspline = MRItoBSpline(src,NULL,3);
 
+#ifdef HAVE_OPENMP
+  for (tid = 0 ; tid < _MAX_FS_THREADS ; tid++)
+  {
+    valvects[tid] = (float *) calloc(sizeof(float),src->nframes);
+  }
+#else
+  valvects[0] = (float *) calloc(sizeof(float),src->nframes);
+#endif
+  if ( omp_get_max_threads() == 1)
+    show_progress_thread = 0 ;
+  else
+    show_progress_thread = omp_get_max_threads()-1 ;  // avoid master thread
+
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
+#endif
   for (ct=0; ct < targ->width; ct++)
   {
+    int   rt,  st,  f, tid;
+    int   ics, irs, iss;
+    float fcs, frs, fss, *valvect;
+    double rval ;
+
+#ifdef HAVE_OPENMP
+    tid = omp_get_thread_num();
+    valvect = valvects[tid] ;
+#else
+    valvect = valvects[0] ;
+#endif
+	
+
     for (rt=0; rt < targ->height; rt++)
     {
       for (st=0; st < targ->depth; st++)
@@ -856,17 +880,24 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
 
       } /* target col */
     } /* target row */
-    exec_progress_callback(ct, targ->width, 0, 1);
+    if (tid == show_progress_thread)
+      exec_progress_callback(ct, targ->width, 0, 1);
   } /* target slice */
+
+#ifdef HAVE_OPENMP
+  for (tid = 0 ; tid < _MAX_FS_THREADS ; tid++)
+    free(valvects[tid]) ;
+#else
+    free(valvect);
 #endif
+
+#endif
+
 
 #ifdef VERBOSE_MODE
   StopChronometer( &tSample );
 #endif
 
-#ifndef FS_CUDA
-  free(valvect);
-#endif
   if (FreeMats)
   {
     MatrixFree(&V2Rsrc);
