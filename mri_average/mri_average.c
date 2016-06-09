@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/04/14 20:19:14 $
- *    $Revision: 1.46 $
+ *    $Date: 2016/06/01 17:49:55 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -185,7 +185,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_average.c,v 1.46 2016/04/14 20:19:14 fischl Exp $",
+           "$Id: mri_average.c,v 1.47 2016/06/01 17:49:55 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -718,8 +718,8 @@ usage_exit(int code)
   printf("\t-r <x> <y> <z>  rotation of "
          "second volume around each axis in degrees\n");
   printf("\t-m <float n>    use momentum n (default=0)\n");
-  printf("\t-sqr            compute sqrt of average of sum of squares (RMS)\n") ;
-  printf("\t-rms            compute sqrt of average of sum of squares (RMS)\n") ;
+  printf("\t-sqr            compute sqrt of average of sum of squares (RMS, same as -rms)\n") ;
+  printf("\t-rms            compute sqrt of average of sum of squares (RMS, same as -sqr)\n") ;
   printf("\t-u              print usage\n");
   printf("\t-p              compute %% \n");
   printf("\t-abs            take abs value of volume \n");
