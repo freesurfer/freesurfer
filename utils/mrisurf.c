@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/02/03 18:58:39 $
- *    $Revision: 1.778 $
+ *    $Author: greve $
+ *    $Date: 2016/06/08 20:03:14 $
+ *    $Revision: 1.779 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.778 2016/02/03 18:58:39 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.779 2016/06/08 20:03:14 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -3873,6 +3873,7 @@ MRIScomputeNormals(MRI_SURFACE *mris)
     VERTEX    *v ;
     float     norm[3],snorm[3], len ;
     int       n, num ;
+    FACE    *face;
 
     v = &mris->vertices[k];
     if (!v->ripflag)
@@ -3887,6 +3888,12 @@ MRIScomputeNormals(MRI_SURFACE *mris)
           snorm[0] += norm[0];
           snorm[1] += norm[1];
           snorm[2] += norm[2];
+
+	  // DNG: 6/7/2016 update the face normals
+	  face = &mris->faces[v->f[n]];
+	  face->nx = norm[0];
+	  face->ny = norm[1];
+	  face->nz = norm[2];
 
           /* Note: overestimates area by *2 !! */
           v->area += mrisTriangleArea(mris, v->f[n], (int)v->n[n]);
