@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/12/10 13:58:49 $
- *    $Revision: 1.481 $
+ *    $Date: 2016/06/06 20:10:25 $
+ *    $Revision: 1.482 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -979,6 +979,13 @@ int        *MRIhistogramLabels(MRI *mri, int *counts, int max_label);
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
 HISTOGRAM  *MRIhistogramLabel(MRI *mri, MRI *mri_labeled,
                               int label, int nbins);
+HISTOGRAM *MRIhistogramRegionWithThreshold(MRI *mri,
+					   int nbins,
+					   HISTOGRAM *histo,
+					   MRI_REGION *region,
+					   MRI *mri_thresh, 
+					   float thresh,
+					   int frame);
 HISTOGRAM  *MRIhistogramLabelRegion(MRI *mri,
                                     MRI *mri_labeled,
                                     MRI_REGION *region,
