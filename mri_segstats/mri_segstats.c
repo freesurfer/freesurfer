@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/03/02 22:30:05 $
- *    $Revision: 1.120 $
+ *    $Date: 2016/05/31 17:27:11 $
+ *    $Revision: 1.121 $
  *
  * Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -106,7 +106,7 @@ float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.120 2016/03/02 22:30:05 greve Exp $";
+  "$Id: mri_segstats.c,v 1.121 2016/05/31 17:27:11 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1404,8 +1404,11 @@ int main(int argc, char **argv)
     }
 
     // Save as an MRI "volume"
-    if(FrameAvgVolFile)
-    {
+    if(FrameAvgVolFile) {
+      if(nsegid == 0){
+	printf("ERROR: no voxels found in segmentation\n");
+	exit(1);
+      }
       printf("Writing to %s\n",FrameAvgVolFile);
       famri = MRIallocSequence(nsegid,1,1,MRI_FLOAT,invol->nframes);
       MRIcopyHeader(invol,famri);
