@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/06/08 00:58:15 $
- *    $Revision: 1.121 $
+ *    $Date: 2016/06/09 15:48:22 $
+ *    $Revision: 1.122 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -889,7 +889,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   for (tid = 0 ; tid < _MAX_FS_THREADS ; tid++)
     free(valvects[tid]) ;
 #else
-    free(valvect);
+    free(valvects[0]);
 #endif
 
 #endif
