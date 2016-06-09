@@ -523,9 +523,7 @@ if test "x$CC" = "xicc"; then
 fi
 
 # to strip unused code when using Linux gcc:
-#DEADCODE_STRIP="-ffunction-sections -Wl,--gc-sections"
-# does not work in scuba2! so leave empty:
-DEADCODE_STRIP=""
+DEADCODE_STRIP="-fdata-sections -ffunction-sections -Wl,--gc-sections"
 # and on the Mac:
 DEADCODE_STRIP_MAC="-dead_strip"
 
