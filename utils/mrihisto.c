@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (1/8/97)
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/01/21 14:52:55 $
- *    $Revision: 1.45 $
+ *    $Date: 2016/06/07 12:53:07 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,9 @@
 #include <math.h>
 #include <string.h>
 #include <memory.h>
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 #include "error.h"
 #include "proto.h"
@@ -56,12 +59,6 @@
 /*-----------------------------------------------------
   STATIC PROTOTYPES
   -------------------------------------------------------*/
-static HISTOGRAM *mriHistogramRegionWithThreshold(MRI *mri,
-                                                  int nbins,
-                                                  HISTOGRAM *histo,
-                                                  MRI_REGION *region,
-                                                  MRI *mri_thresh, 
-                                                  float thresh);
 static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo,
                                      MRI_REGION *region);
 static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo,
@@ -1347,22 +1344,25 @@ MRIhistogramVoxel(MRI *mri,
   HISTOinit(histo, nbins, fmin, fmax) ;
   
   if (mri_thresh == NULL)
-    mriHistogramRegion
-      (mri, nbins, histo, &region) ;
+    mriHistogramRegion(mri, nbins, histo, &region) ;
   else
-    mriHistogramRegionWithThreshold
-      (mri, nbins, histo, &region, mri_thresh, thresh) ;
+    MRIhistogramRegionWithThreshold(mri, nbins, histo, &region, mri_thresh, thresh, 0) ;
 
   HISTOsoapBubbleZeros(histo, histo,100);
   return(histo) ;
 }
-static HISTOGRAM *
-mriHistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
+HISTOGRAM *
+MRIhistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
                                 MRI_REGION *region, MRI *mri_thresh, 
-                                float thresh)
+                                float thresh, int frame)
 {
-  int        width, height, depth, x, y, z, x0, y0, z0 ;
-  float      fmin, fmax, val ;
+  int        width, height, depth, z, x0, y0, z0, tid ;
+  float      fmin, fmax ;
+#ifdef HAVE_OPENMP
+  HISTOGRAM  *histos[_MAX_FS_THREADS] ;
+#else
+  HISTOGRAM  *histos[1] ;
+#endif
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
@@ -1388,14 +1388,16 @@ mriHistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
   fmin = 1e10 ; fmax = -fmin ;
   for (z = z0 ; z < depth ; z++)
   {
+    int    y, x ;
+    float  val ;
     for (y = y0 ; y < height ; y++)
     {
       for (x = x0 ; x < width ; x++)
       {
-        val = MRIgetVoxVal(mri_thresh, x, y, z, 0) ;
+        val = MRIgetVoxVal(mri_thresh, x, y, z, frame) ;
         if (val < thresh)
           continue ;
-        val = MRIgetVoxVal(mri, x, y, z, 0) ;
+        val = MRIgetVoxVal(mri, x, y, z, frame) ;
         if (val < fmin)
           fmin = val ;
         if (val > fmax)
@@ -1416,23 +1418,52 @@ mriHistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
     else
       histo->nbins = nbins;
   }
+
+#ifdef HAVE_OPENMP
+  for (tid = 0 ; tid < _MAX_FS_THREADS ; tid++)
+  {
+    histos[tid] = HISTOalloc(nbins) ;
+    HISTOclear(histos[tid], histos[tid]) ;
+    HISTOinit(histos[tid], nbins, fmin, fmax) ;
+  }
+#else
+  histos[0] = histo ;
+#endif
   HISTOclear(histo, histo) ;
   HISTOinit(histo, nbins, fmin, fmax) ;
 
+#ifdef HAVE_OPENMP
+#pragma omp parallel for shared(histos, width, height, depth, fmin, fmax, frame, x0, y0, z0, histo)
+#endif
   for (z = z0 ; z < depth ; z++)
   {
+    int    y, x, tid ;
+    float  val ;
     for (y = y0 ; y < height ; y++)
     {
       for (x = x0 ; x < width ; x++)
       {
-        val = MRIgetVoxVal(mri_thresh, x, y, z, 0) ;
+        val = MRIgetVoxVal(mri_thresh, x, y, z, frame) ;
         if (val < thresh)
           continue ;
-        val = MRIgetVoxVal(mri, x, y, z, 0) ;
-        HISTOaddSample(histo, val, fmin, fmax) ;
+        val = MRIgetVoxVal(mri, x, y, z, frame) ;
+#ifdef HAVE_OPENMP
+	tid = omp_get_thread_num();
+#else
+	tid = 0;
+#endif
+        HISTOaddSample(histos[tid], val, fmin, fmax) ;
       }
     }
   }
+
+#ifdef HAVE_OPENMP
+  for (tid = 0 ; tid < _MAX_FS_THREADS ; tid++)
+  {
+    HISTOadd(histos[tid], histo, histo) ;
+    HISTOfree(&histos[tid]) ;
+  }
+#endif
 
   return(histo) ;
 }
