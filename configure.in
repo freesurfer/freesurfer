@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/06/09 14:54:41 $
-#    $Revision: 1.667 $
+#    $Date: 2016/06/09 17:13:54 $
+#    $Revision: 1.668 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -522,8 +522,14 @@ if test "x$CC" = "xicc"; then
   WERROR=""
 fi
 
-# to strip unused code when using Linux gcc:
-DEADCODE_STRIP="-fdata-sections -ffunction-sections -Wl,--gc-sections"
+# to strip unused code when using Linux gcc.
+# but not on cent4 because for some reason it fails 
+# on certain binaries.
+if (test "$host" = "Linux-centos4_x86_64"); then
+  DEADCODE_STRIP=""
+else
+  DEADCODE_STRIP="-fdata-sections -ffunction-sections -Wl,--gc-sections"
+fi
 # and on the Mac:
 DEADCODE_STRIP_MAC="-dead_strip"
 
