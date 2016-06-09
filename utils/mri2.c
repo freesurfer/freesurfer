@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/06/07 16:35:33 $
- *    $Revision: 1.120 $
+ *    $Date: 2016/06/08 00:58:15 $
+ *    $Revision: 1.121 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -792,18 +792,19 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
     bspline = MRItoBSpline(src,NULL,3);
 
 #ifdef HAVE_OPENMP
-  for (tid = 0 ; tid < _MAX_FS_THREADS ; tid++)
-  {
-    valvects[tid] = (float *) calloc(sizeof(float),src->nframes);
-  }
-#else
-  valvects[0] = (float *) calloc(sizeof(float),src->nframes);
-#endif
   if ( omp_get_max_threads() == 1)
     show_progress_thread = 0 ;
   else
     show_progress_thread = omp_get_max_threads()-1 ;  // avoid master thread
 
+  for (tid = 0 ; tid < _MAX_FS_THREADS ; tid++)
+  {
+    valvects[tid] = (float *) calloc(sizeof(float),src->nframes);
+  }
+#else
+  show_progress_thread = 0 ;
+  valvects[0] = (float *) calloc(sizeof(float),src->nframes);
+#endif
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for shared(show_progress_thread, targ, bspline, src, Vt2s, InterpCode)
