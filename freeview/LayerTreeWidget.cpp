@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/12/14 22:30:14 $
- *    $Revision: 1.20 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include <QDebug>
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
+#include <QDropEvent>
 
 QRect MyItemDelegate::GetCheckBoxRect(const QModelIndex &index, const QStyleOptionViewItem& option) const
 {
@@ -59,13 +60,18 @@ LayerTreeWidget::LayerTreeWidget(QWidget *parent) :
 //  act->setShortcutContext(Qt::WidgetWithChildrenShortcut);
 //  connect(act, SIGNAL(triggered()), SLOT(selectAll()));
 //  this->addAction(act);
+
+  setDragEnabled(true);
+  viewport()->setAcceptDrops(true);
+  setDropIndicatorShown(true);
+  setDragDropMode(QAbstractItemView::InternalMove);
 }
 
 void LayerTreeWidget::drawRow( QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const
 {
   QTreeWidget::drawRow( painter, option, index );
 
-  Layer* layer = qobject_cast<Layer*>( index.data( Qt::UserRole ).value<QObject*>() );
+  Layer* layer = reinterpret_cast<Layer*>( index.data( Qt::UserRole ).value<quintptr>() );
   if ( layer && layer->IsLocked() )
   {
     QImage img( ":resource/icons/volume_lock.png");
@@ -137,7 +143,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   QList<Layer*> layers;
   foreach (QTreeWidgetItem* item, items)
   {
-     Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+     Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
      if (layer)
        layers << layer;
   }
@@ -147,7 +153,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   Layer* layer = NULL;
   if (item)
   {
-    layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
     if (layer)
       type = layer->GetPrimaryType();
     else
@@ -281,7 +287,7 @@ void LayerTreeWidget::OnShowAll()
   QList<QTreeWidgetItem*> items = this->selectedItems();
   foreach (QTreeWidgetItem* item, items)
   {
-    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
     if (layer)
       layer->Show();
   }
@@ -292,7 +298,7 @@ void LayerTreeWidget::OnHideAll()
   QList<QTreeWidgetItem*> items = this->selectedItems();
   foreach (QTreeWidgetItem* item, items)
   {
-    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
     if (layer)
       layer->Hide();
   }
@@ -303,7 +309,7 @@ void LayerTreeWidget::OnLockAll()
   QList<QTreeWidgetItem*> items = this->selectedItems();
   foreach (QTreeWidgetItem* item, items)
   {
-    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
     if (layer)
       layer->Lock(true);
   }
@@ -314,7 +320,7 @@ void LayerTreeWidget::OnUnlockAll()
   QList<QTreeWidgetItem*> items = this->selectedItems();
   foreach (QTreeWidgetItem* item, items)
   {
-    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
     if (layer)
       layer->Lock(false);
   }
@@ -325,7 +331,7 @@ void LayerTreeWidget::OnShowAllInfo()
   QList<QTreeWidgetItem*> items = this->selectedItems();
   foreach (QTreeWidgetItem* item, items)
   {
-    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
     if (layer)
       layer->GetProperty()->SetShowInfo(true);
   }
@@ -336,7 +342,7 @@ void LayerTreeWidget::OnHideAllInfo()
   QList<QTreeWidgetItem*> items = this->selectedItems();
   foreach (QTreeWidgetItem* item, items)
   {
-    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
     if (layer)
       layer->GetProperty()->SetShowInfo(false);
   }
@@ -347,7 +353,7 @@ void LayerTreeWidget::OnEditName()
   QTreeWidgetItem* item = this->currentItem();
   if (item)
   {
-    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
     if (layer)
     {
 
@@ -361,7 +367,7 @@ void LayerTreeWidget::OnSetColorMap()
   QList<QTreeWidgetItem*> items = this->selectedItems();
   foreach (QTreeWidgetItem* item, items)
   {
-    LayerMRI* layer = qobject_cast<LayerMRI*>( item->data(0, Qt::UserRole ).value<QObject*>() );
+    LayerMRI* layer = reinterpret_cast<LayerMRI*>( item->data(0, Qt::UserRole ).value<quintptr>() );
     if (layer && layer->GetEndType() == "MRI")
       layer->GetProperty()->SetColorMap(act->data().toInt());
   }
@@ -426,4 +432,94 @@ bool LayerTreeWidget::event(QEvent *e)
         }
     }
     return QTreeWidget::event(e);
+}
+
+void LayerTreeWidget::dropEvent(QDropEvent *event)
+{
+    QModelIndex droppedIndex = indexAt( event->pos() );
+
+    if ( droppedIndex.isValid() )
+    {
+        DropIndicatorPosition drop_pos = dropIndicatorPosition();
+        QTreeWidgetItem* itemTo = itemAt(event->pos());
+        QList<QTreeWidgetItem*> items = this->selectedItems(), itemsFrom;
+        QTreeWidgetItem* itemCur = this->currentItem();
+        QString type;
+        if (itemCur && itemCur->parent())
+        {
+            QTreeWidgetItem* parent = itemCur->parent();
+            type = parent->data(0, Qt::UserRole).toString();
+            foreach (QTreeWidgetItem* item, items)
+            {
+               Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+               if (layer && layer->GetPrimaryType() == type)
+               {
+                   itemsFrom << item;
+               }
+            }
+        }
+        bool bReordered = false;
+        if (!itemsFrom.isEmpty() && itemTo && !itemsFrom.contains(itemTo))
+        {
+            QTreeWidgetItem* parent = itemTo->parent();
+            if (parent)
+            {
+                if (parent->data(0, Qt::UserRole).toString() == type)
+                {
+                    foreach (QTreeWidgetItem* item, itemsFrom)
+                    {
+                        parent->removeChild(item);
+                    }
+                    parent->insertChildren(parent->indexOfChild(itemTo) + (drop_pos == QTreeWidget::BelowItem ? 1 : 0), itemsFrom);
+                }
+            }
+            else if (itemTo->data(0, Qt::UserRole).toString() == type)
+            {
+                foreach (QTreeWidgetItem* item, itemsFrom)
+                {
+                    itemTo->removeChild(item);
+                }
+                itemTo->insertChildren(0, itemsFrom);
+            }
+            bReordered = true;
+        }
+        if (itemCur)
+            setCurrentItem(itemCur);
+
+        foreach (QTreeWidgetItem* item, itemsFrom)
+        {
+            item->setSelected(true);
+        }
+
+        if (bReordered)
+        {
+            if (itemTo->parent())
+                itemTo = itemTo->parent();
+            QList<Layer*> layers;
+            for (int i = 0; i < itemTo->childCount(); i++)
+            {
+                QTreeWidgetItem* item = itemTo->child(i);
+                Layer* layer = reinterpret_cast<Layer*>( item->data(0, Qt::UserRole ).value<quintptr>() );
+                if (layer)
+                {
+                    layers << layer;
+                }
+            }
+            emit ToReorderLayers(layers);
+        }
+
+//        QTreeWidgetItem* itemFrom = NULL;
+//        QByteArray encoded = event->mimeData()->data("application/x-qabstractitemmodeldatalist");
+//        QDataStream stream(&encoded, QIODevice::ReadOnly);
+//        if (!stream.atEnd())
+//        {
+//            int row, col;
+//            QMap<int,  QVariant> roleDataMap;
+//            stream >> row >> col >> roleDataMap;
+//            itemFrom = itemFromIndex(rootIndex().child(row, col));
+//        }
+//        qDebug() << itemTo << itemFrom;
+    }
+
+//    QTreeWidget::dropEvent(event);
 }

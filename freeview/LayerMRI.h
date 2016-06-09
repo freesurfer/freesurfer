@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/10/27 17:06:09 $
- *    $Revision: 1.97 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -355,6 +355,8 @@ protected slots:
   void OnAvailableLabels(const IntList& vals);
 
   void UpdateSurfaceCorrelationData();
+
+  void ResetRef();
 
 protected:
   virtual void DoTransform(double *mat, int sample_method);

@@ -20,12 +20,14 @@ PanelAllLayers::PanelAllLayers(QWidget *parent) :
     connect(wnd->GetLayerCollection(type), SIGNAL(LayerRemoved(Layer*)), this, SLOT(OnLayerRemoved(Layer*)));
     connect(wnd->GetLayerCollection(type), SIGNAL(LayerMoved(Layer*)), this, SLOT(RefreshLayerList()));
     connect(wnd->GetLayerCollection(type), SIGNAL(LayerCycled(Layer*)), this, SLOT(RefreshLayerList()));
+    connect(wnd->GetLayerCollection(type), SIGNAL(LayersReordered()), this, SLOT(RefreshLayerList()));
     connect(wnd->GetLayerCollection(type), SIGNAL(LayerNameChanged()), this, SLOT(OnLayerChanged()));
     connect(wnd->GetLayerCollection(type), SIGNAL(LayerVisibilityChanged()), this, SLOT(OnLayerChanged()));
     connect(wnd->GetLayerCollection(type), SIGNAL(ActiveLayerChanged(Layer*)), this, SLOT(OnActiveLayerChanged(Layer*)));
   }
   ui->treeWidgetLayers->setEditTriggers( QTreeWidget::SelectedClicked );
   ui->stackedWidget->hide();
+  connect(ui->treeWidgetLayers, SIGNAL(ToReorderLayers(QList<Layer*>)), this, SIGNAL(ToReorderLayers(QList<Layer*>)));
 
   for (int i = 0; i < ui->stackedWidget->count(); i++)
   {
@@ -94,7 +96,7 @@ void PanelAllLayers::OnActiveLayerChanged(Layer *curlayer)
   QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
   if (item && curlayer)
   {
-    QObject* sel = qobject_cast<QObject*>(item->data(0, Qt::UserRole).value<QObject*>());
+    QObject* sel = reinterpret_cast<QObject*>(item->data(0, Qt::UserRole).value<quintptr>());
     QTreeWidgetItem* topItem = NULL;
     for (int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++)
     {
@@ -110,7 +112,7 @@ void PanelAllLayers::OnActiveLayerChanged(Layer *curlayer)
         for (int j = 0; j < topItem->childCount(); j++)
         {
           item = topItem->child(j);
-          Layer* layer = qobject_cast<Layer*>(item->data(0, Qt::UserRole).value<QObject*>());
+          Layer* layer = reinterpret_cast<Layer*>(item->data(0, Qt::UserRole).value<quintptr>());
           QFont fnt = item->font(0);
           if (sel != curlayer && layer == curlayer)
           {
@@ -135,7 +137,7 @@ void PanelAllLayers::RefreshLayerList(const QList<Layer *>& selectedLayers_in, L
   Layer* layer = NULL;
   QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
   if (item)
-    layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+    layer = reinterpret_cast<Layer*>(item->data( 0, Qt::UserRole ).value<quintptr>());
   if (curLayer)
     layer = curLayer;
 
@@ -145,7 +147,7 @@ void PanelAllLayers::RefreshLayerList(const QList<Layer *>& selectedLayers_in, L
     QList<QTreeWidgetItem*> items = ui->treeWidgetLayers->selectedItems();
     foreach (QTreeWidgetItem* item, items)
     {
-      Layer* layer_sel = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+      Layer* layer_sel = reinterpret_cast<Layer*>(item->data( 0, Qt::UserRole ).value<quintptr>());
       if (layer_sel)
         selectedLayers << layer_sel;
     }
@@ -180,9 +182,9 @@ void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, L
     {
       QTreeWidgetItem* item = new QTreeWidgetItem();
       item->setText(0, layers[i]->GetName());
-      item->setData(0, Qt::UserRole, QVariant::fromValue((QObject*)layers[i]));
+      item->setData(0, Qt::UserRole, QVariant::fromValue(reinterpret_cast<quintptr>(layers[i])));
       item->setCheckState(0, layers[i]->IsVisible() ? Qt::Checked : Qt::Unchecked);
-      item->setFlags( item->flags() | Qt::ItemIsEditable );
+      item->setFlags( item->flags() | Qt::ItemIsEditable | Qt::ItemIsDragEnabled);
       topItem->addChild(item);
       if (layers[i] == curLayer)
       {
@@ -220,7 +222,7 @@ void PanelAllLayers::OnLayerRemoved(Layer * removed_layer)
     for (int j = 0; j < topItem->childCount(); j++)
     {
       QTreeWidgetItem* item = topItem->child(j);
-      if (item->data(0, Qt::UserRole).value<QObject*>() == removed_layer)
+      if ( reinterpret_cast<Layer*>(item->data(0, Qt::UserRole).value<quintptr>()) == removed_layer)
       {
         topItem->removeChild(item);
         delete item;
@@ -273,7 +275,7 @@ void PanelAllLayers::OnCurrentItemChanged(QTreeWidgetItem *item)
       panel->SetCurrentLayer(NULL);
   }
 
-  Layer* layer = qobject_cast<Layer*>(item->data(0, Qt::UserRole).value<QObject*>());
+  Layer* layer = reinterpret_cast<Layer*>(item->data(0, Qt::UserRole).value<quintptr>());
   QString type;
   if (layer)
   {
@@ -297,7 +299,7 @@ void PanelAllLayers::OnCurrentItemChanged(QTreeWidgetItem *item)
 
 void PanelAllLayers::OnItemChanged(QTreeWidgetItem *item)
 {
-  Layer* layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+  Layer* layer = reinterpret_cast<Layer*>(item->data( 0, Qt::UserRole ).value<quintptr>());
   if ( layer )
   {
     layer->SetName( item->text(0) );
@@ -311,7 +313,7 @@ void PanelAllLayers::OnItemSelectionChanged()
   QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
   if (item)
   {
-    Layer* layer = qobject_cast<Layer*>(item->data(0, Qt::UserRole).value<QObject*>());
+    Layer* layer = reinterpret_cast<Layer*>(item->data(0, Qt::UserRole).value<quintptr>());
     if (layer)
     {
       SetCurrentPanel(layer->GetPrimaryType());
@@ -342,7 +344,7 @@ void PanelAllLayers::OnLayerChanged()
     for (int j = 0; j < topItem->childCount(); j++)
     {
       QTreeWidgetItem* item = topItem->child(j);
-      Layer* layer = qobject_cast<Layer*>(item->data(0, Qt::UserRole).value<QObject*>());
+      Layer* layer = reinterpret_cast<Layer*>(item->data(0, Qt::UserRole).value<quintptr>());
       if (layer)
       {
         item->setText(0, layer->GetName());
@@ -355,7 +357,7 @@ void PanelAllLayers::OnLayerChanged()
 
 void PanelAllLayers::OnItemDoubleClicked(QTreeWidgetItem *item)
 {
-  Layer* layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+  Layer* layer = reinterpret_cast<Layer*>(item->data( 0, Qt::UserRole ).value<quintptr>());
 /*
   QStringList layer_types;
   layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT";
@@ -385,7 +387,7 @@ QString PanelAllLayers::GetCurrentLayerType()
   QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
   if (item)
   {
-    Layer* layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+    Layer* layer = reinterpret_cast<Layer*>(item->data( 0, Qt::UserRole ).value<quintptr>());
     if (layer)
     {
       QStringList layer_types;
@@ -408,7 +410,7 @@ QList<Layer*> PanelAllLayers::GetSelectedLayers(const QString &layerType)
   QList<QTreeWidgetItem*> items = ui->treeWidgetLayers->selectedItems();
   foreach (QTreeWidgetItem* item, items)
   {
-    Layer* layer = qobject_cast<Layer*>(item->data( 0, Qt::UserRole ).value<QObject*>());
+    Layer* layer = reinterpret_cast<Layer*>(item->data( 0, Qt::UserRole ).value<quintptr>());
     if (layer && layer->IsTypeOf(layerType))
     {
       layers << layer;

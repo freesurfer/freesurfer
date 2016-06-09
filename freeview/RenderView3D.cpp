@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/10 19:17:30 $
- *    $Revision: 1.88 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -399,6 +399,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
   LayerCollection* lc_mri = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
   LayerCollection* lc_roi = MainWindow::GetMainWindow()->GetLayerCollection( "ROI" );
   LayerCollection* lc_surface = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" );
+  QVariantMap settings = MainWindow::GetMainWindow()->GetGeneralSettings();
 
   this->setToolTip("");
   if ( lc_mri->IsEmpty() && lc_roi->IsEmpty() && lc_surface->IsEmpty() )
@@ -554,40 +555,47 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
             LayerSurface* surf = (LayerSurface*)layer;
             int nVertex = surf->GetVertexIndexAtTarget(pos, NULL);
             surf->SetCurrentVertex(nVertex);
+
             if (QFileInfo(surf->GetFileName()).fileName().contains("inflated"))
             {
                 FSSurface* fsurf = surf->GetSourceSurface();
-                if (fsurf->IsSurfaceLoaded( FSSurface::SurfaceWhite ))
+                QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
+                bool bFoundMappingSurface = false;
+                foreach (Layer* s, layers)
                 {
-                    fsurf->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, pos);
-                    surf->GetTargetAtSurfaceRAS(pos, pos);
-                    double v[3];
-                    surf->GetSmoothedVertexNormal(nVertex, v);
-                    this->AlignViewToNormal(v);
-                }
-                else
-                {
-                    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
-                    foreach (Layer* s, layers)
+                    LayerSurface* f = (LayerSurface*)s;
+                    if (f != surf && QFileInfo(f->GetFileName()).fileName().contains(surf->GetMappingSurfaceName()))
                     {
-                        LayerSurface* f = (LayerSurface*)s;
-                        if (f != surf && QFileInfo(f->GetFileName()).fileName().contains("white"))
-                        {
-                            if (f->GetHemisphere() == surf->GetHemisphere() &&
+                        if (f->GetHemisphere() == surf->GetHemisphere() &&
                                 QFileInfo(f->GetFileName()).absolutePath() == QFileInfo(surf->GetFileName()).absolutePath())
+                        {
+                            f->SetCurrentVertex(nVertex);
+                            f->GetTargetAtVertex(nVertex, pos);
+                            if (settings["AutoReorientView"].toBool())
                             {
-                                f->SetCurrentVertex(nVertex);
-                                f->GetTargetAtVertex(nVertex, pos);
                                 double v[3];
                                 surf->GetSmoothedVertexNormal(nVertex, v);
                                 this->AlignViewToNormal(v);
-                                break;
                             }
+                            bFoundMappingSurface = true;
+                            break;
                         }
                     }
                 }
+                if (!bFoundMappingSurface && fsurf->IsSurfaceLoaded( FSSurface::SurfaceWhite ))
+                {
+                    fsurf->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, pos);
+                    surf->GetTargetAtSurfaceRAS(pos, pos);
+                    if (settings["AutoReorientView"].toBool())
+                    {
+                        double v[3];
+                        surf->GetSmoothedVertexNormal(nVertex, v);
+                        this->AlignViewToNormal(v);
+                    }
+                }
             }
-          }
+            }
+
           lc_mri->SetCursorRASPosition( pos );
           MainWindow::GetMainWindow()->SetSlicePosition( pos );
           if (layer)

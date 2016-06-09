@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/02/23 19:13:52 $
- *    $Revision: 1.43 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -433,6 +433,12 @@ bool LayerCollection::CycleLayer( bool bMoveUp, bool bChangeActiveLayer )
   {
     return false;
   }
+}
+
+void LayerCollection::ReorderLayers(const QList<Layer*> &layers)
+{
+    m_layers = layers;
+    emit LayersReordered();
 }
 
 bool LayerCollection::Contains( Layer* layer )

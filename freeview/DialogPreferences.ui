@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>401</width>
-    <height>509</height>
+    <width>428</width>
+    <height>571</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,7 +23,16 @@
    <property name="sizeConstraint">
     <enum>QLayout::SetFixedSize</enum>
    </property>
-   <property name="margin">
+   <property name="leftMargin">
+    <number>12</number>
+   </property>
+   <property name="topMargin">
+    <number>12</number>
+   </property>
+   <property name="rightMargin">
+    <number>12</number>
+   </property>
+   <property name="bottomMargin">
     <number>12</number>
    </property>
    <item>
@@ -213,6 +222,28 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="groupBox_5">
+     <property name="title">
+      <string>Inflated Surface</string>
+     </property>
+     <property name="flat">
+      <bool>false</bool>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_5">
+      <item>
+       <widget class="QCheckBox" name="checkBoxAutoReorientView">
+        <property name="text">
+         <string>Auto-reorient 3D view after clicking on inflated surface</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBoxMac">
      <property name="title">
       <string>Mac Settings</string>
@@ -290,8 +321,8 @@
    <slot>OnClicked(QAbstractButton*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>314</x>
-     <y>496</y>
+     <x>326</x>
+     <y>558</y>
     </hint>
     <hint type="destinationlabel">
      <x>385</x>
@@ -306,8 +337,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>205</x>
-     <y>496</y>
+     <x>217</x>
+     <y>558</y>
     </hint>
     <hint type="destinationlabel">
      <x>187</x>

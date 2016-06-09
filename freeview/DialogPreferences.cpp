@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/03/28 19:29:37 $
- *    $Revision: 1.19 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +78,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->checkBoxSaveCopy, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxSyncZoom, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxAutoReorientView, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
 }
 
 DialogPreferences::~DialogPreferences()
@@ -99,6 +100,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->radioButtonThemeLight->setChecked(!map["DarkConsole"].toBool());
   ui->colorPickerAnnotation->setCurrentColor(map["AnnotationColor"].value<QColor>());
   ui->checkBoxRightButtonErase->setChecked(map["RightButtonErase"].toBool());
+  ui->checkBoxAutoReorientView->setChecked(map["AutoReorientView"].toBool());
   BlockAllSignals(this, false);
 }
 
@@ -115,6 +117,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["DarkConsole"] = ui->radioButtonThemeDark->isChecked();
   map["AnnotationColor"] = ui->colorPickerAnnotation->currentColor();
   map["RightButtonErase"] = ui->checkBoxRightButtonErase->isChecked();
+  map["AutoReorientView"] = ui->checkBoxAutoReorientView->isChecked();
   return map;
 }
 

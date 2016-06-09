@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/10 19:17:30 $
- *    $Revision: 1.337 $
+ *    $Date: 2016/06/08 17:24:31 $
+ *    $Revision: 1.339 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -186,6 +186,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
             SLOT(SetCurrentLandmark(int)));
     connect(m_views[i], SIGNAL(CursorLocationClicked()), this, SLOT(On2DCursorClicked()));
   }
+  connect(ui->widgetAllLayers, SIGNAL(ToReorderLayers(QList<Layer*>)), this, SLOT(ReorderLayers(QList<Layer*>)));
 
   m_dlgCropVolume = new DialogCropVolume(this);
   m_dlgCropVolume->hide();
@@ -286,6 +287,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
                m_views[j], SLOT(RefreshAllActors()) );
       connect( m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
                m_views[j], SLOT(RefreshAllActors()) );
+      connect( m_layerCollections[keys[i]], SIGNAL(LayersReordered()),
+               m_views[j], SLOT(RefreshAllActors()) );
       connect( m_layerCollections[keys[i]], SIGNAL(LayerActorChanged()),
                m_views[j], SLOT(RefreshAllActors()) );
       connect( m_layerCollections[keys[i]], SIGNAL(LayerActorUpdated()),
@@ -304,6 +307,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
                  m_views[j], SLOT(Update2DOverlay()) );
         connect( m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
                  m_views[j], SLOT(Update2DOverlay()) );
+        connect( m_layerCollections[keys[i]], SIGNAL(LayersReordered()),
+                m_views[j], SLOT(Update2DOverlay()) );
         connect( m_layerCollections[keys[i]], SIGNAL(LayerVisibilityChanged()),
                  m_views[j], SLOT(Update2DOverlay()) );
       }
@@ -324,6 +329,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
             ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
     connect(m_layerCollections[keys[i]], SIGNAL(LayerShowInfoChanged()),
             ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
+    connect(m_layerCollections[keys[i]], SIGNAL(LayersReordered()),
+            ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
 
     connect(m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
             ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
@@ -332,6 +339,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
             ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
     connect(m_layerCollections[keys[i]], SIGNAL(LayerShowInfoChanged()),
+            ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
+    connect(m_layerCollections[keys[i]], SIGNAL(LayersReordered()),
             ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
 
     connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
@@ -521,6 +530,10 @@ void MainWindow::LoadSettings()
   if (!m_settings.contains("DarkConsole"))
   {
     m_settings["DarkConsole"] = true;
+  }
+  if (!m_settings.contains("AutoReorientView"))
+  {
+      m_settings["AutoReorientView"] = true;
   }
 
   for (int i = 0; i < 4; i++)
@@ -6391,11 +6404,13 @@ void MainWindow::OnSavePoint()
 void MainWindow::OnGoToPoint()
 {
   LayerCollection* lc = GetLayerCollection( "MRI" );
+  if (lc->IsEmpty())
+      lc = GetLayerCollection("Surface");
   QString fn;
   QString path = getenv( "FS_SAVE_GOTO_POINT" );
   for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
   {
-    fn = ( (LayerMRI*)lc->GetLayer( i ) )->GetFileName();
+    fn = lc->GetLayer( i )->GetFileName();
     QString subjectName = lc->GetLayer(i)->GetSubjectName();
     if (!path.isEmpty() && !subjectName.isEmpty())
       fn = path + "-" + subjectName;
@@ -6442,7 +6457,10 @@ bool MainWindow::GetCursorRAS( double* ras_out, bool tkReg )
   }
   else if ( !lc_surf->IsEmpty() )
   {
-    lc_surf->GetCurrentRASPosition( ras_out );
+    LayerSurface* surf = (LayerSurface*)lc_surf->GetActiveLayer();
+    double slice_pos[3];
+    lc_surf->GetSlicePosition(slice_pos);
+    surf->GetSurfaceRASAtTarget( slice_pos, ras_out);
     return true;
   }
   else
@@ -7224,4 +7242,13 @@ bool MainWindow::LoadSurfaceRGBMap(const QString& fn)
     }
     else
         return false;
+}
+
+void MainWindow::ReorderLayers(const QList<Layer *> &layers)
+{
+    if (!layers.isEmpty())
+    {
+        QString type = layers[0]->GetPrimaryType();
+        GetLayerCollection(type)->ReorderLayers(layers);
+    }
 }

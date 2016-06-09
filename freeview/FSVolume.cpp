@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.105 $
+ *    $Author: rpwang $
+ *    $Date: 2016/06/08 17:24:31 $
+ *    $Revision: 1.109 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,7 +48,9 @@
 #include <QDir>
 #include <QDebug>
 #include "ProgressCallback.h"
-
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
 
 extern "C"
 {
@@ -56,6 +58,7 @@ extern "C"
 #include "utils.h"
 #include "macros.h"
 #include "mrisegment.h"
+#include "mri.h"
 }
 
 #define NUM_OF_HISTO_BINS 10000
@@ -211,12 +214,12 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
   UpdateHistoCDF();
   if (m_bValidHistogram)
   {
-    double val = GetHistoValueFromPercentile(0.999)+m_histoCDF->bin_size/2;
+    double val = GetHistoValueFromPercentile(0.9)*1.1; //+m_histoCDF->bin_size/2;
     if (m_fMaxValue > 10*val)
     {
       // abnormally high voxel value
       UpdateHistoCDF(0, val);
-      val = GetHistoValueFromPercentile(0.999)+m_histoCDF->bin_size/2;
+      val = GetHistoValueFromPercentile(0.9)*1.1; //+m_histoCDF->bin_size/2;
       m_fMaxValue = val;
     }
   }
@@ -226,11 +229,17 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 
 bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 {
-  ::SetProgressCallback(ProgressCallback, 0, 50);
+#ifdef HAVE_OPENMP
+  int nthreads = omp_get_max_threads();
+#else
+  int nthreads = 1 ;
+#endif
+  int max_percent = 100.0 - 50 / nthreads;
+  ::SetProgressCallback(ProgressCallback, 0, max_percent);
   if ( LoadMRI( filename, reg_filename ) )
   {
     this->CopyMatricesFromMRI();
-    ::SetProgressCallback(ProgressCallback, 50, 100);
+    ::SetProgressCallback(ProgressCallback, max_percent, 100);
     if ( !this->MapMRIToImage() )
     {
       return false;
@@ -1205,6 +1214,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
 
   MatrixFree( &vox2vox );
   MRIvalRange( m_MRITemp, &m_fMinValue, &m_fMaxValue );
+
   return true;
 }
 
@@ -2960,35 +2970,65 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold)
     m_bValidHistogram = false;
     return;
   }
+
+  /*
   HISTO *histo = HISTOinit(NULL, NUM_OF_HISTO_BINS, fMinValue, threshold>=0?threshold:fMaxValue);
 
+  if (!histo)
+  {
+      qDebug() << "Could not create HISTO";
+      return;
+  }
+
+  for (int x = 0 ; x < m_MRI->width; x++)
+  {
+      for (int y = 0 ; y < m_MRI->height; y++)
+      {
+          for (int z = 0 ; z < m_MRI->depth; z++)
+          {
+              float val = MRIgetVoxVal(m_MRI, x, y, z, frame) ;
+              if (!FZERO(val) && (threshold < 0 || val < threshold))
+                  HISTOaddSample(histo, val, 0, 0) ;
+          }
+      }
+  }
+
+  if (m_histoCDF)
+      HISTOfree(&m_histoCDF);
+
+  m_histoCDF = HISTOmakeCDF(histo, NULL);
+  if (!m_histoCDF)
+      qDebug() << "Could not create HISTO";
+
+  HISTOfree(&histo);
+*/
+
+  if (threshold < 0)
+      threshold = fMaxValue;
+
+  MRI_REGION region;
+  region.x = region.y = region.z = 0;
+  region.dx = m_MRI->width;
+  region.dy = m_MRI->height;
+  region.dz = m_MRI->depth;
+  HISTO *histo = MRIhistogramRegionWithThreshold(m_MRI, NUM_OF_HISTO_BINS, NULL, &region, m_MRI, threshold, frame);
   if (!histo)
   {
     qDebug() << "Could not create HISTO";
     return;
   }
 
-  for (int x = 0 ; x < m_MRI->width; x++)
-  {
-    for (int y = 0 ; y < m_MRI->height; y++)
-    {
-      for (int z = 0 ; z < m_MRI->depth; z++)
-      {
-        float val = MRIgetVoxVal(m_MRI, x, y, z, frame) ;
-        if (!FZERO(val) && (threshold < 0 || val < threshold))
-          HISTOaddSample(histo, val, 0, 0) ;
-      }
-    }
-  }
-
   if (m_histoCDF)
     HISTOfree(&m_histoCDF);
 
   m_histoCDF = HISTOmakeCDF(histo, NULL);
-  if (!m_histoCDF)
-    qDebug() << "Could not create HISTO";
-
   HISTOfree(&histo);
+  if (!m_histoCDF)
+  {
+    qDebug() << "Could not create HISTO";
+    return;
+  }
+
   m_bValidHistogram = true;
 }
 

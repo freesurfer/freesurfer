@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/08 19:37:48 $
- *    $Revision: 1.171 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.172 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -502,6 +502,8 @@ protected slots:
   void OnSurfaceVertexClicked(LayerSurface* surf);
 
   void On2DCursorClicked();
+
+  void ReorderLayers(const QList<Layer*>& layers);
 
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);

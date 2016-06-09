@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/08 19:30:28 $
- *    $Revision: 1.167 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.168 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -251,6 +251,11 @@ void LayerMRI::SetConform( bool bConform )
   m_bConform = bConform;
 }
 
+void LayerMRI::ResetRef()
+{
+    m_volumeSource->ResetRef();
+}
+
 bool LayerMRI::LoadVolumeFromFile()
 {
   if ( m_volumeSource )
@@ -259,6 +264,8 @@ bool LayerMRI::LoadVolumeFromFile()
   }
 
   m_volumeSource = new FSVolume( m_volumeRef );
+  if (m_volumeRef)
+    connect(m_volumeRef, SIGNAL(destroyed(QObject*)), this, SLOT(ResetRef()));
   m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
   m_volumeSource->SetConform( m_bConform );
   m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
@@ -290,6 +297,8 @@ bool LayerMRI::CreateFromMRIData(void *mri_ptr)
     delete m_volumeSource;
   }
   m_volumeSource = new FSVolume( m_volumeRef );
+  if (m_volumeRef)
+    connect(m_volumeRef, SIGNAL(destroyed(QObject*)), this, SLOT(ResetRef()));
   m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
   m_volumeSource->SetConform( m_bConform );
   m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
@@ -423,6 +432,7 @@ void LayerMRI::SetReorient( bool bReorient )
 {
   m_bReorient = bReorient;
 }
+
 
 bool LayerMRI::SaveVolume()
 {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/08 19:30:28 $
- *    $Revision: 1.75 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -275,6 +275,11 @@ public:
       return m_rgbMaps.size();
   }
 
+  QString GetMappingSurfaceName()
+  {
+      return m_sMappingSurfaceName;
+  }
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay( bool bAskRedraw = true );
@@ -306,6 +311,14 @@ public slots:
   void SetHideIn3D(bool bHide)
   {
       SetVisibleIn3D(!bHide);
+  }
+
+  void SetMappingSurfaceName(const QString& name)
+  {
+      if (name.isEmpty())
+          m_sMappingSurfaceName = "white";
+      else
+          m_sMappingSurfaceName = name;
   }
 
 Q_SIGNALS:
@@ -390,6 +403,8 @@ protected:
   bool        m_bLoadAll;
 
   bool        m_bVisibleIn3D;
+
+  QString     m_sMappingSurfaceName;
 
   QStringList m_listSupFiles;
 };

@@ -23,9 +23,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>0</y>
+     <y>-129</y>
      <width>314</width>
-     <height>1159</height>
+     <height>1192</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -133,9 +133,7 @@
       <item row="7" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout20">
         <item>
-         <widget class="QtColorPicker" name="colorpickerVertexColor" native="true">
-          <zorder>comboBox</zorder>
-         </widget>
+         <widget class="QtColorPicker" name="colorpickerVertexColor" native="true"/>
         </item>
         <item>
          <spacer name="horizontalSpacer_20">
@@ -173,6 +171,9 @@
         </property>
        </widget>
       </item>
+      <item row="26" column="1">
+       <widget class="QComboBox" name="comboBoxVectorDisplay"/>
+      </item>
       <item row="5" column="0">
        <widget class="QLabel" name="labelMeshColor">
         <property name="text">
@@ -182,9 +183,6 @@
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
         </property>
        </widget>
-      </item>
-      <item row="26" column="1">
-       <widget class="QComboBox" name="comboBoxVectorDisplay"/>
       </item>
       <item row="12" column="0">
        <widget class="QLabel" name="labelOverlay">
@@ -281,6 +279,9 @@
         </property>
        </widget>
       </item>
+      <item row="33" column="1">
+       <widget class="QLineEdit" name="lineEditPositionOffset"/>
+      </item>
       <item row="23" column="1">
        <widget class="QCheckBox" name="checkBoxLabelOutline">
         <property name="text">
@@ -329,9 +330,6 @@
          </spacer>
         </item>
        </layout>
-      </item>
-      <item row="33" column="1">
-       <widget class="QLineEdit" name="lineEditPositionOffset"/>
       </item>
       <item row="13" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_11">
@@ -670,6 +668,9 @@
         </item>
        </widget>
       </item>
+      <item row="12" column="1">
+       <widget class="QComboBox" name="comboBoxOverlay"/>
+      </item>
       <item row="8" column="0">
        <widget class="QLabel" name="labelVertexPointSize">
         <property name="text">
@@ -710,8 +711,15 @@
         </item>
        </layout>
       </item>
-      <item row="12" column="1">
-       <widget class="QComboBox" name="comboBoxOverlay"/>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="lineEditFileName"/>
+      </item>
+      <item row="30" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Spline display</string>
+        </property>
+       </widget>
       </item>
       <item row="11" column="0">
        <widget class="QLabel" name="labelSlope">
@@ -808,16 +816,6 @@
         </item>
        </layout>
       </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="lineEditFileName"/>
-      </item>
-      <item row="30" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Spline display</string>
-        </property>
-       </widget>
-      </item>
       <item row="29" column="0">
        <widget class="QLabel" name="labelVectorPointSize">
         <property name="text">
@@ -879,6 +877,20 @@
           <string>Surface &amp; mesh</string>
          </property>
         </item>
+       </widget>
+      </item>
+      <item row="34" column="0">
+       <widget class="QLabel" name="labelMapCursorTo">
+        <property name="text">
+         <string>Map cursor to</string>
+        </property>
+       </widget>
+      </item>
+      <item row="34" column="1">
+       <widget class="QLineEdit" name="lineEditMappingSurface">
+        <property name="text">
+         <string>white</string>
+        </property>
        </widget>
       </item>
      </layout>

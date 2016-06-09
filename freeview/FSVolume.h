@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/05/18 20:55:37 $
- *    $Revision: 1.47 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -215,7 +215,10 @@ Q_SIGNALS:
   void ProgressChanged( int n );
 
 public slots:
-//  void UpdateMRIToImage();
+  void ResetRef()
+  {
+      m_volumeRef = NULL;
+  }
 
 protected:
   bool LoadMRI( const QString& filename, const QString& reg_filename );

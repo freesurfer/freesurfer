@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/10 19:17:30 $
- *    $Revision: 1.68 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -167,6 +167,7 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect(ui->checkBoxSplineProjection, SIGNAL(toggled(bool)), spline, SLOT(SetProjection(bool)));
   connect(spline, SIGNAL(SplineChanged()), this, SLOT(UpdateWidgets()));
   connect(layer, SIGNAL(RGBMapChanged()), this, SLOT(UpdateWidgets()));
+  connect(ui->lineEditMappingSurface, SIGNAL(textChanged(QString)), layer, SLOT(SetMappingSurfaceName(QString)));
 }
 
 void PanelSurface::DoIdle()
@@ -394,6 +395,12 @@ void PanelSurface::DoUpdateWidgets()
   }
   ui->checkBoxAnnotationOutline->setVisible(layer && layer->GetActiveAnnotation());
   ui->colorpickerSurfaceColor->setEnabled( layer ); // && nCurvatureMap != LayerPropertySurface::CM_Threshold );
+
+  bool isInflated = (layer && layer->GetFileName().contains("inflated"));
+  ui->labelMapCursorTo->setVisible(isInflated);
+  ui->lineEditMappingSurface->setVisible(isInflated);
+  if (isInflated)
+      ui->lineEditMappingSurface->setText(layer->GetMappingSurfaceName());
 
   BlockAllSignals( false );
 }

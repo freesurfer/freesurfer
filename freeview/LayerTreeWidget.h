@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/12/14 22:30:14 $
- *    $Revision: 1.14 $
+ *    $Date: 2016/05/31 18:30:40 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include <QItemDelegate>
 
 class Layer;
+class QDropEvent;
 
 class MyItemDelegate : public QItemDelegate
 {
@@ -56,6 +57,7 @@ public:
   void mouseReleaseEvent(QMouseEvent *event);
 
 signals:
+  void ToReorderLayers(const QList<Layer*>& newlist);
 
 public slots:
   void ForceUpdate();
@@ -79,6 +81,7 @@ public slots:
 protected:
   bool event(QEvent* e);
   void drawRow ( QPainter * painter, const QStyleOptionViewItem & option, const QModelIndex & index ) const;
+  virtual void dropEvent(QDropEvent * event);
 
   MyItemDelegate* m_itemDelegate;
   QRect         rectCheckbox;
