@@ -135,6 +135,9 @@ if [[ -z "$NO_MINC" && ( -z "$MINC_BIN_DIR" || $FS_OVERRIDE != 0 ) ]]; then
     elif [ -e /usr/pubsw/packages/mni/current/bin ]; then
         export MINC_BIN_DIR=/usr/pubsw/packages/mni/current/bin
         export MNI_DIR=/usr/pubsw/packages/mni/current
+    elif [ -e /usr/local/pubsw/packages/mni/current/bin ]; then
+        export MINC_BIN_DIR=/usr/local/pubsw/packages/mni/current/bin
+        export MNI_DIR=/usr/local/pubsw/packages/mni/current
     elif [ -e /usr/local/mni/bin ]; then
         export MINC_BIN_DIR=/usr/local/mni/bin
         export MNI_DIR=/usr/local/mni
@@ -149,6 +152,8 @@ if [[ -z "$NO_MINC" && ( -z "$MINC_LIB_DIR" || $FS_OVERRIDE != 0 ) ]]; then
         export MINC_LIB_DIR=$FREESURFER_HOME/mni/lib
     elif [ -e /usr/pubsw/packages/mni/current/lib ]; then
         export MINC_LIB_DIR=/usr/pubsw/packages/mni/current/lib
+    elif [ -e /usr/local/pubsw/packages/mni/current/lib ]; then
+        export MINC_LIB_DIR=/usr/local/pubsw/packages/mni/current/lib
     elif [ -e /usr/local/mni/lib ]; then
         export MINC_LIB_DIR=/usr/local/mni/lib
     fi
@@ -162,6 +167,8 @@ if [[ -z "$NO_MINC" && ( -z "$MNI_DATAPATH" || $FS_OVERRIDE != 0 ) ]]; then
         export MNI_DATAPATH=$FREESURFER_HOME/mni/data
     elif [ -e /usr/pubsw/packages/mni/current/data ]; then
         export MNI_DATAPATH=/usr/pubsw/packages/mni/current/data
+    elif [ -e /usr/local/pubsw/packages/mni/current/data ]; then
+        export MNI_DATAPATH=/usr/local/pubsw/packages/mni/current/data
     elif [ -e /usr/local/mni/data ]; then
         export MNI_DATAPATH=/usr/local/mni/data
     fi
@@ -176,6 +183,8 @@ if [[ -z "$FSL_DIR" || $FS_OVERRIDE != 0 ]]; then
         export FSL_DIR=$FREESURFER_HOME/fsl
     elif [ -e /usr/pubsw/packages/fsl/current ]; then
         export FSL_DIR=/usr/pubsw/packages/fsl/current
+    elif [ -e /usr/local/pubsw/packages/fsl/current ]; then
+        export FSL_DIR=/usr/local/pubsw/packages/fsl/current
     elif [ -e /usr/local/fsl ]; then
         export FSL_DIR=/usr/local/fsl
     fi

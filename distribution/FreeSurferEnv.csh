@@ -128,6 +128,9 @@ if((! $?NO_MINC) && (! $?MINC_BIN_DIR  || $FS_OVERRIDE)) then
     else if ( -e /usr/pubsw/packages/mni/current/bin) then
         setenv MINC_BIN_DIR /usr/pubsw/packages/mni/current/bin
         setenv MNI_DIR /usr/pubsw/packages/mni/current
+    else if ( -e /usr/local/pubsw/packages/mni/current/bin) then
+        setenv MINC_BIN_DIR /usr/local/pubsw/packages/mni/current/bin
+        setenv MNI_DIR /usr/local/pubsw/packages/mni/current
     else if ( -e /usr/local/mni/bin) then
         setenv MINC_BIN_DIR /usr/local/mni/bin
         setenv MNI_DIR /usr/local/mni
@@ -141,6 +144,8 @@ if((! $?NO_MINC) && (! $?MINC_LIB_DIR  || $FS_OVERRIDE)) then
         setenv MINC_LIB_DIR $FREESURFER_HOME/mni/lib
     else if ( -e /usr/pubsw/packages/mni/current/lib) then
         setenv MINC_LIB_DIR /usr/pubsw/packages/mni/current/lib
+    else if ( -e /usr/local/pubsw/packages/mni/current/lib) then
+        setenv MINC_LIB_DIR /usr/local/pubsw/packages/mni/current/lib
     else if ( -e /usr/local/mni/lib) then
         setenv MINC_LIB_DIR /usr/local/mni/lib
     endif
@@ -153,6 +158,8 @@ if((! $?NO_MINC) && (! $?MNI_DATAPATH  || $FS_OVERRIDE)) then
         setenv MNI_DATAPATH $FREESURFER_HOME/mni/data
     else if ( -e /usr/pubsw/packages/mni/current/data) then
         setenv MNI_DATAPATH /usr/pubsw/packages/mni/current/data
+    else if ( -e /usr/local/pubsw/packages/mni/current/data) then
+        setenv MNI_DATAPATH /usr/local/pubsw/packages/mni/current/data
     else if ( -e /usr/local/mni/data) then
         setenv MNI_DATAPATH /usr/local/mni/data
     endif
@@ -167,6 +174,8 @@ if(! $?FSL_DIR  || $FS_OVERRIDE) then
         setenv FSL_DIR $FREESURFER_HOME/fsl
     else if ( -e /usr/pubsw/packages/fsl/current) then
         setenv FSL_DIR /usr/pubsw/packages/fsl/current
+    else if ( -e /usr/local/pubsw/packages/fsl/current) then
+        setenv FSL_DIR /usr/local/pubsw/packages/fsl/current
     else if ( -e /usr/local/fsl) then
         setenv FSL_DIR /usr/local/fsl
     endif
