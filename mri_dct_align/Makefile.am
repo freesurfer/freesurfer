@@ -2,7 +2,7 @@
 ## Makefile.am 
 ##
 
-AM_CFLAGS=-I$(top_srcdir)/include -pg
+AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mri_dct_align_binary mri_dct_align
