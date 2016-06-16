@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/06 16:02:26 $
- *    $Revision: 1.9 $
+ *    $Date: 2016/06/14 18:29:11 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -114,7 +114,7 @@ template<typename T> QList<T> PanelLayer::GetSelectedLayers()
   foreach (QTreeWidgetItem* item, items)
   {
 //    T t = qobject_cast<T>( item->data(0, Qt::UserRole).template value<QObject*>() );
-    T t = reinterpret_cast<T>(item->data( 0, Qt::UserRole ).value<quintptr>());
+    T t = reinterpret_cast<T>( item->data( 0, Qt::UserRole ).template value<quintptr>() );
     if (t)
       list << t;
   }
