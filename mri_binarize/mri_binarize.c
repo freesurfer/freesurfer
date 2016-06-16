@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/01/07 22:23:57 $
- *    $Revision: 1.42 $
+ *    $Date: 2016/06/09 20:46:21 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.42 2016/01/07 22:23:57 greve Exp $
+// $Id: mri_binarize.c,v 1.43 2016/06/09 20:46:21 greve Exp $
 
 /*
   BEGINHELP
@@ -192,7 +192,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.42 2016/01/07 22:23:57 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.43 2016/06/09 20:46:21 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -708,7 +708,7 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&RMinThresh);
       RMinThreshSet = 1;
       nargsused = 1;
-    } else if (!strcasecmp(option, "--max")) {
+    } else if (!strcasecmp(option, "--rmax")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&RMaxThresh);
       RMaxThreshSet = 1;
