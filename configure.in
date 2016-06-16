@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2016/06/11 20:50:53 $
-#    $Revision: 1.670 $
+#    $Author: zkaufman $
+#    $Date: 2016/06/16 21:25:18 $
+#    $Revision: 1.671 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -705,10 +705,11 @@ fi
 if test -e /usr/lib64/libgfortran.a ; then
   LIB_GFORTRAN="/usr/lib64/libgfortran.a"
 fi
-# centos7 installation location 
-if test -e /usr/lib/gcc/x86_64-redhat-linux/4.8.2/libgfortran.a ; then
-  LIB_GFORTRAN="/usr/lib64/libgfortran.a"
+# ubuntu 16.04 installation location 
+if test -e /usr/lib/gcc/x86_64-linux-gnu/4.8/libgfortran.a ; then
+  LIB_GFORTRAN="/usr/lib/gcc/x86_64-linux-gnu/4.8/libgfortran.a"
 fi
+
 
 
 AC_SUBST(LIB_GFORTRAN)
