@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/04/11 01:00:12 $
- *    $Revision: 1.52 $
+ *    $Date: 2016/06/15 17:49:47 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2095,6 +2095,11 @@ FACE *MHTfindClosestFaceToVertex(MRIS_HASH_TABLE *mht,
 
 /*---------------------------------------------------------------------
   MHTfindClosestVertexSet.
+
+  updated by BRF 6/10/2016. I don't think this is called anywhere so I'm going
+  to revert to the indended usage and have it use the vertex locations specified 
+  by the which parameter instead of  v->[xyz].
+
   Comment revised 2007-07-25:
   Returns vertex in mht and mris that is closest to v->x, v->y, v->z.
   The which parameter is actually ignored. However, it suggests that 
@@ -2133,6 +2138,10 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
               "%s called with mismatched 'which' parameter\n",
               __MYFUNCTION__) ;
 
+#if 1
+  // don't understand Graham's comments below. Should use the specified vertex set
+  mhtVertex2xyz_float(v, mht->which_vertices, &x, &y, &z);   
+#else
   //---------------------------------
   // Generic find
   //---------------------------------
@@ -2143,6 +2152,7 @@ VERTEX * MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
   y = v->y;
   z = v->z;
   // End [GW 2007-07-25]
+#endif
 
   rslt = MHTfindClosestVertexGeneric(mht, mris,
                                      x, y, z,
