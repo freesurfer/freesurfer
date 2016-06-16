@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/10 19:17:30 $
- *    $Revision: 1.70 $
+ *    $Date: 2016/06/14 02:00:41 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -123,6 +123,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "timecourse", "timecourse", "", "Show time course window." ),
     CmdLineEntry( CMD_LINE_SWITCH, "transform-volume", "transform-volume", "", "Show transform volume window." ),
     CmdLineEntry( CMD_LINE_SWITCH, "colorscale", "colorscale", "", "Show color scale bar on the main view." ),
+    CmdLineEntry( CMD_LINE_OPTION, "write-slice-intersection", "write-slice-intersection", "<plane> <filename_format> <start> <end>", "Save polylines of the surface intersected by slice. plane can be sag/cor/hor.", 4, 4 ),
     CmdLineEntry( CMD_LINE_OPTION, "cmd", "command", "<FILE>", "Load freeview commands from a text file.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "hide", "hide", "<LAYER_TYPE>", "Hide the current layer. This is useful for loading comands by -cmd option. Valid LAYER_TYPEs are volume, surface, label, etc.", 1, 1 ),
     CmdLineEntry( CMD_LINE_OPTION, "unload", "unload", "<LAYER_TYPE>", "Unload/Close the current layer. Useful for loading comands by -cmd option. Valid LAYER_TYPEs are volume, surface, label, etc.", 1, 1 ),
