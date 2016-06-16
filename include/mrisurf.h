@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/30 20:34:55 $
- *    $Revision: 1.386 $
+ *    $Date: 2016/06/13 21:20:56 $
+ *    $Revision: 1.387 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1142,6 +1142,7 @@ int   MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain,
                       MRI *mri_smooth, INTEGRATION_PARMS *parms);
 int   MRISscaleVals(MRI_SURFACE *mris, float scale) ;
 int   MRISsetVals(MRI_SURFACE *mris, float val) ;
+int   MRISsetValBaks(MRI_SURFACE *mris, float val) ;
 int   MRISaverageD(MRI_SURFACE *mris, int navgs) ;
 int   MRISgaussianFilterD(MRI_SURFACE *mris, double wt) ;
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
@@ -2059,6 +2060,7 @@ int MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double 
 int
 MRISsampleFaceCoordsCanonical(MHT *mht, MRI_SURFACE *mris, float x, float y, float z, int which, 
                               float *px, float *py, float *pz) ;
+MRI *MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src_features, MRI *mri_dst_features) ;
 int MRISsampleFaceCoords(MRI_SURFACE *mris,
                          int fno,
                          double x, double y, double z,
