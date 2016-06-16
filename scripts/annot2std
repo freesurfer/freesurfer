@@ -6,9 +6,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2016/02/12 21:43:14 $
-#    $Revision: 1.4 $
+#    $Author: greve $
+#    $Date: 2016/06/13 18:00:34 $
+#    $Revision: 1.5 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: annot2std,v 1.4 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = '$Id: annot2std,v 1.5 2016/06/13 18:00:34 greve Exp $';
 
 set target = ();
 set subjlist = ();
@@ -106,7 +106,10 @@ foreach subject ($subjlist)
   set seg = $tmpdir/seg.$nthsubject.$subject.mgh
   set ctab = $tmpdir/seg.$nthsubject.$subject.ctab
   set cmd = (mri_annotation2label --subject $subject --hemi $hemi \
-    --seg $seg --ctab $ctab --annotation $inannot)
+    --seg $seg --ctab $ctab --annotation $inannot --segbase 0)
+  # Force segbase=0 otherwise annotation2label sets it to non-zero
+  # if aparc or aparc.2005s; this messes up mri_aparc2aseg and maybe
+  # other things
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
