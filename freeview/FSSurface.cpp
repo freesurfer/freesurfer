@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/18 19:14:28 $
- *    $Revision: 1.80 $
+ *    $Date: 2016/06/10 19:52:41 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -452,6 +452,13 @@ bool FSSurface::LoadOverlay( const QString& filename, const QString& fn_reg,
   if (mriheader && mriheader->width*mriheader->height*mriheader->depth != m_MRIS->nvertices &&
       mriheader->width*mriheader->height*mriheader->depth*mriheader->nframes != m_MRIS->nvertices )
   {
+    if (mriheader->height == 1 && mriheader->depth == 1)
+    {
+        // likely wrong overlay data
+        cerr << "Number of vertices in overlay data does not match with surface.\n";
+        return false;
+    }
+
     // try load as volume
     MRI* mri = MRIread(filename.toAscii().data());
     if (!mri)
@@ -1667,8 +1674,9 @@ int FSSurface::FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3],
   v.y = iSurfaceRAS[1];
   v.z = iSurfaceRAS[2];
   float distance;
+  int nSurface = m_nActiveSurface;
   int nClosestVertex =
-    MHTfindClosestVertexNo( m_HashTable[m_nActiveSurface], m_MRIS, &v, &distance );
+    MHTfindClosestVertexNo( m_HashTable[nSurface], m_MRIS, &v, &distance );
 
   if ( -1 == nClosestVertex )
   {
@@ -1692,7 +1700,8 @@ int FSSurface::FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3],
   v.y = static_cast<float>(iSurfaceRAS[1]);
   v.z = static_cast<float>(iSurfaceRAS[2]);
   float distance;
-  int nClosestVertex = MHTfindClosestVertexNo( m_HashTable[m_nActiveSurface], m_MRIS, &v, &distance );
+  int nSurface = m_nActiveSurface;
+  int nClosestVertex = MHTfindClosestVertexNo( m_HashTable[nSurface], m_MRIS, &v, &distance );
   if ( -1 == nClosestVertex )
   {
     // cerr << "No vertices found.";

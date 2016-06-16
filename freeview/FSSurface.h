@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/18 17:25:04 $
- *    $Revision: 1.48 $
+ *    $Date: 2016/06/10 19:52:41 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -285,7 +285,7 @@ protected:
   vtkSmartPointer<vtkPolyData> m_polydataTarget;
 
   // Hash table so we can look up vertices. Uses v->x,y,z.
-  MRIS_HASH_TABLE* m_HashTable[5];
+  MRIS_HASH_TABLE* m_HashTable[NUM_OF_VSETS];
 
   bool m_bSurfaceLoaded[NUM_OF_VSETS];
   bool m_bCurvatureLoaded;

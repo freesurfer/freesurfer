@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/05 20:25:28 $
- *    $Revision: 1.14 $
+ *    $Date: 2016/06/10 19:52:40 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,7 @@
 
 
 Cursor3D::Cursor3D( RenderView3D* view ) : QObject( view ),
-  m_view( view )
+  m_view( view ), m_bLarge(false), m_dScale(1.0)
 {
   m_actorCursor = vtkSmartPointer<vtkActor>::New();
   m_actorCursor->GetProperty()->SetColor( 1, 0, 0 );
@@ -59,7 +59,10 @@ void Cursor3D::RebuildActor(double scale)
 {
 // vtkRenderer* renderer = m_view->GetRenderer();
 
-  double dLen = 1.5*scale;
+  if (scale > 0)
+      m_dScale = scale;
+
+  double dLen = 1.5*m_dScale * (m_bLarge?2:1);
   int n = 0;
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
@@ -86,7 +89,7 @@ void Cursor3D::RebuildActor(double scale)
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
   tube->SetInput( polydata );
   tube->SetNumberOfSides( 12 );
-  tube->SetRadius( 0.1*scale );
+  tube->SetRadius( 0.1*dLen/1.5 );
   tube->CappingOn();
 
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -94,6 +97,12 @@ void Cursor3D::RebuildActor(double scale)
 
   m_actorCursor->SetMapper( mapper );
   emit Updated();
+}
+
+void Cursor3D::SetLarge(bool bLarge)
+{
+    m_bLarge = bLarge;
+    RebuildActor();
 }
 
 

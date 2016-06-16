@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.19 $
+ *    $Author: rpwang $
+ *    $Date: 2016/06/10 19:52:40 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 Cursor2D::Cursor2D( RenderView2D* view ) : QObject( view ),
   m_view( view ),
   m_nRadius( 5 ),
-  m_nStyle( CS_Short )
+  m_nStyle( CS_Small )
 {
   m_actorCursor = vtkSmartPointer<vtkActor2D>::New();
   m_actorCursor->GetProperty()->SetColor( 1, 0, 0 );
@@ -76,6 +76,7 @@ void Cursor2D::SetPosition( double* pos, bool bConnectPrevious  )
 void Cursor2D::SetStyle( int nStyle )
 {
   m_nStyle = nStyle;
+  m_nRadius = (nStyle == CS_Small?5:10);
   Update();
 }
 
@@ -128,7 +129,7 @@ void Cursor2D::Update( bool bConnectPrevious )
   lines->InsertNextCell( 2 );
   lines->InsertCellPoint( n++ );
   lines->InsertCellPoint( n++ );
-  if ( m_nStyle == CS_Short )
+  if ( m_nStyle != CS_Long )
   {
     int w, h;
     w = m_view->rect().width();

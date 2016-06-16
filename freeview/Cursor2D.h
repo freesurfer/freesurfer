@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.18 $
+ *    $Author: rpwang $
+ *    $Date: 2016/06/10 19:52:40 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,7 @@ public:
   Cursor2D( RenderView2D* view );
   virtual ~Cursor2D();
 
-  enum CursorStyle { CS_Short = 0, CS_Long };
+  enum CursorStyle { CS_Small = 0, CS_Large, CS_Long };
 
   void SetPosition( double* pos, bool bConnectPrevious = false );
   void SetPosition2( double* pos);

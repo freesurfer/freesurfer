@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/05 20:25:28 $
- *    $Revision: 1.13 $
+ *    $Date: 2016/06/10 19:52:40 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,9 +60,16 @@ public:
 
   bool IsShown();
 
+
 public slots:
   void SetColor( const QColor& color );
-  void RebuildActor(double scale = 1);
+  void RebuildActor(double scale = -1);
+  void SetLarge(bool bLarge);
+  void SetStyle(int nStyle)
+  {
+      if (nStyle < 2)
+          SetLarge(nStyle);
+  }
 
 Q_SIGNALS:
   void Updated();
@@ -74,6 +81,8 @@ private:
   RenderView3D* m_view;
 
   double  m_dPosition[3];
+  bool    m_bLarge;
+  double  m_dScale;
 };
 
 #endif

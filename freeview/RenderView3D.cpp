@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/31 18:30:40 $
- *    $Revision: 1.89 $
+ *    $Date: 2016/06/10 19:52:41 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -593,7 +593,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
                         this->AlignViewToNormal(v);
                     }
                 }
-            }
+              }
             }
 
           lc_mri->SetCursorRASPosition( pos );

@@ -98,7 +98,12 @@
        <widget class="QComboBox" name="comboBoxCursorStyle">
         <item>
          <property name="text">
-          <string>Short</string>
+          <string>Small</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Large</string>
          </property>
         </item>
         <item>

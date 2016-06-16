@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/29 15:34:14 $
- *    $Revision: 1.19 $
+ *    $Date: 2016/06/10 19:52:41 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,7 @@
 #include "LayerPropertyMRI.h"
 #include "LayerPropertySurface.h"
 #include "LayerSurface.h"
+#include "FSSurface.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceAnnotation.h"
 #include "MyUtils.h"
@@ -178,9 +179,15 @@ void InfoTreeWidget::UpdateAll()
     if ( surf->GetProperty()->GetShowInfo() )
     {
       QTreeWidgetItem* item = new QTreeWidgetItem(this);
-      item->setText(0, surf->GetName());
+      item->setText(0, surf->GetName());int nVertex = -1;
+      bool bMappingVertex = surf->GetFileName().contains("inflated");
+      if (bMappingVertex)
+          nVertex = surf->GetCurrentVertex();
       double sf_pos[3];
-      surf->GetSurfaceRASAtTarget( m_dRAS, sf_pos );
+      if (bMappingVertex && nVertex >= 0)
+          surf->GetSourceSurface()->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, sf_pos);
+      else
+          surf->GetSurfaceRASAtTarget( m_dRAS, sf_pos );
       QString editable = QString("%1, %2, %3")
                          .arg(sf_pos[0], 0, 'f', 2)
                          .arg(sf_pos[1], 0, 'f', 2)
@@ -192,10 +199,14 @@ void InfoTreeWidget::UpdateAll()
       map["Object"] = QVariant::fromValue((QObject*)surf);
       item->setData(1, Qt::UserRole, map);
 
-      int nVertex = surf->GetVertexIndexAtTarget( m_dRAS, NULL );
+      if (nVertex < 0)
+          nVertex = surf->GetVertexIndexAtTarget( m_dRAS, NULL );
       if ( nVertex >= 0 )
       {
-        surf->GetSurfaceRASAtVertex( nVertex, sf_pos );
+        if (bMappingVertex)
+            surf->GetSourceSurface()->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, sf_pos);
+        else
+            surf->GetSurfaceRASAtVertex( nVertex, sf_pos );
         QTreeWidgetItem* item = new QTreeWidgetItem(this);
         item->setText(1, QString("Vertex \t%1  [%2, %3, %4]")
                       .arg(nVertex)

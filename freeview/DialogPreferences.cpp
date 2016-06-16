@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/31 18:30:40 $
- *    $Revision: 1.20 $
+ *    $Date: 2016/06/10 19:52:40 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,8 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   }
   connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)),
           ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetColor(QColor)));
+  connect(ui->comboBoxCursorStyle, SIGNAL(currentIndexChanged(int)),
+          ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetStyle(int)));
   connect(ui->checkBoxSyncZoom, SIGNAL(toggled(bool)),
           mainwnd, SLOT(SyncZoom(bool)));
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)),
