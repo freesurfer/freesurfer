@@ -39,9 +39,9 @@ private:
   void copyVnlToFloat( const vnl_vector<double>* input, float* output,
                        const int n);
 
-  const bool hasStepFunction();
+  bool hasStepFunction();
 
-  const bool hasUserCallbackFunction();
+  bool hasUserCallbackFunction();
 
 };
 

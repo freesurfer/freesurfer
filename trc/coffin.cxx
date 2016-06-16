@@ -8,7 +8,7 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -411,7 +411,7 @@ bool Aeon::MapPathFromBase(Spline &BaseSpline) {
 //
 // Find duplicate consecutive points along the current path
 //
-const void Aeon::FindDuplicatePathPoints(vector<bool> &IsDuplicate) {
+void Aeon::FindDuplicatePathPoints(vector<bool> &IsDuplicate) {
   vector<bool>::iterator idup = IsDuplicate.begin();
   vector<int>::const_iterator ipt = mPathPoints.begin();
 

@@ -34,7 +34,7 @@ public:
     inline T &operator()( int i, int j ) { assertDebug( i >= 0 && i < m_rows && j >= 0 && j < m_cols ); return m_data[ i ][ j ]; }
     inline T data( int i, int j ) const { assertDebug( i >= 0 && i < m_rows && j >= 0 && j < m_cols ); return m_data[ i ][ j ]; }
     inline T &data( int i, int j ) { assertDebug( i >= 0 && i < m_rows && j >= 0 && j < m_cols ); return m_data[ i ][ j ]; }
-    inline T **const dataPtr() const { return m_data; } 
+    inline T **dataPtr() const { return m_data; } 
     inline T **dataPtr() { return m_data; }
     inline T *dataVectPtr() { return m_dataVect; }
     inline const T *dataVectPtr() const { return m_dataVect; }

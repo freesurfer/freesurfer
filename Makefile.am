@@ -113,6 +113,7 @@ MRISUBDIRS=\
 	mri_histo_normalize \
 	mri_fuse_segmentations \
 	mri_fuse_intensity_images \
+	mri_sbbr \
 	mri_simulate_atrophy \
 	mri_joint_density \
 	mri_label_histo \
@@ -422,15 +423,15 @@ SUBDIRS=\
 fastbuild:
 	@list='$(COREDIRS)'; \
 	for d in $$list; do \
-		cd "$$d"; make -j 16; cd - ; \
+		cd "$$d"; make -j --max-load 8; cd - ; \
 	done
 	@list='$(OTHERDIRS)'; \
 	for d in $$list; do \
-		cd "$$d"; (make -j 16 &) ; sleep 0.4; cd - ; \
+		cd "$$d"; (make -j --max-load 8 &) ; sleep 0.1; cd - ; \
 	done
 	@list='$(BIGDIRS)'; \
 	for d in $$list; do \
-		cd "$$d"; (make -j 16); cd - ; \
+		cd "$$d"; (make -j --max-load 8); cd - ; \
 	done
 	sleep 10
 	make

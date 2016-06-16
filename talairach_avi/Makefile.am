@@ -1,9 +1,17 @@
+
+
 ##
 ## Makefile.am
 ##
 
 # Fortran flags
+if HAVE_INTEL_COMPILER
+# ifort
+AM_FFLAGS=-ax=CORE-AVX512 -qopenmp -132 -nofor_main
+else
+# gfortran
 AM_FFLAGS=-ffixed-line-length-132 -fno-second-underscore
+endif
 
 # LIB_G2C_A is defined to libg2c.a (static lib) if configure find it
 AM_LDFLAGS=$(LIB_G2C_A)

@@ -8,7 +8,7 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -66,7 +66,7 @@ class Aeon {		// One point in time
     const string &GetOutputDir() const;
     void ClearPath();
     bool MapPathFromBase(Spline &BaseSpline);
-    const void FindDuplicatePathPoints(std::vector<bool> &IsDuplicate);
+    void FindDuplicatePathPoints(std::vector<bool> &IsDuplicate);
     void RemovePathPoints(std::vector<bool> &DoRemove, unsigned int NewSize=0);
     void ProposeDiffusionParameters();
     bool ComputePathDataFit();
@@ -255,4 +255,3 @@ class Coffin {		// The main container
 };
 
 #endif
-

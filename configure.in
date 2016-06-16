@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2016/06/09 17:13:54 $
-#    $Revision: 1.668 $
+#    $Author: nicks $
+#    $Date: 2016/06/11 20:50:53 $
+#    $Revision: 1.670 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -33,16 +33,14 @@ AC_CONFIG_MACRO_DIR([m4])
 
 ########################################################################
 # To use the Intel C/C++ compiler, assuming it is installed here:
-#   /opt/intel/cce/10.0.023
+#   /somepath/intel
 # do this prior to configuring:
-#   source /opt/intel/cce/10.0.023/bin/iccvars.csh
+#   source /somepath/intel/bin/iccvars.csh -arch intel64 -platform linux
 #   setenv CC icc
 #   setenv CXX icpc
 #   setenv LD icpc
-#   setenv LDFLAGS "-L/opt/intel/cce/10.0.023/lib"
-#
-# Note: until all the warnings produced by icc are fixed in the source,
-# it is necessary to remove -Werror from CFLAGS (see WERROR in this file)
+#   setenv LDFLAGS "-L/somepath/intel/lib"
+#   setenv AR xiar
 ########################################################################
 
 ##############################################################
@@ -208,12 +206,17 @@ fi
 AC_PROG_CXX
 AC_PROG_AWK
 AC_PROG_CC
+AM_PROG_CC_C_O # allows flag override in Makefile.am, ex. tksurfer_CFLAGS=$(CFLAGS) -O2
 AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_LIBTOOL
 AC_LIBTOOL_CXX
+# use Intel Fortran compiler if using Intel C compiler
+if test "x$CC" = "xicc"; then
+  F77="ifort"
+fi
 AC_PROG_F77
 if test "x$F77" = "x"; then
 	AC_MSG_ERROR([FATAL: A Fortran 77 compiler is required!])
@@ -515,11 +518,13 @@ AC_ARG_ENABLE(Werror,
  [  --disable-Werror        do not add -Werror to compiler flags],
  [ WERROR="" ],
  [ WERROR="-Werror" ])
-# the Intel C/C++ compiler complains about *a lot* of stuff, so 
-# escalating warnings to errors (which stops the build) is not an 
-# possible right now
+# the Intel C/C++ compiler issues warnings not yet fixed in the code, so
+# include -diag-disable <errorno> flag to disable specific icc warnings
+# so that escalating warnings to errors (which stops the build) is still
+# possible.
 if test "x$CC" = "xicc"; then
-  WERROR=""
+  WERROR="$WERROR -diag-disable 1268"
+  # warning #1268: support for exported templates is disabled
 fi
 
 # to strip unused code when using Linux gcc.
@@ -556,9 +561,19 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- # note: gcc 4.4 flags -ftree-vectorize -msse4.1 dont help over just -msse2
- CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
- FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ if test "x$CC" = "xicc"; then
+  # Intel compiler vector options defined later
+  CPPFLAGS="-g -O3 $WALL $WERROR"
+ else
+  # note: gcc 4.4 flags -ftree-vectorize -msse4.1 dont help over just -msse2
+  CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
+ fi
+ if test "x$F77" = "xifort"; then
+  # Intel compiler vector options defined later
+  FFLAGS="-g -O3"
+ else
+  FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ fi
  ac_have_sse_mathfun=yes
  TEEM_32BIT=0
  ;;
@@ -725,16 +740,41 @@ AM_CONDITIONAL(USE_SSE_MATHFUN, test "x$ac_have_sse_mathfun" = "xyes")
 # OpenMP
 ##############################################################
 ac_have_openmp=no
+OPENMP_FLAG=""
 AC_ARG_ENABLE(openmp,
  [  --enable-openmp         enable OpenMP multi-core support],
  [ ac_have_openmp=yes
    AC_MSG_NOTICE(Using OpenMP)
    if test "${CC}" = "icc"; then
-     CPPFLAGS="-D_OPENMP -openmp $CPPFLAGS"
+     OPENMP_FLAG="-qopenmp"
+     CPPFLAGS="-D_OPENMP $OPENMP_FLAG $CPPFLAGS"
    else
-     CPPFLAGS="-D_OPENMP -fopenmp $CPPFLAGS"
+     OPENMP_FLAG="-fopenmp"
+     CPPFLAGS="-D_OPENMP $OPENMP_FLAG $CPPFLAGS"
    fi  
  ])
+
+# gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
+if test "$ac_have_gcc_44" = "yes"; then
+  ac_have_openmp=yes
+  OPENMP_FLAG="-fopenmp"
+  CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
+  LDFLAGS="$LDFLAGS $OPENMP_FLAG"
+  AC_MSG_NOTICE(Using OpenMP with gcc 4.x)
+fi
+
+# Intel icc supports openmp, so enable it by default (no harm in doing so)
+if test "x$CC" = "xicc"; then
+  ac_have_openmp=yes
+  OPENMP_FLAG="-qopenmp"
+  CPPFLAGS="$CPPFLAGS $OPENMP_FLAG -DHAVE_OPENMP"
+  LDFLAGS="$LDFLAGS $OPENMP_FLAG"
+  AC_MSG_NOTICE(Using OpenMP with Intel Compiler)
+fi
+
+AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
+AC_SUBST(OPENMP_FLAG)
+
 
 ##############################################################
 # Avx2 Architecture
@@ -746,15 +786,6 @@ AC_ARG_ENABLE(avx2,
    AC_MSG_NOTICE(Using avx2)
    CPPFLAGS="-march=core-avx2 -mno-fma $CPPFLAGS"
  ])
-
-# gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
-if test "$ac_have_gcc_44" = "yes"; then
-  ac_have_openmp=yes
-  CPPFLAGS="$CPPFLAGS -fopenmp -DHAVE_OPENMP"
-  LDFLAGS="$LDFLAGS -fopenmp"
-  AC_MSG_NOTICE(Using OpenMP with gcc 4.x)
-fi
-AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
 
 ##############################################################
 # OpenCV
@@ -1091,14 +1122,6 @@ AC_MSG_RESULT($found)
 
 #####
 # if gcc
-fi
-
-# if using the Intel compiler, enable additional interprocedural 
-# optimizations for single file compilation, and generate  SSE3, SSE2, 
-# and SSE instructions, and enable auto-parallelization. 
-if test "x$CC" = "xicc"; then
-  AC_MSG_NOTICE(Setting Intel Compiler optimizations...)
-  CPUFLAGS="-ip -axP -parallel -O3 -fast -msse3 -xO -unroll-aggressive $CPUFLAGS"
 fi
 
 # if using the AMD Open64 compiler, flags for the fastest optimization dont work.
@@ -3516,12 +3539,14 @@ fi
 
 
 ###########################################################
-# Intel C/C++ compiler stuff
+# More Intel C/C++ compiler stuff
 ###########################################################
 LIBS_ICC=""
 if test "x$CC" = "xicc"; then
-  LIBS_ICC="-lirc -lsvml -lguide -limf -lpthread"
+  AC_MSG_NOTICE(Setting Intel Compiler libs...)
+  LIBS_ICC="-lirc -lsvml -limf"
 fi
+
 AC_SUBST(LIBS_ICC)
 AM_CONDITIONAL(HAVE_INTEL_COMPILER, test "x$CC" = "xicc" )
 
@@ -3556,6 +3581,19 @@ AC_SUBST(LDFLAGS_TCL)
 AC_SUBST(LIBS_TCL)
 AC_SUBST(LIBS_TCL_OPENGL)
 
+# if using the Intel compiler, enable additional interprocedural 
+# optimizations for single file compilation, and enable auto-parallelization.
+# this is done here because if added earlier -ipo breaks the OpenGL check
+if test "x$CC" = "xicc"; then
+  AC_MSG_NOTICE(Setting Intel Compiler optimizations...)
+  CPPFLAGS="$CPPFLAGS -ip -axCORE-AVX2" 
+  CPPFLAGS="$CPPFLAGS -parallel"
+  CPPFLAGS="$CPPFLAGS -qopt-report=5" # -guide-par
+  LDFLAGS="$LDFLAGS -ip"
+fi
+if test "x$F77" = "xifort"; then
+  FFLAGS="$FFLAGS -xCORE-AVX2"
+fi
 
 ###########################################################
 # some common flags and libs
@@ -3566,8 +3604,14 @@ $ITK_LIBS $EXPAT_LIBS"
 # The order is important here. When adding or removing a lib, be sure
 # to test the link line to make sure you don't need to adjust the
 # order.
-LIBS="-lz -lm $LIB_CRYPT -ldl -lpthread $LIBS"
-#LIBS="-lz -lm $LIB_CRYPT -lpthread -luuid -lblas -lXmu -llapack $LIBS"
+if test "x$CC" = "xicc"; then
+  AC_MSG_NOTICE(Using Intel Math Kernel Library)
+  MATH_LIBS="-lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core"
+  MATH_LIBS="$MATH_LIBS -liomp5 -lm"
+else
+  MATH_LIBS="-lm"
+fi
+LIBS="-lz $MATH_LIBS $LIB_CRYPT -ldl -lpthread $LIBS"
 LIBS="$LIBS $LIB_JPEG"
 LIBS="$LIBS $LIB_TIFF"
 LIBS="$LIBS $LIB_EXPAT"
@@ -3741,13 +3785,13 @@ AC_OUTPUT([Makefile
            mri_cht2p/Makefile
            mri_cnr/Makefile
            mri_compile_edits/Makefile
-	   mri_coreg/Makefile
+           mri_coreg/Makefile
            mri_update_gca/Makefile
            mri_compute_overlap/Makefile
            mri_compute_seg_overlap/Makefile
            mri_concat/Makefile
            mri_concatenate_gcam/Makefile
-     	   mri_concatenate_lta/Makefile
+      	   mri_concatenate_lta/Makefile
            mri_convert/Makefile
            mri_mosaic/Makefile
            mri_convert_mdh/Makefile
@@ -3791,6 +3835,7 @@ AC_OUTPUT([Makefile
            mri_hausdorff_dist/Makefile
            mri_fuse_segmentations/Makefile
            mri_fuse_intensity_images/Makefile
+           mri_sbbr/Makefile
            mri_simulate_atrophy/Makefile
            mri_joint_density/Makefile
            mri_label2label/Makefile
@@ -3998,7 +4043,7 @@ AC_OUTPUT([Makefile
            nmovie/Makefile
            oct_train/Makefile
            oct_register_mosaic/Makefile
-	   nmovie_qt/Makefile
+	         nmovie_qt/Makefile
            optseq2/Makefile
            orient_mri/Makefile
            qdec/Makefile
@@ -4042,9 +4087,6 @@ AC_OUTPUT([Makefile
            vtkutils/Makefile
            lineprof/Makefile
            xml2/Makefile])
-
-#           mri_edit_seg_with_ribbons/Makefile
-
 
 ########################################################################
 

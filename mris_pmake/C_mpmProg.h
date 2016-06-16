@@ -12,11 +12,11 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2012/11/20 18:17:44 $
- *    $Revision: 1.19 $
+ *    $Author: nicks $
+ *    $Date: 2016/06/11 20:50:54 $
+ *    $Revision: 1.20 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -130,16 +130,16 @@ class C_mpmProg {
     const string        str_name_get()          const {
         return mstr_name;
     };
-    const int           id_get()                const {
+    int           id_get()                const {
         return mid;
     };
-    const int           verbosity_get()         const {
+    int           verbosity_get()         const {
         return mverbosity;
     };
-    const int           warnings_get()          const {
+    int           warnings_get()          const {
         return mwarnings;
     };
-    const int           stackDepth_get()        const {
+    int           stackDepth_get()        const {
         return mstackDepth;
     };
 

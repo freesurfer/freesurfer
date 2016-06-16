@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/05/10 15:18:25 $
- *    $Revision: 1.97 $
+ *    $Author: nicks $
+ *    $Date: 2016/06/11 20:50:55 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1608,7 +1608,7 @@ float mad(float a[], int n)
 }
 
 
-int nint( double f )
+int nint( const double f )
 {
   return (f<0?((int)(f-0.5)):((int)(f+0.5)));
 }

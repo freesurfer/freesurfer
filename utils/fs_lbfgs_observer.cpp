@@ -71,12 +71,12 @@ void fs_lbfgs_observer::update( double bestF, vnl_vector< double >* bestX )
 
 }
 
-const bool fs_lbfgs_observer::hasStepFunction()
+bool fs_lbfgs_observer::hasStepFunction()
 {
   return ( mStepFunction != NULL );
 }
 
-const bool fs_lbfgs_observer::hasUserCallbackFunction()
+bool fs_lbfgs_observer::hasUserCallbackFunction()
 {
   return ( mUserCallbackFunction != NULL );
 }

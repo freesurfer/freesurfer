@@ -8,10 +8,10 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:40 $
- *    $Revision: 1.3 $
+ *    $Date: 2016/06/11 20:50:54 $
+ *    $Revision: 1.4 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -95,7 +95,7 @@ public:
     return _svData;
   }
 
-  const SvmReal* const svData(int i) const {
+  const SvmReal* svData(int i) const {
     return _svData[i];
   }
 

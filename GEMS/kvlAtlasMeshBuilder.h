@@ -92,7 +92,7 @@ public :
   {
     m_NumberOfUpsamplingSteps = numberOfUpsamplingSteps;
   }
-  const unsigned int  GetNumberOfUpsamplingSteps() const
+  unsigned int  GetNumberOfUpsamplingSteps() const
   {
     return m_NumberOfUpsamplingSteps;
   }

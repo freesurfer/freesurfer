@@ -7,9 +7,9 @@
 /*
  * Original Author: Koen Van Leemput
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/12/09 20:20:56 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2016/06/11 20:50:54 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -595,14 +595,10 @@ std::vector< UCharImageType::ConstPointer >  GetCrispClassifications( const std:
 //
 template < typename SourceImageType, typename TargetImageType >
 typename TargetImageType::Pointer Convert( const SourceImageType* image,
-    typename SourceImageType::PixelType sourceMinVal
-    = itk::NumericTraits< typename SourceImageType::PixelType >::min(),
-    typename SourceImageType::PixelType sourceMaxVal
-    = itk::NumericTraits< typename SourceImageType::PixelType >::max(),
-    typename TargetImageType::PixelType targetMinVal
-    = itk::NumericTraits< typename TargetImageType::PixelType >::min(),
-    typename TargetImageType::PixelType targetMaxVal
-    = itk::NumericTraits< typename TargetImageType::PixelType >::max() )
+    typename SourceImageType::PixelType sourceMinVal,
+    typename SourceImageType::PixelType sourceMaxVal,
+    typename TargetImageType::PixelType targetMinVal,
+    typename TargetImageType::PixelType targetMaxVal )
 {
   typedef itk::IntensityWindowingImageFilter< SourceImageType, TargetImageType >   WindowerType;
   typename WindowerType::Pointer  windower = WindowerType::New();

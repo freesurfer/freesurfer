@@ -7,10 +7,10 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/02/27 21:18:07 $
- *    $Revision: 1.2 $
+ *    $Date: 2016/06/11 20:50:54 $
+ *    $Revision: 1.3 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
  *
  * Terms and conditions for use, reproduction, distribution and contribution
  * are found in the 'FreeSurfer Software License Agreement' contained
@@ -116,16 +116,16 @@ public:
   const string        str_name_get()  const {
     return str_name;
   };
-  const int         id_get()  const {
+  int         id_get()  const {
     return id;
   };
-  const int         verbosity_get()  const {
+  int         verbosity_get()  const {
     return verbosity;
   };
-  const int           warnings_get()          const {
+  int           warnings_get()          const {
     return warnings;
   };
-  const int           stackDepth_get() const {
+  int           stackDepth_get() const {
     return stackDepth;
   };
 

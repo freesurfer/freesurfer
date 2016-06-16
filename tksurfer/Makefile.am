@@ -28,6 +28,10 @@ tksurfer_LDADD= $(top_builddir)/fsgdf/libfsgdf.a \
 	$(X_LIBS) -lGL $(LIBTIFF) \
 	$(top_builddir)/glut/libglut.a
 tksurfer_LDFLAGS=$(LDFLAGS_TCL)
+if HAVE_INTEL_COMPILER
+# icc gives 'internal error: 04010026_0' if -O3 is used
+tksurfer_CFLAGS=$(CFLAGS) -O2
+endif
 else
 bin_PROGRAMS=
 endif
