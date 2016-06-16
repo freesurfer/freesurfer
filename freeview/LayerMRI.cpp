@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/31 18:30:40 $
- *    $Revision: 1.168 $
+ *    $Date: 2016/06/15 16:57:49 $
+ *    $Revision: 1.169 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1396,6 +1396,16 @@ void LayerMRI::RASToOriginalIndex( const double* pos, int* n )
 {
   m_volumeSource->RASToOriginalIndex( (float)(pos[0]), (float)(pos[1]), (float)(pos[2]),
                                       n[0], n[1], n[2] );
+}
+
+void LayerMRI::RASToOriginalIndex(const double *pos, double *n_out)
+{
+  float fPos[3] = {(float)pos[0], (float)pos[1], (float)pos[2]};
+  float fout0, fout1, fout2;
+  m_volumeSource->RASToOriginalIndex(fPos[0], fPos[1], fPos[2], fout0, fout1, fout2);
+  n_out[0] = fout0;
+  n_out[1] = fout1;
+  n_out[2] = fout2;
 }
 
 void LayerMRI::OriginalIndexToRAS( const int* n, double* pos )

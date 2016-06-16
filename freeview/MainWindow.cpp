@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/08 17:24:31 $
- *    $Revision: 1.339 $
+ *    $Date: 2016/06/15 16:57:49 $
+ *    $Revision: 1.343 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -547,6 +547,8 @@ void MainWindow::LoadSettings()
     else
     {
       ((RenderView3D*)m_views[i])->GetCursor3D()->SetColor(m_settings["CursorColor"].value<QColor>());
+      if (m_settings["CursorStyle"].toInt() < 2)
+        ((RenderView3D*)m_views[i])->GetCursor3D()->SetLarge(m_settings["CursorStyle"].toInt());
     }
   }
   SyncZoom(m_settings["SyncZoom"].toBool());
@@ -1076,6 +1078,20 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     this->AddScript( QStringList("slice") << sa[0] << sa[1] << sa[2] );
   }
 
+  if ( parser->Found("write-slice-intersection", &sa))
+  {
+      int start = 0, end = 0;
+      bool bOK;
+      start = sa[2].toInt(&bOK);
+      end = sa[3].toInt(&bOK);
+      for (int i = start; i <= end; i++)
+      {
+      //    slice[n] = i;
+      //    this->AddScript(QStringList("slice") << QString::number(slice[0]) << QString::number(slice[1]) << QString::number(slice[2]));
+          this->AddScript(QStringList("writesurfaceintersection") << sa[0] << sa[1].replace("%d", "%1").arg(i) << QString::number(i));
+      }
+  }
+
   if ( parser->Found( "zoom", &sa ) )
   {
     bool bOK;
@@ -1585,6 +1601,10 @@ void MainWindow::RunScript()
   else if ( cmd == "slice" )
   {
     CommandSetSlice( sa );
+  }
+  else if (cmd == "writesurfaceintersection")
+  {
+    CommandWriteSurfaceIntersection( sa );
   }
   else if ( cmd == "setcolormap" )
   {
@@ -4101,6 +4121,49 @@ void MainWindow::CommandSetSlice( const QStringList& cmd )
   {
     cerr << "No volume was loaded. Set slice failed.\n";
   }
+}
+
+void MainWindow::CommandWriteSurfaceIntersection( const QStringList& cmd)
+{
+    LayerSurface* surf = (LayerSurface*)GetActiveLayer("Surface");
+    LayerCollection* lc_mri = GetLayerCollection( "MRI" );
+    LayerMRI* mri = NULL;
+    if (!lc_mri->IsEmpty())
+        mri = (LayerMRI*)lc_mri->GetLayer( lc_mri->GetNumberOfLayers()-1 );
+    if (surf && mri)
+    {
+        QString ostr = mri->GetOrientationString();
+        QString slice_str = "IS";
+        int nPlane = 2;
+        if (cmd[1].contains("sag", Qt::CaseInsensitive))
+        {
+            slice_str = "RL";
+            nPlane = 0;
+        }
+        else if (cmd[1].contains("cor", Qt::CaseInsensitive))
+        {
+            slice_str = "AP";
+            nPlane = 1;
+        }
+        int n = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            if (slice_str.contains(ostr[i]))
+            {
+                n = i;
+                break;
+            }
+        }
+        int slice[3] = { 0, 0, 0 };
+        slice[n] = cmd[3].toInt();
+        double ras[3];
+        mri->OriginalIndexToRAS( slice, ras );
+        mri->RASToTarget( ras, ras );
+        lc_mri->SetCursorRASPosition( ras );
+        SetSlicePosition( ras );
+
+        surf->WriteIntersection(cmd[2], nPlane, mri);
+    }
 }
 
 void MainWindow::SetCurrentFile( const QString &fileName, int type )

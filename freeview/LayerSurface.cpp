@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/31 18:30:40 $
- *    $Revision: 1.120 $
+ *    $Date: 2016/06/15 16:57:49 $
+ *    $Revision: 1.124 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,7 @@
 #include "vtkTubeFilter.h"
 #include "vtkPointData.h"
 #include "vtkTubeFilter.h"
+#include "vtkCellArray.h"
 #include "FSSurface.h"
 #include "LayerMRI.h"
 #include "SurfaceAnnotation.h"
@@ -55,6 +56,8 @@
 #include "SurfaceROI.h"
 #include <QFileInfo>
 #include <QDir>
+#include <QTextStream>
+#include <QFile>
 #include <QDebug>
 #include "SurfaceOverlayProperty.h"
 #include "MyUtils.h"
@@ -251,6 +254,50 @@ bool LayerSurface::SaveSurface( )
   }
 
   return SaveSurface( m_sFilename.toAscii().data() );
+}
+
+bool LayerSurface::WriteIntersection(const QString &filename, int nPlane, LayerMRI* mri_ref)
+{
+    vtkPolyData* polydata = vtkPolyData::SafeDownCast(m_sliceActor2D[nPlane]->GetMapper()->GetInput());
+    if (!polydata)
+    {
+        return false;
+    }
+
+    vtkCellArray* lines = polydata->GetLines();
+    vtkIdType nPts, *pts;
+    vtkPoints* points = polydata->GetPoints();
+
+    if (lines && points)
+    {
+        QFile file(filename);
+        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        {
+            qDebug() << "Cannot write file " << filename;
+            return false;
+        }
+        QTextStream out(&file);
+        QString str[3] = {"sag", "cor", "hor"};
+        out << "#orientation " << str[nPlane] << "\n";
+        out << "#points " << points->GetNumberOfPoints() << "\n";
+        for (int i = 0; i < points->GetNumberOfPoints(); i++)
+        {
+            double* pt = points->GetPoint(i);
+            double ras[3];
+            mri_ref->TargetToRAS(pt, ras);
+            mri_ref->RASToOriginalIndex(ras, ras);
+            out << ras[0] << " " << ras[1] << " " << ras[2] << "\n";
+        }
+        out << "#lines " << lines->GetNumberOfCells() << "\n";
+        lines->InitTraversal();
+        while (lines->GetNextCell(nPts, pts))
+        {
+            for (int i = 0; i < nPts; i++)
+                out << pts[i] << " ";
+            out << "\n";
+        }
+        cout << "Intersection data written to " << qPrintable(filename) << "\n";
+    }
 }
 
 bool LayerSurface::LoadVectorFromFile( )

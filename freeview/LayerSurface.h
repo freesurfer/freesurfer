@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/31 18:30:40 $
- *    $Revision: 1.76 $
+ *    $Date: 2016/06/15 16:57:49 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,6 +82,7 @@ public:
 
   bool SaveSurface( const QString& filename );
   bool SaveSurface( );
+  bool WriteIntersection( const QString& filename, int nPlane, LayerMRI* ref);
 
   void SetSlicePositionToWorldCenter();
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/31 18:30:40 $
- *    $Revision: 1.98 $
+ *    $Date: 2016/06/15 16:57:49 $
+ *    $Revision: 1.99 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,6 +105,7 @@ public:
   virtual QString GetLabelName( double value );
 
   void RASToOriginalIndex( const double* pos, int* n );
+  void RASToOriginalIndex(const double *pos, double *n_out);
   void OriginalIndexToRAS( const int* n, double* pos );
 
   void OriginalVoxelToRAS( const double* vcoord, double* pos);
