@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/06/08 20:03:14 $
- *    $Revision: 1.779 $
+ *    $Author: fischl $
+ *    $Date: 2016/06/13 21:20:50 $
+ *    $Revision: 1.781 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.779 2016/06/08 20:03:14 greve Exp $");
+  return("$Id: mrisurf.c,v 1.781 2016/06/13 21:20:50 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -45192,15 +45192,16 @@ mristransform_cleanup:
 int MRISmatrixMultiply(MRIS *mris, MATRIX *M)
 {
   int    vno ;
-  VERTEX *v ;
-  MATRIX *xyz, *Mxyz;
 
-  xyz  = MatrixAlloc(4,1,MATRIX_REAL);
-  xyz->rptr[4][1] = 1.0;
-  Mxyz = MatrixAlloc(4,1,MATRIX_REAL);
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++)
-  {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for 
+#endif
+  for (vno = 0 ; vno < mris->nvertices ; vno++){
+    VERTEX *v ;
+    MATRIX *xyz, *Mxyz;
+    xyz  = MatrixAlloc(4,1,MATRIX_REAL);
+    xyz->rptr[4][1] = 1.0;
+    Mxyz = MatrixAlloc(4,1,MATRIX_REAL);
     v = &mris->vertices[vno] ;
     xyz->rptr[1][1] = v->x;
     xyz->rptr[2][1] = v->y;
@@ -45210,10 +45211,10 @@ int MRISmatrixMultiply(MRIS *mris, MATRIX *M)
     v->x = Mxyz->rptr[1][1];
     v->y = Mxyz->rptr[2][1];
     v->z = Mxyz->rptr[3][1];
+    MatrixFree(&xyz);
+    MatrixFree(&Mxyz);
   }
 
-  MatrixFree(&xyz);
-  MatrixFree(&Mxyz);
   return(0);
 }
 
@@ -56289,7 +56290,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
             ne/=2;
             euler_nb=nv+nf-ne;
             theoric_euler=3+defect->defect_number-dl->ndefects;
-            fprintf(WHICH_OUTPUT,"After retessellation of defect %d, euler #=%d (%d,%d,%d) : difference with theory (%d) = %d \n",i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
+            fprintf(WHICH_OUTPUT,"After retessellation of defect %d (v0 =  %d), euler #=%d (%d,%d,%d) : difference with theory (%d) = %d \n",i,defect->vertices[0],euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
 
 
 #if ADD_EXTRA_VERTICES
@@ -56387,10 +56388,10 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
       ne/=2;
       euler_nb=nv+nf-ne;
       theoric_euler=3+defect->defect_number-dl->ndefects;
-      fprintf(WHICH_OUTPUT,"After retessellation of defect %d, "
+      fprintf(WHICH_OUTPUT,"After retessellation of defect %d (v0=%d), "
               "euler #=%d (%d,%d,%d) : "
               "difference with theory (%d) = %d \n",
-              i,euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
+              i,defect->vertices[0], euler_nb,nv,ne,nf,theoric_euler,theoric_euler-euler_nb);
 #if ADD_EXTRA_VERTICES
       if (theoric_euler-euler_nb && retessellation_error<0)
       {
@@ -63447,8 +63448,8 @@ mrisTessellateDefect
   /* first build table of all possible edges among vertices in the defect
      and on its border.
   */
-  fprintf(stderr,"\nCORRECTING DEFECT %d (vertices=%d, convex hull=%d)\n",
-          defect->defect_number, defect->nvertices, defect->nchull);
+  fprintf(stderr,"\nCORRECTING DEFECT %d (vertices=%d, convex hull=%d, v0=%d)\n",
+          defect->defect_number, defect->nvertices, defect->nchull,defect->vertices[0]);
 
   if (parms->search_mode!=GREEDY_SEARCH)
     computeDefectStatistics
@@ -82223,17 +82224,18 @@ MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs)
   VERTEX  *v, *vn ;
   double  nx=0.0, ny=0.0, nz=0.0, norm=0.0 ;
 
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  MRISrestoreVertexPositions(mris, which) ;
+
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
-    {
       DiagBreak() ;
-    }
+
     if (v->ripflag)
-    {
       continue ;
-    }
+
     MRIScomputeNormal(mris, which, vno, &nx, &ny, &nz) ;
     switch (which)
     {
@@ -82373,6 +82375,7 @@ MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs)
     }
   }
 
+  MRISrestoreVertexPositions(mris, which) ;
   return(NO_ERROR) ;
 }
 
@@ -85271,3 +85274,31 @@ mrisComputePosterior2DTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
 }
 #endif
 
+MRI *
+ MRISmapToSurface(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst, MRI *mri_src_features, MRI *mri_dst_features) 
+{
+  int    vno_src, vno_dst ;
+  MHT    *mht ;
+  VERTEX *vdst, *vsrc ;
+
+  mht = MHTfillVertexTable(mris_src, NULL, CANONICAL_VERTICES) ;
+
+
+  if (mri_dst_features == NULL)
+    mri_dst_features = MRIalloc(mris_dst->nvertices, 1, 1, MRI_FLOAT) ;
+  for (vno_dst = 0 ; vno_dst < mris_dst->nvertices ; vno_dst++)
+  {
+    if (vno_dst == Gdiag_no)
+      DiagBreak() ;
+    vdst = &mris_dst->vertices[vno_dst] ;
+    vsrc = MHTfindClosestVertexSet(mht,  mris_src, vdst, CANONICAL_VERTICES) ;
+    if (vsrc == NULL)
+      ErrorExit(ERROR_UNSUPPORTED, "could not find v %d", vno_dst) ;
+    vno_src = vsrc-&mris_src->vertices[0] ;
+    if (vno_src == Gdiag_no)
+      DiagBreak() ;
+    MRIsetVoxVal(mri_dst_features, vno_dst, 0, 0, 0, MRIgetVoxVal(mri_src_features, vno_src, 0, 0, 0)) ;
+  }
+  MHTfree(&mht) ;
+  return(mri_dst_features) ;
+}
