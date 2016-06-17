@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:42:15 $
- *    $Revision: 1.102 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/06/17 18:00:49 $
+ *    $Revision: 1.103 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.102 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.103 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -854,7 +854,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.102 2016/01/20 23:42:15 greve Exp $",
+   "$Id: mri_watershed.cpp,v 1.103 2016/06/17 18:00:49 zkaufman Exp $",
    "$Name:  $",
    cmdline);
 
@@ -867,7 +867,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.102 2016/01/20 23:42:15 greve Exp $",
+           "$Id: mri_watershed.cpp,v 1.103 2016/06/17 18:00:49 zkaufman Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -5500,7 +5500,7 @@ void local_params(STRIP_PARMS *parms,MRI_variables *MRI_var)
     // assuming the height of GM_intensity and CSF_intensity are the same
     int denom = (MRI_var->CSF_MAX[j] + MRI_var->GM_intensity[j] -
                  MRI_var->GM_MIN[j] - MRI_var->CSF_intens[j]);
-    if (DZERO(denom) || !isfinite(denom))
+    if (DZERO(denom) || !isfinite((float)denom))
     {
       fprintf(stdout, "\n Problem with MRI_var->TRANSITION_intensity\n");
       MRI_var->TRANSITION_intensity[j]= 0;
