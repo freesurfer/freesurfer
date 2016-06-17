@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/06 20:10:25 $
- *    $Revision: 1.482 $
+ *    $Author: ohinds $
+ *    $Date: 2016/06/17 19:16:52 $
+ *    $Revision: 1.483 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -97,17 +97,17 @@ typedef struct
   int     label ;          // index into CLUT
   char    name[STRLEN] ;   // human-readable description of frame contents
   int     dof ;            // for stat maps (e.g. # of subjects)
-  MATRIX  *m_ras2vox ;      
+  MATRIX  *m_ras2vox ;
   float   thresh ;
-  int     units ;          // e.g. UNITS_PPM,  UNITS_RAD_PER_SEC, ...         
+  int     units ;          // e.g. UNITS_PPM,  UNITS_RAD_PER_SEC, ...
 
   // for Herr Dr. Prof. Dr. Dr. Witzel
   // directions: maybe best in both reference frames
   // or just 3 coordinates and a switch which frame it is ?
-  double DX ; 
+  double DX ;
   double DY ;
   double DZ ;
-  
+
   double DR ;
   double DP ;
   double DS ;
@@ -122,8 +122,8 @@ typedef struct
 // stejskal-tanner,trse,steam etc....
 
   long diffusion_type ;
- 
-// Gradient values 
+
+// Gradient values
   long D1_ramp ;
   long D1_flat ;
   double D1_amp ;
@@ -222,7 +222,7 @@ typedef struct
   int           dof ;
   double        mean ;
   double        flip_angle ;  /* in radians */
-  float   FieldStrength; 
+  float   FieldStrength;
   char          *pedir; /* phase enc direction: ROW, COL, etc*/
 
   void*         tag_data; /* saved tag data */
@@ -234,7 +234,7 @@ typedef struct
   double outside_val ; // 0 by default, but could be something else
 
   MATRIX *AutoAlign; // For Andre
-  MATRIX *bvals, *bvecs; 
+  MATRIX *bvals, *bvecs;
   int bvec_space; // 0=unknown, 1=scanner, 2=voxel
 
   // "Chunking" memory management. "Chunking" is where the entire 4D
@@ -251,7 +251,7 @@ typedef struct
 }
 MRI_IMAGE, MRI ;
 
-typedef struct 
+typedef struct
 {
   int type; // MB_RADIAL or MB_TANGENTIAL
   double offset,slope;
@@ -264,7 +264,7 @@ typedef struct
   MRI *theta; // Image of angle of voxel
   MRI *fwhm;  // Image of FWHM at voxel
   MRI *dmin;  // Image of start distance (cut off)
-  MRI *nd;    // Image of number of samples 
+  MRI *nd;    // Image of number of samples
 } MOTIONBLUR2D, MB2D;
 MRI *MRImotionBlur2D(MRI *src, MB2D *mb, MRI *out);
 int MB2Dfree(MB2D **pmb);
@@ -320,7 +320,7 @@ size_t MRIsizeof(int mritype);
 char * MRIprecisionString(int PrecisionCode);
 int MRIprecisionCode(char *PrecisionString);
 
-MRI *MRImakeMosaic(MRI **mri, int nimages, int rectify) ; 
+MRI *MRImakeMosaic(MRI **mri, int nimages, int rectify) ;
 
 int MRIareNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z) ;
 float  MRIfindNearestNonzero(MRI *mri,
@@ -561,7 +561,7 @@ MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 
 
  /* it just copies the header info, not image data */
-MRI   *MRIclone( const MRI *mri_src, MRI *mri_dst );  
+MRI   *MRIclone( const MRI *mri_src, MRI *mri_dst );
 MRI   *MRIcloneDifferentType(MRI *mri_src, int type) ;
 MRI   *MRIcloneRoi(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcloneBySpace(MRI *mri_src, int type, int nframes);
@@ -639,17 +639,17 @@ MRI   *MRImorph(MRI *mri_src, MRI *mri_dst, int which) ;
 MRI   *MRIerode(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIerodeNN(MRI *in, MRI *out, int NNDef);
 MRI   *MRIerodeLabels(MRI *mri_src, MRI *mri_dst) ;
-MRI   *MRIerodeThresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
+MRI   *MRIerodeThresh(MRI *mri_src, MRI *mri_intensity, double thresh,
                       MRI *mri_dst) ;
-MRI * MRIdilate6Thresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
+MRI * MRIdilate6Thresh(MRI *mri_src, MRI *mri_intensity, double thresh,
                        MRI *mri_dst) ;
-MRI   *MRIdilateThresh(MRI *mri_src, MRI *mri_intensity, double thresh, 
+MRI   *MRIdilateThresh(MRI *mri_src, MRI *mri_intensity, double thresh,
                       MRI *mri_dst) ;
 MRI   *MRIerodeZero(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIerode2D(MRI *mri_src, MRI *mri_dst);
 MRI   *MRIerodeRegion(MRI *mri_src, MRI *mri_dst,int wsize,MRI_REGION *region);
 MRI   *MRIerodeSegmentation(MRI *seg, MRI *out, int nErodes, int nDiffThresh);
-MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask, 
+MRI *MRIdilateSegmentation(MRI *seg, MRI *out, int nDils, MRI *mask,
 			   int maskframe, double maskthresh, int *pnchanges);
 MRI   *MRIdilate(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIdilateUchar(MRI *mri_src, MRI *mri_dst) ;
@@ -687,9 +687,9 @@ MRI   *MRIgaussianSmooth(MRI *src, double std, int norm, MRI *targ);
 MRI   *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, double std, MRI *targ);
 MRI   *MRIconvolveGaussianMeanAndStdByte(MRI *mri_src, MRI *mri_dst,
     MRI *mri_gaussian) ;
-MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd, 
+MRI *MRIgaussianSmoothNI(MRI *src, double cstd, double rstd, double sstd,
 			 MRI *targ);
-    
+
 /* frequency filtering*/
 MRI* MRI_fft(MRI *mri_src, MRI* dst);
 MRI *MRI_ifft(MRI *src, MRI *dst, int w, int h, int d);
@@ -697,7 +697,7 @@ MRI *MRI_fft_gaussian(MRI *src, MRI *dst, float std, int norm);
 MRI *MRI_fft_lowpass(MRI *src, MRI *dst, int percent);
 MRI *MRI_fft_highpass(MRI *src, MRI *dst, int percent);
 
-MRI  *MRIcomputeMeanAndStandardDeviation(MRI *mri_src, MRI *mri_dst, int dof) ; 
+MRI  *MRIcomputeMeanAndStandardDeviation(MRI *mri_src, MRI *mri_dst, int dof) ;
 MRI *MRIscaleMeanIntensities(MRI *mri_src, MRI *mri_ref, MRI *mri_dst) ;
 MRI   *MRIscaleIntensities(MRI *mri_src, MRI *mri_dst, float scale, float offset) ;
 MRI   *MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box) ;
@@ -951,6 +951,7 @@ extern float ic_z_vertices[]  ;
 #define VTK_FILE                      28 // VTK
 #define MGH_MORPH                     29 // .m3z, .m3d
 #define MGH_AUTOENCODER               30
+#define ITK_MORPH                     31 // ITK (e.g., ANTs synWarp)
 
 int        MRImatchDimensions(MRI *mri1, MRI *mri2) ;
 int        MRImatch(MRI *mri1, MRI *mri2) ;
@@ -1314,7 +1315,7 @@ MRI *MRIsmoothLabel6Connected(MRI *mri_intensity,
 			      MRI *mri_smooth,
 			      int niter,
 			      int label,
-			      int fixed_label, 
+			      int fixed_label,
 			      float min_change) ;
 MRI *MRIreadGeRoi(const char *fname, int n_slices);
 
@@ -1440,7 +1441,7 @@ MRI *MRIconformSliceOrder(MRI *mri);
 #define DTRANS_MODE_OUTSIDE  3
 #define DTRANS_MODE_INSIDE   4
 
-/** This is deprecated.  
+/** This is deprecated.
     Please use MRIextractDistanceMap in fastmarching.h instead */
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist,
                           int label, float max_dist, int mode, MRI *mri_mask);
@@ -1486,10 +1487,10 @@ int CompareDoubles(const void *a, const void *b);
 int MRIlabeledVoxels(MRI *mri_src, int label) ;
 int MRIlabelInVolume(MRI *mri_src, int label) ;
 #define MRI_MEAN_MIN_DISTANCE 0
-double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, 
+double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref,
                                int which, FILE *fp) ;
 double MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label) ;
-int MRIcomputeLabelCentroid(MRI *mri_aseg, int label, 
+int MRIcomputeLabelCentroid(MRI *mri_aseg, int label,
 														double *pxc, double *pyc, double *pzc) ;
 int MRIcomputeCentroid(MRI *mri, double *pxc, double *pyc, double *pzc) ;
 MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits);
@@ -1502,12 +1503,12 @@ MRI *MRIsegmentationSurfaceNormals(MRI *mri_seg,
 MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol);
 MRI *MRIfillHoles(MRI *mri_src, MRI *mri_fill, int thresh)  ;
 int  MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf) ;
-MRI *MRIfloodFillRegion(MRI *mri_src, MRI *mri_dst, 
+MRI *MRIfloodFillRegion(MRI *mri_src, MRI *mri_dst,
                         int threshold, int fill_val, int max_count) ;
-int  MRIcomputeBorderNormalAtVoxel(MRI *mri_seg, int x0, int y0, int z0, 
+int  MRIcomputeBorderNormalAtVoxel(MRI *mri_seg, int x0, int y0, int z0,
                                    float *pnx, float *pny, float *pnz,
                                    int label) ;
-MRI  *MRImatchIntensityRatio(MRI *mri_source, MRI *_target, MRI *mri_matched, 
+MRI  *MRImatchIntensityRatio(MRI *mri_source, MRI *_target, MRI *mri_matched,
                              double min_scale, double max_scale,
                              double low_thresh, double high_thresh);
 
@@ -1519,7 +1520,7 @@ MRI  *MRImatchIntensityRatio(MRI *mri_source, MRI *_target, MRI *mri_matched,
 #define MRI_MIND_MPRAGE      4
 
 
-MRI *MRIcreateDistanceTransforms(MRI *mri, MRI *mri_all_dtrans, 
+MRI *MRIcreateDistanceTransforms(MRI *mri, MRI *mri_all_dtrans,
                                  float max_dist,
                                  int *labels, int nlabels);
 MRI *MRIapplyMorph(MRI *mri_source,
@@ -1535,12 +1536,12 @@ int MRIcomputeVoxelPermutation(MRI *mri,
                                short *y_indices,
                                short *z_indices);
 MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist,
-                                           MRI *mri_ref_dist, 
+                                           MRI *mri_ref_dist,
                                            MRI *mri_dst_dist);
 
 const char* MRItype2str(int type);
 int MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label) ;
-int MRIcomputeVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox, 
+int MRIcomputeVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
 			      MRI *mri_seg, MRI *mri_fractions) ;
 
 MRI *MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label, int whalf,  float thresh) ;
@@ -1553,9 +1554,9 @@ MRI *MRInbrThresholdLabel(MRI *mri_src, MRI *mri_dst,  int label, int out_label,
 				    int six_connected );
 
   float MRIvoxelsInLabelWithPartialVolumeEffectsGPU( const MRI *mri,
-						     const MRI *mri_vals, 
+						     const MRI *mri_vals,
 						     const int label,
-						     MRI *mri_mixing_coef, 
+						     MRI *mri_mixing_coef,
 						     MRI *mri_nbr_labels );
 #endif
 
