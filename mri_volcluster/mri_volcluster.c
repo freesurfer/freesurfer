@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
     handle_version_option
     (argc, argv,
      "$Id: mri_volcluster.c,v 1.47 2011/10/14 20:46:50 greve Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

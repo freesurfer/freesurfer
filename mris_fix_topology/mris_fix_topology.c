@@ -117,7 +117,7 @@ main(int argc, char *argv[])
   (argc,
    argv,
    "$Id: mris_fix_topology.c,v 1.50 2016/01/20 23:42:15 greve Exp $",
-   "$Name:  $",
+   "$Name: stable6 $",
    cmdline);
 
   /* rkt: check for and handle version tag */
@@ -126,7 +126,7 @@ main(int argc, char *argv[])
     (argc,
      argv,
      "$Id: mris_fix_topology.c,v 1.50 2016/01/20 23:42:15 greve Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

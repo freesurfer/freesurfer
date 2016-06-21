@@ -69,7 +69,7 @@ main(int argc, char *argv[]) {
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.8 2011/03/02 00:04:26 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_annot_to_segmentation.c,v 1.8 2011/03/02 00:04:26 nicks Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

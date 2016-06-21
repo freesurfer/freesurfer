@@ -1196,7 +1196,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
     handle_version_option
     (argc, argv,
      "$Id: tkmedit.c,v 1.348 2014/11/06 16:47:49 greve Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
   argc -= nNumProcessedVersionArgs;
@@ -5963,7 +5963,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.348 2014/11/06 16:47:49 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.348 2014/11/06 16:47:49 greve Exp $ $Name: stable6 $\n"
         )
       );
 

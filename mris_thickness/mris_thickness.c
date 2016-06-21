@@ -314,7 +314,7 @@ main(int argc, char *argv[]) {
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.28 2012/11/27 17:41:26 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.28 2012/11/27 17:41:26 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

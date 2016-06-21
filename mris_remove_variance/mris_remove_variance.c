@@ -65,7 +65,7 @@ main(int argc, char *argv[]) {
   double       r ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_remove_variance.c,v 1.7 2011/03/02 00:04:33 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_remove_variance.c,v 1.7 2011/03/02 00:04:33 nicks Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

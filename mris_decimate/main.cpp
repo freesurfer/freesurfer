@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
   int ac, nargs;
   MRI_SURFACE *mris ;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

@@ -66,7 +66,7 @@ main(int argc, char *argv[]) {
   MATRIX       *m_obs, *m_obs_T, *m_cov, *m_eig ;
 
   setRandomSeed(-1L) ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_divide_segmentation.c,v 1.3 2014/05/28 20:27:57 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_divide_segmentation.c,v 1.3 2014/05/28 20:27:57 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

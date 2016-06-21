@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (argc, argv,
      "$Id: mri_compute_seg_overlap.c,v 1.18 2015/08/28 18:05:30 greve Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

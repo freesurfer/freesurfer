@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
   nargs = handle_version_option
           (argc, argv,
            "$Id: mri_concatenate_lta.c,v 1.16 2015/11/21 00:06:20 greve Exp $",
-           "$Name:  $");
+           "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

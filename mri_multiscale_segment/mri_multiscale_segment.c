@@ -66,7 +66,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_multiscale_segment.c,v 1.1 2011/07/31 14:22:07 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_multiscale_segment.c,v 1.1 2011/07/31 14:22:07 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

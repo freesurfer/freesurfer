@@ -1439,7 +1439,7 @@ main(
   nargs = handle_version_option
           (argc, argv,
            "$Id: mris_calc.c,v 1.54 2015/12/14 23:18:58 greve Exp $",
-           "$Name:  $");
+           "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

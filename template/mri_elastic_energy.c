@@ -61,7 +61,7 @@ main(int argc, char *argv[]) {
   MRI          *mri_lame ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_elastic_energy.c,v 1.1 2011/10/14 23:28:22 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_elastic_energy.c,v 1.1 2011/10/14 23:28:22 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

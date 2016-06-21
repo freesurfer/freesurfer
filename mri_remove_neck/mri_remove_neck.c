@@ -82,7 +82,7 @@ main(int argc, char *argv[])
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.10 2011/03/02 00:04:24 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.10 2011/03/02 00:04:24 nicks Exp $", "$Name: stable6 $");
   argc -= nargs ;
   if (1 == argc)
   {

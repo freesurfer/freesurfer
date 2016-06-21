@@ -70,7 +70,7 @@ main(int argc, char *argv[])
   nargs = handle_version_option 
     (argc, argv, 
      "$Id: mri_compute_bias.c,v 1.7 2011/10/06 01:19:35 fischl Exp $", 
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

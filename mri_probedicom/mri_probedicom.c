@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
   double bval, xbvec, ybvec, zbvec;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.45 2015/07/28 21:51:22 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.45 2015/07/28 21:51:22 greve Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

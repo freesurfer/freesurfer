@@ -119,7 +119,7 @@ main(int argc, char *argv[]) {
   nargs = handle_version_option
     (argc, argv,
      "$Id: mri_gcab_train.c,v 1.4 2011/03/16 20:23:33 fischl Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

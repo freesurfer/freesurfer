@@ -200,7 +200,7 @@ main(int argc, char *argv[]) {
   nargs = handle_version_option 
     (argc, argv, 
      "$Id: mris_refine_surfaces.c,v 1.22 2015/11/09 04:18:29 zkaufman Exp $", 
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

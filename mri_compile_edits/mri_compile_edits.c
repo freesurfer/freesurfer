@@ -77,7 +77,7 @@ main(int argc, char *argv[])
   nargs = handle_version_option
     (argc, argv,
      "$Id: mri_compile_edits.c,v 1.8 2012/02/08 20:33:17 nicks Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

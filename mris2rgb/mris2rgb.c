@@ -215,7 +215,7 @@ main(int argc, char *argv[]) {
   unsigned char   *rgb=NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.38 2011/03/02 00:04:26 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris2rgb.c,v 1.38 2011/03/02 00:04:26 nicks Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

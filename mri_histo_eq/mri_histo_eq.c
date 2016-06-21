@@ -60,7 +60,7 @@ main(int argc, char *argv[]) {
   MRI    *mri_src, *mri_template, *mri_eq ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_histo_eq.c,v 1.6 2011/03/02 00:04:18 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_histo_eq.c,v 1.6 2011/03/02 00:04:18 nicks Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -179,7 +179,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.22 2011/04/21 19:48:51 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.22 2011/04/21 19:48:51 greve Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

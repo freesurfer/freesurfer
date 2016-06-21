@@ -139,7 +139,7 @@ int main(int argc, char *argv[])
   memset(skippedLabels,0,sizeof(skippedLabels));
 
   // command-line processing...
-  int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  int nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
 

@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.30 2015/11/06 18:39:04 mreuter Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.30 2015/11/06 18:39:04 mreuter Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

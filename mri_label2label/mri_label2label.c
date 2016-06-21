@@ -191,7 +191,7 @@ int main(int argc, char **argv) {
   nargs = handle_version_option 
     (argc, argv,
      "$Id: mri_label2label.c,v 1.48 2016/03/16 23:36:50 greve Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

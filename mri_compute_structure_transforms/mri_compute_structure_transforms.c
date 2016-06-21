@@ -68,7 +68,7 @@ main(int argc, char *argv[]) {
   float          xa, ya, za ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_structure_transforms.c,v 1.3 2011/03/02 00:04:14 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_structure_transforms.c,v 1.3 2011/03/02 00:04:14 nicks Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

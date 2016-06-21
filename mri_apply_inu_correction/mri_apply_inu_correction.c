@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_apply_inu_correction.c,v 1.3 2011/03/02 00:04:13 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_apply_inu_correction.c,v 1.3 2011/03/02 00:04:13 nicks Exp $", "$Name: stable6 $");
   argc -= nargs ;
 
   ac = argc ;

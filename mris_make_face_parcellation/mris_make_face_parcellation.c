@@ -193,7 +193,7 @@ main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc, argv,
    "$Id: mris_make_face_parcellation.c,v 1.22 2016/05/06 17:26:14 fischl Exp $",
-   "$Name:  $", cmdline);
+   "$Name: stable6 $", cmdline);
 
   setRandomSeed(1L) ;
 
@@ -201,7 +201,7 @@ main(int argc, char *argv[]) {
   nargs = handle_version_option
     (argc, argv,
      "$Id: mris_make_face_parcellation.c,v 1.22 2016/05/06 17:26:14 fischl Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -92,7 +92,7 @@ main(int argc, char *argv[])
   make_cmd_version_string
   (argc, argv,
    "$Id: mris_inflate.c,v 1.45 2016/01/20 23:42:15 greve Exp $",
-   "$Name:  $", cmdline);
+   "$Name: stable6 $", cmdline);
 
 #ifdef FS_CUDA
   // Force CUDA initialisation
@@ -103,7 +103,7 @@ main(int argc, char *argv[])
   nargs = handle_version_option
           (argc, argv,
            "$Id: mris_inflate.c,v 1.45 2016/01/20 23:42:15 greve Exp $",
-           "$Name:  $");
+           "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

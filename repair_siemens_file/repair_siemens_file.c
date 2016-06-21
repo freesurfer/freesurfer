@@ -64,7 +64,7 @@ int main(int argc, char *argv[]) {
   nargs = handle_version_option 
     (argc, argv, 
      "$Id: repair_siemens_file.c,v 1.11 2011/03/02 00:04:35 nicks Exp $", 
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

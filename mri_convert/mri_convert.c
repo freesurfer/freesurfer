@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
   (argc, argv,
    "$Id: mri_convert.c,v 1.226 2016/02/26 16:15:24 mreuter Exp $",
-   "$Name:  $",
+   "$Name: stable6 $",
    cmdline);
 
   for(i=0; i<argc; i++)
@@ -343,7 +343,7 @@ int main(int argc, char *argv[])
     (
       argc, argv,
       "$Id: mri_convert.c,v 1.226 2016/02/26 16:15:24 mreuter Exp $",
-      "$Name:  $"
+      "$Name: stable6 $"
     );
   if (nargs && argc - nargs == 1)
   {

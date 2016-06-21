@@ -70,7 +70,7 @@ main(int argc, char *argv[]) {
   nargs = handle_version_option
           (argc, argv,
            "$Id: mris_compute_overlap.c,v 1.6 2011/03/02 00:04:30 nicks Exp $",
-           "$Name:  $");
+           "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -244,7 +244,7 @@ main(int argc, char *argv[])
   nargs = handle_version_option
           (argc, argv,
            "$Id: mri_ca_register.c,v 1.96 2016/04/30 02:37:04 fischl Exp $",
-           "$Name:  $");
+           "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

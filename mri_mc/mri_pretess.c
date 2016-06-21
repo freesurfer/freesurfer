@@ -1065,7 +1065,7 @@ int main(int argc, char *argv[])
   nargs = handle_version_option
           (argc, argv,
            "$Id: mri_pretess.c,v 1.22 2013/08/30 18:12:25 mreuter Exp $",
-           "$Name:  $");
+           "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -1074,7 +1074,7 @@ int main(int argc, char *argv[])
   make_cmd_version_string
   (argc, argv,
    "$Id: mri_pretess.c,v 1.22 2013/08/30 18:12:25 mreuter Exp $",
-   "$Name:  $",
+   "$Name: stable6 $",
    cmdline);
 
   Progname=argv[0];

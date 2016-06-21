@@ -122,7 +122,7 @@ main(int argc, char *argv[]) {
 //  HISTOGRAM    *h0 = NULL, *h1 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: oct_register_mosaic.c,v 1.4 2016/04/18 19:19:35 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: oct_register_mosaic.c,v 1.4 2016/04/18 19:19:35 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

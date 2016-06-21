@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.9 2012/06/25 18:34:05 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_extract_largest_CC.c,v 1.9 2012/06/25 18:34:05 fischl Exp $", "$Name: stable6 $");
   argc -= nargs ;
   if (1 >= argc)
     usage (0);

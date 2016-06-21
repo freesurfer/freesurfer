@@ -81,7 +81,7 @@ main(int argc, char *argv[])
   VERTEX *v;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mrisp_paint.c,v 1.12 2016/03/22 14:47:57 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mrisp_paint.c,v 1.12 2016/03/22 14:47:57 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

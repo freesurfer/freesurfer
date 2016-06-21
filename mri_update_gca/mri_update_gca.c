@@ -57,7 +57,7 @@ main(int argc, char *argv[]) {
   MRI          *mri_norm, *mri_aseg ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_update_gca.c,v 1.2 2011/06/29 19:35:58 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_update_gca.c,v 1.2 2011/06/29 19:35:58 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

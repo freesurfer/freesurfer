@@ -154,7 +154,7 @@ main(int argc, char *argv[]) {
   nargs = handle_version_option 
     (argc, argv, 
      "$Id: mris_make_average_surface.c,v 1.30 2013/04/11 20:41:58 greve Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

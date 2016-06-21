@@ -71,7 +71,7 @@ main(int argc, char *argv[])
   MRI       *mri, *mri_jacobian, *mri_area, *mri_orig_area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.11 2011/12/10 22:47:57 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.11 2011/12/10 22:47:57 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

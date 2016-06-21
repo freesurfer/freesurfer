@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.23 2015/06/11 15:21:20 fischl Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.23 2015/06/11 15:21:20 fischl Exp $", "$Name: stable6 $"
     );
   if (nargs && argc - nargs == 1)
   {

@@ -21611,7 +21611,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.363 2013/07/10 19:06:26 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.363 2013/07/10 19:06:26 greve Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

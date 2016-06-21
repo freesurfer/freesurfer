@@ -178,13 +178,13 @@ main(int argc, char *argv[])
   make_cmd_version_string
   (argc, argv,
    "$Id: mri_cc.c,v 1.39 2015/12/04 13:59:56 fischl Exp $",
-   "$Name:  $", cmdline);
+   "$Name: stable6 $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
            "$Id: mri_cc.c,v 1.39 2015/12/04 13:59:56 fischl Exp $",
-           "$Name:  $");
+           "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

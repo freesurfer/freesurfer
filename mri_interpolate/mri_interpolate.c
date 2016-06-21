@@ -69,7 +69,7 @@ main(int argc, char *argv[]) {
   make_cmd_version_string
     (argc, argv,
      "$Id: mri_interpolate.c,v 1.5 2011/10/06 01:18:12 fischl Exp $",
-     "$Name:  $",cmdline);
+     "$Name: stable6 $",cmdline);
   setRandomSeed(-1L) ;
   Progname = argv[0] ;
 

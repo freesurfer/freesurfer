@@ -121,7 +121,7 @@ main(int argc, char *argv[]) {
 
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_AA_shrinkwrap.c,v 1.6 2015/02/05 23:34:41 zkaufman Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_AA_shrinkwrap.c,v 1.6 2015/02/05 23:34:41 zkaufman Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

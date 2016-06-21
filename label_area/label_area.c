@@ -65,7 +65,7 @@ main(int argc, char *argv[]) {
   float        area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label_area.c,v 1.9 2012/04/25 13:37:44 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label_area.c,v 1.9 2012/04/25 13:37:44 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

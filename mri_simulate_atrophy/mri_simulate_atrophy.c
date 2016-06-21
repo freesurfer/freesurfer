@@ -76,7 +76,7 @@ main(int argc, char *argv[])
     handle_version_option
     (argc, argv,
      "$Id: mri_simulate_atrophy.c,v 1.6 2014/07/24 21:37:18 fischl Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

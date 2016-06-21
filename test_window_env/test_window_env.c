@@ -51,7 +51,7 @@ int main ( int argc, char** argv ) {
   nargs = handle_version_option 
     (argc, argv, 
      "$Id: test_window_env.c,v 1.10 2011/03/02 00:04:40 nicks Exp $", 
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

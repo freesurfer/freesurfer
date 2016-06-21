@@ -172,7 +172,7 @@ main(int argc, char *argv[]) {
   MATRIX *M_reg, *vox_s2vox_t; // *m_coronalras_src2trg;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_rigid_register.c,v 1.17 2015/02/05 23:34:40 zkaufman Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_rigid_register.c,v 1.17 2015/02/05 23:34:40 zkaufman Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

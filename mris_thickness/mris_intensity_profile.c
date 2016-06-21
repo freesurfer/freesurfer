@@ -130,7 +130,7 @@ main(int argc, char *argv[]) {
   float         *norm = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.23 2013/03/27 01:53:50 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.23 2013/03/27 01:53:50 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -58,7 +58,7 @@ int main ( int argc, char** argv )
 
   Progname = argv[0];
 
-  nargs = handle_version_option (argc, argv, "$Id: tiff_write_image.c,v 1.2 2011/03/02 00:04:56 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: tiff_write_image.c,v 1.2 2011/03/02 00:04:56 nicks Exp $", "$Name: stable6 $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);

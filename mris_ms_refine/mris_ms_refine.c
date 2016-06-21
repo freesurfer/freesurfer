@@ -331,7 +331,7 @@ main(int argc, char *argv[]) {
   EXTRA_PARMS   ep ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.20 2015/02/05 23:34:41 zkaufman Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_ms_refine.c,v 1.20 2015/02/05 23:34:41 zkaufman Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

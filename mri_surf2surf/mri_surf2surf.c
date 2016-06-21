@@ -509,7 +509,7 @@ int main(int argc, char **argv)
   nargs = handle_version_option (
     argc, argv,
     "$Id: mri_surf2surf.c,v 1.103 2015/11/05 22:07:33 greve Exp $",
-    "$Name:  $");
+    "$Name: stable6 $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);

@@ -67,7 +67,7 @@ main(int argc, char *argv[]) {
   LABEL        *label ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.6 2015/03/24 19:14:52 mreuter Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.6 2015/03/24 19:14:52 mreuter Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

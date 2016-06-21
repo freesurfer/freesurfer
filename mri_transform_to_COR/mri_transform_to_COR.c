@@ -125,7 +125,7 @@ main(int argc, char *argv[]) {
   int i, nbins, bin;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.4 2014/04/04 19:58:54 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_transform_to_COR.c,v 1.4 2014/04/04 19:58:54 greve Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     usage_exit (0);
   argc -= nargs;

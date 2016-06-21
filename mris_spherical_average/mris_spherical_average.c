@@ -93,10 +93,10 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.35 2014/01/07 22:47:08 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.35 2014/01/07 22:47:08 fischl Exp $", "$Name: stable6 $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.35 2014/01/07 22:47:08 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.35 2014/01/07 22:47:08 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

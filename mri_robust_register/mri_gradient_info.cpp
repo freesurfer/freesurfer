@@ -500,7 +500,7 @@ int main(int argc, char *argv[])
 {
 
 //   // Default initialization
-//   int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+//   int nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
 //   if (nargs && argc - nargs == 1) exit (0);
 //   argc -= nargs;
   Progname = argv[0];

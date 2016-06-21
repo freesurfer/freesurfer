@@ -88,7 +88,7 @@ main(int argc, char *argv[]) {
   MRI_REGION  region, clip_region ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.16 2015/09/24 17:51:45 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.16 2015/09/24 17:51:45 fischl Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

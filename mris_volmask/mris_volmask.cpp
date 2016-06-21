@@ -161,7 +161,7 @@ main(int ac, char* av[])
     handle_version_option
     ( ac, av,
       "$Id: mris_volmask.cpp,v 1.26 2014/11/06 03:40:22 nicks Exp $",
-      "$Name:  $"
+      "$Name: stable6 $"
     );
   if (nargs && ac - nargs == 1)
   {

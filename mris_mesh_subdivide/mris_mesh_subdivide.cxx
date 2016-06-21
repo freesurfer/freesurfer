@@ -132,12 +132,12 @@ int main(int argc, char *argv[])
   make_cmd_version_string
   (argc, argv,
    "$Id: mris_mesh_subdivide.cxx,v 1.5 2013/02/07 16:04:07 jonp Exp $",
-   "$Name:  $", cmdline);
+   "$Name: stable6 $", cmdline);
 
 
   //nargs = handle_version_option (argc, argv,
   //   "$Id: mris_mesh_subdivide.cxx,v 1.5 2013/02/07 16:04:07 jonp Exp $",
-  //   "$Name:  $");
+  //   "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

@@ -111,7 +111,7 @@ main(int argc, char *argv[])
   nargs = handle_version_option 
     (argc, argv, 
      "$Id: mris_shrinkwrap.c,v 1.9 2012/11/10 20:19:46 fischl Exp $", 
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

@@ -66,7 +66,7 @@ main(int argc, char *argv[])
   nargs = handle_version_option
     (argc, argv,
      "$Id: mris_euler_number.c,v 1.10 2013/01/14 22:39:14 greve Exp $",
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);

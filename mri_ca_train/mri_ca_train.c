@@ -146,7 +146,7 @@ main(int argc, char *argv[])
   nargs = handle_version_option
           (argc, argv,
            "$Id: mri_ca_train.c,v 1.70 2015/07/27 20:52:08 greve Exp $",
-           "$Name:  $");
+           "$Name: stable6 $");
 
   if (nargs && argc - nargs == 1)
     exit (0);

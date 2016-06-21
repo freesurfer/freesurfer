@@ -62,10 +62,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.10 2015/09/02 18:33:01 lzollei Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_threshold.c,v 1.10 2015/09/02 18:33:01 lzollei Exp $", "$Name: stable6 $", cmdline);
   /* rkt: check for and handle version tag */
   Progname = argv[0] ;
-  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.10 2015/09/02 18:33:01 lzollei Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_threshold.c,v 1.10 2015/09/02 18:33:01 lzollei Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

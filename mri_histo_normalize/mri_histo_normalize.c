@@ -70,7 +70,7 @@ main(int argc, char *argv[]) {
   nargs = handle_version_option 
     (argc, argv, 
      "$Id: mri_histo_normalize.c,v 1.3 2011/03/02 00:04:19 nicks Exp $", 
-     "$Name:  $");
+     "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
