@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2014/01/07 22:47:08 $
- *    $Revision: 1.35 $
+ *    $Date: 2016/06/30 16:05:09 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.35 2014/01/07 22:47:08 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.37 2016/06/30 16:05:09 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -71,6 +71,7 @@ static char *orig_name = "white" ;
 static int segment = 0 ;  // not implemented yet
 static char *mask_name = NULL ;
 
+static int compute_average_label_area = 0 ;
 static int which_ic = 7 ;
 static char *sdir = NULL ;
 static char *osdir = NULL ;
@@ -90,13 +91,14 @@ main(int argc, char *argv[])
   MRI_SURFACE     *mris, *mris_avg ;
   MRIS_HASH_TABLE *mht = NULL ;
   LABEL           *area, *area_avg = NULL ;
+  float           average_label_area = 0 ;
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.35 2014/01/07 22:47:08 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.37 2016/06/30 16:05:09 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.35 2014/01/07 22:47:08 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.37 2016/06/30 16:05:09 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -397,6 +399,7 @@ main(int argc, char *argv[])
             DiagBreak() ;
           }
       }
+      average_label_area += LabelArea(area, mris) ;
       area_avg = LabelSphericalCombine(mris, area, mht, mris_avg, area_avg) ;
       break ;
     case VERTEX_CURVATURE:
@@ -434,6 +437,11 @@ main(int argc, char *argv[])
   if (which != VERTEX_LABEL)
   {
     MRISnormalize(mris_avg, nsubjects, which) ;
+  }
+  else
+  {
+    average_label_area /= nsubjects ;
+    printf("average label area =  %2.2fmm^2\n", average_label_area) ;
   }
   if (mht)
   {
@@ -542,7 +550,7 @@ main(int argc, char *argv[])
         MRISaverageVals(mris, spatial_prior_avgs) ;
         MRISwriteValues(mris, spatial_prior_fname) ;
       }
-      if (threshold > 0)
+       if (threshold > 0)
       {
         LabelThreshold(area, threshold) ;
       }
@@ -563,6 +571,27 @@ main(int argc, char *argv[])
       {
         MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
       }
+      if (compute_average_label_area)
+      {
+	LABEL *area_saved ;
+	double thresh, best_thresh, surface_area, best_area ;
+
+	area_saved = LabelCopy(area, NULL) ;
+	best_area = LabelArea(area_saved, mris) ; best_thresh = 0.0 ;
+	for (thresh = 0 ; thresh <= 1 ; thresh += .01)
+	{
+	  LabelThreshold(area_saved, thresh) ;
+	  surface_area = LabelArea(area_saved, mris) ;
+	  if (fabs(surface_area - average_label_area) < fabs(best_area - average_label_area))
+	  {
+	    best_area = surface_area ;
+	    best_thresh = thresh ;
+	  }
+	}
+	LabelThreshold(area, best_thresh) ;
+	printf("threshold that best approximates average area of %2.2f mm^2 is %2.2f (%2.2f mm^2)\n", average_label_area, best_thresh, LabelArea(area,mris));
+      }
+
       LabelWrite(area, out_fname) ;
       break ;
     case VERTEX_LOGODDS:
@@ -624,6 +653,11 @@ get_option(int argc, char *argv[])
   {
     which_ic = atoi(argv[2]) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "average_area"))
+  {
+    compute_average_label_area = 1 ;
+    printf("computing threshold that yields surface area of average label closest to average of individual surface areas\n") ;
   }
   else if (!stricmp(option, "sdir"))
   {
@@ -772,6 +806,9 @@ print_help(void)
   fprintf(stderr, "-n              normalize output so it can be interpreted as a probability\n") ;
   fprintf(stderr, "-orig  <name>   use <name> as original surface position default=orig\n");
   fprintf(stderr, "-o  <output subject name>   use <output subject> as the space to write the results in instead of the last subject given\n");
+  fprintf(stderr, "-osdir  <output subject dir>   use <output subject dir> as the subjects dir for the output subject'\n");
+  fprintf(stderr, "-sdir  <subjects dir>   use <subject dir> as the subjects dir'\n");
+  fprintf(stderr, "-average_area   compute threshold for label that will give the average label apporximately the average surface area\n") ;
   fprintf(stderr, "-s <cond #>     generate summary statistics and write\n"
           "                them into sigavg<cond #>-<hemi>.w and\n"
           "                sigvar<cond #>-<hemi>.w.\n") ;
