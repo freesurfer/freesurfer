@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:45 $
- *    $Revision: 1.31 $
+ *    $Author: rpwang $
+ *    $Date: 2016/06/21 19:39:44 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,7 +37,10 @@ using namespace std;
 
 FSLabel::FSLabel( QObject* parent ) : QObject( parent ),
   m_label( NULL )
-{}
+{
+    m_dStatsRange[0] = 1.0;
+    m_dStatsRange[1] = 1.0;
+}
 
 FSLabel::~FSLabel()
 {
@@ -59,6 +62,22 @@ bool FSLabel::LabelRead( const QString& filename )
   {
     cerr << "LabelRead failed\n";
     return false;
+  }
+
+  if (m_label && m_label->n_points > 0)
+  {
+    double range[2];
+    range[0] = range[1] = m_label->lv[0].stat;
+    for (int i = 1; i < m_label->n_points; i++)
+    {
+      if (range[0] > m_label->lv[i].stat)
+        range[0] = m_label->lv[i].stat;
+      if (range[1] < m_label->lv[i].stat)
+        range[1] = m_label->lv[i].stat;
+    }
+
+    m_dStatsRange[0] = range[0];
+    m_dStatsRange[1] = range[1];
   }
 
   return true;
@@ -83,13 +102,13 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
 
   // ok. the following part looks tedious,
   // but it's 100 times faster than doing i, j, k 3d iterations!
-  int nsize = dim[0] * dim[1] * dim[2];
+  size_t nsize = ((size_t)dim[0]) * dim[1] * dim[2];
   switch ( rasImage->GetScalarType() )
   {
   case VTK_UNSIGNED_CHAR:
   {
     unsigned char* p = (unsigned char*)rasImage->GetScalarPointer();
-    for ( int i = 0; i < nsize; i++ )
+    for ( size_t i = 0; i < nsize; i++ )
     {
       fvalue = p[i];
       if ( fvalue != 0 )
@@ -112,7 +131,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
   case VTK_SHORT:
   {
     short* p = (short*)rasImage->GetScalarPointer();
-    for ( int i = 0; i < nsize; i++ )
+    for ( size_t i = 0; i < nsize; i++ )
     {
       fvalue = p[i];
       if ( fvalue != 0 )
@@ -135,7 +154,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
   case VTK_FLOAT:
   {
     float* p = (float*)rasImage->GetScalarPointer();
-    for ( int i = 0; i < nsize; i++ )
+    for ( size_t i = 0; i < nsize; i++ )
     {
       fvalue = p[i];
       if ( fvalue != 0 )
@@ -158,7 +177,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
   case VTK_LONG:
   {
     long* p = (long*)rasImage->GetScalarPointer();
-    for ( int i = 0; i < nsize; i++ )
+    for ( size_t i = 0; i < nsize; i++ )
     {
       fvalue = p[i];
       if ( fvalue != 0 )
@@ -181,7 +200,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
   case VTK_INT:
   {
     int* p = (int*)rasImage->GetScalarPointer();
-    for ( int i = 0; i < nsize; i++ )
+    for ( size_t i = 0; i < nsize; i++ )
     {
       fvalue = p[i];
       if ( fvalue != 0 )
@@ -213,7 +232,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
     m_label->lv[i].z = values[i*4+2];
     m_label->lv[i].vno = -1;
     m_label->lv[i].deleted = false;
-    m_label->lv[i].stat = 1;
+    m_label->lv[i].stat = values[i*4+3];
   }
 }
 
@@ -230,10 +249,10 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
   int* dim = rasImage->GetDimensions();
   memset( rasImage->GetScalarPointer(),
           0,
-          dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
+          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
   for ( int i = 0; i < m_label->n_points; i++ )
   {
-    if (m_label->lv[i].stat >= threshold)
+    if (m_label->lv[i].stat >= threshold || m_dStatsRange[0] <= 0)
     {
       pos[0] = m_label->lv[i].x;
       pos[1] = m_label->lv[i].y;
@@ -251,7 +270,11 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
       if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
            n[2] >= 0 && n[2] < dim[2] )
       {
-        rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, 1); // m_label->lv[i].stat );
+        rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, m_label->lv[i].stat >= threshold ? m_label->lv[i].stat : (m_dStatsRange[0]-1.0) );
+      }
+      else
+      {
+          cerr << "Label coordinate out of bound";
       }
     }
   }
@@ -302,17 +325,6 @@ bool FSLabel::GetCentroidRASPosition(double* pos, FSVolume* ref_vol)
 
 void FSLabel::GetStatsRange(double *range)
 {
-  if (m_label && m_label->n_points > 0)
-  {
-    range[0] = range[1] = m_label->lv[0].stat;
-    for (int i = 1; i < m_label->n_points; i++)
-    {
-      if (range[0] > m_label->lv[i].stat)
-        range[0] = m_label->lv[i].stat;
-      if (range[1] < m_label->lv[i].stat)
-        range[1] = m_label->lv[i].stat;
-    }
-    if (range[0] == range[1])
-      range[1] = range[0]+1;
-  }
+  range[0] = m_dStatsRange[0];
+  range[1] = m_dStatsRange[1];
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/15 16:57:49 $
- *    $Revision: 1.169 $
+ *    $Date: 2016/06/21 19:39:44 $
+ *    $Revision: 1.171 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3001,7 +3001,7 @@ void LayerMRI::UpdateProjectionMap()
   //    image->SetOrigin( m_imageData->GetOrigin() );
       image->AllocateScalars();
       float* ptr = ( float* )image->GetScalarPointer();
-      memset(ptr, 0, ((long long)sizeof(float))*dim[0]*dim[1]*dim[2]);
+      memset(ptr, 0, ((size_t)sizeof(float))*dim[0]*dim[1]*dim[2]);
       ptrs[i] = ptr;
     }
     vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
@@ -3018,11 +3018,11 @@ void LayerMRI::UpdateProjectionMap()
         if (nRange[i*2+1] < 0)
             nRange[i*2+1] = m_dim[i]-1;
     }
-    for (int x = 0; x < m_dim[0]; x++)
+    for (size_t x = 0; x < m_dim[0]; x++)
     {
-      for (int y = 0; y < m_dim[1]; y++)
+      for (size_t y = 0; y < m_dim[1]; y++)
       {
-        for (int z = 0; z < m_dim[2]; z++)
+        for (size_t z = 0; z < m_dim[2]; z++)
         {
           float val = ptr[z*m_dim[0]*m_dim[1]+y*m_dim[0]+x];
           if (nType == LayerPropertyMRI::PM_Maximum)
@@ -3254,14 +3254,14 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
       break;
     }
 
-    for (int i = 0; i < dim[0]; i++)
+    for (size_t i = 0; i < dim[0]; i++)
     {
-      for (int j = 0; j < dim[1]; j++)
+      for (size_t j = 0; j < dim[1]; j++)
       {
-        for (int k = 0; k < dim[2]; k++)
+        for (size_t k = 0; k < dim[2]; k++)
         {
-          int n = k*dim[0]*dim[1] + j*dim[0] + i;
-          int offset = (n*nFrames+frame)*nBytes;
+          size_t n = k*dim[0]*dim[1] + j*dim[0] + i;
+          size_t offset = (n*nFrames+frame)*nBytes;
           if (src_ptr[n] < 1)
           {
             if (replace_out)
@@ -3363,14 +3363,14 @@ void LayerMRI::UpdateSurfaceCorrelationData()
     m_imageRawDisplay->GetDimensions(dim);
     float* inPixel = static_cast<float*>(m_imageData->GetScalarPointer());
     float* outPixel = static_cast<float*>(m_imageRawDisplay->GetScalarPointer());
-    for (int i = 0; i < dim[0]; i++)
+    for (size_t i = 0; i < dim[0]; i++)
     {
-      for (int j = 0; j < dim[1]; j++)
+      for (size_t j = 0; j < dim[1]; j++)
       {
-        for (int k = 0; k < dim[2]; k++)
+        for (size_t k = 0; k < dim[2]; k++)
         {
-          int nOffset = k*dim[0]*dim[1] + j*dim[0] + i;
-          x = inPixel + nFrames*nOffset;
+          size_t nOffset = k*dim[0]*dim[1] + j*dim[0] + i;
+          x = inPixel + nOffset*nFrames;
           bool masked = true;
           for (int n = 0; n < nFrames; n++)
           {

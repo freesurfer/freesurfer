@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/02/06 18:35:43 $
- *    $Revision: 1.9 $
+ *    $Date: 2016/06/24 17:11:04 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -209,14 +209,14 @@ void MyVTKUtils::WorldToViewport( vtkRenderer* renderer,
 
 // test multiple contours
 bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
-                                    double dTh1, double dTh2,
+                                    const QList<int>& labelIndices,
                                     vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample )
 {
   double nValue = 1;
   int nSwell = 2;
 
   vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
-  for (int i = ((int)dTh1); i <= dTh2; i++)
+  foreach (int i, labelIndices)
   {
     vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
     threshold->SetInput( data_in );

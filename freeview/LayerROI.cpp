@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.32 $
+ *    $Author: rpwang $
+ *    $Date: 2016/06/21 19:39:44 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,7 +79,7 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
     // m_imageData->DeepCopy( m_layerSource->GetRASVolume() );
 
     m_imageData->SetNumberOfScalarComponents( 1 );
-    m_imageData->SetScalarTypeToUnsignedChar();
+    m_imageData->SetScalarTypeToFloat();
     m_imageData->SetOrigin( GetWorldOrigin() );
     m_imageData->SetSpacing( GetWorldVoxelSize() );
     m_imageData->SetDimensions( ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
@@ -88,8 +88,7 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
     m_imageData->AllocateScalars();
     void* ptr = m_imageData->GetScalarPointer();
     int* nDim = m_imageData->GetDimensions();
-    // cout << nDim[0] << ", " << nDim[1] << ", " << nDim[2] << endl;
-    memset( ptr, 0, m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
+    memset( ptr, 0, ((size_t)m_imageData->GetScalarSize()) * nDim[0] * nDim[1] * nDim[2] );
     InitializeActors();
   }
 
@@ -115,10 +114,12 @@ bool LayerROI::LoadROIFromFile( const QString& filename )
   }
   double range[2];
   m_label->GetStatsRange(range);
+  if (range[0] == range[1])
+      range[1] = range[0] + 1;
   GetProperty()->SetHeatscaleValues(range[0], range[1]);
   GetProperty()->SetValueRange(range);
 
-  m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume(), GetProperty()->GetThreshold() );
+  m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume(), GetProperty()->GetThreshold());
 
   m_sFilename = filename;
 

@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/08 19:30:28 $
- *    $Revision: 1.40 $
+ *    $Date: 2016/06/24 17:11:04 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,6 +105,7 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_rgbContour[0] = 0.92;
   m_rgbContour[1] = 0.78;
   m_rgbContour[2] = 0.54;
+  m_sLabelContourRange = "1-2";
 
   for (int i = 0; i < 3; i++)
   {
@@ -234,14 +235,9 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
     mMaxContourThreshold = map["MaxContourThreshold"].toDouble();
   }
 
-  if ( map.contains("MinLabelContourRange") )
+  if ( map.contains("LabelContourRange") )
   {
-    m_dLabelContourRange[0] = map["MinLabelContourRange"].toDouble();
-  }
-
-  if ( map.contains("MaxLabelContourRange") )
-  {
-    m_dLabelContourRange[1] = map["MaxLabelContourRange"].toDouble();
+    m_sLabelContourRange = map["LabelContourRange"].toString();
   }
 
   if ( map.contains("RememberFrameSettings"))
@@ -335,8 +331,7 @@ QVariantMap LayerPropertyMRI::GetSettings()
   map["MaxGenericThreshold"] = mMaxGenericThreshold;
   map["MinContourThreshold"] = mMinContourThreshold;
   map["MaxContourThreshold"] = mMaxContourThreshold;
-  map["MinLabelContourRange"] = m_dLabelContourRange[0];
-  map["MaxLabelContourRange"] = m_dLabelContourRange[1];
+  map["LabelContourRange"] = m_sLabelContourRange;
   map["RememberFrameSettings"] = m_bRememberFrameSettings;
   map["FrameSettings"] = m_frameSettings;
   map["ClearBackground"] = mbClearZero;
@@ -351,8 +346,7 @@ QVariantMap LayerPropertyMRI::GetFullSettings()
   map["ColorMapType"] = mColorMapType;
   map["MinContourThreshold"] = mMinContourThreshold;
   map["MaxContourThreshold"] = mMaxContourThreshold;
-  map["MinLabelContourRange"] = m_dLabelContourRange[0];
-  map["MaxLabelContourRange"] = m_dLabelContourRange[1];
+  map["LabelContourRange"] = m_sLabelContourRange;
 
   map["DisplayVector"] = m_bDisplayVector;
   map["VectorInversion"] = m_nVectorInversion;
@@ -378,11 +372,8 @@ void LayerPropertyMRI::RestoreFullSettings(const QVariantMap &map)
   if (map.contains("MaxContourThreshold"))
     mMaxContourThreshold = map["MaxContourThreshold"].toDouble();
 
-  if (map.contains("MinLabelContourRange"))
-    m_dLabelContourRange[0] = map["MinLabelContourRange"].toDouble();
-
-  if (map.contains("MaxLabelContourRange"))
-    m_dLabelContourRange[1] = map["MaxLabelContourRange"].toDouble();
+  if (map.contains("LabelContourRange"))
+    m_sLabelContourRange = map["LabelContourRange"].toString();
 
   if (map.contains("DisplayVector"))
     m_bDisplayVector = map["DisplayVector"].toBool();
@@ -452,8 +443,7 @@ QVariantMap LayerPropertyMRI::GetActiveSettings()
   {
       map["MinContourThreshold"] = mMinContourThreshold;
       map["MaxContourThreshold"] = mMaxContourThreshold;    
-      map["MinLabelContourRange"] = m_dLabelContourRange[0];
-      map["MaxLabelContourRange"] = m_dLabelContourRange[1];
+      map["LabelContourRange"] = m_sLabelContourRange;
   }
   map["UsePercentile"] = (m_bUsePercentile?1.0:0.0);
   return map;
@@ -1365,8 +1355,7 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
     }
   }
 
-  m_dLabelContourRange[0] = 1;
-  m_dLabelContourRange[1] = 2;
+  m_sLabelContourRange = "1-2";
 
   UpdateLUTTable();
   if ( source->GetEmbeddedColorTable() )
@@ -1602,12 +1591,11 @@ void LayerPropertyMRI::SetContourThreshold( double dMin, double dMax )
   }
 }
 
-void LayerPropertyMRI::SetLabelContourRange(double dmin, double dmax)
+void LayerPropertyMRI::SetLabelContourRange(const QString &range_strg)
 {
-  if (m_dLabelContourRange[0] != dmin || m_dLabelContourRange[1] != dmax)
+  if (range_strg.trimmed() != m_sLabelContourRange.trimmed())
   {
-    m_dLabelContourRange[0] = dmin;
-    m_dLabelContourRange[1] = dmax;
+    m_sLabelContourRange = range_strg.trimmed();
     emit ContourChanged();
   }
 }

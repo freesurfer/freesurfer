@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/10 19:52:41 $
- *    $Revision: 1.90 $
+ *    $Date: 2016/06/23 17:21:55 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -116,7 +116,6 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
   m_actorAxesActor->SetZTitle("");
   m_actorAxesActor->SetFlyModeToClosestTriad();
   m_actorAxesActor->SetCamera(m_renderer->GetActiveCamera());
-
 
   SetInteractionMode(IM_Navigate);
 }

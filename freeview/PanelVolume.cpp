@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/08 19:30:29 $
- *    $Revision: 1.103 $
+ *    $Date: 2016/06/24 17:11:04 $
+ *    $Revision: 1.104 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -142,8 +142,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->labelSmoothIteration
                       << ui->pushButtonContourSave
                       << ui->labelContourLabelRange
-                      << ui->lineEditContourLabelRangeLow
-                      << ui->lineEditContourLabelRangeHigh
+                      << ui->lineEditContourLabelRange
                       << ui->checkBoxShowLabelContour
                       << ui->checkBoxUpsampleContour;
 
@@ -160,8 +159,7 @@ PanelVolume::PanelVolume(QWidget *parent) :
       << ui->pushButtonContourSave;
 
   m_widgetlistContourLabel << ui->labelContourLabelRange
-      << ui->lineEditContourLabelRangeLow
-      << ui->lineEditContourLabelRangeHigh;
+      << ui->lineEditContourLabelRange;
 
   m_widgetlistEditable << ui->labelBrushValue
                        << ui->lineEditBrushValue;
@@ -455,10 +453,7 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxContourExtractAll->setChecked( layer->GetProperty()->GetContourExtractAllRegions() );
     ui->sliderContourSmoothIteration->setValue( layer->GetProperty()->GetContourSmoothIterations() );
     ChangeLineEditNumber( ui->lineEditContourSmoothIteration, layer->GetProperty()->GetContourSmoothIterations() );
-    double dTh1, dTh2;
-    layer->GetProperty()->GetLabelContourRange(&dTh1, &dTh2);
-    ChangeLineEditNumber( ui->lineEditContourLabelRangeLow, dTh1 );
-    ChangeLineEditNumber( ui->lineEditContourLabelRangeHigh, dTh2 );
+    ui->lineEditContourLabelRange->setText(layer->GetProperty()->GetLabelContourRange().trimmed());
 
     ui->colorPickerContour->setEnabled( !layer->GetProperty()->GetContourUseImageColorMap() );
     double rgb[3];
@@ -1186,19 +1181,10 @@ void PanelVolume::OnSliderContourSmooth(int nval)
 void PanelVolume::OnContourValueChanged()
 {
   bool bOK;
-  double fMin, fMax = 0;
   int nSmooth = 30;
   if (ui->checkBoxShowLabelContour->isChecked())
   {
-    fMin = ui->lineEditContourLabelRangeLow->text().trimmed().toDouble(&bOK);
-    if (bOK)
-    {
-      fMax = ui->lineEditContourLabelRangeHigh->text().trimmed().toDouble(&bOK);
-    }
-    if (bOK)
-    {
-      nSmooth = ui->lineEditContourSmoothIteration->text().trimmed().toInt(&bOK);
-    }
+    nSmooth = ui->lineEditContourSmoothIteration->text().trimmed().toInt(&bOK);
     QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
     foreach (LayerMRI* layer, layers)
     {
@@ -1211,13 +1197,14 @@ void PanelVolume::OnContourValueChanged()
         }
         else
         {
-          layer->GetProperty()->SetLabelContourRange(fMin, fMax);
+          layer->GetProperty()->SetLabelContourRange(ui->lineEditContourLabelRange->text().trimmed());
         }
       }
     }
   }
   else
   {
+    double fMin, fMax = 0;
     fMin = ui->lineEditContourThresholdLow->text().trimmed().toDouble(&bOK);
     if (bOK)
     {
