@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/03/16 23:29:48 $
- *    $Revision: 1.124 $
+ *    $Author: fischl $
+ *    $Date: 2016/06/29 21:46:21 $
+ *    $Revision: 1.125 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1510,10 +1510,9 @@ double LabelArea(LABEL *area, MRI_SURFACE *mris)
   {
     lv = &area->lv[i] ;
     v = &mris->vertices[lv->vno] ;
-    if (v->ripflag)
-    {
+    if (v->ripflag || lv->deleted)
       continue ;
-    }
+
     total_area += v->area ;
   }
 
