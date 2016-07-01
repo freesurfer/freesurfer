@@ -9,11 +9,11 @@ foo_DATA=LICENSE NOTICE README AUTHORS INSTALL COPYING
 
 OCTSUBDIRS=\
 	oct_train \
-	oct_register_mosaic 
+	oct_register_mosaic
 
 DMRISUBDIRS=\
 	dmri_poistats \
-	dmri_tensoreig	
+	dmri_tensoreig
 
 GLSUBDIRS=\
 	glut \
@@ -179,6 +179,7 @@ MRISUBDIRS=\
 	mri_segstats \
 	mri_stats2seg \
 	mri_vol2surf \
+	mri_warp_convert \
 	mri_watershed \
 	mri_wbc \
 	mri_wmfilter \
