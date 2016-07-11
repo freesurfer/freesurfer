@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/13 21:11:13 $
- *    $Revision: 1.174 $
+ *    $Date: 2016/07/05 17:20:32 $
+ *    $Revision: 1.175 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -467,6 +467,7 @@ protected slots:
   void OnLineProfile();
   void OnCycleSurfaceLabel();
   void OnGoToROI(bool center = false);
+  void OnGoToPointSet(bool center = false);
   void OnLoadFCD();
   void OnCloseFCD();
   void OnGoToSurfaceLabel(bool center = true);

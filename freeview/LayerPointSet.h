@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/12/05 21:06:10 $
- *    $Revision: 1.7 $
+ *    $Date: 2016/07/05 17:20:32 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -99,6 +99,8 @@ public:
   }
 
   int GetNumberOfPoints();
+
+  bool GetCentroidPosition(double *pos);
 
 protected slots:
   void UpdateColorMap();

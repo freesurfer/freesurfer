@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/24 16:52:51 $
- *    $Revision: 1.76 $
+ *    $Date: 2016/07/05 17:20:32 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -294,6 +294,11 @@ void RenderView2D::OnSlicePositionChanged()
   m_cursor2D->SetPosition( slicePos );
   Update2DOverlay();
   UpdateAnnotation();
+
+  double x, y, z;
+  WorldToViewport(slicePos[0], slicePos[1], slicePos[2], x, y, z);
+  if (!rect().contains(QPoint(x, y)))
+      this->CenterAtCursor();
 
   RenderView::OnSlicePositionChanged();
 }

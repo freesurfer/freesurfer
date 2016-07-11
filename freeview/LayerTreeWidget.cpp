@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/31 18:30:40 $
- *    $Revision: 1.21 $
+ *    $Date: 2016/07/05 17:20:32 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -220,13 +220,16 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     act = new QAction(layers.size() > 1 ? "Unlock All" : "Unlock", this );
     connect(act, SIGNAL(triggered()), this, SLOT(OnUnlockAll()));
     menu->addAction(act);
-    menu->addSeparator();
-    act = new QAction(layers.size() > 1 ? "Show All in Info Panel" : "Show Info", this );
-    connect(act, SIGNAL(triggered()), this, SLOT(OnShowAllInfo()));
-    menu->addAction(act);
-    act = new QAction(layers.size() > 1 ? "Hide All in Info Panel" : "Hide Info", this );
-    connect(act, SIGNAL(triggered()), this, SLOT(OnHideAllInfo()));
-    menu->addAction(act);
+    if (layers[0]->IsTypeOf("MRI") || layers[0]->IsTypeOf("Surface"))
+    {
+        menu->addSeparator();
+        act = new QAction(layers.size() > 1 ? "Show All in Info Panel" : "Show Info", this );
+        connect(act, SIGNAL(triggered()), this, SLOT(OnShowAllInfo()));
+        menu->addAction(act);
+        act = new QAction(layers.size() > 1 ? "Hide All in Info Panel" : "Hide Info", this );
+        connect(act, SIGNAL(triggered()), this, SLOT(OnHideAllInfo()));
+        menu->addAction(act);
+    }
 
     if (layers[0]->GetEndType() == "MRI")
     {
@@ -276,6 +279,13 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
       act->setChecked(nColorMap == LayerPropertyMRI::PET);
       connect(act, SIGNAL(triggered()), this, SLOT(OnSetColorMap()));
       submenu->addAction(act);
+    }
+    else if (layers[0]->GetEndType() == "PointSet")
+    {
+        menu->addSeparator();
+        act = new QAction("Go to Centroid", this);
+        connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow(), SLOT(OnGoToPointSet()));
+        menu->addAction(act);
     }
   }
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/11/22 19:39:48 $
- *    $Revision: 1.8 $
+ *    $Date: 2016/07/05 17:20:32 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,6 +65,8 @@ public:
 
   bool ReadFromStringAsControlPoints(const QString& content);
   QString WriteAsControlPointsToString();
+
+  bool GetCentroidRASPosition(double* pos, FSVolume* ref_vol);
 
 protected:
   // use label to save way points

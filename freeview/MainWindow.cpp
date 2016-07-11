@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/15 16:57:49 $
- *    $Revision: 1.343 $
+ *    $Date: 2016/07/05 17:20:32 $
+ *    $Revision: 1.344 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7046,6 +7046,19 @@ void MainWindow::OnGoToROI(bool center)
         GetMainView()->CenterAtWorldPosition(pos);
   }
 }
+
+void MainWindow::OnGoToPointSet(bool center)
+{
+  LayerPointSet* ps = (LayerPointSet*)GetActiveLayer("PointSet");
+  double pos[3];
+  if (ps && ps->GetCentroidPosition(pos))
+  {
+    SetSlicePosition(pos);
+    if (center)
+        GetMainView()->CenterAtWorldPosition(pos);
+  }
+}
+
 
 void MainWindow::OnGoToSurfaceLabel(bool center)
 {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/16 18:17:54 $
- *    $Revision: 1.10 $
+ *    $Date: 2016/07/05 17:20:32 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -734,3 +734,14 @@ int LayerPointSet::GetNumberOfPoints()
   return m_points.size();
 }
 
+bool LayerPointSet::GetCentroidPosition(double *pos)
+{
+  m_pointSetSource->UpdateLabel( m_points, m_layerRef->GetSourceVolume() );
+  if (m_pointSetSource->GetCentroidRASPosition(pos, m_layerRef->GetSourceVolume()))
+  {
+    m_layerRef->RASToTarget(pos, pos);
+    return true;
+  }
+  else
+    return false;
+}
