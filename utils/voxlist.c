@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/26 19:24:11 $
- *    $Revision: 1.32 $
+ *    $Author: fischl $
+ *    $Date: 2016/07/08 16:53:55 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -958,6 +958,7 @@ VLSTtoLabel(VOXEL_LIST *vl, MRI_SURFACE *mris, MRI *mri)
       area->lv[n].x = xs ;
       area->lv[n].y = ys ;
       area->lv[n].z = zs ;
+      area->lv[n].stat = vl->vsrc[n] ;
     }
   }
   else   // use scanner coords
@@ -968,6 +969,7 @@ VLSTtoLabel(VOXEL_LIST *vl, MRI_SURFACE *mris, MRI *mri)
       area->lv[n].x = xs ;
       area->lv[n].y = ys ;
       area->lv[n].z = zs ;
+      area->lv[n].stat = vl->vsrc[n] ;
     }
     sprintf(area->space, "coords=scanner") ;
   }
@@ -1327,6 +1329,23 @@ VLSTsample(VOXEL_LIST *vl, MRI *mri)
       val = MRIgetVoxVal(mri, x, y, z, f) ;
     else
       val = MRIgetVoxVal(mri, x, y, z, f) ;
+    vl->vsrc[n] = val ;
+  }
+  return(NO_ERROR) ;
+}
+int
+VLSTsampleFloat(VOXEL_LIST *vl, MRI *mri) 
+{
+  double   val ;
+  double   x, y, z ;
+  int     n, f ;
+
+  if (mri == NULL)
+    mri = vl->mri ;
+  for  (n = 0 ; n < vl->nvox ; n++)
+  {
+    x = vl->xd[n] ; y = vl->yd[n] ;  z = vl->zd[n] ;  f = vl->fi[n] ; 
+    MRIsampleVolumeFrame(mri, x, y, z, f, &val) ;
     vl->vsrc[n] = val ;
   }
   return(NO_ERROR) ;
