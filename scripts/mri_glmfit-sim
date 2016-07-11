@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.60 2016/04/30 15:13:36 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.61 2016/07/08 17:56:16 greve Exp $';
 setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
@@ -189,6 +189,7 @@ while($#glmfitcmd)
   case "--no-rescale-x"
   case "--fisher"
   case "dods"
+  case "mri_glmfit.bin"
     breaksw
   # Ignore these options that have one arg
   case "--glmdir"
@@ -629,9 +630,9 @@ if($CleanUp) rm -r $tmpdir
 
 if($#AllDoneFile) touch $AllDoneFile
 
-echo $StartDate
-date
-echo "mri_glmfit-sim done"
+echo $StartDate | tee -a $LF
+date | tee -a $LF
+echo "mri_glmfit-sim done" | tee -a $LF
 
 exit 0
 ###############################################
@@ -704,6 +705,7 @@ while( $#argv != 0 )
       set nsim = $argv[1]; shift;
       set thresh = $argv[1]; shift;
       set simsign = $argv[1]; shift;
+      set threshStr = `perl -e "print 10*$thresh"`;
       set csdbase = perm.th$threshStr.$simsign
       breaksw
 
