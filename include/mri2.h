@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/07 22:23:56 $
- *    $Revision: 1.69 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/08 19:50:24 $
+ *    $Revision: 1.69.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,8 @@ MRI *mri_load_cor_as_float(char *cordir);
 MRI *mri_load_wfile(char *wfile);
 size_t mri_sizeof(MRI *vol);
 MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes);
+MRI *MRIreshape1d(MRI *src, MRI *trg);
+
 int MRIfdr2vwth(MRI **vollist, int nvols, int *framelist, double fdr, int signid,
                 int log10flag, MRI **masklist, double *vwth, MRI **ovollist);
 int MRIdimMismatch( const MRI *v1, const MRI *v2, int frameflag);

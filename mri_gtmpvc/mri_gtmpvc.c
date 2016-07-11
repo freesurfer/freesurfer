@@ -9,9 +9,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/05/12 16:06:41 $
- *    $Revision: 1.69 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/08 19:50:25 $
+ *    $Revision: 1.69.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mri_gtmpvc.c,v 1.69 2016/05/12 16:06:41 greve Exp $
+// $Id: mri_gtmpvc.c,v 1.69.2.1 2016/07/08 19:50:25 zkaufman Exp $
 
 /*
   BEGINHELP
@@ -92,7 +92,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_gtmpvc.c,v 1.69 2016/05/12 16:06:41 greve Exp $";
+static char vcid[] = "$Id: mri_gtmpvc.c,v 1.69.2.1 2016/07/08 19:50:25 zkaufman Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
   char *stem;
   LTA *ltatmp;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -1629,7 +1629,7 @@ static void print_usage(void) {
 /*---------------------------------------------------------------*/
 static void print_help(void) {
   print_usage() ;
-  printf("WARNING: this program is not yet tested!\n");
+  printf("See http://surfer.nmr.mgh.harvard.edu/fswiki/PetSurfer\n");
   exit(1) ;
 }
 /*---------------------------------------------------------------*/

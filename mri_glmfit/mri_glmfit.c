@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/08/12 21:03:09 $
- *    $Revision: 1.241 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/08 19:50:25 $
+ *    $Revision: 1.241.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -562,7 +562,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.241 2015/08/12 21:03:09 greve Exp $";
+"$Id: mri_glmfit.c,v 1.241.2.1 2016/07/08 19:50:25 zkaufman Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -744,6 +744,7 @@ int DoFisher = 0;
 int DoPCC=1;
 
 double GLMEfficiency(MATRIX *X, MATRIX *C);
+int GLMdiagnoseDesignMatrix(MATRIX *X);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -765,7 +766,7 @@ int main(int argc, char **argv) {
   csd->threshsign = 0; //0=abs,+1,-1
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -1185,6 +1186,9 @@ int main(int argc, char **argv) {
     printf("    %s\n",cmdline);
     printf("  2. The FSGD file (if using one)\n");
     printf("  3. And the design matrix above\n");
+    printf("Attempting to diagnose further \n");
+    err = GLMdiagnoseDesignMatrix(mriglm->Xg);
+    if(err == 0) printf(" ... could not determine the cause of the problem\n");
     exit(1);
   }
   Xcond = MatrixNSConditionNumber(mriglm->Xg);
@@ -3678,4 +3682,79 @@ double GLMEfficiency(MATRIX *X, MATRIX *C)
 }
 
 
+/*!
+  \fn int GLMdiagnoseDesignMatrix(MATRIX *X)
+  \brief Simple routines to determine whether a design matrix is ill-conditioned
+  because of some common mistakes.
+ */
+int GLMdiagnoseDesignMatrix(MATRIX *X)
+{
+  int ret,r,c,c2,all0;
+  float *Xsumsq;
+  float XsumsqMin,XsumsqMax;
+  int cXsumsqMin, cXsumsqMax;
+
+  ret = 0;
+  
+  // Check the scale
+  Xsumsq = calloc(X->cols,sizeof(float));
+  XsumsqMin = 10e10;
+  XsumsqMax = 0;
+  cXsumsqMin = 0;
+  cXsumsqMax = 0;
+  for(c=1; c <= X->cols; c++){
+    for(r=1; r <= X->rows; r++) 
+      Xsumsq[c-1] += (X->rptr[r][c]*X->rptr[r][c]);
+    Xsumsq[c-1] = sqrt(Xsumsq[c-1]);
+    if(XsumsqMax < Xsumsq[c-1]){
+      XsumsqMax = Xsumsq[c-1];
+      cXsumsqMax = c;
+    }
+    if(XsumsqMin > Xsumsq[c-1]){
+      XsumsqMin = Xsumsq[c-1];
+      cXsumsqMin = c;
+    }
+  }
+  printf("SumSq: Min=%f (col %d), Max=%f (col %d)\n",XsumsqMin,cXsumsqMin,XsumsqMax,cXsumsqMax);
+  if(XsumsqMax/XsumsqMin > 10){
+    printf(" The scale is much different between columns %d and %d, you may want to \n",cXsumsqMin,cXsumsqMax);
+    printf(" normalize by subtracting the mean and dividing by the standard deviation.\n");
+    ret=1;
+  }
+  free(Xsumsq);
+
+  // Check whether any column is all 0s
+  for(c=1; c <= X->cols; c++){
+    all0 = 1;
+    for(r=1; r <= X->rows; r++) {
+      if(fabs(X->rptr[r][c])>FLT_EPSILON) {
+	all0 = 0;
+	break;
+      }
+    }
+    if(all0) {
+      printf("Column %d,  all values are 0\n",c);
+      ret = 1;
+    }
+  }
+
+  // Check whether any column equals any other column
+  for(c=1; c <= X->cols-1; c++){
+    for(c2=c+1; c2 <= X->cols; c2++){
+      all0 = 1;
+      for(r=1; r <= X->rows; r++) {
+	if(fabs(X->rptr[r][c]-X->rptr[r][c2])>FLT_EPSILON) {
+	  all0 = 0;
+	  break;
+	}
+      }
+      if(all0) {
+	printf("Columns %d and %d are the same\n",c,c2);
+	ret = 1;
+      }
+    }
+  }
+
+  return(ret);
+}
 

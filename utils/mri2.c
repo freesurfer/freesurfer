@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/09 15:48:22 $
- *    $Revision: 1.122 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/08 19:50:26 $
+ *    $Revision: 1.122.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -697,6 +697,28 @@ MRI *mri_reshape(MRI *vol, int ncols, int nrows, int nslices, int nframes)
   return(outvol);
 }
 
+/*!
+  \fn MRI *MRIreshape1d(MRI *src, MRI *trg)
+  \brief Reshapes the MRI structure to have nvox columns,
+  1 row, and 1 slice; does not change the number of frames.
+ */
+MRI *MRIreshape1d(MRI *src, MRI *trg)
+{
+  int ncols, nrows, nslices, nvox, nframes;
+  ncols = src->width;
+  nrows = src->height;
+  nslices = src->depth;
+  nvox = ncols*nrows*nslices;
+  nframes = src->nframes;
+
+  if(trg == NULL){
+    trg = MRIallocSequence(nvox,1,1,src->type,nframes);
+    if(trg == NULL) return(NULL);
+    MRIcopyHeader(src,trg);
+  }
+  trg = mri_reshape(src, nvox, 1, 1, nframes);
+  return(trg);
+}
 
 
 /*---------------------------------------------------------------

@@ -7,9 +7,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/11/13 20:52:30 $
- *    $Revision: 1.6 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/08 19:50:25 $
+ *    $Revision: 1.6.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_apply_reg.c,v 1.6 2015/11/13 20:52:30 greve Exp $
+// $Id: mris_apply_reg.c,v 1.6.2.1 2016/07/08 19:50:25 zkaufman Exp $
 
 /*
   BEGINHELP
@@ -65,7 +65,7 @@
 #include "pdf.h"
 #include "icosahedron.h"
 #include "mrisutils.h"
-
+#include "mri2.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -78,7 +78,7 @@ void usage_message(FILE *stream);
 void usage(FILE *stream);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_apply_reg.c,v 1.6 2015/11/13 20:52:30 greve Exp $";
+static char vcid[] = "$Id: mris_apply_reg.c,v 1.6.2.1 2016/07/08 19:50:25 zkaufman Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
   char *base;
   COLOR_TABLE *ctab=NULL;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -174,6 +174,11 @@ int main(int argc, char *argv[]) {
     printf("Loading %s\n",SrcValFile);
     SrcVal = MRIread(SrcValFile);
     if(SrcVal==NULL) exit(1);
+    MRI *tmpmri;
+    tmpmri = MRIreshape1d(SrcVal,NULL);
+    if(tmpmri == NULL) exit(1);
+    MRIfree(&SrcVal);
+    SrcVal = tmpmri;
   }
 
   // Apply registration to source
@@ -454,4 +459,5 @@ LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh)
 
   return(label);
 }
+
 
