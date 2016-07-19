@@ -55,8 +55,8 @@ check_PROGRAMS=LineProfTest
 # TEST_ENVIRONMENT var already, it is not needed for make check
 # (and in fact will not work for make distcheck), so LineProfTest
 # can be called directly
-#TESTS=testLineProf
-TESTS=LineProfTest
+TESTS=testLineProf
+#TESTS=LineProfTest
 
 LineProfTest_SOURCES=LineProfTest.cpp
 
