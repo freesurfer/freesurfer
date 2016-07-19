@@ -66,7 +66,7 @@ foreach num ($threads)
         -align \
         norm.mgz \
         talairach.m3z \
-        ../../distribution/average/RB_all_2014-08-21.gca \
+        ../../distribution/average/RB_all_2016-05-10.vc700.gca \
         aseg.auto_noCCseg.${num}cpu.mgz)
     echo "\n\n $cmd \n\n" |& tee -a $log
     $cmd |& tee -a $log
