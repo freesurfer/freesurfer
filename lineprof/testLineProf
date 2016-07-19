@@ -1,5 +1,8 @@
 #! /bin/tcsh -ef
 
+# check for an enviro var to skip
+if ( $?SKIP_LIBGFORTRAN_TEST ) exit 77
+
 source ../scripts/vtk_setup
 source ../scripts/petsc_setup
 
