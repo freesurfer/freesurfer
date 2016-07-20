@@ -58,6 +58,14 @@ mris_apply_reg --src rh.thickness --trg xhemi.rh.thickness \
 Note that lh.fsaverage_sym.sphere.reg is used.  This is intentional; the left hemis in the xhemi folder are actually right hemis.
 
   </example>
+  <example>
+    Map a label from the left hemi to the right hemi
+    mris_apply_reg --src-label lh.source.label \
+     --streg lh.sphere.left_right rh.sphere.left_right \
+     --trg rh.lh.source.label
+  </example>
+
+
   <bugs>None</bugs>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
   <see-also>mris_convert</see-also>
