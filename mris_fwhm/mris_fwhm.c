@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/11/20 17:35:55 $
- *    $Revision: 1.40 $
+ *    $Date: 2016/07/19 23:04:02 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -155,7 +155,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.40 2015/11/20 17:35:55 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.42 2016/07/19 23:04:02 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -195,6 +195,7 @@ int SmoothOnly = 0;
 int DoSqr = 0; // take square of input before smoothing
 
 char *ar1fname = NULL;
+char *arNfname = NULL;
 
 int FixGroupAreaTest(MRIS *surf, char *outfile);
 char *GroupAreaTestFile = NULL;
@@ -206,6 +207,20 @@ int UseCortexLabel = 0;
 int   prunemask = 0;
 float prune_thr = FLT_MIN;
 char *outmaskpath=NULL;
+int arNHops = 0;
+
+typedef struct {
+  int cvtx; // center vertex
+  int nhops;
+  char *hit; // vector to indicate whether vertex has been hit
+  int *nperhop; // number of vertices per hop
+  int **vtxlist; // list of vertices for each hop
+  int *nperhop_alloced; // number of vertices alloced per hop
+} SURFHOPLIST;
+SURFHOPLIST *SetSurfHopListAlloc(MRI_SURFACE *Surf, int nHops);
+SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops);
+int SurfHopListFree(SURFHOPLIST **shl0);
+MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -375,6 +390,13 @@ int main(int argc, char *argv[]) {
   printf("Computing spatial AR1 \n");
   ar1 = MRISar1(surf, InVals, mask, NULL);
   if(ar1fname)  MRIwrite(ar1,ar1fname);
+  if(arNfname)  {
+    MRI *arN;
+    printf("Computing ARN over %d hops\n",arNHops);
+    arN = MRISarN(surf, InVals, mask, NULL, arNHops);
+    MRIwrite(arN,arNfname);
+    printf("done Computing ARN\n");
+  }
 
   // Average AR1 over all vertices
   RFglobalStats(ar1, mask, &ar1mn, &ar1std, &ar1max);
@@ -562,7 +584,14 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       ar1fname = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--fwhm")) {
+    }
+    else if (!strcasecmp(option, "--arN")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&arNHops);
+      arNfname = pargv[1];
+      nargsused = 2;
+    }
+    else if (!strcasecmp(option, "--fwhm")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&infwhm);
       ingstd = infwhm/sqrt(log(256.0));
@@ -964,3 +993,211 @@ double DHfwhm(MRIS *surf, MRI *mri)
   return(0.0);
 }
 #endif
+
+int SetHop(int CenterVtx, MRI_SURFACE *Surf, int HopNo, int MaxHopNo)
+{
+  int nbr, nbr_vtx, nbr_hopno, nbr_has_been_center;
+
+  if(HopNo >= MaxHopNo) return(0);
+
+  Surf->vertices[CenterVtx].valbak = 1; // has been a center
+
+  for (nbr=0; nbr < Surf->vertices[CenterVtx].vnum; nbr++) {
+    nbr_vtx   = Surf->vertices[CenterVtx].v[nbr];
+    nbr_hopno = Surf->vertices[nbr_vtx].undefval;
+    if(nbr_hopno != 0 && nbr_hopno < HopNo + 1) continue;
+    Surf->vertices[nbr_vtx].undefval = HopNo + 1;
+  }
+
+  for (nbr=0; nbr < Surf->vertices[CenterVtx].vnum; nbr++) {
+    nbr_vtx = Surf->vertices[CenterVtx].v[nbr];
+    nbr_has_been_center = Surf->vertices[nbr_vtx].valbak;
+    if(nbr_has_been_center) continue;
+    SetHop(nbr_vtx, Surf, HopNo+1, MaxHopNo);
+  }
+
+  return(0);
+}
+
+
+SURFHOPLIST *SetSurfHopListAlloc(MRI_SURFACE *Surf, int nHops)
+{
+  SURFHOPLIST *shl;
+  int nthhop;
+  shl = (SURFHOPLIST*) calloc(sizeof(SURFHOPLIST),1);
+  shl->nhops = nHops;
+  shl->hit = (char *)calloc(sizeof(char),Surf->nvertices);
+  shl->nperhop = (int *)calloc(sizeof(int),nHops);
+  shl->nperhop_alloced = (int *)calloc(sizeof(int),nHops);
+  shl->vtxlist = (int **)calloc(sizeof(int *),nHops);
+  for(nthhop=0; nthhop < nHops; nthhop++){
+    shl->nperhop_alloced[nthhop] = 100;
+    shl->vtxlist[nthhop] = (int *)calloc(sizeof(int),100);
+  }
+  return(shl);
+}
+
+int SurfHopListFree(SURFHOPLIST **shl0)
+{
+  SURFHOPLIST *shl = *shl0;  
+  int nthhop;
+  for(nthhop=0; nthhop < shl->nhops; nthhop++)
+    free(shl->vtxlist[nthhop]);
+  free(shl->vtxlist);
+  free(shl->nperhop_alloced);
+  free(shl->nperhop);
+  free(shl->hit);
+  free(shl);
+  *shl0 = NULL;
+  return(0);
+}
+
+/*!
+  \fn SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops)
+  \brief Fills in a SURFHOPLIST structure. This is a structure that indicates
+  which vertices are a given number of links (hops) away. This can be used to
+  set neighborhoods or compute the spatial autocorrelation function.
+*/
+
+SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops)
+{
+  SURFHOPLIST *shl;
+  int nthhop, nhits, nthvtx, vtxno, nthnbr, nbr_vtxno;
+
+  shl = SetSurfHopListAlloc(Surf, nHops);
+  shl->cvtx = CenterVtx;
+
+  // 0 hop is the center vertex
+  shl->nperhop[0] = 1;
+  shl->vtxlist[0][0] = CenterVtx;
+  shl->hit[CenterVtx] = 1;
+
+  // go through all hops
+  for(nthhop = 1; nthhop < nHops; nthhop++){
+    nhits = 0;
+    // go through each vertex of the previous hop
+    for(nthvtx = 0; nthvtx < shl->nperhop[nthhop-1]; nthvtx++){
+      vtxno = shl->vtxlist[nthhop-1][nthvtx];
+      // go through the neighbors of this vertex
+      for(nthnbr=0; nthnbr < Surf->vertices[vtxno].vnum; nthnbr++) {
+	nbr_vtxno  = Surf->vertices[vtxno].v[nthnbr];
+	if(shl->hit[nbr_vtxno]) continue; // ignore if it has been hit already
+	shl->hit[nbr_vtxno] = 1;
+	if(nhits >= shl->nperhop_alloced[nthhop]){
+	  // realloc if need to
+	  shl->nperhop_alloced[nthhop] += 100;
+	  shl->vtxlist[nthhop] = (int *)realloc(shl->vtxlist[nthhop],sizeof(int)*shl->nperhop_alloced[nthhop]);
+	}
+	// assign the vertex
+	shl->vtxlist[nthhop][nhits] = nbr_vtxno;
+	nhits ++;
+      }
+    }
+    shl->nperhop[nthhop] = nhits;
+  }
+
+  // This assigns the hop number to the undefval, good for debugging
+  for(nthhop = 0; nthhop < nHops; nthhop++){
+    //printf("nper hop %d %6d\n",nthhop,shl->nperhop[nthhop]);
+    for(nthvtx = 0; nthvtx < shl->nperhop[nthhop]; nthvtx++){
+      vtxno = shl->vtxlist[nthhop][nthvtx];
+      Surf->vertices[vtxno].undefval = nthhop;
+    }
+  }
+
+  return(shl);
+}
+
+/*-----------------------------------------------------------------------
+  MRISarN() - computes spatial autocorrelation function at each vertex
+  by averaging the ARs within the neighborhood of a vertex. Note: does
+  not try to take into account different distances between
+  neighbors. N is the number of hops.  arN will have N frames where
+  frame 0 is always 1, frame 1 is the average AR between the vertex
+  and the vertices 1 hop away, etc.
+  -----------------------------------------------------------------------*/
+MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N)
+{
+  int nnbrs, frame, vtx, nbrvtx, nthnbr, **crslut, c,r,s, nvox;
+  int cnbr, rnbr,snbr, nnbrs_actual;
+  double valvtx, valnbr, arsum, sumsqvtx, vtxvar, sumsqnbr, sumsqx, nbrvar;
+  SURFHOPLIST *shl;
+  int nthhop;
+
+  nvox = src->width * src->height * src->depth;
+  if (surf->nvertices != nvox){
+    printf("ERROR: MRISarN: Surf/Src dimension mismatch.\n");
+    return(NULL);
+  }
+
+  if(arN == NULL){
+    arN = MRIcloneBySpace(src, MRI_FLOAT, N);
+    if (arN == NULL){
+      printf("ERROR: could not alloc\n");
+      return(NULL);
+    }
+  }
+
+  //Build LUT to map from col,row,slice to vertex
+  crslut = MRIScrsLUT(surf,src);
+
+  for (vtx = 0; vtx < surf->nvertices; vtx++) {
+    if(surf->vertices[vtx].ripflag) continue;
+    c = crslut[0][vtx];
+    r = crslut[1][vtx];
+    s = crslut[2][vtx];
+    if(mask) if (MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+
+    // Compute variance for this vertex
+    sumsqvtx = 0;
+    for(frame = 0; frame < src->nframes; frame ++) {
+      valvtx = MRIFseq_vox(src,c,r,s,frame);
+      sumsqvtx += (valvtx*valvtx);
+    }
+    if(sumsqvtx == 0) continue;  // exclude voxels with 0 variance
+    vtxvar = sumsqvtx/src->nframes;
+
+    // Zero hop is always 1
+    MRIFseq_vox(arN,c,r,s,0) = 1;
+
+    // Create structure to manage the multiple hops for this vertex
+    shl = SetSurfHopList(vtx, surf, N);
+
+    // loop through hops
+    for(nthhop = 1; nthhop < N; nthhop++){
+      nnbrs = shl->nperhop[nthhop];
+      nnbrs_actual = 0;
+      arsum = 0;
+      // loop through the neighbors nthhop links away
+      for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	nbrvtx = shl->vtxlist[nthhop][nthnbr];
+	if(surf->vertices[nbrvtx].ripflag) continue;
+	cnbr = crslut[0][nbrvtx];
+	rnbr = crslut[1][nbrvtx];
+	snbr = crslut[2][nbrvtx];
+	if(mask) if(MRIgetVoxVal(mask,cnbr,rnbr,snbr,0) < 0.5) continue;
+	sumsqnbr = 0;
+	sumsqx   = 0;
+	for(frame = 0; frame < src->nframes; frame ++){
+	  valvtx = MRIFseq_vox(src,c,r,s,frame);
+	  valnbr = MRIFseq_vox(src,cnbr,rnbr,snbr,frame);
+	  sumsqnbr += (valnbr*valnbr);
+	  sumsqx   += (valvtx*valnbr);
+	}
+	if(sumsqnbr==0) continue;
+	nbrvar = sumsqnbr/src->nframes;
+	arsum += (sumsqx/src->nframes)/sqrt(vtxvar*nbrvar);
+	nnbrs_actual ++;
+      }/* end loop over hop neighborhood */
+      
+      if(nnbrs_actual != 0) MRIFseq_vox(arN,c,r,s,nthhop) = (arsum/nnbrs_actual);
+    } /* end loop over hop */
+
+    SurfHopListFree(&shl);
+
+  } /* end loop over vertex */
+
+  MRIScrsLUTFree(crslut);
+
+  return(arN);
+}
