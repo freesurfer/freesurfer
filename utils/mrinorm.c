@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/02/26 14:36:35 $
- *    $Revision: 1.117 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/20 21:05:03 $
+ *    $Revision: 1.118 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2292,14 +2292,13 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi;
   int     *pxi, *pyi, *pzi, nchanged, n, total, visited ;
-  BUFTYPE *pmarked, *pctrl, ctrl, mark ;
+  BUFTYPE *pmarked, ctrl, mark ;
   short   *psrc, *pdst ;
   float   src, val, mean ;
   MRI     *mri_marked ;
   float   scale ;
 
   if (mri_src->type != MRI_SHORT ||
-      mri_ctrl->type != MRI_UCHAR ||
       mri_dst->type != MRI_SHORT)
     ErrorExit(ERROR_UNSUPPORTED,
               "mriBuildVoronoiDiagramShort: incorrect input type(s)") ;
@@ -2323,7 +2322,6 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
     for (y = 0 ; y < height ; y++)
     {
       psrc = &MRISvox(mri_src, 0, y, z) ;
-      pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
       pdst = &MRISvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
@@ -2331,7 +2329,7 @@ mriBuildVoronoiDiagramShort(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         {
           DiagBreak() ;
         }
-        ctrl = *pctrl++ ;
+        ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
         src = (float)*psrc++ ;
         if (!ctrl)
         {
@@ -2485,7 +2483,6 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
   }
   if (mri_src->type != MRI_FLOAT ||
-      mri_ctrl->type != MRI_UCHAR ||
       mri_dst->type != MRI_FLOAT)
     ErrorExit(ERROR_UNSUPPORTED,
               "mriBuildVoronoiDiagramFloat: incorrect input type(s)") ;
@@ -2698,12 +2695,7 @@ mriBuildVoronoiDiagramUchar(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         if (ctrl > 255)
         {
           printf("ctrl=%d\n",ctrl);
-
-
         }
-
-
-
 
         src = (float)*psrc++ ;
         if (!ctrl)
@@ -2884,7 +2876,7 @@ MRIsoapBubble(MRI *mri_src,
 {
   int     width, height, depth, frames, x, y, z, f, xk, yk, zk, xi, yi, zi, i,
           *pxi, *pyi, *pzi, mean ;
-  BUFTYPE *pctrl, ctrl, *ptmp ;
+  BUFTYPE   ctrl, *ptmp ;
   MRI     *mri_tmp ;
 
 
@@ -2926,11 +2918,10 @@ MRIsoapBubble(MRI *mri_src,
       {
         for (y = 0 ; y < height ; y++)
         {
-          pctrl = &MRIvox(mri_ctrl, 0, y, z) ;
           ptmp = &MRIseq_vox(mri_tmp, 0, y, z, f) ;
           for (x = 0 ; x < width ; x++)
           {
-            ctrl = *pctrl++ ;
+            ctrl = MRIgetVoxVal(mri_ctrl, x, y, z, 0) ;
             if (ctrl == CONTROL_MARKED)   /* marked point - don't change it */
             {
               ptmp++ ;
