@@ -69,6 +69,8 @@
       <explanation>use p threshold n for adaptive renormalization (default=.7)</explanation>
       <argument>-niter &lt;int n&gt;</argument>
       <explanation>apply max likelihood for n iterations (default=2)</explanation>
+      <argument>-write_probs &lt;char *filename&gt;</argument>
+      <explanation>write label probabilities to filename</explanation>
       <argument>-novar</argument>
       <explanation>do not use variance in classification</explanation>
       <argument>-regularize &lt;float n&gt;</argument>
