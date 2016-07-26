@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/03/22 00:41:04 $
- *    $Revision: 1.38 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/26 18:46:38 $
+ *    $Revision: 1.38.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,7 +68,7 @@
 //
 
 
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.38 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.38.2.1 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,13 +92,14 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.38 $";
 #include "mrisurf.h"
 
 static char vcid[] =
-  "$Id: mri_tessellate.c,v 1.38 2014/03/22 00:41:04 greve Exp $";
+  "$Id: mri_tessellate.c,v 1.38.2.1 2016/07/26 18:46:38 zkaufman Exp $";
 
 #define SQR(x) ((x)*(x))
 
 /////////////////////////////////////////////
-#define MAXVERTICES 10000000
-#define MAXFACES    (2*MAXVERTICES)
+#define MAXV 10000000
+static long MAXVERTICES = MAXV;
+static long  MAXFACES = (2*MAXV);
 
 ////////////////////////////////////////////////
 // gather globals
@@ -144,14 +145,14 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_tessellate.c,v 1.38 2014/03/22 00:41:04 greve Exp $",
-   "$Name: stable6 $", cmdline);
+   "$Id: mri_tessellate.c,v 1.38.2.1 2016/07/26 18:46:38 zkaufman Exp $",
+   "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_tessellate.c,v 1.38 2014/03/22 00:41:04 greve Exp $",
-           "$Name: stable6 $");
+           "$Id: mri_tessellate.c,v 1.38.2.1 2016/07/26 18:46:38 zkaufman Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -620,6 +621,13 @@ get_option(int argc, char *argv[])
     fprintf(stderr,"setting seed for random number generator to %d\n",
             atoi(argv[2])) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "maxv") || !stricmp(option, "max_vertices"))
+  {
+    MAXVERTICES = atol(argv[2]) ;
+    MAXFACES = 2*MAXVERTICES ;
+    fprintf(stderr,"setting max vertices = %ld, and max faces = %ld\n", MAXVERTICES, MAXFACES);
+    nargs = 2 ;
   }
   else if (!stricmp(option, "new")) UseMRIStessellate=1;
   else switch (toupper(*option))
