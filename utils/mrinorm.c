@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/20 21:05:03 $
- *    $Revision: 1.118 $
+ *    $Date: 2016/07/26 18:32:09 $
+ *    $Revision: 1.119 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2515,12 +2515,13 @@ mriBuildVoronoiDiagramFloat(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst)
         {
           val = 0 ;
         }
-        else   /* find mean in region, and use
-                  it as bias field estimate */
+        else   // find mean in region, and use it as bias field estimate 
         {
           val = src ;
           total++ ;
           val = MRIFvox(mri_src, x, y, z) ;/* it's already reduced, don't avg*/
+	  if (FZERO(val))
+	    DiagBreak() ;
         }
         *pdst++ = val ;
       }
