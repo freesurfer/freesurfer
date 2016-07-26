@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/01/29 18:22:07 $
- *    $Revision: 1.67 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/26 18:40:51 $
+ *    $Revision: 1.67.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -166,14 +166,14 @@ main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.67 2016/01/29 18:22:07 fischl Exp $",
-   "$Name: stable6 $", cmdline);
+   "$Id: mri_ca_normalize.c,v 1.67.2.1 2016/07/26 18:40:51 zkaufman Exp $",
+   "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.67 2016/01/29 18:22:07 fischl Exp $",
-           "$Name: stable6 $");
+           "$Id: mri_ca_normalize.c,v 1.67.2.1 2016/07/26 18:40:51 zkaufman Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -281,6 +281,7 @@ main(int argc, char *argv[])
       GCAremoveLabel(gca, Left_Cerebellum_White_Matter) ;
       GCAremoveLabel(gca, Right_Cerebellum_White_Matter) ;
       GCAremoveLabel(gca, Right_Cerebellum_Cortex) ;
+      gca->flags |= GCA_NO_CEREBELLUM ;
     }
   
     if (renormalization_fname)
