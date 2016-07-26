@@ -420,18 +420,24 @@ SUBDIRS=\
 # by launching makes in parallel, after the dependencies are
 # built.  also make is run multi-threaded, which speeds the
 # build within a directory.
+# the default is to use no more than 8 threads.
+# if FS_FASTBUILD_THREADS is defined in the enviro to some
+# other number, it will use that thread count.
 fastbuild:
+	if test "x$(FS_FASTBUILD_THREADS)" = "x" ; then \
+		export FS_FASTBUILD_THREADS=8 ; \
+	fi;
 	@list='$(COREDIRS)'; \
 	for d in $$list; do \
-		cd "$$d"; make -j --max-load 8; cd - ; \
+		cd "$$d"; make -j --max-load $(FS_FASTBUILD_THREADS) ; cd - ; \
 	done
 	@list='$(OTHERDIRS)'; \
 	for d in $$list; do \
-		cd "$$d"; (make -j --max-load 8 &) ; sleep 0.1; cd - ; \
+		cd "$$d"; (make -j --max-load $(FS_FASTBUILD_THREADS) &) ; sleep 0.1; cd - ; \
 	done
 	@list='$(BIGDIRS)'; \
 	for d in $$list; do \
-		cd "$$d"; (make -j --max-load 8); cd - ; \
+		cd "$$d"; (make -j --max-load $(FS_FASTBUILD_THREADS) ); cd - ; \
 	done
 	sleep 10
 	make
