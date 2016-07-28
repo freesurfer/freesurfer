@@ -1,7 +1,6 @@
 #!/bin/tcsh -f
 
-
-set ID='$Id: build_release_type.csh,v 1.151 2015/04/10 20:32:04 zkaufman Exp $'
+set ID='$Id: build_release_type.csh,v 1.151.2.1 2016/07/27 20:55:51 zkaufman Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,18 +12,20 @@ umask 002
 #  build_release_type stable
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
+set FORCE_BUILD=0
+if ($#argv == 2 && $2 == "--force") then
+    set FORCE_BUILD=1
+endif
 
-set STABLE_VER_NUM="v5.3.0"
-set STABLE_PUB_VER_NUM="v5.3.0"
+set STABLE_VER_NUM="v6-beta"
+set STABLE_PUB_VER_NUM="v6.0.0"
 
 set HOSTNAME=`hostname -s`
 
 # note: Mac's need full email addr
 set SUCCESS_MAIL_LIST=(\
-    nicks@nmr.mgh.harvard.edu \
     zkaufman@nmr.mgh.harvard.edu)
 set FAILURE_MAIL_LIST=(\
-    nicks@nmr.mgh.harvard.edu \
     fischl@nmr.mgh.harvard.edu \
     greve@nmr.mgh.harvard.edu \
     rpwang@nmr.mgh.harvard.edu \
@@ -34,7 +35,8 @@ set FAILURE_MAIL_LIST=(\
     rudolph@nmr.mgh.harvard.edu \
     ayendiki@nmr.mgh.harvard.edu \
     zkaufman@nmr.mgh.harvard.edu)
-set FAILURE_MAIL_LIST=(zkaufman@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
+set FAILURE_MAIL_LIST=(\
+    zkaufman@nmr.mgh.harvard.edu)
 
 setenv OSTYPE `uname -s`
 if ("$OSTYPE" == "linux") setenv OSTYPE Linux
@@ -75,17 +77,20 @@ setenv BUILD_PLATFORM "`cat ${BUILD_HOSTNAME_DIR}/PLATFORM`"
 # BUILD_DIR is where the build occurs (doesnt have to be SRC_DIR)
 # INSTALL_DIR is where the build will be installed.
 if ("$RELEASE_TYPE" == "dev") then
+  set BRANCH=master
   set SRC_DIR=${BUILD_HOSTNAME_DIR}/trunk/dev
   set BUILD_DIR=${SRC_DIR}
   set INSTALL_DIR=${LOCAL_FS}/dev
 else if ("$RELEASE_TYPE" == "stable") then
+  set BRANCH=stable6
   set SRC_DIR=${BUILD_HOSTNAME_DIR}/stable/dev
   set BUILD_DIR=${SRC_DIR}
-  set INSTALL_DIR=${LOCAL_FS}/stable5
+  set INSTALL_DIR=${LOCAL_FS}/${BRANCH}
 else if ("$RELEASE_TYPE" == "stable-pub") then
+  set BRANCH=stable6
   set SRC_DIR=${BUILD_HOSTNAME_DIR}/stable/dev
   set BUILD_DIR=${SRC_DIR}
-  set INSTALL_DIR=${LOCAL_FS}/stable5-pub
+  set INSTALL_DIR=${LOCAL_FS}/${BRANCH}-pub
 else
   echo "ERROR: release_type must be either dev, stable or stable-pub"
   echo ""
@@ -100,34 +105,43 @@ set LOG_DIR=${SPACE_FS}/build/logs
 
 
 # dev build use latest-and-greatest package libs
-# stable build use explicit package versions (for stability)
+# stable build use explicit package versions (for stability).
+# Linux uses the /usr/pubsw symlink that exist on all linux
+# platforms here at the Center. But as of OSX v10.10 (El Capitan)
+# Sips protects the /usr directory, so we use /usr/local instead.
+set PUBSW_DIR="/usr/pubsw"
+if ("$PLATFORM" =~ OSX*) then
+  set PUBSW_DIR="/usr/local/pubsw"
+endif
 if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
-  set MNIDIR=/usr/pubsw/packages/mni/1.4
-  set VXLDIR=/usr/pubsw/packages/vxl/1.13.0
-  set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
+  set MNIDIR=${PUBSW_DIR}/packages/mni/1.5
+  set TCLDIR=${PUBSW_DIR}/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set VTKDIR=/usr/pubsw/packages/vtk/current
-  set KWWDIR=/usr/pubsw/packages/KWWidgets/current
-  set GCCDIR=/usr/pubsw/packages/gcc/4.4.7
-  setenv FSLDIR /usr/pubsw/packages/fsl/4.1.9
-  setenv DCMTKDIR /usr/pubsw/packages/dcmtk/3.6.0
-  set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
+  set VTKDIR=${PUBSW_DIR}/packages/vtk/5.6
+  set KWWDIR=${PUBSW_DIR}/packages/KWWidgets/CVS
+  set GCCDIR=${PUBSW_DIR}/packages/gcc/4.4.7
+  set HIPPO_MATLAB_DIR=${PUBSW_DIR}/packages/matlab/8.0
+  setenv FSLDIR ${PUBSW_DIR}/packages/fsl/4.1.9
+  setenv DCMTKDIR ${PUBSW_DIR}/packages/dcmtk/3.6.0
+  setenv GDCMDIR ${PUBSW_DIR}/packages/gdcm/2.4.1
+  set CPPUNITDIR=${PUBSW_DIR}/packages/cppunit/1.10.2
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
-  setenv AFNIDIR /usr/pubsw/packages/AFNI/current
+  setenv AFNIDIR ${PUBSW_DIR}/packages/AFNI/2011_12_21_1014
 else
   # dev build uses most current
-  set MNIDIR=/usr/pubsw/packages/mni/current
-  set VXLDIR=/usr/pubsw/packages/vxl/current
-  set TCLDIR=/usr/pubsw/packages/tcltktixblt/current
+  set MNIDIR=${PUBSW_DIR}/packages/mni/current
+  set TCLDIR=${PUBSW_DIR}/packages/tcltktixblt/current
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
-  set VTKDIR=/usr/pubsw/packages/vtk/current
-  set KWWDIR=/usr/pubsw/packages/KWWidgets/current
-  set GCCDIR=/usr/pubsw/packages/gcc/current
-  setenv FSLDIR /usr/pubsw/packages/fsl/current
-  setenv DCMTKDIR /usr/pubsw/packages/dcmtk/current
-  set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
+  set VTKDIR=${PUBSW_DIR}/packages/vtk/current
+  set KWWDIR=${PUBSW_DIR}/packages/KWWidgets/current
+  set GCCDIR=${PUBSW_DIR}/packages/gcc/current
+  set HIPPO_MATLAB_DIR=${PUBSW_DIR}/packages/matlab/8.0
+  setenv FSLDIR ${PUBSW_DIR}/packages/fsl/current
+  setenv DCMTKDIR ${PUBSW_DIR}/packages/dcmtk/current
+  setenv GDCMDIR ${PUBSW_DIR}/packages/gdcm/current
+  set CPPUNITDIR=${PUBSW_DIR}/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
-  setenv AFNIDIR /usr/pubsw/packages/AFNI/current
+  setenv AFNIDIR ${PUBSW_DIR}/packages/AFNI/current
 endif
 
 # GSL and Qt are no longer used, so they're not defined
@@ -147,15 +161,14 @@ unsetenv GSLDIR
 #
 set FAILED_FILE=${BUILD_HOSTNAME_DIR}/${RELEASE_TYPE}-build-FAILED
 set OUTPUTF=${LOG_DIR}/build_log-${RELEASE_TYPE}-${HOSTNAME}.txt
-set CVSUPDATEF=${LOG_DIR}/update-output-${RELEASE_TYPE}-${HOSTNAME}.txt
-rm -f $FAILED_FILE $OUTPUTF $CVSUPDATEF
+set GITSTATUSF=${LOG_DIR}/git-status-output-${RELEASE_TYPE}-${HOSTNAME}.txt
+rm -f $FAILED_FILE $OUTPUTF $GITSTATUSF
 echo "$HOSTNAME $RELEASE_TYPE build" >& $OUTPUTF
 chmod g+w $OUTPUTF
 set BEGIN_TIME=`date`
 echo $BEGIN_TIME >>& $OUTPUTF
 set TIME_STAMP=`date +%Y%m%d`
 set INSTALL_DIR_TEMP=${INSTALL_DIR}_${TIME_STAMP}
-#goto symlinks
 
 
 #
@@ -271,145 +284,94 @@ endif
 
 
 #
-# CVS update
+# Git update
 ######################################################################
-#
-# Go to dev directory, update code, and check the result. If there are
-# lines starting with "U " or "P " then we had some changes, so go
-# through with the build. If not, quit now. But don't quit if the file
-# FAILED exists, because that means that the last build failed.
-# Also check for 'Permission denied" and "File is in the way" errors.
-# Also check for modified files, which is bad, as this checkout is not
-# supposed to be used for development, and it means the real file (the
-# one in CVS) will not be used.  Also check for removed files, added
-# files, and files with conflicts, all these being a big no-no.
-# this stupid cd is to try to get Mac NFS to see CVSROOT:
+# UPDATE THIS COMMENT
+# Go to dev directory and check status. If there are local commits 
+# or modified files than exit as there should be neither. 
+# Then fetch the origin to update our local repo. If the working copy
+# and the local repo do not match than things have changed so
+# perform a hard reset (set local working copy to the repo) and build.
+# Also, if local files are missing then build. This makes it easy 
+# to ensure a build is performed at the next cycle.
+# Don't quit if the file FAILED exists, because that means 
+# that the last build failed.
 set CURRENT_TIME=`date`
-echo "Running CVS update: $CURRENT_TIME" >>& $OUTPUTF
-setenv CVSROOT /autofs/space/repo_001/dev
-if ("$HOSTNAME" == "hima") then
-  setenv CVSROOT /space/repo/1/dev
-endif
-cd $CVSROOT >>& $OUTPUTF
-sleep 3
-cd ${BUILD_DIR} >>& $OUTPUTF
-setenv CVSROOT /space/repo/1/dev
-cd $CVSROOT >>& $OUTPUTF
-sleep 3
-ls >& /dev/null
-cd ${BUILD_DIR} >>& $OUTPUTF
+set GIT_VERSION=`git --version`
+echo "Running git update: $CURRENT_TIME" >>& $OUTPUTF
+echo "$GIT_VERSION" >>& $OUTPUTF
 echo "##########################################################" >>& $OUTPUTF
 echo "Updating $SRC_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $SRC_DIR" >>& $OUTPUTF
 cd ${SRC_DIR} >>& $OUTPUTF
-echo "CMD: cvs update -P -d \>\& $CVSUPDATEF" >>& $OUTPUTF
-cvs update -P -d >& $CVSUPDATEF
-chmod g+w $CVSUPDATEF
-
-echo "CMD: grep -e "Permission denied" $CVSUPDATEF" >>& $OUTPUTF
-grep -e "Permission denied" $CVSUPDATEF >& /dev/null
+echo "CMD: git status \>\& $GITSTATUSF" >>& $OUTPUTF
+git status >& $GITSTATUSF
+echo "CMD: grep -E "^\#\? Your branch is ahead of " $GITSTATUSF" >>& $OUTPUTF
+grep -E "^#? Your branch is ahead of " $GITSTATUSF >& /dev/null
 if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update permission denied"
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED -  git status: local repo not pushed!"
   echo "$msg" >>& $OUTPUTF
   tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
-echo "CMD: grep -e "cvs update: move away" $CVSUPDATEF" >>& $OUTPUTF
-grep -e "cvs update: move away" $CVSUPDATEF >& /dev/null
+echo "CMD: grep -E "^\#\?\[\[:space:\]\]modified:" $GITSTATUSF" >>& $OUTPUTF
+grep -E "^#?[[:space:]]modified:" $GITSTATUSF >& /dev/null
 if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file in the way"
+  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - git update: file modified!"
   echo "$msg" >>& $OUTPUTF
   tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
   exit 1  
 endif
 
-echo "CMD: grep -e ^\[M\]\  $CVSUPDATEF" >>& $OUTPUTF
-grep -e ^\[M\]\   $CVSUPDATEF >& /dev/null
+
+set local_deletions=0
+echo "CMD: grep -E "^\#\?\[\[:space:\]\]deleted:" $GITSTATUSF" >>& $OUTPUTF
+grep -E "^#?[[:space:]]deleted:" $GITSTATUSF >& /dev/null
 if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file modified!"
+  set local_deletions=1
+  set msg="git status: file deleted!"
   echo "$msg" >>& $OUTPUTF
-  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
-  exit 1  
 endif
 
-echo "CMD: grep -e ^\[C\]\  $CVSUPDATEF" >>& $OUTPUTF
-grep -e ^\[C\]\   $CVSUPDATEF >& /dev/null
-if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file conflict!"
-  echo "$msg" >>& $OUTPUTF
-  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
-  exit 1  
-endif
 
-echo "CMD: grep -e ^\[R\]\  $CVSUPDATEF" >>& $OUTPUTF
-grep -e ^\[R\]\   $CVSUPDATEF >& /dev/null
-if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file removed!"
-  echo "$msg" >>& $OUTPUTF
-  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
-  exit 1  
-endif
+echo "CMD: git fetch origin \>\>\& $GITSTATUSF" >>& $OUTPUTF
+git fetch origin >>& $GITSTATUSF
+set SHA_HEAD=`git rev-parse HEAD`
+set SHA_HEAD_SHORT=`git rev-parse --short HEAD`
+set SHA_ORIGIN=`git rev-parse origin/${BRANCH}`
+echo "git rev-parse HEAD = $SHA_HEAD" >>& $OUTPUTF
+echo "git rev-parse origin/${BRANCH} = $SHA_ORIGIN" >>& $OUTPUTF
 
-echo "CMD: grep -e ^\[A\]\  $CVSUPDATEF" >>& $OUTPUTF
-grep -e ^\[A\]\   $CVSUPDATEF >& /dev/null
-if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update: file added!"
-  echo "$msg" >>& $OUTPUTF
-  tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
-  exit 1  
-endif
-
-echo "CMD: grep -e ^\[UP\]\  $CVSUPDATEF" >>& $OUTPUTF
-grep -e ^\[UP\]\   $CVSUPDATEF >& /dev/null
-if ($status != 0 && ! -e ${FAILED_FILE} ) then
+if ($SHA_HEAD == $SHA_ORIGIN && \
+    ! -e ${FAILED_FILE} && \
+    ! ${FORCE_BUILD} && \
+    ! ${local_deletions}) then
   echo "Nothing changed in repository, SKIPPED building" >>& $OUTPUTF
-  set msg="$HOSTNAME $RELEASE_TYPE build skipped - no cvs changes"
+  set msg="$HOSTNAME $RELEASE_TYPE build skipped - no changes since last build"
   mail -s "$msg" $SUCCESS_MAIL_LIST < $OUTPUTF
-  echo "CMD: cat $CVSUPDATEF \>\>\& $OUTPUTF" >>& $OUTPUTF
-  cat $CVSUPDATEF >>& $OUTPUTF
-  echo "CMD: rm -f $CVSUPDATEF" >>& $OUTPUTF
-  rm -f $CVSUPDATEF
+  rm -f $GITSTATUSF
   exit 0
 endif
 
-echo "CMD: grep -e "No such file" $CVSUPDATEF" >>& $OUTPUTF
-grep -e "No such file" $CVSUPDATEF >& $CVSUPDATEF-nosuchfiles
-if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build problem - cvs update "
-  echo "$msg" >>& $CVSUPDATEF-nosuchfiles
-  tail -n 200 $CVSUPDATEF-nosuchfiles | mail -s "$msg" $SUCCESS_MAIL_LIST
-  rm -f $CVSUPDATEF-nosuchfiles
-endif
-
-echo "CMD: grep -e "update aborted" $CVSUPDATEF" >>& $OUTPUTF
-grep -e "update aborted" $CVSUPDATEF >& /dev/null
-if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update aborted"
-  echo "$msg" >>& $OUTPUTF
-  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
-  exit 1  
-endif
-
-echo "CMD: grep -e "Cannot allocate memory" $CVSUPDATEF" >>& $OUTPUTF
-grep -e "Cannot allocate memory" $CVSUPDATEF >& /dev/null
-if ($status == 0) then
-  set msg="$HOSTNAME $RELEASE_TYPE build FAILED - cvs update aborted"
-  echo "$msg" >>& $OUTPUTF
-  tail -n 30 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
-  exit 1  
-endif
+# Perform a hard reset of the local workspace and repo to the origin/master.
+# This step probably isnt required, but it seems safe to me. Annexed files
+# that changed are lost when performing a reset. So we must get those as well.
+echo "CMD: git reset --hard origin/${BRANCH}  \>\>\& $GITSTATUSF" >>& $OUTPUTF
+git reset --hard origin/${BRANCH} >>& $GITSTATUSF
+echo "CMD: git annex get . \>\>\& $GITSTATUSF" >>& $OUTPUTF
+git annex get . >>& $GITSTATUSF
 
 # assume failure (file removed only after successful build)
 rm -f ${FAILED_FILE}
 touch ${FAILED_FILE}
 
-echo "CMD: cat $CVSUPDATEF \>\>\& $OUTPUTF" >>& $OUTPUTF
-cat $CVSUPDATEF >>& $OUTPUTF
-echo "CMD: rm -f $CVSUPDATEF" >>& $OUTPUTF
-rm -f $CVSUPDATEF
-# CVS update is now complete
+echo "CMD: cat $GITSTATUSF \>\>\& $OUTPUTF" >>& $OUTPUTF
+cat $GITSTATUSF >>& $OUTPUTF
+echo "CMD: rm -f $GITSTATUSF" >>& $OUTPUTF
+rm -f $GITSTATUSF
+# Git update is now complete
 
 
 #
@@ -473,7 +435,6 @@ else
   set cnfgr=($cnfgr `cat ${BUILD_HOSTNAME_DIR}/dev-configure_options.txt`)
 endif
 set cnfgr=($cnfgr --with-mni-dir=${MNIDIR})
-set cnfgr=($cnfgr --with-vxl-dir=${VXLDIR})
 if ($?VTKDIR) then
   set cnfgr=($cnfgr --with-vtk-dir=${VTKDIR})
 endif
@@ -698,33 +659,34 @@ if ( -e {$INSTALL_DIR_TEMP}/EXCLUDE_FILES_rm_cmds ) then
 endif
 
 # strip symbols from binaries, greatly reducing their size
-if ("${RELEASE_TYPE}" == "stable-pub") then
-  echo "CMD: strip -v ${INSTALL_DIR_TEMP}/bin/*" >>& $OUTPUTF
-  cd ${INSTALL_DIR_TEMP}/bin
-  rm -vf ${OUTPUTF}-strip.log >>& $OUTPUTF
-  foreach f (`ls -d *`)
-    strip -v $f >>& ${OUTPUTF}-strip.log
-  end
-  cd -
-endif
+# do not strip eugenios segment subject binaries because
+# the 'strip' command corrupts them.
+echo "CMD: strip -v ${INSTALL_DIR_TEMP}/bin/*" >>& $OUTPUTF
+cd ${INSTALL_DIR_TEMP}/bin
+foreach f ( `ls -d *` )
+  if (("$f" =~ segmentSubject*) || ("$f" =~ SegmentSubject*) || ("$f" =~ *glnxa64)) then
+    echo "Not Stripping $f" >>& ${OUTPUTF}
+  else
+    strip -v $f >>& ${OUTPUTF}
+  endif
+end
+cd -
 
 #
-# Move INSTALL_DIR to INSTALL_DIR.old 
+# Move INSTALL_DIR to INSTALL_DIR.bak 
 # Move newly created INSTALL_DIR_TEMP to INSTALL_DIR
 # This series of mv's minimizes the time window where the INSTALL_DIR directory
 # would appear empty to a machine trying to reference its contents in recon-all
-if ( -d ${INSTALL_DIR}.old ) then
-  echo "CMD: rm -Rf ${INSTALL_DIR}.old" >>& $OUTPUTF
-  rm -Rf ${INSTALL_DIR}.old >>& $OUTPUTF
+if ( -d ${INSTALL_DIR}.bak ) then
+  echo "CMD: rm -Rf ${INSTALL_DIR}.bak" >>& $OUTPUTF
+  rm -Rf ${INSTALL_DIR}.bak >>& $OUTPUTF
 endif
 if ( -d ${INSTALL_DIR} ) then
-  echo "CMD: mv ${INSTALL_DIR} ${INSTALL_DIR}.old" >>& $OUTPUTF
-  mv ${INSTALL_DIR} ${INSTALL_DIR}.old >>& $OUTPUTF
+  echo "CMD: mv ${INSTALL_DIR} ${INSTALL_DIR}.bak" >>& $OUTPUTF
+  mv ${INSTALL_DIR} ${INSTALL_DIR}.bak >>& $OUTPUTF
 endif
 echo "CMD: mv ${INSTALL_DIR_TEMP} ${INSTALL_DIR}" >>& $OUTPUTF
 mv ${INSTALL_DIR_TEMP} ${INSTALL_DIR} >>& $OUTPUTF
-echo "CMD: rm -Rf ${INSTALL_DIR}.old" >>& $OUTPUTF
-rm -Rf ${INSTALL_DIR}.old >>& $OUTPUTF
 
 # 
 # Point to a  license file
@@ -789,9 +751,9 @@ if ( ! $status ) then
   if ($status != 0) then
     set msg="$HOSTNAME $RELEASE_TYPE build FAILED make distcheck"
 #
-# HACK: mail to nicks for now, until it passes regularly
+# HACK: mail to zkaufman for now, until it passes regularly
 #
-    tail -n 20 $OUTPUTF | mail -s "$msg" nicks@nmr.mgh.harvard.edu
+    tail -n 20 $OUTPUTF | mail -s "$msg" zkaufman@nmr.mgh.harvard.edu
     rm -f ${FAILED_FILE}
     touch ${FAILED_FILE}
     # set group write bit on files changed by make tools:
@@ -805,7 +767,7 @@ if ( ! $status ) then
 #    exit 1
   else
     set msg="$HOSTNAME $RELEASE_TYPE build PASSED make distcheck"
-    tail -n 20 $OUTPUTF | mail -s "$msg" nicks@nmr.mgh.harvard.edu
+    tail -n 20 $OUTPUTF | mail -s "$msg" zkaufman@nmr.mgh.harvard.edu
   endif
 endif
 endif
@@ -839,7 +801,7 @@ symlinks:
   else
     set cmd5=
   endif
-  set cmd6=
+  set cmd6=(ln -s ${HIPPO_MATLAB_DIR} ${INSTALL_DIR}/MCRv80)
   set cmd7=
   set cmd8=
   # execute the commands
@@ -861,26 +823,44 @@ symlinks:
   $cmd8
   # also setup sample subject:
   rm -f ${INSTALL_DIR}/subjects/bert
-  set cmd=(ln -s ${SPACE_FS}/subjects/bert ${INSTALL_DIR}/subjects/bert)
+  set cmd=(ln -s ${SPACE_FS}/subjects/test/bert.${OSTYPE} ${INSTALL_DIR}/subjects/bert)
   echo "$cmd" >>& $OUTPUTF
   $cmd
 
-#
-# fix mac libs
+# 
+# Platform dependant symlinking.
 ######################################################################
-# Mac uses Qt frameworks for freeview, which are included in the
-# Freeview.app bundle. So remove the qt symlink in the 
-# ${INSTALL_DIR}/lib directory
+#
 set CURRENT_TIME=`date`
 if ("$OSTYPE" == "Darwin") then
-   echo "Running fix mac libs: $CURRENT_TIME" >>& $OUTPUTF
-   rm ${INSTALL_DIR}/lib/qt
-   ln -s ${GCCDIR} ${INSTALL_DIR}/lib/gcc
+  rm ${INSTALL_DIR}/lib/qt
+  ln -s ${GCCDIR} ${INSTALL_DIR}/lib/gcc
+  cp ${INSTALL_DIR}/lib/gcc/lib/* ${INSTALL_DIR}/Freeview.app/Contents/Frameworks
+  install_name_tool -change /opt/local/lib/gcc44/libgcc_s.1.dylib \
+                            @executable_path/../Frameworks/libgcc_s.1.dylib \
+                            ${INSTALL_DIR}/Freeview.app/Contents/MacOS/Freeview
+  install_name_tool -change /opt/local/lib/libgcc/libstdc++.6.dylib \
+                            @executable_path/../Frameworks/libstdc++.6.dylib \
+                            ${INSTALL_DIR}/Freeview.app/Contents/MacOS/Freeview
+  install_name_tool -change /opt/local/lib/libgcc/libgomp.1.dylib \
+                            @executable_path/../Frameworks/libgomp.1.dylib \
+                            ${INSTALL_DIR}/Freeview.app/Contents/MacOS/Freeview
+  # As of Mac 10.11 DYLD_LIBRARY_PATH is no longer repected. So we must
+  # checnge the location within the library to point to the local lib.
+  foreach i (`find ${INSTALL_DIR} -type f`)
+    file $i | grep "Mach-O 64-bit executable" >& /dev/null
+    if ($status == 0) then
+      install_name_tool -change /opt/local/lib/libgcc/libgomp.1.dylib @executable_path/../lib/gcc/lib/libgomp.1.dylib ${i}
+      install_name_tool -change /opt/local/lib/libgcc/libstdc++.6.dylib @executable_path/../lib/gcc/lib/libstdc++.6.dylib ${i}
+      install_name_tool -change /opt/local/lib/gcc44/libgcc_s.1.dylib @executable_path/../lib/gcc/lib/libgcc_s.1.dylib ${i}
+      install_name_tool -change /opt/local/lib/libgcc/libgfortran.3.dylib @executable_path/../lib/gcc/lib/libgfortran.3.dylib ${i}
+    endif
+  end
 endif
 
 # Until we are building 64-bit GUIs on the Mac, we need to link
 # to the 32-bit versions of vtk, and KWWidgets.
-if ("$PLATFORM" == "lion") then
+if ("$PLATFORM" =~ OSX*) then
   echo "executing fix_mac_libs.csh" >>& $OUTPUTF
   ${SPACE_FS}/build/scripts/fix_mac_libs.csh ${RELEASE_TYPE}
 endif
@@ -896,7 +876,7 @@ endif
 set DATE_STAMP="`date +%Y%m%d`"
 set FS_PREFIX="freesurfer-${OSTYPE}-${PLATFORM}-${RELEASE_TYPE}"
 if ("$RELEASE_TYPE" == "dev") then
-  echo "${FS_PREFIX}-${DATE_STAMP}" > ${INSTALL_DIR}/build-stamp.txt
+  echo "${FS_PREFIX}-${DATE_STAMP}-${SHA_HEAD_SHORT}" > ${INSTALL_DIR}/build-stamp.txt
 else if ("$RELEASE_TYPE" == "stable") then
   echo "${FS_PREFIX}-${STABLE_VER_NUM}-${DATE_STAMP}" \
     > ${INSTALL_DIR}/build-stamp.txt
@@ -916,6 +896,7 @@ set CURRENT_TIME=`date`
 echo "Running create tarball: $CURRENT_TIME" >>& $OUTPUTF
 if (("$RELEASE_TYPE" == "stable-pub") || \
     ("$RELEASE_TYPE" == "dev") || \
+    ("$STABLE_VER_NUM" == "v6-beta") || \
     ( -e ${BUILD_HOSTNAME_DIR}/TARBALL)) then
   if ( ! $?SKIP_CREATE_TARBALL) then
     set cmd=($SCRIPT_DIR/create_targz.csh $PLATFORM $RELEASE_TYPE)
