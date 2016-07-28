@@ -12,9 +12,6 @@ GCA=\
 	face.gca \
 	RB_all_2016-05-10.vc700.gca \
 	RB_all_withskull_2016-05-10.vc700.gca \
-	RB_all_2015-08-04.gca \
-	RB_all_2014-08-21.gca \
-	RB_all_withskull_2014-08-21.gca \
 	talairach_mixed_with_skull.gca \
 	wmsa_new_eesmith.gca \
 	aseg+spmhead.ixi.gca \
