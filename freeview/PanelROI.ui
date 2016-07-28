@@ -127,6 +127,11 @@
             <string>Solid Color</string>
            </property>
           </item>
+          <item>
+           <property name="text">
+            <string>Heatscale</string>
+           </property>
+          </item>
          </widget>
         </item>
         <item>

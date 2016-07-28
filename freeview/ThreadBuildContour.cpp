@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2013/02/05 20:51:41 $
- *    $Revision: 1.7 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:52:38 $
+ *    $Revision: 1.7.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,9 +58,35 @@ void ThreadBuildContour::run()
   bool bExtractAllRegions = m_mri->GetProperty()->GetContourExtractAllRegions();
   bool bLabelContour = m_mri->GetProperty()->GetShowAsLabelContour();
   bool bUpsampleContour = m_mri->GetProperty()->GetContourUpsample();
+  QList<int> labelList;
   if (bLabelContour)
   {
-    m_mri->GetProperty()->GetLabelContourRange(&dTh1, &dTh2);
+    QStringList list = m_mri->GetProperty()->GetLabelContourRange().split(",", QString::SkipEmptyParts);
+    foreach (QString strg, list)
+    {
+        if (strg.contains("-"))
+        {
+            QStringList sublist = strg.split("-", QString::SkipEmptyParts);
+            if (sublist.size() > 1)
+            {
+                int n1 = qMax(1, sublist[0].toInt());
+                int n2 = sublist[1].toInt();
+                for (int i = n1; i <= n2; i++)
+                {
+                    if (!labelList.contains(i))
+                        labelList << i;
+                }
+            }
+        }
+        else
+        {
+            int n = -1;
+            n = strg.toInt();
+            if (n > 0 && !labelList.contains(n))
+                labelList << n;
+        }
+    }
+
     bExtractAllRegions = true;
   }
   int nSmoothFactor = m_mri->GetProperty()->GetContourSmoothIterations();
@@ -76,7 +102,10 @@ void ThreadBuildContour::run()
   if (m_mri->GetNumberOfFrames() == 1)
   {
     if (bLabelContour)
-      MyVTKUtils::BuildLabelContourActor( m_mri->GetImageData(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour );
+    {
+      if (!labelList.isEmpty())
+        MyVTKUtils::BuildLabelContourActor( m_mri->GetImageData(), labelList, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour );
+    }
     else
       MyVTKUtils::BuildContourActor( m_mri->GetImageData(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour );
   }
@@ -87,7 +116,10 @@ void ThreadBuildContour::run()
     extract->SetInput(m_mri->GetImageData());
     extract->Update();
     if (bLabelContour)
-      MyVTKUtils::BuildLabelContourActor( extract->GetOutput(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour );
+    {
+      if (!labelList.isEmpty())
+        MyVTKUtils::BuildLabelContourActor( extract->GetOutput(), labelList, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour );
+    }
     else
       MyVTKUtils::BuildContourActor( extract->GetOutput(), dTh1, dTh2, actor, nSmoothFactor, NULL, bExtractAllRegions, bUpsampleContour );
   }

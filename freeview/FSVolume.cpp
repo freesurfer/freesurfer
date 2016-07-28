@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/08 17:24:31 $
- *    $Revision: 1.109 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:52:37 $
+ *    $Revision: 1.109.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -576,7 +576,7 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     {
       memset( ptr,
               0,
-              m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
+              ((size_t)m_imageData->GetScalarSize()) * nDim[0] * nDim[1] * nDim[2] );
     }
   }
 

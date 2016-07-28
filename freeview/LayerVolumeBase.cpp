@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/11/19 19:16:51 $
- *    $Revision: 1.28 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:52:37 $
+ *    $Revision: 1.28.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,8 @@ LayerVolumeBase::LayerVolumeBase( QObject* parent ) : LayerEditable( parent )
   m_imageData = NULL;
   m_imageDataRef = NULL;
   connect(m_propertyBrush, SIGNAL(FillValueChanged(double)), this, SLOT(SetFillValue(double)));
-  connect(m_propertyBrush, SIGNAL(EraseValueChanged(double)), this, SLOT(SetBlankValue(double)));
+  if (GetEndType() != "ROI")
+    connect(m_propertyBrush, SIGNAL(EraseValueChanged(double)), this, SLOT(SetBlankValue(double)));
   connect(m_propertyBrush, SIGNAL(BrushSizeChanged(int)), this, SLOT(SetBrushRadius(int)));
 }
 
@@ -954,15 +955,15 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
     m_imageData->GetDimensions( nDim );
     nDim[nPlane] = 1;
     nStart[nPlane] = nSlice;
-    int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
+    size_t nSize = ((size_t)nDim[0])*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
     item.data = new char[nSize];
     memset( item.data, 0, nSize );
     long long n = 0;
-    for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
+    for ( size_t i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
     {
-      for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
+      for ( size_t j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
       {
-        for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
+        for ( size_t k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
         {
           if ( !mask || mask[n] > 0 )
           {
@@ -1004,11 +1005,11 @@ void LayerVolumeBase::LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZero
     m_imageData->GetDimensions( nDim );
     nDim[item.plane] = 1;
     nStart[item.plane] = item.slice;
-    for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
+    for ( size_t i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
     {
-      for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
+      for ( size_t j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
       {
-        for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
+        for ( size_t k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
         {
           double dValue = m_imageData->GetScalarComponentAsDouble( i, j, k, 0 );
           memcpy( m_imageData->GetScalarPointer( i, j, k ),

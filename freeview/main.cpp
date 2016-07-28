@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/14 02:00:41 $
- *    $Revision: 1.72 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:52:38 $
+ *    $Revision: 1.72.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
   app.setOrganizationDomain("nmr.mgh.harvard.edu");
 #ifdef Q_WS_X11
   app.setApplicationName("freeview");
-  app.setStyle( "Cleanlooks" );
+//  app.setStyle( "Cleanlooks" );
 #else
   app.setApplicationName("FreeView");
 #endif

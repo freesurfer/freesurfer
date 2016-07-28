@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang 
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/02/26 21:28:28 $
- *    $Revision: 1.19 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:52:37 $
+ *    $Revision: 1.19.2.1 $
  *
  * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -215,7 +215,7 @@ void LayerFCD::InitializeData()
     void* ptr = m_imageData->GetScalarPointer();
     int* nDim = m_imageData->GetDimensions();
     // cout << nDim[0] << ", " << nDim[1] << ", " << nDim[2] << endl;
-    memset( ptr, 0, m_imageData->GetScalarSize() * 
+    memset( ptr, 0, ((size_t)m_imageData->GetScalarSize()) *
             nDim[0] * nDim[1] * nDim[2] );
     InitializeActors();
   }
@@ -618,7 +618,7 @@ void LayerFCD::UpdateRASImage( vtkImageData* rasImage)
   int* dim = rasImage->GetDimensions();
   memset( rasImage->GetScalarPointer(),
           0,
-          dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
+          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
   if ( m_fcd->nlabels == 0 )
   {
     cout << "No labels found\n";

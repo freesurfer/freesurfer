@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:45 $
- *    $Revision: 1.15 $
+ *    $Date: 2016/07/28 14:52:37 $
+ *    $Revision: 1.15.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -237,4 +237,34 @@ void FSPointSet::LabelToPointSet( PointSet& points_out, FSVolume* ref_vol )
     ref_vol->RASToTarget( wp.pt, wp.pt );
     points_out.push_back( wp );
   }
+}
+
+bool FSPointSet::GetCentroidRASPosition(double* pos, FSVolume* ref_vol)
+{
+  if (m_label && m_label->n_points > 0)
+  {
+    double x = 0, y = 0, z = 0;
+    for ( int i = 0; i < m_label->n_points; i++ )
+    {
+      x += m_label->lv[i].x;
+      y += m_label->lv[i].y;
+      z += m_label->lv[i].z;
+    }
+    pos[0] = x / m_label->n_points;
+    pos[1] = y / m_label->n_points;
+    pos[2] = z / m_label->n_points;
+
+    if ( m_label->coords == LABEL_COORDS_VOXEL )
+    {
+      MRIvoxelToWorld(ref_vol->GetMRI(), pos[0], pos[1], pos[2], pos, pos+1, pos+2);
+    }
+    else if (m_label->coords == LABEL_COORDS_TKREG_RAS)
+    {
+      ref_vol->TkRegToNativeRAS( pos, pos );
+    }
+    ref_vol->NativeRASToRAS( pos, pos );
+    return true;
+  }
+  else
+    return false;
 }

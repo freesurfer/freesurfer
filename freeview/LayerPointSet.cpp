@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/01/16 18:17:54 $
- *    $Revision: 1.10 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:52:37 $
+ *    $Revision: 1.10.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,11 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
     m_actorSplineSlice[i]->GetProperty()->SetInterpolationToFlat();
     m_actorSplineSlice[i]->GetProperty()->SetAmbient( 1 );
     m_actorSplineSlice[i]->GetProperty()->SetDiffuse( 0 );
+    double pos[3] = {0,0,0};
+    pos[i] = 1e-4;
+    if (i == 2)
+        pos[i] = -pos[i];
+    m_actorSplineSlice[i]->SetPosition(pos);
   }
   m_layerRef = ref;
   m_pointSetSource = new FSPointSet();
@@ -414,7 +419,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
 
       vtkSmartPointer<vtkCutter> cutter =
         vtkSmartPointer<vtkCutter>::New();
-      cutter->SetInput( polydata_tube );
+      cutter->SetInput(polydata_tube);
       cutter->SetCutFunction( plane );
 
       vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
@@ -734,3 +739,14 @@ int LayerPointSet::GetNumberOfPoints()
   return m_points.size();
 }
 
+bool LayerPointSet::GetCentroidPosition(double *pos)
+{
+  m_pointSetSource->UpdateLabel( m_points, m_layerRef->GetSourceVolume() );
+  if (m_pointSetSource->GetCentroidRASPosition(pos, m_layerRef->GetSourceVolume()))
+  {
+    m_layerRef->RASToTarget(pos, pos);
+    return true;
+  }
+  else
+    return false;
+}

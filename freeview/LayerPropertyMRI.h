@@ -10,9 +10,9 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/04/08 19:30:28 $
- *    $Revision: 1.20 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:52:37 $
+ *    $Revision: 1.20.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -316,10 +316,9 @@ public:
 
   void SetActiveFrame(int nFrame);
 
-  void GetLabelContourRange(double* th1, double* th2)
+  QString GetLabelContourRange()
   {
-    *th1 = m_dLabelContourRange[0];
-    *th2 = m_dLabelContourRange[1];
+    return m_sLabelContourRange;
   }
 
   double GetVectorScale()
@@ -408,7 +407,7 @@ public slots:
 
   void SetRememberFrameSettings(bool bFlag);
 
-  void SetLabelContourRange(double dmin, double dmax);
+  void SetLabelContourRange(const QString& range_strg );
   void SetVectorScale(double dval);
 
   void SetUsePercentile(bool b)
@@ -514,8 +513,7 @@ private:
   bool    m_bContourUpsample;
 
   bool    m_bShowAsLabelContour;
-  double  m_dLabelContourRange[2];
-
+  QString m_sLabelContourRange;
   bool    m_bShowLabelOutline;
   int     m_nUpSampleMethod;
 

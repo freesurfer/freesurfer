@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/05/31 18:30:40 $
- *    $Revision: 1.69 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:52:38 $
+ *    $Revision: 1.69.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -756,9 +756,7 @@ void PanelSurface::OnComboLabelColorCode(int nSel)
     QList<SurfaceLabel*> labels = GetSelectedLabels();
     foreach (SurfaceLabel* label, labels)
     {
-      label->blockSignals(true);
       label->SetColorCode(nSel);
-      label->blockSignals(false);
     }
     surf->UpdateColorMap();
   }

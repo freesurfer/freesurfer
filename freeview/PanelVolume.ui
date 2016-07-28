@@ -1186,7 +1186,7 @@ of each frame</string>
       <item row="4" column="0">
        <widget class="QLabel" name="labelContourLabelRange">
         <property name="text">
-         <string>Range</string>
+         <string>Labels to show</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
@@ -1195,50 +1195,24 @@ of each frame</string>
       </item>
       <item row="4" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item>
-         <widget class="QLineEdit" name="lineEditContourLabelRangeLow">
+         <widget class="QLineEdit" name="lineEditContourLabelRange">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
           <property name="maximumSize">
            <size>
-            <width>60</width>
+            <width>16777215</width>
             <height>16777215</height>
            </size>
           </property>
          </widget>
-        </item>
-        <item>
-         <widget class="QLineEdit" name="lineEditContourLabelRangeHigh">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>60</width>
-            <height>16777215</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_4">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
         </item>
        </layout>
       </item>
@@ -1967,7 +1941,7 @@ of each frame</string>
    </hints>
   </connection>
   <connection>
-   <sender>lineEditContourLabelRangeLow</sender>
+   <sender>lineEditContourLabelRange</sender>
    <signal>returnPressed()</signal>
    <receiver>PanelVolume</receiver>
    <slot>OnContourValueChanged()</slot>
@@ -1979,22 +1953,6 @@ of each frame</string>
     <hint type="destinationlabel">
      <x>-88</x>
      <y>1290</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>lineEditContourLabelRangeHigh</sender>
-   <signal>returnPressed()</signal>
-   <receiver>PanelVolume</receiver>
-   <slot>OnContourValueChanged()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>247</x>
-     <y>1212</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>-51</x>
-     <y>1299</y>
     </hint>
    </hints>
   </connection>

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/15 16:57:49 $
- *    $Revision: 1.124 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:52:37 $
+ *    $Revision: 1.124.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1435,13 +1435,13 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
             {
                 double* dColor = GetProperty()->GetBinaryColor();
                 unsigned char rgba[4] = { (int)(dColor[0]*255), (int)(dColor[1]*255), (int)(dColor[2]*255), 255 };
-                for (int i = 0; i < nCount*4; i+=4)
+                for (size_t i = 0; i < nCount*4; i+=4)
                     memcpy(data+i, rgba, 4);
             }
             else
             {
                 QList<int>& rgb = m_rgbMaps[m_nActiveRGBMap].data;
-                for (int i = 0; i < nCount; i++)
+                for (size_t i = 0; i < nCount; i++)
                 {
                     data[i*4] = rgb[i*3];
                     data[i*4+1] = rgb[i*3+1];
