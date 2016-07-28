@@ -23,9 +23,9 @@ foo2_DATA=mri_ca_normalize.help.xml.html
 # trick to get test data into the build directory (during make distcheck)
 foo_SOURCES=
 foo:
-	if ! test -f "$(top_builddir)/distribution/average/RB_all_2008-03-26.gca"; \
+	if ! test -f "$(top_builddir)/distribution/average/RB_all_2016-05-10.vc700.gca"; \
 	then \
-		cp -v $(top_srcdir)/distribution/average/RB_all_2008-03-26.gca \
+		cp -v $(top_srcdir)/distribution/average/RB_all_2016-05-10.vc700.gca \
 					$(top_builddir)/distribution/average/; fi;
 	if ! test -f "$(top_builddir)/mri_ca_normalize/testdata.tar.gz"; then \
 		cp -v $(top_srcdir)/mri_ca_normalize/testdata.tar.gz \

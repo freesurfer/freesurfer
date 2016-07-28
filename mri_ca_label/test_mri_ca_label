@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/03/17 06:39:55 $
-#    $Revision: 1.5 $
+#    $Date: 2016/07/28 14:17:45 $
+#    $Revision: 1.6 $
 #
 # Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_ca_label,v 1.5 2016/03/17 06:39:55 zkaufman Exp $'
+set VERSION='$Id: test_mri_ca_label,v 1.6 2016/07/28 14:17:45 zkaufman Exp $'
 
 umask 002
 
@@ -66,7 +66,7 @@ foreach num ($threads)
         -align \
         norm.mgz \
         talairach.m3z \
-        ../../distribution/average/RB_all_2014-08-21.gca \
+        ../../distribution/average/RB_all_2016-05-10.vc700.gca \
         aseg.auto_noCCseg.${num}cpu.mgz)
     echo "\n\n $cmd \n\n" |& tee -a $log
     $cmd |& tee -a $log
