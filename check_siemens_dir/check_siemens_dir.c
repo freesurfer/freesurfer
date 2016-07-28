@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:01 $
- *    $Revision: 1.10 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/27 21:03:29 $
+ *    $Revision: 1.10.4.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,8 +72,8 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: check_siemens_dir.c,v 1.10 2011/03/02 00:04:01 nicks Exp $", 
-     "$Name: stable6 $");
+     "$Id: check_siemens_dir.c,v 1.10.4.1 2016/07/27 21:03:29 zkaufman Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
