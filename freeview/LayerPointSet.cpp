@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/07/05 17:20:32 $
- *    $Revision: 1.11 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:31:41 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,11 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
     m_actorSplineSlice[i]->GetProperty()->SetInterpolationToFlat();
     m_actorSplineSlice[i]->GetProperty()->SetAmbient( 1 );
     m_actorSplineSlice[i]->GetProperty()->SetDiffuse( 0 );
+    double pos[3] = {0,0,0};
+    pos[i] = 1e-4;
+    if (i == 2)
+        pos[i] = -pos[i];
+    m_actorSplineSlice[i]->SetPosition(pos);
   }
   m_layerRef = ref;
   m_pointSetSource = new FSPointSet();
@@ -414,7 +419,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
 
       vtkSmartPointer<vtkCutter> cutter =
         vtkSmartPointer<vtkCutter>::New();
-      cutter->SetInput( polydata_tube );
+      cutter->SetInput(polydata_tube);
       cutter->SetCutFunction( plane );
 
       vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();

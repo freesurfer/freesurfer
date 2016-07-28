@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/21 19:39:44 $
- *    $Revision: 1.33 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:31:41 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,7 +111,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
     for ( size_t i = 0; i < nsize; i++ )
     {
       fvalue = p[i];
-      if ( fvalue != 0 )
+      if ( fvalue >= m_dStatsRange[0] )
       {
         pos[0] = (i%dim[0]) * vs[0] + orig[0];
         pos[1] = ( (i/dim[0])%dim[1] ) * vs[1] + orig[1];
@@ -134,7 +134,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
     for ( size_t i = 0; i < nsize; i++ )
     {
       fvalue = p[i];
-      if ( fvalue != 0 )
+      if ( fvalue >= m_dStatsRange[0] )
       {
         pos[0] = (i%dim[0]) * vs[0] + orig[0];
         pos[1] = ( (i/dim[0])%dim[1] ) * vs[1] + orig[1];
@@ -157,7 +157,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
     for ( size_t i = 0; i < nsize; i++ )
     {
       fvalue = p[i];
-      if ( fvalue != 0 )
+      if ( fvalue >= m_dStatsRange[0] )
       {
         pos[0] = (i%dim[0]) * vs[0] + orig[0];
         pos[1] = ( (i/dim[0])%dim[1] ) * vs[1] + orig[1];
@@ -180,7 +180,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
     for ( size_t i = 0; i < nsize; i++ )
     {
       fvalue = p[i];
-      if ( fvalue != 0 )
+      if ( fvalue >= m_dStatsRange[0] )
       {
         pos[0] = (i%dim[0]) * vs[0] + orig[0];
         pos[1] = ( (i/dim[0])%dim[1] ) * vs[1] + orig[1];
@@ -203,7 +203,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
     for ( size_t i = 0; i < nsize; i++ )
     {
       fvalue = p[i];
-      if ( fvalue != 0 )
+      if ( fvalue >= m_dStatsRange[0] )
       {
         pos[0] = (i%dim[0]) * vs[0] + orig[0];
         pos[1] = ( (i/dim[0])%dim[1] ) * vs[1] + orig[1];
@@ -247,9 +247,18 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
   int n[3];
   double pos[3];
   int* dim = rasImage->GetDimensions();
-  memset( rasImage->GetScalarPointer(),
-          0,
-          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
+//  memset( rasImage->GetScalarPointer(),
+//          0,
+//          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
+  if (m_dStatsRange[0] <= -1)
+  {
+      size_t nsize = ((size_t)dim[0])*dim[1]*dim[2];
+      float* p = (float*)rasImage->GetScalarPointer();
+      for (size_t i = 0; i < nsize; i++)
+      {
+          p[i] = m_dStatsRange[0]-1;
+      }
+  }
   for ( int i = 0; i < m_label->n_points; i++ )
   {
     if (m_label->lv[i].stat >= threshold || m_dStatsRange[0] <= 0)

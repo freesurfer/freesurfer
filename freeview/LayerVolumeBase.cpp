@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/21 17:31:10 $
- *    $Revision: 1.29 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:31:41 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,8 @@ LayerVolumeBase::LayerVolumeBase( QObject* parent ) : LayerEditable( parent )
   m_imageData = NULL;
   m_imageDataRef = NULL;
   connect(m_propertyBrush, SIGNAL(FillValueChanged(double)), this, SLOT(SetFillValue(double)));
-  connect(m_propertyBrush, SIGNAL(EraseValueChanged(double)), this, SLOT(SetBlankValue(double)));
+  if (GetEndType() != "ROI")
+    connect(m_propertyBrush, SIGNAL(EraseValueChanged(double)), this, SLOT(SetBlankValue(double)));
   connect(m_propertyBrush, SIGNAL(BrushSizeChanged(int)), this, SLOT(SetBrushRadius(int)));
 }
 

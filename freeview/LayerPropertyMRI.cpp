@@ -11,9 +11,9 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/24 17:11:04 $
- *    $Revision: 1.41 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:31:41 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1398,8 +1398,8 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   mMaxGrayscaleWindow = mMaxVoxelValue;
   if (mSource->HasValidHistogram())
   {
-      mMinGrayscaleWindow = mSource->GetHistoValueFromPercentile(0.05);
-      mMaxGrayscaleWindow = mSource->GetHistoValueFromPercentile(0.975);
+      mMinGrayscaleWindow = mSource->GetHistoValueFromPercentile(0.05, m_nActiveFrame);
+      mMaxGrayscaleWindow = mSource->GetHistoValueFromPercentile(0.975, m_nActiveFrame);
       mMaxGrayscaleWindow = mMaxGrayscaleWindow+(mMaxGrayscaleWindow-mMinGrayscaleWindow)/5;
       if (mMaxGrayscaleWindow == mMinGrayscaleWindow)
       {

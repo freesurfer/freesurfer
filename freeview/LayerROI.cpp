@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/21 19:39:44 $
- *    $Revision: 1.34 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/28 14:31:41 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,9 +86,14 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
                                 ( int )( m_dWorldSize[1] / m_dWorldVoxelSize[1] + 0.5 ),
                                 ( int )( m_dWorldSize[2] / m_dWorldVoxelSize[2] + 0.5 ) );
     m_imageData->AllocateScalars();
-    void* ptr = m_imageData->GetScalarPointer();
-    int* nDim = m_imageData->GetDimensions();
-    memset( ptr, 0, ((size_t)m_imageData->GetScalarSize()) * nDim[0] * nDim[1] * nDim[2] );
+    float* ptr = (float*)m_imageData->GetScalarPointer();
+    int* dim = m_imageData->GetDimensions();
+    size_t nsize = ((size_t)dim[0])*dim[1]*dim[2];
+    for (size_t i = 0; i < nsize; i++)
+    {
+        ptr[i] = -1;
+    }
+    m_fBlankValue = -1;
     InitializeActors();
   }
 
@@ -118,6 +123,7 @@ bool LayerROI::LoadROIFromFile( const QString& filename )
       range[1] = range[0] + 1;
   GetProperty()->SetHeatscaleValues(range[0], range[1]);
   GetProperty()->SetValueRange(range);
+  m_fBlankValue = range[0]-1;
 
   m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume(), GetProperty()->GetThreshold());
 
