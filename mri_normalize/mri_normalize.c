@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/12/23 17:30:35 $
- *    $Revision: 1.88 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/07/29 22:15:21 $
+ *    $Revision: 1.89 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,6 +80,8 @@ static int gentle_flag = 0 ;
 static int noskull = 0 ;
 static int nosnr = 1 ;
 static double min_dist = 2.5 ; // mm away from border in -surface
+
+static char *renorm_fname = NULL ;
 
 static float bias_sigma = 8.0 ;
 
@@ -153,14 +155,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.88 2015/12/23 17:30:35 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.89 2016/07/29 22:15:21 zkaufman Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.88 2015/12/23 17:30:35 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.89 2016/07/29 22:15:21 zkaufman Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -213,6 +215,64 @@ main(int argc, char *argv[])
     mri_not_control = build_outside_of_brain_mask(mri_src, gca, xform, 0, brain_distance) ;
     GCAfree(&gca) ;
     TransformFree(&xform) ;
+  }
+
+  if (renorm_fname)
+  {
+    MRI *mri_renorm, *mri_tmp, *mri_ctrl;
+
+    mri_renorm = MRIread(renorm_fname) ;
+    if (mri_renorm == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read renormalization file %s\n", Progname, renorm_fname) ;
+    if (!MRImatchDimensions(mri_src, mri_renorm))
+    {
+      printf("resampling renormalization volume\n") ;
+      mri_tmp = MRIresample(mri_renorm, mri_src, SAMPLE_TRILINEAR) ;
+      MRIwrite(mri_tmp, "r.mgz") ;
+      MRIfree(&mri_renorm) ;
+      mri_renorm = mri_tmp ;
+    }
+    mri_ctrl = MRIcloneDifferentType(mri_renorm, MRI_UCHAR) ;
+    MRIcopyLabel(mri_renorm, mri_ctrl, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+    MRIbinarize(mri_ctrl, mri_ctrl, DEFAULT_DESIRED_WHITE_MATTER_VALUE, CONTROL_NONE, CONTROL_MARKED) ;
+    MRIwrite(mri_ctrl, "c.mgz") ;
+    if (erode)
+    {
+      int i ;
+      for (i = 0 ; i < erode ; i++)
+      {
+        mri_tmp = MRIerode(mri_ctrl, NULL) ;
+	MRIcopy(mri_tmp, mri_ctrl) ;
+	MRIfree(&mri_tmp) ;
+      }
+    }
+    MRIwrite(mri_ctrl, "e.mgz") ;
+    if (control_point_fname)
+    {
+      MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+    }
+    mri_bias = MRIbuildBiasImage(mri_src, mri_ctrl, NULL, 0.0) ;
+    MRIwrite(mri_bias, "b.mgz") ;
+    if (bias_sigma> 0)
+    {
+      MRI *mri_kernel = MRIgaussian1d(bias_sigma, -1) ;
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      {
+        MRIwrite(mri_bias, "b.mgz") ;
+      }
+      printf("smoothing bias field with sigma=%2.3f\n", bias_sigma) ;
+      MRIconvolveGaussian(mri_bias, mri_bias, mri_kernel) ;
+      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      {
+        MRIwrite(mri_bias, "bs.mgz") ;
+      }
+      MRIwrite(mri_bias, "bs.mgz") ;
+      MRIfree(&mri_kernel);
+    }
+    mri_dst = MRIapplyBiasCorrectionSameGeometry(mri_src, mri_bias, NULL, DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+    printf("writing normalized volume to %s\n", out_fname) ;
+    MRIwrite(mri_dst, out_fname) ;
+    exit(0) ;
   }
 
   if(nsurfs > 0)
@@ -541,6 +601,9 @@ main(int argc, char *argv[])
     MRIfree(&mri_src) ; mri_src = mri_tmp ;
   }
 
+  if (mriConformed(mri_src))
+    MRIthreshold(mri_src, mri_src, 0) ;
+
   if(aseg_fname)
   {
     printf("Reading aseg %s\n",aseg_fname);
@@ -621,6 +684,7 @@ main(int argc, char *argv[])
         mri_ctrl,
         intensity_below) ;
     MRIbinarize(mri_ctrl, mri_ctrl, 1, CONTROL_NONE, CONTROL_MARKED) ;
+    mri_ctrl = MRIchangeType(mri_ctrl, MRI_UCHAR, 0, 255, 1) ;
     MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
 
     if (interior_fname1)
@@ -891,6 +955,12 @@ get_option(int argc, char *argv[])
   {
     erode = atoi(argv[2]) ;
     printf("eroding interior of surface %d times\n", erode) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "renorm"))
+  {
+    renorm_fname = argv[2] ;
+    printf("renormalizing using voxels that are %d in %s\n",  DEFAULT_DESIRED_WHITE_MATTER_VALUE, renorm_fname) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "ATLAS"))
