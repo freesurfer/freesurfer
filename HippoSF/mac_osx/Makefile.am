@@ -17,7 +17,11 @@ dist_bin_SCRIPTS = \
 
 foodir=$(prefix)/bin
 
+foo_binaryfiles = kvlAverageMeshes
+
 install-data-local:
+	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
+	$(INSTALL) -m 755 $(foo_binaryfiles) $(DESTDIR)$(foodir)
 	cp -RL segmentSubjectT1_autoEstimateAlveusML.app $(foodir)
 	chmod -R 755 $(foodir)/segmentSubjectT1_autoEstimateAlveusML.app
 	cp -RL segmentSubjectT1T2_autoEstimateAlveusML.app $(foodir)
