@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2016/05/13 15:04:55 $
-#    $Revision: 1.580 $
+#    $Author: zkaufman $
+#    $Date: 2016/08/02 19:35:22 $
+#    $Revision: 1.581 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.580 2016/05/13 15:04:55 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.581 2016/08/02 19:35:22 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -236,6 +236,9 @@ set DoHippoSF_T1 = 0;  # if 1, run hippo subfield seg, exvivo atlas (only T1)
 set DoHippoSF_T1T2 = 0;# if 1, run hippo subfield seg, exvivo atlas (T1 and T2)
 set DoHippoSF_T2 = 0;  # if 1, run hippo subfield seg, exvivo atlas (only T2)
 set T2volHippoSF = ();
+set DoLongHippoSF_T1 = 0; # if 1, run longitudinal subfield segmentation (only T1)
+set BaseLongHippoSF = ();
+set TPlistLongHippoSF = (); # list of time points for longitudinal subfields
 
 # Brainstem substructures
 set DoBSsubst = 0;
@@ -5098,12 +5101,14 @@ endif # DoLabelExvivoEC
 ##-----------   -hippocampal-subfields-T1T2  -----------#
 ##-----------   -hippocampal-subfields-T2  -------------#
 #--------------                        -----------------#
+##-----------   -long-hippocampal-subfields-T1  --------#
+#--------------                        -----------------#
 #--------------  Brainstem Substructures ---------------#
 ##-----------   -brainstem-structures  -----------------#
 #--------------                        -----------------#
 
 # For substructure segmentation of hippocampus or brainstem: check if Matlab runtime is there
-if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2 || $DoBSsubst) then      
+if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2 || $DoBSsubst || $DoLongHippoSF_T1) then
 
   if ( ! -e ${FREESURFER_HOME}/MCRv80/bin/glnxa64/libdctprocess.so \
     && ! -e ${FREESURFER_HOME}/MCRv80/bin/maci64/libdctprocess.jnilib  ) then
@@ -5167,6 +5172,42 @@ if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then
   else
     set hippohemilist=(left right)
   endif
+endif
+
+
+# longitudinal hippocampal subfields: make sure that required files are there,
+# and that there is at least one time point
+if ($DoLongHippoSF_T1 ) then
+
+  if( $#TPlistLongHippoSF < 1) then
+    echo "ERROR: at least one time point required for longitudinal hippocampal subfields."
+    goto error_exit;
+  endif
+
+  if (! -e ${SUBJECTS_DIR}/${BaseLongHippoSF}/mri/wmparc.mgz || \
+      ! -e ${SUBJECTS_DIR}/${BaseLongHippoSF}/mri/norm.mgz || \
+      ! -e ${SUBJECTS_DIR}/${BaseLongHippoSF}/mri/transforms/talairach.xfm ) then
+    echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for the base subject."
+    goto error_exit;
+  endif #checking of wmparc.mgz, norm.mgz and talairach.xfm of base
+
+  foreach item ($TPlistLongHippoSF)
+     if (! -e ${SUBJECTS_DIR}/${item}/mri/wmparc.mgz || \
+      ! -e ${SUBJECTS_DIR}/${item}/mri/norm.mgz || \
+      ! -e ${SUBJECTS_DIR}/${item}/mri/transforms/talairach.xfm ) then
+      echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for time point ${item}."
+      goto error_exit;
+    endif #checking of wmparc.mgz, norm.mgz and talairach.xfm of time points
+  end
+
+  # these tools assume 'left' and 'right' instead of our usual 'lh' and 'rh'
+  if($#hemilist == 1) then
+    if ("$hemilist" == "lh") set hippohemilist=(left)
+    if ("$hemilist" == "rh") set hippohemilist=(right)
+  else
+    set hippohemilist=(left right)
+  endif
+
 endif
 
 
@@ -5285,6 +5326,37 @@ if($DoHippoSF_T2) then
   end
   
   echo $cmd > $touchdir/hippo-subfields-T2.touch
+endif
+
+
+#--------------                        -----------------#
+##------------- -long-hippocampal-subfields-T1  --------#
+#--------------                        -----------------#
+if($DoLongHippoSF_T1) then 
+
+  set HSFLOG = ($subjdir/scripts/long-hippocampal-subfields-T1.log)
+  rm -f $HSFLOG
+  
+  # do hippocampal processing
+  foreach hemi ($hippohemilist)
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+    echo "#@# Longitudinal Hippocampal Subfields processing (T1) $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
+
+    set cmd = "${FREESURFER_HOME}/bin/segmentSF_T1_long.sh  ${FREESURFER_HOME}/MCRv80 $FREESURFER_HOME $SUBJECTS_DIR $hemi $BaseLongHippoSF"
+
+    foreach item ($TPlistLongHippoSF)
+      set cmd="$cmd $item"
+    end
+
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
+    if($status) goto error_exit;
+  end
+  
+  echo $cmd > $touchdir/long-hippo-subfields-T1.touch 
 endif
 
 
@@ -7376,6 +7448,19 @@ while( $#argv != 0 )
       set DoHippoSF_T1 = 1;
       breaksw;
 
+    # longitudinal hippocampal subfield processing (ex vivo atlas, only T1)
+    case "-long-hippocampal-subfields-T1":
+      set DoLongHippoSF_T1 = 1;
+      if( $#argv < 1) goto arg1err;
+      set BaseLongHippoSF = "$argv[1]"; shift;
+      breaksw;
+
+    # add a time point for the longitudinal hippocampal subfields
+    case "-hsfTP"
+      if( $#argv < 1) goto arg1err;
+      set TPlistLongHippoSF = ( $TPlistLongHippoSF $argv[1] ); shift;
+      breaksw;
+
     # hippocampal subfield processing (ex vivo atlas, multispectral)
     case "-hippocampal-subfields-T1T2":
       set DoHippoSF_T1T2 = 1;
@@ -7541,7 +7626,7 @@ check_params:
   endif
 
   if(! $DoVersionsOnly) then
-    if($#subjid != 1) then
+    if($#subjid != 1 &&  $DoLongHippoSF_T1 != 1) then
       echo "ERROR: must specify a subject id"
       exit 1;
     endif
@@ -7881,7 +7966,7 @@ check_params:
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
      ! $DoLabelExvivoEC && ! $DoPialSurfs && \
-     ! $DoHippoSF_T1 && ! $DoHippoSF_T1T2 && ! $DoHippoSF_T2 &&  ! $DoBSsubst && \
+     ! $DoHippoSF_T1 && ! $DoLongHippoSF_T1 && ! $DoHippoSF_T1T2 && ! $DoHippoSF_T2 &&  ! $DoBSsubst && \
      ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && ! $DoSuperClean &&\
      ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg ) then
@@ -8253,18 +8338,18 @@ http://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfields
 
 -hippocampal-subfields-T1 
 
-It uses the T1 scan which the recon-all stream has processed at 1 mm resolution. 
+It uses the T1 scan which the recon-all stream has processed at 1 mm resolution or higher (with -cm). 
 
 -hippocampal-subfields-T2 file ID
 
-Instead of the 1 mm T1, it uses an additional scan ('file'), typically (but not necessarily)
+Instead of the main T1 scan, it uses an additional scan ('file'), typically (but not necessarily)
 a T2 volume with higher resolution, at least in the coronal plane. It also requires a second
-argument ('ID'), which  uniquely identify the output in the mri directory; this is useful when
+argument ('ID'), which  uniquely identifies the output in the mri directory; this is useful when
 different additional volumes are tried in this mode, in order to prevent files from being overwritten
 
 -hippocampal-subfields-T1T2 file ID
 
-This mode is very similar to the previous one, with the only difference that the 1 mm T1 and the 
+This mode is very similar to the previous one, with the only difference that the main T1 and the 
 additional volumes are used simultaneously in the segmentation.
 
 
@@ -8273,8 +8358,8 @@ SEGMENTATION OF BRAINSTEM STRUCTURES
 -brainstem-structures
 
 Performs segmentation of brains structures (medulla, pons, midbrain, SCP) on the T1 scan which the 
-recon-all stream has processed at 1 mm resolution. The method is described in [18]; you can read more at:
-http://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures
+recon-all stream has processed, at 1 mm or higher resolution (with -cm). The method is described in [18];
+you can read more at: http://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures
 
 
 EXPERT PREFERENCES
@@ -9003,6 +9088,29 @@ cross-sectional stream) to add as a new timepoint and upon which to run
 the longitudinal stream (creating <tpNsubjid>.long.<longbasesubjid>).
 
 
+LONGITUDINAL HIPPOCAMPAL SUBFIELDS
+
+FreeSurfer currently supports longitudinal segmentation of the hippocampal
+subfields on T1-weighted images. The only requirement is that the time points
+do not mix 1mm scans processed with the standard stream and higher resolution
+and scans processed with the -cm flag (conform to min voxel size for hi-res
+support).
+
+To use this module, you first need to run the FreeSurfer longitudinal stream 
+on your data, i.e., steps 1-3 in Section LONGITUDINAL PROCESSING above: cross-
+sectional processing; creation and processing of base; and longitudinal 
+processing.
+
+Then, you can run the following command to segment the subfields from all time
+points simultaneously using the method described in [19]:
+
+ recon-all -long-hippocampal-subfields-T1 <baseSubject> -hsfTP <tp1Subject> ...
+           -hsfTP <tp2Subject> ... -hsfTP <tpNSubject>
+
+See further information, including how to visualize the results, at:
+http://surfer.nmr.mgh.harvard.edu/fswiki/LongitudinalHippocampalSubfields
+
+
 USING IMAGES FROM A 3T SCANNER 
 
 The -3T flag enables two specific options in recon-all for images acquired with
@@ -9205,6 +9313,13 @@ http://dx.doi.org/10.1016/j.neuroimage.2015.04.042
 Truran-Sacrey, D., Boxer, A., and Fischl, B., Bayesian segmentation of brainstem 
 structures in MRI. Neuroimage 113, 2015, 184-195.
 http://dx.doi.org/10.1016/j.neuroimage.2015.02.065
+
+[19] Iglesias J.E., Van Leemput K., Augustinack J., Insausti R., Fischl B., and Reuter M.,
+Bayesian longitudinal segmentation of hippocampal substructures in brain MRI using 
+subject-specific atlases, Neuroimage, in press.
+http://dx.doi.org/10.1016/j.neuroimage.2016.07.020
+
+
 
 
 
