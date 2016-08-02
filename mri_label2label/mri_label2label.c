@@ -39,9 +39,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/03/16 23:36:50 $
- *    $Revision: 1.48 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/08/02 20:18:11 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,7 +90,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.48 2016/03/16 23:36:50 greve Exp $";
+  "$Id: mri_label2label.c,v 1.49 2016/08/02 20:18:11 zkaufman Exp $";
 char *Progname = NULL;
 
 static int label_erode = 0 ;
@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv,
-     "$Id: mri_label2label.c,v 1.48 2016/03/16 23:36:50 greve Exp $",
+     "$Id: mri_label2label.c,v 1.49 2016/08/02 20:18:11 zkaufman Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -441,7 +441,7 @@ int main(int argc, char **argv) {
       }
       TrgSurf = TrgSurfReg;
     }
-
+    
     if (usehash) {
       printf("Building target registration hash (res=%g).\n",hashres);
       TrgHash = MHTfillVertexTableRes(TrgSurfReg, NULL,
@@ -695,18 +695,18 @@ int main(int argc, char **argv) {
     }
 
     if (label_dilate)
-      LabelDilate(trglabel, TrgSurfReg, label_dilate) ;
+      LabelDilate(trglabel, TrgSurf, label_dilate) ;
     if (label_erode)
-      LabelErode(trglabel, TrgSurfReg, label_erode) ;
+      LabelErode(trglabel, TrgSurf, label_erode) ;
     if (label_close)
     {
-      LabelDilate(trglabel, TrgSurfReg, label_close) ;
-      LabelErode(trglabel, TrgSurfReg, label_close) ;
+      LabelDilate(trglabel, TrgSurf, label_close) ;
+      LabelErode(trglabel, TrgSurf, label_close) ;
     }
     if (label_open)
     {
-      LabelErode(trglabel, TrgSurfReg, label_open) ;
-      LabelDilate(trglabel, TrgSurfReg, label_open) ;
+      LabelErode(trglabel, TrgSurf, label_open) ;
+      LabelDilate(trglabel, TrgSurf, label_open) ;
     }
 
     if (OutMaskFile) {
