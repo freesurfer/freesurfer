@@ -6,7 +6,8 @@
 dist_bin_SCRIPTS = \
 	run_segmentSubjectT1_autoEstimateAlveusML.sh \
 	run_segmentSubjectT1T2_autoEstimateAlveusML.sh \
-	run_segmentSubjectT2_autoEstimateAlveusML.sh
+	run_segmentSubjectT2_autoEstimateAlveusML.sh \
+	run_SegmentSubfieldsT1Longitudinal.sh
 
 #
 # We handle the  binary files differently because binary 
@@ -16,13 +17,19 @@ dist_bin_SCRIPTS = \
 
 foodir=$(prefix)/bin
 
+foo_binaryfiles = kvlAverageMeshes
+
 install-data-local:
+	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
+	$(INSTALL) -m 755 $(foo_binaryfiles) $(DESTDIR)$(foodir)
 	cp -RL segmentSubjectT1_autoEstimateAlveusML.app $(foodir)
 	chmod -R 755 $(foodir)/segmentSubjectT1_autoEstimateAlveusML.app
 	cp -RL segmentSubjectT1T2_autoEstimateAlveusML.app $(foodir)
 	chmod -R 755 $(foodir)/segmentSubjectT1T2_autoEstimateAlveusML.app
 	cp -RL segmentSubjectT2_autoEstimateAlveusML.app $(foodir)
 	chmod -R 755 $(foodir)/segmentSubjectT2_autoEstimateAlveusML.app
+	cp -RL SegmentSubfieldsT1Longitudinal.app $(foodir)
+	chmod -R 755 $(foodir)/SegmentSubfieldsT1Longitudinal.app
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
