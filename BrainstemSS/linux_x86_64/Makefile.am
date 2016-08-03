@@ -14,7 +14,7 @@ dist_bin_SCRIPTS = \
 foodir=$(prefix)/bin
 
 foo_binaryfiles = \
-	SegmentSubject.bin
+	segmentSubject
 
 install-data-local:
 	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
