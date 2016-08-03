@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/11/06 18:39:04 $
- *    $Revision: 1.30 $
+ *    $Author: greve $
+ *    $Date: 2016/08/02 21:04:48 $
+ *    $Revision: 1.30.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,7 +55,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.30 2015/11/06 18:39:04 mreuter Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.30.2.1 2016/08/02 21:04:48 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.30 2015/11/06 18:39:04 mreuter Exp $", "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.30.2.1 2016/08/02 21:04:48 greve Exp $", "$Name: stable6 $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -184,6 +184,10 @@ int main(int argc, char **argv) {
     else if(!strcmp(annotation,"aparc.a2005s")){
       if(!strcmp(hemi,"lh")) segbase = 1100;
       else                   segbase = 2100;
+    }
+    else if(!strcmp(annotation,"aparc.a2009s")){
+      if(!strcmp(hemi,"lh")) segbase = 11100;
+      else                   segbase = 12100;
     }
     else segbase = 0;
   }

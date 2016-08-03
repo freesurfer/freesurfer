@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.19 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = '$Id: dcmunpack,v 1.19.2.1 2016/08/02 21:12:01 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -554,6 +554,7 @@ while( $#argv != 0 )
       set LF = "$argv[1]"; shift;
       breaksw
 
+    case "-scanonly":
     case "-series":
       if($#argv < 1) goto arg1err;
       set SeriesInfo = "$argv[1]"; shift;
@@ -698,12 +699,9 @@ usage_exit:
   echo "Other Arguments"
   echo "   -targ targetdir"
   echo "   -run run subdir format stemname <<nskip> ndrop>"
+  echo "   -scanonly file : only scan the directory and put result in file"
   echo "   -one-per-dir : assume that there is only one dicom series in each subdir"
   echo "   -gedcm : same as -one-per-dir -ext dcm"
-  echo "   -martinos : assume mgh-bourget file names (same as -ext 0001.dcm)"
-  echo "   -bourget : same as -martinos"
-  echo "   -mgh : same as -martinos"
-  echo "   -old-bourget : assume old-style bourget file names (same as -ext 1.dcm)"
   echo "   -ext extension : input extension (eg, dcm)"
   echo "   -pre prefix : input prefix (ie, input file name init string)"
   echo "   -pat pattern : input pattern (ie, string that occurs in the middle of file name)"

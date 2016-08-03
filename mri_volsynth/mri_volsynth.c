@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/05/12 16:52:57 $
- *    $Revision: 1.54 $
+ *    $Date: 2016/08/02 21:09:38 $
+ *    $Revision: 1.54.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,7 +65,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.54 2015/05/12 16:52:57 greve Exp $";
+"$Id: mri_volsynth.c,v 1.54.2.1 2016/08/02 21:09:38 greve Exp $";
 
 char *Progname = NULL;
 
@@ -340,6 +340,13 @@ int main(int argc, char **argv)
   } 
   else if (strcmp(pdfname,"grid")==0) {
     printf("Grid %d %d %d\n",cgridspace,rgridspace,sgridspace);
+    if(mritemp == NULL){
+      mritemp = MRIconst(dim[0], dim[1], dim[2], dim[3], 0, NULL);
+      mritemp->xsize = res[0];
+      mritemp->ysize = res[1];
+      mritemp->zsize = res[2];
+      mritemp->tr = res[3];
+    }
     mri=MRIgrid(mritemp,cgridspace,rgridspace,sgridspace,1,NULL);
     if(!mri) exit(1);
   } 

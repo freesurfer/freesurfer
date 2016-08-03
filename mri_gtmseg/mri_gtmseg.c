@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/07/15 19:11:45 $
- *    $Revision: 1.9 $
+ *    $Date: 2016/08/02 21:07:49 $
+ *    $Revision: 1.9.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -22,7 +22,7 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-// $Id: mri_gtmseg.c,v 1.9 2014/07/15 19:11:45 greve Exp $
+// $Id: mri_gtmseg.c,v 1.9.2.1 2016/08/02 21:07:49 greve Exp $
 
 /*
   BEGINHELP
@@ -65,8 +65,9 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
+MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg);
 
-static char vcid[] = "$Id: mri_gtmseg.c,v 1.9 2014/07/15 19:11:45 greve Exp $";
+static char vcid[] = "$Id: mri_gtmseg.c,v 1.9.2.1 2016/08/02 21:07:49 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -405,5 +406,65 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"user     %s\n",VERuser());
   GTMSEGprint(gtmseg, stdout);
   return;
+}
+
+/*!
+  \fn MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
+  Takes a segmentation and erodes WM by nErode3d, then sets the
+  seg value in surviving voxels to 5001 or 5002, which is
+  UnsegmentedWhiteMatter in the LUT. Other WM voxels are not
+  changed. It assumes that WM is 2 and 41.
+ */
+MRI *MRIErodeWMSeg(MRI *seg, int nErode3d, MRI *outseg)
+{
+  int c,n;
+  MRI *wm;
+
+  if(outseg == NULL){
+    outseg  = MRIallocSequence(seg->width, seg->height, seg->depth, MRI_INT, 1);
+    MRIcopyHeader(seg,outseg);
+    MRIcopyPulseParameters(seg,outseg);
+  }
+  MRIcopy(seg,outseg);
+
+  wm = MRIallocSequence(seg->width, seg->height, seg->depth, MRI_INT, 1);
+#ifdef HAVE_OPENMP
+#pragma omp parallel for 
+#endif
+  for(c=0; c < seg->width; c++) {
+    int r,s;
+    int val;
+    for(r=0; r < seg->height; r++) {
+      for(s=0; s < seg->depth; s++) {
+	val = MRIgetVoxVal(seg,c,r,s,0);
+	if(val != 2 && val != 41) continue;
+	MRIsetVoxVal(wm,c,r,s,0,1);
+      }
+    }
+  }
+  MRIwrite(wm,"wm0.mgh");
+
+  for(n=0; n<nErode3d; n++) MRIerode(wm,wm);
+  MRIwrite(wm,"wm.erode.mgh");
+
+#ifdef HAVE_OPENMP
+#pragma omp parallel for 
+#endif
+  for(c=0; c < seg->width; c++) {
+    int r,s;
+    int val;
+    for(r=0; r < seg->height; r++) {
+      for(s=0; s < seg->depth; s++) {
+	val = MRIgetVoxVal(wm,c,r,s,0);
+	if(val != 1) continue;
+	val = MRIgetVoxVal(seg,c,r,s,0);
+	if(val ==  2) MRIsetVoxVal(outseg,c,r,s,0,5001);
+	if(val == 41) MRIsetVoxVal(outseg,c,r,s,0,5002);
+      }
+    }
+  }
+
+  MRIfree(&wm);
+  return(outseg);
 }
 

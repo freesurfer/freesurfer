@@ -10,8 +10,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2016/06/13 18:13:10 $
-#    $Revision: 1.36 $
+#    $Date: 2016/08/02 21:13:26 $
+#    $Revision: 1.36.2.1 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -28,7 +28,7 @@
 # uncomment this to increase number of allowable open files to maximum:
 #limit descriptors unlimited
 
-set VERSION = '$Id: make_average_volume,v 1.36 2016/06/13 18:13:10 greve Exp $';
+set VERSION = '$Id: make_average_volume,v 1.36.2.1 2016/08/02 21:13:26 greve Exp $';
 
 set PrintHelp = 0;
 set transform_fname = talairach.xfm
@@ -412,6 +412,7 @@ while( $#argv != 0 )
     case "--surf-reg":
     case "--surf_reg":
     case "--ico":
+    case "--no-annot":
       if ( $getting_subjects ) then
         set getting_subjects = 0;
         # got em all, from --subjects variable arg loop
