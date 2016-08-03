@@ -17,7 +17,7 @@ endif
 
 # platform-independent data and scripts:
 dist_bin_SCRIPTS = \
-segmentSF_T1_long.sh
+segmentSF_T1_long.sh \
 segmentSF_T1.sh \
 segmentSF_T1T2.sh \
 segmentSF_T2.sh \
