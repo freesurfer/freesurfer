@@ -1,0 +1,582 @@
+#!/bin/tcsh -f
+# make_folding_atlas
+
+set VERSION = '$Id: make_folding_atlas,v 1.1.2.2 2016/08/02 21:00:04 greve Exp $';
+
+set nitersmax = ();
+set base = ();
+set subjlist = ();
+set hemilist = (lh rh);
+set UseInitReg = 0;
+set DoXHemi = 0;
+set LF = ();
+set queue = "-q max200"; 
+set xhemiqueue = "-q max200"; 
+set RunIt = 1;
+set InitSurfReg = sphere.reg
+set InitSubj = ();
+set UseAParc = 1;
+set DoVol = 1;
+
+#set tmpdir = ();
+#set cleanup = 1;
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+#if($#tmpdir == 0) then
+#  if(-e /scratch)   set tmpdir = /scratch/tmpdir.make_folding_atlas.$$
+#  if(! -e /scratch) set tmpdir = $SUBJECTS_DIR/tmpdir.make_folding_atlas.$$
+#endif
+#mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) if($#LF == 0) set LF = `pwd`/make_folding_atlas.Y$year.M$month.D$day.H$hour.M$min.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for make_folding_atlas" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+echo OMP_NUM_THREADS $OMP_NUM_THREADS | tee -a $LF
+uname -a  | tee -a $LF
+
+#========================================================
+if($DoXHemi) then
+  echo "============================================" | tee -a $LF
+  echo "Doing xhemi" | tee -a $LF
+
+  echo "Checking xhemireg for each subject" | tee -a $LF
+  @ nRunning = 0;
+  foreach subject ($subjlist)
+    set XHemiNeeded = 0;
+    foreach hemi ($hemilist)
+      set surf = $SUBJECTS_DIR/$subject/xhemi/surf/$hemi.sphere
+      if(! -e $surf) set XHemiNeeded = 1;
+    end
+    if($XHemiNeeded) then
+      echo "xhemireg $subject `date`" | tee -a $LF
+      @ nRunning = $nRunning + 1;
+      set cmd = (xhemireg --s $subject)
+      echo "  #@# $cmd" | tee -a $LF
+      if($RunIt) then
+        pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" | tee -a $LF
+        sleep 10
+      endif
+    endif
+  end
+  echo "Launched $nRunning xhemireg processes"| tee -a $LF
+  # Wait for xhemireg to finish (need a time out)
+  while($nRunning != 0 && $RunIt)
+    @ nRunning = 0;
+    foreach subject ($subjlist)
+      set lhsurf = $SUBJECTS_DIR/$subject/xhemi/surf/lh.sphere
+      set rhsurf = $SUBJECTS_DIR/$subject/xhemi/surf/rh.sphere
+      if(! -e $lhsurf || ! -e $rhsurf) @ nRunning = $nRunning + 1;
+    end
+    if($nRunning != 0) then
+      echo "#%# Waiting for $nRunning xhemireg processes `date`" | tee -a $LF
+      sleep 60
+    endif
+  end
+
+  # xhemi surface registration to fsaverage
+  echo "Checking xhemireg fsaverage registration for each subject" | tee -a $LF
+  @ nRunning = 0;
+  foreach subject ($subjlist)
+    foreach hemi ($hemilist)
+      set surf = $SUBJECTS_DIR/$subject/xhemi/surf/$hemi.sphere.reg
+      if(-e $surf) continue;
+      echo "xhemi-surfreg $subject $hemi `date`" | tee -a $LF
+      set cmd = (surfreg --s $subject --t fsaverage --xhemi --no-annot --$hemi) # --aparc?
+      echo "  #@# $cmd" | tee -a $LF
+      if($RunIt) then
+        pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" | tee -a $LF
+        sleep 10
+        @ nRunning = $nRunning + 1;
+        echo " " | tee -a $LF
+      endif
+    end # hemi
+  end # subject
+  echo "Launched $nRunning surfreg processes"| tee -a $LF
+  # Wait for xhemi surfreg to finish (need a time out)
+  if($nRunning != 0 && $RunIt) then
+    echo "#%# Waiting for $nRunning surfreg processes `date`" | tee -a $LF 
+    echo "#%#    Sleeping for 30 min" | tee -a $LF
+    sleep 1800
+  endif
+  while($nRunning != 0 && $RunIt)
+    @ nRunning = 0;
+    foreach subject ($subjlist)
+      foreach hemi ($hemilist)
+        set surf = $SUBJECTS_DIR/$subject/xhemi/surf/$hemi.sphere.reg
+        if(! -e $surf) @ nRunning = $nRunning + 1;
+      end # hemi
+    end # subject
+    if($nRunning != 0) then
+      echo "#%# Waiting for $nRunning surfreg processes `date`" | tee -a $LF
+      sleep 120; 
+    endif
+  end
+
+endif # DoXHemi
+
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+
+#========================================================
+# Now start iterations
+@ nthIter = 0;
+while ($nthIter < $nitersmax)
+  @ PrevIter = $nthIter;
+  @ nthIter  = $nthIter + 1;
+  set atlas     = `printf $base.i%02d $nthIter`
+  set atlasprev = `printf $base.i%02d $PrevIter`
+  #set atlas = `printf $base.i%d $nthIter`
+  #set atlasprev = `printf $base.i%d $PrevIter`
+
+  echo "===================================================" | tee -a $LF
+  echo "#I# Iteration $nthIter $atlas `date`" | tee -a $LF
+
+  # This is the reg used to make the template
+  if($nthIter == 1) set srcreg = $InitSurfReg
+  if($nthIter != 1) set srcreg = $atlasprev.sphere.reg
+
+  # Should check subject list if already exists
+
+  echo "i=$nthIter Checking make_average_subject for $atlas" | tee -a $LF
+  set MASNeeded = 0;
+  foreach hemi ($hemilist)
+    set tif = $SUBJECTS_DIR/$atlas/$hemi.reg.template.tif
+    if(! -e $tif) set MASNeeded = 1;
+  end
+  if($MASNeeded) then
+    echo "i=$nthIter Running Make Average Subject `date`" | tee -a $LF
+    set cmd = (make_average_subject --out $atlas --surf-reg $srcreg)
+    if($#InitSubj == 0 || $nthIter != 1) set cmd = ($cmd --subjects $subjlist)
+    if($#InitSubj != 0 && $nthIter == 1) set cmd = ($cmd --subjects $InitSubj)
+    # If not running both lh and rh
+    if($#hemilist == 1) set cmd = ($cmd --no-vol --template-only --$hemilist)
+    if($DoVol == 0) set cmd = ($cmd --no-vol --template-only)
+    if($DoXHemi) set cmd = ($cmd --xhemi)
+    if($UseAParc == 0)  set cmd = ($cmd --no-annot)
+    echo "#@# $cmd" | tee -a $LF
+    if($RunIt) then
+      # This can use a lot of memory, so 2 nodes
+      pbsubmit -l nodes=1:ppn=2,vmem=14gb $queue -c "fs_time $cmd" | tee -a $LF
+      date | tee -a $LF
+      echo "Sleeping 10 min (make_average_subject)" | tee -a $LF
+      sleep 600 
+      sleep 1
+    endif
+    set IsRunning = 1;
+    while ($IsRunning && $RunIt)
+      set IsRunning = 0;
+      foreach hemi ($hemilist)
+        set tif = $SUBJECTS_DIR/$atlas/$hemi.reg.template.tif
+        if(! -e $tif) set IsRunning = 1;
+      end
+      if($IsRunning) then
+        echo "#%# i=$nthIter Waiting for make_average_subject `date`" | tee -a $LF
+        sleep 120;
+      endif
+    end
+  else
+    echo "i=$nthIter make_average_subject not needed" | tee -a $LF
+  endif # Run make_average_subject
+
+  # Check whether we are done
+  if($nthIter == $nitersmax) break;
+
+  if(! -e $SUBJECTS_DIR/$atlas/$base.make_folding_atlas.log) then
+    # Might not work if outdir is not there yet
+    cp $LF $SUBJECTS_DIR/$atlas/$base.make_folding_atlas.log
+  endif
+
+  # Launch surfreg
+  echo "i=$nthIter Checking surface reg to $atlas for each subject" | tee -a $LF
+  @ nRunning = 0;
+  @ nthSubject = 0;
+  foreach subject ($subjlist)
+    @ nthSubject = $nthSubject + 1;
+    foreach hemi ($hemilist)
+      set outreg = $SUBJECTS_DIR/$subject/surf/$hemi.$atlas.sphere.reg
+      if(! -e $outreg) then
+        @ nRunning = $nRunning + 1;
+        set cmd = (surfreg --s $subject --t $atlas --$hemi)
+        if($UseAParc == 0)  set cmd = ($cmd --no-annot)
+        if($UseInitReg) set cmd = ($cmd --init-reg $srcreg)
+        echo "#i# $nthIter $nthSubject/$#subjlist $subject $hemi `date` ------- " | tee -a  $LF
+        echo $cmd | tee -a $LF
+        if($RunIt) then
+          pbsubmit -n $OMP_NUM_THREADS $queue -c "$cmd" |& tee -a $LF
+          echo " " | tee -a $LF
+          sleep 10
+        endif
+      endif # outreg does not exist
+      if($DoXHemi) then
+        set outreg = $SUBJECTS_DIR/$subject/xhemi/surf/$hemi.$atlas.sphere.reg
+        if(! -e $outreg) then
+          @ nRunning = $nRunning + 1;
+          set cmd = (surfreg --s $subject --t $atlas --$hemi --xhemi)
+          if($UseAParc == 0)  set cmd = ($cmd --no-annot)
+          if($UseInitReg) set cmd = ($cmd --init-reg $srcreg)
+          echo "#ix# i=$nthIter $nthSubject/$#subjlist $subject $hemi xhemi `date` ------- " | tee -a  $LF
+          echo $cmd | tee -a $LF
+          if($RunIt) then
+            pbsubmit -n $OMP_NUM_THREADS $xhemiqueue -c "$cmd" |& tee -a $LF
+            echo " " | tee -a $LF
+            sleep 10
+          endif
+        endif # outreg does not exist
+      endif # Do XHemi
+    end # hemilist
+  end # subject
+
+  echo "i=$nthIter Launched $nRunning surfreg processes" | tee -a $LF
+  if($nRunning > 0 && $RunIt) then
+    echo "Sleeping 60 min (surfreg)" | tee -a $LF
+    sleep 3600
+  endif
+
+  # Start polling
+  while ($nRunning > 0 && $RunIt) 
+    @ nRunning = 0;
+    foreach subject ($subjlist)
+      foreach hemi ($hemilist)
+        set outreg = $SUBJECTS_DIR/$subject/surf/$hemi.$atlas.sphere.reg
+        if(! -e $outreg) @ nRunning = $nRunning + 1;
+        if($DoXHemi) then
+          set outreg = $SUBJECTS_DIR/$subject/xhemi/surf/$hemi.$atlas.sphere.reg
+          if(! -e $outreg) @ nRunning = $nRunning + 1;
+        endif # Do XHemi
+      end # hemilist
+    end # subject
+    if($nRunning != 0) then
+      echo "#%# i=$nthIter Waiting for $nRunning surfreg processes `date`" | tee -a $LF
+      sleep 180; 
+    endif
+  end # while
+
+  echo "" | tee -a $LF
+  echo "" | tee -a $LF
+end # Iteration
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+echo "============================================" | tee -a $LF
+
+
+#========================================================
+
+# Cleanup
+# if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Make_Folding_Atlas-Run-Time-Hour $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "make_folding_atlas Done" |& tee -a $LF
+if(! -e $SUBJECTS_DIR/$atlas/$base.make_folding_atlas.log) then
+  cp $LF $SUBJECTS_DIR/$atlas/$base.make_folding_atlas.log
+endif
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--nmax":
+    case "--imax":
+      if($#argv < 1) goto arg1err;
+      set nitersmax = $argv[1]; shift;
+      breaksw
+
+    case "--b":
+      if($#argv < 1) goto arg1err;
+      set base = $argv[1]; shift;
+      breaksw
+
+    case "--sd":
+      if($#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "--subject":
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subjlist = ($subjlist $argv[1]); shift;
+      breaksw
+
+    case "--f":
+      if($#argv < 1) goto arg1err;
+      set subjlistfile = $argv[1]; shift;
+      if(! -e $subjlistfile) then
+        echo "ERROR: cannot find $subjlistfile";
+        exit 1;
+      endif
+      set subjlist = ($subjlist `cat $subjlistfile`);
+      breaksw
+
+    case "--fsgd":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      set sl = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`;
+      set subjlist = ($subjlist $sl);
+      breaksw
+
+    case "--init-surf-reg":
+      if($#argv == 0) goto arg1err;
+      set InitSurfReg = $argv[1]; shift;
+      breaksw
+
+    case "--init-subject":
+      if($#argv == 0) goto arg1err;
+      set InitSubj = $argv[1]; shift;
+      set InitSurfReg = sphere
+      breaksw
+
+    case "--lhrh":
+      set hemilist = (lh rh)
+      breaksw
+
+    case "--lh":
+      set hemilist = lh
+      breaksw
+
+    case "--rh":
+      set hemilist = rh
+      breaksw
+
+    case "--xhemi":
+      set DoXHemi = 1;
+      breaksw
+
+    case "--vol":
+      set DoVol = 1;
+      breaksw
+
+    case "--no-vol":
+      set DoVol = 0;
+      breaksw
+
+    case "--no-init":
+      set UseInitReg = 0;
+      breaksw
+
+    case "--init":
+      set UseInitReg = 1;
+      breaksw
+
+    case "--runit":
+      set RunIt = 1;
+      breaksw
+
+    case "--dont-run":
+    case "--no-run":
+      set RunIt = 0;
+      breaksw
+
+    case "--q":
+      if($#argv < 1) goto arg1err;
+      set queue = ("-q $argv[1]"); shift;
+      breaksw
+
+    case "--xq":
+      if($#argv < 1) goto arg1err;
+      set xhemiqueue = ("-q $argv[1]"); shift;
+      breaksw
+
+    case "--threads":
+    case "--nthreads":
+      if($#argv < 1) goto arg1err;
+      setenv OMP_NUM_THREADS $argv[1]; shift
+      breaksw
+
+    case "--no-annot":
+      set UseAParc = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#base == 0) then
+  echo "ERROR: must spec base"
+  exit 1;
+endif
+if($#nitersmax == 0) then
+  echo "ERROR: must spec nmax"
+  exit 1;
+endif
+if($#subjlist == 0) then
+  echo "ERROR: must spec subjects"
+  exit 1;
+endif
+foreach subject ($subjlist)
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject"
+    exit 1;
+  endif
+end
+if($RunIt) then
+  which pbsubmit >& /dev/null
+  if($status) then
+    echo "ERROR: pbsubmit command not found"
+  endif
+endif
+if(! $?OMP_NUM_THREADS) setenv OMP_NUM_THREADS 
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "make_folding_atlas (formerly make_iter_atlas)"
+  echo "  --f subjlistfile, --fsgd fsgdfile, --s subject1 --s subject2 "
+  echo "  --b output base (subject will be called base.iITERNO)"
+  echo "  --nmax nmax : maximum number of iterations"
+  echo "  --xhemi : do xhemi"
+  echo "  --init-surf-reg surf (default $InitSurfReg)"
+  echo "      Registration used to make template on first iteration"
+  echo "  --init-subject subject : create first atlas from subject instead"
+  echo "      of all subjects. Automatically uses sphere for init surf"
+  echo "  --no-annot : good for monkeys"
+  echo "  --no-vol : do not run make_average_volume"
+  echo "  --init : use prev iter reg to init mris_register/surfreg instead "
+  echo "      of ?h.sphere. This might speed things up, but could bias. Note: "
+  echo "      this has nothing to do with --int-surf-reg or --init-subject"
+  echo "  --q : spec queue to use (eg, max100)"
+  echo "  --threads N "
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is a script that iteratively creates a cortical folding atlas
+(stored as a .tif file). A given tif is generated from the
+registration to the previous tif. This procedure can take take a while
+(eg, 12 iterations takes about 24 hours). The more iterations, the
+more it converges. This should be run from launchpad (or something
+else that has pbsubmit installed). This automatically manages all of
+the bookkeeping to create and register to iterative templates. It
+pbsubmits all the registration jobs so they can run in parallel, waits
+until they are all done, then generates the tif in an average subject
+folder. Because it pbsubmits the needed jobs, this script should NOT
+itself be pbsubmitted. Each iteration will yield an average subject
+folder (with tif and other files in it); the name will be based on the
+--base arg. Both lh and rh will be done and stored in the same average
+subject folder. If you run with a given number of iterations and you
+want to do more iterations, just submit the same command line with the
+new number of iterations. It will see that the earlier iterations are
+done and start with the next iteration (ie, it will not try to re-run
+all the iterations you have already processed). This process can be
+used to create average subjects like fsaverage and fsaverage_sym.
+
+setenv SUBJECTS_DIR /autofs/cluster/freesurfer/subjects/atlases/aparc_atlas.V6
+cd /autofs/cluster/freesurfer/subjects/atlases/aparc_atlas.V6/scripts
+make_folding_atlas  --f subjlist.txt --b avgsubj.acfb40 --nmax 13 --no-annot --no-vol \
+  --threads 2 --init-surf-reg sphere.average.curvature.filled.buckner40.reg
+
+make_folding_atlas --f subjects.txt --b fsasym --nmax 17 --xhemi
+
