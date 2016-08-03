@@ -102,8 +102,8 @@ foo_datafiles=\
 	RB_all_2008-03-26.mni152.2mm.lta 
 endif
 
-foo_otherdatafiles=fsaverage.v5.tar.gz fsaverage.v6.tar.gz \
-	fsaverage_sym.v5.tar.gz fsaverage_sym.v6.tar.gz V1_average.tar.gz \
+foo_otherdatafiles=fsaverage.tar.gz fsaverage_sym.tar.gz \
+        V1_average.tar.gz \
 	fsaverage3.tar.gz fsaverage4.tar.gz \
 	fsaverage5.tar.gz fsaverage6.tar.gz fsaverage7.tar.gz \
 	EC_average.tar.gz mult-comp-cor.tar.gz Yeo_Brainmap_MNI152.tar.gz \
@@ -124,32 +124,18 @@ install:
 	gunzip -c $(top_srcdir)/distribution/average/cvs_avg35_inMNI152.tar.gz | tar xvf -
 	mv $(top_builddir)/distribution/average/cvs_avg35_inMNI152 \
 		$(DESTDIR)$(prefix)/subjects
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage.v6
-	rm -Rf $(top_builddir)/distribution/average/fsaverage.v6
-	gunzip -c $(top_srcdir)/distribution/average/fsaverage.v6.tar.gz | tar xvf -
-	mv $(top_builddir)/distribution/average/fsaverage.v6 \
+	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
+	rm -Rf $(top_builddir)/distribution/average/fsaverage
+	gunzip -c $(top_srcdir)/distribution/average/fsaverage.tar.gz | tar xvf -
+	mv $(top_builddir)/distribution/average/fsaverage \
 		$(DESTDIR)$(prefix)/subjects
-	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage.v6
-	ln -s fsaverage.v6 $(DESTDIR)$(prefix)/subjects/fsaverage
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym.v6
-	rm -Rf $(top_builddir)/distribution/average/fsaverage_sym.v6
-	gunzip -c $(top_srcdir)/distribution/average/fsaverage_sym.v6.tar.gz | tar xvf -
-	mv $(top_builddir)/distribution/average/fsaverage_sym.v6 \
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage
+	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym
+	rm -Rf $(top_builddir)/distribution/average/fsaverage_sym
+	gunzip -c $(top_srcdir)/distribution/average/fsaverage_sym.tar.gz | tar xvf -
+	mv $(top_builddir)/distribution/average/fsaverage_sym \
 		$(DESTDIR)$(prefix)/subjects
-	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage_sym.v6
-	ln -s fsaverage_sym.v6 $(DESTDIR)$(prefix)/subjects/fsaverage_sym
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage.v5
-	rm -Rf $(top_builddir)/distribution/average/fsaverage.v5
-	gunzip -c $(top_srcdir)/distribution/average/fsaverage.v5.tar.gz | tar xvf -
-	mv $(top_builddir)/distribution/average/fsaverage.v5 \
-		$(DESTDIR)$(prefix)/subjects
-	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage.v5
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym.v5
-	rm -Rf $(top_builddir)/distribution/average/fsaverage_sym.v5
-	gunzip -c $(top_srcdir)/distribution/average/fsaverage_sym.v5.tar.gz | tar xvf -
-	mv $(top_builddir)/distribution/average/fsaverage_sym.v5 \
-		$(DESTDIR)$(prefix)/subjects
-	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage_sym.v5
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage_sym
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
 	rm -Rf $(top_builddir)/distribution/average/V1_average
 	gunzip -c $(top_srcdir)/distribution/average/V1_average.tar.gz | tar xvf -
@@ -211,11 +197,7 @@ uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35
 	rm -Rf $(DESTDIR)$(prefix)/subjects/cvs_avg35_inMNI152
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage.v5
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage.v6
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym.v5
-	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage_sym.v6
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage3
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage4
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage5
