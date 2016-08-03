@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/07/06 14:23:18 $
- *    $Revision: 1.7 $
+ *    $Date: 2016/08/02 21:10:34 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_apply_reg.c,v 1.7 2016/07/06 14:23:18 greve Exp $
+// $Id: mris_apply_reg.c,v 1.8 2016/08/02 21:10:34 greve Exp $
 
 /*
   BEGINHELP
@@ -78,7 +78,7 @@ void usage_message(FILE *stream);
 void usage(FILE *stream);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_apply_reg.c,v 1.7 2016/07/06 14:23:18 greve Exp $";
+static char vcid[] = "$Id: mris_apply_reg.c,v 1.8 2016/08/02 21:10:34 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -97,12 +97,13 @@ int DoSynthOnes = 0;
 int SynthSeed = -1;
 char *AnnotFile = NULL;
 char *LabelFile = NULL;
+char *SurfXYZFile = NULL;
 LABEL *MRISmask2Label(MRIS *surf, MRI *mask, int frame, double thresh);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs,n,err;
-  MRIS *SurfReg[100];
+  MRIS *SurfReg[100],*SurfSrc;
   MRI *SrcVal, *TrgVal;
   char *base;
   COLOR_TABLE *ctab=NULL;
@@ -161,6 +162,14 @@ int main(int argc, char *argv[]) {
     SrcVal = MRISannotIndex2Seg(SurfReg[0]);
     ctab = CTABdeepCopy(SurfReg[0]->ct);
   }
+  else if(SurfXYZFile) {
+    printf("Loading surface xyz %s\n",SurfXYZFile);
+    SurfSrc = MRISread(SurfXYZFile);
+    if(SurfSrc==NULL)  exit(1);
+    SrcVal = MRIcopyMRIS(NULL, SurfSrc, 2, "z"); // start at z to autoalloc
+    MRIcopyMRIS(SrcVal, SurfSrc, 0, "x");
+    MRIcopyMRIS(SrcVal, SurfSrc, 1, "y");
+  }
   else if(LabelFile) {
     LABEL *srclabel;
     printf("Loading label %s\n",LabelFile);
@@ -203,6 +212,13 @@ int main(int argc, char *argv[]) {
       exit(1);
     }
     LabelFree(&label);
+  }
+  else if(SurfXYZFile){
+    printf("Writing surface to %s\n",TrgValFile);
+    MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,0,"x");
+    MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,1,"y");
+    MRIScopyMRI(SurfReg[nsurfs-1],TrgVal,2,"z");
+    MRISwrite(SurfReg[nsurfs-1], TrgValFile);
   }
   else{
     printf("Writing %s\n",TrgValFile);
@@ -267,6 +283,15 @@ static int parse_commandline(int argc, char **argv) {
       ReverseMapFlag = 0;
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--src-xyz")){
+      if (nargc < 1) CMDargNErr(option,1);
+      SurfXYZFile = pargv[0];
+      if(!fio_FileExistsReadable(SurfXYZFile)){
+	printf("ERROR: %s does not exist or is not readable by you\n",SurfXYZFile);
+	exit(1);
+      }
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--sval-label") || !strcasecmp(option, "--src-label")){
       if (nargc < 1) CMDargNErr(option,1);
       LabelFile = pargv[0];
@@ -316,6 +341,7 @@ static void print_usage(void) {
   printf("   --src srcvalfile : source values (surface overlay)\n");
   printf("   --src-annot srcannotfile : source annotation (implies --no-rev)\n");
   printf("   --src-label labelfile : source label (implies --no-rev)\n");
+  printf("   --src-xyz surfacefile : use xyz coords from given surface as input\n");
   printf(" Output specifcation (format depends on type of input):\n");
   printf("   --trg trgvalfile : (Can also use --o)\n");
   printf(" Registration specifcation (srcreg1->trgreg1->srcreg2->trgreg2...):\n");
@@ -350,7 +376,7 @@ static void print_version(void) {
 /*--------------------------------------------------------------*/
 static void check_options(void) {
   int n;
-  if(SrcValFile == NULL && AnnotFile == NULL && LabelFile == NULL){
+  if(SrcValFile == NULL && AnnotFile == NULL && LabelFile == NULL && SurfXYZFile == NULL){
     printf("ERROR: need to specify source value file\n");
     exit(1);
   }
@@ -364,6 +390,14 @@ static void check_options(void) {
   }
   if(AnnotFile && LabelFile){
     printf("ERROR: cannot spec both --src-annot and --src-label\n");
+    exit(1);
+  }
+  if(AnnotFile && SurfXYZFile){
+    printf("ERROR: cannot spec both --src-annot and --src-xyz\n");
+    exit(1);
+  }
+  if(SrcValFile && SurfXYZFile){
+    printf("ERROR: cannot spec both --src and --src-xyz\n");
     exit(1);
   }
   if(TrgValFile == NULL){

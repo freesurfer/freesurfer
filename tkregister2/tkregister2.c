@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/05/04 22:17:15 $
- *    $Revision: 1.132 $
+ *    $Date: 2016/08/02 21:17:11 $
+ *    $Revision: 1.133 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -35,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.132 2016/05/04 22:17:15 greve Exp $";
+"$Id: tkregister2.c,v 1.133 2016/08/02 21:17:11 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1201,8 +1201,8 @@ static int parse_commandline(int argc, char **argv) {
 	if(targ_vol_id == NULL) exit(1);
       } 
     }
-    else if (!strcasecmp(option, "--lh-only")) lhsurf_only=1 ;
-    else if (!strcasecmp(option, "--rh-only")) rhsurf_only=1 ;
+    else if (!strcasecmp(option, "--lh-only")){ lhsurf_only=1 ; LoadSurf = 1; UseSurf  = 1;}
+    else if (!strcasecmp(option, "--rh-only")){ rhsurf_only=1 ; LoadSurf = 1; UseSurf  = 1;}
     else if (!strcasecmp(option, "--check-reg") ||
 	     !strcasecmp(option, "--check") ||
 	     !strcasecmp(option, "--junk")){
@@ -4976,7 +4976,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.132 2016/05/04 22:17:15 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.133 2016/08/02 21:17:11 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

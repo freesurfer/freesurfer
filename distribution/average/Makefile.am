@@ -50,8 +50,9 @@ TIF=\
 	rh.average.CURVATURE.tif \
 	rh.average.tif \
 	rigidly_aligned_brain_template.tif \
-	rh.curvature.buckner40.2016-03-20.tif \
-	lh.curvature.buckner40.2016-03-20.tif
+	lh.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
+	rh.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif 
+
 
 TXT=\
 	colortable_desikan_killiany.txt \

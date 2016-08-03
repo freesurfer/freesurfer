@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2016/08/02 19:35:22 $
-#    $Revision: 1.581 $
+#    $Author: greve $
+#    $Date: 2016/08/02 21:14:05 $
+#    $Revision: 1.582 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.581 2016/08/02 19:35:22 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.582 2016/08/02 21:14:05 greve Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -259,7 +259,8 @@ set GCARegTol  = ();
 # For cortical registration, as found in $AvgCurvTifPath/$hemi.$AvgCurvTif
 set AvgCurvTifPath = "${FREESURFER_HOME}/average"
 #set AvgCurvTif = average.curvature.filled.buckner40.tif
-set AvgCurvTif = curvature.buckner40.2016-03-20.tif
+#set AvgCurvTif = curvature.buckner40.2016-03-20.tif
+set AvgCurvTif = folding.atlas.acfb40.noaparc.i12.2016-08-02.tif
 
 # Desikan-Killiany cortical parcellation atlas (-cortparc), as found in:
 # $FREESURFER_HOME/average/$hemi.$GCS
@@ -3629,8 +3630,8 @@ if($DoCurvHK) then
     if($status) goto error_exit;
   endif
   foreach hemi ($hemilist)
-    if( ! -e ${hemi}.white.H) goto error_exit;
-    if( ! -e ${hemi}.inflated.H) goto error_exit;
+    if($RunIt &&  ! -e ${hemi}.white.H) goto error_exit;
+    if($RunIt &&  ! -e ${hemi}.inflated.H) goto error_exit;
   end
 endif
 
@@ -4638,6 +4639,7 @@ if($DoAParc2ASeg) then
         echo $cmd > $touchdir/aparc.${DESTRIEUX_NAME}2aseg.touch
       else
         echo "INFO: skipping ${parc} aparc2aseg" |& tee -a $LF |& tee -a $CF
+	continue;
       endif
     endif
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF

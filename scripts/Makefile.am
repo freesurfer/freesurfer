@@ -129,6 +129,7 @@ make_average_volume \
 make_average_subject \
 make_average_subcort \
 make_cortex_label \
+make_folding_atlas \
 make_upright \
 make_symmetric \
 make_hemi_mask \

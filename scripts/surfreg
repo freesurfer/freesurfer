@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # thalseg
 
-set VERSION = '$Id: surfreg,v 1.13 2016/02/16 17:17:20 zkaufman Exp $';
+set VERSION = '$Id: surfreg,v 1.14 2016/08/02 21:15:48 greve Exp $';
 
 set subject = ();
 set hemilist  = ();
@@ -73,7 +73,8 @@ foreach hemi ($hemilist)
   echo "#@# $hemi `date`" | tee -a $LF
   if($target == fsaverage) then
     set AvgCurvTifPath = "${FREESURFER_HOME}/average"
-    set AvgCurvTif = average.curvature.filled.buckner40.tif
+    #set AvgCurvTif = average.curvature.filled.buckner40.tif
+    set AvgCurvTif = folding.atlas.acfb40.noaparc.i12.2016-08-02.tif
     set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
   else
     set AvgTif = $SUBJECTS_DIR/$target/$hemi.reg.template.tif

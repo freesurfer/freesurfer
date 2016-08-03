@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/07/08 21:13:43 $
- *    $Revision: 1.243 $
+ *    $Date: 2016/08/02 21:05:41 $
+ *    $Revision: 1.244 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -562,7 +562,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.243 2016/07/08 21:13:43 greve Exp $";
+"$Id: mri_glmfit.c,v 1.244 2016/08/02 21:05:41 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -708,6 +708,7 @@ char *SimDoneFile = NULL;
 int tSimSign = 0;
 int FWHMSet = 0;
 int DoKurtosis = 0;
+int DoSkew = 0;
 
 char *Gamma0File[GLMMAT_NCONTRASTS_MAX];
 MATRIX *Xtmp=NULL, *Xnorm=NULL;
@@ -745,6 +746,8 @@ int DoPCC=1;
 
 double GLMEfficiency(MATRIX *X, MATRIX *C);
 int GLMdiagnoseDesignMatrix(MATRIX *X);
+MRI *fMRIskew(MRI *y, MRI *mask);
+MRI *MRIpskew(MRI *kvals, int dof, MRI *mask, int nsamples);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -2252,10 +2255,22 @@ int main(int argc, char **argv) {
     sprintf(tmpstr,"%s/kurtosis.%s",GLMDir,format);
     MRIwrite(k,tmpstr);
     pk = MRIpkurtosis(k, mriglm->glm->dof, mriglm->mask, 10000);
-    sprintf(tmpstr,"%s/pkurtosis.%s",GLMDir,format);
+    sprintf(tmpstr,"%s/kurtosis.sig.%s",GLMDir,format);
     MRIwrite(pk,tmpstr);
     MRIfree(&k);
     MRIfree(&pk);
+  }
+  if(DoSkew){
+    // Compute and save skew
+    printf("Computing skew of residuals\n");
+    k = fMRIskew(mriglm->eres,mriglm->mask);
+    sprintf(tmpstr,"%s/skew.%s",GLMDir,format);
+    MRIwrite(k,tmpstr);
+    pk = MRIpskew(k, mriglm->glm->dof, mriglm->mask, 10000);
+    sprintf(tmpstr,"%s/skew.sig.%s",GLMDir,format);
+    MRIwrite(pk,tmpstr);
+    MRIfree(&pk);
+    MRIfree(&k);
   }
 
   // Compute and save PCA
@@ -2348,6 +2363,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcasecmp(option, "--kurtosis")) DoKurtosis = 1;
+    else if (!strcasecmp(option, "--skew")) DoSkew = 1;
     else if (!strcasecmp(option, "--allow-zero-dof")) AllowZeroDOF = 1;
     else if (!strcasecmp(option, "--prune_thr")){
       if (nargc < 1) CMDargNErr(option,1);
@@ -2889,6 +2905,8 @@ printf("   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc
 printf("   --sim-sign signstring : abs, pos, or neg. Default is abs.\n");
 printf("   --uniform min max : use uniform distribution instead of gaussian\n");
 printf("\n");
+printf("   --skew : compute skew and p-value for skew\n");
+printf("   --kurtosis : compute kurtosis and p-value for kurtosis\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
 printf("   --tar1 : compute and save temporal AR1 of residual\n");
 printf("   --save-yhat : flag to save signal estimate\n");
@@ -3762,3 +3780,97 @@ int GLMdiagnoseDesignMatrix(MATRIX *X)
   return(ret);
 }
 
+
+
+/*!
+  \fn MRI *fMRIskew(MRI *y, MRI *mask)
+  \brief Computes a voxel-wise map of skew.
+  See also MRIkurtosis()
+*/
+MRI *fMRIskew(MRI *y, MRI *mask)
+{
+  MRI *k;
+  int c, r, s, f;
+  double v,mn,m3=0,m2=0,delta,skew;
+  k = MRIallocSequence(y->width,y->height,y->depth,MRI_FLOAT,1);
+  MRIcopyHeader(y,k);
+
+  for(c=0; c < y->width; c++){
+    for(r=0; r < y->height; r++){
+      for(s=0; s < y->depth; s++){
+	if(mask){
+	  v = MRIgetVoxVal(mask,c,r,s,0);
+	  if(v < 0.0001) {
+	    MRIsetVoxVal(k,c,r,s,0,0.0);
+	    continue;
+	  }
+	}
+	mn = 0;
+	for(f=0; f < y->nframes; f++) mn += MRIgetVoxVal(y,c,r,s,f);
+	mn /= y->nframes;
+	m2 = 0;
+	m3 = 0;
+	for(f=0; f < y->nframes; f++){
+	  delta = MRIgetVoxVal(y,c,r,s,f)-mn;
+	  m2 += pow(delta,2.0); // sum of squares
+	  m3 += pow(delta,3.0); // sum of cubics
+	}
+	if(m2 < FLT_EPSILON) continue;
+	m2 /= y->nframes;
+	m3 /= (y->nframes-1);
+	skew = m3/pow(m2,1.5);
+	MRIsetVoxVal(k,c,r,s,0,skew);
+      }
+    }
+  }
+  return(k);
+}
+
+/*!
+  \fn MRI *MRIpskew(MRI *kvals, int dof, MRI *mask, int nsamples)
+  \brief Computes the p-value for a skew map. Uses simulation.
+  \param kvals - source volume with skew values.
+  \param dof - dof that the skew was computed from
+  \param mask - skip voxels where mask < 0.0001
+  \param nsamples - samples to use in the simulation (eg, 10000)
+  See also MRIpkurtosis()
+*/
+MRI *MRIpskew(MRI *kvals, int dof, MRI *mask, int nsamples)
+{
+  MRI *nmri, *kmri, *pkmri;
+  double *ksynth,pk,kvox,v;
+  int m,c,r,s,f,ind;
+
+  nmri = MRIrandn(nsamples,1,1,dof,0,1,NULL);
+  kmri = fMRIskew(nmri,NULL);
+
+  ksynth = (double*) calloc(sizeof(double),nsamples);
+  for(m=0; m < nsamples; m++) ksynth[m] = MRIgetVoxVal(kmri,m,0,0,0);
+
+  qsort(ksynth,nsamples,sizeof(double),CompareDoubles);
+
+  pkmri = MRIclone(kvals,NULL);
+  for(c=0; c < pkmri->width; c++){
+    for(r=0; r < pkmri->height; r++){
+      for(s=0; s < pkmri->depth; s++){
+	if(mask){
+	  v = MRIgetVoxVal(mask,c,r,s,0);
+	  if(v < 0.0001) {
+	    for(f=0; f < pkmri->nframes; f++) MRIsetVoxVal(pkmri,c,r,s,f,0.0);
+	    continue;
+	  }
+	}
+	for(f=0; f < pkmri->nframes; f++){
+	  kvox = MRIgetVoxVal(kvals,c,r,s,f);
+	  ind = PDFsearchOrderedTable(kvox,ksynth,nsamples);
+	  pk = 1.0 - (double)ind/nsamples;
+	  MRIsetVoxVal(pkmri,c,r,s,f,-log10(pk));
+	}
+      }
+    }
+  }
+  MRIfree(&nmri);
+  MRIfree(&kmri);
+  free(ksynth);
+  return(pkmri);
+}
