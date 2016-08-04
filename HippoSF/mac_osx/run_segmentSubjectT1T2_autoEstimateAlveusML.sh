@@ -35,8 +35,6 @@ else
   "${exe_dir}"/segmentSubjectT1T2_autoEstimateAlveusML.app/Contents/MacOS/segmentSubjectT1T2_autoEstimateAlveusML $args
   rm -rf $MCR_CACHE_ROOT
 
-
-
 fi
 exit
 
