@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:19:57 $
- *    $Revision: 1.97 $
+ *    $Date: 2016/08/04 17:55:04 $
+ *    $Revision: 1.98 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -243,7 +243,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.97 2016/07/28 14:19:57 zkaufman Exp $",
+           "$Id: mri_ca_register.c,v 1.98 2016/08/04 17:55:04 zkaufman Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1528,10 +1528,14 @@ main(int argc, char *argv[])
 #if 1
       parms.tol /= 5 ;  // reset parameters to previous level
       parms.l_smoothness /= 5 ;
-      nthreads = omp_get_max_threads();
+#ifdef HAVE_OPENMP
       omp_set_num_threads(1);
+#endif 
       GCAMregister(gcam, mri_inputs, &parms) ;
+#ifdef HAVE_OPENMP
+      nthreads = omp_get_max_threads();
       omp_set_num_threads(nthreads);
+#endif 
 #endif
       printf("********************* ALLOWING NEGATIVE NODES IN DEFORMATION"
              "********************************\n") ;
