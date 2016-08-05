@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/14 18:29:11 $
- *    $Revision: 1.10 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/08/05 03:07:31 $
+ *    $Revision: 1.10.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@ public:
 
   void InitializeLayerTreeWidget( QTreeWidget* treeWidget);
   void SetCurrentLayer(Layer* layer);
-  void DisconnectAllLayers();
+  virtual void DisconnectAllLayers();
   virtual void ConnectLayer( Layer* layer );
 
   QString GetLayerType()

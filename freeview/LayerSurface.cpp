@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:52:37 $
- *    $Revision: 1.124.2.1 $
+ *    $Date: 2016/08/05 03:07:31 $
+ *    $Revision: 1.124.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -932,7 +932,7 @@ void LayerSurface::SetVisible( bool bVisible )
     m_vectorActor2D[i]->SetVisibility( nVectorVisibility );
   }
 
-  m_spline->SetVisible(bVisible);
+//  m_spline->SetVisible(bVisible);
 
   LayerEditable::SetVisible(bVisible);
 }

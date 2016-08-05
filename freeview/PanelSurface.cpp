@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:52:38 $
- *    $Revision: 1.69.2.1 $
+ *    $Date: 2016/08/05 03:07:31 $
+ *    $Revision: 1.69.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -163,11 +163,28 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxHideIn3DView, SIGNAL(toggled(bool)), layer, SLOT(SetHideIn3D(bool)));
 
   SurfaceSpline* spline = layer->GetSpline();
-  connect( ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), spline, SLOT(SetColor(QColor)));
-  connect(ui->checkBoxSplineProjection, SIGNAL(toggled(bool)), spline, SLOT(SetProjection(bool)));
-  connect(spline, SIGNAL(SplineChanged()), this, SLOT(UpdateWidgets()));
+  connect(ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), spline, SLOT(SetColor(QColor)), Qt::UniqueConnection);
+  connect(ui->checkBoxSplineProjection, SIGNAL(toggled(bool)), spline, SLOT(SetProjection(bool)), Qt::UniqueConnection);
+  connect(spline, SIGNAL(SplineChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+
   connect(layer, SIGNAL(RGBMapChanged()), this, SLOT(UpdateWidgets()));
   connect(ui->lineEditMappingSurface, SIGNAL(textChanged(QString)), layer, SLOT(SetMappingSurfaceName(QString)));
+}
+
+void PanelSurface::DisconnectAllLayers()
+{
+    PanelLayer::DisconnectAllLayers();
+
+    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Surface");
+    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+    {
+      LayerSurface* surf = (LayerSurface*)lc->GetLayer( i );
+      for ( int j = 0; j < allWidgets.size(); j++ )
+      {
+        surf->GetSpline()->disconnect( this );
+        allWidgets[j]->disconnect( surf->GetSpline() );
+      }
+    }
 }
 
 void PanelSurface::DoIdle()

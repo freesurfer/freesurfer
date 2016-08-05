@@ -302,8 +302,10 @@ void PanelAllLayers::OnItemChanged(QTreeWidgetItem *item)
   Layer* layer = reinterpret_cast<Layer*>(item->data( 0, Qt::UserRole ).value<quintptr>());
   if ( layer )
   {
-    layer->SetName( item->text(0) );
-    layer->SetVisible( item->checkState( 0 ) == Qt::Checked );
+    if (item->text(0) != layer->GetName())
+        layer->SetName( item->text(0) );
+    if (layer->IsVisible() != (item->checkState( 0 ) == Qt::Checked ))
+        layer->SetVisible( item->checkState( 0 ) == Qt::Checked );
   }
 }
 
