@@ -9,15 +9,15 @@
 	<key>CFBundleIconFile</key>
 	<string>membrane.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>segmentSubjectT2_autoEstimateAlveusML</string>
+	<string>segmentSubjectT1_autoEstimateAlveusML</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>segmentSubjectT2_autoEstimateAlveusML</string>
+	<string>segmentSubjectT1_autoEstimateAlveusML</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
-	<string>segmentSubjectT2_autoEstimateAlveusML</string>
+	<string>segmentSubjectT1_autoEstimateAlveusML</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleVersionString</key>

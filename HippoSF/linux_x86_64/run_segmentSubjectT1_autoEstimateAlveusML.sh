@@ -1,3 +1,4 @@
+
 #!/bin/sh
 # script for execution of deployed applications
 #
@@ -14,7 +15,7 @@ else
   echo Setting up environment variables
   MCRROOT="$1"
   echo ---
-
+  
   MCRJRE=${MCRROOT}/sys/java/jre/glnxa64/jre/lib/amd64 ;
 
   LD_LIBRARY_PATH=.:${MCRROOT}/runtime/glnxa64:${MCRROOT}/bin/glnxa64:${MCRROOT}/sys/os/glnxa64:${MCRJRE}/native_threads:${MCRJRE}/server:${MCRJRE}/client:${MCRJRE}:$LD_LIBRARY_PATH ;
@@ -23,7 +24,7 @@ else
 
   export LD_LIBRARY_PATH;
   export XAPPLRESDIR;
- 
+  
   unset JAVA_TOOL_OPTIONS
 
   echo LD_LIBRARY_PATH is ${LD_LIBRARY_PATH};
@@ -41,6 +42,7 @@ else
   "${exe_dir}"/segmentSubjectT1_autoEstimateAlveusML $args
   rm -rf $MCR_CACHE_ROOT
 
+  
 fi
 exit
 
