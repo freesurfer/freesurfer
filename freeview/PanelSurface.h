@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/04/08 19:30:29 $
- *    $Revision: 1.37 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/08/05 03:02:31 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,6 +48,7 @@ protected:
   void DoUpdateWidgets();
   void DoIdle();
   virtual void ConnectLayer( Layer* layer );
+  virtual void DisconnectAllLayers();
 
 protected slots:
   void OnChangeSurfaceType( QAction* act );
