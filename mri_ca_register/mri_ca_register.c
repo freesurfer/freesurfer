@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:19:57 $
- *    $Revision: 1.97 $
+ *    $Date: 2016/08/09 02:32:17 $
+ *    $Revision: 1.96.2.2 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -243,7 +243,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.97 2016/07/28 14:19:57 zkaufman Exp $",
+           "$Id: mri_ca_register.c,v 1.96.2.2 2016/08/09 02:32:17 zkaufman Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
