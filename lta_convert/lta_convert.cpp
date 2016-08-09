@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/12/17 21:06:35 $
- *    $Revision: 1.9 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/08/09 02:11:11 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,7 +75,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[], Parameters & P);
 
 static char vcid[] =
-    "$Id: lta_convert.cpp,v 1.9 2015/12/17 21:06:35 mreuter Exp $";
+    "$Id: lta_convert.cpp,v 1.10 2016/08/09 02:11:11 zkaufman Exp $";
 char *Progname = NULL;
 
 LTA * shallowCopyLTA(const LTA * lta)
@@ -311,13 +311,13 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
   MRI * src = MRIreadHeader(sname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
   if (src == NULL)
   {
-    cerr << "ERROR readITK: cannot read src MRI" << sname << endl;
+    cerr << "ERROR readITK: cannot read src MRI " << sname << endl;
     exit(1);
   }
   MRI * trg = MRIreadHeader(tname.c_str(),MRI_VOLUME_TYPE_UNKNOWN);
   if (trg == NULL)
   {
-    cerr << "ERROR readITK: cannot read trg MRI" << tname << endl;
+    cerr << "ERROR readITK: cannot read trg MRI " << tname << endl;
     exit(1);
   }
   
@@ -326,13 +326,16 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
   bool trg3d = trg->width >1 && trg->height > 1 && trg->depth > 1;
   bool mri3d = src3d || trg3d;
   int flatdim =-1;
-  if (src->width == 1 && trg->width ==1) flatdim = 1;
-  else if (src->height == 1 && trg->height ==1) flatdim = 2;
-  else if (src->depth == 1 && trg->depth ==1) flatdim = 3;
-  else
+  if (! mri3d )
   {
-    cerr << "ERROR readITK: 2D images but plane does not agree." << tname << endl;
-    exit(1);
+    if (src->width == 1 && trg->width ==1) flatdim = 1;
+    else if (src->height == 1 && trg->height ==1) flatdim = 2;
+    else if (src->depth == 1 && trg->depth ==1) flatdim = 3;
+    else
+    {
+      cerr << "ERROR readITK: 2D images but plane does not agree. " << tname << endl;
+      exit(1);
+    }
   }
   int o1 = 0; 
   int o2 = 0;
@@ -348,6 +351,11 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
   std::ifstream transfile (xfname.c_str());
   MATRIX* m_L = MatrixAlloc(4,4,MATRIX_REAL);
   m_L = MatrixIdentity(4,m_L);
+  
+  MATRIX* m_R = MatrixAlloc(3,3,MATRIX_REAL);
+  VECTOR* v_T = VectorAlloc(3,MATRIX_REAL);
+  VECTOR* v_F = VectorAlloc(3,MATRIX_REAL);
+  
   std::string str;
   bool is3d = true;
   if(transfile.is_open())
@@ -362,10 +370,11 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
       {
         //getline(transfile,str);
         transfile >> str;
-        std::cout << str <<std::endl;
-        if (str == "AffineTransform_double_2_2")
+        std::cout << "Transform: "<< str <<std::endl;
+//        if (str == "AffineTransform_double_2_2" || str == "MatrixOffsetTransformBase_double_2_2")
+        if (str == "AffineTransform_double_2_2" )
           is3d = false;
-        else if (str != "AffineTransform_double_3_3")
+        else if (str != "AffineTransform_double_3_3" && str != "MatrixOffsetTransformBase_double_3_3")
         {
           std::cout << "ERROR readITK: Transform type unknown!"<< std::endl;
           exit(1);    
@@ -381,24 +390,43 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
        if (is3d)
        {
         // convert to ras2ras (from lps2lps)
-        // read and mult with diag(-1,-1,0,0) from left and right:
-        transfile >> v1 >> v2 >> v3;
-        *MATRIX_RELT(m_L,1,1) = v1;
-        *MATRIX_RELT(m_L,1,2) = v2;
-        *MATRIX_RELT(m_L,1,3) = -v3;
-        transfile >> v1 >> v2 >> v3;
-        *MATRIX_RELT(m_L,2,1) = v1;
-        *MATRIX_RELT(m_L,2,2) = v2;
-        *MATRIX_RELT(m_L,2,3) = -v3;
-        transfile >> v1 >> v2 >> v3;
-        *MATRIX_RELT(m_L,3,1) = -v1;
-        *MATRIX_RELT(m_L,3,2) = -v2;
-        *MATRIX_RELT(m_L,3,3) = v3;
+        // read and mult with diag(-1,-1,1,1) from left and right:
+        // mR stores unmodified input, mL is the converted matrix
         
         transfile >> v1 >> v2 >> v3;
+        *MATRIX_RELT(m_R,1,1) =  v1;
+        *MATRIX_RELT(m_R,1,2) =  v2;
+        *MATRIX_RELT(m_R,1,3) =  v3;        
+        *MATRIX_RELT(m_L,1,1) =  v1;
+        *MATRIX_RELT(m_L,1,2) =  v2;
+        *MATRIX_RELT(m_L,1,3) = -v3;
+        
+        transfile >> v1 >> v2 >> v3;
+        *MATRIX_RELT(m_R,2,1) =  v1;
+        *MATRIX_RELT(m_R,2,2) =  v2;
+        *MATRIX_RELT(m_R,2,3) =  v3;
+        *MATRIX_RELT(m_L,2,1) =  v1;
+        *MATRIX_RELT(m_L,2,2) =  v2;
+        *MATRIX_RELT(m_L,2,3) = -v3;
+        
+        transfile >> v1 >> v2 >> v3;
+        *MATRIX_RELT(m_R,3,1) =  v1;
+        *MATRIX_RELT(m_R,3,2) =  v2;
+        *MATRIX_RELT(m_R,3,3) =  v3;
+        *MATRIX_RELT(m_L,3,1) = -v1;
+        *MATRIX_RELT(m_L,3,2) = -v2;
+        *MATRIX_RELT(m_L,3,3) =  v3;
+        
+        // mL is only correct, if no FixedParameter is specified below
+        transfile >> v1 >> v2 >> v3;
+        VECTOR_ELT(v_T,1)     =  v1;
+        VECTOR_ELT(v_T,2)     =  v2;
+        VECTOR_ELT(v_T,3)     =  v3;
         *MATRIX_RELT(m_L,1,4) = -v1;
         *MATRIX_RELT(m_L,2,4) = -v2;
-        *MATRIX_RELT(m_L,3,4) = v3;
+        *MATRIX_RELT(m_L,3,4) =  v3;
+        
+        // already set above (identity)
         //*MATRIX_RELT(m_L,4,1) = 0.0;
         //*MATRIX_RELT(m_L,4,2) = 0.0;
         //*MATRIX_RELT(m_L,4,3) = 0.0;
@@ -426,13 +454,45 @@ LTA * readITK(const string& xfname, const string& sname, const string& tname)
       else if (str == "FixedParameters:")
       {
         if (is3d)
-          transfile >> v1>> v2 >> v3; // center of rotation ???
-        else
-          transfile >> v1 >> v2;
-        if (v1 != 0 || v2!=0 || v3!=0)
         {
-          std::cout << "ERROR readITK: fixedParameters not equal to zero (not implemented): " << v1 << " " << v2 << " " << v3 << std::endl;
-          exit(1);
+          // we need to update the last column in mL
+          // see itkMatrixOffsetTransformBase.hxx  MatrixOffsetTransformBase
+        
+          transfile >> v1>> v2 >> v3; // center of rotation 
+          VECTOR_ELT(v_F,1)   =  v1;
+          VECTOR_ELT(v_F,2)   =  v2;
+          VECTOR_ELT(v_F,3)   =  v3;
+          
+          // update mT:
+          for (int i = 1; i<=3; i++)
+          {
+            VECTOR_ELT(v_T,i) += VECTOR_ELT(v_F,i);
+            for (int j = 1; j<=3; j++)
+            {
+              VECTOR_ELT(v_T,i) -= (*MATRIX_RELT(m_R,i,j)) * VECTOR_ELT(v_F,j);
+            }
+          }
+          
+          // convert to RAS2RAS and replace last column in mL
+          *MATRIX_RELT(m_L,1,4) = - VECTOR_ELT(v_T,1);
+          *MATRIX_RELT(m_L,2,4) = - VECTOR_ELT(v_T,2);
+          *MATRIX_RELT(m_L,3,4) =   VECTOR_ELT(v_T,3);
+          
+          
+        }  
+        else
+        {
+          transfile >> v1 >> v2;
+          
+          // this can be implemented similarly to the 3d case (just with 2 dimensions)
+          // but I don't have a test case
+
+
+          if (v1!=0 || v2!=0 )
+          {
+            std::cout << "ERROR readITK: 2D fixedParameters not equal to zero (not implemented): " << v1 << " " << v2 << std::endl;
+            exit(1);
+          }
         }
       }
       else
