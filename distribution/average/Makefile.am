@@ -33,14 +33,12 @@ GCS=\
 	lh.DKTatlas40.gcs \
 	rh.DKTatlas100.gcs \
 	lh.DKTatlas100.gcs \
-	lh.DKatlas.2016-03-20.vc922.gcs \
-	rh.DKatlas.2016-03-20.vc922.gcs \
-	lh.DKatlas.2016-03-20.gcs \
-	rh.DKatlas.2016-03-20.gcs \
-    lh.CDatlas.2016-03-20.gcs \
-    rh.CDatlas.2016-03-20.gcs \
-	lh.DKTatlas.2016-03-20.gcs\
-	rh.DKTatlas.2016-03-20.gcs
+	lh.DKaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs \
+	rh.DKaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs \
+	lh.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs \
+	rh.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs \
+	lh.CDaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs \
+	rh.CDaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs 
 
 TIF=\
 	lh.average.curvature.filled.buckner40.tif \
