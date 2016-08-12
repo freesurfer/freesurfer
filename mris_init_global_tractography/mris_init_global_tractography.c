@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2013/04/05 13:37:25 $
- *    $Revision: 1.3 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/08/12 16:54:44 $
+ *    $Revision: 1.3.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,6 +64,7 @@
 #define MIN_CORTEX    MIN_LH_CORTEX
 #define MAX_CORTEX    MAX_RH_CORTEX
 #define MAX_LABELS  (MAX_CORTEX-MIN_CORTEX+1)
+#define XHEMI_OFFSET  1000
 
 #if 0
 static VOXEL_LIST *compute_path_to_ventricles(MRI_SURFACE *mris, int vno, MRI *mri_ventricle_dist_grad, MRI *mri_aseg) ;
@@ -108,6 +109,8 @@ static void usage_exit(int code) ;
 
 static char sdir[STRLEN] = "" ;
 
+static int xhemi = 0 ;  // if 1, only do homologous ROIs across the hemis
+
 int
 main(int argc, char *argv[]) {
   char         **av, fname[STRLEN], *subject, base_name[STRLEN] ;
@@ -116,11 +119,11 @@ main(int argc, char *argv[]) {
   struct timeb start ;
   MRI          *mri_aseg, *mri_wm, *mri_label1_dist, *mri_dist_grad, *mri_smooth, *mri_wm_dist ;
   VOXEL_LIST   **vl_splines[MAX_LABELS], *vl ;
-  CMAT         *cmat, *cmat2 ;
+  CMAT         *cmat ;
   MRI          *mri_tmp, *mri_wm_only ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_init_global_tractography.c,v 1.3 2013/04/05 13:37:25 fischl Exp $", "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_init_global_tractography.c,v 1.3.2.1 2016/08/12 16:54:44 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -167,7 +170,7 @@ main(int argc, char *argv[]) {
 	label = (int)MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
 	if ((label >= MIN_CORTEX && label <= MAX_CORTEX) && (label_found[label-MIN_CORTEX] == 0))
 	{
-	  if (MRIvoxelsInLabel(mri_aseg, label) < vol_thresh)
+	  if (MRIvoxelsInLabel(mri_aseg, label) < vol_thresh && !xhemi)
 	  {
 	    label_found[label-MIN_CORTEX] = -1 ;
 	    printf("ignoring small label %s (%d)\n", cma_label_to_name(label), label) ;
@@ -265,7 +268,11 @@ main(int argc, char *argv[]) {
 
     for (label2 = 0 ; label2 < nlabels ; label2++)
     {
-      if (label2 == label || vl_splines[label2][label])
+      if (xhemi &&   // only do corresponding ROIs
+	  ((labels[label]+XHEMI_OFFSET != labels[label2]) &&
+	   (labels[label2]+XHEMI_OFFSET != labels[label])))
+	continue ;
+      if (label2 == label || (xhemi == 0 && vl_splines[label2][label]))
 	continue ;  // if this spline has already been successfully computed from the other direction
       vl = compute_spline_initialization(mri_aseg, mri_wm, mri_wm_dist, mri_label1_dist,
 					 mri_dist_grad,
@@ -281,15 +288,19 @@ main(int argc, char *argv[]) {
       if (write_diags)
       {
 	sprintf(fname, "%s.%d.%d.label", base_name, labels[label], labels[label2]) ;
-	printf("writing %d control point spline to %s for %s --> %s\n",
-	       vl_splines[label][label2]->nvox, fname, cma_label_to_name(labels[label2]), cma_label_to_name(labels[label]));
+	printf("writing %d control point spline to %s for %s (%d) --> %s (%d)\n",
+	       vl_splines[label][label2]->nvox, fname, cma_label_to_name(labels[label2]), labels[label2], 
+	       cma_label_to_name(labels[label]), labels[label]);
 	printf("\t(%d: [%d %d %d]) --> (%d: [%d %d %d])\n", 
 	       labels[label2], vl->xi[0], vl->yi[0], vl->zi[0], 
 	       labels[label], vl->xi[vl->nvox-1], vl->yi[vl->nvox-1], vl->zi[vl->nvox-1]) ; 
 	VLSTwriteLabel(vl_splines[label][label2], fname, NULL, mri_aseg) ;
       }
       else
-	printf("%d control point spline computed for %s --> %s\n",vl->nvox, cma_label_to_name(labels[label2]), cma_label_to_name(labels[label]));
+	printf("%d control point spline computed for %s (%d) --> %s (%d)\n",vl->nvox, 
+	       cma_label_to_name(labels[label2]), labels[label2], cma_label_to_name(labels[label]), labels[label]);
+      if (xhemi)
+	break ;
     }
     MRIfree(&mri_label1_dist) ; MRIfree(&mri_dist_grad) ;
   }
@@ -306,7 +317,6 @@ main(int argc, char *argv[]) {
     }
 
   CMATwrite(cmat, argv[3]) ;
-  cmat2 = CMATread(argv[3]) ;
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -344,6 +354,11 @@ get_option(int argc, char *argv[]) {
     strcpy(sdir, argv[2]) ;
     printf("using %s as SUBJECTS_DIR\n", sdir) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "XHEMI"))
+  {
+    xhemi = 1 ;
+    printf("only computing inter-hemispheric splines\n") ;
   }
   else switch (toupper(*option)) {
   case 'P':
@@ -383,7 +398,7 @@ usage_exit(int code) {
   printf("usage: %s [options] <subject> <parcellation> <output volume>\n", 
          Progname) ;
   printf(
-    "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
+    "\t\n"
   );
   exit(code) ;
 }
@@ -1125,9 +1140,12 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
       continue ;
       
 //      printf("!!!!!!!!!!!!!!  path to label %d from label %d step could not be found !!!!!!!!!!!\n", label1, label2) ;
-      MRIwrite(mri_path, "p.mgz") ;
-      MRIwrite(mri_dist, "d.mgz") ;
-      VLSTwriteLabel(vl, "vl.label", NULL, mri_aseg) ;
+      if (write_diags)
+      {
+	MRIwrite(mri_path, "p.mgz") ;
+	MRIwrite(mri_dist, "d.mgz") ;
+	VLSTwriteLabel(vl, "vl.label", NULL, mri_aseg) ;
+      }
       
       printf("vl: (%d, %d, %d) --> (%d, %d, %d)\n",
 	     vl->xi[0], vl->yi[0], vl->zi[0], vl->xi[vl->nvox-1], vl->yi[vl->nvox-1], vl->zi[vl->nvox-1]) ;
@@ -1137,9 +1155,12 @@ compute_path_to_label(MRI *mri_aseg, MRI *mri_wm, MRI *mri_dist_grad, MRI *mri_d
     if (MRIindexNotInVolume(mri_aseg, xv, yv, zv) || (vl->nvox >= max_steps))  // zzz
     {
       printf("!!!!!!!!!!!!!!  path to label %d from label %d left volume or too long !!!!!!!!!!!\n", label1, label2) ;
-      MRIwrite(mri_path, "p.mgz") ;
-      MRIwrite(mri_dist, "d.mgz") ;
-      VLSTwriteLabel(vl, "vl.label", NULL, mri_aseg) ;
+      if (write_diags)
+      {
+	MRIwrite(mri_path, "p.mgz") ;
+	MRIwrite(mri_dist, "d.mgz") ;
+	VLSTwriteLabel(vl, "vl.label", NULL, mri_aseg) ;
+      }
       
       printf("vl: (%d, %d, %d) --> (%d, %d, %d)\n",
 	     vl->xi[0], vl->yi[0], vl->zi[0], vl->xi[vl->nvox-1], vl->yi[vl->nvox-1], vl->zi[vl->nvox-1]) ;
@@ -1179,12 +1200,14 @@ compute_optimal_number_of_control_points(MRI *mri_aseg, VOXEL_LIST *vl, int min_
   int          ncontrol, max_points ;
   double       dist ;
   MRI          *mri_dist = NULL ;
-  VOXEL_LIST  *vl_spline = vl, *vl_spline_list ;
+  VOXEL_LIST  *vl_spline = NULL, *vl_spline_list ;
 
   vl->mri = mri_aseg ;
   max_points = MIN(10*min_points, vl->nvox) ;
   for (ncontrol =  min_points ; ncontrol <= max_points ; ncontrol++)
   {
+    if (vl_spline)
+      VLSTfree(&vl_spline) ;
     vl_spline = VLSTsplineFit(vl, ncontrol) ;
     vl_spline_list = VLSTinterpolate(vl_spline, 1) ;
     dist = VLSThausdorffDistance(vl, vl_spline_list, 10*allowable_dist, &mri_dist) ;

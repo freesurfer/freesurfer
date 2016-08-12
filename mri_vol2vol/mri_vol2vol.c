@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/03/02 16:17:48 $
- *    $Revision: 1.88 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/08/12 16:54:44 $
+ *    $Revision: 1.88.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -72,6 +72,7 @@ mri_vol2vol
   --shear Sxy Sxz Syz : xz is in-plane
   --reg-final regfinal.dat : final reg after rot and trans (but not inv)
 
+  --soap ctl_point_vol niter : run soap bubble smoothing on input volume using ctl_point_vol>0
   --synth : replace input with white gaussian noise
   --seed seed : seed for synth (def is to set from time of day)
 
@@ -211,6 +212,11 @@ updated to reflect the new limits.
 Interpolate the output based on the given method. Legal values are:
 cubic, trilin and nearest. trilin is the default. Can also use
 --cubic, --trilin or --nearest.
+
+--soap soap_ctl_point_fname num_iters
+
+perform soap bubble smoothing on the input volume, using the volume specified by soap_ctl_point_fname
+as the fixed (control) points for num_iters iterations
 
 --precision precisionid
 
@@ -430,6 +436,7 @@ ENDHELP --------------------------------------------------------------
 #include "diag.h"
 #include "proto.h"
 
+
 #include "matrix.h"
 #include "mri.h"
 #include "version.h"
@@ -448,6 +455,7 @@ ENDHELP --------------------------------------------------------------
 #include "mriBSpline.h"
 #include "chronometer.h"
 #include "timer.h"
+#include "mrinorm.h"
 
 #ifdef FS_CUDA
 #include "devicemanagement.h"
@@ -481,10 +489,13 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.88 2016/03/02 16:17:48 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.88.2.1 2016/08/12 16:54:44 zkaufman Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
+
+static int soap_bubble_iters = 0 ;
+static MRI *mri_soap_ctrl = NULL ;
 
 char *movvolfile=NULL;
 char *targvolfile=NULL;
@@ -610,13 +621,13 @@ int main(int argc, char **argv) {
   vg_isEqual_Threshold = 10e-4;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.88 2016/03/02 16:17:48 greve Exp $",
-                          "$Name: stable6 $", cmdline);
+                          "$Id: mri_vol2vol.c,v 1.88.2.1 2016/08/12 16:54:44 zkaufman Exp $",
+                          "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.88 2016/03/02 16:17:48 greve Exp $",
-                                "$Name: stable6 $");
+                                "$Id: mri_vol2vol.c,v 1.88.2.1 2016/08/12 16:54:44 zkaufman Exp $",
+                                "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
   Progname = argv[0] ;
@@ -747,6 +758,15 @@ int main(int argc, char **argv) {
     in = targ;
     template = mov;
     tempvolfile = movvolfile;
+  }
+  if (mri_soap_ctrl)
+  {
+    MRI *mri_out ;
+
+    MRIbinarize(mri_soap_ctrl, mri_soap_ctrl, 1, 0, CONTROL_MARKED) ;
+    mri_out = MRIsoapBubble(mov, mri_soap_ctrl, NULL, soap_bubble_iters, 0);
+    MRIwrite(mri_out, outvolfile) ;
+    exit(0) ;
   }
   if(synth) {
     printf("\n"); 
@@ -1141,6 +1161,16 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--save-reg"))  SaveReg = 1;
     else if (!strcasecmp(option, "--cost-only"))  CostOnly = 1;
     else if (!strcasecmp(option, "--synth"))   synth = 1;
+    else if (!strcasecmp(option, "--soap"))   
+    {
+      if (nargc < 2) argnerr(option,1);
+      nargsused = 2;
+      mri_soap_ctrl  = MRIread(pargv[0]) ;
+      if (mri_soap_ctrl == NULL)
+	ErrorExit(ERROR_NOFILE, "") ;
+      sscanf(pargv[1],"%d",&soap_bubble_iters);
+      printf("performing soap bubble smoothing using %s for %d iterations\n", pargv[0], soap_bubble_iters) ;
+    }
     else if (!strcasecmp(option, "--new"))   useold = 0;
     else if (!strcasecmp(option, "--fill-average")){
       DoFill = 1;
