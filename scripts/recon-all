@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/08/23 14:09:01 $
-#    $Revision: 1.586 $
+#    $Date: 2016/08/23 14:19:47 $
+#    $Revision: 1.580.2.4 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.586 2016/08/23 14:09:01 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.580.2.4 2016/08/23 14:19:47 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
