@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2016/08/12 17:07:14 $
-#    $Revision: 1.583 $
+#    $Author: zkaufman $
+#    $Date: 2016/08/23 14:09:01 $
+#    $Revision: 1.586 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.583 2016/08/12 17:07:14 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.586 2016/08/23 14:09:01 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -206,6 +206,8 @@ if ($?FS_OMP_NUM_THREADS) then
 else
   setenv OMP_NUM_THREADS 1 # default is one thread, -openmp will override
 endif
+set OMP_NUM_SET = 0 # set to 1 if -openmp <num> is used
+
 # hippocampal subfields processing uses ITK threading
 setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 1 # -itkthreads <num_threads>
 set DoParallel = 0; # if 1, then run with -openmp 4 and -itkthreads 4, 
@@ -4635,8 +4637,9 @@ if($DoAParc2ASeg) then
       #  do Christophe and Mindboggle atlases (if exist)
       if( -e ${subjdir}/label/lh.aparc.${parc}.annot && \
           -e ${subjdir}/label/rh.aparc.${parc}.annot ) then
+        # Note: the --a2009s is needed to get the index offset correct
         set cmd = (mri_aparc2aseg --s $subjid --volmask \
-            --aseg aseg.presurf.hypos --annot aparc.${parc} $xopts)
+            --aseg aseg.presurf.hypos --annot aparc.${parc} --a2009s $xopts)
         echo $cmd > $touchdir/aparc.${DESTRIEUX_NAME}2aseg.touch
       else
         echo "INFO: skipping ${parc} aparc2aseg" |& tee -a $LF |& tee -a $CF
@@ -7417,9 +7420,11 @@ while( $#argv != 0 )
 
     case "-parallel":
       set DoParallel = 1;
-      # the user can override this thread count with -openmp
-      setenv OMP_NUM_THREADS 4
-      setenv FS_OMP_NUM_THREADS 4 # support for re-entrant recon-all
+      if ( ! $OMP_NUM_SET ) then
+        # the user can override this thread count with -openmp
+        setenv OMP_NUM_THREADS 4
+        setenv FS_OMP_NUM_THREADS 4 # support for re-entrant recon-all
+      endif
       # override: -itkthreads <num_threads>
       setenv ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS 4
       breaksw
@@ -7430,6 +7435,7 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       setenv OMP_NUM_THREADS $argv[1]; shift;
       setenv FS_OMP_NUM_THREADS $OMP_NUM_THREADS # re-entrant recon-all
+      set OMP_NUM_SET = 1
       breaksw;
 
     case "-itkthreads":
@@ -7455,7 +7461,8 @@ while( $#argv != 0 )
     case "-long-hippocampal-subfields-T1":
       set DoLongHippoSF_T1 = 1;
       if( $#argv < 1) goto arg1err;
-      set BaseLongHippoSF = "$argv[1]"; shift;
+      set BaseLongHippoSF = "$argv[1]";  shift;
+      set subjid = "$BaseLongHippoSF";
       breaksw;
 
     # add a time point for the longitudinal hippocampal subfields
