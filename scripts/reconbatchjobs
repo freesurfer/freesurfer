@@ -32,9 +32,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2014/10/30 05:56:18 $
-#    $Revision: 1.2 $
+#    $Author: greve $
+#    $Date: 2016/08/16 21:47:57 $
+#    $Revision: 1.3 $
 #
 # Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -48,7 +48,7 @@
 #
 #
 
-if [ $# -lt 3 ] ; then
+if [ $# -lt 2 ] ; then
   echo "Usage: reconbatchjobs logfile cmdfile1 [cmdfile2 ...]"
   echo "See recon-all script for examples."
   exit 1
