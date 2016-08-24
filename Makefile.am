@@ -12,7 +12,6 @@ OCTSUBDIRS=\
 	oct_register_mosaic
 
 DMRISUBDIRS=\
-	dmri_poistats \
 	dmri_tensoreig
 
 GLSUBDIRS=\
