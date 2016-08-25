@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/08/23 14:19:47 $
-#    $Revision: 1.580.2.4 $
+#    $Date: 2016/08/25 00:04:56 $
+#    $Revision: 1.580.2.5 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.580.2.4 2016/08/23 14:19:47 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.580.2.5 2016/08/25 00:04:56 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -467,10 +467,8 @@ set DateString = "`date '+%y%m%d%H%M'`"
 if($DoSuperClean) then
   echo "super-cleaning..."
   set cmd = (rm -Rfv \
-    $subjdir/bem \
     $subjdir/label \
     $subjdir/scripts \
-    $subjdir/src \
     $subjdir/stats \
     $subjdir/surf \
     $subjdir/tmp \
@@ -485,7 +483,7 @@ if($DoSuperClean) then
 endif
 
 cd $subjdir # This variable is set in check_params
-mkdir -p mri scripts surf tmp label touch stats touch src trash bem
+mkdir -p mri scripts surf tmp label touch stats touch trash
 mkdir -p mri/transforms mri/transforms/bak mri/orig
 set touchdir = $subjdir/touch
 
@@ -1524,11 +1522,6 @@ if($DoMotionCor) then
     ls $subjdir/mri//[0-9][0-9][0-9].mgz >& /dev/null
     if(! $status) then
       set RunList = `ls $subjdir/mri//[0-9][0-9][0-9].mgz`;
-    else
-      ls $subjdir/src/[0-9][0-9][0-9].mgz >& /dev/null
-      if(! $status) then
-         set RunList = $subjdir/src/[0-9][0-9][0-9].mgz
-      endif
     endif
   endif
   if($#RunList == 0 && $RunIt) then
