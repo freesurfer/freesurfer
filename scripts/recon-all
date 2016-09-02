@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/09/02 14:57:45 $
-#    $Revision: 1.589 $
+#    $Date: 2016/09/02 22:16:28 $
+#    $Revision: 1.590 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.589 2016/09/02 14:57:45 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.590 2016/09/02 22:16:28 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -7784,22 +7784,25 @@ check_params:
     endif
 
     # error if base subject is run as a regular subject:
-    if ( ! $DoCreateBaseSubj  )  then
-      if ( -e $subjdir/$BaseSubjsListFname ) then
-        echo ""
-        echo "ERROR: It appears that this subject ID is an existing"
-        echo "       base/template from longitudinal processing (-base):"
-        echo "       $subjid"
-        echo "       If you are trying to re-run a -base template you"
-        echo "       need to pass the -base and all -tp flags: "
-        echo ""
-        echo "       \' -base <templateid> -tp <tpNid> ... -all \'"
-        echo ""
-        echo "       (Instead of -all you can pass other flags, such"
-        echo "       as -autorecon2 -autorecon3 to run only parts.)"
-        exit 1;
+    if ( ! $DoCreateBaseSubj )  then
+      if ( ! $DoLongHippoSF_T1 )  then
+        if ( -e $subjdir/$BaseSubjsListFname ) then
+          echo ""
+          echo "ERROR: It appears that this subject ID is an existing"
+          echo "       base/template from longitudinal processing (-base):"
+          echo "       $subjid"
+          echo "       If you are trying to re-run a -base template you"
+          echo "       need to pass the -base and all -tp flags: "
+          echo ""
+          echo "       \' -base <templateid> -tp <tpNid> ... -all \'"
+          echo ""
+          echo "       (Instead of -all you can pass other flags, such"
+          echo "       as -autorecon2 -autorecon3 to run only parts.)"
+          exit 1;
+        endif
       endif
     endif
+
 
     # error if existing regular (cross run) is run as base
     if ( $DoCreateBaseSubj && -e $subjdir) then
