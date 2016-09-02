@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/08/25 00:00:43 $
-#    $Revision: 1.587 $
+#    $Date: 2016/09/02 14:57:45 $
+#    $Revision: 1.589 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.587 2016/08/25 00:00:43 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.589 2016/09/02 14:57:45 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -2774,6 +2774,7 @@ if($DoCALabel) then
     $PWD |& tee -a $LF
     set BaseSubjsList = (`cat ${longbasedir}/${BaseSubjsListFname}`)
     # first create lta's of basesubjs to longsubj
+    set asegprecount = 0
     foreach s (${BaseSubjsList})
       # copy the transform (tpi cross to base) to local transform dir
       # where mri_fuse_segmentations is looking for it:
@@ -2785,10 +2786,20 @@ if($DoCALabel) then
         $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
       endif
+      # check if all cross dirs have aseg.presurf 
+      if ( -e ${SUBJECTS_DIR}/${s}/mri/aseg.presurf.mgz ) then
+        @ asegprecount++
+      endif
     end
+    # if we are missing aseg.presurf, assume that cross is 5.3 or older
+    # and use aseg.mgz for fusion
+    set crossaseg = aseg.presurf.mgz
+    if ( $#BaseSubjsList > $asegprecount ) then
+      set crossaseg = aseg.mgz
+    endif
     # now create the fused aseg
     set cmd = (mri_fuse_segmentations)
-    set cmd = ($cmd -a aseg.presurf.mgz -c aseg.auto_noCCseg.mgz -n norm.mgz)
+    set cmd = ($cmd -a $crossaseg -c aseg.auto_noCCseg.mgz -n norm.mgz)
     set cmd = ($cmd ${subjid} ${BaseSubjsList} aseg.fused.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -8355,6 +8366,12 @@ different additional volumes are tried in this mode, in order to prevent files f
 This mode is very similar to the previous one, with the only difference that the main T1 and the 
 additional volumes are used simultaneously in the segmentation.
 
+-long-hippocampal-subfields-T1 <baseID> -hsfTP <longTp1> -hsfTP <longTp2> ... -hsfTP <longTpN>
+
+This mode segments multiple time points of the same subject simultaneously with the algorithm 
+described in [19]. baseID is the subject ID of the base, whereas longTpX are the subject ID of 
+the longitudinally processed time points (i.e., running the main longitudinal recon-all stream 
+is thus a prerequisite of this module). 
 
 SEGMENTATION OF BRAINSTEM STRUCTURES
 
