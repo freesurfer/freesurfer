@@ -6,3 +6,4 @@
 1468950793.285255s fstag -brmakecheck +makecheck
 1468950853.388077s fstags +makecheck
 1469733755.097318s fstags +makecheck
+1472572640.716496s fstags +makeinstall
