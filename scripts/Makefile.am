@@ -72,7 +72,6 @@ gcaprepone \
 gcainit \
 gtmseg \
 irepifitvol \
-irepifitvol.glnx64 \
 tkmeditfv \
 tksurferfv \
 tkregisterfv \
@@ -322,7 +321,7 @@ tksurfer.tcl \
 tkUtils.tcl \
 fsgdfPlot.tcl
 
-foo_datafiles=fs_spmreg.glnxa64
+foo_datafiles=fs_spmreg.glnxa64 irepifitvol.glnx64
 
 xmldir=$(prefix)/docs/xml
 xml_DATA=bbregister.help.xml mri_motion_correct.fsl.help.xml \
