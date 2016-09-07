@@ -101,14 +101,15 @@ BUILT_SOURCES = \
 	moc_LayerPropertySurface.cpp \
 	moc_LayerROI.cpp \
 	moc_LayerSurface.cpp \
-    moc_LayerTreeWidget.cpp \
-    moc_LabelTreeWidget.cpp \
+  moc_LayerTreeWidget.cpp \
+  moc_LabelTreeWidget.cpp \
+  moc_SplineTreeWidget.cpp \
 	moc_LayerVolumeBase.cpp \
 	moc_LayerMRI.cpp \
 	moc_MainWindow.cpp \
 	moc_PanelLayer.cpp \
 	moc_PanelPointSet.cpp \
-    moc_PanelROI.cpp \
+  moc_PanelROI.cpp \
 	moc_PanelSurface.cpp \
 	moc_PanelVolume.cpp \
 	moc_qtcolorpicker.cpp \
@@ -238,7 +239,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	LayerSurface.cpp \
 	LayerTreeWidget.cpp \
 	LayerVolumeBase.cpp \
-    LabelTreeWidget.cpp \
+  LabelTreeWidget.cpp \
+  SplineTreeWidget.cpp \
 	LivewireTool.cpp \
 	LUTDataHolder.cpp \
 	main.cpp \
@@ -374,7 +376,8 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	LayerROI.h \
 	LayerSurface.h \
 	LayerTreeWidget.h \
-    LabelTreeWidget.h \
+  LabelTreeWidget.h \
+  SplineTreeWidget.h \
 	LayerVolumeBase.h \
 	LayerMRI.h \
 	LivewireTool.h \

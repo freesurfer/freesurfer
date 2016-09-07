@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/08/05 03:02:30 $
- *    $Revision: 1.71 $
+ *    $Author: rpwang $
+ *    $Date: 2016/09/06 16:09:03 $
+ *    $Revision: 1.72 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -85,7 +85,8 @@ PanelSurface::PanelSurface(QWidget *parent) :
 
   m_widgetsSpline << ui->colorpickerSplineColor
                   << ui->labelSplineColor
-                  << ui->checkBoxSplineProjection;
+                  << ui->checkBoxSplineProjection
+                  << ui->treeWidgetSplines;
 
   ui->actionSurfaceMain->setData( FSSurface::SurfaceMain );
   ui->actionSurfaceInflated->setData( FSSurface::SurfaceInflated );
@@ -145,6 +146,9 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(SurfaceCurvatureLoaded()), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(SurfaceVectorLoaded()), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(SurfaceOverlayAdded(SurfaceOverlay*)), this, SLOT(UpdateWidgets()) );
+  connect( layer, SIGNAL(SurfaceSplineAdded(SurfaceSpline*)), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  connect( layer, SIGNAL(SurfaceSplineDeleted(SurfaceSpline*)), this, SLOT(UpdateWidgets()));
+
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
   connect( ui->checkBoxShowInfo, SIGNAL(toggled(bool)), p, SLOT(SetShowInfo(bool)) );
   connect( ui->checkBoxShowVertices, SIGNAL(toggled(bool)), p, SLOT(ShowVertices(bool)) );
@@ -161,11 +165,14 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
 //  connect( ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveLabelOutline(bool)));
   connect( ui->checkBoxAnnotationOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveAnnotationOutline(bool)));
   connect( ui->checkBoxHideIn3DView, SIGNAL(toggled(bool)), layer, SLOT(SetHideIn3D(bool)));
+  connect( ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerSplineColor(QColor)));
+  connect(ui->checkBoxSplineProjection, SIGNAL(toggled(bool)), this, SLOT(OnCheckBoxSplineProjection(bool)));
 
-  SurfaceSpline* spline = layer->GetSpline();
-  connect(ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), spline, SLOT(SetColor(QColor)), Qt::UniqueConnection);
-  connect(ui->checkBoxSplineProjection, SIGNAL(toggled(bool)), spline, SLOT(SetProjection(bool)), Qt::UniqueConnection);
-  connect(spline, SIGNAL(SplineChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection);
+  for (int i = 0; i < layer->GetNumberOfSplines(); i++)
+  {
+      SurfaceSpline* spline = layer->GetSpline(i);
+      connect(spline, SIGNAL(SplineChanged()), this, SLOT(UpdateWidgets()));
+  }
 
   connect(layer, SIGNAL(RGBMapChanged()), this, SLOT(UpdateWidgets()));
   connect(ui->lineEditMappingSurface, SIGNAL(textChanged(QString)), layer, SLOT(SetMappingSurfaceName(QString)));
@@ -174,17 +181,19 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
 void PanelSurface::DisconnectAllLayers()
 {
     PanelLayer::DisconnectAllLayers();
-
-    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Surface");
-    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
-    {
-      LayerSurface* surf = (LayerSurface*)lc->GetLayer( i );
-      for ( int j = 0; j < allWidgets.size(); j++ )
-      {
-        surf->GetSpline()->disconnect( this );
-        allWidgets[j]->disconnect( surf->GetSpline() );
-      }
-    }
+//    LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection("Surface");
+//    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+//    {
+//      LayerSurface* layer = (LayerSurface*)lc->GetLayer(i);
+//      for ( int j = 0; j < allWidgets.size(); j++ )
+//      {
+//        for (int k = 0; k < layer->GetNumberOfSplines(); k++)
+//        {
+//            layer->GetSpline(k)->disconnect( this );
+//            allWidgets[j]->disconnect( layer->GetSpline(k) );
+//        }
+//      }
+//    }
 }
 
 void PanelSurface::DoIdle()
@@ -306,20 +315,20 @@ void PanelSurface::DoUpdateWidgets()
   ui->comboBoxVectorDisplay->setCurrentIndex( surf ? 1 + surf->GetActiveVector() : 0 );
 
   // update spline contorls
-  ui->comboBoxSplineDisplay->clear();
-  ui->comboBoxSplineDisplay->addItem("Off");
-  SurfaceSpline* spline = (layer? layer->GetSpline() : NULL);
-  if (spline && spline->IsValid())
-  {
-      ui->comboBoxSplineDisplay->addItem(spline->GetName());
-  }
-  ui->comboBoxSplineDisplay->addItem("Load spline data...");
-  ui->comboBoxSplineDisplay->setCurrentIndex((spline && spline->IsValid() && spline->IsVisible())?1:0);
-  if (spline)
-  {
-    ui->colorpickerSplineColor->setCurrentColor(spline->GetColor());
-    ui->checkBoxSplineProjection->setChecked(spline->GetProjection());
-  }
+//  ui->comboBoxSplineDisplay->clear();
+//  ui->comboBoxSplineDisplay->addItem("Off");
+//  SurfaceSpline* spline = (layer? layer->GetSpline() : NULL);
+//  if (spline && spline->IsValid())
+//  {
+//      ui->comboBoxSplineDisplay->addItem(spline->GetName());
+//  }
+//  ui->comboBoxSplineDisplay->addItem("Load spline data...");
+//  ui->comboBoxSplineDisplay->setCurrentIndex((spline && spline->IsValid() && spline->IsVisible())?1:0);
+//  if (spline)
+//  {
+//    ui->colorpickerSplineColor->setCurrentColor(spline->GetColor());
+//    ui->checkBoxSplineProjection->setChecked(spline->GetProjection());
+//  }
 
   // update overlay controls
   ui->comboBoxOverlay->clear();
@@ -381,6 +390,30 @@ void PanelSurface::DoUpdateWidgets()
     ui->pushButtonDeleteLabel->setEnabled(layer->GetNumberOfLabels() > 0);
   }
 
+    // update spline contorls
+  QList<SurfaceSpline*> selected_splines;
+  if (layer && ui->treeWidgetSplines->topLevelItemCount() == layer->GetNumberOfSplines())
+    selected_splines = GetSelectedSplines();
+  ui->treeWidgetSplines->clear();
+  if (layer)
+  {
+    for (int i = 0; i < layer->GetNumberOfSplines(); i++)
+    {
+      SurfaceSpline* spline = layer->GetSpline(i);
+      QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidgetSplines);
+      item->setText(0, spline->GetName());
+      item->setData(0, Qt::UserRole, QVariant::fromValue(reinterpret_cast<quintptr>(spline)));
+      item->setCheckState(0, spline->IsVisible() ? Qt::Checked : Qt::Unchecked);
+      if (layer->GetActiveSpline() == spline)
+        ui->treeWidgetSplines->setCurrentItem(item);
+      if (selected_splines.contains(spline))
+      {
+        item->setSelected(true);
+      }
+    }
+    ui->pushButtonDeleteSpline->setEnabled(layer->GetNumberOfSplines() > 0);
+  }
+
   if ( layer && layer->GetActiveAnnotation() )
   {
     ui->checkBoxAnnotationOutline->setChecked(layer->GetActiveAnnotation()->GetShowOutline());
@@ -393,7 +426,7 @@ void PanelSurface::DoUpdateWidgets()
   ShowWidgets( m_widgetsVertex,   ui->checkBoxShowVertices->isChecked() );
   ShowWidgets( m_widgetsMesh,     layer && layer->GetProperty()->GetSurfaceRenderMode() != LayerPropertySurface::SM_Surface );
   ShowWidgets( m_widgetsLabel,    layer && layer->GetActiveLabelIndex() >= 0 );
-  ShowWidgets( m_widgetsSpline, spline && spline->IsValid() && spline->IsVisible());
+  ShowWidgets( m_widgetsSpline,   layer && layer->GetActiveSpline());
   if (layer && layer->GetActiveLabel())
   {
     SurfaceLabel* label = layer->GetActiveLabel();
@@ -418,6 +451,8 @@ void PanelSurface::DoUpdateWidgets()
   ui->lineEditMappingSurface->setVisible(isInflated);
   if (isInflated)
       ui->lineEditMappingSurface->setText(layer->GetMappingSurfaceName());
+
+  UpdateSplineWidgets();
 
   BlockAllSignals( false );
 }
@@ -447,6 +482,21 @@ void PanelSurface::UpdateLabelWidgets()
   }
 }
 
+void PanelSurface::UpdateSplineWidgets()
+{
+  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+  if (layer && layer->GetActiveSpline())
+  {
+    BlockAllSignals(true);
+
+    SurfaceSpline* spline = layer->GetActiveSpline();
+    ui->colorpickerSplineColor->setCurrentColor( spline->GetColor() );
+    ui->checkBoxSplineProjection->setChecked(spline->GetProjection());
+
+    BlockAllSignals(false);
+  }
+}
+
 QList<SurfaceLabel*> PanelSurface::GetSelectedLabels()
 {
   QList<SurfaceLabel*> selected_labels;
@@ -457,6 +507,18 @@ QList<SurfaceLabel*> PanelSurface::GetSelectedLabels()
   }
   return selected_labels;
 }
+
+QList<SurfaceSpline*> PanelSurface::GetSelectedSplines()
+{
+  QList<SurfaceSpline*> selected_splines;
+  QList<QTreeWidgetItem*> selected_items = ui->treeWidgetSplines->selectedItems();
+  foreach (QTreeWidgetItem* item, selected_items)
+  {
+    selected_splines << reinterpret_cast<SurfaceSpline*>(item->data(0, Qt::UserRole).value<quintptr>());
+  }
+  return selected_splines;
+}
+
 
 void PanelSurface::OnChangeSurfaceType( QAction* act )
 {
@@ -649,19 +711,19 @@ void PanelSurface::OnComboVector( int nSel )
 
 void PanelSurface::OnComboSpline(int nSel)
 {
-  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
-  if ( surf )
-  {
-    if (surf->GetSpline()->IsValid() && nSel == 1)
-      surf->GetSpline()->SetVisible(true);
-    else if (nSel == 0)
-      surf->GetSpline()->SetVisible(false);
-    else
-    {
-      MainWindow::GetMainWindow()->LoadSurfaceSpline();
-    }
-    UpdateWidgets();
-  }
+//  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+//  if ( surf )
+//  {
+//    if (surf->GetSpline()->IsValid() && nSel == 1)
+//      surf->GetSpline()->SetVisible(true);
+//    else if (nSel == 0)
+//      surf->GetSpline()->SetVisible(false);
+//    else
+//    {
+//      MainWindow::GetMainWindow()->LoadSurfaceSpline();
+//    }
+//    UpdateWidgets();
+//  }
 }
 
 void PanelSurface::OnButtonConfigureOverlay()
@@ -743,6 +805,31 @@ void PanelSurface::OnCurrentLabelItemChanged(QTreeWidgetItem *item)
       surf->SetActiveLabel(label);
       surf->blockSignals(false);
       UpdateLabelWidgets();
+    }
+  }
+}
+
+void PanelSurface::OnSplineItemChanged(QTreeWidgetItem *item)
+{
+  SurfaceSpline* spline = reinterpret_cast<SurfaceSpline*>(item->data(0, Qt::UserRole).value<quintptr>());
+  if ( spline )
+  {
+    spline->SetVisible( item->checkState( 0 ) == Qt::Checked );
+  }
+}
+
+void PanelSurface::OnCurrentSplineItemChanged(QTreeWidgetItem *item)
+{
+  SurfaceSpline* spline = reinterpret_cast<SurfaceSpline*>(item->data(0, Qt::UserRole).value<quintptr>());
+  if ( spline )
+  {
+    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+    if ( surf )
+    {
+      surf->blockSignals(true);
+      surf->SetActiveSpline(spline);
+      surf->blockSignals(false);
+      UpdateSplineWidgets();
     }
   }
 }
@@ -870,5 +957,54 @@ void PanelSurface::OnComboColor(int nSel)
         }
         else
             surf->SetActiveRGBMap(nSel-1);
+    }
+}
+
+void PanelSurface::OnButtonLoadSpline()
+{
+  MainWindow::GetMainWindow()->LoadSurfaceSpline();
+  UpdateWidgets();
+}
+
+void PanelSurface::OnButtonDeleteSpline()
+{
+  QTreeWidgetItem* item = ui->treeWidgetSplines->currentItem();
+  if (!item)
+    return;
+
+  SurfaceSpline* spline = reinterpret_cast<SurfaceSpline*>(item->data(0, Qt::UserRole).value<quintptr>());
+  if ( spline )
+  {
+    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+    if ( surf )
+    {
+      surf->DeleteSpline(spline);
+    }
+  }
+}
+
+void PanelSurface::OnColorPickerSplineColor(const QColor &color)
+{
+    QTreeWidgetItem* item = ui->treeWidgetSplines->currentItem();
+    if (!item)
+      return;
+
+    SurfaceSpline* spline = reinterpret_cast<SurfaceSpline*>(item->data(0, Qt::UserRole).value<quintptr>());
+    if ( spline )
+    {
+        spline->SetColor(color);
+    }
+}
+
+void PanelSurface::OnCheckBoxSplineProjection(bool b)
+{
+    QTreeWidgetItem* item = ui->treeWidgetSplines->currentItem();
+    if (!item)
+      return;
+
+    SurfaceSpline* spline = reinterpret_cast<SurfaceSpline*>(item->data(0, Qt::UserRole).value<quintptr>());
+    if ( spline )
+    {
+        spline->SetProjection(b);
     }
 }

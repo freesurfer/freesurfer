@@ -24,7 +24,10 @@ public:
     virtual ~SurfaceSpline();
 
     bool Load(const QString& filename);
-    bool IsVisible();
+    bool IsVisible()
+    {
+        return m_bVisible;
+    }
 
     bool IsValid()
     {
@@ -46,6 +49,11 @@ public:
       return m_strName;
     }
 
+    bool IsLocked()
+    {
+        return m_bLocked;
+    }
+
     void AppendProp3D(vtkRenderer* ren);
 
     void AppendProp2D(vtkRenderer* ren, int nPlane);
@@ -56,9 +64,14 @@ signals:
 public slots:
     void SetActiveVertex(int n);
     void SetVisible(bool visible);
+    void SetActorVisible(bool visible);
     void RebuildActors();
     void SetColor(const QColor& c);
     void SetProjection(bool bProjection );
+    void SetLocked(bool bLocked)
+    {
+        m_bLocked = bLocked;
+    }
 
 private:
     void BuildSphereActor(vtkActor* actor, vtkPoints* pts);
@@ -71,6 +84,8 @@ private:
     QColor  m_color;
     int     m_nActiveVertex;
     bool    m_bProjection;
+    bool    m_bLocked;
+    bool    m_bVisible;
     QString m_strName;
 };
 

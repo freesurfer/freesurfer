@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/24 17:11:04 $
- *    $Revision: 1.104 $
+ *    $Date: 2016/09/06 16:09:03 $
+ *    $Revision: 1.105 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -290,17 +290,6 @@ void PanelVolume::DoIdle()
 void PanelVolume::DoUpdateWidgets()
 {
   BlockAllSignals( true );
-/*
-  for ( int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++ )
-  {
-    QTreeWidgetItem* item = ui->treeWidgetLayers->topLevelItem( i );
-    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole).value<QObject*>() );
-    if ( layer )
-    {
-      item->setCheckState( 0, (layer->IsVisible() ? Qt::Checked : Qt::Unchecked) );
-    }
-  }
-  */
 
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
   for ( int i = 0; i < this->allWidgets.size(); i++ )

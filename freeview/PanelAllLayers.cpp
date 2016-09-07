@@ -57,40 +57,6 @@ PanelAllLayers::~PanelAllLayers()
   delete ui;
 }
 
-/*
-void PanelAllLayers::OnActiveLayerChanged(Layer *curlayer)
-{
-  QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();
-  if (item)
-  {
-    QObject* sel = qobject_cast<QObject*>(item->data(0, Qt::UserRole).value<QObject*>());
-    if (sel != curlayer)
-    {
-      for (int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++)
-      {
-        QTreeWidgetItem* topItem = ui->treeWidgetLayers->topLevelItem(i);
-        bool bFound = false;
-        for (int j = 0; j < topItem->childCount(); j++)
-        {
-          item = topItem->child(j);
-          Layer* layer = qobject_cast<Layer*>(item->data(0, Qt::UserRole).value<QObject*>());
-          QFont fnt = item->font(0);
-          if (layer == curlayer)
-          {
-            ui->treeWidgetLayers->setCurrentItem(item);
-            bFound = true;
-          }
-          fnt.setBold(layer == curlayer);
-          item->setFont(0, fnt);
-        }
-        if (bFound)
-          return;
-      }
-    }
-  }
-}
-*/
-
 void PanelAllLayers::OnActiveLayerChanged(Layer *curlayer)
 {
   QTreeWidgetItem* item = ui->treeWidgetLayers->currentItem();

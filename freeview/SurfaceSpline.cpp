@@ -22,7 +22,9 @@ SurfaceSpline::SurfaceSpline(LayerSurface *parent) :
     m_mri(NULL),
     m_mriSurf(NULL),
     m_nActiveVertex(-1),
-    m_bProjection(true)
+    m_bProjection(true),
+    m_bLocked(false),
+    m_bVisible(true)
 {
   m_actor = vtkSmartPointer<vtkActor>::New();
   m_actorSpheres = vtkSmartPointer<vtkActor>::New();
@@ -133,6 +135,8 @@ void SurfaceSpline::RebuildActors()
   }
 
   LayerSurface* surf = qobject_cast<LayerSurface*>(parent());
+  if (!surf)
+      return;
   double slice_pos[3];
   surf->GetSlicePosition(slice_pos);
   LayerMRI* mri = surf->GetRefVolume();
@@ -218,7 +222,21 @@ void SurfaceSpline::RebuildActors()
   emit SplineChanged();
 }
 
-void SurfaceSpline::SetVisible(bool visible)
+void SurfaceSpline::SetVisible(bool visible_in)
+{
+  m_bVisible = visible_in;
+  bool visible = visible_in;
+  LayerSurface* surf = qobject_cast<LayerSurface*>(parent());
+  if (!visible)
+      SetActorVisible(false);
+  else if (surf && surf->IsVisible())
+  {
+      SetActorVisible(true);
+  }
+  emit SplineChanged();
+}
+
+void SurfaceSpline::SetActorVisible(bool visible)
 {
   m_actor->SetVisibility(visible);
   m_actorSpheres->SetVisibility(visible);
@@ -227,13 +245,6 @@ void SurfaceSpline::SetVisible(bool visible)
     m_actor2D[i]->SetVisibility(visible);
     m_actor2DSpheres[i]->SetVisibility(visible);
   }
-
-  emit SplineChanged();
-}
-
-bool SurfaceSpline::IsVisible()
-{
-  return m_actor->GetVisibility();
 }
 
 void SurfaceSpline::SetColor(const QColor &c)
