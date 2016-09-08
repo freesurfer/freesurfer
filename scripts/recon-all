@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/08/25 00:04:56 $
-#    $Revision: 1.580.2.5 $
+#    $Date: 2016/09/08 17:59:53 $
+#    $Revision: 1.580.2.8 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.580.2.5 2016/08/25 00:04:56 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.580.2.8 2016/09/08 17:59:53 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -238,9 +238,6 @@ set DoHippoSF_T1 = 0;  # if 1, run hippo subfield seg, exvivo atlas (only T1)
 set DoHippoSF_T1T2 = 0;# if 1, run hippo subfield seg, exvivo atlas (T1 and T2)
 set DoHippoSF_T2 = 0;  # if 1, run hippo subfield seg, exvivo atlas (only T2)
 set T2volHippoSF = ();
-set DoLongHippoSF_T1 = 0; # if 1, run longitudinal subfield segmentation (only T1)
-set BaseLongHippoSF = ();
-set TPlistLongHippoSF = (); # list of time points for longitudinal subfields
 
 # Brainstem substructures
 set DoBSsubst = 0;
@@ -2774,6 +2771,7 @@ if($DoCALabel) then
     $PWD |& tee -a $LF
     set BaseSubjsList = (`cat ${longbasedir}/${BaseSubjsListFname}`)
     # first create lta's of basesubjs to longsubj
+    set asegprecount = 0
     foreach s (${BaseSubjsList})
       # copy the transform (tpi cross to base) to local transform dir
       # where mri_fuse_segmentations is looking for it:
@@ -2785,10 +2783,20 @@ if($DoCALabel) then
         $fs_time $cmd |& tee -a $LF
         if($status) goto error_exit;
       endif
+      # check if all cross dirs have aseg.presurf 
+      if ( -e ${SUBJECTS_DIR}/${s}/mri/aseg.presurf.mgz ) then
+        @ asegprecount++
+      endif
     end
+    # if we are missing aseg.presurf, assume that cross is 5.3 or older
+    # and use aseg.mgz for fusion
+    set crossaseg = aseg.presurf.mgz
+    if ( $#BaseSubjsList > $asegprecount ) then
+      set crossaseg = aseg.mgz
+    endif
     # now create the fused aseg
     set cmd = (mri_fuse_segmentations)
-    set cmd = ($cmd -a aseg.presurf.mgz -c aseg.auto_noCCseg.mgz -n norm.mgz)
+    set cmd = ($cmd -a $crossaseg -c aseg.auto_noCCseg.mgz -n norm.mgz)
     set cmd = ($cmd ${subjid} ${BaseSubjsList} aseg.fused.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
@@ -2801,7 +2809,7 @@ if($DoCALabel) then
   # Run mri_ca_label to create aseg.auto_noCCseg.mgz
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
   set rusage = $touchdir/rusage.mri_ca_label.dat 
-  set cmd = (mri_ca_label -rusage $rusage -relabel_unlikely 9 .3 -prior 0.5)
+  set cmd = (mri_ca_label -relabel_unlikely 9 .3 -prior 0.5)
   set cmd = ($cmd $UseCAAlign)
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
@@ -3477,7 +3485,12 @@ if($DoWhiteSurfs) then
     else
       set cmd = ($cmd -noaseg)
     endif
-    set cmd = ($cmd -noaparc)
+    # Save output as white.preaparc. The true white surface will be
+    # generated in the next call to mris_make_surfaces and will use
+    # the aparc. Several outputs below rely on white.preaparc but
+    # maybe should be using the white. We have decided to keep it this
+    # way for now because it matches the 5.3 stream.
+    set cmd = ($cmd -white white.preaparc -noaparc)
     if($DoPialSurfs) then
       # if creating pial downstream, then only do white surface now
       set cmd = ($cmd -whiteonly)
@@ -3523,7 +3536,7 @@ if($DoSmooth2) then
     set cmd = (mris_smooth -n 3 -nw)
     if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
-    set cmd = ($cmd ../surf/$hemi.white ../surf/$hemi.smoothwm)
+    set cmd = ($cmd ../surf/$hemi.white.preaparc ../surf/$hemi.smoothwm)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
       set CMDF = mris_smooth_${hemi}.cmd
@@ -3593,7 +3606,7 @@ if($DoCurvHK) then
     $PWD |& tee -a $LF
     # create curvature files ?h.white.H and ?h.white.K
     set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
-    set cmd = (mris_curvature -w $xopts $hemi.white)
+    set cmd = (mris_curvature -w $xopts $hemi.white.preaparc)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
       set CMDF = mris_curvature_white_${hemi}.cmd
@@ -3603,6 +3616,28 @@ if($DoCurvHK) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
+    # This is a bit of a hack to account for the change in the name of the input white
+    # surface. There needs to be a file called ?h.white.{H,K} but mris_curvature creates
+    # ?h.white.preaparc.{H,K}. This just creates a symlink 
+    foreach suffix (H K)
+      set cmd1 = (rm -f $hemi.white.$suffix)
+      set cmd2 = (ln -s $hemi.white.preaparc.$suffix $hemi.white.$suffix)
+      echo $cmd1 | tee -a $LF
+      echo $cmd2 | tee -a $LF
+      if($DoParallel) then
+        set CMDF = mv_curvature_white_${hemi}.cmd
+        echo "$cmd1" > $CMDF
+        echo "$cmd2" >> $CMDF
+        set CMDFS = ( $CMDFS $CMDF )
+      else
+        if($RunIt) then
+          $cmd1 | tee -a $LF
+          if($status) goto error_exit
+          $cmd2 | tee -a $LF
+          if($status) goto error_exit
+        endif
+      endif
+    end
     echo $cmd > $touchdir/$hemi.white.H.K.touch
 
     # create curvature files ?h.inflated.H and ?h.inflated.K
@@ -3626,8 +3661,16 @@ if($DoCurvHK) then
     if($status) goto error_exit;
   endif
   foreach hemi ($hemilist)
-    if($RunIt &&  ! -e ${hemi}.white.H) goto error_exit;
-    if($RunIt &&  ! -e ${hemi}.inflated.H) goto error_exit;
+    if($RunIt &&  ! -e ${hemi}.white.H) then
+      pwd  | tee -a $LF
+      echo "Cannot find ${hemi}.white.H" | tee -a $LF
+      goto error_exit;
+    endif
+    if($RunIt &&  ! -e ${hemi}.inflated.H) then
+      pwd  | tee -a $LF
+      echo "Cannot find ${hemi}.inflated.H" | tee -a $LF
+      goto error_exit;
+    endif
   end
 endif
 
@@ -3651,7 +3694,7 @@ if($DoCurvStats) then
             $xopts $subjid $hemi curv sulc);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
-    #if($status) goto error_exit;
+    if($status) goto error_exit;
     if(-e .xdebug_mris_curvature_stats) rm -f .xdebug_mris_curvature_stats
     echo $cmd > $touchdir/$hemi.curvstats.touch
   end # Loop over hemilist
@@ -3887,7 +3930,7 @@ if($DoJacobianWhite) then
     $PWD |& tee -a $LF
     # produce the jacobian, from the white surface to the sphere
     set cmd = (mris_jacobian \
-                ../surf/$hemi.white \
+                ../surf/$hemi.white.preaparc \
                 ../surf/$hemi.sphere.reg \
                 ../surf/$hemi.jacobian_white)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4061,8 +4104,8 @@ if($DoPialSurfs) then
       # default stream:
       # NJS: -orig_pial white added 16Feb2015 per BF
       set cmd = (mris_make_surfaces \
-          -orig_white white \
-          -orig_pial white)
+          -orig_white white.preaparc \
+          -orig_pial  white.preaparc)
       if ($UseFixMtl) then
         # NJS: now external flag option, 3Jun2015
         set cmd = ($cmd -fix_mtl)
@@ -4075,7 +4118,10 @@ if($DoPialSurfs) then
     endif
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
     # -nowhite : do not refit white surface (nothing wrt white gets overwritten)
-    set cmd = ($cmd -nowhite)
+    # set cmd = ($cmd -nowhite);
+    # Don't use -nowrite or -white NOWRITE because we want to regenerate the
+    # white using the aparc (ie, not -noaparc) and write out that surface
+    # as the white since that is the one that is used for thickness computations
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -5100,14 +5146,12 @@ endif # DoLabelExvivoEC
 ##-----------   -hippocampal-subfields-T1T2  -----------#
 ##-----------   -hippocampal-subfields-T2  -------------#
 #--------------                        -----------------#
-##-----------   -long-hippocampal-subfields-T1  --------#
-#--------------                        -----------------#
 #--------------  Brainstem Substructures ---------------#
 ##-----------   -brainstem-structures  -----------------#
 #--------------                        -----------------#
 
 # For substructure segmentation of hippocampus or brainstem: check if Matlab runtime is there
-if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2 || $DoBSsubst || $DoLongHippoSF_T1) then
+if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2 || $DoBSsubst) then
 
   if ( ! -e ${FREESURFER_HOME}/MCRv80/bin/glnxa64/libdctprocess.so \
     && ! -e ${FREESURFER_HOME}/MCRv80/bin/maci64/libdctprocess.jnilib  ) then
@@ -5171,42 +5215,6 @@ if ($DoHippoSF_T1 || $DoHippoSF_T1T2 || $DoHippoSF_T2) then
   else
     set hippohemilist=(left right)
   endif
-endif
-
-
-# longitudinal hippocampal subfields: make sure that required files are there,
-# and that there is at least one time point
-if ($DoLongHippoSF_T1 ) then
-
-  if( $#TPlistLongHippoSF < 1) then
-    echo "ERROR: at least one time point required for longitudinal hippocampal subfields."
-    goto error_exit;
-  endif
-
-  if (! -e ${SUBJECTS_DIR}/${BaseLongHippoSF}/mri/wmparc.mgz || \
-      ! -e ${SUBJECTS_DIR}/${BaseLongHippoSF}/mri/norm.mgz || \
-      ! -e ${SUBJECTS_DIR}/${BaseLongHippoSF}/mri/transforms/talairach.xfm ) then
-    echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for the base subject."
-    goto error_exit;
-  endif #checking of wmparc.mgz, norm.mgz and talairach.xfm of base
-
-  foreach item ($TPlistLongHippoSF)
-     if (! -e ${SUBJECTS_DIR}/${item}/mri/wmparc.mgz || \
-      ! -e ${SUBJECTS_DIR}/${item}/mri/norm.mgz || \
-      ! -e ${SUBJECTS_DIR}/${item}/mri/transforms/talairach.xfm ) then
-      echo "ERROR: cannot find wmparc.mgz or aseg.mgz or talairach.xfm for time point ${item}."
-      goto error_exit;
-    endif #checking of wmparc.mgz, norm.mgz and talairach.xfm of time points
-  end
-
-  # these tools assume 'left' and 'right' instead of our usual 'lh' and 'rh'
-  if($#hemilist == 1) then
-    if ("$hemilist" == "lh") set hippohemilist=(left)
-    if ("$hemilist" == "rh") set hippohemilist=(right)
-  else
-    set hippohemilist=(left right)
-  endif
-
 endif
 
 
@@ -5325,37 +5333,6 @@ if($DoHippoSF_T2) then
   end
   
   echo $cmd > $touchdir/hippo-subfields-T2.touch
-endif
-
-
-#--------------                        -----------------#
-##------------- -long-hippocampal-subfields-T1  --------#
-#--------------                        -----------------#
-if($DoLongHippoSF_T1) then 
-
-  set HSFLOG = ($subjdir/scripts/long-hippocampal-subfields-T1.log)
-  rm -f $HSFLOG
-  
-  # do hippocampal processing
-  foreach hemi ($hippohemilist)
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-    echo "#@# Longitudinal Hippocampal Subfields processing (T1) $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF |& tee -a $HSFLOG
-
-    set cmd = "${FREESURFER_HOME}/bin/segmentSF_T1_long.sh  ${FREESURFER_HOME}/MCRv80 $FREESURFER_HOME $SUBJECTS_DIR $hemi $BaseLongHippoSF"
-
-    foreach item ($TPlistLongHippoSF)
-      set cmd="$cmd $item"
-    end
-
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    echo "See log file: $HSFLOG"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $HSFLOG
-    if($status) goto error_exit;
-  end
-  
-  echo $cmd > $touchdir/long-hippo-subfields-T1.touch 
 endif
 
 
@@ -6790,9 +6767,9 @@ while( $#argv != 0 )
       set DoInflate1       = 1;
       set DoQSphere        = 1;
       set DoFix            = 1;
+      set DoWhiteSurfs     = 1;
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
-      set DoWhiteSurfs     = 1;
       set DoSegStats       = 0;
       set DoCurvHK         = 1;
       set DoCurvStats      = 1;
@@ -7450,20 +7427,6 @@ while( $#argv != 0 )
       set DoHippoSF_T1 = 1;
       breaksw;
 
-    # longitudinal hippocampal subfield processing (ex vivo atlas, only T1)
-    case "-long-hippocampal-subfields-T1":
-      set DoLongHippoSF_T1 = 1;
-      if( $#argv < 1) goto arg1err;
-      set BaseLongHippoSF = "$argv[1]";  shift;
-      set subjid = "$BaseLongHippoSF";
-      breaksw;
-
-    # add a time point for the longitudinal hippocampal subfields
-    case "-hsfTP"
-      if( $#argv < 1) goto arg1err;
-      set TPlistLongHippoSF = ( $TPlistLongHippoSF $argv[1] ); shift;
-      breaksw;
-
     # hippocampal subfield processing (ex vivo atlas, multispectral)
     case "-hippocampal-subfields-T1T2":
       set DoHippoSF_T1T2 = 1;
@@ -7629,7 +7592,7 @@ check_params:
   endif
 
   if(! $DoVersionsOnly) then
-    if($#subjid != 1 &&  $DoLongHippoSF_T1 != 1) then
+    if($#subjid != 1) then
       echo "ERROR: must specify a subject id"
       exit 1;
     endif
@@ -7969,7 +7932,7 @@ check_params:
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
      ! $DoLabelExvivoEC && ! $DoPialSurfs && \
-     ! $DoHippoSF_T1 && ! $DoLongHippoSF_T1 && ! $DoHippoSF_T1T2 && ! $DoHippoSF_T2 &&  ! $DoBSsubst && \
+     ! $DoHippoSF_T1 && ! $DoHippoSF_T1T2 && ! $DoHippoSF_T2 &&  ! $DoBSsubst && \
      ! $DoPctSurfCon && ! $DoT2pial && ! $DoFLAIRpial && \
      ! $DoConvertT2Input && ! $DoConvertFlairInput && ! $DoSuperClean &&\
      ! $DoCortParc3 && ! $DoParcStats3 && ! $DoAPas2ASeg ) then
@@ -9091,28 +9054,6 @@ cross-sectional stream) to add as a new timepoint and upon which to run
 the longitudinal stream (creating <tpNsubjid>.long.<longbasesubjid>).
 
 
-LONGITUDINAL HIPPOCAMPAL SUBFIELDS
-
-FreeSurfer currently supports longitudinal segmentation of the hippocampal
-subfields on T1-weighted images. The only requirement is that the time points
-do not mix 1mm scans processed with the standard stream and higher resolution
-and scans processed with the -cm flag (conform to min voxel size for hi-res
-support).
-
-To use this module, you first need to run the FreeSurfer longitudinal stream 
-on your data, i.e., steps 1-3 in Section LONGITUDINAL PROCESSING above: cross-
-sectional processing; creation and processing of base; and longitudinal 
-processing.
-
-Then, you can run the following command to segment the subfields from all time
-points simultaneously using the method described in [19]:
-
- recon-all -long-hippocampal-subfields-T1 <baseSubject> -hsfTP <tp1Subject> ...
-           -hsfTP <tp2Subject> ... -hsfTP <tpNSubject>
-
-See further information, including how to visualize the results, at:
-http://surfer.nmr.mgh.harvard.edu/fswiki/LongitudinalHippocampalSubfields
-
 
 USING IMAGES FROM A 3T SCANNER 
 
@@ -9317,10 +9258,6 @@ Truran-Sacrey, D., Boxer, A., and Fischl, B., Bayesian segmentation of brainstem
 structures in MRI. Neuroimage 113, 2015, 184-195.
 http://dx.doi.org/10.1016/j.neuroimage.2015.02.065
 
-[19] Iglesias J.E., Van Leemput K., Augustinack J., Insausti R., Fischl B., and Reuter M.,
-Bayesian longitudinal segmentation of hippocampal substructures in brain MRI using 
-subject-specific atlases, Neuroimage, in press.
-http://dx.doi.org/10.1016/j.neuroimage.2016.07.020
 
 
 
