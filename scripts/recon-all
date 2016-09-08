@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/09/02 22:16:28 $
-#    $Revision: 1.590 $
+#    $Date: 2016/09/08 17:25:34 $
+#    $Revision: 1.592 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.590 2016/09/02 22:16:28 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.592 2016/09/08 17:25:34 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -2809,7 +2809,7 @@ if($DoCALabel) then
   # Run mri_ca_label to create aseg.auto_noCCseg.mgz
   set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
   set rusage = $touchdir/rusage.mri_ca_label.dat 
-  set cmd = (mri_ca_label -rusage $rusage -relabel_unlikely 9 .3 -prior 0.5)
+  set cmd = (mri_ca_label -relabel_unlikely 9 .3 -prior 0.5)
   set cmd = ($cmd $UseCAAlign)
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
@@ -3485,7 +3485,12 @@ if($DoWhiteSurfs) then
     else
       set cmd = ($cmd -noaseg)
     endif
-    set cmd = ($cmd -noaparc)
+    # Save output as white.preaparc. The true white surface will be
+    # generated in the next call to mris_make_surfaces and will use
+    # the aparc. Several outputs below rely on white.preaparc but
+    # maybe should be using the white. We have decided to keep it this
+    # way for now because it matches the 5.3 stream.
+    set cmd = ($cmd -white white.preaparc -noaparc)
     if($DoPialSurfs) then
       # if creating pial downstream, then only do white surface now
       set cmd = ($cmd -whiteonly)
@@ -3531,7 +3536,7 @@ if($DoSmooth2) then
     set cmd = (mris_smooth -n 3 -nw)
     if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
-    set cmd = ($cmd ../surf/$hemi.white ../surf/$hemi.smoothwm)
+    set cmd = ($cmd ../surf/$hemi.white.preaparc ../surf/$hemi.smoothwm)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
       set CMDF = mris_smooth_${hemi}.cmd
@@ -3601,7 +3606,7 @@ if($DoCurvHK) then
     $PWD |& tee -a $LF
     # create curvature files ?h.white.H and ?h.white.K
     set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
-    set cmd = (mris_curvature -w $xopts $hemi.white)
+    set cmd = (mris_curvature -w $xopts $hemi.white.preaparc)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
       set CMDF = mris_curvature_white_${hemi}.cmd
@@ -3611,6 +3616,28 @@ if($DoCurvHK) then
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
+    # This is a bit of a hack to account for the change in the name of the input white
+    # surface. There needs to be a file called ?h.white.{H,K} but mris_curvature creates
+    # ?h.white.preaparc.{H,K}. This just creates a symlink 
+    foreach suffix (H K)
+      set cmd1 = (rm -f $hemi.white.$suffix)
+      set cmd2 = (ln -s $hemi.white.preaparc.$suffix $hemi.white.$suffix)
+      echo $cmd1 | tee -a $LF
+      echo $cmd2 | tee -a $LF
+      if($DoParallel) then
+        set CMDF = mv_curvature_white_${hemi}.cmd
+        echo "$cmd1" > $CMDF
+        echo "$cmd2" >> $CMDF
+        set CMDFS = ( $CMDFS $CMDF )
+      else
+        if($RunIt) then
+          $cmd1 | tee -a $LF
+          if($status) goto error_exit
+          $cmd2 | tee -a $LF
+          if($status) goto error_exit
+        endif
+      endif
+    end
     echo $cmd > $touchdir/$hemi.white.H.K.touch
 
     # create curvature files ?h.inflated.H and ?h.inflated.K
@@ -3634,8 +3661,16 @@ if($DoCurvHK) then
     if($status) goto error_exit;
   endif
   foreach hemi ($hemilist)
-    if($RunIt &&  ! -e ${hemi}.white.H) goto error_exit;
-    if($RunIt &&  ! -e ${hemi}.inflated.H) goto error_exit;
+    if($RunIt &&  ! -e ${hemi}.white.H) then
+      pwd  | tee -a $LF
+      echo "Cannot find ${hemi}.white.H" | tee -a $LF
+      goto error_exit;
+    endif
+    if($RunIt &&  ! -e ${hemi}.inflated.H) then
+      pwd  | tee -a $LF
+      echo "Cannot find ${hemi}.inflated.H" | tee -a $LF
+      goto error_exit;
+    endif
   end
 endif
 
@@ -3659,7 +3694,7 @@ if($DoCurvStats) then
             $xopts $subjid $hemi curv sulc);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
-    #if($status) goto error_exit;
+    if($status) goto error_exit;
     if(-e .xdebug_mris_curvature_stats) rm -f .xdebug_mris_curvature_stats
     echo $cmd > $touchdir/$hemi.curvstats.touch
   end # Loop over hemilist
@@ -3895,7 +3930,7 @@ if($DoJacobianWhite) then
     $PWD |& tee -a $LF
     # produce the jacobian, from the white surface to the sphere
     set cmd = (mris_jacobian \
-                ../surf/$hemi.white \
+                ../surf/$hemi.white.preaparc \
                 ../surf/$hemi.sphere.reg \
                 ../surf/$hemi.jacobian_white)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4069,8 +4104,8 @@ if($DoPialSurfs) then
       # default stream:
       # NJS: -orig_pial white added 16Feb2015 per BF
       set cmd = (mris_make_surfaces \
-          -orig_white white \
-          -orig_pial white)
+          -orig_white white.preaparc \
+          -orig_pial  white.preaparc)
       if ($UseFixMtl) then
         # NJS: now external flag option, 3Jun2015
         set cmd = ($cmd -fix_mtl)
@@ -4083,7 +4118,10 @@ if($DoPialSurfs) then
     endif
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
     # -nowhite : do not refit white surface (nothing wrt white gets overwritten)
-    set cmd = ($cmd -nowhite)
+    # set cmd = ($cmd -nowhite);
+    # Don't use -nowrite or -white NOWRITE because we want to regenerate the
+    # white using the aparc (ie, not -noaparc) and write out that surface
+    # as the white since that is the one that is used for thickness computations
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -6729,9 +6767,9 @@ while( $#argv != 0 )
       set DoInflate1       = 1;
       set DoQSphere        = 1;
       set DoFix            = 1;
+      set DoWhiteSurfs     = 1;
       set DoSmooth2        = 1;
       set DoInflate2       = 1;
-      set DoWhiteSurfs     = 1;
       set DoSegStats       = 0;
       set DoCurvHK         = 1;
       set DoCurvStats      = 1;
