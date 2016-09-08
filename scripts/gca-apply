@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # gca-apply
 
-set VERSION = '$Id: gca-apply,v 1.10 2016/03/15 16:10:37 greve Exp $';
+set VERSION = '$Id: gca-apply,v 1.11 2016/09/08 15:34:44 greve Exp $';
 
 set gca = ();
 set subject = ();
@@ -16,6 +16,8 @@ set SrcLTA = ();
 set SrcNorm = ();
 set UseCoreg = 0;
 set NoEMReg = 0;
+set UseV6LabOpts = 1;
+set m3zSpec = ()
 
 set Overwrite = 0;
 set tmpdir = ();
@@ -115,20 +117,23 @@ $cmd |& tee -a $LF
 if($status) exit 1;
 
 # mri_ca_register
-if($#outdir == 0) then
-  set m3z = transforms/$gcabase.m3z
-else
-  set m3z = $outdir/$gcabase.m3z
+if($#m3zSpec == 0) then
+  if($#outdir == 0) then
+    set m3z = transforms/$gcabase.m3z
+  else
+    set m3z = $outdir/$gcabase.m3z
+  endif
+  set opts = (-align-after -mask brainmask.mgz -T $LTA)
+  set opts = ($opts -nobigventricles) # Used by recon-all
+  # These are not used by recon-all but used in rebuild_gca_atlas.csh
+  #set opts = ($opts -smooth 1.0 -levels 2) 
+  set cmd = (mri_ca_register $opts $norm $gca $m3z)
+  if($#GCARegIterations) set cmd = ($cmd -gcareg-iters $GCARegIterations)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
 endif
-set opts = (-align-after -mask brainmask.mgz -T $LTA)
-set opts = ($opts -nobigventricles) # Used by recon-all
-# These are not used by recon-all but used in rebuild_gca_atlas.csh
-#set opts = ($opts -smooth 1.0 -levels 2) 
-set cmd = (mri_ca_register $opts $norm $gca $m3z)
-if($#GCARegIterations) set cmd = ($cmd -gcareg-iters $GCARegIterations)
-echo $cmd |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
+
 
 # mri_ca_label
 if($#outdir == 0) then
@@ -137,6 +142,10 @@ else
   set aseg = $outdir/$gcabase.aseg.mgz
 endif
 set opts = (-align)
+if($UseV6LabOpts) then
+  set opts = ($opts -relabel_unlikely 9 .3)
+  set opts = ($opts -prior 0.5)
+endif
 #set opts = ($opts -nobigventricles) # not used in recon-all, used in rebuild_gca_atlas.csh
 set cmd = (mri_ca_label $opts $norm $m3z $gca $aseg)
 echo $cmd |& tee -a $LF
@@ -284,6 +293,11 @@ while( $#argv != 0 )
       set SrcNorm = `getfullpath $SrcNorm`
       breaksw
 
+    case "--m3z":
+      if($#argv < 1) goto arg1err;
+      set m3zSpec = $argv[1]; shift;
+      breaksw
+
     case "--coreg":
       set UseCoreg = 1;
       breaksw
@@ -296,6 +310,14 @@ while( $#argv != 0 )
       breaksw
     case "--emreg":
       set NoEMReg = 0;
+      breaksw
+
+    case "--no-v6labopts":
+      set UseV6LabOpts = 0;
+      breaksw
+
+    case "--v6labopts":
+      set UseV6LabOpts = 1;
       breaksw
 
     case "--dice":
@@ -369,7 +391,6 @@ endif
 if($#gcabase == 0) set gcabase = `basename $gca .gca`
 set lta   = $mdir/transforms/$gcabase.lta
 set norm  = $mdir/norm.$gcabase.mgz
-set m3z   = $mdir/transforms/$gcabase.m3z
 set aseg  = $mdir/$gcabase.aseg.mgz
 set stats = $sdir/stats/$gcabase.stats
 
@@ -379,10 +400,6 @@ if(-e $lta && ! $Overwrite) then
 endif
 if(-e $norm && ! $Overwrite) then
   echo "ERROR: $norm already exists"
-  exit 1;
-endif
-if(-e $m3z && ! $Overwrite) then
-  echo "ERROR: $m3z already exists"
   exit 1;
 endif
 if(-e $aseg && ! $Overwrite) then
@@ -398,6 +415,21 @@ if($#DiceSeg && ! -e $mdir/$DiceSeg) then
   echo "ERROR: cannot find $mdir/$DiceSeg"
   exit 1;
 endif
+
+if($#m3zSpec == 0) then
+  set m3z   = $mdir/transforms/$gcabase.m3z
+  if(-e $m3z && ! $Overwrite) then
+    echo "ERROR: $m3z already exists"
+    exit 1;
+  endif
+else
+  set m3z = $mdir/transforms/$m3zSpec
+  if(! -e $m3z) then
+    echo "ERROR: cannot find $m3z"
+    exit 1
+  endif
+endif
+
 
 set gca = `getfullpath $gca`
 
@@ -433,6 +465,8 @@ usage_exit:
   echo "  --input input.mgz : defalt is nu.mgz "
   echo "  --o outdir : use this for output instead of SUBJECTS_DIR "
   echo "  --coreg : use mri_coreg instead of mri_em_register (--no-coreg)"
+  echo "  --no-v6labopts : do not include -relabel_unlikely 9 .3 -prior 0.5 with mri_ca_label":
+  echo "  --m3z m3zfile":
   echo ""
   echo "  --gcareg-iters : set to 1, only for testing"
   echo ""
@@ -473,4 +507,10 @@ recon-all -s subject -autorecon1 -no-talcheck
 If --dice is specified, then the dice coefficient is computed using
 mri_compute_seg_overlap using $SUBJECTS_DIR/$subject/mri/$DiceSeg
 and the output will be put in $SUBJECTS_DIR/$subject/$DiceFile
+
+--no-v6labopts 
+
+do not include "-relabel_unlikely 9 .3 -prior 0.5" as part of the
+mri_ca_label command options.  This are v6 options that are not part
+of the 5.3 command line.
 
