@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.61 2016/07/08 17:56:16 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.62 2016/09/08 15:35:41 greve Exp $';
 setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
@@ -32,6 +32,7 @@ set ReportCentroid = 0;
 set annot = aparc
 set IsPVR = 0;
 set DoY = 1
+set OutputAnnot = 1
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -555,8 +556,9 @@ foreach conname ($conlist)
   if($anattype == surface) then
     set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
-      --oannot $oannot --annot $annot --csdpdf $csdpdf \
+      --annot $annot --csdpdf $csdpdf \
       --cwpvalthresh $cwpvalthresh --o $msig --no-fixmni)
+    if($OutputAnnot) set cmd = ($cmd --oannot $oannot)
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
     if($ReportCentroid) set cmd = ($cmd --centroid);
     set cmd = ($cmd --surf $surf); # bug to have to do this
@@ -833,6 +835,10 @@ while( $#argv != 0 )
       set DiagCluster = 1;
       breaksw
 
+    case "--no-out-annot":
+      set OutputAnnot = 0
+      breaksw
+
     case "--no-y":
       set DoY = 0;
       breaksw
@@ -943,6 +949,7 @@ usage_exit:
   echo " --fwhm-override fwhm : override fwhm in glmdir":
   echo " --uniform min max : use uniform PDF instead of gaussian":
   echo " --no-y : do not compute means of each subject in each cluster"
+  echo " --no-out-annot : do not output a cluster annotation"
   echo " --help"
   echo ""
 
