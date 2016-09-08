@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:52:37 $
- *    $Revision: 1.343.2.1 $
+ *    $Date: 2016/09/08 18:00:49 $
+ *    $Revision: 1.343.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -5697,7 +5697,7 @@ void MainWindow::OnCycleLayer()
   LayerCollection* lc = GetLayerCollection(GetCurrentLayerType());
   if ( lc )
   {
-    lc->CycleLayer(true, ui->viewAxial->GetInteractionMode() == RenderView2D::IM_ReconEdit);
+    lc->CycleLayer(true, true); //ui->viewAxial->GetInteractionMode() == RenderView2D::IM_ReconEdit);
   }
 }
 
@@ -5706,7 +5706,7 @@ void MainWindow::OnReverseCycleLayer()
   LayerCollection* lc = GetLayerCollection(GetCurrentLayerType());
   if ( lc )
   {
-    lc->CycleLayer( false, ui->viewAxial->GetInteractionMode() == RenderView2D::IM_ReconEdit );
+    lc->CycleLayer( false, true); //ui->viewAxial->GetInteractionMode() == RenderView2D::IM_ReconEdit );
   }
 }
 

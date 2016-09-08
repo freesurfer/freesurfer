@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/10 19:52:41 $
- *    $Revision: 1.20 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/09/08 18:00:48 $
+ *    $Revision: 1.20.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -129,7 +129,7 @@ void InfoTreeWidget::UpdateAll()
   for (int i = 0; i < lc_mri->GetNumberOfLayers(); i++)
   {
     LayerMRI* layer = (LayerMRI*)lc_mri->GetLayer(i);
-    int nIndex[3];
+    double nIndex[3];
     if ( layer->GetProperty()->GetShowInfo() )
     {
       QTreeWidgetItem* item = new QTreeWidgetItem(this);
@@ -140,7 +140,6 @@ void InfoTreeWidget::UpdateAll()
         dvalue = layer->GetVoxelValue( m_dRAS );
       else
         dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0], nIndex[1], nIndex[2]);
-      QString editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
       QString valueStrg = QString("%1").arg(dvalue);
       if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
       {
@@ -150,6 +149,9 @@ void InfoTreeWidget::UpdateAll()
           strgs << QString("%1").arg(value);
         valueStrg = strgs.join(", ");
       }
+      for (int j = 0; j < 3; j++)
+        nIndex[j] = ((int)(nIndex[j]*100+0.5))/100.0;
+      QString editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
       QString strg = QString("%1 \t[%2]").arg(valueStrg).arg(editable);
       QString labelStrg;
       if (layer->IsTypeOf("PLabel"))
@@ -367,8 +369,8 @@ void InfoTreeWidget::OnEditFinished()
         else if (type == "MRI")
         {
           LayerMRI* mri = qobject_cast<LayerMRI*>(layer);
-          int nv[3] = {(int)ras[0], (int)ras[1], (int)ras[2]};
-          mri->OriginalIndexToRAS( nv, ras );
+      //    int nv[3] = {(int)ras[0], (int)ras[1], (int)ras[2]};
+          mri->OriginalVoxelToRAS( ras, ras );
           mri->RASToTarget( ras, ras );
         }
         else if (type == "SurfaceRAS")

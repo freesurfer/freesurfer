@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/15 16:57:49 $
- *    $Revision: 1.78 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/09/08 18:00:49 $
+ *    $Revision: 1.78.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -215,10 +215,22 @@ public:
     return m_volumeRef;
   }
 
-  SurfaceSpline* GetSpline()
+  int GetNumberOfSplines()
   {
-    return m_spline;
+      return m_splines.size();
   }
+
+  SurfaceSpline* GetSpline(int n);
+
+  SurfaceSpline* GetActiveSpline()
+  {
+    return ( m_nActiveSpline >= 0 ? m_splines[m_nActiveSpline] : NULL );
+  }
+
+  void DeleteSpline(SurfaceSpline* spline);
+
+  void SetActiveSpline( int n );
+  void SetActiveSpline(SurfaceSpline* spline);
 
   int GetHemisphere();
 
@@ -325,8 +337,10 @@ public slots:
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
-  void SurfaceRGBAdded();
   void SurfaceLabelDeleted( SurfaceLabel* );
+  void SurfaceSplineAdded( SurfaceSpline* );
+  void SurfaceSplineDeleted( SurfaceSpline* );
+  void SurfaceRGBAdded();
   void SurfaceOverlayAdded( SurfaceOverlay* );
   void SurfaceOverlyDataUpdated();
   void SurfaceCurvatureLoaded();
@@ -335,6 +349,7 @@ Q_SIGNALS:
   void ActiveOverlayChanged( int n );
   void ActiveAnnotationChanged( int n );
   void ActiveLabelChanged( int n );
+  void ActiveSplineChanged( int n );
   void CurrentVertexChanged(int n);
   void RGBMapChanged();
 
@@ -397,7 +412,8 @@ protected:
   int         m_nCurrentVertex;
 
   SurfaceROI*           m_roi;
-  SurfaceSpline*        m_spline;
+  QList<SurfaceSpline*> m_splines;
+  int         m_nActiveSpline;
 
   bool        m_bUndoable;
   bool        m_bVector2DPendingUpdate;

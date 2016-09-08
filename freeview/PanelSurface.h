@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/08/05 03:07:31 $
- *    $Revision: 1.37.2.1 $
+ *    $Date: 2016/09/08 18:00:49 $
+ *    $Revision: 1.37.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -35,6 +35,7 @@ class PanelSurface;
 class QAction;
 class WindowConfigureOverlay;
 class SurfaceLabel;
+class SurfaceSpline;
 
 class PanelSurface : public PanelLayer
 {
@@ -81,10 +82,18 @@ protected slots:
   void OnColorPickerLabelColor(const QColor& color);
   void OnCheckBoxLabelOutline(bool outline);
   void UpdateLabelWidgets();
+  void UpdateSplineWidgets();
   void OnLockLayer(bool b);
+  void OnButtonLoadSpline();
+  void OnButtonDeleteSpline();
+  void OnColorPickerSplineColor(const QColor&);
+  void OnCheckBoxSplineProjection(bool);
+  void OnSplineItemChanged(QTreeWidgetItem *item);
+  void OnCurrentSplineItemChanged(QTreeWidgetItem *item);
 
 private:
   QList<SurfaceLabel*> GetSelectedLabels();
+  QList<SurfaceSpline*> GetSelectedSplines();
 
   Ui::PanelSurface *ui;
 

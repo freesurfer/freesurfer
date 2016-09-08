@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/08/05 03:07:31 $
- *    $Revision: 1.124.2.2 $
+ *    $Date: 2016/09/08 18:00:49 $
+ *    $Revision: 1.124.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -75,10 +75,10 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_nActiveOverlay( -1 ),
   m_nActiveAnnotation( -1 ),
   m_nActiveLabel( -1 ),
+  m_nActiveSpline(-1),
   m_bUndoable( false ),
   m_bVector2DPendingUpdate( true ),
   m_bLoadAll(false),
-  m_spline(NULL),
   m_nCurrentVertex(-1),
   m_bVisibleIn3D(true),
   m_nActiveRGBMap(-1)
@@ -126,8 +126,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
 
   m_roi = new SurfaceROI(this);
 
-  m_spline = new SurfaceSpline(this);
-  connect(m_spline, SIGNAL(SplineChanged()), this, SIGNAL(ActorChanged()));
+//  m_spline = new SurfaceSpline(this);
+//  connect(m_spline, SIGNAL(SplineChanged()), this, SIGNAL(ActorChanged()));
 
   LayerPropertySurface* p = GetProperty();
   connect( p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) );
@@ -535,13 +535,50 @@ bool LayerSurface::LoadLabelFromFile( const QString& filename )
 
 bool LayerSurface::LoadSplineFromFile(const QString &filename)
 {
-  if (!m_spline->Load(filename))
+  SurfaceSpline* spline = new SurfaceSpline(this);
+  if (!spline->Load(filename))
   {
+    spline->deleteLater();
     return false;
   }
+  m_splines.insert(0, spline);
+  connect(spline, SIGNAL(SplineChanged()), this, SLOT(UpdateColorMap()));
+  SetActiveSpline(0);
 
+  emit ActorChanged();
+  emit SurfaceSplineAdded( spline );
   return true;
 }
+
+void LayerSurface::DeleteSpline(SurfaceSpline *spline)
+{
+  SurfaceSpline* activeSpline = GetActiveSpline();
+  for (int i = 0; i < m_splines.size(); i++)
+  {
+    if (spline == m_splines[i])
+    {
+      m_splines.removeAt(i);
+      if (activeSpline == spline)
+      {
+        if (m_splines.isEmpty())
+          m_nActiveSpline = -1;
+        else
+        {
+          if (i >= m_splines.size())
+            SetActiveSpline(m_splines.size()-1);
+          else
+            SetActiveSpline(i);
+        }
+      }
+      spline->deleteLater();
+      emit SurfaceSplineDeleted(spline);
+      emit Modified();
+      emit ActorChanged();
+      return;
+    }
+  }
+}
+
 
 void LayerSurface::InitializeSurface()
 {
@@ -783,8 +820,8 @@ void LayerSurface::Append2DProps( vtkRenderer* renderer, int nPlane )
   renderer->AddViewProp( m_sliceActor2D[nPlane] );
   renderer->AddViewProp( m_vectorActor2D[nPlane] );
   renderer->AddViewProp( m_vertexActor2D[nPlane]);
-  if (m_spline)
-    m_spline->AppendProp2D(renderer, nPlane);
+  foreach (SurfaceSpline* spline, m_splines)
+    spline->AppendProp2D(renderer, nPlane);
 }
 
 void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
@@ -805,8 +842,8 @@ void LayerSurface::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility 
   renderer->AddViewProp( m_vertexActor );
   renderer->AddViewProp( m_wireframeActor );
 
-  if (m_spline)
-    m_spline->AppendProp3D(renderer);
+  foreach (SurfaceSpline* spline, m_splines)
+    spline->AppendProp3D(renderer);
 
   m_roi->AppendProps(renderer);
 }
@@ -820,8 +857,6 @@ void LayerSurface::SetSliceNumber( int* sliceNumber )
   m_nSliceNumber[0] = sliceNumber[0];
   m_nSliceNumber[1] = sliceNumber[1];
   m_nSliceNumber[2] = sliceNumber[2];
-
-
  }
 }
 */
@@ -894,10 +929,14 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
     m_bVector2DPendingUpdate = true;
   }
 
-  if (m_spline && MainWindow::GetMainWindow()->GetSplinePicking())
+  if (!m_splines.isEmpty() && MainWindow::GetMainWindow()->GetSplinePicking())
   {
     int nVertex = this->GetVertexIndexAtTarget(m_dSlicePosition, NULL);
-    m_spline->SetActiveVertex(nVertex);
+    foreach (SurfaceSpline* spline, m_splines)
+    {
+        if (!spline->IsLocked())
+            spline->SetActiveVertex(nVertex);
+    }
   }
 
   for (int i = 0; i < m_overlays.size(); i++)
@@ -932,7 +971,13 @@ void LayerSurface::SetVisible( bool bVisible )
     m_vectorActor2D[i]->SetVisibility( nVectorVisibility );
   }
 
-//  m_spline->SetVisible(bVisible);
+  foreach (SurfaceSpline* spline, m_splines)
+  {
+    if (spline->IsVisible() && bVisible)
+        spline->SetActorVisible(true);
+    else if (!bVisible)
+        spline->SetActorVisible(false);
+  }
 
   LayerEditable::SetVisible(bVisible);
 }
@@ -1755,6 +1800,28 @@ void LayerSurface::SetActiveLabel(SurfaceLabel *label)
   }
 }
 
+void LayerSurface::SetActiveSpline(SurfaceSpline *spline)
+{
+  for (int i = 0; i < m_splines.size(); i++)
+  {
+    if (spline == m_splines[i])
+    {
+      SetActiveSpline(i);
+      return;
+    }
+  }
+}
+
+
+void LayerSurface::SetActiveSpline(int n)
+{
+    if (n >= 0 && n < m_splines.size() && n != m_nActiveSpline)
+    {
+        m_nActiveSpline = n;
+        emit ActiveSplineChanged( n );
+    }
+}
+
 void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
 {
   for ( int i = m_labels.size()-1; i >= 0; i-- )
@@ -1783,6 +1850,14 @@ void LayerSurface::SetActiveLabelOutline(bool bOutline)
     UpdateColorMap();
     emit ActorUpdated();
   }
+}
+
+SurfaceSpline* LayerSurface::GetSpline(int n)
+{
+    if (n >= 0 && n < m_splines.size())
+        return m_splines[n];
+    else
+        return NULL;
 }
 
 void LayerSurface::SetActiveAnnotationOutline(bool bOutline)

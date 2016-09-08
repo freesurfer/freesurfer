@@ -159,7 +159,8 @@ SOURCES += \
     DialogThresholdVolume.cpp \
     DialogVolumeSegmentation.cpp \
     LabelTreeWidget.cpp \
-    Json.cpp
+    Json.cpp \
+    SplineTreeWidget.cpp \
 
 HEADERS  += \
     Annotation2D.h \
@@ -308,7 +309,8 @@ HEADERS  += \
     DialogThresholdVolume.h \
     DialogVolumeSegmentation.h \
     LabelTreeWidget.h \
-    Json.h
+    Json.h \
+    SplineTreeWidget.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

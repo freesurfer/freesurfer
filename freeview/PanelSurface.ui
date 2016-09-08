@@ -23,9 +23,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-162</y>
+     <y>-226</y>
      <width>314</width>
-     <height>1192</height>
+     <height>1263</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -90,9 +90,6 @@
     </item>
     <item>
      <layout class="QGridLayout" name="gridLayout">
-      <item row="30" column="1">
-       <widget class="QComboBox" name="comboBoxSplineDisplay"/>
-      </item>
       <item row="11" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_10">
         <item>
@@ -272,15 +269,15 @@
         </property>
        </widget>
       </item>
+      <item row="35" column="1">
+       <widget class="QLineEdit" name="lineEditPositionOffset"/>
+      </item>
       <item row="4" column="0">
        <widget class="QLabel" name="labelRender">
         <property name="text">
          <string>Render</string>
         </property>
        </widget>
-      </item>
-      <item row="33" column="1">
-       <widget class="QLineEdit" name="lineEditPositionOffset"/>
       </item>
       <item row="23" column="1">
        <widget class="QCheckBox" name="checkBoxLabelOutline">
@@ -311,10 +308,17 @@
         </item>
        </layout>
       </item>
-      <item row="31" column="1">
+      <item row="33" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23_2">
         <item>
-         <widget class="QtColorPicker" name="colorpickerSplineColor" native="true"/>
+         <widget class="QtColorPicker" name="colorpickerSplineColor" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>10</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
         </item>
         <item>
          <spacer name="horizontalSpacer_25">
@@ -328,6 +332,13 @@
            </size>
           </property>
          </spacer>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxSplineProjection">
+          <property name="text">
+           <string>Project on 2D view</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -349,14 +360,41 @@
         </item>
        </layout>
       </item>
-      <item row="33" column="0">
+      <item row="8" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QSpinBox" name="spinBoxVertexPointSize">
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>100</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item row="35" column="0">
        <widget class="QLabel" name="labelPositionOffset">
         <property name="text">
          <string>Position offset</string>
         </property>
        </widget>
       </item>
-      <item row="31" column="0">
+      <item row="33" column="0">
        <widget class="QLabel" name="labelSplineColor">
         <property name="text">
          <string>Color</string>
@@ -559,13 +597,6 @@
         </property>
        </widget>
       </item>
-      <item row="32" column="1">
-       <widget class="QCheckBox" name="checkBoxSplineProjection">
-        <property name="text">
-         <string>Project on 2D view</string>
-        </property>
-       </widget>
-      </item>
       <item row="24" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23">
         <item>
@@ -586,32 +617,8 @@
         </item>
        </layout>
       </item>
-      <item row="8" column="1">
-       <layout class="QHBoxLayout" name="horizontalLayout">
-        <item>
-         <widget class="QSpinBox" name="spinBoxVertexPointSize">
-          <property name="minimum">
-           <number>1</number>
-          </property>
-          <property name="maximum">
-           <number>100</number>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-       </layout>
+      <item row="12" column="1">
+       <widget class="QComboBox" name="comboBoxOverlay"/>
       </item>
       <item row="7" column="0">
        <widget class="QLabel" name="labelVertexColor">
@@ -668,8 +675,15 @@
         </item>
        </widget>
       </item>
-      <item row="12" column="1">
-       <widget class="QComboBox" name="comboBoxOverlay"/>
+      <item row="31" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Spline display</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="lineEditFileName"/>
       </item>
       <item row="8" column="0">
        <widget class="QLabel" name="labelVertexPointSize">
@@ -710,16 +724,6 @@
          </widget>
         </item>
        </layout>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="lineEditFileName"/>
-      </item>
-      <item row="30" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Spline display</string>
-        </property>
-       </widget>
       </item>
       <item row="11" column="0">
        <widget class="QLabel" name="labelSlope">
@@ -836,6 +840,13 @@
         </property>
        </widget>
       </item>
+      <item row="36" column="0">
+       <widget class="QLabel" name="labelMapCursorTo">
+        <property name="text">
+         <string>Map cursor to</string>
+        </property>
+       </widget>
+      </item>
       <item row="5" column="1">
        <widget class="QComboBox" name="comboBoxMeshColor">
         <item>
@@ -879,19 +890,57 @@
         </item>
        </widget>
       </item>
-      <item row="34" column="0">
-       <widget class="QLabel" name="labelMapCursorTo">
-        <property name="text">
-         <string>Map cursor to</string>
-        </property>
-       </widget>
-      </item>
-      <item row="34" column="1">
+      <item row="36" column="1">
        <widget class="QLineEdit" name="lineEditMappingSurface">
         <property name="text">
          <string>white</string>
         </property>
        </widget>
+      </item>
+      <item row="32" column="1">
+       <widget class="SplineTreeWidget" name="treeWidgetSplines">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>90</height>
+         </size>
+        </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::ExtendedSelection</enum>
+        </property>
+        <property name="rootIsDecorated">
+         <bool>false</bool>
+        </property>
+        <property name="headerHidden">
+         <bool>true</bool>
+        </property>
+        <column>
+         <property name="text">
+          <string notr="true">1</string>
+         </property>
+        </column>
+       </widget>
+      </item>
+      <item row="31" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout22_7">
+        <item>
+         <widget class="QPushButton" name="pushButtonLoadSpline">
+          <property name="text">
+           <string>Load</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButtonDeleteSpline">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="text">
+           <string>Delete</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </item>
@@ -1085,6 +1134,11 @@
    <extends>QTreeWidget</extends>
    <header>LabelTreeWidget.h</header>
   </customwidget>
+  <customwidget>
+   <class>SplineTreeWidget</class>
+   <extends>QTreeWidget</extends>
+   <header>SplineTreeWidget.h</header>
+  </customwidget>
  </customwidgets>
  <resources>
   <include location="freeview.qrc"/>
@@ -1098,7 +1152,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>245</x>
-     <y>-17</y>
+     <y>-127</y>
     </hint>
     <hint type="destinationlabel">
      <x>368</x>
@@ -1114,7 +1168,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>208</y>
+     <y>116</y>
     </hint>
     <hint type="destinationlabel">
      <x>349</x>
@@ -1130,7 +1184,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>230</x>
-     <y>238</y>
+     <y>146</y>
     </hint>
     <hint type="destinationlabel">
      <x>46</x>
@@ -1146,7 +1200,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>230</x>
-     <y>273</y>
+     <y>181</y>
     </hint>
     <hint type="destinationlabel">
      <x>78</x>
@@ -1162,7 +1216,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>311</x>
-     <y>242</y>
+     <y>150</y>
     </hint>
     <hint type="destinationlabel">
      <x>326</x>
@@ -1178,7 +1232,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>311</x>
-     <y>277</y>
+     <y>185</y>
     </hint>
     <hint type="destinationlabel">
      <x>332</x>
@@ -1194,7 +1248,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>311</y>
+     <y>219</y>
     </hint>
     <hint type="destinationlabel">
      <x>56</x>
@@ -1210,7 +1264,8 @@
    <hints>
     <hint type="sourcelabel">
      <x>204</x>
-     <y>345</y>
+     <y>253</y>
+
     </hint>
     <hint type="destinationlabel">
      <x>350</x>
@@ -1226,7 +1281,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>379</y>
+     <y>287</y>
     </hint>
     <hint type="destinationlabel">
      <x>429</x>
@@ -1242,7 +1297,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>758</y>
+     <y>666</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -1258,27 +1313,11 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>945</y>
+     <y>933</y>
     </hint>
     <hint type="destinationlabel">
      <x>486</x>
      <y>946</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>comboBoxSplineDisplay</sender>
-   <signal>currentIndexChanged(int)</signal>
-   <receiver>PanelSurface</receiver>
-   <slot>OnComboSpline(int)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>312</x>
-     <y>849</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>398</x>
-     <y>889</y>
     </hint>
    </hints>
   </connection>
@@ -1290,7 +1329,8 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>534</y>
+     <y>442</y>
+
     </hint>
     <hint type="destinationlabel">
      <x>513</x>
@@ -1306,7 +1346,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>534</y>
+     <y>442</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -1322,7 +1362,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>204</x>
-     <y>443</y>
+     <y>351</y>
     </hint>
     <hint type="destinationlabel">
      <x>489</x>
@@ -1370,7 +1410,8 @@
    <hints>
     <hint type="sourcelabel">
      <x>178</x>
-     <y>638</y>
+     <y>546</y>
+
     </hint>
     <hint type="destinationlabel">
      <x>662</x>
@@ -1386,7 +1427,8 @@
    <hints>
     <hint type="sourcelabel">
      <x>312</x>
-     <y>534</y>
+     <y>442</y>
+
     </hint>
     <hint type="destinationlabel">
      <x>803</x>
@@ -1402,7 +1444,8 @@
    <hints>
     <hint type="sourcelabel">
      <x>311</x>
-     <y>443</y>
+     <y>351</y>
+
     </hint>
     <hint type="destinationlabel">
      <x>506</x>
@@ -1418,7 +1461,8 @@
    <hints>
     <hint type="sourcelabel">
      <x>200</x>
-     <y>568</y>
+     <y>476</y>
+
     </hint>
     <hint type="destinationlabel">
      <x>623</x>
@@ -1434,7 +1478,8 @@
    <hints>
     <hint type="sourcelabel">
      <x>178</x>
-     <y>603</y>
+     <y>511</y>
+
     </hint>
     <hint type="destinationlabel">
      <x>518</x>
@@ -1450,7 +1495,8 @@
    <hints>
     <hint type="sourcelabel">
      <x>259</x>
-     <y>603</y>
+     <y>511</y>
+
     </hint>
     <hint type="destinationlabel">
      <x>605</x>
@@ -1466,7 +1512,8 @@
    <hints>
     <hint type="sourcelabel">
      <x>311</x>
-     <y>345</y>
+     <y>253</y>
+
     </hint>
     <hint type="destinationlabel">
      <x>512</x>
@@ -1482,11 +1529,76 @@
    <hints>
     <hint type="sourcelabel">
      <x>305</x>
-     <y>22</y>
+     <y>-96</y>
+
     </hint>
     <hint type="destinationlabel">
      <x>415</x>
      <y>173</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLoadSpline</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnButtonLoadSpline()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>152</x>
+     <y>739</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>610</x>
+     <y>871</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonDeleteSpline</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnButtonDeleteSpline()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>263</x>
+     <y>751</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>509</x>
+     <y>805</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>treeWidgetSplines</sender>
+   <signal>itemChanged(QTreeWidgetItem*,int)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnSplineItemChanged(QTreeWidgetItem*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>194</x>
+     <y>796</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>550</x>
+     <y>879</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>treeWidgetSplines</sender>
+   <signal>currentItemChanged(QTreeWidgetItem*,QTreeWidgetItem*)</signal>
+   <receiver>PanelSurface</receiver>
+   <slot>OnCurrentSplineItemChanged(QTreeWidgetItem*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>261</x>
+     <y>827</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>467</x>
+     <y>898</y>
     </hint>
    </hints>
   </connection>
@@ -1519,5 +1631,10 @@
   <slot>OnButtonRemoveOverlay()</slot>
   <slot>OnComboColor(int)</slot>
   <slot>OnButtonUnloadSpline()</slot>
+  <slot>OnButtonLoadSpline()</slot>
+  <slot>OnButtonDeleteSpline()</slot>
+  <slot>OnSplineItemChanged(QTreeWidgetItem*)</slot>
+  <slot>OnCurrentSplineItemChanged(QTreeWidgetItem*)</slot>
+
  </slots>
 </ui>

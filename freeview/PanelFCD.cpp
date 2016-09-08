@@ -36,29 +36,8 @@ void PanelFCD::ConnectLayer(Layer *layer_in)
 void PanelFCD::DoUpdateWidgets()
 {
   BlockAllSignals( true );
-  /*
-  for ( int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++ )
-  {
-    QTreeWidgetItem* item = ui->treeWidgetLayers->topLevelItem( i );
-    Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole).value<QObject*>() );
-    if ( layer )
-    {
-      item->setCheckState( 0, (layer->IsVisible() ? Qt::Checked : Qt::Unchecked) );
-    }
-  }
-  */
 
   LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
-
-  /*
-  for ( int i = 0; i < this->allWidgets.size(); i++ )
-  {
-    if ( allWidgets[i] != ui->toolbar && allWidgets[i]->parentWidget() != ui->toolbar )
-    {
-      allWidgets[i]->setEnabled(layer);
-    }
-  }
-  */
 
   if ( layer )
   {
