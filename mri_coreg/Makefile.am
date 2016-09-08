@@ -37,6 +37,17 @@ mri_coreg_SOURCES=mri_coreg.c
 mri_coreg_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_coreg_LDFLAGS=$(OS_LDFLAGS)
 
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mri_coreg/testdata.tar.gz"; then \
+        	cp -v $(top_srcdir)/mri_coreg/testdata.tar.gz \
+                	$(top_builddir)/mri_coreg/; fi;
+
+check_PROGRAMS=foo
+TESTS=test_mri_coreg
+EXTRA_DIST=test_mri_coreg testdata.tar.gz
+
+
 # to --------------------------------------------------
 #
 # Where $(OS_LDFLAGS) is to compile programs statically for Linux.
