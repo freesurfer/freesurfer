@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2016/09/08 17:59:53 $
-#    $Revision: 1.580.2.8 $
+#    $Author: greve $
+#    $Date: 2016/09/12 19:54:41 $
+#    $Revision: 1.580.2.10 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.580.2.8 2016/09/08 17:59:53 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.580.2.10 2016/09/12 19:54:41 greve Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -3625,9 +3625,11 @@ if($DoCurvHK) then
       echo $cmd1 | tee -a $LF
       echo $cmd2 | tee -a $LF
       if($DoParallel) then
-        set CMDF = mv_curvature_white_${hemi}.cmd
+        set CMDF = rm_curvature_white_${hemi}.$suffix.cmd
         echo "$cmd1" > $CMDF
-        echo "$cmd2" >> $CMDF
+        set CMDFS = ( $CMDFS $CMDF )
+        set CMDF = ln_curvature_white_${hemi}.$suffix.cmd
+        echo "$cmd2" > $CMDF
         set CMDFS = ( $CMDFS $CMDF )
       else
         if($RunIt) then
@@ -3657,7 +3659,10 @@ if($DoCurvHK) then
   end # Loop over hemilist
 
   if($RunIt && $DoParallel) then
-    reconbatchjobs $LF $CMDFS |& tee -a $LF
+    set cmd = (reconbatchjobs $LF $CMDFS)
+    echo "cd `pwd`" | tee -a $LF
+    echo $cmd | tee -a $LF
+    $cmd |& tee -a $LF
     if($status) goto error_exit;
   endif
   foreach hemi ($hemilist)
