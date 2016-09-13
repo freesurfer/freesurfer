@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2014/03/06 17:02:46 $
- *    $Revision: 1.57 $
+ *    $Date: 2016/09/12 15:43:31 $
+ *    $Revision: 1.58 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.57 2014/03/06 17:02:46 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.58 2016/09/12 15:43:31 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.57 2014/03/06 17:02:46 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.58 2016/09/12 15:43:31 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -367,17 +367,13 @@ int main(int argc, char **argv) {
   MRIScomputeMetricProperties(srcsurf) ;
   //printf("surface area %f\n",srcsurf->total_area);
 
+  // Need to constrain to mask and take into account average subject
   totarea = 0;
-  for (vtx = 0; vtx < srcsurf->nvertices; vtx++)
-    totarea += srcsurf->vertices[vtx].area;
-  printf("surface area %f\n",totarea);
-
-  //printf("Surface status %d\n",srcsurf->status);
-  totarea = srcsurf->total_area;
-
-  totarea = 0;
-  for (vtx = 0 ; vtx < srcsurf->nfaces ; vtx++)
-    totarea += srcsurf->faces[vtx].area;
+  for(vtx = 0 ; vtx < srcsurf->nvertices ; vtx++){
+    if(srcsurf->vertices[vtx].undefval == 0) continue; // mask
+    if(! srcsurf->group_avg_vtxarea_loaded) totarea += srcsurf->faces[vtx].area;
+    else                                    totarea += srcsurf->vertices[vtx].group_avg_area;
+  }
   printf("surface area %f\n",totarea);
 
   if (voxwisesigfile) {
@@ -415,6 +411,7 @@ int main(int argc, char **argv) {
     thminadj = thmin;
     thmaxadj = thmax;
   }
+  printf("thminadj = %g\n",thminadj);
 
   /*---------------------------------------------------------*/
   /* This is where all the action is */
@@ -446,9 +443,10 @@ int main(int argc, char **argv) {
       scs[n].pval_clusterwise_hi  = pvalHi;
     }
   }
-  if (fwhm > 0) {
+  if(fwhm > 0) { // use RFT
     for (n=0; n < NClusters; n++) {
       ClusterSize = scs[n].area;
+      // Is this the total area needed?
       pval = RFprobZClusterSigThresh(ClusterSize, thmin, fwhm, totarea, 2);
       scs[n].pval_clusterwise     = pval;
       scs[n].pval_clusterwise_low = 0;
@@ -551,7 +549,7 @@ int main(int argc, char **argv) {
     fprintf(fp,"# Overall max %g at vertex %d\n",overallmax,overallmaxvtx);
     fprintf(fp,"# Overall min %g at vertex %d\n",overallmin,overallminvtx);
     fprintf(fp,"# NClusters          %d\n",NClusters);
-    fprintf(fp,"# Total Cortical Surface Area %g (mm^2)\n",totarea);
+    //fprintf(fp,"# Total Cortical Surface Area %g (mm^2)\n",totarea); // why needed?
     fprintf(fp,"# FixMNI = %d\n",FixMNI);
     fprintf(fp,"# \n");
     if(FixMNI) fprintf(fp,"# ClusterNo  Max   VtxMax   Size(mm^2)  TalX   TalY   TalZ ");
@@ -1202,7 +1200,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.57 2014/03/06 17:02:46 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.58 2016/09/12 15:43:31 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
