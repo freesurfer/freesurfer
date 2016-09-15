@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/09/15 05:06:08 $
- *    $Revision: 1.48.2.1 $
+ *    $Date: 2016/09/15 15:55:15 $
+ *    $Revision: 1.48.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,7 +76,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.48.2.1 2016/09/15 05:06:08 zkaufman Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.48.2.2 2016/09/15 15:55:15 zkaufman Exp $";
 char *Progname = NULL;
 static char *relabel_gca_name = NULL ;
 static char *relabel_norm_name = NULL ;
@@ -876,7 +876,7 @@ int main(int argc, char **argv)
 		(MRIlabelsInNbhd(ASeg,  x,  y,  z, 1, Right_Lateral_Ventricle)  > 0))   // neighbors a ventricular label
 	    {
 	      GCA_NODE *gcan ;
-	      int      xn, yn, zn, n, max_label, label ;
+	      int      xn, yn, zn, n, max_label = -1, label ;
 	      double   mah_dist, min_mah_dist ;
 	      float    vals[100] ;
 	      
