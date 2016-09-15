@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/04/11 01:11:00 $
- *    $Revision: 1.343 $
+ *    $Date: 2016/09/15 00:59:26 $
+ *    $Revision: 1.344 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7775,7 +7775,7 @@ GCAtransformAndWriteSamplePvals(GCA *gca, MRI *mri,
       //////////////////////////////////////////////
     }
   }
-  fprintf(stdout, "writing sample pvals to %s...\n", fname) ;
+  fprintf(stdout, "writing sample pvals to %s\n", fname) ;
   MRIwrite(mri_dst, fname) ;
   MRIfree(&mri_dst) ;
   fflush(stdout) ;
@@ -7838,7 +7838,7 @@ GCAtransformAndWriteSampleMeans(GCA *gca, MRI *mri,
       //////////////////////////////////////////////
     }
   }
-  fprintf(stdout, "writing sample pvals to %s...\n", fname) ;
+  fprintf(stdout, "writing sample pvals to %s\n", fname) ;
   MRIwrite(mri_dst, fname) ;
   MRIfree(&mri_dst) ;
   fflush(stdout) ;
@@ -7903,7 +7903,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
       //////////////////////////////////////////////
     }
   }
-  fprintf(stdout, "writing samples to %s...\n", fname) ;
+  fprintf(stdout, "writing samples to %s\n", fname) ;
   MRIwrite(mri_dst, fname) ;
   MRIfree(&mri_dst) ;
   fflush(stdout) ;
@@ -8685,7 +8685,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
     if (cp)
     {
       strcpy(cp+1, "anneal") ;
-      fprintf(stdout, "writing results of annealing to %s...\n", fname) ;
+      fprintf(stdout, "writing results of annealing to %s\n", fname) ;
       MRIwrite(mri_dst, fname) ;
     }
   }
@@ -8810,6 +8810,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
             }
           }
       nindices = index ;
+      mri_probs = NULL ;
     }
     else if (iter == 0)
     {
@@ -8820,7 +8821,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
       {
         char fname[STRLEN] ;
         sprintf(fname, "%s%03d.mgz", gca_write_fname, iter) ;
-        printf("writing snapshot to %s...\n", fname) ;
+        printf("writing snapshot to %s\n", fname) ;
         MRIwrite(mri_dst, fname) ;
       }
       // probs has 0 to 255 values
@@ -8965,7 +8966,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
       char fname[STRLEN] ;
 
       sprintf(fname, "%s%03d.mgz", G_write_probs, iter) ;
-      printf("writing probabilities to %s...\n", fname) ;
+      printf("writing probabilities to %s\n", fname) ;
       MRIwrite(mri_probs, fname) ;
       MRIfree(&mri_probs) ;
     }
@@ -9005,7 +9006,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
           sprintf(fname, "%s_before%03d.mgz",
                   gca_write_fname, fno+1) ;
           fno++ ;
-          printf("writing snapshot to %s...\n", fname) ;
+          printf("writing snapshot to %s\n", fname) ;
           MRIwrite(mri_dst, fname) ;
         }
         for (label = 1 ; label <= max_label ; label++)
@@ -9101,7 +9102,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
       {
         strcpy(cp+1, "zero") ;
         nvox = MRIvoxelsInLabel(mri_zero, 255) ;
-        fprintf(stdout, "writing %d low probability points to %s...\n",
+        fprintf(stdout, "writing %d low probability points to %s\n",
                 nvox, fname) ;
         MRIwrite(mri_zero, fname) ;
         MRIfree(&mri_zero) ;
@@ -9154,7 +9155,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
         char fname[STRLEN] ;
 
         sprintf(fname, "%s_iter%d.mgz", gca_write_fname, iter+1) ;
-        printf("writing snapshot to %s...\n", fname) ;
+        printf("writing snapshot to %s\n", fname) ;
         MRIwrite(mri_dst, fname) ;
       }
     }
@@ -9162,11 +9163,11 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
     {
       char fname[STRLEN] ;
       sprintf(fname, "%s%03d.mgz", gca_write_fname, iter+1) ;
-      printf("writing snapshot to %s...\n", fname) ;
+      printf("writing snapshot to %s\n", fname) ;
       MRIwrite(mri_dst, fname) ;
     }
   }
-  while ((nchanged > MIN_CHANGED || prior_factor < max_prior_factor) &&
+  while ((nchanged > min_changed || prior_factor < max_prior_factor) &&
          (iter++ < max_iter)) ;
 
 #if 0
@@ -10476,7 +10477,7 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
   }
   while (nchanged > 0) ;
 
-  printf("%d labels changed to %s...\n",
+  printf("%d labels changed to %s\n",
          total_changed, cma_label_to_name(target_label)) ;
   return(mri_dst) ;
 }
@@ -10657,7 +10658,7 @@ GCAexpandVentricle(GCA *gca, MRI *mri_inputs, MRI *mri_src,
   while (nchanged > 0) ;
 
   MRIfree(&mri_tmp) ;
-  printf("%d labels changed to %s...\n",
+  printf("%d labels changed to %s\n",
          total_changed, cma_label_to_name(target_label)) ;
   return(mri_dst) ;
 }
@@ -11171,7 +11172,7 @@ GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
   while (nchanged > 0) ;
 
   MRIfree(&mri_tmp) ;
-  printf("%d labels changed to %s...\n",
+  printf("%d labels changed to %s\n",
          total_changed, cma_label_to_name(target_label)) ;
   return(mri_dst) ;
 }
@@ -19876,7 +19877,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
           float  evalues[4] ;
           MATRIX *m_evectors ;
 
-          printf("aligning %s...\n", cma_label_to_name(l)) ;
+          printf("aligning %s\n", cma_label_to_name(l)) ;
           fflush(stdout);
           m_L = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
           MRIpowellAlignImages
@@ -21512,7 +21513,7 @@ GCAcomputeRenormalizationWithAlignment
           // float  evalues[4] ;
           // MATRIX *m_evectors ;
 
-          printf("aligning %s...\n", cma_label_to_name(l)) ;
+          printf("aligning %s\n", cma_label_to_name(l)) ;
           m_L = MRIgetVoxelToVoxelXform(mri_seg, mri) ;
           if (! IS_GM(l))
           {
