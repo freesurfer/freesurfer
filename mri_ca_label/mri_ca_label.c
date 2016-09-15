@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/05/13 18:02:49 $
- *    $Revision: 1.113 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/09/15 05:07:07 $
+ *    $Revision: 1.113.2.1 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -252,14 +252,14 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.113 2016/05/13 18:02:49 fischl Exp $",
-   "$Name: stable6 $", cmdline);
+   "$Id: mri_ca_label.c,v 1.113.2.1 2016/09/15 05:07:07 zkaufman Exp $",
+   "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.113 2016/05/13 18:02:49 fischl Exp $",
-           "$Name: stable6 $");
+           "$Id: mri_ca_label.c,v 1.113.2.1 2016/09/15 05:07:07 zkaufman Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -311,7 +311,7 @@ int main(int argc, char *argv[])
   {
     int *counts, i, max_i ;
 
-    fprintf(stderr, "reading gca from %s...\n", argv[1]) ;
+    fprintf(stderr, "reading gca from %s\n", argv[1]) ;
     gca = GCAread(argv[1]) ;
     if (!gca)
       ErrorExit(ERROR_NOFILE, "%s: could not read classifier array from %s",
@@ -349,11 +349,11 @@ int main(int argc, char *argv[])
   out_fname = argv[argc-1] ;
   ninputs = argc-4 ;
 
-  printf("reading %d input volumes...\n", ninputs) ;
+  printf("reading %d input volumes\n", ninputs) ;
 
   /*  fprintf(stderr,
       "mri_inputs read: xform %s\n", mri_inputs->transform_fname) ;*/
-  printf("reading classifier array from %s...\n", gca_fname) ;
+  printf("reading classifier array from %s\n", gca_fname) ;
   fflush(stdout);
   fflush(stderr);
   gca = GCAread(gca_fname) ;
@@ -420,7 +420,7 @@ int main(int argc, char *argv[])
   for (input = 0 ; input < ninputs ; input++)
   {
     in_fname = argv[1+input] ;
-    printf("reading input volume from %s...\n", in_fname) ;
+    printf("reading input volume from %s\n", in_fname) ;
     fflush(stdout);
     fflush(stderr);
     mri_tmp = MRIread(in_fname) ;
@@ -554,7 +554,7 @@ int main(int argc, char *argv[])
       cp = fgetl(line, 199, fp) ;
     }
     rewind(fp) ;
-    printf("reading %d labels from %s...\n", nlines,renormalization_fname) ;
+    printf("reading %d labels from %s\n", nlines,renormalization_fname) ;
     labels = (int *)calloc(nlines, sizeof(int)) ;
     intensities = (float *)calloc(nlines, sizeof(float)) ;
     cp = fgetl(line, 199, fp) ;
@@ -711,7 +711,7 @@ int main(int argc, char *argv[])
   if (stricmp(xform_fname, "none"))
   {
     GCA_MORPH *gcam;
-    printf("reading transform from %s...\n", xform_fname) ;
+    printf("reading transform from %s\n", xform_fname) ;
     transform = TransformRead(xform_fname) ;
     if (!transform)
     {
@@ -788,7 +788,7 @@ int main(int argc, char *argv[])
     MRIfree(&mri_eq) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
-      fprintf(stderr, "writing equalized volume to %s...\n", "heq.mgz") ;
+      fprintf(stderr, "writing equalized volume to %s\n", "heq.mgz") ;
       MRIwrite(mri_inputs, "heq.mgz") ;
     }
   }
@@ -811,7 +811,7 @@ int main(int argc, char *argv[])
     if (Ggca_x >= 0)
       printf("label(%d, %d, %d) = %s (%d), norm=%2.0f\n",
              Ggca_x, Ggca_y, Ggca_z,
-             cma_label_to_name(MRIvox(mri_labeled, Ggca_x, Ggca_y, Ggca_z)),
+             cma_label_to_name(MRIgetVoxVal(mri_labeled, Ggca_x, Ggca_y, Ggca_z,0)),
              (int)MRIgetVoxVal(mri_labeled, Ggca_x, Ggca_y, Ggca_z,0),
              MRIgetVoxVal(mri_inputs, Ggca_x, Ggca_y, Ggca_z, 0)) ;
     if (regularize_mean > 0)
@@ -852,7 +852,7 @@ int main(int argc, char *argv[])
         if (DIAG_VERBOSE_ON)
         {
           fprintf(stderr,
-                  "writing patched labeling to %s...\n", out_fname) ;
+                  "writing patched labeling to %s\n", out_fname) ;
           MRIwrite(mri_labeled, out_fname) ;
         }
         MRIfree(&mri_wm) ;
@@ -867,7 +867,7 @@ int main(int argc, char *argv[])
       {
         char fname[STRLEN] ;
         sprintf(fname, "%s_pre.mgz", gca_write_fname) ;
-        printf("writing snapshot to %s...\n", fname) ;
+        printf("writing snapshot to %s\n", fname) ;
         MRIwrite(mri_labeled, fname) ;
       }
       // renormalize iteration
@@ -919,6 +919,12 @@ int main(int argc, char *argv[])
           (gca, mri_inputs, transform,
            logfp, base_name, NULL, handle_expanded_ventricles,
            label_scales,label_offsets,label_peaks,label_computed) ;
+	  if (Ggca_x >= 0)
+	    printf("label(%d, %d, %d) = %s (%d), norm=%2.0f\n",
+		   Ggca_x, Ggca_y, Ggca_z,
+		   cma_label_to_name(MRIgetVoxVal(mri_labeled, Ggca_x, Ggca_y, Ggca_z, 0)),
+		   (int)MRIgetVoxVal(mri_labeled, Ggca_x, Ggca_y, Ggca_z,0),
+		   MRIgetVoxVal(mri_inputs, Ggca_x, Ggca_y, Ggca_z, 0)) ;
           if (write_renorm_fname)
           {
             GCAwrite(gca, write_renorm_fname) ;
@@ -953,7 +959,7 @@ int main(int argc, char *argv[])
             cp = fgetl(line, 199, fp) ;
           }
           rewind(fp) ;
-          printf("reading %d labels from %s...\n",
+          printf("reading %d labels from %s\n",
                  nlines,renormalization_fname) ;
           labels = (int *)calloc(nlines, sizeof(int)) ;
           intensities = (float *)calloc(nlines, sizeof(float)) ;
@@ -1127,7 +1133,7 @@ int main(int argc, char *argv[])
       {
         char fname[STRLEN] ;
         sprintf(fname, "%s_pre.mgz", gca_write_fname) ;
-        printf("writing snapshot to %s...\n", fname) ;
+        printf("writing snapshot to %s\n", fname) ;
         MRIwrite(mri_labeled, fname) ;
       }
 
@@ -1208,9 +1214,18 @@ int main(int argc, char *argv[])
 	  int w ;
 
 	  for (w = (unlikely_wsize-1)/2 ; w >= 1 ; w--)
+	  {
 	    GCArelabelUnlikely(gca, mri_inputs, transform, 
 			       mri_labeled, mri_labeled, mri_independent_posterior,
 			       unlikely_prior_thresh, w) ;
+	    if (gca_write_iterations != 0)
+	    {
+	      char fname[STRLEN] ;
+	      sprintf(fname, "%s_un.w%d.mgz", gca_write_fname, w) ;
+	      printf("writing snapshot to %s\n", fname) ;
+	      MRIwrite(mri_labeled, fname) ;
+	    }
+	  }
         }
       }
     }
@@ -1261,7 +1276,7 @@ int main(int argc, char *argv[])
   {
     char fname[STRLEN] ;
     sprintf(fname, "%s_post.mgz", gca_write_fname) ;
-    printf("writing snapshot to %s...\n", fname) ;
+    printf("writing snapshot to %s\n", fname) ;
     MRIwrite(mri_labeled, fname) ;
   }
 
@@ -1367,7 +1382,7 @@ int main(int argc, char *argv[])
   // convert back to uchar if possible
   MRItoUCHAR(&mri_labeled);
 
-  printf("writing labeled volume to %s...\n", out_fname) ;
+  printf("writing labeled volume to %s\n", out_fname) ;
   if (MRIwrite(mri_labeled, out_fname) != NO_ERROR)
   {
     ErrorExit(Gerror, "%s: MRIwrite(%s) failed", Progname, out_fname) ;
@@ -1469,7 +1484,7 @@ get_option(int argc, char *argv[])
   {
     read_intensity_fname[nreads] = argv[2] ;
     nargs = 1 ;
-    printf("reading intensity scaling from %s...\n",
+    printf("reading intensity scaling from %s\n",
            read_intensity_fname[nreads]) ;
     nreads++ ;
     if (nreads > MAX_READS)
@@ -1483,7 +1498,7 @@ get_option(int argc, char *argv[])
   {
     wm_fname = argv[2] ;
     nargs = 1 ;
-    printf("inserting white matter segmentation from %s...\n", wm_fname) ;
+    printf("inserting white matter segmentation from %s\n", wm_fname) ;
   }
   else if (!stricmp(option, "SURF"))
   {
@@ -1573,20 +1588,20 @@ get_option(int argc, char *argv[])
   {
     G_write_probs = argv[2] ;
     nargs = 1 ;
-    printf("writing label probabilities to %s...\n", G_write_probs) ;
+    printf("writing label probabilities to %s\n", G_write_probs) ;
   }
   else if (!stricmp(option, "write_likelihood"))
   {
     write_likelihood = argv[2] ;
     nargs = 1 ;
-    printf("writing image likelihoods unders labeling to %s...\n", 
+    printf("writing image likelihoods unders labeling to %s\n", 
 	   write_likelihood) ;
   }
   else if (!stricmp(option, "wmsa_probs"))
   {
     wmsa_probs = argv[2] ;
     //wmsa_probs = 1;
-    printf("Writing WMSA probabilities to file %s...\n", wmsa_probs) ;
+    printf("Writing WMSA probabilities to file %s\n", wmsa_probs) ;
     nargs =1 ;
     //sprintf(wmsaprob_fname,"%s.mgz",wmsa_probs);
   }
@@ -1759,41 +1774,41 @@ get_option(int argc, char *argv[])
     fixed_flag = 1 ;
     wm_fname = argv[2] ;
     nargs = 1 ;
-    printf("inserting fixed white matter segmentation from %s...\n",
+    printf("inserting fixed white matter segmentation from %s\n",
            wm_fname);
   }
   else if (!stricmp(option, "MRI"))
   {
     mri_fname = argv[2] ;
     nargs = 1 ;
-    printf("building most likely MR volume and writing to %s...\n",
+    printf("building most likely MR volume and writing to %s\n",
            mri_fname);
   }
   else if (!stricmp(option, "HEQ"))
   {
     heq_fname = argv[2] ;
     nargs = 1 ;
-    printf("reading template for histogram equalization from %s...\n",
+    printf("reading template for histogram equalization from %s\n",
            heq_fname) ;
   }
   else if (!stricmp(option, "RENORM"))
   {
     renormalization_fname = argv[2] ;
     nargs = 1 ;
-    printf("renormalizing using predicted intensity values in %s...\n",
+    printf("renormalizing using predicted intensity values in %s\n",
            renormalization_fname) ;
   }
   else if (!stricmp(option, "WRITE_RENORM"))
   {
     write_renorm_fname = argv[2] ;
     nargs = 1 ;
-    printf("writing renormalized GCA to in %s...\n", write_renorm_fname) ;
+    printf("writing renormalized GCA to in %s\n", write_renorm_fname) ;
   }
   else if (!stricmp(option, "READ_RENORM"))
   {
     read_renorm_fname = argv[2] ;
     nargs = 1 ;
-    printf("reading renormalized GCA from %s...\n", read_renorm_fname) ;
+    printf("reading renormalized GCA from %s\n", read_renorm_fname) ;
   }
   else if (!stricmp(option, "FLASH"))
   {
@@ -1832,7 +1847,7 @@ get_option(int argc, char *argv[])
       break ;
     case 'R':
       read_fname = argv[2] ;
-      printf("reading previously labeled volume from %s...\n", read_fname) ;
+      printf("reading previously labeled volume from %s\n", read_fname) ;
       nargs = 1 ;
       break ;
     case 'H':
@@ -2076,7 +2091,7 @@ preprocess( MRI *mri_inputs, MRI *mri_labeled,
   {
     char fname[STRLEN] ;
     sprintf(fname, "%s_cortex.mgz", gca_write_fname) ;
-    printf("writing snapshot to %s...\n", fname) ;
+    printf("writing snapshot to %s\n", fname) ;
     MRIwrite(mri_labeled, fname) ;
   }
   if (tl_gca_fname)
@@ -2101,7 +2116,7 @@ preprocess( MRI *mri_inputs, MRI *mri_labeled,
     {
       char fname[STRLEN] ;
       sprintf(fname, "%s_temporal.mgz", gca_write_fname) ;
-      printf("writing snapshot to %s...\n", fname) ;
+      printf("writing snapshot to %s\n", fname) ;
       MRIwrite(mri_labeled, fname) ;
     }
   }
@@ -4857,7 +4872,7 @@ change_unlikely_voxels(GCA *gca,
     z = vl->zi[i] ;
     max_label = MRIgetVoxVal(mri_prior_labels, x, y, z, 0) ;
     MRIsetVoxVal(mri_dst_label, x, y, z, 0, max_label) ; // use prior label
-    if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+    if (0 && x == Ggca_x && y == Ggca_y && z == Ggca_z)
     {
       printf("change_unlikely_voxels 1: changing label at (%d, %d, %d) from %s to %s\n",
              Ggca_x, Ggca_y, Ggca_z, 
@@ -4955,7 +4970,7 @@ GCArelabelUnlikely(GCA *gca,
     for (index = 0 ; index < nindices ; index++)
     {
       double      posterior_before, posterior_after  ;
-      int         label, x, y, z, nchanged_tmp ;
+      int         label, x, y, z, nchanged_tmp, old_label = 0 ;
       VOXEL_LIST  *vl ;
 
       x = x_indices[index] ; y = y_indices[index] ; z = z_indices[index] ;
@@ -5001,6 +5016,9 @@ GCArelabelUnlikely(GCA *gca,
       if (vl == NULL)
         continue;
 
+      if (Ggca_x >= 0)
+	old_label = MRIgetVoxVal(mri_src_labeled, Ggca_x, Ggca_y, Ggca_z, 0) ;
+	
       if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
       {
         MRI *mri ;
@@ -5022,6 +5040,18 @@ GCArelabelUnlikely(GCA *gca,
       }
       else
       {
+	if (Ggca_x >= 0)
+	{
+	  int max_label = MRIgetVoxVal(mri_dst_labeled, Ggca_x, Ggca_y, Ggca_z, 0) ;
+	  if  (old_label != max_label && VLSTinList(vl, Ggca_x, Ggca_y, Ggca_z))
+	  {
+	    
+	    printf("iter = %d: change_unlikely_voxels: changing label at (%d, %d, %d) from %s to %s\n",
+		   i, Ggca_x, Ggca_y, Ggca_z, 
+		   cma_label_to_name(old_label),
+		   cma_label_to_name(max_label));
+	  }
+	}
 	MRIsetVoxVal(mri_unchanged, x, y, z, 0, 0) ;
         nchanged += nchanged_tmp ;
         DiagBreak() ;
