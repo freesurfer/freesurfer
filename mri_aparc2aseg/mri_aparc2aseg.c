@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/04/14 15:31:19 $
- *    $Revision: 1.48 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/09/15 05:06:08 $
+ *    $Revision: 1.48.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,7 @@
 #include "version.h"
 #include "mrisegment.h"
 #include "cma.h"
+#include "gca.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -75,8 +76,13 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.48 2016/04/14 15:31:19 greve Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.48.2.1 2016/09/15 05:06:08 zkaufman Exp $";
 char *Progname = NULL;
+static char *relabel_gca_name = NULL ;
+static char *relabel_norm_name = NULL ;
+static char *relabel_xform_name = NULL ;
+static char *relabel_label_intensities_name = NULL ;
+
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
 static char *OutASegFile = NULL;
@@ -128,9 +134,10 @@ int main(int argc, char **argv)
   int RibbonVal=0,nbrute=0;
   float dmin=0.0, lhRibbonVal=0, rhRibbonVal=0;
   double dot ;
+  MRI    *mri_fixed = NULL;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -371,6 +378,11 @@ int main(int argc, char **argv)
   MRIfree(&ASeg);
   ASeg = mritmp;
 
+  if (relabel_norm_name)
+  {
+    mri_fixed = MRIcloneDifferentType(ASeg, MRI_UCHAR) ;
+    MRIsetValues(mri_fixed, 1) ;
+  }
   if (CtxSegFile)
   {
     printf("Loading Ctx Seg File %s\n",CtxSegFile);
@@ -481,6 +493,11 @@ int main(int argc, char **argv)
 	    }
 	  }
         }
+
+	if (c == Gx && r == Gy && s == Gz)
+	  DiagBreak() ;
+	if (IsWM && asegid == 0 && mri_fixed != NULL)  // interior to white matter but labeled unknown
+	  MRIsetVoxVal(mri_fixed, c, r, s, 0, 0) ;     // allow it to be relabeled below
 
         // If it's not labeled as cortex or wm in the aseg, skip
         if(!IsCortex && !IsWM) continue;
@@ -638,6 +655,7 @@ int main(int argc, char **argv)
           annotid = 0;
         }
 
+
 	/* If the cortical label is "unkown", it is difficult to
 	   determine what to put here. If the aseg says it is WM, then
 	   that is kept. If the aseg says it is GM, then it is given
@@ -754,6 +772,144 @@ int main(int argc, char **argv)
   printf("nctx = %d\n",nctx);
   printf("Used brute-force search on %d voxels\n",nbrute);
 
+  if (relabel_gca_name != NULL)    // reclassify voxels interior to white that are likely to be something else
+  {
+    MRI *mri_norm ;
+    TRANSFORM *xform ;
+    GCA *gca ;
+    FILE   *fp ;
+    int    *labels, nlines, i, mean, label, nscanned ;
+    float  *intensities ;
+    char   *cp, line[STRLEN], label_name[STRLEN] ;
+
+    printf("relabeling unlikely voxels in interior of white matter\n") ;
+
+    mri_norm = MRIread(relabel_norm_name) ;
+    if (mri_norm == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load norm volume from %s\n", relabel_norm_name) ;
+
+    xform = TransformRead(relabel_xform_name) ;
+    if (xform == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load transform from %s\n", relabel_xform_name) ;
+
+    gca = GCAread(relabel_gca_name) ;
+    if (gca == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load gca from %s\n", relabel_gca_name) ;
+
+    fp = fopen(relabel_label_intensities_name, "r") ;
+    if (!fp)
+      ErrorExit(ERROR_NOFILE, "%s: could not read %s",
+                Progname, relabel_label_intensities_name) ;
+
+    cp = fgetl(line, 199, fp) ;
+    nlines = 0 ;
+    while (cp)
+    {
+      nlines++ ;
+      cp = fgetl(line, 199, fp) ;
+    }
+    rewind(fp) ;
+    printf("reading %d labels from %s\n", nlines,relabel_label_intensities_name) ;
+    labels = (int *)calloc(nlines, sizeof(int)) ;
+    intensities = (float *)calloc(nlines, sizeof(float)) ;
+    cp = fgetl(line, 199, fp) ;
+    for (i = 0 ; i < nlines ; i++)
+    {
+      nscanned  = sscanf(cp, "%d %s %*f %*f %d", &label, label_name, &mean) ;
+      labels[i] = label ;
+      intensities[i] = mean ;
+      if (labels[i] == Left_Cerebral_White_Matter)
+      {
+        DiagBreak() ;
+      }
+      cp = fgetl(line, 199, fp) ;
+    }
+    GCArenormalizeIntensities(gca, labels, intensities, nlines) ;
+    free(labels) ;
+    free(intensities) ;
+
+    TransformInvert(xform, mri_norm) ;
+// edit GCA to disallow cortical labels at points interior to white that we are relabeling
+    {
+      int        x, y, z, n ;
+      GCA_PRIOR *gcap ;
+
+      for (x = 0 ; x < mri_norm->width ; x++)
+	for (y = 0 ; y < mri_norm->height ; y++)
+	  for (z = 0 ; z < mri_norm->depth ; z++)
+	  {
+	    if (x  == Gx && y == Gy && z == Gz)
+	      DiagBreak() ;
+	    if (MRIgetVoxVal(mri_fixed, x, y, z, 0) > 0)
+	      continue ;
+	    gcap = getGCAP(gca, mri_norm, xform, x, y, z) ;
+	    if (gcap == NULL)
+	      continue ;
+	    for (n = 0 ; n < gcap->nlabels ; n++)
+	      if (IS_CORTEX(gcap->labels[n]))
+	      { 
+		int n2 ;
+		double total_p ;
+		gcap->priors[n] = 1e-5 ;
+		for (total_p = 0.0, n2 = 0 ; n2 < gcap->nlabels ; n2++)
+		  total_p += gcap->priors[n2] ;
+		for (n2 = 0 ; n2 < gcap->nlabels ; n2++)
+		  gcap->priors[n2] /= total_p ;
+	      }
+	  }
+    }
+    Ggca_x = Gx ; Ggca_y = Gy ; Ggca_z = Gz ; // diagnostics
+    GCAregularizeCovariance(gca,1.0);   // don't use covariances for this classification
+    GCAreclassifyUsingGibbsPriors(mri_norm, gca, ASeg, xform, 10, mri_fixed, 1, NULL, 0.5, 0.5);
+    {
+      int        x, y, z ;
+
+      for (x = 0 ; x < mri_norm->width ; x++)
+	for (y = 0 ; y < mri_norm->height ; y++)
+	  for (z = 0 ; z < mri_norm->depth ; z++)
+	  {
+	    if (MRIgetVoxVal(mri_fixed, x, y, z, 0) > 0)
+	      continue ;
+	    if ((int)MRIgetVoxVal(ASeg, x, y, z, 0) > 0)  // only process voxels that are interior to the ribbon and unknown - shouldn't be
+	      continue ;
+	    if ((MRIlabelsInNbhd(ASeg,  x,  y,  z, 1, Left_Lateral_Ventricle)  > 0 ) ||
+		(MRIlabelsInNbhd(ASeg,  x,  y,  z, 1, Right_Lateral_Ventricle)  > 0))   // neighbors a ventricular label
+	    {
+	      GCA_NODE *gcan ;
+	      int      xn, yn, zn, n, max_label, label ;
+	      double   mah_dist, min_mah_dist ;
+	      float    vals[100] ;
+	      
+	      if (x  == Gx && y == Gy && z == Gz)
+		DiagBreak() ;
+	      GCAsourceVoxelToNode( gca, mri_norm, xform, x,  y, z, &xn, &yn, &zn) ;
+ 	      gcan = GCAbuildRegionalGCAN(gca, xn, yn, zn, 3);
+	      load_vals(mri_norm, x, y, z, vals, mri_norm->nframes) ;
+	      min_mah_dist = 1e10 ;
+	      for (n = 0 ; n < gcan->nlabels ; n++)
+	      {
+		label = gcan->labels[n] ;
+		if (IS_CORTEX(label) || label == 0)
+		  continue ;   // prohibited interior to white
+		mah_dist = GCAmahDist( &gcan->gcs[n], vals, mri_norm->nframes);
+		if (mah_dist < min_mah_dist)
+		{
+		  min_mah_dist = mah_dist ;
+		  max_label = gcan->labels[n] ;
+		}
+	      }
+	      if (x  == Gx && y == Gy && z == Gz)
+		printf("reclassifying unknown voxel (%d, %d, %d) that neighbors ventricle %s --> %s (%d)\n", 
+		       x, y, z, cma_label_to_name(MRIgetVoxVal(ASeg, x, y, z, 0)), cma_label_to_name(max_label), max_label) ;
+	      MRIsetVoxVal(ASeg, x, y, z, 0, max_label) ;
+	      GCAfreeRegionalGCAN(&gcan) ;
+	    }
+	  }
+    }
+		
+
+    MRIfree(&mri_norm) ; MRIfree(&mri_fixed) ; GCAfree(&gca) ; TransformFree(&xform) ;
+  }
   if (FixParaHipWM)
   {
     /* This is a bit of a hack. There are some vertices that have been
@@ -834,6 +990,16 @@ static int parse_commandline(int argc, char **argv)
     else if (!strcasecmp(option, "--debug"))
     {
       debug = 1;
+    }
+    else if (!strcasecmp(option, "--relabel"))
+    {
+      relabel_norm_name = pargv[0] ;
+      relabel_xform_name = pargv[1] ;
+      relabel_gca_name = pargv[2] ;
+      relabel_label_intensities_name = pargv[3] ;
+      printf("relabeling unlikely voxels interior to white matter surface:\n\tnorm: %s\n\t XFORM: %s\n\tGCA: %s\n\tlabel intensities: %s\n",
+	     relabel_norm_name, relabel_xform_name, relabel_gca_name, relabel_label_intensities_name) ;
+      nargsused = 4;
     }
     else if (!strcasecmp(option, "--debug_voxel"))
     {
