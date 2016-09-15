@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2016/09/12 19:54:41 $
-#    $Revision: 1.580.2.10 $
+#    $Author: zkaufman $
+#    $Date: 2016/09/15 05:08:59 $
+#    $Revision: 1.580.2.11 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.580.2.10 2016/09/12 19:54:41 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.580.2.11 2016/09/15 05:08:59 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -4672,24 +4672,22 @@ if($DoAParc2ASeg) then
     cd $subjdir > /dev/null
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
-    if (${parc} == "aparc") then
-      # Desikan (or whatever was specified by -gcs)
-      set cmd = (mri_aparc2aseg --s $subjid --volmask \
-        --aseg aseg.presurf.hypos $xopts)
-      echo $cmd > $touchdir/aparc2aseg.touch
-    else
+    set cmd = (mri_aparc2aseg --s $subjid --volmask --aseg aseg.presurf.hypos  \
+        --relabel mri/norm.mgz mri/transforms/talairach.m3z \
+        ${GCADIR}/$GCA mri/aseg.auto_noCCseg.label_intensities.txt)
+    if(${parc} != "aparc") then
       #  do Christophe and Mindboggle atlases (if exist)
       if( -e ${subjdir}/label/lh.aparc.${parc}.annot && \
           -e ${subjdir}/label/rh.aparc.${parc}.annot ) then
         # Note: the --a2009s is needed to get the index offset correct
-        set cmd = (mri_aparc2aseg --s $subjid --volmask \
-            --aseg aseg.presurf.hypos --annot aparc.${parc} --a2009s $xopts)
+        set cmd = ($cmd --a2009s)
         echo $cmd > $touchdir/aparc.${DESTRIEUX_NAME}2aseg.touch
       else
         echo "INFO: skipping ${parc} aparc2aseg" |& tee -a $LF |& tee -a $CF
 	continue;
       endif
     endif
+    set cmd = ($cmd $xopts)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($DoParallel) then
       set CMDF = mri_aparc2aseg_${parc}.cmd
