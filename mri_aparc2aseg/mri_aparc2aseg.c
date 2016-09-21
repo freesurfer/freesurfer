@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/09/15 15:55:15 $
- *    $Revision: 1.48.2.2 $
+ *    $Date: 2016/09/21 16:03:20 $
+ *    $Revision: 1.48.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,7 +76,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.48.2.2 2016/09/15 15:55:15 zkaufman Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.48.2.3 2016/09/21 16:03:20 zkaufman Exp $";
 char *Progname = NULL;
 static char *relabel_gca_name = NULL ;
 static char *relabel_norm_name = NULL ;
@@ -862,49 +862,63 @@ int main(int argc, char **argv)
     GCAregularizeCovariance(gca,1.0);   // don't use covariances for this classification
     GCAreclassifyUsingGibbsPriors(mri_norm, gca, ASeg, xform, 10, mri_fixed, 1, NULL, 0.5, 0.5);
     {
-      int        x, y, z ;
+      int        x, y, z, i ;
+      MRI        *mri_tmp  = NULL ;
 
-      for (x = 0 ; x < mri_norm->width ; x++)
-	for (y = 0 ; y < mri_norm->height ; y++)
-	  for (z = 0 ; z < mri_norm->depth ; z++)
-	  {
-	    if (MRIgetVoxVal(mri_fixed, x, y, z, 0) > 0)
-	      continue ;
-	    if ((int)MRIgetVoxVal(ASeg, x, y, z, 0) > 0)  // only process voxels that are interior to the ribbon and unknown - shouldn't be
-	      continue ;
-	    if ((MRIlabelsInNbhd(ASeg,  x,  y,  z, 1, Left_Lateral_Ventricle)  > 0 ) ||
-		(MRIlabelsInNbhd(ASeg,  x,  y,  z, 1, Right_Lateral_Ventricle)  > 0))   // neighbors a ventricular label
-	    {
-	      GCA_NODE *gcan ;
-	      int      xn, yn, zn, n, max_label = -1, label ;
-	      double   mah_dist, min_mah_dist ;
-	      float    vals[100] ;
-	      
-	      if (x  == Gx && y == Gy && z == Gz)
-		DiagBreak() ;
-	      GCAsourceVoxelToNode( gca, mri_norm, xform, x,  y, z, &xn, &yn, &zn) ;
- 	      gcan = GCAbuildRegionalGCAN(gca, xn, yn, zn, 3);
-	      load_vals(mri_norm, x, y, z, vals, mri_norm->nframes) ;
-	      min_mah_dist = 1e10 ;
-	      for (n = 0 ; n < gcan->nlabels ; n++)
+      for (i = 0 ; i < 2 ; i++)
+      {
+	mri_tmp = MRIcopy(ASeg, mri_tmp);
+	  for (x = 0 ; x < mri_norm->width ; x++)
+	    for (y = 0 ; y < mri_norm->height ; y++)
+	      for (z = 0 ; z < mri_norm->depth ; z++)
 	      {
-		label = gcan->labels[n] ;
-		if (IS_CORTEX(label) || label == 0)
-		  continue ;   // prohibited interior to white
-		mah_dist = GCAmahDist( &gcan->gcs[n], vals, mri_norm->nframes);
-		if (mah_dist < min_mah_dist)
+		if (MRIgetVoxVal(mri_fixed, x, y, z, 0) > 0)
+		  continue ;
+		if ((int)MRIgetVoxVal(ASeg, x, y, z, 0) > 0)  // only process voxels that are interior to the ribbon and unknown - shouldn't be
+		  continue ;
+		if ((MRIlabelsInNbhd(mri_tmp,  x,  y,  z, 1, Left_Lateral_Ventricle)  > 0 ) ||
+		    (MRIlabelsInNbhd(mri_tmp,  x,  y,  z, 1, Right_Lateral_Ventricle)  > 0))   // neighbors a ventricular label
 		{
-		  min_mah_dist = mah_dist ;
-		  max_label = gcan->labels[n] ;
+		  GCA_NODE *gcan ;
+		  int      xn, yn, zn, n, max_label = -1, label ;
+		  double   mah_dist, min_mah_dist ;
+		  float    vals[MAX_GCA_INPUTS] ;
+		  
+		  if (x  == Gx && y == Gy && z == Gz)
+		    DiagBreak() ;
+		  GCAsourceVoxelToNode( gca, mri_norm, xform, x,  y, z, &xn, &yn, &zn) ;
+		  gcan = GCAbuildRegionalGCAN(gca, xn, yn, zn, 3);
+		  load_vals(mri_norm, x, y, z, vals, mri_norm->nframes) ;
+		  min_mah_dist = 1e10 ;
+		  for (n = 0 ; n < gcan->nlabels ; n++)
+		  {
+		    label = gcan->labels[n] ;
+		    if (IS_CORTEX(label) || label == 0)
+		      continue ;   // prohibited interior to white
+		    mah_dist = GCAmahDist( &gcan->gcs[n], vals, mri_norm->nframes);
+		    if (mah_dist < min_mah_dist)
+		    {
+		      min_mah_dist = mah_dist ;
+		      max_label = gcan->labels[n] ;
+		    }
+		  }
+		  if (x  == Gx && y == Gy && z == Gz)
+		    printf("reclassifying unknown voxel (%d, %d, %d) that neighbors ventricle %s --> %s (%d)\n", 
+			   x, y, z, cma_label_to_name(MRIgetVoxVal(mri_tmp, x, y, z, 0)), cma_label_to_name(max_label), max_label) ;
+		  MRIsetVoxVal(ASeg, x, y, z, 0, max_label) ;
+		  GCAfreeRegionalGCAN(&gcan) ;
 		}
 	      }
-	      if (x  == Gx && y == Gy && z == Gz)
-		printf("reclassifying unknown voxel (%d, %d, %d) that neighbors ventricle %s --> %s (%d)\n", 
-		       x, y, z, cma_label_to_name(MRIgetVoxVal(ASeg, x, y, z, 0)), cma_label_to_name(max_label), max_label) ;
-	      MRIsetVoxVal(ASeg, x, y, z, 0, max_label) ;
-	      GCAfreeRegionalGCAN(&gcan) ;
-	    }
-	  }
+	if (Gdiag & DIAG_WRITE)
+	{
+	  char fname[STRLEN], fonly[STRLEN] ;
+	  FileNameRemoveExtension(OutASegFile, fonly) ;
+	  sprintf(fname, "%s.%3.3d.mgz", fonly, i) ;
+	  printf("writing iter %d to %s\n", i, fname) ;
+	  MRIwrite(ASeg, fname) ;
+	}
+      }
+      MRIfree(&mri_tmp) ;
     }
 		
 
