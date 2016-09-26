@@ -8,9 +8,9 @@
 #
 # Original Author: Martin Reuter
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2015/11/13 17:01:50 $
-#    $Revision: 1.28 $
+#    $Author: zkaufman $
+#    $Date: 2016/09/26 18:14:14 $
+#    $Revision: 1.28.2.1 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -293,7 +293,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.28 2015/11/13 17:01:50 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_submit_jobs,v 1.28.2.1 2016/09/26 18:14:14 zkaufman Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -688,7 +688,7 @@ def run_base(qdectable,options):
             print 'TP id: '+tpid+'\n'
             tps = tps+" -tp "+tpid
 
-            crossdepend = "aseg.mgz"
+            crossdepend = "norm.mgz"
             requirement = os.path.join("mri",crossdepend)
             status = check_file(options.cdir,tpid,requirement)
             
@@ -862,14 +862,14 @@ def run_long(qdectable,options):
         if not options.simulate and not os.path.exists(baseinldir):
             os.symlink(baseinbdir, baseinldir)
             
-        # check / wait for ALL aseg.mgz in cross tps
+        # check / wait for ALL norm.mgz in cross tps
         skip = False
         for tp in tplist:
             tpid = tp[0]
             print 'CHECK TP cross: '+tpid+'\n'
             
             
-            crossdepend = "aseg.mgz"
+            crossdepend = "norm.mgz"
             requirement = os.path.join("mri",crossdepend)
             status = check_file(options.cdir,tpid,requirement)
 
@@ -1011,7 +1011,7 @@ def check_long(qdectable,options):
         print '\n========================================\n'
         print '[CHECK] Subject: '+subjectid+'\n'
 
-        # check / wait for ALL aseg.mgz in cross tps
+        # check / wait for ALL norm.mgz in cross tps
         done = 0;
         for tp in tplist:
             tpid = tp[0]
