@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/05/31 18:30:40 $
- *    $Revision: 1.48 $
+ *    $Date: 2016/09/27 15:45:33 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -132,6 +132,10 @@ public:
   void TkRegToNativeRAS( const double* pos_in, double* pos_out );
 
   void NativeRASToTkReg( const double* pos_in, double* pos_out );
+
+  bool RASToTalairachVoxel(const double* pos_in, double* pos_out);
+
+  void TalairachVoxelToRAS(const double* pos_in, double* pos_out);
 
   void SetMRITarget( MRI* mri );
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/09/06 16:09:03 $
- *    $Revision: 1.21 $
+ *    $Date: 2016/09/27 15:45:33 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include "LayerPropertySurface.h"
 #include "LayerSurface.h"
 #include "FSSurface.h"
+#include "FSVolume.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceAnnotation.h"
 #include "MyUtils.h"
@@ -109,21 +110,41 @@ void InfoTreeWidget::UpdateAll()
   map["EditableText"] = item->text(1);
   item->setData(1, Qt::UserRole, map);
 
-  if (!lc_mri->IsEmpty() && m_bShowTkRegRAS)
+  if (!lc_mri->IsEmpty())
   {
     double tkRegRAS[3];
     LayerMRI* mri = qobject_cast<LayerMRI*>(lc_mri->GetActiveLayer());
-    mri->NativeRASToTkReg(ras, tkRegRAS);
+    if (m_bShowTkRegRAS)
+    {
+        mri->NativeRASToTkReg(ras, tkRegRAS);
+        item = new QTreeWidgetItem(this);
+        item->setText(0, QString("TkReg RAS (%1)").arg(mri->GetName()));
+        map.clear();
+        item->setText(1, QString("%1, %2, %3")
+                      .arg(tkRegRAS[0], 0, 'f', 2)
+                .arg(tkRegRAS[1], 0, 'f', 2)
+                .arg(tkRegRAS[2], 0, 'f', 2));
+        map["Type"] = "TkRegRAS";
+        map["EditableText"] = item->text(1);
+        item->setData(1, Qt::UserRole, map);
+    }
+    FSVolume*vol = mri->GetSourceVolume();
     item = new QTreeWidgetItem(this);
-    item->setText(0, QString("TkReg RAS (%1)").arg(mri->GetName()));
-    map.clear();
-    item->setText(1, QString("%1, %2, %3")
-                  .arg(tkRegRAS[0], 0, 'f', 2)
-                  .arg(tkRegRAS[1], 0, 'f', 2)
-                  .arg(tkRegRAS[2], 0, 'f', 2));
-    map["Type"] = "TkRegRAS";
-    map["EditableText"] = item->text(1);
-    item->setData(1, Qt::UserRole, map);
+    item->setText(0, QString("Talairach (%1)").arg(mri->GetName()));
+    double tpos[3];
+    if (vol->RASToTalairachVoxel(ras, tpos))
+    {
+        map.clear();
+        item->setText(1, QString("%1, %2, %3")
+                      .arg(tpos[0], 0, 'f', 2)
+                .arg(tpos[1], 0, 'f', 2)
+                .arg(tpos[2], 0, 'f', 2));
+        map["Type"] = "Talairach";
+        map["EditableText"] = item->text(1);
+        item->setData(1, Qt::UserRole, map);
+    }
+    else
+        item->setText(1, "N/A");
   }
 
   for (int i = 0; i < lc_mri->GetNumberOfLayers(); i++)
@@ -365,6 +386,16 @@ void InfoTreeWidget::OnEditFinished()
             mri->TkRegToNativeRAS(ras, ras);
             mri->RASToTarget( ras, ras );
           }
+        }
+        else if (type == "Talairach")
+        {
+            LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetLayerCollection("MRI")->GetActiveLayer();
+            if ( mri )
+            {
+                FSVolume* vol = mri->GetSourceVolume();
+                vol->TalairachVoxelToRAS(ras, ras);
+                mri->RASToTarget( ras, ras );
+            }
         }
         else if (type == "MRI")
         {

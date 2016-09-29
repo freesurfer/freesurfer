@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/21 17:31:10 $
- *    $Revision: 1.110 $
+ *    $Date: 2016/09/27 15:45:33 $
+ *    $Revision: 1.111 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1340,6 +1340,30 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
   r = ::MRIworldToVoxelIndex(m_MRI, wx, wy, wz, &oIdxX, &oIdxY, &oIdxZ );
 
   return r;
+}
+
+bool FSVolume::RASToTalairachVoxel(const double *pos_in, double *pos_out)
+{
+    Real x, y, z;
+    if (m_MRI->linear_transform)
+    {
+        ::MRIworldToTalairachVoxel(m_MRI, pos_in[0], pos_in[1], pos_in[2], &x, &y, &z);
+        pos_out[0] = x;
+        pos_out[1] = y;
+        pos_out[2] = z;
+        return true;
+    }
+    else
+        return false;
+}
+
+void FSVolume::TalairachVoxelToRAS(const double *pos_in, double *pos_out)
+{
+    Real x, y, z;
+    ::MRItalairachVoxelToWorld(m_MRI, pos_in[0], pos_in[1], pos_in[2], &x, &y, &z);
+    pos_out[0] = x;
+    pos_out[1] = y;
+    pos_out[2] = z;
 }
 
 MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, bool bConform )
