@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/12/14 23:18:58 $
- *    $Revision: 1.54 $
+ *    $Date: 2016/09/27 18:50:16 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,7 +65,7 @@
 #define  START_i        3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.54 2015/12/14 23:18:58 greve Exp $";
+  "$Id: mris_calc.c,v 1.55 2016/09/27 18:50:16 greve Exp $";
 double fn_sign(float af_A);
 
 // ----------------------------------------------------------------------------
@@ -166,6 +166,7 @@ typedef enum _operation
   e_sum,
   e_prod,
   e_norm,
+  e_log,
   e_unknown
 } e_operation;
 
@@ -216,6 +217,7 @@ const char* Gppch_operation[] =
   "sum",
   "product",
   "normalize",
+  "log",
   "unknown operation"
 };
 
@@ -435,11 +437,13 @@ double  fn_masked(float af_A, float af_B)
 // Simple functions on one argument
 double fn_log10(float af_A)
 {
-  if(af_A == 0)
-  {
-    return(0);
-  }
-  return (log10(af_A));
+  if(af_A <= 0) return(0);
+  return(log10(af_A));
+}
+double fn_log(float af_A)
+{
+  if(af_A <= 0) return(0);
+  return(log(af_A));
 }
 double fn_abs(float af_A)
 {
@@ -1438,7 +1442,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.54 2015/12/14 23:18:58 greve Exp $",
+           "$Id: mris_calc.c,v 1.55 2016/09/27 18:50:16 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1819,6 +1823,10 @@ operation_lookup(
   {
     e_op    = e_norm;
   }
+  else if(!strcmp(apch_operation, "log"))
+  {
+    e_op    = e_log;
+  }
 
   else if(!strcmp(apch_operation, "ascii"))
   {
@@ -2185,7 +2193,8 @@ b_outCurvFile_write(e_operation e_op)
     e_op == e_orbw          ||
     e_op == e_upperlimit    ||
     e_op == e_lowerlimit    ||
-    e_op == e_norm
+    e_op == e_norm          ||
+    e_op == e_log
   )
   {
     b_ret = 1;
@@ -2389,6 +2398,9 @@ CURV_process(void)
     CURV_set(&G_pf_arrayCurv2, G_sizeCurv1, f_range);
     // v3 = v1 / v2
     CURV_functionRunABC(fn_div);
+    break;
+  case  e_log:
+    CURV_functionRunAC(fn_log);
     break;
   case  e_unknown:
     // The operand is unknown
