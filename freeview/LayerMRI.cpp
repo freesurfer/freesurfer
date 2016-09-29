@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:52:37 $
- *    $Revision: 1.169.2.1 $
+ *    $Date: 2016/09/29 14:29:05 $
+ *    $Revision: 1.169.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -803,6 +803,7 @@ void LayerMRI::UpdateColorMap()
 {
   assert( GetProperty() );
 
+
   if ( !mColorMap[0].GetPointer() )
   {
     return;
@@ -1107,6 +1108,19 @@ void LayerMRI::UpdateDisplayMode()
     {
       m_glyphActor2D[i]->GetProperty()->SetInterpolationToFlat();
       m_glyphActor3D[i]->GetProperty()->SetInterpolationToFlat();
+    }
+    if (GetProperty()->GetDisplayRGB())
+    {
+        vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+        cast->SetInput(mReslice[i]->GetOutput());
+        cast->SetOutputScalarTypeToUnsignedChar();
+        m_sliceActor2D[i]->SetInput( cast->GetOutput() );
+        m_sliceActor3D[i]->SetInput( cast->GetOutput() );
+    }
+    else
+    {
+        m_sliceActor2D[i]->SetInput( mColorMap[i]->GetOutput() );
+        m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
     }
   }
   if ( GetProperty()->GetDisplayVector() )
