@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/06/10 20:41:43 $
- *    $Revision: 1.5 $
+ *    $Date: 2016/09/23 20:23:11 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-// $Id: mri_sbbr.c,v 1.5 2016/06/10 20:41:43 greve Exp $
+// $Id: mri_sbbr.c,v 1.7 2016/09/23 20:23:11 greve Exp $
 
 /*
   BEGINHELP
@@ -145,7 +145,7 @@ int SSBmin1D(SBBR *sbbr);
 int MRIScomputeFaceNormal(MRIS *surf, int faceno, double snorm[3]);
 int NormalizeVect3(double v[3]) ;
 
-static char vcid[] = "$Id: mri_sbbr.c,v 1.5 2016/06/10 20:41:43 greve Exp $";
+static char vcid[] = "$Id: mri_sbbr.c,v 1.7 2016/09/23 20:23:11 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -254,9 +254,9 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
   printf("init cost = %6.4lf, nhits = %d\n",sbbr->cost,sbbr->nhits);
+  SBBRcost(sbbr);
 
   SBBRsearchRange(sbbr);
-  
   if(cmdargs->search) SBBRbruteSearch(sbbr);
   if(cmdargs->search1d){
     printf("1D Search ----------------------\n");
@@ -546,7 +546,6 @@ static void dump_options(FILE *fp) {
 double SBBRcost(SBBR *sbbr)
 {
   int faceno,nhits,n;
-  VERTEX *vtx;
   double cost,sumcost,detSign;
   double coutdistvox, routdistvox, cindistvox, rindistvox;
   MRIS *surf = sbbr->surf;
@@ -573,7 +572,9 @@ double SBBRcost(SBBR *sbbr)
   MRISmatrixMultiply(surf,sbbr->Surf2Vox);
 
   //FILE *fp;
-  //fp = fopen("2d.dat","w");
+  //char tmpstr[1000];
+  //sprintf(tmpstr,"cost.%03d.dat",nthcall);
+  //fp = fopen(tmpstr,"w");
   nhits = 0;
   sumcost = 0;
 #ifdef HAVE_OPENMP
@@ -581,6 +582,7 @@ double SBBRcost(SBBR *sbbr)
 #endif
   for(faceno=0; faceno < surf->nfaces; faceno += sbbr->inc) {
     FACE *face;
+    VERTEX *vtx;
     int npos,vtxno,skip,i0=0,i1=0,i2=0,m,oob,n;
     double dz[3],cA,rA,sA,cB,rB,sB;
     double dAB,nABc,nABr,nABs,t,c0[2],r0[2];
@@ -682,9 +684,9 @@ double SBBRcost(SBBR *sbbr)
     fcost = BBRcost(uval, lval, sbbr->bbrslope, sbbr->bbrcenter,sbbr->bbrsign,&pct);
     sumcost += fcost;
 
-    //printf("%7d   %7.4lf %7.4lf %7.4f    %7.4lf %7.4lf %7.4f   %7.4f\n",
-    //faceno,uc,ur,uval,lc,lr,lval,fcost);
-    //fprintf(fp,"%7d   %7.4lf %7.4lf %7.4f    %7.4lf %7.4lf %7.4f   %7.4f   %6.4f %6.4f %6.4f %6.4f  %6.4f %6.4f  %6.4f %6.4f  %6.4f\n",
+    //printf(   "%7d   %7.4lf %7.4lf %7.4f    %7.4lf %7.4lf %7.4f   %7.4f\n",
+    //	      faceno,uc,ur,uval,lc,lr,lval,fcost);
+     //    fprintf(fp,"%7d   %7.4lf %7.4lf %7.4f    %7.4lf %7.4lf %7.4f   %7.4f   %6.4f %6.4f %6.4f %6.4f  %6.4f %6.4f  %6.4f %6.4f  %6.4f\n",
     //	    faceno,uc,ur,uval,lc,lr,lval,0.0,c0[0],r0[0],c0[1],r0[1],c0mn,r0mn,snc,snr,fcost);
 
   } // end face loop
@@ -948,6 +950,7 @@ int SBBRsearchRange(SBBR *sbbr)
 
   for(n=0; n < sbbr->nparams; n++)
     sbbr->pdelta[n] = (sbbr->pmax[n]-sbbr->pmin[n])/(sbbr->searchnper-1);
+  printf("Search ranges\n");
   for(n = 0; n < sbbr->nparams; n++)  
     printf("  %2d %7.4f %7.4f %7.4f \n",n,sbbr->pmin[n],sbbr->pmax[n],sbbr->pdelta[n]);
 
@@ -1233,16 +1236,17 @@ int MRIScomputeFaceNormal(MRIS *surf, int faceno, double snorm[3])
 int SBBRbruteSearch(SBBR *sbbr)
 {
   double p[12],mincost,popt[12];
-  long iter;
+  long totiter,iter;
   int newmin,nthp;
   struct timeb timer;
 
   TimerStart(&timer);
 
-  iter = pow(sbbr->searchnper,sbbr->nparams);
-  printf("Starting search over %ld iterations (%d,%d)\n",iter,sbbr->nparams,sbbr->searchnper);
+  totiter = pow(sbbr->searchnper,sbbr->nparams);
+  printf("Starting search over %ld iterations (%d,%d)\n",totiter,sbbr->nparams,sbbr->searchnper);
 
   mincost = SBBRcost(sbbr);
+  printf("Starting cost %lf\n",mincost);
   iter = 0;
   for(p[0] = sbbr->pmin[0]; p[0] <= sbbr->pmax[0]; p[0] += sbbr->pdelta[0]){
     for(p[1] = sbbr->pmin[1]; p[1] <= sbbr->pmax[1]; p[1] += sbbr->pdelta[1]){
@@ -1253,10 +1257,11 @@ int SBBRbruteSearch(SBBR *sbbr)
 
 	      if(sbbr->nparams == 6){
 		newmin = SBBRbruteSearchUpdate(sbbr, p, popt, &mincost);
-		if(newmin || iter == 0){
+		if(newmin || iter == 0 || iter%1000 == 0){
 		  printf("%6ld %6.7f ",iter,mincost);
 		  for(nthp = 0; nthp < sbbr->nparams; nthp++)  printf("%7.4f ",popt[nthp]);
-		  printf("\n");
+		  // Time (min) remaining
+		  printf("%7.2f \n",(((totiter-iter)*TimerStop(&timer)/(iter+1))/1000.0)/60.0);
 		  fflush(stdout);
 		}
 		iter++;
@@ -1271,7 +1276,7 @@ int SBBRbruteSearch(SBBR *sbbr)
 		    if(newmin || iter == 0){
 		      printf("%6ld %6.7f ",iter,mincost);
 		      for(nthp = 0; nthp < sbbr->nparams; nthp++)  printf("%7.4f ",popt[nthp]);
-		      printf("\n");
+		      printf("%7.2f \n",(((totiter-iter)*TimerStop(&timer)/(iter+1))/1000.0)/60.0);
 		      fflush(stdout);
 		    }
 		    iter++;
@@ -1286,7 +1291,7 @@ int SBBRbruteSearch(SBBR *sbbr)
 			if(newmin || iter == 0){
 			  printf("%6ld %6.7f ",iter,mincost);
 			  for(nthp = 0; nthp < sbbr->nparams; nthp++)  printf("%7.4f ",popt[nthp]);
-			  printf("\n");
+			  printf("%7.2f \n",(((totiter-iter)*TimerStop(&timer)/(iter+1))/1000.0)/60.0);
 			  fflush(stdout);
 			}
 			iter++;
