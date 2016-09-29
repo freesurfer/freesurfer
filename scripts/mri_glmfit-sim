@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.60.2.2 2016/09/08 15:36:48 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.60.2.3 2016/09/28 21:44:30 greve Exp $';
 setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
@@ -17,6 +17,7 @@ set LF = ();
 set AllDoneFile = ();
 set Seed = ();
 set fwhmOverride = ();
+set fwhmAdd = 0;
 set UseUniformPDF = 0;
 set UniformPDFMin = ();
 set UniformPDFMax = ();
@@ -350,8 +351,8 @@ if($#fwhmOverride) then
 endif
 
 if($UseCache) then
-  set fwhm = `cat $glmdir/fwhm.dat`;
-  set fwhmStr = `perl -e "printf('"'%02d'"',int ( $fwhm+.5 ) ) "`
+  #set fwhm = `cat $glmdir/fwhm.dat`;
+  set fwhmStr = `perl -e "printf('"'%02d'"',int ( $fwhm+0.5+$fwhmAdd ) ) "`
   if($fwhmStr == 00)   set fwhmStr = 01;
   set threshStr = `perl -e "print 10*$thresh"`;
   set csdCache = $CacheDir/$subject/$hemi/$CacheLabel/fwhm$fwhmStr/$simsign/th$threshStr/mc-z.csd
@@ -360,7 +361,7 @@ if($UseCache) then
     exit 1;
   endif
   echo CSD $csdCache | tee -a $LF
-  set csdbase = cache.th$threshStr.$simsign
+  if($#csdbase == 0) set csdbase = cache.th$threshStr.$simsign
 endif
 
 if($DoSim) then
@@ -792,6 +793,11 @@ while( $#argv != 0 )
       set fwhmOverride = $argv[1]; shift;
       breaksw
 
+    case "--fwhm-add":
+      if($#argv < 1) goto arg1err;
+      set fwhmAdd = $argv[1]; shift;
+      breaksw
+
     case "--perm-force":
       set PermForce = 1;
       breaksw
@@ -823,6 +829,11 @@ while( $#argv != 0 )
       set UniformPDFMin = $argv[1]; shift;
       set UniformPDFMax = $argv[1]; shift;
       set UseUniformPDF = 1;
+      breaksw
+
+    case "--base":
+      if($#argv < 1) goto arg1err;
+      set csdbase = $argv[1]; shift;
       breaksw
 
     case "--no-sim":
@@ -944,9 +955,11 @@ usage_exit:
   echo ""
   echo " --log logfile : default is csdbase.mri_glmfit-sim.log"
   echo ""
+  echo " --base csdbase : override csdbase name"
   echo " --no-sim csdbase : do not simulate, only run cluster"
   echo " --seed seed : set simluation seed"
   echo " --fwhm-override fwhm : override fwhm in glmdir":
+  echo " --fwhm-add fwhmAdd : add fwhmAdd to the estimated fwhm before addressing table":
   echo " --uniform min max : use uniform PDF instead of gaussian":
   echo " --no-y : do not compute means of each subject in each cluster"
   echo " --no-out-annot : do not output a cluster annotation"
