@@ -11,9 +11,9 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:31:41 $
- *    $Revision: 1.42 $
+ *    $Author: rpwang $
+ *    $Date: 2016/09/28 16:28:20 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -95,7 +95,8 @@ LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
   m_bNormalizeVector(true),
   m_dVectorDisplayScale(1.0),
   m_bHeatScaleAutoMid(true),
-  m_nProjectionMapType(0)
+  m_nProjectionMapType(0),
+  m_bDisplayRGB(false)
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -731,7 +732,15 @@ void LayerPropertyMRI::BuildGenericLUT( const int colors[256][3] )
 void LayerPropertyMRI::SetDisplayVector( bool b )
 {
   m_bDisplayVector = b;
+  m_bDisplayRGB = false;
   emit DisplayModeChanged();
+}
+
+void LayerPropertyMRI::SetDisplayRGB(bool b)
+{
+    m_bDisplayRGB = b;
+    m_bDisplayVector = false;
+    emit DisplayModeChanged();
 }
 
 void LayerPropertyMRI::SetNormalizeVector(bool b)

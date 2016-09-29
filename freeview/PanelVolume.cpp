@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/09/06 16:09:03 $
- *    $Revision: 1.105 $
+ *    $Date: 2016/09/28 16:28:20 $
+ *    $Revision: 1.106 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -232,10 +232,11 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->spinBoxFrame, SIGNAL(valueChanged(int)), layer, SLOT(SetActiveFrame(int)) );
   connect( ui->checkBoxDisplayVector, SIGNAL(toggled(bool)), p, SLOT(SetDisplayVector(bool)) );
   connect( ui->checkBoxDisplayTensor, SIGNAL(toggled(bool)), p, SLOT(SetDisplayTensor(bool)) );
-  connect( ui->checkBoxNormalizeVectors, SIGNAL(toggled(bool)), p, SLOT(SetNormalizeVector(bool)));
+  connect( ui->checkBoxDisplayRGB, SIGNAL(toggled(bool)), p, SLOT(SetDisplayRGB(bool)) );
+  connect( ui->checkBoxNormalizeVectors, SIGNAL(toggled(bool)), p, SLOT(SetNormalizeVector(bool)) );
   connect( ui->comboBoxRenderObject, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorRepresentation(int)) );
   connect( ui->comboBoxInversion, SIGNAL(currentIndexChanged(int)), p, SLOT(SetVectorInversion(int)) );
-  connect( ui->comboBoxProjectionMapType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnComboProjectionMapType(int)));
+  connect( ui->comboBoxProjectionMapType, SIGNAL(currentIndexChanged(int)), this, SLOT(OnComboProjectionMapType(int)) );
   if ( layer->IsTypeOf( "DTI" ) )
     connect( ui->comboBoxDirectionCode, SIGNAL(currentIndexChanged(int)),
              qobject_cast<LayerDTI*>(layer)->GetProperty(), SLOT(SetDirectionCode(int)) );
@@ -537,7 +538,8 @@ void PanelVolume::DoUpdateWidgets()
     }
   }
 
-  bool bNormalDisplay = (layer && !layer->GetProperty()->GetDisplayVector() && !layer->GetProperty()->GetDisplayTensor());
+  bool bNormalDisplay = (layer && !layer->GetProperty()->GetDisplayVector()
+                         && !layer->GetProperty()->GetDisplayTensor() && !layer->GetProperty()->GetDisplayRGB());
 
   if (layer && layer->IsTypeOf("VolumeTrack"))
   {
@@ -553,7 +555,7 @@ void PanelVolume::DoUpdateWidgets()
     ShowWidgets( m_widgetlistHeatScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Heat );
     ShowWidgets( m_widgetlistGenericColorMap, (bNormalDisplay && nColorMap != LayerPropertyMRI::LUT &&
                  nColorMap != LayerPropertyMRI::DirectionCoded) ||
-                (layer && layer->IsTypeOf("DTI") && !layer->GetProperty()->GetDisplayVector()) );
+                (layer && layer->IsTypeOf("DTI") && !layer->GetProperty()->GetDisplayVector() && !layer->GetProperty()->GetDisplayRGB()) );
     ShowWidgets( m_widgetlistLUT, bNormalDisplay && nColorMap == LayerPropertyMRI::LUT );
     ShowWidgets( m_widgetlistDirectionCode, bNormalDisplay && nColorMap == LayerPropertyMRI::DirectionCoded );
     ShowWidgets( m_widgetlistEditable, bNormalDisplay && layer->IsEditable() );
@@ -565,7 +567,8 @@ void PanelVolume::DoUpdateWidgets()
 
     ui->sliderFrame->setEnabled( layer &&
                                  !layer->GetProperty()->GetDisplayVector() &&
-                                 !layer->GetProperty()->GetDisplayTensor() );
+                                 !layer->GetProperty()->GetDisplayTensor() &&
+                                 !layer->GetProperty()->GetDisplayRGB());
     ui->spinBoxFrame->setEnabled( layer &&
                                   !layer->GetProperty()->GetDisplayVector() &&
                                   !layer->GetProperty()->GetDisplayTensor() );
@@ -573,8 +576,10 @@ void PanelVolume::DoUpdateWidgets()
     ui->checkBoxDisplayVector->setChecked( layer && layer->GetProperty()->GetDisplayVector() );
     ui->checkBoxDisplayTensor->setVisible( layer && layer->GetNumberOfFrames() == 9 );
     ui->checkBoxDisplayTensor->setChecked( layer && layer->GetProperty()->GetDisplayTensor() );
+    ui->checkBoxDisplayRGB->setVisible(layer && layer->GetNumberOfFrames() == 3);
+    ui->checkBoxDisplayRGB->setChecked(layer && layer->GetProperty()->GetDisplayRGB());
     ShowWidgets( m_widgetlistVector, ui->checkBoxDisplayVector->isChecked() || ui->checkBoxDisplayTensor->isChecked() );
-    ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() );
+    ShowWidgets( m_widgetlistContour, ui->checkBoxShowContour->isChecked() && !layer->GetProperty()->GetDisplayRGB() );
     if ( layer && layer->GetProperty()->GetDisplayVector() )
     {
       if (layer->GetProperty()->GetNormalizeVector())

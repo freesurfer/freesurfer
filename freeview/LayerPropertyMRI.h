@@ -11,8 +11,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/24 17:11:04 $
- *    $Revision: 1.21 $
+ *    $Date: 2016/09/28 16:28:20 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -219,6 +219,11 @@ public:
     return m_bDisplayVector;
   }
 
+  bool GetDisplayRGB()
+  {
+      return m_bDisplayRGB;
+  }
+
   bool GetDisplayTensor()
   {
     return m_bDisplayTensor;
@@ -386,6 +391,7 @@ public slots:
   void SetWindow( double iWindow );
   void SetLevel ( double iLevel );
   void SetDisplayVector( bool b );
+  void SetDisplayRGB(bool b);
   void SetNormalizeVector( bool b);
   void SetVectorDisplayScale(double val);
   void SetDisplayTensor( bool b );
@@ -501,6 +507,8 @@ private:
   bool    m_bNormalizeVector;
   double  m_dVectorDisplayScale;
   double  m_dVectorScale;
+
+  bool    m_bDisplayRGB;
 
   bool    m_bDisplayTensor;
   int     m_nTensorInversion;
