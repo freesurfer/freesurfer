@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.24 $
+ *    $Date: 2016/09/29 14:29:05 $
+ *    $Revision: 1.24.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,29 +48,29 @@ LUTDataHolder::LUTDataHolder()
     }
   }
 
-  fi.setFile( fs_home + "/tkmeditParcColorsCMA" );
-  if (fi.exists())
-  {
-    ctd.filename = fi.absoluteFilePath();
-    ctd.table = CTABreadASCII( ctd.filename.toAscii().data() );
-    ctd.name = "tkmeditParcColorsCMA";
-    if ( ctd.table )
-    {
-      m_tables.push_back( ctd );
-    }
-  }
+//  fi.setFile( fs_home + "/tkmeditParcColorsCMA" );
+//  if (fi.exists())
+//  {
+//    ctd.filename = fi.absoluteFilePath();
+//    ctd.table = CTABreadASCII( ctd.filename.toAscii().data() );
+//    ctd.name = "tkmeditParcColorsCMA";
+//    if ( ctd.table )
+//    {
+//      m_tables.push_back( ctd );
+//    }
+//  }
 
-  fi.setFile( fs_home + "/Simple_surface_labels2009.txt" );
-  if (fi.exists())
-  {
-    ctd.filename = fi.absoluteFilePath();
-    ctd.table = CTABreadASCII( ctd.filename.toAscii().data() );
-    ctd.name = "Simple_surface_labels2009";
-    if ( ctd.table )
-    {
-      m_tables.push_back( ctd );
-    }
-  }
+//  fi.setFile( fs_home + "/Simple_surface_labels2009.txt" );
+//  if (fi.exists())
+//  {
+//    ctd.filename = fi.absoluteFilePath();
+//    ctd.table = CTABreadASCII( ctd.filename.toAscii().data() );
+//    ctd.name = "Simple_surface_labels2009";
+//    if ( ctd.table )
+//    {
+//      m_tables.push_back( ctd );
+//    }
+//  }
 
   if ( m_tables.isEmpty() )
   {
