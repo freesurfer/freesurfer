@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/03/20 14:12:27 $
- *    $Revision: 1.570 $
+ *    $Date: 2016/09/28 16:40:15 $
+ *    $Revision: 1.571 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.570 $";
+const char *MRI_C_VERSION = "$Revision: 1.571 $";
 
 
 /*-----------------------------------------------------
@@ -3271,7 +3271,13 @@ MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw,
 {
   double  xt, yt, zt ;
 
-  transform_point(mri->linear_transform, xw, yw, zw, &xt, &yt, &zt) ;
+  if (mri->linear_transform == NULL)
+  {
+    xt = xw ; yt = yw ; zt = zw ;
+  }
+  else
+    transform_point(mri->linear_transform, xw, yw, zw, &xt, &yt, &zt) ;
+
   MRIworldToVoxel(mri, xt, yt, zt, pxv, pyv, pzv) ;
   return(NO_ERROR) ;
 }
@@ -19404,4 +19410,33 @@ MRImeanAndVarianceInNbhd(MRI *mri, int wsize, int x, int y, int z, int frame, do
   var = (var/total - mean*mean) ;
   *pvar = var ;
   return(mean) ;
+}
+/*----------------------------------------------------------------------
+            Parameters:
+
+           Description:
+             corrupt an image with additive zero mean gaussian noise.
+----------------------------------------------------------------------*/
+MRI *
+MRIaddNoise(MRI *mri_in, MRI *mri_out, float amp)
+{
+  float   out, gnoise ;
+  int     x, y, z, f ;
+
+  if (mri_out == NULL)
+    mri_out = MRIclone(mri_in, NULL) ;
+
+  for (f = 0 ; f < mri_in->nframes ; f++)
+    for (x = 0 ; x < mri_in->width ; x++)
+      for (y = 0 ; y < mri_in->height ; y++)
+	for (z = 0 ; z < mri_in->depth ; z++)
+	{
+	  out = MRIgetVoxVal(mri_in, x, y, z, f) ;
+	  gnoise = (float)randomNumber(-(double)amp, (double)amp) ;
+	  out += gnoise ;
+	  MRIsetVoxVal(mri_out, x, y, z, f, out) ;
+	}
+
+
+  return(mri_out) ;
 }
