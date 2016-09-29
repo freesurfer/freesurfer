@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2016/09/15 01:44:42 $
-#    $Revision: 1.595 $
+#    $Date: 2016/09/28 22:03:24 $
+#    $Revision: 1.596 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.595 2016/09/15 01:44:42 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.596 2016/09/28 22:03:24 greve Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -4672,9 +4672,14 @@ if($DoAParc2ASeg) then
     cd $subjdir > /dev/null
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
+    if(! $longitudinal) then
+      set asegintensities = mri/aseg.auto_noCCseg.label_intensities.txt
+    else
+      set asegintensities = $longbasedir/mri/aseg.auto_noCCseg.label_intensities.txt
+    endif
     set cmd = (mri_aparc2aseg --s $subjid --volmask --aseg aseg.presurf.hypos  \
         --relabel mri/norm.mgz mri/transforms/talairach.m3z \
-        ${GCADIR}/$GCA mri/aseg.auto_noCCseg.label_intensities.txt)
+        ${GCADIR}/$GCA $asegintensities)
     if(${parc} != "aparc") then
       #  do Christophe and Mindboggle atlases (if exist)
       if( -e ${subjdir}/label/lh.aparc.${parc}.annot && \
