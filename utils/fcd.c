@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/02/26 18:16:21 $
- *    $Revision: 1.17 $
+ *    $Author: ohinds $
+ *    $Date: 2016/10/07 15:57:23 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,6 +27,7 @@
 #include "diag.h"
 #include "cma.h"
 #include "const.h"
+#include "label.h"
 #include "macros.h"
 #include "utils.h"
 #include "mrisegment.h"
@@ -57,9 +58,9 @@ most_frequent_label(MRI *mri_seg, MRI_SEGMENT *mseg)
   memset(label_counts, 0, sizeof(label_counts)) ;
   for (i = max_count = max_label = 0 ; i < mseg->nvoxels ; i++)
   {
-    label = MRIgetVoxVal(mri_seg, 
-                         mseg->voxels[i].x, 
-                         mseg->voxels[i].y, 
+    label = MRIgetVoxVal(mri_seg,
+                         mseg->voxels[i].x,
+                         mseg->voxels[i].y,
                          mseg->voxels[i].z, 0) ;
     if (IS_WM(label) == 0 && IS_UNKNOWN(label) == 0)
     {
@@ -289,9 +290,9 @@ FCDloadData(char *sdir, char *subject, char* suffix_in)
     ErrorExit(ERROR_NOFILE, "FCDloadData: couldn't load %s", fname) ;
   }
 
-  fcd->mri_thickness_increase = 
+  fcd->mri_thickness_increase =
     MRIcloneDifferentType(fcd->mri_aseg, MRI_FLOAT) ;
-  fcd->mri_thickness_decrease = 
+  fcd->mri_thickness_decrease =
     MRIcloneDifferentType(fcd->mri_aseg, MRI_FLOAT) ;
   fcd->mri_thickness_difference = MRIadd(fcd->mri_thickness_increase, fcd->mri_thickness_decrease, NULL);
 
@@ -370,7 +371,7 @@ FCDloadData(char *sdir, char *subject, char* suffix_in)
   {
     MRIwrite(mri_dist, "dist.mgz") ;
   }
-  mri_pvals = build_distance_by_intensity_histo(fcd->mri_norm, 
+  mri_pvals = build_distance_by_intensity_histo(fcd->mri_norm,
                                                 mri_dist,
                                                 fcd->mri_aseg,
                                                 DIST_SPACING,
@@ -505,16 +506,16 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
       double xs = v->x+d*v->nx ;
       double ys = v->y+d*v->ny ;
       double zs = v->z+d*v->nz ;
-      MRISsurfaceRASToVoxel(fcd->mris_lh, 
-                            fcd->mri_thickness_increase, 
-                            xs, ys, zs, 
+      MRISsurfaceRASToVoxel(fcd->mris_lh,
+                            fcd->mri_thickness_increase,
+                            xs, ys, zs,
                             &xv, &yv, &zv) ;
       int xvi = nint(xv) ;
       int yvi = nint(yv) ;
       int zvi = nint(zv) ;
       int label = MRIgetVoxVal(fcd->mri_aparc, xvi, yvi, zvi, 0) ;
-      if (IS_WM(label) == 0 && 
-          label >= MIN_CORTICAL_PARCELLATION && 
+      if (IS_WM(label) == 0 &&
+          label >= MIN_CORTICAL_PARCELLATION &&
           label != ctx_lh_unknown)
       {
         if (label != base_label)
@@ -587,7 +588,7 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
       double xs = v->x+d*v->nx ;
       double ys = v->y+d*v->ny ;
       double zs = v->z+d*v->nz ;
-      MRISsurfaceRASToVoxel(fcd->mris_rh, 
+      MRISsurfaceRASToVoxel(fcd->mris_rh,
                             fcd->mri_thickness_increase,
                             xs, ys, zs,
                             &xv, &yv, &zv) ;
@@ -595,8 +596,8 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
       int yvi = nint(yv) ;
       int zvi = nint(zv) ;
       int label = MRIgetVoxVal(fcd->mri_aparc, xvi, yvi, zvi, 0) ;
-      if (IS_WM(label) == 0 && 
-          label >= MIN_CORTICAL_PARCELLATION && 
+      if (IS_WM(label) == 0 &&
+          label >= MIN_CORTICAL_PARCELLATION &&
           label != ctx_rh_unknown)
       {
         if (label != base_label)
@@ -667,6 +668,26 @@ FCDcomputeThicknessLabels(FCD_DATA *fcd,
   MRIsegmentFree(&mriseg) ;
 
   return(fcd->nlabels) ;
+}
+
+int
+FCDwriteLabels(FCD_DATA *fcd, char* dir)
+{
+  int  s ;
+  char label_name[STRLEN] ;
+
+  for (s = 0 ; s < fcd->nlabels ; s++)
+  {
+    if (fcd->labels[s])
+    {
+      sprintf(label_name, "%s/fcd_%02d_%s", dir, s, fcd->labels[s]->name);
+      LabelWrite(fcd->labels[s], label_name) ;
+    }
+  }
+
+  printf("wrote FCD labels to %s\n", dir);
+
+  return(NO_ERROR);
 }
 
 static int
@@ -802,8 +823,8 @@ build_distance_by_intensity_histo(MRI *mri_norm,
           continue ;
         }
         label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
-        if (IS_WHITE_CLASS(label) == 0 && 
-            IS_CORTEX(label) == 0 && 
+        if (IS_WHITE_CLASS(label) == 0 &&
+            IS_CORTEX(label) == 0 &&
             label < MIN_CORTICAL_PARCELLATION)
         {
           continue ;
@@ -849,8 +870,8 @@ build_distance_by_intensity_histo(MRI *mri_norm,
           continue ;
         }
         label = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
-        if (IS_WHITE_CLASS(label) == 0 && 
-            IS_CORTEX(label) == 0 && 
+        if (IS_WHITE_CLASS(label) == 0 &&
+            IS_CORTEX(label) == 0 &&
             label < MIN_CORTICAL_PARCELLATION)
         {
           continue ;
@@ -873,7 +894,7 @@ build_distance_by_intensity_histo(MRI *mri_norm,
 }
 
 static int
-augment_thicknesses(FCD_DATA *fcd, 
+augment_thicknesses(FCD_DATA *fcd,
                     MRI *mri_pvals,
                     double min_dist,
                     double max_dist,
@@ -932,7 +953,7 @@ augment_thicknesses(FCD_DATA *fcd,
           break ;
         }
       }
-	
+
       if (d > min_dist)   // a string of unlikely values
       {
         val = MRIgetVoxVal(mri_thickness, vno, 0, 0, 0) ;
@@ -942,4 +963,3 @@ augment_thicknesses(FCD_DATA *fcd,
   }
   return(NO_ERROR) ;
 }
-
