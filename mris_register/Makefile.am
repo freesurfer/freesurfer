@@ -2,8 +2,7 @@
 ## Makefile.am 
 ##
 
-AM_CFLAGS=-I$(top_srcdir)/include $(PETSC_CFLAGS) \
-	-I$(top_srcdir)/tetgen/include
+AM_CFLAGS=-I$(top_srcdir)/include $(PETSC_CFLAGS)
 AM_LDFLAGS=$(PETSC_LIBS)
 
 # if there is a need to activate petsc support, delete the #PETSC text
@@ -16,8 +15,7 @@ LIBS_PETSC=
 
 bin_PROGRAMS = mris_register
 mris_register_SOURCES=mris_register.c mris_register.help.xml.h
-mris_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	-L$(top_builddir)/tetgen -ltetgen $(LIBS_PETSC)
+mris_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_register_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
