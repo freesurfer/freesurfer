@@ -4,11 +4,11 @@
  *
  */
 /*
- * Original Author: Ruopeng Wang 
+ * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/21 17:31:10 $
- *    $Revision: 1.20 $
+ *    $Author: ohinds $
+ *    $Date: 2016/10/07 15:57:22 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,7 +54,7 @@
 #include <QDebug>
 #include <QTimer>
 
-LayerFCD::LayerFCD(LayerMRI* layerMRI, 
+LayerFCD::LayerFCD(LayerMRI* layerMRI,
                    QObject *parent) : LayerVolumeBase(parent),
   m_fcd(NULL),
   m_mri_difference(NULL)
@@ -82,7 +82,7 @@ LayerFCD::LayerFCD(LayerMRI* layerMRI,
   LayerPropertyFCD* p = GetProperty();
   connect( p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) );
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
-  connect( p, SIGNAL(ThicknessThresholdChanged(double)), 
+  connect( p, SIGNAL(ThicknessThresholdChanged(double)),
            this, SLOT(Recompute()));
   connect( p, SIGNAL(SigmaChanged(double)), this, SLOT(Recompute()));
   connect( p, SIGNAL(MinAreaChanged(int)), this, SLOT(Recompute()));
@@ -93,13 +93,13 @@ LayerFCD::LayerFCD(LayerMRI* layerMRI,
   m_mri_t2 = new LayerMRI(NULL);
   m_mri_aseg = new LayerMRI(NULL);
   m_mri_difference = new LayerMRI(NULL);
-  connect(m_mri_norm, SIGNAL(destroyed()), 
+  connect(m_mri_norm, SIGNAL(destroyed()),
           this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
-  connect(m_mri_flair, SIGNAL(destroyed()), 
+  connect(m_mri_flair, SIGNAL(destroyed()),
           this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
-  connect(m_mri_t2, SIGNAL(destroyed()), 
+  connect(m_mri_t2, SIGNAL(destroyed()),
           this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
-  connect(m_mri_aseg, SIGNAL(destroyed()), 
+  connect(m_mri_aseg, SIGNAL(destroyed()),
           this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
   connect(m_mri_difference, SIGNAL(destroyed()),
           this, SLOT(OnLayerDestroyed()), Qt::UniqueConnection);
@@ -134,7 +134,7 @@ LayerFCD::~LayerFCD()
 {
   if (m_fcd)
   {
-    // if layers still exist, do not free mri and mris 
+    // if layers still exist, do not free mri and mris
     // because they are still being shared.
     if (m_mri_norm)
     {
@@ -207,7 +207,7 @@ void LayerFCD::InitializeData()
     m_imageData->SetScalarTypeToUnsignedChar();
     m_imageData->SetOrigin( GetWorldOrigin() );
     m_imageData->SetSpacing( GetWorldVoxelSize() );
-    m_imageData->SetDimensions( 
+    m_imageData->SetDimensions(
       ( int )( m_dWorldSize[0] / m_dWorldVoxelSize[0] + 0.5 ),
       ( int )( m_dWorldSize[1] / m_dWorldVoxelSize[1] + 0.5 ),
       ( int )( m_dWorldSize[2] / m_dWorldVoxelSize[2] + 0.5 ) );
@@ -240,7 +240,7 @@ bool LayerFCD::LoadFromFile()
   ::SetProgressCallback(ProgressCallback, 0, 50);
   try
   {
-    m_fcd = ::FCDloadData(m_sSubjectDir.toAscii().data(), 
+    m_fcd = ::FCDloadData(m_sSubjectDir.toAscii().data(),
                           m_sSubject.toAscii().data(),
                           m_sSuffix.isEmpty()?NULL:m_sSuffix.toAscii().data());
   }
@@ -557,6 +557,17 @@ void LayerFCD::Recompute()
   m_worker->start(QThread::HighPriority);
 }
 
+void LayerFCD::SaveFCDLabels(const QString& dir)
+{
+  if (!m_fcd)
+  {
+    cerr << "No FCD data to save" << endl;
+    return;
+  }
+
+  FCDwriteLabels(m_fcd, dir.toLocal8Bit().data());
+}
+
 void LayerFCD::DoCompute(bool resetProgress)
 {
   if (m_fcd)
@@ -567,7 +578,7 @@ void LayerFCD::DoCompute(bool resetProgress)
     }
     try
     {
-      ::FCDcomputeThicknessLabels(m_fcd, 
+      ::FCDcomputeThicknessLabels(m_fcd,
                                   GetProperty()->GetThicknessThreshold(),
                                   GetProperty()->GetSigma(),
                                   GetProperty()->GetMinArea());
@@ -637,7 +648,7 @@ void LayerFCD::UpdateRASImage( vtkImageData* rasImage)
       if ( label->coords == LABEL_COORDS_VOXEL )
       {
         MRIvoxelToWorld(ref_vol->GetMRI(),
-                        pos[0], pos[1], pos[2], 
+                        pos[0], pos[1], pos[2],
                         pos, pos+1, pos+2);
       }
       else if (label->coords == LABEL_COORDS_TKREG_RAS)
@@ -826,7 +837,7 @@ bool LayerFCD::HasProp( vtkProp* prop )
 {
   for ( int i = 0; i < 3; i++ )
   {
-    if ( prop == m_sliceActor2D[i].GetPointer() || 
+    if ( prop == m_sliceActor2D[i].GetPointer() ||
          prop == m_sliceActor3D[i].GetPointer() )
     {
       return true;
@@ -859,8 +870,8 @@ void LayerFCD::GetLabelCentroidPosition(int nLabelIndex, double *pos)
     FSVolume* ref_vol = m_layerSource->GetSourceVolume();
     if ( label->coords == LABEL_COORDS_VOXEL )
     {
-      MRIvoxelToWorld(ref_vol->GetMRI(), 
-                      pos[0], pos[1], pos[2], 
+      MRIvoxelToWorld(ref_vol->GetMRI(),
+                      pos[0], pos[1], pos[2],
                       pos, pos+1, pos+2);
     }
     else if (label->coords == LABEL_COORDS_TKREG_RAS)
@@ -886,8 +897,8 @@ void LayerFCD::SetLabelVisible(int nIndex, bool visible)
     pos[2] = label->lv[i].z;
     if ( label->coords == LABEL_COORDS_VOXEL )
     {
-      MRIvoxelToWorld(ref_vol->GetMRI(), 
-                      pos[0], pos[1], pos[2], 
+      MRIvoxelToWorld(ref_vol->GetMRI(),
+                      pos[0], pos[1], pos[2],
                       pos, pos+1, pos+2);
     }
     else if (label->coords == LABEL_COORDS_TKREG_RAS)

@@ -36,6 +36,7 @@ public slots:
 
   void OnButtonRecompute();
   void OnButtonGotoContralateral();
+  void OnButtonSaveFCDLabels();
 
 protected:
   void DoUpdateWidgets();
