@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.21 $
+ *    $Date: 2016/10/08 02:14:32 $
+ *    $Revision: 1.21.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -91,12 +91,21 @@ void SurfaceLabel::SetName( const QString& name )
 
 bool SurfaceLabel::LoadLabel( const QString& filename )
 {
+  int unassigned ;
+
   if ( m_label )
   {
     ::LabelFree( &m_label );
   }
 
   m_label = ::LabelRead( NULL, filename.toAscii().data() );
+  LabelIsCompletelyUnassigned(m_label, &unassigned) ;
+  if (unassigned)
+  {
+    LabelFree(&m_label) ;
+    cerr << "label has not been mapped to surface";
+    return false;
+  }
 
   if ( m_label == NULL )
   {

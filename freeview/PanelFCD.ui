@@ -149,7 +149,7 @@ Threshold</string>
       <item row="3" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
-         <string>Min # of 
+         <string>Min # of
 Voxels</string>
         </property>
        </widget>
@@ -246,6 +246,13 @@ Voxels</string>
        <widget class="QPushButton" name="pushButtonRecompute">
         <property name="text">
          <string>Recompute</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButtonSaveFCDLabels">
+        <property name="text">
+         <string>Save FCD Labels</string>
         </property>
        </widget>
       </item>
@@ -478,6 +485,22 @@ Voxels</string>
    </hints>
   </connection>
   <connection>
+   <sender>pushButtonSaveFCDLabels</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelFCD</receiver>
+   <slot>OnButtonSaveFCDLabels()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>312</x>
+     <y>352</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>323</x>
+     <y>574</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
    <sender>pushButtonGoToContralateral</sender>
    <signal>clicked()</signal>
    <receiver>PanelFCD</receiver>
@@ -508,6 +531,7 @@ Voxels</string>
   <slot>OnSliderThresholdChanged(int)</slot>
   <slot>OnSliderOpacityChanged(int)</slot>
   <slot>OnButtonRecompute()</slot>
+  <slot>OnButtonSaveFCDLabels()</slot>
   <slot>OnButtonGotoContralateral()</slot>
  </slots>
 </ui>

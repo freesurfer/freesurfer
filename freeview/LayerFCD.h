@@ -78,6 +78,7 @@ signals:
 
 public slots:
   void Recompute();
+  void SaveFCDLabels(const QString &dir);
 
 protected slots:
   void UpdateOpacity();

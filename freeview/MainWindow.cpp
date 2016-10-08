@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/09/08 18:00:49 $
- *    $Revision: 1.343.2.2 $
+ *    $Date: 2016/10/08 02:14:32 $
+ *    $Revision: 1.343.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7066,16 +7066,20 @@ void MainWindow::OnGoToSurfaceLabel(bool center)
   double pos[3];
   if (surf && surf->GetActiveLabelCentroidPosition(pos))
   {
+    bool mappedFromInflated = ((RenderView3D*)m_views[3])->MapInflatedCoords(surf, pos, pos, true);
     SetSlicePosition(pos);
     if (center)
     {
         GetMainView()->CenterAtWorldPosition(pos);
-        int nVertex = surf->GetVertexIndexAtTarget(pos, NULL);
-        if (nVertex >= 0)
+        if (!mappedFromInflated)
         {
-            double v[3];
-            surf->GetSmoothedVertexNormal(nVertex, v);
-            m_views[3]->AlignViewToNormal(v);
+            int nVertex = surf->GetVertexIndexAtTarget(pos, NULL);
+            if (nVertex >= 0)
+            {
+                double v[3];
+                surf->GetSmoothedVertexNormal(nVertex, v);
+                m_views[3]->AlignViewToNormal(v);
+            }
         }
     }
   }

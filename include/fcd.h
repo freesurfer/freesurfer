@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/02/25 17:58:22 $
- *    $Revision: 1.8 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/10/08 02:14:33 $
+ *    $Revision: 1.8.2.1 $
  *
  * Copyright © 2013-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,10 +62,11 @@ typedef struct
 
 
 FCD_DATA   *FCDloadData(char *sdir, char *subject, char* suffix);
-int         FCDcomputeThicknessLabels(FCD_DATA *fcd, 
+int         FCDcomputeThicknessLabels(FCD_DATA *fcd,
                                       double thickness_thresh,
                                       double sigma,
                                       int size_thresh) ;
+int         FCDwriteLabels(FCD_DATA *fcd, char* dir) ;
 int         FCDfree(FCD_DATA **pfcd) ;
 
 #endif

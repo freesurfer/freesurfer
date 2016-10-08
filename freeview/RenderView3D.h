@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/03/22 19:25:59 $
- *    $Revision: 1.46 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/10/08 02:14:32 $
+ *    $Revision: 1.46.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -113,6 +113,8 @@ public:
   void SetCamera(const QVariantMap& cam);
 
   void ZoomAtCursor(int x, int y, double factor);
+
+  bool MapInflatedCoords(LayerSurface* surf, double* pos_in, double* pos_out, bool AutoOrient = false);
 
 signals:
   void SurfaceVertexClicked(LayerSurface* surf);

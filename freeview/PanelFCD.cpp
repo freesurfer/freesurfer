@@ -4,6 +4,7 @@
 #include "LayerPropertyFCD.h"
 #include "MainWindow.h"
 #include <QDebug>
+#include <QFileDialog>
 
 PanelFCD::PanelFCD(QWidget *parent) :
   PanelLayer("FCD", parent),
@@ -225,4 +226,20 @@ void PanelFCD::OnButtonRecompute()
 void PanelFCD::OnButtonGotoContralateral()
 {
     MainWindow::GetMainWindow()->GoToContralateralPoint();
+}
+
+void PanelFCD::OnButtonSaveFCDLabels()
+{
+  LayerFCD* layer = GetCurrentLayer<LayerFCD*>();
+  if ( layer )
+  {
+    QString dir = QFileDialog::getExistingDirectory(
+      this,
+      tr("Select a directory to save FCD labels to"),
+      QDir::currentPath() );
+    if(!dir.isNull())
+    {
+      layer->SaveFCDLabels(dir);
+    }
+  }
 }
