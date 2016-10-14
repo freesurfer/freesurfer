@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/04/11 01:11:14 $
- *    $Revision: 1.135 $
+ *    $Date: 2016/10/14 19:15:29 $
+ *    $Revision: 1.136 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -514,6 +514,8 @@ float GCAcomputeLabelLikelihood(GCA *gca, TRANSFORM *transform, MRI *mri,
 float GCAcomputeLabelPosterior(GCA *gca, TRANSFORM *transform, MRI *mri, float x, float y, float z, int label) ;
 int GCApriorToVoxelReal(GCA *gca, MRI *mri, double xp, double yp, double zp, double *pxv, double *pyv, double *pzv) ;
 GCA_NODE *GCAbuildRegionalGCAN( const GCA *gca,
+				int x, int y, int z, int wsize );
+GCA_PRIOR *GCAbuildRegionalGCAP( const GCA *gca,
 				int x, int y, int z, int wsize );
 int set_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs) ;
 int set_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
