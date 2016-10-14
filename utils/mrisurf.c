@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/06/13 21:20:50 $
- *    $Revision: 1.781 $
+ *    $Date: 2016/10/14 19:14:16 $
+ *    $Revision: 1.782 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.781 2016/06/13 21:20:50 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.782 2016/10/14 19:14:16 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -21052,7 +21052,7 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
               xw,yw,zw,val0, xwo, ywo,zwo,
               val_outside,xwi,ywi,zwi,val_inside);
       fprintf(stdout, "v %d intensity term:      (%2.3f, %2.3f, %2.3f), "
-              "delV=%2.1f, delI=%2.0f\n", vno, dx, dy, dz, delV, delI) ;
+              "delV=%2.1f, delI=%2.0f, sigma=%2.1f, target=%2.1f\n", vno, dx, dy, dz, delV, delI, sigma, v->val) ;
     }
   }
 
@@ -54763,6 +54763,7 @@ int mrisApplyTopologyPreservingGradient(MRI_SURFACE *mris,
 }
 
 
+#define MAX_DEFECT_VERTICES 900000
 static long ncross = 0 ;
 static long nmut = 0 ;
 static long nkilled = 0;
@@ -54772,7 +54773,7 @@ static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris,DEFECT_LIST *dl);
 static DEFECT_LIST *mrisMergeNeighboringDefects(MRIS *mris,DEFECT_LIST *dl)
 {
   int i,j,n,m,*nd,ndefects,merged;
-  int  vlist[200000],nadded;
+  int  vlist[MAX_DEFECT_VERTICES],nadded;
   float len;
   VERTEX *v,*nv;
   DEFECT *defect;
@@ -57022,13 +57023,15 @@ mrisSegmentDefect
 (MRI_SURFACE *mris, int vno, DEFECT *defect,
  int mark_ambiguous, int mark_segmented)
 {
-  int    vlist[200000], i, j,n, nfilled ,nadded,vno1,m;
+  int    vlist[MAX_DEFECT_VERTICES], i, j,n, nfilled ,nadded,vno1,m;
   VERTEX *v, *vn,*vadded ;
   float  len, nx, ny, nz ;
 
   vno1=nadded=m=j=0; /* to avoid compilator warnings */
   vadded=NULL;
 
+  if (defect->nvertices+1 >= MAX_DEFECT_VERTICES)
+    ErrorExit(ERROR_NOMEMORY, "mrisSegmentDefect: max number of defective vertices %d exceeded\n", MAX_DEFECT_VERTICES) ;
   vlist[defect->nvertices++] = vno ;  /* start the list */
 
   v = &mris->vertices[vno] ;
@@ -57054,6 +57057,8 @@ mrisSegmentDefect
         }
         if (vn->marked == mark_ambiguous)
         {
+	  if (defect->nvertices+1 >= MAX_DEFECT_VERTICES)
+	    ErrorExit(ERROR_NOMEMORY, "mrisSegmentDefect: max number of defective vertices %d exceeded\n", MAX_DEFECT_VERTICES) ;
           vlist[defect->nvertices++] = v->v[n] ;  /* add it to list */
 
           vn->marked = mark_segmented ;
@@ -63431,7 +63436,6 @@ mrisTessellateDefect
  HISTOGRAM *h_border, HISTOGRAM *h_grad, MRI *mri_gray_white,
  HISTOGRAM *h_dot, TOPOLOGY_PARMS *parms)
 {
-#define MAX_DEFECT_VERTICES 200000
   int    i, j, vlist[MAX_DEFECT_VERTICES], n, nvertices, nedges, ndiscarded ;
   VERTEX *v, *v2 ;
   EDGE   *et ;
@@ -69412,8 +69416,8 @@ mrisOrientRetessellatedSurface(MRI_SURFACE *mris, DEFECT_LIST *dl,int *vtrans)
   MRIScomputeMetricProperties(mris) ;
   return(oriented) ;
 #else
-  int    vno, vno0, vno1, i, n, fno, oriented, num, dno, m, blist[200000], nb,
-         tmp[200000], nbnew, n0, n1 ;
+  int    vno, vno0, vno1, i, n, fno, oriented, num, dno, m, blist[MAX_DEFECT_VERTICES], nb,
+         tmp[MAX_DEFECT_VERTICES], nbnew, n0, n1 ;
   FACE   *f ;
   VERTEX *v, *vn ;
   float  norm[3], dot, len ;
@@ -69853,7 +69857,7 @@ mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect)
 {
 #if SMALL_CONVEX_HULL
   VERTEX *v, *vn ;
-  int    chull[200000], nfound, n, i, vno ;
+  int    chull[MAX_DEFECT_VERTICES], nfound, n, i, vno ;
 
 
   defect->chull = chull ;
@@ -69895,7 +69899,7 @@ mrisFindDefectConvexHull(MRI_SURFACE *mris, DEFECT *defect)
 #else
   float  xmin, xmax, ymin, ymax, zmin, zmax ;
   VERTEX *v, *vn ;
-  int    chull[200000], nfound, n, i, vno ;
+  int    chull[MAX_DEFECT_VERTICES], nfound, n, i, vno ;
 
 
   xmin = ymin = zmin = 100000 ;
