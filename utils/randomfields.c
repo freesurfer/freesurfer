@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2015/10/01 16:35:03 $
- *    $Revision: 1.16 $
+ *    $Date: 2016/10/14 20:05:34 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
 // Return the CVS version of this file.
 const char *RFSrcVersion(void)
 {
-  return("$Id: randomfields.c,v 1.16 2015/10/01 16:35:03 greve Exp $");
+  return("$Id: randomfields.c,v 1.17 2016/10/14 20:05:34 greve Exp $");
 }
 
 /*-------------------------------------------------------------------*/
@@ -642,11 +642,16 @@ double RFprobZCluster(double clustersize, double vzthresh,
 
   // Expected number of clusters (Eq 2)
   // This form appears to go back to Hasofer 1978
-  Em = exp(-(u*u)/2) * pow(u,(D-1)) * pow(2*pi,-(D+1)/2) * S / pow(W,D);
-  // There is another form with (pow(u,(D-1))-1) for D=3 found in
-  // Worsley, et al, 1996, HBM 4:58-73, Table II. This is what 
-  // FSL and KJW's stat_threshold.m seem to use. In simulations, it seems
-  // less accurate.
+  if(dim != 3){
+    Em = exp(-(u*u)/2) * pow(u,(D-1)) * pow(2*pi,-(D+1)/2) * S / pow(W,D);
+  }
+  else {
+    // This form with (pow(u,(D-1))-1) for D=3 found in
+    // Worsley, et al, 1996, HBM 4:58-73, Table II. This is what 
+    // FSL and KJW's stat_threshold.m use. In simulations, it seems
+    // more accurate.
+    Em = exp(-(u*u)/2) * (pow(u,(D-1))-1) * pow(2*pi,-(D+1)/2) * S / pow(W,D);
+  }
 
   // Equation 3
   beta = pow(tgamma(D/2+1)*Em/(S*phiu),2/D);
@@ -658,6 +663,7 @@ double RFprobZCluster(double clustersize, double vzthresh,
   pcluster = 1 - exp(-Em*Pnk);
 
 #if 0
+  printf("--------------------------\n");
   printf("csize = %lf\n",clustersize);
   printf("vzthresh = %lf\n",vzthresh);
   printf("fwhm = %lf\n",fwhm);
@@ -672,25 +678,6 @@ double RFprobZCluster(double clustersize, double vzthresh,
 #endif
 
   return(pcluster);
-
-#if 0
-  // This is an older version that did not seem to work
-  double pcluster,W,dLh,Em,beta,pvzthresh,Pnk;
-
-  W = fwhm/sqrt(4.0*log(2.0));
-  dLh = pow(W,-dim);
-
-  Em = searchsize * pow(2*M_PI,-(dim+1)/2.0) * dLh *
-       (pow(vzthresh,dim-1.0) - 1) *  exp(-pow(vzthresh,2)/2);
-
-  pvzthresh = 1.0-sc_cdf_gaussian_Q(-vzthresh,1);
-
-  beta = pow( (gamma(dim/2.0+1)*Em) / (searchsize*pvzthresh),2.0/dim );
-
-  // Prob than n >= k, ie, the number of voxels in a cluster >= csize
-  Pnk = exp(-beta * pow(clustersize,2.0/dim));
-  pcluster = 1 - exp(-Em*Pnk);
-#endif
 
 }
 
@@ -739,8 +726,7 @@ double RFprobZClusterSigThresh(double clustersize, double vsigthresh,
   double vzthresh,pcluster,vpthresh;
   vpthresh = pow(10.0,-fabs(vsigthresh));
   vzthresh = sc_cdf_gaussian_Qinv(vpthresh,1.0);
-  pcluster = RFprobZCluster(clustersize, vzthresh,
-                            fwhm, searchsize, dim);
+  pcluster = RFprobZCluster(clustersize, vzthresh,fwhm, searchsize, dim);
   return(pcluster);
 }
 
