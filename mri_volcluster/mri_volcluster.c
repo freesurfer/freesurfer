@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/10/14 20:46:50 $
- *    $Revision: 1.47 $
+ *    $Date: 2016/10/14 20:03:10 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -97,7 +97,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.47 2011/10/14 20:46:50 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.48 2016/10/14 20:03:10 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.47 2011/10/14 20:46:50 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.48 2016/10/14 20:03:10 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -461,12 +461,14 @@ int main(int argc, char **argv) {
       ClusterList[n]->pval_clusterwise_hi  = pvalHi;
     }
   }
-  if (fwhm > 0) {
+  if(fwhm > 0) {
     for (n=0; n < nclusters; n++) {
       ClusterSize = ClusterList[n]->nmembers * voxsize;
-      pval = RFprobZClusterSigThresh
-             (ClusterSize, threshmin, fwhm, searchspace, 3);
-      ClusterList[n]->pval_clusterwise     = pval;
+      if(AdjustThreshWhenOneTail) 
+	pval = RFprobZClusterSigThresh(ClusterSize, threshmin, fwhm, searchspace, 3);
+      else
+	pval = RFprobZCluster(ClusterSize, threshmin, fwhm, searchspace, 3);
+      ClusterList[n]->pval_clusterwise = pval;
     }
   }
   if(Bonferroni > 0){
@@ -557,7 +559,11 @@ int main(int argc, char **argv) {
     fprintf(fpsum,"# CSD contrast %s\n",csd->contrast);
     fprintf(fpsum,"# CSD confint  %lf\n",ciPct);
   }
-  if (fwhm > 0) fprintf(fpsum,"# FWHM        %lf\n",fwhm);
+  if (fwhm > 0) {
+    fprintf(fpsum,"# FWHM        %lf\n",fwhm);
+    // dLh is an FSL parameter. Include here for comparison
+    fprintf(fpsum,"# dLh         %lf\n", pow((fwhm/colres)/sqrt(4.0*log(2.0)),-3) );
+  }
 
   fprintf(fpsum,"# \n");
   if (regfile) {
@@ -572,12 +578,12 @@ int main(int argc, char **argv) {
     }
   } else {
     fprintf(fpsum,"# Reporting Coordinates in Voxel Indices\n");
-    fprintf(fpsum,"# Cluster   Size(n)   Size(mm^3)       "
-            "VoxX   VoxY    VoxZ              Max");
+    fprintf(fpsum,"# Cluster   Size(n)   Size(mm^3)     "
+            "VoxX    VoxY    VoxZ             Max");
   }
 
-  if (csd != NULL)  fprintf(fpsum,"#    CWP    CWPLow    CWPHi\n");
-  else if (fwhm > 0) fprintf(fpsum,"#   GRFCWP\n");
+  if (csd != NULL)  fprintf(fpsum,"    CWP    CWPLow    CWPHi\n");
+  else if (fwhm > 0) fprintf(fpsum,"     GRFCWP\n");
   else fprintf(fpsum,"\n");
 
   for (n = 0; n < nclusters; n++) {
@@ -596,7 +602,7 @@ int main(int argc, char **argv) {
       y=row;
       z=slc;
     }
-    fprintf(fpsum,"%3d        %4d      %7.1f    %7.2f %7.2f %7.2f   %15.5f",
+    fprintf(fpsum,"%3d        %5d      %8.1f    %7.2f %7.2f %7.2f   %15.5f",
             n+1,ClusterList[n]->nmembers,voxsize*ClusterList[n]->nmembers,
             x,y,z, ClusterList[n]->maxval);
     if (debug) fprintf(fpsum,"  %3d %3d %3d \n",col,row,slc);
@@ -606,7 +612,7 @@ int main(int argc, char **argv) {
               ClusterList[n]->pval_clusterwise_low,
               ClusterList[n]->pval_clusterwise_hi);
     else if (fwhm > 0)
-      fprintf(fpsum,"  %7.5lf",ClusterList[n]->pval_clusterwise);
+      fprintf(fpsum,"  %9.7lf",ClusterList[n]->pval_clusterwise);
     if(segvolfile){
       ctabindex = MRIgetVoxVal(segvol,col,row,slc,0);
       fprintf(fpsum,"  %s",segctab->entries[ctabindex]->name);
@@ -870,15 +876,13 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--thmin")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&threshmin);
-      if (threshmin < 0.0) {
-        fprintf
-        (stderr,
-         "ERROR: %g negative threshold not allowed (use -sign)\n",
-         threshmin);
+      if(threshmin < 0.0) {
+        printf("ERROR: %g negative threshold not allowed (use -sign)\n",threshmin);
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--thmax")) {
+    } 
+    else if (!strcmp(option, "--thmax")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%f",&threshmax);
       if (threshmax < 0.0) {
@@ -886,7 +890,16 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--sign")) {
+    } 
+    else if (!strcmp(option, "--match")) {
+      int matchval;
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&matchval);
+      threshmin = matchval - 0.5;
+      threshmax = matchval + 0.5;
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--sign")) {
       if (nargc < 1) argnerr(option,1);
       signstring = pargv[0];
       nargsused = 1;
@@ -1020,6 +1033,7 @@ static void print_usage(void) {
   printf("   --thmax   maxthresh : maximum intensity threshold\n");
   printf("   --sign    sign      : <abs> or pos/neg for one-sided tests\n");
   printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
+  printf("   --match matchval : set thmin=matchval-0.5 and thmax=matchval+0.5\n");
   printf("\n");
   printf("   --cwpvalthresh pval : require clusters to have cwp < thresh\n");
   printf("      with --fwhm or --csd\n");
@@ -1376,21 +1390,24 @@ static void check_options(void) {
     err = 1;
   }
 
-  if (threshsign != 0 && AdjustThreshWhenOneTail) {
+  if(threshsign != 0 && AdjustThreshWhenOneTail) {
     // user has requested a tailed threshold, so adjust threshold
     // to account for a one-tailed test. This requires that the
     // input be -log10(p), where p is computed from a two-tailed
-    // test.
+    // test. One could recompute the p-values to convert to a 
+    // one-sided test, but easier to just adjust the threshold
     printf("Adjusting threshold for 1-tailed test.\n");
     printf("If the input is not a -log10(p) volume, "
            "re-run with --no-adjust.\n");
     threshminadj = threshmin - log10(2.0);
     threshmaxadj = threshmax - log10(2.0);
+    printf("New threshold is %lf\n",threshminadj);
   } else {
     printf("NOT Adjusting threshold for 1-tailed test\n");
     threshminadj = threshmin;
     threshmaxadj = threshmax;
   }
+  printf("threshmin %g, threshminadj %g\n",threshmin,threshminadj);
 
   if (synthfunction != NULL) {
     if (strcmp(synthfunction,"uniform")    &&
