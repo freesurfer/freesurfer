@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/09/12 15:43:31 $
- *    $Revision: 1.58 $
+ *    $Date: 2016/10/14 20:00:06 $
+ *    $Revision: 1.59 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.58 2016/09/12 15:43:31 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.59 2016/10/14 20:00:06 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.58 2016/09/12 15:43:31 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.59 2016/10/14 20:00:06 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -400,7 +400,8 @@ int main(int argc, char **argv) {
     // user has requested a tailed threshold, so adjust threshold
     // to account for a one-tailed test. This requires that the
     // input be -log10(p), where p is computed from a two-tailed
-    // test.
+    // test. One could recompute the p-values in the volume to
+    // convert to a one-tailed test, but easier to change the threshold
     printf("Adjusting threshold for 1-tailed test.\n");
     printf("If the input is not a -log10(p) volume, re-run with --no-adjust.\n");
     thminadj = thmin - log10(2.0);
@@ -1200,7 +1201,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.58 2016/09/12 15:43:31 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.59 2016/10/14 20:00:06 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
