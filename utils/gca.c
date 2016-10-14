@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/09/15 00:59:26 $
- *    $Revision: 1.344 $
+ *    $Date: 2016/10/14 19:15:51 $
+ *    $Revision: 1.345 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25560,6 +25560,86 @@ GCAbuildRegionalGCAN( const GCA *gca,
   MatrixFree(&m_tmp) ;
   VectorFree(&v_tmp) ;
   return(gcan) ;
+}
+GCA_PRIOR *
+GCAbuildRegionalGCAP( const GCA *gca,
+                      int xp, int yp, int zp, int wsize )
+{
+  GCA_PRIOR *gcap, *gcap_nbr ;
+  int      n, xi, yi, zi, xk, yk, zk, nlabels = 0, whalf,
+    label, total_training[MAX_CMA_LABELS+1],
+    used[MAX_CMA_LABELS+1] ;
+  float    label_priors[MAX_CMA_LABEL+1], p ;
+  double    total_p ;
+
+  gcap = calloc(1, sizeof(GCA_PRIOR)) ;
+
+  memset(label_priors, 0, sizeof(label_priors)) ;
+  memset(total_training, 0, sizeof(total_training)) ;
+  memset(used, 0, sizeof(used)) ;
+  nlabels = 0 ;
+  whalf = (wsize-1)/2 ;
+  for (xk = -whalf ; xk <= whalf ; xk++)
+  {
+    xi = xp + xk ;
+    if (xi < 0 || xi >= gca->prior_width)
+      continue ;
+
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
+      yi = yp + yk ;
+      if (yi < 0 || yi >= gca->prior_height)
+        continue ;
+
+      for (zk = -whalf ; zk <= whalf ; zk++)
+      {
+        zi = zp + zk ;
+        if (zi < 0 || zi >= gca->prior_depth)
+          continue ;
+
+        gcap_nbr = &gca->priors[xi][yi][zi] ;
+        for (n = 0 ; n < gcap_nbr->nlabels ; n++)
+        {
+          label = gcap_nbr->labels[n] ;
+          if (used[label] == 0)  /* first time for this label */
+          {
+            used[label] = 1 ;
+            nlabels++ ;
+          }
+          total_training[label] += gcap_nbr->total_training ;
+          p = getPrior(gcap, label) ;
+          label_priors[label] += p ;
+
+        }
+        gcap->total_training += gcap_nbr->total_training ;
+      }
+    }
+  }
+
+  gcap->nlabels = gcap->max_labels = nlabels ;
+  gcap->labels = (unsigned short *)calloc(nlabels, sizeof(unsigned short)) ;
+  gcap->priors = (float *)calloc(nlabels, sizeof(float)) ;
+
+  for (total_p = 0., n = 0 ; n <= MAX_CMA_LABELS ; n++)
+  {
+    if (used[n] > 0)
+    {
+      total_p += label_priors[label] ;
+      gcap->total_training += total_training[n] ;
+    }
+  }
+
+  for (nlabels = 0, n = 0 ; n <= MAX_CMA_LABELS ; n++)
+  {
+    if (used[n] > 0)
+    {
+      gcap->labels[nlabels] = n ;
+      gcap->priors[nlabels] = label_priors[n] / total_p ;
+      nlabels++ ;
+    }
+  }
+
+  return(gcap) ;
 }
 
 
