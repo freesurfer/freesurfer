@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ohinds $
- *    $Date: 2016/06/17 19:16:57 $
- *    $Revision: 1.424 $
+ *    $Author: fischl $
+ *    $Date: 2016/10/14 19:13:08 $
+ *    $Revision: 1.425 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -15293,24 +15293,49 @@ readGCA(const char *fname, int start_frame, int end_frame)
   if (!gca)
     return(NULL) ;
   printf("reading frame %d of gca\n", start_frame) ;
-  if (start_frame < 1)
+  switch (start_frame)
   {
-    mri = MRIallocSequence(gca->width, gca->height, gca->depth, MRI_FLOAT, 1) ;
+  default:
+  case -1:
+  {
+    MRI *mri_means, *mri_labels, *mri_pvals, *mri_pvals_resampled ;
+
+    mri = MRIallocSequence(gca->width, gca->height, gca->depth, MRI_FLOAT, 3) ;
+    mri_means = MRIallocSequence(gca->width, gca->height, gca->depth, MRI_FLOAT, 1) ;
+    mri_labels = MRIallocSequence(gca->width, gca->height, gca->depth, MRI_FLOAT, 1) ;
+
     MRIsetResolution(mri, gca->xsize, gca->ysize, gca->zsize) ;
+    MRIsetResolution(mri_labels, gca->xsize, gca->ysize, gca->zsize) ;
+    MRIsetResolution(mri_means, gca->xsize, gca->ysize, gca->zsize) ;
+    GCAcopyDCToMRI(gca, mri); GCAcopyDCToMRI(gca, mri_means); GCAcopyDCToMRI(gca, mri_labels);
+    GCAbuildMostLikelyVolume(gca, mri_means) ;
+    GCAbuildMostLikelyLabelVolume(gca, mri_labels) ;
+    mri_pvals = GCAbuildMostLikelyLabelProbabilityVolume(gca) ;
+
+    MRIcopyFrames(mri_means, mri, 0, 0, 0) ;
+    MRIcopyFrames(mri_labels, mri, 0, 0, 1) ;
+
+    mri_pvals_resampled = MRIresample(mri_pvals, mri_means, SAMPLE_NEAREST) ;
+    MRIcopyFrames(mri_pvals_resampled, mri, 0, 0, 2) ;
+    MRIfree(&mri_means) ; MRIfree(&mri_labels) ; MRIfree(&mri_pvals) ; MRIfree(&mri_pvals_resampled) ;
+    break ;
+  }
+  case 0:
+    mri = MRIallocSequence(gca->node_width, gca->node_height, gca->node_depth, MRI_FLOAT, 1) ;
+    MRIsetResolution(mri, gca->xsize*gca->node_spacing, gca->ysize*gca->node_spacing, gca->zsize*gca->node_spacing) ;
     GCAcopyDCToMRI(gca, mri);
     GCAbuildMostLikelyVolume(gca, mri) ;
-  }
-  else if (start_frame < 2)
-  {
-    mri = MRIallocSequence(gca->width, gca->height, gca->depth, MRI_SHORT, 1) ;
-    MRIsetResolution(mri, gca->xsize, gca->ysize, gca->zsize) ;
+    break ;
+  case 1:
+    mri = MRIallocSequence(gca->prior_width, gca->prior_height, gca->prior_depth, MRI_SHORT, 1) ;
+    MRIsetResolution(mri, gca->xsize*gca->prior_spacing, gca->ysize*gca->prior_spacing, gca->zsize*gca->prior_spacing) ;
     GCAcopyDCToMRI(gca, mri);
     GCAbuildMostLikelyLabelVolume(gca, mri) ;
-  }
-  else
-  {
+    break ;
+  case 2:
     printf("interpreting as probability volume\n") ;
     mri = GCAbuildMostLikelyLabelProbabilityVolume(gca) ;
+    break ;
   }
   GCAfree(&gca) ;
   return(mri) ;
@@ -15318,22 +15343,24 @@ readGCA(const char *fname, int start_frame, int end_frame)
 
 MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst)
 {
-  int   x, nans=0 ;
+  int   x, nans=0, width ;
 
   if(mri_dst != mri_src)
     mri_dst = MRIcopy(mri_src, mri_dst) ;
+  width = mri_dst->width ;
 
 #ifdef HAVE_OPENMP
-#pragma omp parallel for shared(mri_dst) reduction(+:nans)
+#pragma omp parallel for firstprivate(width) shared(mri_dst) reduction(+:nans)
 #endif
   for (x = 0 ; x < mri_dst->width ; x++)  
   {
-    int y, z, f ;
+    int y, z, f, height, depth, nframes ;
     float val ;
     
-    for (y = 0 ; y < mri_dst->height ; y++) {
-      for (z = 0 ; z < mri_dst->depth ; z++)  {
-	for (f = 0 ; f < mri_dst->nframes ; f++)  {
+    height = mri_dst->height ; depth = mri_dst->depth ; nframes = mri_dst->nframes ;
+    for (y = 0 ; y < height ; y++) {
+      for (z = 0 ; z < depth ; z++)  {
+	for (f = 0 ; f < nframes ; f++)  {
 	  val = MRIgetVoxVal(mri_dst, x, y, z, f) ;
 	  if(!isfinite(val)){
 	    nans++ ;
