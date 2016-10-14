@@ -1,5 +1,5 @@
-function [dsm, g] = fast_smooth1d(d,gsigma)
-% [dsm g] = fast_smooth1d(d,<gsigma>)
+function [dsm, g] = fast_smooth1d(d,fwhm)
+% [dsm g] = fast_smooth1d(d,<fwhm>)
 %
 % Gaussian smooths the columns of d. Pads with zeros so no
 % wrap-around. Uses fft. Should work on complex data. 
@@ -12,9 +12,9 @@ function [dsm, g] = fast_smooth1d(d,gsigma)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:05 $
-%    $Revision: 1.4 $
+%    $Author: zkaufman $
+%    $Date: 2016/10/14 20:40:04 $
+%    $Revision: 1.4.4.1 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -30,7 +30,7 @@ function [dsm, g] = fast_smooth1d(d,gsigma)
 % Test 1
 % N = 50; gstd = 2;
 % y = zeros(N,1); y(round(N/2)) = 1;
-% [ysm g] = fast_smooth1d(y,gstd);
+% [ysm g] = fast_smooth1d(y,gstd*sqrt(log(256.0)););
 % x = [1:N]'; x = x - x(round(N/2));
 % g0 = gaussian(x,0,gstd);
 % plot(x,g0,'o-',x,ysm);
@@ -44,12 +44,13 @@ function [dsm, g] = fast_smooth1d(d,gsigma)
 
 dsm = [];
 if(nargin < 1 | nargin > 2)
-  fprintf('[dsm g] = fast_smooth1d(d,<gsigma>)\n');
+  fprintf('[dsm g] = fast_smooth1d(d,<fwhm>)\n');
   return;
 end
 
-if(~exist('gsigma','var')) gsigma = []; end
-if(isempty(gsigma)) gsigma = 1; end
+if(~exist('fwhm','var')) fwhm = []; end
+if(isempty(fwhm)) fwhm = 1; end
+gsigma = fwhm/sqrt(log(256.0));
 
 nrows = size(d,1);
 ncols = size(d,2);

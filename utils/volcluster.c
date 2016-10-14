@@ -7,9 +7,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/11/13 19:37:17 $
- *    $Revision: 1.53 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/10/14 20:40:05 $
+ *    $Revision: 1.53.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
   ---------------------------------------------------------------*/
 const char *vclustSrcVersion(void)
 {
-  return("$Id: volcluster.c,v 1.53 2014/11/13 19:37:17 greve Exp $");
+  return("$Id: volcluster.c,v 1.53.2.1 2016/10/14 20:40:05 zkaufman Exp $");
 }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
@@ -711,11 +711,13 @@ int clustCompareCluster(const void *a, const void *b)
   vc1 = *((VOLCLUSTER **)a);
   vc2 = *((VOLCLUSTER **)b);
 
-  if (fabs(vc1->maxval) > fabs(vc2->maxval) ) return(-1);
-  if (fabs(vc1->maxval) < fabs(vc2->maxval) ) return(+1);
-
+  // sort by extent first
   if (vc1->nmembers > vc2->nmembers) return(-1);
   if (vc1->nmembers < vc2->nmembers) return(+1);
+
+  // now sort by maxval
+  if (fabs(vc1->maxval) > fabs(vc2->maxval) ) return(-1);
+  if (fabs(vc1->maxval) < fabs(vc2->maxval) ) return(+1);
 
   return(0);
 }

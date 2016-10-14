@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/08/24 20:49:29 $
-#    $Revision: 1.671.2.3 $
+#    $Date: 2016/10/14 20:40:03 $
+#    $Revision: 1.671.2.4 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3921,6 +3921,7 @@ AC_OUTPUT([Makefile
            mri_volcluster/Makefile
            mri_voldiff/Makefile
            mri_volsynth/Makefile
+           mri_warp_convert/Makefile
            mri_watershed/Makefile
            mri_watershed/brain_volume/Makefile
            mri_wbc/Makefile

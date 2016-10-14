@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/09/29 14:31:16 $
- *    $Revision: 1.570.2.1 $
+ *    $Date: 2016/10/14 20:40:04 $
+ *    $Revision: 1.570.2.2 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.570.2.1 $";
+const char *MRI_C_VERSION = "$Revision: 1.570.2.2 $";
 
 
 /*-----------------------------------------------------
@@ -3729,6 +3729,12 @@ MRIcopyFrames(MRI *mri_src, MRI *mri_dst, int src_start_frame, int src_end_frame
           src_end_frame-src_start_frame+1) ;
     MRIcopyHeader(mri_src, mri_dst) ;
   }
+
+  if (!MRImatch(mri_src, mri_dst))
+    ErrorExit(ERROR_BADPARM, "MRIcopyFrames(%d, %d, %d): src (%d, %d, %d) doesn't match destimation (%d, %d, %d)\n",
+	      src_start_frame, src_end_frame, dst_start_frame,
+	      mri_src->width, mri_src->height, mri_src->depth,
+	      mri_dst->width, mri_dst->height, mri_dst->depth) ;
 
   offset = dst_start_frame-src_start_frame ;
 

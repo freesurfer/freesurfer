@@ -23,6 +23,11 @@ function [s,fa] = ssbloch(tr,te,fa,t1,t2s,pd)
 %  CSF:   T1 = 4163ms (Chen Proc SMRI, 2001), T2=503
 %  Caud:  T1 = 1271ms                  (Chen Proc SMRI, 2001)
 %   
+% Zhang Magnetic Resonance in Medicine 70:1082–1086 (2013)
+% T1 for blood (Males and Females)
+% 1.5T   1531 1429
+% 3.0T   1681 1618
+% 7.0T   2163 2012
 % 
 % Yuval Zur, Saul Stokar, Peter Bendel. An analysis of fast imaging
 % sequences with steady-state transverse magnetization refocusing.
@@ -38,9 +43,9 @@ function [s,fa] = ssbloch(tr,te,fa,t1,t2s,pd)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:13 $
-%    $Revision: 1.6 $
+%    $Author: zkaufman $
+%    $Date: 2016/10/14 20:40:04 $
+%    $Revision: 1.6.4.1 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

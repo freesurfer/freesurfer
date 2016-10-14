@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/05/05 19:20:30 $
- *    $Revision: 1.33 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/10/14 20:40:04 $
+ *    $Revision: 1.33.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -176,11 +176,16 @@ Implies --synth.
 
 --tr TRms
 
-Set TR (generally not too useful)
+Set TR in msec (generally not too useful)
 
 --nthreads nthreads
 
 Set OPEN MP threads
+
+--inorm
+
+Spatial intensity normalization. Subtract the in-mask mean and divide by the in-mask 
+stddev. 
 
 EXAMPLES:
 
@@ -252,6 +257,7 @@ double EvalFWHM(MRI *vol, MRI *mask);
 
 MRI * MRIbinarize2(MRI *mri_src, MRI *mri_dst,
                    double threshold, double low_val, double hi_val);
+MRI *SpatialINorm(MRI *vol, MRI *mask, MRI *outvol);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -262,7 +268,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.33 2016/05/05 19:20:30 greve Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.33.2.1 2016/10/14 20:40:04 zkaufman Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -322,6 +328,7 @@ double TR=0.0;
 int SetTR=0;
 
 MB2D *mb2drad=NULL,*mb2dtan=NULL;
+int DoSpatialINorm = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -335,7 +342,7 @@ int main(int argc, char *argv[]) {
   sprintf(tmpstr, "S%sER%sRONT%sOR", "URF", "_F", "DO") ;
   setenv(tmpstr,"1",0);
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -464,6 +471,11 @@ int main(int argc, char *argv[]) {
 	mb2dtan->c0 = InVals->width/2.0; // center of volume
 	mb2dtan->r0 = InVals->height/2.0; // center of volume
 	mritmp = MRImotionBlur2D(InVals, mb2dtan, NULL);
+	MRIfree(&InVals);
+	InVals = mritmp;
+      }
+      if(DoSpatialINorm){
+	mritmp = SpatialINorm(InVals, mask, NULL);
 	MRIfree(&InVals);
 	InVals = mritmp;
       }
@@ -729,6 +741,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--ispm")) InValsType = MRI_ANALYZE_FILE;
     else if (!strcasecmp(option, "--ar2")) DoAR2 = 1;
     else if (!strcasecmp(option, "--gdiag")) Gdiag_no = 1;
+    else if (!strcasecmp(option, "--inorm")) DoSpatialINorm = 1;
     else if (!strcasecmp(option, "--i")) {
       if (nargc < 1) CMDargNErr(option,1);
       inpath = pargv[0];
@@ -1115,6 +1128,19 @@ printf("\n");
 printf("Synthesize input with white gaussian noise with the given number of frames.\n");
 printf("Implies --synth.\n");
 printf("\n");
+printf("--tr TRms\n");
+printf("\n");
+printf("Set TR in msec (generally not too useful)\n");
+printf("\n");
+printf("--nthreads nthreads\n");
+printf("\n");
+printf("Set OPEN MP threads\n");
+printf("\n");
+printf("--inorm\n");
+printf("\n");
+printf("Spatial intensity normalization. Subtract the in-mask mean and divide by the in-mask \n");
+printf("stddev. \n");
+printf("\n");
 printf("EXAMPLES:\n");
 printf("\n");
 printf("1. Measure the fwhm of an input data set, compute mask automatically by\n");
@@ -1435,3 +1461,32 @@ int getybest(double xa, double ya, double xb, double yb, double xc, double yc,
   *ybest = yc;
   return(0);
 }
+
+MRI *SpatialINorm(MRI *vol, MRI *mask, MRI *outvol)
+{
+  int c, r, s, f, m;
+  double gmean, gstddev, gmax, v;
+
+  outvol = MRIclone(vol,outvol);
+
+  RFglobalStats(vol, mask, &gmean, &gstddev, &gmax);
+  printf("gmean = %lf, gstddev = %lf\n",gmean,gstddev);
+  for (c=0; c < vol->width; c++)  {
+    for (r=0; r < vol->height; r++)    {
+      for (s=0; s < vol->depth; s++)      {
+        if(mask != NULL){
+          m = (int)MRIgetVoxVal(mask,c,r,s,0);
+          if(!m) continue;
+        }
+        for (f=0; f < vol->nframes; f++) {
+          v = MRIgetVoxVal(vol,c,r,s,f);
+          v = (v - gmean)/gstddev;
+          MRIsetVoxVal(outvol,c,r,s,f,v);
+        }
+      }
+    }
+  }
+
+  return(outvol);
+}
+

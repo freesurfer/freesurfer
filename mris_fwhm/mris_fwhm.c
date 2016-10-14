@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/08/12 16:54:44 $
- *    $Revision: 1.40.2.1 $
+ *    $Date: 2016/10/14 20:40:04 $
+ *    $Revision: 1.40.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -123,6 +123,9 @@ double round(double x);
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <unistd.h>
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "macros.h"
 #include "utils.h"
@@ -155,7 +158,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.40.2.1 2016/08/12 16:54:44 zkaufman Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.40.2.2 2016/10/14 20:40:04 zkaufman Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -208,6 +211,7 @@ int   prunemask = 0;
 float prune_thr = FLT_MIN;
 char *outmaskpath=NULL;
 int arNHops = 0;
+int nthreads = 1;
 
 typedef struct {
   int cvtx; // center vertex
@@ -221,6 +225,7 @@ SURFHOPLIST *SetSurfHopListAlloc(MRI_SURFACE *Surf, int nHops);
 SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops);
 int SurfHopListFree(SURFHOPLIST **shl0);
 MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N);
+MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, int SqrFlag, MRI *out);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -229,6 +234,30 @@ int main(int argc, char *argv[]) {
   double InterVertexDistAvg, InterVertexDistStdDev;
   MRI *ar1=NULL;
   FILE *fp;
+  MATRIX *globkern;
+  double gstd, gk0;
+
+  if(0){
+#ifdef _OPENMP
+    omp_set_num_threads(7);
+#endif
+    InVals = MRIread(argv[1]);
+    surf = MRISread(argv[2]);
+    if(0){
+      sscanf(argv[3],"%lf",&fwhm);
+      gstd = fwhm/sqrt(log(256.0));
+      printf("fwhm = %g, gstd = %g\n",fwhm,gstd);
+      globkern = GaussianVector(15, 0, gstd, 1, NULL);
+      gk0 = globkern->rptr[1][1];
+      for(n = 0; n < 15; n++)  globkern->rptr[n+1][1] = globkern->rptr[n+1][1]/gk0;
+      sprintf(tmpstr,"globkern.fwhm%02d.mtx",(int)fwhm);
+      MatrixWriteTxt(tmpstr, globkern);
+    }
+    globkern = MatrixReadTxt(argv[3], NULL);
+    mritmp = MRISsmoothKernel(surf, InVals, NULL, NULL, globkern, 1, NULL);
+    MRIwrite(mritmp,argv[4]);
+    exit(0);
+  }
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -536,7 +565,11 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       hemi = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--surf")) {
+    } 
+    else if (!strcasecmp(option, "--lh")) hemi = "lh";
+    else if (!strcasecmp(option, "--rh")) hemi = "rh";
+
+    else if (!strcasecmp(option, "--surf")) {
       if (nargc < 1) CMDargNErr(option,1);
       surfname = pargv[0];
       nargsused = 1;
@@ -601,7 +634,16 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&nframes);
       synth = 1;
       nargsused = 1;
-    } else if (!strcasecmp(option, "--o")) {
+    } 
+    else if(!strcasecmp(option, "--threads") || !strcasecmp(option, "--nthreads") ){
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nthreads);
+      #ifdef _OPENMP
+      omp_set_num_threads(nthreads);
+      #endif
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
       outpath = pargv[0];
       DoDetrend = 0;
@@ -649,7 +691,7 @@ static void print_usage(void) {
   printf("Smooths surface data and/or estimates FWHM\n");
   printf("   --i input\n");
   printf("   --subject subject (--s)\n");
-  printf("   --hemi hemi (--h)\n");
+  printf("   --hemi hemi (--h), or --lh or --rh\n");
   printf("   --surf surf <white>\n");
   printf("   --label labelfile\n");
   printf("   --cortex : used hemi.cortex.label\n");
@@ -674,6 +716,7 @@ static void print_usage(void) {
   printf("   --sd SUBJECTS_DIR \n");
   printf("   --synth \n");
   printf("   --synth-frames nframes : default is 10 \n");
+  printf("   --threads nthreads\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -1118,11 +1161,7 @@ SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops)
   -----------------------------------------------------------------------*/
 MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N)
 {
-  int nnbrs, frame, vtx, nbrvtx, nthnbr, **crslut, c,r,s, nvox;
-  int cnbr, rnbr,snbr, nnbrs_actual;
-  double valvtx, valnbr, arsum, sumsqvtx, vtxvar, sumsqnbr, sumsqx, nbrvar;
-  SURFHOPLIST *shl;
-  int nthhop;
+  int **crslut, nvox, vtx;
 
   nvox = src->width * src->height * src->depth;
   if (surf->nvertices != nvox){
@@ -1141,7 +1180,16 @@ MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N)
   //Build LUT to map from col,row,slice to vertex
   crslut = MRIScrsLUT(surf,src);
 
+  #ifdef _OPENMP
+  #pragma omp parallel for 
+  #endif
   for (vtx = 0; vtx < surf->nvertices; vtx++) {
+    int nnbrs, frame, nbrvtx, nthnbr, c,r,s;
+    int cnbr, rnbr,snbr, nnbrs_actual;
+    double valvtx, valnbr, arsum, sumsqvtx, vtxvar, sumsqnbr, sumsqx, nbrvar;
+    SURFHOPLIST *shl;
+    int nthhop;
+
     if(surf->vertices[vtx].ripflag) continue;
     c = crslut[0][vtx];
     r = crslut[1][vtx];
@@ -1201,3 +1249,121 @@ MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N)
 
   return(arN);
 }
+
+/*-----------------------------------------------------------------------
+  MRISsmoothKernel() - 
+  kernel = ACF^2
+  -----------------------------------------------------------------------*/
+MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, int SqrFlag, MRI *out)
+{
+  int vtx, **crslut, nvox;
+  double *kern;
+  int n,nhops;
+
+  if(mrikern && globkern){
+    printf("ERROR: MRISsmoothKernel(): cannot spec both mrikern and globkern\n");
+    return(NULL);
+  }
+
+  nvox = src->width * src->height * src->depth;
+  if (surf->nvertices != nvox){
+    printf("ERROR: MRISsmoothKernel(): Surf/Src dimension mismatch.\n");
+    return(NULL);
+  }
+
+  if(out == NULL){
+    out = MRIcloneBySpace(src, MRI_FLOAT, src->nframes);
+    if (out == NULL){
+      printf("ERROR: MRISsmoothKernel(): could not alloc\n");
+      return(NULL);
+    }
+  }
+  else {
+    if(out == src){
+      printf("ERROR: MRISsmoothKernel(): cannot run in-place\n");
+      return(NULL);
+    }
+    // Zero the output
+  }
+
+  if(mrikern)  nhops = mrikern->nframes;
+  if(globkern) nhops = globkern->rows;
+  printf("nhops = %d\n",nhops);
+  kern = (double *) calloc(nhops,sizeof(double));
+  if(globkern) {
+    for(n = 0; n < nhops; n++) 
+      kern[n] = globkern->rptr[n+1][1];
+    if(SqrFlag){
+      for(n = 0; n < nhops; n++) 
+	kern[n] = kern[n]*kern[n];
+    }
+  }
+
+  //Build LUT to map from col,row,slice to vertex
+  crslut = MRIScrsLUT(surf,src);
+
+  #ifdef _OPENMP
+  #pragma omp parallel for 
+  #endif
+  for (vtx = 0; vtx < surf->nvertices; vtx++) {
+    int nnbrs, frame, nbrvtx, nthnbr, c,r,s;
+    int cnbr, rnbr,snbr, nnbrs_actual;
+    double vtxval,*vkern,ksum,kvsum;
+    SURFHOPLIST *shl;
+    int nthhop;
+
+    if(surf->vertices[vtx].ripflag) continue;
+    c = crslut[0][vtx];
+    r = crslut[1][vtx];
+    s = crslut[2][vtx];
+    if(mask) if (MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+
+    if(mrikern){
+      vkern = (double *) calloc(nhops,sizeof(double));
+      for(nthhop = 0; nthhop < nhops; nthhop++) 
+	vkern[nthhop] = MRIgetVoxVal(mrikern,vtx,0,0,nthhop);
+      if(SqrFlag){
+	for(nthhop = 0; nthhop < nhops; nthhop++) 
+	  vkern[nthhop] = vkern[nthhop]*vkern[nthhop];
+      }
+    }
+    else vkern = kern;
+
+    // Create structure to manage the multiple hops for this vertex
+    shl = SetSurfHopList(vtx, surf, nhops);
+
+    for(frame = 0; frame < src->nframes; frame ++){
+      // loop through hops and neighbors
+      if(frame ==0) ksum = 0;
+      kvsum = 0;
+      nnbrs_actual = 0;
+      for(nthhop = 0; nthhop < nhops; nthhop++){
+	nnbrs = shl->nperhop[nthhop];
+	// loop through the neighbors nthhop links away
+	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	  nbrvtx = shl->vtxlist[nthhop][nthnbr];
+	  if(surf->vertices[nbrvtx].ripflag) continue;
+	  cnbr = crslut[0][nbrvtx];
+	  rnbr = crslut[1][nbrvtx];
+	  snbr = crslut[2][nbrvtx];
+	  if(mask) if(MRIgetVoxVal(mask,cnbr,rnbr,snbr,0) < 0.5) continue;
+	  vtxval = MRIFseq_vox(src,cnbr,rnbr,snbr,frame);
+	  kvsum += (vtxval*kern[nthhop]);
+	  if(frame ==0) ksum += kern[nthhop];
+	  nnbrs_actual ++;
+	} /* end loop over hop neighborhood */
+      } /* end loop over hop */
+      if(nnbrs_actual != 0) MRIFseq_vox(out,c,r,s,frame) = (kvsum/ksum);
+      //printf("%5d %d %d %d %d%g\n",vtx,c,r,s,nnbrs_actual,ksum);
+    } // end loop over frame
+    SurfHopListFree(&shl);
+
+    if(mrikern) free(vkern);
+  } /* end loop over vertex */
+
+  free(kern);
+  MRIScrsLUTFree(crslut);
+
+  return(out);
+}
+
