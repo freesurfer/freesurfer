@@ -5,28 +5,35 @@ function cdf = rft_zcluster_cdf(csize,zthresh,fwhm,ssize,D)
 % found in a D-dim z-field with fwhm smoothness of ssize search space.
 % zthresh is the voxel-wise z thresh. ssize and csize are measured
 % in non-resel units. csize, fwhm, and ssize are measured in the
-% same units.
+% same units. This has not been tested for anything other than D=3.
 %
 % Based on:
 % Friston, Worsley, Frackowiak, Mazziotta, Evans. Assessing the
 % significance of focal activations using their spatial extent. HBM
 % 1994, 1:214-220. 
 %
+% This function generates the results as found in Table 1 if the
+% special case for D=3 is not used. See the code. If the special case
+% for D=3 is used (the default), then it matches results from KJW's
+% stat_volume.m and FSL and fits simulations pretty well (note:
+% when clustering real data, need 26 connectivity, ie, faces,
+% edges, and corners). 
+%
 % Also in:
-% Based on Friston, Holmes, Poline, Price, and Frith. Detecting
+% Friston, Holmes, Poline, Price, and Frith. Detecting
 % Activations in PET and fMRI: Levels of Inference and Power.
 % Neuroimage 40, 223-235 (1996).
 % 
-% $Id: rft_zcluster_cdf.m,v 1.6 2011/03/02 00:04:07 nicks Exp $
+% $Id: rft_zcluster_cdf.m,v 1.7 2016/10/14 19:57:23 greve Exp $
 
 %
 % rft_zcluster_cdf.m
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:07 $
-%    $Revision: 1.6 $
+%    $Author: greve $
+%    $Date: 2016/10/14 19:57:23 $
+%    $Revision: 1.7 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -64,16 +71,23 @@ W = fwhm/sqrt(4*log(2));
 % Expected number of clusters (Eq 2)
 % This form appears to go back to Hasofer 1978
 Em = exp(-(u.^2)/2) .* u.^(D-1) * (2*pi).^(-(D+1)/2) .* S ./ (W.^D);
-%if(D==3)
-% The only difference here is (u.^(D-1)-1), which appears to come
-% from Worsely 1996.
-%  Em = exp(-(u.^2)/2) .* (u.^(D-1)-1) * (2*pi).^(-(D+1)/2) .* S ./ (W.^D);
-%end
-
-%rhoDng = exp(-(u.^2)/2) .* (u.^(D-1) - 1) * (2*pi).^(-(D+1)/2);
-%fprintf('Em = %g\n',Em);
-%fprintf('rhoDng = %g\n',rhoDng);
-%keyboard
+if(D==3)
+  % The only difference here is (u.^(D-1)-1), which appears to come
+  % from Worsely 1996. This is the FSL implementation. This also
+  % matches results from KJW's stat_volume.m
+  Em = exp(-(u.^2)/2) .* (u.^(D-1)-1) * (2*pi).^(-(D+1)/2) .* S ./ (W.^D);
+  %
+  % KJW's stat_volume can be run like  
+  % [PEAK_THRESHOLD, EXTENT_THRESHOLD, PEAK_THRESHOLD_1 EXTENT_THRESHOLD_1] ...
+  %  = stat_threshold(S,S/VoxVolMM3,fwhm,Inf,DoesNotMatter,u,.05);
+  % EXTENT_THRESHOLD is the critical cluster size in mm3 for clusterp<.05
+  %
+  % In FSL implmentation, the smoothness file has a DLH value which
+  % is in voxel-style units. The fwhm (in mm) can be computed with
+  % fwhm_mm = VoxSizeMM*sqrt(4*log(2))/(dLh.^(1/3));
+  % dLh = ((fwhm_mm/VoxSizeMM)/sqrt(4*log(2))).^-3
+  %Em = exp(-(u.^2)/2) .* (u.^(D-1)-1) * (2*pi).^(-(D+1)/2) .* S .* dLh;
+end
 
 % Equation 3
 beta = (gamma(D/2+1).*Em./(S.*phiu)).^(2/D);
@@ -82,56 +96,10 @@ beta = (gamma(D/2+1).*Em./(S.*phiu)).^(2/D);
 Pnk = exp(-beta.*(k.^(2/D)));
 %fprintf('Pnk = %g\n',Pnk);
 
-% Prob of cluster of size k
+% Prob of cluster of size k or greater
 cdf = 1 - exp(-Em.*Pnk);
 
 return;
 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% These were old attempts. Above seems to disagree with the FSL
-% implementation but agrees with KJW's stat_threshold.m and seems
-% to agree with actual simulations.
-
-W = fwhm/sqrt(4*log(2));
-dLh = W.^(-D); % Same as FSL?
-%dLh = 0.493971;
-
-if(1)
-Em = ssize .* ((2*pi).^(-(D+1)/2)) .* dLh .* (zthresh.^(D-1)) .* ...
-     exp(-(zthresh.^2)/2); 
-else
-% This appears to be the FSL equation from the techrep
-Em = ssize .* ((2*pi).^(-(D+1)/2)) .* dLh .* (zthresh.^(D-1) - 1) .* ...
-     exp(-(zthresh.^2)/2); 
-end
-
-beta = ( ((gamma(D/2+1) .* Em)) ./ (ssize.*mri_zcdf(zthresh))).^(2./D);
-
-% Prob than n >= k, ie, the number of voxels in a cluster >= csize
-Pnk = exp(-beta.*(csize.^(2./D)));
-cdf = 1 - exp(-Em.*Pnk);
-
-%------------------------------------------------------------------
-%zthresh = fast_p2z(zthresh);
-zthresh = zthresh;
-pthresh = fast_z2p(zthresh);
-rhoD = zthresh .* exp(-(zthresh.^2)/2) / ((2*pi)^1.5); % rho2 for surf
-resels = ssize./(fwhm.^D);
-invol = resels .* (4*log(2)).^(D/2);
-EL = invol.*rhoD;
-cons = (((gamma(D/2+1)*((4*log(2))^(D/2))/(fwhm^D)))*rhoD)/pthresh;
-pS = exp(-(csize*cons).^(2/D));
-P_val_extent = 1-exp(-pS*EL);
-cdf2 = P_val_extent;
-
-keyboard
-
-%------------------------------------------------------------------
-
-%keyboard
-
-return;
 
 
