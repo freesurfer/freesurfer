@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/18 16:16:58 $
- *    $Revision: 1.53.2.2 $
+ *    $Date: 2016/10/18 17:55:38 $
+ *    $Revision: 1.53.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
   ---------------------------------------------------------------*/
 const char *vclustSrcVersion(void)
 {
-  return("$Id: volcluster.c,v 1.53.2.2 2016/10/18 16:16:58 zkaufman Exp $");
+  return("$Id: volcluster.c,v 1.53.2.3 2016/10/18 17:55:38 zkaufman Exp $");
 }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
@@ -873,7 +873,7 @@ VOLCLUSTER **clustGetClusters(MRI *vol, int frame,
                               MRI *binmask, int *nClusters,
                               MATRIX *XFM)
 {
-  int nthhit,nclusters,nhits, *hitcol, *hitrow, *hitslc;
+  int nthhit,nclusters,nhits, *hitcol=NULL, *hitrow=NULL, *hitslc=NULL;
   int col,row,slc,allowdiag=0,nprunedclusters;
   MRI *HitMap;
   VOLCLUSTER **ClusterList, **ClusterList2;
