@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/10/14 20:40:03 $
-#    $Revision: 1.671.2.4 $
+#    $Date: 2016/10/18 16:16:57 $
+#    $Revision: 1.671.2.5 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -229,16 +229,16 @@ if (test "${CC}" = "gcc"); then
   if test "$?" = "0"; then
     AC_MSG_NOTICE(Have gcc 4.x where x >= 4)
     ac_have_gcc_44="yes"
-  else 
+  else
     AC_MSG_NOTICE(Do not have gcc 4.x where x >= 4)
   fi
 fi
 
 # When the version of gcc and installed autools
 # begins to "diverge", the configure script needs
-# to copy libtool from /usr/bin (/opt/local/bin on OSX) 
-# into dev. If gcc autotools are "around the same" 
-# than this copying doesnt need to occur. 
+# to copy libtool from /usr/bin (/opt/local/bin on OSX)
+# into dev. If gcc autotools are "around the same"
+# than this copying doesnt need to occur.
 # But since it doesnt hurt lets just always do it.
 if test ! `uname -s` = "Darwin"; then
     AC_MSG_NOTICE(Copying /usr/bin/libtool overtop the PROG_LIBTOOL)
@@ -363,7 +363,7 @@ AC_CHECK_FUNCS([\
   uname])
 
 # many linux systems dont have libg2c.so, the shared lib supporting g77,
-# so build using the static lib if available, so that distro is more 
+# so build using the static lib if available, so that distro is more
 # widely compatible. the talairach_avi/Makefile.am file uses LIB_G2C_A
 LIB_G2C_A=""
 if test -e /usr/local/lib/libg2c.a ; then
@@ -422,8 +422,8 @@ fi
 AC_SUBST(LIB_LAPACK)
 
 # libnetcdf is now installed by default on centos6 computers
-# at the Center. We want it to compile against the static 
-# version found in the mni library so that libnetcdf does 
+# at the Center. We want it to compile against the static
+# version found in the mni library so that libnetcdf does
 # not become a dependancy for users outside the Center.
 LIB_NETCDF=""
 if test -e ${PACKAGES_DIR}/mni/current/lib/libnetcdf.a ; then
@@ -506,7 +506,7 @@ LFS_CFLAGS="-D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
 NUPRAG="-Wno-unknown-pragmas"
 
 # Freesurfer should compile with -Wall (which enables all warnings)
-# and -Werror (which escalates warnings to errors, thus stopping the 
+# and -Werror (which escalates warnings to errors, thus stopping the
 # build), but here we allow a bypass:
 WALL="-Wall"
 WERROR="-Werror"
@@ -528,7 +528,7 @@ if test "x$CC" = "xicc"; then
 fi
 
 # to strip unused code when using Linux gcc.
-# but not on cent4 because for some reason it fails 
+# but not on cent4 because for some reason it fails
 # on certain binaries.
 if (test "$host" = "Linux-centos4_x86_64"); then
   DEADCODE_STRIP=""
@@ -662,7 +662,7 @@ if (test "$OS" = "Darwin") && (test "$machine_hardware" = "x86_64"); then
   MAC_64="YES"
 fi
 
-# On 64-bit Mac systems, the 32bit versions of tkmedit, tksurfer, 
+# On 64-bit Mac systems, the 32bit versions of tkmedit, tksurfer,
 # tkregister, and qdec are installed by default.
 install_Mac32_GUIs="NO"
 if test x$MAC_64 = xYES; then
@@ -691,13 +691,13 @@ fi
 if test "x$MAC_64" = "xYES"; then
   if test ! "x$F77" = "xgfortran"; then
     AC_MSG_ERROR([FATAL: gfortran (not $F77) required for 64-bit Mac OSX systems.])
-  else 
+  else
     FFLAGS="$FFLAGS -m64"
   fi
 fi
 
-# many linux systems, namedly Ubuntu, dont have libgfortran.so installed 
-# by default, so build using the static lib if available, so that 
+# many linux systems, namedly Ubuntu, dont have libgfortran.so installed
+# by default, so build using the static lib if available, so that
 # distro is more widely compatible.
 if test -e /usr/lib/libgfortran.a ; then
   LIB_GFORTRAN="/usr/lib/libgfortran.a"
@@ -705,7 +705,7 @@ fi
 if test -e /usr/lib64/libgfortran.a ; then
   LIB_GFORTRAN="/usr/lib64/libgfortran.a"
 fi
-# ubuntu 16.04 installation location 
+# ubuntu 16.04 installation location
 if test -e /usr/lib/gcc/x86_64-linux-gnu/4.8/libgfortran.a ; then
   LIB_GFORTRAN="/usr/lib/gcc/x86_64-linux-gnu/4.8/libgfortran.a"
 fi
@@ -717,7 +717,7 @@ AM_CONDITIONAL(HAVE_GFORTRAN, test ! "x$LIB_GFORTRAN" = "x" )
 # note: gcc 4.4 might give 'undefined reference to _gfortran_ errors, and so
 # the following may be necessary to get around this, as root:
 # cd /usr/lib64
-# rm libgfortran.so; 
+# rm libgfortran.so;
 # ln -s libgfortran.so.1.0.0 libgfortran.so
 
 ################################################################
@@ -733,7 +733,7 @@ AC_ARG_ENABLE(sse_mathfun,
 # (see OS target stuff), so --disable-sse_mathfun is used to disable for testing
 if test "x$ac_have_sse_mathfun" = "xyes"; then
   CPPFLAGS="$CPPFLAGS -DUSE_SSE_MATHFUN"
-fi  
+fi
 AM_CONDITIONAL(USE_SSE_MATHFUN, test "x$ac_have_sse_mathfun" = "xyes")
 
 
@@ -752,7 +752,7 @@ AC_ARG_ENABLE(openmp,
    else
      OPENMP_FLAG="-fopenmp"
      CPPFLAGS="-D_OPENMP $OPENMP_FLAG $CPPFLAGS"
-   fi  
+   fi
  ])
 
 # gcc 4.4 supports openmp, so enable it by default (no harm in doing so)
@@ -836,14 +836,14 @@ OPENCL_INCDIR=""
 if test "$OS" = "Darwin"; then
     # On Mac OS X 10.6, OpenCL is provided by Apple so look for these
     # directories by default
-	
+
     OPENCL_CFLAGS="-I/System/Library/Frameworks/OpenCL.framework/Headers"
     OPENCL_LIBS="-framework OpenCL"
     OPENCL_INCDIR="/System/Library/Frameworks/OpenCL.framework/Headers"
 elif test -n "$with_opencl"
 then
     # For Linux, the OpenCL implementation directory should be specified
-    # using --with-opencl.  Currently, the ATI Stream SDK v2.0 and 
+    # using --with-opencl.  Currently, the ATI Stream SDK v2.0 and
     # NVIDIA GPU SDK provides an OpenCL implementation.  You must
     # also have the appropriate driver installed to get GPU support.
     # The ATI Stream SDK provides generic CPU support across both AMD
@@ -851,7 +851,7 @@ then
 
     OPENCL_CFLAGS="-I$with_opencl/include"
     OPENCL_LIBS="-L$with_opencl/$(OPENCL_LIB_EXT) -lOpenCL"
-    OPENCL_INCDIR="$with_opencl/include/CL"    
+    OPENCL_INCDIR="$with_opencl/include/CL"
 fi
 AC_SUBST(OPENCL_CFLAGS)
 AC_SUBST(OPENCL_LIBS)
@@ -860,7 +860,7 @@ AC_CHECK_FILE($OPENCL_INCDIR/cl.h, use_opencl="yes", use_opencl="no")
 
 AM_CONDITIONAL(BUILDOPENCL, test x$use_opencl = xyes)
 
-if( test ! "x$use_opencl" = "xno" ) 
+if( test ! "x$use_opencl" = "xno" )
 then
 	AC_DEFINE([FS_OPENCL],[1],[Defined if OPENCL should be used])
 fi
@@ -1020,11 +1020,11 @@ if test "$CPUTYPE" = "NO"; then
       esac
       ;;
     x86_64-*)
-      # this is the only was I found to determine 
+      # this is the only was I found to determine
       if test -e "/proc/cpuinfo" ; then
         CPUCAPS=`cat /proc/cpuinfo | egrep "model name" | head -n1`
       fi
-      if test "x$CPUCAPS" = "x" ; then 
+      if test "x$CPUCAPS" = "x" ; then
         CPUCAPS=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
       fi
       CPUTYPE=x86_64
@@ -1250,7 +1250,7 @@ if test "x$x_libraries" = "x"; then
   if test -e "/lib64/libX11.so" ; then
     x_libraries=/lib64
   fi
-  
+
 
 fi
 AC_MSG_NOTICE([x_libraries set to $x_libraries  \
@@ -1416,7 +1416,7 @@ AC_ARG_WITH(vxl-dir,
      AC_SUBST(VXL_DIR)
   ])
 
-# NJS: --with-itk-4.5.1-vxl is a temporary hack to allow building against 
+# NJS: --with-itk-4.5.1-vxl is a temporary hack to allow building against
 # ITK v4.5.1, which doesnt seem to work with the default vxl, so we use the
 # Vxl code within itk
 AC_ARG_WITH(itk-4.5.1-vxl,
@@ -1488,7 +1488,7 @@ AC_SUBST(VXL_LIB)
 AC_SUBST(LIBS_VXL)
 
 ################################################################
-# FLTK 
+# FLTK
 ################################################################
 ac_fltk_includes="NO"
 ac_fltk_libraries="NO"
@@ -1905,7 +1905,7 @@ if test "$disable_gui_build" = "YES"; then
 fi
 
 # Disable building of tcltk apps on Mac 64bit systems
-# due to issues with the tcltkixblt package. 
+# due to issues with the tcltkixblt package.
 if test x$MAC_64 = xYES
 then
    tcltk_apps="NO"
@@ -2206,9 +2206,9 @@ AC_SUBST(EXPAT_LIBS)
 AC_SUBST(LIB_EXPAT)
 
 #
-# these are used by the local freesurfer expat source, 
+# these are used by the local freesurfer expat source,
 # declared in config.h
-# 
+#
 AC_DEFINE([XML_NS], 1,
 [Define to make XML Namespaces functionality available.])
 AC_DEFINE([XML_DTD], 1,
@@ -2615,7 +2615,7 @@ AC_MSG_CHECKING(wxWidgets config)
 
 AC_ARG_WITH(wxwidgets-dir,
   [  --with-wxwidgets-dir=DIR where the root of wxWidgets is installed.],
-  [  WXWIDGETS_DIR="$withval" 
+  [  WXWIDGETS_DIR="$withval"
      wxw_apps="yes"
   ])
 
@@ -2877,7 +2877,7 @@ if test "$itk_apps" = "yes"; then
   elif test -e /usr/lib64/libuuid.so ; then
      LIB_UUID="/usr/lib64/libuuid.so"
      AC_SUBST(LIB_UUID)
-  fi 
+  fi
   LIBS_ITK="$LIBS_ITK $LIB_UUID"
 else
   AC_MSG_RESULT([Not building ITK apps.])
@@ -3245,7 +3245,7 @@ else
     AC_SUBST(BOOST_LIBS)
     AC_MSG_RESULT([found '$BOOST_PO_LIB'])
     AM_CONDITIONAL(HAVE_BOOST_LIBS, ! test "x$BOOST_PO_LIB" = "xNO")
-  else 
+  else
     if test -e /usr/lib64/libboost_program_options.so ; then
       # note: centos 6 doesnt have the .a lib, so the shared is used instead
       BOOST_PO_LIB=-lboost_program_options
@@ -3272,7 +3272,7 @@ if test ! "x$ac_nifti_dir" = "xNO"; then
   LIBS_NIFTI="-lznz -lniftiio"
 else
   # check if libs installed natively somewhere
-  AC_CHECK_LIB([znz], [znzread], 
+  AC_CHECK_LIB([znz], [znzread],
     [AC_CHECK_LIB([niftiio -lznz], [is_nifti_file],
       [AM_CONDITIONAL(HAVE_NIFTI_LIBS, test "1" = "1")
        LIBS_NIFTI="-lznz -lniftiio"],[])], [])
@@ -3315,7 +3315,7 @@ if test "$ac_jpeg_libraries" = "NO"; then
     VTK_JPEG_LIB=../jpeg/libjpeg.a
   else
   # else use whatever we can find
-    AC_CHECK_LIB([vtkjpeg], [vtk_jpeg_start_compress], 
+    AC_CHECK_LIB([vtkjpeg], [vtk_jpeg_start_compress],
                  [VTK_JPEG_LIB="-lvtkjpeg"],
                  [VTK_JPEG_LIB="-ljpeg"])
   fi
@@ -3355,7 +3355,7 @@ Try setting LDFLAGS, LD_LIBRARY_PATH and-or --with-vtk-dir.])] )
 # libverdict appeared in VTK v5.1.0, and is required by libvtkHybrid,
 # and libvtkGraphics (in v5.2.0), but doesnt exist in earlier versions of VTK
 VTK_VERDICT_LIB=""
-AC_CHECK_LIB([verdict], [main], [VTK_VERDICT_LIB="-lverdict"], 
+AC_CHECK_LIB([verdict], [main], [VTK_VERDICT_LIB="-lverdict"],
   [AC_CHECK_LIB([vtkverdict], [main], [VTK_VERDICT_LIB="-lvtkverdict"], [])])
 AC_SUBST(VTK_VERDICT_LIB)
 
@@ -3366,7 +3366,7 @@ AC_SUBST(VTK_SQLITE_LIB)
 
 # libvtkMPEG2Encode disappeared from VTK v5.1.0, so test for it
 VTK_MPEG2ENCODE_LIB=""
-AC_CHECK_LIB([vtkMPEG2Encode], [main], 
+AC_CHECK_LIB([vtkMPEG2Encode], [main],
                                [VTK_MPEG2ENCODE_LIB="-lvtkMPEG2Encode"], [])
 AC_SUBST(VTK_MPEG2ENCODE_LIB)
 
@@ -3418,7 +3418,7 @@ if test "x$tcltk_apps" = "xyes"; then
             [ AC_CHECK_LIB([tclstub],[Tcl_Init],
               [LIB_TCL=-ltclstub],
               [AC_MSG_ERROR([FATAL: libtcl not found. \
-Check config.log. Set LDFLAGS or --with-tcl-dir.]) 
+Check config.log. Set LDFLAGS or --with-tcl-dir.])
               ])
             ])
           ])
@@ -3516,7 +3516,7 @@ Check config.log. Set LDFLAGS or --with-BLT-dir.])
       ])
     ])
   AC_SUBST(LIB_BLT)
-fi 
+fi
 
 # check for KWWidget libs only if kww app building is enabled
 if test ! "x$kww_apps" = "xNO"; then
@@ -3582,12 +3582,12 @@ AC_SUBST(LDFLAGS_TCL)
 AC_SUBST(LIBS_TCL)
 AC_SUBST(LIBS_TCL_OPENGL)
 
-# if using the Intel compiler, enable additional interprocedural 
+# if using the Intel compiler, enable additional interprocedural
 # optimizations for single file compilation, and enable auto-parallelization.
 # this is done here because if added earlier -ipo breaks the OpenGL check
 if test "x$CC" = "xicc"; then
   AC_MSG_NOTICE(Setting Intel Compiler optimizations...)
-  CPPFLAGS="$CPPFLAGS -ip -axCORE-AVX2" 
+  CPPFLAGS="$CPPFLAGS -ip -axCORE-AVX2"
   CPPFLAGS="$CPPFLAGS -parallel"
   CPPFLAGS="$CPPFLAGS -qopt-report=5" # -guide-par
   LDFLAGS="$LDFLAGS -ip"
@@ -3660,7 +3660,7 @@ AM_CONDITIONAL(HAVE_OPENGL_LIBS, ! test "X$GL_LIBS" = "X")
 #########################################################################
 #
 # When 'make check' is run, the tests specified in TESTS will inherit
-# these environment variable.  The first one bypasses the need for a 
+# these environment variable.  The first one bypasses the need for a
 # license in FREESURFER_HOME, the others specify necessary libs.
 #
 TESTS_ENVIRONMENT="SURFER_FRONTDOOR=1 LD_LIBRARY_PATH=$TCL_LIB:$VTK_LIB"
@@ -3791,7 +3791,7 @@ AC_OUTPUT([Makefile
            mri_compute_seg_overlap/Makefile
            mri_concat/Makefile
            mri_concatenate_gcam/Makefile
-      	   mri_concatenate_lta/Makefile
+           mri_concatenate_lta/Makefile
            mri_convert/Makefile
            mri_mosaic/Makefile
            mri_convert_mdh/Makefile
@@ -4043,7 +4043,7 @@ AC_OUTPUT([Makefile
            nmovie/Makefile
            oct_train/Makefile
            oct_register_mosaic/Makefile
-	         nmovie_qt/Makefile
+                 nmovie_qt/Makefile
            optseq2/Makefile
            orient_mri/Makefile
            qdec/Makefile
@@ -4105,4 +4105,3 @@ FreeSurfer is now configured for ${host}
   Linker:       ${LD} ${LDFLAGS}
   Libs:         ${LIBS}
 ])
-
