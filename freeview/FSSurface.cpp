@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/10 19:52:41 $
- *    $Revision: 1.81 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/10/18 16:16:57 $
+ *    $Revision: 1.81.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1908,9 +1908,15 @@ void FSSurface::UndoReposition()
   UpdateVerticesAndNormals();
 }
 
-void FSSurface::GetVertexAtSurfaceType(int nVertex, int surface_type, double *v_out)
+bool FSSurface::GetVertexAtSurfaceType(int nVertex, int surface_type, double *v_out)
 {
-    v_out[0] = m_fVertexSets[surface_type][nVertex].x;
-    v_out[1] = m_fVertexSets[surface_type][nVertex].y;
-    v_out[2] = m_fVertexSets[surface_type][nVertex].z;
+    if (m_fVertexSets[surface_type])
+    {
+        v_out[0] = m_fVertexSets[surface_type][nVertex].x;
+        v_out[1] = m_fVertexSets[surface_type][nVertex].y;
+        v_out[2] = m_fVertexSets[surface_type][nVertex].z;
+        return true;
+    }
+    else
+        return false;
 }

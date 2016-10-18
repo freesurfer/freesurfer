@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/08 02:14:32 $
- *    $Revision: 1.343.2.3 $
+ *    $Date: 2016/10/18 16:16:57 $
+ *    $Revision: 1.343.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7330,5 +7330,14 @@ void MainWindow::ReorderLayers(const QList<Layer *> &layers)
     {
         QString type = layers[0]->GetPrimaryType();
         GetLayerCollection(type)->ReorderLayers(layers);
+    }
+}
+
+void MainWindow::OnApplyVolumeTransform()
+{
+    LayerMRI* mri = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
+    if (mri)
+    {
+        qDebug() << mri;
     }
 }

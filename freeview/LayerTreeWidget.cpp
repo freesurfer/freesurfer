@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:52:37 $
- *    $Revision: 1.21.2.1 $
+ *    $Date: 2016/10/18 16:16:57 $
+ *    $Revision: 1.21.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -279,6 +279,10 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
       act->setChecked(nColorMap == LayerPropertyMRI::PET);
       connect(act, SIGNAL(triggered()), this, SLOT(OnSetColorMap()));
       submenu->addAction(act);
+
+      act = new QAction("Apply Transformation...", this);
+      connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnApplyVolumeTransform()));
+      menu->addAction(act);
     }
     else if (layers[0]->GetEndType() == "PointSet")
     {

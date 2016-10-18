@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/09/29 14:29:05 $
- *    $Revision: 1.20.2.2 $
+ *    $Date: 2016/10/18 16:16:57 $
+ *    $Revision: 1.20.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -160,7 +160,7 @@ void InfoTreeWidget::UpdateAll()
       if (layer->IsModified() || layer->GetCorrelationSurface())
         dvalue = layer->GetVoxelValue( m_dRAS );
       else
-        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0], nIndex[1], nIndex[2]);
+        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0]+0.5, nIndex[1]+0.5, nIndex[2]+0.5);
       QString valueStrg = QString("%1").arg(dvalue);
       if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
       {
@@ -207,7 +207,7 @@ void InfoTreeWidget::UpdateAll()
       if (bMappingVertex)
           nVertex = surf->GetCurrentVertex();
       double sf_pos[3];
-      if (bMappingVertex && nVertex >= 0)
+      if (bMappingVertex && nVertex >= 0 && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite))
           surf->GetSourceSurface()->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, sf_pos);
       else
           surf->GetSurfaceRASAtTarget( m_dRAS, sf_pos );
@@ -226,7 +226,7 @@ void InfoTreeWidget::UpdateAll()
           nVertex = surf->GetVertexIndexAtTarget( m_dRAS, NULL );
       if ( nVertex >= 0 )
       {
-        if (bMappingVertex)
+        if (bMappingVertex && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite))
             surf->GetSourceSurface()->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, sf_pos);
         else
             surf->GetSurfaceRASAtVertex( nVertex, sf_pos );
