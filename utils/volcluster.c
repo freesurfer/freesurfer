@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/10/14 20:06:08 $
- *    $Revision: 1.54 $
+ *    $Date: 2016/10/16 18:30:46 $
+ *    $Revision: 1.55 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
   ---------------------------------------------------------------*/
 const char *vclustSrcVersion(void)
 {
-  return("$Id: volcluster.c,v 1.54 2016/10/14 20:06:08 greve Exp $");
+  return("$Id: volcluster.c,v 1.55 2016/10/16 18:30:46 greve Exp $");
 }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
@@ -221,8 +221,7 @@ MRI *clustInitHitMap(MRI *vol, int frame,
   int nh, *hrow, *hcol, *hslc;
   int maskval;
 
-  if (Gdiag_no > 0)
-  {
+  if (Gdiag_no > 0){
     printf("clustInitHitMap: \n");
     printf("   thmin  = %f\n",thmin);
     printf("   thmax  = %f\n",thmax);
@@ -230,16 +229,19 @@ MRI *clustInitHitMap(MRI *vol, int frame,
     printf("   maskframe = %d\n",maskframe);
   }
 
+  /* allocate the hit map */
+  HitMap = MRIalloc(vol->width, vol->height, vol->depth, MRI_INT) ;
+  if (HitMap == NULL){
+    printf("ERROR: clustInitHitMap: could not alloc HitMap\n");
+    return(NULL);
+  }
+
   /* count the number of hits */
   nh = 0;
-  for (col = 0; col < vol->width; col ++)
-  {
-    for (row = 0; row < vol->height; row ++)
-    {
-      for (slc = 0; slc < vol->depth; slc ++)
-      {
-        if (binmask != NULL)
-        {
+  for (col = 0; col < vol->width; col ++)  {
+    for (row = 0; row < vol->height; row ++)    {
+      for (slc = 0; slc < vol->depth; slc ++)      {
+        if (binmask != NULL)        {
           maskval = MRIgetVoxVal(binmask,col,row,slc,maskframe);
           if (maskval == 0) continue;
         }
@@ -251,47 +253,32 @@ MRI *clustInitHitMap(MRI *vol, int frame,
   //printf("INFO: clustInitHitMap: found %d hits\n", nh );
 
   /* check that there are hits */
-  if (nh == 0 )
-  {
+  if(nh == 0 ){
     if (Gdiag_no > 0) printf("no hits in hit map\n");
     *nhits = 0;
-    return(NULL);
+    return(HitMap);
   }
 
   /* allocate the rows cols and slices */
   hcol = (int *) calloc( nh, sizeof(int));
-  if (hcol == NULL)
-  {
+  if (hcol == NULL){
     printf("ERROR: clustInitHitMap: could not alloc hit cols\n");
     MRIfree(&HitMap);
     return(NULL);
   }
   hrow = (int *) calloc( nh, sizeof(int));
-  if (hrow == NULL)
-  {
+  if (hrow == NULL){
     printf("ERROR: clustInitHitMap: could not alloc hit rows\n");
     free(hcol);
     MRIfree(&HitMap);
     return(NULL);
   }
   hslc = (int *) calloc( nh, sizeof(int));
-  if (hslc == NULL)
-  {
+  if (hslc == NULL){
     printf("ERROR: clustInitHitMap: could not alloc hit slices\n");
     free(hcol);
     free(hrow);
     MRIfree(&HitMap);
-    return(NULL);
-  }
-
-  /* allocate the hit map */
-  HitMap = MRIalloc(vol->width, vol->height, vol->depth, MRI_INT) ;
-  if (HitMap == NULL)
-  {
-    free(hcol);
-    free(hrow);
-    free(hslc);
-    printf("ERROR: clustInitHitMap: could not alloc HitMap\n");
     return(NULL);
   }
 
