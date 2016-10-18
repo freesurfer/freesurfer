@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/10/14 19:15:51 $
- *    $Revision: 1.345 $
+ *    $Date: 2016/10/14 22:43:02 $
+ *    $Revision: 1.346 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25624,7 +25624,7 @@ GCAbuildRegionalGCAP( const GCA *gca,
   {
     if (used[n] > 0)
     {
-      total_p += label_priors[label] ;
+      total_p += label_priors[n] ;
       gcap->total_training += total_training[n] ;
     }
   }
