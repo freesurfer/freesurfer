@@ -21,6 +21,7 @@ segmentSF_T1_long.sh \
 segmentSF_T1.sh \
 segmentSF_T1T2.sh \
 segmentSF_T2.sh \
+longHippoSubfieldsT1.sh \
 quantifyHippocampalSubfields.sh
 
 install-data-local:
