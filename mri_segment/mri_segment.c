@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:40 $
- *    $Revision: 1.43 $
+ *    $Date: 2016/10/27 22:24:52 $
+ *    $Revision: 1.43.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
  *
  */
 
-const char *MRI_SEGMENT_VERSION = "$Revision: 1.43 $";
+const char *MRI_SEGMENT_VERSION = "$Revision: 1.43.2.1 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,8 +122,8 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_segment.c,v 1.43 2015/02/05 23:34:40 zkaufman Exp $",
-           "$Name: stable6 $");
+           "$Id: mri_segment.c,v 1.43.2.1 2016/10/27 22:24:52 zkaufman Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -393,8 +393,10 @@ get_option(int argc, char *argv[])
   {
     scan_type = MRI_MGH_MPRAGE;
     printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
-    gray_hi = 99 ;
-    wm_low = 89 ;
+    if (gray_hi_set == 0)
+      gray_hi = 99 ;
+    if (wm_low_set == 0)
+      wm_low = 89 ;
   }
   else if (!stricmp(option, "WASHU_MPRAGE"))
   {
