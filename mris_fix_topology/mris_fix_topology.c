@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:42:15 $
- *    $Revision: 1.50 $
+ *    $Author: fischl $
+ *    $Date: 2016/10/27 19:43:58 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@
 #endif // FS_CUDA
 
 static char vcid[] =
-  "$Id: mris_fix_topology.c,v 1.50 2016/01/20 23:42:15 greve Exp $";
+  "$Id: mris_fix_topology.c,v 1.51 2016/10/27 19:43:58 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -90,7 +90,7 @@ static int sphere_smooth = 5;
 
 static char sdir[STRLEN] = "" ;
 static TOPOLOGY_PARMS parms ;
-static int MGZ = 0; // set to 1 for MGZ
+static int MGZ = 1; // set to 1 for MGZ
 
 static double pct_over = 1.1;
 char *rusage_file=NULL;
@@ -116,7 +116,7 @@ main(int argc, char *argv[])
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_fix_topology.c,v 1.50 2016/01/20 23:42:15 greve Exp $",
+   "$Id: mris_fix_topology.c,v 1.51 2016/10/27 19:43:58 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -125,7 +125,7 @@ main(int argc, char *argv[])
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.50 2016/01/20 23:42:15 greve Exp $",
+     "$Id: mris_fix_topology.c,v 1.51 2016/10/27 19:43:58 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -384,6 +384,12 @@ get_option(int argc, char *argv[])
   {
     inflated_name = argv[2] ;
     fprintf(stderr,"reading inflated coordinates from '%s'\n",inflated_name);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "wm"))
+  {
+    wm_name = argv[2] ;
+    fprintf(stderr,"reading wm segmentation from '%s'\n",wm_name);
     nargs = 1 ;
   }
   else if (!stricmp(option, "verbose"))
@@ -745,6 +751,11 @@ get_option(int argc, char *argv[])
   {
     printf("INFO: assuming .mgz format\n");
     MGZ = 1;
+  }
+  else if (!stricmp(option, "nomgz"))
+  {
+    printf("INFO: assuming no .mgz format\n");
+    MGZ = 0;
   }
   else switch (toupper(*option))
     {
