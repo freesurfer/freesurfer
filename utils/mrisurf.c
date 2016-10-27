@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/14 20:40:05 $
- *    $Revision: 1.781.2.1 $
+ *    $Date: 2016/10/27 22:25:31 $
+ *    $Revision: 1.781.2.2 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -565,10 +565,10 @@ static int   mrisSmoothBoundaryNormals(MRI_SURFACE *mris, int niter) ;
 static int   mrisFlipPatch(MRI_SURFACE *mris) ;
 
 static int    mrisPlaceVertexInOrigFace(MRI_SURFACE *mris, VERTEX *v,int fno);
+static int    vertexInFace(MRI_SURFACE *mris, int vno, int fno)  ;
 
 #if 0
 static int   mrisAverageDs(MRI_SURFACE *mris, int num_avgs) ;
-static int    vertexInFace(MRI_SURFACE *mris, int vno, int fno)  ;
 /* not currently used */
 static int  mrisNeighborAtVoxel(MRI_SURFACE *mris, MRI *mri, int vno,
                                 int xv,int yv,int zv) ;
@@ -780,7 +780,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.781.2.1 2016/10/14 20:40:05 zkaufman Exp $");
+  return("$Id: mrisurf.c,v 1.781.2.2 2016/10/27 22:25:31 zkaufman Exp $");
 }
 
 /*-----------------------------------------------------
@@ -58359,7 +58359,6 @@ mrisMarkRetainedPartOfDefect(MRI_SURFACE *mris, DEFECT *defect,
   return(NO_ERROR) ;
 }
 #endif
-#if 0
 
 /*-----------------------------------------------------
   Parameters:
@@ -58383,7 +58382,7 @@ vertexInFace(MRI_SURFACE *mris, int vno, int fno)
     }
   return(0) ;
 }
-#endif
+
 static int
 mrisRipDefect(MRI_SURFACE *mris, DEFECT *defect, int ripflag)
 {
@@ -62232,6 +62231,29 @@ mrisComputeDefectMRIEnergy
 }
 #endif
 
+static int
+mrisCheckDefectFaces(MRI_SURFACE *mris, DEFECT_PATCH *dp)
+{
+  int    fno, n1, n2, vno1, vno2, fshared ;
+  VERTEX *v ;
+
+  for (n1 = 0 ; n1 < dp->tp.nvertices ; n1++)
+  {
+    vno1 = dp->tp.vertices[n1] ;
+    v = &mris->vertices[vno1] ;
+    for (n2 = 0 ; n2 < v->vnum ; n2++)
+    {
+      vno2 = v->v[n2] ;
+      for (fshared = fno = 0 ; fno < v->num ; fno++)
+	if (vertexInFace(mris, vno2, v->f[fno]))
+	  fshared++ ;
+      if (fshared != 2)
+	return(-1) ;
+    }
+  }
+  return(1) ;
+}
+
 static double
 mrisComputeDefectLogLikelihood
 (MRI_SURFACE *mris, MRI *mri, DEFECT_PATCH *dp,
@@ -62301,6 +62323,8 @@ mrisComputeDefectLogLikelihood
   }
 
   l_unmri = parms->l_unmri ;
+  if (mrisCheckDefectFaces(mris, dp) < 0)
+    ll -= 10000000 ;
 
   return(ll) ;
 }
@@ -79847,7 +79871,12 @@ MRIS_facesAtVertices_reorder(
     nfaces      = pVERTEX->num;
     pv_geometricOrderIndx = VectorAlloc(nfaces, MATRIX_REAL);
     pv_logicalOrderFace = VectorAlloc(nfaces, MATRIX_REAL);
-    FACES_aroundVertex_reorder(apmris, vertex, pv_geometricOrderIndx);
+    ret = FACES_aroundVertex_reorder(apmris, vertex, pv_geometricOrderIndx);
+    if (ret < 0)
+    {
+      pVERTEX->marked = 1 ;
+      continue ;
+    }
     for(face=0; face<nfaces; face++)
     {
       VECTOR_ELT(pv_logicalOrderFace, face+1) = pVERTEX->f[face];
@@ -79861,6 +79890,7 @@ MRIS_facesAtVertices_reorder(
     VectorFree(&pv_geometricOrderIndx);
     VectorFree(&pv_logicalOrderFace);
   }
+  MRISdilateMarked(apmris, 1) ;  // neighbors of vertices we couldn't process are also suspect and should be skipped
   xDbg_PopStack();
   return ret;
 }
@@ -79979,12 +80009,15 @@ FACES_aroundVertex_reorder(
         }
       }
     }
+    if (j == nfaces)
+      DiagBreak() ;
   }
-  if(packedCount != nfaces)
-    ErrorExit(-4, "%s: packed / faces mismatch; vertex = %d, faces = %d, packed = %d",
-              pch_function, avertex, nfaces, packedCount);
   VectorFree(&pv_commonVertices);
   xDbg_PopStack();
+  if(packedCount != nfaces)
+    ErrorReturn(-4, (-4, "%s: packed / faces mismatch; vertex = %d, faces = %d, packed = %d",
+		     pch_function, avertex, nfaces, packedCount));
+
   return 1;
 }
 
@@ -80165,6 +80198,13 @@ MRIS_discreteKH_compute(
     f_angleDeficitSum = 0.;
     f_angleNormalIJSum  = 0.;
     pVertex     = &apmris->vertices[vertex];
+    if (pVertex->marked)   // couldn't find geometrical packing of faces - can't process this vertex
+    {
+      apmris->vertices[vertex].K  = 0;
+      apmris->vertices[vertex].H  = 0;
+      continue ;
+    }
+
     nfaces      = pVertex->num;
     pFaceIndex    = pVertex->f;
     pv_geometricOrder = VectorAlloc(nfaces, MATRIX_REAL);
@@ -80309,6 +80349,7 @@ MRIScomputeSecondFundamentalFormDiscrete(
 
   retKH = 1;
   retk1k2 = 1;
+  MRISclearMarks(apmris) ;
   MRIScomputeTriangleProperties(apmris);
   MRIScomputeGeometricProperties(apmris);
   retKH = MRIS_discreteKH_compute(apmris);
