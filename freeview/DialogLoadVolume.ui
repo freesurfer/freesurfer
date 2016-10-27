@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>325</width>
-    <height>395</height>
+    <height>377</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -72,7 +72,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="freeview.qrc">
+        <iconset>
          <normaloff>:/resource/icons/file_open_16.png</normaloff>:/resource/icons/file_open_16.png</iconset>
        </property>
       </widget>
@@ -123,7 +123,7 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="freeview.qrc">
+        <iconset>
          <normaloff>:/resource/icons/file_open_16.png</normaloff>:/resource/icons/file_open_16.png</iconset>
        </property>
       </widget>
@@ -301,9 +301,7 @@
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="freeview.qrc"/>
- </resources>
+ <resources/>
  <connections>
   <connection>
    <sender>buttonBox</sender>
