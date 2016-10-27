@@ -12,8 +12,8 @@
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/09/28 16:28:20 $
- *    $Revision: 1.43 $
+ *    $Date: 2016/10/24 20:46:53 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -309,6 +309,7 @@ void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
   }
 
   this->OnColorMapChanged();
+  emit OpacityChanged( mOpacity );
 }
 
 void LayerPropertyMRI::SaveSettings( const QString& filename )

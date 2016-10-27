@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/10/17 20:24:44 $
- *    $Revision: 1.347 $
+ *    $Date: 2016/10/24 20:46:53 $
+ *    $Revision: 1.348 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -110,6 +110,7 @@
 #include <QProcessEnvironment>
 #include "Json.h"
 #include "DialogThresholdFilter.h"
+#include "DialogLoadTransform.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -1809,18 +1810,20 @@ void MainWindow::CommandLoadSubject(const QStringList &sa)
   }
   subject_path += "/" + sa[1];
   QString args = QString("freeview -v "
-                         "%1/mri/orig.mgz:visible=0 "
+                         "%1/mri/norm.mgz "
+                         "%1/mri/T1.mgz "
                          "%1/mri/brainmask.mgz "
-                         "%1/mri/wm.mgz:colormap=heat "
-                         "%1/mri/aseg.mgz:colormap=lut "
+                         "%1/mri/wm.mgz:colormap=heat:visible=0:opacity=0.4 "
+                         "%1/mri/aseg.mgz:colormap=lut:opacity=0.22 "
                          "-f %1/surf/lh.white "
                          "%1/surf/rh.white "
                          "%1/surf/lh.pial:edgecolor=red "
                          "%1/surf/rh.pial:edgecolor=red "
-                         "%1/surf/lh.orig:edgecolor=green:visible=0 "
-                         "%1/surf/rh.orig:edgecolor=green:visible=0 "
+//                         "%1/surf/lh.orig:edgecolor=green:visible=0 "
+//                         "%1/surf/rh.orig:edgecolor=green:visible=0 "
                          "%1/surf/lh.inflated:annot=aparc:visible=0 "
-                         "%1/surf/rh.inflated:annot=aparc:visible=0 ").arg(subject_path);
+                         "%1/surf/rh.inflated:annot=aparc:visible=0 "
+                         "-viewport coronal ").arg(subject_path);
   QString control_pt_file = QString("%1/tmp/control.dat").arg(subject_path);
   if (QFile::exists(control_pt_file))
       args += "-c " + control_pt_file;
@@ -2710,8 +2713,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QString fn_target = "";
   QStringList sup_files;
   QStringList valid_overlay_options;
-  valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold"
-                        << "overlay_rh" << "overlay_opacity" << "overlay_colormap" << "overlay_frame";
+  valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
+                        << "overlay_rh" << "overlay_opacity" << "overlay_frame";
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
     QStringList sa_fn = overlay_list[nOverlay].split(":");
@@ -2724,7 +2727,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QString overlay_opacity;
     QString overlay_frame;
     QString overlay_method = "linearopaque";
-    QStringList overlay_colormap;
+    QStringList overlay_color;
     QStringList overlay_thresholds;
     bool bSecondHalfData = false;
     for ( int k = sa_fn.size()-1; k >= 0; k-- )
@@ -2744,8 +2747,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           bSecondHalfData = true;
         else if (subOption == "overlay_opacity")
           overlay_opacity = subArgu;
-        else if (subOption == "overlay_colormap")
-          overlay_colormap = subArgu.split(",", QString::SkipEmptyParts);
+        else if (subOption == "overlay_color")
+          overlay_color = subArgu.split(",", QString::SkipEmptyParts);
         else if (subOption == "overlay_frame")
           overlay_frame = subArgu;
       }
@@ -2816,8 +2819,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           if (!overlay_opacity.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlayopacity") << overlay_opacity);
 
-          if (!overlay_colormap.isEmpty())
-            m_scripts.insert(1, QStringList("setsurfaceoverlaycolormap") << overlay_colormap);
+          if (!overlay_color.isEmpty())
+            m_scripts.insert(1, QStringList("setsurfaceoverlaycolormap") << overlay_color);
 
           if (!overlay_frame.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlayframe") << overlay_frame);
@@ -5483,6 +5486,15 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
 //    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
     if (!m_volumeSettings.isEmpty())
     {
+      if (m_volumeSettings.contains("name"))
+          mri->SetName(m_volumeSettings["name"].toString());
+      if (m_volumeSettings.contains("index"))
+      {
+          QList<Layer*> layers = lc_mri->GetLayers();
+          layers.removeAt(0);
+          layers.insert(m_volumeSettings["index"].toInt(), layer);
+          lc_mri->ReorderLayers(layers);
+      }
       mri->GetProperty()->RestoreFullSettings(m_volumeSettings);
       m_volumeSettings.clear();
     }
@@ -7335,9 +7347,22 @@ void MainWindow::ReorderLayers(const QList<Layer *> &layers)
 
 void MainWindow::OnApplyVolumeTransform()
 {
-    LayerMRI* mri = qobject_cast<LayerMRI*>(GetActiveLayer("MRI"));
+    LayerMRI* mri = qobject_cast<LayerMRI*>(this->GetActiveLayer("MRI"));
     if (mri)
     {
-        qDebug() << mri;
+      DialogLoadTransform dlg;
+      QString filename = mri->GetFileName();
+      if (dlg.exec() == QDialog::Accepted)
+      {
+        m_volumeSettings = mri->GetProperty()->GetFullSettings();
+        m_volumeSettings["name"] = mri->GetName();
+        m_volumeSettings["index"] = GetLayerCollection("MRI")->GetLayerIndex(mri);
+        if (!OnCloseVolume())
+          {
+            m_volumeSettings.clear();
+            return;
+          }
+        this->LoadVolumeFile(filename, dlg.GetFilename());
+      }
     }
 }

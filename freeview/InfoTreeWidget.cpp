@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/10/17 20:24:42 $
- *    $Revision: 1.24 $
+ *    $Date: 2016/10/23 02:01:47 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -157,10 +157,10 @@ void InfoTreeWidget::UpdateAll()
       item->setText(0, layer->GetName());
       layer->RASToOriginalIndex( ras, nIndex );
       double dvalue;
-      if (layer->IsModified() || layer->GetCorrelationSurface())
+//      if (layer->IsModified() || layer->GetCorrelationSurface())
         dvalue = layer->GetVoxelValue( m_dRAS );
-      else
-        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0]+0.5, nIndex[1]+0.5, nIndex[2]+0.5);
+//      else
+//        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0]+0.5, nIndex[1]+0.5, nIndex[2]+0.5);
       QString valueStrg = QString("%1").arg(dvalue);
       if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
       {

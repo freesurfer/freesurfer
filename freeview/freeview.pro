@@ -161,6 +161,7 @@ SOURCES += \
     LabelTreeWidget.cpp \
     Json.cpp \
     SplineTreeWidget.cpp \
+    DialogLoadTransform.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -310,7 +311,8 @@ HEADERS  += \
     DialogVolumeSegmentation.h \
     LabelTreeWidget.h \
     Json.h \
-    SplineTreeWidget.h
+    SplineTreeWidget.h \
+    DialogLoadTransform.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -358,7 +360,8 @@ FORMS    += MainWindow.ui \
     DialogLoadFCD.ui \
     DialogSetCamera.ui \
     DialogThresholdVolume.ui \
-    DialogVolumeSegmentation.ui
+    DialogVolumeSegmentation.ui \
+    DialogLoadTransform.ui
 
 RESOURCES += \
     freeview.qrc
