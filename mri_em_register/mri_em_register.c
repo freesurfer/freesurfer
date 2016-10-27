@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/02/11 00:50:55 $
- *    $Revision: 1.105 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/10/27 22:25:10 $
+ *    $Revision: 1.105.2.1 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -252,8 +252,8 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.105 2016/02/11 00:50:55 fischl Exp $",
-     "$Name: stable6 $");
+     "$Id: mri_em_register.c,v 1.105.2.1 2016/10/27 22:25:10 zkaufman Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -1806,7 +1806,7 @@ get_option(int argc, char *argv[])
     rusage_file = argv[2] ;
     nargs = 1 ;
   }
-  else if (!strcmp(option, "NOCEREBELLUM"))
+  else if (!stricmp(option, "NOCEREBELLUM"))
   {
     remove_cerebellum = 1 ;
     printf("removing cerebellum from atlas\n") ;
