@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/07/26 18:32:08 $
- *    $Revision: 1.68 $
+ *    $Author: fischl $
+ *    $Date: 2016/10/22 17:30:57 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -166,13 +166,13 @@ main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_normalize.c,v 1.68 2016/07/26 18:32:08 zkaufman Exp $",
+   "$Id: mri_ca_normalize.c,v 1.69 2016/10/22 17:30:57 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_normalize.c,v 1.68 2016/07/26 18:32:08 zkaufman Exp $",
+           "$Id: mri_ca_normalize.c,v 1.69 2016/10/22 17:30:57 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -798,7 +798,7 @@ get_option(int argc, char *argv[])
     remove_lh = 1  ;
     printf("removing left hemisphere labels\n") ;
   }
-  else if (!strcmp(option, "NOCEREBELLUM"))
+  else if (!stricmp(option, "NOCEREBELLUM"))
   {
     remove_cerebellum = 1 ;
     printf("removing cerebellum from atlas\n") ;

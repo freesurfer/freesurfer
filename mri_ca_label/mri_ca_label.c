@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/09/15 01:00:10 $
- *    $Revision: 1.114 $
+ *    $Date: 2016/10/22 17:31:36 $
+ *    $Revision: 1.115 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -252,13 +252,13 @@ int main(int argc, char *argv[])
   FSinit() ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.114 2016/09/15 01:00:10 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.115 2016/10/22 17:31:36 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.114 2016/09/15 01:00:10 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.115 2016/10/22 17:31:36 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1470,7 +1470,7 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("using Gibbs prior factor = %2.3f\n", PRIOR_FACTOR) ;
   }
-  else if (!strcmp(option, "NOCEREBELLUM"))
+  else if (!stricmp(option, "NOCEREBELLUM"))
   {
     remove_cerebellum = 1 ;
     printf("removing cerebellum from atlas\n") ;
