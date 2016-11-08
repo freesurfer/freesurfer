@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/11/01 20:25:14 $
- *    $Revision: 1.784 $
+ *    $Author: fischl $
+ *    $Date: 2016/11/07 14:46:43 $
+ *    $Revision: 1.785 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,6 +79,10 @@
 #if DMALLOC
 #include "dmalloc.h"
 #endif
+
+// mostly for diagnostics
+#define MAXVERTICES 10000000
+#define MAXFACES    (2*MAXVERTICES)
 
 // uncomment this to expose code which shows timings of gpu activities:
 //#define FS_CUDA_TIMINGS
@@ -780,7 +784,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.784 2016/11/01 20:25:14 greve Exp $");
+  return("$Id: mrisurf.c,v 1.785 2016/11/07 14:46:43 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -24118,7 +24122,7 @@ mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l_thick_min, IN
   double  sse_tmin, max_sse ;
   VERTEX  *v ;
   static  int cno = 0 ;
-  static double last_sse[200000] ;
+  static double last_sse[MAXVERTICES] ;
 
   if (FZERO(l_thick_min))
   {
@@ -24144,20 +24148,21 @@ mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l_thick_min, IN
     thick_sq = mrisSampleMinimizationEnergy(mris, v, parms, v->x, v->y, v->z) ;
 
     // diagnostics
-    if (thick_sq-last_sse[vno] > max_sse)
+    if (vno < MAXVERTICES && thick_sq-last_sse[vno] > max_sse)
     {
       max_sse = thick_sq-last_sse[vno] ;
       max_vno = vno ;
     }
-    if (thick_sq > last_sse[vno] && cno > 1 && vno == Gdiag_no)
+    if (vno < MAXVERTICES && thick_sq > last_sse[vno] && cno > 1 && vno == Gdiag_no)
     {
       DiagBreak() ;
     }
-    if (thick_sq > last_sse[vno] && cno > 1)
+    if (vno < MAXVERTICES && (thick_sq > last_sse[vno] && cno > 1))
     {
       DiagBreak() ;
     }
-    last_sse[vno] = thick_sq ;
+    if (vno < MAXVERTICES)
+      last_sse[vno] = thick_sq ;
     // diagnostics end
 
     v->curv = sqrt(thick_sq) ;
@@ -24170,7 +24175,7 @@ mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l_thick_min, IN
   sse_tmin /= 2 ;
   if (max_sse > 0 && DIAG_VERBOSE_ON)
     printf("max sse increase @ vno = %d, delta sse = %2.2f (now %2.2f, was %2.2f)\n",
-           max_vno, max_sse, last_sse[vno], last_sse[vno]-max_sse) ;
+           max_vno, max_sse, last_sse[max_vno], last_sse[max_vno]-max_sse) ;
   return(sse_tmin) ;
 }
 /*-----------------------------------------------------
@@ -24188,7 +24193,7 @@ mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick_normal, INTEG
   double  sse_tnormal, sse, max_sse ;
   VERTEX  *v ;
   static  int cno = 0 ;
-  static double last_sse[200000] ;
+  static double last_sse[MAXVERTICES] ;
 
 
   if (FZERO(l_thick_normal))
@@ -24217,16 +24222,17 @@ mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick_normal, INTEG
       DiagBreak() ;
 
 
-    if (sse-last_sse[vno] > max_sse)
+    if (vno < MAXVERTICES && sse-last_sse[vno] > max_sse)
     {
       max_sse = sse-last_sse[vno] ;
       max_vno = vno ;
     }
-    if ((sse > last_sse[vno] && cno > 1 && vno == Gdiag_no) || (sse > last_sse[vno] && cno > 1))
+    if (vno < MAXVERTICES && ((sse > last_sse[vno] && cno > 1 && vno == Gdiag_no) || (sse > last_sse[vno] && cno > 1)))
       DiagBreak() ;
 
     sse_tnormal += sse ;
-    last_sse[vno] = sse ;
+    if (vno < MAXVERTICES)
+      last_sse[vno] = sse ;
     if (Gdiag_no == vno)
     {
       float  E ;
@@ -24364,7 +24370,7 @@ mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thick_parallel, I
   double  sse_tparallel, sse, max_sse ;
   VERTEX  *v ;
   static  int cno = 0 ;
-  static double last_sse[200000] ;
+  static double last_sse[MAXVERTICES] ;
 
   if (FZERO(l_thick_parallel))
   {
@@ -24395,15 +24401,17 @@ mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thick_parallel, I
       max_sse = sse ;
       max_vno = vno ;
     }
-    if (sse > last_sse[vno] && cno > 1 && vno == Gdiag_no)
+    if ((vno < MAXVERTICES) && (sse > last_sse[vno] && cno > 1 && vno == Gdiag_no))
     {
       DiagBreak() ;
     }
-    if (sse > last_sse[vno] && cno > 1)
+    if ((vno < MAXVERTICES) && (sse > last_sse[vno] && cno > 1))
     {
       DiagBreak() ;
     }
-    last_sse[vno] = sse ;
+
+    if (vno < MAXVERTICES)
+      last_sse[vno] = sse ;
     sse_tparallel += sse ;
     if (vno == Gdiag_no)
     {
@@ -84370,8 +84378,6 @@ mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   return(NO_ERROR) ;
 }
 
-#define MAXVERTICES 10000000
-#define MAXFACES    (2*MAXVERTICES)
 
 /*
   \fn MRIS *MRIStessellate(MRI *mri,  int value, int all_flag)
