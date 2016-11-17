@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/27 22:25:31 $
- *    $Revision: 1.781.2.2 $
+ *    $Date: 2016/11/11 20:42:38 $
+ *    $Revision: 1.781.2.3 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -79,6 +79,10 @@
 #if DMALLOC
 #include "dmalloc.h"
 #endif
+
+// mostly for diagnostics
+#define MAXVERTICES 10000000
+#define MAXFACES    (2*MAXVERTICES)
 
 // uncomment this to expose code which shows timings of gpu activities:
 //#define FS_CUDA_TIMINGS
@@ -780,7 +784,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.781.2.2 2016/10/27 22:25:31 zkaufman Exp $");
+  return("$Id: mrisurf.c,v 1.781.2.3 2016/11/11 20:42:38 zkaufman Exp $");
 }
 
 /*-----------------------------------------------------
@@ -24118,7 +24122,7 @@ mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l_thick_min, IN
   double  sse_tmin, max_sse ;
   VERTEX  *v ;
   static  int cno = 0 ;
-  static double last_sse[200000] ;
+  static double last_sse[MAXVERTICES] ;
 
   if (FZERO(l_thick_min))
   {
@@ -24144,20 +24148,21 @@ mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l_thick_min, IN
     thick_sq = mrisSampleMinimizationEnergy(mris, v, parms, v->x, v->y, v->z) ;
 
     // diagnostics
-    if (thick_sq-last_sse[vno] > max_sse)
+    if (vno < MAXVERTICES && thick_sq-last_sse[vno] > max_sse)
     {
       max_sse = thick_sq-last_sse[vno] ;
       max_vno = vno ;
     }
-    if (thick_sq > last_sse[vno] && cno > 1 && vno == Gdiag_no)
+    if (vno < MAXVERTICES && thick_sq > last_sse[vno] && cno > 1 && vno == Gdiag_no)
     {
       DiagBreak() ;
     }
-    if (thick_sq > last_sse[vno] && cno > 1)
+    if (vno < MAXVERTICES && (thick_sq > last_sse[vno] && cno > 1))
     {
       DiagBreak() ;
     }
-    last_sse[vno] = thick_sq ;
+    if (vno < MAXVERTICES)
+      last_sse[vno] = thick_sq ;
     // diagnostics end
 
     v->curv = sqrt(thick_sq) ;
@@ -24170,7 +24175,7 @@ mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l_thick_min, IN
   sse_tmin /= 2 ;
   if (max_sse > 0 && DIAG_VERBOSE_ON)
     printf("max sse increase @ vno = %d, delta sse = %2.2f (now %2.2f, was %2.2f)\n",
-           max_vno, max_sse, last_sse[vno], last_sse[vno]-max_sse) ;
+           max_vno, max_sse, last_sse[max_vno], last_sse[max_vno]-max_sse) ;
   return(sse_tmin) ;
 }
 /*-----------------------------------------------------
@@ -24188,7 +24193,7 @@ mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick_normal, INTEG
   double  sse_tnormal, sse, max_sse ;
   VERTEX  *v ;
   static  int cno = 0 ;
-  static double last_sse[200000] ;
+  static double last_sse[MAXVERTICES] ;
 
 
   if (FZERO(l_thick_normal))
@@ -24217,16 +24222,17 @@ mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick_normal, INTEG
       DiagBreak() ;
 
 
-    if (sse-last_sse[vno] > max_sse)
+    if (vno < MAXVERTICES && sse-last_sse[vno] > max_sse)
     {
       max_sse = sse-last_sse[vno] ;
       max_vno = vno ;
     }
-    if ((sse > last_sse[vno] && cno > 1 && vno == Gdiag_no) || (sse > last_sse[vno] && cno > 1))
+    if (vno < MAXVERTICES && ((sse > last_sse[vno] && cno > 1 && vno == Gdiag_no) || (sse > last_sse[vno] && cno > 1)))
       DiagBreak() ;
 
     sse_tnormal += sse ;
-    last_sse[vno] = sse ;
+    if (vno < MAXVERTICES)
+      last_sse[vno] = sse ;
     if (Gdiag_no == vno)
     {
       float  E ;
@@ -24364,7 +24370,7 @@ mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thick_parallel, I
   double  sse_tparallel, sse, max_sse ;
   VERTEX  *v ;
   static  int cno = 0 ;
-  static double last_sse[200000] ;
+  static double last_sse[MAXVERTICES] ;
 
   if (FZERO(l_thick_parallel))
   {
@@ -24395,15 +24401,17 @@ mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thick_parallel, I
       max_sse = sse ;
       max_vno = vno ;
     }
-    if (sse > last_sse[vno] && cno > 1 && vno == Gdiag_no)
+    if ((vno < MAXVERTICES) && (sse > last_sse[vno] && cno > 1 && vno == Gdiag_no))
     {
       DiagBreak() ;
     }
-    if (sse > last_sse[vno] && cno > 1)
+    if ((vno < MAXVERTICES) && (sse > last_sse[vno] && cno > 1))
     {
       DiagBreak() ;
     }
-    last_sse[vno] = sse ;
+
+    if (vno < MAXVERTICES)
+      last_sse[vno] = sse ;
     sse_tparallel += sse ;
     if (vno == Gdiag_no)
     {
@@ -74544,6 +74552,337 @@ int MRISsmoothMRIFastCheck(int nSmoothSteps)
 }
 
 
+int SetHop(int CenterVtx, MRI_SURFACE *Surf, int HopNo, int MaxHopNo)
+{
+  int nbr, nbr_vtx, nbr_hopno, nbr_has_been_center;
+
+  if(HopNo >= MaxHopNo) return(0);
+
+  Surf->vertices[CenterVtx].valbak = 1; // has been a center
+
+  for (nbr=0; nbr < Surf->vertices[CenterVtx].vnum; nbr++) {
+    nbr_vtx   = Surf->vertices[CenterVtx].v[nbr];
+    nbr_hopno = Surf->vertices[nbr_vtx].undefval;
+    if(nbr_hopno != 0 && nbr_hopno < HopNo + 1) continue;
+    Surf->vertices[nbr_vtx].undefval = HopNo + 1;
+  }
+
+  for (nbr=0; nbr < Surf->vertices[CenterVtx].vnum; nbr++) {
+    nbr_vtx = Surf->vertices[CenterVtx].v[nbr];
+    nbr_has_been_center = Surf->vertices[nbr_vtx].valbak;
+    if(nbr_has_been_center) continue;
+    SetHop(nbr_vtx, Surf, HopNo+1, MaxHopNo);
+  }
+
+  return(0);
+}
+
+
+SURFHOPLIST *SetSurfHopListAlloc(MRI_SURFACE *Surf, int nHops)
+{
+  SURFHOPLIST *shl;
+  int nthhop;
+  shl = (SURFHOPLIST*) calloc(sizeof(SURFHOPLIST),1);
+  shl->nhops = nHops;
+  shl->hit = (char *)calloc(sizeof(char),Surf->nvertices);
+  shl->nperhop = (int *)calloc(sizeof(int),nHops);
+  shl->nperhop_alloced = (int *)calloc(sizeof(int),nHops);
+  shl->vtxlist = (int **)calloc(sizeof(int *),nHops);
+  for(nthhop=0; nthhop < nHops; nthhop++){
+    shl->nperhop_alloced[nthhop] = 100;
+    shl->vtxlist[nthhop] = (int *)calloc(sizeof(int),100);
+  }
+  return(shl);
+}
+
+int SurfHopListFree(SURFHOPLIST **shl0)
+{
+  SURFHOPLIST *shl = *shl0;  
+  int nthhop;
+  for(nthhop=0; nthhop < shl->nhops; nthhop++)
+    free(shl->vtxlist[nthhop]);
+  free(shl->vtxlist);
+  free(shl->nperhop_alloced);
+  free(shl->nperhop);
+  free(shl->hit);
+  free(shl);
+  *shl0 = NULL;
+  return(0);
+}
+
+/*!
+  \fn SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops)
+  \brief Fills in a SURFHOPLIST structure. This is a structure that indicates
+  which vertices are a given number of links (hops) away. This can be used to
+  set neighborhoods or compute the spatial autocorrelation function.
+*/
+
+SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops)
+{
+  SURFHOPLIST *shl;
+  int nthhop, nhits, nthvtx, vtxno, nthnbr, nbr_vtxno;
+
+  shl = SetSurfHopListAlloc(Surf, nHops);
+  shl->cvtx = CenterVtx;
+
+  // 0 hop is the center vertex
+  shl->nperhop[0] = 1;
+  shl->vtxlist[0][0] = CenterVtx;
+  shl->hit[CenterVtx] = 1;
+
+  // go through all hops
+  for(nthhop = 1; nthhop < nHops; nthhop++){
+    nhits = 0;
+    // go through each vertex of the previous hop
+    for(nthvtx = 0; nthvtx < shl->nperhop[nthhop-1]; nthvtx++){
+      vtxno = shl->vtxlist[nthhop-1][nthvtx];
+      // go through the neighbors of this vertex
+      for(nthnbr=0; nthnbr < Surf->vertices[vtxno].vnum; nthnbr++) {
+	nbr_vtxno  = Surf->vertices[vtxno].v[nthnbr];
+	if(shl->hit[nbr_vtxno]) continue; // ignore if it has been hit already
+	shl->hit[nbr_vtxno] = 1;
+	if(nhits >= shl->nperhop_alloced[nthhop]){
+	  // realloc if need to
+	  shl->nperhop_alloced[nthhop] += 100;
+	  shl->vtxlist[nthhop] = (int *)realloc(shl->vtxlist[nthhop],sizeof(int)*shl->nperhop_alloced[nthhop]);
+	}
+	// assign the vertex
+	shl->vtxlist[nthhop][nhits] = nbr_vtxno;
+	nhits ++;
+      }
+    }
+    shl->nperhop[nthhop] = nhits;
+  }
+
+  // This assigns the hop number to the undefval, good for debugging
+  for(nthhop = 0; nthhop < nHops; nthhop++){
+    //printf("nper hop %d %6d\n",nthhop,shl->nperhop[nthhop]);
+    for(nthvtx = 0; nthvtx < shl->nperhop[nthhop]; nthvtx++){
+      vtxno = shl->vtxlist[nthhop][nthvtx];
+      Surf->vertices[vtxno].undefval = nthhop;
+    }
+  }
+
+  return(shl);
+}
+
+/*-----------------------------------------------------------------------
+  MRISarN() - computes spatial autocorrelation function at each vertex
+  by averaging the ARs within the neighborhood of a vertex. Note: does
+  not try to take into account different distances between
+  neighbors. N is the number of hops.  arN will have N frames where
+  frame 0 is always 1, frame 1 is the average AR between the vertex
+  and the vertices 1 hop away, etc.
+  -----------------------------------------------------------------------*/
+MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N)
+{
+  int **crslut, nvox, vtx;
+
+  nvox = src->width * src->height * src->depth;
+  if (surf->nvertices != nvox){
+    printf("ERROR: MRISarN: Surf/Src dimension mismatch.\n");
+    return(NULL);
+  }
+
+  if(arN == NULL){
+    arN = MRIcloneBySpace(src, MRI_FLOAT, N);
+    if (arN == NULL){
+      printf("ERROR: could not alloc\n");
+      return(NULL);
+    }
+  }
+
+  //Build LUT to map from col,row,slice to vertex
+  crslut = MRIScrsLUT(surf,src);
+
+  #ifdef _OPENMP
+  #pragma omp parallel for 
+  #endif
+  for (vtx = 0; vtx < surf->nvertices; vtx++) {
+    int nnbrs, frame, nbrvtx, nthnbr, c,r,s;
+    int cnbr, rnbr,snbr, nnbrs_actual;
+    double valvtx, valnbr, arsum, sumsqvtx, vtxvar, sumsqnbr, sumsqx, nbrvar;
+    SURFHOPLIST *shl;
+    int nthhop;
+
+    if(surf->vertices[vtx].ripflag) continue;
+    c = crslut[0][vtx];
+    r = crslut[1][vtx];
+    s = crslut[2][vtx];
+    if(mask) if (MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+
+    // Compute variance for this vertex
+    sumsqvtx = 0;
+    for(frame = 0; frame < src->nframes; frame ++) {
+      valvtx = MRIFseq_vox(src,c,r,s,frame);
+      sumsqvtx += (valvtx*valvtx);
+    }
+    if(sumsqvtx == 0) continue;  // exclude voxels with 0 variance
+    vtxvar = sumsqvtx/src->nframes;
+
+    // Zero hop is always 1
+    MRIFseq_vox(arN,c,r,s,0) = 1;
+
+    // Create structure to manage the multiple hops for this vertex
+    shl = SetSurfHopList(vtx, surf, N);
+
+    // loop through hops
+    for(nthhop = 1; nthhop < N; nthhop++){
+      nnbrs = shl->nperhop[nthhop];
+      nnbrs_actual = 0;
+      arsum = 0;
+      // loop through the neighbors nthhop links away
+      for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	nbrvtx = shl->vtxlist[nthhop][nthnbr];
+	if(surf->vertices[nbrvtx].ripflag) continue;
+	cnbr = crslut[0][nbrvtx];
+	rnbr = crslut[1][nbrvtx];
+	snbr = crslut[2][nbrvtx];
+	if(mask) if(MRIgetVoxVal(mask,cnbr,rnbr,snbr,0) < 0.5) continue;
+	sumsqnbr = 0;
+	sumsqx   = 0;
+	for(frame = 0; frame < src->nframes; frame ++){
+	  valvtx = MRIFseq_vox(src,c,r,s,frame);
+	  valnbr = MRIFseq_vox(src,cnbr,rnbr,snbr,frame);
+	  sumsqnbr += (valnbr*valnbr);
+	  sumsqx   += (valvtx*valnbr);
+	}
+	if(sumsqnbr==0) continue;
+	nbrvar = sumsqnbr/src->nframes;
+	arsum += (sumsqx/src->nframes)/sqrt(vtxvar*nbrvar);
+	nnbrs_actual ++;
+      }/* end loop over hop neighborhood */
+      
+      if(nnbrs_actual != 0) MRIFseq_vox(arN,c,r,s,nthhop) = (arsum/nnbrs_actual);
+    } /* end loop over hop */
+
+    SurfHopListFree(&shl);
+
+  } /* end loop over vertex */
+
+  MRIScrsLUTFree(crslut);
+
+  return(arN);
+}
+
+/*-----------------------------------------------------------------------
+  MRISsmoothKernel() - 
+  kernel = ACF^2
+  -----------------------------------------------------------------------*/
+MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, int SqrFlag, MRI *out)
+{
+  int vtx, **crslut, nvox;
+  double *kern;
+  int n,nhops;
+
+  if(mrikern && globkern){
+    printf("ERROR: MRISsmoothKernel(): cannot spec both mrikern and globkern\n");
+    return(NULL);
+  }
+
+  nvox = src->width * src->height * src->depth;
+  if (surf->nvertices != nvox){
+    printf("ERROR: MRISsmoothKernel(): Surf/Src dimension mismatch.\n");
+    return(NULL);
+  }
+
+  if(out == NULL){
+    out = MRIcloneBySpace(src, MRI_FLOAT, src->nframes);
+    if (out == NULL){
+      printf("ERROR: MRISsmoothKernel(): could not alloc\n");
+      return(NULL);
+    }
+  }
+  else {
+    if(out == src){
+      printf("ERROR: MRISsmoothKernel(): cannot run in-place\n");
+      return(NULL);
+    }
+    // Zero the output
+  }
+
+  if(mrikern)  nhops = mrikern->nframes;
+  if(globkern) nhops = globkern->rows;
+  printf("nhops = %d\n",nhops);
+  kern = (double *) calloc(nhops,sizeof(double));
+  if(globkern) {
+    for(n = 0; n < nhops; n++) 
+      kern[n] = globkern->rptr[n+1][1];
+    if(SqrFlag){
+      for(n = 0; n < nhops; n++) 
+	kern[n] = kern[n]*kern[n];
+    }
+  }
+
+  //Build LUT to map from col,row,slice to vertex
+  crslut = MRIScrsLUT(surf,src);
+
+  #ifdef _OPENMP
+  #pragma omp parallel for 
+  #endif
+  for (vtx = 0; vtx < surf->nvertices; vtx++) {
+    int nnbrs, frame, nbrvtx, nthnbr, c,r,s;
+    int cnbr, rnbr,snbr, nnbrs_actual;
+    double vtxval,*vkern,ksum,kvsum;
+    SURFHOPLIST *shl;
+    int nthhop;
+
+    if(surf->vertices[vtx].ripflag) continue;
+    c = crslut[0][vtx];
+    r = crslut[1][vtx];
+    s = crslut[2][vtx];
+    if(mask) if (MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+
+    if(mrikern){
+      vkern = (double *) calloc(nhops,sizeof(double));
+      for(nthhop = 0; nthhop < nhops; nthhop++) 
+	vkern[nthhop] = MRIgetVoxVal(mrikern,vtx,0,0,nthhop);
+      if(SqrFlag){
+	for(nthhop = 0; nthhop < nhops; nthhop++) 
+	  vkern[nthhop] = vkern[nthhop]*vkern[nthhop];
+      }
+    }
+    else vkern = kern;
+
+    // Create structure to manage the multiple hops for this vertex
+    shl = SetSurfHopList(vtx, surf, nhops);
+
+    for(frame = 0; frame < src->nframes; frame ++){
+      // loop through hops and neighbors
+      if(frame ==0) ksum = 0;
+      kvsum = 0;
+      nnbrs_actual = 0;
+      for(nthhop = 0; nthhop < nhops; nthhop++){
+	nnbrs = shl->nperhop[nthhop];
+	// loop through the neighbors nthhop links away
+	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
+	  nbrvtx = shl->vtxlist[nthhop][nthnbr];
+	  if(surf->vertices[nbrvtx].ripflag) continue;
+	  cnbr = crslut[0][nbrvtx];
+	  rnbr = crslut[1][nbrvtx];
+	  snbr = crslut[2][nbrvtx];
+	  if(mask) if(MRIgetVoxVal(mask,cnbr,rnbr,snbr,0) < 0.5) continue;
+	  vtxval = MRIFseq_vox(src,cnbr,rnbr,snbr,frame);
+	  kvsum += (vtxval*kern[nthhop]);
+	  if(frame ==0) ksum += kern[nthhop];
+	  nnbrs_actual ++;
+	} /* end loop over hop neighborhood */
+      } /* end loop over hop */
+      if(nnbrs_actual != 0) MRIFseq_vox(out,c,r,s,frame) = (kvsum/ksum);
+      //printf("%5d %d %d %d %d%g\n",vtx,c,r,s,nnbrs_actual,ksum);
+    } // end loop over frame
+    SurfHopListFree(&shl);
+
+    if(mrikern) free(vkern);
+  } /* end loop over vertex */
+
+  free(kern);
+  MRIScrsLUTFree(crslut);
+
+  return(out);
+}
+
+
 
 
 
@@ -84039,8 +84378,6 @@ mrisComputePosteriorTerm(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   return(NO_ERROR) ;
 }
 
-#define MAXVERTICES 10000000
-#define MAXFACES    (2*MAXVERTICES)
 
 /*
   \fn MRIS *MRIStessellate(MRI *mri,  int value, int all_flag)

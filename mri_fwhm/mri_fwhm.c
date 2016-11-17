@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/14 20:40:04 $
- *    $Revision: 1.33.2.1 $
+ *    $Date: 2016/11/11 21:10:41 $
+ *    $Revision: 1.33.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -257,7 +257,6 @@ double EvalFWHM(MRI *vol, MRI *mask);
 
 MRI * MRIbinarize2(MRI *mri_src, MRI *mri_dst,
                    double threshold, double low_val, double hi_val);
-MRI *SpatialINorm(MRI *vol, MRI *mask, MRI *outvol);
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -268,7 +267,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fwhm.c,v 1.33.2.1 2016/10/14 20:40:04 zkaufman Exp $";
+static char vcid[] = "$Id: mri_fwhm.c,v 1.33.2.2 2016/11/11 21:10:41 zkaufman Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -321,6 +320,8 @@ int DoSqr = 0; // take square of input before smoothing
 int DoMedian = 0, MedianWidth=0;
 
 char *sum2file = NULL;
+char *arNfname = NULL;
+int arNlags;
 
 int DoAR2;
 
@@ -629,6 +630,12 @@ int main(int argc, char *argv[]) {
     MRIfree(&InValsCopy);
   }
 
+  if(arNfname){
+    printf("Computing spatial ARN %d in volume.\n",arNlags);
+    ar1 = fMRIspatialARN(InVals, mask, arNlags, NULL);
+    if(ar1 == NULL) exit(1);
+    MRIwrite(ar1,arNfname);
+  }
 
   // ----------- Compute smoothness -----------------------------
   printf("Computing spatial AR1 in volume.\n");
@@ -876,7 +883,14 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       ar1path = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--sum2")) {
+    } 
+    else if (!strcasecmp(option, "--arN")) {
+      if (nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&arNlags);
+      arNfname = pargv[1];
+      nargsused = 2;
+    }
+    else if (!strcmp(option, "--sum2")) {
       if (nargc < 1) CMDargNErr(option,1);
       sum2file = pargv[0];
       nargsused = 1;
@@ -1460,33 +1474,5 @@ int getybest(double xa, double ya, double xb, double yb, double xc, double yc,
   *xbest = xc;
   *ybest = yc;
   return(0);
-}
-
-MRI *SpatialINorm(MRI *vol, MRI *mask, MRI *outvol)
-{
-  int c, r, s, f, m;
-  double gmean, gstddev, gmax, v;
-
-  outvol = MRIclone(vol,outvol);
-
-  RFglobalStats(vol, mask, &gmean, &gstddev, &gmax);
-  printf("gmean = %lf, gstddev = %lf\n",gmean,gstddev);
-  for (c=0; c < vol->width; c++)  {
-    for (r=0; r < vol->height; r++)    {
-      for (s=0; s < vol->depth; s++)      {
-        if(mask != NULL){
-          m = (int)MRIgetVoxVal(mask,c,r,s,0);
-          if(!m) continue;
-        }
-        for (f=0; f < vol->nframes; f++) {
-          v = MRIgetVoxVal(vol,c,r,s,f);
-          v = (v - gmean)/gstddev;
-          MRIsetVoxVal(outvol,c,r,s,f,v);
-        }
-      }
-    }
-  }
-
-  return(outvol);
 }
 

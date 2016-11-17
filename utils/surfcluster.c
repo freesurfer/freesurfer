@@ -9,9 +9,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/10/22 21:25:58 $
- *    $Revision: 1.35 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/11/11 20:40:04 $
+ *    $Revision: 1.35.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.35 2015/10/22 21:25:58 greve Exp $");
+  return("$Id: surfcluster.c,v 1.35.2.1 2016/11/11 20:40:04 zkaufman Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -691,11 +691,14 @@ static int sclustCompare(const void *a, const void *b)
   sc1 = *((SURFCLUSTERSUM *)a);
   sc2 = *((SURFCLUSTERSUM *)b);
 
-  if (fabs(sc1.maxval) > fabs(sc2.maxval) ) return(-1);
-  if (fabs(sc1.maxval) < fabs(sc2.maxval) ) return(+1);
+  if(sc1.pval_clusterwise < sc2.pval_clusterwise) return(-1);
+  if(sc1.pval_clusterwise > sc2.pval_clusterwise) return(+1);
 
-  if (sc1.area > sc2.area) return(-1);
-  if (sc1.area < sc2.area) return(+1);
+  if(sc1.area > sc2.area) return(-1);
+  if(sc1.area < sc2.area) return(+1);
+
+  if(fabs(sc1.maxval) > fabs(sc2.maxval) ) return(-1);
+  if(fabs(sc1.maxval) < fabs(sc2.maxval) ) return(+1);
 
   return(0);
 }

@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/06/13 21:20:56 $
- *    $Revision: 1.387 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/11/17 18:09:13 $
+ *    $Revision: 1.387.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -320,6 +320,18 @@ typedef struct tvertex_type_
   int f[9];
 }
 tvertex_type;
+
+typedef struct {
+  // Structure for computing info at an equal number of hops from
+  // a given vertex (not exactly the same as equal mm distance)
+  int cvtx; // center vertex
+  int nhops;
+  char *hit; // vector to indicate whether vertex has been hit
+  int *nperhop; // number of vertices per hop
+  int **vtxlist; // list of vertices for each hop
+  int *nperhop_alloced; // number of vertices alloced per hop
+} SURFHOPLIST;
+
 
 #define IPFLAG_HVARIABLE                0x0001 /* for parms->flags */
 #define IPFLAG_NO_SELF_INT_TEST         0x0002
@@ -2126,4 +2138,11 @@ int TESSfacep(MRI *mri, int im0, int i0, int j0, int im1, int i1, int j1, int va
 
 #define SURFACE_SMOOTH_STEPS_TO_SIGMA(iter)   (sqrt((double)iter) * M_PI / 2.0)
 #define SIGMA_TO_SURFACE_SMOOTH_STEPS(sigma)  SQR(2.0*sigma/M_PI)
+
+SURFHOPLIST *SetSurfHopListAlloc(MRI_SURFACE *Surf, int nHops);
+SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops);
+int SurfHopListFree(SURFHOPLIST **shl0);
+MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N);
+MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, int SqrFlag, MRI *out);
+
 #endif // MRISURF_H

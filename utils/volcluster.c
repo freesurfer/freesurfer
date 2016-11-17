@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/18 17:55:38 $
- *    $Revision: 1.53.2.3 $
+ *    $Date: 2016/11/11 20:40:54 $
+ *    $Revision: 1.53.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
   ---------------------------------------------------------------*/
 const char *vclustSrcVersion(void)
 {
-  return("$Id: volcluster.c,v 1.53.2.3 2016/10/18 17:55:38 zkaufman Exp $");
+  return("$Id: volcluster.c,v 1.53.2.4 2016/11/11 20:40:54 zkaufman Exp $");
 }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
@@ -698,7 +698,11 @@ int clustCompareCluster(const void *a, const void *b)
   vc1 = *((VOLCLUSTER **)a);
   vc2 = *((VOLCLUSTER **)b);
 
-  // sort by extent first
+  // sort by most significant
+  if (vc1->pval_clusterwise < vc2->pval_clusterwise) return(-1);
+  if (vc1->pval_clusterwise > vc2->pval_clusterwise) return(+1);
+
+  // sort by extent 
   if (vc1->nmembers > vc2->nmembers) return(-1);
   if (vc1->nmembers < vc2->nmembers) return(+1);
 
@@ -1913,44 +1917,46 @@ double CSDpvalMaxSig(double val, CSD *csd)
   Bonferroni correction (eg, 2 for across hemisphere or 3 for across
   hemis and subcortical).
   ------------------------------------------------------------------*/
-MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig, int Bonf)
+MRI *CSDpvalMaxSigMap(MRI *sig, CSD *csd, MRI *mask, MRI *vwsig, double *maxmaxsig, int Bonf)
 {
   int c,r,s,f,nhits,nvox;
-  double m,val,voxsig,pval;
+  double m,val,voxsig,pval,maxvoxsig;
 
   if (vwsig == NULL) vwsig = MRIclone(sig,NULL);
 
   nvox  = 0;
   nhits = 0;
-  for (s=0; s < sig->depth; s++)
-  {
-    for (r=0; r < sig->height; r++)
-    {
-      for (c=0; c < sig->width; c++)
-      {
-        if (mask)
-        {
+  maxvoxsig=0;
+  for(s=0; s < sig->depth; s++)  {
+    for(r=0; r < sig->height; r++)    {
+      for(c=0; c < sig->width; c++)      {
+        if(mask)        {
           m = MRIgetVoxVal(mask,c,r,s,0);
           if (m < 0.5) continue;
         }
         nvox++;
-        for (f=0; f < sig->nframes; f++)
-        {
+        for(f=0; f < sig->nframes; f++)        {
           val = MRIgetVoxVal(sig,c,r,s,f);
-          if (fabs(val) > 0.0){
+          if(fabs(val) > 0.0){
 	    pval = CSDpvalMaxSig(val,csd);
 	    if(Bonf > 0) pval = 1 - pow((1-pval),Bonf);
             voxsig = -SIGN(val)*log10(pval);
 	  }
           else voxsig = 0;
-          if (fabs(voxsig) > 0) nhits ++;
+          if(fabs(voxsig) > 0) nhits ++;
           MRIsetVoxVal(vwsig,c,r,s,f,voxsig);
+          if(f==0){
+	    if(csd->threshsign == 0 && fabs(voxsig) > fabs(maxvoxsig)) maxvoxsig = voxsig;
+	    if(csd->threshsign > +0.5 && voxsig > maxvoxsig) maxvoxsig = voxsig;
+	    if(csd->threshsign < -0.5 && voxsig < maxvoxsig) maxvoxsig = voxsig;
+	    //printf("val=%g, voxsig %g max %g sign %g\n",val,voxsig,maxvoxsig,csd->threshsign);
+	  }
         }
-
       }
     }
   }
-  printf("CSDpvalMaxSigMap(): found %d/%d above 0\n",nhits,nvox);
+  printf("CSDpvalMaxSigMap(): found %d/%d above 0, max=%g\n",nhits,nvox,maxvoxsig);
+  *maxmaxsig = maxvoxsig;
   return(vwsig);
 }
 
@@ -2017,11 +2023,13 @@ int CSDpdf(CSD *csd, int nbins)
   }
 
   // Compute clusterwise sig with GRF. Do not subtract log10(2.0) one-sidedness.
+  // The GRF will be bogus because needs to be in number of vertices/voxels
   for (n=0; n < csd->mcs_pdf->nbins; n++){
     ClusterSize = csd->mcs_pdf->bins[n];
-    csd->grf_cdf[n] = 
-      RFprobZClusterSigThresh(ClusterSize, csd->thresh, csd->nullfwhm, 
-			      csd->searchspace, dim);
+    //csd->grf_cdf[n] = 
+    //RFprobZClusterSigThresh(ClusterSize, csd->thresh, csd->nullfwhm, 
+    //			      csd->searchspace, dim);
+    csd->grf_cdf[n] = 1.0; // bogus
   }
 
   // Maximum Sig ------------------------------------

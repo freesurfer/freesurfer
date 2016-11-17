@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/03/31 22:12:23 $
- *    $Revision: 1.79 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/11/11 20:41:41 $
+ *    $Revision: 1.79.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,7 +28,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.79 2015/03/31 22:12:23 greve Exp $
+  $Id: fmriutils.c,v 1.79.2.1 2016/11/11 20:41:41 zkaufman Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -52,6 +52,7 @@ double round(double x);
 #include "utils.h"
 #include "pdf.h"
 #include "float.h"
+#include "randomfields.h"
 
 #ifdef X
 #undef X
@@ -61,7 +62,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.79 2015/03/31 22:12:23 greve Exp $");
+  return("$Id: fmriutils.c,v 1.79.2.1 2016/11/11 20:41:41 zkaufman Exp $");
 }
 
 
@@ -3090,4 +3091,169 @@ MRI *fMRIxcorr(MRI *v1, MRI *v2, MRI *mask, MRI *xcorr)
   if(fnorm2) MRIfree(&fnorm2);
   if(Gdiag_no > 0) printf("MRIxcorr(): done\n"); fflush(stdout);
   return(xcorr);
+}
+
+/*---------------------------------------------------------------------
+  MRI *SpatialINorm(MRI *vol, MRI *mask, MRI *outvol) performs spatial
+  intensity normalization by subtracting the spatial mean and dividing
+  by the spatial stddev. If a mask is supplied, then only computes
+  the mean and stddev within the mask.
+  *--------------------------------------------------------------*/
+MRI *SpatialINorm(MRI *vol, MRI *mask, MRI *outvol)
+{
+  int c, r, s, f, m;
+  double gmean, gstddev, gmax, v;
+
+  outvol = MRIclone(vol,outvol);
+
+  RFglobalStats(vol, mask, &gmean, &gstddev, &gmax);
+  printf("gmean = %lf, gstddev = %lf\n",gmean,gstddev);
+  for (c=0; c < vol->width; c++)  {
+    for (r=0; r < vol->height; r++)    {
+      for (s=0; s < vol->depth; s++)      {
+        if(mask != NULL){
+          m = (int)MRIgetVoxVal(mask,c,r,s,0);
+          if(!m) continue;
+        }
+        for (f=0; f < vol->nframes; f++) {
+          v = MRIgetVoxVal(vol,c,r,s,f);
+          v = (v - gmean)/gstddev;
+          MRIsetVoxVal(outvol,c,r,s,f,v);
+        }
+      }
+    }
+  }
+
+  return(outvol);
+}
+
+
+/*---------------------------------------------------------------------
+  fMRIspatialARN() - computes spatial ARN, ie, the correlation between
+  the time course at one voxel and that at voxel N voxels away. There
+  will be N+1 frames, where frame 0 is always 1.0.  This function
+  assumess that the mean and any other trends have been removed. It
+  works regardless of the DOF of the time series.
+  --------------------------------------------------------------------*/
+MRI *fMRIspatialARN(MRI *src, MRI *mask, int N, MRI *arN)
+{
+  int c,r,s,f,dc,dr,ds,nhits,lag;
+  MRI *srcsumsq, *srctmp;
+  double m,sumsq0,sumsqnbr,ar,arsum,sum,v0,vnbr;
+  int freetmp;
+
+  freetmp = 0;
+  if (src->type != MRI_FLOAT){
+    srctmp = MRISeqchangeType(src,MRI_FLOAT,0,0,0);
+    freetmp=1;
+  }
+  else{
+    srctmp = src;
+    freetmp=0;
+  }
+
+  // alloc vol with N frames
+  if(arN == NULL){
+    printf("N=%d\n",N);
+    arN = MRIcloneBySpace(src, MRI_FLOAT, N+1);
+    if(arN == NULL){
+      printf("ERROR: could not alloc\n");
+      return(NULL);
+    }
+  }
+
+  // pre-compute the sum of squares
+  srcsumsq = fMRIsumSquare(srctmp,0,NULL);
+
+  // Loop thru all voxels
+  nhits = 0;
+  for(c=0; c < srctmp->width; c++)  {
+    for(r=0; r < srctmp->height; r++)    {
+      for(s=0; s < srctmp->depth; s++)      {
+
+        // skip voxel if it's on the edge
+        if (c==0 || r==0 || s==0 ||
+            c==(srctmp->width-1) || r==(srctmp->height-1) ||
+            s==(srctmp->depth-1) ) {
+	  for(f = 0; f <= N; f++) MRIsetVoxVal(arN,c,r,s,f,0);
+          continue;
+        }
+        // skip voxel if it's not in the mask
+	if(mask){
+	  m = MRIgetVoxVal(mask,c,r,s,0);
+	  if(m < 0.5) continue;
+	}
+
+        // sum-of-sqares at center voxel
+        sumsq0  = MRIgetVoxVal(srcsumsq,c,r,s,0);
+	if(sumsq0 < 1e-6) continue; 
+
+	MRIsetVoxVal(arN,c,r,s,0,1.0);
+	for(lag = 1; lag <= N ; lag++){
+	  arsum = 0;
+	  nhits = 0;
+	  for(dc=-lag; dc<lag+1; dc+=(2*lag)){
+	    if(c+dc<=0 || c+dc>=(srctmp->width-1)) continue;
+	    if(mask){
+	      m = MRIgetVoxVal(mask,c+dc,r,s,0);
+	      if(m < 0.5) continue;
+	    }
+	    sumsqnbr = MRIgetVoxVal(srcsumsq,c+dc,r,s,0);
+	    if(sumsqnbr < 1e-6) continue;
+	    nhits++;
+	    sum = 0;
+	    for (f=0; f < srctmp->nframes; f++) {
+	      v0 = MRIgetVoxVal(srctmp,c,r,s,f); // value at center voxel
+	      vnbr = MRIgetVoxVal(srctmp,c+dc,r,s,f);
+	      sum += v0*vnbr;
+	    }
+	    ar = sum/sqrt(sumsq0*sumsqnbr);
+	    arsum += ar;
+	  } // dc
+	  for(dr=-lag; dr<lag+1; dr+=(2*lag)){
+	    if(r+dr<=0 || r+dr>=(srctmp->height-1)) continue;
+	    if(mask){
+	      m = MRIgetVoxVal(mask,c,r+dr,s,0);
+	      if(m < 0.5) continue;
+	    }
+	    sumsqnbr = MRIgetVoxVal(srcsumsq,c,r+dr,s,0);
+	    if(sumsqnbr < 1e-6) continue;
+	    nhits++;
+	    sum = 0;
+	    for (f=0; f < srctmp->nframes; f++) {
+	      v0 = MRIgetVoxVal(srctmp,c,r,s,f); // value at center voxel
+	      vnbr = MRIgetVoxVal(srctmp,c,r+dr,s,f);
+	      sum += v0*vnbr;
+	    }
+	    ar = sum/sqrt(sumsq0*sumsqnbr);
+	    arsum += ar;
+	  } // dr
+	  for(ds=-lag; ds<lag+1; ds+=(2*lag)){
+	    if(s+ds<=0 || s+ds>=(srctmp->depth-1)) continue;
+	    if(mask){
+	      m = MRIgetVoxVal(mask,c,r,s+ds,0);
+	      if(m < 0.5) continue;
+	    }
+	    sumsqnbr = MRIgetVoxVal(srcsumsq,c,r,s+ds,0);
+	    if(sumsqnbr < 1e-6) continue;
+	    nhits++;
+	    sum = 0;
+	    for (f=0; f < srctmp->nframes; f++) {
+	      v0 = MRIgetVoxVal(srctmp,c,r,s,f); // value at center voxel
+	      vnbr = MRIgetVoxVal(srctmp,c,r,s+ds,f);
+	      sum += v0*vnbr;
+	    }
+	    ar = sum/sqrt(sumsq0*sumsqnbr);
+	    arsum += ar;
+	  } // ds
+	  if(nhits>0) MRIsetVoxVal(arN,c,r,s,lag,arsum/nhits);
+	} //lag
+
+      } // s
+    } // r
+  } // c
+
+  MRIfree(&srcsumsq);
+  if (freetmp) MRIfree(&srctmp);
+  return(arN);
 }

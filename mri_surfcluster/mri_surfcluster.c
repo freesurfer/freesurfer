@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/14 20:40:04 $
- *    $Revision: 1.57.2.2 $
+ *    $Date: 2016/11/17 18:19:42 $
+ *    $Revision: 1.57.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.57.2.2 2016/10/14 20:40:04 zkaufman Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.57.2.3 2016/11/17 18:19:42 zkaufman Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -158,6 +158,7 @@ int AdjustThreshWhenOneTail=1;
 
 char *voxwisesigfile=NULL;
 MRI  *voxwisesig;
+char *maxvoxwisesigfile=NULL;
 int ReallyUseAverage7 = 0;
 double fwhm = -1;
 double fdr = -1;
@@ -175,10 +176,10 @@ int main(int argc, char **argv) {
   int nargs,err;
   struct utsname uts;
   char *cmdline, cwd[2000];
-  double cmaxsize;
+  double cmaxsize,fwhmvtx;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.57.2.2 2016/10/14 20:40:04 zkaufman Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.57.2.3 2016/11/17 18:19:42 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -365,24 +366,31 @@ int main(int argc, char **argv) {
 
   /* Compute total cortex surface area */
   MRIScomputeMetricProperties(srcsurf) ;
-  //printf("surface area %f\n",srcsurf->total_area);
+  printf("metric props tot surface area %f\n",srcsurf->total_area);
+  printf("group_avg_vtxarea_loaded %d\n",srcsurf->group_avg_vtxarea_loaded);
 
   // Need to constrain to mask and take into account average subject
   totarea = 0;
   for(vtx = 0 ; vtx < srcsurf->nvertices ; vtx++){
     if(srcsurf->vertices[vtx].undefval == 0) continue; // mask
-    if(! srcsurf->group_avg_vtxarea_loaded) totarea += srcsurf->faces[vtx].area;
+    if(! srcsurf->group_avg_vtxarea_loaded) totarea += srcsurf->vertices[vtx].area;
     else                                    totarea += srcsurf->vertices[vtx].group_avg_area;
   }
-  printf("surface area %f\n",totarea);
+  printf("masked surface area %f\n",totarea);
 
-  if (voxwisesigfile) {
+  if(voxwisesigfile) {
+    double maxmaxsig;
     printf("Computing voxel-wise significance\n");
     srcval = MRIcopyMRIS(NULL,srcsurf,0,"val");
-    voxwisesig = CSDpvalMaxSigMap(srcval, csd, NULL, NULL, Bonferroni);
+    voxwisesig = CSDpvalMaxSigMap(srcval, csd, NULL, NULL, &maxmaxsig, Bonferroni);
     MRIwrite(voxwisesig,voxwisesigfile);
     MRIfree(&srcval);
     MRIfree(&voxwisesig);
+    if(maxvoxwisesigfile){
+      fp = fopen(maxvoxwisesigfile,"w");
+      fprintf(fp,"%10.5f\n",maxmaxsig);
+      fclose(fp);
+    }
   }
 
   if(fdr > 0){
@@ -445,10 +453,18 @@ int main(int argc, char **argv) {
     }
   }
   if(fwhm > 0) { // use RFT
+    //fwhmvtx = fwhm/sqrt(totarea/nsearch);
+    double grfnsearch;
+    grfnsearch = nsearch;
+    if(thsignid == 0) grfnsearch = grfnsearch/2.0;  // hack for abs
+    fwhmvtx = fwhm/srcsurf->avg_vertex_dist; 
+    printf("GRF: fwhm = %g, dist = %g, fwhmvtx = %g, thmin = %g, grfnsearch = %g\n",
+	   fwhm,srcsurf->avg_vertex_dist,fwhmvtx,thmin, grfnsearch);
     for (n=0; n < NClusters; n++) {
-      ClusterSize = scs[n].area;
-      // Is this the total area needed?
-      pval = RFprobZClusterSigThresh(ClusterSize, thmin, fwhm, totarea, 2);
+      ClusterSize = scs[n].nmembers;
+      pval = RFprobZClusterSigThresh(ClusterSize, thmin, fwhmvtx, grfnsearch, 2);
+      if(thsignid == 0) pval = 2*pval; // hack for abs
+      //printf("  %2d %g %g\n",n,ClusterSize, pval);
       scs[n].pval_clusterwise     = pval;
       scs[n].pval_clusterwise_low = 0;
       scs[n].pval_clusterwise_hi  = 0;
@@ -471,6 +487,11 @@ int main(int argc, char **argv) {
       scs[n].pval_clusterwise_hi = pval;
     }
   }
+
+  /* Sort the clusters by p-value */
+  scs2 = SortSurfClusterSum(scs, NClusters);
+  free(scs);
+  scs = scs2;
 
   /* Remove clusters that do not meet the minimum clusterwise pvalue */
   if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
@@ -897,11 +918,18 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&cwpvalthresh);
       nargsused = 1;
-    } else if (!strcmp(option, "--vwsig")) {
-      if (nargc < 1) argnerr(option,1);
+    } 
+    else if (!strcmp(option, "--vwsig")) {
+      if(nargc < 1) argnerr(option,1);
       voxwisesigfile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--olab")) {
+    } 
+    else if (!strcmp(option, "--vwsigmax")) {
+      if(nargc < 1) argnerr(option,1);
+      maxvoxwisesigfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--olab")) {
       if (nargc < 1) argnerr(option,1);
       outlabelbase = pargv[0];
       nargsused = 1;
@@ -1201,7 +1229,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.57.2.2 2016/10/14 20:40:04 zkaufman Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.57.2.3 2016/11/17 18:19:42 zkaufman Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
@@ -1387,10 +1415,10 @@ static void check_options(void) {
     exit(1);
   }
 
-  if(fwhm > 0 && !strcmp(thsign,"abs")){
-    printf("ERROR: you must specify a pos or neg sign with --fwhm\n");
-    exit(1);
-  }
+  //if(fwhm > 0 && !strcmp(thsign,"abs")){
+  //printf("ERROR: you must specify a pos or neg sign with --fwhm\n");
+  //exit(1);
+  //}
 
   return;
 }

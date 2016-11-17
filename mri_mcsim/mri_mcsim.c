@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/04/11 15:31:56 $
- *    $Revision: 1.26 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/11/11 21:11:25 $
+ *    $Revision: 1.26.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -123,7 +123,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.26 2014/04/11 15:31:56 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.26.2.1 2016/11/11 21:11:25 zkaufman Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -161,6 +161,7 @@ int msecTime, nmask, nmaskout, nthRep;
 int *nSmoothsList;
 double fwhmmax=30;
 int SaveWeight=0;
+int FixFSALH = 1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -181,7 +182,7 @@ int main(int argc, char *argv[]) {
   FILE *fp, *fpLog=NULL;
   float **ppVal, **ppSig, **ppVal0, **ppSig0, **ppZ, **ppZ0;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -275,6 +276,21 @@ int main(int argc, char *argv[]) {
     mask = MRIread(MaskFile);
     if(mask == NULL) exit(1);
   }
+  if(mask && strcmp(subject,"fsaverage")==0 && strcmp(hemi,"lh")==0 && FixFSALH){
+    // This is a hack to delete two stray vertices in the fsaverage lh.cortex.label
+    // file. They could be deleted in the label file. They have no effect on cluster
+    // correction, but they do affect the vertex-wise correction using the maximum
+    // stat because they end up being way to big since there is nothing around
+    // them to smooth with.
+    if(MRIgetVoxVal(mask,102161,0,0,0) > 0.5 || MRIgetVoxVal(mask,102162,0,0,0) > 0.5){
+      printf("Removing vertices 102161 and 102162 from mask\n");
+      MRIsetVoxVal(mask,102161,0,0,0,0);
+      MRIsetVoxVal(mask,102162,0,0,0,0);
+    }
+  }
+  if(mask && (MRIgetVoxVal(mask,102161,0,0,0) > 0.5 || MRIgetVoxVal(mask,102162,0,0,0) > 0.5))
+    printf("Not removing vertices 102161 and 102162 from mask\n");
+
   if(mask && SaveMask){
     sprintf(tmpstr,"%s/mask.mgh",OutTop);
     printf("Saving mask to %s\n",tmpstr);
@@ -532,6 +548,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--save-weight")) SaveWeight = 1;
+    else if (!strcasecmp(option, "--no-fix-fsalh")) FixFSALH = 0;
+
     else if (!strcasecmp(option, "--test")){
       double fwhm;
       nFWHMList = 0;
@@ -641,9 +659,21 @@ static int parse_commandline(int argc, char **argv) {
       }
       nargsused = nth;
     } 
-    else if (!strcasecmp(option, "--fwhm-max")) {
+    else if(!strcasecmp(option, "--thresh")) {
+      double thresh;
       if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&fwhmmax);
+      nth = 0;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	sscanf(pargv[nth],"%lf",&thresh);
+	ThreshList[nThreshList] = thresh;
+	nThreshList++;
+	nth++;
+      }
+      nargsused = nth;
+    } 
+    else if(!strcasecmp(option, "--nsign")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nSignList);
       nargsused = 1;
     } 
     else {

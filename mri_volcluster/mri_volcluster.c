@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/14 20:40:04 $
- *    $Revision: 1.47.2.1 $
+ *    $Date: 2016/11/17 18:19:42 $
+ *    $Revision: 1.47.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -97,7 +97,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.47.2.1 2016/10/14 20:40:04 zkaufman Exp $";
+  "$Id: mri_volcluster.c,v 1.47.2.2 2016/11/17 18:19:42 zkaufman Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -169,6 +169,7 @@ char *csdpdffile = NULL;
 int csdpdfonly = 0;
 
 char *voxwisesigfile=NULL;
+char *maxvoxwisesigfile=NULL;
 MRI  *voxwisesig, *clustwisesig;
 char *clustwisesigfile=NULL;
 
@@ -205,12 +206,13 @@ int main(int argc, char **argv) {
   float x,y,z,val,pval;
   char *stem;
   COLOR_TABLE *ct;
+  FILE *fp;
 
   /* rkt: check for and handle version tag */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.47.2.1 2016/10/14 20:40:04 zkaufman Exp $",
+     "$Id: mri_volcluster.c,v 1.47.2.2 2016/11/17 18:19:42 zkaufman Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -355,10 +357,16 @@ int main(int argc, char **argv) {
       MRIsynthGaussian(0,0,0,0,vol);
   }
 
-  if (voxwisesigfile) {
+  if(voxwisesigfile) {
+    double maxmaxsig;
     printf("Computing voxel-wise significance\n");
-    voxwisesig = CSDpvalMaxSigMap(vol, csd, binmask, NULL, Bonferroni);
+    voxwisesig = CSDpvalMaxSigMap(vol, csd, binmask, NULL, &maxmaxsig, Bonferroni);
     MRIwrite(voxwisesig,voxwisesigfile);
+    if(maxvoxwisesigfile){
+      fp = fopen(maxvoxwisesigfile,"w");
+      fprintf(fp,"%10.5f\n",maxmaxsig);
+      fclose(fp);
+    }
   }
 
 
@@ -443,7 +451,7 @@ int main(int argc, char **argv) {
     ClusterList = ClusterList2;
   }
 
-  /* Sort Clusters by MaxValue */
+  /* Sort Clusters */
   ClusterList2 = clustSortClusterList(ClusterList2,nclusters,NULL);
   //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
   ClusterList = ClusterList2;
@@ -462,12 +470,30 @@ int main(int argc, char **argv) {
     }
   }
   if(fwhm > 0) {
+    double grfsearchspace;
+    int D=0;
+    if(vol->depth == 1) {
+      D = 2;
+      grfsearchspace = nmask * colres * rowres;
+    }
+    else{
+      D = 3;
+      grfsearchspace = nmask * colres * rowres * sliceres;
+    }
     for (n=0; n < nclusters; n++) {
-      ClusterSize = ClusterList[n]->nmembers * voxsize;
-      if(AdjustThreshWhenOneTail) 
-	pval = RFprobZClusterSigThresh(ClusterSize, threshmin, fwhm, searchspace, 3);
-      else
-	pval = RFprobZCluster(ClusterSize, threshmin, fwhm, searchspace, 3);
+      if(D==2) ClusterSize = ClusterList[n]->nmembers * colres * rowres;
+      if(D==3) ClusterSize = ClusterList[n]->nmembers * colres * rowres * sliceres;
+      if(threshsign == 0) grfsearchspace = grfsearchspace/2.0; // This is a hack for abs
+      if(AdjustThreshWhenOneTail) {
+	pval = RFprobZClusterSigThresh(ClusterSize, threshmin, fwhm, grfsearchspace, D);
+	if(threshsign == 0) pval = 2*pval;
+      }
+      else{
+	// When no adjustment is made and GRF is used, assumes that the 
+	// input volume is a z-volume. This is a bit messy.
+	pval = RFprobZCluster(ClusterSize, threshmin, fwhm, grfsearchspace, D);
+      }
+      if(threshsign == 0) pval = 2*pval; // This is a hack for abs
       ClusterList[n]->pval_clusterwise = pval;
     }
   }
@@ -487,6 +513,11 @@ int main(int argc, char **argv) {
       ClusterList[n]->pval_clusterwise_hi = pval;
     }
   }
+  /* Sort Clusters */
+  ClusterList2 = clustSortClusterList(ClusterList2,nclusters,NULL);
+  //clustFreeClusterList(&ClusterList,nclusters);/* Free - does not work */
+  ClusterList = ClusterList2;
+
   /* Remove clusters that do not meet the minimum clusterwise pvalue */
   if(cwpvalthresh > 0 && (fwhm >0 || csd != NULL) ){
     printf("Pruning by CW P-Value %g\n",cwpvalthresh);
@@ -851,7 +882,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       voxwisesigfile = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--sum")) {
+    } 
+    else if (!strcmp(option, "--vwsigmax")) {
+      if(nargc < 1) argnerr(option,1);
+      maxvoxwisesigfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--sum")) {
       if (nargc < 1) argnerr(option,1);
       sumfile = pargv[0];
       nargsused = 1;
@@ -1032,7 +1069,7 @@ static void print_usage(void) {
   printf("   --thmin   minthresh : minimum intensity threshold\n");
   printf("   --thmax   maxthresh : maximum intensity threshold\n");
   printf("   --sign    sign      : <abs> or pos/neg for one-sided tests\n");
-  printf("   --no-adjust  : do not adjust thresh for one-tailed tests\n");
+  printf("   --no-adjust  : do not adjust thresh for one-tailed tests (assumes z for GRF)\n");
   printf("   --match matchval : set thmin=matchval-0.5 and thmax=matchval+0.5\n");
   printf("\n");
   printf("   --cwpvalthresh pval : require clusters to have cwp < thresh\n");
@@ -1050,7 +1087,7 @@ static void print_usage(void) {
   printf("   --csdpdf csdpdffile : PDF/CDF of cluster and max sig\n");
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("\n");
-  printf("   --fwhm fwhm : fwhm in mm3 for GRF\n");
+  printf("   --fwhm fwhm : fwhm in mm3, forces GRF analysis\n");
   printf("   --fwhmdat fwhm.dat : text file with fwhm in mm3 for GRF\n");
   printf("\n");
   printf("   --minsize    minimum volume (mm^3)\n");
@@ -1480,10 +1517,11 @@ static void check_options(void) {
     exit(1);
   }
 
-  if(fwhm > 0 && !strcmp(signstring,"abs")){
-    printf("ERROR: you must specify a pos or neg sign with --fwhm\n");
-    exit(1);
-  }
+  // This no longer applies
+  //if(fwhm > 0 && !strcmp(signstring,"abs")){
+  //printf("ERROR: you must specify a pos or neg sign with --fwhm\n");
+  //exit(1);
+  //}
 
 
   if (err) exit(1);
