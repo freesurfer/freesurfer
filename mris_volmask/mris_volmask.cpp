@@ -10,8 +10,8 @@
 /*
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2014/11/06 03:40:22 $
+ *    $Author: fischl $
+ *    $Date: 2016/11/16 15:21:15 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,7 @@ extern "C"
 #include "cma.h"
 #include "diag.h"
 #include "macros.h"
+#include "timer.h"
 #include "gca.h"
 #include "version.h"
 };
@@ -156,11 +157,14 @@ int
 main(int ac, char* av[])
 {
   // first, handle stuff for --version and --all-info args
-  int nargs = 0;
+  int nargs = 0, msec;
+  struct timeb then ;
+
+  TimerStart(&then) ;
   nargs =
     handle_version_option
     ( ac, av,
-      "$Id: mris_volmask.cpp,v 1.26 2014/11/06 03:40:22 nicks Exp $",
+      "$Id: mris_volmask.cpp,v 1.27 2016/11/16 15:21:15 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && ac - nargs == 1)
@@ -224,6 +228,8 @@ main(int ac, char* av[])
     printf("writing output to %s\n",
            (const_cast<char*>( pathMriOutput.c_str() )));
     MRIwrite(mriTemplate,  (const_cast<char*>( pathMriOutput.c_str() ))) ;
+    msec = TimerStop(&then) ;
+    fprintf(stderr, "mris_volmask took %2.2f minutes\n", (float)msec/(1000.0f*60.0f));
     exit(0) ;
   }
 
@@ -398,6 +404,8 @@ main(int ac, char* av[])
     MRIfree(&ribbon);
   }
 
+  msec = TimerStop(&then) ;
+  fprintf(stderr, "mris_volmask took %2.2f minutes\n", (float)msec/(1000.0f*60.0f));
   return 0;
 }
 
@@ -577,10 +585,10 @@ LoadInputFiles(const IoParams& params,
   {
     std::string subjDir = params.subjectsDir / params.subject;
     std::string pathSurf(subjDir / "surf");
-    pathSurfLeftWhite = pathSurf / "lh.white";
-    pathSurfLeftPial = pathSurf / "lh.pial";
-    pathSurfRightWhite = pathSurf / "rh.white";
-    pathSurfRightPial = pathSurf / "rh.pial";
+    pathSurfLeftWhite = pathSurf / "lh." +  params.surfWhiteRoot ;
+    pathSurfLeftPial = pathSurf / "lh." + params.surfPialRoot;
+    pathSurfRightWhite = pathSurf / "rh." +  params.surfWhiteRoot;
+    pathSurfRightPial = pathSurf / "rh" + params.surfPialRoot;
     pathMriInput = subjDir / "mri" / params.asegName + ".mgz";
 
     pathOutput = subjDir / "mri";
