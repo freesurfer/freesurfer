@@ -116,8 +116,8 @@ ORIG_LH=$(LH).orig
 ORIG_RH=$(RH).orig
 INFLATED_LH=$(LH).inflated
 INFLATED_RH=$(RH).inflated
-WHITE_LH=$(LH).white
-WHITE_RH=$(RH).white
+WHITE_LH_PREAPARC=$(LH).white.preaparc
+WHITE_RH_PREAPARC=$(RH).white.preparc
 CURV_LH=$(LH).curv
 CURV_RH=$(RH).curv
 AREA_LH=$(LH).area
@@ -140,7 +140,7 @@ AUTORECON2_SURF=$(ORIG_NOFIX_LH) $(ORIG_NOFIX_RH) \
 	$(INFLATED_NOFIX_LH) $(INFLATED_NOFIX_RH) \
 	$(QSPHERE_NOFIX_LH) $(QSPHERE_NOFIX_RH) \
 	$(ORIG_LH) $(ORIG_RH) \
-	$(WHITE_LH) $(WHITE_RH) \
+	$(WHITE_LH_PREAPARC) $(WHITE_RH_PREAPARC) \
 	$(AREA_MID_LH) $(AREA_MID_RH) \
 	$(SMOOTHWM_LH) $(SMOOTHWM_RH) \
 	$(INFLATED_LH) $(INFLATED_RH) \
@@ -185,28 +185,28 @@ $(ORIG_LH): $(ORIG_NOFIX_LH) $(INFLATED_NOFIX_LH) $(QSPHERE_NOFIX_LH)
 $(ORIG_RH): $(ORIG_NOFIX_RH) $(INFLATED_NOFIX_RH) $(QSPHERE_NOFIX_RH)
 	recon-all -s $(subj) -hemi rh -fix
 
-$(WHITE_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
+$(WHITE_LH_PREAPARC): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
 	recon-all -s $(subj) -hemi lh -white
 
-$(WHITE_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH)
+$(WHITE_RH_PREAPARC): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH)
 	recon-all -s $(subj) -hemi rh -white
 
-$(SMOOTHWM_LH): $(WHITE_LH)
+$(SMOOTHWM_LH): $(WHITE_LH_PREPARC)
 	recon-all -s $(subj) -hemi lh -smooth2
 
-$(SMOOTHWM_RH): $(WHITE_RH)
+$(SMOOTHWM_RH): $(WHITE_RH_PREPARC)
 	recon-all -s $(subj) -hemi rh -smooth2
 
-$(INFLATED_LH): $(SMOOTHWM_LH) $(WHITE_LH)
+$(INFLATED_LH): $(SMOOTHWM_LH) $(WHITE_LH_PREPARC)
 	recon-all -s $(subj) -hemi lh -inflate2
 
-$(INFLATED_RH): $(SMOOTHWM_RH) $(WHITE_RH)
+$(INFLATED_RH): $(SMOOTHWM_RH) $(WHITE_RH_PREPARC)
 	recon-all -s $(subj) -hemi rh -inflate2
 
-$(CURV_HK_LH): $(INFLATED_LH) $(WHITE_LH)
+$(CURV_HK_LH): $(INFLATED_LH) $(WHITE_LH_PREPARC)
 	recon-all -s $(subj) -hemi lh -curvHK
 
-$(CURV_HK_RH): $(INFLATED_RH) $(WHITE_RH)
+$(CURV_HK_RH): $(INFLATED_RH) $(WHITE_RH_PREPARC)
 	recon-all -s $(subj) -hemi rh -curvHK
 
 $(CURVSTATS_LH): $(SMOOTHWM_LH) $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
@@ -229,6 +229,8 @@ AVG_CURV_LH=$(LH).avg_curv
 AVG_CURV_RH=$(RH).avg_curv
 APARC_ANNOT_LH=$(subj)/label/lh.aparc.annot
 APARC_ANNOT_RH=$(subj)/label/rh.aparc.annot
+WHITE_LH=$(LH).white
+WHITE_RH=$(RH).white
 PIAL_LH=$(LH).pial
 PIAL_RH=$(RH).pial
 THICKNESS_LH=$(LH).thickness
@@ -285,10 +287,10 @@ $(SPHERE_REG_LH): $(SPHERE_LH)
 $(SPHERE_REG_RH): $(SPHERE_RH)
 	recon-all -s $(subj) -hemi rh -surfreg
 
-$(JACOBIAN_WHITE_LH): $(WHITE_LH) $(SPHERE_REG_LH)
+$(JACOBIAN_WHITE_LH): $(WHITE_LH_PREAPARC) $(SPHERE_REG_LH)
 	recon-all -s $(subj) -hemi lh -jacobian_white
 
-$(JACOBIAN_WHITE_RH): $(WHITE_RH) $(SPHERE_REG_RH)
+$(JACOBIAN_WHITE_RH): $(WHITE_RH_PREAPARC) $(SPHERE_REG_RH)
 	recon-all -s $(subj) -hemi rh -jacobian_white
 
 $(AVG_CURV_LH): $(SPHERE_REG_LH)
@@ -303,12 +305,13 @@ $(APARC_ANNOT_LH): $(SPHERE_REG_LH) $(ASEG_PRESURF)
 $(APARC_ANNOT_RH): $(SPHERE_REG_RH) $(ASEG_PRESURF)
 	recon-all -s $(subj) -hemi rh -cortparc
 
+# This now creates both pial and white surfaces
 $(PIAL_LH): $(ASEG_PRESURF) $(BRAINFINALSURFS) $(WM) $(FILLED) \
-	$(ORIG_LH) $(WHITE_LH) $(APARC_ANNOT_LH)
+	$(ORIG_LH) $(WHITE_LH_PREAPARC) $(APARC_ANNOT_LH)
 	recon-all -s $(subj) -hemi lh -pial
 
 $(PIAL_RH): $(ASEG_PRESURF) $(BRAINFINALSURFS) $(WM) $(FILLED) \
-	$(ORIG_RH) $(WHITE_RH) $(APARC_ANNOT_RH)
+	$(ORIG_RH) $(WHITE_RH_PREAPARC) $(APARC_ANNOT_RH)
 	recon-all -s $(subj) -hemi rh -pial
 
 #$(THICKNESS_LH): $(ASEG_PRESURF) $(BRAINFINALSURFS) $(WM) $(FILLED) \
@@ -319,10 +322,10 @@ $(PIAL_RH): $(ASEG_PRESURF) $(BRAINFINALSURFS) $(WM) $(FILLED) \
 #	$(ORIG_RH) $(WHITE_RH) $(APARC_ANNOT_RH)
 #	recon-all -s $(subj) -hemi rh -pial
 
-$(AREA_MID_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
+$(AREA_MID_LH): $(BRAINFINALSURFS) $(FILLED) $(PIAL_LH)
 	recon-all -s $(subj) -hemi lh -surfvolume
 
-$(AREA_MID_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH)
+$(AREA_MID_RH): $(BRAINFINALSURFS) $(FILLED) $(PIAL_RH)
 	recon-all -s $(subj) -hemi rh -surfvolume
 
 $(VOLUME_LH): $(AREA_MID_LH) $(THICKNESS_LH)
@@ -337,10 +340,10 @@ $(APARC_STATS_LH): $(APARC_ANNOT_LH) $(PIAL_LH) $(RIBBON)
 $(APARC_STATS_RH): $(APARC_ANNOT_RH) $(PIAL_RH) $(RIBBON)
 	recon-all -s $(subj) -hemi rh -parcstats
 
-$(APARC_A2009S_ANNOT_LH): $(SPHERE_REG_LH) $(WHITE_LH) $(ASEG_PRESURF)
+$(APARC_A2009S_ANNOT_LH): $(SPHERE_REG_LH) $(PIAL_LH) $(ASEG_PRESURF)
 	recon-all -s $(subj) -hemi lh -cortparc2
 
-$(APARC_A2009S_ANNOT_RH): $(SPHERE_REG_RH) $(WHITE_RH) $(ASEG_PRESURF)
+$(APARC_A2009S_ANNOT_RH): $(SPHERE_REG_RH) $(PIAL_RH) $(ASEG_PRESURF)
 	recon-all -s $(subj) -hemi rh -cortparc2
 
 $(APARC_A2009S_STATS_LH): $(APARC_A2009S_ANNOT_LH) $(PIAL_LH) $(RIBBON)
@@ -349,10 +352,10 @@ $(APARC_A2009S_STATS_LH): $(APARC_A2009S_ANNOT_LH) $(PIAL_LH) $(RIBBON)
 $(APARC_A2009S_STATS_RH): $(APARC_A2009S_ANNOT_RH) $(PIAL_RH) $(RIBBON)
 	recon-all -s $(subj) -hemi rh -parcstats2
 
-$(APARC_DKT40_ANNOT_LH): $(SPHERE_REG_LH) $(WHITE_LH) $(ASEG_PRESURF)
+$(APARC_DKT40_ANNOT_LH): $(SPHERE_REG_LH) $(PIAL_LH) $(ASEG_PRESURF)
 	recon-all -s $(subj) -hemi lh -cortparc3
 
-$(APARC_DKT40_ANNOT_RH): $(SPHERE_REG_RH) $(WHITE_RH) $(ASEG_PRESURF)
+$(APARC_DKT40_ANNOT_RH): $(SPHERE_REG_RH) $(PIAL_RH) $(ASEG_PRESURF)
 	recon-all -s $(subj) -hemi rh -cortparc3
 
 $(APARC_DKT40_STATS_LH): $(APARC_DKT40_ANNOT_LH) $(PIAL_LH) $(RIBBON)
@@ -361,16 +364,16 @@ $(APARC_DKT40_STATS_LH): $(APARC_DKT40_ANNOT_LH) $(PIAL_LH) $(RIBBON)
 $(APARC_DKT40_STATS_RH): $(APARC_DKT40_ANNOT_RH) $(PIAL_RH) $(RIBBON)
 	recon-all -s $(subj) -hemi rh -parcstats3
 
-$(PCTSURFCON_LH): $(ORIG) $(WHITE_LH)
+$(PCTSURFCON_LH): $(ORIG) $(PIAL_LH)
 	recon-all -s $(subj) -hemi lh -pctsurfcon
 
-$(PCTSURFCON_RH): $(ORIG) $(WHITE_RH)
+$(PCTSURFCON_RH): $(ORIG) $(PIAL_RH)
 	recon-all -s $(subj) -hemi rh -pctsurfcon
 
-$(RIBBON): $(ORIG) $(WHITE_LH) $(PIAL_LH) $(WHITE_RH) $(PIAL_RH)
+$(RIBBON): $(ORIG) $(PIAL_LH) $(PIAL_RH)
 	recon-all -s $(subj) -cortribbon
 
-$(ASEG_HYPOS): $(ASEG_PRESURF) $(WHITE_LH) $(WHITE_RH)
+$(ASEG_HYPOS): $(ASEG_PRESURF) $(PIAL_LH) $(PIAL_RH)
 	recon-all -s $(subj) -hyporelabel
 
 $(APARC_ASEG): $(ASEG_HYPOS) $(RIBBON) $(APARC_ANNOT_LH) $(APARC_ANNOT_RH)
