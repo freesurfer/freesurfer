@@ -5,7 +5,12 @@ function cdf = rft_zcluster_cdf(csize,zthresh,fwhm,ssize,D)
 % found in a D-dim z-field with fwhm smoothness of ssize search space.
 % zthresh is the voxel-wise z thresh. ssize and csize are measured
 % in non-resel units. csize, fwhm, and ssize are measured in the
-% same units. This has not been tested for anything other than D=3.
+% same units. This has function has been tested with simulated data
+% for both D=2 and D=3. For D=2, the test was to use a single slice
+% of data, not a cortical surface; as far as I can tell, this does
+% not work for surface data. KJW's SurfStat does work for cortical
+% surfaces, but it is not clear what it is using exactly (maybe
+% taking topology into account).
 %
 % Based on:
 % Friston, Worsley, Frackowiak, Mazziotta, Evans. Assessing the
@@ -24,7 +29,7 @@ function cdf = rft_zcluster_cdf(csize,zthresh,fwhm,ssize,D)
 % Activations in PET and fMRI: Levels of Inference and Power.
 % Neuroimage 40, 223-235 (1996).
 % 
-% $Id: rft_zcluster_cdf.m,v 1.6.4.1 2016/10/14 20:40:04 zkaufman Exp $
+% $Id: rft_zcluster_cdf.m,v 1.6.4.2 2016/11/17 18:09:06 zkaufman Exp $
 
 %
 % rft_zcluster_cdf.m
@@ -32,8 +37,8 @@ function cdf = rft_zcluster_cdf(csize,zthresh,fwhm,ssize,D)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: zkaufman $
-%    $Date: 2016/10/14 20:40:04 $
-%    $Revision: 1.6.4.1 $
+%    $Date: 2016/11/17 18:09:06 $
+%    $Revision: 1.6.4.2 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
