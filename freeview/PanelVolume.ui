@@ -123,8 +123,11 @@
         </item>
         <item>
          <widget class="QSpinBox" name="spinBoxFrame">
+          <property name="wrapping">
+           <bool>true</bool>
+          </property>
           <property name="minimum">
-           <number>1</number>
+           <number>0</number>
           </property>
          </widget>
         </item>
