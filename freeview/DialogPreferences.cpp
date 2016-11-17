@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/06/10 19:52:40 $
- *    $Revision: 1.21 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/11/17 18:00:34 $
+ *    $Revision: 1.21.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,6 +81,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->checkBoxSyncZoom, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxAutoReorientView, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->checkBoxDecimalVoxelCoord, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
 }
 
 DialogPreferences::~DialogPreferences()
@@ -103,6 +104,7 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->colorPickerAnnotation->setCurrentColor(map["AnnotationColor"].value<QColor>());
   ui->checkBoxRightButtonErase->setChecked(map["RightButtonErase"].toBool());
   ui->checkBoxAutoReorientView->setChecked(map["AutoReorientView"].toBool());
+  ui->checkBoxDecimalVoxelCoord->setChecked(map["DecimalVoxelCoord"].toBool());
   BlockAllSignals(this, false);
 }
 
@@ -120,6 +122,7 @@ QVariantMap DialogPreferences::GetSettings()
   map["AnnotationColor"] = ui->colorPickerAnnotation->currentColor();
   map["RightButtonErase"] = ui->checkBoxRightButtonErase->isChecked();
   map["AutoReorientView"] = ui->checkBoxAutoReorientView->isChecked();
+  map["DecimalVoxelCoord"] = ui->checkBoxDecimalVoxelCoord->isChecked();
   return map;
 }
 

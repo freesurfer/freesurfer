@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>428</width>
-    <height>571</height>
+    <width>431</width>
+    <height>503</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -36,259 +36,321 @@
     <number>12</number>
    </property>
    <item>
-    <widget class="QGroupBox" name="groupBox">
-     <property name="title">
-      <string>View</string>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
      </property>
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Background color</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QtColorPicker" name="colorPickerBackground" native="true"/>
-      </item>
-      <item row="0" column="2">
-       <spacer name="horizontalSpacer">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>118</width>
-          <height>0</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Cursor color</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QtColorPicker" name="colorPickerCursor" native="true"/>
-      </item>
-      <item row="1" column="2">
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>118</width>
-          <height>0</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Cursor style</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QComboBox" name="comboBoxCursorStyle">
-        <item>
-         <property name="text">
-          <string>Small</string>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>General</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <property name="spacing">
+        <number>9</number>
+       </property>
+       <property name="leftMargin">
+        <number>12</number>
+       </property>
+       <property name="topMargin">
+        <number>12</number>
+       </property>
+       <property name="rightMargin">
+        <number>12</number>
+       </property>
+       <property name="bottomMargin">
+        <number>12</number>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="title">
+          <string>View</string>
          </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Large</string>
+         <layout class="QGridLayout" name="gridLayout">
+          <item row="2" column="1">
+           <widget class="QComboBox" name="comboBoxCursorStyle">
+            <item>
+             <property name="text">
+              <string>Small</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Large</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Long</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="5" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxDecimalVoxelCoord">
+            <property name="text">
+             <string>Show decimal voxel coordinates on Info panel</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_4">
+            <property name="text">
+             <string>Annotation color</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QtColorPicker" name="colorPickerCursor" native="true"/>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_3">
+            <property name="text">
+             <string>Cursor style</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <spacer name="horizontalSpacer_3">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>118</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="0" column="1">
+           <widget class="QtColorPicker" name="colorPickerBackground" native="true"/>
+          </item>
+          <item row="3" column="1">
+           <widget class="QtColorPicker" name="colorPickerAnnotation" native="true"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Cursor color</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>118</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Background color</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>118</width>
+              <height>0</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="4" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxSyncZoom">
+            <property name="text">
+             <string>Sync zoom factor of 2D views</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_2">
+         <property name="title">
+          <string>Edit</string>
          </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>Long</string>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <widget class="QCheckBox" name="checkBoxSaveCopy">
+            <property name="text">
+             <string>Save a copy when overwriting an existing file</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBoxRightButtonErase">
+            <property name="text">
+             <string>Allow right mouse button to erase voxels</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_5">
+         <property name="title">
+          <string>Inflated Surface</string>
          </property>
-        </item>
-       </widget>
-      </item>
-      <item row="2" column="2">
-       <spacer name="horizontalSpacer_3">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>118</width>
-          <height>0</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Annotation color</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QtColorPicker" name="colorPickerAnnotation" native="true"/>
-      </item>
-     </layout>
+         <property name="flat">
+          <bool>false</bool>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_5">
+          <item>
+           <widget class="QCheckBox" name="checkBoxAutoReorientView">
+            <property name="text">
+             <string>Auto-reorient 3D view after clicking on inflated surface</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Miscellaneous</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_7">
+       <property name="spacing">
+        <number>9</number>
+       </property>
+       <property name="leftMargin">
+        <number>12</number>
+       </property>
+       <property name="topMargin">
+        <number>12</number>
+       </property>
+       <property name="rightMargin">
+        <number>12</number>
+       </property>
+       <property name="bottomMargin">
+        <number>12</number>
+       </property>
+       <item>
+        <widget class="QGroupBox" name="groupBox_4">
+         <property name="title">
+          <string>Command Console</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QRadioButton" name="radioButtonThemeDark">
+            <property name="text">
+             <string>Dark</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="radioButtonThemeLight">
+            <property name="text">
+             <string>Light</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_4">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBoxMac">
+         <property name="title">
+          <string>Mac Settings</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_4">
+          <item>
+           <widget class="QCheckBox" name="checkBoxCommandKey">
+            <property name="text">
+             <string>Use Command key as equivalent Ctrl key on Linux</string>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>16</width>
+              <height>16</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkBoxMacUnified">
+            <property name="text">
+             <string>Unified title and toolbar on main window</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
     </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_2">
-     <property name="title">
-      <string>Edit</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="QCheckBox" name="checkBoxSaveCopy">
-        <property name="text">
-         <string>Save a copy when overwriting an existing file</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="checkBoxRightButtonErase">
-        <property name="text">
-         <string>Allow right mouse button to erase voxels</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_3">
-     <property name="title">
-      <string>2D Display</string>
-     </property>
-     <property name="flat">
-      <bool>false</bool>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_3">
-      <item>
-       <widget class="QCheckBox" name="checkBoxSyncZoom">
-        <property name="text">
-         <string>Sync zoom factor of 2D views</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_4">
-     <property name="title">
-      <string>Command Console</string>
-     </property>
-     <layout class="QHBoxLayout" name="horizontalLayout">
-      <item>
-       <widget class="QRadioButton" name="radioButtonThemeDark">
-        <property name="text">
-         <string>Dark</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QRadioButton" name="radioButtonThemeLight">
-        <property name="text">
-         <string>Light</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="horizontalSpacer_4">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>40</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBox_5">
-     <property name="title">
-      <string>Inflated Surface</string>
-     </property>
-     <property name="flat">
-      <bool>false</bool>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_5">
-      <item>
-       <widget class="QCheckBox" name="checkBoxAutoReorientView">
-        <property name="text">
-         <string>Auto-reorient 3D view after clicking on inflated surface</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QGroupBox" name="groupBoxMac">
-     <property name="title">
-      <string>Mac Settings</string>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_4">
-      <item>
-       <widget class="QCheckBox" name="checkBoxCommandKey">
-        <property name="text">
-         <string>Use Command key as equivalent Ctrl key on Linux</string>
-        </property>
-        <property name="iconSize">
-         <size>
-          <width>16</width>
-          <height>16</height>
-         </size>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QCheckBox" name="checkBoxMacUnified">
-        <property name="text">
-         <string>Unified title and toolbar on main window</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>5</height>
-      </size>
-     </property>
-    </spacer>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">

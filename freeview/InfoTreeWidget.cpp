@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/27 22:24:31 $
- *    $Revision: 1.20.2.4 $
+ *    $Date: 2016/11/17 18:00:35 $
+ *    $Revision: 1.20.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,6 +147,7 @@ void InfoTreeWidget::UpdateAll()
         item->setText(1, "N/A");
   }
 
+  bool bDecimalIndex = MainWindow::GetMainWindow()->GetSetting("DecimalVoxelCoord").toBool();
   for (int i = 0; i < lc_mri->GetNumberOfLayers(); i++)
   {
     LayerMRI* layer = (LayerMRI*)lc_mri->GetLayer(i);
@@ -172,7 +173,11 @@ void InfoTreeWidget::UpdateAll()
       }
       for (int j = 0; j < 3; j++)
         nIndex[j] = ((int)(nIndex[j]*100+0.5))/100.0;
-      QString editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
+      QString editable;
+      if (bDecimalIndex)
+        editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
+      else
+          editable = QString("%1, %2, %3").arg((int)(nIndex[0]+0.5)).arg((int)(nIndex[1]+0.5)).arg((int)(nIndex[2]+0.5));
       QString strg = QString("%1 \t[%2]").arg(valueStrg).arg(editable);
       QString labelStrg;
       if (layer->IsTypeOf("PLabel"))
