@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.60.2.3 2016/09/28 21:44:30 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.60.2.4 2016/11/17 18:01:28 zkaufman Exp $';
 setenv LANG en_US.UTF-8
 
 set inputargs = ($argv);
@@ -32,8 +32,10 @@ set Bonferroni = 0;
 set ReportCentroid = 0;
 set annot = aparc
 set IsPVR = 0;
-set DoY = 1
+set DoClusterMean = 1
 set OutputAnnot = 1
+set DoGRFOCNAnat = 0;
+set y = ()
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -102,7 +104,6 @@ set anattype = volume;
 set subject = ();
 set hemi = ();
 set surf = "white";
-set y = ();
 set wls = ();
 
 set glmfitcwd = `cat $glmfitlog | awk '{if($1 == "cwd") print $2}'`
@@ -145,8 +146,9 @@ while($#glmfitcmd)
     breaksw
   case "--table"
   case "--y"
-    set y = $glmfitcmd[1]; shift glmfitcmd;
-    if($DoY) then
+    if($#y == 0) set y = $glmfitcmd[1]; 
+    shift glmfitcmd;
+    if($DoClusterMean) then
     if(! -e $y) then
       set y = $glmfitcwd/$y
       if(! -e $y) then
@@ -190,6 +192,7 @@ while($#glmfitcmd)
   case "--rescale-x"
   case "--no-rescale-x"
   case "--fisher"
+  case "--no-pcc"
   case "dods"
   case "mri_glmfit.bin"
     breaksw
@@ -220,7 +223,8 @@ while($#glmfitcmd)
     breaksw
   default
     echo ""
-    echo "WARNING: unrecognized mri_glmfit cmd option $flag"
+    echo "INFO: unrecognized mri_glmfit cmd option $flag"
+    echo " ... probably not a problem"
     echo ""
     #sleep 10
     #exit 1;
@@ -238,7 +242,8 @@ if(! $UseTable) then
 endif
 
 
-if($UseGRF && $anattype != volume) then
+if(0 && $UseGRF && $anattype != volume) then
+  # not true anymore
   echo "ERROR: can only use --grf with volume"
   exit 1;
 endif
@@ -397,12 +402,13 @@ if($DoSim) then
     set cmd = (mri_glmfit $clist2)
     set cmd = ($cmd --sim $nulltype $nSimPerJob $thresh \
        $glmdir/csd/$csdbase.$jpad)
-    if(! $UseTable) set cmd = ($cmd --y $y --mask $mask)
-    if($UseTable)   set cmd = ($cmd --table $y)
     set cmd = ($cmd --sim-sign $simsign --fwhm $fwhm)
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
     if($#X)    set cmd = ($cmd --X $X)
     if($#wls)  set cmd = ($cmd --wls $wls)
+    # --y must go after --fsgd
+    if(! $UseTable) set cmd = ($cmd --y $y --mask $mask)
+    if($UseTable)   set cmd = ($cmd --table $y)
     #if($#label) set cmd = ($cmd --label $label)
     if($PermForce) set cmd = ($cmd --perm-force)
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi $surf);
@@ -547,6 +553,7 @@ foreach conname ($conlist)
   set sig = `stem2fname $glmdir/$conname/sig`
   set ext = `fname2ext $sig`
   set vwsig = $glmdir/$conname/$csdbase.sig.voxel.$ext
+  set vwsigmax = $glmdir/$conname/$csdbase.sig.voxel.max.dat
   set cwsig = $glmdir/$conname/$csdbase.sig.cluster.$ext
   set msig  = $glmdir/$conname/$csdbase.sig.masked.$ext
   set ocn   = $glmdir/$conname/$csdbase.sig.ocn.$ext
@@ -555,10 +562,12 @@ foreach conname ($conlist)
   set csdpdf = $glmdir/$conname/$csdbase.pdf.dat
 
   if($anattype == surface) then
-    set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
-      --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
-      --annot $annot --csdpdf $csdpdf \
-      --cwpvalthresh $cwpvalthresh --o $msig --no-fixmni)
+    set cmd = (mri_surfcluster --in $sig  --mask $mask \
+      --cwsig $cwsig --sum $sum --ocn $ocn \
+      --annot $annot --cwpvalthresh $cwpvalthresh --o $msig --no-fixmni)
+    if(! $UseGRF) set cmd = ($cmd $csdlist --csdpdf $csdpdf --vwsig $vwsig --vwsigmax $vwsigmax)
+    if($UseGRF)   set cmd = ($cmd --fwhm $fwhm --hemi $hemi --subject $subject --thmin $thresh --sign $simsign)
+
     if($OutputAnnot) set cmd = ($cmd --oannot $oannot)
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
     if($ReportCentroid) set cmd = ($cmd --centroid);
@@ -566,7 +575,7 @@ foreach conname ($conlist)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
-    if($DoY) then
+    if($DoClusterMean) then
       # Create an average "waveform" for each cluster
       set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
       set cmd = (mri_segstats --seg $ocn --exclude 0  \
@@ -590,15 +599,15 @@ foreach conname ($conlist)
     if(! -e $FREESURFER_HOME/subjects/$volsubject/mri/$aseg) set aseg = aseg.mgz
     set cmd = (mri_volcluster --in $sig --mask $mask --reg $reg --no-fixmni\
       --cwsig $cwsig --sum $sum --ocn $ocn --cwpvalthresh $cwpvalthresh \
-      --seg $volsubject $aseg --out $msig)
+      --seg $volsubject $aseg --out $msig --allowdiag)
     if($Bonferroni) set cmd = ($cmd --bonferroni $Bonferroni)
-    if(! $UseGRF) set cmd = ($cmd --csdpdf $csdpdf $csdlist --vwsig $vwsig )
-    if($UseGRF)   set cmd = ($cmd --fwhmdat $glmdir/fwhm.dat --sign $simsign --thmin $thresh)
+    if(! $UseGRF) set cmd = ($cmd --csdpdf $csdpdf $csdlist --vwsig $vwsig  --vwsigmax $vwsigmax)
+    if($UseGRF)   set cmd = ($cmd --fwhmdat $glmdir/fwhm.dat --sign $simsign --thmin $thresh  --sign $simsign)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
 
-    if($DoY) then
+    if($DoClusterMean) then
       # Create an average "waveform" for each cluster
       set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
       set cmd = (mri_segstats --seg $ocn --exclude 0 \
@@ -609,7 +618,8 @@ foreach conname ($conlist)
       rm -f /tmp/mri_glmfit-sim.junk.$$
     endif
 
-    if($UseGRF) then
+    if($UseGRF && $DoGRFOCNAnat) then
+      # Map the OCN into anat space, takes a lot of disk space
       set ocnanat = $glmdir/$conname/$csdbase.sig.ocn.anat.$ext
       set cmd = (mri_vol2vol --interp nearest --mov $ocn --regheader \
         --targ $SUBJECTS_DIR/fsaverage/mri/orig.mgz \
@@ -654,6 +664,17 @@ while( $#argv != 0 )
       set glmdir = $argv[1]; shift;
       breaksw
 
+    case "--y":
+      if($#argv < 0) goto arg1err;
+      # Override input in fsgd file
+      set y = $argv[1]; shift;
+      if(! -e $y) then
+        echo "ERROR: cannot find $y"
+        exit 1
+      endif
+      breaksw
+
+    case "--mczsim":
     case "--mcsim":
     case "--cache":
       if( $#argv < 2) goto arg2err;
@@ -694,10 +715,10 @@ while( $#argv != 0 )
       if( $#argv < 2) goto arg2err;
       set thresh = $argv[1]; shift;
       set simsign = $argv[1]; shift;
-      if($simsign != pos && $simsign != neg) then
-        echo "ERROR: must use pos or neg with --grf"
-        exit 1;
-      endif
+      #if($simsign != pos && $simsign != neg) then
+        #echo "ERROR: must use pos or neg with --grf"
+        #exit 1;
+      #endif
       set UseGRF = 1;
       set DoSim = 0;
       breaksw
@@ -850,8 +871,16 @@ while( $#argv != 0 )
       set OutputAnnot = 0
       breaksw
 
+    case "--no-cluster-mean":
     case "--no-y":
-      set DoY = 0;
+      set DoClusterMean = 0;
+      breaksw
+
+    case "--no-grf-ocn-anat":
+      set DoGRFOCNAnat = 0;
+      breaksw
+    case "--grf-ocn-anat":
+      set DoGRFOCNAnat = 1;
       breaksw
 
     case "--debug":
@@ -940,7 +969,7 @@ usage_exit:
   echo " --perm nsim vwthreshold sign"
   echo ""
   echo "Use Gaussian Random Fields (GRF), volumes only"
-  echo " --grf vwthreshold sign : -log10(p) and sign (pos or neg)"
+  echo " --grf vwthreshold sign : -log10(p) and sign (pos, neg, abs)"
   echo ""
   echo "Correct for multiple spaces"
   echo " --2spaces : additional Bonferroni correction across 2 spaces (eg, lh, rh)"
@@ -961,8 +990,9 @@ usage_exit:
   echo " --fwhm-override fwhm : override fwhm in glmdir":
   echo " --fwhm-add fwhmAdd : add fwhmAdd to the estimated fwhm before addressing table":
   echo " --uniform min max : use uniform PDF instead of gaussian":
-  echo " --no-y : do not compute means of each subject in each cluster"
   echo " --no-out-annot : do not output a cluster annotation"
+  echo " --no-cluster-mean : do not compute means of each subject in each cluster (was --no-y)"
+  echo " --y yFile : use yFile instead of determining yFile from glmdir"
   echo " --help"
   echo ""
 
@@ -993,21 +1023,23 @@ To use this program:
    threshold (--cwp). For mczsim, vwthresh must be 1.3, 2.0, 2.3, 3.0,
    3.3, or 4.0 (unless you have simulated more values). There are no
    good methods to choose this value. Typically 2 or 3 is used.
+   It is not recommended to use 1.3 unless performing a permutation
+   operation. 
 
 3. Choose the sign of the effect, either positive (pos), negative
-   (neg) or absolute/unsigned (abs). If you use --grf, then you can
-   only use pos or neg. If you have an a priori hypothesis (eg, group1
-   > group2), then choose positive. If you do not expect a particular
-   sign, then use abs. Choosing a sign will yield stronger results
-   (ie, smaller p-values), but you will lose voxels with the opposite
-   sign.
+   (neg) or absolute/unsigned (abs). If you have an a priori
+   hypothesis (eg, group1 > group2), then choose positive. If you do
+   not expect a particular sign, then use abs. Choosing a sign will
+   yield stronger results (ie, smaller p-values), but you will lose
+   voxels with the opposite sign. NOTE: the "abs" for GRF is only
+   approximate. For volumes, it may give very conservative results.
 
 4. Choose the method. This will be either: (1) --mczsim z-based monte
    carlo simulation (See surfer.nmr.mgh.harvard.edu/fswiki/BuildYourOwnMonteCarlo).
    (2) --perm for permutation simulation, or (3) --grf for Gaussian Random Field
    method (analytical). For permution, you must choose the number of simulation
    iterations (typically 5000-1000); permutation may take a few hours to 
-   complete.
+   complete. GRF is for volumes only.
 
 Now run the command, eg,
 
@@ -1119,9 +1151,15 @@ used for debugging.
 Override fwhm in glmdir with given value. This is mostly
 used for debugging.
 
---no-y
+--no-cluster-mean
 
 Do not compute means of each subject in each cluster. This computation
 requires the y input file which might not be available in all cases.
 When using this option, put it first on the command-line.
+
+--y yFile
+
+Specify the GLM input (ie, argument to --y in mri_glmfit) rather
+than determining it from the glmdir. This can be handy if the
+y file was deleted at some point.
 
