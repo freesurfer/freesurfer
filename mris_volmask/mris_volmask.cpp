@@ -11,7 +11,7 @@
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/11/16 15:21:15 $
+ *    $Date: 2016/11/18 19:19:29 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -164,7 +164,7 @@ main(int ac, char* av[])
   nargs =
     handle_version_option
     ( ac, av,
-      "$Id: mris_volmask.cpp,v 1.27 2016/11/16 15:21:15 fischl Exp $",
+      "$Id: mris_volmask.cpp,v 1.28 2016/11/18 19:19:29 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && ac - nargs == 1)
@@ -588,7 +588,7 @@ LoadInputFiles(const IoParams& params,
     pathSurfLeftWhite = pathSurf / "lh." +  params.surfWhiteRoot ;
     pathSurfLeftPial = pathSurf / "lh." + params.surfPialRoot;
     pathSurfRightWhite = pathSurf / "rh." +  params.surfWhiteRoot;
-    pathSurfRightPial = pathSurf / "rh" + params.surfPialRoot;
+    pathSurfRightPial = pathSurf / "rh." + params.surfPialRoot;
     pathMriInput = subjDir / "mri" / params.asegName + ".mgz";
 
     pathOutput = subjDir / "mri";
