@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/05/13 18:03:58 $
- *    $Revision: 1.164 $
+ *    $Date: 2016/11/21 03:01:42 $
+ *    $Revision: 1.165 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@
 #define  MAX_HISTO_BINS 1000
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.164 2016/05/13 18:03:58 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.165 2016/11/21 03:01:42 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -88,7 +88,8 @@ static int compute_pial_target_locations(MRI_SURFACE *mris,
 					 float T2_min,
 					 float T2_max,
                                          int below_set,
-                                         int above_set) ;
+                                         int above_set,
+					 MRI *mri_aseg) ;
 static int compute_white_target_locations(MRI_SURFACE *mris,
 					  MRI *mri_T2,
 					  MRI *mri_aseg,
@@ -306,13 +307,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.164 2016/05/13 18:03:58 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.165 2016/11/21 03:01:42 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.164 2016/05/13 18:03:58 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.165 2016/11/21 03:01:42 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1115,6 +1116,24 @@ main(int argc, char *argv[])
       mri_flair = MRIread(fname) ;
       if (mri_flair == NULL)
 	ErrorExit(ERROR_NOFILE, "%s: could not load flair volume %s", Progname, fname) ;
+#if 0
+      if (remove_contra) /* remove other hemi */
+      {
+	if (mri_aseg)
+	  smooth_contra_hemi_with_aseg(mri_aseg, mri_flair, mri_flair,  hemi) ;
+	else
+	{
+	  MRIreplaceValues(mri_filled, mri_filled, RH_LABEL2, rh_label) ;
+	  smooth_contra_hemi(mri_filled, mri_flair, mri_flair, label_val, replace_val) ;
+	}
+	if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+	{
+	  MRIwrite(mri_flair, "T2.contrra_smoothed.mgz") ;
+	}
+	
+	MRIfree(&mri_filled) ;
+      }  // remove contra
+#endif
 
       {
 	char fname[STRLEN] ;
@@ -1617,7 +1636,7 @@ main(int argc, char *argv[])
         compute_pial_target_locations(mris, mri_flair,
                                       nsigma_below, nsigma_above,
                                       labels, nlabels,
-                                      CONTRAST_FLAIR, T2_min, T2_max, below_set, above_set) ;
+                                      CONTRAST_FLAIR, T2_min, T2_max, below_set, above_set,mri_aseg) ;
 
         if (Gdiag & DIAG_WRITE)
         {
@@ -1747,7 +1766,7 @@ main(int argc, char *argv[])
           compute_pial_target_locations(mris, mri_T2,
                                         nsigma_below, nsigma_above,
                                         labels, nlabels,
-                                        CONTRAST_T2, T2_min, T2_max, below_set, above_set) ;
+                                        CONTRAST_T2, T2_min, T2_max, below_set, above_set,mri_aseg) ;
         }
 
         if (Gdiag & DIAG_WRITE)
@@ -4115,7 +4134,7 @@ compute_pial_target_locations(MRI_SURFACE *mris,
                               float nstd_above,
                               LABEL **labels,
                               int nlabels,
-                              int contrast_type, float T2_min, float T2_max, int below_set, int above_set)
+                              int contrast_type, float T2_min, float T2_max, int below_set, int above_set, MRI *mri_aseg)
 {
   Real      val, xs, ys, zs, xv, yv, zv, d, mean, std, xvf, yvf, zvf ;
   int       vno, num_in, num_out, found_bad_intensity;
@@ -4295,6 +4314,27 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       if (MRIgetVoxVal(mri_filled, nint(xvf), nint(yvf), nint(zvf), 0) > 0)
         break ;
 
+      if (mri_aseg != NULL)
+      {
+	int label, xv, yv, zv ;
+	Real xvf, yvf, zvf ;
+	
+	MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xvf, &yvf, &zvf);
+	xv = nint(xvf) ; yv = nint(yvf) ; zv = nint(zvf) ;
+	label = MRIgetVoxVal(mri_aseg, xv, yv, zv, 0) ;
+	if (vno == Gdiag_no)
+	  printf("v %d: label distance %2.2f = %s @ (%d %d %d)\n",
+		 vno, d, cma_label_to_name(label),xv, yv, zv) ;
+	if ((mris->hemisphere == LEFT_HEMISPHERE && IS_RH_CLASS(label)) ||
+	    (mris->hemisphere == RIGHT_HEMISPHERE && IS_LH_CLASS(label)))
+	{
+	  if (vno == Gdiag_no)
+	      printf("v %d: terminating search at distance %2.2f due to presence of contra tissue (%s)\n",
+		     vno, d, cma_label_to_name(label)) ;
+	  found_bad_intensity = 1 ;
+	  break ;
+	}
+      }
       if (val < min_gray || val > max_gray)
       {
 	if (vno == Gdiag_no)
@@ -4366,6 +4406,27 @@ compute_pial_target_locations(MRI_SURFACE *mris,
         if (val < 0)
           continue ;
 
+	if (mri_aseg != NULL)
+	{
+	  int label, xv, yv, zv ;
+	  Real xvf, yvf, zvf ;
+	  
+	  MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xvf, &yvf, &zvf);
+	  xv = nint(xvf) ; yv = nint(yvf) ; zv = nint(zvf) ;
+	  label = MRIgetVoxVal(mri_aseg, xv, yv, zv, 0) ;
+	  if (vno == Gdiag_no)
+	    printf("v %d: label distance %2.2f = %s @ (%d %d %d)\n",
+		   vno, d, cma_label_to_name(label),xv, yv, zv) ;
+	  if ((mris->hemisphere == LEFT_HEMISPHERE && IS_RH_CLASS(label)) ||
+	      (mris->hemisphere == RIGHT_HEMISPHERE && IS_LH_CLASS(label)))
+	  {
+	    if (vno == Gdiag_no)
+	      printf("v %d: terminating search at distance %2.2f due to presence of contra tissue (%s)\n",
+		     vno, d, cma_label_to_name(label)) ;
+	    break ;
+	  }
+	}
+
         // this is FLAIR-specific - look for dark stuff that isn't too close to white matter
         if ((val < mn-sig && d-last_white>1.2) ||  (val > mn+2*sig))  // only look for a very narrow range of intensities
           break ;
@@ -4380,6 +4441,26 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	  for (d = last_pial+SAMPLE_DIST ; d <= max_outward_dist ; d += SAMPLE_DIST)
 	  {
 	    xs = v->x + d*v->nx ; ys = v->y + d*v->ny ; zs = v->z + d*v->nz ;
+	    if (mri_aseg != NULL)
+	    {
+	      int label, xv, yv, zv ;
+	      Real xvf, yvf, zvf ;
+	      
+	      MRISsurfaceRASToVoxelCached(mris, mri_aseg, xs, ys, zs, &xvf, &yvf, &zvf);
+	      xv = nint(xvf) ; yv = nint(yvf) ; zv = nint(zvf) ;
+	      label = MRIgetVoxVal(mri_aseg, xv, yv, zv, 0) ;
+	      if (vno == Gdiag_no)
+		printf("v %d: label distance %2.2f = %s @ (%d %d %d)\n",
+		       vno, d, cma_label_to_name(label),xv, yv, zv) ;
+	      if ((mris->hemisphere == LEFT_HEMISPHERE && IS_RH_CLASS(label)) ||
+		  (mris->hemisphere == RIGHT_HEMISPHERE && IS_LH_CLASS(label)))
+	      {
+		if (vno == Gdiag_no)
+		  printf("v %d: terminating search at distance %2.2f due to presence of contra tissue (%s)\n",
+			 vno, d, cma_label_to_name(label)) ;
+		break ;
+	      }
+	    }
 	    MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
 	    MRISsurfaceRASToVoxelCached(mris, mri_filled_pial, xs, ys, zs, &xvf, &yvf, &zvf);
 	    MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
