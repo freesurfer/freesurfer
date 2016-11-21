@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/11/11 20:42:38 $
- *    $Revision: 1.781.2.3 $
+ *    $Date: 2016/11/21 19:22:05 $
+ *    $Revision: 1.781.2.4 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -784,7 +784,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.781.2.3 2016/11/11 20:42:38 zkaufman Exp $");
+  return("$Id: mrisurf.c,v 1.781.2.4 2016/11/21 19:22:05 zkaufman Exp $");
 }
 
 /*-----------------------------------------------------
@@ -38093,7 +38093,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         {
           break ;
         }
-	if (Gdiag_no >=0 && mri_aseg != NULL)
+	if (mri_aseg != NULL)
 	{
 	  int label ;
 	  label = MRIgetVoxVal(mri_aseg, nint(xw), nint(yw), nint(zw), 0) ;
@@ -38103,9 +38103,9 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
 	  if ((mris->hemisphere == LEFT_HEMISPHERE && IS_RH_CLASS(label)) ||
 	      (mris->hemisphere == RIGHT_HEMISPHERE && IS_LH_CLASS(label)))
 	  {
-	  if (vno == Gdiag_no)
-	    printf("v %d: terminating search at distance %2.2f due to presence of contra tissue (%s)\n",
-		   vno, dist, cma_label_to_name(label)) ;
+	    if (vno == Gdiag_no)
+	      printf("v %d: terminating search at distance %2.2f due to presence of contra tissue (%s)\n",
+		     vno, dist, cma_label_to_name(label)) ;
 	    break ;
 	  }
 	}
