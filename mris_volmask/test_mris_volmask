@@ -7,9 +7,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2014/03/24 20:18:47 $
-#    $Revision: 1.8 $
+#    $Author: zkaufman $
+#    $Date: 2016/11/22 17:29:57 $
+#    $Revision: 1.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -24,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_volmask,v 1.8 2014/03/24 20:18:47 greve Exp $'
+set VERSION='$Id: test_mris_volmask,v 1.9 2016/11/22 17:29:57 zkaufman Exp $'
 
 umask 002
 
@@ -35,13 +35,7 @@ if ( $?SKIP_MRIS_VOLMASK_TEST ) exit 77
 # extract testing data, use existing test data from another test setup
 #
 rm -Rf testdata2 >& /dev/null
-gunzip -c ../mri_aparc2aseg/testdata2.tar.gz | tar xvf -
-# substitute norm for orig.mgz
-if ( ! -e testdata2/mri/orig.mgz) then
-  cd testdata2/mri
-  ln -s norm.mgz orig.mgz
-  cd ../../
-endif
+gunzip -c ./testdata2.tar.gz | tar xvf -
 
 #
 # run mris_volmask
