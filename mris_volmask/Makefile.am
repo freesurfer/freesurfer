@@ -40,16 +40,6 @@ mris_volmask_CPPFLAGS=-DNO_VTK
 mris_volmask_CXXFLAGS=$(AM_CFLAGS) $(VXL_CFLAGS) -Wno-non-virtual-dtor
 mris_volmask_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) 
 
-# trick to get test data into the build directory
-foo_SOURCES=
-foo:
-	if ! test -f "$(top_builddir)/mri_aparc2aseg/testdata2.tar.gz"; then \
-		cp -v $(top_srcdir)/mri_aparc2aseg/testdata2.tar.gz \
-					$(top_builddir)/mri_aparc2aseg/; fi;
-#	if ! test -f "$(top_builddir)/scripts/vtk_setup"; then \
-#		cp -v $(top_srcdir)/scripts/*_setup \
-#					$(top_builddir)/scripts/; fi;
-check_PROGRAMS=foo
 TESTS=test_mris_volmask $(top_builddir)/scripts/help_xml_validate
 
 # CPPUNIT tests
