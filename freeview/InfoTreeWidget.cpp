@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/11/14 21:15:59 $
- *    $Revision: 1.26 $
+ *    $Date: 2016/11/29 16:38:23 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -162,7 +162,11 @@ void InfoTreeWidget::UpdateAll()
         dvalue = layer->GetVoxelValue( m_dRAS );
 //      else
 //        dvalue = layer->GetVoxelValueByOriginalIndex(nIndex[0]+0.5, nIndex[1]+0.5, nIndex[2]+0.5);
-      QString valueStrg = QString("%1").arg(dvalue);
+      QString valueStrg = QString("%1").arg(dvalue, 0, 'f', 6);
+      while (valueStrg[valueStrg.size()-1] != '.' && valueStrg[valueStrg.size()-1] == '0')
+          valueStrg.resize(valueStrg.size()-1);
+      if (valueStrg[valueStrg.size()-1] == '.')
+          valueStrg.resize(valueStrg.size()-1);
       if (layer->GetNumberOfFrames() > 1 && layer->GetNumberOfFrames() <= 4)
       {
         QList<double> values = layer->GetVoxelValueByOriginalIndexAllFrames(nIndex[0], nIndex[1], nIndex[2]);
@@ -175,7 +179,7 @@ void InfoTreeWidget::UpdateAll()
         nIndex[j] = ((int)(nIndex[j]*100+0.5))/100.0;
       QString editable;
       if (bDecimalIndex)
-        editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
+          editable = QString("%1, %2, %3").arg(nIndex[0]).arg(nIndex[1]).arg(nIndex[2]);
       else
           editable = QString("%1, %2, %3").arg((int)(nIndex[0]+0.5)).arg((int)(nIndex[1]+0.5)).arg((int)(nIndex[2]+0.5));
       QString strg = QString("%1 \t[%2]").arg(valueStrg).arg(editable);
