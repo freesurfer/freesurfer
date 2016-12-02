@@ -1,0 +1,488 @@
+#ifndef kvlTetrahedronInteriorConstIterator_hxx
+#define kvlTetrahedronInteriorConstIterator_hxx
+
+#include "kvlTetrahedronInteriorConstIterator.h"
+
+namespace kvl
+{
+
+
+//
+//
+//  
+template< typename TPixel >
+TetrahedronInteriorConstIterator< TPixel >
+::TetrahedronInteriorConstIterator( const ImageType *ptr,
+                                    const PointType& p0, 
+                                    const PointType& p1, 
+                                    const PointType& p2, 
+                                    const PointType& p3 )
+: Superclass( ptr, RegionType() )
+{
+  
+  // ============================================================================================
+  //
+  // Part I: Compute a valid bounding box around the tethradron specified by vertices (p0,p1,p2,p3). 
+  // If the tetradron falls outside the buffered image region, the bounding box is clipped accordingly
+  //
+  // ============================================================================================
+  typedef typename ImageType::RegionType   RegionType;
+  typedef typename RegionType::IndexType  IndexType;
+  typedef typename IndexType::IndexValueType  IndexValueType;
+  typedef typename RegionType::SizeType  SizeType;
+  typedef typename SizeType::SizeValueType  SizeValueType;
+  
+  // Compute the coordinates of the lower corner of the bounding box around the tetradron
+  PointType  lowerCorner = p0;
+  for ( int i = 0; i < 3; i++ )
+    {
+    if ( p1[ i ] < lowerCorner[ i ] )
+      {
+      lowerCorner[ i ] = p1[ i ];  
+      }  
+    if ( p2[ i ] < lowerCorner[ i ] )
+      {
+      lowerCorner[ i ] = p2[ i ];  
+      }  
+    if ( p3[ i ] < lowerCorner[ i ] )
+      {
+      lowerCorner[ i ] = p3[ i ];  
+      }  
+    }
+  //std::cout << "lowerCorner: " << lowerCorner << std::endl;  
+
+  // Compute the coordinates of the upper corner of the bounding box around the tetradron
+  PointType  upperCorner = p0;
+  for ( int i = 0; i < 3; i++ )
+    {
+    if ( p1[ i ] > upperCorner[ i ] )
+      {
+      upperCorner[ i ] = p1[ i ];  
+      }  
+    if ( p2[ i ] > upperCorner[ i ] )
+      {
+      upperCorner[ i ] = p2[ i ];  
+      }  
+    if ( p3[ i ] > upperCorner[ i ] )
+      {
+      upperCorner[ i ] = p3[ i ];  
+      }
+    
+    }
+  //std::cout << "upperCorner: " << upperCorner << std::endl;  
+  
+  // We're living in a mesh, so that if a vertex of this tetradron falls exactly on 
+  // a grid location, the same location will also be part of other tetrahedra (unless
+  // we're dealing with a tetradron right at the boundary of the mesh). In order
+  // to avoid visiting such vertices more than once, we're artifically going to shift the 
+  // bounding box a tiny bit -- this has the nasty effect of leaving some bounary
+  // pixels outside of the entire mesh, but typically this is not a problem in practice
+  for ( int i = 0; i < 3; i++ )
+    {
+    lowerCorner[ i ] -= 1e-6 * ( i + 1 );
+    upperCorner[ i ] -= 1e-6 * 2 * ( i + 1 );
+    }
+  
+  
+  // Compute the lower cornder index, while clipping to the buffered region
+  IndexType  lowerCornerIndex = ptr->GetBufferedRegion().GetIndex();
+  for ( int i = 0; i < 3; i++ )
+    {
+    if ( lowerCorner[ i ] > lowerCornerIndex[ i ] )
+      {
+      lowerCornerIndex[ i ] = itk::Math::Ceil< IndexValueType >( lowerCorner[ i ] );
+      }
+    }
+  //std::cout << "lowerCornerIndex: " << lowerCornerIndex << std::endl;
+  
+
+  // Compute the upper cornder index, while clipping to the buffered region
+  IndexType  upperCornerIndex = ptr->GetBufferedRegion().GetUpperIndex();
+  for ( int i = 0; i < 3; i++ )
+    {
+    if ( upperCorner[ i ] < upperCornerIndex[ i ] )
+      {
+      upperCornerIndex[ i ] = itk::Math::Floor< IndexValueType >( upperCorner[ i ] );
+      }
+    }
+  //std::cout << "upperCornerIndex: " << upperCornerIndex << std::endl;
+  
+
+
+  // ============================================================================================
+  //
+  // Part II: Set up the base class image iterator stuff. Also initialize the span end offset
+  //
+  // ============================================================================================
+  RegionType region;
+  region.SetIndex( lowerCornerIndex );
+  region.SetUpperIndex( upperCornerIndex );
+  std::cout << "region: " << region << std::endl;
+  this->SetRegion( region );
+  
+  // We need to be able to detect when we've overstepped our span
+  m_SpanEndOffset = this->m_Offset + static_cast< OffsetValueType >( this->m_Region.GetSize()[0] );
+  
+  
+  // ============================================================================================
+  //
+  // Part III: Precompute some matrices that will allow us to map a 3x1 vector of Eucledian coordinates 
+  // ("y") into baricentric ones (pi0,pi1,pi2,pi3). Given vertex coordinates p0, p1, p2, and p3, this
+  // accomplished by doing
+  //
+  //   x = M * ( y - t );
+  //   pi1 = x(1);
+  //   pi2 = x(2);
+  //   pi3 = x(3);
+  //   pi0 = 1 - pi1 - pi2 - pi3;
+  //
+  // where 
+  //
+  //   M = inv( [ p1-p0 p2-p0 p3-p0 ] );
+  //
+  // and
+  //
+  //   t = p0;
+  //
+  // To see why this is the case, consider the opposite direction: a tetradron with vertices
+  // (0,0,0), (1,0,0), (0,1,0), and (0,0,1) will be mapped onto one with vertices p0, p1, p2, and p3
+  // by doing
+  //
+  //  y =  [ p1-p0 p2-p0 p3-p0 ] * x + p0;  
+  //
+  // ============================================================================================
+  
+  // t = p0
+  m_T1 = p0[ 0 ];
+  m_T2 = p0[ 1 ];
+  m_T3 = p0[ 2 ];
+  
+  // A = inv( [ p1-p0 p2-p0 p3-p0 ] )
+  // where the inversion of a 3x3 matrix is given by:
+  //
+  // (cf.  https://en.wikipedia.org/wiki/Invertible_matrix#Inversion_of_3.C3.973_matrices)
+  const double  a = p1[0] - p0[0];
+  const double  b = p2[0] - p0[0];
+  const double  c = p3[0] - p0[0];
+  const double  d = p1[1] - p0[1];
+  const double  e = p2[1] - p0[1];
+  const double  f = p3[1] - p0[1];
+  const double  g = p1[2] - p0[2];
+  const double  h = p2[2] - p0[2];
+  const double  i = p3[2] - p0[2];
+  
+  const double  A = ( e * i - f * h );
+  const double  D = -( b * i - c * h );
+  const double  G = ( b * f - c * e );
+  const double  B = -(d * i - f * g );
+  const double  E = ( a * i - c * g );
+  const double  H = -( a * f - c * d );
+  const double  C = ( d * h - e * g );
+  const double  F = - (a * h - b * g );
+  const double  I = ( a * e - b * d );
+  
+  const double  determinant = a * A + b * B + c * C;
+  // M = 1/determinant * [ A D G; B E H; C F I ]
+  m_M11 = A / determinant;
+  m_M21 = B / determinant;
+  m_M31 = C / determinant;
+  m_M12 = D / determinant;
+  m_M22 = E / determinant;
+  m_M32 = F / determinant;
+  m_M13 = G / determinant;
+  m_M23 = H / determinant;
+  m_M33 = I / determinant;
+  
+  
+  // ============================================================================================
+  //
+  // Part IV: Precompute the baricentric coordinates of the first voxel of the first span 
+  // (i.e, the one we're currently pointing to)
+  //
+  // ============================================================================================
+  const double  YminT1 = this->GetIndex()[ 0 ] - m_T1;
+  const double  YminT2 = this->GetIndex()[ 1 ] - m_T2;
+  const double  YminT3 = this->GetIndex()[ 2 ] - m_T3;
+  
+  // 
+  m_Pi1 = m_M11 * YminT1 + m_M12 * YminT2 + m_M13 * YminT3;
+  m_Pi2 = m_M21 * YminT1 + m_M22 * YminT2 + m_M23 * YminT3;
+  m_Pi3 = m_M31 * YminT1 + m_M32 * YminT2 + m_M33 * YminT3;
+  m_Pi0 = 1.0 - m_Pi1 - m_Pi2 - m_Pi3;
+
+  //std::cout << "m_Pi0: " << m_Pi0  << std::endl;
+  //std::cout << "m_Pi1: " << m_Pi1  << std::endl;
+  //std::cout << "m_Pi2: " << m_Pi2  << std::endl;
+  //std::cout << "m_Pi3: " << m_Pi3  << std::endl;
+  
+
+  
+  // ============================================================================================
+  //
+  // Part V: Advance to the first voxel that is actually inside the tetradron
+  //
+  // ============================================================================================
+  while ( this->IsOutsideTetrahdron() && !this->IsAtEnd() )
+    {
+    this->MoveOnePixel();
+    }
+ 
+  
+}
+
+
+   
+//
+//
+//
+template< typename TPixel >
+TetrahedronInteriorConstIterator< TPixel >&  
+TetrahedronInteriorConstIterator< TPixel >
+::operator++()
+{
+
+  this->MoveOnePixel();
+  while ( this->IsOutsideTetrahdron() && !this->IsAtEnd() )
+    {
+    this->MoveOnePixel();
+    }
+  
+  return *this;
+}
+
+   
+   
+   
+//
+//
+//
+template< typename TPixel >
+void
+TetrahedronInteriorConstIterator< TPixel >
+::MoveOnePixel()
+{
+  
+  // In principle, all we need to do is to do 
+  //
+  //   y = this->GetIndex()
+  //
+  // and then compute the baricentric coordinates using
+  // 
+  //   x = M * ( y - t )
+  //
+  // However, since our y's are nicely ordered on an image grid, we can save a lot of
+  // multiplications by noticing that
+  // 
+  //  M * ( ( y + delta ) - t ) = M * ( y - t ) + M * delta
+  //
+  // where delta is typically (1,0,0) (so that M * delta is just the first column of M),
+  // although sometimes (when we're at the end of our span) it will be (0,1,0) (second column of M),
+  // and even more less frequently (0,0,1) (third column of M)
+  
+
+  // Try to simply step to the next pixel  
+  if ( ++this->m_Offset < m_SpanEndOffset )
+    {
+    // We're still safely on our span, so simply go to the next voxel on our span
+    m_Pi1 += m_M11;
+    m_Pi2 += m_M21;
+    m_Pi3 += m_M31;
+    m_Pi0 = 1.0 - m_Pi1 - m_Pi2 - m_Pi3;
+  
+    return;
+    }
+    
+  // If we're here, it means we've walked out of our span. Perhaps we're already at the 
+  // end of our region? If so, we stay where we are
+  if ( this->IsAtEnd() )
+    {
+    return;
+    }
+    
+  // Apparently we're not done yet. Undo the trial step we did, and compute our image index
+  --this->m_Offset;
+  IndexType  index = this->m_Image->ComputeIndex( static_cast< OffsetValueType >( this->m_Offset ) );
+  
+  // Based on what we find, either simply go to the next row or start a new slice
+  if ( index[ 1 ] < this->m_Region.GetUpperIndex()[ 1 ] ) 
+    {
+    // Simply go to the next row
+    index[ 0 ] = this->m_Region.GetIndex()[ 0 ];  
+    index[ 1 ] = index[ 1 ] + 1;
+  
+    // Undo the many steps you did along the span, and add one step along the row direction
+    m_Pi1 += m_M12 - m_M11 * ( this->m_Region.GetSize()[0] - 1 );
+    m_Pi2 += m_M22 - m_M21 * ( this->m_Region.GetSize()[0] - 1 );
+    m_Pi3 += m_M32 - m_M31 * ( this->m_Region.GetSize()[0] - 1 );
+    m_Pi0 = 1.0 - m_Pi1 - m_Pi2 - m_Pi3;
+  
+    }
+  else
+    {
+    // Need to go to a new slice
+    index[ 2 ] = index[ 2 ] + 1;
+      
+    index[ 0 ] = this->m_Region.GetIndex()[ 0 ];  
+    index[ 1 ] = this->m_Region.GetIndex()[ 1 ];  
+
+    // Undo the many steps you did along the span, as well as the many steps you did along
+    // the rows, and add one step along the slice direction  
+    m_Pi1 += m_M13 - m_M11 * ( this->m_Region.GetSize()[0] - 1 ) - m_M12 * ( this->m_Region.GetSize()[1] - 1 );
+    m_Pi2 += m_M23 - m_M21 * ( this->m_Region.GetSize()[0] - 1 ) - m_M22 * ( this->m_Region.GetSize()[1] - 1 );
+    m_Pi3 += m_M33 - m_M31 * ( this->m_Region.GetSize()[0] - 1 ) - m_M32 * ( this->m_Region.GetSize()[1] - 1 );
+    m_Pi0 = 1 - m_Pi1 - m_Pi2 - m_Pi3;
+    
+    }
+  
+  
+  //  Whatever it is that we did, we've started a new span
+  this->m_Offset = this->m_Image->ComputeOffset( index );
+  m_SpanEndOffset = this->m_Offset + static_cast< OffsetValueType >( this->m_Region.GetSize()[0] );
+  
+  
+}
+
+
+//
+//
+//
+template< typename TPixel >
+void
+TetrahedronInteriorConstIterator< TPixel >
+::GetBaricentricCoordinates( double& pi0, double& pi1, double& pi2, double& pi3 ) const
+{
+  pi0 = m_Pi0;  
+  pi1 = m_Pi1;  
+  pi2 = m_Pi2;  
+  pi3 = m_Pi3;  
+  
+}
+
+
+
+//
+//
+//
+template< typename TPixel >
+bool
+TetrahedronInteriorConstIterator< TPixel >
+::IsOutsideTetrahdron() const
+{
+  // return ( m_Pi0 < 0 ) || ( m_Pi1 < 0 )  || ( m_Pi2 < 0 ) || ( m_Pi3 < 0 );
+
+  // In general, a pixel falls outside the tetradron if one of its baricentric
+  // coordinates turns negative. However this still leaves the hairy issue of
+  // what to do with those special snowflake cases where one or more of the 
+  // coordinates is *exactly* zero (meaning it lies on the face of one of the
+  // four triangles composing the tetradron): these cases should only belong
+  // to a single tetradron, as otherwise they will be visited by all tetradra
+  // sharing the same face, which means they'll be counted multiple times when
+  // evaluating e.g., a cost function that is the sum over all voxels
+  //
+  // Similar to the "top-left rule" for rasterizing triangles, we can come up
+  // with similar rules for tetrahedra. The philosophy is that if a baricentric
+  // coordinate is exactly zero, we (virtually) shift the voxel a tiny fraction
+  // to the right; if this changes the baricentric coordinate to become positive,
+  // the voxel will be considered inside. This will happen if the corresponding
+  // element in the first column of the M matrix is positive. Of course it is 
+  // possible that this elememt is exactly zero; if this is the case (meaning 
+  // that we're lying on a face that is parellell with the x-axis), we can test
+  // for the second direction (second column of M) -- virtually pushing the point,
+  // "up"; and if also that element is zero (which means the face is perpendicular
+  // to the z-axis) we look at the element in the third column of M (virtually
+  // pushing the point along the z-axis by a tiny fraction)
+  //
+  // For a nice drawing of the "top-left rule" for triangles, see
+  //   https://msdn.microsoft.com/en-us/library/windows/desktop/cc627092%28v=vs.85%29.aspx#Triangle
+  // For a thorough exaplanation of the art of rasterizing triangles, see
+  //   https://fgiesen.wordpress.com/2013/02/08/triangle-rasterization-in-practice/
+  
+  // Obvious culling first
+  if ( ( m_Pi0 < 0 ) || ( m_Pi1 < 0 ) || ( m_Pi2 < 0 ) || ( m_Pi3 < 0 ) )
+    {
+    return true;
+    }
+  
+  if ( m_Pi1 == 0 )
+    {
+    // This is boundary case lying on face (p0,p2,p3)
+    if ( this->CheckBorderCase( m_M11, m_M12, m_M13 ) )
+      {
+      return true;
+      }
+    }  
+      
+    
+  if ( m_Pi2 == 0 )
+    {
+    // This is boundary case lying on face (p0,p1,p2)
+    if ( this->CheckBorderCase( m_M21, m_M22, m_M23 ) )
+      {
+      return true;
+      }
+    }  
+    
+  if ( m_Pi3 == 0 )
+    {
+    // This is boundary case lying on face (p0,p1,p2)
+    if ( this->CheckBorderCase( m_M31, m_M32, m_M33 ) )
+      {
+      return true;
+      }
+    }  
+    
+    
+  if ( m_Pi0 == 0 )
+    {
+    // This is boundary case lying on face (p1,p2,p3)
+    const double M01 = - ( m_M11 + m_M21 + m_M31 );
+    const double M02 = - ( m_M12 + m_M22 + m_M32 );
+    const double M03 = - ( m_M13 + m_M23 + m_M33 );
+    if ( this->CheckBorderCase( M01, M02, M03 ) )
+      {
+      return true;
+      }
+    }  
+    
+  // If we survived all these tests, we're inside
+  return false;
+    
+}
+
+
+//
+//
+//
+template< typename TPixel >
+bool
+TetrahedronInteriorConstIterator< TPixel >
+::CheckBorderCase( double a, double b, double c )
+{ 
+  if ( a < 0 )
+    {
+    return true;  
+    }
+    
+  if ( a == 0 )
+    {
+    if ( b < 0 )
+      {
+      return true;  
+      }
+    if ( b == 0 )
+      {
+      if ( c < 0 )
+        {
+        return true;  
+        }
+      }
+    }
+    
+ return false; 
+  
+}
+
+
+} // end namespace kvl
+
+#endif

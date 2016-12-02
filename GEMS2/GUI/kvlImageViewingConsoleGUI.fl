@@ -1,0 +1,97 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0107 
+header_name {.h} 
+code_name {.cxx}
+class kvlImageViewingConsoleGUI {open
+} {
+  Function {kvlImageViewingConsoleGUI()} {open
+  } {
+    Fl_Window m_Window {
+      label kvlImageViewingConsole
+      callback {exit( 0 );} open
+      xywh {489 98 1280 1030} type Double visible
+    } {
+      Fl_Group m_ImageViewer {
+        callback {//this->SelectTriangleContainingPoint( Fl::event_x(), m_ImageViewer->h() - Fl::event_y() );} open
+        xywh {10 10 1000 1000} box FLAT_BOX color 0
+        code0 {\#include "kvlImageViewer.h"}
+        class {kvl::ImageViewer}
+      } {}
+      Fl_Value_Slider m_OverlayOpacity {
+        label {Overlay opacity:}
+        callback {this->SetOverlayOpacity( m_OverlayOpacity->value() );}
+        xywh {1070 40 175 25} type Horizontal align 1 step 0.01 textsize 14
+      }
+      Fl_Value_Slider m_CoronalSliceNumber {
+        label {Coronal slice number:}
+        callback {this->SetSliceLocation( 
+  static_cast< unsigned int >( m_SagittalSliceNumber->value() ),
+  static_cast< unsigned int >( m_CoronalSliceNumber->value() ),
+  static_cast< unsigned int >( m_AxialSliceNumber->value() ) );}
+        xywh {1075 245 175 25} type Horizontal align 1 step 1 textsize 14
+      }
+      Fl_Value_Slider m_SagittalSliceNumber {
+        label {Sagittal slice number:}
+        callback {m_CoronalSliceNumber->do_callback();}
+        xywh {1075 340 175 25} type Horizontal align 1 step 1 textsize 14
+      }
+      Fl_Value_Slider m_AxialSliceNumber {
+        label {Axial slice number:}
+        callback {m_CoronalSliceNumber->do_callback();}
+        xywh {1075 431 175 25} type Horizontal align 1 step 1 textsize 14
+      }
+      Fl_Group {} {
+        label View open
+        xywh {1104 554 124 109} box DOWN_BOX
+      } {
+        Fl_Round_Button m_ViewOne {
+          callback {this->ShowSelectedView();}
+          xywh {1114 561 29 29} type Radio down_box ROUND_DOWN_BOX align 16
+        }
+        Fl_Round_Button m_ViewTwo {
+          callback {this->ShowSelectedView();}
+          xywh {1194 560 27 28} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_ViewFour {
+          callback {this->ShowSelectedView();}
+          xywh {1194 626 25 29} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_ViewThree {
+          callback {this->ShowSelectedView();}
+          xywh {1114 629 24 21} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_ViewFive {
+          callback {this->ShowSelectedView();}
+          xywh {1149 593 30 27} type Radio down_box ROUND_DOWN_BOX value 1
+        }
+      }
+      Fl_Button {} {
+        label {Screen shot series}
+        callback {this->GetScreenShotSeries( 0 );}
+        xywh {1095 370 135 25}
+      }
+      Fl_Button {} {
+        label {Screen shot series}
+        callback {this->GetScreenShotSeries( 1 );}
+        xywh {1095 275 135 25}
+      }
+      Fl_Button {} {
+        label {Screen shot series}
+        callback {this->GetScreenShotSeries( 2 );} selected
+        xywh {1095 460 135 25}
+      }
+    }
+  }
+  Function {~kvlImageViewingConsoleGUI()} {return_type virtual
+  } {}
+  Function {SetOverlayOpacity( float overlayOpacity )} {open return_type {virtual void}
+  } {}
+  Function {SetSliceLocation( unsigned int, unsigned int, unsigned int )} {open return_type {virtual void}
+  } {}
+  Function {ShowSelectedView()} {open return_type {virtual void}
+  } {}
+  Function {GetScreenShot()} {open return_type {virtual void}
+  } {}
+  Function {GetScreenShotSeries( int directionNumber )} {open return_type {virtual void}
+  } {}
+} 

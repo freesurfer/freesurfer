@@ -1,0 +1,14 @@
+In kvlAtlasMeshBuilder.cxx, kvlParameterOrderPowellOptimizer will only see a max() value if 
+the cost function throws an exception for NaNs. I forgot to implement this - the cost function
+is set in the following locations:
+
+  * Line 704: cost function is kvlAtlasMeshCollectionReferencePositionCost in TryToCollapse()
+  * Line 891: cost function is kvlAtlasMeshCollectionFastReferencePositionCost in TryToCollapseFast()
+  * Line 1393: cost function is kvlAtlasMeshCollectionReferencePositionCost in OptimizeReferencePosition()
+  * Line 1556: cost function is kvlAtlasMeshCollectionFastReferencePositionCost in OptimizeReferencePositionFast()
+  
+But then again GetValue() in both kvlAtlasMeshCollectionReferencePositionCost and kvlAtlasMeshCollectionReferencePositionCost
+already return max() for isnans or cases where things are detected to go wrong.
+
+
+

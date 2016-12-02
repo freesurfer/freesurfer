@@ -1,0 +1,137 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0107 
+header_name {.h} 
+code_name {.cxx}
+class kvlAtlasMeshViewingConsoleGUI {open
+} {
+  Function {kvlAtlasMeshViewingConsoleGUI()} {open
+  } {
+    Fl_Window m_Window {
+      label kvlAtlasMeshViewingConsole
+      callback {exit( 0 );} open
+      xywh {212 24 1280 1030} type Double visible
+    } {
+      Fl_Group m_ImageViewer {
+        callback {//this->SelectTriangleContainingPoint( Fl::event_x(), m_ImageViewer->h() - Fl::event_y() );} open
+        xywh {10 10 1000 1000} box FLAT_BOX color 0
+        code0 {\#include "kvlImageViewer.h"}
+        class {kvl::ImageViewer}
+      } {}
+      Fl_Choice m_MeshNumber {
+        label {Mesh number:}
+        callback {this->Draw();} open
+        xywh {1145 30 110 25} down_box BORDER_BOX
+      } {}
+      Fl_Check_Button m_ShowMesh {
+        label {Show mesh:}
+        callback {this->Draw();}
+        xywh {1230 125 25 25} down_box DOWN_BOX value 1 align 4
+      }
+      Fl_Choice m_LabelNumber {
+        label {Label number:}
+        callback {this->Draw();}
+        xywh {1145 75 110 25} down_box BORDER_BOX
+      } {}
+      Fl_Value_Slider m_CoronalSliceNumber {
+        label {Coronal slice number:}
+        callback {this->SetSliceLocation( 
+  static_cast< unsigned int >( m_SagittalSliceNumber->value() ),
+  static_cast< unsigned int >( m_CoronalSliceNumber->value() ),
+  static_cast< unsigned int >( m_AxialSliceNumber->value() ) );}
+        xywh {1066 250 175 25} type Horizontal align 1 when 4 step 1 textsize 14
+      }
+      Fl_Value_Slider m_SagittalSliceNumber {
+        label {Sagittal slice number:}
+        callback {m_CoronalSliceNumber->do_callback();}
+        xywh {1066 345 175 25} type Horizontal align 1 when 4 step 1 textsize 14
+      }
+      Fl_Value_Slider m_AxialSliceNumber {
+        label {Axial slice number:}
+        callback {m_CoronalSliceNumber->do_callback();}
+        xywh {1066 436 175 25} type Horizontal align 1 when 4 step 1 textsize 14
+      }
+      Fl_Check_Button m_ShowSummary {
+        label {Show summary:}
+        callback {this->Draw();}
+        xywh {1230 170 25 25} down_box DOWN_BOX align 4
+      }
+      Fl_Group {} {
+        label View open
+        xywh {1088 598 124 109} box DOWN_BOX
+      } {
+        Fl_Round_Button m_ViewOne {
+          callback {this->ShowSelectedView();}
+          xywh {1098 605 29 29} type Radio down_box ROUND_DOWN_BOX align 16
+        }
+        Fl_Round_Button m_ViewTwo {
+          callback {this->ShowSelectedView();}
+          xywh {1178 604 27 28} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_ViewFour {
+          callback {this->ShowSelectedView();}
+          xywh {1178 670 25 29} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_ViewThree {
+          callback {this->ShowSelectedView();}
+          xywh {1098 673 24 21} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_ViewFive {
+          callback {this->ShowSelectedView();}
+          xywh {1133 637 30 27} type Radio down_box ROUND_DOWN_BOX value 1
+        }
+      }
+      Fl_Button {} {
+        label {Screen shot}
+        callback {this->GetScreenShot();}
+        xywh {1080 732 140 25}
+      }
+      Fl_Button {} {
+        label {Screen shot series}
+        callback {this->GetScreenShotSeries();}
+        xywh {1080 777 140 25}
+      }
+      Fl_Button {} {
+        label {Dump 3D image}
+        callback {this->DumpImage();}
+        xywh {1078 822 140 25}
+      }
+      Fl_Button {} {
+        label {Screen shot series}
+        callback {this->GetScreenShotSeries( 0 );}
+        xywh {1086 374 135 25}
+      }
+      Fl_Button {} {
+        label {Screen shot series}
+        callback {this->GetScreenShotSeries( 1 );}
+        xywh {1086 279 135 25}
+      }
+      Fl_Button {} {
+        label {Screen shot series}
+        callback {this->GetScreenShotSeries( 2 );}
+        xywh {1086 464 135 25}
+      }
+      Fl_Check_Button m_InvertOrder {
+        label {Invert order:} selected
+        xywh {1181 500 25 25} down_box DOWN_BOX align 4
+      }
+    }
+  }
+  Function {~kvlAtlasMeshViewingConsoleGUI()} {return_type virtual
+  } {}
+  Function {Draw()} {return_type {virtual void}
+  } {}
+  Function {SelectTriangleContainingPoint( float, float )} {return_type {virtual void}
+  } {}
+  Function {SetSliceLocation( unsigned int, unsigned int, unsigned int )} {open return_type {virtual void}
+  } {}
+  Function {ShowSelectedView()} {open return_type {virtual void}
+  } {}
+  Function {GetScreenShot()} {open return_type {virtual void}
+  } {}
+  Function {GetScreenShotSeries()} {open return_type {virtual void}
+  } {}
+  Function {DumpImage()} {open return_type {virtual void}
+  } {}
+  Function {GetScreenShotSeries( int directionNumber )} {open return_type {virtual void}
+  } {}
+} 
