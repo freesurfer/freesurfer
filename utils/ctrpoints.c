@@ -6,9 +6,9 @@
 /*
  * Original Author: Y. Tosa
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2014/01/21 22:52:40 $
- *    $Revision: 1.14 $
+ *    $Author: fischl $
+ *    $Date: 2016/11/30 21:44:46 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,13 +25,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include "proto.h"
 #include "diag.h"
+#include <string.h>
 #include "error.h"
 #include "mri.h"
 #include "utils.h" //  fgetl
 #include "ctrpoints.h"
 #include "transform.h"
 #include "fio.h"
+#include "label.h"
 
 extern char *cuserid(char *);
 
@@ -46,6 +49,37 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
   int numpoints;
   int num_control_points, nargs;
   MPoint *pointArray = 0;
+  char extension[STRLEN] ;
+
+
+  FileNameExtension(fname, extension) ;
+  if (!stricmp(extension, "label"))
+  {
+    LABEL *area ;
+
+    area = LabelRead(NULL, fname) ;
+    if (area == NULL)
+      ErrorReturn(NULL, (ERROR_NOFILE, "MRIreadControlPoints: could not load label file %s", fname)) ;
+
+    *count = num_control_points = area->n_points ;
+
+    // allocate memory
+    pointArray=(MPoint*) malloc(num_control_points* sizeof(MPoint));
+    if (!pointArray)
+      ErrorExit(ERROR_NOMEMORY,
+		"MRIreadControlPoints could not allocate %d-sized array",
+		num_control_points) ;
+    *useRealRAS = area->coords == LABEL_COORDS_SCANNER_RAS ;
+    for (i = 0 ; i < num_control_points ; i++)
+    {
+      pointArray[i].x = (double)area->lv[i].x ;
+      pointArray[i].y = (double)area->lv[i].y ;
+      pointArray[i].z = (double)area->lv[i].z ;
+    }
+    LabelFree(&area) ;
+    return(pointArray) ;
+  }
+
 
   *useRealRAS = 0;
   if (Gdiag & DIAG_SHOW)
