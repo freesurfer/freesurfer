@@ -16,8 +16,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/10/14 22:43:02 $
- *    $Revision: 1.346 $
+ *    $Date: 2016/12/05 16:55:58 $
+ *    $Revision: 1.347 $
  *
  * Copyright © 2011-2015 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -9114,7 +9114,7 @@ GCAreclassifyUsingGibbsPriors(MRI *mri_inputs,
     if (nchanged <= min_changed ||
         (restart && iter >= max_iter))
     {
-      if (restart)
+      if (restart && restart != GCA_RESTART_ONCE)
       {
         iter = 0 ;
       }
