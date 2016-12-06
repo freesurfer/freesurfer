@@ -21,8 +21,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/10/19 00:45:12 $
- *    $Revision: 1.52 $
+ *    $Date: 2016/12/05 16:56:32 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,7 +76,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.52 2016/10/19 00:45:12 fischl Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.53 2016/12/05 16:56:32 fischl Exp $";
 char *Progname = NULL;
 static char *relabel_gca_name = NULL ;
 static char *relabel_norm_name = NULL ;
@@ -895,7 +895,7 @@ int main(int argc, char **argv)
       mri_aseg_orig = MRIcopy(ASeg, NULL) ;
       Ggca_x = Gx ; Ggca_y = Gy ; Ggca_z = Gz ; // diagnostics
       GCAregularizeCovariance(gca,1.0);   // don't use covariances for this classification
-      GCAreclassifyUsingGibbsPriors(mri_norm, gca, ASeg, xform, 10, mri_fixed, 1, NULL, 0.5, 0.5);
+      GCAreclassifyUsingGibbsPriors(mri_norm, gca, ASeg, xform, 10, mri_fixed, GCA_RESTART_ONCE, NULL, 0.5, 0.5);
       for (i = 0 ; i < 2 ; i++)
       {
 	mri_tmp = MRIcopy(ASeg, mri_tmp);
