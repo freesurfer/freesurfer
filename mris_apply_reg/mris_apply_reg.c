@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/08/02 21:10:34 $
- *    $Revision: 1.8 $
+ *    $Date: 2016/12/06 19:40:48 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_apply_reg.c,v 1.8 2016/08/02 21:10:34 greve Exp $
+// $Id: mris_apply_reg.c,v 1.9 2016/12/06 19:40:48 greve Exp $
 
 /*
   BEGINHELP
@@ -78,7 +78,7 @@ void usage_message(FILE *stream);
 void usage(FILE *stream);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_apply_reg.c,v 1.8 2016/08/02 21:10:34 greve Exp $";
+static char vcid[] = "$Id: mris_apply_reg.c,v 1.9 2016/12/06 19:40:48 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -188,6 +188,16 @@ int main(int argc, char *argv[]) {
     if(tmpmri == NULL) exit(1);
     MRIfree(&SrcVal);
     SrcVal = tmpmri;
+    if(SrcVal->type != MRI_FLOAT) {
+      printf("Converting source to float\n");
+      tmpmri = MRISeqchangeType(SrcVal,MRI_FLOAT,0,0,0);
+      if (tmpmri == NULL) {
+        printf("ERROR: could change type\n");
+        exit(1);
+      }
+      MRIfree(&SrcVal);
+      SrcVal = tmpmri;
+    }
   }
 
   // Apply registration to source
