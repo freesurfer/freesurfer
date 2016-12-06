@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/07/29 22:15:21 $
- *    $Revision: 1.89 $
+ *    $Author: fischl $
+ *    $Date: 2016/11/30 15:46:22 $
+ *    $Revision: 1.90 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -135,6 +135,8 @@ static char *surface_xform_fnames[MAX_NORM_SURFACES] ;
 static float grad_thresh = -1 ;
 static MRI *mri_not_control = NULL;
 
+static LABEL *control_point_label = NULL ;
+
 static int nonmax_suppress = 1 ;
 static int erode = 0 ;
 static int remove_nonwm_voxels(MRI *mri_ctrl_src,
@@ -155,14 +157,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.89 2016/07/29 22:15:21 zkaufman Exp $",
+   "$Id: mri_normalize.c,v 1.90 2016/11/30 15:46:22 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.89 2016/07/29 22:15:21 zkaufman Exp $",
+           "$Id: mri_normalize.c,v 1.90 2016/11/30 15:46:22 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -216,6 +218,9 @@ main(int argc, char *argv[])
     GCAfree(&gca) ;
     TransformFree(&xform) ;
   }
+  
+  if (control_point_label)
+    MRI3dUseLabelControlPoints(mri_src, control_point_label) ;
 
   if (renorm_fname)
   {
@@ -247,7 +252,7 @@ main(int argc, char *argv[])
       }
     }
     MRIwrite(mri_ctrl, "e.mgz") ;
-    if (control_point_fname)
+    if (control_point_fname || control_point_label)
     {
       MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
     }
@@ -283,9 +288,13 @@ main(int argc, char *argv[])
     int          i ;
     TRANSFORM    *surface_xform ;
 
-    if (control_point_fname)  // do one pass with only file control points first
+    if (control_point_fname || control_point_label)  // do one pass with only file control points first
     {
-      MRI3dUseFileControlPoints(mri_src, control_point_fname) ;
+      if (control_point_fname)
+	MRI3dUseFileControlPoints(mri_src, control_point_fname) ;
+      else
+	MRI3dUseLabelControlPoints(mri_src, control_point_label) ;
+	
       mri_dst =
         MRI3dGentleNormalize(mri_src,
                              NULL,
@@ -379,7 +388,7 @@ main(int argc, char *argv[])
       MRIbinarize(mri_dist, mri_ctrl, min_dist, CONTROL_NONE, CONTROL_MARKED) ;
     }
 
-    if (control_point_fname)
+    if (control_point_fname || control_point_label)
     {
       MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
     }
@@ -648,7 +657,7 @@ main(int argc, char *argv[])
      things in the right intensity range */
   if(long_flag == 0)   // if long, then this will already have been done with base control points
   {
-    if(control_point_fname != NULL)  /* do one pass with only
+    if(control_point_fname != NULL || control_point_label != NULL)  /* do one pass with only
                                          file control points first */
       mri_dst =
         MRI3dGentleNormalize(mri_src,
@@ -1106,6 +1115,26 @@ get_option(int argc, char *argv[])
   {
     gentle_flag = 1 ;
     printf( "performing kinder gentler normalization...\n") ;
+  }
+  else if (!stricmp(option, "label"))
+  {
+    printf( "reading control points from label file %s\n", argv[2]) ;
+    control_point_label = LabelRead(NULL, argv[2]) ;
+    if (control_point_label == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname, argv[2]) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "lonly") ||
+           !stricmp(option, "label_only") ||
+           !stricmp(option, "labelonly"))
+  {
+    printf( "only applying control points from label file %s\n", argv[2]) ;
+    control_point_label = LabelRead(NULL, argv[2]) ;
+    if (control_point_label == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname, argv[2]) ;
+    nargs = 1 ;
+    file_only = 1 ;
+    no1d = 1 ;
   }
   else if (!stricmp(option, "file_only") ||
            !stricmp(option, "fonly") ||
