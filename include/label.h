@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/12/06 16:00:11 $
- *    $Revision: 1.65 $
+ *    $Date: 2016/12/06 18:24:00 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,8 @@ typedef struct
   Transform         *inverse_linear_transform ;
   char   space[100];          /* space description of the coords */
   double avg_stat ;
-  MRI    *mri ;
+  int    *vertex_label_ind ; // mris->nvertices long - < 0 means it isn't in the label
+  MRI    *mri_template ;
   void   *mht ;
   void   *mris; 
 }
@@ -175,10 +176,10 @@ LABEL *LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
 LABEL *LabelBaryFill(MRIS *mris, LABEL *srclabel, double delta);
 
 LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coords) ;
-LABEL *LabelInit(LABEL *lsrc, MRI *mri_template, MRI_SURFACE *mris, int coords) ;
-int   LabelAddVoxel(LABEL *area, int xv, int yv, int zv) ;
+int   LabelInit(LABEL *lsrc, MRI *mri_template, MRI_SURFACE *mris, int coords) ;
+int   LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords) ;
 int   LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv) ;
-int   LabelAddVertex(LABEL *area, int vno) ;
-int   LabelDeleteVertex(LABEL *area, int vno) ;
+int   LabelAddVertex(LABEL *area, int vno, int coords) ;
+int   LabelDeleteVertex(LABEL *area, int vno, int coords) ;
 
 #endif
