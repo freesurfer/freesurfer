@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/06 18:25:54 $
- *    $Revision: 1.38 $
+ *    $Date: 2016/12/06 20:05:39 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -446,10 +446,10 @@ void LayerROI::OnUpdateLabelRequested()
 //    UpdateLabelData();
     if (m_layerMappedSurface)
     {
-        int coords = CURRENT_VERTICES;
-        if (m_layerMappedSurface->IsInflated())
-            coords = WHITE_VERTICES;
-        m_label->FillUnassignedVertices(m_layerMappedSurface->GetSourceSurface(), m_layerSource->GetSourceVolume(), coords);
+//        int coords = CURRENT_VERTICES;
+//        if (m_layerMappedSurface->IsInflated())
+//            coords = WHITE_VERTICES;
+//        m_label->FillUnassignedVertices(m_layerMappedSurface->GetSourceSurface(), m_layerSource->GetSourceVolume(), coords);
         m_layerMappedSurface->UpdateOverlay();
     }
 }
@@ -462,7 +462,7 @@ void LayerROI::MapLabelColorData( unsigned char* colordata, int nVertexCount )
   for ( int i = 0; i < label->n_points; i++ )
   {
     int vno = label->lv[i].vno;
-    if ( vno < nVertexCount && vno >= 0)
+    if ( vno < nVertexCount && vno >= 0 && !label->lv[i].deleted)
     {
       double opacity = 1;
       if (label->lv[i].stat >= dThreshold)
