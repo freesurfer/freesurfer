@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/12/30 14:30:00 $
- *    $Revision: 1.34 $
+ *    $Date: 2016/11/30 15:47:09 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include "mri.h"
 #include "region.h"
 #include "histo.h"
+#include "label.h"
 
 /* defaults which can be used in MRInormInit call (using 0 will install these)
  */
@@ -130,6 +131,7 @@ MRI *MRIbuildVoronoiDiagram(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst);
 MRI *MRIsoapBubble(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter, float min_change);
 MRI *MRIsoapBubbleExpand(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter);
 int MRI3dUseFileControlPoints(MRI *mri,const char *fname) ;
+int MRI3dUseLabelControlPoints(MRI *mri, LABEL *area) ;
 int MRI3dWriteControlPoints(char *control_volume_fname) ;
 int MRI3dWriteBias(char *bias_volume_fname) ;
 MRI *MRIaverageFixedPoints(MRI *mri_src, MRI *mri_ctrl, MRI *mri_dst,int niter) ;
