@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/09/27 15:45:33 $
- *    $Revision: 1.111 $
+ *    $Date: 2016/12/05 19:36:02 $
+ *    $Revision: 1.112 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -150,9 +150,14 @@ FSVolume::~FSVolume()
 
 bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 {
+    if ( !reg_filename.isEmpty() && !m_MRIRef )
+    {
+      cerr << "Error: A target volume must be loaded first to apply registration matrix.\n";
+      return false;
+    }
+
   // save old header to release later so there is no gap where m_MRI becomes NULL during re-loading process
   MRI* tempMRI = m_MRI;
-
   try
   {
     m_MRI = ::MRIread( filename.toAscii().data() );      // could be long process
@@ -196,12 +201,6 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
         << M->rptr[4][1] << " " << M->rptr[4][2] << " " << M->rptr[4][3] << " " << M->rptr[4][4] << endl;
   }
   */
-
-  if ( !reg_filename.isEmpty() && !m_MRIRef )
-  {
-    cerr << "Error: A target volume must be loaded first to apply registration matrix.\n";
-    return false;
-  }
 
   // read registration matrix
   if ( !reg_filename.isEmpty() && !LoadRegistrationMatrix( reg_filename ) )

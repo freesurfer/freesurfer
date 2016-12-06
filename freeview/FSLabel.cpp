@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:31:41 $
- *    $Revision: 1.34 $
+ *    $Author: rpwang $
+ *    $Date: 2016/12/06 02:39:44 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include "vtkImageData.h"
 #include "FSVolume.h"
+#include "FSSurface.h"
 #include <QFile>
 #include <QTextStream>
 #include <vector>
@@ -234,6 +235,14 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
     m_label->lv[i].deleted = false;
     m_label->lv[i].stat = values[i*4+3];
   }
+}
+
+void FSLabel::FillUnassignedVertices(FSSurface* surf, FSVolume* mri_template, int coords)
+{
+    LABEL* l = LabelSampleToSurface(surf->GetMRIS(), m_label, mri_template->GetMRI(), coords);
+    ::LabelFree(&m_label);
+    m_label = l;
+//    LabelFillUnassignedVertices(surf->GetMRIS(), m_label, coords);
 }
 
 void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double threshold )

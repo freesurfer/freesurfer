@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2015/01/23 20:14:13 $
- *    $Revision: 1.15 $
+ *    $Date: 2016/12/05 19:36:02 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,7 @@ protected slots:
   void OnEditThreshold(const QString& text);
   void OnEditHeatscaleMin(const QString& text);
   void OnEditHeatscaleMax(const QString& text);
+  void OnComboMappedSurface(int nIndex);
 
 private:
   Ui::PanelROI *ui;

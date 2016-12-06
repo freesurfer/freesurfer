@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/09/06 16:09:03 $
- *    $Revision: 1.127 $
+ *    $Date: 2016/12/05 19:36:02 $
+ *    $Revision: 1.128 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,6 +67,7 @@
 #include "vtkExtractPolyDataGeometry.h"
 #include "vtkBox.h"
 #include "vtkDoubleArray.h"
+#include "LayerROI.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -1448,7 +1449,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   }
   else
   {
-    if ( (m_labels.size() == 0 || m_nActiveLabel < 0) && m_nActiveRGBMap < 0)   // no labels
+    if ( ((m_labels.isEmpty() && m_mappedLabels.isEmpty()) || (m_mappedLabels.isEmpty() && m_nActiveLabel < 0)) && m_nActiveRGBMap < 0)   // no labels
     {
       polydata->GetPointData()->SetActiveScalars( "Curvature" );
       if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
@@ -1829,6 +1830,12 @@ void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
     if (m_labels[i]->IsVisible())
       m_labels[i]->MapLabel( data, nVertexCount );
   }
+
+  for ( int i = m_mappedLabels.size()-1; i >= 0; i-- )
+  {
+    if (m_mappedLabels[i]->IsVisible())
+      m_mappedLabels[i]->MapLabelColorData( data, nVertexCount );
+  }
 }
 
 void LayerSurface::SetActiveLabelColor(const QColor &c)
@@ -2135,4 +2142,42 @@ QStringList LayerSurface::GetRGBMapNames()
     for (int i = 0; i < m_rgbMaps.size(); i++)
         list << m_rgbMaps[i].name;
     return list;
+}
+
+void LayerSurface::AddMappedLabel(LayerROI *label)
+{
+    if (!m_mappedLabels.contains(label))
+    {
+        m_mappedLabels << label;
+        connect(label, SIGNAL(destroyed(QObject*)), this, SLOT(RemoveMappedLabel(QObject*)), Qt::UniqueConnection);
+    }
+}
+
+void LayerSurface::RemoveMappedLabel(QObject *label_in)
+{
+    LayerROI* label = qobject_cast<LayerROI*>(label_in);
+    if (label)
+    {
+        if (m_mappedLabels.contains(label))
+        {
+            m_mappedLabels.removeAll(label);
+            disconnect(label, 0, this, 0);
+        }
+    }
+    else
+    {
+        for (int i = 0; i < m_mappedLabels.size(); i++)
+        {
+            if (m_mappedLabels[i] == sender())
+            {
+                m_mappedLabels.removeAt(i);
+                i--;
+            }
+        }
+    }
+}
+
+void LayerSurface::UpdateMappedLabels()
+{
+
 }

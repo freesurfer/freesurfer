@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/21 19:39:44 $
- *    $Revision: 1.18 $
+ *    $Date: 2016/12/05 19:36:02 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@ extern "C"
 }
 
 class FSVolume;
+class FSSurface;
 
 class FSLabel : public QObject
 {
@@ -49,10 +50,16 @@ public:
 
   void UpdateLabelFromImage( vtkImageData* rasImage_in, FSVolume* ref_vol );
   void UpdateRASImage( vtkImageData* rasImage_out, FSVolume* ref_vol, double threshold = -1e10 );
+  void FillUnassignedVertices(FSSurface* surf, FSVolume* mri_template, int coords);
 
   bool GetCentroidRASPosition(double* pos, FSVolume* ref_vol);
 
   void GetStatsRange(double* range);
+
+  LABEL* GetRawLabel()
+  {
+      return m_label;
+  }
 
 protected:
   LABEL*   m_label;

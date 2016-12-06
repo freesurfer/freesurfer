@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:31:41 $
- *    $Revision: 1.35 $
+ *    $Author: rpwang $
+ *    $Date: 2016/12/05 21:48:04 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@
 #include "FSLabel.h"
 #include <stdlib.h>
 #include <QDebug>
+#include "LayerSurface.h"
 
 LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( parent )
 {
@@ -67,6 +68,7 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
 
   mProperty = new LayerPropertyROI( this );
 
+  m_layerMappedSurface = NULL;
   m_layerSource = layerMRI;
   m_imageDataRef = layerMRI->GetImageData();
   if ( m_layerSource )
@@ -324,6 +326,9 @@ bool LayerROI::SaveROI( )
   }
 
   m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
+  if (m_layerMappedSurface)
+      m_label->FillUnassignedVertices(m_layerMappedSurface->GetSourceSurface(),
+                                      m_layerSource->GetSourceVolume(), CURRENT_VERTICES);
 
   bool bSaved = m_label->LabelWrite( m_sFilename.toAscii().data() );
   if ( !bSaved )
@@ -416,4 +421,59 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
 
   if (underlying_mri)
     underlying_mri->GetVoxelStatsByTargetRAS(coords, mean_out, sd_out);
+}
+
+void LayerROI::SetMappedSurface(LayerSurface *s)
+{
+    if (m_layerMappedSurface)
+        m_layerMappedSurface->RemoveMappedLabel(this);
+    m_layerMappedSurface = s;
+    if (s)
+    {
+        s->AddMappedLabel(this);
+        connect(this, SIGNAL(Modified()), this, SLOT(OnUpdateLabelRequested()), Qt::UniqueConnection);
+        OnUpdateLabelRequested();
+    }
+    else
+        disconnect(this, SIGNAL(Modified()), this, SLOT(OnUpdateLabelRequested()));
+}
+
+void LayerROI::OnUpdateLabelRequested()
+{
+    UpdateLabelData();
+    if (m_layerMappedSurface)
+    {
+        int coords = CURRENT_VERTICES;
+        if (m_layerMappedSurface->IsInflated())
+            coords = WHITE_VERTICES;
+        m_label->FillUnassignedVertices(m_layerMappedSurface->GetSourceSurface(), m_layerSource->GetSourceVolume(), coords);
+        m_layerMappedSurface->UpdateOverlay();
+    }
+}
+
+void LayerROI::MapLabelColorData( unsigned char* colordata, int nVertexCount )
+{
+    double* rgbColor = GetProperty()->GetColor();
+    double dThreshold = GetProperty()->GetThreshold();
+    LABEL* label = m_label->GetRawLabel();
+  for ( int i = 0; i < label->n_points; i++ )
+  {
+    int vno = label->lv[i].vno;
+    if ( vno < nVertexCount && vno >= 0)
+    {
+      double opacity = 1;
+      if (label->lv[i].stat >= dThreshold)
+        opacity = 1;
+      else
+        opacity = 0;
+      double rgb[4] = { rgbColor[0], rgbColor[1], rgbColor[2], 1 };
+//      if (m_nColorCode == Heatscale)
+//      {
+//        m_lut->GetColor(m_label->lv[i].stat, rgb);
+//      }
+      colordata[vno*4]    = ( int )( colordata[vno*4]   * ( 1 - opacity ) + rgb[0] * 255 * opacity );
+      colordata[vno*4+1]  = ( int )( colordata[vno*4+1] * ( 1 - opacity ) + rgb[1] * 255 * opacity );
+      colordata[vno*4+2]  = ( int )( colordata[vno*4+2] * ( 1 - opacity ) + rgb[2] * 255 * opacity );
+    }
+  }
 }

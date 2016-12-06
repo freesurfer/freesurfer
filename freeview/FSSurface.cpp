@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/10/17 17:00:05 $
- *    $Revision: 1.82 $
+ *    $Date: 2016/12/05 21:48:04 $
+ *    $Revision: 1.83 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -400,6 +400,9 @@ bool FSSurface::LoadSurface( const QString& filename, int nSet )
   }
   else
   {
+    if (filename == "white")
+        ::MRISsaveVertexPositions(m_MRIS, WHITE_VERTICES);
+
     if ( m_HashTable[nSet] )
     {
       MHTfree( &m_HashTable[nSet] );
