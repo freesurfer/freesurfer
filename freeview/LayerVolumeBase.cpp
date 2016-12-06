@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:31:41 $
- *    $Revision: 1.30 $
+ *    $Author: rpwang $
+ *    $Date: 2016/12/06 18:25:54 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -249,6 +249,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
   {
     SetModified();
     emit ActorUpdated();
+    emit BaseVoxelEdited(n[0], n[1], n[2], bAdd);
   }
   else
   {

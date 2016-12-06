@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/07/24 19:37:49 $
- *    $Revision: 1.23 $
+ *    $Date: 2016/12/06 18:25:54 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -108,6 +108,7 @@ signals:
   void FillValueChanged( double );
   void EraseValueChanged( double );
   void BrushRadiusChanged( int );
+  void BaseVoxelEdited(int nx, int ny, int nz, bool bAdd);
 
 public slots:
   void SetFillValue( double fFill );

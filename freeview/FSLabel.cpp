@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/12/06 02:39:44 $
- *    $Revision: 1.37 $
+ *    $Author: fischl $
+ *    $Date: 2016/12/06 18:29:07 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -245,6 +245,11 @@ void FSLabel::FillUnassignedVertices(FSSurface* surf, FSVolume* mri_template, in
 //    LabelFillUnassignedVertices(surf->GetMRIS(), m_label, coords);
 }
 
+void FSLabel::Initialize(FSVolume* ref_vol, FSSurface* surf, int coords)
+{
+    ::LabelInit(m_label, ref_vol->GetMRI(), surf?surf->GetMRIS():NULL, coords);
+}
+
 void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double threshold )
 {
   if ( !m_label )
@@ -345,4 +350,12 @@ void FSLabel::GetStatsRange(double *range)
 {
   range[0] = m_dStatsRange[0];
   range[1] = m_dStatsRange[1];
+}
+
+void FSLabel::EditVoxel(int nx, int ny, int nz, bool bAdd)
+{
+    if (bAdd)
+        ::LabelAddVoxel(m_label, nx, ny, nz, WHITE_VERTICES);
+    else
+        ::LabelDeleteVoxel(m_label, nx, ny, nz);
 }

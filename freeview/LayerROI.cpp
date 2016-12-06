@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/05 21:48:04 $
- *    $Revision: 1.37 $
+ *    $Date: 2016/12/06 18:25:54 $
+ *    $Revision: 1.38 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,6 +102,8 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
   connect( mProperty, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) );
   connect( mProperty, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
   connect( mProperty, SIGNAL(ThresholdChanged(double)), this, SLOT(UpdateThreshold()));
+
+  connect(this, SIGNAL(BaseVoxelEdited(int,int,int,bool)), SLOT(OnBaseVoxelEdited(int,int,int,bool)));
 }
 
 LayerROI::~LayerROI()
@@ -431,7 +433,8 @@ void LayerROI::SetMappedSurface(LayerSurface *s)
     if (s)
     {
         s->AddMappedLabel(this);
-        connect(this, SIGNAL(Modified()), this, SLOT(OnUpdateLabelRequested()), Qt::UniqueConnection);
+//        connect(this, SIGNAL(Modified()), this, SLOT(OnUpdateLabelRequested()), Qt::UniqueConnection);
+        m_label->Initialize(m_layerSource->GetSourceVolume(), s->GetSourceSurface(), WHITE_VERTICES);
         OnUpdateLabelRequested();
     }
     else
@@ -440,7 +443,7 @@ void LayerROI::SetMappedSurface(LayerSurface *s)
 
 void LayerROI::OnUpdateLabelRequested()
 {
-    UpdateLabelData();
+//    UpdateLabelData();
     if (m_layerMappedSurface)
     {
         int coords = CURRENT_VERTICES;
@@ -453,9 +456,9 @@ void LayerROI::OnUpdateLabelRequested()
 
 void LayerROI::MapLabelColorData( unsigned char* colordata, int nVertexCount )
 {
-    double* rgbColor = GetProperty()->GetColor();
-    double dThreshold = GetProperty()->GetThreshold();
-    LABEL* label = m_label->GetRawLabel();
+  double* rgbColor = GetProperty()->GetColor();
+  double dThreshold = GetProperty()->GetThreshold();
+  LABEL* label = m_label->GetRawLabel();
   for ( int i = 0; i < label->n_points; i++ )
   {
     int vno = label->lv[i].vno;
@@ -476,4 +479,12 @@ void LayerROI::MapLabelColorData( unsigned char* colordata, int nVertexCount )
       colordata[vno*4+2]  = ( int )( colordata[vno*4+2] * ( 1 - opacity ) + rgb[2] * 255 * opacity );
     }
   }
+}
+
+void LayerROI::OnBaseVoxelEdited(int nx, int ny, int nz, bool bAdd)
+{
+    int n[3] = {nx, ny, nz};
+    m_layerSource->TargetIndexToOriginalIndex(n, n);
+    m_label->EditVoxel(n[0], n[1], n[2], bAdd);
+    OnUpdateLabelRequested();
 }

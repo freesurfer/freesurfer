@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/05 19:36:02 $
- *    $Revision: 1.22 $
+ *    $Date: 2016/12/06 18:25:54 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -89,6 +89,9 @@ public slots:
   void UpdateThreshold();
   void SetMappedSurface(LayerSurface* s);
   void OnUpdateLabelRequested();
+
+protected slots:
+  void OnBaseVoxelEdited(int nx, int ny, int nz, bool bAdd);
 
 protected:
   bool DoRotate( std::vector<RotationElement>& rotations );
