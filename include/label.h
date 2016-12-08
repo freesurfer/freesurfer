@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/12/06 18:24:00 $
- *    $Revision: 1.67 $
+ *    $Date: 2016/12/08 17:26:24 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -177,8 +177,8 @@ LABEL *LabelBaryFill(MRIS *mris, LABEL *srclabel, double delta);
 
 LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coords) ;
 int   LabelInit(LABEL *lsrc, MRI *mri_template, MRI_SURFACE *mris, int coords) ;
-int   LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords) ;
-int   LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv) ;
+int   LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, int *pnvertices) ;
+int   LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvertices) ;
 int   LabelAddVertex(LABEL *area, int vno, int coords) ;
 int   LabelDeleteVertex(LABEL *area, int vno, int coords) ;
 
