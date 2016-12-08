@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/06 18:25:54 $
- *    $Revision: 1.20 $
+ *    $Date: 2016/12/07 22:52:26 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,7 +53,7 @@ public:
   void UpdateLabelFromImage( vtkImageData* rasImage_in, FSVolume* ref_vol );
   void UpdateRASImage( vtkImageData* rasImage_out, FSVolume* ref_vol, double threshold = -1e10 );
   void FillUnassignedVertices(FSSurface* surf, FSVolume* mri_template, int coords);
-  void EditVoxel(int nx, int ny, int nz, bool bAdd);
+  void EditVoxel(int nx, int ny, int nz, bool bAdd, int* vertices = NULL, int* pnum = NULL);
 
   bool GetCentroidRASPosition(double* pos, FSVolume* ref_vol);
 

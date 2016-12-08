@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/06 18:29:07 $
- *    $Revision: 1.39 $
+ *    $Author: rpwang $
+ *    $Date: 2016/12/07 22:52:26 $
+ *    $Revision: 1.41 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -261,10 +261,10 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
   int n[3];
   double pos[3];
   int* dim = rasImage->GetDimensions();
-//  memset( rasImage->GetScalarPointer(),
-//          0,
-//          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
-  if (m_dStatsRange[0] <= -1)
+  memset( rasImage->GetScalarPointer(),
+          0,
+          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
+  if (m_dStatsRange[0] <= 0)
   {
       size_t nsize = ((size_t)dim[0])*dim[1]*dim[2];
       float* p = (float*)rasImage->GetScalarPointer();
@@ -273,6 +273,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
           p[i] = m_dStatsRange[0]-1;
       }
   }
+
   for ( int i = 0; i < m_label->n_points; i++ )
   {
     if (m_label->lv[i].stat >= threshold || m_dStatsRange[0] <= 0)
@@ -352,10 +353,10 @@ void FSLabel::GetStatsRange(double *range)
   range[1] = m_dStatsRange[1];
 }
 
-void FSLabel::EditVoxel(int nx, int ny, int nz, bool bAdd)
+void FSLabel::EditVoxel(int nx, int ny, int nz, bool bAdd, int* vertices, int* pnum)
 {
     if (bAdd)
-        ::LabelAddVoxel(m_label, nx, ny, nz, WHITE_VERTICES);
+        ::LabelAddVoxel(m_label, nx, ny, nz, WHITE_VERTICES, vertices, pnum);
     else
-        ::LabelDeleteVoxel(m_label, nx, ny, nz);
+        ::LabelDeleteVoxel(m_label, nx, ny, nz, vertices, pnum);
 }

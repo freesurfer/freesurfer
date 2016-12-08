@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/21 19:39:44 $
- *    $Revision: 1.8 $
+ *    $Date: 2016/12/07 22:52:26 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -80,7 +80,7 @@ void LayerPropertyROI::SetColorMapChanged()
       mLUTTable->AddRGBAPoint( range[0],  mRGB[0], mRGB[1], mRGB[2], 1 );
       mLUTTable->AddRGBAPoint( range[0],  mRGB[0], mRGB[1], mRGB[2], 1 );
       mLUTTable->AddRGBAPoint( range[1],  mRGB[0], mRGB[1], mRGB[2], 1 );
-      mLUTTable->AddRGBAPoint( range[1]+0.0001, 0, 0, 0, 0 );
+//      mLUTTable->AddRGBAPoint( range[1]+0.0001, 0, 0, 0, 0 );
     }
 
 //    mLUTTable->AddRGBAPoint( 1-0.0001, 0, 0, 0, 0 );
