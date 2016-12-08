@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/11/01 20:25:25 $
- *    $Revision: 1.44 $
+ *    $Date: 2016/12/08 19:25:38 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -158,7 +158,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.44 2016/11/01 20:25:25 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.45 2016/12/08 19:25:38 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -213,38 +213,15 @@ char *outmaskpath=NULL;
 int arNHops = 0;
 int nthreads = 1;
 int DoSpatialINorm = 0;
+double fwhm = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, niters=0, Ntp, n, err;
-  double fwhm = 0, ar1mn, ar1std, ar1max, avgvtxarea,ftmp, fwhmDH;
+  double ar1mn, ar1std, ar1max, avgvtxarea,ftmp, fwhmDH;
   double InterVertexDistAvg, InterVertexDistStdDev;
   MRI *ar1=NULL;
   FILE *fp;
-  MATRIX *globkern;
-  double gstd, gk0;
-
-  if(0){
-#ifdef _OPENMP
-    omp_set_num_threads(7);
-#endif
-    InVals = MRIread(argv[1]);
-    surf = MRISread(argv[2]);
-    if(0){
-      sscanf(argv[3],"%lf",&fwhm);
-      gstd = fwhm/sqrt(log(256.0));
-      printf("fwhm = %g, gstd = %g\n",fwhm,gstd);
-      globkern = GaussianVector(15, 0, gstd, 1, NULL);
-      gk0 = globkern->rptr[1][1];
-      for(n = 0; n < 15; n++)  globkern->rptr[n+1][1] = globkern->rptr[n+1][1]/gk0;
-      sprintf(tmpstr,"globkern.fwhm%02d.mtx",(int)fwhm);
-      MatrixWriteTxt(tmpstr, globkern);
-    }
-    globkern = MatrixReadTxt(argv[3], NULL);
-    mritmp = MRISsmoothKernel(surf, InVals, NULL, NULL, globkern, 1, NULL);
-    MRIwrite(mritmp,argv[4]);
-    exit(0);
-  }
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -541,6 +518,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       subject = pargv[0];
       nargsused = 1;
+      if(CMDnthIsArg(nargc, pargv, 1)) {
+        hemi = pargv[1];
+        nargsused ++;
+      } 
     } 
     else if (!strcasecmp(option, "--sd")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -636,6 +617,36 @@ static int parse_commandline(int argc, char **argv) {
       #endif
       nargsused = 1;
     } 
+    else if(!strcasecmp(option, "--kfil") ){
+      if(nargc < 5) {
+	printf(" --kfil input mask surf kern output\n");
+	exit(1);
+      }
+      MATRIX *globkern;
+      InVals = MRIread(pargv[0]);
+      if(InVals->type != MRI_FLOAT) {
+	printf("Converting source to float\n");
+	mritmp = MRISeqchangeType(InVals,MRI_FLOAT,0,0,0);
+	if (mritmp == NULL) {
+	  printf("ERROR: could change type\n");
+	  exit(1);
+	}
+	MRIfree(&InVals);
+	InVals = mritmp;
+      }
+      if(strcmp(pargv[1],"NULL")!=0) mask = MRIread(pargv[1]);
+      else mask = NULL;
+      surf = MRISread(pargv[2]);
+      globkern = MatrixReadTxt(pargv[3], NULL);
+      //for(n = 0; n < globkern->rows; n++)  globkern->rptr[n+1][1] = globkern->rptr[n+1][1]*globkern->rptr[n+1][1];
+      //MatrixPrint(stdout,globkern);
+      SURFHOPLIST **shlarray=NULL;
+      mritmp = MRISsmoothKernel(surf, InVals, NULL, NULL, globkern, &shlarray, NULL);
+      printf("vtxval %g\n",MRIFseq_vox(mritmp,1031,0,0,0));
+
+      MRIwrite(mritmp,pargv[4]);
+      exit(0);
+    }
     else if (!strcasecmp(option, "--o")) {
       if (nargc < 1) CMDargNErr(option,1);
       outpath = pargv[0];
