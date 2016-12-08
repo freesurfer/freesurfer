@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:52:37 $
- *    $Revision: 1.31.2.1 $
+ *    $Date: 2016/12/08 22:02:39 $
+ *    $Revision: 1.31.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -28,6 +28,7 @@
 #include <stdexcept>
 #include "vtkImageData.h"
 #include "FSVolume.h"
+#include "FSSurface.h"
 #include <QFile>
 #include <QTextStream>
 #include <vector>
@@ -236,6 +237,19 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
   }
 }
 
+void FSLabel::FillUnassignedVertices(FSSurface* surf, FSVolume* mri_template, int coords)
+{
+    LABEL* l = LabelSampleToSurface(surf->GetMRIS(), m_label, mri_template->GetMRI(), coords);
+    ::LabelFree(&m_label);
+    m_label = l;
+//    LabelFillUnassignedVertices(surf->GetMRIS(), m_label, coords);
+}
+
+void FSLabel::Initialize(FSVolume* ref_vol, FSSurface* surf, int coords)
+{
+    ::LabelInit(m_label, ref_vol->GetMRI(), surf?surf->GetMRIS():NULL, coords);
+}
+
 void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double threshold )
 {
   if ( !m_label )
@@ -247,10 +261,10 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
   int n[3];
   double pos[3];
   int* dim = rasImage->GetDimensions();
-//  memset( rasImage->GetScalarPointer(),
-//          0,
-//          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
-  if (m_dStatsRange[0] <= -1)
+  memset( rasImage->GetScalarPointer(),
+          0,
+          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
+  if (m_dStatsRange[0] <= 0)
   {
       size_t nsize = ((size_t)dim[0])*dim[1]*dim[2];
       float* p = (float*)rasImage->GetScalarPointer();
@@ -259,6 +273,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
           p[i] = m_dStatsRange[0]-1;
       }
   }
+
   for ( int i = 0; i < m_label->n_points; i++ )
   {
     if (m_label->lv[i].stat >= threshold || m_dStatsRange[0] <= 0)
@@ -336,4 +351,12 @@ void FSLabel::GetStatsRange(double *range)
 {
   range[0] = m_dStatsRange[0];
   range[1] = m_dStatsRange[1];
+}
+
+void FSLabel::EditVoxel(int nx, int ny, int nz, bool bAdd, int* vertices, int* pnum)
+{
+    if (bAdd)
+        ::LabelAddVoxel(m_label, nx, ny, nz, WHITE_VERTICES, vertices, pnum);
+    else
+        ::LabelDeleteVoxel(m_label, nx, ny, nz, vertices, pnum);
 }

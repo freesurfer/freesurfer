@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/01/06 20:46:12 $
- *    $Revision: 1.21 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/08 22:02:39 $
+ *    $Revision: 1.21.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -41,6 +41,7 @@ class vtkImageData;
 class vtkProp;
 class LayerMRI;
 class LayerPropertyROI;
+class LayerSurface;
 
 class LayerROI : public LayerVolumeBase
 {
@@ -75,10 +76,22 @@ public:
   void GetStats(int nPlane, int *count_out, float *area_out,
                 LayerMRI *underlying_mri, double *mean_out, double *sd_out);
 
-protected slots:
+  LayerSurface* GetMappedSurface()
+  {
+      return m_layerMappedSurface;
+  }
+
+  void MapLabelColorData( unsigned char* colordata, int nVertexCount);
+
+public slots:
   void UpdateOpacity();
   void UpdateColorMap();
   void UpdateThreshold();
+  void SetMappedSurface(LayerSurface* s);
+  void OnUpdateLabelRequested();
+
+protected slots:
+  void OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd);
 
 protected:
   bool DoRotate( std::vector<RotationElement>& rotations );
@@ -93,9 +106,11 @@ protected:
 
   LayerMRI*  m_layerSource;
   FSLabel*   m_label;
+  LayerSurface* m_layerMappedSurface;
 
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];
+  int*      m_nVertexCache;
 };
 
 #endif

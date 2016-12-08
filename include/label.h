@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/03/16 23:29:48 $
- *    $Revision: 1.64 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/08 22:02:40 $
+ *    $Revision: 1.64.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -31,6 +31,7 @@
 #include "minc_volume_io.h"
 #include "matrix.h"
 #include "const.h"
+#include "mri.h"
 
 typedef struct
 {
@@ -38,6 +39,9 @@ typedef struct
   float         x ;
   float         y ;
   float         z ;
+  int           xv ;  // voxel coords into label->mri struct (may not be initialzed if label->mri == NULL)
+  int           yv ;
+  int           zv ;
   unsigned char deleted ;
   float         stat ;     /* statistic (might not be used) */
 }
@@ -56,6 +60,10 @@ typedef struct
   Transform         *inverse_linear_transform ;
   char   space[100];          /* space description of the coords */
   double avg_stat ;
+  int    *vertex_label_ind ; // mris->nvertices long - < 0 means it isn't in the label
+  MRI    *mri_template ;
+  void   *mht ;
+  void   *mris; 
 }
 LABEL ;
 
@@ -166,5 +174,12 @@ int LabelAddToMark(LABEL *area, MRI_SURFACE *mris, int val_to_add) ;
 LABEL *LabelTransform(LABEL *area_in, TRANSFORM *xform, MRI *mri, LABEL *area_out) ;
 LABEL *LabelFromScannerRAS(LABEL *lsrc, MRI *mri, LABEL *ldst) ;
 LABEL *LabelBaryFill(MRIS *mris, LABEL *srclabel, double delta);
+
+LABEL *LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coords) ;
+int   LabelInit(LABEL *lsrc, MRI *mri_template, MRI_SURFACE *mris, int coords) ;
+int   LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, int *pnvertices) ;
+int   LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvertices) ;
+int   LabelAddVertex(LABEL *area, int vno, int coords) ;
+int   LabelDeleteVertex(LABEL *area, int vno, int coords) ;
 
 #endif

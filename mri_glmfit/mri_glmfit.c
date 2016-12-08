@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/08/02 21:06:12 $
- *    $Revision: 1.241.2.2 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/08 22:02:40 $
+ *    $Revision: 1.241.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -562,7 +562,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.241.2.2 2016/08/02 21:06:12 greve Exp $";
+"$Id: mri_glmfit.c,v 1.241.2.4 2016/12/08 22:02:40 zkaufman Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -718,8 +718,8 @@ char *yOutFile = NULL;
 char *frameMaskFile = NULL;
 
 int DoSimThreshLoop = 0;
-int  nThreshList = 5, nthThresh;
-float ThreshList[5] = {1.3,  2.0,  2.3,  3.0, 3.3};
+int  nThreshList = 4, nthThresh;
+float ThreshList[4] = {1.3,  2.0,  2.3,  3.0};
 int  nSignList = 3, nthSign;
 int SignList[3] = {-1,0,1};
 CSD *csdList[5][3][20];
@@ -769,7 +769,7 @@ int main(int argc, char **argv) {
   csd->threshsign = 0; //0=abs,+1,-1
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -1811,9 +1811,10 @@ int main(int argc, char **argv) {
 	      if(round(csd->threshsign) ==  0) tmpstr2 = "abs"; 
 	      if(round(csd->threshsign) == +1) tmpstr2 = "pos"; 
 	      if(round(csd->threshsign) == -1) tmpstr2 = "neg"; 
-	      sprintf(tmpstr,"%s-%s.th%04d.%s.csd",
-		      simbase,mriglm->glm->Cname[n],
-		      (int)round(csd->thresh*100),tmpstr2);
+	      //sprintf(tmpstr,"%s-%s.th%04d.%s.csd",simbase,mriglm->glm->Cname[n],
+	      //      (int)round(csd->thresh*100),tmpstr2);
+	      sprintf(tmpstr,"%s.th%02d.%s.j001-%s.csd",simbase,
+		      (int)round(csd->thresh*10),tmpstr2,mriglm->glm->Cname[n]);
 	    }
 	    else
 	      sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
@@ -1860,7 +1861,8 @@ int main(int argc, char **argv) {
       fp = fopen(SimDoneFile,"w");
       fclose(fp);
     }
-    printf("mri_glmfit simulation done\n\n\n");
+    msecFitTime = TimerStop(&mytimer) ;
+    printf("mri_glmfit simulation done %g\n\n\n",msecFitTime/(1000*60.0));
     exit(0);
   }
   //--------------------------------------------------------------------------
@@ -2433,7 +2435,12 @@ static int parse_commandline(int argc, char **argv) {
       DoPCC = 0;
       nargsused = 4;
     } 
-    else if (!strcasecmp(option, "--sim-thresh-loop")) DoSimThreshLoop = 1;
+    else if(!strcasecmp(option, "--sim-thresh-loop")) DoSimThreshLoop = 1;
+    else if(!strcasecmp(option, "--sim-thresh-loop-pos")){
+      DoSimThreshLoop = 1;
+      nSignList = 1;
+      SignList[0] = +1; // pos
+    }
     else if (!strcasecmp(option, "--uniform")) {
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%lf",&UniformMin);
@@ -3460,10 +3467,11 @@ static void check_options(void) {
     printf("ERROR: you must supply --fwhm with --sim, even if it is 0\n");
     exit(1);
   }
-  if(DoSimThreshLoop && strcmp(csd->simtype,"mc-z")){
-    printf("ERROR: you can only use --sim-thresh-loop with mc-z\n");
-    exit(1);
-  }
+  // Not sure why this was here, but it does not seem to apply anymore
+  //if(DoSimThreshLoop && strcmp(csd->simtype,"mc-z")){
+  //printf("ERROR: you can only use --sim-thresh-loop with mc-z\n");
+    //exit(1);
+  //}
 
   if(fsgdReScale){
     if(fsgdfile == NULL){

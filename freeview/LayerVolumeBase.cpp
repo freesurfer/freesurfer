@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/28 14:52:37 $
- *    $Revision: 1.28.2.1 $
+ *    $Date: 2016/12/08 22:02:39 $
+ *    $Revision: 1.28.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -249,6 +249,9 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
   {
     SetModified();
     emit ActorUpdated();
+    QList<int> list;
+    list << n[0] << n[1] << n[2];
+    emit BaseVoxelEdited(list, bAdd);
   }
   else
   {
@@ -267,10 +270,12 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, boo
     n2[i] = ( int )( ( ras2[i] - origin[i] ) / voxel_size[i] + 0.5 );
   }
 
-  if ( SetVoxelByIndex( n1, n2, nPlane, bAdd ) )
+  QList<int> list = SetVoxelByIndex( n1, n2, nPlane, bAdd );
+  if ( !list.isEmpty() )
   {
     SetModified();
     emit ActorUpdated();
+    emit BaseVoxelEdited(list, bAdd);
   }
   else
   {
@@ -278,7 +283,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, boo
   }
 }
 
-bool LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
+QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
 {
   int nx = 1, ny = 2;
   if ( nPlane == 1 )
@@ -297,6 +302,7 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
   int dy = y1 - y0;
   double t = 0.5;
   int n[3];
+  QList<int> list;
   bool bChanged = SetVoxelByIndex( n1, nPlane, bAdd );
   if ( abs( dx ) > abs( dy ) )
   {
@@ -312,6 +318,8 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
       n[ny] = (int) t;
       n[nPlane] = n1[nPlane];
       bChanged = SetVoxelByIndex( n, nPlane, bAdd );
+      if (bChanged)
+          list << n[0] << n[1] << n[2];
     }
   }
   else
@@ -328,9 +336,11 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
       n[ny] = y0;
       n[nPlane] = n1[nPlane];
       bChanged = SetVoxelByIndex( n, nPlane, bAdd );
+      if (bChanged)
+          list << n[0] << n[1] << n[2];
     }
   }
-  return true;
+  return list;
 }
 
 void LayerVolumeBase::CloneVoxelByRAS( double* ras, int nPlane )

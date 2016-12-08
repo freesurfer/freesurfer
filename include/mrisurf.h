@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/11/17 18:09:13 $
- *    $Revision: 1.387.2.1 $
+ *    $Date: 2016/12/08 22:02:40 $
+ *    $Revision: 1.387.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2143,6 +2143,5 @@ SURFHOPLIST *SetSurfHopListAlloc(MRI_SURFACE *Surf, int nHops);
 SURFHOPLIST *SetSurfHopList(int CenterVtx, MRI_SURFACE *Surf, int nHops);
 int SurfHopListFree(SURFHOPLIST **shl0);
 MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N);
-MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, int SqrFlag, MRI *out);
-
+MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, SURFHOPLIST ***pshl, MRI *out);
 #endif // MRISURF_H

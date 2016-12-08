@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/08/12 16:54:45 $
- *    $Revision: 1.124.2.1 $
+ *    $Date: 2016/12/08 22:02:41 $
+ *    $Revision: 1.124.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -237,6 +237,9 @@ LabelFree(LABEL **parea)
 
   area = *parea ;
   *parea = NULL ;
+  if (area->vertex_label_ind)
+    free(area->vertex_label_ind) ;
+
   free(area->lv) ;
   free(area) ;
   return(NO_ERROR) ;
@@ -1377,7 +1380,17 @@ LabelCopy(LABEL *asrc, LABEL *adst)
 {
   if (!adst)
   {
-    adst = LabelAlloc(asrc->n_points, asrc->subject_name, asrc->name) ;
+    adst = LabelAlloc(asrc->max_points, asrc->subject_name, asrc->name) ;
+  }
+
+  adst->mris = asrc->mris ;
+  adst->mri_template = asrc->mri_template ;
+  adst->mht = asrc->mht ;
+  if (asrc->vertex_label_ind)
+  {
+    adst->vertex_label_ind = (int *)calloc(asrc->max_points, sizeof(int)) ;
+    if (adst->vertex_label_ind == NULL)
+      ErrorExit(ERROR_NOMEMORY, "LabelCompact: could not allocate %d long label index array",  asrc->max_points) ;
   }
 
   adst->n_points = asrc->n_points ;
@@ -1483,6 +1496,16 @@ LabelCompact(LABEL *lsrc, LABEL *ldst)
       n++ ;
 
   ldst = LabelRealloc(ldst, n) ;
+  if (ldst != lsrc && lsrc->vertex_label_ind)
+  {
+    ldst->vertex_label_ind = (int *)calloc(lsrc->max_points, sizeof(int)) ;
+    if (ldst->vertex_label_ind == NULL)
+      ErrorExit(ERROR_NOMEMORY, "LabelCompact: could not allocate %d long label index array",  lsrc->max_points) ;
+  }
+  if (ldst->vertex_label_ind != NULL)
+    for (i = 0 ; i < ldst->max_points ; i++)
+      ldst->vertex_label_ind[i] = -1 ;
+
   for (i = n = 0 ; i < lsrc->n_points ; i++)
     if (lsrc->lv[i].deleted == 0)
     {
@@ -1492,6 +1515,8 @@ LabelCompact(LABEL *lsrc, LABEL *ldst)
       ldst->lv[n] .z = lsrc->lv[i].z ;
       ldst->lv[n] .vno = lsrc->lv[i].vno ;
       ldst->lv[n] .stat = lsrc->lv[i].stat ;
+      if (lsrc->lv[i].vno >= 0 && lsrc->lv[i].vno < ldst->max_points)
+	ldst->vertex_label_ind[lsrc->lv[i].vno] = n ;
       n++ ;
     }
   ldst->n_points = n ;
@@ -3657,4 +3682,456 @@ LABEL *LabelBaryFill(MRIS *mris, LABEL *srclabel, double delta)
   MRIfree(&mri);
 
   return(outlabel);
+}
+LABEL *
+LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coords)
+{
+  int     n, i, vno, min_vno, nfilled = 0, max_vno ;
+  LV      *lv ;
+  static MHT     *mht = NULL ;
+  static MRI_SURFACE *mris_cached = NULL ;
+  MHBT    *bucket ;
+  MHB     *bin ;
+  VERTEX  *v ;
+  float   dx, dy, dz, x, y, z, dist, min_dist ;
+  int     num_not_found, nchanged, num_brute_force ;
+  float   vx, vy, vz;
+  double  max_spacing ;
+  static MRI     *mri = NULL, *mri_cached = NULL ;
+  LABEL   *area_dst ;
+  double  xw, yw, zw, xv, yv, zv ;
+
+  printf("LabelSampleToSurface(%d vertices)\n", area->n_points) ;
+  xw = yw = zw = vx = vy = vz = -1; // remove compiler warnings
+
+  for (i = n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    if (lv->vno >= 0 && lv->vno < mris->nvertices)  // already assigned
+      continue ;
+
+    i++ ;   /* count # of unassigned vertices */
+  }
+  area_dst = LabelAlloc(mris->nvertices, area->subject_name, area->name) ;
+  LabelCopy(area, area_dst) ;
+
+  if (i <= 0)
+  {
+    printf("LabelSampleToSurface: no hole filling needed, returning (%d vertices)\n", area_dst->n_points) ;
+    return(area_dst) ;  /* no work needed */
+  }
+
+  fprintf(stderr,"%d unassigned vertices in label...\n", i) ;
+
+  /* if we can't find a vertex within 10 mm of the point, something is wrong */
+  if (mris != mris_cached)
+  {
+    fprintf(stderr,"building spatial LUT...\n") ;
+    MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL,&max_vno, coords);
+    if (mht)
+      MHTfree(&mht) ;
+    mris_cached = mris ;
+    mht = MHTfillVertexTableRes(mris, NULL, coords, 2*max_spacing) ;
+  }
+  fprintf(stderr, "assigning vertex numbers to label...\n") ;
+  num_not_found = num_brute_force = 0;
+  for (n = 0 ; n < area_dst->n_points ; n++)
+  {
+    lv = &area_dst->lv[n] ;
+    if (lv->vno >= 0 && lv->vno <= mris->nvertices)   // vertex already assigned
+      continue ;
+
+    nfilled++ ;
+    bucket = MHTgetBucket(mht, lv->x, lv->y, lv->z) ;
+
+    x = lv->x ; y = lv->y ; z = lv->z ;
+    min_dist = 10000.0 ; min_vno = -1 ;
+    if (bucket)
+    {
+      for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) // find min dist vertex
+      {
+        vno = bin->fno ;
+        v = &mris->vertices[vno] ;
+        if (vno == Gdiag_no)
+          DiagBreak() ;
+
+        MRISgetCoords(v, coords, &vx, &vy, &vz);
+
+        dx = vx - x;  dy = vy - y; dz = vz - z;
+
+        dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+        if (dist < min_dist)
+        {
+          min_dist = dist ;
+          min_vno = vno ;
+        }
+      }
+    }
+    if (min_vno == -1)
+    {
+      num_brute_force++ ;
+      switch (coords)
+      {
+      case ORIG_VERTICES:
+        min_vno = MRISfindClosestOriginalVertex(mris, lv->x, lv->y, lv->z) ;
+        break ;
+      case WHITE_VERTICES:
+        min_vno = MRISfindClosestWhiteVertex(mris, lv->x, lv->y, lv->z) ;
+        break ;
+      case CURRENT_VERTICES:
+        min_vno = MRISfindClosestVertex(mris, lv->x, lv->y, lv->z, NULL) ;
+        break ;
+      case CANONICAL_VERTICES:
+        min_vno = MRISfindClosestCanonicalVertex(mris, lv->x, lv->y, lv->z) ;
+        break ;
+      default:
+        break ;
+      }
+    }
+    if (min_vno == -1)
+    {
+      num_not_found++;
+    }
+    if (min_vno == Gdiag_no)
+      DiagBreak() ;
+    lv->vno = min_vno ;
+  }
+//  LabelRemoveDuplicates(area) ;
+//  MHTfree(&mht) ;
+
+  if (num_not_found > 0)
+    fprintf (stderr, "Couldn't assign %d vertices.\n", num_not_found);
+  if (num_brute_force > 0)
+    fprintf (stderr, "%d vertices required brute force search.\n", num_brute_force);
+
+  // now sample from surface back into volume to see if there are any holes
+  if (mri_template != mri_cached)
+  {
+    if (mri)
+      MRIfree(&mri) ;
+    mri = MRIclone(mri_template, NULL) ;
+    mri_cached = mri_template ;
+  }
+  for (i = 0 ; i < area_dst->n_points ; i++)
+  {
+    xw = area_dst->lv[i].x  ; yw = area_dst->lv[i].y  ; zw = area_dst->lv[i].z ;
+    MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, &xv, &yv, &zv) ;
+    if (nint(xv) == Gx &&  nint(yv) == Gy &&  nint(zv) == Gz)
+      DiagBreak() ;
+    MRIsetVoxVal(mri, nint(xv), nint(yv), nint(zv), 0, 1) ;
+  }
+
+//  MRISclearMarks(mris) ;
+
+  do
+  {
+    int    nbr, vno2 ;
+    VERTEX *vn ;
+
+    nchanged = 0 ;
+    LabelMarkSurface(area_dst, mris) ;
+    for (i = 0 ; i < area_dst->n_points ; i++)
+    {
+      vno = area_dst->lv[i].vno ;
+      if (vno == Gdiag_no)
+	DiagBreak() ;
+      v = &mris->vertices[vno];
+      for (nbr = 0 ; nbr < v->vnum ; nbr++)
+      {
+	vno2 = v->v[nbr] ;
+	if (vno2 == Gdiag_no)
+	  DiagBreak() ;
+	vn = &mris->vertices[vno2] ;
+	if (vn->marked != 0) // already in the label
+	  continue ;
+
+        MRISgetCoords(v, coords, &xw, &yw, &zw);
+	MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, &xv, &yv, &zv) ;
+	if (MRIgetVoxVal(mri, nint(xv), nint(yv), nint(zv), 0) > 0)
+	{
+	  LABEL_VERTEX *lv ;
+
+	  printf("adding vertex %d at index %d to fill label hole\n", vno2, area_dst->n_points) ;
+	  lv = &area_dst->lv[area_dst->n_points++] ;
+	  lv->vno = vno2 ;  lv->x = xw ; lv->y = yw ; lv->z = zw ; lv->stat = vn->val ;
+	  vn->marked = 1 ;
+	  nchanged++ ;
+	}
+      }
+    }
+    LabelUnmark(area_dst, mris) ;
+  } while (nchanged > 0) ;
+  for (i = 0 ; i < area_dst->n_points ; i++)
+  {
+    xw = area_dst->lv[i].x  ; yw = area_dst->lv[i].y  ; zw = area_dst->lv[i].z ;
+    MRISsurfaceRASToVoxel(mris, mri, xw, yw, zw, &xv, &yv, &zv) ;
+    if (nint(xv) == Gx &&  nint(yv) == Gy &&  nint(zv) == Gz)
+      DiagBreak() ;
+    MRIsetVoxVal(mri, nint(xv), nint(yv), nint(zv), 0, 0) ;  // turn them all off
+  }
+//  MRIfree(&mri) ;
+  printf("LabelSampleToSurface: returning (%d vertices)\n", area_dst->n_points) ;
+  return(area_dst) ;
+}
+
+int
+LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
+{
+  double  xv, yv, zv, max_spacing, x, y, z, min_dist, dx, dy, dz, vx, vy, vz, dist ;
+  int     n, max_vno, min_vno, i, vno ;
+  MHBT    *bucket ;
+  MHB     *bin ;
+  LV      *lv ;
+  VERTEX  *v ;
+
+  x = y = z = -1 ;
+  LabelRealloc(area, mris->nvertices) ;   // allocate enough room in the label for the whole surface
+
+  area->mri_template = mri_template ;
+  area->mris = mris ;
+
+  // create a volume of indices into the label. Voxels < 0 are not mapped
+  area->vertex_label_ind = (int *)calloc(mris->nvertices, sizeof(int)) ;
+  if (area->vertex_label_ind == NULL)
+    ErrorExit(ERROR_NOMEMORY, "LabelInit: could not allocate %d-long vertex index array", mris->nvertices) ;
+  for (n = 0 ; n < mris->nvertices ; n++)
+    area->vertex_label_ind[n] = -1 ;   // means that this vertex is not in th elabel
+
+  MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL,&max_vno, coords);
+//  printf("max spacing = %2.1f\n", max_spacing) ;
+  area->mht = (void *)MHTfillVertexTableRes(mris, NULL, coords, max_spacing) ;
+
+
+  // map unassigned vertices to surface locations
+  for (n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    
+    if (lv->deleted)
+      continue ;
+    if (lv->vno >= 0 && lv->vno <= mris->nvertices)   // vertex already assigned
+    {
+      area->vertex_label_ind[lv->vno] = n ;
+      continue ;
+    }
+
+    // vertex not assigned to this label vertex - assign all surface vertices at this location to the label
+    // note that this includes the closest vertex, even if it does not sit in the same voxel
+
+    vx = lv->x ; vy = lv->y ; vz = lv->z ;
+    bucket = MHTgetBucket(area->mht, vx, vy, vz) ;
+    MRISsurfaceRASToVoxel(mris, mri_template, vx, vy, vz, &xv, &yv, &zv) ;
+    lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
+
+    if (bucket)   // some vertices map to this voxel
+    {
+      min_dist = 10000.0 ; min_vno = -1 ;
+      for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) // find min dist vertex
+      {
+        vno = bin->fno ;
+        v = &mris->vertices[vno] ;
+        if (vno == Gdiag_no)
+          DiagBreak() ;
+
+        MRISgetCoords(v, coords, &x, &y, &z);
+
+        dx = vx - x;  dy = vy - y; dz = vz - z;
+        dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+        if (dist < min_dist)
+        {
+          min_dist = dist ;
+          min_vno = vno ;
+        }
+      }
+      if (min_vno >= 0)
+	lv->vno = min_vno ;
+
+      // now assign other surface vertices that fall into the same voxel to the label
+      for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) // find min dist vertex
+      {
+        vno = bin->fno ;
+        v = &mris->vertices[vno] ;
+        if (vno == Gdiag_no)
+          DiagBreak() ;
+	if (area->vertex_label_ind[vno] >= 0)
+	  continue ; // already in the label
+
+	// check to see if this vertex maps to the voxel in question and if so add it
+        MRISgetCoords(v, coords, &x, &y, &z);
+	MRISsurfaceRASToVoxel(mris, mri_template, x, y, z, &xv, &yv, &zv) ;
+	if (nint(xv) == lv->xv && nint(yv) == lv->yv && nint(zv) == lv->zv)
+	  LabelAddVertex(area, vno, coords) ;
+      }
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+int
+LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, int *pnvertices)
+{
+  MHBT    *bucket ;
+  MHB     *bin ;
+  int     n, min_vno, i, vno ;
+  LV      *lv ;
+  double  min_dist, dist, x, y, z, vx, vy, vz, dx, dy, dz ;
+  VERTEX    *v ;
+
+#if 0
+  {
+    vno = 110167 ;
+    v = &((MRI_SURFACE *)(area->mris))->vertices[vno] ;
+    MRISsurfaceRASToVoxel(area->mris, area->mri_template, v->whitex, v->whitey, v->whitez, &x, &y, &z) ;
+    printf("v %d: voxel (%2.1f, %2.1f, %2.1f) (%d %d %d)\n", vno, x, y, z, nint(x), nint(y), nint(z)) ;
+  }
+#endif
+  
+  if (pnvertices)
+    *pnvertices = 0 ;
+  x = y = z = -1 ;
+  n = area->n_points++ ;
+  lv = &area->lv[n] ;
+  MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
+  lv->xv = xv ; lv->yv = yv ; lv->zv = zv ;
+  lv->x = vx ;  lv->y = vy ;  lv->z = vz ;
+  bucket = MHTgetBucket(area->mht, vx, vy, vz) ;
+
+//  printf("LabelAddVoxel(%d, %d, %d): coords = %2.1f, %2.1f, %2.1f, bucket = %lx\n", xv, yv, zv, vx, vy, vz, (long)bucket) ;
+  if (bucket == NULL)
+    return(-1) ;
+
+  min_dist = 10000.0 ; min_vno = -1 ;
+
+  // find surface vertex that is min dist from this voxel
+  for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) // find min dist vertex
+  {
+    vno = bin->fno ;
+    v = &((MRI_SURFACE *)(area->mris))->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+      
+    MRISgetCoords(v, coords, &x, &y, &z);
+    
+    dx = vx - x;  dy = vy - y; dz = vz - z;
+    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (dist < min_dist)
+    {
+      min_dist = dist ;
+      min_vno = vno ;
+    }
+  }
+  if (min_vno >= 0 && area->vertex_label_ind[min_vno] < 0)  // found one that isn't in label
+  {
+    lv->vno = min_vno ;
+    area->vertex_label_ind[min_vno] = n ;
+    if (pnvertices)
+    {
+      int n = *pnvertices ;
+      vertices[n] = min_vno ;
+      (*pnvertices)++ ;
+    }
+//    printf("LabelAddVoxel(%d, %d, %d): added min_dist vno %d at %d\n", xv, yv, zv, min_vno, n) ;
+  }
+//  else
+//    printf("min dist vertex %d already in label\n", min_vno) ;
+
+  // now add other vertices that also map to this voxel
+  for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) // find min dist vertex
+  {
+    vno = bin->fno ;
+    if (area->vertex_label_ind[vno] >= 0)
+      continue ;  // already in the label
+    v = &((MRI_SURFACE *)(area->mris))->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+      
+    MRISgetCoords(v, coords, &x, &y, &z);
+    MRISsurfaceRASToVoxel(area->mris, area->mri_template, x, y, z, &vx, &vy, &vz) ;
+    if ((xv == nint(vx)) && (yv == nint(vy)) && (zv == nint(vz)))
+    {
+      if (pnvertices)
+      {
+	int n = *pnvertices ;
+	vertices[n] = vno ;
+	(*pnvertices)++ ;
+      }
+      LabelAddVertex(area, vno, coords) ;
+    }
+  }
+
+  return(min_vno) ;
+}
+
+int
+LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvertices)
+{
+  int   n, ndeleted ;
+  LV    *lv ;
+
+  for (ndeleted = n = 0 ; n < area->n_points ; n++)
+  {
+    lv = &area->lv[n] ;
+    if (lv->xv == xv && lv->yv == yv && lv->zv == zv)
+    {
+      lv->deleted = 1 ;
+      if (lv->vno >= 0)
+      {
+	if (vertices)
+	  vertices[ndeleted] = lv->vno ;
+	ndeleted++ ;
+	area->vertex_label_ind[lv->vno] = -1 ;
+      }
+    }
+  }
+
+  if (pnvertices)
+    *pnvertices = ndeleted ;
+//  printf("LabelDeleteVoxel(%d, %d, %d): %d deleted\n", xv, yv, zv, ndeleted) ;
+  return(ndeleted) ;
+}
+
+int
+LabelAddVertex(LABEL *area, int vno, int coords)
+{
+  LV     *lv ;
+  int    n ;
+  double xv, yv, zv, x, y, z ;
+  VERTEX *v ;
+
+  x = y = z = -1 ;
+
+  if (area->vertex_label_ind[vno] >= 0)
+  {
+//    printf("LabelAddVertex(%d): already in label\n",  vno) ;
+    return(-1) ;  // already in the label
+  }
+  if (area->n_points >= area->max_points)
+    ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "LabelAddVertex: max points %d reached", area->n_points)) ;
+
+//  printf("LabelAddVertex(%d)\n",  vno) ;
+  n = area->n_points++ ;
+  lv = &area->lv[n] ;
+  v = &((MRI_SURFACE *)(area->mris))->vertices[vno] ;
+  MRISgetCoords(v, coords, &x, &y, &z);
+  MRISsurfaceRASToVoxel(area->mris, area->mri_template, v->x, v->y, v->z, &xv, &yv, &zv) ;
+
+  lv->vno = vno ; 
+  lv->x = x ;         lv->y = y ;         lv->z = z ;
+  lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
+
+  area->vertex_label_ind[vno] = n ;
+  return(NO_ERROR) ;
+}
+
+int
+LabelDeleteVertex(LABEL *area, int vno, int coords)
+{
+  int n ;
+
+  if (area->vertex_label_ind[vno] < 0)
+    return(-1) ;
+  n = area->vertex_label_ind[vno] ;
+  area->vertex_label_ind[vno] = -1 ;
+  area->lv[n].deleted = 1 ;
+  return(NO_ERROR) ;
 }

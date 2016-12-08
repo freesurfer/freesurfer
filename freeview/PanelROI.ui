@@ -88,6 +88,13 @@
         </property>
        </widget>
       </item>
+      <item row="7" column="0">
+       <widget class="QLabel" name="labelColor_4">
+        <property name="text">
+         <string>Map to surface</string>
+        </property>
+       </widget>
+      </item>
       <item row="2" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
@@ -247,6 +254,15 @@
         </property>
        </widget>
       </item>
+      <item row="7" column="1">
+       <widget class="QComboBox" name="comboBoxMappedSurface">
+        <item>
+         <property name="text">
+          <string>None</string>
+         </property>
+        </item>
+       </widget>
+      </item>
      </layout>
     </item>
     <item>
@@ -312,8 +328,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>248</x>
-     <y>98</y>
+     <x>244</x>
+     <y>96</y>
     </hint>
     <hint type="destinationlabel">
      <x>56</x>
@@ -328,8 +344,8 @@
    <slot>OnEditThreshold(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>150</x>
-     <y>202</y>
+     <x>177</x>
+     <y>194</y>
     </hint>
     <hint type="destinationlabel">
      <x>502</x>
@@ -360,12 +376,28 @@
    <slot>OnEditHeatscaleMax(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>284</x>
-     <y>160</y>
+     <x>258</x>
+     <y>163</y>
     </hint>
     <hint type="destinationlabel">
      <x>507</x>
      <y>197</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>comboBoxMappedSurface</sender>
+   <signal>currentIndexChanged(int)</signal>
+   <receiver>PanelROI</receiver>
+   <slot>OnComboMappedSurface(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>263</x>
+     <y>210</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>609</x>
+     <y>399</y>
     </hint>
    </hints>
   </connection>
@@ -375,5 +407,6 @@
   <slot>OnEditThreshold(QString)</slot>
   <slot>OnEditHeatscaleMin(QString)</slot>
   <slot>OnEditHeatscaleMax(QString)</slot>
+  <slot>OnComboMappedSurface(int)</slot>
  </slots>
 </ui>

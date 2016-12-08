@@ -7,9 +7,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/08/02 21:10:54 $
- *    $Revision: 1.6.2.2 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/08 22:02:40 $
+ *    $Revision: 1.6.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_apply_reg.c,v 1.6.2.2 2016/08/02 21:10:54 greve Exp $
+// $Id: mris_apply_reg.c,v 1.6.2.4 2016/12/08 22:02:40 zkaufman Exp $
 
 /*
   BEGINHELP
@@ -78,7 +78,7 @@ void usage_message(FILE *stream);
 void usage(FILE *stream);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_apply_reg.c,v 1.6.2.2 2016/08/02 21:10:54 greve Exp $";
+static char vcid[] = "$Id: mris_apply_reg.c,v 1.6.2.4 2016/12/08 22:02:40 zkaufman Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
   char *base;
   COLOR_TABLE *ctab=NULL;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -188,6 +188,16 @@ int main(int argc, char *argv[]) {
     if(tmpmri == NULL) exit(1);
     MRIfree(&SrcVal);
     SrcVal = tmpmri;
+    if(SrcVal->type != MRI_FLOAT) {
+      printf("Converting source to float\n");
+      tmpmri = MRISeqchangeType(SrcVal,MRI_FLOAT,0,0,0);
+      if (tmpmri == NULL) {
+        printf("ERROR: could change type\n");
+        exit(1);
+      }
+      MRIfree(&SrcVal);
+      SrcVal = tmpmri;
+    }
   }
 
   // Apply registration to source

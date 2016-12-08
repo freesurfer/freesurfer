@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/09/08 18:00:49 $
- *    $Revision: 1.78.2.1 $
+ *    $Date: 2016/12/08 22:02:39 $
+ *    $Revision: 1.78.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,7 @@ class SurfaceAnnotation;
 class SurfaceLabel;
 class SurfaceROI;
 class SurfaceSpline;
+class LayerROI;
 
 struct RGBMap {
     QString name;
@@ -293,9 +294,10 @@ public:
       return m_sMappingSurfaceName;
   }
 
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
-  void UpdateOverlay( bool bAskRedraw = true );
+  void UpdateOverlay(bool bAskRedraw = true, bool pre_cached = false);
   void SetLoadAllSurfaces(bool bLoadAll)
   {
     m_bLoadAll = bLoadAll;
@@ -334,6 +336,10 @@ public slots:
           m_sMappingSurfaceName = name;
   }
 
+  void AddMappedLabel(LayerROI* label);
+
+  void RemoveMappedLabel(QObject* label_in);
+
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
   void SurfaceLabelAdded( SurfaceLabel* );
@@ -363,6 +369,7 @@ protected slots:
   void UpdateActorPositions();
   void UpdateROIPosition(double dx, double dy, double dz);
   void UpdateVectorActor2D();
+  void UpdateMappedLabels();
 
 protected:
   void InitializeData();
@@ -423,7 +430,11 @@ protected:
 
   QString     m_sMappingSurfaceName;
 
+  QList<LayerROI*>  m_mappedLabels;
+
   QStringList m_listSupFiles;
+
+  unsigned char*    m_nColorDataCache;
 };
 
 #endif

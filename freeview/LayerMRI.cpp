@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/09/29 14:29:05 $
- *    $Revision: 1.169.2.2 $
+ *    $Date: 2016/12/08 22:02:39 $
+ *    $Revision: 1.169.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1438,6 +1438,19 @@ void LayerMRI::OriginalVoxelToRAS(const double *vcoord, double *pos)
   pos[0] = x;
   pos[1] = y;
   pos[2] = z;
+}
+
+void LayerMRI::TargetIndexToOriginalIndex(const int *n_in, int *n_out)
+{
+    double pos[3];
+    double* orig = m_imageData->GetOrigin();
+    double* voxel_size = m_imageData->GetSpacing();
+    for (int i = 0; i < 3; i++)
+    {
+        pos[i] = orig[i] + voxel_size[i]*n_in[i];
+    }
+    TargetToRAS(pos, pos);
+    RASToOriginalIndex(pos, n_out);
 }
 
 void LayerMRI::UpdateVectorActor()

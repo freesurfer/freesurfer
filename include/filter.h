@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.23 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/08 22:02:40 $
+ *    $Revision: 1.23.4.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -86,6 +86,7 @@
 #define FILTER_LOG                     44
 #define FILTER_DOG                     45
 #define FILTER_EXTERNAL                46
+#define FILTER_MEAN_MASKED             47
 
 #define FILTER_OFFSET            0x0100
 

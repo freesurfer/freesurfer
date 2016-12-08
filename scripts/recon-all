@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/10/18 14:39:30 $
-#    $Revision: 1.580.2.13 $
+#    $Date: 2016/12/08 22:02:41 $
+#    $Revision: 1.580.2.15 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.580.2.13 2016/10/18 14:39:30 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.580.2.15 2016/12/08 22:02:41 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -1068,31 +1068,6 @@ endif
 if($#InputList != 0) then
   @ nth = 1;
   foreach InputVol ($InputList)
-
-    # sanity-check: make sure each input has the same dimensions
-    if ($nth == 1) then
-      # assume first input has 'correct' dimensions
-      set firstInput = ($InputVol)
-      set rows = `mri_info --nrows $InputVol |& tail -n 1`
-      set cols = `mri_info --ncols $InputVol |& tail -n 1`
-      set slices = `mri_info --nslices $InputVol |& tail -n 1`
-    else
-      # check subsequent against the first input
-      set nrows = `mri_info --nrows $InputVol |& tail -n 1`
-      set ncols = `mri_info --ncols $InputVol |& tail -n 1`
-      set nslices = `mri_info --nslices $InputVol |& tail -n 1`
-      if (($nrows != $rows) || \
-          ($ncols != $cols) || \
-          ($nslices != $slices)) then
-        echo "ERROR: inputs have mismatched dimensions!" |& tee -a $LF
-        echo "$firstInput is" |& tee -a $LF
-        echo "$rows x $cols x $slices while" |& tee -a $LF
-        echo "$InputVol is" |& tee -a $LF
-        echo "$nrows x $ncols x $nslices" |& tee -a $LF
-        goto error_exit;
-      endif
-    endif
-
     set nthid = `printf %03d.mgz $nth`
     set cmd = (mri_convert $InputVol $subjdir/mri/orig/$nthid)
     $PWD |& tee -a $LF
@@ -1101,10 +1076,31 @@ if($#InputList != 0) then
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
+    # sanity-check: make sure each input has the same dimensions
+    if ($nth == 1) then
+      # assume first input has 'correct' dimensions
+      set firstInput = $subjdir/mri/orig/$nthid
+      set rows = `mri_info --nrows $firstInput |& tail -n 1`
+      set cols = `mri_info --ncols $firstInput |& tail -n 1`
+      set slices = `mri_info --nslices $firstInput |& tail -n 1`
+    else
+      # check subsequent against the first input
+      set nextInput = $subjdir/mri/orig/$nthid
+      set nrows = `mri_info --nrows $nextInput |& tail -n 1`
+      set ncols = `mri_info --ncols $nextInput |& tail -n 1`
+      set nslices = `mri_info --nslices $nextInput |& tail -n 1`
+      if (($nrows != $rows) || ($ncols != $cols) || ($nslices != $slices)) then
+        echo "ERROR: inputs have mismatched dimensions!" |& tee -a $LF
+        echo "$firstInput is" |& tee -a $LF
+        echo "$rows x $cols x $slices while" |& tee -a $LF
+        echo "$InputVol is" |& tee -a $LF
+        echo "$nrows x $ncols x $nslices" |& tee -a $LF
+        goto error_exit;
+      endif
+    endif
     @ nth = $nth + 1;
-  end
+  end # loop over input list
 endif
-
 
 #-----------                          -----------#
 #----------- Input T2 or FLAIR images -----------#
@@ -4685,8 +4681,9 @@ if($DoAParc2ASeg) then
       if( -e ${subjdir}/label/lh.aparc.${parc}.annot && \
           -e ${subjdir}/label/rh.aparc.${parc}.annot ) then
         # Note: the --a2009s is needed to get the index offset correct
-        set cmd = ($cmd --a2009s)
-        echo $cmd > $touchdir/aparc.${DESTRIEUX_NAME}2aseg.touch
+        if($parc == ${DESTRIEUX_NAME}) set cmd = ($cmd --a2009s)
+        if($parc == ${DKTATLAS_NAME})  set cmd = ($cmd --annot aparc.DKTatlas --o mri/aparc.DKTatlas+aseg.mgz)
+        echo $cmd > $touchdir/aparc.$parc"2aseg".touch
       else
         echo "INFO: skipping ${parc} aparc2aseg" |& tee -a $LF |& tee -a $CF
 	continue;

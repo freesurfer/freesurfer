@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/06/11 15:21:20 $
- *    $Revision: 1.23 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/08 22:02:40 $
+ *    $Revision: 1.23.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "transform.h"
 #include "region.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.23 2015/06/11 15:21:20 fischl Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.23.2.1 2016/12/08 22:02:40 zkaufman Exp $";
 
 void usage(int exit_val);
 
@@ -64,6 +64,7 @@ static int   InterpMethod = SAMPLE_NEAREST;
 MRI          *lta_src = 0;
 MRI          *lta_dst = 0;
 
+static  float out_val=0;
 static int invert = 0 ;
 static char *xform_fname = NULL;
 static float threshold = -1e10;
@@ -90,7 +91,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.23 2015/06/11 15:21:20 fischl Exp $", "$Name: stable6 $"
+      "$Id: mri_mask.c,v 1.23.2.1 2016/12/08 22:02:40 zkaufman Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
   {
@@ -315,7 +316,6 @@ int main(int argc, char *argv[])
   }
 
   int mask=0;
-  float out_val=0;
   if (do_transfer)
   {
     mask = (int)transfer_val;
@@ -417,6 +417,12 @@ get_option(int argc, char *argv[])
   {
     invert = 1;
     fprintf(stderr, "Inversely apply the given LTA transform\n");
+  }
+  else if (!stricmp(option, "oval"))
+  {
+    out_val = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "setting masked output voxels to %2.1f instead of 0\n", out_val) ;
   }
   else if (!stricmp(option, "lta_src") ||
            !stricmp(option, "src")

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/01/23 20:14:13 $
- *    $Revision: 1.22 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/08 22:02:40 $
+ *    $Revision: 1.22.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,7 @@
 #include "LayerROI.h"
 #include "LayerPropertyROI.h"
 #include "MyUtils.h"
+#include "LayerSurface.h"
 
 PanelROI::PanelROI(QWidget *parent) :
   PanelLayer("ROI", parent),
@@ -46,6 +47,10 @@ PanelROI::PanelROI(QWidget *parent) :
 
     m_listWidgetsHeatscale << ui->labelHeatscaleRange
                            << ui->lineEditHeatscaleMin << ui->lineEditHeatscaleMax;
+    connect(mainwnd->GetLayerCollection("Surface"), SIGNAL(LayerAdded(Layer*)),
+            this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
+    connect(mainwnd->GetLayerCollection("Surface"), SIGNAL(LayerRemoved(Layer*)),
+            this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
   }
 }
 
@@ -174,6 +179,31 @@ void PanelROI::DoUpdateWidgets()
   ui->labelFileName->setEnabled( layer );
   ui->lineEditFileName->setEnabled( layer );
   ui->labelOpacity->setEnabled( layer );
+  ui->comboBoxMappedSurface->setEnabled(layer);
+
+  QList<Layer*> surfs = MainWindow::GetMainWindow()->GetLayers("Surface");
+  ui->comboBoxMappedSurface->clear();
+  ui->comboBoxMappedSurface->addItem("None");
+  int nIndex = 0;
+  if (layer)
+  {
+      for (int i = 0; i < surfs.size(); i++)
+      {
+          ui->comboBoxMappedSurface->addItem(surfs[i]->GetName(), QVariant::fromValue((QObject*)surfs[i]));
+          if (surfs[i] == layer->GetMappedSurface())
+              nIndex = i+1;
+      }
+  }
+  ui->comboBoxMappedSurface->setCurrentIndex(nIndex);
 
   BlockAllSignals( false );
 }
+
+void PanelROI::OnComboMappedSurface(int nIndex)
+{
+    LayerSurface* surf = qobject_cast<LayerSurface*>(ui->comboBoxMappedSurface->itemData(nIndex).value<QObject*>());
+    LayerROI* layer = GetCurrentLayer<LayerROI*>();
+    if (layer)
+        layer->SetMappedSurface(surf);
+}
+

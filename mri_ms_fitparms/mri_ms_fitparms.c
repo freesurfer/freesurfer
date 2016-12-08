@@ -20,8 +20,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:40 $
- *    $Revision: 1.75 $
+ *    $Date: 2016/12/08 22:02:40 $
+ *    $Revision: 1.75.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,6 +92,7 @@ static MRI *mri_faf = NULL ;
 static int faf_smooth = -1 ;
 static float faf_thresh = 0 ;
 
+static int reciprocity = 0 ;
 #if 0
 static int nfaf = 0 ;        /* # of coefficients in fourier
                                 series approximation to flip angle field */
@@ -187,6 +188,7 @@ static int resetTRTEFA(MRI *mri, float tr, float te, double fa);
 
 static int dx = -1, dy, dz, xo, yo, zo ;
 
+static  MRI *mri_mask = NULL;
 
 int
 main(int argc, char *argv[])
@@ -211,7 +213,6 @@ main(int argc, char *argv[])
   /* The following variables are just for finding the brain mask */
   HISTOGRAM *histo;
   MRI_SEGMENTATION *mriseg;
-  MRI *mri_mask = NULL;
   MRI *mri_tmp = NULL;
   float thresh;
   int b, segno;
@@ -221,15 +222,15 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.75 2015/02/05 23:34:40 zkaufman Exp $",
-   "$Name: stable6 $",
+   "$Id: mri_ms_fitparms.c,v 1.75.2.1 2016/12/08 22:02:40 zkaufman Exp $",
+   "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
             argc, argv,
-            "$Id: mri_ms_fitparms.c,v 1.75 2015/02/05 23:34:40 zkaufman Exp $",
-            "$Name: stable6 $");
+            "$Id: mri_ms_fitparms.c,v 1.75.2.1 2016/12/08 22:02:40 zkaufman Exp $",
+            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -316,6 +317,14 @@ main(int argc, char *argv[])
     if (mri_flash[nvolumes] == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read volume %s",
                 Progname, in_fname) ;
+    if (mri_mask)
+    {
+      MRI *mri_tmp ;
+
+      mri_tmp = MRImask(mri_flash[nvolumes], mri_mask, NULL, 0, 0) ;
+      MRIfree(&mri_flash[nvolumes]) ;
+      mri_flash[nvolumes] = mri_tmp ;
+    }
     mri_flash[nvolumes]->dof = 1 ;
     if (dx > 0)   // extract subimage
     {
@@ -926,6 +935,11 @@ get_option(int argc, char *argv[])
     printf("disabling volume synthesis\n") ;
     niter = 0 ;
   }
+  else if (!stricmp(option, "reciprocity"))
+  {
+    reciprocity = 1 ;
+    printf("assuming reciprocity in forward modeling (i.e. same coil for transmit and receive\n") ;
+  }
   else if (!stricmp(option, "extract"))
   {
     xo = atoi(argv[2]) ;
@@ -1119,6 +1133,14 @@ get_option(int argc, char *argv[])
            "bubble smoothing (thresh=%2.1f)\n",
            faf_smooth, faf_thresh) ;
     nargs = 2 ;
+  }
+  else if (!stricmp(option, "mask"))
+  {
+    nargs = 1 ;
+    printf("reading in mask volume from %s\n", argv[2]) ;
+    mri_mask = MRIread(argv[2]) ;
+    if (!mri_mask)
+      ErrorExit(ERROR_NOFILE, "%s: could not read mask volume from %s\n", argv[2]) ;
   }
   else if (!stricmp(option, "afi"))
   {
@@ -1701,10 +1723,8 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
         T1 = SignalTableT1[best_indx];
         MRIsetVoxVal(mri_T1, x, y, z, 0, T1);
         PD = (inorm/SignalTableNorm[best_indx]);
-#define RECIPROCITY 1
-#if RECIPROCITY
-        PD *= faf_scale ;
-#endif
+	if (reciprocity)
+	  PD *= faf_scale ;
         if ((mri_PD->type == MRI_SHORT) && ((short)PD < 0))
         {
           PD = (double)(0x7fff-1) ;

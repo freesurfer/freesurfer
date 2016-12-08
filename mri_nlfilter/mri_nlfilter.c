@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2015/09/24 17:51:45 $
- *    $Revision: 1.16 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/08 22:02:40 $
+ *    $Revision: 1.16.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,7 @@
 #include "region.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mri_nlfilter.c,v 1.16 2015/09/24 17:51:45 fischl Exp $";
+static char vcid[] = "$Id: mri_nlfilter.c,v 1.16.2.1 2016/12/08 22:02:40 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -68,6 +68,10 @@ static int   filter_window_size = FILTER_WSIZE ;
 
 static MRI *mri_gaussian ;
 
+static int mean_mask_niter = 100 ;
+static float mean_mask_thresh = 10 ;
+static MRI *mri_mean_mask = NULL ;
+
 #define REGION_SIZE   16
 
 #if 0
@@ -88,7 +92,7 @@ main(int argc, char *argv[]) {
   MRI_REGION  region, clip_region ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.16 2015/09/24 17:51:45 fischl Exp $", "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_nlfilter.c,v 1.16.2.1 2016/12/08 22:02:40 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -144,6 +148,56 @@ main(int argc, char *argv[]) {
               Progname) ;
 
   printf("filter number: %d\n",filter_type);
+
+  if (filter_type == FILTER_MEAN_MASKED)
+  {
+    char *mask_fname = argv[2] ;
+    int  f, x, y, z, n, xi, yi, zi, xk, yk, zk, num ;
+    float  mask_val, total ;
+
+    mean_mask_niter = atoi(argv[3]) ;
+    mean_mask_thresh = atof(argv[4]) ;
+    out_fname = argv[5] ;
+    printf("computing mean in mask with thresh = %2.1f, %d avgs and mask vol %s, and writing output to %s\n", mean_mask_thresh, mean_mask_niter, mask_fname, out_fname) ;
+    mri_mean_mask = MRIread(mask_fname) ;
+    if (mri_mean_mask == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load mask volume %s", Progname, mask_fname) ;
+    mri_smooth  = MRIcopy(mri_src, NULL) ;
+    mri_dst  = MRIcopy(mri_src, NULL) ;
+    for (n = 0 ; n < mean_mask_niter ; n++)
+    {
+      for (f = 0 ; f < mri_smooth->nframes ; f++)
+	for  (x = 0 ; x < mri_smooth->width ; x++)
+	  for  (y = 0 ; y < mri_smooth->height ; y++)
+	    for  (z = 0 ; z < mri_smooth->depth ; z++)
+	    {
+	      for (total = 0.0f, num = 0, xk = -1 ; xk <= 1 ; xk++)
+	      {
+		xi = mri_smooth->xi[x+xk] ;
+		for (yk = -1 ; yk <= 1 ; yk++)
+		{
+		  yi = mri_smooth->yi[y+yk] ;
+		  for (zk = -1 ; zk <= 1 ; zk++)
+		  {
+		    zi = mri_smooth->zi[z+zk] ;
+		    mask_val = MRIgetVoxVal(mri_mean_mask, xi, yi, zi, 0) ;
+		    if (mask_val < mean_mask_thresh)
+		      continue ;
+		    num++ ;
+		    total += MRIgetVoxVal(mri_smooth, xi, yi, zi, f) ;
+		  }
+		}
+	      }
+	      if (num > 0)
+		total /= num ;
+	      MRIsetVoxVal(mri_dst, x, y, z, f, total) ;
+	    }
+      MRIcopy(mri_dst, mri_smooth) ;
+    }
+
+    MRIwrite(mri_dst, out_fname) ;
+    exit(0) ;
+  }
 
   if (crop == 0 && no_offset)
   {
@@ -371,6 +425,8 @@ get_option(int argc, char *argv[]) {
     filter_type = FILTER_CPOLV_MEDIAN ;
   else if (!stricmp(option, "minmax"))
     filter_type = FILTER_MINMAX ;
+  else if (!stricmp(option, "meanmask"))
+    filter_type = FILTER_MEAN_MASKED ;
   else if (!stricmp(option, "median"))
     filter_type = FILTER_MEDIAN ;
   else if (!stricmp(option, "none"))

@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/07/26 18:40:51 $
- *    $Revision: 1.117.2.1 $
+ *    $Date: 2016/12/08 22:02:41 $
+ *    $Revision: 1.117.2.2 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3972,6 +3972,61 @@ MRI3dUseFileControlPoints(MRI *mri,const char *fname)
     }
   }
   free(pArray);
+  return(NO_ERROR) ;
+}
+
+int
+MRI3dUseLabelControlPoints(MRI *mri,  LABEL *control_point_label)
+{
+  int  i = 0 ;
+  MPoint *pArray = 0;
+  int count = 0;
+  LABEL *area ;
+
+  area = control_point_label ;
+  if (area->coords != LABEL_COORDS_VOXEL)
+    area = LabelToVoxel(control_point_label, mri, NULL) ;
+
+  count = num_control_points = area->n_points;
+
+  // initialize xctrl, yctrl, zctrl
+  if (xctrl)
+  {
+    free(xctrl);
+    xctrl = 0;
+  }
+  if (yctrl)
+  {
+    free(yctrl);
+    yctrl = 0;
+  }
+  if (zctrl)
+  {
+    free(zctrl);
+    zctrl = 0;
+  }
+  xctrl = (int *)calloc(count, sizeof(int)) ;
+  yctrl = (int *)calloc(count, sizeof(int)) ;
+  zctrl = (int *)calloc(count, sizeof(int)) ;
+  if (!xctrl || !yctrl || !zctrl)
+    ErrorExit(ERROR_NOMEMORY,
+              "MRI3dUseFileControlPoints: could not allocate %d-sized table",
+              num_control_points) ;
+  for (i = 0 ; i < count ; i++)
+  {
+    xctrl[i] = (int) nint(area->lv[i].x) ;
+    yctrl[i] = (int) nint(area->lv[i].y) ;
+    zctrl[i] = (int) nint(area->lv[i].z) ;
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    {
+      fprintf(stderr, "( %5d, %5d, %5d )\n", xctrl[i], yctrl[i], zctrl[i]);
+    }
+  }
+  free(pArray);
+  if (area != control_point_label)
+    LabelFree(&area) ;  // we allocated it when transforming to voxel coords
+  printf("read in %d label control points\n", num_control_points) ;
+
   return(NO_ERROR) ;
 }
 

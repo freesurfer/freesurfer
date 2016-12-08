@@ -52,6 +52,10 @@
       <explanation>use control points file (usually control.dat)</explanation>
       <argument>-fonly &lt;fname&gt;</argument>
       <explanation>use only control points file</explanation>
+      <argument>-lonly &lt;fname&gt;</argument>
+      <explanation>use only control points in label file</explanation>
+      <argument>-label &lt;fname&gt;</argument>
+      <explanation>use control points in label file</explanation>
       <argument>-w &lt;mri_vol c&gt; &lt;mri_vol b&gt;</argument>
       <explanation> write ctrl point(c) and bias field(b) volumes</explanation>
       <argument>-a &lt;float a&gt;</argument>
@@ -63,6 +67,9 @@
       <argument>-prune &lt;boolean&gt;</argument>
       <explanation>turn pruning of control points on/off (default=off). pruning useful if white is expanding into gm</explanation>
       <argument>-MASK maskfile</argument>
+      <argument>-atlas &lt;path to gca&gt;&lt;path to gca transform&gt; &lt;min distance of control points from non-brain&gt;</argument>
+      <explanation>use atlas to exlude control-points from being in non-brain regions</explanation>
+      <argument>-noskull</argument>
       <argument>-monkey</argument>
       <explanation>turns off 1d, sets num_3d_iter=1</explanation>
       <argument>-nosnr</argument>      
@@ -85,7 +92,7 @@
 	<example>mri_normalize SUBJECT/mri/nu.mgz SUBJECT/mri/T1.mgz
 
 Uses the nu volume (nonuniformity corrected volume), and creates the T1 volume, with white matter voxels around 110 image value</example>
-	<example>mri_normalize -aseg aseg.mgz -mask brainmask.mgz norm.mgz brain.mgz
+	<example>mri_normalize -noskull -aseg aseg.mgz -mask brainmask.mgz norm.mgz brain.mgz
 
 Uses the norm volume, and creates the brain volume, making use of the aseg and masking with brainmask</example>
   <references>"Cortical Surface-Based Analysis I: Segmentation and Surface Reconstruction", Dale, A.M., Fischl, B., Sereno, M.I. (1999) NeuroImage 9(2):179-194
