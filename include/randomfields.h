@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.11 $
+ *    $Author: greve $
+ *    $Date: 2016/12/06 20:25:48 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,7 @@
  */
 
 
-// $Id: randomfields.h,v 1.11 2011/03/02 00:04:10 nicks Exp $
+// $Id: randomfields.h,v 1.12 2016/12/06 20:25:48 greve Exp $
 
 #ifndef RANDOMFIELDS_H
 #define RANDOMFIELDS_H
@@ -91,6 +91,8 @@ double RFprobZClusterPThresh(double clustersize, double vpthresh,
 double RFprobZClusterSigThresh(double clustersize, double vsigthresh,
                                double fwhm, double searchsize, int dim);
 
+MRI *RFp2z(MRI *p, MRI *mask, MRI *z);
+MRI *RFz1toz2(MRI *z1, MRI *mask, MRI *z2);
 #endif
 
 
