@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/12/06 19:40:11 $
- *    $Revision: 1.130 $
+ *    $Date: 2016/12/08 17:26:03 $
+ *    $Revision: 1.133 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3898,7 +3898,8 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
     area->vertex_label_ind[n] = -1 ;   // means that this vertex is not in th elabel
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, NULL,&max_vno, coords);
-  area->mht = (void *)MHTfillVertexTableRes(mris, NULL, coords, 2*max_spacing) ;
+//  printf("max spacing = %2.1f\n", max_spacing) ;
+  area->mht = (void *)MHTfillVertexTableRes(mris, NULL, coords, max_spacing) ;
 
 
   // map unassigned vertices to surface locations
@@ -3967,7 +3968,7 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
 }
 
 int
-LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords)
+LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, int *pnvertices)
 {
   MHBT    *bucket ;
   MHB     *bin ;
@@ -3975,7 +3976,18 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords)
   LV      *lv ;
   double  min_dist, dist, x, y, z, vx, vy, vz, dx, dy, dz ;
   VERTEX    *v ;
+
+#if 0
+  {
+    vno = 110167 ;
+    v = &((MRI_SURFACE *)(area->mris))->vertices[vno] ;
+    MRISsurfaceRASToVoxel(area->mris, area->mri_template, v->whitex, v->whitey, v->whitez, &x, &y, &z) ;
+    printf("v %d: voxel (%2.1f, %2.1f, %2.1f) (%d %d %d)\n", vno, x, y, z, nint(x), nint(y), nint(z)) ;
+  }
+#endif
   
+  if (pnvertices)
+    *pnvertices = 0 ;
   x = y = z = -1 ;
   n = area->n_points++ ;
   lv = &area->lv[n] ;
@@ -3984,6 +3996,7 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords)
   lv->x = vx ;  lv->y = vy ;  lv->z = vz ;
   bucket = MHTgetBucket(area->mht, vx, vy, vz) ;
 
+//  printf("LabelAddVoxel(%d, %d, %d): coords = %2.1f, %2.1f, %2.1f, bucket = %lx\n", xv, yv, zv, vx, vy, vz, (long)bucket) ;
   if (bucket == NULL)
     return(-1) ;
 
@@ -4007,11 +4020,20 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords)
       min_vno = vno ;
     }
   }
-  if (min_vno >= 0)  // found one
+  if (min_vno >= 0 && area->vertex_label_ind[min_vno] < 0)  // found one that isn't in label
   {
     lv->vno = min_vno ;
     area->vertex_label_ind[min_vno] = n ;
+    if (pnvertices)
+    {
+      int n = *pnvertices ;
+      vertices[n] = min_vno ;
+      (*pnvertices)++ ;
+    }
+//    printf("LabelAddVoxel(%d, %d, %d): added min_dist vno %d at %d\n", xv, yv, zv, min_vno, n) ;
   }
+//  else
+//    printf("min dist vertex %d already in label\n", min_vno) ;
 
   // now add other vertices that also map to this voxel
   for (bin = bucket->bins, i = 0 ; i < bucket->nused ; i++, bin++) // find min dist vertex
@@ -4025,15 +4047,23 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords)
       
     MRISgetCoords(v, coords, &x, &y, &z);
     MRISsurfaceRASToVoxel(area->mris, area->mri_template, x, y, z, &vx, &vy, &vz) ;
-    if (nint(xv) == vx && nint(yv) == vy && nint(zv) == vz)
+    if ((xv == nint(vx)) && (yv == nint(vy)) && (zv == nint(vz)))
+    {
+      if (pnvertices)
+      {
+	int n = *pnvertices ;
+	vertices[n] = vno ;
+	(*pnvertices)++ ;
+      }
       LabelAddVertex(area, vno, coords) ;
+    }
   }
 
   return(min_vno) ;
 }
 
 int
-LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv)
+LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvertices)
 {
   int   n, ndeleted ;
   LV    *lv ;
@@ -4046,12 +4076,17 @@ LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv)
       lv->deleted = 1 ;
       if (lv->vno >= 0)
       {
+	if (vertices)
+	  vertices[ndeleted] = lv->vno ;
 	ndeleted++ ;
 	area->vertex_label_ind[lv->vno] = -1 ;
       }
     }
   }
 
+  if (pnvertices)
+    *pnvertices = ndeleted ;
+//  printf("LabelDeleteVoxel(%d, %d, %d): %d deleted\n", xv, yv, zv, ndeleted) ;
   return(ndeleted) ;
 }
 
@@ -4066,10 +4101,14 @@ LabelAddVertex(LABEL *area, int vno, int coords)
   x = y = z = -1 ;
 
   if (area->vertex_label_ind[vno] >= 0)
+  {
+//    printf("LabelAddVertex(%d): already in label\n",  vno) ;
     return(-1) ;  // already in the label
+  }
   if (area->n_points >= area->max_points)
     ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "LabelAddVertex: max points %d reached", area->n_points)) ;
 
+//  printf("LabelAddVertex(%d)\n",  vno) ;
   n = area->n_points++ ;
   lv = &area->lv[n] ;
   v = &((MRI_SURFACE *)(area->mris))->vertices[vno] ;
