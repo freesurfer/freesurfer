@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/11/21 03:01:17 $
- *    $Revision: 1.786 $
+ *    $Author: greve $
+ *    $Date: 2016/12/08 19:25:37 $
+ *    $Revision: 1.788 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -592,11 +592,11 @@ static int  mrisComputeNonlinearTangentialSpringTerm(MRI_SURFACE *mris,
                                                      double min_dist);
 static int   mrisComputeNormalSpringTerm(MRI_SURFACE *mris, double l_spring) ;
 static int   mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno) ;
-static int   mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno) ;
 static int   mrisComputeVariableSmoothnessCoefficients(MRI_SURFACE *mris,
     INTEGRATION_PARMS *parms);
 
 #if 0
+static int   mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno) ;
 static int   mrisSmoothNormalOutliers(MRI_SURFACE *mris, double nlen) ;
 static int   mrisDebugVertex(MRI_SURFACE *mris, int vno) ;
 static int    mrisComputeBoundaryTerm(MRI_SURFACE *mris,
@@ -784,7 +784,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.786 2016/11/21 03:01:17 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.788 2016/12/08 19:25:37 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -21055,6 +21055,8 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
               "Ii(%2.1f,%2.1f,%2.1f)=%2.1f\n",
               xw,yw,zw,val0, xwo, ywo,zwo,
               val_outside,xwi,ywi,zwi,val_inside);
+      if (val_inside < -20 && val_outside > -2)
+	DiagBreak() ;
       fprintf(stdout, "v %d intensity term:      (%2.3f, %2.3f, %2.3f), "
               "delV=%2.1f, delI=%2.0f, sigma=%2.1f, target=%2.1f\n", vno, dx, dy, dz, delV, delI, sigma, v->val) ;
     }
@@ -37813,7 +37815,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
                             nalways_missing = 0, local_max_found,
                             ngrad_max, ngrad, nmin, num_changed=0, i ;
   float   mean_border, mean_in, mean_out, dist, nx, ny, nz, mean_dist, step_size,
-          dists[MAX_SAMPLES], mri[MAX_SAMPLES], dm[MAX_SAMPLES] ;
+    dists[MAX_SAMPLES], mri[MAX_SAMPLES], dm[MAX_SAMPLES], dm2[MAX_SAMPLES] ;
   double  current_sigma ;
   VERTEX  *v ;
   FILE    *fp = NULL ;
@@ -38227,7 +38229,8 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
             DiagBreak() ;
           }
       }
-      max_mri = 0 ;
+      // find max in range, and also compute derivative and put it in dm array
+      max_mri = 0 ;   
       for (i = 0 ; i < len ; i++)
       {
         if (mri[i] > max_mri)
@@ -38243,30 +38246,48 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           dm[i] = 0 ;
         }
       }
+      // compute second derivative and look for local max in it
+      if (flags & IPFLAG_FIND_FIRST_WM_PEAK)
+      {
+	for (i = 0 ; i < len ; i++)
+	{
+	  if (i < len-1 && i > 0)
+	    dm2[i] = dm[i+1] - dm[i-1] ;
+	  else
+	    dm2[i] = 0 ;
+	}
+	if (vno == Gdiag_no)
+	{
+	  char fname[STRLEN] ;
+	  sprintf(fname, "v%d.%2.0f.dm.log", Gdiag_no, sigma*100) ;
+	  fp = fopen(fname, "w") ;
+	  for (i = 0 ; i < len ; i++)
+	    fprintf(fp, "%f %f\n", dm[i], dm2[i]) ;
+	  fclose(fp) ;
+	  DiagBreak() ;
+	}
+      }
 
       if (max_mag_val > 0 && max_mri/(1.15) > max_mag_val)
       {
         for (i = 0 ; i < len ; i++)
         {
+	  if (i == Gdiag_no2)
+	    DiagBreak() ;
           if (dm[i] > 0)
-          {
             continue ;
-          }
+
           peak = dm[i] ;
           for (num = 0, outside = 0.0, i1 = MAX(0,i-whalf) ; i1 <= MIN(i+whalf,len-1) ; i1++)
           {
             outside += dm[i1] ;
             num++ ;
             if (dm[i1] < dm[i])
-            {
               break ;  // not a local maxima in the negative direction
-            }
           }
           outside /= num ;
-          if (i1 > i+whalf)  // found a local maximum
-          {
+          if ((peak < 0) && (i1 > i+whalf))  // found a local maximum that is not a flat region of 0
             break ;
-          }
         }
         if (i < len-whalf && peak/outside > 1.5)   // it was a local max - set the target to here
         {
@@ -38277,6 +38298,46 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           max_mag = fabs(dm[i]) ;
           max_mag_dist = dists[i] ;
         }
+	else  // not a local max in 1st derivative - try second */
+	{
+	  for (i = 0 ; i < len ; i++)
+	  {
+	    if (i == Gdiag_no2)
+	      DiagBreak() ;
+	    if (dm2[i] >= 0)
+	      continue ;
+
+	    peak = dm2[i] ;
+	    for (num = 0, outside = 0.0, i1 = MAX(0,i-whalf) ; i1 <= MIN(i+whalf,len-1) ; i1++)
+	    {
+	      outside += dm2[i1] ;
+	      num++ ;
+	      if (dm2[i1] < dm2[i])
+		break ;  // not a local maxima in the negative direction
+	    }
+	    outside /= num ;
+	    if ((peak < 0) && (i1 > i+whalf))  // found a local maximum that is not a flat region of 0
+	      break ;
+	  }
+	  if (i < len-whalf && peak/outside > 1.5)   // it was a local max - set the target to here
+	  {
+	    if (vno == Gdiag_no)
+	      printf("!!!!!!!!! v %d: resetting target to local max at in second derivative %2.2f: I=%d, peak=%2.2f, outside=%2.2f, ratio=%2.2f\n",
+		     vno, dists[i], (int)mri[i], peak, outside, peak/outside) ;
+	    
+	    max_mag = (dm[i]) ;
+	    for (i1=i+1 ; i1 < len ; i1++)  // search forward for largest (negative) derivative
+	      if (max_mag > dm[i1])  // previous one was largest negative one
+		break ;
+	    if (i1 < len)
+	      i = i1-1 ;
+	    max_mag_val = mri[i] ;
+	    max_mag = fabs(dm[i]) ;
+	    max_mag_dist = dists[i] ;
+	  }
+	}
+	if (vno == Gdiag_no)
+	  DiagBreak() ;
       }
     }
 
@@ -40244,11 +40305,16 @@ mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno)
   mrisRemoveNeighborGradientComponent(mris, vno) ;
   if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz))
   {
-    mrisRemoveNormalGradientComponent(mris, vno) ;
-    if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz))
+    int n = 0 ;
+//    mrisRemoveNormalGradientComponent(mris, vno) ;
+    while (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz))
     {
-      v->odx = v->ody = v->odz = 0.0 ;
-      return(NO_ERROR) ;
+      if (n++ > 25)
+      {
+	v->odx = v->ody = v->odz = 0.0 ;
+	return(NO_ERROR) ;
+      }
+      v->odx *= .8 ; v->ody *= .8 ; v->odz *= 0.8 ;
     }
   }
 #else // NJS
@@ -42525,7 +42591,7 @@ mrisReadTriangleFile(const char *fname, double pct_over)
   fclose(fp);
   return(mris) ;
 }
-
+#if 0
 /*-----------------------------------------------------
   Parameters:
 
@@ -42552,6 +42618,7 @@ mrisRemoveNormalGradientComponent(MRI_SURFACE *mris, int vno)
 
   return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
   Parameters:
 
@@ -74769,11 +74836,14 @@ MRI *MRISarN(MRIS *surf, MRI *src, MRI *mask, MRI *arN, int N)
   MRISsmoothKernel() - 
   kernel = ACF^2
   -----------------------------------------------------------------------*/
-MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, int SqrFlag, MRI *out)
+MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *globkern, SURFHOPLIST ***pshl, MRI *out)
 {
   int vtx, **crslut, nvox;
   double *kern;
   int n,nhops;
+  SURFHOPLIST **shl;
+  struct timeb  mytimer;
+  int msecTime;
 
   if(mrikern && globkern){
     printf("ERROR: MRISsmoothKernel(): cannot spec both mrikern and globkern\n");
@@ -74805,27 +74875,40 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
   if(globkern) nhops = globkern->rows;
   printf("nhops = %d\n",nhops);
   kern = (double *) calloc(nhops,sizeof(double));
-  if(globkern) {
-    for(n = 0; n < nhops; n++) 
-      kern[n] = globkern->rptr[n+1][1];
-    if(SqrFlag){
-      for(n = 0; n < nhops; n++) 
-	kern[n] = kern[n]*kern[n];
-    }
-  }
+  if(globkern) for(n = 0; n < nhops; n++)  kern[n] = globkern->rptr[n+1][1];
 
   //Build LUT to map from col,row,slice to vertex
   crslut = MRIScrsLUT(surf,src);
 
+  if(*pshl == NULL){
+    TimerStart(&mytimer) ;
+    printf("Allocating shl %d\n",surf->nvertices);
+    shl = (SURFHOPLIST **)calloc(sizeof(SURFHOPLIST *),surf->nvertices);
+    #ifdef _OPENMP
+    #pragma omp parallel for 
+    #endif
+    for(vtx = 0; vtx < surf->nvertices; vtx++) {
+      // Create structure to manage the multiple hops for this vertex
+      shl[vtx] = SetSurfHopList(vtx, surf, nhops);
+    }
+    *pshl = shl;
+    msecTime = TimerStop(&mytimer) ;
+    printf("Done allocating shl %d, %g sec\n",surf->nvertices,msecTime/1000.0);
+  }
+  else  shl = *pshl;
+
+  printf("Starting loop over %d vertices\n",surf->nvertices);
+  TimerStart(&mytimer) ;
   #ifdef _OPENMP
   #pragma omp parallel for 
   #endif
   for (vtx = 0; vtx < surf->nvertices; vtx++) {
     int nnbrs, frame, nbrvtx, nthnbr, c,r,s;
     int cnbr, rnbr,snbr, nnbrs_actual;
-    double vtxval,*vkern,ksum,kvsum;
-    SURFHOPLIST *shl;
+    double vtxval=0,*vkern,ksum,kvsum;
     int nthhop;
+
+    //if(vtx%10000 == 0) printf("%4.1f ",(100.0*vtx)/surf->nvertices);
 
     if(surf->vertices[vtx].ripflag) continue;
     c = crslut[0][vtx];
@@ -74837,15 +74920,8 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
       vkern = (double *) calloc(nhops,sizeof(double));
       for(nthhop = 0; nthhop < nhops; nthhop++) 
 	vkern[nthhop] = MRIgetVoxVal(mrikern,vtx,0,0,nthhop);
-      if(SqrFlag){
-	for(nthhop = 0; nthhop < nhops; nthhop++) 
-	  vkern[nthhop] = vkern[nthhop]*vkern[nthhop];
-      }
     }
     else vkern = kern;
-
-    // Create structure to manage the multiple hops for this vertex
-    shl = SetSurfHopList(vtx, surf, nhops);
 
     for(frame = 0; frame < src->nframes; frame ++){
       // loop through hops and neighbors
@@ -74853,37 +74929,42 @@ MRI *MRISsmoothKernel(MRIS *surf, MRI *src, MRI *mask, MRI *mrikern, MATRIX *glo
       kvsum = 0;
       nnbrs_actual = 0;
       for(nthhop = 0; nthhop < nhops; nthhop++){
-	nnbrs = shl->nperhop[nthhop];
+	nnbrs = shl[vtx]->nperhop[nthhop];
 	// loop through the neighbors nthhop links away
 	for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
-	  nbrvtx = shl->vtxlist[nthhop][nthnbr];
+	  nbrvtx = shl[vtx]->vtxlist[nthhop][nthnbr];
 	  if(surf->vertices[nbrvtx].ripflag) continue;
 	  cnbr = crslut[0][nbrvtx];
 	  rnbr = crslut[1][nbrvtx];
 	  snbr = crslut[2][nbrvtx];
 	  if(mask) if(MRIgetVoxVal(mask,cnbr,rnbr,snbr,0) < 0.5) continue;
 	  vtxval = MRIFseq_vox(src,cnbr,rnbr,snbr,frame);
-	  kvsum += (vtxval*kern[nthhop]);
-	  if(frame ==0) ksum += kern[nthhop];
+	  kvsum += (vtxval*kern[nthhop]); 
+	  // fabs() wont make diff if low pass filter
+	  if(frame == 0) ksum += fabs(kern[nthhop]);
+	  //if(vtx==1031) printf("%d %d %d %g %g %g\n",nnbrs_actual,vtx,nbrvtx,vtxval,kern[nthhop],kvsum);
 	  nnbrs_actual ++;
 	} /* end loop over hop neighborhood */
       } /* end loop over hop */
+      // normalize - might not be a good idea for high-pass filtering
       if(nnbrs_actual != 0) MRIFseq_vox(out,c,r,s,frame) = (kvsum/ksum);
-      //printf("%5d %d %d %d %d%g\n",vtx,c,r,s,nnbrs_actual,ksum);
+      //if(vtx==1031)  printf("%5d %d %d %d %d %g %g %g\n",vtx,c,r,s,nnbrs_actual,kvsum,ksum,MRIFseq_vox(out,c,r,s,frame));
     } // end loop over frame
-    SurfHopListFree(&shl);
+    //SurfHopListFree(&shl[vtx]);
 
     if(mrikern) free(vkern);
   } /* end loop over vertex */
+  printf("\n");
+  msecTime = TimerStop(&mytimer) ;
+  printf("Finished loop over %d vertices, %d hops, t=%g sec\n",surf->nvertices,nhops,msecTime/1000.0);
+
+  printf("vtxval %g\n",MRIFseq_vox(out,1031,0,0,0));
 
   free(kern);
   MRIScrsLUTFree(crslut);
 
   return(out);
 }
-
-
-
 
 
 
