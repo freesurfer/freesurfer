@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/11/21 03:01:42 $
- *    $Revision: 1.165 $
+ *    $Date: 2016/12/08 17:06:36 $
+ *    $Revision: 1.166 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@
 #define  MAX_HISTO_BINS 1000
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.165 2016/11/21 03:01:42 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.166 2016/12/08 17:06:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -160,6 +160,7 @@ static char *read_pinch_fname = NULL ;
 static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
+static int erase_cerebellum = 0 ;
 static float nsigma = 2.0 ;
 static float dura_thresh = -1 ;
 static float nsigma_above = 3.0 ;
@@ -299,7 +300,7 @@ main(int argc, char *argv[])
   MRI *mri_filled, *mri_T1, *mri_labeled, *mri_T1_white = NULL, *mri_T1_pial ;
   float         max_len ;
   float         white_mean, white_std, gray_mean, gray_std ;
-  double        l_intensity, current_sigma, thresh = 0;
+  double        l_intensity, current_sigma, thresh = 0, spring_scale = 1;
   struct timeb  then ;
   M3D           *m3d ;
 
@@ -307,13 +308,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.165 2016/11/21 03:01:42 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.166 2016/12/08 17:06:36 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.165 2016/11/21 03:01:42 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.166 2016/12/08 17:06:36 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -520,6 +521,34 @@ main(int argc, char *argv[])
     if (mri_aseg == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s",
                 Progname, fname) ;
+    if (erase_cerebellum)
+    {
+      MRImaskLabel(mri_T1, mri_T1, mri_aseg, Left_Cerebellum_White_Matter, 0) ;
+      MRImaskLabel(mri_T1, mri_T1, mri_aseg, Left_Cerebellum_Cortex, 0) ;
+      MRImaskLabel(mri_T1, mri_T1, mri_aseg, Right_Cerebellum_White_Matter, 0) ;
+      MRImaskLabel(mri_T1, mri_T1, mri_aseg, Right_Cerebellum_Cortex, 0) ;
+
+      if (mri_T1_white && mri_T1_white != mri_T1)
+      {
+	MRImaskLabel(mri_T1_white, mri_T1_white, mri_aseg, Left_Cerebellum_White_Matter, 0) ;
+	MRImaskLabel(mri_T1_white, mri_T1_white, mri_aseg, Left_Cerebellum_Cortex, 0) ;
+	MRImaskLabel(mri_T1_white, mri_T1_white, mri_aseg, Right_Cerebellum_White_Matter, 0) ;
+	MRImaskLabel(mri_T1_white, mri_T1_white, mri_aseg, Right_Cerebellum_Cortex, 0) ;
+      }
+
+      if (mri_T1_pial && mri_T1_pial != mri_T1)
+      {
+	MRImaskLabel(mri_T1_pial, mri_T1_pial, mri_aseg, Left_Cerebellum_White_Matter, 0) ;
+	MRImaskLabel(mri_T1_pial, mri_T1_pial, mri_aseg, Left_Cerebellum_Cortex, 0) ;
+	MRImaskLabel(mri_T1_pial, mri_T1_pial, mri_aseg, Right_Cerebellum_White_Matter, 0) ;
+	MRImaskLabel(mri_T1_pial, mri_T1_pial, mri_aseg, Right_Cerebellum_Cortex, 0) ;
+      }
+
+      MRImaskLabel(mri_filled, mri_filled, mri_aseg, Left_Cerebellum_White_Matter, 0) ;
+      MRImaskLabel(mri_filled, mri_filled, mri_aseg, Left_Cerebellum_Cortex, 0) ;
+      MRImaskLabel(mri_filled, mri_filled, mri_aseg, Right_Cerebellum_White_Matter, 0) ;
+      MRImaskLabel(mri_filled, mri_filled, mri_aseg, Right_Cerebellum_Cortex, 0) ;
+    }
   }
   else
   {
@@ -625,6 +654,9 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
               Progname, fname) ;
+  spring_scale = 3/(mris->vg.xsize + mris->vg.ysize + mris->vg.zsize) ;
+  if (!FEQUAL(spring_scale, 1.0))
+    printf("spring scale = %2.2f\n", spring_scale) ;
   MRISaddCommandLine(mris, cmdline) ;
   if (mris->ct == NULL && ctab)  
     mris->ct = ctab ;  // add user-specified color table to structure
@@ -951,7 +983,9 @@ main(int argc, char *argv[])
               current_sigma) ;
       parms.n_averages = n_averages ;
       parms.l_tsmooth = l_tsmooth ;
+      parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_tspring *= spring_scale ;
       MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+      parms.l_tspring /= spring_scale ; parms.l_nspring /= spring_scale ; parms.l_tspring /= spring_scale ;
       MRISunrip(mris) ;
     }
 
@@ -1203,7 +1237,9 @@ main(int argc, char *argv[])
       sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
       MRISwriteValues(mris, fname);
     }
+    parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_tspring *= spring_scale ;
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+    parms.l_tspring /= spring_scale ; parms.l_nspring /= spring_scale ; parms.l_tspring /= spring_scale ;
     if (add)
     {
       for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
@@ -1557,6 +1593,14 @@ main(int argc, char *argv[])
         }
 
 
+	if (mri_aseg && erase_cerebellum)
+	{
+	  MRImaskLabel(mri_flair, mri_flair, mri_aseg, Left_Cerebellum_White_Matter, 0) ;
+	  MRImaskLabel(mri_flair, mri_flair, mri_aseg,  Left_Cerebellum_Cortex, 0) ;
+	  MRImaskLabel(mri_flair, mri_flair, mri_aseg,  Right_Cerebellum_White_Matter, 0) ;
+	  MRImaskLabel(mri_flair, mri_flair, mri_aseg, Right_Cerebellum_Cortex, 0) ;
+	}
+
         if (read_pinch_fname)
         {
           char marked_fname[STRLEN] ;
@@ -1568,16 +1612,12 @@ main(int argc, char *argv[])
         }
         else if (unpinch)
         {
-          if (mri_aseg)
+          if (mri_aseg && erase_cerebellum)
           {
-            MRImaskLabel(mri_flair, mri_flair, mri_aseg,
-                         Left_Cerebellum_White_Matter, 0) ;
-            MRImaskLabel(mri_flair, mri_flair, mri_aseg,
-                         Left_Cerebellum_Cortex, 0) ;
-            MRImaskLabel(mri_flair, mri_flair, mri_aseg,
-                         Right_Cerebellum_White_Matter, 0) ;
-            MRImaskLabel(mri_flair, mri_flair, mri_aseg,
-                         Right_Cerebellum_Cortex, 0) ;
+            MRImaskLabel(mri_flair, mri_flair, mri_aseg, Left_Cerebellum_White_Matter, 0) ;
+            MRImaskLabel(mri_flair, mri_flair, mri_aseg, Left_Cerebellum_Cortex, 0) ;
+            MRImaskLabel(mri_flair, mri_flair, mri_aseg, Right_Cerebellum_White_Matter, 0) ;
+            MRImaskLabel(mri_flair, mri_flair, mri_aseg, Right_Cerebellum_Cortex, 0) ;
           }
           find_and_mark_pinched_regions(mris, mri_flair,
                                         nsigma_below, nsigma_above) ;
@@ -1699,16 +1739,12 @@ main(int argc, char *argv[])
         }
         else if (unpinch)
         {
-          if (mri_aseg)
+          if (mri_aseg && erase_cerebellum)
           {
-            MRImaskLabel(mri_T2, mri_T2, mri_aseg,
-                         Left_Cerebellum_White_Matter, 0) ;
-            MRImaskLabel(mri_T2, mri_T2, mri_aseg,
-                         Left_Cerebellum_Cortex, 0) ;
-            MRImaskLabel(mri_T2, mri_T2, mri_aseg,
-                         Right_Cerebellum_White_Matter, 0) ;
-            MRImaskLabel(mri_T2, mri_T2, mri_aseg,
-                         Right_Cerebellum_Cortex, 0) ;
+            MRImaskLabel(mri_T2, mri_T2, mri_aseg, Left_Cerebellum_White_Matter, 0) ;
+            MRImaskLabel(mri_T2, mri_T2, mri_aseg, Left_Cerebellum_Cortex, 0) ;
+            MRImaskLabel(mri_T2, mri_T2, mri_aseg, Right_Cerebellum_White_Matter, 0) ;
+            MRImaskLabel(mri_T2, mri_T2, mri_aseg, Right_Cerebellum_Cortex, 0) ;
           }
           find_and_mark_pinched_regions(mris, mri_T2,
                                         nsigma_below, nsigma_above) ;
@@ -1780,7 +1816,7 @@ main(int argc, char *argv[])
           MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
         }
 //        parms.l_histo = 1 ;
-        parms.l_location = 1 ;
+        parms.l_location = .5 ;
         parms.l_intensity = 0 ;
 #if 0
         parms.l_nspring *= 0.1 ;
@@ -1980,13 +2016,16 @@ main(int argc, char *argv[])
 
 	for (k = 0 ; k < 3 ; k++)
 	{
+	  parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_tspring *= spring_scale ;
 	  MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
-	  MRIScomputeBorderValues
-	    (mris, mri_T1, mri_smooth, max_gray,
-	     max_gray_at_csf_border, min_gray_at_csf_border,
-	     min_csf,(max_csf+max_gray_at_csf_border)/2,
-	     current_sigma, 2*max_thickness, parms.fp,
-	     GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg) ;
+	  parms.l_tspring /= spring_scale ; parms.l_nspring /= spring_scale ; parms.l_tspring /= spring_scale ;
+	  if (!FZERO(parms.l_intensity))
+	    MRIScomputeBorderValues
+	      (mris, mri_T1, mri_smooth, max_gray,
+	       max_gray_at_csf_border, min_gray_at_csf_border,
+	       min_csf,(max_csf+max_gray_at_csf_border)/2,
+	       current_sigma, 2*max_thickness, parms.fp,
+	       GRAY_CSF, mri_mask, thresh, parms.flags,mri_aseg) ;
 	}
 	start_t = parms.start_t ;
 	*(&parms) = *(&saved_parms) ;
@@ -1997,7 +2036,9 @@ main(int argc, char *argv[])
 #endif
       }
 #endif
+      parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_tspring *= spring_scale ;
       MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+      parms.l_tspring /= spring_scale ; parms.l_nspring /= spring_scale ; parms.l_tspring /= spring_scale ;
       /*    parms.l_nspring = 0 ;*/
       if (!n_averages)
       {
@@ -2183,6 +2224,11 @@ get_option(int argc, char *argv[])
   {
     print_version() ;
   }
+  else if (!stricmp(option, "nocerebellum") || !stricmp(option, "-erasecerebellum") || !stricmp(option, "erase_cerebellum"))
+  {
+    erase_cerebellum = 1 ;
+    printf("erasing cerebellum in aseg before deformation\n") ;
+  }
   else if (!stricmp(option, "nbrs"))
   {
     nbrs = atoi(argv[2]) ;
@@ -2289,7 +2335,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "T2dura") || !stricmp(option, "T2"))
   {
-    parms.l_location = 1 ;
+    parms.l_location = .25 ;
     flair_or_T2_name = argv[2] ;
     fprintf(stderr,
             "refining pial surfaces placement using T2 volume %s\n", 
@@ -2347,6 +2393,7 @@ get_option(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE,
                 "%s: could not read segmentation volume %s", argv[2]) ;
     }
+    parms.grad_dir = 1 ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "write_aseg"))
