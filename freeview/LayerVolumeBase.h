@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/06 18:25:54 $
- *    $Revision: 1.24 $
+ *    $Date: 2016/12/08 16:56:52 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -108,7 +108,7 @@ signals:
   void FillValueChanged( double );
   void EraseValueChanged( double );
   void BrushRadiusChanged( int );
-  void BaseVoxelEdited(int nx, int ny, int nz, bool bAdd);
+  void BaseVoxelEdited(const QList<int>, bool bAdd);
 
 public slots:
   void SetFillValue( double fFill );
@@ -117,7 +117,7 @@ public slots:
 
 protected:
   bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
-  bool SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
+  QList<int> SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
   bool FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = false, bool ignore_exclusion = false );
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
   bool CloneVoxelByIndex( int* n, int nPlane );
