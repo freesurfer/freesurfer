@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/10/14 20:05:34 $
- *    $Revision: 1.17 $
+ *    $Date: 2016/12/06 20:25:48 $
+ *    $Revision: 1.18 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
 // Return the CVS version of this file.
 const char *RFSrcVersion(void)
 {
-  return("$Id: randomfields.c,v 1.17 2016/10/14 20:05:34 greve Exp $");
+  return("$Id: randomfields.c,v 1.18 2016/12/06 20:25:48 greve Exp $");
 }
 
 /*-------------------------------------------------------------------*/
@@ -286,12 +286,14 @@ MRI *RFp2Stat(MRI *p, RFS *rfs, MRI *binmask, MRI *rf)
         if (binmask != NULL)
         {
           m = (int)MRIgetVoxVal(binmask,c,r,s,0);
-          if (!m) continue;
+          if(m<0.5) continue;
         }
         for (f=0; f < rf->nframes; f++)
         {
           pval = MRIgetVoxVal(p,c,r,s,f);
-          v = RFp2StatVal(rfs,pval);
+	  // use fabs() in case it has been signed
+	  if(1-fabs(pval) < FLT_EPSILON ) v = 0; // not sure what to do here
+          else v = RFp2StatVal(rfs,fabs(pval));
           MRIsetVoxVal(rf,c,r,s,f,v);
         }
       }
@@ -728,6 +730,39 @@ double RFprobZClusterSigThresh(double clustersize, double vsigthresh,
   vzthresh = sc_cdf_gaussian_Qinv(vpthresh,1.0);
   pcluster = RFprobZCluster(clustersize, vzthresh,fwhm, searchsize, dim);
   return(pcluster);
+}
+
+/*!
+ \fn MRI *RFp2z(MRI *p, MRI *mask, MRI *z)
+ \brief Converts a p-value to a two-sided z
+ */
+MRI *RFp2z(MRI *p, MRI *mask, MRI *z)
+{
+  RFS *rfs;
+  rfs = RFspecInit(0,NULL);
+  rfs->name = strcpyalloc("gaussian");
+  rfs->params[0] = 0;
+  rfs->params[1] = 1;
+  z = RFp2Stat(p,rfs,mask,z);
+  return(z);
+}
+
+/*!
+ \fn MRI *RFz1toz2(MRI *z1, MRI *mask, MRI *z2)
+ \brief Converts a one-sided z-map to a two-sided z-map
+ */
+MRI *RFz1toz2(MRI *z1, MRI *mask, MRI *z2)
+{
+  MRI *p;
+  int TwoSidedFlag = 1;
+
+  // Convert to two-sided p-values
+  p = RFz2p(z1, mask, TwoSidedFlag, NULL);
+  // Now convert it back to z
+  z2 = RFp2z(p, mask, z2);
+
+  MRIfree(&p);
+  return(z2);
 }
 
 
