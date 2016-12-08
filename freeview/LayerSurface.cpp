@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/05 19:36:02 $
- *    $Revision: 1.128 $
+ *    $Date: 2016/12/08 17:41:15 $
+ *    $Revision: 1.130 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,7 +82,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_bLoadAll(false),
   m_nCurrentVertex(-1),
   m_bVisibleIn3D(true),
-  m_nActiveRGBMap(-1)
+  m_nActiveRGBMap(-1),
+  m_nColorDataCache(NULL)
 {
   m_strTypeNames.push_back( "Surface" );
   m_sPrimaryType = "Surface";
@@ -169,6 +170,9 @@ LayerSurface::~LayerSurface()
   {
     delete m_labels[i];
   }
+
+  if (m_nColorDataCache)
+      delete[] m_nColorDataCache;
 }
 
 void LayerSurface::SetRefVolume(LayerMRI *ref)
@@ -217,6 +221,7 @@ void LayerSurface::InitializeData()
     GetProperty()->SetPosition(pos);
     GetProperty()->SetEdgeThickness(0);
   }
+  m_nColorDataCache = new unsigned char[GetNumberOfVertices()*4];
 }
 
 bool LayerSurface::CreateFromMRIS(void *mris_ptr)
@@ -1372,7 +1377,7 @@ void LayerSurface::UpdateCorrelationOverlay()
   UpdateCorrelationOverlayAtVertex( nVertex );
 }
 
-void LayerSurface::UpdateOverlay( bool bAskRedraw )
+void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached )
 {
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
   vtkPolyDataMapper* wf_mapper = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
@@ -1400,40 +1405,48 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
         polydataWireframe->GetPointData()->AddArray( array );
       }
       unsigned char* data = new unsigned char[ nCount*4 ];
-      if (polydata->GetPointData()->GetScalars("Curvature") && m_nActiveRGBMap < 0)
-        GetProperty()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
+      if (pre_cached)
+          memcpy(data, m_nColorDataCache, nCount*4);
       else
       {
-        if (m_nActiveRGBMap < 0)
-        {
-            double* c = GetProperty()->GetBinaryColor();
-            int r = (int)(c[0]*255);
-            int g = (int)(c[1]*255);
-            int b = (int)(c[2]*255);
-            for (int i = 0; i < nCount; i++)
+          if (polydata->GetPointData()->GetScalars("Curvature") && m_nActiveRGBMap < 0)
+            GetProperty()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
+          else
+          {
+            if (m_nActiveRGBMap < 0)
             {
-              data[i*4] = r;
-              data[i*4+1] = g;
-              data[i*4+2] = b;
-              data[i*4+3] = 255;
+                double* c = GetProperty()->GetBinaryColor();
+                int r = (int)(c[0]*255);
+                int g = (int)(c[1]*255);
+                int b = (int)(c[2]*255);
+                for (int i = 0; i < nCount; i++)
+                {
+                  data[i*4] = r;
+                  data[i*4+1] = g;
+                  data[i*4+2] = b;
+                  data[i*4+3] = 255;
+                }
             }
-        }
-        else
-        {
-            QList<int>& rgb = m_rgbMaps[m_nActiveRGBMap].data;
-            for (int i = 0; i < nCount; i++)
+            else
             {
-                data[i*4] = rgb[i*3];
-                data[i*4+1] = rgb[i*3+1];
-                data[i*4+2] = rgb[i*3+2];
-                data[i*4+3] = 255;
+                QList<int>& rgb = m_rgbMaps[m_nActiveRGBMap].data;
+                for (int i = 0; i < nCount; i++)
+                {
+                    data[i*4] = rgb[i*3];
+                    data[i*4+1] = rgb[i*3+1];
+                    data[i*4+2] = rgb[i*3+2];
+                    data[i*4+3] = 255;
+                }
             }
-        }
+          }
+          if (GetProperty()->GetShowOverlay() && m_nActiveOverlay >= 0)
+            GetActiveOverlay()->MapOverlay( data );
+          if (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0)
+            GetActiveAnnotation()->MapAnnotationColor(data);
+
+          qDebug() << "cached.";
+          memcpy(m_nColorDataCache, data, nCount*4);
       }
-      if (GetProperty()->GetShowOverlay() && m_nActiveOverlay >= 0)
-        GetActiveOverlay()->MapOverlay( data );
-      if (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0)
-        GetActiveAnnotation()->MapAnnotationColor(data);
       MapLabels( data, nCount );
       for ( int i = 0; i < nCount; i++ )
       {
@@ -1473,28 +1486,35 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
           polydataWireframe->GetPointData()->AddArray( array );
         }
         unsigned char* data = new unsigned char[ nCount*4 ];
-        if (polydata->GetPointData()->GetScalars("Curvature") && m_nActiveRGBMap < 0)
-          GetProperty()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
+        if (pre_cached)
+            memcpy(data, m_nColorDataCache, nCount*4);
         else
         {
-            if (m_nActiveRGBMap < 0)
-            {
-                double* dColor = GetProperty()->GetBinaryColor();
-                unsigned char rgba[4] = { (int)(dColor[0]*255), (int)(dColor[1]*255), (int)(dColor[2]*255), 255 };
-                for (size_t i = 0; i < nCount*4; i+=4)
-                    memcpy(data+i, rgba, 4);
-            }
+            if (polydata->GetPointData()->GetScalars("Curvature") && m_nActiveRGBMap < 0)
+              GetProperty()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
             else
             {
-                QList<int>& rgb = m_rgbMaps[m_nActiveRGBMap].data;
-                for (size_t i = 0; i < nCount; i++)
+                if (m_nActiveRGBMap < 0)
                 {
-                    data[i*4] = rgb[i*3];
-                    data[i*4+1] = rgb[i*3+1];
-                    data[i*4+2] = rgb[i*3+2];
-                    data[i*4+3] = 255;
+                    double* dColor = GetProperty()->GetBinaryColor();
+                    unsigned char rgba[4] = { (int)(dColor[0]*255), (int)(dColor[1]*255), (int)(dColor[2]*255), 255 };
+                    for (size_t i = 0; i < nCount*4; i+=4)
+                        memcpy(data+i, rgba, 4);
+                }
+                else
+                {
+                    QList<int>& rgb = m_rgbMaps[m_nActiveRGBMap].data;
+                    for (size_t i = 0; i < nCount; i++)
+                    {
+                        data[i*4] = rgb[i*3];
+                        data[i*4+1] = rgb[i*3+1];
+                        data[i*4+2] = rgb[i*3+2];
+                        data[i*4+3] = 255;
+                    }
                 }
             }
+            qDebug() << "cached";
+            memcpy(m_nColorDataCache, data, nCount*4);
         }
 
         MapLabels( data, nCount );

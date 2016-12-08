@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/06 18:25:54 $
- *    $Revision: 1.23 $
+ *    $Date: 2016/12/08 17:41:15 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -81,7 +81,7 @@ public:
       return m_layerMappedSurface;
   }
 
-  void MapLabelColorData( unsigned char* colordata, int nVertexCount );
+  void MapLabelColorData( unsigned char* colordata, int nVertexCount);
 
 public slots:
   void UpdateOpacity();
@@ -91,7 +91,7 @@ public slots:
   void OnUpdateLabelRequested();
 
 protected slots:
-  void OnBaseVoxelEdited(int nx, int ny, int nz, bool bAdd);
+  void OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd);
 
 protected:
   bool DoRotate( std::vector<RotationElement>& rotations );
@@ -110,6 +110,7 @@ protected:
 
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];
+  int*      m_nVertexCache;
 };
 
 #endif

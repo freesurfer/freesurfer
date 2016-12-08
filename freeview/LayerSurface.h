@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/05 19:36:02 $
- *    $Revision: 1.80 $
+ *    $Date: 2016/12/08 17:41:15 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -297,7 +297,7 @@ public:
 
 public slots:
   void SetActiveSurface( int nSurfaceType );
-  void UpdateOverlay( bool bAskRedraw = true );
+  void UpdateOverlay(bool bAskRedraw = true, bool pre_cached = false);
   void SetLoadAllSurfaces(bool bLoadAll)
   {
     m_bLoadAll = bLoadAll;
@@ -433,6 +433,8 @@ protected:
   QList<LayerROI*>  m_mappedLabels;
 
   QStringList m_listSupFiles;
+
+  unsigned char*    m_nColorDataCache;
 };
 
 #endif

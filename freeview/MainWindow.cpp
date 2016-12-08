@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/05 19:36:02 $
- *    $Revision: 1.349 $
+ *    $Date: 2016/12/08 17:41:15 $
+ *    $Revision: 1.351 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1578,6 +1578,9 @@ void MainWindow::RunScript()
   {
     for (int i = 0; i < 3; i++)
       ((RenderView2D*)m_views[i])->CenterAtCursor();
+    double pos[3];
+    GetLayerCollection("MRI")->GetSlicePosition(pos);
+    m_views[3]->CenterAtWorldPosition(pos);
   }
   else if ( cmd == "setviewport" )
   {
@@ -2677,6 +2680,7 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
       else if (option == "centroid")
       {
         AddScript(QStringList("gotoroi"));
+        AddScript(QStringList("center"));
       }
       else
       {
@@ -4018,7 +4022,8 @@ void MainWindow::CommandZoom( const QStringList& cmd )
   double dValue = cmd[1].toDouble(&bOK);
   if ( bOK && m_nMainView >= 0 )
   {
-    m_views[m_nMainView]->Zoom( dValue );
+    for (int i = 0; i < 4; i++)
+        m_views[i]->Zoom( dValue );
   }
 }
 
