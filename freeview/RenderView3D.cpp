@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/08 02:14:32 $
- *    $Revision: 1.90.2.2 $
+ *    $Date: 2016/12/10 05:42:29 $
+ *    $Revision: 1.90.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,6 +55,7 @@
 #include "Interactor3DNavigate.h"
 #include "Interactor3DMeasure.h"
 #include "Interactor3DVolumeCrop.h"
+#include "Interactor3DROIEdit.h"
 #include "LayerVolumeTrack.h"
 #include <vtkScalarBarActor.h>
 #include "vtkRGBAColorTransferFunction.h"
@@ -103,6 +104,7 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
     m_interactorNavigate = new Interactor3DNavigate( this );
     m_interactorMeasure = new Interactor3DMeasure( this );
     m_interactorVolumeCrop = new Interactor3DVolumeCrop(this);
+    m_interactorROIEdit = new Interactor3DROIEdit(this);
     connect(m_cursor3D, SIGNAL(Updated()), this, SLOT(RequestRedraw()));
 
     m_actorScalarBar->SetNumberOfLabels( 4 );
@@ -131,6 +133,9 @@ void RenderView3D::SetInteractionMode( int nMode )
         break;
     case IM_VolumeCrop:
         m_interactor = m_interactorVolumeCrop;
+        break;
+    case IM_ROIEdit:
+        m_interactor = m_interactorROIEdit;
         break;
     default:
         m_interactor = m_interactorNavigate;
@@ -617,16 +622,17 @@ bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double 
     return false;
 }
 
-void RenderView3D::PickCurrentSurfaceVertex(int posX, int posY)
+int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* curSurf)
 {
     LayerCollection* lc_surface = MainWindow::GetMainWindow()->GetLayerCollection( "Surface" );
 
     this->setToolTip("");
     if ( lc_surface->IsEmpty() )
     {
-        return;
+        return -1;
     }
 
+    int nvo = -1;
     vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetRenderWindow()->GetInteractor()->GetPicker() );
     if ( picker )
     {
@@ -656,10 +662,16 @@ void RenderView3D::PickCurrentSurfaceVertex(int posX, int posY)
         if (layer)
         {
             LayerSurface* surf = (LayerSurface*)layer;
-            surf->SetCurrentVertex(surf->GetVertexIndexAtTarget(pos, NULL));
-            emit SurfaceVertexClicked(surf);
+            if (curSurf == NULL || curSurf == surf)
+                nvo = surf->GetVertexIndexAtTarget(pos, NULL);
+            if (curSurf == NULL)
+            {
+                surf->SetCurrentVertex(nvo);
+                emit SurfaceVertexClicked(surf);
+            }
         }
     }
+    return nvo;
 }
 
 void RenderView3D::DoUpdateConnectivityDisplay()

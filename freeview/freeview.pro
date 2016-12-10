@@ -161,7 +161,8 @@ SOURCES += \
     LabelTreeWidget.cpp \
     Json.cpp \
     SplineTreeWidget.cpp \
-    DialogLoadTransform.cpp
+    DialogLoadTransform.cpp \
+    Interactor3DROIEdit.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -312,7 +313,8 @@ HEADERS  += \
     LabelTreeWidget.h \
     Json.h \
     SplineTreeWidget.h \
-    DialogLoadTransform.h
+    DialogLoadTransform.h \
+    Interactor3DROIEdit.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \

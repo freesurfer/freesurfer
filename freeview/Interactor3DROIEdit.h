@@ -1,6 +1,6 @@
 /**
- * @file  ToolWindowROIEdit.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @file  Interactor3DROIEdit.h
+ * @brief Interactor for navigating in 3D render view.
  *
  */
 /*
@@ -8,7 +8,7 @@
  * CVS Revision Info:
  *    $Author: zkaufman $
  *    $Date: 2016/12/10 05:42:29 $
- *    $Revision: 1.4.4.1 $
+ *    $Revision: 1.1.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -20,37 +20,25 @@
  *
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
+ *
  */
-#ifndef TOOLWINDOWROIEDIT_H
-#define TOOLWINDOWROIEDIT_H
 
-#include <QWidget>
+#ifndef Interactor3DROIEdit_h
+#define Interactor3DROIEdit_h
 
-namespace Ui
+#include "Interactor3D.h"
+
+class Interactor3DROIEdit : public Interactor3D
 {
-class ToolWindowROIEdit;
-}
-
-class ToolWindowROIEdit : public QWidget
-{
-  Q_OBJECT
-
 public:
-  explicit ToolWindowROIEdit(QWidget *parent = 0);
-  ~ToolWindowROIEdit();
+  Interactor3DROIEdit( QObject* parent );
 
-  void UpdateWidgets();
+  virtual bool ProcessMouseDownEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseMoveEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseUpEvent( QMouseEvent* event, RenderView* view );
 
-signals:
-
-protected:
-  virtual void showEvent(QShowEvent *);
-
-protected slots:
-  void OnEditMode(QAction *act);
-
-private:
-  Ui::ToolWindowROIEdit *ui;
 };
 
-#endif // TOOLWINDOWROIEDIT_H
+#endif
+
+

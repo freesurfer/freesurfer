@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:40 $
- *    $Revision: 1.15.2.1 $
+ *    $Date: 2016/12/10 05:42:29 $
+ *    $Revision: 1.15.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,6 +51,8 @@ protected slots:
   void OnEditHeatscaleMin(const QString& text);
   void OnEditHeatscaleMax(const QString& text);
   void OnComboMappedSurface(int nIndex);
+  void OnButtonDilate();
+  void OnButtonErode();
 
 private:
   Ui::PanelROI *ui;

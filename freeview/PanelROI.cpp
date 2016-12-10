@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:40 $
- *    $Revision: 1.22.2.1 $
+ *    $Date: 2016/12/10 05:42:29 $
+ *    $Revision: 1.22.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include "LayerPropertyROI.h"
 #include "MyUtils.h"
 #include "LayerSurface.h"
+#include <QDebug>
 
 PanelROI::PanelROI(QWidget *parent) :
   PanelLayer("ROI", parent),
@@ -195,6 +196,7 @@ void PanelROI::DoUpdateWidgets()
       }
   }
   ui->comboBoxMappedSurface->setCurrentIndex(nIndex);
+  ui->widgetDilateErode->setVisible(nIndex > 0);
 
   BlockAllSignals( false );
 }
@@ -204,6 +206,23 @@ void PanelROI::OnComboMappedSurface(int nIndex)
     LayerSurface* surf = qobject_cast<LayerSurface*>(ui->comboBoxMappedSurface->itemData(nIndex).value<QObject*>());
     LayerROI* layer = GetCurrentLayer<LayerROI*>();
     if (layer)
+    {
         layer->SetMappedSurface(surf);
+        UpdateWidgets();
+    }
 }
 
+
+void PanelROI::OnButtonDilate()
+{
+    LayerROI* layer = GetCurrentLayer<LayerROI*>();
+    if (layer)
+        layer->Dilate(ui->spinBoxDilateTimes->value());
+}
+
+void PanelROI::OnButtonErode()
+{
+    LayerROI* layer = GetCurrentLayer<LayerROI*>();
+    if (layer)
+        layer->Erode(ui->spinBoxErodeTimes->value());
+}

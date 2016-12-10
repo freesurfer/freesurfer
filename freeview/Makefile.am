@@ -87,8 +87,9 @@ BUILT_SOURCES = \
 	moc_Interactor2DVolumeCrop.cpp \
 	moc_Interactor2DVolumeEdit.cpp \
 	moc_Interactor3D.cpp \
-	moc_Interactor3DMeasure.cpp \
-	moc_Layer.cpp \
+  moc_Interactor3DMeasure.cpp \
+  moc_Interactor3DROIEdit.cpp \
+  moc_Layer.cpp \
 	moc_LayerCollection.cpp \
 	moc_LayerDTI.cpp \
 	moc_LayerEditable.cpp \
@@ -223,8 +224,9 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	Interactor3D.cpp \
 	Interactor3DMeasure.cpp \
 	Interactor3DNavigate.cpp \
-	Interactor3DVolumeCrop.cpp \
-	Layer.cpp \
+  Interactor3DVolumeCrop.cpp \
+  Interactor3DROIEdit.cpp \
+  Layer.cpp \
 	LayerCollection.cpp \
 	LayerDTI.cpp \
 	LayerEditable.cpp \
@@ -361,8 +363,9 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	Interactor3D.h \
 	Interactor3DMeasure.h \
 	Interactor3DNavigate.h \
-	Interactor3DVolumeCrop.h \
-	Layer.h \
+  Interactor3DVolumeCrop.h \
+  Interactor3DROIEdit.h \
+  Layer.h \
 	LayerCollection.h \
 	LayerDTI.h \
 	LayerEditable.h \
