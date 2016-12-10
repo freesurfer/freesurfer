@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/08 17:41:15 $
- *    $Revision: 1.44 $
+ *    $Date: 2016/12/08 21:31:22 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,7 @@
 #include "MyUtils.h"
 #include "LayerMRI.h"
 #include "FSLabel.h"
+#include "FSSurface.h"
 #include <stdlib.h>
 #include <QDebug>
 #include "LayerSurface.h"
@@ -330,10 +331,8 @@ bool LayerROI::SaveROI( )
         return false;
     }
 
-    m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
-    if (m_layerMappedSurface)
-        m_label->FillUnassignedVertices(m_layerMappedSurface->GetSourceSurface(),
-                                        m_layerSource->GetSourceVolume(), CURRENT_VERTICES);
+    if (!m_layerMappedSurface)
+        m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
 
     bool bSaved = m_label->LabelWrite( m_sFilename.toAscii().data() );
     if ( !bSaved )
@@ -437,7 +436,7 @@ void LayerROI::SetMappedSurface(LayerSurface *s)
     {
         s->AddMappedLabel(this);
         //        connect(this, SIGNAL(Modified()), this, SLOT(OnUpdateLabelRequested()), Qt::UniqueConnection);
-        m_label->Initialize(m_layerSource->GetSourceVolume(), s->GetSourceSurface(), WHITE_VERTICES);
+        m_label->Initialize(m_layerSource->GetSourceVolume(), s->GetSourceSurface(), s->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
         OnUpdateLabelRequested();
     }
     else
@@ -507,3 +506,44 @@ void LayerROI::OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd)
         }
     }
 }
+
+void LayerROI::EditVertex(int nvo, bool bAdd)
+{
+    if (m_layerMappedSurface)
+    {
+        int ret = -1;
+        int coords = m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES;
+        if (bAdd)
+            ret = ::LabelAddVertex(m_label->GetRawLabel(), nvo, coords);
+        else
+            ret = ::LabelDeleteVertex(m_label->GetRawLabel(), nvo, coords);
+
+        if (ret >= 0)
+        {
+            qDebug() << "Vertex" << (bAdd?"added":"deleted") << nvo;
+            m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
+            m_layerMappedSurface->UpdateOverlay(true, true);
+        }
+    }
+}
+
+void LayerROI::Dilate(int nTimes)
+{
+    if (m_layerMappedSurface)
+    {
+        ::LabelDilate(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes);
+        m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
+        m_layerMappedSurface->UpdateOverlay(true, true);
+    }
+}
+
+void LayerROI::Erode(int nTimes)
+{
+    if (m_layerMappedSurface)
+    {
+        ::LabelErode(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes);
+        m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
+        m_layerMappedSurface->UpdateOverlay(true, true);
+    }
+}
+

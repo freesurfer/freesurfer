@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/10/07 19:18:17 $
- *    $Revision: 1.47 $
+ *    $Date: 2016/12/08 21:24:13 $
+ *    $Revision: 1.48 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@ class Cursor3D;
 class SurfaceRegion;
 class Interactor3DNavigate;
 class Interactor3DMeasure;
+class Interactor3DROIEdit;
 class Interactor3DVolumeCrop;
 class vtkAnnotatedCubeActor;
 class Layer;
@@ -104,7 +105,7 @@ public:
 
   void AddSurfaceROIPoint( int posX, int posY );
 
-  void PickCurrentSurfaceVertex(int posX, int posY);
+  int PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* curSurf = NULL);
 
   void ShowSlice(int nPlane, bool bshow);
 
@@ -176,6 +177,7 @@ private:
   Interactor3DNavigate*   m_interactorNavigate;
   Interactor3DMeasure*    m_interactorMeasure;
   Interactor3DVolumeCrop* m_interactorVolumeCrop;
+  Interactor3DROIEdit*    m_interactorROIEdit;
 };
 
 #endif // RENDERVIEW3D_H

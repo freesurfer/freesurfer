@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/08 17:41:15 $
- *    $Revision: 1.26 $
+ *    $Date: 2016/12/08 21:24:13 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -89,6 +89,9 @@ public slots:
   void UpdateThreshold();
   void SetMappedSurface(LayerSurface* s);
   void OnUpdateLabelRequested();
+  void EditVertex(int nvo, bool bAdd);
+  void Dilate(int nTimes = 1);
+  void Erode(int nTimes = 1);
 
 protected slots:
   void OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd);
