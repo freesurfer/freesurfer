@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/12/08 17:26:03 $
- *    $Revision: 1.133 $
+ *    $Date: 2016/12/10 22:57:09 $
+ *    $Revision: 1.134 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,6 +45,7 @@
 
 extern const char* Progname;
 
+static int update_vertex_indices(LABEL *area) ; ;
 static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno) ;
 static Transform *labelLoadTransform(const char *subject_name,
                                      const char *sdir,
@@ -2408,8 +2409,7 @@ LABEL *MaskSurfLabel(LABEL *lbl, MRI *SurfMask,
 int
 LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
 {
-  int n, num_new_lvs, label_vno, vno, neighbor_index, neighbor_vno, found;
-  LV* new_lv;
+  int     n, label_vno, vno, neighbor_index, neighbor_vno, found_nbr_off ;
   VERTEX *vn ;
 
   if (NULL == area)
@@ -2425,78 +2425,62 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelErode: num_times < 1"));
   }
 
+  MRISclearMarks(mris) ;
   for (n = 0; n < num_times; n++)
   {
-    /* Create an array of LVs the same size as the current label. */
-    new_lv = (LV*) calloc( area->n_points, sizeof(LV) );
-    if (NULL == new_lv)
-      ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,
-                                  "LabelErode: couldn't allocate new_lv"));
-    num_new_lvs = 0;
-
-    MRISclearMarks(mris) ;
     LabelMark(area, mris) ; // all vertices in label now have v->marked==1
 
     /* For each vertex in the label... */
     for (label_vno = 0; label_vno < area->n_points; label_vno++)
     {
+      if (area->lv[label_vno].deleted)
+	continue ;
       vno = area->lv[label_vno].vno;
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
 
       // check to see if we should not add this label
       // (if one of it's nbrs is not in label)
-      found = 0 ;
+      found_nbr_off = 0 ;
       for (neighbor_index = 0;
            neighbor_index < mris->vertices[vno].vnum; neighbor_index++)
       {
         neighbor_vno = mris->vertices[vno].v[neighbor_index];
         if (neighbor_vno == Gdiag_no)
-        {
           DiagBreak() ;
-        }
+
 
         /* Look for neighbor_vno in the label. */
         vn = &mris->vertices[neighbor_vno] ;
         if (vn->marked == 0) // found a nbr not in the label
         {
           if (neighbor_vno == Gdiag_no)
-          {
             DiagBreak() ;
-          }
-          found = 1;
+
+          found_nbr_off = 1;
           break;
         }
       }
 
-      if (found == 0) // all nbrs on - add it to the new label
-      {
-        memmove (&new_lv[num_new_lvs], &area->lv[label_vno],sizeof(LV));
-        num_new_lvs++;
-      }
+      if (found_nbr_off)      // all nbrs on - add it to the new label
+	area->lv[label_vno].deleted = 1 ;
     }
-
-    /* Point the label's lv to the new one and update the number of
-    points. */
-    free (area->lv);
-    area->lv = (LV*) realloc (new_lv, num_new_lvs * sizeof(LV));
-    area->n_points = num_new_lvs;
-    area->max_points = num_new_lvs;
+    LabelUnmark(area, mris) ;
   }
 
+  update_vertex_indices(area) ;
+//  printf("area->max_points = %d\n",area->max_points) ;
   MRISclearMarks(mris) ;
   return (NO_ERROR);
 }
 
 int
-LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
+LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times, int coords)
 {
-  int    n, num_new_lvs, vno, neighbor_index, neighbor_vno,found;
-  LV     *new_lv;
+  int    n, neighbor_index, neighbor_vno,found, vno;
   VERTEX *vn, *v ;
 
+//  printf("LabelDilate(%d, %d)\n", num_times, coords) ;
   if (NULL == area)
   {
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelDilate: NULL label"));
@@ -2510,35 +2494,20 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
     ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"LabelDilate: num_times < 1"));
   }
 
+  MRISclearMarks(mris) ;
   for (n = 0; n< num_times; n++ )
   {
-    MRISclearMarks(mris) ;
-    LabelMarkStats(area, mris) ; // all vertices in label now have v->marked==1
-
-    /* Allocate an LV array the size of the surface. */
-    new_lv = (LV*) calloc( mris->nvertices, sizeof(LV) );
-    if (NULL == new_lv)
-      ErrorReturn(ERROR_NOMEMORY,(ERROR_NOMEMORY,
-                                  "LabelDilate: couldn't allocate new_lv"));
-    num_new_lvs = 0;
-
-    /* Copy the existing lvs over first and increment our count. */
-    memmove (new_lv, area->lv, area->n_points * sizeof(LV));
-    num_new_lvs = area->n_points;
-
+    LabelMark(area, mris) ; // all vertices in label now have v->marked==1
 
     /* For each vertex in the label... */
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
       v = &mris->vertices[vno] ;
       if (vno == Gdiag_no)
-      {
         DiagBreak() ;
-      }
+
       if (v->marked == 1) // already in label
-      {
         continue ;
-      }
 
       // Check its neighbors. If any are in the label, add it
       found = 0 ;
@@ -2550,9 +2519,8 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
         if (vn->marked > 0)
         {
           if (neighbor_vno == Gdiag_no)
-          {
             DiagBreak() ;
-          }
+
           found = 1;
           break;
         }
@@ -2561,27 +2529,39 @@ LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times)
       // add it if at least one nbr was found that was in label
       if (found)
       {
+	LV *lv ;
+	int n ;
+
+	if (area->n_points >= area->max_points)
+	  LabelRealloc(area, nint(area->max_points*1.5)) ;
+
         if (vno == Gdiag_no)
-        {
           DiagBreak() ;
-        }
-        new_lv[num_new_lvs].vno = vno ;
-        new_lv[num_new_lvs].x = v->x;
-        new_lv[num_new_lvs].y = v->y;
-        new_lv[num_new_lvs].z = v->z;
-        new_lv[num_new_lvs].stat = v->stat;
-        num_new_lvs++;
+
+	n = area->n_points++ ;
+	lv = &area->lv[n] ;
+        lv->vno = vno ;
+        MRISgetCoords(v, coords, &lv->x, &lv->y, &lv->z) ;
+	if (area->vertex_label_ind)
+	  area->vertex_label_ind[vno] = n;
+	if (area->mris && area->mri_template)
+	{
+	  double xv, yv, zv ;
+	  MRISsurfaceRASToVoxel(area->mris, area->mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+	  lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
+	}
+//	printf("LabelDilate: added vertex %d (%d)\n", vno, n) ;
       }
     }
 
     /* Point the label's lv to the new one and update the number of
       points. */
-    free (area->lv);
-    area->lv = (LV*) realloc (new_lv, num_new_lvs * sizeof(LV));
-    area->n_points = num_new_lvs;
-    area->max_points = num_new_lvs;
+    LabelUnmark(area,mris) ;
   }
 
+  update_vertex_indices(area) ;
+
+//  printf("area->max_points = %d\n",area->max_points) ;
   return (NO_ERROR);
 }
 
@@ -3977,23 +3957,25 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, in
   double  min_dist, dist, x, y, z, vx, vy, vz, dx, dy, dz ;
   VERTEX    *v ;
 
-#if 0
-  {
-    vno = 110167 ;
-    v = &((MRI_SURFACE *)(area->mris))->vertices[vno] ;
-    MRISsurfaceRASToVoxel(area->mris, area->mri_template, v->whitex, v->whitey, v->whitez, &x, &y, &z) ;
-    printf("v %d: voxel (%2.1f, %2.1f, %2.1f) (%d %d %d)\n", vno, x, y, z, nint(x), nint(y), nint(z)) ;
-  }
-#endif
-  
+
   if (pnvertices)
     *pnvertices = 0 ;
-  x = y = z = -1 ;
+
+  if (area->n_points >= area->max_points)
+    LabelRealloc(area, nint(1.5*area->n_points)) ;
   n = area->n_points++ ;
   lv = &area->lv[n] ;
-  MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
   lv->xv = xv ; lv->yv = yv ; lv->zv = zv ;
-  lv->x = vx ;  lv->y = vy ;  lv->z = vz ;
+  if (area->mri_template)
+  {
+    MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
+    lv->x = vx ;  lv->y = vy ;  lv->z = vz ;
+  }
+
+  if (area->mht == NULL)
+    return(NO_ERROR) ;
+
+  x = y = z = -1 ;
   bucket = MHTgetBucket(area->mht, vx, vy, vz) ;
 
 //  printf("LabelAddVoxel(%d, %d, %d): coords = %2.1f, %2.1f, %2.1f, bucket = %lx\n", xv, yv, zv, vx, vy, vz, (long)bucket) ;
@@ -4071,6 +4053,8 @@ LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvert
   for (ndeleted = n = 0 ; n < area->n_points ; n++)
   {
     lv = &area->lv[n] ;
+    if (lv->deleted)
+      continue ;
     if (lv->xv == xv && lv->yv == yv && lv->zv == zv)
     {
       lv->deleted = 1 ;
@@ -4079,7 +4063,8 @@ LabelDeleteVoxel(LABEL *area, int xv, int yv, int zv, int *vertices, int *pnvert
 	if (vertices)
 	  vertices[ndeleted] = lv->vno ;
 	ndeleted++ ;
-	area->vertex_label_ind[lv->vno] = -1 ;
+	if (area->vertex_label_ind)
+	  area->vertex_label_ind[lv->vno] = -1 ;
       }
     }
   }
@@ -4106,7 +4091,8 @@ LabelAddVertex(LABEL *area, int vno, int coords)
     return(-1) ;  // already in the label
   }
   if (area->n_points >= area->max_points)
-    ErrorReturn(ERROR_NOMEMORY, (ERROR_NOMEMORY, "LabelAddVertex: max points %d reached", area->n_points)) ;
+    LabelRealloc(area, nint(1.5*area->n_points)) ;
+
 
 //  printf("LabelAddVertex(%d)\n",  vno) ;
   n = area->n_points++ ;
@@ -4133,5 +4119,22 @@ LabelDeleteVertex(LABEL *area, int vno, int coords)
   n = area->vertex_label_ind[vno] ;
   area->vertex_label_ind[vno] = -1 ;
   area->lv[n].deleted = 1 ;
+  return(NO_ERROR) ;
+}
+static int
+update_vertex_indices(LABEL *area) 
+{
+  int vno, n ;
+  MRI_SURFACE *mris = (MRI_SURFACE *)(area->mris) ;
+
+  if (area->vertex_label_ind == NULL || mris == NULL)
+    return(NO_ERROR) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    area->vertex_label_ind[vno] = -1 ;
+    
+  for (n = 0; n < area->n_points ; n++)
+    if (area->lv[n].deleted == 0)
+      area->vertex_label_ind[area->lv[n].vno] = n ;
   return(NO_ERROR) ;
 }

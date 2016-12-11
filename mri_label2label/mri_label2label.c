@@ -39,9 +39,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/08/02 20:18:11 $
- *    $Revision: 1.49 $
+ *    $Author: fischl $
+ *    $Date: 2016/12/10 22:57:43 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,7 +90,7 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-  "$Id: mri_label2label.c,v 1.49 2016/08/02 20:18:11 zkaufman Exp $";
+  "$Id: mri_label2label.c,v 1.50 2016/12/10 22:57:43 fischl Exp $";
 char *Progname = NULL;
 
 static int label_erode = 0 ;
@@ -190,7 +190,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv,
-     "$Id: mri_label2label.c,v 1.49 2016/08/02 20:18:11 zkaufman Exp $",
+     "$Id: mri_label2label.c,v 1.50 2016/12/10 22:57:43 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -695,18 +695,18 @@ int main(int argc, char **argv) {
     }
 
     if (label_dilate)
-      LabelDilate(trglabel, TrgSurf, label_dilate) ;
+      LabelDilate(trglabel, TrgSurf, label_dilate, CURRENT_VERTICES) ;
     if (label_erode)
       LabelErode(trglabel, TrgSurf, label_erode) ;
     if (label_close)
     {
-      LabelDilate(trglabel, TrgSurf, label_close) ;
+      LabelDilate(trglabel, TrgSurf, label_close, CURRENT_VERTICES) ;
       LabelErode(trglabel, TrgSurf, label_close) ;
     }
     if (label_open)
     {
       LabelErode(trglabel, TrgSurf, label_open) ;
-      LabelDilate(trglabel, TrgSurf, label_open) ;
+      LabelDilate(trglabel, TrgSurf, label_open, CURRENT_VERTICES) ;
     }
 
     if (OutMaskFile) {

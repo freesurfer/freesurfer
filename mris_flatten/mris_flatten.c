@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/02/10 14:14:55 $
- *    $Revision: 1.41 $
+ *    $Date: 2016/12/10 22:57:46 $
+ *    $Revision: 1.42 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@
 #include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_flatten.c,v 1.41 2012/02/10 14:14:55 fischl Exp $";
+  "$Id: mris_flatten.c,v 1.42 2016/12/10 22:57:46 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -270,7 +270,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_flatten.c,v 1.41 2012/02/10 14:14:55 fischl Exp $",
+           "$Id: mris_flatten.c,v 1.42 2016/12/10 22:57:46 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -386,7 +386,7 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_BADPARM, "%s: could not read label file %s",
                   Progname, label_fname) ;
 
-      LabelDilate(area, mris, dilate_label) ;
+      LabelDilate(area, mris, dilate_label, CURRENT_VERTICES) ;
       MRISclearMarks(mris) ;
       LabelMark(area, mris) ;
       MRISripUnmarked(mris) ;

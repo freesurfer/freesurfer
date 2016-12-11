@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/12/08 17:06:36 $
- *    $Revision: 1.166 $
+ *    $Date: 2016/12/10 22:57:53 $
+ *    $Revision: 1.167 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@
 #define  MAX_HISTO_BINS 1000
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.166 2016/12/08 17:06:36 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.167 2016/12/10 22:57:53 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -308,13 +308,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.166 2016/12/08 17:06:36 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.167 2016/12/10 22:57:53 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.166 2016/12/08 17:06:36 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.167 2016/12/10 22:57:53 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1331,7 +1331,7 @@ main(int argc, char *argv[])
         printf("writing cortex label to %s...\n", fname) ;
         LabelWrite(lcortex, fname) ;
       }
-      LabelDilate(lcortex, mris, 4) ;
+      LabelDilate(lcortex, mris, 4, CURRENT_VERTICES) ;
       if (Gdiag & DIAG_VERBOSE_ON)
       {
         sprintf(fname,

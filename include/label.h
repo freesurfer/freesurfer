@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/12/08 17:26:24 $
- *    $Revision: 1.68 $
+ *    $Date: 2016/12/10 22:57:22 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -142,7 +142,7 @@ LABEL   *MaskSurfLabel(LABEL *lbl,
                        float thresh, char *masksign, int frame);
 
 int     LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times);
-int     LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times);
+int     LabelDilate(LABEL *area, MRI_SURFACE *mris, int num_times, int coords);
 
 int   LabelSetStat(LABEL *area, float stat) ;
 int   LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which) ;

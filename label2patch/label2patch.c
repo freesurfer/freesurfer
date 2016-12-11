@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2015/03/24 19:14:52 $
- *    $Revision: 1.6 $
+ *    $Author: fischl $
+ *    $Date: 2016/12/10 22:57:39 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ main(int argc, char *argv[]) {
   LABEL        *label ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.6 2015/03/24 19:14:52 mreuter Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.7 2016/12/10 22:57:39 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -84,7 +84,7 @@ main(int argc, char *argv[]) {
     argc -= nargs ;
     argv += nargs ;
   }
-
+  
   if (argc < 4)
     print_usage() ;
 
@@ -110,12 +110,12 @@ main(int argc, char *argv[]) {
   MRIScomputeMetricProperties(mris) ;
   label = LabelRead(subject_name, label_name) ;
   if (ndilate)
-    LabelDilate(label, mris, ndilate) ;
+    LabelDilate(label, mris, ndilate, CURRENT_VERTICES) ;
   if (nerode)
     LabelErode(label, mris, nerode) ;
   if (nclose)
   {
-    LabelDilate(label, mris, nclose) ;
+    LabelDilate(label, mris, nclose, CURRENT_VERTICES) ;
     LabelErode(label, mris, nclose) ;
   }
 
