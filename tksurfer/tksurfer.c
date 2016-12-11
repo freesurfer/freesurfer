@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2013/07/10 19:06:26 $
- *    $Revision: 1.363 $
+ *    $Author: fischl $
+ *    $Date: 2016/12/11 14:33:47 $
+ *    $Revision: 1.364 $
  *
  * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -15412,7 +15412,8 @@ static void fill_color_array(MRI_SURFACE *mris, float *colors)
   {
     v = &mris->vertices[n];
 
-    r_base = g_base = b_base = 0;
+    r_base = g_base = 0 ; 
+    b_base = 255;
 
     if (mrismask)
     {
@@ -21611,7 +21612,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.363 2013/07/10 19:06:26 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.364 2016/12/11 14:33:47 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -29014,7 +29015,7 @@ int labl_dilate (int index)
     return (ERROR_BADPARM);
 
   /* Dilate the label. */
-  LabelDilate (labl_labels[index].label, mris, 1);
+  LabelDilate (labl_labels[index].label, mris, 1, CURRENT_VERTICES);
 
   /* Label is changed but we didn't remove points. */
   labl_changed (index, FALSE);

@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2013/09/10 13:05:23 $
- *    $Revision: 1.3 $
+ *    $Date: 2016/12/11 14:33:31 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,7 +33,7 @@
 */
 
 
-// $Id: mris_register_label_map.c,v 1.3 2013/09/10 13:05:23 fischl Exp $
+// $Id: mris_register_label_map.c,v 1.4 2016/12/11 14:33:31 fischl Exp $
 
 /*
   BEGINHELP
@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) ;
 static MRI *compute_mean_and_variance_across_frames(MRI **mri_label_avg, int nsubjects)  ;
 static MRI *compute_mean_and_variance(MRI **mri_label_avg, int nsubjects)  ;
 
-static char vcid[] = "$Id: mris_register_label_map.c,v 1.3 2013/09/10 13:05:23 fischl Exp $";
+static char vcid[] = "$Id: mris_register_label_map.c,v 1.4 2016/12/11 14:33:31 fischl Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -1671,12 +1671,12 @@ compute_desired_map(MRI_SURFACE *mris, int cols,  LABEL *area, int ndilate)
   {
     MRISclearMarks(mris) ; 
 #if 1
-    LabelDilate(area, mris, 1) ; // have a ring outside of label that isn't included in negative area
+    LabelDilate(area, mris, 1, CURRENT_VERTICES) ; // have a ring outside of label that isn't included in negative area
 #endif
     LabelMark(area, mris) ;   
     MRIScopyMarkedToMarked2(mris) ;
     
-    LabelDilate(area, mris, ndilate) ;
+    LabelDilate(area, mris, ndilate, CURRENT_VERTICES) ;
     LabelMark(area, mris) ;
     for (n = 0 ; n < mris->nvertices ; n++)
       if (mris->vertices[n].marked && mris->vertices[n].marked2 == 0)  // in ring around label

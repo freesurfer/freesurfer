@@ -1,14 +1,14 @@
 /**
  * @file  mris_segment.c
- * @brief segments cortical areas based on connectivity/correlation profiles.
+ * @brief segments cortical areas based on connectivity/correlation/intensity profiles
  *
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2015/02/05 23:34:41 $
- *    $Revision: 1.9 $
+ *    $Author: fischl $
+ *    $Date: 2016/12/11 14:33:41 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -46,7 +46,7 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 static void usage_exit(int code) ;
 
-static char cormat_name[STRLEN] = "cormat.mgz" ;
+static char data_name[STRLEN] = "cormat.mgz" ;
 static char label_name[STRLEN] = "MT.fsaverage5.label" ;
 static char prior_name[STRLEN] = "invivo.MT.logodds.mgz" ;
 
@@ -66,8 +66,9 @@ static char *hemi_name = "lh" ;
 static int prior_only = 0 ;
 static double cor_thresh = 0.6 ;
 static double logodds_thresh = .001 ;
+static char *data_dir = "fmri" ;
 
-#define MAX_SUBJECTS 500
+#define MAX_SUBJECTS 1500
 
 VECTOR *
 VectorFromMRIcol(MRI *mri_cmat, VECTOR *v, int col, int frame)
@@ -594,7 +595,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_segment.c,v 1.9 2015/02/05 23:34:41 zkaufman Exp $",
+           "$Id: mris_segment.c,v 1.10 2016/12/11 14:33:41 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -646,7 +647,7 @@ main(int argc, char *argv[])
   {
     subject = argv[sno+1] ;
     printf("processing subject %s, %d of %d\n", subject, sno+1, nsubjects) ;
-    sprintf(fname, "%s/%s/fmri/%s", sdir, subject, cormat_name) ;
+    sprintf(fname, "%s/%s/%s/%s", sdir, subject, data_dir, data_name) ;
     if (prior_only <= 0)
     {
       mri_frame = MRIread(fname) ;
@@ -704,7 +705,7 @@ main(int argc, char *argv[])
   MRIwrite(mri_out, out_fname) ;
   MRISsmoothMRI(mris, mri_out, nsmooth, NULL, mri_out) ;
   area = segment_area(mris, mri_out, NULL, prior_number_of_vertices) ;
-  LabelDilate(area, mris, nclose) ;
+  LabelDilate(area, mris, nclose, CURRENT_VERTICES) ;
   LabelErode(area, mris, nclose) ;
   FileNameRemoveExtension(out_fname, out_fname) ;
   LabelWrite(area, out_fname) ;
@@ -729,11 +730,11 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "cmat"))
+  if (!stricmp(option, "cmat") || !stricmp(option,"input") || !stricmp(option,"data"))
   {
     nargs = 1 ;
-    strcpy(cormat_name, argv[2]) ;
-    printf("using fmri/%s as name of correlation matrices\n", cormat_name) ;
+    strcpy(data_name, argv[2]) ;
+    printf("using fmri/%s as name of correlation matrices\n", data_name) ;
   }
   else if (!stricmp(option, "smooth"))
   {
@@ -761,6 +762,12 @@ get_option(int argc, char *argv[])
   {
     hemi_name = option ;
     printf("processing %s\n", hemi_name) ;
+  }
+  else if (!stricmp(option, "dir") || !stricmp(option, "input_dir"))
+  {
+    data_dir = argv[2] ;
+    printf("reading data from subdirectory %s\n", data_dir) ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "sdir"))
   {

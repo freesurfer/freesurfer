@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2015/11/30 20:34:27 $
- *    $Revision: 1.30 $
+ *    $Date: 2016/12/11 14:33:38 $
+ *    $Revision: 1.31 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -45,7 +45,7 @@
 #include "mrishash.h"
 
 static char vcid[] =
-  "$Id: mris_sample_parc.c,v 1.30 2015/11/30 20:34:27 fischl Exp $";
+  "$Id: mris_sample_parc.c,v 1.31 2016/12/11 14:33:38 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -102,7 +102,7 @@ main(int argc, char *argv[]) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_sample_parc.c,v 1.30 2015/11/30 20:34:27 fischl Exp $", "$Name:  $");
+                                 "$Id: mris_sample_parc.c,v 1.31 2016/12/11 14:33:38 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -319,7 +319,7 @@ main(int argc, char *argv[]) {
     area = LabelFromMarkedSurface(mris) ;
     if (nclose > 0)
     {
-      LabelDilate(area, mris, nclose) ;
+      LabelDilate(area, mris, nclose, CURRENT_VERTICES) ;
       LabelErode(area, mris, nclose) ;
     }
     LabelWrite(area, annot_name) ;
