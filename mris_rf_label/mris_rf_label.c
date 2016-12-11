@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2012/06/07 12:10:04 $
- *    $Revision: 1.1 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/11 15:13:53 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,7 +78,7 @@ main(int argc, char *argv[]) {
   VERTEX        *v ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_rf_label.c,v 1.1 2012/06/07 12:10:04 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_rf_label.c,v 1.2 2016/12/11 15:13:53 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -133,7 +133,7 @@ main(int argc, char *argv[]) {
     
     MRISclearMarks(mris) ;
     LabelFillUnassignedVertices(mris, training_label, CURRENT_VERTICES);
-    LabelDilate(training_label, mris, ndilates) ;
+    LabelDilate(training_label, mris, ndilates, CURRENT_VERTICES) ;
     LabelMark(training_label, mris) ;
   }
   else 

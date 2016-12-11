@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/05/06 12:25:11 $
- *    $Revision: 1.8 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/11 15:13:53 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -102,7 +102,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2flat.c,v 1.8 2011/05/06 12:25:11 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label2flat.c,v 1.9 2016/12/11 15:13:53 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -166,7 +166,7 @@ main(int argc, char *argv[]) {
     LabelToCanonical(area, mris) ;
   }
   if (ndilate > 0)
-    LabelDilate(area, mris, ndilate) ;
+    LabelDilate(area, mris, ndilate, CURRENT_VERTICES) ;
   if (nerode > 0)
     LabelErode(area, mris, nerode) ;
   if (output_subject)   /* write onto a different subject's flat map */

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/12/08 21:31:22 $
- *    $Revision: 1.46 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/11 15:13:53 $
+ *    $Revision: 1.47 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -531,7 +531,7 @@ void LayerROI::Dilate(int nTimes)
 {
     if (m_layerMappedSurface)
     {
-        ::LabelDilate(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes);
+        ::LabelDilate(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes, CURRENT_VERTICES);
         m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
         m_layerMappedSurface->UpdateOverlay(true, true);
     }
