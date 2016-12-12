@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:39 $
- *    $Revision: 1.17.2.2 $
+ *    $Date: 2016/12/12 14:15:26 $
+ *    $Revision: 1.17.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,7 @@
 #include <QObject>
 #include "vtkImageData.h"
 #include "vtkMatrix4x4.h"
+#include <QList>
 
 extern "C"
 {
@@ -64,8 +65,17 @@ public:
       return m_label;
   }
 
+  bool HasUndo();
+  bool HasRedo();
+
+  void Undo();
+  void Redo();
+  void SaveForUndo();
+
 protected:
   LABEL*   m_label;
+  QList<LABEL*> m_undoBuffer;
+  QList<LABEL*> m_redoBuffer;
   double   m_dStatsRange[2];
 };
 

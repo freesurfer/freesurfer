@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/18 16:16:57 $
- *    $Revision: 1.49.2.1 $
+ *    $Date: 2016/12/12 14:15:26 $
+ *    $Revision: 1.49.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -227,6 +227,9 @@ public:
   }
 
   bool GetVertexAtSurfaceType(int nVertex, int surface_type, double* v_out);
+
+  bool FindPath(int* vert_vno, int num_vno,
+                int* path, int* path_length);
 
 protected:
   bool InitializeData(const QString& vector_filename = QString(),

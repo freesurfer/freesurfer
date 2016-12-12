@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl (June 16, 1998)
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2015/11/09 04:18:29 $
- *    $Revision: 1.22 $
+ *    $Date: 2016/12/12 14:15:27 $
+ *    $Revision: 1.22.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,7 +49,7 @@
 #include "registerio.h"
 
 static char vcid[] = 
-"$Id: mris_refine_surfaces.c,v 1.22 2015/11/09 04:18:29 zkaufman Exp $";
+"$Id: mris_refine_surfaces.c,v 1.22.2.1 2016/12/12 14:15:27 zkaufman Exp $";
 
 int debug__ = 0; /// tosa debug
 
@@ -199,8 +199,8 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_refine_surfaces.c,v 1.22 2015/11/09 04:18:29 zkaufman Exp $", 
-     "$Name: stable6 $");
+     "$Id: mris_refine_surfaces.c,v 1.22.2.1 2016/12/12 14:15:27 zkaufman Exp $", 
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -456,7 +456,7 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, 
                 "%s: could not read hires label %s", Progname, argv[2]) ;
     if (num_dilate > 0)
-      LabelDilate(hires_label, mris, num_dilate) ;
+      LabelDilate(hires_label, mris, num_dilate, CURRENT_VERTICES) ;
 
     for (i = 0 ; i < num_other_labels ; i++) {
       LABEL *olabel ;
@@ -467,7 +467,7 @@ main(int argc, char *argv[]) {
         ErrorExit(ERROR_NOFILE, 
                   "%s: could not read label %s", Progname, fname) ;
       if (num_dilate > 0)
-        LabelDilate(olabel, mris, num_dilate) ;
+        LabelDilate(olabel, mris, num_dilate, CURRENT_VERTICES) ;
       hires_label = LabelCombine(olabel, hires_label) ;
       LabelFree(&olabel) ;
     }

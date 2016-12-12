@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/10 05:42:29 $
- *    $Revision: 1.21.2.2 $
+ *    $Date: 2016/12/12 14:15:26 $
+ *    $Revision: 1.21.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,6 +60,14 @@ public:
   void SetVisible( bool bVisible = true );
   bool IsVisible();
 
+  virtual bool HasUndo();
+  virtual bool HasRedo();
+
+  virtual void Undo();
+  virtual void Redo();
+
+  virtual void SaveForUndo(int nPlane = 0);
+
   inline LayerPropertyROI* GetProperty()
   {
     return (LayerPropertyROI*)mProperty;
@@ -90,8 +98,11 @@ public slots:
   void SetMappedSurface(LayerSurface* s);
   void OnUpdateLabelRequested();
   void EditVertex(int nvo, bool bAdd);
+  void EditVertex(const QList<int> list_nvo, bool bAdd);
   void Dilate(int nTimes = 1);
   void Erode(int nTimes = 1);
+  void Open(int nTimes = 1);
+  void Close(int nTimes = 1);
 
 protected slots:
   void OnBaseVoxelEdited(const QList<int> voxel_list, bool bAdd);

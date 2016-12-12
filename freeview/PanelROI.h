@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/10 05:42:29 $
- *    $Revision: 1.15.2.2 $
+ *    $Date: 2016/12/12 14:15:26 $
+ *    $Revision: 1.15.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,6 +53,8 @@ protected slots:
   void OnComboMappedSurface(int nIndex);
   void OnButtonDilate();
   void OnButtonErode();
+  void OnButtonOpen();
+  void OnButtonClose();
 
 private:
   Ui::PanelROI *ui;

@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:32 $
- *    $Revision: 1.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/12 14:15:27 $
+ *    $Revision: 1.5.4.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -51,7 +51,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: mris_label_calc.cpp,v 1.5 2011/03/02 00:04:32 nicks Exp $";
+//static char vcid[] = "$Id: mris_label_calc.cpp,v 1.5.4.1 2016/12/12 14:15:27 zkaufman Exp $";
 char *Progname = NULL;
 
 void printUsage()
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 {
 
 //   // Default initialization
-//   int nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+//   int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
 //   if (nargs && argc - nargs == 1) exit (0);
 //   argc -= nargs;
   Progname = argv[0] ;
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 	  string of   = argv[5];
 	  LABEL *l1   = LabelRead(NULL,if1.c_str());
 		MRIS *surf  = MRISread(if2.c_str());
-		if (LabelDilate(l1,surf,it) == NO_ERROR)
+		if (LabelDilate(l1,surf,it, CURRENT_VERTICES) == NO_ERROR)
 		{
 		  l1->subject_name[0]='\0';
 		  LabelWrite(l1,of.c_str());		  

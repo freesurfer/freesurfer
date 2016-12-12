@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:39 $
- *    $Revision: 1.31.2.2 $
+ *    $Date: 2016/12/12 14:15:26 $
+ *    $Revision: 1.31.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,10 @@ FSLabel::~FSLabel()
   {
     ::LabelFree( &m_label );
   }
+  foreach (LABEL* l, m_undoBuffer)
+      ::LabelFree(&l);
+  foreach (LABEL* l, m_redoBuffer)
+      ::LabelFree(&l);
 }
 
 bool FSLabel::LabelRead( const QString& filename )
@@ -276,7 +280,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
 
   for ( int i = 0; i < m_label->n_points; i++ )
   {
-    if (m_label->lv[i].stat >= threshold || m_dStatsRange[0] <= 0)
+    if (!m_label->lv[i].deleted && (m_label->lv[i].stat >= threshold || m_dStatsRange[0] <= 0))
     {
       pos[0] = m_label->lv[i].x;
       pos[1] = m_label->lv[i].y;
@@ -359,4 +363,51 @@ void FSLabel::EditVoxel(int nx, int ny, int nz, bool bAdd, int* vertices, int* p
         ::LabelAddVoxel(m_label, nx, ny, nz, WHITE_VERTICES, vertices, pnum);
     else
         ::LabelDeleteVoxel(m_label, nx, ny, nz, vertices, pnum);
+}
+
+bool FSLabel::HasUndo()
+{
+    return !m_undoBuffer.isEmpty();
+}
+
+bool FSLabel::HasRedo()
+{
+    return !m_redoBuffer.isEmpty();
+}
+
+void FSLabel::Undo()
+{
+    if (!m_undoBuffer.isEmpty())
+    {
+        LABEL* l = m_undoBuffer.last();
+        LABEL* l2 = ::LabelCopy(m_label, NULL);
+        ::LabelCopy(l, m_label);
+        ::LabelFree(&l);
+        m_undoBuffer.removeLast();
+        m_redoBuffer << l2;
+    }
+}
+
+void FSLabel::Redo()
+{
+    if (!m_redoBuffer.isEmpty())
+    {
+        LABEL* l = m_redoBuffer.last();
+        LABEL* l2 = ::LabelCopy(m_label, NULL);
+        ::LabelCopy(l, m_label);
+        ::LabelFree(&l);
+        m_redoBuffer.removeLast();
+        m_undoBuffer << l2;
+    }
+}
+
+void FSLabel::SaveForUndo()
+{
+    LABEL* l = ::LabelCopy(m_label, NULL);
+    m_undoBuffer << l;
+
+    // clear redo buffer
+    foreach (LABEL* l, m_redoBuffer)
+        ::LabelFree(&l);
+    m_redoBuffer.clear();
 }

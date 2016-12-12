@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/05/09 15:30:45 $
- *    $Revision: 1.2 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/12 14:15:27 $
+ *    $Revision: 1.2.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,7 +92,7 @@ main(int argc, char *argv[]) {
   int           *training_classes, ntraining, n_omp_threads;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_rf_train.c,v 1.2 2016/05/09 15:30:45 fischl Exp $", "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_rf_train.c,v 1.2.2.1 2016/12/12 14:15:27 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -183,7 +183,7 @@ main(int argc, char *argv[]) {
 
     MRISclearMarks(mris[sno]) ;
     LabelFillUnassignedVertices(mris[sno], training_label, CURRENT_VERTICES);
-    LabelDilate(training_label, mris[sno], ndilates) ;
+    LabelDilate(training_label, mris[sno], ndilates, CURRENT_VERTICES) ;
     LabelMark(training_label, mris[sno]) ;
     LabelFree(&training_label) ;
 

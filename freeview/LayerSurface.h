@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:39 $
- *    $Revision: 1.78.2.2 $
+ *    $Date: 2016/12/12 14:15:26 $
+ *    $Revision: 1.78.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -339,6 +339,8 @@ public slots:
   void AddMappedLabel(LayerROI* label);
 
   void RemoveMappedLabel(QObject* label_in);
+
+  QList<int> FindPath(const QList<int> seeds);
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );

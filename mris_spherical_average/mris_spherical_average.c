@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/08/12 16:54:45 $
- *    $Revision: 1.35.2.1 $
+ *    $Date: 2016/12/12 14:15:27 $
+ *    $Revision: 1.35.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,7 +44,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.35.2.1 2016/08/12 16:54:45 zkaufman Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.35.2.2 2016/12/12 14:15:27 zkaufman Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -95,10 +95,10 @@ main(int argc, char *argv[])
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.35.2.1 2016/08/12 16:54:45 zkaufman Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.35.2.2 2016/12/12 14:15:27 zkaufman Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.35.2.1 2016/08/12 16:54:45 zkaufman Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.35.2.2 2016/12/12 14:15:27 zkaufman Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
     exit (0);
@@ -290,7 +290,7 @@ main(int argc, char *argv[])
 		      Progname, mask_name, argv[i], fname);
 	else
 	{
-	  LabelDilate(area, mris, dilate) ;
+	  LabelDilate(area, mris, dilate, CURRENT_VERTICES) ;
 	  LabelSetVals(mris, area, 0) ;
 	  LabelFree(&area) ;
 	}
@@ -561,7 +561,7 @@ main(int argc, char *argv[])
       }
       if (dilate > 0)
       {
-        LabelDilate(area, mris, dilate) ;
+        LabelDilate(area, mris, dilate, CURRENT_VERTICES) ;
       }
       if (erode > 0)
       {
