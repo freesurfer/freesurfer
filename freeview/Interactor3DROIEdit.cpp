@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/08 21:47:08 $
- *    $Revision: 1.1 $
+ *    $Date: 2016/12/11 16:04:03 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,40 +33,73 @@
 #include "CursorFactory.h"
 
 Interactor3DROIEdit::Interactor3DROIEdit(QObject* parent) :
-  Interactor3D(parent)
+    Interactor3D(parent), m_bEditing(false), m_nPrevVertex(-1)
 {
 
 }
 
 bool Interactor3DROIEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderView* renderview )
 {
-  RenderView3D* view = ( RenderView3D* )renderview;
-  if (event->button() == Qt::LeftButton && !(event->modifiers() & CONTROL_MODIFIER))
-  {
-      LayerROI* roi = (LayerROI*)MainWindow::GetMainWindow()->GetActiveLayer("ROI");
-      if (roi && roi->GetMappedSurface())
-      {
-         int nvo = view->PickCurrentSurfaceVertex(event->x(), event->y(), roi->GetMappedSurface());
-         if (nvo >= 0)
-         {
-             roi->EditVertex(nvo, !(event->modifiers() & Qt::ShiftModifier));
-         }
-      }
-  }
+    RenderView3D* view = ( RenderView3D* )renderview;
+    if (event->button() == Qt::LeftButton && !(event->modifiers() & CONTROL_MODIFIER))
+    {
+        m_bEditing = true;
+        m_nPrevVertex = -1;
+        LayerROI* roi = (LayerROI*)MainWindow::GetMainWindow()->GetActiveLayer("ROI");
+        if (roi && roi->GetMappedSurface())
+        {
+            roi->SaveForUndo();
+            int nvo = view->PickCurrentSurfaceVertex(event->x(), event->y(), roi->GetMappedSurface());
+            if (nvo >= 0)
+            {
+                m_nPrevVertex = nvo;
+                roi->EditVertex(nvo, !(event->modifiers() & Qt::ShiftModifier));
+                return false;
+            }
+        }
+    }
 
-  return Interactor3D::ProcessMouseDownEvent( event, renderview );
+    return Interactor3D::ProcessMouseDownEvent( event, renderview );
 }
 
-bool Interactor3DROIEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* view )
+bool Interactor3DROIEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* renderview )
 {
-  bool ret = Interactor3D::ProcessMouseMoveEvent(event, view);
-  view->setCursor( CursorFactory::CursorPencil );
-  return ret;
+    RenderView3D* view = ( RenderView3D* )renderview;
+    if (m_bEditing)
+    {
+        LayerROI* roi = (LayerROI*)MainWindow::GetMainWindow()->GetActiveLayer("ROI");
+        if (roi && roi->GetMappedSurface())
+        {
+            int nvo = view->PickCurrentSurfaceVertex(event->x(), event->y(), roi->GetMappedSurface());
+            if (nvo >= 0)
+            {
+                if (m_nPrevVertex >= 0 && m_nPrevVertex != nvo)
+                {
+                    LayerSurface* surf = roi->GetMappedSurface();
+                    if (surf)
+                    {
+                        QList<int> seeds;
+                        seeds << m_nPrevVertex << nvo;
+                        roi->EditVertex(surf->FindPath(seeds), !(event->modifiers() & Qt::ShiftModifier));
+                    }
+                }
+                else
+                    roi->EditVertex(nvo, !(event->modifiers() & Qt::ShiftModifier));
+                m_nPrevVertex = nvo;
+            }
+        }
+        renderview->setCursor( CursorFactory::CursorPencil );
+        return false;
+    }
+    bool ret = Interactor3D::ProcessMouseMoveEvent(event, renderview);
+    renderview->setCursor( CursorFactory::CursorPencil );
+    return ret;
 }
 
-bool Interactor3DROIEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView* view )
+bool Interactor3DROIEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
 {
-    bool ret = Interactor3D::ProcessMouseUpEvent(event, view);
-    view->setCursor( CursorFactory::CursorPencil );
+    m_bEditing = false;
+    bool ret = Interactor3D::ProcessMouseUpEvent(event, renderview);
+    renderview->setCursor( CursorFactory::CursorPencil );
     return ret;
 }

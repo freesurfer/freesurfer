@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/08 21:47:08 $
- *    $Revision: 1.25 $
+ *    $Date: 2016/12/11 16:04:03 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -226,3 +226,18 @@ void PanelROI::OnButtonErode()
     if (layer)
         layer->Erode(ui->spinBoxErodeTimes->value());
 }
+
+void PanelROI::OnButtonOpen()
+{
+    LayerROI* layer = GetCurrentLayer<LayerROI*>();
+    if (layer)
+        layer->Open(ui->spinBoxOpenTimes->value());
+}
+
+void PanelROI::OnButtonClose()
+{
+    LayerROI* layer = GetCurrentLayer<LayerROI*>();
+    if (layer)
+        layer->Close(ui->spinBoxCloseTimes->value());
+}
+

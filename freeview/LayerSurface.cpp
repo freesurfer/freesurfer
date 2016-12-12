@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/08 17:41:15 $
- *    $Revision: 1.130 $
+ *    $Date: 2016/12/11 16:04:03 $
+ *    $Revision: 1.131 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1513,7 +1513,6 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached )
                     }
                 }
             }
-            qDebug() << "cached";
             memcpy(m_nColorDataCache, data, nCount*4);
         }
 
@@ -2200,4 +2199,21 @@ void LayerSurface::RemoveMappedLabel(QObject *label_in)
 void LayerSurface::UpdateMappedLabels()
 {
 
+}
+
+QList<int> LayerSurface::FindPath(const QList<int> seeds)
+{
+    int* vert_vno = new int[seeds.size()];
+    for (int i = 0; i < seeds.size(); i++)
+        vert_vno[i] = seeds[i];
+
+    int path[1000], path_length = 0;
+    QList<int> out_vno;
+    if (m_surfaceSource->FindPath(vert_vno, seeds.size(), path, &path_length))
+    {
+        for (int i = 0; i < path_length; i++)
+            out_vno << path[i];
+    }
+    delete[] vert_vno;
+    return out_vno;
 }

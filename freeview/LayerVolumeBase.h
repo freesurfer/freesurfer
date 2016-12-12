@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/08 16:56:52 $
- *    $Revision: 1.25 $
+ *    $Date: 2016/12/11 16:04:03 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,17 +53,17 @@ public:
   void SetLiveWireByRAS( double* ras1, double* raw2, int nPlane );
   std::vector<double> GetLiveWirePointsByRAS( double* pt1, double* pt2, int nPlane );
 
-  bool HasUndo();
-  bool HasRedo();
+  virtual bool HasUndo();
+  virtual bool HasRedo();
 
-  void Undo();
-  void Redo();
+  virtual void Undo();
+  virtual void Redo();
 
   void Copy( int nPlane );
   void Paste( int nPlane );
   bool CopyStructure( int nPlane, double* ras );
 
-  void SaveForUndo( int nPlane );
+  virtual void SaveForUndo( int nPlane = 0 );
 
   double GetFillValue();
 

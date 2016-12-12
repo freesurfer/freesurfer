@@ -126,6 +126,126 @@
         </property>
        </widget>
       </item>
+      <item row="8" column="1">
+       <widget class="QWidget" name="widgetDilateErode" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>20</height>
+         </size>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <property name="leftMargin">
+          <number>6</number>
+         </property>
+         <property name="topMargin">
+          <number>2</number>
+         </property>
+         <property name="rightMargin">
+          <number>6</number>
+         </property>
+         <property name="bottomMargin">
+          <number>2</number>
+         </property>
+         <item row="0" column="2">
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>times</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QPushButton" name="pushButtonDilate">
+           <property name="text">
+            <string>Dilate</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QPushButton" name="pushButtonOpen">
+           <property name="text">
+            <string>Open</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QPushButton" name="pushButtonErode">
+           <property name="text">
+            <string>Erode</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QSpinBox" name="spinBoxDilateTimes">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>100</number>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>times</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QSpinBox" name="spinBoxErodeTimes">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>100</number>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QPushButton" name="pushButtonClose">
+           <property name="text">
+            <string>Close</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QSpinBox" name="spinBoxOpenTimes">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>100</number>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QSpinBox" name="spinBoxCloseTimes">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>100</number>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>times</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="2">
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>times</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
       <item row="4" column="0">
        <widget class="QLabel" name="labelHeatscaleRange">
         <property name="text">
@@ -262,78 +382,6 @@
          </spacer>
         </item>
        </layout>
-      </item>
-      <item row="8" column="1">
-       <widget class="QWidget" name="widgetDilateErode" native="true">
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>20</height>
-         </size>
-        </property>
-        <layout class="QGridLayout" name="gridLayout_2">
-         <property name="leftMargin">
-          <number>6</number>
-         </property>
-         <property name="topMargin">
-          <number>2</number>
-         </property>
-         <property name="rightMargin">
-          <number>6</number>
-         </property>
-         <property name="bottomMargin">
-          <number>2</number>
-         </property>
-         <item row="0" column="0">
-          <widget class="QPushButton" name="pushButtonDilate">
-           <property name="text">
-            <string>Dilate</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QSpinBox" name="spinBoxDilateTimes">
-           <property name="minimum">
-            <number>1</number>
-           </property>
-           <property name="maximum">
-            <number>100</number>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="2">
-          <widget class="QLabel" name="label_2">
-           <property name="text">
-            <string>times</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QPushButton" name="pushButtonErode">
-           <property name="text">
-            <string>Erode</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QSpinBox" name="spinBoxErodeTimes">
-           <property name="minimum">
-            <number>1</number>
-           </property>
-           <property name="maximum">
-            <number>100</number>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="2">
-          <widget class="QLabel" name="label_3">
-           <property name="text">
-            <string>times</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
       </item>
      </layout>
     </item>
@@ -474,6 +522,22 @@
    </hints>
   </connection>
   <connection>
+   <sender>pushButtonErode</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelROI</receiver>
+   <slot>OnButtonErode()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>174</x>
+     <y>275</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>565</x>
+     <y>309</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
    <sender>pushButtonDilate</sender>
    <signal>clicked()</signal>
    <receiver>PanelROI</receiver>
@@ -490,18 +554,34 @@
    </hints>
   </connection>
   <connection>
-   <sender>pushButtonErode</sender>
+   <sender>pushButtonOpen</sender>
    <signal>clicked()</signal>
    <receiver>PanelROI</receiver>
-   <slot>OnButtonErode()</slot>
+   <slot>OnButtonOpen()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>174</x>
-     <y>275</y>
+     <x>156</x>
+     <y>302</y>
     </hint>
     <hint type="destinationlabel">
-     <x>565</x>
-     <y>309</y>
+     <x>488</x>
+     <y>415</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonClose</sender>
+   <signal>clicked()</signal>
+   <receiver>PanelROI</receiver>
+   <slot>OnButtonClose()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>149</x>
+     <y>333</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>491</x>
+     <y>365</y>
     </hint>
    </hints>
   </connection>
@@ -514,5 +594,7 @@
   <slot>OnComboMappedSurface(int)</slot>
   <slot>OnButtonDilate()</slot>
   <slot>OnButtonErode()</slot>
+  <slot>OnButtonOpen()</slot>
+  <slot>OnButtonClose()</slot>
  </slots>
 </ui>
