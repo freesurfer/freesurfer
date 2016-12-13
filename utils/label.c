@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/12/12 14:15:27 $
- *    $Revision: 1.124.2.3 $
+ *    $Author: fischl $
+ *    $Date: 2016/12/13 16:20:59 $
+ *    $Revision: 1.135 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3864,10 +3864,13 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
   LV      *lv ;
   VERTEX  *v ;
 
+  area->mri_template = mri_template ;
+  if (mris == NULL)
+    return(NO_ERROR) ;
+
   x = y = z = -1 ;
   LabelRealloc(area, mris->nvertices) ;   // allocate enough room in the label for the whole surface
 
-  area->mri_template = mri_template ;
   area->mris = mris ;
 
   // create a volume of indices into the label. Voxels < 0 are not mapped

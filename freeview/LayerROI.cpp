@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/12 14:15:26 $
- *    $Revision: 1.32.2.4 $
+ *    $Date: 2016/12/13 16:55:36 $
+ *    $Revision: 1.32.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
     m_sPrimaryType = "ROI";
     m_nVertexCache = NULL;
 
-    m_label = new FSLabel( this );
+    m_label = new FSLabel( this, layerMRI->GetSourceVolume() );
     for ( int i = 0; i < 3; i++ )
     {
         m_dSlicePosition[i] = 0;
@@ -106,6 +106,7 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
     connect( mProperty, SIGNAL(ThresholdChanged(double)), this, SLOT(UpdateThreshold()));
 
     connect(this, SIGNAL(BaseVoxelEdited(QList<int>,bool)), SLOT(OnBaseVoxelEdited(QList<int>,bool)));
+    InitializeProperties();
 }
 
 LayerROI::~LayerROI()
@@ -125,6 +126,17 @@ bool LayerROI::LoadROIFromFile( const QString& filename )
     {
         return false;
     }
+    InitializeProperties();
+    m_label->Initialize(m_layerSource->GetSourceVolume(), 0, 0);
+    m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume(), GetProperty()->GetThreshold());
+
+    m_sFilename = filename;
+
+    return true;
+}
+
+void LayerROI::InitializeProperties()
+{
     double range[2];
     m_label->GetStatsRange(range);
     if (range[0] == range[1])
@@ -132,12 +144,6 @@ bool LayerROI::LoadROIFromFile( const QString& filename )
     GetProperty()->SetHeatscaleValues(range[0], range[1]);
     GetProperty()->SetValueRange(range);
     m_fBlankValue = range[0]-1;
-
-    m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume(), GetProperty()->GetThreshold());
-
-    m_sFilename = filename;
-
-    return true;
 }
 
 void LayerROI::InitializeActors()
@@ -331,8 +337,8 @@ bool LayerROI::SaveROI( )
         return false;
     }
 
-    if (!m_layerMappedSurface)
-        m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
+//    if (!m_layerMappedSurface)
+//        m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
 
     bool bSaved = m_label->LabelWrite( m_sFilename.toAscii().data() );
     if ( !bSaved )
@@ -437,6 +443,10 @@ void LayerROI::SetMappedSurface(LayerSurface *s)
         s->AddMappedLabel(this);
         m_label->Initialize(m_layerSource->GetSourceVolume(), s->GetSourceSurface(), s->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
         OnUpdateLabelRequested();
+    }
+    else
+    {
+        m_label->Initialize(m_layerSource->GetSourceVolume(), NULL, 0);
     }
 }
 
@@ -605,6 +615,8 @@ void LayerROI::Undo()
                             m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
         m_layerMappedSurface->UpdateOverlay(true, true);
     }
+    emit ActorUpdated();
+    emit Modified();
 }
 
 void LayerROI::Redo()
@@ -618,6 +630,8 @@ void LayerROI::Redo()
                             m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
         m_layerMappedSurface->UpdateOverlay(true, true);
     }
+    emit ActorUpdated();
+    emit Modified();
 }
 
 void LayerROI::SaveForUndo(int nPlane)

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/12 14:15:26 $
- *    $Revision: 1.31.2.3 $
+ *    $Date: 2016/12/13 16:55:36 $
+ *    $Revision: 1.31.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,11 +36,15 @@
 
 using namespace std;
 
-FSLabel::FSLabel( QObject* parent ) : QObject( parent ),
+FSLabel::FSLabel( QObject* parent, FSVolume* mri_template ) : QObject( parent ),
   m_label( NULL )
 {
-    m_dStatsRange[0] = 1.0;
+    m_dStatsRange[0] = 0;
     m_dStatsRange[1] = 1.0;
+    m_label = ::LabelAlloc( 100, NULL, (char*)"" );
+    m_label->coords = LABEL_COORDS_TKREG_RAS;
+    if (mri_template)
+        ::LabelInit(m_label, mri_template->GetMRI(), NULL, 0);
 }
 
 FSLabel::~FSLabel()

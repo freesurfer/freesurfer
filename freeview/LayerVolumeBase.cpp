@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:39 $
- *    $Revision: 1.28.2.2 $
+ *    $Date: 2016/12/13 16:55:36 $
+ *    $Revision: 1.28.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -454,13 +454,15 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b
 
   if (!b3D)
   {
-    if ( FloodFillByIndex( n, nPlane, bAdd, true, mask_out, ignore_exclusion ) )
+    QList<int> list = FloodFillByIndex( n, nPlane, bAdd, true, mask_out, ignore_exclusion );
+    if ( !list.isEmpty() )
     {
       if ( !mask_out )
       {
         SetModified();
       }
       emit ActorUpdated();
+      emit BaseVoxelEdited(list, bAdd);
       return true;
     }
     else
@@ -470,28 +472,37 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, bool b
   }
   else
   {
+    QList<int> list_all;
     int n0[3] = { n[0], n[1], n[2]};
     for (int i = n0[nPlane]; i < dim[nPlane]; i++)
     {
       n[nPlane] = i;
-      if (!FloodFillByIndex( n, nPlane, bAdd, false))
+      QList<int> list = FloodFillByIndex( n, nPlane, bAdd, false);
+      if (list.isEmpty())
         break;
+      else
+        list_all << list;
     }
     for (int i = n0[nPlane]-1; i >= 0; i--)
     {
       n[nPlane] = i;
-      if (!FloodFillByIndex( n, nPlane, bAdd, false))
+      QList<int> list = FloodFillByIndex( n, nPlane, bAdd, false);
+      if (list.isEmpty())
         break;
+      else
+          list_all << list;
     }
     SetModified();
     emit ActorUpdated();
+    emit BaseVoxelEdited(list_all, bAdd);
     return true;
   }
 }
 
 // when mask_out is not null, do not fill the actual image data. instead, fill the mask_out buffer
-bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool ignore_overflow, char* mask_out, bool ignore_exclusion )
+QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool ignore_overflow, char* mask_out, bool ignore_exclusion )
 {
+  QList<int> voxel_list;
   int* nDim = m_imageData->GetDimensions();
   int nx = 0, ny = 0, x = 0, y = 0;
   switch ( nPlane )
@@ -617,7 +628,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool igno
     if (mask[0][0] == 2 && mask[ny-1][nx=1] == 2)
     {
       MyUtils::FreeMatrix( mask, ny );
-      return false;
+      return voxel_list;
     }
   }
   int ncnt;
@@ -648,6 +659,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool igno
             else
             {
               m_imageData->SetScalarComponentFromFloat( n[nPlane], i, j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+              voxel_list << n[nPlane] << i << j;
             }
           }
         }
@@ -680,6 +692,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool igno
             else
             {
               m_imageData->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+              voxel_list << i << n[nPlane] << j;
             }
           }
         }
@@ -712,6 +725,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool igno
             else
             {
               m_imageData->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+              voxel_list << i << j << n[nPlane];
             }
           }
         }
@@ -723,7 +737,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, bool igno
 
   MyUtils::FreeMatrix( mask, ny );
 
-  return true;
+  return voxel_list;
 }
 
 void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
@@ -752,6 +766,7 @@ void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
 
   m_livewire->GetLivewirePoints( image, nPlane, n1[nPlane], pt1, pt2, pts );
   int n[3];
+  QList<int> list;
   for ( int i = 0; i < pts->GetNumberOfPoints(); i++ )
   {
     double* p = pts->GetPoint( i );
@@ -759,11 +774,12 @@ void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
     n[1] = (int)( ( p[1] - orig[1] ) / vxlsize[1] + 0.5);
     n[2] = (int)( ( p[2] - orig[2] ) / vxlsize[2] + 0.5 );
 
-    SetVoxelByIndex( n, nPlane, true );
+    list << SetVoxelByIndex( n, nPlane, true );
   }
 
   SetModified();
   emit ActorUpdated();
+  emit BaseVoxelEdited(list, true);
 }
 
 std::vector<double> LayerVolumeBase::GetLiveWirePointsByRAS( double* pt1, double* pt2, int nPlane )

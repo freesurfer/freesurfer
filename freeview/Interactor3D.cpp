@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/02/29 21:01:06 $
- *    $Revision: 1.35 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/13 16:55:36 $
+ *    $Revision: 1.35.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,12 +64,12 @@ bool Interactor3D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
   {
     m_bMoveSlice = true;
   }
-  else if ( event->button() == Qt::LeftButton && event->modifiers() & CONTROL_MODIFIER )
-  {
-    m_surfaceROI = view->InitializeSurfaceROI(event->x(), event->y());
-    if (m_surfaceROI)
-      return false;   // intercept the event, do not pass down
-  }
+//  else if ( event->button() == Qt::LeftButton && event->modifiers() & CONTROL_MODIFIER )
+//  {
+//    m_surfaceROI = view->InitializeSurfaceROI(event->x(), event->y());
+//    if (m_surfaceROI)
+//      return false;   // intercept the event, do not pass down
+//  }
   else
   {
     return Interactor::ProcessMouseDownEvent( event, renderview ); // pass down the event
@@ -91,11 +91,11 @@ bool Interactor3D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
   {
     if ( event->button() == Qt::LeftButton )
     {
-      if ( event->modifiers() & Qt::ShiftModifier)
+      if ((event->modifiers() & Qt::ShiftModifier) && !(event->modifiers() & CONTROL_MODIFIER))
       {
         view->PickCurrentSurfaceVertex(event->x(), event->y());
       }
-      else if (event->modifiers() & CONTROL_MODIFIER)
+      else if ((event->modifiers() & CONTROL_MODIFIER) && !(event->modifiers() & Qt::ShiftModifier))
       {
         view->ZoomAtCursor(event->x(), event->y(), 2.0);
       }
