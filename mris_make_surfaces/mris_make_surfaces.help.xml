@@ -38,6 +38,8 @@
     <optional-flagged>
       <argument>-q</argument>
       <explanation>Omit self-intersection and only generate gray/white surface</explanation>
+      <argument>-max_gray_scale  mgs</argument>
+      <explanation>in white deformation set outside_hi = (max_border_white + mgs*max_gray) / (mgs+1.0)</explanation>
       <argument>-c</argument>
       <explanation>Create curvature and area files from white matter surface</explanation>
       <argument>-a &lt;avgs&gt;</argument>
@@ -70,10 +72,16 @@
       <explanation>pialsurfname</explanation>
       <argument>-white</argument>
       <explanation>whitesurfname</explanation>
+      <argument>-erase_cerebellum</argument>
+      <explanation>if aseg is loaded erases cerebellar labled voxels in the input image</explanation>
       <argument>-nsigma_above n</argument>
       <explanation># of sigmas above the mean to allow gray matter T2 intensities</explanation>
       <argument>-nsigma_below n</argument>
       <explanation># of sigmas below the mean to allow gray matter T2 intensities</explanation>
+      <argument>-T2_min threshold</argument>
+      <explanation>specify threshold for min T2 value allowed to be interior to the cortical ribbon</explanation>
+      <argument>-T2_max threshold</argument>
+      <explanation>specify threshold for max T2 value allowed to be interior to the cortical ribbon</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>

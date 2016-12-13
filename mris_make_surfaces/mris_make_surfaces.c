@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/12/10 22:57:53 $
- *    $Revision: 1.167 $
+ *    $Date: 2016/12/13 21:49:41 $
+ *    $Revision: 1.168 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@
 #define  MAX_HISTO_BINS 1000
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.167 2016/12/10 22:57:53 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.168 2016/12/13 21:49:41 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -75,6 +75,10 @@ static int find_and_mark_pinched_regions(MRI_SURFACE *mris,
 static float T2_max = -1 ;
 static float T2_min = -1 ;
 
+// 0 disables use of max_gray in setting outside_hi in white surfacee deformation
+// the larger this is, the closer outside_hi will be to max_gray. Set it high if
+// the white surface is settling too far into the white matter
+static double max_gray_scale = 0.0 ;  
 static int above_set = 0 ;
 static int below_set = 0 ;
 static int  near_bright_structure(MRI *mri_aseg, int xi, int yi, int zi, int whalf) ;
@@ -308,13 +312,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.167 2016/12/10 22:57:53 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.168 2016/12/13 21:49:41 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.167 2016/12/10 22:57:53 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.168 2016/12/13 21:49:41 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1119,10 +1123,14 @@ main(int argc, char *argv[])
     else if (flair_or_T2_name == NULL) // otherwise already done
 
     {
+      double outside_hi = (max_border_white + max_gray_scale*max_gray) / (max_gray_scale+1.0) ;
+
+      if (!FZERO(max_gray_scale))
+	printf("setting outside hi = %2.1f (was %2.1f) in white surface deformation\n", outside_hi, max_border_white) ;
       MRIScomputeBorderValues(mris, mri_T1, mri_smooth,
                               MAX_WHITE, max_border_white, min_border_white,
                               min_gray_at_white_border,
-                              max_border_white /*max_gray*/, current_sigma,
+                              outside_hi, current_sigma,
                               2*max_thickness, parms.fp, GRAY_WHITE, NULL, 0, parms.flags,mri_aseg) ;
       MRISfindExpansionRegions(mris) ;
     }
@@ -2233,6 +2241,12 @@ get_option(int argc, char *argv[])
   {
     nbrs = atoi(argv[2]) ;
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "max_gray_scale"))
+  {
+    max_gray_scale = atof(argv[2]) ;
+    fprintf(stderr,  "setting max_gray_scale (mgs) = %2.1f in calculation of outside_hi = (max_border_white + mgs*max_gray) / (mgs+1.0)\n", max_gray_scale) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "T2_min"))
