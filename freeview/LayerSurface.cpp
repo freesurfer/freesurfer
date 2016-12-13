@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/11 16:04:03 $
- *    $Revision: 1.131 $
+ *    $Date: 2016/12/13 16:43:39 $
+ *    $Revision: 1.132 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,6 +68,7 @@
 #include "vtkBox.h"
 #include "vtkDoubleArray.h"
 #include "LayerROI.h"
+#include "LayerPropertyROI.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( parent ),
   m_surfaceSource( NULL ),
@@ -2169,6 +2170,7 @@ void LayerSurface::AddMappedLabel(LayerROI *label)
     {
         m_mappedLabels << label;
         connect(label, SIGNAL(destroyed(QObject*)), this, SLOT(RemoveMappedLabel(QObject*)), Qt::UniqueConnection);
+        connect(label->GetProperty(), SIGNAL(ColorMapChanged()), this, SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
     }
 }
 
@@ -2194,6 +2196,7 @@ void LayerSurface::RemoveMappedLabel(QObject *label_in)
             }
         }
     }
+    UpdateOverlay(true, true);
 }
 
 void LayerSurface::UpdateMappedLabels()

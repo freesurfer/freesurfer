@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/06/10 19:52:40 $
- *    $Revision: 1.14 $
+ *    $Date: 2016/12/13 16:43:39 $
+ *    $Revision: 1.15 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,8 +58,12 @@ public:
 
   void Show( bool bShow = true );
 
-  bool IsShown();
+  void Hide()
+  {
+      Show(false);
+  }
 
+  bool IsShown();
 
 public slots:
   void SetColor( const QColor& color );

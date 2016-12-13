@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/08 17:41:15 $
- *    $Revision: 1.351 $
+ *    $Date: 2016/12/13 16:43:39 $
+ *    $Revision: 1.352 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -534,7 +534,7 @@ void MainWindow::LoadSettings()
   }
   if (!m_settings.contains("AutoReorientView"))
   {
-      m_settings["AutoReorientView"] = true;
+      m_settings["AutoReorientView"] = false;
   }
 
   for (int i = 0; i < 4; i++)
@@ -1710,6 +1710,10 @@ void MainWindow::RunScript()
   {
     CommandSetDisplaySurfaceVertex( sa );
   }
+  else if ( cmd == "hidesurfacein3d")
+  {
+    CommandHideSurfaceIn3D( sa );
+  }
   else if ( cmd == "setsurfacevertexcolor" )
   {
     CommandSetSurfaceVertexColor( sa );
@@ -2784,6 +2788,10 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         {
           m_scripts.insert( 0, QStringList("displaysurfacevertex") << subArgu);
         }
+        else if ( subOption == "hide_in_3d")
+        {
+          m_scripts.insert( 0, QStringList("hidesurfacein3d") << subArgu);
+        }
         else if ( subOption == "vertexcolor" || subOption == "vertex_color" )
         {
           m_scripts.insert( 0, QStringList("setsurfacevertexcolor") << subArgu );
@@ -3534,6 +3542,18 @@ void MainWindow::CommandSetDisplaySurfaceVertex(const QStringList &cmd)
                 cmd[1] == "1") )
   {
     surf->GetProperty()->ShowVertices(true);
+  }
+}
+
+void MainWindow::CommandHideSurfaceIn3D(const QStringList &cmd)
+{
+  LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf && (cmd[1].toLower() == "on" ||
+                cmd[1].toLower() == "true" ||
+                cmd[1].toLower() == "yes" ||
+                cmd[1] == "1") )
+  {
+    surf->SetHideIn3D(true);
   }
 }
 
@@ -6808,7 +6828,7 @@ void MainWindow::OnToggleCursorVisibility(bool bShow)
   ui->viewAxial->GetCursor2D()->Show( bShow );
   ui->viewSagittal->GetCursor2D()->Show( bShow );
   ui->viewCoronal->GetCursor2D()->Show( bShow );
-  ui->view3D->GetCursor3D()->Show( bShow );
+  ui->view3D->ShowCursor( bShow );
   this->RequestRedraw();
 }
 

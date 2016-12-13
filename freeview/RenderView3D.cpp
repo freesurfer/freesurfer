@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/08 21:24:13 $
- *    $Revision: 1.93 $
+ *    $Date: 2016/12/13 16:43:39 $
+ *    $Revision: 1.94 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -107,6 +107,10 @@ RenderView3D::RenderView3D( QWidget* parent ) : RenderView( parent )
     m_interactorROIEdit = new Interactor3DROIEdit(this);
     connect(m_cursor3D, SIGNAL(Updated()), this, SLOT(RequestRedraw()));
 
+    m_cursorInflatedSurf = new Cursor3D(this);
+    m_cursorInflatedSurf->Hide();
+    connect(m_cursorInflatedSurf, SIGNAL(Updated()), this, SLOT(RequestRedraw()));
+
     m_actorScalarBar->SetNumberOfLabels( 4 );
 
     m_actorAxesActor = vtkSmartPointer<vtkCubeAxesActor>::New();
@@ -146,6 +150,8 @@ void RenderView3D::SetInteractionMode( int nMode )
 void RenderView3D::OnSlicePositionChanged()
 {
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
+    LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+    m_cursorInflatedSurf->Show(m_cursor3D->IsShown() && surf && surf->IsInflated());
     m_cursor3D->SetPosition( lc->GetSlicePosition() );
     UpdateSliceFrames();
     UpdateSurfaceCorrelationData();
@@ -367,7 +373,10 @@ void RenderView3D::RefreshAllActors(bool bForScreenShot)
     if (!mainwnd->IsEmpty())
     {
         if (!bForScreenShot || !setting.HideCursor)
+        {
             m_cursor3D->AppendActor( m_renderer );
+            m_cursorInflatedSurf->AppendActor(m_renderer);
+        }
     }
 
     // add focus frame
@@ -557,7 +566,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
                         lc_surface->SetActiveLayer(layer);
                         LayerSurface* surf = (LayerSurface*)layer;
                         QVariantMap settings = MainWindow::GetMainWindow()->GetGeneralSettings();
-                        MapInflatedCoords(surf, pos, pos, settings["AutoReorientView"].toBool());
+                        MapInflatedCoords(surf, pos, pos, GetInteractionMode() == IM_ROIEdit?false:settings["AutoReorientView"].toBool());
                     }
 
                     lc_mri->SetCursorRASPosition( pos );
@@ -582,6 +591,9 @@ bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double 
     surf->SetCurrentVertex(nVertex);
     if (QFileInfo(surf->GetFileName()).fileName().contains("inflated"))
     {
+        if (m_cursor3D->IsShown())
+            m_cursorInflatedSurf->Show();
+        m_cursorInflatedSurf->SetPosition(pos_in);
         FSSurface* fsurf = surf->GetSourceSurface();
         QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
         bool bFoundMappingSurface = false;
@@ -619,6 +631,8 @@ bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double 
             return true;
         }
     }
+    else
+        m_cursorInflatedSurf->Hide();
     return false;
 }
 
@@ -1431,4 +1445,10 @@ void RenderView3D::ZoomAtCursor(int x, int y, double factor)
             cam->Zoom(factor);
         RequestRedraw();
     }
+}
+
+void RenderView3D::ShowCursor(bool bshow)
+{
+    m_cursor3D->Show(bshow);
+    m_cursorInflatedSurf->Show(bshow);
 }

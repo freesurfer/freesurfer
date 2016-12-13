@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/11 16:04:03 $
- *    $Revision: 1.28 $
+ *    $Date: 2016/12/13 16:43:39 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,6 +111,7 @@ protected:
   bool DoRotate( std::vector<RotationElement>& rotations );
   void DoRestore();
   void InitializeActors();
+  void InitializeProperties();
 
   virtual void OnSlicePositionChanged( int nPlane );
 

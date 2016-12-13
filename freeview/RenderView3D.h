@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/08 21:24:13 $
- *    $Revision: 1.48 $
+ *    $Date: 2016/12/13 16:43:39 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -74,7 +74,7 @@ public:
 
   void UpdateCursorRASPosition( int posX, int posY );
   void UpdateMouseRASPosition( int posX, int posY );
-  bool InitializeSelectRegion( int posX, int posY );
+  bool InitializeSelectRegion( int posX, int poboolsY );
 
   void AddSelectRegionLoopPoint( int posX, int posY );
 
@@ -139,6 +139,7 @@ public slots:
   void ResetViewInferior();
   void ResetViewAnterior();
   void ResetViewPosterior();
+  void ShowCursor(bool bshow);
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
@@ -159,6 +160,7 @@ private:
   bool m_bToUpdateConnectivity;
 
   Cursor3D* m_cursor3D;
+  Cursor3D* m_cursorInflatedSurf;
   bool m_bSliceVisibility[3];
   vtkSmartPointer<vtkActor> m_actorSliceFrames[3];
   vtkSmartPointer<vtkActor> m_actorSliceBoundingBox[3];

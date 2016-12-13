@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/11 16:04:03 $
- *    $Revision: 1.22 $
+ *    $Date: 2016/12/13 16:43:39 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,7 @@ class FSLabel : public QObject
 {
   Q_OBJECT
 public:
-  FSLabel( QObject* parent );
+  FSLabel( QObject* parent, FSVolume* mri_template );
   virtual ~FSLabel();
 
   bool LabelRead( const QString& filename );
