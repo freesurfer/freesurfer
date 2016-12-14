@@ -6,7 +6,7 @@ NrrdIO_dir = NrrdIO
 cephes_dir = cephes
 test_dir = test
 
-SUBDIRS= . $(NrrdIO_dir) $(cephes_dir) $(test_dir)
+SUBDIRS= $(NrrdIO_dir) $(cephes_dir) $(test_dir)
 
 if HAVE_ITK_LIBS
 ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
