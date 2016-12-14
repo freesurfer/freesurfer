@@ -53,9 +53,11 @@ else
   set zz = `awk '{print $3}' $invecs`
 endif
 
-set yy = `echo $yy | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
-set xx = `echo $xx | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
-set zz = `echo $zz | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
+set noglob	# Do not expand asterisks
+
+set yy = `echo $yy | sed 's/E/*10^/g; s/e/*10^/g; s/+//g'`
+set xx = `echo $xx | sed 's/E/*10^/g; s/e/*10^/g; s/+//g'`
+set zz = `echo $zz | sed 's/E/*10^/g; s/e/*10^/g; s/+//g'`
 
 set nvec = $#xx
 
@@ -73,10 +75,10 @@ while ($k <= $nvec)
 
     set R = `avscale --allparams $matfile \
              | awk 'NR >= 2 && NR <= 5 {print $1, $2, $3}'`
-    set R = `echo $R | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
+    set R = `echo $R | sed 's/E/*10^/g; s/e/*10^/g; s/+//g'`
   else				# Read rotation angles directly
     set angles = `awk -v k=$k 'NR == k {print $4, $5, $6}' $xforms`
-    set angles = `echo $angles | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
+    set angles = `echo $angles | sed 's/E/*10^/g; s/e/*10^/g; s/+//g'`
 
     set ax = "$angles[1]"
     set ay = "$angles[2]"
@@ -118,4 +120,6 @@ if ($vectype == rows) then
 else
   printf '%g %g %g\n' $xyzr > $outvecs
 endif
+
+unset noglob
 

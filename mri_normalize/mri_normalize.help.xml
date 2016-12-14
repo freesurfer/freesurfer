@@ -42,6 +42,8 @@
       <explanation>use n 3d normalization iterations (default=2)</explanation>
       <argument>-no1d</argument>
       <explanation>disable 1d normalization</explanation>
+      <argument>-nonmax_suppress (1/0)</argument>
+      <explanation>turn non-maximum suppression on (1) or off (0) when using interior of surfaces</explanation>
       <argument>-conform</argument>
       <explanation>interpolate and embed volume to be 256^3</explanation>
       <argument>-noconform</argument>
