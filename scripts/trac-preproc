@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/12/09 20:02:53 $
-#    $Revision: 1.54 $
+#    $Author: ayendiki $
+#    $Date: 2016/12/14 02:20:53 $
+#    $Revision: 1.55 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.54 2015/12/09 20:02:53 zkaufman Exp $'
+set VERSION = '$Id: trac-preproc,v 1.55 2016/12/14 02:20:53 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -185,11 +185,26 @@ if ($docorr && ! $dobase) then
   set infile = $dcmfile
   if ($#dcmroot > 0) set infile = $dcmroot/$infile
 
+  set cmd = (rm -f $dwidir/dwi_orig.bvals $dwidir/dwi_orig.voxel_space.bvecs)
+  if ($RunIt) then
+    $cmd |& tee -a $LF
+    if ($status) goto error_exit
+  endif
+
   set cmd = (mri_convert $infile $dwidir/dwi_orig.nii.gz)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
     if ($status) goto error_exit
+  endif
+
+  if (-e $dwidir/dwi_orig.voxel_space.bvecs) then
+    set cmd = (mv -f $dwidir/dwi_orig.voxel_space.bvecs $dwidir/dwi_orig.bvecs)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
   endif
 
   if (`mri_info --format $infile` =~ *dicom*) then
@@ -201,8 +216,8 @@ if ($docorr && ! $dobase) then
     endif
   endif
 
-  if ($#bvecfile && $bvecfile != $dwidir/dwi_orig.mghdti.bvecs) then
-    set cmd = (cp $bvecfile $dwidir/dwi_orig.mghdti.bvecs)
+  if ($#bvecfile && $bvecfile != $dwidir/dwi_orig.bvecs) then
+    set cmd = (cp $bvecfile $dwidir/dwi_orig.bvecs)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
@@ -210,17 +225,17 @@ if ($docorr && ! $dobase) then
     endif
   endif
 
-  if (! -e $dwidir/dwi_orig.mghdti.bvecs) then
+  if (! -e $dwidir/dwi_orig.bvecs) then
     echo "ERROR: Must specify input table of gradient vectors"
     goto error_exit
   endif
 
-  set nvec = `wc -w $dwidir/dwi_orig.mghdti.bvecs | awk '{print $1}'`
+  set nvec = `wc -w $dwidir/dwi_orig.bvecs | awk '{print $1}'`
   set nvec = `echo "$nvec/3" | bc -l`
   set nvec = `printf '%g' $nvec`
 
-  if ($#bvalfile && $bvalfile != $dwidir/dwi_orig.mghdti.bvals) then
-    set cmd = (cp $bvalfile $dwidir/dwi_orig.mghdti.bvals)
+  if ($#bvalfile && $bvalfile != $dwidir/dwi_orig.bvals) then
+    set cmd = (cp $bvalfile $dwidir/dwi_orig.bvals)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
@@ -228,12 +243,12 @@ if ($docorr && ! $dobase) then
     endif
   endif
 
-  if (! -e $dwidir/dwi_orig.mghdti.bvals) then
+  if (! -e $dwidir/dwi_orig.bvals) then
     echo "ERROR: Must specify input table of b-values"
     goto error_exit
   endif
 
-  set nval = `wc -w $dwidir/dwi_orig.mghdti.bvals | awk '{print $1}'`
+  set nval = `wc -w $dwidir/dwi_orig.bvals | awk '{print $1}'`
 
   # Check if there is the same number of b-values and gradient vectors
   if ($nval != $nvec) then
@@ -242,9 +257,9 @@ if ($docorr && ! $dobase) then
   endif
 
   # Check if gradient vectors are arranged in 3 rows or 3 columns
-  if (`awk '{print $1}' $dwidir/dwi_orig.mghdti.bvecs | wc -w` == 3) then
+  if (`awk '{print $1}' $dwidir/dwi_orig.bvecs | wc -w` == 3) then
     set vectype = rows
-  else if (`awk 'NR==1' $dwidir/dwi_orig.mghdti.bvecs | wc -w` == 3) then
+  else if (`awk 'NR==1' $dwidir/dwi_orig.bvecs | wc -w` == 3) then
     set vectype = cols
   else
     echo "ERROR: Gradient vectors must be 3 rows or 3 columns of coordinates"
@@ -253,16 +268,16 @@ if ($docorr && ! $dobase) then
 
   # Convert gradient vectors to 3-column format
   if ($vectype == rows) then
-    set xx = `awk 'NR==1' $dwidir/dwi_orig.mghdti.bvecs`
-    set yy = `awk 'NR==2' $dwidir/dwi_orig.mghdti.bvecs`
-    set zz = `awk 'NR==3' $dwidir/dwi_orig.mghdti.bvecs`
+    set xx = `awk 'NR==1' $dwidir/dwi_orig.bvecs`
+    set yy = `awk 'NR==2' $dwidir/dwi_orig.bvecs`
+    set zz = `awk 'NR==3' $dwidir/dwi_orig.bvecs`
   else
-    set xx = `awk '{print $1}' $dwidir/dwi_orig.mghdti.bvecs`
-    set yy = `awk '{print $2}' $dwidir/dwi_orig.mghdti.bvecs`
-    set zz = `awk '{print $3}' $dwidir/dwi_orig.mghdti.bvecs`
+    set xx = `awk '{print $1}' $dwidir/dwi_orig.bvecs`
+    set yy = `awk '{print $2}' $dwidir/dwi_orig.bvecs`
+    set zz = `awk '{print $3}' $dwidir/dwi_orig.bvecs`
   endif
 
-  set blist = `cat $dwidir/dwi_orig.mghdti.bvals`
+  set blist = `cat $dwidir/dwi_orig.bvals`
 
   set cmd = (rm -f $dwidir/bvals.tmp $dwidir/bvecs.tmp)
   if ($RunIt) then
@@ -277,14 +292,14 @@ if ($docorr && ! $dobase) then
     @ k = $k + 1
   end
 
-  set cmd = (mv -f $dwidir/bvecs.tmp $dwidir/dwi_orig.mghdti.bvecs)
+  set cmd = (mv -f $dwidir/bvecs.tmp $dwidir/dwi_orig.bvecs)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
     if ($status) goto error_exit
   endif
 
-  set cmd = (mv -f $dwidir/bvals.tmp $dwidir/dwi_orig.mghdti.bvals)
+  set cmd = (mv -f $dwidir/bvals.tmp $dwidir/dwi_orig.bvals)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
@@ -292,21 +307,21 @@ if ($docorr && ! $dobase) then
   endif
 
   # Change orientation to make FSL happy
-  set cmd = (flip4fsl $dwidir/dwi_orig.nii.gz $dwidir/dwi_orig_flip.nii.gz)
+  set cmd = (orientLAS $dwidir/dwi_orig.nii.gz $dwidir/dwi_orig_las.nii.gz)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
     if ($status) goto error_exit
   endif
 
-  set cmd = (mv -f $dwidir/dwi_orig_flip.mghdti.bvecs $dwidir/bvecs)
+  set cmd = (mv -f $dwidir/dwi_orig_las.bvecs $dwidir/bvecs)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
     if ($status) goto error_exit
   endif
 
-  set cmd = (mv -f $dwidir/dwi_orig_flip.mghdti.bvals $dwidir/bvals)
+  set cmd = (mv -f $dwidir/dwi_orig_las.bvals $dwidir/bvals)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
@@ -314,7 +329,7 @@ if ($docorr && ! $dobase) then
   endif
 
   if (! $doeddy && ! $dob0) then	# No corrections to be done
-    set cmd = (mv -f $dwidir/dwi_orig_flip.nii.gz $dwidir/dwi.nii.gz)
+    set cmd = (mv -f $dwidir/dwi_orig_las.nii.gz $dwidir/dwi.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
@@ -325,7 +340,7 @@ if ($docorr && ! $dobase) then
   if ($doeddy) then			# Eddy-current "correction"
     rm -f $dwidir/dwi.ecclog
     set cmd = eddy_correct
-    set cmd = ($cmd $dwidir/dwi_orig_flip.nii.gz $dwidir/dwi.nii.gz 0)
+    set cmd = ($cmd $dwidir/dwi_orig_las.nii.gz $dwidir/dwi.nii.gz 0)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $fs_time $cmd |& tee -a $LF
@@ -364,7 +379,7 @@ if ($docorr && ! $dobase) then
 
       set dwi_eddy = $dwidir/dwi_eddy.nii.gz
     else
-      set dwi_eddy = $dwidir/dwi_orig_flip.nii.gz
+      set dwi_eddy = $dwidir/dwi_orig_las.nii.gz
     endif
 
     set dcmfile = $dcmroot/$b0mfile
@@ -375,7 +390,7 @@ if ($docorr && ! $dobase) then
       if ($status) goto error_exit
     endif
 
-    set cmd = (flip4fsl $dwidir/b0mag.nii.gz $dwidir/b0mag.nii.gz)
+    set cmd = (orientLAS $dwidir/b0mag.nii.gz $dwidir/b0mag.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
@@ -390,7 +405,7 @@ if ($docorr && ! $dobase) then
       if ($status) goto error_exit
     endif
 
-    set cmd = (flip4fsl $dwidir/b0pha.nii.gz $dwidir/b0pha.nii.gz)
+    set cmd = (orientLAS $dwidir/b0pha.nii.gz $dwidir/b0pha.nii.gz)
     echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
@@ -453,9 +468,9 @@ if ($docorr && ! $dobase) then
       @ k = $k + 1
     end
   else
-    set bmin = `grep -v ^$ $dwidir/dwi_orig.mghdti.bvals \
+    set bmin = `grep -v ^$ $dwidir/dwi_orig.bvals \
                 | sort --numeric-sort | head -1`
-    set lowblist = `cat $dwidir/dwi_orig.mghdti.bvals \
+    set lowblist = `cat $dwidir/dwi_orig.bvals \
                     | awk -v bmin=$bmin '{if ($1 == bmin) print NR-1}'`
   endif
 
@@ -604,7 +619,7 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
   endif
 
   # Change orientation to make FSL happy
-  set cmd = flip4fsl
+  set cmd = orientLAS
   set cmd = ($cmd $dwidir/brain_anat_orig.nii.gz)
   set cmd = ($cmd $dwidir/brain_anat.nii.gz)
   echo $cmd |& tee -a $LF |& tee -a $CF
@@ -613,7 +628,7 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
     if ($status) goto error_exit
   endif
 
-  # Calculate original anatomical to flipped anatomical
+  # Calculate original anatomical to LAS anatomical
   set cmd = tkregister2
   set cmd = ($cmd --mov $dwidir/brain_anat_orig.nii.gz)
   set cmd = ($cmd --targ $dwidir/brain_anat.nii.gz)
@@ -658,7 +673,7 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
       if ($status) goto error_exit
     endif
 
-    # Calculate original (unflipped, freesurfer) anatomical to low-b
+    # Calculate original (freesurfer) anatomical to low-b
     set cmd = convert_xfm
     set cmd = ($cmd -omat $xfmdir/anatorig2diff.flt.mat)
     set cmd = ($cmd -concat $xfmdir/anat2diff.flt.mat)
@@ -701,7 +716,7 @@ if ($dointra && ! $dobase && -e $fsdir/mri/brain.mgz) then
       if ($status) goto error_exit
     endif
 
-    # Calculate flipped anatomical to low-b
+    # Calculate LAS anatomical to low-b
     set cmd = convert_xfm
     set cmd = ($cmd -omat $xfmdir/anat2diff.bbr.mat)
     set cmd = ($cmd -concat $xfmdir/anatorig2diff.bbr.mat)
@@ -782,7 +797,7 @@ if ($dointer && ! $dobase) then
         endif
       end
 
-      # Calculate original (unflipped, freesurfer) anatomical to MNI template
+      # Calculate original (freesurfer) anatomical to MNI template
       set cmd = convert_xfm
       set cmd = ($cmd -omat $xfmdir/anatorig2mni.mat)
       set cmd = ($cmd -concat $xfmdir/anat2mni.mat)
@@ -1147,7 +1162,7 @@ if ($domasks && ! $dobase) then
                     aparc+aseg aparc+aseg+${gmgrow}mm aparc+aseg_mask \
                     anat_brain_mask anat_brain_mask-vent )
       # Change orientation to make FSL happy
-      set cmd = flip4fsl
+      set cmd = orientLAS
       set cmd = ($cmd $labdir/anatorig/$label.nii.gz)
       set cmd = ($cmd $labdir/anat/$label.nii.gz)
       echo $cmd |& tee -a $LF |& tee -a $CF
