@@ -27,6 +27,7 @@ public:
 signals:
   void LayerTypeTriggered(const QString& type);
   void ToReorderLayers(const QList<Layer*>& layers);
+  void CurrentLayerSelected(Layer* layer);
 
 public slots:
   void OnActiveLayerChanged(Layer* curLayer);

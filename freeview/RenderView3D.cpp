@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/13 16:55:37 $
- *    $Revision: 1.90.2.4 $
+ *    $Date: 2016/12/20 17:03:29 $
+ *    $Revision: 1.90.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1222,12 +1222,12 @@ void RenderView3D::SnapToNearestAxis()
 
 void RenderView3D::UpdateScalarBar()
 {
-    LayerSurface* surf = (LayerSurface*) MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
-    if ( surf && surf->GetActiveOverlay() )
-    {
-        m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
-    }
-    else
+//    LayerSurface* surf = (LayerSurface*) MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
+//    if ( surf && surf->GetActiveOverlay() )
+//    {
+//        m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
+//    }
+//    else
     {
         RenderView::UpdateScalarBar();
     }
