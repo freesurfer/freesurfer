@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2015/12/09 20:02:53 $
-#    $Revision: 1.37 $
+#    $Author: ayendiki $
+#    $Date: 2016/12/18 13:59:26 $
+#    $Revision: 1.38 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.37 2015/12/09 20:02:53 zkaufman Exp $'
+set VERSION = '$Id: trac-paths,v 1.38 2016/12/18 13:59:26 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -329,50 +329,125 @@ if (! $dolong) then
           endif
         endif
 
-        set cmd = $trcdir/dmri_paths
-        set cmd = ($cmd --outdir $outlist)
-        set cmd = ($cmd --dwi  $dwidir/dwi.nii.gz)
-        set cmd = ($cmd --grad $dwidir/bvecs)
-        set cmd = ($cmd --bval $dwidir/bvals)
-        set cmd = ($cmd --mask $brainmask)
-        set cmd = ($cmd --bpdir $dtdir/dmri.bedpostX)
-        set cmd = ($cmd --ntr  $nstick)
-        set cmd = ($cmd --fmin $fmin)
-        set cmd = ($cmd --roi1 $roi1list)
-        set cmd = ($cmd --roi2 $roi2list)
-        if ($xspace == mni) then
-          set cmd = ($cmd --reg $xfmdir/diff2mni.$reg.mat)
-        else if ($xspace == cvs) then
-          set cmd = ($cmd --reg $xfmdir/diff2anatorig.$reg.mat)
-          if ($subj != $cvstemp) then
-            set cmd = ($cmd --regnl $xfmdir/cvs/$cvswarp.m3z)
+        @ irep = 0
+
+        while ($irep <= 5)
+          if ($irep) then
+            cp $rcfile $rcfile.reinit
+            echo "set dopriors = 1"			>> $rcfile.reinit
+            echo "set reinit = 1"			>> $rcfile.reinit
+            echo "set pathlist = ($rep_pathlist)"	>> $rcfile.reinit
+            echo "set ncpts = ($rep_ncpts)"		>> $rcfile.reinit
+
+            set cmd = trac-preproc
+            set cmd = ($cmd -c $rcfile.reinit)
+            set cmd = ($cmd -log $LF)
+            set cmd = ($cmd -cmd $CF)
+            set cmd = ($cmd -no-isrunning)
+            echo $cmd
+            $cmd
+            if ($status) exit 1
           endif
-        endif
-        set cmd = ($cmd --init $initlist)
-        if ($dosegprior) then
-          set cmd = ($cmd --nprior $npriorlist)
-          set cmd = ($cmd --lprior $lpriorlist)
-          set cmd = ($cmd --seg    $labdir/$xspace/aparc+aseg.nii.gz)
-        endif
-        if ($dotangprior) then
-          set cmd = ($cmd --tprior $tpriorlist)
-          set cmd = ($cmd --cprior $cpriorlist)
-        endif
-        if ($doxyzprior) then
-          set cmd = ($cmd --prior $priorlist)
-        endif
-        set cmd = ($cmd --nb $nburnin --ns $nsample --nu $nupdate --nk $nkeep)
-        if ($doinitprop) then
-          set cmd = ($cmd --sdp $sdplist)
-        endif
-        if ($debug) then
-          set cmd = ($cmd --debug)
-        endif
-        echo $cmd |& tee -a $LF |& tee -a $CF
-        if ($RunIt) then
-          $fs_time $cmd |& tee -a $LF
-          if ($status) goto error_exit
-        endif
+
+          set cmd = $trcdir/dmri_paths
+          set cmd = ($cmd --outdir $outlist)
+          set cmd = ($cmd --dwi  $dwidir/dwi.nii.gz)
+          set cmd = ($cmd --grad $dwidir/bvecs)
+          set cmd = ($cmd --bval $dwidir/bvals)
+          set cmd = ($cmd --mask $brainmask)
+          set cmd = ($cmd --bpdir $dtdir/dmri.bedpostX)
+          set cmd = ($cmd --ntr  $nstick)
+          set cmd = ($cmd --fmin $fmin)
+          set cmd = ($cmd --roi1 $roi1list)
+          set cmd = ($cmd --roi2 $roi2list)
+          if ($xspace == mni) then
+            set cmd = ($cmd --reg $xfmdir/diff2mni.$reg.mat)
+          else if ($xspace == cvs) then
+            set cmd = ($cmd --reg $xfmdir/diff2anatorig.$reg.mat)
+            if ($subj != $cvstemp) then
+              set cmd = ($cmd --regnl $xfmdir/cvs/$cvswarp.m3z)
+            endif
+          endif
+          set cmd = ($cmd --init $initlist)
+          if ($dosegprior) then
+            set cmd = ($cmd --nprior $npriorlist)
+            set cmd = ($cmd --lprior $lpriorlist)
+            set cmd = ($cmd --seg    $labdir/$xspace/aparc+aseg.nii.gz)
+          endif
+          if ($dotangprior) then
+            set cmd = ($cmd --tprior $tpriorlist)
+            set cmd = ($cmd --cprior $cpriorlist)
+          endif
+          if ($doxyzprior) then
+            set cmd = ($cmd --prior $priorlist)
+          endif
+          set cmd = ($cmd --nb $nburnin --ns $nsample --nu $nupdate --nk $nkeep)
+          if ($doinitprop) then
+            set cmd = ($cmd --sdp $sdplist)
+          endif
+          if ($debug) then
+            set cmd = ($cmd --debug)
+          endif
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $fs_time $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+
+          # Check if any paths need to be reinitialized
+          set rep_pathlist = ()
+          set rep_ncpts = ()
+
+          @ ipath = 1
+          while ($ipath <= $#pathlist)
+            set pathname = $pathlist[$ipath]
+            set pathdir = $outdir/${pathname}_$avgmode
+
+            if (-e $pathdir/path.pd.nii.gz) then
+              set pmax = `fslstats $pathdir/path.pd.nii.gz -R | awk '{print $2}'`
+              set pthr = `echo "$pmax * .2" | bc -l`
+
+              set cmd = fslmaths
+              set cmd = ($cmd $pathdir/path.pd.nii.gz -thr $pthr)
+              set cmd = ($cmd $pathdir/tmp.nii.gz)
+              echo $cmd |& tee -a $LF |& tee -a $CF
+              if ($RunIt) then
+                $fs_time $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
+
+              if (`fslstats $pathdir/tmp.nii.gz -V | awk '{print $2}'` \
+               == `fslstats $pathdir/path.map.nii.gz -V | awk '{print $2}'`) then
+                set rep_pathlist = ($rep_pathlist $pathname)
+                set rep_ncpts    = ($rep_ncpts    $ncpts[$ipath])
+              else
+                set outlist    = `printf '%s\n' $outlist    | grep -v $pathname`
+                set roi1list   = `printf '%s\n' $roi1list   | grep -v $pathname`
+                set roi2list   = `printf '%s\n' $roi2list   | grep -v $pathname`
+                set initlist   = `printf '%s\n' $initlist   | grep -v $pathname`
+                set sdplist    = `printf '%s\n' $sdplist    | grep -v $pathname`
+                set priorlist  = `printf '%s\n' $priorlist  | grep -v $pathname`
+                set npriorlist = `printf '%s\n' $npriorlist | grep -v $pathname`
+                set lpriorlist = `printf '%s\n' $lpriorlist | grep -v $pathname`
+                set tpriorlist = `printf '%s\n' $tpriorlist | grep -v $pathname`
+                set cpriorlist = `printf '%s\n' $cpriorlist | grep -v $pathname`
+              endif
+
+              set cmd = (rm -rf $pathdir/tmp.nii.gz)
+              echo $cmd |& tee -a $LF |& tee -a $CF
+              if ($RunIt) then
+                $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
+            endif
+
+            @ ipath = $ipath + 1
+          end
+
+          if ($#rep_pathlist == 0) break;
+
+          @ irep = $irep + 1
+        end
 
         foreach pathname ($pathlist)
           set pathpre = ${pathname}_$avgmode
@@ -562,53 +637,130 @@ else
         set seglist = `printf \
           "$dtroot/%s/dlabel/$xspace/aparc+aseg.nii.gz " $tplist`
 
-        set cmd = $trcdir/dmri_paths
-        set cmd = ($cmd --indir     $inlist)
-        set cmd = ($cmd --outdir    $outlist)
-        set cmd = ($cmd --dwi       dmri/dwi.nii.gz)
-        set cmd = ($cmd --grad      dmri/bvecs)
-        set cmd = ($cmd --bval      dmri/bvals)
-        set cmd = ($cmd --mask      dlabel/diff/$brainmask.nii.gz)
-        set cmd = ($cmd --bpdir     dmri.bedpostX)
-        set cmd = ($cmd --ntr       $nstick)
-        set cmd = ($cmd --fmin      $fmin)
-        set cmd = ($cmd --basereg   dmri/xfms/anatorig2diff.$reg.mat)
-        set cmd = ($cmd --basemask  $labdir/anatorig/$basemask.nii.gz)
-        set cmd = ($cmd --roi1      $roi1list)
-        set cmd = ($cmd --roi2      $roi2list)
-        if ($xspace == mni) then
-          set cmd = ($cmd --reg     $xfmdir/anatorig2mni.mat)
-        else if ($xspace == cvs) then
-          # Hack: Using one time point for now!
-          if ($tplist[1] != $cvstemp) then
-            set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
+        @ irep = 0
 
-            set cmd = ($cmd --regnl $xfmdir_t/cvs/$cvswarp.m3z)
+        while ($irep <= 5)
+          if ($irep) then
+            cp $rcfile $rcfile.reinit
+            echo "set dopriors = 1"                     >> $rcfile.reinit
+            echo "set reinit = 1"                       >> $rcfile.reinit
+            echo "set pathlist = ($rep_pathlist)"       >> $rcfile.reinit
+            echo "set ncpts = ($rep_ncpts)"             >> $rcfile.reinit
+
+            set cmd = trac-preproc
+            set cmd = ($cmd -c $rcfile.reinit)
+            set cmd = ($cmd -log $LF)
+            set cmd = ($cmd -cmd $CF)
+            set cmd = ($cmd -no-isrunning)
+            echo $cmd
+            $cmd
+            if ($status) exit 1
           endif
-        endif
-        set cmd = ($cmd --init      $initlist)
-        if ($dosegprior) then
-          set cmd = ($cmd --nprior  $npriorlist)
-          set cmd = ($cmd --lprior  $lpriorlist)
-          set cmd = ($cmd --seg     $seglist)
-        else if ($doxyzprior) then
-          set cmd = ($cmd --prior   $priorlist)
-        else if ($dotangprior) then
-          set cmd = ($cmd --tprior  $tpriorlist)
-          set cmd = ($cmd --cprior  $cpriorlist)
-        endif
-        set cmd = ($cmd --nb $nburnin --ns $nsample --nu $nupdate --nk $nkeep)
-        if ($doinitprop) then
-          set cmd = ($cmd --sdp     $sdplist)
-        endif
-        if ($debug) then
-          set cmd = ($cmd --debug)
-        endif
-        echo $cmd |& tee -a $LF |& tee -a $CF
-        if ($RunIt) then
-          $fs_time $cmd |& tee -a $LF
-          if ($status) goto error_exit
-        endif
+
+          set cmd = $trcdir/dmri_paths
+          set cmd = ($cmd --indir     $inlist)
+          set cmd = ($cmd --outdir    $outlist)
+          set cmd = ($cmd --dwi       dmri/dwi.nii.gz)
+          set cmd = ($cmd --grad      dmri/bvecs)
+          set cmd = ($cmd --bval      dmri/bvals)
+          set cmd = ($cmd --mask      dlabel/diff/$brainmask.nii.gz)
+          set cmd = ($cmd --bpdir     dmri.bedpostX)
+          set cmd = ($cmd --ntr       $nstick)
+          set cmd = ($cmd --fmin      $fmin)
+          set cmd = ($cmd --basereg   dmri/xfms/anatorig2diff.$reg.mat)
+          set cmd = ($cmd --basemask  $labdir/anatorig/$basemask.nii.gz)
+          set cmd = ($cmd --roi1      $roi1list)
+          set cmd = ($cmd --roi2      $roi2list)
+          if ($xspace == mni) then
+            set cmd = ($cmd --reg     $xfmdir/anatorig2mni.mat)
+          else if ($xspace == cvs) then
+            # Hack: Using one time point for now!
+            if ($tplist[1] != $cvstemp) then
+              set xfmdir_t = $dtroot/$tplist[1]/dmri/xfms
+
+              set cmd = ($cmd --regnl $xfmdir_t/cvs/$cvswarp.m3z)
+            endif
+          endif
+          set cmd = ($cmd --init      $initlist)
+          if ($dosegprior) then
+            set cmd = ($cmd --nprior  $npriorlist)
+            set cmd = ($cmd --lprior  $lpriorlist)
+            set cmd = ($cmd --seg     $seglist)
+          else if ($doxyzprior) then
+            set cmd = ($cmd --prior   $priorlist)
+          else if ($dotangprior) then
+            set cmd = ($cmd --tprior  $tpriorlist)
+            set cmd = ($cmd --cprior  $cpriorlist)
+          endif
+          set cmd = ($cmd --nb $nburnin --ns $nsample --nu $nupdate --nk $nkeep)
+          if ($doinitprop) then
+            set cmd = ($cmd --sdp     $sdplist)
+          endif
+          if ($debug) then
+            set cmd = ($cmd --debug)
+          endif
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $fs_time $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+
+          # Check if any paths need to be reinitialized
+          set rep_pathlist = ()
+          set rep_ncpts = ()
+
+          set outdir_t = $dtroot/$tplist[1]/$outdir
+
+          @ ipath = 1
+          while ($ipath <= $#pathlist)
+            set pathname = $pathlist[$ipath]
+            set pathdir = $outdir_t/${pathname}_$avgmode
+
+            if (-e $pathdir/path.pd.nii.gz) then
+              set pmax = `fslstats $pathdir/path.pd.nii.gz -R | awk '{print $2}'`
+              set pthr = `echo "$pmax * .2" | bc -l`
+
+              set cmd = fslmaths
+              set cmd = ($cmd $pathdir/path.pd.nii.gz -thr $pthr)
+              set cmd = ($cmd $pathdir/tmp.nii.gz)
+              echo $cmd |& tee -a $LF |& tee -a $CF
+              if ($RunIt) then
+                $fs_time $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
+
+              if (`fslstats $pathdir/tmp.nii.gz -V | awk '{print $2}'` \
+               == `fslstats $pathdir/path.map.nii.gz -V | awk '{print $2}'`) then
+                set rep_pathlist = ($rep_pathlist $pathname)
+                set rep_ncpts    = ($rep_ncpts    $ncpts[$ipath])
+              else
+                set outlist    = `printf '%s\n' $outlist    | grep -v $pathname`
+                set roi1list   = `printf '%s\n' $roi1list   | grep -v $pathname`
+                set roi2list   = `printf '%s\n' $roi2list   | grep -v $pathname`
+                set initlist   = `printf '%s\n' $initlist   | grep -v $pathname`
+                set sdplist    = `printf '%s\n' $sdplist    | grep -v $pathname`
+                set priorlist  = `printf '%s\n' $priorlist  | grep -v $pathname`
+                set npriorlist = `printf '%s\n' $npriorlist | grep -v $pathname`
+                set lpriorlist = `printf '%s\n' $lpriorlist | grep -v $pathname`
+                set tpriorlist = `printf '%s\n' $tpriorlist | grep -v $pathname`
+                set cpriorlist = `printf '%s\n' $cpriorlist | grep -v $pathname`
+              endif
+
+              set cmd = (rm -rf $pathdir/tmp.nii.gz)
+              echo $cmd |& tee -a $LF |& tee -a $CF
+              if ($RunIt) then
+                $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
+            endif
+
+            @ ipath = $ipath + 1
+          end
+
+          if ($#rep_pathlist == 0) break;
+
+          @ irep = $irep + 1
+        end
 
         foreach subj_t ($tplist)
           set dwidir_t = $dtroot/$subj_t/dmri

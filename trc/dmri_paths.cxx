@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2014/05/02 19:36:47 $
- *    $Revision: 1.5 $
+ *    $Date: 2016/12/18 14:03:25 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -120,6 +120,9 @@ int main(int argc, char **argv) {
   if (checkoptsonly) return(0);
 
   dump_options();
+
+  srand(6875);
+  srand48(6875);
 
   if (xyzPriorFile0.empty())  doxyzprior = false;
   if (tangPriorFile.empty())  dotangprior = false;

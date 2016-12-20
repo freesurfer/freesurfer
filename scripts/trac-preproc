@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2016/12/14 02:20:53 $
-#    $Revision: 1.55 $
+#    $Date: 2016/12/18 13:57:23 $
+#    $Revision: 1.56 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.55 2016/12/14 02:20:53 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.56 2016/12/18 13:57:23 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -191,7 +191,7 @@ if ($docorr && ! $dobase) then
     if ($status) goto error_exit
   endif
 
-  set cmd = (mri_convert $infile $dwidir/dwi_orig.nii.gz)
+  set cmd = (mri_convert --bvec-voxel $infile $dwidir/dwi_orig.nii.gz)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
