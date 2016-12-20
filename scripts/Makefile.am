@@ -54,7 +54,6 @@ fix_subject_corrected-rh \
 fix_subject-lh \
 fix_subject_on_seychelles \
 fix_subject-rh \
-flip4fsl \
 fname2ext \
 fname2stem \
 fscalc \
