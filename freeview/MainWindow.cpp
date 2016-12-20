@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/13 16:43:39 $
- *    $Revision: 1.352 $
+ *    $Date: 2016/12/19 16:19:32 $
+ *    $Revision: 1.353 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -188,6 +188,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
     connect(m_views[i], SIGNAL(CursorLocationClicked()), this, SLOT(On2DCursorClicked()));
   }
   connect(ui->widgetAllLayers, SIGNAL(ToReorderLayers(QList<Layer*>)), this, SLOT(ReorderLayers(QList<Layer*>)));
+  for (int i = 0; i < 4; i++)
+      connect(ui->widgetAllLayers, SIGNAL(CurrentLayerSelected(Layer*)), m_views[i], SLOT(SetScalarBarLayer(Layer*)));
 
   m_dlgCropVolume = new DialogCropVolume(this);
   m_dlgCropVolume->hide();

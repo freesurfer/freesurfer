@@ -260,7 +260,10 @@ void PanelAllLayers::OnCurrentItemChanged(QTreeWidgetItem *item)
 
   PanelLayer* panel = SetCurrentPanel(type);
   if (panel)
+  {
     panel->SetCurrentLayer(layer);
+    emit CurrentLayerSelected(layer);
+  }
 }
 
 void PanelAllLayers::OnItemChanged(QTreeWidgetItem *item)

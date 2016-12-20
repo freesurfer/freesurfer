@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/17 16:25:26 $
- *    $Revision: 1.52 $
+ *    $Date: 2016/12/19 16:19:32 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -531,14 +531,13 @@ void RenderView::UpdateScalarBar()
         m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
     }
   }
+  emit RequestRedraw();
 }
 
 void RenderView::SetScalarBarLayer(Layer *layer)
 {
   m_layerScalarBar = layer;
   UpdateScalarBar();
-  if (!GetShowScalarBar())
-    ShowScalarBar(true);
 }
 
 void RenderView::SetScalarBarLayer(QAction *act)
@@ -547,7 +546,11 @@ void RenderView::SetScalarBarLayer(QAction *act)
   if (layer)
   {
     if (act->isChecked())
+    {
       SetScalarBarLayer(layer);
+      if (!GetShowScalarBar())
+          ShowScalarBar(true);
+    }
     else
       ShowScalarBar(false);
   }
