@@ -12,9 +12,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: ayendiki $
-#    $Date: 2013/12/05 23:08:54 $
-#    $Revision: 1.12 $
+#    $Author: zkaufman $
+#    $Date: 2016/12/20 17:04:04 $
+#    $Revision: 1.12.2.1 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -55,7 +55,7 @@ set dcmroot = /path/to/dicoms/of/ducks
 set dcmlist = (huey/day1/XXX-1.dcm dewey/day1/XXX-1.dcm louie/day2/XXX-1.dcm)
 
 # Diffusion gradient tables (if there is a different one for each scan)
-# Must be specified if inputs are not MGH DICOMs
+# Must be specified if they cannot be read from the DICOM headers
 # The tables must have either three columns, where each row is a gradient vector
 # or three rows, where each column is a gradient vector
 # There must be as many gradient vectors as volumes in the diffusion data set
@@ -66,7 +66,7 @@ set bveclist = (/path/to/huey/bvecs.txt \
                 /path/to/louie/bvecs.txt)
 
 # Diffusion gradient table (if using the same one for all scans)
-# Must be specified if inputs are not MGH DICOMs
+# Must be specified if it cannot be read from the DICOM headers
 # The table must have either three columns, where each row is a gradient vector
 # or three rows, where each column is a gradient vector
 # There must be as many gradient vectors as volumes in the diffusion data set
@@ -74,8 +74,17 @@ set bveclist = (/path/to/huey/bvecs.txt \
 #
 set bvecfile = /path/to/bvecs.txt
 
-# Diffusion b-value table
-# Must be specified if inputs are not MGH DICOMs
+# Diffusion b-value tables (if there is a different one for each scan)
+# Must be specified if they cannot be read from the DICOM headers
+# There must be as many b-values as volumes in the diffusion data set
+# Default: Read from DICOM header
+#
+set bvallist = (/path/to/huey/bvals.txt \
+                /path/to/dewey/bvals.txt \
+                /path/to/louie/bvals.txt)
+
+# Diffusion b-value table (if using the same one for all scans)
+# Must be specified if it cannot be read from the DICOM headers
 # There must be as many b-values as volumes in the diffusion data set
 # Default: Read from DICOM header
 #

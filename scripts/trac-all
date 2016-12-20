@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/02/16 17:17:20 $
-#    $Revision: 1.60 $
+#    $Date: 2016/12/20 17:04:05 $
+#    $Revision: 1.60.2.1 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.60 2016/02/16 17:17:20 zkaufman Exp $'
+set VERSION = '$Id: trac-all,v 1.60.2.1 2016/12/20 17:04:05 zkaufman Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -59,6 +59,8 @@ set allowcore = 0	# Unlimit core dump size
 set DoTime = 0		# Time main commands
 set fs_time = ()
 
+set submitfile = ()	# Name of file for writing jobs to be run in parallel
+
 set logfile = ()	# Name of log file
 set cmdfile = ()	# Name of command file
 set AppendLog = 1	# Append to log file if it exists
@@ -84,13 +86,6 @@ set dopriors = 0
 
 set rcfile = ()		# Run command file
 
-if ($onpbs) then
-  set pbslogdir = /tmp/trac-all.$$
-  mkdir -p $pbslogdir
-  set submitfile = $pbslogdir/submit.txt
-  rm -f $submitfile
-endif
-
 #------------ Parse input arguments and configuration file ----------------#
 
 if ($#argv == 0) goto usage_exit;
@@ -115,6 +110,7 @@ set dcmroot = ()
 set dcmlist = ()
 set bveclist = ()
 set bvecfile = ()
+set bvallist = ()
 set bvalfile = ()
 set nb0 = ()
 set dob0 = 0
@@ -191,6 +187,24 @@ pushd $FREESURFER_HOME > /dev/null
 set freesurfer_home_true = `pwd`;
 popd > /dev/null
 echo "Actual FREESURFER_HOME $freesurfer_home_true"
+
+if ($onpbs) then
+  set pbslogdir = /tmp/trac-all.$$
+  mkdir -p $pbslogdir
+  if (! $#submitfile) set submitfile = $pbslogdir/submit.txt
+endif
+
+if ($#submitfile) then
+  rm -f $submitfile
+
+  set presubmitfile = `echo $submitfile | awk -v FS=\. \
+    '{s=""; for (i=1;i<NF;i++) s=s$i"."; print s"pre."$NF}'`
+  rm -f $presubmitfile
+
+  set postsubmitfile = `echo $submitfile | awk -v FS=\. \
+    '{s=""; for (i=1;i<NF;i++) s=s$i"."; print s"post."$NF}'`
+  rm -f $postsubmitfile
+endif
 
 if ($#logfile) then
   if (-e $logfile && ! $AppendLog) mv -f $logfile $logfile.old
@@ -423,7 +437,11 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
     else
       echo "set bvecfile = ($bvecfile)"					>> $RCF
     endif
-    echo "set bvalfile = ($bvalfile)"					>> $RCF
+    if ($#bvallist) then
+      echo "set bvalfile = ($bvallist[$isubj])"				>> $RCF
+    else
+      echo "set bvalfile = ($bvalfile)"					>> $RCF
+    endif
     echo "set nb0 = ($nb0)"						>> $RCF
     echo "set dob0 = ($dob0)"						>> $RCF
     if ($#b0mlist) then
@@ -487,7 +505,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
       set cmd = ($cmd -log $LF)
       set cmd = ($cmd -cmd $CF)
       set cmd = ($cmd $cmdopts)
-      if ($onpbs) then
+      if ($#submitfile) then
         echo $cmd >> $submitfile
       else
         echo $cmd
@@ -496,15 +514,31 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
       endif
     else if ($dobedpost) then	# Bedpost ####################
       if (! $onpbs) then
-        echo "WARN: Running FSL's bedbost locally - this might take a while" \
-          |& tee -a $LF
-        echo "WARN: It is recommended to run this step on a cluster" \
-          |& tee -a $LF
-        set cmd = (bedpostx_mgh -n $nstick $dtdir/dmri)
-        echo $cmd |& tee -a $LF |& tee -a $CF
-        if ($RunIt) then
-          $cmd |& tee -a $LF
-          if ($status) exit 1
+        if ($#submitfile) then
+          set cmd =  (bedpostx_preproc.sh $dtdir/dmri)
+          echo $cmd >> $presubmitfile
+          set nslice = `mri_info --nslices $dtdir/dmri/lowb.nii.gz`
+          @ islice = 0
+          while ($islice < $nslice)
+            set cmd = (bedpostx_single_slice.sh $dtdir/dmri)
+            set cmd = ($cmd $islice --nf=$nstick --fudge=1 --bi=1000)
+            set cmd = ($cmd --nj=1250 --se=25 --model=1 --cnonlinear)
+            echo $cmd >> $submitfile
+            @ islice = $islice + 1
+          end
+          set cmd = (bedpostx_postproc.sh $dtdir/dmri)
+          echo $cmd >> $postsubmitfile
+        else
+          echo "WARN: Running bedbostx locally - this might take a while" \
+            |& tee -a $LF
+          echo "WARN: It is recommended to run this step on a cluster" \
+            |& tee -a $LF
+          set cmd = (bedpostx_mgh -n $nstick $dtdir/dmri)
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) exit 1
+          endif
         endif
       endif
     else if ($dopaths) then	# Path reconstruction ########
@@ -513,7 +547,7 @@ if ($#baselist == 0) then	#--->>> A single time point for each subject
       set cmd = ($cmd -log $LF)
       set cmd = ($cmd -cmd $CF)
       set cmd = ($cmd $cmdopts)
-      if ($onpbs) then
+      if ($#submitfile) then
         echo $cmd >> $submitfile
       else
         echo $cmd
@@ -809,7 +843,11 @@ else				#--->>> Multiple time points for each subject
       else
         echo "set bvecfile = ($bvecfile)"				>> $RCF
       endif
-      echo "set bvalfile = ($bvalfile)"					>> $RCF
+      if ($#bvallist && $subj != $bsubj) then
+        echo "set bvalfile = ($bvallist[$itps[$iproc]])"		>> $RCF
+      else
+        echo "set bvalfile = ($bvalfile)"				>> $RCF
+      endif
       echo "set nb0 = ($nb0)"						>> $RCF
       echo "set dob0 = ($dob0)"						>> $RCF
       if ($subj != $bsubj && $#b0mlist) then
@@ -885,7 +923,7 @@ else				#--->>> Multiple time points for each subject
         set cmd = ($cmd $cmdopts;)
         @ iproc = $iproc + 1
       end
-      if ($onpbs) then
+      if ($#submitfile) then
         echo $cmd >> $submitfile
       else
         echo $cmd
@@ -896,15 +934,32 @@ else				#--->>> Multiple time points for each subject
       @ iproc = 1
       while ($iproc <= $#proclist)
         if (! $onpbs) then
-          echo "WARN: Running FSL's bedbost locally - this might take a while" \
-            |& tee -a $LFlist[$iproc]
-          echo "WARN: It is recommended to run this step on a cluster" \
-            |& tee -a $LFlist[$iproc]
-          set cmd = (bedpostx_mgh -n $nstick $dtroot/$proclist[$iproc]/dmri)
-          echo $cmd |& tee -a $LFlist[$iproc] |& tee -a $CFlist[$iproc]
-          if ($RunIt) then
-            $cmd |& tee -a $LFlist[$iproc]
-            if ($status) exit 1
+          if ($#submitfile) then
+            set cmd =  (bedpostx_preproc.sh $dtroot/$proclist[$iproc]/dmri)
+            echo $cmd >> $presubmitfile
+            set nslice = `mri_info --nslices \
+                          $dtroot/$proclist[$iproc]/dmri/lowb.nii.gz`
+            @ islice = 0
+            while ($islice < $nslice)
+              set cmd = (bedpostx_single_slice.sh $dtroot/$proclist[$iproc]/dmri)
+              set cmd = ($cmd $islice --nf=$nstick --fudge=1 --bi=1000)
+              set cmd = ($cmd --nj=1250 --se=25 --model=1 --cnonlinear)
+              echo $cmd >> $submitfile
+              @ islice = $islice + 1
+            end
+            set cmd = (bedpostx_postproc.sh $dtroot/$proclist[$iproc]/dmri)
+            echo $cmd >> $postsubmitfile
+          else
+            echo "WARN: Running bedbostx locally - this might take a while" \
+              |& tee -a $LFlist[$iproc]
+            echo "WARN: It is recommended to run this step on a cluster" \
+              |& tee -a $LFlist[$iproc]
+            set cmd = (bedpostx_mgh -n $nstick $dtroot/$proclist[$iproc]/dmri)
+            echo $cmd |& tee -a $LFlist[$iproc] |& tee -a $CFlist[$iproc]
+            if ($RunIt) then
+              $cmd |& tee -a $LFlist[$iproc]
+              if ($status) exit 1
+            endif
           endif
         endif
         @ iproc = $iproc + 1
@@ -915,7 +970,7 @@ else				#--->>> Multiple time points for each subject
       set cmd = ($cmd -log $LF)
       set cmd = ($cmd -cmd $CF)
       set cmd = ($cmd $cmdopts)
-      if ($onpbs) then
+      if ($#submitfile) then
         echo $cmd >> $submitfile
       else
         echo $cmd
@@ -1055,7 +1110,7 @@ if ($dostats) then
           set LF = $statdir/$pathname.$avgmode.log
 
           if ($RunIt) then
-            if ($onpbs) then
+            if ($#submitfile) then
               echo "$cmd |& tee -a $LF" >> $submitfile
             else
               echo $cmd
@@ -1293,6 +1348,11 @@ while( $#argv != 0 )
       set AppendLog = 0
       breaksw
 
+    case "-jobs":
+      if ($#argv < 1) goto arg1err;
+      set submitfile = $argv[1]; shift;
+      breaksw
+
     case "-log":
       if ($#argv < 1) goto arg1err;
       set logfile = $argv[1]; shift;
@@ -1477,6 +1537,11 @@ check_params:
         exit 1
       endif
 
+      if ($#bvallist > 0 && $#bvallist != $#subjlist) then
+        echo "ERROR: must specify as many b-value tables as subjects"
+        exit 1
+      endif
+
       if ($#b0mlist > 0 && $#b0mlist != $#subjlist) then
         echo "ERROR: must specify as many fieldmap magnitude dicoms as subjects"
         exit 1
@@ -1561,6 +1626,9 @@ usage_exit:
   echo "  4. Assemble pathway measures from all subjects"
   echo ""
   echo "Other options:"
+  echo "  -jobs <file>    : write a text file with command lines that can be"
+  echo "                    run in parallel but do not run them - the user can"
+  echo "                    then submit each line as a job on a compute cluster"
   echo "  -log <file>     : unique log file instead of scripts/trac-all.log"
   echo "  -noappendlog    : overwrite old log files instead of appending"
   echo "  -cmd <file>     : unique cmd file instead of scripts/trac-all.cmd"
@@ -1679,6 +1747,9 @@ file. See dmrirc.example for more details.
    diffusivity) from multiple subjects to feed into group analyses.
 
 OTHER OPTIONS
+-jobs <file>    : write a text file with command lines that can be
+                  run in parallel but do not run them - the user can
+                  then submit each line as a job on a compute cluster
 -log <file>     : default is scripts/trac-all.log
 -noappendlog    : overwrite old log files instead of appending
 -cmd <file>     : default is scripts/trac-all.cmd
@@ -1693,7 +1764,7 @@ OTHER OPTIONS
 -version        : print version of this script and exit
 -help           : print full contents of help
 
-FOR NMR CENTER CLUSTER USERS
+FOR MARTINOS CENTER CLUSTER USERS
 Do not submit trac-all as a job with pbsubmit or qsub. Run it directly on the
 command line. If run on a local machine, trac-all will run all analyses locally.
 If run on the cluster, trac-all will submit the analysis of each subject listed

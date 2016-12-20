@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2014/05/27 14:49:34 $
- *    $Revision: 1.10 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/20 17:04:05 $
+ *    $Revision: 1.10.2.1 $
  *
  * Copyright © 2013 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,12 +101,12 @@ int main(int argc, char **argv) {
   vector< vector<unsigned int> > allknots;
   vector< vector<float> > allarc, allpaths, allmeas, allmeasint, allmeassec;
   ifstream listfile;
-  ofstream pathfile;
+  ofstream pathfile, pathrasfile;
   MATRIX *outv2r;
   MRI *outref = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -366,36 +366,41 @@ int main(int argc, char **argv) {
   // Choose sampling interval for measures along the path
   darc = *(allarc[itemplate - allpaths.begin()].end() - 1)
        / lengths[itemplate - allpaths.begin()];
-  cout << "INFO: Sampling interval along path is " << darc << " voxels" << endl;
+
+  cout << "INFO: Sampling interval along path is ";
+  if (outref)
+    cout << darc * outref->xsize << " mm" << endl;
+  else
+    cout << darc << " voxels" << endl;
 
 if (0) {
   // Write points of most representative path to file as RAS coords
   filename = string(outBase) + ".median.txt";
 
   cout << "Writing median path to " << filename << endl;
-  pathfile.open(filename.c_str(), ios::out);
+  pathrasfile.open(filename.c_str(), ios::out);
 
-  pathfile << "#!ascii label" << endl
-           << itemplate->size() / 3 << endl;
+  pathrasfile << "#!ascii label, vox2ras=scanner" << endl
+              << itemplate->size() / 3 << endl;
 
   npt = 1;
 
   for (vector<float>::const_iterator ipt = itemplate->begin();
                                      ipt < itemplate->end(); ipt += 3) {
-    pathfile << npt;
+    pathrasfile << npt;
 
     for (int k = 1; k < 4; k++)		// Transform from voxel to RAS coords
-      pathfile << " " << ipt[0] * outv2r->rptr[k][1] +
-                         ipt[1] * outv2r->rptr[k][2] +
-                         ipt[2] * outv2r->rptr[k][3] +
-                                  outv2r->rptr[k][4];
+      pathrasfile << " " << ipt[0] * outv2r->rptr[k][1] +
+                            ipt[1] * outv2r->rptr[k][2] +
+                            ipt[2] * outv2r->rptr[k][3] +
+                                     outv2r->rptr[k][4];
 
-    pathfile << " 0" << endl;
+    pathrasfile << " 0" << endl;
 
     npt++;
   }
 
-  pathfile.close();
+  pathrasfile.close();
 }
 
   // Reparameterize the arc length on each path
@@ -586,33 +591,43 @@ if (0) {
     insubj++;
   }
 
-  // Write points of mean path to file as RAS coords
-  filename = string(outBase) + ".path.mean.txt";
+  // Write points of mean path to file as voxel and RAS coords
+  filename = string(outBase) + ".coords.mean.txt";
 
-  cout << "Writing mean path to " << filename << endl;
+  cout << "Writing mean path voxel coords to " << filename << endl;
   pathfile.open(filename.c_str(), ios::out);
 
-  pathfile << "#!ascii label" << endl
-           << meanpath.size() / 3 << endl;
+  filename = string(outBase) + ".path.mean.txt";
+
+  cout << "Writing mean path RAS coords to " << filename << endl;
+  pathrasfile.open(filename.c_str(), ios::out);
+
+  pathrasfile << "#!ascii label, vox2ras=scanner" << endl
+              << meanpath.size() / 3 << endl;
 
   npt = 1;
 
   for (vector<float>::iterator ipt = meanpath.begin(); ipt < meanpath.end();
                                                        ipt += 3) {
-    pathfile << npt;
+    // Write voxel coordinates
+    pathfile << ipt[0] << " " << ipt[1] << " " << ipt[2] << endl;
+
+    // Write RAS coordinates (in freeview waypoint file format)
+    pathrasfile << npt;
 
     for (int k = 1; k < 4; k++)	// Transform from voxel to RAS coords
-      pathfile << " " << ipt[0] * outv2r->rptr[k][1] +
-                         ipt[1] * outv2r->rptr[k][2] +
-                         ipt[2] * outv2r->rptr[k][3] +
-                                  outv2r->rptr[k][4];
+      pathrasfile << " " << ipt[0] * outv2r->rptr[k][1] +
+                            ipt[1] * outv2r->rptr[k][2] +
+                            ipt[2] * outv2r->rptr[k][3] +
+                                     outv2r->rptr[k][4];
 
-    pathfile << " 0" << endl;
+    pathrasfile << " 0" << endl;
 
     npt++;
   }
 
   pathfile.close();
+  pathrasfile.close();
 
   // Write output files
   ntot = allmeasint[0].size();

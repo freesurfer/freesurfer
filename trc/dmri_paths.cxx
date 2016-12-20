@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2014/05/02 19:36:47 $
- *    $Revision: 1.5 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/20 17:04:05 $
+ *    $Revision: 1.5.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   int nargs, cputime, ilab1 = 0, ilab2 = 0;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -120,6 +120,9 @@ int main(int argc, char **argv) {
   if (checkoptsonly) return(0);
 
   dump_options();
+
+  srand(6875);
+  srand48(6875);
 
   if (xyzPriorFile0.empty())  doxyzprior = false;
   if (tangPriorFile.empty())  dotangprior = false;
