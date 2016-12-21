@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: ayendiki $
-#    $Date: 2016/12/18 13:57:23 $
-#    $Revision: 1.56 $
+#    $Author: zkaufman $
+#    $Date: 2016/12/21 20:57:53 $
+#    $Revision: 1.57 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.56 2016/12/18 13:57:23 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.57 2016/12/21 20:57:53 zkaufman Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -412,11 +412,13 @@ if ($docorr && ! $dobase) then
       if ($status) goto error_exit
     endif
 
-    set cmd = (mri_probedicom --i $dcmfile)
-    echo "$cmd > $dwidir/b0info.dat" |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      ($cmd > $dwidir/b0info.dat) >>& $LF
-      if ($status) goto error_exit
+    if (`mri_info --format $dcmfile` =~ *dicom*) then
+      set cmd = (mri_probedicom --i $dcmfile)
+      echo "$cmd > $dwidir/b0info.dat" |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        ($cmd > $dwidir/b0info.dat) >>& $LF
+        if ($status) goto error_exit
+      endif
     endif
 
     set TE = `grep alTE $dwidir/b0info.dat | awk '{print $3}'`
