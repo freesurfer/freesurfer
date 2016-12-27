@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:40 $
- *    $Revision: 1.88.2.2 $
+ *    $Date: 2016/12/27 16:47:13 $
+ *    $Revision: 1.88.2.3 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -48,12 +48,23 @@
 #include "transform.h"
 #include "gca.h"
 
+
+#define CONTRAST_UNKNOWN  0
+#define T1_CONTRAST       1
+#define T2_CONTRAST       2
+
+static int contrast = CONTRAST_UNKNOWN ;
+
 static MRI *build_outside_of_brain_mask(MRI *mri_src, GCA *gca, TRANSFORM *xform, double prior_thresh, int whalf)  ;
-MRI *MRIcombineDistanceTransforms(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst);
 static int remove_surface_outliers(MRI *mri_ctrl_src,
                                    MRI *mri_dist,
                                    MRI *mri_src,
-                                   MRI *mri_ctrl_dst) ;
+                                   MRI *mri_ctrl_dst,
+				   float min_dist) ;
+static MRI *remove_surface_outliers_T2(MRI *mri_ctrl_src,
+				       MRI *mri_dist,
+				       MRI *mri_src,
+				       MRI *mri_ctrl_dst) ;
 static MRI *MRIremoveWMOutliersAndRetainMedialSurface(MRI *mri_src,
     MRI *mri_src_ctrl,
     MRI *mri_dst_ctrl,
@@ -72,6 +83,7 @@ static MRI *add_interior_points(MRI *mri_src, MRI *mri_vals,
                                 MRI_SURFACE *mris_interior1,
                                 MRI_SURFACE *mris_interior2,
                                 MRI *mri_aseg, MRI *mri_dst) ;
+static float nonmax_thresh = 2.5 ;
 static GCA *gca ;
 static TRANSFORM *xform ;
 static int brain_distance = 1 ;
@@ -157,14 +169,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.88.2.2 2016/12/08 22:02:40 zkaufman Exp $",
+   "$Id: mri_normalize.c,v 1.88.2.3 2016/12/27 16:47:13 zkaufman Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.88.2.2 2016/12/08 22:02:40 zkaufman Exp $",
+           "$Id: mri_normalize.c,v 1.88.2.3 2016/12/27 16:47:13 zkaufman Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -431,14 +443,24 @@ main(int argc, char *argv[])
         ErrorExit(ERROR_NOFILE,
                   "%s: could not load aseg from %s", Progname, aseg_fname) ;
       }
+      if (!MRImatch(mri_aseg, mri_ctrl))
+      {
+	MRI *mri_tmp ;
+	mri_tmp = MRIresample(mri_aseg, mri_ctrl, SAMPLE_NEAREST) ;
+	MRIfree(&mri_aseg) ;
+	mri_aseg = mri_tmp ;
+      }
       remove_nonwm_voxels(mri_ctrl, mri_aseg, mri_ctrl) ;
       MRIfree(&mri_aseg) ;
     }
     else
     {
-      remove_surface_outliers(mri_ctrl, mri_dist, mri_dst, mri_ctrl) ;
+      remove_surface_outliers(mri_ctrl, mri_dist, mri_dst, mri_ctrl, min_dist) ;
     }
     remove_outliers_near_surface(mri_ctrl, mri_dist, mri_dst, mri_ctrl, min_dist+1, 2.5) ;
+    if (contrast == T2_CONTRAST)
+      remove_surface_outliers_T2(mri_ctrl, mri_dist, mri_dst, mri_ctrl) ;
+
     mri_bias = MRIbuildBiasImage(mri_dst, mri_ctrl, NULL, 0.0) ;
     if (mri_dist)
     {
@@ -952,6 +974,16 @@ get_option(int argc, char *argv[])
   {
     no1d = 1 ;
     printf( "disabling 1d normalization...\n") ;
+  }
+  else if (!stricmp(option, "T1"))
+  {
+    contrast = T1_CONTRAST ;
+    printf( "assuming in vivo T1 contrast\n") ;
+  }
+  else if (!stricmp(option, "T2") || !stricmp(option, "PD"))
+  {
+    contrast = T2_CONTRAST ;
+    printf( "assuming T2/PD contrast\n") ;
   }
   else if (!stricmp(option, "nonmax_suppress"))
   {
@@ -1705,13 +1737,14 @@ add_interior_points(MRI *mri_src, MRI *mri_vals, float intensity_above,
 #define WSIZE_MM  10
 static int
 remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src,
-                        MRI *mri_ctrl_dst)
+                        MRI *mri_ctrl_dst, float min_dist)
 {
   int       x, y, z, wsize ;
   HISTOGRAM *h, *hs ;
   double    mean, sigma, val ;
   MRI       *mri_outlier = MRIclone(mri_ctrl_src, NULL) ;
 
+  return(0) ;
   mri_ctrl_dst = MRIcopy(mri_ctrl_src, mri_ctrl_dst) ;
   wsize = nint(WSIZE_MM/mri_src->xsize) ;
   for (x = 0 ; x < mri_src->width ; x++)
@@ -1727,7 +1760,7 @@ remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src,
           continue ;  // not a control point
         }
         val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-#if 1
+#if 0
         if (val < 80 || val > 130)
         {
           MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, 0) ;  // remove it as a control point
@@ -1736,13 +1769,12 @@ remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src,
         }
 #endif
 #if 1
-        if (val > 100 || val < 120)
+        if (val > 100 && val < 120)
         {
           continue ;  // not an outlier
         }
 #endif
-        h = MRIhistogramVoxel(mri_src, 0, NULL, x, y, z,
-                              wsize, mri_dist, mri_src->xsize) ;
+        h = MRIhistogramVoxel(mri_src, 0, NULL, x, y, z, wsize, mri_dist, min_dist) ;
         HISTOsoapBubbleZeros(h, h, 100) ;
         hs = HISTOsmooth(h, NULL, .5);
         HISTOrobustGaussianFit(hs, .5, &mean, &sigma) ;
@@ -1751,7 +1783,7 @@ remove_surface_outliers(MRI *mri_ctrl_src, MRI *mri_dist, MRI *mri_src,
         {
           sigma = MAX_SIGMA ;
         }
-        if (fabs((mean-val)/sigma) > 2)
+        if (fabs((mean-val)/sigma) > 1)
         {
           MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, 0) ;  // remove it as a control point
           MRIsetVoxVal(mri_outlier, x, y, z, 0, 1) ;   // diagnostics
@@ -1813,6 +1845,14 @@ remove_nonwm_voxels(MRI *mri_ctrl_src, MRI *mri_aseg, MRI *mri_ctrl_dst)
         case Left_Cerebellum_Cortex:
         case Left_Inf_Lat_Vent:
 
+	case WM_hypointensities:
+	case Left_WM_hypointensities:
+	case Right_WM_hypointensities:
+
+	case non_WM_hypointensities:
+	case Left_non_WM_hypointensities:
+	case Right_non_WM_hypointensities:
+
 	case Right_Accumbens_area:
 	case Right_choroid_plexus:
         case Right_Thalamus_Proper:
@@ -1844,41 +1884,6 @@ remove_nonwm_voxels(MRI *mri_ctrl_src, MRI *mri_aseg, MRI *mri_ctrl_dst)
   return(NO_ERROR) ;
 }
 
-MRI *
-MRIcombineDistanceTransforms(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst)
-{
-  int   x, y, z, f ;
-  float val1, val2 ;
-
-  if (mri_dst == NULL)
-  {
-    mri_dst = MRIclone(mri_src1, NULL) ;
-  }
-
-  for (f = 0 ; f < mri_dst->nframes ; f++)
-    for (x = 0 ; x < mri_dst->width ; x++)
-      for (y = 0 ; y < mri_dst->height ; y++)
-        for (z = 0 ; z < mri_dst->depth ; z++)
-        {
-          val1 = MRIgetVoxVal(mri_src1, x, y, z, f) ;
-          val2 = MRIgetVoxVal(mri_src2, x, y, z, f) ;
-          if (val2 < 0 && val1 > 0)
-          {
-            val1 = val2 ;  // in the interior of 1
-          }
-          else if (val2 > 0 && val1 > val2)  // exterior of both, but closer to border of 2
-          {
-            val1 = val2 ;
-          }
-          else if (val2 < 0 && val1 < val2)
-          {
-            val1 = val2 ;  // interior of both, but closer to border of 2
-          }
-
-          MRIsetVoxVal(mri_dst, x, y, z, f, val1) ;
-        }
-  return(mri_dst) ;
-}
 
 static int
 remove_outliers_near_surface(MRI *mri_ctrl, MRI *mri_dist, MRI *mri_dst, MRI *mri_ctrl_out, float min_dist, float nsigma) 
@@ -1886,6 +1891,7 @@ remove_outliers_near_surface(MRI *mri_ctrl, MRI *mri_dist, MRI *mri_dst, MRI *mr
   int x, y, z, c, nremoved ;
   double mean, sigma, val ;
 
+  return(0) ;
   for (nremoved = x = 0 ; x < mri_ctrl->width ; x++)
     for (y = 0 ; y < mri_ctrl->height ; y++)
       for (z = 0 ; z < mri_ctrl->depth ; z++)
@@ -1937,5 +1943,108 @@ build_outside_of_brain_mask(MRI *mri_src, GCA *gca, TRANSFORM *xform, double pri
   for (i = 0 ; i < whalf-1 ; i++)
     MRIerode(mri_outside_of_brain, mri_outside_of_brain) ;
   return(mri_outside_of_brain) ;
+}
+
+static MRI *
+remove_surface_outliers_T2(MRI *mri_ctrl_src,  MRI *mri_dist,  MRI *mri_src, MRI *mri_ctrl_dst) 
+{
+
+  MRI   *mri_grad, *mri_mag, *mri_nonmax, *mri_dist_grad, *mri_dist_sup ;
+  int   x, y, z, done = 0, xv, yv, zv ;
+  float ddx, ddy, ddz, sdx, sdy, sdz, dot, xf, yf, zf, dist, step_size = 0.5, odx, ody, odz, norm ;
+
+  if (mri_ctrl_dst != mri_ctrl_src)
+    mri_ctrl_dst = MRIcopy(mri_ctrl_src, mri_ctrl_dst) ;
+
+  mri_mag = MRIcloneDifferentType(mri_src, MRI_FLOAT) ;
+  mri_grad = MRIsobel(mri_src, NULL, mri_mag) ;
+  mri_dist_grad = MRIsobel(mri_dist, NULL, NULL) ;
+  mri_dist_sup = MRInonMaxSuppress(mri_dist, NULL, 0, 1) ;
+  MRIwrite(mri_dist_grad, "dg.mgz");
+  MRIwrite(mri_grad, "g.mgz");
+  MRIwrite(mri_mag, "m.mgz") ;
+  mri_nonmax = MRInonMaxSuppress(mri_mag, NULL, nonmax_thresh, 1) ;
+
+  MRIwrite(mri_nonmax, "nm1.mgz") ;
+
+  // suppress putative edges that point in the wrong direction
+  for (x = 0 ; x < mri_dist->width ; x++)
+    for (y = 0 ; y < mri_dist->height ; y++)
+      for (z = 0 ; z < mri_dist->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+
+	if (FZERO(MRIgetVoxVal(mri_nonmax, x, y, z, 0)))
+	  continue ;
+	ddx = MRIgetVoxVal(mri_dist_grad, x, y, z, 0) ;
+	ddy = MRIgetVoxVal(mri_dist_grad, x, y, z, 1) ;
+	ddz = MRIgetVoxVal(mri_dist_grad, x, y, z, 2) ;
+
+	sdx = MRIgetVoxVal(mri_grad, x, y, z, 0) ;
+	sdy = MRIgetVoxVal(mri_grad, x, y, z, 1) ;
+	sdz = MRIgetVoxVal(mri_grad, x, y, z, 2) ;
+	
+	dot = (sdx * ddx) + (sdy * ddy) + (sdz *ddz) ;
+	if (dot > 0)   // for T2-weighted direction of distance transform grad should be opposite image grad
+	  MRIsetVoxVal(mri_nonmax, x, y, z, 0, 0) ;
+      }
+
+
+  MRIwrite(mri_nonmax, "nm2.mgz") ;
+  MRIwrite(mri_ctrl_dst, "c1.mgz") ;
+  for (x = 0 ; x < mri_dist->width ; x++)
+    for (y = 0 ; y < mri_dist->height ; y++)
+      for (z = 0 ; z < mri_dist->depth ; z++)
+      {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	if (MRIgetVoxVal(mri_ctrl_src, x, y, z, 0) == 0)
+	  continue ;
+
+	odx = MRIgetVoxVal(mri_dist_grad, x, y, z, 0) ;
+	ody = MRIgetVoxVal(mri_dist_grad, x, y, z, 1) ;
+	odz = MRIgetVoxVal(mri_dist_grad, x, y, z, 2) ;
+	xf = x ; yf = y ; zf = z ; dist = 0 ;
+	xv = nint(xf) ; yv = nint(yf) ; zv = nint(zf) ;
+
+	do
+	{
+	  dist += (step_size*mri_dist->xsize) ; ;
+	  ddx = MRIgetVoxVal(mri_dist_grad, xv, yv, zv, 0) ;
+	  ddy = MRIgetVoxVal(mri_dist_grad, xv, yv, zv, 1) ;
+	  ddz = MRIgetVoxVal(mri_dist_grad, xv, yv, zv, 2) ;
+	  norm = sqrt(ddx*ddx + ddy*ddy + ddz*ddz) ;
+	  if (FZERO(norm))
+	  {
+	    done = 1 ;
+	    break ;
+	  }
+	  ddx /= norm; ddy /= norm; ddz /= norm ;
+
+	  // take step in negative of gradient dir (towards interior)
+	  xf +=  ddx*step_size ; yf +=  ddy*step_size ;  zf +=  ddz*step_size ;
+	  xv = nint(xf) ; yv = nint(yf) ; zv = nint(zf) ;
+	  if (MRIgetVoxVal(mri_nonmax, xv, yv, zv, 0) > 0)
+	    done = -1 ;
+	  else
+	  {
+	    dot = (odx * ddx) + (ody * ddy) + (odz *ddz) ;
+	    done = (dot <= 0.0) ;
+	    if (MRIgetVoxVal(mri_dist_sup, xv, yv, zv, 0) > 0)
+	      done = 1 ;   // got to skeleton without intersecting and egdge - assume it's ok
+	  }
+	  if (dist > 10)
+	    break ;
+	} while (!done) ;
+	if (done < 0)
+	  MRIsetVoxVal(mri_ctrl_dst, x, y, z, 0, 0) ;  // enocuntered edge
+      }
+
+  MRIwrite(mri_ctrl_dst, "c2.mgz") ;
+
+  MRIfree(&mri_nonmax) ; MRIfree(&mri_mag) ; MRIfree(&mri_grad) ; MRIfree(&mri_dist_grad) ; MRIfree(&mri_dist_sup) ;
+
+  return(mri_ctrl_dst) ;
 }
 

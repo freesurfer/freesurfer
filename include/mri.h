@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ohinds $
- *    $Date: 2016/06/17 19:16:52 $
- *    $Revision: 1.483 $
+ *    $Author: zkaufman $
+ *    $Date: 2016/12/27 16:47:13 $
+ *    $Revision: 1.483.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -678,6 +678,7 @@ MRI   *MRImodeFilterWithControlPoints(MRI *mri_src,
                                       MRI *mri_ctrl,
                                       MRI *mri_dst,
                                       int niter) ;
+MRI *MRIcombineDistanceTransforms(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst);
 MRI   *MRIthreshModeFilter(MRI *mri_src, MRI *mri_dst, int niter,float thresh);
 MRI   *MRImin(MRI *mri1, MRI *mri2, MRI *mri_min);
 MRI   *MRIminmax(MRI *mri_src, MRI *mri_dst, MRI *mri_dir, int wsize) ;
@@ -1540,6 +1541,7 @@ MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist,
                                            MRI *mri_dst_dist);
 
 const char* MRItype2str(int type);
+MRI *MRIaddNoise(MRI *mri_in, MRI *mri_out, float amp);
 int MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label) ;
 int MRIcomputeVolumeFractions(MRI *mri_src, MATRIX *m_vox2vox,
 			      MRI *mri_seg, MRI *mri_fractions) ;

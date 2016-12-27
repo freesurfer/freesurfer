@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/14 20:40:04 $
- *    $Revision: 1.570.2.2 $
+ *    $Date: 2016/12/27 16:47:14 $
+ *    $Revision: 1.570.2.3 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.570.2.2 $";
+const char *MRI_C_VERSION = "$Revision: 1.570.2.3 $";
 
 
 /*-----------------------------------------------------
@@ -19445,4 +19445,39 @@ MRIaddNoise(MRI *mri_in, MRI *mri_out, float amp)
 
 
   return(mri_out) ;
+}
+MRI *
+MRIcombineDistanceTransforms(MRI *mri_src1, MRI *mri_src2, MRI *mri_dst)
+{
+  int   x, y, z, f ;
+  float val1, val2 ;
+
+  if (mri_dst == NULL)
+  {
+    mri_dst = MRIclone(mri_src1, NULL) ;
+  }
+
+  for (f = 0 ; f < mri_dst->nframes ; f++)
+    for (x = 0 ; x < mri_dst->width ; x++)
+      for (y = 0 ; y < mri_dst->height ; y++)
+        for (z = 0 ; z < mri_dst->depth ; z++)
+        {
+          val1 = MRIgetVoxVal(mri_src1, x, y, z, f) ;
+          val2 = MRIgetVoxVal(mri_src2, x, y, z, f) ;
+          if (val2 < 0 && val1 > 0)
+          {
+            val1 = val2 ;  // in the interior of 1
+          }
+          else if (val2 > 0 && val1 > val2)  // exterior of both, but closer to border of 2
+          {
+            val1 = val2 ;
+          }
+          else if (val2 < 0 && val1 < val2)
+          {
+            val1 = val2 ;  // interior of both, but closer to border of 2
+          }
+
+          MRIsetVoxVal(mri_dst, x, y, z, f, val1) ;
+        }
+  return(mri_dst) ;
 }

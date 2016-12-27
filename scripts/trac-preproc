@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/12/14 03:26:11 $
-#    $Revision: 1.54.2.1 $
+#    $Date: 2016/12/27 16:47:14 $
+#    $Revision: 1.54.2.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.54.2.1 2016/12/14 03:26:11 zkaufman Exp $'
+set VERSION = '$Id: trac-preproc,v 1.54.2.2 2016/12/27 16:47:14 zkaufman Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -191,7 +191,7 @@ if ($docorr && ! $dobase) then
     if ($status) goto error_exit
   endif
 
-  set cmd = (mri_convert $infile $dwidir/dwi_orig.nii.gz)
+  set cmd = (mri_convert --bvec-voxel $infile $dwidir/dwi_orig.nii.gz)
   echo $cmd |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
     $cmd |& tee -a $LF
@@ -412,11 +412,13 @@ if ($docorr && ! $dobase) then
       if ($status) goto error_exit
     endif
 
-    set cmd = (mri_probedicom --i $dcmfile)
-    echo "$cmd > $dwidir/b0info.dat" |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      ($cmd > $dwidir/b0info.dat) >>& $LF
-      if ($status) goto error_exit
+    if (`mri_info --format $dcmfile` =~ *dicom*) then
+      set cmd = (mri_probedicom --i $dcmfile)
+      echo "$cmd > $dwidir/b0info.dat" |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        ($cmd > $dwidir/b0info.dat) >>& $LF
+        if ($status) goto error_exit
+      endif
     endif
 
     set TE = `grep alTE $dwidir/b0info.dat | awk '{print $3}'`

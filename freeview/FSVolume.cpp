@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:39 $
- *    $Revision: 1.109.2.3 $
+ *    $Date: 2016/12/27 16:47:13 $
+ *    $Revision: 1.109.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1418,11 +1418,11 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
 
   if ( bConform )
   {
-    int dim[3];
-    for ( int i = 0; i < 3; i++ )
-    {
-      dim[i] = (int)(indexBounds[i*2+1] - indexBounds[i*2] + 0.5 );
-    }
+    int dim[3] = {refTarget->width, refTarget->height, refTarget->depth};
+//    for ( int i = 0; i < 3; i++ )
+//    {
+//      dim[i] = (int)(indexBounds[i*2+1] - indexBounds[i*2] + 0.5 );
+//    }
     if ( bAllocatePixel )
     {
       try {
@@ -1442,37 +1442,14 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
     }
 
     MRIcopyHeader( refTarget, mri );
-    /*
-    Real p_c[3];
-    int n0[3];
-    for ( int i = 0; i < 3; i++ )
-      n0[i] = (int)(indexBounds[i*2]+0.5);
-    ::MRIvoxelToWorld( refTarget,
-                       n0[0] + mri->width/2.0,
-                       n0[1] + mri->height/2.0,
-                       n0[2] + mri->depth/2.0,
-                       &p_c[0], &p_c[1], &p_c[2] );
-    mri->c_r = p_c[0];
-    mri->c_a = p_c[1];
-    mri->c_s = p_c[2];
-    mri->xstart += n0[0]*mri->xsize;
-    mri->xend = mri->xstart + dim[0]*mri->xsize;
-    mri->ystart += n0[1]*mri->ysize;
-    mri->yend = mri->ystart + dim[1]*mri->ysize;
-    mri->zstart += n0[2]*mri->zsize;
-    mri->zend = mri->zstart + dim[2]*mri->zsize;
-    if ( mri->i_to_r__)  MatrixFree(&mri->i_to_r__);
-    mri->i_to_r__ = extract_i_to_r(mri);
-    if ( mri->r_to_i__) MatrixFree(&mri->r_to_i__);
-    mri->r_to_i__ = extract_r_to_i(mri);
-    */
-    Real p0[3];
-    ::MRIvoxelToWorld( refTarget,
-                       (int)(indexBounds[0]),
-                       (int)(indexBounds[2]),
-                       (int)(indexBounds[4]),
-                       &p0[0], &p0[1], &p0[2] );
-    MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
+
+//    Real p0[3];
+//    ::MRIvoxelToWorld( refTarget,
+//                       (int)(indexBounds[0]),
+//                       (int)(indexBounds[2]),
+//                       (int)(indexBounds[4]),
+//                       &p0[0], &p0[1], &p0[2] );
+//    MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
     return mri;
   }
   else
@@ -1526,10 +1503,15 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
 
     // calculate dimension of the converted target volume
     int dim[3];
-    dim[0] = (int)( ( indexBounds[1] - indexBounds[0] ) * refTarget->xsize / pixelSize[0] + 0.5 );
-    dim[1] = (int)( ( indexBounds[3] - indexBounds[2] ) * refTarget->ysize / pixelSize[1] + 0.5 );
-    dim[2] = (int)( ( indexBounds[5] - indexBounds[4] ) * refTarget->zsize / pixelSize[2] + 0.5 );
-
+    dim[0] = (int)( ( indexBounds[1] - indexBounds[0] ) + 0.5 );
+    dim[1] = (int)( ( indexBounds[3] - indexBounds[2] ) + 0.5 );
+    dim[2] = (int)( ( indexBounds[5] - indexBounds[4] ) + 0.5 );
+    if (qAbs(dim[0]-refTarget->width)%2 != 0)
+        dim[0] = dim[0]+1;
+    if (qAbs(dim[1]-refTarget->height)%2 != 0)
+        dim[1] = dim[1]+1;
+    if (qAbs(dim[2]-refTarget->depth)%2 != 0)
+        dim[2] = dim[2]+1;
     if ( bAllocatePixel )
     {
       try {
@@ -1549,14 +1531,28 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
     }
 
     MRIcopyHeader( refTarget, mri );
-    MRIsetResolution( mri, pixelSize[0], pixelSize[1], pixelSize[2] );
     Real p0[3];
     ::MRIvoxelToWorld( refTarget,
-                       indexBounds[0]+0.5*pixelSize[0]/refTarget->xsize,
-                       indexBounds[2]+0.5*pixelSize[1]/refTarget->ysize,
-                       indexBounds[4]+0.5*pixelSize[2]/refTarget->zsize,
+                       indexBounds[0]+0.5,
+                       indexBounds[2]+0.5,
+                       indexBounds[4]+0.5,
                        &p0[0], &p0[1], &p0[2] );
     MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
+
+    // make sure c_ras has the same voxel boundary as refTarget
+    mri->c_r = refTarget->c_r + ((int)((mri->c_r-refTarget->c_r)/mri->width))*mri->width;
+    mri->c_a = refTarget->c_a + ((int)((mri->c_a-refTarget->c_a)/mri->height))*mri->height;
+    mri->c_s = refTarget->c_s + ((int)((mri->c_s-refTarget->c_s)/mri->depth))*mri->depth;
+    MATRIX *tmp;
+    tmp = extract_i_to_r( mri );
+    AffineMatrixAlloc( &(mri->i_to_r__ ) );
+    SetAffineMatrix( mri->i_to_r__, tmp );
+    MatrixFree( &tmp );
+
+    if( mri->r_to_i__ ) {
+      MatrixFree(&mri->r_to_i__);
+    }
+    mri->r_to_i__ = extract_r_to_i(mri);
   }
 
   return mri;
@@ -1632,67 +1628,6 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
     {
       double* rtv = this->GetVoxelToRASMatrix();
       int odim[3] = { m_MRI->width, m_MRI->height, m_MRI->depth };
-      /*;
-      if ( fabs( rtv[0] ) > fabs( rtv[4] ) &&
-           fabs( rtv[0] ) > fabs( rtv[8] ) )
-      {
-        *MATRIX_RELT( m, 1, 1 ) = ( rtv[0] > 0 ? 1 : -1 );
-        *MATRIX_RELT( m, 1, 4 ) = ( rtv[0] > 0 ? 0 : odim[0] - 1 );
-        dim[0] = odim[0];
-      }
-      else if ( fabs( rtv[4] ) > fabs( rtv[8] ) )
-      {
-        *MATRIX_RELT( m, 2, 1 ) = ( rtv[4] > 0 ? 1 : -1 );
-        *MATRIX_RELT( m, 2, 4 ) = ( rtv[4] > 0 ? 0 : odim[0] - 1 );
-        dim[1] = odim[0];
-      }
-      else
-      {
-        *MATRIX_RELT( m, 3, 1 ) = ( rtv[8] > 0 ? 1 : -1 );
-        *MATRIX_RELT( m, 3, 4 ) = ( rtv[8] > 0 ? 0 : odim[0] - 1 );
-        dim[2] = odim[0];
-      }
-
-      if ( fabs( rtv[1] ) > fabs( rtv[5] ) &&
-           fabs( rtv[1] ) > fabs( rtv[9] ) )
-      {
-        *MATRIX_RELT( m, 1, 2 ) = ( rtv[1] > 0 ? 1 : -1 );
-        *MATRIX_RELT( m, 1, 4 ) = ( rtv[1] > 0 ? 0 : odim[1] - 1 );
-        dim[0] = odim[1];
-      }
-      else if ( fabs( rtv[5] ) > fabs( rtv[9] ) )
-      {
-        *MATRIX_RELT( m, 2, 2 ) = ( rtv[5] > 0 ? 1 : -1 );
-        *MATRIX_RELT( m, 2, 4 ) = ( rtv[5] > 0 ? 0 : odim[1] - 1 );
-        dim[1] = odim[1];
-      }
-      else
-      {
-        *MATRIX_RELT( m, 3, 2 ) = ( rtv[9] > 0 ? 1 : -1 );
-        *MATRIX_RELT( m, 3, 4 ) = ( rtv[9] > 0 ? 0 : odim[1] - 1 );
-        dim[2] = odim[1];
-      }
-
-      if ( fabs( rtv[2] ) > fabs( rtv[6] ) &&
-           fabs( rtv[2] ) > fabs( rtv[10] ) )
-      {
-        *MATRIX_RELT( m, 1, 3 ) = ( rtv[2] > 0 ? 1 : -1 );
-        *MATRIX_RELT( m, 1, 4 ) = ( rtv[2] > 0 ? 0 : odim[2] - 1 );
-        dim[0] = odim[2];
-      }
-      else if ( fabs( rtv[6] ) > fabs( rtv[10] ) )
-      {
-        *MATRIX_RELT( m, 2, 3 ) = ( rtv[6] > 0 ? 1 : -1 );
-        *MATRIX_RELT( m, 2, 4 ) = ( rtv[6] > 0 ? 0 : odim[2] - 1 );
-        dim[1] = odim[2];
-      }
-      else
-      {
-        *MATRIX_RELT( m, 3, 3 ) = ( rtv[10] > 0 ? 1 : -1 );
-        *MATRIX_RELT( m, 3, 4 ) = ( rtv[10] > 0 ? 0 : odim[2] - 1 );
-        dim[2] = odim[2];
-      }
-      */
       double n[4] = {0, 0, 0, 1}, ras_orig[4], ras0[4], ras1[4], ras2[4];
       vtkMatrix4x4::MultiplyPoint(rtv, n, ras_orig);
       n[0] = 1;
@@ -2296,20 +2231,6 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
       MRIcopyHeader( m_MRITarget, m_MRIOrigTarget );
     }
   }
-
-  /*
-  MATRIX* v2v =
-    MRIgetVoxelToVoxelXform( m_MRITarget, rasMRI ); // old target to new target
-  MATRIX* vm = MatrixAlloc( 4, 4, v2v->type );
-  for ( int i = 0; i < 16; i++ )
-  {
-    *MATRIX_RELT((vm),(i/4)+1,(i%4)+1) = m_VoxelToVoxelMatrix[i];
-  }
-  MATRIX* vox2vox = MatrixMultiply( v2v, vm, NULL );
-  MatrixInverse( vox2vox, v2v );
-  MatrixFree( &vm );
-  MatrixFree( &v2v );
-  */
 
   // change the field of view of the new target to full coverage of the image data
   if ( rotations[0].Plane != -1 )
@@ -3203,12 +3124,10 @@ bool FSVolume::Segment(int min_label_index, int max_label_index, int min_number_
   if (!UpdateMRIFromImage(m_imageData))
     return false;
 
-  qDebug() << "before segmentation";
   MRI_SEGMENTATION *mseg ;
   mseg = MRIsegment(m_MRITemp, min_label_index, max_label_index) ;
   MRIeraseSmallSegments(mseg, m_MRITemp, min_number_of_voxels) ;
   MRIsegmentFree(&mseg);
-  qDebug() << "after segmentation";
   MRI* temp = m_MRI;
   m_MRI = m_MRITemp;
   MapMRIToImage(true);

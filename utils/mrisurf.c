@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:41 $
- *    $Revision: 1.781.2.5 $
+ *    $Date: 2016/12/27 16:47:14 $
+ *    $Revision: 1.781.2.6 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -784,7 +784,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.781.2.5 2016/12/08 22:02:41 zkaufman Exp $");
+  return("$Id: mrisurf.c,v 1.781.2.6 2016/12/27 16:47:14 zkaufman Exp $");
 }
 
 /*-----------------------------------------------------
@@ -38298,7 +38298,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
           max_mag = fabs(dm[i]) ;
           max_mag_dist = dists[i] ;
         }
-	else  // not a local max in 1st derivative - try second */
+	else  if (flags & IPFLAG_FIND_FIRST_WM_PEAK) // not a local max in 1st derivative - try second */
 	{
 	  for (i = 0 ; i < len ; i++)
 	  {
@@ -38315,8 +38315,15 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
 	      if (dm2[i1] < dm2[i])
 		break ;  // not a local maxima in the negative direction
 	    }
+	    val = mri[i] ;
+	    next_val = mri[i+1] ; 
+	    previous_val = mri[i-1] ;
 	    outside /= num ;
-	    if ((peak < 0) && (i1 > i+whalf))  // found a local maximum that is not a flat region of 0
+	    // make sure it is in feasible range
+	    if ((previous_val > inside_hi) || (previous_val < border_low) || (next_val > outside_hi) || (next_val < outside_low) || (val > border_hi) || (val < border_low))
+	      continue ;
+
+	    if ((peak < 0) && (i1 > i+whalf) && mri[i1])  // found a local maximum that is not a flat region of 0
 	      break ;
 	  }
 	  if (i < len-whalf && peak/outside > 1.5)   // it was a local max - set the target to here
