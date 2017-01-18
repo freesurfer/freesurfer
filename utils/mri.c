@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/12/26 15:29:41 $
- *    $Revision: 1.573 $
+ *    $Date: 2017/01/04 17:27:22 $
+ *    $Revision: 1.574 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.573 $";
+const char *MRI_C_VERSION = "$Revision: 1.574 $";
 
 
 /*-----------------------------------------------------
@@ -1519,7 +1519,7 @@ MRIrmsDifferenceNonzero(MRI *mri1, MRI *mri2)
     {
       for (y = 0 ; y < height ; y++)
       {
-        for (x = 0 ; x < height ; x++)
+        for (x = 0 ; x < width ; x++)
         {
           val1 = MRIgetVoxVal(mri1, x, y, z, frame) ;
           val2 = MRIgetVoxVal(mri2, x, y, z, frame) ;
