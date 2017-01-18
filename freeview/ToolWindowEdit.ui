@@ -288,184 +288,390 @@
       </layout>
      </item>
      <item>
-      <widget class="QCheckBox" name="checkBoxConstrain">
-       <property name="text">
-        <string>Constrain drawings to only voxels that are 
-connected to old labels</string>
+      <widget class="QTabWidget" name="tabWidgetConstrains">
+       <property name="currentIndex">
+        <number>0</number>
        </property>
+       <widget class="QWidget" name="tab">
+        <attribute name="title">
+         <string>Advanced Drawing</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_2">
+         <item>
+          <widget class="QCheckBox" name="checkBoxConstrain">
+           <property name="text">
+            <string>Constrain drawings to only voxels that are 
+connected to existing labels</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxDrawRange">
+           <property name="text">
+            <string>Only draw on voxels in the range of</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QLabel" name="labelDrawRangeLow">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Low</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditDrawRangeLow">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_8">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Fixed</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>10</width>
+               <height>0</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="labelDrawRangeHigh">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>high</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditDrawRangeHigh">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_5">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxExcludeRange">
+           <property name="text">
+            <string>Do not draw on voxels in the range of</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QLabel" name="labelExcludeRangeLow">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Low</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditExcludeRangeLow">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_9">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Fixed</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>10</width>
+               <height>0</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="labelExcludeRangeHigh">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>high</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditExcludeRangeHigh">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_6">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tab_2">
+        <attribute name="title">
+         <string>Advanced Erasing</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <widget class="QCheckBox" name="checkBoxEraseRange">
+           <property name="text">
+            <string>Only erase voxels in the range of</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <item>
+            <widget class="QLabel" name="labelDrawRangeLow_2">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Low</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditEraseRangeLow">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_10">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Fixed</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>10</width>
+               <height>0</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="labelDrawRangeHigh_2">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>high</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditEraseRangeHigh">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_11">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBoxEraseExcludeRange">
+           <property name="text">
+            <string>Do not erase voxels in the range of</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <item>
+            <widget class="QLabel" name="labelExcludeRangeLow_2">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Low</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditEraseExcludeRangeLow">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_12">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeType">
+              <enum>QSizePolicy::Fixed</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>10</width>
+               <height>0</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item>
+            <widget class="QLabel" name="labelExcludeRangeHigh_2">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>high</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEditEraseExcludeRangeHigh">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>60</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_13">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <spacer name="verticalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Vertical</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </widget>
       </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="checkBoxDrawRange">
-       <property name="text">
-        <string>Only draw on pixels in the range of</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QLabel" name="labelDrawRangeLow">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>Low</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEditDrawRangeLow">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>60</width>
-           <height>16777215</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_8">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>10</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="QLabel" name="labelDrawRangeHigh">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>high</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEditDrawRangeHigh">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>60</width>
-           <height>16777215</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_5">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="checkBoxExcludeRange">
-       <property name="text">
-        <string>Do not draw on pixels in the range of</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_2">
-       <item>
-        <widget class="QLabel" name="labelExcludeRangeLow">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>Low</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEditExcludeRangeLow">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>60</width>
-           <height>16777215</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_9">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>10</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="QLabel" name="labelExcludeRangeHigh">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>high</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEditExcludeRangeHigh">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>60</width>
-           <height>16777215</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <spacer name="horizontalSpacer_6">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-      </layout>
      </item>
      <item>
       <widget class="QCheckBox" name="checkBoxSmooth">
@@ -750,12 +956,12 @@ Alt + H to show/hide contour.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>108</x>
-     <y>252</y>
+     <x>128</x>
+     <y>294</y>
     </hint>
     <hint type="destinationlabel">
-     <x>27</x>
-     <y>284</y>
+     <x>44</x>
+     <y>325</y>
     </hint>
    </hints>
   </connection>
@@ -766,12 +972,12 @@ Alt + H to show/hide contour.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>288</x>
-     <y>252</y>
+     <x>308</x>
+     <y>294</y>
     </hint>
     <hint type="destinationlabel">
-     <x>202</x>
-     <y>284</y>
+     <x>223</x>
+     <y>324</y>
     </hint>
    </hints>
   </connection>
@@ -782,12 +988,12 @@ Alt + H to show/hide contour.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>164</x>
-     <y>252</y>
+     <x>184</x>
+     <y>294</y>
     </hint>
     <hint type="destinationlabel">
-     <x>93</x>
-     <y>284</y>
+     <x>110</x>
+     <y>324</y>
     </hint>
    </hints>
   </connection>
@@ -798,12 +1004,12 @@ Alt + H to show/hide contour.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>222</x>
-     <y>252</y>
+     <x>242</x>
+     <y>294</y>
     </hint>
     <hint type="destinationlabel">
-     <x>136</x>
-     <y>284</y>
+     <x>157</x>
+     <y>325</y>
     </hint>
    </hints>
   </connection>
@@ -814,12 +1020,12 @@ Alt + H to show/hide contour.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>141</x>
-     <y>310</y>
+     <x>161</x>
+     <y>353</y>
     </hint>
     <hint type="destinationlabel">
-     <x>93</x>
-     <y>342</y>
+     <x>110</x>
+     <y>383</y>
     </hint>
    </hints>
   </connection>
@@ -830,12 +1036,12 @@ Alt + H to show/hide contour.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>58</x>
-     <y>310</y>
+     <x>78</x>
+     <y>353</y>
     </hint>
     <hint type="destinationlabel">
-     <x>27</x>
-     <y>342</y>
+     <x>44</x>
+     <y>384</y>
     </hint>
    </hints>
   </connection>
@@ -846,12 +1052,12 @@ Alt + H to show/hide contour.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>184</x>
-     <y>310</y>
+     <x>204</x>
+     <y>353</y>
     </hint>
     <hint type="destinationlabel">
-     <x>136</x>
-     <y>342</y>
+     <x>157</x>
+     <y>384</y>
     </hint>
    </hints>
   </connection>
@@ -862,12 +1068,12 @@ Alt + H to show/hide contour.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>149</x>
-     <y>368</y>
+     <x>158</x>
+     <y>424</y>
     </hint>
     <hint type="destinationlabel">
-     <x>96</x>
-     <y>400</y>
+     <x>106</x>
+     <y>455</y>
     </hint>
    </hints>
   </connection>
@@ -878,12 +1084,12 @@ Alt + H to show/hide contour.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>275</x>
-     <y>310</y>
+     <x>295</x>
+     <y>353</y>
     </hint>
     <hint type="destinationlabel">
-     <x>202</x>
-     <y>342</y>
+     <x>223</x>
+     <y>383</y>
     </hint>
    </hints>
   </connection>
@@ -894,12 +1100,12 @@ Alt + H to show/hide contour.
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>232</x>
-     <y>368</y>
+     <x>241</x>
+     <y>424</y>
     </hint>
     <hint type="destinationlabel">
-     <x>162</x>
-     <y>400</y>
+     <x>188</x>
+     <y>455</y>
     </hint>
    </hints>
   </connection>
@@ -910,8 +1116,8 @@ Alt + H to show/hide contour.
    <slot>OnComboReference(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>278</x>
-     <y>130</y>
+     <x>298</x>
+     <y>129</y>
     </hint>
     <hint type="destinationlabel">
      <x>431</x>
@@ -926,8 +1132,8 @@ Alt + H to show/hide contour.
    <slot>OnLineEditContourValue(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>143</x>
-     <y>190</y>
+     <x>163</x>
+     <y>188</y>
     </hint>
     <hint type="destinationlabel">
      <x>442</x>
@@ -942,8 +1148,8 @@ Alt + H to show/hide contour.
    <slot>OnDrawRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>93</x>
-     <y>284</y>
+     <x>110</x>
+     <y>324</y>
     </hint>
     <hint type="destinationlabel">
      <x>427</x>
@@ -958,8 +1164,8 @@ Alt + H to show/hide contour.
    <slot>OnDrawRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>202</x>
-     <y>284</y>
+     <x>223</x>
+     <y>324</y>
     </hint>
     <hint type="destinationlabel">
      <x>324</x>
@@ -974,8 +1180,8 @@ Alt + H to show/hide contour.
    <slot>OnExcludeRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>93</x>
-     <y>342</y>
+     <x>110</x>
+     <y>383</y>
     </hint>
     <hint type="destinationlabel">
      <x>365</x>
@@ -990,8 +1196,8 @@ Alt + H to show/hide contour.
    <slot>OnExcludeRangeChanged(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>202</x>
-     <y>342</y>
+     <x>223</x>
+     <y>383</y>
     </hint>
     <hint type="destinationlabel">
      <x>344</x>
@@ -1006,8 +1212,8 @@ Alt + H to show/hide contour.
    <slot>OnLineEditSmoothSD(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>162</x>
-     <y>400</y>
+     <x>188</x>
+     <y>455</y>
     </hint>
     <hint type="destinationlabel">
      <x>381</x>
@@ -1154,8 +1360,8 @@ Alt + H to show/hide contour.
      <y>58</y>
     </hint>
     <hint type="destinationlabel">
-     <x>159</x>
-     <y>298</y>
+     <x>179</x>
+     <y>353</y>
     </hint>
    </hints>
   </connection>
@@ -1170,8 +1376,8 @@ Alt + H to show/hide contour.
      <y>65</y>
     </hint>
     <hint type="destinationlabel">
-     <x>18</x>
-     <y>328</y>
+     <x>39</x>
+     <y>384</y>
     </hint>
    </hints>
   </connection>
@@ -1186,8 +1392,8 @@ Alt + H to show/hide contour.
      <y>60</y>
     </hint>
     <hint type="destinationlabel">
-     <x>64</x>
-     <y>328</y>
+     <x>110</x>
+     <y>383</y>
     </hint>
    </hints>
   </connection>
@@ -1202,8 +1408,8 @@ Alt + H to show/hide contour.
      <y>63</y>
     </hint>
     <hint type="destinationlabel">
-     <x>129</x>
-     <y>325</y>
+     <x>157</x>
+     <y>384</y>
     </hint>
    </hints>
   </connection>
@@ -1218,8 +1424,200 @@ Alt + H to show/hide contour.
      <y>62</y>
     </hint>
     <hint type="destinationlabel">
-     <x>181</x>
-     <y>326</y>
+     <x>223</x>
+     <y>383</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxEraseRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelDrawRangeLow_2</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>69</x>
+     <y>241</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>32</x>
+     <y>267</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxEraseRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditEraseRangeLow</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>89</x>
+     <y>248</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>85</x>
+     <y>265</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxEraseRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditEraseRangeHigh</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>199</x>
+     <y>245</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>191</x>
+     <y>271</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxEraseRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelDrawRangeHigh_2</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>144</x>
+     <y>242</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>142</x>
+     <y>271</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxEraseExcludeRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelExcludeRangeLow_2</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>44</x>
+     <y>301</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>21</x>
+     <y>328</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxEraseExcludeRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditEraseExcludeRangeLow</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>66</x>
+     <y>301</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>64</x>
+     <y>323</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxEraseExcludeRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>labelExcludeRangeHigh_2</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>154</x>
+     <y>302</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>150</x>
+     <y>325</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxEraseExcludeRange</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditEraseExcludeRangeHigh</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>209</x>
+     <y>306</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>205</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditEraseRangeLow</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnEraseRangeChanged(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>99</x>
+     <y>269</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>635</x>
+     <y>332</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditEraseRangeHigh</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnEraseRangeChanged(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>218</x>
+     <y>270</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>610</x>
+     <y>273</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditEraseExcludeRangeLow</sender>
+   <signal>textChanged(QString)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnEraseExcludeRangeChanged(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>100</x>
+     <y>333</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>632</x>
+     <y>373</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditEraseExcludeRangeHigh</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnEraseExcludeRangeChanged(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>221</x>
+     <y>327</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>522</x>
+     <y>364</y>
     </hint>
    </hints>
   </connection>
@@ -1235,5 +1633,7 @@ Alt + H to show/hide contour.
   <slot>OnCheckReconEditing(bool)</slot>
   <slot>OnLineEditFillValue(QString)</slot>
   <slot>OnLineEditEraseValue(QString)</slot>
+  <slot>OnEraseRangeChanged(QString)</slot>
+  <slot>OnEraseExcludeRangeChanged(QString)</slot>
  </slots>
 </ui>

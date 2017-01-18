@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:45 $
- *    $Revision: 1.23 $
+ *    $Author: rpwang $
+ *    $Date: 2017/01/13 17:33:05 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -129,9 +129,9 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
   }
 
   double centPos[3];
-  double* worigin = mri->GetWorldOrigin();
-  double* wsize = mri->GetWorldSize();
-  double* wvoxel = mri->GetWorldVoxelSize();
+  double* worigin = lc->GetWorldOrigin();
+  double* wsize = lc->GetWorldSize();
+  double* wvoxel = lc->GetWorldVoxelSize();
   for ( int i = 0; i < 3; i++ )
   {
     centPos[i] = worigin[i] + wsize[i]/2;

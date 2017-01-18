@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/29 15:34:14 $
- *    $Revision: 1.18 $
+ *    $Date: 2017/01/11 21:05:23 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,8 @@ BrushProperty::BrushProperty (QObject* parent) : QObject(parent),
   m_bEnableDrawRange( false ),
   m_bEnableExcludeRange( false ),
   m_bDrawConnectedOnly( false ),
+  m_bEnableEraseRange(false),
+  m_bEnableEraseExcludeRange(false),
   m_bFill3D(false),
   m_layerRef( NULL ),
   m_dFillValue(1.0),
@@ -46,6 +48,10 @@ BrushProperty::BrushProperty (QObject* parent) : QObject(parent),
   m_dDrawRange[1] = 1000000;
   m_dExcludeRange[0] = 0;
   m_dExcludeRange[1] = 0;
+  m_dEraseRange[0] = 0;
+  m_dEraseRange[1] = 1000000;
+  m_dEraseExcludeRange[0] = 0;
+  m_dEraseExcludeRange[1] = 0;
   QSettings settings;
   m_nBrushSize = settings.value("/BrushProperty/Size", 1 ).toInt();
   // config->Read( _T("/BrushProperty/Tolerance"), &m_nBrushTolerance, 0L );
@@ -57,6 +63,11 @@ BrushProperty::BrushProperty (QObject* parent) : QObject(parent),
   m_dDrawRange[1] = settings.value( "/BrushProperty/DrawRangeHigh", 1000000 ).toDouble();
   m_dExcludeRange[0] = settings.value( "/BrushProperty/ExcludeRangeLow", 0 ).toDouble();
   m_dExcludeRange[1] = settings.value( "/BrushProperty/ExcludeRangeHigh", 0 ).toDouble();
+
+  m_dEraseRange[0] = settings.value( "/BrushProperty/EraseRangeLow", 0 ).toDouble();
+  m_dEraseRange[1] = settings.value( "/BrushProperty/EraseRangeHigh", 1000000 ).toDouble();
+  m_dEraseExcludeRange[0] = settings.value( "/BrushProperty/EraseExcludeRangeLow", 0 ).toDouble();
+  m_dEraseExcludeRange[1] = settings.value( "/BrushProperty/EraseExcludeRangeHigh", 0 ).toDouble();
 }
 
 BrushProperty::~BrushProperty()
@@ -71,6 +82,10 @@ BrushProperty::~BrushProperty()
   settings.setValue( "/BrushProperty/DrawRangeHigh", m_dDrawRange[1] );
   settings.setValue( "/BrushProperty/ExcludeRangeLow", m_dExcludeRange[0] );
   settings.setValue( "/BrushProperty/ExcludeRangeHigh", m_dExcludeRange[1] );
+  settings.setValue( "/BrushProperty/EraseRangeLow", m_dEraseRange[0] );
+  settings.setValue( "/BrushProperty/EraseRangeHigh", m_dEraseRange[1] );
+  settings.setValue( "/BrushProperty/EraseExcludeRangeLow", m_dEraseExcludeRange[0] );
+  settings.setValue( "/BrushProperty/EraseExcludeRangeHigh", m_dEraseExcludeRange[1] );
 }
 
 int BrushProperty::GetBrushSize()
@@ -193,4 +208,56 @@ void BrushProperty::OnLayerRemoved(Layer* layer)
   {
     SetReferenceLayer(NULL);
   }
+}
+
+double* BrushProperty::GetEraseRange()
+{
+  return m_dEraseRange;
+}
+
+void BrushProperty::SetEraseRange( double* range )
+{
+  SetEraseRange( range[0], range[1] );
+}
+
+void BrushProperty::SetEraseRange( double low, double high )
+{
+  m_dEraseRange[0] = low;
+  m_dEraseRange[1] = high;
+}
+
+bool BrushProperty::GetEraseRangeEnabled()
+{
+  return m_bEnableEraseRange;
+}
+
+void BrushProperty::SetEraseRangeEnabled( bool bEnable )
+{
+  m_bEnableEraseRange = bEnable;
+}
+
+double* BrushProperty::GetEraseExcludeRange()
+{
+  return m_dEraseExcludeRange;
+}
+
+void BrushProperty::SetEraseExcludeRange( double* range )
+{
+  SetEraseExcludeRange( range[0], range[1] );
+}
+
+void BrushProperty::SetEraseExcludeRange( double low, double high )
+{
+  m_dEraseExcludeRange[0] = low;
+  m_dEraseExcludeRange[1] = high;
+}
+
+bool BrushProperty::GetEraseExcludeRangeEnabled()
+{
+  return m_bEnableEraseExcludeRange;
+}
+
+void BrushProperty::SetEraseExcludeRangeEnabled( bool bEnable )
+{
+  m_bEnableEraseExcludeRange = bEnable;
 }

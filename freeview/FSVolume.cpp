@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/27 02:01:47 $
- *    $Revision: 1.113 $
+ *    $Date: 2017/01/13 17:33:05 $
+ *    $Revision: 1.118 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1503,15 +1503,17 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
 
     // calculate dimension of the converted target volume
     int dim[3];
-    dim[0] = (int)( ( indexBounds[1] - indexBounds[0] ) + 0.5 );
-    dim[1] = (int)( ( indexBounds[3] - indexBounds[2] ) + 0.5 );
-    dim[2] = (int)( ( indexBounds[5] - indexBounds[4] ) + 0.5 );
+    dim[0] = (int)( ( indexBounds[1] - indexBounds[0] ) * refTarget->xsize / pixelSize[0] + 0.5 );
+    dim[1] = (int)( ( indexBounds[3] - indexBounds[2] ) * refTarget->ysize / pixelSize[1] + 0.5 );
+    dim[2] = (int)( ( indexBounds[5] - indexBounds[4] ) * refTarget->zsize / pixelSize[2] + 0.5 );
+
     if (qAbs(dim[0]-refTarget->width)%2 != 0)
         dim[0] = dim[0]+1;
     if (qAbs(dim[1]-refTarget->height)%2 != 0)
         dim[1] = dim[1]+1;
     if (qAbs(dim[2]-refTarget->depth)%2 != 0)
         dim[2] = dim[2]+1;
+
     if ( bAllocatePixel )
     {
       try {
@@ -1531,28 +1533,40 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
     }
 
     MRIcopyHeader( refTarget, mri );
+    MRIsetResolution( mri, pixelSize[0], pixelSize[1], pixelSize[2] );
     Real p0[3];
     ::MRIvoxelToWorld( refTarget,
-                       indexBounds[0]+0.5,
-                       indexBounds[2]+0.5,
-                       indexBounds[4]+0.5,
+                       indexBounds[0]+0.5*pixelSize[0]/refTarget->xsize,
+                       indexBounds[2]+0.5*pixelSize[1]/refTarget->ysize,
+                       indexBounds[4]+0.5*pixelSize[2]/refTarget->zsize,
                        &p0[0], &p0[1], &p0[2] );
     MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
 
-    // make sure c_ras has the same voxel boundary as refTarget
-    mri->c_r = refTarget->c_r + ((int)((mri->c_r-refTarget->c_r)/mri->width))*mri->width;
-    mri->c_a = refTarget->c_a + ((int)((mri->c_a-refTarget->c_a)/mri->height))*mri->height;
-    mri->c_s = refTarget->c_s + ((int)((mri->c_s-refTarget->c_s)/mri->depth))*mri->depth;
-    MATRIX *tmp;
-    tmp = extract_i_to_r( mri );
-    AffineMatrixAlloc( &(mri->i_to_r__ ) );
-    SetAffineMatrix( mri->i_to_r__, tmp );
-    MatrixFree( &tmp );
+    if (true)
+    {
+        // make sure voxel boundaries are aligned
+        Real cpt[3], cpt_ext[3];
+        ::MRIworldToVoxel(mri, refTarget->c_r, refTarget->c_a, refTarget->c_s, &cpt[0], &cpt[1], &cpt[2]);
+        ::MRIworldToVoxel(mri, mri->c_r, mri->c_a, mri->c_s, &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
+        for (int i = 0; i < 3; i++)
+            cpt[i] = cpt[i] + ((int)(cpt_ext[i]-cpt[i]+0.5));
+        ::MRIvoxelToWorld(mri, cpt[0], cpt[1], cpt[2], &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
 
-    if( mri->r_to_i__ ) {
-      MatrixFree(&mri->r_to_i__);
+        mri->c_r = cpt_ext[0];
+        mri->c_a = cpt_ext[1];
+        mri->c_s = cpt_ext[2];
+
+        MATRIX *tmp;
+        tmp = extract_i_to_r( mri );
+        AffineMatrixAlloc( &(mri->i_to_r__ ) );
+        SetAffineMatrix( mri->i_to_r__, tmp );
+        MatrixFree( &tmp );
+
+        if( mri->r_to_i__ ) {
+          MatrixFree(&mri->r_to_i__);
+        }
+        mri->r_to_i__ = extract_r_to_i(mri);
     }
-    mri->r_to_i__ = extract_r_to_i(mri);
   }
 
   return mri;
@@ -1590,7 +1604,7 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
     }
     MRIcopyHeader( mri, rasMRI );
   }
-  else if ( m_bResampleToRAS && ( !m_volumeRef || !m_bConform ) )
+  else if ( m_bResampleToRAS && ( !m_volumeRef ) )
   {
     this->GetBounds( bounds );
     for ( int i = 0; i < 3; i++ )
@@ -1749,6 +1763,7 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
     }
     else
     {
+//      qDebug() << "simple create target";
       rasMRI = CreateTargetMRI( m_MRI, m_volumeRef->m_MRITarget, true, m_bConform );
       if ( rasMRI == NULL )
       {
@@ -1802,6 +1817,8 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
   {
     MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
+//    if (m_volumeRef)
+//        ::MRIwrite(rasMRI, "/tmp/foo.mgz");
     for ( int i = 0; i < 16; i++ )
     {
       m_VoxelToVoxelMatrix[i] =
@@ -1884,7 +1901,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   imageData->SetDimensions( zX, zY, zZ );
 
   double origin[3] = { 0, 0, 0 };
-  if ( m_bResampleToRAS )
+  if ( m_bResampleToRAS && !m_volumeRef )
   {
     float bounds[6];
     GetBounds( bounds );
@@ -1913,6 +1930,14 @@ bool FSVolume::CreateImage( MRI* rasMRI )
     origin[0] += cindex[0] * m_volumeRef->m_MRITarget->xsize;
     origin[1] += cindex[1] * m_volumeRef->m_MRITarget->ysize;
     origin[2] += cindex[2] * m_volumeRef->m_MRITarget->zsize;
+
+//    qDebug() << m_volumeRef->m_MRITarget->x_r << m_volumeRef->m_MRITarget->y_r << m_volumeRef->m_MRITarget->z_r;
+//    qDebug() << m_volumeRef->m_MRITarget->x_a << m_volumeRef->m_MRITarget->y_a << m_volumeRef->m_MRITarget->z_a;
+//    qDebug() << m_volumeRef->m_MRITarget->x_s << m_volumeRef->m_MRITarget->y_s << m_volumeRef->m_MRITarget->z_s;
+
+//    qDebug() << rasMRI->c_r << rasMRI->c_a << rasMRI->c_s << m_volumeRef->m_MRITarget->c_r << m_volumeRef->m_MRITarget->c_a
+//             << m_volumeRef->m_MRITarget->c_s;
+//    qDebug() << cindex[0] << cindex[1] << cindex[2];
 
     /*
     Real ras[3], ras2[3];

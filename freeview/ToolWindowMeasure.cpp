@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/04/01 01:29:35 $
- *    $Revision: 1.25 $
+ *    $Date: 2017/01/11 21:05:23 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -124,9 +124,7 @@ void ToolWindowMeasure::showEvent(QShowEvent* event)
   static bool bFirstTime = true;
   if ( bFirstTime )
   {
-    QSettings settings;
-    QVariant v = settings.value( "ToolWindowMeasure/Position", QPoint( 200, 20 ) );
-    this->move( parentWidget()->pos() + v.toPoint() );
+    this->move( parentWidget()->pos() + QPoint(20,20) );
     bFirstTime = false;
   }
 }
