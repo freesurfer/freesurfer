@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2013/08/14 19:32:55 $
- *    $Revision: 1.21 $
+ *    $Date: 2017/01/11 21:05:23 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,6 +57,9 @@ protected slots:
   void OnCheckReconEditing(bool bRecon);
   void OnLineEditFillValue(const QString& strg);
   void OnLineEditEraseValue(const QString& strg);
+
+  void OnEraseRangeChanged(const QString& strg);
+  void OnEraseExcludeRangeChanged(const QString& strg);
 
 protected:
   virtual void showEvent(QShowEvent *);

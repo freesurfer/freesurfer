@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/12/10 05:42:29 $
- *    $Revision: 1.5.2.1 $
+ *    $Author: rpwang $
+ *    $Date: 2017/01/11 21:05:23 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,9 +66,7 @@ void ToolWindowROIEdit::showEvent(QShowEvent* event)
   static bool bFirstTime = true;
   if ( bFirstTime )
   {
-    QSettings settings;
-    QVariant v = settings.value( "ToolWindowROIEdit/Position", QPoint( 200, 20 ) );
-    this->move( parentWidget()->pos() + v.toPoint() );
+    this->move( parentWidget()->pos() + QPoint(20,20) );
     bFirstTime = false;
   }
 }

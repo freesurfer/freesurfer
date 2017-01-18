@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/12/13 16:55:37 $
- *    $Revision: 1.72.2.3 $
+ *    $Author: rpwang $
+ *    $Date: 2017/01/13 17:33:05 $
+ *    $Revision: 1.77 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "error.h"
+#include <fenv.h>
 #include <QFile>
 extern "C"
 {
@@ -209,6 +210,7 @@ int main(int argc, char *argv[])
     CmdLineEntry( CMD_LINE_SWITCH, "noquit", "noquit", "", "Do not quit freeview after screenshot command." ),
     CmdLineEntry( CMD_LINE_SWITCH, "stdin", "stdin", "", "Listening stdin for freeview command sent by other programs." ),
     CmdLineEntry( CMD_LINE_SWITCH, "verbose", "verbose", "", "Print out a lot more information, such as vertex coordinate of each click, etc." ),
+    CmdLineEntry( CMD_LINE_SWITCH, "continue", "continue", "", "Continue as far as possible if an error occured" ),
     CmdLineEntry( CMD_LINE_NONE )
   };
 
@@ -241,6 +243,7 @@ int main(int argc, char *argv[])
   CursorFactory::Initialize();
   qsrand(QDateTime::currentDateTime().toTime_t());
   vtkObject::GlobalWarningDisplayOff();
+  // fesetround(FE_TONEAREST);
 #ifdef CYGWIN
   QDir dir;
   dir.mkpath("/cygdrive/c/tmp");

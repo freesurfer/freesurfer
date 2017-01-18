@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/18 16:37:43 $
- *    $Revision: 1.37 $
+ *    $Date: 2017/01/11 21:05:23 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,6 +68,8 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
   connect(ui->checkBoxDrawRange, SIGNAL(toggled(bool)), bp, SLOT(SetDrawRangeEnabled(bool)));
   connect(ui->checkBoxExcludeRange, SIGNAL(toggled(bool)), bp, SLOT(SetExcludeRangeEnabled(bool)));
   connect(ui->checkBoxFill3D, SIGNAL(toggled(bool)), bp, SLOT(SetFill3D(bool)));
+  connect(ui->checkBoxEraseRange, SIGNAL(toggled(bool)), bp, SLOT(SetEraseRangeEnabled(bool)));
+  connect(ui->checkBoxEraseExcludeRange, SIGNAL(toggled(bool)), bp, SLOT(SetEraseExcludeRangeEnabled(bool)));
   connect(mainwnd->GetLayerCollection("MRI"), SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateWidgets()));
   connect(mainwnd->GetLayerCollection("MRI"), SIGNAL(LayerRemoved(Layer*)), this, SLOT(UpdateWidgets()));
   connect(bp, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()));
@@ -88,17 +90,18 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
 
   m_widgetsTolerance << ui->labelTolerance << ui->spinBoxTolerance;
 
-  m_widgetsConstrain << ui->checkBoxConstrain
-                     << ui->checkBoxDrawRange
-                     << ui->labelDrawRangeLow
-                     << ui->labelDrawRangeHigh
-                     << ui->lineEditDrawRangeLow
-                     << ui->lineEditDrawRangeHigh
-                     << ui->checkBoxExcludeRange
-                     << ui->labelExcludeRangeHigh
-                     << ui->labelExcludeRangeLow
-                     << ui->lineEditExcludeRangeHigh
-                     << ui->lineEditExcludeRangeLow;
+//  m_widgetsConstrain << ui->checkBoxConstrain
+//                     << ui->checkBoxDrawRange
+//                     << ui->labelDrawRangeLow
+//                     << ui->labelDrawRangeHigh
+//                     << ui->lineEditDrawRangeLow
+//                     << ui->lineEditDrawRangeHigh
+//                     << ui->checkBoxExcludeRange
+//                     << ui->labelExcludeRangeHigh
+//                     << ui->labelExcludeRangeLow
+//                     << ui->lineEditExcludeRangeHigh
+//                     << ui->lineEditExcludeRangeLow;
+  m_widgetsConstrain << ui->tabWidgetConstrains;
 
   m_widgetsSmooth << ui->checkBoxSmooth
                   << ui->labelSD
@@ -130,9 +133,7 @@ void ToolWindowEdit::showEvent(QShowEvent* event)
   static bool bFirstTime = true;
   if ( bFirstTime )
   {
-    QSettings settings;
-    QVariant v = settings.value( "ToolWindowVoxelEdit/Position", QPoint( 200, 20 ) );
-    this->move( parentWidget()->pos() + v.toPoint() );
+    this->move( parentWidget()->pos() + QPoint(20,20) );
     bFirstTime = false;
   }
   UpdateReconMode();
@@ -214,6 +215,13 @@ void ToolWindowEdit::OnIdle()
   ChangeLineEditNumber( ui->lineEditExcludeRangeLow, range[0] );
   ChangeLineEditNumber( ui->lineEditExcludeRangeHigh, range[1] );
 
+  range = bp->GetEraseRange();
+  ChangeLineEditNumber( ui->lineEditEraseRangeLow, range[0]);
+  ChangeLineEditNumber( ui->lineEditEraseRangeHigh, range[1] );
+  range = bp->GetEraseExcludeRange();
+  ChangeLineEditNumber( ui->lineEditEraseExcludeRangeLow, range[0] );
+  ChangeLineEditNumber( ui->lineEditEraseExcludeRangeHigh, range[1] );
+
   Contour2D* c2d = view->GetContour2D();
   ChangeLineEditNumber( ui->lineEditSD, c2d->GetSmoothSD() );
   ChangeLineEditNumber( ui->lineEditContourValue, c2d->GetContourValue() );
@@ -242,6 +250,8 @@ void ToolWindowEdit::OnIdle()
   ui->checkBoxConstrain->setChecked( bp->GetDrawConnectedOnly() );
   ui->checkBoxDrawRange->setChecked( bp->GetDrawRangeEnabled() );
   ui->checkBoxExcludeRange->setChecked( bp->GetExcludeRangeEnabled() );
+  ui->checkBoxEraseRange->setChecked(bp->GetEraseRangeEnabled());
+  ui->checkBoxEraseExcludeRange->setChecked(bp->GetEraseExcludeRangeEnabled());
 
   if (bReconEdit)
   {
@@ -360,6 +370,46 @@ void ToolWindowEdit::OnExcludeRangeChanged(const QString& strg)
   }
 }
 
+void ToolWindowEdit::OnEraseRangeChanged(const QString& strg)
+{
+  bool bOK;
+  double value = strg.toDouble(&bOK);
+  if ( bOK )
+  {
+    BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
+    double* range = bp->GetEraseRange();
+    if ( sender() == ui->lineEditEraseRangeLow)
+    {
+      bp->SetEraseRange( value, range[1] );
+    }
+    else if (sender() == ui->lineEditEraseRangeHigh)
+    {
+      bp->SetEraseRange( range[0], value );
+    }
+    UpdateWidgets();
+  }
+}
+
+void ToolWindowEdit::OnEraseExcludeRangeChanged(const QString& strg)
+{
+  bool bOK;
+  double value = strg.toDouble(&bOK);
+  if ( bOK )
+  {
+    BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
+    double* range = bp->GetEraseExcludeRange();
+    if ( sender() == ui->lineEditEraseExcludeRangeLow)
+    {
+      bp->SetEraseExcludeRange( value, range[1] );
+    }
+    else if (sender() == ui->lineEditEraseExcludeRangeHigh)
+    {
+      bp->SetEraseExcludeRange( range[0], value );
+    }
+    UpdateWidgets();
+  }
+}
+
 void ToolWindowEdit::OnComboReference(int sel)
 {
   LayerVolumeBase* layer = qobject_cast<LayerVolumeBase*>(ui->comboBoxReference->itemData(sel).value<QObject*>());
@@ -383,6 +433,9 @@ void ToolWindowEdit::OnReplaceLabel()
 
 void ToolWindowEdit::OnCheckReconEditing(bool bRecon)
 {
+    static int old_erase_value = 0;
+    static bool exclude_enabled = false;
+    static double exclude_range[2] = {0, 0};
     BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
     if (bRecon)
     {
@@ -398,6 +451,11 @@ void ToolWindowEdit::OnCheckReconEditing(bool bRecon)
             }
         }
         */
+       old_erase_value = bp->GetEraseValue();
+       double* r = bp->GetExcludeRange();
+       exclude_range[0] = r[0];
+       exclude_range[1] = r[1];
+       exclude_enabled = bp->GetExcludeRangeEnabled();
        bp->SetFillValue(255);
        bp->SetEraseValue(1);
        bp->SetExcludeRangeEnabled(true);
@@ -405,8 +463,8 @@ void ToolWindowEdit::OnCheckReconEditing(bool bRecon)
     }
     else
     {
-      bp->SetEraseValue(0);
-      bp->SetExcludeRangeEnabled(false);
-      bp->SetExcludeRange(0, 0);
+      bp->SetEraseValue(old_erase_value);
+      bp->SetExcludeRangeEnabled(exclude_enabled);
+      bp->SetExcludeRange(exclude_range[0], exclude_range[1]);
     }
 }

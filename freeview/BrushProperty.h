@@ -9,8 +9,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/03/29 15:34:14 $
- *    $Revision: 1.15 $
+ *    $Date: 2017/01/11 21:05:23 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -61,6 +61,18 @@ public:
 
   bool GetDrawConnectedOnly();
 
+  double* GetEraseRange();
+  void  SetEraseRange( double* range );
+  void  SetEraseRange( double low, double high );
+
+  bool GetEraseRangeEnabled();
+
+  double* GetEraseExcludeRange();
+  void SetEraseExcludeRange( double* range );
+  void  SetEraseExcludeRange( double low, double high );
+
+  bool GetEraseExcludeRangeEnabled();
+
   bool GetFill3D()
   {
     return m_bFill3D;
@@ -105,6 +117,9 @@ public slots:
       m_bIsCloning = bVal;
   }
 
+  void SetEraseRangeEnabled( bool bEnable );
+  void SetEraseExcludeRangeEnabled( bool bEnable );
+
 protected:
   int  m_nBrushSize;
   int  m_nBrushTolerance;
@@ -112,6 +127,10 @@ protected:
   bool m_bEnableDrawRange;
   double m_dExcludeRange[2];
   bool m_bEnableExcludeRange;
+  double m_dEraseRange[2];
+  bool m_bEnableEraseRange;
+  double m_dEraseExcludeRange[2];
+  bool m_bEnableEraseExcludeRange;
   bool m_bDrawConnectedOnly;
   bool  m_bFill3D;
   bool m_bIsCloning;

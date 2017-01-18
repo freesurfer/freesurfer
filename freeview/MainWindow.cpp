@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/12/20 17:03:29 $
- *    $Revision: 1.343.2.8 $
+ *    $Author: rpwang $
+ *    $Date: 2017/01/11 21:05:23 $
+ *    $Revision: 1.356 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1153,6 +1153,7 @@ bool MainWindow::DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit)
     AddScript(QStringList("quit") );
 
   m_bVerbose = parser->Found("verbose");
+  m_bContinue = parser->Found("continue");
 
   if (parser->Found("stdin"))
       m_term->EnableListeningStdin();
@@ -5419,7 +5420,8 @@ void MainWindow::OnIOError( Layer* layer, int jobtype )
       }
   }
 
-  ClearScripts();
+  if (!m_bContinue)
+      ClearScripts();
   QString msg = QString("Failed to load %1 ").arg(layer->GetEndType());
   if (jobtype != ThreadIOWorker::JT_LoadSurfaceOverlay)
   {
