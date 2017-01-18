@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/12/08 22:02:41 $
-#    $Revision: 1.580.2.15 $
+#    $Date: 2017/01/18 14:11:24 $
+#    $Revision: 1.580.2.16 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.580.2.15 2016/12/08 22:02:41 zkaufman Exp $';
+set VERSION = '$Id: recon-all,v 1.580.2.16 2017/01/18 14:11:24 zkaufman Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -2598,7 +2598,7 @@ if($DoCAReg) then
     set norm = norm.$GCAOutputName.mgz
   endif
   if($UnCompress) set cmd = ($cmd -uncompress)
-  if($BigVentricles) set cmd = ($cmd -bigventricles)
+  if($BigVentricles) set cmd = ($cmd -bigventricles -smoothness 0.5)
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
   if($DoSecondPassRenorm) set cmd = ($cmd -secondpassrenorm)
   if( ! $longitudinal) set cmd = ($cmd -T $lta)
