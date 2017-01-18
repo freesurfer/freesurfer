@@ -19,9 +19,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2015/07/26 17:30:44 $
- *    $Revision: 1.36 $
+ *    $Author: zkaufman $
+ *    $Date: 2017/01/18 14:10:58 $
+ *    $Revision: 1.36.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -172,7 +172,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.36 2015/07/26 17:30:44 greve Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.36.2.1 2017/01/18 14:10:58 zkaufman Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -218,7 +218,7 @@ int main(int argc, char *argv[]) {
   double AvgDiff=0.0,SumDiff=0.0,SumSqDiff=0.0;
   FILE *fp=NULL;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name: stable6 $");
+  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -439,8 +439,8 @@ int main(int argc, char *argv[]) {
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
 	    if (val1 != 0 && val2 != 0) notzero++;
             diff = val1-val2;
-	    if(abs(diff) > pixthresh) ndiff++;
-            if(abs(diff) > pixthresh && verbose) {
+	    if(fabs(diff) > pixthresh) ndiff++;
+            if(fabs(diff) > pixthresh && verbose) {
               printf("diff %6d %12.8f at %d %d %d %d  %g %g\n",ndiff,diff,c,r,s,f,val1,val2);
             }
             SumSqDiff += (diff*diff);
