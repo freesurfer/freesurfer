@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/05/31 17:27:11 $
- *    $Revision: 1.121 $
+ *    $Date: 2017/01/23 18:23:14 $
+ *    $Revision: 1.122 $
  *
  * Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -106,7 +106,7 @@ float *WMAnatStats(char *subject, char *volname, int nErodes, float Pct);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_segstats.c,v 1.121 2016/05/31 17:27:11 greve Exp $";
+  "$Id: mri_segstats.c,v 1.122 2017/01/23 18:23:14 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -171,6 +171,7 @@ MRIS *mris;
 char *subject = NULL;
 char *hemi    = NULL;
 char *annot   = NULL;
+char *whitesurfname = "white";
 
 int Vox[3], DoVox = 0;
 int  segbase = -1000;
@@ -399,7 +400,7 @@ int main(int argc, char **argv)
   }
   else if(annot){
     printf("Constructing seg from annotation\n");
-    sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,whitesurfname);
     mris = MRISread(tmpstr);
     if (mris==NULL) exit(1);
     if(fio_FileExistsReadable(annot))sprintf(tmpstr,"%s",annot);
@@ -460,7 +461,7 @@ int main(int argc, char **argv)
     if(UseLabelThresh) printf(" Label Threshold = %g\n",LabelThresh);
     label = LabelRead(NULL, LabelFile);
     if(label == NULL) exit(1);
-    sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+    sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,whitesurfname);
     mris = MRISread(tmpstr);
     if (mris==NULL) exit(1);
     seg = MRIalloc(mris->nvertices,1,1,MRI_INT);
@@ -1905,6 +1906,11 @@ static int parse_commandline(int argc, char **argv)
       annot   = pargv[2];
       nargsused = 3;
     }
+    else if (!strcmp(option, "--surf")){
+      if (nargc < 1) argnerr(option,1);
+      whitesurfname = pargv[0];
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--slabel")) {
       if(nargc < 3) argnerr(option,3);
       subject = pargv[0];
@@ -2098,6 +2104,7 @@ static void dump_options(FILE *fp)
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
+  fprintf(fp,"whitesurfname  %s\n",whitesurfname);
   fprintf(fp,"UseRobust  %d\n",UseRobust);
   return;
 }
