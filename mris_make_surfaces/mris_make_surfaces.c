@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/12/13 21:49:41 $
- *    $Revision: 1.168 $
+ *    $Date: 2017/01/24 01:08:58 $
+ *    $Revision: 1.169 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@
 #define  MAX_HISTO_BINS 1000
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.168 2016/12/13 21:49:41 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.169 2017/01/24 01:08:58 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -312,13 +312,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.168 2016/12/13 21:49:41 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.169 2017/01/24 01:08:58 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.168 2016/12/13 21:49:41 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.169 2017/01/24 01:08:58 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1114,6 +1114,8 @@ main(int argc, char *argv[])
           MRIdistanceTransform(mri_bin, NULL, 1, 20, DTRANS_MODE_SIGNED, NULL) ;
         // to be in same range as intensities:
         MRIscalarMul(mri_tmp, mri_tmp, (100.0/mri_bin->xsize)) ;
+	if (mri_T1_pial == mri_T1)
+	  mri_T1_pial = mri_tmp ;
         MRIfree(&mri_T1) ;
         mri_T1 = mri_tmp ;
         MRISsetVals(mris, 0) ;   // target is 0 distance transform val
