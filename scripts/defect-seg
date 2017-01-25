@@ -3,7 +3,7 @@
 
 # Creates segmentations and annotations for defect visualization
 
-set VERSION = '$Id: defect-seg,v 1.6 2016/02/12 21:43:14 zkaufman Exp $';
+set VERSION = '$Id: defect-seg,v 1.7 2017/01/23 18:24:09 greve Exp $';
 
 set subject = ();
 set PrintHelp = 0;
@@ -113,7 +113,7 @@ foreach hemi ($HemiList)
   # Create an annotation on the fixed surface
   set cmd = (mris_seg2annot --seg surf/$hemi.defect_labels.fix.mgz \
    --ctab $DefectLUT --s $subject --h $hemi \
-   --o $hemi.defects.fix.annot)
+   --o $hemi.defects.fix.annot --surf white.preaparc)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1
@@ -121,7 +121,8 @@ foreach hemi ($HemiList)
   # Measure defect statistics
   set cmd = (mri_segstats --annot $subject $hemi defects.fix \
     --i $SUBJECTS_DIR/$subject/surf/$hemi.thickness \
-    --sum $SUBJECTS_DIR/$subject/stats/$hemi.defect.stats --excludeid 0)
+    --sum $SUBJECTS_DIR/$subject/stats/$hemi.defect.stats --excludeid 0 \
+    --surf white.preaparc)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1
@@ -306,7 +307,7 @@ tkmedit subject orig.mgz -rh-defects
 # ----------------------------------------------------------
 # Visualize defects as an annotation
 tksurfer 001_1 lh smoothwm.nofix -annot defects.nofix.annot
-tksurfer 001_1 lh white -annot defects.fix.annot
+tksurfer 001_1 lh white.preaparc -annot defects.fix.annot
 # Defects show up as purple annotation
 #   (defect number in segmentation name)
 
