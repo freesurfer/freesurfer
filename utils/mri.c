@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2017/01/04 17:27:22 $
- *    $Revision: 1.574 $
+ *    $Date: 2017/01/19 17:48:42 $
+ *    $Revision: 1.575 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.574 $";
+const char *MRI_C_VERSION = "$Revision: 1.575 $";
 
 
 /*-----------------------------------------------------
@@ -16400,6 +16400,8 @@ MRIcomputeLabelNbhd( const MRI *mri_labels,
       for (zk = -whalf ; zk <= whalf ; zk++) {
         zi = mri_labels->zi[z+zk] ;
         label = MRIgetVoxVal(mri_labels, xi, yi, zi, 0) ;
+	if (label < 0 || label >= max_labels)
+	  continue ;
         label_counts[label]++ ;
 
         if( mri_vals ) {
