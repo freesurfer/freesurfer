@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/04/08 19:30:29 $
- *    $Revision: 1.49 $
+ *    $Date: 2017/01/20 19:58:46 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -54,6 +54,7 @@ protected slots:
   void OnComboColorMap( int nSel );
   void OnComboLookupTable( int nSel );
   void OnColorTableCurrentItemChanged( QTreeWidgetItem* item );
+  void OnColorTableItemDoubleClicked( QTreeWidgetItem* item );
   void OnLineEditBrushValue( const QString& strg );
 
   void OnSliderWindow( int );

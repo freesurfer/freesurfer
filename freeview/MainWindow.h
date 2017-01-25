@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/04 21:30:37 $
- *    $Revision: 1.178 $
+ *    $Date: 2017/01/20 19:58:46 $
+ *    $Revision: 1.179 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -271,6 +271,8 @@ public slots:
   void GoToContralateralPoint();
 
   void OnApplyVolumeTransform();
+
+  void CenterAtWorldPosition(double* pos, bool mainview_only = false);
 
 protected:
   void closeEvent   ( QCloseEvent * event );

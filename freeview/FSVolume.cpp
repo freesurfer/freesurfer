@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/13 17:33:05 $
- *    $Revision: 1.118 $
+ *    $Date: 2017/01/18 17:38:08 $
+ *    $Revision: 1.119 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1548,8 +1548,20 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
         Real cpt[3], cpt_ext[3];
         ::MRIworldToVoxel(mri, refTarget->c_r, refTarget->c_a, refTarget->c_s, &cpt[0], &cpt[1], &cpt[2]);
         ::MRIworldToVoxel(mri, mri->c_r, mri->c_a, mri->c_s, &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
+//        double vs[3] = { mri->xsize, mri->ysize, mri->zsize };
+//        double vs2[3] = { refTarget->xsize, refTarget->ysize, refTarget->zsize };
         for (int i = 0; i < 3; i++)
+        {
             cpt[i] = cpt[i] + ((int)(cpt_ext[i]-cpt[i]+0.5));
+//            double vs_r = vs[i]/vs2[i];
+//            if (vs_r < 1)
+//                vs_r = 1.0/vs_r;
+//            if (fabs(vs_r - (int)(vs_r+0.5)) < 1e-4)
+//            {
+//                if (((int)(vs_r+0.5))%2 == 0)
+//                    cpt[i] += 0.5;
+//            }
+        }
         ::MRIvoxelToWorld(mri, cpt[0], cpt[1], cpt[2], &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
 
         mri->c_r = cpt_ext[0];
@@ -1763,7 +1775,6 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
     }
     else
     {
-//      qDebug() << "simple create target";
       rasMRI = CreateTargetMRI( m_MRI, m_volumeRef->m_MRITarget, true, m_bConform );
       if ( rasMRI == NULL )
       {
@@ -1817,8 +1828,6 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
   {
     MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
-//    if (m_volumeRef)
-//        ::MRIwrite(rasMRI, "/tmp/foo.mgz");
     for ( int i = 0; i < 16; i++ )
     {
       m_VoxelToVoxelMatrix[i] =

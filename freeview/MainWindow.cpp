@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/11 21:05:23 $
- *    $Revision: 1.356 $
+ *    $Date: 2017/01/20 19:58:46 $
+ *    $Revision: 1.357 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -7283,8 +7283,7 @@ void MainWindow::GoToContralateralPoint()
         if (layer->GoToContralateralPoint(pos, pos))
         {
             SetSlicePosition(pos);
-            for (int i = 0; i < 3; i++)
-                m_views[i]->CenterAtWorldPosition(pos);
+            CenterAtWorldPosition(pos);
         }
     }
 }
@@ -7310,6 +7309,16 @@ void MainWindow::OnSurfaceVertexClicked(LayerSurface *surf)
     {
         double pos[3];
         surf->GetSlicePosition(pos);
+        CenterAtWorldPosition(pos);
+    }
+}
+
+void MainWindow::CenterAtWorldPosition(double *pos, bool mainview_only)
+{
+    if (mainview_only)
+        GetMainView()->CenterAtWorldPosition(pos);
+    else
+    {
         for (int i = 0; i < 3; i++)
             m_views[i]->CenterAtWorldPosition(pos);
     }

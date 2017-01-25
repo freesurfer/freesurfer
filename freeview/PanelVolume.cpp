@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/09/28 16:28:20 $
- *    $Revision: 1.106 $
+ *    $Date: 2017/01/20 19:58:46 $
+ *    $Revision: 1.107 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -655,6 +655,25 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
     ChangeLineEditNumber( ui->lineEditBrushValue, val );
     UpdateColorLabel();
   }
+}
+
+void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item)
+{
+    if (item)
+    {
+        QStringList strglist = item->text( 0 ).split(" ");
+        double val = strglist[0].toDouble();
+        LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+        if ( layer )
+        {
+          double pos[3];
+          if (layer->GetLayerLabelCenter(val, pos))
+          {
+            MainWindow::GetMainWindow()->SetSlicePosition(pos);
+            MainWindow::GetMainWindow()->CenterAtWorldPosition(pos);
+          }
+        }
+    }
 }
 
 void PanelVolume::UpdateColorLabel()

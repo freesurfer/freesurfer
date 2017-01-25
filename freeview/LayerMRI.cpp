@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/07 02:27:43 $
- *    $Revision: 1.175 $
+ *    $Date: 2017/01/20 19:58:46 $
+ *    $Revision: 1.176 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -156,7 +156,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
 
   qRegisterMetaType< IntList >( "IntList" );
   m_worker = new LayerMRIWorkerThread(this);
-  connect(m_worker, SIGNAL(AvailableLabels(IntList)), this, SLOT(OnAvailableLabels(IntList)));
+  connect(m_worker, SIGNAL(LabelInformationReady()), this, SIGNAL(LabelStatsReady()));
 
   QVariantMap map = MainWindow::GetMainWindow()->GetDefaultSettings();
   if (map["Smoothed"].toBool())
@@ -3115,12 +3115,6 @@ double LayerMRI::GetTR()
   return m_volumeSource->GetMRI()->tr;
 }
 
-void LayerMRI::OnAvailableLabels(const IntList &vals)
-{
-  this->m_nAvailableLabels = vals;
-  emit LabelStatsReady();
-}
-
 bool LayerMRI::SaveIsoSurface(const QString &fn)
 {
   vtkSmartPointer<vtkPolyDataWriter> writer = vtkSmartPointer<vtkPolyDataWriter>::New();
@@ -3442,4 +3436,18 @@ void LayerMRI::UpdateMRIToImage()
   for (int i = 0; i < 3; i++)
     mReslice[i]->Modified();
   emit ActorUpdated();
+}
+
+bool LayerMRI::GetLayerLabelCenter(double val, double *pos_out)
+{
+   if (m_listLabelCenters.contains((int)val))
+   {
+       QList<double> center = m_listLabelCenters[(int)val];
+       pos_out[0] = center[0];
+       pos_out[1] = center[1];
+       pos_out[2] = center[2];
+       return true;
+   }
+   else
+       return false;
 }
