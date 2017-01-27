@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/13 17:33:05 $
- *    $Revision: 1.77 $
+ *    $Date: 2017/01/26 20:34:24 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
       "':overlay_frame=frame_number' Set active frame of multi-frame overlay.\n\n"
       "':correlation=correlation_filename' Load correlation data from file. Correlation data is treated as a special kind of overlay data.\n\n"
       "':color=colorname' Set the base color of the surface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
-      "':edgecolor=colorname' Set the color of the slice intersection outline on the surface. \n\n"
+      "':edgecolor=colorname' Set the color of the slice intersection outline on the surface. If set to 'surface', will use surface color\n\n"
       "':edgethickness=thickness' Set the thickness of the slice intersection outline on the surface. set 0 to hide it.\n\n"
       "':annot=filenames' Set annotation files to load.\n\n"
       "':annot_outline=flag' Show surface annotation as outline. flag can be 'true', 'yes' or '1'.\n\n"

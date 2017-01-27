@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/13 16:43:39 $
- *    $Revision: 1.27 $
+ *    $Date: 2017/01/26 16:54:31 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -116,7 +116,7 @@ public slots:
   void SetBrushRadius( int nRadius );
 
 protected:
-  bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
+  QList<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
   QList<int> SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
   QList<int> FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = false, bool ignore_exclusion = false );
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );

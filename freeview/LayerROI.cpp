@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/13 16:43:39 $
- *    $Revision: 1.49 $
+ *    $Date: 2017/01/26 16:54:31 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -541,6 +541,7 @@ void LayerROI::EditVertex(const QList<int> list_nvo, bool bAdd)
          //   qDebug() << "Vertex" << (bAdd?"added":"deleted") << nvo;
             m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
             m_layerMappedSurface->UpdateOverlay(true, true);
+            SetModified();
         }
     }
 }
@@ -554,6 +555,7 @@ void LayerROI::Dilate(int nTimes)
                       m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
         m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
         m_layerMappedSurface->UpdateOverlay(true, true);
+        SetModified();
     }
 }
 
@@ -565,6 +567,7 @@ void LayerROI::Erode(int nTimes)
         ::LabelErode(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes);
         m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
         m_layerMappedSurface->UpdateOverlay(true, true);
+        SetModified();
     }
 }
 
@@ -578,6 +581,7 @@ void LayerROI::Open(int nTimes)
                       m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
         m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
         m_layerMappedSurface->UpdateOverlay(true, true);
+        SetModified();
     }
 }
 
@@ -591,6 +595,7 @@ void LayerROI::Close(int nTimes)
         ::LabelErode(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes);
         m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
         m_layerMappedSurface->UpdateOverlay(true, true);
+        SetModified();
     }
 }
 

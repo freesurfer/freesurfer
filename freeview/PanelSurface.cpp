@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/09/06 16:09:03 $
- *    $Revision: 1.72 $
+ *    $Date: 2017/01/26 20:34:24 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,6 +78,7 @@ PanelSurface::PanelSurface(QWidget *parent) :
                  << ui->checkBoxLabelOutline
                  << ui->treeWidgetLabels
                  << ui->labelLabelThreshold
+                 << ui->comboBoxLabelColorCode
                  << ui->lineEditLabelThreshold
                  << ui->lineEditLabelHeatscaleMin
                  << ui->lineEditLabelHeatscaleMax
@@ -161,8 +162,7 @@ void PanelSurface::ConnectLayer( Layer* layer_in )
   connect( ui->spinBoxEdgeThickness, SIGNAL(valueChanged(int)), p, SLOT(SetEdgeThickness(int)) );
   connect( ui->spinBoxVectorPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVectorPointSize(int)) );
   connect( ui->spinBoxVertexPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVertexPointSize(int)) );
-//  connect( ui->colorpickerLabelColor, SIGNAL(colorChanged(QColor)), layer, SLOT(SetActiveLabelColor(QColor)));
-//  connect( ui->checkBoxLabelOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveLabelOutline(bool)));
+  connect( ui->checkBoxUseSurfaceColor2D, SIGNAL(toggled(bool)), p, SLOT(SetUseSurfaceColorOn2D(bool)));
   connect( ui->checkBoxAnnotationOutline, SIGNAL(toggled(bool)), layer, SLOT(SetActiveAnnotationOutline(bool)));
   connect( ui->checkBoxHideIn3DView, SIGNAL(toggled(bool)), layer, SLOT(SetHideIn3D(bool)));
   connect( ui->colorpickerSplineColor, SIGNAL(colorChanged(QColor)), this, SLOT(OnColorPickerSplineColor(QColor)));
@@ -266,6 +266,8 @@ void PanelSurface::DoUpdateWidgets()
     rgb = layer->GetProperty()->GetEdgeColor();
     ui->colorpickerEdgeColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
     rgb = layer->GetProperty()->GetVectorColor();
+    ui->colorpickerEdgeColor->setEnabled(!layer->GetProperty()->GetUseSurfaceColorOn2D());
+    ui->checkBoxUseSurfaceColor2D->setChecked(layer->GetProperty()->GetUseSurfaceColorOn2D());
     ui->colorpickerVectorColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
     ui->lineEditFileName->setText( MyUtils::Win32PathProof(layer->GetFileName()) );
     ui->lineEditFileName->setCursorPosition( ui->lineEditFileName->text().size() );

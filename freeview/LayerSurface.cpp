@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/13 16:43:39 $
- *    $Revision: 1.132 $
+ *    $Date: 2017/01/26 20:34:24 $
+ *    $Revision: 1.135 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -682,7 +682,6 @@ void LayerSurface::InitializeActors()
     //
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInputConnection( m_cutter[i]->GetOutputPort() );
-//   mapper->SetInputConnection( 1, cutter->GetOutputPort( 1 ) );
     vtkSmartPointer<vtkPolyDataMapper> mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper2->SetInputConnection( m_cutter[i]->GetOutputPort() );
     //
@@ -785,8 +784,10 @@ void LayerSurface::UpdateColorMap()
   {
     m_sliceActor2D[i]->GetProperty()->SetColor( GetProperty()->GetEdgeColor() );
     m_sliceActor3D[i]->GetProperty()->SetColor( GetProperty()->GetEdgeColor() );
-    m_sliceActor2D[i]->GetMapper()->ScalarVisibilityOff();
-    m_sliceActor3D[i]->GetMapper()->ScalarVisibilityOff();
+    m_sliceActor2D[i]->GetMapper()->SetScalarVisibility(GetProperty()->GetUseSurfaceColorOn2D()?1:0);
+    m_sliceActor3D[i]->GetMapper()->SetScalarVisibility(GetProperty()->GetUseSurfaceColorOn2D()?1:0);
+    m_sliceActor2D[i]->GetMapper()->SetLookupTable( GetProperty()->GetCurvatureLUT() );
+    m_sliceActor3D[i]->GetMapper()->SetLookupTable( GetProperty()->GetCurvatureLUT() );
     m_vectorActor2D[i]->GetProperty()->SetColor( GetProperty()->GetVectorColor() );
   }
 
@@ -798,7 +799,6 @@ void LayerSurface::UpdateColorMap()
     if ( GetProperty()->GetCurvatureLUT() != m_mainActor->GetMapper()->GetLookupTable() )
     {
       m_mainActor->GetMapper()->SetLookupTable( GetProperty()->GetCurvatureLUT() );
-
     }
 
     if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
@@ -1378,7 +1378,7 @@ void LayerSurface::UpdateCorrelationOverlay()
   UpdateCorrelationOverlayAtVertex( nVertex );
 }
 
-void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached )
+void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
 {
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
   vtkPolyDataMapper* wf_mapper = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
@@ -1445,7 +1445,6 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached )
           if (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0)
             GetActiveAnnotation()->MapAnnotationColor(data);
 
-          qDebug() << "cached.";
           memcpy(m_nColorDataCache, data, nCount*4);
       }
       MapLabels( data, nCount );

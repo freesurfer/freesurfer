@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/20 19:58:46 $
- *    $Revision: 1.357 $
+ *    $Date: 2017/01/26 20:34:24 $
+ *    $Revision: 1.359 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3506,14 +3506,21 @@ void MainWindow::CommandSetSurfaceEdgeColor( const QStringList& cmd )
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( surf && cmd[1] != "null" )
   {
-    QColor color = ParseColorInput( cmd[1] );
-    if ( color.isValid() )
+    if (cmd[1].toLower() == "off" || cmd[1].toLower() == "surface")
     {
-      surf->GetProperty()->SetEdgeColor( color.redF(), color.greenF(), color.blueF() );
+        surf->GetProperty()->SetUseSurfaceColorOn2D(true);
     }
     else
     {
-      cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+        QColor color = ParseColorInput( cmd[1] );
+        if ( color.isValid() )
+        {
+          surf->GetProperty()->SetEdgeColor( color.redF(), color.greenF(), color.blueF() );
+        }
+        else
+        {
+          cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+        }
     }
   }
 }
@@ -5825,7 +5832,7 @@ QString MainWindow::AutoSelectLastDir( const QString& lastDir_in, const QString&
   if (!layerType.isEmpty())
   {
       Layer* layer = mainwnd->GetActiveLayer(layerType);
-      if (layer)
+      if (layer && !layer->GetFileName().isEmpty())
           lastDir = QFileInfo(layer->GetFileName()).absolutePath();
   }
   QDir dir( lastDir );
