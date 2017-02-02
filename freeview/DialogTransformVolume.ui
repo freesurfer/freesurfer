@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>523</width>
+    <width>520</width>
     <height>714</height>
    </rect>
   </property>
@@ -1780,7 +1780,7 @@
    <sender>radioButtonRotateManual</sender>
    <signal>toggled(bool)</signal>
    <receiver>groupBox</receiver>
-   <slot>setShown(bool)</slot>
+   <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>62</x>
@@ -1796,7 +1796,7 @@
    <sender>radioButtonRotateManual</sender>
    <signal>toggled(bool)</signal>
    <receiver>groupBoxAxis</receiver>
-   <slot>setShown(bool)</slot>
+   <slot>setVisible(bool)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>41</x>

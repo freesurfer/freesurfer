@@ -43,7 +43,10 @@
 ** contact Nokia at qt-info@nokia.com.
 **
 ****************************************************************************/
-
+#include <QtGlobal>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+#include <QtWidgets>
+#else
 #include <QtGui/QApplication>
 #include <QtGui/QDesktopWidget>
 #include <QtGui/QPainter>
@@ -62,6 +65,7 @@
 #include <QtGui/QKeyEvent>
 #include <QtGui/QShowEvent>
 #include <QtGui/QMouseEvent>
+#endif
 #include <math.h>
 
 #include "qtcolorpicker.h"

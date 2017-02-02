@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/09/27 15:56:28 $
- *    $Revision: 1.25 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,7 +40,7 @@ LUTDataHolder::LUTDataHolder()
   if (fi.exists())
   {
     ctd.filename = fi.absoluteFilePath();
-    ctd.table = CTABreadASCII( ctd.filename.toAscii().data() );
+    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
     ctd.name = "FreeSurferColorLUT";
     if ( ctd.table )
     {
@@ -52,7 +52,7 @@ LUTDataHolder::LUTDataHolder()
 //  if (fi.exists())
 //  {
 //    ctd.filename = fi.absoluteFilePath();
-//    ctd.table = CTABreadASCII( ctd.filename.toAscii().data() );
+//    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
 //    ctd.name = "tkmeditParcColorsCMA";
 //    if ( ctd.table )
 //    {
@@ -64,7 +64,7 @@ LUTDataHolder::LUTDataHolder()
 //  if (fi.exists())
 //  {
 //    ctd.filename = fi.absoluteFilePath();
-//    ctd.table = CTABreadASCII( ctd.filename.toAscii().data() );
+//    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
 //    ctd.name = "Simple_surface_labels2009";
 //    if ( ctd.table )
 //    {
@@ -87,7 +87,7 @@ LUTDataHolder::LUTDataHolder()
     file_out.close();
 
     ctd.filename = "FreeSurferColorLUT.txt";
-    ctd.table = CTABreadASCII( tempfn.toAscii().constData() );
+    ctd.table = CTABreadASCII( tempfn.toLatin1().constData() );
     ctd.name = "FreeSurferColorLUT";
     if ( ctd.table )
     {
@@ -195,7 +195,7 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const QString& filename )
       }
     }
 
-    ct = CTABreadASCII( m_tables[nId].filename.toAscii().data() );
+    ct = CTABreadASCII( m_tables[nId].filename.toLatin1().data() );
     if ( ct )
     {
       CTABfree( &m_tables[nId].table );
@@ -209,7 +209,7 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const QString& filename )
   // otherwise, load and create a new lut entry
   else
   {
-    ct = CTABreadASCII2( filename_full.toAscii().data(), 0);  // do not check duplicate names because it could take a long time
+    ct = CTABreadASCII2( filename_full.toLatin1().data(), 0);  // do not check duplicate names because it could take a long time
     if ( ct )
     {
       ColorTableData ctd;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/20 19:58:46 $
- *    $Revision: 1.176 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.177 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -270,8 +270,8 @@ bool LayerMRI::LoadVolumeFromFile()
   m_volumeSource->SetConform( m_bConform );
   m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
 
-  if ( !m_volumeSource->MRIRead( m_sFilename.toAscii().data(),
-                                 m_sRegFilename.size() > 0 ? m_sRegFilename.toAscii().data() : NULL ) )
+  if ( !m_volumeSource->MRIRead( m_sFilename.toLatin1().data(),
+                                 m_sRegFilename.size() > 0 ? m_sRegFilename.toLatin1().data() : NULL ) )
   {
     return false;
   }
@@ -457,7 +457,7 @@ bool LayerMRI::SaveVolume()
 
   ::SetProgressCallback(ProgressCallback, 60, 100);
   int nSampleMethod = GetProperty()->GetResliceInterpolation();
-  bool bSaved = m_volumeSource->MRIWrite( m_sFilename.toAscii().data(),
+  bool bSaved = m_volumeSource->MRIWrite( m_sFilename.toLatin1().data(),
                                           nSampleMethod,
                                           m_bWriteResampled);
   m_bModified = !bSaved;
@@ -2678,7 +2678,7 @@ void LayerMRI::ResetSurfaceRegionIds()
 
 bool LayerMRI::SaveAllSurfaceRegions( const QString& fn )
 {
-  FILE* fp = fopen( fn.toAscii().data(), "w" );
+  FILE* fp = fopen( fn.toLatin1().data(), "w" );
   if ( !fp )
   {
     return false;
@@ -2704,7 +2704,7 @@ bool LayerMRI::SaveAllSurfaceRegions( const QString& fn )
 
 bool LayerMRI::LoadSurfaceRegions( const QString& fn )
 {
-  FILE* fp = fopen( fn.toAscii().data(), "r" );
+  FILE* fp = fopen( fn.toLatin1().data(), "r" );
   if ( !fp )
   {
     cerr << "Can not open file " << qPrintable(fn) << endl;
@@ -2932,7 +2932,7 @@ bool LayerMRI::SaveContourToFile(const QString &fn)
   filter->Update();
   vtkPolyDataWriter* writer = vtkPolyDataWriter::New();
   writer->SetInput( filter->GetOutput() );
-  writer->SetFileName( fn.toAscii().constData() );
+  writer->SetFileName( fn.toLatin1().constData() );
   bool ret = writer->Write();
   writer->Delete();
   return ret;

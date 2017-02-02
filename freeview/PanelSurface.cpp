@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/26 20:34:24 $
- *    $Revision: 1.73 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -767,7 +767,7 @@ void PanelSurface::OnEditPositionOffset()
     }
     else
     {
-      QMessageBox::information(this, "Error", "Please enter 3 values for position offset.");
+    //  QMessageBox::information(this, "Error", "Please enter 3 values for position offset.");
     }
   }
 }

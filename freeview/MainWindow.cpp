@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/26 20:34:24 $
- *    $Revision: 1.359 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.360 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -111,6 +111,9 @@
 #include "Json.h"
 #include "DialogThresholdFilter.h"
 #include "DialogLoadTransform.h"
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+#include <QtWidgets>
+#endif
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -504,11 +507,11 @@ void MainWindow::LoadSettings()
   }
   if (!m_settings.contains("BackgroundColor"))
   {
-    m_settings["BackgroundColor"] = Qt::black;
+    m_settings["BackgroundColor"] = QColor(Qt::black);
   }
   if (!m_settings.contains("CursorColor"))
   {
-    m_settings["CursorColor"] = Qt::red;
+    m_settings["CursorColor"] = QColor(Qt::red);
   }
   if (!m_settings.contains("CursorStyle"))
   {
@@ -516,7 +519,7 @@ void MainWindow::LoadSettings()
   }
   if (!m_settings.contains("AnnotationColor"))
   {
-    m_settings["AnnotationColor"] = Qt::white;
+    m_settings["AnnotationColor"] = QColor(Qt::white);
   }
   if (!m_settings.contains("SyncZoom"))
   {
@@ -660,7 +663,7 @@ void MainWindow::ReassureGeometry()
 void MainWindow::showEvent(QShowEvent *event)
 {
   QMainWindow::showEvent(event);
-#ifdef Q_WS_X11
+#ifdef Q_OS_LINUX
   m_ptBackUpPos = this->pos();
   QTimer::singleShot(500, this, SLOT(ReassureGeometry()));
 #endif
@@ -1669,6 +1672,10 @@ void MainWindow::RunScript()
   {
     CommandSetSurfaceOverlayFrame( sa );
   }
+  else if (cmd == "setsurfaceoverlaysmooth")
+  {
+    CommandSetSurfaceOverlaySmooth( sa );
+  }
   else if ( cmd == "setsurfaceoffset" )
   {
     CommandSetSurfaceOffset( sa );
@@ -2061,13 +2068,13 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       }
       else if (!subOption.isEmpty())
       {
-        cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
+        cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
         return;
       }
     }
     else
     {
-      cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
+      cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
       return;
     }
   }
@@ -2154,7 +2161,7 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   }
   else if ( strg != "grayscale" )
   {
-    cerr << "Unrecognized colormap name '" << strg.toAscii().constData() << "'.\n";
+    cerr << "Unrecognized colormap name '" << strg.toLatin1().constData() << "'.\n";
   }
 
   int nColorMapScale = LayerPropertyMRI::Grayscale;
@@ -2297,7 +2304,7 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
         }
         else
         {
-          cerr << "Unrecognized argument '" << cmd[2].toAscii().constData() << "' for vector rendering.\n";
+          cerr << "Unrecognized argument '" << cmd[2].toLatin1().constData() << "' for vector rendering.\n";
         }
 
         if ( cmd[3].toLower() != "none" )
@@ -2316,7 +2323,7 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
           }
           else
           {
-            cerr << "Unknown inversion flag '" << cmd[2].toAscii().constData() << "'.\n";
+            cerr << "Unknown inversion flag '" << cmd[2].toLatin1().constData() << "'.\n";
           }
         }
       }
@@ -2350,7 +2357,7 @@ void MainWindow::CommandSetDisplayTensor( const QStringList& cmd )
         }
         else
         {
-          cerr << "Unrecognized argument '" << cmd[2].toAscii().constData() << "' for tensor rendering.\n";
+          cerr << "Unrecognized argument '" << cmd[2].toLatin1().constData() << "' for tensor rendering.\n";
         }
 
         if ( cmd[3].toLower() != "none" )
@@ -2369,7 +2376,7 @@ void MainWindow::CommandSetDisplayTensor( const QStringList& cmd )
           }
           else
           {
-            cerr << "Unknown inversion flag '" << cmd[2].toAscii().constData() << "'.\n";
+            cerr << "Unknown inversion flag '" << cmd[2].toLatin1().constData() << "'.\n";
           }
         }
       }
@@ -2456,7 +2463,7 @@ void MainWindow::CommandSetIsoSurfaceColor(const QStringList &cmd)
     }
     else
     {
-      cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+      cerr << "Invalid color name or value " << cmd[1].toLatin1().constData() << ".\n";
     }
   }
 }
@@ -2482,7 +2489,7 @@ void MainWindow::CommandLoadIsoSurfaceRegion( const QStringList& sa )
     {
       if ( !mri->LoadSurfaceRegions( sa[1] ) )
       {
-        cerr << "Can not load surfacer region(s) from " << sa[1].toAscii().constData() << ".\n";
+        cerr << "Can not load surfacer region(s) from " << sa[1].toLatin1().constData() << ".\n";
       }
     }
   }
@@ -2579,7 +2586,7 @@ void MainWindow::CommandLoadPVolumes( const QStringList& cmd )
     COLOR_TABLE* ct = m_luts->LoadColorTable( lut );
     if ( !ct )
     {
-      cerr << "Can not load look up table " << lut.toAscii().constData() << ".\n";
+      cerr << "Can not load look up table " << lut.toLatin1().constData() << ".\n";
       return;
     }
   }
@@ -2613,7 +2620,7 @@ void MainWindow::CommandLoadConnectomeMatrix(const QStringList& cmd )
       }
       else
       {
-        cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
+        cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
       }
     }
   }
@@ -2691,7 +2698,7 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
       }
       else
       {
-        cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
+        cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
       }
     }
   }
@@ -2725,7 +2732,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
   QStringList sup_files;
   QStringList valid_overlay_options;
   valid_overlay_options << "overlay_reg" << "overlay_method" << "overlay_threshold" << "overlay_color"
-                        << "overlay_rh" << "overlay_opacity" << "overlay_frame";
+                        << "overlay_rh" << "overlay_opacity" << "overlay_frame" << "overlay_smooth";
   for (int nOverlay = 0; nOverlay < overlay_list.size(); nOverlay++)
   {
     QStringList sa_fn = overlay_list[nOverlay].split(":");
@@ -2737,6 +2744,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     QString overlay_reg;
     QString overlay_opacity;
     QString overlay_frame;
+    QString overlay_smooth_steps;
     QString overlay_method = "linearopaque";
     QStringList overlay_color;
     QStringList overlay_thresholds;
@@ -2762,6 +2770,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           overlay_color = subArgu.split(",", QString::SkipEmptyParts);
         else if (subOption == "overlay_frame")
           overlay_frame = subArgu;
+        else if (subOption == "overlay_smooth")
+          overlay_smooth_steps = subArgu;
       }
     }
     if (overlay_reg.isEmpty())
@@ -2839,6 +2849,9 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
 
           if (!overlay_frame.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlayframe") << overlay_frame);
+
+          if (!overlay_smooth_steps.isEmpty())
+            m_scripts.insert(1, QStringList("setsurfaceoverlaysmooth") << overlay_smooth_steps);
         }
         else if ( subOption == "annot" || subOption == "annotation" )
         {
@@ -2988,7 +3001,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
         }
         else if ( !valid_overlay_options.contains(subOption) )
         {
-          cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
+          cerr << "Unrecognized sub-option flag '" << subOption.toLatin1().constData() << "'.\n";
           return;
         }
       }
@@ -3229,7 +3242,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       else if (subOption != "overlay_reg" && subOption != "overlay_method" && subOption != "overlay_threshold" &&
                subOption != "overlay_rh")
       {
-        cerr << "Unrecognized sub-option flag '" << subOption.toAscii().constData() << "'.\n";
+        cerr << "Unrecognized sub-option flag '" << subOption.toLatin1().constData() << "'.\n";
         return;
       }
     }
@@ -3335,6 +3348,29 @@ void MainWindow::CommandSetSurfaceOverlayFrame(const QStringList &cmd)
     }
 }
 
+void MainWindow::CommandSetSurfaceOverlaySmooth(const QStringList &cmd)
+{
+    LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+    if ( surf )
+    {
+      SurfaceOverlay* overlay = surf->GetActiveOverlay();
+      if ( overlay )
+      {
+        bool ok;
+        int steps = cmd[1].toInt(&ok);
+        if (ok && steps > 0)
+        {
+          overlay->GetProperty()->SetSmooth(true);
+          overlay->GetProperty()->SetSmoothSteps(steps);
+        }
+        else
+        {
+          cerr << "Invalid input for overlay frame.\n";
+        }
+      }
+    }
+}
+
 void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
 {
   QStringList cmd = cmd_in;
@@ -3355,7 +3391,7 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd_in )
       }
       else if ( cmd[1] != "linearopaque" )
       {
-        cerr << "Unrecognized overlay method name '" << cmd[1].toAscii().constData() << "'.\n";
+        cerr << "Unrecognized overlay method name '" << cmd[1].toLatin1().constData() << "'.\n";
         return;
       }
 
@@ -3496,7 +3532,7 @@ void MainWindow::CommandSetSurfaceColor( const QStringList& cmd )
     }
     else
     {
-      cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+      cerr << "Invalid color name or value " << cmd[1].toLatin1().constData() << ".\n";
     }
   }
 }
@@ -3519,7 +3555,7 @@ void MainWindow::CommandSetSurfaceEdgeColor( const QStringList& cmd )
         }
         else
         {
-          cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+          cerr << "Invalid color name or value " << cmd[1].toLatin1().constData() << ".\n";
         }
     }
   }
@@ -3606,7 +3642,7 @@ void MainWindow::CommandSetSurfaceVertexColor(const QStringList &cmd)
     }
     else
     {
-      cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+      cerr << "Invalid color name or value " << cmd[1].toLatin1().constData() << ".\n";
     }
   }
 }
@@ -3623,7 +3659,7 @@ void MainWindow::CommandSetSurfaceLabelColor(const QStringList &cmd)
     }
     else
     {
-      cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+      cerr << "Invalid color name or value " << cmd[1].toLatin1().constData() << ".\n";
     }
   }
 }
@@ -3797,7 +3833,7 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
       }
       else
       {
-        cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
+        cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
       }
     }
   }
@@ -3851,7 +3887,7 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
       }
       else
       {
-        cerr << "Unrecognized sub-option flag '" << strg.toAscii().constData() << "'.\n";
+        cerr << "Unrecognized sub-option flag '" << strg.toLatin1().constData() << "'.\n";
       }
     }
   }
@@ -3883,7 +3919,7 @@ void MainWindow::CommandSetPointSetColor( const QStringList& cmd )
       }
       else
       {
-        cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+        cerr << "Invalid color name or value " << cmd[1].toLatin1().constData() << ".\n";
       }
     }
 
@@ -3896,7 +3932,7 @@ void MainWindow::CommandSetPointSetColor( const QStringList& cmd )
       }
       else
       {
-        cerr << "Invalid color name or value " << cmd[2].toAscii().constData() << ".\n";
+        cerr << "Invalid color name or value " << cmd[2].toLatin1().constData() << ".\n";
       }
     }
   }
@@ -3978,7 +4014,7 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
       m_settingsScreenshot.AntiAliasing,
       (int)mag_factor ))
   {
-    cerr << "Failed to save screen shot to " << cmd[1].toAscii().constData() << ".\n";
+    cerr << "Failed to save screen shot to " << cmd[1].toLatin1().constData() << ".\n";
   }
 }
 
@@ -4072,7 +4108,7 @@ void MainWindow::CommandSetCamera(const QStringList &cmd)
       double dValue = cmd[i+1].toDouble(&bOK);
       if (!bOK)
       {
-        cerr << "Invalid input value for " << cmd[i].toAscii().constData() << ".\n";
+        cerr << "Invalid input value for " << cmd[i].toLatin1().constData() << ".\n";
         return;
       }
       else
@@ -4983,7 +5019,7 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const Q
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
   if ( ref_vol.isEmpty() )
   {
- //   cout << "No template volume given, using current volume as template for ROI " << fn.toAscii().constData() << ".\n";
+ //   cout << "No template volume given, using current volume as template for ROI " << fn.toLatin1().constData() << ".\n";
     ref = (LayerMRI*)col_mri->GetActiveLayer();
   }
   else
@@ -5004,8 +5040,8 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol, const Q
     }
     if ( ref == NULL )
     {
-      cerr << "Can not find given template volume: " << ref_vol.toAscii().constData()
-           << ". Using current volume as template for ROI " << fn.toAscii().constData() << ".\n";
+      cerr << "Can not find given template volume: " << ref_vol.toLatin1().constData()
+           << ". Using current volume as template for ROI " << fn.toLatin1().constData() << ".\n";
       ref = (LayerMRI*)col_mri->GetActiveLayer();
     }
   }
@@ -7403,10 +7439,10 @@ void MainWindow::OnApplyVolumeTransform()
         m_volumeSettings["name"] = mri->GetName();
         m_volumeSettings["index"] = GetLayerCollection("MRI")->GetLayerIndex(mri);
         if (!OnCloseVolume())
-          {
-            m_volumeSettings.clear();
-            return;
-          }
+        {
+          m_volumeSettings.clear();
+          return;
+        }
         this->LoadVolumeFile(filename, dlg.GetFilename(), m_bResampleToRAS, dlg.GetSampleMethod());
       }
     }

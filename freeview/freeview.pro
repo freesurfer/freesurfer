@@ -1,5 +1,7 @@
 QT       += core gui script
 
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
 TARGET = freeview
 TEMPLATE = app
 
@@ -389,6 +391,9 @@ FREESURFER_BIN = /homes/5/rpwang/freesurfer/bin
 
 # for linux
 unix {
+
+greaterThan(QT_MAJOR_VERSION, 4): QT += x11extras
+
 INCLUDEPATH += /usr/pubsw/packages/vtk/current/include/vtk-5.6 \
                $$FREESURFER_DEV_DIR/include $$FREESURFER_DEV_DIR/vtkutils \
                /usr/pubsw/packages/mni/current/include \

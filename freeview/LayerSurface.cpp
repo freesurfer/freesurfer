@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/26 20:34:24 $
- *    $Revision: 1.135 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.136 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -260,7 +260,7 @@ bool LayerSurface::SaveSurface( )
     return false;
   }
 
-  return SaveSurface( m_sFilename.toAscii().data() );
+  return SaveSurface( m_sFilename.toLatin1().data() );
 }
 
 bool LayerSurface::WriteIntersection(const QString &filename, int nPlane, LayerMRI* mri_ref)
@@ -1497,7 +1497,7 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
                 if (m_nActiveRGBMap < 0)
                 {
                     double* dColor = GetProperty()->GetBinaryColor();
-                    unsigned char rgba[4] = { (int)(dColor[0]*255), (int)(dColor[1]*255), (int)(dColor[2]*255), 255 };
+                    unsigned char rgba[4] = { (unsigned char)(dColor[0]*255), (unsigned char)(dColor[1]*255), (unsigned char)(dColor[2]*255), 255 };
                     for (size_t i = 0; i < nCount*4; i+=4)
                         memcpy(data+i, rgba, 4);
                 }

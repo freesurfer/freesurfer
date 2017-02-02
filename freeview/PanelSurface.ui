@@ -23,9 +23,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-107</y>
-     <width>318</width>
-     <height>1145</height>
+     <y>0</y>
+     <width>332</width>
+     <height>1245</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -112,7 +112,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>75</width>
+            <width>70</width>
             <height>16777215</height>
            </size>
           </property>
@@ -612,7 +612,7 @@
         <item>
          <widget class="QCheckBox" name="checkBoxUseSurfaceColor2D">
           <property name="text">
-           <string>Use surface color</string>
+           <string>Use overlay color</string>
           </property>
          </widget>
         </item>
@@ -731,7 +731,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>75</width>
+            <width>70</width>
             <height>16777215</height>
            </size>
           </property>
@@ -1320,7 +1320,7 @@
   </connection>
   <connection>
    <sender>lineEditPositionOffset</sender>
-   <signal>returnPressed()</signal>
+   <signal>textEdited(QString)</signal>
    <receiver>PanelSurface</receiver>
    <slot>OnEditPositionOffset()</slot>
    <hints>

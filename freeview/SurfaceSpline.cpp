@@ -57,7 +57,7 @@ bool SurfaceSpline::Load(const QString &filename)
   }
 
   try {
-    m_mri = ::MRIread( filename.toAscii().data() );      // could be long process
+    m_mri = ::MRIread( filename.toLatin1().data() );      // could be long process
   }
   catch (int ret)
   {

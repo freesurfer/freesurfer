@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/13 16:43:39 $
- *    $Revision: 1.43 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.44 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -66,7 +66,7 @@ bool FSLabel::LabelRead( const QString& filename )
     ::LabelFree( &m_label );
   }
 
-  m_label = ::LabelRead( NULL, filename.toAscii().data() );
+  m_label = ::LabelRead( NULL, filename.toLatin1().data() );
   if ( m_label == NULL )
   {
     cerr << "LabelRead failed\n";
@@ -315,7 +315,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
 
 bool FSLabel::LabelWrite( const QString& filename )
 {
-  int err = ::LabelWrite( m_label, filename.toAscii().data() );
+  int err = ::LabelWrite( m_label, filename.toLatin1().data() );
 
   if ( err != 0 )
   {

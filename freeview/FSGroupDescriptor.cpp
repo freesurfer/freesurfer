@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:45 $
- *    $Revision: 1.6 $
+ *    $Author: rpwang $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,7 +83,7 @@ bool FSGroupDescriptor::Read( const QString& filename )
     ::gdfFree( &m_fsgd );
   }
 
-  m_fsgd = ::gdfRead( filename.toAscii().data(), 1 );
+  m_fsgd = ::gdfRead( filename.toLatin1().data(), 1 );
   if ( m_fsgd == NULL )
   {
     cerr << "gdfRead failed\n";

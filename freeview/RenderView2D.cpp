@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/07/05 17:20:32 $
- *    $Revision: 1.77 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -585,7 +585,7 @@ void RenderView2D::OnDuplicateRegion()
   if (!act)
     return;
 
-  Region2D* reg = qobject_cast<Region2D*>(qVariantValue<QObject*>(act->data()));
+  Region2D* reg = qobject_cast<Region2D*>(act->data().value<QObject*>());
   if (reg)
   {
     reg = reg->Duplicate(this);

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/20 19:58:46 $
- *    $Revision: 1.179 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.180 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -350,6 +350,7 @@ protected:
   void CommandSetSurfaceOverlayColormap   ( const QStringList& cmd );
   void CommandSetSurfaceOverlayOpacity    ( const QStringList& cmd );
   void CommandSetSurfaceOverlayFrame      ( const QStringList& cmd );
+  void CommandSetSurfaceOverlaySmooth     ( const QStringList& cmd );
   void CommandSetSurfaceColor   ( const QStringList& cmd );
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
   void CommandSetSurfaceEdgeThickness ( const QStringList& cmd );

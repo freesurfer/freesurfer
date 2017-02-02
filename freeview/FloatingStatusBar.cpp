@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/06/17 02:39:27 $
- *    $Revision: 1.7 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -34,7 +34,7 @@ FloatingStatusBar::FloatingStatusBar(QWidget *parent) :
   setWindowFlags(Qt::Tool | Qt::CustomizeWindowHint);
 #ifdef Q_WS_MAC
   ui->frame->layout()->setContentsMargins(5, 5, 5, 8);
-#elif defined(Q_WS_X11)
+#elif defined(Q_OS_LINUX)
   ui->frame->setFrameShape(QFrame::StyledPanel);
 #endif
   m_timer = new QTimer( this );

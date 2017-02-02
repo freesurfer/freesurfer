@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/07/05 17:20:32 $
- *    $Revision: 1.16 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@ bool FSPointSet::ReadAsLabel( const QString& filename )
     ::LabelFree( &m_label );
   }
 
-  m_label = ::LabelRead( NULL, filename.toAscii().data() );
+  m_label = ::LabelRead( NULL, filename.toLatin1().data() );
 
   if ( m_label == NULL )
   {
@@ -134,7 +134,7 @@ bool FSPointSet::ReadFromStringAsControlPoints(const QString &content)
 
 bool FSPointSet::WriteAsLabel( const QString& filename )
 {
-  int err = ::LabelWrite( m_label, filename.toAscii().data() );
+  int err = ::LabelWrite( m_label, filename.toLatin1().data() );
 
   if ( err != 0 )
   {

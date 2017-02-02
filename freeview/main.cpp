@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/26 20:34:24 $
- *    $Revision: 1.78 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,6 +47,30 @@ extern "C"
 
 char* Progname;
 
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+  switch (type)
+  {
+  case QtDebugMsg:
+    fprintf(stdout, "%s\n", qPrintable(msg));
+    fflush(0);
+    break;
+  case QtWarningMsg:
+    fprintf(stderr, "%s\n", qPrintable(msg));
+    fflush(0);
+    break;
+  case QtCriticalMsg:
+    fprintf(stderr, "%s\n", qPrintable(msg));
+    fflush(0);
+    break;
+  case QtFatalMsg:
+    fprintf(stderr, "%s\n", qPrintable(msg));
+    fflush(0);
+    abort();
+  }
+}
+#else
 void myMessageOutput(QtMsgType type, const char *msg)
 {
   switch (type)
@@ -69,6 +93,7 @@ void myMessageOutput(QtMsgType type, const char *msg)
     abort();
   }
 }
+#endif
 
 void my_error_exit(int ecode)
 {
@@ -84,7 +109,11 @@ int main(int argc, char *argv[])
   putenv((char*)"SURFER_FRONTDOOR=");
   if (getenv("FS_DISABLE_LANG") == NULL)
     putenv((char*)"LANG=en_US");
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+  qInstallMessageHandler(myMessageOutput);
+#else
   qInstallMsgHandler(myMessageOutput);
+#endif
 
   LineProf::InitializePetsc();
 
@@ -132,6 +161,7 @@ int main(int argc, char *argv[])
       "':overlay_color=colorscale,settings' Set overlay color setttings. Valid names are 'colorwheel', 'truncate' and 'inverse'. Use comma to apply more than one.\n\n"
       "':overlay_threshold=low,(mid,)high(,percentile)' Set overlay threshold values, separated by comma. When overlay method is linear or linearopaque, only 2 numbers (low and high) are needed. When method is piecewise, 3 numbers are needed. If last element is 'percentile', use the give numbers as percentile.\n\n"
       "':overlay_frame=frame_number' Set active frame of multi-frame overlay.\n\n"
+      "':overlay_smooth=smooth_steps' Set smooth steps for overlay.\n\n"
       "':correlation=correlation_filename' Load correlation data from file. Correlation data is treated as a special kind of overlay data.\n\n"
       "':color=colorname' Set the base color of the surface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
       "':edgecolor=colorname' Set the color of the slice intersection outline on the surface. If set to 'surface', will use surface color\n\n"
@@ -226,9 +256,8 @@ int main(int argc, char *argv[])
   MainApplication app(argc, argv);
   app.setOrganizationName("Massachusetts General Hospital");
   app.setOrganizationDomain("nmr.mgh.harvard.edu");
-#ifdef Q_WS_X11
+#ifdef Q_OS_LINUX
   app.setApplicationName("freeview");
-//  app.setStyle( "Cleanlooks" );
 #else
   app.setApplicationName("FreeView");
 #endif

@@ -46,6 +46,10 @@
 
 #ifndef QTCOLORPICKER_H
 #define QTCOLORPICKER_H
+#include <QtGlobal>
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+#include <QtWidgets>
+#else
 #include <QtGui/QPushButton>
 #include <QtCore/QString>
 #include <QtGui/QColor>
@@ -53,6 +57,7 @@
 #include <QtGui/QLabel>
 #include <QtCore/QEvent>
 #include <QtGui/QFocusEvent>
+#endif
 
 #if defined(Q_WS_WIN)
 #  if !defined(QT_QTCOLORPICKER_EXPORT) && !defined(QT_QTCOLORPICKER_IMPORT)

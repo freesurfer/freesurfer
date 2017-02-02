@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: ohinds $
- *    $Date: 2016/10/07 15:57:22 $
- *    $Revision: 1.21 $
+ *    $Author: rpwang $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.22 $
  *
  * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -240,9 +240,9 @@ bool LayerFCD::LoadFromFile()
   ::SetProgressCallback(ProgressCallback, 0, 50);
   try
   {
-    m_fcd = ::FCDloadData(m_sSubjectDir.toAscii().data(),
-                          m_sSubject.toAscii().data(),
-                          m_sSuffix.isEmpty()?NULL:m_sSuffix.toAscii().data());
+    m_fcd = ::FCDloadData(m_sSubjectDir.toLatin1().data(),
+                          m_sSubject.toLatin1().data(),
+                          m_sSuffix.isEmpty()?NULL:m_sSuffix.toLatin1().data());
   }
   catch (int ret)
   {

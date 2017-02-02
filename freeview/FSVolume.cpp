@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/18 17:38:08 $
- *    $Revision: 1.119 $
+ *    $Date: 2017/02/01 15:28:54 $
+ *    $Revision: 1.120 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -160,7 +160,7 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
   MRI* tempMRI = m_MRI;
   try
   {
-    m_MRI = ::MRIread( filename.toAscii().data() );      // could be long process
+    m_MRI = ::MRIread( filename.toLatin1().data() );      // could be long process
   }
   catch (int ret)
   {
@@ -329,7 +329,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
   if ( ext == "xfm" )  // MNI style
   {
     MATRIX* m = NULL;
-    if ( regio_read_mincxfm( filename.toAscii().data(), &m, NULL ) != 0 )
+    if ( regio_read_mincxfm( filename.toLatin1().data(), &m, NULL ) != 0 )
     {
       return NULL;
     }
@@ -372,7 +372,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
     char* subject = NULL;
     float inplaneres, betplaneres, intensity;
     int float2int;
-    if ( regio_read_register( filename.toAscii().data(),
+    if ( regio_read_register( filename.toLatin1().data(),
                               &subject,
                               &inplaneres,
                               &betplaneres,
@@ -387,7 +387,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
   }
   else  // LTA style & all possible other styles
   {
-    TRANSFORM* FSXform = TransformRead( (char*)filename.toAscii().data() );
+    TRANSFORM* FSXform = TransformRead( (char*)filename.toLatin1().data() );
     if ( FSXform == NULL )
     {
       return false;
@@ -727,7 +727,7 @@ bool FSVolume::SaveRegistration( const QString& filename )
   lta->xforms[0].src = srcG;
   lta->xforms[0].dst = dstG;
 
-  FILE* fp = fopen( filename.toAscii().data(),"w" );
+  FILE* fp = fopen( filename.toLatin1().data(),"w" );
   bool ret = true;
   if( !fp )
   {
@@ -1035,7 +1035,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
   }
 
   // check if file is writable
-  FILE* fp = fopen( filename.toAscii().data(), "w" );
+  FILE* fp = fopen( filename.toLatin1().data(), "w" );
   if ( !fp )
   {
     cerr << "Failed to open file " << qPrintable(filename)
@@ -1052,7 +1052,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
   int err = 0;
   try
   {
-    err = ::MRIwrite( m_MRITemp, filename.toAscii().data() );
+    err = ::MRIwrite( m_MRITemp, filename.toLatin1().data() );
   }
   catch (int ret)
   {
