@@ -19,9 +19,9 @@ foo_DATA=mri_normalize.help.xml mri_long_normalize.help.xml
 foo2dir=$(prefix)/docs/html
 foo2_DATA=mri_normalize.help.xml.html  mri_long_normalize.help.xml.html 
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+TESTS=test_mri_normalize $(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
+EXTRA_DIST=test_mri_normalize testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
