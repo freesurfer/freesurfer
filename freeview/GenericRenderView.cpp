@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.9 $
+ *    $Date: 2017/02/02 18:41:17 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -371,7 +371,7 @@ int GenericRenderView::GetStereoRender()
 void GenericRenderView::SetStereoRender(bool bOn)
 {
   GetRenderWindow()->SetStereoRender(bOn?1:0);
-//#ifdef Q_WS_MAC
+//#ifdef Q_OS_MAC
   Render();
 //#endif
 }

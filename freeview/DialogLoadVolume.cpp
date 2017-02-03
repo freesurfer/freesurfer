@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2014/06/02 20:42:37 $
- *    $Revision: 1.31 $
+ *    $Date: 2017/02/02 18:41:17 $
+ *    $Revision: 1.32 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -42,7 +42,7 @@ DialogLoadVolume::DialogLoadVolume(QWidget *parent) :
   ui(new Ui::DialogLoadVolume)
 {
   ui->setupUi(this);
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
   setWindowFlags( Qt::Sheet );
 #endif
 

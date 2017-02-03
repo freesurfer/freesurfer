@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/12/14 17:13:44 $
- *    $Revision: 1.10 $
+ *    $Date: 2017/02/02 18:41:17 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,7 +47,7 @@ bool Interactor3DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView*
   RenderView3D* view = ( RenderView3D* )renderview;
 
   bool ret = Interactor3D::ProcessMouseDownEvent( event, renderview );
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
   if ( m_nAction == MM_SurfaceRegion && !Interactor3D::IsInAction() &&
        (event->button() == Qt::LeftButton || ( event->button() == Qt::RightButton && (event->buttons() & Qt::LeftButton) ) ) )
 #else
@@ -140,7 +140,7 @@ void Interactor3DMeasure::UpdateCursor( QEvent* event, QWidget* wnd )
        event->type() == QEvent::MouseMove)
   {
     QMouseEvent* e = ( QMouseEvent* )event;
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
     if ( (e->button() != Qt::RightButton && e->button() != Qt::MidButton) ||
          ( e->button() == Qt::RightButton && (e->buttons() & Qt::LeftButton) ) )
 #else

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/13 16:43:39 $
- *    $Revision: 1.49 $
+ *    $Date: 2017/02/02 16:40:06 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ protected:
 
   void HighlightSliceFrame( int n );
 
-  virtual void OnSlicePositionChanged();
+  virtual void OnSlicePositionChanged(bool bCenterView = false);
   virtual void OnIdle();
 
   vtkProp* PickProp( int posX, int posY, double* pos_out = NULL );

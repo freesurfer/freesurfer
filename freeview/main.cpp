@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.79 $
+ *    $Date: 2017/02/02 18:41:17 $
+ *    $Revision: 1.80 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -262,7 +262,7 @@ int main(int argc, char *argv[])
   app.setApplicationName("FreeView");
 #endif
 
-#ifndef Q_WS_MAC
+#ifndef Q_OS_MAC
   QIcon icon(":/resource/icons/app_32.png");
   icon.addFile(":/resource/icons/app_64.png");
   app.setWindowIcon(icon);

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.78 $
+ *    $Date: 2017/02/02 16:40:06 $
+ *    $Revision: 1.79 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -276,7 +276,7 @@ void RenderView2D::Update2DOverlay()
   m_contour2D->UpdateSliceLocation( slicePos[m_nViewPlane] );
 }
 
-void RenderView2D::OnSlicePositionChanged()
+void RenderView2D::OnSlicePositionChanged(bool bCenter)
 {
   double slicePos[3];
   MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->GetSlicePosition( slicePos );
@@ -295,10 +295,13 @@ void RenderView2D::OnSlicePositionChanged()
   Update2DOverlay();
   UpdateAnnotation();
 
-  double x, y, z;
-  WorldToViewport(slicePos[0], slicePos[1], slicePos[2], x, y, z);
-  if (!rect().contains(QPoint(x, y)))
-      this->CenterAtCursor();
+  if (bCenter)
+  {
+      double x, y, z;
+      WorldToViewport(slicePos[0], slicePos[1], slicePos[2], x, y, z);
+      if (!rect().contains(QPoint(x, y)))
+          this->CenterAtCursor();
+  }
 
   RenderView::OnSlicePositionChanged();
 }

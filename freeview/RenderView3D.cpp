@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/19 16:19:32 $
- *    $Revision: 1.95 $
+ *    $Date: 2017/02/02 16:40:06 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ void RenderView3D::SetInteractionMode( int nMode )
     }
 }
 
-void RenderView3D::OnSlicePositionChanged()
+void RenderView3D::OnSlicePositionChanged(bool bCenter)
 {
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
     LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");

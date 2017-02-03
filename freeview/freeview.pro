@@ -452,10 +452,13 @@ macx {
 TARGET = FreeView
 RC_FILE = resource/icons/freeview.icns
 
+greaterThan(QT_MAJOR_VERSION, 4): QT -= x11extras script
+QMAKE_CXXFLAGS -= -DHAVE_OPENMP
+
 # uncomment following lines to build for 10.5 compatible binaries
 #CONFIG -= x86
 #CONFIG -= x86_64
-QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.6
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.9
 #QMAKE_MAC_SDK=/Developer/SDKs/MacOSX10.6.sdk
 #QMAKE_CXXFLAGS += -mmacosx-version-min=10.6 -arch i386
 #QMAKE_CFLAGS += -mmacosx-version-min=10.6 -arch i386

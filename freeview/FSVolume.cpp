@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.120 $
+ *    $Date: 2017/02/02 18:41:17 $
+ *    $Revision: 1.121 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -390,7 +390,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
     TRANSFORM* FSXform = TransformRead( (char*)filename.toLatin1().data() );
     if ( FSXform == NULL )
     {
-      return false;
+      return NULL;
     }
     LTA* lta = (LTA*) FSXform->xform;
     if ( lta->type != LINEAR_RAS_TO_RAS )
@@ -402,7 +402,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
     {
       cerr << "ERROR: LTA input is not RAS to RAS\n";
       TransformFree( &FSXform );
-      return false;
+      return NULL;
     }
 
     // Assume RAS2RAS and uses vox2ras from input volumes:

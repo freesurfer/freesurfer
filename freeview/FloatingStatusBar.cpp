@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.8 $
+ *    $Date: 2017/02/02 18:41:17 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,7 +32,7 @@ FloatingStatusBar::FloatingStatusBar(QWidget *parent) :
 {
   ui->setupUi(this);
   setWindowFlags(Qt::Tool | Qt::CustomizeWindowHint);
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
   ui->frame->layout()->setContentsMargins(5, 5, 5, 8);
 #elif defined(Q_OS_LINUX)
   ui->frame->setFrameShape(QFrame::StyledPanel);
@@ -65,7 +65,7 @@ void FloatingStatusBar::Reposition()
 {
   QWidget* p = parentWidget();
   QSize s = p->size() - this->size();
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
   this->move(p->geometry().topLeft() + QPoint(0, s.height()) + QPoint(1,-1));
 #elif defined(Q_CYGWIN_WIN)
   this->move(p->geometry().topLeft() + QPoint(0, s.height()) + QPoint(0, -6));

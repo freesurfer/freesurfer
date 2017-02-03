@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.360 $
+ *    $Date: 2017/02/02 18:41:17 $
+ *    $Revision: 1.362 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -354,7 +354,7 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   }
   for ( int i = 0; i < 4; i++ )
   {
-    connect( this, SIGNAL(SlicePositionChanged()), m_views[i], SLOT(OnSlicePositionChanged()) );
+    connect( this, SIGNAL(SlicePositionChanged(bool)), m_views[i], SLOT(OnSlicePositionChanged(bool)) );
   }
 
   for (int i = 0; i < 3; i++)
@@ -560,7 +560,7 @@ void MainWindow::LoadSettings()
   SyncZoom(m_settings["SyncZoom"].toBool());
   m_term->SetDarkTheme(m_settings["DarkConsole"].toBool());
 
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
   this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
   this->SetUseCommandControl(m_settings["MacUseCommand"].toBool());
 #endif
@@ -4590,7 +4590,7 @@ bool MainWindow::SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid )
   }
   if ( bRet )
   {
-    emit SlicePositionChanged();
+    emit SlicePositionChanged(true);
   }
 
   return bRet;
@@ -4611,7 +4611,7 @@ bool MainWindow::SetSlicePosition( double* pos )
   }
   if ( bRet )
   {
-    emit SlicePositionChanged();
+    emit SlicePositionChanged(true);
   }
 
   return bRet;
@@ -5641,7 +5641,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     }
     if (UpdateSurfaceCorrelation((LayerSurface*)layer) )
     {
-      emit SlicePositionChanged();
+      emit SlicePositionChanged(true);
     }
   }
   else if ( jobtype == ThreadIOWorker::JT_LoadSurfaceOverlay && layer->IsTypeOf("Surface") )
@@ -5649,7 +5649,7 @@ void MainWindow::OnIOFinished( Layer* layer, int jobtype )
     UpdateSurfaceCorrelation((LayerSurface*)layer);
     lc_surface->SetActiveLayer(layer);
     m_strLastDir = QFileInfo(((LayerSurface*)layer)->GetActiveOverlay()->GetFileName()).absolutePath();
-    emit SlicePositionChanged();
+    emit SlicePositionChanged(true);
   }
   else if ( jobtype == ThreadIOWorker::JT_LoadTrack && layer->IsTypeOf("Tract"))
   {

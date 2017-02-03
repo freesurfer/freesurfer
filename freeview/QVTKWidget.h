@@ -48,7 +48,9 @@ class QVTKPaintEngine;
 #include <vtkToolkits.h>
 class vtkImageData;
 
-#if defined(Q_WS_MAC)
+#define QT_MAC_USE_COCOA
+
+#if defined(Q_OS_MAC)
 # if defined(QT_MAC_USE_COCOA) && defined(VTK_USE_COCOA)
 #  define QVTK_USE_COCOA
 # elif !defined(QT_MAC_USE_COCOA) && defined(VTK_USE_CARBON)
@@ -71,7 +73,7 @@ class vtkImageData;
 #if defined(VTK_USE_TDX) && defined(Q_WS_WIN)
 class vtkTDxWinDevice;
 #endif
-#if defined(VTK_USE_TDX) && defined(Q_WS_MAC)
+#if defined(VTK_USE_TDX) && defined(Q_OS_MAC)
 class vtkTDxMacDevice;
 #endif
 
@@ -310,7 +312,7 @@ protected:
 #if defined(VTK_USE_TDX) && defined(Q_WS_WIN)
   vtkTDxWinDevice *Device;
 #endif
-#if defined(VTK_USE_TDX) && defined(Q_WS_MAC)
+#if defined(VTK_USE_TDX) && defined(Q_OS_MAC)
   vtkTDxMacDevice *Device;
 #endif
 

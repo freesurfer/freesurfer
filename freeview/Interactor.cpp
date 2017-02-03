@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.13 $
+ *    $Author: rpwang $
+ *    $Date: 2017/02/02 18:41:17 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,7 +29,7 @@
 #include <vtkRenderer.h>
 #include <QDebug>
 
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
 Qt::KeyboardModifier Interactor::CONTROL_MODIFIER = Qt::MetaModifier;
 Qt::Key Interactor::CONTROL_KEY = Qt::Key_Meta;
 #else
@@ -57,7 +57,7 @@ void Interactor::SetAction( int nAction )
 
 void Interactor::SetUseCommandControl(bool b)
 {
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
   if (b)
   {
     CONTROL_MODIFIER = Qt::ControlModifier;

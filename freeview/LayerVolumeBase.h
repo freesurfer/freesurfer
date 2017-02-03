@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/01/26 16:54:31 $
- *    $Revision: 1.28 $
+ *    $Date: 2017/02/02 18:41:17 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -118,7 +118,7 @@ public slots:
 protected:
   QList<int> SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
   QList<int> SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );
-  QList<int> FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = false, bool ignore_exclusion = false );
+  QList<int> FloodFillByIndex( int* n, int nPlane, bool bAdd = true, bool ignore_overflow = true, char* mask_out = NULL, bool ignore_exclusion = false );
   bool SetLiveWireByIndex( int* n1, int* n2, int nPlane );
   bool CloneVoxelByIndex( int* n, int nPlane );
   bool CloneVoxelByIndex( int* n1, int* n2, int nPlane );

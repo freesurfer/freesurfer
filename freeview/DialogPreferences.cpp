@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/11/14 21:15:59 $
- *    $Revision: 1.22 $
+ *    $Date: 2017/02/02 18:41:17 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,7 +62,7 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)),
           mainwnd->GetCommandConsole(), SLOT(SetDarkTheme(bool)));
 
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
   ui->groupBoxMac->setEnabled(true);
   ui->groupBoxMac->show();
   connect(ui->checkBoxMacUnified, SIGNAL(toggled(bool)), mainwnd, SLOT(SetUnifiedTitleAndToolBar(bool)));
@@ -138,7 +138,7 @@ void DialogPreferences::OnClicked(QAbstractButton* btn)
     ui->checkBoxRightButtonErase->setChecked(false);
     ui->checkBoxSyncZoom->setChecked(true);
     ui->radioButtonThemeDark->setChecked(true);
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
     ui->checkBoxCommandKey->setChecked(false);
     ui->checkBoxMacUnified->setChecked(false);
 #endif
