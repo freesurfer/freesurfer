@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2016/12/18 21:47:34 $
- *    $Revision: 1.789 $
+ *    $Date: 2017/02/03 15:43:24 $
+ *    $Revision: 1.790 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -784,7 +784,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.789 2016/12/18 21:47:34 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.790 2017/02/03 15:43:24 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -38095,7 +38095,7 @@ MRIScomputeBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
         {
           break ;
         }
-	if (mri_aseg != NULL)
+	if ((mri_aseg != NULL) && (MRIindexNotInVolume(mri_aseg, xw,yw,zw)==0))
 	{
 	  int label ;
 	  label = MRIgetVoxVal(mri_aseg, nint(xw), nint(yw), nint(zw), 0) ;
@@ -46552,13 +46552,14 @@ mrisStoreVtotalInV3num(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
+#define MAX_INT_FACES 100000
 int
 MRISripDefectiveFaces(MRI_SURFACE *mris)
 {
   FACE   *f ;
-  int    fno, flist[1000], retained_i, i, j, nfaces, nripped, n ;
+  int    fno, flist[MAX_INT_FACES], retained_i, i, j, nfaces, nripped, n ;
   double dist, min_face_dist, max_dist, r ;
-  float  dx, dy, dz, cx[1000], cy[1000], cz[1000] ;
+  float  dx, dy, dz, cx[MAX_INT_FACES], cy[MAX_INT_FACES], cz[MAX_INT_FACES] ;
   MHT    *mht ;
 
   MRISclearCurvature(mris) ;
@@ -47142,7 +47143,7 @@ static int
 mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
 {
   double   x0, x1, y0, y1, z0, z1, x, y, z ;
-  int     i, n, m, total_found, all_faces[100000], nfaces ;
+  int     i, n, m, total_found, all_faces[1000000], nfaces ;
   MHBT    *bucket, *last_bucket ;
   MHB     *bin ;
   EDGE    edge1, edge2 ;
@@ -47189,7 +47190,7 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
           f2 = &mris->faces[bin->fno] ;
           if (!f2->ripflag)  /* only add it once */
           {
-            if (nfaces == 100000)
+            if (nfaces == 1000000)
             {
               ErrorExit(ERROR_BADPARM, "Too many faces");
             }
@@ -47238,7 +47239,7 @@ mrisFindAllOverlappingFaces(MRI_SURFACE *mris, MHT *mht,int fno, int *flist)
         if (edgesIntersect(mris, &edge1, &edge2))
         {
           f2->ripflag = 1 ;  /* use ripflag as a mark */
-          if (total_found==1000)
+          if (total_found==MAX_INT_FACES)
             ErrorExit
             (ERROR_BADPARM,
              "Too many intersected faces for face %d (%d, %d, %d)",
@@ -56804,7 +56805,7 @@ MRISmarkAmbiguousVertices(MRI_SURFACE *mris, int mark)
 {
   FACE   *f ;
   VERTEX *v ;
-  int    fno, flist[1000], i, nfaces, nmarked, n /*, vno, neg*/ ;
+  int    fno, flist[MAX_INT_FACES], i, nfaces, nmarked, n /*, vno, neg*/ ;
   double area_scale ;
 #if 0
   double r;
