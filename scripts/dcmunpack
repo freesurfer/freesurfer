@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.20 2016/08/02 21:11:47 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.21 2017/01/30 23:39:21 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -23,6 +23,8 @@ set Key = ();
 set DoBase = 0;
 set infofile = ();
 set itdicom = ();
+set DoAutoRunSeq = 0;
+set AutoRunSeqFmt = ""
 
 set RunNos = ();
 set SubDirs = ();
@@ -220,6 +222,14 @@ echo "$Institution"
 
 
 # Print out one line for each series:
+set AutoRunNos = ()
+set AutoSubDirs = ()
+set AutoFormats = ()
+set AutoFNames = ()
+set AutoNSkips = ()
+set AutoNSkips = ()
+set AutoNDrops = ()
+
 if($#SeriesInfo == 0) then
   if($#TargetDir) then
     set SeriesInfo = $TargetDir/series-info.dat
@@ -241,7 +251,29 @@ foreach series ($SeriesNos)
   set fname = $r[11];
   if($DoBase) set fname = `basename $f`
   echo $Key $r[2] "$descr" $r[5-10] $fname $max | tee -a $SeriesInfo
+
+  if($DoAutoRunSeq) then
+    if($descr == Localizer || $descr == localizer || $descr == AAHScout || \
+       $descr == AAHScout_sag || $descr == AAHScout_cor || \
+       $descr == AAHScout_tra || $descr == AAScout) continue
+    set AutoRunNos = ($AutoRunNos $series)
+    set AutoSubDirs = ($AutoSubDirs ".")
+    set AutoFormats = ($AutoFormats $AutoRunSeqFmt)
+    set FName = `printf %04d.$descr $series`
+    set AutoFNames = ($AutoFNames $FName)
+    set AutoNSkips = ($AutoNSkips 0)
+    set AutoNDrops = ($AutoNDrops 0)
+  endif
 end
+
+if($DoAutoRunSeq) then
+  set RunNos = ($AutoRunNos)
+  set SubDirs = ($AutoSubDirs)
+  set Formats = ($AutoFormats)
+  set FNames =  ($AutoFNames)
+  set NSkips =  ($AutoNSkips)
+  set NDrops =  ($AutoNDrops)
+endif
 
 # If no runs have been specified, then just exit
 if($#RunNos == 0) then
@@ -482,6 +514,14 @@ while( $#argv != 0 )
       set DoUnpack = 1;
       breaksw
 
+    case "-auto-runseq":
+      if($#argv < 1) goto arg1err;
+      set AutoRunSeqFmt = $argv[1]; shift;
+      set DoAutoRunSeq = 1
+      set DoUnpack = 1;
+      set FSFAST = 0;
+      breaksw     
+
     case "-fips":
       if($#argv < 4) goto arg4err;
       set Project = "$argv[1]"; shift;
@@ -616,7 +656,11 @@ if($DoUnpack) then
     echo "ERROR: need target directory"
     exit 1;
   endif
-  if($#RunNos == 0) then
+  if($#RunNos != 0 && $DoAutoRunSeq) then
+    echo "ERROR: cannot use -run and -auto-runseq at the same time"
+    exit 1;
+  endif
+  if($#RunNos == 0 && ! $DoAutoRunSeq) then
     echo "ERROR: need input runs"
     exit 1;
   endif
@@ -691,7 +735,7 @@ arg4err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "dcmunpack"
+  echo "dcmunpack : run with -help for more info"
   echo ""
   echo "Required Arguments:";
   echo "   -src dcmdir <-src dcmdir>"
@@ -699,6 +743,7 @@ usage_exit:
   echo "Other Arguments"
   echo "   -targ targetdir"
   echo "   -run run subdir format stemname <<nskip> ndrop>"
+  echo "   -auto-runseq format : save all scans in the targetdir as runo.seqname.format"
   echo "   -scanonly file : only scan the directory and put result in file"
   echo "   -one-per-dir : assume that there is only one dicom series in each subdir"
   echo "   -gedcm : same as -one-per-dir -ext dcm"
@@ -769,6 +814,17 @@ output hierarchy (the default) or targetdir/subdir/fname.format with
 3 bold nii f" would become targetdir/bold/003/f.nii in fsfast or
 targetdir/bold/f.nii in generic. If the stemname has an extension,
 that extension is ignored.
+
+-auto-runseq format 
+
+Save all scans in the targetdir as runo.seqname.format. Eg,
+-auto-runseq nii.gz would save files with names like
+0002.mprage.nii.gz, 0003.ge_functionals.nii.gz, etc. This can be
+easier than using the -run because you do not have to specify all the
+runs on the command line. It will exclude any sequneces named
+Localizer, localizer, AAHScout, AHScout_sag, AAHScout_cor,
+AAHScout_tra, AAScout
+
 
 -one-per-dir
 
