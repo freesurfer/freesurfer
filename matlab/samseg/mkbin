@@ -1,0 +1,22 @@
+#!/bin/csh -f
+
+# This is a script that creates a binary of run_samseg
+# to be called by the samseg script
+
+unalias matlab
+
+# Match the path in samseg script (must be 8.0?)
+if($?SAMSEG_MCRROOT == 0) then
+  # The samseg script also uses this env var
+  setenv SAMSEG_MCRROOT /usr/pubsw/common/matlab/8.0
+endif
+set path = ( $SAMSEG_MCRROOT/bin/ $path )
+
+mcc  -m -v -R -singleCompThread run_samseg
+
+rm run_run_samseg.sh mccExcludedFiles.log  readme.txt
+
+
+
+exit 0
+
