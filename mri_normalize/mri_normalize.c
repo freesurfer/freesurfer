@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2016/12/26 15:29:51 $
- *    $Revision: 1.91 $
+ *    $Author: ah221 $
+ *    $Date: 2017/01/27 22:31:34 $
+ *    $Revision: 1.92 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -169,14 +169,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.91 2016/12/26 15:29:51 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.92 2017/01/27 22:31:34 ah221 Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.91 2016/12/26 15:29:51 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.92 2017/01/27 22:31:34 ah221 Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1123,8 +1123,7 @@ get_option(int argc, char *argv[])
   }
   else if (!stricmp(option, "conform"))
   {
-    conform = atoi(argv[1]) ;
-    nargs = 1 ;
+    conform = 1 ;
     printf(
       "%sinterpolating and embedding volume to be 256^3...\n",
       conform ? "": "not ") ;
