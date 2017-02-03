@@ -82,6 +82,10 @@
       <explanation>specify threshold for min T2 value allowed to be interior to the cortical ribbon</explanation>
       <argument>-T2_max threshold</argument>
       <explanation>specify threshold for max T2 value allowed to be interior to the cortical ribbon</explanation>
+      <argument>-T2_outside_min threshold</argument>
+      <explanation>specify threshold for min T2 value outside of pial surface that will cause surface to deform outwards</explanation>
+      <argument>-T2_outside_max threshold</argument>
+      <explanation>specify threshold for max T2 value outside of pial surface that will cause surface to deform outwards</explanation>
     </optional-flagged>
   </arguments>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
