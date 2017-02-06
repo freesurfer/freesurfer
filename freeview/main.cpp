@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2017/02/02 18:41:17 $
- *    $Revision: 1.80 $
+ *    $Author: zkaufman $
+ *    $Date: 2017/02/06 22:08:28 $
+ *    $Revision: 1.81 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,6 +62,10 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
     break;
   case QtCriticalMsg:
     fprintf(stderr, "%s\n", qPrintable(msg));
+    fflush(0);
+    break;
+  case QtInfoMsg:
+    fprintf(stdout, "%s\n", qPrintable(msg));
     fflush(0);
     break;
   case QtFatalMsg:

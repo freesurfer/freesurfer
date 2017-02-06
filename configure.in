@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2016/11/29 16:41:26 $
-#    $Revision: 1.675 $
+#    $Date: 2017/02/06 22:08:27 $
+#    $Revision: 1.676 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2221,11 +2221,16 @@ AC_DEFINE([XML_CONTEXT_BYTES], 1024,
 # Qt
 ################################################################
 QT_PATH=""
+QT_COMPONENTS="opengl script scripttools x11extras"
+if test x$MAC_64 = xYES; then
+   QT_COMPONENTS="opengl script scripttools"
+fi
 if test "$disable_gui_build" = "YES"; then
   QT_PATH=""
 else
   m4_include([m4/autotroll.m4])
-  AT_WITH_QT([opengl script scripttools])
+  AT_WITH_QT([$QT_COMPONENTS])
+  x11extras
 fi
 
 AM_CONDITIONAL(ENABLE_QT_APPS, ! test "x$QT_PATH" = "x")
