@@ -77,6 +77,7 @@ MRISUBDIRS=\
 	mri_concatenate_gcam \
 	mri_convert \
 	mri_mosaic \
+	mri_mi \
 	mri_convert_mdh \
 	mri_copy_values \
 	mri_cor2label \

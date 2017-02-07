@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2017/02/06 22:08:27 $
-#    $Revision: 1.676 $
+#    $Author: lzollei $
+#    $Date: 2017/02/07 04:00:36 $
+#    $Revision: 1.677 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3860,6 +3860,7 @@ AC_OUTPUT([Makefile
            mri_mask/Makefile
            mri_matrix_multiply/Makefile
            mri_mc/Makefile
+           mri_mi/Makefile
            mri_mcsim/Makefile
            mri_modify/Makefile
            mri_morphology/Makefile
