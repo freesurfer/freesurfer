@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/12/08 19:25:36 $
- *    $Revision: 1.389 $
+ *    $Author: fischl $
+ *    $Date: 2017/02/07 19:04:28 $
+ *    $Revision: 1.390 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1441,6 +1441,8 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
                                  TOPOLOGY_PARMS *parms) ;
 int MRISsmoothOnSphere(MRIS* mris, int niters);
 int mrisCountIntersectingFaces(MRIS *mris, int*flist , int nfaces);
+int MRIScountNegativeFaces(MRI_SURFACE *mris) ;
+int MRISevertSurface(MRI_SURFACE *mris) ;
 int MRISripDefectiveFaces(MRI_SURFACE *mris) ;
 int MRISunrip(MRI_SURFACE *mris) ;
 int MRISdivideLongEdges(MRI_SURFACE *mris, double thresh) ;
