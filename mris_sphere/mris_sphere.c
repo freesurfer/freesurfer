@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:42:15 $
- *    $Revision: 1.61 $
+ *    $Author: fischl $
+ *    $Date: 2017/02/07 19:04:37 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -53,7 +53,7 @@
 #endif // FS_CUDA
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.61 2016/01/20 23:42:15 greve Exp $";
+  "$Id: mris_sphere.c,v 1.62 2017/02/07 19:04:37 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -128,13 +128,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.61 2016/01/20 23:42:15 greve Exp $",
+   "$Id: mris_sphere.c,v 1.62 2017/02/07 19:04:37 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.61 2016/01/20 23:42:15 greve Exp $",
+           "$Id: mris_sphere.c,v 1.62 2017/02/07 19:04:37 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -380,6 +380,11 @@ main(int argc, char *argv[])
   }
   fprintf(stderr,"surface projected - minimizing metric distortion...\n");
   MRISsetNeighborhoodSize(mris, nbrs) ;
+  if (MRIScountNegativeFaces(mris) > nint(.8*mris->nfaces))
+  {
+    printf("!!!!!!!!!  everted surface detected - correcting !!!!!!!!!!!!!!\n") ;
+    MRISevertSurface(mris) ;
+  }
   if (quick)
   {
     if (!load)
