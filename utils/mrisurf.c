@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2017/02/03 15:43:24 $
- *    $Revision: 1.790 $
+ *    $Date: 2017/02/07 19:04:19 $
+ *    $Revision: 1.791 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -784,7 +784,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.790 2017/02/03 15:43:24 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.791 2017/02/07 19:04:19 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -85772,4 +85772,38 @@ MRI *
   }
   MHTfree(&mht) ;
   return(mri_dst_features) ;
+}
+int
+MRIScountNegativeFaces(MRI_SURFACE *mris)
+{
+  int    fno, neg ;
+  FACE   *face ;
+
+  for (neg = fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    if (face->area < 0)
+      neg++ ;
+  }
+  return(neg) ;
+}
+int
+MRISevertSurface(MRI_SURFACE *mris)
+{
+  int   v0, fno ;
+  FACE  *face ;
+
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    if (face->ripflag)
+      continue ;
+    v0 = face->v[0] ;
+    face->v[0] = face->v[1] ;
+    face->v[1] = v0 ;
+  }
+
+  return(NO_ERROR) ;
 }
