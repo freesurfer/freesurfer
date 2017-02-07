@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2016/01/20 23:43:04 $
- *    $Revision: 1.63 $
+ *    $Author: fischl $
+ *    $Date: 2017/02/07 19:04:44 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,7 +50,7 @@
 #include "gcsa.h"
 
 static char vcid[] =
-  "$Id: mris_register.c,v 1.63 2016/01/20 23:43:04 greve Exp $";
+  "$Id: mris_register.c,v 1.64 2017/02/07 19:04:44 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -147,14 +147,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_register.c,v 1.63 2016/01/20 23:43:04 greve Exp $",
+   "$Id: mris_register.c,v 1.64 2017/02/07 19:04:44 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_register.c,v 1.63 2016/01/20 23:43:04 greve Exp $",
+           "$Id: mris_register.c,v 1.64 2017/02/07 19:04:44 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -174,6 +174,7 @@ main(int argc, char *argv[])
   memset(&parms, 0, sizeof(parms)) ;
   parms.projection = PROJECT_SPHERE ;
   parms.flags |= IP_USE_CURVATURE ;
+  parms.trinarize_thresh = 0.0 ;  // disabled by default
   parms.tol = 0.5 ;    // was 1e-0*2.5
   parms.min_averages = 0 ;
   parms.l_area = 0.0 ;
@@ -416,6 +417,7 @@ main(int argc, char *argv[])
                   IMAGES_PER_SURFACE*noverlays) ;
     }
   }
+
   if (use_defaults)
   {
     if (*IMAGEFseq_pix(mrisp_template->Ip, 0, 0, 2) <= 1.0)  /* 1st time */
@@ -439,6 +441,12 @@ main(int argc, char *argv[])
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
   mris->status = MRIS_PARAMETERIZED_SPHERE ;
   MRIScomputeMetricProperties(mris) ;
+  if (MRIScountNegativeFaces(mris) > nint(.8*mris->nfaces))
+  {
+    printf("!!!!!!!!!  everted surface detected - correcting !!!!!!!!!!!!!!\n") ;
+    MRISevertSurface(mris) ;
+  }
+
   if (!FZERO(parms.l_dist))
   {
     MRISscaleDistances(mris, scale) ;
@@ -638,6 +646,12 @@ get_option(int argc, char *argv[])
   {
     print_version() ;
   }
+  else if (!stricmp(option, "trinarize"))
+  {
+    parms.trinarize_thresh = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("binarizing curvatures with threshold = %f\n", parms.trinarize_thresh) ;
+  }
   else if (!stricmp(option, "median"))
   {
     which_norm = NORM_MEDIAN ;
@@ -824,6 +838,11 @@ get_option(int argc, char *argv[])
   {
     fprintf(stderr, "using inflated surface for initial alignment\n") ;
     parms.flags |= IP_USE_INFLATED ;
+  }
+  else if (!stricmp(option, "noinflated"))
+  {
+    fprintf(stderr, "using inflated surface for initial alignment\n") ;
+    parms.flags &= ~IP_USE_INFLATED ;
   }
   else if (!stricmp(option, "multi_scale"))
   {
@@ -1320,6 +1339,7 @@ gcsaSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     }
   }
 
+  printf("external SSE: %2.3f\n", sse) ;
   return(sse) ;
 }
 
