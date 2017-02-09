@@ -57,6 +57,8 @@
       <explanation>Output annotation files's colortable to text file</explanation>
       <argument>-noglobal</argument>
       <explanation>Do not compute global brain stats</explanation>
+      <argument>-th3</argument>
+      <explanation>Compute vertex-wise volume by dividing each obliquely truncated trilateral pyramid into three tetrahedra</explanation>
     </optional-flagged>
   </arguments>
   <outputs>
