@@ -20,9 +20,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.5 $
+#    $Author: greve $
+#    $Date: 2017/02/08 21:17:33 $
+#    $Revision: 1.6 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -36,26 +36,46 @@
 #
 #
 
-set VERSION = '$Id: fsr-getxopts,v 1.5 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: fsr-getxopts,v 1.6 2017/02/08 21:17:33 greve Exp $';
 
-if($#argv < 2) exit 0;
-
-set cmd       = $argv[1];
-set xoptsfile = $argv[2];
-
-if(! -e $xoptsfile) then
-  echo "ERROR: cannot find $xoptsfile"
-  exit 1;
+if($#argv < 2) then
+  # Dont print out anything here otherwise mess up recon-all
+  # fsr-getxopts cmd xoptsfile1 xoptsfile2 ...
+  exit 0;
 endif
 
-set tmp = `grep $cmd $xoptsfile | wc -l`;
-if($tmp == 0) exit(0);
-if($tmp > 1) then
-  echo "ERROR: cmd $cmd represented more than once in $xoptsfile"
-  exit 1;
-endif
+set cmd           = $argv[1]; shift
+set xoptsfilelist = ($argv)
 
-set tmp = `grep -v \# $xoptsfile | grep $cmd `;
-echo "$tmp[2-$#tmp]"
+# Go thru the list of xopts files
+foreach xoptsfile ($xoptsfilelist)
+  # If it is not there, then an error
+  if(! -e $xoptsfile) then
+    echo "ERROR: cannot find $xoptsfile"
+    exit 1;
+  endif
+
+  # Search for the command in the xoptsflie
+  set tmp = `grep $cmd $xoptsfile | wc -l`;
+
+  # If it is not there, move on to the next xopts file
+  if($tmp == 0) continue
+
+  # If there are multiple instances of the command, error. It is
+  # ok for the same command to be in multiple files (see below)
+  # but not in the same file
+  if($tmp > 1) then
+    echo "ERROR: cmd $cmd represented more than once in $xoptsfile"
+    exit 1;
+  endif
+
+  # If it gets here, there is only one instance, so extract the options
+  set tmp = `grep -v \# $xoptsfile | grep $cmd `;
+  echo "$tmp[2-$#tmp]"
+
+  # Do not search through any remaining xopts file. If the same command
+  # exists in multiple files precedence is given to the first file
+  break;
+end
 
 exit 0

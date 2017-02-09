@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2017/01/18 13:54:17 $
-#    $Revision: 1.600 $
+#    $Author: greve $
+#    $Date: 2017/02/08 21:17:33 $
+#    $Revision: 1.601 $
 #
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.600 2017/01/18 13:54:17 fischl Exp $';
+set VERSION = '$Id: recon-all,v 1.601 2017/02/08 21:17:33 greve Exp $';
 set ProgName = `basename $0`;
 set inputargs = ($argv);
 set subjid = ();
@@ -84,6 +84,7 @@ set InputList = ();
 
 # parameter defaults (most can be overriden with flags)
 set XOptsFile = ();
+set GlobXOptsFile = ()
 set XOptsClean = 0; # Delete a pre-existing xopts file
 set XOptsUse   = 1; # Use a pre-existing xopts file (default '1': always use)
 set XOptsOverwrite = 0; # Overwrite a pre-existing xopts file
@@ -988,6 +989,12 @@ if($DoShowEdits) then
       echo "Expert options declared in file $XOptsFile" |& tee -a $LF
     endif
   endif
+  if($#GlobXOptsFile != 0) then
+    if (-e $GlobXOptsFile) then
+      @ edit_count = $edit_count + 1;
+      echo "Global expert options declared in file $GlobXOptsFile" |& tee -a $LF
+    endif
+  endif
 
   # talairach.xfm
   set xfm = $subjdir/mri/transforms/talairach.xfm
@@ -1557,8 +1564,8 @@ if($DoMotionCor) then
 
   # Only one run, copy to rawavg
   if($#RunList == 1) then
-    echo "WARNING: only one run found. This is OK, but motion"|& tee -a $LF
-    echo "correction cannot be performed on one run, so I'll"|& tee -a $LF
+    echo "Only one run found so motion"|& tee -a $LF
+    echo "correction will not be performed. I'll"|& tee -a $LF
     echo "copy the run to rawavg and continue."|& tee -a $LF
     sleep 2s;
     set cmd = (cp $RunList $rawavg)
@@ -1732,7 +1739,7 @@ talairach:
         set cmd = ($cmd --n 1 --proto-iters 1000 --distance 50)
       endif
       # allow expert-options override
-      set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
+      set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile $GlobXOptsFile`;
       set cmd = ($cmd $xopts)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -1741,11 +1748,11 @@ talairach:
     # now run the talairach registration...
     if ($UseMincMritotal) then
       # use the MINC mritotal utility
-      set xopts = `fsr-getxopts talairach $XOptsFile`;
+      set xopts = `fsr-getxopts talairach $XOptsFile $GlobXOptsFile`;
       set cmd = (talairach --i $tal_input --xfm $xfma $xopts)
     else
       # Avi Snyder's registration tools
-      set xopts = `fsr-getxopts talairach_avi $XOptsFile`;
+      set xopts = `fsr-getxopts talairach_avi $XOptsFile $GlobXOptsFile`;
       set cmd = (talairach_avi --i $tal_input --xfm $xfma)
       if($?CustomTalAtlas && "$CustomTalAtlas" != "") then
         # use user-specified atlas found in average dir
@@ -1800,7 +1807,7 @@ if($DoTalCheck) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   # first run Laurence's AFD tool:
-  set xopts = `fsr-getxopts talairach_afd $XOptsFile`;
+  set xopts = `fsr-getxopts talairach_afd $XOptsFile $GlobXOptsFile`;
   set xfm = transforms/talairach.xfm
   set cmd = (talairach_afd -T 0.005 -xfm $xfm $xopts)
   set afdTestFailed = 0;
@@ -1932,7 +1939,7 @@ if($DoNuIntensityCor) then
   echo "#@# Nu Intensity Correction `date`" \
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
+  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_nu_correct.mni --i orig.mgz --o nu.mgz)
   # to fix a problem with mri_nu_correct.mni messing with the histogramming
   # in some odd subjects (due to voxels outside the brain, which has the
@@ -2006,7 +2013,7 @@ if($DoNormalization) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
-  set xopts = `fsr-getxopts mri_normalize $XOptsFile`;
+  set xopts = `fsr-getxopts mri_normalize $XOptsFile $GlobXOptsFile`;
   if ( $longitudinal && $UseLongbaseCtrlVol) then
     # longitudinal processing stream AND using ctrl_vol.mgz from base:
     if( ! -e $longbasedir/mri/ctrl_vol.mgz || \
@@ -2060,7 +2067,7 @@ if($DoNormalization) then
         set cmd = ($cmd --n 1 --proto-iters 1000 --distance 200)
       endif
       # allow expert-options override
-      set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
+      set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile $GlobXOptsFile`;
       set cmd = ($cmd $xopts)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd >& orig_nu.log
@@ -2182,7 +2189,7 @@ skullstrip:
   endif
 
   # default stream...
-  set xopts = `fsr-getxopts mri_watershed $XOptsFile`;
+  set xopts = `fsr-getxopts mri_watershed $XOptsFile $GlobXOptsFile`;
   set opts = ();
   if($WaterShed == 0) set opts = ($opts -n);
   if($WaterShed == 2) set opts = ($opts -wat);
@@ -2214,7 +2221,7 @@ skullstrip:
       # unless that file already exists
       if ( ! -e transforms/talairach_with_skull.lta || $DoCleanLta ) then
         if($NoEMReg == 0) then
-          set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
+          set xopts2 = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
           set cmd2 = (mri_em_register)
           if($UseCuda) set cmd2 = (mri_em_register_cuda)
           set cmd2 = ($cmd2 -rusage $touchdir/rusage.mri_em_register.skull.dat) 
@@ -2324,7 +2331,7 @@ skullstrip:
     set max_ll = -9999999999;
     set best_pfh = 0;
     set best_vol = ();
-    set xopts = `fsr-getxopts mri_log_likelihood $XOptsFile`;
+    set xopts = `fsr-getxopts mri_log_likelihood $XOptsFile $GlobXOptsFile`;
     foreach vol ( $SS_VOLUMES )
       foreach pfh ( $PREFLOOD_HEIGHTS )
         set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
@@ -2411,7 +2418,7 @@ skullstrip:
     set cmd = (rm -f $BGC)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
-    set xopts = `fsr-getxopts mri_gcut $XOptsFile`;
+    set xopts = `fsr-getxopts mri_gcut $XOptsFile $GlobXOptsFile`;
     set cmd = (mri_gcut $xopts -110 -mult $BMA T1.mgz $BMA $BGC)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     echo "" |& tee -a $LF
@@ -2475,7 +2482,7 @@ if($DoGCAReg) then
   echo "#@# EM Registration `date`" |& tee -a $SF |& tee -a $LF  |& tee -a $CF
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
-  set xopts = `fsr-getxopts mri_em_register $XOptsFile`;
+  set xopts = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
   if($longitudinal) then
     # longitudinal processing:
      set cmd = (cp -vf $longbasedir/mri/transforms/talairach.lta \
@@ -2542,7 +2549,7 @@ if($DoCANormalize) then
     if ($status) goto error_exit;
   endif
 
-  set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile`;
+  set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_ca_normalize)
   if($UseCPsWithCaNorm)  set cmd = ($cmd -f $ControlPointsFile)
   if ($longitudinal) then
@@ -2583,7 +2590,7 @@ if($DoCAReg) then
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
 
-  set xopts = `fsr-getxopts mri_ca_register $XOptsFile`;
+  set xopts = `fsr-getxopts mri_ca_register $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_ca_register)
   if($UseCuda) set cmd = (mri_ca_register_cuda)
   set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.dat) 
@@ -2637,7 +2644,7 @@ if($DoCARegInv) then
   echo "#@# CA Reg Inv `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
-  # set xopts = `fsr-getxopts mri_ca_register $XOptsFile`; # careful here
+  # set xopts = `fsr-getxopts mri_ca_register $XOptsFile $GlobXOptsFile`; # careful here
   set cmd = (mri_ca_register)
   #NJS: cuda version doesnt work will -invert-and-save:
   #if($UseCuda) set cmd = (mri_ca_register_cuda)
@@ -2661,7 +2668,7 @@ if($DoRemoveNeck) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# Remove Neck `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_remove_neck $XOptsFile`;
+  set xopts = `fsr-getxopts mri_remove_neck $XOptsFile $GlobXOptsFile`;
   set xform = (transforms/talairach.m3z)
   if ( ! -e $xform) then
     echo "INFO: $xform not found, using talairach.lta instead" \
@@ -2685,7 +2692,7 @@ if($DoSkullLTA) then
   echo "#--------------------------------------"|& tee -a $LF |& tee -a $CF
   echo "#@# SkullLTA `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_em_register $XOptsFile`;
+  set xopts = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_em_register)
   if ($UseCuda) set cmd = (mri_em_register_cuda)
   set cmd = ($cmd -skull -t transforms/talairach.lta \
@@ -2803,7 +2810,7 @@ if($DoCALabel) then
 
   #------------------- mri_ca_label ------------------------#
   # Run mri_ca_label to create aseg.auto_noCCseg.mgz
-  set xopts = `fsr-getxopts mri_ca_label $XOptsFile`;
+  set xopts = `fsr-getxopts mri_ca_label $XOptsFile $GlobXOptsFile`;
   set rusage = $touchdir/rusage.mri_ca_label.dat 
   set cmd = (mri_ca_label -relabel_unlikely 9 .3 -prior 0.5)
   set cmd = ($cmd $UseCAAlign)
@@ -2824,7 +2831,7 @@ if($DoCALabel) then
 
   #--- Corpus Callosum Segmentation ---#
   # Run mri_cc to create aseg.auto.mgz
-  set xopts = `fsr-getxopts mri_cc $XOptsFile`;
+  set xopts = `fsr-getxopts mri_cc $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz \
     -lta ${subjdir}/mri/transforms/cc_up.lta $xopts $subjid);
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2875,7 +2882,7 @@ if($DoNormalization2) then
   echo "#@# Intensity Normalization2 `date`" \
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_normalize $XOptsFile`;
+  set xopts = `fsr-getxopts mri_normalize $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_normalize);
   if($UseControlPoints)   set cmd = ($cmd -f $ControlPointsFile)
   if($#Norm3dIters)       set cmd = ($cmd -n $Norm3dIters)
@@ -2908,7 +2915,7 @@ if($DoMaskBFS) then
     |& tee -a $LF  |& tee -a $CF
   echo "#@# Mask BFS `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_mask $XOptsFile`;
+  set xopts = `fsr-getxopts mri_mask $XOptsFile $GlobXOptsFile`;
   # Set threshold to WM_MIN_VAL=5
   set cmd = (mri_mask -T 5 $xopts brain.mgz brainmask.mgz brain.finalsurfs.mgz)
   $PWD |& tee -a $LF
@@ -2994,7 +3001,7 @@ if($DoSegmentation) then
     endif
   endif
   # ----------- Segment -------------------------
-  set xopts = `fsr-getxopts mri_segment $XOptsFile`;
+  set xopts = `fsr-getxopts mri_segment $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segment);
   if ($NoThicken) set cmd = ($cmd -thicken 0)
   # note: check for wm.mgz happens so that -dontrun output is correct
@@ -3007,7 +3014,7 @@ if($DoSegmentation) then
   if($status) goto error_exit;
   # ----------- Edit with ASeg -------------------------
   if($UseAseg) then
-    set xopts = `fsr-getxopts mri_edit_wm_with_aseg $XOptsFile`;
+    set xopts = `fsr-getxopts mri_edit_wm_with_aseg $XOptsFile $GlobXOptsFile`;
     set cmd = (mri_edit_wm_with_aseg)
     if(! $DoCleanWM) set cmd = ($cmd -keep-in)
     set cmd = ($cmd $xopts wm.seg.mgz brain.mgz \
@@ -3017,7 +3024,7 @@ if($DoSegmentation) then
     if($status) goto error_exit;
   endif
   # ----------- PreTess -------------------------
-  set xopts = `fsr-getxopts mri_pretess $XOptsFile`;
+  set xopts = `fsr-getxopts mri_pretess $XOptsFile $GlobXOptsFile`;
   set wmlabelstring = "wm"
   if($UseAseg) then
     set WM_vol = wm.asegedit.mgz
@@ -3071,7 +3078,7 @@ if($DoFill) then
     |& tee -a $LF |& tee -a $CF
   echo "#@# Fill `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_fill $XOptsFile`;
+  set xopts = `fsr-getxopts mri_fill $XOptsFile $GlobXOptsFile`;
   set seedopts = ();
   if($#PonsSeedCRS) set seedopts = ($seedopts -Pv  $PonsSeedCRS);
   if($#CCSeedCRS)   set seedopts = ($seedopts -Cv  $CCSeedCRS);
@@ -3140,7 +3147,7 @@ if($DoTessellate && ( ! $longitudinal )) then
     endif
 
     # necessary second pretess, per f.segonne
-    set xopts = `fsr-getxopts mri_pretess $XOptsFile`;
+    set xopts = `fsr-getxopts mri_pretess $XOptsFile $GlobXOptsFile`;
     if($NoNormMGZ) then
       set norm_vol = brain.mgz
     else
@@ -3152,7 +3159,7 @@ if($DoTessellate && ( ! $longitudinal )) then
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
-    set xopts = `fsr-getxopts mri_tessellate $XOptsFile`;
+    set xopts = `fsr-getxopts mri_tessellate $XOptsFile $GlobXOptsFile`;
     set cmd = (mri_tessellate $xopts ../mri/filled-pretess$hemivalue.mgz \
                 $hemivalue ../surf/$hemi.orig.nofix)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -3163,7 +3170,7 @@ if($DoTessellate && ( ! $longitudinal )) then
     if($RunIt) $cmd |& tee -a $LF
 
     # remove possible extra components, per f.segonne
-    set xopts = `fsr-getxopts mris_extract_main_component $XOptsFile`;
+    set xopts = `fsr-getxopts mris_extract_main_component $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_extract_main_component $xopts ../surf/$hemi.orig.nofix \
                ../surf/$hemi.orig.nofix)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -3186,7 +3193,7 @@ if($DoSmooth1 && ( ! $longitudinal )) then
     echo "#@# Smooth1 $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_smooth $XOptsFile`;
+    set xopts = `fsr-getxopts mris_smooth $XOptsFile $GlobXOptsFile`;
     # -nw prevents it from writing curv and area
     set cmd = (mris_smooth -nw)
     if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
@@ -3222,7 +3229,7 @@ if($DoInflate1 && ( ! $longitudinal )) then
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_inflate $XOptsFile`;
+    set xopts = `fsr-getxopts mris_inflate $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_inflate)
     if($UseCuda) set cmd = (mris_inflate_cuda)
     set cmd = ($cmd  -no-save-sulc $xopts \
@@ -3256,7 +3263,7 @@ if($DoQSphere && ( ! $longitudinal )) then
     echo "#@# QSphere $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
+    set xopts = `fsr-getxopts mris_sphere $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_sphere -q)
     if($UseCuda) set cmd = (mris_sphere_cuda -q)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
@@ -3311,7 +3318,7 @@ if($DoFix && ( ! $longitudinal )) then
     foreach hemi ($hemilist)
       echo "#@# Fix Topology $hemi `date`" \
         |& tee -a $SF |& tee -a $LF |& tee -a $CF
-      set xopts = `fsr-getxopts mris_fix_topology $XOptsFile`;
+      set xopts = `fsr-getxopts mris_fix_topology $XOptsFile $GlobXOptsFile`;
       set cmd = (mris_fix_topology)
       set cmd = ($cmd -rusage $touchdir/rusage.mris_fix_topology.$hemi.dat) 
       set cmd = ($cmd -mgz -sphere qsphere.nofix)
@@ -3377,7 +3384,7 @@ if($DoFix && ( ! $longitudinal )) then
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
       if($status) goto error_exit;
-      set xopts = `fsr-getxopts mris_topo_fixer $XOptsFile`;
+      set xopts = `fsr-getxopts mris_topo_fixer $XOptsFile $GlobXOptsFile`;
       set cmd = (mris_topo_fixer -mgz -warnings)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
       set cmd = ($cmd $xopts $subjid $hemi)
@@ -3399,7 +3406,7 @@ if($DoFix && ( ! $longitudinal )) then
 
   # run surface intersection checker/fixer
   foreach hemi ($hemilist)
-    set xopts = `fsr-getxopts mris_remove_intersection $XOptsFile`;
+    set xopts = `fsr-getxopts mris_remove_intersection $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_remove_intersection)
     set cmd = ($cmd $xopts ../surf/$hemi.orig ../surf/$hemi.orig)
     $PWD |& tee -a $LF
@@ -3464,7 +3471,7 @@ if($DoWhiteSurfs) then
     endif
 
     # Note mris_make_surfaces uses filled.mgz implicitly
-    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
+    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile $GlobXOptsFile`;
     if($longitudinal) then
       # longitudinal processing:
       set cmd = (mris_make_surfaces \
@@ -3526,7 +3533,7 @@ if($DoSmooth2) then
     echo "#@# Smooth2 $hemi `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_smooth $XOptsFile`;
+    set xopts = `fsr-getxopts mris_smooth $XOptsFile $GlobXOptsFile`;
     # Use -nw to keep from writing out curv and area
     # Default number of iterations is 10, but use 3 here
     set cmd = (mris_smooth -n 3 -nw)
@@ -3563,7 +3570,7 @@ if($DoInflate2) then
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_inflate $XOptsFile`;
+    set xopts = `fsr-getxopts mris_inflate $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_inflate)
     if($UseCuda) set cmd = (mris_inflate_cuda)
     set cmd = ($cmd -rusage $touchdir/rusage.mris_inflate.$hemi.dat) 
@@ -3601,7 +3608,7 @@ if($DoCurvHK) then
     cd $subjdir/surf > /dev/null
     $PWD |& tee -a $LF
     # create curvature files ?h.white.H and ?h.white.K
-    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
+    set xopts = `fsr-getxopts mris_curatvure $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_curvature -w $xopts $hemi.white.preaparc)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($DoParallel) then
@@ -3639,7 +3646,7 @@ if($DoCurvHK) then
     echo $cmd > $touchdir/$hemi.white.H.K.touch
 
     # create curvature files ?h.inflated.H and ?h.inflated.K
-    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
+    set xopts = `fsr-getxopts mris_curatvure $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
     set cmd = ($cmd $xopts $hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -3689,7 +3696,7 @@ if($DoCurvStats) then
     cd $subjdir/surf > /dev/null
     $PWD |& tee -a $LF
     set stats = ../stats/$hemi.curv.stats
-    set xopts = `fsr-getxopts mris_curvature_stats $XOptsFile`;
+    set xopts = `fsr-getxopts mris_curvature_stats $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_curvature_stats -m --writeCurvatureFiles -G \
             -o $stats -F smoothwm \
             $xopts $subjid $hemi curv sulc);
@@ -3723,7 +3730,7 @@ if($DoSphere) then
       set cmd = (cp $longbasedir/surf/$hemi.sphere $subjdir/surf/$hemi.sphere)
     else
       # default stream:
-      set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
+      set xopts = `fsr-getxopts mris_sphere $XOptsFile $GlobXOptsFile`;
       set cmd = (mris_sphere)
       if($UseCuda) set cmd = (mris_sphere_cuda)
       set cmd = ($cmd -rusage $touchdir/rusage.mris_sphere.$hemi.dat) 
@@ -3763,7 +3770,7 @@ if($DoSurfReg) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
     set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
-    set xopts = `fsr-getxopts mris_register $XOptsFile`;
+    set xopts = `fsr-getxopts mris_register $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_register -curv)
     set cmd = ($cmd -rusage $touchdir/rusage.mris_register.$hemi.dat) 
     if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
@@ -3818,7 +3825,7 @@ if($DoContraSurfReg) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
     set AvgTif = ${AvgCurvTifPath}/$nothemi.${AvgCurvTif}
-    set xopts = `fsr-getxopts mris_register $XOptsFile`;
+    set xopts = `fsr-getxopts mris_register $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_register -curv -reverse ../surf/$hemi.sphere)
     if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
     set cmd = ($cmd $xopts)
@@ -3966,7 +3973,7 @@ if($DoJacobianDist0) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
     set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
-    set xopts = `fsr-getxopts mris_register $XOptsFile`;
+    set xopts = `fsr-getxopts mris_register $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_register -curv -norot -jacobian \
         ../surf/$hemi.jacobian_dist0 -dist 0)
     set cmd = ($cmd $xopts)
@@ -4003,7 +4010,7 @@ if($DoAvgCurv) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
     set AvgTif = ${AvgCurvTifPath}/$hemi.${AvgCurvTif}
-    set xopts = `fsr-getxopts mrisp_paint $XOptsFile`;
+    set xopts = `fsr-getxopts mrisp_paint $XOptsFile $GlobXOptsFile`;
     # -a 5 means to smooth 5 iterations
     set cmd = (mrisp_paint -a 5 $xopts "$AvgTif#6" \
       ../surf/$hemi.sphere.reg ../surf/$hemi.avg_curv)
@@ -4038,7 +4045,7 @@ if($DoCortParc) then
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
+    set xopts = `fsr-getxopts mris_ca_label $XOptsFile $GlobXOptsFile`;
     set CPAtlas = ${GCSDIR}/$hemi.$GCS
     set annot = ../label/$hemi.aparc.annot
     set cmd = (mris_ca_label)
@@ -4093,7 +4100,7 @@ if($DoPialSurfs) then
     endif
 
     # Note mris_make_surfaces uses filled.mgz implicitly
-    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
+    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile $GlobXOptsFile`;
     if($longitudinal) then
       # longitudinal processing:
       set cmd = (mris_make_surfaces \
@@ -4192,7 +4199,7 @@ if($DoT2pial || $DoFLAIRpial) then
         if($status) goto error_exit;
       else
         # if t2flairraw.lta does not exist in cross, register T2raw to longspace
-        set xopts = `fsr-getxopts bbregister $XOptsFile`;
+        set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
         set bbcmd = (bbregister \
             --s $subjid \
             --mov $t2flairraw \
@@ -4214,7 +4221,7 @@ if($DoT2pial || $DoFLAIRpial) then
       endif
 
       # first create a T2/FLAIR that is registered to the T1s
-      set xopts = `fsr-getxopts bbregister $XOptsFile`;
+      set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
       set bbcmd = (bbregister \
           --s $subjid \
           --mov $t2flairraw \
@@ -4279,7 +4286,7 @@ if($DoT2pial || $DoFLAIRpial) then
   set CMDFS = () # see earlier notes on -parallel implementation
   foreach hemi ($hemilist)
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
+    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile $GlobXOptsFile`;
     set nv1=(`mris_info $sdir/${hemi}.pial |& grep nvertices`)
     set nv2=(`mris_info $sdir/${hemi}.wo${t2flair}.pial |& grep nvertices`)
     set touch1=($tdir/${hemi}.pial_refine.touch)
@@ -4377,7 +4384,7 @@ if($DoCortRibbonVolMask) then
   echo "#@# Cortical ribbon mask `date`" \
       |& tee -a $SF|& tee -a $LF|& tee -a $CF
   cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mris_volmask $XOptsFile`;
+  set xopts = `fsr-getxopts mris_volmask $XOptsFile $GlobXOptsFile`;
   set cmd = (mris_volmask \
     --aseg_name aseg.presurf \
     --label_left_white   2 --label_left_ribbon   3 \
@@ -4406,7 +4413,7 @@ if($DoParcStats) then
     $PWD |& tee -a $LF
     set annot = ../label/$hemi.aparc.annot
     set ctab  = ../label/aparc.annot.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
     foreach surfname (white pial)
       if($surfname == white) set stats = ../stats/$hemi.aparc.stats
       if($surfname == pial)  set stats = ../stats/$hemi.aparc.pial.stats
@@ -4446,7 +4453,7 @@ if($DoCortParc2) then
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
+    set xopts = `fsr-getxopts mris_ca_label $XOptsFile $GlobXOptsFile`;
     set CPAtlas = ${GCSDIR}/${hemi}.${DESTRIEUX_GCS}
     set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
     set cmd = (mris_ca_label)
@@ -4494,7 +4501,7 @@ if($DoParcStats2) then
     set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
     set stats = ../stats/$hemi.aparc.${DESTRIEUX_NAME}.stats
     set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
     if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
     set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
@@ -4529,7 +4536,7 @@ if($DoCortParc3) then
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mris_ca_label $XOptsFile`;
+    set xopts = `fsr-getxopts mris_ca_label $XOptsFile $GlobXOptsFile`;
     set CPAtlas = ${GCSDIR}/${hemi}.${DKTATLAS_GCS}
     set annot = ../label/$hemi.aparc.${DKTATLAS_NAME}.annot
     set cmd = (mris_ca_label)
@@ -4577,7 +4584,7 @@ if($DoParcStats3) then
     set annot = ../label/$hemi.aparc.${DKTATLAS_NAME}.annot
     set stats = ../stats/$hemi.aparc.${DKTATLAS_NAME}.stats
     set ctab  = ../label/aparc.annot.${DKTATLAS_NAME}.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
     if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
     set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
@@ -4613,7 +4620,7 @@ if($DoPctSurfCon && ( ! $DoCreateBaseSubj )) then
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts pctsurfcon $XOptsFile`;
+    set xopts = `fsr-getxopts pctsurfcon $XOptsFile $GlobXOptsFile`;
     set cmd = (pctsurfcon --s $subjid)
     if($hemi == lh) set cmd = ($cmd --lh-only)
     if($hemi == rh) set cmd = ($cmd --rh-only)
@@ -4667,7 +4674,7 @@ if($DoAParc2ASeg) then
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir > /dev/null
     $PWD |& tee -a $LF
-    set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
+    set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile $GlobXOptsFile`;
     if(! $longitudinal) then
       set asegintensities = mri/aseg.auto_noCCseg.label_intensities.txt
     else
@@ -4737,7 +4744,7 @@ if($DoSegStats) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir > /dev/null
   $PWD |& tee -a $LF
-  set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
+  set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --empty)
   set cmd = ($cmd --brainmask mri/brainmask.mgz --brain-vol-from-seg)
@@ -4791,7 +4798,7 @@ if($DoWMParc) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir > /dev/null
   $PWD |& tee -a $LF
-  set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile`;
+  set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_aparc2aseg --s $subjid --labelwm --hypo-as-wm --rip-unknown \
              --volmask --o mri/wmparc.mgz --ctxseg aparc+aseg.mgz $xopts )
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4829,7 +4836,7 @@ if($DoAParcASegStats) then
     |& tee -a $LF |& tee -a $CF
   echo "#@# AParcASeg Stats `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir > /dev/null
-  set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
+  set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats)
   set cmd = ($cmd --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz )
@@ -5032,7 +5039,7 @@ if ($DoBaLabels) then
     set annot = ./$hemi.BA_exvivo.annot
     set stats = ../stats/$hemi.BA_exvivo.stats
     set ctab  = ./BA_exvivo.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -5043,7 +5050,7 @@ if ($DoBaLabels) then
     set annot = ./$hemi.BA_exvivo.thresh.annot
     set stats = ../stats/$hemi.BA_exvivo.thresh.stats
     set ctab  = ./BA_exvivo.thresh.ctab
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -5134,7 +5141,7 @@ if ($DoLabelExvivoEC) then
     # generate stats
     set label = ./$hemi.EC_exvivo_average.label
     set stats = ../stats/$hemi.EC_exvivo_average.stats
-    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
             -b -l $label $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -7897,6 +7904,22 @@ check_params:
     endif
   endif
 
+  set GlobXOptsFile = $SUBJECTS_DIR/global-expert-options.txt
+  if(-e $GlobXOptsFile) then
+    fsr-checkxopts $GlobXOptsFile
+    if($status) goto error_exit
+    if($XOptsUse == 0) then
+      echo "ERROR: there is a global expert options file ($GlobXOptsFile)"
+      echo "but you have not specified -xopts-use. If you want to use"
+      echo "this file, then add -xopts-use. If you do not want to use"
+      echo "this file, then delete it and re-run."
+      exit(1);
+    endif
+    cp $GlobXOptsFile $subjdir/scripts/global-expert-options.copy
+  else
+    set GlobXOptsFile = ()
+  endif
+
   if($#NotifyFile != 0) then
     rm -f $NotifyFile;
     set tmpdir = `dirname $NotifyFile`;
@@ -8579,14 +8602,23 @@ mris_inflate, and mris_sphere.
 
 EXPERT OPTIONS FILE
 
-While the expert preferences flags supported by recon-all cover most of
-the instances where special flags need to be passed to a FreeSurfer binary,
-to allow passing an arbitrary flag to a binary, recon-all supports the
-reading of a user-created file containing special options to include in
-the command string (in addition to, not in place of).  The file should
-contain as the first item the name of the command, and the items following
-it on rest of the line will be passed as the extra options.  For example,
-if a file called expert.opts is created containing these lines:
+While the expert preferences flags supported by recon-all cover most
+of the instances where special flags need to be passed to a FreeSurfer
+binary, to allow passing an arbitrary flag to a binary, recon-all
+supports the reading of a user-created "expert options" (xopts) file
+containing options to append to the command string. This may be used
+to specify new options or to override default values. There are two
+types xopts file, local and global. The local file you pass on the
+command line and is used only for the subject you run it with. The
+global is place in $SUBJECTS_DIR/global-expert-options.txt and will be
+used with every call to recon-all for subjects in $SUBJECTS_DIR. If
+both contain options for the same command, then the local xopts file
+takes precedence.
+
+Each line of the xopts file corresponds to one command. The first item
+is the name of the command; the items following it on rest of the line
+will be passed as the extra options.  For example, if a file called
+expert.opts is created containing these lines:
 
   mri_em_register -p .5
   mris_topo_fixer -asc
@@ -8595,7 +8627,7 @@ then the option "-p .5" will be passed to mri_em_register, and "-asc"
 will be passed to mris_topo_fixer.  The name of the expert options file
 is passed to recon-all with the -expert flag, eg.
 
-  recon-all -expert expert.opts
+  recon-all -expert expert.opts ...
 
 When an expert options is passed, it will be copied to scripts/expert-options.
 Future calls to recon-all, the user MUST explicitly specify how to treat this file.
