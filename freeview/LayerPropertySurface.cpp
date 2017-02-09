@@ -10,9 +10,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2014/04/09 20:56:03 $
- *    $Revision: 1.8 $
+ *    $Author: zkaufman $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.8.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,8 @@ LayerPropertySurface::LayerPropertySurface ( QObject* parent ) :
   m_nMeshColorMap( 0 ),
   m_surface( NULL ),
   m_bShowOverlay(true),
-  m_bShowAnnotation(true)
+  m_bShowAnnotation(true),
+  m_bUseSurfaceColorOn2D(false)
 {
   m_lutCurvature = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 
@@ -472,4 +473,13 @@ void LayerPropertySurface::SetShowAnnotation(bool bShow)
     m_bShowAnnotation = bShow;
     emit OverlayChanged();
   }
+}
+
+void LayerPropertySurface::SetUseSurfaceColorOn2D(bool bKeep)
+{
+    if (bKeep != m_bUseSurfaceColorOn2D)
+    {
+        m_bUseSurfaceColorOn2D = bKeep;
+        emit ColorMapChanged();
+    }
 }

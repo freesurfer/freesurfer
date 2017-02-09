@@ -23,9 +23,9 @@
    <property name="geometry">
     <rect>
      <x>0</x>
-     <y>-226</y>
-     <width>314</width>
-     <height>1263</height>
+     <y>0</y>
+     <width>332</width>
+     <height>1245</height>
     </rect>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -112,7 +112,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>75</width>
+            <width>70</width>
             <height>16777215</height>
            </size>
           </property>
@@ -600,7 +600,21 @@
       <item row="24" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout23">
         <item>
-         <widget class="QtColorPicker" name="colorpickerEdgeColor" native="true"/>
+         <widget class="QtColorPicker" name="colorpickerEdgeColor" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>15</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="checkBoxUseSurfaceColor2D">
+          <property name="text">
+           <string>Use overlay color</string>
+          </property>
+         </widget>
         </item>
         <item>
          <spacer name="horizontalSpacer_23">
@@ -717,7 +731,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>75</width>
+            <width>70</width>
             <height>16777215</height>
            </size>
           </property>
@@ -1151,8 +1165,8 @@
    <slot>OnSliderOpacity(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>245</x>
-     <y>-127</y>
+     <x>250</x>
+     <y>14</y>
     </hint>
     <hint type="destinationlabel">
      <x>368</x>
@@ -1167,8 +1181,8 @@
    <slot>OnComboCurvature(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>312</x>
-     <y>116</y>
+     <x>316</x>
+     <y>232</y>
     </hint>
     <hint type="destinationlabel">
      <x>349</x>
@@ -1183,8 +1197,8 @@
    <slot>OnSliderMidPoint(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>230</x>
-     <y>146</y>
+     <x>234</x>
+     <y>258</y>
     </hint>
     <hint type="destinationlabel">
      <x>46</x>
@@ -1199,8 +1213,8 @@
    <slot>OnSliderSlope(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>230</x>
-     <y>181</y>
+     <x>234</x>
+     <y>289</y>
     </hint>
     <hint type="destinationlabel">
      <x>78</x>
@@ -1215,8 +1229,8 @@
    <slot>OnLineEditMidPoint(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>311</x>
-     <y>150</y>
+     <x>315</x>
+     <y>262</y>
     </hint>
     <hint type="destinationlabel">
      <x>326</x>
@@ -1231,8 +1245,8 @@
    <slot>OnLineEditSlope(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>311</x>
-     <y>185</y>
+     <x>315</x>
+     <y>293</y>
     </hint>
     <hint type="destinationlabel">
      <x>332</x>
@@ -1247,8 +1261,8 @@
    <slot>OnComboOverlay(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>312</x>
-     <y>219</y>
+     <x>316</x>
+     <y>323</y>
     </hint>
     <hint type="destinationlabel">
      <x>56</x>
@@ -1264,8 +1278,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>204</x>
-     <y>253</y>
-
+     <y>353</y>
     </hint>
     <hint type="destinationlabel">
      <x>350</x>
@@ -1280,8 +1293,8 @@
    <slot>OnComboAnnotation(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>312</x>
-     <y>287</y>
+     <x>316</x>
+     <y>383</y>
     </hint>
     <hint type="destinationlabel">
      <x>429</x>
@@ -1296,8 +1309,8 @@
    <slot>OnComboVector(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>312</x>
-     <y>666</y>
+     <x>316</x>
+     <y>729</y>
     </hint>
     <hint type="destinationlabel">
      <x>27</x>
@@ -1307,7 +1320,7 @@
   </connection>
   <connection>
    <sender>lineEditPositionOffset</sender>
-   <signal>returnPressed()</signal>
+   <signal>textEdited(QString)</signal>
    <receiver>PanelSurface</receiver>
    <slot>OnEditPositionOffset()</slot>
    <hints>
@@ -1328,9 +1341,8 @@
    <slot>OnLabelItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>312</x>
-     <y>442</y>
-
+     <x>316</x>
+     <y>519</y>
     </hint>
     <hint type="destinationlabel">
      <x>513</x>
@@ -1345,8 +1357,8 @@
    <slot>OnCurrentLabelItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>312</x>
-     <y>442</y>
+     <x>316</x>
+     <y>519</y>
     </hint>
     <hint type="destinationlabel">
      <x>663</x>
@@ -1362,7 +1374,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>204</x>
-     <y>351</y>
+     <y>442</y>
     </hint>
     <hint type="destinationlabel">
      <x>489</x>
@@ -1409,9 +1421,8 @@
    <slot>OnLineEditLabelThreshold(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>178</x>
-     <y>546</y>
-
+     <x>174</x>
+     <y>611</y>
     </hint>
     <hint type="destinationlabel">
      <x>662</x>
@@ -1426,9 +1437,8 @@
    <slot>OnLabelItemDoubleClicked(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>312</x>
-     <y>442</y>
-
+     <x>316</x>
+     <y>519</y>
     </hint>
     <hint type="destinationlabel">
      <x>803</x>
@@ -1443,9 +1453,8 @@
    <slot>OnButtonDeleteLabel()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>311</x>
-     <y>351</y>
-
+     <x>315</x>
+     <y>442</y>
     </hint>
     <hint type="destinationlabel">
      <x>506</x>
@@ -1460,9 +1469,8 @@
    <slot>OnComboLabelColorCode(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>200</x>
-     <y>476</y>
-
+     <x>195</x>
+     <y>549</y>
     </hint>
     <hint type="destinationlabel">
      <x>623</x>
@@ -1477,9 +1485,8 @@
    <slot>OnLineEditLabelHeatscaleMin(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>178</x>
-     <y>511</y>
-
+     <x>174</x>
+     <y>580</y>
     </hint>
     <hint type="destinationlabel">
      <x>518</x>
@@ -1494,9 +1501,8 @@
    <slot>OnLineEditLabelHeatscaleMax(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>259</x>
-     <y>511</y>
-
+     <x>255</x>
+     <y>580</y>
     </hint>
     <hint type="destinationlabel">
      <x>605</x>
@@ -1511,9 +1517,8 @@
    <slot>OnButtonRemoveOverlay()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>311</x>
-     <y>253</y>
-
+     <x>315</x>
+     <y>353</y>
     </hint>
     <hint type="destinationlabel">
      <x>512</x>
@@ -1528,9 +1533,8 @@
    <slot>OnComboColor(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>305</x>
-     <y>-96</y>
-
+     <x>309</x>
+     <y>42</y>
     </hint>
     <hint type="destinationlabel">
      <x>415</x>
@@ -1545,8 +1549,8 @@
    <slot>OnButtonLoadSpline()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>152</x>
-     <y>739</y>
+     <x>204</x>
+     <y>812</y>
     </hint>
     <hint type="destinationlabel">
      <x>610</x>
@@ -1561,8 +1565,8 @@
    <slot>OnButtonDeleteSpline()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>263</x>
-     <y>751</y>
+     <x>315</x>
+     <y>812</y>
     </hint>
     <hint type="destinationlabel">
      <x>509</x>
@@ -1577,8 +1581,8 @@
    <slot>OnSplineItemChanged(QTreeWidgetItem*)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>194</x>
-     <y>796</y>
+     <x>292</x>
+     <y>889</y>
     </hint>
     <hint type="destinationlabel">
      <x>550</x>
@@ -1635,6 +1639,5 @@
   <slot>OnButtonDeleteSpline()</slot>
   <slot>OnSplineItemChanged(QTreeWidgetItem*)</slot>
   <slot>OnCurrentSplineItemChanged(QTreeWidgetItem*)</slot>
-
  </slots>
 </ui>

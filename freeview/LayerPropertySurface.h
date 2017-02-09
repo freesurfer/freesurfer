@@ -9,9 +9,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2014/04/09 20:56:03 $
- *    $Revision: 1.7 $
+ *    $Author: zkaufman $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.7.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -162,6 +162,11 @@ public:
     return m_bShowAnnotation;
   }
 
+  bool GetUseSurfaceColorOn2D()
+  {
+      return m_bUseSurfaceColorOn2D;
+  }
+
 public slots:
   void SetOpacity( double opacity );
   void SetCurvatureMap( int nMap );
@@ -185,6 +190,7 @@ public slots:
   void SetVectorPointSize( int nSize );
   void SetShowOverlay(bool bShow);
   void SetShowAnnotation(bool bShow);
+  void SetUseSurfaceColorOn2D(bool bKeep);
 
 Q_SIGNALS:
   void OpacityChanged( double opacity );
@@ -228,6 +234,8 @@ private:
 
   bool    m_bShowOverlay;
   bool    m_bShowAnnotation;
+
+  bool    m_bUseSurfaceColorOn2D;
 
   vtkSmartPointer<vtkRGBAColorTransferFunction> m_lutCurvature;
 

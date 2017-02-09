@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.25 $
+ *    $Date: 2017/02/09 17:20:13 $
+ *    $Revision: 1.25.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -211,7 +211,7 @@ void SurfaceOverlay::CopyCorrelationData(SurfaceOverlay *overlay)
 
 bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
 {
-  MRI* mri = ::MRIreadHeader( filename.toAscii().data(), -1 );
+  MRI* mri = ::MRIreadHeader( filename.toLatin1().data(), -1 );
   if ( mri == NULL )
   {
     cerr << "MRIread failed: unable to read from " << qPrintable(filename) << "\n";
@@ -227,7 +227,7 @@ bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
   MRIfree( &mri );
   ::SetProgressCallback(ProgressCallback, 0, 100);
   try {
-    mri = ::MRIread( filename.toAscii().data() );      // long process
+    mri = ::MRIread( filename.toLatin1().data() );      // long process
   }
   catch (int ret) {
       return false;

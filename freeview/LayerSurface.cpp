@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/13 16:55:36 $
- *    $Revision: 1.124.2.6 $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.124.2.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -260,7 +260,7 @@ bool LayerSurface::SaveSurface( )
     return false;
   }
 
-  return SaveSurface( m_sFilename.toAscii().data() );
+  return SaveSurface( m_sFilename.toLatin1().data() );
 }
 
 bool LayerSurface::WriteIntersection(const QString &filename, int nPlane, LayerMRI* mri_ref)
@@ -682,7 +682,6 @@ void LayerSurface::InitializeActors()
     //
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInputConnection( m_cutter[i]->GetOutputPort() );
-//   mapper->SetInputConnection( 1, cutter->GetOutputPort( 1 ) );
     vtkSmartPointer<vtkPolyDataMapper> mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper2->SetInputConnection( m_cutter[i]->GetOutputPort() );
     //
@@ -785,8 +784,10 @@ void LayerSurface::UpdateColorMap()
   {
     m_sliceActor2D[i]->GetProperty()->SetColor( GetProperty()->GetEdgeColor() );
     m_sliceActor3D[i]->GetProperty()->SetColor( GetProperty()->GetEdgeColor() );
-    m_sliceActor2D[i]->GetMapper()->ScalarVisibilityOff();
-    m_sliceActor3D[i]->GetMapper()->ScalarVisibilityOff();
+    m_sliceActor2D[i]->GetMapper()->SetScalarVisibility(GetProperty()->GetUseSurfaceColorOn2D()?1:0);
+    m_sliceActor3D[i]->GetMapper()->SetScalarVisibility(GetProperty()->GetUseSurfaceColorOn2D()?1:0);
+    m_sliceActor2D[i]->GetMapper()->SetLookupTable( GetProperty()->GetCurvatureLUT() );
+    m_sliceActor3D[i]->GetMapper()->SetLookupTable( GetProperty()->GetCurvatureLUT() );
     m_vectorActor2D[i]->GetProperty()->SetColor( GetProperty()->GetVectorColor() );
   }
 
@@ -798,7 +799,6 @@ void LayerSurface::UpdateColorMap()
     if ( GetProperty()->GetCurvatureLUT() != m_mainActor->GetMapper()->GetLookupTable() )
     {
       m_mainActor->GetMapper()->SetLookupTable( GetProperty()->GetCurvatureLUT() );
-
     }
 
     if ( GetProperty()->GetMeshColorMap() == LayerPropertySurface::MC_Surface )
@@ -1378,7 +1378,7 @@ void LayerSurface::UpdateCorrelationOverlay()
   UpdateCorrelationOverlayAtVertex( nVertex );
 }
 
-void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached )
+void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
 {
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_mainActor->GetMapper() );
   vtkPolyDataMapper* wf_mapper = vtkPolyDataMapper::SafeDownCast( m_wireframeActor->GetMapper() );
@@ -1445,7 +1445,6 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached )
           if (GetProperty()->GetShowAnnotation() && m_nActiveAnnotation >= 0)
             GetActiveAnnotation()->MapAnnotationColor(data);
 
-          qDebug() << "cached.";
           memcpy(m_nColorDataCache, data, nCount*4);
       }
       MapLabels( data, nCount );
@@ -1498,7 +1497,7 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached )
                 if (m_nActiveRGBMap < 0)
                 {
                     double* dColor = GetProperty()->GetBinaryColor();
-                    unsigned char rgba[4] = { (int)(dColor[0]*255), (int)(dColor[1]*255), (int)(dColor[2]*255), 255 };
+                    unsigned char rgba[4] = { (unsigned char)(dColor[0]*255), (unsigned char)(dColor[1]*255), (unsigned char)(dColor[2]*255), 255 };
                     for (size_t i = 0; i < nCount*4; i+=4)
                         memcpy(data+i, rgba, 4);
                 }
@@ -2171,6 +2170,7 @@ void LayerSurface::AddMappedLabel(LayerROI *label)
         m_mappedLabels << label;
         connect(label, SIGNAL(destroyed(QObject*)), this, SLOT(RemoveMappedLabel(QObject*)), Qt::UniqueConnection);
         connect(label->GetProperty(), SIGNAL(ColorMapChanged()), this, SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
+        connect(label, SIGNAL(VisibilityChanged(bool)), this, SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
     }
 }
 
@@ -2199,10 +2199,6 @@ void LayerSurface::RemoveMappedLabel(QObject *label_in)
     UpdateOverlay(true, true);
 }
 
-void LayerSurface::UpdateMappedLabels()
-{
-
-}
 
 QList<int> LayerSurface::FindPath(const QList<int> seeds)
 {
@@ -2219,4 +2215,23 @@ QList<int> LayerSurface::FindPath(const QList<int> seeds)
     }
     delete[] vert_vno;
     return out_vno;
+}
+
+void LayerSurface::SetNeighborhoodSize(int nSize)
+{
+    MRIS* mris = m_surfaceSource->GetMRIS();
+    if (mris->nsize == nSize)
+        return;
+
+    ::MRISsetNeighborhoodSize(mris, nSize);
+}
+
+QList<int> LayerSurface::GetVertexNeighbors(int nvo)
+{
+    QList<int> nvo_list;
+    MRIS* mris = m_surfaceSource->GetMRIS();
+    VERTEX* v = &mris->vertices[nvo];
+    for (int i = 0; i < v->vtotal; i++)
+        nvo_list << v->v[i];
+    return nvo_list;
 }

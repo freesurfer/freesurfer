@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:39 $
- *    $Revision: 1.169.2.3 $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.169.2.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -156,7 +156,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
 
   qRegisterMetaType< IntList >( "IntList" );
   m_worker = new LayerMRIWorkerThread(this);
-  connect(m_worker, SIGNAL(AvailableLabels(IntList)), this, SLOT(OnAvailableLabels(IntList)));
+  connect(m_worker, SIGNAL(LabelInformationReady()), this, SIGNAL(LabelStatsReady()));
 
   QVariantMap map = MainWindow::GetMainWindow()->GetDefaultSettings();
   if (map["Smoothed"].toBool())
@@ -270,8 +270,8 @@ bool LayerMRI::LoadVolumeFromFile()
   m_volumeSource->SetConform( m_bConform );
   m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
 
-  if ( !m_volumeSource->MRIRead( m_sFilename.toAscii().data(),
-                                 m_sRegFilename.size() > 0 ? m_sRegFilename.toAscii().data() : NULL ) )
+  if ( !m_volumeSource->MRIRead( m_sFilename.toLatin1().data(),
+                                 m_sRegFilename.size() > 0 ? m_sRegFilename.toLatin1().data() : NULL ) )
   {
     return false;
   }
@@ -457,7 +457,7 @@ bool LayerMRI::SaveVolume()
 
   ::SetProgressCallback(ProgressCallback, 60, 100);
   int nSampleMethod = GetProperty()->GetResliceInterpolation();
-  bool bSaved = m_volumeSource->MRIWrite( m_sFilename.toAscii().data(),
+  bool bSaved = m_volumeSource->MRIWrite( m_sFilename.toLatin1().data(),
                                           nSampleMethod,
                                           m_bWriteResampled);
   m_bModified = !bSaved;
@@ -2678,7 +2678,7 @@ void LayerMRI::ResetSurfaceRegionIds()
 
 bool LayerMRI::SaveAllSurfaceRegions( const QString& fn )
 {
-  FILE* fp = fopen( fn.toAscii().data(), "w" );
+  FILE* fp = fopen( fn.toLatin1().data(), "w" );
   if ( !fp )
   {
     return false;
@@ -2704,7 +2704,7 @@ bool LayerMRI::SaveAllSurfaceRegions( const QString& fn )
 
 bool LayerMRI::LoadSurfaceRegions( const QString& fn )
 {
-  FILE* fp = fopen( fn.toAscii().data(), "r" );
+  FILE* fp = fopen( fn.toLatin1().data(), "r" );
   if ( !fp )
   {
     cerr << "Can not open file " << qPrintable(fn) << endl;
@@ -2932,7 +2932,7 @@ bool LayerMRI::SaveContourToFile(const QString &fn)
   filter->Update();
   vtkPolyDataWriter* writer = vtkPolyDataWriter::New();
   writer->SetInput( filter->GetOutput() );
-  writer->SetFileName( fn.toAscii().constData() );
+  writer->SetFileName( fn.toLatin1().constData() );
   bool ret = writer->Write();
   writer->Delete();
   return ret;
@@ -3113,12 +3113,6 @@ void LayerMRI::UpdateProjectionMap()
 double LayerMRI::GetTR()
 {
   return m_volumeSource->GetMRI()->tr;
-}
-
-void LayerMRI::OnAvailableLabels(const IntList &vals)
-{
-  this->m_nAvailableLabels = vals;
-  emit LabelStatsReady();
 }
 
 bool LayerMRI::SaveIsoSurface(const QString &fn)
@@ -3442,4 +3436,18 @@ void LayerMRI::UpdateMRIToImage()
   for (int i = 0; i < 3; i++)
     mReslice[i]->Modified();
   emit ActorUpdated();
+}
+
+bool LayerMRI::GetLayerLabelCenter(double val, double *pos_out)
+{
+   if (m_listLabelCenters.contains((int)val))
+   {
+       QList<double> center = m_listLabelCenters[(int)val];
+       pos_out[0] = center[0];
+       pos_out[1] = center[1];
+       pos_out[2] = center[2];
+       return true;
+   }
+   else
+       return false;
 }

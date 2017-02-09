@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.20 $
+ *    $Date: 2017/02/09 17:20:13 $
+ *    $Revision: 1.20.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -258,7 +258,7 @@ void SurfaceRegion::Highlight( bool bHighlight )
 
 bool SurfaceRegion::Write( const QString& fn )
 {
-  FILE* fp = fopen( fn.toAscii().data(), "w" );
+  FILE* fp = fopen( fn.toLatin1().data(), "w" );
   if ( !fp )
   {
     return false;
@@ -279,7 +279,7 @@ bool SurfaceRegion::WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum )
                  .arg( nNum );
   QFile file;
   file.open( fp, QIODevice::Append );
-  QByteArray ba = strg.toAscii();
+  QByteArray ba = strg.toLatin1();
   int nsize = file.write( ba );
   return nsize == ba.size();
 }
@@ -319,7 +319,7 @@ bool SurfaceRegion::WriteBody( FILE* fp )
   }
   QFile file;
   file.open( fp, QIODevice::Append );
-  QByteArray ba = strg.toAscii();
+  QByteArray ba = strg.toLatin1();
   int nsize = file.write( ba );
   return nsize == ba.size();
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/20 17:03:29 $
- *    $Revision: 1.90.2.5 $
+ *    $Date: 2017/02/09 17:20:13 $
+ *    $Revision: 1.90.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -147,7 +147,7 @@ void RenderView3D::SetInteractionMode( int nMode )
     }
 }
 
-void RenderView3D::OnSlicePositionChanged()
+void RenderView3D::OnSlicePositionChanged(bool bCenter)
 {
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
     LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
@@ -634,6 +634,47 @@ bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double 
     else
         m_cursorInflatedSurf->Hide();
     return false;
+}
+
+void RenderView3D::MapToInflatedCoords(double *pos_in)
+{
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
+    LayerSurface* inflated = NULL;
+    foreach (Layer* s, layers)
+    {
+        LayerSurface* f = (LayerSurface*)s;
+        if (f->IsInflated())
+            inflated = f;
+    }
+
+    if (!inflated)
+    {
+        m_cursorInflatedSurf->Hide();
+        return;
+    }
+
+    foreach (Layer* s, layers)
+    {
+        LayerSurface* f = (LayerSurface*)s;
+        if (f != inflated && QFileInfo(f->GetFileName()).fileName().contains(inflated->GetMappingSurfaceName()))
+        {
+            if (f->GetHemisphere() == inflated->GetHemisphere() &&
+                    QFileInfo(f->GetFileName()).absolutePath() == QFileInfo(inflated->GetFileName()).absolutePath())
+            {
+                int nvo = f->GetVertexIndexAtTarget(pos_in, NULL);
+                if (nvo >= 0)
+                {
+                    double pos[3];
+                    inflated->GetTargetAtVertex(nvo, pos);
+                    inflated->SetCurrentVertex(nvo);
+                    if (m_cursor3D->IsShown())
+                        m_cursorInflatedSurf->Show();
+                    m_cursorInflatedSurf->SetPosition(pos);
+                }
+                return;
+            }
+        }
+    }
 }
 
 int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* curSurf)

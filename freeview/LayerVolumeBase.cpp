@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2017/01/18 14:10:05 $
- *    $Revision: 1.28.2.4 $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.28.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -78,8 +78,9 @@ LayerVolumeBase::~LayerVolumeBase()
     delete m_livewire;
 }
 
-bool LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
+QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
 {
+    QList<int> indices;
     int* nDim = m_imageData->GetDimensions();
     /* for ( int i = 0; i < 3; i++ )
    {
@@ -134,6 +135,7 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
                         else
                         {
                             m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
+                            indices << n[0] << n[1] << n[2];
                             UpdateVoxelValueRange( m_fFillValue );
                         }
                     }
@@ -149,13 +151,14 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
                         else
                         {
                             m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fBlankValue );
+                            indices << n[0] << n[1] << n[2];
                         }
                     }
                 }
             }
         }
     }
-    return true;
+    return indices;
 }
 
 bool LayerVolumeBase::CloneVoxelByIndex( int* n_in, int nPlane )
@@ -255,12 +258,11 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
         n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
     }
 
-    if ( SetVoxelByIndex( n, nPlane, bAdd ) )
+    QList<int> list = SetVoxelByIndex( n, nPlane, bAdd );
+    if ( !list.isEmpty() )
     {
         SetModified();
         emit ActorUpdated();
-        QList<int> list;
-        list << n[0] << n[1] << n[2];
         emit BaseVoxelEdited(list, bAdd);
     }
     else
@@ -313,7 +315,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool 
     double t = 0.5;
     int n[3];
     QList<int> list;
-    bool bChanged = SetVoxelByIndex( n1, nPlane, bAdd );
+    list = SetVoxelByIndex( n1, nPlane, bAdd );
     if ( abs( dx ) > abs( dy ) )
     {
         double m = (double) dy / (double) dx;
@@ -327,9 +329,9 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool 
             n[nx] = x0;
             n[ny] = (int) t;
             n[nPlane] = n1[nPlane];
-            bChanged = SetVoxelByIndex( n, nPlane, bAdd );
-            if (bChanged)
-                list << n[0] << n[1] << n[2];
+            QList<int> list1 = SetVoxelByIndex( n, nPlane, bAdd );
+            if (!list1.isEmpty())
+                list << list1;
         }
     }
     else
@@ -345,9 +347,9 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool 
             n[nx] = (int) t;
             n[ny] = y0;
             n[nPlane] = n1[nPlane];
-            bChanged = SetVoxelByIndex( n, nPlane, bAdd );
-            if (bChanged)
-                list << n[0] << n[1] << n[2];
+            QList<int> list1 = SetVoxelByIndex( n, nPlane, bAdd );
+            if (!list1.isEmpty())
+                list << list1;
         }
     }
     return list;

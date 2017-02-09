@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/03/17 16:25:26 $
- *    $Revision: 1.38 $
+ *    $Author: zkaufman $
+ *    $Date: 2017/02/09 17:20:13 $
+ *    $Revision: 1.38.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -108,7 +108,7 @@ protected:
 
 protected slots:
   virtual void OnIdle();
-  virtual void OnSlicePositionChanged()
+  virtual void OnSlicePositionChanged(bool bCenterView = false)
   {
     RequestRedraw();
   }

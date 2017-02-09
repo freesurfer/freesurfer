@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.25 $
+ *    $Date: 2017/02/09 17:20:13 $
+ *    $Revision: 1.25.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -94,7 +94,7 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
 
     int ret;
     try {
-      ret = MRISreadAnnotation( mris, fn.toAscii().data() );
+      ret = MRISreadAnnotation( mris, fn.toLatin1().data() );
     }
     catch (int return_code)
     {

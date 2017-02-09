@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/10/08 02:14:32 $
- *    $Revision: 1.19.2.2 $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.19.2.3 $
  *
  * Copyright © 2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -240,9 +240,9 @@ bool LayerFCD::LoadFromFile()
   ::SetProgressCallback(ProgressCallback, 0, 50);
   try
   {
-    m_fcd = ::FCDloadData(m_sSubjectDir.toAscii().data(),
-                          m_sSubject.toAscii().data(),
-                          m_sSuffix.isEmpty()?NULL:m_sSuffix.toAscii().data());
+    m_fcd = ::FCDloadData(m_sSubjectDir.toLatin1().data(),
+                          m_sSubject.toLatin1().data(),
+                          m_sSuffix.isEmpty()?NULL:m_sSuffix.toLatin1().data());
   }
   catch (int ret)
   {

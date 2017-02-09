@@ -1,5 +1,7 @@
 QT       += core gui script
 
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
 TARGET = freeview
 TEMPLATE = app
 
@@ -389,6 +391,9 @@ FREESURFER_BIN = /homes/5/rpwang/freesurfer/bin
 
 # for linux
 unix {
+
+greaterThan(QT_MAJOR_VERSION, 4): QT += x11extras
+
 INCLUDEPATH += /usr/pubsw/packages/vtk/current/include/vtk-5.6 \
                $$FREESURFER_DEV_DIR/include $$FREESURFER_DEV_DIR/vtkutils \
                /usr/pubsw/packages/mni/current/include \
@@ -447,14 +452,11 @@ macx {
 TARGET = FreeView
 RC_FILE = resource/icons/freeview.icns
 
-# uncomment following lines to build for 10.5 compatible binaries
-#CONFIG -= x86
-#CONFIG -= x86_64
-QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.6
-#QMAKE_MAC_SDK=/Developer/SDKs/MacOSX10.6.sdk
-#QMAKE_CXXFLAGS += -mmacosx-version-min=10.6 -arch i386
-#QMAKE_CFLAGS += -mmacosx-version-min=10.6 -arch i386
-#QMAKE_LFLAGS += -mmacosx-version-min=10.6 -arch i386
+greaterThan(QT_MAJOR_VERSION, 4): QT -= x11extras script
+
+QMAKE_CXXFLAGS -= -DHAVE_OPENMP
+
+QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.9
 
 LIBS -= -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \

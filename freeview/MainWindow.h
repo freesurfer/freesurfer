@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2017/01/18 14:10:05 $
- *    $Revision: 1.174.2.4 $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.174.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -228,7 +228,7 @@ public:
 Q_SIGNALS:
   void MainViewChanged( int n );
   void ViewLayoutChanged( int n );
-  void SlicePositionChanged();
+  void SlicePositionChanged(bool bCenterView = false);
   void SurfaceRepositionVertexChanged();
   void SurfaceRepositionIntensityChanged();
 
@@ -271,6 +271,8 @@ public slots:
   void GoToContralateralPoint();
 
   void OnApplyVolumeTransform();
+
+  void CenterAtWorldPosition(double* pos, bool mainview_only = false);
 
 protected:
   void closeEvent   ( QCloseEvent * event );
@@ -348,6 +350,7 @@ protected:
   void CommandSetSurfaceOverlayColormap   ( const QStringList& cmd );
   void CommandSetSurfaceOverlayOpacity    ( const QStringList& cmd );
   void CommandSetSurfaceOverlayFrame      ( const QStringList& cmd );
+  void CommandSetSurfaceOverlaySmooth     ( const QStringList& cmd );
   void CommandSetSurfaceColor   ( const QStringList& cmd );
   void CommandSetSurfaceEdgeColor ( const QStringList& cmd );
   void CommandSetSurfaceEdgeThickness ( const QStringList& cmd );

@@ -19,8 +19,12 @@ void LayerMRIWorkerThread::run()
   LayerMRI* mri = qobject_cast<LayerMRI*>(parent());
   vtkImageData* image = mri->GetImageData();
   int* dim = image->GetDimensions();
+  double* origin = image->GetOrigin();
+  double* vs = image->GetSpacing();
 
   IntList vals;
+  QMap<int, QList<double> > centers;
+  QMap<int, int> counts;
   for (int i = 0; i < dim[0]; i++)
   {
     for (int j = 0; j < dim[1]; j++)
@@ -28,8 +32,25 @@ void LayerMRIWorkerThread::run()
       for (int k = 0; k < dim[2]; k++)
       {
         int val = (int)image->GetScalarComponentAsDouble(i, j, k, 0);
-        if (val != 0 && !vals.contains(val))
-          vals << val;
+        if (val != 0)
+        {
+            if (!vals.contains(val))
+                vals << val;
+            if (!centers.contains(val))
+            {
+                QList<double> center;
+                center << 0 << 0 << 0;
+                centers[val] = center;
+                counts[val] = 1;
+            }
+            else
+            {
+                centers[val][0] += i*vs[0] + origin[0];
+                centers[val][1] += j*vs[1] + origin[1];
+                centers[val][2] += k*vs[2] + origin[2];
+                counts[val] ++;
+            }
+        }
       }
       {
         QMutexLocker locker(&mutex);
@@ -38,5 +59,17 @@ void LayerMRIWorkerThread::run()
       }
     }
   }
-  emit AvailableLabels(vals);
+  QList<int> keys = centers.keys();
+  foreach(int val, keys)
+  {
+      centers[val][0] /= counts[val];
+      centers[val][1] /= counts[val];
+      centers[val][2] /= counts[val];
+  }
+
+  QMutexLocker locker(&mutex);
+  mri->m_nAvailableLabels = vals;
+  mri->m_listLabelCenters = centers;
+
+  emit LabelInformationReady();
 }

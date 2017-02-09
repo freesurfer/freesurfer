@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/13 22:25:17 $
- *    $Revision: 1.124.2.4 $
+ *    $Date: 2017/02/09 17:20:11 $
+ *    $Revision: 1.124.2.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3866,7 +3866,26 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
 
   area->mri_template = mri_template ;
   if (mris == NULL)
+  {
+    for (n = 0 ; n < area->n_points ; n++)
+    {
+      lv = &area->lv[n] ;
+      
+      if (lv->deleted)
+	continue ;
+      switch (area->coords)
+      {
+      case LABEL_COORDS_TKREG_RAS:
+	MRIsurfaceRASToVoxel(mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+	lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
+	break ;
+      default:
+	ErrorExit(ERROR_UNSUPPORTED, "LabelInit: coords %d not supported yet", area->coords);
+      }
+    }
+      
     return(NO_ERROR) ;
+  }
 
   x = y = z = -1 ;
   LabelRealloc(area, mris->nvertices) ;   // allocate enough room in the label for the whole surface

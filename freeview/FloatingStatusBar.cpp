@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/06/17 02:39:27 $
- *    $Revision: 1.7 $
+ *    $Author: zkaufman $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.7.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,9 +32,9 @@ FloatingStatusBar::FloatingStatusBar(QWidget *parent) :
 {
   ui->setupUi(this);
   setWindowFlags(Qt::Tool | Qt::CustomizeWindowHint);
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
   ui->frame->layout()->setContentsMargins(5, 5, 5, 8);
-#elif defined(Q_WS_X11)
+#elif defined(Q_OS_LINUX)
   ui->frame->setFrameShape(QFrame::StyledPanel);
 #endif
   m_timer = new QTimer( this );
@@ -65,7 +65,7 @@ void FloatingStatusBar::Reposition()
 {
   QWidget* p = parentWidget();
   QSize s = p->size() - this->size();
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
   this->move(p->geometry().topLeft() + QPoint(0, s.height()) + QPoint(1,-1));
 #elif defined(Q_CYGWIN_WIN)
   this->move(p->geometry().topLeft() + QPoint(0, s.height()) + QPoint(0, -6));

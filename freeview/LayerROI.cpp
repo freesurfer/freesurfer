@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/13 16:55:36 $
- *    $Revision: 1.32.2.5 $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.32.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -106,7 +106,7 @@ LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( par
     connect( mProperty, SIGNAL(ThresholdChanged(double)), this, SLOT(UpdateThreshold()));
 
     connect(this, SIGNAL(BaseVoxelEdited(QList<int>,bool)), SLOT(OnBaseVoxelEdited(QList<int>,bool)));
-    InitializeProperties();
+    UpdateProperties();
 }
 
 LayerROI::~LayerROI()
@@ -122,11 +122,11 @@ LayerROI::~LayerROI()
 
 bool LayerROI::LoadROIFromFile( const QString& filename )
 {
-    if ( !m_label->LabelRead( filename.toAscii().data() ) )
+    if ( !m_label->LabelRead( filename.toLatin1().data() ) )
     {
         return false;
     }
-    InitializeProperties();
+    UpdateProperties();
     m_label->Initialize(m_layerSource->GetSourceVolume(), 0, 0);
     m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume(), GetProperty()->GetThreshold());
 
@@ -135,7 +135,7 @@ bool LayerROI::LoadROIFromFile( const QString& filename )
     return true;
 }
 
-void LayerROI::InitializeProperties()
+void LayerROI::UpdateProperties()
 {
     double range[2];
     m_label->GetStatsRange(range);
@@ -144,6 +144,7 @@ void LayerROI::InitializeProperties()
     GetProperty()->SetHeatscaleValues(range[0], range[1]);
     GetProperty()->SetValueRange(range);
     m_fBlankValue = range[0]-1;
+    GetProperty()->UpdateLUTTable();
 }
 
 void LayerROI::InitializeActors()
@@ -340,7 +341,7 @@ bool LayerROI::SaveROI( )
 //    if (!m_layerMappedSurface)
 //        m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
 
-    bool bSaved = m_label->LabelWrite( m_sFilename.toAscii().data() );
+    bool bSaved = m_label->LabelWrite( m_sFilename.toLatin1().data() );
     if ( !bSaved )
     {
         m_bModified = true;
@@ -521,10 +522,29 @@ void LayerROI::EditVertex(int nvo, bool bAdd)
     EditVertex(list, bAdd);
 }
 
-void LayerROI::EditVertex(const QList<int> list_nvo, bool bAdd)
+void LayerROI::OnLabelDataUpdated()
+{
+    if (m_label->UpdateStatsRange(0))
+        UpdateProperties();
+    m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume());
+    m_layerMappedSurface->UpdateOverlay(true, true);
+    SetModified();
+}
+
+void LayerROI::EditVertex(const QList<int> list_nvo_in, bool bAdd)
 {
     if (m_layerMappedSurface)
     {
+        QList<int> list_nvo;
+        if (m_nBrushRadius == 1)
+            list_nvo = list_nvo_in;
+        else
+        {
+            m_layerMappedSurface->SetNeighborhoodSize(qMin(3, m_nBrushRadius-1));
+            for (int i = 0; i < list_nvo_in.size(); i++)
+                list_nvo << list_nvo_in[i] << m_layerMappedSurface->GetVertexNeighbors(list_nvo_in[i]);
+        }
+
         int ret = -1;
         int coords = m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES;
         for (int i = 0; i < list_nvo.size(); i++)
@@ -538,9 +558,7 @@ void LayerROI::EditVertex(const QList<int> list_nvo, bool bAdd)
 
         if (ret >= 0)
         {
-         //   qDebug() << "Vertex" << (bAdd?"added":"deleted") << nvo;
-            m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
-            m_layerMappedSurface->UpdateOverlay(true, true);
+            OnLabelDataUpdated();
         }
     }
 }
@@ -552,8 +570,7 @@ void LayerROI::Dilate(int nTimes)
         SaveForUndo();
         ::LabelDilate(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes,
                       m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
-        m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
-        m_layerMappedSurface->UpdateOverlay(true, true);
+        OnLabelDataUpdated();
     }
 }
 
@@ -563,8 +580,7 @@ void LayerROI::Erode(int nTimes)
     {
         SaveForUndo();
         ::LabelErode(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes);
-        m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
-        m_layerMappedSurface->UpdateOverlay(true, true);
+        OnLabelDataUpdated();
     }
 }
 
@@ -576,8 +592,7 @@ void LayerROI::Open(int nTimes)
         ::LabelErode(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes);
         ::LabelDilate(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes,
                       m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
-        m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
-        m_layerMappedSurface->UpdateOverlay(true, true);
+        OnLabelDataUpdated();
     }
 }
 
@@ -589,8 +604,7 @@ void LayerROI::Close(int nTimes)
         ::LabelDilate(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes,
                       m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
         ::LabelErode(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes);
-        m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
-        m_layerMappedSurface->UpdateOverlay(true, true);
+        OnLabelDataUpdated();
     }
 }
 

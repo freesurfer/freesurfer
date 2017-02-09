@@ -10,9 +10,9 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/01/23 20:14:13 $
- *    $Revision: 1.6 $
+ *    $Author: zkaufman $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.6.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,6 +101,8 @@ public slots:
   }
 
   void SetColorCode(int nCode);
+
+  void UpdateLUTTable();
 
 signals:
   void OpacityChanged( double opacity );

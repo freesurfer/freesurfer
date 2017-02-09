@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2017/01/18 14:10:05 $
- *    $Revision: 1.109.2.5 $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.109.2.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -160,7 +160,7 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
   MRI* tempMRI = m_MRI;
   try
   {
-    m_MRI = ::MRIread( filename.toAscii().data() );      // could be long process
+    m_MRI = ::MRIread( filename.toLatin1().data() );      // could be long process
   }
   catch (int ret)
   {
@@ -329,7 +329,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
   if ( ext == "xfm" )  // MNI style
   {
     MATRIX* m = NULL;
-    if ( regio_read_mincxfm( filename.toAscii().data(), &m, NULL ) != 0 )
+    if ( regio_read_mincxfm( filename.toLatin1().data(), &m, NULL ) != 0 )
     {
       return NULL;
     }
@@ -372,7 +372,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
     char* subject = NULL;
     float inplaneres, betplaneres, intensity;
     int float2int;
-    if ( regio_read_register( filename.toAscii().data(),
+    if ( regio_read_register( filename.toLatin1().data(),
                               &subject,
                               &inplaneres,
                               &betplaneres,
@@ -387,10 +387,10 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
   }
   else  // LTA style & all possible other styles
   {
-    TRANSFORM* FSXform = TransformRead( (char*)filename.toAscii().data() );
+    TRANSFORM* FSXform = TransformRead( (char*)filename.toLatin1().data() );
     if ( FSXform == NULL )
     {
-      return false;
+      return NULL;
     }
     LTA* lta = (LTA*) FSXform->xform;
     if ( lta->type != LINEAR_RAS_TO_RAS )
@@ -402,7 +402,7 @@ MATRIX* FSVolume::LoadRegistrationMatrix(const QString &filename, MRI *target, M
     {
       cerr << "ERROR: LTA input is not RAS to RAS\n";
       TransformFree( &FSXform );
-      return false;
+      return NULL;
     }
 
     // Assume RAS2RAS and uses vox2ras from input volumes:
@@ -727,7 +727,7 @@ bool FSVolume::SaveRegistration( const QString& filename )
   lta->xforms[0].src = srcG;
   lta->xforms[0].dst = dstG;
 
-  FILE* fp = fopen( filename.toAscii().data(),"w" );
+  FILE* fp = fopen( filename.toLatin1().data(),"w" );
   bool ret = true;
   if( !fp )
   {
@@ -1035,7 +1035,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
   }
 
   // check if file is writable
-  FILE* fp = fopen( filename.toAscii().data(), "w" );
+  FILE* fp = fopen( filename.toLatin1().data(), "w" );
   if ( !fp )
   {
     cerr << "Failed to open file " << qPrintable(filename)
@@ -1052,7 +1052,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
   int err = 0;
   try
   {
-    err = ::MRIwrite( m_MRITemp, filename.toAscii().data() );
+    err = ::MRIwrite( m_MRITemp, filename.toLatin1().data() );
   }
   catch (int ret)
   {
@@ -1548,8 +1548,20 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
         Real cpt[3], cpt_ext[3];
         ::MRIworldToVoxel(mri, refTarget->c_r, refTarget->c_a, refTarget->c_s, &cpt[0], &cpt[1], &cpt[2]);
         ::MRIworldToVoxel(mri, mri->c_r, mri->c_a, mri->c_s, &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
+//        double vs[3] = { mri->xsize, mri->ysize, mri->zsize };
+//        double vs2[3] = { refTarget->xsize, refTarget->ysize, refTarget->zsize };
         for (int i = 0; i < 3; i++)
+        {
             cpt[i] = cpt[i] + ((int)(cpt_ext[i]-cpt[i]+0.5));
+//            double vs_r = vs[i]/vs2[i];
+//            if (vs_r < 1)
+//                vs_r = 1.0/vs_r;
+//            if (fabs(vs_r - (int)(vs_r+0.5)) < 1e-4)
+//            {
+//                if (((int)(vs_r+0.5))%2 == 0)
+//                    cpt[i] += 0.5;
+//            }
+        }
         ::MRIvoxelToWorld(mri, cpt[0], cpt[1], cpt[2], &cpt_ext[0], &cpt_ext[1], &cpt_ext[2]);
 
         mri->c_r = cpt_ext[0];
@@ -1763,7 +1775,6 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
     }
     else
     {
-//      qDebug() << "simple create target";
       rasMRI = CreateTargetMRI( m_MRI, m_volumeRef->m_MRITarget, true, m_bConform );
       if ( rasMRI == NULL )
       {
@@ -1817,8 +1828,6 @@ bool FSVolume::MapMRIToImage( bool do_not_create_image )
   {
     MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
-//    if (m_volumeRef)
-//        ::MRIwrite(rasMRI, "/tmp/foo.mgz");
     for ( int i = 0; i < 16; i++ )
     {
       m_VoxelToVoxelMatrix[i] =

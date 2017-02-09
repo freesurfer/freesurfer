@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2016/03/24 16:52:51 $
- *    $Revision: 1.41 $
+ *    $Author: zkaufman $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.41.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,14 +62,14 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
   {
     if ( event->button() == Qt::LeftButton )
     {
-#ifndef Q_WS_MAC
+#ifndef Q_OS_MAC
       view->ZoomAtCursor( m_nMousePosX, m_nMousePosY, 2.0 );    // zoom in
 #endif
       return false;
     }
     else if ( event->button() == Qt::RightButton )
     {
-#ifndef Q_WS_MAC
+#ifndef Q_OS_MAC
       view->ZoomAtCursor( m_nMousePosX, m_nMousePosY, 0.5 );    // zoom out
 #endif
       return false;
@@ -115,7 +115,7 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
   {
     m_bWindowLevel = true;
   }
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
   else if ( event->button() == Qt::RightButton &&
             ( event->modifiers() & CONTROL_MODIFIER ) &&
             ( event->modifiers() & Qt::ShiftModifier ) )

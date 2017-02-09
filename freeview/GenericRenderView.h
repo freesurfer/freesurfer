@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.6 $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.6.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,7 +52,7 @@ class GenericRenderView : public QVTKWidget
 
 public:
   // constructor & deconstructor
-  GenericRenderView(QWidget* parent = NULL, Qt::WFlags f = 0);
+  GenericRenderView(QWidget* parent = NULL, Qt::WindowFlags f = 0);
   virtual ~GenericRenderView();
 
   // call render window to render

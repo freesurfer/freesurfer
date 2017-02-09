@@ -38,7 +38,7 @@
 # include "vtkTDxWinDevice.h"
 #endif
 
-#if defined(VTK_USE_TDX) && defined(Q_WS_MAC)
+#if defined(VTK_USE_TDX) && defined(Q_OS_MAC)
 # include "vtkTDxMacDevice.h"
 #endif
 
@@ -49,8 +49,12 @@
 #include "qpainter.h"
 #include "qsignalmapper.h"
 #include "qtimer.h"
-#if defined(Q_WS_X11)
+#if defined(Q_OS_LINUX)
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
+#include <QX11Info>
+#else
 #include "qx11info_x11.h"
+#endif
 #endif
 
 #include "vtkstd/map"
@@ -78,7 +82,7 @@ static const char* qt_key_to_key_sym(Qt::Key);
 static void dirty_cache(vtkObject *, unsigned long, void *, void *);
 
 /*! constructor */
-QVTKWidget::QVTKWidget(QWidget* p, Qt::WFlags f)
+QVTKWidget::QVTKWidget(QWidget* p, Qt::WindowFlags f)
   : QWidget(p, f | Qt::MSWindowsOwnDC), mRenWin(NULL),
     cachedImageCleanFlag(false),
     automaticImageCache(false), maxImageCacheRenderRate(1.0)
@@ -181,7 +185,7 @@ void QVTKWidget::SetRenderWindow(vtkRenderWindow* w)
     {
       this->mRenWin->Finalize();
     }
-#ifdef Q_WS_X11
+#ifdef Q_OS_LINUX
     this->mRenWin->SetDisplayId(NULL);
 #endif
     this->mRenWin->SetWindowId(NULL);
@@ -202,7 +206,7 @@ void QVTKWidget::SetRenderWindow(vtkRenderWindow* w)
       this->mRenWin->Finalize();
     }
 
-#ifdef Q_WS_X11
+#ifdef Q_OS_LINUX
     // give the qt display id to the vtk window
     this->mRenWin->SetDisplayId(QX11Info::display());
 #endif
@@ -385,7 +389,7 @@ bool QVTKWidget::event(QEvent* e)
 
   if(QObject::event(e))
   {
-    return TRUE;
+    return true;
   }
 
   if(e->type() == QEvent::KeyPress)
@@ -928,7 +932,7 @@ QVTKInteractor::QVTKInteractor()
 #if defined(VTK_USE_TDX) && defined(Q_WS_WIN)
   this->Device=vtkTDxWinDevice::New();
 #endif
-#if defined(VTK_USE_TDX) && defined(Q_WS_MAC)
+#if defined(VTK_USE_TDX) && defined(Q_OS_MAC)
   this->Device=vtkTDxMacDevice::New();
 #endif
 }
@@ -948,7 +952,7 @@ void QVTKInteractor::Initialize()
     }
   }
 #endif
-#if defined(VTK_USE_TDX) && defined(Q_WS_MAC)
+#if defined(VTK_USE_TDX) && defined(Q_OS_MAC)
   if(this->UseTDx)
   {
     if(!this->Device->GetInitialized())
@@ -987,7 +991,7 @@ void QVTKInteractor::StartListening()
     this->Device->StartListening();
   }
 #endif
-#if defined(VTK_USE_TDX) && defined(Q_WS_MAC)
+#if defined(VTK_USE_TDX) && defined(Q_OS_MAC)
   if(this->UseTDx && !this->Device->GetInitialized())
   {
     this->Device->Initialize();
@@ -1004,7 +1008,7 @@ void QVTKInteractor::StopListening()
     this->Device->StopListening();
   }
 #endif
-#if defined(VTK_USE_TDX) && defined(Q_WS_MAC)
+#if defined(VTK_USE_TDX) && defined(Q_OS_MAC)
   if(this->UseTDx && this->Device->GetInitialized())
   {
     this->Device->Close();
@@ -1036,7 +1040,7 @@ QVTKInteractor::~QVTKInteractor()
 #if defined(VTK_USE_TDX) && defined(Q_WS_WIN)
   this->Device->Delete();
 #endif
-#if defined(VTK_USE_TDX) && defined(Q_WS_MAC)
+#if defined(VTK_USE_TDX) && defined(Q_OS_MAC)
   this->Device->Delete();
 #endif
 }
@@ -1231,7 +1235,7 @@ const char* qt_key_to_key_sym(Qt::Key i)
 // X11 stuff near the bottom of the file
 // to prevent namespace collisions with Qt headers
 
-#if defined Q_WS_X11
+#if defined Q_OS_LINUX
 #if defined(VTK_USE_OPENGL_LIBRARY)
 #include "vtkXOpenGLRenderWindow.h"
 #endif
@@ -1243,7 +1247,7 @@ const char* qt_key_to_key_sym(Qt::Key i)
 
 void QVTKWidget::x11_setup_window()
 {
-#if defined Q_WS_X11
+#if defined Q_OS_LINUX
 
   // this whole function is to allow this window to have a
   // different colormap and visual than the rest of the Qt application

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.4 $
+ *    $Author: zkaufman $
+ *    $Date: 2017/02/09 17:20:11 $
+ *    $Revision: 1.4.4.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,7 +24,7 @@
 #include "CommandEdit.h"
 #include <QSettings>
 
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
 #define CONTROL_KEY Qt::MetaModifier
 #else
 #define CONTROL_KEY Qt::ControlModifier

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2015/05/05 18:53:40 $
- *    $Revision: 1.20 $
+ *    $Author: zkaufman $
+ *    $Date: 2017/02/09 17:20:13 $
+ *    $Revision: 1.20.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -529,25 +529,28 @@ void WindowConfigureOverlay::OnHistogramMarkerChanged()
       if (i == 0)
       {
         if (bUserPercentile)
-          ChangeLineEditNumber(ui->lineEditMin, ui->widgetHistogram->PositionToPercentile(markers[i].position-m_dSavedOffset));
+          ChangeLineEditNumber(ui->lineEditMin, ui->widgetHistogram->PositionToPercentile(markers[i].position-m_dSavedOffset),
+                               2, true);
         else
-          ChangeLineEditNumber(ui->lineEditMin, markers[i].position-m_dSavedOffset);
+          ChangeLineEditNumber(ui->lineEditMin, markers[i].position-m_dSavedOffset, 2, true);
       }
       if (i == 1)
       {
         if (ui->radioButtonPiecewise->isChecked() && ui->radioButtonHeat->isChecked())
         {
           if (bUserPercentile)
-            ChangeLineEditNumber(ui->lineEditMid, ui->widgetHistogram->PositionToPercentile(markers[i].position-m_dSavedOffset));
+            ChangeLineEditNumber(ui->lineEditMid, ui->widgetHistogram->PositionToPercentile(markers[i].position-m_dSavedOffset),
+                                 2, true);
           else
-            ChangeLineEditNumber(ui->lineEditMid, markers[i].position-m_dSavedOffset);
+            ChangeLineEditNumber(ui->lineEditMid, markers[i].position-m_dSavedOffset, 2, true);
         }
       }
     }
     if (bUserPercentile)
-      ChangeLineEditNumber(ui->lineEditMax, ui->widgetHistogram->PositionToPercentile(markers[markers.size()-1].position-m_dSavedOffset));
+      ChangeLineEditNumber(ui->lineEditMax, ui->widgetHistogram->PositionToPercentile(markers[markers.size()-1].position-m_dSavedOffset),
+              2, true);
     else
-      ChangeLineEditNumber(ui->lineEditMax, markers[markers.size()-1].position-m_dSavedOffset);
+      ChangeLineEditNumber(ui->lineEditMax, markers[markers.size()-1].position-m_dSavedOffset, 2, true);
     UpdateThresholdChanges();
   }
 }

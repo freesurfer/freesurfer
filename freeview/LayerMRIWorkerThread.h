@@ -4,6 +4,7 @@
 #include <QThread>
 #include <QList>
 #include <QMutex>
+#include <QMap>
 
 #ifndef IntList
 typedef QList<int> IntList;
@@ -18,7 +19,7 @@ public:
     explicit LayerMRIWorkerThread(LayerMRI *mri);
 
 signals:
-    void AvailableLabels(const IntList& list);
+    void LabelInformationReady();
 
 public slots:
     void Abort();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/02/17 20:36:46 $
- *    $Revision: 1.6 $
+ *    $Date: 2017/02/09 17:20:13 $
+ *    $Revision: 1.6.2.1 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,7 +43,7 @@ bool TrackData::LoadFromFile(const QString &filename)
 {
   CTrackReader reader;
   TRACK_HEADER header;
-  if (!reader.Open(filename.toAscii().constData(), &header))
+  if (!reader.Open(filename.toLatin1().constData(), &header))
   {
     return false;
   }
@@ -102,7 +102,7 @@ bool TrackData::LoadFromFile(const QString &filename)
   }
   m_nNumberOfPoints = 0;
   m_nNumberOfSegs = 0;
-  short dim[3] = {m_nDim[0], m_nDim[1], m_nDim[2]};
+  short dim[3] = {(short)m_nDim[0], (short)m_nDim[1], (short)m_nDim[2]};
   while (reader.GetNextPointCount(&track.nNum))
   {
     track.fPts = new float[track.nNum*3];

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: zkaufman $
- *    $Date: 2016/12/08 22:02:39 $
- *    $Revision: 1.99.2.1 $
+ *    $Date: 2017/02/09 17:20:12 $
+ *    $Revision: 1.99.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -69,6 +69,7 @@ class LayerMRI : public LayerVolumeBase
   friend class ThreadBuildContour;
   friend class VolumeCropper;
   friend class SurfaceRegionGroups;
+  friend class LayerMRIWorkerThread;
 
   Q_OBJECT
 public:
@@ -309,6 +310,8 @@ public:
 
   void RestoreFromBackup();
 
+  bool GetLayerLabelCenter(double val, double* pos_out);
+
 public slots:
   void SetActiveFrame( int nFrame );
   void SetActiveFrameOneBase( int nFrame )
@@ -352,9 +355,6 @@ protected slots:
   virtual void UpdateColorMap();
 
   void OnContourThreadFinished(int thread_id);
-
-  void OnAvailableLabels(const IntList& vals);
-
   void UpdateSurfaceCorrelationData();
 
   void ResetRef();
@@ -445,6 +445,7 @@ private:
 
   LayerMRIWorkerThread* m_worker;
   QList<int>  m_nAvailableLabels;
+  QMap<int, QList<double> > m_listLabelCenters;
 };
 
 
