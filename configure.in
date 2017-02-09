@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: lzollei $
-#    $Date: 2017/02/07 04:00:36 $
-#    $Revision: 1.677 $
+#    $Author: zkaufman $
+#    $Date: 2017/02/09 01:08:03 $
+#    $Revision: 1.678 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2230,7 +2230,6 @@ if test "$disable_gui_build" = "YES"; then
 else
   m4_include([m4/autotroll.m4])
   AT_WITH_QT([$QT_COMPONENTS])
-  x11extras
 fi
 
 AM_CONDITIONAL(ENABLE_QT_APPS, ! test "x$QT_PATH" = "x")
