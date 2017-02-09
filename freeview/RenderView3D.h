@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/02 16:40:06 $
- *    $Revision: 1.50 $
+ *    $Date: 2017/02/08 21:01:00 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -92,6 +92,11 @@ public:
     return m_cursor3D;
   }
 
+  Cursor3D* GetInflatedSurfCursor()
+  {
+    return m_cursorInflatedSurf;
+  }
+
   void UpdateScalarBar();
 
   void TriggerContextMenu( QMouseEvent* event );
@@ -116,6 +121,8 @@ public:
   void ZoomAtCursor(int x, int y, double factor);
 
   bool MapInflatedCoords(LayerSurface* surf, double* pos_in, double* pos_out, bool AutoOrient = false);
+
+  void MapToInflatedCoords(double* pos_in);
 
 signals:
   void SurfaceVertexClicked(LayerSurface* surf);

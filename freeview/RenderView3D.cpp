@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/02 16:40:06 $
- *    $Revision: 1.96 $
+ *    $Date: 2017/02/08 21:01:00 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -634,6 +634,47 @@ bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double 
     else
         m_cursorInflatedSurf->Hide();
     return false;
+}
+
+void RenderView3D::MapToInflatedCoords(double *pos_in)
+{
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
+    LayerSurface* inflated = NULL;
+    foreach (Layer* s, layers)
+    {
+        LayerSurface* f = (LayerSurface*)s;
+        if (f->IsInflated())
+            inflated = f;
+    }
+
+    if (!inflated)
+    {
+        m_cursorInflatedSurf->Hide();
+        return;
+    }
+
+    foreach (Layer* s, layers)
+    {
+        LayerSurface* f = (LayerSurface*)s;
+        if (f != inflated && QFileInfo(f->GetFileName()).fileName().contains(inflated->GetMappingSurfaceName()))
+        {
+            if (f->GetHemisphere() == inflated->GetHemisphere() &&
+                    QFileInfo(f->GetFileName()).absolutePath() == QFileInfo(inflated->GetFileName()).absolutePath())
+            {
+                int nvo = f->GetVertexIndexAtTarget(pos_in, NULL);
+                if (nvo >= 0)
+                {
+                    double pos[3];
+                    inflated->GetTargetAtVertex(nvo, pos);
+                    inflated->SetCurrentVertex(nvo);
+                    if (m_cursor3D->IsShown())
+                        m_cursorInflatedSurf->Show();
+                    m_cursorInflatedSurf->SetPosition(pos);
+                }
+                return;
+            }
+        }
+    }
 }
 
 int RenderView3D::PickCurrentSurfaceVertex(int posX, int posY, LayerSurface* curSurf)

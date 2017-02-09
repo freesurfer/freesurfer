@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: zkaufman $
- *    $Date: 2017/02/06 22:08:28 $
- *    $Revision: 1.81 $
+ *    $Author: rpwang $
+ *    $Date: 2017/02/08 21:01:00 $
+ *    $Revision: 1.82 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,9 @@ char* Progname;
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
+  if (msg.contains("sRGB profile") || msg.contains("QWidget::create"))
+      return;
+
   switch (type)
   {
   case QtDebugMsg:
@@ -168,7 +171,7 @@ int main(int argc, char *argv[])
       "':overlay_smooth=smooth_steps' Set smooth steps for overlay.\n\n"
       "':correlation=correlation_filename' Load correlation data from file. Correlation data is treated as a special kind of overlay data.\n\n"
       "':color=colorname' Set the base color of the surface. Color can be a color name such as 'red' or 3 values as RGB components of the color, e.g., '255,0,0'.\n\n"
-      "':edgecolor=colorname' Set the color of the slice intersection outline on the surface. If set to 'surface', will use surface color\n\n"
+      "':edgecolor=colorname' Set the color of the slice intersection outline on the surface. If set to 'overlay', will use overlay color\n\n"
       "':edgethickness=thickness' Set the thickness of the slice intersection outline on the surface. set 0 to hide it.\n\n"
       "':annot=filenames' Set annotation files to load.\n\n"
       "':annot_outline=flag' Show surface annotation as outline. flag can be 'true', 'yes' or '1'.\n\n"

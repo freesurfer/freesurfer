@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/13 16:43:39 $
- *    $Revision: 1.84 $
+ *    $Date: 2017/02/08 21:01:00 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -294,6 +294,9 @@ public:
       return m_sMappingSurfaceName;
   }
 
+  void SetNeighborhoodSize(int nSize);
+
+  QList<int> GetVertexNeighbors(int nvo);
 
 public slots:
   void SetActiveSurface( int nSurfaceType );
@@ -376,7 +379,6 @@ protected slots:
   void UpdateActorPositions();
   void UpdateROIPosition(double dx, double dy, double dz);
   void UpdateVectorActor2D();
-  void UpdateMappedLabels();
 
 protected:
   void InitializeData();

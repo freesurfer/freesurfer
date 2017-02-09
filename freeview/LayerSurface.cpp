@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.136 $
+ *    $Date: 2017/02/08 21:01:00 $
+ *    $Revision: 1.137 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2170,6 +2170,7 @@ void LayerSurface::AddMappedLabel(LayerROI *label)
         m_mappedLabels << label;
         connect(label, SIGNAL(destroyed(QObject*)), this, SLOT(RemoveMappedLabel(QObject*)), Qt::UniqueConnection);
         connect(label->GetProperty(), SIGNAL(ColorMapChanged()), this, SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
+        connect(label, SIGNAL(VisibilityChanged(bool)), this, SLOT(UpdateOverlayLabels()), Qt::UniqueConnection);
     }
 }
 
@@ -2198,10 +2199,6 @@ void LayerSurface::RemoveMappedLabel(QObject *label_in)
     UpdateOverlay(true, true);
 }
 
-void LayerSurface::UpdateMappedLabels()
-{
-
-}
 
 QList<int> LayerSurface::FindPath(const QList<int> seeds)
 {
@@ -2218,4 +2215,23 @@ QList<int> LayerSurface::FindPath(const QList<int> seeds)
     }
     delete[] vert_vno;
     return out_vno;
+}
+
+void LayerSurface::SetNeighborhoodSize(int nSize)
+{
+    MRIS* mris = m_surfaceSource->GetMRIS();
+    if (mris->nsize == nSize)
+        return;
+
+    ::MRISsetNeighborhoodSize(mris, nSize);
+}
+
+QList<int> LayerSurface::GetVertexNeighbors(int nvo)
+{
+    QList<int> nvo_list;
+    MRIS* mris = m_surfaceSource->GetMRIS();
+    VERTEX* v = &mris->vertices[nvo];
+    for (int i = 0; i < v->vtotal; i++)
+        nvo_list << v->v[i];
+    return nvo_list;
 }

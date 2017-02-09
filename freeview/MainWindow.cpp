@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/02 18:41:17 $
- *    $Revision: 1.362 $
+ *    $Date: 2017/02/08 21:01:00 $
+ *    $Revision: 1.363 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -554,7 +554,10 @@ void MainWindow::LoadSettings()
     {
       ((RenderView3D*)m_views[i])->GetCursor3D()->SetColor(m_settings["CursorColor"].value<QColor>());
       if (m_settings["CursorStyle"].toInt() < 2)
+      {
         ((RenderView3D*)m_views[i])->GetCursor3D()->SetLarge(m_settings["CursorStyle"].toInt());
+        ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetLarge(m_settings["CursorStyle"].toInt());
+      }
     }
   }
   SyncZoom(m_settings["SyncZoom"].toBool());
@@ -3542,7 +3545,7 @@ void MainWindow::CommandSetSurfaceEdgeColor( const QStringList& cmd )
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( surf && cmd[1] != "null" )
   {
-    if (cmd[1].toLower() == "off" || cmd[1].toLower() == "surface")
+    if (cmd[1].toLower() == "off" || cmd[1].toLower() == "surface" || cmd[1].toLower() == "overlay")
     {
         surf->GetProperty()->SetUseSurfaceColorOn2D(true);
     }
@@ -7391,6 +7394,10 @@ void MainWindow::On2DCursorClicked()
             printf("SurfaceRAS: %.4f %.4f %.4f\n", tkras[0], tkras[1], tkras[2]);
         }
     }
+
+    double pos[3];
+    GetLayerCollection("MRI")->GetSlicePosition(pos);
+    ((RenderView3D*)m_views[3])->MapToInflatedCoords(pos);
 }
 
 bool MainWindow::LoadSurfaceRGBMap(const QString& fn)

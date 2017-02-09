@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.44 $
+ *    $Date: 2017/02/08 21:01:00 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -90,6 +90,17 @@ bool FSLabel::LabelRead( const QString& filename )
   }
 
   return true;
+}
+
+bool FSLabel::UpdateStatsRange(double val)
+{
+    if (m_dStatsRange[0] > val)
+        m_dStatsRange[0] = val;
+    else if (m_dStatsRange[1] < val)
+        m_dStatsRange[1] = val;
+    else
+        return false;
+    return true;
 }
 
 void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,

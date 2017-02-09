@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2016/12/13 16:43:39 $
- *    $Revision: 1.23 $
+ *    $Date: 2017/02/08 21:01:00 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,6 +59,8 @@ public:
   bool GetCentroidRASPosition(double* pos, FSVolume* ref_vol);
 
   void GetStatsRange(double* range);
+
+  bool UpdateStatsRange(double val);
 
   LABEL* GetRawLabel()
   {

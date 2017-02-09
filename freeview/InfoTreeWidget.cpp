@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2017/02/01 15:28:54 $
- *    $Revision: 1.29 $
+ *    $Date: 2017/02/08 21:01:00 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -43,6 +43,7 @@
 #include <QShowEvent>
 #include <QDebug>
 #include <QMenu>
+#include "RenderView3D.h"
 
 
 InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
@@ -355,6 +356,7 @@ void InfoTreeWidget::OnEditFinished()
   double ras[3];
   bool bSuccess = false;
   QObject* layer = map["Object"].value<QObject*>();
+  LayerSurface* surf = NULL;
   if ( type == "SurfaceVertex")
   {
     bool bOK;
@@ -362,6 +364,7 @@ void InfoTreeWidget::OnEditFinished()
     if (bOK && qobject_cast<LayerSurface*>(layer)->GetTargetAtVertex(nVertex, ras))
     {
       bSuccess = true;
+      surf = qobject_cast<LayerSurface*>(layer);
       emit VertexChangeTriggered(nVertex);
     }
     else
@@ -432,6 +435,14 @@ void InfoTreeWidget::OnEditFinished()
   if (bSuccess)
   {
     m_editor->hide();
+    if (surf)
+    {
+        RenderView3D* view = qobject_cast<RenderView3D*>(MainWindow::GetMainWindow()->GetRenderView(3));
+        if (surf->IsInflated())
+            view->MapInflatedCoords(surf, ras, ras, false);
+        else
+            view->MapToInflatedCoords(ras);
+    }
     emit RASChangeTriggered(ras[0], ras[1], ras[2]);
   }
 }
