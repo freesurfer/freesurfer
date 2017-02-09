@@ -108,12 +108,12 @@ ADD_LIBRARY( kvlGEMSCommon
              kvlAtlasMeshDeformationOptimizer.cxx
              kvlAtlasMeshDeformationLevenbergMarquardtOptimizer.cxx
              kvlAtlasMeshDeformationConjugateGradientOptimizer.cxx
-             kvlAtlasMeshDeformationConjugateGradientOptimizerGPU.cxx
+             kvlAtlasMeshDeformationConjugateGradientOptimizerCPU.cxx
              kvlAtlasMeshAveragingConjugateGradientOptimizer.cxx
-             kvlAtlasMeshRasterizorGPU.cxx
-             kvlAtlasMeshAlphaDrawerGPU.cxx
-             kvlAtlasMeshVisitCounterGPU.cxx
-             kvlAtlasMeshToIntensityImageGradientCalculatorGPU.cxx
+             kvlAtlasMeshRasterizorCPU.cxx
+             kvlAtlasMeshAlphaDrawerCPU.cxx
+             kvlAtlasMeshVisitCounterCPU.cxx
+             kvlAtlasMeshToIntensityImageGradientCalculatorCPU.cxx
              itkMGHImageIO.cxx
              itkMGHImageIOFactory.cxx )
 TARGET_LINK_LIBRARIES( kvlGEMSCommon

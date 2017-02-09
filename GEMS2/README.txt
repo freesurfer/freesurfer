@@ -17,10 +17,15 @@ Other than that, I used the following versions:
   (InsightToolkit-3.20.0.tar.gz doesn't compile with my current compiler)
   V3 compatibility is needed for kvlRegisterer.h/cxx since you nowadays have to call "Update()" to start registration, and itkAffine3DTransform.h/cxx (also only needed for kvlRegisterer and kvlResampler) needs nowadays different Jacobian interfaces. Nothing major - we never use Jacobian so could just throw an exception if someone attempts to use - but I simply don't have time for it now. In any case, do we really still need kvlRegisterer and kvlResampler in the long run?
  
+CMake will need the ITK_DIR environment variable set to the directory containing ITKConfig.cmake
+
 * gmm-5.0 (GMM++ C++ templated library for sparse matrix solvers; used only in Levenberg-Marquardt. If nobody is using this, maybe we can just throw it out in the future?)
 
   ./configure 
   make
+
+Note that this is a header library, so to actually compile anything you will need to run
+  make check
 
 * tetgen1.4.2 (used in one of the initial stages of the atlas building, so as to start with a sparse mesh in the background thereby saving mesh simplification time)
 

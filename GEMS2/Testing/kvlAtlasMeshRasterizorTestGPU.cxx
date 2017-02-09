@@ -1,7 +1,7 @@
 #include "kvlAtlasMeshCollection.h"
-#include "kvlAtlasMeshAlphaDrawerGPU.h"
-#include "kvlAtlasMeshVisitCounterGPU.h"
-#include "kvlAtlasMeshToIntensityImageGradientCalculatorGPU.h"
+#include "kvlAtlasMeshAlphaDrawerCPU.h"
+#include "kvlAtlasMeshVisitCounterCPU.h"
+#include "kvlAtlasMeshToIntensityImageGradientCalculatorCPU.h"
 #include "itkImageRegionConstIteratorWithIndex.h"
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
@@ -12,7 +12,7 @@ int main( int argc, char* argv[] )
 {
   
   // Read a test image
-  typedef kvl::AtlasMeshToIntensityImageGradientCalculatorGPU::ImageType  ImageType;
+  typedef kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::ImageType  ImageType;
   typedef itk::ImageFileReader< ImageType >  ReaderType;
   ReaderType::Pointer  reader = ReaderType::New();
   reader->SetFileName( "test.nii" );
@@ -43,7 +43,7 @@ int main( int argc, char* argv[] )
   
   // Rasterize the mesh, simply linearly interpolating a probabilistic atlas across the
   // volume of each tetrahedron
-  kvl::AtlasMeshAlphaDrawerGPU::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawerGPU::New();
+  kvl::AtlasMeshAlphaDrawerCPU::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawerCPU::New();
   alphaDrawer->SetRegions( image->GetLargestPossibleRegion() );
   alphaDrawer->SetLabelNumber( 1 );
   clock.Start();
@@ -53,7 +53,7 @@ int main( int argc, char* argv[] )
   
 
   // Write out
-  typedef itk::ImageFileWriter< kvl::AtlasMeshAlphaDrawerGPU::ImageType >  AlphaWriterType;
+  typedef itk::ImageFileWriter< kvl::AtlasMeshAlphaDrawerCPU::ImageType >  AlphaWriterType;
   AlphaWriterType::Pointer  alphaWriter = AlphaWriterType::New();
   alphaWriter->SetFileName( "testAlpha.nii" );
   alphaWriter->SetInput( alphaDrawer->GetImage() );
@@ -61,7 +61,7 @@ int main( int argc, char* argv[] )
 
   
   // Compare against a reference implementation
-  kvl::AtlasMeshAlphaDrawerGPU::Pointer  referenceAlphaDrawer = kvl::AtlasMeshAlphaDrawerGPU::New();
+  kvl::AtlasMeshAlphaDrawerCPU::Pointer  referenceAlphaDrawer = kvl::AtlasMeshAlphaDrawerCPU::New();
   referenceAlphaDrawer->SetRegions( image->GetLargestPossibleRegion() );
   referenceAlphaDrawer->SetLabelNumber( 1 );
   clock.Reset();
@@ -69,10 +69,10 @@ int main( int argc, char* argv[] )
   referenceAlphaDrawer->Rasterize( mesh );
   clock.Stop();
   std::cout << "Time taken by reference alpha drawer: " << clock.GetMean() << std::endl;
-  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshAlphaDrawerGPU::ImageType >  
+  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshAlphaDrawerCPU::ImageType >  
              alphaIt( alphaDrawer->GetImage(), 
                       alphaDrawer->GetImage()->GetBufferedRegion() );
-  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshAlphaDrawerGPU::ImageType >  
+  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshAlphaDrawerCPU::ImageType >  
              referenceAlphaIt( referenceAlphaDrawer->GetImage(), 
                                referenceAlphaDrawer->GetImage()->GetBufferedRegion() );
   double maximumAlphaError = 0.0;           
@@ -93,7 +93,7 @@ int main( int argc, char* argv[] )
   //         rasterizer. More than once is an error.
   //
   // ===================================================
-  kvl::AtlasMeshVisitCounterGPU::Pointer  visitCounter = kvl::AtlasMeshVisitCounterGPU::New();
+  kvl::AtlasMeshVisitCounterCPU::Pointer  visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
   visitCounter->SetRegions( image->GetLargestPossibleRegion() );
   clock.Reset();
   clock.Start();
@@ -101,7 +101,7 @@ int main( int argc, char* argv[] )
   clock.Stop();
   std::cout << "Time taken by visit counter: " << clock.GetMean() << std::endl;
 
-  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshVisitCounterGPU::ImageType >  
+  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshVisitCounterCPU::ImageType >  
              it( visitCounter->GetImage(), 
                  visitCounter->GetImage()->GetBufferedRegion() );
   for( ; !it.IsAtEnd(); ++it )
@@ -114,7 +114,7 @@ int main( int argc, char* argv[] )
     }
 
   // Write out
-  typedef itk::ImageFileWriter< kvl::AtlasMeshVisitCounterGPU::ImageType >  CountWriterType;
+  typedef itk::ImageFileWriter< kvl::AtlasMeshVisitCounterCPU::ImageType >  CountWriterType;
   CountWriterType::Pointer  countWriter = CountWriterType::New();
   countWriter->SetFileName( "testCount.nii" );
   countWriter->SetInput( visitCounter->GetImage() );
@@ -176,8 +176,8 @@ int main( int argc, char* argv[] )
     
 
   //
-  kvl::AtlasMeshToIntensityImageGradientCalculatorGPU::Pointer  
-      gradientCalculator = kvl::AtlasMeshToIntensityImageGradientCalculatorGPU::New();
+  kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::Pointer  
+      gradientCalculator = kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::New();
   gradientCalculator->SetImages( std::vector< ImageType::Pointer >( 1, const_cast< ImageType* >( image.GetPointer() ) ) );
   gradientCalculator->SetMeans( means_ );
   gradientCalculator->SetPrecisions( precisions_ );
@@ -200,8 +200,8 @@ int main( int argc, char* argv[] )
       
       
   // Compare against a reference implementation
-  kvl::AtlasMeshToIntensityImageGradientCalculatorGPU::Pointer  
-      referenceGradientCalculator = kvl::AtlasMeshToIntensityImageGradientCalculatorGPU::New();
+  kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::Pointer  
+      referenceGradientCalculator = kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::New();
   referenceGradientCalculator->SetImages( std::vector< ImageType::Pointer >( 1, const_cast< ImageType* >( image.GetPointer() ) ) );
   referenceGradientCalculator->SetMeans( means_ );
   referenceGradientCalculator->SetPrecisions( precisions_ );
