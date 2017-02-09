@@ -126,6 +126,7 @@ libutils_main_SOURCES=\
 	heap.c \
 	hippo.c \
 	histo.c \
+	joint_histo.c \
 	ic163842.c \
 	ic2562.c \
 	ic642.c \
