@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2017/02/09 01:08:03 $
-#    $Revision: 1.678 $
+#    $Date: 2017/02/10 17:02:48 $
+#    $Revision: 1.679 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -876,14 +876,14 @@ AC_ARG_WITH([cuda],
 
 if test -n "$with_cuda"; then
     CUDA_DIR="$with_cuda"
-else
-  if test -e ${PACKAGES_DIR}/CUDA/current ; then
-    CUDA_DIR="${PACKAGES_DIR}/CUDA/current"
-  else
-    if test -e /usr/local/cuda ; then
-      CUDA_DIR="/usr/local/cuda"
-    fi
-  fi
+#else
+#  if test -e ${PACKAGES_DIR}/CUDA/current ; then
+#    CUDA_DIR="${PACKAGES_DIR}/CUDA/current"
+#  else
+#    if test -e /usr/local/cuda ; then
+#      CUDA_DIR="/usr/local/cuda"
+#    fi
+#  fi
 fi
 
 if( test ! "x$CUDA_DIR" = "x" ) then
