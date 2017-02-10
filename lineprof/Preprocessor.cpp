@@ -153,8 +153,17 @@ Preprocessor::convertPointSetToBinaryImage(PointSetPointer pointSet)
   FilterType::Pointer filter = FilterType::New();
 
   // compute the bounding box of the pointSet
+#ifdef HAVE_ITK45
+  typedef itk::BoundingBox<itk::IdentifierType, Dimension, float> BoundingBoxType;
+  BoundingBoxType::Pointer boundingBox = BoundingBoxType::New();
+  boundingBox->SetPoints(pointSet->GetPoints());
+  boundingBox->ComputeBoundingBox();
+  BoundingBoxType::BoundsArrayType bbox
+    = boundingBox->GetBounds();
+#else
   PointSetType::BoundingBoxType::BoundsArrayType bbox
     = pointSet->GetBoundingBox()->GetBounds();
+#endif
 
   // use it to infer the resolution
   // also use the padding size

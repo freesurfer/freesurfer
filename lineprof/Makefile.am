@@ -14,10 +14,14 @@ TIFFCFLAGS=$(TIFF_CFLAGS)
 LIBTIFF=$(LIB_TIFF)
 endif
 
+if HAVE_ITK45
+ITK_45_THINGS=-DHAVE_ITK45
+endif
+
 AM_CPPFLAGS= -Wno-deprecated \
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/tetgen \
-	$(VXL_CFLAGS) \
+	$(VXL_CFLAGS) $(ITK_45_THINGS) \
 	$(VTK_CXXFLAGS) \
   $(ITK_CFLAGS) -DHAVE_ITK_LIBS \
   $(PETSC_CFLAGS) $(TIFFCFLAGS) \

@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: zkaufman $
-#    $Date: 2017/02/10 17:02:48 $
-#    $Revision: 1.679 $
+#    $Date: 2017/02/10 18:45:54 $
+#    $Revision: 1.680 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1421,8 +1421,7 @@ AC_ARG_WITH(vxl-dir,
 # Vxl code within itk
 AC_ARG_WITH(itk-4.5.1-vxl,
   [  --with-itk-4.5.1-vxl     set paths to use VXL in NMR Center ITK v4.5.1.],
-  [  withval=${PACKAGES_DIR}/itk/4.5.1
-     ac_vxl_includes="$withval"/include/ITK-4.5
+  [  ac_vxl_includes="$withval"/include/ITK-4.5
      ac_vxl_libraries="$withval"/lib
      VXL_DIR="$withval"
      itk_45_vxl="yes"
@@ -2766,8 +2765,7 @@ AC_ARG_WITH(itk-dir,
 # Note: use with --with-itk-4.5.1-vxl flag, since default vxl doesnt work w4.5.1
 AC_ARG_WITH(itk-4.5.1,
   [  --with-itk-4.5.1        set paths to use NMR Center ITK v4.5.1.],
-  [  withval=${PACKAGES_DIR}/itk/4.5.1
-     ac_itk_includes="$withval"/include/ITK-4.5
+  [  ac_itk_includes="$withval"/include/ITK-4.5
      ac_itk_libraries="$withval"/lib
      ITK_DIR="$withval"
      itk_apps="yes"
@@ -2889,6 +2887,8 @@ fi
 
 AM_CONDITIONAL(ENABLE_ITK_APPS, test "$itk_apps" = "yes")
 AM_CONDITIONAL(HAVE_ITK_LIBS, test "$itk_apps" = "yes")
+AM_CONDITIONAL(HAVE_ITK45, test "$itk_45" = "yes")
+
 
 AC_SUBST(ITK_CFLAGS)
 AC_SUBST(ITK_LIBS)
