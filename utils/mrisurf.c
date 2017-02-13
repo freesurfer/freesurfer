@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2017/02/07 19:04:19 $
- *    $Revision: 1.791 $
+ *    $Date: 2017/02/11 21:31:01 $
+ *    $Revision: 1.792 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -784,7 +784,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.791 2017/02/07 19:04:19 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.792 2017/02/11 21:31:01 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -81026,11 +81026,6 @@ MRISsurfaceRASFromVoxel(MRI_SURFACE *mris,
                              mris->vg.depth, 
                              MRI_UCHAR,
                              1) ;
-    MRIallocHeader(mris->vg.width, 
-                   mris->vg.height,
-                   mris->vg.depth,
-                   MRI_UCHAR,
-                   1) ;
     MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
     m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
     MRIfree(&mri_tmp) ;
