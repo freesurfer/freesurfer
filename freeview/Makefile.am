@@ -606,7 +606,8 @@ AM_CXXFLAGS=\
 	-I$(top_srcdir)/vtkutils \
 	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
   $(VXL_CFLAGS) \
-  -I$(top_srcdir)/lineprof
+  -I$(top_srcdir)/lineprof \
+	-DVCL_CAN_STATIC_CONST_INIT_FLOAT=0
 
 freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
 freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
