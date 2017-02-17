@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2012/02/08 22:34:43 $
- *    $Revision: 1.15 $
+ *    $Date: 2017/02/16 19:45:00 $
+ *    $Revision: 1.16 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,9 +55,8 @@ static char *pial_name = "pial" ;
 int
 main(int argc, char *argv[])
 {
-  char         **av ;
-  int          ac, nargs ;
-  char         *in_fname, *out_fname ;
+  int          nargs ;
+  char         *in_fname, *out_fname, fname[STRLEN], *cp ;
   int          msec, minutes, seconds ;
   struct timeb start ;
   float        mm_out ;
@@ -67,6 +66,7 @@ main(int argc, char *argv[])
   parms.l_location = 1 ;
   // parms.l_curv = 1.0 ;
   parms.n_averages = 16 ;
+  parms.integration_type = INTEGRATE_MOMENTUM ;
   parms.min_averages = 0 ;
   parms.l_surf_repulse = .0 ;
   parms.dt = 0.25 ;
@@ -74,7 +74,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_expand.c,v 1.15 2012/02/08 22:34:43 fischl Exp $",
+     "$Id: mris_expand.c,v 1.16 2017/02/16 19:45:00 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -86,8 +86,6 @@ main(int argc, char *argv[])
 
   TimerStart(&start) ;
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
   {
     nargs = get_option(argc, argv) ;
@@ -101,7 +99,13 @@ main(int argc, char *argv[])
   in_fname = argv[1] ;
   mm_out = atof(argv[2]) ;
   out_fname = argv[3] ;
-  FileNameExtension(out_fname,parms.base_name) ;  // remove hemi (e.g. lh.)
+
+  FileNameOnly(out_fname, fname) ;
+  cp = strchr(fname, '.') ;
+  if (cp)
+    strcpy(parms.base_name, cp+1) ;
+  else
+    strcpy(parms.base_name, "expanded") ;
 
   if (use_thickness)
     printf("expanding surface %s by %2.1f%% of thickness "
@@ -177,6 +181,22 @@ get_option(int argc, char *argv[])
     thickness_name = argv[2] ;
     printf("using thickness file %s\n", thickness_name) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "navgs"))
+  {
+    parms.n_averages = atof(argv[2]) ;
+    parms.min_averages = atoi(argv[3]) ;
+    printf("using n_averaged %d --> %d\n", parms.n_averages, parms.min_averages) ;
+    nargs = 2 ;
+  }
+  else if (!stricmp(option, "intensity"))
+  {
+    parms.target_intensity = atof(argv[2]) ;
+    parms.mri_brain = MRIread(argv[3]) ;
+    if (parms.mri_brain == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load target intensity volume %s\n", argv[3]) ;
+    printf("cropping target locations to at intensity %2.0f in %s\n", parms.target_intensity, argv[3]) ;
+    nargs = 2 ;
   }
   else if (!stricmp(option, "pial"))
   {
