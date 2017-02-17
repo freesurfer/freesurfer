@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2017/02/11 21:31:01 $
- *    $Revision: 1.792 $
+ *    $Date: 2017/02/16 19:43:03 $
+ *    $Revision: 1.793 $
  *
  * Copyright © 2011-2014 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -784,7 +784,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.792 2017/02/11 21:31:01 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.793 2017/02/16 19:43:03 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -21031,17 +21031,17 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris, double l_intensity, MRI *mri_brain,
       z = v->z ;
 
       /* sample outward from surface */
-      xw = x + nx ;
-      yw = y + ny ;
-      zw = z + nz ;
+      xw = x + mri_smooth->xsize*nx ;
+      yw = y + mri_smooth->ysize*ny ;
+      zw = z + mri_smooth->zsize*nz ;
       MRISsurfaceRASToVoxelCached(mris,
                                   mri_smooth,
                                   xw, yw, zw,
                                   &xwo, &ywo, &zwo) ;
       /* sample inward from surface */
-      xw = x - nx ;
-      yw = y - ny ;
-      zw = z - nz ;
+      xw = x - mri_smooth->xsize*nx ;
+      yw = y - mri_smooth->ysize*ny ;
+      zw = z - mri_smooth->zsize*nz ;
       MRISsurfaceRASToVoxelCached(mris, 
                                   mri_smooth,
                                   xw, yw, zw,
@@ -25743,9 +25743,6 @@ mrisComputeRepulsiveTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht,
     if ((vno == Gdiag_no) && min_d < 1)
     {
       vn = &mris->vertices[min_vno] ;
-      dx = vn->x - x ;
-      dy = vn->y - y ;
-      dz = vn->z - z;
 
       fprintf(stdout, "v %d self repulse term:   (%2.3f, %2.3f, %2.3f)\n",
               vno, sx, sy, sz) ;
@@ -26744,6 +26741,9 @@ mrisComputeSurfaceRepulsionTerm(MRI_SURFACE *mris, double l_repulse, MHT *mht)
     {
       DiagBreak() ;
     }
+    if (v->cropped)   // turn off this term for vertices that are intersecting so they don't drive their neighbors crazy
+      continue ;
+
     x = v->x ;
     y = v->y ;
     z = v->z ;
@@ -34517,8 +34517,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
     mrisComputePosteriorTerm(mris, parms) ;
     mrisComputePosterior2DTerm(mris, parms) ;
     if (parms->l_osurf_repulse > 0)
-      mrisComputeWhichSurfaceRepulsionTerm
-      (mris, -parms->l_osurf_repulse, mht_pial, PIAL_VERTICES,.1);
+      mrisComputeWhichSurfaceRepulsionTerm(mris, -parms->l_osurf_repulse, mht_pial, PIAL_VERTICES,.1);
     if (gMRISexternalGradient)
     {
       (*gMRISexternalGradient)(mris, parms) ;
@@ -34576,8 +34575,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
       mrisScaleTimeStepByCurvature(mris) ;
       MRISclearMarks(mris) ;
-      delta_t = mrisAsynchronousTimeStep(mris, parms->momentum, dt,mht,
-                                         max_mm) ;
+      delta_t = mrisAsynchronousTimeStep(mris, parms->momentum, dt,mht,  max_mm) ;
       parms->t = n+1 ;  // for diags
 #if 0
       if (Gdiag & DIAG_WRITE)
@@ -40313,17 +40311,25 @@ mrisLimitGradientDistance(MRI_SURFACE *mris, MHT *mht, int vno)
   if (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz))
   {
     int n = 0 ;
+    if (vno == Gdiag_no)
+      printf("v %d: limiting gradient distance, starting grad (%2.2f, %2.2f, %2.2f) ---> ", vno, v->odx, v->ody, v->odz) ;
 //    mrisRemoveNormalGradientComponent(mris, vno) ;
     while (MHTisVectorFilled(mht, mris, vno, v->odx, v->ody, v->odz))
     {
       if (n++ > 25)
       {
 	v->odx = v->ody = v->odz = 0.0 ;
+	if (vno == Gdiag_no)
+	  printf("(%2.2f, %2.2f, %2.2f)\n", v->odx, v->ody, v->odz) ;
+	v->cropped++ ;
 	return(NO_ERROR) ;
       }
       v->odx *= .8 ; v->ody *= .8 ; v->odz *= 0.8 ;
     }
+    if (vno == Gdiag_no)
+      printf("(%2.2f, %2.2f, %2.2f)\n", v->odx, v->ody, v->odz) ;
   }
+  v->cropped = 0 ;
 #else // NJS
   VERTEX   *v ;
   double   scale = 1.0 ;
@@ -42640,7 +42646,11 @@ mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
 {
   VERTEX   *v, *vn ;
   int      n ;
-  float    dx, dy, dz, dot, x, y, z, dist ;
+  float    dx, dy, dz, dot, x, y, z, dist, min_nbr_dist ;
+
+  min_nbr_dist = MIN_NBR_DIST * (mris->vg.xsize+mris->vg.ysize+mris->vg.zsize)/3;
+  if (FZERO(min_nbr_dist))                                                       
+    min_nbr_dist = MIN_NBR_DIST ;
 
   v = &mris->vertices[vno] ;
   if (v->ripflag)
@@ -42660,7 +42670,7 @@ mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
     dist = sqrt(dx*dx + dy*dy + dz*dz) ;
 
     /* too close - take out gradient component in this dir. */
-    if (dist <= MIN_NBR_DIST)
+    if (dist <= min_nbr_dist)
     {
       dx /= dist ;
       dy /= dist ;
@@ -42668,9 +42678,13 @@ mrisRemoveNeighborGradientComponent(MRI_SURFACE *mris, int vno)
       dot = dx*v->odx + dy*v->ody + dz*v->odz ;
       if (dot > 0.0)
       {
+	if (vno == Gdiag_no)
+	  printf("v %d: removing neighbor gradient dist (%2.2f, %2.2f, %2.2f) --> ", vno, v->odx, v->ody, v->odz) ;
         v->odx -= dot*dx ;
         v->ody -= dot*dy ;
         v->odz -= dot*dz ;
+	if (vno == Gdiag_no)
+	  printf(" (%2.2f, %2.2f, %2.2f)\n", v->odx, v->ody, v->odz) ;
       }
     }
   }
@@ -44611,6 +44625,9 @@ MRISexpandSurface(MRI_SURFACE *mris,
     for (surf_no = 0 ; surf_no < nsurfaces ; surf_no++)
     {
       // compute target locations for each vertex
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
         v = &mris->vertices[vno] ;
@@ -44642,11 +44659,41 @@ MRISexpandSurface(MRI_SURFACE *mris,
         }
         else  // just move outwards along surface normal
         {
+	  dist = distance ;
           v->targx = v->origx + v->nx*distance ;
           v->targy = v->origy + v->ny*distance ;
           v->targz = v->origz + v->nz*distance ;
         }
+	if (parms->mri_brain && parms->target_intensity >= 0)
+	{
+	  double step_size, xw, yw, zw, xv, yv, zv, val, val0, d ;
+	  MRI    *mri ;
+
+	  mri = parms->mri_brain ;
+	  step_size = (mri->xsize + mri->ysize + mri->zsize) / 6.0 ; // shannon
+	  
+	  MRISsurfaceRASToVoxelCached(mris, mri,  v->origx, v->origy, v->origz, &xv,&yv,&zv) ;
+          MRIsampleVolume(mri, xv, yv, zv, &val0) ;
+	  for (d = 0 ; d < dist ; d += step_size)
+	  {
+	    xw = v->origx + v->nx * d ; yw = v->origy + v->ny * d ; zw = v->origz + v->nz * d ;
+	    
+	    MRISsurfaceRASToVoxelCached(mris, mri,  xw, yw, zw, &xv,&yv,&zv) ;
+	    MRIsampleVolume(mri, xv, yv, zv, &val) ;
+	    if (vno == Gdiag_no)
+	      printf("v %d: dist %2.2f, (%2.1f, %2.1f, %2.1f) = %2.1f\n", vno, d, xv, yv, zv, val) ;
+	    if ((val0 > parms->target_intensity && val < parms->target_intensity) ||
+		(val0 < parms->target_intensity && val > parms->target_intensity) ||
+		MRIindexNotInVolume(mri, xv, yv, zv))
+	      break ;
+	  }
+	  d -= STEP_SIZE ;
+          v->targx = v->origx + v->nx*d ;
+          v->targy = v->origy + v->ny*d ;
+          v->targz = v->origz + v->nz*d ;
+	}
       }
+      
       for (avgs = parms->n_averages ;  avgs >= parms->min_averages ; avgs /= 2)
       {
         for (n = parms->start_t ; n < parms->start_t+niter ; n++)
@@ -44672,8 +44719,7 @@ MRISexpandSurface(MRI_SURFACE *mris,
           mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
           mrisComputeNonlinearTangentialSpringTerm(mris, parms->l_nltspring, parms->min_dist) ;
           MRISaverageGradients(mris, avgs) ;
-          mrisAsynchronousTimeStep
-          (mris, parms->momentum, parms->dt,mht,MAX_EXP_MM) ;
+          mrisAsynchronousTimeStep(mris, parms->momentum, parms->dt,mht,MAX_EXP_MM) ;
 
           if ((parms->write_iterations > 0) &&
               !((n+1)%parms->write_iterations)&&(Gdiag&DIAG_WRITE))
@@ -48999,25 +49045,6 @@ void MRISprintInfo(TOPOFIX_PARMS *parms)
 }
 
 
-int IsMRISselfIntersecting(MRI_SURFACE *mris)
-{
-  MRIS_HASH_TABLE  *mht ;
-  int fno ;
-
-  mht = MHTfillTable(mris, NULL) ;
-
-  for (fno = 0 ; fno < mris->nfaces ; fno++)
-  {
-    if (MHTdoesFaceIntersect(mht, mris, fno))
-    {
-      MHTfree(&mht);
-      return 1;
-    }
-  }
-
-  MHTfree(&mht) ;
-  return 0 ;
-}
 
 
 // ------------ Definition of the static functions -------------------- //
@@ -75534,9 +75561,9 @@ markAllDistantConvex(MRI_SURFACE *mris, float min_dist)
 static int
 mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
 {
-  int    i, vno, vnb, *pnb, vnum ;
-  float  dx, dy, dz, num, sigma, dot ;
-  VERTEX *v, *vn ;
+  int    i, vno ;
+  float  sigma ;
+  VERTEX *v ;
   MRI_SP *mrisp, *mrisp_blur ;
 
   if (num_avgs <= 0)
@@ -75549,6 +75576,37 @@ mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
     v = &mris->vertices[Gdiag_no] ;
     fprintf(stdout, "before averaging dot = %2.2f ",
             v->dx*v->nx+v->dy*v->ny+v->dz*v->nz) ;
+
+    {
+      int vno ;
+      VERTEX *vn ;
+
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+	vn = &mris->vertices[vno] ;
+	if (vn->x > 1 && vn->dx > .1)
+	  DiagBreak() ;
+      }
+    }
+    {
+      int vno ;
+      VERTEX *vn, *vmax ;
+      double mx ;
+
+      mx = 0 ;
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+	vn = &mris->vertices[vno] ;
+	if (vn->x > 1 && vn->dx > .1)
+	  DiagBreak() ;
+	if (vn->dx > mx && vn->x > 1)
+	{
+	  mx = vn->dx ; vmax = vn ;
+	}
+      }
+      if (mx > 0)
+	DiagBreak() ;
+    }
   }
   if (0 && mris->status == MRIS_PARAMETERIZED_SPHERE)  /* use convolution */
   {
@@ -75561,20 +75619,25 @@ mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
   }
   else for (i = 0 ; i < num_avgs ; i++)
     {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
+	VERTEX *v, *vn ;
+	double  dx, dy, dz, dot ;
+	int     *pnb, vnum, num, vnb ;
+
         v = &mris->vertices[vno] ;
         if (v->ripflag)
         {
           continue ;
         }
-        dx = v->dx ;
-        dy = v->dy ;
-        dz = v->dz ;
+        dx = v->dx ; dy = v->dy ; dz = v->dz ;
         pnb = v->v ;
         /*      vnum = v->v2num ? v->v2num : v->vnum ;*/
         vnum = v->vnum ;
-        for (num = 0.0f, vnb = 0 ; vnb < vnum ; vnb++)
+        for (num = 0, vnb = 0 ; vnb < vnum ; vnb++)
         {
           vn = &mris->vertices[*pnb++] ; /* neighboring vertex pointer */
           if (vn->ripflag)
@@ -75604,17 +75667,21 @@ mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
 #endif
         }
         num++ ;
-        v->tdx = dx / num ;
-        v->tdy = dy / num ;
-        v->tdz = dz / num ;
+        v->tdx = dx / (float)num ;
+        v->tdy = dy / (float)num ;
+        v->tdz = dz / (float)num ;
       }
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
+	VERTEX *v ;
+
         v = &mris->vertices[vno] ;
         if (v->ripflag)
-        {
           continue ;
-        }
+
         v->dx = v->tdx ;
         v->dy = v->tdy ;
         v->dz = v->tdz ;
@@ -75629,6 +75696,25 @@ mrisAverageSignedGradients(MRI_SURFACE *mris, int num_avgs)
     if (fabs(dot) > 50)
     {
       DiagBreak() ;
+    }
+    {
+      int vno ;
+      VERTEX *vn, *vmax ;
+      double mx ;
+
+      mx = 0 ;
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+	vn = &mris->vertices[vno] ;
+	if (vn->x > 1 && vn->dx > .1)
+	  DiagBreak() ;
+	if (vn->dx > mx && vn->x > 1)
+	{
+	  mx = vn->dx ; vmax = vn ;
+	}
+      }
+      if (mx > 0)
+	DiagBreak() ;
     }
   }
   return(NO_ERROR) ;
@@ -77972,27 +78058,37 @@ int MRIScopyVolGeomFromMRI(MRI_SURFACE *mris, MRI *mri)
 int
 MRISremoveIntersections(MRI_SURFACE *mris)
 {
-  int     n, num, vno, writeit=0, old_num, nbrs, m ;
+  int     n, num, vno, writeit=0, old_num, nbrs, min_int ;
   VERTEX  *v ;
 
   n = 0 ;
 
+  num = mrisMarkIntersections(mris) ;
+  if (num == 0)
+    return(NO_ERROR) ;
   printf("removing intersecting faces\n") ;
-  old_num = mris->nvertices ;
-  nbrs = 1 ;
-  while ((num = mrisMarkIntersections(mris)) > 0)
+  min_int = old_num = mris->nvertices ;
+  MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
+  nbrs = 0 ;
+  MRISclearMarks(mris) ;
+  while (num > 0)
   {
     if (num >= old_num)  // couldn't remove any
     {
       // couldn't make any more progress with 1 nbrs, expand
+      if (nbrs >= 1)
+	break ;
       nbrs++ ;
       printf("expanding nbhd size to %d\n", nbrs);
     }
-
-    for (m = 0 ; m <= nbrs ; m++)
+    else
     {
-      MRISexpandMarked(mris) ;
+      min_int = num ;
+      MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
     }
+      
+
+    MRISdilateMarked(mris,nbrs) ;
     old_num = num ;
 
     printf("%03d: %d intersecting\n", n, num) ;
@@ -78001,7 +78097,7 @@ MRISremoveIntersections(MRI_SURFACE *mris)
       v = &mris->vertices[vno] ;
       v->marked = !v->marked ;  // soap bubble will fix the marked ones
     }
-    MRISsoapBubbleVertexPositions(mris, 5) ;
+    MRISsoapBubbleVertexPositions(mris, 100) ;
     if (writeit)
     {
       char fname[STRLEN] ;
@@ -78014,8 +78110,16 @@ MRISremoveIntersections(MRI_SURFACE *mris)
     {
       break ;
     }
+    MRISclearMarks(mris) ;
+    num = mrisMarkIntersections(mris) ;
   }
 
+  if (num > min_int)
+  {
+    MRISrestoreVertexPositions(mris, TMP2_VERTICES) ; // the least number of negative vertices
+    num = mrisMarkIntersections(mris) ;
+  }
+  printf("terminating search with %d intersecting\n", num) ;
   return(NO_ERROR) ;
 }
 
@@ -85801,4 +85905,101 @@ MRISevertSurface(MRI_SURFACE *mris)
   }
 
   return(NO_ERROR) ;
+}
+int
+MRISsetCroppedToZero(MRI_SURFACE *mris)
+{
+  int    vno ;
+  VERTEX *v ;
+  
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->cropped = 0 ;
+  }
+  return(NO_ERROR) ;
+}
+
+int
+MRIScopyFromCropped(MRI_SURFACE *mris, int which)
+{
+  
+  int    vno ;
+  VERTEX *v ;
+  
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    switch (which)
+    {
+    case VERTEX_VALS:     v->val = v->cropped ; break ;
+    case VERTEX_MARKS:    v->marked = v->cropped ; break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "MRIScopyFromCropped: %d unsupported target", which) ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+
+int
+MRIScopyToCropped(MRI_SURFACE *mris, int which)
+{
+  
+  int    vno ;
+  VERTEX *v ;
+  
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    switch (which)
+    {
+    case VERTEX_VALS:     v->cropped = v->val ; break ;
+    case VERTEX_MARKS:    v->cropped = v->marked ; break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "MRIScopyFromCropped: %d unsupported target", which) ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+int
+MRISwriteCropped(MRI_SURFACE *mris, char *fname)
+{
+  float *vals ;
+
+  vals = (float *)calloc(mris->nvertices, sizeof(*vals)) ;
+  MRISexportValVector(mris, vals) ;
+
+  MRIScopyFromCropped(mris, VERTEX_VALS) ;
+  MRISwriteValues(mris, fname) ;
+  MRISimportValVector(mris, vals) ;
+
+  free(vals) ;
+  return(NO_ERROR) ;
+}
+int IsMRISselfIntersecting(MRI_SURFACE *mris)
+{
+  MRIS_HASH_TABLE  *mht ;
+  int fno ;
+
+  mht = MHTfillTable(mris, NULL) ;
+
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    if (MHTdoesFaceIntersect(mht, mris, fno))
+    {
+      MHTfree(&mht);
+      return 1;
+    }
+  }
+
+  MHTfree(&mht) ;
+  return 0 ;
 }

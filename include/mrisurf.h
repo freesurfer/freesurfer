@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2017/02/07 19:04:28 $
- *    $Revision: 1.390 $
+ *    $Date: 2017/02/16 19:42:54 $
+ *    $Revision: 1.391 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -194,6 +194,7 @@ typedef struct vertex_type_
   void *vp; /* to store user's information */
   int   linked ;         // is this vertex linked to some others?
   int   fno ;            // face that this vertex is in
+  int   cropped ;
 }
 vertex_type, VERTEX ;
 
@@ -625,6 +626,7 @@ typedef struct
   MRI          *mri_volume_fractions ;  // the partial volume fractions associated with the boundaries in this mris
   MRI          *mri_dtrans ;   // distance to surface
   float        resolution ;  // at which to compute distance transforms and such
+  double       target_intensity ;
 }
 INTEGRATION_PARMS ;
 
@@ -768,6 +770,12 @@ int          MRIScopyMarksToAnnotation(MRI_SURFACE *mris) ;
 int          MRIScopyValsToAnnotations(MRI_SURFACE *mris) ;
 int          MRIScopyValuesToImagValues(MRI_SURFACE *mris) ;
 int          MRIScopyStatsToValues(MRI_SURFACE *mris) ;
+
+
+int MRISsetCroppedToZero(MRI_SURFACE *mris) ;
+int MRIScopyFromCropped(MRI_SURFACE *mris, int which) ;
+int MRIScopyToCropped(MRI_SURFACE *mris, int which) ;
+int MRISwriteCropped(MRI_SURFACE *mris, char *fname) ;
 
 int          MRIScopyValToVal2(MRI_SURFACE *mris) ;
 int          MRIScopyValToVal2Bak(MRI_SURFACE *mris) ;
@@ -1636,6 +1644,7 @@ int  MRISreadDecimation(MRI_SURFACE *mris, char *fname) ;
 #define VERTEX_DZ          8
 #define VERTEX_STATS       9
 #define VERTEX_LOGODDS     10
+#define VERTEX_MARKS       11
 
 
 int MRISclearOrigArea(MRI_SURFACE *mris) ;

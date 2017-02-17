@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2017/02/02 17:05:16 $
- *    $Revision: 1.171 $
+ *    $Date: 2017/02/16 19:42:36 $
+ *    $Revision: 1.172 $
  *
  * Copyright © 2011-2012 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -58,7 +58,7 @@
 #define  MAX_HISTO_BINS 1000
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.171 2017/02/02 17:05:16 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.172 2017/02/16 19:42:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -74,6 +74,7 @@ static int find_and_mark_pinched_regions(MRI_SURFACE *mris,
 
 static float T2_max = -1 ;
 static float T2_min = -1 ;
+static double max_outward_dist = 1 ; // for normal cases, for pathology might be much larger
 
 // 0 disables use of max_gray in setting outside_hi in white surfacee deformation
 // the larger this is, the closer outside_hi will be to max_gray. Set it high if
@@ -84,6 +85,9 @@ static int below_set = 0 ;
 static double T2_outside_min = -1 ;
 static double T2_outside_max = -1 ;
 
+static double l_repulse = 0.0 ;
+
+int MRISremoveSelfIntersections(MRI_SURFACE *mris) ;
 static int  near_bright_structure(MRI *mri_aseg, int xi, int yi, int zi, int whalf) ;
 static int compute_pial_target_locations(MRI_SURFACE *mris,
 					 MRI *mri_T2,
@@ -98,7 +102,8 @@ static int compute_pial_target_locations(MRI_SURFACE *mris,
                                          int above_set,
 					 MRI *mri_aseg,
 					 double T2_outside_min,
-					 double T2_outside_max) ;
+					 double T2_outside_max,
+                                         double max_outward_dist) ;
 static int compute_white_target_locations(MRI_SURFACE *mris,
 					  MRI *mri_T2,
 					  MRI *mri_aseg,
@@ -170,6 +175,7 @@ static LABEL *highres_label = NULL ;
 static char T1_name[STRLEN] = "brain" ;
 
 static int erase_cerebellum = 0 ;
+static int erase_brainstem = 0 ;
 static float nsigma = 2.0 ;
 static float pial_blur_sigma = 0.0 ;
 static float dura_thresh = -1 ;
@@ -225,8 +231,8 @@ static double l_surf_repulse = 5.0 ;
 
 static int smooth = 5 ;
 static int vavgs = 5 ;
-static int nwhite = 25 /*5*/ ;
-static int ngray = 30 /*45*/ ;
+static int nwhite = 100 /* 25 */ /*5*/ ;
+static int ngray = 100  /* 30*/ /*45*/ ;
 
 static int nowhite = 0 ;
 static int flairwhite = 0 ;
@@ -314,18 +320,19 @@ main(int argc, char *argv[])
   double        l_intensity, current_sigma, thresh = 0, spring_scale = 1;
   struct timeb  then ;
   M3D           *m3d ;
+  INTEGRATION_PARMS old_parms ;
 
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.171 2017/02/02 17:05:16 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.172 2017/02/16 19:42:36 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.171 2017/02/02 17:05:16 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.172 2017/02/16 19:42:36 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -532,6 +539,29 @@ main(int argc, char *argv[])
     if (mri_aseg == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s",
                 Progname, fname) ;
+    if (erase_brainstem)
+    {
+      MRImaskLabel(mri_T1, mri_T1, mri_aseg, Brain_Stem, 0) ;
+      MRImaskLabel(mri_T1, mri_T1, mri_aseg,  Left_VentralDC, 0) ;
+      MRImaskLabel(mri_T1, mri_T1, mri_aseg,  Right_VentralDC, 0) ;
+      if (mri_T1_white && mri_T1_white != mri_T1)
+      {
+	MRImaskLabel(mri_T1_white, mri_T1_white, mri_aseg, Brain_Stem, 0) ;
+	MRImaskLabel(mri_T1_white, mri_T1_white, mri_aseg,  Left_VentralDC, 0) ;
+	MRImaskLabel(mri_T1_white, mri_T1_white, mri_aseg,  Right_VentralDC, 0) ;
+      }
+
+      if (mri_T1_pial && mri_T1_pial != mri_T1)
+      {
+	MRImaskLabel(mri_T1_pial, mri_T1_pial, mri_aseg, Brain_Stem, 0) ;
+	MRImaskLabel(mri_T1_pial, mri_T1_pial, mri_aseg,  Left_VentralDC, 0) ;
+	MRImaskLabel(mri_T1_pial, mri_T1_pial, mri_aseg,  Right_VentralDC, 0) ;
+      }
+
+      MRImaskLabel(mri_filled, mri_filled, mri_aseg, Brain_Stem, 0) ;
+      MRImaskLabel(mri_filled, mri_filled, mri_aseg,  Left_VentralDC, 0) ;
+      MRImaskLabel(mri_filled, mri_filled, mri_aseg,  Right_VentralDC, 0) ;
+    }
     if (erase_cerebellum)
     {
       MRImaskLabel(mri_T1, mri_T1, mri_aseg, Left_Cerebellum_White_Matter, 0) ;
@@ -683,6 +713,7 @@ main(int argc, char *argv[])
   if (mris->ct == NULL && ctab)  
     mris->ct = ctab ;  // add user-specified color table to structure
 
+  MRISremoveIntersections(mris) ;
   if (pial_nbrs > 2)
   {
     MRISsetNeighborhoodSize(mris, pial_nbrs) ;
@@ -810,6 +841,7 @@ main(int argc, char *argv[])
     {
       ErrorExit(Gerror, "reading of orig white failed...");
     }
+    MRISremoveIntersections(mris) ;
   }
   MRIScomputeMetricProperties(mris) ;    /* recompute surface normals */
   MRISstoreMetricProperties(mris) ;
@@ -1005,9 +1037,14 @@ main(int argc, char *argv[])
               current_sigma) ;
       parms.n_averages = n_averages ;
       parms.l_tsmooth = l_tsmooth ;
-      parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_tspring *= spring_scale ;
+      *(&old_parms) = *(&parms) ;
+      parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;
+      parms.l_tspring = MIN(1.0,parms.l_tspring) ;
+      parms.l_nspring = MIN(1.0, parms.l_nspring) ;
+      parms.l_spring = MIN(1.0, parms.l_spring) ;
       MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
-      parms.l_tspring /= spring_scale ; parms.l_nspring /= spring_scale ; parms.l_tspring /= spring_scale ;
+      old_parms.start_t = parms.start_t ;
+      *(&parms) = *(&old_parms) ;
       MRISunrip(mris) ;
     }
 
@@ -1168,6 +1205,7 @@ main(int argc, char *argv[])
 
       if (MRISreadPialCoordinates(mris, fname) != NO_ERROR)
 	ErrorExit(Gerror, "reading orig pial positions failed") ;
+      MRISremoveIntersections(mris) ;
       
       strcpy(fname, flair_or_T2_name) ;
       if (MGZ)
@@ -1265,9 +1303,15 @@ main(int argc, char *argv[])
       sprintf(fname, "./%s-white%2.2f.mgz", hemi, current_sigma) ;
       MRISwriteValues(mris, fname);
     }
-    parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_tspring *= spring_scale ;
+    *(&old_parms) = *(&parms) ;
+    parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;
+    parms.l_tspring = MIN(1.0,parms.l_tspring) ;
+    parms.l_nspring = MIN(1.0, parms.l_nspring) ;
+    parms.l_spring = MIN(1.0, parms.l_spring) ;
     MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
-    parms.l_tspring /= spring_scale ; parms.l_nspring /= spring_scale ; parms.l_tspring /= spring_scale ;
+    old_parms.start_t = parms.start_t ;
+    *(&parms) = *(&old_parms) ;
+
     if (add)
     {
       for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
@@ -1293,6 +1337,7 @@ main(int argc, char *argv[])
       if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read white matter surface.",
                   Progname) ;
+      MRISremoveIntersections(mris) ;
     }
     else // read default white (something needs to be
       // read if nowhite was created)
@@ -1326,6 +1371,7 @@ main(int argc, char *argv[])
   // w/o the -nowhite option.
   if (!nowhite && strcmp(white_matter_name,"NOWRITE"))
   {
+    MRISremoveIntersections(mris) ;
     sprintf(fname,
             "%s/%s/surf/%s.%s%s%s",
             sdir, sname,hemi,white_matter_name,
@@ -1498,6 +1544,7 @@ main(int argc, char *argv[])
     {
       ErrorExit(Gerror, "reading orig pial positions failed") ;
     }
+    MRISremoveIntersections(mris) ;
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
 
     if (longitudinal)
@@ -1602,7 +1649,7 @@ main(int argc, char *argv[])
 
   sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
   fprintf(stderr, "repositioning cortical surface to gray/csf boundary.\n") ;
-  parms.l_repulse = 0 ;
+  parms.l_repulse = l_repulse ;
 //  for (j = 0 ; j <= 0 ; parms.l_intensity *= 2, j++)  /* only once for now */
 
   for (j = 0 ; j < 1 ; j++)  /* only once for now */
@@ -1632,6 +1679,9 @@ main(int argc, char *argv[])
           MRIfree(&mri_flair) ;
         }
 
+	if (n_averages <= min_pial_averages)
+	  parms.l_repulse = 0 ;  // for final round turn off the 'unpinching' term
+
         mri_flair = MRIread(fname) ;
         if (mri_flair == NULL)
         {
@@ -1645,6 +1695,13 @@ main(int argc, char *argv[])
 	  MRImaskLabel(mri_flair, mri_flair, mri_aseg,  Left_Cerebellum_Cortex, 0) ;
 	  MRImaskLabel(mri_flair, mri_flair, mri_aseg,  Right_Cerebellum_White_Matter, 0) ;
 	  MRImaskLabel(mri_flair, mri_flair, mri_aseg, Right_Cerebellum_Cortex, 0) ;
+	}
+
+	if (mri_aseg && erase_brainstem)
+	{
+	  MRImaskLabel(mri_flair, mri_flair, mri_aseg, Brain_Stem, 0) ;
+	  MRImaskLabel(mri_flair, mri_flair, mri_aseg,  Left_VentralDC, 0) ;
+	  MRImaskLabel(mri_flair, mri_flair, mri_aseg,  Right_VentralDC, 0) ;
 	}
 
         if (read_pinch_fname)
@@ -1719,10 +1776,11 @@ main(int argc, char *argv[])
           nlabels = 0 ;
         }
 
+	MRISremoveIntersections(mris) ;
         compute_pial_target_locations(mris, mri_flair,
                                       nsigma_below, nsigma_above,
                                       labels, nlabels,
-                                      CONTRAST_FLAIR, T2_min, T2_max, below_set, above_set,mri_aseg, T2_outside_min, T2_outside_max) ;
+                                      CONTRAST_FLAIR, T2_min, T2_max, below_set, above_set,mri_aseg, T2_outside_min, T2_outside_max,max_outward_dist) ;
 
         if (Gdiag & DIAG_WRITE)
         {
@@ -1739,9 +1797,12 @@ main(int argc, char *argv[])
 	if (i == 0) // only the first time
 	{
 #if 1
-	  parms.l_nspring *= 0.1 ;
-	  parms.l_tspring *= 0.1 ;
-	  parms.l_curv *= 0.1 ;
+//	  parms.l_nspring *= 0.1 ;
+//	  parms.l_tspring *= 0.1 ;
+//	  parms.l_curv *= 0.1 ;
+	  parms.l_nspring *= 0.25 ;
+	  parms.l_tspring *= 0.25 ;
+	  parms.l_curv *= 0.25 ;
 #else
 	  parms.l_nspring *= 0.5 ;
 	  parms.l_tspring *= 0.5 ;
@@ -1848,7 +1909,7 @@ main(int argc, char *argv[])
           compute_pial_target_locations(mris, mri_T2,
                                         nsigma_below, nsigma_above,
                                         labels, nlabels,
-                                        CONTRAST_T2, T2_min, T2_max, below_set, above_set,mri_aseg, T2_outside_min, T2_outside_max) ;
+                                        CONTRAST_T2, T2_min, T2_max, below_set, above_set,mri_aseg, T2_outside_min, T2_outside_max,max_outward_dist) ;
         }
 
         if (Gdiag & DIAG_WRITE)
@@ -2076,9 +2137,14 @@ main(int argc, char *argv[])
 
 	for (k = 0 ; k < 3 ; k++)
 	{
-	  parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_tspring *= spring_scale ;
+	  *(&old_parms) = *(&parms) ;
+	  parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;
+	  parms.l_tspring = MIN(1.0,parms.l_tspring) ;
+	  parms.l_nspring = MIN(1.0, parms.l_nspring) ;
+	  parms.l_spring = MIN(1.0, parms.l_spring) ;
 	  MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
-	  parms.l_tspring /= spring_scale ; parms.l_nspring /= spring_scale ; parms.l_tspring /= spring_scale ;
+	  old_parms.start_t = parms.start_t ;
+	  *(&parms) = *(&old_parms) ;
 	  if (!FZERO(parms.l_intensity))
 	    MRIScomputeBorderValues
 	      (mris, mri_T1, mri_smooth, max_gray,
@@ -2096,9 +2162,34 @@ main(int argc, char *argv[])
 #endif
       }
 #endif
-      parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_tspring *= spring_scale ;
+      *(&old_parms) = *(&parms) ;
+      parms.l_tspring *= spring_scale ; parms.l_nspring *= spring_scale ; parms.l_spring *= spring_scale ;
+      parms.l_tspring = MIN(1.0,parms.l_tspring) ;
+      parms.l_nspring = MIN(1.0, parms.l_nspring) ;
+      parms.l_spring = MIN(1.0, parms.l_spring) ;
       MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
-      parms.l_tspring /= spring_scale ; parms.l_nspring /= spring_scale ; parms.l_tspring /= spring_scale ;
+      old_parms.start_t = parms.start_t ;
+      *(&parms) = *(&old_parms) ;
+
+      if (parms.l_location > 0)
+      {
+	int vno ;
+	VERTEX *v ;
+	double dist ;
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+	  v = &mris->vertices[vno] ;
+	  dist = sqrt(SQR(v->targx - v->x) + SQR(v->targy-v->y) + SQR(v->targz-v->z)) ;
+	  v->cropped = nint((float)v->cropped * dist) ;
+	}
+	if (Gdiag_no > 0)
+	  MRISwriteCropped(mris, "cropped.mgz") ;
+	DiagBreak() ;
+	MRISsetCroppedToZero(mris) ;
+      }
+
+
       /*    parms.l_nspring = 0 ;*/
       if (!n_averages)
       {
@@ -2107,6 +2198,7 @@ main(int argc, char *argv[])
     }
   }
 
+  MRISremoveIntersections(mris) ;
   sprintf(fname, "%s/%s/surf/%s.%s%s%s", sdir, sname, hemi, pial_name,
           output_suffix, suffix) ;
   fprintf(stderr, "writing pial surface to %s...\n", fname) ;
@@ -2209,15 +2301,31 @@ main(int argc, char *argv[])
         MRISwriteValues(mris, fname) ;
       }
       MRISpositionSurface(mris, mri_T1, mri_smooth,&parms);
+      if (parms.l_location > 0)
+      {
+	int vno ;
+	VERTEX *v ;
+	double dist ;
+
+	for (vno = 0 ; vno < mris->nvertices ; vno++)
+	{
+	  v = &mris->vertices[vno] ;
+	  dist = sqrt(SQR(v->targx - v->x) + SQR(v->targy-v->y) + SQR(v->targz-v->z)) ;
+	  v->cropped = nint((float)v->cropped * dist) ;
+	}
+	if (Gdiag_no > 0)
+	  MRISwriteCropped(mris, "cropped.mgz") ;
+	DiagBreak() ;
+	MRISsetCroppedToZero(mris) ;
+      }
       if (!n_averages)
       {
         break ;
       }
     }
-    MRISsaveVertexPositions
-    (mris, ORIGINAL_VERTICES) ; /* gray/white surface */
-    MRISrestoreVertexPositions
-    (mris, TMP_VERTICES) ;  /* pial surface */
+    MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ; /* gray/white surface */
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;  /* pial surface */
+    MRISremoveIntersections(mris) ;
     sprintf(fname, "%s/%s/surf/%s.%s2%s", sdir, sname,hemi,white_matter_name,
             suffix);
     fprintf(stderr, "writing gray/white surface to %s...\n", fname) ;
@@ -2289,10 +2397,21 @@ get_option(int argc, char *argv[])
     erase_cerebellum = 1 ;
     printf("erasing cerebellum in aseg before deformation\n") ;
   }
+  else if (!stricmp(option, "nobrainstem") || !stricmp(option, "-erasebrainstem") || !stricmp(option, "erase_brainstem"))
+  {
+    erase_brainstem = 1 ;
+    printf("erasing brainstem in aseg before deformation\n") ;
+  }
   else if (!stricmp(option, "nbrs"))
   {
     nbrs = atoi(argv[2]) ;
     fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "repulse"))
+  {
+    l_repulse = atof(argv[2]) ;
+    fprintf(stderr,  "setting l_repulse = %2.2f\n", l_repulse) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "max_gray_scale"))
@@ -2305,6 +2424,12 @@ get_option(int argc, char *argv[])
   {
     T2_min = atof(argv[2]) ;
     fprintf(stderr,  "using min T2 gray matter threshold %2.1f\n", T2_min) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "max_out"))
+  {
+    max_outward_dist = atof(argv[2]) ;
+    fprintf(stderr,  "using max outward dist %2.1f\n", max_outward_dist) ;
     nargs = 1 ;
   }
   else if (!stricmp(option, "T2_max"))
@@ -2917,7 +3042,7 @@ get_option(int argc, char *argv[])
     parms.flags |= IPFLAG_FIND_FIRST_WM_PEAK ;
     printf("settling WM surface at first peak in intensity profile\n") ;
   }
-  else if (!stricmp(option, "max"))
+  else if (!stricmp(option, "max") || !stricmp(option, "max_thickness"))
   {
     max_thickness = atof(argv[2]) ;
     nargs = 1 ;
@@ -4279,16 +4404,16 @@ compute_pial_target_locations(MRI_SURFACE *mris,
                               LABEL **labels,
                               int nlabels,
                               int contrast_type, float T2_min, float T2_max, int below_set, int above_set, MRI *mri_aseg,
-			      double T2_outside_min, double T2_outside_max)
+			      double T2_outside_min, double T2_outside_max, double max_outward_dist)
 {
-  Real      val, xs, ys, zs, xv, yv, zv, d, mean, std, xvf, yvf, zvf ;
+  Real      val, xs, ys, zs, xv, yv, zv, d, mean, std, xvf, yvf, zvf, xp, yp, zp ;
   int       vno, num_in, num_out, found_bad_intensity;
   int done, bin, niter, outside_of_white, n, histo_nbins, outside_of_pial ;
   VERTEX    *v ;
-  double min_gray, max_gray, thickness, nx, ny, nz, mn, mx, sig, sample_dist;
-  double last_white, max_outward_dist, last_pial, conservative_nsigma = .5, dist_to_white  ;
+  double min_gray, max_gray, thickness, nx, ny, nz, mn, mx, sig, sample_dist, dx, dy, dz, len;
+  double last_white, last_pial, conservative_nsigma = .5, dist_to_white, dist_to_pial, last_dist_to_pial  ;
   HISTOGRAM *h, *hcdf, *hcdf_rev ;
-  MRI       *mri_filled, *mri_filled_pial, *mri_tmp, *mri_dist_lh, *mri_dist_rh, *mri_dist_white ;
+  MRI       *mri_filled, *mri_filled_pial, *mri_tmp, *mri_dist_lh, *mri_dist_rh, *mri_dist_white, *mri_dist_pial_smooth, *mri_dist_pial, *mri_kernel = NULL ;
   float     min_val, max_val ;
 
   sample_dist = MIN(SAMPLE_DIST, mri_T2->xsize/2) ;
@@ -4313,10 +4438,19 @@ compute_pial_target_locations(MRI_SURFACE *mris,
   mri_dist_white = MRIcloneDifferentType(mri_filled, MRI_FLOAT) ;
   MRIdistanceTransform(mri_filled, mri_dist_white, 1, 100, DTRANS_MODE_SIGNED, NULL) ;
   MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
+  MRIfree(&mri_filled) ;
 
   MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
   mri_tmp = MRISfillInterior(mris, mri_T2->xsize/2, NULL) ;
   mri_filled_pial = MRIextractRegionAndPad(mri_tmp, NULL, NULL, nint(30/mri_T2->xsize)) ; MRIfree(&mri_tmp) ;
+  mri_dist_pial = MRIcloneDifferentType(mri_filled_pial, MRI_FLOAT) ;
+  MRIdistanceTransform(mri_filled_pial, mri_dist_pial, 1, 100, DTRANS_MODE_SIGNED, NULL) ;
+  MRIfree(&mri_filled_pial) ;
+  mri_kernel = MRIgaussian1d(2/mri_dist_pial->xsize, 100) ;
+  mri_dist_pial_smooth = MRIconvolveGaussian(mri_dist_pial, NULL, mri_kernel) ;
+  MRIfree(&mri_kernel) ; 
+
+
   MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
   MRIScomputeMetricProperties(mris) ;
 
@@ -4337,7 +4471,11 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       nx = v->pialx - v->whitex ; ny = v->pialy - v->whitey ; nz = v->pialz - v->whitez ;
       thickness = sqrt(SQR(nx)+SQR(ny)+SQR(nz)) ;
       if (FZERO(thickness))  // pial and white in same place - no cortex here
+      {
+	if ((vno == Gdiag_no) && IsMRISselfIntersecting(mris))
+	  DiagBreak() ;
         continue ;
+      }
 
       MRISvertexToVoxel(mris, v, mri_T2, &xv, &yv, &zv) ;
 
@@ -4345,9 +4483,10 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       {
         xs = v->whitex + d*v->nx ; ys = v->whitey + d*v->ny ; zs = v->whitez + d*v->nz ;
         MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
-        MRISsurfaceRASToVoxelCached(mris, mri_filled, xs, ys, zs, &xvf, &yvf, &zvf);
+        MRISsurfaceRASToVoxelCached(mris, mri_dist_white, xs, ys, zs, &xvf, &yvf, &zvf);
+        MRIsampleVolume(mri_dist_white, xvf, yvf, zvf, &dist_to_white) ;
         MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
-        if (val <= 0 || (MRIgetVoxVal(mri_filled, nint(xvf), nint(yvf), nint(zvf), 0) > 0))
+        if (val <= 0 || dist_to_white <= 0)
           continue ;
 
 	if (val > 250)
@@ -4471,8 +4610,9 @@ compute_pial_target_locations(MRI_SURFACE *mris,
       if (val <= 0)
         continue ;
 
-      MRISsurfaceRASToVoxelCached(mris, mri_filled, xs, ys, zs, &xvf, &yvf, &zvf);
-      if (MRIgetVoxVal(mri_filled, nint(xvf), nint(yvf), nint(zvf), 0) > 0)
+      MRISsurfaceRASToVoxelCached(mris, mri_dist_white, xs, ys, zs, &xvf, &yvf, &zvf);
+      MRIsampleVolume(mri_dist_white, xvf, yvf, zvf, &dist_to_white) ;
+      if (dist_to_white <= 0)
         break ;
 
       if (mri_aseg != NULL)
@@ -4504,6 +4644,8 @@ compute_pial_target_locations(MRI_SURFACE *mris,
         break ;
       }
     }
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     if (found_bad_intensity)
     {
       num_in++ ;
@@ -4528,16 +4670,33 @@ compute_pial_target_locations(MRI_SURFACE *mris,
     else  // no invalid intensities found in the interior,
       // check for valid ones in the exterior?
     {
-      max_outward_dist = 1 ;  // only small deformations for now
       outside_of_white = outside_of_pial = 0 ;
       last_pial = last_white = 0 ;
+      MRISsurfaceRASToVoxelCached(mris, mri_dist_pial, v->x, v->y, v->z, &xvf, &yvf, &zvf);
+      MRIsampleVolume(mri_dist_pial, xvf, yvf, zvf, &last_dist_to_pial) ;
+      // follow the gradient of the distance transform of the pial surface outwards
+      // as the surface normal direction becomes meaningless a few mm out from surface
+      xp = xvf ; yp = yvf ; zp = zvf ;
       for (d = 0 ; d <= max_outward_dist ; d += sample_dist)
       {
-        xs = v->x + d*v->nx ; ys = v->y + d*v->ny ; zs = v->z + d*v->nz ;
-        MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
-        MRISsurfaceRASToVoxelCached(mris, mri_filled, xs, ys, zs, &xvf, &yvf, &zvf);
-        if (MRIindexNotInVolume(mri_filled, nint(xvf), nint(yvf), nint(zvf)) ||
-	    MRIgetVoxVal(mri_filled, nint(xvf), nint(yvf), nint(zvf), 0) == 0)
+	// sample gradient of distance transform
+	MRIsampleVolumeGradient(mri_dist_pial_smooth, xp, yp, zp, &dx, &dy, &dz) ;
+	len = sqrt(dx*dx + dy*dy + dz*dz) ;
+	if (!FZERO(len))
+	{
+	  len *= (mri_dist_pial->xsize)/sample_dist  ;
+	  dx /= len ; dy /= len ; dz /= len ;   // make the [dx,dy,dz] vector sample_dist mm in length
+	  len = sqrt(dx*dx + dy*dy + dz*dz) ;
+	}
+	MRISsurfaceRASFromVoxel(mris, mri_dist_pial,  xp, yp, zp, &xs, &ys, &zs) ;
+	xp += dx;  yp += dy ; zp += dz ;
+
+//        xs = v->x + d*v->nx ; ys = v->y + d*v->ny ; zs = v->z + d*v->nz ;
+        MRISsurfaceRASToVoxelCached(mris, mri_dist_white, xs, ys, zs, &xvf, &yvf, &zvf);
+	MRIsampleVolume(mri_dist_white, xvf, yvf, zvf, &dist_to_white) ;
+	
+        if (MRIindexNotInVolume(mri_dist_white, nint(xvf), nint(yvf), nint(zvf)) ||
+	    dist_to_white > 0)
           outside_of_white = 1 ;
         else if (!outside_of_white)  // haven't gotten out of the wm yet - ignore intensities
         {
@@ -4545,25 +4704,45 @@ compute_pial_target_locations(MRI_SURFACE *mris,
           continue ;
         }
 	// check to see if we are outside of the pial surface
-        MRISsurfaceRASToVoxelCached(mris, mri_filled_pial, xs, ys, zs, &xvf, &yvf, &zvf);
-        if (MRIgetVoxVal(mri_filled_pial, nint(xvf), nint(yvf), nint(zvf), 0) == 0)
+        MRISsurfaceRASToVoxelCached(mris, mri_dist_pial, xs, ys, zs, &xvf, &yvf, &zvf);
+	MRIsampleVolume(mri_dist_pial, xvf, yvf, zvf, &dist_to_pial) ;
+	if (outside_of_pial && dist_to_pial-last_dist_to_pial < 0.25*sample_dist)   // oblique to pial surface
+	{
+	  DiagBreak() ;
+#if 0
+	  d = 0 ;
+	  break ;
+#endif
+	}
+	last_dist_to_pial = dist_to_pial ;
+
+        if (dist_to_pial > mri_dist_pial->xsize)
           outside_of_pial = 1 ;
         else if (outside_of_pial == 0)  // still inside of pial surface
           last_pial = d ;
+	else   // was outside of pial and reentered it
+	{
+	  if (vno == Gdiag_no)
+	    printf("v %d: terminating searrch at distance %2.1f (%2.1f, %2.1f, %2.1f) due to pial reentry\n",
+		   vno, d, xs, ys, zs) ;
+	  d = 0 ;
+	  break ;
+	}
 
-        MRISsurfaceRASToVoxelCached(mris, mri_filled, xs, ys, zs, &xvf, &yvf, &zvf);
-	MRIsampleVolume(mri_dist_white, xvf, yvf, zvf, &dist_to_white) ;
-        if (outside_of_white && (MRIindexNotInVolume(mri_filled, nint(xvf), nint(yvf), nint(zvf)) == 0) &&
-            MRIgetVoxVal(mri_filled, nint(xvf), nint(yvf), nint(zvf), 0) > 0)  // interior of wm surface, probably normals are messed up
+        if (outside_of_white && (dist_to_white <= 0))  // interior of wm surface, probably normals are messed up
         {
           if (d-last_white > .5)  // really out of white and not just grazing a corner of the surface
           {
+	    if (vno == Gdiag_no)
+	      printf("v %d: terminating searrch at distance %2.1f (%2.1f, %2.1f, %2.1f) due to wm reentry\n",
+		     vno, d, xs, ys, zs) ;
             d = 0 ;
             break ;
           }
           else
             last_white = d ;  // didn't really leave wm
         }
+        MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
         MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
         if (val < 0)
           continue ;
@@ -4624,9 +4803,13 @@ compute_pial_target_locations(MRI_SURFACE *mris,
         if ((val < T2_outside_min && dist_to_white>1.2) ||  (val > T2_outside_max))  // only look for a very narrow range of intensities
           break ;
       }
+      if (vno == Gdiag_no)
+	DiagBreak() ;
+      if (d <= max_outward_dist && d > 4)
+	DiagBreak() ;
       if (d > max_outward_dist)  // couldn't find pial surface
       {
-	if (outside_of_pial > 0)
+	if (outside_of_pial > 0 || dist_to_pial > 0)
 	{
 	  if (vno == Gdiag_no)
 	    DiagBreak() ;
@@ -4655,9 +4838,12 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	      }
 	    }
 	    MRISsurfaceRASToVoxelCached(mris, mri_T2, xs, ys, zs, &xv, &yv, &zv);
-	    MRISsurfaceRASToVoxelCached(mris, mri_filled_pial, xs, ys, zs, &xvf, &yvf, &zvf);
 	    MRIsampleVolumeType(mri_T2, xv, yv, zv, &val, SAMPLE_TRILINEAR) ;
-	    if (MRIgetVoxVal(mri_filled_pial, nint(xvf), nint(yvf), nint(zvf), 0) > 0)
+
+	    MRISsurfaceRASToVoxelCached(mris, mri_dist_pial, xs, ys, zs, &xvf, &yvf, &zvf);
+	    MRIsampleVolume(mri_dist_pial, xvf, yvf, zvf, &dist_to_pial) ;
+
+	    if (dist_to_pial < 0)
 	    {
 	      if (outside_of_pial) // was outside and came back in - terminate search as we have crossed a sulcus
 	      {
@@ -4676,6 +4862,8 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	}
 	else
 	{
+	  if (vno == Gdiag_no)
+	    printf("v %d: could not find pial surface\n", vno) ;
 	  v->marked = 0 ;
 	  d = 0 ;
 	}
@@ -4684,10 +4872,16 @@ compute_pial_target_locations(MRI_SURFACE *mris,
 	v->marked = 1 ;
       if (d > 0)
       {
+	xp -= dx;  yp -= dy ; zp -= dz ;
+	MRISsurfaceRASFromVoxel(mris, mri_dist_pial,  xp, yp, zp, &xs, &ys, &zs) ;
         d -= sample_dist ;
         num_out++ ;
+	v->targx = xs ; v->targy = ys ; v->targz = zs ;
       }
-      v->targx = v->x+d*v->nx ; v->targy = v->y+d*v->ny ; v->targz = v->z+d*v->nz ;
+      else
+      {
+	v->targx = v->x+d*v->nx ; v->targy = v->y+d*v->ny ; v->targz = v->z+d*v->nz ;
+      }
       MRISsurfaceRASToVoxelCached(mris, mri_T2,
                                   v->targx, v->targy, v->targz,
                                   &xv, &yv, &zv);
@@ -4701,8 +4895,8 @@ compute_pial_target_locations(MRI_SURFACE *mris,
                vno,d,v->targx,v->targy,v->targz, xv, yv, zv) ;
     }
   }
-  MRIfree(&mri_filled) ; HISTOfree(&h) ; HISTOfree(&hcdf) ; HISTOfree(&hcdf_rev) ; MRIfree(&mri_filled_pial) ;
-  MRIfree(&mri_dist_white) ;
+  HISTOfree(&h) ; HISTOfree(&hcdf) ; HISTOfree(&hcdf_rev) ; 
+  MRIfree(&mri_dist_white) ; MRIfree(&mri_dist_pial) ;  MRIfree(&mri_dist_pial_smooth) ;
 
   if (mri_aseg)
   {
@@ -5809,4 +6003,40 @@ near_bright_structure(MRI *mri_aseg, int xi, int yi, int zi, int whalf)
     (label_histo[Left_Amygdala] > 0) ||
     (label_histo[Right_Amygdala] > 0)
     );
+}
+
+int
+MRISremoveSelfIntersections(MRI_SURFACE *mris)
+{
+  MRIS_HASH_TABLE  *mht ;
+  int              n, vno, fno ;
+  VERTEX           *v ;
+
+  MRISremoveIntersections(mris);
+  return(NO_ERROR) ;
+  mht = MHTfillTable(mris, NULL) ;
+  
+  MRISsetMarks(mris, 1) ;  // fixed vertices
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    if (MHTdoesFaceIntersect(mht, mris, fno))
+    {
+      for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+      {
+	vno = mris->faces[fno].v[n] ;
+	v = &mris->vertices[vno] ;
+	v->marked = 0 ;
+	if (vno == Gdiag_no)
+	  DiagBreak() ;
+      }
+    }
+  }
+
+  MRISdilateMarked(mris, 1) ;
+  MRISwriteMarked(mris, "marked.mgz") ;
+  MRISsoapBubbleVertexPositions(mris, 500) ;
+  MRISwrite(mris, "after_soap") ;
+
+  MHTfree(&mht) ;
+  return(NO_ERROR) ; ;
 }
