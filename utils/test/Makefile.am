@@ -2,6 +2,7 @@
 # Makefile.am
 #
 SUBDIRS=mriBuildVoronoiDiagramFloat \
+		MRIScomputeBorderValues \
         mrishash \
         mriSoapBubbleFloat
 

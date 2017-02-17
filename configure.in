@@ -4084,6 +4084,7 @@ AC_OUTPUT([Makefile
            utils/NrrdIO/Makefile
            utils/test/Makefile
            utils/test/mriBuildVoronoiDiagramFloat/Makefile
+           utils/test/MRIScomputeBorderValues/Makefile
            utils/test/mrishash/Makefile
            utils/test/mriSoapBubbleFloat/Makefile
            utilscpp/Makefile
