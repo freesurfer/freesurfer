@@ -47,8 +47,8 @@ function mri = MRIread(fstring,headeronly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2012/02/14 21:59:33 $
-%    $Revision: 1.25 $
+%    $Date: 2017/02/16 19:51:43 $
+%    $Revision: 1.26 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -97,6 +97,7 @@ switch(fmt)
     mri.vol = [];
     volsz(1:2) = [volsz(2) volsz(1)];
   end
+  if(isempty(mr_parms)) mr_parms = zeros(4,1); end
   tr = mr_parms(1);
   flip_angle = mr_parms(2);
   te = mr_parms(3);
