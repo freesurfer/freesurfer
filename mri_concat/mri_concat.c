@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/01/20 23:39:49 $
- *    $Revision: 1.66 $
+ *    $Date: 2017/02/16 19:49:35 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -63,7 +63,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.66 2016/01/20 23:39:49 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.67 2017/02/16 19:49:35 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000 // such a large number may break valgrind
@@ -895,10 +895,9 @@ static int parse_commandline(int argc, char **argv)
     {
       DoNorm1 = 1;
     }
-    else if (!strcasecmp(option, "--prune"))
-    {
-      DoPrune = 1;
-    }
+    else if (!strcasecmp(option, "--prune")) DoPrune = 1;
+    else if (!strcasecmp(option, "--no-prune")) DoPrune = 0;
+
     else if (!strcasecmp(option, "--max-bonfcor"))
     {
       DoMax = 1;
