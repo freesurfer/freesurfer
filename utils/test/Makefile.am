@@ -1,7 +1,9 @@
 #
 # Makefile.am
 #
-SUBDIRS=mrishash
+SUBDIRS=mriBuildVoronoiDiagramFloat \
+        mrishash \
+        mriSoapBubbleFloat
 
 AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \

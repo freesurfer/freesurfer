@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: zkaufman $
-#    $Date: 2017/02/10 18:45:54 $
-#    $Revision: 1.680 $
+#    $Author: ah221 $
+#    $Date: 2017/02/14 22:38:31 $
+#    $Revision: 1.681 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -4083,7 +4083,9 @@ AC_OUTPUT([Makefile
            utils/cephes/Makefile
            utils/NrrdIO/Makefile
            utils/test/Makefile
+           utils/test/mriBuildVoronoiDiagramFloat/Makefile
            utils/test/mrishash/Makefile
+           utils/test/mriSoapBubbleFloat/Makefile
            utilscpp/Makefile
            utilscpp/test/Makefile
            qdec_glmfit/Makefile
