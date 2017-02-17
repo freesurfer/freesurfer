@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/08/02 21:09:14 $
- *    $Revision: 1.55 $
+ *    $Date: 2017/02/16 19:50:57 $
+ *    $Revision: 1.56 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -65,7 +65,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.55 2016/08/02 21:09:14 greve Exp $";
+"$Id: mri_volsynth.c,v 1.56 2017/02/16 19:50:57 greve Exp $";
 
 char *Progname = NULL;
 
@@ -129,6 +129,7 @@ MRI *fMRIhsynth(MRI *res, MRI *mask, int DoTNorm);
 MPoint *ctrpoints=NULL, *crsctrpoints=NULL;
 int nctrpoints=0, CPUseRealRAS;
 int cgridspace=8, rgridspace=8, sgridspace=2;
+int spherecenter[3], spherecenterset = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -227,12 +228,15 @@ int main(int argc, char **argv)
   else if (strcmp(pdfname,"const")==0)
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], ValueA, NULL);
   else if (strcmp(pdfname,"sphere")==0) {
-    if(voxradius < 0)
-      voxradius =
-        sqrt( pow(dim[0]/2.0,2)+pow(dim[1]/2.0,2)+pow(dim[2]/2.0,2) )/2.0;
+    if(voxradius < 0) voxradius = sqrt( pow(dim[0]/2.0,2)+pow(dim[1]/2.0,2)+pow(dim[2]/2.0,2) )/2.0;
     printf("voxradius = %lf\n",voxradius);
+    if(!spherecenterset){
+      spherecenter[0] = dim[0]/2.0;
+      spherecenter[1] = dim[1]/2.0;
+      spherecenter[2] = dim[2]/2.0;
+    }
     mri = MRIsphereMask(dim[0], dim[1], dim[2], dim[3],
-                        dim[0]/2.0, dim[1]/2.0, dim[2]/2.0,
+                        spherecenter[0],spherecenter[1],spherecenter[2],
                         voxradius, ValueA, NULL);
   } else if (strcmp(pdfname,"delta")==0) {
     mri = MRIconst(dim[0], dim[1], dim[2], dim[3], delta_off_value, NULL);
@@ -716,11 +720,21 @@ static int parse_commandline(int argc, char **argv) {
       }
       sscanf(pargv[0],"%lf",&ValueB);
       nargsused = 1;
-    } else if (!strcmp(option, "--radius")) {
+    } 
+    else if (!strcmp(option, "--radius")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&voxradius);
       nargsused = 1;
-    } else if (!strcmp(option, "--dof-den") || !strcmp(option, "--dof")) {
+    } 
+    else if (!strcmp(option, "--sphere-center")) {
+      if (nargc < 3) argnerr(option,3);
+      sscanf(pargv[0],"%d",&spherecenter[0]);
+      sscanf(pargv[1],"%d",&spherecenter[1]);
+      sscanf(pargv[2],"%d",&spherecenter[2]);
+      spherecenterset = 1;
+      nargsused = 3;
+    } 
+    else if (!strcmp(option, "--dof-den") || !strcmp(option, "--dof")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&dendof);
       nargsused = 1;
@@ -832,6 +846,7 @@ static void print_usage(void) {
   printf("   --val-a value : set ValA (default 1)\n");
   printf("   --val-b value : set ValB (default 0)\n");
   printf("   --radius voxradius : radius (in voxels) for sphere\n");
+  printf("   --sphere-center col row slice\n");
   printf("   --hsc min max : multiply each frame by a random number bet min and max\n");
   printf("   --abs : compute absolute value\n");
   printf("   --cp control.dat : set control point voxels = 1 \n");
