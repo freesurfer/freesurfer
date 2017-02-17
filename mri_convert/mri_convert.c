@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2016/02/26 16:15:24 $
- *    $Revision: 1.226 $
+ *    $Author: greve $
+ *    $Date: 2017/02/16 19:15:42 $
+ *    $Revision: 1.227 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.226 2016/02/26 16:15:24 mreuter Exp $",
+   "$Id: mri_convert.c,v 1.227 2017/02/16 19:15:42 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -342,7 +342,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.226 2016/02/26 16:15:24 mreuter Exp $",
+      "$Id: mri_convert.c,v 1.227 2017/02/16 19:15:42 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1696,7 +1696,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.226 2016/02/26 16:15:24 mreuter Exp $\n");
+  printf("$Id: mri_convert.c,v 1.227 2017/02/16 19:15:42 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
 #if  0
@@ -3015,16 +3015,25 @@ int main(int argc, char *argv[])
   {
     printf("changing data type from %s to %s (noscale = %d)...\n",
            MRItype2str(mri->type),MRItype2str(template->type),no_scale_flag);
-    mri2 =
-    MRISeqchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
-    if (mri2 == NULL)
-    {
+    mri2 = MRISeqchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
+    if(mri2 == NULL){
       printf("ERROR: MRISeqchangeType\n");
       exit(1);
     }
     /* (mr) now always map 0 to 0 (was only in conform case before)
        should this be part of MRISeqchangeType? */
-    MRImask(mri2, mri, mri2, 0, 0) ;  // make sure 0 maps to 0
+    /* (dng) this used to use MRImask, but that did not work for multiple frame*/
+    /* Neither mr nor dng can remember where a problem came up that required this fix*/
+    for(c=0; c < mri->width; c++) {
+      for(r=0; r < mri->height; r++) {
+        for(s=0; s < mri->depth; s++){
+          for(f=0; f < mri->nframes; f++) {
+            v = MRIgetVoxVal(mri,c,r,s,f);
+	    if(v==0) MRIsetVoxVal(mri2,c,r,s,f,0);
+          }
+        }
+      }
+    }
     MRIfree(&mri);
     mri = mri2;
   }
@@ -3361,14 +3370,9 @@ int main(int argc, char *argv[])
             for(c=0; c < mri->width; c++)
             {
               if(ascii_flag == 1)
-              {
-                fprintf(fptmp,"%lf \n",MRIgetVoxVal(mri,c,r,s,f));
-              }
+                fprintf(fptmp,"%lf\n",MRIgetVoxVal(mri,c,r,s,f));
               if(ascii_flag == 2)
-              {
-                fprintf(fptmp,"%3d %3d %3d %3d %lf \n",
-                        c,r,s,f,MRIgetVoxVal(mri,c,r,s,f));
-              }
+                fprintf(fptmp,"%3d %3d %3d %3d %lf\n",c,r,s,f,MRIgetVoxVal(mri,c,r,s,f));
             }
           }
         }
@@ -3382,9 +3386,9 @@ int main(int argc, char *argv[])
         {
           for(c=0; c < mri->width; c++)
           {
-            for(f=0; f < mri->nframes; f++)
-            {
-              fprintf(fptmp,"%lf ",MRIgetVoxVal(mri,c,r,s,f));
+            for(f=0; f < mri->nframes; f++){
+              fprintf(fptmp,"%lf",MRIgetVoxVal(mri,c,r,s,f));
+	      if(f != mri->nframes-1) fprintf(fptmp," ");
             }
             fprintf(fptmp,"\n");
           }
