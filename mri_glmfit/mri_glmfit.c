@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2016/12/06 20:24:11 $
- *    $Revision: 1.245 $
+ *    $Date: 2017/02/15 21:04:18 $
+ *    $Revision: 1.246 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -562,7 +562,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.245 2016/12/06 20:24:11 greve Exp $";
+"$Id: mri_glmfit.c,v 1.246 2017/02/15 21:04:18 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -938,7 +938,7 @@ int main(int argc, char **argv) {
   // X ---------------------------------------------------------
   //Load global X------------------------------------------------
   if((XFile != NULL) | usedti) {
-    if(usedti != 1) {
+    if(usedti == 0 || usedti == 3) {
       mriglm->Xg = MatrixReadTxt(XFile, NULL);
       if (mriglm->Xg==NULL) mriglm->Xg = MatlabRead(XFile);
       if (mriglm->Xg==NULL) {
@@ -946,15 +946,16 @@ int main(int argc, char **argv) {
         printf("Could not load as text or matlab4");
         exit(1);
       }
-      if(usedti == 2) {
+      if(usedti == 3){
 	dti = (DTI*) calloc(sizeof(DTI),1);
 	dti->B = mriglm->Xg;
       }
     } 
     else {
       printf("Using DTI\n");
-      dti = DTIstructFromBFiles(bvalfile,bvecfile);
-      if (dti==NULL) exit(1);
+      if(XFile != NULL) dti = DTIstructFromSiemensAscii(XFile);
+      else              dti = DTIstructFromBFiles(bvalfile,bvecfile);
+      if(dti==NULL) exit(1);
       sprintf(tmpstr,"%s/bvals.dat",GLMDir);
       DTIwriteBValues(dti->bValue, tmpstr);
       //DTIfslBValFile(dti,tmpstr);
@@ -964,6 +965,7 @@ int main(int argc, char **argv) {
       mriglm->Xg = MatrixCopy(dti->B,NULL);
     }
   }
+
   if (useasl) {
     mriglm->Xg = MatrixConstVal(1.0, mriglm->y->nframes, 3, NULL);
     for (n=0; n < mriglm->y->nframes; n += 2) {
@@ -2690,9 +2692,20 @@ static int parse_commandline(int argc, char **argv) {
       weightsqrt = 1;
       nargsused = 1;
       DoPCC = 0; 
-    } else if (!strcmp(option, "--X")) {
+    } 
+    else if (!strcmp(option, "--X")) {
       if (nargc < 1) CMDargNErr(option,1);
       XFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--dti-X")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      XFile = pargv[0];
+      usedti=3;
+      DoPCC = 0;
+      logflag = 1;
+      format = "nii.gz";
+      ComputeFWHM = 0;
       nargsused = 1;
     } 
     else if (!strcmp(option, "--dti")) {
@@ -2705,7 +2718,7 @@ static int parse_commandline(int argc, char **argv) {
         nargsused = 2;
       }
       else {
-	// input matrix to use in analysis
+	// file with siemens ascii header
         XFile = pargv[0];
 	usedti=2;
         nargsused = 1;
@@ -2925,6 +2938,10 @@ printf("   --synth : replace input with gaussian\n");
 printf("\n");
 printf("   --resynthtest niters : test GLM by resynthsis\n");
 printf("   --profile     niters : test speed\n");
+printf("\n");
+printf("   --dti bvals bvecs\n");
+printf("   --dti siemensdicom\n");
+printf("   --dti-X X.mtx : dti analysis with given design matrix\n");
 printf("\n");
 printf("   --mrtm1 RefTac TimeSec : perform MRTM1 kinetic modeling\n");
 printf("   --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling\n");
