@@ -2,9 +2,10 @@
 # Makefile.am
 #
 SUBDIRS=mriBuildVoronoiDiagramFloat \
-		MRIScomputeBorderValues \
+	MRIScomputeBorderValues \
         mrishash \
-        mriSoapBubbleFloat
+        MRISpositionSurface \
+	mriSoapBubbleFloat
 
 AM_CPPFLAGS=-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
