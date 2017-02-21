@@ -6,6 +6,9 @@
 
 QT       += core gui opengl
 
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+
+
 TARGET = nmovie_qt
 TEMPLATE = app
 
