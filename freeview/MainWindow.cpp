@@ -552,7 +552,8 @@ void MainWindow::LoadSettings()
     }
     else
     {
-      ((RenderView3D*)m_views[i])->GetCursor3D()->SetColor(m_settings["CursorColor"].value<QColor>());
+        ((RenderView3D*)m_views[i])->GetCursor3D()->SetColor(m_settings["CursorColor"].value<QColor>());
+        ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetColor(m_settings["CursorColor"].value<QColor>());
       if (m_settings["CursorStyle"].toInt() < 2)
       {
         ((RenderView3D*)m_views[i])->GetCursor3D()->SetLarge(m_settings["CursorStyle"].toInt());

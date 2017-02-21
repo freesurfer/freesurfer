@@ -359,7 +359,10 @@ void RenderView2D::StopSelection()
 {
   m_selection2D->Show( false );
 
-  QList<Layer*> layers = MainWindow::GetMainWindow()->GetSelectedLayers("MRI");
+  QList<Layer*> layers;
+  if (MainWindow::GetMainWindow()->GetCurrentLayerType() == "MRI")
+    layers = MainWindow::GetMainWindow()->GetSelectedLayers("MRI");
+  layers << MainWindow::GetMainWindow()->GetLayers("MRI");
   for (int i = 0; i < layers.size(); i++)
   {
     LayerMRI* layer = qobject_cast<LayerMRI*>(layers[i]);
@@ -368,9 +371,11 @@ void RenderView2D::StopSelection()
       double range[2], m_dPt0[3], m_dPt2[3];
       m_selection2D->GetWorldPoint( 0, m_dPt0 );
       m_selection2D->GetWorldPoint( 2, m_dPt2 );
-      if ( layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
+      int nColorMap = layer->GetProperty()->GetColorMap();
+      if (layer->IsVisible() && nColorMap != LayerPropertyMRI::LUT &&
+              nColorMap != LayerPropertyMRI::DirectionCoded && layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
       {
-        switch ( layer->GetProperty()->GetColorMap() )
+        switch ( nColorMap )
         {
         case LayerPropertyMRI::Grayscale:
           layer->GetProperty()->SetMinMaxGrayscaleWindow( range[0], range[1] );
@@ -382,6 +387,7 @@ void RenderView2D::StopSelection()
           layer->GetProperty()->SetMinMaxGenericThreshold( range[0], range[1] );
           break;
         }
+        break;
       }
     }
   }

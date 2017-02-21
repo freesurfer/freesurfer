@@ -165,6 +165,7 @@ bool LayerCollection::RemoveLayer( Layer* layer, bool deleteObject )
 
 bool LayerCollection::RemoveLayers(QList<Layer *> layers)
 {
+    int nLast = 0;
     for ( int i = 0; i < m_layers.size(); i++ )
     {
         foreach (Layer* layer, layers)
@@ -173,6 +174,7 @@ bool LayerCollection::RemoveLayers(QList<Layer *> layers)
             {
                 m_layers.erase( m_layers.begin() + i );
                 layer->deleteLater();
+                nLast = i;
                 i--;
                 break;
             }
@@ -180,8 +182,10 @@ bool LayerCollection::RemoveLayers(QList<Layer *> layers)
     }
     if (m_layers.isEmpty())
         SetActiveLayer(NULL);
+    else if (nLast < m_layers.size())
+        SetActiveLayer(m_layers[nLast]);
     else
-        SetActiveLayer(m_layers[0]);
+        SetActiveLayer(m_layers[m_layers.size()-1]);
 
     foreach (Layer* layer, layers)
     {

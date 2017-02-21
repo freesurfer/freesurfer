@@ -55,8 +55,12 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   }
   connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)),
           ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetColor(QColor)));
+  connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)),
+          ((RenderView3D*)mainwnd->GetRenderView(3))->GetInflatedSurfCursor(), SLOT(SetColor(QColor)));
   connect(ui->comboBoxCursorStyle, SIGNAL(currentIndexChanged(int)),
           ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetStyle(int)));
+  connect(ui->comboBoxCursorStyle, SIGNAL(currentIndexChanged(int)),
+          ((RenderView3D*)mainwnd->GetRenderView(3))->GetInflatedSurfCursor(), SLOT(SetStyle(int)));
   connect(ui->checkBoxSyncZoom, SIGNAL(toggled(bool)),
           mainwnd, SLOT(SyncZoom(bool)));
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)),
