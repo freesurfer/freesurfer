@@ -2496,8 +2496,7 @@ MRI *MRIreplaceList(MRI *seg, int *srclist, int *targlist, int nlist, MRI *mask,
 */
 MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
 {
-  int     width, height, depth, x, y, z, frame ;
-  float   val ;
+  int     width, height, depth, z ;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
@@ -2511,8 +2510,14 @@ MRI *MRIreplaceValues(MRI *mri_src, MRI *mri_dst, float in_val, float out_val)
   if (mri_src->type == MRI_UCHAR && mri_dst->type == MRI_UCHAR)
     return(MRIreplaceValuesUchar
            (mri_src, mri_dst, (BUFTYPE)nint(in_val), (BUFTYPE)nint(out_val))) ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for shared(mri_src, mri_dst, out_val, width, height, depth)
+#endif
   for (z = 0 ; z < depth ; z++)
   {
+    int     x, y, frame ;
+    float   val ;
+
     for (y = 0 ; y < height ; y++)
     {
       for (x = 0 ; x < width ; x++)
