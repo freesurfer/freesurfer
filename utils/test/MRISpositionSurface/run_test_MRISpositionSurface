@@ -1,0 +1,52 @@
+#!/bin/tcsh -f
+#
+# unit test for: MRISpositionSurface
+#     - this script provides source and reference data for the testing binary
+#
+
+
+umask 002
+
+# extract testing data:
+gunzip -c testdata.tar.gz | tar xvf -
+
+
+#
+# run test_MRISpositionSurface with the source and reference files:
+#
+
+cd testdata
+
+setenv FREESURFER_HOME ../../distribution
+setenv SUBJECTS_DIR ""
+
+
+set threads=( 1 8 )
+foreach num ($threads)
+
+    setenv OMP_NUM_THREADS $num
+    echo
+    echo "running test_MRISpositionSurface with $OMP_NUM_THREADS thread(s)"
+
+    set cmd=(../test_MRISpositionSurface lh.surf mri_brain.mgz mri_smooth.mgz)
+    echo
+    $cmd
+    if ($status != 0) then
+      echo "test_MRISpositionSurface FAILED"
+      exit 1
+    endif
+
+end
+
+echo
+echo
+echo
+
+
+# cleanup:
+cd ..
+rm -rf testdata
+
+echo
+echo "MRISpositionSurface passed test"
+exit 0

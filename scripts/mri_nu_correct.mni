@@ -89,7 +89,14 @@ if($status) then
   exit 1;
 endif
 
-if(! $#tmpdir) set tmpdir = $OutDir/tmp.mri_nu_correct.mni.$$
+# check for existence of /dev/shm
+set templocation = $OutDir
+if (-d /dev/shm) then
+  echo "Found /dev/shm , will use for temp dir" | tee -a $LF
+  set templocation = "/dev/shm"
+endif
+
+if(! $#tmpdir) set tmpdir = $templocation/tmp.mri_nu_correct.mni.$$
 mkdir -p $tmpdir
 echo "tmpdir is $tmpdir" | tee -a $LF
 

@@ -5,7 +5,7 @@
 #include <QMouseEvent>
 
 RenderWidget::RenderWidget(QWidget *parent) :
-    QGLWidget(parent),
+    QWidget(parent),
     m_bAutoResize(true),
     m_nCurrentImageIndex(-1),
     m_nInterval(40)

@@ -5,7 +5,7 @@
 #include <QTimer>
 #include <QImage>
 
-class RenderWidget : public QGLWidget
+class RenderWidget : public QWidget
 {
     Q_OBJECT
 public:
