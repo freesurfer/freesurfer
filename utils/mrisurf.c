@@ -13803,6 +13803,26 @@ MRISwriteValues(MRI_SURFACE *mris, const char *sname)
   return(NO_ERROR) ;
 }
 
+#if 1
+int
+MRISwriteD(MRI_SURFACE *mris, const char *sname)
+{
+  float  *curv_save ;
+
+  curv_save = (float *)calloc(mris->nvertices, sizeof(float)) ;
+  if (!curv_save)
+    ErrorExit(ERROR_NOMEMORY,
+              "MRISwriteMarked: could not alloc %d vertex curv storage",
+              mris->nvertices) ;
+
+  MRISextractCurvatureVector(mris, curv_save) ;
+  MRISmarkedToCurv(mris) ;
+  MRISwriteCurvature(mris, sname) ;
+  MRISimportCurvatureVector(mris, curv_save) ;
+  free(curv_save) ;
+  return(NO_ERROR) ;
+}
+#else
 
 /*-----------------------------------------------------
   Parameters:
@@ -13840,6 +13860,7 @@ MRISwriteD(MRI_SURFACE *mris, const char *sname)
     err = MRIwrite(TempMRI,sname);
     return(err);
   }
+
 
   cp = strrchr(fname, '.') ;
   if (!cp || *(cp+1) != 'w')
@@ -13918,7 +13939,7 @@ MRISwriteD(MRI_SURFACE *mris, const char *sname)
 
   return(NO_ERROR) ;
 }
-
+#endif
 
 /*-----------------------------------------------------
   Parameters:
@@ -72505,6 +72526,42 @@ MRIScurvToMarked(MRI_SURFACE *mris)
       continue ;
     }
     v->marked = (int)v->curv ;
+  }
+  return(NO_ERROR) ;
+}
+
+int
+MRISdToCurv(MRI_SURFACE *mris)
+{
+  int     vno ;
+  VERTEX  *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+    {
+      continue ;
+    }
+    v->curv = (float)v->d ;
+  }
+  return(NO_ERROR) ;
+}
+
+int
+MRIScurvToD(MRI_SURFACE *mris)
+{
+  int     vno ;
+  VERTEX  *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+    {
+      continue ;
+    }
+    v->d = v->curv ;
   }
   return(NO_ERROR) ;
 }

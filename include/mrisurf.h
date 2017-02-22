@@ -1070,6 +1070,7 @@ int          MRISPwrite(MRI_SP *mrisp, char *fname) ;
 int          MRISwriteArea(MRI_SURFACE *mris,const  char *sname) ;
 int          MRISwriteMarked(MRI_SURFACE *mris,const  char *sname) ;
 int          MRISmarkedToCurv(MRI_SURFACE *mris) ;
+int          MRISdToCurv(MRI_SURFACE *mris) ;
 
 double       MRISParea(MRI_SP *mrisp) ;
 
@@ -2102,6 +2103,7 @@ int MRIScopyAnnotationsToMarkedIndex(MRI_SURFACE *mris) ;
 int MRISmaxMarked(MRI_SURFACE *mris) ;
 int MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale) ;
 int MRIScurvToMarked(MRI_SURFACE *mris) ;
+int MRIScurvToD(MRI_SURFACE *mris) ;
 int MRISreadMarked(MRI_SURFACE *mris, const char *sname) ;
 int MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices) ;
 double MRISsampleFace(MRI_SURFACE *mris, int fno, int which, double x, double y, double z, double val0, double val1, double val2);
