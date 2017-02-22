@@ -46,7 +46,8 @@ USAGE: ./mri_glmfit
    --osgm : construct X and C as a one-sample group mean
    --no-contrasts-ok : do not fail if no contrasts specified
    --dti bvals bvecs : do DTI analysis using bvals and bvecs
-   --dti X.txt : do DTI analysis using provided matrix
+   --dti siemensdicom : do DTI analysis extracting bvals and bvecs from dicom
+   --dti-X X.txt : do DTI analysis using provided matrix
 
    --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors
    --selfreg col row slice   : self-regressor from index col row slice
@@ -73,13 +74,17 @@ USAGE: ./mri_glmfit
    --prune : remove voxels that do not have a non-zero value at each frame (def)
    --no-prune : do not prune
    --logy : compute natural log of y prior to analysis
-   --no-logy : compute natural log of y prior to analysis
+   --no-logy : do not compute natural log of y prior to analysis
+   --rm-spatial-mean : subtract the (masked) mean from each frame
    --yhat-save : save signal estimate (yhat)
    --eres-save : save residual error (eres)
    --eres-scm : save residual error spatial correlation matrix (eres.scm). Big!
-   --y-out y.out.mgh : save input after pre-processing
+   --y-out y.out.mgh : save input after any pre-processing
 
    --surf subject hemi <surfname> : needed for some flags (uses white by default)
+
+   --skew : compute skew and p-value for skew
+   --kurtosis : compute kurtosis and p-value for kurtosis
 
    --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z
    --sim-sign signstring : abs, pos, or neg. Default is abs.
@@ -743,11 +748,13 @@ int NSplits=0, SplitNo=0;
 int SplitMin, SplitMax, nPerSplit, RandSplit;
 int DoFisher = 0; 
 int DoPCC=1;
+int RmSpatialMean = 0;
 
 double GLMEfficiency(MATRIX *X, MATRIX *C);
 int GLMdiagnoseDesignMatrix(MATRIX *X);
 MRI *fMRIskew(MRI *y, MRI *mask);
 MRI *MRIpskew(MRI *kvals, int dof, MRI *mask, int nsamples);
+MRI *MRIremoveSpatialMean(MRI *vol, MRI *mask, MRI *out);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -758,11 +765,6 @@ int main(int argc, char **argv) {
   FILE *fp;
   double Ccond, dtmp, threshadj, eff;
   char *tmpstr2=NULL;
-
-  //Ct = MatrixConstVal(1,1,1,NULL);
-  //CCt = MatrixColNullSpace(Ct,&n);
-  //printf("n=%d %d\n",n,CCt==NULL);
-  //exit(1);
 
   eresfwhm = -1;
   csd = CSDalloc();
@@ -1288,6 +1290,13 @@ int main(int argc, char **argv) {
     }
   } else nmask = nvoxels;
   maskfraction = (double)nmask/nvoxels;
+
+  if(RmSpatialMean){
+    printf("Removing spatial mean from each frame\n");
+    mritmp = MRIremoveSpatialMean(mriglm->y, mriglm->mask, NULL);
+    MRIfree(&mriglm->y);
+    mriglm->y = mritmp;
+  }
 
   if(surf != NULL)  {
     searchspace = 0;
@@ -2368,6 +2377,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcasecmp(option, "--kurtosis")) DoKurtosis = 1;
     else if (!strcasecmp(option, "--skew")) DoSkew = 1;
+    else if (!strcasecmp(option, "--rm-spatial-mean")) RmSpatialMean = 1;
     else if (!strcasecmp(option, "--allow-zero-dof")) AllowZeroDOF = 1;
     else if (!strcasecmp(option, "--prune_thr")){
       if (nargc < 1) CMDargNErr(option,1);
@@ -2886,6 +2896,9 @@ printf("   --X design matrix file\n");
 printf("   --C contrast1.mtx <--C contrast2.mtx ...>\n");
 printf("   --osgm : construct X and C as a one-sample group mean\n");
 printf("   --no-contrasts-ok : do not fail if no contrasts specified\n");
+printf("   --dti bvals bvecs : do DTI analysis using bvals and bvecs\n");
+printf("   --dti siemensdicom : do DTI analysis extracting bvals and bvecs from dicom\n");
+printf("   --dti-X X.txt : do DTI analysis using provided matrix\n");
 printf("\n");
 printf("   --pvr pvr1 <--prv pvr2 ...> : per-voxel regressors\n");
 printf("   --selfreg col row slice   : self-regressor from index col row slice\n");
@@ -2912,21 +2925,22 @@ printf("   --mask-inv : invert mask\n");
 printf("   --prune : remove voxels that do not have a non-zero value at each frame (def)\n");
 printf("   --no-prune : do not prune\n");
 printf("   --logy : compute natural log of y prior to analysis\n");
-printf("   --no-logy : compute natural log of y prior to analysis\n");
+printf("   --no-logy : do not compute natural log of y prior to analysis\n");
+printf("   --rm-spatial-mean : subtract the (masked) mean from each frame\n");
 printf("   --yhat-save : save signal estimate (yhat)\n");
 printf("   --eres-save : save residual error (eres)\n");
 printf("   --eres-scm : save residual error spatial correlation matrix (eres.scm). Big!\n");
-printf("   --y-out y.out.mgh : save input after pre-processing\n");
-printf("   --no-pcc : do not compute partial correlation coefficient\n");
+printf("   --y-out y.out.mgh : save input after any pre-processing\n");
 printf("\n");
 printf("   --surf subject hemi <surfname> : needed for some flags (uses white by default)\n");
+printf("\n");
+printf("   --skew : compute skew and p-value for skew\n");
+printf("   --kurtosis : compute kurtosis and p-value for kurtosis\n");
 printf("\n");
 printf("   --sim nulltype nsim thresh csdbasename : simulation perm, mc-full, mc-z\n");
 printf("   --sim-sign signstring : abs, pos, or neg. Default is abs.\n");
 printf("   --uniform min max : use uniform distribution instead of gaussian\n");
 printf("\n");
-printf("   --skew : compute skew and p-value for skew\n");
-printf("   --kurtosis : compute kurtosis and p-value for kurtosis\n");
 printf("   --pca : perform pca/svd analysis on residual\n");
 printf("   --tar1 : compute and save temporal AR1 of residual\n");
 printf("   --save-yhat : flag to save signal estimate\n");
@@ -2938,10 +2952,6 @@ printf("   --synth : replace input with gaussian\n");
 printf("\n");
 printf("   --resynthtest niters : test GLM by resynthsis\n");
 printf("   --profile     niters : test speed\n");
-printf("\n");
-printf("   --dti bvals bvecs\n");
-printf("   --dti siemensdicom\n");
-printf("   --dti-X X.mtx : dti analysis with given design matrix\n");
 printf("\n");
 printf("   --mrtm1 RefTac TimeSec : perform MRTM1 kinetic modeling\n");
 printf("   --mrtm2 RefTac TimeSec k2prime : perform MRTM2 kinetic modeling\n");
@@ -3898,4 +3908,46 @@ MRI *MRIpskew(MRI *kvals, int dof, MRI *mask, int nsamples)
   MRIfree(&kmri);
   free(ksynth);
   return(pkmri);
+}
+
+MRI *MRIremoveSpatialMean(MRI *vol, MRI *mask, MRI *out)
+{
+  int c, r, s,f;
+  long nhits;
+  double v, vmean;
+
+  if(out == NULL) {
+    out = MRIallocSequence(vol->width,vol->height,vol->depth,MRI_FLOAT,vol->nframes);
+    MRIcopyHeader(vol,out);
+    MRIcopyPulseParameters(vol,out);
+  }
+
+  for (f=0; f < vol->nframes; f++){
+    // Sum the values for this frame
+    nhits = 0;
+    v = 0;
+    for(c=0; c < vol->width; c++) {
+      for(r=0; r < vol->height; r++) {
+	for(s=0; s < vol->depth; s++) {
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0)<0.5) continue;
+	  nhits++;
+          v += MRIgetVoxVal(vol,c,r,s,f);
+	}//s
+      }//r
+    }//s
+    // Compute the mean for this frame
+    vmean = v/nhits;
+    if(Gdiag_no > 0) printf("%2d %g\n",f,vmean);
+    // Subtract the spatial mean of this frame
+    for(c=0; c < vol->width; c++) {
+      for(r=0; r < vol->height; r++) {
+	for(s=0; s < vol->depth; s++) {
+	  if(mask && MRIgetVoxVal(mask,c,r,s,0)<0.5) continue;
+          v = MRIgetVoxVal(vol,c,r,s,f) - vmean;
+	  MRIsetVoxVal(out,c,r,s,f,v);
+	}//s
+      }//r
+    }//s
+  }// f
+  return(out);
 }
