@@ -5,37 +5,10 @@
 #include "kvlAtlasMeshVisitCounterCPU.h"
 #include "kvlAtlasMeshToIntensityImageGradientCalculatorCPU.h"
 #include "itkImageRegionConstIteratorWithIndex.h"
-#include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 #include "itkTimeProbe.h"
 
-// -----------------------------------------
-
-typedef kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::ImageType ImageType;
-
-class TestFileLoader {
-public:
-  ImageType::ConstPointer image;
-  kvl::AtlasMeshCollection::Pointer meshCollection;
-  kvl::AtlasMesh::ConstPointer mesh;
-
-  //! Constructor reads in the two files
-  TestFileLoader() {
-    // Read a test image
-    typedef itk::ImageFileReader<ImageType>  ReaderType;
-    ReaderType::Pointer  reader = ReaderType::New();
-    reader->SetFileName( "test.nii" );
-    reader->Update();
-    this->image = reader->GetOutput();
-    BOOST_TEST_CHECKPOINT("Test image read");
-    
-    // Read a test atlas mesh
-    this->meshCollection = kvl::AtlasMeshCollection::New();
-    BOOST_CHECK( meshCollection->Read( "test.txt" ) );
-    this->mesh = this->meshCollection->GetReferenceMesh();
-    BOOST_TEST_CHECKPOINT("Test atlas mesh read");
-  }
-};
+#include "testfileloader.hpp"
 
 // -----------------------------------------
 
