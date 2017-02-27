@@ -67,10 +67,10 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
     fprintf(stderr, "%s\n", qPrintable(msg));
     fflush(0);
     break;
-  case QtInfoMsg:
-    fprintf(stdout, "%s\n", qPrintable(msg));
-    fflush(0);
-    break;
+//  case QtInfoMsg:
+//   fprintf(stdout, "%s\n", qPrintable(msg));
+//    fflush(0);
+//    break;
   case QtFatalMsg:
     fprintf(stderr, "%s\n", qPrintable(msg));
     fflush(0);
