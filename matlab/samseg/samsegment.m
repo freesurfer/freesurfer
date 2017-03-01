@@ -44,12 +44,6 @@ fprintf('maxNuberOfIterationPerMultiResolutionLevel(2) = %d\n',maxNuberOfIterati
 %meshCollectionFileName = '/autofs/cluster/koen/koen/GEMSapplications/wholeBrain/CurrentMeshCollection30New.txt.gz';
 %compressionLookupTableFileName = '/autofs/cluster/koen/koen/GEMSapplications/wholeBrain/namedCompressionLookupTable.txt'; % Look-up table belonging to the atlas (see below)
 
-
-% paths to spm8 and GEMS mex/matlab
-% Is spm really needed here?
-path(path,'/usr/pubsw/common/spm/spm8')
-path(path, '/autofs/cluster/koen/koen/GEMS-Release/bin')
-
 % Specify the maximum number of threads the C++ stuff will use. The more threads you can use
 % the faster, provided you have a matching amount of cores on your system - up to
 % the point where memory becomes the bottle neck.
