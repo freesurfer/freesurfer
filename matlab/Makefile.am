@@ -15,6 +15,8 @@ survivalexdatafilesdir=$(prefix)/matlab/Survival/ex_data
 survivalmassunifilesdir=$(prefix)/matlab/Survival/mass_univariate
 survivalunifilesdir=$(prefix)/matlab/Survival/univariate
 
+dist_bin_SCRIPTS = samseg/run_samseg samseg/samseg
+
 mfiles_DATA=\
 	angles2rotmat.m \
 	barsegstats.m \
