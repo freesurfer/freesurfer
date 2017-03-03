@@ -25,6 +25,7 @@
 #include "Layer.h"
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
+#include "LayerSurface.h"
 #include <QPainter>
 #include <QContextMenuEvent>
 #include <QMenu>
@@ -286,6 +287,16 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
           connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(OnApplyVolumeTransform()));
           menu->addAction(act);
       }
+    }
+    else if (layers[0]->GetEndType() == "Surface")
+    {
+        if (((LayerSurface*)layers[0])->IsContralateralReady())
+        {
+            menu->addSeparator();
+            act = new QAction("Go To Contralateral Point", this);
+            connect(act, SIGNAL(triggered(bool)), MainWindow::GetMainWindow(), SLOT(GoToContralateralPoint()));
+            menu->addAction(act);
+        }
     }
     else if (layers[0]->GetEndType() == "PointSet")
     {
