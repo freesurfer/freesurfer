@@ -298,6 +298,18 @@ public:
 
   QList<int> GetVertexNeighbors(int nvo);
 
+  bool IsContralateralReady()
+  {
+      return (m_surfaceContralateral != NULL);
+  }
+
+  LayerSurface* GetContralateralSurface()
+  {
+      return m_surfaceContralateral;
+  }
+
+  int GetContralateralVertex(int nvo);
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay(bool bAskRedraw = true, bool pre_cached = false);
@@ -349,6 +361,8 @@ public slots:
   {
       UpdateOverlay(true, true);
   }
+
+  void SetContralateralLayer(LayerSurface* layer, LayerSurface* sphere1, LayerSurface* sphere2);
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
@@ -444,6 +458,10 @@ protected:
   QStringList m_listSupFiles;
 
   unsigned char*    m_nColorDataCache;
+
+  LayerSurface*     m_surfaceContralateral;
+  LayerSurface*     m_surfaceSphere1;
+  LayerSurface*     m_surfaceSphere2;
 };
 
 #endif

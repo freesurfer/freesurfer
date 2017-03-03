@@ -120,7 +120,7 @@ public:
 
   void ZoomAtCursor(int x, int y, double factor);
 
-  bool MapInflatedCoords(LayerSurface* surf, double* pos_in, double* pos_out, bool AutoOrient = false);
+  bool MapInflatedCoords(LayerSurface* surf, double* pos_in, double* pos_out, bool AutoOrient, bool bCursor = true);
 
   void MapToInflatedCoords(double* pos_in);
 

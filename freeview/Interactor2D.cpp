@@ -84,7 +84,8 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
     if ( !( event->modifiers() & CONTROL_MODIFIER ) &&  ( event->modifiers() & Qt::ShiftModifier ) &&
          !mainwnd->IsRepositioningSurface())
     {
-      m_bWindowLevel = true;
+      // m_bWindowLevel = true;
+        return Interactor::ProcessMouseDownEvent( event, renderview );
     }
     else
     {
@@ -157,7 +158,7 @@ bool Interactor2D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
   view->UpdateAnnotation();
   view->Update2DOverlay();
 
-  if ( event->button() == Qt::LeftButton )
+  if ( event->button() == Qt::LeftButton && !( event->modifiers() & Qt::ShiftModifier ) )
   {
     return false;
   }
@@ -274,7 +275,8 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
   }
   else
   {
-    if ( event->buttons() & Qt::MidButton || event->buttons() & Qt::RightButton )
+    if ( event->buttons() & Qt::MidButton || event->buttons() & Qt::RightButton ||
+         ((event->buttons() & Qt::LeftButton) && (event->modifiers() & Qt::ShiftModifier)))
     {
       view->UpdateAnnotation();
       view->Update2DOverlay();
@@ -308,7 +310,7 @@ void Interactor2D::ProcessPostMouseWheelEvent( QWheelEvent* event, RenderView* r
 void Interactor2D::ProcessPostMouseMoveEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
-  if ( event->buttons() & Qt::RightButton )
+  if (event->buttons() & Qt::RightButton)
   {
     view->Update2DOverlay();
     view->RequestRedraw();
