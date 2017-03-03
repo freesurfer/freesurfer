@@ -559,25 +559,28 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
             }
             else if ( Layer* layer = lc_surface->HasProp( prop ) )
             {
-                if ( bCursor )
+                if (layer)
                 {
-                    if (layer)
-                    {
+                    if (bCursor)
                         lc_surface->SetActiveLayer(layer);
-                        LayerSurface* surf = (LayerSurface*)layer;
-                        QVariantMap settings = MainWindow::GetMainWindow()->GetGeneralSettings();
-                        MapInflatedCoords(surf, pos, pos, GetInteractionMode() == IM_ROIEdit?false:settings["AutoReorientView"].toBool());
-                    }
+                    LayerSurface* surf = (LayerSurface*)layer;
+                    QVariantMap settings = MainWindow::GetMainWindow()->GetGeneralSettings();
 
+                    MapInflatedCoords(surf, pos, pos,
+                                      ((!bCursor) || GetInteractionMode() == IM_ROIEdit)?false:settings["AutoReorientView"].toBool(),
+                                      bCursor);
+                }
+
+                if(bCursor)
+                {
                     lc_mri->SetCursorRASPosition( pos );
                     MainWindow::GetMainWindow()->SetSlicePosition( pos );
                     if (layer)
                         emit SurfaceVertexClicked((LayerSurface*)layer);
                 }
                 else
-                {
                     lc_mri->SetCurrentRASPosition( pos );
-                }
+
             }
 
             HighlightSliceFrame( -1 );
@@ -585,10 +588,11 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
     }
 }
 
-bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double *pos_out, bool bAutoOrient)
+bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double *pos_out, bool bAutoOrient, bool bCursor)
 {
     int nVertex = surf->GetVertexIndexAtTarget(pos_in, NULL);
-    surf->SetCurrentVertex(nVertex);
+    if (bCursor)
+        surf->SetCurrentVertex(nVertex);
     if (QFileInfo(surf->GetFileName()).fileName().contains("inflated"))
     {
         if (m_cursor3D->IsShown())
@@ -1263,12 +1267,12 @@ void RenderView3D::SnapToNearestAxis()
 
 void RenderView3D::UpdateScalarBar()
 {
-//    LayerSurface* surf = (LayerSurface*) MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
-//    if ( surf && surf->GetActiveOverlay() )
-//    {
-//        m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
-//    }
-//    else
+    //    LayerSurface* surf = (LayerSurface*) MainWindow::GetMainWindow()->GetActiveLayer( "Surface" );
+    //    if ( surf && surf->GetActiveOverlay() )
+    //    {
+    //        m_actorScalarBar->SetLookupTable( surf->GetActiveOverlay()->GetProperty()->GetLookupTable() );
+    //    }
+    //    else
     {
         RenderView::UpdateScalarBar();
     }

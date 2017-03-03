@@ -103,19 +103,6 @@ bin_PROGRAMS=\
 	kvlMaskImage \
 	kvlApplyTransform
 
-#kvlAddCSFToBucknerData
-#kvlBuildAtlasMeshWithoutGUI
-#kvlAtlasMeshRasterizorTest
-#kvlAtlasMeshCollectionTest
-#kvlLabelImageToCompactMeshRepresentation
-#kvlValidateMeshCollection
-#kvlGenerateToyExampleData
-#kvlConstructSparseMeshCollection
-#kvlConstructMultiResolutionMeshCollection
-#kvlTestImageSmoother
-#kvlGenerateWeightedColorChannels
-
-
 # kvlAtlasMeshRasterizorTest_SOURCES=kvlAtlasMeshRasterizorTest.cxx
 # kvlAtlasMeshRasterizorTest_LDADD=$(LIBS_ITK) \
 #					 libkvlAtlas3DCommon.a \
