@@ -442,6 +442,9 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   connect( m_threadVolumeFilter, SIGNAL(started()), m_statusBar, SLOT(ShowProgress()));
   connect( m_threadVolumeFilter, SIGNAL(finished()), m_statusBar, SLOT(HideProgress()));
 
+  connect(m_layerCollections["Surface"], SIGNAL(LayerAdded(Layer*)), SLOT(UpdateSurfaceContralateralInfo()), Qt::QueuedConnection);
+  connect(m_layerCollections["Surface"], SIGNAL(LayerRemoved(Layer*)), SLOT(UpdateSurfaceContralateralInfo()), Qt::QueuedConnection);
+
   this->LoadSettings();
 
   // timer served as idle loop to update action status
@@ -7331,6 +7334,98 @@ void MainWindow::GoToContralateralPoint()
         {
             SetSlicePosition(pos);
             CenterAtWorldPosition(pos);
+        }
+    }
+    else
+    {
+        LayerSurface* layer = (LayerSurface*)GetActiveLayer("Surface");
+        double pos[3];
+        layer->GetSlicePosition(pos);
+        int nvo = layer->GetVertexIndexAtTarget(pos, NULL);
+        nvo = layer->GetContralateralVertex(nvo);
+        if (nvo >= 0)
+        {
+            layer = layer->GetContralateralSurface();
+            if (layer)
+            {
+                layer->GetTargetAtVertex(nvo, pos);
+                GetLayerCollection("Surface")->SetActiveLayer(layer);
+                SetSlicePosition(pos);
+                CenterAtWorldPosition(pos);
+            }
+        }
+        else
+        {
+            qDebug() << "Did not find any vertex at cursor";
+        }
+    }
+}
+
+Layer* GetLayerByFilename(const QString& fn, const QList<Layer*>& layers)
+{
+    foreach (Layer* layer, layers)
+    {
+        if (layer->GetFileName() == fn)
+            return layer;
+    }
+    return NULL;
+}
+
+LayerSurface* GetContralateralSurfaceLayer(LayerSurface* surf, const QList<Layer*>& layers)
+{
+    QString fn = surf->GetFileName();
+    if (surf->GetHemisphere() == 0)
+        fn.replace("lh.", "rh.");
+    else
+        fn.replace("rh.", "lh.");
+    return (LayerSurface*)GetLayerByFilename(fn, layers);
+}
+
+void MainWindow::UpdateSurfaceContralateralInfo()
+{
+    QList<Layer*> surfs = GetLayers("Surface");
+    for (int i = 0; i < surfs.size(); i++)
+    {
+        LayerSurface* surf = (LayerSurface*)surfs[i], *surf2 = NULL;
+        QString fn = surf->GetFileName();
+        if (fn.endsWith("sphere.d1.left_right"))
+        {
+            surf2 = GetContralateralSurfaceLayer(surf, surfs);
+            if (!surf2)
+            {
+                surfs.removeAt(i);
+                i--;
+            }
+        }
+
+        if (surf2)
+        {
+            QString path = QFileInfo(fn).absolutePath();
+            for (int j = 0; j < surfs.size(); j++)
+            {
+                LayerSurface* first = (LayerSurface*)surfs[j];
+                if (first != surf && first != surf2)
+                {
+                    fn = first->GetFileName();
+                    if (QFileInfo(fn).absolutePath() == path)
+                    {
+                        LayerSurface* contra = GetContralateralSurfaceLayer(first, surfs);
+                        if (contra)
+                        {
+                            first->SetContralateralLayer(contra, surf, surf2);
+                            contra->SetContralateralLayer(first, surf, surf2);
+                            surfs.removeOne(first);
+                            surfs.removeOne(contra);
+                            j--;
+                            if (j < i)
+                                i--;
+                        }
+                    }
+                }
+            }
+            surfs.removeAt(i);
+            surfs.removeOne(surf2);
+            i--;
         }
     }
 }

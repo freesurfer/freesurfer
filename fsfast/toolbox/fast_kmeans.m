@@ -74,7 +74,7 @@ if(nc ~= size(kmeans0,2))
 end
 
 [nf nv] = size(y);
-tic;
+%tic;
 niters = 0;
 ndiff = nv;
 kmeans = kmeans0;
@@ -96,11 +96,16 @@ while(niters < nitersmax & ndiff > ndiffmax)
   % Recompute the class means for unfixed classes
   for c = nfix+1:nc
     ind = find(kmap==c);
-    if(~isempty(ind)) kmeans(:,c) = mean(y(:,ind),2);
+    if(~isempty(ind)) 
+      kmeans(:,c) = mean(y(:,ind),2);
     else
-      % Randomly reassign to one of the cols of y
-      ind = round(nv*rand)+1;
-      kmeans(:,c) = y(:,ind);
+      % This class did not come closest to any samples
+      % Assign it to the sample that it is closest to
+      % This used to assign to some samples randomly
+      % which created non-deterministicness
+      [mm ii] = min(d(c,:));
+      kmeans(:,c) = y(:,ii);
+      kmap(ii) = c;
     end
   end
 
@@ -112,13 +117,13 @@ while(niters < nitersmax & ndiff > ndiffmax)
   kmap0 = kmap;
   niters = niters + 1;
   if(mod(niters,10)==0 | niters == 1)
-    fprintf('%3d %5d %14.13f %g\n',niters,ndiff,mean(dmin),toc);
+    %fprintf('%3d %5d %14.13f %g\n',niters,ndiff,mean(dmin),toc);
   end
 
 end % iteration loop
 
-fprintf('%3d %5d %14.13f %14.13f %g\n',niters,ndiff,...
-	mean(dmin),sqrt(mean(dmin)),toc);
+%fprintf('%3d %5d %14.13f %14.13f %g\n',niters,ndiff,...
+%	mean(dmin),sqrt(mean(dmin)),toc);
 
 %------- Create estimate of the input ----------%
 if(nargout == 5)
