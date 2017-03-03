@@ -270,6 +270,8 @@ public slots:
 
   void GoToContralateralPoint();
 
+  void UpdateSurfaceContralateralInfo();
+
   void OnApplyVolumeTransform();
 
   void CenterAtWorldPosition(double* pos, bool mainview_only = false);
