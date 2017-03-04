@@ -1360,7 +1360,7 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
         connect(act, SIGNAL(triggered()), mainwnd, SLOT(OnSaveIsoSurface()));
     }
 
-    if (!mainwnd->GetLayers("FCD").isEmpty())
+    if (mainwnd->GetActiveLayer("Surface") || !mainwnd->GetLayers("FCD").isEmpty())
     {
         menu->addSeparator();
         QAction* act = new QAction("Go To Contralateral Point", this);

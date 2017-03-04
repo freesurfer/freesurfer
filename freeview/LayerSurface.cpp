@@ -84,7 +84,10 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_nCurrentVertex(-1),
   m_bVisibleIn3D(true),
   m_nActiveRGBMap(-1),
-  m_nColorDataCache(NULL)
+  m_nColorDataCache(NULL),
+  m_surfaceContralateral(NULL),
+  m_surfaceSphere1(NULL),
+  m_surfaceSphere2(NULL)
 {
   m_strTypeNames.push_back( "Surface" );
   m_sPrimaryType = "Surface";
@@ -2234,4 +2237,31 @@ QList<int> LayerSurface::GetVertexNeighbors(int nvo)
     for (int i = 0; i < v->vtotal; i++)
         nvo_list << v->v[i];
     return nvo_list;
+}
+
+void LayerSurface::SetContralateralLayer(LayerSurface* layer, LayerSurface* sphere1, LayerSurface* sphere2)
+{
+    m_surfaceContralateral = layer;
+    if (GetHemisphere() == sphere1->GetHemisphere())
+    {
+        m_surfaceSphere1 = sphere1;
+        m_surfaceSphere2 = sphere2;
+    }
+    else
+    {
+        m_surfaceSphere1 = sphere2;
+        m_surfaceSphere2 = sphere1;
+    }
+}
+
+int LayerSurface::GetContralateralVertex(int nvo)
+{
+    if (nvo >= 0)
+    {
+        double ras[3];
+        m_surfaceSphere1->GetSurfaceRASAtVertex(nvo, ras);
+        nvo = m_surfaceSphere2->GetVertexAtSurfaceRAS(ras, NULL);
+        return nvo;
+    }
+    return nvo;
 }
