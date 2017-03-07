@@ -54,8 +54,8 @@ Landmark::Landmark()
 }
 
 LayerLandmarks::LayerLandmarks(QObject *parent) :
-    LayerEditable(parent),
-    m_dRadius(3.0)
+  LayerEditable(parent),
+  m_dRadius(3.0)
 {
   this->m_strTypeNames << "Supplement" << "Landmarks";
 }
@@ -211,7 +211,7 @@ void LayerLandmarks::UpdateActors(bool bBuild3D)
         plane->SetNormal( j==0?1:0, j==1?1:0, j==2?1:0 );
 
         vtkSmartPointer<vtkCutter> cutter =
-          vtkSmartPointer<vtkCutter>::New();
+            vtkSmartPointer<vtkCutter>::New();
         cutter->SetInputConnection( sphere->GetOutputPort() );
         cutter->SetCutFunction( plane );
 

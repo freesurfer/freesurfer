@@ -77,7 +77,7 @@ void DialogNewVolume::SetCopyVoxel( bool bVoxel )
 LayerMRI* DialogNewVolume::GetTemplate()
 {
   return qobject_cast<LayerMRI*>(
-           ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
+        ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
 }
 
 int DialogNewVolume::GetDataType()

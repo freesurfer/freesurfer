@@ -49,7 +49,7 @@ bool Interactor3DVolumeCrop::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
   m_nMousePosY = event->y();
 
   if ( MainWindow::GetMainWindow()->GetVolumeCropper()->IsShown() &&
-      view->PickCroppingBound( m_nMousePosX, m_nMousePosY ) )
+       view->PickCroppingBound( m_nMousePosX, m_nMousePosY ) )
   {
     UpdateCursor( event, view );
     m_bCropping = true;

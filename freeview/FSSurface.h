@@ -221,9 +221,9 @@ public:
 
   void GetSmoothedNormal(int nVertex, double* v_out)
   {
-      v_out[0] = m_fSmoothedNormal[nVertex].x;
-      v_out[1] = m_fSmoothedNormal[nVertex].y;
-      v_out[2] = m_fSmoothedNormal[nVertex].z;
+    v_out[0] = m_fSmoothedNormal[nVertex].x;
+    v_out[1] = m_fSmoothedNormal[nVertex].y;
+    v_out[2] = m_fSmoothedNormal[nVertex].z;
   }
 
   bool GetVertexAtSurfaceType(int nVertex, int surface_type, double* v_out);
@@ -233,9 +233,9 @@ public:
 
 protected:
   bool InitializeData(const QString& vector_filename = QString(),
-                  const QString& patch_filename = QString(),
-                  const QString& target_filename = QString(),
-                  const QStringList& sup_files = QStringList());
+                      const QString& patch_filename = QString(),
+                      const QString& target_filename = QString(),
+                      const QStringList& sup_files = QStringList());
   void UpdatePolyData();
   void UpdatePolyData( MRIS* mris, vtkPolyData* polydata,
                        vtkPolyData* polydata_verts = NULL,

@@ -10,12 +10,12 @@ PanelFCD::PanelFCD(QWidget *parent) :
   PanelLayer("FCD", parent),
   ui(new Ui::PanelFCD)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 }
 
 PanelFCD::~PanelFCD()
 {
-    delete ui;
+  delete ui;
 }
 
 
@@ -80,7 +80,7 @@ void PanelFCD::UpdateLabelList(LayerFCD *layer_in)
     QList<bool> flags = layer->GetLabelVisibility();
     for (int i = 0; i < fcd->nlabels; i++)
     {
-   //   if (fcd->labels[i]->n_points > 0)
+      //   if (fcd->labels[i]->n_points > 0)
       {
         QTreeWidgetItem* item = new QTreeWidgetItem( ui->treeWidgetLabels );
         item->setText(0, QString("%1   %2mm").arg(QString(fcd->label_names[i]))
@@ -225,7 +225,7 @@ void PanelFCD::OnButtonRecompute()
 
 void PanelFCD::OnButtonGotoContralateral()
 {
-    MainWindow::GetMainWindow()->GoToContralateralPoint();
+  MainWindow::GetMainWindow()->GoToContralateralPoint();
 }
 
 void PanelFCD::OnButtonSaveFCDLabels()
@@ -234,9 +234,9 @@ void PanelFCD::OnButtonSaveFCDLabels()
   if ( layer )
   {
     QString dir = QFileDialog::getExistingDirectory(
-      this,
-      tr("Select a directory to save FCD labels to"),
-      QDir::currentPath() );
+          this,
+          tr("Select a directory to save FCD labels to"),
+          QDir::currentPath() );
     if(!dir.isNull())
     {
       layer->SaveFCDLabels(dir);

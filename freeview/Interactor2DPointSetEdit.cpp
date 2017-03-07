@@ -96,11 +96,11 @@ bool Interactor2DPointSetEdit::ProcessMouseDownEvent( QMouseEvent* event, Render
 
 bool Interactor2DPointSetEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
 {
-// RenderView2D* view = ( RenderView2D* )renderview;
+  // RenderView2D* view = ( RenderView2D* )renderview;
   UpdateCursor( event, renderview );
 
   m_bEditing = false;
-//  m_nCurrentIndex = -1;
+  //  m_nCurrentIndex = -1;
 
   return Interactor2D::ProcessMouseUpEvent( event, renderview );
 }

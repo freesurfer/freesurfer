@@ -1,4 +1,4 @@
- /**
+/**
  * @file  Interactor2DVolumeEdit.cpp
  * @brief Interactor for editing volume in 2D render view.
  *
@@ -67,7 +67,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
 
   if ( !view->hasFocus() )
   {
-      return Interactor2D::ProcessMouseDownEvent( event, renderview );
+    return Interactor2D::ProcessMouseDownEvent( event, renderview );
   }
 
   PreprocessMouseEvent(event);
@@ -358,7 +358,7 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
 
       foreach (LayerVolumeBase* mri, mriLayers)
         mri->SetVoxelByRAS( ras1, ras2, view->GetViewPlane(),
-                          !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton) );
+                            !(event->modifiers() & Qt::ShiftModifier) && !(event->buttons() & Qt::RightButton) );
     }
     else if ( m_nAction == EM_Clone )
     {
@@ -378,9 +378,9 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
       {
         foreach (LayerVolumeBase* mri, mriLayers)
           view->GetCursor2D()->SetInterpolationPoints(
-            mri->GetLiveWirePointsByRAS( ras,
-                                       view->GetCursor2D()->GetPosition(),
-                                       view->GetViewPlane() ) );
+                mri->GetLiveWirePointsByRAS( ras,
+                                             view->GetCursor2D()->GetPosition(),
+                                             view->GetViewPlane() ) );
       }
       view->GetCursor2D()->SetPosition( view->GetCursor2D()->GetPosition(), true );
       view->RequestRedraw();

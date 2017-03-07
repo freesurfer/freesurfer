@@ -243,7 +243,7 @@ void Contour2D::UpdateSliceLocation( double dSliceLocation )
 
   m_dSliceLocation = dSliceLocation;
   vtkSmartPointer<vtkMatrix4x4> matrix =
-    vtkSmartPointer<vtkMatrix4x4>::New();
+      vtkSmartPointer<vtkMatrix4x4>::New();
   matrix->Identity();
   double* vsize = imagedata->GetSpacing();    // 2D spacing!
   double pos[2] = { vsize[0]/IMAGE_RESAMPLE_FACTOR/2, vsize[1]/IMAGE_RESAMPLE_FACTOR/2 };

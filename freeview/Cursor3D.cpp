@@ -57,10 +57,10 @@ Cursor3D::~Cursor3D()
 
 void Cursor3D::RebuildActor(double scale)
 {
-// vtkRenderer* renderer = m_view->GetRenderer();
+  // vtkRenderer* renderer = m_view->GetRenderer();
 
   if (scale > 0)
-      m_dScale = scale;
+    m_dScale = scale;
 
   double dLen = 1.5*m_dScale * (m_bLarge?2:1);
   int n = 0;
@@ -101,8 +101,8 @@ void Cursor3D::RebuildActor(double scale)
 
 void Cursor3D::SetLarge(bool bLarge)
 {
-    m_bLarge = bLarge;
-    RebuildActor();
+  m_bLarge = bLarge;
+  RebuildActor();
 }
 
 

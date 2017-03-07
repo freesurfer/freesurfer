@@ -56,7 +56,7 @@ BrushProperty::BrushProperty (QObject* parent) : QObject(parent),
   // config->Read( _T("/BrushProperty/Tolerance"), &m_nBrushTolerance, 0L );
   m_nBrushTolerance = 0;
   m_bEnableDrawRange      = settings.value( "/BrushProperty/EnableDrawRange", false ).toBool();
-//  m_bEnableExcludeRange   = settings.value( "/BrushProperty/EnableExcludeRange", false ).toBool();
+  //  m_bEnableExcludeRange   = settings.value( "/BrushProperty/EnableExcludeRange", false ).toBool();
   m_bDrawConnectedOnly    = settings.value( "/BrushProperty/DrawConnected", false ).toBool();
   m_dDrawRange[0] = settings.value( "/BrushProperty/DrawRangeLow", 0 ).toDouble();
   m_dDrawRange[1] = settings.value( "/BrushProperty/DrawRangeHigh", 1000000 ).toDouble();

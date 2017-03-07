@@ -110,9 +110,9 @@ public:
   bool Parse( const QString& cmd);
 
   bool Found( const char* ch );
-//  bool Found( const char* ch, string* strg);
-//  bool Found( const char* ch, int* value );
-//  bool Found( const char* ch, double* value );
+  //  bool Found( const char* ch, string* strg);
+  //  bool Found( const char* ch, int* value );
+  //  bool Found( const char* ch, double* value );
   bool Found( const char* ch, string_array* sa, int nIndex = -1  ); // -1 means last one
   bool Found( const QString flag, QStringList* sa, int nIndex = -1 );
 

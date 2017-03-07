@@ -5,9 +5,9 @@
 
 class SplineTreeWidget : public QTreeWidget
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
-    explicit SplineTreeWidget(QWidget *parent = 0);
+  explicit SplineTreeWidget(QWidget *parent = 0);
 
   void contextMenuEvent(QContextMenuEvent *e);
 
