@@ -64,27 +64,27 @@ void ThreadBuildContour::run()
     QStringList list = m_mri->GetProperty()->GetLabelContourRange().split(",", QString::SkipEmptyParts);
     foreach (QString strg, list)
     {
-        if (strg.contains("-"))
+      if (strg.contains("-"))
+      {
+        QStringList sublist = strg.split("-", QString::SkipEmptyParts);
+        if (sublist.size() > 1)
         {
-            QStringList sublist = strg.split("-", QString::SkipEmptyParts);
-            if (sublist.size() > 1)
-            {
-                int n1 = qMax(1, sublist[0].toInt());
-                int n2 = sublist[1].toInt();
-                for (int i = n1; i <= n2; i++)
-                {
-                    if (!labelList.contains(i))
-                        labelList << i;
-                }
-            }
+          int n1 = qMax(1, sublist[0].toInt());
+          int n2 = sublist[1].toInt();
+          for (int i = n1; i <= n2; i++)
+          {
+            if (!labelList.contains(i))
+              labelList << i;
+          }
         }
-        else
-        {
-            int n = -1;
-            n = strg.toInt();
-            if (n > 0 && !labelList.contains(n))
-                labelList << n;
-        }
+      }
+      else
+      {
+        int n = -1;
+        n = strg.toInt();
+        if (n > 0 && !labelList.contains(n))
+          labelList << n;
+      }
     }
 
     bExtractAllRegions = true;

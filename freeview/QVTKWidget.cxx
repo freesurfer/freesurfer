@@ -103,8 +103,8 @@ QVTKWidget::QVTKWidget(QWidget* p, Qt::WindowFlags f)
 
   // set expanding to take up space for better default layouts
   this->setSizePolicy(
-    QSizePolicy( QSizePolicy::Expanding, QSizePolicy::Expanding )
-  );
+        QSizePolicy( QSizePolicy::Expanding, QSizePolicy::Expanding )
+        );
 
   mPaintEngine = new QVTKPaintEngine;
 
@@ -286,7 +286,7 @@ void QVTKWidget::SetRenderWindow(vtkRenderWindow* w)
 QVTKInteractor* QVTKWidget::GetInteractor()
 {
   return QVTKInteractor
-         ::SafeDownCast(this->GetRenderWindow()->GetInteractor());
+      ::SafeDownCast(this->GetRenderWindow()->GetInteractor());
 }
 
 void QVTKWidget::markCachedImageAsDirty()
@@ -312,7 +312,7 @@ void QVTKWidget::saveImageToCache()
   this->mCachedImage->SetExtent(this->mCachedImage->GetWholeExtent());
   this->mCachedImage->AllocateScalars();
   vtkUnsignedCharArray* array = vtkUnsignedCharArray::SafeDownCast(
-                                  this->mCachedImage->GetPointData()->GetScalars());
+        this->mCachedImage->GetPointData()->GetScalars());
   this->mRenWin->GetPixelData(0, 0, this->width()-1, this->height()-1, 1,
                               array);
   this->cachedImageCleanFlag = true;
@@ -440,7 +440,7 @@ void QVTKWidget::moveEvent(QMoveEvent* e)
  */
 void QVTKWidget::paintEvent(QPaintEvent* )
 {
-//  qDebug() << "paint" << this;
+  //  qDebug() << "paint" << this;
   vtkRenderWindowInteractor* iren = NULL;
   if(this->mRenWin)
   {
@@ -457,7 +457,7 @@ void QVTKWidget::paintEvent(QPaintEvent* )
   if (this->cachedImageCleanFlag)
   {
     vtkUnsignedCharArray* array = vtkUnsignedCharArray::SafeDownCast(
-                                    this->mCachedImage->GetPointData()->GetScalars());
+          this->mCachedImage->GetPointData()->GetScalars());
     // put cached image into back buffer if we can
     this->mRenWin->SetPixelData(0, 0, this->width()-1, this->height()-1,
                                 array, !this->mRenWin->GetDoubleBuffer());
@@ -668,9 +668,9 @@ void QVTKWidget::keyPressEvent(QKeyEvent* e)
 
   // give interactor event information
   iren->SetKeyEventInformation(
-    (e->modifiers() & Qt::ControlModifier),
-    (e->modifiers() & Qt::ShiftModifier),
-    ascii_key, e->count(), keysym);
+        (e->modifiers() & Qt::ControlModifier),
+        (e->modifiers() & Qt::ShiftModifier),
+        ascii_key, e->count(), keysym);
 
   // invoke vtk event
   iren->InvokeEvent(vtkCommand::KeyPressEvent, e);
@@ -714,9 +714,9 @@ void QVTKWidget::keyReleaseEvent(QKeyEvent* e)
 
   // give event information to interactor
   iren->SetKeyEventInformation(
-    (e->modifiers() & Qt::ControlModifier),
-    (e->modifiers() & Qt::ShiftModifier),
-    ascii_key, e->count(), keysym);
+        (e->modifiers() & Qt::ControlModifier),
+        (e->modifiers() & Qt::ShiftModifier),
+        ascii_key, e->count(), keysym);
 
   // invoke vtk event
   iren->InvokeEvent(vtkCommand::KeyReleaseEvent, e);
@@ -736,7 +736,7 @@ void QVTKWidget::wheelEvent(QWheelEvent* e)
     return;
   }
 
-// VTK supports wheel mouse events only in version 4.5 or greater
+  // VTK supports wheel mouse events only in version 4.5 or greater
   // give event information to interactor
   iren->SetEventInformationFlipY(e->x(), e->y(),
                                  (e->modifiers() & Qt::ControlModifier) > 0 ? 1 : 0,
@@ -1116,114 +1116,114 @@ const char* ascii_to_key_sym(int i)
 
 #define QVTK_HANDLE(x,y) \
   case x : \
-    ret = y; \
-    break;
+  ret = y; \
+  break;
 
 const char* qt_key_to_key_sym(Qt::Key i)
 {
   const char* ret = 0;
   switch(i)
   {
-    // Cancel
-    QVTK_HANDLE(Qt::Key_Backspace, "BackSpace")
-    QVTK_HANDLE(Qt::Key_Tab, "Tab")
-    QVTK_HANDLE(Qt::Key_Backtab, "Tab")
-    //QVTK_HANDLE(Qt::Key_Clear, "Clear")
-    QVTK_HANDLE(Qt::Key_Return, "Return")
-    QVTK_HANDLE(Qt::Key_Enter, "Return")
-    QVTK_HANDLE(Qt::Key_Shift, "Shift_L")
-    QVTK_HANDLE(Qt::Key_Control, "Control_L")
-    QVTK_HANDLE(Qt::Key_Alt, "Alt_L")
-    QVTK_HANDLE(Qt::Key_Pause, "Pause")
-    QVTK_HANDLE(Qt::Key_CapsLock, "Caps_Lock")
-    QVTK_HANDLE(Qt::Key_Escape, "Escape")
-    QVTK_HANDLE(Qt::Key_Space, "space")
-    //QVTK_HANDLE(Qt::Key_Prior, "Prior")
-    //QVTK_HANDLE(Qt::Key_Next, "Next")
-    QVTK_HANDLE(Qt::Key_End, "End")
-    QVTK_HANDLE(Qt::Key_Home, "Home")
-    QVTK_HANDLE(Qt::Key_Left, "Left")
-    QVTK_HANDLE(Qt::Key_Up, "Up")
-    QVTK_HANDLE(Qt::Key_Right, "Right")
-    QVTK_HANDLE(Qt::Key_Down, "Down")
+  // Cancel
+  QVTK_HANDLE(Qt::Key_Backspace, "BackSpace")
+      QVTK_HANDLE(Qt::Key_Tab, "Tab")
+      QVTK_HANDLE(Qt::Key_Backtab, "Tab")
+      //QVTK_HANDLE(Qt::Key_Clear, "Clear")
+      QVTK_HANDLE(Qt::Key_Return, "Return")
+      QVTK_HANDLE(Qt::Key_Enter, "Return")
+      QVTK_HANDLE(Qt::Key_Shift, "Shift_L")
+      QVTK_HANDLE(Qt::Key_Control, "Control_L")
+      QVTK_HANDLE(Qt::Key_Alt, "Alt_L")
+      QVTK_HANDLE(Qt::Key_Pause, "Pause")
+      QVTK_HANDLE(Qt::Key_CapsLock, "Caps_Lock")
+      QVTK_HANDLE(Qt::Key_Escape, "Escape")
+      QVTK_HANDLE(Qt::Key_Space, "space")
+      //QVTK_HANDLE(Qt::Key_Prior, "Prior")
+      //QVTK_HANDLE(Qt::Key_Next, "Next")
+      QVTK_HANDLE(Qt::Key_End, "End")
+      QVTK_HANDLE(Qt::Key_Home, "Home")
+      QVTK_HANDLE(Qt::Key_Left, "Left")
+      QVTK_HANDLE(Qt::Key_Up, "Up")
+      QVTK_HANDLE(Qt::Key_Right, "Right")
+      QVTK_HANDLE(Qt::Key_Down, "Down")
 
-    // Select
-    // Execute
-    QVTK_HANDLE(Qt::Key_SysReq, "Snapshot")
-    QVTK_HANDLE(Qt::Key_Insert, "Insert")
-    QVTK_HANDLE(Qt::Key_Delete, "Delete")
-    QVTK_HANDLE(Qt::Key_Help, "Help")
-    QVTK_HANDLE(Qt::Key_0, "0")
-    QVTK_HANDLE(Qt::Key_1, "1")
-    QVTK_HANDLE(Qt::Key_2, "2")
-    QVTK_HANDLE(Qt::Key_3, "3")
-    QVTK_HANDLE(Qt::Key_4, "4")
-    QVTK_HANDLE(Qt::Key_5, "5")
-    QVTK_HANDLE(Qt::Key_6, "6")
-    QVTK_HANDLE(Qt::Key_7, "7")
-    QVTK_HANDLE(Qt::Key_8, "8")
-    QVTK_HANDLE(Qt::Key_9, "9")
-    QVTK_HANDLE(Qt::Key_A, "a")
-    QVTK_HANDLE(Qt::Key_B, "b")
-    QVTK_HANDLE(Qt::Key_C, "c")
-    QVTK_HANDLE(Qt::Key_D, "d")
-    QVTK_HANDLE(Qt::Key_E, "e")
-    QVTK_HANDLE(Qt::Key_F, "f")
-    QVTK_HANDLE(Qt::Key_G, "g")
-    QVTK_HANDLE(Qt::Key_H, "h")
-    QVTK_HANDLE(Qt::Key_I, "i")
-    QVTK_HANDLE(Qt::Key_J, "h")
-    QVTK_HANDLE(Qt::Key_K, "k")
-    QVTK_HANDLE(Qt::Key_L, "l")
-    QVTK_HANDLE(Qt::Key_M, "m")
-    QVTK_HANDLE(Qt::Key_N, "n")
-    QVTK_HANDLE(Qt::Key_O, "o")
-    QVTK_HANDLE(Qt::Key_P, "p")
-    QVTK_HANDLE(Qt::Key_Q, "q")
-    QVTK_HANDLE(Qt::Key_R, "r")
-    QVTK_HANDLE(Qt::Key_S, "s")
-    QVTK_HANDLE(Qt::Key_T, "t")
-    QVTK_HANDLE(Qt::Key_U, "u")
-    QVTK_HANDLE(Qt::Key_V, "v")
-    QVTK_HANDLE(Qt::Key_W, "w")
-    QVTK_HANDLE(Qt::Key_X, "x")
-    QVTK_HANDLE(Qt::Key_Y, "y")
-    QVTK_HANDLE(Qt::Key_Z, "z")
-    // KP_0 - KP_9
-    QVTK_HANDLE(Qt::Key_Asterisk, "asterisk")
-    QVTK_HANDLE(Qt::Key_Plus, "plus")
-    // bar
-    QVTK_HANDLE(Qt::Key_Minus, "minus")
-    QVTK_HANDLE(Qt::Key_Period, "period")
-    QVTK_HANDLE(Qt::Key_Slash, "slash")
-    QVTK_HANDLE(Qt::Key_F1, "F1")
-    QVTK_HANDLE(Qt::Key_F2, "F2")
-    QVTK_HANDLE(Qt::Key_F3, "F3")
-    QVTK_HANDLE(Qt::Key_F4, "F4")
-    QVTK_HANDLE(Qt::Key_F5, "F5")
-    QVTK_HANDLE(Qt::Key_F6, "F6")
-    QVTK_HANDLE(Qt::Key_F7, "F7")
-    QVTK_HANDLE(Qt::Key_F8, "F8")
-    QVTK_HANDLE(Qt::Key_F9, "F9")
-    QVTK_HANDLE(Qt::Key_F10, "F10")
-    QVTK_HANDLE(Qt::Key_F11, "F11")
-    QVTK_HANDLE(Qt::Key_F12, "F12")
-    QVTK_HANDLE(Qt::Key_F13, "F13")
-    QVTK_HANDLE(Qt::Key_F14, "F14")
-    QVTK_HANDLE(Qt::Key_F15, "F15")
-    QVTK_HANDLE(Qt::Key_F16, "F16")
-    QVTK_HANDLE(Qt::Key_F17, "F17")
-    QVTK_HANDLE(Qt::Key_F18, "F18")
-    QVTK_HANDLE(Qt::Key_F19, "F19")
-    QVTK_HANDLE(Qt::Key_F20, "F20")
-    QVTK_HANDLE(Qt::Key_F21, "F21")
-    QVTK_HANDLE(Qt::Key_F22, "F22")
-    QVTK_HANDLE(Qt::Key_F23, "F23")
-    QVTK_HANDLE(Qt::Key_F24, "F24")
-    QVTK_HANDLE(Qt::Key_NumLock, "Num_Lock")
-    QVTK_HANDLE(Qt::Key_ScrollLock, "Scroll_Lock")
+      // Select
+      // Execute
+      QVTK_HANDLE(Qt::Key_SysReq, "Snapshot")
+      QVTK_HANDLE(Qt::Key_Insert, "Insert")
+      QVTK_HANDLE(Qt::Key_Delete, "Delete")
+      QVTK_HANDLE(Qt::Key_Help, "Help")
+      QVTK_HANDLE(Qt::Key_0, "0")
+      QVTK_HANDLE(Qt::Key_1, "1")
+      QVTK_HANDLE(Qt::Key_2, "2")
+      QVTK_HANDLE(Qt::Key_3, "3")
+      QVTK_HANDLE(Qt::Key_4, "4")
+      QVTK_HANDLE(Qt::Key_5, "5")
+      QVTK_HANDLE(Qt::Key_6, "6")
+      QVTK_HANDLE(Qt::Key_7, "7")
+      QVTK_HANDLE(Qt::Key_8, "8")
+      QVTK_HANDLE(Qt::Key_9, "9")
+      QVTK_HANDLE(Qt::Key_A, "a")
+      QVTK_HANDLE(Qt::Key_B, "b")
+      QVTK_HANDLE(Qt::Key_C, "c")
+      QVTK_HANDLE(Qt::Key_D, "d")
+      QVTK_HANDLE(Qt::Key_E, "e")
+      QVTK_HANDLE(Qt::Key_F, "f")
+      QVTK_HANDLE(Qt::Key_G, "g")
+      QVTK_HANDLE(Qt::Key_H, "h")
+      QVTK_HANDLE(Qt::Key_I, "i")
+      QVTK_HANDLE(Qt::Key_J, "h")
+      QVTK_HANDLE(Qt::Key_K, "k")
+      QVTK_HANDLE(Qt::Key_L, "l")
+      QVTK_HANDLE(Qt::Key_M, "m")
+      QVTK_HANDLE(Qt::Key_N, "n")
+      QVTK_HANDLE(Qt::Key_O, "o")
+      QVTK_HANDLE(Qt::Key_P, "p")
+      QVTK_HANDLE(Qt::Key_Q, "q")
+      QVTK_HANDLE(Qt::Key_R, "r")
+      QVTK_HANDLE(Qt::Key_S, "s")
+      QVTK_HANDLE(Qt::Key_T, "t")
+      QVTK_HANDLE(Qt::Key_U, "u")
+      QVTK_HANDLE(Qt::Key_V, "v")
+      QVTK_HANDLE(Qt::Key_W, "w")
+      QVTK_HANDLE(Qt::Key_X, "x")
+      QVTK_HANDLE(Qt::Key_Y, "y")
+      QVTK_HANDLE(Qt::Key_Z, "z")
+      // KP_0 - KP_9
+      QVTK_HANDLE(Qt::Key_Asterisk, "asterisk")
+      QVTK_HANDLE(Qt::Key_Plus, "plus")
+      // bar
+      QVTK_HANDLE(Qt::Key_Minus, "minus")
+      QVTK_HANDLE(Qt::Key_Period, "period")
+      QVTK_HANDLE(Qt::Key_Slash, "slash")
+      QVTK_HANDLE(Qt::Key_F1, "F1")
+      QVTK_HANDLE(Qt::Key_F2, "F2")
+      QVTK_HANDLE(Qt::Key_F3, "F3")
+      QVTK_HANDLE(Qt::Key_F4, "F4")
+      QVTK_HANDLE(Qt::Key_F5, "F5")
+      QVTK_HANDLE(Qt::Key_F6, "F6")
+      QVTK_HANDLE(Qt::Key_F7, "F7")
+      QVTK_HANDLE(Qt::Key_F8, "F8")
+      QVTK_HANDLE(Qt::Key_F9, "F9")
+      QVTK_HANDLE(Qt::Key_F10, "F10")
+      QVTK_HANDLE(Qt::Key_F11, "F11")
+      QVTK_HANDLE(Qt::Key_F12, "F12")
+      QVTK_HANDLE(Qt::Key_F13, "F13")
+      QVTK_HANDLE(Qt::Key_F14, "F14")
+      QVTK_HANDLE(Qt::Key_F15, "F15")
+      QVTK_HANDLE(Qt::Key_F16, "F16")
+      QVTK_HANDLE(Qt::Key_F17, "F17")
+      QVTK_HANDLE(Qt::Key_F18, "F18")
+      QVTK_HANDLE(Qt::Key_F19, "F19")
+      QVTK_HANDLE(Qt::Key_F20, "F20")
+      QVTK_HANDLE(Qt::Key_F21, "F21")
+      QVTK_HANDLE(Qt::Key_F22, "F22")
+      QVTK_HANDLE(Qt::Key_F23, "F23")
+      QVTK_HANDLE(Qt::Key_F24, "F24")
+      QVTK_HANDLE(Qt::Key_NumLock, "Num_Lock")
+      QVTK_HANDLE(Qt::Key_ScrollLock, "Scroll_Lock")
 
-  default:
+      default:
     break;
   }
   return ret;

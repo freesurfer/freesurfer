@@ -4,18 +4,18 @@
 #include "RenderView3D.h"
 
 DialogSetCamera::DialogSetCamera(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogSetCamera)
+  QDialog(parent),
+  ui(new Ui::DialogSetCamera)
 {
-    ui->setupUi(this);
-    this->setWindowFlags( Qt::Tool | Qt::WindowTitleHint |
-                          Qt::WindowCloseButtonHint| Qt::CustomizeWindowHint );
-    ui->labelMessage->hide();
+  ui->setupUi(this);
+  this->setWindowFlags( Qt::Tool | Qt::WindowTitleHint |
+                        Qt::WindowCloseButtonHint| Qt::CustomizeWindowHint );
+  ui->labelMessage->hide();
 }
 
 DialogSetCamera::~DialogSetCamera()
 {
-    delete ui;
+  delete ui;
 }
 
 void DialogSetCamera::OnRefresh()

@@ -4,16 +4,16 @@
 #include <QDialog>
 
 namespace Ui {
-    class DialogThresholdVolume;
+class DialogThresholdVolume;
 }
 
 class DialogThresholdVolume : public QDialog
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit DialogThresholdVolume(QWidget *parent = 0);
-    ~DialogThresholdVolume();
+  explicit DialogThresholdVolume(QWidget *parent = 0);
+  ~DialogThresholdVolume();
 
 public slots:
   void UpdateVolumes();

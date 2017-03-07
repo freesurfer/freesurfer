@@ -47,7 +47,7 @@ LayerPropertyROI::LayerPropertyROI ( QObject* parent) : LayerProperty( parent )
   m_dValueRange[1] = 1;
 
   mLUTTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
-// mLUTTable->ClampingOff();
+  // mLUTTable->ClampingOff();
   this->SetColorMapChanged();
 
   connect( this, SIGNAL(ColorMapChanged()), this, SIGNAL(PropertyChanged()) );
@@ -74,38 +74,38 @@ void LayerPropertyROI::SetColorMapChanged()
 
 void LayerPropertyROI::UpdateLUTTable()
 {
-    assert( mLUTTable.GetPointer() );
+  assert( mLUTTable.GetPointer() );
 
-    switch (m_nColorCode)
-    {
-    case SolidColor:
-      {
-        double range[2] = { m_dValueRange[0], m_dValueRange[1] };
-        if (range[0] > 1)
-            range[0] = 1;
-        mLUTTable->RemoveAllPoints();
-        mLUTTable->AddRGBAPoint( range[0]-0.0001, 0, 0, 0, 0 );
-        mLUTTable->AddRGBAPoint( range[0],  mRGB[0], mRGB[1], mRGB[2], 1 );
-        mLUTTable->AddRGBAPoint( range[0],  mRGB[0], mRGB[1], mRGB[2], 1 );
-        mLUTTable->AddRGBAPoint( range[1],  mRGB[0], mRGB[1], mRGB[2], 1 );
-  //      mLUTTable->AddRGBAPoint( range[1]+0.0001, 0, 0, 0, 0 );
-      }
+  switch (m_nColorCode)
+  {
+  case SolidColor:
+  {
+    double range[2] = { m_dValueRange[0], m_dValueRange[1] };
+    if (range[0] > 1)
+      range[0] = 1;
+    mLUTTable->RemoveAllPoints();
+    mLUTTable->AddRGBAPoint( range[0]-0.0001, 0, 0, 0, 0 );
+    mLUTTable->AddRGBAPoint( range[0],  mRGB[0], mRGB[1], mRGB[2], 1 );
+    mLUTTable->AddRGBAPoint( range[0],  mRGB[0], mRGB[1], mRGB[2], 1 );
+    mLUTTable->AddRGBAPoint( range[1],  mRGB[0], mRGB[1], mRGB[2], 1 );
+    //      mLUTTable->AddRGBAPoint( range[1]+0.0001, 0, 0, 0, 0 );
+  }
 
-  //    mLUTTable->AddRGBAPoint( 1-0.0001, 0, 0, 0, 0 );
-  //    mLUTTable->AddRGBAPoint( 1,  mRGB[0], mRGB[1], mRGB[2], 1 );
-  //    mLUTTable->AddRGBAPoint( 1+0.0001, 0, 0, 0, 0 );
+    //    mLUTTable->AddRGBAPoint( 1-0.0001, 0, 0, 0, 0 );
+    //    mLUTTable->AddRGBAPoint( 1,  mRGB[0], mRGB[1], mRGB[2], 1 );
+    //    mLUTTable->AddRGBAPoint( 1+0.0001, 0, 0, 0, 0 );
 
-      break;
-    case Heatscale:
-      mLUTTable->RemoveAllPoints();
-      mLUTTable->AddRGBAPoint( -m_dHeatscaleMax, 0, 1, 1, 1 );
-      mLUTTable->AddRGBAPoint( -m_dHeatscaleMin, 0, 0, 1, 1 );
-      mLUTTable->AddRGBAPoint(  0, 0, 0, 0, 0 );
-      mLUTTable->AddRGBAPoint(  m_dHeatscaleMin, 1, 0, 0, 1 );
-      mLUTTable->AddRGBAPoint(  m_dHeatscaleMax, 1, 1, 0, 1 );
-      break;
-    }
-    mLUTTable->Build();
+    break;
+  case Heatscale:
+    mLUTTable->RemoveAllPoints();
+    mLUTTable->AddRGBAPoint( -m_dHeatscaleMax, 0, 1, 1, 1 );
+    mLUTTable->AddRGBAPoint( -m_dHeatscaleMin, 0, 0, 1, 1 );
+    mLUTTable->AddRGBAPoint(  0, 0, 0, 0, 0 );
+    mLUTTable->AddRGBAPoint(  m_dHeatscaleMin, 1, 0, 0, 1 );
+    mLUTTable->AddRGBAPoint(  m_dHeatscaleMax, 1, 1, 0, 1 );
+    break;
+  }
+  mLUTTable->Build();
 }
 
 void LayerPropertyROI::SetColor ( double r, double g, double b )

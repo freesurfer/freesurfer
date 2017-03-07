@@ -70,7 +70,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
     double pos[3] = {0,0,0};
     pos[i] = 1e-4;
     if (i == 2)
-        pos[i] = -pos[i];
+      pos[i] = -pos[i];
     m_actorSplineSlice[i]->SetPosition(pos);
   }
   m_layerRef = ref;
@@ -289,7 +289,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
   // 3D
   MRI* mri = m_layerRef->GetSourceVolume()->GetMRITarget();
   double voxel_size[3] = { mri->xsize, mri->ysize, mri->zsize };
-// double* origin = m_layerRef->GetWorldOrigin();
+  // double* origin = m_layerRef->GetWorldOrigin();
   double scale = qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) );
   double radius = GetProperty()->GetRadius();
 
@@ -379,7 +379,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
         plane->SetNormal( i==0?1:0, i==1?1:0, i==2?1:0 );
 
         vtkSmartPointer<vtkCutter> cutter =
-          vtkSmartPointer<vtkCutter>::New();
+            vtkSmartPointer<vtkCutter>::New();
         cutter->SetInputConnection( sphere->GetOutputPort() );
         cutter->SetCutFunction( plane );
 
@@ -418,7 +418,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
       plane->SetNormal( i==0?1:0, i==1?1:0, i==2?1:0 );
 
       vtkSmartPointer<vtkCutter> cutter =
-        vtkSmartPointer<vtkCutter>::New();
+          vtkSmartPointer<vtkCutter>::New();
       cutter->SetInput(polydata_tube);
       cutter->SetCutFunction( plane );
 
@@ -515,7 +515,7 @@ int LayerPointSet::FindPoint( double* ras, double tolerance )
 // returns index of the point
 int LayerPointSet::AddPoint( double* ras_in, double value )
 {
-// cout << ras[0] << " " << ras[1] << " " << ras[2] << endl;
+  // cout << ras[0] << " " << ras[1] << " " << ras[2] << endl;
   double ras[3];
   if ( GetProperty()->GetSnapToVoxelCenter() )
   {
@@ -682,7 +682,7 @@ void LayerPointSet::UpdateColorMap()
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_actorSlice[i]->GetProperty()->SetColor( GetProperty()->GetColor() );  
+    m_actorSlice[i]->GetProperty()->SetColor( GetProperty()->GetColor() );
     m_actorSplineSlice[i]->GetProperty()->SetColor( GetProperty()->GetSplineColor() );
   }
 

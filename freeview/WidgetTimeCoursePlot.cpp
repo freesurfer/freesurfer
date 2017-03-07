@@ -161,9 +161,9 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
 
   // draw current stats
   QString strg = QString("Signal intensity:%1   Frame: %3")
-                 .arg(m_data[m_nCurrentFrame])
-              //   .arg(m_nCurrentFrame*m_dTR/1000)
-                 .arg(m_nCurrentFrame);
+      .arg(m_data[m_nCurrentFrame])
+      //   .arg(m_nCurrentFrame*m_dTR/1000)
+      .arg(m_nCurrentFrame);
   rc = rect().adjusted(0, 5, 0, 0);
   p.drawText(rc, Qt::AlignHCenter | Qt::AlignTop, strg);
   m_rectPlot = rc_plot;

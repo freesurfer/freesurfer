@@ -6,15 +6,15 @@
 #include <QTimer>
 
 DialogSmoothSurface::DialogSmoothSurface(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogSmoothSurface)
+  QDialog(parent),
+  ui(new Ui::DialogSmoothSurface)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 }
 
 DialogSmoothSurface::~DialogSmoothSurface()
 {
-    delete ui;
+  delete ui;
 }
 
 void DialogSmoothSurface::OnApply()

@@ -4,25 +4,25 @@
 #include <QDialog>
 
 namespace Ui {
-    class DialogSmoothSurface;
+class DialogSmoothSurface;
 }
 
 class DialogSmoothSurface : public QDialog
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit DialogSmoothSurface(QWidget *parent = 0);
-    ~DialogSmoothSurface();
+  explicit DialogSmoothSurface(QWidget *parent = 0);
+  ~DialogSmoothSurface();
 
 public slots:
-    void OnApply();
-    void OnMethod(int nMethod);
+  void OnApply();
+  void OnMethod(int nMethod);
 
 private:
-    Ui::DialogSmoothSurface *ui;
+  Ui::DialogSmoothSurface *ui;
 
-    bool ValidateAll();
+  bool ValidateAll();
 };
 
 #endif // DIALOGSMOOTHSURFACE_H

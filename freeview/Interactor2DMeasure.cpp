@@ -52,7 +52,7 @@ Interactor2DMeasure::~Interactor2DMeasure()
 bool Interactor2DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
-// UpdateCursor( event, view );
+  // UpdateCursor( event, view );
 
   if ( m_region && !m_bDrawing && !m_bEditing )
   {
@@ -66,7 +66,7 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView*
       view->UpdateCursorRASPosition( event->x(), event->y());
       view->RequestRedraw();
       return false;
-    //  return Interactor2D::ProcessMouseDownEvent( event, renderview );
+      //  return Interactor2D::ProcessMouseDownEvent( event, renderview );
     }
 
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
@@ -202,8 +202,8 @@ bool Interactor2DMeasure::ProcessMouseMoveEvent( QMouseEvent* event, RenderView*
     int posX = event->x();
     int posY = event->y();
 
-//    LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( m_strLayerTypeName.c_str() );
-//    LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
+    //    LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( m_strLayerTypeName.c_str() );
+    //    LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
 
     if ( m_region )
     {

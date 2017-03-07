@@ -5,16 +5,16 @@
 #include <QStringList>
 
 namespace Ui {
-    class DialogLoadSurface;
+class DialogLoadSurface;
 }
 
 class DialogLoadSurface : public QDialog
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit DialogLoadSurface(QWidget *parent = 0);
-    ~DialogLoadSurface();
+  explicit DialogLoadSurface(QWidget *parent = 0);
+  ~DialogLoadSurface();
 
   QString GetFilename();
   QStringList GetSupFiles();
