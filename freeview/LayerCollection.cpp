@@ -46,10 +46,16 @@ LayerCollection::LayerCollection( const QString& strType, QObject* parent ) :
 
 LayerCollection::~LayerCollection()
 {
+  Clear();
+}
+
+void LayerCollection::Clear()
+{
   for ( int i = 0; i < m_layers.size(); i++ )
   {
-    delete m_layers[i];
+    m_layers[i]->deleteLater();
   }
+  m_layers.clear();
 }
 
 bool LayerCollection::IsEmpty()

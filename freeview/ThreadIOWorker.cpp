@@ -31,6 +31,7 @@
 #include "LayerConnectomeMatrix.h"
 #include "LayerFCD.h"
 #include <QApplication>
+#include <QDebug>
 
 ThreadIOWorker::ThreadIOWorker(QObject *parent) :
   QThread(parent),
@@ -203,6 +204,9 @@ void ThreadIOWorker::run()
     }
     else
     {
+      if (m_args.value("hidden").toBool())
+          m_layer->setProperty("hidden", true);
+
       emit Finished( m_layer, m_nJobType );
     }
   }

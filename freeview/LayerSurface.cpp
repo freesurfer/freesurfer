@@ -2239,6 +2239,13 @@ QList<int> LayerSurface::GetVertexNeighbors(int nvo)
     return nvo_list;
 }
 
+void LayerSurface::ResetContralateralInfo()
+{
+    m_surfaceContralateral = NULL;
+    m_surfaceSphere1 = NULL;
+    m_surfaceSphere2 = NULL;
+}
+
 void LayerSurface::SetContralateralLayer(LayerSurface* layer, LayerSurface* sphere1, LayerSurface* sphere2)
 {
     m_surfaceContralateral = layer;
@@ -2256,7 +2263,7 @@ void LayerSurface::SetContralateralLayer(LayerSurface* layer, LayerSurface* sphe
 
 int LayerSurface::GetContralateralVertex(int nvo)
 {
-    if (nvo >= 0)
+    if (nvo >= 0 && m_surfaceSphere1)
     {
         double ras[3];
         m_surfaceSphere1->GetSurfaceRASAtVertex(nvo, ras);

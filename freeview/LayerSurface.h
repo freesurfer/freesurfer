@@ -363,6 +363,7 @@ public slots:
   }
 
   void SetContralateralLayer(LayerSurface* layer, LayerSurface* sphere1, LayerSurface* sphere2);
+  void ResetContralateralInfo();
 
 Q_SIGNALS:
   void SurfaceAnnotationAdded( SurfaceAnnotation* );
