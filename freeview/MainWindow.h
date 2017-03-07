@@ -530,6 +530,8 @@ private:
 
   QColor ParseColorInput(const QString& cmd);
 
+  void LoadSphereLeftRightIfNeeded(LayerSurface* layer);
+
   int m_nViewLayout;
   int m_nMainView;
 

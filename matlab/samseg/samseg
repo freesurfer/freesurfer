@@ -97,7 +97,7 @@ endif
 
 #========================================================
 if($usebin) then
-  set cmd = (run_samseg $input $outdir $threads $input2 $input3)
+  set cmd = (run_samseg $input $outdir $threads $usegpu $input2 $input3)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
