@@ -85,19 +85,19 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
          !mainwnd->IsRepositioningSurface())
     {
       // m_bWindowLevel = true;
-        return Interactor::ProcessMouseDownEvent( event, renderview );
+      return Interactor::ProcessMouseDownEvent( event, renderview );
     }
     else
     {
       m_bMovingCursor = true;
       view->UpdateCursorRASPosition( m_nMousePosX, m_nMousePosY,
-                                    !mainwnd->IsRepositioningSurface() && ( event->modifiers() & CONTROL_MODIFIER ) &&
-                                    ( event->modifiers() & Qt::ShiftModifier ) );
+                                     !mainwnd->IsRepositioningSurface() && ( event->modifiers() & CONTROL_MODIFIER ) &&
+                                     ( event->modifiers() & Qt::ShiftModifier ) );
       view->RequestRedraw();
       if (mainwnd->IsRepositioningSurface())
       {
         if ( event->modifiers() & CONTROL_MODIFIER &&
-          event->modifiers() & Qt::ShiftModifier)
+             event->modifiers() & Qt::ShiftModifier)
           QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionIntensityChanged()));
         else if (event->modifiers() & Qt::ShiftModifier)
           QTimer::singleShot(0, mainwnd, SIGNAL(SurfaceRepositionVertexChanged()));
@@ -189,7 +189,7 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
 
     double dPosDiff =  ( ( (int)( dPixelPer * ( posY - m_nDownPosY ) ) ) / dPixelPer -
                          ( (int)( dPixelPer * ( m_nMousePosY - m_nDownPosY ) ) ) / dPixelPer )
-                       * dPixelPer * voxelSize[nPlane];
+        * dPixelPer * voxelSize[nPlane];
     if ( mainwnd->OffsetSlicePosition( nPlane, dPosDiff ) )
     {
       m_nMousePosX = posX;
@@ -231,7 +231,7 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
       double w = ( posX - m_nMousePosX ) * scaleX;
       double l = ( posY - m_nMousePosY ) * scaleY;
       double scaleOverall = layer->GetProperty()->GetMaxValue() -
-                            layer->GetProperty()->GetMinValue();
+          layer->GetProperty()->GetMinValue();
       w *= scaleOverall;
       l *= scaleOverall;
       switch ( layer->GetProperty()->GetColorMap() )
@@ -331,33 +331,33 @@ bool Interactor2D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
   int nKeyCode = event->key();
   if ( event->modifiers() & Qt::ShiftModifier )
   {
-      if ( nKeyCode == Qt::Key_Up )
-      {
-        view->Zoom(1.05);
-      }
-      else if ( nKeyCode == Qt::Key_Down )
-      {
-        view->Zoom(0.95);
-      }
+    if ( nKeyCode == Qt::Key_Up )
+    {
+      view->Zoom(1.05);
+    }
+    else if ( nKeyCode == Qt::Key_Down )
+    {
+      view->Zoom(0.95);
+    }
   }
   else if (event->modifiers() & Qt::ControlModifier )
   {
-      if ( nKeyCode == Qt::Key_Up )
-      {
-        view->MoveUp();
-      }
-      else if ( nKeyCode == Qt::Key_Down )
-      {
-        view->MoveDown();
-      }
-      else if ( nKeyCode == Qt::Key_Left )
-      {
-        view->MoveLeft();
-      }
-      else if ( nKeyCode == Qt::Key_Right )
-      {
-        view->MoveRight();
-      }
+    if ( nKeyCode == Qt::Key_Up )
+    {
+      view->MoveUp();
+    }
+    else if ( nKeyCode == Qt::Key_Down )
+    {
+      view->MoveDown();
+    }
+    else if ( nKeyCode == Qt::Key_Left )
+    {
+      view->MoveLeft();
+    }
+    else if ( nKeyCode == Qt::Key_Right )
+    {
+      view->MoveRight();
+    }
   }
   else if ( nKeyCode == Qt::Key_PageUp || nKeyCode == Qt::Key_Up )
   {

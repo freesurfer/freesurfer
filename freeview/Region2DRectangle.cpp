@@ -47,7 +47,7 @@ Region2DRectangle::Region2DRectangle( RenderView2D* view ) :
   m_actorRect = vtkSmartPointer<vtkActor2D>::New();
   m_actorRect->GetProperty()->SetColor( 1, 0, 0 );
   m_actorRect->GetProperty()->SetOpacity( 0.6 );
-//  m_actorRect->VisibilityOff();
+  //  m_actorRect->VisibilityOff();
 
   Highlight( true );
 }

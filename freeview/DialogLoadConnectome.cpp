@@ -8,20 +8,20 @@
 #include <QMessageBox>
 
 DialogLoadConnectome::DialogLoadConnectome(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogLoadConnectome)
+  QDialog(parent),
+  ui(new Ui::DialogLoadConnectome)
 {
-    ui->setupUi(this);
-    QSettings s;
-    ui->lineEditCMAT->setText(s.value("DialogConnectome/CMAT").toString());
-    ui->lineEditParcel->setText(s.value("DialogConnectome/Parcel").toString());
-    ui->lineEditCMAT->setCursorPosition(ui->lineEditCMAT->text().size());
-    ui->lineEditParcel->setCursorPosition(ui->lineEditParcel->text().size());
-    QString strg = GetCMATFilename();
-    if (!strg.isEmpty())
-      m_strLastDir = QFileInfo(strg).absolutePath();
+  ui->setupUi(this);
+  QSettings s;
+  ui->lineEditCMAT->setText(s.value("DialogConnectome/CMAT").toString());
+  ui->lineEditParcel->setText(s.value("DialogConnectome/Parcel").toString());
+  ui->lineEditCMAT->setCursorPosition(ui->lineEditCMAT->text().size());
+  ui->lineEditParcel->setCursorPosition(ui->lineEditParcel->text().size());
+  QString strg = GetCMATFilename();
+  if (!strg.isEmpty())
+    m_strLastDir = QFileInfo(strg).absolutePath();
 
-    UpdateLUT();
+  UpdateLUT();
 }
 
 DialogLoadConnectome::~DialogLoadConnectome()
@@ -79,8 +79,8 @@ void DialogLoadConnectome::OnComboBoxColorTable( int nSel )
   if ( nSel >= luts->GetCount() )
   {
     QString filename = QFileDialog::getOpenFileName( this, "Load color table file",
-                       m_strLastDir,
-                       "Color table files (*)" );
+                                                     m_strLastDir,
+                                                     "Color table files (*)" );
     if ( !filename.isEmpty() && luts->LoadColorTable( filename ) )
     {
       UpdateLUT();

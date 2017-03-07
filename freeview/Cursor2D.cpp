@@ -82,7 +82,7 @@ void Cursor2D::SetStyle( int nStyle )
 
 void Cursor2D::Update( bool bConnectPrevious )
 {
-// vtkRenderer* renderer = m_view->GetRenderer();
+  // vtkRenderer* renderer = m_view->GetRenderer();
 
   double dLen = ( m_nStyle == CS_Long ? 100000 : m_nRadius );
 
@@ -101,13 +101,13 @@ void Cursor2D::Update( bool bConnectPrevious )
     {
       m_view->WorldToViewport( m_dInterpolationPoints[i],
                                m_dInterpolationPoints[i+1],
-                               m_dInterpolationPoints[i+2],
-                               pos[0],
-                               pos[1],
-                               pos[2] );
+          m_dInterpolationPoints[i+2],
+          pos[0],
+          pos[1],
+          pos[2] );
       points->InsertNextPoint( pos[0],
-                               pos[1],
-                               pos[2] );
+          pos[1],
+          pos[2] );
       lines->InsertCellPoint( n++ );
     }
     m_view->WorldToViewport( m_dPosition[0], m_dPosition[1], m_dPosition[2], pos[0], pos[1], pos[2] );
@@ -283,7 +283,7 @@ void Cursor2D::GetPosition( double* pos )
 void Cursor2D::SetInterpolationPoints( std::vector<double> pts )
 {
   m_dInterpolationPoints = pts;
-// Update( true );
+  // Update( true );
 }
 
 void Cursor2D::Show( bool bShow )

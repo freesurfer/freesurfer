@@ -4,16 +4,16 @@
 #include <QDialog>
 
 namespace Ui {
-    class DialogSetCamera;
+class DialogSetCamera;
 }
 
 class DialogSetCamera : public QDialog
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit DialogSetCamera(QWidget *parent = 0);
-    ~DialogSetCamera();
+  explicit DialogSetCamera(QWidget *parent = 0);
+  ~DialogSetCamera();
 
 public slots:
   void OnReset();
@@ -21,7 +21,7 @@ public slots:
   void OnSettingChanged();
 
 private:
-    Ui::DialogSetCamera *ui;
+  Ui::DialogSetCamera *ui;
 };
 
 #endif // DIALOGSETCAMERA_H

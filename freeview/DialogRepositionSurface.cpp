@@ -34,18 +34,18 @@
 #include <QTimer>
 
 DialogRepositionSurface::DialogRepositionSurface(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogRepositionSurface)
+  QDialog(parent),
+  ui(new Ui::DialogRepositionSurface)
 {
-    ui->setupUi(this);
-    ui->lineEditTargetX->hide();
-    ui->lineEditTargetY->hide();
-    ui->lineEditTargetZ->hide();
+  ui->setupUi(this);
+  ui->lineEditTargetX->hide();
+  ui->lineEditTargetY->hide();
+  ui->lineEditTargetZ->hide();
 }
 
 DialogRepositionSurface::~DialogRepositionSurface()
 {
-    delete ui;
+  delete ui;
 }
 
 void DialogRepositionSurface::OnApply()
@@ -82,10 +82,10 @@ void DialogRepositionSurface::OnApply()
         double pos[3];
         GetCoordinate(pos);
         surf->RepositionSurface( mri, GetVertex(),
-                                       pos,
-                                       GetNeighborSize(),
-                                       GetSigma(),
-                                       GetFlags());
+                                 pos,
+                                 GetNeighborSize(),
+                                 GetSigma(),
+                                 GetFlags());
       }
     }
     else if (ui->tabWidget->currentIndex() == 1)
@@ -106,12 +106,12 @@ void DialogRepositionSurface::OnApply()
 
 void DialogRepositionSurface::OnComboTarget( int nSel )
 {
- //
+  //
   ui->lineEditTarget->setVisible(nSel == 0);
   ui->lineEditTargetX->setVisible(nSel == 1);
   ui->lineEditTargetY->setVisible(nSel == 1);
   ui->lineEditTargetZ->setVisible(nSel == 1);
-//  ui->labelHelper->setVisible(nSel == 0);
+  //  ui->labelHelper->setVisible(nSel == 0);
 }
 
 void DialogRepositionSurface::UpdateUI()

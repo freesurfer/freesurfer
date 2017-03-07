@@ -34,22 +34,22 @@
 #include <QDebug>
 
 WindowTimeCourse::WindowTimeCourse(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::WindowTimeCourse),
-    lastMRI(NULL),
-    lastSurface(NULL),
-    lastOverlay(NULL)
+  QWidget(parent),
+  ui(new Ui::WindowTimeCourse),
+  lastMRI(NULL),
+  lastSurface(NULL),
+  lastOverlay(NULL)
 {
-    ui->setupUi(this);
-    this->setWindowFlags(Qt::Tool);
-    this->setWindowTitle("Time Course");
-    connect(ui->widgetPlot, SIGNAL(FrameChanged(int)), this, SLOT(OnFrameChanged(int)));
+  ui->setupUi(this);
+  this->setWindowFlags(Qt::Tool);
+  this->setWindowTitle("Time Course");
+  connect(ui->widgetPlot, SIGNAL(FrameChanged(int)), this, SLOT(OnFrameChanged(int)));
 
-    QSettings s;
-    QVariant v = s.value("WindowTimeCourse/Geomerty");
-    if (v.isValid())
-      this->restoreGeometry(v.toByteArray());
-    ui->checkBoxAutoScale->setChecked(s.value("WindowTimeCourse/AutoScale", true).toBool());
+  QSettings s;
+  QVariant v = s.value("WindowTimeCourse/Geomerty");
+  if (v.isValid())
+    this->restoreGeometry(v.toByteArray());
+  ui->checkBoxAutoScale->setChecked(s.value("WindowTimeCourse/AutoScale", true).toBool());
 }
 
 WindowTimeCourse::~WindowTimeCourse()
@@ -68,15 +68,15 @@ void WindowTimeCourse::UpdateData()
     LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer(type));
     if (lastMRI == NULL)
     {
-        QList<Layer*> mri_col = MainWindow::GetMainWindow()->GetLayers("MRI");
-        foreach (Layer* mri, mri_col)
+      QList<Layer*> mri_col = MainWindow::GetMainWindow()->GetLayers("MRI");
+      foreach (Layer* mri, mri_col)
+      {
+        if (((LayerMRI*)mri)->GetNumberOfFrames() > 1)
         {
-            if (((LayerMRI*)mri)->GetNumberOfFrames() > 1)
-            {
-                lastMRI = ((LayerMRI*)mri);
-                break;
-            }
+          lastMRI = ((LayerMRI*)mri);
+          break;
         }
+      }
     }
     if (layer && layer->GetNumberOfFrames() == 1 &&
         MainWindow::GetMainWindow()->GetLayerCollection("MRI")->Contains(lastMRI))
@@ -106,16 +106,16 @@ void WindowTimeCourse::UpdateData()
     SurfaceOverlay* overlay = (surf ? surf->GetActiveOverlay() : NULL);
     if (surf && lastOverlay == NULL)
     {
-        for (int i = 0; i < surf->GetNumberOfOverlays(); i++)
+      for (int i = 0; i < surf->GetNumberOfOverlays(); i++)
+      {
+        SurfaceOverlay* so = surf->GetOverlay(i);
+        if (so->GetNumberOfFrames() > 1)
         {
-            SurfaceOverlay* so = surf->GetOverlay(i);
-            if (so->GetNumberOfFrames() > 1)
-            {
-                lastOverlay = so;
-                lastSurface = surf;
-                break;
-            }
+          lastOverlay = so;
+          lastSurface = surf;
+          break;
         }
+      }
     }
     if (overlay && overlay->GetNumberOfFrames() == 1 &&
         MainWindow::GetMainWindow()->GetLayerCollection("Surface")->Contains(lastSurface))

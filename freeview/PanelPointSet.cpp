@@ -360,8 +360,8 @@ void PanelPointSet::LoadScalarValues()
   foreach (LayerPointSet* layer, layers)
   {
     QString fn = QFileDialog::getOpenFileName( this, "Select scalar file",
-                 "",
-                 "All files (*)");
+                                               "",
+                                               "All files (*)");
     if ( !fn.isEmpty() )
     {
       if ( !layer->GetProperty()->LoadScalarsFromFile( fn ) )

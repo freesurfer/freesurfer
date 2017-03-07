@@ -64,12 +64,12 @@ bool Interactor3D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
   {
     m_bMoveSlice = true;
   }
-//  else if ( event->button() == Qt::LeftButton && event->modifiers() & CONTROL_MODIFIER )
-//  {
-//    m_surfaceROI = view->InitializeSurfaceROI(event->x(), event->y());
-//    if (m_surfaceROI)
-//      return false;   // intercept the event, do not pass down
-//  }
+  //  else if ( event->button() == Qt::LeftButton && event->modifiers() & CONTROL_MODIFIER )
+  //  {
+  //    m_surfaceROI = view->InitializeSurfaceROI(event->x(), event->y());
+  //    if (m_surfaceROI)
+  //      return false;   // intercept the event, do not pass down
+  //  }
   else
   {
     return Interactor::ProcessMouseDownEvent( event, renderview ); // pass down the event
@@ -107,10 +107,10 @@ bool Interactor3D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
     }
     else if (event->button() == Qt::RightButton)
     {
-        if (event->modifiers() & CONTROL_MODIFIER)
-        {
-            view->ZoomAtCursor(event->x(), event->y(), 0.5);
-        }
+      if (event->modifiers() & CONTROL_MODIFIER)
+      {
+        view->ZoomAtCursor(event->x(), event->y(), 0.5);
+      }
     }
   }
   else
@@ -150,7 +150,7 @@ bool Interactor3D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
       double w = ( posX - m_nMousePosX ) * scaleX;
       double l = ( posY - m_nMousePosY ) * scaleY;
       double scaleOverall = layer->GetProperty()->GetMaxValue() -
-                            layer->GetProperty()->GetMinValue();
+          layer->GetProperty()->GetMinValue();
       w *= scaleOverall;
       l *= scaleOverall;
       w += layer->GetProperty()->GetWindow();

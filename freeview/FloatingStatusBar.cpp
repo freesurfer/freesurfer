@@ -57,7 +57,7 @@ void FloatingStatusBar::ShowProgress()
   ui->progressBar->show();
   ui->progressBar->setValue(0);
   this->show();
-//  m_timer->start();
+  //  m_timer->start();
   Reposition();
 }
 

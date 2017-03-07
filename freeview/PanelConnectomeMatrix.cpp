@@ -9,12 +9,12 @@ PanelConnectomeMatrix::PanelConnectomeMatrix(QWidget *parent) :
   ui(new Ui::PanelConnectomeMatrix),
   m_bColorTableDirty(true)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 }
 
 PanelConnectomeMatrix::~PanelConnectomeMatrix()
 {
-    delete ui;
+  delete ui;
 }
 
 void PanelConnectomeMatrix::ConnectLayer( Layer* layer_in )

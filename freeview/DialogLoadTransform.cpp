@@ -11,26 +11,26 @@ extern "C"
 
 
 DialogLoadTransform::DialogLoadTransform(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogLoadTransform)
+  QDialog(parent),
+  ui(new Ui::DialogLoadTransform)
 {
-    ui->setupUi(this);
-    connect(ui->toolButtonOpenRegistration, SIGNAL(clicked(bool)), SLOT(OnButtonOpen()));
+  ui->setupUi(this);
+  connect(ui->toolButtonOpenRegistration, SIGNAL(clicked(bool)), SLOT(OnButtonOpen()));
 }
 
 DialogLoadTransform::~DialogLoadTransform()
 {
-    delete ui;
+  delete ui;
 }
 
 void DialogLoadTransform::OnOK()
 {
-    if (ui->lineEditRegistration->text().trimmed().isEmpty())
-    {
-        QMessageBox::warning(this, tr("Error"), tr("Please select transformation file to Load"));
-    }
-    else
-        accept();
+  if (ui->lineEditRegistration->text().trimmed().isEmpty())
+  {
+    QMessageBox::warning(this, tr("Error"), tr("Please select transformation file to Load"));
+  }
+  else
+    accept();
 }
 
 QString DialogLoadTransform::GetFilename()
@@ -54,13 +54,13 @@ int DialogLoadTransform::GetSampleMethod()
 
 void DialogLoadTransform::OnButtonOpen()
 {
-    QString fn = QFileDialog::getOpenFileName( this, "Select registration file",
-                       m_strLastDir,
-                       "Registration files (*)");
-    if ( !fn.isEmpty() )
-    {
-        ui->lineEditRegistration->setText(fn);
-        ui->lineEditRegistration->setCursorPosition( fn.size() );
-        m_strLastDir = QFileInfo(fn).absolutePath();
-    }
+  QString fn = QFileDialog::getOpenFileName( this, "Select registration file",
+                                             m_strLastDir,
+                                             "Registration files (*)");
+  if ( !fn.isEmpty() )
+  {
+    ui->lineEditRegistration->setText(fn);
+    ui->lineEditRegistration->setCursorPosition( fn.size() );
+    m_strLastDir = QFileInfo(fn).absolutePath();
+  }
 }

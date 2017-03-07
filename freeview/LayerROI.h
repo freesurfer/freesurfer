@@ -86,7 +86,7 @@ public:
 
   LayerSurface* GetMappedSurface()
   {
-      return m_layerMappedSurface;
+    return m_layerMappedSurface;
   }
 
   void MapLabelColorData( unsigned char* colordata, int nVertexCount);

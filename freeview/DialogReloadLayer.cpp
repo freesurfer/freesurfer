@@ -2,15 +2,15 @@
 #include "ui_DialogReloadLayer.h"
 
 DialogReloadLayer::DialogReloadLayer(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogReloadLayer)
+  QDialog(parent),
+  ui(new Ui::DialogReloadLayer)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 }
 
 DialogReloadLayer::~DialogReloadLayer()
 {
-    delete ui;
+  delete ui;
 }
 
 int DialogReloadLayer::Execute(const QString &layer_name, const QString &layer_type, const QString &fn)

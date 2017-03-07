@@ -45,7 +45,7 @@ Region2DLine::Region2DLine( RenderView2D* view ) :
   m_actorLine = vtkSmartPointer<vtkActor2D>::New();
   m_actorLine->GetProperty()->SetOpacity( 0.75 );
   m_actorLine->GetProperty()->SetLineWidth( 3 );
-//  m_actorLine->VisibilityOff();
+  //  m_actorLine->VisibilityOff();
 
   Highlight( true );
 }
@@ -123,7 +123,7 @@ void Region2DLine::Update()
   mapper->SetTransformCoordinate( coords );
   m_actorLine->SetMapper( mapper );
 
-//  m_actorText->SetInput( GetShortStats().c_str() );
+  //  m_actorText->SetInput( GetShortStats().c_str() );
   m_actorText->SetPosition( pt3 );
   UpdateStats();
 }
@@ -279,8 +279,8 @@ void Region2DLine::UpdateSlicePosition( int nPlane, double pos )
 QString Region2DLine::DataToString()
 {
   return QString("FreeView:Region2DLine:%1,%2,%3,%4,%5,%6")
-          .arg(m_dPt1[0]).arg(m_dPt1[1]).arg(m_dPt1[2])
-          .arg(m_dPt2[0]).arg(m_dPt2[1]).arg(m_dPt2[2]);
+      .arg(m_dPt1[0]).arg(m_dPt1[1]).arg(m_dPt1[2])
+      .arg(m_dPt2[0]).arg(m_dPt2[1]).arg(m_dPt2[2]);
 }
 
 Region2D* Region2DLine::ObjectFromString(RenderView2D* view, const QString& text)

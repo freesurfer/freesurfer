@@ -41,8 +41,8 @@ extern "C"
 }
 
 LayerVolumeTrack::LayerVolumeTrack( LayerMRI* ref, QObject* parent ) :
-    LayerMRI( ref, parent ),
-    m_ctabStripped(NULL)
+  LayerMRI( ref, parent ),
+  m_ctabStripped(NULL)
 {
   m_strTypeNames.push_back( "VolumeTrack" );
   SetEditable(false);

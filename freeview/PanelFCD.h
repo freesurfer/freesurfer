@@ -4,7 +4,7 @@
 #include "PanelLayer.h"
 
 namespace Ui {
-    class PanelFCD;
+class PanelFCD;
 }
 
 class LayerFCD;
@@ -12,11 +12,11 @@ class QTreeWidgetItem;
 
 class PanelFCD : public PanelLayer
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit PanelFCD(QWidget *parent = 0);
-    ~PanelFCD();
+  explicit PanelFCD(QWidget *parent = 0);
+  ~PanelFCD();
 
 public slots:
   void OnSliderThresholdReleased();
@@ -44,7 +44,7 @@ protected:
   virtual void ConnectLayer( Layer* layer );
 
 private:
-    Ui::PanelFCD *ui;
+  Ui::PanelFCD *ui;
 };
 
 #endif // PANELFCD_H

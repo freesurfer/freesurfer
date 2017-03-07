@@ -4,19 +4,19 @@
 #include <QDialog>
 
 namespace Ui {
-    class DialogLoadFCD;
+class DialogLoadFCD;
 }
 
 class DialogLoadFCD : public QDialog
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit DialogLoadFCD(QWidget *parent = 0);
-    ~DialogLoadFCD();
+  explicit DialogLoadFCD(QWidget *parent = 0);
+  ~DialogLoadFCD();
 
 private:
-    Ui::DialogLoadFCD *ui;
+  Ui::DialogLoadFCD *ui;
 };
 
 #endif // DIALOGLOADFCD_H

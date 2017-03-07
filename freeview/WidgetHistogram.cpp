@@ -202,7 +202,7 @@ void WidgetHistogram::UpdateColorTable()
 
 void WidgetHistogram::paintEvent(QPaintEvent* event)
 {
-//    QWidget::paintEvent( event );
+  //    QWidget::paintEvent( event );
 
   QPainter painter( this );
   QRect rc = rect();
@@ -304,7 +304,7 @@ void WidgetHistogram::paintEvent(QPaintEvent* event)
       dMetricStart -= dMetricStep;
     }
     x = ( int )( nOrigin[0] + ( dMetricStart - m_dOutputRange[0] ) / ( m_dOutputRange[1] - m_dOutputRange[0] )
-                 *nCavWidth );
+        *nCavWidth );
     while ( x < m_rectGraph.right() && dMetricStep > 0 )
     {
       if( x >= m_rectGraph.left() )

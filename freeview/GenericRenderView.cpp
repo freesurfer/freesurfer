@@ -170,17 +170,17 @@ void GenericRenderView::Render()
     return;
   }
 
-//  QCursor old_cursor = cursor();
-//  setCursor(Qt::WaitCursor);
+  //  QCursor old_cursor = cursor();
+  //  setCursor(Qt::WaitCursor);
 
-//  if (GetInteractor()->GetEnabled())
-//    GetInteractor()->Render();
-//  else
-//  qDebug() << "render" << this << QDateTime::currentDateTime().toMSecsSinceEpoch();
+  //  if (GetInteractor()->GetEnabled())
+  //    GetInteractor()->Render();
+  //  else
+  //  qDebug() << "render" << this << QDateTime::currentDateTime().toMSecsSinceEpoch();
   if (isVisible())
     GetRenderWindow()->Render();
 
-//  setCursor(old_cursor);
+  //  setCursor(old_cursor);
 }
 
 void GenericRenderView::RenderSelf()
@@ -202,7 +202,7 @@ void GenericRenderView::RefreshAllActors(bool bForScreenshot)
 void GenericRenderView::keyPressEvent(QKeyEvent* event)
 {
   QWidget::keyPressEvent(event);
-//  QVTKWidget::keyPressEvent(event);
+  //  QVTKWidget::keyPressEvent(event);
 }
 
 vtkCamera* GenericRenderView::GetCamera()
@@ -371,9 +371,9 @@ int GenericRenderView::GetStereoRender()
 void GenericRenderView::SetStereoRender(bool bOn)
 {
   GetRenderWindow()->SetStereoRender(bOn?1:0);
-//#ifdef Q_OS_MAC
+  //#ifdef Q_OS_MAC
   Render();
-//#endif
+  //#endif
 }
 
 void GenericRenderView::SetStereoTypeToAnaglyph()
@@ -457,7 +457,7 @@ void GenericRenderView::UpdateRenderer2()
   }
 
   vtkPropCollection* props = m_renderer->GetViewProps(),
-                     * props2 = m_renderer2->GetViewProps();
+      * props2 = m_renderer2->GetViewProps();
   props2->RemoveAllItems();
 
   props->InitTraversal();
@@ -473,7 +473,7 @@ void GenericRenderView::UpdateRenderer2()
 void GenericRenderView::UpdateCamera2()
 {
   vtkCamera* cam = m_renderer2->GetActiveCamera();
-//  MyVTKUtils::CopyCamera(m_renderer->GetActiveCamera(), cam);
+  //  MyVTKUtils::CopyCamera(m_renderer->GetActiveCamera(), cam);
   cam->Azimuth(m_nStereoPairAngle);
   m_renderer2->ResetCameraClippingRange();
   m_renderer2->Render();

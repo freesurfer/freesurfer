@@ -91,7 +91,7 @@ public:
 
   void Remove2DProps( vtkRenderer* render, int nPlane );
 
-//  void SetSliceNumber( int* sliceNumber );
+  //  void SetSliceNumber( int* sliceNumber );
   void SetSlicePositionToWorldCenter();
 
   virtual double GetVoxelValue( double* pos );
@@ -323,7 +323,7 @@ public slots:
 
 Q_SIGNALS:
   void ResampleFactorChanged();
-//  void ColorMapChanged();
+  //  void ColorMapChanged();
   void ActiveFrameChanged( int nFrame );
   void SurfaceRegionAdded();
   void SurfaceRegionUpdated();

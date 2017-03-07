@@ -205,7 +205,7 @@ void ThreadIOWorker::run()
     else
     {
       if (m_args.value("hidden").toBool())
-          m_layer->setProperty("hidden", true);
+        m_layer->setProperty("hidden", true);
 
       emit Finished( m_layer, m_nJobType );
     }

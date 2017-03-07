@@ -54,8 +54,8 @@ class SurfaceSpline;
 class LayerROI;
 
 struct RGBMap {
-    QString name;
-    QList<int> data;
+  QString name;
+  QList<int> data;
 };
 
 class LayerSurface : public LayerEditable
@@ -218,7 +218,7 @@ public:
 
   int GetNumberOfSplines()
   {
-      return m_splines.size();
+    return m_splines.size();
   }
 
   SurfaceSpline* GetSpline(int n);
@@ -270,14 +270,14 @@ public:
 
   bool GetVisibleIn3D()
   {
-      return m_bVisibleIn3D;
+    return m_bVisibleIn3D;
   }
 
   void GetSmoothedVertexNormal(int nVertex, double* v_out);
 
   int GetActiveRGBMap()
   {
-      return m_nActiveRGBMap;
+    return m_nActiveRGBMap;
   }
 
   void SetActiveRGBMap(int n);
@@ -286,12 +286,12 @@ public:
 
   int GetNumberOfRGBMaps()
   {
-      return m_rgbMaps.size();
+    return m_rgbMaps.size();
   }
 
   QString GetMappingSurfaceName()
   {
-      return m_sMappingSurfaceName;
+    return m_sMappingSurfaceName;
   }
 
   void SetNeighborhoodSize(int nSize);
@@ -300,12 +300,12 @@ public:
 
   bool IsContralateralReady()
   {
-      return (m_surfaceContralateral != NULL);
+    return (m_surfaceContralateral != NULL);
   }
 
   LayerSurface* GetContralateralSurface()
   {
-      return m_surfaceContralateral;
+    return m_surfaceContralateral;
   }
 
   int GetContralateralVertex(int nvo);
@@ -340,15 +340,15 @@ public slots:
 
   void SetHideIn3D(bool bHide)
   {
-      SetVisibleIn3D(!bHide);
+    SetVisibleIn3D(!bHide);
   }
 
   void SetMappingSurfaceName(const QString& name)
   {
-      if (name.isEmpty())
-          m_sMappingSurfaceName = "white";
-      else
-          m_sMappingSurfaceName = name;
+    if (name.isEmpty())
+      m_sMappingSurfaceName = "white";
+    else
+      m_sMappingSurfaceName = name;
   }
 
   void AddMappedLabel(LayerROI* label);
@@ -359,7 +359,7 @@ public slots:
 
   void UpdateOverlayLabels()
   {
-      UpdateOverlay(true, true);
+    UpdateOverlay(true, true);
   }
 
   void SetContralateralLayer(LayerSurface* layer, LayerSurface* sphere1, LayerSurface* sphere2);
