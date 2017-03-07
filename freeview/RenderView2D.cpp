@@ -584,6 +584,15 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     }
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
   }
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  if ( surf && surf->IsContralateralReady())
+  {
+    if (!menu.actions().isEmpty())
+      menu.addSeparator();
+    QAction* act = new QAction("Go To Contralateral Point", this);
+    menu.addAction(act);
+    connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow(), SLOT(GoToContralateralPoint()));
+  }
   if (!menu.actions().isEmpty())
     menu.exec(event->globalPos());
 }
