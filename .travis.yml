@@ -39,7 +39,7 @@ script:
   - ./setup_configure 
   - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build 
   - travis_wait 40 ./travis_make.sh
+  - tail build.log
 
 after_failure:
-  - tail build.log
   
