@@ -3815,6 +3815,7 @@ AC_OUTPUT([Makefile
            mri_extract_conditions/Makefile
            mri_extract_label/Makefile
            mri_extract_largest_CC/Makefile
+           mri_extract_fcd_features/Makefile
            mri_fcili/Makefile
            mri_fdr/Makefile
            mri_fieldsign/Makefile
