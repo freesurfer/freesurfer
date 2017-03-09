@@ -87,7 +87,8 @@ LayerSurface::LayerSurface( LayerMRI* ref, QObject* parent ) : LayerEditable( pa
   m_nColorDataCache(NULL),
   m_surfaceContralateral(NULL),
   m_surfaceSphere1(NULL),
-  m_surfaceSphere2(NULL)
+  m_surfaceSphere2(NULL),
+  m_nMouseVertex(-1)
 {
   m_strTypeNames.push_back( "Surface" );
   m_sPrimaryType = "Surface";
@@ -1026,7 +1027,7 @@ int LayerSurface::GetVertexIndexAtRAS( double* ras, double* distance )
   return m_surfaceSource->FindVertexAtRAS( ras, distance );
 }
 
-int LayerSurface::GetVertexIndexAtTarget( double* pos, double* distance )
+int LayerSurface::GetVertexIndexAtTarget( double* pos, double* distance, int surface_type )
 {
   if ( m_surfaceSource == NULL )
   {
@@ -1053,7 +1054,7 @@ int LayerSurface::GetVertexIndexAtTarget( double* pos, double* distance )
   */
   double realRas[3];
   m_surfaceSource->ConvertTargetToRAS( pos_o, realRas );
-  return m_surfaceSource->FindVertexAtRAS( realRas, distance );
+  return m_surfaceSource->FindVertexAtRAS( realRas, distance, surface_type );
 }
 
 bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )

@@ -157,6 +157,8 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   //  ui->tabWidgetControlPanel->removeTab(ui->tabWidgetControlPanel->indexOf(ui->tabTrack));
 #endif
 
+  ui->treeWidgetCursorInfo->SetForCursor(true);
+
   this->addAction(ui->actionIncreaseOpacity);
   this->addAction(ui->actionDecreaseOpacity);
   this->addAction(ui->actionCycleSurfaceLabel);

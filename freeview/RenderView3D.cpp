@@ -593,6 +593,8 @@ bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double 
   int nVertex = surf->GetVertexIndexAtTarget(pos_in, NULL);
   if (bCursor)
     surf->SetCurrentVertex(nVertex);
+  else
+    surf->SetMouseVertex(nVertex);
   if (QFileInfo(surf->GetFileName()).fileName().contains("inflated"))
   {
     if (m_cursor3D->IsShown())
@@ -624,7 +626,7 @@ bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double 
     }
     if (!bFoundMappingSurface && fsurf->IsSurfaceLoaded( FSSurface::SurfaceWhite ))
     {
-      fsurf->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, pos_out);
+      fsurf->GetSurfaceRASAtVertex(nVertex, pos_out, FSSurface::SurfaceWhite);
       surf->GetTargetAtSurfaceRAS(pos_out, pos_out);
       if (bAutoOrient)
       {

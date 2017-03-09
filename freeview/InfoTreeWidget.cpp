@@ -50,7 +50,8 @@ InfoTreeWidget::InfoTreeWidget(QWidget* parent) :
   QTreeWidget(parent),
   m_bShowSurfaceCurvature(false),
   m_bShowSurfaceNormal(false),
-  m_bShowTkRegRAS(true)
+  m_bShowTkRegRAS(true),
+  m_bForCursor(false)
 {
   this->setAlternatingRowColors(true);
   this->setTextElideMode(Qt::ElideMiddle);
@@ -216,13 +217,15 @@ void InfoTreeWidget::UpdateAll()
     if ( surf->GetProperty()->GetShowInfo() )
     {
       QTreeWidgetItem* item = new QTreeWidgetItem(this);
-      item->setText(0, surf->GetName());int nVertex = -1;
-      bool bMappingVertex = surf->GetFileName().contains("inflated");
+      item->setText(0, surf->GetName());
+      int nVertex = -1;
+      bool bMappingVertex = (surf->GetFileName().contains("inflated") && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite));
       if (bMappingVertex)
-        nVertex = surf->GetCurrentVertex();
+        nVertex = (m_bForCursor ? surf->GetCurrentVertex() : surf->GetMouseVertex());
+
       double sf_pos[3];
-      if (bMappingVertex && nVertex >= 0 && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite))
-        surf->GetSourceSurface()->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, sf_pos);
+      if (bMappingVertex && nVertex >= 0)
+        surf->GetSourceSurface()->GetSurfaceRASAtVertex(nVertex, sf_pos, FSSurface::SurfaceWhite);
       else
         surf->GetSurfaceRASAtTarget( m_dRAS, sf_pos );
       QString editable = QString("%1, %2, %3")
@@ -240,8 +243,8 @@ void InfoTreeWidget::UpdateAll()
         nVertex = surf->GetVertexIndexAtTarget( m_dRAS, NULL );
       if ( nVertex >= 0 )
       {
-        if (bMappingVertex && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite))
-          surf->GetSourceSurface()->GetVertexAtSurfaceType(nVertex, FSSurface::SurfaceWhite, sf_pos);
+        if (bMappingVertex)
+          surf->GetSourceSurface()->GetSurfaceRASAtVertex(nVertex, sf_pos, FSSurface::SurfaceWhite);
         else
           surf->GetSurfaceRASAtVertex( nVertex, sf_pos );
         QTreeWidgetItem* item = new QTreeWidgetItem(this);

@@ -38,6 +38,11 @@ public:
   InfoTreeWidget(QWidget* parent = 0);
   void contextMenuEvent(QContextMenuEvent *);
 
+  void SetForCursor(bool bCursor)
+  {
+    m_bForCursor = bCursor;
+  }
+
 signals:
   void RASChangeTriggered(double x, double y, double z);
   void VertexChangeTriggered(int nVertex);
@@ -68,6 +73,7 @@ private:
   bool  m_bShowTkRegRAS;
   QLineEdit*  m_editor;
   QTreeWidgetItem* m_itemEdited;
+  bool  m_bForCursor;
 };
 
 #endif // INFOTREEWIDGET_H
