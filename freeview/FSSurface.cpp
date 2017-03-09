@@ -407,7 +407,7 @@ bool FSSurface::LoadSurface( const QString& filename, int nSet )
     {
       MHTfree( &m_HashTable[nSet] );
     }
-    m_HashTable[nSet] = MHTfillVertexTableRes( m_MRIS, NULL, CURRENT_VERTICES, 2.0 );
+    m_HashTable[nSet] = MHTfillVertexTableRes( m_MRIS, NULL, (filename == "white" ? WHITE_VERTICES:CURRENT_VERTICES), 2.0 );
     ComputeNormals();
     SaveVertices( m_MRIS, nSet );
     SaveNormals ( m_MRIS, nSet );
@@ -1653,31 +1653,30 @@ int FSSurface::GetNumberOfVertices () const
 }
 
 
-int FSSurface::FindVertexAtRAS ( float const iRAS[3], float* oDistance )
+int FSSurface::FindVertexAtRAS ( float const iRAS[3], float* oDistance, int surface_type )
 {
   float surf[3];
   this->ConvertRASToSurface( iRAS, surf );
 
-  return this->FindVertexAtSurfaceRAS( surf, oDistance );
+  return this->FindVertexAtSurfaceRAS( surf, oDistance, surface_type );
 }
 
-int FSSurface::FindVertexAtRAS ( double const iRAS[3], double* oDistance )
+int FSSurface::FindVertexAtRAS ( double const iRAS[3], double* oDistance, int surface_type )
 {
   double surf[3];
   this->ConvertRASToSurface( iRAS, surf );
 
-  return this->FindVertexAtSurfaceRAS( surf, oDistance );
+  return this->FindVertexAtSurfaceRAS( surf, oDistance, surface_type );
 }
 
-int FSSurface::FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3],
-float* oDistance )
+int FSSurface::FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3], float* oDistance, int surface_type )
 {
   VERTEX v;
   v.x = iSurfaceRAS[0];
   v.y = iSurfaceRAS[1];
   v.z = iSurfaceRAS[2];
   float distance;
-  int nSurface = m_nActiveSurface;
+  int nSurface = (surface_type < 0 ? m_nActiveSurface : surface_type);
   int nClosestVertex =
       MHTfindClosestVertexNo( m_HashTable[nSurface], m_MRIS, &v, &distance );
 
@@ -1695,15 +1694,14 @@ float* oDistance )
   return nClosestVertex;
 }
 
-int FSSurface::FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3],
-double* oDistance )
+int FSSurface::FindVertexAtSurfaceRAS ( double const iSurfaceRAS[3], double* oDistance, int surface_type )
 {
   VERTEX v;
   v.x = static_cast<float>(iSurfaceRAS[0]);
   v.y = static_cast<float>(iSurfaceRAS[1]);
   v.z = static_cast<float>(iSurfaceRAS[2]);
   float distance;
-  int nSurface = m_nActiveSurface;
+  int nSurface = (surface_type < 0 ? m_nActiveSurface : surface_type);
   int nClosestVertex = MHTfindClosestVertexNo( m_HashTable[nSurface], m_MRIS, &v, &distance );
   if ( -1 == nClosestVertex )
   {
@@ -1718,10 +1716,10 @@ double* oDistance )
   return nClosestVertex;
 }
 
-bool FSSurface::GetRASAtVertex ( int inVertex, float ioRAS[3] )
+bool FSSurface::GetRASAtVertex ( int inVertex, float ioRAS[3], int surface_type )
 {
   float surfaceRAS[3];
-  if ( this->GetSurfaceRASAtVertex( inVertex, surfaceRAS ) )
+  if ( this->GetSurfaceRASAtVertex( inVertex, surfaceRAS, surface_type ) )
   {
     this->ConvertSurfaceToRAS( surfaceRAS, ioRAS );
     return true;
@@ -1732,7 +1730,7 @@ bool FSSurface::GetRASAtVertex ( int inVertex, float ioRAS[3] )
   }
 }
 
-bool FSSurface::GetRASAtVertex ( int inVertex, double ioRAS[3] )
+bool FSSurface::GetRASAtVertex ( int inVertex, double ioRAS[3], int surface_type )
 {
   double surfaceRAS[3];
   if ( this->GetSurfaceRASAtVertex( inVertex, surfaceRAS ) )
@@ -1746,7 +1744,7 @@ bool FSSurface::GetRASAtVertex ( int inVertex, double ioRAS[3] )
   }
 }
 
-bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] )
+bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3], int surface_type )
 {
   if ( m_MRIS == NULL )
     //  throw runtime_error( "GetRASAtVertex: m_MRIS was NULL" );
@@ -1760,11 +1758,12 @@ bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] )
     return false;
   }
 
-  if ( m_nActiveSurface >= 0 && m_fVertexSets[m_nActiveSurface] != NULL )
+  int nSurface = (surface_type < 0 ? m_nActiveSurface : surface_type);
+  if ( nSurface >= 0 && m_fVertexSets[nSurface] != NULL )
   {
-    ioRAS[0] = m_fVertexSets[m_nActiveSurface][inVertex].x;
-    ioRAS[1] = m_fVertexSets[m_nActiveSurface][inVertex].y;
-    ioRAS[2] = m_fVertexSets[m_nActiveSurface][inVertex].z;
+    ioRAS[0] = m_fVertexSets[nSurface][inVertex].x;
+    ioRAS[1] = m_fVertexSets[nSurface][inVertex].y;
+    ioRAS[2] = m_fVertexSets[nSurface][inVertex].z;
   }
   else
   {
@@ -1776,7 +1775,7 @@ bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, float ioRAS[3] )
   return true;
 }
 
-bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] )
+bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3], int surface_type )
 {
   if ( m_MRIS == NULL )
     //  throw runtime_error( "GetRASAtVertex: m_MRIS was NULL" );
@@ -1790,11 +1789,12 @@ bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] )
     return false;
   }
 
-  if ( m_nActiveSurface >= 0 && m_fVertexSets[m_nActiveSurface] != NULL )
+  int nSurface = (surface_type < 0 ? m_nActiveSurface : surface_type);
+  if ( nSurface >= 0 && m_fVertexSets[nSurface] != NULL )
   {
-    ioRAS[0] = m_fVertexSets[m_nActiveSurface][inVertex].x;
-    ioRAS[1] = m_fVertexSets[m_nActiveSurface][inVertex].y;
-    ioRAS[2] = m_fVertexSets[m_nActiveSurface][inVertex].z;
+    ioRAS[0] = m_fVertexSets[nSurface][inVertex].x;
+    ioRAS[1] = m_fVertexSets[nSurface][inVertex].y;
+    ioRAS[2] = m_fVertexSets[nSurface][inVertex].z;
   }
   else
   {
@@ -1909,19 +1909,6 @@ void FSSurface::UndoReposition()
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );
   UpdateVerticesAndNormals();
-}
-
-bool FSSurface::GetVertexAtSurfaceType(int nVertex, int surface_type, double *v_out)
-{
-  if (m_fVertexSets[surface_type])
-  {
-    v_out[0] = m_fVertexSets[surface_type][nVertex].x;
-    v_out[1] = m_fVertexSets[surface_type][nVertex].y;
-    v_out[2] = m_fVertexSets[surface_type][nVertex].z;
-    return true;
-  }
-  else
-    return false;
 }
 
 bool FSSurface::FindPath(int* vert_vno, int num_vno,

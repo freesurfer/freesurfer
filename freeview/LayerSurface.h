@@ -97,7 +97,7 @@ public:
 
   int GetVertexIndexAtRAS( double* ras, double* distance );
 
-  int GetVertexIndexAtTarget( double* ras, double* distance );
+  int GetVertexIndexAtTarget( double* ras, double* distance, int surface_type = -1 );
 
   bool GetRASAtVertex       ( int nVertex, double* ras_out );
   bool GetSurfaceRASAtVertex( int nVertex, double* ras_out );
@@ -310,6 +310,16 @@ public:
 
   int GetContralateralVertex(int nvo);
 
+  int GetMouseVertex()
+  {
+    return m_nMouseVertex;
+  }
+
+  void SetMouseVertex(int n)
+  {
+    m_nMouseVertex = n;
+  }
+
 public slots:
   void SetActiveSurface( int nSurfaceType );
   void UpdateOverlay(bool bAskRedraw = true, bool pre_cached = false);
@@ -441,6 +451,7 @@ protected:
   int         m_nActiveRGBMap;
 
   int         m_nCurrentVertex;
+  int         m_nMouseVertex;
 
   SurfaceROI*           m_roi;
   QList<SurfaceSpline*> m_splines;
