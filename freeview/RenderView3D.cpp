@@ -599,7 +599,8 @@ bool RenderView3D::MapInflatedCoords(LayerSurface *surf, double *pos_in, double 
   {
     if (m_cursor3D->IsShown())
       m_cursorInflatedSurf->Show();
-    m_cursorInflatedSurf->SetPosition(pos_in);
+    if (bCursor)
+      m_cursorInflatedSurf->SetPosition(pos_in);
     FSSurface* fsurf = surf->GetSourceSurface();
     QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("Surface");
     bool bFoundMappingSurface = false;
