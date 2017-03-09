@@ -13219,7 +13219,15 @@ MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which)
                 "MRISwriteIntoVolume: unsupported type %d", which);
       break ;
     }
-    MRIFvox(mri, 0, 0, vno) = val ;
+    if (mri->width == mris->nvertices)
+      MRIsetVoxVal(mri, vno, 0, 0, 0, val) ;
+    else if (mri->nframes == mris->nvertices)
+      MRIsetVoxVal(mri, 0, 0, 0, vno, val) ;
+    else
+    {
+      ErrorReturn(NULL, (ERROR_BADPARM, "MRISwriteIntoVolume: nvertices %d doesn't match with in MRI %d x %d x %d x %d\n",
+		       mris->nvertices, mri->width, mri->height, mri->depth, mri->nframes)) ;
+    }
   }
   return(mri) ;
 }
@@ -13231,8 +13239,51 @@ MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which)
   Description
   ------------------------------------------------------*/
 MRI_SURFACE *
-MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris)
+MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which)
 {
+  int   vno ;
+ VERTEX *v ;
+  float   val ;
+
+  if (mris->nvertices != mri->width)
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRISreadFromVolume: nvertices %d doesn't match with in MRI %d x %d x %d x %d\n",
+		       mris->nvertices, mri->width, mri->height, mri->depth, mri->nframes)) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    val = MRIgetVoxVal(mri, vno, 0, 0, 0) ;
+    switch (which)
+    {
+    case VERTEX_DX:
+      v->dx = val ;
+      break ;
+    case VERTEX_DY:
+      v->dy = val ;
+      break ;
+    case VERTEX_DZ:
+      v->dz = val ;
+      break ;
+    case VERTEX_LOGODDS:
+    case VERTEX_VAL:
+      v->val = val ;
+      break ;
+    case VERTEX_CURV:
+      v->curv = val ;
+      break ;
+    case VERTEX_ANNOTATION:
+      v->annotation = val ;
+      break ;
+    case VERTEX_AREA:
+      v->area = val ;
+      break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED,
+                "MRISreadFromVolume: unsupported type %d", which);
+      break ;
+    }
+  }
   return(mris) ;
 }
 /*-----------------------------------------------------
@@ -46541,6 +46592,7 @@ MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp)
   double  mean, dsigma, dmin, dmax ;
   int     vno, vno2 ;
 
+  vno = vno2 = 0 ;
   mean = MRIScomputeVertexSpacingStats(mris, &dsigma, &dmin,&dmax,&vno,&vno2, CURRENT_VERTICES) ;
   fprintf(fp, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f) "
           "(max @ vno %d --> %d)\n",
@@ -85922,8 +85974,11 @@ MRI *
     if (vsrc == NULL)
       ErrorExit(ERROR_UNSUPPORTED, "could not find v %d", vno_dst) ;
     vno_src = vsrc-&mris_src->vertices[0] ;
-    if (vno_src == Gdiag_no)
+    if (vno_src == Gdiag_no || vno_dst == Gdiag_no)
+    {
+      printf("v %d --> v %d\n", vno_src, vno_dst) ;
       DiagBreak() ;
+    }
     MRIsetVoxVal(mri_dst_features, vno_dst, 0, 0, 0, MRIgetVoxVal(mri_src_features, vno_src, 0, 0, 0)) ;
   }
   MHTfree(&mht) ;
