@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description* , arguments+ , outputs* , example* , bugs* , references* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT references (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+  <name>lta_diff</name>
+  <synopsis>lta_diff trans1.lta [trans2.lta] [options ...]</synopsis>
+  <description>This program can compute different distance norms for a single transform or for the difference between two transforms.
+If only a single transform is passed, it is compared to identity.  
+  </description>
+  <arguments>
+    <positional>
+      <intro>The two transform files are positional arguments, the second one is optional.</intro>
+    </positional>
+    <optional-flagged>
+      <argument>--dist &lt;int&gt; </argument>
+      <explanation>the following distance types are supported:
+  1    Rigid Trans. Dist. (||log(R)|| + ||T||) on D=M2*M1^(-1)
+  2 *  Affine Transform Distance (RMS) on D=M2-M1 (r=100mm)
+  3    8-corners mean distance after transform 
+  4    Max Displacement on Sphere 
+  5    Determinant (scaling) on D = M1*M2
+  6    Interpolation Smoothing (only for first transform)
+  7    Decomposition of D= M1*M2 = Rot*Shear*Scaling
+(* default is 2)
+The Affine Trans. Dist. (RMS) is based on Jenkinson 99 RMS deviation tech report.</explanation>
+      <argument>--invert1 </argument>
+      <explanation>invert first transform before computing difference matrix D</explanation>
+      <argument>--invert2 </argument>
+      <explanation>invert second transform before computing difference matrix D</explanation>
+      <argument>--vox </argument>
+      <explanation>compute distance in vox coordinates (after adjusting for vox sizes). Default: work in RAS coordinates.</explanation>
+      <argument>--normdiv &lt;float&gt; </argument>
+      <explanation>divide final distance by this (e.g. for step adjustment, this is usually not necessary)</explanation>
+      <argument>--radius &lt;float&gt; </argument>
+      <explanation>in mm, use for RMS (dist 2), default 100 to include head</explanation>
+    </optional-flagged>
+  </arguments>
+   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+  <see-also>mri_robust_register (to construct registrations between images)</see-also>
+</help>
+ 
