@@ -230,7 +230,7 @@ bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
     mri = ::MRIread( filename.toLatin1().data() );      // long process
   }
   catch (int ret) {
-      return false;
+    return false;
   }
 
   if ( mri == NULL )
@@ -256,10 +256,10 @@ void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex, int nHemisphere )
   double old_range = m_dMaxValue - m_dMinValue;
   if (m_mriCorrelation->height > 1)
     m_dMaxValue = m_dMinValue =
-                    MRIFseq_vox( m_mriCorrelation, nVertex + nVertexOffset, nDataOffset, 0, 0 );
+        MRIFseq_vox( m_mriCorrelation, nVertex + nVertexOffset, nDataOffset, 0, 0 );
   else
     m_dMaxValue = m_dMinValue =
-                    MRIFseq_vox( m_mriCorrelation, nVertex + nVertexOffset, 0, 0, nDataOffset );
+        MRIFseq_vox( m_mriCorrelation, nVertex + nVertexOffset, 0, 0, nDataOffset );
   for ( int i = 0; i < m_nDataSize; i++ )
   {
     if (m_mriCorrelation->height > 1)
@@ -348,9 +348,9 @@ void SurfaceOverlay::SmoothData(int nSteps_in, float *data_out)
   MRI* mri = NULL;
   try {
     mri = MRIallocSequence( m_nDataSize,
-                               1,
-                               1,
-                               MRI_FLOAT, 1);
+                            1,
+                            1,
+                            MRI_FLOAT, 1);
   } catch (int ret) {
     return;
   }

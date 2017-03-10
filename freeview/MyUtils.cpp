@@ -46,7 +46,7 @@ LINESEGMENT;
 #define MAXDEPTH 10000
 
 #define PUSH(XL, XR, Y, DY) \
-    if( sp < stack+MAXDEPTH && Y+(DY) >= min_y && Y+(DY) <= max_y ) \
+  if( sp < stack+MAXDEPTH && Y+(DY) >= min_y && Y+(DY) <= max_y ) \
 { sp->xl = XL; sp->xr = XR; sp->y = Y; sp->dy = DY; sp++; }
 
 #define POP(XL, XR, Y, DY) \
@@ -198,12 +198,12 @@ SKIP:
 
 
 template <class T> bool CalculateOptimalVolume_t( int* vox1,
-    int nsize1,
-    int* vox2,
-    int nsize2,
-    std::vector<void*> input_volumes,
-    T* output_volume,
-    int vol_size )
+                                                  int nsize1,
+                                                  int* vox2,
+                                                  int nsize2,
+                                                  std::vector<void*> input_volumes,
+                                                  T* output_volume,
+                                                  int vol_size )
 {
   int nvars = input_volumes.size();
   MATRIX* m1 = MatrixAlloc( nsize1, nvars, MATRIX_REAL );
@@ -233,9 +233,9 @@ template <class T> bool CalculateOptimalVolume_t( int* vox1,
     return false;
   }
   MATRIX* scov1 =
-    MatrixScalarMul( cov1, (float)nsize1 / (nsize1 + nsize2 ), NULL );
+      MatrixScalarMul( cov1, (float)nsize1 / (nsize1 + nsize2 ), NULL );
   MATRIX* scov2 =
-    MatrixScalarMul( cov2, (float)nsize2 / (nsize1 + nsize2 ), NULL );
+      MatrixScalarMul( cov2, (float)nsize2 / (nsize1 + nsize2 ), NULL );
   MATRIX* cov = MatrixAdd( scov1, scov2, NULL );
   MATRIX* cov_inv = MatrixInverse( cov, NULL );
   if ( cov_inv == NULL )
@@ -245,7 +245,7 @@ template <class T> bool CalculateOptimalVolume_t( int* vox1,
   MATRIX* mean_sub = MatrixSubtract( mean1, mean2, NULL );
   MATRIX* weight = MatrixMultiply( cov_inv, mean_sub, NULL );
   cout << "condition number: " << MatrixConditionNumber( cov ) << "\n";
-// MATRIX* weight = MatrixCopy( mean_sub, NULL );
+  // MATRIX* weight = MatrixCopy( mean_sub, NULL );
 
   double* w = new double[nvars];
   double sum = 0;

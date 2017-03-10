@@ -39,12 +39,12 @@ using namespace std;
 FSLabel::FSLabel( QObject* parent, FSVolume* mri_template ) : QObject( parent ),
   m_label( NULL )
 {
-    m_dStatsRange[0] = 0;
-    m_dStatsRange[1] = 1.0;
-    m_label = ::LabelAlloc( 100, NULL, (char*)"" );
-    m_label->coords = LABEL_COORDS_TKREG_RAS;
-    if (mri_template)
-        ::LabelInit(m_label, mri_template->GetMRI(), NULL, 0);
+  m_dStatsRange[0] = 0;
+  m_dStatsRange[1] = 1.0;
+  m_label = ::LabelAlloc( 100, NULL, (char*)"" );
+  m_label->coords = LABEL_COORDS_TKREG_RAS;
+  if (mri_template)
+    ::LabelInit(m_label, mri_template->GetMRI(), NULL, 0);
 }
 
 FSLabel::~FSLabel()
@@ -54,9 +54,9 @@ FSLabel::~FSLabel()
     ::LabelFree( &m_label );
   }
   foreach (LABEL* l, m_undoBuffer)
-      ::LabelFree(&l);
+    ::LabelFree(&l);
   foreach (LABEL* l, m_redoBuffer)
-      ::LabelFree(&l);
+    ::LabelFree(&l);
 }
 
 bool FSLabel::LabelRead( const QString& filename )
@@ -94,13 +94,13 @@ bool FSLabel::LabelRead( const QString& filename )
 
 bool FSLabel::UpdateStatsRange(double val)
 {
-    if (m_dStatsRange[0] > val)
-        m_dStatsRange[0] = val;
-    else if (m_dStatsRange[1] < val)
-        m_dStatsRange[1] = val;
-    else
-        return false;
-    return true;
+  if (m_dStatsRange[0] > val)
+    m_dStatsRange[0] = val;
+  else if (m_dStatsRange[1] < val)
+    m_dStatsRange[1] = val;
+  else
+    return false;
+  return true;
 }
 
 void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
@@ -117,7 +117,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
   double* vs = rasImage->GetSpacing();
   vector<float> values;
   float fvalue;
-// int nProgressStep = ( 90 - event.GetInt() ) / 5;
+  // int nProgressStep = ( 90 - event.GetInt() ) / 5;
   double pos[3];
 
   // ok. the following part looks tedious,
@@ -147,7 +147,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
       }
     }
   }
-  break;
+    break;
   case VTK_SHORT:
   {
     short* p = (short*)rasImage->GetScalarPointer();
@@ -170,7 +170,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
       }
     }
   }
-  break;
+    break;
   case VTK_FLOAT:
   {
     float* p = (float*)rasImage->GetScalarPointer();
@@ -193,7 +193,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
       }
     }
   }
-  break;
+    break;
   case VTK_LONG:
   {
     long* p = (long*)rasImage->GetScalarPointer();
@@ -216,7 +216,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
       }
     }
   }
-  break;
+    break;
   case VTK_INT:
   {
     int* p = (int*)rasImage->GetScalarPointer();
@@ -239,7 +239,7 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
       }
     }
   }
-  break;
+    break;
   }
 
   m_label = ::LabelAlloc( nCount, NULL, (char*)"" );
@@ -258,22 +258,22 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
 
 void FSLabel::FillUnassignedVertices(FSSurface* surf, FSVolume* mri_template, int coords)
 {
-    LABEL* l = LabelSampleToSurface(surf->GetMRIS(), m_label, mri_template->GetMRI(), coords);
-    ::LabelFree(&m_label);
-    m_label = l;
-//    LabelFillUnassignedVertices(surf->GetMRIS(), m_label, coords);
+  LABEL* l = LabelSampleToSurface(surf->GetMRIS(), m_label, mri_template->GetMRI(), coords);
+  ::LabelFree(&m_label);
+  m_label = l;
+  //    LabelFillUnassignedVertices(surf->GetMRIS(), m_label, coords);
 }
 
 void FSLabel::Initialize(FSVolume* ref_vol, FSSurface* surf, int coords)
 {
-    ::LabelInit(m_label, ref_vol->GetMRI(), surf?surf->GetMRIS():NULL, coords);
+  ::LabelInit(m_label, ref_vol->GetMRI(), surf?surf->GetMRIS():NULL, coords);
 }
 
 void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double threshold )
 {
   if ( !m_label )
   {
- //   cerr << "Label is empty\n";
+    //   cerr << "Label is empty\n";
     return;
   }
 
@@ -285,12 +285,12 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
           ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
   if (m_dStatsRange[0] <= 0)
   {
-      size_t nsize = ((size_t)dim[0])*dim[1]*dim[2];
-      float* p = (float*)rasImage->GetScalarPointer();
-      for (size_t i = 0; i < nsize; i++)
-      {
-          p[i] = m_dStatsRange[0]-1;
-      }
+    size_t nsize = ((size_t)dim[0])*dim[1]*dim[2];
+    float* p = (float*)rasImage->GetScalarPointer();
+    for (size_t i = 0; i < nsize; i++)
+    {
+      p[i] = m_dStatsRange[0]-1;
+    }
   }
 
   for ( int i = 0; i < m_label->n_points; i++ )
@@ -317,7 +317,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
       }
       else
       {
-          cerr << "Label coordinate out of bound";
+        cerr << "Label coordinate out of bound";
       }
     }
   }
@@ -374,55 +374,55 @@ void FSLabel::GetStatsRange(double *range)
 
 void FSLabel::EditVoxel(int nx, int ny, int nz, bool bAdd, int* vertices, int* pnum)
 {
-    if (bAdd)
-        ::LabelAddVoxel(m_label, nx, ny, nz, WHITE_VERTICES, vertices, pnum);
-    else
-        ::LabelDeleteVoxel(m_label, nx, ny, nz, vertices, pnum);
+  if (bAdd)
+    ::LabelAddVoxel(m_label, nx, ny, nz, WHITE_VERTICES, vertices, pnum);
+  else
+    ::LabelDeleteVoxel(m_label, nx, ny, nz, vertices, pnum);
 }
 
 bool FSLabel::HasUndo()
 {
-    return !m_undoBuffer.isEmpty();
+  return !m_undoBuffer.isEmpty();
 }
 
 bool FSLabel::HasRedo()
 {
-    return !m_redoBuffer.isEmpty();
+  return !m_redoBuffer.isEmpty();
 }
 
 void FSLabel::Undo()
 {
-    if (!m_undoBuffer.isEmpty())
-    {
-        LABEL* l = m_undoBuffer.last();
-        LABEL* l2 = ::LabelCopy(m_label, NULL);
-        ::LabelCopy(l, m_label);
-        ::LabelFree(&l);
-        m_undoBuffer.removeLast();
-        m_redoBuffer << l2;
-    }
+  if (!m_undoBuffer.isEmpty())
+  {
+    LABEL* l = m_undoBuffer.last();
+    LABEL* l2 = ::LabelCopy(m_label, NULL);
+    ::LabelCopy(l, m_label);
+    ::LabelFree(&l);
+    m_undoBuffer.removeLast();
+    m_redoBuffer << l2;
+  }
 }
 
 void FSLabel::Redo()
 {
-    if (!m_redoBuffer.isEmpty())
-    {
-        LABEL* l = m_redoBuffer.last();
-        LABEL* l2 = ::LabelCopy(m_label, NULL);
-        ::LabelCopy(l, m_label);
-        ::LabelFree(&l);
-        m_redoBuffer.removeLast();
-        m_undoBuffer << l2;
-    }
+  if (!m_redoBuffer.isEmpty())
+  {
+    LABEL* l = m_redoBuffer.last();
+    LABEL* l2 = ::LabelCopy(m_label, NULL);
+    ::LabelCopy(l, m_label);
+    ::LabelFree(&l);
+    m_redoBuffer.removeLast();
+    m_undoBuffer << l2;
+  }
 }
 
 void FSLabel::SaveForUndo()
 {
-    LABEL* l = ::LabelCopy(m_label, NULL);
-    m_undoBuffer << l;
+  LABEL* l = ::LabelCopy(m_label, NULL);
+  m_undoBuffer << l;
 
-    // clear redo buffer
-    foreach (LABEL* l, m_redoBuffer)
-        ::LabelFree(&l);
-    m_redoBuffer.clear();
+  // clear redo buffer
+  foreach (LABEL* l, m_redoBuffer)
+    ::LabelFree(&l);
+  m_redoBuffer.clear();
 }

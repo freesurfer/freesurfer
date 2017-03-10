@@ -9,7 +9,7 @@ LayerPropertyFCD::LayerPropertyFCD(QObject *parent) :
   mOpacity(0.8)
 {
   mLUTTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
-// mLUTTable->ClampingOff();
+  // mLUTTable->ClampingOff();
   this->SetColorMapChanged();
 
   connect( this, SIGNAL(ColorMapChanged()), this, SIGNAL(PropertyChanged()) );

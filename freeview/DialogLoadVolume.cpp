@@ -71,8 +71,8 @@ void DialogLoadVolume::UpdateLUT()
 void DialogLoadVolume::OnOpen()
 {
   QStringList filenames = QFileDialog::getOpenFileNames( this, "Select volume files",
-                          MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
-                          "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
+                                                         MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
+                                                         "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   if ( !filenames.isEmpty() )
   {
     m_strLastDir = QFileInfo( filenames[0] ).canonicalPath();
@@ -89,8 +89,8 @@ void DialogLoadVolume::OnOpen()
 void DialogLoadVolume::OnOpenRegistration()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select registration file",
-                     m_strLastDir,
-                     "Registration files (*)");
+                                                   m_strLastDir,
+                                                   "Registration files (*)");
   if ( !filename.isEmpty() )
   {
     ui->lineEditRegistration->setText( MyUtils::Win32PathProof(filename) );
@@ -126,8 +126,8 @@ void DialogLoadVolume::OnLUT( int nSel )
   if ( nSel >= luts->GetCount() )
   {
     QString filename = QFileDialog::getOpenFileName( this, "Load lookup table file",
-                       m_strLastDir,
-                       "LUT files (*)" );
+                                                     m_strLastDir,
+                                                     "LUT files (*)" );
     if ( !filename.isEmpty() && luts->LoadColorTable( filename ) )
     {
       UpdateLUT();

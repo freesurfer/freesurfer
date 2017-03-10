@@ -34,12 +34,12 @@ Interactor2DVoxelEdit::Interactor2DVoxelEdit( QObject* parent ) :
 
 bool Interactor2DVoxelEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderView* view )
 {
-    return Interactor2DVolumeEdit::ProcessMouseDownEvent(event, view);
+  return Interactor2DVolumeEdit::ProcessMouseDownEvent(event, view);
 }
 
 bool Interactor2DVoxelEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView* view )
 {
-    return Interactor2DVolumeEdit::ProcessMouseUpEvent(event, view);
+  return Interactor2DVolumeEdit::ProcessMouseUpEvent(event, view);
 }
 
 bool Interactor2DVoxelEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview )
@@ -49,5 +49,5 @@ bool Interactor2DVoxelEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView* r
 
 bool Interactor2DVoxelEdit::ProcessKeyUpEvent( QKeyEvent* event, RenderView* renderview )
 {
-    return Interactor2DVolumeEdit::ProcessKeyUpEvent(event, renderview);
+  return Interactor2DVolumeEdit::ProcessKeyUpEvent(event, renderview);
 }

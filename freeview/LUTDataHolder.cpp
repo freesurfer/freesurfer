@@ -48,29 +48,29 @@ LUTDataHolder::LUTDataHolder()
     }
   }
 
-//  fi.setFile( fs_home + "/tkmeditParcColorsCMA" );
-//  if (fi.exists())
-//  {
-//    ctd.filename = fi.absoluteFilePath();
-//    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
-//    ctd.name = "tkmeditParcColorsCMA";
-//    if ( ctd.table )
-//    {
-//      m_tables.push_back( ctd );
-//    }
-//  }
+  //  fi.setFile( fs_home + "/tkmeditParcColorsCMA" );
+  //  if (fi.exists())
+  //  {
+  //    ctd.filename = fi.absoluteFilePath();
+  //    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
+  //    ctd.name = "tkmeditParcColorsCMA";
+  //    if ( ctd.table )
+  //    {
+  //      m_tables.push_back( ctd );
+  //    }
+  //  }
 
-//  fi.setFile( fs_home + "/Simple_surface_labels2009.txt" );
-//  if (fi.exists())
-//  {
-//    ctd.filename = fi.absoluteFilePath();
-//    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
-//    ctd.name = "Simple_surface_labels2009";
-//    if ( ctd.table )
-//    {
-//      m_tables.push_back( ctd );
-//    }
-//  }
+  //  fi.setFile( fs_home + "/Simple_surface_labels2009.txt" );
+  //  if (fi.exists())
+  //  {
+  //    ctd.filename = fi.absoluteFilePath();
+  //    ctd.table = CTABreadASCII( ctd.filename.toLatin1().data() );
+  //    ctd.name = "Simple_surface_labels2009";
+  //    if ( ctd.table )
+  //    {
+  //      m_tables.push_back( ctd );
+  //    }
+  //  }
 
   if ( m_tables.isEmpty() )
   {

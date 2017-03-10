@@ -135,6 +135,7 @@ public slots:
     SetCurrentRASPosition(ras);
   }
   void ClearLayerIndices();
+  void Clear();
 
 protected:
   QList<Layer*> m_layers;

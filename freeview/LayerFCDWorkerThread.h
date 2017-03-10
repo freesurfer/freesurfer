@@ -13,21 +13,21 @@ class LayerFCD;
 
 class LayerFCDWorkerThread : public QThread
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
-    explicit LayerFCDWorkerThread(LayerFCD *fcd);
+  explicit LayerFCDWorkerThread(LayerFCD *fcd);
 
 signals:
   void Progress(int);
 
 public slots:
-    void Abort();
+  void Abort();
 
 protected:
-    void run();
+  void run();
 
-    bool m_bAbort;
-    QMutex mutex;
+  bool m_bAbort;
+  QMutex mutex;
 };
 
 #endif // LayerFCDWorkerThread_H

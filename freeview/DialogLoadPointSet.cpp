@@ -46,8 +46,8 @@ void DialogLoadPointSet::OnOK()
   if ( GetFileNames().isEmpty() )
   {
     QMessageBox::warning(
-      this, "Error",
-      "Point set file name can not be empty." );
+          this, "Error",
+          "Point set file name can not be empty." );
     return;
   }
   accept();
@@ -56,10 +56,10 @@ void DialogLoadPointSet::OnOK()
 void DialogLoadPointSet::OnButtonOpen()
 {
   QStringList fns = QFileDialog::getOpenFileNames(
-                      this,
-                      "Select point set files",
-                      m_strLastDir,
-                      "All files (*)" );
+        this,
+        "Select point set files",
+        m_strLastDir,
+        "All files (*)" );
   if ( !fns.isEmpty())
   {
     m_strLastDir = QFileInfo(fns[0]).canonicalPath();

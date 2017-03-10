@@ -102,7 +102,7 @@ void PanelLayer::InitializeLayerTreeWidget( QTreeWidget* treeWidget)
   connect( treeWidget, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(OnItemDoubleClicked(QModelIndex)));
 */
 
-//  UpdateWidgets();
+  //  UpdateWidgets();
 }
 
 void PanelLayer::ConnectLayer( Layer* layer )

@@ -214,7 +214,7 @@ void FSPointSet::LabelToPointSet( PointSet& points_out, FSVolume* ref_vol )
 {
   if ( !m_label )
   {
-  //  cerr << "Label is empty\n";
+    //  cerr << "Label is empty\n";
     return;
   }
 

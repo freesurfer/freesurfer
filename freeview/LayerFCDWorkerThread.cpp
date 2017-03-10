@@ -4,7 +4,7 @@
 #include <QApplication>
 
 LayerFCDWorkerThread::LayerFCDWorkerThread(LayerFCD *fcd) :
-    QThread(fcd), m_bAbort(false)
+  QThread(fcd), m_bAbort(false)
 {
 }
 

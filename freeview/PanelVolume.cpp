@@ -108,10 +108,10 @@ PanelVolume::PanelVolume(QWidget *parent) :
                     << ui->spinBoxFrame
                     << ui->labelFrame
                     << ui->checkBoxAutoAdjustFrameLevel;
-             //       << ui->checkBoxRememberFrame
-             //       << ui->labelRememberFrame
-             //       << ui->labelCorrelationSurface
-             //       << ui->comboBoxCorrelationSurface;
+  //       << ui->checkBoxRememberFrame
+  //       << ui->labelRememberFrame
+  //       << ui->labelCorrelationSurface
+  //       << ui->comboBoxCorrelationSurface;
   ui->labelRememberFrame->hide();
   ui->checkBoxRememberFrame->hide();
   ui->labelCorrelationSurface->hide();
@@ -124,8 +124,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                      << ui->checkBoxNormalizeVectors
                      << ui->lineEditVectorScale
                      << ui->labelVectorScale;
-                 //    << ui->labelMask
-                 //    << ui->comboBoxMask;
+  //    << ui->labelMask
+  //    << ui->comboBoxMask;
 
   m_widgetlistContour << ui->sliderContourThresholdLow
                       << ui->sliderContourThresholdHigh
@@ -147,19 +147,19 @@ PanelVolume::PanelVolume(QWidget *parent) :
                       << ui->checkBoxUpsampleContour;
 
   m_widgetlistContourNormal << ui->sliderContourThresholdLow
-      << ui->sliderContourThresholdHigh
-      << ui->lineEditContourThresholdLow
-      << ui->lineEditContourThresholdHigh
-      << ui->checkBoxUseColorMap
-      << ui->checkBoxContourExtractAll
-      << ui->colorPickerContour
-      << ui->labelContourThresholdHigh
-      << ui->labelContourThresholdLow
-      << ui->labelContourColor
-      << ui->pushButtonContourSave;
+                            << ui->sliderContourThresholdHigh
+                            << ui->lineEditContourThresholdLow
+                            << ui->lineEditContourThresholdHigh
+                            << ui->checkBoxUseColorMap
+                            << ui->checkBoxContourExtractAll
+                            << ui->colorPickerContour
+                            << ui->labelContourThresholdHigh
+                            << ui->labelContourThresholdLow
+                            << ui->labelContourColor
+                            << ui->pushButtonContourSave;
 
   m_widgetlistContourLabel << ui->labelContourLabelRange
-      << ui->lineEditContourLabelRange;
+                           << ui->lineEditContourLabelRange;
 
   m_widgetlistEditable << ui->labelBrushValue
                        << ui->lineEditBrushValue;
@@ -177,18 +177,18 @@ PanelVolume::PanelVolume(QWidget *parent) :
                           << ui->lineEditContourSmoothIteration;
 
   m_widgetlistVolumeTrackSpecs
-                        << ui->labelTrackVolumeThreshold
-                        << ui->sliderTrackVolumeThresholdLow
-                        << ui->lineEditTrackVolumeThresholdLow;
+      << ui->labelTrackVolumeThreshold
+      << ui->sliderTrackVolumeThresholdLow
+      << ui->lineEditTrackVolumeThresholdLow;
 
   QList<QWidget*> combo;
   combo << m_widgetlistGrayScale << m_widgetlistHeatScale
-      << m_widgetlistGenericColorMap << m_widgetlistLUT
-      << m_widgetlistDirectionCode << m_widgetlistVector
-      << m_widgetlistContour << m_widgetlistEditable
-      << ui->checkBoxSmooth << ui->checkBoxUpsample
-      << ui->labelColorMap << ui->comboBoxColorMap
-      << ui->checkBoxShowContour << ui->checkBoxShowOutline;
+        << m_widgetlistGenericColorMap << m_widgetlistLUT
+        << m_widgetlistDirectionCode << m_widgetlistVector
+        << m_widgetlistContour << m_widgetlistEditable
+        << ui->checkBoxSmooth << ui->checkBoxUpsample
+        << ui->labelColorMap << ui->comboBoxColorMap
+        << ui->checkBoxShowContour << ui->checkBoxShowOutline;
 
   combo = combo.toSet().toList();
   foreach (QWidget* w, m_widgetlistVolumeTrack)
@@ -274,9 +274,9 @@ void PanelVolume::DoIdle()
                                        nItemIndex < treeWidgetLayers->topLevelItemCount()-1 );
                                        */
   ui->actionMoveLayerUp->setEnabled(layer && m_layerCollection
-                                  && m_layerCollection->GetLayerIndex(layer) > 0);
+                                    && m_layerCollection->GetLayerIndex(layer) > 0);
   ui->actionMoveLayerDown->setEnabled(layer && m_layerCollection
-                                  && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
+                                      && m_layerCollection->GetLayerIndex(layer) < m_layerCollection->GetNumberOfLayers()-1);
   ui->actionLockLayer->setEnabled( layer );
   ui->actionLockLayer->setChecked( layer && layer->IsLocked() );
   ui->actionCopySetting->setEnabled(layer);
@@ -460,8 +460,8 @@ void PanelVolume::DoUpdateWidgets()
       ui->comboBoxInversion->setCurrentIndex( layer->GetProperty()->GetVectorInversion() );
       if (layer->GetProperty()->GetNormalizeVector())
       {
-         ui->lineEditVectorScale->setVisible(false);
-         ui->labelVectorScale->setVisible(false);
+        ui->lineEditVectorScale->setVisible(false);
+        ui->labelVectorScale->setVisible(false);
       }
     }
     else if ( layer->GetProperty()->GetDisplayTensor() )
@@ -483,12 +483,12 @@ void PanelVolume::DoUpdateWidgets()
     int nRange[2];
     int nPlane = MainWindow::GetMainWindow()->GetMainViewId();
     if (nPlane > 2)
-        nPlane = 2;
+      nPlane = 2;
     layer->GetProperty()->GetProjectionMapRange(nPlane, nRange);
     if (nRange[1] < 0)
     {
-        int* dim = layer->GetImageData()->GetDimensions();
-        nRange[1] = dim[nPlane]-1;
+      int* dim = layer->GetImageData()->GetDimensions();
+      nRange[1] = dim[nPlane]-1;
     }
     ui->lineEditProjectionMapRange->setText(QString("%1, %2").arg(nRange[0]).arg(nRange[1]));
     ui->checkBoxShowOutline->setVisible(ui->comboBoxProjectionMapType->currentIndex() == 0 && !layer->IsTypeOf("DTI"));
@@ -554,8 +554,8 @@ void PanelVolume::DoUpdateWidgets()
     ShowWidgets( m_widgetlistGrayScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Grayscale );
     ShowWidgets( m_widgetlistHeatScale, bNormalDisplay && nColorMap == LayerPropertyMRI::Heat );
     ShowWidgets( m_widgetlistGenericColorMap, (bNormalDisplay && nColorMap != LayerPropertyMRI::LUT &&
-                 nColorMap != LayerPropertyMRI::DirectionCoded) ||
-                (layer && layer->IsTypeOf("DTI") && !layer->GetProperty()->GetDisplayVector() && !layer->GetProperty()->GetDisplayRGB()) );
+        nColorMap != LayerPropertyMRI::DirectionCoded) ||
+                 (layer && layer->IsTypeOf("DTI") && !layer->GetProperty()->GetDisplayVector() && !layer->GetProperty()->GetDisplayRGB()) );
     ShowWidgets( m_widgetlistLUT, bNormalDisplay && nColorMap == LayerPropertyMRI::LUT );
     ShowWidgets( m_widgetlistDirectionCode, bNormalDisplay && nColorMap == LayerPropertyMRI::DirectionCoded );
     ShowWidgets( m_widgetlistEditable, bNormalDisplay && layer->IsEditable() );
@@ -584,8 +584,8 @@ void PanelVolume::DoUpdateWidgets()
     {
       if (layer->GetProperty()->GetNormalizeVector())
       {
-         ui->lineEditVectorScale->setVisible(false);
-         ui->labelVectorScale->setVisible(false);
+        ui->lineEditVectorScale->setVisible(false);
+        ui->labelVectorScale->setVisible(false);
       }
     }
     ui->checkBoxShowContour->setVisible( bNormalDisplay && !layer->GetProperty()->GetShowProjectionMap() );
@@ -659,21 +659,21 @@ void PanelVolume::OnColorTableCurrentItemChanged( QTreeWidgetItem* item )
 
 void PanelVolume::OnColorTableItemDoubleClicked(QTreeWidgetItem *item)
 {
-    if (item)
+  if (item)
+  {
+    QStringList strglist = item->text( 0 ).split(" ");
+    double val = strglist[0].toDouble();
+    LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+    if ( layer )
     {
-        QStringList strglist = item->text( 0 ).split(" ");
-        double val = strglist[0].toDouble();
-        LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-        if ( layer )
-        {
-          double pos[3];
-          if (layer->GetLayerLabelCenter(val, pos))
-          {
-            MainWindow::GetMainWindow()->SetSlicePosition(pos);
-            MainWindow::GetMainWindow()->CenterAtWorldPosition(pos);
-          }
-        }
+      double pos[3];
+      if (layer->GetLayerLabelCenter(val, pos))
+      {
+        MainWindow::GetMainWindow()->SetSlicePosition(pos);
+        MainWindow::GetMainWindow()->CenterAtWorldPosition(pos);
+      }
     }
+  }
 }
 
 void PanelVolume::UpdateColorLabel()
@@ -962,21 +962,21 @@ void PanelVolume::OnSliderMin( int nVal )
         layer->GetProperty()->SetMinGrayscaleWindow(layer->GetHistoValueFromPercentile(nVal/100.0));
       else
         layer->GetProperty()->SetMinGrayscaleWindow( nVal /
-          100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
+                                                     100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
       break;
     case LayerPropertyMRI::Heat:
       if (layer->GetProperty()->GetUsePercentile())
         layer->GetProperty()->SetHeatScaleMinThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
       else
         layer->GetProperty()->SetHeatScaleMinThreshold( nVal /
-          100.0 * ( fMax - fMin ) + fMin );
+                                                        100.0 * ( fMax - fMin ) + fMin );
       break;
     default:
       if (layer->GetProperty()->GetUsePercentile())
         layer->GetProperty()->SetMinGenericThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
       else
         layer->GetProperty()->SetMinGenericThreshold( nVal /
-          100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
+                                                      100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
       break;
     }
   }
@@ -1018,21 +1018,21 @@ void PanelVolume::OnSliderMax( int nVal )
         layer->GetProperty()->SetMaxGrayscaleWindow(layer->GetHistoValueFromPercentile(nVal/100.0));
       else
         layer->GetProperty()->SetMaxGrayscaleWindow( nVal /
-          100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
+                                                     100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
       break;
     case LayerPropertyMRI::Heat:
       if (layer->GetProperty()->GetUsePercentile())
         layer->GetProperty()->SetHeatScaleMaxThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
       else
         layer->GetProperty()->SetHeatScaleMaxThreshold( nVal /
-          100.0 * ( fMax - fMin ) + fMin );
+                                                        100.0 * ( fMax - fMin ) + fMin );
       break;
     default:
       if (layer->GetProperty()->GetUsePercentile())
         layer->GetProperty()->SetMaxGenericThreshold(layer->GetHistoValueFromPercentile(nVal/100.0));
       else
         layer->GetProperty()->SetMaxGenericThreshold( nVal /
-          100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
+                                                      100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
       break;
     }
   }
@@ -1171,7 +1171,7 @@ void PanelVolume::OnSliderContourMin(int nval)
   double fMin = layer->GetProperty()->GetMinValue();
   double fMax = layer->GetProperty()->GetMaxValue();
   ChangeLineEditNumber( ui->lineEditContourThresholdLow,
-                            nval / 100.0 * ( fMax - fMin ) + fMin );
+                        nval / 100.0 * ( fMax - fMin ) + fMin );
 }
 
 void PanelVolume::OnSliderContourMax(int nval)
@@ -1183,7 +1183,7 @@ void PanelVolume::OnSliderContourMax(int nval)
   double fMin = layer->GetProperty()->GetMinValue();
   double fMax = layer->GetProperty()->GetMaxValue();
   ChangeLineEditNumber( ui->lineEditContourThresholdHigh,
-                            nval / 100.0 * ( fMax - fMin ) + fMin );
+                        nval / 100.0 * ( fMax - fMin ) + fMin );
 }
 
 void PanelVolume::OnSliderContourSmooth(int nval)
@@ -1252,9 +1252,9 @@ void PanelVolume::OnContourSave()
   if ( layer )
   {
     QString fn = QFileDialog::getSaveFileName( this,
-                 "Save iso-surface",
-                 MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName() + ".vtk",
-                 "VTK files (*.vtk);;All files (*)");
+                                               "Save iso-surface",
+                                               MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName() + ".vtk",
+                                               "VTK files (*.vtk);;All files (*)");
     if ( !fn.isEmpty() )
     {
       if ( !layer->SaveContourToFile( fn ) )
@@ -1267,14 +1267,14 @@ void PanelVolume::OnContourSave()
 
 void PanelVolume::OnSliderTrackVolumeMin(int nval)
 {
-   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
-   if ( layer && layer->IsTypeOf("VolumeTrack"))
-   {
-      double fMin = layer->GetProperty()->GetMinValue();
-      double fMax = layer->GetProperty()->GetMaxValue()/4;
-      ChangeLineEditNumber( ui->lineEditTrackVolumeThresholdLow,
-                            nval / 100.0 * ( fMax - fMin ) + fMin );
-   }
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if ( layer && layer->IsTypeOf("VolumeTrack"))
+  {
+    double fMin = layer->GetProperty()->GetMinValue();
+    double fMax = layer->GetProperty()->GetMaxValue()/4;
+    ChangeLineEditNumber( ui->lineEditTrackVolumeThresholdLow,
+                          nval / 100.0 * ( fMax - fMin ) + fMin );
+  }
 }
 
 void PanelVolume::OnTrackVolumeThresholdChanged()
@@ -1383,7 +1383,7 @@ void PanelVolume::OnActiveFrameChanged(int nFrame)
 void PanelVolume::OnShowExistingLabelsOnly(bool b)
 {
   m_bShowExistingLabelsOnly = b;
-//  this->UpdateWidgets();
+  //  this->UpdateWidgets();
   OnLineEditBrushValue(ui->lineEditBrushValue->text());
 }
 
@@ -1419,11 +1419,11 @@ void PanelVolume::OnCheckUsePercentile(bool b)
 
 void PanelVolume::OnLockLayer(bool b)
 {
-   QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
-   foreach (LayerMRI* layer, layers)
-   {
-     layer->Lock(b);
-   }
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    layer->Lock(b);
+  }
 }
 
 void PanelVolume::OnLineEditVectorDisplayScale(const QString &strg)
@@ -1440,47 +1440,47 @@ void PanelVolume::OnLineEditVectorDisplayScale(const QString &strg)
 
 void PanelVolume::OnComboProjectionMapType(int nType)
 {
-    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
-    foreach (LayerMRI* layer, layers)
-    {
-        layer->GetProperty()->SetProjectionMapType(nType);
-    }
-    UpdateWidgets();
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    layer->GetProperty()->SetProjectionMapType(nType);
+  }
+  UpdateWidgets();
 }
 
 void PanelVolume::OnLineEditProjectionMapRangeChanged()
 {
-    QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
-    foreach (LayerMRI* layer, layers)
-    {
-        QStringList list = ui->lineEditProjectionMapRange->text().trimmed().split(",", QString::SkipEmptyParts);
-        if (list.size() < 2)
-            list = ui->lineEditProjectionMapRange->text().trimmed().split(" ", QString::SkipEmptyParts);
+  QList<LayerMRI*> layers = GetSelectedLayers<LayerMRI*>();
+  foreach (LayerMRI* layer, layers)
+  {
+    QStringList list = ui->lineEditProjectionMapRange->text().trimmed().split(",", QString::SkipEmptyParts);
+    if (list.size() < 2)
+      list = ui->lineEditProjectionMapRange->text().trimmed().split(" ", QString::SkipEmptyParts);
 
-        if (list.size() > 1)
+    if (list.size() > 1)
+    {
+      int nRange[2] = {0, -1};
+      for (int i = 0; i < 2; i++)
+      {
+        bool ok;
+        nRange[i] = list[i].toInt(&ok);
+        if (!ok)
         {
-            int nRange[2] = {0, -1};
-            for (int i = 0; i < 2; i++)
-            {
-                bool ok;
-                nRange[i] = list[i].toInt(&ok);
-                if (!ok)
-                {
-                    UpdateWidgets();
-                    return;
-                }
-            }
-            int nPlane = MainWindow::GetMainWindow()->GetMainViewId();
-            if (nPlane > 2)
-                nPlane = 2;
-            int* dim = layer->GetImageData()->GetDimensions();
-            if (nRange[0] < 0)
-                nRange[0] = 0;
-            if (nRange[1] >= dim[nPlane])
-                nRange[1] = dim[nPlane]-1;
-            if (nRange[1] >= nRange[0])
-                layer->GetProperty()->SetProjectionMapRange(nPlane, nRange[0], nRange[1]);
+          UpdateWidgets();
+          return;
         }
+      }
+      int nPlane = MainWindow::GetMainWindow()->GetMainViewId();
+      if (nPlane > 2)
+        nPlane = 2;
+      int* dim = layer->GetImageData()->GetDimensions();
+      if (nRange[0] < 0)
+        nRange[0] = 0;
+      if (nRange[1] >= dim[nPlane])
+        nRange[1] = dim[nPlane]-1;
+      if (nRange[1] >= nRange[0])
+        layer->GetProperty()->SetProjectionMapRange(nPlane, nRange[0], nRange[1]);
     }
-    UpdateWidgets();
+  }
+  UpdateWidgets();
 }

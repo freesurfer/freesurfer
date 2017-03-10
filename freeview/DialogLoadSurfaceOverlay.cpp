@@ -4,15 +4,15 @@
 #include <QFileDialog>
 
 DialogLoadSurfaceOverlay::DialogLoadSurfaceOverlay(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogLoadSurfaceOverlay)
+  QDialog(parent),
+  ui(new Ui::DialogLoadSurfaceOverlay)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 }
 
 DialogLoadSurfaceOverlay::~DialogLoadSurfaceOverlay()
 {
-    delete ui;
+  delete ui;
 }
 
 void DialogLoadSurfaceOverlay::OnOK()
@@ -41,8 +41,8 @@ QString DialogLoadSurfaceOverlay::GetRegistration()
 void DialogLoadSurfaceOverlay::OnButtonOpen()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select overlay files",
-                          m_strLastDir,
-                          "Overlay files (*)");
+                                                   m_strLastDir,
+                                                   "Overlay files (*)");
   if ( !filename.isEmpty() )
   {
     ui->lineEditFile->setText(filename);
@@ -53,8 +53,8 @@ void DialogLoadSurfaceOverlay::OnButtonOpen()
 void DialogLoadSurfaceOverlay::OnButtonRegistration()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select registration file",
-                     m_strLastDir,
-                     "Registration files (*)");
+                                                   m_strLastDir,
+                                                   "Registration files (*)");
   if ( !filename.isEmpty() )
   {
     ui->lineEditRegistration->setText(filename);

@@ -90,17 +90,17 @@ ToolWindowEdit::ToolWindowEdit(QWidget *parent) :
 
   m_widgetsTolerance << ui->labelTolerance << ui->spinBoxTolerance;
 
-//  m_widgetsConstrain << ui->checkBoxConstrain
-//                     << ui->checkBoxDrawRange
-//                     << ui->labelDrawRangeLow
-//                     << ui->labelDrawRangeHigh
-//                     << ui->lineEditDrawRangeLow
-//                     << ui->lineEditDrawRangeHigh
-//                     << ui->checkBoxExcludeRange
-//                     << ui->labelExcludeRangeHigh
-//                     << ui->labelExcludeRangeLow
-//                     << ui->lineEditExcludeRangeHigh
-//                     << ui->lineEditExcludeRangeLow;
+  //  m_widgetsConstrain << ui->checkBoxConstrain
+  //                     << ui->checkBoxDrawRange
+  //                     << ui->labelDrawRangeLow
+  //                     << ui->labelDrawRangeHigh
+  //                     << ui->lineEditDrawRangeLow
+  //                     << ui->lineEditDrawRangeHigh
+  //                     << ui->checkBoxExcludeRange
+  //                     << ui->labelExcludeRangeHigh
+  //                     << ui->labelExcludeRangeLow
+  //                     << ui->lineEditExcludeRangeHigh
+  //                     << ui->lineEditExcludeRangeLow;
   m_widgetsConstrain << ui->tabWidgetConstrains;
 
   m_widgetsSmooth << ui->checkBoxSmooth
@@ -231,13 +231,13 @@ void ToolWindowEdit::OnIdle()
 
   int nAction = view->GetAction();
   ShowWidgets( m_widgetsBrushSize, nAction != Interactor2DVoxelEdit::EM_Contour &&
-               nAction != Interactor2DVoxelEdit::EM_ColorPicker &&
-               nAction != Interactor2DVoxelEdit::EM_Fill );
-//  ShowWidgets( m_widgetsReference, nAction == Interactor2DVoxelEdit::EM_Fill ||
-//                                   nAction == Interactor2DVoxelEdit::EM_Contour );
+      nAction != Interactor2DVoxelEdit::EM_ColorPicker &&
+      nAction != Interactor2DVoxelEdit::EM_Fill );
+  //  ShowWidgets( m_widgetsReference, nAction == Interactor2DVoxelEdit::EM_Fill ||
+  //                                   nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsTolerance, nAction == Interactor2DVoxelEdit::EM_Fill );
   ShowWidgets( m_widgetsConstrain, nAction != Interactor2DVoxelEdit::EM_ColorPicker &&
-               nAction != Interactor2DVoxelEdit::EM_Contour );
+      nAction != Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsSmooth, nAction == Interactor2DVoxelEdit::EM_Contour );
   ShowWidgets( m_widgetsContour, nAction == Interactor2DVoxelEdit::EM_Contour );
 
@@ -433,13 +433,13 @@ void ToolWindowEdit::OnReplaceLabel()
 
 void ToolWindowEdit::OnCheckReconEditing(bool bRecon)
 {
-    static int old_erase_value = 0;
-    static bool exclude_enabled = false;
-    static double exclude_range[2] = {0, 0};
-    BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
-    if (bRecon)
-    {
-      /*
+  static int old_erase_value = 0;
+  static bool exclude_enabled = false;
+  static double exclude_range[2] = {0, 0};
+  BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
+  if (bRecon)
+  {
+    /*
         QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
         foreach (Layer* layer, layers)
         {
@@ -451,20 +451,20 @@ void ToolWindowEdit::OnCheckReconEditing(bool bRecon)
             }
         }
         */
-       old_erase_value = bp->GetEraseValue();
-       double* r = bp->GetExcludeRange();
-       exclude_range[0] = r[0];
-       exclude_range[1] = r[1];
-       exclude_enabled = bp->GetExcludeRangeEnabled();
-       bp->SetFillValue(255);
-       bp->SetEraseValue(1);
-       bp->SetExcludeRangeEnabled(true);
-       bp->SetExcludeRange(5, 250);
-    }
-    else
-    {
-      bp->SetEraseValue(old_erase_value);
-      bp->SetExcludeRangeEnabled(exclude_enabled);
-      bp->SetExcludeRange(exclude_range[0], exclude_range[1]);
-    }
+    old_erase_value = bp->GetEraseValue();
+    double* r = bp->GetExcludeRange();
+    exclude_range[0] = r[0];
+    exclude_range[1] = r[1];
+    exclude_enabled = bp->GetExcludeRangeEnabled();
+    bp->SetFillValue(255);
+    bp->SetEraseValue(1);
+    bp->SetExcludeRangeEnabled(true);
+    bp->SetExcludeRange(5, 250);
+  }
+  else
+  {
+    bp->SetEraseValue(old_erase_value);
+    bp->SetExcludeRangeEnabled(exclude_enabled);
+    bp->SetExcludeRange(exclude_range[0], exclude_range[1]);
+  }
 }

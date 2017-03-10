@@ -14,21 +14,21 @@ class LayerMRI;
 
 class LayerMRIWorkerThread : public QThread
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
-    explicit LayerMRIWorkerThread(LayerMRI *mri);
+  explicit LayerMRIWorkerThread(LayerMRI *mri);
 
 signals:
-    void LabelInformationReady();
+  void LabelInformationReady();
 
 public slots:
-    void Abort();
+  void Abort();
 
 protected:
-    void run();
+  void run();
 
-    bool m_bAbort;
-    QMutex mutex;
+  bool m_bAbort;
+  QMutex mutex;
 };
 
 #endif // LAYERMRIWORKERTHREAD_H

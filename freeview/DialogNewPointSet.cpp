@@ -67,7 +67,7 @@ void DialogNewPointSet::SetPointSetName( const QString& name )
 LayerMRI* DialogNewPointSet::GetTemplate()
 {
   return qobject_cast<LayerMRI*>(
-           ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
+        ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
 }
 
 void DialogNewPointSet::OnOK()
@@ -83,6 +83,6 @@ void DialogNewPointSet::OnOK()
 int DialogNewPointSet::GetType()
 {
   return ( ui->radioButtonControlPoint->isChecked() ?
-           LayerPropertyPointSet::ControlPoint :
-           LayerPropertyPointSet::WayPoint );
+             LayerPropertyPointSet::ControlPoint :
+             LayerPropertyPointSet::WayPoint );
 }

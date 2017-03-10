@@ -80,7 +80,7 @@ void vtkSimpleLabelEdgeFilterExecute(vtkImageData* input,
 }
 
 void vtkSimpleLabelEdgeFilter::SimpleExecute(vtkImageData* input,
-    vtkImageData* output)
+                                             vtkImageData* output)
 {
 
   void* inPtr = input->GetScalarPointer();
@@ -88,12 +88,12 @@ void vtkSimpleLabelEdgeFilter::SimpleExecute(vtkImageData* input,
 
   switch(output->GetScalarType())
   {
-    // This is simply a #define for a big case list. It handles all
-    // data types VTK supports.
-    vtkTemplateMacro(
-      vtkSimpleLabelEdgeFilterExecute(input, output,
-                                      static_cast<VTK_TT *>(inPtr),
-                                      static_cast<VTK_TT *>(outPtr)));
+  // This is simply a #define for a big case list. It handles all
+  // data types VTK supports.
+  vtkTemplateMacro(
+        vtkSimpleLabelEdgeFilterExecute(input, output,
+                                        static_cast<VTK_TT *>(inPtr),
+                                        static_cast<VTK_TT *>(outPtr)));
   default:
     vtkGenericWarningMacro("Execute: Unknown input ScalarType");
     return;

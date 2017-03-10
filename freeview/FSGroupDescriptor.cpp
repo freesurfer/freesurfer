@@ -71,9 +71,9 @@ bool FSGroupDescriptor::Read( const QString& filename )
   }
   if (!bOK)
   {
-//    cout << "Could not find XAxis tag in file. Using default one." << endl;
-//    m_dXStart = 0;
-//    m_dXDelta = 1;
+    //    cout << "Could not find XAxis tag in file. Using default one." << endl;
+    //    m_dXStart = 0;
+    //    m_dXDelta = 1;
   }
   file.close();
 
@@ -149,32 +149,32 @@ bool FSGroupDescriptor::Read( const QString& filename )
           m_variables[n].range[1] = m_data[i].variable_values[n];
       }
     }
-  //  qDebug() << m_data[i].class_id << m_data[i].subject_id << m_data[i].variable_values;
+    //  qDebug() << m_data[i].class_id << m_data[i].subject_id << m_data[i].variable_values;
   }
 
   m_title = m_fsgd->title;
   m_measureName = m_fsgd->measname;
-//  UpdateData(0);
+  //  UpdateData(0);
 
   return true;
 }
 
 void FSGroupDescriptor::UpdateData(int nVertex)
 {
-    if (nVertex >= 0 && nVertex < m_fsgd->data->width)
+  if (nVertex >= 0 && nVertex < m_fsgd->data->width)
+  {
+    m_nVertexNum = nVertex;
+    m_dMeasurementRange[0] = 1e10;
+    m_dMeasurementRange[1] = -1e10;
+    for (int i = 0; i < m_data.size(); i++)
     {
-        m_nVertexNum = nVertex;
-        m_dMeasurementRange[0] = 1e10;
-        m_dMeasurementRange[1] = -1e10;
-        for (int i = 0; i < m_data.size(); i++)
-        {
-            float val;
-            gdfGetNthSubjectMeasurement(m_fsgd, i, nVertex, 0, 0, &val);
-            m_data[i].measurement = val;
-            if (m_dMeasurementRange[0] > val)
-                m_dMeasurementRange[0] = val;
-            else if (m_dMeasurementRange[1] < val)
-                m_dMeasurementRange[1] = val;
-        }
+      float val;
+      gdfGetNthSubjectMeasurement(m_fsgd, i, nVertex, 0, 0, &val);
+      m_data[i].measurement = val;
+      if (m_dMeasurementRange[0] > val)
+        m_dMeasurementRange[0] = val;
+      else if (m_dMeasurementRange[1] < val)
+        m_dMeasurementRange[1] = val;
     }
+  }
 }

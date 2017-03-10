@@ -31,18 +31,18 @@
 
 class MainApplication : public QApplication
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
-    explicit MainApplication( int & argc, char ** argv );
+  explicit MainApplication( int & argc, char ** argv );
 
 signals:
-    void GlobalProgress(int n);
+  void GlobalProgress(int n);
 
 public slots:
-    void EmitProgress(int n)
-    {
-      emit GlobalProgress(n);
-    }
+  void EmitProgress(int n)
+  {
+    emit GlobalProgress(n);
+  }
 };
 
 #endif // MAINAPPLICATION_H

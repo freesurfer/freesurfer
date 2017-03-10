@@ -37,16 +37,16 @@ DialogSaveScreenshot::DialogSaveScreenshot(QWidget *parent) :
   ui(new Ui::DialogSaveScreenshot)
 {
   ui->setupUi(this);
-//  QSettings settings;
-//  ui->lineEditFileName->setText(settings.value("ScreenShot/LastSavedFile").toString());
+  //  QSettings settings;
+  //  ui->lineEditFileName->setText(settings.value("ScreenShot/LastSavedFile").toString());
   m_strLastDir = QDir::currentPath();
   qDebug() << m_strLastDir;
 }
 
 DialogSaveScreenshot::~DialogSaveScreenshot()
 {
-//  QSettings settings;
-//  settings.setValue("ScreenShot/LastSavedFile", GetFileName());
+  //  QSettings settings;
+  //  settings.setValue("ScreenShot/LastSavedFile", GetFileName());
   delete ui;
 }
 

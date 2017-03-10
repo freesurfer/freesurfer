@@ -83,8 +83,8 @@ void DialogSaveVolume::OnOK()
 void DialogSaveVolume::OnOpen()
 {
   QString fn = QFileDialog::getSaveFileName( this, "Save volume",
-               GetFileName(),
-               "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
+                                             GetFileName(),
+                                             "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   if ( !fn.isEmpty() )
   {
     ui->lineEditFileName->setText(fn);

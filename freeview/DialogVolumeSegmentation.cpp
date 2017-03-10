@@ -6,15 +6,15 @@
 #include <QMessageBox>
 
 DialogVolumeSegmentation::DialogVolumeSegmentation(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogVolumeSegmentation)
+  QDialog(parent),
+  ui(new Ui::DialogVolumeSegmentation)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 }
 
 DialogVolumeSegmentation::~DialogVolumeSegmentation()
 {
-    delete ui;
+  delete ui;
 }
 
 void DialogVolumeSegmentation::OnButtonRestore()

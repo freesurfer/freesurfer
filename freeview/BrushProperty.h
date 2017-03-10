@@ -90,7 +90,7 @@ public:
 
   bool GetCloning()
   {
-      return m_bIsCloning;
+    return m_bIsCloning;
   }
 
 signals:
@@ -114,7 +114,7 @@ public slots:
   }
   void SetCloning(bool bVal)
   {
-      m_bIsCloning = bVal;
+    m_bIsCloning = bVal;
   }
 
   void SetEraseRangeEnabled( bool bEnable );

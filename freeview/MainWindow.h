@@ -253,8 +253,8 @@ public slots:
   void SyncZoom(bool bSync);
   void SetUseCommandControl(bool b);
   void SetUnifiedTitleAndToolBar(bool b);
-//  void ShowAllLayers();
-//  void HideAllLayers();
+  //  void ShowAllLayers();
+  //  void HideAllLayers();
   bool ParseCommand(const QString& cmd, bool bAutoQuit = false);
   bool ParseCommand(MyCmdLineParser* parser, const QString& cmd, bool bAutoQuit = false);
 
@@ -296,7 +296,7 @@ protected:
                     const QString& reg_fn = "",
                     bool Resample = true );
   void LoadVolumeTrackFile( const QString& fn,
-                    bool Resample = false );
+                            bool Resample = false );
 
   void LoadSurfaceFile( const QString& filename,
                         const QString& fn_patch = "",
@@ -530,6 +530,8 @@ private:
 
   QColor ParseColorInput(const QString& cmd);
 
+  void LoadSphereLeftRightIfNeeded(LayerSurface* layer);
+
   int m_nViewLayout;
   int m_nMainView;
 
@@ -538,7 +540,7 @@ public:
 
 private:
   RenderView*   m_views[4];
-//  LayerCollectionManager*   m_layerCollectionManager;
+  //  LayerCollectionManager*   m_layerCollectionManager;
   QMap<QString, LayerCollection*> m_layerCollections;
   BrushProperty*    m_propertyBrush;
   bool              m_bResampleToRAS;

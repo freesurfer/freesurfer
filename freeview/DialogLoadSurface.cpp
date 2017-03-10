@@ -7,19 +7,19 @@
 #include <QSettings>
 
 DialogLoadSurface::DialogLoadSurface(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogLoadSurface)
+  QDialog(parent),
+  ui(new Ui::DialogLoadSurface)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 
-    QSettings s;
-    ui->lineEditFilename->setText(s.value("DialogLoadSurface/Filename").toString());
-    ui->lineEditFilename->setCursorPosition(ui->lineEditFilename->text().size());
-    ui->checkBoxInflated->setChecked(s.value("DialogLoadSurface/LoadInflated").toBool());
-    ui->checkBoxOrig->setChecked(s.value("DialogLoadSurface/LoadOrig").toBool());
-    ui->checkBoxPial->setChecked(s.value("DialogLoadSurface/LoadPial").toBool());
-    ui->checkBoxWhite->setChecked(s.value("DialogLoadSurface/LoadWhite").toBool());
-    UpdateStatus();
+  QSettings s;
+  ui->lineEditFilename->setText(s.value("DialogLoadSurface/Filename").toString());
+  ui->lineEditFilename->setCursorPosition(ui->lineEditFilename->text().size());
+  ui->checkBoxInflated->setChecked(s.value("DialogLoadSurface/LoadInflated").toBool());
+  ui->checkBoxOrig->setChecked(s.value("DialogLoadSurface/LoadOrig").toBool());
+  ui->checkBoxPial->setChecked(s.value("DialogLoadSurface/LoadPial").toBool());
+  ui->checkBoxWhite->setChecked(s.value("DialogLoadSurface/LoadWhite").toBool());
+  UpdateStatus();
 }
 
 DialogLoadSurface::~DialogLoadSurface()
@@ -48,8 +48,8 @@ void DialogLoadSurface::OnOpen()
 {
   QString lastdir = QFileInfo(ui->lineEditFilename->text().trimmed()).absoluteFilePath();
   QString filename = QFileDialog::getOpenFileName( this, "Select surface file",
-                          MainWindow::AutoSelectLastDir(lastdir, "surf" ),
-                          "Surface files (*)");
+                                                   MainWindow::AutoSelectLastDir(lastdir, "surf" ),
+                                                   "Surface files (*)");
   if (!filename.isEmpty())
   {
     ui->lineEditFilename->setText(filename);

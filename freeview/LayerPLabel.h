@@ -62,7 +62,7 @@ public:
   QString GetLabelName(double* pos);
 
 protected:
-//  bool DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
+  //  bool DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
   void UpdateColorMap();
 
   FSVolume*     m_volumeTemp;
