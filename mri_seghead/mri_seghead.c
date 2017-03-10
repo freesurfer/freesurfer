@@ -70,6 +70,7 @@ char *subjid;
 
 char *involid;
 char *outvolid;
+char *outbox = NULL;
 unsigned char fillval = 255;
 int thresh1  = -1;
 int thresh2  = -1;
@@ -92,6 +93,102 @@ char tmpstr[1000];
 char *hvoldat = NULL;
 char *SUBJECTS_DIR;
 FILE *fp;
+
+/** Computes the signal in a box behind the head.
+    It finds a box of 10 slices at a small offset
+    behind the head and crops the top and bottom.
+    Then it computes the mean intensity and the
+    mean sobel magnitute (after smoothing a little),
+    and reports those values to the screen.
+*/
+void getSignalBehindHead(MRI * mri_in, MRI* mri_mask, const char *outbox)
+{
+  //unsigned int debug = 0;
+  // swap axis to be in conform orientation (LIA)
+  MRI* mri_lia = MRIconformSliceOrder(mri_in);
+  MRI* mri_head = MRIconformSliceOrder(mri_mask); 
+  //if (debug) MRIwrite(mri_lia,"test_orig.mgz");
+  //if (debug) MRIwrite(mri_head,"test_head.mgz");  
+    
+  int bdepth = 7;  
+  int hmin = 30;
+  int hmax = 190;
+  int cspace = 2;
+  
+  // find slices behind head (in the middle):
+  int c,r,s;
+  for (s = 0; s < mri_head->depth; s++)
+    for (r = hmin; r < hmax; r++)
+      for (c = 0; c < mri_head->width; c++)
+        if (MRIseq_vox(mri_head,c,r,s,0) )
+        {
+          printf("found head voxel at %d %d %d\n",c,r,s);
+          goto FOUND;
+        }
+  fprintf(stderr,"getSignalBehindHead ERROR (head not found)\n");
+  exit(1);
+
+FOUND:
+  printf("head slice %d\n",s);
+  int end = s-cspace;
+  if (end < 0) end = 0;
+  int start = end - bdepth;
+  if (start < 0)
+  {
+    printf("WARNING: only %i < %i slices behind head!\n",end,bdepth);
+    start = 0;
+  }
+  if (end == start)
+  {
+    fprintf(stderr,"getSignalBehindHead ERROR (no slices behind head)\n");
+    exit(1);
+  }
+  
+  MRI * mri_box = MRIextract(mri_lia,NULL,0,hmin,start,mri_head->width,hmax-hmin,end-start);
+  if (outbox != NULL) MRIwrite(mri_box,outbox);
+
+  MRI * mri_mag  = MRIcloneDifferentType(mri_box,MRI_FLOAT);
+  MRI * mri_grad = MRIsobel(mri_box, NULL, mri_mag); 
+  MRIfree(&mri_grad); 
+
+  //if (debug) MRIwrite(mri_mag,"test_mag.mgz");
+  
+  double mean=0.0;
+  double meanm = 0.0;
+  unsigned int count = 0;
+  for (s = 0; s<mri_box->depth; s++)
+    for (r = 0; r < mri_box->height; r++)
+      for (c = 0; c < mri_box->width; c++)
+      {
+        mean += MRIgetVoxVal(mri_box,c,r,s,0);
+        meanm += MRIgetVoxVal(mri_mag,c,r,s,0);
+        count++;
+      }
+  mean = mean / count;
+  meanm = meanm / count;
+  double var = 0;
+  double temp;
+  for (s = 0; s<mri_box->depth; s++)
+    for (r = 0; r < mri_box->height; r++)
+      for (c = 0; c < mri_box->width; c++)
+      {
+        
+        temp = MRIgetVoxVal(mri_box,c,r,s,0) - mean;
+        var += temp*temp;
+      }
+  var = var / count;
+
+  printf("\nSignal mean behind head = %f\n",mean);
+  printf("Signal variance behind head = %f\n",var);
+  printf("Sobel magnitude behind head = %f\n\n",meanm);
+
+  MRIfree(&mri_head);
+  MRIfree(&mri_lia);
+  MRIfree(&mri_box);
+  MRIfree(&mri_mag);
+
+  return;
+}
 
 int MRISprojectDist(MRIS *surf, const MRI *mridist);
 int MRISbrainSurfToSkull(MRIS *surf, const double *params, const MRI *vol);
@@ -294,6 +391,9 @@ int main(int argc, char **argv) {
     }
   }
   backnoise= backnoise/backcount;
+
+  getSignalBehindHead(invol_orig,outvol, outbox);
+  
   printf("N Head Voxels = %d\n",n);
   printf("N Back Voxels = %d\n",backcount);
   printf("Avg. Back Intensity = %f\n",backnoise);
@@ -386,6 +486,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (stringmatch(option, "--dilate")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&dilate);
+      nargsused = 1;
+    }
+    else if (stringmatch(option, "--outbox")) {
+      if (nargc < 1) argnerr(option,1);
+      outbox = pargv[0];
       nargsused = 1;
     } 
     else if (stringmatch(option, "--skull")) {
