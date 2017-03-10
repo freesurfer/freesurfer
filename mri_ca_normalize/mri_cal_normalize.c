@@ -1344,7 +1344,15 @@ normalize_timepoints_with_parzen_window(MRI *mri_in, MRI *mri_out, double cross_
 {
   int   frame1, frame2, x, y, z ;
   double val0, val, total, g, total_norm ;
-  double s = -0.5 / SQR(cross_time_sigma);
+  double s;
+  // if sigma is zero, skip smoothing
+  // copying and returning here avoids numerical problems below (division by zero)
+  if (fabs(cross_time_sigma) <= 0.000001)
+  {
+     mri_out = MRIcopy(mri_in, mri_out);
+     return mri_out;
+  }
+  s = -0.5 / SQR(cross_time_sigma);
   if (mri_out == NULL)
     mri_out = MRIclone(mri_in, NULL) ;
   for (x = 0 ; x < mri_in->width ; x++)
