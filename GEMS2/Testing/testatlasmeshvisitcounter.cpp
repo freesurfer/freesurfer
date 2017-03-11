@@ -2,6 +2,7 @@
 
 #include "itkImageRegionConstIteratorWithIndex.h"
 
+#include "kvlAtlasMesh.h"
 #include "atlasmeshvisitcounter.hpp"
 #include "atlasmeshvisitcountercpuwrapper.hpp"
 #ifdef CUDA_FOUND
@@ -73,6 +74,7 @@ BOOST_AUTO_TEST_CASE( OriginOnly )
   }
 
   // Create mesh with single triangle
+  kvl::AtlasMesh::Pointer mesh = kvl::AtlasMesh::New();
 }
 
 BOOST_AUTO_TEST_SUITE_END();
