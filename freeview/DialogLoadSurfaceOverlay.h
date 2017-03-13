@@ -4,33 +4,33 @@
 #include <QDialog>
 
 namespace Ui {
-    class DialogLoadSurfaceOverlay;
+class DialogLoadSurfaceOverlay;
 }
 
 class DialogLoadSurfaceOverlay : public QDialog
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit DialogLoadSurfaceOverlay(QWidget *parent = 0);
-    ~DialogLoadSurfaceOverlay();
+  explicit DialogLoadSurfaceOverlay(QWidget *parent = 0);
+  ~DialogLoadSurfaceOverlay();
 
-    QString GetFileName();
-    QString GetRegistration();
+  QString GetFileName();
+  QString GetRegistration();
 
-    void SetLastDir(const QString& dir)
-    {
-      m_strLastDir = dir;
-    }
+  void SetLastDir(const QString& dir)
+  {
+    m_strLastDir = dir;
+  }
 
-  protected slots:
-    void OnOK();
-    void OnButtonOpen();
-    void OnButtonRegistration();
+protected slots:
+  void OnOK();
+  void OnButtonOpen();
+  void OnButtonRegistration();
 
 private:
-    Ui::DialogLoadSurfaceOverlay *ui;
-    QString m_strLastDir;
+  Ui::DialogLoadSurfaceOverlay *ui;
+  QString m_strLastDir;
 };
 
 #endif // DIALOGLOADSURFACEOVERLAY_H

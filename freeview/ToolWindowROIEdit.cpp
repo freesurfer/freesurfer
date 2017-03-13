@@ -49,7 +49,6 @@ ToolWindowROIEdit::ToolWindowROIEdit(QWidget *parent) :
   MainWindow* wnd = MainWindow::GetMainWindow();
   connect( ui->spinBoxBrushSize, SIGNAL(valueChanged(int)), wnd->GetBrushProperty(), SLOT(SetBrushSize(int)));
 
-
   UpdateWidgets();
 }
 

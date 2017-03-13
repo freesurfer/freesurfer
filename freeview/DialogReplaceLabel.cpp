@@ -28,8 +28,8 @@
 #include <QMessageBox>
 
 DialogReplaceLabel::DialogReplaceLabel(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogReplaceLabel)
+  QDialog(parent),
+  ui(new Ui::DialogReplaceLabel)
 {
   ui->setupUi(this);
 }

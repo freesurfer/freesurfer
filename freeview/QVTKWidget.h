@@ -296,7 +296,7 @@ public:
   virtual void StopListening();
 
 public Q_SLOTS:
-// timer event slot
+  // timer event slot
   virtual void TimerEvent(int timerId);
 
 protected:

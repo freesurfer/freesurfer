@@ -137,7 +137,7 @@ void WindowConfigureOverlay::UpdateUI()
     ui->labelFrameRange->setText(QString("0-%1").arg(overlay->GetNumberOfFrames()-1));
     ui->groupBoxFrame->setVisible(overlay->GetNumberOfFrames() > 1);
 
-//   ui->radioButtonGreenRed ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_GreenRed );
+    //   ui->radioButtonGreenRed ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_GreenRed );
     //   ui->radioButtonBlueRed    ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_BlueRed );
     ui->radioButtonHeat       ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_Heat );
     ui->radioButtonColorWheel ->setChecked( p->GetColorScale() == SurfaceOverlayProperty::CS_ColorWheel );
@@ -231,7 +231,7 @@ void WindowConfigureOverlay::OnClicked( QAbstractButton* btn )
   }
   else if (ui->buttonBox->buttonRole(btn) == QDialogButtonBox::ApplyRole)
   {
- /*   if (m_fDataCache)
+    /*   if (m_fDataCache)
       delete[] m_fDataCache;
     m_fDataCache = 0;
     */
@@ -241,36 +241,36 @@ void WindowConfigureOverlay::OnClicked( QAbstractButton* btn )
 
 void WindowConfigureOverlay::OnApply()
 {
-    if ( !m_layerSurface || !m_layerSurface->GetActiveOverlay() )
-    {
-      return;
-    }
+  if ( !m_layerSurface || !m_layerSurface->GetActiveOverlay() )
+  {
+    return;
+  }
 
-    SurfaceOverlayProperty* p = m_layerSurface->GetActiveOverlay()->GetProperty();
-    bool smooth_changed = (p->GetSmooth() != ui->checkBoxEnableSmooth->isChecked() ||
-                     p->GetSmoothSteps() != ui->spinBoxSmoothSteps->value() );
-    if ( UpdateOverlayProperty( p ) )
+  SurfaceOverlayProperty* p = m_layerSurface->GetActiveOverlay()->GetProperty();
+  bool smooth_changed = (p->GetSmooth() != ui->checkBoxEnableSmooth->isChecked() ||
+      p->GetSmoothSteps() != ui->spinBoxSmoothSteps->value() );
+  if ( UpdateOverlayProperty( p ) )
+  {
+    if (smooth_changed)
+      m_layerSurface->GetActiveOverlay()->UpdateSmooth();
+    else
+      p->EmitColorMapChanged();
+    if (ui->checkBoxApplyToAll->isChecked())
     {
-      if (smooth_changed)
-        m_layerSurface->GetActiveOverlay()->UpdateSmooth();
-      else
-        p->EmitColorMapChanged();
-      if (ui->checkBoxApplyToAll->isChecked())
+      for (int i = 0; i < m_layerSurface->GetNumberOfOverlays(); i++)
       {
-        for (int i = 0; i < m_layerSurface->GetNumberOfOverlays(); i++)
+        SurfaceOverlay* so = m_layerSurface->GetOverlay(i);
+        if (so != m_layerSurface->GetActiveOverlay())
         {
-          SurfaceOverlay* so = m_layerSurface->GetOverlay(i);
-          if (so != m_layerSurface->GetActiveOverlay())
-          {
-            so->GetProperty()->Copy(p);
-            if (smooth_changed)
-              so->UpdateSmooth();
-            else
-              so->GetProperty()->EmitColorMapChanged();
-          }
+          so->GetProperty()->Copy(p);
+          if (smooth_changed)
+            so->UpdateSmooth();
+          else
+            so->GetProperty()->EmitColorMapChanged();
         }
       }
     }
+  }
 }
 
 void WindowConfigureOverlay::OnCheckApplyToAll(bool bChecked)
@@ -548,7 +548,7 @@ void WindowConfigureOverlay::OnHistogramMarkerChanged()
     }
     if (bUserPercentile)
       ChangeLineEditNumber(ui->lineEditMax, ui->widgetHistogram->PositionToPercentile(markers[markers.size()-1].position-m_dSavedOffset),
-              2, true);
+          2, true);
     else
       ChangeLineEditNumber(ui->lineEditMax, markers[markers.size()-1].position-m_dSavedOffset, 2, true);
     UpdateThresholdChanges();
@@ -682,7 +682,7 @@ void WindowConfigureOverlay::OnFrameChanged(int nFrame)
 void WindowConfigureOverlay::OnCurrentVertexChanged()
 {
   if ( m_layerSurface && m_layerSurface->GetActiveOverlay()
-      && m_layerSurface->GetActiveOverlay()->GetNumberOfFrames() > 1 )
+       && m_layerSurface->GetActiveOverlay()->GetNumberOfFrames() > 1 )
   {
     int nVertex = m_layerSurface->GetVertexIndexAtTarget( m_layerSurface->GetSlicePosition(), NULL );
     if (nVertex >= 0 && ui->checkBoxAutoFrame->isChecked()

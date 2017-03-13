@@ -145,8 +145,8 @@ void RenderView::RequestRedraw(bool bForce)
 
 void RenderView::OnIdle()
 {
-//   if ( qApp->hasPendingEvents() )
-//       return;
+  //   if ( qApp->hasPendingEvents() )
+  //       return;
 
   if ( m_bNeedRedraw && isVisible())
   {
@@ -212,8 +212,8 @@ void RenderView::mouseReleaseEvent( QMouseEvent* event )
 
 void RenderView::mouseMoveEvent( QMouseEvent* event )
 {
-// if ( FindFocus() != this )
-//  this->SetFocus();
+  // if ( FindFocus() != this )
+  //  this->SetFocus();
 
   if ( m_interactor->ProcessMouseMoveEvent( event, this ) )
   {
@@ -454,17 +454,17 @@ void RenderView::CenterAtWorldPosition(double *pos)
 
 void RenderView::AlignViewToNormal(double *v)
 {
-    vtkCamera* cam = m_renderer->GetActiveCamera();
-    double f_pos[3], dist;
-    cam->GetFocalPoint(f_pos);
-    dist = cam->GetDistance();
-    for (int i = 0; i < 3; i++)
-        f_pos[i] += dist*v[i];
-    cam->SetPosition(f_pos);
-    cam->OrthogonalizeViewUp();
-    ResetCameraClippingRange();
-    RequestRedraw();
-    emit ViewChanged();
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  double f_pos[3], dist;
+  cam->GetFocalPoint(f_pos);
+  dist = cam->GetDistance();
+  for (int i = 0; i < 3; i++)
+    f_pos[i] += dist*v[i];
+  cam->SetPosition(f_pos);
+  cam->OrthogonalizeViewUp();
+  ResetCameraClippingRange();
+  RequestRedraw();
+  emit ViewChanged();
 }
 
 int RenderView::GetAction()
@@ -549,7 +549,7 @@ void RenderView::SetScalarBarLayer(QAction *act)
     {
       SetScalarBarLayer(layer);
       if (!GetShowScalarBar())
-          ShowScalarBar(true);
+        ShowScalarBar(true);
     }
     else
       ShowScalarBar(false);

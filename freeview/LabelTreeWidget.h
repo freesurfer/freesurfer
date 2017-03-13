@@ -5,9 +5,9 @@
 
 class LabelTreeWidget : public QTreeWidget
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
-    explicit LabelTreeWidget(QWidget *parent = 0);
+  explicit LabelTreeWidget(QWidget *parent = 0);
 
   void contextMenuEvent(QContextMenuEvent *e);
 

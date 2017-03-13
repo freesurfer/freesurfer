@@ -29,46 +29,46 @@
 #include <QDialog>
 
 namespace Ui {
-    class DialogRepositionSurface;
+class DialogRepositionSurface;
 }
 
 class DialogRepositionSurface : public QDialog
 {
-    Q_OBJECT
+  Q_OBJECT
 
-  public:
-    explicit DialogRepositionSurface(QWidget *parent = 0);
-    ~DialogRepositionSurface();
+public:
+  explicit DialogRepositionSurface(QWidget *parent = 0);
+  ~DialogRepositionSurface();
 
-    int GetVertex();
-    int GetNeighborSize();
+  int GetVertex();
+  int GetNeighborSize();
 
-    double GetIntensity();
-    double GetSigma();
+  double GetIntensity();
+  double GetSigma();
 
-    int GetSmoothingSteps();
+  int GetSmoothingSteps();
 
-    void GetCoordinate( double* pos );
+  void GetCoordinate( double* pos );
 
-    int GetFlags();
+  int GetFlags();
 
-  public slots:
-    void OnApply();
-    void OnUndo();
-    void OnSave();
-    void OnSaveAs();
-    void OnComboTarget(int n);
-    void UpdateUI();
+public slots:
+  void OnApply();
+  void OnUndo();
+  void OnSave();
+  void OnSaveAs();
+  void OnComboTarget(int n);
+  void UpdateUI();
 
-    void OnSurfaceVertexClicked();
-    void UpdateVertex();
-    void UpdateIntensity();
-    void OnCoordinateTypeChanged();
+  void OnSurfaceVertexClicked();
+  void UpdateVertex();
+  void UpdateIntensity();
+  void OnCoordinateTypeChanged();
 
-  private:
-    bool ValidateAll();
+private:
+  bool ValidateAll();
 
-    Ui::DialogRepositionSurface *ui;
+  Ui::DialogRepositionSurface *ui;
 };
 
 #endif // DIALOGREPOSITIONSURFACE_H

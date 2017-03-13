@@ -16,6 +16,8 @@ set LF = ();
 set input = ()
 set input2 = none
 set input3 = none
+set computedice = 0;
+set diceseg = none
 if($?SAMSEG_DATA_DIR == 0) then
   setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/GEMSapplications/wholeBrain
 endif
@@ -97,7 +99,7 @@ endif
 
 #========================================================
 if($usebin) then
-  set cmd = (run_samseg $input $outdir $threads $input2 $input3)
+  set cmd = (run_samseg $input $outdir $threads $usegpu $input2 $input3)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -117,6 +119,14 @@ else
   if(! $monly) cat $MLF |& $matlab -display iconic $threads |& tee -a $LF
 endif
 #========================================================
+# Compute dice:
+if ($computedice) then
+  set cmd = (mri_compute_seg_overlap -log $outdir/dice.log $diceseg $outdir/segSubSpace.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) echo "error: could not compute seg overlap";
+endif
+
 # Cleanup
 if($cleanup) rm -rf $tmpdir
 
@@ -217,6 +227,12 @@ while( $#argv != 0 )
     case "--nolog":
     case "--no-log":
       set LF = /dev/null
+      breaksw
+
+    case "--dice":
+      if($#argv < 1) goto arg1err;
+      set diceseg = $argv[1]; shift;
+      set computedice = 1;
       breaksw
 
     case "--tmp":

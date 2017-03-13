@@ -90,12 +90,12 @@ void MyCmdLineParser::SetValidCmdLineEntries( CmdLineEntry* entries )
 }
 
 void MyCmdLineParser::AddValidCmdLineEntry( int nType,
-    const char* shortname,
-    const char* longname,
-    const char* arguname,
-    const char* desc,
-    int min_num,
-    int max_num )
+                                            const char* shortname,
+                                            const char* longname,
+                                            const char* arguname,
+                                            const char* desc,
+                                            int min_num,
+                                            int max_num )
 {
   CmdLineEntry e( nType, shortname, longname, arguname, desc, min_num, max_num );
   m_cmdLineEntriesValid.push_back( e );
@@ -345,7 +345,7 @@ void MyCmdLineParser::PrintHelp()
 
 void MyCmdLineParser::PrintErrorMessage( string msg )
 {
-// PrintHelp();
+  // PrintHelp();
 
   std::cerr << msg.c_str() << " Run 'freeview -h' for more information.\n\n";
 }

@@ -18,13 +18,13 @@
 #include <vtkSphereSource.h>
 
 SurfaceSpline::SurfaceSpline(LayerSurface *parent) :
-    QObject(parent),
-    m_mri(NULL),
-    m_mriSurf(NULL),
-    m_nActiveVertex(-1),
-    m_bProjection(true),
-    m_bLocked(false),
-    m_bVisible(true)
+  QObject(parent),
+  m_mri(NULL),
+  m_mriSurf(NULL),
+  m_nActiveVertex(-1),
+  m_bProjection(true),
+  m_bLocked(false),
+  m_bVisible(true)
 {
   m_actor = vtkSmartPointer<vtkActor>::New();
   m_actorSpheres = vtkSmartPointer<vtkActor>::New();
@@ -136,7 +136,7 @@ void SurfaceSpline::RebuildActors()
 
   LayerSurface* surf = qobject_cast<LayerSurface*>(parent());
   if (!surf)
-      return;
+    return;
   double slice_pos[3];
   surf->GetSlicePosition(slice_pos);
   LayerMRI* mri = surf->GetRefVolume();
@@ -156,7 +156,7 @@ void SurfaceSpline::RebuildActors()
         emit SplineChanged();
         return;
       }
-    //  qDebug() << x << y << z;
+      //  qDebug() << x << y << z;
       ::MRIvoxelToWorld( m_mriSurf, x, y, z, &x, &y, &z );
       pos[0] = x; pos[1] = y; pos[2] = z;
       if (mri)
@@ -165,7 +165,7 @@ void SurfaceSpline::RebuildActors()
       }
       points->InsertNextPoint(pos);
       lines->InsertNextCell(i);
-    //  qDebug() << pos[0] << pos[1] << pos[2];
+      //  qDebug() << pos[0] << pos[1] << pos[2];
     }
     {
       vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
@@ -228,10 +228,10 @@ void SurfaceSpline::SetVisible(bool visible_in)
   bool visible = visible_in;
   LayerSurface* surf = qobject_cast<LayerSurface*>(parent());
   if (!visible)
-      SetActorVisible(false);
+    SetActorVisible(false);
   else if (surf && surf->IsVisible())
   {
-      SetActorVisible(true);
+    SetActorVisible(true);
   }
   emit SplineChanged();
 }

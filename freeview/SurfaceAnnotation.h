@@ -39,7 +39,7 @@ extern "C"
 
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
-class LayerSurface;;
+class LayerSurface;
 class vtkActor;
 class vtkPolyData;
 

@@ -75,18 +75,18 @@ void PanelAllLayers::OnActiveLayerChanged(Layer *curlayer)
     }
     if (topItem)
     {
-        for (int j = 0; j < topItem->childCount(); j++)
+      for (int j = 0; j < topItem->childCount(); j++)
+      {
+        item = topItem->child(j);
+        Layer* layer = reinterpret_cast<Layer*>(item->data(0, Qt::UserRole).value<quintptr>());
+        QFont fnt = item->font(0);
+        if (sel != curlayer && layer == curlayer)
         {
-          item = topItem->child(j);
-          Layer* layer = reinterpret_cast<Layer*>(item->data(0, Qt::UserRole).value<quintptr>());
-          QFont fnt = item->font(0);
-          if (sel != curlayer && layer == curlayer)
-          {
-            ui->treeWidgetLayers->setCurrentItem(item);
-          }
-          fnt.setBold(layer == curlayer);
-          item->setFont(0, fnt);
+          ui->treeWidgetLayers->setCurrentItem(item);
         }
+        fnt.setBold(layer == curlayer);
+        item->setFont(0, fnt);
+      }
     }
   }
 }
@@ -272,9 +272,9 @@ void PanelAllLayers::OnItemChanged(QTreeWidgetItem *item)
   if ( layer )
   {
     if (item->text(0) != layer->GetName())
-        layer->SetName( item->text(0) );
+      layer->SetName( item->text(0) );
     if (layer->IsVisible() != (item->checkState( 0 ) == Qt::Checked ))
-        layer->SetVisible( item->checkState( 0 ) == Qt::Checked );
+      layer->SetVisible( item->checkState( 0 ) == Qt::Checked );
   }
 }
 
@@ -329,7 +329,7 @@ void PanelAllLayers::OnLayerChanged()
 void PanelAllLayers::OnItemDoubleClicked(QTreeWidgetItem *item)
 {
   Layer* layer = reinterpret_cast<Layer*>(item->data( 0, Qt::UserRole ).value<quintptr>());
-/*
+  /*
   QStringList layer_types;
   layer_types << "MRI" << "Surface" << "ROI" << "PointSet" << "CMAT";
   foreach (QString type, layer_types)

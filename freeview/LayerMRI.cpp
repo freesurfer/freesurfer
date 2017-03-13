@@ -220,7 +220,7 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(DisplayModeChanged()), this, SLOT(UpdateDisplayMode()) );
   connect( p, SIGNAL(LabelOutlineChanged(bool)), this, SLOT(UpdateLabelOutline()) );
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
-//  connect( p, SIGNAL(ResliceInterpolationChanged()), this, SLOT(UpdateResliceInterpolation()) );
+  //  connect( p, SIGNAL(ResliceInterpolationChanged()), this, SLOT(UpdateResliceInterpolation()) );
   connect( p, SIGNAL(TextureSmoothingChanged()), this, SLOT(UpdateTextureSmoothing()) );
   connect( p, SIGNAL(UpSampleMethodChanged(int)), this, SLOT(UpdateUpSampleMethod()) );
   connect( this, SIGNAL(SurfaceRegionAdded()), this, SIGNAL(ActorChanged()));
@@ -253,7 +253,7 @@ void LayerMRI::SetConform( bool bConform )
 
 void LayerMRI::ResetRef()
 {
-    m_volumeSource->ResetRef();
+  m_volumeSource->ResetRef();
 }
 
 bool LayerMRI::LoadVolumeFromFile()
@@ -371,7 +371,7 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int vo
         {
           for (int k = c[2]-len; k <= c[2]+len; k++)
           {
-              m_imageData->SetScalarComponentFromDouble(i, j, k, 0, val);
+            m_imageData->SetScalarComponentFromDouble(i, j, k, 0, val);
           }
         }
       }
@@ -379,7 +379,7 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int vo
     else if (voxel_option == 2) // mask
     {
       double w = mri->GetProperty()->GetWindow(),
-             l = mri->GetProperty()->GetLevel();
+          l = mri->GetProperty()->GetLevel();
       /*
       double dMin = l - w/2, dMax = l + w/2;
       for (int i = 0; i < dim[0]; i++)
@@ -720,8 +720,8 @@ void LayerMRI::InitializeVolume()
   m_dWorldSize[0] = ( ( int )( (RASBounds[1] - RASBounds[0]) / m_dWorldVoxelSize[0] ) ) * m_dWorldVoxelSize[0];
   m_dWorldSize[1] = ( ( int )( (RASBounds[3] - RASBounds[2]) / m_dWorldVoxelSize[1] ) ) * m_dWorldVoxelSize[1];
   m_dWorldSize[2] = ( ( int )( (RASBounds[5] - RASBounds[4]) / m_dWorldVoxelSize[2] ) ) * m_dWorldVoxelSize[2];
-//  qDebug() << RASBounds[0] << RASBounds[1] << RASBounds[2] << RASBounds[3] << RASBounds[4] << RASBounds[5];
-//  qDebug() << m_dWorldSize[0] << m_dWorldSize[1] << m_dWorldSize[2];
+  //  qDebug() << RASBounds[0] << RASBounds[1] << RASBounds[2] << RASBounds[3] << RASBounds[4] << RASBounds[5];
+  //  qDebug() << m_dWorldSize[0] << m_dWorldSize[1] << m_dWorldSize[2];
 
   m_imageData = source->GetImageOutput();
 }
@@ -747,8 +747,8 @@ void LayerMRI::InitializeActors()
 
     // This will change depending what orienation we're in.
     mReslice[i]->SetResliceAxesDirectionCosines( 1, 0, 0,
-        0, 1, 0,
-        0, 0, 1 );
+                                                 0, 1, 0,
+                                                 0, 0, 1 );
 
     // This will change to select a different slice.
     mReslice[i]->SetResliceAxesOrigin( 0, 0, 0 );
@@ -781,7 +781,7 @@ void LayerMRI::InitializeActors()
   }
 
   this->blockSignals( true );
-//  this->UpdateResliceInterpolation();
+  //  this->UpdateResliceInterpolation();
   this->UpdateTextureSmoothing();
   this->UpdateOpacity();
   this->UpdateColorMap();
@@ -816,7 +816,7 @@ void LayerMRI::UpdateColorMap()
 
   for ( int i = 0; i < 3; i++ )
   {
-    mColorMap[i]->SetLookupTable( GetProperty()->GetActiveLookupTable() ); 
+    mColorMap[i]->SetLookupTable( GetProperty()->GetActiveLookupTable() );
     if (mColorMapMaxProjection[i].GetPointer() != NULL)
       mColorMapMaxProjection[i]->SetLookupTable(GetProperty()->GetActiveLookupTable());
   }
@@ -1018,7 +1018,7 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
 
   // display slice image
   vtkSmartPointer<vtkMatrix4x4> matrix =
-    vtkSmartPointer<vtkMatrix4x4>::New();
+      vtkSmartPointer<vtkMatrix4x4>::New();
   matrix->Identity();
   double origin[3] = {0};
   m_imageData->GetOrigin(origin);
@@ -1041,8 +1041,8 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
     // Putting negatives in the reslice axes cosines will flip the
     // image on that axis.
     mReslice[0]->SetResliceAxesDirectionCosines( 0, 1, 0,
-        0, 0, 1,
-        1, 0, 0 );
+                                                 0, 0, 1,
+                                                 1, 0, 0 );
     mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
     mReslice[0]->Modified();
     break;
@@ -1060,8 +1060,8 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
     // Putting negatives in the reslice axes cosines will flip the
     // image on that axis.
     mReslice[1]->SetResliceAxesDirectionCosines( 1, 0, 0,
-        0, 0, 1,
-        0, 1, 0 );
+                                                 0, 0, 1,
+                                                 0, 1, 0 );
     mReslice[1]->SetResliceAxesOrigin( 0, m_dSlicePosition[1], 0 );
     mReslice[1]->Modified();
     break;
@@ -1073,8 +1073,8 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
     m_projectionMapActor[2]->SetPosition( origin[0], origin[1], m_dSlicePosition[2] );
 
     mReslice[2]->SetResliceAxesDirectionCosines( 1, 0, 0,
-        0, 1, 0,
-        0, 0, 1 );
+                                                 0, 1, 0,
+                                                 0, 0, 1 );
     mReslice[2]->SetResliceAxesOrigin( 0, 0, m_dSlicePosition[2] );
     mReslice[2]->Modified();
     break;
@@ -1111,16 +1111,16 @@ void LayerMRI::UpdateDisplayMode()
     }
     if (GetProperty()->GetDisplayRGB())
     {
-        vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
-        cast->SetInput(mReslice[i]->GetOutput());
-        cast->SetOutputScalarTypeToUnsignedChar();
-        m_sliceActor2D[i]->SetInput( cast->GetOutput() );
-        m_sliceActor3D[i]->SetInput( cast->GetOutput() );
+      vtkSmartPointer<vtkImageCast> cast = vtkSmartPointer<vtkImageCast>::New();
+      cast->SetInput(mReslice[i]->GetOutput());
+      cast->SetOutputScalarTypeToUnsignedChar();
+      m_sliceActor2D[i]->SetInput( cast->GetOutput() );
+      m_sliceActor3D[i]->SetInput( cast->GetOutput() );
     }
     else
     {
-        m_sliceActor2D[i]->SetInput( mColorMap[i]->GetOutput() );
-        m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
+      m_sliceActor2D[i]->SetInput( mColorMap[i]->GetOutput() );
+      m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
     }
   }
   if ( GetProperty()->GetDisplayVector() )
@@ -1409,7 +1409,7 @@ bool LayerMRI::HasProp( vtkProp* prop )
 void LayerMRI::RASToOriginalIndex( const double* pos, int* n )
 {
   m_volumeSource->RASToOriginalIndex( (float)(pos[0]), (float)(pos[1]), (float)(pos[2]),
-                                      n[0], n[1], n[2] );
+      n[0], n[1], n[2] );
 }
 
 void LayerMRI::RASToOriginalIndex(const double *pos, double *n_out)
@@ -1442,15 +1442,15 @@ void LayerMRI::OriginalVoxelToRAS(const double *vcoord, double *pos)
 
 void LayerMRI::TargetIndexToOriginalIndex(const int *n_in, int *n_out)
 {
-    double pos[3];
-    double* orig = m_imageData->GetOrigin();
-    double* voxel_size = m_imageData->GetSpacing();
-    for (int i = 0; i < 3; i++)
-    {
-        pos[i] = orig[i] + voxel_size[i]*n_in[i];
-    }
-    TargetToRAS(pos, pos);
-    RASToOriginalIndex(pos, n_out);
+  double pos[3];
+  double* orig = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  for (int i = 0; i < 3; i++)
+  {
+    pos[i] = orig[i] + voxel_size[i]*n_in[i];
+  }
+  TargetToRAS(pos, pos);
+  RASToOriginalIndex(pos, n_out);
 }
 
 void LayerMRI::UpdateVectorActor()
@@ -1482,7 +1482,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
     n[i] = (int)( ( pos[i] - orig[i] ) / voxel_size[i] + 0.5 );
   }
 
-//  vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->GetInput();
+  //  vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_vectorActor2D[nPlane]->GetMapper() )->GetInput();
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
@@ -1582,11 +1582,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           pt[2] = orig[2] + voxel_size[2] * j;
           lines->InsertNextCell( 2 );
           points->InsertNextPoint( pt[0] + scale * v[0],
-                                   pt[1] + scale * v[1],
-                                   pt[2] + scale * v[2] );
+              pt[1] + scale * v[1],
+              pt[2] + scale * v[2] );
           points->InsertNextPoint( pt[0] - scale * v[0],
-                                   pt[1] - scale * v[1],
-                                   pt[2] - scale * v[2] );
+              pt[1] - scale * v[1],
+              pt[2] - scale * v[2] );
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
 
@@ -1646,11 +1646,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           pt[2] = orig[2] + voxel_size[2] * j;
           lines->InsertNextCell( 2 );
           points->InsertNextPoint( pt[0] + scale * v[0],
-                                   pt[1] + scale * v[1],
-                                   pt[2] + scale * v[2] );
+              pt[1] + scale * v[1],
+              pt[2] + scale * v[2] );
           points->InsertNextPoint( pt[0] - scale * v[0],
-                                   pt[1] - scale * v[1],
-                                   pt[2] - scale * v[2] );
+              pt[1] - scale * v[1],
+              pt[2] - scale * v[2] );
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
 
@@ -1710,11 +1710,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
           pt[2] = orig[2] + voxel_size[2] * n[2];
           lines->InsertNextCell( 2 );
           points->InsertNextPoint( pt[0] + scale * v[0],
-                                   pt[1] + scale * v[1],
-                                   pt[2] + scale * v[2] );
+              pt[1] + scale * v[1],
+              pt[2] + scale * v[2] );
           points->InsertNextPoint( pt[0] - scale * v[0],
-                                   pt[1] - scale * v[1],
-                                   pt[2] - scale * v[2] );
+              pt[1] - scale * v[1],
+              pt[2] - scale * v[2] );
           lines->InsertCellPoint( nCnt++ );
           lines->InsertCellPoint( nCnt++ );
 
@@ -1817,7 +1817,7 @@ void LayerMRI::UpdateTensorActor( int nPlane, vtkImageData* imagedata_in )
   vtkPolyData* srcpolydata = objsource->GetOutput();
   vtkSmartPointer<vtkUnsignedCharArray> scalars = vtkSmartPointer<vtkUnsignedCharArray>::New();
   scalars->SetNumberOfComponents( 4 );
-//  srcpolydata->GetPointData()->SetNormals( NULL );    // remove normals
+  //  srcpolydata->GetPointData()->SetNormals( NULL );    // remove normals
   vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
   double pt[3];
   int nSkip = 1;
@@ -1924,7 +1924,7 @@ void LayerMRI::BuildTensorGlyph( vtkImageData* imagedata,
     v[2][2] = v2[2];
 
     vtkMath::Normalize( w );
-//   double w_sum = 1;//fabs(w[0]) + fabs(w[1]) + fabs(w[2]);
+    //   double w_sum = 1;//fabs(w[0]) + fabs(w[1]) + fabs(w[2]);
     w[0] = fabs(w[0]*scale);
     w[1] = fabs(w[1]*scale);
     w[2] = fabs(w[2]*scale);
@@ -1951,7 +1951,7 @@ void LayerMRI::BuildTensorGlyph( vtkImageData* imagedata,
 
     tr->Concatenate(m);
     tr->Scale( w );
-//    tr->RotateZ( -90 );
+    //    tr->RotateZ( -90 );
     unsigned char c[4];
     c[0] = (int)(fabs( v[0][0] *255 ) );
     c[1] = (int)(fabs( v[1][0] *255 ) );
@@ -1964,7 +1964,7 @@ void LayerMRI::BuildTensorGlyph( vtkImageData* imagedata,
     }
 
     vtkSmartPointer<vtkTransformPolyDataFilter> filter =
-      vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+        vtkSmartPointer<vtkTransformPolyDataFilter>::New();
     filter->SetTransform( tr );
     filter->SetInput( sourcepolydata );
 
@@ -2002,7 +2002,7 @@ bool LayerMRI::GetVoxelValueRange( const double* pt0, const double* pt1, int nPl
 
   // find the index range of the selection
   int n0[3] = { 10000000, 10000000, 10000000 },
-              n1[3] = { -10000000, -10000000, -10000000 };
+      n1[3] = { -10000000, -10000000, -10000000 };
   n0[nPlane] = n1[nPlane] = (int)( ( pt0[nPlane] - orig[nPlane] ) / voxel_size[nPlane] + 0.5 );
   for ( int i = 0; i < 3; i++ )
   {
@@ -2059,7 +2059,7 @@ bool LayerMRI::GetVoxelStatsRectangle( const double* pt0, const double* pt1, int
 
   // find the index range of the selection
   int n0[3] = { 10000000, 10000000, 10000000 },
-              n1[3] = { -10000000, -10000000, -10000000 };
+      n1[3] = { -10000000, -10000000, -10000000 };
   n0[nPlane] = n1[nPlane] = (int)( ( pt0[nPlane] - orig[nPlane] ) / voxel_size[nPlane] + 0.5 );
   for ( int i = 0; i < 3; i++ )
   {
@@ -2183,8 +2183,8 @@ bool LayerMRI::GetVoxelStatsByTargetRAS(QList<float> &coords, double* mean_out, 
   for (int i = 0; i < coords.size(); i+=3)
   {
     indices << (int)( ( coords[i] - orig[0] ) / vsize[0] + 0.5 )
-            << (int)( ( coords[i+1] - orig[1] ) / vsize[1] + 0.5 )
-            << (int)( ( coords[i+2] - orig[2] ) / vsize[2] + 0.5 );
+        << (int)( ( coords[i+1] - orig[1] ) / vsize[1] + 0.5 )
+        << (int)( ( coords[i+2] - orig[2] ) / vsize[2] + 0.5 );
   }
   return GetVoxelStats(indices, mean_out, sd_out);
 }
@@ -2440,7 +2440,7 @@ void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out
   int cnt = 0;
   int ext[3][2] = { { 0, dim[0]-1 }, {0, dim[1]-1}, {0, dim[2]-1} };
   ext[nPlane][0] = ext[nPlane][1] = n[nPlane];
-//  QList<int> indices;
+  //  QList<int> indices;
   QList<float> coords;
   for ( int i = ext[0][0]; i <= ext[0][1]; i++ )
   {
@@ -2451,7 +2451,7 @@ void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out
         if ( m_imageData->GetScalarComponentAsFloat( i, j, k, m_nActiveFrame ) == fLabel )
         {
           cnt++;
-  //        indices << i << j << k;
+          //        indices << i << j << k;
           coords << i*vs[0] + origin[0] << j*vs[1] + origin[1] << k*vs[2] + origin[2];
         }
       }
@@ -2926,7 +2926,7 @@ bool LayerMRI::SaveContourToFile(const QString &fn)
   vtkSmartPointer<vtkTransform> tr = vtkSmartPointer<vtkTransform>::New();
   tr->SetMatrix( vmat );
   vtkSmartPointer<vtkTransformPolyDataFilter> filter =
-    vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+      vtkSmartPointer<vtkTransformPolyDataFilter>::New();
   filter->SetTransform( tr );
   filter->SetInput( vtkPolyDataMapper::SafeDownCast( m_actorContour->GetMapper())->GetInput() );
   filter->Update();
@@ -3025,7 +3025,7 @@ void LayerMRI::UpdateProjectionMap()
       image->SetDimensions(dim);
       image->SetNumberOfScalarComponents( 1 );
       image->SetScalarTypeToFloat();
-  //    image->SetOrigin( m_imageData->GetOrigin() );
+      //    image->SetOrigin( m_imageData->GetOrigin() );
       image->AllocateScalars();
       float* ptr = ( float* )image->GetScalarPointer();
       memset(ptr, 0, ((size_t)sizeof(float))*dim[0]*dim[1]*dim[2]);
@@ -3042,8 +3042,8 @@ void LayerMRI::UpdateProjectionMap()
     GetProperty()->GetProjectionMapRange(nRange);
     for (int i = 0; i < 3; i++)
     {
-        if (nRange[i*2+1] < 0)
-            nRange[i*2+1] = m_dim[i]-1;
+      if (nRange[i*2+1] < 0)
+        nRange[i*2+1] = m_dim[i]-1;
     }
     for (size_t x = 0; x < m_dim[0]; x++)
     {
@@ -3054,56 +3054,56 @@ void LayerMRI::UpdateProjectionMap()
           float val = ptr[z*m_dim[0]*m_dim[1]+y*m_dim[0]+x];
           if (nType == LayerPropertyMRI::PM_Maximum)
           {
-              if (x >= nRange[0] && x <= nRange[1] && ptrs[0][z*m_dim[1]+y] < val)
-                ptrs[0][z*m_dim[1]+y] = val;
-              if (y >= nRange[2] && y <= nRange[3] && ptrs[1][z*m_dim[0]+x] < val)
-                ptrs[1][z*m_dim[0]+x] = val;
-              if (z >= nRange[4] && z <= nRange[5] && ptrs[2][y*m_dim[0]+x] < val)
-                ptrs[2][y*m_dim[0]+x] = val;
+            if (x >= nRange[0] && x <= nRange[1] && ptrs[0][z*m_dim[1]+y] < val)
+              ptrs[0][z*m_dim[1]+y] = val;
+            if (y >= nRange[2] && y <= nRange[3] && ptrs[1][z*m_dim[0]+x] < val)
+              ptrs[1][z*m_dim[0]+x] = val;
+            if (z >= nRange[4] && z <= nRange[5] && ptrs[2][y*m_dim[0]+x] < val)
+              ptrs[2][y*m_dim[0]+x] = val;
           }
           else if (nType == LayerPropertyMRI::PM_Mean)
           {
-              ptrs[0][z*m_dim[1]+y] += val/(nRange[1]-nRange[0]);
-              ptrs[1][z*m_dim[0]+x] += val/(nRange[3]-nRange[2]);
-              ptrs[2][y*m_dim[0]+x] += val/(nRange[5]-nRange[4]);
+            ptrs[0][z*m_dim[1]+y] += val/(nRange[1]-nRange[0]);
+            ptrs[1][z*m_dim[0]+x] += val/(nRange[3]-nRange[2]);
+            ptrs[2][y*m_dim[0]+x] += val/(nRange[5]-nRange[4]);
           }
         }
       }
     }
     for (int i = 0; i < 3; i++)
     {
-        vtkSmartPointer<vtkImageReslice> reslice = vtkSmartPointer<vtkImageReslice>::New();
-        reslice->SetInput(images[i]);
-        reslice->BorderOff();
-        //  reslice->SetResliceTransform( tr );
-        reslice->SetOutputDimensionality( 2 );
-        switch (i)
-        {
-        case 0:
-            reslice->SetResliceAxesDirectionCosines( 0, 1, 0,
-                                                     0, 0, 1,
-                                                     1, 0, 0 );
-            break;
-        case 1:
-            reslice->SetResliceAxesDirectionCosines( 1, 0, 0,
-                                                     0, 0, 1,
-                                                     0, 1, 0 );
-            break;
-        case 2:
-            reslice->SetResliceAxesDirectionCosines( 1, 0, 0,
-                                                     0, 1, 0,
-                                                     0, 0, 1 );
-            break;
-        }
-        reslice->SetResliceAxesOrigin( 0, 0, 0 );
-        if (true) // this->m_projectionMapActor[i]->GetInput() == NULL)
-        {
-            mColorMapMaxProjection[i] = vtkSmartPointer<vtkImageMapToColors>::New();
-            mColorMapMaxProjection[i]->SetLookupTable(GetProperty()->GetActiveLookupTable());
-            m_projectionMapActor[i]->SetInput(mColorMapMaxProjection[i]->GetOutput());
-            m_projectionMapActor[i]->InterpolateOff();
-        }
-        mColorMapMaxProjection[i]->SetInput(reslice->GetOutput());
+      vtkSmartPointer<vtkImageReslice> reslice = vtkSmartPointer<vtkImageReslice>::New();
+      reslice->SetInput(images[i]);
+      reslice->BorderOff();
+      //  reslice->SetResliceTransform( tr );
+      reslice->SetOutputDimensionality( 2 );
+      switch (i)
+      {
+      case 0:
+        reslice->SetResliceAxesDirectionCosines( 0, 1, 0,
+                                                 0, 0, 1,
+                                                 1, 0, 0 );
+        break;
+      case 1:
+        reslice->SetResliceAxesDirectionCosines( 1, 0, 0,
+                                                 0, 0, 1,
+                                                 0, 1, 0 );
+        break;
+      case 2:
+        reslice->SetResliceAxesDirectionCosines( 1, 0, 0,
+                                                 0, 1, 0,
+                                                 0, 0, 1 );
+        break;
+      }
+      reslice->SetResliceAxesOrigin( 0, 0, 0 );
+      if (true) // this->m_projectionMapActor[i]->GetInput() == NULL)
+      {
+        mColorMapMaxProjection[i] = vtkSmartPointer<vtkImageMapToColors>::New();
+        mColorMapMaxProjection[i]->SetLookupTable(GetProperty()->GetActiveLookupTable());
+        m_projectionMapActor[i]->SetInput(mColorMapMaxProjection[i]->GetOutput());
+        m_projectionMapActor[i]->InterpolateOff();
+      }
+      mColorMapMaxProjection[i]->SetInput(reslice->GetOutput());
     }
   }
   SetVisible(IsVisible());
@@ -3440,14 +3440,14 @@ void LayerMRI::UpdateMRIToImage()
 
 bool LayerMRI::GetLayerLabelCenter(double val, double *pos_out)
 {
-   if (m_listLabelCenters.contains((int)val))
-   {
-       QList<double> center = m_listLabelCenters[(int)val];
-       pos_out[0] = center[0];
-       pos_out[1] = center[1];
-       pos_out[2] = center[2];
-       return true;
-   }
-   else
-       return false;
+  if (m_listLabelCenters.contains((int)val))
+  {
+    QList<double> center = m_listLabelCenters[(int)val];
+    pos_out[0] = center[0];
+    pos_out[1] = center[1];
+    pos_out[2] = center[2];
+    return true;
+  }
+  else
+    return false;
 }

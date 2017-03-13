@@ -529,7 +529,8 @@ AM_CXXFLAGS=\
 	-I$(top_srcdir)/vtkutils \
 	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
 	$(VXL_CFLAGS) \
-	-I$(top_srcdir)/lineprof
+	-I$(top_srcdir)/lineprof \
+	-Wno-error 
 
 freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
 freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)

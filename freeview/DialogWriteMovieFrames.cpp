@@ -234,9 +234,9 @@ void DialogWriteMovieFrames::OnTimeOut()
   {
     int nStart = m_nStartNumber+m_nStepSize*m_nStepCount;
     fn = QString("%1%2%3.%4").arg(m_strOutputDir)
-         .arg(m_strPrefix)
-         .arg(nStart, nFieldWidth, 10, QLatin1Char('0'))
-         .arg(ui->comboBoxExtension->currentText());
+        .arg(m_strPrefix)
+        .arg(nStart, nFieldWidth, 10, QLatin1Char('0'))
+        .arg(ui->comboBoxExtension->currentText());
     m_view->SaveScreenShot( fn,settings.AntiAliasing, settings.Magnification );
     if ( m_nStepCount+1 >= m_nTotalSteps || !((RenderView2D*)m_view)->SetSliceNumber( nStart + m_nStepSize ) )
     {
@@ -247,9 +247,9 @@ void DialogWriteMovieFrames::OnTimeOut()
   {
     int nStart = m_nStartNumber+m_nStepSize*m_nStepCount;
     fn = QString("%1%2%3.%4").arg(m_strOutputDir)
-         .arg(m_strPrefix)
-         .arg(nStart, nFieldWidth, 10, QLatin1Char('0'))
-         .arg(ui->comboBoxExtension->currentText());
+        .arg(m_strPrefix)
+        .arg(nStart, nFieldWidth, 10, QLatin1Char('0'))
+        .arg(ui->comboBoxExtension->currentText());
     m_view->SaveScreenShot( fn,settings.AntiAliasing, settings.Magnification );
     LayerMRI* layer = qobject_cast<LayerMRI*>(MainWindow::GetMainWindow()->GetActiveLayer( "MRI" ));
     if (m_nStepCount+1 < m_nTotalSteps && layer)
@@ -259,8 +259,8 @@ void DialogWriteMovieFrames::OnTimeOut()
   {
     fn = QString("%1%2%3.%4").arg(m_strOutputDir)
         .arg(m_strPrefix)
-         .arg(m_nStepCount, nFieldWidth, 10, QLatin1Char('0'))
-         .arg(ui->comboBoxExtension->currentText());
+        .arg(m_nStepCount, nFieldWidth, 10, QLatin1Char('0'))
+        .arg(ui->comboBoxExtension->currentText());
     m_view->SaveScreenShot( fn, settings.AntiAliasing, settings.Magnification );
     CameraOperations ops;
     ops << CameraOperation("azimuth", m_dStepSize);

@@ -64,7 +64,7 @@ public:
 
   LABEL* GetRawLabel()
   {
-      return m_label;
+    return m_label;
   }
 
   bool HasUndo();

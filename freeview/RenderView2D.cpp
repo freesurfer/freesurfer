@@ -174,10 +174,10 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
     double* size = lc->GetWorldSize();
 
     m_renderer->ResetCameraClippingRange(orig[0], orig[0]+size[0],
-                                         orig[1], orig[1]+size[1],
-                                         orig[2], orig[2]+size[2]);
+        orig[1], orig[1]+size[1],
+        orig[2], orig[2]+size[2]);
   }
-//  m_renderer->ResetCameraClippingRange();
+  //  m_renderer->ResetCameraClippingRange();
   RenderView::RefreshAllActors(bForScreenShot);
 }
 
@@ -205,7 +205,7 @@ void RenderView2D::UpdateViewByWorldCoordinate()
     cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - len );
     break;
   }
-//  m_renderer->ResetCameraClippingRange();
+  //  m_renderer->ResetCameraClippingRange();
   cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2])/2 );
 }
 
@@ -297,10 +297,10 @@ void RenderView2D::OnSlicePositionChanged(bool bCenter)
 
   if (bCenter)
   {
-      double x, y, z;
-      WorldToViewport(slicePos[0], slicePos[1], slicePos[2], x, y, z);
-      if (!rect().contains(QPoint(x, y)))
-          this->CenterAtCursor();
+    double x, y, z;
+    WorldToViewport(slicePos[0], slicePos[1], slicePos[2], x, y, z);
+    if (!rect().contains(QPoint(x, y)))
+      this->CenterAtCursor();
   }
 
   RenderView::OnSlicePositionChanged();
@@ -373,7 +373,7 @@ void RenderView2D::StopSelection()
       m_selection2D->GetWorldPoint( 2, m_dPt2 );
       int nColorMap = layer->GetProperty()->GetColorMap();
       if (layer->IsVisible() && nColorMap != LayerPropertyMRI::LUT &&
-              nColorMap != LayerPropertyMRI::DirectionCoded && layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
+          nColorMap != LayerPropertyMRI::DirectionCoded && layer->GetVoxelValueRange( m_dPt0, m_dPt2, m_nViewPlane, range ) )
       {
         switch ( nColorMap )
         {
@@ -449,7 +449,7 @@ void RenderView2D::MoveSlice( int nStep )
 void RenderView2D::SyncZoomTo( RenderView2D* view )
 {
   m_renderer->GetActiveCamera()->SetParallelScale( view->m_renderer->GetActiveCamera()->GetParallelScale() );
-// PanToWorld( GetCursor2D()->GetPosition() );
+  // PanToWorld( GetCursor2D()->GetPosition() );
   EnsureCursor2DVisible();
   Update2DOverlay();
   UpdateAnnotation();
@@ -583,6 +583,15 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
       ag->addAction(act);
     }
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
+  }
+  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
+  if ( surf && surf->IsContralateralReady())
+  {
+    if (!menu.actions().isEmpty())
+      menu.addSeparator();
+    QAction* act = new QAction("Go To Contralateral Point", this);
+    menu.addAction(act);
+    connect(act, SIGNAL(triggered()), MainWindow::GetMainWindow(), SLOT(GoToContralateralPoint()));
   }
   if (!menu.actions().isEmpty())
     menu.exec(event->globalPos());

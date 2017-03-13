@@ -106,7 +106,7 @@ protected slots:
   void UpdateColorMap();
   void UpdateOpacity();
   void UpdateScalars();
-  void UpdateSnapToVoxelCenter();  
+  void UpdateSnapToVoxelCenter();
   void UpdateSplineVisibility();
   void RebuildActors( bool bRebuild3D = true );
 

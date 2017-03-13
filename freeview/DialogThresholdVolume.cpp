@@ -5,15 +5,15 @@
 #include <QMessageBox>
 
 DialogThresholdVolume::DialogThresholdVolume(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogThresholdVolume)
+  QDialog(parent),
+  ui(new Ui::DialogThresholdVolume)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 }
 
 DialogThresholdVolume::~DialogThresholdVolume()
 {
-    delete ui;
+  delete ui;
 }
 
 void DialogThresholdVolume::OnButtonRun()

@@ -67,7 +67,7 @@ void DialogSavePointSet::OnOpen()
 {
   QString old_fn = GetFileName();
   QString fn = QFileDialog::getSaveFileName(this, "Select File To Save",
-               (old_fn.isEmpty()?m_strLastDir:old_fn),                                              "All Files (*)");
+                                            (old_fn.isEmpty()?m_strLastDir:old_fn),                                              "All Files (*)");
   if (!fn.isEmpty())
   {
     SetFileName(fn);

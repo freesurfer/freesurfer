@@ -43,7 +43,7 @@ class LayerLineProfile;
 
 class RenderView2D : public RenderView
 {
-//    friend class Interactor2D;
+  //    friend class Interactor2D;
 
   Q_OBJECT
 public:

@@ -117,7 +117,7 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
           MainWindow::GetMainWindow(), SLOT(SaveVolumeAsAndReload()));
 
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
-                              ->GetSupplementLayer("Landmarks");
+      ->GetSupplementLayer("Landmarks");
   landmarks->SetLandmarkColor(0, Qt::red);
   landmarks->SetLandmarkColor(1, Qt::green);
   landmarks->SetLandmarkColor(2, Qt::blue);
@@ -141,7 +141,7 @@ void DialogTransformVolume::showEvent(QShowEvent *e)
 void DialogTransformVolume::closeEvent(QCloseEvent *e)
 {
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
-                              ->GetSupplementLayer("Landmarks");
+      ->GetSupplementLayer("Landmarks");
   if (landmarks)
     landmarks->SetVisible(false);
   QDialog::closeEvent(e);
@@ -218,8 +218,8 @@ void DialogTransformVolume::UpdateUI( int scope )
 }
 
 bool DialogTransformVolume::GetRotation( int nIndex_in,
-    int& plane_out,
-    double& angle_out )
+                                         int& plane_out,
+                                         double& angle_out )
 {
   if ( nIndex_in < 0 ||
        nIndex_in > 2 ||
@@ -292,8 +292,8 @@ void DialogTransformVolume::OnSaveReg()
   }
 
   QString filename = QFileDialog::getSaveFileName(this, "Save Registration",
-                     QFileInfo( layer_mri->GetRegFileName() ).absoluteFilePath(),
-                     "LTA files (*.lta);;All files (*)");
+                                                  QFileInfo( layer_mri->GetRegFileName() ).absoluteFilePath(),
+                                                  "LTA files (*.lta);;All files (*)");
   if ( !filename.isEmpty() )
   {
     layer_mri->SaveRegistration( filename );
@@ -333,7 +333,7 @@ void DialogTransformVolume::DoRotate()
       if ( ui->radioButtonAroundCursor->isChecked() )
       {
         MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->
-        GetSlicePosition( re.Point );
+            GetSlicePosition( re.Point );
         layer->RemapPositionToRealRAS( re.Point, re.Point );
       }
       else
@@ -341,8 +341,8 @@ void DialogTransformVolume::DoRotate()
         // use center of the volume to rotate
         layer->GetRASCenter( re.Point );
       }
-  //    else if ( m_radioSinc->GetValue() )
-  //      re.SampleMethod = SAMPLE_SINC;
+      //    else if ( m_radioSinc->GetValue() )
+      //      re.SampleMethod = SAMPLE_SINC;
 
       for ( int i = 0; i < 3; i++ )
       {
@@ -740,7 +740,7 @@ void DialogTransformVolume::OnButtonLandmarkPick()
 void DialogTransformVolume::UpdateLandmarkColors()
 {
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
-                              ->GetSupplementLayer("Landmarks");
+      ->GetSupplementLayer("Landmarks");
   for (int i = 0; i < m_colorPickerLandmark.size(); i++)
   {
     if (qobject_cast<QtColorPicker*>(sender()) == m_colorPickerLandmark[i])
@@ -774,7 +774,7 @@ void DialogTransformVolume::OnRadioButtonLandmark(bool bChecked)
       this->m_btnPickLandmark[i]->setChecked(false);
   }
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
-                              ->GetSupplementLayer("Landmarks");
+      ->GetSupplementLayer("Landmarks");
   if (landmarks)
     landmarks->SetVisible(bChecked);
 }
