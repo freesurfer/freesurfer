@@ -7,6 +7,7 @@ import platform
 import textwrap
 import shlex
 import subprocess
+from distutils.spawn import find_executable
 
 
 # =========================================================================== #
@@ -598,6 +599,12 @@ compileHelp(title, subtitle, usage, info, opts)
 
 def main(argv):
 
+  # check if freeview is on the path:
+  if not find_executable('freeview'):
+    msg = "cannot find freeview command. Make sure FREESURFER_HOME has " + \
+          "been sourced:\nsource $FREESURFER_HOME/SetUpFreeSurfer.sh"
+    errorExit(msg)
+
   # init and parse arguments:
   params = parseCommandLine(argv)
 
@@ -633,8 +640,6 @@ def main(argv):
     fvcommand += " -f"
     for s in params.surfs():
       fvcommand += s.writeCMD()
-
-  # return other params
 
   # print the freeview command:
   if VERBOSE:
