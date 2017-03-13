@@ -2867,7 +2867,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           if (!overlay_smooth_steps.isEmpty())
             m_scripts.insert(1, QStringList("setsurfaceoverlaysmooth") << overlay_smooth_steps);
         }
-        else if ( subOption == "annot" || subOption == "annotation" )
+        else if ( subOption == "annot" || subOption == "annotation" || subOption == "aparc" )
         {
           // add script to load surface annotation files
           QStringList annot_fns =subArgu.split(",");
@@ -2876,7 +2876,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
             m_scripts.insert( 0, QStringList("loadsurfaceannotation") << annot_fns[i] );
           }
         }
-        else if ( subOption == "annot_outline" || subOption == "annotation_outline")
+        else if ( subOption == "annot_outline" || subOption == "annotation_outline" || subOption == "aparc_outline")
         {
           if ( subArgu.toLower() == "true" || subArgu.toLower() == "yes" || subArgu == "1")
           {

@@ -102,9 +102,11 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
   LabelIsCompletelyUnassigned(m_label, &unassigned) ;
   if (unassigned)
   {
-    LabelFree(&m_label) ;
-    cerr << "label has not been mapped to surface";
-    return false;
+//    LabelFree(&m_label) ;
+//    cerr << "label has not been mapped to surface";
+//    return false;
+    LabelFillUnassignedVertices(m_surface->GetSourceSurface()->GetMRIS(), m_label, CURRENT_VERTICES);
+    cout << "label assigned to surface";
   }
 
   if ( m_label == NULL )
