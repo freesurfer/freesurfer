@@ -1,0 +1,533 @@
+#!/usr/bin/env python
+# -*- coding: latin-1 -*-
+
+import sys
+import os
+import platform
+import textwrap
+import shlex
+import subprocess
+
+
+# =========================================================================== #
+#                                    GLOBALS                                  #
+# =========================================================================== #
+
+# terminal and output width:
+TERMW = OUTW = int(os.popen("stty size", 'r').read().split()[1])
+if TERMW > 80: OUTW = 80  # output max width
+
+# output:
+HELPTEXT = None   # will be set programmatically
+TAB = '    '      # 4-space standard tab
+NOCOLORS = False   # if true, turn off colored output
+COLDICT = {
+  'k' : '\033[30m',  # black
+  'r' : '\033[31m',  # red
+  'g' : '\033[32m',  # green
+  'y' : '\033[33m',  # yellow
+  'b' : '\033[34m',  # blue
+  'm' : '\033[35m',  # magenta
+  'c' : '\033[36m',  # cyan
+  'w' : '\033[37m',  # white
+  '*' : '\033[1m' ,  # bold
+  'e' : '\033[0m' }  # end (return to normal)
+
+# for testing purposes:
+SIMULATE = False 
+
+
+# =========================================================================== #
+#                                    CLASSES                                  #
+# =========================================================================== #
+
+# ================== VOL ============================== #
+# an instance of this class represents a volume
+# specified by the user, along with its appropriate
+# loading options
+# ===================================================== #
+class Vol:
+  def __init__(self, parent):
+    self.isSubjVol = False
+    self.type = 'volume'
+    self.file = None
+    self.cmap = None
+    self.opacity = None
+    self.reg = None
+    self.vis = True
+    self.params = parent            
+
+  # ---------------- Vol.writeCMD --------------------- #
+  # checks if file is valid, prints volume info to the
+  # terminal, and returns the associated freeview cmd argument
+  def writeCMD(self):
+    if checkFile(path)
+
+    if self.isSubjVol:
+      if self.params.subj_name:
+        path = self.params.subj_path + "/mri/" + self.file
+      else:
+        msg = "cannot load subject volume " + col(self.file, 'y') + \
+              " because no subject was specified"
+        errorExit(msg)
+    else:
+      path = self.file
+
+    checkFile(path)
+
+    CMDarg = " " + path
+    info_msg = col(self.file, 'b')
+    if self.cmap:
+      if self.cmap in ('grayscale','lut','heat','jet','gecolor','nih','pet'):
+        CMDarg += ":colormap=" + self.cmap
+    if self.opacity:
+      CMDarg += ":opacity=" + self.opacity
+    if self.reg:
+      checkFile(self.reg)
+      CMDarg += ":reg=" + self.reg
+      info_msg += " registered with " + col(self.reg, 'g')
+    if not self.vis:
+      CMDarg += ":visible=false"
+   
+    self.params.printParam(self.type+'s', info_msg)
+
+    return CMDarg
+
+
+
+# ================== PARAMS =========================== #
+# parameter handler containing everything necessary to
+# construct the freeview command: volumes, surfaces,
+# subject info, view settings
+# ===================================================== #
+class Params:
+  def __init__(self):
+    self.subjs_dir = os.environ.get("SUBJECTS_DIR")
+    self.subj_name = None
+    self.subj_path = None
+    self.nvols = 0
+    self.nsurfs = 0
+    self.vol_list = []
+    self.surf_list = []
+    self.last_param = None
+
+  # ---------------- Params.vols ---------------------- #
+  # returns a list of volumes of the given type. useful
+  # for loading by order of type (eg. segs, overlays)
+  def vols(self, voltype):
+    return [v for v in self.vol_list if v.type == voltype]
+
+  # ---------------- Params.surfs --------------------- #
+  # returns a list of all surfaces. not very necessary,
+  # but good for consistency (see Params.vols above)
+  def surfs(self, voltype):
+    return self.surf_list
+
+  # ---------------- Params.setSubject ---------------- #
+  # sets the subj_path and subj_name if the given subject is valid
+  def setSubject(self, sname):
+    if not self.subjs_dir:
+      errorExit("SUBJECTS_DIR is not set")
+    elif not os.path.isdir(self.subjs_dir):
+      errorExit("SUBJECTS_DIR " + col(self.subjs_dir, "y") + " does not exist")
+    self.subj_name = sname
+    self.subj_path = os.path.join(self.subjs_dir, self.subj_name)
+    if not os.path.isdir(self.subj_path):
+      msg = "subject " + col(self.subj_name, "y")
+      msg += " does not exist in SUBJECTS_DIR " + col(self.subjs_dir, "y")
+      errorExit(msg)
+
+  # ---------------- Params.addVol -------------------- #
+  # creates a volume instance and adds it to vol_list.
+  # parses the provided arguments and returns when an
+  # unrecognized option is reached
+  def addVol(self, argv, SUBJVOL=False, TYPE="volume"):
+    vol = Vol(self)
+    # set index to parse any optional arguments:
+    idx = 1  # ignore first arg if option flag
+    if not isOption(argv[0]):
+      idx = 0
+    elif len(argv) < 2 or isOption(argv[1]):
+      errorExit("must provide volume name after " + argv[0])
+    # set volume filename:
+    vol.file = argv[idx]
+    idx += 1
+    # set volume attributes:
+    vol.isSubjVol = SUBJVOL
+    vol.type = TYPE
+    # set default segmentation options:
+    if TYPE == 'seg':
+      vol.cmap = "lut"
+      vol.opacity = "0.2"
+    # set default overlay options:
+    elif TYPE == 'overlay':
+      vol.cmap = "heat"
+    # parse any optional arguments:
+    while idx < len(argv): 
+      key = argv[idx]
+      if isOption(key):
+        break
+      elif isMatch(key, "reg:"):
+        vol.reg = stripKey(key, "reg:")
+      elif isMatch(key, "invis"):
+        vol.vis = False
+      elif isMatch(key, "cmap:"):
+        vol.cmap = stripKey(key, "cmap:")
+      elif isMatch(key, "opac:"):
+        vol.opacity = stripKey(key, "opac:")
+      else:
+        break
+      idx += 1
+    # add created volume to loading list:
+    self.vol_list.append(vol)
+    self.nvols += 1
+    return idx-1
+
+  # ---------------- Params.printParam ---------------- #
+  # prints info for a parameter to summarize what is
+  # being loaded. for visual purposes, this function keeps
+  # track of the last parameter type printed so that it
+  # doesn't print the type name multiple times in a row
+  def printParam(self, paramtype, info):
+    indt = 9
+    if self.last_param == paramtype:
+      print ' '*indt + info
+    else:
+      print ' '*(indt-len(paramtype)-2) + paramtype + ': ' + info
+    self.last_param = paramtype
+
+
+
+# =========================================================================== #
+#                                     UTILS                                   #
+# =========================================================================== #
+
+
+# ------------------ checkFile ------------------------- #
+# exits with error if file doesn't exist
+def checkFile(fname):
+  if not os.path.isfile(fname):
+    msg = "file " + fname + " does not exist"
+    errorExit(msg)
+  return
+
+
+# ------------------ isMatch --------------------------- #
+# returns true if input string begins with given pattern.
+# used to parse any additional options provided for
+# vols and surfs
+def isMatch(key, pattern):
+  return key[:len(pattern)] == pattern
+
+
+# ------------------ stripKey -------------------------- #
+# removes a given pattern from the beginning of a string.
+# used to parse any additional options provided for
+# vols and surfs
+def stripKey(key, pattern):
+  return key[len(pattern):]
+
+
+# ------------------ isOption -------------------------- #
+# returns true if input string begins with -
+def isOption(option):
+  return option[0] == "-"
+
+
+# ------------------ parseCommandLine ------------------ #
+# parses command line args and returns a Params object
+def parseCommandLine(argv):
+  params = Params()
+  idx = 0
+  while idx < len(argv):
+    key = argv[idx]
+
+    # ARGUMENT: the only argument provided should be the subject name
+    if not isOption(key) and not params.subj_name:
+      params.setSubject(key)
+
+    # OPTION: load volume
+    elif key in ('-v', '--vol'):
+      idx += params.addVol(argv[idx:])
+
+    # OPTION: load subject volume
+    elif key in ('-sv', '--subjvol'):
+      idx += params.addVol(argv[idx:], SUBJVOL=True)
+
+    # OPTION: load segmentation volume
+    elif key in ('-seg', '--segment'):
+      idx += params.addVol(argv[idx:],  TYPE='seg')
+
+    # OPTION: load overlay volume
+    elif key in ('-ov', '--overlay'):
+      idx += params.addVol(argv[idx:],  TYPE='ov')
+
+    # OPTION: load standard recon files
+    elif key in ('-r', '--recon'):
+      params.addVol(['norm.mgz'], SUBJVOL=True)
+      params.addVol(['T1.mgz'], SUBJVOL=True)
+      params.addVol(['brainmask.mgz'], SUBJVOL=True)
+      params.addVol(['wm.mgz', 'invis', 'opac:0.2', 'cmap:heat'], SUBJVOL=True)
+      params.addVol(['aparc+aseg.mgz'], SUBJVOL=True, TYPE='seg')
+
+    # OPTION: load subject orig
+    elif key in ('-orig', '--orig'):
+      params.addVol(['orig.mgz'], SUBJVOL=True)
+
+    # OPTION: load subject T1
+    elif key in ('-T1', '--T1'):
+      params.addVol(['T1.mgz'], SUBJVOL=True)
+
+    # OPTION: load subject wm
+    elif key in ('-wm', '--whitematter'):
+      params.addVol(['wm.mgz', 'opac:0.4','cmap:heat'], SUBJVOL=True)
+
+    # OPTION: load subject aparc+aseg
+    elif key in ('-apas', '--aparc+aseg'):
+      params.addVol(['aparc+aseg.mgz'], SUBJVOL=True, TYPE='seg')
+
+    # OPTION: show help
+    elif key in ('-h', '--help'):
+      print HELPTEXT
+      sys.exit(0)
+
+    # OPTION: simulate for testing purposes
+    elif key in ('--sim'):
+      global SIMULATE
+      SIMULATE = True
+
+    # UNKNOWN ARGUMENT:
+    else:
+      errorExit("unknown argument " + col(key, 'y'))
+    idx += 1
+
+  return params
+
+
+# ------------------ centerString ---------------------- #
+# returns a string centered at some given width. default
+# width is the terminal width
+def centerString(strng, w=OUTW):
+  restrng = strng
+  # removes any color 
+  for v in COLDICT.values():
+    restrng = restrng.replace(v, '')
+  margin = w/2 - len(restrng)/2
+  return (' ' * margin) + strng + '\n'
+
+
+# ------------------ col ------------------------------ #
+# prints a string with a given style. see colorDict
+def col(strng, color):
+  # check if output is a tty:
+  tty = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+  # check if tty allows colors:
+  pform = platform.system() in ("Darwin", "Linux")
+  colors_enabled = tty and pform
+  if not colors_enabled or NOCOLORS:
+    return strng
+  else:
+    colstring = ""
+    for i in range(len(color)):
+      colstring += COLDICT[color[i]]
+    colstring += strng + COLDICT['e']
+    return colstring
+
+
+# ------------------ printLine ------------------------ #
+# prints a blue line the width of the terminal
+def printLine(char="-"):
+  line = char * TERMW
+  print col(line, 'b')
+
+
+# ------------------ errorExit ------------------------ #
+def errorExit(msg):
+  print col("error:", "r*"), msg + '\n'
+  sys.exit(1)
+
+
+# ------------------ compileHelp ---------------------- #
+# organizes the provided sections of the help output
+# and writes the text to the global HELPTEXT variable,
+# which should be directly printed when appropriate
+def compileHelp(progname, subtitle, usage, info, optns):
+  global HELPTEXT
+  # write title and subtitle:
+  brdr = col("--", '*')  # fancy title
+  title = brdr + "  " + col(progname, 'b*') + "  " + brdr
+  HELPTEXT = '\n' + centerString(title, OUTW) + \
+                    centerString(subtitle, OUTW) + '\n'
+  # write usage:
+  HELPTEXT += col("USAGE", '*') + '\n' 
+  for uline in usage.split('\n'):  # for multi-line usage text
+    HELPTEXT += TAB + uline + '\n'
+  HELPTEXT += '\n'
+  # write usage info:
+  if info:
+    HELPTEXT += textwrap.fill(info, OUTW-2, initial_indent=(TAB), \
+                              subsequent_indent=(TAB)) + "\n\n"
+  # write options:
+  HELPTEXT += col("OPTIONS", '*') + '\n' + optns
+  return
+
+
+# ------------------ addOpt --------------------------- #
+# returns an option description for the help text. aux
+# represents any modifier arguments that the option
+# will accept
+def addOpt(flags, desc, arg=None, aux=None):
+  # write the flag(s):
+  option = TAB  # initial indent for opt flags
+  for i, f in enumerate(flags):
+    if i > 0:
+      option += ", "
+    option += col(f, '*')
+  # write argument requirement(s):
+  if arg:
+    option += "  " + col(arg, 'b')
+  # write description:
+  option += "\n" + textwrap.fill(desc, OUTW-2, initial_indent=(TAB*2), \
+                                 subsequent_indent=(TAB*2)) + "\n"
+  option += "\n"
+  return option
+
+
+# =========================================================================== #
+#                                     HELP                                    #
+# =========================================================================== #
+
+
+title    = "easyfv"
+subtitle = "a freeview wrapper for quick and simple loading"
+usage    = col("easyfv", '*') + " [options]" + '\n' + \
+           col("easyfv", '*') + " subject [options]"
+info     = """Files must be loaded using the option flags. easyfv will also
+accept a subject name as a positional argument (SUBJECTS_DIR must be set), and
+if a specified file is not found in the working directory, easyfv will search
+for it in the subject's directory."""
+opts     = ""
+
+# OPTION: load volume
+desc = """Load a volume file. Volume options can be specified
+with the following additional arguments:"""
+opts += addOpt(["-v", "--vol"], desc, arg="<vol> <opts...>")
+
+# OPTION: load subject volume
+desc = """Load a subject-specific volume. This volume file must be located
+in the subject's mri directory. The volume options that are available for -v
+can also be used"""
+opts += addOpt(["-sv", "--subjvol"], desc, arg="<vol> <opts...>")
+
+# OPTION: load segmentation volume
+desc = """Load a volume file as a segmentation. This applies a set of
+predefined settings to the volume, but these options can be overwritten with
+additional arguments (see -v)"""
+opts += addOpt(["-seg", "--segment"], desc, arg="<vol> <opts...>")
+
+# OPTION: load overlay volume
+desc = """Load a volume file as an overlay. This applies a heat colormap to
+the volume. More options can be applied with additional
+arguments (see -v)"""
+opts += addOpt(["-ov", "--overlay"], desc, arg="<vol> <opts...>")
+
+# OPTION: load surface
+desc = """Load a surface file. Surface options can be specified
+with the following additional arguments:"""
+opts += addOpt(["-f", "--surf"], desc, arg="<surf> <opts..>")
+
+# OPTION: load standard recon files
+desc = "Load a series of predefined subject volumes and surfaces"
+opts += addOpt(["-r", "--recon"], desc)
+
+# OPTION: load subject orig
+desc = "Load the subject's orig.mgz (subject must be set)"
+opts += addOpt(["-orig", "--orig"], desc)
+
+# OPTION: load subject T1
+desc = "Load the subject's T1.mgz (subject must be set)"
+opts += addOpt(["-T1", "--T1"], desc)
+
+# OPTION: load subject wm
+desc = "Load the subject's wm.mgz as a heatmap (subject must be set)"
+opts += addOpt(["-wm", "--whitematter"], desc)
+
+# OPTION: load subject aseg+aparc
+desc = "Load the subject's aseg+aparc.mgz segmentation (subject must be set)"
+opts += addOpt(["-asap", "--aseg+aparc"], desc)
+
+# OPTION: show help
+opts += addOpt(["-h", "--help"], "Display this help text")
+
+
+compileHelp(title, subtitle, usage, info, opts)
+
+
+
+# =========================================================================== #
+#                                     MAIN                                    #
+# =========================================================================== #
+
+
+def main(argv):
+
+  # init and parse arguments:
+  params = parseCommandLine(argv)
+
+  # check if nothing will be loaded:
+  if params.nvols == params.nsurfs == 0:
+    if not params.subj_name:
+      print HELPTEXT
+      exit(1)
+    else:
+      # if nothing but subject name is provided, load orig.mgz:
+      print "no volumes specified - loading orig.mgz as default"
+      params.addVol(["orig.mgz"], SUBJVOL=True)
+
+  # init freeview command:
+  fvcommand = "freeview"
+
+  # print subject name if given:
+  if params.subj_name:
+    params.printParam("subject", col(params.subj_name, 'b'))
+
+  # load volumes:
+  if params.nvols > 0:
+    fvcommand += " -v"
+    for v in params.vols("volume"):  # load regular volumes first
+      fvcommand += v.writeCMD()
+    for v in params.vols("seg"):  # load seg volumes next
+     fvcommand += v.writeCMD()
+    for v in params.vols("overlay"):  # load overlay volumes last
+     fvcommand += v.writeCMD()
+
+  # load surfaces:
+  if params.nsurfs > 0:
+    fvcommand += " -f"
+    #for s in params.surfs():
+    #  fvcommand += s.writeCMD()
+
+  # return other params
+
+  # print the freeview command:
+  print "\nfreeview command:"
+  printLine()
+  print fvcommand
+  printLine()
+  print
+
+  # run the freeview command:
+  fvargs = shlex.split(fvcommand)
+  if SIMULATE:
+    retcode = 0
+  else:
+    retcode = subprocess.call(fvargs)
+
+  return retcode
+
+
+
+
+if __name__ == "__main__":
+  retcode = main(sys.argv[1:])
+  sys.exit(retcode)
