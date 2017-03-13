@@ -290,7 +290,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
     }
     else if (layers[0]->GetEndType() == "Surface")
     {
-      if (((LayerSurface*)layers[0])->IsContralateralReady())
+      if (((LayerSurface*)layers[0])->IsContralateralPossible())
       {
         menu->addSeparator();
         act = new QAction("Go To Contralateral Point", this);

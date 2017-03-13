@@ -585,7 +585,7 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
   }
   LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
-  if ( surf && surf->IsContralateralReady())
+  if ( surf && surf->IsContralateralPossible())
   {
     if (!menu.actions().isEmpty())
       menu.addSeparator();

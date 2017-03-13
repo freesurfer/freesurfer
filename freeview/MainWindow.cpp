@@ -1790,6 +1790,15 @@ void MainWindow::RunScript()
   {
     CommandSaveLayer(sa);
   }
+  else if (cmd == "gotocontralateralsurface")
+  {
+    LayerSurface* surf = reinterpret_cast<LayerSurface*>(sa[1].toULongLong());
+    if (surf)
+    {
+      GetLayerCollection("Surface")->SetActiveLayer(surf);
+      GoToContralateralPoint(surf);
+    }
+  }
   else
   {
     cerr << "Command '" << qPrintable(cmd) << "' is not recognized." << endl;
@@ -7353,26 +7362,45 @@ void MainWindow::GoToContralateralPoint()
   }
   else
   {
-    LayerSurface* layer = (LayerSurface*)GetActiveLayer("Surface");
-    double pos[3];
-    layer->GetSlicePosition(pos);
-    int nvo = layer->GetVertexIndexAtTarget(pos, NULL);
-    nvo = layer->GetContralateralVertex(nvo);
-    if (nvo >= 0)
+    LayerSurface* surf = (LayerSurface*)GetActiveLayer("Surface");
+    if (surf)
     {
-      layer = layer->GetContralateralSurface();
-      if (layer)
+      if (surf->IsContralateralReady())
+        GoToContralateralPoint(surf);
+      else
       {
-        layer->GetTargetAtVertex(nvo, pos);
-        GetLayerCollection("Surface")->SetActiveLayer(layer);
-        SetSlicePosition(pos);
-        CenterAtWorldPosition(pos);
+        QString fn = surf->GetFileName();
+        if (surf->GetHemisphere() == 0)
+          fn.replace("lh.", "rh.");
+        else
+          fn.replace("rh.", "lh.");
+        AddScript(QStringList("loadsurface") << fn);
+        AddScript(QStringList("gotocontralateralsurface") << QString::number(reinterpret_cast<quintptr>(surf)));
       }
     }
-    else
+  }
+}
+
+void MainWindow::GoToContralateralPoint(LayerSurface *layer)
+{
+  double pos[3];
+  layer->GetSlicePosition(pos);
+  int nvo = layer->GetVertexIndexAtTarget(pos, NULL);
+  nvo = layer->GetContralateralVertex(nvo);
+  if (nvo >= 0)
+  {
+    layer = layer->GetContralateralSurface();
+    if (layer)
     {
-      qDebug() << "Did not find any vertex at cursor";
+      layer->GetTargetAtVertex(nvo, pos);
+      GetLayerCollection("Surface")->SetActiveLayer(layer);
+      SetSlicePosition(pos);
+      CenterAtWorldPosition(pos);
     }
+  }
+  else
+  {
+    qDebug() << "Did not find any vertex at cursor";
   }
 }
 
