@@ -527,6 +527,7 @@ private:
   bool UpdateSurfaceCorrelation(LayerSurface* layer);
   void ShowNonModalMessage(const QString& title, const QString& msg);
   void LoadConnectomeMatrixFile(const QString& fn_cmat, const QString& fn_parcel, const QString& fn_ctab);
+  void GoToContralateralPoint(LayerSurface* layer);
 
   QColor ParseColorInput(const QString& cmd);
 
