@@ -580,7 +580,6 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
         }
         else
           lc_mri->SetCurrentRASPosition( pos );
-
       }
 
       HighlightSliceFrame( -1 );

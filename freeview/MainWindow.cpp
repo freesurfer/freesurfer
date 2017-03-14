@@ -7385,15 +7385,27 @@ void MainWindow::GoToContralateralPoint(LayerSurface *layer)
 {
   double pos[3];
   layer->GetSlicePosition(pos);
-  int nvo = layer->GetVertexIndexAtTarget(pos, NULL);
+  int nvo = -1;
+  bool bInflated = layer->GetFileName().contains("inflated");
+  if (bInflated)
+    nvo = layer->GetCurrentVertex();
+  else
+    nvo = layer->GetVertexIndexAtTarget(pos, NULL);
   nvo = layer->GetContralateralVertex(nvo);
   if (nvo >= 0)
   {
     layer = layer->GetContralateralSurface();
+    GetLayerCollection("Surface")->SetActiveLayer(layer);
     if (layer)
     {
-      layer->GetTargetAtVertex(nvo, pos);
-      GetLayerCollection("Surface")->SetActiveLayer(layer);
+      layer->SetCurrentVertex(nvo);
+      if (bInflated)
+      {
+        layer->GetTargetAtVertex(nvo, pos);
+        ((RenderView3D*)m_views[3])->MapInflatedCoords(layer, pos, pos, m_settings["AutoReorientView"].toBool(), true);
+      }
+      else
+        layer->GetTargetAtVertex(nvo, pos);
       SetSlicePosition(pos);
       CenterAtWorldPosition(pos);
     }

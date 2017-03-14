@@ -1358,13 +1358,6 @@ SurfaceOverlay* LayerSurface::GetOverlay( int n )
   }
 }
 
-/*
-void LayerSurface::CopyCorrelationOverlay(SurfaceOverlay* overlay)
-{
-
-}
-*/
-
 void LayerSurface::UpdateCorrelationOverlayAtVertex( int nVertex )
 {
   SurfaceOverlay* overlay = GetOverlay( m_nActiveOverlay );

@@ -214,6 +214,8 @@ public:
     return m_nID;
   }
 
+  void CopyTransformation(Layer* layer);
+
 Q_SIGNALS:
   void NameChanged( const QString& name );
   void Transformed();
@@ -249,6 +251,7 @@ protected:
   double    m_dScale[3];
   double    m_dRotate[3];
   bool      m_bFlip[3];
+  double    m_dRotationCenter[3];
   bool      m_bRotateAroundCenter;
 
   bool      m_bLocked;

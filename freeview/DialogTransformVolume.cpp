@@ -821,3 +821,11 @@ void DialogTransformVolume::OnCheckBoxFlip()
     }
   }
 }
+
+void DialogTransformVolume::OnCheckBoxApplyToAll(bool bAll)
+{
+  if (bAll)
+  {
+
+  }
+}
