@@ -205,24 +205,21 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
   {
     QList<Layer*> layers = mainwnd->GetLayerCollection( "MRI" )->GetLayers();
     LayerMRI* layer = (LayerMRI*)mainwnd->GetActiveLayer("MRI");
-    if (layer && (!layer->IsVisible() || layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT))
+    if (layer && !layer->IsWindowAdjustable())
     {
       layer = NULL;
     }
-    if (layer == NULL)
+    for ( int i = 0; i < layers.size(); i++ )
     {
-      for ( int i = 0; i < layers.size(); i++ )
-      {
-        layer = ( LayerMRI*)layers[i];
-        if ( layer->IsVisible() && layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT )
-        {
-          break;
-        }
-        else
-        {
-          layer = NULL;
-        }
-      }
+        LayerMRI* mri = ( LayerMRI*)layers[i];
+        if (mri->IsWindowAdjustable())
+		{
+			if (layer == NULL || layer == mri || mri->IsObscuring())
+			{
+				layer = mri;
+				break;
+			}
+		}
     }
     if ( layer )
     {
