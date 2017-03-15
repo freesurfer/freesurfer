@@ -353,6 +353,7 @@ main(int argc, char *argv[])
   }
   if (remove_lh)
   {
+    Gvx = nint(gca->width*.4) ; // only one hemi - assume it is left/right centered in FOV
     GCAremoveHemi(gca, 1) ;  // for exvivo contrast
   }
   if (remove_rh)
