@@ -46,35 +46,51 @@ BOOST_AUTO_TEST_SUITE( UnitCubeSingleTetrahedron )
 
 BOOST_AUTO_TEST_CASE( OriginOnly )
 {
+  const int nx = 2;
+  const int ny = 2;
+  const int nz = 2;
   // Create unit cube
-  kvl::interfaces::AtlasMeshVisitCounter::ImageType::RegionType region;
-  kvl::interfaces::AtlasMeshVisitCounter::ImageType::IndexType start;
-  kvl::interfaces::AtlasMeshVisitCounter::ImageType::SizeType size;
+
+  typedef kvl::interfaces::AtlasMeshVisitCounter::ImageType ImageType;
+  typedef itk::AutomaticTopologyMeshSource<kvl::AtlasMesh> MeshSource;
+  typedef kvl::AtlasMesh Mesh;
+
+  ImageType::RegionType region;
+  ImageType::IndexType start;
+  ImageType::SizeType size;
   start[0] = start[1] = start[2] = 0;
-  size[0] = size[1] = size[2] = 1;
+  size[0] = nx-1;
+  size[1] = ny-1;
+  size[2] = nz-1;
 
   region.SetSize(size);
   region.SetIndex(start);
 
-  kvl::interfaces::AtlasMeshVisitCounter::ImageType::Pointer image;
+  ImageType::Pointer image = ImageType::New();
   image->SetRegions(region);
   image->Allocate();
 
-  for( int k=0; k<2; k++ ) {
-    for( int j=0; j<2; j++ ) {
-      for( int i=0; i<2; i++ ) {
-	kvl::interfaces::AtlasMeshVisitCounter::ImageType::IndexType idx;
-	idx[0] = k;
+  BOOST_TEST_CHECKPOINT("Cube allocated");
+
+  for( int k=0; k<nz; k++ ) {
+    for( int j=0; j<ny; j++ ) {
+      for( int i=0; i<nx; i++ ) {
+	ImageType::IndexType idx;
+	idx[0] = i;
 	idx[1] = j;
-	idx[2] = i;
+	idx[2] = k;
 
 	image->SetPixel(idx, 0);
       }
     }
   }
 
-  // Create mesh with single triangle
-  kvl::AtlasMesh::Pointer mesh = kvl::AtlasMesh::New();
+  BOOST_TEST_CHECKPOINT("Cube set");
+
+  // Create mesh
+  MeshSource::Pointer meshSource = MeshSource::New();
+
+  Mesh::Pointer mesh = Mesh::New();
 }
 
 BOOST_AUTO_TEST_SUITE_END();
