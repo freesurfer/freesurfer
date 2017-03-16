@@ -23,3 +23,15 @@ http://surfer.nmr.mgh.harvard.edu/fswiki
 For questions and support, email: 
 
 freesurfer@nmr.mgh.harvard.edu
+
+# Building
+
+See the following webpage for information on how to build the freesurfer source code.
+
+https://surfer.nmr.mgh.harvard.edu/fswiki/freesurfer_linux_developers_page
+
+# Contributing
+
+See the following webpage if you are interested in contributing to the project.
+
+https://surfer.nmr.mgh.harvard.edu/fswiki/Freesurfer_github
