@@ -2,6 +2,11 @@ use_fisher = 1 ;
 use_air = 0 ;
 base = '/space/rock/4/users/hires/recons/C2.3T.recon';
 
+ebase = getenv('base');
+if (length(ebase)>0)
+  base = ebase ;  % let env override what is here
+end
+
 recon=sprintf('%s',base);
 mdir=sprintf('%s/mri',recon) ;
 sdir=sprintf('%s/scripts',recon)' ;
