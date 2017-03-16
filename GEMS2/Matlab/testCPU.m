@@ -99,25 +99,25 @@ mesh = kvlGetMesh( meshCollection, -1 );
 
 labelNumber = 0;
 backgroundPrior = kvlRasterizeAtlasMesh( mesh, [size(imageBuffers,1) size(imageBuffers,2) size(imageBuffers,3)], labelNumber );
-backgroundPriorGPU = kvlRasterizeAtlasMeshGPU( mesh, [size(imageBuffers,1) size(imageBuffers,2) size(imageBuffers,3)], labelNumber );
+backgroundPriorCPU = kvlRasterizeAtlasMeshCPU( mesh, [size(imageBuffers,1) size(imageBuffers,2) size(imageBuffers,3)], labelNumber );
 figure
 %  showImage( backgroundPrior )
 imshow( backgroundPrior( :, :, 100 ) )
 figure
-%  showImage( backgroundPriorGPU )
-imshow( backgroundPriorGPU( :, :, 100 ) )
+%  showImage( backgroundPriorCPU )
+imshow( backgroundPriorCPU( :, :, 100 ) )
 
 return
-tmp = double( backgroundPrior( :, :, 100 ) ) - double( backgroundPriorGPU(:,:,100) );
+tmp = double( backgroundPrior( :, :, 100 ) ) - double( backgroundPriorCPU(:,:,100) );
 [ a b ] = max( abs( tmp(:) ) );
 index = [ 0 0 100 ];
 index(2) = floor( b/size(tmp,1) ) + 1;
 index(1) = b - size(tmp,1)*(index(2)-1)
 backgroundPrior( index(1), index(2), index(3) )
-backgroundPriorGPU( index(1), index(2), index(3) )
+backgroundPriorCPU( index(1), index(2), index(3) )
 
 %  tmp1 = double( backgroundPrior( :, :, 100 ) );
-%  tmp2 = double( backgroundPriorGPU( :, :, 100 ) );
+%  tmp2 = double( backgroundPriorCPU( :, :, 100 ) );
 %  tmp1 = tmp1( [ 100 : 110 ], [ 90 : 100 ] );
 %  tmp2 = tmp2( [ 100 : 110 ], [ 90 : 100 ] );
 %  figure
@@ -410,7 +410,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     end
     disp('Getting optimizer...');
     optimizer = kvlGetConjugateGradientOptimizer( mesh, biasCorrectedImages, transform );
-    optimizerGPU = kvlGetConjugateGradientOptimizerGPU( mesh, biasCorrectedImages, transform );
+    optimizerCPU = kvlGetConjugateGradientOptimizerCPU( mesh, biasCorrectedImages, transform );
     
     disp('Optimizer got.');
         
@@ -840,10 +840,10 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         disp(['Setting up means and precisions']);
         if(numberOfImages>1)
             kvlSetOptimizerProperties( optimizer, means', precisions );
-            kvlSetOptimizerPropertiesGPU( optimizerGPU, means', precisions );
+            kvlSetOptimizerPropertiesCPU( optimizerCPU, means', precisions );
         else
             kvlSetOptimizerProperties( optimizer, means, precisions );
-            kvlSetOptimizerPropertiesGPU( optimizerGPU, means, precisions );
+            kvlSetOptimizerPropertiesCPU( optimizerCPU, means, precisions );
         end
         disp(['Means and precisions set']);
                 
@@ -861,7 +861,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             
             save /data/tmp.mat
             return
-            [ minLogLikelihoodTimesPriorGPU, maximalDeformationGPU ] = kvlDeformOneStepGPU( optimizerGPU );
+            [ minLogLikelihoodTimesPriorCPU, maximalDeformationCPU ] = kvlDeformOneStepCPU( optimizerCPU );
             
             % Test if we need to stop
             if ( maximalDeformation <= maximalDeformationStopCriterion )

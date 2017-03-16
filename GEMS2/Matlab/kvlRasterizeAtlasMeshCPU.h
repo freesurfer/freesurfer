@@ -2,7 +2,7 @@
 #include "kvlMatlabObjectArray.h"
 #include "itkImage.h"
 #include "itkImageRegionConstIterator.h"
-#include "kvlAtlasMeshAlphaDrawerGPU.h"
+#include "kvlAtlasMeshAlphaDrawerCPU.h"
 #include "kvlAtlasMeshMultiAlphaDrawer.h"
 
 
@@ -10,11 +10,11 @@
 namespace kvl
 {
 
-class RasterizeAtlasMeshGPU : public MatlabRunner
+class RasterizeAtlasMeshCPU : public MatlabRunner
 {
 public:
   /** Smart pointer typedef support. */
-  typedef RasterizeAtlasMeshGPU         Self;
+  typedef RasterizeAtlasMeshCPU         Self;
   typedef itk::Object              Superclass;
   typedef itk::SmartPointer<Self>  Pointer;
   typedef itk::SmartPointer<const Self>  ConstPointer;
@@ -23,7 +23,7 @@ public:
   itkNewMacro( Self );
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro( RasterizeAtlasMeshGPU, itk::Object );
+  itkTypeMacro( RasterizeAtlasMeshCPU, itk::Object );
 
   virtual void Run( int nlhs, mxArray* plhs[],
                     int nrhs, const mxArray* prhs[] )
@@ -32,7 +32,7 @@ public:
     //          << " and I'm running! " << std::endl;
               
               
-    // alphaBuffer = kvlRasterizeAtlasMeshGPU( mesh, DIM, labelNumber )
+    // alphaBuffer = kvlRasterizeAtlasMeshCPU( mesh, DIM, labelNumber )
   
     // Make sure input arguments are correct
     if ( ( nrhs < 2 ) || !mxIsInt64( prhs[ 0 ] ) || 
@@ -42,7 +42,7 @@ public:
       }
       
     // Some typedefs
-    typedef AtlasMeshAlphaDrawerGPU::ImageType  AlphaImageType;
+    typedef AtlasMeshAlphaDrawerCPU::ImageType  AlphaImageType;
     typedef AlphaImageType::SizeType  SizeType;
     typedef AtlasMeshMultiAlphaDrawer::AlphasImageType  MultiAlphasImageType;
     typedef AtlasMeshMultiAlphaDrawer::LabelImageType  LabelImageType;
@@ -84,7 +84,7 @@ public:
       {
       // Rasterize the specified prior. If the label number is 0, then pre-fill everything
       // so that parts not overlayed by the mesh are still considered to the background
-      kvl::AtlasMeshAlphaDrawerGPU::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawerGPU::New();
+      kvl::AtlasMeshAlphaDrawerCPU::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawerCPU::New();
       alphaDrawer->SetRegions( imageSize );
       alphaDrawer->SetLabelNumber( labelNumber );
       if ( labelNumber == 0 )
@@ -195,11 +195,11 @@ std::cout << "here2: " << numberOfLabels << std::endl;
     }
   
 protected:
-  RasterizeAtlasMeshGPU() {};
-  virtual ~RasterizeAtlasMeshGPU() {};
+  RasterizeAtlasMeshCPU() {};
+  virtual ~RasterizeAtlasMeshCPU() {};
 
 
-  RasterizeAtlasMeshGPU(const Self&); //purposely not implemented
+  RasterizeAtlasMeshCPU(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
 
 private:

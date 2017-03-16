@@ -6,7 +6,7 @@
 #include "kvlReadMeshCollection.h"
 #include "kvlGetMesh.h"
 #include "kvlRasterizeAtlasMesh.h"
-#include "kvlRasterizeAtlasMeshGPU.h"
+#include "kvlRasterizeAtlasMeshCPU.h"
 #include "kvlGetAlphasInMeshNodes.h"
 #include "kvlSetAlphasInMeshNodes.h"
 #include "kvlSmoothMeshCollection.h"
@@ -17,9 +17,9 @@
 #include "kvlDeformMesh.h"
 #include "kvlGetLevenbergMarquardtOptimizer.h"
 #include "kvlDeformOneStep.h"
-#include "kvlDeformOneStepGPU.h"
+#include "kvlDeformOneStepCPU.h"
 #include "kvlSetOptimizerProperties.h"
-#include "kvlSetOptimizerPropertiesGPU.h"
+#include "kvlSetOptimizerPropertiesCPU.h"
 #include "kvlClear.h"
 #include "kvlSetMaximumNumberOfThreads.h"
 #include "kvlScaleMesh.h"
@@ -35,7 +35,7 @@
 #include "kvlEvaluateMeshPosition.h"
 #include "kvlSetMeshNodePositions.h"
 #include "kvlGetConjugateGradientOptimizer.h"
-#include "kvlGetConjugateGradientOptimizerGPU.h"
+#include "kvlGetConjugateGradientOptimizerCPU.h"
 #include "kvlChangeK.h"
 #include "kvlGetImageFromOptimizer.h"
 #include "kvlCreateRGBImage.h"
@@ -60,7 +60,7 @@ MatlabRunnerArray
   m_Array.push_back( ReadMeshCollection::New().GetPointer() );
   m_Array.push_back( GetMesh::New().GetPointer() );
   m_Array.push_back( RasterizeAtlasMesh::New().GetPointer() );
-  m_Array.push_back( RasterizeAtlasMeshGPU::New().GetPointer() );
+  m_Array.push_back( RasterizeAtlasMeshCPU::New().GetPointer() );
   m_Array.push_back( SmoothImageBuffer::New().GetPointer() );
   m_Array.push_back( GetAlphasInMeshNodes::New().GetPointer() );
   m_Array.push_back( SetAlphasInMeshNodes::New().GetPointer() );
@@ -72,9 +72,9 @@ MatlabRunnerArray
   m_Array.push_back( DeformMesh::New().GetPointer() );
   m_Array.push_back( GetLevenbergMarquardtOptimizer::New().GetPointer() );
   m_Array.push_back( DeformOneStep::New().GetPointer() );
-  m_Array.push_back( DeformOneStepGPU::New().GetPointer() );
+  m_Array.push_back( DeformOneStepCPU::New().GetPointer() );
   m_Array.push_back( SetOptimizerProperties::New().GetPointer() );
-  m_Array.push_back( SetOptimizerPropertiesGPU::New().GetPointer() );
+  m_Array.push_back( SetOptimizerPropertiesCPU::New().GetPointer() );
   m_Array.push_back( Clear::New().GetPointer() );
   m_Array.push_back( SetMaximumNumberOfThreads::New().GetPointer() );
   m_Array.push_back( ScaleMesh::New().GetPointer() );
@@ -90,7 +90,7 @@ MatlabRunnerArray
   m_Array.push_back( EvaluateMeshPosition::New().GetPointer() );
   m_Array.push_back( SetMeshNodePositions::New().GetPointer() );
   m_Array.push_back( GetConjugateGradientOptimizer::New().GetPointer() );
-  m_Array.push_back( GetConjugateGradientOptimizerGPU::New().GetPointer() );
+  m_Array.push_back( GetConjugateGradientOptimizerCPU::New().GetPointer() );
   m_Array.push_back( ChangeK::New().GetPointer() );
   m_Array.push_back( GetImageFromOptimizer::New().GetPointer() );
   m_Array.push_back( CreateRGBImage::New().GetPointer() );

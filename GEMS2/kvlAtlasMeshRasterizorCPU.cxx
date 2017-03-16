@@ -87,7 +87,7 @@ AtlasMeshRasterizorCPU
     
   // Rasterize all tetrahedra assigned to this thread  
   for ( int tetrahedronNumber = thisThreadStartNumber; 
-        tetrahedronNumber < thisThreadEndNumber; 
+        tetrahedronNumber <= thisThreadEndNumber; 
         tetrahedronNumber++ )
     {
     if ( !str->m_Rasterizor->RasterizeTetrahedron( str->m_Mesh, 

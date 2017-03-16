@@ -3,11 +3,11 @@ close all
 clear all
 
 %
-addpath /home/koen/software/mergedCodeEugenioAndOula/richardGEMS-Release/bin
+addpath /home/koen/software/freesurferGit/freesurfer/GEMS2-Release/bin
 
 load /data/tmp.mat
 
-%kvlSetMaximumNumberOfThreads( 1 );
+kvlSetMaximumNumberOfThreads( 1 );
 
 
 for nima = 1:numberOfImages
@@ -56,9 +56,9 @@ optimizer = kvlGetConjugateGradientOptimizer( mesh, biasCorrectedImages, transfo
 kvlSetOptimizerProperties( optimizer, means, precisions );
 [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlDeformOneStep( optimizer );
 
-optimizerGPU = kvlGetConjugateGradientOptimizerGPU( mesh, biasCorrectedImages, transform );
-kvlSetOptimizerPropertiesGPU( optimizerGPU, means, precisions );
-[ minLogLikelihoodTimesPriorGPU, maximalDeformationGPU ] = kvlDeformOneStepGPU( optimizerGPU );
+optimizerCPU = kvlGetConjugateGradientOptimizerCPU( mesh, biasCorrectedImages, transform );
+kvlSetOptimizerPropertiesCPU( optimizerCPU, means, precisions );
+[ minLogLikelihoodTimesPriorCPU, maximalDeformationCPU ] = kvlDeformOneStepCPU( optimizerCPU );
 
 
 if 0
@@ -73,15 +73,15 @@ if 0
 end
 
 
-return
+%  return
 
 
 
 %
 historyOfMinLogLikelihoodTimesPrior = [];
-historyOfMinLogLikelihoodTimesPriorGPU = [];
+historyOfMinLogLikelihoodTimesPriorCPU = [];
 totalRasterizationTime = 0;
-totalRasterizationTimeGPU = 0;
+totalRasterizationTimeCPU = 0;
 figure
 for i = 1 : 100
 
@@ -93,19 +93,19 @@ for i = 1 : 100
   disp( [ 'Average rasterization time so far: ' num2str( totalRasterizationTime / i ) ] )
   
   tic
-  [ minLogLikelihoodTimesPriorGPU, maximalDeformationGPU ] = kvlDeformOneStepGPU( optimizerGPU );
+  [ minLogLikelihoodTimesPriorCPU, maximalDeformationCPU ] = kvlDeformOneStepCPU( optimizerCPU );
   elapsedTime = toc;
-  disp( [ 'GPU Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
-  totalRasterizationTimeGPU = totalRasterizationTimeGPU + elapsedTime;
-  disp( [ 'GPU Average rasterization time so far: ' num2str( totalRasterizationTimeGPU / i ) ] )
+  disp( [ 'CPU Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
+  totalRasterizationTimeCPU = totalRasterizationTimeCPU + elapsedTime;
+  disp( [ 'CPU Average rasterization time so far: ' num2str( totalRasterizationTimeCPU / i ) ] )
 
   historyOfMinLogLikelihoodTimesPrior = [ historyOfMinLogLikelihoodTimesPrior; minLogLikelihoodTimesPrior ];
-  historyOfMinLogLikelihoodTimesPriorGPU = [ historyOfMinLogLikelihoodTimesPriorGPU; minLogLikelihoodTimesPriorGPU ];
+  historyOfMinLogLikelihoodTimesPriorCPU = [ historyOfMinLogLikelihoodTimesPriorCPU; minLogLikelihoodTimesPriorCPU ];
 
   hold off
   plot( historyOfMinLogLikelihoodTimesPrior )
   hold on
-  plot( historyOfMinLogLikelihoodTimesPriorGPU, 'r' )
+  plot( historyOfMinLogLikelihoodTimesPriorCPU, 'r' )
   grid
   drawnow
 end

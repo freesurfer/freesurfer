@@ -1,16 +1,16 @@
 #include "kvlMatlabRunner.h" 
 #include "kvlMatlabObjectArray.h"
-#include "kvlAtlasMeshDeformationConjugateGradientOptimizerGPU.h"
+#include "kvlAtlasMeshDeformationConjugateGradientOptimizerCPU.h"
 
 
 namespace kvl
 {
 
-class GetConjugateGradientOptimizerGPU : public MatlabRunner
+class GetConjugateGradientOptimizerCPU : public MatlabRunner
 {
 public:
   /** Smart pointer typedef support. */
-  typedef GetConjugateGradientOptimizerGPU         Self;
+  typedef GetConjugateGradientOptimizerCPU         Self;
   typedef itk::Object              Superclass;
   typedef itk::SmartPointer<Self>  Pointer;
   typedef itk::SmartPointer<const Self>  ConstPointer;
@@ -19,7 +19,7 @@ public:
   itkNewMacro( Self );
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro( GetConjugateGradientOptimizerGPU, itk::Object );
+  itkTypeMacro( GetConjugateGradientOptimizerCPU, itk::Object );
 
   virtual void Run( int nlhs, mxArray* plhs[],
                     int nrhs, const mxArray* prhs[] )
@@ -28,7 +28,7 @@ public:
     //          << " and I'm running! " << std::endl;
               
               
-    // optimizer = kvlGetConjugateGradientOptimizerGPU( mesh, image, transform )
+    // optimizer = kvlGetConjugateGradientOptimizerCPU( mesh, image, transform )
   
     // Make sure input arguments are correct
     if ( ( nrhs < 3 ) || 
@@ -51,7 +51,7 @@ public:
 
     // Retrieve input image(s)
     //typedef itk::Image< unsigned short, 3 >  ImageType;
-    typedef AtlasMeshDeformationConjugateGradientOptimizerGPU::ImageType  ImageType;
+    typedef AtlasMeshDeformationConjugateGradientOptimizerCPU::ImageType  ImageType;
 
     const int  N = mxGetN( prhs[ 1 ] );
     const int  M = mxGetM( prhs[ 1 ] );
@@ -106,7 +106,7 @@ public:
     
 
     // Set up the optimizer accordingly
-    AtlasMeshDeformationConjugateGradientOptimizerGPU::Pointer  optimizer = AtlasMeshDeformationConjugateGradientOptimizerGPU::New();
+    AtlasMeshDeformationConjugateGradientOptimizerCPU::Pointer  optimizer = AtlasMeshDeformationConjugateGradientOptimizerCPU::New();
     optimizer->SetMeshToImageTransform( transform );
     optimizer->SetImages( images );
     optimizer->SetMesh( mesh );
@@ -125,11 +125,11 @@ public:
     }
   
 protected:
-  GetConjugateGradientOptimizerGPU() {};
-  virtual ~GetConjugateGradientOptimizerGPU() {};
+  GetConjugateGradientOptimizerCPU() {};
+  virtual ~GetConjugateGradientOptimizerCPU() {};
 
 
-  GetConjugateGradientOptimizerGPU(const Self&); //purposely not implemented
+  GetConjugateGradientOptimizerCPU(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
 
 private:
