@@ -311,7 +311,11 @@ public:
   void RestoreFromBackup();
 
   bool GetLayerLabelCenter(double val, double* pos_out);
-
+  
+  bool IsWindowAdjustable();
+  
+  bool IsObscuring();
+  
 public slots:
   void SetActiveFrame( int nFrame );
   void SetActiveFrameOneBase( int nFrame )
