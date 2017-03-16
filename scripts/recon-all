@@ -4385,7 +4385,7 @@ if($DoCortRibbonVolMask) then
       |& tee -a $SF|& tee -a $LF|& tee -a $CF
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mris_volmask $XOptsFile $GlobXOptsFile`;
-  set cmd = (mris_volmask \
+  set cmd = (mris_volmask $xopts \
     --aseg_name aseg.presurf \
     --label_left_white   2 --label_left_ribbon   3 \
     --label_right_white 41 --label_right_ribbon 42 \
@@ -4653,7 +4653,8 @@ if($DoRelabelHypos) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
-  set cmd = (mri_relabel_hypointensities \
+  set xopts = `fsr-getxopts mri_relabel_hypointensities $XOptsFile $GlobXOptsFile`;
+  set cmd = (mri_relabel_hypointensities $xopts \
     aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
