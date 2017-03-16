@@ -12,10 +12,6 @@ in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 
 https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
 
-For instructions on how to obtain and build the source code, see:
-
-https://surfer.nmr.mgh.harvard.edu/fswiki/DevelopersGuide
-
 FreeSurfer documentation is found online at:
 
 http://surfer.nmr.mgh.harvard.edu/fswiki
