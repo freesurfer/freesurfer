@@ -87,7 +87,7 @@ SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
-SET( runnerName "RasterizeAtlasMeshGPU" )
+SET( runnerName "RasterizeAtlasMeshCPU" )
 SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
@@ -148,7 +148,7 @@ SET( runnerNumberOfOutputs "2" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
-SET( runnerName "DeformOneStepGPU" )
+SET( runnerName "DeformOneStepCPU" )
 SET( runnerNumberOfOutputs "2" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
@@ -158,7 +158,7 @@ SET( runnerNumberOfOutputs "0" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
-SET( runnerName "SetOptimizerPropertiesGPU" )
+SET( runnerName "SetOptimizerPropertiesCPU" )
 SET( runnerNumberOfOutputs "0" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
@@ -238,7 +238,7 @@ SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
-SET( runnerName "GetConjugateGradientOptimizerGPU" )
+SET( runnerName "GetConjugateGradientOptimizerCPU" )
 SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
