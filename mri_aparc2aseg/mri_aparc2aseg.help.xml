@@ -72,6 +72,8 @@ Note: The volumes of the cortical labels will be different than reported by mris
       <explanation>Change default (10) number of surface normal smoothing steps. This is used to prevent speckling of inaccurate voxels due (e.g.) the closest pial vertex being on the opposite bank of a sulcus.</explanation>
       <argument>--crs-test c r s</argument>
       <explanation>test mapping of col row slice</explanation>
+      <argument>--lh, --rh</argument>
+      <explanation>only process the given hemisphere</explanation>
     </optional-flagged>
   </arguments>
   <outputs>
