@@ -1358,13 +1358,6 @@ SurfaceOverlay* LayerSurface::GetOverlay( int n )
   }
 }
 
-/*
-void LayerSurface::CopyCorrelationOverlay(SurfaceOverlay* overlay)
-{
-
-}
-*/
-
 void LayerSurface::UpdateCorrelationOverlayAtVertex( int nVertex )
 {
   SurfaceOverlay* overlay = GetOverlay( m_nActiveOverlay );
@@ -2272,4 +2265,20 @@ int LayerSurface::GetContralateralVertex(int nvo)
     return nvo;
   }
   return nvo;
+}
+
+bool LayerSurface::IsContralateralPossible()
+{
+  if (IsContralateralReady())
+    return true;
+
+  QString fn = GetFileName();
+  QString fullpath = QFileInfo(fn).absolutePath();
+  if (GetHemisphere() == 0)
+    fn.replace("lh.", "rh.");
+  else
+    fn.replace("rh.", "lh.");
+
+  return QFile::exists(fn) && QFile::exists(fullpath + "/lh.sphere.d1.left_right") &&
+      QFile::exists(fullpath + "/rh.sphere.d1.left_right");
 }

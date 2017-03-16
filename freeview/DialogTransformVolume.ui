@@ -13,7 +13,7 @@
   <property name="windowTitle">
    <string>Transform Volume</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,0,0">
+  <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,0,0,0">
    <property name="spacing">
     <number>8</number>
    </property>
@@ -1320,6 +1320,30 @@
     </widget>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_6">
+     <item>
+      <widget class="QCheckBox" name="checkBoxApplyToAll">
+       <property name="text">
+        <string>Apply to all visible volumes</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_13">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QPushButton" name="pushButtonRestore">
@@ -1403,8 +1427,8 @@
      <y>144</y>
     </hint>
     <hint type="destinationlabel">
-     <x>137</x>
-     <y>150</y>
+     <x>130</x>
+     <y>154</y>
     </hint>
    </hints>
   </connection>
@@ -1419,8 +1443,8 @@
      <y>144</y>
     </hint>
     <hint type="destinationlabel">
-     <x>434</x>
-     <y>150</y>
+     <x>430</x>
+     <y>154</y>
     </hint>
    </hints>
   </connection>
@@ -1435,8 +1459,8 @@
      <y>144</y>
     </hint>
     <hint type="destinationlabel">
-     <x>492</x>
-     <y>150</y>
+     <x>488</x>
+     <y>154</y>
     </hint>
    </hints>
   </connection>
@@ -1467,8 +1491,8 @@
      <y>113</y>
     </hint>
     <hint type="destinationlabel">
-     <x>434</x>
-     <y>119</y>
+     <x>430</x>
+     <y>125</y>
     </hint>
    </hints>
   </connection>
@@ -1483,8 +1507,8 @@
      <y>113</y>
     </hint>
     <hint type="destinationlabel">
-     <x>492</x>
-     <y>119</y>
+     <x>488</x>
+     <y>125</y>
     </hint>
    </hints>
   </connection>
@@ -1499,8 +1523,8 @@
      <y>175</y>
     </hint>
     <hint type="destinationlabel">
-     <x>137</x>
-     <y>181</y>
+     <x>130</x>
+     <y>183</y>
     </hint>
    </hints>
   </connection>
@@ -1515,8 +1539,8 @@
      <y>175</y>
     </hint>
     <hint type="destinationlabel">
-     <x>434</x>
-     <y>181</y>
+     <x>430</x>
+     <y>183</y>
     </hint>
    </hints>
   </connection>
@@ -1531,8 +1555,8 @@
      <y>175</y>
     </hint>
     <hint type="destinationlabel">
-     <x>492</x>
-     <y>181</y>
+     <x>488</x>
+     <y>183</y>
     </hint>
    </hints>
   </connection>
@@ -1544,7 +1568,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>99</x>
-     <y>553</y>
+     <y>521</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1607,8 +1631,8 @@
    <slot>OnScrollBarTranslateY(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>118</x>
-     <y>77</y>
+     <x>177</x>
+     <y>91</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1623,8 +1647,8 @@
    <slot>OnScrollBarTranslateZ(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>177</x>
-     <y>122</y>
+     <x>236</x>
+     <y>120</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1639,8 +1663,8 @@
    <slot>OnLineEditTranslateX(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>502</x>
-     <y>65</y>
+     <x>499</x>
+     <y>67</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1655,7 +1679,7 @@
    <slot>OnLineEditTranslateY(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>502</x>
+     <x>499</x>
      <y>96</y>
     </hint>
     <hint type="destinationlabel">
@@ -1671,8 +1695,8 @@
    <slot>OnLineEditTranslateZ(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>502</x>
-     <y>127</y>
+     <x>499</x>
+     <y>125</y>
     </hint>
     <hint type="destinationlabel">
      <x>432</x>
@@ -1719,8 +1743,8 @@
    <slot>OnScrollBarScaleZ(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>129</x>
-     <y>122</y>
+     <x>188</x>
+     <y>120</y>
     </hint>
     <hint type="destinationlabel">
      <x>421</x>
@@ -1767,8 +1791,8 @@
    <slot>OnLineEditScaleZ(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>463</x>
-     <y>127</y>
+     <x>499</x>
+     <y>125</y>
     </hint>
     <hint type="destinationlabel">
      <x>416</x>
@@ -1848,7 +1872,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>141</x>
-     <y>412</y>
+     <y>402</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -1895,7 +1919,7 @@
    <slot>UpdateLandmarkColors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>198</x>
+     <x>197</x>
      <y>381</y>
     </hint>
     <hint type="destinationlabel">
@@ -1912,7 +1936,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>55</x>
-     <y>412</y>
+     <y>402</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1943,8 +1967,8 @@
    <slot>OnButtonLandmarkPick()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>284</x>
-     <y>412</y>
+     <x>283</x>
+     <y>402</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1959,8 +1983,8 @@
    <slot>UpdateLandmarkColors()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>198</x>
-     <y>412</y>
+     <x>197</x>
+     <y>402</y>
     </hint>
     <hint type="destinationlabel">
      <x>278</x>
@@ -1975,8 +1999,8 @@
    <slot>OnSampleMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>144</x>
-     <y>617</y>
+     <x>151</x>
+     <y>593</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -1991,8 +2015,8 @@
    <slot>OnSampleMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>231</x>
-     <y>621</y>
+     <x>230</x>
+     <y>593</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -2007,8 +2031,8 @@
    <slot>OnSampleMethodChanged()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>295</x>
-     <y>621</y>
+     <x>294</x>
+     <y>593</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -2023,8 +2047,8 @@
    <slot>OnLineEditRotateX(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>434</x>
-     <y>119</y>
+     <x>430</x>
+     <y>125</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -2039,8 +2063,8 @@
    <slot>OnLineEditRotateY(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>434</x>
-     <y>150</y>
+     <x>430</x>
+     <y>154</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -2055,8 +2079,8 @@
    <slot>OnLineEditRotateZ(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>434</x>
-     <y>181</y>
+     <x>430</x>
+     <y>183</y>
     </hint>
     <hint type="destinationlabel">
      <x>522</x>
@@ -2075,8 +2099,8 @@
      <y>59</y>
     </hint>
     <hint type="destinationlabel">
-     <x>74</x>
-     <y>546</y>
+     <x>85</x>
+     <y>521</y>
     </hint>
    </hints>
   </connection>
@@ -2192,6 +2216,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>checkBoxApplyToAll</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnCheckBoxApplyToAll(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>105</x>
+     <y>663</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>121</x>
+     <y>759</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnApply()</slot>
@@ -2223,5 +2263,6 @@
   <slot>OnLineEditRotateZ(QString)</slot>
   <slot>OnButtonCenterToCursor()</slot>
   <slot>OnCheckBoxFlip()</slot>
+  <slot>OnCheckBoxApplyToAll(bool)</slot>
  </slots>
 </ui>
