@@ -11,11 +11,8 @@
 #include "kvlSetAlphasInMeshNodes.h"
 #include "kvlSmoothMeshCollection.h"
 #include "kvlScaleMeshCollection.h"
-#include "kvlBiasFieldCorrectImage.h"
 #include "kvlWriteImage.h"
 #include "kvlCreateImage.h"
-#include "kvlDeformMesh.h"
-#include "kvlGetLevenbergMarquardtOptimizer.h"
 #include "kvlDeformOneStep.h"
 #include "kvlDeformOneStepCPU.h"
 #include "kvlSetOptimizerProperties.h"
@@ -66,11 +63,8 @@ MatlabRunnerArray
   m_Array.push_back( SetAlphasInMeshNodes::New().GetPointer() );
   m_Array.push_back( SmoothMeshCollection::New().GetPointer() );
   m_Array.push_back( ScaleMeshCollection::New().GetPointer() );
-  m_Array.push_back( BiasFieldCorrectImage::New().GetPointer() );
   m_Array.push_back( WriteImage::New().GetPointer() );
   m_Array.push_back( CreateImage::New().GetPointer() );
-  m_Array.push_back( DeformMesh::New().GetPointer() );
-  m_Array.push_back( GetLevenbergMarquardtOptimizer::New().GetPointer() );
   m_Array.push_back( DeformOneStep::New().GetPointer() );
   m_Array.push_back( DeformOneStepCPU::New().GetPointer() );
   m_Array.push_back( SetOptimizerProperties::New().GetPointer() );

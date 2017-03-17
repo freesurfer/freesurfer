@@ -243,19 +243,6 @@ public :
     return m_CollapsedMiniCollection;
   }
 
-#if 0
-  //
-  const AtlasMeshCollection*  GetSplittedMiniCollection() const
-  {
-    return m_SplittedMiniCollection;
-  }
-  //
-  const AtlasMeshCollection*  GetSwappedMiniCollection() const
-  {
-    return m_SwappedMiniCollection;
-  }
-#endif
-
   //
   float  GetRetainedCosts( float& retainedDataCost, float& retainedAlphasCost, float& retainedPositionCost ) const
   {
@@ -273,29 +260,6 @@ public :
     collapsedPositionCost = m_CollapsedPositionCost;
     return m_CollapsedCost;
   }
-
-#if 0
-  //
-  float  GetSplittedCosts( float& splittedDataCost, float& splittedAlphasCost, float& splittedPositionCost ) const
-  {
-    splittedDataCost = m_SplittedDataCost;
-    splittedAlphasCost = m_SplittedAlphasCost;
-    splittedPositionCost = m_SplittedPositionCost;
-    return m_SplittedCost;
-  }
-
-  //
-  float  GetSwappedCosts( float& swappedDataCost, float& swappedAlphasCost, float& swappedPositionCost ) const
-  {
-    swappedDataCost = m_SwappedDataCost;
-    swappedAlphasCost = m_SwappedAlphasCost;
-    swappedPositionCost = m_SwappedPositionCost;
-    return m_SwappedCost;
-  }
-
-  //
-  void  BuildWithPriorityQueue( AtlasMeshCollection* explicitStartCollection = 0 );
-#endif
 
   //
   void  Build( AtlasMeshCollection* explicitStartCollection = 0 );
@@ -325,34 +289,11 @@ protected :
 
   //
   AtlasMeshCollection::Pointer
-  TryToCollapse( const AtlasMeshCollection* innerMiniCollection,
-                 const AtlasMeshCollection* outerMiniCollection,
-                 AtlasMesh::CellIdentifier  edgeId,
-                 float& miniDataCost, float& miniAlphasCost, float& miniPositionCost,
-                 std::set< AtlasMesh::CellIdentifier >&  disappearingCells ) const;
-
-  //
-  AtlasMeshCollection::Pointer
   TryToCollapseFast( const AtlasMeshCollection* miniCollection,
                      AtlasMesh::CellIdentifier  edgeId,
                      float& miniDataCost, float& miniAlphasCost, float& miniPositionCost,
                      std::set< AtlasMesh::CellIdentifier >&  disappearingCells ) const;
 
-
-  //
-  AtlasMeshCollection::Pointer
-  TryToCollapse( const AtlasMeshCollection* innerMiniCollection,
-                 const AtlasMeshCollection* outerMiniCollection,
-                 AtlasMesh::CellIdentifier  edgeId,
-                 float& miniDataCost, float& miniAlphasCost, float& miniPositionCost) const
-  {
-    std::set< AtlasMesh::CellIdentifier >  disappearingCellsDummy;
-    return this->TryToCollapse( innerMiniCollection,
-                                outerMiniCollection,
-                                edgeId,
-                                miniDataCost, miniAlphasCost, miniPositionCost,
-                                disappearingCellsDummy );
-  }
 
   //
   AtlasMeshCollection::Pointer
@@ -374,13 +315,6 @@ protected :
                        std::set< AtlasMesh::CellIdentifier >*  disappearingCells,
                        AtlasMesh::CellIdentifier& unifiedVertexId ) const;
 
-  //
-  void  AnalyzeEdge( AtlasMesh::CellIdentifier edgeId );
-
-  //
-  bool  LoadBalancedAnalyzeEdge( std::set< AtlasMesh::CellIdentifier >&  edges,
-                                 std::map< AtlasMesh::PointIdentifier, int >&  pointOccupancies,
-                                 int threadId=0 );
 
   //
   bool  LoadBalancedAnalyzeEdgeFast( std::set< AtlasMesh::CellIdentifier >&  edges,
@@ -418,26 +352,6 @@ protected :
 
 
 
-#if 0
-  //
-  AtlasMeshCollection::Pointer
-  TryToSplit( const AtlasMeshCollection* meshCollection, AtlasMesh::CellIdentifier  edgeId,
-              float& dataGain, float& alphasGain, float& positionGain,
-              AtlasMeshCollection::Pointer& result ) const;
-
-  //
-  AtlasMeshCollection::Pointer
-  TryToSwap( const AtlasMeshCollection* meshCollection, AtlasMesh::CellIdentifier  edgeId,
-             float& dataGain, float& alphasGain, float& positionGain,
-             AtlasMeshCollection::Pointer& result ) const;
-#endif
-
-  //
-  AtlasMeshCollection::Pointer
-  TryToRetain( const AtlasMeshCollection* innerMiniCollectionConst,
-               const AtlasMeshCollection* outerMiniCollectionConst,
-               AtlasMesh::CellIdentifier  edgeId,
-               float& miniDataCost, float& miniAlphasCost, float& miniPositionCost );
   //
   AtlasMeshCollection::Pointer
   TryToRetainFast( const AtlasMeshCollection* miniCollectionConst,
@@ -451,17 +365,8 @@ protected :
 
 
   //
-  bool  OptimizeReferencePosition( AtlasMeshCollection* meshCollection,
-                                   AtlasMesh::CellIdentifier  vertexId, bool optimize = true ) const;
-
-  //
   bool  OptimizeReferencePositionFast( AtlasMeshCollection* meshCollection,
                                        AtlasMesh::CellIdentifier  vertexId, bool optimize = true ) const;
-
-#if 0
-  //
-  AtlasMeshCollection::ConstPointer  OptimizeForK( const AtlasMeshCollection*  initialMeshCollection ) const;
-#endif
 
   //
   std::vector< AtlasMesh::CellIdentifier >   Permutate(  const std::vector< AtlasMesh::CellIdentifier >&  edgeList ) const;
@@ -483,19 +388,6 @@ protected :
   /** Static function used as a "callback" by the MultiThreader.  The threading
    * library will call this routine for each thread, which will delegate the
    * control to ThreadedGenerateData(). */
-  static ITK_THREAD_RETURN_TYPE ThreaderCallback( void *arg );
-
-  /** Internal structure used for passing image data into the threading library */
-  struct ThreadStruct
-  {
-    Pointer  m_Builder;
-    std::vector< AtlasMesh::CellIdentifier >  m_EdgesToTry;
-  };
-
-
-  /** Static function used as a "callback" by the MultiThreader.  The threading
-   * library will call this routine for each thread, which will delegate the
-   * control to ThreadedGenerateData(). */
   static ITK_THREAD_RETURN_TYPE LoadBalancedThreaderCallback( void *arg );
 
   /** Internal structure used for passing image data into the threading library */
@@ -508,33 +400,6 @@ protected :
   };
 
 
-  /** Static function used as a "callback" by the MultiThreader.  The threading
-   * library will call this routine for each thread, which will delegate the
-   * control to ThreadedGenerateData(). */
-  static ITK_THREAD_RETURN_TYPE FastThreaderCallback( void *arg );
-
-  /** Internal structure used for passing image data into the threading library */
-  struct FastThreadStructItem
-  {
-    // Input
-    std::vector< AtlasMeshCollection::ConstPointer >  m_MiniCollections;
-    std::vector< AtlasMesh::CellIdentifier >  m_EdgeIds;
-    std::vector< AtlasMesh::PointIdentifier >  m_EdgePoint0Ids;
-    std::vector< AtlasMesh::PointIdentifier >  m_EdgePoint1Ids;
-
-    // Output
-    std::map< AtlasMesh::PointIdentifier, AtlasMesh::PointIdentifier >   m_DisappearingPointsLookupTable;
-    AtlasMesh::PointsContainer::Pointer   m_NewReferencePosition;
-    std::vector< AtlasMesh::PointsContainer::Pointer >   m_NewPositions;
-    AtlasMesh::PointDataContainer::Pointer  m_NewPointParameters;
-    std::set< AtlasMesh::CellIdentifier >   m_DisappearingCells;
-  };
-
-  struct FastThreadStruct
-  {
-    Pointer  m_Builder;
-    FastThreadStructItem  m_Items[ ITK_MAX_THREADS ];
-  };
 
 private :
   AtlasMeshBuilder(const Self&); //purposely not implemented
@@ -567,10 +432,6 @@ private :
 
   AtlasMeshCollection::Pointer  m_RetainedMiniCollection;
   AtlasMeshCollection::Pointer  m_CollapsedMiniCollection;
-#if 0
-  AtlasMeshCollection::Pointer  m_SplittedMiniCollection;
-  AtlasMeshCollection::Pointer  m_SwappedMiniCollection;
-#endif
 
   float  m_RetainedCost;
   float  m_RetainedDataCost;
@@ -581,171 +442,6 @@ private :
   float  m_CollapsedDataCost;
   float  m_CollapsedAlphasCost;
   float  m_CollapsedPositionCost;
-
-#if 0
-  float  m_SplittedCost;
-  float  m_SplittedDataCost;
-  float  m_SplittedAlphasCost;
-  float  m_SplittedPositionCost;
-
-  float  m_SwappedCost;
-  float  m_SwappedDataCost;
-  float  m_SwappedAlphasCost;
-  float  m_SwappedPositionCost;
-#endif
-
-
-#if 0
-  // Stuff related to the gains container
-  struct GainContainerElement
-  {
-    AtlasMesh::CellIdentifier  m_EdgeId;
-    float  m_DataGain;
-    float  m_AlphasGain;
-    float  m_PositionGain;
-
-    GainContainerElement( AtlasMesh::CellIdentifier  edgeId,
-                          float dataGain,
-                          float alphasGain,
-                          float positionGain ) :
-      m_EdgeId( edgeId ),
-      m_DataGain( dataGain ),
-      m_AlphasGain( alphasGain ),
-      m_PositionGain( positionGain ) {}
-
-    ~GainContainerElement() {}
-
-  };
-
-  //
-  struct GainContainerComparer
-  {
-    bool operator()( const GainContainerElement& element1, const GainContainerElement& element2 ) const
-    {
-      float  totalGain1 = element1.m_DataGain + element1.m_AlphasGain + element1.m_PositionGain;
-      float  totalGain2 = element2.m_DataGain + element2.m_AlphasGain + element2.m_PositionGain;
-      if ( totalGain1 == totalGain2 )
-      {
-        return element1.m_EdgeId > element2.m_EdgeId;
-      }
-      else
-      {
-        return totalGain1 > totalGain2;
-      }
-    }
-
-  };
-
-
-  //
-  class GainContainer : public std::set< GainContainerElement, GainContainerComparer >
-  {
-  private :
-    //
-    struct EdgeIdIs
-    {
-      inline bool operator()( const GainContainerElement& element )
-      {
-        return element.m_EdgeId == m_EdgeId;
-      }
-
-      EdgeIdIs( AtlasMesh::CellIdentifier edgeId ) : m_EdgeId( edgeId )
-      {
-      }
-
-      AtlasMesh::CellIdentifier  m_EdgeId;
-
-    };
-
-
-  public :
-    //
-    bool Erase( AtlasMesh::CellIdentifier edgeId )
-    {
-      GainContainer::iterator pos = std::find_if( this->begin(), this->end(), EdgeIdIs( edgeId ) );
-      if ( pos != this->end() )
-      {
-        this->erase( pos );
-        return true;
-      }
-      else
-      {
-        return false;
-      }
-
-    }
-
-    //
-    void SetGain( AtlasMesh::CellIdentifier edgeId, float dataGain, float alphasGain, float positionGain )
-    {
-      // Make sure no element exists corresponding to the edge
-      this->Erase( edgeId );
-
-      //
-      this->insert( GainContainerElement( edgeId, dataGain, alphasGain, positionGain ) );
-    }
-
-    //
-    bool GetGain( AtlasMesh::CellIdentifier edgeId, float& dataGain, float& alphasGain, float& positionGain )
-    {
-      GainContainer::iterator pos = std::find_if( this->begin(), this->end(), EdgeIdIs( edgeId ) );
-      if ( pos != this->end() )
-      {
-        dataGain = ( *pos ).m_DataGain;
-        alphasGain = ( *pos ).m_AlphasGain;
-        positionGain = ( *pos ).m_PositionGain;
-
-        return true;
-      }
-      else
-      {
-        return false;
-      }
-
-    }
-
-    //
-    void Print( std::ostream& os ) const
-    {
-      os << "Gain Container: " << std::endl;
-
-      GainContainer::const_iterator  gainIt = this->begin();
-      while ( gainIt != this->end() )
-      {
-        os << "    edge id: " << ( *gainIt ).m_EdgeId
-           << ", total gain: " << ( *gainIt ).m_DataGain +
-           ( *gainIt ).m_AlphasGain +
-           ( *gainIt ).m_PositionGain
-           << "  (dataGain: " << ( *gainIt ).m_DataGain
-           << ", alphasGain: " << ( *gainIt ).m_AlphasGain
-           << ", positionGain: " << ( *gainIt ).m_PositionGain
-           << ")" << std::endl;
-
-        ++gainIt;
-      }
-      os << std::endl;
-
-    }
-
-    //
-    AtlasMesh::CellIdentifier  GetBestEdge() const
-    {
-      if ( this->empty() )
-      {
-        return 0;
-      }
-
-      return ( *( this->begin() ) ).m_EdgeId;
-    }
-
-
-  };
-
-  //
-  GainContainer  m_Gains;
-
-#endif
-
 
   // Useful class for permutating edge list
   class EdgeElement

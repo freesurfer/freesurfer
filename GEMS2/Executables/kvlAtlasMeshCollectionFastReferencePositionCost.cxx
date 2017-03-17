@@ -24,7 +24,6 @@ AtlasMeshCollectionFastReferencePositionCost
   {
     case CONJUGATE_GRADIENT: m_Estimator->SetModeCJ(); break;
     case GRADIENT_DESCENT: m_Estimator->SetModeGD(); break;
-    case LEVENBERG_MARQUARDT: m_Estimator->SetModeLM(); break;
     default: break;
   }
   

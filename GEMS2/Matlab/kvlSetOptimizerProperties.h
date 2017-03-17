@@ -1,8 +1,6 @@
 #include "kvlMatlabRunner.h" 
 #include "kvlMatlabObjectArray.h"
 #include "kvlAtlasMesh.h"
-#include "kvlAtlasMeshSegmenter.h"
-#include "kvlCroppedImageReader.h"
 
 
 namespace kvl
@@ -106,21 +104,9 @@ public:
     itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( optimizerHandle );
     
     //std::cout<<"TypeId of object: "<<typeid(*object)<<std::endl;
-    //std::cout<<"TypeId of LM: "<<typeid(AtlasMeshDeformationLevenbergMarquardtOptimizer)<<std::endl;
     //std::cout<<"TypeId of CG: "<<typeid(AtlasMeshDeformationConjugateGradientOptimizer)<<std::endl;
     //std::cout<<"TypeId of CGMulti: "<<typeid(AtlasMeshDeformationConjugateGradientOptimizerMultiAtlas)<<std::endl;
-    if ( typeid( *object ) == typeid( AtlasMeshDeformationLevenbergMarquardtOptimizer ) )
-      {
-      AtlasMeshDeformationLevenbergMarquardtOptimizer::ConstPointer constOptimizer 
-          = static_cast< const AtlasMeshDeformationLevenbergMarquardtOptimizer* >( object.GetPointer() );
-      AtlasMeshDeformationLevenbergMarquardtOptimizer::Pointer  optimizer 
-          = const_cast< AtlasMeshDeformationLevenbergMarquardtOptimizer* >( constOptimizer.GetPointer() );
-        
-      // Set the means and variances
-      optimizer->SetMeans( means );
-      optimizer->SetPrecisions( precisions );
-      }
-    else if ( typeid( *object ) == typeid( AtlasMeshDeformationConjugateGradientOptimizer ) )
+    if ( typeid( *object ) == typeid( AtlasMeshDeformationConjugateGradientOptimizer ) )
       {
       AtlasMeshDeformationConjugateGradientOptimizer::ConstPointer constOptimizer 
           = static_cast< const AtlasMeshDeformationConjugateGradientOptimizer* >( object.GetPointer() );
