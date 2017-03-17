@@ -92,11 +92,12 @@ BOOST_AUTO_TEST_CASE( OriginOnly )
   MeshSource::Pointer meshSource = MeshSource::New();
 
   // Define tetrahedron enclosing origin and (0,0,1), (0,1,0) and (1,0,0)
-  const float delta = 0.5f;
+  const float delta = 0.1f;
+  BOOST_REQUIRE( delta < 0.5f );
   const float  p0[] = { -delta, -delta, -delta };
-  const float  p1[] = { 1+delta,- delta, -delta };
-  const float  p2[] = { -delta, 1+delta, -delta };
-  const float  p3[] = { -delta, -delta, 1+delta };
+  const float  p1[] = { 1+(2*delta),- delta, -delta };
+  const float  p2[] = { -delta, 1+(2*delta), -delta };
+  const float  p3[] = { -delta, -delta, 1+(2*delta) };
   const IdentifierType  id0 = meshSource->AddPoint( p0 );
   const IdentifierType  id1 = meshSource->AddPoint( p1 );
   const IdentifierType  id2 = meshSource->AddPoint( p2 );
@@ -107,15 +108,15 @@ BOOST_AUTO_TEST_CASE( OriginOnly )
 
   BOOST_TEST_CHECKPOINT("Mesh created");
 
-  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
 
-  visitCounter.SetRegions( image->GetLargestPossibleRegion() );
-  visitCounter.VisitCount( mesh );
+  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
+  visitCounter->Rasterize( mesh );
 
   BOOST_TEST_CHECKPOINT("VisitCounter Complete");
 
   // Check points in tetrahedron
-  const ImageType* result = visitCounter.GetImage();
+  const ImageType* result = visitCounter->GetImage();
   for( int k=0; k<nz; k++ ) {
     for( int j=0; j<ny; j++ ) {
       for( int i=0; i<nx; i++ ) {
