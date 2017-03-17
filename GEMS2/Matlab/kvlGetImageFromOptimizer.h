@@ -54,18 +54,7 @@ public:
     //std::cout<<"TypeId of LM: "<<typeid(AtlasMeshDeformationLevenbergMarquardtOptimizer)<<std::endl;
     //std::cout<<"TypeId of CG: "<<typeid(AtlasMeshDeformationConjugateGradientOptimizer)<<std::endl;
     //std::cout<<"TypeId of CGMulti: "<<typeid(AtlasMeshDeformationConjugateGradientOptimizerMultiAtlas)<<std::endl;
-    if ( typeid( *object ) == typeid( AtlasMeshDeformationLevenbergMarquardtOptimizer ) )
-      {
-      AtlasMeshDeformationLevenbergMarquardtOptimizer::ConstPointer constOptimizer 
-          = static_cast< const AtlasMeshDeformationLevenbergMarquardtOptimizer* >( object.GetPointer() );
-      AtlasMeshDeformationLevenbergMarquardtOptimizer::Pointer  optimizer 
-          = const_cast< AtlasMeshDeformationLevenbergMarquardtOptimizer* >( constOptimizer.GetPointer() );
-        
-      // Get the image from optimizer
-      //itk::Object::ConstPointer imageObject = optimizer->GetImage(imageNumber);
-      image = optimizer->GetImage(imageNumber);
-      }
-    else if ( typeid( *object ) == typeid( AtlasMeshDeformationConjugateGradientOptimizer ) )
+    if ( typeid( *object ) == typeid( AtlasMeshDeformationConjugateGradientOptimizer ) )
       {
       AtlasMeshDeformationConjugateGradientOptimizer::ConstPointer constOptimizer 
           = static_cast< const AtlasMeshDeformationConjugateGradientOptimizer* >( object.GetPointer() );

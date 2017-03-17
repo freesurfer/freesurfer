@@ -2,7 +2,6 @@
 #include "kvlMatlabObjectArray.h"
 #include "kvlAtlasMesh.h"
 #include "kvlAtlasMeshDeformationConjugateGradientOptimizerCPU.h"
-#include "kvlCroppedImageReader.h"
 
 
 namespace kvl

@@ -50,7 +50,7 @@ AtlasParameterEstimator
     m_mapCompToComp[i]=v;
   }
   
-  m_DeformationOptimizer = 0;  // defaults to GD; you MUST use the methods SetModeXX to set to LM or CJ
+  m_DeformationOptimizer = 0;  // defaults to GD; you MUST use the methods SetModeXX to set to CJ
 
   m_NumberOfThreads = itk::MultiThreader::GetGlobalDefaultNumberOfThreads();
 
@@ -541,7 +541,7 @@ AtlasParameterEstimator
 
 
 
-  if (m_GD==false)   // if LM or CJ
+  if (m_GD==false)   // if CJ
   {
 
  // Let's check if we are expected to just stay put

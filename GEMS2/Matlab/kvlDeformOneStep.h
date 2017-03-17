@@ -2,7 +2,6 @@
 #include "kvlMatlabObjectArray.h"
 #include "kvlAtlasMesh.h"
 #include "kvlCroppedImageReader.h"
-#include "kvlAtlasMeshDeformationLevenbergMarquardtOptimizer.h"
 #include "kvlAtlasMeshDeformationConjugateGradientOptimizer.h"
 
 
@@ -46,18 +45,7 @@ public:
     double  minLogLikelihoodTimesPrior = 0.0;
     const int optimizerHandle = *( static_cast< int* >( mxGetData( prhs[ 0 ] ) ) );
     itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( optimizerHandle );
-    if ( typeid( *object ) == typeid( AtlasMeshDeformationLevenbergMarquardtOptimizer ) )
-      {
-      AtlasMeshDeformationLevenbergMarquardtOptimizer::ConstPointer constOptimizer 
-          = static_cast< const AtlasMeshDeformationLevenbergMarquardtOptimizer* >( object.GetPointer() );
-      AtlasMeshDeformationLevenbergMarquardtOptimizer::Pointer  optimizer 
-          = const_cast< AtlasMeshDeformationLevenbergMarquardtOptimizer* >( constOptimizer.GetPointer() );
-
-      // Let the beast go
-      maximalDeformation = optimizer->PerformOneSuccessfulStep();
-      minLogLikelihoodTimesPrior = optimizer->GetMinLogLikelihoodTimesPrior();
-      }
-    else if ( typeid( *object ) == typeid( AtlasMeshDeformationConjugateGradientOptimizer ) )
+    if ( typeid( *object ) == typeid( AtlasMeshDeformationConjugateGradientOptimizer ) )
       {
       AtlasMeshDeformationConjugateGradientOptimizer::ConstPointer constOptimizer 
           = static_cast< const AtlasMeshDeformationConjugateGradientOptimizer* >( object.GetPointer() );
