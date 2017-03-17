@@ -186,7 +186,6 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
     double* voxelSize = mainwnd->GetLayerCollection( "MRI" )->GetWorldVoxelSize();
     int nPlane = view->GetViewPlane();
     double dPixelPer = -0.25;
-
     double dPosDiff =  ( ( (int)( dPixelPer * ( posY - m_nDownPosY ) ) ) / dPixelPer -
                          ( (int)( dPixelPer * ( m_nMousePosY - m_nDownPosY ) ) ) / dPixelPer )
         * dPixelPer * voxelSize[nPlane];
@@ -211,15 +210,15 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
     }
     for ( int i = 0; i < layers.size(); i++ )
     {
-        LayerMRI* mri = ( LayerMRI*)layers[i];
-        if (mri->IsWindowAdjustable())
-		{
-			if (layer == NULL || layer == mri || mri->IsObscuring())
-			{
-				layer = mri;
-				break;
-			}
-		}
+      LayerMRI* mri = ( LayerMRI*)layers[i];
+      if (mri->IsWindowAdjustable())
+      {
+        if (layer == NULL || layer == mri || mri->IsObscuring())
+        {
+          layer = mri;
+          break;
+        }
+      }
     }
     if ( layer )
     {
