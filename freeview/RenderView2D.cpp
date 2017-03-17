@@ -361,24 +361,25 @@ void RenderView2D::StopSelection()
   QList<Layer*> layers = MainWindow::GetMainWindow()->GetSelectedLayers("MRI");
   if (layers.size() < 2)
   {
-	LayerMRI* sel_mri = (LayerMRI*)(layers.isEmpty() ? MainWindow::GetMainWindow()->GetActiveLayer("MRI") : layers[0]);
-	if (sel_mri && !sel_mri->IsWindowAdjustable())
-		sel_mri = NULL;
-	QList<Layer*> vols = MainWindow::GetMainWindow()->GetLayers("MRI");
-	for (int i = 0; i < vols.size(); i++)
-	{
-		LayerMRI* mri = (LayerMRI*)vols[i];
-		if (mri->IsWindowAdjustable())
-		{
-			if (sel_mri == NULL || sel_mri == mri || mri->IsObscuring())
-			{
-				layers.clear();
-				layers << mri;
-				break;
-			}
-		}
-	}
+    LayerMRI* sel_mri = (LayerMRI*)(layers.isEmpty() ? MainWindow::GetMainWindow()->GetActiveLayer("MRI") : layers[0]);
+    if (sel_mri && !sel_mri->IsWindowAdjustable())
+      sel_mri = NULL;
+    QList<Layer*> vols = MainWindow::GetMainWindow()->GetLayers("MRI");
+    for (int i = 0; i < vols.size(); i++)
+    {
+      LayerMRI* mri = (LayerMRI*)vols[i];
+      if (mri->IsWindowAdjustable())
+      {
+        if (sel_mri == NULL || sel_mri == mri || mri->IsObscuring())
+        {
+          layers.clear();
+          layers << mri;
+          break;
+        }
+      }
+    }
   }
+  
   for (int i = 0; i < layers.size(); i++)
   {
     LayerMRI* layer = qobject_cast<LayerMRI*>(layers[i]);
@@ -403,7 +404,6 @@ void RenderView2D::StopSelection()
           layer->GetProperty()->SetMinMaxGenericThreshold( range[0], range[1] );
           break;
         }
-        break;
       }
     }
   }

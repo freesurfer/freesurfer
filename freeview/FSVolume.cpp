@@ -2018,6 +2018,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   if ( !scalars->Allocate( cValues ) )
   {
     cerr << "Could not allocate scalars array.\n";
+    scalars->Delete();
     return false;
   }
   scalars->SetNumberOfTuples( zX*zY*zZ );

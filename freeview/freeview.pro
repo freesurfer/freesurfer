@@ -416,6 +416,9 @@ QMAKE_CXXFLAGS += -I/usr/pubsw/packages/itk/current/include/InsightToolkit \
     -I/usr/pubsw/packages/vxl/current/include/vxl/v3p/netlib/opt \
     -I/usr/pubsw/packages/petsc/current/include
 
+CONFIG(debug, debug|release) {
+    QMAKE_CXXFLAGS += -g -O0
+}
 
 LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     -lX11 -lXext -lXt -lSM -lICE -lGLU -lm -ldl \
