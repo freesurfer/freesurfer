@@ -60,9 +60,9 @@ BOOST_AUTO_TEST_CASE( OriginOnly )
   ImageType::IndexType start;
   ImageType::SizeType size;
   start[0] = start[1] = start[2] = 0;
-  size[0] = nx-1;
-  size[1] = ny-1;
-  size[2] = nz-1;
+  size[0] = nx;
+  size[1] = ny;
+  size[2] = nz;
 
   region.SetSize(size);
   region.SetIndex(start);
