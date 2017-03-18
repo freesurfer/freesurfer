@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_SUITE( AtlasMeshVisitCounter )
 
 BOOST_AUTO_TEST_SUITE( UnitCubeSingleTetrahedron )
 
-BOOST_AUTO_TEST_CASE( OriginOnly )
+BOOST_AUTO_TEST_CASE( LowerCorner )
 {
   const int nx = 2;
   const int ny = 2;
