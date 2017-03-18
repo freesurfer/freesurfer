@@ -4,7 +4,9 @@
 
 gunzip -c testdata.tar.gz | tar xvf -
 
-set threads=( 8 )
+echo "============================"
+
+set threads=( 1 2 4 8 )
 
 foreach num ($threads)
     
@@ -13,7 +15,11 @@ foreach num ($threads)
 
     time ./run_one.tcsh
 
+    echo "-- -- -- --"
+
     time ./run_two.tcsh
+
+    echo "============================"
 end
 
 
