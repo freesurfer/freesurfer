@@ -4,6 +4,9 @@
 
 gunzip -c testdata.tar.gz | tar xvf -
 
+# Set up performance monitors (comment out to turn off)
+setenv PERF "perf stat -B -e cache-references,cache-misses,faults,migrations,dTLB-loads,dTLB-load-misses"
+
 echo "============================"
 
 set threads=( 1 2 4 8 )

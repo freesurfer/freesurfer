@@ -4,7 +4,7 @@ cd testdata
 
 echo "Running single mri_em_register"
 
-../mri_em_register \
+$PERF ../mri_em_register \
         -uns 3 \
         -mask brainmask.mgz \
         nu.mgz \
