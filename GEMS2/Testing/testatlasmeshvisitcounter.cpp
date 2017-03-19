@@ -260,6 +260,259 @@ BOOST_AUTO_TEST_CASE(XAxisOnly)
   }
 }
 
+BOOST_AUTO_TEST_CASE(FarCornerOnly)
+{
+  const int imageSize = 2;
+  const int nx = imageSize;
+  const int ny = imageSize;
+  const int nz = imageSize;
+
+  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
+  BOOST_TEST_CHECKPOINT("Image created");
+
+  // Define tetrahedron enclosing (1,1,1)
+  const float delta = 0.1f;
+  BOOST_REQUIRE( delta < 0.5f );
+  float verts[nVertices][nDims] = {
+    { 1-delta, 1-delta, 1-delta },
+    { 1+delta, 1, 1 },
+    { 1, 1+delta, 1 },
+    { 1, 1, 1+delta }
+  };
+
+  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
+  BOOST_TEST_CHECKPOINT("Mesh created");
+
+  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
+
+  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
+  visitCounter->Rasterize( mesh );
+
+  BOOST_TEST_CHECKPOINT("VisitCounter Complete");
+
+  // Check points in tetrahedron
+  const ImageType* result = visitCounter->GetImage();
+  for( int k=0; k<nz; k++ ) {
+    for( int j=0; j<ny; j++ ) {
+      for( int i=0; i<nx; i++ ) {
+	ImageType::IndexType idx;
+	idx[0] = i;
+	idx[1] = j;
+	idx[2] = k;
+
+	int expected = 0;
+	if( i+j+k == 3 ) {
+	  expected = 1;
+	}
+
+	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
+	BOOST_CHECK_EQUAL( result->GetPixel(idx), expected );
+      }
+    }
+  }
+}
+
+
+BOOST_AUTO_TEST_CASE(UpperCorner)
+{
+  const int imageSize = 2;
+  const int nx = imageSize;
+  const int ny = imageSize;
+  const int nz = imageSize;
+
+  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
+  BOOST_TEST_CHECKPOINT("Image created");
+
+  // Define tetrahedron enclosing (0,1,1), (1,0,1), (1,1,0) and (1,1,1)
+  const float delta = 0.1f;
+  BOOST_REQUIRE( delta < 0.5f );
+  float verts[nVertices][nDims] = {
+    { 1+delta, 1+delta, 1+delta },
+    { -delta, 1, 1 },
+    { 1, -delta, 1 },
+    { 1, 1, -delta }
+  };
+
+  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
+  BOOST_TEST_CHECKPOINT("Mesh created");
+
+  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
+
+  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
+  visitCounter->Rasterize( mesh );
+
+  BOOST_TEST_CHECKPOINT("VisitCounter Complete");
+
+  // Check points in tetrahedron
+  const ImageType* result = visitCounter->GetImage();
+  for( int k=0; k<nz; k++ ) {
+    for( int j=0; j<ny; j++ ) {
+      for( int i=0; i<nx; i++ ) {
+	ImageType::IndexType idx;
+	idx[0] = i;
+	idx[1] = j;
+	idx[2] = k;
+
+	int expected = 0;
+	if( i+j+k >= 2 ) {
+	  expected = 1;
+	}
+
+	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
+	BOOST_CHECK_EQUAL( result->GetPixel(idx), expected );
+      }
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(NoVertices)
+{
+  const int imageSize = 2;
+  const int nx = imageSize;
+  const int ny = imageSize;
+  const int nz = imageSize;
+
+  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
+  BOOST_TEST_CHECKPOINT("Image created");
+
+  // Define tetrahedron in middle of cube enclosing no vertices
+  const float delta = 0.1f;
+  BOOST_REQUIRE( delta < 0.5f );
+  float verts[nVertices][nDims] = {
+    { 0.5f+delta, 0.5f+delta, 0.5f+delta },
+    { 0.5f-delta, 0.5f, 0.5f },
+    { 0.5f, 0.5f-delta, 0.5f },
+    { 0.5f, 0.5f, -delta }
+  };
+
+  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
+  BOOST_TEST_CHECKPOINT("Mesh created");
+
+  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
+
+  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
+  visitCounter->Rasterize( mesh );
+
+  BOOST_TEST_CHECKPOINT("VisitCounter Complete");
+
+  // Check points in tetrahedron
+  const ImageType* result = visitCounter->GetImage();
+  for( int k=0; k<nz; k++ ) {
+    for( int j=0; j<ny; j++ ) {
+      for( int i=0; i<nx; i++ ) {
+	ImageType::IndexType idx;
+	idx[0] = i;
+	idx[1] = j;
+	idx[2] = k;
+
+	int expected = 0;
+
+	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
+	BOOST_CHECK_EQUAL( result->GetPixel(idx), expected );
+      }
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(LowerCornerExact)
+{
+  const int imageSize = 2;
+  const int nx = imageSize;
+  const int ny = imageSize;
+  const int nz = imageSize;
+
+  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
+  BOOST_TEST_CHECKPOINT("Image created");
+
+  // Define tetrahedron in on exactly (0,0,0), (1,0,0), (0,1,0) and (0,0,1)
+  // This is to go after some of the edge cases
+  float verts[nVertices][nDims] = {
+    { 0, 0, 0 },
+    { 1, 0, 0 },
+    { 0, 1, 0 },
+    { 0, 0, 1 }
+  };
+
+  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
+  BOOST_TEST_CHECKPOINT("Mesh created");
+
+  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
+
+  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
+  visitCounter->Rasterize( mesh );
+
+  BOOST_TEST_CHECKPOINT("VisitCounter Complete");
+
+  // Check points in tetrahedron
+  const ImageType* result = visitCounter->GetImage();
+  for( int k=0; k<nz; k++ ) {
+    for( int j=0; j<ny; j++ ) {
+      for( int i=0; i<nx; i++ ) {
+	ImageType::IndexType idx;
+	idx[0] = i;
+	idx[1] = j;
+	idx[2] = k;
+
+	int expected = 0;
+	if( i+j+k == 0 ) {
+	  expected = 1;
+	}
+
+	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
+	BOOST_CHECK_EQUAL( result->GetPixel(idx), expected );
+      }
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(UpperCornerExact)
+{
+  const int imageSize = 2;
+  const int nx = imageSize;
+  const int ny = imageSize;
+  const int nz = imageSize;
+
+  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
+  BOOST_TEST_CHECKPOINT("Image created");
+
+  // Define tetrahedron in on exactly (1,1,1), (0,1,1), (1,0,1) and (1,1,0)
+  // This is to go after some of the edge cases
+  float verts[nVertices][nDims] = {
+    { 1, 1, 1 },
+    { 0, 1, 1 },
+    { 1, 0, 1 },
+    { 1, 1, 0 }
+  };
+
+  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
+  BOOST_TEST_CHECKPOINT("Mesh created");
+
+  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
+
+  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
+  visitCounter->Rasterize( mesh );
+
+  BOOST_TEST_CHECKPOINT("VisitCounter Complete");
+
+  // Check points in tetrahedron
+  const ImageType* result = visitCounter->GetImage();
+  for( int k=0; k<nz; k++ ) {
+    for( int j=0; j<ny; j++ ) {
+      for( int i=0; i<nx; i++ ) {
+	ImageType::IndexType idx;
+	idx[0] = i;
+	idx[1] = j;
+	idx[2] = k;
+
+	int expected = 0;
+
+	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
+	BOOST_CHECK_EQUAL( result->GetPixel(idx), expected );
+      }
+    }
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 
 // --
