@@ -171,9 +171,9 @@ BOOST_AUTO_TEST_CASE(OriginOnly)
   BOOST_REQUIRE( delta < 0.5f );
   float verts[nVertices][nDims] = {
     { -delta, -delta, -delta },
-    { 2*delta, -delta, -delta },
-    { -delta, 2*delta, -delta },
-    { -delta, -delta, 2*delta }
+    { delta, 0, 0 },
+    { 0, delta, 0 },
+    { 0, 0, delta }
   };
 
   Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
