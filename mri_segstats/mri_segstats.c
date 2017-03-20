@@ -1518,6 +1518,9 @@ static int parse_commandline(int argc, char **argv)
     {
       DoSurfWMVol = 1;
     }
+    else if ( !strcmp(option, "--no-global-stats") ){
+      DoSurfWMVol = DoSurfCtxVol = DoSupraTent = BrainVolFromSeg = DoSubCortGrayVol = DoTotalGrayVol = DoEuler = 0 ;
+    }
     else if ( !strcmp(option, "--euler") )
     {
       DoEuler = 1;
