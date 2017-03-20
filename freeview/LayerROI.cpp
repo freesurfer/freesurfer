@@ -405,7 +405,7 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
   double* origin = m_imageData->GetOrigin();
   double vs[3];
   m_imageData->GetSpacing( vs );
-  unsigned char* ptr = (unsigned char*)m_imageData->GetScalarPointer();
+  float* ptr = (float*)m_imageData->GetScalarPointer();
 
   int cnt = 0;
   //  QList<int> indices;
@@ -416,7 +416,7 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
     {
       for ( int k = 0; k < dim[2]; k++ )
       {
-        if ( ptr[k*dim[0]*dim[1]+j*dim[0]+i] != 0 )
+        if ( ptr[k*dim[0]*dim[1]+j*dim[0]+i] > GetProperty()->GetThreshold() )
         {
           cnt++;
           //          indices << i << j << k;
