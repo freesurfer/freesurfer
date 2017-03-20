@@ -201,6 +201,7 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
                        Progname, fname)) ;
 
   area = LabelReadFrom(subject_name, fp) ;
+  strcpy(area->name, fname) ;
   fclose(fp) ;
   return(area) ;
 
@@ -3747,6 +3748,8 @@ LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coor
         }
       }
     }
+    if (min_vno == 0)
+      DiagBreak() ;
     if (min_vno == -1)
     {
       num_brute_force++ ;
@@ -3945,6 +3948,8 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
           min_vno = vno ;
         }
       }
+      if (min_vno == 0)
+	DiagBreak() ;
       if (min_vno >= 0)
 	lv->vno = min_vno ;
 
