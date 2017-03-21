@@ -409,6 +409,13 @@ def parseCommandLine(argv):
       subopts = getSubOptions(argv[idx:])
       idx += params.addVol(subopts, TYPE='ov')
 
+    # OPTION: load volume to register
+    elif key in ('-mov', '--mov'):
+      subopts = getSubOptions(argv[idx:])
+      name = "name=" + subopts[0] + "[mov]"
+      idx += params.addVol(subopts + [name])
+      params.fvoptions += " -transform-volume"
+
     # OPTION: load surface
     elif key in ('-f', '--surf'):
       idx += params.addSurf(argv[idx:])
@@ -497,7 +504,7 @@ opts     = ""
 
 # OPTION: load volume
 desc = """Load a volume file. Any sub-options available in freeview can
-be specified as additional arguments.\n
+be specified as additional arguments\n
 example: easyfv -v mri.mgz opacity=0.5 colormap=heat"""
 opts += addOpt(["-v", "--vol"], desc, subopt="<vol> <opts>...")
 
@@ -518,9 +525,15 @@ the volume. More options can be applied with additional
 arguments (see -v)"""
 opts += addOpt(["-ov", "--overlay"], desc, subopt="<vol> <opts>...")
 
+# OPTION: load volume to register
+desc = """Load a volume to register and display the transformation
+window on load"""
+opts += addOpt(["-mov", "--mov"], desc, subopt="<vol> <opts>...")
+
 # OPTION: load surface
-desc = """Load a surface file. Surface sub-options can be specified
-with the following additional arguments:"""
+desc = """Load a surface file. Any sub-options available in freeview can
+be specified as additional arguments\n
+example: easyfv -f lh.surf edgecolor=blue"""
 opts += addOpt(["-f", "--surf"], desc, subopt="<surf> <opts>...")
 
 # OPTION: load lh and rh, white and pial
