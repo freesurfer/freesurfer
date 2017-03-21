@@ -11,7 +11,7 @@ from distutils.spawn import find_executable
 
 
 # =========================================================================== #
-#                                    GLOBALS                                  #
+#                                     VARS                                    #
 # =========================================================================== #
 
 # terminal and output width:
@@ -19,10 +19,7 @@ TERMW = OUTW = int(os.popen("stty size", 'r').read().split()[1])
 if TERMW > 80: OUTW = 80  # output max width
 
 # output:
-if os.environ.get("EASYFV_VERBOSE") in ('off', 'false', '0'):
-  VERBOSE = False
-else:
-  VERBOSE = True
+VERBOSE = True
 
 HELPTEXT = None   # will be set programmatically
 TAB = '    '      # 4-space standard tab
@@ -58,16 +55,15 @@ class Vol:
     self.isSubjVol = False
     self.type = 'volume'
     self.file = None
-    self.cmap = None
-    self.opacity = None
-    self.reg = None
-    self.vis = True
-    self.params = parent            
+    self.path = None
+    self.params = parent
+    self.suboptions = []
+    self.optdict = {}
+    self.infomsg = {}
 
-  # ---------------- Vol.writeCMD --------------------- #
-  # checks if file is valid, prints volume info to the
-  # terminal, and returns the associated freeview cmd argument
-  def writeCMD(self):
+  # ---------------- Vol.getPath ---------------------- #
+  # sets up valid path to file
+  def getPath(self):
     # preliminary check: if file is not found in working dir, but found
     # in subject directory, use the subject volume
     if not os.path.isfile(self.file) and self.params.subj_name \
@@ -76,40 +72,45 @@ class Vol:
     # create file path for volume: 
     if self.isSubjVol:  # if subject vol, precede path with subject dir
       if self.params.subj_name:
-        path = os.path.join(self.params.subj_path, "mri", self.file)
+        self.path = os.path.join(self.params.subj_path, "mri", self.file)
       else:
         msg = "cannot load subject volume " + col(self.file, 'g') + \
               " because no subject was specified"
         errorExit(msg)
     else:
-      path = self.file
+      self.path = self.file
     # does path exist:
-    checkFile(path)
+    checkFile(self.path)
+
+  # ---------------- Vol.writeCMD --------------------- #
+  # checks if file is valid, prints volume info to the
+  # terminal, and returns the associated freeview cmd argument
+  def writeCMD(self):
+    # set up file path:
+    self.getPath()
     # create freeview command line argument for volume:
-    CMDarg = " " + path
-    info_msg = col(self.file, 'b')  # vol info for user
-    
-    # SUB-OPTIONS:
-
-    if self.cmap:  # colormap
-      if self.cmap in ('grayscale','lut','heat','jet','gecolor','nih','pet'):
-        CMDarg += ":colormap=" + self.cmap
-        info_msg += " | using " + col(self.cmap, 'g') + " colormap"
-
-    if self.opacity:  # opacity
-      CMDarg += ":opacity=" + self.opacity
-
-    if self.reg:  # registration
-      checkFile(self.reg)
-      CMDarg += ":reg=" + self.reg
-      info_msg += " | registered with " + col(self.reg, 'g')
-
-    if not self.vis:  # visibility
-      CMDarg += ":visible=false"
-
+    cmdarg = " " + self.path
+    # parse suboptions:
+    for option in self.suboptions:
+      fvsubopt = option.split("=")
+      if len(fvsubopt) == 2:
+        self.optdict[fvsubopt[0]] = fvsubopt[1]
+        # colormap
+        if fvsubopt[0] == "colormap":
+          self.infomsg["cmap"] = "using " + col(fvsubopt[1], 'g') + " colormap"
+        # registration
+        if fvsubopt[0] == "reg":
+          checkFile(self.fvsubopt[1])
+          self.infomsg["reg"] = "registered with " + col(self.reg, 'g')
+    # write suboptions:
+    for key in self.optdict:
+      cmdarg += ":" + key + "=" + self.optdict[key]
     # print volume info message for user:
-    self.params.printParam(self.type+'s', info_msg)
-    return CMDarg
+    info = col(self.file, 'b')
+    for key in self.infomsg:
+      info += " - " + self.infomsg[key]
+    self.params.printParam(self.type+'s', info)
+    return cmdarg
 
 
 # ================== SURF ============================= #
@@ -121,46 +122,55 @@ class Surf:
   def __init__(self, parent):
     self.isSubjSurf = False
     self.file = None
-    self.edgecolor = None
-    self.vis = True
+    self.path = None
     self.params = parent
+    self.suboptions = []
+    self.optdict = {}
+    self.infomsg = {}
 
-  # ---------------- Surf.writeCMD --------------------- #
-  # checks if file is valid, prints surface info to the
-  # terminal, and returns the associated freeview cmd argument
-  def writeCMD(self):
+  # ---------------- Surf.getPath --------------------- #
+  # sets up path to file
+  def getPath(self):
     # preliminary check: if file is not found in working dir, but found
-    # in subject directory, use the subject surface
+    # in subject directory, use the subject surf
     if not os.path.isfile(self.file) and self.params.subj_name \
     and os.path.isfile(self.params.subj_path + "/surf/" + self.file):
-      self.isSubjVol = True
-    # create file path for subject: 
-    if self.isSubjVol:  # if subject vol, precede path with subject dir
+      self.isSubjSurf = True
+    # create file path for surface:
+    if self.isSubjSurf:  # if subject surf, precede path with subject dir
       if self.params.subj_name:
-        path = os.path.join(self.params.subj_path, "surf", self.file)
+        self.path = os.path.join(self.params.subj_path, "surf", self.file)
       else:
         msg = "cannot load subject surface " + col(self.file, 'g') + \
               " because no subject was specified"
         errorExit(msg)
     else:
-      path = self.file
+      self.path = self.file
     # does path exist:
-    checkFile(path)
+    checkFile(self.path)
+
+  # ---------------- Surf.writeCMD --------------------- #
+  # checks if file is valid, prints surface info to the
+  # terminal, and returns the associated freeview cmd argument
+  def writeCMD(self):
+    # set up file path:
+    self.getPath()
     # create freeview command line argument for surface:
-    CMDarg = " " + path
-    info_msg = col(self.file, 'b')  # surf info for user
-    
-    # SUB-OPTIONS:
-
-    if self.edgecolor:  # edge color
-      CMDarg += ":edgecolor=" + self.edgecolor
-
-    if not self.vis:  # visibility
-      CMDarg += ":visible=false"
-
-    # print surface info message for user:
-    self.params.printParam("surfaces", info_msg)
-    return CMDarg
+    cmdarg = " " + self.path
+    # parse suboptions:
+    for option in self.suboptions:
+      fvsubopt = option.split("=")
+      if len(fvsubopt) == 2:
+        self.optdict[fvsubopt[0]] = fvsubopt[1]
+    # write suboptions:
+    for key in self.optdict:
+      cmdarg += ":" + key + "=" + self.optdict[key]
+    # print volume info message for user:
+    info = col(self.file, 'b')
+    for key in self.infomsg:
+      info += " - " + self.infomsg[key]
+    self.params.printParam("surfaces", info)
+    return cmdarg
 
 
 # ================== PARAMS =========================== #
@@ -177,6 +187,7 @@ class Params:
     self.nsurfs = 0
     self.vol_list = []
     self.surf_list = []
+    self.fvoptions = ""
     self.last_param = None
 
   # ---------------- Params.vols ---------------------- #
@@ -197,12 +208,12 @@ class Params:
     if not self.subjs_dir:
       errorExit("SUBJECTS_DIR is not set")
     elif not os.path.isdir(self.subjs_dir):
-      errorExit("SUBJECTS_DIR " + col(self.subjs_dir, "y") + " does not exist")
+      errorExit("SUBJECTS_DIR " + col(self.subjs_dir, "g") + " does not exist")
     self.subj_name = sname
     self.subj_path = os.path.join(self.subjs_dir, self.subj_name)
     if not os.path.isdir(self.subj_path):
-      msg = "subject " + col(self.subj_name, "y")
-      msg += " does not exist in SUBJECTS_DIR " + col(self.subjs_dir, "y")
+      msg = "subject " + col(self.subj_name, "g")
+      msg += " does not exist in SUBJECTS_DIR " + self.subjs_dir
       errorExit(msg)
 
   # ---------------- Params.addVol -------------------- #
@@ -211,45 +222,23 @@ class Params:
   # unrecognized option is reached
   def addVol(self, argv, SUBJVOL=False, TYPE="volume"):
     vol = Vol(self)
-    # set index to parse any optional arguments:
-    idx = 1  # ignore first arg if option flag
-    if not isOption(argv[0]):
-      idx = 0
-    elif len(argv) < 2 or isOption(argv[1]):
-      errorExit("must provide volume name after " + argv[0])
-    # set volume filename:
-    vol.file = argv[idx]
-    idx += 1
+    if len(argv) < 1:
+      errorExit("must provide volume file path after option flag")
+    vol.file = argv[0]  # set volume filename
     # set volume attributes:
     vol.isSubjVol = SUBJVOL
     vol.type = TYPE
-    # set default segmentation options:
-    if TYPE == 'seg':
-      vol.cmap = "lut"
-      vol.opacity = "0.2"
-    # set default overlay options:
+    # set default type options:
+    dopt = []
+    if TYPE == "seg":
+      dopt = ["colormap=lut", "opacity=0.2"]
     elif TYPE == 'overlay':
-      vol.cmap = "heat"
-    # parse any optional arguments:
-    while idx < len(argv): 
-      key = argv[idx]
-      if isOption(key):
-        break
-      elif isMatch(key, "reg:"):
-        vol.reg = stripKey(key, "reg:")
-      elif isMatch(key, "invis"):
-        vol.vis = False
-      elif isMatch(key, "cmap:"):
-        vol.cmap = stripKey(key, "cmap:")
-      elif isMatch(key, "opac:"):
-        vol.opacity = stripKey(key, "opac:")
-      else:
-        break
-      idx += 1
-    # add created volume to loading list:
+      dopt = ["colormap=heat", "opacity=0.8"]
+    # put default opts at front of list so they don't overwrite anything:
+    vol.suboptions = dopt + argv[1:]
     self.vol_list.append(vol)
     self.nvols += 1
-    return idx-1
+    return len(argv)
 
   # ---------------- Params.addSurf ------------------- #
   # creates a surface instance and adds it to surf_list.
@@ -257,33 +246,21 @@ class Params:
   # unrecognized option is reached
   def addSurf(self, argv, SUBJSURF=False):
     surf = Surf(self)
-    # set index to parse any optional arguments:
-    idx = 1  # ignore first arg if option flag
-    if not isOption(argv[0]):
-      idx = 0
-    elif len(argv) < 2 or isOption(argv[1]):
-      errorExit("must provide surface name after " + argv[0])
-    # set surface filename:
-    surf.file = argv[idx]
-    idx += 1
+    if len(argv) < 1:
+      errorExit("must provide surface file path after option flag")
+    surf.file = argv[0]  # set surface filename
     # set surface attributes:
-    surf.isSubjVol = SUBJSURF
-    # parse any optional arguments:
-    while idx < len(argv): 
-      key = argv[idx]
-      if isOption(key):
-        break
-      elif isMatch(key, "edgecolor:"):
-        surf.edgecolor = stripKey(key, "edgecolor:")
-      elif isMatch(key, "invis"):
-        surf.vis = False
-      else:
-        break
-      idx += 1
+    surf.isSubjSurf = SUBJSURF
+    # set default type options:
+    dopt = []
+    if surf.file.endswith("white"): dopt = ["edgecolor=white"]
+    elif surf.file.endswith("pial"): dopt = ["edgecolor=pink"]
+    # put default opts at front of list so they don't overwrite anything:
+    surf.suboptions = dopt + argv[1:]
     # add created surface to loading list:
     self.surf_list.append(surf)
     self.nsurfs += 1
-    return idx-1
+    return len(argv)
 
   # ---------------- Params.printParam ---------------- #
   # prints info for a parameter to summarize what is
@@ -305,6 +282,17 @@ class Params:
 # =========================================================================== #
 
 
+# ------------------ errorExit ------------------------ #
+def errorExit(msg):
+  print col("error:", "r*"), msg + '\n'
+  sys.exit(1)
+
+
+# ------------------ isOption -------------------------- #
+# returns true if input string begins with -
+def isOption(option): return option[0] == "-"
+
+
 # ------------------ checkFile ------------------------- #
 # exits with error if file doesn't exist
 def checkFile(fname):
@@ -314,128 +302,11 @@ def checkFile(fname):
   return
 
 
-# ------------------ isMatch --------------------------- #
-# returns true if input string begins with given pattern.
-# used to parse any additional options provided for
-# vols and surfs
-def isMatch(key, pattern):
-  return key[:len(pattern)] == pattern
-
-
 # ------------------ stripKey -------------------------- #
 # removes a given pattern from the beginning of a string.
 # used to parse any additional options provided for
 # vols and surfs
-def stripKey(key, pattern):
-  return key[len(pattern):]
-
-
-# ------------------ isOption -------------------------- #
-# returns true if input string begins with -
-def isOption(option):
-  return option[0] == "-"
-
-
-# ------------------ parseCommandLine ------------------ #
-# parses command line args and returns a Params object
-def parseCommandLine(argv):
-  params = Params()
-  idx = 0
-  while idx < len(argv):
-    key = argv[idx]
-
-    # ARGUMENT: the only argument provided should be the subject name
-    if not isOption(key) and not params.subj_name:
-      params.setSubject(key)
-
-    # OPTION: load volume
-    elif key in ('-v', '--vol'):
-      idx += params.addVol(argv[idx:])
-
-    # OPTION: load subject volume
-    elif key in ('-sv', '--subjvol'):
-      idx += params.addVol(argv[idx:], SUBJVOL=True)
-
-    # OPTION: load segmentation volume
-    elif key in ('-seg', '--segment'):
-      idx += params.addVol(argv[idx:], TYPE='seg')
-
-    # OPTION: load overlay volume
-    elif key in ('-ov', '--overlay'):
-      idx += params.addVol(argv[idx:], TYPE='ov')
-
-    # OPTION: load surface
-    elif key in ('-f', '--surf'):
-      idx += params.addSurf(argv[idx:])
-
-    # OPTION: load lh and rh, white and pial
-    elif key in ('-surfs', '--surfs'):
-      params.addSurf(['lh.pial', 'edgecolor:red'], SUBJSURF=True)
-      params.addSurf(['lh.white', 'edgecolor:yellow'], SUBJSURF=True)
-      params.addSurf(['rh.pial', 'edgecolor:red'], SUBJSURF=True)
-      params.addSurf(['rh.white', 'edgecolor:yellow'], SUBJSURF=True)
-
-    # OPTION: load standard recon files
-    elif key in ('-r', '--recon'):
-      params.addVol(['norm.mgz'], SUBJVOL=True)
-      params.addVol(['T1.mgz'], SUBJVOL=True)
-      params.addVol(['brainmask.mgz'], SUBJVOL=True)
-      params.addVol(['wm.mgz', 'invis', 'opac:0.2', 'cmap:heat'], SUBJVOL=True)
-      params.addVol(['aparc+aseg.mgz'], SUBJVOL=True, TYPE='seg')
-      params.addSurf(['lh.pial', 'edgecolor:red'], SUBJSURF=True)
-      params.addSurf(['lh.white', 'edgecolor:yellow'], SUBJSURF=True)
-      params.addSurf(['rh.pial', 'edgecolor:red'], SUBJSURF=True)
-      params.addSurf(['rh.white', 'edgecolor:yellow'], SUBJSURF=True)
-
-    # OPTION: load subject orig
-    elif key in ('-orig', '--orig'):
-      params.addVol(['orig.mgz'], SUBJVOL=True)
-
-    # OPTION: load subject T1
-    elif key in ('-T1', '--T1'):
-      params.addVol(['T1.mgz'], SUBJVOL=True)
-
-    # OPTION: load subject wm
-    elif key in ('-wm', '--whitematter'):
-      params.addVol(['wm.mgz', 'opac:0.4','cmap:heat'], SUBJVOL=True)
-
-    # OPTION: load subject aparc+aseg
-    elif key in ('-apas', '--aparc+aseg'):
-      params.addVol(['aparc+aseg.mgz'], SUBJVOL=True, TYPE='seg')
-
-    # OPTION: quiet mode
-    elif key in ('-q', '--quiet'):
-      global VERBOSE
-      VERBOSE = False
-
-    # OPTION: show help
-    elif key in ('-h', '--help'):
-      print HELPTEXT
-      sys.exit(0)
-
-    # OPTION: simulate for testing purposes
-    elif key in ('--sim'):
-      global SIMULATE
-      SIMULATE = True
-
-    # UNKNOWN ARGUMENT:
-    else:
-      errorExit("unknown argument " + col(key, 'g'))
-    idx += 1
-
-  return params
-
-
-# ------------------ centerString ---------------------- #
-# returns a string centered at some given width. default
-# width is the terminal width
-def centerString(strng, w=OUTW):
-  restrng = strng
-  # removes any color 
-  for v in COLDICT.values():
-    restrng = restrng.replace(v, '')
-  margin = w/2 - len(restrng)/2
-  return (' ' * margin) + strng + '\n'
+def stripKey(key, pattern): return key[len(pattern):]
 
 
 # ------------------ col ------------------------------ #
@@ -456,19 +327,6 @@ def col(strng, color):
     return colstring
 
 
-# ------------------ printLine ------------------------ #
-# prints a blue line the width of the terminal
-def printLine(char="-"):
-  line = char * TERMW
-  print col(line, 'b')
-
-
-# ------------------ errorExit ------------------------ #
-def errorExit(msg):
-  print col("error:", "r*"), msg + '\n'
-  sys.exit(1)
-
-
 # ------------------ compileHelp ---------------------- #
 # organizes the provided sections of the help output
 # and writes the text to the global HELPTEXT variable,
@@ -476,14 +334,12 @@ def errorExit(msg):
 def compileHelp(progname, subtitle, usage, info, optns):
   global HELPTEXT
   # write title and subtitle:
-  brdr = col("--", '*')  # fancy title
-  title = brdr + "  " + col(progname, 'b*') + "  " + brdr
-  HELPTEXT = '\n' + centerString(title, OUTW) + \
-                    centerString(subtitle, OUTW) + '\n'
+  HELPTEXT = '\n' + col("NAME",'*') + '\n' + TAB + col(title, '*')
+  HELPTEXT += " - " + subtitle + '\n\n'
   # write usage:
   HELPTEXT += col("USAGE", '*') + '\n' 
-  for uline in usage.split('\n'):  # for multi-line usage text
-    HELPTEXT += TAB + uline + '\n'
+  # for multi-line usage text:
+  for uline in usage.split('\n'): HELPTEXT += TAB + uline + '\n'
   HELPTEXT += '\n'
   # write usage info:
   if info:
@@ -495,24 +351,135 @@ def compileHelp(progname, subtitle, usage, info, optns):
 
 
 # ------------------ addOpt --------------------------- #
-# returns an option description for the help text. aux
-# represents any modifier arguments that the option
-# will accept
-def addOpt(flags, desc, arg=None, aux=None):
+# returns an option description for the help text.
+def addOpt(flags, desc, subopt=None):
   # write the flag(s):
   option = TAB  # initial indent for opt flags
   for i, f in enumerate(flags):
     if i > 0:
       option += ", "
     option += col(f, '*')
-  # write argument requirement(s):
-  if arg:
-    option += "  " + col(arg, 'b')
+  # write suboption arg requirement(s):
+  if subopt: option += "  " + col(subopt, 'b')
   # write description:
-  option += "\n" + textwrap.fill(desc, OUTW-2, initial_indent=(TAB*2), \
-                                 subsequent_indent=(TAB*2)) + "\n"
-  option += "\n"
-  return option
+  for par in desc.split('\n\n'):  # textwrap ignores newlines
+    option += '\n' + textwrap.fill(par, OUTW-2, initial_indent=(TAB*2), \
+                                   subsequent_indent=(TAB*2))
+  return option + '\n\n'
+
+
+# ------------------ getSubOptions -------------------- #
+# extracts suboptions following an option flag
+def getSubOptions(args):
+  # init suboption array and begin parse:
+  suboptions = []
+  for arg in args[1:]:
+    if isOption(arg): break
+    else: suboptions.append(arg)
+  return suboptions
+
+
+# ------------------ parseCommandLine ------------------ #
+# parses command line args and returns a Params object
+def parseCommandLine(argv):
+  params = Params()
+  idx = 0
+  while idx < len(argv):
+    key = argv[idx]
+
+    # ARGUMENT: the only argument provided should be the subject name
+    if not isOption(key) and not params.subj_name:
+      params.setSubject(key)
+
+    # OPTION: load volume
+    elif key in ('-v', '--vol'):
+      subopts = getSubOptions(argv[idx:])
+      idx += params.addVol(subopts)
+
+    # OPTION: load subject volume
+    elif key in ('-sv', '--subjvol'):
+      subopts = getSubOptions(argv[idx:])
+      idx += params.addVol(subopts, SUBJVOL=True)
+
+    # OPTION: load segmentation volume
+    elif key in ('-seg', '--segment'):
+      subopts = getSubOptions(argv[idx:])
+      idx += params.addVol(subopts, TYPE='seg')
+
+    # OPTION: load overlay volume
+    elif key in ('-ov', '--overlay'):
+      subopts = getSubOptions(argv[idx:])
+      idx += params.addVol(subopts, TYPE='ov')
+
+    # OPTION: load surface
+    elif key in ('-f', '--surf'):
+      idx += params.addSurf(argv[idx:])
+
+    # OPTION: load lh and rh, white and pial
+    elif key in ('-surfs', '--surfs'):
+      params.addSurf(['lh.pial'], SUBJSURF=True)
+      params.addSurf(['lh.white'], SUBJSURF=True)
+      params.addSurf(['rh.pial'], SUBJSURF=True)
+      params.addSurf(['rh.white'], SUBJSURF=True)
+
+    # OPTION: load standard recon files
+    elif key in ('-r', '--recon'):
+      params.addVol(['norm.mgz'], SUBJVOL=True)
+      params.addVol(['T1.mgz'], SUBJVOL=True)
+      params.addVol(['brainmask.mgz'], SUBJVOL=True)
+      params.addVol(['wm.mgz', 'visible=false', 'opacity=0.2',
+                     'colormap=heat'], SUBJVOL=True)
+      params.addVol(['aparc+aseg.mgz'], SUBJVOL=True, TYPE='seg')
+      params.addSurf(['lh.pial'], SUBJSURF=True)
+      params.addSurf(['lh.white'], SUBJSURF=True)
+      params.addSurf(['rh.pial'], SUBJSURF=True)
+      params.addSurf(['rh.white'], SUBJSURF=True)
+
+    # OPTION: load subject orig
+    elif key in ('-orig', '--orig'):
+      params.addVol(['orig.mgz'], SUBJVOL=True)
+
+    # OPTION: load subject T1
+    elif key in ('-T1', '--T1'):
+      params.addVol(['T1.mgz'], SUBJVOL=True)
+
+    # OPTION: load subject wm
+    elif key in ('-wm', '--whitematter'):
+      params.addVol(['wm.mgz', 'opacity=0.4','colormap=heat'], SUBJVOL=True)
+
+    # OPTION: load subject aparc+aseg
+    elif key in ('-apas', '--aparc+aseg'):
+      params.addVol(['aparc+aseg.mgz'], SUBJVOL=True, TYPE='seg')
+
+    # OPTION: set cursor CRS
+    elif key in ('-crs', '--crs'):
+      crs = getSubOptions(argv[idx:])
+      if len(crs) < 3: errorExit("must provide col, row, and slice for -crs")
+      params.fvoptions += " -slice" + crs[0] + " " + crs[1] + " " + crs[2]
+      idx += 3
+
+    # OPTION: quiet mode
+    elif key in ('-q', '--quiet'):
+      global VERBOSE
+      VERBOSE = False
+
+    # OPTION: show help
+    elif key in ('-h', 'help', '--help'):
+      print HELPTEXT
+      sys.exit(0)
+
+    # OPTION: simulate for testing purposes
+    elif key in ('--sim'):
+      global SIMULATE
+      SIMULATE = True
+
+    # UNKNOWN ARGUMENT:
+    else:
+      msg = "unknown argument " + col(key, 'g') + ". use -h for help"
+      errorExit(msg)
+
+    idx += 1
+  return params
 
 
 # =========================================================================== #
@@ -525,38 +492,38 @@ subtitle = "a freeview wrapper for quick and simple loading"
 usage    = col("easyfv", '*') + " [options]" + '\n' + \
            col("easyfv", '*') + " subject [options]"
 info     = """Files must be loaded using the option flags. easyfv will also
-accept a subject name as a positional argument (SUBJECTS_DIR must be set), and
-if a specified file is not found in the working directory, easyfv will search
+accept a subject name as an initial argument (SUBJECTS_DIR must be set), and
+if a specified file is not found from the working directory, easyfv will search
 for it in the subject's directory."""
 opts     = ""
 
 # OPTION: load volume
-desc = """Load a volume file. Volume sub-options can be specified
-with the following additional arguments:"""
-opts += addOpt(["-v", "--vol"], desc, arg="<vol> <opts...>")
+desc = """Load a volume file. Any sub-options available in freeview can
+be specified as additional arguments.\n
+example: easyfv -v mri.mgz opacity=0.5 colormap=heat"""
+opts += addOpt(["-v", "--vol"], desc, subopt="<vol> <opts>...")
 
 # OPTION: load subject volume
 desc = """Load a subject-specific volume. This volume file must be located
-in the subject's mri directory. The volume sub-options that are available for -v
-can also be used"""
-opts += addOpt(["-sv", "--subjvol"], desc, arg="<vol> <opts...>")
+in the subject's mri directory. Volume sub-options can also be used"""
+opts += addOpt(["-sv", "--subjvol"], desc, subopt="<vol> <opts>...")
 
 # OPTION: load segmentation volume
 desc = """Load a volume file as a segmentation. This applies a set of
 predefined settings to the volume, but these sub-options can be overwritten
 with additional arguments (see -v)"""
-opts += addOpt(["-seg", "--segment"], desc, arg="<vol> <opts...>")
+opts += addOpt(["-seg", "--segment"], desc, subopt="<vol> <opts>...")
 
 # OPTION: load overlay volume
 desc = """Load a volume file as an overlay. This applies a heat colormap to
 the volume. More options can be applied with additional
 arguments (see -v)"""
-opts += addOpt(["-ov", "--overlay"], desc, arg="<vol> <opts...>")
+opts += addOpt(["-ov", "--overlay"], desc, subopt="<vol> <opts>...")
 
 # OPTION: load surface
 desc = """Load a surface file. Surface sub-options can be specified
 with the following additional arguments:"""
-opts += addOpt(["-f", "--surf"], desc, arg="<surf> <opts..>")
+opts += addOpt(["-f", "--surf"], desc, subopt="<surf> <opts>...")
 
 # OPTION: load lh and rh, white and pial
 desc = "Load lh and rh, white and pial surfaces"
@@ -582,11 +549,15 @@ opts += addOpt(["-wm", "--whitematter"], desc)
 desc = "Load the subject's aseg+aparc.mgz segmentation (subject must be set)"
 opts += addOpt(["-asap", "--aseg+aparc"], desc)
 
+# OPTION: position cursor CRS
+desc = "Position the cursor at the given column, row, slice"
+opts += addOpt(["-crs", "--crs"], desc, subopt="<col> <row> <slice>")
+
 # OPTION: quiet mode
 opts += addOpt(["-q", "--quiet"], "Quiet mode - suppress output")
 
 # OPTION: show help
-opts += addOpt(["-h", "--help"], "Display this help text")
+opts += addOpt(["-h", "-help", "--help"], "Display this help text")
 
 
 compileHelp(title, subtitle, usage, info, opts)
@@ -599,14 +570,14 @@ compileHelp(title, subtitle, usage, info, opts)
 
 def main(argv):
 
+  # init and parse arguments:
+  params = parseCommandLine(argv)
+
   # check if freeview is on the path:
   if not find_executable('freeview'):
     msg = "cannot find freeview command. Make sure FREESURFER_HOME has " + \
           "been sourced:\nsource $FREESURFER_HOME/SetUpFreeSurfer.sh"
     errorExit(msg)
-
-  # init and parse arguments:
-  params = parseCommandLine(argv)
 
   # check if nothing will be loaded:
   if params.nvols == params.nsurfs == 0:
@@ -641,15 +612,17 @@ def main(argv):
     for s in params.surfs():
       fvcommand += s.writeCMD()
 
+  # append additional freeview options:
+  fvcommand += params.fvoptions
+
   # print the freeview command:
   if VERBOSE:
     print "\nfreeview command:"
-    printLine()
+    print col('-' * TERMW, 'b')  # print blue line
     print fvcommand
-    printLine()
-    print
+    print col('-' * TERMW, 'b') + '\n'  # print blue line
 
-  # run the freeview command:
+  # run fv command:
   fvargs = shlex.split(fvcommand)
   if SIMULATE:
     retcode = 0
