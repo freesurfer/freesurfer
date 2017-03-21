@@ -1,16 +1,12 @@
 use_fisher = 1 ;
 use_air = 0 ;
-base = '/space/rock/4/users/hires/recons/C2.3T.recon';
 
-ebase = getenv('base');
-if (length(ebase)>0)
-  base = ebase ;  % let env override what is here
-end
+base = getenv('base');
 
 recon=sprintf('%s',base);
 mdir=sprintf('%s/mri',recon) ;
 sdir=sprintf('%s/scripts',recon)' ;
-ldir=sprintf('%s/label',mdir) ;
+ldir=sprintf('%s/label',recon) ;
 odir=sprintf('%s/mri/orig',base) ;
 datdir=sprintf('%s/mri/orig/opt_files',base) ;
 
@@ -170,7 +166,7 @@ n = 1 ;
 fid = fopen(sprintf('%s/%s', sdir,flist), 'r') ;
 line = fgetl(fid) ;
 while (line >= 0)
-    if (exist('mri') == 0)   % read in vol with MRIread so we have the header
+    if (exist('mri') ~= 1)   % read in vol with MRIread so we have the header
        mri = MRIread(sprintf('%s.mgz', line));
     end
     [v,M,mr]  = load_mgh(sprintf('%s.mgz', line)) ;
@@ -209,7 +205,7 @@ end
 % keep track of zero locations and reset them to 0 later after we scale
 %zind = find(opt_vol == 0);  
 
-gm_label = read_label('', '../label/gm.label');
+gm_label = read_label('', sprintf('%s/gm.label',ldir));
 ras = gm_label(:,2:5)';
 ras(4,:) = ones(size(ras(4,:)));
 Mr2v = inv(mri.tkrvox2ras);
@@ -218,7 +214,7 @@ gsub =  [vox(2,:)+1; vox(1,:)+1; vox(3,:)+1];
 gsub =  [vox(1,:)+1; vox(2,:)+1; vox(3,:)+1];
 gind = sub2ind(size(v), gsub(1,:), gsub(2,:),gsub(3,:)) ;
 
-wm_label = read_label('', '../label/wm.label');
+wm_label = read_label('', sprintf('%s/wm.label', ldir));
 ras = wm_label(:,2:5)';
 ras(4,:) = ones(size(ras(4,:)));
 Mr2v = inv(mri.tkrvox2ras);
@@ -227,7 +223,7 @@ wsub =  [vox(2,:)+1; vox(1,:)+1; vox(3,:)+1];
 wsub =  [vox(1,:)+1; vox(2,:)+1; vox(3,:)+1];
 wind = sub2ind(size(v), wsub(1,:), wsub(2,:),wsub(3,:)) ;
 
-fluid_label = read_label('', '../label/fluid.label');
+fluid_label = read_label('', sprintf('%s/fluid.label',ldir));
 ras = fluid_label(:,2:5)';
 ras(4,:) = ones(size(ras(4,:)));
 Mr2v = inv(mri.tkrvox2ras);
@@ -370,8 +366,8 @@ T1_thresh = 750;
     %vol = vol * 110/mn;
     save_mgh(vol, 'opt_gw.mgz', M, mr);
     
-    unix(sprintf('mri_label_vals opt_gw.mgz ../../label/gm.label > opt_files/opt_gm.dat')) ;
-    unix(sprintf('mri_label_vals opt_gw.mgz ../../label/wm.label > opt_files/opt_wm.dat')) ;
+    unix(sprintf('mri_label_vals opt_gw.mgz %s/gm.label > opt_files/opt_gm.dat',ldir)) ;
+    unix(sprintf('mri_label_vals opt_gw.mgz %s/wm.label > opt_files/opt_wm.dat',ldir)) ;
     
     gv = load('opt_files/opt_gm.dat') ;
     wv = load('opt_files/opt_wm.dat') ;
