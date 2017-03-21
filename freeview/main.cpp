@@ -76,6 +76,10 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 #else
 void myMessageOutput(QtMsgType type, const char *msg)
 {
+  QString qmsg = msg;
+  if (qmsg.contains("sRGB profile") || qmsg.contains("QWidget::create") || qmsg.contains("unregister timer"))
+    return;
+
   switch (type)
   {
   case QtDebugMsg:
