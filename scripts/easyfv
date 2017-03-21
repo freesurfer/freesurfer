@@ -418,7 +418,8 @@ def parseCommandLine(argv):
 
     # OPTION: load surface
     elif key in ('-f', '--surf'):
-      idx += params.addSurf(argv[idx:])
+      subopts = getSubOptions(argv[idx:])
+      idx += params.addSurf(subopts)
 
     # OPTION: load lh and rh, white and pial
     elif key in ('-surfs', '--surfs'):
