@@ -100,8 +100,8 @@ class Vol:
           self.infomsg["cmap"] = "using " + col(fvsubopt[1], 'g') + " colormap"
         # registration
         if fvsubopt[0] == "reg":
-          checkFile(self.fvsubopt[1])
-          self.infomsg["reg"] = "registered with " + col(self.reg, 'g')
+          checkFile(fvsubopt[1])
+          self.infomsg["reg"] = "registered with " + col(fvsubopt[1], 'g')
     # write suboptions:
     for key in self.optdict:
       cmdarg += ":" + key + "=" + self.optdict[key]
@@ -169,7 +169,7 @@ class Surf:
     info = col(self.file, 'b')
     for key in self.infomsg:
       info += " - " + self.infomsg[key]
-    self.params.printParam("surfaces", info)
+    self.params.printParam("surfs", info)
     return cmdarg
 
 
@@ -269,11 +269,9 @@ class Params:
   # doesn't print the type name multiple times in a row
   def printParam(self, paramtype, info):
     if not VERBOSE: return
-    indt = 10
-    if self.last_param == paramtype:
-      print ' '*indt + info
-    else:
-      print ' '*(indt-len(paramtype)-2) + paramtype + ': ' + info
+    string = ""
+    if self.last_param != paramtype: string = paramtype + ": "
+    print "%*s" % (10, string) + info
     self.last_param = paramtype
 
 
@@ -464,7 +462,7 @@ def parseCommandLine(argv):
       VERBOSE = False
 
     # OPTION: show help
-    elif key in ('-h', 'help', '--help'):
+    elif key in ('-h', '-help', '--help'):
       print HELPTEXT
       sys.exit(0)
 
