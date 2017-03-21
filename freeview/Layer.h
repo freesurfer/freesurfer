@@ -119,11 +119,19 @@ public:
     rotate[2] = m_dRotate[2];
   }
 
+  void GetRotationCenter( double* c_pos)
+  {
+    c_pos[0] = m_dRotationCenter[0];
+    c_pos[1] = m_dRotationCenter[1];
+    c_pos[2] = m_dRotationCenter[2];
+  }
+
   void SetRotate(double* rotate, bool bAroundCenter = true);
   void SetTranslate(double* offset);
   void SetTranslateByCenterPosition(double* c_pos);
   void SetScale(double* scale);
   void SetFlip(bool* flip);
+  void SetRotationCenter(double* c_pos);
   void UpdateTransform(int sample_method = 0);
 
   double* GetWorldOrigin();
@@ -253,6 +261,7 @@ protected:
   bool      m_bFlip[3];
   double    m_dRotationCenter[3];
   bool      m_bRotateAroundCenter;
+  bool      m_bUseRotationCenter;
 
   bool      m_bLocked;
 
