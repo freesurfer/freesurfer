@@ -38,7 +38,7 @@ COLDICT = {
   'e' : '\033[0m' }  # end (return to normal)
 
 # for testing purposes:
-SIMULATE = False 
+SIMULATE = False
 
 
 # =========================================================================== #
@@ -484,9 +484,9 @@ def parseCommandLine(argv):
       params.fvoptions += " -slice" + crs[0] + " " + crs[1] + " " + crs[2]
       idx += 3
 
-    # OPTION: set 3d viewport
-    elif key in ('-3d', '--3d'):
-      params.fvoptions += " -viewport 3d"
+    # OPTION: set viewport
+    elif isOption(key) and key.replace('-', '') in ('3d','cor','sag','axial'):
+      params.fvoptions += " -viewport " + key.replace('-', '')
 
     # OPTION: quiet mode
     elif key in ('-q', '--quiet'):
@@ -592,6 +592,22 @@ opts += addOpt(["-asap", "--aseg+aparc"], desc)
 # OPTION: position cursor CRS
 desc = "Position the cursor at the given column, row, slice"
 opts += addOpt(["-crs", "--crs"], desc, subopt="<col> <row> <slice>")
+
+# OPTION: 3d viewport
+desc = "Set viewport to 3d view"
+opts += addOpt(["-3d", "--3d"], desc)
+
+# OPTION: coronal viewport
+desc = "Set viewport to coronal view"
+opts += addOpt(["-cor", "--cor"], desc)
+
+# OPTION: sagittal viewport
+desc = "Set viewport to sagittal view"
+opts += addOpt(["-sag", "--sag"], desc)
+
+# OPTION: axial viewport
+desc = "Set viewport to axial view"
+opts += addOpt(["-axial", "--axial"], desc)
 
 # OPTION: quiet mode
 opts += addOpt(["-q", "--quiet"], "Quiet mode - suppress output")
