@@ -7,6 +7,7 @@ import platform
 import textwrap
 import shlex
 import subprocess
+from collections import OrderedDict
 from distutils.spawn import find_executable
 
 
@@ -58,7 +59,7 @@ class Vol:
     self.path = None
     self.params = parent
     self.suboptions = []
-    self.optdict = {}
+    self.optdict = OrderedDict()
     self.infomsg = {}
 
   # ---------------- Vol.getPath ---------------------- #
@@ -125,7 +126,7 @@ class Surf:
     self.path = None
     self.params = parent
     self.suboptions = []
-    self.optdict = {}
+    self.optdict = OrderedDict()
     self.infomsg = {}
 
   # ---------------- Surf.getPath --------------------- #
@@ -159,9 +160,28 @@ class Surf:
     cmdarg = " " + self.path
     # parse suboptions:
     for option in self.suboptions:
-      fvsubopt = option.split("=")
+      # load aparc annot:
+      if option == "aparc":
+        if not self.params.subj_name:
+          errorExit("cannot load aparc annot if subject is not specified")
+        annot = os.path.basename(self.file).split(".")[0] + ".aparc.annot"
+        annotpath = os.path.join(self.params.subj_path, "label", annot)
+        self.optdict["annot"] = annotpath
+        self.optdict["annot_outline"] = "true"
+      # check for any freeview options:
+      fvsubopt = option.split("=")  # split options
       if len(fvsubopt) == 2:
+        # freeview option shortcuts:
+        if fvsubopt[0] == "ov": fvsubopt[0] = "overlay"
+        if fvsubopt[0] == "ovthresh": fvsubopt[0] = "overlay_threshold"
         self.optdict[fvsubopt[0]] = fvsubopt[1]
+        # validity checks:
+        if fvsubopt[0] == "overlay":
+          checkFile(fvsubopt[1])
+          self.infomsg["overlay"] = "overlayed by " + col(fvsubopt[1], 'g')
+        if fvsubopt[0] == "annot":
+          checkFile(fvsubopt[1])
+          self.infomsg["annot"] = "annotated with " + col(fvsubopt[1], 'g')
     # write suboptions:
     for key in self.optdict:
       cmdarg += ":" + key + "=" + self.optdict[key]
@@ -271,7 +291,7 @@ class Params:
     if not VERBOSE: return
     string = ""
     if self.last_param != paramtype: string = paramtype + ": "
-    print "%*s" % (10, string) + info
+    print "%*s" % (9, string) + info
     self.last_param = paramtype
 
 
@@ -464,6 +484,10 @@ def parseCommandLine(argv):
       params.fvoptions += " -slice" + crs[0] + " " + crs[1] + " " + crs[2]
       idx += 3
 
+    # OPTION: set 3d viewport
+    elif key in ('-3d', '--3d'):
+      params.fvoptions += " -viewport 3d"
+
     # OPTION: quiet mode
     elif key in ('-q', '--quiet'):
       global VERBOSE
@@ -534,7 +558,11 @@ opts += addOpt(["-mov", "--mov"], desc, subopt="<vol> <opts>...")
 # OPTION: load surface
 desc = """Load a surface file. Any sub-options available in freeview can
 be specified as additional arguments\n
-example: easyfv -f lh.surf edgecolor=blue"""
+example: easyfv -f lh.surf edgecolor=blue\n
+The following shortcuts for freeview sub-options can also be used:\n""" + \
+col("ov=overlay_file", 'b') + "  Load overlay data from file\n\n" + \
+col("ovthresh=overlay_threshold", 'b') + "  Set overlay threshold\n\n" + \
+col("aparc", 'b') + "  Load aparc annotation"
 opts += addOpt(["-f", "--surf"], desc, subopt="<surf> <opts>...")
 
 # OPTION: load lh and rh, white and pial
@@ -647,5 +675,8 @@ def main(argv):
 
 
 if __name__ == "__main__":
-  retcode = main(sys.argv[1:])
-  sys.exit(retcode)
+  try:
+    retcode = main(sys.argv[1:])
+    sys.exit(retcode)
+  except KeyboardInterrupt:  # avoids annoying ctrl-c traceback
+    sys.exit(0)
