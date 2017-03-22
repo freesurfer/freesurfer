@@ -266,6 +266,42 @@ void NoVertices( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
   SingleTetrahedronUnitMesh( visitCounter, verts, expectedCount );
 }
 
+void LowerCornerExact( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
+  // Define tetrahedron in on exactly (0,0,0), (1,0,0), (0,1,0) and (0,0,1)
+  // This is to go after some of the edge cases
+  float verts[nVertices][nDims] = {
+    { 0, 0, 0 },
+    { 1, 0, 0 },
+    { 0, 1, 0 },
+    { 0, 0, 1 }
+  };
+
+  auto expectedCount = [](int i, int j, int k) {
+    if( i+j+k == 0 ) {
+      return 1;
+    } else {
+      return 0;
+    }
+  };
+
+  SingleTetrahedronUnitMesh( visitCounter, verts, expectedCount );
+}
+
+void UpperCornerExact( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
+  // Define tetrahedron in on exactly (1,1,1), (0,1,1), (1,0,1) and (1,1,0)
+  // This is to go after some of the edge cases
+  float verts[nVertices][nDims] = {
+    { 1, 1, 1 },
+    { 0, 1, 1 },
+    { 1, 0, 1 },
+    { 1, 1, 0 }
+  };
+
+  auto expectedCount = [](int i, int j, int k) { return 0; };
+
+  SingleTetrahedronUnitMesh( visitCounter, verts, expectedCount );
+}
+
 // -------------------
 
 BOOST_AUTO_TEST_SUITE( AtlasMeshVisitCounter )
@@ -317,101 +353,16 @@ BOOST_AUTO_TEST_CASE( NoVerticesCPU )
 
 BOOST_AUTO_TEST_CASE( LowerCornerExactCPU )
 {
-  const int imageSize = 2;
-  const int nx = imageSize;
-  const int ny = imageSize;
-  const int nz = imageSize;
-
-  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
-  BOOST_TEST_CHECKPOINT("Image created");
-
-  // Define tetrahedron in on exactly (0,0,0), (1,0,0), (0,1,0) and (0,0,1)
-  // This is to go after some of the edge cases
-  float verts[nVertices][nDims] = {
-    { 0, 0, 0 },
-    { 1, 0, 0 },
-    { 0, 1, 0 },
-    { 0, 0, 1 }
-  };
-
-  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
-  BOOST_TEST_CHECKPOINT("Mesh created");
-
-  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
-
-  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
-  visitCounter->Rasterize( mesh );
-
-  BOOST_TEST_CHECKPOINT("VisitCounter Complete");
-
-  // Check points in tetrahedron
-  const ImageType* result = visitCounter->GetImage();
-  for( int k=0; k<nz; k++ ) {
-    for( int j=0; j<ny; j++ ) {
-      for( int i=0; i<nx; i++ ) {
-	ImageType::IndexType idx;
-	idx[0] = i;
-	idx[1] = j;
-	idx[2] = k;
-
-	int expected = 0;
-	if( i+j+k == 0 ) {
-	  expected = 1;
-	}
-
-	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
-	BOOST_CHECK_EQUAL( result->GetPixel(idx), expected );
-      }
-    }
-  }
+  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+  
+  LowerCornerExact( &visitCounter );
 }
 
 BOOST_AUTO_TEST_CASE( UpperCornerExactCPU )
 {
-  const int imageSize = 2;
-  const int nx = imageSize;
-  const int ny = imageSize;
-  const int nz = imageSize;
-
-  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
-  BOOST_TEST_CHECKPOINT("Image created");
-
-  // Define tetrahedron in on exactly (1,1,1), (0,1,1), (1,0,1) and (1,1,0)
-  // This is to go after some of the edge cases
-  float verts[nVertices][nDims] = {
-    { 1, 1, 1 },
-    { 0, 1, 1 },
-    { 1, 0, 1 },
-    { 1, 1, 0 }
-  };
-
-  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
-  BOOST_TEST_CHECKPOINT("Mesh created");
-
-  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
-
-  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
-  visitCounter->Rasterize( mesh );
-
-  BOOST_TEST_CHECKPOINT("VisitCounter Complete");
-
-  // Check points in tetrahedron
-  const ImageType* result = visitCounter->GetImage();
-  for( int k=0; k<nz; k++ ) {
-    for( int j=0; j<ny; j++ ) {
-      for( int i=0; i<nx; i++ ) {
-	ImageType::IndexType idx;
-	idx[0] = i;
-	idx[1] = j;
-	idx[2] = k;
-
-	int expected = 0;
-
-	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
-	BOOST_CHECK_EQUAL( result->GetPixel(idx), expected );
-      }
-    }
-  }
+  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+  
+  UpperCornerExact( &visitCounter );
 }
 
 BOOST_AUTO_TEST_SUITE_END();
