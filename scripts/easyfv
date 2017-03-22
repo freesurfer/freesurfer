@@ -19,12 +19,11 @@ from distutils.spawn import find_executable
 TERMW = OUTW = int(os.popen("stty size", 'r').read().split()[1])
 if TERMW > 80: OUTW = 80  # output max width
 
-# output:
 VERBOSE = True
 
 HELPTEXT = None   # will be set programmatically
-TAB = '    '      # 4-space standard tab
-NOCOLORS = False  # if true, turn off colored output
+TAB = '    '
+NOCOLORS = False
 COLDICT = {
   'k' : '\033[30m',  # black
   'r' : '\033[31m',  # red
@@ -37,7 +36,7 @@ COLDICT = {
   '*' : '\033[1m' ,  # bold
   'e' : '\033[0m' }  # end (return to normal)
 
-# for testing purposes:
+# for testing:
 SIMULATE = False
 
 
@@ -80,7 +79,6 @@ class Vol:
         errorExit(msg)
     else:
       self.path = self.file
-    # does path exist:
     checkFile(self.path)
 
   # ---------------- Vol.writeCMD --------------------- #
@@ -147,7 +145,6 @@ class Surf:
         errorExit(msg)
     else:
       self.path = self.file
-    # does path exist:
     checkFile(self.path)
 
   # ---------------- Surf.writeCMD --------------------- #
@@ -351,19 +348,19 @@ def col(strng, color):
 # which should be directly printed when appropriate
 def compileHelp(progname, subtitle, usage, info, optns):
   global HELPTEXT
-  # write title and subtitle:
+  # title and subtitle:
   HELPTEXT = '\n' + col("NAME",'*') + '\n' + TAB + col(title, '*')
   HELPTEXT += " - " + subtitle + '\n\n'
-  # write usage:
+  # usage:
   HELPTEXT += col("USAGE", '*') + '\n' 
   # for multi-line usage text:
   for uline in usage.split('\n'): HELPTEXT += TAB + uline + '\n'
   HELPTEXT += '\n'
-  # write usage info:
+  # usage info:
   if info:
     HELPTEXT += textwrap.fill(info, OUTW-2, initial_indent=(TAB), \
                               subsequent_indent=(TAB)) + "\n\n"
-  # write options:
+  # options:
   HELPTEXT += col("OPTIONS", '*') + '\n' + optns
   return
 
@@ -371,7 +368,7 @@ def compileHelp(progname, subtitle, usage, info, optns):
 # ------------------ addOpt --------------------------- #
 # returns an option description for the help text.
 def addOpt(flags, desc, subopt=None):
-  # write the flag(s):
+  # write flag(s):
   option = TAB  # initial indent for opt flags
   for i, f in enumerate(flags):
     if i > 0:
@@ -625,10 +622,8 @@ compileHelp(title, subtitle, usage, info, opts)
 
 def main(argv):
 
-  # init and parse arguments:
   params = parseCommandLine(argv)
 
-  # check if freeview is on the path:
   if not find_executable('freeview'):
     msg = "cannot find freeview command. Make sure FREESURFER_HOME has " + \
           "been sourced:\nsource $FREESURFER_HOME/SetUpFreeSurfer.sh"
@@ -644,7 +639,6 @@ def main(argv):
       print HELPTEXT
       exit(1)
 
-  # init freeview command:
   fvcommand = "freeview"
 
   # print subject name if given:
@@ -654,11 +648,11 @@ def main(argv):
   # load volumes:
   if params.nvols > 0:
     fvcommand += " -v"
-    for v in params.vols("volume"):  # load regular volumes first
+    for v in params.vols("volume"):  # regular volumes first
       fvcommand += v.writeCMD()
-    for v in params.vols("seg"):  # load seg volumes next
+    for v in params.vols("seg"):  # seg volumes next
      fvcommand += v.writeCMD()
-    for v in params.vols("overlay"):  # load overlay volumes last
+    for v in params.vols("overlay"):  # overlay volumes last
      fvcommand += v.writeCMD()
 
   # load surfaces:
@@ -673,9 +667,9 @@ def main(argv):
   # print the freeview command:
   if VERBOSE:
     print "\nfreeview command:"
-    print col('-' * TERMW, 'b')  # print blue line
+    print col('-' * TERMW, 'b')  # blue line
     print fvcommand
-    print col('-' * TERMW, 'b') + '\n'  # print blue line
+    print col('-' * TERMW, 'b') + '\n'  # blue line
 
   # run fv command:
   fvargs = shlex.split(fvcommand)
