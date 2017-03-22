@@ -9,6 +9,7 @@ if ($#argv == 0) then
    exit 1 ;
 endif
 
+set norecon=0
 set cerebellum = ()
 set opts=()
 set run_bet = 0 ;
@@ -18,6 +19,11 @@ while( $#argv != 0 )
 
   set flag = $argv[1]; shift;
   switch($flag)
+    case "-no-recon":
+    case "-no_recon":
+    case "-norecon":
+       set norecon=1 ;
+       breaksw ;
     case "-no-cerebellum":
     case "-nocerebellum":
     case "-NO-CEREBELLUM":
@@ -63,11 +69,15 @@ while( $#argv != 0 )
        breaksw ;
 
 # these are all pass through commands with no argument
+       default: 
      case "-notalairach":
      case "-noskullstrip":
        set opts = ($opts $flag)
        breaksw
 
+     case "-i":
+       set base=$argv[1]; shift;
+       breaksw 
 # these are all pass through commands with a single argument
      case "-openmp":
      case "-no-wsatlas":
@@ -81,7 +91,10 @@ while( $#argv != 0 )
 end
 
 set sd=$SUBJECTS_DIR/$s
-set base=$SUBJECTS_DIR/$s
+if (! $?base ) then
+  set base=$SUBJECTS_DIR/$s
+endif
+
 setenv base $SUBJECTS_DIR/$s
 set mdir=$sd/mri
 set odir=$mdir/orig
@@ -175,7 +188,10 @@ cp  $mdir/brainmask.mgz $mdir/brainmask.auto.mgz
 if (-e $mdir/../tmp/control.dat) then
     set opts = ($opts  -canorm-usecps) ;
 endif
-recon-all -s $s -all -sd $SUBJECTS_DIR -hippocampal-subfields-T1 -brainstem-structures $opts
+
+if ($norecon) exit 0
+
+recon-all -s $s -sd $SUBJECTS_DIR $opts
 
 exit 0
 
