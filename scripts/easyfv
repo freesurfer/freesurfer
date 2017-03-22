@@ -557,12 +557,11 @@ opts += addOpt(["-mov", "--mov"], desc, subopt="<vol> <opts>...")
 
 # OPTION: load surface
 desc = """Load a surface file. Any sub-options available in freeview can
-be specified as additional arguments\n
-example: easyfv -f lh.surf edgecolor=blue\n
-The following shortcuts for freeview sub-options can also be used:\n""" + \
-col("ov=overlay_file", 'b') + "  Load overlay data from file\n\n" + \
-col("ovthresh=overlay_threshold", 'b') + "  Set overlay threshold\n\n" + \
-col("aparc", 'b') + "  Load aparc annotation"
+be specified as additional arguments. The following shortcuts for freeview
+sub-options can also be used:\n\n""" + \
+col("  ov=overlay_file", 'b') + "  Load overlay data from file\n\n" + \
+col("  ovthresh=overlay_threshold", 'b') + "  Set overlay threshold\n\n" + \
+col("  aparc", 'b') + "  Load aparc annotation"
 opts += addOpt(["-f", "--surf"], desc, subopt="<surf> <opts>...")
 
 # OPTION: load lh and rh, white and pial
