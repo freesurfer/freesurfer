@@ -136,7 +136,7 @@ void SingleTetrahedronUnitMesh( kvl::interfaces::AtlasMeshVisitCounter* visitCou
   }
 }
 
-// -------
+// -------------------
 
 void LowerCorner( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
   // Define tetrahedron enclosing origin and (0,0,1), (0,1,0) and (1,0,0)
@@ -302,7 +302,7 @@ void UpperCornerExact( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
   SingleTetrahedronUnitMesh( visitCounter, verts, expectedCount );
 }
 
-// -------------------
+// ===========================================================
 
 BOOST_AUTO_TEST_SUITE( AtlasMeshVisitCounter )
 
@@ -336,7 +336,6 @@ BOOST_AUTO_TEST_CASE( FarCornerOnlyCPU )
   FarCornerOnly( &visitCounter );
 }
 
-
 BOOST_AUTO_TEST_CASE( UpperCornerCPU )
 {
   kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
@@ -367,7 +366,7 @@ BOOST_AUTO_TEST_CASE( UpperCornerExactCPU )
 
 BOOST_AUTO_TEST_SUITE_END();
 
-// --
+// ---------------------------------------
 
 BOOST_FIXTURE_TEST_SUITE( ActualImage, TestFileLoader )
 
