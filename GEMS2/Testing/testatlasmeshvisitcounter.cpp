@@ -136,6 +136,8 @@ void SingleTetrahedronUnitMesh( kvl::interfaces::AtlasMeshVisitCounter* visitCou
   }
 }
 
+// -------
+
 void LowerCorner( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
   // Define tetrahedron enclosing origin and (0,0,1), (0,1,0) and (1,0,0)
   const float delta = 0.1f;
@@ -193,7 +195,6 @@ void XAxisOnly( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
     { -delta, -delta, 2*delta }
   };
 
-  
   auto expectedCount = [](int i, int j, int k) {
     if( j+k == 0 ) {
       return 1;
@@ -201,6 +202,66 @@ void XAxisOnly( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
       return 0;
     }
   };
+
+  SingleTetrahedronUnitMesh( visitCounter, verts, expectedCount );
+}
+
+void FarCornerOnly( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
+  // Define tetrahedron enclosing (1,1,1)
+  const float delta = 0.1f;
+  BOOST_REQUIRE( delta < 0.5f );
+  float verts[nVertices][nDims] = {
+    { 1-delta, 1-delta, 1-delta },
+    { 1+delta, 1, 1 },
+    { 1, 1+delta, 1 },
+    { 1, 1, 1+delta }
+  };
+  
+  auto expectedCount = [](int i, int j, int k) {
+    if( i+j+k == 3 ) {
+      return 1;
+    } else {
+      return 0;
+    }
+  };
+
+  SingleTetrahedronUnitMesh( visitCounter, verts, expectedCount );
+}
+
+void UpperCornerOnly( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
+  // Define tetrahedron enclosing (1,1,1), (0,1,1), (1,0,1), (1,1,0)
+  const float delta = 0.1f;
+  BOOST_REQUIRE( delta < 0.5f );
+  float verts[nVertices][nDims] = {
+    { 1+delta, 1+delta, 1+delta },
+    { -delta, 1, 1 },
+    { 1, -delta, 1 },
+    { 1, 1, -delta }
+  };
+  
+  auto expectedCount = [](int i, int j, int k) {
+    if( i+j+k >= 2 ) {
+      return 1;
+    } else {
+      return 0;
+    }
+  };
+
+  SingleTetrahedronUnitMesh( visitCounter, verts, expectedCount );
+}
+
+void NoVertices( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
+  // Define tetrahedron enclosing no vertices
+  const float delta = 0.1f;
+  BOOST_REQUIRE( delta < 0.5f );
+  float verts[nVertices][nDims] = {
+    { 0.5f+delta, 0.5f+delta, 0.5f+delta },
+    { 0.5f-delta, 0.5f, 0.5f },
+    { 0.5f, 0.5f-delta, 0.5f },
+    { 0.5f, 0.5f, -delta }
+  };
+
+  auto expectedCount = [](int i, int j, int k) { return 0; };
 
   SingleTetrahedronUnitMesh( visitCounter, verts, expectedCount );
 }
@@ -232,161 +293,29 @@ BOOST_AUTO_TEST_CASE( XAxisOnlyCPU )
   XAxisOnly( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE(FarCornerOnly)
+BOOST_AUTO_TEST_CASE( FarCornerOnlyCPU )
 {
-  const int imageSize = 2;
-  const int nx = imageSize;
-  const int ny = imageSize;
-  const int nz = imageSize;
-
-  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
-  BOOST_TEST_CHECKPOINT("Image created");
-
-  // Define tetrahedron enclosing (1,1,1)
-  const float delta = 0.1f;
-  BOOST_REQUIRE( delta < 0.5f );
-  float verts[nVertices][nDims] = {
-    { 1-delta, 1-delta, 1-delta },
-    { 1+delta, 1, 1 },
-    { 1, 1+delta, 1 },
-    { 1, 1, 1+delta }
-  };
-
-  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
-  BOOST_TEST_CHECKPOINT("Mesh created");
-
-  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
-
-  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
-  visitCounter->Rasterize( mesh );
-
-  BOOST_TEST_CHECKPOINT("VisitCounter Complete");
-
-  // Check points in tetrahedron
-  const ImageType* result = visitCounter->GetImage();
-  for( int k=0; k<nz; k++ ) {
-    for( int j=0; j<ny; j++ ) {
-      for( int i=0; i<nx; i++ ) {
-	ImageType::IndexType idx;
-	idx[0] = i;
-	idx[1] = j;
-	idx[2] = k;
-
-	int expected = 0;
-	if( i+j+k == 3 ) {
-	  expected = 1;
-	}
-
-	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
-	BOOST_CHECK_EQUAL( result->GetPixel(idx), expected );
-      }
-    }
-  }
+  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+  
+  FarCornerOnly( &visitCounter );
 }
 
 
-BOOST_AUTO_TEST_CASE(UpperCorner)
+BOOST_AUTO_TEST_CASE( UpperCornerCPU )
 {
-  const int imageSize = 2;
-  const int nx = imageSize;
-  const int ny = imageSize;
-  const int nz = imageSize;
-
-  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
-  BOOST_TEST_CHECKPOINT("Image created");
-
-  // Define tetrahedron enclosing (0,1,1), (1,0,1), (1,1,0) and (1,1,1)
-  const float delta = 0.1f;
-  BOOST_REQUIRE( delta < 0.5f );
-  float verts[nVertices][nDims] = {
-    { 1+delta, 1+delta, 1+delta },
-    { -delta, 1, 1 },
-    { 1, -delta, 1 },
-    { 1, 1, -delta }
-  };
-
-  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
-  BOOST_TEST_CHECKPOINT("Mesh created");
-
-  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
-
-  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
-  visitCounter->Rasterize( mesh );
-
-  BOOST_TEST_CHECKPOINT("VisitCounter Complete");
-
-  // Check points in tetrahedron
-  const ImageType* result = visitCounter->GetImage();
-  for( int k=0; k<nz; k++ ) {
-    for( int j=0; j<ny; j++ ) {
-      for( int i=0; i<nx; i++ ) {
-	ImageType::IndexType idx;
-	idx[0] = i;
-	idx[1] = j;
-	idx[2] = k;
-
-	int expected = 0;
-	if( i+j+k >= 2 ) {
-	  expected = 1;
-	}
-
-	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
-	BOOST_CHECK_EQUAL( result->GetPixel(idx), expected );
-      }
-    }
-  }
+  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+  
+  UpperCornerOnly( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE(NoVertices)
+BOOST_AUTO_TEST_CASE( NoVerticesCPU )
 {
-  const int imageSize = 2;
-  const int nx = imageSize;
-  const int ny = imageSize;
-  const int nz = imageSize;
-
-  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
-  BOOST_TEST_CHECKPOINT("Image created");
-
-  // Define tetrahedron in middle of cube enclosing no vertices
-  const float delta = 0.1f;
-  BOOST_REQUIRE( delta < 0.5f );
-  float verts[nVertices][nDims] = {
-    { 0.5f+delta, 0.5f+delta, 0.5f+delta },
-    { 0.5f-delta, 0.5f, 0.5f },
-    { 0.5f, 0.5f-delta, 0.5f },
-    { 0.5f, 0.5f, -delta }
-  };
-
-  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( verts );
-  BOOST_TEST_CHECKPOINT("Mesh created");
-
-  kvl::AtlasMeshVisitCounterCPU::Pointer visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
-
-  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
-  visitCounter->Rasterize( mesh );
-
-  BOOST_TEST_CHECKPOINT("VisitCounter Complete");
-
-  // Check points in tetrahedron
-  const ImageType* result = visitCounter->GetImage();
-  for( int k=0; k<nz; k++ ) {
-    for( int j=0; j<ny; j++ ) {
-      for( int i=0; i<nx; i++ ) {
-	ImageType::IndexType idx;
-	idx[0] = i;
-	idx[1] = j;
-	idx[2] = k;
-
-	int expected = 0;
-
-	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
-	BOOST_CHECK_EQUAL( result->GetPixel(idx), expected );
-      }
-    }
-  }
+  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+  
+  NoVertices( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE(LowerCornerExact)
+BOOST_AUTO_TEST_CASE( LowerCornerExactCPU )
 {
   const int imageSize = 2;
   const int nx = imageSize;
@@ -437,7 +366,7 @@ BOOST_AUTO_TEST_CASE(LowerCornerExact)
   }
 }
 
-BOOST_AUTO_TEST_CASE(UpperCornerExact)
+BOOST_AUTO_TEST_CASE( UpperCornerExactCPU )
 {
   const int imageSize = 2;
   const int nx = imageSize;
