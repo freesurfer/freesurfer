@@ -27,8 +27,6 @@ TARGET_LINK_LIBRARIES( kvlEstimateAtlasParameters
                         kvlGEMSGUI
                         )
 
-
-
 # Add an executable
 FLTK_WRAP_UI( kvlViewMeshCollectionWithGUI
               kvlAtlasMeshViewingConsoleGUI.fl )
@@ -54,32 +52,5 @@ TARGET_LINK_LIBRARIES( kvlViewImage
                         kvlGEMSCommon
                         kvlGEMSGUI
                         )
-
-
-# Add an executable
-FLTK_WRAP_UI( kvlEvaluateSegmentation
-              kvlSegmentationEvaluationConsoleGUI.fl )
-
-ADD_EXECUTABLE( kvlEvaluateSegmentation
-                ${kvlEvaluateSegmentation_FLTK_UI_SRCS}
-                kvlEvaluateSegmentation.cxx
-                kvlSegmentationEvaluationConsole.cxx )
-TARGET_LINK_LIBRARIES( kvlEvaluateSegmentation
-                        kvlGEMSCommon
-                        kvlGEMSGUI
-                        )
-
-# Add an executable
-FLTK_WRAP_UI( kvlThresholdImage
-              kvlImageThresholdingConsoleGUI.fl )
-
-ADD_EXECUTABLE( kvlThresholdImage
-                ${kvlThresholdImage_FLTK_UI_SRCS}
-                kvlThresholdImage.cxx
-                kvlImageThresholdingConsole.cxx )
-TARGET_LINK_LIBRARIES( kvlThresholdImage
-                        kvlGEMSCommon
-                        kvlGEMSGUI
-                       )
 
 

@@ -2,18 +2,18 @@
 #include "kvlMatlabObjectArray.h"
 #include "kvlAtlasMesh.h"
 #include "kvlCroppedImageReader.h"
-#include "kvlAtlasMeshDeformationConjugateGradientOptimizer.h"
+#include "kvlAtlasMeshDeformationConjugateGradientOptimizerCPU.h"
 
 
 namespace kvl
 {
 
   
-class DeformOneStep : public MatlabRunner
+class DeformOneStepCPU : public MatlabRunner
 {
 public:
   /** Smart pointer typedef support. */
-  typedef DeformOneStep         Self;
+  typedef DeformOneStepCPU         Self;
   typedef itk::Object              Superclass;
   typedef itk::SmartPointer<Self>  Pointer;
   typedef itk::SmartPointer<const Self>  ConstPointer;
@@ -22,7 +22,7 @@ public:
   itkNewMacro( Self );
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro( DeformOneStep, itk::Object );
+  itkTypeMacro( DeformOneStepCPU, itk::Object );
 
   virtual void Run( int nlhs, mxArray* plhs[],
                     int nrhs, const mxArray* prhs[] )
@@ -31,7 +31,7 @@ public:
     //          << " and I'm running! " << std::endl;
               
               
-    // [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlDeformOneStep( optimizer )
+    // [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlDeformOneStepCPU( optimizer )
   
     // Make sure input arguments are correct
     if ( ( nrhs < 1 ) || 
@@ -45,12 +45,12 @@ public:
     double  minLogLikelihoodTimesPrior = 0.0;
     const int optimizerHandle = *( static_cast< int* >( mxGetData( prhs[ 0 ] ) ) );
     itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( optimizerHandle );
-    if ( typeid( *object ) == typeid( AtlasMeshDeformationConjugateGradientOptimizer ) )
+    if ( typeid( *object ) == typeid( AtlasMeshDeformationConjugateGradientOptimizerCPU ) )
       {
-      AtlasMeshDeformationConjugateGradientOptimizer::ConstPointer constOptimizer 
-          = static_cast< const AtlasMeshDeformationConjugateGradientOptimizer* >( object.GetPointer() );
-      AtlasMeshDeformationConjugateGradientOptimizer::Pointer  optimizer 
-          = const_cast< AtlasMeshDeformationConjugateGradientOptimizer* >( constOptimizer.GetPointer() );
+      AtlasMeshDeformationConjugateGradientOptimizerCPU::ConstPointer constOptimizer 
+          = static_cast< const AtlasMeshDeformationConjugateGradientOptimizerCPU* >( object.GetPointer() );
+      AtlasMeshDeformationConjugateGradientOptimizerCPU::Pointer  optimizer 
+          = const_cast< AtlasMeshDeformationConjugateGradientOptimizerCPU* >( constOptimizer.GetPointer() );
 
       // Let the beast go
       maximalDeformation = optimizer->PerformOneIteration();
@@ -68,11 +68,11 @@ public:
     }
   
 protected:
-  DeformOneStep() {};
-  virtual ~DeformOneStep() {};
+  DeformOneStepCPU() {};
+  virtual ~DeformOneStepCPU() {};
 
 
-  DeformOneStep(const Self&); //purposely not implemented
+  DeformOneStepCPU(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
 
 private:

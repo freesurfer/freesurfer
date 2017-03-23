@@ -181,7 +181,6 @@ void Layer::SetSlicePosition( double* slicePos )
   }
   this->blockSignals( false );;
 }
-
 void Layer::SetSlicePosition( int nPlane, double slicePos )
 {
   if ( fabs( slicePos - m_dSlicePosition[ nPlane ] ) > CLOSE_DISTANCE )
@@ -212,7 +211,6 @@ void Layer::GetDisplayBounds( double* bounds )
 {
   this->GetBounds( bounds );
 }
-
 
 bool Layer::Rotate( std::vector<RotationElement>& rotations )
 {
@@ -336,6 +334,19 @@ void Layer::SetScale(double *scale)
   m_dScale[0] = scale[0];
   m_dScale[1] = scale[1];
   m_dScale[2] = scale[2];
+  UpdateTransform();
+}
+
+void Layer::CopyTransformation(Layer *layer)
+{
+  for (int i = 0; i < 3; i++)
+  {
+    m_dTranslate[i] = layer->m_dTranslate[i];
+    m_dScale[i]     = layer->m_dScale[i];
+    m_dRotate[3]    = layer->m_dRotate[i];
+    m_bFlip[i]      = layer->m_bFlip[i];
+  }
+  m_bRotateAroundCenter = layer->m_bRotateAroundCenter;
   UpdateTransform();
 }
 

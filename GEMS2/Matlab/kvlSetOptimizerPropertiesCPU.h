@@ -1,17 +1,18 @@
 #include "kvlMatlabRunner.h" 
 #include "kvlMatlabObjectArray.h"
 #include "kvlAtlasMesh.h"
+#include "kvlAtlasMeshDeformationConjugateGradientOptimizerCPU.h"
 
 
 namespace kvl
 {
 
   
-class SetOptimizerProperties : public MatlabRunner
+class SetOptimizerPropertiesCPU : public MatlabRunner
 {
 public:
   /** Smart pointer typedef support. */
-  typedef SetOptimizerProperties         Self;
+  typedef SetOptimizerPropertiesCPU         Self;
   typedef itk::Object              Superclass;
   typedef itk::SmartPointer<Self>  Pointer;
   typedef itk::SmartPointer<const Self>  ConstPointer;
@@ -20,7 +21,7 @@ public:
   itkNewMacro( Self );
 
   /** Run-time type information (and related methods). */
-  itkTypeMacro( SetOptimizerProperties, itk::Object );
+  itkTypeMacro( SetOptimizerPropertiesCPU, itk::Object );
 
   virtual void Run( int nlhs, mxArray* plhs[],
                     int nrhs, const mxArray* prhs[] )
@@ -103,15 +104,12 @@ public:
     const int optimizerHandle = *( static_cast< int* >( mxGetData( prhs[ 0 ] ) ) );
     itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( optimizerHandle );
     
-    //std::cout<<"TypeId of object: "<<typeid(*object)<<std::endl;
-    //std::cout<<"TypeId of CG: "<<typeid(AtlasMeshDeformationConjugateGradientOptimizer)<<std::endl;
-    //std::cout<<"TypeId of CGMulti: "<<typeid(AtlasMeshDeformationConjugateGradientOptimizerMultiAtlas)<<std::endl;
-    if ( typeid( *object ) == typeid( AtlasMeshDeformationConjugateGradientOptimizer ) )
+    if ( typeid( *object ) == typeid( AtlasMeshDeformationConjugateGradientOptimizerCPU ) )
       {
-      AtlasMeshDeformationConjugateGradientOptimizer::ConstPointer constOptimizer 
-          = static_cast< const AtlasMeshDeformationConjugateGradientOptimizer* >( object.GetPointer() );
-      AtlasMeshDeformationConjugateGradientOptimizer::Pointer  optimizer 
-          = const_cast< AtlasMeshDeformationConjugateGradientOptimizer* >( constOptimizer.GetPointer() );
+      AtlasMeshDeformationConjugateGradientOptimizerCPU::ConstPointer constOptimizer 
+          = static_cast< const AtlasMeshDeformationConjugateGradientOptimizerCPU* >( object.GetPointer() );
+      AtlasMeshDeformationConjugateGradientOptimizerCPU::Pointer  optimizer 
+          = const_cast< AtlasMeshDeformationConjugateGradientOptimizerCPU* >( constOptimizer.GetPointer() );
         
       // Set the means and variances
       optimizer->SetMeans( means );
@@ -125,11 +123,11 @@ public:
     }
 
 protected:
-  SetOptimizerProperties() {};
-  virtual ~SetOptimizerProperties() {};
+  SetOptimizerPropertiesCPU() {};
+  virtual ~SetOptimizerPropertiesCPU() {};
 
 
-  SetOptimizerProperties(const Self&); //purposely not implemented
+  SetOptimizerPropertiesCPU(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
 
 private:

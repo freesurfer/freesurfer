@@ -580,7 +580,6 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
         }
         else
           lc_mri->SetCurrentRASPosition( pos );
-
       }
 
       HighlightSliceFrame( -1 );
@@ -1364,7 +1363,7 @@ void RenderView3D::TriggerContextMenu( QMouseEvent* event )
   }
 
   LayerSurface* surf = (LayerSurface*)mainwnd->GetActiveLayer("Surface");
-  if ( (surf && surf->IsContralateralReady() ) || !mainwnd->GetLayers("FCD").isEmpty())
+  if ( (surf && surf->IsContralateralPossible() ) || !mainwnd->GetLayers("FCD").isEmpty())
   {
     menu->addSeparator();
     QAction* act = new QAction("Go To Contralateral Point", this);

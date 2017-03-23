@@ -358,11 +358,28 @@ void RenderView2D::UpdateSelection( int nX, int nY )
 void RenderView2D::StopSelection()
 {
   m_selection2D->Show( false );
-
-  QList<Layer*> layers;
-  if (MainWindow::GetMainWindow()->GetCurrentLayerType() == "MRI")
-    layers = MainWindow::GetMainWindow()->GetSelectedLayers("MRI");
-  layers << MainWindow::GetMainWindow()->GetLayers("MRI");
+  QList<Layer*> layers = MainWindow::GetMainWindow()->GetSelectedLayers("MRI");
+  if (layers.size() < 2)
+  {
+    LayerMRI* sel_mri = (LayerMRI*)(layers.isEmpty() ? MainWindow::GetMainWindow()->GetActiveLayer("MRI") : layers[0]);
+    if (sel_mri && !sel_mri->IsWindowAdjustable())
+      sel_mri = NULL;
+    QList<Layer*> vols = MainWindow::GetMainWindow()->GetLayers("MRI");
+    for (int i = 0; i < vols.size(); i++)
+    {
+      LayerMRI* mri = (LayerMRI*)vols[i];
+      if (mri->IsWindowAdjustable())
+      {
+        if (sel_mri == NULL || sel_mri == mri || mri->IsObscuring())
+        {
+          layers.clear();
+          layers << mri;
+          break;
+        }
+      }
+    }
+  }
+  
   for (int i = 0; i < layers.size(); i++)
   {
     LayerMRI* layer = qobject_cast<LayerMRI*>(layers[i]);
@@ -387,7 +404,6 @@ void RenderView2D::StopSelection()
           layer->GetProperty()->SetMinMaxGenericThreshold( range[0], range[1] );
           break;
         }
-        break;
       }
     }
   }
@@ -585,7 +601,7 @@ void RenderView2D::TriggerContextMenu( QMouseEvent* event )
     connect(ag, SIGNAL(triggered(QAction*)), this, SLOT(SetScalarBarLayer(QAction*)));
   }
   LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
-  if ( surf && surf->IsContralateralReady())
+  if ( surf && surf->IsContralateralPossible())
   {
     if (!menu.actions().isEmpty())
       menu.addSeparator();

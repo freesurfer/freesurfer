@@ -6,10 +6,11 @@
 #include "kvlAtlasMeshToIntensityImageGradientCalculatorCPU.h"
 #include "itkImageFileReader.h"
 
-typedef kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::ImageType ImageType;
 
 class TestFileLoader {
 public:
+  typedef kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::ImageType ImageType;
+
   ImageType::ConstPointer image;
   kvl::AtlasMeshCollection::Pointer meshCollection;
   kvl::AtlasMesh::ConstPointer mesh;

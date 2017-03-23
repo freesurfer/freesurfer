@@ -125,6 +125,8 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
   for (int i = 0; i < m_colorPickerLandmark.size(); i++)
     m_colorPickerLandmark[i]->setCurrentColor(landmarks->GetLandmark(i).color);
   UpdateLandmarkColors();
+
+  ui->checkBoxApplyToAll->hide();
 }
 
 DialogTransformVolume::~DialogTransformVolume()
@@ -818,6 +820,15 @@ void DialogTransformVolume::OnCheckBoxFlip()
       flip[2] = ui->checkBoxFlipZ->isChecked();
       layer->SetFlip(flip);
       MainWindow::GetMainWindow()->RequestRedraw();
+	  UpdateUI(1);
     }
+  }
+}
+
+void DialogTransformVolume::OnCheckBoxApplyToAll(bool bAll)
+{
+  if (bAll)
+  {
+
   }
 }

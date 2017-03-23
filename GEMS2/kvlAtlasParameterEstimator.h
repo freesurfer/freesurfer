@@ -4,7 +4,6 @@
 #include "itkImage.h"
 #include "kvlAtlasMeshCollection.h"
 #include "kvlAtlasMeshDeformationOptimizer.h"
-#include "kvlAtlasMeshDeformationLevenbergMarquardtOptimizer.h"
 #include "kvlAtlasMeshDeformationConjugateGradientOptimizer.h"
 
 namespace kvl
@@ -37,8 +36,6 @@ public :
   /** Run-time type information (and related methods). */
   itkTypeMacro( AtlasParameterEstimator, itk::Object );
 
-
-  void SetModeLM(){m_GD=false; m_DeformationOptimizer = AtlasMeshDeformationLevenbergMarquardtOptimizer::New();}
   void SetModeCJ(){m_GD=false; m_DeformationOptimizer = AtlasMeshDeformationConjugateGradientOptimizer::New();}
   void SetModeGD(){m_GD=true;}
 

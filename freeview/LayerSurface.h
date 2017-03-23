@@ -303,6 +303,8 @@ public:
     return (m_surfaceContralateral != NULL);
   }
 
+  bool IsContralateralPossible();
+
   LayerSurface* GetContralateralSurface()
   {
     return m_surfaceContralateral;

@@ -3451,3 +3451,14 @@ bool LayerMRI::GetLayerLabelCenter(double val, double *pos_out)
   else
     return false;
 }
+
+bool LayerMRI::IsWindowAdjustable()
+{
+  return IsVisible() && GetProperty()->GetOpacity() > 0 && GetProperty()->GetColorMap() != LayerPropertyMRI::LUT &&
+      GetProperty()->GetColorMap() != LayerPropertyMRI::DirectionCoded;
+}
+
+bool LayerMRI::IsObscuring()
+{
+  return IsVisible() && GetProperty()->GetOpacity() == 1 && GetProperty()->GetColorMap() == LayerPropertyMRI::Grayscale;
+}
