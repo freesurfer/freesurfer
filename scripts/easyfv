@@ -216,8 +216,7 @@ class Params:
   # ---------------- Params.surfs --------------------- #
   # returns a list of all surfaces. not very necessary,
   # but good for consistency (see Params.vols above)
-  def surfs(self):
-    return self.surf_list
+  def surfs(self): return self.surf_list
 
   # ---------------- Params.setSubject ---------------- #
   # sets the subj_path and subj_name if the given subject is valid
@@ -235,8 +234,7 @@ class Params:
 
   # ---------------- Params.addVol -------------------- #
   # creates a volume instance and adds it to vol_list.
-  # parses the provided arguments and returns when an
-  # unrecognized option is reached
+  # default options for vol types are set here
   def addVol(self, argv, SUBJVOL=False, TYPE="volume"):
     vol = Vol(self)
     if len(argv) < 1:
@@ -259,8 +257,7 @@ class Params:
 
   # ---------------- Params.addSurf ------------------- #
   # creates a surface instance and adds it to surf_list.
-  # parses the provided arguments and returns when an
-  # unrecognized option is reached
+  # default options for surf types are set here
   def addSurf(self, argv, SUBJSURF=False):
     surf = Surf(self)
     if len(argv) < 1:
