@@ -197,6 +197,7 @@ void PanelROI::DoUpdateWidgets()
   }
   ui->comboBoxMappedSurface->setCurrentIndex(nIndex);
   ui->widgetDilateErode->setVisible(nIndex > 0);
+  ui->pushButtonResample->setVisible(nIndex > 0);
 
   BlockAllSignals( false );
 }
@@ -241,3 +242,9 @@ void PanelROI::OnButtonClose()
     layer->Close(ui->spinBoxCloseTimes->value());
 }
 
+void PanelROI::OnButtonResample()
+{
+  LayerROI* layer = GetCurrentLayer<LayerROI*>();
+  if (layer)
+    layer->Resample();
+}
