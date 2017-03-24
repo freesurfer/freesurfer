@@ -520,6 +520,7 @@ void LayerMRI::DoTransform(double *m, int sample_method)
 
 void LayerMRI::DoTransform(int sample_method)
 {
+  bool bTransformed = IsTransformed();
   UpdateResliceInterpolation();
   vtkTransform* slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
   // also record transformation in RAS space
@@ -528,17 +529,29 @@ void LayerMRI::DoTransform(int sample_method)
   ras_tr->Identity();
 
   double pos[3];
-  if (m_bRotateAroundCenter)
+  if (bTransformed || m_bUseRotationCenter)
   {
-    pos[0] = m_dWorldOrigin[0] + m_dWorldSize[0]/2;
-    pos[1] = m_dWorldOrigin[1] + m_dWorldSize[1]/2;
-    pos[2] = m_dWorldOrigin[2] + m_dWorldSize[2]/2;
+    pos[0] = m_dRotationCenter[0];
+    pos[1] = m_dRotationCenter[1];
+    pos[2] = m_dRotationCenter[2];
   }
   else
   {
-    pos[0] = m_dSlicePosition[0];
-    pos[1] = m_dSlicePosition[1];
-    pos[2] = m_dSlicePosition[2];
+    if (m_bRotateAroundCenter)
+    {
+      pos[0] = m_dWorldOrigin[0] + m_dWorldSize[0]/2;
+      pos[1] = m_dWorldOrigin[1] + m_dWorldSize[1]/2;
+      pos[2] = m_dWorldOrigin[2] + m_dWorldSize[2]/2;
+    }
+    else
+    {
+      pos[0] = m_dSlicePosition[0];
+      pos[1] = m_dSlicePosition[1];
+      pos[2] = m_dSlicePosition[2];
+    }
+    m_dRotationCenter[0] = pos[0];
+    m_dRotationCenter[1] = pos[1];
+    m_dRotationCenter[2] = pos[2];
   }
 
   // flip first

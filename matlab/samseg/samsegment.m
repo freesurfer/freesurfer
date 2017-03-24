@@ -1005,4 +1005,12 @@ samseg_writeOutFreeSurferSeg(imageFileNames{1},transformedTemplateFileName,label
 %kvlSetImageBuffer(im,labeling);
 %kvlWriteImage(im,[pathstr '/' 'seg.mgz']);
 
-
+% write out the bias field and the bias corrected image:
+for n = 1:numberOfImages
+    [dataPath, scanName, ext] = fileparts(imageFileNames{n});
+    outputfile = [dataPath '/' scanName '_biasField' ext];
+    writeOutFreeSurferSeg(imageFileNames{n},transformedTemplateFileName,exp(estimatedBiasField(:,:,:,n)/1000),outputfile);
+    
+    outputfile = [dataPath '/' scanName '_biasCorrected' ext];
+    writeOutFreeSurferSeg(imageFileNames{n},transformedTemplateFileName,exp(biasCorrectedImageBuffers(:,:,:,n)/1000),outputfile);
+end
