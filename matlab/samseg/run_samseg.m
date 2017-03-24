@@ -23,9 +23,9 @@ fprintf('UseGPU = %d\n',UseGPU);
 
 if(strcmp(imageFileName2,'none')) imageFileName2 = ''; end
 if(strcmp(imageFileName3,'none')) imageFileName3 = ''; end
-if(strcmp(imageFileName2,'none')) imageFileName4 = ''; end
-if(strcmp(imageFileName3,'none')) imageFileName5 = ''; end
-if(strcmp(imageFileName3,'none')) imageFileName6 = ''; end
+if(strcmp(imageFileName4,'none')) imageFileName4 = ''; end
+if(strcmp(imageFileName5,'none')) imageFileName5 = ''; end
+if(strcmp(imageFileName6,'none')) imageFileName6 = ''; end
 
 imageFileName = imageFileName1;
 
