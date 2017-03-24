@@ -55,6 +55,7 @@ protected slots:
   void OnButtonErode();
   void OnButtonOpen();
   void OnButtonClose();
+  void OnButtonResample();
 
 private:
   Ui::PanelROI *ui;
