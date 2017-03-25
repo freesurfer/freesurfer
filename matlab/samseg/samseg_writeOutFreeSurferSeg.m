@@ -1,4 +1,4 @@
-function samseg_writeOutFreeSurferSeg(imageFileName,transformedTemplateFileName,croppedBuffer,savePath)
+function samseg_writeOutFreeSurferSeg(imageFileName,transformedTemplateFileName,croppedBuffer,savePath, saveFileName)
 % This is Oula's code renamed. It basically uncrops to be the resolution of the input.
 %
 % $Id: samseg_writeOutFreeSurferSeg.m,v 1.1 2017/01/26 00:21:49 greve Exp $
@@ -20,7 +20,7 @@ croppedBuffer(croppedInd(1)+1:croppedInd(1)+croppedDIM(1),croppedInd(2)+1:croppe
 im = kvlReadImage(imageFileName);
 kvlSetImageBuffer(im,origBuf);
 
-kvlWriteImage(im,[savePath '/segSubSpace.mgz']);
+kvlWriteImage(im,[savePath '/' saveFileName]);
 
 return
 
