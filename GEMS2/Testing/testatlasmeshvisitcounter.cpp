@@ -9,6 +9,7 @@
 #include "atlasmeshvisitcountercpuwrapper.hpp"
 #ifdef CUDA_FOUND
 #include "atlasmeshvisitcountercuda.hpp"
+#include "visitcountersimplecuda.hpp"
 #endif
 
 #include "testfileloader.hpp"
@@ -363,6 +364,18 @@ BOOST_AUTO_TEST_CASE( UpperCornerExactCPU )
   
   UpperCornerExact( &visitCounter );
 }
+
+#ifdef CUDA_FOUND
+BOOST_AUTO_TEST_CASE( LowerCornerGPUSimpleFloat )
+{
+  kvl::cuda::VisitCounterSimple<float> visitCounter;
+ 
+  LowerCorner( &visitCounter );
+}
+
+
+#endif
+
 
 BOOST_AUTO_TEST_SUITE_END();
 
