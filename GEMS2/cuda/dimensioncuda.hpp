@@ -98,6 +98,31 @@ namespace kvl {
 	return result;
       }
 
+      void LinearIndexToLocation(const size_t idx, IndexType result[nDims]) const {
+	if( idx >= this->ElementCount() ) {
+	  throw std::range_error("Index out of range");
+	}
+
+      	size_t curr = idx;
+
+	// Condition looks odd because the loop counter is unsigned and is going to zero
+	// The 'real' condition is i>=0, but the one which will halt the loop is
+	// i<nDims, after decrementing i==0 results in i wrapping to max(i)
+	for( unsigned char i=nDims-1; (i>=0) && (i<nDims); i-- ) {
+	  result[i] = curr % this->lengths[i];
+	  curr = curr / this->lengths[i];
+	}
+      }
+
+      size_t ElementCount() const {
+	size_t result = 1;
+	
+	for( unsigned char i=0; i<nDims; i++ ) {
+	  result *= this->lengths[i];
+	}
+	
+	return result;
+      }
 
     private:
       IndexType lengths[nDims];

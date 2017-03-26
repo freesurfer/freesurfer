@@ -176,5 +176,107 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( testPointInRangeNegative, LengthType, TestLengthT
   BOOST_CHECK_EQUAL( false, d.PointInRange(inRange,inRange,n2) );
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE( testElementCount, LengthType, TestLengthTypes )
+{
+  BOOST_TEST_CONTEXT("Seed: " << gPRNG.Reseed()) {
+    kvl::cuda::Dimension<1,LengthType> d1;
+    kvl::cuda::Dimension<3,LengthType> d3;
+    
+    const LengthType n0 = gPRNG.GetInteger<LengthType>(std::numeric_limits<LengthType>::max());
+    const LengthType n1 = gPRNG.GetInteger<LengthType>(std::numeric_limits<LengthType>::max());
+    const LengthType n2 = gPRNG.GetInteger<LengthType>(std::numeric_limits<LengthType>::max());
+    
+    const size_t total1 = n0;
+    const size_t total3 = static_cast<size_t>(n0) *
+      static_cast<size_t>(n1) *
+      static_cast<size_t>(n2);
+  
+    d1[0] = d3[0] = n0;
+    d3[1] = n1;
+    d3[2] = n2;
+    
+    BOOST_CHECK_EQUAL( total1, d1.ElementCount() );
+    BOOST_CHECK_EQUAL( total3, d3.ElementCount() );
+  }
+}
+
+template<typename LengthType,int nDims>
+void checkLinearIndexToLocation() {
+  kvl::cuda::Dimension<nDims,LengthType> d;
+  
+  LengthType n[nDims];
+
+  long double exponent = 1.0 / nDims;
+  long double base = std::numeric_limits<size_t>::max();
+  long double maxLength = pow(base,exponent);
+  
+  LengthType maxVal = std::numeric_limits<LengthType>::max()-1;
+  if( maxLength < maxVal ) {
+    maxVal = maxLength;
+  }
+  
+  for( unsigned char i=0; i<nDims; i++ ) {
+    n[i] = 1+gPRNG.GetInteger<LengthType>(maxVal);
+    d[i] = n[i];
+  }
+  
+  // Basic checks
+  LengthType result[nDims];
+  size_t elementCount = 1;
+  for( unsigned char i=0; i<nDims; i++ ) {
+    elementCount *= n[i];
+  }
+  
+  // Check in range
+  BOOST_CHECK_THROW( d.LinearIndexToLocation(elementCount, result), std::range_error );
+
+  // Check first element
+  d.LinearIndexToLocation(0, result);
+  for( unsigned char i=0; i<nDims; i++ ) {
+    BOOST_CHECK_EQUAL( result[i], 0 );
+  }
+
+  // Check last element
+  d.LinearIndexToLocation(elementCount-1, result);
+  for( unsigned char i=0; i<nDims; i++ ) {
+    BOOST_CHECK_EQUAL( result[i], n[i]-1 );
+  }
+
+  // Check a random element
+  size_t location = gPRNG.GetInteger<size_t>(elementCount);
+
+  LengthType loc[nDims];
+  d.LinearIndexToLocation(location, loc);
+  BOOST_CHECK_EQUAL( location, d.GetLinearIndexFromArray(loc) );
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( testLinearIndexToLocation1d, LengthType, TestLengthTypes )
+{
+  BOOST_TEST_CONTEXT("Seed: " << gPRNG.Reseed()) {
+    checkLinearIndexToLocation<LengthType,1>();
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( testLinearIndexToLocation2d, LengthType, TestLengthTypes )
+{
+  BOOST_TEST_CONTEXT("Seed: " << gPRNG.Reseed()) {
+    checkLinearIndexToLocation<LengthType,2>();
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( testLinearIndexToLocation3d, LengthType, TestLengthTypes )
+{
+  BOOST_TEST_CONTEXT("Seed: " << gPRNG.Reseed()) {
+    checkLinearIndexToLocation<LengthType,3>();
+  }
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( testLinearIndexToLocation4d, LengthType, TestLengthTypes )
+{
+  BOOST_TEST_CONTEXT("Seed: " << gPRNG.Reseed()) {
+    checkLinearIndexToLocation<LengthType,4>();
+  }
+}
+
 
 BOOST_AUTO_TEST_SUITE_END();
