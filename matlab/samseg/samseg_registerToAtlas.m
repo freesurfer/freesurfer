@@ -49,9 +49,20 @@ end
 
 
 % Do the job
-%[pathstr,name,ext] = fileparts( imageFileName );
-transformedTemplateFileName = samseg_coregisterAtlas_SPM(imageFileName,templateFileName,meshCollectionFileName,compressionLookupTableFileName,initializeUsingCenterOfGravityAlignment,savePath);
-    
+[pathstr,name,ext] = fileparts( imageFileName );
+
+% Add rician noise
+imageHandle = kvlReadImage(imageFileName );
+imageBuffer = kvlGetImageBuffer( imageHandle );
+RicianNoise = ( ( randn( size( imageBuffer ) ) ).^2 + ( randn( size( imageBuffer ) ) ).^2 ).^(1/2);
+perfectlyZeroMask = ( imageBuffer == 0 ) ;
+imageBuffer( find( perfectlyZeroMask(:) ) ) = 3 * RicianNoise( find(perfectlyZeroMask(:) ) );
+kvlSetImageBuffer( imageHandle, imageBuffer );
+imageFileNoise = sprintf('%s/%s_noise.mgz',savePath,name);
+kvlWriteImage( imageHandle, imageFileNoise );
+
+transformedTemplateFileName = samseg_coregisterAtlas_SPM(imageFileNoise,templateFileName,meshCollectionFileName,compressionLookupTableFileName,initializeUsingCenterOfGravityAlignment,savePath);
+
  
 % Show after registration
 if(showFigs)
