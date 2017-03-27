@@ -61,18 +61,13 @@ foreach num ($threads)
         nu.mgz \
         ../../distribution/average/RB_all_2016-05-10.vc700.gca \
         talairach.${num}cpu.lta)
-    echo "\n\n $cmd \n\n" |& tee -a $log
-    $cmd |& tee -a $log
+    $cmd
     if ($status != 0) then
-        echo "mri_em_register FAILED" |& tee -a $log
+        echo "mri_em_register FAILED"
     exit 1
     endif
 
 end
-
-echo "" |& tee -a $log
-echo "" |& tee -a $log
-echo "" |& tee -a $log
 
 #
 # compare expected results with actual (produced) results
@@ -82,10 +77,9 @@ foreach num ($threads)
 
   set cmd=(../../mri_robust_register/lta_diff \
     talairach.lta talairach.${num}cpu.lta);
-  echo "\n\n $cmd \n\n" |& tee -a $log
-  set result = (`$cmd |& tee -a $log`)
-  if ($result != 0) then
-    echo "$cmd FAILED (RMS=$result)" |& tee -a $log
+  $cmd
+  if ($status != 0) then
+    echo "$cmd FAILED (RMS=$result)"
     exit 1
   endif
 
@@ -97,6 +91,6 @@ end
 cd ..
 rm -Rf testdata
 
-echo "" |& tee -a $log
-echo "test_mri_em_register passed all tests" |& tee -a $log
+echo "" 
+echo "test_mri_em_register passed all tests"
 exit 0
