@@ -2,6 +2,7 @@
 # Makefile.am for matlab files
 #
 
+
 foodir=$(prefix)/matlab/lme/geodesic
 mfilesdir=$(prefix)/matlab
 siemensdir=$(prefix)/matlab
@@ -15,8 +16,6 @@ survivalfilesdir=$(prefix)/matlab/Survival
 survivalexdatafilesdir=$(prefix)/matlab/Survival/ex_data
 survivalmassunifilesdir=$(prefix)/matlab/Survival/mass_univariate
 survivalunifilesdir=$(prefix)/matlab/Survival/univariate
-
-dist_bin_SCRIPTS = samseg/run_samseg samseg/samseg
 
 mfiles_DATA=\
 	angles2rotmat.m \
@@ -257,11 +256,15 @@ lmeQdecfiles_DATA=\
 	lme/Qdec/rmQdecCol.m
 
 samsegfiles_DATA=\
-	samseg/run_samseg.m \ 
-	samseg/samseg_coregisterAtlas_SPM.m  \
-	samseg/samsegment.m  \
-	samseg/samseg_registerToAtlas.m  \
+	samseg/run_samseg.m \
+	samseg/samseg_coregisterAtlas_SPM.m \
+	samseg/samsegment.m \
+	samseg/samseg_registerToAtlas.m \
 	samseg/samseg_writeOutFreeSurferSeg.m
+
+samseg_binfiles=\
+	samseg/run_samseg \
+	samseg/samseg
 
 survivalfiles_DATA=\
 	Survival/SStat_lmeX_ext.m
@@ -299,7 +302,8 @@ install-data-local:
 	$(INSTALL_DATA) $(survivalexdatafiles_datafiles) $(DESTDIR)$(survivalexdatafilesdir)
 	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(DESTDIR)$(foodir)
-
+	test -z $(DESTDIR)$(bindir) || $(mkdir_p) $(DESTDIR)$(bindir)
+	$(INSTALL_DATA) $(samseg_binfiles) $$(DESTDIR)$(bindir)
 
 
 EXTRA_DIST=$(mfiles_DATA) \
