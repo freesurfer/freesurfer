@@ -7381,8 +7381,9 @@ void MainWindow::GoToContralateralPoint()
   }
 }
 
-void MainWindow::GoToContralateralPoint(LayerSurface *layer)
+void MainWindow::GoToContralateralPoint(LayerSurface *layer_in)
 {
+  LayerSurface* layer = layer_in;
   double pos[3];
   layer->GetSlicePosition(pos);
   int nvo = -1;
@@ -7391,6 +7392,14 @@ void MainWindow::GoToContralateralPoint(LayerSurface *layer)
     nvo = layer->GetCurrentVertex();
   else
     nvo = layer->GetVertexIndexAtTarget(pos, NULL);
+  if (nvo < 0 && layer->GetContralateralSurface())
+  {
+    layer = layer->GetContralateralSurface();
+    if (bInflated)
+      nvo = layer->GetCurrentVertex();
+    else
+      nvo = layer->GetVertexIndexAtTarget(pos, NULL);
+  }
   nvo = layer->GetContralateralVertex(nvo);
   if (nvo >= 0)
   {
@@ -7412,7 +7421,7 @@ void MainWindow::GoToContralateralPoint(LayerSurface *layer)
   }
   else
   {
-    qDebug() << "Did not find any vertex at cursor";
+    qDebug() << "Did not find any vertex at cursor on" << layer->GetName();
   }
 }
 
