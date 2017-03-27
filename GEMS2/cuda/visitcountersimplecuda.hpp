@@ -4,6 +4,8 @@
 
 #include "atlasmeshvisitcounter.hpp"
 
+#include "dimensioncuda.hpp"
+
 namespace kvl {
   namespace cuda {
     template<typename T>
@@ -26,21 +28,25 @@ namespace kvl {
 	std::cout << "Found " << tetrahedronIds.size() << " tetrahedra" << std::endl;
 
 	// Extract co-ordinates
+	Dimension<3, unsigned long> tetArrDims;
 	std::vector<T> tetrahedra;
-	tetrahedra.resize(tetrahedronIds.size() * nDims * nVertices);
+	tetArrDims[0] = tetrahedronIds.size();
+	tetArrDims[1] = nVertices;
+	tetArrDims[2] = nDims;
+	tetrahedra.resize(tetArrDims.ElementCount());
 
 	for( int iTet=0; iTet<tetrahedronIds.size(); iTet++ ) {
 	  AtlasMesh::CellAutoPointer cell;
 	  mesh->GetCell( tetrahedronIds.at(iTet), cell );
 
 	  auto pit = cell->PointIdsBegin();
-	  int iVertex = 0;
+	  unsigned long iVertex = 0;
 	  for( auto pit = cell->PointIdsBegin(); pit != cell->PointIdsEnd(); ++pit ) {
 	    AtlasMesh::PointType p;
 	    mesh->GetPoint( *pit, &p );
 
-	    for( int i=0; i<nDims; i++ ) {
-	      int idx = i + nDims * ( iVertex + (iTet * nVertices ) );
+	    for( unsigned long i=0; i<nDims; i++ ) {
+	      size_t idx = tetArrDims.GetLinearIndex((unsigned long)iTet,iVertex,i);
 	      tetrahedra.at(idx) = p[i];
 	    }
 
