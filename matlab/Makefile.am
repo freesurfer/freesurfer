@@ -10,6 +10,7 @@ lmegeofilesdir=$(prefix)/matlab/lme/geodesic
 lmemassunifilesdir=$(prefix)/matlab/lme/mass_univariate
 lmeunifilesdir=$(prefix)/matlab/lme/univariate
 lmeQdecfilesdir=$(prefix)/matlab/lme/Qdec
+samsegfilesdir=$(prefix)/matlab/samseg
 survivalfilesdir=$(prefix)/matlab/Survival
 survivalexdatafilesdir=$(prefix)/matlab/Survival/ex_data
 survivalmassunifilesdir=$(prefix)/matlab/Survival/mass_univariate
@@ -255,6 +256,13 @@ lmeQdecfiles_DATA=\
 	lme/Qdec/Qdec2num.m \
 	lme/Qdec/rmQdecCol.m
 
+samsegfiles_DATA=\
+	samseg/run_samseg.m \ 
+	samseg/samseg_coregisterAtlas_SPM.m  \
+	samseg/samsegment.m  \
+	samseg/samseg_registerToAtlas.m  \
+	samseg/samseg_writeOutFreeSurferSeg.m
+
 survivalfiles_DATA=\
 	Survival/SStat_lmeX_ext.m
 
@@ -300,6 +308,7 @@ EXTRA_DIST=$(mfiles_DATA) \
 	$(lmeunifiles_DATA) \
 	$(lmemassunifiles_DATA) \
 	$(lmeQdecfiles_DATA) \
+	$(samsegfiles_DATA) \
 	$(survivalfiles_DATA) \
 	$(survivalexdatafiles_DATA) \
 	$(survivalmassunifiles_DATA) \

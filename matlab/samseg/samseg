@@ -16,6 +16,9 @@ set LF = ();
 set input = ()
 set input2 = none
 set input3 = none
+set input4 = none
+set input5 = none
+set input6 = none
 set computedice = 0;
 set diceseg = none
 if($?SAMSEG_DATA_DIR == 0) then
@@ -99,7 +102,7 @@ endif
 
 #========================================================
 if($usebin) then
-  set cmd = (run_samseg $input $outdir $threads $usegpu $input2 $input3)
+  set cmd = (run_samseg $input $outdir $threads $usegpu $input2 $input3 $input4 $input5 $input6)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -112,13 +115,13 @@ else
   echo "which run_samseg"  >> $MLF
   echo "which samsegment"  >> $MLF
   echo "which samseg_registerToAtlas"  >> $MLF
-  echo "run_samseg('$input','$outdir','$threads','$usegpu','$input2','$input3');" >> $MLF
+  echo "run_samseg('$input','$outdir','$threads','$usegpu','$input2','$input3','$input4','$input5','$input6');" >> $MLF
   if($monly == 0) echo "quit;" >> $MLF
   # threads here is either 1 or not 1. not1 = all cpus
   cat $MLF | tee -a $LF
   if(! $monly) cat $MLF |& $matlab -display iconic $threads |& tee -a $LF
 endif
-#========================================================
+# ========================================================
 # Compute dice:
 if ($computedice) then
   set cmd = (mri_compute_seg_overlap -log $outdir/dice.log $diceseg $outdir/segSubSpace.mgz)
@@ -184,6 +187,21 @@ while( $#argv != 0 )
     case "--i3":
       if($#argv < 1) goto arg1err;
       set input3 = $argv[1]; shift;
+      breaksw
+
+    case "--i4":
+      if($#argv < 1) goto arg1err;
+      set input4 = $argv[1]; shift;
+      breaksw
+
+    case "--i5":
+      if($#argv < 1) goto arg1err;
+      set input5 = $argv[1]; shift;
+      breaksw
+
+    case "--i6":
+      if($#argv < 1) goto arg1err;
+      set input6 = $argv[1]; shift;
       breaksw
 
     case "--sdd":
@@ -299,7 +317,7 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "samseg --i file.mgz --o outdir <--i2 file2.mgz <--i3 file3.mgz>>"
+  echo "samseg --i file.mgz --o outdir <--i2 file2.mgz> <--i3 file3.mgz>... <--i6>"
   echo "samseg --s subject"
   echo ""
 
