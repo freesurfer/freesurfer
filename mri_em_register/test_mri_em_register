@@ -46,9 +46,6 @@ gunzip -c testdata.tar.gz | tar xvf -
 
 cd testdata
 
-set log = (../test_mri_em_register.log)
-if (-e $log) rm -f $log 
-
 set threads=( 1 8 )
 if ( $?SKIP_MRI_EMREG_1CPU_TEST ) set threads=( 8 )
 
