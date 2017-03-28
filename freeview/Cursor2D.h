@@ -43,8 +43,6 @@ public:
   Cursor2D( RenderView2D* view );
   virtual ~Cursor2D();
 
-  enum CursorStyle { CS_Small = 0, CS_Large, CS_Long };
-
   void SetPosition( double* pos, bool bConnectPrevious = false );
   void SetPosition2( double* pos);
 
@@ -68,8 +66,6 @@ public:
 
   QColor GetColor();
 
-  int GetRadius();
-
   void Update( bool bConnectPrevious = false );
 
   void AppendActor( vtkRenderer* renderer );
@@ -78,15 +74,11 @@ public:
 
   bool IsShown();
 
-  int GetStyle()
-  {
-    return m_nStyle;
-  }
+  int GetSize();
 
 public slots:
   void SetColor( const QColor& color );
-  void SetRadius( int nPixels );
-  void SetStyle( int nStyle );
+  void SetSize( int nSize );
 
 Q_SIGNALS:
   void Updated();
@@ -100,8 +92,7 @@ private:
   double  m_dPosition2[3];
   std::vector<double> m_dInterpolationPoints;
 
-  int   m_nRadius;
-  int   m_nStyle;
+  int   m_nSize;
 };
 
 #endif

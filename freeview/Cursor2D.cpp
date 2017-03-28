@@ -43,8 +43,7 @@
 
 Cursor2D::Cursor2D( RenderView2D* view ) : QObject( view ),
   m_view( view ),
-  m_nRadius( 5 ),
-  m_nStyle( CS_Small )
+  m_nSize( 5 )
 {
   m_actorCursor = vtkSmartPointer<vtkActor2D>::New();
   m_actorCursor->GetProperty()->SetColor( 1, 0, 0 );
@@ -73,10 +72,9 @@ void Cursor2D::SetPosition( double* pos, bool bConnectPrevious  )
   Update( bConnectPrevious );
 }
 
-void Cursor2D::SetStyle( int nStyle )
+void Cursor2D::SetSize(int nSize)
 {
-  m_nStyle = nStyle;
-  m_nRadius = (nStyle == CS_Small?5:10);
+  m_nSize = qMax(5, nSize);
   Update();
 }
 
@@ -84,7 +82,7 @@ void Cursor2D::Update( bool bConnectPrevious )
 {
   // vtkRenderer* renderer = m_view->GetRenderer();
 
-  double dLen = ( m_nStyle == CS_Long ? 100000 : m_nRadius );
+  double dLen = ( m_nSize == 100 ? 100000 : m_nSize );
 
   int n = 0;
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
@@ -129,7 +127,7 @@ void Cursor2D::Update( bool bConnectPrevious )
   lines->InsertNextCell( 2 );
   lines->InsertCellPoint( n++ );
   lines->InsertCellPoint( n++ );
-  if ( m_nStyle != CS_Long )
+  if ( m_nSize < 100 )
   {
     int w, h;
     w = m_view->rect().width();
@@ -240,6 +238,7 @@ void Cursor2D::SetColor( double r, double g, double b )
 void Cursor2D::SetColor( const QColor& color )
 {
   SetColor( color.redF(), color.greenF(), color.blueF() );
+  int GetRadius();
 }
 
 void Cursor2D::GetColor( double* rgb )
@@ -253,18 +252,9 @@ QColor Cursor2D::GetColor()
   return QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) );
 }
 
-int Cursor2D::GetRadius()
+int Cursor2D::GetSize()
 {
-  return m_nRadius;
-}
-
-void Cursor2D::SetRadius( int nRadius )
-{
-  if ( nRadius > 1 )
-  {
-    m_nRadius = nRadius;
-    Update();
-  }
+  return m_nSize;
 }
 
 double* Cursor2D::GetPosition()
