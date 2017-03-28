@@ -45,6 +45,8 @@ if !(-e $in) then
   exit 1
 endif
 
+source $FREESURFER_HOME/sources.csh
+
 mri_info $in | grep type | grep -q nii
 if $status then
   echo "ERROR: input file must be in NIfTI format"
