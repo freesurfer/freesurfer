@@ -523,9 +523,10 @@ void MainWindow::LoadSettings()
   {
     m_settings["CursorColor"] = QColor(Qt::red);
   }
-  if (!m_settings.contains("CursorStyle"))
+  if (!m_settings.contains("CursorSize"))
   {
-    m_settings["CursorStyle"] = 0;
+    m_settings["CursorSize"] = 5;
+    m_settings["CursorSize3D"] = 5;
   }
   if (!m_settings.contains("AnnotationColor"))
   {
@@ -558,17 +559,14 @@ void MainWindow::LoadSettings()
     if ( i < 3 )
     {
       ((RenderView2D*)m_views[i])->GetCursor2D()->SetColor(m_settings["CursorColor"].value<QColor>());
-      ((RenderView2D*)m_views[i])->GetCursor2D()->SetStyle(m_settings["CursorStyle"].toInt());
+      ((RenderView2D*)m_views[i])->GetCursor2D()->SetSize(m_settings["CursorSize"].toInt());
     }
     else
     {
       ((RenderView3D*)m_views[i])->GetCursor3D()->SetColor(m_settings["CursorColor"].value<QColor>());
       ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetColor(m_settings["CursorColor"].value<QColor>());
-      if (m_settings["CursorStyle"].toInt() < 2)
-      {
-        ((RenderView3D*)m_views[i])->GetCursor3D()->SetLarge(m_settings["CursorStyle"].toInt());
-        ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetLarge(m_settings["CursorStyle"].toInt());
-      }
+      ((RenderView3D*)m_views[i])->GetCursor3D()->SetSize(m_settings["CursorSize3D"].toInt());
+      ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetSize(m_settings["CursorSize3D"].toInt());
     }
   }
   SyncZoom(m_settings["SyncZoom"].toBool());

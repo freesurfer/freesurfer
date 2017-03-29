@@ -48,8 +48,8 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   {
     connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)),
             ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetColor(QColor)));
-    connect(ui->comboBoxCursorStyle, SIGNAL(currentIndexChanged(int)),
-            ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetStyle(int)));
+    connect(ui->horizontalSliderSize2D, SIGNAL(valueChanged(int)),
+            ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetSize(int)));
     connect(ui->colorPickerAnnotation, SIGNAL(colorChanged(QColor)),
             ((RenderView2D*)mainwnd->GetRenderView(i))->GetAnnotation2D(), SLOT(SetColor(QColor)));
   }
@@ -57,10 +57,10 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
           ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetColor(QColor)));
   connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)),
           ((RenderView3D*)mainwnd->GetRenderView(3))->GetInflatedSurfCursor(), SLOT(SetColor(QColor)));
-  connect(ui->comboBoxCursorStyle, SIGNAL(currentIndexChanged(int)),
-          ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetStyle(int)));
-  connect(ui->comboBoxCursorStyle, SIGNAL(currentIndexChanged(int)),
-          ((RenderView3D*)mainwnd->GetRenderView(3))->GetInflatedSurfCursor(), SLOT(SetStyle(int)));
+  connect(ui->horizontalSliderSize3D, SIGNAL(valueChanged(int)),
+          ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetSize(int)));
+  connect(ui->horizontalSliderSize3D, SIGNAL(valueChanged(int)),
+          ((RenderView3D*)mainwnd->GetRenderView(3))->GetInflatedSurfCursor(), SLOT(SetSize(int)));
   connect(ui->checkBoxSyncZoom, SIGNAL(toggled(bool)),
           mainwnd, SLOT(SyncZoom(bool)));
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)),
@@ -79,7 +79,8 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
   connect(ui->colorPickerAnnotation, SIGNAL(colorChanged(QColor)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->colorPickerBackground, SIGNAL(colorChanged(QColor)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)), mainwnd, SLOT(UpdateSettings()));
-  connect(ui->comboBoxCursorStyle, SIGNAL(currentIndexChanged(int)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->horizontalSliderSize2D, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
+  connect(ui->horizontalSliderSize3D, SIGNAL(valueChanged(int)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxRightButtonErase, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxSaveCopy, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
   connect(ui->checkBoxSyncZoom, SIGNAL(toggled(bool)), mainwnd, SLOT(UpdateSettings()));
@@ -98,7 +99,8 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   BlockAllSignals(this, true);
   ui->colorPickerBackground->setCurrentColor(map["BackgroundColor"].value<QColor>());
   ui->colorPickerCursor->setCurrentColor(map["CursorColor"].value<QColor>());
-  ui->comboBoxCursorStyle->setCurrentIndex(map["CursorStyle"].toInt());
+  ui->horizontalSliderSize2D->setValue(map["CursorSize"].toInt());
+  ui->horizontalSliderSize3D->setValue(map["CursorSize3D"].toInt());
   ui->checkBoxSaveCopy->setChecked(map["SaveCopy"].toBool());
   ui->checkBoxSyncZoom->setChecked(map["SyncZoom"].toBool());
   ui->checkBoxCommandKey->setChecked(map["MacUseCommand"].toBool());
@@ -117,7 +119,8 @@ QVariantMap DialogPreferences::GetSettings()
   QVariantMap map;
   map["BackgroundColor"] = ui->colorPickerBackground->currentColor();
   map["CursorColor"] = ui->colorPickerCursor->currentColor();
-  map["CursorStyle"] = ui->comboBoxCursorStyle->currentIndex();
+  map["CursorSize"] = ui->horizontalSliderSize2D->value();
+  map["CursorSize3D"] = ui->horizontalSliderSize3D->value();
   map["SaveCopy"] = ui->checkBoxSaveCopy->isChecked();
   map["SyncZoom"] = ui->checkBoxSyncZoom->isChecked();
   map["MacUseCommand"] = ui->checkBoxCommandKey->isChecked();
@@ -137,7 +140,8 @@ void DialogPreferences::OnClicked(QAbstractButton* btn)
     ui->colorPickerBackground->setCurrentColor(Qt::black);
     ui->colorPickerCursor->setCurrentColor(Qt::red);
     ui->colorPickerAnnotation->setCurrentColor(Qt::white);
-    ui->comboBoxCursorStyle->setCurrentIndex(0);
+    ui->horizontalSliderSize2D->setValue(5);
+    ui->horizontalSliderSize3D->setValue(1);
     ui->checkBoxSaveCopy->setChecked(true);
     ui->checkBoxRightButtonErase->setChecked(false);
     ui->checkBoxSyncZoom->setChecked(true);

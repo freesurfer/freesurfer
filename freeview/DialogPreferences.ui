@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>431</width>
-    <height>503</height>
+    <height>549</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -66,54 +66,8 @@
           <string>View</string>
          </property>
          <layout class="QGridLayout" name="gridLayout">
-          <item row="2" column="1">
-           <widget class="QComboBox" name="comboBoxCursorStyle">
-            <item>
-             <property name="text">
-              <string>Small</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Large</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Long</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item row="5" column="0" colspan="3">
-           <widget class="QCheckBox" name="checkBoxDecimalVoxelCoord">
-            <property name="text">
-             <string>Show decimal voxel coordinates on Info panel</string>
-            </property>
-            <property name="checked">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="label_4">
-            <property name="text">
-             <string>Annotation color</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QtColorPicker" name="colorPickerCursor" native="true"/>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="label_3">
-            <property name="text">
-             <string>Cursor style</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="2">
-           <spacer name="horizontalSpacer_3">
+          <item row="1" column="2">
+           <spacer name="horizontalSpacer_2">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -125,16 +79,23 @@
             </property>
            </spacer>
           </item>
-          <item row="0" column="1">
-           <widget class="QtColorPicker" name="colorPickerBackground" native="true"/>
-          </item>
-          <item row="3" column="1">
+          <item row="4" column="1">
            <widget class="QtColorPicker" name="colorPickerAnnotation" native="true"/>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_2">
             <property name="text">
              <string>Cursor color</string>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxSyncZoom">
+            <property name="text">
+             <string>Sync zoom factor of 2D views</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -151,6 +112,9 @@
             </property>
            </spacer>
           </item>
+          <item row="1" column="1">
+           <widget class="QtColorPicker" name="colorPickerCursor" native="true"/>
+          </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label">
             <property name="text">
@@ -158,8 +122,8 @@
             </property>
            </widget>
           </item>
-          <item row="1" column="2">
-           <spacer name="horizontalSpacer_2">
+          <item row="2" column="2">
+           <spacer name="horizontalSpacer_3">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -171,14 +135,130 @@
             </property>
            </spacer>
           </item>
-          <item row="4" column="0" colspan="3">
-           <widget class="QCheckBox" name="checkBoxSyncZoom">
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_4">
             <property name="text">
-             <string>Sync zoom factor of 2D views</string>
+             <string>Annotation color</string>
+            </property>
+           </widget>
+          </item>
+          <item row="6" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxDecimalVoxelCoord">
+            <property name="text">
+             <string>Show decimal voxel coordinates on Info panel</string>
             </property>
             <property name="checked">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QtColorPicker" name="colorPickerBackground" native="true">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0" colspan="3">
+           <widget class="QGroupBox" name="groupBox_3">
+            <property name="title">
+             <string>Cursor size</string>
+            </property>
+            <layout class="QGridLayout" name="gridLayout_2">
+             <property name="leftMargin">
+              <number>15</number>
+             </property>
+             <property name="topMargin">
+              <number>12</number>
+             </property>
+             <property name="rightMargin">
+              <number>15</number>
+             </property>
+             <item row="3" column="3">
+              <widget class="QLabel" name="label_8">
+               <property name="styleSheet">
+                <string notr="true">font-size:9px;</string>
+               </property>
+               <property name="text">
+                <string>long</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_6">
+               <property name="text">
+                <string>3D:</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_5">
+               <property name="text">
+                <string>2D: </string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1" colspan="3">
+              <widget class="QSlider" name="horizontalSliderSize3D">
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="maximum">
+                <number>100</number>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QLabel" name="label_7">
+               <property name="styleSheet">
+                <string notr="true">font-size:9px</string>
+               </property>
+               <property name="text">
+                <string>short</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1" colspan="3">
+              <widget class="QSlider" name="horizontalSliderSize2D">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                 <horstretch>1</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimum">
+                <number>5</number>
+               </property>
+               <property name="maximum">
+                <number>100</number>
+               </property>
+               <property name="orientation">
+                <enum>Qt::Horizontal</enum>
+               </property>
+               <property name="invertedAppearance">
+                <bool>false</bool>
+               </property>
+               <property name="invertedControls">
+                <bool>false</bool>
+               </property>
+               <property name="tickPosition">
+                <enum>QSlider::NoTicks</enum>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </widget>
           </item>
          </layout>

@@ -43,7 +43,7 @@
 
 
 Cursor3D::Cursor3D( RenderView3D* view ) : QObject( view ),
-  m_view( view ), m_bLarge(false), m_dScale(1.0)
+  m_view( view ), m_nSize(5), m_dScale(1.0)
 {
   m_actorCursor = vtkSmartPointer<vtkActor>::New();
   m_actorCursor->GetProperty()->SetColor( 1, 0, 0 );
@@ -62,7 +62,7 @@ void Cursor3D::RebuildActor(double scale)
   if (scale > 0)
     m_dScale = scale;
 
-  double dLen = 1.5*m_dScale * (m_bLarge?2:1);
+  double dLen = 1.5*m_dScale * (1 + (m_nSize-1.0)/5.0);
   int n = 0;
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
@@ -99,9 +99,9 @@ void Cursor3D::RebuildActor(double scale)
   emit Updated();
 }
 
-void Cursor3D::SetLarge(bool bLarge)
+void Cursor3D::SetSize(int nSize)
 {
-  m_bLarge = bLarge;
+  m_nSize = qMax(1, nSize);
   RebuildActor();
 }
 
