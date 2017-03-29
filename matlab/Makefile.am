@@ -303,7 +303,7 @@ install-data-local:
 	test -z $(DESTDIR)$(foodir) || $(mkdir_p) $(DESTDIR)$(foodir)
 	$(INSTALL_DATA) $(foo_datafiles) $(DESTDIR)$(foodir)
 	test -z $(DESTDIR)$(bindir) || $(mkdir_p) $(DESTDIR)$(bindir)
-	$(INSTALL_PROGRAM) $(samseg_binfiles) $$(DESTDIR)$(bindir)
+	$(INSTALL_PROGRAM) $(samseg_binfiles) $(DESTDIR)$(bindir)
 
 
 EXTRA_DIST=$(mfiles_DATA) \
