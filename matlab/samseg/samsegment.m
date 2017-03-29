@@ -999,10 +999,18 @@ for label = 1:length(FreeSurferLabels)
 end
 [pathstr,name,ext] = fileparts(imageFileNames{1});
 fprintf('Writing out freesurfer seg\n');
-samseg_writeOutFreeSurferSeg(imageFileNames{1},transformedTemplateFileName,labeling,savePath);
+samseg_writeOutFreeSurferSeg(imageFileNames{1},transformedTemplateFileName,labeling,savePath,'segSubSpace.mgz');
 %writeOutFreeSurferSeg(imageFileNames{1},transformedTemplateFileName,labeling,pathstr);
 %im = kvlReadCroppedImage(imageFileNames{1},transformedTemplateFileName);
 %kvlSetImageBuffer(im,labeling);
 %kvlWriteImage(im,[pathstr '/' 'seg.mgz']);
 
-
+% write out the bias field and the bias corrected image:
+for n = 1:numberOfImages
+  [dataPath, scanName, ext] = fileparts(imageFileNames{n});
+  outputfile = [scanName '_biasField.mgz'];
+  samseg_writeOutFreeSurferSeg(imageFileNames{n},transformedTemplateFileName,exp(estimatedBiasField(:,:,:,n)/1000),savePath, outputfile);
+  
+  outputfile = [scanName '_biasCorrected.mgz'];
+  samseg_writeOutFreeSurferSeg(imageFileNames{n},transformedTemplateFileName,exp(biasCorrectedImageBuffers(:,:,:,n)/1000),savePath, outputfile);
+end

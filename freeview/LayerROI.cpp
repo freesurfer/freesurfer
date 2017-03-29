@@ -51,6 +51,7 @@
 #include <stdlib.h>
 #include <QDebug>
 #include "LayerSurface.h"
+#include "FSVolume.h"
 
 LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( parent )
 {
@@ -605,6 +606,26 @@ void LayerROI::Close(int nTimes)
     ::LabelDilate(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes,
                   m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
     ::LabelErode(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes);
+    OnLabelDataUpdated();
+  }
+}
+
+void LayerROI::Resample()
+{
+  if (m_layerMappedSurface)
+  {
+    SaveForUndo();
+    LABEL* old_label = m_label->GetRawLabel();
+    ::LabelUnassign(old_label);
+    LABEL* label = ::LabelSampleToSurface(m_layerMappedSurface->GetSourceSurface()->GetMRIS(), old_label,
+                                          m_layerSource->GetSourceVolume()->GetMRI(),
+                                          m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
+    if (label)
+    {
+      old_label->n_points = label->n_points ;
+      memmove(old_label->lv, label->lv, label->n_points*sizeof(LABEL_VERTEX));
+      LabelFree(&label);
+    }
     OnLabelDataUpdated();
   }
 }
