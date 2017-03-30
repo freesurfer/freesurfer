@@ -14,6 +14,7 @@ IF(Boost_FOUND)
   LIST(APPEND testsrcs testatlasmeshrasterizorbasic.cpp)
   LIST(APPEND testsrcs atlasmeshvisitcountercpuwrapper.cpp)
   LIST(APPEND testsrcs testatlasmeshvisitcounter.cpp)
+  LIST(APPEND testsrcs testdimensioncuda.cpp)
 
   IF( CUDA_FOUND )
     LIST(APPEND testsrcs cudaglobalfixture.cpp)
