@@ -4147,14 +4147,14 @@ void MainWindow::CommandSetRAS( const QStringList& cmd )
 {
   bool bOK;
   double ras[3];
-  ras[0] = cmd[1].toDouble(&bOK);
+  ras[0] = cmd[1].split(",").first().toDouble(&bOK);
   if (bOK)
   {
-    ras[1] = cmd[2].toDouble(&bOK);
+    ras[1] = cmd[2].split(",").first().toDouble(&bOK);
   }
   if (bOK)
   {
-    ras[2] = cmd[3].toDouble(&bOK);
+    ras[2] = cmd[3].split(",").first().toDouble(&bOK);
   }
   if ( bOK )
   {
@@ -4178,6 +4178,7 @@ void MainWindow::CommandSetRAS( const QStringList& cmd )
     this->GetMainView()->CenterAtWorldPosition(ras);
     GetLayerCollection("MRI")->SetCursorRASPosition( ras );
     SetSlicePosition( ras );
+    ((RenderView3D*)m_views[3])->MapToInflatedCoords(ras);
   }
   else
   {
@@ -4194,9 +4195,9 @@ void MainWindow::CommandSetSlice( const QStringList& cmd )
     LayerMRI* mri = (LayerMRI*)lc_mri->GetLayer( lc_mri->GetNumberOfLayers()-1 );
     int x, y, z;
     bool bOK;
-    x = cmd[1].toInt(&bOK);
-    y = cmd[2].toInt(&bOK);
-    z = cmd[3].toInt(&bOK);
+    x = cmd[1].split(",").first().toInt(&bOK);
+    y = cmd[2].split(",").first().toInt(&bOK);
+    z = cmd[3].split(",").first().toInt(&bOK);
     if ( bOK )
     {
       int slice[3] = { x, y, z };
@@ -4206,6 +4207,7 @@ void MainWindow::CommandSetSlice( const QStringList& cmd )
 
       lc_mri->SetCursorRASPosition( ras );
       SetSlicePosition( ras );
+      ((RenderView3D*)m_views[3])->MapToInflatedCoords(ras);
     }
     else
     {
