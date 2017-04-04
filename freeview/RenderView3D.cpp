@@ -656,6 +656,7 @@ void RenderView3D::MapToInflatedCoords(double *pos_in)
   if (!inflated)
   {
     m_cursorInflatedSurf->Hide();
+    RequestRedraw();
     return;
   }
 
@@ -676,6 +677,7 @@ void RenderView3D::MapToInflatedCoords(double *pos_in)
           if (m_cursor3D->IsShown())
             m_cursorInflatedSurf->Show();
           m_cursorInflatedSurf->SetPosition(pos);
+          RequestRedraw();
         }
         return;
       }
