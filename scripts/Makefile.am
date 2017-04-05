@@ -41,6 +41,7 @@ dmrirc.example \
 dmrirc.long.example \
 dsh \
 dt_recon \
+easyfv \
 epidewarp.fsl\
 extract_talairach_avi_QA.awk \
 feat2surf \
