@@ -99,7 +99,8 @@ PanelVolume::PanelVolume(QWidget *parent) :
                   << ui->labelLookUpTable
                   << ui->comboBoxLookUpTable
                   << ui->colorLabelBrushValue
-                  << ui->checkBoxShowExistingLabels;
+                  << ui->checkBoxShowExistingLabels
+                  << ui->checkBoxSelectAllLabels;
 
   m_widgetlistDirectionCode << ui->comboBoxDirectionCode
                             << ui->labelDirectionCode;
@@ -215,13 +216,14 @@ PanelVolume::~PanelVolume()
 void PanelVolume::ConnectLayer( Layer* layer_in )
 {
   PanelLayer::ConnectLayer( layer_in );
-
   LayerMRI* layer = qobject_cast<LayerMRI*>(layer_in);
   if ( !layer )
   {
     return;
   }
 
+  ui->progressBarWorking->hide();
+  m_curCTAB = NULL;
   LayerPropertyMRI* p = layer->GetProperty();
   connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
   connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
@@ -244,6 +246,7 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( layer, SIGNAL(ActiveFrameChanged(int)), this, SLOT(OnActiveFrameChanged(int)));
   connect( layer, SIGNAL(FillValueChanged(double)), this, SLOT(UpdateWidgets()) );
   connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(UpdateWidgets()));
+  connect( layer, SIGNAL(LabelStatsReady()), this, SLOT(OnLineEditBrushValue()));
   connect( ui->checkBoxClearBackground, SIGNAL(toggled(bool)), p, SLOT(SetClearZero(bool)) );
   connect( ui->checkBoxClearHigher, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleClearHigh(bool)) );
   connect( ui->checkBoxSetMidToMin, SIGNAL(toggled(bool)), p, SLOT(SetHeatScaleAutoMid(bool)));
@@ -258,6 +261,8 @@ void PanelVolume::ConnectLayer( Layer* layer_in )
   connect( ui->checkBoxRememberFrame, SIGNAL(toggled(bool)), p, SLOT(SetRememberFrameSettings(bool)));
   connect( ui->checkBoxAutoAdjustFrameLevel, SIGNAL(toggled(bool)), p, SLOT(SetAutoAdjustFrameLevel(bool)));
   connect( ui->lineEditProjectionMapRange, SIGNAL(returnPressed()), this, SLOT(OnLineEditProjectionMapRangeChanged()));
+  connect( layer, SIGNAL(IsoSurfaceUpdating()), ui->progressBarWorking, SLOT(show()));
+  connect( layer, SIGNAL(IsoSurfaceUpdated()), ui->progressBarWorking, SLOT(hide()));
 }
 
 void PanelVolume::DoIdle()
@@ -589,20 +594,21 @@ void PanelVolume::DoUpdateWidgets()
       }
     }
     ui->checkBoxShowContour->setVisible( bNormalDisplay && !layer->GetProperty()->GetShowProjectionMap() );
+    ui->checkBoxShowContour->setEnabled( nColorMap != LayerPropertyMRI::LUT || ui->checkBoxShowExistingLabels->isEnabled());
     if (layer && ui->checkBoxShowContour->isChecked())
     {
       ui->checkBoxShowLabelContour->setChecked(layer->GetProperty()->GetShowAsLabelContour());
       ShowWidgets( m_widgetlistContourNormal, !layer->GetProperty()->GetShowAsLabelContour());
-      ShowWidgets( m_widgetlistContourLabel, layer->GetProperty()->GetShowAsLabelContour());
+      ShowWidgets( m_widgetlistContourLabel, false); //layer->GetProperty()->GetShowAsLabelContour());
     }
 
     //  ShowWidgets( m_widgetlistContour, false );
     //  m_checkContour->Show( false /*nColorMap == LayerPropertyMRI::LUT*/ );
 
+    ui->checkBoxShowExistingLabels->setChecked(m_bShowExistingLabelsOnly);
     if ( layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT )
     {
-      if ( m_curCTAB != layer->GetProperty()->GetLUTCTAB() ||
-           m_bShowExistingLabelsOnly != ui->checkBoxShowExistingLabels->isChecked())
+      if ( m_curCTAB != layer->GetProperty()->GetLUTCTAB()) // || m_bShowExistingLabelsOnly != ui->checkBoxShowExistingLabels->isChecked())
       {
         PopulateColorTable( layer->GetProperty()->GetLUTCTAB() );
       }
@@ -732,14 +738,17 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
     nValue = ui->lineEditBrushValue->text().toInt( &bOK );
     LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
     if ( !bOK && layer )
-    {
       nValue = (int)layer->GetFillValue();
-    }
 
     QList<int> labels;
+    QList<int> selectedLabels;
     if (layer)
+    {
       labels = layer->GetAvailableLabels();
+      selectedLabels = layer->GetProperty()->GetSelectedLabels();
+    }
     int nValidCount = 0;
+    bool bHasSelected = false, bHasUnselected = false;
     for ( int i = 0; i < nTotalCount; i++ )
     {
       CTABisEntryValid( ct, i, &nValid );
@@ -755,8 +764,16 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
         QPixmap pix(13, 13);
         pix.fill( color );
         item->setIcon(0, QIcon(pix) );
-        item->setData( 0, Qt::UserRole, color );
+        item->setData(0, Qt::UserRole, color );
         item->setData(0, Qt::UserRole+1, i);
+        item->setCheckState(0,  selectedLabels.contains(i)?Qt::Checked:Qt::Unchecked);
+        if (i > 0)
+        {
+          if (item->checkState(0) == Qt::Checked)
+            bHasSelected = true;
+          else
+            bHasUnselected = true;
+        }
         if (m_bShowExistingLabelsOnly && !labels.isEmpty())
         {
           item->setHidden(!labels.contains(i));
@@ -772,6 +789,12 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
     {
       ui->treeWidgetColorTable->setCurrentItem( ui->treeWidgetColorTable->topLevelItem( nSel ) );
     }
+    if (bHasSelected && !bHasUnselected)
+      ui->checkBoxSelectAllLabels->setCheckState(Qt::Checked);
+    else if (bHasSelected)
+      ui->checkBoxSelectAllLabels->setCheckState(Qt::PartiallyChecked);
+    else
+      ui->checkBoxSelectAllLabels->setCheckState(Qt::Unchecked);
   }
 }
 
@@ -905,7 +928,7 @@ void PanelVolume::OnCheckShowContour(bool bShow)
 void PanelVolume::OnCheckShowLabelContour(bool bShow)
 {
   ShowWidgets( m_widgetlistContourNormal, !bShow);
-  ShowWidgets( m_widgetlistContourLabel, bShow);
+//  ShowWidgets( m_widgetlistContourLabel, bShow);
 }
 
 void PanelVolume::OnSliderOpacity( int nVal )
@@ -1483,4 +1506,45 @@ void PanelVolume::OnLineEditProjectionMapRangeChanged()
     }
   }
   UpdateWidgets();
+}
+
+void PanelVolume::OnCheckBoxSelectAllLabels(int nState)
+{
+  ui->treeWidgetColorTable->blockSignals(true);
+  if (nState == Qt::PartiallyChecked)
+  {
+    ui->checkBoxSelectAllLabels->blockSignals(true);
+    ui->checkBoxSelectAllLabels->setCheckState(Qt::Checked);
+    ui->checkBoxSelectAllLabels->blockSignals(false);
+  }
+  for ( int i = 0; i < ui->treeWidgetColorTable->topLevelItemCount(); i++ )
+  {
+    QTreeWidgetItem* item = ui->treeWidgetColorTable->topLevelItem( i );
+    item->setCheckState(0, nState == Qt::Unchecked ? Qt::Unchecked : Qt::Checked);
+  }
+  ui->treeWidgetColorTable->blockSignals(false);
+
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if ( layer )
+  {
+    if (nState == Qt::Unchecked)
+      layer->GetProperty()->SetUnselectAllLabels();
+    else
+      layer->GetProperty()->SetSelectAllLabels();
+  }
+}
+
+void PanelVolume::OnColorTableItemChanged(QTreeWidgetItem *item)
+{
+  ui->checkBoxSelectAllLabels->blockSignals(true);
+  ui->checkBoxSelectAllLabels->setCheckState(Qt::PartiallyChecked);
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if ( layer )
+  {
+    int nVal = item->text(0).split(" ").at(0).toInt();
+    layer->GetProperty()->SetSelectLabel(nVal, item->checkState(0) == Qt::Checked);
+    ui->checkBoxSelectAllLabels->setCheckState(layer->GetProperty()->GetSelectedLabels().isEmpty()?Qt::Unchecked:Qt::PartiallyChecked);
+  }
+
+  ui->checkBoxSelectAllLabels->blockSignals(false);
 }

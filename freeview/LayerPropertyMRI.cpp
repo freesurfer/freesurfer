@@ -505,6 +505,7 @@ void LayerPropertyMRI::SetLUTCTAB( COLOR_TABLE* ct )
   //  if ( ct != mFreeSurferCTAB )
   {
     mFreeSurferCTAB = ct;
+    SetSelectAllLabels();
     UpdateLUTTable();
     if ( ct )
     {
@@ -533,7 +534,7 @@ void LayerPropertyMRI::UpdateLUTTable()
 
         float red, green, blue, alpha;
         CTABrgbaAtIndexf( mFreeSurferCTAB, nEntry, &red, &green, &blue, &alpha );
-        mLUTTable->AddRGBAPoint( nEntry, red, green, blue, 1 );
+        mLUTTable->AddRGBAPoint( nEntry, red, green, blue, m_listVisibleLabels.contains(nEntry)?1:0 );
       }
       else if (last_is_valid)
       {
@@ -1738,4 +1739,45 @@ void LayerPropertyMRI::SetAutoAdjustFrameLevel(bool b)
   if (b)
     UpdateMinMaxValues();
   this->OnColorMapChanged();
+}
+
+void LayerPropertyMRI::SetSelectAllLabels()
+{
+  m_listVisibleLabels.clear();
+  if (mFreeSurferCTAB)
+  {
+    int cEntries;
+    CTABgetNumberOfTotalEntries( mFreeSurferCTAB, &cEntries );
+    for ( int nEntry = 0; nEntry < cEntries; nEntry++ )
+    {
+      int bValid;
+      CTABisEntryValid( mFreeSurferCTAB, nEntry, &bValid );
+      if ( bValid )
+      {
+        m_listVisibleLabels << nEntry;
+      }
+    }
+  }
+  UpdateLUTTable();
+  this->OnColorMapChanged();
+  emit LabelContourChanged();
+}
+
+void LayerPropertyMRI::SetUnselectAllLabels()
+{
+  m_listVisibleLabels.clear();
+  UpdateLUTTable();
+  this->OnColorMapChanged();
+  emit LabelContourChanged();
+}
+
+void LayerPropertyMRI::SetSelectLabel(int nVal, bool bSelected)
+{
+  if (bSelected && !m_listVisibleLabels.contains(nVal))
+    m_listVisibleLabels << nVal;
+  else if (!bSelected)
+    m_listVisibleLabels.removeOne(nVal);
+  UpdateLUTTable();
+  this->OnColorMapChanged();
+  emit LabelContourChanged(nVal);
 }

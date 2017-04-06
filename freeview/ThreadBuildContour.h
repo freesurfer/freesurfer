@@ -45,6 +45,7 @@ public slots:
 
 protected:
   void run();
+  void run_old();
 
   LayerMRI*   m_mri;
   int         m_nSegValue;
