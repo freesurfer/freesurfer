@@ -8,6 +8,7 @@
 #include "atlasmeshvisitcounter.hpp"
 #include "atlasmeshvisitcountercpuwrapper.hpp"
 #ifdef CUDA_FOUND
+#include "cudaimage.hpp"
 #include "atlasmeshvisitcountercuda.hpp"
 #include "visitcountersimplecuda.hpp"
 #endif

@@ -5,6 +5,7 @@
 #include "atlasmeshvisitcounter.hpp"
 
 #include "dimensioncuda.hpp"
+#include "cudaimage.hpp"
 
 namespace kvl {
   namespace cuda {
@@ -53,6 +54,11 @@ namespace kvl {
 	    iVertex++;
 	  }
 	}
+
+	CudaImage<T,3,size_t> d_tetrahedra;
+
+	d_tetrahedra.Send(tetrahedra, tetArrDims);
+
 	std::cout << __FUNCTION__ << ": Complete" << std::endl;
       };
 
