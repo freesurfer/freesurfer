@@ -2227,6 +2227,8 @@ skullstrip:
         if($NoEMReg == 0) then
           set xopts2 = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
           set cmd2 = (mri_em_register)
+	  if ($LHonly) set cmd = ($cmd -lh )
+	  if ($RHonly) set cmd = ($cmd -rh )
           if($UseCuda) set cmd2 = (mri_em_register_cuda)
           set cmd2 = ($cmd2 -rusage $touchdir/rusage.mri_em_register.skull.dat) 
           set cmd2 = ($cmd2 -skull)
@@ -2496,6 +2498,8 @@ if($DoGCAReg) then
     if($NoEMReg == 0) then
       set cmd = (mri_em_register)
       if($UseCuda) set cmd = (mri_em_register_cuda)
+      if ($LHonly) set cmd = ($cmd -lh )
+      if ($RHonly) set cmd = ($cmd -rh )
       set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
       if($DoCreateBaseSubj) then
         # base subj processing (norm_template instead of nu, and no mask needed):
@@ -7236,6 +7240,7 @@ while( $#argv != 0 )
       limit coredumpsize unlimited
       breaksw
 
+    case "-noisrunning":
     case "-no-isrunning":
       set DoIsRunning = 0;
       breaksw
