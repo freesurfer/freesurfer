@@ -124,7 +124,7 @@ if 0 then
     echo "mri_relabel_hypointensities -${hemi}" >> $xfile
     echo "mri_segstats --no-global-stats" >> $xfile
 endif
-    set opts = ($opts -notalairach -${hemi} -hemi ${hemi})
+    set opts = ($opts -notalairach -${hemi})
 #    set opts = ($opts -${hemi} -notalairach)
 endif
 if ($?renorm) then

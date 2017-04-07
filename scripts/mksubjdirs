@@ -44,8 +44,9 @@ endif
 
 chmod g+rws $1
 cd $1
-mkdir -p bem mri rgb scripts surf tmp label morph mpg tiff touch stats
-mkdir -p mri/transforms 
+#bem rgb
+mkdir -p  mri scripts surf tmp label morph mpg tiff touch stats
+mkdir -p mri/transforms mri/orig
 chmod -R g+rw .
 
 echo " "
