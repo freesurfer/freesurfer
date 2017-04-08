@@ -63,7 +63,7 @@ namespace kvl {
       };
 
       virtual const VisitCounterSimple<T>::ImageType* GetImage() const override {
-	throw std::runtime_error("Not implemented");
+	throw std::runtime_error("Not implemented: VisitCounterSimple::GetImage");
       }
       
     private:
