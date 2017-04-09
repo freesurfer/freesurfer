@@ -11,7 +11,18 @@ namespace kvl {
   namespace cuda {
     template<typename T>
     class VisitCounterSimple : public kvl::interfaces::AtlasMeshVisitCounter {
-      virtual void SetRegions( const kvl::interfaces::AtlasMeshVisitCounter::ImageType::RegionType& region ) override {}
+      virtual void SetRegions( const kvl::interfaces::AtlasMeshVisitCounter::ImageType::RegionType& region ) override {
+	auto size = region.GetSize();
+
+	Dimension<3, unsigned long> imageDims;
+	imageDims[0] = size[2];
+	imageDims[1] = size[1];
+	imageDims[2] = size[0];
+
+	this->d_Output.SetDimensions(imageDims);
+
+	this->d_Output.SetMemory(0);
+      }
 
       virtual void VisitCount( const kvl::AtlasMesh* mesh ) override {
 
@@ -69,6 +80,8 @@ namespace kvl {
     private:
       const int nDims = 3;
       const int nVertices = 4;
+
+      CudaImage<int,3,size_t> d_Output;
     };
   }
 }

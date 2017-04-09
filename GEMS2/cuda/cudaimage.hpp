@@ -86,6 +86,10 @@ namespace kvl {
 	return res;
       }
 
+      void SetMemory( const int value ) {
+	CUDA_SAFE_CALL( cudaMemset3D( *(this->d_elements), value, this->GetCudaExtent() ) ); 
+      }
+
     private:
       DimensionType dims;
       std::unique_ptr<cudaPitchedPtr,CudaDeviceDeleter> d_elements;
