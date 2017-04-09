@@ -20,8 +20,26 @@ namespace kvl {
     public:
       typedef Dimension<nDims,IndexType> DimensionType;
       
-      void Recv( std::vector<ElementType>& dst, DimensionType& d ) const {
-	throw std::runtime_error("CudaImage::Recv not implemented");
+      void Recv( std::vector<ElementType>& dest, DimensionType& dims ) const {
+	dims = this->dims;
+
+	// Set up the result
+	dest.resize(dims.ElementCount());
+
+	// Setup the extent
+	auto extent = this->GetCudaExtent();
+	
+	auto dst = this->GetCudaPitchedPtr(dest);
+      
+	// Set up the copy params
+	cudaMemcpy3DParms cpyPrms = cudaMemcpy3DParms();
+	cpyPrms.srcPtr = *(this->d_elements);
+	cpyPrms.dstPtr = dst;
+	cpyPrms.extent = extent;
+	cpyPrms.kind = cudaMemcpyDeviceToHost;
+	
+	// Do the copy
+	CUDA_SAFE_CALL( cudaMemcpy3D(&cpyPrms) );
       }
 
       void Send( const std::vector<ElementType>& source, const DimensionType& d ) {
