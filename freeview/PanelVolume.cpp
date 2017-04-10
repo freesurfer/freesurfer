@@ -804,6 +804,9 @@ void PanelVolume::OnLineEditBrushValue( const QString& strg )
   bool bOK;
   int nVal = text.toInt( &bOK );
   LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if (!layer)
+    return;
+
   QList<int> labels = layer->GetAvailableLabels();
   if ( text.isEmpty() )
   {

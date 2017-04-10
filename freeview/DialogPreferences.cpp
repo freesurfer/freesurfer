@@ -50,6 +50,8 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
             ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetColor(QColor)));
     connect(ui->horizontalSliderSize2D, SIGNAL(valueChanged(int)),
             ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetSize(int)));
+    connect(ui->horizontalSliderThickness2D, SIGNAL(valueChanged(int)),
+            ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetThickness(int)));
     connect(ui->colorPickerAnnotation, SIGNAL(colorChanged(QColor)),
             ((RenderView2D*)mainwnd->GetRenderView(i))->GetAnnotation2D(), SLOT(SetColor(QColor)));
   }
@@ -61,6 +63,10 @@ DialogPreferences::DialogPreferences(QWidget *parent) :
           ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetSize(int)));
   connect(ui->horizontalSliderSize3D, SIGNAL(valueChanged(int)),
           ((RenderView3D*)mainwnd->GetRenderView(3))->GetInflatedSurfCursor(), SLOT(SetSize(int)));
+  connect(ui->horizontalSliderThickness3D, SIGNAL(valueChanged(int)),
+          ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetThickness(int)));
+  connect(ui->horizontalSliderThickness3D, SIGNAL(valueChanged(int)),
+          ((RenderView3D*)mainwnd->GetRenderView(3))->GetInflatedSurfCursor(), SLOT(SetThickness(int)));
   connect(ui->checkBoxSyncZoom, SIGNAL(toggled(bool)),
           mainwnd, SLOT(SyncZoom(bool)));
   connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)),
@@ -101,6 +107,8 @@ void DialogPreferences::SetSettings(const QVariantMap &map)
   ui->colorPickerCursor->setCurrentColor(map["CursorColor"].value<QColor>());
   ui->horizontalSliderSize2D->setValue(map["CursorSize"].toInt());
   ui->horizontalSliderSize3D->setValue(map["CursorSize3D"].toInt());
+  ui->horizontalSliderThickness2D->setValue(map["CursorThickness"].toInt());
+  ui->horizontalSliderThickness3D->setValue(map["CursorThickness3D"].toInt());
   ui->checkBoxSaveCopy->setChecked(map["SaveCopy"].toBool());
   ui->checkBoxSyncZoom->setChecked(map["SyncZoom"].toBool());
   ui->checkBoxCommandKey->setChecked(map["MacUseCommand"].toBool());
@@ -121,6 +129,8 @@ QVariantMap DialogPreferences::GetSettings()
   map["CursorColor"] = ui->colorPickerCursor->currentColor();
   map["CursorSize"] = ui->horizontalSliderSize2D->value();
   map["CursorSize3D"] = ui->horizontalSliderSize3D->value();
+  map["CursorThickness"] = ui->horizontalSliderThickness2D->value();
+  map["CursorThickness3D"] = ui->horizontalSliderThickness3D->value();
   map["SaveCopy"] = ui->checkBoxSaveCopy->isChecked();
   map["SyncZoom"] = ui->checkBoxSyncZoom->isChecked();
   map["MacUseCommand"] = ui->checkBoxCommandKey->isChecked();
@@ -142,6 +152,8 @@ void DialogPreferences::OnClicked(QAbstractButton* btn)
     ui->colorPickerAnnotation->setCurrentColor(Qt::white);
     ui->horizontalSliderSize2D->setValue(5);
     ui->horizontalSliderSize3D->setValue(1);
+    ui->horizontalSliderThickness2D->setValue(1);
+    ui->horizontalSliderThickness3D->setValue(1);
     ui->checkBoxSaveCopy->setChecked(true);
     ui->checkBoxRightButtonErase->setChecked(false);
     ui->checkBoxSyncZoom->setChecked(true);

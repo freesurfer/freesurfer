@@ -76,9 +76,15 @@ public:
 
   int GetSize();
 
+  int GetThickness()
+  {
+    return m_nThickness;
+  }
+
 public slots:
   void SetColor( const QColor& color );
   void SetSize( int nSize );
+  void SetThickness(int nThickness);
 
 Q_SIGNALS:
   void Updated();
@@ -93,6 +99,7 @@ private:
   std::vector<double> m_dInterpolationPoints;
 
   int   m_nSize;
+  int   m_nThickness;
 };
 
 #endif
