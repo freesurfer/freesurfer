@@ -30,6 +30,12 @@ foreach f ($odir/norm/*.mgz)
     if ($fonly == brainmask) then
 	continue ;
     endif
+    if ($fonly == sse) then
+	continue ;
+    endif
+    if ($fonly == faf) then
+	continue ;
+    endif
     if ($fonly == bias) then
 	continue ;
     endif
