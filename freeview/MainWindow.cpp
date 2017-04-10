@@ -528,6 +528,11 @@ void MainWindow::LoadSettings()
     m_settings["CursorSize"] = 5;
     m_settings["CursorSize3D"] = 5;
   }
+  if (!m_settings.contains("CursorThickness"))
+  {
+    m_settings["CursorThickness"] = 1;
+    m_settings["CursorThickness3D"] = 1;
+  }
   if (!m_settings.contains("AnnotationColor"))
   {
     m_settings["AnnotationColor"] = QColor(Qt::white);
@@ -560,6 +565,7 @@ void MainWindow::LoadSettings()
     {
       ((RenderView2D*)m_views[i])->GetCursor2D()->SetColor(m_settings["CursorColor"].value<QColor>());
       ((RenderView2D*)m_views[i])->GetCursor2D()->SetSize(m_settings["CursorSize"].toInt());
+      ((RenderView2D*)m_views[i])->GetCursor2D()->SetThickness(m_settings["CursorThickness"].toInt());
     }
     else
     {
@@ -567,6 +573,8 @@ void MainWindow::LoadSettings()
       ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetColor(m_settings["CursorColor"].value<QColor>());
       ((RenderView3D*)m_views[i])->GetCursor3D()->SetSize(m_settings["CursorSize3D"].toInt());
       ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetSize(m_settings["CursorSize3D"].toInt());
+      ((RenderView3D*)m_views[i])->GetCursor3D()->SetThickness(m_settings["CursorThickness3D"].toInt());
+      ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetThickness(m_settings["CursorThickness3D"].toInt());
     }
   }
   SyncZoom(m_settings["SyncZoom"].toBool());
