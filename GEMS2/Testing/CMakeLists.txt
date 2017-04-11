@@ -17,6 +17,7 @@ IF(Boost_FOUND)
   LIST(APPEND testsrcs testdimensioncuda.cpp)
 
   IF( CUDA_FOUND )
+    LIST(APPEND testsrcs testcudaimage.cpp)
     LIST(APPEND testsrcs cudaglobalfixture.cpp)
 
     LIST(APPEND GEMS2libs kvlGEMSCUDA)
