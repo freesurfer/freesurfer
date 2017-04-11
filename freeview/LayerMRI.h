@@ -367,6 +367,8 @@ protected slots:
   void OnLabelContourChanged(int n = -1);
   void OnContourSmoothIterationChanged();
 
+  void OnLabelInformationReady();
+
 protected:
   virtual void DoTransform(double *mat, int sample_method);
   virtual bool DoRotate( std::vector<RotationElement>& rotations );

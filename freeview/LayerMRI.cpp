@@ -156,7 +156,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
 
   qRegisterMetaType< IntList >( "IntList" );
   m_worker = new LayerMRIWorkerThread(this);
-  connect(m_worker, SIGNAL(LabelInformationReady()), this, SIGNAL(LabelStatsReady()));
+  connect(m_worker, SIGNAL(LabelInformationReady()), this, SLOT(OnLabelInformationReady()));
 
   QVariantMap map = MainWindow::GetMainWindow()->GetDefaultSettings();
   if (map["Smoothed"].toBool())
@@ -3529,4 +3529,15 @@ void LayerMRI::OnContourSmoothIterationChanged()
   }
   m_labelActors.clear();
   UpdateContour();
+}
+
+void LayerMRI::OnLabelInformationReady()
+{
+  if (GetProperty()->GetColorMap() == LayerPropertyMRI::LUT &&
+      GetProperty()->GetShowAsContour() && m_labelActors.isEmpty())
+  {
+    UpdateContour();
+  }
+
+  emit LabelStatsReady();
 }
