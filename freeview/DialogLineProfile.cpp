@@ -83,6 +83,16 @@ void DialogLineProfile::OnCompute()
     }
   }
   m_lineProfile = new LayerLineProfile(nViewId, NULL, layer1, layer2);
+  double r = ui->lineEditRadius->text().toDouble();
+  if (r <= 0)
+  {
+    double vs[3];
+    col->GetWorldVoxelSize(vs);
+    r = qMin(vs[0], qMin(vs[1], vs[2]))*0.1;
+    if (r <= 0)
+      r = 0.1;
+  }
+  m_lineProfile->GetProperty()->SetRadius(r);
   col->AddLayer(m_lineProfile);
 
   double dVoxelSize = 1.0;
