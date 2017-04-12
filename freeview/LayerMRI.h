@@ -332,6 +332,7 @@ Q_SIGNALS:
   void SurfaceRegionAdded();
   void SurfaceRegionUpdated();
   void SurfaceRegionRemoved();
+  void IsoSurfaceUpdating();
   void IsoSurfaceUpdated();
   void LabelStatsReady();
   void CorrelationSurfaceChanged(LayerSurface*);
@@ -362,6 +363,11 @@ protected slots:
   void UpdateSurfaceCorrelationData();
 
   void ResetRef();
+
+  void OnLabelContourChanged(int n = -1);
+  void OnContourSmoothIterationChanged();
+
+  void OnLabelInformationReady();
 
 protected:
   virtual void DoTransform(double *mat, int sample_method);
@@ -413,19 +419,13 @@ protected:
 
   vtkImageActor*  m_projectionMapActor[3];
 
-  struct SegmentationActor
-  {
-    int id;
-    vtkActor* actor;
-  };
-
-  QList<SegmentationActor>    m_segActors;
-
   vtkSmartPointer<vtkActor>   m_actorContour;
   vtkSmartPointer<vtkVolume>  m_propVolume;
+  QMap<int, vtkActor*>            m_labelActors;
 
   int         m_nThreadID;
   vtkSmartPointer<vtkActor>       m_actorContourTemp;
+  QMap<int, vtkActor*>            m_labelActorsTemp;
 
   QList<SurfaceRegion*>           m_surfaceRegions;
   SurfaceRegion*                  m_currentSurfaceRegion;
@@ -450,6 +450,7 @@ private:
   LayerMRIWorkerThread* m_worker;
   QList<int>  m_nAvailableLabels;
   QMap<int, QList<double> > m_listLabelCenters;
+
 };
 
 

@@ -43,7 +43,7 @@
 
 
 Cursor3D::Cursor3D( RenderView3D* view ) : QObject( view ),
-  m_view( view ), m_nSize(5), m_dScale(1.0)
+  m_view( view ), m_nSize(5), m_dScale(1.0), m_nThickness(1)
 {
   m_actorCursor = vtkSmartPointer<vtkActor>::New();
   m_actorCursor->GetProperty()->SetColor( 1, 0, 0 );
@@ -89,7 +89,7 @@ void Cursor3D::RebuildActor(double scale)
   vtkSmartPointer<vtkTubeFilter> tube = vtkSmartPointer<vtkTubeFilter>::New();
   tube->SetInput( polydata );
   tube->SetNumberOfSides( 12 );
-  tube->SetRadius( 0.1*dLen/1.5 );
+  tube->SetRadius( 0.15*(1+(m_nThickness-1)/3.0) );
   tube->CappingOn();
 
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -105,6 +105,11 @@ void Cursor3D::SetSize(int nSize)
   RebuildActor();
 }
 
+void Cursor3D::SetThickness(int nThickness)
+{
+  m_nThickness = qMax(1, nThickness);
+  RebuildActor();
+}
 
 void Cursor3D::SetPosition( double* pos )
 {
