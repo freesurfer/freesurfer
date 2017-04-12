@@ -78,6 +78,12 @@ void Cursor2D::SetSize(int nSize)
   Update();
 }
 
+void Cursor2D::SetThickness(int nThickness)
+{
+  m_nThickness = qMax(1, nThickness);
+  Update();
+}
+
 void Cursor2D::Update( bool bConnectPrevious )
 {
   // vtkRenderer* renderer = m_view->GetRenderer();
@@ -165,6 +171,7 @@ void Cursor2D::Update( bool bConnectPrevious )
   mapper->SetTransformCoordinate( coords );
 
   m_actorCursor->SetMapper( mapper );
+  m_actorCursor->GetProperty()->SetLineWidth(m_nThickness);
   emit Updated();
 }
 

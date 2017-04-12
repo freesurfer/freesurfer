@@ -62,6 +62,9 @@ public:
   static bool BuildContourActor( vtkImageData* data_in, double dTh1, double dTh2, vtkActor* actor_out,
                                  int nSmoothIterations = 0, int* ext = NULL, bool bAllRegion = false, bool bUpsample = false );
 
+  static bool BuildLabelContourActor( vtkImageData* data_in, int labelIndex, vtkActor* actor_out,
+                                 int nSmoothIterations = 0, int* ext = NULL, bool bAllRegion = false , bool bUpsample = false);
+
   static bool BuildLabelContourActor( vtkImageData* data_in, const QList<int>& labelIndices, vtkActor* actor_out,
                                  int nSmoothIterations = 0, int* ext = NULL, bool bAllRegion = false , bool bUpsample = false);
 
