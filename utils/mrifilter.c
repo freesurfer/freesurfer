@@ -2327,147 +2327,67 @@ MRI *
 MRImean(MRI *mri_src, MRI *mri_dst, int wsize)
 {
   int     width, height, depth, whalf;
-#if 0
-  BUFTYPE *psrc ;
-  float   *pdst
-#endif
   float   wcubed;
-#ifndef FS_CUDA
-  int x, y, z, x0, y0, z0;
-  float val;
-#endif
 
   wcubed = (float)(wsize*wsize*wsize) ;
-  whalf = wsize/2 ;
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
+  whalf = (wsize-1)/2 ;
+  width = mri_src->width ; height = mri_src->height ; depth = mri_src->depth ;
 
   if (!mri_dst)
   {
-    mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
+    mri_dst = MRIallocSequence(width, height, depth, MRI_FLOAT, mri_src->nframes) ;
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
 #ifdef FS_CUDA
   mri_dst = MRImean_cuda( mri_src, mri_dst, wsize );
 #else
-#if 0
-  if (mri_dst->type != MRI_FLOAT)
-    ErrorReturn(mri_dst,
-                (ERROR_UNSUPPORTED, "MRImean: dst must be MRI_FLOAT")) ;
-
-  if ((mri_src->type == MRI_UCHAR) && 0)  // disabled!
   {
-    for (z = whalf ; z < depth-whalf ; z++)
-    {
-      for (y = whalf ; y < height-whalf ; y++)
-      {
-        pdst = &MRIFvox(mri_dst, whalf, y, z) ;
-        for (x = whalf ; x < width-whalf ; x++)
-        {
-          for (val = 0, z0 = -whalf ; z0 <= whalf ; z0++)
-          {
-            for (y0 = -whalf ; y0 <= whalf ; y0++)
-            {
-              psrc = &MRIvox(mri_src, x-whalf, y+y0, z+z0) ;
-              for (x0 = -whalf ; x0 <= whalf ; x0++)
-              {
-                val += (int)*psrc++ ;
-              }
-            }
-          }
-          *pdst++ = (float)val / wcubed ;
-        }
-      }
-    }
+    int frame, z ;
 
-    /* now copy information to borders from source image */
-    for (x = 0 ; x < width ; x++)
+    for (frame = 0 ; frame < mri_src->nframes ; frame++)
     {
-      for (y = 0 ; y < height ; y++)
-      {
-        for (z = 0 ; z < whalf ; z++)
-        {
-          MRIFvox(mri_dst, x, y, z) = (float)MRIvox(mri_src,x,y,z) ;
-        }
-        for (z = depth-whalf ; z < depth ; z++)
-        {
-          MRIFvox(mri_dst, x, y, z) = (float)MRIvox(mri_src,x,y,z) ;
-        }
-      }
-    }
-    for (x = 0 ; x < width ; x++)
-    {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
       for (z = 0 ; z < depth ; z++)
       {
-        for (y = 0 ; y < whalf ; y++)
-        {
-          MRIFvox(mri_dst, x, y, z) = (float)MRIvox(mri_src,x,y,z) ;
-        }
-        for (y = height-whalf ; y < height ; y++)
-        {
-          MRIFvox(mri_dst, x, y, z) = (float)MRIvox(mri_src,x,y,z) ;
-        }
-      }
-    }
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        for (x = 0 ; x < whalf ; x++)
-        {
-          MRIFvox(mri_dst, x, y, z) = (float)MRIvox(mri_src,x,y,z) ;
-        }
-        for (x = width-whalf ; x < width ; x++)
-        {
-          MRIFvox(mri_dst, x, y, z) = (float)MRIvox(mri_src,x,y,z) ;
-        }
-      }
-    }
-  }
-  else  // non UCHAR image
-#endif
-  {
-    int num ;
+	int x, y, x0, y0, z0;
+	float val, num;
 
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        for (x = 0 ; x < width ; x++)
-        {
-          for (num = 0, val = 0.0, z0 = -whalf ; z0 <= whalf ; z0++)
-          {
-            if (z+z0 < 0 || z+z0 >= mri_src->depth)
-            {
-              continue ;
-            }
-            for (y0 = -whalf ; y0 <= whalf ; y0++)
-            {
-              if (y+y0 < 0 || y+y0 >= mri_src->height)
-              {
-                continue ;
-              }
-              for (x0 = -whalf ; x0 <= whalf ; x0++)
-              {
-                if (x+x0 < 0 || x+x0 >= mri_src->width)
-                {
-                  continue ;
-                }
-                val += MRIgetVoxVal(mri_src, x+x0, y+y0, z+z0, 0) ;
-                num++ ;
-              }
-            }
-          }
-          if (FZERO(num) == 0)
-          {
-            val /= num ;
-            MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
-          }
-        }
+	for (y = 0 ; y < height ; y++)
+	{
+	  for (x = 0 ; x < width ; x++)
+	  {
+	    for (num = 0, val = 0.0, z0 = -whalf ; z0 <= whalf ; z0++)
+	    {
+	      if (z+z0 < 0 || z+z0 >= mri_src->depth)
+		continue ;
+
+	      for (y0 = -whalf ; y0 <= whalf ; y0++)
+	      {
+		if (y+y0 < 0 || y+y0 >= mri_src->height)
+		  continue ;
+
+		for (x0 = -whalf ; x0 <= whalf ; x0++)
+		{
+		  if (x+x0 < 0 || x+x0 >= mri_src->width)
+		    continue ;
+
+		  val += MRIgetVoxVal(mri_src, x+x0, y+y0, z+z0, frame) ;
+		  num++ ;
+		}
+	      }
+	    }
+	    if (FZERO(num) == 0)
+	    {
+	      val /= num ;
+	      MRIsetVoxVal(mri_dst, x, y, z, frame, val) ;
+	    }
+	  }
+	}
+	exec_progress_callback(frame*depth+z, mri_src->nframes*depth, 0, 1);
       }
-      exec_progress_callback(z, depth, 0, 1);
     }
   }
 #endif
@@ -2560,13 +2480,11 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box)
 {
   static float *sort_array = NULL ;
   static int   sort_size = 0 ;
-  int     width, height, depth, x, y, z, whalf, x0, y0, z0,
+  int     width, height, depth, x, y, z, whalf, x0, y0, z0, frame,
           median_index, wcubed, yi, zi, xmin, xmax, ymin, ymax, zmin, zmax ;
   float   *sptr ;
 
-  width = mri_src->width ;
-  height = mri_src->height ;
-  depth = mri_src->depth ;
+  width = mri_src->width ;  height = mri_src->height ;  depth = mri_src->depth ;
 
   if (!mri_dst)
   {
@@ -2606,28 +2524,32 @@ MRImedian(MRI *mri_src, MRI *mri_dst, int wsize, MRI_REGION *box)
     zmax = depth-1 ;
   }
 
-  for (z = zmin ; z <= zmax ; z++)
+  for (frame = 0 ; frame < mri_src->nframes ; frame++)
   {
-    for (y = ymin ; y <= ymax ; y++)
+    for (z = zmin ; z <= zmax ; z++)
     {
-      for (x = xmin ; x <= xmax  ; x++)
+      for (y = ymin ; y <= ymax ; y++)
       {
-        for (sptr = sort_array, z0 = -whalf ; z0 <= whalf ; z0++)
-        {
-          zi = mri_src->zi[z+z0] ;
-          for (y0 = -whalf ; y0 <= whalf ; y0++)
-          {
-            yi = mri_src->yi[y+y0] ;
-            for (x0 = -whalf ; x0 <= whalf ; x0++)
-            {
-              *sptr++ = MRIgetVoxVal(mri_src, mri_src->xi[x+x0], yi, zi, 0) ;
-            }
-          }
-        }
-
-        qsort(sort_array, wcubed, sizeof(float), compare_sort_array) ;
-        MRIsetVoxVal(mri_dst, x, y, z, 0, sort_array[median_index]) ;
+	for (x = xmin ; x <= xmax  ; x++)
+	{
+	  for (sptr = sort_array, z0 = -whalf ; z0 <= whalf ; z0++)
+	  {
+	    zi = mri_src->zi[z+z0] ;
+	    for (y0 = -whalf ; y0 <= whalf ; y0++)
+	    {
+	      yi = mri_src->yi[y+y0] ;
+	      for (x0 = -whalf ; x0 <= whalf ; x0++)
+	      {
+		*sptr++ = MRIgetVoxVal(mri_src, mri_src->xi[x+x0], yi, zi, frame) ;
+	      }
+	    }
+	  }
+	  
+	  qsort(sort_array, wcubed, sizeof(float), compare_sort_array) ;
+	  MRIsetVoxVal(mri_dst, x, y, z, frame, sort_array[median_index]) ;
+	}
       }
+      exec_progress_callback(frame*depth+z, mri_src->nframes*depth, 0, 1);
     }
   }
   return(mri_dst) ;
