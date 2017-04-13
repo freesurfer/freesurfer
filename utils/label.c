@@ -1582,6 +1582,37 @@ LabelMean(LABEL *area, double *px, double *py, double *pz)
         Description
 ------------------------------------------------------*/
 double
+LabelMeanIntensity(LABEL *area, MRI *mri)
+{
+  int      i ;
+  double   x, y, z, mean, val ;
+  LV       *lv ;
+  LABEL    *area2 ;
+  
+  area2 = LabelToVoxel(area, mri, NULL) ;
+
+  for (mean = x = y = z = 0.0, i = 0 ; i < area->n_points ; i++)
+  {
+    lv = &area2->lv[i] ;
+
+    x = lv->x ; y = lv->y ; z = lv->z ;
+    MRIsampleVolume(mri, x, y, z, &val) ;
+    mean += val ;
+  }
+  
+  if (i > 0)
+    mean /= (double)i ;
+  LabelFree(&area2) ;
+  return(mean) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+double
 LabelVariance(LABEL *area, double ux, double uy, double uz)
 {
   int      i, n ;
@@ -3584,7 +3615,7 @@ LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].stat = lsrc->lv[i].stat ;
     ldst->lv[i].vno = lsrc->lv[i].vno ;
   }
-  strncpy (ldst->space, "voxel", sizeof(ldst->space));
+
   ldst->coords = LABEL_COORDS_TKREG_RAS ;
   strcpy(ldst->space, "TkReg");
   return(ldst) ;
@@ -4164,4 +4195,31 @@ update_vertex_indices(LABEL *area)
     if (area->lv[n].deleted == 0)
       area->vertex_label_ind[area->lv[n].vno] = n ;
   return(NO_ERROR) ;
+}
+LABEL *
+LabelApplyMatrix(LABEL *lsrc, MATRIX *m, LABEL *ldst)
+{
+  int     n ;
+  VECTOR *v1, *v2 ;
+
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  v1->rptr[4][1] = 1.0f ;
+  v2->rptr[4][1] = 1.0f ;
+
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+
+  for (n = 0 ; n < lsrc->n_points ; n++)
+  {
+    V3_X(v1) = lsrc->lv[n].x ; V3_Y(v1) = lsrc->lv[n].y ;  V3_Z(v1) = lsrc->lv[n].z ; 
+    MatrixMultiply(m, v1, v2) ;
+    ldst->lv[n].x = V3_X(v2) ; ldst->lv[n].y = V3_Y(v2) ; ldst->lv[n].z = V3_Z(v2) ; 
+  }
+    
+  VectorFree(&v1) ; VectorFree(&v2) ;
+  return(ldst) ;
 }
