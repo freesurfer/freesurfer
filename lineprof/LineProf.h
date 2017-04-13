@@ -42,7 +42,7 @@ class LineProf
 public:
 
   //! Petsc Initializer (call this at the beginning of your program once)
-  static int InitializePetsc();
+  static int InitializePetsc(bool bDoNotExitOnError = false);
   
   //! Petsc Finalizer (call this at the end of your program once)
   static int FinalizePetsc();

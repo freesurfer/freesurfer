@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
   qInstallMsgHandler(myMessageOutput);
 #endif
 
-  LineProf::InitializePetsc();
+  LineProf::InitializePetsc(true);
 
   CmdLineEntry cmdLineDesc[] =
   {
