@@ -24,12 +24,6 @@ while( $#argv != 0 )
     case "-norecon":
        set norecon=1 ;
        breaksw ;
-    case "-no-cerebellum":
-    case "-nocerebellum":
-    case "-NO-CEREBELLUM":
-    case "-NOCEREBELLUM":
-      set cerebellum = (-nocerebellum)
-      breaksw ;
     case "--subject":
     case "--s":
     case "-subject":
@@ -58,6 +52,8 @@ while( $#argv != 0 )
        echo make sure to set the SUBJECTS_DIR first
        exit 1 ;
        breaksw ;
+     case "-run_bet":
+     case "-runbet":
      case "-bet":
        set run_bet = 1 ;
        breaksw ;
@@ -70,8 +66,12 @@ while( $#argv != 0 )
 
 # these are all pass through commands with no argument
        default: 
-     case "-notalairach":
-     case "-noskullstrip":
+    case "-no-cerebellum":
+    case "-nocerebellum":
+    case "-NO-CEREBELLUM":
+    case "-NOCEREBELLUM":
+    case "-notalairach":
+    case "-noskullstrip":
        set opts = ($opts $flag)
        breaksw
 

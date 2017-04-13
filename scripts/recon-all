@@ -10,7 +10,7 @@
 #    $Author: greve $
 #    $Date: 2017/02/08 21:17:33 $
 #    $Revision: 1.601 $
-#
+	#
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
@@ -54,7 +54,7 @@ set cmd = ();
 # commands to only process single hemispheres (e.g. for ex vivo)
 set LHonly = 0 ;
 set RHonly = 0 ;
-set cerebellum = () ;  # will be set to -nocerebellum
+set nocerebellum = () ;  # will be set to -nocerebellum
 set tcsh61706 = (`tcsh --version | grep "6\.17\.06"`)
 if ("$tcsh61706" != "") then
     echo ""
@@ -2227,10 +2227,11 @@ skullstrip:
         if($NoEMReg == 0) then
           set xopts2 = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
           set cmd2 = (mri_em_register)
-	  if ($LHonly) set cmd = ($cmd -lh )
-	  if ($RHonly) set cmd = ($cmd -rh )
           if($UseCuda) set cmd2 = (mri_em_register_cuda)
           set cmd2 = ($cmd2 -rusage $touchdir/rusage.mri_em_register.skull.dat) 
+	  set cmd2 = ($cmd2 $nocerebellum )
+	  if ($LHonly) set cmd2 = ($cmd2 -lh )
+	  if ($RHonly) set cmd2 = ($cmd2 -rh )
           set cmd2 = ($cmd2 -skull)
           set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
           set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
@@ -2498,6 +2499,7 @@ if($DoGCAReg) then
     if($NoEMReg == 0) then
       set cmd = (mri_em_register)
       if($UseCuda) set cmd = (mri_em_register_cuda)
+      set cmd = ($cmd $nocerebellum )
       if ($LHonly) set cmd = ($cmd -lh )
       if ($RHonly) set cmd = ($cmd -rh )
       set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
@@ -2560,6 +2562,7 @@ if($DoCANormalize) then
   set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_ca_normalize)
   if($UseCPsWithCaNorm)  set cmd = ($cmd -f $ControlPointsFile)
+  set cmd = ($cmd $nocerebellum )
   if ($LHonly) set cmd = ($cmd -lh )
   if ($RHonly) set cmd = ($cmd -rh )
     
@@ -2604,6 +2607,7 @@ if($DoCAReg) then
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_ca_register)
   if($UseCuda) set cmd = (mri_ca_register_cuda)
+  set cmd = ($cmd $nocerebellum )
   if ($LHonly) set cmd = ($cmd -lh)
   if ($RHonly) set cmd = ($cmd -rh)
   set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.dat) 
@@ -2708,6 +2712,7 @@ if($DoSkullLTA) then
   set xopts = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_em_register)
   if ($UseCuda) set cmd = (mri_em_register_cuda)
+  set cmd = ($cmd $nocerebellum )
   if ($LHonly) set cmd = ($cmd -lh )
   if ($RHonly) set cmd = ($cmd -rh )
   set cmd = ($cmd -skull -t transforms/talairach.lta \
@@ -2829,6 +2834,7 @@ if($DoCALabel) then
   set rusage = $touchdir/rusage.mri_ca_label.dat 
   set cmd = (mri_ca_label -relabel_unlikely 9 .3 -prior 0.5)
   set cmd = ($cmd $UseCAAlign)
+  set cmd = ($cmd $nocerebellum )
   if ($LHonly) set cmd = ($cmd -lh )
   if ($RHonly) set cmd = ($cmd -rh )
   if($NoWMSA) set cmd = ($cmd -nowmsa)
@@ -5726,6 +5732,12 @@ while( $#argv != 0 )
 
   switch($flag)
 
+    case "-no-cerebellum":
+    case "-nocerebellum":
+    case "-NO-CEREBELLUM":
+    case "-NOCEREBELLUM":
+	set nocerebellum=( -nocerebellum)
+	breaksw ;
     case "-lh":
     case "-lh-only":
       set LHonly = 1 ;
