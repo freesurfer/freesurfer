@@ -82,6 +82,7 @@ int     LabelIsCompletelyUnassigned(LABEL *area, int *unassigned);
 int     LabelFillUnassignedVertices(MRI_SURFACE *mris,
                                     LABEL *area,
                                     int coords);
+double  LabelMeanIntensity(LABEL *area, MRI *mri) ;
 int     LabelFree(LABEL **parea) ;
 int     LabelDump(FILE *fp, LABEL *area) ;
 LABEL   *LabelRead(const char *subject_name,const char *label_name) ;
@@ -152,6 +153,7 @@ LABEL *LabelfromASeg(MRI *aseg, int segcode);
 int   LabelFillVolume(MRI *mri, LABEL *label, int fillval) ;
 
 MATRIX *LabelFitXYZ(LABEL *label, int order);
+LABEL *LabelApplyMatrix(LABEL *lsrc, MATRIX *m, LABEL *ldst) ;
 LABEL *LabelBoundary(LABEL *label, MRIS *surf);
 int VertexIsInLabel(int vtxno, LABEL *label);
 LABEL *LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad) ;
