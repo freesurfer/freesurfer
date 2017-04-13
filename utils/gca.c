@@ -30616,7 +30616,8 @@ GCAreadLabelIntensities(char *fname, float *label_scales, float *label_offsets)
 int
 GCAremoveHemi(GCA *gca, int lh)
 {
-  int       x, y, z, n, r ;
+  int       x, y, z, n, r, max_label, xp, yp, zp ;
+  double    prior ;
   GCA_NODE  *gcan ;
   GCA_PRIOR *gcap ;
 
@@ -30627,18 +30628,36 @@ GCAremoveHemi(GCA *gca, int lh)
       for (z = 0 ; z < gca->node_depth ; z++)
       {
         gcan = &gca->nodes[x][y][z] ;
-        for (n = 0 ; n < gcan->nlabels ; n++)
-        {
-          if ((lh && (IS_LH_CLASS(gcan->labels[n]))) ||
-              (!lh && (IS_RH_CLASS(gcan->labels[n]))))
-          {
+	gcaNodeToPrior(gca,  x, y, z, &xp, &yp, &zp) ;
+        gcap = &gca->priors[xp][yp][zp] ;
+	max_label = gcapGetMaxPriorLabel(gcap, &prior) ;
+	if ((lh && (IS_LH_CLASS(max_label))) ||
+	    (!lh && (IS_RH_CLASS(max_label))))   // max prior label is in contra hemi  - erase everything
+	{
+	  for (n = 0 ; n < gcan->nlabels ; n++)
+	  {
             gcan->labels[n] = Unknown ;
             for (r = 0 ; r < gca->ninputs ; r++)
             {
               gcan->gcs[n].means[r] = 0 ;
             }
-          }
-        }
+	  }
+	}
+	else
+	{
+	  for (n = 0 ; n < gcan->nlabels ; n++)
+	  {
+	    if ((lh && (IS_LH_CLASS(gcan->labels[n]))) ||
+		(!lh && (IS_RH_CLASS(gcan->labels[n]))))
+	    {
+	      gcan->labels[n] = Unknown ;
+	      for (r = 0 ; r < gca->ninputs ; r++)
+	      {
+		gcan->gcs[n].means[r] = 0 ;
+	      }
+	    }
+	  }
+	}
       }
     }
   }
@@ -30650,14 +30669,25 @@ GCAremoveHemi(GCA *gca, int lh)
       for (z = 0 ; z < gca->prior_depth ; z++)
       {
         gcap = &gca->priors[x][y][z] ;
-        for (n = 0 ; n < gcap->nlabels ; n++)
-        {
-          if ((lh && (IS_LH_CLASS(gcap->labels[n]))) ||
+	max_label = gcapGetMaxPriorLabel(gcap, &prior) ;
+	if ((lh && (IS_LH_CLASS(max_label))) ||
+	    (!lh && (IS_RH_CLASS(max_label))))   // max prior label is in contra hemi  - erase everything
+	{
+	  for (n = 0 ; n < gcap->nlabels ; n++)
+	    gcap->labels[n] = Unknown ;
+	    
+	}
+	else  // max label isn't in contra hemi, but might still need to erase some stuff
+	{
+	  for (n = 0 ; n < gcap->nlabels ; n++)
+	  {
+	    if ((lh && (IS_LH_CLASS(gcap->labels[n]))) ||
               (!lh && (IS_RH_CLASS(gcap->labels[n]))))
-          {
-            gcap->labels[n] = Unknown ;
-          }
-        }
+	    {
+	      gcap->labels[n] = Unknown ;
+	    }
+	  }
+	}
       }
     }
   }
