@@ -13,8 +13,6 @@ class LayerPointSet;
 class LayerMRI;
 class LayerPropertyLineProfile;
 
-
-
 class LayerLineProfile : public Layer
 {
   Q_OBJECT
