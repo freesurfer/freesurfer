@@ -102,6 +102,8 @@ protected slots:
 
   void OnComboProjectionMapType(int nType);
 
+  void OnLineEditMaskThreshold(const QString& text);
+
 protected:
   void PopulateColorTable( COLOR_TABLE* ctab );
   void DoUpdateWidgets();

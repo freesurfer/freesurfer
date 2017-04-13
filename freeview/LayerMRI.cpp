@@ -3208,11 +3208,17 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
 
     vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
     vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
-    vtkSmartPointer<vtkImageShiftScale> cast = vtkSmartPointer<vtkImageShiftScale>::New();
+    vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
     double range[2];
     mask->GetScalarRange(range);
     if (range[1] <= 0)
       range[1] = 1;
+
+    if (m_mapMaskThresholds.contains(layer_mask))
+      m_dMaskThreshold = m_mapMaskThresholds[layer_mask];
+    else
+      m_dMaskThreshold = (range[0]+range[1])/2.0;
+
     double s1[3], s2[3];
     source->GetSpacing(s1);
     mask->GetSpacing(s2);
@@ -3220,11 +3226,15 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     for (int i = 0; i < 3; i++)
       resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
     resampler->SetInterpolationModeToNearestNeighbor();
-    cast->SetScale(255/range[1]);
-    cast->SetInput(resampler->GetOutput());
-    cast->SetOutputScalarTypeToUnsignedChar();
+    threshold->ThresholdByUpper(m_dMaskThreshold);
+    threshold->SetInput(resampler->GetOutput());
+    threshold->ReplaceInOn();
+    threshold->ReplaceOutOn();
+    threshold->SetInValue(1);
+    threshold->SetOutValue(0);
+    threshold->SetOutputScalarTypeToUnsignedChar();
     mask_filter->SetInput(m_imageDataBackup);
-    mask_filter->SetMaskInput(cast->GetOutput());
+    mask_filter->SetMaskInput(threshold->GetOutput());
     mask_filter->SetMaskedOutputValue(0);
     mask_filter->Update();
     source->DeepCopy(mask_filter->GetOutput());
@@ -3540,4 +3550,13 @@ void LayerMRI::OnLabelInformationReady()
   }
 
   emit LabelStatsReady();
+}
+
+void LayerMRI::SetMaskThreshold(double val)
+{
+  m_dMaskThreshold = val;
+  if (m_layerMask)
+    m_mapMaskThresholds[m_layerMask] = val;
+
+  SetMaskLayer(m_layerMask);
 }

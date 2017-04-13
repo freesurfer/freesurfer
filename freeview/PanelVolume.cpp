@@ -517,6 +517,10 @@ void PanelVolume::DoUpdateWidgets()
     }
     ui->comboBoxMask->setCurrentIndex(n);
 
+    ui->labelMaskThreshold->setVisible(n > 0);
+    ui->lineEditMaskThreshold->setVisible(n > 0);
+    ChangeLineEditNumber(ui->lineEditMaskThreshold, layer->GetMaskThreshold());
+
     // correlation surface setting
     if (layer->GetNumberOfFrames() > 1)
     {
@@ -1550,4 +1554,18 @@ void PanelVolume::OnColorTableItemChanged(QTreeWidgetItem *item)
   }
 
   ui->checkBoxSelectAllLabels->blockSignals(false);
+}
+
+void PanelVolume::OnLineEditMaskThreshold( const QString& text )
+{
+  LayerMRI* layer = GetCurrentLayer<LayerMRI*>();
+  if (layer)
+  {
+    bool bOK;
+    double dVal = text.toDouble( &bOK );
+    if ( bOK )
+    {
+      layer->SetMaskThreshold(dVal);
+    }
+  }
 }

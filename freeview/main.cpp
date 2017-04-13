@@ -123,6 +123,7 @@ int main(int argc, char *argv[])
 #endif
 
   LineProf::InitializePetsc(true);
+  FSinit();
 
   CmdLineEntry cmdLineDesc[] =
   {

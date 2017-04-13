@@ -286,6 +286,11 @@ public:
 
   void SetMaskLayer(LayerMRI* layer_mask);
 
+  double GetMaskThreshold()
+  {
+    return m_dMaskThreshold;
+  }
+
   LayerMRI* GetMaskLayer()
   {
     return m_layerMask;
@@ -324,6 +329,7 @@ public slots:
   }
   void UpdateResliceInterpolation();
   void UpdateMRIToImage();
+  void SetMaskThreshold(double val);
 
 Q_SIGNALS:
   void ResampleFactorChanged();
@@ -451,6 +457,8 @@ private:
   QList<int>  m_nAvailableLabels;
   QMap<int, QList<double> > m_listLabelCenters;
 
+  QMap<QObject*, double>  m_mapMaskThresholds;
+  double      m_dMaskThreshold;
 };
 
 
