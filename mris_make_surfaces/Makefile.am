@@ -31,9 +31,9 @@ foo_DATA=mris_make_surfaces.help.xml
 foo2dir=$(prefix)/docs/html
 foo2_DATA=mris_make_surfaces.help.xml.html
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+TESTS=test_mris_make_surfaces $(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
+EXTRA_DIST=test_mris_make_surfaces testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
