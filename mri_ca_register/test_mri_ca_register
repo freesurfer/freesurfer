@@ -54,6 +54,8 @@ set cmd=(../mri_ca_register \
     -nobigventricles \
     -T talairach.lta \
     -align-after \
+    -levels 3 \
+    -tol 0.1 \
     -mask brainmask.mgz \
     norm.mgz \
     $FREESURFER_HOME/average/RB_all_2016-05-10.vc700.gca \
@@ -98,6 +100,8 @@ if (-e ../mri_ca_register_cuda && -e TEST_CUDA) then
     -nobigventricles \
     -T talairach.lta \
     -align-after \
+    -levels 3 \
+    -tol 0.1 \
     -mask brainmask.mgz \
     norm.mgz \
     $FREESURFER_HOME/average/RB_all_2016-05-10.vc700.gca \
@@ -123,7 +127,7 @@ if (-e ../mri_ca_register_cuda && -e TEST_CUDA) then
             $REF_VOL $TST_VOL );
     echo ""
     echo $cmd
-    #$cmd
+    $cmd
     set diff_status=$status
     if ($diff_status != 0) then
       echo "$cmd FAILED (exit status=$diff_status)"
@@ -141,7 +145,8 @@ echo ""
 # cleanup
 #
 cd ..
-rm -Rf testdata
+# EDIT:
+#rm -Rf testdata
 
 echo ""
 echo "test_mri_ca_register passed all tests"
