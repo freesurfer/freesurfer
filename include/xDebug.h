@@ -190,21 +190,24 @@ extern int                  xDbg_gLineNumberOfError;
 
 /* if errorCode != kNoError, the function will be called, passing the
    errorCode. it should return a char* string with the error message. */
+
+/* removed from DebugCatchError() by dng to quite gcc 4.8 compiler 
+          if( (errorCode) != (kNoError) ) {	\
+             if( NULL != errorStringFunc ) { \
+                DebugPrint( ("\tError %d: %s\n", \
+                             errorCode, errorStringFunc(errorCode)) ); \
+             } else { \
+                DebugPrint( ("\tError %d\n", errorCode) ); \
+             } \
+          } else { \
+             DebugPrint( ("\tNo error code.\n") ); \
+	     } \*/
+
 #define DebugCatchError(errorCode,kNoError,errorStringFunc) \
      do { \
      DebugPrint( ("Error in %s (line %d)\n\twhile %s\n", \
                   xDbg_GetCurrentFunction(), xDbg_gLineNumberOfError, \
                   xDbg_sCurNoteDesc) ); \
-     if( (errorCode) != (kNoError) ) { \
-        if( NULL != errorStringFunc ) { \
-           DebugPrint( ("\tError %d: %s\n", \
-                        errorCode, errorStringFunc(errorCode)) ); \
-        } else { \
-           DebugPrint( ("\tError %d\n", errorCode) ); \
-        } \
-     } else { \
-        DebugPrint( ("\tNo error code.\n") ); \
-     } \
      xDbg_PrintStack (); \
      } while(0)
 
