@@ -546,7 +546,7 @@ double CostFunctions::leastSquares(MRI_BSPLINE *mriS, MRI_BSPLINE* mriT,
 {
   mriS->coeff->outside_val = -1;
   mriT->coeff->outside_val = -1;
-  double dt[4] = { mriT->coeff->width, mriT->coeff->height, mriT->coeff->depth , mriT->coeff->nframes };
+  double dt[4] = { (double)mriT->coeff->width, (double)mriT->coeff->height, (double)mriT->coeff->depth , (double)mriT->coeff->nframes };
   int x, y, z, f;
   double dd, d=0;
   double xs, ys, zs;
