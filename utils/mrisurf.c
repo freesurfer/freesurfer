@@ -46539,7 +46539,7 @@ int
 MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp)
 {
   double  mean, dsigma, dmin, dmax ;
-  int     vno, vno2 ;
+  int     vno=0, vno2=0 ;
 
   mean = MRIScomputeVertexSpacingStats(mris, &dsigma, &dmin,&dmax,&vno,&vno2, CURRENT_VERTICES) ;
   fprintf(fp, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f) "
