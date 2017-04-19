@@ -3002,8 +3002,8 @@ if test "$OS" = "Darwin"; then
   if test ! "X$X_DIR" = "X"; then 
     gl_cflags="-I${X_DIR}/include -I${X_DIR}/include/GL"
     gl_libs="-L${X_DIR}/lib $X_LIBS -Wl,-dylib_file,\
-            /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:\
-            /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
+/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:\
+/System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
     mac_gl_libs=$gl_libs
   fi
 fi
