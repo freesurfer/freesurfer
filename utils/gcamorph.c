@@ -6741,7 +6741,7 @@ int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
 {
   int vtxno,err;
   VERTEX *v;
-  float Mx, My, Mz;
+  float Mx=0, My=0, Mz=0;
 
   //printf("Appling Inverse Morph \n");
   for (vtxno = 0; vtxno < mris->nvertices; vtxno++)
