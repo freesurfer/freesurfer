@@ -1941,7 +1941,7 @@ MRICbuildScatterPlot(MRIC *mric, int class, MATRIX *m_scatter,
   static int       first = 0 ;
   float            *means, *stds, mean, std ;
 #endif
-  float            v, z[2], *mins, *maxs,mn,mx ;
+  float            v, z[2]={0,0}, *mins, *maxs,mn,mx ;
   RBF              *rbf ;
   GET_INPUT_PARMS  parms ;
   FILE             *fp ;
