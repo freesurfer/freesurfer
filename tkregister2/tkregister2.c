@@ -4319,7 +4319,7 @@ void mri2pix(float xpt,float ypt,float zpt,int *jpt,int *ipt,int *impt) {
 /*-----------------------------------------------------*/
 int imval(float px,float py,float pz) {
   float x,y,z;
-  int j,i,imn;
+  int j=0,i=0,imn=0;
 
   x = px*TM[0][0]+py*TM[0][1]+pz*TM[0][2]+TM[0][3]+par[0];
   y = px*TM[1][0]+py*TM[1][1]+pz*TM[1][2]+TM[1][3]+par[1];
