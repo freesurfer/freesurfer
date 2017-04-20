@@ -13863,11 +13863,11 @@ MRISwriteD(MRI_SURFACE *mris, const char *sname)
   curv_save = (float *)calloc(mris->nvertices, sizeof(float)) ;
   if (!curv_save)
     ErrorExit(ERROR_NOMEMORY,
-              "MRISwriteMarked: could not alloc %d vertex curv storage",
+              "MRISwriteD: could not alloc %d vertex curv storage",
               mris->nvertices) ;
 
   MRISextractCurvatureVector(mris, curv_save) ;
-  MRISmarkedToCurv(mris) ;
+  MRISdToCurv(mris) ;
   MRISwriteCurvature(mris, sname) ;
   MRISimportCurvatureVector(mris, curv_save) ;
   free(curv_save) ;
@@ -21168,7 +21168,7 @@ mrisComputeTargetLocationTerm(MRI_SURFACE *mris,
     dx = v->targx-v->x ; dy = v->targy-v->y ; dz = v->targz-v->z ;
 
     norm = sqrt(dx*dx + dy*dy + dz*dz) ;
-#define LOCATION_MOVE_LEN  0.1
+#define LOCATION_MOVE_LEN  1.0 
     if (norm > LOCATION_MOVE_LEN) // so things move at the same speed
     {
       dx /= norm ;
@@ -21184,20 +21184,20 @@ mrisComputeTargetLocationTerm(MRI_SURFACE *mris,
       fprintf(stdout,
               "l_location: targ (%2.1f, %2.1f, %2.f), "
               "current (%2.1f, %2.1f, %2.1f), "
-              "del (%2.1f, %2.1f, %2.1f), dot=%2.3f\n",
+              "del (%2.1f, %2.1f, %2.1f), norm=%2.1f, dot=%2.3f\n",
               v->targx, v->targy, v->targz,
               v->x, v->y, v->z,
               l_location*dx, l_location*dy, l_location*dz,
-              dx*v->nx+dy*v->ny+dz*v->nz) ;
+              norm,dx*v->nx+dy*v->ny+dz*v->nz) ;
     }
     if (!devFinite(dx) || !devFinite(dy) || !devFinite(dz))
     {
       DiagBreak() ;
     }
+
     v->dx += l_location * dx ;
     v->dy += l_location * dy ;
     v->dz += l_location * dz ;
-
   }
 
   return(NO_ERROR) ;
@@ -34732,8 +34732,11 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       done = 1 ;
       /* check to see if the error decreased substantially, if not
       reduce the  step size  */
-      if ((parms->check_tol && (last_rms-rms)/last_rms < parms->tol) ||
-          ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms-0.05)))
+      if (((parms->check_tol && 
+	   ((FZERO(parms->l_location) && ((last_rms-rms)/last_rms < parms->tol))))  || 
+	   (100*(last_sse-sse)/last_sse < parms->tol))
+	  ||
+	  ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms-0.05)))
       {
         nreductions++ ;
         parms->dt *= REDUCTION_PCT ;
@@ -34743,7 +34746,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
                 rms, nreductions, MAX_REDUCTIONS+1, dt) ;
         mrisClearMomentum(mris) ;
 #if 1
-        if (rms > last_rms)  /* error increased - reject step */
+        if ((FZERO(parms->l_location)) && (rms > last_rms))  /* error increased - reject step */
         {
           MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
           MRIScomputeMetricProperties(mris) ;
