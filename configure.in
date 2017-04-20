@@ -4091,7 +4091,6 @@ AC_OUTPUT([Makefile
            talairach_avi/Makefile
            template/Makefile
            test_makevol/Makefile
-           test_window_env/Makefile
            tetgen/Makefile
            tiff/Makefile
            tkmedit/Makefile
