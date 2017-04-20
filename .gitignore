@@ -36,6 +36,8 @@ autom4te.cache/
 cpuflags.mak
 libtool
 stamp-h1
+distribution/.license
+distribution/license.txt
 # generated UI files
 ui_*.*
 moc_*.*
