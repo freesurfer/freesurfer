@@ -16,6 +16,93 @@
 namespace kvl {
   namespace cuda {
     template<typename ElementType,unsigned char nDims,typename IndexType = size_t>
+    class Image_GPU {
+    public:
+      IndexType dims[nDims];
+      void* pitchedPtr;
+      size_t dataPitch;
+
+      template<typename NextType, typename... Values>
+      __device__
+      ElementType operator()( const NextType iVal, const Values... vals ) const {
+	static_assert( std::numeric_limits<IndexType>::is_integer, "Must have integral IndexType" );
+	IndexType location[nDims];
+	this->copyToArray(location, iVal, vals...);
+	
+	IndexType iRow = 0;
+	if( nDims>=2 ) {
+	  for( unsigned char i=0; i<=nDims-2; i++ ) {
+	    iRow = location[i] + (iRow * this->dims[i]);
+	  }
+	}
+
+	const char* data = reinterpret_cast<const char*>(this->pitchedPtr);
+	const char* row = data + (iRow*this->dataPitch);
+	
+	return( reinterpret_cast<const ElementType*>(row)[location[nDims-1]] );
+      }
+
+      template<typename NextType, typename... Values>
+      __device__
+      ElementType& operator()( const NextType iVal, const Values... vals ) {
+	static_assert( std::numeric_limits<IndexType>::is_integer, "Must have integral IndexType" );
+	IndexType location[nDims];
+	this->copyToArray(location, iVal, vals...);
+
+	IndexType iRow = 0;
+	if( nDims>=2 ) {
+	  for( unsigned char i=0; i<=nDims-2; i++ ) {
+	    iRow = location[i] + (iRow * this->dims[i]);
+	  }
+	}
+	
+	char* data = reinterpret_cast<char*>(this->pitchedPtr);
+	char* row = data + (iRow*this->dataPitch);
+	
+	return( reinterpret_cast<ElementType*>(row)[location[nDims-1]] );
+      }
+
+      
+      template<typename NextType, typename... Values>
+      __device__
+      bool PointInRange(const NextType iVal, const Values... vals) const {
+	static_assert((1+sizeof...(Values))==nDims,
+		      "Must call with nDims arguments");
+	IndexType location[nDims];
+      
+	this->copyToArray(location, iVal, vals...);
+      
+	return this->PointInRangeFromArray(location);
+      }
+
+      __device__
+      bool PointInRangeFromArray(const IndexType location[nDims]) const {
+	bool result = true;
+	
+	for( unsigned char i=0; i<nDims; i++ ) {
+	  result = result && (location[i] >=0) && (location[i] < this->dims[i]);
+	}
+
+	return result;
+      }
+
+    private:
+      // Base case of copyToArray
+      __device__
+      void copyToArray(IndexType*) const { }
+
+      // Extracts variadic template arguments into a array of length nDims
+      template<typename NextType, typename... Values>
+      __device__
+      void copyToArray(IndexType* nextLoc, const NextType iVal, const Values... vals) const {
+	*nextLoc = iVal;
+	this->copyToArray(++nextLoc,vals...);
+      }
+    };
+
+    // --------------------------------------------
+
+    template<typename ElementType,unsigned char nDims,typename IndexType = size_t>
     class CudaImage {
     public:
       typedef Dimension<nDims,IndexType> DimensionType;
@@ -102,6 +189,18 @@ namespace kvl {
 	res.ysize = tmpExtent.height;
 	
 	return res;
+      }
+
+      Image_GPU<ElementType,nDims,IndexType> getArg() const {
+	Image_GPU<ElementType,nDims,IndexType> gpuArg;
+
+	for( unsigned char i=0; i<nDims; i++ ) {
+	  gpuArg.dims[i] = this->dims[i];
+	}
+	gpuArg.pitchedPtr =  this->d_elements->ptr;
+	gpuArg.dataPitch = this->d_elements->pitch;
+
+	return gpuArg;
       }
 
       void SetMemory( const int value ) {
