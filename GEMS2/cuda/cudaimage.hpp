@@ -153,6 +153,10 @@ namespace kvl {
 	
 	this->SetDimensionsCommon();
       }
+      
+      DimensionType GetDimensions() const {
+	return this->dims;
+      }
 
       cudaExtent GetCudaExtent() const {
 	// Creates the CudaExtent from the dims
