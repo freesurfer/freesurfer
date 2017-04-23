@@ -141,6 +141,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(PlusKernel2D, ElementType, PlusTestTypes )
   PlusKernelDriver<ElementType,2>();
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(PlusKernel3D, ElementType, PlusTestTypes )
+{
+  PlusKernelDriver<ElementType,3>();
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 
 BOOST_AUTO_TEST_SUITE_END();
