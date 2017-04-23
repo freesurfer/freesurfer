@@ -63,9 +63,9 @@ void PlusKernelDriver() {
    
      const T value = gPRNG.GetInteger( 120 );
 
-     srcDims[0] = 128 + gPRNG.GetInteger<size_t>( 32 );
+     srcDims[0] = 256 + gPRNG.GetInteger<size_t>( 512 );
      for( int i=1; i<nDims; i++ ) {
-       srcDims[i] = ( 2 << (9-nDims) ) + gPRNG.GetInteger<size_t>( 256 >> nDims );
+       srcDims[i] = ( 2 << (9-nDims) ) + gPRNG.GetInteger<size_t>( 512 >> nDims );
      }
      
      std::vector<T> src, result;
