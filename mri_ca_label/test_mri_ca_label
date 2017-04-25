@@ -48,7 +48,7 @@ gunzip -c testdata.tar.gz | tar xvf -
 cd testdata
 
 set log = (../test_mri_ca_label.log)
-set threads=( 1 8 )
+set threads=( 8 )
 if ($?SKIP_MRI_CALABEL_CPU_TEST) then
   echo "skipping test_mri_ca_label"
   exit 77
