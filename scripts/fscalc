@@ -125,7 +125,7 @@ while($#inops)
   endif
 
   # Unary operations
-  if($op == sqr || $op == sqrt || $op == abs || $op == log || $op == sign ||\
+  if($op == sqr || $op == sqrt || $op == abs || $op == log || $op == log10 || $op == sign ||\
      $op == norm || $op == inv || $op == sig2p || $op == not) then
     set opok = 1;
     set cmd = (mris_calc -o $tmpvol $tmpvol $op)
