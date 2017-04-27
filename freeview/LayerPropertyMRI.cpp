@@ -1384,23 +1384,23 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   if (!mSource)
     return;
 
-  if (m_bAutoAdjustFrameLevel)
-  {
-    if (m_mapMinMaxValues.contains(m_nActiveFrame))
-    {
-      QPair<double, double> pair = m_mapMinMaxValues[m_nActiveFrame];
-      mMinVoxelValue = pair.first;
-      mMaxVoxelValue = pair.second;
-    }
-    else
-    {
-      double range[2];
-      mSource->GetFrameValueRange(m_nActiveFrame, range);
-      mMinVoxelValue = range[0];
-      mMaxVoxelValue = range[1];
-    }
-  }
-  else
+//  if (m_bAutoAdjustFrameLevel)
+//  {
+//    if (m_mapMinMaxValues.contains(m_nActiveFrame))
+//    {
+//      QPair<double, double> pair = m_mapMinMaxValues[m_nActiveFrame];
+//      mMinVoxelValue = pair.first;
+//      mMaxVoxelValue = pair.second;
+//    }
+//    else
+//    {
+//      double range[2];
+//      mSource->GetFrameValueRange(m_nActiveFrame, range);
+//      mMinVoxelValue = range[0];
+//      mMaxVoxelValue = range[1];
+//    }
+//  }
+//  else
   {
     mMinVoxelValue = mSource->GetMinValue();
     mMaxVoxelValue = mSource->GetMaxValue();
@@ -1409,15 +1409,29 @@ void LayerPropertyMRI::UpdateMinMaxValues()
   mMaxGrayscaleWindow = mMaxVoxelValue;
   if (mSource->HasValidHistogram())
   {
-    mMinGrayscaleWindow = mSource->GetHistoValueFromPercentile(0.05, m_nActiveFrame);
-    mMaxGrayscaleWindow = mSource->GetHistoValueFromPercentile(0.975, m_nActiveFrame);
-    mMaxGrayscaleWindow = mMaxGrayscaleWindow+(mMaxGrayscaleWindow-mMinGrayscaleWindow)/5;
-    if (mMaxGrayscaleWindow == mMinGrayscaleWindow)
+    if (m_mapMinMaxValues.contains(m_nActiveFrame))
     {
-      mMinGrayscaleWindow = mMinVoxelValue;
-      mMaxGrayscaleWindow = mMaxVoxelValue;
+      QPair<double, double> pair = m_mapMinMaxValues[m_nActiveFrame];
+      mMinGrayscaleWindow = pair.first;
+      mMaxGrayscaleWindow = pair.second;
+    }
+    else
+    {
+      mMinGrayscaleWindow = mSource->GetHistoValueFromPercentile(0.05, m_nActiveFrame);
+      mMaxGrayscaleWindow = mSource->GetHistoValueFromPercentile(0.99, m_nActiveFrame);
+      mMaxGrayscaleWindow = mMaxGrayscaleWindow+(mMaxGrayscaleWindow-mMinGrayscaleWindow)/5;
+      if (mMaxGrayscaleWindow == mMinGrayscaleWindow)
+      {
+        mMinGrayscaleWindow = mMinVoxelValue;
+        mMaxGrayscaleWindow = mMaxVoxelValue;
+      }
+      QPair<double, double> pair;
+      pair.first = mMinGrayscaleWindow;
+      pair.second = mMaxGrayscaleWindow;
+      m_mapMinMaxValues[m_nActiveFrame] = pair;
     }
   }
+
   mMinVisibleValue = mMinVoxelValue - ( mMaxVoxelValue - mMinVoxelValue );
   mMaxVisibleValue = mMaxVoxelValue + ( mMaxVoxelValue - mMinVoxelValue );
   mWindowRange[0] = 0;
