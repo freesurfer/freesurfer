@@ -73,13 +73,13 @@ which eddy_correct       | tee -a $LF
 echo "ECRefTP $ECRefTP"  | tee -a $LF
 
 # Force FSL to use nifti
-setenv FSLOUTPUTTYPE NIFTI
+setenv FSLOUTPUTTYPE NIFTI_GZ
 
 # Convert the input to nifti
 echo "#@#-------------------------------" |  tee -a $LF
 echo "Converting input" |  tee -a $LF
 date |  tee -a $LF
-set f = $OutDir/dwi.nii
+set f = $OutDir/dwi.nii.gz
 set cmd = (mri_convert $InputVol $f);
 echo "cd `pwd`" |  tee -a $LF
 echo $cmd       |  tee -a $LF
@@ -103,7 +103,7 @@ if($#bvals == 0) then
 endif
 
 # Eddy/Motion Correct (needs its own tmp dir)
-set fec = $OutDir/dwi-ec.nii
+set fec = $OutDir/dwi-ec.nii.gz
 if($DoEddyCorrect) then
   echo "#@#-------------------------------" |  tee -a $LF
   echo "Eddy/Motion Correct" |  tee -a $LF
@@ -139,6 +139,7 @@ echo "Fitting Tensors" |  tee -a $LF
 date |  tee -a $LF
 
 # zip files to save space
+if(0) then
 set cmd = (gzip $f)
 echo $cmd       |  tee -a $LF 
 $cmd            |& tee -a $LF
@@ -151,8 +152,9 @@ $cmd            |& tee -a $LF
 if($status) exit 1;
 echo "" | tee -a $LF
 echo "" | tee -a $LF
+endif
 
-set cmd = (mri_glmfit --y $fec.gz --glmdir $OutDir);
+set cmd = (mri_glmfit --y $fec --glmdir $OutDir --nii.gz);
 if($#bvals == 0) then 
   set cmd = ($cmd --dti $infodump)
 else
