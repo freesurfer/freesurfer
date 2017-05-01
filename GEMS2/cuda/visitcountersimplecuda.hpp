@@ -7,6 +7,8 @@
 #include "dimensioncuda.hpp"
 #include "cudaimage.hpp"
 
+#include "visitcountersimplecudaimpl.hpp"
+
 namespace kvl {
   namespace cuda {
     template<typename T>
@@ -14,7 +16,7 @@ namespace kvl {
       virtual void SetRegions( const kvl::interfaces::AtlasMeshVisitCounter::ImageType::RegionType& region ) override {
 	auto size = region.GetSize();
 
-	Dimension<3, unsigned long> imageDims;
+	Dimension<3, unsigned short> imageDims;
 	imageDims[0] = size[2];
 	imageDims[1] = size[1];
 	imageDims[2] = size[0];
@@ -70,6 +72,8 @@ namespace kvl {
 
 	d_tetrahedra.Send(tetrahedra, tetArrDims);
 
+	RunVisitCounterSimpleCUDA( d_Output, d_tetrahedra );
+
 	std::cout << __FUNCTION__ << ": Complete" << std::endl;
       };
 
@@ -81,7 +85,7 @@ namespace kvl {
       const int nDims = 3;
       const int nVertices = 4;
 
-      CudaImage<int,3,size_t> d_Output;
+      CudaImage<int,3,unsigned short> d_Output;
     };
   }
 }
