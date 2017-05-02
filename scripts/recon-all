@@ -7309,6 +7309,7 @@ while( $#argv != 0 )
       echo "INFO: keeping DC when conforming"
       breaksw
 
+    case "-highres":
     case "-hires":
       set HiRes = 1;
       set ConformMin = 1;
