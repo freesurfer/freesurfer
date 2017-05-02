@@ -37,10 +37,50 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
       minVal = 0;
     }
 
+    // Add one to the max to make the loops
+    // simpler later
+    // It also avoids some pathological cases of
+    // planar tetrahedra with all integral vertices
     min[threadIdx.x] = floor(minVal);
-    max[threadIdx.x] = ceil(maxVal);
+    max[threadIdx.x] = ceil(maxVal)+1;
   }
   __syncthreads();
+
+  // Compute barycentric co-ordinate conversion matrix
+  // TODO!!!!!!!
+
+  // Figure out how to cover the bounding box with the current thread block
+  // We assume that each thread block is strictly 2D
+
+  unsigned short box[nDims];
+  for( unsigned int i=0; i<nDims; i++ ) {
+    box[i] = max[i] - min[i];
+  }
+  const unsigned short nBx = (box[0] / blockDim.x)+1;
+  const unsigned short nBy = (box[1] / blockDim.y)+1;
+
+  // Divide the bounding box into blocks equal to the blockDim
+  for( unsigned short iBy=0; iBy<nBy; iBy++ ) {
+    for( unsigned short iBx=0; iBx<nBx; iBx++ ) {
+      const unsigned short ix = min[0] + (iBx*blockDim.x) + threadIdx.x;
+      const unsigned short iy = min[1] + (iBy*blockDim.y) + threadIdx.y;
+
+      // Could probably do this test a little better
+      if( output.PointInRange(0,iy,ix) ) {
+
+	for( unsigned short iz=min[2]; iz<max[2]; iz++ ) {
+	  bool inside = true;
+	  
+	  // Figure out if point lies inside tetrahedron
+	  // TODO!
+	  
+	  if( inside ) {
+	    atomicAdd(&output(iz,iy,ix),1);
+	  }
+	}
+      }
+    }
+  }
 }
 
 
@@ -61,12 +101,13 @@ namespace kvl {
       
       if( nTetrahedra > nBlockx ) {
 	grid.x = nBlockx;
-	grid.y = nTetrahedra / grid.x;
+	grid.y = (nTetrahedra / grid.x)+1;
 	if( (grid.y * grid.x) < nTetrahedra ) {
 	  grid.y++;
 	}
       } else {
 	grid.x = nTetrahedra;
+	grid.y = 1;
       }
 
       threads.x = nThreadsx;
