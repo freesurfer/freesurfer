@@ -16098,7 +16098,11 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
 
   //why divided by 3 for x and y?? mistake or experience?? -xh
   // experience - don't want to be near midline (BRF)
-  x0 = box.x+box.dx/3 ;
+  if (gca->flags & GCA_NO_RH ) // put  centroid in LH, not in RH
+    x0 = box.x+nint(box.dx*.75) ;
+  else
+    x0 = box.x+box.dx/3 ;
+
   y0 = box.y+box.dy/3 ;
   z0 = box.z+box.dz/2 ;
   printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
