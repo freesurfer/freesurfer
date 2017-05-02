@@ -15,7 +15,7 @@ HELP="
 if [[ $# -eq 0 ]]; then
   [ -z "${SUBJECTS_DIR}" ] && echo "Need to set SUBJECTS_DIR" && exit 1;
 elif [[ $# -eq 1 ]]; then
-  if [[ "${1}" == \-*help* ]]; then
+  if [[ "${1}" == \-*help ]]; then
     echo "${HELP}"
     exit 1
   else
