@@ -111,6 +111,7 @@
 #include "Json.h"
 #include "DialogThresholdFilter.h"
 #include "DialogLoadTransform.h"
+#include "LayerPropertyTrack.h"
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
 #endif
@@ -1592,6 +1593,14 @@ void MainWindow::RunScript()
   {
     CommandLoadTrack(sa);
   }
+  else if ( cmd == "settrackcolor")
+  {
+    CommandSetTrackColor( sa );
+  }
+  else if ( cmd == "settrackrender")
+  {
+    CommandSetTrackRender( sa );
+  }
   else if ( cmd == "screencapture" )
   {
     CommandScreenCapture( sa );
@@ -2737,8 +2746,49 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
 
 void MainWindow::CommandLoadTrack(const QStringList &cmd)
 {
-  QString fn = cmd[1];
+  QStringList list = cmd[1].split(":");
+  QString fn = list[0];
   LoadTrackFile( fn );
+  if (list.size() > 1)
+  {
+    for (int i = 1; i < list.size(); i++)
+    {
+      QStringList sublist = list[i].split("=");
+      if (sublist.size() > 1)
+      {
+        if (sublist[0] == "color")
+          m_scripts.insert(0, QStringList("settrackcolor") << sublist[1]);
+        else if (sublist[0] == "render")
+          m_scripts.insert(0, QStringList("settrackrender") << sublist[1]);
+        else
+          cerr << "Unrecognized sub-option flag '" << sublist[0].toLatin1().constData() << "'.\n";
+      }
+    }
+  }
+}
+
+void MainWindow::CommandSetTrackColor(const QStringList &cmd)
+{
+  LayerTrack* layer = (LayerTrack*)GetActiveLayer("Tract");
+  if (layer && cmd.size() > 1)
+  {
+    QColor color = ParseColorInput(cmd[1]);
+    if (color.isValid())
+    {
+      layer->GetProperty()->SetColorCode(LayerPropertyTrack::SolidColor);
+      layer->GetProperty()->SetSolidColor(color);
+    }
+  }
+}
+
+void MainWindow::CommandSetTrackRender(const QStringList &cmd)
+{
+  LayerTrack* layer = (LayerTrack*)GetActiveLayer("Tract");
+  if (layer && cmd.size() > 1)
+  {
+    if (cmd[1] == "tube" || cmd[1] == "tubes")
+      layer->GetProperty()->SetRenderRep(LayerPropertyTrack::Tube);
+  }
 }
 
 void MainWindow::CommandLoadSurface( const QStringList& cmd )
