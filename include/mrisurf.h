@@ -929,8 +929,8 @@ int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
                          float alpha, float beta, float gamma) ;
 
-MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int type) ;
-MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris) ;
+MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which) ;
+MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which) ;
 
 
 
@@ -1758,6 +1758,14 @@ MRI *MRISfbirnMask_MOF_RACing(MRIS *surf);
 int   MRISvalidVertices(MRI_SURFACE *mris) ;
 int MRISmarkedVertices(MRI_SURFACE *mris) ;
 
+int
+MRIScomputeWhiteSurfaceClassBoundaries(MRI_SURFACE *mris,
+				       MRI *mri,
+				       float *pmax_border_white,
+				       float *pmin_border_white,
+				       float *pmax_border_gray,
+				       float *pmin_border_gray,
+                                       float scale) ;
 int MRIScomputeClassStatistics(MRI_SURFACE *mris,
                                MRI *mri,
                                float *pwhite_mean,
