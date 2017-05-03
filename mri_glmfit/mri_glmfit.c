@@ -758,7 +758,7 @@ MRI *MRIremoveSpatialMean(MRI *vol, MRI *mask, MRI *out);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  int nargs, n,m,nframesNew;
+  int nargs, n,m;
   int msecFitTime;
   MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Ex=NULL, *XgNew=NULL;
   MATRIX *Ct, *CCt;
@@ -1085,7 +1085,6 @@ int main(int argc, char **argv) {
     fp = fopen(tmpstr,"w");
     for(m=0; m<nExclude; m++) fprintf(fp,"%d\n",ExcludeFrames[m]);
     fclose(fp);
-    nframesNew = mriglm->y->nframes - nExclude;
     XgNew = MatrixExcludeFrames(mriglm->Xg, ExcludeFrames,nExclude);
     MatrixFree(&mriglm->Xg);
     mriglm->Xg = XgNew; 
@@ -2603,6 +2602,7 @@ static int parse_commandline(int argc, char **argv) {
       printf("Starting GLM profile over %d iterations. Seed=%d\n",
              niters,SynthSeed);
       msec = GLMprofile(200, 20, 5, niters);
+      printf(" ... msec = %d\n",msec);
       nargsused = 1;
       exit(0);
     } else if (!strcasecmp(option, "--resynthtest")) {

@@ -469,7 +469,8 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
       gifti_free_image (image);
       return NULL;
     }
-    memset(ct->entries,0,sizeof(ct->entries));
+    //memset(ct->entries,0,sizeof(ct->entries)); // original 
+    memset(ct->entries,0,sizeof(*ct->entries)); // changed by dng
     strncpy(ct->fname, fname, sizeof(ct->fname));
 
     float* rgba = image->labeltable.rgba;

@@ -213,7 +213,7 @@ octTreeVoxel octTreeVoxelCreate (double *vox, double* vsize)
 octTreeVoxel octTreeVoxelDivide (int type, octTreeVoxel v)
 {  
   double vsize_new[3];
-  double vox_new[3];
+  double vox_new[3]={0,0,0};
   vsize_new[0] = v.vsize[0]/2.0; vsize_new[1] = v.vsize[1]/2.0; vsize_new[2] = v.vsize[2]/2.0;
   switch (type)
     {

@@ -195,16 +195,12 @@ extern int                  xDbg_gLineNumberOfError;
      DebugPrint( ("Error in %s (line %d)\n\twhile %s\n", \
                   xDbg_GetCurrentFunction(), xDbg_gLineNumberOfError, \
                   xDbg_sCurNoteDesc) ); \
-     if( (errorCode) != (kNoError) ) { \
-        if( NULL != errorStringFunc ) { \
-           DebugPrint( ("\tError %d: %s\n", \
-                        errorCode, errorStringFunc(errorCode)) ); \
-        } else { \
-           DebugPrint( ("\tError %d\n", errorCode) ); \
-        } \
-     } else { \
-        DebugPrint( ("\tNo error code.\n") ); \
-     } \
+          if( (errorCode) != (kNoError) ) {	\
+                DebugPrint( ("\tError %d: %s\n", \
+                             errorCode, errorStringFunc(errorCode)) ); \
+          } else { \
+             DebugPrint( ("\tNo error code.\n") ); \
+	     } \
      xDbg_PrintStack (); \
      } while(0)
 

@@ -425,7 +425,7 @@ c_SSocket_UDP::recv_timeout(
       error("Problem reading Datagram packet");
     else if (rval>0) {
       astr_payload += pch_buf;
-      bzero(pch_buf, sizeof(pch_buf));
+      bzero(pch_buf, sizeof(*pch_buf));
       debug_pop();
       return rval;
     }
