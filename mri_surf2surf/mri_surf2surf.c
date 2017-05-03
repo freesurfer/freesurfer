@@ -1066,8 +1066,11 @@ int main(int argc, char **argv)
       printf("NN smoothing output with n = %d\n",nSmoothSteps);
       MRISsmoothMRI(TrgSurfReg, TrgVals, nSmoothSteps, outmask, TrgVals);
     } else {
-      printf("Convolving with gaussian\n");
+      printf("Convolving with gaussian (assuming sphere)\n");
       MRISgaussianSmooth(TrgSurfReg, TrgVals, gstd, TrgVals, 3.5);
+      //printf("Diffusion Smoothing\n");
+      //MRISdiffusionSmooth(TrgSurfReg, TrgVals, gstd, TrgVals);
+      //printf("HK Smoothing\n");
       //MRIShksmooth(SrcSurfReg, SrcVals, gstd, nSmoothSteps, SrcVals);
     }
   }
@@ -1598,7 +1601,7 @@ static int parse_commandline(int argc, char **argv)
       sscanf(pargv[0],"%d",&TrgIcoOrder);
       nargsused = 1;
     } else if (!strcmp(option, "--trgsurfval")  || !strcmp(option, "--tval") ||
-	       !strcmp(option, "--trgval")) {
+	       !strcmp(option, "--trgval") || !strcmp(option, "--o")) {
       if (nargc < 1) {
         argnerr(option,1);
       }
@@ -1759,7 +1762,7 @@ static void print_usage(void)
   printf("   --srcicoorder when srcsubject=ico and src is .w\n");
   printf("   --trgsubject target subject\n");
   printf("   --trgicoorder when trgsubject=ico\n");
-  printf("   --tval path of file in which to store output values\n");
+  printf("   --tval path of file in which to store output values (or use --o)\n");
   printf("   --tval-xyz volume: save tval as a surface file with source xyz (volume for geometry)\n");
   printf("   --tfmt target format\n");
   printf("   --trgdist distfile : save distance from source to target vtx\n");
@@ -2439,7 +2442,7 @@ MRI *MRISdiffusionSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ)
   double dt=1;
 
   if (Surf->nvertices != Src->width) {
-    printf("ERROR: MRISgaussianSmooth: Surf/Src dimension mismatch\n");
+    printf("ERROR: MRISdiffusionSmooth: Surf/Src dimension mismatch\n");
     return(NULL);
   }
 
@@ -2447,7 +2450,7 @@ MRI *MRISdiffusionSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ)
     Targ = MRIallocSequence(Src->width, Src->height, Src->depth,
                             MRI_FLOAT, Src->nframes);
     if (Targ==NULL) {
-      printf("ERROR: MRISgaussianSmooth: could not alloc\n");
+      printf("ERROR: MRISdiffusionSmooth: could not alloc\n");
       return(NULL);
     }
   } else {
@@ -2455,11 +2458,11 @@ MRI *MRISdiffusionSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ)
         Src->height  != Targ->height ||
         Src->depth   != Targ->depth  ||
         Src->nframes != Targ->nframes) {
-      printf("ERROR: MRISgaussianSmooth: output dimension mismatch\n");
+      printf("ERROR: MRISdiffusionSmooth: output dimension mismatch\n");
       return(NULL);
     }
     if (Targ->type != MRI_FLOAT) {
-      printf("ERROR: MRISgaussianSmooth: structure passed is not MRI_FLOAT\n");
+      printf("ERROR: MRISdiffusionSmooth: structure passed is not MRI_FLOAT\n");
       return(NULL);
     }
   }
@@ -2468,8 +2471,10 @@ MRI *MRISdiffusionSmooth(MRIS *Surf, MRI *Src, double GStd, MRI *Targ)
   SrcTmp = MRIcopy(Src,NULL);
 
   /* Compute the weights */
+  printf("Computing diffusion weights\n");
   w = MRISdiffusionWeights(Surf);
 
+  printf("Starting iterations\n");
   FWHM = GStd*sqrt(log(256.0));
   Niters = (int)(((FWHM*FWHM)/(16*log(2)))/dt);
   printf("Niters = %d, dt=%g, GStd = %g, FWHM = %g\n",Niters,dt,GStd,FWHM);
@@ -2736,6 +2741,7 @@ MRI *MRIShksmooth(MRIS *Surf, MRI *Src, double sigma,
     }
   }
 
+  printf("Computing heat kernel\n");
   hk = MRISheatkernel(SrcSurfReg, sigma);
   //MRIwrite(hk,"hk.mgh");
 
