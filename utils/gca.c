@@ -10096,6 +10096,10 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
       {
         continue ;
       }
+      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 125)
+      {
+        continue ;
+      }
       /* printf("\t\t%02d: %d voxels", j, mriseg->segments[j].nvoxels) ;*/
       if ((float)mriseg->segments[j].nvoxels / (float)nvox < MIN_SEG_PCT)
       {
