@@ -25,6 +25,9 @@ set infofile = ();
 set itdicom = ();
 set DoAutoRunSeq = 0;
 set AutoRunSeqFmt = ""
+set ExitOnError = 1;
+@ ErrorsFound = 0;
+set RunNoSkip = ()
 
 set RunNos = ();
 set SubDirs = ();
@@ -306,6 +309,15 @@ end
 foreach run ($RunNos)
   @ nth = $nth + 1;
 
+  set skipit = 0
+  foreach jj ($RunNoSkip)
+    if($run == $jj)   set skipit = 1
+  end
+  if($skipit) then
+    echo "Skipping run $run" |& tee -a $LF
+    continue
+  endif
+
   if($DoFIPS == 0) then
     set SubDir = $SubDirs[$nth];
     set Format = $Formats[$nth];
@@ -332,8 +344,18 @@ foreach run ($RunNos)
   if($DoConvert) then
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
     set outfname = $outdir/$FName.$Format
+    echo "" |& tee -a $LF
+    echo "#@# Run $run `date` ==================================" |& tee -a $LF
     mri_convert $f $outfname --nskip $NSkip --ndrop $NDrop $itdicom |& tee -a $LF
-    if($status) exit 1;
+    if($status) then
+      if($ExitOnError) then
+        echo "ERROR: a conversion error was detected in Run $run" |& tee -a $LF
+        echo "Either find out why, exclude this run, or run with -no-exit-on-error to continue with other runs" |& tee -a $LF
+        exit 1;
+      endif
+      echo "ERROR: a conversion error was detected in Run $run, but ExitOnError=1 so continuing to next run" |& tee -a $LF
+      @ ErrorsFound = $ErrorsFound + 1;
+    endif
   endif
 
   if($DoCopy) then
@@ -348,10 +370,7 @@ foreach run ($RunNos)
     set f = `cat $infofile | awk -v r=$run '{if($2 == r) print $11}' | head -n 1`
     set dumpfile = $outdir/$FName-infodump.dat
     mri_probedicom --i $f > $dumpfile |& tee -a $LF
-    if($status) then
-      cat $dumpfile | tee -a $LF
-      exit 1;
-    endif
+    if($status) cat $dumpfile | tee -a $LF
   endif
 
   if($DoFIPS) then
@@ -385,6 +404,9 @@ set tRunMins = `printf %5.2f $tRunMins`
 echo "Started at $StartTime " |& tee -a $LF
 echo "Ended   at `date`" |& tee -a $LF
 echo "dcmunpack-Run-Time-Min $tRunMins" |& tee -a $LF
+if($ErrorsFound > 0) then
+  echo "WARNING: $ErrorsFound errors during conversion, check logs" |& tee -a $LF
+endif
 
 echo "" | tee -a $LF
 echo "" | tee -a $LF
@@ -621,6 +643,17 @@ while( $#argv != 0 )
       set OnePerDir = 1;
       breaksw
 
+    case "-no-exit-on-error":
+      # continue to unpack data even if there is an error in coversion
+      set ExitOnError = 0;
+      breaksw
+
+    case "-run-skip":
+      if($#argv < 1) goto arg1err;
+      set RunNoSkip = ($RunNoSkip $argv[1]); shift
+      breaksw
+      
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -760,6 +793,8 @@ usage_exit:
   echo "   -index-out index.out.dat : save index of files to index.out.dat (for re-use)"
   echo "   -index-in  index.dat : read index of files (can make things much faster on 2nd run) "
   echo "   -itdicom : add -it dicom to mri_convert cmd line"
+  echo "   -no-exit-on-error : continue to unpack data even if there is an error in coversion"
+  echo "   -run-skip runno : skip a given run (good when using -auto-runseq)"
   echo ""
   echo "   -fips project site birnid visit"
   echo "   -fips-run run paradigm <<nskip> ndrop>"
