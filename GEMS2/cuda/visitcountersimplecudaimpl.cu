@@ -56,14 +56,11 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
   for( unsigned int i=0; i<nDims; i++ ) {
     box[i] = max[i] - min[i];
   }
-  const unsigned short nBx = (box[0] / blockDim.x)+1;
-  const unsigned short nBy = (box[1] / blockDim.y)+1;
-
   // Divide the bounding box into blocks equal to the blockDim
-  for( unsigned short iBy=0; iBy<nBy; iBy++ ) {
-    for( unsigned short iBx=0; iBx<nBx; iBx++ ) {
-      const unsigned short ix = min[0] + (iBx*blockDim.x) + threadIdx.x;
-      const unsigned short iy = min[1] + (iBy*blockDim.y) + threadIdx.y;
+  for( unsigned short iyStart=min[1]; iyStart<max[1]; iyStart += blockDim.y ) {
+    for( unsigned short ixStart=min[0]; ixStart<max[0]; ixStart += blockDim.x ) {
+      const unsigned short ix = ixStart + threadIdx.x;
+      const unsigned short iy = iyStart + threadIdx.y;
 
       // Could probably do this test a little better
       if( output.PointInRange(0,iy,ix) ) {
