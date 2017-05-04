@@ -47,7 +47,46 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
   __syncthreads();
 
   // Compute barycentric co-ordinate conversion matrix
-  // TODO!!!!!!!
+  // This is taken from kvlTetrahedronInteriorConstIterator.hxx
+  __shared__ T M[nDims][nDims];
+
+  // Do single threaded
+  if( (threadIdx.x==0) && (threadIdx.y==0) ) {
+    // Start by computing locations relative to the first vertex
+    // of the tetrahedron
+    const T a = tetrahedron[1][0] - tetrahedron[0][0];
+    const T b = tetrahedron[2][0] - tetrahedron[0][0];
+    const T c = tetrahedron[3][0] - tetrahedron[0][0];
+    const T d = tetrahedron[1][1] - tetrahedron[0][1];
+    const T e = tetrahedron[2][1] - tetrahedron[0][1];
+    const T f = tetrahedron[3][1] - tetrahedron[0][1];
+    const T g = tetrahedron[1][2] - tetrahedron[0][2];
+    const T h = tetrahedron[2][2] - tetrahedron[0][2];
+    const T i = tetrahedron[3][2] - tetrahedron[0][2];
+    
+    const T A = ( e * i - f * h );
+    const T D = -( b * i - c * h );
+    const T G = ( b * f - c * e );
+    const T B = -(d * i - f * g );
+    const T E = ( a * i - c * g );
+    const T H = -( a * f - c * d );
+    const T C = ( d * h - e * g );
+    const T F = - (a * h - b * g );
+    const T I = ( a * e - b * d );
+
+    const T determinant = a * A + b * B + c * C;
+
+    M[0][0] = A / determinant;
+    M[1][0] = B / determinant;
+    M[2][0] = C / determinant;
+    M[0][1] = D / determinant;
+    M[1][1] = E / determinant;
+    M[2][1] = F / determinant;
+    M[0][2] = G / determinant;
+    M[1][2] = H / determinant;
+    M[2][2] = I / determinant;
+  }
+  __syncthreads();
 
   // Figure out how to cover the bounding box with the current thread block
   // We assume that each thread block is strictly 2D
