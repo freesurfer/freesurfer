@@ -11,6 +11,11 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
 			       const kvl::cuda::Image_GPU<T,3,size_t> tetrahedra ) {
   const size_t iTet = blockIdx.x + (gridDim.x * blockIdx.y);
   
+  // Check if this block has an assigned tetrahedron
+  if( iTet >= tetrahedra.dims[0] ) {
+    return;
+  }
+
   // Load the tetrahedron and determine bounding box
   __shared__ T tetrahedron[nVertices][nDims];
   __shared__ unsigned short min[nDims], max[nDims];
@@ -178,7 +183,7 @@ namespace kvl {
 	throw CUDAException(err);
       }
       SimpleVisitCounterKernel<<<grid,threads>>>( d_output.getArg(), d_tetrahedra.getArg() );
-      err = cudaThreadSynchronize();
+      err = cudaDeviceSynchronize();
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
       }
