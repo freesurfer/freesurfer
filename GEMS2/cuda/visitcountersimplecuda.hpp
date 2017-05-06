@@ -24,6 +24,11 @@ namespace kvl {
 	this->d_Output.SetDimensions(imageDims);
 
 	this->d_Output.SetMemory(0);
+	
+	// Set up the ITK image
+	this->image = VisitCounterSimple<T>::ImageType::New();
+	this->image->SetRegions( region );
+	this->image->Allocate();
       }
 
       virtual void VisitCount( const kvl::AtlasMesh* mesh ) override {
@@ -78,7 +83,27 @@ namespace kvl {
       };
 
       virtual const VisitCounterSimple<T>::ImageType* GetImage() const override {
-	throw std::runtime_error("Not implemented: VisitCounterSimple::GetImage");
+	std::vector<int> tmp;
+	CudaImage<int,3,unsigned short>::DimensionType dims;
+
+	// Get the image data back
+	this->d_Output.Recv( tmp, dims );
+
+	for( unsigned short k=0; k<dims[0]; k++ ) {
+	  for( unsigned short j=0; j<dims[1]; j++ ) {
+	    for( unsigned short i=0; i<dims[2]; i++ ) {
+	      int result = tmp.at(dims.GetLinearIndex(k,j,i));
+	      ImageType::IndexType idx;
+	      idx[0] = i;
+	      idx[1] = j;
+	      idx[2] = k;
+	      
+	      this->image->SetPixel(idx,result);
+	    }
+	  }
+	}
+
+	return this->image;
       }
       
     private:
@@ -86,6 +111,7 @@ namespace kvl {
       const int nVertices = 4;
 
       CudaImage<int,3,unsigned short> d_Output;
+      VisitCounterSimple<T>::ImageType::Pointer image;
     };
   }
 }
