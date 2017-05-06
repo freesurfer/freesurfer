@@ -1,6 +1,8 @@
 #include <functional>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/monomorphic.hpp>
+#include <boost/mpl/list.hpp>
 
 #include "itkImageRegionConstIteratorWithIndex.h"
 
@@ -14,6 +16,10 @@
 #endif
 
 #include "testfileloader.hpp"
+
+#ifdef CUDA_FOUND
+typedef boost::mpl::list<float,double> GPUPrecisionTypes;
+#endif
 
 // --------------------
 
@@ -367,9 +373,9 @@ BOOST_AUTO_TEST_CASE( UpperCornerExactCPU )
 }
 
 #ifdef CUDA_FOUND
-BOOST_AUTO_TEST_CASE( LowerCornerGPUSimpleFloat )
+BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerGPUSimple, PrecisionType, GPUPrecisionTypes  )
 {
-  kvl::cuda::VisitCounterSimple<float> visitCounter;
+  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
  
   LowerCorner( &visitCounter );
 }
