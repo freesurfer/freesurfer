@@ -380,7 +380,40 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerGPUSimple, PrecisionType, GPUPrecision
   LowerCorner( &visitCounter );
 }
 
+BOOST_AUTO_TEST_CASE_TEMPLATE( OriginOnlyGPUSimple, PrecisionType, GPUPrecisionTypes  )
+{
+  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+ 
+  OriginOnly( &visitCounter );
+}
 
+BOOST_AUTO_TEST_CASE_TEMPLATE( XAxisOnlyGPUSimple, PrecisionType, GPUPrecisionTypes  )
+{
+  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+ 
+  XAxisOnly( &visitCounter );
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( FarCornerOnlyGPUSimple, PrecisionType, GPUPrecisionTypes  )
+{
+  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+ 
+  FarCornerOnly( &visitCounter );
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerGPUSimple, PrecisionType, GPUPrecisionTypes  )
+{
+  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+ 
+  UpperCornerOnly( &visitCounter );
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( NoVerticesGPUSimple, PrecisionType, GPUPrecisionTypes  )
+{
+  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+ 
+  NoVertices( &visitCounter );
+}
 #endif
 
 
@@ -401,7 +434,7 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
 #ifdef CUDA_FOUND
 BOOST_AUTO_TEST_CASE( CUDAImpl )
 {
-  kvl::cuda::AtlasMeshVisitCounterCUDA visitCounter;
+  kvl::cuda::VisitCounterSimple<float> visitCounter;
  
   // Note that image and mesh are supplied by TestFileLoader
   CheckVisitCounter( &visitCounter, image, mesh );
