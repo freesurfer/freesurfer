@@ -91,10 +91,6 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
   // Figure out how to cover the bounding box with the current thread block
   // We assume that each thread block is strictly 2D
 
-  unsigned short box[nDims];
-  for( unsigned int i=0; i<nDims; i++ ) {
-    box[i] = max[i] - min[i];
-  }
   // Divide the bounding box into blocks equal to the blockDim
   for( unsigned short iyStart=min[1]; iyStart<max[1]; iyStart += blockDim.y ) {
     for( unsigned short ixStart=min[0]; ixStart<max[0]; ixStart += blockDim.x ) {
@@ -108,7 +104,31 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
 	  bool inside = true;
 	  
 	  // Figure out if point lies inside tetrahedron
-	  // TODO!
+	  T r[nDims];
+	  r[0] = ix - tetrahedron[0][0];
+	  r[1] = iy - tetrahedron[0][1];
+	  r[2] = iz - tetrahedron[0][2];
+
+	  T p[nDims];
+	  for( unsigned int i=0; i<nDims; i++ ) {
+	    p[i] = 0;
+	    for( unsigned int j=0; j<nDims; j++ ) {
+	      p[i] += M[i][j] * r[j];
+	    }
+	  }
+
+	  // p now contains three of the barycentric co-ordinates
+	  // We have the additional constraint that all four barycentric
+	  // co-ordinates must sum to 1
+	  // The point is inside the tetrahedron if all barycentric
+	  // co-ordinates lie between 0 and 1
+	  for( unsigned int i=0; i<nDims; i++ ) {
+	    inside = inside && ( p[i] > 0 );
+	  }
+	  inside = inside && ( (p[0]+p[1]+p[2]) <= 1 );
+	  
+	  // TODO Handle special cases (see IsOutsideTetrahedron method
+	  // of kvlTetrahedronInteriorConstIterator.hxx
 	  
 	  if( inside ) {
 	    atomicAdd(&output(iz,iy,ix),1);
@@ -160,7 +180,6 @@ namespace kvl {
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
       }
-      throw std::runtime_error("SimpleVisitCounterKernel not yet implemented");
     }
 
     // -----------------------------------------------------------
