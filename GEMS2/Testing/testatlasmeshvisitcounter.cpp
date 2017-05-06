@@ -432,9 +432,9 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
 }
 
 #ifdef CUDA_FOUND
-BOOST_AUTO_TEST_CASE( CUDAImpl )
+BOOST_AUTO_TEST_CASE_TEMPLATE( CUDAImpl, PrecisionType, GPUPrecisionTypes )
 {
-  kvl::cuda::VisitCounterSimple<float> visitCounter;
+  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
  
   // Note that image and mesh are supplied by TestFileLoader
   CheckVisitCounter( &visitCounter, image, mesh );
