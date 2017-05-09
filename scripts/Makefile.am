@@ -192,6 +192,7 @@ rbbr \
 rcbf-prep \
 rebuild_gca_atlas.csh \
 recon-all \
+recon-all-exvivo \
 recon-all.makefile \
 reg-feat2anat \
 register_child \

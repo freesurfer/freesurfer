@@ -851,7 +851,7 @@ MRIhistogramLabelRegion(MRI *mri,
   MRIvalRangeRegion(mri, &fmin, &fmax, region) ;
   bmin = (int)fmin ;
   bmax = (int)fmax ;
-  if (!nbins)
+  if (nbins <= 0)
     nbins = nint(fmax - fmin + 1.0) ;
 
   histo = HISTOalloc(nbins) ;

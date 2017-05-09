@@ -37,7 +37,10 @@
 #include "timer.h"
 #include "mrinorm.h"
 #include "version.h"
+#include "label.h"
 #include "transform.h"
+#include "mri_conform.h"
+#include "ctrpoints.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -48,6 +51,8 @@ char *Progname ;
 
 static void usage_exit(int code) ;
 
+static LABEL *label = NULL ;
+static char *control_fname = NULL ;
 static char sdir[STRLEN] = "" ;
 static float pad=20;
 static double sigma = 4.0 ;
@@ -84,28 +89,148 @@ main(int argc, char *argv[])
   ac = argc ;
   av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
+
+  out_fname = argv[argc-1] ;
+  
+  if (label)
+  {
+    MRI *mri, *mri_control, *mri_bias, *mri_kernel, *mri_smooth ;
+    double mean, val ;
+    int   n, xv, yv, zv ;
+    
+    printf("reading label %s and volume %s to compute bias field\n", label->name, argv[1]) ;
+    mri = MRIread(argv[1]) ;
+    if (mri == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label from %s", Progname, argv[1]) ;
+    mean = LabelMeanIntensity(label, mri) ;
+    printf("mean in WM label is %2.1f\n", mean) ;
+
+    mri_control = MRIcloneDifferentType(mri, MRI_UCHAR) ;
+    mri_bias = MRIcloneDifferentType(mri, MRI_FLOAT) ;
+
+    if (control_fname)
+    {
+      int   n, total ;
+      MRI *mri_conf ;
+      MATRIX *m_vox2vox ;
+      LABEL *ltmp, *lconf ;
+      MPoint *pointArray ;
+
+      mri_conf = MRIconform(mri) ;
+      m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_conf) ;
+      printf("writing output control points to %s\n", control_fname) ;
+      MatrixPrint(stdout, m_vox2vox) ;
+
+      ltmp = LabelToVoxel(label, mri, NULL) ;
+
+      lconf = LabelApplyMatrix(ltmp, m_vox2vox, NULL) ;
+      LabelVoxelToSurfaceRAS(lconf, mri_conf, lconf) ;
+
+      pointArray=(MPoint*) malloc(lconf->n_points * sizeof(MPoint));
+      for (n = 0 ; n < lconf->n_points ; n++)
+      {
+	pointArray[n].x = (double)lconf->lv[n].x ;
+	pointArray[n].y = (double)lconf->lv[n].y ;
+	pointArray[n].z = (double)lconf->lv[n].z ;
+      }
+
+      if (FileExists(control_fname))
+      {
+	MPoint *existingPointArray, *newArray ;
+	int    count, useRealRAS, i1, i2, duplicate ;
+
+	existingPointArray = MRIreadControlPoints(control_fname, &count, &useRealRAS);
+	printf("examining %d existing control points to remove duplicated\n",count) ;
+	if (useRealRAS)
+	  ErrorExit(ERROR_UNSUPPORTED, "%s: cannot combine existing RAS and current tkregRAS control points", Progname) ;
+	duplicate = 0 ;
+	for (i1 = 0 ; i1 < lconf->n_points ; i1++)
+	  for (i2 = 0 ; i2 < count ; i2++)
+	  {
+	    if ((nint(pointArray[i1].x) == nint(existingPointArray[i2].x)) &&
+		(nint(pointArray[i1].y) == nint(existingPointArray[i2].y)) &&
+		(nint(pointArray[i1].z) == nint(existingPointArray[i2].z)))
+	    {
+	      duplicate++ ;
+	      break ;
+	    }
+	  }
+	total = count + lconf->n_points - duplicate ;
+	printf("%d duplicate points detected,  saving %d\n", duplicate, total) ;
+	if (total > lconf->n_points)  // if they are are not duplicate
 	{
-		nargs = get_option(argc, argv) ;
-		argc -= nargs ;
-		argv += nargs ;
+	  newArray = (MPoint *)calloc(total, sizeof(MPoint)) ;
+	  if (newArray == NULL)
+	    ErrorExit(ERROR_NOMEMORY, "%s: could not allocate %d-len Point array", Progname, total) ;
+	  memmove(newArray, pointArray, lconf->n_points*sizeof(MPoint)) ;
+	  //  add only those existing points that are unique
+	  for (total = lconf->n_points, i2 = 0 ; i2 < count ; i2++)
+	  {
+	    duplicate = 0 ;
+	    for (i1 = 0 ; i1 < lconf->n_points ; i1++)
+	    {
+	      if ((nint(pointArray[i1].x) == nint(existingPointArray[i2].x)) &&
+		  (nint(pointArray[i1].y) == nint(existingPointArray[i2].y)) &&
+		  (nint(pointArray[i1].z) == nint(existingPointArray[i2].z)))
+	      {
+		duplicate = 1 ;
+		break ;
+	      }
+	    }
+	    if  (duplicate)
+	      continue ;
+	    newArray[total].x = existingPointArray[i2].x ;
+	    newArray[total].y = existingPointArray[i2].y ;
+	    newArray[total].z = existingPointArray[i2].z ;
+	    total++ ;
+	  }
+	  free(pointArray) ;
+	  pointArray = newArray ;
 	}
+	free(existingPointArray) ;
+      }
+      else
+	total = lconf->n_points ;
+      MRIwriteControlPoints(pointArray, total, 0, control_fname) ;
+      MatrixFree(&m_vox2vox) ;
+    }
+    LabelToVoxel(label, mri, label) ;
+    for (n = 0 ; n < label->n_points ; n++)
+    {
+      xv = nint(label->lv[n].x) ; yv = nint(label->lv[n].y) ; zv = nint(label->lv[n].z) ;
+      MRIsetVoxVal(mri_control, xv, yv, zv, 0, CONTROL_MARKED) ;
+      val = MRIgetVoxVal(mri, xv, yv, zv, 0) ;
+      MRIsetVoxVal(mri_bias, xv, yv, zv, 0, mean/val) ;
+    }
+    MRIbuildVoronoiDiagram(mri_bias, mri_control, mri_bias) ;
+    mri_kernel = MRIgaussian1d(sigma, 0) ;
+    mri_smooth = MRIconvolveGaussian(mri_bias, NULL, mri_kernel) ;
+    MRIfree(&mri_kernel) ; 
+
+    printf("writing bias field to %s\n", out_fname) ;
+    MRIwrite(mri_smooth, out_fname) ;
+    exit(0) ;
+  }
 
   if (argc < 3)
     usage_exit(1) ;
-
-	if (strlen(sdir) == 0)
-	{
-		cp = getenv("SUBJECTS_DIR");
-		if (cp)
-			strcpy(sdir, cp) ;
-		else
-			ErrorExit(ERROR_UNSUPPORTED, "%s: must specify SUBJECTS_DIR in env or with -sdir on cmd line", Progname);
-	}
-	
-  out_fname = argv[argc-1] ;
-
-	mri_bias = MRIalloc(256+2*pad, 256+2*pad, 256+2*pad, MRI_FLOAT) ;
-	mri_counts = MRIalloc(256+2*pad, 256+2*pad, 256+2*pad, MRI_FLOAT) ;
+  
+  if (strlen(sdir) == 0)
+  {
+    cp = getenv("SUBJECTS_DIR");
+    if (cp)
+      strcpy(sdir, cp) ;
+    else
+      ErrorExit(ERROR_UNSUPPORTED, "%s: must specify SUBJECTS_DIR in env or with -sdir on cmd line", Progname);
+  }
+  
+  mri_bias = MRIalloc(256+2*pad, 256+2*pad, 256+2*pad, MRI_FLOAT) ;
+  mri_counts = MRIalloc(256+2*pad, 256+2*pad, 256+2*pad, MRI_FLOAT) ;
 #if 0
 	mri_bias->c_r = (double)mri_bias->width/2.0 ;
 	mri_bias->c_a = (double)mri_bias->height/2.0 ;
@@ -215,11 +340,11 @@ get_option(int argc, char *argv[])
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "sdir"))
-	{
-		strcpy(sdir, argv[2]) ;
-		printf("using SUBJECTS_DIR %s\n", sdir);
-		nargs = 1 ;
-	}
+  {
+    strcpy(sdir, argv[2]) ;
+    printf("using SUBJECTS_DIR %s\n", sdir);
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "debug_voxel")) 
   {
     Gx = atoi(argv[2]) ;
@@ -228,32 +353,44 @@ get_option(int argc, char *argv[])
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
   }
-  else switch (toupper(*option))
-	{
-  case 'T':
-    xform_name = argv[2] ;
+  else if (!stricmp(option, "label")) 
+  {
+    label = LabelRead(NULL, argv[2]) ;
     nargs = 1 ;
-    printf("applying xform %s to input datasets\n", xform_name) ;
-    break ;
-	case 'S':
-		sigma = atof(argv[2]) ;
-		nargs = 1 ;
-		printf("using sigma = %2.2f\n", sigma) ;
-		break ;
-	case 'N':
-		normalize = 1 ;
-		printf("normalizing bias maps before combining.\n") ;
-		break ;
-	case '?':
-	case 'U':
-		usage_exit(0) ;
-		break ;
-	default:
-		fprintf(stderr, "unknown option %s\n", argv[1]) ;
-		exit(1) ;
+    printf("reading label %s and using it to compute bias field\n", argv[2]) ;
+  }
+  else 
+    switch (toupper(*option))
+    {
+    case 'T':
+      xform_name = argv[2] ;
+      nargs = 1 ;
+      printf("applying xform %s to input datasets\n", xform_name) ;
       break ;
-	}
-	
+    case 'S':
+      sigma = atof(argv[2]) ;
+      nargs = 1 ;
+      printf("using sigma = %2.2f\n", sigma) ;
+      break ;
+    case 'C':
+      control_fname = argv[2] ;
+      nargs = 1;  
+      printf("writing label to control point file %s\n", control_fname) ;
+      break ;
+    case 'N':
+      normalize = 1 ;
+      printf("normalizing bias maps before combining.\n") ;
+      break ;
+    case '?':
+    case 'U':
+      usage_exit(0) ;
+      break ;
+    default:
+      fprintf(stderr, "unknown option %s\n", argv[1]) ;
+      exit(1) ;
+      break ;
+    }
+  
   return(nargs) ;
 }
 

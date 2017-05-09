@@ -3975,6 +3975,7 @@ MRI3dUseFileControlPoints(MRI *mri,const char *fname)
   return(NO_ERROR) ;
 }
 
+
 int
 MRI3dUseLabelControlPoints(MRI *mri,  LABEL *control_point_label)
 {
@@ -4029,6 +4030,7 @@ MRI3dUseLabelControlPoints(MRI *mri,  LABEL *control_point_label)
 
   return(NO_ERROR) ;
 }
+
 
 
 int

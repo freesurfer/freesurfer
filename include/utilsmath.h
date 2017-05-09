@@ -623,23 +623,13 @@ namespace Math
   MRI *MRISbshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
   {
     int width,height,depth,j,imnr, fno;
-    int imnr0;
-    double ps,st,xx0,xx1,yy0,yy1,zz0,zz1,x0,y0,z0,x1,y1,z1,x2,y2,z2;
+    double x0,y0,z0,x1,y1,z1,x2,y2,z2;
     double px,py,pz;
     double a, b, c;
     double fi,fj,fimnr;
     VERTEX *v_0,*v_1,*v_2;
     FACE *f;
 
-    imnr0=mri_src->imnr0;
-    st=mri_src->thick; /* slice thickness */
-    ps=mri_src->ps;
-    xx0=mri_src->xstart;
-    xx1=mri_src->xend;
-    yy0=mri_src->ystart;
-    yy1=mri_src->yend;
-    zz0=mri_src->zstart;
-    zz1=mri_src->zend;
 
     /* Create new blank MRI or clear existing destination MRI */
     width = mri_src->width;
