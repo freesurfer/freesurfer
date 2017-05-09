@@ -77,8 +77,10 @@
       <explanation>use T1 (mri_vol) and segmentation as example</explanation>
       <argument>-novar</argument>
       <explanation>do not use variance estimates</explanation>
-      <argument>-renorm &lt;mri_vol&gt;</argument>
+      <argument>-renorm &lt;norm text file&gt;</argument>
       <explanation>renormalize using predicted intensity values in mri_vol</explanation>
+      <argument>-extra_norm &lt;pctl&gt;</argument>
+      <explanation>use 1+pct and 1-pct to widen the range of T1 values and reduce the number of rejected control points</explanation>
       <argument>-flash</argument>
       <explanation>use FLASH forward model to predict intensity values</explanation>
       <argument>-prior &lt;float t&gt;</argument>

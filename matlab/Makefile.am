@@ -28,14 +28,17 @@ mfiles_DATA=\
 	cc_cut_dir_afd.m \
 	cc_cut_table.m \
 	combine_labels.m \
+	compute_opt_volume.m \
 	convert_fieldsign.m \
 	convert_unwarp_resample.m \
 	cortical_labeling_afd_txt.m \
 	cortical_labeling_dir_afd_txt.m \
 	cortical_labeling_table.m \
 	dice_labels.m \
+	dilate3d.m \
 	dtifa.m \
 	dtimatrix.m \
+	erode3d.m \
 	fisher_twoclass.m \
 	fread3.m \
 	fwrite3.m \

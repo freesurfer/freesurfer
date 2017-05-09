@@ -610,7 +610,7 @@ get_option(int argc, char *argv[]) {
 static void
 print_usage(void) {
   printf("usage: %s [options] <input surface> <ico file> <output annot>\n\n"
-          "example: %s lh.surf $FREESURFER_HOME/lib/bem/ic3.tri ./lh.ic3.annot\n",
+          "example: %s lh.sphere.reg $FREESURFER_HOME/lib/bem/ic3.tri ./lh.ic3.annot\n",
           Progname, Progname) ;
   printf("  surf should be either:\n");
   printf("    sphere: units will be approximately equal size within subject but \n"

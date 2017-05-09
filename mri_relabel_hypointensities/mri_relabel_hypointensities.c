@@ -55,6 +55,9 @@ static int relabel_hypointensities_neighboring_gray(MRI *mri) ;
 
 char *Progname ;
 
+static int do_rh = 1 ;
+static int do_lh = 1 ;
+
 static char *surf_name = "white" ;
 
 int
@@ -112,7 +115,11 @@ main(int argc, char *argv[])
   for (h = 0 ; h <= 1 ; h++) {
     if (h == 0) {
       hemi = "lh" ;
+      if (do_lh == 0)
+	continue ;
     } else {
+      if (do_rh == 0)
+	continue ;
       hemi = "rh" ;
     }
     sprintf(fname, "%s/%s.%s", surf_dir, hemi, surf_name)  ;
@@ -146,6 +153,12 @@ get_option(int argc, char *argv[])
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help")) {
     print_help() ;
+  } else if (!stricmp(option, "lh") || !stricmp(option, "lh-only")) {
+    do_rh = 0 ;
+    printf("only processing left hemisphere\n") ;
+  } else if (!stricmp(option, "rh") || !stricmp(option, "rh-only")) {
+    do_lh = 0 ;
+    printf("only processing right hemisphere\n") ;
   } else if (!stricmp(option, "-version")) {
     print_version() ;
   } else if (!stricmp(option, "debug_voxel")) {

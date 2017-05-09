@@ -10096,6 +10096,10 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
       {
         continue ;
       }
+      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 125)
+      {
+        continue ;
+      }
       /* printf("\t\t%02d: %d voxels", j, mriseg->segments[j].nvoxels) ;*/
       if ((float)mriseg->segments[j].nvoxels / (float)nvox < MIN_SEG_PCT)
       {
@@ -16098,7 +16102,11 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
 
   //why divided by 3 for x and y?? mistake or experience?? -xh
   // experience - don't want to be near midline (BRF)
-  x0 = box.x+box.dx/3 ;
+  if (gca->flags & GCA_NO_RH ) // put  centroid in LH, not in RH
+    x0 = box.x+nint(box.dx*.75) ;
+  else
+    x0 = box.x+box.dx/3 ;
+
   y0 = box.y+box.dy/3 ;
   z0 = box.z+box.dz/2 ;
   printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
@@ -30616,7 +30624,8 @@ GCAreadLabelIntensities(char *fname, float *label_scales, float *label_offsets)
 int
 GCAremoveHemi(GCA *gca, int lh)
 {
-  int       x, y, z, n, r ;
+  int       x, y, z, n, r, max_label, xp, yp, zp ;
+  double    prior ;
   GCA_NODE  *gcan ;
   GCA_PRIOR *gcap ;
 
@@ -30627,18 +30636,36 @@ GCAremoveHemi(GCA *gca, int lh)
       for (z = 0 ; z < gca->node_depth ; z++)
       {
         gcan = &gca->nodes[x][y][z] ;
-        for (n = 0 ; n < gcan->nlabels ; n++)
-        {
-          if ((lh && (IS_LH_CLASS(gcan->labels[n]))) ||
-              (!lh && (IS_RH_CLASS(gcan->labels[n]))))
-          {
+	gcaNodeToPrior(gca,  x, y, z, &xp, &yp, &zp) ;
+        gcap = &gca->priors[xp][yp][zp] ;
+	max_label = gcapGetMaxPriorLabel(gcap, &prior) ;
+	if ((lh && (IS_LH_CLASS(max_label))) ||
+	    (!lh && (IS_RH_CLASS(max_label))))   // max prior label is in contra hemi  - erase everything
+	{
+	  for (n = 0 ; n < gcan->nlabels ; n++)
+	  {
             gcan->labels[n] = Unknown ;
             for (r = 0 ; r < gca->ninputs ; r++)
             {
               gcan->gcs[n].means[r] = 0 ;
             }
-          }
-        }
+	  }
+	}
+	else
+	{
+	  for (n = 0 ; n < gcan->nlabels ; n++)
+	  {
+	    if ((lh && (IS_LH_CLASS(gcan->labels[n]))) ||
+		(!lh && (IS_RH_CLASS(gcan->labels[n]))))
+	    {
+	      gcan->labels[n] = Unknown ;
+	      for (r = 0 ; r < gca->ninputs ; r++)
+	      {
+		gcan->gcs[n].means[r] = 0 ;
+	      }
+	    }
+	  }
+	}
       }
     }
   }
@@ -30650,14 +30677,25 @@ GCAremoveHemi(GCA *gca, int lh)
       for (z = 0 ; z < gca->prior_depth ; z++)
       {
         gcap = &gca->priors[x][y][z] ;
-        for (n = 0 ; n < gcap->nlabels ; n++)
-        {
-          if ((lh && (IS_LH_CLASS(gcap->labels[n]))) ||
+	max_label = gcapGetMaxPriorLabel(gcap, &prior) ;
+	if ((lh && (IS_LH_CLASS(max_label))) ||
+	    (!lh && (IS_RH_CLASS(max_label))))   // max prior label is in contra hemi  - erase everything
+	{
+	  for (n = 0 ; n < gcap->nlabels ; n++)
+	    gcap->labels[n] = Unknown ;
+	    
+	}
+	else  // max label isn't in contra hemi, but might still need to erase some stuff
+	{
+	  for (n = 0 ; n < gcap->nlabels ; n++)
+	  {
+	    if ((lh && (IS_LH_CLASS(gcap->labels[n]))) ||
               (!lh && (IS_RH_CLASS(gcap->labels[n]))))
-          {
-            gcap->labels[n] = Unknown ;
-          }
-        }
+	    {
+	      gcap->labels[n] = Unknown ;
+	    }
+	  }
+	}
       }
     }
   }

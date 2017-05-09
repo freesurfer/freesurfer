@@ -13219,7 +13219,15 @@ MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which)
                 "MRISwriteIntoVolume: unsupported type %d", which);
       break ;
     }
-    MRIFvox(mri, 0, 0, vno) = val ;
+    if (mri->width == mris->nvertices)
+      MRIsetVoxVal(mri, vno, 0, 0, 0, val) ;
+    else if (mri->nframes == mris->nvertices)
+      MRIsetVoxVal(mri, 0, 0, 0, vno, val) ;
+    else
+    {
+      ErrorReturn(NULL, (ERROR_BADPARM, "MRISwriteIntoVolume: nvertices %d doesn't match with in MRI %d x %d x %d x %d\n",
+		       mris->nvertices, mri->width, mri->height, mri->depth, mri->nframes)) ;
+    }
   }
   return(mri) ;
 }
@@ -13231,8 +13239,51 @@ MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which)
   Description
   ------------------------------------------------------*/
 MRI_SURFACE *
-MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris)
+MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which)
 {
+  int   vno ;
+ VERTEX *v ;
+  float   val ;
+
+  if (mris->nvertices != mri->width)
+    ErrorReturn(NULL, (ERROR_BADPARM, "MRISreadFromVolume: nvertices %d doesn't match with in MRI %d x %d x %d x %d\n",
+		       mris->nvertices, mri->width, mri->height, mri->depth, mri->nframes)) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    val = MRIgetVoxVal(mri, vno, 0, 0, 0) ;
+    switch (which)
+    {
+    case VERTEX_DX:
+      v->dx = val ;
+      break ;
+    case VERTEX_DY:
+      v->dy = val ;
+      break ;
+    case VERTEX_DZ:
+      v->dz = val ;
+      break ;
+    case VERTEX_LOGODDS:
+    case VERTEX_VAL:
+      v->val = val ;
+      break ;
+    case VERTEX_CURV:
+      v->curv = val ;
+      break ;
+    case VERTEX_ANNOTATION:
+      v->annotation = val ;
+      break ;
+    case VERTEX_AREA:
+      v->area = val ;
+      break ;
+    default:
+      ErrorExit(ERROR_UNSUPPORTED,
+                "MRISreadFromVolume: unsupported type %d", which);
+      break ;
+    }
+  }
   return(mris) ;
 }
 /*-----------------------------------------------------
@@ -13812,11 +13863,11 @@ MRISwriteD(MRI_SURFACE *mris, const char *sname)
   curv_save = (float *)calloc(mris->nvertices, sizeof(float)) ;
   if (!curv_save)
     ErrorExit(ERROR_NOMEMORY,
-              "MRISwriteMarked: could not alloc %d vertex curv storage",
+              "MRISwriteD: could not alloc %d vertex curv storage",
               mris->nvertices) ;
 
   MRISextractCurvatureVector(mris, curv_save) ;
-  MRISmarkedToCurv(mris) ;
+  MRISdToCurv(mris) ;
   MRISwriteCurvature(mris, sname) ;
   MRISimportCurvatureVector(mris, curv_save) ;
   free(curv_save) ;
@@ -21117,7 +21168,7 @@ mrisComputeTargetLocationTerm(MRI_SURFACE *mris,
     dx = v->targx-v->x ; dy = v->targy-v->y ; dz = v->targz-v->z ;
 
     norm = sqrt(dx*dx + dy*dy + dz*dz) ;
-#define LOCATION_MOVE_LEN  0.1
+#define LOCATION_MOVE_LEN  1.0 
     if (norm > LOCATION_MOVE_LEN) // so things move at the same speed
     {
       dx /= norm ;
@@ -21133,20 +21184,20 @@ mrisComputeTargetLocationTerm(MRI_SURFACE *mris,
       fprintf(stdout,
               "l_location: targ (%2.1f, %2.1f, %2.f), "
               "current (%2.1f, %2.1f, %2.1f), "
-              "del (%2.1f, %2.1f, %2.1f), dot=%2.3f\n",
+              "del (%2.1f, %2.1f, %2.1f), norm=%2.1f, dot=%2.3f\n",
               v->targx, v->targy, v->targz,
               v->x, v->y, v->z,
               l_location*dx, l_location*dy, l_location*dz,
-              dx*v->nx+dy*v->ny+dz*v->nz) ;
+              norm,dx*v->nx+dy*v->ny+dz*v->nz) ;
     }
     if (!devFinite(dx) || !devFinite(dy) || !devFinite(dz))
     {
       DiagBreak() ;
     }
+
     v->dx += l_location * dx ;
     v->dy += l_location * dy ;
     v->dz += l_location * dz ;
-
   }
 
   return(NO_ERROR) ;
@@ -34681,8 +34732,11 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
       done = 1 ;
       /* check to see if the error decreased substantially, if not
       reduce the  step size  */
-      if ((parms->check_tol && (last_rms-rms)/last_rms < parms->tol) ||
-          ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms-0.05)))
+      if (((parms->check_tol && 
+	   ((FZERO(parms->l_location) && ((last_rms-rms)/last_rms < parms->tol))))  || 
+	   (100*(last_sse-sse)/last_sse < parms->tol))
+	  ||
+	  ((parms->check_tol == 0) && FZERO(parms->l_location) && (rms > last_rms-0.05)))
       {
         nreductions++ ;
         parms->dt *= REDUCTION_PCT ;
@@ -34692,7 +34746,7 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
                 rms, nreductions, MAX_REDUCTIONS+1, dt) ;
         mrisClearMomentum(mris) ;
 #if 1
-        if (rms > last_rms)  /* error increased - reject step */
+        if ((FZERO(parms->l_location)) && (rms > last_rms))  /* error increased - reject step */
         {
           MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
           MRIScomputeMetricProperties(mris) ;
@@ -46541,6 +46595,7 @@ MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp)
   double  mean, dsigma, dmin, dmax ;
   int     vno=0, vno2=0 ;
 
+  vno = vno2 = 0 ;
   mean = MRIScomputeVertexSpacingStats(mris, &dsigma, &dmin,&dmax,&vno,&vno2, CURRENT_VERTICES) ;
   fprintf(fp, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f) "
           "(max @ vno %d --> %d)\n",
@@ -85922,8 +85977,11 @@ MRI *
     if (vsrc == NULL)
       ErrorExit(ERROR_UNSUPPORTED, "could not find v %d", vno_dst) ;
     vno_src = vsrc-&mris_src->vertices[0] ;
-    if (vno_src == Gdiag_no)
+    if (vno_src == Gdiag_no || vno_dst == Gdiag_no)
+    {
+      printf("v %d --> v %d\n", vno_src, vno_dst) ;
       DiagBreak() ;
+    }
     MRIsetVoxVal(mri_dst_features, vno_dst, 0, 0, 0, MRIgetVoxVal(mri_src_features, vno_src, 0, 0, 0)) ;
   }
   MHTfree(&mht) ;
