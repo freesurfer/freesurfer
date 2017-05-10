@@ -1,6 +1,7 @@
 #pragma once
 
 #include "atlasmeshvisitcounter.hpp"
+#include "stopwatch.hpp"
 
 namespace kvl {
   namespace cuda {

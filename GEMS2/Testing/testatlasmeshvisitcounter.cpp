@@ -1,5 +1,6 @@
 #include <functional>
 
+
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/monomorphic.hpp>
 #include <boost/mpl/list.hpp>
@@ -16,6 +17,7 @@
 #endif
 
 #include "testfileloader.hpp"
+#include "testiosupport.hpp"
 
 #ifdef CUDA_FOUND
 typedef boost::mpl::list<float,double> GPUPrecisionTypes;
@@ -35,9 +37,10 @@ void CheckVisitCounter( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
   visitCounter->SetRegions( targetImage->GetLargestPossibleRegion() );
   visitCounter->VisitCount( targetMesh );
   BOOST_TEST_MESSAGE("AtlasMeshVisitCounterCPUWrapper complete");
-  
+
+  auto img = visitCounter->GetImage();
   itk::ImageRegionConstIteratorWithIndex<kvl::interfaces::AtlasMeshVisitCounter::ImageType>  
-    it( visitCounter->GetImage(), visitCounter->GetImage()->GetBufferedRegion() );
+    it( img, img->GetBufferedRegion() );
   itk::ImageRegionConstIteratorWithIndex<kvl::AtlasMeshVisitCounterCPU::ImageType>  
     itOrig( originalVisitCounter->GetImage(), originalVisitCounter->GetImage()->GetBufferedRegion() );
   
@@ -429,6 +432,9 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
  
   // Note that image and mesh are supplied by TestFileLoader
   CheckVisitCounter( &visitCounter, image, mesh );
+  
+  BOOST_TEST_MESSAGE( "SetRegions Time  : " << visitCounter.tSetRegions );
+  BOOST_TEST_MESSAGE( "VisitCounter Time: " << visitCounter.tVisitCount );
 }
 
 #ifdef CUDA_FOUND
@@ -438,6 +444,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( CUDAImpl, PrecisionType, GPUPrecisionTypes )
  
   // Note that image and mesh are supplied by TestFileLoader
   CheckVisitCounter( &visitCounter, image, mesh );
+
+  
+  BOOST_TEST_MESSAGE( "SetRegions Time  : " << visitCounter.tSetRegions );
+  BOOST_TEST_MESSAGE( "VisitCounter Time: " << visitCounter.tVisitCount );
+  BOOST_TEST_MESSAGE( "       Pack : " << visitCounter.tVisitCountPack );
+  BOOST_TEST_MESSAGE( "   Transfer : " << visitCounter.tVisitCountTransfer );
+  BOOST_TEST_MESSAGE( "     Kernel : " << visitCounter.tVisitCountKernel );
+  BOOST_TEST_MESSAGE( "GetImage Time    : " << visitCounter.tGetImage );
+  BOOST_TEST_MESSAGE( "   Transfer : " << visitCounter.tGetImageTransfer );
+  BOOST_TEST_MESSAGE( "     Unpack : " << visitCounter.tGetImageUnpack );
 }
 #endif
 
