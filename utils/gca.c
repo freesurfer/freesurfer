@@ -10017,12 +10017,19 @@ static int choroid_labels[] =
 
 MRI *
 GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
-                          TRANSFORM *transform)
+                          TRANSFORM *transform,
+			  double vent_topo_dist, 
+			  double vent_topo_volume_thresh1,
+			  double vent_topo_volume_thresh2) 
+
 {
-  int              i, nex, *ex, j, nvox; /*, x, y, z, width, height, depth*/
+  int              i, nex, *ex, j, nvox, ndilate; /*, x, y, z, width, height, depth*/
   MRI_SEGMENTATION *mriseg ;
   MRI              *mri_dilated, *mri_in_main_segment ;
+  double           voxel_volume ;
 
+  voxel_volume = mri_inputs->xsize*mri_inputs->ysize*mri_inputs->zsize;
+  ndilate = nint(vent_topo_dist / ((mri_inputs->xsize+mri_inputs->ysize+mri_inputs->zsize)/3));
   mri_dst = MRIcopy(mri_src, mri_dst) ;
 
   for (i = 1 ; i <= MAX_CMA_LABEL ; i++)
@@ -10054,7 +10061,7 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     {
       int max_segno ;
 
-      mri_dilated = MRIdilateLabel(mri_src, NULL, i, 3) ;
+      mri_dilated = MRIdilateLabel(mri_src, NULL, i, nclose) ;
       mriseg = MRIsegment(mri_dilated, (float)i, (float)i) ;
       max_segno = MRIfindMaxSegmentNumber(mriseg) ;
       mri_in_main_segment = MRIsegmentFill(mriseg, max_segno, NULL, 1) ; // only retain biggest segment
@@ -10083,13 +10090,17 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     /*    printf("\t%d segments:\n", mriseg->nsegments) ;*/
     for (j = 0 ; j < mriseg->nsegments ; j++)
     {
-      // every voxel in the lateral ventricle label should be in the max segment found above
-      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 50 &&
+      // every voxel in the lateral ventricle label should be in the max segment found above, or just big enough and keep it
+      if (IS_LAT_VENT(i) && 
+	  ((mriseg->segments[j].nvoxels*voxel_volume > vent_topo_volume_thresh2) ||
+	   ((mriseg->segments[j].nvoxels*voxel_volume > vent_topo_volume_thresh1) &&
           MRIgetVoxVal(mri_in_main_segment,
                        mriseg->segments[j].voxels[0].x,
                        mriseg->segments[j].voxels[0].y,
-                       mriseg->segments[j].voxels[0].z,0) > 0)
+                       mriseg->segments[j].voxels[0].z,0) > 0)))
       {
+	if (mriseg->segments[j].nvoxels*voxel_volume > vent_topo_volume_thresh2)
+	  printf(" !!!!!!!!! ventrice segment %d with volume %2.0f above threshold %2.0f - not erasing !!!!!!!!!!\n", j, mriseg->segments[j].nvoxels*voxel_volume,vent_topo_volume_thresh2);
         continue ;
       }
       /* printf("\t\t%02d: %d voxels", j, mriseg->segments[j].nvoxels) ;*/
