@@ -442,7 +442,7 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
 }
 
 #ifdef CUDA_FOUND
-BOOST_AUTO_TEST_CASE_TEMPLATE( CUDAImpl, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( SimpleCUDAImpl, ImplType, SimpleCUDAImplTypes )
 {
   ImplType visitCounter;
  
