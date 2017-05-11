@@ -116,6 +116,29 @@ public:
       }
     }
   }
+
+  __device__
+  bool PointInside( const ArgType x, const ArgType y, const ArgType z ) const {
+    bool inside = true;
+	  
+    ArgType p[nDims];
+    
+    this->TransformToBarycentric(p, x, y, z);
+
+    // p now contains three of the barycentric co-ordinates
+    // We have the additional constraint that all four barycentric
+    // co-ordinates must sum to 1
+    // The point is inside the tetrahedron if all barycentric
+    // co-ordinates lie between 0 and 1
+    for( unsigned int i=0; i<nDims; i++ ) {
+      inside = inside && ( p[i] > 0 ) && (p[i] <= 1);
+    }
+    
+    // Check the 4th (uncomputed) co-ordinate
+    inside = inside && ( (p[0]+p[1]+p[2]) <= 1 );
+
+    return inside;
+  }
 private:
   ArgType* tet;
   ArgType* transf;
@@ -155,27 +178,7 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
       if( output.PointInRange(0,iy,ix) ) {
 
 	for( unsigned short iz=min[2]; iz<max[2]; iz++ ) {
-	  bool inside = true;
-	  
-	  // Figure out if point lies inside tetrahedron
-	  T p[nDims];
-	  
-	  tet.TransformToBarycentric(p,ix,iy,iz);
-
-	  // p now contains three of the barycentric co-ordinates
-	  // We have the additional constraint that all four barycentric
-	  // co-ordinates must sum to 1
-	  // The point is inside the tetrahedron if all barycentric
-	  // co-ordinates lie between 0 and 1
-	  for( unsigned int i=0; i<nDims; i++ ) {
-	    inside = inside && ( p[i] > 0 ) && (p[i] <= 1);
-	  }
-
-	  // Check the 4th (uncomputed) co-ordinate
-	  inside = inside && ( (p[0]+p[1]+p[2]) <= 1 );
-	  
-	  // TODO Handle special cases (see IsOutsideTetrahedron method
-	  // of kvlTetrahedronInteriorConstIterator.hxx
+	  bool inside = tet.PointInside(ix,iy,iz);
 	  
 	  if( inside ) {
 	    atomicAdd(&output(iz,iy,ix),1);
