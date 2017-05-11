@@ -98,6 +98,24 @@ public:
     }
     __syncthreads();
   }
+
+  __device__
+  void TransformToBarycentric( ArgType *p, const ArgType x, const ArgType y, const ArgType z ) const {
+    // p is assumed to be of length nDims
+    ArgType r[nDims];
+    
+    // Compute location relative to first vertex
+    r[0] = x - this->tet[(0*nDims)+0];
+    r[1] = y - this->tet[(0*nDims)+1];
+    r[2] = z - this->tet[(0*nDims)+2];
+
+    for( unsigned int i=0; i<nDims; i++ ) {
+      p[i] = 0;
+      for( unsigned int j=0; j<nDims; j++ ) {
+	p[i] += this->transf[(i*nDims)+j] * r[j];
+      }
+    }
+  }
 private:
   ArgType* tet;
   ArgType* transf;
@@ -140,18 +158,9 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
 	  bool inside = true;
 	  
 	  // Figure out if point lies inside tetrahedron
-	  T r[nDims];
-	  r[0] = ix - tetrahedron[0][0];
-	  r[1] = iy - tetrahedron[0][1];
-	  r[2] = iz - tetrahedron[0][2];
-
 	  T p[nDims];
-	  for( unsigned int i=0; i<nDims; i++ ) {
-	    p[i] = 0;
-	    for( unsigned int j=0; j<nDims; j++ ) {
-	      p[i] += M[i][j] * r[j];
-	    }
-	  }
+	  
+	  tet.TransformToBarycentric(p,ix,iy,iz);
 
 	  // p now contains three of the barycentric co-ordinates
 	  // We have the additional constraint that all four barycentric
