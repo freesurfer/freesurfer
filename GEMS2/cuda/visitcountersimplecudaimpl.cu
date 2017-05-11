@@ -100,8 +100,7 @@ public:
   }
 
   __device__
-  void TransformToBarycentric( ArgType *p, const ArgType x, const ArgType y, const ArgType z ) const {
-    // p is assumed to be of length nDims
+  void TransformToBarycentric( ArgType p[nDims], const ArgType x, const ArgType y, const ArgType z ) const {
     ArgType r[nDims];
     
     // Compute location relative to first vertex
