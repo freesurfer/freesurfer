@@ -239,5 +239,18 @@ namespace kvl {
 
       SimpleVisitCounter<double,double>( d_output, d_tetrahedra );
     }
+
+    template<>
+    void RunVisitCounterSimpleCUDA<float,double>( CudaImage<int,3,unsigned short>& d_output,
+						  const CudaImage<float,3,size_t>& d_tetrahedra ) {
+      if( d_tetrahedra.GetDimensions()[1] != nVertices ) {
+	throw std::runtime_error("Must have four vertices per tetrahedron!");
+      }
+      if( d_tetrahedra.GetDimensions()[2] != nDims ) {
+	throw std::runtime_error("Only implemented for 3D space");
+      }
+
+      SimpleVisitCounter<float,double>( d_output, d_tetrahedra );
+    }
   }
 }

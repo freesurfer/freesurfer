@@ -19,5 +19,9 @@ namespace kvl {
     template<>
     void RunVisitCounterSimpleCUDA<double,double>( CudaImage<int,3,unsigned short>& d_output,
 						   const CudaImage<double,3,size_t>& d_tetrahedra );
+
+    template<>
+    void RunVisitCounterSimpleCUDA<float,double>( CudaImage<int,3,unsigned short>& d_output,
+						  const CudaImage<float,3,size_t>& d_tetrahedra );
   }
 }
