@@ -9,22 +9,29 @@ template<typename ArgType,typename InvertType>
 class SimpleSharedTetrahedron {
 public:
   __device__
+  SimpleSharedTetrahedron( ArgType tetrahedron[nVertices][nDims],
+			   ArgType M[nDims][nDims] ) : tet(&tetrahedron[0][0]),
+						       transf(&M[0][0]) {
+    // In this class, we assume that the arguments passed in the constructor
+    // are actually in shared memory
+  } 
+  
+  __device__
   void LoadAndBoundingBox( const kvl::cuda::Image_GPU<ArgType,3,size_t> tetrahedra,
 			   const size_t iTet,
-			   ArgType tetrahedron[nVertices][nDims],
 			   unsigned short min[nDims],
 			   unsigned short max[nDims] ) {
-    // We presume that the tetrahedron, min and max are in shared memory
+    // We presume that min and max are in shared memory
     if( (threadIdx.x < nDims) && (threadIdx.y==0) ) {
       for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
-	tetrahedron[iVert][threadIdx.x] = tetrahedra(iTet,iVert,threadIdx.x);
+	this->tet[(iVert*nDims)+threadIdx.x] = tetrahedra(iTet,iVert,threadIdx.x);
       }
       
       // No need to sync since we're only using the first 3 threads
-      ArgType minVal = tetrahedron[0][threadIdx.x];
-      ArgType maxVal = tetrahedron[0][threadIdx.x];
+      ArgType minVal = this->tet[(0*nDims)+threadIdx.x];
+      ArgType maxVal = this->tet[(0*nDims)+threadIdx.x];
       for( unsigned int iVert=1; iVert<nVertices; iVert++ ) {
-	ArgType nxt = tetrahedron[iVert][threadIdx.x];
+	ArgType nxt = this->tet[(iVert*nDims)+threadIdx.x];
 	if( nxt < minVal ) {
 	  minVal = nxt;
 	}
@@ -49,8 +56,7 @@ public:
   }
 
   __device__
-  void ComputeBarycentricTransform( const ArgType tetrahedron[nVertices][nDims],
-				    ArgType M[nDims][nDims] ) {
+  void ComputeBarycentricTransform() {
     // Compute barycentric co-ordinate conversion matrix
     // This is taken from kvlTetrahedronInteriorConstIterator.hxx
     
@@ -58,15 +64,15 @@ public:
     if( (threadIdx.x==0) && (threadIdx.y==0) ) {
       // Start by computing locations relative to the first vertex
       // of the tetrahedron
-      const InvertType a = tetrahedron[1][0] - tetrahedron[0][0];
-      const InvertType b = tetrahedron[2][0] - tetrahedron[0][0];
-      const InvertType c = tetrahedron[3][0] - tetrahedron[0][0];
-      const InvertType d = tetrahedron[1][1] - tetrahedron[0][1];
-      const InvertType e = tetrahedron[2][1] - tetrahedron[0][1];
-      const InvertType f = tetrahedron[3][1] - tetrahedron[0][1];
-      const InvertType g = tetrahedron[1][2] - tetrahedron[0][2];
-      const InvertType h = tetrahedron[2][2] - tetrahedron[0][2];
-      const InvertType i = tetrahedron[3][2] - tetrahedron[0][2];
+      const InvertType a = this->tet[(1*nDims)+0] - this->tet[(0*nDims)+0];
+      const InvertType b = this->tet[(2*nDims)+0] - this->tet[(0*nDims)+0];
+      const InvertType c = this->tet[(3*nDims)+0] - this->tet[(0*nDims)+0];
+      const InvertType d = this->tet[(1*nDims)+1] - this->tet[(0*nDims)+1];
+      const InvertType e = this->tet[(2*nDims)+1] - this->tet[(0*nDims)+1];
+      const InvertType f = this->tet[(3*nDims)+1] - this->tet[(0*nDims)+1];
+      const InvertType g = this->tet[(1*nDims)+2] - this->tet[(0*nDims)+2];
+      const InvertType h = this->tet[(2*nDims)+2] - this->tet[(0*nDims)+2];
+      const InvertType i = this->tet[(3*nDims)+2] - this->tet[(0*nDims)+2];
     
       const InvertType A = ( e * i - f * h );
       const InvertType D = -( b * i - c * h );
@@ -80,19 +86,21 @@ public:
       
       const InvertType determinant = a * A + b * B + c * C;
     
-      M[0][0] = A / determinant;
-      M[1][0] = B / determinant;
-      M[2][0] = C / determinant;
-      M[0][1] = D / determinant;
-      M[1][1] = E / determinant;
-      M[2][1] = F / determinant;
-      M[0][2] = G / determinant;
-      M[1][2] = H / determinant;
-      M[2][2] = I / determinant;
+      this->transf[(0*nDims) + 0] = A / determinant;
+      this->transf[(1*nDims) + 0] = B / determinant;
+      this->transf[(2*nDims) + 0] = C / determinant;
+      this->transf[(0*nDims) + 1] = D / determinant;
+      this->transf[(1*nDims) + 1] = E / determinant;
+      this->transf[(2*nDims) + 1] = F / determinant;
+      this->transf[(0*nDims) + 2] = G / determinant;
+      this->transf[(1*nDims) + 2] = H / determinant;
+      this->transf[(2*nDims) + 2] = I / determinant;
     }
     __syncthreads();
   }
 private:
+  ArgType* tet;
+  ArgType* transf;
 };
 
 template<typename T,typename Internal>
@@ -110,11 +118,11 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
   __shared__ T tetrahedron[nVertices][nDims];
   __shared__ unsigned short min[nDims], max[nDims];
   __shared__ T M[nDims][nDims];
-  SimpleSharedTetrahedron<T,Internal> tet;
+  SimpleSharedTetrahedron<T,Internal> tet(tetrahedron, M);
 
-  tet.LoadAndBoundingBox( tetrahedra, iTet, tetrahedron, min, max );
+  tet.LoadAndBoundingBox( tetrahedra, iTet, min, max );
 
-  tet.ComputeBarycentricTransform( tetrahedron, M );
+  tet.ComputeBarycentricTransform();
 
   // Figure out how to cover the bounding box with the current thread block
   // We assume that each thread block is strictly 2D
