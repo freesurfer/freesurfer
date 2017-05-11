@@ -11,8 +11,41 @@ public:
   __device__
   void LoadAndBoundingBox( const kvl::cuda::Image_GPU<ArgType,3,size_t> tetrahedra,
 			   const size_t iTet,
-			   ArgType tetrahedron[nVertices][nDims] ) {
-
+			   ArgType tetrahedron[nVertices][nDims],
+			   unsigned short min[nDims],
+			   unsigned short max[nDims] ) {
+    // We presume that the tetrahedron, min and max are in shared memory
+    if( (threadIdx.x < nDims) && (threadIdx.y==0) ) {
+      for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
+	tetrahedron[iVert][threadIdx.x] = tetrahedra(iTet,iVert,threadIdx.x);
+      }
+      
+      // No need to sync since we're only using the first 3 threads
+      ArgType minVal = tetrahedron[0][threadIdx.x];
+      ArgType maxVal = tetrahedron[0][threadIdx.x];
+      for( unsigned int iVert=1; iVert<nVertices; iVert++ ) {
+	ArgType nxt = tetrahedron[iVert][threadIdx.x];
+	if( nxt < minVal ) {
+	  minVal = nxt;
+	}
+	if( nxt > maxVal ) {
+	  maxVal = nxt;
+	}
+      }
+      
+      // Indices are always positive
+      if( minVal < 0 ) {
+	minVal = 0;
+      }
+      
+      // Add one to the max to make the loops
+      // simpler later
+      // It also avoids some pathological cases of
+      // planar tetrahedra with all integral vertices
+      min[threadIdx.x] = floor(minVal);
+      max[threadIdx.x] = ceil(maxVal)+1;
+    }
+    __syncthreads();
   }
 private:
 };
@@ -34,39 +67,7 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
   __shared__ T M[nDims][nDims];
   SimpleSharedTetrahedron<T,Internal> tet;
 
-  tet.LoadAndBoundingBox( tetrahedra, iTet, tetrahedron );
-
-  if( (threadIdx.x < nDims) && (threadIdx.y==0) ) {
-    for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
-      tetrahedron[iVert][threadIdx.x] = tetrahedra(iTet,iVert,threadIdx.x);
-    }
-
-    // No need to sync since we're only using the first 3 threads
-    T minVal = tetrahedron[0][threadIdx.x];
-    T maxVal = tetrahedron[0][threadIdx.x];
-    for( unsigned int iVert=1; iVert<nVertices; iVert++ ) {
-      T nxt = tetrahedron[iVert][threadIdx.x];
-      if( nxt < minVal ) {
-	minVal = nxt;
-      }
-      if( nxt > maxVal ) {
-	maxVal = nxt;
-      }
-    }
-    
-    // Indices are always positive
-    if( minVal < 0 ) {
-      minVal = 0;
-    }
-
-    // Add one to the max to make the loops
-    // simpler later
-    // It also avoids some pathological cases of
-    // planar tetrahedra with all integral vertices
-    min[threadIdx.x] = floor(minVal);
-    max[threadIdx.x] = ceil(maxVal)+1;
-  }
-  __syncthreads();
+  tet.LoadAndBoundingBox( tetrahedra, iTet, tetrahedron, min, max );
 
   // Compute barycentric co-ordinate conversion matrix
   // This is taken from kvlTetrahedronInteriorConstIterator.hxx
