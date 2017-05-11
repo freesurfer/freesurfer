@@ -378,42 +378,42 @@ BOOST_AUTO_TEST_CASE( UpperCornerExactCPU )
 #ifdef CUDA_FOUND
 BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerGPUSimple, PrecisionType, GPUPrecisionTypes  )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
  
   LowerCorner( &visitCounter );
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( OriginOnlyGPUSimple, PrecisionType, GPUPrecisionTypes  )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
  
   OriginOnly( &visitCounter );
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( XAxisOnlyGPUSimple, PrecisionType, GPUPrecisionTypes  )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
  
   XAxisOnly( &visitCounter );
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( FarCornerOnlyGPUSimple, PrecisionType, GPUPrecisionTypes  )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
  
   FarCornerOnly( &visitCounter );
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerGPUSimple, PrecisionType, GPUPrecisionTypes  )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
  
   UpperCornerOnly( &visitCounter );
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE( NoVerticesGPUSimple, PrecisionType, GPUPrecisionTypes  )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
  
   NoVertices( &visitCounter );
 }
@@ -440,7 +440,7 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
 #ifdef CUDA_FOUND
 BOOST_AUTO_TEST_CASE_TEMPLATE( CUDAImpl, PrecisionType, GPUPrecisionTypes )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType> visitCounter;
+  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
  
   // Note that image and mesh are supplied by TestFileLoader
   CheckVisitCounter( &visitCounter, image, mesh );

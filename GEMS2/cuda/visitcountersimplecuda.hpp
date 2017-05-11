@@ -12,7 +12,7 @@
 
 namespace kvl {
   namespace cuda {
-    template<typename T>
+    template<typename T,typename Internal>
     class VisitCounterSimple : public kvl::interfaces::AtlasMeshVisitCounter {
     public:
       virtual void SetRegions( const kvl::interfaces::AtlasMeshVisitCounter::ImageType::RegionType& region ) override {
@@ -29,7 +29,7 @@ namespace kvl {
 	this->d_Output.SetMemory(0);
 	
 	// Set up the ITK image
-	this->image = VisitCounterSimple<T>::ImageType::New();
+	this->image = VisitCounterSimple<T,Internal>::ImageType::New();
 	this->image->SetRegions( region );
 	this->image->Allocate();
 	this->tSetRegions.Stop();
@@ -85,13 +85,13 @@ namespace kvl {
 	this->tVisitCountTransfer.Stop();
 
 	this->tVisitCountKernel.Start();
-	RunVisitCounterSimpleCUDA( d_Output, d_tetrahedra );
+	RunVisitCounterSimpleCUDA<T,Internal>( d_Output, d_tetrahedra );
 	this->tVisitCountKernel.Stop();
 
 	this->tVisitCount.Stop();
       };
 
-      virtual const VisitCounterSimple<T>::ImageType* GetImage() const override {
+      virtual const VisitCounterSimple<T,Internal>::ImageType* GetImage() const override {
 	std::vector<int> tmp;
 	CudaImage<int,3,unsigned short>::DimensionType dims;
 
@@ -133,7 +133,7 @@ namespace kvl {
       const int nVertices = 4;
 
       CudaImage<int,3,unsigned short> d_Output;
-      VisitCounterSimple<T>::ImageType::Pointer image;
+      VisitCounterSimple<T,Internal>::ImageType::Pointer image;
     };
   }
 }
