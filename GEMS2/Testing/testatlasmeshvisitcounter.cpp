@@ -20,7 +20,11 @@
 #include "testiosupport.hpp"
 
 #ifdef CUDA_FOUND
-typedef boost::mpl::list<float,double> GPUPrecisionTypes;
+typedef boost::mpl::list<
+  kvl::cuda::VisitCounterSimple<float,float>,
+  kvl::cuda::VisitCounterSimple<double,double>,
+  kvl::cuda::VisitCounterSimple<float,double>
+  > SimpleCUDAImplTypes;
 #endif
 
 // --------------------
@@ -376,44 +380,44 @@ BOOST_AUTO_TEST_CASE( UpperCornerExactCPU )
 }
 
 #ifdef CUDA_FOUND
-BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerGPUSimple, PrecisionType, GPUPrecisionTypes  )
+BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerGPUSimple, ImplType, SimpleCUDAImplTypes  )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
+  ImplType visitCounter;
  
   LowerCorner( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( OriginOnlyGPUSimple, PrecisionType, GPUPrecisionTypes  )
+BOOST_AUTO_TEST_CASE_TEMPLATE( OriginOnlyGPUSimple, ImplType, SimpleCUDAImplTypes )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
+  ImplType visitCounter;
  
   OriginOnly( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( XAxisOnlyGPUSimple, PrecisionType, GPUPrecisionTypes  )
+BOOST_AUTO_TEST_CASE_TEMPLATE( XAxisOnlyGPUSimple, ImplType, SimpleCUDAImplTypes )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
+  ImplType visitCounter;
  
   XAxisOnly( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( FarCornerOnlyGPUSimple, PrecisionType, GPUPrecisionTypes  )
+BOOST_AUTO_TEST_CASE_TEMPLATE( FarCornerOnlyGPUSimple, ImplType, SimpleCUDAImplTypes )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
+  ImplType visitCounter;
  
   FarCornerOnly( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerGPUSimple, PrecisionType, GPUPrecisionTypes  )
+BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerGPUSimple, ImplType, SimpleCUDAImplTypes )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
+  ImplType visitCounter;
  
   UpperCornerOnly( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( NoVerticesGPUSimple, PrecisionType, GPUPrecisionTypes  )
+BOOST_AUTO_TEST_CASE_TEMPLATE( NoVerticesGPUSimple, ImplType, SimpleCUDAImplTypes )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
+  ImplType visitCounter;
  
   NoVertices( &visitCounter );
 }
@@ -438,28 +442,9 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
 }
 
 #ifdef CUDA_FOUND
-BOOST_AUTO_TEST_CASE_TEMPLATE( CUDAImpl, PrecisionType, GPUPrecisionTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( CUDAImpl, ImplType, SimpleCUDAImplTypes )
 {
-  kvl::cuda::VisitCounterSimple<PrecisionType,PrecisionType> visitCounter;
- 
-  // Note that image and mesh are supplied by TestFileLoader
-  CheckVisitCounter( &visitCounter, image, mesh );
-
-  
-  BOOST_TEST_MESSAGE( "SetRegions Time  : " << visitCounter.tSetRegions );
-  BOOST_TEST_MESSAGE( "VisitCounter Time: " << visitCounter.tVisitCount );
-  BOOST_TEST_MESSAGE( "       Pack : " << visitCounter.tVisitCountPack );
-  BOOST_TEST_MESSAGE( "   Transfer : " << visitCounter.tVisitCountTransfer );
-  BOOST_TEST_MESSAGE( "     Kernel : " << visitCounter.tVisitCountKernel );
-  BOOST_TEST_MESSAGE( "GetImage Time    : " << visitCounter.tGetImage );
-  BOOST_TEST_MESSAGE( "   Transfer : " << visitCounter.tGetImageTransfer );
-  BOOST_TEST_MESSAGE( "     Unpack : " << visitCounter.tGetImageUnpack );
-}
-
-BOOST_AUTO_TEST_CASE( CUDAImplMixedPrecision )
-{
-  // Hold the co-ordinates etc. in float, but invert matrix in double
-  kvl::cuda::VisitCounterSimple<float,double> visitCounter;
+  ImplType visitCounter;
  
   // Note that image and mesh are supplied by TestFileLoader
   CheckVisitCounter( &visitCounter, image, mesh );
