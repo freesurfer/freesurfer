@@ -1,9 +1,6 @@
 #include "itkSingleValuedCostFunction.h"
-#include "kvlAtlasMeshCollection.h"
-#include "itkImage.h"
 #include "kvlAtlasParameterEstimator.h"
 #include "kvlAtlasMeshCollectionModelLikelihoodCalculator.h"
-#include "kvlAtlasMeshCollectionPositionCostCalculator2.h"
 
 
 namespace kvl
@@ -37,7 +34,7 @@ public:
 
   //
   virtual void GetDerivative( const ParametersType & parameters,
-                                DerivativeType & derivative ) const
+                              DerivativeType & derivative ) const
     {
     }
 
@@ -46,10 +43,11 @@ public:
 
 
   // Some typedefs
-  typedef itk::Image< unsigned char, 3 >  LabelImageType;
+  typedef CompressionLookupTable::ImageType  LabelImageType;
 
   // Set label images.
-  void SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages );
+  void SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages,
+                       const CompressionLookupTable*  compressionLookupTable );
 
   // Set initial collection
   void SetInitialMeshCollection( AtlasMeshCollection* meshCollection );
@@ -63,19 +61,9 @@ public:
   const AtlasMeshCollection*  GetCostCalculationMeshCollection() const
     { return m_CostCalculationMeshCollection; }
 
-  void SetMapCompToComp( std::vector<unsigned char > *mapCompToComp )
-    {
-      m_mapCompToComp = mapCompToComp; 
-      this->m_Estimator->SetMapCompToComp(mapCompToComp); 
-      this->m_DataAndAlphasCostCalculator->SetMapCompToComp(mapCompToComp); 
-      this->m_PositionCostCalculator->SetMapCompToComp(mapCompToComp); 
-    }
-
-  std::vector<unsigned char > * GetMapCompToComp()
-    { return m_mapCompToComp; }
-
   //
-  bool GetValue( const ParametersType & parameters, float& dataCost, float& alphasCost, float& positionCost ) const;
+  bool GetValue( const ParametersType & parameters, 
+                 double& dataCost, double& alphasCost, double& positionCost ) const;
 
 protected:
   AtlasMeshCollectionFastReferencePositionCost();
@@ -90,17 +78,14 @@ private:
   // Data members
   AtlasParameterEstimator::Pointer  m_Estimator;
   AtlasMeshCollectionModelLikelihoodCalculator::Pointer  m_DataAndAlphasCostCalculator;
-  AtlasMeshCollectionPositionCostCalculator::Pointer  m_PositionCostCalculator;
 
   AtlasMesh::PointIdentifier  m_PointId;
   std::vector< AtlasMesh::PointsContainer::Pointer >   m_InitialPositions;
   AtlasMesh::PointDataContainer::Pointer  m_InitialPointParameters;
   AtlasMesh::CellsContainer::Pointer  m_Cells;
   AtlasMesh::PointsContainer::Pointer  m_ReferencePosition;  // This is actually what we're gonna change
-  float  m_K;
+  double  m_K;
 
-  std::vector<unsigned char > *m_mapCompToComp;
- 
   // 
   struct VertexNeighboringTetrahedronInfo
     {

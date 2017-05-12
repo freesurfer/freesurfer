@@ -25,8 +25,8 @@ public:
   virtual void Run( int nlhs, mxArray* plhs[],
                     int nrhs, const mxArray* prhs[] )
     {
-    std::cout << "I am " << this->GetNameOfClass() 
-              << " and I'm running! " << std::endl;
+    // std::cout << "I am " << this->GetNameOfClass() 
+    //           << " and I'm running! " << std::endl;
               
               
       // kvlWriteImage( image, fileName, transform )

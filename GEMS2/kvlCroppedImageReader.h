@@ -37,7 +37,8 @@ public :
   itkTypeMacro( CroppedImageReader, itk::Object );
 
   /** Some typedefs */
-  typedef itk::Image< unsigned short, 3 >  ImageType;
+  //typedef itk::Image< unsigned short, 3 >  ImageType;
+  typedef itk::Image< float, 3 >  ImageType;
   typedef itk::AffineTransform< double, 3 >  TransformType;
 
   // Read  

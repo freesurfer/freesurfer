@@ -7,8 +7,8 @@ class kvlAtlasParameterEstimationConsoleGUI {open
   Function {kvlAtlasParameterEstimationConsoleGUI()} {open
   } {
     Fl_Window m_Window {
-      callback {exit( 0 );} open
-      xywh {184 38 1670 1005} type Double visible
+      callback {exit( 0 );} open selected
+      xywh {184 36 1670 1005} type Double visible
     } {
       Fl_Group m_LabelImageViewer {
         label {Label image}
@@ -44,16 +44,16 @@ m_NumberOfUpsamplingSteps->do_callback();
       Fl_Button {} {
         label {Go!}
         callback {this->Estimate();}
-        xywh {898 810 105 25}
+        xywh {1080 815 105 25}
       }
       Fl_Check_Button m_ShowMesh {
         label {Show mesh:}
         callback {m_LabelImageNumber->do_callback();}
-        xywh {658 830 25 25} down_box DOWN_BOX value 1 align 4
+        xywh {840 835 25 25} down_box DOWN_BOX value 1 align 4
       }
       Fl_Check_Button m_ShowAlphasEstimationIterations {
         label {Show alphas estimation iterations:}
-        xywh {778 875 25 25} down_box DOWN_BOX value 1 align 4
+        xywh {960 880 25 25} down_box DOWN_BOX value 1 align 4
       }
       Fl_Progress m_TotalProgress {
         label Inactive
@@ -76,27 +76,27 @@ m_NumberOfUpsamplingSteps->do_callback();
       Fl_Check_Button m_ShowGradient {
         label {Show gradient:}
         callback {m_LabelImageNumber->do_callback();}
-        xywh {798 830 25 25} down_box DOWN_BOX align 4
+        xywh {980 835 25 25} down_box DOWN_BOX align 4
       }
       Fl_Button {} {
         label Interrupt
         callback {this->Interrupt();}
-        xywh {898 845 105 25}
+        xywh {1080 850 105 25}
       }
       Fl_Button {} {
         label Step
         callback {this->Step();}
-        xywh {898 880 105 25}
+        xywh {1080 885 105 25}
       }
       Fl_Button {} {
         label Continue
         callback {this->Continue();}
-        xywh {898 915 105 25}
+        xywh {1080 920 105 25}
       }
       Fl_Value_Input m_PositionEstimationResolution {
         label {Position estimation resolution}
-        callback {this->SetPositionEstimationResolution( static_cast< unsigned int >( m_PositionEstimationResolution->value() ) );} selected
-        xywh {763 915 60 25} when 4 minimum 1 maximum 100 step 1 value 10
+        callback {this->SetPositionEstimationResolution( static_cast< unsigned int >( m_PositionEstimationResolution->value() ) );}
+        xywh {945 920 60 25} when 4 minimum 1 maximum 100 step 1 value 10
       }
       Fl_Value_Input m_NumberOfUpsamplingSteps {
         label {Number of upsampling steps:}
@@ -151,6 +151,27 @@ m_NumberOfUpsamplingSteps->do_callback();
       }
       Fl_Value_Output m_FinalSize2 {
         xywh {303 875 60 25}
+      }
+      Fl_Group {} {
+        label {Position Optimizer} open
+        xywh {430 830 245 105} box DOWN_BOX
+      } {
+        Fl_Round_Button m_FixedStepGradientDescent {
+          label {Fixed-Step Gradient Descent}
+          xywh {445 840 25 25} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_GradientDescent {
+          label {Gradient Descent}
+          xywh {445 864 25 25} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_ConjugateGradient {
+          label {Conjugate Gradient}
+          xywh {445 888 25 25} type Radio down_box ROUND_DOWN_BOX
+        }
+        Fl_Round_Button m_LBFGS {
+          label {L-BFGS}
+          xywh {445 909 25 25} type Radio down_box ROUND_DOWN_BOX
+        }
       }
     }
   }

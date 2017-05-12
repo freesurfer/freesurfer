@@ -35,7 +35,7 @@ OPTION( BUILD_MATLAB "Build Matlab wrappers" OFF )
 
 
 # Find CUDA
-FIND_PACKAGE( CUDA )
+#FIND_PACKAGE( CUDA )
 IF( CUDA_FOUND )
   INCLUDE_DIRECTORIES(${CUDA_INCLUDE_DIRS})
   SET(CMAKE_CXX_FLAGS "-DCUDA_FOUND ${CMAKE_CXX_FLAGS}")
@@ -54,20 +54,28 @@ ADD_LIBRARY( kvlGEMSCommon
              kvlAtlasMeshSmoother.cxx
              kvlCompressionLookupTable.cxx
              kvlCroppedImageReader.cxx
+             #kvlAtlasMeshAveragingConjugateGradientOptimizer.cxx
+             kvlAtlasMeshRasterizor.cxx
+             kvlAtlasMeshAlphaDrawer.cxx
+             kvlAtlasMeshMultiAlphaDrawer.cxx
+             kvlAtlasMeshVisitCounter.cxx
+             kvlAtlasMeshStatisticsCollector.cxx
+             kvlAtlasMeshLabelImageStatisticsCollector.cxx
+             kvlAtlasMeshProbabilityImageStatisticsCollector.cxx
              kvlAtlasMeshDeformationOptimizer.cxx
+             kvlAtlasMeshDeformationFixedStepGradientDescentOptimizer.cxx
+             kvlAtlasMeshDeformationGradientDescentOptimizer.cxx
              kvlAtlasMeshDeformationConjugateGradientOptimizer.cxx
-             kvlAtlasMeshDeformationConjugateGradientOptimizerCPU.cxx
-             kvlAtlasMeshAveragingConjugateGradientOptimizer.cxx
-             kvlAtlasMeshRasterizorCPU.cxx
-             kvlAtlasMeshAlphaDrawerCPU.cxx
-             kvlAtlasMeshVisitCounterCPU.cxx
-             kvlAtlasMeshToIntensityImageGradientCalculator.cxx
-             kvlAtlasMeshToIntensityImageGradientCalculatorCPU.cxx
+             kvlAtlasMeshDeformationLBFGSOptimizer.cxx
+             kvlAtlasMeshPositionCostAndGradientCalculator.cxx
+             kvlAtlasMeshToLabelImageCostAndGradientCalculator.cxx
+             kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
+             kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
+             kvlAtlasMeshSummaryDrawer.cxx
              itkMGHImageIO.cxx
              itkMGHImageIOFactory.cxx )
 TARGET_LINK_LIBRARIES( kvlGEMSCommon
                        ${ITK_LIBRARIES}
-                       ${TETGEN_LIB} 
                        ${ZLIB_LIBRARIES} 
                      )
 

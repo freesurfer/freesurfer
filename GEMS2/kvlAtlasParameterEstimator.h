@@ -3,8 +3,8 @@
 
 #include "itkImage.h"
 #include "kvlAtlasMeshCollection.h"
-#include "kvlAtlasMeshDeformationOptimizer.h"
-#include "kvlAtlasMeshDeformationConjugateGradientOptimizer.h"
+#include "kvlCompressionLookupTable.h"
+
 
 namespace kvl
 {
@@ -13,12 +13,10 @@ namespace kvl
 itkEventMacro( AlphasEstimationStartEvent, itk::UserEvent );
 itkEventMacro( AlphasEstimationIterationEvent, itk::UserEvent );
 itkEventMacro( AlphasEstimationEndEvent, itk::UserEvent );
-
-
-//Eugenio
 itkEventMacro( PositionEstimationStartEvent, itk::UserEvent );
 itkEventMacro( PositionEstimationIterationEvent, itk::UserEvent );
 itkEventMacro( PositionEstimationEndEvent, itk::UserEvent );
+
 
 class AtlasParameterEstimator: public itk::Object
 {
@@ -36,14 +34,16 @@ public :
   /** Run-time type information (and related methods). */
   itkTypeMacro( AtlasParameterEstimator, itk::Object );
 
-  void SetModeCJ(){m_GD=false; m_DeformationOptimizer = AtlasMeshDeformationConjugateGradientOptimizer::New();}
-  void SetModeGD(){m_GD=true;}
-
   // Some typedefs
-  typedef itk::Image< unsigned char, 3 >  LabelImageType;
+  typedef CompressionLookupTable::ImageType  LabelImageType;
   
   // Set label images.
-  void SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages );
+  void SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages, 
+                       const CompressionLookupTable*  lookupTable );
+
+  //
+  const CompressionLookupTable*  GetCompressionLookupTable() const
+    { return m_CompressionLookupTable; }
   
   // Get label images
   const std::vector< LabelImageType::ConstPointer >&  GetLabelImages() const
@@ -65,9 +65,7 @@ public :
     { m_MaximumNumberOfIterations = maximumNumberOfIterations; }
   
   //
-  void Estimate(bool verbose);
-
-  void Estimate(){Estimate(false);}
+  void Estimate( bool verbose=false );
   
   // Get information about internal estimation state
   unsigned int  GetIterationNumber() const
@@ -81,26 +79,8 @@ public :
   unsigned int  GetNumberOfLabelImages() const
     { return m_NumberOfLabelImages; }
   unsigned int  GetNumberOfClasses() const
-    { return m_NumberOfClasses; }  
+    { return m_CompressionLookupTable->GetNumberOfClasses(); }  
   
-
-  // Set/Get mapping of collapsed labels.
-  void SetMapCompToComp( std::vector<unsigned char > *mapCompToComp )
-  { 
-    int nc=0;
-    bool done=false;
-    for(int i=0; i<256; i++)
-    {
-      m_mapCompToComp[i] = mapCompToComp[i];
-      if(mapCompToComp[i].size()==0 && done==false) { nc=i; done=true; }
-    }
-    m_NumberOfClasses = static_cast< unsigned int >( nc );
-    // std::cout << "Calculated number of classes to be: " << m_NumberOfClasses << std::endl;
-  }
-
-  std::vector<unsigned char > * GetMapCompToComp()
-    { return m_mapCompToComp; }
-
   // 
   unsigned int  GetAlphasEstimationIterationNumber() const
     { return m_AlphasEstimationIterationNumber; }
@@ -114,95 +94,48 @@ public :
     { m_AlphasEstimationMaximumNumberOfIterations = alphasEstimationMaximumNumberOfIterations; }
 
   // 
-  //unsigned int  GetPositionEstimationIterationNumber() const
-  //  { return m_PositionEstimationIterationNumber; }
+  unsigned int  GetPositionEstimationIterationNumber() const
+    { return m_PositionEstimationIterationNumber; }
     
   //
-  //unsigned int  GetPositionEstimationMaximumNumberOfIterations() const
-  //  { return m_PositionEstimationMaximumNumberOfIterations; }
-  
+  unsigned int  GetPositionEstimationMaximumNumberOfIterations() const
+    { return m_PositionEstimationMaximumNumberOfIterations; }
+
+  //
+  void  SetPositionEstimationIterationEventResolution( unsigned int  positionEstimationIterationEventResolution )
+    { m_PositionEstimationIterationEventResolution = positionEstimationIterationEventResolution; }
+    
+  //
+  unsigned int  GetPositionEstimationIterationEventResolution() const
+    { return m_PositionEstimationIterationEventResolution; }
+    
   // 
   AtlasPositionGradientContainerType::Pointer GetCurrentPositionGradient( unsigned int labelImageNumber ) const;
     
   //
-  //void SetPositionGradientDescentStepSize( float stepSize ) 
-  //  { m_PositionGradientDescentStepSize = stepSize; }
-  
-  //
-  //float  GetPositionGradientDescentStepSize() const
-  //  { return m_PositionGradientDescentStepSize; }
-  
-  //
-  //unsigned int  GetPositionEstimationIterationEventResolution() const
-  //  { return m_PositionEstimationIterationEventResolution; }
-    
-  //
-  //void SetPositionEstimationIterationEventResolution( unsigned int  positionEstimationIterationEventResolution )
-  //  { m_PositionEstimationIterationEventResolution = positionEstimationIterationEventResolution; }
-    
-  
-  //
-  void SetAlphaEstimationStopCriterion( float alphaEstimationStopCriterion )
+  void SetAlphaEstimationStopCriterion( double alphaEstimationStopCriterion )
     { m_AlphaEstimationStopCriterion = alphaEstimationStopCriterion; }
     
-  float GetAlphaEstimationStopCriterion() const
+  double GetAlphaEstimationStopCriterion() const
     { return m_AlphaEstimationStopCriterion; }
   
   //
-  //void SetPositionEstimationStopCriterion( float positionEstimationStopCriterion )
-  //  { m_PositionEstimationStopCriterion = positionEstimationStopCriterion; }
-    
-  //float GetPositionEstimationStopCriterion() const
-  //  { return m_PositionEstimationStopCriterion; }
-
-  void SetDeformationOptimizer( AtlasMeshDeformationOptimizer* optimizer )
-    { 
-    m_DeformationOptimizer = optimizer;
-    }
-  
-  const AtlasMeshDeformationOptimizer* GetDeformationOptimizer() const
-    {
-    return m_DeformationOptimizer;  
-    }
-
-  AtlasMeshDeformationOptimizer* GetDeformationOptimizer()
-    {
-    return m_DeformationOptimizer;  
-    }
-
-  //
-  float  GetCurrentMinLogLikelihoodTimesPrior() const
+  double  GetCurrentMinLogLikelihoodTimesPrior() const
     { return m_CurrentMinLogLikelihoodTimesPrior; }
     
-  //
-  float GetCurrentMinLogLikelihood() const;
-    
-  // 
-  float GetMinLogLikelihood( const AtlasMeshCollection* meshCollection ) const;
-
   //  
-  void SetAlphasSmoothingFactor( float alphasSmoothingFactor )
+  void SetAlphasSmoothingFactor( double alphasSmoothingFactor )
     { m_AlphasSmoothingFactor = alphasSmoothingFactor; }
 
-  float  GetAlphasSmoothingFactor() const
+  double  GetAlphasSmoothingFactor() const
     { return m_AlphasSmoothingFactor; }
 
   //
-  void SetStopCriterion( float stopCriterion )
+  void SetStopCriterion( double stopCriterion )
     { m_StopCriterion = stopCriterion; }
     
-  float GetStopCriterion() const
+  double GetStopCriterion() const
     { return m_StopCriterion; }
-
-  //
-  void  SetUseGaussians( bool  useGaussians )
-    { m_UseGaussians = useGaussians; }
-
-  bool  GetUseGaussians() const
-    { return m_UseGaussians; }
-
-  void  SetIgnoreLastLabelImage( bool ignoreLastLabelImage )
-    { m_IgnoreLastLabelImage = ignoreLastLabelImage; }
 
   /** */
   void SetNumberOfThreads( int numberOfThreads )
@@ -212,15 +145,17 @@ public :
   int  GetNumberOfThreads() const
     { return m_NumberOfThreads; }
 
-  /** */
-  void SetGD( bool gd )
-    { m_GD = gd; }
+  /**  Position optimizer type */
+  enum PositionOptimizerType { FIXED_STEP_GRADIENT_DESCENT, GRADIENT_DESCENT, CONJUGATE_GRADIENT, LBFGS };
+  void  SetPositionOptimizer( const PositionOptimizerType&  positionOptimizer )
+    {
+    m_PositionOptimizer = positionOptimizer;  
+    }
     
-  /** */
-  bool  GetGD() const
-    { return m_GD; }
-
-
+  const PositionOptimizerType&  GetPositionOptimizer() const
+    {
+    return m_PositionOptimizer;  
+    }  
 
 
 protected :
@@ -240,15 +175,17 @@ protected :
   virtual void SmoothAlphas();
     
   // Estimate positions  
-  float EstimatePositions();
+  double EstimatePositions();
 
   // 
-  float EstimatePosition( unsigned int  labelImageNumber );
+  double EstimatePosition( unsigned int  labelImageNumber );
   
   // 
   AtlasPositionGradientContainerType::Pointer  
-     CalculateCurrentPositionGradient( unsigned int labelImageNumber, float& minLogLikelihoodTimesPrior ) const;
+     CalculateCurrentPositionCostAndGradient( unsigned int labelImageNumber, double& minLogLikelihoodTimesPrior ) const;
   
+  //
+  void HandleOptimizerEvent( itk::Object* object, const itk::EventObject & event );
      
 private :
   AtlasParameterEstimator(const Self&); //purposely not implemented
@@ -272,9 +209,8 @@ private :
   AtlasMeshCollection::Pointer  m_MeshCollection;
   
   std::vector< LabelImageType::ConstPointer >  m_LabelImages;
-
-  unsigned int  m_NumberOfClasses;
-  std::vector<unsigned char > m_mapCompToComp[256];
+  CompressionLookupTable::ConstPointer  m_CompressionLookupTable;
+  
   unsigned int  m_IterationNumber;
   unsigned int  m_MaximumNumberOfIterations;
   unsigned int  m_LabelImageNumber;
@@ -283,19 +219,13 @@ private :
   unsigned int  m_AlphasEstimationMaximumNumberOfIterations;
   unsigned int  m_PositionEstimationIterationNumber;
   unsigned int  m_PositionEstimationMaximumNumberOfIterations;
-  float  m_PositionGradientDescentStepSize;
-  unsigned int  m_PositionEstimationIterationEventResolution;
-  float  m_CurrentMinLogLikelihoodTimesPrior;
-  float  m_AlphaEstimationStopCriterion;
-  float  m_PositionEstimationStopCriterion;
-  float  m_AlphasSmoothingFactor;
-  float  m_StopCriterion;
-
-  bool  m_GD;
-  bool  m_UseGaussians;
-  bool  m_IgnoreLastLabelImage;
+  unsigned int  m_PositionEstimationIterationEventResolution; 
+  double  m_CurrentMinLogLikelihoodTimesPrior;
+  double  m_AlphaEstimationStopCriterion;
+  double  m_AlphasSmoothingFactor;
+  double  m_StopCriterion;
   
-  AtlasMeshDeformationOptimizer::Pointer  m_DeformationOptimizer;
+  PositionOptimizerType  m_PositionOptimizer;
   int  m_NumberOfThreads;
   
 };

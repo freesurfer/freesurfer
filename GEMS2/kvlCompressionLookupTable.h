@@ -4,7 +4,9 @@
 #include "kvlAtlasMeshCollection.h"
 #include "itkImage.h"
 #include "itkRGBAPixel.h"
-
+#if 0
+  #include <unordered_map>
+#endif
 
 namespace kvl
 {
@@ -28,40 +30,42 @@ public :
 
   //
   typedef itk::Image< unsigned short, 3 >  ImageType;
-  typedef itk::Image< unsigned char, 3 >  CompressedImageType;
-  void  Construct( const std::vector< ImageType::ConstPointer >& images);
-  std::vector<std::vector<unsigned short> >  Construct( const std::vector< ImageType::ConstPointer >& images, std::vector<unsigned short> collapsedLabs,  std::vector<std::vector<unsigned short> > collapsedLabList);
-
+  
+  //
+  void  Construct( const std::vector< ImageType::ConstPointer >& images );
+  
+  //
+  void  Construct( int  numberOfClasses );
 
   //
-  bool  Read( const char* fileName );
+  bool  Read( const std::string& fileName );
 
   //
-  bool  Write( const char* fileName );
+  bool  Write( const std::string& fileName ) const;
 
   //
-  CompressedImageType::Pointer  CompressImage( const ImageType*  image ) const;
-  CompressedImageType::Pointer  CompressImage( const ImageType*  image, std::vector<unsigned short> collapsedLabs,std::vector<unsigned short> mappedCollapsedLabs ) const;
-
-
-  // Some typedefs
-  typedef std::map< ImageType::PixelType, CompressedImageType::PixelType >  CompressionLookupTableType;
-  typedef std::map< CompressedImageType::PixelType, std::string >  LabelStringLookupTableType;
   typedef itk::RGBAPixel< unsigned char >  ColorType;
-  typedef std::map< CompressedImageType::PixelType, ColorType >  ColorLookupTableType;
+  const std::vector< int >&  GetClassNumbers( ImageType::PixelType label ) const
+    {
+    return m_CompressionLookupTable.find( label )->second;
+    }
+    
+  const ColorType&  GetColor( int classNumber ) const
+    {
+    return m_ColorLookupTable.find( classNumber )->second;
+    }
 
-  //
-  const CompressionLookupTableType&  GetCompressionLookupTable() const
-    { return m_CompressionLookupTable; }
-
-  //
-  const LabelStringLookupTableType&  GetLabelStringLookupTable() const
-    { return m_LabelStringLookupTable; }
-
-  //
-  const ColorLookupTableType&  GetColorLookupTable() const
-    { return m_ColorLookupTable; }
-
+  const std::string&  GetLabelName( int classNumber ) const
+    {
+    return m_LabelStringLookupTable.find( classNumber )->second;
+    }
+  
+  const int  GetNumberOfClasses() const
+    {
+    return m_NumberOfClasses;
+    }  
+  
+  
 protected :
   // Constructor
   CompressionLookupTable();
@@ -72,17 +76,36 @@ protected :
   // Print
   void PrintSelf( std::ostream& os, itk::Indent indent ) const;
 
+  //
+  void  FillInMissingNamesAndColors();
+  
 private :
   CompressionLookupTable(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
 
-  // Data members
-  CompressionLookupTableType  m_CompressionLookupTable;
-
-  LabelStringLookupTableType  m_LabelStringLookupTable;
-
-  ColorLookupTableType  m_ColorLookupTable;
+  //
+#if 0  
+  std::unordered_map< ImageType::PixelType, std::vector< int > >   ReadCollapsedLabelFile() const;
+#else  
+  std::map< ImageType::PixelType, std::vector< int > >   ReadCollapsedLabelFile() const;
+#endif
   
+  // Some typedefs
+#if 0  
+  typedef std::unordered_map< ImageType::PixelType, std::vector< int > >  CompressionLookupTableType;
+  typedef std::unordered_map< int, std::string >  LabelStringLookupTableType;
+  typedef std::unordered_map< int, ColorType >  ColorLookupTableType;
+#else
+  typedef std::map< ImageType::PixelType, std::vector< int > >  CompressionLookupTableType;
+  typedef std::map< int, std::string >  LabelStringLookupTableType;
+  typedef std::map< int, ColorType >  ColorLookupTableType;
+#endif
+  
+  // Data members
+  int  m_NumberOfClasses;
+  CompressionLookupTableType  m_CompressionLookupTable;
+  LabelStringLookupTableType  m_LabelStringLookupTable;
+  ColorLookupTableType  m_ColorLookupTable;
 
 };
 

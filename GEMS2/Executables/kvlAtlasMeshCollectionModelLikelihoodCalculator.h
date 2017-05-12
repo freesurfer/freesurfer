@@ -2,7 +2,7 @@
 #define __kvlAtlasMeshCollectionModelLikelihoodCalculator_h
 
 #include "kvlAtlasMeshCollection.h"
-#include "itkImage.h"
+#include "kvlCompressionLookupTable.h"
 
 
 namespace kvl
@@ -29,10 +29,11 @@ public :
   itkTypeMacro( AtlasMeshCollectionModelLikelihoodCalculator, itk::Object );
 
   /** Some typedefs */
-  typedef itk::Image< unsigned char, 3 >  LabelImageType;
+  typedef CompressionLookupTable::ImageType  LabelImageType;
 
   // Set label images.
-  void SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages );
+  void SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages,
+                       const CompressionLookupTable*  compressionLookupTable );
 
   // Get label images
   const std::vector< LabelImageType::ConstPointer >&  GetLabelImages() const
@@ -49,14 +50,8 @@ public :
   const AtlasMeshCollection*  GetMeshCollection() const
     { return m_MeshCollection; }
 
-  void SetMapCompToComp( std::vector<unsigned char > *mapCompToComp )
-    { m_mapCompToComp = mapCompToComp; }
-  std::vector<unsigned char > * GetMapCompToComp()
-    { return m_mapCompToComp; }
-  
-    
   /** */
-  void GetDataCostAndAlphasCost( float& dataCost, float& alphasCost, bool verbose=false ) const;
+  void GetDataCostAndAlphasCost( double& dataCost, double& alphasCost, bool verbose=false ) const;
   
 protected:
   AtlasMeshCollectionModelLikelihoodCalculator();
@@ -70,10 +65,8 @@ private:
   AtlasMeshCollection::ConstPointer  m_MeshCollection;
 
   std::vector< LabelImageType::ConstPointer >  m_LabelImages;
+  CompressionLookupTable::ConstPointer  m_CompressionLookupTable;
   
-  int  m_NumberOfLabelImages;
-  
-  std::vector<unsigned char > *m_mapCompToComp;
   
 };
 
