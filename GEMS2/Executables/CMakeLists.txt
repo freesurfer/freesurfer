@@ -36,9 +36,9 @@ TARGET_LINK_LIBRARIES( kvlBuildAtlasMesh
                        )
 
 
-# Add an executable
-ADD_EXECUTABLE( kvlDecimateTest
-                kvlDecimateTest.cxx )
-TARGET_LINK_LIBRARIES( kvlDecimateTest
-                       kvlGEMSCommon
-                      )
+# # Add an executable
+# ADD_EXECUTABLE( kvlDecimateTest
+#                 kvlDecimateTest.cxx )
+# TARGET_LINK_LIBRARIES( kvlDecimateTest
+#                        kvlGEMSCommon
+#                       )
