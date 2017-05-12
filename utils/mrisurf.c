@@ -4771,16 +4771,25 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
   {
-    cp = strchr(sname, '.') ;
-    FileNamePath(mris->fname, path) ;
-    if (cp &&
-        ((strncmp(cp-2, "lh", 2) == 0) || (strncmp(cp-2, "rh", 2) == 0)))
+    if(getenv("FS_POSIX")) {
+      // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+      sprintf(fname, "./%s", sname) ;
+    } 
+    else
     {
-      sprintf(fname, "%s/%s", path, sname) ;
+      cp = strchr(sname, '.') ;
+      FileNamePath(mris->fname, path) ;
+      if (cp &&
+          ((strncmp(cp-2, "lh", 2) == 0) || (strncmp(cp-2, "rh", 2) == 0)))
+      {
+        sprintf(fname, "%s/%s", path, sname) ;
+      }
+      else   /* no hemisphere specified */ 
+      {
+        sprintf(fname, "%s/%s.%s", path,
+                mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+      }
     }
-    else   /* no hemisphere specified */
-      sprintf(fname, "%s/%s.%s", path,
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
   }
   else
   {
@@ -13033,11 +13042,25 @@ MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
         *(cp-1) != 'h' || 
         ((*(cp-2)!='l'&&*(cp-2)!='r')))
     {
-      sprintf(fname, "%s/%s.%s", path, hemi, sname) ;
+      if(getenv("FS_POSIX")) {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        sprintf(fname, "./%s.%s", hemi, sname) ;
+      }
+      else
+      {
+        sprintf(fname, "%s/%s.%s", path, hemi, sname) ;
+      }
     }
     else
     {
-      sprintf(fname, "%s/%s", path, sname) ;
+      if(getenv("FS_POSIX")) {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        sprintf(fname, "./%s", sname) ;
+      }
+      else
+      {
+        sprintf(fname, "%s/%s", path, sname) ;
+      }
     }
   }
   else
@@ -13136,11 +13159,31 @@ MRISwriteDists(MRI_SURFACE *mris, const char *sname)
     FileNamePath(mris->fname, path) ;
     cp = strchr(sname, '.') ;
     if (!cp)
-      sprintf(fname, "%s/%s.%s", path,
+      if(getenv("FS_POSIX")) 
+      {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        sprintf(fname, "./%s.%s",
               mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+
+      }
+      else
+      {
+        // PW 2017/05/15: Legacy behaviour
+        sprintf(fname, "%s/%s.%s", path,
+              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+      }
     else
     {
-      sprintf(fname, "%s/%s", path, sname) ;
+      if(getenv("FS_POSIX")) 
+      {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11) 
+        sprintf(fname, "./%s", sname) ;
+      }
+      else
+      {
+        // PW 2017/05/15: Legacy behaviour
+        sprintf(fname, "%s/%s", path, sname) ;
+      }
     }
   }
   else
@@ -14031,6 +14074,7 @@ MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
   {
+
     FileNameOnly(sname, fname_no_path) ;
     cp = strstr(fname_no_path, ".annot") ;
     if (!cp)
@@ -14436,14 +14480,35 @@ MRISwriteAnnotation(MRI_SURFACE *mris,const char *sname)
       (fname_no_path, mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",2) ;
 
     FileNamePath(mris->fname, path) ;
+
     if (!need_hemi)
     {
-      sprintf(fname, "%s/../label/%s", path, fname_no_path) ;
+      if (getenv("FS_POSIX")) {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        sprintf(fname, "./%s", fname_no_path) ;  
+      } 
+      else 
+      {
+        // PW 2017/05/15: Legacy behaviour
+        sprintf(fname, "%s/../label/%s", path, fname_no_path) ;
+      }
     }
-    else   /* no hemisphere specified */
-      sprintf
-      (fname, "%s/../label/%s.%s", path,
-       mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",fname_no_path);
+    else 
+    {  /* no hemisphere specified */
+      if (getenv("FS_POSIX")) { 
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        sprintf
+        (fname, "./%s.%s",
+         mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",fname_no_path);        
+      }
+      else
+      {
+        // PW 2017/05/15: Legacy behaviour
+        sprintf
+        (fname, "%s/../label/%s.%s", path,
+         mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh",fname_no_path);
+      }
+    }
   }
   else
   {
@@ -42785,12 +42850,26 @@ MRISbuildFileName(MRI_SURFACE *mris, const char *sname, char *fname)
     FileNamePath(mris->fname, path) ;
     if (dot && (*(dot-1) == 'h') && (*(dot-2) == 'l' || *(dot-2) == 'r'))
     {
-      sprintf(fname, "%s/%s", path, sname) ;
+      if(getenv("FS_POSIX")) {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        sprintf(fname, "./%s", sname) ;
+      } else {
+        // PW 2017/05/15: Legacy behaviour
+        sprintf(fname, "%s/%s", path, sname) ;
+      }
     }
     else   /* no hemisphere specified */
-      sprintf(fname, "%s/%s.%s", path,
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" :
-              mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh", sname) ;
+      if(getenv("FS_POSIX")) {
+        // PW 2017/05/15: If FS_POSIX is set, write to cwd (as per POSIX:4.11)
+        sprintf(fname, "./%s.%s",
+                mris->hemisphere == LEFT_HEMISPHERE ? "lh" :
+                mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh", sname) ;
+      } else {
+        // PW 2017/05/15: Legacy behaviour
+        sprintf(fname, "%s/%s.%s", path,
+                mris->hemisphere == LEFT_HEMISPHERE ? "lh" :
+                mris->hemisphere == BOTH_HEMISPHERES ? "both" : "rh", sname) ;
+      }
   }
   else
   {
