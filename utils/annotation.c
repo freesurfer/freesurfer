@@ -567,7 +567,7 @@ MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits)
   int    vno, num, min_vno ;
   VERTEX *v, *vc ;
   float  cx, cy, cz, dist, min_dist, evalues[3], u, w, dx, dy, dz,
-         min_dot, max_dot, e1x, e1y, e1z, dot, mx ;
+    min_dot, max_dot, e1x, e1y, e1z, dot;
   MATRIX *m_obs, *m_obs_T, *m_cov, *m_eig ;
 
 
@@ -648,19 +648,6 @@ MRISdivideAnnotationUnit(MRI_SURFACE *mris, int annot, int nunits)
   e1x = *MATRIX_RELT(m_eig, 1,1) * vc->e1x + *MATRIX_RELT(m_eig, 2,1) * vc->e2x;
   e1y = *MATRIX_RELT(m_eig, 1,1) * vc->e1y + *MATRIX_RELT(m_eig, 2,1) * vc->e2y;
   e1z = *MATRIX_RELT(m_eig, 1,1) * vc->e1z + *MATRIX_RELT(m_eig, 2,1) * vc->e2z;
-  if (fabs(e1x) > fabs(e1y) &&  fabs(e1x) > fabs(e1z))
-  {
-    mx = e1x ;
-  }
-  else if (fabs(e1y) > fabs(e1z))
-  {
-    mx = e1y ;
-  }
-  else
-  {
-    mx = e1z ;
-  }
-  //  if (mx < 0)
   if (e1y < 0)  // orient them from posterior to anterior
   {
     e1x *= -1 ;
@@ -750,7 +737,6 @@ int MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char *newparc
   int err, nthparc, parcid, nnewparcs, nthnewparc, m, match;
   int vtxno, *annotlist;
   COLOR_TABLE *ct ;
-  VERTEX *vtx;
 
   if(nparcs == 1)
   {
@@ -815,7 +801,6 @@ int MRISmergeAnnotations(MRIS *mris, int nparcs, char **parcnames, char *newparc
   // in the list to that of the 1st list member
   for(vtxno = 0; vtxno < mris->nvertices; vtxno++)
   {
-    vtx = &(mris->vertices[vtxno]);
     for(m = 0; m < nparcs; m++)
     {
       if(mris->vertices[vtxno].annotation == annotlist[m])

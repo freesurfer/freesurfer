@@ -191,7 +191,7 @@ void JointHisto::create(MRI *mriS, MRI* mriT,
   int ivs, ivt;
   double sdiff, tdiff;
   double dt[3] =
-  { mriT->width, mriT->height, mriT->depth };
+    { (double)mriT->width, (double)mriT->height, (double)mriT->depth };
   // double ds[3] = { mriS->width, mriS->height, mriS->depth};
   mriS->outside_val = -1;
   mriT->outside_val = -1;
@@ -337,7 +337,7 @@ MRI * JointHisto::locate(MRI *mriS, MRI* mriT,
   int ivs, ivt;
   double sdiff, tdiff;
   double dt[3] =
-  { mriT->width, mriT->height, mriT->depth };
+  { (double)mriT->width, (double)mriT->height, (double)mriT->depth };
   double four[4];
   double maxfour;
   MRI * weights = MRIcloneDifferentType(mriT, MRI_FLOAT);
@@ -507,7 +507,7 @@ void JointHisto::create(MRI_BSPLINE *mriS, MRI_BSPLINE* mriT,
   int ivs, ivt;
   double sdiff, tdiff;
   double dt[3] =
-  { mriT->coeff->width, mriT->coeff->height, mriT->coeff->depth };
+  { (double)mriT->coeff->width, (double)mriT->coeff->height, (double)mriT->coeff->depth };
   // double ds[3] = { mriS->width, mriS->height, mriS->depth};
   mriS->coeff->outside_val = -1;
   mriT->coeff->outside_val = -1;

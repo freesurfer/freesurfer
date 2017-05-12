@@ -1216,11 +1216,19 @@ AC_PATH_X
 
 if test "x$x_includes" = "xNONE"; then
   # Mac sets it to NONE, but this is really ""
-  x_includes=
+  if test -d "/usr/X11R6/include" ; then
+    x_includes=/usr/X11R6/include
+  fi
+  if test -d "/usr/X11/include" ; then
+    x_includes=/usr/X11/include
+  fi
 fi
 if test "x$x_includes" = "x"; then
   if test -d "/usr/X11R6/include" ; then
     x_includes=/usr/X11R6/include
+  fi
+  if test -d "/usr/X11/include" ; then
+    x_includes=/usr/X11/include
   fi
 fi
 AC_MSG_NOTICE([x_includes set to $x_includes  \
@@ -2984,11 +2992,20 @@ fi
 
 # stupid Mac OS Leopard fix:
 if test "$OS" = "Darwin"; then
-  gl_cflags="-I/usr/X11R6/include"
-  gl_libs="-L/usr/X11R6/lib $X_LIBS -Wl,-dylib_file,\
+  X_DIR=""
+  if test -d "/usr/X11R6"; then
+    X_DIR="/usr/X11R6"
+  fi
+  if test -d "/usr/X11"; then
+    X_DIR="/usr/X11"
+  fi
+  if test ! "X$X_DIR" = "X"; then 
+    gl_cflags="-I${X_DIR}/include -I${X_DIR}/include/GL"
+    gl_libs="-L${X_DIR}/lib $X_LIBS -Wl,-dylib_file,\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
-  mac_gl_libs=$gl_libs
+    mac_gl_libs=$gl_libs
+  fi
 fi
 
 AC_SUBST(gl_cflags)
@@ -3020,7 +3037,12 @@ and GL_LIBS='$GL_LIBS'])
   GL_CFLAGS="$GL_CFLAGS $gl_cflags"
   LIBS_OPENGL="$GL_LIBS $mac_gl_libs"
 fi
-CFLAGS=$ac_save_cflags
+if test ! "X$gl_cflags" = "X"; then
+  GL_CFLAGS="$GL_CFLAGS $gl_cflags"
+  LIBS_OPENGL="$GL_LIBS $mac_gl_libs"
+fi
+
+CFLAGS="$ac_save_cflags"
 LDFLAGS=$ac_save_ldflags
 #####################################################
 # AX_CHECK_GLU produces GLU_CFLAGS GLU_LIBS
@@ -3815,6 +3837,7 @@ AC_OUTPUT([Makefile
            mri_extract_conditions/Makefile
            mri_extract_label/Makefile
            mri_extract_largest_CC/Makefile
+           mri_extract_fcd_features/Makefile
            mri_fcili/Makefile
            mri_fdr/Makefile
            mri_fieldsign/Makefile
@@ -4069,7 +4092,6 @@ AC_OUTPUT([Makefile
            talairach_avi/Makefile
            template/Makefile
            test_makevol/Makefile
-           test_window_env/Makefile
            tetgen/Makefile
            tiff/Makefile
            tkmedit/Makefile

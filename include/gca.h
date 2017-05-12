@@ -383,7 +383,10 @@ int   GCAcomputeMAPlabelAtLocation(GCA *gca, int xp, int yp, int zp, float *vals
                                    int *pmax_n, float *plog_p) ;
 int   GCAcomputeMLElabelAtLocation(GCA *gca, int x, int y, int z, float *vals, int *pmax_n,float *plog_p);
 MRI   *GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs, MRI *mri_src,
-                                 MRI *mri_dst, TRANSFORM *transform) ;
+                                 MRI *mri_dst, TRANSFORM *transform,
+				 double vent_topo_dist, 
+				 double vent_topo_volume_thresh1,
+				 double vent_topo_volume_dist2) ;
 MRI   *GCAexpandLabelIntoWM(GCA *gca, MRI *mri_inputs, MRI *mri_src,
                             MRI *mri_dst, TRANSFORM *transform,MRI *mri_fixed,
                             int target_label) ;

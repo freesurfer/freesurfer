@@ -21,9 +21,13 @@ IF(Boost_FOUND)
   LIST(APPEND testsrcs testatlasmeshrasterizorbasic.cpp)
   LIST(APPEND testsrcs atlasmeshvisitcountercpuwrapper.cpp)
   LIST(APPEND testsrcs testatlasmeshvisitcounter.cpp)
+  LIST(APPEND testsrcs testdimensioncuda.cpp)
+  LIST(APPEND testsrcs teststopwatch.cpp)
 
   IF( CUDA_FOUND )
+    LIST(APPEND testsrcs testcudaimage.cpp)
     LIST(APPEND testsrcs cudaglobalfixture.cpp)
+    LIST(APPEND testsrcs cudaimagetests.cu)
 
     LIST(APPEND GEMS2libs kvlGEMSCUDA)
   ENDIF( CUDA_FOUND )

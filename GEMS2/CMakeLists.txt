@@ -33,6 +33,8 @@ OPTION( BUILD_GUI "Build GUI components (requires FLTK and VTK)" OFF )
 
 OPTION( BUILD_MATLAB "Build Matlab wrappers" OFF )
 
+# Enable C++11 syntax
+SET(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
 # Find CUDA
 FIND_PACKAGE( CUDA )

@@ -1323,6 +1323,22 @@ int main(int argc, char *argv[])
       setenv("NSLICES_OVERRIDE_BCHWAUNIE",tmpstr,1);
     }
     /*-------------------------------------------------------------*/
+    else if ( (strcmp(argv[i], "--ncols-override") == 0)) {
+      int NColsOverride;
+      get_ints(argc, argv, &i, &NColsOverride, 1);
+      printf("NColsOverride %d\n",NColsOverride);
+      sprintf(tmpstr,"%d",NColsOverride);
+      setenv("NCOLS_OVERRIDE",tmpstr,1);
+    }
+    /*-------------------------------------------------------------*/
+    else if ( (strcmp(argv[i], "--nrows-override") == 0)) {
+      int NRowsOverride;
+      get_ints(argc, argv, &i, &NRowsOverride, 1);
+      printf("NRowsOverride %d\n",NRowsOverride);
+      sprintf(tmpstr,"%d",NRowsOverride);
+      setenv("NROWS_OVERRIDE",tmpstr,1);
+    }
+    /*-------------------------------------------------------------*/
     else if ( (strcmp(argv[i], "--nspmzeropad") == 0) ||
               (strcmp(argv[i], "--out_nspmzeropad") == 0))
     {

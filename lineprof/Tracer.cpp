@@ -7,6 +7,8 @@
 
 #include "Tracer.h"
 
+bool Tracer::DoNotExitOnError = false;
+
 Tracer::Tracer()
 {
   mask = NULL;
@@ -333,7 +335,7 @@ Tracer::GetClosestPoint(double val) const
   if ( dMin > 9.0 )
     {
       std::cerr << " error finding close point while searching for value " << val << "\n";
-      exit(1);
+      if (!DoNotExitOnError) exit(1);
     }
 
   PointType retVal;

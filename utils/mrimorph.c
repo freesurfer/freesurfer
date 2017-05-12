@@ -1703,6 +1703,8 @@ writeSnapshot(MRI *mri, MORPH_PARMS *parms, int n)
   }
   sprintf(fname, "%s%3.3d", parms->base_name, n) ;
   MRIwriteImageViews(mri_tmp, fname, IMAGE_SIZE) ;
+  sprintf(fname, "%s%3.3d.mgz", parms->base_name, n) ;
+  MRIwrite(mri_tmp, fname) ;
   MRIfree(&mri_tmp) ;
 
   sprintf(fname, "%s%3.3d_fsamples.mgz", parms->base_name, n) ;

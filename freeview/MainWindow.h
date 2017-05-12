@@ -381,6 +381,8 @@ protected:
   void CommandSetSmoothed       ( const QStringList& cmd );
   void CommandGoToLabel         ( const QStringList& cmd );
   void CommandSaveLayer         ( const QStringList& cmd );
+  void CommandSetTrackColor     ( const QStringList& cmd );
+  void CommandSetTrackRender    ( const QStringList& cmd );
 
 public:
   void CommandSetCamera         ( const QStringList& cmd );

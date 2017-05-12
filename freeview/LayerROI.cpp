@@ -51,6 +51,7 @@
 #include <stdlib.h>
 #include <QDebug>
 #include "LayerSurface.h"
+#include "FSVolume.h"
 
 LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( parent )
 {
@@ -405,7 +406,7 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
   double* origin = m_imageData->GetOrigin();
   double vs[3];
   m_imageData->GetSpacing( vs );
-  unsigned char* ptr = (unsigned char*)m_imageData->GetScalarPointer();
+  float* ptr = (float*)m_imageData->GetScalarPointer();
 
   int cnt = 0;
   //  QList<int> indices;
@@ -416,7 +417,7 @@ void LayerROI::GetStats(int nPlane, int *count_out, float *area_out,
     {
       for ( int k = 0; k < dim[2]; k++ )
       {
-        if ( ptr[k*dim[0]*dim[1]+j*dim[0]+i] != 0 )
+        if ( ptr[k*dim[0]*dim[1]+j*dim[0]+i] > GetProperty()->GetThreshold() )
         {
           cnt++;
           //          indices << i << j << k;
@@ -605,6 +606,26 @@ void LayerROI::Close(int nTimes)
     ::LabelDilate(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes,
                   m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
     ::LabelErode(m_label->GetRawLabel(), m_layerMappedSurface->GetSourceSurface()->GetMRIS(), nTimes);
+    OnLabelDataUpdated();
+  }
+}
+
+void LayerROI::Resample()
+{
+  if (m_layerMappedSurface)
+  {
+    SaveForUndo();
+    LABEL* old_label = m_label->GetRawLabel();
+    ::LabelUnassign(old_label);
+    LABEL* label = ::LabelSampleToSurface(m_layerMappedSurface->GetSourceSurface()->GetMRIS(), old_label,
+                                          m_layerSource->GetSourceVolume()->GetMRI(),
+                                          m_layerMappedSurface->IsInflated()?WHITE_VERTICES:CURRENT_VERTICES);
+    if (label)
+    {
+      old_label->n_points = label->n_points ;
+      memmove(old_label->lv, label->lv, label->n_points*sizeof(LABEL_VERTEX));
+      LabelFree(&label);
+    }
     OnLabelDataUpdated();
   }
 }

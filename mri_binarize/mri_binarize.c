@@ -247,6 +247,8 @@ int nReplace = 0, SrcReplace[1000], TrgReplace[1000];
 char *SurfFile=NULL;
 int nsmoothsurf=0;
 
+int noverbose = 0;
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, c, r, s, nhits, InMask, n, mriType,nvox;
@@ -255,7 +257,7 @@ int main(int argc, char *argv[]) {
   FILE *fp;
   MRI *mritmp;
 
-  nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
+  nargs = handle_version_option(argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs;
   cmdline = argv2cmdline(argc,argv);
@@ -271,7 +273,8 @@ int main(int argc, char *argv[]) {
   parse_commandline(argc, argv);
   check_options();
   if (checkoptsonly) return(0);
-  dump_options(stdout);
+  if (noverbose == 0)
+    dump_options(stdout);
 
   // Load the input volume
   InVol = MRIread(InVolFile);
@@ -386,7 +389,8 @@ int main(int argc, char *argv[]) {
     fend = frame;
   }
   nframes = fend - fstart + 1;
-  printf("fstart = %d, fend = %d, nframes = %d\n",fstart,fend,nframes);
+  if (noverbose == 0)
+    printf("fstart = %d, fend = %d, nframes = %d\n",fstart,fend,nframes);
 
   // Prepare the output volume
   mriType = MRI_INT;
@@ -465,7 +469,8 @@ int main(int argc, char *argv[]) {
     OutVol = MRIreplaceList(InVol, SrcReplace, TrgReplace, nReplace, MaskVol, NULL);
   }
 
-  printf("Found %d values in range\n",nhits);
+  if (noverbose == 0) 
+    printf("Found %d values in range\n",nhits);
 
   if(nDilate3d > 0){
     printf("Dilating %d voxels in 3d\n",nDilate3d);
@@ -489,7 +494,8 @@ int main(int argc, char *argv[]) {
     MRIfree(&mritmp);
   }
   
-  printf("Counting number of voxels in first frame\n");
+  if (noverbose == 0)
+    printf("Counting number of voxels in first frame\n");
   nhits = 0;
   for (c=0; c < OutVol->width; c++) {
     for (r=0; r < OutVol->height; r++) {
@@ -500,7 +506,8 @@ int main(int argc, char *argv[]) {
       } // slice
     } // row
   } // col
-  printf("Found %d voxels in final mask\n",nhits);
+  if (noverbose == 0)
+    printf("Found %d voxels in final mask\n",nhits);
 
   if(DoBinCol){
     printf("Filling mask with column number\n");
@@ -520,7 +527,9 @@ int main(int argc, char *argv[]) {
 
   nvox = OutVol->width * OutVol->height * OutVol->depth;
   voxvol = OutVol->xsize * OutVol->ysize * OutVol->zsize;
-  printf("Count: %d %lf %d %lf\n",nhits,nhits*voxvol,nvox,(double)100*nhits/nvox);
+  if (noverbose == 0)
+    printf("Count: %d %lf %d %lf\n",nhits,nhits*voxvol,nvox,(double)100*nhits/nvox);
+
   if(CountFile){
     fp = fopen(CountFile,"w");
     if(fp == NULL){
@@ -531,7 +540,9 @@ int main(int argc, char *argv[]) {
     fclose(fp);
   }
 
-  printf("mri_binarize done\n");
+  if (noverbose == 0)
+    printf("mri_binarize done\n");
+
   exit(0);
 }
 /* --------------------------------------------- */
@@ -555,6 +566,7 @@ static int parse_commandline(int argc, char **argv) {
     if (!strcasecmp(option, "--help"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
+    else if (!strcasecmp(option, "--noverbose"))   noverbose = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--abs")) DoAbs = 1;
@@ -888,6 +900,7 @@ static void print_usage(void) {
   printf("   --erode-corner nerode: erode binarization using 'corner' nearest neighbors (same as --erode)\n");
   printf("   --surf surfname : create a surface mesh from the binarization\n");
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
+  printf("   --noverbose (default *verbose*) \n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -913,6 +926,8 @@ printf("--min min\n");
 printf("--max max\n");
 printf("--rmin rmin\n");
 printf("--rmax rmax\n");
+printf("\n");
+printf("--noverbose (default is *verbose*) \n");
 printf("\n");
 printf("Minimum and maximum thresholds. If the value at a voxel is >= min and\n");
 printf("<= max, then its value in the output will be 1 (or --binval),\n");

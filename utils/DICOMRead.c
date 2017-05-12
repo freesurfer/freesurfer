@@ -2358,11 +2358,29 @@ int sdcmIsMosaic(const char *dcmfile,
     IsMosaic = 1;
     if (pNrows != NULL)
     {
-      *pNrows = NrowsExp;
+      tmpstr = getenv("NROWS_OVERRIDE");
+      if (tmpstr == NULL)
+      {
+        *pNrows = NrowsExp;
+      }
+      else
+      {
+        sscanf(tmpstr,"%d",pNrows);
+        printf("Overriding number of rows with %d\n",*pNrows);
+      }
     }
     if (pNcols != NULL)
     {
-      *pNcols = NcolsExp;
+      tmpstr = getenv("NCOLS_OVERRIDE");
+      if (tmpstr == NULL)
+      {
+        *pNcols = NcolsExp;
+      }
+      else
+      {
+        sscanf(tmpstr,"%d",pNcols);
+        printf("Overriding number of columns with %d\n",*pNcols);
+      }
     }
     if (pNslices != NULL)
     {

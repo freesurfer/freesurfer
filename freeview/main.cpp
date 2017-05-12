@@ -76,6 +76,10 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
 #else
 void myMessageOutput(QtMsgType type, const char *msg)
 {
+  QString qmsg = msg;
+  if (qmsg.contains("sRGB profile") || qmsg.contains("QWidget::create") || qmsg.contains("unregister timer"))
+    return;
+
   switch (type)
   {
   case QtDebugMsg:
@@ -118,7 +122,8 @@ int main(int argc, char *argv[])
   qInstallMsgHandler(myMessageOutput);
 #endif
 
-  LineProf::InitializePetsc();
+  LineProf::InitializePetsc(true);
+  FSinit();
 
   CmdLineEntry cmdLineDesc[] =
   {

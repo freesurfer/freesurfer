@@ -111,6 +111,7 @@
 #include "Json.h"
 #include "DialogThresholdFilter.h"
 #include "DialogLoadTransform.h"
+#include "LayerPropertyTrack.h"
 #if (QT_VERSION >= QT_VERSION_CHECK(5, 0, 0))
 #include <QtWidgets>
 #endif
@@ -523,9 +524,15 @@ void MainWindow::LoadSettings()
   {
     m_settings["CursorColor"] = QColor(Qt::red);
   }
-  if (!m_settings.contains("CursorStyle"))
+  if (!m_settings.contains("CursorSize"))
   {
-    m_settings["CursorStyle"] = 0;
+    m_settings["CursorSize"] = 5;
+    m_settings["CursorSize3D"] = 5;
+  }
+  if (!m_settings.contains("CursorThickness"))
+  {
+    m_settings["CursorThickness"] = 1;
+    m_settings["CursorThickness3D"] = 1;
   }
   if (!m_settings.contains("AnnotationColor"))
   {
@@ -558,17 +565,17 @@ void MainWindow::LoadSettings()
     if ( i < 3 )
     {
       ((RenderView2D*)m_views[i])->GetCursor2D()->SetColor(m_settings["CursorColor"].value<QColor>());
-      ((RenderView2D*)m_views[i])->GetCursor2D()->SetStyle(m_settings["CursorStyle"].toInt());
+      ((RenderView2D*)m_views[i])->GetCursor2D()->SetSize(m_settings["CursorSize"].toInt());
+      ((RenderView2D*)m_views[i])->GetCursor2D()->SetThickness(m_settings["CursorThickness"].toInt());
     }
     else
     {
       ((RenderView3D*)m_views[i])->GetCursor3D()->SetColor(m_settings["CursorColor"].value<QColor>());
       ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetColor(m_settings["CursorColor"].value<QColor>());
-      if (m_settings["CursorStyle"].toInt() < 2)
-      {
-        ((RenderView3D*)m_views[i])->GetCursor3D()->SetLarge(m_settings["CursorStyle"].toInt());
-        ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetLarge(m_settings["CursorStyle"].toInt());
-      }
+      ((RenderView3D*)m_views[i])->GetCursor3D()->SetSize(m_settings["CursorSize3D"].toInt());
+      ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetSize(m_settings["CursorSize3D"].toInt());
+      ((RenderView3D*)m_views[i])->GetCursor3D()->SetThickness(m_settings["CursorThickness3D"].toInt());
+      ((RenderView3D*)m_views[i])->GetInflatedSurfCursor()->SetThickness(m_settings["CursorThickness3D"].toInt());
     }
   }
   SyncZoom(m_settings["SyncZoom"].toBool());
@@ -1585,6 +1592,14 @@ void MainWindow::RunScript()
   else if ( cmd == "loadtrack")
   {
     CommandLoadTrack(sa);
+  }
+  else if ( cmd == "settrackcolor")
+  {
+    CommandSetTrackColor( sa );
+  }
+  else if ( cmd == "settrackrender")
+  {
+    CommandSetTrackRender( sa );
   }
   else if ( cmd == "screencapture" )
   {
@@ -2731,8 +2746,49 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
 
 void MainWindow::CommandLoadTrack(const QStringList &cmd)
 {
-  QString fn = cmd[1];
+  QStringList list = cmd[1].split(":");
+  QString fn = list[0];
   LoadTrackFile( fn );
+  if (list.size() > 1)
+  {
+    for (int i = 1; i < list.size(); i++)
+    {
+      QStringList sublist = list[i].split("=");
+      if (sublist.size() > 1)
+      {
+        if (sublist[0] == "color")
+          m_scripts.insert(0, QStringList("settrackcolor") << sublist[1]);
+        else if (sublist[0] == "render")
+          m_scripts.insert(0, QStringList("settrackrender") << sublist[1]);
+        else
+          cerr << "Unrecognized sub-option flag '" << sublist[0].toLatin1().constData() << "'.\n";
+      }
+    }
+  }
+}
+
+void MainWindow::CommandSetTrackColor(const QStringList &cmd)
+{
+  LayerTrack* layer = (LayerTrack*)GetActiveLayer("Tract");
+  if (layer && cmd.size() > 1)
+  {
+    QColor color = ParseColorInput(cmd[1]);
+    if (color.isValid())
+    {
+      layer->GetProperty()->SetColorCode(LayerPropertyTrack::SolidColor);
+      layer->GetProperty()->SetSolidColor(color);
+    }
+  }
+}
+
+void MainWindow::CommandSetTrackRender(const QStringList &cmd)
+{
+  LayerTrack* layer = (LayerTrack*)GetActiveLayer("Tract");
+  if (layer && cmd.size() > 1)
+  {
+    if (cmd[1] == "tube" || cmd[1] == "tubes")
+      layer->GetProperty()->SetRenderRep(LayerPropertyTrack::Tube);
+  }
 }
 
 void MainWindow::CommandLoadSurface( const QStringList& cmd )
@@ -4149,14 +4205,14 @@ void MainWindow::CommandSetRAS( const QStringList& cmd )
 {
   bool bOK;
   double ras[3];
-  ras[0] = cmd[1].toDouble(&bOK);
+  ras[0] = cmd[1].split(",").first().toDouble(&bOK);
   if (bOK)
   {
-    ras[1] = cmd[2].toDouble(&bOK);
+    ras[1] = cmd[2].split(",").first().toDouble(&bOK);
   }
   if (bOK)
   {
-    ras[2] = cmd[3].toDouble(&bOK);
+    ras[2] = cmd[3].split(",").first().toDouble(&bOK);
   }
   if ( bOK )
   {
@@ -4180,6 +4236,7 @@ void MainWindow::CommandSetRAS( const QStringList& cmd )
     this->GetMainView()->CenterAtWorldPosition(ras);
     GetLayerCollection("MRI")->SetCursorRASPosition( ras );
     SetSlicePosition( ras );
+    ((RenderView3D*)m_views[3])->MapToInflatedCoords(ras);
   }
   else
   {
@@ -4196,9 +4253,9 @@ void MainWindow::CommandSetSlice( const QStringList& cmd )
     LayerMRI* mri = (LayerMRI*)lc_mri->GetLayer( lc_mri->GetNumberOfLayers()-1 );
     int x, y, z;
     bool bOK;
-    x = cmd[1].toInt(&bOK);
-    y = cmd[2].toInt(&bOK);
-    z = cmd[3].toInt(&bOK);
+    x = cmd[1].split(",").first().toInt(&bOK);
+    y = cmd[2].split(",").first().toInt(&bOK);
+    z = cmd[3].split(",").first().toInt(&bOK);
     if ( bOK )
     {
       int slice[3] = { x, y, z };
@@ -4208,6 +4265,7 @@ void MainWindow::CommandSetSlice( const QStringList& cmd )
 
       lc_mri->SetCursorRASPosition( ras );
       SetSlicePosition( ras );
+      ((RenderView3D*)m_views[3])->MapToInflatedCoords(ras);
     }
     else
     {
@@ -7381,8 +7439,9 @@ void MainWindow::GoToContralateralPoint()
   }
 }
 
-void MainWindow::GoToContralateralPoint(LayerSurface *layer)
+void MainWindow::GoToContralateralPoint(LayerSurface *layer_in)
 {
+  LayerSurface* layer = layer_in;
   double pos[3];
   layer->GetSlicePosition(pos);
   int nvo = -1;
@@ -7391,6 +7450,14 @@ void MainWindow::GoToContralateralPoint(LayerSurface *layer)
     nvo = layer->GetCurrentVertex();
   else
     nvo = layer->GetVertexIndexAtTarget(pos, NULL);
+  if (nvo < 0 && layer->GetContralateralSurface())
+  {
+    layer = layer->GetContralateralSurface();
+    if (bInflated)
+      nvo = layer->GetCurrentVertex();
+    else
+      nvo = layer->GetVertexIndexAtTarget(pos, NULL);
+  }
   nvo = layer->GetContralateralVertex(nvo);
   if (nvo >= 0)
   {
@@ -7412,7 +7479,7 @@ void MainWindow::GoToContralateralPoint(LayerSurface *layer)
   }
   else
   {
-    qDebug() << "Did not find any vertex at cursor";
+    qDebug() << "Did not find any vertex at cursor on" << layer->GetName();
   }
 }
 

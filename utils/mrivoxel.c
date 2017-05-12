@@ -185,12 +185,9 @@ MRIvoxelMean( const MRI *mri, int x0, int y0, int z0, int wsize, int frame)
   float   mean, total  ;
   int     whalf, width, height, depth, x, y, z, npix, xmin, xmax,
   ymin, ymax, zmin, zmax ;
-  BUFTYPE *psrc ;
 
   whalf = wsize/2 ;
-  width = mri->width ;
-  height = mri->height ;
-  depth = mri->depth ;
+  width = mri->width ; height = mri->height ; depth = mri->depth ;
 
   total = 0 ;
   zmin = MAX(0, z0-whalf) ;
@@ -205,7 +202,6 @@ MRIvoxelMean( const MRI *mri, int x0, int y0, int z0, int wsize, int frame)
   {
     for (y = ymin ; y <= ymax ; y++)
     {
-      psrc = &MRIvox(mri, xmin, y, z) ;
       for (x = xmin ; x <= xmax ; x++)
         total += MRIgetVoxVal(mri, x, y, z, frame) ;
     }

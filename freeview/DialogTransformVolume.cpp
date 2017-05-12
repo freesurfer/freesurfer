@@ -307,6 +307,9 @@ void DialogTransformVolume::OnRestore()
   {
     layer->Restore();
     UpdateUI();
+
+    if (ui->checkBoxApplyToAll->isChecked())
+      OnCheckBoxApplyToAll(true);
   }
   LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()->GetSupplementLayer("Landmarks");
   landmarks->Restore();
@@ -536,6 +539,9 @@ void DialogTransformVolume::RespondTextTranslate( int n )
         m_scrollTranslate[n]->setValue(range/2 + (int)( pos[n] / m_dIncrementTranslate ) );
         m_scrollTranslate[n]->blockSignals(false);
         UpdateUI( 1 );
+
+        if (ui->checkBoxApplyToAll->isChecked())
+          OnCheckBoxApplyToAll(true);
       }
     }
   }
@@ -557,6 +563,9 @@ void DialogTransformVolume::RespondScrollTranslate( int n )
       MainWindow::GetMainWindow()->RequestRedraw();
       ChangeLineEditNumber(m_textTranslate[n], pos[n], 2, true);
       UpdateUI( 1 );
+
+      if (ui->checkBoxApplyToAll->isChecked())
+        OnCheckBoxApplyToAll(true);
     }
   }
 }
@@ -587,6 +596,9 @@ void DialogTransformVolume::RespondTextRotate( int n )
         m_sliderRotate[n]->setValue( (int)(dvalue*2) );
         m_sliderRotate[n]->blockSignals(false);
         UpdateUI( 1 );
+
+        if (ui->checkBoxApplyToAll->isChecked())
+          OnCheckBoxApplyToAll(true);
       }
     }
   }
@@ -606,6 +618,9 @@ void DialogTransformVolume::RespondSliderRotate( int n )
       MainWindow::GetMainWindow()->RequestRedraw();
       ChangeLineEditNumber(m_textAngle[n], angle[n], 2, true );
       UpdateUI( 1 );
+
+      if (ui->checkBoxApplyToAll->isChecked())
+        OnCheckBoxApplyToAll(true);
     }
   }
 }
@@ -669,6 +684,9 @@ void DialogTransformVolume::RespondTextScale( int n )
         }
         m_scrollScale[n]->blockSignals(false);
         UpdateUI( 0 );
+
+        if (ui->checkBoxApplyToAll->isChecked())
+          OnCheckBoxApplyToAll(true);
       }
     }
   }
@@ -696,6 +714,9 @@ void DialogTransformVolume::RespondScrollScale( int n )
 
     ChangeLineEditNumber( m_textScale[n], scale[n], 4, true );
     UpdateUI( 0 );
+
+    if (ui->checkBoxApplyToAll->isChecked())
+      OnCheckBoxApplyToAll(true);
   }
 }
 
@@ -800,6 +821,9 @@ void DialogTransformVolume::OnButtonCenterToCursor()
         m_scrollTranslate[n]->blockSignals(false);
       }
       UpdateUI( 0 );
+
+      if (ui->checkBoxApplyToAll->isChecked())
+        OnCheckBoxApplyToAll(true);
     }
   }
 }
@@ -818,14 +842,37 @@ void DialogTransformVolume::OnCheckBoxFlip()
       flip[2] = ui->checkBoxFlipZ->isChecked();
       layer->SetFlip(flip);
       MainWindow::GetMainWindow()->RequestRedraw();
+      UpdateUI(1);
+
+      if (ui->checkBoxApplyToAll->isChecked())
+        OnCheckBoxApplyToAll(true);
     }
   }
 }
 
 void DialogTransformVolume::OnCheckBoxApplyToAll(bool bAll)
 {
-  if (bAll)
+  LayerMRI* cur_layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if (cur_layer && bAll)
   {
-
+    QList<Layer*> layers = MainWindow::GetMainWindow()->GetLayers("MRI");
+    if (cur_layer->IsTransformed())
+    {
+      foreach (Layer* layer, layers)
+      {
+        if (layer != cur_layer && layer->IsVisible())
+          layer->CopyTransformation(cur_layer);
+      }
+    }
+    else
+    {
+      foreach (Layer* layer, layers)
+      {
+        if (layer != cur_layer && layer->IsVisible())
+          layer->Restore();
+      }
+    }
+    if (sender() == ui->checkBoxApplyToAll)
+      MainWindow::GetMainWindow()->RequestRedraw();
   }
 }

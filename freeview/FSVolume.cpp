@@ -213,12 +213,12 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
   UpdateHistoCDF();
   if (m_bValidHistogram)
   {
-    double val = GetHistoValueFromPercentile(0.9)*1.1; //+m_histoCDF->bin_size/2;
+    double val = GetHistoValueFromPercentile(0.95)*1.1; //+m_histoCDF->bin_size/2;
     if (m_fMaxValue > 10*val)
     {
       // abnormally high voxel value
       UpdateHistoCDF(0, val);
-      val = GetHistoValueFromPercentile(0.9)*1.1; //+m_histoCDF->bin_size/2;
+      val = GetHistoValueFromPercentile(0.95)*1.1; //+m_histoCDF->bin_size/2;
       m_fMaxValue = val;
     }
   }
@@ -2018,6 +2018,7 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   if ( !scalars->Allocate( cValues ) )
   {
     cerr << "Could not allocate scalars array.\n";
+    scalars->Delete();
     return false;
   }
   scalars->SetNumberOfTuples( zX*zY*zZ );
@@ -2944,7 +2945,7 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold)
   MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
   if (fMinValue == fMaxValue)
   {
-    //  qDebug() << "Could not create histogram because min value is equal to max value.";
+    qDebug() << "Could not create histogram because min value is equal to max value.";
     m_bValidHistogram = false;
     return;
   }
@@ -2982,7 +2983,7 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold)
 */
 
   if (threshold < 0)
-    threshold = fMaxValue;
+    threshold = fMinValue;
 
   MRI_REGION region;
   region.x = region.y = region.z = 0;

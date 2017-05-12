@@ -156,7 +156,7 @@ LayerMRI::LayerMRI( LayerMRI* ref, QObject* parent ) : LayerVolumeBase( parent )
 
   qRegisterMetaType< IntList >( "IntList" );
   m_worker = new LayerMRIWorkerThread(this);
-  connect(m_worker, SIGNAL(LabelInformationReady()), this, SIGNAL(LabelStatsReady()));
+  connect(m_worker, SIGNAL(LabelInformationReady()), this, SLOT(OnLabelInformationReady()));
 
   QVariantMap map = MainWindow::GetMainWindow()->GetDefaultSettings();
   if (map["Smoothed"].toBool())
@@ -190,11 +190,6 @@ LayerMRI::~LayerMRI()
     delete m_volumeSource;
   }
 
-  for ( int i = 0; i < m_segActors.size(); i++ )
-  {
-    m_segActors[i].actor->Delete();
-  }
-
   for ( int i = 0; i < m_surfaceRegions.size(); i++ )
   {
     delete m_surfaceRegions[i];
@@ -207,6 +202,11 @@ LayerMRI::~LayerMRI()
   }
   delete[] private_buf1_3x3;
   delete[] private_buf2_3x3;
+
+  QList<int> keys = m_labelActors.keys();
+  foreach (int i, keys)
+    m_labelActors[i]->Delete();
+  m_labelActors.clear();
 }
 
 void LayerMRI::ConnectProperty()
@@ -216,7 +216,7 @@ void LayerMRI::ConnectProperty()
   connect( p, SIGNAL(ContourChanged()), this, SLOT(UpdateContour()) );
   connect( p, SIGNAL(ContourColorChanged()), this, SLOT(UpdateContourColor()) );
   connect( p, SIGNAL(ContourShown(bool)), this, SLOT(ShowContour()) );
-  connect( p, SIGNAL(ContourSmoothIterationChanged(int)), this, SLOT(UpdateContour()) );
+  connect( p, SIGNAL(ContourSmoothIterationChanged(int)), this, SLOT(OnContourSmoothIterationChanged()) );
   connect( p, SIGNAL(DisplayModeChanged()), this, SLOT(UpdateDisplayMode()) );
   connect( p, SIGNAL(LabelOutlineChanged(bool)), this, SLOT(UpdateLabelOutline()) );
   connect( p, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
@@ -227,6 +227,7 @@ void LayerMRI::ConnectProperty()
   connect( this, SIGNAL(SurfaceRegionRemoved()), this, SIGNAL(ActorChanged()));
   connect( p, SIGNAL(ProjectionMapChanged()), this, SLOT(UpdateProjectionMap()));
   connect( this, SIGNAL(ActiveFrameChanged(int)), this, SLOT(UpdateContour()));
+  connect( p, SIGNAL(LabelContourChanged(int)), this, SLOT(OnLabelContourChanged(int)));
 }
 
 void LayerMRI::SetResampleToRAS( bool bResample )
@@ -520,6 +521,7 @@ void LayerMRI::DoTransform(double *m, int sample_method)
 
 void LayerMRI::DoTransform(int sample_method)
 {
+  bool bTransformed = IsTransformed();
   UpdateResliceInterpolation();
   vtkTransform* slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
   // also record transformation in RAS space
@@ -528,17 +530,29 @@ void LayerMRI::DoTransform(int sample_method)
   ras_tr->Identity();
 
   double pos[3];
-  if (m_bRotateAroundCenter)
+  if (bTransformed || m_bUseRotationCenter)
   {
-    pos[0] = m_dWorldOrigin[0] + m_dWorldSize[0]/2;
-    pos[1] = m_dWorldOrigin[1] + m_dWorldSize[1]/2;
-    pos[2] = m_dWorldOrigin[2] + m_dWorldSize[2]/2;
+    pos[0] = m_dRotationCenter[0];
+    pos[1] = m_dRotationCenter[1];
+    pos[2] = m_dRotationCenter[2];
   }
   else
   {
-    pos[0] = m_dSlicePosition[0];
-    pos[1] = m_dSlicePosition[1];
-    pos[2] = m_dSlicePosition[2];
+    if (m_bRotateAroundCenter)
+    {
+      pos[0] = m_dWorldOrigin[0] + m_dWorldSize[0]/2;
+      pos[1] = m_dWorldOrigin[1] + m_dWorldSize[1]/2;
+      pos[2] = m_dWorldOrigin[2] + m_dWorldSize[2]/2;
+    }
+    else
+    {
+      pos[0] = m_dSlicePosition[0];
+      pos[1] = m_dSlicePosition[1];
+      pos[2] = m_dSlicePosition[2];
+    }
+    m_dRotationCenter[0] = pos[0];
+    m_dRotationCenter[1] = pos[1];
+    m_dRotationCenter[2] = pos[2];
   }
 
   // flip first
@@ -796,13 +810,15 @@ void LayerMRI::UpdateOpacity()
     m_sliceActor3D[i]->SetOpacity( GetProperty()->GetOpacity() );
   }
   m_actorContour->GetProperty()->SetOpacity( GetProperty()->GetOpacity() );
+  QList<int> keys = m_labelActors.keys();
+  foreach (int i, keys)
+    m_labelActors[i]->GetProperty()->SetOpacity(GetProperty()->GetOpacity());
   emit ActorUpdated();
 }
 
 void LayerMRI::UpdateColorMap()
 {
   assert( GetProperty() );
-
 
   if ( !mColorMap[0].GetPointer() )
   {
@@ -883,16 +899,35 @@ void LayerMRI::UpdateContourActor( int nSegValue )
   ThreadBuildContour* thread = new ThreadBuildContour(this);
   connect(thread, SIGNAL(Finished(int)), this, SLOT(OnContourThreadFinished(int)));
   thread->BuildContour( this, nSegValue, m_nThreadID );
+  emit IsoSurfaceUpdating();
 }
 
 // Contour mapper is ready, attach it to the actor
 void LayerMRI::OnContourThreadFinished(int thread_id)
 {
-  if (m_nThreadID == thread_id && m_actorContourTemp.GetPointer() && m_actorContourTemp->GetMapper() )
+  if (m_nThreadID == thread_id)
   {
-    m_actorContour->SetMapper( m_actorContourTemp->GetMapper() );
+    if (GetProperty()->GetShowAsLabelContour())
+    {
+      QList<int> labels = m_labelActorsTemp.keys();
+      if (!labels.isEmpty())
+      {
+        foreach (int n, labels)
+        {
+          m_labelActors[n] = m_labelActorsTemp[n];
+          m_labelActors[n]->GetMapper()->SetLookupTable( GetProperty()->GetLUTTable() );
+        }
+        OnLabelContourChanged();
+        emit ActorChanged();
+      }
+    }
+    else if( m_actorContourTemp.GetPointer() && m_actorContourTemp->GetMapper() )
+    {
+      m_actorContour->SetMapper( m_actorContourTemp->GetMapper() );
+      UpdateContourColor();
+      emit ActorChanged();
+    }
     emit IsoSurfaceUpdated();
-    UpdateContourColor();
   }
 }
 
@@ -980,12 +1015,19 @@ void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 
   if ( bContour )
   {
-    // for ( size_t i = 0; i < m_segActors.size(); i ++ )
-    // renderer->AddViewProp( m_segActors[i].actor );
-    renderer->AddViewProp( m_actorContour );
-    for ( int i = 0; i < m_surfaceRegions.size(); i++ )
+    if (GetProperty()->GetShowAsLabelContour())
     {
-      m_surfaceRegions[i]->AppendProps( renderer );
+      QList<int> keys = m_labelActors.keys();
+      foreach (int i, keys)
+        renderer->AddViewProp(m_labelActors[i]);
+    }
+    else
+    {
+      renderer->AddViewProp( m_actorContour );
+      for ( int i = 0; i < m_surfaceRegions.size(); i++ )
+      {
+        m_surfaceRegions[i]->AppendProps( renderer );
+      }
     }
   }
 }
@@ -3166,11 +3208,17 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
 
     vtkSmartPointer<vtkImageResample> resampler = vtkSmartPointer<vtkImageResample>::New();
     vtkSmartPointer<vtkImageMask> mask_filter = vtkSmartPointer<vtkImageMask>::New();
-    vtkSmartPointer<vtkImageShiftScale> cast = vtkSmartPointer<vtkImageShiftScale>::New();
+    vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
     double range[2];
     mask->GetScalarRange(range);
     if (range[1] <= 0)
       range[1] = 1;
+
+    if (m_mapMaskThresholds.contains(layer_mask))
+      m_dMaskThreshold = m_mapMaskThresholds[layer_mask];
+    else
+      m_dMaskThreshold = (range[0]+range[1])/2.0;
+
     double s1[3], s2[3];
     source->GetSpacing(s1);
     mask->GetSpacing(s2);
@@ -3178,11 +3226,15 @@ void LayerMRI::SetMaskLayer(LayerMRI *layer_mask)
     for (int i = 0; i < 3; i++)
       resampler->SetAxisMagnificationFactor(i, s2[i]/s1[i]);
     resampler->SetInterpolationModeToNearestNeighbor();
-    cast->SetScale(255/range[1]);
-    cast->SetInput(resampler->GetOutput());
-    cast->SetOutputScalarTypeToUnsignedChar();
+    threshold->ThresholdByUpper(m_dMaskThreshold);
+    threshold->SetInput(resampler->GetOutput());
+    threshold->ReplaceInOn();
+    threshold->ReplaceOutOn();
+    threshold->SetInValue(1);
+    threshold->SetOutValue(0);
+    threshold->SetOutputScalarTypeToUnsignedChar();
     mask_filter->SetInput(m_imageDataBackup);
-    mask_filter->SetMaskInput(cast->GetOutput());
+    mask_filter->SetMaskInput(threshold->GetOutput());
     mask_filter->SetMaskedOutputValue(0);
     mask_filter->Update();
     source->DeepCopy(mask_filter->GetOutput());
@@ -3455,10 +3507,56 @@ bool LayerMRI::GetLayerLabelCenter(double val, double *pos_out)
 bool LayerMRI::IsWindowAdjustable()
 {
   return IsVisible() && GetProperty()->GetOpacity() > 0 && GetProperty()->GetColorMap() != LayerPropertyMRI::LUT &&
-    GetProperty()->GetColorMap() != LayerPropertyMRI::DirectionCoded;
+      GetProperty()->GetColorMap() != LayerPropertyMRI::DirectionCoded;
 }
 
 bool LayerMRI::IsObscuring()
 {
   return IsVisible() && GetProperty()->GetOpacity() == 1 && GetProperty()->GetColorMap() == LayerPropertyMRI::Grayscale;
+}
+
+void LayerMRI::OnLabelContourChanged(int n)
+{
+  QList<int> labels = GetProperty()->GetSelectedLabels();
+  QList<int> keys = m_labelActors.keys();
+  if (n >= 0 && keys.contains(n))
+  {
+    keys.clear();
+    keys << n;
+  }
+  foreach (int i, keys)
+  {
+    m_labelActors[i]->SetVisibility(labels.contains(i)?1:0);
+  }
+}
+
+void LayerMRI::OnContourSmoothIterationChanged()
+{
+  QList<int> keys = m_labelActors.keys();
+  foreach (int i, keys)
+  {
+    m_labelActors[i]->Delete();
+  }
+  m_labelActors.clear();
+  UpdateContour();
+}
+
+void LayerMRI::OnLabelInformationReady()
+{
+  if (GetProperty()->GetColorMap() == LayerPropertyMRI::LUT &&
+      GetProperty()->GetShowAsContour() && m_labelActors.isEmpty())
+  {
+    UpdateContour();
+  }
+
+  emit LabelStatsReady();
+}
+
+void LayerMRI::SetMaskThreshold(double val)
+{
+  m_dMaskThreshold = val;
+  if (m_layerMask)
+    m_mapMaskThresholds[m_layerMask] = val;
+
+  SetMaskLayer(m_layerMask);
 }

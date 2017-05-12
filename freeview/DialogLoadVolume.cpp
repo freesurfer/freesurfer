@@ -140,7 +140,7 @@ void DialogLoadVolume::OnLUT( int nSel )
 
 QStringList DialogLoadVolume::GetVolumeFileNames()
 {
-  QStringList fns = ui->comboBoxFilenames->currentText().split( QRegExp( "[;]" ), QString::SkipEmptyParts );
+  QStringList fns = ui->comboBoxFilenames->currentText().trimmed().split( QRegExp( "[;]" ), QString::SkipEmptyParts );
   for (int i = 0; i < fns.size(); i++)
   {
     fns[i] = MyUtils::CygwinPathProof(fns[i]);
