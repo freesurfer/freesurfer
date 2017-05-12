@@ -3,6 +3,8 @@
 #include "kvlAtlasMeshVisitCounterCPU.h"
 #include "atlasmeshvisitcounter.hpp"
 
+#include "stopwatch.hpp"
+
 namespace kvl {
   class AtlasMeshVisitCounterCPUWrapper : public interfaces::AtlasMeshVisitCounter {
   public:
@@ -13,5 +15,7 @@ namespace kvl {
     virtual void SetRegions( const ImageType::RegionType&  region ) override;
     virtual void VisitCount( const AtlasMesh* mesh ) override;
     virtual const AtlasMeshVisitCounterCPUWrapper::ImageType*  GetImage() const override;
+    
+    Stopwatch tSetRegions, tVisitCount;
   };
 }
