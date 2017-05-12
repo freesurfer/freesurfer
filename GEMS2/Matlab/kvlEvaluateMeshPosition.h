@@ -1,6 +1,6 @@
 #include "kvlMatlabRunner.h" 
 #include "kvlMatlabObjectArray.h"
-#include "kvlAtlasMeshToIntensityImageGradientCalculator.h"
+#include "kvlAtlasMeshPositionCostAndGradientCalculator.h"
 
 
 namespace kvl
@@ -28,141 +28,56 @@ public:
     //          << " and I'm running! " << std::endl;
               
               
-    // [ cost gradient ] = kvlEvaluateMeshPosition( mesh, images, transform, means, precisions ) 
+    // [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh ) 
   
     // Make sure input arguments are correct
-    if ( ( nrhs < 5 ) || 
+     const  std::string  usageString = "Usage: [ cost gradient ] = kvlEvaluateMeshPosition( calculator, mesh )";
+     if ( ( nrhs < 2 ) || 
          !mxIsInt64( prhs[ 0 ] ) || 
-         !mxIsInt64( prhs[ 1 ] ) || 
-         !mxIsInt64( prhs[ 2 ] ) ||
-         !mxIsDouble( prhs[ 3 ] ) ||
-         !mxIsDouble( prhs[ 4 ] ) )
+         !mxIsInt64( prhs[ 1 ] ) )
       {
-      mexErrMsgTxt( "Incorrect arguments" );
+      mexErrMsgTxt( usageString.c_str() );
       }
       
-    // Retrieve input mesh
-    const int meshHandle = *( static_cast< int* >( mxGetData( prhs[ 0 ] ) ) );
-    itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( meshHandle );
+      
+    // Retrieve calculator
+    const int calculatorHandle = *( static_cast< int* >( mxGetData( prhs[ 0 ] ) ) );
+    itk::Object::ConstPointer  object = kvl::MatlabObjectArray::GetInstance()->GetObject( calculatorHandle );
+    // if ( typeid( *object ) != typeid( kvl::AtlasMeshPositionCostAndGradientCalculator ) )
+    //   {
+    //   std::cout << "typeid: " << typeid( *object ).name() << std::endl;
+    //   mexErrMsgTxt( "calculator doesn't refer to the correct ITK object type" );
+    //   }
+    // kvl::AtlasMeshPositionCostAndGradientCalculator::ConstPointer  constCalculator 
+    //                 = static_cast< const kvl::AtlasMeshPositionCostAndGradientCalculator* >( object.GetPointer() );
+    kvl::AtlasMeshPositionCostAndGradientCalculator::ConstPointer  constCalculator
+             = dynamic_cast< const kvl::AtlasMeshPositionCostAndGradientCalculator* >( object.GetPointer() );
+    if ( !constCalculator.GetPointer() )
+      {
+      std::cout << "typeid: " << typeid( *object ).name() << std::endl;
+      mexErrMsgTxt( "calculator doesn't refer to the correct ITK object type" );
+      }  
+    kvl::AtlasMeshPositionCostAndGradientCalculator::Pointer  calculator 
+                   = const_cast< kvl::AtlasMeshPositionCostAndGradientCalculator* >( constCalculator.GetPointer() );
+
+                   
+    // Retrieve mesh
+    const int meshHandle = *( static_cast< int* >( mxGetData( prhs[ 1 ] ) ) );
+    object = kvl::MatlabObjectArray::GetInstance()->GetObject( meshHandle );
     if ( typeid( *object ) != typeid( kvl::AtlasMesh ) )
       {
       mexErrMsgTxt( "mesh doesn't refer to the correct ITK object type" );
       }
     kvl::AtlasMesh::ConstPointer constMesh = static_cast< const kvl::AtlasMesh* >( object.GetPointer() );
-    kvl::AtlasMesh::Pointer mesh = const_cast< kvl::AtlasMesh* >( constMesh.GetPointer() );
+    //kvl::AtlasMesh::Pointer mesh = const_cast< kvl::AtlasMesh* >( constMesh.GetPointer() );
 
-    // Retrieve input image(s)
-    //typedef itk::Image< unsigned short, 3 >  ImageType;
-    typedef AtlasMeshDeformationConjugateGradientOptimizer::ImageType  ImageType;
 
-    const int  N = mxGetN( prhs[ 1 ] );
-    const int  M = mxGetM( prhs[ 1 ] );
-    int numberOfImages = 0;
-    
-    if(N<M)
-    {
-      numberOfImages = M;
-    }
-    else
-    {
-      numberOfImages = N;
-    }
-
-    mexPrintf("numberOfImages = %d\n",numberOfImages);
-    std::vector<ImageType::Pointer> images;
-    uint64_T *  imagesHandle =  static_cast< uint64_T * >( mxGetData( prhs[ 1 ] ) );
-
-    for(unsigned int nima = 0; nima < numberOfImages; nima++, imagesHandle++)
-       {
-	 
-	 const int handle = *(imagesHandle);
-	 std::cout<<"Image: "<<handle<<std::endl;
-	 itk::Object::ConstPointer object = kvl::MatlabObjectArray::GetInstance()->GetObject( handle );
-	 if ( typeid(*(object)  ) != typeid( ImageType ) )
-	   {
-	     mexErrMsgTxt( "image doesn't refer to the correct ITK object type" );
-	   }
-	 ImageType::ConstPointer constImage = static_cast< const ImageType* >( object.GetPointer() );
-         ImageType::Pointer image = const_cast< ImageType* >( constImage.GetPointer() );
-         images.push_back(image); 
-
-       }
-    
-    
-    // Retrieve transform
-    typedef CroppedImageReader::TransformType  TransformType;
-    const int transformHandle = *( static_cast< int* >( mxGetData( prhs[ 2 ] ) ) );
-    object = kvl::MatlabObjectArray::GetInstance()->GetObject( transformHandle );
-    if ( typeid( *object ) != typeid( TransformType ) )
-      {
-      mexErrMsgTxt( "transform doesn't refer to the correct ITK object type" );
-      }
-    TransformType::ConstPointer  constTransform = static_cast< const TransformType* >( object.GetPointer() );
-    TransformType::Pointer  transform = const_cast< TransformType* >( constTransform.GetPointer() );
-
-   
-    // Retrieve means and variances
-    const int  numberOfClasses = mxGetDimensions( prhs[ 3 ] )[ 0 ];
-    std::vector< vnl_vector< float > > means;
-    std::vector< vnl_matrix< float > > precisions;
-    vnl_vector< float >  mean ( numberOfImages, 0.0f );
-    vnl_matrix< float >  precision( numberOfImages, numberOfImages, 0.0f);
-
-    for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
-      {
-	for ( int nima = 0; nima < numberOfImages; nima++ )
-	  {
-	    mean[ nima ] = (mxGetPr( prhs[ 3 ] ))[ classNumber + numberOfClasses*nima ];
-	   
-	  }
-	means.push_back(mean);
-      }
-    
-    //Does not really matter which way you read these in, because the precisions are symmetric matrices
-    //transpose wont do any harm. 
-    for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
-      {
-    	for ( unsigned int row = 0; row < numberOfImages; row++ )
-    	  {
-    	    for ( unsigned int col = 0; col < numberOfImages; col++ )
-    	      {
-    		precision[ row ][ col ] = mxGetPr( prhs[ 4 ] )[ row + numberOfImages*(col + numberOfImages*classNumber) ];
-    	      }
-   	  }
-    	precisions.push_back(precision);
-      }
-  
-       
-
-    // Show what we have so far
-    //std::cout << "mesh: " << mesh.GetPointer() << std::endl;
-    //std::cout << "image: " << image.GetPointer() << std::endl;
-    //std::cout << "transform: " << transform.GetPointer() << std::endl;
-    //std::cout << "means: " << means << std::endl;
-    //std::cout << "variances: " << variances << std::endl;
-    
-    
-    // Set up the gradient calculator
-    AtlasMeshToIntensityImageGradientCalculator::Pointer  gradientCalculator 
-                              = AtlasMeshToIntensityImageGradientCalculator::New();
-    typedef AtlasMeshToIntensityImageGradientCalculator::LabelImageType  DummyTemplateImageType;
-    DummyTemplateImageType::Pointer  dummyTemplateImage = DummyTemplateImageType::New();
-    dummyTemplateImage->SetRegions( images[0]->GetBufferedRegion() );
-    //dummyTemplateImage->Allocate();
-         
-    gradientCalculator->SetLabelImage( dummyTemplateImage );
-    gradientCalculator->SetImages( images );
-    gradientCalculator->SetMeans( means );
-    gradientCalculator->SetPrecisions( precisions );
-    gradientCalculator->SetMeshToImageTransform( transform );
-    
     // Let the beast go
-    gradientCalculator->Rasterize( mesh );
+    calculator->Rasterize( constMesh );
 
     // Retrieve the result
-    const double  cost = gradientCalculator->GetMinLogLikelihoodTimesPrior();
-    AtlasPositionGradientContainerType::ConstPointer  
-          gradient = gradientCalculator->GetPositionGradient().GetPointer();
+    const double  cost = calculator->GetMinLogLikelihoodTimesPrior();
+    AtlasPositionGradientContainerType::ConstPointer  gradient = calculator->GetPositionGradient();
     
     
     // Return the cost and gradient to Matlab

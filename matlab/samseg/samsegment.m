@@ -35,7 +35,6 @@
 fprintf('input file %s\n',imageFileName);
 fprintf('output path %s\n',savePath);
 fprintf('nThreads = %d\n',nThreads);
-fprintf('UseGPU = %d\n',UseGPU);
 fprintf('downSamplingFactor = %d\n',downSamplingFactor);
 fprintf('maxNuberOfIterationPerMultiResolutionLevel(1) = %d\n',maxNuberOfIterationPerMultiResolutionLevel(1));
 fprintf('maxNuberOfIterationPerMultiResolutionLevel(2) = %d\n',maxNuberOfIterationPerMultiResolutionLevel(2));
@@ -75,7 +74,7 @@ for nima = 1:numberOfImages
   imageBuffers(:,:,:,nima) = kvlGetImageBuffer( images(nima) ); %Get the actual imageBuffer
 end
 
-if(showImages)
+if ( showImages )
   for nima = 1 : numberOfImages
     figure
     showImage( imageBuffers(:,:,:,nima) ); % Automatically displays middle slices in each direction
@@ -93,7 +92,7 @@ end
 % much it will typically deform. Higher values correspond to stiffer meshes.
 %
 
-K = 0.1;
+%  K = 0.1;
 meshCollection = kvlReadMeshCollection( meshCollectionFileName, transform, K );
 
 % Retrieve the reference mesh, i.e., the mesh representing the average shape.
@@ -103,12 +102,7 @@ mesh = kvlGetMesh( meshCollection, -1 );
 
 labelNumber = 0;
 sz = [size(imageBuffers,1) size(imageBuffers,2) size(imageBuffers,3)];
-if(UseGPU ==0)
-  backgroundPrior = kvlRasterizeAtlasMesh( mesh, sz, labelNumber );
-else
-  fprintf('Running kvlRasterizeAtlasMeshGPU()\n');
-  backgroundPrior = kvlRasterizeAtlasMeshGPU( mesh, sz, labelNumber );
-end
+backgroundPrior = kvlRasterizeAtlasMesh( mesh, sz, labelNumber );
 
 if(showImages)
   figure
@@ -118,15 +112,15 @@ if(showImages)
   showImage( mosaicImages( 2^16 - 1 - double( backgroundPrior ), double( imageBuffers(:,:,:,1) ), 10 ) )
 end
 
-smoothingSigma = 2; % sqrt of the variance of a Gaussian blurring kernel
-smoothedBackgroundPrior = kvlSmoothImageBuffer( backgroundPrior, smoothingSigma );
+%  brainMaskingSmoothingSigma = 2; % sqrt of the variance of a Gaussian blurring kernel
+smoothedBackgroundPrior = kvlSmoothImageBuffer( backgroundPrior, brainMaskingSmoothingSigma );
 
 if(showImages)
     subplot( 2, 2, 3 )
     showImage( smoothedBackgroundPrior )
 end
 
-brainMask = ( 1 - single( smoothedBackgroundPrior ) / 65535 ) > .01;
+brainMask = ( 1 - single( smoothedBackgroundPrior ) / 65535 ) > brainMaskingThreshold;
 
 for nima = 1 : numberOfImages
   imageBuffer = kvlGetImageBuffer( images(nima) );
@@ -160,7 +154,7 @@ end
 names
 
 
-if(showImages)
+if ( showImages )
   fprintf( 'Visualizing the atlas mesh; this takes quite some time and is only here for tutorial purposes...' )
   priors = kvlRasterizeAtlasMesh( mesh, [size(imageBuffers,1) size(imageBuffers,2) size(imageBuffers,3)]); % Without specifying a specific label, will rasterize all simultaneously, rasterize everything
   rgbBuffer = kvlColorCodeProbabilityImages( priors, colors );
@@ -222,13 +216,13 @@ end
 %You can choose to downsample the image to make the code even faster, however this makes the segmentations less accurate.
 %This is generally not needed, because the algorithm runs quite fast
 %anyway.
-if(downSamplingFactor ~= 1)
+if ( downSamplingFactor ~= 1 )
   for nima = 1 : numberOfImages
     
     buffer = kvlGetImageBuffer( images(:,nima) );
     buffer = buffer( 1 : downSamplingFactor : end, ...
-		     1 : downSamplingFactor : end, ...
-		     1 : downSamplingFactor : end );
+                      1 : downSamplingFactor : end, ...
+                      1 : downSamplingFactor : end );
     fullResolutionImages(:,nima) = images(:,nima); % Save for later use
     images(:,nima) = kvlCreateImage( buffer );
     downSampledImageBuffers(:,:,:,nima) = buffer;
@@ -243,12 +237,12 @@ end
 %Mask zeros out from the images.
 buffer1 = kvlGetImageBuffer(images(1));
 mask = (buffer1 > 0);
-if(numberOfImages > 1)
-    for nima = 2:numberOfImages
-        bufferTemp = kvlGetImageBuffer(images(nima));
-        maskIndicesTemp = (bufferTemp>0);
-        mask = mask.*maskIndicesTemp;
-    end
+if ( numberOfImages > 1)
+  for nima = 2:numberOfImages
+    bufferTemp = kvlGetImageBuffer(images(nima));
+    maskIndicesTemp = (bufferTemp>0);
+    mask = mask.*maskIndicesTemp;
+  end
 end
 maskIndices = find(mask);
 clear buffer1 bufferTemp maskIndicesTemp;
@@ -257,24 +251,23 @@ clear buffer1 bufferTemp maskIndicesTemp;
 % an additive effect, whereas the MR physics indicate it's a multiplicative one - so we log
 % transform the data first
 for nima = 1:numberOfImages
-    buffer = kvlGetImageBuffer(images(nima));
-    DIM = size(buffer);
-    mask = zeros( DIM );
-    mask( maskIndices ) = 1;
-    buffer( maskIndices ) = 1000* log( buffer( maskIndices ) ); % The 1000 factor isn't really necessary; it's just
-                                                                % easier to have Gaussian means of 100 350 than
-                                                                % 0.1 and 0.35 for my human brain
-    
-    buffer = buffer .* mask;
-    kvlSetImageBuffer( images(nima), buffer );
-    imageBuffers(:,:,:,nima) = buffer;
-    clear buffer
+  buffer = kvlGetImageBuffer(images(nima));
+  DIM = size(buffer);
+  mask = zeros( DIM );
+  mask( maskIndices ) = 1;
+  buffer( maskIndices ) = 1000* log( buffer( maskIndices ) ); % The 1000 factor isn't really necessary; it's just
+                                                              % easier to have Gaussian means of 100 350 than
+                                                              % 0.1 and 0.35 for my human brain
+  
+  buffer = buffer .* mask;
+  kvlSetImageBuffer( images(nima), buffer );
+  imageBuffers(:,:,:,nima) = buffer;
+  clear buffer
 end
 
 % Our bias model is a linear combination of a set of basis functions. We are using so-called
 % "DCT-II" basis functions, i.e., the lowest few frequency components of the Discrete Cosine
 % Transform.
-
 distanceToFirstZeroCrossing = 50; % Larger kernels yield smoother bias field estimates
 DIM = size(imageBuffers(:,:,:,1));
 maximumNumberOfBasisFunctions = round( ( 2 * DIM(1) / distanceToFirstZeroCrossing + 1 ) / 2 ); 
@@ -290,8 +283,8 @@ maximumNumberOfBasisFunctions = round( ( 2 * DIM(1) / distanceToFirstZeroCrossin
 
 
 for nima = 1:numberOfImages
-    buffer = kvlGetImageBuffer(images(nima));
-    biasCorrectedImages(nima) = kvlCreateImage( buffer );
+  buffer = kvlGetImageBuffer(images(nima));
+  biasCorrectedImages(nima) = kvlCreateImage( buffer );
 end
 
 % In our implementation, we gradually increase the number of basis functions used to represent the
@@ -299,7 +292,6 @@ end
 % and then moving slowly into more and more higher-frequency components (i.e., tighter kernels). This
 % way massive global bias fields with one image area clearly much darker/brigher than the rest are
 % removed quickly, before the fine details are filled in, helping avoid getting stuck in local optima
-
 numberOfBasisFunctions = 1;
 
 % We do the optimization in a multi-resolution type of scheme, where large
@@ -314,15 +306,15 @@ numberOfBasisFunctions = 1;
 %  meshSmoothingSigmas = [ 0 ]';
 %
 % if you don't want to use multi-resolution
+%  meshSmoothingSigmas = [2.0 0]';
 
-meshSmoothingSigmas = [2.0 0]';
 
 % Precalculate the spatially smoothed vector of prior probabilities in the current mesh.
 numberOfMultiResolutionLevels = length( meshSmoothingSigmas );
 smoothedReducedAlphas = zeros( size( reducedAlphas, 1 ), ...
-    size( reducedAlphas, 2 ), ...
-    numberOfMultiResolutionLevels, ...
-    'single' );
+                               size( reducedAlphas, 2 ), ...
+                               numberOfMultiResolutionLevels, ...
+                               'single' );
 for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
   % Smooth the mesh using a Gaussian kernel.
@@ -357,36 +349,30 @@ if(showImages)
 end
 
 
+historyWithinEachMultiResolutionLevel = struc( [] );
 for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
-  % Set up the black box optimizer for the mesh nodes
-  if ( exist( 'optimizer' ) == 1 )
-    % The optimizer is very memory hungry when run in multithreaded mode.
-    % Let's clear any old ones we may have lying around
-    kvlClear( optimizer );
-  end
-  disp('Getting optimizer...');
-  if(UseGPU==0)
-    optimizer = kvlGetConjugateGradientOptimizer( mesh, biasCorrectedImages, transform );
-  else
-    fprintf('Running kvlGetConjugateGradientOptimizerGPU()\n');
-    optimizer = kvlGetConjugateGradientOptimizerGPU( mesh, biasCorrectedImages, transform );
-  end
-  disp('Optimizer got.');
-    
+  %  
   maximumNumberOfIterations = maxNuberOfIterationPerMultiResolutionLevel(multiResolutionLevel);
   historyOfCost = [ 1/eps ];
+  historyOfMaximalDeformationApplied = [];
+  historyOfTimeTakenIntensityParameterUpdating = [];
+  historyOfTimeTakenDeformationUpdating = [];
   fprintf('maximumNumberOfIterations %d\n',maximumNumberOfIterations);
   
   % Compute a color coded version of the atlas prior in the atlas's current pose, i.e., *before*
   % we start deforming. We'll use this just for visualization purposes
-  if(showImages)
+  if ( showImages )
     kvlSetAlphasInMeshNodes( mesh, smoothedReducedAlphas( :, :, multiResolutionLevel ) );
     oldColorCodedPriors = kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( mesh, DIM ),colorsTMP );
   end
+
   
-  
+  historyWithinEachIteration = struct( [] );
   for iterationNumber = 1 : maximumNumberOfIterations
+    
+    %
+    startTimeIntensityParameterUpdating = tic;
     
     % Part I: estimate Gaussian mean and variances as well as bias
     % field parameters using EM.
@@ -421,122 +407,120 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     % first time ever you run this
     if ( ( multiResolutionLevel == 1 ) && ( iterationNumber == 1 ) )
       
-      if(numberOfImages>1) %Initialize multi-contrast
-	meansPerClass = zeros( numberOfImages, numberOfClasses );
-	sigmasPerClass = zeros( numberOfImages, numberOfImages, numberOfClasses );
-	
-	means = zeros(numberOfImages, sum(numberOfGaussiansPerClass));
-	sigmas = zeros(numberOfImages, numberOfImages, sum(numberOfGaussiansPerClass));
-	
-	
-	shift = 0;
-	for class = 1 : numberOfClasses  
-	  prior = priors(:,class);
-	  mean = biasCorrectedData' * prior / ( sum( prior ));
-	  
-	  X = biasCorrectedData - repmat(mean',size(biasCorrectedData,1),1);
-	  X = X.*sqrt(repmat(prior,[1 numberOfImages]));
+      if ( numberOfImages > 1 ) 
+        %Initialize multi-contrast
+        meansPerClass = zeros( numberOfImages, numberOfClasses );
+        sigmasPerClass = zeros( numberOfImages, numberOfImages, numberOfClasses );
+        
+        means = zeros(numberOfImages, sum(numberOfGaussiansPerClass));
+        sigmas = zeros(numberOfImages, numberOfImages, sum(numberOfGaussiansPerClass));
+        
+        
+        shift = 0;
+        for class = 1 : numberOfClasses  
+          prior = priors(:,class);
+          mean = biasCorrectedData' * prior / ( sum( prior ));
+          
+          X = biasCorrectedData - repmat(mean',size(biasCorrectedData,1),1);
+          X = X.*sqrt(repmat(prior,[1 numberOfImages]));
                     
-	  sigma = X'*X/( sum( prior ));
-	  meansPerClass( :, class ) = mean;
-	  sigmasPerClass(:,:,class) = sigma;
-	end
-	
-	%Set the means to different values within a class
-	shift = 0;
-	for class = 1:numberOfClasses
-	  for i = 1:floor(numberOfGaussiansPerClass(class)/2)
-	    meansSpread(i) = (floor(numberOfGaussiansPerClass(class)/2))+(i-1);
-	  end
-	  
-	  if(mod(numberOfGaussiansPerClass(class),2)==0)
-	    meansSpread = [meansSpread -meansSpread];
-	  elseif(mod(numberOfGaussiansPerClass(class),2)~=0 && numberOfGaussiansPerClass(class)~=1)
-	    meansSpread = [meansSpread 0 -meansSpread];
-	  elseif(numberOfGaussiansPerClass(class)==1)
-	    meansSpread=0;
-	  end
-	  
-	  means(:,shift+class : shift+class+numberOfGaussiansPerClass(class)-1) = (repmat(meansPerClass(:,class),[1 numberOfGaussiansPerClass(class)])) + ...
-	      (repmat(meansSpread,[numberOfImages 1]).*repmat(sqrt(diag(sigmasPerClass(:,:,class))),[1 numberOfGaussiansPerClass(class)]));
-	  
-	  
-	  shift=shift+numberOfGaussiansPerClass(class)-1;
-	  clear meansSpread;
-	end
-	
-	shift = 0;
-	for class = 1:numberOfClasses
-	  sigmas(:,:,class+shift : class+shift+numberOfGaussiansPerClass(class) - 1) = repmat(sigmasPerClass(:,:,class),[1 1 numberOfGaussiansPerClass(class)]);
-	  shift = shift + numberOfGaussiansPerClass(class) -1;
-	end
-	clear meansPerClass variancesPerClass meansPerImage variancesPerImage;
-	
-	%Finally compute a prior sigma which is used to get rid of
-	%numerical singularities
-	priorSigma = eye(numberOfImages).*cov(biasCorrectedData);
-      else %initialize uni-contrast
-	means = zeros(sum(numberOfGaussiansPerClass), 1);
-	variances = zeros(sum(numberOfGaussiansPerClass), 1);
-	
-	meansPerClass = zeros( numberOfClasses, 1 );
-	variancesPerClass = zeros( numberOfClasses, 1);
-	
-	
-	shift = 0;
-	for class = 1 : numberOfClasses  %loop over the classes we want to extract
-	  
-	  prior = priors(:,class);
-	  meansPerClass(class) = biasCorrectedData' * prior / ( sum( prior ));
-	  variancesPerClass(class) = ((biasCorrectedData - meansPerClass(class)).^2 )' * prior / ( sum( prior ));
-	  shift=shift+numberOfGaussiansPerClass(class) -1;
-	  
-	end
+          sigma = X'*X/( sum( prior ));
+          meansPerClass( :, class ) = mean;
+          sigmasPerClass(:,:,class) = sigma;
+        end
+        
+        %Set the means to different values within a class
+        shift = 0;
+        for class = 1:numberOfClasses
+          for i = 1:floor(numberOfGaussiansPerClass(class)/2)
+            meansSpread(i) = (floor(numberOfGaussiansPerClass(class)/2))+(i-1);
+          end
+          
+          if(mod(numberOfGaussiansPerClass(class),2)==0)
+            meansSpread = [meansSpread -meansSpread];
+          elseif(mod(numberOfGaussiansPerClass(class),2)~=0 && numberOfGaussiansPerClass(class)~=1)
+            meansSpread = [meansSpread 0 -meansSpread];
+          elseif(numberOfGaussiansPerClass(class)==1)
+            meansSpread=0;
+          end
+          
+          means(:,shift+class : shift+class+numberOfGaussiansPerClass(class)-1) = (repmat(meansPerClass(:,class),[1 numberOfGaussiansPerClass(class)])) + ...
+              (repmat(meansSpread,[numberOfImages 1]).*repmat(sqrt(diag(sigmasPerClass(:,:,class))),[1 numberOfGaussiansPerClass(class)]));
+          
+          
+          shift=shift+numberOfGaussiansPerClass(class)-1;
+          clear meansSpread;
+        end
+        
+        shift = 0;
+        for class = 1:numberOfClasses
+          sigmas(:,:,class+shift : class+shift+numberOfGaussiansPerClass(class) - 1) = repmat(sigmasPerClass(:,:,class),[1 1 numberOfGaussiansPerClass(class)]);
+          shift = shift + numberOfGaussiansPerClass(class) -1;
+        end
+        clear meansPerClass variancesPerClass meansPerImage variancesPerImage;
+        
+        %Finally compute a prior sigma which is used to get rid of
+        %numerical singularities
+        priorSigma = eye(numberOfImages).*cov(biasCorrectedData);
+        
+      else 
+        % Initialize uni-contrast
+        means = zeros(sum(numberOfGaussiansPerClass), 1);
+        variances = zeros(sum(numberOfGaussiansPerClass), 1);
+        
+        meansPerClass = zeros( numberOfClasses, 1 );
+        variancesPerClass = zeros( numberOfClasses, 1);
+        
+        
+        shift = 0;
+        for class = 1 : numberOfClasses  %loop over the classes we want to extract
+          
+          prior = priors(:,class);
+          meansPerClass(class) = biasCorrectedData' * prior / ( sum( prior ));
+          variancesPerClass(class) = ((biasCorrectedData - meansPerClass(class)).^2 )' * prior / ( sum( prior ));
+          shift=shift+numberOfGaussiansPerClass(class) -1;
+          
+        end
                 
-	%Set the means to different values within a class
-	
-	shift = 0;
-	
-	for class = 1:numberOfClasses
-	  
-	  for i = 1:floor(numberOfGaussiansPerClass(class)/2)
-	    meansSpread(i) = -(floor(numberOfGaussiansPerClass(class)/2))+(i-1);
-	  end
-	  
-	  if(mod(numberOfGaussiansPerClass(class),2)==0)
-	    meansSpread = [meansSpread -meansSpread];
-	  elseif(mod(numberOfGaussiansPerClass(class),2)~=0 && numberOfGaussiansPerClass(class)~=1)
-	    meansSpread = [meansSpread 0 -meansSpread];
-	  elseif(numberOfGaussiansPerClass(class)==1)
-	    meansSpread=0;
-	  end
+        % Set the means to different values within a class
+        shift = 0;
+        for class = 1:numberOfClasses
+          
+          for i = 1:floor(numberOfGaussiansPerClass(class)/2)
+            meansSpread(i) = -(floor(numberOfGaussiansPerClass(class)/2))+(i-1);
+          end
+          
+          if(mod(numberOfGaussiansPerClass(class),2)==0)
+            meansSpread = [meansSpread -meansSpread];
+          elseif(mod(numberOfGaussiansPerClass(class),2)~=0 && numberOfGaussiansPerClass(class)~=1)
+            meansSpread = [meansSpread 0 -meansSpread];
+          elseif(numberOfGaussiansPerClass(class)==1)
+            meansSpread=0;
+          end
                     
                     
-	  means(shift+class : shift+class+numberOfGaussiansPerClass(class)-1) = (meansPerClass(class)) + (meansSpread.*sqrt(variancesPerClass(class)));
+          means(shift+class : shift+class+numberOfGaussiansPerClass(class)-1) = (meansPerClass(class)) + (meansSpread.*sqrt(variancesPerClass(class)));
                     
                     
-	  shift=shift+numberOfGaussiansPerClass(class)-1;
-	  clear meansSpread;
-	end
-	
-	shift = 0;
-	for class = 1:numberOfClasses
-	  
-	  variances(class+shift : class+shift+numberOfGaussiansPerClass(class) - 1) = variancesPerClass(class);
-	  shift = shift + numberOfGaussiansPerClass(class) -1;
-	end
-	
-	
-	
-	
-	clear meansPerClass;
-	clear variancesPerClass;
-	
-	%Finally compute a prior variance which is used to get rid of
-	%numerical singularities
-	priorVar = var(biasCorrectedData);
-      end
-      
+          shift=shift+numberOfGaussiansPerClass(class)-1;
+          clear meansSpread;
+        end
+        
+        shift = 0;
+        for class = 1:numberOfClasses
+          
+          variances(class+shift : class+shift+numberOfGaussiansPerClass(class) - 1) = variancesPerClass(class);
+          shift = shift + numberOfGaussiansPerClass(class) -1;
+        end
+        
+        clear meansPerClass;
+        clear variancesPerClass;
+        
+        % Finally compute a prior variance which is used to get rid of
+        % numerical singularities
+        priorVar = var( biasCorrectedData );
+
+      end % End test multi vs. unicontrast
       
     end % End test need for initialization
     
@@ -544,25 +528,25 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     stopCriterionEM = 1e-5;
     historyOfEMCost = [ 1/eps ];
     for EMIterationNumber = 1 : 100
-      % E-step: compute the posteriors based on the current
-      % parameters.
-      
+      %
+      % E-step: compute the posteriors based on the current parameters.
+      %
       shift = 0;
       for class = 1:numberOfClasses
-	prior = priors(:,class);
-	for gaussian = 1:numberOfGaussiansPerClass(class)
-	  if(numberOfImages>1)
-	    mean = means( :, class + shift + gaussian -1 );
-	    sigma = sigmas( :, :, class + shift + gaussian -1 );
-	    posteriors(:,class + shift + gaussian -1) = EMweights(class + shift + gaussian -1).*mvnpdf(biasCorrectedData, mean', sigma).*prior;
-	  else
-	    mean = means(class + shift + gaussian -1 );
-	    variance = variances(class + shift + gaussian -1 );
-	    posteriors(:,class + shift + gaussian -1) = EMweights(class + shift + gaussian -1).*normpdf(biasCorrectedData,mean,sqrt(variance)).*prior;
-	  end
-	end
-	
-	shift=shift+numberOfGaussiansPerClass(class)-1;
+        prior = priors(:,class);
+        for gaussian = 1:numberOfGaussiansPerClass(class)
+          if(numberOfImages>1)
+            mean = means( :, class + shift + gaussian -1 );
+            sigma = sigmas( :, :, class + shift + gaussian -1 );
+            posteriors(:,class + shift + gaussian -1) = EMweights(class + shift + gaussian -1).*mvnpdf(biasCorrectedData, mean', sigma).*prior;
+          else
+            mean = means(class + shift + gaussian -1 );
+            variance = variances(class + shift + gaussian -1 );
+            posteriors(:,class + shift + gaussian -1) = EMweights(class + shift + gaussian -1).*normpdf(biasCorrectedData,mean,sqrt(variance)).*prior;
+          end
+        end
+        
+        shift=shift+numberOfGaussiansPerClass(class)-1;
       end
       
       normalizer = sum( posteriors, 2 ) + eps;
@@ -577,15 +561,15 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
       %First the weights
       shift = 0;
       for class = 1:numberOfClasses
-	if(numberOfGaussiansPerClass(class)==1)
-	  continue;
-	end
-	
-	weightNorm = sum(sum(posteriors(:,class+shift : class+shift+numberOfGaussiansPerClass(class) - 1),2));
-	for gaussian = 1:numberOfGaussiansPerClass(class)
-	  EMweights(class + shift + gaussian - 1) = (sum(posteriors(:,class+shift+gaussian-1)))/(weightNorm);
-	end
-	shift = shift + numberOfGaussiansPerClass(class) -1;
+        if(numberOfGaussiansPerClass(class)==1)
+          continue;
+        end
+        
+        weightNorm = sum(sum(posteriors(:,class+shift : class+shift+numberOfGaussiansPerClass(class) - 1),2));
+        for gaussian = 1:numberOfGaussiansPerClass(class)
+          EMweights(class + shift + gaussian - 1) = (sum(posteriors(:,class+shift+gaussian-1)))/(weightNorm);
+        end
+        shift = shift + numberOfGaussiansPerClass(class) -1;
       end
       % Probably want to print this out only for verbose
       EMweights
@@ -593,331 +577,369 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
       %Then the means and (co)variances
       shift = 0;
       for class = 1 : numberOfClasses
-	for gaussian = 1 : numberOfGaussiansPerClass(class)
-	  posterior = posteriors( :, class + shift + gaussian - 1);
-	  mean = biasCorrectedData' * posterior ./ (sum( posterior ));
-	  
-	  if(numberOfImages>1)
-	    X = biasCorrectedData - repmat(mean',size(biasCorrectedData,1),1);
-	    X = X.*sqrt(repmat(posterior,[1 numberOfImages]));
-	    %Update using the prior sigma
-	    sigma = (X'*X + priorSigma)/(2*(numberOfImages + 2) + sum( posterior ));
-	    
-	    means(:,class + shift + gaussian - 1) = mean;
-	    sigmas(:,:,class + shift + gaussian -1) = sigma;
-	  else
-	    variance = ((((biasCorrectedData - mean).^2)' * posterior) + priorVar) / (2*(numberOfImages + 2) + sum( posterior));
-	    means(class + shift + gaussian -1) = mean;
-	    variances(class + shift + gaussian -1) = variance;
-	  end
-	end
-	shift = shift + numberOfGaussiansPerClass(class) -1;
-      end
+        for gaussian = 1 : numberOfGaussiansPerClass(class)
+          posterior = posteriors( :, class + shift + gaussian - 1);
+          mean = biasCorrectedData' * posterior ./ (sum( posterior ));
+          
+          if(numberOfImages>1)
+            X = biasCorrectedData - repmat(mean',size(biasCorrectedData,1),1);
+            X = X.*sqrt(repmat(posterior,[1 numberOfImages]));
+            %Update using the prior sigma
+            sigma = (X'*X + priorSigma)/(2*(numberOfImages + 2) + sum( posterior ));
+            
+            means(:,class + shift + gaussian - 1) = mean;
+            sigmas(:,:,class + shift + gaussian -1) = sigma;
+          else
+            variance = ((((biasCorrectedData - mean).^2)' * posterior) + priorVar) / (2*(numberOfImages + 2) + sum( posterior));
+            means(class + shift + gaussian -1) = mean;
+            variances(class + shift + gaussian -1) = variance;
+          end
+        end
+        shift = shift + numberOfGaussiansPerClass(class) -1;
+
+      end % End loop over classes
       
             
-            % Update parameters of the bias field model. I'm only doing this for the very first
-            % multi-resolution level, where the atlas is really smooth; for subsequent multi-resolution
-            % levels the bias field parameters are kept fixed to their values estimated at the very first
-            % level. 
-            if ( multiResolutionLevel == 1)
-                
-                if(numberOfImages>1) 
-                    
-                    precisions = zeros(size(sigmas));
-                    
-                    for class = 1 : sum(numberOfGaussiansPerClass)
-                        precisions(:,:,class) = inv(sigmas(:,:,class));
-                    end
-                    predictedImage = zeros( DIM(1), DIM(2), DIM(3), numberOfImages*numberOfImages );
-                    weightImage = zeros( DIM(1), DIM(2), DIM(3), numberOfImages*numberOfImages  );
-                    dataImage = zeros( DIM(1), DIM(2), DIM(3), numberOfImages*numberOfImages );
-                    counter = 1;
-                    for channel1 = 1:numberOfImages
-                        for channel2 = 1:numberOfImages
-                            tmp = posteriors .* repmat( squeeze(precisions(channel1,channel2,:))', [ size( posteriors, 1 ) 1 ] );
-                            predicted = sum( tmp .* repmat( means(channel2,:), [ size( posteriors, 1 ) 1 ] ), 2 ) ./ ( sum(tmp,2) + eps );
-                            predictedTMP = zeros(DIM);
-                            predictedTMP(maskIndices) = predicted;
-                            weightTMP = zeros(DIM);
-                            weightTMP(maskIndices) = sum(tmp,2);
-                            dataTMP = zeros(DIM);
-                            dataTMP(maskIndices) = data(:,channel2);
-                            
-                            predictedImage(:,:,:,counter) =  predictedTMP;
-                            weightImage(:,:,:,counter) = weightTMP;
-                            dataImage(:,:,:, counter) = dataTMP;
-                            
-                            counter = counter + 1;
-                        end
-                    end
-                    
-                    
-                    residueImage = dataImage - predictedImage;
-                    
-                    clear tmp predicted predictedTMP weightTMP dataTMP dataImage predictedImage;
-                    
-                    
-                    if ( EMIterationNumber == 1 )
-                        [ estimatedBiasField, coefficients ] = smoothWithSeparableBasisFunctionsWithWeightsMultiSpec( residueImage, weightImage, numberOfBasisFunctions, maximumNumberOfBasisFunctions);
-                    else
-                        [ estimatedBiasField, coefficients ] = smoothWithSeparableBasisFunctionsWithWeightsMultiSpec( residueImage, weightImage, numberOfBasisFunctions); % This is just a faster version of the above, but needs the above to have been
-                        % called at least once...
-                    end
-                    
-                    for nima = 1:numberOfImages
-                        biasField = estimatedBiasField(:,:,:,nima);
-                        biasCorrectedData(:,nima) = data(:,nima) - biasField(maskIndices); % Correct the data for the estimated bias field
-                    end
-                    
-                else 
-                    tmp = posteriors ./ repmat( variances', [ size( posteriors, 1 ) 1 ] );
-                    weights = sum( tmp, 2 );
-                    predicted = sum( tmp .* repmat( means', [ size( posteriors, 1 ) 1 ] ), 2 ) ./ ( weights + eps);
-                    predictedImage = zeros( DIM );
-                    predictedImage( maskIndices ) = predicted;
-                    weightImage = zeros( DIM  );
-                    weightImage( maskIndices ) = weights;
-                    dataImage = zeros( DIM );
-                    dataImage( maskIndices ) = data;
-                    residueImage = dataImage - predictedImage; % The bias field is simply a (weighted) smoothed version of this
-                    if ( EMIterationNumber == 1 )
-                        [ estimatedBiasField, coefficients ] = smoothWithSeparableBasisFunctionsWithWeights( residueImage, weightImage, numberOfBasisFunctions, maximumNumberOfBasisFunctions );
-                    else
-                        [ estimatedBiasField, coefficients ] = smoothWithSeparableBasisFunctionsWithWeights( residueImage, weightImage, numberOfBasisFunctions ); % This is just a faster version of the above, but needs the above to have been
-                        % called at least once...
-                    end
-                    biasCorrectedData = data - estimatedBiasField( maskIndices ); % Correct the data for the estimated bias field
-                    
-                end
-            end
-         
-            minLogLikelihood = -sum( log( normalizer ) ); 
-            historyOfEMCost = [ historyOfEMCost; minLogLikelihood ];
+      % Update parameters of the bias field model. I'm only doing this for the very first
+      % multi-resolution level, where the atlas is really smooth; for subsequent multi-resolution
+      % levels the bias field parameters are kept fixed to their values estimated at the very first
+      % level. 
+      if ( multiResolutionLevel == 1 )
+          
+        if ( numberOfImages > 1 ) 
+          % Multi-contrast case
+          precisions = zeros(size(sigmas));
+          
+          for class = 1 : sum(numberOfGaussiansPerClass)
+              precisions(:,:,class) = inv(sigmas(:,:,class));
+          end
+          predictedImage = zeros( DIM(1), DIM(2), DIM(3), numberOfImages*numberOfImages );
+          weightImage = zeros( DIM(1), DIM(2), DIM(3), numberOfImages*numberOfImages  );
+          dataImage = zeros( DIM(1), DIM(2), DIM(3), numberOfImages*numberOfImages );
+          counter = 1;
+          for channel1 = 1:numberOfImages
+              for channel2 = 1:numberOfImages
+                  tmp = posteriors .* repmat( squeeze(precisions(channel1,channel2,:))', [ size( posteriors, 1 ) 1 ] );
+                  predicted = sum( tmp .* repmat( means(channel2,:), [ size( posteriors, 1 ) 1 ] ), 2 ) ./ ( sum(tmp,2) + eps );
+                  predictedTMP = zeros(DIM);
+                  predictedTMP(maskIndices) = predicted;
+                  weightTMP = zeros(DIM);
+                  weightTMP(maskIndices) = sum(tmp,2);
+                  dataTMP = zeros(DIM);
+                  dataTMP(maskIndices) = data(:,channel2);
+                  
+                  predictedImage(:,:,:,counter) =  predictedTMP;
+                  weightImage(:,:,:,counter) = weightTMP;
+                  dataImage(:,:,:, counter) = dataTMP;
+                  
+                  counter = counter + 1;
+              end
+          end
+          
+          
+          residueImage = dataImage - predictedImage;
+          
+          clear tmp predicted predictedTMP weightTMP dataTMP dataImage predictedImage;
+          
+          
+          if ( EMIterationNumber == 1 )
+              [ estimatedBiasField, coefficients ] = smoothWithSeparableBasisFunctionsWithWeightsMultiSpec( residueImage, weightImage, numberOfBasisFunctions, maximumNumberOfBasisFunctions);
+          else
+              [ estimatedBiasField, coefficients ] = smoothWithSeparableBasisFunctionsWithWeightsMultiSpec( residueImage, weightImage, numberOfBasisFunctions); % This is just a faster version of the above, but needs the above to have been
+              % called at least once...
+          end
+          
+          for nima = 1:numberOfImages
+              biasField = estimatedBiasField(:,:,:,nima);
+              biasCorrectedData(:,nima) = data(:,nima) - biasField(maskIndices); % Correct the data for the estimated bias field
+          end
+          
+        else 
+          % Uni-contrast case
+          tmp = posteriors ./ repmat( variances', [ size( posteriors, 1 ) 1 ] );
+          weights = sum( tmp, 2 );
+          predicted = sum( tmp .* repmat( means', [ size( posteriors, 1 ) 1 ] ), 2 ) ./ ( weights + eps);
+          predictedImage = zeros( DIM );
+          predictedImage( maskIndices ) = predicted;
+          weightImage = zeros( DIM  );
+          weightImage( maskIndices ) = weights;
+          dataImage = zeros( DIM );
+          dataImage( maskIndices ) = data;
+          residueImage = dataImage - predictedImage; % The bias field is simply a (weighted) smoothed version of this
+          if ( EMIterationNumber == 1 )
+              [ estimatedBiasField, coefficients ] = smoothWithSeparableBasisFunctionsWithWeights( residueImage, weightImage, numberOfBasisFunctions, maximumNumberOfBasisFunctions );
+          else
+              [ estimatedBiasField, coefficients ] = smoothWithSeparableBasisFunctionsWithWeights( residueImage, weightImage, numberOfBasisFunctions ); % This is just a faster version of the above, but needs the above to have been
+              % called at least once...
+          end
+          biasCorrectedData = data - estimatedBiasField( maskIndices ); % Correct the data for the estimated bias field
             
-            
-            % Check for convergence
-            relativeChangeCost = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) /  historyOfEMCost(end)
-            
-            
-            if ( relativeChangeCost < 1e-4 )
-                if ( numberOfBasisFunctions < maximumNumberOfBasisFunctions )
-                    %We've converged, but we're not yet using the full bias field
-                    %model. Increase flexibility of bias field
-                    numberOfBasisFunctions = numberOfBasisFunctions + 1;
-                    disp( [ 'Increasing numberOfBasisFunctions to ' num2str( numberOfBasisFunctions ) ] )
-                    
-                else
-                    if ( relativeChangeCost < stopCriterionEM )
-                        %Converged
-                        disp( 'EM converged!' )
-                        break;
-                    end
-                end
-            end
-            
-   
-            % Show some figures
-            if(showImages)
-                shift = 0;
-                for class = 1:numberOfClasses
-                    if(numberOfGaussiansPerClass(class)==1)
-                        continue;
-                    end
-                    posterior = zeros( DIM );
-                    
-                    posterior(maskIndices) = sum(posteriors(:,class+shift : class+shift+numberOfGaussiansPerClass(class) - 1),2);
-                    shift = shift + numberOfGaussiansPerClass(class) -1;
-                    figure(posteriorFigure)
-                    subplot(2,4,class)
-                    showImage(posterior)
-                end
-                clear posterior
-                
-                figure( costFigure )
-                subplot(2,1,1)
-                plot( historyOfEMCost( 2 : end ) )
-                title( 'EM cost' )
-                subplot(2,1,2)
-                plot( historyOfCost( 2 : end ) )
-                title( 'Cost' )
-                
-                figure(biasFieldFigure)
-                for n = 1:numberOfImages
-                    subplot(numberOfImages,2,(n-1)*numberOfImages+1)
-                    tmp = zeros(DIM);
-                    tmp(maskIndices) = biasCorrectedData(:,n);
-                    showImage(exp(tmp/1000));
-                    subplot(numberOfImages,2,(n-1)*numberOfImages+2)
-                    showImage(exp( estimatedBiasField(:,:,:,n) / 1000 ) .* mask)
-                end
-                drawnow
-            end
-        end
+        end % End test multi vs. unicontrast case
         
-        
-        
-        %Before calling the optimizer, let's split the alphas in the mesh
-        %nodes according to the EM weights.
-        optimizerAlphas = zeros(size(reducedAlphas,1),sum(numberOfGaussiansPerClass),'single');
-        shift = 0;
-        for class = 1:numberOfClasses
-            alpha = smoothedReducedAlphas(:,class,multiResolutionLevel);
-            for gaussian = 1:numberOfGaussiansPerClass(class)
-                optimizerAlphas(:,shift + class + gaussian -1) = EMweights(shift + class + gaussian -1).*alpha;
-            end
-            shift = shift + numberOfGaussiansPerClass(class) -1;
-        end
-        kvlSetAlphasInMeshNodes(mesh, optimizerAlphas);
-        
-        
-        % Make sure the mesh node optimizer is made aware of the current bias field parameter estimate
-        for nima = 1 : numberOfImages
-            buffer = zeros(DIM,'single');
-            buffer(maskIndices) = biasCorrectedData(:,nima);
-            kvlSetImageBuffer( biasCorrectedImages(nima), buffer );
-            clear buffer;
-        end
-        
-        
-        if(numberOfImages > 1)
-            precisions = zeros(size(sigmas));
-            for class = 1 : sum(numberOfGaussiansPerClass)
-                precisions(:,:,class) = inv(sigmas(:,:,class));
-            end
+      end % End test if multiresolution == 1
+    
+      minLogLikelihood = -sum( log( normalizer ) ); 
+      historyOfEMCost = [ historyOfEMCost; minLogLikelihood ];
+      
+      
+      % Check for convergence
+      relativeChangeCost = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) /  historyOfEMCost(end)
+      if ( relativeChangeCost < 1e-4 )
+        if ( numberOfBasisFunctions < maximumNumberOfBasisFunctions )
+          % We've converged, but we're not yet using the full bias field
+          % model. Increase flexibility of bias field
+          numberOfBasisFunctions = numberOfBasisFunctions + 1;
+          disp( [ 'Increasing numberOfBasisFunctions to ' num2str( numberOfBasisFunctions ) ] )
             
         else
-            precisions = zeros(size(variances));
-            for class = 1 : sum(numberOfGaussiansPerClass)
-                precisions(class) = 1./variances(class);            
-            end
-        end
-        
-        %
-        % Part II: update the position of the mesh nodes for the current set of Gaussian parameters
-        %
-        
-        haveMoved = false; % Keep track if we've ever moved or not
-        disp(['Setting up means and precisions']);
-	if(UseGPU ==0) 
-	  if(numberOfImages>1)
-            kvlSetOptimizerProperties( optimizer, means', precisions );
-	  else
-            kvlSetOptimizerProperties( optimizer, means, precisions );
-	  end
-	else
-	  if(numberOfImages>1)
-	    fprintf('Running kvlSetOptimizerPropertiesGPU()\n');	    
-            kvlSetOptimizerPropertiesGPU( optimizer, means', precisions );
-	  else
-	    fprintf('Running kvlSetOptimizerPropertiesGPU()\n');	    
-            kvlSetOptimizerPropertiesGPU( optimizer, means, precisions );
-	  end
-	end
-	
-        disp(['Means and precisions set']);
-        %disp(['means set']);
-        for positionUpdatingIterationNumber = 1 : positionUpdatingMaximumNumberOfIterations
-            % Calculate a good step. The first one is very slow because of various set-up issues
-            tic
-	    if(UseGPU ==0)
-	      [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlDeformOneStep( optimizer );
-	    else
-	      fprintf('Running kvlDeformOneStepGPU()\n');	    
-	      [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlDeformOneStepGPU( optimizer );
-	    end
-	    elapsedTime = toc;
-            %disp( [ 'Did one deformation step of max. ' num2str( maximalDeformation )  ' voxels in ' num2str( elapsedTime ) ' seconds' ] )
-            %minLogLikelihoodTimesPrior
-            if ( maximalDeformation > 0 )
-                haveMoved = true;
-            end
-            
-            % Test if we need to stop
-            if ( maximalDeformation <= maximalDeformationStopCriterion )
-                disp( 'maximalDeformation is too small; stopping' );
-                break;
-            end
-        end
-        
-        
-        % Show a little movie comparing before and after deformation so far...
-        if(showImages)
-            figure( deformationMovieFigure )
-            kvlSetAlphasInMeshNodes( mesh, smoothedReducedAlphas( :, :, multiResolutionLevel ) );
-            newColorCodedPriors = kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( mesh, DIM ),colorsTMP );
-            
-            set( deformationMovieFigure, 'position', get(0,'ScreenSize') );
-            for i=1:10
-                showImage( oldColorCodedPriors )
-                drawnow
-                pause( 0.1 )
-                showImage( newColorCodedPriors )
-                drawnow
-                pause( 0.1 )
-            end
-        end
-        
-        % Keep track of the cost function we're optimizing
-        historyOfCost = [ historyOfCost; minLogLikelihoodTimesPrior ];
-        
-        
-        % Determine if we should stop the overall iterations over the two set of parameters
-        if ( ( ~haveMoved ) || ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / historyOfCost( end ) ) <  1e-6 ) )
-            
+          if ( relativeChangeCost < stopCriterionEM )
             % Converged
+            disp( 'EM converged!' )
             break;
+          end 
+          
+        end % End test if we're already used all available basis functions
+        
+      end % End test if we need to test for convergence
+      
+
+      % Show some figures
+      if ( showImages )
+        shift = 0;
+        for class = 1:numberOfClasses
+          if ( numberOfGaussiansPerClass( class ) == 1 )
+            continue;
+          end
+          posterior = zeros( DIM );
+          
+          posterior(maskIndices) = sum(posteriors(:,class+shift : class+shift+numberOfGaussiansPerClass(class) - 1),2);
+          shift = shift + numberOfGaussiansPerClass(class) -1;
+          figure(posteriorFigure)
+          subplot(2,4,class)
+          showImage(posterior)
         end
+        clear posterior
         
+        figure( costFigure )
+        subplot(2,1,1)
+        plot( historyOfEMCost( 2 : end ) )
+        title( 'EM cost' )
+        subplot(2,1,2)
+        plot( historyOfCost( 2 : end ) )
+        title( 'Cost' )
         
-    end % End looping over global iterations
+        figure(biasFieldFigure)
+        for n = 1:numberOfImages
+          subplot(numberOfImages,2,(n-1)*numberOfImages+1)
+          tmp = zeros(DIM);
+          tmp(maskIndices) = biasCorrectedData(:,n);
+          showImage(exp(tmp/1000));
+          subplot(numberOfImages,2,(n-1)*numberOfImages+2)
+          showImage(exp( estimatedBiasField(:,:,:,n) / 1000 ) .* mask)
+        end
+        drawnow
+
+      end % End test if we need to show some figures
+      
+    end % End EM iterations
+    historyOfEMCost = historyOfEMCost( 2 : end );
+    timeTakenIntensityParameterUpdating = toc( startTimeIntensityParameterUpdating );  
+    historyOfTimeTakenIntensityParameterUpdating = [ historyOfTimeTakenIntensityParameterUpdating; ...
+                                                     timeTakenIntensityParameterUpdating ];
+
+        
+    % Before calling the optimizer, let's split the alphas in the mesh
+    % nodes according to the EM weights.
+    optimizerAlphas = zeros(size(reducedAlphas,1),sum(numberOfGaussiansPerClass),'single');
+    shift = 0;
+    for class = 1:numberOfClasses
+      alpha = smoothedReducedAlphas(:,class,multiResolutionLevel);
+      for gaussian = 1:numberOfGaussiansPerClass(class)
+        optimizerAlphas(:,shift + class + gaussian -1) = EMweights(shift + class + gaussian -1).*alpha;
+      end
+      shift = shift + numberOfGaussiansPerClass(class) -1;
+    end
+    kvlSetAlphasInMeshNodes(mesh, optimizerAlphas);
     
     
+    % Make sure the mesh node optimizer is made aware of the current bias field parameter estimate
+    for nima = 1 : numberOfImages
+      buffer = zeros(DIM,'single');
+      buffer(maskIndices) = biasCorrectedData(:,nima);
+      kvlSetImageBuffer( biasCorrectedImages(nima), buffer );
+      clear buffer;
+    end
+
+    
+        
+    %
+    % Part II: update the position of the mesh nodes for the current set of Gaussian parameters
+    %
+    
+    %
+    startTimeDeformationUpdating = tic;
+
+    if ( numberOfImages > 1 )
+      precisions = zeros(size(sigmas));
+      for class = 1 : sum(numberOfGaussiansPerClass)
+          precisions(:,:,class) = inv(sigmas(:,:,class));
+      end
+        
+    else
+      precisions = zeros(size(variances));
+      for class = 1 : sum(numberOfGaussiansPerClass)
+        precisions(class) = 1./variances(class);            
+      end
+    end
+    calculator = kvlGetCostAndGradientCalculator( 'AtlasMeshToIntensityImage', ...
+                                                      biasCorrectedImages, ...
+                                                      'Sliding', ...
+                                                      transform, ...
+                                                      means, ...
+                                                      precisions );
+
+    %optimizerType = 'ConjugateGradient';
+    optimizerType = 'L-BFGS';
+    optimizer = kvlGetOptimizer( optimizerType, mesh, calculator, ...
+                                    'Verbose', 1, ...
+                                    'MaximalDeformationStopCriterion', maximalDeformationStopCriterion, ... 
+                                    'LineSearchMaximalDeformationIntervalStopCriterion', ...
+                                      lineSearchMaximalDeformationIntervalStopCriterion, ...
+                                    'MaximumNumberOfIterations', maximumNumberOfDeformationIterations, ... 
+                                    'BFGS-MaximumMemoryLength', BFGSMaximumMemoryLength );
+
+    historyOfDeformationCost = [];
+    historyOfMaximalDeformation = [];
+    nodePositionsBeforeDeformation = kvlGetMeshNodePositions( mesh );
+    tic
+    while true
+      %
+      [ minLogLikelihoodTimesPrior, maximalDeformation ] = kvlStepOptimizer( optimizer )
+      if ( maximalDeformation == 0 )
+        break;
+      end
+
+      %
+      historyOfDeformationCost = [ historyOfDeformationCost; minLogLikelihoodTimesPrior ];
+      historyOfMaximalDeformation = [ historyOfMaximalDeformation; maximalDeformation ];
+    
+    end % End loop over iterations
+    toc
+    haveMoved = ( length( historyOfDeformationCost ) > 0 );
+    nodePositionsAfterDeformation = kvlGetMeshNodePositions( mesh );
+    maximalDeformationApplied = sqrt( max( sum( ...
+                ( nodePositionsAfterDeformation - nodePositionsBeforeDeformation ).^2, 2 ) ) )
+    
+    
+    % Show a little movie comparing before and after deformation so far...
+    if ( showImages )
+      figure( deformationMovieFigure )
+      kvlSetAlphasInMeshNodes( mesh, smoothedReducedAlphas( :, :, multiResolutionLevel ) );
+      newColorCodedPriors = kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( mesh, DIM ),colorsTMP );
+      
+      set( deformationMovieFigure, 'position', get(0,'ScreenSize') );
+      for i=1:10
+        showImage( oldColorCodedPriors )
+        drawnow
+        pause( 0.1 )
+        showImage( newColorCodedPriors )
+        drawnow
+        pause( 0.1 )
+      end
+    end
+    
+    % Keep track of the cost function we're optimizing
+    historyOfCost = [ historyOfCost; minLogLikelihoodTimesPrior ];
+    historyOfMaximalDeformationApplied = [ historyOfMaximalDeformationApplied; maximalDeformationApplied ];
+    timeTakenDeformationUpdating = toc( startTimeDeformationUpdating );  
+    historyOfTimeTakenDeformationUpdating = [ historyOfTimeTakenDeformationUpdating; ...
+                                              timeTakenDeformationUpdating ];
+    
+    
+    % Save something about how the estimation proceeded
+    historyWithinEachIteration( iterationNumber ).priors = priors;
+    %historyWithinEachIteration( iterationNumber ).posteriors = posteriors;
+    historyWithinEachIteration( iterationNumber ).historyOfEMCost = historyOfEMCost;
+    historyWithinEachIteration( iterationNumber ).EMweights = EMweights;
+    historyWithinEachIteration( iterationNumber ).means = means;
+    historyWithinEachIteration( iterationNumber ).variances = variances;
+    %historyWithinEachIteration( iterationNumber ).estimatedBiasField = estimatedBiasField;
+    historyWithinEachIteration( iterationNumber ).coefficients = coefficients;
+    %historyWithinEachIteration( iterationNumber ).biasCorrectedData = biasCorrectedData;
+    historyWithinEachIteration( iterationNumber ).historyOfDeformationCost = historyOfDeformationCost;
+    historyWithinEachIteration( iterationNumber ).historyOfMaximalDeformation = historyOfMaximalDeformation;
+    historyWithinEachIteration( iterationNumber ).maximalDeformationApplied = maximalDeformationApplied;
+
+    % Determine if we should stop the overall iterations over the two set of parameters
+    if ( ( ~haveMoved ) || ...
+         ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / historyOfCost( end ) ) ...
+           < relativeCostDecreaseStopCriterion ) || ...
+         ( maximalDeformationApplied < maximalDeformationAppliedStopCriterion ) )
+      % Converged
+      break;
+    end
+    
+  end % End looping over global iterations for this multiresolution level
+  historyOfCost = historyOfCost( 2 : end );
+    
+  % Save something about how the estimation proceeded
+  historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyWithinEachIteration = ...
+                                                                      historyWithinEachIteration;
+  historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost = historyOfCost;
+  historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfMaximalDeformationApplied = ...
+                                                                      historyOfMaximalDeformationApplied;
+  historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfTimeTakenIntensityParameterUpdating = ...
+                                                                      historyOfTimeTakenIntensityParameterUpdating;  
+  historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfTimeTakenDeformationUpdating = ...
+                                                                      historyOfTimeTakenDeformationUpdating;  
+  
     
 end % End loop over multiresolution levels
 
 
+% Save something about how the estimation proceeded
+history.data = data;
+history.maskIndices = maskIndices;
+history.DIM = DIM;
+history.historyWithinEachMultiResolutionLevel = historyWithinEachMultiResolutionLevel;
+eval( [ 'save ' savePath '/history.mat history -v7.3' ] );
 
 
 % OK, now that all the parameters have been estimated, try to segment the original, full resolution image
 % with all the original labels (instead of the reduced "super"-structure labels we created).
-
-% Clear some memory
-kvlClear( optimizer )
-
-
 for nima = 1 : numberOfImages
-    biasCorrectedImageBuffers(:,:,:,nima) = kvlGetImageBuffer(biasCorrectedImages(nima));
+  biasCorrectedImageBuffers(:,:,:,nima) = kvlGetImageBuffer(biasCorrectedImages(nima));
 end
 
 % Undo the downsampling, if it was used.
-if(downSamplingFactor ~= 1)
+if ( downSamplingFactor ~= 1 )
     
-    for nima = 1 : numberOfImages
-        buffer = kvlGetImageBuffer( fullResolutionImages(:,nima) );
-        DIM = size( buffer );
-        maskIndices = find( buffer > 0 );
-        mask = zeros( DIM );
-        mask( maskIndices ) = 1;
-        buffer( maskIndices ) = 1000 * log( buffer( maskIndices ) );
-        buffer = buffer .* mask;
-        originalImageBuffers(:,:,:,nima) = buffer;
-        clear buffer;
-    end
-    kvlScaleMesh( mesh, downSamplingFactor );
+  for nima = 1 : numberOfImages
+    buffer = kvlGetImageBuffer( fullResolutionImages(:,nima) );
+    DIM = size( buffer );
+    maskIndices = find( buffer > 0 );
+    mask = zeros( DIM );
+    mask( maskIndices ) = 1;
+    buffer( maskIndices ) = 1000 * log( buffer( maskIndices ) );
+    buffer = buffer .* mask;
+    originalImageBuffers(:,:,:,nima) = buffer;
+    clear buffer;
+  end
+  kvlScaleMesh( mesh, downSamplingFactor );
     
-    biasCorrectedImageBuffers = zeros([DIM numberOfImages]);
-    % Also reconstruct the estimated bias field at the original resolution
-    disp( 'Reconstructing the bias field at the original resolution' )
-    for nima = 1 : numberOfImages
-        biasFields(:,:,:,nima) = expandBasisFunctions( coefficients(:,:,:,nima), ...
-            DIM( 1 ), ...
-            DIM( 2 ), ...
-            DIM( 3 ), ...
-            downSamplingFactor ) .* mask;
-        
-        %Correct the data for the estimated bias field
-        biasCorrectedImageBuffers(:,:,:,nima) = originalImageBuffers(:,:,:,nima) - biasFields(:,:,:,nima);
-    end
+  % Also reconstruct the estimated bias field at the original resolution
+  disp( 'Reconstructing the bias field at the original resolution' )
+  biasCorrectedImageBuffers = zeros( [ DIM numberOfImages ] );
+  for nima = 1 : numberOfImages
+    biasFields(:,:,:,nima) = expandBasisFunctions( coefficients(:,:,:,nima), ...
+        DIM( 1 ), ...
+        DIM( 2 ), ...
+        DIM( 3 ), ...
+        downSamplingFactor ) .* mask;
+    
+    %Correct the data for the estimated bias field
+    biasCorrectedImageBuffers(:,:,:,nima) = originalImageBuffers(:,:,:,nima) - biasFields(:,:,:,nima);
+  end
     
 end
 
@@ -931,15 +953,15 @@ numberOfClasses = size( originalAlphas, 2 );
 % should kvlRasterizeAtlasMesh be GPUed here?
 data = double( reshape( biasCorrectedImageBuffers, [ prod( DIM ) numberOfImages ] ) ); 
 if 1
-    priors = kvlRasterizeAtlasMesh( mesh, DIM );
-    priors = reshape( priors, [ prod( DIM ) numberOfClasses ] );  
+  priors = kvlRasterizeAtlasMesh( mesh, DIM );
+  priors = reshape( priors, [ prod( DIM ) numberOfClasses ] );  
 else
-    % This is the same as the above; it's slower but requires less memory
-    priors = zeros( [ prod( DIM ) numberOfClasses ], 'uint16' ); 
-    for classNumber = 1 : numberOfClasses
-        prior = kvlRasterizeAtlasMesh( mesh, DIM, classNumber-1 ); % Remember! Non-Matlab programming start with index 0 rather than 1!
-        priors( :, classNumber ) = prior(:);
-    end
+  % This is the same as the above; it's slower but requires less memory
+  priors = zeros( [ prod( DIM ) numberOfClasses ], 'uint16' ); 
+  for classNumber = 1 : numberOfClasses
+    prior = kvlRasterizeAtlasMesh( mesh, DIM, classNumber-1 ); % Remember! Non-Matlab programming start with index 0 rather than 1!
+    priors( :, classNumber ) = prior(:);
+  end
 end
 
 
@@ -948,57 +970,55 @@ priors = priors( maskIndices, : );
 data = data( maskIndices, : );
 
 
-
-
-
 % Calculate the posteriors
 posteriors = zeros( size(priors), 'double' );
 shift = 0;
 for class = 1:numberOfClasses
     
-    reducedClass = reducingLookupTable(class);
-    if(reducedClass==1)
-        shift=1;
+  reducedClass = reducingLookupTable(class);
+  if ( reducedClass == 1 )
+    shift=1;
+  else
+    shift=sum(numberOfGaussiansPerClass(1:reducedClass-1))+1;
+  end
+  
+  prior = single(priors(:,class))/65535;
+  for gaussian = 1:numberOfGaussiansPerClass(reducedClass)
+    if(numberOfImages>1)
+      mean = means(:,shift + gaussian -1);
+      sigma = sigmas(:,:,shift + gaussian -1);
+      EMweight = EMweights(shift + gaussian -1);
+      posteriors(:,class) = posteriors(:,class) + mvnpdf(data, mean', sigma).*EMweight;
     else
-        shift=sum(numberOfGaussiansPerClass(1:reducedClass-1))+1;
+      mean = means(shift + gaussian -1);
+      variance = variances(shift + gaussian -1);
+      EMweight = EMweights(shift + gaussian -1);
+      posteriors(:,class) = posteriors(:,class) + normpdf(data, mean, sqrt(variance)).*EMweight;
     end
-    
-    
-    prior = single(priors(:,class))/65535;
-    for gaussian = 1:numberOfGaussiansPerClass(reducedClass)
-        if(numberOfImages>1)
-            mean = means(:,shift + gaussian -1);
-            sigma = sigmas(:,:,shift + gaussian -1);
-            EMweight = EMweights(shift + gaussian -1);
-            posteriors(:,class) = posteriors(:,class) + mvnpdf(data, mean', sigma).*EMweight;
-        else
-            mean = means(shift + gaussian -1);
-            variance = variances(shift + gaussian -1);
-            EMweight = EMweights(shift + gaussian -1);
-            posteriors(:,class) = posteriors(:,class) + normpdf(data, mean, sqrt(variance)).*EMweight;
-        end
-    end
-    posteriors(:,class) = posteriors(:,class).*prior;
-end
+  end
+  posteriors(:,class) = posteriors(:,class).*prior;
+
+end % End loop over classes
 
 normalizer = sum( posteriors, 2 ) + eps;
 posteriors = posteriors ./ repmat(normalizer, [1 numberOfClasses]);
 posteriors = uint16( round( posteriors * 65535 ) );
 
-%Write out FreeSurfer segmentation
+% Write out FreeSurfer segmentation
 seg = zeros(prod(DIM),numberOfClasses,'uint16');
 seg(maskIndices,:)=posteriors;
 seg=reshape(seg ,[DIM numberOfClasses]);
 [maxProbability maxIndices]=max(seg, [], 4);
-%Put into FreeSurfer format
+% Put into FreeSurfer format
 labeling = zeros(DIM,'single');
 
 for label = 1:length(FreeSurferLabels)
     ind = find(maxIndices == label);
     labeling(ind) = FreeSurferLabels(label);
 end
-[pathstr,name,ext] = fileparts(imageFileNames{1});
+%  [pathstr,name,ext] = fileparts(imageFileNames{1});
 fprintf('Writing out freesurfer seg\n');
+
 samseg_writeOutFreeSurferSeg(imageFileNames{1},transformedTemplateFileName,labeling,savePath,'segSubSpace.mgz');
 %writeOutFreeSurferSeg(imageFileNames{1},transformedTemplateFileName,labeling,pathstr);
 %im = kvlReadCroppedImage(imageFileNames{1},transformedTemplateFileName);

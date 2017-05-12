@@ -39,8 +39,8 @@ public :
     { m_Sigma = sigma; }
 
   //
-  void SetClassesToSmooth( std::vector<int> classesToSmooth )
-    { m_classesToSmooth = classesToSmooth; } 
+  void  SetClassesToSmooth( const std::vector<int>&  classesToSmooth )
+    { m_ClassesToSmooth = classesToSmooth; } 
     
   //
   float  GetSigma() const
@@ -69,7 +69,7 @@ private :
   // Data members
   AtlasMeshCollection::Pointer  m_MeshCollection;
   float  m_Sigma;
-  std::vector<int> m_classesToSmooth;
+  std::vector<int> m_ClassesToSmooth;
 
 };
 

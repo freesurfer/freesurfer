@@ -1,11 +1,14 @@
 #include "kvlAtlasParameterEstimator.h"
 
 #include "itkImageRegionConstIterator.h"
-#include "kvlAtlasMeshLabelStatisticsCollector.h"
-#include "kvlAtlasMeshPositionGradientCalculator.h"
-#include "kvlAtlasMeshMinLogLikelihoodCalculator.h"
+#include "kvlAtlasMeshLabelImageStatisticsCollector.h"
+#include "kvlAtlasMeshToLabelImageCostAndGradientCalculator.h"
+#include "kvlAtlasMeshDeformationConjugateGradientOptimizer.h"
+#include "kvlAtlasMeshDeformationFixedStepGradientDescentOptimizer.h"
+#include "kvlAtlasMeshDeformationGradientDescentOptimizer.h"
+#include "kvlAtlasMeshDeformationLBFGSOptimizer.h"
 #include "kvlAtlasMeshSmoother.h"
-
+#include "itkCommand.h"
 
 
 namespace kvl
@@ -20,7 +23,7 @@ AtlasParameterEstimator
 {
 
   m_MeshCollection = 0;
-  m_NumberOfClasses = 0;
+  m_CompressionLookupTable = 0;
   m_IterationNumber = 0;
   m_MaximumNumberOfIterations = 300;
   m_LabelImageNumber = 0;
@@ -28,33 +31,17 @@ AtlasParameterEstimator
   m_AlphasEstimationIterationNumber = 0;
   m_AlphasEstimationMaximumNumberOfIterations = 20;
   m_PositionEstimationIterationNumber = 0;
-  m_PositionEstimationMaximumNumberOfIterations = 200;
-  m_PositionGradientDescentStepSize = 1.0f;
-  m_PositionEstimationIterationEventResolution = 10;
+  m_PositionEstimationMaximumNumberOfIterations = 0; // To be retrieved from optimizer
+  m_PositionEstimationIterationEventResolution = 10; 
   m_CurrentMinLogLikelihoodTimesPrior = 0.0f;
   m_AlphaEstimationStopCriterion = 0.0005f;
-  m_PositionEstimationStopCriterion = 0.00005f;
   m_AlphasSmoothingFactor = 0.0f;
   m_StopCriterion = 0.001f;
 
-  m_UseGaussians = false;
-  m_IgnoreLastLabelImage = false;
-
-  m_GD = true;
-
-  // for the collapsed label mapping, we initialize with identity
-  for(int i=0; i<256; i++)
-  {
-    std::vector<unsigned char > v;
-    v.push_back((unsigned char) i);
-    m_mapCompToComp[i]=v;
-  }
-  
-  m_DeformationOptimizer = 0;  // defaults to GD; you MUST use the methods SetModeXX to set to CJ
+  m_PositionOptimizer = LBFGS;
 
   m_NumberOfThreads = itk::MultiThreader::GetGlobalDefaultNumberOfThreads();
-
-
+  
 }
 
 
@@ -108,46 +95,17 @@ AtlasParameterEstimator
 //
 void
 AtlasParameterEstimator
-::SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages )
+::SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages,
+                  const CompressionLookupTable*  lookupTable )
 {
 
+  m_CompressionLookupTable = lookupTable;
+  
   if ( labelImages.size() == 0 )
     return;
   
   m_LabelImages = labelImages;
   m_NumberOfLabelImages = m_LabelImages.size();
-
-#if 0  // we now do this when setting mapCompToComp
-  // Calculate the number of classes present in the label images.
-  // Essentially, we look at the number of labels that are present
-  // and then look for the first zero - collapsed classes go from 255 down
-  // and they don't count
-  // std::cout << "Computing number of classes " << std::endl;
-  bool present[256];
-  for(int i=0; i<256; i++) { present[i]=false;}
-  for ( unsigned int labelImageNumber = 0; labelImageNumber < m_NumberOfLabelImages; labelImageNumber++ )
-    {
-    
-    // Get maximum intensity value
-    typedef itk::ImageRegionConstIterator< LabelImageType >   IteratorType;
-    IteratorType  it( labelImages[ labelImageNumber ], 
-                      labelImages[ labelImageNumber ]->GetLargestPossibleRegion() );
-    it = it.Begin();
-    for (; !it.IsAtEnd(); ++it)
-      {
-      present[it.Get()]=true;
-      }
-      
-    }
-
-  int nc = 0;
-  while(present[nc]) 
-    nc++;
-  
-  m_NumberOfClasses = static_cast< unsigned int >( nc );
-  // std::cout << "Calculated number of classes to be: " << m_NumberOfClasses << std::endl;
-
-#endif
  
 }
 
@@ -159,10 +117,8 @@ AtlasParameterEstimator
 //
 void 
 AtlasParameterEstimator
-::Estimate(bool verbose)
+::Estimate( bool verbose )
 {
-
-
   // Sanity checking
   if ( m_MeshCollection->GetNumberOfMeshes() == 0 )
     {
@@ -177,41 +133,28 @@ AtlasParameterEstimator
     itkExceptionMacro( "Number of meshes must match number of label images!" );
     }  
       
-
-
   // Main loop  
-  //const float  stopCriterion = 0.001 /* m_PositionEstimationStopCriterion * m_LabelImages.size() */;
-  float  previousMinLogLikelihoodTimesPrior = itk::NumericTraits< float >::max();
+  double  previousMinLogLikelihoodTimesPrior = 1e15;
   m_CurrentMinLogLikelihoodTimesPrior = previousMinLogLikelihoodTimesPrior / 2;
   m_IterationNumber = 0;
-
   this->InvokeEvent( itk::StartEvent() );
-
-
-
   while ( ( ( ( previousMinLogLikelihoodTimesPrior - m_CurrentMinLogLikelihoodTimesPrior ) / 
                fabsf( m_CurrentMinLogLikelihoodTimesPrior ) ) > m_StopCriterion ) &&
           ( m_IterationNumber < m_MaximumNumberOfIterations ) ) 
     {
-
-
-      
     // Estimate alphas
     this->EstimateAlphas();
  
     // Smooth results
     this->SmoothAlphas();
 
-    
     // Register. This will also provide us with the minLogLikelihoodTimesPrior of 
     // the current parameter set
-
     previousMinLogLikelihoodTimesPrior = m_CurrentMinLogLikelihoodTimesPrior;
-    
     m_CurrentMinLogLikelihoodTimesPrior = this->EstimatePositions();
     
     // Prepare for the next iteration
-    if (verbose)
+    if ( verbose )
      {
      std::cout << "================ IterationNumber: " << m_IterationNumber 
               << " CurrentMinLogLikelihoodTimesPrior: " << m_CurrentMinLogLikelihoodTimesPrior
@@ -223,15 +166,8 @@ AtlasParameterEstimator
 
 
   // Estimate final alphas
-
   this->EstimateAlphas();
-
-
-
   this->InvokeEvent( itk::EndEvent() );
-
-
-  
   
 }
 
@@ -245,14 +181,6 @@ AtlasParameterEstimator
 ::EstimateAlphas()
 {
 
-  // Nothing to estimate if only one image which doesn't contribute
-  if ( m_IgnoreLastLabelImage && ( m_NumberOfLabelImages == 1 ) )
-    {
-    return;
-    }
-
-
-
   // If we're smoothing, we have to start with flat alpha entries
   if ( m_AlphasSmoothingFactor != 0 )
     {
@@ -261,7 +189,7 @@ AtlasParameterEstimator
 
 
   // Allocate a container to sum the statistics over all label images
-  typedef AtlasMeshLabelStatisticsCollector::StatisticsContainerType StatisticsContainerType;
+  typedef AtlasMeshLabelImageStatisticsCollector::StatisticsContainerType StatisticsContainerType;
   StatisticsContainerType::Pointer  pooledStatistics = StatisticsContainerType::New();
   AtlasMesh::PointDataContainer::ConstIterator  pointParamIt = m_MeshCollection->GetPointParameters()->Begin();
   while ( pointParamIt != m_MeshCollection->GetPointParameters()->End() )
@@ -273,16 +201,13 @@ AtlasParameterEstimator
   
   
 
-  float  previousCost = itk::NumericTraits< float >::max();
-  float  currentCost = previousCost / 2;
+  double  previousCost = 1e15;
+  double  currentCost = previousCost / 2;
   m_AlphasEstimationIterationNumber = 0;
   this->InvokeEvent( AlphasEstimationStartEvent() );
-  
-
   while ( ( ( ( previousCost - currentCost ) / fabsf( currentCost ) ) > m_AlphaEstimationStopCriterion ) && 
           ( m_AlphasEstimationIterationNumber < m_AlphasEstimationMaximumNumberOfIterations ) ) 
     {
-
     previousCost = currentCost;
     
     // Initialize pooled statistics to zero
@@ -300,29 +225,17 @@ AtlasParameterEstimator
     // Loop over all label images, retrieve their statistics, and add those to the pooled statistics
     currentCost = 0;
     int  numberOfLabelImagesToVisit = m_NumberOfLabelImages;
-    if ( m_IgnoreLastLabelImage )
-      {
-      // std::cout << "Ignoring last image in the alphas estimation" << std::endl;
-      numberOfLabelImagesToVisit--;
-      }
-    AtlasMeshLabelStatisticsCollector::Pointer  statisticsCollector = AtlasMeshLabelStatisticsCollector::New(); 
+    AtlasMeshLabelImageStatisticsCollector::Pointer  statisticsCollector = AtlasMeshLabelImageStatisticsCollector::New(); 
     statisticsCollector->SetNumberOfThreads( m_NumberOfThreads );
-    
-
-
     for ( int  labelImageNumber = 0; labelImageNumber < numberOfLabelImagesToVisit; labelImageNumber++ )
       {
       // Calculate statistics for this label image 
-
-      statisticsCollector->SetMapCompToComp(m_mapCompToComp);
-      statisticsCollector->SetLabelImage( m_LabelImages[ labelImageNumber ] );
+      statisticsCollector->SetLabelImage( m_LabelImages[ labelImageNumber ], m_CompressionLookupTable );
       statisticsCollector->Rasterize( m_MeshCollection->GetMesh( labelImageNumber ) );
 
       // Add statistics to pooled statistics
       pooledIt = pooledStatistics->Begin();
-
       StatisticsContainerType::ConstIterator  statIt = statisticsCollector->GetLabelStatistics()->Begin();
-
       while ( pooledIt != pooledStatistics->End() )
         {
         pooledIt.Value() += statIt.Value();
@@ -336,120 +249,21 @@ AtlasParameterEstimator
       }
 
 
-
-    if ( !m_UseGaussians )
+    // Estimated alphas are simply normalized pooled statistics
+    pooledIt = pooledStatistics->Begin();
+    PointDataContainerType::Iterator  pointParamIt = m_MeshCollection->GetPointParameters()->Begin();
+    while ( pooledIt != pooledStatistics->End() )
       {
-      // Estimated alphas are simply normalized pooled statistics
-      //// std::cout << "Not using gaussians" << std::endl;
-
-      pooledIt = pooledStatistics->Begin();
-      PointDataContainerType::Iterator  pointParamIt = m_MeshCollection->GetPointParameters()->Begin();
-      while ( pooledIt != pooledStatistics->End() )
+      if ( pointParamIt.Value().m_CanChangeAlphas )
         {
-        if ( pointParamIt.Value().m_CanChangeAlphas )
-          {
-          pointParamIt.Value().m_Alphas = pooledIt.Value();
-          pointParamIt.Value().m_Alphas /= pooledIt.Value().sum();
-          }
-          
-        pooledIt++;
-        pointParamIt++;
+        pointParamIt.Value().m_Alphas = pooledIt.Value();
+        pointParamIt.Value().m_Alphas /= pooledIt.Value().sum();
         }
-
+        
+      pooledIt++;
+      pointParamIt++;
       }
-    else
-      {
-      // Estimated alphas are assumed Gaussian distributed. Calculate the mean and variance, and impose
-      // this on the alphas
-      // std::cout << "Using gaussians" << std::endl;
 
-      const int  numberOfLabels = m_MeshCollection->GetPointParameters()->Begin().Value().m_Alphas.Size();
-      AtlasAlphasType  tmp1( numberOfLabels );
-      AtlasAlphasType  tmp2( numberOfLabels );
-      for ( int labelNumber = 0; labelNumber < numberOfLabels; labelNumber++ )
-        {
-        tmp1[ labelNumber ] = labelNumber;
-        tmp2[ labelNumber ] = labelNumber * labelNumber;
-        }
-
-#if 1
-      pooledIt = pooledStatistics->Begin();
-      PointDataContainerType::Iterator  pointParamIt = m_MeshCollection->GetPointParameters()->Begin();
-      while ( pooledIt != pooledStatistics->End() )
-        {
-        // Calculate the mean and variance
-        if ( pointParamIt.Value().m_CanChangeAlphas )
-          {
-          const float  numberOfSamples = pooledIt.Value().sum();
-          const float  mean = dot_product( pooledIt.Value(), tmp1 ) / numberOfSamples;
-          //const float  variance = dot_product( pooledIt.Value(), tmp2 ) / numberOfSamples - mean * mean;
-          const float  variance = 2.0f;
-          //// std::cout << "For this node I have mean " << mean << " and sigma " << sqrt( variance )
-          //          << " (numberOfSamples: " << numberOfSamples << ")" << std::endl;
-
-          // Now inforce a Gaussian on the labels
-          for ( int labelNumber = 0; labelNumber < numberOfLabels; labelNumber++ )
-            {
-            pointParamIt.Value().m_Alphas[ labelNumber ] = exp( -pow( labelNumber - mean, 2 ) / 2.0f / variance ) /
-                                                          sqrt( 2 * 3.14 * variance );
-            }
-
-          }
-
-
-        pooledIt++;
-        pointParamIt++;
-        }
-#else
-
-      // First calculate the variance by looping over all nodes
-      pooledIt = pooledStatistics->Begin();
-      PointDataContainerType::Iterator  pointParamIt = m_MeshCollection->GetPointParameters()->Begin();
-      float  varianceNumerator = 0.0f;
-      float  varianceDenominator = 0.0f;
-      for ( ; pooledIt != pooledStatistics->End(); ++pooledIt, ++pointParamIt )
-        {
-        // Calculate the mean and variance
-        if ( pointParamIt.Value().m_CanChangeAlphas )
-          {
-          const float  numberOfSamples = pooledIt.Value().sum();
-          const float  mean = dot_product( pooledIt.Value(), tmp1 ) / numberOfSamples;
-          varianceNumerator += dot_product( pooledIt.Value(), tmp2 ) - mean * mean * numberOfSamples;
-          varianceDenominator += numberOfSamples;
-          }
-
-        }
-      const float  variance = varianceNumerator / varianceDenominator;
-      // std::cout << "Calculated variance to be " << sqrt( variance ) << "^2" << std::endl;
-      // std::cout << "     varianceNumerator: " << varianceNumerator << std::endl;
-      // std::cout << "     varianceDenominator: " << varianceDenominator << std::endl;
-
-
-      // Now loop again over all nodes, and inforce a Gaussian on the labels with the
-      // variance with just estimated
-      for ( pointParamIt = m_MeshCollection->GetPointParameters()->Begin(), pooledIt = pooledStatistics->Begin();
-            pointParamIt != m_MeshCollection->GetPointParameters()->End(); ++pointParamIt, ++pooledIt )
-        {
-        // Calculate the mean and variance
-        if ( pointParamIt.Value().m_CanChangeAlphas )
-          {
-          const float  numberOfSamples = pooledIt.Value().sum();
-          const float  mean = dot_product( pooledIt.Value(), tmp1 ) / numberOfSamples;
-
-          for ( int labelNumber = 0; labelNumber < numberOfLabels; labelNumber++ )
-            {
-            pointParamIt.Value().m_Alphas[ labelNumber ] = exp( -pow( labelNumber - mean, 2 ) / 2.0f / variance ) /
-                                                          sqrt( 2 * 3.14 * variance );
-            }
-
-          }
-
-        }
-      // std::cout << "Successfully inforced Gaussian distribution" << std::endl;
-
-#endif
-
-      }
      
     // Prepare for next iteration
     m_AlphasEstimationIterationNumber++;
@@ -477,8 +291,8 @@ AtlasParameterEstimator
   if ( m_AlphasSmoothingFactor != 0 )
     {
     // Retrieve sigma of the smoothing kernel
-    const float  maximalSigma = 0.05 * ( m_LabelImages[ 0 ]->GetLargestPossibleRegion().GetSize()[ 0 ] );
-    const float  sigma = maximalSigma * ( 1 - log( 2 - m_AlphasSmoothingFactor ) / log( 2 ) );
+    const double  maximalSigma = 0.05 * ( m_LabelImages[ 0 ]->GetLargestPossibleRegion().GetSize()[ 0 ] );
+    const double  sigma = maximalSigma * ( 1 - log( 2 - m_AlphasSmoothingFactor ) / log( 2 ) );
     
     // Smooth
     AtlasMeshSmoother::Pointer  smoother = AtlasMeshSmoother::New();
@@ -504,26 +318,17 @@ AtlasParameterEstimator
 //
 //
 //  
-float
+double
 AtlasParameterEstimator
 ::EstimatePositions()
 {
 
-
-  float  totalMinLogLikelihoodTimesPrior = 0.0f;
+  double  totalMinLogLikelihoodTimesPrior = 0.0f;
   
   for ( m_LabelImageNumber = 0; m_LabelImageNumber < m_NumberOfLabelImages; m_LabelImageNumber++ )
     {
     //
-    if ( m_IgnoreLastLabelImage && ( m_LabelImageNumber == ( m_NumberOfLabelImages - 1 ) ) )
-      {
-      // std::cout << "Doing the registration of the last image, but it doesn't count towards the cost function" << std::endl;
-      this->EstimatePosition( m_LabelImageNumber );
-      }
-    else
-      {
-      totalMinLogLikelihoodTimesPrior += this->EstimatePosition( m_LabelImageNumber );
-      }
+    totalMinLogLikelihoodTimesPrior += this->EstimatePosition( m_LabelImageNumber );
     }
 
   return totalMinLogLikelihoodTimesPrior;
@@ -534,207 +339,93 @@ AtlasParameterEstimator
 //
 //
 //  
-float
+double
 AtlasParameterEstimator
 ::EstimatePosition( unsigned int  labelImageNumber )
 {
 
-
-
-  if (m_GD==false)   // if CJ
-  {
-
- // Let's check if we are expected to just stay put
-    if ( m_MeshCollection->GetK() >= 1000 )
-       {
-  
-      // Just return the cost at this position
-      float  cost;
-      this->CalculateCurrentPositionGradient( labelImageNumber, cost );
-      return cost;
-      }
-      
-  
-    m_DeformationOptimizer->SetSegmentedImage( m_LabelImages[ labelImageNumber ] );   
-    m_DeformationOptimizer->SetMapCompToComp( m_mapCompToComp );   
-    m_DeformationOptimizer->SetMesh( const_cast< AtlasMesh* >( m_MeshCollection->GetMesh( labelImageNumber ) ) );
-    m_DeformationOptimizer->SetNumberOfThreads( m_NumberOfThreads );
-    m_DeformationOptimizer->Go();
-    
-    // We've given the mesh a new position container, but the meshCollection doesn't know about this!
-    m_MeshCollection->GetPositions()[ labelImageNumber ] = const_cast< AtlasMesh::PointsContainer* >( m_DeformationOptimizer->GetMesh()->GetPoints() );
-    
-    return m_DeformationOptimizer->GetMinLogLikelihoodTimesPrior();
-
-  }
-
-
-  else  // old gradient descent optimizer
-  {
-
-
-
   // Let's check if we are expected to just stay put
   if ( m_MeshCollection->GetK() >= 1000 )
-  {
-#if 0
-    // Just copy the reference position
-    PointsContainerType::ConstIterator  refPosIt = m_MeshCollection->GetReferencePosition()->Begin();
-    PointsContainerType::Iterator  posIt = m_MeshCollection->GetPositions()[ labelImageNumber ]->Begin();
-    for ( ; refPosIt != m_MeshCollection->GetReferencePosition()->End(); ++refPosIt, ++posIt )
     {
-      posIt.Value() = refPosIt.Value();
-    }
-#endif
-
-    // Now return the cost at this position
-    float  cost;
-    this->CalculateCurrentPositionGradient( labelImageNumber, cost );
+    // Just return the cost at this position
+    double  cost;
+    this->CalculateCurrentPositionCostAndGradient( labelImageNumber, cost );
     return cost;
-  }
+    }
 
 
-  float  previousCost = itk::NumericTraits< float >::max();
-  float  currentCost = previousCost / 2;
-  AtlasPositionGradientContainerType::Pointer  previousGradient = 0;
-  AtlasPositionGradientContainerType::Pointer  currentGradient = 0;
-  this->InvokeEvent( PositionEstimationStartEvent() );
-
-  for ( m_PositionEstimationIterationNumber = 0;
-        m_PositionEstimationIterationNumber < m_PositionEstimationMaximumNumberOfIterations; 
-        m_PositionEstimationIterationNumber++ )
-  {
-
-    // Get current gradient and current cost
-    previousCost = currentCost;
-    previousGradient = currentGradient;
-    currentGradient = this->CalculateCurrentPositionGradient( labelImageNumber, currentCost ); 
-
-    //std::cout << "Cost going from " << previousCost << " to " << currentCost << std::endl;
-
-    // Compare the current cost with the previous cost, and decide what to do
-    if ( ( currentCost > previousCost || std::isnan(currentCost)) && ( m_PositionEstimationIterationNumber != 0 ) )  // Eugenio added NaN check
+  // Set up gradient calculator
+  AtlasMeshToLabelImageCostAndGradientCalculator::Pointer  
+              calculator = AtlasMeshToLabelImageCostAndGradientCalculator::New();  
+  calculator->SetLabelImage( m_LabelImages[ labelImageNumber ] , 
+                             m_CompressionLookupTable );
+  calculator->SetNumberOfThreads( m_NumberOfThreads );
+  
+  
+  // Set up a deformation optimizer and pass the gradient calculator on to it
+  AtlasMeshDeformationOptimizer::Pointer  optimizer = 0;
+  switch( m_PositionOptimizer ) 
     {
-      // Last step was wrong. Undo last move and stop
-      //std::cout << "!!!!! Going uphill. Undoing last move and stopping." << std::endl;
-#if 1
-      PointsContainerType::Iterator  posIt = m_MeshCollection->GetPositions()[ labelImageNumber ]->Begin();
-      AtlasPositionGradientContainerType::ConstIterator  gradIt = previousGradient->Begin();
-      while ( posIt != m_MeshCollection->GetPositions()[ labelImageNumber ]->End() )
+    case FIXED_STEP_GRADIENT_DESCENT: 
       {
-        posIt.Value() += gradIt.Value();
-
-        ++posIt;
-        ++gradIt;
-      }
-
-      currentCost = previousCost;
+      optimizer = AtlasMeshDeformationFixedStepGradientDescentOptimizer::New();
+      optimizer->SetVerbose( true );
       break;
-#endif
-    }
-    else if ( ( ( previousCost - currentCost ) / fabsf( currentCost ) ) < m_PositionEstimationStopCriterion )
-    {
-      // Converged. Stop
-      //std::cout << "!!!!! Converged. Stopping." << std::endl;
+      } 
+    case GRADIENT_DESCENT: 
+      {
+      optimizer = AtlasMeshDeformationGradientDescentOptimizer::New();
+      optimizer->SetVerbose( true );
       break;
-    }
-    else
-    {
-      //std::cout << "!!!!! Applying gradient " << std::endl;
-
-      // Calculate the maximal gradient magnitude of the current gradient
-
-      AtlasMesh::PointDataContainer::ConstIterator  pointParamIt =
-        m_MeshCollection->GetPointParameters()->Begin();
-      AtlasPositionGradientContainerType::Iterator  gradIt = currentGradient->Begin();
-      float  maximumGradientMagnitude = 0.0f;
-      while ( gradIt != currentGradient->End() )
+      } 
+    case CONJUGATE_GRADIENT: 
       {
-        // Reset gradient components to zero for points that are immobile
-        if ( pointParamIt.Value().m_CanMoveX == false )
-        {
-          gradIt.Value()[ 0 ] = 0;
-        }
-
-        if ( pointParamIt.Value().m_CanMoveY == false )
-        {
-          gradIt.Value()[ 1 ] = 0;
-        }
-
-        if ( pointParamIt.Value().m_CanMoveZ == false )
-        {
-          gradIt.Value()[ 2 ] = 0;
-        }
-
-        // Calculate the magnitude and compare with the maximal value so far
-        float  magnitude = gradIt.Value().GetNorm();
-        if ( magnitude > maximumGradientMagnitude )
-        {
-          maximumGradientMagnitude = magnitude;
-        }
-
-        ++pointParamIt;
-        ++gradIt;
-      }
-
-      if ( maximumGradientMagnitude > 0 )
+      optimizer = AtlasMeshDeformationConjugateGradientOptimizer::New();
+      optimizer->SetVerbose( true );
+      break;
+      } 
+    default:
       {
-        // Scale current gradient, and apply
-        PointsContainerType::Iterator  posIt = m_MeshCollection->GetPositions()[ labelImageNumber ]->Begin();
-        gradIt = currentGradient->Begin();
-        while ( posIt != m_MeshCollection->GetPositions()[ labelImageNumber ]->End() )
-        {
-          //std::cout << "Applying gradient to point " << posIt.Index() << std::endl;
-          //std::cout << "      position: " << posIt.Value() << std::endl;
-          gradIt.Value() *= ( m_PositionGradientDescentStepSize / maximumGradientMagnitude );
-          //std::cout << "      gradient: " << gradIt.Value() << std::endl;
-          posIt.Value() -= gradIt.Value();
-
-          ++posIt;
-          ++gradIt;
-        }
+      optimizer = AtlasMeshDeformationLBFGSOptimizer::New();
+      optimizer->SetVerbose( true );
+      break;
       }
-      else
-      {
-        //std::cout << "        (Actually, gradient is 0 everywhere)" << std::endl;
-      }
-
     }
+  optimizer->SetCostAndGradientCalculator( calculator );
+  optimizer->SetMesh( const_cast< AtlasMesh* >( m_MeshCollection->GetMesh( labelImageNumber ) ) );
+  
+  // Also make sure iteration events generated by the optimizer are forwarded to our own users
+  typedef itk::MemberCommand< Self >   MemberCommandType;
+  MemberCommandType::Pointer  command = MemberCommandType::New();
+  command->SetCallbackFunction( this, &AtlasParameterEstimator::HandleOptimizerEvent );
+  optimizer->AddObserver( DeformationStartEvent(), command );
+  optimizer->AddObserver( DeformationIterationEvent(), command );
+  optimizer->AddObserver( DeformationEndEvent(), command );
+  m_PositionEstimationMaximumNumberOfIterations = optimizer->GetMaximumNumberOfIterations();
+  optimizer->SetIterationEventResolution( m_PositionEstimationIterationEventResolution );
+  
+  // Start the optimization
+  optimizer->Go();
+  
+  // We've given the mesh a new position container, but the meshCollection doesn't know about this!
+  m_MeshCollection->GetPositions()[ labelImageNumber ] = const_cast< AtlasMesh::PointsContainer* >( optimizer->GetMesh()->GetPoints() );
+    
+  return optimizer->GetMinLogLikelihoodTimesPrior();
 
-
-    if ( !( m_PositionEstimationIterationNumber % m_PositionEstimationIterationEventResolution ) )
-    {
-      this->InvokeEvent( PositionEstimationIterationEvent() );
-    }
-
-  }
-
-
-  this->InvokeEvent( PositionEstimationEndEvent() );
-
-  return currentCost;
-
-
-
-
-  }
-
- 
 }
 
- 
 
 
-
-
+  
 
 //
 //
 //
 AtlasPositionGradientContainerType::Pointer  
 AtlasParameterEstimator
-::CalculateCurrentPositionGradient( unsigned int labelImageNumber, float& minLogLikelihoodTimesPrior ) const
+::CalculateCurrentPositionCostAndGradient( unsigned int labelImageNumber, double& minLogLikelihoodTimesPrior ) const
 {
+  
   // Sanity checking
   if ( ( labelImageNumber >= m_MeshCollection->GetNumberOfMeshes() ) || 
        ( labelImageNumber >= m_LabelImages.size() ) )
@@ -742,18 +433,18 @@ AtlasParameterEstimator
     return 0;
     }    
 
-
-  AtlasMeshPositionGradientCalculator::Pointer  gradientCalculator = AtlasMeshPositionGradientCalculator::New();
-  gradientCalculator->SetLabelImage( m_LabelImages[ labelImageNumber ] );
-  gradientCalculator->SetMapCompToComp( (std::vector<unsigned char> *) m_mapCompToComp );    
-  gradientCalculator->Rasterize( m_MeshCollection->GetMesh( labelImageNumber ) );
-  minLogLikelihoodTimesPrior = gradientCalculator->GetMinLogLikelihoodTimesPrior();
-  if ( isnan( minLogLikelihoodTimesPrior ) || isinf( minLogLikelihoodTimesPrior ) )
-    {
-    minLogLikelihoodTimesPrior = itk::NumericTraits< float >::max();
-    }
+  // Set up gradient calculator
+  AtlasMeshToLabelImageCostAndGradientCalculator::Pointer  
+              calculator = AtlasMeshToLabelImageCostAndGradientCalculator::New();  
+  calculator->SetLabelImage( m_LabelImages[ labelImageNumber ] , 
+                             m_CompressionLookupTable );
+  calculator->SetNumberOfThreads( m_NumberOfThreads );
   
-  return gradientCalculator->GetPositionGradient();
+  // Let it do its work
+  calculator->Rasterize( m_MeshCollection->GetMesh( labelImageNumber ) );
+  minLogLikelihoodTimesPrior = calculator->GetMinLogLikelihoodTimesPrior();
+
+  return calculator->GetPositionGradient();
 
 }
 
@@ -766,9 +457,9 @@ AtlasPositionGradientContainerType::Pointer
 AtlasParameterEstimator
 ::GetCurrentPositionGradient( unsigned int labelImageNumber ) const
 {
-  float  dummy;
+  double  dummy;
   
-  return this->CalculateCurrentPositionGradient( labelImageNumber, dummy );
+  return this->CalculateCurrentPositionCostAndGradient( labelImageNumber, dummy );
 }
 
 
@@ -776,42 +467,29 @@ AtlasParameterEstimator
 //
 //
 //
-float
+void
 AtlasParameterEstimator
-::GetCurrentMinLogLikelihood() const
+::HandleOptimizerEvent( itk::Object* object, const itk::EventObject & event )
 {
-
-  return this->GetMinLogLikelihood( m_MeshCollection );
-
-}
-
- 
-
-//
-//
-//
-float
-AtlasParameterEstimator
-::GetMinLogLikelihood( const AtlasMeshCollection* meshCollection ) const
-{
-  float  minLogLikelihood = 0.0f;
-
-  AtlasMeshMinLogLikelihoodCalculator::Pointer  calculator = AtlasMeshMinLogLikelihoodCalculator::New();
-  for ( unsigned int  labelImageNumber = 0; labelImageNumber < m_NumberOfLabelImages; labelImageNumber++ )
+  
+  if ( typeid( event ) == typeid( DeformationStartEvent ) )
     {
-    // Calculate minLogLikelihood for this label image
-    calculator->SetLabelImage( m_LabelImages[ labelImageNumber ] );
-    calculator->SetMapCompToComp( (std::vector<unsigned char> *) m_mapCompToComp );
-    calculator->Rasterize( meshCollection->GetMesh( labelImageNumber ) );
-    minLogLikelihood += calculator->GetMinLogLikelihood();
+    m_PositionEstimationIterationNumber = 0;
+    this->InvokeEvent( PositionEstimationStartEvent() );
+    }
+  else if ( typeid( event ) == typeid( DeformationIterationEvent ) )
+    {
+    this->InvokeEvent( PositionEstimationIterationEvent() );
+    m_PositionEstimationIterationNumber +=  m_PositionEstimationIterationEventResolution;
+    }
+  else if ( typeid( event ) == typeid( DeformationEndEvent ) )
+    {
+    this->InvokeEvent( PositionEstimationEndEvent() );
     }
 
-  return minLogLikelihood;
-
-}
-
-
-
+  
+}   
+   
 
 } // end namespace kvl
 

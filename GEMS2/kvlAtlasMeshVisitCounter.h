@@ -2,94 +2,23 @@
 #define __kvlAtlasMeshVisitCounter_h
 
 #include "kvlAtlasMeshRasterizor.h"
-
+#include "itkImage.h"
 
 
 namespace kvl
 {
 
 
-namespace FragmentProcessor 
-{
-
 /**
  *
  */
-class CountVisit
-{
-public:
-  
-  typedef itk::Image< unsigned char, 3 >  ImageType;
-
-  CountVisit() 
-    {
-    m_Image = 0;
-    }
-
-  ~CountVisit() {};
-
-  void AllocateImage( ImageType::SizeType  size )
-    {
-    m_Image = ImageType::New();
-    m_Image->SetRegions( size );
-    m_Image->Allocate();
-    m_Image->FillBuffer( 0 );
-    }
-    
-  const ImageType* GetImage() const
-    { return m_Image; }
-  
-  inline void operator()( const float& pi0, const float& pi1, const float& pi2, const float& pi3 )
-    {
-#if 0
-    std::cout << "               Visiting pixel at index " << m_Index << std::endl;
-    std::cout << "                       pi0: " << pi0 << std::endl;
-    std::cout << "                       pi1: " << pi1 << std::endl;
-    std::cout << "                       pi2: " << pi2 << std::endl;
-    std::cout << "                       pi3: " << pi3 << std::endl;
-#endif
-
-
-    ( m_Image->GetPixel( m_Index ) )++;
-      
-    m_Index[ 0 ]++;
-    }
-    
-  inline void StartNewSpan( int x, int y, int z, const unsigned char* sourcePointer )
-    {
-#if 0
-    std::cout << "         Starting span (" << x << ", " << y << ", " << z << ")" << std::endl;
-#endif
-    m_Index[ 0 ] = x;
-    m_Index[ 1 ] = y;
-    m_Index[ 2 ] = z;
-    }
-    
-  inline bool StartNewTetrahedron( AtlasMesh::CellIdentifier cellId ) 
-    { return true; }
-    
-  inline void SetMesh( const AtlasMesh* mesh ) {}
-    
-private:
-  ImageType::Pointer  m_Image;
-  ImageType::IndexType  m_Index;
-};
-
-
-} // End namespace FragmentProcessor
-
-
-
-/**
- *
- */
-class AtlasMeshVisitCounter: public AtlasMeshRasterizor< FragmentProcessor::CountVisit >
+class AtlasMeshVisitCounter: public AtlasMeshRasterizor
 {
 public :
   
   /** Standard class typedefs */
   typedef AtlasMeshVisitCounter  Self;
-  typedef AtlasMeshRasterizor< FragmentProcessor::CountVisit >  Superclass;
+  typedef AtlasMeshRasterizor Superclass;
   typedef itk::SmartPointer< Self >  Pointer;
   typedef itk::SmartPointer< const Self >  ConstPointer;
 
@@ -100,37 +29,43 @@ public :
   itkTypeMacro( AtlasMeshVisitCounter, itk::Object );
 
   /** Some typedefs */
-  typedef Superclass::FragmentProcessorType  FragmentProcessorType;
-  typedef Superclass::LabelImageType  LabelImageType;
-  typedef FragmentProcessorType::ImageType  CountImageType;
+  typedef itk::Image< int, 3 >  ImageType;
 
-    
   /** */
-  virtual void SetLabelImage( const LabelImageType*  labelImage )
+  void SetRegions( const ImageType::RegionType&  region )
     {
-    // Use the label image as a template for the count image
-    this->GetFragmentProcessor().AllocateImage( labelImage->GetLargestPossibleRegion().GetSize() );
-
-    // Invoke superclass' implementation
-    Superclass::SetLabelImage( labelImage );
+    m_Image = ImageType::New();
+    m_Image->SetRegions( region );
+    m_Image->Allocate();
+    m_Image->FillBuffer( 0 );
     }
   
   /** */
-  const CountImageType*  GetCountImage() const
-    { return this->GetFragmentProcessor().GetImage(); }
+  const ImageType*  GetImage() const
+    { return m_Image; }
+    
   
 protected:
-  AtlasMeshVisitCounter() {};
-  virtual ~AtlasMeshVisitCounter() {};
+  AtlasMeshVisitCounter();
+  virtual ~AtlasMeshVisitCounter();
+  
+  //
+  bool RasterizeTetrahedron( const AtlasMesh* mesh, 
+                             AtlasMesh::CellIdentifier tetrahedronId,
+                             int threadNumber );
 
 private:
   AtlasMeshVisitCounter(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
   
+  //
+  ImageType::Pointer  m_Image;
   
 };
 
 
+
 } // end namespace kvl
+
 
 #endif

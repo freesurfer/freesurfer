@@ -15,6 +15,8 @@ namespace kvl
 CompressionLookupTable
 ::CompressionLookupTable()
 {
+  m_NumberOfClasses = 0;
+  
 }
 
 
@@ -40,33 +42,111 @@ CompressionLookupTable
 }
 
 
+//
+//
+//
+#if 0
+std::unordered_map< CompressionLookupTable::ImageType::PixelType, std::vector< int > >  
+#else
+std::map< CompressionLookupTable::ImageType::PixelType, std::vector< int > >  
+#endif
+CompressionLookupTable
+::ReadCollapsedLabelFile() const
+{
+  //
+  const std::string  collapsedLabelFile( "collapsedLabels.txt" );
+
+  // Read in list of collapsed labels
+#if 0  
+  std::unordered_map< ImageType::PixelType, std::vector< int > >  collapsedLabels;  
+#else  
+  std::map< ImageType::PixelType, std::vector< int > >  collapsedLabels;  
+#endif
+  std::ifstream  clfs( collapsedLabelFile.c_str() );
+  if ( !( clfs.fail() ) )
+    {
+    std::cout << "Reading collapsedLabelFile: " << collapsedLabelFile << std::endl;
+
+    std::string line;
+    unsigned short comp, lab;
+    while ( std::getline( clfs, line ) )
+      {
+      std::ostringstream  inputParserStream;
+      inputParserStream << line;
+      std::istringstream  inputStream( inputParserStream.str().c_str() );
+      ImageType::PixelType  collapsedLabel;
+      if ( !( inputStream >>  collapsedLabel ) )
+        {
+        std::cerr << "Error reading collapsed label file" << std::endl;
+#if 0      
+        return std::unordered_map< ImageType::PixelType, std::vector< int > >();
+#else        
+        return std::map< ImageType::PixelType, std::vector< int > >();
+#endif        
+        }
+      ImageType::PixelType  realLabel;
+      while ( inputStream >>  realLabel ) 
+        { 
+        collapsedLabels[ collapsedLabel ].push_back( realLabel );
+        }
+      } // End parsing line  
+    } // End try to read file
+
+  return collapsedLabels;
+}
+  
 
 //
 //
 //
-
 void
 CompressionLookupTable
-::Construct( const std::vector< ImageType::ConstPointer >& images){
-  std::vector<unsigned short> collapsedLabs;
-  std::vector<std::vector<unsigned short> > collapsedLabList;
-  this->Construct(images,collapsedLabs,collapsedLabList);
-}
-
-
-std::vector<std::vector<unsigned short> > 
-CompressionLookupTable
-::Construct( const std::vector< ImageType::ConstPointer >& images, std::vector<unsigned short> collapsedLabs,  std::vector<std::vector<unsigned short> > collapsedLabList)
+::Construct( const std::vector< ImageType::ConstPointer >& images )
 {
   // Clear whatever we may have 
   m_CompressionLookupTable.clear();
   m_LabelStringLookupTable.clear();
   m_ColorLookupTable.clear();
-
-  std::vector<std::vector<unsigned short> > modifiedCollapsedLabList(collapsedLabList);
-
-  // Construct a compression lookup table by looping over all images, and creating a
-  // new entry for every new intensity encountered
+  m_NumberOfClasses = 0;
+  
+  // Loop over all collapsed labels, if any, adding a new class for 
+  // each real label that is encountered while also pointing the
+  // collapsed label to these new classes
+#if 0  
+  std::unordered_map< ImageType::PixelType, std::vector< int > >  
+#else  
+  std::map< ImageType::PixelType, std::vector< int > >  
+#endif  
+        collapsedLabels = this->ReadCollapsedLabelFile();
+  for ( 
+#if 0
+        std::unordered_map< ImageType::PixelType, std::vector< int > >::const_iterator 
+#else
+        std::map< ImageType::PixelType, std::vector< int > >::const_iterator 
+#endif
+        collapsedIt = collapsedLabels.begin();
+        collapsedIt != collapsedLabels.end(); ++collapsedIt )
+    {
+    m_CompressionLookupTable[ collapsedIt->first ] = std::vector< int >();
+    for ( std::vector< int >::const_iterator  labelIt = collapsedIt->second.begin();
+          labelIt != collapsedIt->second.end(); ++labelIt )
+      {
+      if ( m_CompressionLookupTable.find( *labelIt ) == m_CompressionLookupTable.end() )
+        {
+        std::cout << "Encountered new real label " << *labelIt << std::endl;
+      
+        const int  newClassNumber = m_NumberOfClasses;
+        m_CompressionLookupTable[ *labelIt ] = std::vector< int >( 1, newClassNumber );
+        m_CompressionLookupTable[ collapsedIt->first ].push_back( newClassNumber );
+        m_NumberOfClasses++;
+        }
+        
+      }  // End loop over all real labels belonging to a certain collapsed label
+      
+    } // End loop over all collapsed labels  
+        
+  
+  // Also loop over all pixels of all images, and create a new entry for every new intensity encountered
   for ( std::vector< ImageType::ConstPointer >::const_iterator it = images.begin();
          it != images.end(); ++it )
     {
@@ -75,58 +155,18 @@ CompressionLookupTable
     for ( itk::ImageRegionConstIterator< ImageType >  voxelIt( *it, ( *it )->GetLargestPossibleRegion() );
           !voxelIt.IsAtEnd(); ++voxelIt )
       {
-
-      // Try to see if we've met this label before. If not, and if it's not a collapsed label, create a new lookup-table entry and update the modified collapsed label list
       if ( m_CompressionLookupTable.find( voxelIt.Get() ) == m_CompressionLookupTable.end() )
-      {
-        std::vector<unsigned short>::iterator it = find(collapsedLabs.begin(), collapsedLabs.end(), voxelIt.Get());
-        if (it == collapsedLabs.end()) {
-          const unsigned char  newLabel = m_CompressionLookupTable.size();
-          m_CompressionLookupTable[ voxelIt.Get() ] = newLabel;
-          std::cout << "    Creating a new lookup table entry: " << static_cast< int >( voxelIt.Get() )
-                    << "  ->  " << static_cast< int >( newLabel ) << std::endl;
-          
-          for(int i=0; i<collapsedLabList.size(); i++)
-            for(int j=0; j<collapsedLabList[i].size(); j++)
-              if(collapsedLabList[i][j]==voxelIt.Get())
-                modifiedCollapsedLabList[i][j]=newLabel;
-          }
-        }
-      }
-    }
+        {
+        std::cout << "Encountered new real label " << voxelIt.Get() << std::endl;
+      
+        const int  newClassNumber = m_NumberOfClasses;
+        m_CompressionLookupTable[ voxelIt.Get() ] = std::vector< int >( 1, newClassNumber );
+        m_NumberOfClasses++;
+        }  
+      } // End loop over all pixels
+    } // End loop over all images
 
-  // Eugenio: it turns out that, if labels are defined implicitly (i.e., a fine label does not appear in 
-  // any input volume, the code crashes. We fix it by going through all collapsed labels and pretending we found
-  // them in an input volume
-  for(int i=0; i<collapsedLabList.size(); i++)
-  {
-    for(int j=0; j<collapsedLabList[i].size(); j++)
-    {
-
-      if ( m_CompressionLookupTable.find( collapsedLabList[i][j] ) == m_CompressionLookupTable.end() )
-      {
-        // no need to check whether it's a collapsed label this time 
-        const unsigned char  newLabel = m_CompressionLookupTable.size();
-        m_CompressionLookupTable[ collapsedLabList[i][j] ] = newLabel;
-        std::cout << "    Creating a new lookup table entry: " << static_cast< int >( collapsedLabList[i][j] )
-                  << "  ->  " << static_cast< int >( newLabel ) << std::endl;
-        
-        for(int ii=0; ii<collapsedLabList.size(); ii++)
-          for(int jj=0; jj<collapsedLabList[ii].size(); jj++)
-            if(collapsedLabList[ii][jj]==collapsedLabList[i][j])
-              modifiedCollapsedLabList[ii][jj]=newLabel;
-      }
-
-    }
-  }
-
-
-
-
-
-
-
-
+    
   // Read the labels from FreeSurferColorLUT.txt if that file is found, and
   // figure out their names and RGBA colors
   const std::string  colorLUTFileName = "FreeSurferColorLUT.txt";
@@ -139,7 +179,8 @@ CompressionLookupTable
     char buffer[ size ];
     while ( in.getline( buffer, size ) )
       {
-      if ( ( buffer[0] == '#' ) || ( buffer[0] == 10 ) || ( buffer[0] == 13 ) ) // '\n' corresponds to 10 or 13, depending on platform
+      if ( ( buffer[0] == 0 ) || ( buffer[0] == '#' ) || 
+           ( buffer[0] == 10 ) || ( buffer[0] == 13 ) ) // '\n' corresponds to 10 or 13, depending on platform
         {
         //std::cout << "    skipping the line: " << buffer << std::endl;
         continue;
@@ -161,70 +202,110 @@ CompressionLookupTable
         }
 
 
-      // If this label is one that is present in our images, add it with its labelString and color to our lookup tables
+      // If this label is one that is present in our images, add it with its labelString and color to our lookup tables (unless it's a virtual, collapsed label)
       if ( m_CompressionLookupTable.find( labelNumber ) != m_CompressionLookupTable.end() )
         {
-        // We can't have "/" in our strings as FLTK interprets this is a submenu in our pulldown menu...
-        std::string::size_type loc = labelString.find( "/", 0 );
-        if ( loc != std::string::npos )
+        if ( collapsedLabels.find( labelNumber ) == collapsedLabels.end() )
           {
-          //std::cout << "Found a / symbol. Replacing it with a - symbol" << std::endl;
-          labelString.replace( loc, 1, "-" );
+          // We can't have "/" in our strings as FLTK interprets this is a submenu in our pulldown menu...
+          std::string::size_type loc = labelString.find( "/", 0 );
+          if ( loc != std::string::npos )
+            {
+            //std::cout << "Found a / symbol. Replacing it with a - symbol" << std::endl;
+            labelString.replace( loc, 1, "-" );
+            }
+
+          ColorType  color;
+          color[ 0 ] = static_cast< ColorType::ComponentType >( R );
+          color[ 1 ] = static_cast< ColorType::ComponentType >( G );
+          color[ 2 ] = static_cast< ColorType::ComponentType >( B );
+          color[ 3 ] = static_cast< ColorType::ComponentType >( A );
+
+          std::cout << "     found that labelNumber " << labelNumber << " corresponds to labelString "
+                    << labelString << " with color " << R << " " << G << " " << B << " " << A << std::endl;
+          const int  classNumber =  ( m_CompressionLookupTable.find( labelNumber )->second )[0];
+          std::cout << "        -> maps to classNumber: " << classNumber << std::endl;
+          m_LabelStringLookupTable[ classNumber ] = labelString;
+          m_ColorLookupTable[ classNumber ] = color;
           }
-
-        ColorType  color;
-        color[ 0 ] = static_cast< ColorType::ComponentType >( R );
-        color[ 1 ] = static_cast< ColorType::ComponentType >( G );
-        color[ 2 ] = static_cast< ColorType::ComponentType >( B );
-        color[ 3 ] = static_cast< ColorType::ComponentType >( A );
-
-        std::cout << "     found that labelNumber " << labelNumber << " corresponds to labelString "
-                  << labelString << " with color " << R << " " << G << " " << B << " " << A << std::endl;
-
-        std::cout << "         Adding " << labelString << " for "
-                  << static_cast< int >( ( *( m_CompressionLookupTable.find( labelNumber ) ) ).second ) << std::endl;
-        m_LabelStringLookupTable[ ( *( m_CompressionLookupTable.find( labelNumber ) ) ).second ] = labelString;
-
-        std::cout << "         Adding [";
-        for ( int i = 0; i < 4; i++ )
-          {
-          std::cout << static_cast< int >( color[ i ] ) << " ";
-          }
-        std::cout << "] for "
-                  << static_cast< int >( ( *( m_CompressionLookupTable.find( labelNumber ) ) ).second ) << std::endl;
-        m_ColorLookupTable[ ( *( m_CompressionLookupTable.find( labelNumber ) ) ).second ] = color;
-        }
+        }  
 
       } // End loop over all lines in the colorLUT file
 
-    } 
-  else
-    {
-    // We need to create some default lookup tables for label strings and colors
-    for ( CompressedImageType::PixelType  compressedLabel = 0;
-          compressedLabel < m_CompressionLookupTable.size(); compressedLabel++)
-      {
-      std::ostringstream  labelStringStream;
-      labelStringStream << "label" << static_cast< int >( compressedLabel );
-      m_LabelStringLookupTable[ compressedLabel ] = labelStringStream.str();
+    } // End test if we can read FreeSurferColorLUT.txt
+    
+  // Every class has to have a color and name -- make sure this is the case
+  this->FillInMissingNamesAndColors();
+  
+}
 
+
+
+//
+//
+//
+void
+CompressionLookupTable
+::FillInMissingNamesAndColors()
+{
+  
+  for ( int classNumber = 0; classNumber < m_NumberOfClasses; ++classNumber )
+    {
+    if ( m_LabelStringLookupTable.find( classNumber ) == m_LabelStringLookupTable.end() ) 
+      {
+      // Need to add name
+      std::ostringstream  labelStringStream;
+      labelStringStream << "class_" << static_cast< int >( classNumber );
+      m_LabelStringLookupTable[ classNumber ] = labelStringStream.str();
+      }
+      
+    if ( m_ColorLookupTable.find( classNumber ) == m_ColorLookupTable.end() )
+      {
+      // Need to add color
       ColorType  color;
       for ( int i = 0; i < 3; i++ )
         {
         color[ i ] = static_cast< ColorType::ComponentType >(
                         ( static_cast< float >( itk::NumericTraits< ColorType::ComponentType >::max() )
-                          / ( m_CompressionLookupTable.size() - 1 ) )
-                        * compressedLabel );
+                          / ( m_NumberOfClasses - 1 ) )
+                        * classNumber );
         }
       color[ 3 ] = itk::NumericTraits< ColorType::ComponentType >::max();
-      m_ColorLookupTable[ compressedLabel ] = color;
-
+      m_ColorLookupTable[ classNumber ] = color;
       }
-
-    }  // End test if colorLUT file exists
+      
+    } // End loop over all classes
     
-   return modifiedCollapsedLabList;
 }
+
+
+
+
+//
+//
+//
+void
+CompressionLookupTable
+::Construct( int  numberOfClasses )
+{
+  
+  // Clear whatever we may have 
+  m_CompressionLookupTable.clear();
+  m_LabelStringLookupTable.clear();
+  m_ColorLookupTable.clear();
+  
+  // 
+  m_NumberOfClasses = numberOfClasses;
+  for ( int classNumber = 0; classNumber < m_NumberOfClasses; classNumber++ )
+    { 
+    m_CompressionLookupTable[ classNumber ] = std::vector< int >( 1, classNumber );
+    }
+  
+  //
+  this->FillInMissingNamesAndColors();
+  
+  
+}  
 
 
 
@@ -233,9 +314,9 @@ CompressionLookupTable
 //
 bool
 CompressionLookupTable
-::Read( const char* fileName )
+::Read( const std::string& fileName )
 {
-  std::ifstream  in( fileName );
+  std::ifstream  in( fileName.c_str() );
   if ( !in.is_open() )
     {
     std::cerr << "Couldn't read from file " << fileName << std::endl;
@@ -247,8 +328,8 @@ CompressionLookupTable
   m_CompressionLookupTable.clear();
   m_LabelStringLookupTable.clear();
   m_ColorLookupTable.clear();
+  m_NumberOfClasses = 0;
     
-
   // Loop over all lines in the file
   const int size = 255;
   char buffer[ size ];
@@ -258,13 +339,13 @@ CompressionLookupTable
     const std::string  line = buffer;
     std::istringstream  lineStream( line );
     unsigned int  labelNumber;
-    unsigned int  compressedLabelNumber;
+    unsigned int  classNumber;
     std::string  labelString;
     unsigned int  R;
     unsigned int  G;
     unsigned int  B;
     unsigned int  A;
-    lineStream >> labelNumber >> compressedLabelNumber >> labelString >> R >> G >> B >> A;
+    lineStream >> labelNumber >> classNumber >> labelString >> R >> G >> B >> A;
 
     ColorType  color;
     color[ 0 ] = static_cast< ColorType::ComponentType >( R );
@@ -274,12 +355,11 @@ CompressionLookupTable
 
 
     // Now fill in the entries in the lookup tables
-    m_CompressionLookupTable[ labelNumber ] = compressedLabelNumber;
-    m_LabelStringLookupTable[ compressedLabelNumber ] = labelString;
-    m_ColorLookupTable[ compressedLabelNumber ] = color;
-
+    m_CompressionLookupTable[ labelNumber ] = std::vector< int >( 1, classNumber );
+    m_LabelStringLookupTable[ classNumber ] = labelString;
+    m_ColorLookupTable[ classNumber ] = color;
+    m_NumberOfClasses++;
     }
-
 
   return true;
 }
@@ -291,101 +371,40 @@ CompressionLookupTable
 //
 bool
 CompressionLookupTable
-::Write( const char* fileName )
+::Write( const std::string& fileName ) const
 {
 
-  std::ofstream  out( fileName );
+  std::ofstream  out( fileName.c_str() );
   if ( out.bad() )
     {
     std::cerr << "Can't open " << fileName << " for writing." << std::endl;
     return false;
     }
 
-  // Loop over all entries in our lookup table and write out
+  // Loop over all entries in our lookup table and write out. We only write out
+  // non-collapsed labels, i.e., labels that have exactly one class number
   for ( CompressionLookupTableType::const_iterator  compressionIt = m_CompressionLookupTable.begin();
         compressionIt != m_CompressionLookupTable.end(); ++compressionIt )
-    {  
-    out << ( *compressionIt ).first << "   "
-        << static_cast< int >( ( *compressionIt ).second ) << "  "
-        << m_LabelStringLookupTable[ ( *compressionIt ).second ]
+    {
+    if ( compressionIt->second.size() != 1 )
+      {
+      // Skipping
+      continue;
+      }  
+
+    const int  classNumber = compressionIt->second[ 0 ];
+    out << compressionIt->first << "   "
+        << classNumber << "  "
+        << m_LabelStringLookupTable.find( classNumber )->second
         <<  "     ";
     for ( int i = 0; i < 4; i++ )
       {
-      out << static_cast< int >( m_ColorLookupTable[ ( *compressionIt ).second ][ i ] ) << " ";
+      out << static_cast< int >( m_ColorLookupTable.find( classNumber )->second[ i ] ) << " ";
       }
     out << std::endl;
     }
 
   return true;
-
-}
-
-
-
-//
-//
-//
-
-CompressionLookupTable::CompressedImageType::Pointer
-CompressionLookupTable
-::CompressImage( const ImageType*  image ) const
-{
-  std::vector<unsigned short> collapsedLabs;
-  std::vector<unsigned short> mappedCollapsedLabs;
-  CompressedImageType::Pointer  compressedImage = this->CompressImage(image,collapsedLabs,mappedCollapsedLabs);
-  return compressedImage;
-}
-
-
-CompressionLookupTable::CompressedImageType::Pointer
-CompressionLookupTable
-::CompressImage( const ImageType*  image , std::vector<unsigned short> collapsedLabs,std::vector<unsigned short> mappedCollapsedLabs) const
-{
-  // build a mapping for collapsed labels
-  unsigned char mapping[100000];
-  for(int i=0; i<100000; i++)
-    mapping[i]=0;
-  for(int i=0; i<collapsedLabs.size(); i++)
-    mapping[collapsedLabs[i]]=mappedCollapsedLabs[i];
-
-  // Allocate an empty image to fill in the compressed labels
-  CompressedImageType::Pointer  compressedImage = CompressedImageType::New();
-  compressedImage->SetRegions( image->GetLargestPossibleRegion() );
-  compressedImage->SetSpacing( image->GetSpacing() );
-  compressedImage->SetOrigin( image->GetOrigin() );
-  compressedImage->Allocate();
-  compressedImage->FillBuffer( 0 );
-
-
-  // Loop over all voxels and fill in 
-  itk::ImageRegionConstIterator< ImageType >  imageIterator( image,
-                                                             image->GetLargestPossibleRegion() );
-  itk::ImageRegionIterator< CompressedImageType >  compressedImageIterator( compressedImage,
-                                                                            image->GetLargestPossibleRegion() );
-  for ( ; !imageIterator.IsAtEnd(); ++imageIterator, ++compressedImageIterator )
-    {
-    // Apply the lookup-table entry
-    CompressionLookupTableType::const_iterator it = m_CompressionLookupTable.find( imageIterator.Get() );
-    if ( it != m_CompressionLookupTable.end() )
-      {
-      compressedImageIterator.Set( (*it).second );
-      //std::cout << "Setting pixel with intensity " << static_cast< int >( imageIterator.Get() )
-      //          << " to " << static_cast< int >( (*it).second ) << std::endl;
-      }
-    else
-      {
-      // We actually didn't find the label in our lookup table! Then, it must be a collapsed label
-      compressedImageIterator.Set( mapping[imageIterator.Get()] );
-/*
-      //std::cerr << "I couldn't find a compressed label for voxel value " << imageIterator.Get() << std::endl;
-      compressedImageIterator.Set( 0 );
-*/
-      }
-
-    } // End loop over all voxels
-
-
-  return compressedImage;
 
 }
 

@@ -85,6 +85,13 @@ TetrahedronInteriorConstIterator< TPixel >
       {
       lowerCornerIndex[ i ] = itk::Math::Ceil< IndexValueType >( lowerCorner[ i ] );
       }
+      
+    // Pathological case where tethradron is completely outside of image domain;
+    // let's make sure the size of our region is then 0
+    if ( lowerCornerIndex[ i ] > ptr->GetBufferedRegion().GetUpperIndex()[ i ] )
+      {
+      lowerCornerIndex[ i ] = ptr->GetBufferedRegion().GetUpperIndex()[ i ] + 1;
+      }  
     }
   //std::cout << "lowerCornerIndex: " << lowerCornerIndex << std::endl;
   
@@ -97,10 +104,16 @@ TetrahedronInteriorConstIterator< TPixel >
       {
       upperCornerIndex[ i ] = itk::Math::Floor< IndexValueType >( upperCorner[ i ] );
       }
+      
+    // Pathological case where tethradron is completely outside of image domain;
+    // let's make sure the size of our region is then 0
+    if ( upperCornerIndex[ i ] < ptr->GetBufferedRegion().GetIndex()[ i ] )
+      {
+      upperCornerIndex[ i ] = ptr->GetBufferedRegion().GetIndex()[ i ] - 1;
+      }  
     }
   //std::cout << "upperCornerIndex: " << upperCornerIndex << std::endl;
   
-
 
   // ============================================================================================
   //

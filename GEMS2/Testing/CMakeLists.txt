@@ -6,6 +6,13 @@ TARGET_LINK_LIBRARIES( kvlAtlasMeshRasterizorTestGPU
                        kvlGEMSCommon
                       )
 
+# Add an executable
+ADD_EXECUTABLE( tmp
+                tmp.cxx 
+                )
+TARGET_LINK_LIBRARIES( tmp
+                       kvlGEMSCommon
+                      )
 
 # Boost tests
 IF(Boost_FOUND)
