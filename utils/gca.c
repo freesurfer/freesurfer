@@ -10061,7 +10061,7 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     {
       int max_segno ;
 
-      mri_dilated = MRIdilateLabel(mri_src, NULL, i, nclose) ;
+      mri_dilated = MRIdilateLabel(mri_src, NULL, i, ndilate) ;
       mriseg = MRIsegment(mri_dilated, (float)i, (float)i) ;
       max_segno = MRIfindMaxSegmentNumber(mriseg) ;
       mri_in_main_segment = MRIsegmentFill(mriseg, max_segno, NULL, 1) ; // only retain biggest segment
