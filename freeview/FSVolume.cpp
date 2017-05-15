@@ -41,6 +41,7 @@
 #include "vtkImageChangeInformation.h"
 #include "vtkMath.h"
 #include "vtkTransform.h"
+#include "MyVTKUtils.h"
 #include "vtkMatrix4x4.h"
 #include <QFileInfo>
 #include <QFile>
@@ -1116,6 +1117,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   int nProgress = 0;
   int nstart = global_progress_range[0];
   int nend = global_progress_range[1];
+  char* ptr = (char*)rasImage->GetScalarPointer();
   if ( mri->nframes > 1 )
   {
     global_progress_range[1] = nstart+(nend-nstart)*2/3;
@@ -1127,7 +1129,8 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
         {
           for ( int nFrame = 0; nFrame < mri->nframes; nFrame++ )
           {
-            float val = rasImage->GetScalarComponentAsFloat(i, j, k, nFrame);
+//            float val = rasImage->GetScalarComponentAsFloat(i, j, k, nFrame);
+            float val = (float)MyVTKUtils::GetImageDataComponent(ptr, rasImage->GetDimensions(), i, j, k, nFrame, rasImage->GetScalarType());
             switch ( mri->type )
             {
             case MRI_UCHAR:
