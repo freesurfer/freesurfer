@@ -46,6 +46,7 @@ echo "" |& tee -a $log
 echo "" |& tee -a $log
 
 # Test POSIX behaviour
+setenv FS_POSIX 1
 set cmd=(../../mris_sphere -seed 1234 ../rh.inflated rh.posix.sphere)
 echo "\n\n $cmd \n\n" |& tee -a $log
 $cmd |& tee -a $log
