@@ -31,6 +31,7 @@
 #include "vtkSmartPointer.h"
 #include "vtkPoints.h"
 #include "MyUtils.h"
+#include "MyVTKUtils.h"
 #include "BrushProperty.h"
 #include "MainWindow.h"
 #include "LivewireTool.h"
@@ -106,6 +107,8 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
     ref = ref_layer->GetImageData();
     nActiveCompRef = ref_layer->GetActiveFrame();
   }
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int* dim = m_imageData->GetDimensions();
   for ( int i = -nsize[0]+1; i < nsize[0]; i++ )
   {
     for ( int j = -nsize[1]+1; j < nsize[1]; j++ )
@@ -134,7 +137,8 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
             }
             else
             {
-              m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
+           //   m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
+              MyVTKUtils::SetImageDataComponent(ptr, dim, n[0], n[1], n[2], nActiveComp, m_imageData->GetScalarType(), m_fFillValue);
               indices << n[0] << n[1] << n[2];
               UpdateVoxelValueRange( m_fFillValue );
             }
@@ -150,7 +154,8 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
             }
             else
             {
-              m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fBlankValue );
+            //  m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fBlankValue );
+              MyVTKUtils::SetImageDataComponent(ptr, dim, n[0], n[1], n[2], nActiveComp, m_imageData->GetScalarType(), m_fBlankValue);
               indices << n[0] << n[1] << n[2];
             }
           }
@@ -997,6 +1002,10 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
     item.data = new char[nSize];
     memset( item.data, 0, nSize );
     long long n = 0;
+    char* ptr = (char*)m_imageData->GetScalarPointer();
+    int scalar_size = m_imageData->GetScalarSize();
+    int nOrigDim[3];
+    m_imageData->GetDimensions( nOrigDim );
     for ( size_t i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
     {
       for ( size_t j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
@@ -1005,9 +1014,9 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
         {
           if ( !mask || mask[n] > 0 )
           {
-            memcpy( item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
-                m_imageData->GetScalarPointer( i, j, k ),
-                m_imageData->GetScalarSize() );
+            memcpy( item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * scalar_size,
+                ptr + (k*nOrigDim[0]*nOrigDim[1] + j*nOrigDim[0] + i) * scalar_size,
+                scalar_size );
           }
           n++;
         }
@@ -1043,21 +1052,26 @@ void LayerVolumeBase::LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZero
     m_imageData->GetDimensions( nDim );
     nDim[item.plane] = 1;
     nStart[item.plane] = item.slice;
+    char* ptr = (char*)m_imageData->GetScalarPointer();
+    int scalar_size = m_imageData->GetScalarSize();
+    int scalar_type = m_imageData->GetScalarType();
+    int nOrigDim[3];
+    m_imageData->GetDimensions( nOrigDim );
     for ( size_t i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
     {
       for ( size_t j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
       {
         for ( size_t k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
         {
-          double dValue = m_imageData->GetScalarComponentAsDouble( i, j, k, 0 );
-          memcpy( m_imageData->GetScalarPointer( i, j, k ),
-                  item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
-              m_imageData->GetScalarSize() );
+          double dValue = MyVTKUtils::GetImageDataComponent(ptr, nOrigDim, i, j, k, 0, scalar_type);
+          memcpy( ptr + (k*nOrigDim[0]*nOrigDim[1] + j*nOrigDim[0] + i) * scalar_size,
+              item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * scalar_size,
+              scalar_size );
           if ( bIgnoreZeros )
           {
-            if ( m_imageData->GetScalarComponentAsDouble( i, j, k, 0 ) == 0 )
+            if ( MyVTKUtils::GetImageDataComponent(ptr, nOrigDim, i, j, k, 0, scalar_type) == 0 )
             {
-              m_imageData->SetScalarComponentFromDouble( i, j, k, 0, dValue );
+              MyVTKUtils::SetImageDataComponent(ptr, nOrigDim, i, j, k, 0, scalar_type, dValue);
             }
           }
         }

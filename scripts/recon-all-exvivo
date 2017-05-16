@@ -1,0 +1,229 @@
+#!/bin/tcsh -ef
+
+
+set echo=1
+
+if ($#argv == 0) then
+   echo "usage: $0 -s <subject> [-[lr]h -nocerebellum>]"
+   echo make sure to set the SUBJECTS_DIR first
+   exit 1 ;
+endif
+
+set norecon=0
+set cerebellum = ()
+set opts=()
+set run_bet = 0 ;
+unset hemi
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  switch($flag)
+    case "-no-recon":
+    case "-no_recon":
+    case "-norecon":
+       set norecon=1 ;
+       breaksw ;
+    case "--subject":
+    case "--s":
+    case "-subject":
+    case "-s":
+      if ( $#argv < 1) goto arg1err;
+      set s=$1; shift;
+      breaksw
+    case "-lh":
+    case "-LH":
+       set hemi=lh; 
+       breaksw
+    case "-sd":
+      if ( $#argv < 1) goto arg1err;
+      setenv  SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "-rh":
+    case "-RH":
+       set hemi=rh; 
+       breaksw
+
+    case "-help":
+    case "--help:"
+       echo "usage: $0 -s <subject> [-[lr]h -nocerebellum>]"
+       echo make sure to set the SUBJECTS_DIR first
+       echo make sure to set the SUBJECTS_DIR first
+       exit 1 ;
+       breaksw ;
+     case "-run_bet":
+     case "-runbet":
+     case "-bet":
+       set run_bet = 1 ;
+       breaksw ;
+     case "-nobet":
+       set run_bet = 0 ;
+       breaksw ;
+     case "-renorm":
+       set ifile=$argv[1]; shift;
+       breaksw ;
+
+# these are all pass through commands with no argument
+       default: 
+    case "-no-cerebellum":
+    case "-nocerebellum":
+    case "-NO-CEREBELLUM":
+    case "-NOCEREBELLUM":
+    case "-notalairach":
+    case "-noskullstrip":
+       set opts = ($opts $flag)
+       breaksw
+
+     case "-i":
+       set base=$argv[1]; shift;
+       breaksw 
+# these are all pass through commands with a single argument
+     case "-openmp":
+     case "-no-wsatlas":
+     case "-no-wgcasatlas":
+     case "-wsatlas":
+     case "-wsthresh":
+       if ( $#argv < 1) goto arg1err;
+       set opts = ($opts $flag $1)
+       breaksw ;
+  endsw
+end
+
+set sd=$SUBJECTS_DIR/$s
+if (! $?base ) then
+  set base=$SUBJECTS_DIR/$s
+endif
+
+setenv base $SUBJECTS_DIR/$s
+set mdir=$sd/mri
+set odir=$mdir/orig
+set sdir=$sd/scripts
+set ldir=$sd/label
+echo recon-all-exvivo $cmdline > $sdir/recon-all-exvivo.cmd
+
+if ( $?ifile ) then
+  rsync -auv $ifile $sdir/label_intensities.txt
+endif
+
+if (-e $sdir/label_intensities.txt & ! $?renorm) then
+    set renorm = (-renorm $sdir/label_intensities.txt)
+endif
+
+set xfile = $sdir/expert.opts
+if ($?hemi) then
+if 0 then
+    echo "mri_ca_register $renorm -${hemi}" > $xfile
+    echo "mri_ca_normalize $renorm -${hemi}" >> $xfile
+    echo "mri_em_register $renorm  -${hemi}" >> $xfile
+    echo "mri_ca_label $renorm -${hemi}" >> $xfile
+    echo "mri_cc -${hemi}" >> $xfile
+    echo "mri_aparc2aseg --${hemi}" >> $xfile
+    echo "mris_volmask --${hemi}-only" >> $xfile
+    echo "mris_anatomical_stats -noglobal" >> $xfile
+    echo "mri_relabel_hypointensities -${hemi}" >> $xfile
+    echo "mri_segstats --no-global-stats" >> $xfile
+endif
+    set opts = ($opts -notalairach -${hemi})
+#    set opts = ($opts -${hemi} -notalairach)
+endif
+if ($?renorm) then
+    echo renorm = $renorm
+    echo "mri_ca_register $renorm" > $xfile
+    echo "mri_ca_normalize $renorm" >> $xfile
+    echo "mri_em_register $renorm " >> $xfile
+    echo "mri_ca_label $renorm" >> $xfile
+#    set opts = ($opts -${hemi} -notalairach)
+endif
+if (-e ${xfile}) then
+    set opts = ($opts -xopts-overwrite -expert ${xfile})
+endif
+
+mkdir -p $odir/norm
+if (-e $odir/flash20.mgz) then
+  set bvol = $odir/flash20.mgz
+else if (-e $odir/flash20*.mgz) then
+  set bvol = `ls -1 $odir/flash20*.mgz`
+else
+  set files = (`ls -1 $odir/*.mgz`)
+  set bvol = $files[1]
+endif
+
+mri_compute_bias -c $ldir/../tmp/control.dat -sigma 8 -label $ldir/wm.label $bvol $odir/bias.mgz
+foreach f ($odir/*.mgz)
+    set fonly = ${f:t}
+    set fonly = ${fonly:r}
+    if ($fonly == 001) then
+	continue ;
+    endif
+    if ($fonly == bias) then
+	continue ;
+    endif
+    if ($fonly == opt) then
+	continue ;
+    endif
+    if ($fonly == fluid_mask) then
+	continue ;
+    endif
+    if ($fonly == brainmask) then
+	continue ;
+    endif
+    mri_apply_bias $f $odir/bias.mgz $odir/norm/${fonly}.corrected.mgz
+end
+
+compute_label_vals.csh
+matlab < $FREESURFER_HOME/matlab/compute_opt_volume.m
+mri_convert $odir/fluid_mask.mgz $odir/fluid_mask.nii.gz
+if ($run_bet) then
+  bet $odir/fluid_mask.nii.gz $odir/brainmask.nii.gz
+  mri_convert $odir/brainmask.nii.gz $odir/brainmask.mgz
+  mri_mask $odir/opt.mgz $odir/brainmask.mgz $odir/opt.mgz
+endif
+cp $odir/opt.mgz $odir/001.mgz
+mri_convert --conform $odir/brainmask.mgz $mdir/brainmask.mgz
+cp  $mdir/brainmask.mgz $mdir/brainmask.auto.mgz
+
+
+# always do the following
+if (-e $mdir/../tmp/control.dat) then
+    set opts = ($opts  -canorm-usecps) ;
+endif
+
+if ($norecon) exit 0
+
+recon-all -s $s -sd $SUBJECTS_DIR $opts
+
+exit 0
+
+if 0 then
+    echo "mri_ca_register  -${hemi}" > xfile
+    echo "mri_ca_normalize -${hemi}" >> xfile
+    echo "mri_em_register  -${hemi}" >> xfile
+    echo "mri_ca_label   -${hemi}" >> xfile
+    echo "mri_cc -${hemi}" >> xfile
+    echo "mri_aparc2aseg --${hemi}" >> xfile
+    echo "mris_volmask --${hemi}-only" >> xfile
+    echo "mris_anatomical_stats -noglobal" >> xfile
+    echo "mri_relabel_hypointensities -${hemi}" >> xfile
+    echo "mri_segstats --no-global-stats" >> xfile
+endif
+
+
+#-------------------------------------------------#
+arg1err:
+#-------------------------------------------------#
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+
+#-------------------------------------------------#
+arg2err:
+#-------------------------------------------------#
+  echo "ERROR: flag $flag requires two argument"
+  exit 1
+
+#-------------------------------------------------#
+arg3err:
+#-------------------------------------------------#
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+

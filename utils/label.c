@@ -201,6 +201,7 @@ LABEL *LabelRead(const char *subject_name, const char *label_name)
                        Progname, fname)) ;
 
   area = LabelReadFrom(subject_name, fp) ;
+  strcpy(area->name, fname) ;
   fclose(fp) ;
   return(area) ;
 
@@ -1572,6 +1573,37 @@ LabelMean(LABEL *area, double *px, double *py, double *pz)
   *py = y / (double)n ;
   *pz = z / (double)n ;
   return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+------------------------------------------------------*/
+double
+LabelMeanIntensity(LABEL *area, MRI *mri)
+{
+  int      i ;
+  double   x, y, z, mean, val ;
+  LV       *lv ;
+  LABEL    *area2 ;
+  
+  area2 = LabelToVoxel(area, mri, NULL) ;
+
+  for (mean = x = y = z = 0.0, i = 0 ; i < area->n_points ; i++)
+  {
+    lv = &area2->lv[i] ;
+
+    x = lv->x ; y = lv->y ; z = lv->z ;
+    MRIsampleVolume(mri, x, y, z, &val) ;
+    mean += val ;
+  }
+  
+  if (i > 0)
+    mean /= (double)i ;
+  LabelFree(&area2) ;
+  return(mean) ;
 }
 /*-----------------------------------------------------
         Parameters:
@@ -3583,7 +3615,7 @@ LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
     ldst->lv[i].stat = lsrc->lv[i].stat ;
     ldst->lv[i].vno = lsrc->lv[i].vno ;
   }
-  strncpy (ldst->space, "voxel", sizeof(ldst->space));
+
   ldst->coords = LABEL_COORDS_TKREG_RAS ;
   strcpy(ldst->space, "TkReg");
   return(ldst) ;
@@ -3747,6 +3779,8 @@ LabelSampleToSurface(MRI_SURFACE *mris, LABEL *area, MRI *mri_template, int coor
         }
       }
     }
+    if (min_vno == 0)
+      DiagBreak() ;
     if (min_vno == -1)
     {
       num_brute_force++ ;
@@ -3945,6 +3979,8 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
           min_vno = vno ;
         }
       }
+      if (min_vno == 0)
+	DiagBreak() ;
       if (min_vno >= 0)
 	lv->vno = min_vno ;
 
@@ -4159,4 +4195,31 @@ update_vertex_indices(LABEL *area)
     if (area->lv[n].deleted == 0)
       area->vertex_label_ind[area->lv[n].vno] = n ;
   return(NO_ERROR) ;
+}
+LABEL *
+LabelApplyMatrix(LABEL *lsrc, MATRIX *m, LABEL *ldst)
+{
+  int     n ;
+  VECTOR *v1, *v2 ;
+
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  v1->rptr[4][1] = 1.0f ;
+  v2->rptr[4][1] = 1.0f ;
+
+  if (ldst == NULL)
+  {
+    ldst = LabelClone(lsrc) ;
+    ldst->n_points = lsrc->n_points ;
+  }
+
+  for (n = 0 ; n < lsrc->n_points ; n++)
+  {
+    V3_X(v1) = lsrc->lv[n].x ; V3_Y(v1) = lsrc->lv[n].y ;  V3_Z(v1) = lsrc->lv[n].z ; 
+    MatrixMultiply(m, v1, v2) ;
+    ldst->lv[n].x = V3_X(v2) ; ldst->lv[n].y = V3_Y(v2) ; ldst->lv[n].z = V3_Z(v2) ; 
+  }
+    
+  VectorFree(&v1) ; VectorFree(&v2) ;
+  return(ldst) ;
 }

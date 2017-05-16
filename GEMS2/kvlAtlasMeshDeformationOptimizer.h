@@ -1,10 +1,8 @@
 #ifndef __kvlAtlasMeshDeformationOptimizer_h
 #define __kvlAtlasMeshDeformationOptimizer_h
 
-#include "itkObject.h"
-#include "itkImage.h"
-#include "itkAffineTransform.h"
 #include "kvlAtlasMesh.h"
+#include "kvlAtlasMeshPositionCostAndGradientCalculator.h"
 
 
 namespace kvl
@@ -18,6 +16,13 @@ itkEventMacro( DeformationEndEvent, itk::UserEvent );
 
 /**
  *
+ * Base class for (gradient-based) optimization of mesh deformation.
+ * This and the various derived classes are based on the book
+ * "Numerical Optimization" by Nocedal and Wright (Springer, 1999),
+ * especially Chapter 3 for the line search implemented here,
+ * Chapter 5 for the conjugate gradient subclass, and Chapter 9 for
+ * the limited-memory BFGS subclass.
+ * 
  */
 class AtlasMeshDeformationOptimizer: public itk::Object
 {
@@ -35,58 +40,11 @@ public :
   /** Run-time type information (and related methods). */
   itkTypeMacro( AtlasMeshDeformationOptimizer, itk::Object );
 
-  /** Some typedefs */
-  typedef itk::Image< float, 3 >  ImageType;
-  typedef itk::Image< AtlasAlphasType, 3 >  ProbabilityImageType;
-  typedef itk::Image< unsigned char, 3 >  SegmentedImageType;
-  typedef itk::AffineTransform< double, 3 >  TransformType;
-
-
-  /** */
-  /** */
-  void  SetImages( std::vector<itk::Image< float, 3 >::Pointer> images )
-    {
-    m_Images = images;
-    m_Initialized = false;
-    }
-
-  /** */
-  const itk::Image< float, 3 >::Pointer GetImage(int ind) const
-    { 
-    return m_Images[ind]; 
-    }
-  /** */
-  void  SetProbabilityImage( const ProbabilityImageType*  probabilityImage )
-    {
-    m_ProbabilityImage = probabilityImage;
-    m_Initialized = false;
-    }
-
-  /** */
-  const ProbabilityImageType*  GetProbabilityImage() const
-    {
-    return m_ProbabilityImage;
-    }
-
-  /** */
-  void  SetSegmentedImage( const SegmentedImageType*  segmentedImage )
-    {
-    m_SegmentedImage = segmentedImage;
-    m_Initialized = false;
-    }
-
-  /** */
-  const SegmentedImageType*  GetSegmentedImage() const
-    {
-    return m_SegmentedImage;
-    }
-
-
   /** */
   void  SetMesh( AtlasMesh* mesh )
     {
     m_Mesh = mesh;
-    m_Initialized = false;
+    m_IterationNumber = 0;
     }
 
   /** */
@@ -95,33 +53,17 @@ public :
     return m_Mesh;
     }
 
-
-  /** */
-  void SetMeans( std::vector< vnl_vector<float> >& means )
-    { 
-    m_Means = means;
-    m_Initialized = false; 
-    }
-
-  /** */
-  void SetPrecisions( std::vector< vnl_matrix<float> >& precisions )
+  //
+  void  SetCostAndGradientCalculator( AtlasMeshPositionCostAndGradientCalculator* calculator ) 
     {
-      m_Precisions = precisions;
-      m_Initialized = false; 
+    m_Calculator =  calculator;
     }
-
-  /** */
-  void  SetMeshToImageTransform( const TransformType* meshToImageTransform )
+    
+  const AtlasMeshPositionCostAndGradientCalculator*  GetCostAndGradientCalculator() const
     {
-    m_MeshToImageTransform = meshToImageTransform;
-    m_Initialized = false;  
+    return m_Calculator;
     }
-
-  const TransformType* GetMeshToImageTransform() const
-    {
-    return m_MeshToImageTransform;
-    }
-
+    
   // 
   unsigned int  GetIterationNumber() const
     { return m_IterationNumber; }
@@ -134,29 +76,33 @@ public :
     { m_MaximumNumberOfIterations = maximumNumberOfIterations; }
 
   //
+  void  SetMaximalDeformationStopCriterion( double maximalDeformationStopCriterion )
+    { m_MaximalDeformationStopCriterion = maximalDeformationStopCriterion; }
+
+  //
+  double  GetMaximalDeformationStopCriterion() const
+    { return m_MaximalDeformationStopCriterion; }
+
+  //
   unsigned int  GetIterationEventResolution() const
     { return m_IterationEventResolution; }
     
   //
   void SetIterationEventResolution( unsigned int  iterationEventResolution )
-    { m_IterationEventResolution = iterationEventResolution; 
-      // std::cout << "Now setting m_IterationEventResolution: " << m_IterationEventResolution << std::endl;
-    }
+    { m_IterationEventResolution = iterationEventResolution; }
  
   /** */
-  virtual double GetMinLogLikelihoodTimesPrior() const = 0;
+  double GetMinLogLikelihoodTimesPrior() const
+    {
+    return m_Cost;  
+    }
   
   /** */
-  virtual bool Go() = 0;
-
+  bool Go();
+  
   /** */
-  void SetNumberOfThreads( int numberOfThreads )
-    { m_NumberOfThreads = numberOfThreads; }
-    
-  /** */
-  int  GetNumberOfThreads() const
-    { return m_NumberOfThreads; }
-
+  double Step();
+  
   //
   void  SetVerbose( bool verbose )
     { m_Verbose = verbose; }
@@ -165,45 +111,97 @@ public :
   bool  GetVerbose() const
     { return m_Verbose; }
 
-  // Set/Get mapping of collapsed labels.
-  void SetMapCompToComp( std::vector<unsigned char > *mapCompToComp )
-    { m_mapCompToComp = mapCompToComp; }
-  std::vector<unsigned char > * GetMapCompToComp()
-    { return m_mapCompToComp; }
-
+  //
+  void  SetLineSearchMaximalDeformationIntervalStopCriterion( 
+                           double lineSearchMaximalDeformationIntervalStopCriterion )
+    {
+    m_LineSearchMaximalDeformationIntervalStopCriterion = lineSearchMaximalDeformationIntervalStopCriterion;
+    }
+    
+  //
+  double  GetLineSearchMaximalDeformationIntervalStopCriterion() const
+    {
+    return m_LineSearchMaximalDeformationIntervalStopCriterion;
+    }
+    
+    
 protected:
   AtlasMeshDeformationOptimizer();
   virtual ~AtlasMeshDeformationOptimizer();
-  
-  virtual void Initialize()
-    {
-    m_Initialized = true;  
-    }
 
+  /** */
+  virtual double FindAndOptimizeNewSearchDirection() = 0;
+ 
+  //
+  virtual void Initialize();
+
+  //
+  virtual void  GetCostAndGradient( const AtlasMesh::PointsContainer* position, 
+                                    double& cost, 
+                                    AtlasPositionGradientContainerType::Pointer& gradient );
+  
+  //
+  double  ComputeMaximalDeformation( const AtlasPositionGradientContainerType* deformation ) const;
+  
+  // Compute position + alpha * deformationDirection
+  void  AddDeformation( const AtlasMesh::PointsContainer* position, 
+                        double alpha,
+                        const AtlasPositionGradientContainerType* deformationDirection,                    
+                        AtlasMesh::PointsContainer::Pointer&  newPosition,
+                        double&  maximalDeformation ) const;
+  
+  // Compute inner product deformation1' * deformation2
+  double  ComputeInnerProduct(  const AtlasPositionGradientContainerType* deformation1,
+                                const AtlasPositionGradientContainerType* deformation2 ) const;
+  
+  // Compute beta1 * deformation1 + beta2 * deformation2
+  AtlasPositionGradientContainerType::Pointer  
+     LinearlyCombineDeformations( const AtlasPositionGradientContainerType* deformation1,
+                                  double beta1,
+                                  const AtlasPositionGradientContainerType* deformation2,
+                                  double beta2 ) const;
+
+  // Compute beta * deformation 
+  AtlasPositionGradientContainerType::Pointer  
+     ScaleDeformation( const AtlasPositionGradientContainerType* deformation,
+                       double beta ) const;
+
+  //
+  void  DoLineSearch( const AtlasMesh::PointsContainer*  startPosition, 
+                      double  startCost,
+                      const AtlasPositionGradientContainerType*  startGradient,                    
+                      const AtlasPositionGradientContainerType*  searchDirection,                    
+                      double  startAlpha,
+                      double  c1,
+                      double  c2,
+                      AtlasMesh::PointsContainer::Pointer&  newPosition,
+                      double&  newCost,
+                      AtlasPositionGradientContainerType::Pointer& newGradient,
+                      double&  alphaUsed );                  
+                       
+  //
+  bool  m_Verbose;
+  double  m_Cost;
+  AtlasMesh::PointsContainer::Pointer  m_Position;
+  AtlasPositionGradientContainerType::Pointer  m_Gradient;
+
+private:
+  AtlasMeshDeformationOptimizer(const Self&); //purposely not implemented
+  void operator=(const Self&); //purposely not implemented
+  
+  
   //
   int  m_IterationNumber;
   int  m_MaximumNumberOfIterations;
   int  m_IterationEventResolution;
 
 
-  std::vector<itk::Image< float, 3 >::Pointer> m_Images;
-  ProbabilityImageType::ConstPointer  m_ProbabilityImage;
-  SegmentedImageType::ConstPointer  m_SegmentedImage;
   AtlasMesh::Pointer  m_Mesh;
-  TransformType::ConstPointer  m_MeshToImageTransform;
-
-  std::vector< vnl_vector<float> > m_Means;
-  std::vector< vnl_matrix<float> > m_Precisions;
+  AtlasMeshPositionCostAndGradientCalculator::Pointer  m_Calculator;
+  double  m_MaximalDeformationStopCriterion;
   
-  std::vector<unsigned char > *m_mapCompToComp;
-
-  bool  m_Initialized;
-  int  m_NumberOfThreads;
-  bool  m_Verbose;
-
-private:
-  AtlasMeshDeformationOptimizer(const Self&); //purposely not implemented
-  void operator=(const Self&); //purposely not implemented
+  double  m_LineSearchMaximalDeformationLimit;
+  double  m_LineSearchMaximalDeformationIntervalStopCriterion;
   
   
 };

@@ -3,7 +3,6 @@
 #include "itkImageFileReader.h"
 #include "itkImageFileWriter.h"
 #include "kvlCompressionLookupTable.h"
-#include "kvlAtlasMeshCollectionPositionCostCalculator2.h"
 #include "itkMGHImageIOFactory.h"
 
 
@@ -38,9 +37,8 @@ public:
   virtual void Execute(const itk::Object *caller, const itk::EventObject & event )
     {
 
-    if ( ( typeid( event ) == typeid( itk::StartEvent ) ) ||
-          ( typeid( event ) == typeid( itk::IterationEvent ) ) ||
-          ( typeid( event ) == typeid( itk::EndEvent ) ) )
+    if ( ( typeid( event ) == typeid( itk::IterationEvent ) ) ||
+         ( typeid( event ) == typeid( itk::EndEvent ) ) )
       {
       kvl::AtlasMeshBuilder::ConstPointer  builder = static_cast< const kvl::AtlasMeshBuilder* >(  caller );
 
@@ -64,12 +62,9 @@ public:
         std::cerr <<  "Couldn't write to log file"  << std::endl;
         exit( -1 );
         }
-#if 0        
-      const float  currentDataCost = builder->GetCurrentDataCost();
-      const float  currentAlphasCost = builder->GetCurrentAlphasCost();
-#else
-      float  currentDataCost = 0;
-      float  currentAlphasCost = 0;
+
+      double  currentDataCost = 0;
+      double  currentAlphasCost = 0;
       std::cout << "Computing current data and alphas cost..." << std::endl;
       itk::TimeProbe  probe;
       probe.Start();
@@ -77,15 +72,8 @@ public:
       probe.Stop();
       std::cout << "...done" << std::endl;
       std::cout << "Took " << probe.GetMean() << " seconds to compute current data and alphas cost" << std::endl;
-#endif
-      
-#if 0
-      const float  currentPositionCost = builder->GetCurrentPositionCost();
-      const float  currentCost = builder->GetCurrentCost();
-#else
-      const float  currentPositionCost = 0;
-      const float  currentCost = currentDataCost + currentAlphasCost;
-#endif
+      double  currentPositionCost = builder->GetCurrentPositionCost();
+      const double  currentCost = currentDataCost + currentAlphasCost + currentPositionCost;
       out << builder->GetIterationNumber() << "   "
            << currentDataCost << "   "
            << currentAlphasCost << "   "
@@ -93,13 +81,13 @@ public:
            << currentCost << std::endl;
 
       }
-    else if ( ( typeid( event ) == typeid( StartEdgeAnalysisEvent ) ) || 
-                  ( typeid( event ) == typeid( EndEdgeAnalysisEvent ) ) )
+    else if ( typeid( event ) == typeid( EdgeAnalysisProgressEvent ) ) 
       {
       // Show some progress
       kvl::AtlasMeshBuilder::ConstPointer  builder = static_cast< const kvl::AtlasMeshBuilder* >(  caller );
       std::cout << "Progress: " << builder->GetProgress() * 100 << "%" << std::endl;
       }
+
     }
 
   // 
@@ -125,9 +113,9 @@ int main( int argc, char** argv )
 {
 
   // Sanity check on input
-  if ( argc < 9 )
+  if ( argc < 8 )
     {
-    std::cerr << "Usage: " << argv[ 0 ] << " collapsedLabelFile('null' if no compressed labels) numberOfUpsamplingSteps meshSizeX meshSizeY meshSizeZ stiffness logDirectory fileName1 [ fileName2 ... ]" << std::endl;
+    std::cerr << "Usage: " << argv[ 0 ] << " numberOfUpsamplingSteps meshSizeX meshSizeY meshSizeZ stiffness logDirectory fileName1 [ fileName2 ... ]" << std::endl;
 
     return -1;
     }
@@ -138,213 +126,132 @@ int main( int argc, char** argv )
 
   // Retrieve the input parameters
   std::ostringstream  inputParserStream;
-  for ( int argumentNumber = 1; argumentNumber < 8; argumentNumber++ ) 
+  for ( int argumentNumber = 1; argumentNumber < 7; argumentNumber++ ) 
     {
     inputParserStream << argv[ argumentNumber ] << " ";
     }
   std::istringstream  inputStream( inputParserStream.str().c_str() );
-  std::string  collapsedLabelFile;
-  unsigned int  numberOfUpsamplingSteps;
-  unsigned int  meshSizeX;
-  unsigned int  meshSizeY;
-  unsigned int  meshSizeZ;
-  float  stiffness;
+  int  numberOfUpsamplingSteps;
+  int  meshSizeX;
+  int  meshSizeY;
+  int  meshSizeZ;
+  double  stiffness;
   std::string  logDirectory;
-  inputStream >>  collapsedLabelFile  >> numberOfUpsamplingSteps >>  meshSizeX >> meshSizeY >> meshSizeZ >> stiffness >> logDirectory;
+  inputStream >> numberOfUpsamplingSteps >>  meshSizeX >> meshSizeY >> meshSizeZ >> stiffness >> logDirectory;
 
-  // read in list of collapsed labels
-  std::ifstream clfs(collapsedLabelFile.c_str());
-  std::vector<unsigned short> collapsedLabs;
-  std::vector<unsigned short> mappedCollapsedLabs;
-  std::vector<std::vector<unsigned short> > collapsedLabList;
-
-  if(!(clfs.fail()))
-  {
-    std::string line;
-    unsigned short comp, lab;
-    int count=256; // collapsed labels go from 255 down
-    while (std::getline(clfs, line))
+  
+  // Read the input images
+  typedef kvl::CompressionLookupTable::ImageType  LabelImageType;
+  std::vector< LabelImageType::ConstPointer >  labelImages;
+  for ( int argumentNumber = 7; argumentNumber < argc; argumentNumber++ )
     {
-      count--;
-      unsigned char mcl = (unsigned char) count;
-      mappedCollapsedLabs.push_back(mcl);
-      std::vector<unsigned short> ll;
-      std::ostringstream  inputParserStream;
-      inputParserStream << line;
-      std::istringstream  inputStream( inputParserStream.str().c_str() );
-      if (!(inputStream >>  comp  >> lab))
-      {
-        std::cerr << "Error reading collapsed label file" << std::endl;
-        return -1;
-      }
-      collapsedLabs.push_back(comp);
-      ll.push_back(lab);
-      while(inputStream >>  lab) { ll.push_back(lab); }
-      collapsedLabList.push_back(ll);
-    }
-  }
+    // Read the input image
+    typedef itk::ImageFileReader< LabelImageType >  ReaderType;
+    ReaderType::Pointer  reader = ReaderType::New();
+    reader->SetFileName( argv[ argumentNumber ] );
+    reader->Update();
+    LabelImageType::ConstPointer  labelImage = reader->GetOutput();
 
- 
-  // Read the images (in original ushort format)
-  try
-    {
-    typedef kvl::CompressionLookupTable::ImageType  InputImageType;
-    std::vector< InputImageType::ConstPointer >  originalImages;
-    for ( int argumentNumber = 8; argumentNumber < argc; argumentNumber++ )
-      {
-      // Read the input image
-      typedef itk::ImageFileReader< InputImageType >  ReaderType;
-      ReaderType::Pointer  reader = ReaderType::New();
-      reader->SetFileName( argv[ argumentNumber ] );
-      reader->Update();
-      InputImageType::ConstPointer  originalImage = reader->GetOutput();
+    // Over-ride the spacing and origin since at this point we can't deal with that
+    const double spacing[] = { 1, 1, 1 };
+    const double origin[] = { 0, 0, 0 };
+    const_cast< LabelImageType* >( labelImage.GetPointer() )->SetSpacing( spacing );
+    const_cast< LabelImageType* >( labelImage.GetPointer() )->SetOrigin( origin );
 
-      // Over-ride the spacing and origin since at this point we can't deal with that
-      const double spacing[] = { 1, 1, 1 };
-      const double origin[] = { 0, 0, 0 };
-      const_cast< InputImageType* >( originalImage.GetPointer() )->SetSpacing( spacing );
-      const_cast< InputImageType* >( originalImage.GetPointer() )->SetOrigin( origin );
-
-      // Remember this image
-      originalImages.push_back( originalImage );
-      }
-
-    // Build a lookup table that maps the original intensities onto uchar starting
-    // at 0 and densely packed
-    kvl::CompressionLookupTable::Pointer  compressor = kvl::CompressionLookupTable::New();
-    std::vector<std::vector<unsigned short> > modifiedCollapsedLabList = compressor->Construct( originalImages,collapsedLabs,collapsedLabList ); // 
-
-    compressor->Write( "compressionLookupTable.txt" );
-
-    // Collect the label images resulting from pushing the original images through the
-    // lookup table
-    typedef kvl::CompressionLookupTable::CompressedImageType  OutputImageType;
-    std::vector< OutputImageType::ConstPointer >  labelImages;
-    for ( std::vector< InputImageType::ConstPointer >::const_iterator it = originalImages.begin();
-          it != originalImages.end(); ++it )
-      {
-        labelImages.push_back( ( compressor->CompressImage( ( *it ).GetPointer() , collapsedLabs, mappedCollapsedLabs) ).GetPointer() );
+    // Remember this image
+    labelImages.push_back( labelImage );
     }
 
+  // Build a lookup table that maps the original intensities onto class numbers starting
+  // at 0 and densely packed
+  kvl::CompressionLookupTable::Pointer  lookupTable = kvl::CompressionLookupTable::New();
+  lookupTable->Construct( labelImages );
+  lookupTable->Write( "compressionLookupTable.txt" );
 
-    // Now build the lookup table from compressed / collapsed to compressed  + compressed to compress (this is just the identity)
-    std::vector<unsigned char > mapCompToComp[256];
-    for(int i=0; i<256; i++)
+
+  // Set up the builder
+  kvl::AtlasMeshBuilder::Pointer  builder = kvl::AtlasMeshBuilder::New();
+  const itk::Size< 3 >  initialSize = { meshSizeX,  meshSizeY, meshSizeZ };
+  std::vector< double >  initialStiffnesses( numberOfUpsamplingSteps+1, stiffness );
+  builder->SetUp( labelImages, lookupTable, initialSize, initialStiffnesses );
+  builder->SetVerbose( false );
+
+  // Add some observers/callbacks
+  kvl::BuilderCommand::Pointer  builderCommand = kvl::BuilderCommand::New();
+  builderCommand->SetLogDirectory( logDirectory );
+  builder->AddObserver( itk::StartEvent(), builderCommand );
+  builder->AddObserver( itk::IterationEvent(), builderCommand );
+  builder->AddObserver( itk::EndEvent(), builderCommand );
+  builder->AddObserver( kvl::EdgeAnalysisProgressEvent(), builderCommand );
+
+  // Make sure the log directory exists and is empty
+  if ( itksys::SystemTools::FileIsDirectory( logDirectory.c_str() ) )
     {
-      std::vector<unsigned char > v;
-      if ( i<compressor->GetCompressionLookupTable().size()){
-        v.push_back(i);
-      }
-      else if( i > 255-modifiedCollapsedLabList.size())
+    // Logging directory exists already. Remove
+    if ( !( itksys::SystemTools::RemoveADirectory( logDirectory.c_str() ) ) )
       {
-        int ind=255-i;
-        for (int j=0; j<modifiedCollapsedLabList[ind].size(); j++)
-          v.push_back(modifiedCollapsedLabList[ind][j]);
-      }
-      mapCompToComp[i]=v; 
-//      if(mapCompToComp[i].size()>0) { std::cout << i << ": "; for(int k=0; k<mapCompToComp[i].size(); k++) std::cout << ((int)mapCompToComp[i][k]) << " "; std::cout << std::endl; }
-    }
-
-    // Set up the builder
-    kvl::AtlasMeshBuilder::Pointer  builder = kvl::AtlasMeshBuilder::New();
-    builder->SetMapCompToComp(mapCompToComp);
-    builder->SetLabelImages( labelImages );
-    builder->SetNumberOfUpsamplingSteps( numberOfUpsamplingSteps );
-    unsigned int  size[ 3 ] = { meshSizeX,  meshSizeY, meshSizeZ };
-    float  stiffnesses[ 5 ] = { stiffness, stiffness, stiffness, stiffness, stiffness };
-    builder->SetInitialMesh( size, stiffnesses );
-    kvl::BuilderCommand::Pointer  builderCommand = kvl::BuilderCommand::New();
-    builderCommand->SetLogDirectory( logDirectory );
-    builder->AddObserver( itk::StartEvent(), builderCommand );
-    builder->AddObserver( itk::IterationEvent(), builderCommand );
-    builder->AddObserver( itk::EndEvent(), builderCommand );
-    builder->AddObserver( kvl::StartEdgeAnalysisEvent(), builderCommand );
-    builder->AddObserver( kvl::EndEdgeAnalysisEvent(), builderCommand );
-
-    // Make sure the log directory exists and is empty
-    if ( itksys::SystemTools::FileIsDirectory( logDirectory.c_str() ) )
-      {
-      // Logging directory exists already. Remove
-      if ( !( itksys::SystemTools::RemoveADirectory( logDirectory.c_str() ) ) )
-        {
-        std::cerr << "Couldn't remove existing log directory" << std::endl;
-        return -1;
-        }
-      }
-
-    if ( !( itksys::SystemTools::MakeDirectory( logDirectory.c_str() ) ) )
-      {
-      std::cerr << "Couldn't create log directory" << std::endl;
+      std::cerr << "Couldn't remove existing log directory" << std::endl;
       return -1;
       }
+    }
 
-    // Write the label images
-    typedef itk::ImageFileWriter< OutputImageType >  WriterType;
-    for ( unsigned int labelImageNumber = 0; 
-          labelImageNumber < builder->GetLabelImages().size();
-          labelImageNumber++ )
+  if ( !( itksys::SystemTools::MakeDirectory( logDirectory.c_str() ) ) )
+    {
+    std::cerr << "Couldn't create log directory" << std::endl;
+    return -1;
+    }
+
+  // Write the label images
+  typedef itk::ImageFileWriter< LabelImageType >  WriterType;
+  for ( int labelImageNumber = 0; 
+        labelImageNumber < labelImages.size();
+        labelImageNumber++ )
+    {
+    std::ostringstream  fileNameStream;
+    fileNameStream << logDirectory << "/labelImage";
+    if ( labelImageNumber < 10 )
       {
-      std::ostringstream  fileNameStream;
-      fileNameStream << logDirectory << "/labelImage";
-      if ( labelImageNumber < 10 )
-        {
-        fileNameStream << "0";
-        }
-      fileNameStream << labelImageNumber << ".mhd";
-      WriterType::Pointer  writer = WriterType::New();
-      writer->SetInput( builder->GetLabelImages()[ labelImageNumber ] );
-      writer->SetFileName( fileNameStream.str().c_str() ); 
-      writer->Write();
+      fileNameStream << "0";
       }
+    fileNameStream << labelImageNumber << ".mhd";
+    WriterType::Pointer  writer = WriterType::New();
+    writer->SetInput( labelImages[ labelImageNumber ] );
+    writer->SetFileName( fileNameStream.str().c_str() ); 
+    writer->Write();
+    }
 
 
-    // Also start the loggin file
-    std::string  logFileName = logDirectory;
-    logFileName += "/logFile.txt";
-    std::ofstream  out( logFileName.c_str(), std::ios::out );
-    if ( out.bad() )
+  // Also start the loggin file
+  std::string  logFileName = logDirectory;
+  logFileName += "/logFile.txt";
+  std::ofstream  out( logFileName.c_str(), std::ios::out );
+  if ( out.bad() )
+    {
+    std::cerr << "Couldn't write to log file" << std::endl;
+    return -1;
+    }
+  out << "iterationNumber     dataCost     alphasCost     positionCost    totalCost"
+      << std::endl;
+  out << "------------------------------------------------------------------------------" << std::endl;
+
+
+  // If explicitStartCollection exists in the current directory, use it
+  kvl::AtlasMeshCollection::Pointer  explicitStartCollection = 0;
+  const std::string  explicitStartCollectionFileName = "explicitStartCollection.gz";
+  if ( itksys::SystemTools::FileExists( explicitStartCollectionFileName.c_str(), true ) )
+    {
+    explicitStartCollection = kvl::AtlasMeshCollection::New();
+    if ( !explicitStartCollection->Read( explicitStartCollectionFileName.c_str() ) )
       {
-      std::cerr << "Couldn't write to log file" << std::endl;
+      std::cerr << "Couldn't read mesh from file " << explicitStartCollectionFileName << std::endl;
       return -1;
       }
-    out << "iterationNumber     dataCost     alphasCost     positionCost    totalCost"
-        << std::endl;
-    out << "------------------------------------------------------------------------------" << std::endl;
-
-    // Don't use position cost
-    kvl::AtlasMeshCollectionPositionCostCalculator::SetReturnZero( true );
-
-
-#if 1
-    // If explicitStartCollection exists in the current directory, use it
-    kvl::AtlasMeshCollection::Pointer  explicitStartCollection = 0;
-    //const std::string  explicitStartCollectionFileName = "explicitStartCollection.txt.gz";
-    const std::string  explicitStartCollectionFileName = "explicitStartCollection.gz";
-    if ( itksys::SystemTools::FileExists( explicitStartCollectionFileName.c_str(), true ) )
-      {
-      explicitStartCollection = kvl::AtlasMeshCollection::New();
-      if ( !explicitStartCollection->Read( explicitStartCollectionFileName.c_str() ) )
-        {
-        std::cerr << "Couldn't read mesh from file " << explicitStartCollectionFileName << std::endl;
-        return -1;
-        }
-      }
-
-    // Let the beast go
-    builder->Build( explicitStartCollection );
-
-#else
-    // Let the beast go
-    builder->Build();
-#endif
-
-    //builder->BuildWithPriorityQueue();
-    }
-  catch( itk::ExceptionObject& e )
-    {
-    std::cerr << e << std::endl;
     }
 
+  // Let the beast go
+  builder->Build( explicitStartCollection );
+
+  
   return 0;
 };
 

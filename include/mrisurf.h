@@ -929,8 +929,8 @@ int          MRISupdateEllipsoidSurface(MRI_SURFACE *mris) ;
 MRI_SURFACE  *MRISrotate(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
                          float alpha, float beta, float gamma) ;
 
-MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int type) ;
-MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris) ;
+MRI          *MRISwriteIntoVolume(MRI_SURFACE *mris, MRI *mri, int which) ;
+MRI_SURFACE  *MRISreadFromVolume(MRI *mri, MRI_SURFACE *mris, int which) ;
 
 
 

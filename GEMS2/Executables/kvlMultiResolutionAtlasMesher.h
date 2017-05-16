@@ -25,55 +25,14 @@ public :
   itkTypeMacro( MultiResolutionAtlasMesher, itk::Object );
 
   // Some typedefs
-  typedef itk::Image< unsigned char, 3 >  LabelImageType;
+  typedef CompressionLookupTable::ImageType  LabelImageType;
 
-  // Set label images.
-  void SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages );
-
-  // Get label images
-  const std::vector< LabelImageType::ConstPointer >&  GetLabelImages() const
-    { return m_LabelImages; }
-
-  // Get label image
-  const LabelImageType*  GetLabelImage( unsigned int labelImageNumber ) const;
-
-  // Set/Get initial size
-  const unsigned int* GetInitialSize() const
-    { return m_InitialSize; }
-
-  //
-  void  SetNumberOfUpsamplingSteps( unsigned int  numberOfUpsamplingSteps )
-    { m_NumberOfUpsamplingSteps = numberOfUpsamplingSteps; }
-  unsigned int  GetNumberOfUpsamplingSteps() const
-    { return m_NumberOfUpsamplingSteps; }
-
-  //
-  void  SetTryToBeSparse( bool tryToBeSparse )
-    { m_TryToBeSparse = tryToBeSparse; }
-  bool  GetTryToBeSparse() const
-    { return m_TryToBeSparse; }
-
-  // Set/Get initial stiffness
-  float  GetInitialStiffness( unsigned int upsampleStepNumber ) const
-    { return m_InitialStiffnesses[ upsampleStepNumber ]; }
-
-  //
-  void  SetUp( const unsigned int* size, const float* initialStiffnesses );
-
-// Set/Get mapping of collapsed labels.
-  void SetMapCompToComp( std::vector<unsigned char > *mapCompToComp )
-    { for(int i=0; i<256; i++) m_mapCompToComp[i] = mapCompToComp[i]; }
-  std::vector<unsigned char > * GetMapCompToComp()
-    { return m_mapCompToComp; }
-
-  //
-  unsigned int GetNumberOfClasses() const
-    { return m_NumberOfClasses; }
-
-  //
-  unsigned int GetNumberOfMeshes() const
-    { return m_NumberOfMeshes; }
-
+  // Set up
+  void SetUp( const std::vector< LabelImageType::ConstPointer >& labelImages,
+              const CompressionLookupTable*  compressionLookupTable,
+              const itk::Size< 3 >&  initialSize, 
+              const std::vector< double >&  initialStiffnesses,
+              bool tryToBeSparse = true );
 
   //
   const AtlasMeshCollection*  GetCurrentMeshCollection() const
@@ -82,34 +41,6 @@ public :
   //
   const AtlasParameterEstimator* GetEstimator() const
     { return m_Estimator; }
-
-  //
-  void SetPositionEstimationIterationEventResolution( unsigned int resolution )
-    { m_Estimator->GetDeformationOptimizer()->SetIterationEventResolution( resolution ); }
-  unsigned int GetPositionEstimationIterationEventResolution() const
-    { return m_Estimator->GetDeformationOptimizer()->GetIterationEventResolution(); }
-
-  //
-  //void SetPositionGradientDescentStepSize( float stepSize )
-  //  { m_Estimator->SetPositionGradientDescentStepSize( stepSize ); }
-  //float  GetPositionGradientDescentStepSize() const
-  //  { return m_Estimator->GetPositionGradientDescentStepSize(); }
-
-  //
-  void SetAlphaEstimationStopCriterion( float stopCriterion )
-    { m_Estimator->SetAlphaEstimationStopCriterion( stopCriterion ); }
-  float GetAlphaEstimationStopCriterion() const
-    { return m_Estimator->GetAlphaEstimationStopCriterion(); }
-
-  //
-  //void SetPositionEstimationStopCriterion( float stopCriterion )
-  //  { m_Estimator->SetPositionEstimationStopCriterion( stopCriterion ); }
-  //float GetPositionEstimationStopCriterion() const
-  //  { return m_Estimator->GetPositionEstimationStopCriterion(); }
-
-  //
-  unsigned long AddEstimatorObserver( const itk::EventObject& event, itk::Command* command )
-    { return m_Estimator->AddObserver( event, command ); }
 
   //
   void  Go();
@@ -123,9 +54,6 @@ protected :
 
   // Print
   void PrintSelf( std::ostream& os, itk::Indent indent ) const;  
-
-  //
-  virtual void SetUp();
 
   //
   typedef itk::AutomaticTopologyMeshSource< kvl::AtlasMesh >  MeshSourceType;
@@ -220,23 +148,22 @@ private :
   //
   AtlasMeshCollection::Pointer  GetMeshCollection( AtlasMesh::PointsContainer* referencePosition,
                                                    std::vector< AtlasMesh::PointsContainer::Pointer >& positions,
-                                                   float stiffness ) const;
+                                                   double  stiffness ) const;
 
   //
   void Upsample();
 
   //
   std::vector< LabelImageType::ConstPointer >  m_LabelImages;
-  unsigned int  m_InitialSize[ 3 ];
-  unsigned int  m_NumberOfUpsamplingSteps;
+  CompressionLookupTable::ConstPointer  m_CompressionLookupTable;
+  itk::Size< 3 >  m_InitialSize;
+  std::vector< double >  m_InitialStiffnesses;
   bool  m_TryToBeSparse;
-  float  m_InitialStiffnesses[ 5 ];
+  
   AtlasParameterEstimator::Pointer  m_Estimator;
-
-  unsigned int  m_NumberOfClasses;
-  unsigned int  m_NumberOfMeshes;
-  unsigned int  m_DomainSize[ 3 ];
-  std::vector<unsigned char > m_mapCompToComp[256];
+  int  m_NumberOfClasses;
+  int  m_NumberOfMeshes;
+  itk::Size< 3 >  m_DomainSize;
 
   AtlasMeshCollection::Pointer  m_Current;
 

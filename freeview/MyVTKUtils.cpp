@@ -584,3 +584,44 @@ void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
         p[2] + offset[2] );
   }
 }
+
+
+double MyVTKUtils::GetImageDataComponent(char* ptr, int* dim, int i, int j, int k, int nframe, int data_type)
+{
+  switch (data_type)
+  {
+  case VTK_UNSIGNED_CHAR:
+    return ((unsigned char*)ptr)[k*dim[0]*dim[1]+j*dim[0]+i + nframe*dim[0]*dim[1]*dim[2]];
+  case VTK_INT:
+    return ((int*)ptr)[k*dim[0]*dim[1]+j*dim[0]+i + nframe*dim[0]*dim[1]*dim[2]];
+  case VTK_LONG:
+    return ((long*)ptr)[k*dim[0]*dim[1]+j*dim[0]+i + nframe*dim[0]*dim[1]*dim[2]];
+  case VTK_FLOAT:
+    return ((float*)ptr)[k*dim[0]*dim[1]+j*dim[0]+i + nframe*dim[0]*dim[1]*dim[2]];
+  case VTK_SHORT:
+    return ((short*)ptr)[k*dim[0]*dim[1]+j*dim[0]+i + nframe*dim[0]*dim[1]*dim[2]];
+  }
+  return 0;
+}
+
+void MyVTKUtils::SetImageDataComponent(char* ptr, int* dim, int i, int j, int k, int nframe, int data_type, double val)
+{
+  switch (data_type)
+  {
+  case VTK_UNSIGNED_CHAR:
+    ((unsigned char*)ptr)[k*dim[0]*dim[1]+j*dim[0]+i + nframe*dim[0]*dim[1]*dim[2]] = (unsigned char)val;
+    break;
+  case VTK_INT:
+    ((int*)ptr)[k*dim[0]*dim[1]+j*dim[0]+i + nframe*dim[0]*dim[1]*dim[2]] = (int)val;
+    break;
+  case VTK_LONG:
+    ((long*)ptr)[k*dim[0]*dim[1]+j*dim[0]+i + nframe*dim[0]*dim[1]*dim[2]] = (long)val;
+    break;
+  case VTK_FLOAT:
+    ((float*)ptr)[k*dim[0]*dim[1]+j*dim[0]+i + nframe*dim[0]*dim[1]*dim[2]] = (float)val;
+    break;
+  case VTK_SHORT:
+    ((short*)ptr)[k*dim[0]*dim[1]+j*dim[0]+i + nframe*dim[0]*dim[1]*dim[2]] = (short)val;
+    break;
+  }
+}

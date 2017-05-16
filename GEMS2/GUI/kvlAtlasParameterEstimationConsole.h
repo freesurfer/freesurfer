@@ -23,7 +23,7 @@ public:
   virtual ~AtlasParameterEstimationConsole();
 
   //
-  void SetLabelImages( const std::vector< std::string >&  fileNames, bool useGaussians = false, bool ignoreLastImage = false );
+  void SetLabelImages( const std::vector< std::string >&  fileNames );
     
   // 
   void Show();
@@ -39,11 +39,6 @@ protected:
   //
   void DisplayLabelImage( unsigned int labelImageNumber );
   
-#if 0
-  //
-  void SelectTriangleContainingPoint( float x, float y );
-#endif
-
   //
   void InitializeMesh();
   

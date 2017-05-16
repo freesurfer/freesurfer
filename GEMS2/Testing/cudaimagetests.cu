@@ -72,7 +72,7 @@ void LaunchPlusKernel( kvl::cuda::CudaImage<ElementType,1,IndexType>& dst,
     throw kvl::cuda::CUDAException(err);
   }
   PlusKernel1D<<<grid,threads>>>( dst.getArg(), src.getArg(), value );
-  err = cudaThreadSynchronize(); if( cudaSuccess != err ) {
+  err = cudaDeviceSynchronize(); if( cudaSuccess != err ) {
     throw kvl::cuda::CUDAException(err);
   }
 }
@@ -110,7 +110,7 @@ void LaunchPlusKernel( kvl::cuda::CudaImage<ElementType,2,IndexType>& dst,
     throw kvl::cuda::CUDAException(err);
   }
   PlusKernel2D<<<grid,threads>>>( dst.getArg(), src.getArg(), value );
-  err = cudaThreadSynchronize(); if( cudaSuccess != err ) {
+  err = cudaDeviceSynchronize(); if( cudaSuccess != err ) {
     throw kvl::cuda::CUDAException(err);
   }
 }
@@ -148,7 +148,7 @@ void LaunchPlusKernel( kvl::cuda::CudaImage<ElementType,3,IndexType>& dst,
     throw kvl::cuda::CUDAException(err);
   }
   PlusKernel3D<<<grid,threads>>>( dst.getArg(), src.getArg(), value );
-  err = cudaThreadSynchronize(); if( cudaSuccess != err ) {
+  err = cudaDeviceSynchronize(); if( cudaSuccess != err ) {
     throw kvl::cuda::CUDAException(err);
   }
 }

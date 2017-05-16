@@ -72,6 +72,10 @@ public:
 
   static void GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSlice_in,
                                  double* pt1_in, double* pt2_in, vtkPoints* pts_out );
+
+  static double GetImageDataComponent(char* ptr, int* dim, int i, int j, int k, int nframe, int data_type);
+
+  static void SetImageDataComponent(char* ptr, int* dim, int i, int j, int k, int nframe, int data_type, double val);
 };
 
 #endif

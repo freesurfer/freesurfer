@@ -240,8 +240,8 @@ write_roc_curve(MRI_SURFACE *mris[MAX_SUBJECTS], LABEL *labels[MAX_SUBJECTS],
 {
   FILE   *fp ;
   float   min_val, max_val, total_min, total_max, step, thresh ;
-  int     n, nlabels ;
-  LABEL   **segments ;
+  int     n, nlabels=0 ;
+  LABEL   **segments=NULL ;
   int    tpos, fpos, tneg, fneg, tps[MAX_SUBJECTS], fps[MAX_SUBJECTS], tns[MAX_SUBJECTS], fns[MAX_SUBJECTS], i ;
 
   fp = fopen(out_fname, "w") ;

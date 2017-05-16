@@ -2,7 +2,11 @@ function rgbBuffer = kvlColorCodeProbabilityImages( probabilityImages, colors )
 %
 
 DIM = size( probabilityImages );
-numberOfClasses = DIM( 4 );
+if ( length( DIM ) < 4 )
+  numberOfClasses = 1;
+else
+  numberOfClasses = DIM( 4 );
+end  
 DIM = DIM( 1 : 3 );
 
 if ( nargin < 2 )

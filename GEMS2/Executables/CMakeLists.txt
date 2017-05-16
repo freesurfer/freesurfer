@@ -15,19 +15,12 @@ ELSE ( TETGEN_FOUND )
 ENDIF ( TETGEN_FOUND )
 
 
-# Add an executable
-ADD_EXECUTABLE( kvlAverageMeshes
-                kvlAverageMeshes.cxx )
-TARGET_LINK_LIBRARIES( kvlAverageMeshes
-                       kvlGEMSCommon
-                      )
-
-# Add an executable
-ADD_EXECUTABLE( kvlCompressImage
-                kvlCompressImage.cxx )
-TARGET_LINK_LIBRARIES( kvlCompressImage
-                       kvlGEMSCommon
-                       )
+# # Add an executable
+# ADD_EXECUTABLE( kvlAverageMeshes
+#                 kvlAverageMeshes.cxx )
+# TARGET_LINK_LIBRARIES( kvlAverageMeshes
+#                        kvlGEMSCommon
+#                       )
 
 # Add an executable
 ADD_EXECUTABLE( kvlBuildAtlasMesh
@@ -36,17 +29,16 @@ ADD_EXECUTABLE( kvlBuildAtlasMesh
                 kvlAtlasMeshCollectionFastReferencePositionCost.cxx
                 kvlAtlasMeshCollectionModelLikelihoodCalculator.cxx
                 kvlMultiResolutionAtlasMesher.cxx
-                kvlAtlasMeshVertexProcessor2.cxx
-                kvlAtlasMeshCollectionPositionCostCalculator2.cxx
                 )
 TARGET_LINK_LIBRARIES( kvlBuildAtlasMesh
                        kvlGEMSCommon
+                       ${TETGEN_LIB} 
                        )
 
-# Add an executable
-ADD_EXECUTABLE( kvlConvert
-                kvlConvert.cxx )
-TARGET_LINK_LIBRARIES( kvlConvert
-                       kvlGEMSCommon
-                       )
 
+# # Add an executable
+# ADD_EXECUTABLE( kvlDecimateTest
+#                 kvlDecimateTest.cxx )
+# TARGET_LINK_LIBRARIES( kvlDecimateTest
+#                        kvlGEMSCommon
+#                       )

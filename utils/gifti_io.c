@@ -4093,7 +4093,8 @@ int gifti_clear_gifti_image(gifti_image * gim)
     if( G.verb > 5 ) fprintf(stderr,"-- clearing gifti_image\n");
 
     /* set the version and clear all pointers */
-    memset(gim, 0, sizeof(gim));
+    //memset(gim, 0, sizeof(gim)); // original
+    memset(gim, 0, sizeof(*gim));  // changed by dng
 
     gim->version = NULL;
     gifti_clear_nvpairs(&gim->meta);

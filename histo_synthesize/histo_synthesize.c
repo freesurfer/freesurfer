@@ -300,7 +300,7 @@ usage_exit(int code) {
 MRI *
 HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsynth, int wsize, int flags, char *fname, MRI *mri_train_src, MRI *mri_train_dst)
 {
-  int     x, y, z, xd, yd, zd, xm, ym, zm, x1, y1, z1, identity, tid, nind, width ;
+  int     x, y, z, xd=0, yd=0, zd=0, xm, ym, zm, x1, y1, z1, identity, tid, nind, width ;
   short   *xind, *yind, *zind ;
   double  val, xh, yh, zh, sval ;
   FEATURE farray[_MAX_FS_THREADS], *f = &farray[0] ;

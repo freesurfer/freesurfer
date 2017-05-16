@@ -677,7 +677,7 @@ MRI *afniRead(const char *fname, int read_volume)
   float flMax = 0.;
   int initialized = 0;
   int frame;
-  int bytes;
+  //int bytes; // set but not used
 
   strcpy(header_fname, fname);
   c = strrchr(header_fname, '.');
@@ -860,7 +860,7 @@ MRI *afniRead(const char *fname, int read_volume)
   // bytes_per_voxel = brik_file_length / nvoxels; // this assumes one frame
   bytes_per_voxel = af.brick_types[0] + 1; // 0(byte)-> 1, 1(short) -> 2, 3(float)->4
 
-  bytes = header->width*header->height*header->depth*bytes_per_voxel;
+  //bytes = header->width*header->height*header->depth*bytes_per_voxel;
 
   // this check is for nframes = 1 case which is the one we are supporting
   if (bytes_per_voxel != brik_file_length/nvoxels)

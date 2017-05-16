@@ -1,7 +1,6 @@
 #ifndef __kvlAtlasMeshDeformationConjugateGradientOptimizer_h
 #define __kvlAtlasMeshDeformationConjugateGradientOptimizer_h
 
-#include "kvlAtlasMeshToIntensityImageGradientCalculator.h"
 #include "kvlAtlasMeshDeformationOptimizer.h"
 
 
@@ -29,60 +28,25 @@ public :
   /** Run-time type information (and related methods). */
   itkTypeMacro( AtlasMeshDeformationConjugateGradientOptimizer, AtlasMeshDeformationOptimizer );
 
-  /** Some typedefs */
-  typedef Superclass::ProbabilityImageType  ProbabilityImageType;
-  typedef Superclass::SegmentedImageType  SegmentedImageType;
-  typedef Superclass::ImageType  ImageType;
-  typedef Superclass::TransformType  TransformType;
-
-  //
-  void  SetMaximalDeformationStopCriterion( float maximalDeformationStopCriterion )
-    { m_MaximalDeformationStopCriterion = maximalDeformationStopCriterion; }
-
-  //
-  float  GetMaximalDeformationStopCriterion() const
-    { return m_MaximalDeformationStopCriterion; }
-
-  /** */
-  double GetMinLogLikelihoodTimesPrior() const
-    {
-    return m_Cost;
-    }
-  
-  /** */
-  bool Go();
-
-  /** */
-  double PerformOneIteration();
-  
-
 protected:
   AtlasMeshDeformationConjugateGradientOptimizer();
   virtual ~AtlasMeshDeformationConjugateGradientOptimizer();
   
   void Initialize();
 
-  //
-  void  GetCostAndGradient( const AtlasMesh::PointsContainer* position, double& cost, AtlasPositionGradientContainerType::Pointer& gradient );
-
-  //
-  double  BackTrack( AtlasMesh::PointsContainer::Pointer&  position, double& stepSize, double&  cost, AtlasPositionGradientContainerType::Pointer& gradient, 
-                     const AtlasPositionGradientContainerType* direction, double directionalDerivative, double tolX, double referenceCost );
- 
+  double FindAndOptimizeNewSearchDirection(); 
   
 private:
   AtlasMeshDeformationConjugateGradientOptimizer(const Self&); //purposely not implemented
   void operator=(const Self&); //purposely not implemented
   
-  float  m_MaximalDeformationStopCriterion;
-  
-  double  m_Cost;
   double  m_OldCost;
-  AtlasMesh::PointsContainer::Pointer  m_Position;
-  AtlasPositionGradientContainerType::Pointer  m_Gradient;
   AtlasPositionGradientContainerType::Pointer  m_OldGradient;
-  AtlasPositionGradientContainerType::Pointer  m_Direction;
-  //double  m_StepSize;
+  AtlasPositionGradientContainerType::Pointer  m_OldSearchDirection;
+  double  m_AlphaUsedLastTime;
+  
+  double  m_StartDistance;
+  
   
 };
 
@@ -90,4 +54,3 @@ private:
 } // end namespace kvl
 
 #endif
-

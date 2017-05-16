@@ -981,6 +981,8 @@ double Variance8V(int startX, int startY, int startZ,
   ind[0] = Mat[startZ][startY][startX];
   if (startX+size)
     ind[1] = Mat[startZ][startY][startX+size];
+  else
+    ind[1] = 0; // added to quiet compiler
   ind[2] = Mat[startZ][startY+size][startX];
   ind[3] = Mat[startZ][startY+size][startX+size];
   ind[4] = Mat[startZ+size][startY][startX];

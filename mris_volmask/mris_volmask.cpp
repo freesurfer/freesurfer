@@ -215,12 +215,18 @@ main(int ac, char* av[])
     std::string pathSurf(subjDir / "surf"),
         pathMriOutput = outputPath / "aseg.ribbon.mgz";
 
-    printf("inserting LH into aseg...\n") ;
-    insert_ribbon_into_aseg(mriTemplate, mriTemplate,
-                            surfLeftWhite, surfLeftPial, LEFT_HEMISPHERE) ;
-    printf("inserting RH into aseg...\n") ;
-    insert_ribbon_into_aseg(mriTemplate, mriTemplate,
-                            surfRightWhite, surfRightPial, RIGHT_HEMISPHERE);
+    if (params.bRHOnly == 0)
+    {
+      printf("inserting LH into aseg...\n") ;
+      insert_ribbon_into_aseg(mriTemplate, mriTemplate,
+			      surfLeftWhite, surfLeftPial, LEFT_HEMISPHERE) ;
+    }
+    if (params.bLHOnly == 0)
+    {
+      printf("inserting RH into aseg...\n") ;
+      insert_ribbon_into_aseg(mriTemplate, mriTemplate,
+			      surfRightWhite, surfRightPial, RIGHT_HEMISPHERE);
+    }
     printf("writing output to %s\n",
            (const_cast<char*>( pathMriOutput.c_str() )));
     MRIwrite(mriTemplate,  (const_cast<char*>( pathMriOutput.c_str() ))) ;

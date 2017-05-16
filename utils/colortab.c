@@ -1859,7 +1859,7 @@ int CTABfindEntryByName(COLOR_TABLE *ct,const char *name, int *nEntry)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM, 
                  "CTABfindName: name was NULL"));
-  if (NULL==index)
+  if (NULL==nEntry)
     ErrorReturn(ERROR_BADPARM,
                 (ERROR_BADPARM, 
                  "CTABfindName: output parameter was NULL"));

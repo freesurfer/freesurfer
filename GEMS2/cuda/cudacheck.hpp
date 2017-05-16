@@ -7,7 +7,7 @@
     if( cudaSuccess != err ) {			\
       throw kvl::cuda::CUDAException(err);	\
     }						\
-    err = cudaThreadSynchronize();		\
+    err = cudaDeviceSynchronize();		\
     if( cudaSuccess != err ) {			\
       throw kvl::cuda::CUDAException(err);	\
     }						\

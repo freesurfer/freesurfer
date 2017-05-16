@@ -1,5 +1,4 @@
 function run_samseg(imageFileName1,savePath,nThreadsStr,UseGPUStr,imageFileName2,imageFileName3,imageFileName4,imageFileName5,imageFileName6)
-% run_samseg(imageFileName1,savePath,nThreadsStr,UseGPUStr,imageFileName2,imageFileName3)
 % This function is a wrapper for running the samseg matlab
 % scripts. This wrapper can be compiled (meaning that all the
 % inputs are strings).
@@ -10,7 +9,6 @@ function run_samseg(imageFileName1,savePath,nThreadsStr,UseGPUStr,imageFileName2
 fprintf('Matlab version %s\n',version);
 
 nThreads = sscanf(nThreadsStr,'%d');
-UseGPU = sscanf(UseGPUStr,'%d');
 fprintf('input file1 %s\n',imageFileName1);
 fprintf('input file2 %s\n',imageFileName2);
 fprintf('input file3 %s\n',imageFileName3);
@@ -19,7 +17,6 @@ fprintf('input file5 %s\n',imageFileName5);
 fprintf('input file6 %s\n',imageFileName6);
 fprintf('output path %s\n',savePath);
 fprintf('nThreads = %d\n',nThreads);
-fprintf('UseGPU = %d\n',UseGPU);
 
 if(strcmp(imageFileName2,'none')) imageFileName2 = ''; end
 if(strcmp(imageFileName3,'none')) imageFileName3 = ''; end
@@ -37,17 +34,27 @@ meshCollectionFileName = sprintf('%s/CurrentMeshCollection30New.txt.gz',AvgDataD
 % This is bascially an LUT
 compressionLookupTableFileName = sprintf('%s/namedCompressionLookupTable.txt',AvgDataDir);
  
-tic;
+samsegStartTime = tic;
 
 fprintf('entering kvlClear\n');
 kvlClear; % Clear all the wrapped C++ stuff
 close all;
 
-fprintf('entering registerToAtlas\n');
+fprintf('entering registerAtlas\n');
 % Switch on if you want to initialize the registration by matching
 % (translation) the centers  of gravity 
-initializeUsingCenterOfGravityAlignment = 0; 
-samseg_registerToAtlas
+initializeUsingCenterOfGravityAlignment = false;
+useSPMForAffineRegistration = true;
+if useSPMForAffineRegistration
+  samseg_registerToAtlas
+else
+  K = 1e-7; % Mesh stiffness -- compared to normal models, the entropy cost function is normalized 
+            % (i.e., measures an average *per voxel*), so that this needs to be scaled down by the
+            % number of voxels that are covered
+  showFigures = true;
+  samseg_registerAtlas
+end
+  
 
 fprintf('entering samsegment \n');
 %subject with different contrasts you can feed those in as well. Make sure
@@ -73,8 +80,24 @@ end
 downSamplingFactor = 1;  % Use 1 for no downsampling
 maxNuberOfIterationPerMultiResolutionLevel(1) = 5; % default 5
 maxNuberOfIterationPerMultiResolutionLevel(2) = 20; % default 20
-positionUpdatingMaximumNumberOfIterations = 500;
-maximalDeformationStopCriterion = 1e-3;
+maximumNumberOfDeformationIterations = 500;
+maximalDeformationStopCriterion = 0.001; % Measured in pixels
+lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion; % Idem
+meshSmoothingSigmas = [ 2.0 0 ]'; % UsemeshSmoothingSigmas = [ 0 ]' if you don't want to use multi-resolution
+relativeCostDecreaseStopCriterion = 1e-6;
+maximalDeformationAppliedStopCriterion = 0.0;
+BFGSMaximumMemoryLength = 12;
+K = 0.1; % Stiffness of the mesh
+if useSPMForAffineRegistration
+  brainMaskingSmoothingSigma = 2; % sqrt of the variance of a Gaussian blurring kernel 
+  brainMaskingThreshold = 0.01;
+else
+  brainMaskingSmoothingSigma = 5; % 2; % sqrt of the variance of a Gaussian blurring kernel 
+  brainMaskingThreshold = 0.01;
+end
+
+
 samsegment;
 
-fprintf('#@# samseg done %6.4f min\n',toc/60);
+fprintf('#@# samseg done %6.4f min\n',toc( samsegStartTime )/60);
+

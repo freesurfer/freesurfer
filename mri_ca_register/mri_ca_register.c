@@ -387,6 +387,7 @@ main(int argc, char *argv[])
               Progname, gca_fname) ;
   if (remove_lh)
   {
+    Gvx = nint(gca->width*.4) ; // only one hemi - assume it is left/right centered in FOV
     GCAremoveHemi(gca, 1) ;  // for exvivo contrast
   }
   if (remove_rh)
@@ -1326,7 +1327,7 @@ main(int argc, char *argv[])
   if (renormalize_align_after) // 1st morph should be smooth
   {
     parms.tol *= 5 ;
-    parms.l_smoothness *= 5 ;
+    parms.l_smoothness *= 20 ;
   }
   if (nreads > 0)
   {
@@ -1424,6 +1425,12 @@ main(int argc, char *argv[])
     start_t = parms.start_t ;
     memmove(&parms, (const void *)&old_parms, sizeof(old_parms)) ;
     parms.start_t = start_t ;
+//    if (reset)
+    {
+      printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! resetting metric properties !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n") ;
+      GCAMcopyNodePositions(gcam, CURRENT_POSITIONS, ORIGINAL_POSITIONS) ;
+      GCAMstoreMetricProperties(gcam) ;
+    }
   }
 
   gcamComputeMetricProperties(gcam) ;
@@ -1527,14 +1534,18 @@ main(int argc, char *argv[])
       int nthreads ;
 #if 1
       parms.tol /= 5 ;  // reset parameters to previous level
-      parms.l_smoothness /= 5 ;
+      parms.l_smoothness /= 20 ;
 #ifdef HAVE_OPENMP
-      omp_set_num_threads(1);
+      if (getenv("FS_FAST_CAREG") == NULL)
+	omp_set_num_threads(1);
 #endif 
       GCAMregister(gcam, mri_inputs, &parms) ;
 #ifdef HAVE_OPENMP
-      nthreads = omp_get_max_threads();
-      omp_set_num_threads(nthreads);
+      if (getenv("FS_FAST_CAREG") == NULL)
+      {
+	nthreads = omp_get_max_threads();
+	omp_set_num_threads(nthreads);
+      }
 #endif 
 #endif
       printf("********************* ALLOWING NEGATIVE NODES IN DEFORMATION"

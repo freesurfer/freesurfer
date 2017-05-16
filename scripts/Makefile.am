@@ -24,6 +24,7 @@ browse-minc-header.tcl \
 bugr \
 build_desikan_killiany_gcs.csh \
 cblumwmgyri \
+check_recons.sh \
 check_subject \
 clear_fs_env.csh \
 compute_interrater_variability.csh \
@@ -191,6 +192,7 @@ rbbr \
 rcbf-prep \
 rebuild_gca_atlas.csh \
 recon-all \
+recon-all-exvivo \
 recon-all.makefile \
 reg-feat2anat \
 register_child \

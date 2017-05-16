@@ -47,6 +47,12 @@
       <explanation>use wm segmentation</explanation>
       <argument>-conform</argument>
       <explanation>interpolate volume to be isotropic 1mm^3</explanation>
+      <argument>-topo_dist_thresh dist</argument>
+      <explanation>do not relabel ventricle segments that are disconnected from the main body of the ventricle, are less than dist mm) from the largest segment, and have a voloume greater than topo_volume_thresh1 (see below)</explanation>
+      <argument>-topo_volume_thresh1 volume</argument>
+      <explanation>do not relabel ventricle segments that are disconnected from the main body of the ventricle, are less than dist mm from the largest segment, and have a voloume greater than volume (see above)</explanation>
+      <argument>-topo_volume_thresh2 volume</argument>
+      <explanation>do not relabel ventricle segments that are disconnected from the main body of the ventricle and have a voloume greater than volume</explanation>
       <argument>-normpd</argument>
       <explanation>normalize PD image to GCA means</explanation>
       <argument>-tl &lt;gca_tl&gt;</argument>

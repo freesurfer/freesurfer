@@ -26,6 +26,7 @@ else
   exit 1
 fi
 [ ! -d "${SUBJECTS_DIR}" ] && echo "${SUBJECTS_DIR} not a valid directory." && exit 1;
+echo "SUBJECTS_DIR=${SUBJECTS_DIR}"
 
 INACTIVE_LIMIT=60
 COMPLETED=(); ERRORED=(); IS_RUNNING=(); IS_INACTIVE=()

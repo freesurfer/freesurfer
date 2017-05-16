@@ -6,6 +6,13 @@ TARGET_LINK_LIBRARIES( kvlAtlasMeshRasterizorTestGPU
                        kvlGEMSCommon
                       )
 
+# Add an executable
+ADD_EXECUTABLE( tmp
+                tmp.cxx 
+                )
+TARGET_LINK_LIBRARIES( tmp
+                       kvlGEMSCommon
+                      )
 
 # Boost tests
 IF(Boost_FOUND)
@@ -15,6 +22,7 @@ IF(Boost_FOUND)
   LIST(APPEND testsrcs atlasmeshvisitcountercpuwrapper.cpp)
   LIST(APPEND testsrcs testatlasmeshvisitcounter.cpp)
   LIST(APPEND testsrcs testdimensioncuda.cpp)
+  LIST(APPEND testsrcs teststopwatch.cpp)
 
   IF( CUDA_FOUND )
     LIST(APPEND testsrcs testcudaimage.cpp)

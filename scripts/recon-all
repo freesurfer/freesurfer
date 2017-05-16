@@ -10,7 +10,7 @@
 #    $Author: greve $
 #    $Date: 2017/02/08 21:17:33 $
 #    $Revision: 1.601 $
-#
+	#
 # Copyright © 2011-2016 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
@@ -51,6 +51,10 @@ set fs_time = "";
 set ErrorFile = /dev/null
 set cmd = ();
 
+# commands to only process single hemispheres (e.g. for ex vivo)
+set LHonly = 0 ;
+set RHonly = 0 ;
+set nocerebellum = () ;  # will be set to -nocerebellum
 set tcsh61706 = (`tcsh --version | grep "6\.17\.06"`)
 if ("$tcsh61706" != "") then
     echo ""
@@ -2225,6 +2229,9 @@ skullstrip:
           set cmd2 = (mri_em_register)
           if($UseCuda) set cmd2 = (mri_em_register_cuda)
           set cmd2 = ($cmd2 -rusage $touchdir/rusage.mri_em_register.skull.dat) 
+	  set cmd2 = ($cmd2 $nocerebellum )
+	  if ($LHonly) set cmd2 = ($cmd2 -lh )
+	  if ($RHonly) set cmd2 = ($cmd2 -rh )
           set cmd2 = ($cmd2 -skull)
           set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
           set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
@@ -2492,6 +2499,9 @@ if($DoGCAReg) then
     if($NoEMReg == 0) then
       set cmd = (mri_em_register)
       if($UseCuda) set cmd = (mri_em_register_cuda)
+      set cmd = ($cmd $nocerebellum )
+      if ($LHonly) set cmd = ($cmd -lh )
+      if ($RHonly) set cmd = ($cmd -rh )
       set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
       if($DoCreateBaseSubj) then
         # base subj processing (norm_template instead of nu, and no mask needed):
@@ -2552,6 +2562,10 @@ if($DoCANormalize) then
   set xopts = `fsr-getxopts mri_ca_normalize $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_ca_normalize)
   if($UseCPsWithCaNorm)  set cmd = ($cmd -f $ControlPointsFile)
+  set cmd = ($cmd $nocerebellum )
+  if ($LHonly) set cmd = ($cmd -lh )
+  if ($RHonly) set cmd = ($cmd -rh )
+    
   if ($longitudinal) then
     # longitudinal processing:
     # use the aseg_base (just created) as initialization of the current TP:
@@ -2593,6 +2607,9 @@ if($DoCAReg) then
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_ca_register)
   if($UseCuda) set cmd = (mri_ca_register_cuda)
+  set cmd = ($cmd $nocerebellum )
+  if ($LHonly) set cmd = ($cmd -lh)
+  if ($RHonly) set cmd = ($cmd -rh)
   set cmd = ($cmd -rusage $touchdir/rusage.mri_ca_register.dat) 
   if($#GCARegIterations) set cmd = ($cmd -n $GCARegIterations)
   if($#GCARegTol) set cmd = ($cmd -tol $GCARegTol)
@@ -2695,6 +2712,9 @@ if($DoSkullLTA) then
   set xopts = `fsr-getxopts mri_em_register $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_em_register)
   if ($UseCuda) set cmd = (mri_em_register_cuda)
+  set cmd = ($cmd $nocerebellum )
+  if ($LHonly) set cmd = ($cmd -lh )
+  if ($RHonly) set cmd = ($cmd -rh )
   set cmd = ($cmd -skull -t transforms/talairach.lta \
      $xopts nu_noneck.mgz ${GCADIR}/$GCASkull \
      transforms/talairach_with_skull_2.lta)
@@ -2814,6 +2834,9 @@ if($DoCALabel) then
   set rusage = $touchdir/rusage.mri_ca_label.dat 
   set cmd = (mri_ca_label -relabel_unlikely 9 .3 -prior 0.5)
   set cmd = ($cmd $UseCAAlign)
+  set cmd = ($cmd $nocerebellum )
+  if ($LHonly) set cmd = ($cmd -lh )
+  if ($RHonly) set cmd = ($cmd -rh )
   if($NoWMSA) set cmd = ($cmd -nowmsa)
   set asegbasename=(aseg.auto_noCCseg)
   if($longitudinal && $UseAsegFusion) then
@@ -2833,7 +2856,10 @@ if($DoCALabel) then
   # Run mri_cc to create aseg.auto.mgz
   set xopts = `fsr-getxopts mri_cc $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz \
-    -lta ${subjdir}/mri/transforms/cc_up.lta $xopts $subjid);
+    -lta ${subjdir}/mri/transforms/cc_up.lta);
+  if ($LHonly) set cmd = ($cmd -lh )
+  if ($RHonly) set cmd = ($cmd -rh )
+  set cmd = ($cmd  $xopts $subjid);
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -4303,7 +4329,7 @@ if($DoT2pial || $DoFLAIRpial) then
         -orig_white white \
         -orig_pial wo${t2flair}.pial)
     if ($UseAseg) then
-      set cmd = ($cmd -aseg ../mri/aseg.presurf)
+      set cmd = ($cmd -aseg ../mri/aseg)
     else
       set cmd = ($cmd -noaseg)
     endif
@@ -4385,11 +4411,15 @@ if($DoCortRibbonVolMask) then
       |& tee -a $SF|& tee -a $LF|& tee -a $CF
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mris_volmask $XOptsFile $GlobXOptsFile`;
-  set cmd = (mris_volmask \
+  set cmd = (mris_volmask $xopts)
+  if ($LHonly) set cmd = ($cmd --lh-only )
+  if ($RHonly) set cmd = ($cmd --rh-only )
+  set cmd = ($cmd \
     --aseg_name aseg.presurf \
     --label_left_white   2 --label_left_ribbon   3 \
     --label_right_white 41 --label_right_ribbon 42 \
-    --save_ribbon $subjid)
+    --save_ribbon)
+  set cmd = ($cmd $subjid)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -4418,6 +4448,7 @@ if($DoParcStats) then
       if($surfname == white) set stats = ../stats/$hemi.aparc.stats
       if($surfname == pial)  set stats = ../stats/$hemi.aparc.pial.stats
       set cmd = (mris_anatomical_stats $TH3Opt -mgz)
+      if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
       if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
       set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts \
         $subjid $hemi $surfname);
@@ -4503,6 +4534,7 @@ if($DoParcStats2) then
     set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
     if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
     set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4586,6 +4618,7 @@ if($DoParcStats3) then
     set ctab  = ../label/aparc.annot.${DKTATLAS_NAME}.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
     set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
     if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
     set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4653,8 +4686,11 @@ if($DoRelabelHypos) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
-  set cmd = (mri_relabel_hypointensities \
-    aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz)
+  set xopts = `fsr-getxopts mri_relabel_hypointensities $XOptsFile $GlobXOptsFile`;
+  set cmd = (mri_relabel_hypointensities $xopts)
+  if ($LHonly) set cmd = ($cmd -lh )
+  if ($RHonly) set cmd = ($cmd -rh )
+  set cmd = ($cmd aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -4683,6 +4719,8 @@ if($DoAParc2ASeg) then
     set cmd = (mri_aparc2aseg --s $subjid --volmask --aseg aseg.presurf.hypos  \
         --relabel mri/norm.mgz mri/transforms/talairach.m3z \
         ${GCADIR}/$GCA $asegintensities)
+    if ($LHonly) set cmd = ($cmd --lh )
+    if ($RHonly) set cmd = ($cmd --rh )
     if(${parc} != "aparc") then
       #  do Christophe and Mindboggle atlases (if exist)
       if( -e ${subjdir}/label/lh.aparc.${parc}.annot && \
@@ -4781,6 +4819,7 @@ if($DoSegStats) then
   endif
   set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
   set cmd = ($cmd --subject $subjid $xopts);
+  if ($RHonly || $LHonly) set cmd = ($cmd --no-global-stats)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -4801,11 +4840,14 @@ if($DoWMParc) then
   set xopts = `fsr-getxopts mri_aparc2aseg $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_aparc2aseg --s $subjid --labelwm --hypo-as-wm --rip-unknown \
              --volmask --o mri/wmparc.mgz --ctxseg aparc+aseg.mgz $xopts )
+  if ($LHonly) set cmd = ($cmd --lh )
+  if ($RHonly) set cmd = ($cmd --rh )
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   echo $cmd > $touchdir/wmaparc.touch
   # Do wm segstats while we're here
+  set xopts = `fsr-getxopts mri_segstats $XOptsFile $GlobXOptsFile`;
   set cmd = (mri_segstats)
   set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
     --pv mri/norm.mgz --excludeid 0 \
@@ -4818,7 +4860,9 @@ if($DoWMParc) then
     echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
     echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
+  if ($RHonly || $LHonly) set cmd = ($cmd --no-global-stats)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  set cmd = ($cmd $xopts);
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   echo $cmd > $touchdir/wmaparc.stats.touch
@@ -4852,6 +4896,7 @@ if($DoAParcASegStats) then
     echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
   set cmd = ($cmd $xopts);
+  if ($RHonly || $LHonly) set cmd = ($cmd --no-global-stats)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -5040,7 +5085,9 @@ if ($DoBaLabels) then
     set stats = ../stats/$hemi.BA_exvivo.stats
     set ctab  = ./BA_exvivo.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz )
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
+    set cmd = ($cmd -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -5051,8 +5098,9 @@ if ($DoBaLabels) then
     set stats = ../stats/$hemi.BA_exvivo.thresh.stats
     set ctab  = ./BA_exvivo.thresh.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
-            -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats)
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
+    set cmd = ($cmd  -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -5142,7 +5190,9 @@ if ($DoLabelExvivoEC) then
     set label = ./$hemi.EC_exvivo_average.label
     set stats = ../stats/$hemi.EC_exvivo_average.stats
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_anatomical_stats  $TH3Opt -mgz -f $stats \
+    set cmd = (mris_anatomical_stats  $TH3Opt -mgz)
+    if ($RHonly || $LHonly) set cmd = ($cmd -noglobal)
+    set cmd = ($cmd -f $stats \
             -b -l $label $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -5682,6 +5732,22 @@ while( $#argv != 0 )
 
   switch($flag)
 
+    case "-no-cerebellum":
+    case "-nocerebellum":
+    case "-NO-CEREBELLUM":
+    case "-NOCEREBELLUM":
+	set nocerebellum=( -nocerebellum)
+	breaksw ;
+    case "-lh":
+    case "-lh-only":
+      set LHonly = 1 ;
+      set hemilist = lh
+      breaksw
+    case "-rh":
+    case "-rh-only":
+      set hemilist = rh
+      set RHonly = 1 ;
+      breaksw
     case "-subject":
     case "-subjid":
     case "-sid":
@@ -6167,6 +6233,10 @@ while( $#argv != 0 )
     case "-noskull-lta":
       set DoSkullLTA  = 0;
       breaksw
+
+    case "-echo":
+      set echo=1 ; 
+      breaksw 
 
     case "-calabel":
       set DoCALabel = 1;
@@ -7182,6 +7252,7 @@ while( $#argv != 0 )
       limit coredumpsize unlimited
       breaksw
 
+    case "-noisrunning":
     case "-no-isrunning":
       set DoIsRunning = 0;
       breaksw
@@ -7238,6 +7309,7 @@ while( $#argv != 0 )
       echo "INFO: keeping DC when conforming"
       breaksw
 
+    case "-highres":
     case "-hires":
       set HiRes = 1;
       set ConformMin = 1;

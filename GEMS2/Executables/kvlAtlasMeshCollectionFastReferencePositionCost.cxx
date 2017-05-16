@@ -1,11 +1,7 @@
 #include "kvlAtlasMeshCollectionFastReferencePositionCost.h"
-#include "kvlOptimizerChoice.h"
-#include "kvlOptimizerConstants.h"
 
 #include "kvlTetrahedronAspectRatio.h"
-#if 0
-  #include "itkTimeProbe.h"
-#endif
+
 
 namespace kvl
 {
@@ -19,21 +15,12 @@ AtlasMeshCollectionFastReferencePositionCost
 {
 
   m_Estimator = AtlasParameterEstimator::New();
-
-  switch ( OPTIMIZER_SECTION_2 )
-  {
-    case CONJUGATE_GRADIENT: m_Estimator->SetModeCJ(); break;
-    case GRADIENT_DESCENT: m_Estimator->SetModeGD(); break;
-    default: break;
-  }
-  
+  m_Estimator->SetPositionOptimizer( AtlasParameterEstimator::FIXED_STEP_GRADIENT_DESCENT );
   m_Estimator->SetMaximumNumberOfIterations( 3 );
   m_Estimator->SetNumberOfThreads( 1 );
-
-//  m_Estimator->GetDeformationOptimizer()->SetVerbose( false );
+  //  m_Estimator->GetDeformationOptimizer()->SetVerbose( false );
   
   m_DataAndAlphasCostCalculator = AtlasMeshCollectionModelLikelihoodCalculator::New();
-  m_PositionCostCalculator = AtlasMeshCollectionPositionCostCalculator::New();
 
   m_PointId = 0;
   m_InitialPointParameters = 0;
@@ -41,7 +28,6 @@ AtlasMeshCollectionFastReferencePositionCost
   m_ReferencePosition = 0; 
   m_K = 1;
 
-  m_mapCompToComp = 0;
   m_CostCalculationMeshCollection = 0;
 
 
@@ -87,11 +73,12 @@ AtlasMeshCollectionFastReferencePositionCost
 //
 void
 AtlasMeshCollectionFastReferencePositionCost
-::SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages )
+::SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages,
+                  const CompressionLookupTable*  compressionLookupTable )
 {
-  m_Estimator->SetLabelImages( labelImages );
-  m_DataAndAlphasCostCalculator->SetLabelImages( labelImages );
-  m_PositionCostCalculator->SetLabelImages( labelImages );
+  m_Estimator->SetLabelImages( labelImages, compressionLookupTable );
+  m_DataAndAlphasCostCalculator->SetLabelImages( labelImages, compressionLookupTable );
+
 }
  
 
@@ -242,19 +229,19 @@ AtlasMeshCollectionFastReferencePositionCost
 ::GetValue( const ParametersType & parameters ) const
 {
   // Get the individual cost components
-  float  dataCost;
-  float  alphasCost;
-  float  positionCost;
+  double  dataCost;
+  double  alphasCost;
+  double  positionCost;
   if ( !this->GetValue( parameters, dataCost, alphasCost, positionCost ) )
     {
-    return itk::NumericTraits< float >::max();
+    return itk::NumericTraits< double >::max();
     }
 
   // Add the components
-  float  totalCost = dataCost + alphasCost + positionCost;
-  if ( isnan( totalCost ) )
+  double  totalCost = dataCost + alphasCost + positionCost;
+  if ( isnan( totalCost ) || isinf( totalCost ) )
     {
-    totalCost = itk::NumericTraits< float >::max();
+    totalCost = itk::NumericTraits< double >::max();
     }
 
   // Return the result
@@ -269,14 +256,9 @@ AtlasMeshCollectionFastReferencePositionCost
 //
 bool
 AtlasMeshCollectionFastReferencePositionCost
-::GetValue( const ParametersType& parameters, float& dataCost, float& alphasCost, float& positionCost ) const
+::GetValue( const ParametersType& parameters, double& dataCost, double& alphasCost, double& positionCost ) const
 {
-#if 0
-  itk::TimeProbe  timeProbe;
-  timeProbe.Start();
-#endif
-  
-  //// std::cout << "FastReferencePositionCost: Trying position " << parameters << std::endl;
+  // std::cout << "FastReferencePositionCost: Trying position " << parameters << std::endl;
 
   // Make sure the vertex neighborhood has been calculated
   if ( m_VertexNeighborhood.size() == 0 )
@@ -293,22 +275,22 @@ AtlasMeshCollectionFastReferencePositionCost
   // 
   // Part I: analyze reference position w.r.t. rest of reference position
   //   
-  const float x0 = parameters[ 0 ]; 
-  const float y0 = parameters[ 1 ]; 
-  const float z0 = parameters[ 2 ];
+  const double x0 = parameters[ 0 ]; 
+  const double y0 = parameters[ 1 ]; 
+  const double z0 = parameters[ 2 ];
   for ( std::vector< VertexNeighboringTetrahedronInfo >::const_iterator tetrahedronInfoIt = m_VertexNeighborhood.begin();
          tetrahedronInfoIt != m_VertexNeighborhood.end();
          ++tetrahedronInfoIt )
     {
-    const float x1 = ( *tetrahedronInfoIt ).m_X1;
-    const float y1 = ( *tetrahedronInfoIt ).m_Y1;
-    const float z1 = ( *tetrahedronInfoIt ).m_Z1;
-    const float x2 = ( *tetrahedronInfoIt ).m_X2;
-    const float y2 = ( *tetrahedronInfoIt ).m_Y2;
-    const float z2 = ( *tetrahedronInfoIt ).m_Z2;
-    const float x3 = ( *tetrahedronInfoIt ).m_X3;
-    const float y3 = ( *tetrahedronInfoIt ).m_Y3;
-    const float z3 = ( *tetrahedronInfoIt ).m_Z3;
+    const double x1 = ( *tetrahedronInfoIt ).m_X1;
+    const double y1 = ( *tetrahedronInfoIt ).m_Y1;
+    const double z1 = ( *tetrahedronInfoIt ).m_Z1;
+    const double x2 = ( *tetrahedronInfoIt ).m_X2;
+    const double y2 = ( *tetrahedronInfoIt ).m_Y2;
+    const double z2 = ( *tetrahedronInfoIt ).m_Z2;
+    const double x3 = ( *tetrahedronInfoIt ).m_X3;
+    const double y3 = ( *tetrahedronInfoIt ).m_Y3;
+    const double z3 = ( *tetrahedronInfoIt ).m_Z3;
 
 
 
@@ -316,25 +298,26 @@ AtlasMeshCollectionFastReferencePositionCost
     // Do this by calculating the volume of the tetrahedron; this should be positive.
     // In what follows, the matrix Lambda is the Jacobian of the transform from a standarized tetrahedron
     // ( ( 0 0 0 )^T, ( 1 0 0 )^T, ( 0 1 0 )^T, ( 0 0 1 )^T ), which has volume 1/6, to the actual tetrahedron
-    const float  lambda11 = -x0 + x1;
-    const float  lambda21 = -y0 + y1;
-    const float  lambda31 = -z0 + z1;
-    const float  lambda12 = -x0 + x2;
-    const float  lambda22 = -y0 + y2;
-    const float  lambda32 = -z0 + z2;
-    const float  lambda13 = -x0 + x3;
-    const float  lambda23 = -y0 + y3;
-    const float  lambda33 = -z0 + z3;
-    const float  volume = ( lambda11 * ( lambda22*lambda33 - lambda32*lambda23 )
+    const double  lambda11 = -x0 + x1;
+    const double  lambda21 = -y0 + y1;
+    const double  lambda31 = -z0 + z1;
+    const double  lambda12 = -x0 + x2;
+    const double  lambda22 = -y0 + y2;
+    const double  lambda32 = -z0 + z2;
+    const double  lambda13 = -x0 + x3;
+    const double  lambda23 = -y0 + y3;
+    const double  lambda33 = -z0 + z3;
+    const double  volume = ( lambda11 * ( lambda22*lambda33 - lambda32*lambda23 )
                             - lambda12 * ( lambda21*lambda33 - lambda31*lambda23 )
                             + lambda13 * ( lambda21*lambda32 - lambda31*lambda22 ) ) / 6;
     if ( volume <= 0  )
       {
-      //// std::cout << "FastReferencePositionCost: referencePosition would cause a tetrahedron flip; rejecting this possibility" << std::endl;
+      // std::cout << "FastReferencePositionCost: referencePosition would cause a tetrahedron flip; rejecting this possibility" << std::endl;
       return false;
       }
-#if 1
-    {
+      
+      
+    // Also test badness of tetrahedron  
     AtlasMesh::PointType   point0;
     point0[ 0 ] = x0;
     point0[ 1 ] = y0;
@@ -355,7 +338,7 @@ AtlasMeshCollectionFastReferencePositionCost
     point3[ 1 ] = y3;
     point3[ 2 ] = z3;
 
-    const float badness = TetrahedronRadiusRatio( point0, point1, point2, point3 );
+    const double badness = TetrahedronRadiusRatio( point0, point1, point2, point3 );
 
     //// std::cout << "FastReferencePositionCost: badness of tetrahedron "
     //          << tetrahedronInfoIt->m_TetrahedronId << " is " << badness << std::endl;
@@ -365,43 +348,15 @@ AtlasMeshCollectionFastReferencePositionCost
     // // std::cout << "                      point3: " << point3 << std::endl;
     if ( badness > 10 )
       {
-      //// std::cout << "FastReferencePositionCost: referencePosition is too bad ("
-      //          << badness << "); rejecting this possibility" << std::endl;
+      // std::cout << "FastReferencePositionCost: referencePosition is too bad ("
+      //           << badness << "); rejecting this possibility" << std::endl;
       return false;
       }
 
-#if 0
-    {
-    // std::cout << "=========================================="<< std::endl;
-    float badness = TetrahedronRadiusRatio( point1, point2, point0, point3 );
-
-    // std::cout << "FastReferencePositionCost: badness of tetrahedron "
-              << tetrahedronInfoIt->m_TetrahedronId << " is " << badness << std::endl;
-    // std::cout << "                      point0: " << point1 << std::endl;
-    // std::cout << "                      point1: " << point2 << std::endl;
-    // std::cout << "                      point2: " << point0 << std::endl;
-    // std::cout << "                      point3: " << point3 << std::endl;
-
-    badness = TetrahedronRadiusRatio( point2, point0, point1, point3 );
-
-    // std::cout << "FastReferencePositionCost: badness of tetrahedron "
-              << tetrahedronInfoIt->m_TetrahedronId << " is " << badness << std::endl;
-    // std::cout << "                      point0: " << point2 << std::endl;
-    // std::cout << "                      point1: " << point0 << std::endl;
-    // std::cout << "                      point2: " << point1 << std::endl;
-    // std::cout << "                      point3: " << point3 << std::endl;
-    // std::cout << "=========================================="<< std::endl;
-    }
-
-#endif
 
 
-    }
-#endif
+    } // End loop over all tetrahedra
 
-
-
-    }
 
 
   //
@@ -450,15 +405,8 @@ AtlasMeshCollectionFastReferencePositionCost
   m_DataAndAlphasCostCalculator->SetMeshCollection( m_CostCalculationMeshCollection );
   m_DataAndAlphasCostCalculator->GetDataCostAndAlphasCost( dataCost, alphasCost );
 
-  m_PositionCostCalculator->SetMeshCollection( m_CostCalculationMeshCollection );
-  positionCost = m_PositionCostCalculator->GetPositionCost();
+  positionCost = 0.0;
 
-#if 0
-  timeProbe.Stop();
-  // std::cout << "Time taken to evaluation reference position: " << parameters << ": " << timeProbe.GetMeanTime() << std::endl;
-
-#endif
-  
   return true;
 }
 

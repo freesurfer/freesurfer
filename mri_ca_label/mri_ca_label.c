@@ -62,6 +62,10 @@ static double PRIOR_FACTOR = 1.0 ;
 static char *read_renorm_fname = NULL ;
 static char *write_renorm_fname = NULL ;
 
+static double Gvent_topo_dist = 3 ;
+static double Gvent_topo_volume_thresh1 = 50 ;
+static double Gvent_topo_volume_thresh2 = 100 ;
+
 static int remove_cerebellum = 0 ;
 static int remove_lh = 0 ;
 static int remove_rh = 0 ;
@@ -1313,7 +1317,9 @@ int main(int argc, char *argv[])
   if (read_fname == NULL)
   {
     GCAconstrainLabelTopology(gca, mri_inputs, 
-                              mri_labeled, mri_labeled, transform) ;
+                              mri_labeled, mri_labeled, transform,
+			      Gvent_topo_dist, Gvent_topo_volume_thresh1,
+			      Gvent_topo_volume_thresh2) ;
   }
   if (wmsa)
   {
@@ -1458,6 +1464,24 @@ get_option(int argc, char *argv[])
   {
     remove_rh = 1  ;
     printf("removing right hemisphere labels\n") ;
+  }
+  else if (!stricmp(option, "vent_topo_dist"))
+  {
+    Gvent_topo_dist = atof(argv[2]) ;
+    printf("setting ventricle topology distance threshold to %2.1fmm (default=3)\n", Gvent_topo_dist) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "vent_topo_volume_thresh1"))
+  {
+    Gvent_topo_volume_thresh1 = atof(argv[2]) ;
+    printf("setting ventricle topology volume1 threshold to %2.1fmm^3 (default=50)\n", Gvent_topo_volume_thresh1) ;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "vent_topo_volume_thresh2"))
+  {
+    Gvent_topo_volume_thresh2 = atof(argv[2]) ;
+    printf("setting ventricle topology volume2 threshold to %2.1fmm^3 (default=100)\n", Gvent_topo_volume_thresh2) ;
+    nargs = 1 ;
   }
   else if (!stricmp(option, "RH"))
   {

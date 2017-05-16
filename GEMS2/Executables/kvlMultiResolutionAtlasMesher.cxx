@@ -3,9 +3,6 @@
 #include <fstream>
 #include "tetgen.h"
 
-#include "kvlOptimizerChoice.h"
-#include "kvlOptimizerConstants.h"
-
 
 namespace kvl
 {
@@ -17,45 +14,19 @@ namespace kvl
 MultiResolutionAtlasMesher
 ::MultiResolutionAtlasMesher()
 {
-  m_InitialSize[ 0 ] = 10;
-  m_InitialSize[ 1 ] = 10;
-  m_InitialSize[ 2 ] = 10;
-
-  m_NumberOfUpsamplingSteps = 1;
-
-  m_TryToBeSparse = false;
-
-  m_InitialStiffnesses[ 0 ] = 0.1f;
-  m_InitialStiffnesses[ 1 ] = 0.1f;
-  m_InitialStiffnesses[ 2 ] = 0.1f;
-  m_InitialStiffnesses[ 3 ] = 0.1f;
-  m_InitialStiffnesses[ 4 ] = 0.1f;
+  m_CompressionLookupTable = 0;
+  m_InitialSize.Fill( 10 );
+  m_InitialStiffnesses = std::vector< double >( 1, 0.1 );
+  m_TryToBeSparse = true;
 
   m_Estimator = AtlasParameterEstimator::New();
-
-  switch ( OPTIMIZER_SECTION_1 )
-  {
-    case CONJUGATE_GRADIENT: m_Estimator->SetModeCJ(); break;
-    case GRADIENT_DESCENT: m_Estimator->SetModeGD(); break;
-    default: break;
-  }
+  m_Estimator->SetPositionOptimizer( AtlasParameterEstimator::LBFGS );
   
   m_NumberOfClasses = 0;
   m_NumberOfMeshes = 0;
   
-
-  // for the collapsed label mapping, we initialize with identity
-  for(int i=0; i<256; i++)
-  {
-    std::vector<unsigned char > v;
-    v.push_back((unsigned char) i);
-    m_mapCompToComp[i]=v;
-  }
-
-  m_DomainSize[ 0 ] = 0;
-  m_DomainSize[ 1 ] = 0;
-  m_DomainSize[ 2 ] = 0;
-
+  m_DomainSize.Fill( 0 );
+  
   m_Current = 0;
   m_Hexahedra = 0;
 
@@ -96,92 +67,56 @@ MultiResolutionAtlasMesher
 
 //
 //
-//  
-void
-MultiResolutionAtlasMesher
-::SetLabelImages( const std::vector< LabelImageType::ConstPointer >& labelImages )
-{
-  m_LabelImages = labelImages;
-  
-}
-
-
-
-
-
-
-
-
-//
-//
-//
-void
-MultiResolutionAtlasMesher
-::SetUp( const unsigned int* size, const float* initialStiffnesses )
-{
-  m_InitialSize[ 0 ] = size[ 0 ];
-  m_InitialSize[ 1 ] = size[ 1 ];
-  m_InitialSize[ 2 ] = size[ 2 ];
-
-  for ( unsigned int i = 0; i<5; i++ )
-    m_InitialStiffnesses[ i ] = initialStiffnesses[ i ];
-
-  this->SetUp();
-
-}
-  
-    
-//
-//
 //    
 void
 MultiResolutionAtlasMesher
-::SetUp()
+::SetUp( const std::vector< LabelImageType::ConstPointer >& labelImages,
+         const CompressionLookupTable*  compressionLookupTable,
+         const itk::Size< 3 >&  initialSize, 
+         const std::vector< double >&  initialStiffnesses,
+         bool tryToBeSparse )
 {
-  // Pass the label images and mapping onto the estimator
-  m_Estimator->SetLabelImages( m_LabelImages );
-  m_Estimator->SetMapCompToComp(m_mapCompToComp);
-  
-  // Don't build a mesh if no label images have been set
-  if ( m_Estimator->GetNumberOfLabelImages() == 0 )
-    return;
+  //
+  m_LabelImages = labelImages;
+  m_CompressionLookupTable = compressionLookupTable;
+  m_InitialSize = initialSize;
+  m_InitialStiffnesses = initialStiffnesses;
+  m_TryToBeSparse = tryToBeSparse;
 
-    
-  // Retrieve initial mesh parameters
-  AtlasParameterEstimator::LabelImageType::SizeType  labelImageSize = 
-                                 m_Estimator->GetLabelImage( 0 )->GetLargestPossibleRegion().GetSize();
-  m_DomainSize[ 0 ] = static_cast< unsigned int >( labelImageSize[ 0 ] );
-  m_DomainSize[ 1 ] = static_cast< unsigned int >( labelImageSize[ 1 ] );
-  m_DomainSize[ 2 ] = static_cast< unsigned int >( labelImageSize[ 2 ] );
+
+  // Pass the label images and mapping onto the estimator
+  m_Estimator->SetLabelImages( m_LabelImages, m_CompressionLookupTable );
   
+
+  // Retrieve initial mesh parameters
+  m_DomainSize = m_Estimator->GetLabelImage( 0 )->GetLargestPossibleRegion().GetSize();
   m_NumberOfClasses = m_Estimator->GetNumberOfClasses();
-    
   m_NumberOfMeshes = m_Estimator->GetNumberOfLabelImages();
 
 
   // Set up hexahedra and reference position
   m_Hexahedra = AtlasMesh::CellsContainer::New();
   MeshSourceType::Pointer  meshSource = MeshSourceType::New();
-  for ( unsigned int  x = 0; x < m_InitialSize[ 0 ]-1; x++ )
+  for ( int  x = 0; x < m_InitialSize[ 0 ]-1; x++ )
     {
-    for ( unsigned int  y = 0; y < m_InitialSize[ 1 ]-1; y++ )
+    for ( int  y = 0; y < m_InitialSize[ 1 ]-1; y++ )
       {
-      for ( unsigned int  z = 0; z < m_InitialSize[ 2 ]-1; z++ )
+      for ( int  z = 0; z < m_InitialSize[ 2 ]-1; z++ )
         {
         // Construct the eight corner coordinates
-        float  x1 = static_cast< float >( x ) * static_cast< float >( m_DomainSize[ 0 ] - 1 )
-                                              / static_cast< float >( m_InitialSize[ 0 ] - 1 );
-        float  y1 = static_cast< float >( y ) * static_cast< float >( m_DomainSize[ 1 ] - 1 )
-                                              / static_cast< float >( m_InitialSize[ 1 ] - 1 );
-        float  z1 = static_cast< float >( z ) * static_cast< float >( m_DomainSize[ 2 ] - 1 )
-                                              / static_cast< float >( m_InitialSize[ 2 ] - 1 );
+        double  x1 = static_cast< double >( x ) * static_cast< double >( m_DomainSize[ 0 ] - 1 )
+                                              / static_cast< double >( m_InitialSize[ 0 ] - 1 );
+        double  y1 = static_cast< double >( y ) * static_cast< double >( m_DomainSize[ 1 ] - 1 )
+                                              / static_cast< double >( m_InitialSize[ 1 ] - 1 );
+        double  z1 = static_cast< double >( z ) * static_cast< double >( m_DomainSize[ 2 ] - 1 )
+                                              / static_cast< double >( m_InitialSize[ 2 ] - 1 );
 
-        float  x2 = static_cast< float >( x + 1 ) * static_cast< float >( m_DomainSize[ 0 ] - 1 )
-                                              / static_cast< float >( m_InitialSize[ 0 ] - 1 );
-        float  y2 = static_cast< float >( y + 1 ) * static_cast< float >( m_DomainSize[ 1 ] - 1 )
-                                              / static_cast< float >( m_InitialSize[ 1 ] - 1 );
-        float  z2 = static_cast< float >( z + 1 ) * static_cast< float >( m_DomainSize[ 2 ] - 1 )
-                                              / static_cast< float >( m_InitialSize[ 2 ] - 1 );
+        double  x2 = static_cast< double >( x + 1 ) * static_cast< double >( m_DomainSize[ 0 ] - 1 )
+                                              / static_cast< double >( m_InitialSize[ 0 ] - 1 );
+        double  y2 = static_cast< double >( y + 1 ) * static_cast< double >( m_DomainSize[ 1 ] - 1 )
+                                              / static_cast< double >( m_InitialSize[ 1 ] - 1 );
+        double  z2 = static_cast< double >( z + 1 ) * static_cast< double >( m_DomainSize[ 2 ] - 1 )
+                                              / static_cast< double >( m_InitialSize[ 2 ] - 1 );
 
         const double  p0[] = { x1, y1, z1 };
         const double  p1[] = { x2, y1, z1 };
@@ -203,7 +138,7 @@ MultiResolutionAtlasMesher
 
   // Make copies of the reference position
   std::vector< AtlasMesh::PointsContainer::Pointer >  positions;
-  for ( unsigned int i = 0; i < m_NumberOfMeshes; i++ )
+  for ( int i = 0; i < m_NumberOfMeshes; i++ )
     {
     AtlasMesh::PointsContainer::Pointer  target = AtlasMesh::PointsContainer::New();
     
@@ -229,26 +164,6 @@ MultiResolutionAtlasMesher
   
 
 
-
-//
-//
-//
-const MultiResolutionAtlasMesher::LabelImageType*
-MultiResolutionAtlasMesher
-::GetLabelImage( unsigned int labelImageNumber ) const
-{
-  // Sanity check 
-  if ( labelImageNumber >= m_LabelImages.size() )
-    {
-    return 0;
-    }
-
-  return m_LabelImages[ labelImageNumber ];
-}
-
-
-
-
 //
 //
 //
@@ -258,16 +173,17 @@ MultiResolutionAtlasMesher
 {
 
   // 
-  for ( unsigned int upsamplingStepNumber = 0; upsamplingStepNumber <= m_NumberOfUpsamplingSteps; upsamplingStepNumber++ )
+  const int  numberOfUpsamplingSteps = m_InitialStiffnesses.size() - 1;
+  for ( unsigned int upsamplingStepNumber = 0; upsamplingStepNumber <= numberOfUpsamplingSteps; upsamplingStepNumber++ )
     {
     std::cout << "running for upsamplingStepNumber: " << upsamplingStepNumber << std::endl;
 
     // Estimate
     std::cout << "       estimating..." << std::endl;
-    m_Estimator->Estimate(true);
+    m_Estimator->Estimate( true );
 
     // If this is not the final resolution yet, upsample mesh collection
-    if ( upsamplingStepNumber != m_NumberOfUpsamplingSteps )
+    if ( upsamplingStepNumber != numberOfUpsamplingSteps )
       {
       std::cout << "       upsampling..." << std::endl;
       this->Upsample();
@@ -347,32 +263,32 @@ MultiResolutionAtlasMesher
     // Do this by calculating the volume of the tetrahedron; this should be positive.
     // In what follows, the matrix Lambda is the Jacobian of the transform from a standarized tetrahedron
     // ( ( 0 0 0 )^T, ( 1 0 0 )^T, ( 0 1 0 )^T, ( 0 0 1 )^T ), which has volume 1/6, to the actual tetrahedron
-    const float x0 = position->ElementAt( point0Id )[ 0 ];
-    const float y0 = position->ElementAt( point0Id )[ 1 ];
-    const float z0 = position->ElementAt( point0Id )[ 2 ];
+    const double x0 = position->ElementAt( point0Id )[ 0 ];
+    const double y0 = position->ElementAt( point0Id )[ 1 ];
+    const double z0 = position->ElementAt( point0Id )[ 2 ];
 
-    const float x1 = position->ElementAt( point1Id )[ 0 ];
-    const float y1 = position->ElementAt( point1Id )[ 1 ];
-    const float z1 = position->ElementAt( point1Id )[ 2 ];
+    const double x1 = position->ElementAt( point1Id )[ 0 ];
+    const double y1 = position->ElementAt( point1Id )[ 1 ];
+    const double z1 = position->ElementAt( point1Id )[ 2 ];
 
-    const float x2 = position->ElementAt( point2Id )[ 0 ];
-    const float y2 = position->ElementAt( point2Id )[ 1 ];
-    const float z2 = position->ElementAt( point2Id )[ 2 ];
+    const double x2 = position->ElementAt( point2Id )[ 0 ];
+    const double y2 = position->ElementAt( point2Id )[ 1 ];
+    const double z2 = position->ElementAt( point2Id )[ 2 ];
 
-    const float x3 = position->ElementAt( point3Id )[ 0 ];
-    const float y3 = position->ElementAt( point3Id )[ 1 ];
-    const float z3 = position->ElementAt( point3Id )[ 2 ];
+    const double x3 = position->ElementAt( point3Id )[ 0 ];
+    const double y3 = position->ElementAt( point3Id )[ 1 ];
+    const double z3 = position->ElementAt( point3Id )[ 2 ];
 
-    const float  lambda11 = -x0 + x1;
-    const float  lambda21 = -y0 + y1;
-    const float  lambda31 = -z0 + z1;
-    const float  lambda12 = -x0 + x2;
-    const float  lambda22 = -y0 + y2;
-    const float  lambda32 = -z0 + z2;
-    const float  lambda13 = -x0 + x3;
-    const float  lambda23 = -y0 + y3;
-    const float  lambda33 = -z0 + z3;
-    const float  volume = ( lambda11 * ( lambda22*lambda33 - lambda32*lambda23 )
+    const double  lambda11 = -x0 + x1;
+    const double  lambda21 = -y0 + y1;
+    const double  lambda31 = -z0 + z1;
+    const double  lambda12 = -x0 + x2;
+    const double  lambda22 = -y0 + y2;
+    const double  lambda32 = -z0 + z2;
+    const double  lambda13 = -x0 + x3;
+    const double  lambda23 = -y0 + y3;
+    const double  lambda33 = -z0 + z3;
+    const double  volume = ( lambda11 * ( lambda22*lambda33 - lambda32*lambda23 )
                             - lambda12 * ( lambda21*lambda33 - lambda31*lambda23 )
                             + lambda13 * ( lambda21*lambda32 - lambda31*lambda22 ) ) / 6;
     if ( volume <= 0  )
@@ -411,7 +327,7 @@ AtlasMeshCollection::Pointer
 MultiResolutionAtlasMesher
 ::GetMeshCollection( AtlasMesh::PointsContainer* referencePosition,
                      std::vector< AtlasMesh::PointsContainer::Pointer >& positions,
-                     float stiffness ) const
+                     double stiffness ) const
 {
   // Construct the cells by running TetGen on the referencePosition point set
   AtlasMesh::CellsContainer::Pointer  cells = this->GetCells( referencePosition );
@@ -421,7 +337,7 @@ MultiResolutionAtlasMesher
   // can not move freely and belong to
   // first class
   kvl::AtlasAlphasType   flatAlphasEntry( m_NumberOfClasses );
-  flatAlphasEntry.Fill( 1.0f / static_cast< float >( m_NumberOfClasses ) );
+  flatAlphasEntry.Fill( 1.0f / static_cast< double >( m_NumberOfClasses ) );
 
   kvl::AtlasAlphasType   borderAlphasEntry( m_NumberOfClasses );
   borderAlphasEntry.Fill( 0.0f );
@@ -491,12 +407,12 @@ MultiResolutionAtlasMesher
 
     // Double-check that our tets are not negative volume.
     // Do this by calculating the volume of the tetrahedron; this should be positive.
-    for ( int meshNumber = this->GetNumberOfMeshes(); meshNumber >= 0; meshNumber-- )
+    for ( int meshNumber = m_NumberOfMeshes; meshNumber >= 0; meshNumber-- )
       {
 
       // Retrieve the corresponding original point set
       AtlasMesh::PointsContainer::Pointer  thisPosition;
-      if ( meshNumber < static_cast< int >( this->GetNumberOfMeshes() ) )
+      if ( meshNumber < static_cast< int >( m_NumberOfMeshes ) )
         {
         thisPosition = meshCollection->GetPositions()[ meshNumber ];
         }
@@ -529,32 +445,32 @@ MultiResolutionAtlasMesher
 
         // In what follows, the matrix Lambda is the Jacobian of the transform from a standarized tetrahedron
         // ( ( 0 0 0 )^T, ( 1 0 0 )^T, ( 0 1 0 )^T, ( 0 0 1 )^T ), which has volume 1/6, to the actual tetrahedron
-        const float x0 = thisPosition->ElementAt( point0Id )[ 0 ];
-        const float y0 = thisPosition->ElementAt( point0Id )[ 1 ];
-        const float z0 = thisPosition->ElementAt( point0Id )[ 2 ];
+        const double x0 = thisPosition->ElementAt( point0Id )[ 0 ];
+        const double y0 = thisPosition->ElementAt( point0Id )[ 1 ];
+        const double z0 = thisPosition->ElementAt( point0Id )[ 2 ];
 
-        const float x1 = thisPosition->ElementAt( point1Id )[ 0 ];
-        const float y1 = thisPosition->ElementAt( point1Id )[ 1 ];
-        const float z1 = thisPosition->ElementAt( point1Id )[ 2 ];
+        const double x1 = thisPosition->ElementAt( point1Id )[ 0 ];
+        const double y1 = thisPosition->ElementAt( point1Id )[ 1 ];
+        const double z1 = thisPosition->ElementAt( point1Id )[ 2 ];
 
-        const float x2 = thisPosition->ElementAt( point2Id )[ 0 ];
-        const float y2 = thisPosition->ElementAt( point2Id )[ 1 ];
-        const float z2 = thisPosition->ElementAt( point2Id )[ 2 ];
+        const double x2 = thisPosition->ElementAt( point2Id )[ 0 ];
+        const double y2 = thisPosition->ElementAt( point2Id )[ 1 ];
+        const double z2 = thisPosition->ElementAt( point2Id )[ 2 ];
 
-        const float x3 = thisPosition->ElementAt( point3Id )[ 0 ];
-        const float y3 = thisPosition->ElementAt( point3Id )[ 1 ];
-        const float z3 = thisPosition->ElementAt( point3Id )[ 2 ];
+        const double x3 = thisPosition->ElementAt( point3Id )[ 0 ];
+        const double y3 = thisPosition->ElementAt( point3Id )[ 1 ];
+        const double z3 = thisPosition->ElementAt( point3Id )[ 2 ];
 
-        const float  lambda11 = -x0 + x1;
-        const float  lambda21 = -y0 + y1;
-        const float  lambda31 = -z0 + z1;
-        const float  lambda12 = -x0 + x2;
-        const float  lambda22 = -y0 + y2;
-        const float  lambda32 = -z0 + z2;
-        const float  lambda13 = -x0 + x3;
-        const float  lambda23 = -y0 + y3;
-        const float  lambda33 = -z0 + z3;
-        const float  volume = ( lambda11 * ( lambda22*lambda33 - lambda32*lambda23 )
+        const double  lambda11 = -x0 + x1;
+        const double  lambda21 = -y0 + y1;
+        const double  lambda31 = -z0 + z1;
+        const double  lambda12 = -x0 + x2;
+        const double  lambda22 = -y0 + y2;
+        const double  lambda32 = -z0 + z2;
+        const double  lambda13 = -x0 + x3;
+        const double  lambda23 = -y0 + y3;
+        const double  lambda33 = -z0 + z3;
+        const double  volume = ( lambda11 * ( lambda22*lambda33 - lambda32*lambda23 )
                                 - lambda12 * ( lambda21*lambda33 - lambda31*lambda23 )
                                 + lambda13 * ( lambda21*lambda32 - lambda31*lambda22 ) ) / 6;
         if ( volume <= 0 ) 
@@ -562,7 +478,7 @@ MultiResolutionAtlasMesher
           std::cout << "****************************************" << std::endl;
           std::cout << "****************************************" << std::endl;
           std::cout << "Ouch: Upsampling has generated a tetrahedron with negative volume in one of the meshes! " << std::endl;
-          if ( meshNumber < static_cast< int >( this->GetNumberOfMeshes() ) )
+          if ( meshNumber < static_cast< int >( m_NumberOfMeshes ) )
             {
             std::cout << "         meshNumber: " << meshNumber << std::endl;
             }
@@ -619,12 +535,13 @@ MultiResolutionAtlasMesher
   MeshSourceType::Pointer  upsampledReferencePositionSource = MeshSourceType::New();
   AtlasMesh::CellsContainer::Pointer  upsampledHexahedra = AtlasMesh::CellsContainer::New();
 
-  float  precision[ 3 ];  // Used to convert the reference positions into exact integer coordinates
+  double  precision[ 3 ];  // Used to convert the reference positions into exact integer coordinates
+  const int  numberOfUpsamplingSteps = m_InitialStiffnesses.size() - 1;
   for ( int i = 0; i < 3; i++ )
     {
-    const int  factor = static_cast< int >( pow( 2, m_NumberOfUpsamplingSteps ) );
+    const int  factor = static_cast< int >( pow( 2, numberOfUpsamplingSteps ) );
     const int  finalSize = factor * m_InitialSize[ i ] - ( factor - 1 );
-    precision[ i ] = static_cast< float >( finalSize - 1 ) / static_cast< float >( m_DomainSize[ i ] - 1 );
+    precision[ i ] = static_cast< double >( finalSize - 1 ) / static_cast< double >( m_DomainSize[ i ] - 1 );
     }
 
   for ( AtlasMesh::CellsContainer::ConstIterator  hexIt = m_Hexahedra->Begin();
@@ -662,7 +579,7 @@ MultiResolutionAtlasMesher
       {
       // Look up the label with the highest alpha in the first corner point
       int  maximumAlphaLabelNumber = 0;
-      float  maximumAlpha = itk::NumericTraits< float >::min();
+      double  maximumAlpha = itk::NumericTraits< double >::min();
       for ( unsigned int classNumber = 0; classNumber < m_NumberOfClasses; classNumber++ )
         {
         if ( m_Current->GetPointParameters()->ElementAt( p0Id ).m_Alphas[ classNumber ] > maximumAlpha )
@@ -674,7 +591,7 @@ MultiResolutionAtlasMesher
 
 
       // Look at the alphas in each of the corners points
-      const float threshold = 0.90f;
+      const double threshold = 0.90f;
       if ( ( m_Current->GetPointParameters()->ElementAt( p0Id ).m_Alphas[ maximumAlphaLabelNumber ] >= threshold ) &&
            ( m_Current->GetPointParameters()->ElementAt( p1Id ).m_Alphas[ maximumAlphaLabelNumber ] >= threshold ) &&
            ( m_Current->GetPointParameters()->ElementAt( p2Id ).m_Alphas[ maximumAlphaLabelNumber ] >= threshold ) &&
@@ -724,12 +641,12 @@ MultiResolutionAtlasMesher
       AtlasMesh::PointIdentifier  pMiddleUpsampledId;
 
       // Loop over all meshes, starting with the reference mesh to obtain the correct ids
-      for ( int meshNumber=this->GetNumberOfMeshes(); meshNumber >= 0; meshNumber-- )
+      for ( int meshNumber=m_NumberOfMeshes; meshNumber >= 0; meshNumber-- )
         {
 
         // Retrieve the corresponding original point set
         AtlasMesh::PointsContainer::Pointer  thisPosition;
-        if ( meshNumber < static_cast< int >( this->GetNumberOfMeshes() ) )
+        if ( meshNumber < static_cast< int >( m_NumberOfMeshes ) )
           {
           thisPosition = m_Current->GetPositions()[ meshNumber ];
           }
@@ -770,7 +687,7 @@ MultiResolutionAtlasMesher
         AtlasMesh::PointType  p0145;
         AtlasMesh::PointType  p4567;
         AtlasMesh::PointType  pMiddle;
-        if ( meshNumber == static_cast< int >( this->GetNumberOfMeshes() ) )
+        if ( meshNumber == static_cast< int >( m_NumberOfMeshes ) )
           {
           // Convert the input into integers 
           for ( int i = 0; i < 3; i++ )
@@ -792,7 +709,7 @@ MultiResolutionAtlasMesher
           }
         else
           {
-          this->GetUpsampledHexahedronPoints< float >( p0, p1, p2, p3, p4, p5, p6, p7,
+          this->GetUpsampledHexahedronPoints< double >( p0, p1, p2, p3, p4, p5, p6, p7,
                                                        p01, p02, p13, p23, p15, p37, p26, p04, p57, p67, p46, p45,
                                                        p0123, p1357, p2367, p0246, p0145, p4567,
                                                        pMiddle );
@@ -801,7 +718,7 @@ MultiResolutionAtlasMesher
 
         // If this is the reference mesh, add the points while simulatenously creating the correct hexahedra
         // and looking up the ids of the points to be used for the other meshes. Otherwise, just add the points.
-        if ( meshNumber == static_cast< int >( this->GetNumberOfMeshes() ) )
+        if ( meshNumber == static_cast< int >( m_NumberOfMeshes ) )
           {
           // Create 8 sub-hexahedra
           this->AddHexahedron( upsampledReferencePositionSource,
@@ -906,12 +823,12 @@ MultiResolutionAtlasMesher
       AtlasMesh::PointIdentifier  p7UpsampledId;
 
       // Loop over all meshes
-      for ( int meshNumber=this->GetNumberOfMeshes(); meshNumber >= 0; meshNumber-- )
+      for ( int meshNumber=m_NumberOfMeshes; meshNumber >= 0; meshNumber-- )
         {
 
         // Retrieve the corresponding original point set
         AtlasMesh::PointsContainer::Pointer  thisPosition;
-        if ( meshNumber < static_cast< int >( this->GetNumberOfMeshes() ) )
+        if ( meshNumber < static_cast< int >( m_NumberOfMeshes ) )
           {
           thisPosition = m_Current->GetPositions()[ meshNumber ];
           }
@@ -931,7 +848,7 @@ MultiResolutionAtlasMesher
         AtlasMesh::PointType  p6 = thisPosition->ElementAt( p6Id );
         AtlasMesh::PointType  p7 = thisPosition->ElementAt( p7Id );
 
-        if ( meshNumber == static_cast< int >( this->GetNumberOfMeshes() ) )
+        if ( meshNumber == static_cast< int >( m_NumberOfMeshes ) )
           {
           // Convert the input into integers 
           for ( int i = 0; i < 3; i++ )
