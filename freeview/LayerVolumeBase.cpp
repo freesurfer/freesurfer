@@ -109,6 +109,10 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
   }
   char* ptr = (char*)m_imageData->GetScalarPointer();
   int* dim = m_imageData->GetDimensions();
+  int scalar_type = m_imageData->GetScalarType();
+  char* ref_ptr = (char*)ref->GetScalarPointer();
+  int* ref_dim = ref->GetDimensions();
+  int ref_scalar_type = ref->GetScalarType();
   for ( int i = -nsize[0]+1; i < nsize[0]; i++ )
   {
     for ( int j = -nsize[1]+1; j < nsize[1]; j++ )
@@ -123,7 +127,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
              n[2] >= 0 && n[2] < nDim[2] &&
              MyUtils::GetDistance<int>( n, n_in ) <= nBrushSize/2.0 )
         {
-          double fvalue = ref->GetScalarComponentAsDouble( n[0], n[1], n[2], nActiveCompRef );
+          double fvalue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, n[0], n[1], n[2], nActiveCompRef, ref_scalar_type );
           if (bAdd)
           {
             if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
@@ -138,7 +142,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
             else
             {
            //   m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
-              MyVTKUtils::SetImageDataComponent(ptr, dim, n[0], n[1], n[2], nActiveComp, m_imageData->GetScalarType(), m_fFillValue);
+              MyVTKUtils::SetImageDataComponent(ptr, dim, n[0], n[1], n[2], nActiveComp, scalar_type, m_fFillValue);
               indices << n[0] << n[1] << n[2];
               UpdateVoxelValueRange( m_fFillValue );
             }
@@ -155,7 +159,7 @@ QList<int> LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
             else
             {
             //  m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fBlankValue );
-              MyVTKUtils::SetImageDataComponent(ptr, dim, n[0], n[1], n[2], nActiveComp, m_imageData->GetScalarType(), m_fBlankValue);
+              MyVTKUtils::SetImageDataComponent(ptr, dim, n[0], n[1], n[2], nActiveComp, scalar_type, m_fBlankValue);
               indices << n[0] << n[1] << n[2];
             }
           }
@@ -184,6 +188,12 @@ bool LayerVolumeBase::CloneVoxelByIndex( int* n_in, int nPlane )
     ref = ref_layer->GetImageData();
     nActiveCompRef = ref_layer->GetActiveFrame();
   }
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int* dim = m_imageData->GetDimensions();
+  int scalar_type = m_imageData->GetScalarType();
+  char* ref_ptr = (char*)ref->GetScalarPointer();
+  int* ref_dim = ref->GetDimensions();
+  int ref_scalar_type = ref->GetScalarType();
   for ( int i = -nsize[0]+1; i < nsize[0]; i++ )
   {
     for ( int j = -nsize[1]+1; j < nsize[1]; j++ )
@@ -198,7 +208,7 @@ bool LayerVolumeBase::CloneVoxelByIndex( int* n_in, int nPlane )
              n[2] >= 0 && n[2] < nDim[2] &&
              MyUtils::GetDistance<int>( n, n_in ) <= nBrushSize/2.0 )
         {
-          double fvalue = ref->GetScalarComponentAsDouble( n[0], n[1], n[2], nActiveCompRef );
+          double fvalue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, n[0], n[1], n[2], nActiveCompRef, ref_scalar_type );
           if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
                ( m_propertyBrush->GetExcludeRangeEnabled() &&
@@ -210,7 +220,7 @@ bool LayerVolumeBase::CloneVoxelByIndex( int* n_in, int nPlane )
           }
           else
           {
-            m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, fvalue );
+            MyVTKUtils::SetImageDataComponent(ptr, dim, n[0], n[1], n[2], nActiveComp, scalar_type, fvalue );
             UpdateVoxelValueRange( fvalue );
           }
         }
@@ -224,6 +234,8 @@ bool LayerVolumeBase::CloneVoxelByIndex( int* n_in, int nPlane )
 bool LayerVolumeBase::GetConnectedToOld( vtkImageData* img, int nFrame, int* n_in, int nPlane )
 {
   int* nDim = img->GetDimensions();
+  char* ptr = (char*)img->GetScalarPointer();
+  int scalar_type = img->GetScalarType();
   int nBounds[6] = { -1, 1, -1, 1, -1, 1 };
   nBounds[nPlane*2] = nBounds[nPlane*2+1] = 0;
   int n[3];
@@ -241,7 +253,7 @@ bool LayerVolumeBase::GetConnectedToOld( vtkImageData* img, int nFrame, int* n_i
              n[1] >= 0 && n[1] < nDim[1] &&
              n[2] >= 0 && n[2] < nDim[2] )
         {
-          double fvalue = img->GetScalarComponentAsDouble( n[0], n[1], n[2], nFrame );
+          double fvalue = MyVTKUtils::GetImageDataComponent(ptr, nDim, n[0], n[1], n[2], nFrame, scalar_type );
           if ( fvalue > 0 )
           {
             return true;
@@ -556,7 +568,13 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
     nActiveCompRef = ref_layer->GetActiveFrame();
   }
   int nActiveComp = this->GetActiveFrame();
-  float fVoxelValue = ref->GetScalarComponentAsFloat( n[0], n[1], n[2], 0 );
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int* dim = m_imageData->GetDimensions();
+  int scalar_type = m_imageData->GetScalarType();
+  char* ref_ptr = (char*)ref->GetScalarPointer();
+  int* ref_dim = ref->GetDimensions();
+  int ref_scalar_type = ref->GetScalarType();
+  float fVoxelValue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, n[0], n[1], n[2], 0, ref_scalar_type);
   double fRange[2];
   ref->GetScalarRange( fRange );
   double fTolerance = (fRange[1]-fRange[0]) * m_propertyBrush->GetBrushTolerance() / 100.0;   // tolerance is percentage
@@ -569,7 +587,7 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
       {
         for ( j = 0; j < ny; j++ )
         {
-          mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
+          mask[j][i] = ( fabs( MyVTKUtils::GetImageDataComponent(ptr, dim, n[nPlane], i, j, nActiveCompRef, scalar_type ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -580,8 +598,8 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
       {
         for ( j = 0; j < ny; j++ )
         {
-          mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveComp ) <= 0  &&
-                         fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
+          mask[j][i] = ( MyVTKUtils::GetImageDataComponent(ptr, dim, n[nPlane], i, j, nActiveComp, scalar_type ) <= 0  &&
+                         fabs( MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, n[nPlane], i, j, nActiveCompRef, scalar_type ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -594,7 +612,7 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
       {
         for ( int j = 0; j < ny; j++ )
         {
-          mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
+          mask[j][i] = ( fabs( MyVTKUtils::GetImageDataComponent(ptr, dim, i, n[nPlane], j, nActiveCompRef, scalar_type ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -605,8 +623,8 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
       {
         for ( int j = 0; j < ny; j++ )
         {
-          mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveComp ) <= 0  &&
-                         fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
+          mask[j][i] = ( MyVTKUtils::GetImageDataComponent(ptr, dim, i, n[nPlane], j, nActiveComp, scalar_type ) <= 0  &&
+                         fabs( MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, i, n[nPlane], j, nActiveCompRef, ref_scalar_type ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -619,7 +637,7 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
       {
         for ( j = 0; j < ny; j++ )
         {
-          mask[j][i] = ( fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= fTolerance
+          mask[j][i] = ( fabs( MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, n[nPlane], nActiveCompRef, scalar_type ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -630,8 +648,8 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
       {
         for ( j = 0; j < ny; j++ )
         {
-          mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveComp ) <= 0  &&
-                         fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= fTolerance
+          mask[j][i] = ( MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, n[nPlane], nActiveComp, scalar_type ) <= 0  &&
+                         fabs( MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, i, j, n[nPlane], nActiveCompRef, ref_scalar_type ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -659,7 +677,7 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
       {
         if ( mask[j][i] == 2 )
         {
-          double fvalue = ref->GetScalarComponentAsDouble( n[nPlane], i, j, nActiveCompRef );
+          double fvalue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, n[nPlane], i, j, nActiveCompRef, ref_scalar_type );
           if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
                ( !ignore_exclusion && m_propertyBrush->GetExcludeRangeEnabled() &&
@@ -675,7 +693,7 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
             }
             else
             {
-              m_imageData->SetScalarComponentFromFloat( n[nPlane], i, j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+              MyVTKUtils::SetImageDataComponent(ptr, dim, n[nPlane], i, j, nActiveComp, scalar_type, bAdd ? m_fFillValue : m_fBlankValue );
               voxel_list << n[nPlane] << i << j;
             }
           }
@@ -692,7 +710,7 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
       {
         if ( mask[j][i] == 2 )
         {
-          double fvalue = ref->GetScalarComponentAsDouble( i, n[nPlane], j, nActiveCompRef );
+          double fvalue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, i, n[nPlane], j, nActiveCompRef, ref_scalar_type );
           if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
                ( m_propertyBrush->GetExcludeRangeEnabled() &&
@@ -708,7 +726,7 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
             }
             else
             {
-              m_imageData->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+              MyVTKUtils::SetImageDataComponent(ptr, dim, i, n[nPlane], j, nActiveComp, scalar_type, bAdd ? m_fFillValue : m_fBlankValue );
               voxel_list << i << n[nPlane] << j;
             }
           }
@@ -725,7 +743,7 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
       {
         if ( mask[j][i] == 2 )
         {
-          double fvalue = ref->GetScalarComponentAsDouble( i, j, n[nPlane], nActiveCompRef );
+          double fvalue = MyVTKUtils::GetImageDataComponent(ref_ptr, ref_dim, i, j, n[nPlane], nActiveCompRef, ref_scalar_type );
           if ( ( m_propertyBrush->GetDrawRangeEnabled() &&
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
                ( m_propertyBrush->GetExcludeRangeEnabled() &&
@@ -741,7 +759,7 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
             }
             else
             {
-              m_imageData->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+              MyVTKUtils::SetImageDataComponent(ptr, dim, i, j, n[nPlane], nActiveComp, scalar_type, bAdd ? m_fFillValue : m_fBlankValue );
               voxel_list << i << j << n[nPlane];
             }
           }

@@ -29,6 +29,7 @@
 #include "vtkImageData.h"
 #include "FSVolume.h"
 #include "FSSurface.h"
+#include "MyVTKUtils.h"
 #include <QFile>
 #include <QTextStream>
 #include <vector>
@@ -280,9 +281,11 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
   int n[3];
   double pos[3];
   int* dim = rasImage->GetDimensions();
-  memset( rasImage->GetScalarPointer(),
+  char* ptr = (char*)rasImage->GetScalarPointer();
+  int scalar_type = rasImage->GetScalarSize();
+  memset( ptr,
           0,
-          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
+          ((size_t)scalar_type) * dim[0] * dim[1] * dim[2]);
   if (m_dStatsRange[0] <= 0)
   {
     size_t nsize = ((size_t)dim[0])*dim[1]*dim[2];
@@ -313,7 +316,8 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
       if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
            n[2] >= 0 && n[2] < dim[2] )
       {
-        rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, m_label->lv[i].stat >= threshold ? m_label->lv[i].stat : (m_dStatsRange[0]-1.0) );
+        MyVTKUtils::SetImageDataComponent(ptr, dim, n[0], n[1], n[2], 0, scalar_type,
+            m_label->lv[i].stat >= threshold ? m_label->lv[i].stat : (m_dStatsRange[0]-1.0) );
       }
       else
       {

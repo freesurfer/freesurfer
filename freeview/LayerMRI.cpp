@@ -62,6 +62,7 @@
 #include "vtkImageThreshold.h"
 #include "vtkImageShiftScale.h"
 #include "MyUtils.h"
+#include "MyVTKUtils.h"
 #include "FSVolume.h"
 #include "LayerPropertyMRI.h"
 //#include "BuildContourThread.h"
@@ -344,6 +345,8 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int vo
     m_imageData = m_volumeSource->GetImageOutput();
 
     int* dim = m_imageData->GetDimensions();
+    char* ptr = (char*)m_imageData->GetScalarPointer();
+    int scalar_type = m_imageData->GetScalarType();
     int len = qMin(dim[0], qMin(dim[1], dim[2]))/3;
     int len2 = len*len;
     if (voxel_option == 0)    // sphere
@@ -357,7 +360,7 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int vo
           for (int k = c[2]-len; k <= c[2]+len; k++)
           {
             if ((i-c[0])*(i-c[0])+(j-c[1])*(j-c[1])+(k-c[2])*(k-c[2]) < len2)
-              m_imageData->SetScalarComponentFromDouble(i, j, k, 0, val);
+              MyVTKUtils::SetImageDataComponent(ptr, dim, i, j, k, 0, scalar_type, val);
           }
         }
       }
@@ -372,7 +375,7 @@ bool LayerMRI::Create( LayerMRI* mri, bool bCopyVoxelData, int data_type, int vo
         {
           for (int k = c[2]-len; k <= c[2]+len; k++)
           {
-            m_imageData->SetScalarComponentFromDouble(i, j, k, 0, val);
+            MyVTKUtils::SetImageDataComponent(ptr, dim, i, j, k, 0, scalar_type, val);
           }
         }
       }
@@ -1583,7 +1586,19 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   double scale = scale_overall;
   if (!bNormalizeVector)
     scale *= GetProperty()->GetVectorDisplayScale();
+  scale_overall = scale;
 
+  char* ptr = (char*)imagedata->GetScalarPointer();
+  int scalar_type = imagedata->GetScalarType();
+  char* scale_ptr;
+  int scale_scalar_type;
+  int* scale_dim;
+  if (scaledata)
+  {
+    scale_ptr = (char*)scaledata->GetScalarPointer();
+    scale_dim = scaledata->GetDimensions();
+    scale_scalar_type = scaledata->GetScalarType();
+  }
   switch ( nPlane )
   {
   case 0:
@@ -1593,11 +1608,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
       {
         double v[3];
         double pt[3];
-        v[0] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 0 );
-        v[1] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 1 );
-        v[2] = imagedata->GetScalarComponentAsDouble( n[0], i, j, 2 );
+        v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, n[0], i, j, 0, scalar_type );
+        v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, n[0], i, j, 1, scalar_type );
+        v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, n[0], i, j, 2, scalar_type );
         if (scaledata)
-          scale = scaledata->GetScalarComponentAsDouble( n[0], i, j, 0 ) * scale;
+          scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, n[0], i, j, 0, scale_scalar_type ) * scale_overall;
 
         if ( !bNormalizeVector || (vtkMath::Normalize( v ) != 0) )
         {
@@ -1657,11 +1672,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
       {
         double v[3];
         double pt[3];
-        v[0] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 0 );
-        v[1] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 1 );
-        v[2] = imagedata->GetScalarComponentAsDouble( i, n[1], j, 2 );
+        v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, n[1], j, 0, scalar_type );
+        v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, n[1], j, 1, scalar_type );
+        v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, n[1], j, 2, scalar_type );
         if (scaledata)
-          scale = scaledata->GetScalarComponentAsDouble( i, n[1], j, 0 ) * scale;
+          scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, i, n[1], j, 0, scale_scalar_type ) * scale_overall;
 
         if ( !bNormalizeVector || vtkMath::Normalize( v ) != 0 )
         {
@@ -1721,11 +1736,11 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
       {
         double v[3];
         double pt[3];
-        v[0] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 0 );
-        v[1] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 1 );
-        v[2] = imagedata->GetScalarComponentAsDouble( i, j, n[2], 2 );
+        v[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, n[2], 0, scalar_type );
+        v[1] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, n[2], 1, scalar_type );
+        v[2] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, n[2], 2, scalar_type );
         if (scaledata)
-          scale = scaledata->GetScalarComponentAsDouble( i, j, n[2], 0 ) * scale;
+          scale = MyVTKUtils::GetImageDataComponent(scale_ptr, scale_dim, i, j, n[2], 0, scale_scalar_type) * scale_overall;
 
         if ( !bNormalizeVector || vtkMath::Normalize( v ) != 0 )
         {
@@ -1923,15 +1938,18 @@ void LayerMRI::BuildTensorGlyph( vtkImageData* imagedata,
   double** D = private_buf1_3x3;
   double** v = private_buf2_3x3;
   double w[3];
-  D[0][0] = imagedata->GetScalarComponentAsDouble( i, j, k, 0 );
-  D[0][1] = imagedata->GetScalarComponentAsDouble( i, j, k, 1 );
-  D[0][2] = imagedata->GetScalarComponentAsDouble( i, j, k, 2 );
-  D[1][0] = imagedata->GetScalarComponentAsDouble( i, j, k, 3 );
-  D[1][1] = imagedata->GetScalarComponentAsDouble( i, j, k, 4 );
-  D[1][2] = imagedata->GetScalarComponentAsDouble( i, j, k, 5 );
-  D[2][0] = imagedata->GetScalarComponentAsDouble( i, j, k, 6 );
-  D[2][1] = imagedata->GetScalarComponentAsDouble( i, j, k, 7 );
-  D[2][2] = imagedata->GetScalarComponentAsDouble( i, j, k, 8 );
+  char* ptr = (char*)imagedata->GetScalarPointer();
+  int* dim = imagedata->GetDimensions();
+  int scalar_type = imagedata->GetScalarType();
+  D[0][0] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 0, scalar_type );
+  D[0][1] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 1, scalar_type );
+  D[0][2] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 2, scalar_type );
+  D[1][0] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 3, scalar_type );
+  D[1][1] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 4, scalar_type );
+  D[1][2] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 5, scalar_type );
+  D[2][0] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 6, scalar_type );
+  D[2][1] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 7, scalar_type );
+  D[2][2] = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 8, scalar_type );
   if ( vtkMath::Jacobi( D, w, v ) )
   {
     v[1][0] = -v[1][0];         // by default invert Y !!
@@ -2036,6 +2054,7 @@ bool LayerMRI::GetVoxelValueRange( const double* pt0, const double* pt1, int nPl
   double* orig = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
   int* dim = m_imageData->GetDimensions();
+  int scalar_type = m_imageData->GetScalarType();
 
   if ( nPlane < 0 ) // || nPlane >= dim[nPlane] )
   {
@@ -2061,7 +2080,8 @@ bool LayerMRI::GetVoxelValueRange( const double* pt0, const double* pt1, int nPl
   }
 
   int nActiveComp = GetActiveFrame();
-  range_out[0] = m_imageData->GetScalarComponentAsDouble( n0[0], n0[1], n0[2], nActiveComp );
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  range_out[0] = MyVTKUtils::GetImageDataComponent(ptr, dim, n0[0], n0[1], n0[2], nActiveComp, scalar_type);
   range_out[1] = range_out[0];
 
   for ( int i = n0[0]; i <= n1[0]; i++ )
@@ -2070,7 +2090,7 @@ bool LayerMRI::GetVoxelValueRange( const double* pt0, const double* pt1, int nPl
     {
       for ( int k = n0[2]; k <= n1[2]; k++ )
       {
-        double value = m_imageData->GetScalarComponentAsDouble( i, j, k, nActiveComp );
+        double value = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nActiveComp, scalar_type);
         if ( range_out[0] > value )
         {
           range_out[0] = value;
@@ -2092,7 +2112,7 @@ bool LayerMRI::GetVoxelStatsRectangle( const double* pt0, const double* pt1, int
   double* orig = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
   int* dim = m_imageData->GetDimensions();
-
+  int scalar_type = m_imageData->GetScalarType();
 
   if ( nPlane < 0 ) //|| nPlane >= dim[nPlane] )
   {
@@ -2119,13 +2139,14 @@ bool LayerMRI::GetVoxelStatsRectangle( const double* pt0, const double* pt1, int
   int nActiveComp = GetActiveFrame();
   double dMean = 0;
   int nCount = 0;
+  char* ptr = (char*)m_imageData->GetScalarPointer();
   for ( int i = n0[0]; i <= n1[0]; i++ )
   {
     for ( int j = n0[1]; j <= n1[1]; j++ )
     {
       for ( int k = n0[2]; k <= n1[2]; k++ )
       {
-        dMean += m_imageData->GetScalarComponentAsDouble( i, j, k, nActiveComp );
+        dMean += MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nActiveComp, scalar_type );
         nCount++;
       }
     }
@@ -2144,7 +2165,7 @@ bool LayerMRI::GetVoxelStatsRectangle( const double* pt0, const double* pt1, int
       {
         for ( int k = n0[2]; k <= n1[2]; k++ )
         {
-          double value = m_imageData->GetScalarComponentAsDouble( i, j, k, nActiveComp );
+          double value = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nActiveComp, scalar_type );
           sd += ( value-(*mean_out) ) * ( value-(*mean_out) );
         }
       }
@@ -2173,6 +2194,8 @@ bool LayerMRI::GetVoxelStats(QList<int> &indices, double *mean_out, double *sd_o
   double dMean = 0;
   int nCount = 0;
   int* dim = m_imageData->GetDimensions();
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int scalar_type = m_imageData->GetScalarType();
   for ( int n = 0; n < indices.size(); n+=3 )
   {
     int i = indices[n];
@@ -2180,7 +2203,7 @@ bool LayerMRI::GetVoxelStats(QList<int> &indices, double *mean_out, double *sd_o
     int k = indices[n+2];
     if (i >= 0 && i < dim[0] && j >= 0 && j < dim[1] && k >= 0 && k < dim[2])
     {
-      dMean += m_imageData->GetScalarComponentAsDouble( i, j, k, nActiveComp );
+      dMean += MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nActiveComp, scalar_type );
       nCount++;
     }
   }
@@ -2199,7 +2222,7 @@ bool LayerMRI::GetVoxelStats(QList<int> &indices, double *mean_out, double *sd_o
       int k = indices[n+2];
       if (i >= 0 && i < dim[0] && j >= 0 && j < dim[1] && k >= 0 && k < dim[2])
       {
-        double value = m_imageData->GetScalarComponentAsDouble( i, j, k, nActiveComp );
+        double value = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nActiveComp, scalar_type );
         sd += ( value-(*mean_out) ) * ( value-(*mean_out) );
       }
     }
@@ -2237,6 +2260,8 @@ bool LayerMRI::GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane
   double* orig = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
   int* dim = m_imageData->GetDimensions();
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int scalar_type = m_imageData->GetScalarType();
 
   if ( nPlane < 0 )// || nPlane >= dim[nPlane] )
   {
@@ -2265,7 +2290,7 @@ bool LayerMRI::GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane
   int nCount = 0;
   for ( size_t i = 0; i < indices.size(); i += 3 )
   {
-    double value = m_imageData->GetScalarComponentAsDouble( indices[i], indices[i+1], indices[i+2], nActiveComp );
+    double value = MyVTKUtils::GetImageDataComponent(ptr, dim, indices[i], indices[i+1], indices[i+2], nActiveComp, scalar_type );
     dMean += value;
     values.push_back( value );
     nCount++;
@@ -2474,9 +2499,11 @@ void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out
   }
 
   float fLabel = 0;
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int scalar_type = m_imageData->GetScalarType();
   if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] && n[2] >= 0 && n[2] < dim[2] )
   {
-    fLabel = m_imageData->GetScalarComponentAsFloat( n[0], n[1], n[2], m_nActiveFrame );
+    fLabel = (float)MyVTKUtils::GetImageDataComponent(ptr, dim, n[0], n[1], n[2], m_nActiveFrame, scalar_type );
   }
 
   int cnt = 0;
@@ -2490,7 +2517,7 @@ void LayerMRI::GetCurrentLabelStats(int nPlane, float *label_out, int *count_out
     {
       for ( int k = ext[2][0]; k <= ext[2][1]; k++ )
       {
-        if ( m_imageData->GetScalarComponentAsFloat( i, j, k, m_nActiveFrame ) == fLabel )
+        if ( MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, m_nActiveFrame, scalar_type ) == fLabel )
         {
           cnt++;
           //        indices << i << j << k;
@@ -2546,14 +2573,19 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
 
   char* mask = new char[nDim[0]*nDim[1]];
   memset( mask, 0, nDim[0]*nDim[1] );
-  double dVoxelValue = original_image->GetScalarComponentAsDouble( x, y, 0, 0 );
-  double dMaskValue = image->GetScalarComponentAsDouble( x, y, 0, 0 );
+  char* ptr = (char*)image->GetScalarPointer();
+  int scalar_type = image->GetScalarType();
+  int* orig_dim = original_image->GetDimensions();
+  char* orig_ptr = (char*)original_image->GetScalarPointer();
+  int orig_scalar_type = original_image->GetScalarType();
+  double dVoxelValue = MyVTKUtils::GetImageDataComponent(orig_ptr, orig_dim, x, y, 0, 0, orig_scalar_type );
+  double dMaskValue = MyVTKUtils::GetImageDataComponent(ptr, nDim, x, y, 0, 0, scalar_type );
   for ( int i = 0; i < nDim[0]; i++ )
   {
     for ( int j = 0; j < nDim[1]; j++ )
     {
-      if ( original_image->GetScalarComponentAsDouble( i, j, 0, 0 ) == dVoxelValue &&
-           image->GetScalarComponentAsDouble( i, j, 0, 0 ) == dMaskValue )
+      if ( MyVTKUtils::GetImageDataComponent(orig_ptr, orig_dim, i, j, 0, 0, orig_scalar_type ) == dVoxelValue &&
+           MyVTKUtils::GetImageDataComponent(ptr, nDim, i, j, 0, 0, scalar_type ) == dMaskValue )
       {
         mask[j*nDim[0]+i] = 1;
       }
@@ -2563,6 +2595,9 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
   int nFillValue = 2;
   MyUtils::FloodFill( mask, x, y, nx, ny, nFillValue, 0 );
 
+  nDim = m_imageData->GetDimensions();
+  ptr = (char*)m_imageData->GetScalarPointer();
+  scalar_type = m_imageData->GetScalarType();
   int nActiveComp = this->GetActiveFrame();
   int cnt = 0;
   switch ( nPlane )
@@ -2574,7 +2609,7 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
       {
         if ( mask[j*nx+i] == nFillValue )
         {
-          m_imageData->SetScalarComponentFromFloat( n[nPlane], i, j, nActiveComp, m_fFillValue );
+          MyVTKUtils::SetImageDataComponent(ptr, nDim, n[nPlane], i, j, nActiveComp, m_fFillValue, scalar_type );
           cnt++;
         }
       }
@@ -2587,7 +2622,7 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
       {
         if ( mask[j*nx+i] == nFillValue )
         {
-          m_imageData->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, m_fFillValue );
+          MyVTKUtils::SetImageDataComponent(ptr, nDim, i, n[nPlane], j, nActiveComp, m_fFillValue, scalar_type );
           cnt++;
         }
       }
@@ -2600,7 +2635,7 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
       {
         if ( mask[j*nx+i] == nFillValue )
         {
-          m_imageData->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, m_fFillValue );
+          MyVTKUtils::SetImageDataComponent(ptr, nDim, i, j, n[nPlane], nActiveComp, m_fFillValue, scalar_type);
           cnt++;
         }
       }
@@ -2876,6 +2911,10 @@ void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
   int*    label_dim = label_image->GetDimensions();
   double* label_vs = label_image->GetSpacing();
   double* label_orig = label_image->GetOrigin();
+  char* mri_ptr = (char*)mri_image->GetScalarPointer();
+  int   mri_scalar_type = mri_image->GetScalarType();
+  char* label_ptr = (char*)label_image->GetScalarPointer();
+  int   label_scalar_type = label_image->GetScalarType();
 
   // first find all label ids
   std::vector<LabelStatsPrivate> labels;
@@ -2883,7 +2922,7 @@ void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
   {
     for ( int j = 0; j < label_dim[1]; j++ )
     {
-      int nId = (int)label_image->GetScalarComponentAsDouble( i, j, 0, 0 );
+      int nId = (int)MyVTKUtils::GetImageDataComponent(label_ptr, label_dim, i, j, 0, 0, label_scalar_type );
       if ( nId > 0 )
       {
         int mi = (int)( ( i*label_vs[0] + label_orig[0] - mri_orig[0] ) / mri_vs[0] );
@@ -2895,7 +2934,7 @@ void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
           {
             if ( nId == labels[n].id )
             {
-              labels[n].values.push_back( mri_image->GetScalarComponentAsDouble( mi, mj, 0, 0 ) );
+              labels[n].values.push_back( MyVTKUtils::GetImageDataComponent(mri_ptr, mri_dim, mi, mj, 0, 0, mri_scalar_type ) );
               labels[n].count++;
               bFound = true;
               break;
@@ -2905,7 +2944,7 @@ void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
               LabelStatsPrivate l;
               l.id = nId;
               l.count = 1;
-              l.values.push_back( mri_image->GetScalarComponentAsDouble( mi, mj, 0, 0 ) );
+              l.values.push_back( MyVTKUtils::GetImageDataComponent(mri_ptr, mri_dim, mi, mj, 0, 0, mri_scalar_type ) );
               labels.insert( labels.begin() + n, l );
               bFound = true;
               break;
@@ -2916,7 +2955,7 @@ void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
             LabelStatsPrivate l;
             l.id = nId;
             l.count = 1;
-            l.values.push_back( mri_image->GetScalarComponentAsDouble( mi, mj, 0, 0 ) );
+            l.values.push_back( MyVTKUtils::GetImageDataComponent(mri_ptr, mri_dim, mi, mj, 0, 0, mri_scalar_type ) );
             labels.push_back( l );
           }
         }
@@ -3033,15 +3072,17 @@ void LayerMRI::ReplaceVoxelValue(double orig_value, double new_value, int nPlane
     else
       range[nPlane][1] = range[nPlane][0]-1;
   }
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int scalar_type = m_imageData->GetScalarType();
   for (int i = range[0][0]; i <= range[0][1]; i++)
   {
     for (int j = range[1][0]; j <= range[1][1]; j++)
     {
       for (int k = range[2][0]; k <= range[2][1]; k++)
       {
-        double val = m_imageData->GetScalarComponentAsDouble(i, j, k, m_nActiveFrame);
+        double val = MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, m_nActiveFrame, scalar_type);
         if (val == orig_value)
-          m_imageData->SetScalarComponentFromDouble(i, j, k, m_nActiveFrame, new_value);
+          MyVTKUtils::SetImageDataComponent(ptr, dim, i, j, k, m_nActiveFrame, new_value, scalar_type);
       }
     }
   }

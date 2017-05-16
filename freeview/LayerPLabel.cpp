@@ -27,6 +27,7 @@
 #include "MainWindow.h"
 #include "LayerPropertyMRI.h"
 #include "MyUtils.h"
+#include "MyVTKUtils.h"
 #include "FSVolume.h"
 #include "vtkFloatArray.h"
 #include "vtkPointData.h"
@@ -132,25 +133,35 @@ bool LayerPLabel::LoadVolumeFiles()
     }
 
     int* dim = m_imageData->GetDimensions();
+    char* ptr = (char*)m_imageData->GetScalarPointer();
+    int scalar_type = m_imageData->GetScalarType();
+
+    int* index_dim = m_imageIndex->GetDimensions();
+    char* index_ptr = (char*)m_imageIndex->GetScalarPointer();
+    int index_scalar_type = m_imageIndex->GetScalarType();
+
+    int* img_dim = imageData->GetDimensions();
+    char* img_ptr = (char*)imageData->GetScalarPointer();
+    int img_scalar_type = imageData->GetScalarType();
     for ( int ni = 0; ni < dim[0]; ni++ )
     {
       for ( int nj = 0; nj < dim[1]; nj++ )
       {
         for ( int nk = 0; nk < dim[2]; nk++ )
         {
-          float pvalue = imageData->GetScalarComponentAsFloat( ni, nj, nk, 0 );
+          float pvalue = MyVTKUtils::GetImageDataComponent(img_ptr, img_dim, ni, nj, nk, 0, img_scalar_type );
           if ( i == 0)
           {
-            m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 0, 0);
-            m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 1, pvalue);
+            MyVTKUtils::SetImageDataComponent(index_ptr, index_dim, ni, nj, nk, 0, index_scalar_type, 0);
+            MyVTKUtils::SetImageDataComponent(index_ptr, index_dim, ni, nj, nk, 1, index_scalar_type, pvalue);
           }
           else
           {
-            float old_pvalue = m_imageIndex->GetScalarComponentAsFloat( ni, nj, nk, 0 );
+            float old_pvalue = MyVTKUtils::GetImageDataComponent(index_ptr, index_dim, ni, nj, nk, 0, index_scalar_type);
             if ( old_pvalue < pvalue)
             {
-              m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 0, i);
-              m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 1, pvalue);
+              MyVTKUtils::SetImageDataComponent(index_ptr, index_dim, ni, nj, nk, 0, index_scalar_type, i);
+              MyVTKUtils::SetImageDataComponent(index_ptr, index_dim, ni, nj, nk, 1, index_scalar_type, pvalue);
             }
           }
           for ( int m = 0; m < 4; m++ )
@@ -158,7 +169,7 @@ bool LayerPLabel::LoadVolumeFiles()
             float fvalue = 0;
             if ( i != 0 )
             {
-              fvalue = m_imageData->GetScalarComponentAsFloat( ni, nj, nk, m );
+              fvalue = MyVTKUtils::GetImageDataComponent(ptr, dim, ni, nj, nk, m, scalar_type );
             }
 
             fvalue += color[m]*pvalue/255;
@@ -166,7 +177,7 @@ bool LayerPLabel::LoadVolumeFiles()
             {
               fvalue = 255;
             }
-            m_imageData->SetScalarComponentFromFloat( ni, nj, nk, m, fvalue );
+            MyVTKUtils::SetImageDataComponent(ptr, dim, ni, nj, nk, m, scalar_type, fvalue );
           }
         }
       }
