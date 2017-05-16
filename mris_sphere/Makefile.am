@@ -54,7 +54,7 @@ foo:
 
 check_PROGRAMS=foo
 
-TESTS=test_mris_sphere $(top_builddir)/scripts/help_xml_validate
+TESTS=test_mris_sphere test_fs_posix $(top_builddir)/scripts/help_xml_validate
 
 clean-local:
 	rm -f $(BUILT_SOURCES)
