@@ -5,28 +5,29 @@
 #ifndef geodesics
 #define geodesics
 
-extern "C"
-{
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "mrisurf.h"
 
 #define MAX_GEODESICS 4000
 
-
-struct Geodesics {
+typedef struct {
   int vnum;     // number of surrounding vertices within limit
   int v[MAX_GEODESICS];       // surrounding vertices
   float dist[MAX_GEODESICS];  // distances to vertices
-};
+} Geodesics;
 
 // computes and returns the nearest geodesics for every vertex in the surface:
-Geodesics* computeGeodesics(MRIS* surf, int maxdist);
+Geodesics* computeGeodesics(MRIS* surf, float maxdist);
 
 // save/load geodesics:
-void GeodesicsWrite(Geodesics* geo, int nvertices, char* fname);
-Geodesics* GeodesicsRead(char* fname, int nvertices);
+void geodesicsWrite(Geodesics* geo, int nvertices, char* fname);
+Geodesics* geodesicsRead(char* fname, int nvertices);
 
-
+#ifdef __cplusplus
 }
+#endif
 
 #endif

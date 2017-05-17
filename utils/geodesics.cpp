@@ -54,7 +54,7 @@ static void progressBar(float progress);
 
 
 extern "C"
-Geodesics *computeGeodesics(MRIS* surf, int maxdist) {
+Geodesics *computeGeodesics(MRIS* surf, float maxdist) {
   // pre-compute and set-up required values to build triangle chain:
   FACE *face;
   Triangle *triangle;
@@ -255,7 +255,7 @@ Geodesics *computeGeodesics(MRIS* surf, int maxdist) {
   std::cout << std::endl;
   std::cout << "computing shortest paths and non-geodesics\n";
 
-  Geodesics *geo = (Geodesics*) calloc(surf->nvertices, sizeof(struct Geodesics));
+  Geodesics *geo = (Geodesics*) calloc(surf->nvertices, sizeof(Geodesics));
 
   // ------ STEP 2 ------
   // compute the shortest paths between each vertex (within given limit)
@@ -337,7 +337,7 @@ Geodesics *computeGeodesics(MRIS* surf, int maxdist) {
 
 
 extern "C"
-void GeodesicsWrite(Geodesics* geo, int nvertices, char* fname) {
+void geodesicsWrite(Geodesics* geo, int nvertices, char* fname) {
   FILE *file = fopen(fname, "wb");
   fwrite(geo, sizeof(Geodesics), nvertices, file);
   fclose(file);
@@ -345,8 +345,8 @@ void GeodesicsWrite(Geodesics* geo, int nvertices, char* fname) {
 
 
 extern "C"
-Geodesics* GeodesicsRead(char* fname, int nvertices) {
-  Geodesics *geo = (Geodesics*) calloc(nvertices, sizeof(struct Geodesics));
+Geodesics* geodesicsRead(char* fname, int nvertices) {
+  Geodesics *geo = (Geodesics*) calloc(nvertices, sizeof(Geodesics));
   FILE *file = fopen(fname, "rb");
   fread(geo, sizeof(Geodesics), nvertices, file);
   fclose(file);
