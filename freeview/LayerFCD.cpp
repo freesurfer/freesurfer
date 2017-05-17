@@ -51,6 +51,7 @@
 #include "ProgressCallback.h"
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
+#include "MyVTKUtils.h"
 #include <QDebug>
 #include <QTimer>
 
@@ -627,9 +628,11 @@ void LayerFCD::UpdateRASImage( vtkImageData* rasImage)
   int n[3];
   double pos[3];
   int* dim = rasImage->GetDimensions();
-  memset( rasImage->GetScalarPointer(),
+  char* ptr = (char*)rasImage->GetScalarPointer();
+  int scalar_type = rasImage->GetScalarType();
+  memset( ptr,
           0,
-          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
+          ((size_t)scalar_type) * dim[0] * dim[1] * dim[2]);
   if ( m_fcd->nlabels == 0 )
   {
     cout << "No labels found\n";
@@ -660,8 +663,8 @@ void LayerFCD::UpdateRASImage( vtkImageData* rasImage)
       if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
            n[2] >= 0 && n[2] < dim[2] )
       {
-        rasImage->SetScalarComponentFromFloat
-            ( n[0], n[1], n[2], 0, label->lv[i].vno );
+        MyVTKUtils::SetImageDataComponent(ptr, dim,
+             n[0], n[1], n[2], 0, scalar_type, label->lv[i].vno );
       }
     }
   }
@@ -889,7 +892,9 @@ void LayerFCD::SetLabelVisible(int nIndex, bool visible)
   FSVolume* ref_vol = m_layerSource->GetSourceVolume();
   int n[3];
   double pos[3];
-  int* dim = m_imageData->GetDimensions();
+  int* dim = m_imageData->GetDimensions(); 
+  char* ptr = (char*)m_imageData->GetScalarPointer();
+  int scalar_type = m_imageData->GetScalarType();
   for ( int i = 0; i < label->n_points; i++ )
   {
     pos[0] = label->lv[i].x;
@@ -910,8 +915,8 @@ void LayerFCD::SetLabelVisible(int nIndex, bool visible)
     if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
          n[2] >= 0 && n[2] < dim[2] )
     {
-      m_imageData->SetScalarComponentFromFloat
-          ( n[0], n[1], n[2], 0, visible?label->lv[i].vno:0 );
+      MyVTKUtils::SetImageDataComponent(ptr, dim,
+           n[0], n[1], n[2], 0, scalar_type, visible?label->lv[i].vno:0 );
     }
   }
   for (int i = 0; i < 3; i++)

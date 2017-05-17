@@ -28,6 +28,7 @@
 #include "LayerMRI.h"
 #include <vtkImageData.h>
 #include "ProgressCallback.h"
+#include "MyVTKUtils.h"
 #include <QTimer>
 
 extern "C"
@@ -150,6 +151,8 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
     return NULL;
   }
 
+  char* ptr = (char*)image->GetScalarPointer();
+  int scalar_type = image->GetScalarType();
   for ( int j = 0; j < mri->height; j++ )
   {
     for ( int k = 0; k < mri->depth; k++ )
@@ -162,23 +165,23 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
           {
           case MRI_UCHAR:
             MRIseq_vox( mri, i, j, k, nFrame ) =
-                (unsigned char)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+                (unsigned char)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
             break;
           case MRI_INT:
             MRIIseq_vox( mri, i, j, k, nFrame ) =
-                (int)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+                (int)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
             break;
           case MRI_LONG:
             MRILseq_vox( mri, i, j, k, nFrame ) =
-                (long)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+                (long)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
             break;
           case MRI_FLOAT:
             MRIFseq_vox( mri, i, j, k, nFrame ) =
-                (float)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+                (float)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
             break;
           case MRI_SHORT:
             MRISseq_vox( mri, i, j, k, nFrame ) =
-                (int)image->GetScalarComponentAsDouble(i, j, k, nFrame);
+                (int)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
             break;
           default:
             break;
@@ -200,6 +203,9 @@ void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
   int zY = mri->height;
   int zZ = mri->depth;
   int zFrames = mri->nframes;
+  char* ptr = (char*)image->GetScalarPointer();
+  int scalar_type = image->GetScalarType();
+  int* dim = image->GetDimensions();
   for ( int nZ = 0; nZ < zZ; nZ++ )
   {
     for ( int nY = 0; nY < zY; nY++ )
@@ -211,23 +217,23 @@ void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
           switch ( mri->type )
           {
           case MRI_UCHAR:
-            image->SetScalarComponentFromDouble(nX, nY, nZ, nFrame,
+            MyVTKUtils::SetImageDataComponent(ptr, dim, nX, nY, nZ, nFrame, scalar_type,
                                                 MRIseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           case MRI_INT:
-            image->SetScalarComponentFromDouble(nX, nY, nZ, nFrame,
+            MyVTKUtils::SetImageDataComponent(ptr, dim, nX, nY, nZ, nFrame, scalar_type,
                                                 MRIIseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           case MRI_LONG:
-            image->SetScalarComponentFromDouble(nX, nY, nZ, nFrame,
+            MyVTKUtils::SetImageDataComponent(ptr, dim, nX, nY, nZ, nFrame, scalar_type,
                                                 MRILseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           case MRI_FLOAT:
-            image->SetScalarComponentFromDouble(nX, nY, nZ, nFrame,
+            MyVTKUtils::SetImageDataComponent(ptr, dim, nX, nY, nZ, nFrame, scalar_type,
                                                 MRIFseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           case MRI_SHORT:
-            image->SetScalarComponentFromDouble(nX, nY, nZ, nFrame,
+            MyVTKUtils::SetImageDataComponent(ptr, dim, nX, nY, nZ, nFrame, scalar_type,
                                                 MRISseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           default:

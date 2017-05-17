@@ -2,6 +2,7 @@
 #include "LayerMRI.h"
 #include "vtkImageData.h"
 #include <QMutexLocker>
+#include "MyVTKUtils.h"
 
 LayerMRIWorkerThread::LayerMRIWorkerThread(LayerMRI *mri) :
   QThread(mri), m_bAbort(false)
@@ -25,13 +26,15 @@ void LayerMRIWorkerThread::run()
   IntList vals;
   QMap<int, QList<double> > centers;
   QMap<int, int> counts;
+  char* ptr = (char*)image->GetScalarPointer();
+  int scalar_type = image->GetScalarType();
   for (int i = 0; i < dim[0]; i++)
   {
     for (int j = 0; j < dim[1]; j++)
     {
       for (int k = 0; k < dim[2]; k++)
       {
-        int val = (int)image->GetScalarComponentAsDouble(i, j, k, 0);
+        int val = (int)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 0, scalar_type);
         if (val != 0)
         {
           if (!vals.contains(val))

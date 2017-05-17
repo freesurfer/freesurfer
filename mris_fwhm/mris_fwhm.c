@@ -214,10 +214,11 @@ int arNHops = 0;
 int nthreads = 1;
 int DoSpatialINorm = 0;
 double fwhm = 0;
+int niters=-1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, niters=0, Ntp, n, err;
+  int nargs, Ntp, n, err;
   double ar1mn, ar1std, ar1max, avgvtxarea,ftmp, fwhmDH;
   double InterVertexDistAvg, InterVertexDistStdDev;
   MRI *ar1=NULL;
@@ -367,8 +368,8 @@ int main(int argc, char *argv[]) {
     InVals = mritmp;
   }
 
-  if (infwhm > 0) {
-    niters = MRISfwhm2niters(infwhm,surf);
+  if (infwhm > 0 || niters > 0) {
+    if(niters < 0) niters = MRISfwhm2niters(infwhm,surf);
     printf("Smoothing input by fwhm=%lf, gstd=%lf, niters=%d \n",
            infwhm,ingstd,niters);
     InVals = MRISsmoothMRI(surf, InVals, niters, mask,InVals);
@@ -603,7 +604,13 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&infwhm);
       ingstd = infwhm/sqrt(log(256.0));
       nargsused = 1;
-    } else if (!strcasecmp(option, "--synth-frames")) {
+    }
+    else if (!strcasecmp(option, "--niters")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&niters);
+      nargsused = 1;
+    }
+    else if (!strcasecmp(option, "--synth-frames")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nframes);
       synth = 1;
