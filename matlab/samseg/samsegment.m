@@ -349,7 +349,7 @@ if(showImages)
 end
 
 
-historyWithinEachMultiResolutionLevel = struc( [] );
+historyWithinEachMultiResolutionLevel = struct( [] );
 for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
   %  
