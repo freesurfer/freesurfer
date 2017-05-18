@@ -1,6 +1,6 @@
 function PSI=prepBiasFieldBase(siz,biasFieldOrder)
 
-% Prepare basis functions for the bias field
+% Prepare basis functions for the bias field, and initialize weights
 % disp('Preparing basis functions for bias field')
 [X Y Z]=ndgrid(1:siz(1),1:siz(2),1:siz(3));
 X=X-min(X(:)); X=X/max(X(:)); X=2*X-1;

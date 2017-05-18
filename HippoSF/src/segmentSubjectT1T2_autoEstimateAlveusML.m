@@ -7,21 +7,41 @@
 % - T2volumeFileName: T2 image
 % - resolution: voxel size at which we want to work (in mm).
 % - atlasMeshFileName: the atlas to segment the data
-% - atlasDumpFileName: corresponding imageDump.mgz
+% - atlasDumpFileName: corresponding imageDump.mgz (name *must* be imageDump.mgz)
 % - compressionLUTfileName: corresponding compressionLUT.txt
 % - K: stiffness of the mesh in the segmentation.
 % - side: 'left' or 'right'
 % - optimizerType: must be 'LM' or 'ConjGrad'
-% - suffix: for output directory, e.g. 'v10',...
-% - suffixUser: for the user to identify outputs from different input scans (e.g. T2, FLAIR)
+% - suffix: for output directory, e.g. 'T1based_GGAWLnoSimil','v10',...
+% - suffixUser: for the user to identify outputs from different T2s
 % - FSpath: path to FreeSurfer executables
 % - MRFconstant (optional): make it >0 for MRF cleanup (5 is reasonable, larger is smoother)
 %           It does NOT affect volumes, which are computed from soft posteriors anyway
-%           This feature has been disabled for now
-% - ByPassBF:  set to 1 to bypass bias field correction of T2 scan (if you  do, set UseWholeBrainInHyperPar to 1)
-% - UseWholeBrainInHyperPar: set to 1 to use whole brain when estimating hyperparameters (not recommended, local is better).
+
 
 function segmentSubjectT1T2_autoEstimateAlveusML(subjectName,subjectDir,T2volumeFileName,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,optimizerType,suffix,suffixUser,FSpath,MRFconstant,ByPassBF,UseWholeBrainInHyperPar)
+
+% clear
+% 
+% subjectName='subject1';
+% subjectDir='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/FSdirConformed/';
+% T2volumeFileName='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/subject1/T2.0.6.nii.gz';
+% atlasMeshFileName='/usr/local/freesurfer/dev/average/HippoSF/atlas/AtlasMesh.gz';
+% atlasDumpFileName='/usr/local/freesurfer/dev/average/HippoSF/atlas/AtlasDump.mgz';
+% compressionLUTfileName='/usr/local/freesurfer/dev/average/HippoSF/atlas/compressionLookupTable.txt';
+% K=0.05;
+% side='right';
+% % optimizerType='LM';
+% optimizerType='ConjGrad';
+% suffix='T1T2basedHRtest';
+% suffixUser='T2';
+% FSpath='/usr/local/freesurfer/dev/bin/';
+% MRFconstant=0;
+% resolution=1/3; % 0.5;
+% ByPassBF=1;
+% UseWholeBrainInHyperPar=0;
+
+
 
 DEBUG=0;
 FAST=0; % set it to one to optimize just a bit (go through code fast)
@@ -34,7 +54,7 @@ if ~isempty(aux)
 end
 
 % sanity check
-    
+
 if nargin<12
     error('Not enough input arguments');
 elseif strcmp(side,'left')==0 && strcmp(side,'right')==0
@@ -56,6 +76,7 @@ elseif ~isdeployed && (~isnumeric(K))
 elseif ~isdeployed && (~isnumeric(MRFconstant))
     error('MRFconstant must be numeric');
 end
+
 
 % Constants
 HippoLabelLeft=17;
@@ -91,16 +112,23 @@ else
     if exist('UseWholeBrainInHyperPar','var')==0
         UseWholeBrainInHyperPar=0;
     end
-end
-if  MRFconstant>0
-    disp('Warning: MRF smoothing disabled for now');
+    
+    addpath([pwd() '/functions']);
+    addpath('/usr/local/freesurfer/stable6_0_0/matlab')
+    if isunix
+        addpath('/cluster/koen/eugenio/GEMS-Release-linux/bin')
+    elseif ismac
+        addpath('/cluster/koen/eugenio/GEMS-Release-mac/bin')
+    else
+        error('Neither Linux nor Mac');
+    end       
 end
 time_start=clock;
 
 % Clean up KVL memory space
 kvlClear;
 
-% Temporary directory: here we have a secret flag: if we are at the Martinos 
+% Temporary directory: here we have a secret flag: if we are at the Martinos
 % Center and we are using the cluster, we want to set USE_SCRATCH to 1 in order
 % to avoid massive data flow between the cluster and your machine (assming your
 % data is local).
@@ -139,7 +167,7 @@ if exist(T2transform,'file')>0 && exist(T2transformInfo,'file')>0
     if strcmp(tline,T2name)==0
         error('Found T1-T2 transform does not correspond to T2 input. If you are using a different T2, please change the ID of the analysis');
     end
-else 
+else
     
     disp('Registering norm.mgz to additional volume');
     
@@ -193,11 +221,28 @@ system(['cp ' atlasDumpFileName ' ./imageDump.mgz']);
 
 % flip LR if right side - we only rotate along LR axis not to bias left vs right hippo segmentation
 if strcmp(side,'right')>0
-    cmd=[FSpath '/kvlApplyTransform imageDump.mgz -1   0   0  2    0   1   0   0   0   0   1   0'];
-    system([cmd ' >/dev/null']);
-    system('mv imageDump_transformed.mgz imageDump.mgz' );
+    aux=myMRIread('imageDump.mgz',0,tempdir);
+    aux.vox2ras0(1,:)=-aux.vox2ras0(1,:);
+    aux.vox2ras1(1,:)=-aux.vox2ras1(1,:);
+    aux.vox2ras(1,:)=-aux.vox2ras(1,:);
+    myMRIwrite(aux,'imageDump.mgz','float',tempdir);
 end
 
+% % Apply (inverted) subjetct-to-talairach transform
+% cmd=[FSpath '/mri_concatenate_lta -out_type   1 -invert1 ' subjectDir '/' subjectName '/mri/transforms/talairach.lta identity.nofile talToSubj.lta '];
+% system([cmd ' >/dev/null']);
+% cmd=[FSpath '/kvlApplyTransform imageDump.mgz '];
+% fid=fopen('talToSubj.lta');
+% while 1
+%     tline = fgetl(fid);
+%     if ~isempty(strfind(tline,'1 4 4')), break, end
+% end
+% for i=1:3
+%     cmd=[cmd ' ' fgetl(fid)];
+% end
+% fclose(fid);
+% system([cmd ' >/dev/null']);
+% system('mv imageDump_transformed.mgz imageDump.mgz' );
 
 % Target is masked aseg
 targetRegFileName=[tempdir '/hippoAmygBinaryMask.mgz'];
@@ -212,17 +257,41 @@ end
 myMRIwrite(TARGETREG,targetRegFileName,'float',tempdir);
 
 highres=0; if mean(ASEG.volres)<0.99, highres=1; end
-if highres==1, 
-    system([FSpath '/mri_convert ' targetRegFileName ' aux.mgz -odt float -vs 1 1 1 -rt nearest >/dev/null']); 
-    system(['mv aux.mgz ' targetRegFileName ' >/dev/null']);    
+if highres==1,
+    system([FSpath '/mri_convert ' targetRegFileName ' aux.mgz -odt float -vs 1 1 1 -rt nearest >/dev/null']);
+    system(['mv aux.mgz ' targetRegFileName ' >/dev/null']);
 end
 
-cmd=[FSpath '/kvlAutoCrop ' targetRegFileName ' 6'];
-system([cmd ' >/dev/null']);
+% cmd=[FSpath '/kvlAutoCrop ' targetRegFileName ' 6'];
+% system([cmd ' >/dev/null']);
+
+aux=myMRIread(targetRegFileName,0,tempdir);
+[aux.vol,cropping]=cropLabelVol(aux.vol,6);
+shift=aux.vox2ras0(1:3,1:3)*[cropping(2)-1; cropping(1)-1; cropping(3)-1];
+aux.vox2ras0(1:3,4)=aux.vox2ras0(1:3,4)+shift;
+aux.vox2ras1(1:3,4)=aux.vox2ras1(1:3,4)+shift;
+aux.vox2ras(1:3,4)=aux.vox2ras(1:3,4)+shift;
+aux.tkrvox2ras=[];
+myMRIwrite(aux,targetRegFileNameCropped,'float',tempdir);
 
 
+% Initial affine alignment based just on hippocampus
 
-% Initial affine alignment based just on hippocampus  
+if 0==1  % This is to use a softened version (opening the mask first)
+    aux=myMRIread(targetRegFileNameCropped,0,tempdir);
+    strel=createSphericalStrel(1);
+    aux.vol=imdilate(imerode(aux.vol>0,strel),strel);
+    tmp1=bwdist(aux.vol);
+    tmp2=bwdist(~aux.vol);
+    D=zeros(size(aux.vol));
+    D(~aux.vol)=-tmp1(~aux.vol);
+    D(aux.vol)=tmp2(aux.vol)-1;
+    rho=1;
+    P=exp(D)./(exp(-D)+exp(D));
+    P=round(255*P);
+    aux.vol=P;
+    myMRIwrite(aux,targetRegFileNameCropped,'float',tempdir);
+end
 
 if 1==1  % This is to use an opened version
     aux=myMRIread(targetRegFileNameCropped,0,tempdir);
@@ -230,6 +299,13 @@ if 1==1  % This is to use an opened version
     aux.vol=255*double(imdilate(imerode(aux.vol>0,strel),strel));
     myMRIwrite(aux,targetRegFileNameCropped,'float',tempdir);
 end
+
+% cmd=[FSpath '/kvlRegister imageDump.mgz ' targetRegFileNameCropped ' 3 2'];
+% system(cmd);
+% % system([cmd ' >/dev/null']);
+% system('mv imageDump_coregistered.mgz imageDump.mgz' );
+
+
 cmd=[FSpath '/mri_robust_register --mov imageDump.mgz  --dst ' targetRegFileNameCropped ...
     ' -lta trash.lta --mapmovhdr imageDump_coregistered.mgz  --sat 50'];
 system(cmd);
@@ -241,6 +317,24 @@ cmd=[FSpath '/mri_robust_register --mov imageDump.mgz  --dst ' targetRegFileName
 system(cmd);
 % system([cmd ' >/dev/null']);
 system('mv imageDump_coregistered.mgz imageDump.mgz' );
+
+
+%
+%
+% cmd=[FSpath '/kvlRegister imageDump.mgz ' targetRegFileNameCropped ' MI 6 0'];
+% system(cmd);
+% % system([cmd ' >/dev/null']);
+% system('mv imageDump_coregistered.mgz imageDump.mgz' );
+% if FAST==0
+%     cmd=[FSpath '/kvlRegister imageDump.mgz ' targetRegFileNameCropped ' SSD 12 0'];
+% else
+%     cmd=[FSpath '/kvlRegister imageDump.mgz ' targetRegFileNameCropped ' MI  12 0'];
+% end
+% system(cmd);
+% % system([cmd ' >/dev/null']);
+% system('mv imageDump_coregistered.mgz imageDump.mgz' );
+
+
 
 % Now, the idea is to refine the affine transform based on the hippo
 % First, we prepare a modifided ASEG that we'll segment
@@ -291,7 +385,7 @@ else
     ASEG.vol(BU==60)=28; % DC
     ASEG.vol(BU==63)=31; % CP
 end
-ASEG.vol(ASEG.vol==0)=1; % necessary because zeros are ignored by C++
+ASEG.vol(ASEG.vol==0)=1;
 
 
 
@@ -301,6 +395,7 @@ myMRIwrite(ASEG,'asegMod.mgz','float',tempdir);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Now we pretty much copy-paste from preprocessHippoSubfields %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 asegFileName = [subjectDir '/' subjectName '/mri/aseg.mgz'];  % FreeSurfer's volumetric segmentation results. This are non-probabilistic, "crisp" definitions
@@ -331,6 +426,17 @@ kvlSetKOfMeshCollection( meshCollection, K/2 ); % here we use K/2 because we onl
 mesh = kvlGetMesh( meshCollection, -1 );
 originalNodePositions = kvlGetMeshNodePositions( mesh );
 originalAlphas = kvlGetAlphasInMeshNodes( mesh );
+
+% % Just for illustrative purposes, let's also display this mesh warped onto each
+% % of the training subjects, as computed during the group-wise registration during
+% % the atlas building
+% if ~isdeployed && DEBUG>0
+%     for meshNumber = 0 : 14  % C-style indexing
+%         pause( .1 )
+%         showImage( kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( kvlGetMesh( meshCollection, meshNumber ), synSize ), colors ) )
+%         title(['Reference mesh warped back onto subject ' num2str(1+meshNumber)]);
+%     end
+% end
 
 
 % In this first step, we're cheating in that we're going to segment the "fake"
@@ -371,7 +477,7 @@ for l=1:length(sameGaussianParameters)
     label= sameGaussianParameters{l}(1);
     if label>=200 && label<=226,  cheatingMeans(l)=17; % HIPPO SF -> HIPPO
     elseif label>=7000,  cheatingMeans(l)=18; % AMYGDALOID SUBNUCLEI -> AMYGDALA
-    elseif label==0, cheatingMeans(l)=1; % BACKGROUND is 1 instead of 0 (because zeros are ignored)
+    elseif label==0, cheatingMeans(l)=1; % BACKGROUND is 1 instead of 0
     elseif label==999, cheatingMeans(l)=55; cheatingVariances(l)=55^2; % This is the generic, "suspicious" label we use for cysts...
     else cheatingMeans(l)=label;
     end
@@ -409,7 +515,7 @@ if ~isdeployed && DEBUG>0
 end
 
 
-% We use a multiscale approach here 
+% We use a multiscale approach here (Koen had a single one with sigma=3)
 % meshSmoothingSigmas = [ 3.0 2.0]';
 meshSmoothingSigmas = [ 2.0 ]';
 if strcmp(optimizerType,'LM')>0
@@ -417,7 +523,7 @@ if strcmp(optimizerType,'LM')>0
     maxIt=[100];
 else
     %maxIt=[200,100];
-     maxIt=[200];
+    maxIt=[200];
 end
 
 
@@ -426,7 +532,7 @@ numberOfMultiResolutionLevels = length( meshSmoothingSigmas );
 time_ref_cheat_optimization=clock;
 
 historyOfMinLogLikelihoodTimesPrior = [ 1/eps ];
-    
+
 for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
     % Smooth the mesh using a Gaussian kernel.
@@ -470,7 +576,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     end
     maxpuin=maxIt(multiResolutionLevel);
     kvlSetOptimizerProperties( cheatingOptimizer, cheatingMeans, 1./reshape(cheatingVariances,[1 1 length(cheatingVariances)]) );
-
+    
     if FAST>0
         maxpuin=20;
     end
@@ -555,7 +661,7 @@ end
 % Write the resulting atlas mesh to file IN NATIVE ATLAS SPACE
 % This is nice because all we need to do is to modify
 % imageDump_coregistered with the T1-to-T2 transform to have the warped
-% mesh in T2 spac
+% mesh in T2 space :-)
 transformMatrix = double(kvlGetTransformMatrix( transform ));
 inverseTransform = kvlCreateTransform( inv( transformMatrix ) );
 kvlTransformMeshCollection( meshCollection, inverseTransform );
@@ -563,6 +669,7 @@ kvlWriteMeshCollection( meshCollection, 'warpedOriginalMesh.txt' );
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Now we pretty much copy-paste from processHippoSubfields %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Clean up the Matlab work space
@@ -586,7 +693,7 @@ T2correctedFilename='T2corrected.mgz';
 
 if ByPassBF>0
     
-	system([FSpath '/mri_convert ' T2volumeFileName ' ' T2correctedFilename]);
+    system([FSpath '/mri_convert ' T2volumeFileName ' ' T2correctedFilename]);
     
 else
     
@@ -688,9 +795,9 @@ end
 % between aquisitions in protocol?)
 % At some point, I decided that I'd refine the transform with a bounding
 % box around the hippocampus...
-% Actually, I disabled this for the FS 6.0 beta so I had a single
-% registered T2 (rather than 2, one per side...)
-if 1==1
+% Actually, I disabled this for the FS 6.0 release so I had a single
+% registered T2 (and not 2, one per side...)
+if 0==0
     T2transformRefined=T2transform;
 else
     T2transformRefined=[subjectDir '/' subjectName '/mri/transforms/T1_to_' suffixUser '.refined.' side '.' suffix '.lta'];
@@ -709,25 +816,55 @@ else
     end
 end
 
- 
+
 
 % First, make sure transform is ras2ras (rather than vox2vox...)
 cmd=[FSpath '/mri_concatenate_lta -out_type   1 ' T2transformRefined ' identity.nofile T1toT2.lta'];
 system([cmd ' >/dev/null']);
 T2transform=[tempdir '/T1toT2.lta'];
-cmd=[FSpath '/kvlApplyTransform imageDump.mgz '];
-transformStr=[];
+
+% cmd=[FSpath '/kvlApplyTransform imageDump.mgz '];
+% transformStr=[];
+% fid=fopen(T2transform);
+% while 1
+%     tline = fgetl(fid);
+%     if ~isempty(strfind(tline,'1 4 4')), break, end
+% end
+% for i=1:3
+%     transformStr=[transformStr ' ' fgetl(fid)];
+% end
+% fclose(fid);
+% system([cmd ' ' transformStr ' >/dev/null']);
+% system('mv imageDump_transformed.mgz imageDump.mgz');
+
+T=zeros(4,4);
+T(4,4)=1;
 fid=fopen(T2transform);
 while 1
     tline = fgetl(fid);
     if ~isempty(strfind(tline,'1 4 4')), break, end
 end
 for i=1:3
-    transformStr=[transformStr ' ' fgetl(fid)];
+    tline = fgetl(fid);
+    [token,remain]=strtok(tline); T(i,1)=str2double(token);
+    [token,remain]=strtok(remain); T(i,2)=str2double(token);
+    [token,remain]=strtok(remain); T(i,3)=str2double(token);
+    T(i,4)=str2double(remain);
 end
 fclose(fid);
-system([cmd ' ' transformStr ' >/dev/null']);
-system('mv imageDump_transformed.mgz imageDump.mgz');
+
+aux=myMRIread('imageDump.mgz',0,tempdir);
+aux.vox2ras0=T*aux.vox2ras0;
+aux.vox2ras=T*aux.vox2ras;
+aux.vox2ras1=T*aux.vox2ras1;
+myMRIwrite(aux,'imageDump.mgz','float',tempdir);
+
+
+
+
+
+
+
 
 
 
@@ -736,7 +873,7 @@ system('mv imageDump_transformed.mgz imageDump.mgz');
 % Start with T2
 imageFileName2='T2isotropic.mgz';
 margin=20; % in mm
-xtraSlicesInMM=40; % in coronal direction, important to make a bit bigger because sometimes head - tail are left out ...
+xtraSlicesInMM=40;
 cmd=[FSpath '/mri_convert ' subjectDir '/' subjectName '/mri/aseg.mgz  asegT2space.mgz -rt nearest -odt float -rl ' T2correctedFilename  ' -at ' T2transform ' -odt float >/dev/null'];
 system(cmd);
 ASEGinT2=myMRIread('asegT2space.mgz',0,tempdir);
@@ -760,12 +897,12 @@ switch corDirMatlab
         aux=zeros(size(T2.vol)+[2*xtraSlices 0 0]);
         aux(xtraSlices+1:end-xtraSlices,:,:)=T2.vol;
         T2.vol=aux;
-        T2.vox2ras0(1:3,4)=T2.vox2ras0(1:3,4)-xtraSlices*T2.vox2ras0(1:3,2);        
+        T2.vox2ras0(1:3,4)=T2.vox2ras0(1:3,4)-xtraSlices*T2.vox2ras0(1:3,2);
     case 2,
         aux=zeros(size(T2.vol)+[0 2*xtraSlices 0]);
         aux(:,xtraSlices+1:end-xtraSlices,:)=T2.vol;
         T2.vol=aux;
-        T2.vox2ras0(1:3,4)=T2.vox2ras0(1:3,4)-xtraSlices*T2.vox2ras0(1:3,1);        
+        T2.vox2ras0(1:3,4)=T2.vox2ras0(1:3,4)-xtraSlices*T2.vox2ras0(1:3,1);
     case 3,
         aux=zeros(size(T2.vol)+[0 0 2*xtraSlices]);
         aux(:,:,xtraSlices+1:end-xtraSlices)=T2.vol;
@@ -790,7 +927,7 @@ system([FSpath '/mri_binarize --i asegMod.mgz --min 1.5 --dilate 2 --o asegModBi
 system([FSpath '/mri_convert asegModBinDilated.mgz asegModBinDilatedResampled.mgz -rt nearest -odt float -rl T2isotropic.mgz -at ' T2transform '  >/dev/null']);
 system([FSpath '/mri_mask -T 0.5 T2isotropic.mgz asegModBinDilatedResampled.mgz T2isotropic.mgz >/dev/null']);
 
-% Lets mask anything that is not close to the hippo,
+% Eugenio: let's try masking anything that is not close to the hippo,
 % brainstem and 3rd/4th ventricles, which can be annoying later on.
 system([FSpath '/mri_binarize --i asegMod.mgz --min 16.5 --max 18.5 --o hippoMask.mgz >/dev/null']);
 if highres==0
@@ -801,7 +938,7 @@ end
 system([FSpath '/mri_convert hippoMask.mgz hippoMaskResampled.mgz -rt nearest -rl T2isotropic.mgz -at ' T2transform ' -odt float >/dev/null']);
 system([FSpath '/mri_binarize --i  hippoMaskResampled.mgz --min 0.5 --dilate ' num2str(round(3/resolution)) '  --o hippoMaskResampledDilated.mgz  >/dev/null']);
 system([FSpath '/mri_mask -T 0.5 T2isotropic.mgz  hippoMaskResampledDilated.mgz T2isotropic.mgz >/dev/null']);
- 
+
 
 % Now let's do the T1 - much easier at this point
 imageFileName1='T1resampled.mgz';
@@ -809,6 +946,10 @@ system([FSpath '/mri_convert ' subjectDir '/' subjectName '/mri/norm.mgz ' image
 % Again, we want to mask out some stuff.
 system([FSpath '/mri_mask -T 0.5 T1resampled.mgz asegModBinDilatedResampled.mgz T1resampled.mgz >/dev/null']);
 system([FSpath '/mri_mask -T 0.5 T1resampled.mgz hippoMaskResampledDilated.mgz T1resampled.mgz >/dev/null']);
+
+
+
+%%%%%%%%%%%%%%%%%%%%% STITCHING POINT WITH TEST_FROM_HERE.M  %%%%%%%%%%%%%%%%%%%%%%%
 
 
 % Read the image data from disk. At the same time, construct a 3-D affine transformation (i.e.,
@@ -823,7 +964,7 @@ imageSize = size( imageBuffer1 );
 if ~isdeployed && DEBUG>0
     figure
     subplot(1,2,1);
-    showImage( imageBuffer1 ); 
+    showImage( imageBuffer1 );
     title('Image buffer 1 to segment')
     subplot(1,2,2);
     showImage( imageBuffer2 );
@@ -832,7 +973,8 @@ end
 
 % Read the atlas mesh from file, and apply the previously determined transform to the location
 % of its nodes.
-% If you don't provide an explicit value for K, the value used to construct the atlas will be used
+% If you don't provide an explicit value for K, the value used to construct the atlas will be used (which is
+% theoretically the only really valid one...)
 meshCollection = kvlReadMeshCollection( meshCollectionFileName );
 kvlTransformMeshCollection( meshCollection, transform1 );
 kvlSetKOfMeshCollection( meshCollection, K );
@@ -1099,10 +1241,10 @@ else
     meanHyper(ind,2)=mean(aux);
 end
 nHyper(ind,2)=10;
- 
 
 
-% Here's the part where we simulate partial voluming! 
+
+% Here's the part where we simulate partial voluming!
 disp('Estimating typical intensities of molecular layer and alveus')
 % For ML in T1, we assume gray with high N (if 1mm resolution, we simulate PV otherwise)')
 % In T2, we actually assume the same hypermean')
@@ -1136,7 +1278,7 @@ for g=1:length(sameGaussianParameters)
 end
 
 priors = kvlRasterizeAtlasMesh( mesh, imageSize );
-priors=double(priors)/63535; 
+priors=double(priors)/63535;
 suma=sum(priors,4);
 maskPriors=suma>.97;
 priors=priors./(eps+repmat(suma,[1 1 1 numberOfClasses]));
@@ -1171,14 +1313,8 @@ if ~isempty(ALind)
     nHyper(ALind,1)=(nHyper(GMind,1)+nHyper(WMind,1))/2;
 end
 if ~isempty(MLind)
-    if highres==0
-        meanHyper(MLind,1)=meanHyper(GMind,1);
-        nHyper(MLind,1)=nHyper(GMind,1);
-    else
-        data=I_PV(L==MLind);
-        meanHyper(MLind,1)=median(data);
-        nHyper(MLind,1)=(nHyper(WMind,1)+nHyper(GMind,1))/2;
-    end
+    meanHyper(MLind,1)=meanHyper(GMind,1);
+    nHyper(MLind,1)=nHyper(GMind,1);
 end
 if ~isempty(FISSind)
     data=I_PV(L==FISSind);
@@ -1226,7 +1362,7 @@ end
 clear priors priorsCS
 
 nHyper=10+min(nHyper,[],2); % let's take the minimum to be conservative, and +10 to ensure numerical stability
-
+% nHyper=10+mean(nHyper,2); % +10 to ensure numerical stability
 
 
 
@@ -1237,8 +1373,10 @@ nHyper=10+min(nHyper,[],2); % let's take the minimum to be conservative, and +10
 % if you don't want to use multi-resolution
 
 meshSmoothingSigmas = [ 1.5 .75 0 ]';
+% meshSmoothingSigmas = [ 0 ]';
 imageSmoothingSigmas = [0 0 0]';
 maxItNos=[7 5 3];  % each iteration has 20 deformation steps
+% maxItNos=[15];  % each iteration has 20 deformation steps
 
 numberOfMultiResolutionLevels = length( meshSmoothingSigmas );
 
@@ -1259,7 +1397,7 @@ imageBufferOrig1=imageBuffer1;
 imageBufferOrig2=imageBuffer2;
 
 for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
-       
+    
     % Smooth the mesh using a Gaussian kernel.
     kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
     meshSmoothingSigma = meshSmoothingSigmas( multiResolutionLevel );
@@ -1339,7 +1477,14 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         showImage( oldColorCodedPriors )
     end
     
-   
+    %     % Let's write this to file. In Unix/Linux systems, you can visualize progress over iterations
+    %     % by doing animate -delay 10 *.png
+    %     if  ~isdeployed && DEBUG>0
+    %         fileName = [ 'colorCodedPrior_multiResolutionLevel' num2str( multiResolutionLevel ) '_iteration' sprintf( '%03d', 0 ) '.png' ];
+    %         tmp = getframe( gcf );
+    %         imwrite( tmp.cdata, fileName );
+    %     end
+    
     
     for iterationNumber = 1 : maximumNumberOfIterations
         
@@ -1351,6 +1496,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         disp(['Iteration ' num2str(iterationNumber) ' of ' num2str(maximumNumberOfIterations)]);
         %
         % Part I: estimate Gaussian mean and variances using EM
+        %
+        % See the paper
+        %
+        %     Automated Model-Based Bias Field Correction of MR Images of the Brain
+        %     K. Van Leemput, F. Maes, D. Vandermeulen, P. Suetens
+        %    IEEE Transactions on Medical Imaging, vol. 18, no. 10, pp. 885-896, October 1999
         %
         
         % Get the priors as dictated by the current mesh position, as well as the image intensities
@@ -1365,18 +1516,25 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         data = data( maskIndices,: );
         Mo=maskObs(maskIndices);
         Mm=maskMis(maskIndices);
-
+        
         
         % Start EM iterations. Initialize the parameters if this is the
         % first time ever you run this
+        % We follow SB Provost's paper "Estimators for the parameters of a multivariate normal random vector"
         posteriors = double( priors ) / 65535;
         X=data';
+        
+        %         X(2,Mm)=nan;
+        %         [MeanClass, CovarClass] =  ecmWithWeightsAndHyperparams(X, posteriors(:,classNumber)', ...
+        %                     meanHyper(classNumber,:)',nHyper(classNumber));
         
         if ( ( multiResolutionLevel == 1 ) && ( iterationNumber == 1 ) )
             means = zeros( numberOfClasses, 2 );
             variances = zeros(2,2,numberOfClasses);
             precisions=zeros(2,2,numberOfClasses);
             for classNumber = 1 : numberOfClasses
+                
+                % Eugenio: I need to go over these equations again
                 
                 EPS=1e-2;
                 
@@ -1426,7 +1584,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                         T=0;
                     end
                     ST_bar=M*N/(M+N+EPS)*(nu_bar-x_bar)^2;
-
+                    
                     
                     means(classNumber,1)=(M*u_bar+(N+nHyper(classNumber))*x_bar)/(EPS+M+N+nHyper(classNumber));
                     means(classNumber,2)=z_star_bar-M/(M+N+EPS)*S(1,2)/S(1,1)*(x_bar-u_bar);
@@ -1436,9 +1594,9 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                     variances(2,1,classNumber)=variances(1,2,classNumber);
                     variances(2,2,classNumber)=(S(2,2)-S(2,1)/S(1,1)*S(2,1))/(EPS+N)+(    S(2,1)/S(1,1)*(T+ST_bar+S(1,1))/S(1,1)*S(1,2)    )/(EPS+N+M);
                     
-                end 
-            
-                ready=0; 
+                end
+                
+                ready=0;
                 while ready==0
                     errChol=0;
                     try
@@ -1447,7 +1605,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                         errChol=1;
                     end
                     if errChol==1 || rcond(variances(:,:,classNumber))<1e-10
-                         variances(:,:,classNumber)=variances(:,:,classNumber)+0.1*max(abs(diag(variances(:,:,classNumber))))*eye(2);
+                        variances(:,:,classNumber)=variances(:,:,classNumber)+0.1*max(abs(diag(variances(:,:,classNumber))))*eye(2);
                     else
                         ready=1;
                     end
@@ -1461,8 +1619,8 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             precisions(isinf(precisions) & precisions<0)=-1/eps;
             means(isnan(means))=0;
             
-           
-           
+            
+            
         end % End test need for initialization
         
         
@@ -1495,7 +1653,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                 minLogLikelihood = minLogLikelihood + log(2*pi) ...
                     + 0.5*log(det(variance)) - 0.5*log(nHyper(classNumber))...
                     +0.5*nHyper(classNumber)*aux*precision*aux';
-                                
+                
                 
             end
             posteriors(isnan(posteriors))=0;
@@ -1546,9 +1704,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             
             
             %
-            % M-step:  Update parameters of Gaussian mixture model
+            % M-step: derive parameters from the posteriors
             %
-           for classNumber = 1 : numberOfClasses
+            % Again, we follow SB Provost's paper "Estimators for the parameters of a multivariate normal random vector"
+            %
+            % Update parameters of Gaussian mixture model
+            for classNumber = 1 : numberOfClasses
                 
                 % I need to go over these equations again at some point...
                 EPS=1e-2;
@@ -1599,7 +1760,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                         T=0;
                     end
                     ST_bar=M*N/(M+N+EPS)*(nu_bar-x_bar)^2;
-
+                    
                     
                     means(classNumber,1)=(M*u_bar+(N+nHyper(classNumber))*x_bar)/(EPS+M+N+nHyper(classNumber));
                     means(classNumber,2)=z_star_bar-M/(M+N+EPS)*S(1,2)/S(1,1)*(x_bar-u_bar);
@@ -1610,8 +1771,8 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                     variances(2,2,classNumber)=(S(2,2)-S(2,1)/S(1,1)*S(2,1))/(EPS+N)+(    S(2,1)/S(1,1)*(T+ST_bar+S(1,1))/S(1,1)*S(1,2)    )/(EPS+N+M);
                     
                 end
-            
-                ready=0; 
+                
+                ready=0;
                 while ready==0
                     errChol=0;
                     try
@@ -1620,7 +1781,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                         errChol=1;
                     end
                     if errChol==1 || rcond(variances(:,:,classNumber))<1e-10
-                         variances(:,:,classNumber)=variances(:,:,classNumber)+0.1*max(abs(diag(variances(:,:,classNumber))))*eye(2);
+                        variances(:,:,classNumber)=variances(:,:,classNumber)+0.1*max(abs(diag(variances(:,:,classNumber))))*eye(2);
                     else
                         ready=1;
                     end
@@ -1632,9 +1793,9 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             precisions(isinf(precisions) & precisions<0)=-1/eps;
             means(isnan(means))=0;
             
-
+            
         end % End EM iterations
-
+        
         
         %
         % Part II: update the position of the mesh nodes for the current set of Gaussian parameters
@@ -1642,7 +1803,31 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         
         % Do the deformation one step at a time, for maximally positionUpdatingMaximumNumberOfIterations
         % deformation steps or until a step occurs in which the mesh node that moves most moves less than
-        % maximalDeformationStopCriterion voxels, whichever comes first.
+        % maximalDeformationStopCriterion voxels, whichever comes first. The underlying algorithm is a
+        % Levenberg-Marquardt type of algorithm in that it uses the gradient and an approximation of the
+        % Hessian to propose a new position. If the new position proposal degrades the cost function (i.e.,
+        % the posterior probability of the mesh node positions given the data and the parameters of the
+        % imaging model goes down), the Hessian approximation is repeatedly altered by multiplying its diagonal
+        % elements with an increasing factor, thereby making the proposal more and more gradient-descent
+        % like with smaller-and-smaller step sizes, until a (small) position proposal is obtained that actually
+        % improves the cost function. Conversely, every time a good position proposal is obtained, the
+        % multiplication of the diagonal elements of the Hessian approximation is decreased the next time
+        % around, making the algorithm much more efficient compared to gradient-descent (i.e., take much
+        % larger step sizes) whenever it is possible.
+        %
+        % If no position proposal can be made even when the multiplication factor of the Hessian approximation's
+        % diagonal becomes very large, i.e., even when the proposal is a tiny tiny deformation only, the
+        % mesh node optimization algorithm gives up and tells you it didn't do anything.
+        %
+        %
+        % NOTE: recall that this procedure is really only one half of a global optimization problem
+        % that includes estimating the imaging model parameters (i.e., Gaussian intensity as well.
+        % Therefore, it may not make sense to wait 20 minutes to get a really good optimization
+        % of the mesh node positions here, as the cost function we're optimizing will change anyway
+        % once the imaging model parameters are updated in the next iterations. Since updating the
+        % imaging model parameters is very fast compared to updating the mesh nodes, it probably makes
+        % sense to re-estimate the imaging model parameters frequently after a partial (not full)
+        % optimization of the mesh nodes.
         %
         haveMoved = false; % Keep track if we've ever moved or not
         kvlSetOptimizerProperties( optimizer, means, precisions );
@@ -1748,7 +1933,7 @@ data2 = double( reshape( kvlGetImageBuffer( image2 ), [ prod( imageSize ) 1 ] ) 
 data=[data1 data2];
 priors = kvlRasterizeAtlasMesh( mesh, imageSize );
 priors = reshape( priors, [ prod( imageSize ) numberOfClasses ] ); % Easier to work with vector notation in the computations
-        
+
 % Ignore everything that's has zero intensity
 priors = priors( maskIndices, : );
 data = data( maskIndices,: );
@@ -1778,7 +1963,7 @@ normalizer = sum( posteriors, 2 ) + eps;
 posteriors = posteriors ./ repmat( normalizer, [ 1 numberOfClasses ] );
 posteriors(isnan(posteriors))=0; % for zero variance and stuff like that...
 posteriors = uint16( round( posteriors * 65535 ) );
-            
+
 
 % Display the posteriors
 if  ~isdeployed && DEBUG>0
@@ -1881,7 +2066,16 @@ kvlWriteImage( image2, 'image2.mgz' );
 system(['cp ' compressionLookupTableFileName ' .']);
 
 
-% Write discrete labels (MAP)
+% You can now use the C++ tools distributed with FreeSufer to inspect what we have as
+% follows:
+%
+%    kvlViewMeshCollectionWithGUI warpedMesh.txt.gz 86 113 163 image.mgz
+%
+% where 86 113 163 are the dimensions of image.mgz, which you need to manually specify (don't ask!)
+%
+
+
+% Eugenio: write discrete labels (MAP)
 
 % First we compute the shift when using kvlReadCroppedImage/kvlWrite
 system([FSpath '/mri_convert asegMod.mgz asmr1.mgz -rl T2isotropic.mgz -rt nearest -at '  T2transform ' -odt float >/dev/null']);
@@ -1956,7 +2150,7 @@ for i=1:size(priorsFull,4)
                 tmp3.vol=aux;
                 myMRIwrite(tmp3,['posterior_' side '_' strtrim(lower(names(i,:))) '_T1_' suffixUser '_' suffix '.mgz'],'float',tempdir);
             end
-
+            
         end
     end
 end
@@ -1968,11 +2162,11 @@ else
     delete([tempdir '/volumesHippo.txt']);
 end
 
-% This is for the future atlas, which will also include amygdaloid nuclei
+
 fid=fopen([tempdir '/volumesAmygdala.txt'],'w');
 strOfInterest={'Left-Amygdala','Lateral-nucleus','Paralaminar-nucleus',...
-                       'Basal-nucleus','Hippocampal-amygdala-transition-HATA','Accessory-Basal-nucleus','Amygdala-background',...
-                        'Corticoamygdaloid-transitio','Central-nucleus','Cortical-nucleus','Medial-nucleus','Anterior-amygdaloid-area-AAA'};
+    'Basal-nucleus','Hippocampal-amygdala-transition-HATA','Accessory-Basal-nucleus','Amygdala-background',...
+    'Corticoamygdaloid-transitio','Central-nucleus','Cortical-nucleus','Medial-nucleus','Anterior-amygdaloid-area-AAA'};
 totVol=0;
 found=zeros(1,size(priorsFull,4));
 for i=1:size(priorsFull,4)
@@ -2034,6 +2228,37 @@ tmp3.vol(~tmp3Mask)=0;
 myMRIwrite(tmp3,'discreteLabels.mgz','float',tempdir);
 
 
+
+if  MRFconstant>0
+    disp('Markov random field label "smoothing"...')
+    unaryTermWeight=MRFconstant;
+    [~,inds]=max(posteriorsFull,[],4);
+    tmp=FreeSurferLabels(inds);
+    kk=zeros(size(tmp)); kk(maskIndices)=1; tmp=tmp.*kk;
+    tmp(tmp<200)=0; tmp(tmp>226 & tmp<7000)=0;
+    [~,cropping]=cropLabelVol(tmp);
+    Ct=zeros([cropping(4)-cropping(1)+1,cropping(5)-cropping(2)+1,cropping(6)-cropping(3)+1,numberOfClasses]);
+    for c=1:numberOfClasses
+        Ct(:,:,:,c)=-log(1e-12+(double(posteriorsFull(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6),c))/65535)*(1-1e-12))*unaryTermWeight;
+    end
+    varParas = [size(Ct,1); size(Ct,2); size(Ct,3); size(Ct,4); 100; 1e-3; 0.25; 0.11];
+    penalty = ones([size(Ct,1),size(Ct,2),size(Ct,3)]);
+    u = CMF3D_ML_mex(single(penalty), single(Ct), single(varParas));
+    [~,ind] = max(u, [], 4);
+    SEG=FreeSurferLabels(ind);
+    SEG(SEG>226 & SEG<7000)=0; SEG(SEG<200)=0;
+    
+    data=zeros(size(inds));
+    data(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6))=SEG;
+    aux=zeros(size(tmp2.vol)+shiftNeg);
+    aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(data,[2 1 3]);
+    aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
+    tmp3.vol=aux;
+    tmp3Mask=getLargestCC(tmp3.vol>0);
+    tmp3.vol(~tmp3Mask)=0;
+    myMRIwrite(tmp3,'discreteLabels_MRF.mgz','float',tempdir);
+end
+
 if DEBUG>0
     
     aux=zeros([size(tmp2.vol)+shiftNeg size(priorsFull,4)]);
@@ -2047,47 +2272,43 @@ if DEBUG>0
     aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end,:);
     tmp3.vol=aux;
     myMRIwrite(tmp3,'posteriors.mgz','float',tempdir);
-
+    
 end
 
 % Convert segmentation to 1 mm FreeSurfer Space (with and withoutresampling)
 % Also, convert T2 scans (withoutresampling)
 system([FSpath '/mri_convert  discreteLabels.mgz  discreteLabelsResampledT1.mgz -rt nearest -odt float ' ...
-        ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
+    ' -rl ' subjectDir '/' subjectName '/mri/norm.mgz -ait ' T2transform]);
 
 system([FSpath '/mri_vol2vol --mov discreteLabels.mgz  --o discreteLabelsT1space.mgz --no-resample ' ...
-        ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
+    ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
 
 system([FSpath '/mri_vol2vol --mov ' T2volumeFileName '  --o T2inT1space.mgz --no-resample ' ...
-        ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
-    
-    if WRITE_POSTERIORS>0
-        d=dir('posterior_*.mgz');
-        for i=1:length(d)
-            system([FSpath '/mri_vol2vol --mov ' d(i).name '  --o ' d(i).name(1:end-3) 'T1space.mgz --no-resample ' ...
-                ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
-        end
+    ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
+
+if WRITE_POSTERIORS>0
+    d=dir('posterior_*.mgz');
+    for i=1:length(d)
+        system([FSpath '/mri_vol2vol --mov ' d(i).name '  --o ' d(i).name(1:end-3) 'T1space.mgz --no-resample ' ...
+            ' --targ ' subjectDir '/' subjectName '/mri/norm.mgz --lta-inv ' T2transform]);
     end
-    
+end
+
 % Move to MRI directory
 system(['mv T2inT1space.mgz ' subjectDir '/' subjectName '/mri/' suffixUser '.FSspace.mgz']);
 if strcmp(side,'right')>0
     system(['mv discreteLabelsT1space.mgz ' subjectDir '/' subjectName '/mri/rh.hippoSfLabels-T1-' suffixUser '.' suffix '.mgz']);
     system(['mv discreteLabelsResampledT1.mgz ' subjectDir '/' subjectName '/mri/rh.hippoSfLabels-T1-' suffixUser '.' suffix '.FSvoxelSpace.mgz']);
     system(['mv volumesHippo.txt ' subjectDir '/' subjectName '/mri/rh.hippoSfVolumes-T1-' suffixUser '.' suffix '.txt']);
-    if exist('volumesAmygdala.txt','file')
-        system(['mv volumesAmygdala.txt ' subjectDir '/' subjectName '/mri/rh.hippoSfVolumes-T1-' suffixUser '.amygdala.' suffix '.txt']);
-    end
+    system(['mv volumesAmygdala.txt ' subjectDir '/' subjectName '/mri/rh.hippoSfVolumes-T1-' suffixUser '.amygdala.' suffix '.txt']);
 else
     system(['mv discreteLabelsT1space.mgz ' subjectDir '/' subjectName '/mri/lh.hippoSfLabels-T1-' suffixUser '.' suffix '.mgz']);
     system(['mv discreteLabelsResampledT1.mgz ' subjectDir '/' subjectName '/mri/lh.hippoSfLabels-T1-' suffixUser '.' suffix '.FSvoxelSpace.mgz']);
     system(['mv volumesHippo.txt ' subjectDir '/' subjectName '/mri/lh.hippoSfVolumes-T1-' suffixUser '.' suffix '.txt']);
-    if exist('volumesAmygdala.txt','file')
-        system(['mv volumesAmygdala.txt ' subjectDir '/' subjectName '/mri/lh.hippoSfVolumes-T1-' suffixUser '.amygdala.' suffix '.txt']);
-    end
+    system(['mv volumesAmygdala.txt ' subjectDir '/' subjectName '/mri/lh.hippoSfVolumes-T1-' suffixUser '.amygdala.' suffix '.txt']);
 end
 if WRITE_POSTERIORS>0
-    d=dir('posterior_*T1space.mgz'); 
+    d=dir('posterior_*T1space.mgz');
     for i=1:length(d)
         if isempty(strfind(lower(d(i).name),'left-amygdala'))
             system(['mv ' d(i).name ' ' subjectDir '/' subjectName '/mri/' d(i).name(1:end-12) '.mgz']);

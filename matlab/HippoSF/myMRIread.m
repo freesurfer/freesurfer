@@ -308,9 +308,9 @@ function hdr = load_nifti(niftifile,hdronly)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: zkaufman $
-%    $Date: 2016/09/21 15:32:27 $
-%    $Revision: 1.1 $
+%    $Author: nicks $
+%    $Date: 2011/03/02 00:04:12 $
+%    $Revision: 1.18 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -443,9 +443,9 @@ function [vol, M, mr_parms, volsz] = load_mgh(fname,slices,frames,headeronly)
 %
 % Original Author: Bruce Fischl
 % CVS Revision Info:
-%    $Author: zkaufman $
-%    $Date: 2016/09/21 15:32:27 $
-%    $Revision: 1.1 $
+%    $Author: nicks $
+%    $Date: 2011/03/02 00:04:12 $
+%    $Revision: 1.20 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %

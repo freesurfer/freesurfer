@@ -406,7 +406,6 @@ OTHERDIRS=\
 # these have lots of files, each will maximize the multi-threaded make option (-j)
 BIGDIRS=\
 	freeview \
-	GEMS \
 	trc
 
 # SUBDIRS is the automake definition of the 'all' for make
