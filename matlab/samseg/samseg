@@ -37,9 +37,10 @@ set matlab = $SAMSEG_MCRROOT/bin/matlab
 # This is for running the compiled version
 # Must match how run_samseg was compiled (must be 8.0?)
 if($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH
+setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"/usr/lib/libstdc++.so.6"
 setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/runtime/glnxa64"
 setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/bin/glnxa64"
-setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/sys/os/glnxa64"
+# setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/sys/os/glnxa64"
 setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/sys/java/jre/glnxa64/jre/lib/amd64/native_threads"
 setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/sys/java/jre/glnxa64/jre/lib/amd64/server"
 setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH":"$SAMSEG_MCRROOT/sys/java/jre/glnxa64/jre/lib/amd64"
