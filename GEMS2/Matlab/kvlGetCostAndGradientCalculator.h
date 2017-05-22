@@ -3,6 +3,7 @@
 #include "kvlAtlasMeshPositionCostAndGradientCalculator.h"
 #include "kvlAtlasMeshToIntensityImageCostAndGradientCalculator.h"
 #include "kvlConditionalGaussianEntropyCostAndGradientCalculator.h"
+#include "kvlMutualInformationCostAndGradientCalculator.h"
 
 
 namespace kvl
@@ -33,7 +34,7 @@ public:
     // calculator = kvlGetCostAndGradientCalculator( typeName, image(s), boundaryCondition, transform )
   
     // Make sure input arguments are correct
-    const  std::string  usageString = "Usage: calculator = kvlGetCostAndGradientCalculator( typeName, image(s), boundaryCondition, [ transform ], [ means ], [ precisions ] )\n where typeName = {'AtlasMeshToIntensityImage','ConditionalGaussianEntropy'}\n and boundaryCondition = {'Sliding', 'Affine', 'Translation', 'None'}";
+    const  std::string  usageString = "Usage: calculator = kvlGetCostAndGradientCalculator( typeName, image(s), boundaryCondition, [ transform ], [ means ], [ precisions ] )\n where typeName = {'AtlasMeshToIntensityImage','ConditionalGaussianEntropy','MutualInformation'}\n and boundaryCondition = {'Sliding', 'Affine', 'Translation', 'None'}";
     if ( ( nrhs < 3 ) || 
          !mxIsChar( prhs[ 0 ] ) || 
          !mxIsInt64( prhs[ 1 ] ) || 
@@ -204,6 +205,15 @@ public:
         std::cout << "ConditionalGaussianEntropy" << std::endl;
         ConditionalGaussianEntropyCostAndGradientCalculator::Pointer  myCalculator 
                           = ConditionalGaussianEntropyCostAndGradientCalculator::New();
+        myCalculator->SetImage( images[ 0 ] );
+        calculator = myCalculator;
+        break;
+        } 
+      case 'M': 
+        {
+        std::cout << "MutualInformation" << std::endl;
+        MutualInformationCostAndGradientCalculator::Pointer  myCalculator 
+                          = MutualInformationCostAndGradientCalculator::New();
         myCalculator->SetImage( images[ 0 ] );
         calculator = myCalculator;
         break;
