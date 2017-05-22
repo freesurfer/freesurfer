@@ -43,6 +43,7 @@ cd testdata
 set log = (../test_mris_sphere.log)
 if (-e $log) rm -f $log
 
+setenv SKIP_MRIS_SPHERE_1CPU_TEST
 set threads = ( 1 8 )
 if ($?SKIP_MRIS_SPHERE_1CPU_TEST) set threads = ( 8 )
 
