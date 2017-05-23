@@ -72,9 +72,8 @@ for num in $threads; do
   fi
   echo "${tname}:  PASSED test with ${num} thread(s)" |& tee -a $logfile
 
-  echo "gets here" >> ../hmm.txt
 done
-echo "but does it get here" >> ../hmm.txt
+
 # cleanup
 cd ..
 # tar any regenerated data
