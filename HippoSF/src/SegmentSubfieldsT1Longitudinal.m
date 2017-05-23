@@ -1,6 +1,6 @@
 % segments the subfields (of multiple time points) in a longitudinal fashion.
 % It uses ASEG the base as initialization for the subject-specific atlas.
-% It is based on  segmentSubjectT1_autoEstimateAlveusML
+% It is based on  segmentSubjectT1_autoEstimateAlveusM
 % 
 % This version uses the same initialization for all time points (computed
 % from the base)
@@ -11,16 +11,15 @@
 % - subjectDir: FreeSurfer subject directory
 % - resolution: voxel size at which we want to work (in mm).
 % - atlasMeshFileName: the atlas to segment the data
-% - atlasDumpFileName: corresponding imageDump.mgz 
+% - atlasDumpFileName: corresponding imageDump.mgz (name *must* be imageDump.mgz)
 % - compressionLUTfileName: corresponding compressionLUT.txt
 % - K: stiffness of the mesh in the segmentation.
 % - side: 'left' or 'right'
 % - optimizerType: must be 'LM' or 'ConjGrad'
-% - suffix: for output directory, e.g. 'v10'
+% - suffix: for output directory, e.g. 'T1based_GGAWLnoSimil'
 % - FSpath: path to FreeSurfer executables
 % - MRFconstant (optional): make it >0 for MRF cleanup (5 is reasonable, larger is smoother)
 %           It does NOT affect volumes, which are computed from soft posteriors anyway
-%           This feature has been disabled for now
 % - subjectBase: subject name of base
 % - subjectTP1: subjectname of time point 1
 % - subjectTP2: subjectname of time point 2
@@ -56,12 +55,61 @@ end
 
 
 
+% clear
+% subjectBase='subject1Base';
+% nTP=2;
+% subjectTPs=cell([1,nTP]);
+% subjectTPs{1}='subject1tp1';
+% subjectTPs{2}='subject1tp2';
+% subjectDir='/autofs/space/panamint_005/users/iglesias/data/longTest/';
+% resolution=(1/3);
+% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoBuckner_150210_CJ_GD_allBuckner/output/CurrentMeshCollection26.gz';
+% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoBuckner_150210_CJ_GD_allBuckner/output/imageDumpWithAmygdala.mgz';
+% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoBuckner_150210_CJ_GD_allBuckner/output/compressionLookupTable.txt';
+% Katl=0.05;
+% Ktp=0.05;
+% side='right';
+% optimizerType='ConjGrad';
+% suffix='longit.testFixed_0.05_0.05';
+% FSpath='/usr/local/freesurfer/dev/bin/';
+% MRFconstant=0;
+
+
+% clear
+% subjectBase='0535_base';
+% nTP=2;
+% subjectTPs=cell([1,nTP]);
+% subjectTPs{1}='0535.long.0535_base';
+% subjectTPs{2}='0535_m24.long.0535_base';
+% subjectDir='/autofs/space/panamint_005/users/iglesias/data/ADNI60_long/';
+% resolution=(1/3);
+% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoBuckner_150210_CJ_GD_allBuckner/output/CurrentMeshCollection26.gz';
+% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoBuckner_150210_CJ_GD_allBuckner/output/imageDumpWithAmygdala.mgz';
+% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/atlases/atlasHippoBuckner_150210_CJ_GD_allBuckner/output/compressionLookupTable.txt';
+% Katl=0.05;
+% Ktp=0.05;
+% side='right';
+% optimizerType='ConjGrad';
+% suffix='longit.testFixed_0.05_0.05';
+% FSpath='/usr/local/freesurfer/dev/bin/';
+% MRFconstant=0;
+
 % In case we compiled it...
 if isdeployed
     Katl=str2double(Katl);
     Ktp=str2double(Ktp);
     resolution=str2double(resolution);
     MRFconstant=str2double(MRFconstant);
+else
+    addpath([pwd() '/functions']);
+    addpath('/usr/local/freesurfer/stable6_0_0/matlab')
+    if isunix
+        addpath('/cluster/koen/eugenio/GEMS-Release-linux/bin')
+    elseif ismac
+        addpath('/cluster/koen/eugenio/GEMS-Release-mac/bin')
+    else
+        error('Neither Linux nor Mac');
+    end
 end
 
 % Sanity check
@@ -92,9 +140,6 @@ for t=1:nTP
     end
 end
 
-if  MRFconstant>0
-    disp('Warning: MRF smoothing disabled for now');
-end
 
 % Constants
 HippoLabelLeft=17;
@@ -158,9 +203,11 @@ system(['cp ' atlasDumpFileName ' ./imageDump.mgz']);
 
 % flip LR if right side - we only rotate along LR axis not to bias left vs right hippo segmentation
 if strcmp(side,'right')>0
-    cmd=[FSpath '/kvlApplyTransform imageDump.mgz -1   0   0  2    0   1   0   0   0   0   1   0'];
-    system([cmd ' >/dev/null']);
-    system('mv imageDump_transformed.mgz imageDump.mgz' );
+    aux=myMRIread('imageDump.mgz',0,tempdir);
+    aux.vox2ras0(1,:)=-aux.vox2ras0(1,:);
+    aux.vox2ras1(1,:)=-aux.vox2ras1(1,:);
+    aux.vox2ras(1,:)=-aux.vox2ras(1,:);
+    myMRIwrite(aux,'imageDump.mgz','float',tempdir);
 end
 
 
@@ -180,8 +227,19 @@ if highres==1,
     system([FSpath '/mri_convert ' targetRegFileName ' aux.mgz -odt float -vs 1 1 1 -rt nearest >/dev/null']); 
     system(['mv aux.mgz ' targetRegFileName ' >/dev/null']);    
 end
-cmd=[FSpath '/kvlAutoCrop ' targetRegFileName ' 6'];
-system([cmd ' >/dev/null']);
+
+
+% cmd=[FSpath '/kvlAutoCrop ' targetRegFileName ' 6'];
+% system([cmd ' >/dev/null']);
+
+aux=myMRIread(targetRegFileName,0,tempdir);
+[aux.vol,cropping]=cropLabelVol(aux.vol,6);
+shift=aux.vox2ras0(1:3,1:3)*[cropping(2)-1; cropping(1)-1; cropping(3)-1];
+aux.vox2ras0(1:3,4)=aux.vox2ras0(1:3,4)+shift;
+aux.vox2ras1(1:3,4)=aux.vox2ras1(1:3,4)+shift;
+aux.vox2ras(1:3,4)=aux.vox2ras(1:3,4)+shift;
+aux.tkrvox2ras=[];
+myMRIwrite(aux,targetRegFileNameCropped,'float',tempdir);
 
 
 
@@ -191,9 +249,9 @@ strel=createSphericalStrel(1);
 aux.vol=255*double(imdilate(imerode(aux.vol>0,strel),strel));
 myMRIwrite(aux,targetRegFileNameCroppedOpened,'float',tempdir);
 
-cmd=[FSpath '/kvlRegister imageDump.mgz ' targetRegFileNameCroppedOpened ' 3 2'];
-system(cmd);
-system('mv imageDump_coregistered.mgz imageDump.mgz' );
+% cmd=[FSpath '/kvlRegister imageDump.mgz ' targetRegFileNameCroppedOpened ' 3 2'];
+% system(cmd);
+% system('mv imageDump_coregistered.mgz imageDump.mgz' );
 
 cmd=[FSpath '/mri_robust_register --mov imageDump.mgz  --dst ' targetRegFileNameCroppedOpened ...
     ' -lta trash.lta --mapmovhdr imageDump_coregistered.mgz  --sat 50'];
@@ -230,8 +288,19 @@ for t=1:nTP
         system(['mv aux.mgz hippoAmygBinaryMask_tp_' num2str(t) '.mgz >/dev/null']);
     end
     
-    cmd=[FSpath '/kvlAutoCrop hippoAmygBinaryMask_tp_' num2str(t) '.mgz 6'];
-    system([cmd ' >/dev/null']);
+%     cmd=[FSpath '/kvlAutoCrop hippoAmygBinaryMask_tp_' num2str(t) '.mgz 6'];
+%     system([cmd ' >/dev/null']);
+    
+    aux=myMRIread(['hippoAmygBinaryMask_tp_' num2str(t) '.mgz'],0,tempdir);
+    [aux.vol,cropping]=cropLabelVol(aux.vol,6);
+    shift=aux.vox2ras0(1:3,1:3)*[cropping(2)-1; cropping(1)-1; cropping(3)-1];
+    aux.vox2ras0(1:3,4)=aux.vox2ras0(1:3,4)+shift;
+    aux.vox2ras1(1:3,4)=aux.vox2ras1(1:3,4)+shift;
+    aux.vox2ras(1:3,4)=aux.vox2ras(1:3,4)+shift;
+    aux.tkrvox2ras=[];
+    myMRIwrite(aux,['hippoAmygBinaryMask_tp_' num2str(t) '_autoCropped.mgz'],'float',tempdir);
+
+
     
     % Initial affine alignment based just on  hippocampus
     moving=['hippoAmygBinaryMask_tp_' num2str(t) '_autoCropped.mgz'];
@@ -259,7 +328,7 @@ system('rm refTP*.lta');
 % For the time points, we just use the initialization of the base     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+% we pretty much copy-paste from Koen's preprocessHippoSubfields.m
 for t=0:nTP
     
     kvlClear % release memory
@@ -432,7 +501,7 @@ for t=0:nTP
         meshSmoothingSigmas = [ 3.0 2.0]';
     else
         % meshSmoothingSigmas = [ 2.0]';
-        meshSmoothingSigmas = [ ]';  
+        meshSmoothingSigmas = [ ]';
     end
     if strcmp(optimizerType,'LM')>0
         maxIt=[100,50];
@@ -615,7 +684,7 @@ system([FSpath '/mri_binarize --i asegMod_tp_0.mgz --min 1.5 --dilate 2 --o aseg
 system([FSpath '/mri_convert asegModBinDilated.mgz asegModBinDilatedResampled.mgz -odt float -rt nearest -rl T1resampled_0.mgz >/dev/null']);
 system([FSpath '/mri_mask -T 0.5 T1resampled_0.mgz asegModBinDilatedResampled.mgz T1resampled_0.mgz >/dev/null']);
 
-% Lets mask anything that is not close to the hippo,
+% Eugenio: let's try masking anything that is not close to the hippo,
 % brainstem and 3rd/4th ventricles, which can be annoying later on.
 dilSize=round(5/mean(A.volres));
 system([FSpath '/mri_binarize --i asegMod_tp_0.mgz --min 16.5 --max 18.5 --o hippoMask.mgz >/dev/null']);
@@ -961,6 +1030,14 @@ while globalReady==0
     
     % Call kvlAverageMeshes to get the subject-specific atlas
     cmd=[FSpath '/kvlAverageMeshes'];
+    if exist(cmd,'file')==0
+        cmd='/cluster/koen/eugenio/GEMS-Release-linux/bin/kvlAverageMeshes';
+        if exist(cmd,'file')==0
+            error('Command "kvlAverageMeshes" not found')
+        end
+    end
+    
+    
     cmd=[cmd ' input.txt initialization.txt ' ...
         num2str(Katl) ' ' num2str(Ktp) ' SubjectAtlas.txt ' num2str(nTP)];
     system(cmd);
@@ -1124,7 +1201,7 @@ while globalReady==0
                         end
 
                     end
-                    variances{t}(variances{t}==0)=100;
+                    variances{t}(variances{t}==0)=100; % added by Eugenio, prevents nans...
                     
                 end % End test need for initialization
                 
@@ -1205,7 +1282,7 @@ while globalReady==0
                             
                         end
                     end
-                    variances{t}(variances{t}==0)=100; 
+                    variances{t}(variances{t}==0)=100; % added by Eugenio, prevents nans...
                     
                 end % End EM iterations
                 means{t}
@@ -1217,7 +1294,31 @@ while globalReady==0
                 
                 % Do the deformation one step at a time, for maximally positionUpdatingMaximumNumberOfIterations
                 % deformation steps or until a step occurs in which the mesh node that moves most moves less than
-                % maximalDeformationStopCriterion voxels, whichever comes first. 
+                % maximalDeformationStopCriterion voxels, whichever comes first. The underlying algorithm is a
+                % Levenberg-Marquardt type of algorithm in that it uses the gradient and an approximation of the
+                % Hessian to propose a new position. If the new position proposal degrades the cost function (i.e.,
+                % the posterior probability of the mesh node positions given the data and the parameters of the
+                % imaging model goes down), the Hessian approximation is repeatedly altered by multiplying its diagonal
+                % elements with an increasing factor, thereby making the proposal more and more gradient-descent
+                % like with smaller-and-smaller step sizes, until a (small) position proposal is obtained that actually
+                % improves the cost function. Conversely, every time a good position proposal is obtained, the
+                % multiplication of the diagonal elements of the Hessian approximation is decreased the next time
+                % around, making the algorithm much more efficient compared to gradient-descent (i.e., take much
+                % larger step sizes) whenever it is possible.
+                %
+                % If no position proposal can be made even when the multiplication factor of the Hessian approximation's
+                % diagonal becomes very large, i.e., even when the proposal is a tiny tiny deformation only, the
+                % mesh node optimization algorithm gives up and tells you it didn't do anything.
+                %
+                %
+                % NOTE: recall that this procedure is really only one half of a global optimization problem
+                % that includes estimating the imaging model parameters (i.e., Gaussian intensity as well.
+                % Therefore, it may not make sense to wait 20 minutes to get a really good optimization
+                % of the mesh node positions here, as the cost function we're optimizing will change anyway
+                % once the imaging model parameters are updated in the next iterations. Since updating the
+                % imaging model parameters is very fast compared to updating the mesh nodes, it probably makes
+                % sense to re-estimate the imaging model parameters frequently after a partial (not full)
+                % optimization of the mesh nodes.
                 haveMoved = false; % Keep track if we've ever moved or not
                 kvlSetOptimizerProperties( optimizer, means{t}', reshape(1./variances{t},[1 1 length(variances{t})]));
                 for positionUpdatingIterationNumber = 1 : positionUpdatingMaximumNumberOfIterations
@@ -1437,8 +1538,16 @@ for t=1:nTP
     kvlWriteImage( images{t}, ['image_tp_' num2str(t) '.mgz'] );
     if t==1, system(['cp ' compressionLookupTableFileName ' .']); end
     
- 
-    % Write discrete labels (MAP)
+    
+    % You can now use the C++ tools distributed with FreeSufer to inspect what we have as
+    % follows:
+    %
+    %    kvlViewMeshCollectionWithGUI warpedMesh.txt.gz 86 113 163 image.mgz
+    %
+    % where 86 113 163 are the dimensions of image.mgz, which you need to manually specify (don't ask!)
+    %
+    
+    % Eugenio: write discrete labels (MAP)
     % Note how we fill in the gaps in the regions outside the FOV with the
     % prior!
     
@@ -1582,7 +1691,101 @@ for t=1:nTP
     myMRIwrite(tmp3,['discreteLabels_tp_' num2str(t) '.mgz'],'float',tempdir);
     
     
-   
+    if  MRFconstant>0
+        
+        EPS=1e-12;
+        [~,inds]=max(posteriorsFull,[],4);
+        tmp=FreeSurferLabels(inds);
+        kk=zeros(size(tmp)); kk(maskIndices)=1; tmp=tmp.*kk;
+        tmp(tmp<200)=0; tmp(tmp>226 & tmp<7000)=0;
+        [~,cropping]=cropLabelVol(tmp);
+        Ct=zeros([cropping(4)-cropping(1)+1,cropping(5)-cropping(2)+1,cropping(6)-cropping(3)+1,numberOfClasses]);
+        for c=1:numberOfClasses
+            Ct(:,:,:,c)=-log(EPS+double(posteriorsFull(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6),c))/65535);
+        end
+        factor=-256/log(EPS);
+        Ct=int32(round(Ct*factor));
+        unaryTermWeight=int32(round(MRFconstant*factor));
+        
+        siz=[size(Ct,1) size(Ct,2) size(Ct,3)];
+        h = GCO_Create(prod(siz),numberOfClasses);
+        DC = zeros([numberOfClasses,prod(siz)],'int32');
+        for c=1:numberOfClasses
+            aux=Ct(:,:,:,c);
+            DC(c,:)=aux(:);
+        end
+        GCO_SetDataCost(h,DC);
+        aux=int32(double(unaryTermWeight)*(ones(numberOfClasses)-eye(numberOfClasses)));
+        GCO_SetSmoothCost(h,aux);
+        
+        row=zeros([prod(siz)*3,1]);
+        col=zeros([prod(siz)*3,1]);
+        t=1;
+        
+        Ifrom=1:siz(1)-1;
+        Ito=2:siz(1);
+        inc=length(Ito);
+        for j=1:siz(2)
+            J=j*ones(size(Ifrom));
+            for k=1:siz(3)
+                K=k*ones(size(Ifrom));
+                row(t:t+inc-1)=sub2ind(siz,Ifrom,J,K);
+                col(t:t+inc-1)=sub2ind(siz,Ito,J,K);
+                t=t+inc;
+            end
+        end
+        
+        Jfrom=1:siz(2)-1;
+        Jto=2:siz(2);
+        inc=length(Jto);
+        for i=1:siz(1)
+            I=i*ones(size(Jfrom));
+            for k=1:siz(3)
+                K=k*ones(size(Jfrom));
+                row(t:t+inc-1)=sub2ind(siz,I,Jfrom,K);
+                col(t:t+inc-1)=sub2ind(siz,I,Jto,K);
+                t=t+inc;
+            end
+        end
+        
+        Kfrom=1:siz(3)-1;
+        Kto=2:siz(3);
+        inc=length(Kto);
+        for i=1:siz(1)
+            I=i*ones(size(Kfrom));
+            for j=1:siz(2)
+                J=j*ones(size(Kfrom));
+                row(t:t+inc-1)=sub2ind(siz,I,J,Kfrom);
+                col(t:t+inc-1)=sub2ind(siz,I,J,Kto);
+                t=t+inc;
+            end
+        end
+        
+        row=row(1:t-1);
+        col=col(1:t-1);
+        
+        NEIGH=sparse(row,col,ones(size(row)),prod(siz),prod(siz));
+        GCO_SetNeighbors(h,NEIGH);
+        
+        
+        GCO_Expansion(h);      % Compute optimal labeling via alpha-expansion
+        ind=reshape(GCO_GetLabeling(h),siz);
+        
+        SEG=FreeSurferLabels(ind);
+        SEG(SEG>226 & SEG<7000)=0; SEG(SEG<200)=0;  SEG(SEG==201)=0;
+        
+        data=zeros(size(inds));
+        data(cropping(1):cropping(4),cropping(2):cropping(5),cropping(3):cropping(6))=SEG;
+        aux=zeros(size(tmp2.vol)+shiftNeg);
+        aux(1+shiftNeg(1):shiftNeg(1)+size(tmp2.vol,1),1+shiftNeg(2):shiftNeg(2)+size(tmp2.vol,2),1+shiftNeg(3):shiftNeg(3)+size(tmp2.vol,3))=permute(data,[2 1 3]);
+        aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end);
+        tmp3.vol=aux;
+        tmp3Mask=getLargestCC(tmp3.vol>0);
+        tmp3.vol(~tmp3Mask)=0;
+        myMRIwrite(tmp3,['discreteLabels_MRF_tp_ ' num2str(t) '.mgz'],'float',tempdir);
+        
+    end
+    
     
     % Convert to 1 mm FreeSurfer Space
     system([FSpath '/mri_convert  discreteLabels_tp_' num2str(t) '.mgz  discreteLabelsResampledT1_tp_' num2str(t) '.mgz -rt nearest -odt float ' ...
@@ -1615,16 +1818,12 @@ for t=1:nTP
         system(['mv discreteLabels_tp_' num2str(t) '_origSpace.mgz ' subjectDir '/' subjectTPs{t} '/mri/rh.hippoSfLabels-T1.' suffix '.mgz']);
         system(['mv discreteLabelsResampledT1_tp_' num2str(t) '.mgz ' subjectDir '/' subjectTPs{t} '/mri/rh.hippoSfLabels-T1.' suffix '.FSvoxelSpace.mgz']);
         system(['mv volumesHippo_tp_' num2str(t) '.txt ' subjectDir '/' subjectTPs{t} '/mri/rh.hippoSfVolumes-T1.' suffix '.txt']);
-        if exist(['volumesAmygdala_tp_' num2str(t) '.txt'],'file')
-            system(['mv volumesAmygdala_tp_' num2str(t) '.txt ' subjectDir '/' subjectTPs{t} '/mri/rh.amygNucVolumes-T1.' suffix '.txt']);
-        end
+        system(['mv volumesAmygdala_tp_' num2str(t) '.txt ' subjectDir '/' subjectTPs{t} '/mri/rh.amygNucVolumes-T1.' suffix '.txt']);
     else
         system(['mv discreteLabels_tp_' num2str(t) '_origSpace.mgz ' subjectDir '/' subjectTPs{t} '/mri/lh.hippoSfLabels-T1.' suffix '.mgz']);
         system(['mv discreteLabelsResampledT1_tp_' num2str(t) '.mgz ' subjectDir '/' subjectTPs{t} '/mri/lh.hippoSfLabels-T1.' suffix '.FSvoxelSpace.mgz']);
         system(['mv volumesHippo_tp_' num2str(t) '.txt ' subjectDir '/' subjectTPs{t} '/mri/lh.hippoSfVolumes-T1.' suffix '.txt']);
-        if exist(['volumesAmygdala_tp_' num2str(t) '.txt'],'file')
-            system(['mv volumesAmygdala_tp_' num2str(t) '.txt ' subjectDir '/' subjectTPs{t} '/mri/lh.amygNucVolumes-T1.' suffix '.txt']);
-        end
+        system(['mv volumesAmygdala_tp_' num2str(t) '.txt ' subjectDir '/' subjectTPs{t} '/mri/lh.amygNucVolumes-T1.' suffix '.txt']);
     end
     
     if WRITE_POSTERIORS>0

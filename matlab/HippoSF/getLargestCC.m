@@ -6,9 +6,9 @@ function Y=getLargestCC(X)
 X=X>0;  % in case...
 
 if length(size(X))==2
-    [LAB, n_lab]=bwlabel(X,4);
+    [LAB n_lab]=bwlabel(X,4);
 else
-    [LAB, n_lab]=bwlabeln(X,6);
+    [LAB n_lab]=bwlabeln(X,6);
 end
 
 volumes=zeros(1,n_lab);

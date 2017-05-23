@@ -1,6 +1,6 @@
 % [Gmodule GX GY GZ]=grad3d(X)
 % Gradient for 3D volumes
-function [Gmodule, GX, GY, GZ]=grad3d(X)
+function [Gmodule GX GY GZ]=grad3d(X)
 
 v=[-1 0 1];
 

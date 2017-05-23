@@ -1,6 +1,6 @@
 % Segments the brainstem from the original <MPRAGE
 %
-% This function is heavily based on the code for the hippocampal subfields
+% This function is heavily based on the prototypes I wrote for the hippocampal subfields
 %
 % segmentSubject(subjectName,subjectDir,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,side,FSdir)
 %
@@ -8,15 +8,82 @@
 % - subjectDir: FreeSurfer subject directory
 % - resolution: voxel size at which we want to work (in mm).
 % - atlasMeshFileName: the atlas to segment the data
-% - atlasDumpFileName: corresponding imageDump.mgz
+% - atlasDumpFileName: corresponding imageDump.mgz (name *must* be imageDump.mgz)
 % - compressionLUTfileName: corresponding compressionLUT.txt
 % - K: stiffness of the mesh in the segmentation.
 % - optimizerType: must be 'LM' or 'ConjGrad'
-% - suffix: for output directory, e.g. 'v10',...
+% - suffix: for output directory, e.g. 'T1based_GGAWLnoSimil','v10',...
 % - FSdir: directory with Freesurfer binaries
-% - additionalFile: use this file *instead* of the FS T1 in the analysis (i.e., not multispectral). Leave empty if you want to use the T1 
-%
+% - additionalFile: use this file instad of the FS T1 in the analysis. Leave empty if you want to use the T1
+
+
 function segmentSubject(subjectName,subjectDir,resolution,atlasMeshFileName,atlasDumpFileName,compressionLUTfileName,K,optimizerType,suffix,FSdir,additionalFile)
+
+% segmentSubject('eugenio','/autofs/space/panamint_005/users/iglesias/myBrain/myBrain/subjectdir/',0.5,'/autofs/space/panamint_005/users/iglesias/atlases/brainstem_130522_continued/output/CurrentMeshCollection22.gzz','/autofs/space/panamint_005/users/iglesias/data/MAC_brainstem_data/simplifiedLabels/atlasBS.mgz','/autofs/space/panamint_005/users/iglesias/atlases/brainstem_130522/compressionLookupTable.txt',0.05,'ConjGrad')
+
+% /autofs/homes/002/iglesias/matlab/code/brainStemAtlas/run_segmentSubject.sh /autofs/cluster/matlab/8.0/ eugenio /autofs/space/panamint_005/users/iglesias/myBrain/myBrain/subjectdir/ 0.5 /autofs/space/panamint_005/users/iglesias/atlases/brainstem_130522_continued/output/CurrentMeshCollection22.gz /autofs/space/panamint_005/users/iglesias/data/MAC_brainstem_data/simplifiedLabels/atlasBS.mgz   /autofs/space/panamint_005/users/iglesias/atlases/brainstem_130522/compressionLookupTable.txt 0.05 ConjGrad
+
+
+% clear
+% subjectName='subject1';
+% subjectDir='/autofs/space/panamint_005/users/iglesias/data/WinterburnHippocampalAtlas/FSdirConformed/';
+% resolution=0.5;
+% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/AtlasMesh.gz';
+% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/AtlasDump.mgz';
+% % compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/atlases/brainstem_140710/compressionLookupTable.txt';
+% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/compressionLookupTable.txt';
+% K=0.05;
+% % optimizerType='LM';
+% optimizerType='ConjGrad';
+% suffix = 'testHR';
+% FSdir='/usr/local/freesurfer/stable5_3_0/bin/';
+% % additionalFile='/autofs/space/panamint_005/users/iglesias/data/IXI_full/FSdir/IXI055/mri/T2regBFcorr.mgz';
+
+% clear
+% subjectName='49901.long.114_S_0458_base';
+% subjectDir='/autofs/space/panamint_005/users/iglesias/data/ADNI_full_long/';
+% resolution=0.5;
+% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/AtlasMesh.gz';
+% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/AtlasDump.mgz';
+% % compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/atlases/brainstem_140710/compressionLookupTable.txt';
+% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/compressionLookupTable.txt';
+% K=0.05;
+% % optimizerType='LM';
+% optimizerType='ConjGrad';
+% suffix = 'crossFSlong_K_0.05';
+% FSdir='/usr/local/freesurfer/stable5_3_0/bin/';
+% % additionalFile='/autofs/space/panamint_005/users/iglesias/data/IXI_full/FSdir/IXI055/mri/T2regBFcorr.mgz';
+
+% clear
+% subjectName='IXI071';
+% subjectDir='/autofs/space/panamint_005/users/iglesias/data/IXI_full/FSdir/';
+% resolution=0.5;
+% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/atlases/brainstem_140710/output/CurrentMeshCollection29.gz';
+% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/data/MAC_brainstem_data/simplifiedLabels/atlasBS.mgz';
+% % compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/atlases/brainstem_140710/compressionLookupTable.txt';
+% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/FSdistros/brainstemST_FS6/linux/atlas/compressionLookupTable.txt';
+% K=0.05;
+% % optimizerType='LM';
+% optimizerType='ConjGrad';
+% FSdir = '/usr/local/freesurfer/stable5_3_0/bin/';
+% % additionalFile='/autofs/space/panamint_005/users/iglesias/data/IXI_full/FSdir/IXI055/mri/T2regBFcorr.mgz';
+
+
+% clear
+% subjectName='testSubject';
+% subjectDir='/autofs/space/panamint_005/users/iglesias/Downloads/';
+% resolution=0.5;
+% atlasMeshFileName='/autofs/space/panamint_005/users/iglesias/distros/segmentBrainstem/dat/AtlasMesh.gz';
+% atlasDumpFileName='/autofs/space/panamint_005/users/iglesias/distros/segmentBrainstem/dat/atlasBS.mgz';
+% compressionLUTfileName='/autofs/space/panamint_005/users/iglesias/distros/segmentBrainstem/dat/compressionLookupTable.txt';
+% K=0.05;
+% % optimizerType='LM';
+% optimizerType='ConjGrad';
+% FSdir = '/usr/local/freesurfer/stable5_3_0/bin/';
+
+
+
+
 
 DEBUG=0;
 FAST=0; % set it two one to optimize just a bit (go through code fast) or to 2 to make it super-fast
@@ -48,6 +115,7 @@ elseif ~isdeployed && (~isnumeric(K))
     error('K must be numeric');
 end
 
+
 % Constants
 BRAINSTEM=16;
 DE_label_left=28;
@@ -57,6 +125,16 @@ DE_label_right=60;
 if isdeployed
     K=str2double(K);
     resolution=str2double(resolution);
+else
+    addpath([pwd() '/functions']);
+    addpath('/usr/local/freesurfer/stable6_0_0/matlab')
+    if isunix
+        addpath('/cluster/koen/eugenio/GEMS-Release-linux/bin')
+    elseif ismac
+        addpath('/cluster/koen/eugenio/GEMS-Release-mac/bin')
+    else
+        error('Neither Linux nor Mac');
+    end
 end
 time_start=clock;
 
@@ -64,7 +142,9 @@ time_start=clock;
 kvlClear;
 
 
-% Temporary directory: here we have a secret flag: if we are at the Martinos 
+
+
+% Temporary directory: here we have a secret flag: if we are at the Martinos
 % Center and we are using the cluster, we want to set USE_SCRATCH to 1 in order
 % to avoid massive data flow between the cluster and your machine (assming your
 % data is local).
@@ -108,13 +188,29 @@ TARGETREG.vol=255*double(ASEG.vol==BRAINSTEM);
 myMRIwrite(TARGETREG,targetRegFileName,'float',tempdir);
 
 highres=0; if mean(ASEG.volres)<0.99, highres=1; end
-if highres==1, 
-    system([FSdir '/mri_convert ' targetRegFileName ' aux.mgz -odt float -vs 1 1 1 -rt nearest >/dev/null']); 
-    system(['mv aux.mgz ' targetRegFileName ' >/dev/null']);    
+if highres==1,
+    system([FSdir '/mri_convert ' targetRegFileName ' aux.mgz -odt float -vs 1 1 1 -rt nearest >/dev/null']);
+    system(['mv aux.mgz ' targetRegFileName ' >/dev/null']);
 end
 
-cmd=[FSdir '/kvlAutoCrop ' targetRegFileName ' 6'];
-system([cmd ' >/dev/null']);
+% cmd=[FSdir '/kvlAutoCrop ' targetRegFileName ' 6'];
+% system([cmd ' >/dev/null']);
+
+aux=myMRIread(targetRegFileName,0,tempdir);
+[aux.vol,cropping]=cropLabelVol(aux.vol,6);
+shift=aux.vox2ras0(1:3,1:3)*[cropping(2)-1; cropping(1)-1; cropping(3)-1];
+aux.vox2ras0(1:3,4)=aux.vox2ras0(1:3,4)+shift;
+aux.vox2ras1(1:3,4)=aux.vox2ras1(1:3,4)+shift;
+aux.vox2ras(1:3,4)=aux.vox2ras(1:3,4)+shift;
+aux.tkrvox2ras=[];
+myMRIwrite(aux,targetRegFileNameCropped,'float',tempdir);
+
+
+% Initial affine alignment based just on brainstem
+% cmd=[FSdir '/kvlRegister imageDump.mgz ' targetRegFileNameCropped ' 3 2'];
+% system(cmd);
+% % system([cmd ' >/dev/null']);
+% system('mv imageDump_coregistered.mgz imageDump.mgz' );
 
 cmd=[FSdir '/mri_robust_register --mov imageDump.mgz  --dst ' targetRegFileNameCropped ...
     ' -lta trash.lta --mapmovhdr imageDump_coregistered.mgz  --sat 50'];
@@ -131,6 +227,7 @@ system('mv imageDump_coregistered.mgz imageDump.mgz' );
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Now we pretty much copy-paste from preprocessHippoSubfields %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 boundingFileName = [tempdir 'imageDump.mgz']; % Bounding box
@@ -143,7 +240,7 @@ compressionLookupTableFileName =compressionLUTfileName; % Look-up table belongin
 
 % Read in aseg and also transform
 aux=ASEG;
-aux.vol(:)=1; % necessary because zeros are ignored by C++
+aux.vol(:)=1;
 
 aux.vol(ASEG.vol==BRAINSTEM | ASEG.vol==7 | ASEG.vol==8 | ASEG.vol==15 | ASEG.vol==28 ...
     | ASEG.vol==46 | ASEG.vol==47 | ASEG.vol==60) = 255;
@@ -224,7 +321,7 @@ end
 
 % It's good to smooth the mesh, otherwise we get weird compressions of the
 % mesh along the boundaries...
-meshSmoothingSigma = 3.0;
+meshSmoothingSigma = 3.0; % This is the value Koen had...
 fprintf( 'Smoothing mesh with kernel size %f ...', meshSmoothingSigma )
 kvlSmoothMeshCollection( meshCollection, meshSmoothingSigma )
 fprintf( 'done\n' )
@@ -239,6 +336,7 @@ if ~isdeployed && DEBUG>0
 end
 
 % Now the optimization per-se
+% [ cost gradient ] = kvlEvaluateMeshPosition( mesh,cheatingImage, transform, cheatingMeans, cheatingVariances );
 if strcmp(optimizerType,'LM')>0
     cheatingOptimizer = kvlGetLevenbergMarquardtOptimizer( mesh, cheatingImage, transform );
     maximalDeformationStopCriterion = 0.001;
@@ -345,8 +443,9 @@ kvlWriteMeshCollection( meshCollection, 'warpedOriginalMesh.txt' );
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Now we pretty much copy-paste from processHippoSubfields %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
- 
+
 % Clean up the Matlab work space
 kvlClear % Clear all the wrapped C++ stuff
 close all
@@ -356,7 +455,7 @@ close all
 meshCollectionFileName = 'warpedOriginalMesh.txt.gz'; % The tetrahedral atlas mesh
 
 
-% We extract a block from norn.mgz and upsample it to the work
+% Eugenio: we extract a block from norn.mgz and upsample it to the work
 % resolution.
 % We also mask out non-brain voxels pretty aggressively
 imageFileName='T1resampled.mgz';
@@ -369,7 +468,7 @@ if exist('additionalFile','var')>0
         ' --o ' tempdir '/normMask.mgz']);
     system([FSdir '/mri_mask ' additionalFile ' ' tempdir '/normMask.mgz ' ...
         tempdir '/additionalFileMasked.mgz']);
-     system([FSdir '/mri_convert ' subjectDir '/' subjectName '/mri/aseg.mgz ' ...
+    system([FSdir '/mri_convert ' subjectDir '/' subjectName '/mri/aseg.mgz ' ...
         tempdir '/asegAddSpace.mgz -odt float -rt nearest -rl ' additionalFile ]);
     A=myMRIread([tempdir '/additionalFileMasked.mgz'],0,tempdir);
     L=myMRIread([tempdir '/asegAddSpace.mgz'],0,tempdir);
@@ -402,7 +501,7 @@ aux2=myMRIread( imageFileName,0,tempdir);
 aux2.vol(aux.vol==0)=0;
 myMRIwrite(aux2,imageFileName,'float',tempdir);
 delete tempASEGresampled.mgz
-  
+
 
 % Read the image data from disk. At the same time, construct a 3-D affine transformation (i.e.,
 % translation, rotation, scaling, and skewing) as well - this transformation will later be used
@@ -658,7 +757,9 @@ end
 ind=find(isnan(meanHyper));
 meanHyper(ind)=55;
 nHyper(ind)=10;
- 
+
+
+
 
 %
 % Multi-resolution scheme
@@ -698,7 +799,7 @@ time_ref_optimization=clock;
 imageBufferOrig=imageBuffer;
 
 for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
-       
+    
     % Smooth the mesh using a Gaussian kernel.
     kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
     meshSmoothingSigma = meshSmoothingSigmas( multiResolutionLevel );
@@ -790,6 +891,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         %
         % Part I: estimate Gaussian mean and variances using EM
         %
+        % See the paper
+        %
+        %     Automated Model-Based Bias Field Correction of MR Images of the Brain
+        %     K. Van Leemput, F. Maes, D. Vandermeulen, P. Suetens
+        %    IEEE Transactions on Medical Imaging, vol. 18, no. 10, pp. 885-896, October 1999
+        %
         
         % Get the priors as dictated by the current mesh position, as well as the image intensities
         data = double( reshape( kvlGetImageBuffer( image ), [ prod( imageSize ) 1 ] ) ); % Easier to work with vector notation in the computations
@@ -807,23 +914,26 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         if ( ( multiResolutionLevel == 1) & ( iterationNumber == 1 ) )
             
             for classNumber = 1 : numberOfClasses
-                    posterior = posteriors( :, classNumber );
+                posterior = posteriors( :, classNumber );
+                
+                if sum(posterior)>EPS
                     
-                    if sum(posterior)>EPS
+                    %   mu = data' * posterior / ( sum( posterior ) + eps );
+                    %   variance = ( ( data - mu ).^2 )' * posterior / ( sum( posterior ) + eps );
                     
-                        mu = (meanHyper(classNumber)*nHyper(classNumber) + data'*posterior) / ( nHyper(classNumber) + sum( posterior ) + EPS );
-                        variance = (( ( data - mu ).^2 )' * posterior + nHyper(classNumber)*(mu-meanHyper(classNumber))^2 )/ ( sum( posterior ) + EPS );
-                        
-                        means( classNumber ) = mu;
-                        variances( classNumber ) = variance+EPS;
+                    mu = (meanHyper(classNumber)*nHyper(classNumber) + data'*posterior) / ( nHyper(classNumber) + sum( posterior ) + EPS );
+                    variance = (( ( data - mu ).^2 )' * posterior + nHyper(classNumber)*(mu-meanHyper(classNumber))^2 )/ ( sum( posterior ) + EPS );
                     
-                    else
-                         means( classNumber ) = meanHyper(classNumber);
-                        variances( classNumber ) = 100;
-                        
-                    end
+                    means( classNumber ) = mu;
+                    variances( classNumber ) = variance+EPS;
+                    
+                else
+                    means( classNumber ) = meanHyper(classNumber);
+                    variances( classNumber ) = 100;
+                    
+                end
             end
-            variances(variances==0)=100; 
+            variances(variances==0)=100; % added by Eugenio, prevents nans...
             
             
         end % End test need for initialization
@@ -898,25 +1008,28 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             % Update parameters of Gaussian mixture model
             EPS=1e-2;
             for classNumber = 1 : numberOfClasses
-                    posterior = posteriors( :, classNumber );
+                posterior = posteriors( :, classNumber );
+                
+                if sum(posterior)>EPS
                     
-                    if sum(posterior)>EPS
+                    %   mu = data' * posterior / ( sum( posterior ) + eps );
+                    %   variance = ( ( data - mu ).^2 )' * posterior / ( sum( posterior ) + eps );
                     
-                        mu = (meanHyper(classNumber)*nHyper(classNumber) + data'*posterior) / ( nHyper(classNumber) + sum( posterior ) + EPS );
-                        variance = (( ( data - mu ).^2 )' * posterior + nHyper(classNumber)*(mu-meanHyper(classNumber))^2 )/ ( sum( posterior ) + EPS );
-                        
-                        means( classNumber ) = mu;
-                        variances( classNumber ) = variance+EPS;
+                    mu = (meanHyper(classNumber)*nHyper(classNumber) + data'*posterior) / ( nHyper(classNumber) + sum( posterior ) + EPS );
+                    variance = (( ( data - mu ).^2 )' * posterior + nHyper(classNumber)*(mu-meanHyper(classNumber))^2 )/ ( sum( posterior ) + EPS );
                     
-                    else
-                         means( classNumber ) = meanHyper(classNumber);
-                        variances( classNumber ) = 100;
-                        
-                    end
+                    means( classNumber ) = mu;
+                    variances( classNumber ) = variance+EPS;
+                    
+                else
+                    means( classNumber ) = meanHyper(classNumber);
+                    variances( classNumber ) = 100;
+                    
+                end
             end
-            variances(variances==0)=100;
+            variances(variances==0)=100; % added by Eugenio, prevents nans...
             
-           
+            
         end % End EM iterations
         means'
         (variances').^2
@@ -927,7 +1040,31 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         
         % Do the deformation one step at a time, for maximally positionUpdatingMaximumNumberOfIterations
         % deformation steps or until a step occurs in which the mesh node that moves most moves less than
-        % maximalDeformationStopCriterion voxels, whichever comes first. 
+        % maximalDeformationStopCriterion voxels, whichever comes first. The underlying algorithm is a
+        % Levenberg-Marquardt type of algorithm in that it uses the gradient and an approximation of the
+        % Hessian to propose a new position. If the new position proposal degrades the cost function (i.e.,
+        % the posterior probability of the mesh node positions given the data and the parameters of the
+        % imaging model goes down), the Hessian approximation is repeatedly altered by multiplying its diagonal
+        % elements with an increasing factor, thereby making the proposal more and more gradient-descent
+        % like with smaller-and-smaller step sizes, until a (small) position proposal is obtained that actually
+        % improves the cost function. Conversely, every time a good position proposal is obtained, the
+        % multiplication of the diagonal elements of the Hessian approximation is decreased the next time
+        % around, making the algorithm much more efficient compared to gradient-descent (i.e., take much
+        % larger step sizes) whenever it is possible.
+        %
+        % If no position proposal can be made even when the multiplication factor of the Hessian approximation's
+        % diagonal becomes very large, i.e., even when the proposal is a tiny tiny deformation only, the
+        % mesh node optimization algorithm gives up and tells you it didn't do anything.
+        %
+        %
+        % NOTE: recall that this procedure is really only one half of a global optimization problem
+        % that includes estimating the imaging model parameters (i.e., Gaussian intensity as well.
+        % Therefore, it may not make sense to wait 20 minutes to get a really good optimization
+        % of the mesh node positions here, as the cost function we're optimizing will change anyway
+        % once the imaging model parameters are updated in the next iterations. Since updating the
+        % imaging model parameters is very fast compared to updating the mesh nodes, it probably makes
+        % sense to re-estimate the imaging model parameters frequently after a partial (not full)
+        % optimization of the mesh nodes.
         %
         haveMoved = false; % Keep track if we've ever moved or not
         kvlSetOptimizerProperties( optimizer, means', reshape(1./variances,[1 1 length(variances)]));
@@ -1137,11 +1274,22 @@ inverseTransform = kvlCreateTransform( inv( transformMatrix ) );
 kvlTransformMeshCollection( meshCollection, inverseTransform );
 kvlWriteMeshCollection( meshCollection, 'warpedMeshNoAffine.txt' );
 
+
+
 kvlWriteImage( image, 'image.mgz' );
 system(['cp ' compressionLookupTableFileName ' .']);
 
 
-% Write discrete labels (MAP)
+% You can now use the C++ tools distributed with FreeSufer to inspect what we have as
+% follows:
+%
+%    kvlViewMeshCollectionWithGUI warpedMesh.txt.gz 86 113 163 image.mgz
+%
+% where 86 113 163 are the dimensions of image.mgz, which you need to manually specify (don't ask!)
+%
+
+
+% Eugenio: write discrete labels (MAP)
 % Note how we fill in the gaps in the regions outside the FOV with the
 % prior!
 
@@ -1255,11 +1403,11 @@ if DEBUG>0
     aux=aux(1+shiftPos(1):end,1+shiftPos(2):end,1+shiftPos(3):end,:);
     tmp3.vol=aux;
     myMRIwrite(tmp3,'posteriors.mgz','float',tempdir);
-
+    
 end
 
 if DEBUG>0
-    % likelihood terms
+    % Interesting for debugging: likelihood terms
     LOGLHOODS=zeros(size(posteriorsFull),'double');
     for i=1:length(means)
         gauss=-.5*log(2*pi*variances(i))-.5*(double(imageBuffer(maskIndices))-means(i)).^2/variances(i);

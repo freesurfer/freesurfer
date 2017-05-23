@@ -35,9 +35,9 @@ function err = myMRIwrite(mri,fstring,datatype,tempdir)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: zkaufman $
-%    $Date: 2016/09/21 15:32:27 $
-%    $Revision: 1.1 $
+%    $Author: nicks $
+%    $Date: 2011/03/02 00:04:12 $
+%    $Revision: 1.14 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -227,9 +227,9 @@ function r = save_mgh(vol, fname, M, mr_parms,tempdir);
 %
 % Original Author: Bruce Fischl
 % CVS Revision Info:
-%    $Author: zkaufman $
-%    $Date: 2016/09/21 15:32:27 $
-%    $Revision: 1.1 $
+%    $Author: nicks $
+%    $Date: 2011/03/02 00:04:13 $
+%    $Revision: 1.8 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -371,16 +371,16 @@ function err = save_nifti(hdr,niftifile)
 % reshaped to 27307x1x6xnframes. This is for handling the 7th
 % order icosahedron used by FS group analysis.
 %
-% $Id: myMRIwrite.m,v 1.1 2016/09/21 15:32:27 zkaufman Exp $
+% $Id: save_nifti.m,v 1.14 2011/10/17 19:58:37 nicks Exp $
 
 %
 % save_nifti.m
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: zkaufman $
-%    $Date: 2016/09/21 15:32:27 $
-%    $Revision: 1.1 $
+%    $Author: nicks $
+%    $Date: 2011/10/17 19:58:37 $
+%    $Revision: 1.14 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
