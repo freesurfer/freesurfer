@@ -239,7 +239,7 @@ public:
     return m_nTensorInversion;
   }
 
-  bool GetVectorRepresentation()
+  int GetVectorRepresentation()
   {
     return m_nVectorRepresentation;
   }

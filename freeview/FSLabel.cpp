@@ -316,7 +316,7 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
       if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
            n[2] >= 0 && n[2] < dim[2] )
       {
-        MyVTKUtils::SetImageDataComponent(ptr, dim, n[0], n[1], n[2], 0, scalar_type,
+        MyVTKUtils::SetImageDataComponent(ptr, dim, 1, n[0], n[1], n[2], 0, scalar_type,
             m_label->lv[i].stat >= threshold ? m_label->lv[i].stat : (m_dStatsRange[0]-1.0) );
       }
       else
