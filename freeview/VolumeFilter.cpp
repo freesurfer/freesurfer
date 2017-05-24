@@ -153,6 +153,7 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
 
   char* ptr = (char*)image->GetScalarPointer();
   int scalar_type = image->GetScalarType();
+  int n_frames = image->GetNumberOfScalarComponents();
   for ( int j = 0; j < mri->height; j++ )
   {
     for ( int k = 0; k < mri->depth; k++ )
@@ -165,23 +166,23 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
           {
           case MRI_UCHAR:
             MRIseq_vox( mri, i, j, k, nFrame ) =
-                (unsigned char)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
+                (unsigned char)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, nFrame, scalar_type);
             break;
           case MRI_INT:
             MRIIseq_vox( mri, i, j, k, nFrame ) =
-                (int)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
+                (int)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, nFrame, scalar_type);
             break;
           case MRI_LONG:
             MRILseq_vox( mri, i, j, k, nFrame ) =
-                (long)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
+                (long)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, nFrame, scalar_type);
             break;
           case MRI_FLOAT:
             MRIFseq_vox( mri, i, j, k, nFrame ) =
-                (float)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
+                (float)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, nFrame, scalar_type);
             break;
           case MRI_SHORT:
             MRISseq_vox( mri, i, j, k, nFrame ) =
-                (int)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
+                (int)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, nFrame, scalar_type);
             break;
           default:
             break;
@@ -206,6 +207,7 @@ void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
   char* ptr = (char*)image->GetScalarPointer();
   int scalar_type = image->GetScalarType();
   int* dim = image->GetDimensions();
+  int n_frames = image->GetNumberOfScalarComponents();
   for ( int nZ = 0; nZ < zZ; nZ++ )
   {
     for ( int nY = 0; nY < zY; nY++ )
@@ -217,23 +219,23 @@ void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
           switch ( mri->type )
           {
           case MRI_UCHAR:
-            MyVTKUtils::SetImageDataComponent(ptr, dim, nX, nY, nZ, nFrame, scalar_type,
+            MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, nX, nY, nZ, nFrame, scalar_type,
                                                 MRIseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           case MRI_INT:
-            MyVTKUtils::SetImageDataComponent(ptr, dim, nX, nY, nZ, nFrame, scalar_type,
+            MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, nX, nY, nZ, nFrame, scalar_type,
                                                 MRIIseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           case MRI_LONG:
-            MyVTKUtils::SetImageDataComponent(ptr, dim, nX, nY, nZ, nFrame, scalar_type,
+            MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, nX, nY, nZ, nFrame, scalar_type,
                                                 MRILseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           case MRI_FLOAT:
-            MyVTKUtils::SetImageDataComponent(ptr, dim, nX, nY, nZ, nFrame, scalar_type,
+            MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, nX, nY, nZ, nFrame, scalar_type,
                                                 MRIFseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           case MRI_SHORT:
-            MyVTKUtils::SetImageDataComponent(ptr, dim, nX, nY, nZ, nFrame, scalar_type,
+            MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, nX, nY, nZ, nFrame, scalar_type,
                                                 MRISseq_vox( mri, nX, nY, nZ, nFrame ) );
             break;
           default:

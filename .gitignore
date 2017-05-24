@@ -26,6 +26,7 @@ config/config.sub
 config/depcomp
 config/ltmain.sh
 config/missing
+config/test-driver
 m4/libtool.m4
 m4/ltoptions.m4
 m4/ltsugar.m4

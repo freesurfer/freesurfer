@@ -28,13 +28,14 @@ void LayerMRIWorkerThread::run()
   QMap<int, int> counts;
   char* ptr = (char*)image->GetScalarPointer();
   int scalar_type = image->GetScalarType();
+  int n_frames = image->GetNumberOfScalarComponents();
   for (int i = 0; i < dim[0]; i++)
   {
     for (int j = 0; j < dim[1]; j++)
     {
       for (int k = 0; k < dim[2]; k++)
       {
-        int val = (int)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, 0, scalar_type);
+        int val = (int)MyVTKUtils::GetImageDataComponent(ptr, dim, n_frames, i, j, k, 0, scalar_type);
         if (val != 0)
         {
           if (!vals.contains(val))

@@ -1120,6 +1120,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   char* ptr = (char*)rasImage->GetScalarPointer();
   int scalar_type = rasImage->GetScalarType();
   int* dim = rasImage->GetDimensions();
+  int nNumberOfFrames = rasImage->GetNumberOfScalarComponents();
   if ( mri->nframes > 1 )
   {
     global_progress_range[1] = nstart+(nend-nstart)*2/3;
@@ -1132,7 +1133,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
           for ( int nFrame = 0; nFrame < mri->nframes; nFrame++ )
           {
 //            float val = rasImage->GetScalarComponentAsFloat(i, j, k, nFrame);
-            float val = (float)MyVTKUtils::GetImageDataComponent(ptr, dim, i, j, k, nFrame, scalar_type);
+            float val = (float)MyVTKUtils::GetImageDataComponent(ptr, dim, nNumberOfFrames, i, j, k, nFrame, scalar_type);
             switch ( mri->type )
             {
             case MRI_UCHAR:
