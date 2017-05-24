@@ -887,7 +887,7 @@ void LayerVolumeBase::Undo()
     m_bufferUndo.pop_back();
 
     UndoRedoBufferItem item2;
-    SaveBufferItem( item2, item.plane, item.slice );
+    SaveBufferItem( item2, item.plane, item.slice, item.frame );
     m_bufferRedo.push_back( item2 );
 
     LoadBufferItem( item );
@@ -907,7 +907,7 @@ void LayerVolumeBase::Redo()
     m_bufferRedo.pop_back();
 
     UndoRedoBufferItem item2;
-    SaveBufferItem( item2, item.plane, item.slice );
+    SaveBufferItem( item2, item.plane, item.slice, item.frame );
     m_bufferUndo.push_back( item2 );
 
     LoadBufferItem( item );
@@ -936,7 +936,7 @@ void LayerVolumeBase::SaveForUndo( int nPlane )
   }
 
   UndoRedoBufferItem item;
-  SaveBufferItem( item, nPlane, nSlice );
+  SaveBufferItem( item, nPlane, nSlice, GetActiveFrame() );
   m_bufferUndo.push_back( item );
 
   // clear redo buffer
@@ -958,7 +958,7 @@ void LayerVolumeBase::Copy( int nPlane )
   double* voxel_size = m_imageData->GetSpacing();
   int nSlice = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
   m_bufferClipboard.Clear();
-  SaveBufferItem( m_bufferClipboard, nPlane, nSlice );
+  SaveBufferItem( m_bufferClipboard, nPlane, nSlice, GetActiveFrame() );
 }
 
 bool LayerVolumeBase::CopyStructure( int nPlane, double* ras )
@@ -990,7 +990,7 @@ bool LayerVolumeBase::CopyStructure( int nPlane, double* ras )
   {
     m_bufferClipboard.Clear();
 
-    SaveBufferItem( m_bufferClipboard, nPlane, nSlice[nPlane], mask );
+    SaveBufferItem( m_bufferClipboard, nPlane, nSlice[nPlane], GetActiveFrame(), mask );
     return true;
   }
   else
@@ -1013,10 +1013,11 @@ void LayerVolumeBase::Paste( int nPlane )
   emit ActorUpdated();
 }
 
-void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int nSlice, const char* mask )
+void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int nSlice, int nFrame, const char* mask )
 {
   item.plane = nPlane;
   item.slice = nSlice;
+  item.frame = nFrame;
   if ( nPlane >= 0 )
   {
     int nDim[3], nStart[3] = { 0, 0, 0 };
@@ -1029,6 +1030,7 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
     long long n = 0;
     char* ptr = (char*)m_imageData->GetScalarPointer();
     int scalar_size = m_imageData->GetScalarSize();
+    int n_frames = m_imageData->GetNumberOfScalarComponents();
     int nOrigDim[3];
     m_imageData->GetDimensions( nOrigDim );
     for ( size_t i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
@@ -1040,7 +1042,7 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
           if ( !mask || mask[n] > 0 )
           {
             memcpy( item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * scalar_size,
-                ptr + (k*nOrigDim[0]*nOrigDim[1] + j*nOrigDim[0] + i) * scalar_size,
+                ptr + ((k*nOrigDim[0]*nOrigDim[1] + j*nOrigDim[0] + i) * n_frames + nFrame) * scalar_size,
                 scalar_size );
           }
           n++;
@@ -1089,15 +1091,15 @@ void LayerVolumeBase::LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZero
       {
         for ( size_t k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
         {
-          double dValue = MyVTKUtils::GetImageDataComponent(ptr, nOrigDim, n_frames, i, j, k, 0, scalar_type);
-          memcpy( ptr + (k*nOrigDim[0]*nOrigDim[1] + j*nOrigDim[0] + i) * scalar_size,
+          double dValue = MyVTKUtils::GetImageDataComponent(ptr, nOrigDim, n_frames, i, j, k, item.frame, scalar_type);
+          memcpy( ptr + ((k*nOrigDim[0]*nOrigDim[1] + j*nOrigDim[0] + i)*n_frames + item.frame) * scalar_size,
               item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * scalar_size,
               scalar_size );
           if ( bIgnoreZeros )
           {
-            if ( MyVTKUtils::GetImageDataComponent(ptr, nOrigDim, n_frames, i, j, k, 0, scalar_type) == 0 )
+            if ( MyVTKUtils::GetImageDataComponent(ptr, nOrigDim, n_frames, i, j, k, item.frame, scalar_type) == 0 )
             {
-              MyVTKUtils::SetImageDataComponent(ptr, nOrigDim, n_frames, i, j, k, 0, scalar_type, dValue);
+              MyVTKUtils::SetImageDataComponent(ptr, nOrigDim, n_frames, i, j, k, item.frame, scalar_type, dValue);
             }
           }
         }
