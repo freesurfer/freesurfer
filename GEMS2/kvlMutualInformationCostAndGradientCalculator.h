@@ -2,7 +2,7 @@
 #define __kvlMutualInformationCostAndGradientCalculator_h
 
 #include "kvlAtlasMeshPositionCostAndGradientCalculator.h"
-#include "itkImage.h"
+#include "kvlHistogrammer.h"
 
 
 namespace kvl
@@ -61,12 +61,8 @@ private:
   void operator=(const Self&); //purposely not implemented
   
   //
-  void  ComputeRobustRange( const ImageType* image, double& robustMin, double& robustMax );
+  Histogrammer::Pointer  m_Histogrammer;
   
-  //
-  typedef itk::Image< int, 3 >  BinnedImageType;
-  BinnedImageType::Pointer  m_BinnedImage;
-   
 };
 
 

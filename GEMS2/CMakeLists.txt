@@ -74,6 +74,7 @@ ADD_LIBRARY( kvlGEMSCommon
              kvlAtlasMeshToIntensityImageCostAndGradientCalculator.cxx
              kvlConditionalGaussianEntropyCostAndGradientCalculator.cxx
              kvlMutualInformationCostAndGradientCalculator.cxx
+             kvlHistogrammer.cxx
              kvlAtlasMeshSummaryDrawer.cxx
              itkMGHImageIO.cxx
              itkMGHImageIOFactory.cxx )

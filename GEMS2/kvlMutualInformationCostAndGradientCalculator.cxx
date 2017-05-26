@@ -6,8 +6,6 @@
 #include "itkImageRegionConstIterator.h"
 #include "itkImageRegionIterator.h"
 
-#include "itkImageFileWriter.h"
-
 
 namespace kvl
 {
@@ -19,7 +17,7 @@ MutualInformationCostAndGradientCalculator
 ::MutualInformationCostAndGradientCalculator()
 {
   
-  m_BinnedImage = 0;
+  m_Histogrammer = Histogrammer::New();
   
 }
 
@@ -34,116 +32,6 @@ MutualInformationCostAndGradientCalculator
 
 
 
-//
-//
-//
-void 
-MutualInformationCostAndGradientCalculator
-::ComputeRobustRange( const ImageType* image, double& robustMin, double& robustMax )
-{
-  
-  // Compute min and max intensity
-  ImageType::PixelType  min =  itk::NumericTraits< ImageType::PixelType >::max();
-  ImageType::PixelType  max =  itk::NumericTraits< ImageType::PixelType >::min();
-  for ( itk::ImageRegionConstIterator< ImageType >  it( image, image->GetBufferedRegion() );
-        !it.IsAtEnd(); ++it )
-    {
-    // Skip zeroes
-    if ( it.Value() == 0 )
-      {
-      continue;  
-      }  
-      
-    if ( it.Value() < min )
-      {
-      min = it.Value();
-      }
-
-    if ( it.Value() > max )
-      {
-      max = it.Value();
-      }
-    }
-    
-    
-  // Build histogram
-  const int  numberOfBins = 4000;
-  const double  slope = static_cast< double >( numberOfBins - 1 ) / 
-                        ( static_cast< double >( max ) - static_cast< double >( min ) );
-  const double  offset = static_cast< double >( min );                      
-  std::vector< double >  histogram( numberOfBins, 0.0 );
-  double  sumOfHistogram = 0.0;
-  for ( itk::ImageRegionConstIterator< ImageType >  it( image, image->GetBufferedRegion() );
-        !it.IsAtEnd(); ++it )
-    {
-    // Skip zeroes
-    if ( it.Value() == 0 )
-      {
-      continue;  
-      }  
-      
-    const int  binNumber = itk::Math::Round< int >( slope * ( static_cast< double >( it.Value() ) - offset ) );
-    histogram[ binNumber ]++;
-    sumOfHistogram++;
-    }
-    
-  // Compute cumulative histogram
-  std::vector< double >  cumulativeHistogram( numberOfBins, 0.0 );
-  cumulativeHistogram[ 0 ] = histogram[ 0 ] / sumOfHistogram;
-  for ( int binNumber = 1; binNumber < numberOfBins; binNumber++ )
-    {
-    cumulativeHistogram[ binNumber ] = cumulativeHistogram[ binNumber-1 ] + histogram[ binNumber ] / sumOfHistogram;
-    }  
-  
-  // Determine bin number of robust min and max
-  int  robustMinBinNumber = 0;
-  int  robustMaxBinNumber = 0;
-  for ( int binNumber = ( numberOfBins-1 ); binNumber >= 0; binNumber-- )
-    {
-    if ( cumulativeHistogram[ binNumber ] > 0.9995 )
-      {
-      robustMaxBinNumber = binNumber;
-      }
-      
-    if ( cumulativeHistogram[ binNumber ] > 0.0005 )
-      {
-      robustMinBinNumber = binNumber;
-      }
-      
-    }
-    
-  // Determine robust min and max
-  robustMin = static_cast< double >( robustMinBinNumber ) / slope + offset;
-  robustMax = static_cast< double >( robustMaxBinNumber ) / slope + offset;
-  
-  //
-  std::cout << "min: " << min << std::endl;
-  std::cout << "max: " << max << std::endl;
-  std::cout << "robustMin: " << robustMin << std::endl;
-  std::cout << "robustMax: " << robustMax << std::endl;
-
-  for ( int binNumber = 0; binNumber < 3; binNumber++ )
-    {
-    std::cout << "histogram[ " << binNumber << " ]: " << histogram[ binNumber ] << std::endl;
-    }
-  for ( int binNumber = (numberOfBins-3); binNumber < numberOfBins; binNumber++ )
-    {
-    std::cout << "histogram[ " << binNumber << " ]: " << histogram[ binNumber ] << std::endl;
-    }
-
-  for ( int binNumber = 0; binNumber < 3; binNumber++ )
-    {
-    std::cout << "cumulativeHistogram[ " << binNumber << " ]: " << cumulativeHistogram[ binNumber ] << std::endl;
-    }
-  for ( int binNumber = (numberOfBins-3); binNumber < numberOfBins; binNumber++ )
-    {
-    std::cout << "cumulativeHistogram[ " << binNumber << " ]: " << cumulativeHistogram[ binNumber ] << std::endl;
-    }
-  
-  
-  
-}
-
 
 //
 //
@@ -152,45 +40,8 @@ void
 MutualInformationCostAndGradientCalculator
 ::SetImage( const ImageType* image )
 {
-  // Compute robust range
-  double  robustMin = 0.0;
-  double  robustMax = 0.0;
-  this->ComputeRobustRange( image, robustMin, robustMax );
-    
-  // Create an image with binned intensities
-  const int  numberOfBins = 32;
-  const double  slope = static_cast< double >( numberOfBins - 1 ) / 
-                        ( robustMax - robustMin );
-  const double  offset = robustMin;
-  m_BinnedImage = BinnedImageType::New();
-  m_BinnedImage->SetRegions( image->GetBufferedRegion() );
-  m_BinnedImage->Allocate();
+  m_Histogrammer->SetImage( image );
   
-  itk::ImageRegionConstIterator< ImageType >  it( image, image->GetBufferedRegion() );
-  itk::ImageRegionIterator< BinnedImageType >  binnedIt( m_BinnedImage, image->GetBufferedRegion() );
-  for ( ; !it.IsAtEnd(); ++it, ++binnedIt )
-    {
-    int  binNumber = itk::Math::Round< int >( slope * ( static_cast< double >( it.Value() ) - offset ) );
-
-    // Zeroes or intensities outside of robust range get a sentinel value
-    if ( ( it.Value() == 0 ) || 
-         ( it.Value() < robustMin ) ||
-         ( it.Value() > robustMax ) )
-      {
-      binNumber = -1;
-      }
-      
-    binnedIt.Value() = binNumber;
-    }
-     
-  //
-  typedef itk::ImageFileWriter< BinnedImageType >  WriterType;
-  WriterType::Pointer  writer = WriterType::New();
-  writer->SetInput( m_BinnedImage );
-  writer->SetFileName( "binnedImage.nii" );
-  writer->Write();
-  
-         
 }
  
 
@@ -204,18 +55,88 @@ MutualInformationCostAndGradientCalculator
 {
 
   // Estimate parameters of generative model using EM
-  
-  
-  
+  const int  numberOfBins = 64;
+  const int  numberOfClasses = mesh->GetPointData()->Begin().Value().m_Alphas.Size();
+  Histogrammer::ConditionalIntensityDistributionType  
+            uniformDistribution( numberOfBins, 
+                                 1.0 / static_cast< double >( numberOfBins ) );
+  std::vector< Histogrammer::ConditionalIntensityDistributionType >
+            conditionalIntensityDistributions( numberOfClasses, uniformDistribution );
+  const int  maximumNumberOfIterations = 10;   
+  double  minLogLikelihood = itk::NumericTraits< double >::max();
+  for ( int iterationNumber = 0; iterationNumber < maximumNumberOfIterations; iterationNumber++ )
+    {
+    // E-step
+    m_Histogrammer->SetConditionalIntensityDistributions( conditionalIntensityDistributions );          
+    m_Histogrammer->Rasterize( mesh );
   
 
+    // M-step
+    const Histogrammer::HistogramType&  histogram = m_Histogrammer->GetHistogram();
+    double  numberOfVoxels = 0.0;
+    for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+      {
+      double  numberOfVoxelsInThisClass = 1e-15;
+      for ( int binNumber = 0; binNumber < numberOfBins; binNumber++ )
+        {
+        numberOfVoxelsInThisClass += histogram[ classNumber ][ binNumber ];  
+        }  
+      for ( int binNumber = 0; binNumber < numberOfBins; binNumber++ )
+        {
+        conditionalIntensityDistributions[ classNumber ][ binNumber ] =  
+              histogram[ classNumber ][ binNumber ] / numberOfVoxelsInThisClass;  
+        }  
+       
+      numberOfVoxels += numberOfVoxelsInThisClass;
+      } // End loop over classes
+      
+    // Check convergence
+    const double  previousMinLogLikelihood = minLogLikelihood;
+    minLogLikelihood = m_Histogrammer->GetMinLogLikelihood();
+    std::cout << "minLogLikelihood: " << minLogLikelihood << std::endl;
+    std::cout << "numberOfVoxels: " << numberOfVoxels << std::endl;
+    const double  changeInCostPerVoxel = ( previousMinLogLikelihood - minLogLikelihood ) 
+                                         / static_cast< double >( numberOfVoxels );
+    std::cout << "changeInCostPerVoxel: " << changeInCostPerVoxel << std::endl;                                     
+    if ( changeInCostPerVoxel < 1e-3 )
+      {
+      break;
+      }  
+      
+    } // End loop over EM iterations  
+
+    
+    
+  //
+  if ( 0 )
+    {
+    const Histogrammer::HistogramType&  histogram = m_Histogrammer->GetHistogram();
+    std::cout << "histogram = [ ..." << std::endl;
+    for ( int binNumber = 0; binNumber < numberOfBins; binNumber++ )
+      {
+        
+      for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+        {
+        std::cout << histogram[ classNumber ][ binNumber ] << " ";  
+        }
+      if ( binNumber == ( numberOfBins-1 ) )
+        {
+        std::cout << "]" << std::endl;
+        }
+      else
+        {
+        std::cout << "; ..." << std::endl;
+        }
+      }
+    }  
+
+    
   // Now rasterize
   Superclass::Rasterize( mesh );
   
 }    
   
     
-  
  
 
 //
