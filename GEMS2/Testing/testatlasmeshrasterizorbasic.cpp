@@ -1,9 +1,9 @@
 #include <boost/test/unit_test.hpp>
 
 #include "kvlAtlasMeshCollection.h"
-#include "kvlAtlasMeshAlphaDrawerCPU.h"
-#include "kvlAtlasMeshVisitCounterCPU.h"
-#include "kvlAtlasMeshToIntensityImageGradientCalculatorCPU.h"
+#include "kvlAtlasMeshAlphaDrawer.h"
+#include "kvlAtlasMeshVisitCounter.h"
+#include "kvlAtlasMeshToIntensityImageCostAndGradientCalculator.h"
 #include "itkImageRegionConstIteratorWithIndex.h"
 #include "itkImageFileWriter.h"
 #include "itkTimeProbe.h"
@@ -21,9 +21,9 @@ BOOST_AUTO_TEST_CASE( Interpolation )
 
   // Rasterize the mesh, simply linearly interpolating a probabilistic atlas across the
   // volume of each tetrahedron
-  kvl::AtlasMeshAlphaDrawerCPU::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawerCPU::New();
+  kvl::AtlasMeshAlphaDrawer::Pointer  alphaDrawer = kvl::AtlasMeshAlphaDrawer::New();
   alphaDrawer->SetRegions( image->GetLargestPossibleRegion() );
-  alphaDrawer->SetLabelNumber( 1 );
+  alphaDrawer->SetClassNumber( 1 );
   clock.Start();
   alphaDrawer->Rasterize( mesh );
   clock.Stop();
@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE( Interpolation )
   
 
   // Write out
-  typedef itk::ImageFileWriter< kvl::AtlasMeshAlphaDrawerCPU::ImageType >  AlphaWriterType;
+  typedef itk::ImageFileWriter< kvl::AtlasMeshAlphaDrawer::ImageType >  AlphaWriterType;
   AlphaWriterType::Pointer  alphaWriter = AlphaWriterType::New();
   alphaWriter->SetFileName( "testAlpha.nii" );
   alphaWriter->SetInput( alphaDrawer->GetImage() );
@@ -40,18 +40,18 @@ BOOST_AUTO_TEST_CASE( Interpolation )
 
   
   // Compare against a reference implementation
-  kvl::AtlasMeshAlphaDrawerCPU::Pointer  referenceAlphaDrawer = kvl::AtlasMeshAlphaDrawerCPU::New();
+  kvl::AtlasMeshAlphaDrawer::Pointer  referenceAlphaDrawer = kvl::AtlasMeshAlphaDrawer::New();
   referenceAlphaDrawer->SetRegions( image->GetLargestPossibleRegion() );
-  referenceAlphaDrawer->SetLabelNumber( 1 );
+  referenceAlphaDrawer->SetClassNumber( 1 );
   clock.Reset();
   clock.Start();
   referenceAlphaDrawer->Rasterize( mesh );
   clock.Stop();
   BOOST_TEST_MESSAGE( "Time taken by reference alpha drawer: " << clock.GetMean() );
-  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshAlphaDrawerCPU::ImageType >  
+  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshAlphaDrawer::ImageType >  
              alphaIt( alphaDrawer->GetImage(), 
                       alphaDrawer->GetImage()->GetBufferedRegion() );
-  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshAlphaDrawerCPU::ImageType >  
+  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshAlphaDrawer::ImageType >  
              referenceAlphaIt( referenceAlphaDrawer->GetImage(), 
                                referenceAlphaDrawer->GetImage()->GetBufferedRegion() );
   double maximumAlphaError = 0.0;           
@@ -64,19 +64,20 @@ BOOST_AUTO_TEST_CASE( Interpolation )
   BOOST_CHECK_EQUAL( maximumAlphaError, 0 );
 }
 
+
 BOOST_AUTO_TEST_CASE( VoxelCount )
 {
   // Set up a timer
   itk::TimeProbe clock;
 
-  kvl::AtlasMeshVisitCounterCPU::Pointer  visitCounter = kvl::AtlasMeshVisitCounterCPU::New();
+  kvl::AtlasMeshVisitCounter::Pointer  visitCounter = kvl::AtlasMeshVisitCounter::New();
   visitCounter->SetRegions( image->GetLargestPossibleRegion() );
   clock.Start();
   visitCounter->Rasterize( mesh );
   clock.Stop();
   BOOST_TEST_MESSAGE( "Time taken by visit counter: " << clock.GetMean() );
 
-  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshVisitCounterCPU::ImageType >  
+  itk::ImageRegionConstIteratorWithIndex< kvl::AtlasMeshVisitCounter::ImageType >  
              it( visitCounter->GetImage(), 
                  visitCounter->GetImage()->GetBufferedRegion() );
   bool success = true;
@@ -87,7 +88,7 @@ BOOST_AUTO_TEST_CASE( VoxelCount )
   }
 
   // Write out
-  typedef itk::ImageFileWriter< kvl::AtlasMeshVisitCounterCPU::ImageType >  CountWriterType;
+  typedef itk::ImageFileWriter< kvl::AtlasMeshVisitCounter::ImageType >  CountWriterType;
   CountWriterType::Pointer  countWriter = CountWriterType::New();
   countWriter->SetFileName( "testCount.nii" );
   countWriter->SetInput( visitCounter->GetImage() );
@@ -148,11 +149,10 @@ BOOST_AUTO_TEST_CASE( DeformationGradients )
   
 
   //
-  kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::Pointer  
-      gradientCalculator = kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::New();
-  gradientCalculator->SetImages( std::vector< ImageType::Pointer >( 1, const_cast< ImageType* >( image.GetPointer() ) ) );
-  gradientCalculator->SetMeans( means_ );
-  gradientCalculator->SetPrecisions( precisions_ );
+  kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer  
+      gradientCalculator = kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::New();
+  gradientCalculator->SetImages( std::vector< ImageType::ConstPointer >( 1, image.GetPointer() ) );
+  gradientCalculator->SetParameters( means_, precisions_ );
   clock.Reset();
   clock.Start();
   gradientCalculator->Rasterize( mesh );
@@ -171,11 +171,10 @@ BOOST_AUTO_TEST_CASE( DeformationGradients )
       
       
   // Compare against a reference implementation
-  kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::Pointer  
-      referenceGradientCalculator = kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::New();
-  referenceGradientCalculator->SetImages( std::vector< ImageType::Pointer >( 1, const_cast< ImageType* >( image.GetPointer() ) ) );
-  referenceGradientCalculator->SetMeans( means_ );
-  referenceGradientCalculator->SetPrecisions( precisions_ );
+  kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::Pointer  
+      referenceGradientCalculator = kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::New();
+  referenceGradientCalculator->SetImages( std::vector< ImageType::ConstPointer >( 1, const_cast< ImageType* >( image.GetPointer() ) ) );
+  referenceGradientCalculator->SetParameters( means_, precisions_ );
   clock.Reset();
   clock.Start();
   referenceGradientCalculator->Rasterize( mesh );
@@ -215,7 +214,5 @@ BOOST_AUTO_TEST_CASE( DeformationGradients )
   }
   BOOST_CHECK_EQUAL( maximumGradientError, 0 );
 }
-
-
 
 BOOST_AUTO_TEST_SUITE_END();

@@ -3,13 +3,13 @@
 #include <boost/test/unit_test.hpp>
 
 #include "kvlAtlasMeshCollection.h"
-#include "kvlAtlasMeshToIntensityImageGradientCalculatorCPU.h"
+#include "kvlAtlasMeshToIntensityImageCostAndGradientCalculator.h"
 #include "itkImageFileReader.h"
 
 
 class TestFileLoader {
 public:
-  typedef kvl::AtlasMeshToIntensityImageGradientCalculatorCPU::ImageType ImageType;
+  typedef kvl::AtlasMeshToIntensityImageCostAndGradientCalculator::ImageType ImageType;
 
   ImageType::ConstPointer image;
   kvl::AtlasMeshCollection::Pointer meshCollection;

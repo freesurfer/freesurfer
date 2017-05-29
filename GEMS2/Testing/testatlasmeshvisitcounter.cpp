@@ -32,7 +32,7 @@ typedef boost::mpl::list<
 void CheckVisitCounter( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
 			TestFileLoader::ImageType::ConstPointer targetImage,
 			kvl::AtlasMesh::ConstPointer targetMesh ) {
-  kvl::AtlasMeshVisitCounterCPU::Pointer  originalVisitCounter = kvl::AtlasMeshVisitCounterCPU::New();
+  kvl::AtlasMeshVisitCounter::Pointer  originalVisitCounter = kvl::AtlasMeshVisitCounter::New();
 
   originalVisitCounter->SetRegions( targetImage->GetLargestPossibleRegion() );
   originalVisitCounter->Rasterize( targetMesh );
@@ -45,7 +45,7 @@ void CheckVisitCounter( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
   auto img = visitCounter->GetImage();
   itk::ImageRegionConstIteratorWithIndex<kvl::interfaces::AtlasMeshVisitCounter::ImageType>  
     it( img, img->GetBufferedRegion() );
-  itk::ImageRegionConstIteratorWithIndex<kvl::AtlasMeshVisitCounterCPU::ImageType>  
+  itk::ImageRegionConstIteratorWithIndex<kvl::AtlasMeshVisitCounter::ImageType>  
     itOrig( originalVisitCounter->GetImage(), originalVisitCounter->GetImage()->GetBufferedRegion() );
   
   for( ; !it.IsAtEnd(); ++it, ++itOrig ) {
