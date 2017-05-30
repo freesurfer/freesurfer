@@ -6,6 +6,10 @@ compiler: gcc
 
 os: linux
 
+cache:
+ - apt
+ - ccache
+
 addons:
   apt:
     packages:
