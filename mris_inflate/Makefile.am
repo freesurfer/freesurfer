@@ -41,7 +41,14 @@ mris_inflate_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 
 endif
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mris_inflate/testdata.tar.gz"; then \
+		cp -v $(top_srcdir)/mris_inflate/testdata.tar.gz \
+					$(top_builddir)/mris_inflate/; fi;
+
+TESTS=$(top_builddir)/scripts/help_xml_validate test_fs_posix
 
 clean-local:
 	rm -f $(BUILT_SOURCES) 
