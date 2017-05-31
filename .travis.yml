@@ -30,8 +30,10 @@ addons:
      - tcsh
      - curl
      - git
+     - git-annex
 
 install:
+  - git annex get -J3 --metadata fstags=makecheck .
   - curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz
   - tar -xzf centos6-x86_64-packages.tar.gz 
   - rm centos6-x86_64-packages.tar.gz 
