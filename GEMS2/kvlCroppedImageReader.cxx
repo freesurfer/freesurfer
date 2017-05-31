@@ -160,6 +160,21 @@ CroppedImageReader
 
     transform->SetMatrix( direction * scale );
     transform->SetOffset( offset );
+    
+    // 
+    if ( dynamic_cast< itk::MGHImageIO* >( io.GetPointer() ) )
+      {
+      std::cout << "==========================================" << std::endl;  
+      std::cout << "Dealing with MGH format here - rotating orientation around Z-axis!" << std::endl;
+      std::cout << "==========================================" << std::endl;
+      TransformType::OutputVectorType  scaling;
+      scaling[ 0 ] = -1.0;
+      scaling[ 1 ] = -1.0;
+      scaling[ 2 ] = 1.0;
+      transform->Scale( scaling );
+      }  
+    
+    
     }
   else
     {

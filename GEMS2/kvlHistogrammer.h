@@ -65,7 +65,13 @@ public :
       
     m_ConditionalIntensityDistributions = conditionalIntensityDistributions;
     
-    }  
+    }
+    
+  /** */
+  const std::vector< ConditionalIntensityDistributionType >&  GetConditionalIntensityDistributions() const
+    {
+    return m_ConditionalIntensityDistributions;
+    }
   
   /** */
   const HistogramType&  GetHistogram() const

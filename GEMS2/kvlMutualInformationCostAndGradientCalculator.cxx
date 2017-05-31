@@ -5,7 +5,7 @@
 
 #include "itkImageRegionConstIterator.h"
 #include "itkImageRegionIterator.h"
-
+#include <fstream>
 
 namespace kvl
 {
@@ -18,6 +18,9 @@ MutualInformationCostAndGradientCalculator
 {
   
   m_Histogrammer = Histogrammer::New();
+  m_NumberOfVoxels = 0.0;
+  
+  //this->SetNumberOfThreads( 1 );
   
 }
 
@@ -62,18 +65,18 @@ MutualInformationCostAndGradientCalculator
                                  1.0 / static_cast< double >( numberOfBins ) );
   std::vector< Histogrammer::ConditionalIntensityDistributionType >
             conditionalIntensityDistributions( numberOfClasses, uniformDistribution );
-  const int  maximumNumberOfIterations = 10;   
+  m_Histogrammer->SetConditionalIntensityDistributions( conditionalIntensityDistributions );          
+  const int  maximumNumberOfIterations = 10; // 10;   
   double  minLogLikelihood = itk::NumericTraits< double >::max();
   for ( int iterationNumber = 0; iterationNumber < maximumNumberOfIterations; iterationNumber++ )
     {
     // E-step
-    m_Histogrammer->SetConditionalIntensityDistributions( conditionalIntensityDistributions );          
     m_Histogrammer->Rasterize( mesh );
   
 
     // M-step
     const Histogrammer::HistogramType&  histogram = m_Histogrammer->GetHistogram();
-    double  numberOfVoxels = 0.0;
+    m_NumberOfVoxels = 0.0;
     for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
       {
       double  numberOfVoxelsInThisClass = 1e-15;
@@ -87,17 +90,19 @@ MutualInformationCostAndGradientCalculator
               histogram[ classNumber ][ binNumber ] / numberOfVoxelsInThisClass;  
         }  
        
-      numberOfVoxels += numberOfVoxelsInThisClass;
+      m_NumberOfVoxels += numberOfVoxelsInThisClass;
       } // End loop over classes
+    m_Histogrammer->SetConditionalIntensityDistributions( conditionalIntensityDistributions );          
+
       
     // Check convergence
     const double  previousMinLogLikelihood = minLogLikelihood;
     minLogLikelihood = m_Histogrammer->GetMinLogLikelihood();
-    std::cout << "minLogLikelihood: " << minLogLikelihood << std::endl;
-    std::cout << "numberOfVoxels: " << numberOfVoxels << std::endl;
+    //std::cout << "minLogLikelihood: " << minLogLikelihood << std::endl;
+    //std::cout << "m_NumberOfVoxels: " << m_NumberOfVoxels << std::endl;
     const double  changeInCostPerVoxel = ( previousMinLogLikelihood - minLogLikelihood ) 
-                                         / static_cast< double >( numberOfVoxels );
-    std::cout << "changeInCostPerVoxel: " << changeInCostPerVoxel << std::endl;                                     
+                                         / static_cast< double >( m_NumberOfVoxels );
+    //std::cout << "changeInCostPerVoxel: " << changeInCostPerVoxel << std::endl;                                     
     if ( changeInCostPerVoxel < 1e-3 )
       {
       break;
@@ -111,29 +116,66 @@ MutualInformationCostAndGradientCalculator
   if ( 0 )
     {
     const Histogrammer::HistogramType&  histogram = m_Histogrammer->GetHistogram();
-    std::cout << "histogram = [ ..." << std::endl;
+  
+    std::ofstream  out( "loadHistogram.m" );
+    if ( out.bad() )
+      {
+      std::cerr << "Can't open file loadHistogram.m for writing." << std::endl;
+      }
+
+    out << "histogram = [ ..." << std::endl;
     for ( int binNumber = 0; binNumber < numberOfBins; binNumber++ )
       {
         
       for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
         {
-        std::cout << histogram[ classNumber ][ binNumber ] << " ";  
+        out << histogram[ classNumber ][ binNumber ] << " ";  
         }
       if ( binNumber == ( numberOfBins-1 ) )
         {
-        std::cout << "]" << std::endl;
+        out << "]" << std::endl;
         }
       else
         {
-        std::cout << "; ..." << std::endl;
+        out << "; ..." << std::endl;
         }
       }
     }  
 
     
-  // Now rasterize
+  // Now rasterize to get approximate gradients (but actual data cost is computed separately)
   Superclass::Rasterize( mesh );
   
+  
+  // Compute Mutual Information, and add it to cost from prior
+  if ( m_MinLogLikelihoodTimesPrior == itk::NumericTraits< double >::max() )
+    {
+    return;
+    }
+  
+  const Histogrammer::HistogramType&  histogram = m_Histogrammer->GetHistogram();
+  double  negativeMutualInformation = 0.0;
+  std::vector< double >  marginalIntensityDistribution( numberOfBins, 0.0 );  
+  for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+    {
+    double   marginalProbabilityOfClass = 0.0;
+    for ( int binNumber = 0; binNumber < numberOfBins; binNumber++ )
+      {
+      const double  jointProbability = histogram[ classNumber ][ binNumber ] / m_NumberOfVoxels + 1e-15;  
+      negativeMutualInformation -= jointProbability * log( jointProbability ); 
+      marginalProbabilityOfClass += jointProbability;
+      marginalIntensityDistribution[ binNumber ] += jointProbability;
+      }
+    negativeMutualInformation += marginalProbabilityOfClass * log( marginalProbabilityOfClass );  
+    }
+  for ( int binNumber = 0; binNumber < numberOfBins; binNumber++ )
+    {
+    const double  marginalProbabilityOfIntensity = marginalIntensityDistribution[ binNumber ];
+    negativeMutualInformation += marginalProbabilityOfIntensity * log( marginalProbabilityOfIntensity );
+    }
+  //std::cout << "negativeMutualInformation: " << negativeMutualInformation << std::endl;
+  m_MinLogLikelihoodTimesPrior += negativeMutualInformation;
+    
 }    
   
     
@@ -158,10 +200,11 @@ MutualInformationCostAndGradientCalculator
                                     AtlasPositionGradientType&  gradientInVertex2,
                                     AtlasPositionGradientType&  gradientInVertex3 )
 {
-#if 0  
+
   // Loop over all voxels within the tetrahedron and do The Right Thing  
   const int  numberOfClasses = alphasInVertex0.Size();
-  TetrahedronInteriorConstIterator< LikelihoodFilterType::OutputPixelType >  it( m_LikelihoodFilter->GetOutput(), p0, p1, p2, p3 );
+  TetrahedronInteriorConstIterator< Histogrammer::BinnedImageType::PixelType >  
+                                                it( m_Histogrammer->GetBinnedImage(), p0, p1, p2, p3 );
   for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
     {
     it.AddExtraLoading( alphasInVertex0[ classNumber ], 
@@ -172,42 +215,70 @@ MutualInformationCostAndGradientCalculator
     
   for ( ; !it.IsAtEnd(); ++it )
     {
-    // Skip voxels for which nothing is known
-    if ( it.Value().Size() == 0 )
+    const int  binNumber = it.Value();
+      
+     // Skip sentinel values
+    if ( binNumber < 0 )
       {
-      //std::cout << "Skipping: " << it.Value().Size() << std::endl;
-      continue;
-      }
+      continue;  
+      }  
+     
       
     //
-    double likelihood = 0.0;
+    double likelihood = 1e-15;
     double  xGradientBasis = 0.0;
     double  yGradientBasis = 0.0;
     double  zGradientBasis = 0.0;
+#if 1    
     for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
       {
-      // Get the Gaussian likelihood of this class at the intensity of this pixel
-      const double gauss = it.Value()[ classNumber ];
+      // Get the class-conditional likelihood of this class at the intensity of this pixel
+      const double classConditionalLikelihood = 
+                     m_Histogrammer->GetConditionalIntensityDistributions()[ classNumber ][ binNumber ];
         
       // Add contribution of the likelihood
-      likelihood += gauss * it.GetExtraLoadingInterpolatedValue( classNumber );
+      likelihood += classConditionalLikelihood * it.GetExtraLoadingInterpolatedValue( classNumber );
       
       //
-      xGradientBasis += gauss * it.GetExtraLoadingNextRowAddition( classNumber );
-      yGradientBasis += gauss * it.GetExtraLoadingNextColumnAddition( classNumber );
-      zGradientBasis += gauss * it.GetExtraLoadingNextSliceAddition( classNumber );
+      xGradientBasis += classConditionalLikelihood * it.GetExtraLoadingNextRowAddition( classNumber );
+      yGradientBasis += classConditionalLikelihood * it.GetExtraLoadingNextColumnAddition( classNumber );
+      zGradientBasis += classConditionalLikelihood * it.GetExtraLoadingNextSliceAddition( classNumber );
       } // End loop over all classes
       
       
-    //  Add contribution to log-likelihood
-    likelihood = likelihood + 1e-15; //dont want to divide by zero
-    priorPlusDataCost -= log( likelihood );
-
-
     //
     xGradientBasis /= likelihood;
     yGradientBasis /= likelihood;
     zGradientBasis /= likelihood;
+#else
+    
+    for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
+      {
+      //std::cout << "classNumber: " << classNumber << std::endl;  
+      //std::cout << "binNumber: " << binNumber << std::endl;  
+        
+      // Get the class-conditional likelihood of this class at the intensity of this pixel
+      const double classConditionalLikelihood = 
+                     m_Histogrammer->GetConditionalIntensityDistributions()[ classNumber ][ binNumber ];
+      //std::cout << "classConditionalLikelihood: " << classConditionalLikelihood << std::endl;  
+      const double  logClassConditionalLikelihood = log( classConditionalLikelihood + 1e-15 );               
+      //std::cout << "logClassConditionalLikelihood: " << logClassConditionalLikelihood << std::endl;  
+        
+      // Add contribution of the likelihood
+      //likelihood += classConditionalLikelihood * it.GetExtraLoadingInterpolatedValue( classNumber );
+      
+      //
+      xGradientBasis += logClassConditionalLikelihood * it.GetExtraLoadingNextRowAddition( classNumber );
+      yGradientBasis += logClassConditionalLikelihood * it.GetExtraLoadingNextColumnAddition( classNumber );
+      zGradientBasis += logClassConditionalLikelihood * it.GetExtraLoadingNextSliceAddition( classNumber );
+      } // End loop over all classes
+
+#endif    
+    
+    //
+    xGradientBasis /= m_NumberOfVoxels;
+    yGradientBasis /= m_NumberOfVoxels;
+    zGradientBasis /= m_NumberOfVoxels;
 
     // Add contribution to gradient in vertex 0
     gradientInVertex0[ 0 ] += xGradientBasis * it.GetPi0();
@@ -232,8 +303,7 @@ MutualInformationCostAndGradientCalculator
     
     } // End loop over all voxels within the tetrahedron
 
-#endif
-
+  
 }
 
 

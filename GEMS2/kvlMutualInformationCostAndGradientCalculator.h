@@ -62,6 +62,7 @@ private:
   
   //
   Histogrammer::Pointer  m_Histogrammer;
+  double  m_NumberOfVoxels;
   
 };
 

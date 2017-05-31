@@ -34,6 +34,7 @@
 #include "kvlEvaluateMeshPosition.h"
 #include "kvlGetOptimizer.h"
 #include "kvlStepOptimizer.h"
+#include "kvlCreateMeshCollection.h"
 
 
 namespace kvl
@@ -82,6 +83,7 @@ MatlabRunnerArray
   m_Array.push_back( EvaluateMeshPosition::New().GetPointer() );
   m_Array.push_back( GetOptimizer::New().GetPointer() );
   m_Array.push_back( StepOptimizer::New().GetPointer() );
+  m_Array.push_back( CreateMeshCollection::New().GetPointer() );
 }
 
 

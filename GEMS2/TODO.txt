@@ -73,11 +73,16 @@ already return max() for isnans or cases where things are detected to go wrong.
 
 --
 
-* Use XXX as replacement of non-XXX stuff
-* Document new classes (especially condition entropy one)
+[ * Make remesher a Matlab function ]
+* Make center of gravity trial position only
+* Move EM functionality into kvlHistogrammer (only rasterizing once)
+* Document MI class
+* Visualize probabilistic atlas overlay more/in different ways
+* Clean up Matlab code registration module (reduced alphas, hand-picked alphas, etc etc)
+
 
 * Clean up Matlab interface (use dynamic_cast<>,  provided as helper function in kvlMatlabRunnerArray.cxx
-
+* Un-unfold Gaussians from mixture model
 
 
 

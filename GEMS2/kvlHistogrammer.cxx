@@ -6,8 +6,6 @@
 #include "itkImageRegionConstIterator.h"
 #include "itkImageRegionIterator.h"
 
-#include "itkImageFileWriter.h"
-
 
 namespace kvl
 {
@@ -190,14 +188,6 @@ Histogrammer
     binnedIt.Value() = binNumber;
     }
      
-  //
-  std::cout << "Computed m_BinnedImage" << std::endl;
-  typedef itk::ImageFileWriter< BinnedImageType >  WriterType;
-  WriterType::Pointer  writer = WriterType::New();
-  writer->SetInput( m_BinnedImage );
-  writer->SetFileName( "binnedImage.nii" );
-  writer->Write();
-  
   
 }
  
@@ -236,7 +226,7 @@ Histogrammer
     emptyHistogram.push_back( std::vector< double >( m_NumberOfBins, 0.0 ) );  
     }
   m_Histogram = emptyHistogram;
-  m_MinLogLikelihood = 0;
+  m_MinLogLikelihood = 0.0;
   m_ThreadSpecificHistograms.clear();
   m_ThreadSpecificMinLogLikelihoods.clear();
 
@@ -338,6 +328,7 @@ Histogrammer
       
     //
     double  denominator = 1e-15;
+    double  weightToDistribute = 1e-15;
     for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
       {
       const double  tmp =  m_ConditionalIntensityDistributions[ classNumber ][ binNumber ] // Likelihood   
@@ -345,12 +336,13 @@ Histogrammer
                            it.GetExtraLoadingInterpolatedValue( classNumber ); // Prior
       unnormalizedPosterior[ classNumber ] = tmp;
       denominator += tmp;
+      weightToDistribute += it.GetExtraLoadingInterpolatedValue( classNumber ); // Prior
       }
-    m_ThreadSpecificMinLogLikelihoods[ threadNumber ] -= log( denominator );
+    m_ThreadSpecificMinLogLikelihoods[ threadNumber ] -= weightToDistribute * log( denominator );
     for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
       {
       m_ThreadSpecificHistograms[ threadNumber ][ classNumber ][ binNumber ] 
-           += unnormalizedPosterior[ classNumber ] / denominator;  
+           += weightToDistribute * unnormalizedPosterior[ classNumber ] / denominator;  
       }
     
     } // End loop over all pixels within tetrahedron  
