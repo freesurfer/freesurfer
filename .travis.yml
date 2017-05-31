@@ -37,7 +37,7 @@ before_install:
   - travis_retry sudo apt-get update -qq
   - travis_retry sudo apt-get install git-annex-standalone
   - git remote add datasrc http://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/repo/annex.git
-  - git fetch datasrc git-annex
+  - /usr/lib/git-annex.linux/git fetch datasrc git-annex
 
 install:
   - git annex get -J3 --metadata fstags=makecheck .
