@@ -203,6 +203,7 @@ Q_SIGNALS:
   void PositionChanged();
   void PositionChanged(double dx, double dy, double dz);
   void OverlayChanged();
+  void EdgeColorChanged();
 
 private:
   void SetColorMapChanged();

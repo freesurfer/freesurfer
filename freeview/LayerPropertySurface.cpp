@@ -327,6 +327,7 @@ void LayerPropertySurface::SetEdgeColor ( double r, double g, double b )
   m_dRGBEdge[1] = g;
   m_dRGBEdge[2] = b;
   emit ColorMapChanged();
+  emit EdgeColorChanged();
 }
 
 void LayerPropertySurface::SetVectorColor ( double r, double g, double b )
