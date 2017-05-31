@@ -1,4 +1,4 @@
-sudo: false
+sudo: required
 
 language: cpp
 
@@ -30,7 +30,12 @@ addons:
      - tcsh
      - curl
      - git
-     - git-annex
+
+before_install:
+  # Needs recent git-annex to be able to get -J3 --metadata
+  - bash <(wget -q -O- http://neuro.debian.net/_files/neurodebian-travis.sh)
+  - travis_retry sudo apt-get update -qq
+  - travis_retry sudo apt-get install git-annex-standalone
 
 install:
   - git annex get -J3 --metadata fstags=makecheck .
