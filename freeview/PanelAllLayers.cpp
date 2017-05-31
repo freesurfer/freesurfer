@@ -154,7 +154,9 @@ void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, L
       {
         LayerSurface* surf = (LayerSurface*)layers[i];
         double* rgb = surf->GetProperty()->GetEdgeColor();
-        item->setTextColor(0, QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ));
+        QPixmap pix(13, 13);
+        pix.fill( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+        item->setIcon(0, QIcon(pix) );
         connect(surf->GetProperty(), SIGNAL(EdgeColorChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
       }
       item->setData(0, Qt::UserRole, QVariant::fromValue(reinterpret_cast<quintptr>(layers[i])));
@@ -333,8 +335,9 @@ void PanelAllLayers::OnLayerChanged()
         if (surf)
         {
           double* rgb = surf->GetProperty()->GetEdgeColor();
-          item->setTextColor(0, QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ));
-        }
+          QPixmap pix(13, 13);
+          pix.fill( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+          item->setIcon(0, QIcon(pix) );        }
       }
     }
   }
