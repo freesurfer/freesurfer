@@ -43,13 +43,13 @@ for num in $threads; do
   cmd="../mris_sphere -seed 1234 rh.inflated ${outfile}"
 
   # run mris_sphere
-  echo "" |& tee -a $logfile
-  echo "${tname}:  running mris_sphere with ${num} thread(s)" |& tee -a $logfile
+  echo 2>&1 | tee -a $logfile
+  echo "${tname}:  running mris_sphere with ${num} thread(s)" 2>&1 | tee -a $logfile
   echo $cmd >> $logfile
   $cmd >> $logfile 2>&1
   status=$?
   if [ $status -ne 0 ]; then
-    echo "${tname}:  FAILED with exit code $status" |& tee -a $logfile
+    echo "${tname}:  FAILED with exit code $status" 2>&1 | tee -a $logfile
     exit 1
   fi
 
@@ -61,16 +61,16 @@ for num in $threads; do
 
   # compare expected results with actual results
   cmd="../../mris_diff/mris_diff --debug ${ref} ${outfile}"
-  echo "${tname}:  comparing results to reference data" |& tee -a $logfile
+  echo "${tname}:  comparing results to reference data" 2>&1 | tee -a $logfile
   echo "$cmd" >> $logfile
   $cmd >> $logfile 2>&1
   status=$?
   if [ $status -ne 0 ]; then
-    echo "${tname}:  FAILED with exit code $status" |& tee -a $logfile
+    echo "${tname}:  FAILED with exit code $status" 2>&1 | tee -a $logfile
     echo "check log file - test_mris_sphere.log"
     exit 1
   fi
-  echo "${tname}:  PASSED test with ${num} thread(s)" |& tee -a $logfile
+  echo "${tname}:  PASSED test with ${num} thread(s)" 2>&1 | tee -a $logfile
 
 done
 
@@ -84,7 +84,7 @@ if $regenerate; then
 fi
 rm -rf testdata
 
-echo |& tee -a $logfile
-echo "${tname}:  PASSED all tests" |& tee -a $logfile
+echo 2>&1 | tee -a $logfile
+echo "${tname}:  PASSED all tests" 2>&1 | tee -a $logfile
 echo
 exit 0

@@ -26,6 +26,7 @@
 #include "LayerMRI.h"
 #include "LayerPropertyMRI.h"
 #include "LayerSurface.h"
+#include "LayerPropertySurface.h"
 #include <QPainter>
 #include <QContextMenuEvent>
 #include <QMenu>
