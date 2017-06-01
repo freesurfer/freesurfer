@@ -10,7 +10,12 @@ cache:
  - apt
  - ccache
  - directories:
-   - freesurfer/freesurfer/.git/annex/objects
+   - $HOME/.cache/annex
+
+before_cache:
+  - mkdir -p $HOME/.cache/annex
+  - pwd
+  - tar -czf $HOME/.cache/annex/objects.tgz  $TRAVIS_BUILD_DIR/.git/annex/objects
 
 addons:
   apt:
@@ -43,6 +48,9 @@ before_install:
   - git fetch datasrc git-annex
 
 install:
+  # extract possibly present cache of annex objects
+  - pwd
+  - if [ -e $HOME/.cache/annex/objects.tgz ]; then tar -xzvf $HOME/.cache/annex/objects.tgz; fi
   - git annex get -J3 --metadata fstags=makecheck .
   - curl -O ftp://surfer.nmr.mgh.harvard.edu/pub/dist/fs_supportlibs/prebuilt/centos6_x86_64/centos6-x86_64-packages.tar.gz
   - tar -xzf centos6-x86_64-packages.tar.gz 
@@ -52,6 +60,7 @@ install:
   - cd ..
 
 script:
+   - echo 
 #  - ./setup_configure 
 #  - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build 
 #  - travis_wait 40 ./travis_make.sh
