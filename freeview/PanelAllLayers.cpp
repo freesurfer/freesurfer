@@ -5,6 +5,10 @@
 #include "LayerCollection.h"
 #include "LayerSurface.h"
 #include "LayerPropertySurface.h"
+#include "LayerROI.h"
+#include "LayerPropertyROI.h"
+#include "LayerPointSet.h"
+#include "LayerPropertyPointSet.h"
 #include <QDebug>
 #include <QSettings>
 
@@ -158,6 +162,24 @@ void PanelAllLayers::AddLayers(QList<Layer *> layers, const QString &cat_name, L
         pix.fill( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
         item->setIcon(0, QIcon(pix) );
         connect(surf->GetProperty(), SIGNAL(EdgeColorChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+      }
+      else if (layers[i]->IsTypeOf("ROI"))
+      {
+        LayerROI* roi = (LayerROI*)layers[i];
+        double* rgb = roi->GetProperty()->GetColor();
+        QPixmap pix(13, 13);
+        pix.fill( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+        item->setIcon(0, QIcon(pix) );
+        connect(roi->GetProperty(), SIGNAL(ColorMapChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+      }
+      else if (layers[i]->IsTypeOf("PointSet"))
+      {
+        LayerPointSet* layer = (LayerPointSet*)layers[i];
+        double* rgb = layer->GetProperty()->GetColor();
+        QPixmap pix(13, 13);
+        pix.fill( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+        item->setIcon(0, QIcon(pix) );
+        connect(layer->GetProperty(), SIGNAL(ColorChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
       }
       item->setData(0, Qt::UserRole, QVariant::fromValue(reinterpret_cast<quintptr>(layers[i])));
       item->setCheckState(0, layers[i]->IsVisible() ? Qt::Checked : Qt::Unchecked);
@@ -331,13 +353,33 @@ void PanelAllLayers::OnLayerChanged()
       {
         item->setText(0, layer->GetName());
         item->setCheckState(0, layer->IsVisible() ?  Qt::Checked : Qt::Unchecked);
-        LayerSurface* surf = qobject_cast<LayerSurface*>(layer);
-        if (surf)
+        if (layer->IsTypeOf("Surface"))
         {
+          LayerSurface* surf = (LayerSurface*)layer;
           double* rgb = surf->GetProperty()->GetEdgeColor();
           QPixmap pix(13, 13);
           pix.fill( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
-          item->setIcon(0, QIcon(pix) );        }
+          item->setIcon(0, QIcon(pix) );
+          connect(surf->GetProperty(), SIGNAL(EdgeColorChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+        }
+        else if (layer->IsTypeOf("ROI"))
+        {
+          LayerROI* roi = (LayerROI*)layer;
+          double* rgb = roi->GetProperty()->GetColor();
+          QPixmap pix(13, 13);
+          pix.fill( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+          item->setIcon(0, QIcon(pix) );
+          connect(roi->GetProperty(), SIGNAL(ColorMapChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+        }
+        else if (layer->IsTypeOf("PointSet"))
+        {
+          LayerPointSet* ps = (LayerPointSet*)layer;
+          double* rgb = ps->GetProperty()->GetColor();
+          QPixmap pix(13, 13);
+          pix.fill( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+          item->setIcon(0, QIcon(pix) );
+          connect(ps->GetProperty(), SIGNAL(ColorChanged()), this, SLOT(OnLayerChanged()), Qt::UniqueConnection);
+        }
       }
     }
   }

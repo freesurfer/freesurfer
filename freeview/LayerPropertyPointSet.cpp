@@ -162,6 +162,7 @@ void LayerPropertyPointSet::SetColor ( double r, double g, double b )
   mRGB[1] = g;
   mRGB[2] = b;
   this->SetColorMapChanged();
+  emit ColorChanged();
 }
 
 void LayerPropertyPointSet::SetSplineColor ( double r, double g, double b )

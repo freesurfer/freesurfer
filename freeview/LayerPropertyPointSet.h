@@ -175,6 +175,7 @@ signals:
   void ScalarLayerChanged( LayerMRI* );
   void ScalarSetChanged();
   void ColorMapChanged();
+  void ColorChanged();
   void OpacityChanged( double );
   void RadiusChanged( double );
   void SplineRadiusChanged( double );
