@@ -282,10 +282,10 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol, double 
   double pos[3];
   int* dim = rasImage->GetDimensions();
   char* ptr = (char*)rasImage->GetScalarPointer();
-  int scalar_type = rasImage->GetScalarSize();
+  int scalar_type = rasImage->GetScalarType();
   memset( ptr,
           0,
-          ((size_t)scalar_type) * dim[0] * dim[1] * dim[2]);
+          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
   if (m_dStatsRange[0] <= 0)
   {
     size_t nsize = ((size_t)dim[0])*dim[1]*dim[2];
