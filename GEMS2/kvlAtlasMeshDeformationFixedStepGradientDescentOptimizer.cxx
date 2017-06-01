@@ -57,8 +57,13 @@ AtlasMeshDeformationFixedStepGradientDescentOptimizer
   AtlasPositionGradientContainerType::Pointer  trialGradient = 0;
   double  trialCost = 0.0;
   this->GetCostAndGradient( trialPosition, trialCost, trialGradient );
+  if ( m_Verbose )
+    {
+    std::cout << "m_Cost: " << m_Cost << std::endl;  
+    std::cout << "trialCost: " << trialCost << std::endl;  
+    }
   if ( ( trialCost > m_Cost ) ||
-       ( ( ( m_Cost - trialCost ) / fabsf( trialCost ) ) < m_LineSearchStopCriterion ) )
+       ( ( fabsf( m_Cost - trialCost ) / fabsf( trialCost ) ) < m_LineSearchStopCriterion ) )
     {
     // Bad or insufficiently good step -- give up
     return 0.0;

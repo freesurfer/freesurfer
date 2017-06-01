@@ -26,13 +26,7 @@ if(strcmp(imageFileName6,'none')) imageFileName6 = ''; end
 
 imageFileName = imageFileName1;
 
-% set SAMSEG_DATA_DIR as an environment variable, eg,
-%  setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/GEMSapplications/wholeBrain
 AvgDataDir = getenv('SAMSEG_DATA_DIR');
-templateFileName = sprintf('%s/mni305_masked_autoCropped.mgz',AvgDataDir);
-meshCollectionFileName = sprintf('%s/CurrentMeshCollection30New.txt.gz',AvgDataDir);
-% This is bascially an LUT
-compressionLookupTableFileName = sprintf('%s/namedCompressionLookupTable.txt',AvgDataDir);
  
 samsegStartTime = tic;
 
@@ -44,17 +38,28 @@ fprintf('entering registerAtlas\n');
 % Switch on if you want to initialize the registration by matching
 % (translation) the centers  of gravity 
 initializeUsingCenterOfGravityAlignment = false;
-useSPMForAffineRegistration = true;
-if useSPMForAffineRegistration
-  samseg_registerToAtlas
-else
-  K = 1e-7; % Mesh stiffness -- compared to normal models, the entropy cost function is normalized 
-            % (i.e., measures an average *per voxel*), so that this needs to be scaled down by the
-            % number of voxels that are covered
-  showFigures = true;
-  samseg_registerAtlas
-end
-  
+showFigures = true;
+samseg_registerAtlas
+
+
+% set SAMSEG_DATA_DIR as an environment variable, eg,
+%  setenv SAMSEG_DATA_DIR /autofs/cluster/koen/koen/GEMSapplications/wholeBrain
+templateFileName = sprintf('%s/mni305_masked_autoCropped.mgz',AvgDataDir);
+meshCollectionFileName = sprintf('%s/CurrentMeshCollection30New.txt.gz',AvgDataDir);
+% This is bascially an LUT
+compressionLookupTableFileName = sprintf('%s/namedCompressionLookupTable.txt',AvgDataDir);
+
+
+% For historical reasons the samsegment script figures out the affine transformation from
+% a transformed MNI template (where before transformation this template defines the segmentation
+% mesh atlas domain). This is a bit silly really, but for now let's just play along and make
+% sure we generate it
+[ origTemplate, origTemplateTransform ] = kvlReadImage( templateFileName );  
+transformedTemplateFileName = sprintf('%s/mni305_masked_autoCropped_coregistered.mgz',savePath);
+kvlWriteImage( origTemplate, transformedTemplateFileName, ...
+               kvlCreateTransform( double( worldToWorldTransformMatrix * kvlGetTransformMatrix( origTemplateTransform ) ) ) );
+
+
 
 fprintf('entering samsegment \n');
 %subject with different contrasts you can feed those in as well. Make sure
@@ -88,13 +93,8 @@ relativeCostDecreaseStopCriterion = 1e-6;
 maximalDeformationAppliedStopCriterion = 0.0;
 BFGSMaximumMemoryLength = 12;
 K = 0.1; % Stiffness of the mesh
-if useSPMForAffineRegistration
-  brainMaskingSmoothingSigma = 2; % sqrt of the variance of a Gaussian blurring kernel 
-  brainMaskingThreshold = 0.01;
-else
-  brainMaskingSmoothingSigma = 5; % 2; % sqrt of the variance of a Gaussian blurring kernel 
-  brainMaskingThreshold = 0.01;
-end
+brainMaskingSmoothingSigma = 2; % sqrt of the variance of a Gaussian blurring kernel 
+brainMaskingThreshold = 0.01;
 
 
 samsegment;

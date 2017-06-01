@@ -73,11 +73,8 @@ already return max() for isnans or cases where things are detected to go wrong.
 
 --
 
-* Use XXX as replacement of non-XXX stuff
-* Document new classes (especially condition entropy one)
-
 * Clean up Matlab interface (use dynamic_cast<>,  provided as helper function in kvlMatlabRunnerArray.cxx
-
+* Un-unfold Gaussians from mixture model
 
 
 
