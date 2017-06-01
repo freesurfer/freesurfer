@@ -477,7 +477,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
 
   if (wsize <= 0)
   {
-    wsize = DEFAULT_WINDOW_SIZE ;
+    wsize = nint(DEFAULT_WINDOW_SIZE/mri->ysize) ;
   }
 
   if (!desired_wm_value)
