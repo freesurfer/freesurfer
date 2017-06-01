@@ -48,6 +48,7 @@ private:
   void AddLayers(QList<Layer*> layers, const QString& cat_name, Layer* activeLayer,
                  const QList<Layer *>& selectedLayers, Layer* curLayer = NULL);
   PanelLayer* SetCurrentPanel(const QString& layerType);
+  void SetItemColor(QTreeWidgetItem* item, double* rgb);
 
   Ui::PanelAllLayers *ui;
 };
