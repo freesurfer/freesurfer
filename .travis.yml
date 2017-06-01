@@ -15,7 +15,7 @@ cache:
 before_cache:
   - mkdir -p $HOME/.cache/annex
   - pwd
-  - tar -czf $HOME/.cache/annex/objects.tgz  $TRAVIS_BUILD_DIR/.git/annex/objects
+  - tar -czf $HOME/.cache/annex/objects.tgz  .git/annex/objects
 
 addons:
   apt:
