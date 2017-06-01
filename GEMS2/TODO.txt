@@ -73,11 +73,6 @@ already return max() for isnans or cases where things are detected to go wrong.
 
 --
 
-[ * Move EM functionality into kvlHistogrammer (only rasterizing once) ]
-* Make MI class PVI-trick proof
-* Document MI class
-
-
 * Clean up Matlab interface (use dynamic_cast<>,  provided as helper function in kvlMatlabRunnerArray.cxx
 * Un-unfold Gaussians from mixture model
 

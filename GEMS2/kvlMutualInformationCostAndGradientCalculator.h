@@ -11,6 +11,23 @@ namespace kvl
 
 /**
  *
+ * Implementation of the D'Agostino MICCAI 2004 flavor of probabilistic-atlas-based Mutual Information, 
+ * with some useful tricks/hacks happily borrowed from John Ashburner's spm_maff8.m implementation in
+ * SPM12, including:
+ * 
+ *    1. Iterative estimation of the class-conditional distributions with EM. Standard "partial volume
+ *       interpolation" (PVI) based Mutual Information implementations (cf. Maes TMI 1997) effectively only
+ *       do a single iteration of this
+ * 
+ *   2. (Very) approximate gradients that completely ignore the effect of changing the registration position
+ *       on the class-conditional distributions; of voxels entering/leaving the overlapping regions in
+ *       which the histogram is computed; and even of non-smooth entering/leaving of such voxels (which is
+ *       what the PVI thing was originally all about, if I recall correctly) 
+ * 
+ * The implementation could be sped up by moving the EM stuff into the kvlHistogrammer class, so that 
+ * the priors need to be rasterized only once (using existing classes); however I'm really too lazy for 
+ * that now.
+ * 
  */
 class MutualInformationCostAndGradientCalculator: public AtlasMeshPositionCostAndGradientCalculator
 {

@@ -6,14 +6,17 @@ borderSize = 10; % Measured in pixels
 
 % Get the ingredients: a collage picture for each of the directions
 crossSections = cell( 0, 0 );
-numberOfRows = 2 * borderSize;
-numberOfColumns = 0;
+numberOfRows = 0;
+numberOfColumns = 2 * borderSize;
 for directionNumber = 1 : 3
   result = getCrossSections( image, directionNumber, numberOfCrossSectionsToShow );
   numberOfRows = max( numberOfRows, size( result, 1 ) );
   numberOfColumns = numberOfColumns + size( result, 2 );
   crossSections{ directionNumber } = result;
 end
+
+%  save everything
+
 
 collage = zeros( numberOfRows, numberOfColumns, 3 ) + .5;
 columnStartIndex = 1;
@@ -23,7 +26,7 @@ for directionNumber = 1 : 3
     % Make an RGB color image if we don't already have one
     result = repmat( result, [ 1 1 3 ] );
   end
-  collage( :, columnStartIndex + [ 0 : size( result, 2 )-1 ], : ) = result;
+  collage( [ 1 : size( result, 1 ) ], columnStartIndex + [ 0 : size( result, 2 )-1 ], : ) = result;
   columnStartIndex = columnStartIndex + size( result, 2 ) + borderSize;
 end
 

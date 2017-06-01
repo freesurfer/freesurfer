@@ -7,14 +7,50 @@ dataImage( history.maskIndices ) = history.data;
 figure
 showImage( dataImage )
 
+%
+numberOfVoxels = length( history.maskIndices );
+
 
 %
 figure
+%  desiredYLim = [ Inf -Inf ];
 for multiResolutionLevel = 1 : 2
   subplot( 1, 2, multiResolutionLevel )
-  plot( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost )
-
+  %plot( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost )
+  tmp = history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost / numberOfVoxels;
+  plot( tmp )
+  grid
+  title( [ 'multiResolutionLevel: ' num2str( multiResolutionLevel ) ] )
+  if 1
+    hold on
+    ylim = get( gca, 'ylim' );
+    thresholds = [ 1e-4 1e-5 1e-6 ];
+    thresholdColors = str2mat( 'k', 'b', 'g' );
+    for thresholdNumber = 1 : length( thresholds )
+      threshold = thresholds( thresholdNumber );
+      thresholdColor = thresholdColors( thresholdNumber );
+      x = find( ( tmp(1:end-1) - tmp(2:end) ) < threshold, 1 );
+      if isempty( x )
+        continue
+      end
+      line( x * [ 1 1 ], ylim, 'color', thresholdColor, 'linestyle', '-.' )
+    end
+    hold off
+  end
+  
+  %  ylim = get( gca, 'ylim' );
+  %  if ( ylim(1) < desiredYLim(1) )
+  %    desiredYLim(1) = ylim(1);
+  %  end
+  %  if ( ylim(2) > desiredYLim(2) )
+  %    desiredYLim(2) = ylim(2);
+  %  end
+  
 end
+%  for axesHandle = get( gcf, 'children' )
+%    set( axesHandle, 'ylim', desiredYLim )
+%  end
+
 
 
 %
@@ -57,7 +93,24 @@ numberOfIterations = length( history.historyWithinEachMultiResolutionLevel( mult
 while true
   for iterationNumber = 1 : numberOfIterations
     subplot( 2, 2, 1 )
-    plot( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyWithinEachIteration( iterationNumber ).historyOfDeformationCost )
+    tmp = history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyWithinEachIteration( iterationNumber ).historyOfDeformationCost / numberOfVoxels;
+    plot( tmp )
+    if 1
+      hold on
+      ylim = get( gca, 'ylim' );
+      thresholds = [ 1e-4 1e-5 1e-6 ];
+      thresholdColors = str2mat( 'k', 'b', 'g' );
+      for thresholdNumber = 1 : length( thresholds )
+        threshold = thresholds( thresholdNumber );
+        thresholdColor = thresholdColors( thresholdNumber );
+        x = find( ( tmp(1:end-1) - tmp(2:end) ) < threshold, 1 );
+        if isempty( x )
+          continue
+        end
+        line( x * [ 1 1 ], ylim, 'color', thresholdColor, 'linestyle', '-.' )
+      end
+      hold off
+    end
     grid
     ylabel( 'deformation cost' )
     title( [ 'iterationNumber: ' num2str( iterationNumber ) ] )
@@ -67,7 +120,7 @@ while true
     ylabel( 'max. deformation' )
     title( [ 'iterationNumber: ' num2str( iterationNumber ) ] )
     subplot( 2, 2, 2 )
-    plot( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyWithinEachIteration( iterationNumber ).historyOfEMCost )
+    plot( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyWithinEachIteration( iterationNumber ).historyOfEMCost / numberOfVoxels )
     grid
     ylabel( 'EM cost' )
     title( [ 'iterationNumber: ' num2str( iterationNumber ) ] )
