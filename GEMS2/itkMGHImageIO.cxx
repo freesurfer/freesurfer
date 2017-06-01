@@ -320,8 +320,14 @@ namespace itk
 	for(unsigned int ui=0; ui<3; ++ui)
 	  {
 	    std::vector<double> vDir;
-	    for(unsigned int uj=0; uj<3; ++uj)
+#if KVL_ORIENTATION_HACK
+            vDir.push_back( -matrix[ 0 ][ui] );
+            vDir.push_back( -matrix[ 1 ][ui] );
+            vDir.push_back( matrix[ 2 ][ui] );
+#else
+            for(unsigned int uj=0; uj<3; ++uj)
 	      vDir.push_back( matrix[uj][ui] );
+#endif            
 	    SetDirection( ui, vDir );
 	  }
 
@@ -335,6 +341,10 @@ namespace itk
 	    for(unsigned int uj=0; uj<3; ++uj)
 	      m_Origin[ui] -= matrix[ui][uj]*m_Spacing[uj]*idxCenter[uj];
 	  }
+#if KVL_ORIENTATION_HACK
+            m_Origin[ 0 ] = -m_Origin[ 0 ];
+            m_Origin[ 1 ] = -m_Origin[ 1 ];
+#endif            
       }
    
     unsigned long numValues = m_Dimensions[0]*m_Dimensions[1]*m_Dimensions[2];

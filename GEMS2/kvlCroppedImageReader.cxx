@@ -161,6 +161,12 @@ CroppedImageReader
     transform->SetMatrix( direction * scale );
     transform->SetOffset( offset );
     
+    //std::cout << "io->GetOrigin(): [ " 
+    //          << io->GetOrigin( 0 ) << ", " 
+    //          << io->GetOrigin( 1 ) << ", " 
+    //          << io->GetOrigin( 2 ) << " ]" << std::endl;
+    
+#if 0    
     // 
     if ( dynamic_cast< itk::MGHImageIO* >( io.GetPointer() ) )
       {
@@ -173,6 +179,7 @@ CroppedImageReader
       scaling[ 2 ] = 1.0;
       transform->Scale( scaling );
       }  
+#endif    
     
     
     }
@@ -184,8 +191,8 @@ CroppedImageReader
 #endif
 
 
-  std::cout << "Returning the following transform: " << std::endl;
-  transform->Print( std::cout );
+  //std::cout << "Returning the following transform: " << std::endl;
+  //transform->Print( std::cout );
   
   return transform;
 }
@@ -226,8 +233,8 @@ CroppedImageReader
     TransformType::Pointer  transform = TransformType::New();
     this->GetTransformOfFileName( fileName )->GetInverse( transform );
     m_WorldToImageTransform->Compose( transform );
-    std::cout << "WorldToImageTransform before cropping: " << std::endl;
-    m_WorldToImageTransform->Print( std::cout );
+    //std::cout << "WorldToImageTransform before cropping: " << std::endl;
+    //m_WorldToImageTransform->Print( std::cout );
     }
   else
     {
@@ -239,8 +246,8 @@ CroppedImageReader
     this->GetTransformOfFileName( fileName )->GetInverse( transform );
     m_Transform = this->GetTransformOfFileName( boundingFileName );
     m_Transform->Compose( transform );
-    std::cout << "Transform before cropping: " << std::endl;
-    m_Transform->Print( std::cout );
+    //std::cout << "Transform before cropping: " << std::endl;
+    //m_Transform->Print( std::cout );
 
 #if 0
     // Shift the inverse transform above by one voxel to map SPM's (1,1,1)-origin
@@ -255,8 +262,8 @@ CroppedImageReader
     m_WorldToImageTransform->Print( std::cout );
 #else
     m_WorldToImageTransform->Compose( transform );
-    std::cout << "WorldToImageTransform before cropping: " << std::endl;
-    m_WorldToImageTransform->Print( std::cout );
+    //std::cout << "WorldToImageTransform before cropping: " << std::endl;
+    //m_WorldToImageTransform->Print( std::cout );
 #endif
 
     // Obtain the bounding box size

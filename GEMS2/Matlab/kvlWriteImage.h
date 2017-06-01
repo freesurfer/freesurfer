@@ -71,6 +71,7 @@ public:
         }
       TransformType::ConstPointer  transform = static_cast< const TransformType* >( object.GetPointer() );
     
+#if 0      
       // If this is MGH format, fiddle with the directions (rotation around Z-axis)
       itk::ImageIOBase::Pointer  io = itk::ImageIOFactory::CreateImageIO(  fileName.c_str(), 
                                                                            itk::ImageIOFactory::WriteMode );
@@ -88,7 +89,8 @@ public:
           const_cast< TransformType* >( transform.GetPointer() )->Scale( scaling );
           }  
         }
-
+#endif
+        
       
       // In order not to modify the original image, we create a new one. The proper way of doing this
       // would be to only copy the header information and of course not the pixel intensities, but I'm
