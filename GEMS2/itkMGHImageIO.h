@@ -19,6 +19,9 @@
 
 #include <itk_zlib.h>
 
+#define KVL_ORIENTATION_HACK 1 // This MGH reader/writer IO class seems to swap x and y-axis compared
+                               // to NIFTI. Hard-coded a correction here; this really should be 
+                               // investigated further.
 
 // variables used in the IO
 //
@@ -159,7 +162,17 @@ namespace itk
     //=================================================
     // get directions matrix
     std::vector<std::vector<double> > vvRas;
+#if KVL_ORIENTATION_HACK
+    for(unsigned int ui=0; ui<3; ++ui) 
+      {
+      std::vector< double > direction = GetDirection(ui);  
+      direction[ 0 ] = -direction[ 0 ];
+      direction[ 1 ] = -direction[ 1 ];
+      vvRas.push_back( direction );
+      }
+#else    
     for(unsigned int ui=0; ui<3; ++ui) vvRas.push_back( GetDirection(ui) );
+#endif    
     // transpose data before writing it
     std::vector<float> vBufRas;
     // transpose matrix
@@ -179,6 +192,9 @@ namespace itk
     for(unsigned int ui=0; ui<3; ++ui)
       {
 	crasBuf = m_Origin[ui];
+#if KVL_ORIENTATION_HACK
+        if ( ui < 2 ) crasBuf = -crasBuf; 
+#endif        
 	for(unsigned int uj=0; uj<3; ++uj)
 	  crasBuf += vvRas[uj][ui]*m_Spacing[uj]*(float)m_Dimensions[uj]/2.0f;
 	writer.Write( crasBuf );

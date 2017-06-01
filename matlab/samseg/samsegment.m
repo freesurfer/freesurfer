@@ -54,11 +54,12 @@ kvlClear % Clear all the wrapped C++ stuff
 close all
 
 %Set this to true if you want to see some figures during the run.
-showImages=false;
+showImages=true;
 
 % Provide the location of the image to be segmented, as well as the atlas that has been
 % pre-registered affinely (i.e., 12 degrees of freedom) to the image.
 transformedTemplateFileName = sprintf('%s/mni305_masked_autoCropped_coregistered.mgz',savePath);
+
 
 numberOfImages = length(imageFileNames);
 

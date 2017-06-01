@@ -16,7 +16,14 @@ foo_DATA=mris_smooth.help.xml
 foo2dir=$(prefix)/docs/html
 foo2_DATA=mris_smooth.help.xml.html
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mris_registetr/testdata.tar.gz"; then \
+		cp -v $(top_srcdir)/mris_registetr/testdata.tar.gz \
+					$(top_builddir)/mris_registetr/; fi;
+
+TESTS=$(top_builddir)/scripts/help_xml_validate test_fs_posix
 
 EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 

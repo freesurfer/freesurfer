@@ -114,7 +114,6 @@ SET( runnerName "CreateImage" )
 SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
-SET( runnerName "CreateImage" )
 
 SET( runnerName "DeformMesh" )
 SET( runnerNumberOfOutputs "1" )
@@ -238,6 +237,11 @@ CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
 
 SET( runnerName "StepOptimizer" )
 SET( runnerNumberOfOutputs "2" )
+CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
+  ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
+
+SET( runnerName "CreateMeshCollection" )
+SET( runnerNumberOfOutputs "1" )
 CONFIGURE_FILE( kvlRunnerWrapperTemplate.m
   ${GEMS_LIBRARY_PATH}/kvl${runnerName}.m )
 
