@@ -215,7 +215,7 @@ ras(4,:) = ones(size(ras(4,:)));
 Mr2v = inv(mri.tkrvox2ras);
 vox = Mr2v*ras;
 gsub =  [vox(2,:)+1; vox(1,:)+1; vox(3,:)+1];
-gsub =  [vox(1,:)+1; vox(2,:)+1; vox(3,:)+1];
+gsub =  round([vox(1,:)+1; vox(2,:)+1; vox(3,:)+1]);
 gind = sub2ind(size(v), gsub(1,:), gsub(2,:),gsub(3,:)) ;
 
 wm_label = read_label('', sprintf('%s/wm.label', ldir));
@@ -224,7 +224,7 @@ ras(4,:) = ones(size(ras(4,:)));
 Mr2v = inv(mri.tkrvox2ras);
 vox = Mr2v*ras;
 wsub =  [vox(2,:)+1; vox(1,:)+1; vox(3,:)+1];
-wsub =  [vox(1,:)+1; vox(2,:)+1; vox(3,:)+1];
+wsub =  round([vox(1,:)+1; vox(2,:)+1; vox(3,:)+1]);
 wind = sub2ind(size(v), wsub(1,:), wsub(2,:),wsub(3,:)) ;
 
 fluid_label = read_label('', sprintf('%s/fluid.label',ldir));
@@ -233,7 +233,7 @@ ras(4,:) = ones(size(ras(4,:)));
 Mr2v = inv(mri.tkrvox2ras);
 vox = Mr2v*ras;
 flsub =  [vox(2,:)+1; vox(1,:)+1; vox(3,:)+1];
-flsub =  [vox(1,:)+1; vox(2,:)+1; vox(3,:)+1];
+flsub =  round([vox(1,:)+1; vox(2,:)+1; vox(3,:)+1]);
 flind = sub2ind(size(v), flsub(1,:), flsub(2,:),flsub(3,:)) ;
 
 mean_wm = mean(opt_vol(wind));
@@ -249,6 +249,7 @@ opt_vol = opt_vol * m + b ;
 nind = find(opt_vol < 0 | opt_vol > 255) ;
 nind = find(opt_vol < 0) ;
 opt_vol(nind) = zeros(size(nind)) ;
+opt_vol_unmasked = opt_vol ;
 
 gm_mean = mean(fluid_mask_vol(gind)) ;
 fl_mean = mean(fluid_mask_vol(flind)) ;
@@ -277,6 +278,7 @@ opt_vol(ind) = zeros(size(ind)) ;
 disp(sprintf('saving  output volumes\n'));
 save_mgh(fmask, sprintf('%s/brainmask.mgz', odir), M,mr);
 save_mgh(opt_vol, sprintf('%s/opt.mgz', odir), M,mr);
+save_mgh(opt_vol_unmasked, sprintf('%s/opt.unmasked.mgz', odir), M,mr);
 save_mgh(fluid_mask_vol, sprintf('%s/fluid_mask.mgz', odir), M,mr);
 if (use_air)
   save_mgh(air_mask_vol, sprintf('%s/air_mask.mgz', odir), M,mr);
