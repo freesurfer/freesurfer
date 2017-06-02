@@ -28,7 +28,7 @@ disp(sprintf('loading labeled data...')) ;
 flist = sprintf('%s/flist.dat', datdir) ;;
 fid = fopen(flist, 'r') ;
 if (fid < 0)
-  error(sprintf('could not open file list %s, flist));
+  error(sprintf('could not open file list %s', flist));
 end
 
 
