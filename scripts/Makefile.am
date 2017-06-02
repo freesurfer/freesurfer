@@ -29,6 +29,7 @@ check_subject \
 clear_fs_env.csh \
 compute_interrater_variability.csh \
 compute_label_volumes.csh \
+compute_label_vals.csh \
 cor_to_minc \
 cp-dicom \
 cuda_setup \

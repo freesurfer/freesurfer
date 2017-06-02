@@ -25,8 +25,12 @@ nvols = size(vol_names,1) ;
 
 disp(sprintf('loading labeled data...')) ;
 
-flist = 'flist.dat';
-fid = fopen(sprintf('%s/%s', sdir,flist), 'r') ;
+flist = sprintf('%s/flist.dat', datdir) ;;
+fid = fopen(flist, 'r') ;
+if (fid < 0)
+  error(sprintf('could not open file list %s, flist));
+end
+
 
 n = 1 ;
 line = fgetl(fid) ;
@@ -163,7 +167,7 @@ end
 
 clear('opt_vol') ;
 n = 1 ;
-fid = fopen(sprintf('%s/%s', sdir,flist), 'r') ;
+fid = fopen(flist, 'r') ;
 line = fgetl(fid) ;
 while (line >= 0)
     if (exist('mri') ~= 1)   % read in vol with MRIread so we have the header
