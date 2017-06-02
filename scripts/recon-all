@@ -4394,6 +4394,7 @@ if($DoPialSurfs || $DoT2pial || $DoFLAIRpial || $DoSurfVolume) then
     cd $subjdir/surf > /dev/null
     $PWD |& tee -a $LF
     set cmd = (vertexvol --s $subjid --$hemi -$TH3Opt)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/$hemi.surfvolume.touch
