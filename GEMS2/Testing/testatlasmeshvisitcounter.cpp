@@ -573,6 +573,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerExactGPUSimple, ImplType, SimpleCUDAIm
  
   UpperCornerExact( &visitCounter );
 }
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersGPUSimple, ImplType, SimpleCUDAImplTypes )
+{
+  ImplType visitCounter;
+ 
+  AutoCorners( &visitCounter );
+}
 #endif
 
 
