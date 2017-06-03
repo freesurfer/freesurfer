@@ -421,6 +421,20 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( NoVerticesGPUSimple, ImplType, SimpleCUDAImplType
  
   NoVertices( &visitCounter );
 }
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerExactGPUSimple, ImplType, SimpleCUDAImplTypes )
+{
+  ImplType visitCounter;
+ 
+  LowerCornerExact( &visitCounter );
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerExactGPUSimple, ImplType, SimpleCUDAImplTypes )
+{
+  ImplType visitCounter;
+ 
+  UpperCornerExact( &visitCounter );
+}
 #endif
 
 
