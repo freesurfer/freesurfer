@@ -38,7 +38,7 @@ const int nVertices = 4;
 
 static std::ostream& operator<<( std::ostream& os,
 				 const float v[nVertices][nDims] ) {
-  os << "Tetrahedron : [";
+  os << "[";
 
   for( unsigned int j=0; j<nVertices; j++ ) {
     os << "(" << v[j][0];
@@ -392,18 +392,20 @@ const ImageType* GetImageOnUnitCube( kvl::AtlasMesh::Pointer targetMesh,
   return visitCounter->GetImage();
 }
 
-void ApplyVisitCounterToMesh( const ImageType* visitImage,
-			      kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
-			      ImageType::ConstPointer targetImage,
-			      Mesh::Pointer targetMesh ) {
+ImageType::ConstPointer ApplyVisitCounterToMesh( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
+						 const ImageType* targetImage,
+						 Mesh::Pointer targetMesh ) {
   visitCounter->SetRegions( targetImage->GetLargestPossibleRegion() );
   visitCounter->VisitCount( targetMesh );
+  BOOST_TEST_CHECKPOINT("VisitCount run");
 
-  visitImage = visitCounter->GetImage();
+  return visitCounter->GetImage();
 }
 
 void CompareVisitImages( const ImageType* standard,
 			 const ImageType* compare ) {
+  BOOST_CHECK( standard != NULL );
+  BOOST_CHECK( compare != NULL );
   itk::ImageRegionConstIteratorWithIndex<kvl::interfaces::AtlasMeshVisitCounter::ImageType>  
     it( compare, compare->GetBufferedRegion() );
   itk::ImageRegionConstIteratorWithIndex<kvl::AtlasMeshVisitCounter::ImageType>  
@@ -417,14 +419,17 @@ void CompareVisitImages( const ImageType* standard,
 }
 
 void CheckVisitCounterWithPermutations( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
-					ImageType::ConstPointer targetImage,
+					const ImageType* targetImage,
 					const float tetrahedron[nVertices][nDims] ) {
   // Start by getting the 'standard' answers
-  ImageType::Pointer standardVisit;
+  BOOST_TEST_CHECKPOINT("Starting CheckVisitCounterWithPermutations");
+  ImageType::ConstPointer standardVisit = NULL;
   {
     kvl::AtlasMeshVisitCounterCPUWrapper origVisitCounter;
+    BOOST_TEST_CHECKPOINT("Created reference VisitCounter");
     Mesh::Pointer baseMesh = CreateSingleTetrahedronMesh( tetrahedron );
-    ApplyVisitCounterToMesh( standardVisit, &origVisitCounter, targetImage, baseMesh );
+    BOOST_TEST_CHECKPOINT("baseMesh Created");
+    standardVisit = ApplyVisitCounterToMesh( &origVisitCounter, targetImage, baseMesh );
   }
   BOOST_TEST_CHECKPOINT("Created standardVisit image");
 
@@ -446,11 +451,14 @@ void CheckVisitCounterWithPermutations( kvl::interfaces::AtlasMeshVisitCounter* 
       }
     }
 
-    BOOST_TEST_CONTEXT( "Tetrahedron : " << permTet ) {
+    BOOST_TEST_CONTEXT( "Tetrahedron : " << TetrahedronToString(permTet) ) {
       // Generate the result image
       Mesh::Pointer mesh = CreateSingleTetrahedronMesh( permTet );
-      ImageType::Pointer currVisit;
-      ApplyVisitCounterToMesh( currVisit, visitCounter, targetImage, mesh );
+      BOOST_TEST_CHECKPOINT("Permuted mesh created");
+
+      ImageType::ConstPointer currVisit = NULL;
+      currVisit = ApplyVisitCounterToMesh( visitCounter, targetImage, mesh );
+      BOOST_TEST_CHECKPOINT("Created currVisit image");
 
       CompareVisitImages( standardVisit, currVisit );
     }
@@ -460,55 +468,19 @@ void CheckVisitCounterWithPermutations( kvl::interfaces::AtlasMeshVisitCounter* 
 void AutoCorners( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
   float baseVertices[nVertices][nDims];
 
+  const unsigned int imageSize = 2;
   const unsigned char nCorners = 8;
 
   for( unsigned char corner=0; corner<nCorners; corner++ ) {
     BOOST_TEST_CONTEXT( "Corner : " << static_cast<unsigned int>(corner) ) {
       // Get the tetrahedron we want to test
       GenerateSpecificCornerTetrahedron( baseVertices, corner );
+      BOOST_TEST_CHECKPOINT("Generated corner tetrahedron");
 
-      // Get the 'standard' image of included vertices
-      kvl::AtlasMeshVisitCounterCPUWrapper origVisitCounter;
-      Mesh::Pointer baseMesh = CreateSingleTetrahedronMesh( baseVertices );
-      const ImageType* standardImage = GetImageOnUnitCube( baseMesh, &origVisitCounter );
+      ImageType::Pointer targetImage = CreateImageCube(imageSize,0);
+      BOOST_TEST_CHECKPOINT("Generated target image");
 
-      BOOST_TEST_CHECKPOINT("Got standard image");
-
-      // Create permutation array for vertices
-      std::vector<unsigned int> perm;
-      for( unsigned int j=0; j<nVertices; j++ ) {
-	perm.push_back(j);
-      }
-
-      // Iterate over the permutations
-      do {
-	// Create the 'new' tetrahedron
-	float vertices[nVertices][nDims];
-	for( unsigned int j=0; j<nVertices; j++ ) {
-	  for( unsigned int i=0; i<nDims; i++ ) {
-	    vertices[perm[j]][i] = baseVertices[j][i];
-	  }
-	}
-	
-	BOOST_TEST_CONTEXT( TetrahedronToString(vertices) ) {
-	  // Generate the result image
-	  Mesh::Pointer mesh = CreateSingleTetrahedronMesh( vertices );
-	  const ImageType* image = GetImageOnUnitCube( mesh, visitCounter );
-
-	  // Compare
-	  itk::ImageRegionConstIteratorWithIndex<kvl::interfaces::AtlasMeshVisitCounter::ImageType>  
-	    it( image, image->GetBufferedRegion() );
-	  itk::ImageRegionConstIteratorWithIndex<kvl::AtlasMeshVisitCounter::ImageType>  
-	    itOrig( standardImage, standardImage->GetBufferedRegion() );
-  
-	  for( ; !it.IsAtEnd(); ++it, ++itOrig ) {
-	    BOOST_TEST_CONTEXT( "Voxel Index: " << it.GetIndex() ) {
-	      BOOST_CHECK_EQUAL( it.Value(), itOrig.Value() );
-	    }
-	  }
-	}
-      } while( std::next_permutation( perm.begin(), perm.end() ) );
-	       
+      CheckVisitCounterWithPermutations( visitCounter, targetImage, baseVertices );
     }
   }
 }
