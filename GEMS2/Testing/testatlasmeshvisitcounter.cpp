@@ -378,20 +378,6 @@ void GenerateSpecificCornerTetrahedron( float verts[nVertices][nDims], const uns
   }
 }
 
-const ImageType* GetImageOnUnitCube( kvl::AtlasMesh::Pointer targetMesh,
-				     kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
-  const int imageSize = 2;
-  
-  ImageType::Pointer image = CreateImageCube( imageSize, 0 );
-  BOOST_TEST_CHECKPOINT("Image created");
-  
-  visitCounter->SetRegions( image->GetLargestPossibleRegion() );
-  visitCounter->VisitCount( targetMesh );
-  BOOST_TEST_CHECKPOINT("VisitCounter complete");
-  
-  return visitCounter->GetImage();
-}
-
 ImageType::ConstPointer ApplyVisitCounterToMesh( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
 						 const ImageType* targetImage,
 						 Mesh::Pointer targetMesh ) {
