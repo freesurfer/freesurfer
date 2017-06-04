@@ -352,7 +352,9 @@ void UpperCornerExact( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
 
 // -------------------------------
 
-void GenerateSpecificCornerTetrahedron( float verts[nVertices][nDims], const unsigned char corner ) {
+void GenerateSpecificCornerTetrahedron( float verts[nVertices][nDims],
+					const unsigned char corner,
+					const float scale ) {
   // Generate a 'corner' tetrahedron, where the apex is specified by the bits of the 'corner' argument
 
   // Separate out the bits specifying the corner
@@ -374,6 +376,13 @@ void GenerateSpecificCornerTetrahedron( float verts[nVertices][nDims], const uns
       } else {
 	verts[j][i] = verts[0][i];
       }
+    }
+  }
+
+  // Scale everything
+  for( unsigned int j=0; j<nVertices; j++ ) {
+    for( unsigned int i=0; i<nDims; i++ ) {
+      verts[j][i] *= scale;
     }
   }
 }
@@ -451,19 +460,22 @@ void CheckVisitCounterWithPermutations( kvl::interfaces::AtlasMeshVisitCounter* 
   } while( std::next_permutation( perm.begin(), perm.end() ) );
 } 
 
-void AutoCorners( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
+void AutoCorners( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
+		  const float scaleTetrahedron,
+		  const int imageSize ) {
   float baseVertices[nVertices][nDims];
 
-  const unsigned int imageSize = 2;
   const unsigned char nCorners = 8;
 
   for( unsigned char corner=0; corner<nCorners; corner++ ) {
     BOOST_TEST_CONTEXT( "Corner : " << static_cast<unsigned int>(corner) ) {
       // Get the tetrahedron we want to test
-      GenerateSpecificCornerTetrahedron( baseVertices, corner );
+      GenerateSpecificCornerTetrahedron( baseVertices, corner, scaleTetrahedron );
       BOOST_TEST_CHECKPOINT("Generated corner tetrahedron");
 
-      ImageType::Pointer targetImage = CreateImageCube(imageSize,0);
+      // Add one to imageSize since we're specifying the number of points
+      // on each edge
+      ImageType::Pointer targetImage = CreateImageCube(imageSize+1,0);
       BOOST_TEST_CHECKPOINT("Generated target image");
 
       CheckVisitCounterWithPermutations( visitCounter, targetImage, baseVertices );
@@ -533,11 +545,20 @@ BOOST_AUTO_TEST_CASE( UpperCornerExactCPU )
   UpperCornerExact( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE( AutoCornersCPU )
+BOOST_AUTO_TEST_CASE( AutoCornersBasicCPU )
 {
   kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
 
-  AutoCorners( &visitCounter );
+  // Generate unit tetrahedron and unit cube
+  AutoCorners( &visitCounter, 1, 1  );
+}
+
+BOOST_AUTO_TEST_CASE( AutoCornersLargeImageLargeTetrahedronCPU )
+{
+  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+
+  // Generate large tetrahedron on large cube
+  AutoCorners( &visitCounter, 3, 3  );
 }
 
 #ifdef CUDA_FOUND
@@ -601,7 +622,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersGPUSimple, ImplType, SimpleCUDAImplTyp
 {
   ImplType visitCounter;
  
-  AutoCorners( &visitCounter );
+  AutoCorners( &visitCounter, 1, 1 );
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersLargeImageLargeTetrahedronGPUSimple, ImplType, SimpleCUDAImplTypes )
+{
+  ImplType visitCounter;
+
+  // Generate large tetrahedron on large cube
+  AutoCorners( &visitCounter, 3, 3  );
 }
 #endif
 
