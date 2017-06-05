@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 #include <boost/test/data/monomorphic.hpp>
 #include <boost/mpl/list.hpp>
 
@@ -487,7 +488,7 @@ void AutoCorners( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
 
 BOOST_AUTO_TEST_SUITE( AtlasMeshVisitCounter )
 
-BOOST_AUTO_TEST_SUITE( UnitCubeSingleTetrahedron )
+BOOST_AUTO_TEST_SUITE( SingleTetrahedron )
 
 BOOST_AUTO_TEST_CASE( LowerCornerCPU )
 {
@@ -634,6 +635,51 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersLargeImageLargeTetrahedronGPUSimple, I
 }
 #endif
 
+BOOST_DATA_TEST_CASE( ConsistencyCheck, boost::unit_test::data::xrange(1,7), scale )
+{
+  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+
+  float unitVertices[nVertices][nDims];
+  float scaleVertices[nVertices][nDims];
+
+  GenerateSpecificCornerTetrahedron( unitVertices, 0, 1 );
+  GenerateSpecificCornerTetrahedron( scaleVertices, 0, scale );
+  BOOST_TEST_CHECKPOINT("Created tetrahedra");
+
+  Mesh::Pointer unitMesh = CreateSingleTetrahedronMesh( unitVertices );
+  Mesh::Pointer scaleMesh = CreateSingleTetrahedronMesh( scaleVertices );
+  BOOST_TEST_CHECKPOINT("Created meshes");
+
+  ImageType::Pointer targetImage = CreateImageCube(scale+1,0);
+  BOOST_TEST_CHECKPOINT("Created target image");
+
+  ImageType::ConstPointer unitVisit = ApplyVisitCounterToMesh( &visitCounter, targetImage, unitMesh );
+  const ImageType* unitResult = visitCounter.GetImage();
+  ImageType::ConstPointer scaleVisit = ApplyVisitCounterToMesh( &visitCounter, targetImage, scaleMesh );
+  const ImageType* scaleResult = visitCounter.GetImage();
+  BOOST_TEST_CHECKPOINT("VisitCounters complete");
+
+  // Check the vertices of the image cube
+  for( int k=0; k<2; k++ ) {
+    for( int j=0; j<2; j++ ) {
+      for( int i=0; i<2; i++ ) {
+	ImageType::IndexType idx, idxScale;
+	idx[0] = i;
+	idx[1] = j;
+	idx[2] = k;
+
+	for( unsigned iDim=0; iDim<nDims; iDim++ ) {
+	  idxScale[iDim] = idx[iDim]*scale;
+	}
+
+	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
+	BOOST_TEST_INFO( "Unit Tetrahedron : " << TetrahedronToString(unitVertices) );
+	BOOST_TEST_INFO( "Scale Tetrahedron : " << TetrahedronToString(scaleVertices) );
+	BOOST_CHECK_EQUAL( unitResult->GetPixel(idx), scaleResult->GetPixel(idxScale) );
+      }
+    }
+  }
+}
 
 BOOST_AUTO_TEST_SUITE_END();
 
