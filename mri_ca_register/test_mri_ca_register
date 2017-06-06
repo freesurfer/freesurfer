@@ -55,12 +55,12 @@ endif
 # compare expected results with actual (produced) results
 #
 
-set OS=`uname -s`
-if ("$OS" == "Darwin") then
+set REF_VOL = ref_talairach.m3z
+if ("`uname -s`" == "Darwin") then
   set REF_VOL = ref_talairach_osx.m3z
-else
-  set REF_VOL = ref_talairach.m3z
-endif
+  if ("`uname -r`" =~ "15."*) then
+    set REF_FILE=(ref_talairach_osx.el_cap.mgz)
+  endif
 set TST_VOL = talairach.m3z
 set cmd=(../../mri_diff/mri_diff --debug \
             $REF_VOL $TST_VOL );
