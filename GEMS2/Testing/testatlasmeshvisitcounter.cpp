@@ -1,7 +1,10 @@
 #include <functional>
-
+#include <iostream>
+#include <sstream>
+#include <algorithm>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
 #include <boost/test/data/monomorphic.hpp>
 #include <boost/mpl/list.hpp>
 
@@ -26,6 +29,39 @@ typedef boost::mpl::list<
   kvl::cuda::VisitCounterSimple<float,double>
   > SimpleCUDAImplTypes;
 #endif
+
+// --------------------
+
+const int nDims = 3;
+const int nVertices = 4;
+
+// --------------------
+
+static std::ostream& operator<<( std::ostream& os,
+				 const float v[nVertices][nDims] ) {
+  os << "[";
+
+  for( unsigned int j=0; j<nVertices; j++ ) {
+    os << "(" << v[j][0];
+    for( unsigned int i=1; i<nDims; i++ ) {
+      os << "," << v[j][i];
+    }
+    os << ")";
+    if( j!=(nVertices-1) ) {
+      os << ",";
+    }
+  }
+  os << "]";
+  
+  return os;
+}
+
+static std::string TetrahedronToString( const float v[nVertices][nDims] ) {
+  std::stringstream res;
+
+  res << v;
+  return res.str();
+}
 
 // --------------------
 
@@ -62,8 +98,6 @@ typedef itk::AutomaticTopologyMeshSource<kvl::AtlasMesh> MeshSource;
 typedef MeshSource::IdentifierType  IdentifierType;
 typedef kvl::AtlasMesh Mesh;
 
-const int nDims = 3;
-const int nVertices = 4;
 
 ImageType::Pointer CreateImageCube( const int sideLength, const int value ) {
   const int nx = sideLength;
@@ -101,7 +135,7 @@ ImageType::Pointer CreateImageCube( const int sideLength, const int value ) {
   return image;
 }
 
-Mesh::Pointer CreateSingleTetrahedronMesh( float vertices[nVertices][nDims] ) {
+Mesh::Pointer CreateSingleTetrahedronMesh( const float vertices[nVertices][nDims] ) {
   MeshSource::Pointer meshSource = MeshSource::New();
 
   const IdentifierType  id0 = meshSource->AddPoint( vertices[0] );
@@ -317,11 +351,144 @@ void UpperCornerExact( kvl::interfaces::AtlasMeshVisitCounter* visitCounter ) {
   SingleTetrahedronUnitMesh( visitCounter, verts, expectedCount );
 }
 
+// -------------------------------
+
+void GenerateSpecificCornerTetrahedron( float verts[nVertices][nDims],
+					const unsigned char corner,
+					const float scale ) {
+  // Generate a 'corner' tetrahedron, where the apex is specified by the bits of the 'corner' argument
+
+  // Separate out the bits specifying the corner
+  unsigned char mask = 4;
+  for( unsigned int i=0; i<nDims; i++ ) {
+    if( mask & corner ) {
+      verts[0][i] = 1;
+    } else {
+      verts[0][i] = 0;
+    }
+    mask = mask >> 1;
+  }
+  
+  // Compute the rest of the vertices, each has one index changed from the apex
+  for( unsigned int j=1; j<nVertices; j++ ) {
+    for( unsigned int i=0; i<nDims; i++ ) {
+      if( i==(j-1) ) {
+	verts[j][i] = 1 - verts[0][i];
+      } else {
+	verts[j][i] = verts[0][i];
+      }
+    }
+  }
+
+  // Scale everything
+  for( unsigned int j=0; j<nVertices; j++ ) {
+    for( unsigned int i=0; i<nDims; i++ ) {
+      verts[j][i] *= scale;
+    }
+  }
+}
+
+ImageType::ConstPointer ApplyVisitCounterToMesh( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
+						 const ImageType* targetImage,
+						 Mesh::Pointer targetMesh ) {
+  visitCounter->SetRegions( targetImage->GetLargestPossibleRegion() );
+  visitCounter->VisitCount( targetMesh );
+  BOOST_TEST_CHECKPOINT("VisitCount run");
+
+  return visitCounter->GetImage();
+}
+
+void CompareVisitImages( const ImageType* standard,
+			 const ImageType* compare ) {
+  BOOST_CHECK( standard != NULL );
+  BOOST_CHECK( compare != NULL );
+  itk::ImageRegionConstIteratorWithIndex<kvl::interfaces::AtlasMeshVisitCounter::ImageType>  
+    it( compare, compare->GetBufferedRegion() );
+  itk::ImageRegionConstIteratorWithIndex<kvl::AtlasMeshVisitCounter::ImageType>  
+    itOrig( standard, standard->GetBufferedRegion() );
+  
+  for( ; !it.IsAtEnd(); ++it, ++itOrig ) {
+    BOOST_TEST_CONTEXT( "Voxel Index: " << it.GetIndex() ) {
+      BOOST_CHECK_EQUAL( it.Value(), itOrig.Value() );
+    }
+  }
+}
+
+void CheckVisitCounterWithPermutations( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
+					const ImageType* targetImage,
+					const float tetrahedron[nVertices][nDims] ) {
+  // Start by getting the 'standard' answers
+  BOOST_TEST_CHECKPOINT("Starting CheckVisitCounterWithPermutations");
+  ImageType::ConstPointer standardVisit = NULL;
+  {
+    kvl::AtlasMeshVisitCounterCPUWrapper origVisitCounter;
+    BOOST_TEST_CHECKPOINT("Created reference VisitCounter");
+    Mesh::Pointer baseMesh = CreateSingleTetrahedronMesh( tetrahedron );
+    BOOST_TEST_CHECKPOINT("baseMesh Created");
+    standardVisit = ApplyVisitCounterToMesh( &origVisitCounter, targetImage, baseMesh );
+  }
+  BOOST_TEST_CHECKPOINT("Created standardVisit image");
+
+  // Now work on permuting the vertices of the tetrahedron
+
+  // Create the permutation array
+  std::vector<unsigned int> perm;
+  for( unsigned int j=0; j<nVertices; j++ ) {
+    perm.push_back(j);
+  }
+
+  // Iterate over the permutations
+  do {
+    // Create permuted tetrahedron
+    float permTet[nVertices][nDims];
+    for( unsigned int j=0; j<nVertices; j++ ) {
+      for( unsigned int i=0; i<nDims; i++ ) {
+	permTet[perm[j]][i] = tetrahedron[j][i];
+      }
+    }
+
+    BOOST_TEST_CONTEXT( "Tetrahedron : " << TetrahedronToString(permTet) ) {
+      // Generate the result image
+      Mesh::Pointer mesh = CreateSingleTetrahedronMesh( permTet );
+      BOOST_TEST_CHECKPOINT("Permuted mesh created");
+
+      ImageType::ConstPointer currVisit = NULL;
+      currVisit = ApplyVisitCounterToMesh( visitCounter, targetImage, mesh );
+      BOOST_TEST_CHECKPOINT("Created currVisit image");
+
+      CompareVisitImages( standardVisit, currVisit );
+    }
+  } while( std::next_permutation( perm.begin(), perm.end() ) );
+} 
+
+void AutoCorners( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
+		  const float scaleTetrahedron,
+		  const int imageSize ) {
+  float baseVertices[nVertices][nDims];
+
+  const unsigned char nCorners = 8;
+
+  for( unsigned char corner=0; corner<nCorners; corner++ ) {
+    BOOST_TEST_CONTEXT( "Corner : " << static_cast<unsigned int>(corner) ) {
+      // Get the tetrahedron we want to test
+      GenerateSpecificCornerTetrahedron( baseVertices, corner, scaleTetrahedron );
+      BOOST_TEST_CHECKPOINT("Generated corner tetrahedron");
+
+      // Add one to imageSize since we're specifying the number of points
+      // on each edge
+      ImageType::Pointer targetImage = CreateImageCube(imageSize+1,0);
+      BOOST_TEST_CHECKPOINT("Generated target image");
+
+      CheckVisitCounterWithPermutations( visitCounter, targetImage, baseVertices );
+    }
+  }
+}
+
 // ===========================================================
 
 BOOST_AUTO_TEST_SUITE( AtlasMeshVisitCounter )
 
-BOOST_AUTO_TEST_SUITE( UnitCubeSingleTetrahedron )
+BOOST_AUTO_TEST_SUITE( SingleTetrahedron )
 
 BOOST_AUTO_TEST_CASE( LowerCornerCPU )
 {
@@ -379,6 +546,22 @@ BOOST_AUTO_TEST_CASE( UpperCornerExactCPU )
   UpperCornerExact( &visitCounter );
 }
 
+BOOST_AUTO_TEST_CASE( AutoCornersBasicCPU )
+{
+  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+
+  // Generate unit tetrahedron and unit cube
+  AutoCorners( &visitCounter, 1, 1  );
+}
+
+BOOST_AUTO_TEST_CASE( AutoCornersLargeImageLargeTetrahedronCPU )
+{
+  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+
+  // Generate large tetrahedron on large cube
+  AutoCorners( &visitCounter, 3, 3  );
+}
+
 #ifdef CUDA_FOUND
 BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerGPUSimple, ImplType, SimpleCUDAImplTypes  )
 {
@@ -421,8 +604,82 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( NoVerticesGPUSimple, ImplType, SimpleCUDAImplType
  
   NoVertices( &visitCounter );
 }
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerExactGPUSimple, ImplType, SimpleCUDAImplTypes )
+{
+  ImplType visitCounter;
+ 
+  LowerCornerExact( &visitCounter );
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerExactGPUSimple, ImplType, SimpleCUDAImplTypes )
+{
+  ImplType visitCounter;
+ 
+  UpperCornerExact( &visitCounter );
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersGPUSimple, ImplType, SimpleCUDAImplTypes )
+{
+  ImplType visitCounter;
+ 
+  AutoCorners( &visitCounter, 1, 1 );
+}
+
+BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersLargeImageLargeTetrahedronGPUSimple, ImplType, SimpleCUDAImplTypes )
+{
+  ImplType visitCounter;
+
+  // Generate large tetrahedron on large cube
+  AutoCorners( &visitCounter, 3, 3  );
+}
 #endif
 
+BOOST_DATA_TEST_CASE( ConsistencyCheck, boost::unit_test::data::xrange(1,7), scale )
+{
+  kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
+
+  float unitVertices[nVertices][nDims];
+  float scaleVertices[nVertices][nDims];
+
+  GenerateSpecificCornerTetrahedron( unitVertices, 0, 1 );
+  GenerateSpecificCornerTetrahedron( scaleVertices, 0, scale );
+  BOOST_TEST_CHECKPOINT("Created tetrahedra");
+
+  Mesh::Pointer unitMesh = CreateSingleTetrahedronMesh( unitVertices );
+  Mesh::Pointer scaleMesh = CreateSingleTetrahedronMesh( scaleVertices );
+  BOOST_TEST_CHECKPOINT("Created meshes");
+
+  ImageType::Pointer targetImage = CreateImageCube(scale+1,0);
+  BOOST_TEST_CHECKPOINT("Created target image");
+
+  ImageType::ConstPointer unitVisit = ApplyVisitCounterToMesh( &visitCounter, targetImage, unitMesh );
+  const ImageType* unitResult = visitCounter.GetImage();
+  ImageType::ConstPointer scaleVisit = ApplyVisitCounterToMesh( &visitCounter, targetImage, scaleMesh );
+  const ImageType* scaleResult = visitCounter.GetImage();
+  BOOST_TEST_CHECKPOINT("VisitCounters complete");
+
+  // Check the vertices of the image cube
+  for( int k=0; k<2; k++ ) {
+    for( int j=0; j<2; j++ ) {
+      for( int i=0; i<2; i++ ) {
+	ImageType::IndexType idx, idxScale;
+	idx[0] = i;
+	idx[1] = j;
+	idx[2] = k;
+
+	for( unsigned iDim=0; iDim<nDims; iDim++ ) {
+	  idxScale[iDim] = idx[iDim]*scale;
+	}
+
+	BOOST_TEST_INFO( "(" << i << "," << j << "," << k << ")" );
+	BOOST_TEST_INFO( "Unit Tetrahedron : " << TetrahedronToString(unitVertices) );
+	BOOST_TEST_INFO( "Scale Tetrahedron : " << TetrahedronToString(scaleVertices) );
+	BOOST_CHECK_EQUAL( unitResult->GetPixel(idx), scaleResult->GetPixel(idxScale) );
+      }
+    }
+  }
+}
 
 BOOST_AUTO_TEST_SUITE_END();
 

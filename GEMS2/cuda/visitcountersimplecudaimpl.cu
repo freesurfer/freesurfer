@@ -120,24 +120,78 @@ public:
   bool PointInside( const ArgType x, const ArgType y, const ArgType z ) const {
     bool inside = true;
 	  
-    ArgType p[nDims];
+    ArgType pTmp[nDims];
     
-    this->TransformToBarycentric(p, x, y, z);
+    this->TransformToBarycentric(pTmp, x, y, z);
 
-    // p now contains three of the barycentric co-ordinates
-    // We have the additional constraint that all four barycentric
-    // co-ordinates must sum to 1
-    // The point is inside the tetrahedron if all barycentric
-    // co-ordinates lie between 0 and 1
-    for( unsigned int i=0; i<nDims; i++ ) {
-      inside = inside && ( p[i] > 0 ) && (p[i] <= 1);
+    // Form the full set of barycentric co-ordinates
+    ArgType p[nDims+1];
+    for( unsigned int i=0; i< nDims; i++ ) {
+      p[i+1] = pTmp[i];
     }
-    
-    // Check the 4th (uncomputed) co-ordinate
-    inside = inside && ( (p[0]+p[1]+p[2]) <= 1 );
+    p[0] = 1 - p[1] - p[2] - p[3];
 
+    // Do the easiest cull
+    if( (p[0] < 0) || (p[1] < 0) || (p[2] < 0) || (p[3] < 0) ) {
+      inside = false;
+    } else {
+      // Have to handle case where one of the barycentric co-ordinates is zero
+
+      // This comes down to seeing what would happen if the voxel were moved a little to the right, or up etc.
+      ArgType nxtRowAdd[nVertices];
+      nxtRowAdd[0] = -( this->transf[(0*nDims) + 0] + this->transf[(1*nDims) + 0] + this->transf[(2*nDims) + 0]);
+      nxtRowAdd[1] = this->transf[(0*nDims) + 0];
+      nxtRowAdd[2] = this->transf[(1*nDims) + 0];
+      nxtRowAdd[3] = this->transf[(2*nDims) + 0];
+
+      ArgType nxtColAdd[nVertices];
+      nxtColAdd[0] = -( this->transf[(0*nDims) + 1] + this->transf[(1*nDims) + 1] + this->transf[(2*nDims) + 1]);
+      nxtColAdd[1] = this->transf[(0*nDims) + 1];
+      nxtColAdd[2] = this->transf[(1*nDims) + 1];
+      nxtColAdd[3] = this->transf[(2*nDims) + 1];
+
+      ArgType nxtSliceAdd[nVertices];
+      nxtSliceAdd[0] = -( this->transf[(0*nDims) + 2] + this->transf[(1*nDims) + 2] + this->transf[(2*nDims) + 2]);
+      nxtSliceAdd[1] = this->transf[(0*nDims) + 2];
+      nxtSliceAdd[2] = this->transf[(1*nDims) + 2];
+      nxtSliceAdd[3] = this->transf[(2*nDims) + 2];
+
+      // Loop over the barycentric co-ords, checking each for zero
+      for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
+	if( inside && (p[iVert]==0) ) {
+	  if( this->CheckBorder( nxtRowAdd[iVert], nxtColAdd[iVert], nxtSliceAdd[iVert] ) ) {
+	    inside = false;
+	  }
+	}
+      }
+    }
     return inside;
   }
+
+  __device__
+  bool CheckBorder( ArgType a, ArgType b, ArgType c ) const {
+    // The arguments a, b and c describe how the barycentric co-ordinate
+    // would change in response to shifting the location slightly
+    // along each co-ordinate axis
+    if ( a < 0 ) {
+      return true;  
+    }
+    
+    if ( a == 0 ) {
+      if ( b < 0 ) {
+	return true;  
+      }
+      
+      if ( b == 0 ) {
+	if ( c < 0 ) {
+	  return true;  
+        }
+      }
+    }
+    
+    return false; 
+  }
+
 private:
   ArgType* tet;
   ArgType* transf;

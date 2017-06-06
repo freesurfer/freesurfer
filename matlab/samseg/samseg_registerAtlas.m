@@ -275,6 +275,7 @@ kvlWriteImage( template, transformedTemplateFileName, ...
 % For debugging and/or quality control purposes, save a picture of the registration result to file
 priors = kvlRasterizeAtlasMesh( mesh, size( imageBuffer ) );
 colorCodedPriors = kvlColorCodeProbabilityImages( priors, colors );
+mask = ( sum( double( priors ), 4 ) / (2^16-1) ) > .5;
 overlayQcImage = ( imageBuffer - min( imageBuffer(:) ) ) / ( max( imageBuffer(:) ) - min( imageBuffer(:) ) );
 overlayQcImage = ( 1 - priorVisualizationAlpha ) * repmat( overlayQcImage, [ 1 1 1 3 ] ) + ...
               priorVisualizationAlpha * colorCodedPriors;
