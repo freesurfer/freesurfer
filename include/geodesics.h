@@ -11,7 +11,7 @@ extern "C" {
 
 #include "mrisurf.h"
 
-#define MAX_GEODESICS 4000
+#define MAX_GEODESICS 8000
 
 typedef struct {
   int vnum;     // number of surrounding vertices within limit
@@ -24,7 +24,8 @@ Geodesics* computeGeodesics(MRIS* surf, float maxdist);
 
 // save/load geodesics:
 void geodesicsWrite(Geodesics* geo, int nvertices, char* fname);
-Geodesics* geodesicsRead(char* fname, int nvertices);
+Geodesics* geodesicsRead(char* fname, int *nvertices);
+int geodesicsUniquify(Geodesics *geod);
 
 #ifdef __cplusplus
 }

@@ -17,6 +17,10 @@ extern "C"
 {
 #include "macros.h"
 #include "mrisurf.h"
+#include "timer.h"
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 }
 
 
@@ -54,7 +58,14 @@ static void progressBar(float progress);
 
 
 extern "C"
-Geodesics *computeGeodesics(MRIS* surf, float maxdist) {
+Geodesics *computeGeodesics(MRIS* surf, float maxdist) 
+{
+  int msec;
+  struct timeb  mytimer;
+  TimerStart(&mytimer) ;
+  printf("computeGeodesics(): maxdist = %g, nvertices = %d\n",maxdist,surf->nvertices);
+  fflush(stdout);
+
   // pre-compute and set-up required values to build triangle chain:
   FACE *face;
   Triangle *triangle;
@@ -74,14 +85,16 @@ Geodesics *computeGeodesics(MRIS* surf, float maxdist) {
     triangle->inChain = false;
   }
 
-  std::cout << "computing geodesics within distance of " << maxdist << " mm\n";
+  msec = TimerStop(&mytimer) ;
+  printf("precompute t = %g min\n",msec/(1000.0*60));
+  fflush(stdout);
 
+  std::cout << "computing geodesics within distance of " << maxdist << " mm\n";
+  fflush(stdout);
   std::vector<std::vector<int> > nearestverts(surf->nvertices);
   int idxlookup[] = {0, 2, 1, 0};  // fast lookup table to find remaining index
                                    // can be removed... there's an easier way
-
   std::map<std::pair<int, int>, float> pathmap;
-
   // private vars:
   std::vector<int> chain;
   std::stack<StackItem> stack;
@@ -239,7 +252,8 @@ Geodesics *computeGeodesics(MRIS* surf, float maxdist) {
           // this is used to find bugs within the surface (so far I've only
           // seen problems in the fsaverage surface)
           else {
-            std::cout << "nan\n";
+            //std::cout << "nan\n";
+	    //fflush(stdout);
             current_idx = -1;
             continue;
           }
@@ -253,10 +267,13 @@ Geodesics *computeGeodesics(MRIS* surf, float maxdist) {
   }
   progressBar(1.0);
   std::cout << std::endl;
+  msec = TimerStop(&mytimer) ;
+  printf("step 1 t = %g min\n",msec/(1000.0*60));
+  fflush(stdout);
+
   std::cout << "computing shortest paths and non-geodesics\n";
-
+  fflush(stdout);
   Geodesics *geo = (Geodesics*) calloc(surf->nvertices, sizeof(Geodesics));
-
   // ------ STEP 2 ------
   // compute the shortest paths between each vertex (within given limit)
   int vi, vj;
@@ -318,6 +335,7 @@ Geodesics *computeGeodesics(MRIS* surf, float maxdist) {
         geo[k].vnum += 1;
         if (geo[k].vnum > MAX_GEODESICS) {
           std::cerr << "error: too many neighbors, try a smaller max distance\n";
+	  fflush(stdout);
           exit(1);
         }
       }
@@ -331,28 +349,124 @@ Geodesics *computeGeodesics(MRIS* surf, float maxdist) {
   progressBar(1.0);
   std::cout << std::endl;
 
+  msec = TimerStop(&mytimer) ;
+  printf("t = %g min\n",msec/(1000.0*60));
+  fflush(stdout);
 
   return geo;
 }
 
 
 extern "C"
-void geodesicsWrite(Geodesics* geo, int nvertices, char* fname) {
-  FILE *file = fopen(fname, "wb");
-  fwrite(geo, sizeof(Geodesics), nvertices, file);
-  fclose(file);
-}
+void geodesicsWrite(Geodesics* geo, int nvertices, char* fname) 
+{
+  int vtxno;
+  FILE *fp;
+  int msec;
+  struct timeb  mytimer;
 
+  printf("geodesicsWrite(): uniquifying\n");
+  TimerStart(&mytimer) ;
+#ifdef _OPENMP
+#pragma omp parallel for 
+#endif
+  for(vtxno = 0; vtxno < nvertices; vtxno++) geodesicsUniquify(&geo[vtxno]);
+  msec = TimerStop(&mytimer) ;
+  printf(" uniquification took %g min\n",msec/(1000.0*60));
+
+  fp = fopen(fname, "wb");
+  fprintf(fp,"FreeSurferGeodesics\n");
+  fprintf(fp,"%d\n",-1);
+  fprintf(fp,"%d\n",nvertices);
+  for(vtxno = 0; vtxno < nvertices; vtxno++){
+    fwrite(&geo[vtxno].vnum, sizeof(int),  1, fp);
+    fwrite(geo[vtxno].v,     sizeof(int),  geo[vtxno].vnum, fp);
+    fwrite(geo[vtxno].dist,  sizeof(float),geo[vtxno].vnum, fp);
+  }
+  fclose(fp);
+}
 
 extern "C"
-Geodesics* geodesicsRead(char* fname, int nvertices) {
-  Geodesics *geo = (Geodesics*) calloc(nvertices, sizeof(Geodesics));
-  FILE *file = fopen(fname, "rb");
-  fread(geo, sizeof(Geodesics), nvertices, file);
-  fclose(file);
-  return geo;
+Geodesics* geodesicsRead(char* fname, int *pnvertices) 
+{
+  int magic,nthvtx;
+  char tmpstr[1000];
+  FILE *fp;
+
+  fp = fopen(fname, "rb");
+  fscanf(fp,"%s",tmpstr);
+  if(strcmp(tmpstr,"FreeSurferGeodesics")){
+    fclose(fp);
+    printf("ERROR: %s not a geodesics file\n",fname);
+    return(NULL);
+  }
+  fscanf(fp,"%d",&magic);
+  if(magic != -1){
+    fclose(fp);
+    printf("ERROR: %s wrong endian\n",fname);
+    return(NULL);
+  }
+  fscanf(fp,"%d",pnvertices);
+  fgetc(fp); // swallow the new line
+  printf("    geodesicsRead(): %s nvertices = %d, magic = %d\n",fname,*pnvertices,magic);fflush(stdout);
+  Geodesics *geo = (Geodesics*) calloc(*pnvertices, sizeof(Geodesics));
+  for(nthvtx = 0; nthvtx < *pnvertices; nthvtx++){
+    if(nthvtx % (*pnvertices/10)==0){
+      printf("%2d%% ",(int)round(100*(float)nthvtx/(*pnvertices)));
+      fflush(stdout);
+    }
+    fread(&geo[nthvtx].vnum, sizeof(int),  1, fp);
+    fread(geo[nthvtx].v,     sizeof(int),  geo[nthvtx].vnum, fp);
+    fread(geo[nthvtx].dist,  sizeof(float),geo[nthvtx].vnum, fp);
+  }
+  printf("\n");
+  fclose(fp);
+  return(geo);
 }
 
+/*!
+\fn int geodesicsUniquify(Geodesics *geod)
+\brief Removes relicants from the v (and dist) lists; vnum is updated.
+*/
+extern "C"
+int geodesicsUniquify(Geodesics *geod)
+{
+  int nthnbr,*vlist,nunique,k,*vuniq;
+  float *dist;
+
+  // make a copy of the original list
+  vlist = (int *) calloc(sizeof(int),geod->vnum);
+  memcpy(vlist,geod->v,geod->vnum*sizeof(int));
+  dist = (float *) calloc(sizeof(float),geod->vnum);
+  memcpy(dist,geod->dist,geod->vnum*sizeof(float));
+
+  // get unique list of vertices
+  vuniq = unqiue_int_list(geod->v, geod->vnum, &nunique);
+  if(nunique == geod->vnum) {
+    // nothing changed
+    free(vuniq);
+    free(vlist);
+    free(dist);
+    return(nunique);
+  }
+
+  // replace structure values with unqiue
+  for(nthnbr = 0; nthnbr < nunique; nthnbr++){
+    for(k = 0; k < geod->vnum; k++){
+      if(vlist[k] == vuniq[nthnbr]){
+	geod->dist[nthnbr] = dist[k];
+	geod->v[nthnbr] = vlist[k];
+	break;
+      }
+    }
+  }
+  geod->vnum = nunique;
+
+  free(vuniq);
+  free(vlist);
+  free(dist);
+  return(nunique);
+}
 
 static int getIndex(int* arr, int vid) {
   int idx = std::distance(arr, std::find(arr, arr + 3, vid));
