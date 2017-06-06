@@ -39,6 +39,7 @@ static char vcid[] =
   "$Id: mri_copy_params.cpp,v 1.5 2011/03/02 00:04:23 nicks Exp $";
 
 static int copy_pulse_params_only = 0 ;
+static int copy_ras_only = 0 ;
 
 using namespace std;
 
@@ -50,8 +51,7 @@ void print_usage() {
 int main(int argc, char *argv[]) {
   bool bVolumeDifferent = false;
   bool bSizeDifferent = false;
-  int ac, nargs;
-  char **av ;
+  int  nargs;
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
@@ -61,8 +61,6 @@ int main(int argc, char *argv[]) {
     exit (0);
   argc -= nargs;
 
-  ac = argc ;
-  av = argv ;
   for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
@@ -107,7 +105,30 @@ int main(int argc, char *argv[]) {
   if (copy_pulse_params_only)
     MRIcopyPulseParameters(temp, dst) ;
   else
-    MRIcopyHeader(temp, dst);
+  {
+    if (copy_ras_only)
+    {
+      dst->x_r = temp->x_r;
+      dst->x_a = temp->x_a;
+      dst->x_s = temp->x_s;
+      dst->y_r = temp->y_r;
+      dst->y_a = temp->y_a;
+      dst->y_s = temp->y_s;
+      dst->z_r = temp->z_r;
+      dst->z_a = temp->z_a;
+      dst->z_s = temp->z_s;
+      dst->c_r = temp->c_r;
+      dst->c_a = temp->c_a;
+      dst->c_s = temp->c_s;
+      dst->ras_good_flag = temp->ras_good_flag;
+      dst->i_to_r__ = AffineMatrixCopy( temp->i_to_r__,
+					dst->i_to_r__ );
+      
+      dst->r_to_i__ = MatrixCopy(temp->r_to_i__, dst->r_to_i__);
+    }
+    else
+      MRIcopyHeader(temp, dst);
+  }
   // just few things restored
   if (bVolumeDifferent) {
     dst->width = in->width;
@@ -148,6 +169,11 @@ get_option(int argc, char *argv[]) {
   {
     printf("only copying pulse parameters\n") ;
     copy_pulse_params_only = 1 ;
+  }
+  else if (!stricmp(option, "-ras"))
+  {
+    printf("only copying ras2vox matrices\n") ;
+    copy_ras_only = 1 ;
   }
   else switch (toupper(*option))
   {
