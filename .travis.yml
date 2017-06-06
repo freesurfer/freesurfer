@@ -10,6 +10,11 @@ cache:
  - apt
  - ccache
 
+env:
+ matrix:
+   - TESTS="runtests runtestspp test_jpeg tiff_test runtest testapi testchar testdict testrecurse test_mriBuildVoronoiDiagramFloat_withData run_test_MRIScomputeBorderValues mrishash_test_100_find_tests mrishash_test_200_intersect"
+   - TESTS="run_test_MRISpositionSurface test_mriSoapBubbleFloat_withData sse_mathfun_test test_tetgen test_mri_glmfit help_xml_validate test_optseq2.csh"
+
 addons:
   apt:
     packages:
