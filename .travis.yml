@@ -12,9 +12,10 @@ cache:
 
 env:
  matrix:
-   - TESTS="mris_* histo_*"
-   - TESTS="mri_[abcdef]*"
-   - TESTS="jpeg tiff expat utils"
+   - TESTS="mri_ca_label"
+#   - TESTS="mris_* histo_*"
+#   - TESTS="mri_[abcdef]*"
+#   - TESTS="jpeg tiff expat utils"
 addons:
   apt:
     packages:
