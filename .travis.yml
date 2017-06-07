@@ -35,6 +35,7 @@ addons:
      - tcsh
      - curl
      - git
+     - libxml2-utils
 
 before_install:
   # Needs recent git-annex to be able to get -J3 --metadata
