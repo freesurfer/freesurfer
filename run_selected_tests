@@ -15,6 +15,10 @@
 set -eu
 failed=0; 
 
+# Skip some tests that wont pass on travis platform
+# but should pass on Martinos build machine.
+export SKIP_LIBG2C_TEST=1
+
 # Should come from env var
 TESTS=${TESTS:-}
 outfile=$(mktemp)

@@ -12,7 +12,6 @@ cache:
 
 env:
  matrix:
- - SKIP_LIBG2C_TEST=1
 
  # Autorecon1:
  - TESTS="mri_convert mri_add_xform_to_header talairach_avi talairach_afd mri_normalize mri_em_register mri_watershed"
@@ -21,7 +20,7 @@ env:
  # mri_ca_normalize, mri_ca_register, mri_ca_label, mri_cc, mri_normalize, mri_mask, mri_segment, 
  # mri_edit_wm_with_aseg, mri_pretess, mri_fill, mri_tesellate, mris_smooth, mris_inflate, mris_sphere
  # mris_fix_topology, mris_euler_number, mris_make_surface, mris_smooth, mris_inflate, mris_curvature
- - TESTS="mri_ca_normalize mri_cc utils"
+ - TESTS="mri_ca_normalize mri_ca_register mri_cc"
 
  # Autorecon3:
  # mris_sphere, mris_register, mris_jacobian, mris_paint, mris_ca_label, mris_make_surfaces, 
@@ -75,7 +74,7 @@ script:
   - ./configure --prefix=/usr/local/freesurfer/dev --with-pkgs-dir=${PWD}/centos6-x86_64-packages --disable-Werror --disable-GUI-build
   - travis_wait 40 ./travis_make.sh
   - tail build.log
-  - travis_wait 40 ./run_selected_tests
+  - travis_wait 60 ./run_selected_tests
 
 after_failure:
   
