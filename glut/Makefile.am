@@ -67,8 +67,7 @@ endif
 
 test_glut_SOURCES=test_glut.c
 test_glut_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LIBS_VXL) -lz \
-	$(LIB_JPEG) $(LIB_TIFF)	$(X_LIBS) $(LIBS_OPENGL) $(top_builddir)/glut/libglut.a
-
+	$(LIB_JPEG) $(LIB_TIFF)	$(top_builddir)/glut/libglut.a $(X_LIBS) $(LIBS_OPENGL) 
 # test_glut app cannot run as auto-test. it requires manual intervention.
 # to do that, just uncomment the next line and run 'make check'
 # a window should appear where random colored dots appear when moused-over
