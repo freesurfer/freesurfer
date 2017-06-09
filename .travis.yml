@@ -14,21 +14,16 @@ env:
   matrix:
 
   # Autorecon1:
-  - TESTS="mri_convert mri_add_xform_to_header talairach_avi talairach_afd mri_normalize mri_em_register mri_watershed"
+  - TESTS="mri_convert mri_add_xform_to_header talairach_avi talairach_afd mri_normalize mri_watershed"
 
   # Autorecon2:
-  # mri_ca_normalize, mri_ca_register, mri_ca_label, mri_cc, mri_normalize, mri_mask, mri_segment, 
-  # mri_edit_wm_with_aseg, mri_pretess, mri_fill, mri_tesellate, mris_smooth, mris_inflate, mris_sphere
-  # mris_fix_topology, mris_euler_number, mris_make_surface, mris_smooth, mris_inflate, mris_curvature
-  - TESTS="mri_ca_normalize mri_ca_register mri_cc"
+  - TESTS="mri_cc mri_mask mri_segment mri_edit_wm_with_aseg mri_pretess mri_fill mri_tesellate mris_inflate"
 
   # Autorecon3:
-  # mris_sphere, mris_register, mris_jacobian, mris_paint, mris_ca_label, mris_make_surfaces, 
-  # mris_volmask, mris_anatomical_stats, mris_ca_label, mri_aparc2aseg, mri_segstats, mri_label2label
+  - TESTS="mris_ca_label"
 
-  #   - TESTS="mris_* histo_*"
-  #   - TESTS="mri_[abcdef]*"
-  #   - TESTS="jpeg tiff expat utils"
+  # Misc
+  - TESTS="utils"
 
 addons:
   apt:
