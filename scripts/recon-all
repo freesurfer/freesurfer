@@ -3290,7 +3290,7 @@ if($DoQSphere && ( ! $longitudinal )) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_sphere $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_sphere -q)
+    set cmd = (mris_sphere -q  -p 6 -a 128 )
     if($UseCuda) set cmd = (mris_sphere_cuda -q)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
@@ -6877,9 +6877,11 @@ while( $#argv != 0 )
 
     case "-autorecon2-cp":
     case "-autorecon2-noaseg":
-    case "-autorecon2-wm":
       set DoNormalization2 = 1;
       set DoSegmentation   = 1;
+# no break!
+
+    case "-autorecon2-wm":
       set DoFill           = 1;
       set DoTessellate     = 1;
       set DoSmooth1        = 1;
