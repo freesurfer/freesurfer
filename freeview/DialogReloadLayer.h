@@ -2,6 +2,7 @@
 #define DIALOGRELOADLAYER_H
 
 #include <QDialog>
+#include <QList>
 
 namespace Ui {
 class DialogReloadLayer;
@@ -17,7 +18,7 @@ public:
   explicit DialogReloadLayer(QWidget *parent = 0);
   ~DialogReloadLayer();
 
-  int Execute(const QString& layer_name, const QString& layer_type, const QString& fn);
+  int Execute(const QList<Layer*>& layers);
   bool GetCloseLayerFirst();
 
 private:
