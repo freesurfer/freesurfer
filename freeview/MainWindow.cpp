@@ -7117,16 +7117,13 @@ void MainWindow::SetSplinePicking(bool b)
 
 void MainWindow::OnReloadVolume()
 {
-  LayerMRI* mri = qobject_cast<LayerMRI*>(this->GetActiveLayer("MRI"));
-  if (mri)
+  QList<Layer*> layers = GetSelectedLayers("MRI");
+  if (!layers.isEmpty())
   {
     DialogReloadLayer dlg;
-    QString name = mri->GetName();
-    QString filename = mri->GetFileName();
-    QString reg_fn = mri->GetRegFileName();
-    if (dlg.Execute(name, "Volume", filename) == QDialog::Accepted)
+    if (dlg.Execute(layers) == QDialog::Accepted)
     {
-      m_volumeSettings = mri->GetProperty()->GetFullSettings();
+//      m_volumeSettings = mri->GetProperty()->GetFullSettings();
       if (dlg.GetCloseLayerFirst())
       {
         if (!OnCloseVolume())
@@ -7135,27 +7132,54 @@ void MainWindow::OnReloadVolume()
           return;
         }
       }
-      this->LoadVolumeFile(filename, reg_fn);
+      for (int i = layers.size()-1; i >= 0; i--)
+      {
+        LayerMRI* mri = qobject_cast<LayerMRI*>(layers[i]);
+        QString name = mri->GetName();
+        QString filename = mri->GetFileName();
+        QString reg_fn = mri->GetRegFileName();
+        QString args = filename + ":name=" + name;
+        if (!reg_fn.isEmpty())
+          args += ":reg=" + reg_fn;
+        QString colormap = "grayscale";
+        switch (mri->GetProperty()->GetColorMap())
+        {
+        case LayerPropertyMRI::LUT:
+          colormap = "lut";
+          break;
+        case LayerPropertyMRI::Heat:
+          colormap = "heat";
+          break;
+        }
+        args += ":colormap=" + colormap;
+
+        AddScript(QStringList("loadvolume") << args);
+      }
     }
   }
 }
 
 void MainWindow::OnReloadSurface()
 {
-  LayerSurface* surf = qobject_cast<LayerSurface*>(this->GetActiveLayer("Surface"));
-  if (surf)
+  QList<Layer*> layers = GetSelectedLayers("Surface");
+  if (!layers.isEmpty())
   {
     DialogReloadLayer dlg;
-    QString name = surf->GetName();
-    QString filename = surf->GetFileName();
-    if (dlg.Execute(name, "Surface", filename) == QDialog::Accepted)
+    if (dlg.Execute(layers) == QDialog::Accepted)
     {
-      m_surfaceSettings = surf->GetProperty()->GetFullSettings();
+//      m_surfaceSettings = surf->GetProperty()->GetFullSettings();
       if (dlg.GetCloseLayerFirst())
       {
         OnCloseSurface();
       }
-      this->LoadSurfaceFile(filename);
+      for (int i = layers.size()-1; i >= 0; i--)
+      {
+        LayerSurface* surf = qobject_cast<LayerSurface*>(layers[i]);
+        double* ec = surf->GetProperty()->GetEdgeColor();
+        QString args = QString("%1:name=%2:edge_color=%3,%4,%5").arg(surf->GetFileName()).arg(surf->GetName())
+                    .arg((int)(ec[0]*255)).arg((int)(ec[1]*255)).arg((int)(ec[2]*255));
+        AddScript(QStringList("loadsurface") << args);
+      }
     }
   }
 }

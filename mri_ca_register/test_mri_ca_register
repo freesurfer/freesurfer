@@ -61,6 +61,7 @@ if ("`uname -s`" == "Darwin") then
   if ("`uname -r`" =~ "15."*) then
     set REF_FILE=(ref_talairach_osx.el_cap.mgz)
   endif
+endif
 set TST_VOL = talairach.m3z
 set cmd=(../../mri_diff/mri_diff --debug \
             $REF_VOL $TST_VOL );
