@@ -517,7 +517,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps, int iterate,
         << itmax << ", aveps " << eps << ", regit: " << iterate << ", regeps: "
         << epsit << " )" << endl;
 
-  cout << "Computing first template" << endl;
+  cout << endl << "Computing first template" << endl;
   bool havexforms = (ltas[0] != NULL);
   if (!havexforms) // create simple initial average aligning centers (moments), blurry!
     initialAverageSet();
@@ -1026,21 +1026,23 @@ vnl_matrix_fixed<double, 3, 3> MultiRegistration::getAverageCosines()
   std::vector <  vnl_matrix_fixed<double, 3, 3> > cosM(nin);
   vnl_matrix_fixed<double, 3, 3> meanr (0.0);
 
-  // conform slice orientation
-  // orientation: LIA
-  // primary slice direction: coronal
-  vnl_matrix_fixed<double, 3, 3> v2rconf (0.0);
-  v2rconf[0][0] = -1.0;
-  v2rconf[1][0] =  0.0;
-  v2rconf[2][0] =  0.0;
-  v2rconf[0][1] =  0.0;
-  v2rconf[1][1] =  0.0;
-  v2rconf[2][1] = -1.0;
-  v2rconf[0][2] =  0.0;
-  v2rconf[1][2] =  1.0;
-  v2rconf[2][2] =  0.0;
+//  // conform slice orientation
+//  // orientation: LIA
+//  // primary slice direction: coronal
+//  vnl_matrix_fixed<double, 3, 3> v2rconf (0.0);
+//  v2rconf[0][0] = -1.0;
+//  v2rconf[1][0] =  0.0;
+//  v2rconf[2][0] =  0.0;
+//  v2rconf[0][1] =  0.0;
+//  v2rconf[1][1] =  0.0;
+//  v2rconf[2][1] = -1.0;
+//  v2rconf[0][2] =  0.0;
+//  v2rconf[1][2] =  1.0;
+//  v2rconf[2][2] =  0.0;
   
   // extract cosines
+  bool same = true;
+  double eps = 0.000000001;
   for (int i = 0; i<nin ; i++)
   {
     cosM[i][0][0] = mri_mov[i]->x_r;
@@ -1053,10 +1055,34 @@ vnl_matrix_fixed<double, 3, 3> MultiRegistration::getAverageCosines()
     cosM[i][1][2] = mri_mov[i]->z_a;
     cosM[i][2][2] = mri_mov[i]->z_s;
     
-    // reorder axis to match conform ordering
+    // for i>0 compare to first if all cos are the same
+    if (i>0)
+    {
+      for (int j=0; j<3; j++)
+      for (int k=0; k<3; k++)
+        if (fabs(cosM[0][j][k] - cosM[i][j][k]) > eps)
+        {
+          same = false;
+          std::cout << " Cosines of input transforms not identical !" << std::endl;
+        }
+    }
+  }
+
+  // if all are the same, return source cousine
+  if (same)
+    return cosM[0];
+
+  // if all cos not the same, check reorder
+  //bool reorder = false;
+//  if (! same) for (int i = 0; i<nin ; i++)
+  meanr = cosM[0];
+  for (int i = 1; i<nin ; i++)
+  {
+//    // reorder axis to match conform ordering
     // we only swap dimensions around to make the cosine matrices comparable
     // (same main slice orientation). We will later average the cosines of all inputs
-    vnl_matrix_fixed<double, 3, 3> v2v = v2rconf.transpose() * cosM[i];
+//    vnl_matrix_fixed<double, 3, 3> v2v = v2rconf.transpose() * cosM[i];
+    vnl_matrix_fixed<double, 3, 3> v2v = cosM[0].transpose() * cosM[i];
 
     //cout << " v2v[" << i << "] = " << endl;
     //vnl_matlab_print(vcl_cout,v2v,"v2v",vnl_matlab_print_format_long);
@@ -1096,7 +1122,7 @@ vnl_matrix_fixed<double, 3, 3> MultiRegistration::getAverageCosines()
     if (xd != 1 || yd != 2 || zd != 3)
     {
 
-
+      //reorder = true;
       if (abs(xd) + abs(yd) + abs(zd) != 6)
       {
         cout << "WARNING: reorder not clear ..." << endl;
@@ -1130,7 +1156,9 @@ vnl_matrix_fixed<double, 3, 3> MultiRegistration::getAverageCosines()
     //cout << " v2r[" << i << "] = " << endl;
     //vnl_matlab_print(vcl_cout,cosM[i],"cosM",vnl_matlab_print_format_long);
     //cout << endl;
-  
+
+    // once axes are all ordered the same, we can average cosines
+    // by computing the mean and projecting it back to rotation space
     meanr += cosM[i];
 
   }
@@ -1144,7 +1172,6 @@ vnl_matrix_fixed<double, 3, 3> MultiRegistration::getAverageCosines()
   //vnl_matlab_print(vcl_cout,meanr,"meanrfinal",vnl_matlab_print_format_long);std::cout << std::endl;
   
   return meanr;
-  
 }
 
 
@@ -1180,51 +1207,55 @@ MRI * MultiRegistration::createTemplateGeo()
   // determine width height depth
   // since inputs can be in different
   // slice orientations, set all to the max
-  int maxdim = 0;
+  int maxdimw = 0;
+  int maxdimh = 0;
+  int maxdimd = 0;
   int count2d = 0;
   for (int i = 0; i<nin ; i++)
   {
-    double xsize = fabs(mri_mov[i]->xsize);
-    double ysize = fabs(mri_mov[i]->ysize);
-    double zsize = fabs(mri_mov[i]->zsize);
+    double xsize   = fabs(mri_mov[i]->xsize);
+    double ysize   = fabs(mri_mov[i]->ysize);
+    double zsize   = fabs(mri_mov[i]->zsize);
     double fwidth  = xsize * mri_mov[i]->width;
     double fheight = ysize * mri_mov[i]->height;
     double fdepth  = zsize * mri_mov[i]->depth;
     
     double eps =0.0001; // to prevent ceil(2.0*64 / 2.0) = ceil(64.000000000001) = 65
-    int nw = (int) ceil((fwidth / conform_size) - eps);
+    int nw = (int) ceil((fwidth  / conform_size) - eps);
     int nh = (int) ceil((fheight / conform_size) - eps);
-    int nd = (int) ceil((fdepth / conform_size) - eps);
+    int nd = (int) ceil((fdepth  / conform_size) - eps);
     if (mri_mov[i]->depth == 1)
       count2d++; // 2d image
     
-    if (nw > maxdim) maxdim = nd;
-    if (nh > maxdim) maxdim = nh;
-    if (nd > maxdim) maxdim = nd;
+    if (nw > maxdimw) maxdimw = nw;
+    if (nh > maxdimh) maxdimh = nh;
+    if (nd > maxdimd) maxdimd = nd;
   }
 
-  int depth = maxdim;
-  if (count2d > 0)
-  {
-    if (count2d == nin)
-      depth = 1;
-    else
+//  int depth = maxdimd;
+//  if (count2d > 0)
+//  {
+//    if (count2d == nin)
+//      depth = 1;
+//    else
+    if (count2d > 0 && count2d != nin)
     {
       cerr << " ERROR (createTemplateGeo) : mixing 2d and 3d input images not possible!" << endl;
       exit(1);
     }
-  }
-  MRI * template_geo   = MRIallocHeader(maxdim, maxdim, depth, MRI_FLOAT , 1);
+//  }
+//  MRI * template_geo   = MRIallocHeader(maxdimw, maxdimh, depth, MRI_FLOAT , 1);
+  MRI * template_geo   = MRIallocHeader(maxdimw, maxdimh, maxdimd, MRI_FLOAT , 1);
   template_geo->xsize  = template_geo->ysize = template_geo->zsize = conform_size ;
   template_geo->imnr0  = 1;
-  template_geo->imnr1  = maxdim;
+  template_geo->imnr1  = maxdimh;
   template_geo->type   = MRI_UCHAR;
   template_geo->thick  = conform_size;
   template_geo->ps     = conform_size;
-  template_geo->xstart = template_geo->ystart = - maxdim/2;
-  template_geo->zstart = -depth/2;
-  template_geo->xend   = template_geo->yend = maxdim/2;
-  template_geo->zend   = depth/2;
+  template_geo->xstart = template_geo->ystart = - maxdimw/2;
+  template_geo->zstart = -maxdimd/2;
+  template_geo->xend   = template_geo->yend = maxdimw/2;
+  template_geo->zend   = maxdimd/2;
   
   // set direction cosines to default directions:
   //template_geo->x_r = -1.0;
@@ -2074,6 +2105,11 @@ MRI* MultiRegistration::averageSet(const std::vector<MRI *>& set, MRI* mean,
 //       cout << " sdev   : " << CostFunctions::sdev(mean) << endl;
 //       cout << " median : " << CostFunctions::median(mean) << endl;
 //       cout << " mad    : " << CostFunctions::mad(mean)<< endl;
+  printf(
+    "       -- Template : (%g, %g, %g)mm and (%d, %d, %d) voxels.\n",
+      mean->xsize, mean->ysize, mean->zsize,
+      mean->width, mean->height,mean->depth);
+
 
   return mean;
 }
