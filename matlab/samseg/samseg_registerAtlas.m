@@ -5,7 +5,7 @@
   
   
 %
-downSamplingFactor = 3; % Use "1" for no downsampling
+targetDownsampledVoxelSpacing = 3.0; % In mm
 K = 1e-7; % Mesh stiffness -- compared to normal models, the entropy cost function is normalized 
           % (i.e., measures an average *per voxel*), so that this needs to be scaled down by the
           % number of voxels that are covered
@@ -55,12 +55,18 @@ end
 initialImageToImageTransformMatrix = imageToWorldTransformMatrix \ ...
                   ( initialWorldToWorldTransformMatrix * templateImageToWorldTransformMatrix );
 
+                  
+% Figure out how much to downsample (depends on voxel size)
+voxelSpacing = sum( imageToWorldTransformMatrix( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
+downSamplingFactors = max( round( targetDownsampledVoxelSpacing ./ voxelSpacing ), [ 1 1 1 ] )
+
+                  
 if 1
   % Use initial transform to define the reference (rest) position of the mesh (i.e., the one
   % where the log-prior term is zero)
   meshCollection = kvlReadMeshCollection( meshCollectionFileName, ...
                                           kvlCreateTransform( initialImageToImageTransformMatrix ), ...
-                                          K * downSamplingFactor^3 );
+                                          K * prod( downSamplingFactors ) );
   mesh = kvlGetMesh( meshCollection, -1 );
 else
   % "Proper" initialization: apply the initial transform but don't let it affect the deformation
@@ -68,7 +74,7 @@ else
   meshCollection = kvlReadMeshCollection( meshCollectionFileName, ...
                                           kvlCreateTransform( imageToWorldTransformMatrix \ ...
                                                               templateImageToWorldTransformMatrix ), ...
-                                          K * downSamplingFactor^3 );
+                                          K * prod( downSamplingFactors ) );
   mesh = kvlGetMesh( meshCollection, -1 );
   nodePositions = kvlGetMeshNodePositions( mesh );
   tmp = [ nodePositions ones( size( nodePositions, 1 ), 1 ) ];
@@ -88,13 +94,11 @@ if showFigures
 end
 
 % Downsample
-if ( downSamplingFactor ~= 1 )
-  imageBuffer = imageBuffer( 1 : downSamplingFactor : end, ...
-                             1 : downSamplingFactor : end, ...
-                             1 : downSamplingFactor : end );
-  image = kvlCreateImage( imageBuffer );
-  kvlScaleMesh( mesh, 1/downSamplingFactor );
-end
+imageBuffer = imageBuffer( 1 : downSamplingFactors( 1 ) : end, ...
+                           1 : downSamplingFactors( 2 ) : end, ...
+                           1 : downSamplingFactors( 3 ) : end );
+image = kvlCreateImage( imageBuffer );
+kvlScaleMesh( mesh, 1 ./ downSamplingFactors );
 
 
 
@@ -150,7 +154,7 @@ if true
   else
     % This is better starting position; remember that we applied it
     initialImageToImageTransformMatrix( 1 : 3, 4 ) = ...
-             initialImageToImageTransformMatrix( 1 : 3, 4 ) + downSamplingFactor * initialTranslation;
+             initialImageToImageTransformMatrix( 1 : 3, 4 ) + diag( downSamplingFactors ) * initialTranslation;
   end
 
 end
@@ -249,8 +253,8 @@ toc
 % taking into account the downsampling that we applied
 nodePositions = kvlGetMeshNodePositions( mesh );
 pointNumbers = [ 1 111 202 303 ];
-originalY = [ downSamplingFactor * originalNodePositions( pointNumbers, : )'; 1 1 1 1 ];
-Y = [ downSamplingFactor * nodePositions( pointNumbers, : )'; 1 1 1 1 ];
+originalY = [ diag( downSamplingFactors ) * originalNodePositions( pointNumbers, : )'; 1 1 1 1 ];
+Y = [ diag( downSamplingFactors ) * nodePositions( pointNumbers, : )'; 1 1 1 1 ];
 extraImageToImageTransformMatrix = Y * inv( originalY );
 
 % Final result: the image-to-image (from template to image) as well as the world-to-world transform that

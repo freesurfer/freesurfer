@@ -46,7 +46,8 @@ public:
 
     // Read the image
     kvl::CroppedImageReader::Pointer  reader = kvl::CroppedImageReader::New();
-    reader->SetExtraFraction( 0.1 );
+    //reader->SetExtraFraction( 0.1 );
+    reader->SetExtraFraction( 0.0 );
     reader->Read( imageFileName.c_str(), boundingFileName.c_str() );
     
 

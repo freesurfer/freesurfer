@@ -593,6 +593,10 @@ AtlasMeshCollection
   if ( !in.getline( buffer, size ) )
     return false;
   
+#ifndef USE_DYNAMIC_MESH
+  std::map< AtlasMesh::PointIdentifier, AtlasMesh::PointIdentifier >  pointIdCompressionLookupTable;
+#endif  
+  
   m_ReferencePosition = PointsContainerType::New();
   for ( unsigned int pointNumber = 0; pointNumber < numberOfPoints; pointNumber++ )
     {
@@ -604,6 +608,12 @@ AtlasMeshCollection
     AtlasMesh::PointType  point;
     AtlasMesh::PointIdentifier  id;
     lineStream >> id >> point[ 0 ] >> point[ 1 ] >> point[ 2 ];
+
+#ifndef USE_DYNAMIC_MESH
+    const AtlasMesh::PointIdentifier  originalId = id;
+    id = pointIdCompressionLookupTable.size();
+    pointIdCompressionLookupTable[ originalId ] = id;
+#endif  
 
     // On Mac, istringstream cannot convert strings holding tiny float values into floats
     if ( lineStream.fail() )
@@ -646,6 +656,10 @@ AtlasMeshCollection
       AtlasMesh::PointIdentifier  id;
       lineStream >> id >> point[ 0 ] >> point[ 1 ] >> point[ 2 ];
       
+#ifndef USE_DYNAMIC_MESH
+      id = pointIdCompressionLookupTable.find( id )->second;
+#endif    
+    
       // On Mac, istringstream cannot convert strings holding tiny float values into floats
       if ( lineStream.fail() )
         {
@@ -673,6 +687,10 @@ AtlasMeshCollection
   typedef itk::TriangleCell< AtlasMesh::CellType >  TriangleCell;
   typedef itk::TetrahedronCell< AtlasMesh::CellType >  TetrahedronCell;
   
+#ifndef USE_DYNAMIC_MESH
+  std::map< AtlasMesh::CellIdentifier, AtlasMesh::CellIdentifier >  cellIdCompressionLookupTable; 
+#endif  
+  
   m_Cells = CellsContainerType::New();
   for ( unsigned int cellNumber = 0; cellNumber < numberOfCells; cellNumber++ )
     {
@@ -685,6 +703,12 @@ AtlasMeshCollection
     std::string  cellType;
     lineStream >> cellId >> cellType;
     
+#ifndef USE_DYNAMIC_MESH
+    const AtlasMesh::CellIdentifier  originalCellId = cellId;
+    cellId = cellIdCompressionLookupTable.size();
+    cellIdCompressionLookupTable[ originalCellId ] = cellId;
+#endif  
+  
     //std::cout << "Detected cell with id: " << cellId << " of type: " << cellType << std::endl;     
     
     if ( cellType == "VERTEX" )
@@ -692,6 +716,10 @@ AtlasMeshCollection
       // Read the id of the point
       AtlasMesh::PointIdentifier  pointId0;
       lineStream >> pointId0;
+    
+#ifndef USE_DYNAMIC_MESH
+      pointId0 = pointIdCompressionLookupTable.find( pointId0 )->second;
+#endif    
       
       // Create a new vertex cell
       AtlasMesh::CellAutoPointer newCell;
@@ -707,7 +735,12 @@ AtlasMeshCollection
       AtlasMesh::PointIdentifier  pointId0;
       AtlasMesh::PointIdentifier  pointId1;
       lineStream >> pointId0 >> pointId1;
-      
+
+#ifndef USE_DYNAMIC_MESH
+      pointId0 = pointIdCompressionLookupTable.find( pointId0 )->second;
+      pointId1 = pointIdCompressionLookupTable.find( pointId1 )->second;
+#endif    
+    
       // Create a new line cell
       AtlasMesh::CellAutoPointer newCell;
       newCell.TakeOwnership( new LineCell );
@@ -726,6 +759,12 @@ AtlasMeshCollection
       AtlasMesh::PointIdentifier  pointId2;
       lineStream >> pointId0 >> pointId1 >> pointId2;
       
+#ifndef USE_DYNAMIC_MESH
+      pointId0 = pointIdCompressionLookupTable.find( pointId0 )->second;
+      pointId1 = pointIdCompressionLookupTable.find( pointId1 )->second;
+      pointId2 = pointIdCompressionLookupTable.find( pointId2 )->second;
+#endif    
+    
       // Create a new triangle cell
       AtlasMesh::CellAutoPointer newCell;
       newCell.TakeOwnership( new TriangleCell );
@@ -746,6 +785,13 @@ AtlasMeshCollection
       AtlasMesh::PointIdentifier  pointId3;
       lineStream >> pointId0 >> pointId1 >> pointId2 >> pointId3;
       
+#ifndef USE_DYNAMIC_MESH
+      pointId0 = pointIdCompressionLookupTable.find( pointId0 )->second;
+      pointId1 = pointIdCompressionLookupTable.find( pointId1 )->second;
+      pointId2 = pointIdCompressionLookupTable.find( pointId2 )->second;
+      pointId3 = pointIdCompressionLookupTable.find( pointId3 )->second;
+#endif    
+    
       // Create a new triangle cell
       AtlasMesh::CellAutoPointer newCell;
       newCell.TakeOwnership( new TetrahedronCell );
@@ -779,6 +825,9 @@ AtlasMeshCollection
     std::istringstream  lineStream( line );
     AtlasMesh::PointIdentifier  pointId;
     lineStream >> pointId;
+#ifndef USE_DYNAMIC_MESH
+    pointId = pointIdCompressionLookupTable.find( pointId )->second;
+#endif  
     AtlasAlphasType   alphas( numberOfLabels );
     AtlasMesh::PixelType  pointParameter;
     pointParameter.m_Alphas = alphas;

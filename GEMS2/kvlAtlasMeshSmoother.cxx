@@ -17,7 +17,9 @@ AtlasMeshSmoother
 ::AtlasMeshSmoother()
 {
   m_MeshCollection = 0;
-  m_Sigma = 1.0f;
+  m_Sigma0 = 1.0f;
+  m_Sigma1 = 1.0f;
+  m_Sigma2 = 1.0f;
 }
 
 
@@ -65,7 +67,7 @@ AtlasMeshSmoother
   AtlasMesh::PointDataContainer::Pointer  smoothedParameters = 0;
 
   
-  if ( m_Sigma == 0 )
+  if ( ( m_Sigma0 == 0 ) && ( m_Sigma1 == 0 ) && ( m_Sigma2 ==0 ) )
     {
     // Simply copy, which is not only faster but also avoids numerical problems
     smoothedParameters = AtlasMesh::PointDataContainer::New();
@@ -168,7 +170,11 @@ AtlasMeshSmoother
       smoother->SetInput( componentImage );
       smoother->SetMaximumError( 0.1 );
       smoother->SetUseImageSpacingOff();
-      smoother->SetVariance( m_Sigma * m_Sigma );
+      float  variances[ 3 ];
+      variances[ 0 ] = m_Sigma0 * m_Sigma0;
+      variances[ 1 ] = m_Sigma1 * m_Sigma1;
+      variances[ 2 ] = m_Sigma2 * m_Sigma2;
+      smoother->SetVariance( variances );
       smoother->Update();
       componentImage = smoother->GetOutput();
       

@@ -4,6 +4,12 @@
 #include "kvlAtlasMeshRasterizor.h"
 #include "itkAffineTransform.h"
 
+#define KVL_ENABLE_TIME_PROBE 0
+
+#if KVL_ENABLE_TIME_PROBE
+  #include "itkTimeProbe.h"
+#endif
+
 
 namespace kvl
 {
@@ -144,6 +150,14 @@ private:
   std::vector< AtlasPositionGradientContainerType::Pointer >  m_ThreadSpecificPositionGradients;
   std::vector< double >  m_ThreadSpecificMinLogLikelihoodTimesPriors;
 
+#if KVL_ENABLE_TIME_PROBE  
+  //
+  std::vector< itk::TimeProbe >  m_ThreadSpecificDataTermRasterizationTimers;
+  std::vector< itk::TimeProbe >  m_ThreadSpecificPriorTermRasterizationTimers;
+  std::vector< itk::TimeProbe >  m_ThreadSpecificOtherRasterizationTimers;
+
+#endif  
+  
 };
 
 

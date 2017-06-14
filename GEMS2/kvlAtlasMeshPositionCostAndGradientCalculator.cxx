@@ -53,6 +53,11 @@ AtlasMeshPositionCostAndGradientCalculator
   m_ThreadSpecificPositionGradients.clear();
   m_ThreadSpecificMinLogLikelihoodTimesPriors.clear();
 
+#if KVL_ENABLE_TIME_PROBE  
+  itk::TimeProbe clock;
+  clock.Start();
+#endif
+  
   // For each thread, create an empty gradient and cost so that
   // different threads never interfere with one another
   for ( int threadNumber = 0; threadNumber < this->GetNumberOfThreads(); threadNumber++ )
@@ -72,9 +77,39 @@ AtlasMeshPositionCostAndGradientCalculator
     
     } // End loop over threads
     
+#if KVL_ENABLE_TIME_PROBE      
+  clock.Stop();
+  std::cout << "Time taken by initialization: " << clock.GetMean() << std::endl;
+#endif 
+    
   // Now rasterize
+#if KVL_ENABLE_TIME_PROBE  
+  clock.Reset();
+  clock.Start();
+  m_ThreadSpecificDataTermRasterizationTimers = std::vector< itk::TimeProbe >( this->GetNumberOfThreads() );
+  m_ThreadSpecificPriorTermRasterizationTimers = std::vector< itk::TimeProbe >( this->GetNumberOfThreads() );
+  m_ThreadSpecificOtherRasterizationTimers = std::vector< itk::TimeProbe >( this->GetNumberOfThreads() );
+#endif  
   Superclass::Rasterize( mesh );
-
+#if KVL_ENABLE_TIME_PROBE  
+  clock.Stop();
+  std::cout << "Time taken by actual rasterization: " << clock.GetMean() << std::endl;
+  double  dataTermRasterizationTime = 0.0;
+  double  priorTermRasterizationTime = 0.0;
+  double  otherRasterizationTime = 0.0;
+  for ( int threadNumber = 0; threadNumber < this->GetNumberOfThreads(); threadNumber++ )
+    {
+    dataTermRasterizationTime += m_ThreadSpecificDataTermRasterizationTimers[ threadNumber ].GetTotal();
+    priorTermRasterizationTime += m_ThreadSpecificPriorTermRasterizationTimers[ threadNumber ].GetTotal();
+    otherRasterizationTime += m_ThreadSpecificOtherRasterizationTimers[ threadNumber ].GetTotal();
+    }
+  std::cout << "     dataTermRasterizationTime: " <<  dataTermRasterizationTime << std::endl; 
+  std::cout << "     priorTermRasterizationTime: " <<  priorTermRasterizationTime << std::endl; 
+  std::cout << "     otherRasterizationTime: " <<  otherRasterizationTime << std::endl; 
+  
+  clock.Reset();
+  clock.Start();
+#endif  
   
   // Initialize gradient-to-return to zero
   m_PositionGradient = AtlasPositionGradientContainerType::New();
@@ -121,6 +156,12 @@ AtlasMeshPositionCostAndGradientCalculator
       
     } // End loop over all threads  
     
+#if KVL_ENABLE_TIME_PROBE  
+  clock.Stop();
+  std::cout << "Time taken by result collection: " << clock.GetMean() << std::endl;
+  clock.Reset();
+  clock.Start();
+#endif
   
   // Take care of the desired boundary conditions
   switch( m_BoundaryCondition ) 
@@ -149,7 +190,11 @@ AtlasMeshPositionCostAndGradientCalculator
       break;
       }
     }
-  
+
+#if KVL_ENABLE_TIME_PROBE  
+  clock.Stop();
+  std::cout << "Time taken by boundary condition imposition: " << clock.GetMean() << std::endl;
+#endif   
     
 }    
   
@@ -274,16 +319,19 @@ AtlasMeshPositionCostAndGradientCalculator
     {
     return false;
     }
+
+#if KVL_ENABLE_TIME_PROBE  
+  m_ThreadSpecificOtherRasterizationTimers[ threadNumber ].Start();
+#endif
   
-  
+    
+#if 0  
   // We start with an empty gradient vector in each 
   AtlasPositionGradientType  gradientInVertex0( 0.0 );
   AtlasPositionGradientType  gradientInVertex1( 0.0 );
   AtlasPositionGradientType  gradientInVertex2( 0.0 );
   AtlasPositionGradientType  gradientInVertex3( 0.0 );
   double  priorPlusDataCost = 0.0;
-
-  
   
   // Cache relevant things about the tetrahedron
   ReferenceTetrahedronInfo  info;
@@ -310,11 +358,68 @@ AtlasMeshPositionCostAndGradientCalculator
   mesh->GetPoint( id2, &p2 );
   mesh->GetPoint( id3, &p3 );
   
+#else
+  
+  // Cache relevant things about the tetrahedron
+  //ReferenceTetrahedronInfo  info;
+  //mesh->GetCellData( tetrahedronId, &info );
+  // Implements internally mesh->GetCellData()->GetElementIfIndexExists(cellId, data);
+  // More efficient is ReferenceTetrahedronInfo&  info = mesh->GetCellData()->ElementAt(ElementIdentifier) 
+  const ReferenceTetrahedronInfo&  info = mesh->GetCellData()->ElementAt( tetrahedronId );
+ 
+  //AtlasMesh::CellAutoPointer  cell;
+  //mesh->GetCell( tetrahedronId, cell );
+  //AtlasMesh::CellType::PointIdIterator  pit = cell->PointIdsBegin();
+  // Implements internally: 
+  //      CellType* cellptr = 0;
+  //      this->GetCells()->GetElementIfIndexExists(cellId, &cellptr);
+  //      cellPointer.TakeNoOwnership(cellptr);
+  AtlasMesh::CellType::PointIdIterator  pit = mesh->GetCells()->ElementAt( tetrahedronId )->PointIdsBegin();
+  const AtlasMesh::PointIdentifier  id0 = *pit;
+  ++pit;
+  const AtlasMesh::PointIdentifier  id1 = *pit;
+  ++pit;
+  const AtlasMesh::PointIdentifier  id2 = *pit;
+  ++pit;
+  const AtlasMesh::PointIdentifier  id3 = *pit;
+  
+  //AtlasMesh::PointType p0;
+  //AtlasMesh::PointType p1;
+  //AtlasMesh::PointType p2;
+  //AtlasMesh::PointType p3;
+  //mesh->GetPoint( id0, &p0 );
+  //mesh->GetPoint( id1, &p1 );
+  //mesh->GetPoint( id2, &p2 );
+  //mesh->GetPoint( id3, &p3 );
+  // Implements internally mesh->GetPoints()->GetElementIfIndexExists(ptId, point);
+  // More efficient is AtlasMesh::PointType&  p0 = mesh->GetPoints()->ElementAt( id0 );
+  const AtlasMesh::PointType&  p0 = mesh->GetPoints()->ElementAt( id0 );
+  const AtlasMesh::PointType&  p1 = mesh->GetPoints()->ElementAt( id1 );
+  const AtlasMesh::PointType&  p2 = mesh->GetPoints()->ElementAt( id2 );
+  const AtlasMesh::PointType&  p3 = mesh->GetPoints()->ElementAt( id3 );
+  
+  
+  double&  priorPlusDataCost = m_ThreadSpecificMinLogLikelihoodTimesPriors[ threadNumber ];
+
+  AtlasPositionGradientType&  gradientInVertex0 = m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id0 );
+  AtlasPositionGradientType&  gradientInVertex1 = m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id1 );
+  AtlasPositionGradientType&  gradientInVertex2 = m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id2 );
+  AtlasPositionGradientType&  gradientInVertex3 = m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id3 );
+
+  
+#endif  
+  
+#if KVL_ENABLE_TIME_PROBE  
+  m_ThreadSpecificOtherRasterizationTimers[ threadNumber ].Stop();
+#endif  
 
   
   // Add contribution to cost and gradient of the deformation prior
   if ( !m_IgnoreDeformationPrior )
     {
+#if KVL_ENABLE_TIME_PROBE  
+    m_ThreadSpecificPriorTermRasterizationTimers[ threadNumber ].Start();
+#endif    
     if ( !this->AddPriorContributionOfTetrahedron( p0, p1, p2, p3,
                                                    info, 
                                                    priorPlusDataCost,
@@ -324,9 +429,14 @@ AtlasMeshPositionCostAndGradientCalculator
                                                    gradientInVertex3 ) )
       {
       m_Abort = true;
+#if KVL_ENABLE_TIME_PROBE  
+      m_ThreadSpecificPriorTermRasterizationTimers[ threadNumber ].Stop();
+#endif      
       return false;
       }
- 
+#if KVL_ENABLE_TIME_PROBE  
+    m_ThreadSpecificPriorTermRasterizationTimers[ threadNumber ].Stop();
+#endif 
     } // End test if we need to include prior term
 
   
@@ -334,6 +444,10 @@ AtlasMeshPositionCostAndGradientCalculator
   // Add contribution to cost and gradient of the data term
   if( !m_OnlyDeformationPrior )
     {
+#if KVL_ENABLE_TIME_PROBE  
+    m_ThreadSpecificDataTermRasterizationTimers[ threadNumber ].Start();
+#endif
+    
     const AtlasAlphasType&  alphasInVertex0 = mesh->GetPointData()->ElementAt( id0 ).m_Alphas;
     const AtlasAlphasType&  alphasInVertex1 = mesh->GetPointData()->ElementAt( id1 ).m_Alphas;
     const AtlasAlphasType&  alphasInVertex2 = mesh->GetPointData()->ElementAt( id2 ).m_Alphas;
@@ -349,18 +463,12 @@ AtlasMeshPositionCostAndGradientCalculator
                                             gradientInVertex1, 
                                             gradientInVertex2, 
                                             gradientInVertex3 );
+    
+#if KVL_ENABLE_TIME_PROBE  
+    m_ThreadSpecificDataTermRasterizationTimers[ threadNumber ].Stop();
+#endif    
     } // End test if we need to include the data term
   
-  
-  
-  
-  // Add contributions to the cost and gradient of this tetrahedron
-  m_ThreadSpecificMinLogLikelihoodTimesPriors[ threadNumber ] += priorPlusDataCost;
-
-  m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id0 ) += gradientInVertex0;
-  m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id1 ) += gradientInVertex1;
-  m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id2 ) += gradientInVertex2;
-  m_ThreadSpecificPositionGradients[ threadNumber ]->ElementAt( id3 ) += gradientInVertex3;
 
   return true;
 }
