@@ -13,34 +13,17 @@ CONFIGURE_FILE( showImage.m
   ${GEMS_LIBRARY_PATH}/showImage.m COPYONLY )
 CONFIGURE_FILE( kvlColorCodeProbabilityImages.m
   ${GEMS_LIBRARY_PATH}/kvlColorCodeProbabilityImages.m COPYONLY )
-CONFIGURE_FILE( smoothWithSeparableBasisFunctions.m
-  ${GEMS_LIBRARY_PATH}/smoothWithSeparableBasisFunctions.m COPYONLY )
-CONFIGURE_FILE( smoothWithSeparableBasisFunctionsWithWeights.m
-  ${GEMS_LIBRARY_PATH}/smoothWithSeparableBasisFunctionsWithWeights.m COPYONLY )
-CONFIGURE_FILE( expandBasisFunctions.m
-  ${GEMS_LIBRARY_PATH}/expandBasisFunctions.m COPYONLY )
 CONFIGURE_FILE( mosaicImages.m
   ${GEMS_LIBRARY_PATH}/mosaicImages.m COPYONLY )
 CONFIGURE_FILE( kvlEvaluateMeshPositionInVectorFormat.m
   ${GEMS_LIBRARY_PATH}/kvlEvaluateMeshPositionInVectorFormat.m COPYONLY )
-CONFIGURE_FILE( kvlMinFunc.m
-  ${GEMS_LIBRARY_PATH}/kvlMinFunc.m COPYONLY )
-CONFIGURE_FILE( kvlBackTrack.m
-  ${GEMS_LIBRARY_PATH}/kvlBackTrack.m COPYONLY )
-CONFIGURE_FILE( computeNumberOfSeparableBasisFunctions.m
-  ${GEMS_LIBRARY_PATH}/computeNumberOfSeparableBasisFunctions.m COPYONLY )
-CONFIGURE_FILE( computeRegularizers.m
-  ${GEMS_LIBRARY_PATH}/computeRegularizers.m COPYONLY )
-CONFIGURE_FILE( computeSeparableBasisFunctions.m
-  ${GEMS_LIBRARY_PATH}/computeSeparableBasisFunctions.m COPYONLY )
-CONFIGURE_FILE( constructAtWA.m
-  ${GEMS_LIBRARY_PATH}/constructAtWA.m COPYONLY )
-CONFIGURE_FILE( constructAtWr.m
-  ${GEMS_LIBRARY_PATH}/constructAtWr.m COPYONLY )
-CONFIGURE_FILE( expandSeparableBasisFunctions.m
-  ${GEMS_LIBRARY_PATH}/expandSeparableBasisFunctions.m COPYONLY )
-CONFIGURE_FILE( smoothWithSeparableBasisFunctionsWithWeightsMultiSpec.m
-  ${GEMS_LIBRARY_PATH}/smoothWithSeparableBasisFunctionsWithWeightsMultiSpec.m COPYONLY )
+CONFIGURE_FILE( backprojectKroneckerProductBasisFunctions.m
+  ${GEMS_LIBRARY_PATH}/backprojectKroneckerProductBasisFunctions.m COPYONLY )
+CONFIGURE_FILE( computePrecisionOfKroneckerProductBasisFunctions.m
+  ${GEMS_LIBRARY_PATH}/computePrecisionOfKroneckerProductBasisFunctions.m COPYONLY )
+CONFIGURE_FILE( projectKroneckerProductBasisFunctions.m
+  ${GEMS_LIBRARY_PATH}/projectKroneckerProductBasisFunctions.m COPYONLY )
+
 
 
 # For each function, also create a .m file calling the mex file

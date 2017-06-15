@@ -1,8 +1,14 @@
 #ifndef __kvlAtlasMesh_h
 #define __kvlAtlasMesh_h
 
+
 #include "itkMesh.h"
-#include "itkDefaultDynamicMeshTraits.h"
+
+#ifndef USE_DYNAMIC_MESH
+  #include "itkDefaultStaticMeshTraits.h"
+#else
+  #include "itkDefaultDynamicMeshTraits.h"
+#endif  
 #include "itkVector.h"
 
 
@@ -46,15 +52,24 @@ struct PointParameters
 
 
 // Some typedefs
-typedef itk::DefaultDynamicMeshTraits< PointParameters, 3, 3, 
-                                       double, double, ReferenceTetrahedronInfo >  AtlasMeshTraits;
-
+#ifndef USE_DYNAMIC_MESH
+  typedef itk::DefaultStaticMeshTraits< PointParameters, 3, 3, 
+                                        double, double, ReferenceTetrahedronInfo >  AtlasMeshTraits;
+#else
+  typedef itk::DefaultDynamicMeshTraits< PointParameters, 3, 3, 
+                                        double, double, ReferenceTetrahedronInfo >  AtlasMeshTraits;
+#endif
 
 typedef itk::Mesh< PointParameters, 3, AtlasMeshTraits >  AtlasMesh;
 
 typedef itk::Vector< double, 3 >  AtlasPositionGradientType;
-typedef itk::MapContainer< AtlasMesh::PointIdentifier, AtlasPositionGradientType > 
-                                                                AtlasPositionGradientContainerType;
+#ifndef USE_DYNAMIC_MESH
+  typedef itk::VectorContainer< AtlasMesh::PointIdentifier, AtlasPositionGradientType > 
+                                                                  AtlasPositionGradientContainerType;
+#else
+  typedef itk::MapContainer< AtlasMesh::PointIdentifier, AtlasPositionGradientType > 
+                                                                  AtlasPositionGradientContainerType;
+#endif
 struct Curvature
   {
   float  m_Curvature_dxdx;
@@ -94,8 +109,12 @@ struct Curvature
 
   };
 
-typedef itk::MapContainer< AtlasMesh::PointIdentifier, Curvature >   AtlasPositionCurvatureContainerType;
-
+#ifndef USE_DYNAMIC_MESH
+  typedef itk::VectorContainer< AtlasMesh::PointIdentifier, Curvature >   AtlasPositionCurvatureContainerType;
+#else  
+  typedef itk::MapContainer< AtlasMesh::PointIdentifier, Curvature >   AtlasPositionCurvatureContainerType;
+#endif
+  
 } // end namespace kvl
 
 

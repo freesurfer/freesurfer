@@ -2,19 +2,21 @@
 load history
 
 % Show data we were trying to segment (inspect brain mask)
-dataImage = zeros( history.DIM );
-dataImage( history.maskIndices ) = history.data;
-figure
-showImage( dataImage )
-
+numberOfContrasts = size( history.imageBuffers, 4 );
+for contrastNumber = 1 : numberOfContrasts
+  figure
+  showImage( history.imageBuffers( :, :, :, contrastNumber ) )
+end
+  
 %
-numberOfVoxels = length( history.maskIndices );
+numberOfVoxels = sum( history.mask( : ) );
 
 
 %
 figure
 %  desiredYLim = [ Inf -Inf ];
 for multiResolutionLevel = 1 : 2
+  numberOfVoxels = sum( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSampledMask( : ) )
   subplot( 1, 2, multiResolutionLevel )
   %plot( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost )
   tmp = history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfCost / numberOfVoxels;
@@ -66,6 +68,7 @@ for multiResolutionLevel = 1 : 2
   bar( timeTakenDeformation, 'b' )
   grid
   ylabel( 'minutes' )
+  l = legend( [ 'Total ' num2str( sum( timeTakenIntensity ) ) 'min' ], [ 'Total ' num2str( sum( timeTakenDeformation ) ) 'min' ] );
   subplot( 2, 2, 3 + ( multiResolutionLevel - 1 ) )
   bar( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfMaximalDeformationApplied )
   grid
@@ -87,9 +90,10 @@ end
 
 
 %
-figure
 multiResolutionLevel = 1;
+figure
 numberOfIterations = length( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyWithinEachIteration );
+numberOfVoxels = sum( history.historyWithinEachMultiResolutionLevel( multiResolutionLevel ).downSampledMask( : ) );
 while true
   for iterationNumber = 1 : numberOfIterations
     subplot( 2, 2, 1 )
@@ -135,6 +139,7 @@ end
 
 
 % Show how prior has deformed
+multiResolutionLevel = 1;
 figure
 colors = [  128 0 128 0; ...
            0 255 0 255; ...
@@ -143,13 +148,22 @@ colors = [  128 0 128 0; ...
            128 255 128 255;
            128 128 255 255;
            255 128 128 255 ];
-multiResolutionLevel = 2;
+DIM = size( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 ) );
+downSampledMaskIndices = find( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledMask );
+dataImage = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).downSampledImageBuffers( :, :, :, 1 );
+dataImage = exp( dataImage / 1000 );
 while true
-  for i = [ 1 length( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyOfCost ) ]
-    tmp = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyWithinEachIteration(i).priors;
-    priorImages = zeros( [ history.DIM 7 ] ); 
+  % for i = [ 1 length( history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyOfCost ) ]
+  %  tmp = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).historyWithinEachIteration(i).priors;
+  for i = 1 : 2
+    if ( i == 1 )
+      tmp = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).priorsAtStart;
+    else
+      tmp = history.historyWithinEachMultiResolutionLevel(multiResolutionLevel).priorsAtEnd;
+    end
+    priorImages = zeros( [ DIM 7 ] ); 
     for j = 1 : 7
-      priorImages( history.maskIndices + (j-1)*prod( history.DIM ) ) = tmp( :, j );
+      priorImages( downSampledMaskIndices + (j-1)*prod( DIM ) ) = tmp( :, j );
     end  
     imageToShow = ( dataImage - min( dataImage(:) ) ) / ( max( dataImage(:) ) - min( dataImage(:) ) );
     alpha = .4;
