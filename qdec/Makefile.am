@@ -130,6 +130,7 @@ qdecdir=$(prefix)/lib/resource
 qdec_DATA=QdecIcons.txt
 
 install-exec-hook:
+	rm -vf $(DESTDIR)$(bindir)/qdec.bin
 	cp $(top_builddir)/distribution/Mac_32b/qdec_Mac32.bin $(DESTDIR)$(bindir)/qdec.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/qdec
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \

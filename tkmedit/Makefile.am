@@ -69,6 +69,7 @@ endif
 if INSTALL_MAC32_GUIS
 install-exec-hook:
 	rm -vf $(DESTDIR)$(bindir)/tkmedit
+	rm -vf $(DESTDIR)$(prefix)/tktools/tkmedit.bin
 	cp $(top_builddir)/distribution/Mac_32b/tkmedit_Mac32.bin $(DESTDIR)$(prefix)/tktools/tkmedit.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tkmedit
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
