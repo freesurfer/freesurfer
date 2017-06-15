@@ -66,6 +66,8 @@ if INSTALL_MAC32_GUIS
 install-exec-hook:
 	mv -v $(DESTDIR)$(bindir)/tkregister2_cmdl $(DESTDIR)$(prefix)/tktools/
 	rm -vf $(DESTDIR)$(bindir)/tkregister $(DESTDIR)$(bindir)/tkregister2
+	rm -vf $(DESTDIR)$(bindir)/tkregister2.bin
+	rm -vf $(DESTDIR)$(prefix)/tktools/tkregister2.bin
 	cp $(top_builddir)/distribution/Mac_32b/tkregister2_Mac32.bin \
 		$(DESTDIR)$(prefix)/tktools/tkregister2.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tkregister2
