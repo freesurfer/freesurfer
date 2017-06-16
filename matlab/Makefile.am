@@ -266,7 +266,6 @@ samsegfiles_DATA=\
 	samseg/samseg_writeOutFreeSurferSeg.m
 
 samseg_binfiles=\
-	samseg/run_samseg \
 	samseg/samseg
 
 survivalfiles_DATA=\
