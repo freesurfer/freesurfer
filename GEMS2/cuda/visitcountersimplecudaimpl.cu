@@ -250,8 +250,8 @@ namespace kvl {
 			     const CudaImage<T,3,size_t>& d_tetrahedra ) {
       const unsigned int nBlockx = 1024;
 
-      const unsigned int nThreadsx = 32;
-      const unsigned int nThreadsy = 32;
+      const unsigned int nThreadsx = 16;
+      const unsigned int nThreadsy = 16;
       const unsigned int nThreadsz = 1;
 
       dim3 grid, threads;
