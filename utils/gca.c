@@ -84,7 +84,7 @@ int Gxn = -1; // 32;
 int Gyn = -1; // 21;
 int Gzn = -1; // 32;
 char *G_write_probs = NULL ;
-
+int ZZZ = "zzzz";
 /* this is the hack section */
 static double PRIOR_FACTOR = 0.1 ;
 #define LABEL_UNDETERMINED   255
