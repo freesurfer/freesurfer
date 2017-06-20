@@ -559,7 +559,7 @@ BOOST_AUTO_TEST_CASE( AutoCornersLargeImageLargeTetrahedronCPU )
   kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
 
   // Generate large tetrahedron on large cube
-  AutoCorners( &visitCounter, 3, 3  );
+  AutoCorners( &visitCounter, 4, 4  );
 }
 
 #ifdef CUDA_FOUND
@@ -631,11 +631,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersLargeImageLargeTetrahedronGPUSimple, I
   ImplType visitCounter;
 
   // Generate large tetrahedron on large cube
-  AutoCorners( &visitCounter, 3, 3  );
+  AutoCorners( &visitCounter, 4, 4  );
 }
 #endif
 
-BOOST_DATA_TEST_CASE( ConsistencyCheck, boost::unit_test::data::xrange(1,7), scale )
+BOOST_DATA_TEST_CASE( ConsistencyCheck, boost::unit_test::data::xrange(1,2), scale )
 {
   kvl::AtlasMeshVisitCounterCPUWrapper visitCounter;
 
