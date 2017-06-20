@@ -640,7 +640,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         todoVariances = zeros( sum( numberOfGaussiansPerClass ), numberOfContrasts, numberOfContrasts );
         for classNumber = 1 : sum( numberOfGaussiansPerClass )
           if ( numberOfContrasts > 1 )
-            todoMeans( classNumber, : ) = means( classNumber )';
+            todoMeans( classNumber, : ) = means( :, classNumber )';
             todoVariances( classNumber, :, : ) = sigmas( :, :, classNumber );
           else
             todoMeans( classNumber ) = means( classNumber );
@@ -820,7 +820,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     todoVariances = zeros( sum( numberOfGaussiansPerClass ), numberOfContrasts, numberOfContrasts );
     for classNumber = 1 : sum( numberOfGaussiansPerClass )
       if ( numberOfContrasts > 1 )
-        todoMeans( classNumber, : ) = means( classNumber )';
+        todoMeans( classNumber, : ) = means( :, classNumber )';
         todoVariances( classNumber, :, : ) = sigmas( :, :, classNumber );
       else
         todoMeans( classNumber ) = means( classNumber );
