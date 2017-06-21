@@ -82,18 +82,29 @@ end
 if(strlen(imageFileName6)>0) 
   imageFileNames{6} =  imageFileName6;
 end
-downSamplingFactor = 1;  % Use 1 for no downsampling
-maxNuberOfIterationPerMultiResolutionLevel(1) = 5; % default 5
-maxNuberOfIterationPerMultiResolutionLevel(2) = 20; % default 20
-maximumNumberOfDeformationIterations = 500;
+
+
+showFigures = false; % Set this to true if you want to see some figures during the run.
+
+multiResolutionSpecification = struct( [] );
+multiResolutionSpecification{ 1 }.meshSmoothingSigma = 2.0; % In mm
+multiResolutionSpecification{ 1 }.targetDownsampledVoxelSpacing = 2.0; % In mm
+multiResolutionSpecification{ 1 }.maximumNumberOfIterations = 100;
+multiResolutionSpecification{ 2 }.meshSmoothingSigma = 0.0; % In mm
+multiResolutionSpecification{ 2 }.targetDownsampledVoxelSpacing = 1.0; % In mm
+multiResolutionSpecification{ 2 }.maximumNumberOfIterations = 100;
+
+maximumNumberOfDeformationIterations = 20;
+absoluteCostPerVoxelDecreaseStopCriterion = 1e-4;
+verbose = 0;
+
 maximalDeformationStopCriterion = 0.001; % Measured in pixels
 lineSearchMaximalDeformationIntervalStopCriterion = maximalDeformationStopCriterion; % Idem
-meshSmoothingSigmas = [ 2.0 0 ]'; % UsemeshSmoothingSigmas = [ 0 ]' if you don't want to use multi-resolution
-relativeCostDecreaseStopCriterion = 1e-6;
+% relativeCostDecreaseStopCriterion = 1e-6;
 maximalDeformationAppliedStopCriterion = 0.0;
 BFGSMaximumMemoryLength = 12;
 K = 0.1; % Stiffness of the mesh
-brainMaskingSmoothingSigma = 2; % sqrt of the variance of a Gaussian blurring kernel 
+brainMaskingSmoothingSigma = 3; % sqrt of the variance of a Gaussian blurring kernel 
 brainMaskingThreshold = 0.01;
 
 

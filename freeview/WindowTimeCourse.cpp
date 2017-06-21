@@ -30,6 +30,7 @@
 #include "FSVolume.h"
 #include "LayerSurface.h"
 #include "SurfaceOverlay.h"
+#include "FSSurface.h"
 #include <QSettings>
 #include <QDebug>
 
@@ -60,8 +61,16 @@ WindowTimeCourse::~WindowTimeCourse()
   delete ui;
 }
 
-void WindowTimeCourse::UpdateData()
+void WindowTimeCourse::showEvent(QShowEvent *e)
 {
+  UpdateData(true);
+}
+
+void WindowTimeCourse::UpdateData(bool bForce)
+{
+  if (!isVisible() && !bForce)
+    return;
+
   QString type = MainWindow::GetMainWindow()->GetCurrentLayerType();
   if (type == "MRI")
   {
@@ -131,7 +140,11 @@ void WindowTimeCourse::UpdateData()
     {
       double pos[3];
       MainWindow::GetMainWindow()->GetLayerCollection("Surface")->GetSlicePosition(pos);
-      int nVert = surf->GetVertexIndexAtTarget(pos, NULL);
+      int nVert = -1;
+      if (surf->GetFileName().contains("inflated", Qt::CaseInsensitive) && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite))
+        nVert = surf->GetCurrentVertex();
+      else
+        nVert = surf->GetVertexIndexAtTarget(pos, NULL);
       if (nVert < 0)
         return;
 

@@ -158,6 +158,10 @@ namespace kvl {
 	return this->dims;
       }
 
+      size_t ElementCount() const {
+	return this->dims.ElementCount();
+      }
+
       cudaExtent GetCudaExtent() const {
 	// Creates the CudaExtent from the dims
 	cudaExtent res;
@@ -168,7 +172,7 @@ namespace kvl {
 	if( nDims >= 2 ) {
 	  res.height = this->dims[nDims-2];
 	  
-	  for( int i=0; i<nDims-2; i++ ) {
+	  for( unsigned char i=0; i<nDims-2; i++ ) {
 	    res.depth *= this->dims[i];
 	  }
 	}

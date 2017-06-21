@@ -19,7 +19,7 @@ class SmoothImageBufferHelper
 public:
 
   // 
-  static mxArray* Smooth( const mxArray*  matlabObject, double sigma )
+  static mxArray* Smooth( const mxArray*  matlabObject, const double* sigmas )
     {
     // Check if we can handle this type
     ImageConverter< ImageType >  converter;
@@ -44,7 +44,12 @@ public:
     smoother->SetInput( caster->GetOutput() );
     smoother->SetMaximumError( 0.1 );
     smoother->SetUseImageSpacingOff();
-    smoother->SetVariance( sigma * sigma );
+    double  variances[ 3 ];
+    for ( int i = 0; i < 3; i++ )
+      {
+      variances[ i ] = sigmas[ i ] * sigmas[ i ];  
+      }  
+    smoother->SetVariance( variances );
     typename BackCasterType::Pointer  backCaster = BackCasterType::New();
     backCaster->SetInput( smoother->GetOutput() );
     backCaster->Update();
@@ -80,7 +85,7 @@ public:
     //          << " and I'm running! " << std::endl;
               
               
-    // smoothedImageBuffer = kvlSmoothImageBuffer( imageBuffer, sigma )
+    // smoothedImageBuffer = kvlSmoothImageBuffer( imageBuffer, sigma(s) )
  
     // Make sure input arguments are correct
     if ( ( nrhs != 2 ) || ( nlhs != 1 ) || !mxIsDouble( prhs[ 1 ] ) )
@@ -94,25 +99,51 @@ public:
       mexErrMsgTxt( "Input must be 3-dimensional real matrix" );
       }
      
-    // Retrieve the smoothing sigma
-    const double sigma = *( mxGetPr( prhs[ 1 ] ) );
+    // Retrieve the smoothing sigmas
+    double  sigmas[ 3 ];
+    double*  tmp = mxGetPr( prhs[ 1 ] );
+    const int  numberOfRows = *( mxGetDimensions( prhs[ 1 ] ) );
+    const int  numberOfColumns = *( mxGetDimensions( prhs[ 1 ] ) + 1 );
+    //std::cout << "numberOfRows: " << numberOfRows << std::endl;
+    //std::cout << "numberOfColumns: " << numberOfColumns << std::endl;
+    if ( ( numberOfRows * numberOfColumns ) == 1 )
+      {
+      for ( int i = 0; i < 3; i++ )
+        {
+        sigmas[ i ] = *tmp;
+        }
+        
+      }
+    else if ( ( numberOfRows * numberOfColumns ) == 3 )
+      {
+      for ( int i = 0; i < 3; i++, tmp++ )
+        {
+        sigmas[ i ] = *tmp;
+        }
+      }
+    else
+      {
+      mexErrMsgTxt( "Sigma(s) must be 1- or 3-dimensional" );
+      }
+    
+    
     
     mxArray*  matlabObject = 0;
     if ( !matlabObject )
       {
-      matlabObject = SmoothImageBufferHelper< itk::Image< unsigned char, 3 > >::Smooth( prhs[ 0 ], sigma );
+      matlabObject = SmoothImageBufferHelper< itk::Image< unsigned char, 3 > >::Smooth( prhs[ 0 ], sigmas );
       }
     if ( !matlabObject )
       {
-      matlabObject = SmoothImageBufferHelper< itk::Image< unsigned short, 3 > >::Smooth( prhs[ 0 ], sigma );
+      matlabObject = SmoothImageBufferHelper< itk::Image< unsigned short, 3 > >::Smooth( prhs[ 0 ], sigmas );
       }
     if ( !matlabObject )
       {
-      matlabObject = SmoothImageBufferHelper< itk::Image< short, 3 > >::Smooth( prhs[ 0 ], sigma );
+      matlabObject = SmoothImageBufferHelper< itk::Image< short, 3 > >::Smooth( prhs[ 0 ], sigmas );
       }
     if ( !matlabObject )
       {
-      matlabObject = SmoothImageBufferHelper< itk::Image< float, 3 > >::Smooth( prhs[ 0 ], sigma );
+      matlabObject = SmoothImageBufferHelper< itk::Image< float, 3 > >::Smooth( prhs[ 0 ], sigmas );
       }
     if ( !matlabObject )
       {

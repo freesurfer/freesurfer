@@ -384,7 +384,7 @@ AtlasMeshDeformationOptimizer
       // Found a large enough interval that we get an aweful function value
       if ( m_Verbose )
         {
-        std::cout << "[BRACKETING] Hit a really bad solution -- perfect for zooming: "
+        std::cout << "[BRACKETING] Hit a really bad solution -- ready for zooming: "
                   << maximalDeformation << std::endl;
         }          
       
@@ -610,8 +610,8 @@ AtlasMeshDeformationOptimizer
       if ( m_Verbose )
         {
         std::cout << "   bisected: " << alpha * maximalDeformationOfSearchDirection << std::endl;
-        std::cout << "         [ bisected because lowCost=" << lowCost 
-                  << " and highCost=" << highCost << "]" << std::endl;
+        // std::cout << "         [ bisected because lowCost=" << lowCost 
+        //           << " and highCost=" << highCost << "]" << std::endl;
         }
       }
     else

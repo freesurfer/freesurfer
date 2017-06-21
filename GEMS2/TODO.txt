@@ -73,6 +73,10 @@ already return max() for isnans or cases where things are detected to go wrong.
 
 --
 
+* Submit to Git 
+* Create script for synthetic image generation from segmentation result
+
+
 * Clean up Matlab interface (use dynamic_cast<>,  provided as helper function in kvlMatlabRunnerArray.cxx
 * Un-unfold Gaussians from mixture model
 
