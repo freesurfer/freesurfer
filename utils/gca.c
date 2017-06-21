@@ -72,6 +72,7 @@
 
 extern const char* Progname;
 
+int ZZZ = "zzz" ;
 int Ggca_label = -1 ;
 int Ggca_nbr_label = -1 ;
 int Ggca_x = -1 ;
