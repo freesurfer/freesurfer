@@ -43,8 +43,10 @@ public:
   explicit WindowTimeCourse(QWidget *parent = 0);
   ~WindowTimeCourse();
 
+  void showEvent(QShowEvent* e);
+
 public slots:
-  void UpdateData();
+  void UpdateData(bool bForce = false);
   void OnFrameChanged(int n);
   void SetCurrentFrame(int n);
   void OnLayerCorrelationSurfaceChanged();
