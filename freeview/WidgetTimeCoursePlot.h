@@ -44,18 +44,30 @@ public:
   void mouseMoveEvent(QMouseEvent *e);
   void keyPressEvent(QKeyEvent *e);
 
+  void GetPlotRange(double* range)
+  {
+    range[0] = m_dMinPlot;
+    range[1] = m_dMaxPlot;
+  }
+
+  void SetPlotRange(double* range_in);
+
 public slots:
   void SetCurrentFrame(int frame);
   void SetAutoScale(bool bAutoScale);
+  void ResetPlotRange();
 
 signals:
   void FrameChanged(int frame);
+  void PlotRangeChanged();
 
 private:
   QList<double>   m_data;
   double          m_dTR;
   double          m_dMin;
   double          m_dMax;
+  double          m_dMinPlot;
+  double          m_dMaxPlot;
   bool            m_bAutoScale;
   int             m_nCurrentFrame;
   QRectF          m_rectPlot;
