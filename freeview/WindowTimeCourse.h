@@ -50,11 +50,16 @@ public slots:
   void OnFrameChanged(int n);
   void SetCurrentFrame(int n);
   void OnLayerCorrelationSurfaceChanged();
+  void OnLineEditScaleReturnPressed();
+  void OnCheckAutoScale(bool bChecked);
+  void OnCheckMaxScale(bool bChecked);
+  void UpdateScaleInfo();
 
 signals:
   void FrameChanged(int frame);
 
 private:
+
   Ui::WindowTimeCourse *ui;
   LayerMRI*     lastMRI;
   LayerSurface* lastSurface;
