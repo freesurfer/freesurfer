@@ -981,6 +981,8 @@ MRInormFindControlPoints(MRI *mri_src, float wm_target, float intensity_above,
      1.5*intensity_above-pass*5, 1.5*intensity_below+pass*5,
      mri_ctrl, 3.0, "", &nctrl, scan_type, mri_not_control) ;
     pass++ ;
+    if (pass > 10)
+      ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MRInormFindControlPoints: could not find enough control points")) ;
   }
   while (nctrl < 10) ;
   MRInormFindControlPointsInWindow(mri_src, wm_target, intensity_above,
@@ -1882,6 +1884,10 @@ MRInormFindControlPointsInWindow(MRI *mri_src,
         if (ctrl)
           nctrl++ ;
 
+	if (ctrl && x == Gx && y == Gy && z == Gz && !MRIvox(mri_ctrl, x, y, z))
+	{
+	  printf("val %d - setting (%d, %d, %d) as a control point\n", val, x, y, z) ;
+	}
         MRIvox(mri_ctrl, x, y, z) = ctrl ;
       }
     }
@@ -2008,14 +2014,17 @@ MRI3dNormalize(MRI *mri_orig, MRI *mri_src, float wm_target, MRI *mri_norm,
     mri_norm = MRIcopy(mri_src, NULL) ;
   }
 
-
   for (n = 2 ; n < 3 ; n++)
   {
     if (!only_file)
+    {
       mri_ctrl = MRInormFindControlPoints(mri_src, wm_target,
                                           intensity_above,
                                           intensity_below, NULL, n,
                                           scan_type, mri_not_control);
+      if (mri_ctrl == NULL)
+	ErrorExit(ERROR_UNSUPPORTED, "MRInormFindControlPoints failed") ;
+    }
     else
     {
       int nctrl ;
