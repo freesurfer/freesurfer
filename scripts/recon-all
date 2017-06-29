@@ -3114,6 +3114,8 @@ if($DoFill) then
   if(-e transforms/talairach.lta) then
     set cmd = ($cmd  -xform transforms/talairach.lta)
   endif
+  if ($LHonly) set cmd = ($cmd -lhonly )
+  if ($RHonly) set cmd = ($cmd -rhonly )
   if($UseAseg) set cmd = ($cmd -segmentation aseg.auto_noCCseg.mgz);
   if(! $UseOldTopoFix && ! $NoNormMGZ) set cmd = ($cmd -topofix norm.mgz);
   set cmd = ($cmd $xopts wm.mgz filled.mgz)
