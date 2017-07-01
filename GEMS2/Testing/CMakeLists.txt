@@ -23,6 +23,7 @@ IF(Boost_FOUND)
     LIST(APPEND testsrcs testcudaimage.cpp)
     LIST(APPEND testsrcs cudaglobalfixture.cpp)
     LIST(APPEND testsrcs cudaimagetests.cu)
+    LIST(APPEND testsrcs testcudatetrahedralmesh.cpp)
 
     LIST(APPEND GEMS2libs kvlGEMSCUDA)
   ENDIF( CUDA_FOUND )
