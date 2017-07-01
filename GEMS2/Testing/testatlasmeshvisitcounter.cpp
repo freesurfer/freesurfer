@@ -82,7 +82,7 @@ void CheckVisitCounter( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
   
   visitCounter->SetRegions( targetImage->GetLargestPossibleRegion() );
   visitCounter->VisitCount( targetMesh );
-  BOOST_TEST_MESSAGE("AtlasMeshVisitCounterCPUWrapper complete");
+  BOOST_TEST_MESSAGE("Target Visit Counter complete");
 
   auto img = visitCounter->GetImage();
   itk::ImageRegionConstIteratorWithIndex<kvl::interfaces::AtlasMeshVisitCounter::ImageType>  

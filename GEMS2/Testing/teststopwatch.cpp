@@ -51,4 +51,21 @@ BOOST_AUTO_TEST_CASE( NoStopStopped )
   BOOST_CHECK_THROW( timer.Stop(), std::runtime_error );
 }
 
+BOOST_AUTO_TEST_CASE( Reset )
+{
+  kvl::Stopwatch timer;
+
+  timer.Start();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  timer.Stop();
+  timer.Reset(); // Reset the timer
+  timer.Start();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  timer.Stop();
+
+  BOOST_CHECK_GE( timer.GetElapsedTime(), 1000 );
+  BOOST_CHECK_LE( timer.GetElapsedTime(), 1100 );
+  BOOST_CHECK_GE( timer.GetAverageElapsedTime(), timer.GetElapsedTime() );
+}
+
 BOOST_AUTO_TEST_SUITE_END();
