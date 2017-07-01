@@ -91,15 +91,28 @@ BOOST_AUTO_TEST_CASE( MeshInformation )
     if( nAlphas < minAlphas ) { minAlphas = nAlphas; }
     if( nAlphas > maxAlphas ) { maxAlphas = nAlphas; }
   }
+  BOOST_TEST_MESSAGE("Total Points : " << pointData->size());
   BOOST_TEST_MESSAGE("minAlphas : " << minAlphas);
   BOOST_TEST_MESSAGE("maxAlphas : " << maxAlphas);
-
+  
+  std::set<size_t> pointIndices;
   for( int iTet=0; iTet<tetrahedronIds.size(); iTet++ ) {
     kvl::AtlasMesh::CellAutoPointer cell;
     mesh->GetCell( tetrahedronIds.at(iTet), cell );
 
-    
+    size_t pointCount = 0;
+    for( auto pit = cell->PointIdsBegin();
+	 pit != cell->PointIdsEnd();
+	 ++pit ) {
+      pointIndices.insert(*pit);
+      pointCount++;
+    }
+
+    BOOST_CHECK_EQUAL(pointCount, 4);
   }
+
+  BOOST_TEST_MESSAGE("Unique points referenced: " << pointIndices.size());
+  BOOST_TEST_MESSAGE("Total Vertices          : " << tetrahedronIds.size() * 4);
 }
 
 BOOST_AUTO_TEST_SUITE_END();
