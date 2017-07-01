@@ -63,6 +63,45 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
   BOOST_TEST_MESSAGE( "Interpolate Time (repeat) : " << ad.tInterpolate );
 }
 
+BOOST_AUTO_TEST_CASE( MeshInformation )
+{
+  size_t nOther = 0;
+  std::vector<kvl::AtlasMesh::CellIdentifier> tetrahedronIds;
+
+  for( auto cellIt = mesh->GetCells()->Begin();
+       cellIt != mesh->GetCells()->End();
+       ++cellIt ) {
+    if( cellIt.Value()->GetType() == kvl::AtlasMesh::CellType::TETRAHEDRON_CELL ) {
+      tetrahedronIds.push_back( cellIt.Index() );
+    } else {
+      nOther++;
+    }
+  }
+  BOOST_TEST_MESSAGE("nTetrahedra : " << tetrahedronIds.size());
+  BOOST_TEST_MESSAGE("nOther      : " << nOther);
+
+  size_t minAlphas = std::numeric_limits<size_t>::max();
+  size_t maxAlphas = 0;
+
+  auto pointData = mesh->GetPointData();
+  for( auto pointIt = pointData->Begin();
+       pointIt != pointData->End();
+       ++pointIt ) {
+    size_t nAlphas = pointIt->Value().m_Alphas.size();
+    if( nAlphas < minAlphas ) { minAlphas = nAlphas; }
+    if( nAlphas > maxAlphas ) { maxAlphas = nAlphas; }
+  }
+  BOOST_TEST_MESSAGE("minAlphas : " << minAlphas);
+  BOOST_TEST_MESSAGE("maxAlphas : " << maxAlphas);
+
+  for( int iTet=0; iTet<tetrahedronIds.size(); iTet++ ) {
+    kvl::AtlasMesh::CellAutoPointer cell;
+    mesh->GetCell( tetrahedronIds.at(iTet), cell );
+
+    
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END();
 
 BOOST_AUTO_TEST_SUITE_END();
