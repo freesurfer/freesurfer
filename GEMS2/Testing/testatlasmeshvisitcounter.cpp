@@ -23,11 +23,17 @@
 #include "testiosupport.hpp"
 
 #ifdef CUDA_FOUND
+#ifdef GPU_ALL_PRECISIONS
 typedef boost::mpl::list<
   kvl::cuda::VisitCounterSimple<float,float>,
   kvl::cuda::VisitCounterSimple<double,double>,
   kvl::cuda::VisitCounterSimple<float,double>
   > SimpleCUDAImplTypes;
+#else
+typedef boost::mpl::list<
+  kvl::cuda::VisitCounterSimple<double,double>
+  > SimpleCUDAImplTypes;
+#endif
 #endif
 
 // --------------------
