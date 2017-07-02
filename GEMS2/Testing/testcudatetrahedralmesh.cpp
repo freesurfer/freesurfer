@@ -15,6 +15,7 @@ BOOST_AUTO_TEST_CASE( SendToGPU )
 {
   kvl::cuda::CudaTetrahedralMesh<double,unsigned long> ctm;
 
+  ctm.Send( mesh );
 }
 
 BOOST_AUTO_TEST_SUITE_END();
