@@ -15,7 +15,12 @@ namespace kvl {
       void Send( kvl::AtlasMesh::ConstPointer mesh ) {
 	auto tetIds = this->GetTetrahedronIds( mesh );
 
-	// Sanity check things
+	// Sanity check size of MeshIndexType
+	if( tetIds.size() > std::numeric_limits<MeshIndexType>::max() ) {
+	  throw std::out_of_range("Too many tetrahedra for MeshIndexType");
+	}
+
+	// Sanity check the points used to define the tetrahedra
 	std::set<size_t> activePointIndices;
 	for( size_t iTet=0; iTet<tetIds.size(); iTet++ ) {
 	  kvl::AtlasMesh::CellAutoPointer cell;
@@ -38,7 +43,7 @@ namespace kvl {
 	  throw std::runtime_error("Point index remapping not supported!");
 	}
 
-
+	// Transfer data to the GPU
 	this->SendVertices(mesh);
 	this->SendVertexMap(mesh, tetIds);
       }
@@ -72,7 +77,7 @@ namespace kvl {
 	     pointIt != mesh->GetPoints()->End();
 	     ++pointIt ) {
 	  for( MeshIndexType i=0; i<nDims; i++ ) {
-	    size_t idx = vertexDims.GetLinearIndex(pointIt.Index(),i);
+	    size_t idx = vertexDims.GetLinearIndex(static_cast<MeshIndexType>(pointIt.Index()),i);
 	    vertices.at(idx) = pointIt.Value()[i];
 	  }
 	}
