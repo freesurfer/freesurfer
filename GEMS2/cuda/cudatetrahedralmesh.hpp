@@ -38,7 +38,9 @@ namespace kvl {
 	  throw std::runtime_error("Point index remapping not supported!");
 	}
 
-	
+
+	this->SendVertices(mesh);
+	this->SendVertexMap(mesh, tetIds);
       }
 
     private:
@@ -54,26 +56,53 @@ namespace kvl {
 	    ids.push_back( cellIt.Index() );
 	  }
 	}
+
 	return ids;
       }
 
       void SendVertices( kvl::AtlasMesh::ConstPointer mesh ) {
 	Dimension<2,MeshIndexType> vertexDims;
-	vertexDims[0] = mesh->GetPointData()->size();
+	vertexDims[0] = mesh->GetPoints()->size();
 	vertexDims[1] = nDims;
 
 	std::vector<CoordinateType> vertices;
-	vertices.resize(vertexDims.GetElementCount());
+	vertices.resize(vertexDims.ElementCount());
 
 	for( auto pointIt = mesh->GetPoints()->Begin();
 	     pointIt != mesh->GetPoints()->End();
 	     ++pointIt ) {
-	  for( unsigned int i=0; i<nDims; i++ ) {
-	    vertices.at(vertexDims.GetLinearIndex(pointIt.Index(),i)) = pointIt.Value()[i];
+	  for( MeshIndexType i=0; i<nDims; i++ ) {
+	    size_t idx = vertexDims.GetLinearIndex(pointIt.Index(),i);
+	    vertices.at(idx) = pointIt.Value()[i];
 	  }
 	}
 
 	this->d_vertices.Send( vertices, vertexDims );
+      }
+
+      void SendVertexMap( kvl::AtlasMesh::ConstPointer mesh, const std::vector<kvl::AtlasMesh::CellIdentifier>& ids ) {
+	Dimension<2,MeshIndexType> mapDims;
+	mapDims[0] = ids.size();
+	mapDims[1] = nVertices;
+
+	std::vector<MeshIndexType> vertexMap;
+	vertexMap.resize(mapDims.ElementCount());
+
+	for( MeshIndexType iTet=0; iTet<ids.size(); iTet++ ) {
+	  AtlasMesh::CellAutoPointer cell;
+	  mesh->GetCell( ids.at(iTet), cell );
+
+	  MeshIndexType pIdx = 0;
+	  for( auto pit = cell->PointIdsBegin();
+	       pit != cell->PointIdsEnd();
+	       ++pit ) {
+	     size_t idx = mapDims.GetLinearIndex(iTet,pIdx);
+	     vertexMap.at(idx) = *pit;
+	     pIdx++;
+	  }
+	}
+
+	this->d_vertexMap.Send( vertexMap, mapDims );
       }
     };
   }
