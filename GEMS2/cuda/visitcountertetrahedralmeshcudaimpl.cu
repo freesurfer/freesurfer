@@ -18,8 +18,9 @@ public:
     // are actually in shared memory
   } 
   
+  template<typename MeshSupplier>
   __device__
-  void LoadAndBoundingBox( const kvl::cuda::TetrahedralMesh_GPU<ArgType,unsigned long>& mesh,
+  void LoadAndBoundingBox( const MeshSupplier& mesh,
 			   const size_t iTet,
 			   unsigned short min[nDims],
 			   unsigned short max[nDims] ) {
