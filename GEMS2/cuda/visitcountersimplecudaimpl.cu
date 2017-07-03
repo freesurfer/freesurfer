@@ -22,6 +22,11 @@ public:
     return this->tetInfo->operator()(iTet,iVert,threadIdx.x);
   }
 
+  __device__
+  size_t GetTetrahedraCount() const {
+    return this->tetInfo->dims[0];
+  }
+
 private:
   const kvl::cuda::Image_GPU<ArgType,3,size_t>* tetInfo;
 };
@@ -34,8 +39,10 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
 			       const kvl::cuda::Image_GPU<T,3,size_t> tetrahedra ) {
   const size_t iTet = blockIdx.x + (gridDim.x * blockIdx.y);
   
+  SimpleMeshSupply<T> mesh(&tetrahedra);
+
   // Check if this block has an assigned tetrahedron
-  if( iTet >= tetrahedra.dims[0] ) {
+  if( iTet >= mesh.GetTetrahedraCount() ) {
     return;
   }
 
@@ -44,7 +51,6 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
   __shared__ unsigned short min[nDims], max[nDims];
   __shared__ T M[nDims][nDims];
   SimpleSharedTetrahedron<T,Internal> tet(tetrahedron, M);
-  SimpleMeshSupply<T> mesh(&tetrahedra);
 
   tet.LoadAndBoundingBox( mesh, iTet, min, max );
 
