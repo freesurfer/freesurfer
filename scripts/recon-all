@@ -2500,8 +2500,8 @@ if($DoGCAReg) then
       set cmd = (mri_em_register)
       if($UseCuda) set cmd = (mri_em_register_cuda)
       set cmd = ($cmd $nocerebellum )
-      if ($LHonly) set cmd = ($cmd -lh )
-      if ($RHonly) set cmd = ($cmd -rh )
+      if ($LHonly) set cmd = ($cmd -lh  -spacing 4 -s 9)
+      if ($RHonly) set cmd = ($cmd -rh  -spacing 4 -s 9)
       set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
       if($DoCreateBaseSubj) then
         # base subj processing (norm_template instead of nu, and no mask needed):
