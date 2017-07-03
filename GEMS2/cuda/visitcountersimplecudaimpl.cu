@@ -15,20 +15,20 @@ template<typename ArgType>
 class SimpleMeshSupply {
 public:
   __device__
-  SimpleMeshSupply( const kvl::cuda::Image_GPU<ArgType,3,size_t>* tetrahedra ) : tetInfo(tetrahedra) {}
+  SimpleMeshSupply( const kvl::cuda::Image_GPU<ArgType,3,size_t>& tetrahedra ) : tetInfo(tetrahedra) {}
 
   __device__
   ArgType GetVertexCoordinate( size_t iTet, size_t iVert, size_t iDim ) const {
-    return this->tetInfo->operator()(iTet,iVert,threadIdx.x);
+    return this->tetInfo(iTet,iVert,threadIdx.x);
   }
 
   __device__
   size_t GetTetrahedraCount() const {
-    return this->tetInfo->dims[0];
+    return this->tetInfo.dims[0];
   }
 
 private:
-  const kvl::cuda::Image_GPU<ArgType,3,size_t>* tetInfo;
+  const kvl::cuda::Image_GPU<ArgType,3,size_t>& tetInfo;
 };
 
 // ---------
@@ -39,7 +39,7 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
 			       const kvl::cuda::Image_GPU<T,3,size_t> tetrahedra ) {
   const size_t iTet = blockIdx.x + (gridDim.x * blockIdx.y);
   
-  SimpleMeshSupply<T> mesh(&tetrahedra);
+  SimpleMeshSupply<T> mesh(tetrahedra);
 
   // Check if this block has an assigned tetrahedron
   if( iTet >= mesh.GetTetrahedraCount() ) {
