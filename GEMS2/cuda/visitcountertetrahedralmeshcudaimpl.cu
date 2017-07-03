@@ -1,12 +1,12 @@
-#include <stdexcept>
-
-#include "visitcountersimplecudaimpl.hpp"
+#include "visitcountertetrahedralmeshcudaimpl.hpp"
 
 #include "cudautils.hpp"
 
 const unsigned int nDims = 3;
 const unsigned int nVertices = 4;
 
+// COPIED from visitcountersimplecudaimpl.cu, with tweaks for LoadAndBoundingBox
+// TODO: Refactor common code
 template<typename ArgType,typename InvertType>
 class SimpleSharedTetrahedron {
 public:
@@ -19,14 +19,14 @@ public:
   } 
   
   __device__
-  void LoadAndBoundingBox( const kvl::cuda::Image_GPU<ArgType,3,size_t> tetrahedra,
+  void LoadAndBoundingBox( const kvl::cuda::TetrahedralMesh_GPU<ArgType,unsigned long>& mesh,
 			   const size_t iTet,
 			   unsigned short min[nDims],
 			   unsigned short max[nDims] ) {
     // We presume that min and max are in shared memory
     if( (threadIdx.x < nDims) && (threadIdx.y==0) ) {
       for( unsigned int iVert=0; iVert<nVertices; iVert++ ) {
-	this->tet[(iVert*nDims)+threadIdx.x] = tetrahedra(iTet,iVert,threadIdx.x);
+	this->tet[(iVert*nDims)+threadIdx.x] = mesh.GetVertexCoordinate(iTet,iVert,threadIdx.x);
       }
       
       // No need to sync since we're only using the first 3 threads
@@ -199,14 +199,17 @@ private:
   ArgType* transf;
 };
 
+
+// Largely copied from visitcountersimplecudaimpl.cu
+// TODO Refactor common code
 template<typename T,typename Internal>
 __global__
-void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output,
-			       const kvl::cuda::Image_GPU<T,3,size_t> tetrahedra ) {
+void TetrahedralMeshVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output,
+					const kvl::cuda::TetrahedralMesh_GPU<T,unsigned long> mesh ) {
   const size_t iTet = blockIdx.x + (gridDim.x * blockIdx.y);
   
   // Check if this block has an assigned tetrahedron
-  if( iTet >= tetrahedra.dims[0] ) {
+  if( iTet >= mesh.GetTetrahedraCount() ) {
     return;
   }
 
@@ -216,7 +219,7 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
   __shared__ T M[nDims][nDims];
   SimpleSharedTetrahedron<T,Internal> tet(tetrahedron, M);
 
-  tet.LoadAndBoundingBox( tetrahedra, iTet, min, max );
+  tet.LoadAndBoundingBox( mesh, iTet, min, max );
 
   tet.ComputeBarycentricTransform();
 
@@ -245,15 +248,17 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
 }
 
 
+
 namespace kvl {
   namespace cuda {
+    
 
-    template<typename T,typename Internal>
-    void SimpleVisitCounter( CudaImage<int,3,unsigned short>& d_output,
-			     const CudaImage<T,3,size_t>& d_tetrahedra ) {
+
+    void RunVisitCounterTetrahedralMeshCUDA( CudaImage<int,3,unsigned short>& d_output,
+					     const CudaTetrahedralMesh<double,unsigned long>& ctm ) {
       const unsigned int nBlockx = 1024;
 
-      const size_t nTetrahedra = d_tetrahedra.GetDimensions()[0];
+      const size_t nTetrahedra = ctm.GetTetrahedraCount();
 
       const unsigned int nThreadsx = GetBlockSize( d_output.ElementCount(), nTetrahedra );
       const unsigned int nThreadsy = GetBlockSize( d_output.ElementCount(), nTetrahedra );
@@ -282,52 +287,11 @@ namespace kvl {
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
       }
-      SimpleVisitCounterKernel<T,Internal><<<grid,threads>>>( d_output.getArg(), d_tetrahedra.getArg() );
+      TetrahedralMeshVisitCounterKernel<double,double><<<grid,threads>>>( d_output.getArg(), ctm.getArg() );
       err = cudaDeviceSynchronize();
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
       }
-    }
-
-    // -----------------------------------------------------------
-
-    template<>
-    void RunVisitCounterSimpleCUDA<float,float>( CudaImage<int,3,unsigned short>& d_output,
-						 const CudaImage<float,3,size_t>& d_tetrahedra ) {
-      if( d_tetrahedra.GetDimensions()[1] != nVertices ) {
-	throw std::runtime_error("Must have four vertices per tetrahedron!");
-      }
-      if( d_tetrahedra.GetDimensions()[2] != nDims ) {
-	throw std::runtime_error("Only implemented for 3D space");
-      }
-
-      SimpleVisitCounter<float,float>( d_output, d_tetrahedra );
-    }
-
-    template<>
-    void RunVisitCounterSimpleCUDA<double,double>( CudaImage<int,3,unsigned short>& d_output,
-						   const CudaImage<double,3,size_t>& d_tetrahedra ) {
-      if( d_tetrahedra.GetDimensions()[1] != nVertices ) {
-	throw std::runtime_error("Must have four vertices per tetrahedron!");
-      }
-      if( d_tetrahedra.GetDimensions()[2] != nDims ) {
-	throw std::runtime_error("Only implemented for 3D space");
-      }
-
-      SimpleVisitCounter<double,double>( d_output, d_tetrahedra );
-    }
-
-    template<>
-    void RunVisitCounterSimpleCUDA<float,double>( CudaImage<int,3,unsigned short>& d_output,
-						  const CudaImage<float,3,size_t>& d_tetrahedra ) {
-      if( d_tetrahedra.GetDimensions()[1] != nVertices ) {
-	throw std::runtime_error("Must have four vertices per tetrahedron!");
-      }
-      if( d_tetrahedra.GetDimensions()[2] != nDims ) {
-	throw std::runtime_error("Only implemented for 3D space");
-      }
-
-      SimpleVisitCounter<float,double>( d_output, d_tetrahedra );
-    }
+    } 
   }
 }

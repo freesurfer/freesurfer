@@ -14,9 +14,14 @@ namespace kvl {
 
       __device__
       CoordinateType GetVertexCoordinate( MeshIndexType iTet, MeshIndexType iVert, unsigned char iDim ) const {
-	MeshIndexType iVertexId = this->vertexMap->operator()(iTet,iVert);
+	MeshIndexType iVertexId = this->vertexMap(iTet,iVert);
 
-	return this->vertices->operator()(iVertexId,iDim);
+	return this->vertices(iVertexId,iDim);
+      }
+
+      __device__
+      MeshIndexType GetTetrahedraCount() const {
+	return this->vertexMap.dims[0];
       }
     };
 
@@ -69,6 +74,10 @@ namespace kvl {
 	gpuArg.vertexMap = this->d_vertexMap.getArg();
 
 	return gpuArg;
+      }
+
+      MeshIndexType GetTetrahedraCount() const {
+	return this->d_vertexMap.GetDimensions()[0];
       }
 
     private:

@@ -3,6 +3,8 @@
 #include "atlasmeshvisitcounter.hpp"
 #include "cudatetrahedralmesh.hpp"
 
+#include "visitcountertetrahedralmeshcudaimpl.hpp"
+
 namespace kvl {
   namespace cuda {
     class VisitCounterTetrahedralMesh : public kvl::interfaces::AtlasMeshVisitCounter {
@@ -34,6 +36,11 @@ namespace kvl {
 	this->tVisitCountPack.Start();
 	ctm.Send(mesh);
 	this->tVisitCountPack.Stop();
+
+	this->tVisitCountKernel.Start();
+	RunVisitCounterTetrahedralMeshCUDA( this->d_Output, ctm );
+	this->tVisitCountKernel.Stop();
+
 	this->tVisitCount.Stop();
       }
 
