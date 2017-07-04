@@ -99,7 +99,7 @@ public:
   }
 
   __device__
-  void TransformToBarycentric( ArgType p[nDims], const ArgType x, const ArgType y, const ArgType z ) const {
+  void TransformToBarycentric( ArgType p[nDims], const ArgType z, const ArgType y, const ArgType x ) const {
     ArgType r[nDims];
     
     // Compute location relative to first vertex
@@ -116,12 +116,12 @@ public:
   }
 
   __device__
-  bool PointInside( const ArgType x, const ArgType y, const ArgType z ) const {
+  bool PointInside( const ArgType z, const ArgType y, const ArgType x ) const {
     bool inside = true;
 	  
     ArgType pTmp[nDims];
     
-    this->TransformToBarycentric(pTmp, x, y, z);
+    this->TransformToBarycentric(pTmp, z, y, x);
 
     // Form the full set of barycentric co-ordinates
     ArgType p[nDims+1];

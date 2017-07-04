@@ -63,7 +63,7 @@ void TetrahedronInteriorKernel( const IndexType nz,
 
 	for( unsigned short iz=min[2]; iz<max[2]; iz++ ) {
 	  if( iz<nz ) {
-	    bool inside = tet.PointInside(ix,iy,iz);
+	    bool inside = tet.PointInside(iz,iy,ix);
 	    
 	    if( inside ) {
 	      action(tet, iz, iy, ix );

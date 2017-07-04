@@ -69,7 +69,7 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
       if( output.PointInRange(0,iy,ix) ) {
 
 	for( unsigned short iz=min[2]; iz<max[2]; iz++ ) {
-	  bool inside = tet.PointInside(ix,iy,iz);
+	  bool inside = tet.PointInside(iz,iy,ix);
 	  
 	  if( inside ) {
 	    atomicAdd(&output(iz,iy,ix),1);
