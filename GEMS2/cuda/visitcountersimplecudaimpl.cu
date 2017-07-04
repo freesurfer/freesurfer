@@ -27,7 +27,7 @@ public:
   }
 
 private:
-  const kvl::cuda::Image_GPU<ArgType,3,size_t>& tetInfo;
+  const kvl::cuda::Image_GPU<ArgType,3,size_t> tetInfo;
 };
 
 namespace kvl {
@@ -62,10 +62,8 @@ namespace kvl {
 template<typename T,typename Internal>
 __global__
 void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output,
-			       const kvl::cuda::Image_GPU<T,3,size_t> tetrahedra ) {
+			       const SimpleMesh_GPU<T> mesh ) {
   const size_t iTet = blockIdx.x + (gridDim.x * blockIdx.y);
-  
-  SimpleMesh_GPU<T> mesh(tetrahedra);
 
   // Check if this block has an assigned tetrahedron
   if( iTet >= mesh.GetTetrahedraCount() ) {
@@ -115,7 +113,11 @@ namespace kvl {
 			     const CudaImage<T,3,size_t>& d_tetrahedra ) {
       const unsigned int nBlockx = 1024;
 
-      const size_t nTetrahedra = d_tetrahedra.GetDimensions()[0];
+      VisitCounterAction vca(d_output.getArg());
+      auto domain = d_output.GetDimensions();
+      auto mesh = SimpleMeshSupply<T>(d_tetrahedra);
+
+      const size_t nTetrahedra = mesh.GetTetrahedraCount();
 
       const unsigned int nThreadsx = GetBlockSize( d_output.ElementCount(), nTetrahedra );
       const unsigned int nThreadsy = GetBlockSize( d_output.ElementCount(), nTetrahedra );
@@ -144,7 +146,7 @@ namespace kvl {
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
       }
-      SimpleVisitCounterKernel<T,Internal><<<grid,threads>>>( d_output.getArg(), d_tetrahedra.getArg() );
+      SimpleVisitCounterKernel<T,Internal><<<grid,threads>>>( d_output.getArg(), mesh.getArg() );
       err = cudaDeviceSynchronize();
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
@@ -163,7 +165,13 @@ namespace kvl {
 	throw std::runtime_error("Only implemented for 3D space");
       }
 
-      SimpleVisitCounter<float,float>( d_output, d_tetrahedra );
+      // SimpleVisitCounter<float,float>( d_output, d_tetrahedra );
+
+      VisitCounterAction vca(d_output.getArg());
+      auto domain = d_output.GetDimensions();
+      auto mesh = SimpleMeshSupply<float>(d_tetrahedra);
+
+      RunSimpleSharedTetrahedron<SimpleMeshSupply<float>,VisitCounterAction,unsigned short,float>(domain[0], domain[1], domain[2], mesh, vca );
     }
 
     template<>
@@ -180,7 +188,8 @@ namespace kvl {
       auto domain = d_output.GetDimensions();
       auto mesh = SimpleMeshSupply<double>(d_tetrahedra);
 
-      SimpleVisitCounter<double,double>( d_output, d_tetrahedra );
+      // SimpleVisitCounter<double,double>( d_output, d_tetrahedra );
+      RunSimpleSharedTetrahedron<SimpleMeshSupply<double>,VisitCounterAction,unsigned short, double>(domain[0], domain[1], domain[2], mesh, vca );
     }
 
     template<>
@@ -193,7 +202,13 @@ namespace kvl {
 	throw std::runtime_error("Only implemented for 3D space");
       }
 
-      SimpleVisitCounter<float,double>( d_output, d_tetrahedra );
+      
+      VisitCounterAction vca(d_output.getArg());
+      auto domain = d_output.GetDimensions();
+      auto mesh = SimpleMeshSupply<float>(d_tetrahedra);
+
+      RunSimpleSharedTetrahedron<SimpleMeshSupply<float>,VisitCounterAction,unsigned short, double>(domain[0], domain[1], domain[2], mesh, vca );
+      // SimpleVisitCounter<float,double>( d_output, d_tetrahedra );
     }
   }
 }
