@@ -24,11 +24,12 @@ private:
   kvl::cuda::Image_GPU<int,3,unsigned short> output;
 };
 
-// Largely copied from visitcountersimplecudaimpl.cu
-// TODO Refactor common code
-template<typename T,typename Internal,typename MeshSupplier, typename VertexAction>
+
+template<typename T,typename Internal,typename MeshSupplier, typename VertexAction, typename IndexType>
 __global__
-void TetrahedronInteriorKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output,
+void TetrahedronInteriorKernel( const IndexType nz,
+				const IndexType ny,
+				const IndexType nx,
 				const MeshSupplier mesh,
 				VertexAction action ) {
   const size_t iTet = blockIdx.x + (gridDim.x * blockIdx.y);
@@ -58,13 +59,15 @@ void TetrahedronInteriorKernel( kvl::cuda::Image_GPU<int,3,unsigned short> outpu
       const unsigned short iy = iyStart + threadIdx.y;
 
       // Could probably do this test a little better
-      if( output.PointInRange(0,iy,ix) ) {
+      if( (iy<ny) && (ix<nx) ) {
 
 	for( unsigned short iz=min[2]; iz<max[2]; iz++ ) {
-	  bool inside = tet.PointInside(ix,iy,iz);
-	  
-	  if( inside ) {
-	    action(tet, iz, iy, ix );
+	  if( iz<nz ) {
+	    bool inside = tet.PointInside(ix,iy,iz);
+	    
+	    if( inside ) {
+	      action(tet, iz, iy, ix );
+	    }
 	  }
 	}
       }
@@ -106,13 +109,14 @@ namespace kvl {
       threads.z = nThreadsz;
       
       VisitCounterAction vca(d_output.getArg());
+      auto domain = d_output.GetDimensions();
 
       // Run the kernel
       auto err = cudaGetLastError();
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
       }
-      TetrahedronInteriorKernel<double,double,kvl::cuda::TetrahedralMesh_GPU<double,unsigned long>,VisitCounterAction><<<grid,threads>>>( d_output.getArg(), ctm.getArg(), vca );
+      TetrahedronInteriorKernel<double,double,kvl::cuda::TetrahedralMesh_GPU<double,unsigned long>,VisitCounterAction,unsigned short><<<grid,threads>>>( domain[0], domain[1], domain[2], ctm.getArg(), vca );
       err = cudaDeviceSynchronize();
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
