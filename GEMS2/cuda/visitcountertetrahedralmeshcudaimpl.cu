@@ -9,10 +9,10 @@ const unsigned int nVertices = 4;
 
 // Largely copied from visitcountersimplecudaimpl.cu
 // TODO Refactor common code
-template<typename T,typename Internal>
+template<typename T,typename Internal,typename MeshSupplier>
 __global__
 void TetrahedralMeshVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output,
-					const kvl::cuda::TetrahedralMesh_GPU<T,unsigned long> mesh ) {
+					const MeshSupplier mesh ) {
   const size_t iTet = blockIdx.x + (gridDim.x * blockIdx.y);
   
   // Check if this block has an assigned tetrahedron
@@ -92,7 +92,7 @@ namespace kvl {
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
       }
-      TetrahedralMeshVisitCounterKernel<double,double><<<grid,threads>>>( d_output.getArg(), ctm.getArg() );
+      TetrahedralMeshVisitCounterKernel<double,double,kvl::cuda::TetrahedralMesh_GPU<double,unsigned long> ><<<grid,threads>>>( d_output.getArg(), ctm.getArg() );
       err = cudaDeviceSynchronize();
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
