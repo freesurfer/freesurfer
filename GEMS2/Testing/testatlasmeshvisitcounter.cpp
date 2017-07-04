@@ -23,8 +23,6 @@
 #include "testfileloader.hpp"
 #include "testiosupport.hpp"
 
-#define GPU_ALL_PRECISIONS 1
-
 #ifdef CUDA_FOUND
 #ifdef GPU_ALL_PRECISIONS
 typedef boost::mpl::list<
