@@ -13,7 +13,7 @@ const unsigned int nVertices = 4;
 template<typename ArgType>
 class SimpleMesh_GPU {
 public:
-  __device__
+  __device__ __host__
   SimpleMesh_GPU( const kvl::cuda::Image_GPU<ArgType,3,size_t>& tetrahedra ) : tetInfo(tetrahedra) {}
 
   __device__
@@ -29,6 +29,33 @@ public:
 private:
   const kvl::cuda::Image_GPU<ArgType,3,size_t>& tetInfo;
 };
+
+namespace kvl {
+  namespace cuda {
+    
+    template<typename CoordinateType>
+    class SimpleMeshSupply {
+    public:
+      typedef SimpleMesh_GPU<CoordinateType> GPUType;
+      typedef CoordinateType CoordType;
+      
+      SimpleMeshSupply( const kvl::cuda::CudaImage<CoordinateType,3,size_t>& tetrahedra ) : d_tetInfo(tetrahedra) {}
+      
+      SimpleMesh_GPU<CoordinateType> getArg() const {
+	return SimpleMesh_GPU<CoordinateType>(this->d_tetInfo.getArg());
+      }
+      
+      size_t GetTetrahedraCount() const {
+	return this->d_tetInfo.GetDimensions()[0];
+       }
+      
+    private:
+      const kvl::cuda::CudaImage<CoordinateType,3,size_t>& d_tetInfo;
+    };
+  }
+}
+
+
 
 // ---------
 
