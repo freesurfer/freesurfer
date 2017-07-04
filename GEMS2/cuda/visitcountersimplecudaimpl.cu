@@ -2,9 +2,8 @@
 
 #include "visitcountersimplecudaimpl.hpp"
 
-#include "cudautils.hpp"
-
-#include "simplesharedtetrahedron.hpp"
+#include "visitcounteraction.hpp"
+#include "simplesharedtetrahedroninterior.hpp"
 
 const unsigned int nDims = 3;
 const unsigned int nVertices = 4;
