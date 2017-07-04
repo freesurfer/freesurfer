@@ -1,6 +1,7 @@
 #pragma once
 
 #include "simplesharedtetrahedron.hpp"
+#include "cudautils.hpp"
 
 template<typename MeshSupplier, typename VertexAction, typename IndexType, typename T, typename Internal>
 __global__

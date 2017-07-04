@@ -1,7 +1,5 @@
 #include "visitcountertetrahedralmeshcudaimpl.hpp"
 
-#include "cudautils.hpp"
-
 #include "visitcounteraction.hpp"
 #include "simplesharedtetrahedroninterior.hpp"
 
