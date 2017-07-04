@@ -31,6 +31,9 @@ namespace kvl {
       const unsigned char nDims = 3;
       const unsigned char nVertices = 4;
 
+      typedef TetrahedralMesh_GPU<CoordinateType,MeshIndexType> GPUType;
+      typedef CoordinateType CoordType;
+
       void Send( kvl::AtlasMesh::ConstPointer mesh ) {
 	auto tetIds = this->GetTetrahedronIds( mesh );
 
