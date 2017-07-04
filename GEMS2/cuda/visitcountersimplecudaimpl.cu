@@ -176,6 +176,10 @@ namespace kvl {
 	throw std::runtime_error("Only implemented for 3D space");
       }
 
+      VisitCounterAction vca(d_output.getArg());
+      auto domain = d_output.GetDimensions();
+      auto mesh = SimpleMeshSupply<double>(d_tetrahedra);
+
       SimpleVisitCounter<double,double>( d_output, d_tetrahedra );
     }
 
