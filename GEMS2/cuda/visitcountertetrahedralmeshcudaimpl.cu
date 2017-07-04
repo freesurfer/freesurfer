@@ -7,12 +7,26 @@
 const unsigned int nDims = 3;
 const unsigned int nVertices = 4;
 
+template<typename T,typename Internal>
+class VisitCounterAction {
+public:
+  __device__
+  void operator()( kvl::cuda::Image_GPU<int,3,unsigned short>& output,
+		   const SimpleSharedTetrahedron<T,Internal>& tet,
+		   const unsigned short iz,
+		   const unsigned short iy,
+		   const unsigned short ix ) const {
+    atomicAdd(&output(iz,iy,ix),1);
+  }
+};
+
 // Largely copied from visitcountersimplecudaimpl.cu
 // TODO Refactor common code
-template<typename T,typename Internal,typename MeshSupplier>
+template<typename T,typename Internal,typename MeshSupplier, typename VertexAction>
 __global__
-void TetrahedralMeshVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output,
-					const MeshSupplier mesh ) {
+void TetrahedronInteriorKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output,
+				const MeshSupplier mesh,
+				const VertexAction action ) {
   const size_t iTet = blockIdx.x + (gridDim.x * blockIdx.y);
   
   // Check if this block has an assigned tetrahedron
@@ -46,7 +60,7 @@ void TetrahedralMeshVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned shor
 	  bool inside = tet.PointInside(ix,iy,iz);
 	  
 	  if( inside ) {
-	    atomicAdd(&output(iz,iy,ix),1);
+	    action(output, tet, iz, iy, ix );
 	  }
 	}
       }
@@ -87,12 +101,14 @@ namespace kvl {
       threads.y = nThreadsy;
       threads.z = nThreadsz;
       
+      VisitCounterAction<double,double> vca;
+
       // Run the kernel
       auto err = cudaGetLastError();
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
       }
-      TetrahedralMeshVisitCounterKernel<double,double,kvl::cuda::TetrahedralMesh_GPU<double,unsigned long> ><<<grid,threads>>>( d_output.getArg(), ctm.getArg() );
+      TetrahedronInteriorKernel<double,double,kvl::cuda::TetrahedralMesh_GPU<double,unsigned long>,VisitCounterAction<double,double> ><<<grid,threads>>>( d_output.getArg(), ctm.getArg(), vca );
       err = cudaDeviceSynchronize();
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
