@@ -1,3 +1,8 @@
+function samsegment( imageFileNames, transformedTemplateFileName, meshCollectionFileName, compressionLookupTableFileName, ...
+                     modelSpecifications, optimizationOptions, savePath, showFigures )
+%
+%
+
 % TODO: 
 %   - the separate cases for uni- vs. multi-contrast Gaussian model parameters is mind-boggling
 %     and utterly unnecessary: not only do the dimensions swap, also their names are inexplicably 
@@ -11,59 +16,74 @@
 %     and where the cropped region we're segmenting is located within that volume) should be folded 
 %     into the cropped reader. Right now it's prone to bugs because a manually-set extra margin 
 %     needs to be consistent between two separate Mex functions (!)
-%   - make a distinction between variables "numberOfGaussians" (17 individual Gaussians) 
-%     vs. "numberOfClasses" (7 classes, each represented by a Gaussian mixture model) 
+%   - make a distinction between variables "numberOfGaussians" (e.g., 17 individual Gaussians) 
+%     vs. "numberOfClasses" (e.g., 7 classes, each represented by a Gaussian mixture model) 
 %     throughout the code 
-%   - potentially switch on bias field estimation always (not just first multiResolutionLevel) (?)
-%   - I think I may be messing up struct vs. cell Matlab arrays -- potentially declaring an
-%     empty object of one type, which Matlab then implicitly converts to the other type after
-%     filling it in/up (?)
-%
+%   - allow for priors on intensity model (e.g., ridge regression on diagonal of lhs bias field correction
+%     matrix). Right now there is a tiny conjugate prior on the Gaussian variances without taking it
+%     into account in cost function evaluation.
+%      
 
 
-% These are inputs that must be set prior to running
-fprintf( '==========================\n\n' );
-fprintf( 'input file %s\n', imageFileName );
-fprintf( 'output path %s\n', savePath );
-fprintf( 'nThreads = %d\n', nThreads );
-for multiResolutionLevel = 1 : length( multiResolutionSpecification )
-  fprintf( 'multiResolutionLevel = %d\n', multiResolutionLevel );
-  fprintf( '   meshSmoothingSigma = %f\n', multiResolutionSpecification{ multiResolutionLevel }.meshSmoothingSigma );
-  fprintf( '   targetDownsampledVoxelSpacing = %f\n', ...
-           multiResolutionSpecification{ multiResolutionLevel }.targetDownsampledVoxelSpacing );
-  fprintf( '   maximumNumberOfIterations = %d\n', ...
-           multiResolutionSpecification{ multiResolutionLevel }.maximumNumberOfIterations);
+
+% Print input options
+disp( '==========================' );
+disp( 'imageFileNames: ' )
+for i = 1 : length( imageFileNames )
+  disp( imageFileNames{ i } )
 end
-fprintf( 'maximumNumberOfDeformationIterations = %d\n', maximumNumberOfDeformationIterations );
-fprintf( 'absoluteCostPerVoxelDecreaseStopCriterion = %f\n', absoluteCostPerVoxelDecreaseStopCriterion );
-fprintf( 'verbose = %d\n', verbose );
-fprintf( 'maximalDeformationStopCriterion = %f\n', maximalDeformationStopCriterion );
-fprintf( 'lineSearchMaximalDeformationIntervalStopCriterion = %f\n', lineSearchMaximalDeformationIntervalStopCriterion );
-fprintf( 'maximalDeformationAppliedStopCriterion = %f\n', maximalDeformationAppliedStopCriterion );
-fprintf( 'BFGSMaximumMemoryLength = %d\n', BFGSMaximumMemoryLength );
-fprintf( 'K = %f\n', K );
-fprintf( 'brainMaskingSmoothingSigma = %f\n', brainMaskingSmoothingSigma );
-fprintf( 'brainMaskingThreshold = %f\n', brainMaskingThreshold );
-fprintf( '==========================\n\n' );
+fprintf( '-----\n' )
+
+disp( 'transformedTemplateFileName: ' )
+disp( transformedTemplateFileName )
+fprintf( '-----\n' )
+
+disp( 'meshCollectionFileName: ' )
+disp( meshCollectionFileName )
+fprintf( '-----\n' )
+
+disp( 'compressionLookupTableFileName: ' )
+disp( compressionLookupTableFileName )
+fprintf( '-----\n' )
+
+disp( 'modelSpecifications: ' )
+fieldNames = fieldnames( modelSpecifications );
+for i = 1 : length( fieldNames )
+  fieldName = fieldNames{ i };
+  disp( fieldName )
+  fields = getfield( modelSpecifications, fieldName );
+  for j = 1 : length( fields )
+    disp( fields(j) )
+  end
+  disp( ' ' )
+end
+fprintf( '-----\n' )  
+
+disp( 'optimizationOptions:' )
+fieldNames = fieldnames( optimizationOptions );
+for i = 1 : length( fieldNames )
+  fieldName = fieldNames{ i };
+  disp( fieldName )
+  fields = getfield( optimizationOptions, fieldName );
+  for j = 1 : length( fields )
+    disp( fields(j) )
+  end
+  disp( ' ' )
+end
+fprintf( '-----\n' )  
+
+disp( 'savePath: ' )
+disp( savePath )
+fprintf( '-----\n' )
+
+disp( 'showFigures: ' )
+disp( showFigures )
+fprintf( '-----\n' )
+  
 
 
 
-% Specify the maximum number of threads the C++ stuff will use. The more threads you can use
-% the faster, provided you have a matching amount of cores on your system - up to
-% the point where memory becomes the bottle neck.
-% If the following command is not provided, the number of cores on your system will be used
-kvlSetMaximumNumberOfThreads( nThreads );
-
-% Clean up the Matlab work space
-kvlClear % Clear all the wrapped C++ stuff
-close all
-
-
-% Provide the location of the image to be segmented, as well as the atlas that has been
-% pre-registered affinely (i.e., 12 degrees of freedom) to the image.
-transformedTemplateFileName = sprintf( '%s/mni305_masked_autoCropped_coregistered.mgz', savePath );
-
-
+%
 numberOfContrasts = length( imageFileNames );
 
 % Read the image data from disk. At the same time, construct a 3-D affine transformation (i.e.,
@@ -103,7 +123,7 @@ voxelSpacing = sum( atm( 1 : 3, 1 : 3 ).^2 ).^( 1/2 );
 % You also need to provide a value for K, which determines the flexibility of the atlas mesh, i.e., how
 % much it will typically deform. Higher values correspond to stiffer meshes.
 %
-meshCollection = kvlReadMeshCollection( meshCollectionFileName, transform, K );
+meshCollection = kvlReadMeshCollection( meshCollectionFileName, transform, modelSpecifications.K );
 
 % Retrieve the reference mesh, i.e., the mesh representing the average shape.
 mesh = kvlGetMesh( meshCollection, -1 );
@@ -122,12 +142,12 @@ if( showFigures )
   subplot( 2, 2, 2 )
   showImage( mosaicImages( 2^16 - 1 - double( backgroundPrior ), double( imageBuffers(:,:,:,1) ), 10 ) )
 end
-smoothedBackgroundPrior = kvlSmoothImageBuffer( backgroundPrior, brainMaskingSmoothingSigma ./ voxelSpacing );
+smoothedBackgroundPrior = kvlSmoothImageBuffer( backgroundPrior, modelSpecifications.brainMaskingSmoothingSigma ./ voxelSpacing );
 if( showFigures )
   subplot( 2, 2, 3 )
   showImage( smoothedBackgroundPrior )
 end
-brainMask = ( 1 - single( smoothedBackgroundPrior ) / 65535 ) > brainMaskingThreshold;
+brainMask = ( 1 - single( smoothedBackgroundPrior ) / 65535 ) > modelSpecifications.brainMaskingThreshold;
 
 for contrastNumber = 1 : numberOfContrasts
   imageBuffer = imageBuffers( :, :, :, contrastNumber );
@@ -158,41 +178,48 @@ for contrastNumber = 1 : numberOfContrasts
                                                               % 0.1 and 0.35 for my human brain
   buffer = buffer .* mask;
   imageBuffers( :, :, :, contrastNumber ) = buffer;
-  % kvlSetImageBuffer( images( contrastNumber ), imageBuffers( :, :, :, contrastNumber ) );
 end
-
-
-
-%  % Algorithm-wise, we're just estimating sets of parameters for one given data (MR scan) that is
-%  % known and fixed throughout. However, in terms of bias field correction it will be computationally
-%  % much more efficient to pre-compute the bias field corrected version of the scan ("corrected" with
-%  % the current estimate of the bias field) once and pass that on to different routines instead of the
-%  % original data. Initially the bias field estimate is flat everywhere, so it's the same as the original
-%  % image
-%  for contrastNumber = 1 : numberOfContrasts
-%    biasCorrectedImageBuffers( :, :, :, contrastNumber ) = imageBuffers( :, :, :, contrastNumber );
-%    biasCorrectedImages( contrastNumber ) = kvlCreateImage( biasCorrectedImageBuffers( :, :, :, contrastNumber ) );
-%  end
-
 
 
 
 % FreeSurfer (http://surfer.nmr.mgh.harvard.edu) has a standardized way of representation segmentations,
 % both manual and automated, as images in which certain intensity levels correspond to well-defined
 % anatomical structures - for instance an intensity value 17 always corresponds to the left hippocampus.
-% The text file FreeSurferColorLUT.txt distributed with FreeSurfer (a copy of which is found in the
-% Atlas3D source directory) contains all these definitions, as well as a color for each structure in
+% The text file FreeSurferColorLUT.txt distributed with FreeSurfer contains all these definitions, as well 
+% as a color for each structure in
 % RGBA (Red-Green-Blue and Alpha (opaqueness)) format with which FreeSurfer will always represent segmented
 % structures in its visualization tools
-%
-
 %
 % Let's read the contents of this "compressionLookupTable.txt" file, and show the names of the structures
 % being considered. The results are automatically sorted according to their "compressed label", i.e., the
 % first result corresponds to the first entry in the vector of probabilities associated with each node in
 % our atlas mesh.
 [ FreeSurferLabels, names, colors ] = kvlReadCompressionLookupTable( compressionLookupTableFileName );
-names
+
+% Get a Matlab matrix containing a copy of the probability vectors in each mesh node (size numberOfNodes x
+% numberOfLabels ). 
+alphas = kvlGetAlphasInMeshNodes( mesh );
+
+% Remove any structures that don't exist in the data (e.g., half a brain missing in ex vivo images)
+mergeOptions = struct;
+mergeOptions( 1 ).mergedName = 'Unknown';
+mergeOptions( 1 ).searchStrings = modelSpecifications.missingStructureSearchStrings;
+[ alphas, names, FreeSurferLabels, colors ] = kvlMergeAlphas( alphas, names, mergeOptions, FreeSurferLabels, colors );
+kvlSetAlphasInMeshNodes( mesh, alphas );
+
+
+
+% Although we have many labels to segment, and each of these labels has its own Gaussian mixture model
+% whose parameters (mean, variance, mixture weight) we have to estimate from the data, it may makes sense to restrict
+% the degrees of freedom in the model somewhat by specifying that some of these labels have the same parameters
+% governing their Gaussian mixture model. For example, we'd expect no intensity differences between the left and right 
+% part of each structure.
+%
+% Compute the "reduced" alphas - those referring to the "super"-structures. At the same
+% time also build an inverse lookup table (mapping from original class number onto a
+% reduced class number) that we will need to compute the final segmentation.
+[ reducedAlphas, reducedNames, reducedFreeSurferLabels, reducedColors, reducingLookupTable ] = ...
+                            kvlMergeAlphas( alphas, names, modelSpecifications.sharedGMMParameters, FreeSurferLabels, colors );
 
 
 if ( showFigures )
@@ -207,52 +234,17 @@ if ( showFigures )
 end
 
 
-% Although we now have about 41 labels to segment or so, and each of these labels has its own Gaussian distribution
-% whose parameters (mean + variance) we have to estimate from the data, it may makes sense to restrict
-% the degrees of freedom in the model somewhat by specifying that some of these labels have the same parameters
-% governing their Gaussian. For example, we'd expect no intensity differences between the left and right part of
-% each structure.
-%
 
 
-% Note: in order to know for sure what we're doing, the structures to merge into "super"-structures are specified
-% by their FreeSurfer intensity values - you'd effectively have to look up in "compressionLookupTable.txt" what they mean.
-sameGaussianParameters = cell(0,0);
-sameGaussianParameters{1} = [ 0 ];  % Background is a separate classNumber
-sameGaussianParameters{2} = [ 2 7 46 16 41 28 60 85 ]; % Force all white matter structures to have the same intensity model
-sameGaussianParameters{3} = [ 3 8 42 47 11 50 17 53 18 54 26 58 77 80 ]; % Same for several gray matter structures
-sameGaussianParameters{4} = [ 4 5 14 24 15 43 44 72 30 62 31 63 ]; % Same for CSF
-sameGaussianParameters{5} = [ 10 49 ]; % Force left and right thalamus to  have the same intensity model
-sameGaussianParameters{6} = [ 12 51 ]; % Same for putamen
-sameGaussianParameters{7} = [ 13 52 ]; % Same for pallidum
-
-%Decides how many Gaussians you want to use to model each classNumber, this set-up has typically worked for me.
-numberOfGaussiansPerClass=[3 2 3 3 2 2 2]; 
-%  numberOfGaussiansPerClass=[1 1 1 1 1 1 1]; 
-numberOfClasses = length(numberOfGaussiansPerClass);
-
-% Get a Matlab matrix containing a copy of the probability vectors in each mesh node (size numberOfNodes x
-% numberOfLabels ).
-originalAlphas = kvlGetAlphasInMeshNodes( mesh );
-
-% Check that these sum to one.
-assert( max( abs( sum( originalAlphas, 2 ) - 1 ) ) < 1e-5 )
-
-% Compute the "reduced" alphas - those referring to the "super"-structures
-[ reducedAlphas, reducingLookupTable ] = kvlReduceAlphas( originalAlphas, compressionLookupTableFileName, sameGaussianParameters );
-assert( max( abs( sum( reducedAlphas, 2 ) - 1 ) ) < 1e-5 )
-
-% Set the reduced alphas to be the alphas of the mesh
-kvlSetAlphasInMeshNodes( mesh, reducedAlphas );
-
-
-%Initialize classNumber weights, which are at first split evenly
-EMweights=zeros(1,sum(numberOfGaussiansPerClass));
-
-shift=0;
-for classNumber = 1:numberOfClasses
-  EMweights(classNumber + shift : classNumber + shift + numberOfGaussiansPerClass(classNumber) - 1) = 1/numberOfGaussiansPerClass(classNumber);
-  shift = shift + numberOfGaussiansPerClass(classNumber)-1;
+% Initialize classNumber weights, which are at first split evenly
+numberOfGaussiansPerClass = [ modelSpecifications.sharedGMMParameters.numberOfComponents ];
+numberOfClasses = length( numberOfGaussiansPerClass );
+EMweights=zeros( 1, sum( numberOfGaussiansPerClass ) );
+shift = 0;
+for classNumber = 1 : numberOfClasses
+  EMweights( classNumber + shift : classNumber + shift + numberOfGaussiansPerClass( classNumber ) - 1 ) = ...
+                                                                            1 / numberOfGaussiansPerClass( classNumber );
+  shift = shift + numberOfGaussiansPerClass( classNumber ) - 1;
 end
 
 
@@ -306,16 +298,6 @@ if ( showFigures )
   costFigure = figure;
   deformationMovieFigure = figure;
   biasFieldFigure = figure;
-  colorsTMP = zeros(length(numberOfGaussiansPerClass),4);
-  
-  colorsTMP(1,:) = [0 0 0 0];
-  colorsTMP(2,:) = [0 255 0 255];
-  colorsTMP(3,:) = [0 0 255 255];
-  colorsTMP(4,:) = [255 0 0 255];
-  colorsTMP(5,:) = [0 118 14 255];
-  colorsTMP(6,:) = [236 13 176 255];
-  colorsTMP(7,:) = [12 48 255 255];
-  
 end
 
 
@@ -325,12 +307,12 @@ end
 % Multi-resolution is a standard procedure in image registration: the initial
 % blurring avoids getting stuck in the first local optimum of the search space, and get the rough major
 % deformations right instead.
-numberOfMultiResolutionLevels = length( multiResolutionSpecification );
+numberOfMultiResolutionLevels = length( optimizationOptions.multiResolutionSpecification );
 historyWithinEachMultiResolutionLevel = struct( [] );
 for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     
   %  
-  maximumNumberOfIterations = multiResolutionSpecification{ multiResolutionLevel }.maximumNumberOfIterations;
+  maximumNumberOfIterations = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).maximumNumberOfIterations;
   historyOfCost = [ 1/eps ];
   historyOfMaximalDeformationApplied = [];
   historyOfTimeTakenIntensityParameterUpdating = [];
@@ -340,28 +322,39 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   % 
   kvlSetAlphasInMeshNodes( mesh, reducedAlphas )
 
-  % Smooth the mesh using a Gaussian kernel.
-  smoothingSigmas = multiResolutionSpecification{ multiResolutionLevel }.meshSmoothingSigma ./ voxelSpacing; % In voxels
-  fprintf( 'Smoothing mesh with kernel size %f %f %f...', smoothingSigmas( 1 ), smoothingSigmas( 2 ), smoothingSigmas( 3 ) )
-  kvlSmoothMesh( mesh, smoothingSigmas );
-  smoothedReducedAlphas = kvlGetAlphasInMeshNodes( mesh );
-  fprintf( 'done\n' )
-  
-  
   % Downsample the images, the mask, the mesh, and the bias field basis functions
-  downSamplingFactors = max( round( multiResolutionSpecification{ multiResolutionLevel }.targetDownsampledVoxelSpacing ...
+  downSamplingFactors = max( round( optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).targetDownsampledVoxelSpacing ...
                                     ./ voxelSpacing ), [ 1 1 1 ] )
-  downSampledImageBuffers = [];
-  for contrastNumber = 1 : numberOfContrasts
-    downSampledImageBuffers( :, :, :, contrastNumber ) = imageBuffers( 1 : downSamplingFactors( 1 ) : end, ...
-                                                                       1 : downSamplingFactors( 2 ) : end, ...
-                                                                       1 : downSamplingFactors( 3 ) : end, ...
-                                                                       contrastNumber );
-  end
   downSampledMask = mask(  1 : downSamplingFactors( 1 ) : end, ...
                            1 : downSamplingFactors( 2 ) : end, ...
                            1 : downSamplingFactors( 3 ) : end );
   downSampledMaskIndices = find( downSampledMask );                         
+  downSampledImageBuffers = [];
+  for contrastNumber = 1 : numberOfContrasts
+    % if ( multiResolutionLevel == numberOfMultiResolutionLevels )
+    if true
+      % No image smoothing
+      downSampledImageBuffers( :, :, :, contrastNumber ) = imageBuffers( 1 : downSamplingFactors( 1 ) : end, ...
+                                                                         1 : downSamplingFactors( 2 ) : end, ...
+                                                                         1 : downSamplingFactors( 3 ) : end, ...
+                                                                         contrastNumber );
+    else
+      % Try image smoothing
+      buffer = imageBuffers( 1 : downSamplingFactors( 1 ) : end, ...
+                             1 : downSamplingFactors( 2 ) : end, ...
+                             1 : downSamplingFactors( 3 ) : end, ...
+                             contrastNumber );
+      smoothingSigmas = downSamplingFactors / 2 / sqrt( 2 * log( 2 ) ); % Variance chosen to approximately 
+                                                                        % match normalized binomial filter 
+                                                                        % (1/4, 1/2, 1/4) for downsampling 
+                                                                        % factor of 2
+      smoothingSigmas( find( downSamplingFactors == 1 ) ) = 0.0;
+      smoothedBuffer = kvlSmoothImageBuffer( single( buffer ), smoothingSigmas );
+      smoothedMask = kvlSmoothImageBuffer( single( downSampledMask ), smoothingSigmas );     
+      downSampledImageBuffers( :, :, :, contrastNumber ) = downSampledMask .* ( smoothedBuffer ./ ( smoothedMask + eps ) );                                                                     
+    end
+    
+  end
   kvlScaleMesh( mesh, 1./downSamplingFactors );
   downSampledKroneckerProductBasisFunctions = cell( 0, 0 );
   for dimensionNumber = 1 : 3
@@ -369,6 +362,15 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     downSampledKroneckerProductBasisFunctions{ dimensionNumber } = A( 1 : downSamplingFactors( dimensionNumber ) : end, : );
   end
   DIM = size( downSampledImageBuffers( :, :, :, 1 ) );
+  
+  
+  % Smooth the mesh using a Gaussian kernel.
+  smoothingSigmas = optimizationOptions.multiResolutionSpecification( multiResolutionLevel ).meshSmoothingSigma ./ ...
+                    voxelSpacing ./ downSamplingFactors; % In voxels
+  fprintf( 'Smoothing mesh with kernel size %f %f %f...', smoothingSigmas( 1 ), smoothingSigmas( 2 ), smoothingSigmas( 3 ) )
+  kvlSmoothMesh( mesh, smoothingSigmas );
+  smoothedReducedAlphas = kvlGetAlphasInMeshNodes( mesh );
+  fprintf( 'done\n' )
   
   
   % Algorithm-wise, we're just estimating sets of parameters for one given data (MR scan) that is
@@ -394,7 +396,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   % Compute a color coded version of the atlas prior in the atlas's current pose, i.e., *before*
   % we start deforming. We'll use this just for visualization purposes
   if ( showFigures )
-    oldColorCodedPriors = kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( mesh, DIM ), colorsTMP );
+    oldColorCodedPriors = kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( mesh, DIM ), reducedColors );
   end
 
   
@@ -447,11 +449,16 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
           X = X.*sqrt(repmat(prior,[1 numberOfContrasts]));
                     
           sigma = X'*X/( sum( prior ));
+          if modelSpecifications.useDiagonalCovarianceMatrices
+            % Force diagonal covariance matrices
+            sigma = diag( diag( sigma ) );
+          end
+          
           meansPerClass( :, classNumber ) = mean;
           sigmasPerClass(:,:,classNumber) = sigma;
         end
         
-        %Set the means to different values within a classNumber
+        % Set the means to different values within a classNumber
         shift = 0;
         for classNumber = 1:numberOfClasses
           for i = 1:floor(numberOfGaussiansPerClass(classNumber)/2)
@@ -545,8 +552,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
       end % End test multi vs. unicontrast
       
     end % End test need for initialization
-    
-        
+
     % stopCriterionEM = 1e-5;
     historyOfEMCost = [ 1/eps ];
     for EMIterationNumber = 1 : 100
@@ -574,8 +580,63 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
       end
       normalizer = sum( posteriors, 2 ) + eps;
       posteriors = posteriors ./ repmat( normalizer, [ 1 sum( numberOfGaussiansPerClass ) ] );
-            
-            
+      minLogLikelihood = -sum( log( normalizer ) ); 
+      historyOfEMCost = [ historyOfEMCost; minLogLikelihood ];
+      
+      % Show some figures
+      if ( showFigures )
+        shift = 0;
+        for classNumber = 1 : numberOfClasses
+          % if ( numberOfGaussiansPerClass( classNumber ) == 1 )
+          %  continue;
+          % end
+          posterior = zeros( DIM );
+          
+          posterior( downSampledMaskIndices ) = ...
+                   sum( posteriors( :, classNumber + shift : classNumber + shift + numberOfGaussiansPerClass ( classNumber ) - 1 ), ...
+                        2 );
+          shift = shift + numberOfGaussiansPerClass( classNumber ) - 1;
+          figure( posteriorFigure )
+          subplot( 2, 4, classNumber )
+          showImage( posterior )
+        end
+        clear posterior
+        
+        figure( costFigure )
+        subplot( 2, 1, 1 )
+        plot( historyOfEMCost( 2 : end ) )
+        title( 'EM cost' )
+        subplot(2, 1, 2 )
+        plot( historyOfCost( 2 : end ) )
+        title( 'Cost' )
+        
+        figure( biasFieldFigure )
+        for contrastNumber = 1 : numberOfContrasts
+          subplot( numberOfContrasts, 2, ( contrastNumber - 1 ) * numberOfContrasts + 1 )
+          showImage( exp( downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) / 1000 ) );
+          subplot( numberOfContrasts, 2, ( contrastNumber - 1 ) * numberOfContrasts + 2 )
+          downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, ...
+                                                                            biasFieldCoefficients( :, contrastNumber ) );
+          showImage( exp( downSampledBiasField / 1000 ) .* downSampledMask )
+        end
+        drawnow
+
+      end % End test if we need to show some figures
+
+      
+      % Check for convergence
+      % relativeChangeCost = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) /  historyOfEMCost(end)
+      % if ( relativeChangeCost < stopCriterionEM )
+      changeCostPerVoxel = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) / length( downSampledMaskIndices );
+      if ( changeCostPerVoxel < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion )
+        % Converged
+        disp( 'EM converged!' )
+        break;
+      end 
+      
+
+           
+           
       %
       % M-step: update the model parameters based on the current
       % posterior estimate.
@@ -595,7 +656,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
         end
         shift = shift + numberOfGaussiansPerClass( classNumber ) - 1;
       end
-      if ( verbose )
+      if ( optimizationOptions.verbose )
         EMweights
       end
       
@@ -611,6 +672,10 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
             X = X .* sqrt( repmat( posterior, [ 1 numberOfContrasts ] ) );
             % Update using the prior sigma
             sigma = ( X'*X + priorSigma ) / ( 2 * ( numberOfContrasts + 2 ) + sum( posterior ) );
+            if modelSpecifications.useDiagonalCovarianceMatrices
+              % Force diagonal covariance matrices
+              sigma = diag( diag( sigma ) );
+            end
             
             means( :, classNumber + shift + gaussian - 1 ) = mean;
             sigmas( :, :, classNumber + shift + gaussian -1 ) = sigma;
@@ -630,7 +695,10 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
       % multi-resolution level, where the atlas is really smooth; for subsequent multi-resolution
       % levels the bias field parameters are kept fixed to their values estimated at the very first
       % level. 
-      if ( multiResolutionLevel == 1 )
+      %  if ( ( multiResolutionLevel == 1 ) && ( iterationNumber ~= 1 ) ) % Don't attempt bias field correction until 
+      %                                                                    % decent mixture model parameters are available  
+      if ( iterationNumber ~= 1 ) % Don't attempt bias field correction until 
+                                  % decent mixture model parameters are available  
 
         % TODO: the fact that means and variances are not consistent across cases numberOfContrasts ~= 1
         % is driving me nuts: not only "variances" vs. "sigmas", but also dimensions! For now I'll work
@@ -692,6 +760,8 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
                           
         end % End loop over contrastNumber1
         
+        % lhs = lhs + diag( 0.001 * diag( lhs ) );
+        
         biasFieldCoefficients = reshape( lhs \ rhs, [ prod( numberOfBasisFunctions ) numberOfContrasts ] );
         for contrastNumber = 1 : numberOfContrasts
           downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, biasFieldCoefficients( :, contrastNumber ) );
@@ -702,60 +772,6 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
 
       end % End test if multiResolutionLevel == 1
     
-      minLogLikelihood = -sum( log( normalizer ) ); 
-      historyOfEMCost = [ historyOfEMCost; minLogLikelihood ];
-      
-      
-      % Check for convergence
-      % relativeChangeCost = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) /  historyOfEMCost(end)
-      % if ( relativeChangeCost < stopCriterionEM )
-      changeCostPerVoxel = ( historyOfEMCost(end-1) - historyOfEMCost(end) ) / length( downSampledMaskIndices );
-      if ( changeCostPerVoxel < absoluteCostPerVoxelDecreaseStopCriterion )
-        % Converged
-        disp( 'EM converged!' )
-        break;
-      end 
-      
-
-      % Show some figures
-      if ( showFigures )
-        shift = 0;
-        for classNumber = 1 : numberOfClasses
-          if ( numberOfGaussiansPerClass( classNumber ) == 1 )
-            continue;
-          end
-          posterior = zeros( DIM );
-          
-          posterior( downSampledMaskIndices ) = ...
-                   sum( posteriors( :, classNumber + shift : classNumber + shift + numberOfGaussiansPerClass ( classNumber ) - 1 ), ...
-                        2 );
-          shift = shift + numberOfGaussiansPerClass( classNumber ) - 1;
-          figure( posteriorFigure )
-          subplot( 2, 4, classNumber )
-          showImage( posterior )
-        end
-        clear posterior
-        
-        figure( costFigure )
-        subplot( 2, 1, 1 )
-        plot( historyOfEMCost( 2 : end ) )
-        title( 'EM cost' )
-        subplot(2, 1, 2 )
-        plot( historyOfCost( 2 : end ) )
-        title( 'Cost' )
-        
-        figure( biasFieldFigure )
-        for contrastNumber = 1 : numberOfContrasts
-          subplot( numberOfContrasts, 2, ( contrastNumber - 1 ) * numberOfContrasts + 1 )
-          showImage( exp( downSampledBiasCorrectedImageBuffers( :, :, :, contrastNumber ) / 1000 ) );
-          subplot( numberOfContrasts, 2, ( contrastNumber - 1 ) * numberOfContrasts + 2 )
-          downSampledBiasField = backprojectKroneckerProductBasisFunctions( downSampledKroneckerProductBasisFunctions, ...
-                                                                            biasFieldCoefficients( :, contrastNumber ) );
-          showImage( exp( downSampledBiasField / 1000 ) .* downSampledMask )
-        end
-        drawnow
-
-      end % End test if we need to show some figures
       
     end % End EM iterations
     historyOfEMCost = historyOfEMCost( 2 : end );
@@ -844,12 +860,12 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     %optimizerType = 'ConjugateGradient';
     optimizerType = 'L-BFGS';
     optimizer = kvlGetOptimizer( optimizerType, mesh, calculator, ...
-                                    'Verbose', verbose, ...
-                                    'MaximalDeformationStopCriterion', maximalDeformationStopCriterion, ... 
+                                    'Verbose', optimizationOptions.verbose, ...
+                                    'MaximalDeformationStopCriterion', optimizationOptions.maximalDeformationStopCriterion, ... 
                                     'LineSearchMaximalDeformationIntervalStopCriterion', ...
-                                      lineSearchMaximalDeformationIntervalStopCriterion, ...
-                                    'MaximumNumberOfIterations', maximumNumberOfDeformationIterations, ... 
-                                    'BFGS-MaximumMemoryLength', BFGSMaximumMemoryLength );
+                                      optimizationOptions.lineSearchMaximalDeformationIntervalStopCriterion, ...
+                                    'MaximumNumberOfIterations', optimizationOptions.maximumNumberOfDeformationIterations, ... 
+                                    'BFGS-MaximumMemoryLength', optimizationOptions.BFGSMaximumMemoryLength );
 
     historyOfDeformationCost = [];
     historyOfMaximalDeformation = [];
@@ -890,14 +906,25 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     if ( showFigures )
       figure( deformationMovieFigure )
       kvlSetAlphasInMeshNodes( mesh, smoothedReducedAlphas );
-      newColorCodedPriors = kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( mesh, DIM ),colorsTMP );
+      newColorCodedPriors = kvlColorCodeProbabilityImages( kvlRasterizeAtlasMesh( mesh, DIM ), reducedColors );
       
       set( deformationMovieFigure, 'position', get( 0, 'ScreenSize' ) );
       for i = 1 : 10
-        showImage( oldColorCodedPriors )
+        priorVisualizationAlpha = 0.4;
+        backgroundImage = exp( downSampledImageBuffers( :, :, :, 1 ) / 1000 );
+        backgroundImage = backgroundImage - min( backgroundImage(:) );
+        backgroundImage = backgroundImage / max( backgroundImage(:) );
+
+        % showImage( oldColorCodedPriors )
+        imageToShow = ( 1 - priorVisualizationAlpha ) * repmat( backgroundImage, [ 1 1 1 3 ] ) + ...
+                      priorVisualizationAlpha * oldColorCodedPriors;
+        showImage( imageToShow )
         drawnow
         pause( 0.1 )
-        showImage( newColorCodedPriors )
+        % showImage( newColorCodedPriors )
+        imageToShow = ( 1 - priorVisualizationAlpha ) * repmat( backgroundImage, [ 1 1 1 3 ] ) + ...
+                      priorVisualizationAlpha * newColorCodedPriors;
+        showImage( imageToShow )
         drawnow
         pause( 0.1 )
       end
@@ -933,7 +960,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
     %          < relativeCostDecreaseStopCriterion ) || ...
     %        ( maximalDeformationApplied < maximalDeformationAppliedStopCriterion ) )
     if ( ( ( ( historyOfCost( end-1 ) - historyOfCost( end ) ) / length( downSampledMaskIndices ) ) ...
-           < absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
+           < optimizationOptions.absoluteCostPerVoxelDecreaseStopCriterion ) ) % If EM converges in one iteration and mesh node optimization doesn't do anything
          
       % Converged
       break;
@@ -959,7 +986,7 @@ for multiResolutionLevel = 1 : numberOfMultiResolutionLevels
   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).historyOfTimeTakenDeformationUpdating = ...
                                                                       historyOfTimeTakenDeformationUpdating;
   historyWithinEachMultiResolutionLevel( multiResolutionLevel ).priorsAtEnd = priors;                                                                   
-  
+  historyWithinEachMultiResolutionLevel( multiResolutionLevel ).posteriorsAtEnd = posteriors;
     
 end % End loop over multiresolution levels
 
@@ -988,8 +1015,8 @@ end
 
 
 % Undo the collapsing of several structures into "super"-structures
-kvlSetAlphasInMeshNodes( mesh, originalAlphas )
-numberOfClasses = size( originalAlphas, 2 );
+kvlSetAlphasInMeshNodes( mesh, alphas )
+numberOfClasses = size( alphas, 2 );
 
 
 % Get the priors as dictated by the current mesh position

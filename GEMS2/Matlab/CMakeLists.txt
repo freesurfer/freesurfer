@@ -7,8 +7,8 @@ MATLAB_ADD_MEX( NAME kvlGEMSMatlab
 # Copy some scripts
 CONFIGURE_FILE( kvlReadCompressionLookupTable.m
   ${GEMS_LIBRARY_PATH}/kvlReadCompressionLookupTable.m COPYONLY )
-CONFIGURE_FILE( kvlReduceAlphas.m
-  ${GEMS_LIBRARY_PATH}/kvlReduceAlphas.m COPYONLY )
+CONFIGURE_FILE( kvlMergeAlphas.m
+  ${GEMS_LIBRARY_PATH}/kvlMergeAlphas.m COPYONLY )
 CONFIGURE_FILE( showImage.m
   ${GEMS_LIBRARY_PATH}/showImage.m COPYONLY )
 CONFIGURE_FILE( kvlColorCodeProbabilityImages.m
