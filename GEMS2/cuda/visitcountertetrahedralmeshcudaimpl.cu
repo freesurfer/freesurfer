@@ -7,17 +7,21 @@
 const unsigned int nDims = 3;
 const unsigned int nVertices = 4;
 
-template<typename T,typename Internal>
 class VisitCounterAction {
 public:
+  VisitCounterAction(kvl::cuda::Image_GPU<int,3,unsigned short> target) : output(target) {} 
+
+  template<typename T, typename Internal, typename IndexType>
   __device__
-  void operator()( kvl::cuda::Image_GPU<int,3,unsigned short>& output,
-		   const SimpleSharedTetrahedron<T,Internal>& tet,
-		   const unsigned short iz,
-		   const unsigned short iy,
-		   const unsigned short ix ) const {
-    atomicAdd(&output(iz,iy,ix),1);
+  void operator()( const SimpleSharedTetrahedron<T,Internal>& tet,
+		   const IndexType iz,
+		   const IndexType iy,
+		   const IndexType ix ) {
+    atomicAdd(&(this->output(iz,iy,ix)),1);
   }
+
+private:
+  kvl::cuda::Image_GPU<int,3,unsigned short> output;
 };
 
 // Largely copied from visitcountersimplecudaimpl.cu
@@ -26,7 +30,7 @@ template<typename T,typename Internal,typename MeshSupplier, typename VertexActi
 __global__
 void TetrahedronInteriorKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output,
 				const MeshSupplier mesh,
-				const VertexAction action ) {
+				VertexAction action ) {
   const size_t iTet = blockIdx.x + (gridDim.x * blockIdx.y);
   
   // Check if this block has an assigned tetrahedron
@@ -60,7 +64,7 @@ void TetrahedronInteriorKernel( kvl::cuda::Image_GPU<int,3,unsigned short> outpu
 	  bool inside = tet.PointInside(ix,iy,iz);
 	  
 	  if( inside ) {
-	    action(output, tet, iz, iy, ix );
+	    action(tet, iz, iy, ix );
 	  }
 	}
       }
@@ -101,14 +105,14 @@ namespace kvl {
       threads.y = nThreadsy;
       threads.z = nThreadsz;
       
-      VisitCounterAction<double,double> vca;
+      VisitCounterAction vca(d_output.getArg());
 
       // Run the kernel
       auto err = cudaGetLastError();
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
       }
-      TetrahedronInteriorKernel<double,double,kvl::cuda::TetrahedralMesh_GPU<double,unsigned long>,VisitCounterAction<double,double> ><<<grid,threads>>>( d_output.getArg(), ctm.getArg(), vca );
+      TetrahedronInteriorKernel<double,double,kvl::cuda::TetrahedralMesh_GPU<double,unsigned long>,VisitCounterAction><<<grid,threads>>>( d_output.getArg(), ctm.getArg(), vca );
       err = cudaDeviceSynchronize();
       if( cudaSuccess != err ) {
 	throw CUDAException(err);
