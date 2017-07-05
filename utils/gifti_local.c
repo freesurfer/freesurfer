@@ -662,6 +662,9 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
       mris->hemisphere = NO_HEMISPHERE;
     }
 
+    /* gifti uses real RAS by default */
+    mris->useRealRAS = 1;
+
     /* retrieve volume geometry info */
     {
       int vgvalid = 0; // there are a total of 18 values
