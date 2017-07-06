@@ -308,6 +308,7 @@ main(int argc, char *argv[])
     for (max_len = 1.5*8 ; max_len > 1 ; max_len /= 2)
       while (MRISdivideLongEdges(mris_corrected, max_len) > 0) {}
 
+  MRIScopyVolGeomFromMRI(mris_corrected, mri_wm) ;
   if (write_inflated)
   {
     MRISrestoreVertexPositions(mris_corrected, TMP_VERTICES) ;
