@@ -1821,7 +1821,7 @@ MRInormFindControlPointsInWindow(MRI *mri_src,
                                  MRI  *mri_not_control)
 {
   int  width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, *pxi, *pyi;
-  int  *pzi, ctrl, nctrl, val0, val, whalf;
+  int  *pzi, ctrl, nctrl, val0, val = 0, whalf;
   float low_thresh, hi_thresh ;
 
   whalf = nint(whalf_mm / mri_src->xsize) ;
