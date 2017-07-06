@@ -4023,7 +4023,7 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, in
     LabelRealloc(area, nint(1.5*area->n_points)) ;
   n = area->n_points++ ;
   lv = &area->lv[n] ;
-  lv->xv = xv ; lv->yv = yv ; lv->zv = zv ;
+  lv->xv = xv ; lv->yv = yv ; lv->zv = zv ; lv->vno = -1 ;
   if (area->mri_template)
   {
     MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
