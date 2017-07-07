@@ -583,6 +583,8 @@ bool LayerCollection::SetSlicePosition( double* slicePos )
 
 bool LayerCollection::SetSlicePosition( int nPlane, int nSliceNumber )
 {
+  Q_UNUSED(nPlane);
+  Q_UNUSED(nSliceNumber);
   return true;
 }
 

@@ -200,6 +200,13 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   for (int i = 0; i < 4; i++)
     connect(ui->widgetAllLayers, SIGNAL(CurrentLayerSelected(Layer*)), m_views[i], SLOT(SetScalarBarLayer(Layer*)));
 
+  connect(m_layerCollections["MRI"], SIGNAL(LayerAdded(Layer*)), m_views[3], SLOT(OnLayerVisibilityChanged()));
+  connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)), m_views[3], SLOT(OnLayerVisibilityChanged()));
+  connect(m_layerCollections["MRI"], SIGNAL(LayerVisibilityChanged()), m_views[3], SLOT(OnLayerVisibilityChanged()));
+  connect(m_layerCollections["Surface"], SIGNAL(LayerAdded(Layer*)), m_views[3], SLOT(OnLayerVisibilityChanged()));
+  connect(m_layerCollections["Surface"], SIGNAL(LayerRemoved(Layer*)), m_views[3], SLOT(OnLayerVisibilityChanged()));
+  connect(m_layerCollections["Surface"], SIGNAL(LayerVisibilityChanged()), m_views[3], SLOT(OnLayerVisibilityChanged()));
+
   m_dlgCropVolume = new DialogCropVolume(this);
   m_dlgCropVolume->hide();
   connect(m_volumeCropper, SIGNAL(CropBoundChanged(LayerMRI*)),
