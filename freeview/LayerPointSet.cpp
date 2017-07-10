@@ -229,6 +229,7 @@ void LayerPointSet::Append2DProps( vtkRenderer* renderer, int nPlane )
 
 void LayerPointSet::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
+
   renderer->AddViewProp( m_actorSpline );
   renderer->AddViewProp( m_actorBalls );
 }

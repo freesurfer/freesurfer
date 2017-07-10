@@ -185,7 +185,9 @@ bool FSSurface::MRISRead( const QString& filename,
     return false;
   }
   else
+  {
     return InitializeData(vector_filename, patch_filename, target_filename, sup_files);
+  }
 }
 
 bool FSSurface::CreateFromMRIS(MRIS *mris)

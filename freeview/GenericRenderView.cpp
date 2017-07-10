@@ -195,6 +195,7 @@ void GenericRenderView::RenderSelf()
 
 void GenericRenderView::RefreshAllActors(bool bForScreenshot)
 {
+  Q_UNUSED(bForScreenshot);
   emit ActorsUpdated();
 }
 

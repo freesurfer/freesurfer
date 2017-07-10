@@ -524,6 +524,7 @@ void LayerMRI::DoTransform(double *m, int sample_method)
 
 void LayerMRI::DoTransform(int sample_method)
 {
+  Q_UNUSED(sample_method);
   bool bTransformed = IsTransformed();
   UpdateResliceInterpolation();
   vtkTransform* slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
@@ -1268,7 +1269,6 @@ double LayerMRI::GetSampledVoxelValueByRAS(double* ras, int frame)
 
 std::vector<double> LayerMRI::GetSampledVoxelValues(std::vector<std::vector<double> > &line3d, int frame)
 {
-  MRI* mri = m_volumeSource->GetMRI();
   std::vector<double> vals;
   for (size_t i = 0; i < line3d.size(); i++)
   {
@@ -2246,7 +2246,6 @@ bool LayerMRI::GetVoxelStatsByTargetRAS(QList<float> &coords, double* mean_out, 
 {
   double* orig = m_imageData->GetOrigin();
   double* vsize = m_imageData->GetSpacing();
-  int* ext = m_imageData->GetExtent();
 
   QList<int> indices;
   for (int i = 0; i < coords.size(); i+=3)
@@ -3138,11 +3137,11 @@ void LayerMRI::UpdateProjectionMap()
       if (nRange[i*2+1] < 0)
         nRange[i*2+1] = m_dim[i]-1;
     }
-    for (size_t x = 0; x < m_dim[0]; x++)
+    for (size_t x = 0; x < (size_t)m_dim[0]; x++)
     {
-      for (size_t y = 0; y < m_dim[1]; y++)
+      for (size_t y = 0; y < (size_t)m_dim[1]; y++)
       {
-        for (size_t z = 0; z < m_dim[2]; z++)
+        for (size_t z = 0; z < (size_t)m_dim[2]; z++)
         {
           float val = ptr[z*m_dim[0]*m_dim[1]+y*m_dim[0]+x];
           if (nType == LayerPropertyMRI::PM_Maximum)

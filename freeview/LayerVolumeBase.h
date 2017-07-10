@@ -71,7 +71,7 @@ public:
 
   int GetBrushRadius();
 
-  virtual void UpdateVoxelValueRange( double fValue ) {}
+  virtual void UpdateVoxelValueRange( double fValue ) { Q_UNUSED(fValue); }
 
   virtual int GetActiveFrame()
   {
