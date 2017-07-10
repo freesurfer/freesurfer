@@ -310,6 +310,7 @@ bool LayerSurface::WriteIntersection(const QString &filename, int nPlane, LayerM
     }
     cout << "Intersection data written to " << qPrintable(filename) << "\n";
   }
+  return true;
 }
 
 bool LayerSurface::LoadVectorFromFile( )
@@ -2017,6 +2018,7 @@ bool LayerSurface::GetActiveLabelCentroidPosition(double *pos)
   {
     return GetTargetAtVertex(nvo, pos);
   }
+  return false;
 }
 
 void LayerSurface::RemoveCurrentOverlay()

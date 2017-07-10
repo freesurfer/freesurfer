@@ -365,6 +365,7 @@ bool LayerROI::HasProp( vtkProp* prop )
 
 bool LayerROI::DoRotate( std::vector<RotationElement>& rotations )
 {
+  Q_UNUSED(rotations);
   m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
   return true;
 }
@@ -672,5 +673,6 @@ void LayerROI::Redo()
 
 void LayerROI::SaveForUndo(int nPlane)
 {
+  Q_UNUSED(nPlane);
   m_label->SaveForUndo();
 }

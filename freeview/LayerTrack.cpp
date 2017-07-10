@@ -107,11 +107,13 @@ bool LayerTrack::LoadTrackFromFile()
 
 void LayerTrack::Append2DProps(vtkRenderer *renderer, int nPlane)
 {
-
+  Q_UNUSED(renderer);
+  Q_UNUSED(nPlane);
 }
 
 void LayerTrack::Append3DProps(vtkRenderer *renderer, bool *bPlaneVisibility)
 {
+  Q_UNUSED(bPlaneVisibility);
   foreach (vtkActor* actor, m_actors)
     renderer->AddViewProp(actor);
 }
@@ -129,7 +131,7 @@ bool LayerTrack::HasProp(vtkProp *prop)
 
 void LayerTrack::OnSlicePositionChanged(int nPlane)
 {
-
+  Q_UNUSED(nPlane);
 }
 
 void LayerTrack::RebuildActors()

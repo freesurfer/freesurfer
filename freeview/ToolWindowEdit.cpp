@@ -130,6 +130,7 @@ ToolWindowEdit::~ToolWindowEdit()
 
 void ToolWindowEdit::showEvent(QShowEvent* event)
 {
+  Q_UNUSED(event);
   static bool bFirstTime = true;
   if ( bFirstTime )
   {

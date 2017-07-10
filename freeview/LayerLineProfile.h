@@ -26,7 +26,8 @@ public:
   }
 
   void Append2DProps( vtkRenderer* renderer, int nPlane );
-  void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL ) {}
+  void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL )
+  { Q_UNUSED(renderer); Q_UNUSED(bPlaneVisibility); }
 
   bool HasProp( vtkProp* prop );
 

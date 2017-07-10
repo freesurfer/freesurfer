@@ -67,6 +67,7 @@ WindowTimeCourse::~WindowTimeCourse()
 
 void WindowTimeCourse::showEvent(QShowEvent *e)
 {
+  Q_UNUSED(e);
   UpdateData(true);
 }
 

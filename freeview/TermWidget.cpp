@@ -38,12 +38,14 @@ char stderr_buffer[BUFFER_SIZE] = {0};
 
 void outcallback( const char* ptr, std::streamsize count, void* pBuffer )
 {
+  Q_UNUSED(count)
   QString* str = static_cast<QString*>(pBuffer);
   *str += ptr;
 }
 
 void errcallback( const char* ptr, std::streamsize count, void* pBuffer )
 {
+  Q_UNUSED(count)
   QString* str = static_cast<QString*>(pBuffer);
   *str += ptr;
 }

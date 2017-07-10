@@ -713,6 +713,7 @@ void PanelSurface::OnComboVector( int nSel )
 
 void PanelSurface::OnComboSpline(int nSel)
 {
+  Q_UNUSED(nSel);
   //  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   //  if ( surf )
   //  {

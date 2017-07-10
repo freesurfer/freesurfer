@@ -454,12 +454,16 @@ void RenderView2D::DeleteRegion( Region2D* region )
 void RenderView2D::MoveSlice( int nStep )
 {
   MainWindow* mainWnd = MainWindow::GetMainWindow();
-  LayerCollection* lc_mri = mainWnd->GetLayerCollection( "MRI" );
-  double* voxelSize = lc_mri->GetWorldVoxelSize();
-  int nPlane = GetViewPlane();
-  mainWnd->OffsetSlicePosition( nPlane, voxelSize[nPlane]*nStep );
-  lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
-  UpdateAnnotation();
+  LayerMRI* mri = qobject_cast<LayerMRI*>(mainWnd->GetActiveLayer("MRI"));
+  if (mri)
+  {
+    double* voxelSize = mri->GetWorldVoxelSize();
+    int nPlane = GetViewPlane();
+    mainWnd->OffsetSlicePosition( nPlane, voxelSize[nPlane]*nStep );
+    LayerCollection* lc_mri = mainWnd->GetLayerCollection("MRI");
+    lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
+    UpdateAnnotation();
+  }
 }
 
 void RenderView2D::SyncZoomTo( RenderView2D* view )

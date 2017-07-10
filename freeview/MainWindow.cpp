@@ -2825,8 +2825,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     if (nOverlay == 0)    // first one is not overlay file but actually surface file
       surface_fn = sa_fn[0];
     bool bLoadAll = false;
-    bool bLabelOutline = false;
-    QString labelColor;
+//    bool bLabelOutline = false;
+//    QString labelColor;
     QString overlay_reg;
     QString overlay_opacity;
     QString overlay_frame;
@@ -3367,6 +3367,7 @@ void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
 
 void MainWindow::CommandHideSurfaceLabel(const QStringList &cmd)
 {
+  Q_UNUSED(cmd);
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( surf && surf->GetActiveLabel())
   {
@@ -4106,6 +4107,7 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
 
 void MainWindow::CommandFlyThrough(const QStringList &cmd)
 {
+  Q_UNUSED(cmd);
   if (GetMainViewId() > 2)
   {
     cerr << "Can not fly through. Please set main viewport to 2D slice view.\n";

@@ -93,6 +93,7 @@ bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
                                    bool bAntiAliasing,
                                    int nMag )
 {
+  Q_UNUSED(bAntiAliasing);
   QString fn = filename;
   vtkImageWriter* writer = 0;
   QString ext = QFileInfo(filename).suffix();
@@ -213,6 +214,7 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
                                          int labelIndex,
                                          vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample )
 {
+  Q_UNUSED(ext);
   int i = labelIndex;
   vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
   threshold->SetInput( data_in );
@@ -267,8 +269,9 @@ bool MyVTKUtils::BuildLabelContourActor( vtkImageData* data_in,
                                          const QList<int>& labelIndices,
                                          vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions, bool bUpsample )
 {
-  double nValue = 1;
-  int nSwell = 2;
+  Q_UNUSED(ext);
+//  double nValue = 1;
+//  int nSwell = 2;
 
   vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
   foreach (int i, labelIndices)

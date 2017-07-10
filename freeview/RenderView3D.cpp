@@ -149,6 +149,7 @@ void RenderView3D::SetInteractionMode( int nMode )
 
 void RenderView3D::OnSlicePositionChanged(bool bCenter)
 {
+  Q_UNUSED(bCenter);
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
 //  LayerSurface* surf = (LayerSurface*)MainWindow::GetMainWindow()->GetActiveLayer("Surface");
 //  m_cursorInflatedSurf->Show(m_cursor3D->IsShown() && surf && surf->IsInflated());
@@ -1414,7 +1415,7 @@ void RenderView3D::SetCamera(const QVariantMap &info)
     if (!info.contains("Position") || !info.contains("FocalPoint") ||
         !info.contains("ViewUp") || !info.contains("ViewAngle"))
       return;
-    double pos[3], focal_pt[3], view_up[3], clip_range[2];
+    double pos[3], focal_pt[3], view_up[3];
     QVariantMap map = info["Position"].toMap();
     pos[0] = map["x"].toDouble();
     pos[1] = map["y"].toDouble();
@@ -1446,7 +1447,7 @@ QVariantMap RenderView3D::GetCamera()
   vtkCamera* cam = m_renderer->GetActiveCamera();
   if (cam)
   {
-    double pos[3], focal_pt[3], view_up[3],clip_range[2];
+    double pos[3], focal_pt[3], view_up[3];
     cam->GetPosition(pos);
     cam->GetFocalPoint(focal_pt);
     cam->GetViewUp(view_up);

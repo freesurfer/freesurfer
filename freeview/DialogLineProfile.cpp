@@ -230,7 +230,7 @@ void DialogLineProfile::OnLoad()
 
 void DialogLineProfile::OnComboIsoLine(int sel)
 {
-
+  Q_UNUSED(sel);
 }
 
 void DialogLineProfile::UpdatePointSetList()

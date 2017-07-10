@@ -97,7 +97,7 @@ void LayerLineProfile::SetSourceLayers(LayerPointSet *line1, LayerPointSet *line
 
 void LayerLineProfile::OnSlicePositionChanged(int nPlane)
 {
-
+  Q_UNUSED(nPlane);
 }
 
 void LayerLineProfile::UpdateColor()
