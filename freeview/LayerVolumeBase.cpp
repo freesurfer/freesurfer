@@ -701,8 +701,8 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
             else
             {
               MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, n[nPlane], i, j, nActiveComp, scalar_type, bAdd ? m_fFillValue : m_fBlankValue );
-              voxel_list << n[nPlane] << i << j;
             }
+            voxel_list << n[nPlane] << i << j;
           }
         }
         ncnt++;
@@ -734,8 +734,8 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
             else
             {
               MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, i, n[nPlane], j, nActiveComp, scalar_type, bAdd ? m_fFillValue : m_fBlankValue );
-              voxel_list << i << n[nPlane] << j;
             }
+            voxel_list << i << n[nPlane] << j;
           }
         }
         ncnt++;
@@ -767,8 +767,8 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
             else
             {
               MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, i, j, n[nPlane], nActiveComp, scalar_type, bAdd ? m_fFillValue : m_fBlankValue );
-              voxel_list << i << j << n[nPlane];
             }
+            voxel_list << i << j << n[nPlane];
           }
         }
         ncnt++;
