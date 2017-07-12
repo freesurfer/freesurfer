@@ -71,6 +71,7 @@ LABEL ;
 #define LABEL_COORDS_TKREG_RAS    1
 #define LABEL_COORDS_SCANNER_RAS  2
 #define LABEL_COORDS_VOXEL        3
+#define LABEL_COORDS_SURFACE_RAS  4
 
 #include "mrisurf.h" // MRI_SURFACE, MRIS
 
