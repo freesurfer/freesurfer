@@ -2701,9 +2701,9 @@ MHBT * MHTgetBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv)
 //-------------------------------------------------------------------
   MHBT    *bucket ;
 
-  if (  xv >= FIELD_OF_VIEW
-        || yv >= FIELD_OF_VIEW
-        || zv >= FIELD_OF_VIEW
+  if (  xv >= TABLE_SIZE
+        || yv >= TABLE_SIZE
+        || zv >= TABLE_SIZE
         || xv <  0
         || yv <  0
         || zv <  0)
@@ -2720,7 +2720,7 @@ MHBT * MHTgetBucketAtVoxIx(MRIS_HASH_TABLE *mht, int xv, int yv, int zv)
 }
 
 /*------------------------------------------------
-  MHT_gw_version
+  MH_gw_version
   Confidence check that correct version of code is
   compiled in;
   ------------------------------------------------*/
