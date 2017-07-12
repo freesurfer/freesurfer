@@ -33,6 +33,7 @@
 #include "mri.h"
 #include "macros.h"
 #include "error.h"
+#include "fsinit.h"
 #include "diag.h"
 #include "proto.h"
 #include "mrisurf.h"
@@ -51,6 +52,9 @@ static int use_thickness = 0 ;
 static int nsurfaces = 1 ;
 static char *thickness_name = "thickness" ;
 static char *pial_name = "pial" ;
+static int nbrs = 2 ;
+
+static char *orig_name = NULL ;
 
 int
 main(int argc, char *argv[])
@@ -69,6 +73,7 @@ main(int argc, char *argv[])
   parms.integration_type = INTEGRATE_MOMENTUM ;
   parms.min_averages = 0 ;
   parms.l_surf_repulse = .0 ;
+  parms.l_repulse = 0.025 ;
   parms.dt = 0.25 ;
 
   /* rkt: check for and handle version tag */
@@ -81,6 +86,7 @@ main(int argc, char *argv[])
   argc -= nargs;
 
   Progname = argv[0] ;
+  FSinit() ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
@@ -107,6 +113,16 @@ main(int argc, char *argv[])
   else
     strcpy(parms.base_name, "expanded") ;
 
+  if (Gdiag & DIAG_WRITE)
+  {
+    char log_fname[STRLEN] ;
+    sprintf(log_fname, "%s.log", fname) ;
+    parms.fp = fopen(log_fname, "w") ;
+    if (parms.fp)
+      printf("writing log results to %s\n", log_fname) ;
+    else
+      ErrorExit(ERROR_BADPARM, "%s: could not open log file %s", Progname, log_fname) ;
+  }
   if (use_thickness)
     printf("expanding surface %s by %2.1f%% of thickness "
            "and writing it to %s\n",
@@ -118,6 +134,10 @@ main(int argc, char *argv[])
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: MRISread(%s) failed", Progname, in_fname);
   
+  if (nbrs > 1)
+  {
+    MRISsetNeighborhoodSize(mris, nbrs) ;
+  }
   if (use_thickness)
   {
     printf("reading thickness...\n") ;
@@ -135,7 +155,13 @@ main(int argc, char *argv[])
     MRISripZeroThicknessRegions(mris) ;
   }
   MRIScomputeMetricProperties(mris) ;
-  MRISstoreMetricProperties(mris) ;
+  if (orig_name)
+    MRISreadOriginalProperties(mris, orig_name) ;
+  else
+    MRISstoreMetricProperties(mris) ;
+
+  if (parms.mri_brain && FZERO(mris->vg.xsize))
+    MRIScopyVolGeomFromMRI(mris, parms.mri_brain) ;
   MRISexpandSurface(mris, mm_out, &parms, use_thickness, nsurfaces);
 #if 0
   if (navgs > 0)
@@ -176,6 +202,30 @@ get_option(int argc, char *argv[])
     use_thickness = 1 ;
     printf("using distance as a %% of thickness\n") ;
   }
+  else if (!stricmp(option, "convex"))
+  {
+    sscanf(argv[2], "%f", &parms.l_convex) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_convex = %2.3f\n", parms.l_convex) ;
+  }
+  else if (!stricmp(option, "norm"))
+  {
+    sscanf(argv[2], "%f", &parms.l_norm) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_norm = %2.3f\n", parms.l_norm) ;
+  }
+  else if (!stricmp(option, "max_spring"))
+  {
+    sscanf(argv[2], "%f", &parms.l_max_spring) ;
+    nargs = 1 ;
+    fprintf(stderr, "using l_max_spring = %2.3f\n", parms.l_max_spring) ;
+  }
+  else if (!stricmp(option, "nbrs"))
+  {
+    nbrs = atoi(argv[2]) ;
+    fprintf(stderr,  "using neighborhood size = %d\n", nbrs) ;
+    nargs = 1 ;
+  }
   else if (!stricmp(option, "thickness_name"))
   {
     thickness_name = argv[2] ;
@@ -186,7 +236,7 @@ get_option(int argc, char *argv[])
   {
     parms.n_averages = atof(argv[2]) ;
     parms.min_averages = atoi(argv[3]) ;
-    printf("using n_averaged %d --> %d\n", parms.n_averages, parms.min_averages) ;
+    printf("using n_averages %d --> %d\n", parms.n_averages, parms.min_averages) ;
     nargs = 2 ;
   }
   else if (!stricmp(option, "intensity"))
@@ -198,6 +248,60 @@ get_option(int argc, char *argv[])
     printf("cropping target locations to at intensity %2.0f in %s\n", parms.target_intensity, argv[3]) ;
     nargs = 2 ;
   }
+  else if (!stricmp(option, "curv"))
+  {
+    parms.l_curv = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_curv = %2.3f\n", parms.l_curv) ;
+  }
+  else if (!stricmp(option, "location"))
+  {
+    parms.l_location = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_location = %2.3f\n", parms.l_location) ;
+  }
+  else if (!stricmp(option, "nspring"))
+  {
+    parms.l_nspring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_nspring = %2.3f\n", parms.l_nspring) ;
+  }
+  else if (!stricmp(option, "angle"))
+  {
+    parms.l_angle = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_angle = %2.3f\n", parms.l_angle) ;
+  }
+  else if (!stricmp(option, "pangle"))
+  {
+    parms.l_pangle = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_angle = %2.3f\n", parms.l_pangle) ;
+  }
+  else if (!stricmp(option, "spring_norm"))
+  {
+    parms.l_spring_norm = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_spring_norm = %2.3f\n", parms.l_spring_norm) ;
+  }
+  else if (!stricmp(option, "nltspring"))
+  {
+    parms.l_nltspring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_nltspring = %2.3f\n", parms.l_nltspring) ;
+  }
+  else if (!stricmp(option, "tspring"))
+  {
+    parms.l_tspring = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_tspring = %2.3f\n", parms.l_tspring) ;
+  }
+  else if (!stricmp(option, "surf_repulse"))
+  {
+    parms.l_surf_repulse = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr, "l_surf_repulse = %2.3f\n", parms.l_surf_repulse) ;
+  }
   else if (!stricmp(option, "pial"))
   {
     pial_name = argv[2] ;
@@ -206,6 +310,11 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
     {
+    case 'O':
+      orig_name = argv[2] ;
+      nargs = 1 ;
+      printf("reading original metric properties from %s\n", orig_name) ;
+      break ;
     case '?':
     case 'U':
       usage_exit(0) ;
@@ -214,6 +323,11 @@ get_option(int argc, char *argv[])
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;
       printf("debugging vertex %d\n", Gdiag_no) ;
+      break ;
+    case 'R':
+      parms.l_repulse = atof(argv[2]) ;
+      fprintf(stderr, "l_repulse = %2.3f\n", parms.l_repulse) ;
+      nargs = 1 ;
       break ;
     case 'S':
       parms.l_spring = atof(argv[2]) ;
