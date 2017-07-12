@@ -1,5 +1,5 @@
 /**
- * @file  mris_intensity_profile.c
+ * @File  mris_intensity_profile.c
  * @brief program for computing intensity profiles across the cortical ribbon
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
@@ -30,6 +30,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
+#include <omp.h>
 
 #include "macros.h"
 #include "error.h"
@@ -43,6 +44,7 @@
 #include "fmriutils.h"
 #include "mrishash.h"
 #include "cma.h"
+#include "fsinit.h"
 
 static char vcid[] = "$Id: mris_intensity_profile.c,v 1.23 2013/03/27 01:53:50 fischl Exp $";
 
@@ -60,6 +62,14 @@ static void usage_exit(void) ;
 static void print_usage(void) ;
 static void print_help(void) ;
 static void print_version(void) ;
+
+static char *read_laplace_name = NULL ;
+static char *write_surf_name = NULL ;
+static char *sphere_name = "sphere" ;
+static int fmin_thick = 0 ;
+static float laplace_res = 0.5 ;
+static int laplace_thick = 0 ;
+static INTEGRATION_PARMS parms ;
 
 char *Progname ;
 static char *flat_name = NULL;
@@ -129,6 +139,7 @@ main(int argc, char *argv[]) {
   MRI           *mri, *mri_profiles ;
   float         *norm = NULL ;
 
+
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, "$Id: mris_intensity_profile.c,v 1.23 2013/03/27 01:53:50 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
@@ -138,6 +149,20 @@ main(int argc, char *argv[]) {
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
+
+  parms.dt = 0.1 ;
+  parms.remove_neg = 1 ;
+  parms.momentum = .1; 
+  parms.niterations = 1000 ;
+  parms.l_nlarea = 0 ;
+  parms.l_thick_min = 1 ;
+  parms.l_thick_spring = 0 ;
+  parms.l_ashburner_triangle = 1 ;
+  parms.l_ashburner_lambda = .1 ;
+  parms.l_tspring = .25;
+  parms.l_thick_normal = 1;
+  parms.integration_type = INTEGRATE_MOMENTUM ;
+  parms.tol = 1e-3 ;
 
   ac = argc ;
   av = argv ;
@@ -180,7 +205,6 @@ main(int argc, char *argv[]) {
   if (!mri)
     ErrorExit(ERROR_NOFILE, "%s: could not read intensity volume %s",
               Progname, argv[3]) ;
-
   if (inorm) {
     int   x, y, z, n ;
     float mean, val ;
@@ -371,6 +395,129 @@ main(int argc, char *argv[]) {
 #endif
   }
 
+  if (laplace_thick)
+  {
+    MRI *mri_laplace ;
+    MRI *mri_dist_white, *mri_dist_pial ;
+    int nwmissing, npmissing, nmissing, vno ;
+    double xv, yv, zv, white_val, pial_val ;
+    VERTEX *v ;
+    FILE   *fp ;
+    
+    if (read_laplace_name)
+    {
+      mri_laplace = MRIread(read_laplace_name) ;
+      if (mri_laplace == NULL)
+	ErrorExit(ERROR_NOFILE, "%s: could not read laplace volume from %s",
+		  read_laplace_name) ;
+    }
+    else
+    {
+      MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+      mri_dist_pial = MRIScomputeDistanceToSurface(mris, NULL, laplace_res) ;
+      
+      MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;  // actually white
+      MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+      mri_dist_white = MRIScomputeDistanceToSurface(mris, NULL, laplace_res) ;
+      for (nmissing = nwmissing = npmissing = vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+	v = &mris->vertices[vno] ;
+	MRISsurfaceRASToVoxel(mris, mri_dist_pial, v->pialx, v->pialy, v->pialz, &xv, &yv, &zv);
+	MRIsampleVolumeFrameType(mri_dist_pial, xv, yv, zv, 0, SAMPLE_NEAREST, &pial_val) ;
+	MRISsurfaceRASToVoxel(mris, mri_dist_white, v->whitex, v->whitey, v->whitez, &xv, &yv, &zv);
+	MRIsampleVolumeFrameType(mri_dist_white, xv, yv, zv, 0, SAMPLE_NEAREST, &white_val) ;
+	if (fabs(white_val) > laplace_res)
+	  nwmissing++ ;
+	if (fabs(pial_val) > laplace_res)
+	  npmissing++ ;
+	if ((fabs(pial_val) > laplace_res) || (fabs(white_val) > laplace_res))
+	  nmissing++ ;
+      }
+      printf("%d of %d pial surface nodes not resolved - %2.3f %%\n",
+	     npmissing, mris->nvertices, 100.0*npmissing/mris->nvertices) ;
+      printf("%d of %d gray/white surface nodes not resolved - %2.3f %%\n",
+	     nwmissing, mris->nvertices, 100.0*nwmissing/mris->nvertices) ;
+      MRIfree(&mri_dist_white) ; MRIfree(&mri_dist_pial) ;
+      MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
+      fp = fopen("laplace_missing.txt", "a") ;
+      fprintf(fp, "%f %d %d %f %d %f %d %f\n", 
+	      laplace_res,  mris->nvertices,
+	      nwmissing, 100.0*nwmissing/mris->nvertices,
+	      npmissing, 100.0*npmissing/mris->nvertices,
+	      nmissing, 100.0*nmissing/mris->nvertices) ;
+      fclose(fp) ;
+      MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+      MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+      MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+      mri_laplace = MRISsolveLaplaceEquation(mris, NULL, laplace_res) ;
+    }
+    mri_profiles = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, max_samples) ;
+    MRISmeasureLaplaceStreamlines(mris, mri_laplace, mri, mri_profiles) ;
+  }
+  else if (fmin_thick)
+  {
+    char              *cp, surf_fname[STRLEN], fname[STRLEN] ;
+
+    printf("computing variational vector field...\n") ;
+    
+    if (parms.base_name[0] == 0) {
+      
+      FileNameOnly(out_fname, fname) ;
+      cp = strchr(fname, '.') ;
+      if (cp)
+        strcpy(parms.base_name, cp+1) ;
+      else
+        strcpy(parms.base_name, sphere_name) ;
+      cp = strrchr(parms.base_name, '.') ;
+      if (cp)
+        *cp = 0 ;
+    }
+
+    MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+    if (MRISreadVertexPositions(mris, sphere_name) != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, sphere_name) ;
+    MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRISrestoreVertexPositions(mris, ORIGINAL_VERTICES) ;
+    MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+    MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
+    MRIScomputeMetricProperties(mris) ;
+
+    // read in icosahedron data (highly tessellated one)
+    cp = getenv("FREESURFER_HOME");
+    if (cp == NULL)
+      ErrorExit(ERROR_BADPARM, "%s: FREESURFER_HOME not defined in environment", cp) ;
+    sprintf(surf_fname,"%s/lib/bem/ic7.tri",cp);
+
+    MRISstoreRipFlags(mris) ;
+    MRISminimizeThicknessFunctional(mris, &parms, max_thick) ;
+    MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+    if (write_surf_name)
+    {
+      int vno ;
+      MRI    *mri_vector ;
+      mri_vector = MRIallocSequence(mris->nvertices, 1,1,MRI_FLOAT,3) ;
+
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+	VERTEX *v ;
+	
+	v = &mris->vertices[vno] ;
+	if (vno == Gdiag_no)
+	  DiagBreak() ;
+	
+	if (v->ripflag)
+	  continue ;
+	
+	MRIsetVoxVal(mri_vector, vno, 0, 0, 0, v->tx-v->whitex) ;
+	MRIsetVoxVal(mri_vector, vno, 0, 0, 1, v->ty-v->whitey) ;
+	MRIsetVoxVal(mri_vector, vno, 0, 0, 2, v->tz-v->whitez) ;
+      }
+      printf("writing vector field to %s\n", write_surf_name) ;
+      MRIwrite(mri_vector, write_surf_name) ;
+      MRIfree(&mri_vector) ;
+    }
+  }
+
   if (nlabels > 0) {
     int l ;
     char label_name[STRLEN] ;
@@ -404,9 +551,9 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not load flat patch %d\n", Progname, flat_name) ;
     mri_profiles = MRIScomputeFlattenedVolume(mris, mri, flat_res, max_samples, normalize,NULL, smooth_iters, 0, 0) ;
   }
-  else
+  else if (!laplace_thick)
     mri_profiles =
-    MRISmeasureCorticalIntensityProfiles(mris, mri, nbhd_size, max_thick, normalize, curv_thresh, norm) ;
+      MRISmeasureCorticalIntensityProfiles(mris, mri, nbhd_size, max_thick, normalize, curv_thresh, norm) ;
 
   mri_profiles->tr = 1 ;
   if (remove_bad)
@@ -617,6 +764,21 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr,  "using %2.1f mm border region in wm normalization\n",
             wm_border_mm) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "write_surf")) {
+    write_surf_name = argv[2] ;
+    printf("writing variational pial surface locations to %s\n", write_surf_name) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "rl")) {
+    read_laplace_name = argv[2] ;
+    printf("reading Laplace solution volume from %s\n", read_laplace_name) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "triangle")) {
+    parms.l_ashburner_triangle = atof(argv[2]) ;
+    printf("using l_ashburner_triangle = %2.3f\n", parms.l_ashburner_triangle) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "new") || !stricmp(option, "fmin") || !stricmp(option, "variational")) {
+    fmin_thick = 1 ;
+    fprintf(stderr,  "using variational thickness measurement\n") ;
   } else if (!stricmp(option, "flatten")) {
     flat_name = argv[2] ;
     flat_res = atof(argv[3]) ;
@@ -631,12 +793,37 @@ get_option(int argc, char *argv[]) {
     strcpy(white_name, argv[2]) ;
     fprintf(stderr,  "reading white surface from file named %s\n", white_name) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "dt")) {
+    parms.dt = atof(argv[2]) ;
+    fprintf(stderr,  "setting dt=%2.3f\n", parms.dt) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "tsmooth")) {
+    parms.l_tsmooth = atof(argv[2]) ;
+    fprintf(stderr,  "setting l_tsmooth=%2.3f\n", parms.l_tsmooth) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "tnormal")) {
+    parms.l_thick_normal = atof(argv[2]) ;
+    fprintf(stderr,  "setting l_thick_normal=%2.3f\n", parms.l_thick_normal) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "tparallel")) {
+    parms.l_thick_parallel = atof(argv[2]) ;
+    fprintf(stderr,  "setting l_thick_parallel=%2.3f\n", parms.l_thick_parallel) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "tmin")) {
+    parms.l_thick_min = atof(argv[2]) ;
+    fprintf(stderr,  "setting l_thick_min=%2.3f\n", parms.l_thick_min) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "aseg")) {
     mri_aseg = MRIread(argv[2]) ;
     if (mri_aseg == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, argv[2]) ;
     nargs = 1 ;
     printf("using aseg volume %s to constrain wm voxels\n", argv[2]) ;
+    nargs = 1 ;
+  } else if (!stricmp(option, "laplace") || !stricmp(option, "laplacian")) {
+    laplace_thick = 1 ;
+    laplace_res = atof(argv[2]) ;
+    fprintf(stderr,  "using Laplacian thickness measurement with PDE resolution = %2.3fmm\n",laplace_res) ;
     nargs = 1 ;
   } else if (!stricmp(option, "overlay")) {
     overlay_fname = argv[2] ;
@@ -725,6 +912,10 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr,  "limiting maximum cortical thickness to %2.2f mm.\n",
             max_thick) ;
     nargs = 1 ;
+  } else if (!stricmp(option, "sphere")) {
+    sphere_name = argv[2] ;
+    fprintf(stderr,  "using %s as spherical surface\n", sphere_name) ;
+    nargs = 1 ;
   } else if (!stricmp(option, "mean")) {
     mean_outname = argv[2];
     fprintf(stderr,  "output the intensity profile mean to file %s.\n",
@@ -750,7 +941,14 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr, "debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
   } else if (!stricmp(option, "invert")) {
     invert = 1;
-    fprintf(stderr, "Inversely apply the given registration transform\n");
+    fprintf(stderr, "apply the inverse of the given registration transform\n");
+  } else if (!stricmp(option, "openmp")) {
+    char str[STRLEN] ;
+    sprintf(str, "OMP_NUM_THREADS=%d", atoi(argv[2]));
+    putenv(str) ;
+    omp_set_num_threads(atoi(argv[2]));
+    nargs = 1 ;
+    fprintf(stderr, "Setting %s\n", str) ;
   } else if (!stricmp(option, "lta_src") ||
              !stricmp(option, "src")
             ) {
@@ -772,6 +970,17 @@ get_option(int argc, char *argv[]) {
     }
     nargs = 1;
   } else switch (toupper(*option)) {
+    case 'W':
+      parms.write_iterations = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("using write iterations = %d\n", parms.write_iterations) ;
+      Gdiag |= DIAG_WRITE ;
+      break ;
+    case 'M':
+      parms.momentum = atof(argv[2]) ;
+      nargs = 1 ;
+      printf("using momentum = %2.1f\n", parms.momentum) ;
+      break ;
     case 'Z':
       zero_mean = 1 ;
       printf("making profiles zero mean\n") ;
@@ -862,6 +1071,7 @@ print_help(void) {
           "and writes the resulting measurement into a 'curvature' file\n"
           "<output file>.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
+  fprintf(stderr, "-write_surf %%s write the variational pial surface target locations \n") ;
   fprintf(stderr, "-sdir %%s specifies the SUBJECTS_DIR \n") ;
   fprintf(stderr, "-white %%s specifies WHITE surface filename.\n") ;
   fprintf(stderr, "-pial %%s specifies PIAL surface filename.\n") ;
