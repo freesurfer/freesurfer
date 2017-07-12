@@ -57,6 +57,7 @@ static void print_version(void) ;
 
 char *Progname ;
 
+static char *histo_template_fname ;
 static int crop = 1 ;
 static int no_offset = 0 ;
 static int filter_type = FILTER_MINMAX ;
@@ -149,7 +150,21 @@ main(int argc, char *argv[]) {
 
   printf("filter number: %d\n",filter_type);
 
-  if (filter_type == FILTER_MEAN_MASKED)
+  if (filter_type == FILTER_HISTO_MATCH)
+  {
+    MRI *mri_template ;
+    
+    mri_template = MRIread(histo_template_fname) ;
+    if (mri_template == NULL)
+      exit(Gerror) ;
+    //    mri_dst = MRIhistogramNormalize(mri_src, mri_template, mri_dst);
+    mri_dst = MRIhistoEqualize(mri_src, mri_template, mri_dst, 0, 28000);
+    MRIfree(&mri_template) ;
+    printf("writing histogram matched image to %s\n", out_fname) ;
+    MRIwrite(mri_dst, out_fname) ;
+    exit(Gerror) ;
+  }
+  else if (filter_type == FILTER_MEAN_MASKED)
   {
     char *mask_fname = argv[2] ;
     int  f, x, y, z, n, xi, yi, zi, xk, yk, zk, num ;
@@ -425,6 +440,13 @@ get_option(int argc, char *argv[]) {
     filter_type = FILTER_CPOLV_MEDIAN ;
   else if (!stricmp(option, "minmax"))
     filter_type = FILTER_MINMAX ;
+  else if (!stricmp(option, "hmatch"))
+  {
+    filter_type = FILTER_HISTO_MATCH ;
+    histo_template_fname = argv[2] ;
+    nargs = 1 ;
+    printf("histogram matching input image to %s\n", histo_template_fname) ;
+  }
   else if (!stricmp(option, "meanmask"))
     filter_type = FILTER_MEAN_MASKED ;
   else if (!stricmp(option, "median"))
