@@ -21554,7 +21554,7 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
   char              fname[STRLEN] ;
   int               navgs, which, fixed_steps = 0, n, label, x, y, z, xp, yp, zp, passno = 0 ;
-  double            val, base_sigma, pct_change, rms, last_rms = 0.0, orig_dt, l_orig_smooth, min_dt, l_orig_elastic, l_elastic, tol,
+  double            val, base_sigma, pct_change, rms, last_rms = 0.0, orig_dt, l_orig_smooth, min_dt, l_elastic, tol,
     start_rms, end_rms ;
   MRI_SEGMENTATION *mseg ;
   MRI              *mri_vent, *mri_lh, *mri_rh, *mri_vent_atlas, *mri_smooth, *mri_kernel, *mri_lhi, *mri_rhi ;
@@ -21767,7 +21767,7 @@ GCAMregisterVentricles(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   navgs = parms->navgs ;
   orig_dt = parms->dt ;
   l_orig_smooth = parms->l_smoothness;
-  l_orig_elastic = l_elastic = parms->l_elastic;
+  l_elastic = parms->l_elastic;
   if (DZERO(parms->exp_k))
   {
     parms->exp_k = EXP_K ;
