@@ -5,7 +5,7 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
-bin_PROGRAMS = mris_thickness mris_intensity_profile
+bin_PROGRAMS = mris_thickness mris_intensity_profile mris_gradient
 mris_thickness_SOURCES=mris_thickness.c
 mris_thickness_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_thickness_LDFLAGS=$(OS_LDFLAGS)
@@ -13,6 +13,11 @@ mris_thickness_LDFLAGS=$(OS_LDFLAGS)
 mris_intensity_profile_SOURCES=mris_intensity_profile.c
 mris_intensity_profile_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_intensity_profile_LDFLAGS=$(OS_LDFLAGS)
+
+
+mris_gradient_SOURCES=mris_gradient.c
+mris_gradient_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mris_gradient_LDFLAGS=$(OS_LDFLAGS)
 
 EXTRA_DIST = mris_cluster_profiles.c
 
