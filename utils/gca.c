@@ -5152,6 +5152,146 @@ GCAnormalizedLogSampleProbability(GCA *gca,
   return((float)total_log_p) ;
 }
 
+float
+GCAcomputeLabelIntensityVariance(GCA *gca, GCA_SAMPLE *gcas,
+				 MRI *mri_inputs,
+				 TRANSFORM *transform,int nsamples)
+{
+  int        i, tid, nthreads, label_counts[MAX_CMA_LABELS], label, max_label, nlabels ;
+  double     label_means[MAX_CMA_LABELS], label_vars[MAX_CMA_LABELS], total_var;
+  MATRIX     *m_prior2source_voxel = NULL ;
+  VECTOR     *v_src[_MAX_FS_THREADS], *v_dst[_MAX_FS_THREADS] ;
+
+  memset(label_means, 0, sizeof(label_means)) ;
+  memset(label_vars, 0, sizeof(label_vars)) ;
+  memset(label_counts, 0, sizeof(label_counts)) ;
+
+  /* go through each GC in the sample and compute the probability of
+     the image at that point.
+  */
+  // store inverse transformation .. forward:input->gca template,
+  // inv: gca template->input
+  TransformInvert(transform, mri_inputs) ;
+
+  // go through all sample points
+
+  /* This loop used to be openmp'ed but there was something in it that
+   was not thread-safe and caused unstable/nonrepeatable behavior with
+   multimodal inputs. Removing did not seem to slow it down much.
+  */
+#ifdef HAVE_OPENMP
+  #pragma omp parallel
+  {
+    nthreads = omp_get_num_threads();
+  }
+#else
+  nthreads = 1;
+#endif
+  for (tid = 0 ; tid < nthreads ; tid++)
+  {
+    v_src[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    v_dst[tid] = VectorAlloc(4, MATRIX_REAL) ;
+    *MATRIX_RELT(v_src[tid], 4, 1) = 1.0 ;
+    *MATRIX_RELT(v_dst[tid], 4, 1) = 1.0 ;
+  }    
+
+  if (transform->type == MORPH_3D_TYPE)
+    m_prior2source_voxel = NULL ;
+  else
+    m_prior2source_voxel = GCAgetPriorToSourceVoxelMatrix(gca, mri_inputs,transform);
+
+
+  max_label = 0 ;
+  total_var = 0.0 ;
+#ifdef HAVE_OPENMP
+#pragma omp parallel for firstprivate(gcas, tid, m_prior2source_voxel) reduction(max:max_label)
+#endif
+  for (i = 0 ; i < nsamples ; i++)
+  {
+    int    x, y, z, xp, yp, zp ;
+    float  vals[MAX_GCA_INPUTS] ;
+
+#ifdef HAVE_OPENMP
+    tid = omp_get_thread_num();
+#else
+    tid = 0;
+#endif
+    /////////////////// diag code /////////////////////////////
+    if (i == Gdiag_no)
+      DiagBreak() ;
+    if (Gdiag_no == gcas[i].label)
+      DiagBreak() ;
+    if (i == Gdiag_no || (gcas[i].xp == Gxp && gcas[i].yp == Gyp && gcas[i].zp == Gzp))
+      DiagBreak() ;
+    ///////////////////////////////////////////////////////////
+
+    // get prior coordinates in source volume
+    if (transform->type == MORPH_3D_TYPE)
+    {
+      xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ;
+      GCApriorToSourceVoxel(gca, mri_inputs, transform, xp, yp, zp, &x, &y, &z) ;
+    }
+    else
+    {
+      V3_X(v_src[tid]) = xp = gcas[i].xp ; V3_Y(v_src[tid]) = yp = gcas[i].yp ; V3_Z(v_src[tid]) = zp = gcas[i].zp ;
+      MatrixMultiply(m_prior2source_voxel, v_src[tid], v_dst[tid]) ;
+      x = nint(V3_X(v_dst[tid])) ; y = nint(V3_Y(v_dst[tid])) ; z = nint(V3_Z(v_dst[tid])) ;
+    }
+    label = gcas[i].label ;
+    if (label > max_label)
+      max_label = label ;
+    label_counts[label]++ ;
+    if (MRIindexNotInVolume(mri_inputs, x, y, z) == 0) {
+    // if it is inside the source voxel
+      if (x == Gx && y == Gy && z == Gz)
+        DiagBreak() ;
+
+      // (x,y,z) is the source voxel position
+      gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
+
+      // get values from all inputs
+      load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
+      if (label > 0 && vals[0] < 20)   // real tissue shouldn't land where there is no data
+      {
+	total_var += 1000*1000 ;
+      }
+      label_means[label] += vals[0] ;
+      label_vars[label] += (vals[0]*vals[0]) ;
+
+      if (FZERO(vals[0]) && gcas[i].label == Gdiag_no)
+        DiagBreak() ;
+    }
+    else{  // outside the voxel
+      label_means[gcas[i].label] += 1000000; // BIG
+      label_vars[gcas[i].label] += 1000000; // BIG
+    }
+  }
+  fflush(stdout) ;
+
+  for (nlabels = label = 0 ; label <= max_label ; label++)
+  {
+    if (label_counts[label] > 0)
+    {
+      nlabels++ ;
+      label_means[label] /= label_counts[label] ;
+      label_vars[label] = label_vars[label]/label_counts[label] - label_means[label]*label_means[label] ;
+      total_var += label_vars[label] ;
+    }
+  }
+
+  for (tid = 0 ; tid < nthreads ; tid++)
+  {
+    VectorFree(&v_src[tid]) ;
+    VectorFree(&v_dst[tid]) ;
+  }
+
+  if (m_prior2source_voxel)
+    MatrixFree(&m_prior2source_voxel) ;
+  total_var = sqrt(total_var/nlabels) ;
+  return((float)-total_var) ;
+}
+
+
 
 float
 GCAcomputeLogSampleProbability(GCA *gca,
@@ -7850,7 +7990,7 @@ GCAtransformAndWriteSamples(GCA *gca, MRI *mri, GCA_SAMPLE *gcas,
   MRI    *mri_dst ;
 
   mri_dst = MRIalloc(mri->width, mri->height, mri->depth, MRI_UCHAR) ;
-  MRIcopyHeader(mri, mri_dst);   TransformSetMRIVolGeomToDst(transform, mri_dst) ;
+  MRIcopyHeader(mri, mri_dst);   //TransformSetMRIVolGeomToDst(transform, mri_dst) ;
 
   TransformInvert(transform, mri) ;
   for (n = 0 ; n < nsamples ; n++)
@@ -15210,9 +15350,10 @@ GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
     }
     GCAlabelMode(gca, labels[i], &mode) ;
     if (mode <= 0)
-    {
+      GCAlabelMean(gca, Left_Lateral_Ventricle, &mode) ;
+
+    if (mode <= 0)
       scales[i] = 1.0 ;
-    }
     else
     {
       scales[i] = intensities[i] / mode ;
@@ -15253,7 +15394,12 @@ GCArenormalizeIntensities(GCA *gca, int *labels, float *intensities, int num)
           }
 
           gc = &gcan->gcs[n] ;
-          gc->means[0] = scales[i]*gc->means[0] ;
+	  if (gc->means[0] < 1 && gcan->labels[n] == 0) // too close to 0 to scale
+	  {
+	    gc->means[0] = intensities[i] / 3 ;
+	  }
+	  else
+	    gc->means[0] = scales[i]*gc->means[0] ;
         }
       }
     }
@@ -16135,6 +16281,8 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
            box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
 
     h_mri = MRIhistogramRegion(mri_frame, 0, NULL, &box) ;
+    if (h_mri == NULL)
+      return(Gerror) ;
     if (gca->ninputs == 1)
     {
       HISTOclearBins(h_mri, h_mri, 0, min_real_val) ;
