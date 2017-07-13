@@ -5203,9 +5203,9 @@ GCAcomputeLabelIntensityVariance(GCA *gca, GCA_SAMPLE *gcas,
 
   max_label = 0 ;
   total_var = 0.0 ;
-#ifdef HAVE_OPENMP
-#pragma omp parallel for firstprivate(gcas, tid, m_prior2source_voxel) reduction(max:max_label)
-#endif
+// ifdef HAVE_OPENMP
+// pragma omp parallel for firstprivate(gcas, tid, m_prior2source_voxel) reduction(max:max_label)
+// endif
   for (i = 0 ; i < nsamples ; i++)
   {
     int    x, y, z, xp, yp, zp ;
