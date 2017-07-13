@@ -532,7 +532,7 @@ bool LayerCollection::SetSlicePosition( int nPlane, double dPos_in, bool bRoundT
     GetWorldOrigin(origin);
     GetWorldVoxelSize(voxel_size);
     Layer* layer = GetActiveLayer();
-    if (layer)
+    if (layer && layer->IsTypeOf("MRI"))
     {
       double* wo = layer->GetWorldOrigin();
       for (int i = 0; i < 3; i++)
