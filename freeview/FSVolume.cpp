@@ -2951,42 +2951,10 @@ void FSVolume::UpdateHistoCDF(int frame, float threshold)
   MRInonzeroValRange(m_MRI, &fMinValue, &fMaxValue);
   if (fMinValue == fMaxValue)
   {
-    qDebug() << "Could not create histogram because min value is equal to max value.";
+    qDebug() << "Could not create histogram because non-zero min value is equal to max value.";
     m_bValidHistogram = false;
     return;
   }
-
-  /*
-  HISTO *histo = HISTOinit(NULL, NUM_OF_HISTO_BINS, fMinValue, threshold>=0?threshold:fMaxValue);
-
-  if (!histo)
-  {
-      qDebug() << "Could not create HISTO";
-      return;
-  }
-
-  for (int x = 0 ; x < m_MRI->width; x++)
-  {
-      for (int y = 0 ; y < m_MRI->height; y++)
-      {
-          for (int z = 0 ; z < m_MRI->depth; z++)
-          {
-              float val = MRIgetVoxVal(m_MRI, x, y, z, frame) ;
-              if (!FZERO(val) && (threshold < 0 || val < threshold))
-                  HISTOaddSample(histo, val, 0, 0) ;
-          }
-      }
-  }
-
-  if (m_histoCDF)
-      HISTOfree(&m_histoCDF);
-
-  m_histoCDF = HISTOmakeCDF(histo, NULL);
-  if (!m_histoCDF)
-      qDebug() << "Could not create HISTO";
-
-  HISTOfree(&histo);
-*/
 
   if (threshold < 0)
     threshold = fMinValue;

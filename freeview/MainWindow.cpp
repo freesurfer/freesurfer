@@ -4711,14 +4711,39 @@ bool MainWindow::OffsetSlicePosition( int nPlane, double dPosDiff, bool bRoundTo
 {
   bool bRet = false;
   QStringList keys = m_layerCollections.keys();
-  for ( int i = 0; i < keys.size(); i++ )
+  LayerCollection* lc_mri = m_layerCollections["MRI"];
+  if (!lc_mri->IsEmpty())
   {
-    m_layerCollections[keys[i]]->blockSignals( true );
-    if ( m_layerCollections[keys[i]]->OffsetSlicePosition( nPlane, dPosDiff, bRoundToGrid ) )
+    lc_mri->blockSignals( true );
+    if ( lc_mri->OffsetSlicePosition( nPlane, dPosDiff, bRoundToGrid ) )
     {
       bRet = true;
     }
-    m_layerCollections[keys[i]]->blockSignals( false );
+    lc_mri->blockSignals( false );
+    if (bRet)
+    {
+      keys.removeOne("MRI");
+      double slicePos[3];
+      lc_mri->GetSlicePosition(slicePos);
+      for ( int i = 0; i < keys.size(); i++ )
+      {
+        m_layerCollections[keys[i]]->blockSignals( true );
+        m_layerCollections[keys[i]]->SetSlicePosition(nPlane, slicePos[nPlane]);
+        m_layerCollections[keys[i]]->blockSignals( false );
+      }
+    }
+  }
+  else
+  {
+    for ( int i = 0; i < keys.size(); i++ )
+    {
+      m_layerCollections[keys[i]]->blockSignals( true );
+      if ( m_layerCollections[keys[i]]->OffsetSlicePosition( nPlane, dPosDiff, bRoundToGrid ) )
+      {
+        bRet = true;
+      }
+      m_layerCollections[keys[i]]->blockSignals( false );
+    }
   }
   if ( bRet )
   {
