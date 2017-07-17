@@ -182,6 +182,7 @@ double round(double x);
 #include "surfcluster.h"
 #include "randomfields.h"
 #include "cma.h"
+#include "region.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -248,6 +249,8 @@ char *SurfFile=NULL;
 int nsmoothsurf=0;
 
 int noverbose = 0;
+int DoBB = 0, nPadBB=0;
+int DoCount = 1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -493,25 +496,38 @@ int main(int argc, char *argv[]) {
     }
     MRIfree(&mritmp);
   }
-  
-  if (noverbose == 0)
-    printf("Counting number of voxels in first frame\n");
-  nhits = 0;
-  for (c=0; c < OutVol->width; c++) {
-    for (r=0; r < OutVol->height; r++) {
-      for (s=0; s < OutVol->depth; s++) {
-	// Get the value at this voxel
-        val = MRIgetVoxVal(OutVol,c,r,s,0);
-	if(fabs(val-BinVal) < .00001) nhits ++;
-      } // slice
-    } // row
-  } // col
-  if (noverbose == 0)
-    printf("Found %d voxels in final mask\n",nhits);
+
+  nhits = -1;
+  if(DoCount){
+    if(noverbose == 0) printf("Counting number of voxels in first frame\n");
+    for (c=0; c < OutVol->width; c++) {
+      for (r=0; r < OutVol->height; r++) {
+	for (s=0; s < OutVol->depth; s++) {
+	  // Get the value at this voxel
+	  val = MRIgetVoxVal(OutVol,c,r,s,0);
+	  if(fabs(val-BinVal) < .00001) nhits ++;
+	} // slice
+      } // row
+    } // col
+    if(noverbose == 0)  printf("Found %d voxels in final mask\n",nhits);
+  }
 
   if(DoBinCol){
     printf("Filling mask with column number\n");
     MRIbinMaskToCol(OutVol, OutVol);
+  }
+
+  if(DoBB){
+    // reduce volume to a smaller volume by reducing to a bounding box 
+    // around non-zero voxels
+    printf("Computing bounding box, npad = %d\n",nPadBB);
+    MRI_REGION *region;
+    region = REGIONgetBoundingBox(OutVol,nPadBB);
+    REGIONprint(stdout, region);
+    mritmp = MRIextractRegion(OutVol, NULL, region);
+    if(mritmp == NULL) exit(1);
+    MRIfree(&OutVol);
+    OutVol = mritmp;
   }
 
   // Save output
@@ -573,6 +589,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--neg")) DoNeg = 1;
     else if (!strcasecmp(option, "--bincol")) DoBinCol = 1;
     else if (!strcasecmp(option, "--uchar")) mriTypeUchar = 1;
+    else if (!strcasecmp(option, "--no-count")) DoCount = 0;
     else if (!strcasecmp(option, "--zero-edges")){
       ZeroColEdges = 1;
       ZeroRowEdges = 1;
@@ -735,13 +752,20 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--fdr-neg")) FDRSign = -1;
     else if (!strcasecmp(option, "--fdr-abs")) FDRSign =  0; //default
 
+    else if (!strcasecmp(option, "--bb")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nPadBB);
+      DoBB = 1;
+      nargsused = 1;
+    }    
     else if (!strcasecmp(option, "--replace")) {
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%d",&SrcReplace[nReplace]);
       sscanf(pargv[1],"%d",&TrgReplace[nReplace]);
       nReplace++;
       nargsused = 2;
-    }    else if (!strcasecmp(option, "--binval")) {
+    }    
+    else if (!strcasecmp(option, "--binval")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&BinVal);
       nargsused = 1;
@@ -837,6 +861,7 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--count")) {
       if (nargc < 1) CMDargNErr(option,1);
       CountFile = pargv[0];
+      DoCount = 1;
       nargsused = 1;
     } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
@@ -878,6 +903,7 @@ static void print_usage(void) {
   printf("   \n");
   printf("   --o outvol : output volume \n");
   printf("   --count countfile : save number of hits in ascii file (hits,ntotvox,pct)\n");
+  printf("   --no-count : turn off counting number of voxels in the first frame -- good for large volumes\n");
   printf("   \n");
   printf("   --binval    val    : set vox within thresh to val (default is 1) \n");
   printf("   --binvalnot notval : set vox outside range to notval (default is 0) \n");
@@ -898,6 +924,7 @@ static void print_usage(void) {
   printf("   --erode-face   nerode: erode binarization using 'face' nearest neighbors\n");
   printf("   --erode-edge   nerode: erode binarization using 'edge' nearest neighbors\n");
   printf("   --erode-corner nerode: erode binarization using 'corner' nearest neighbors (same as --erode)\n");
+  printf("   --bb npad : reduce dim of output to the minimum volume of non-zero voxels with npad boundary\n");
   printf("   --surf surfname : create a surface mesh from the binarization\n");
   printf("   --surf-smooth niterations : iteratively smooth the surface mesh\n");
   printf("   --noverbose (default *verbose*) \n");
