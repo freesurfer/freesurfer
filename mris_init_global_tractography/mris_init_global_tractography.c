@@ -81,6 +81,12 @@ static double max_wm_dist = -2.5 ;
 
 #endif
 
+//static VOXEL_LIST *MRIfindBestSpline(MRI *mri_aseg, MRI *mri_wm_dist, int label1_target, int label2_target, int ncontrol) ;
+
+static int label1_target = -1 ;
+static int label2_target = -1 ;
+static int ncontrol = 5 ;
+
 static int energy_flags = SPLINE_WM_DIST | SPLINE_LENGTH ;
 static double spline_length_penalty = 2 ;
 static double proposal_sigma = .5 ; // stddev of noise distribution
@@ -203,6 +209,64 @@ main(int argc, char *argv[]) {
   mri_wm_only = MRIcopy(mri_wm, NULL) ; // target label will be added to mri_wm later
 //  labels[0] = 1024 ; 
 //  labels[1] = 1035 ;
+  if (label1_target > 0)  // operate in two-label mode
+  {
+    VOXEL_LIST *vl_spline ;
+
+    mri_tmp = MRIclone(mri_aseg, NULL) ;
+    MRIcopyLabel(mri_aseg, mri_tmp, label1_target) ;
+    MRIbinarize(mri_tmp, mri_tmp, 1, 0, 2) ;
+    MRIcopyLabel(mri_tmp, mri_wm, 2) ;  // this label will be a fixed point in the smoothing
+    MRIfree(&mri_tmp) ;
+
+    MRIcopy(mri_wm_only, mri_wm) ;
+    mri_tmp = MRInbrThresholdLabel(mri_aseg, NULL, label1_target, 0, 1, 5) ;  // remove isolated voxels in label
+    mri_label1_dist = MRIinteriorDistanceTransform(mri_tmp, mri_wm, NULL, label1_target) ;
+    MRIfree(&mri_tmp) ;
+
+    mri_smooth = MRIsmoothLabel6Connected(mri_label1_dist, mri_wm, NULL, 500, 1, 2, .5) ;
+    MRIcopy(mri_wm_only, mri_wm) ;
+    {
+      int x, y, z, i, l ;
+      float val ;
+      
+      mri_tmp = MRIcopy(mri_smooth, NULL) ;
+      for (i = 0 ; i < 10 ; i++)
+      {
+#if 0
+#ifdef HAVE_OPENMP
+	    val = 0 ; l = 0 ;
+#pragma omp parallel for firstprivate(val, l) shared(mri_aseg, mri_tmp, labels, y, z) schedule(static,1)
+#endif
+#endif
+	for (x = 0 ; x < mri_aseg->width ; x++)
+	  for (y = 0 ; y < mri_aseg->height ; y++)
+	    for (z = 0 ; z < mri_aseg->depth ; z++)
+	    {
+	      l = MRIgetVoxVal(mri_aseg, x, y, z, 0) ;
+	      if (IS_WMH(l) || l == label1_target)
+		continue ;
+	      val = MRImaxInRegion(mri_smooth, x, y, z, 1)  + 1 ;  // one greater than max
+	      MRIsetVoxVal(mri_tmp, x, y, z, 0, val) ;
+	    }
+	MRIcopy(mri_tmp, mri_smooth) ;
+      }
+      MRIfree(&mri_tmp) ;
+    }
+
+    MRIfree(&mri_label1_dist) ; mri_label1_dist = mri_smooth ;
+    mri_dist_grad = MRIsobel(mri_label1_dist, NULL, NULL) ;
+    MRInormalizeSequence(mri_dist_grad, 1.0) ;
+    vl_spline = compute_spline_initialization(mri_aseg, mri_wm, 
+					      mri_wm_dist, mri_label1_dist,
+					      mri_dist_grad,
+					      label1_target, label2_target,
+					      min_spline_control_points) ;
+    VLSTwriteLabel(vl_spline, argv[3], NULL, mri_aseg) ;
+    
+    exit(0) ;
+  }
+
   if (Gdiag_no > 0)
     nlabels = 3;
   for (label = 0 ; label < nlabels ; label++)
@@ -359,6 +423,21 @@ get_option(int argc, char *argv[]) {
   {
     xhemi = 1 ;
     printf("only computing inter-hemispheric splines\n") ;
+  }
+  else if (!stricmp(option, "NCONTROL"))
+  {
+    ncontrol = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("using %d control points in spline fit\n", ncontrol) ;
+  }
+  else if (!stricmp(option, "LABELS"))
+  {
+    label1_target = atof(argv[2]) ;
+    label2_target = atof(argv[3]) ;
+    nargs = 2 ;
+    printf("computing optimal initial spline connecting %s (%d) and %s (%d)\n",
+	   cma_label_to_name(label1_target), label1_target,
+	   cma_label_to_name(label2_target), label2_target) ;
   }
   else switch (toupper(*option)) {
   case 'P':
