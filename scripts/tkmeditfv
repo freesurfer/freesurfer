@@ -37,6 +37,7 @@ set vollist0 = ();
 set CursorCRS = ();
 set CenterCursor = 0;
 set Zoom = ();
+set altargs = ()
 
 set tmpdir = ();
 set cleanup = 1;
@@ -104,6 +105,7 @@ if(! $UseTkMedit) then
   if($#CursorCRS) set cmd = ($cmd -slice $CursorCRS)
   if($CenterCursor) set cmd = ($cmd -cc)
   if($#Zoom) set cmd = ($cmd -zoom $Zoom)
+  set cmd = ($cmd $altargs)
 else
   ### tkmedit ####----------------------------------------------
   set cmd = tkmedit
@@ -365,10 +367,12 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
-      echo $cmdline
-      exit 1
+      set altargs = ($altargs $flag)
+      #echo ERROR: Flag $flag unrecognized. 
+      #echo $cmdline
+      #exit 1
       breaksw
+
   endsw
 
 end
