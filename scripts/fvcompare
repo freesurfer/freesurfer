@@ -36,6 +36,8 @@ set CursorCRS = ();
 set CenterCursor = 0;
 set Zoom = ();
 set annot = ();
+set pointset = ();
+set altargs = ()
 
 set inputargs = ($argv);
 set PrintHelp = 0;
@@ -61,6 +63,7 @@ check_params_return:
 #========================================================
 
 set cmd = (freeview )
+if($#pointset) set cmd = ($cmd -c $pointset)
 foreach vol ($vollist)
   foreach s ($snolist)
     if($s == 1) then
@@ -165,7 +168,7 @@ end
 if($#CursorCRS) set cmd = ($cmd -slice $CursorCRS)
 if($CenterCursor) set cmd = ($cmd -cc)
 if($#Zoom) set cmd = ($cmd -zoom $Zoom)
-
+set cmd = ($cmd $altargs)
 echo $cmd
 $cmd
 
@@ -356,6 +359,16 @@ while( $#argv != 0 )
       set annot = $argv[1]; shift;
       breaksw
 
+    case "--p":
+    case "--c":
+      if($#argv < 1) goto arg1err;
+      set pointset = $argv[1]; shift;
+      if(! -e $pointset) then
+        echo "ERROR: cannot find $pointset"
+        exit 1
+      endif
+      breaksw
+
     case "--aparc":
       set annot = aparc.annot
       breaksw
@@ -391,9 +404,10 @@ while( $#argv != 0 )
       breaksw
 
     default:
-      echo ERROR: Flag $flag unrecognized. 
-      echo $cmdline
-      exit 1
+      set altargs = ($altargs $flag)
+      #echo ERROR: Flag $flag unrecognized. 
+      #echo $cmdline
+      #exit 1
       breaksw
   endsw
 
@@ -477,6 +491,9 @@ usage_exit:
   echo "  --annot annotname :  loads annotname.annot onto surfaces"
   echo "  --aparc : load aparc.annot onto surfaces"
   echo "  --inflated : load inflated surfaces in addition to white and pial"
+  echo "  --p pointset : load point set file"
+  echo ""
+  echo "Note: unrecognized arguments are appended to freeview command line"
   echo ""
 
   if(! $PrintHelp) exit 1;
