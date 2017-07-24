@@ -40,7 +40,7 @@ if(isempty(vertices))
 end
 nvertices = length(vertices);
 
-surfoverlay = zeros(nvertices,1);
+surfoverlay = zeros(1,nvertices);
 for nthannot = 1:nannots
   annotname = deblank(annotnames(nthannot,:));
   % Get the index into the color table
