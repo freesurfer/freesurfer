@@ -13,6 +13,7 @@ set threads = 1;
 set tmpdir = ();
 set cleanup = 1;
 set LF = ();
+set regmat = noregmat
 set input = ()
 set input2 = none
 set input3 = none
@@ -103,7 +104,7 @@ endif
 
 #========================================================
 if($usebin) then
-  set cmd = (run_samseg $input $outdir $threads $usegpu $input2 $input3 $input4 $input5 $input6)
+  set cmd = (run_samseg $input $outdir $threads $usegpu $regmat $input2 $input3 $input4 $input5 $input6)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -116,7 +117,7 @@ else
   echo "which run_samseg"  >> $MLF
   echo "which samsegment"  >> $MLF
   echo "which samseg_registerToAtlas"  >> $MLF
-  echo "run_samseg('$input','$outdir','$threads','$usegpu','$input2','$input3','$input4','$input5','$input6');" >> $MLF
+  echo "run_samseg('$input','$outdir','$threads','$usegpu','$regmat','$input2','$input3','$input4','$input5','$input6');" >> $MLF
   if($monly == 0) echo "quit;" >> $MLF
   # threads here is either 1 or not 1. not1 = all cpus
   cat $MLF | tee -a $LF
@@ -173,6 +174,16 @@ while( $#argv != 0 )
     case "--s":
       if($#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "--regmat":
+      # this must be a .mat file like that created by samseg
+      if($#argv < 1) goto arg1err;
+      set regmat = $argv[1]; shift;
+      if(! -e $regmat) then
+        echo "ERROR: cannot find $regmat"
+        exit 1
+      endif
       breaksw
 
     case "--i":
@@ -320,6 +331,9 @@ usage_exit:
   echo ""
   echo "samseg --i file.mgz --o outdir <--i2 file2.mgz> <--i3 file3.mgz>... <--i6>"
   echo "samseg --s subject"
+  echo ""
+  echo " --regmat reg.mat : registration file (as output by samseg)"
+  echo "    allows using the reg from one run with another run"
   echo ""
 
   if(! $PrintHelp) exit 1;
