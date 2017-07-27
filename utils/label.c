@@ -2468,6 +2468,11 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
       if (area->lv[label_vno].deleted)
 	continue ;
       vno = area->lv[label_vno].vno;
+      if (vno < 0)
+	continue ;
+      if (vno >= mris->nvertices)
+	ErrorExit(ERROR_BADPARM, "LabelErode: label vertex %d too big for surface (%d)",
+		  vno, mris->nvertices) ;
       if (vno == Gdiag_no)
         DiagBreak() ;
 
@@ -2480,6 +2485,11 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
         neighbor_vno = mris->vertices[vno].v[neighbor_index];
         if (neighbor_vno == Gdiag_no)
           DiagBreak() ;
+	if (neighbor_vno < 0)
+	  continue ;
+	if (neighbor_vno >= mris->nvertices)
+	  ErrorExit(ERROR_BADPARM, "LabelErode: neighbor label vertex %d too big for surface (%d)",
+		  neighbor_vno, mris->nvertices) ;
 
 
         /* Look for neighbor_vno in the label. */
@@ -3610,7 +3620,10 @@ LabelVoxelToSurfaceRAS(LABEL *lsrc, MRI *mri, LABEL *ldst)
 
   for (i = 0 ; i < lsrc->n_points ; i++)
   {
-    MRIvoxelToSurfaceRAS(mri, lsrc->lv[i].x, lsrc->lv[i].y, lsrc->lv[i].z, &xs, &ys, &zs) ;
+    if (lsrc->mris)
+      MRISsurfaceRASToVoxel(lsrc->mris, mri, lsrc->lv[i].x, lsrc->lv[i].y, lsrc->lv[i].z, &xs, &ys, &zs) ;
+    else
+      MRIvoxelToSurfaceRAS(mri, lsrc->lv[i].x, lsrc->lv[i].y, lsrc->lv[i].z, &xs, &ys, &zs) ;
     ldst->lv[i].x = xs ; ldst->lv[i].y = ys ;  ldst->lv[i].z = zs ;
     ldst->lv[i].stat = lsrc->lv[i].stat ;
     ldst->lv[i].vno = lsrc->lv[i].vno ;
@@ -3913,6 +3926,10 @@ LabelInit(LABEL *area, MRI *mri_template, MRI_SURFACE *mris, int coords)
 	MRIsurfaceRASToVoxel(mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
 	lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
 	break ;
+      case LABEL_COORDS_SURFACE_RAS:
+	MRISsurfaceRASToVoxel(area->mris,mri_template, lv->x, lv->y, lv->z, &xv, &yv, &zv) ;
+	lv->xv = nint(xv) ; lv->yv = nint(yv) ; lv->zv = nint(zv) ;
+	break ;
       default:
 	ErrorExit(ERROR_UNSUPPORTED, "LabelInit: coords %d not supported yet", area->coords);
       }
@@ -4026,12 +4043,16 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, in
   lv->xv = xv ; lv->yv = yv ; lv->zv = zv ; lv->vno = -1 ;
   if (area->mri_template)
   {
-    MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
+    if (area->mris)
+      MRISsurfaceRASToVoxel(area->mris, area->mri_template, x, y, z, &vx, &vy, &vz);
+    else
+      MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
     lv->x = vx ;  lv->y = vy ;  lv->z = vz ;
   }
 
   if (area->mht == NULL)
     return(NO_ERROR) ;
+
 
   x = y = z = -1 ;
   bucket = MHTgetBucket(area->mht, vx, vy, vz) ;
