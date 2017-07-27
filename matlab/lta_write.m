@@ -57,7 +57,7 @@ for n = 1:2
   fprintf(fp,'zras = %18.15f %18.15f %18.15f\n',mri.z_r,mri.z_a,mri.z_s);
   fprintf(fp,'cras = %18.15f %18.15f %18.15f\n',mri.c_r,mri.c_a,mri.c_s);
 end
-if(~isempty(lta.subject)) lta.subject = 'unknown'; end
+if(isempty(lta.subject)) lta.subject = 'unknown'; end
 fprintf(fp,'subject %s\n',lta.subject);
 
 err = 0;
