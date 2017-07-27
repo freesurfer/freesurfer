@@ -29,11 +29,11 @@ meshCollectionFileName = fullfile( AvgDataDir, [ nameBase '_meshCollection.txt' 
 templateFileName = fullfile( AvgDataDir, [ nameBase '_template.nii' ] );
 
 [ image, imageToWorldTransform ] = kvlReadImage( imageFileName );
-[ template, templateImageToWorldTransform ] = kvlReadImage( templateFileName );
-
-
 imageToWorldTransformMatrix = double( kvlGetTransformMatrix( imageToWorldTransform ) );
+
+[ template, templateImageToWorldTransform ] = kvlReadImage( templateFileName );
 templateImageToWorldTransformMatrix = double( kvlGetTransformMatrix( templateImageToWorldTransform ) );
+
 initialWorldToWorldTransformMatrix = eye( 4 );
 if true
   % Provide an initial (non-identity) affine transform guestimate
@@ -267,6 +267,32 @@ transformationMatricesFileName = fullfile( savePath, ...
                                            [ templateFileNameBase '_coregistrationMatrices.mat' ] );
 eval( [ 'save ' transformationMatricesFileName ' imageToImageTransformMatrix worldToWorldTransformMatrix;' ] )
 
+% Compute the talairach.xfm
+% Load fsaverage orig.mgz -- this is the ultimate target/destination
+fshome = getenv('FREESURFER_HOME');
+fnamedst = sprintf('%s/subjects/fsaverage/mri/orig.mgz',fshome);
+fsaorig = MRIread(fnamedst,1);
+% Compute the vox2vox from the template to fsaverage assuming they
+%   share world RAS space
+RAS2LPS = diag([-1 -1 1 1]);
+M = inv(RAS2LPS*fsaorig.vox2ras)*(templateImageToWorldTransformMatrix);
+% Compute the input to fsaverage vox2vox by combining the
+% input-template vox2vox and the template-fsaverage vox2vox
+X = M*inv(imageToImageTransformMatrix);
+% Now write out the LTA. This can be used as the talairach.lta in recon-all
+invol = MRIread(imageFileName,1); % have to reread to get header info
+lta.type = 0;
+lta.xform = X;
+lta.srcfile = imageFileName;
+lta.srcmri = invol;
+lta.srcmri.vol = [];
+lta.dstfile = fnamedst;
+lta.dstmri = fsaorig;
+lta.dstmri.vol = [];
+lta.subject = 'fsaverage';
+ltaFileName = sprintf('%s/samseg.talairach.lta',savePath);
+lta_write(ltaFileName,lta);
+fprintf('Done computng and writing out LTA %s\n',ltaFileName);
 
 % For historical reasons, we applied the estimated transformation to the template; let's do that now
 desiredTemplateImageToWorldTransformMatrix = imageToWorldTransformMatrix * imageToImageTransformMatrix                   
