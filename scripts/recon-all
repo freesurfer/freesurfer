@@ -6830,6 +6830,25 @@ while( $#argv != 0 )
       set DoCurvStats      = 1;
       breaksw
 
+    case "-autorecon2-samseg":
+      set DoASegMerge = 1;
+      set DoNormalization2 = 1;
+      set DoMaskBFS        = 1;
+      set DoSegmentation   = 1;
+      set DoFill           = 1;
+      set DoTessellate     = 1;
+      set DoSmooth1        = 1;
+      set DoInflate1       = 1;
+      set DoQSphere        = 1;
+      set DoFix            = 1;
+      set DoSmooth2        = 1;
+      set DoInflate2       = 1;
+      set DoWhiteSurfs     = 1;
+      set DoCurvHK         = 1;
+      set DoCurvStats      = 1;
+      set DoSegStats       = 0;
+      breaksw
+
     case "-autorecon2-volonly":
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 0;
