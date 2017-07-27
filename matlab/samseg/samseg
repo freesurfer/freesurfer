@@ -9,6 +9,7 @@ set usebin = 0;
 set usegpu = 0;
 set monly = 0;
 set MLF = ();
+set DoRecon = 0;
 set threads = 1;
 set tmpdir = ();
 set cleanup = 1;
@@ -84,7 +85,10 @@ endif
 mkdir -p $tmpdir
 
 # Set up log file
-if($#LF == 0) if($#LF == 0) set LF = $outdir/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+if($#LF == 0) then
+  if($#subject == 0) set LF = $outdir/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+  if($#subject != 0) set LF = $SUBJECTS_DIR/$subject/scripts/samseg.Y$year.M$month.D$day.H$hour.M$min.log
+endif
 if($LF != /dev/null) rm -f $LF
 echo "Log file for samseg" >> $LF
 date  | tee -a $LF
@@ -123,6 +127,7 @@ else
   cat $MLF | tee -a $LF
   if(! $monly) cat $MLF |& $matlab -display iconic $threads |& tee -a $LF
 endif
+
 # ========================================================
 # Compute dice:
 if ($computedice) then
@@ -131,6 +136,55 @@ if ($computedice) then
   $cmd | tee -a $LF
   if($status) echo "error: could not compute seg overlap";
 endif
+
+if($#subject != 0) then
+  # Copy the first input
+  set cmd = (mri_convert $input $SUBJECTS_DIR/$subject/mri/orig.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Have to change to uchar or things break
+  set cmd = (mri_convert -odt uchar --no_scale 1 \
+    $outdir/segSubSpace.mgz $SUBJECTS_DIR/$subject/mri/aseg.auto_noCCseg.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  pushd $SUBJECTS_DIR/$subject/mri/transforms
+  set cmd = (ln -s samseg.talairach.lta talairach.lta)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  pushd $SUBJECTS_DIR/$subject/mri
+  set cmd = (ln -s $outdir/in_vol_biasCorrected.mgz norm.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Create the brainmask by just masking with the aseg
+  set cmd = (mri_mask norm.mgz aseg.auto_noCCseg.mgz brainmask.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Create aseg.auto.mgz This needs to be run separately, outside of
+  # recon-all, because in recon-all it is done as part of ca_label
+  set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta transforms/cc_up.lta $subject)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  if($DoRecon) then
+    set cmd = (recon-all -s $subject -autorecon2-samseg -autorecon3)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+endif
+
 
 # Cleanup
 if($cleanup) rm -rf $tmpdir
@@ -174,6 +228,10 @@ while( $#argv != 0 )
     case "--s":
       if($#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "--recon":
+      set DoRecon = 1
       breaksw
 
     case "--regmat":
@@ -300,14 +358,44 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-if($#subject) then
-  if(! -e $SUBJECTS_DIR/$subject) then
-    echo "ERROR: cannot find $subject"
+if($#input == 0) then
+  echo "ERROR: must supply an input"
+  exit 1
+endif
+foreach f ($input $input2 $input3 $input4 $input5 $input6)
+  if($f != none && ! -e $f) then
+    echo "ERROR: cannot find $f"
     exit 1;
   endif
-  set input = $SUBJECTS_DIR/$subject/mri/orig.mgz
-  if($#outdir == 0) set outdir = $SUBJECTS_DIR/$subject/mri/samseg
+end
+
+if($#subject) then
+  if(-e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: $subject already exists"
+    exit 1;
+  endif
+  if($#outdir != 0) then
+    echo "ERROR: cannot spec --o with --s"
+    exit 1;
+  endif
+  set outdir = $SUBJECTS_DIR/$subject/mri/samseg
+  set cmd = (mri_info --conformed $input)
+  set isconformed = `$cmd | head -n 1`
+  if("$isconformed" != "yes") then
+    echo "$isconformed"
+    echo "ERROR: must use conformed volume with --s"
+    exit 1;
+  endif
+  mkdir -p $outdir 
+  mkdir -p $SUBJECTS_DIR/$subject/scripts 
+  mkdir -p $SUBJECTS_DIR/$subject/mri/transforms
 endif
+
+if($#subject == 0 && $DoRecon) then
+  echo "ERROR: Cannot use --recon without --s"
+  exit 1;
+endif
+
 if($#outdir == 0) then
   echo "ERROR: must spec outdir"
   exit 1;
@@ -329,8 +417,12 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "samseg --i file.mgz --o outdir <--i2 file2.mgz> <--i3 file3.mgz>... <--i6>"
-  echo "samseg --s subject"
+  echo "samseg"
+  echo "  --i file.mgz <--i2 file2.mgz> <--i3 file3.mgz>... <--i6>"
+  echo "  --o outdir "
+  echo "  --s subject : create subject, sets outdir to subject/mri/samseg"
+  echo "    the first input should be the conformed T1 weighted input"
+  echo "  --recon : run recon-all "
   echo ""
   echo " --regmat reg.mat : registration file (as output by samseg)"
   echo "    allows using the reg from one run with another run"
