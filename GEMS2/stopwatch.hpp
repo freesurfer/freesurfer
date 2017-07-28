@@ -49,6 +49,12 @@ namespace kvl {
       return t.count() / startCount;
     }
 
+    void Reset() {
+      this->running = false;
+      this->startCount = 0;
+      this->elapsed = TimeSpan::zero();
+    }
+
   private:
     bool running;
     unsigned int startCount;

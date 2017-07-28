@@ -17,17 +17,26 @@
 #include "cudaimage.hpp"
 #include "atlasmeshvisitcountercuda.hpp"
 #include "visitcountersimplecuda.hpp"
+#include "visitcountertetrahedralmeshcuda.hpp"
 #endif
 
 #include "testfileloader.hpp"
 #include "testiosupport.hpp"
 
 #ifdef CUDA_FOUND
+#ifdef GPU_ALL_PRECISIONS
 typedef boost::mpl::list<
   kvl::cuda::VisitCounterSimple<float,float>,
   kvl::cuda::VisitCounterSimple<double,double>,
-  kvl::cuda::VisitCounterSimple<float,double>
-  > SimpleCUDAImplTypes;
+  kvl::cuda::VisitCounterSimple<float,double>,
+  kvl::cuda::VisitCounterTetrahedralMesh
+  > CUDAImplTypes;
+#else
+typedef boost::mpl::list<
+  kvl::cuda::VisitCounterSimple<double,double>,
+  kvl::cuda::VisitCounterTetrahedralMesh
+  > CUDAImplTypes;
+#endif
 #endif
 
 // --------------------
@@ -76,7 +85,7 @@ void CheckVisitCounter( kvl::interfaces::AtlasMeshVisitCounter* visitCounter,
   
   visitCounter->SetRegions( targetImage->GetLargestPossibleRegion() );
   visitCounter->VisitCount( targetMesh );
-  BOOST_TEST_MESSAGE("AtlasMeshVisitCounterCPUWrapper complete");
+  BOOST_TEST_MESSAGE("Target Visit Counter complete");
 
   auto img = visitCounter->GetImage();
   itk::ImageRegionConstIteratorWithIndex<kvl::interfaces::AtlasMeshVisitCounter::ImageType>  
@@ -563,70 +572,70 @@ BOOST_AUTO_TEST_CASE( AutoCornersLargeImageLargeTetrahedronCPU )
 }
 
 #ifdef CUDA_FOUND
-BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerGPUSimple, ImplType, SimpleCUDAImplTypes  )
+BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerGPUSimple, ImplType, CUDAImplTypes  )
 {
   ImplType visitCounter;
  
   LowerCorner( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( OriginOnlyGPUSimple, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( OriginOnlyGPUSimple, ImplType, CUDAImplTypes )
 {
   ImplType visitCounter;
  
   OriginOnly( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( XAxisOnlyGPUSimple, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( XAxisOnlyGPUSimple, ImplType, CUDAImplTypes )
 {
   ImplType visitCounter;
  
   XAxisOnly( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( FarCornerOnlyGPUSimple, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( FarCornerOnlyGPUSimple, ImplType, CUDAImplTypes )
 {
   ImplType visitCounter;
  
   FarCornerOnly( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerGPUSimple, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerGPUSimple, ImplType, CUDAImplTypes )
 {
   ImplType visitCounter;
  
   UpperCornerOnly( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( NoVerticesGPUSimple, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( NoVerticesGPUSimple, ImplType, CUDAImplTypes )
 {
   ImplType visitCounter;
  
   NoVertices( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerExactGPUSimple, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( LowerCornerExactGPUSimple, ImplType, CUDAImplTypes )
 {
   ImplType visitCounter;
  
   LowerCornerExact( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerExactGPUSimple, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( UpperCornerExactGPUSimple, ImplType, CUDAImplTypes )
 {
   ImplType visitCounter;
  
   UpperCornerExact( &visitCounter );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersGPUSimple, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersGPUSimple, ImplType, CUDAImplTypes )
 {
   ImplType visitCounter;
  
   AutoCorners( &visitCounter, 1, 1 );
 }
 
-BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersLargeImageLargeTetrahedronGPUSimple, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( AutoCornersLargeImageLargeTetrahedronGPUSimple, ImplType, CUDAImplTypes )
 {
   ImplType visitCounter;
 
@@ -699,7 +708,7 @@ BOOST_AUTO_TEST_CASE( ReferenceImpl )
 }
 
 #ifdef CUDA_FOUND
-BOOST_AUTO_TEST_CASE_TEMPLATE( SimpleCUDAImpl, ImplType, SimpleCUDAImplTypes )
+BOOST_AUTO_TEST_CASE_TEMPLATE( SimpleCUDAImpl, ImplType, CUDAImplTypes )
 {
   ImplType visitCounter;
  
