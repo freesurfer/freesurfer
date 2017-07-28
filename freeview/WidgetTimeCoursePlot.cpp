@@ -30,7 +30,7 @@
 #include "MyUtils.h"
 
 WidgetTimeCoursePlot::WidgetTimeCoursePlot(QWidget *parent) :
-  QWidget(parent), m_bAutoScale(true), m_nCurrentFrame(0)
+  QWidget(parent), m_bAutoScale(true), m_nCurrentFrame(0), m_dMinPlot(0), m_dMaxPlot(1)
 {
   setFocusPolicy(Qt::StrongFocus);
 }
@@ -47,6 +47,12 @@ void WidgetTimeCoursePlot::SetTimeCourseData(const QList<double> &data,
   m_dTR = t_interval;
   if (m_dTR <= 0)
     m_dTR = 1000;
+  if (m_dMin != min_val || m_dMax != max_val )
+  {
+    m_dMinPlot = min_val;
+    m_dMaxPlot = max_val;
+    emit PlotRangeChanged();
+  }
   m_dMin = min_val;
   m_dMax = max_val;
   if (m_dMax <= m_dMin)
@@ -58,6 +64,7 @@ void WidgetTimeCoursePlot::SetTimeCourseData(const QList<double> &data,
 
 void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
 {
+  Q_UNUSED(e);
   QPainter p(this);
   QRectF rc_plot = rect();
   int nMargin = 10;
@@ -77,7 +84,7 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
   rc_plot.adjust(nTextLen+6, 0, 0, 0);
   p.fillRect(rc_plot.adjusted(-1, -1, 1, 1), Qt::black);
 
-  double dMin = m_dMin, dMax = m_dMax;
+  double dMin = m_dMinPlot, dMax = m_dMaxPlot;
   if (m_bAutoScale)
   {
     dMin = dMax = m_data[0];
@@ -108,9 +115,12 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
   p.drawPolyline(pts, m_data.size());
 
   // draw cursor
-  p.setPen(QPen(QBrush(Qt::red), 2));
-  p.drawLine(pts[m_nCurrentFrame] - QPointF(0, 20),
-             pts[m_nCurrentFrame] + QPointF(0, qMin(20., rc_plot.bottom()-pts[m_nCurrentFrame].y())));
+  if (rc_plot.contains(pts[m_nCurrentFrame]))
+  {
+    p.setPen(QPen(QBrush(Qt::red), 2));
+    p.drawLine(pts[m_nCurrentFrame] - QPointF(0, qMin(20., pts[m_nCurrentFrame].y()-rc_plot.top())),
+               pts[m_nCurrentFrame] + QPointF(0, qMin(20., rc_plot.bottom()-pts[m_nCurrentFrame].y())));
+  }
   delete[] pts;
 
   // draw Y metrics
@@ -160,13 +170,19 @@ void WidgetTimeCoursePlot::paintEvent(QPaintEvent *e)
   p.drawText(rc, Qt::AlignBottom | Qt::AlignHCenter, "Frame ");
 
   // draw current stats
-  QString strg = QString("Signal intensity:%1   Frame: %3")
+  QString strg = QString("Signal intensity: %1   Frame: %3")
       .arg(m_data[m_nCurrentFrame])
       //   .arg(m_nCurrentFrame*m_dTR/1000)
       .arg(m_nCurrentFrame);
   rc = rect().adjusted(0, 5, 0, 0);
   p.drawText(rc, Qt::AlignHCenter | Qt::AlignTop, strg);
   m_rectPlot = rc_plot;
+  if (m_dMinPlot != dMin || m_dMaxPlot != dMax)
+  {
+    m_dMinPlot = dMin;
+    m_dMaxPlot = dMax;
+    emit PlotRangeChanged();
+  }
 }
 
 void WidgetTimeCoursePlot::SetCurrentFrame(int frame)
@@ -231,4 +247,20 @@ void WidgetTimeCoursePlot::keyPressEvent(QKeyEvent *e)
       emit FrameChanged(m_nCurrentFrame);
     }
   }
+  QWidget::keyPressEvent(e);
+}
+
+void WidgetTimeCoursePlot::SetPlotRange(double *range_in)
+{
+  m_dMinPlot = range_in[0];
+  m_dMaxPlot = range_in[1];
+  update();
+}
+
+void WidgetTimeCoursePlot::ResetPlotRange()
+{
+  m_dMinPlot = m_dMin;
+  m_dMaxPlot = m_dMax;
+  update();
+  emit PlotRangeChanged();
 }

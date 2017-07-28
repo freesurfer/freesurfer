@@ -456,6 +456,11 @@ void RenderView2D::MoveSlice( int nStep )
   MainWindow* mainWnd = MainWindow::GetMainWindow();
   LayerCollection* lc_mri = mainWnd->GetLayerCollection( "MRI" );
   double* voxelSize = lc_mri->GetWorldVoxelSize();
+  LayerMRI* mri = qobject_cast<LayerMRI*>(lc_mri->GetActiveLayer());
+  if (mri)
+  {
+    voxelSize = mri->GetWorldVoxelSize();
+  }
   int nPlane = GetViewPlane();
   mainWnd->OffsetSlicePosition( nPlane, voxelSize[nPlane]*nStep );
   lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );

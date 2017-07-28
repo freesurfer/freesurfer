@@ -250,6 +250,7 @@ bool LayerFCD::LoadFromFile()
     return false;
   }
 
+
   if (m_fcd)
   {
     if (!m_fcd->mri_norm)
@@ -633,7 +634,7 @@ void LayerFCD::UpdateRASImage( vtkImageData* rasImage)
   int n_frames = rasImage->GetNumberOfScalarComponents();
   memset( ptr,
           0,
-          ((size_t)scalar_type) * dim[0] * dim[1] * dim[2]);
+          ((size_t)rasImage->GetScalarSize()) * dim[0] * dim[1] * dim[2]);
   if ( m_fcd->nlabels == 0 )
   {
     cout << "No labels found\n";

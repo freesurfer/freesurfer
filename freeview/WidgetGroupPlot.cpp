@@ -370,7 +370,6 @@ void WidgetGroupPlot::mousePressEvent(QMouseEvent *e)
   if (m_rectPlot.contains(e->pos()))
   {
     QPointF c_pt = e->pos();
-    int nOldIndex = m_nCurrentDataIndex;
     m_nCurrentDataIndex = -1;
     int n = m_nCurrentVariableIndex;
     double dMin = m_fsgd->m_dMeasurementRange[0],
@@ -411,15 +410,17 @@ void WidgetGroupPlot::mousePressEvent(QMouseEvent *e)
 
 void WidgetGroupPlot::mouseMoveEvent(QMouseEvent *e)
 {
-
+  Q_UNUSED(e);
 }
 
 void WidgetGroupPlot::leaveEvent(QEvent *e)
 {
+  Q_UNUSED(e);
 }
 
 void WidgetGroupPlot::keyPressEvent(QKeyEvent *e)
 {
+  Q_UNUSED(e);
 }
 
 void WidgetGroupPlot::SetCurrentVertex(int nVertex)

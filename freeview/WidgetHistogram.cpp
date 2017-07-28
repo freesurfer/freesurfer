@@ -202,6 +202,7 @@ void WidgetHistogram::UpdateColorTable()
 
 void WidgetHistogram::paintEvent(QPaintEvent* event)
 {
+  Q_UNUSED(event);
   //    QWidget::paintEvent( event );
 
   QPainter painter( this );
@@ -585,6 +586,7 @@ void WidgetHistogram::mouseMoveEvent(QMouseEvent* event)
 
 void WidgetHistogram::mouseReleaseEvent(QMouseEvent * event)
 {
+  Q_UNUSED(event);
   m_nActiveMarker = -1;
 }
 

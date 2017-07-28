@@ -147,6 +147,7 @@ public slots:
   void ResetViewAnterior();
   void ResetViewPosterior();
   void ShowCursor(bool bshow);
+  void OnLayerVisibilityChanged();
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );

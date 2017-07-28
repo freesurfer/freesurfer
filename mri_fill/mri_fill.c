@@ -112,6 +112,7 @@ static int find_rh_seed_point(MRI *mri,
                               int *prh_vol_x, int *prh_vol_y, int *prh_vol_z) ;
 static int mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg_tal) ;
 
+
 static int find_rh_voxel = 0 ;
 static int find_lh_voxel = 0 ;
 static int fillonly = 0 ;
@@ -123,6 +124,9 @@ static int rh_fill_val = MRI_RIGHT_HEMISPHERE ;
 static int topofix = 0;
 static int topofix_pbm = 0;
 
+
+static int lhonly = 0 ;
+static int rhonly = 0 ;
 
 static int ylim0,ylim1,xlim0,xlim1;
 static int fill_holes_flag = TRUE;
@@ -2836,81 +2840,85 @@ main(int argc, char *argv[])
     MRItalairachToVoxelEx(mri_im, cc_tal_x+2*SEED_SEARCH_SIZE,
                           cc_tal_y,cc_tal_z,&xr,&yr,&zr, lta);
 
-    printf("search rh wm seed point around talairach space:"
-           "(%.2f, %.2f, %.2f) SRC: (%.2f, %.2f, %.2f)\n",
-           cc_tal_x+2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
-
-    wm_rh_x = nint(xr) ;
-    wm_rh_y = nint(yr) ;
-    wm_rh_z = nint(zr) ;
-    if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
-        wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
-        wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
-      ErrorExit(ERROR_BADPARM,
-                "rh white matter seed point out of bounds (%d, %d, %d)\n",
-                wm_rh_x, wm_rh_y, wm_rh_z) ;
-
-    if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||  // dark
-        (neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <
-         MIN_NEIGHBORS)) // one voxel neighbors are dark
+    if (lhonly)
+      wm_rh_x = wm_rh_y = wm_rh_z = -1 ;
+    else
     {
-      found = xnew = ynew = znew = 0 ;
-      min_dist = 10000.0f/voxsize ; // change to voxel distance
-      if (Gdiag & DIAG_SHOW)
+      printf("search rh wm seed point around talairach space:"
+	     "(%.2f, %.2f, %.2f) SRC: (%.2f, %.2f, %.2f)\n",
+	     cc_tal_x+2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
+      
+      wm_rh_x = nint(xr) ;
+      wm_rh_y = nint(yr) ;
+      wm_rh_z = nint(zr) ;
+      if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
+	  wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
+	  wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
+	ErrorExit(ERROR_BADPARM,
+		  "rh white matter seed point out of bounds (%d, %d, %d)\n",
+		  wm_rh_x, wm_rh_y, wm_rh_z) ;
+      
+      if ((MRIvox(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <= WM_MIN_VAL) ||  // dark
+	  (neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z) <
+	   MIN_NEIGHBORS)) // one voxel neighbors are dark
       {
-        fprintf(stderr, "searching for rh wm seed...") ;
-      }
-      for (z = wm_rh_z-seed_search_size ;
-           z <= wm_rh_z+seed_search_size ;
-           z++)
-      {
-        zi = mri_im->zi[z] ;
-        for (y = wm_rh_y-seed_search_size ;
-             y <= wm_rh_y+seed_search_size ;
-             y++)
-        {
-          yi = mri_im->yi[y] ;
-          for (x = wm_rh_x-seed_search_size ;
-               x <= wm_rh_x+seed_search_size;
-               x++)
-          {
-            xi = mri_im->xi[x] ;
-            if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
-                neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS)
-            {
-              found = 1 ;
-              xd = (xi - wm_rh_x) ;
-              yd = (yi - wm_rh_y) ;
-              zd = (zi - wm_rh_z) ;
-              dist = xd*xd + yd*yd + zd*zd ;
-              if (dist < min_dist)
-              {
-                xnew = xi ;
-                ynew = yi ;
-                znew = zi ;
+	found = xnew = ynew = znew = 0 ;
+	min_dist = 10000.0f/voxsize ; // change to voxel distance
+	if (Gdiag & DIAG_SHOW)
+	{
+	  fprintf(stderr, "searching for rh wm seed...") ;
+	}
+	for (z = wm_rh_z-seed_search_size ;
+	     z <= wm_rh_z+seed_search_size ;
+	     z++)
+	{
+	  zi = mri_im->zi[z] ;
+	  for (y = wm_rh_y-seed_search_size ;
+	       y <= wm_rh_y+seed_search_size ;
+	       y++)
+	  {
+	    yi = mri_im->yi[y] ;
+	    for (x = wm_rh_x-seed_search_size ;
+		 x <= wm_rh_x+seed_search_size;
+		 x++)
+	    {
+	      xi = mri_im->xi[x] ;
+	      if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
+		  neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS)
+	      {
+		found = 1 ;
+		xd = (xi - wm_rh_x) ;
+		yd = (yi - wm_rh_y) ;
+		zd = (zi - wm_rh_z) ;
+		dist = xd*xd + yd*yd + zd*zd ;
+		if (dist < min_dist)
+		{
+		  xnew = xi ;
+		  ynew = yi ;
+		  znew = zi ;
                 min_dist = dist ;
-              }
-            }
-          }
-        }
+		}
+	      }
+	    }
+	  }
+	}
+	if (!found)
+	  ErrorExit(ERROR_BADPARM,
+		    "could not find rh seed point around (%d, %d, %d)",
+		    wm_rh_x, wm_rh_y, wm_rh_z) ;
+	wm_rh_x = xnew ;
+	wm_rh_y = ynew ;
+	wm_rh_z = znew ;
+	if (Gdiag & DIAG_SHOW)
+	{
+	  fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
+	}
       }
-      if (!found)
-        ErrorExit(ERROR_BADPARM,
-                  "could not find rh seed point around (%d, %d, %d)",
-                  wm_rh_x, wm_rh_y, wm_rh_z) ;
-      wm_rh_x = xnew ;
-      wm_rh_y = ynew ;
-      wm_rh_z = znew ;
       if (Gdiag & DIAG_SHOW)
-      {
-        fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
-      }
+	fprintf(stderr, "rh seed point at (%d, %d, %d): %d neighbors on.\n",
+		wm_rh_x, wm_rh_y, wm_rh_z,
+		neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z)) ;
     }
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "rh seed point at (%d, %d, %d): %d neighbors on.\n",
-              wm_rh_x, wm_rh_y, wm_rh_z,
-              neighbors_on(mri_im, wm_rh_x, wm_rh_y, wm_rh_z)) ;
-
   }
 
   // lh side wm
@@ -2945,75 +2953,82 @@ main(int argc, char *argv[])
            " (%.2f, %.2f, %.2f), SRC: (%.2f, %.2f, %.2f)\n",
            cc_tal_x-2*SEED_SEARCH_SIZE, cc_tal_y, cc_tal_z, xr, yr, zr);
 
-    wm_lh_x = nint(xr) ;
-    wm_lh_y = nint(yr) ;
-    wm_lh_z = nint(zr) ;
-    if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
-        wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
-        wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
-      ErrorExit(ERROR_BADPARM,
-                "lh white matter seed point out of bounds (%d, %d, %d)\n",
-                wm_lh_x, wm_lh_y, wm_lh_z) ;
-    if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
-        (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
+    if (rhonly)
+      wm_lh_x = wm_lh_y = wm_lh_z = -1 ;
+    else
     {
-      found = xnew = ynew = znew = 0 ;
-      min_dist = 10000.0f/voxsize ;
+      wm_lh_x = nint(xr) ;
+      wm_lh_y = nint(yr) ;
+      wm_lh_z = nint(zr) ;
+      if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
+	  wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
+	  wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
+	ErrorExit(ERROR_BADPARM,
+		  "lh white matter seed point out of bounds (%d, %d, %d)\n",
+		  wm_lh_x, wm_lh_y, wm_lh_z) ;
+      if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
+	  (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
+      {
+	found = xnew = ynew = znew = 0 ;
+	min_dist = 10000.0f/voxsize ;
+	if (Gdiag & DIAG_SHOW)
+	{
+	  fprintf(stderr, "searching for lh wm seed...") ;
+	}
+	for (z = wm_lh_z-seed_search_size ;
+	     z <= wm_lh_z+seed_search_size ;
+	     z++)
+	{
+	  zi = mri_im->zi[z] ;
+	  for (y = wm_lh_y-seed_search_size ;
+	       y <= wm_lh_y+seed_search_size ;
+	       y++)
+	  {
+	    yi = mri_im->yi[y] ;
+	    for (x = wm_lh_x-seed_search_size ;
+		 x <= wm_lh_x+seed_search_size;
+		 x++)
+	    {
+	      xi = mri_im->xi[x] ;
+	      if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
+		  (neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS))
+	      {
+		found = 1 ;
+		xd = (xi - wm_lh_x) ;
+		yd = (yi - wm_lh_y) ;
+		zd = (zi - wm_lh_z) ;
+		dist = xd*xd + yd*yd + zd*zd ;
+		if (dist < min_dist)
+		{
+		  xnew = xi ;
+		  ynew = yi ;
+		  znew = zi ;
+		  min_dist = dist ;
+		}
+	      }
+	    }
+	  }
+	}
+	if (!found)
+	  ErrorExit(ERROR_BADPARM,
+		    "could not find lh seed point around (%d, %d, %d)",
+		    wm_lh_x, wm_lh_y, wm_lh_z) ;
+	if (Gdiag & DIAG_SHOW)
+	{
+	  fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
+	}
+	wm_lh_x = xnew ;
+	wm_lh_y = ynew ;
+	wm_lh_z = znew ;
+	
+      }
       if (Gdiag & DIAG_SHOW)
-      {
-        fprintf(stderr, "searching for lh wm seed...") ;
-      }
-      for (z = wm_lh_z-seed_search_size ;
-           z <= wm_lh_z+seed_search_size ;
-           z++)
-      {
-        zi = mri_im->zi[z] ;
-        for (y = wm_lh_y-seed_search_size ;
-             y <= wm_lh_y+seed_search_size ;
-             y++)
-        {
-          yi = mri_im->yi[y] ;
-          for (x = wm_lh_x-seed_search_size ;
-               x <= wm_lh_x+seed_search_size;
-               x++)
-          {
-            xi = mri_im->xi[x] ;
-            if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
-                (neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS))
-            {
-              found = 1 ;
-              xd = (xi - wm_lh_x) ;
-              yd = (yi - wm_lh_y) ;
-              zd = (zi - wm_lh_z) ;
-              dist = xd*xd + yd*yd + zd*zd ;
-              if (dist < min_dist)
-              {
-                xnew = xi ;
-                ynew = yi ;
-                znew = zi ;
-                min_dist = dist ;
-              }
-            }
-          }
-        }
-      }
-      if (!found)
-        ErrorExit(ERROR_BADPARM,
-                  "could not find lh seed point around (%d, %d, %d)",
-                  wm_lh_x, wm_lh_y, wm_lh_z) ;
-      if (Gdiag & DIAG_SHOW)
-      {
-        fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
-      }
-      wm_lh_x = xnew ;
-      wm_lh_y = ynew ;
-      wm_lh_z = znew ;
+	fprintf(stderr, "lh seed point at (%d, %d, %d): %d neighbors on.\n",
+		wm_lh_x, wm_lh_y, wm_lh_z,
+		neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z)) ;
 
+      
     }
-    if (Gdiag & DIAG_SHOW)
-      fprintf(stderr, "lh seed point at (%d, %d, %d): %d neighbors on.\n",
-              wm_lh_x, wm_lh_y, wm_lh_z,
-              neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z)) ;
   }
 
 #if 0
@@ -3051,15 +3066,17 @@ main(int argc, char *argv[])
   }
 #endif
 
-  if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
-      wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
-      wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
+  if (!lhonly &&
+      (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
+       wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
+       wm_rh_z < 0 || wm_rh_z >= mri_im->depth))
     ErrorExit(ERROR_BADPARM,
               "rh white matter seed point out of bounds (%d, %d, %d)\n",
               wm_rh_x, wm_rh_y, wm_rh_z) ;
-  if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
-      wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
-      wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
+  if (!rhonly && 
+      (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
+       wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
+       wm_lh_z < 0 || wm_lh_z >= mri_im->depth))
     ErrorExit(ERROR_BADPARM,
               "lh white matter seed point out of bounds (%d, %d, %d)\n",
               wm_lh_x, wm_lh_y, wm_lh_z) ;
@@ -3094,12 +3111,18 @@ main(int argc, char *argv[])
     {
       MRIwrite(mri_im, "fill0.mgz") ;
     }
-    fprintf(stderr, "filling left hemisphere...\n") ;
-    MRIfillVolume
-    (mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
-    fprintf(stderr, "filling right hemisphere...\n") ;
-    MRIfillVolume
-    (mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
+    if (!rhonly)
+    {
+      fprintf(stderr, "filling left hemisphere...\n") ;
+      MRIfillVolume
+	(mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
+    }
+    if (!lhonly)
+    {
+      fprintf(stderr, "filling right hemisphere...\n") ;
+      MRIfillVolume
+	(mri_rh_fill, mri_rh_im, wm_rh_x, wm_rh_y, wm_rh_z,rh_fill_val);
+    }
     MRIfree(&mri_lh_im) ;
     MRIfree(&mri_rh_im) ;
     MRIfree(&mri_im) ;
@@ -3566,6 +3589,16 @@ get_option(int argc, char *argv[])
     segmentation_fname = argv[2] ;
     fprintf(stderr, "using segmentation %s...\n", segmentation_fname) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "lhonly"))
+  {
+    lhonly = 1 ;
+    fprintf(stderr, "assuming only lh is present\n") ;
+  }
+  else if (!stricmp(option, "rhonly"))
+  {
+    rhonly = 1 ;
+    fprintf(stderr, "assuming only rh is present\n") ;
   }
   else if (!stricmp(option, "fillonly"))
   {

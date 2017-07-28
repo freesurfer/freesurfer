@@ -185,7 +185,7 @@ CroppedImageReader
     }
   else
     {
-    std::cout << "Couldn't reconstruct image-to-world transform for file " << filename << std::endl;
+    itkGenericExceptionMacro( << "Couldn't reconstruct image-to-world transform for file " );
     }
 
 #endif
@@ -279,9 +279,9 @@ CroppedImageReader
       {
       m_BoundingBoxSize[ i ] = imageIO->GetDimensions( i );
       }
-    std::cout << " m_BoundingBoxSize: [" << m_BoundingBoxSize[ 0 ] << ", "
-                                      << m_BoundingBoxSize[ 1 ] << ","
-                                      << m_BoundingBoxSize[ 2 ] << "]" << std::endl;
+    // std::cout << " m_BoundingBoxSize: [" << m_BoundingBoxSize[ 0 ] << ", "
+    //                                   << m_BoundingBoxSize[ 1 ] << ","
+    //                                   << m_BoundingBoxSize[ 2 ] << "]" << std::endl;
 
 
 
@@ -326,13 +326,13 @@ CroppedImageReader
       }
 
 
-    std::cout << " minimalMappedCoordinate: [" << minimalMappedCoordinate[ 0 ] << ", "
-                                              << minimalMappedCoordinate[ 1 ] << ","
-                                              << minimalMappedCoordinate[ 2 ] << "]" << std::endl;
-    
-    std::cout << " maximalMappedCoordinate: [" << maximalMappedCoordinate[ 0 ] << ", "
-                                              << maximalMappedCoordinate[ 1 ] << ","
-                                              << maximalMappedCoordinate[ 2 ] << "]" << std::endl;
+    // std::cout << " minimalMappedCoordinate: [" << minimalMappedCoordinate[ 0 ] << ", "
+    //                                           << minimalMappedCoordinate[ 1 ] << ","
+    //                                           << minimalMappedCoordinate[ 2 ] << "]" << std::endl;
+    // 
+    // std::cout << " maximalMappedCoordinate: [" << maximalMappedCoordinate[ 0 ] << ", "
+    //                                           << maximalMappedCoordinate[ 1 ] << ","
+    //                                           << maximalMappedCoordinate[ 2 ] << "]" << std::endl;
 
 
     // Given the boundaries, crop the original image obtained from the reader
@@ -363,8 +363,8 @@ CroppedImageReader
       //  max[ i ] = ( reader->GetOutput()->GetBufferedRegion().GetSize()[i] - 1 );
       }
 
-    std::cout << "Cropping with min [" << min[ 0 ] << "  " << min[ 1 ] << "  " << min[ 2 ] << "]" << std::endl;
-    std::cout << "          and max [" << max[ 0 ] << "  " << max[ 1 ] << "  " << max[ 2 ] << "]" << std::endl;
+    // std::cout << "Cropping with min [" << min[ 0 ] << "  " << min[ 1 ] << "  " << min[ 2 ] << "]" << std::endl;
+    // std::cout << "          and max [" << max[ 0 ] << "  " << max[ 1 ] << "  " << max[ 2 ] << "]" << std::endl;
 
 
     // Gets the image regions
@@ -388,8 +388,8 @@ CroppedImageReader
 
     // Copy the intensities by looping over the voxels of interest. Make sure you don't visit non-existing
     // voxels if the bounding box is bigger than the actual image...
-    std::cout << "m_OriginalImageRegion before checking margins: " << m_OriginalImageRegion << std::endl;
-    std::cout << "m_CroppedImageRegion before checking margins: " << m_CroppedImageRegion << std::endl;
+    // std::cout << "m_OriginalImageRegion before checking margins: " << m_OriginalImageRegion << std::endl;
+    // std::cout << "m_CroppedImageRegion before checking margins: " << m_CroppedImageRegion << std::endl;
     for ( int i = 0; i < 3; i++ )
       {
       const int  endMargin = ( reader->GetOutput()->GetBufferedRegion().GetSize()[i] - 1 ) -
@@ -411,9 +411,9 @@ CroppedImageReader
         }
 
       }
-    std::cout << std::endl;
-    std::cout << "m_OriginalImageRegion after checking margins: " << m_OriginalImageRegion << std::endl;
-    std::cout << "m_CroppedImageRegion after checking margins: " << m_CroppedImageRegion << std::endl;
+    // std::cout << std::endl;
+    // std::cout << "m_OriginalImageRegion after checking margins: " << m_OriginalImageRegion << std::endl;
+    // std::cout << "m_CroppedImageRegion after checking margins: " << m_CroppedImageRegion << std::endl;
 
 
 
@@ -431,12 +431,12 @@ CroppedImageReader
     translation[ 1 ] = -min[ 1 ];
     translation[ 2 ] = -min[ 2 ];
     m_Transform->Translate( translation );
-    std::cout << "Transform after cropping: " << std::endl;
-    m_Transform->Print( std::cout );
+    // std::cout << "Transform after cropping: " << std::endl;
+    // m_Transform->Print( std::cout );
 
     m_WorldToImageTransform->Translate( translation );
-    std::cout << "WorldToImageTransform after cropping: " << std::endl;
-    m_WorldToImageTransform->Print( std::cout );
+    // std::cout << "WorldToImageTransform after cropping: " << std::endl;
+    // m_WorldToImageTransform->Print( std::cout );
     } // End test if bounding file name is given
 
 
@@ -461,12 +461,12 @@ CroppedImageReader
 
     // Adjust transformation
     m_Transform->Scale( 1 / static_cast< float >( m_DownSamplingFactor ) );
-    std::cout << "Transform after scaling: " << std::endl;
-    m_Transform->Print( std::cout );
+    // std::cout << "Transform after scaling: " << std::endl;
+    // m_Transform->Print( std::cout );
 
     m_WorldToImageTransform->Scale( 1 / static_cast< float >( m_DownSamplingFactor ) );
-    std::cout << "WorldToImageTransform after scaling: " << std::endl;
-    m_WorldToImageTransform->Print( std::cout );
+    // std::cout << "WorldToImageTransform after scaling: " << std::endl;
+    // m_WorldToImageTransform->Print( std::cout );
     }
 
 }

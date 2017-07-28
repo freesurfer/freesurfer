@@ -381,10 +381,14 @@ triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
 
   /* normalize their lengths */
   len = VLEN(basis1) ;
+  if (FZERO(len))
+    return(0) ;
   basis1[0] /= len ;
   basis1[1] /= len ;
   basis1[2] /= len ;
   len = VLEN(basis2) ;
+  if (FZERO(len))
+    return(0) ;
   basis2[0] /= len ;
   basis2[1] /= len ;
   basis2[2] /= len ;

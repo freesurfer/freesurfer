@@ -160,7 +160,6 @@ void DialogTransformVolume::UpdateUI( int scope )
     }
     if ( scope == 0 || scope == 2 )
     {
-      double* vs = layer->GetWorldVoxelSize();
       double* ws = layer->GetWorldSize();
       double pos[3];
       layer->GetTranslate( pos );
@@ -458,61 +457,73 @@ void DialogTransformVolume::OnSampleMethodChanged()
 
 void DialogTransformVolume::OnLineEditRotateX(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextRotate( 0 );
 }
 
 void DialogTransformVolume::OnLineEditRotateY(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextRotate( 1 );
 }
 
 void DialogTransformVolume::OnLineEditRotateZ(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextRotate( 2 );
 }
 
 void DialogTransformVolume::OnSliderRotateX(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondSliderRotate( 0 );
 }
 
 void DialogTransformVolume::OnSliderRotateY(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondSliderRotate( 1 );
 }
 
 void DialogTransformVolume::OnSliderRotateZ(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondSliderRotate( 2 );
 }
 
 void DialogTransformVolume::OnLineEditTranslateX(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextTranslate( 0 );
 }
 
 void DialogTransformVolume::OnLineEditTranslateY(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextTranslate( 1 );
 }
 
 void DialogTransformVolume::OnLineEditTranslateZ(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextTranslate( 2 );
 }
 
 void DialogTransformVolume::OnScrollBarTranslateX(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollTranslate( 0 );
 }
 
 void DialogTransformVolume::OnScrollBarTranslateY(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollTranslate( 1 );
 }
 
 void DialogTransformVolume::OnScrollBarTranslateZ(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollTranslate( 2 );
 }
 
@@ -532,8 +543,6 @@ void DialogTransformVolume::RespondTextTranslate( int n )
         pos[n] = dvalue;
         layer->SetTranslate( pos );
         MainWindow::GetMainWindow()->RequestRedraw();
-
-        double* vs = layer->GetWorldVoxelSize();
         int range = m_scrollTranslate[n]->maximum();
         m_scrollTranslate[n]->blockSignals(true);
         m_scrollTranslate[n]->setValue(range/2 + (int)( pos[n] / m_dIncrementTranslate ) );
@@ -627,31 +636,37 @@ void DialogTransformVolume::RespondSliderRotate( int n )
 
 void DialogTransformVolume::OnLineEditScaleX(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextScale( 0 );
 }
 
 void DialogTransformVolume::OnLineEditScaleY(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextScale( 1 );
 }
 
 void DialogTransformVolume::OnLineEditScaleZ(const QString& text)
 {
+  Q_UNUSED(text);
   RespondTextScale( 2 );
 }
 
 void DialogTransformVolume::OnScrollBarScaleX(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollScale( 0 );
 }
 
 void DialogTransformVolume::OnScrollBarScaleY(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollScale( 1 );
 }
 
 void DialogTransformVolume::OnScrollBarScaleZ(int nVal)
 {
+  Q_UNUSED(nVal);
   RespondScrollScale( 2 );
 }
 

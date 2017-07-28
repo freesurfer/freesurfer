@@ -229,6 +229,8 @@ void LayerPointSet::Append2DProps( vtkRenderer* renderer, int nPlane )
 
 void LayerPointSet::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 {
+  Q_UNUSED(renderer);
+  Q_UNUSED(bSliceVisibility);
   renderer->AddViewProp( m_actorSpline );
   renderer->AddViewProp( m_actorBalls );
 }
@@ -274,6 +276,7 @@ bool LayerPointSet::HasProp( vtkProp* prop )
 
 void LayerPointSet::OnSlicePositionChanged( int nPlane )
 {
+  Q_UNUSED(nPlane);
   RebuildActors( false );   // no need to rebuild 3D points
 }
 
@@ -617,6 +620,7 @@ int LayerPointSet::AddPoint( double* ras_in, double value )
 
 bool LayerPointSet::RemovePoint( double* ras, double tolerance )
 {
+  Q_UNUSED(tolerance);
   return RemovePoint( FindPoint( ras ) );
 }
 
@@ -704,6 +708,9 @@ void LayerPointSet::UpdateColorMap()
 
 bool LayerPointSet::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
 {
+  Q_UNUSED(rotations);
+  Q_UNUSED(wnd);
+  Q_UNUSED(event);
   m_points.clear();
   m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
   RebuildActors();

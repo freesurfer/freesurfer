@@ -528,17 +528,19 @@ bool LayerCollection::SetSlicePosition( int nPlane, double dPos_in, bool bRoundT
 
   if ( bRoundToGrid )
   {
-    dPos = ((int)( ( dPos - m_dWorldOrigin[nPlane]) / m_dWorldVoxelSize[nPlane] ) ) * m_dWorldVoxelSize[nPlane]
-        + m_dWorldOrigin[nPlane];
-    // no longer refrain to boundary
-    /*
-    if ( m_dSlicePosition[nPlane] <= m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] &&
-         m_dSlicePosition[nPlane] >= m_dWorldOrigin[nPlane] &&
-         ( dPos >  m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] || dPos < m_dWorldOrigin[nPlane] ) )
+    double origin[3], voxel_size[3];
+    GetWorldOrigin(origin);
+    GetWorldVoxelSize(voxel_size);
+    Layer* layer = GetActiveLayer();
+    if (layer && layer->IsTypeOf("MRI"))
     {
-      return false;
+      double* wo = layer->GetWorldOrigin();
+      for (int i = 0; i < 3; i++)
+        origin[i] = wo[i] - ((int)((wo[i]-origin[i])/voxel_size[i]+1))*voxel_size[i];
+      layer->GetWorldVoxelSize(voxel_size);
     }
-    */
+    dPos = ((int)( ( dPos - origin[nPlane]) / voxel_size[nPlane] ) ) * voxel_size[nPlane]
+        + origin[nPlane];
   }
 
   if ( fabs( dPos - m_dSlicePosition[nPlane] ) < 1e-8 )
@@ -583,6 +585,8 @@ bool LayerCollection::SetSlicePosition( double* slicePos )
 
 bool LayerCollection::SetSlicePosition( int nPlane, int nSliceNumber )
 {
+  Q_UNUSED(nPlane);
+  Q_UNUSED(nSliceNumber);
   return true;
 }
 

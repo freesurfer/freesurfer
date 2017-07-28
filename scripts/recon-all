@@ -2500,8 +2500,8 @@ if($DoGCAReg) then
       set cmd = (mri_em_register)
       if($UseCuda) set cmd = (mri_em_register_cuda)
       set cmd = ($cmd $nocerebellum )
-      if ($LHonly) set cmd = ($cmd -lh )
-      if ($RHonly) set cmd = ($cmd -rh )
+      if ($LHonly) set cmd = ($cmd -lh  -spacing 4 -s 9)
+      if ($RHonly) set cmd = ($cmd -rh  -spacing 4 -s 9)
       set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
       if($DoCreateBaseSubj) then
         # base subj processing (norm_template instead of nu, and no mask needed):
@@ -3114,6 +3114,8 @@ if($DoFill) then
   if(-e transforms/talairach.lta) then
     set cmd = ($cmd  -xform transforms/talairach.lta)
   endif
+  if ($LHonly) set cmd = ($cmd -lhonly )
+  if ($RHonly) set cmd = ($cmd -rhonly )
   if($UseAseg) set cmd = ($cmd -segmentation aseg.auto_noCCseg.mgz);
   if(! $UseOldTopoFix && ! $NoNormMGZ) set cmd = ($cmd -topofix norm.mgz);
   set cmd = ($cmd $xopts wm.mgz filled.mgz)
@@ -3290,7 +3292,7 @@ if($DoQSphere && ( ! $longitudinal )) then
     cd $subjdir/scripts > /dev/null
     $PWD |& tee -a $LF
     set xopts = `fsr-getxopts mris_sphere $XOptsFile $GlobXOptsFile`;
-    set cmd = (mris_sphere -q)
+    set cmd = (mris_sphere -q  -p 6 -a 128 )
     if($UseCuda) set cmd = (mris_sphere_cuda -q)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
@@ -6828,6 +6830,25 @@ while( $#argv != 0 )
       set DoCurvStats      = 1;
       breaksw
 
+    case "-autorecon2-samseg":
+      set DoASegMerge = 1;
+      set DoNormalization2 = 1;
+      set DoMaskBFS        = 1;
+      set DoSegmentation   = 1;
+      set DoFill           = 1;
+      set DoTessellate     = 1;
+      set DoSmooth1        = 1;
+      set DoInflate1       = 1;
+      set DoQSphere        = 1;
+      set DoFix            = 1;
+      set DoSmooth2        = 1;
+      set DoInflate2       = 1;
+      set DoWhiteSurfs     = 1;
+      set DoCurvHK         = 1;
+      set DoCurvStats      = 1;
+      set DoSegStats       = 0;
+      breaksw
+
     case "-autorecon2-volonly":
       set DoGCAReg         = 1;
       set DoRemoveNeck     = 0;
@@ -6877,9 +6898,11 @@ while( $#argv != 0 )
 
     case "-autorecon2-cp":
     case "-autorecon2-noaseg":
-    case "-autorecon2-wm":
       set DoNormalization2 = 1;
       set DoSegmentation   = 1;
+# no break!
+
+    case "-autorecon2-wm":
       set DoFill           = 1;
       set DoTessellate     = 1;
       set DoSmooth1        = 1;

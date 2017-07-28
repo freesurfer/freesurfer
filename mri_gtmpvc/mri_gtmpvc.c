@@ -164,7 +164,7 @@ GTM *gtm;
 GTMOPT *gtmopt;
 GTMOPT *gtmopt_powell;
 
-LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *outlta);
+LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, int side, LTA *outlta);
 int DoOpt=0;
 char *SUBJECTS_DIR;
 
@@ -306,6 +306,12 @@ int main(int argc, char *argv[])
 
   if(DoRegHeader)
     gtm->anat2pet = TransformRegDat2LTA(gtm->anatseg, gtm->yvol, NULL);
+  if(ApplyXFM){
+    printf("Applying xfm parameters ");
+    for(n=0; n<6; n++) printf("%g ",pxfm[n]);
+    printf("\n");
+    LTAapplyAffineParametersTKR(gtm->anat2pet, pxfm, 6, 2, gtm->anat2pet);
+  }
 
   sprintf(tmpstr,"%s.lta",stem);
   if(fio_FileExistsReadable(tmpstr)){
@@ -1203,6 +1209,9 @@ static int parse_commandline(int argc, char **argv) {
     } 
     else if(!strcmp(option, "--xfm")){
       if(nargc < 6) CMDargNErr(option,6);
+      // Note that the slice and row params are not in the order you might expect
+      // Dcol Dslice Drow Rcol Rslice Rrow
+      // Translations are in mm, Rotations in degrees
       for(n=0; n < 6; n++) sscanf(pargv[n],"%f",&pxfm[n]);
       ApplyXFM=1;
       nargsused = 6;
@@ -1744,10 +1753,6 @@ static void check_options(void)
       exit(1);
     }
   }
-  if(ApplyXFM){
-    printf("Applying xfm parameters\n");
-    LTAapplyAffineParametersTKR(gtm->anat2pet, pxfm, 6, gtm->anat2pet);
-  }
   if(SaveX0) {
     sprintf(tmpstr,"%s/X0.mat",OutDir);
     X0file = strcpyalloc(tmpstr);
@@ -1846,7 +1851,7 @@ MRI *MRIdownSmoothUp(MRI *src, int Fc, int Fr, int Fs,
   return(dst);
 }
 /*--------------------------------------------------------------------------*/
-LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *outlta)
+LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, int side, LTA *outlta)
 {
   static MATRIX *M;
   static double angles[3];
@@ -1858,13 +1863,14 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
   outlta = LTAchangeType(outlta,REGISTER_DAT);
   R = outlta->xforms[0].m_L;
 
-  // New R = Mshear*Mscale*Mtrans*Mrot*R (consistent with bbr)
+  // side==1 New R = Mshear*Mscale*Mtrans*Mrot*R (consistent with bbr)
   if(np >= 6){
     angles[0] = p[3]*(M_PI/180);
     angles[1] = p[4]*(M_PI/180);
     angles[2] = p[5]*(M_PI/180);
     M = MRIangles2RotMat(angles);
-    MatrixMultiply(M,R,R);    
+    if(side == 1) MatrixMultiply(M,R,R);    
+    if(side == 2) MatrixMultiply(R,M,R);    
     MatrixFree(&M);
   }
   if(np >= 3){
@@ -1873,7 +1879,8 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
     M->rptr[1][4] = p[0];
     M->rptr[2][4] = p[1];
     M->rptr[3][4] = p[2];
-    MatrixMultiply(M,R,R);    
+    if(side == 1) MatrixMultiply(M,R,R);    
+    if(side == 2) MatrixMultiply(R,M,R);    
   }
   if(np >= 9){
     // scale
@@ -1886,7 +1893,8 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
     M->rptr[1][1] = p[6];
     M->rptr[2][2] = p[7];
     M->rptr[3][3] = p[8];
-    MatrixMultiply(M,R,R);    
+    if(side == 1) MatrixMultiply(M,R,R);    
+    if(side == 2) MatrixMultiply(R,M,R);    
   }
   if(np >= 12){
     // shear
@@ -1894,7 +1902,8 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
     M->rptr[1][2] = p[9];
     M->rptr[1][3] = p[10];
     M->rptr[2][3] = p[11];
-    MatrixMultiply(M,R,R);    
+    if(side == 1) MatrixMultiply(M,R,R);    
+    if(side == 2) MatrixMultiply(R,M,R);    
   }
 
   if(0){
@@ -1904,6 +1913,8 @@ LTA *LTAapplyAffineParametersTKR(LTA *inlta, const float *p, const int np, LTA *
     for(n=0; n<np; n++) printf("%6.4f ",p[n]);
     printf("\n");fflush(stdout);
     MatrixPrint(stdout,R);fflush(stdout);
+    printf("---------------------------\n");
+    MatrixPrint(stdout,M);fflush(stdout);
     printf("---------------------------\n");
     fflush(stdout);
   }

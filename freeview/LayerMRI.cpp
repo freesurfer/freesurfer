@@ -524,6 +524,7 @@ void LayerMRI::DoTransform(double *m, int sample_method)
 
 void LayerMRI::DoTransform(int sample_method)
 {
+  Q_UNUSED(sample_method);
   bool bTransformed = IsTransformed();
   UpdateResliceInterpolation();
   vtkTransform* slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
@@ -1268,7 +1269,6 @@ double LayerMRI::GetSampledVoxelValueByRAS(double* ras, int frame)
 
 std::vector<double> LayerMRI::GetSampledVoxelValues(std::vector<std::vector<double> > &line3d, int frame)
 {
-  MRI* mri = m_volumeSource->GetMRI();
   std::vector<double> vals;
   for (size_t i = 0; i < line3d.size(); i++)
   {
@@ -1281,7 +1281,6 @@ std::vector<double> LayerMRI::GetSampledVoxelValues(std::vector<std::vector<doub
 
 std::vector<double> LayerMRI::GetMeanSegmentValues(std::vector<std::vector<double> > &line3d, int frame)
 {
-  MRI* mri = m_volumeSource->GetMRI();
   double* spacing = this->m_imageData->GetSpacing();
   double voxel_length = qMin(spacing[0], qMin(spacing[1], spacing[2]));
   std::vector<double> vals;
@@ -1590,9 +1589,9 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
 
   char* ptr = (char*)imagedata->GetScalarPointer();
   int scalar_type = imagedata->GetScalarType();
-  char* scale_ptr;
-  int scale_scalar_type;
-  int* scale_dim;
+  char* scale_ptr = NULL;
+  int scale_scalar_type = NULL;
+  int* scale_dim = NULL;
   if (scaledata)
   {
     scale_ptr = (char*)scaledata->GetScalarPointer();
@@ -2246,7 +2245,6 @@ bool LayerMRI::GetVoxelStatsByTargetRAS(QList<float> &coords, double* mean_out, 
 {
   double* orig = m_imageData->GetOrigin();
   double* vsize = m_imageData->GetSpacing();
-  int* ext = m_imageData->GetExtent();
 
   QList<int> indices;
   for (int i = 0; i < coords.size(); i+=3)
@@ -3138,11 +3136,11 @@ void LayerMRI::UpdateProjectionMap()
       if (nRange[i*2+1] < 0)
         nRange[i*2+1] = m_dim[i]-1;
     }
-    for (size_t x = 0; x < m_dim[0]; x++)
+    for (qlonglong x = 0; x < m_dim[0]; x++)
     {
-      for (size_t y = 0; y < m_dim[1]; y++)
+      for (qlonglong y = 0; y < m_dim[1]; y++)
       {
-        for (size_t z = 0; z < m_dim[2]; z++)
+        for (qlonglong z = 0; z < m_dim[2]; z++)
         {
           float val = ptr[z*m_dim[0]*m_dim[1]+y*m_dim[0]+x];
           if (nType == LayerPropertyMRI::PM_Maximum)
@@ -3378,14 +3376,14 @@ void LayerMRI::Threshold(int frame, LayerMRI* src, int src_frame, double th_low,
       break;
     }
 
-    for (size_t i = 0; i < dim[0]; i++)
+    for (qlonglong i = 0; i < dim[0]; i++)
     {
-      for (size_t j = 0; j < dim[1]; j++)
+      for (qlonglong j = 0; j < dim[1]; j++)
       {
-        for (size_t k = 0; k < dim[2]; k++)
+        for (qlonglong k = 0; k < dim[2]; k++)
         {
-          size_t n = k*dim[0]*dim[1] + j*dim[0] + i;
-          size_t offset = (n*nFrames+frame)*nBytes;
+          qlonglong n = k*dim[0]*dim[1] + j*dim[0] + i;
+          qlonglong offset = (n*nFrames+frame)*nBytes;
           if (src_ptr[n] < 1)
           {
             if (replace_out)
@@ -3488,13 +3486,13 @@ void LayerMRI::UpdateSurfaceCorrelationData()
     m_imageRawDisplay->GetDimensions(dim);
     float* inPixel = static_cast<float*>(m_imageData->GetScalarPointer());
     float* outPixel = static_cast<float*>(m_imageRawDisplay->GetScalarPointer());
-    for (size_t i = 0; i < dim[0]; i++)
+    for (qlonglong i = 0; i < dim[0]; i++)
     {
-      for (size_t j = 0; j < dim[1]; j++)
+      for (qlonglong j = 0; j < dim[1]; j++)
       {
-        for (size_t k = 0; k < dim[2]; k++)
+        for (qlonglong k = 0; k < dim[2]; k++)
         {
-          size_t nOffset = k*dim[0]*dim[1] + j*dim[0] + i;
+          qlonglong nOffset = k*dim[0]*dim[1] + j*dim[0] + i;
           x = inPixel + nOffset*nFrames;
           bool masked = true;
           for (int n = 0; n < nFrames; n++)

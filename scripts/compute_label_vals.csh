@@ -27,6 +27,9 @@ foreach f ($odir/norm/*.mgz)
     if ($fonly == opt) then
 	continue ;
     endif
+    if ($fonly == opt.unmasked) then
+	continue ;
+    endif
     if ($fonly == fluid_mask) then
 	continue ;
     endif

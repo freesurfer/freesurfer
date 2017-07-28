@@ -288,6 +288,9 @@ float GCAcomputeNumberOfGoodFittingSamples(GCA *gca, GCA_SAMPLE *gcas,
 float  GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
                                       MRI *mri_inputs,
                                       TRANSFORM *transform,int nsamples, double clamp);
+float  GCAcomputeLabelIntensityVariance(GCA *gca, GCA_SAMPLE *gcas,
+					MRI *mri_inputs,
+					TRANSFORM *transform,int nsamples);
 float  GCAcomputeLogSampleProbabilityLongitudinal(GCA *gca, GCA_SAMPLE *gcas,
                                                   MRI *mri_inputs,
                                                   TRANSFORM *transform,int nsamples, double clamp);

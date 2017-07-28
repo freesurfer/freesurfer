@@ -179,6 +179,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   {
     menu->addAction(wnd->ui->actionNewVolume);
     menu->addAction(wnd->ui->actionLoadVolume);
+    menu->addAction(wnd->ui->actionReloadVolume);
     if (type == "MRI")
     {
       QAction* act = new QAction("Save All Checked Volumes", this);
@@ -190,6 +191,7 @@ void LayerTreeWidget::contextMenuEvent(QContextMenuEvent *e)
   if (type == "Surface" || type.isEmpty())
   {
     menu->addAction(wnd->ui->actionLoadSurface);
+    menu->addAction(wnd->ui->actionReloadSurface);
     menu->addSeparator();
   }
   if (type == "ROI" || type.isEmpty())

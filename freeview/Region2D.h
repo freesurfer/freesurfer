@@ -48,7 +48,7 @@ public:
 
   virtual bool Contains( int nX, int nY, int* nPointIndex = NULL ) = 0;
 
-  virtual void Highlight( bool bHighlight = true ) {}
+  virtual void Highlight( bool bHighlight = true ) { Q_UNUSED(bHighlight); }
 
   virtual void AppendProp( vtkRenderer* renderer ) = 0;
 

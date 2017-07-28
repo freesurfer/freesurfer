@@ -68,6 +68,8 @@ void Interactor::SetUseCommandControl(bool b)
     CONTROL_MODIFIER = Qt::MetaModifier;
     CONTROL_KEY = Qt::Key_Meta;
   }
+#else
+  Q_UNUSED(b);
 #endif
 }
 

@@ -200,6 +200,13 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   for (int i = 0; i < 4; i++)
     connect(ui->widgetAllLayers, SIGNAL(CurrentLayerSelected(Layer*)), m_views[i], SLOT(SetScalarBarLayer(Layer*)));
 
+  connect(m_layerCollections["MRI"], SIGNAL(LayerAdded(Layer*)), m_views[3], SLOT(OnLayerVisibilityChanged()));
+  connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)), m_views[3], SLOT(OnLayerVisibilityChanged()));
+  connect(m_layerCollections["MRI"], SIGNAL(LayerVisibilityChanged()), m_views[3], SLOT(OnLayerVisibilityChanged()));
+  connect(m_layerCollections["Surface"], SIGNAL(LayerAdded(Layer*)), m_views[3], SLOT(OnLayerVisibilityChanged()));
+  connect(m_layerCollections["Surface"], SIGNAL(LayerRemoved(Layer*)), m_views[3], SLOT(OnLayerVisibilityChanged()));
+  connect(m_layerCollections["Surface"], SIGNAL(LayerVisibilityChanged()), m_views[3], SLOT(OnLayerVisibilityChanged()));
+
   m_dlgCropVolume = new DialogCropVolume(this);
   m_dlgCropVolume->hide();
   connect(m_volumeCropper, SIGNAL(CropBoundChanged(LayerMRI*)),
@@ -2818,8 +2825,8 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
     if (nOverlay == 0)    // first one is not overlay file but actually surface file
       surface_fn = sa_fn[0];
     bool bLoadAll = false;
-    bool bLabelOutline = false;
-    QString labelColor;
+//    bool bLabelOutline = false;
+//    QString labelColor;
     QString overlay_reg;
     QString overlay_opacity;
     QString overlay_frame;
@@ -3360,6 +3367,7 @@ void MainWindow::CommandSetSurfaceLabelOutline(const QStringList &cmd)
 
 void MainWindow::CommandHideSurfaceLabel(const QStringList &cmd)
 {
+  Q_UNUSED(cmd);
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( surf && surf->GetActiveLabel())
   {
@@ -4099,6 +4107,7 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
 
 void MainWindow::CommandFlyThrough(const QStringList &cmd)
 {
+  Q_UNUSED(cmd);
   if (GetMainViewId() > 2)
   {
     cerr << "Can not fly through. Please set main viewport to 2D slice view.\n";
@@ -4702,14 +4711,39 @@ bool MainWindow::OffsetSlicePosition( int nPlane, double dPosDiff, bool bRoundTo
 {
   bool bRet = false;
   QStringList keys = m_layerCollections.keys();
-  for ( int i = 0; i < keys.size(); i++ )
+  LayerCollection* lc_mri = m_layerCollections["MRI"];
+  if (!lc_mri->IsEmpty())
   {
-    m_layerCollections[keys[i]]->blockSignals( true );
-    if ( m_layerCollections[keys[i]]->OffsetSlicePosition( nPlane, dPosDiff, bRoundToGrid ) )
+    lc_mri->blockSignals( true );
+    if ( lc_mri->OffsetSlicePosition( nPlane, dPosDiff, bRoundToGrid ) )
     {
       bRet = true;
     }
-    m_layerCollections[keys[i]]->blockSignals( false );
+    lc_mri->blockSignals( false );
+    if (bRet)
+    {
+      keys.removeOne("MRI");
+      double slicePos[3];
+      lc_mri->GetSlicePosition(slicePos);
+      for ( int i = 0; i < keys.size(); i++ )
+      {
+        m_layerCollections[keys[i]]->blockSignals( true );
+        m_layerCollections[keys[i]]->SetSlicePosition(nPlane, slicePos[nPlane]);
+        m_layerCollections[keys[i]]->blockSignals( false );
+      }
+    }
+  }
+  else
+  {
+    for ( int i = 0; i < keys.size(); i++ )
+    {
+      m_layerCollections[keys[i]]->blockSignals( true );
+      if ( m_layerCollections[keys[i]]->OffsetSlicePosition( nPlane, dPosDiff, bRoundToGrid ) )
+      {
+        bRet = true;
+      }
+      m_layerCollections[keys[i]]->blockSignals( false );
+    }
   }
   if ( bRet )
   {

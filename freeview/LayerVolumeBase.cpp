@@ -701,8 +701,8 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
             else
             {
               MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, n[nPlane], i, j, nActiveComp, scalar_type, bAdd ? m_fFillValue : m_fBlankValue );
-              voxel_list << n[nPlane] << i << j;
             }
+            voxel_list << n[nPlane] << i << j;
           }
         }
         ncnt++;
@@ -734,8 +734,8 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
             else
             {
               MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, i, n[nPlane], j, nActiveComp, scalar_type, bAdd ? m_fFillValue : m_fBlankValue );
-              voxel_list << i << n[nPlane] << j;
             }
+            voxel_list << i << n[nPlane] << j;
           }
         }
         ncnt++;
@@ -767,8 +767,8 @@ QList<int> LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, boo
             else
             {
               MyVTKUtils::SetImageDataComponent(ptr, dim, n_frames, i, j, n[nPlane], nActiveComp, scalar_type, bAdd ? m_fFillValue : m_fBlankValue );
-              voxel_list << i << j << n[nPlane];
             }
+            voxel_list << i << j << n[nPlane];
           }
         }
         ncnt++;
@@ -863,7 +863,10 @@ std::vector<double> LayerVolumeBase::GetLiveWirePointsByRAS( double* pt1, double
 
 bool LayerVolumeBase::SetLiveWireByIndex( int* n1, int* n2, int nPlane )
 {
-  vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
+  Q_UNUSED(n1);
+  Q_UNUSED(n2);
+  Q_UNUSED(nPlane);
+//  vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
   // MyUtils::GetLivewirePoints( m_imageData, nPlane, n1[nPlane], n1, n2, pts );
   return true;
 }
@@ -1033,11 +1036,11 @@ void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int 
     int n_frames = m_imageData->GetNumberOfScalarComponents();
     int nOrigDim[3];
     m_imageData->GetDimensions( nOrigDim );
-    for ( size_t i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
+    for ( size_t i = nStart[0]; i < (size_t)nStart[0] + nDim[0]; i++ )
     {
-      for ( size_t j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
+      for ( size_t j = nStart[1]; j < (size_t)nStart[1] + nDim[1]; j++ )
       {
-        for ( size_t k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
+        for ( size_t k = nStart[2]; k < (size_t)nStart[2] + nDim[2]; k++ )
         {
           if ( !mask || mask[n] > 0 )
           {
@@ -1085,11 +1088,11 @@ void LayerVolumeBase::LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZero
     int n_frames = m_imageData->GetNumberOfScalarComponents();
     int nOrigDim[3];
     m_imageData->GetDimensions( nOrigDim );
-    for ( size_t i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
+    for ( size_t i = nStart[0]; i < (size_t)nStart[0] + nDim[0]; i++ )
     {
-      for ( size_t j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
+      for ( size_t j = nStart[1]; j < (size_t)nStart[1] + nDim[1]; j++ )
       {
-        for ( size_t k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
+        for ( size_t k = nStart[2]; k < (size_t)nStart[2] + nDim[2]; k++ )
         {
           double dValue = MyVTKUtils::GetImageDataComponent(ptr, nOrigDim, n_frames, i, j, k, item.frame, scalar_type);
           memcpy( ptr + ((k*nOrigDim[0]*nOrigDim[1] + j*nOrigDim[0] + i)*n_frames + item.frame) * scalar_size,

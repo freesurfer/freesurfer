@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>300</height>
+    <height>309</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,7 +23,16 @@
       <enum>QFrame::Sunken</enum>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
-      <property name="margin">
+      <property name="leftMargin">
+       <number>5</number>
+      </property>
+      <property name="topMargin">
+       <number>5</number>
+      </property>
+      <property name="rightMargin">
+       <number>5</number>
+      </property>
+      <property name="bottomMargin">
        <number>5</number>
       </property>
       <item>
@@ -58,12 +67,32 @@
       </spacer>
      </item>
      <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Scale</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="lineEditScale"/>
+     </item>
+     <item>
       <widget class="QCheckBox" name="checkBoxAutoScale">
        <property name="text">
-        <string>Auto Scale</string>
+        <string>Auto</string>
        </property>
        <property name="checked">
         <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxMaxScale">
+       <property name="text">
+        <string>Max</string>
+       </property>
+       <property name="checked">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
@@ -87,18 +116,55 @@
   <connection>
    <sender>checkBoxAutoScale</sender>
    <signal>toggled(bool)</signal>
-   <receiver>widgetPlot</receiver>
-   <slot>SetAutoScale(bool)</slot>
+   <receiver>WindowTimeCourse</receiver>
+   <slot>OnCheckAutoScale(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>339</x>
-     <y>276</y>
+     <x>291</x>
+     <y>289</y>
     </hint>
     <hint type="destinationlabel">
-     <x>254</x>
-     <y>142</y>
+     <x>283</x>
+     <y>398</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxMaxScale</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>WindowTimeCourse</receiver>
+   <slot>OnCheckMaxScale(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>358</x>
+     <y>287</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>353</x>
+     <y>493</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditScale</sender>
+   <signal>returnPressed()</signal>
+   <receiver>WindowTimeCourse</receiver>
+   <slot>OnLineEditScaleReturnPressed()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>273</x>
+     <y>288</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>270</x>
+     <y>388</y>
     </hint>
    </hints>
   </connection>
  </connections>
+ <slots>
+  <slot>OnLineEditScaleReturnPressed()</slot>
+  <slot>OnCheckAutoScale(bool)</slot>
+  <slot>OnCheckMaxScale(bool)</slot>
+ </slots>
 </ui>

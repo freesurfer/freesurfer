@@ -185,6 +185,7 @@ parc_atlas_jackknife_test \
 petsc_setup \
 plot_structure_stats.tcl \
 print_unique_labels.csh \
+process_exvivo_diff_data_bay3.sh \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \

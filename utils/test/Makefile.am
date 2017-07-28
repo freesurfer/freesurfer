@@ -4,7 +4,7 @@
 SUBDIRS=mriBuildVoronoiDiagramFloat \
 	MRIScomputeBorderValues \
         mrishash \
-        MRISpositionSurface \
+        # MRISpositionSurface \  # currently unstable
 	mriSoapBubbleFloat
 
 AM_CPPFLAGS=-I$(top_srcdir)/include \

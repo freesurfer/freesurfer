@@ -57,10 +57,13 @@ void Region2D::UpdateStats()
 
 void Region2D::UpdateSlicePosition( int nPlane, double pos )
 {
+  Q_UNUSED(nPlane);
+  Q_UNUSED(pos);
   Update();
 }
 
 void Region2D::Show( bool bShow )
 {
+  Q_UNUSED(bShow);
 }
 

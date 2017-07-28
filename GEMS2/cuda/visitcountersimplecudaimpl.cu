@@ -245,18 +245,38 @@ void SimpleVisitCounterKernel( kvl::cuda::Image_GPU<int,3,unsigned short> output
 
 namespace kvl {
   namespace cuda {
+
+    unsigned int GetBlockSize( const size_t nVoxels, const size_t nTetrahedra ) {
+      unsigned int blockSize = 8;
+
+      // Compute the average number of voxels in each tetrahedron
+      const float avgTetVol = nVoxels / nTetrahedra;
+      // Compute the equivalent average cube (factor of 6 to get volume of bounding box)
+      const float avgCubeSize = powf( 6 * avgTetVol, 0.3333333f );
+
+      // Check to see if we need to increase blockSize
+      if( avgCubeSize > 32 ) {
+	blockSize = 16;
+	if( avgCubeSize > 64 ) {
+	  blockSize = 32;
+	}
+      }
+      return blockSize;
+    }
+
     template<typename T,typename Internal>
     void SimpleVisitCounter( CudaImage<int,3,unsigned short>& d_output,
 			     const CudaImage<T,3,size_t>& d_tetrahedra ) {
       const unsigned int nBlockx = 1024;
 
-      const unsigned int nThreadsx = 32;
-      const unsigned int nThreadsy = 32;
+      const size_t nTetrahedra = d_tetrahedra.GetDimensions()[0];
+
+      const unsigned int nThreadsx = GetBlockSize( d_output.ElementCount(), nTetrahedra );
+      const unsigned int nThreadsy = GetBlockSize( d_output.ElementCount(), nTetrahedra );
       const unsigned int nThreadsz = 1;
 
       dim3 grid, threads;
 
-      const size_t nTetrahedra = d_tetrahedra.GetDimensions()[0];
       
       if( nTetrahedra > nBlockx ) {
 	grid.x = nBlockx;

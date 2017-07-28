@@ -235,18 +235,19 @@ Q_SIGNALS:
 protected:
   virtual bool DoRotate( std::vector<RotationElement>& rotations )
   {
+    Q_UNUSED( rotations );
     return true;
   }
 
   virtual void DoRestore() {}
 
-  virtual void DoTranslate( double* offset ) {}
-  virtual void DoScale( double* scale, int nSampleMethod ) {}
-  virtual void DoTransform( double* mat, int sample_method ) {}
-  virtual void DoRotate( double* rotate, double* pos) {}
+  virtual void DoTranslate( double* offset ) { Q_UNUSED(offset); }
+  virtual void DoScale( double* scale, int nSampleMethod ) { Q_UNUSED(scale); Q_UNUSED(nSampleMethod); }
+  virtual void DoTransform( double* mat, int sample_method ) { Q_UNUSED(mat); Q_UNUSED(sample_method); }
+  virtual void DoRotate( double* rotate, double* pos) { Q_UNUSED(rotate); Q_UNUSED(pos); }
 
   // new transform scheme
-  virtual void DoTransform(int sample_method) {}
+  virtual void DoTransform(int sample_method) { Q_UNUSED(sample_method); }
 
   QString   m_strName;
   double    m_dSlicePosition[3];

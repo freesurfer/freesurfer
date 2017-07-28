@@ -193,6 +193,7 @@ void LayerConnectomeMatrix::Append2DProps(vtkRenderer *renderer, int nPlane)
 
 void LayerConnectomeMatrix::Append3DProps(vtkRenderer *renderer, bool *bPlaneVisibility)
 {
+  Q_UNUSED(bPlaneVisibility);
   renderer->AddViewProp(m_actorSplines);
   for (int i = 0; i < m_listLabels.size(); i++)
     renderer->AddViewProp(m_actorLabels[i]);
@@ -227,7 +228,8 @@ void LayerConnectomeMatrix::UpdateLabelActors()
 
 bool LayerConnectomeMatrix::HasProp(vtkProp *prop)
 {
-
+  Q_UNUSED(prop);
+  return false;
 }
 
 bool LayerConnectomeMatrix::IsVisible()
@@ -249,6 +251,7 @@ void LayerConnectomeMatrix::SetVisible(bool bVisible)
 
 void LayerConnectomeMatrix::OnSlicePositionChanged(int nPlane)
 {
+  Q_UNUSED(nPlane);
   RebuildSplineActors();
 }
 

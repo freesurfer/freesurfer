@@ -30,6 +30,7 @@
 #include "FSVolume.h"
 #include "LayerSurface.h"
 #include "SurfaceOverlay.h"
+#include "FSSurface.h"
 #include <QSettings>
 #include <QDebug>
 
@@ -44,12 +45,16 @@ WindowTimeCourse::WindowTimeCourse(QWidget *parent) :
   this->setWindowFlags(Qt::Tool);
   this->setWindowTitle("Time Course");
   connect(ui->widgetPlot, SIGNAL(FrameChanged(int)), this, SLOT(OnFrameChanged(int)));
+  connect(ui->widgetPlot, SIGNAL(PlotRangeChanged()), this, SLOT(UpdateScaleInfo()), Qt::QueuedConnection);
 
   QSettings s;
   QVariant v = s.value("WindowTimeCourse/Geomerty");
   if (v.isValid())
     this->restoreGeometry(v.toByteArray());
   ui->checkBoxAutoScale->setChecked(s.value("WindowTimeCourse/AutoScale", true).toBool());
+  if (!ui->checkBoxAutoScale->isChecked())
+    ui->checkBoxMaxScale->setChecked(true);
+  ui->lineEditScale->setEnabled(false);
 }
 
 WindowTimeCourse::~WindowTimeCourse()
@@ -60,8 +65,17 @@ WindowTimeCourse::~WindowTimeCourse()
   delete ui;
 }
 
-void WindowTimeCourse::UpdateData()
+void WindowTimeCourse::showEvent(QShowEvent *e)
 {
+  Q_UNUSED(e);
+  UpdateData(true);
+}
+
+void WindowTimeCourse::UpdateData(bool bForce)
+{
+  if (!isVisible() && !bForce)
+    return;
+
   QString type = MainWindow::GetMainWindow()->GetCurrentLayerType();
   if (type == "MRI")
   {
@@ -131,7 +145,11 @@ void WindowTimeCourse::UpdateData()
     {
       double pos[3];
       MainWindow::GetMainWindow()->GetLayerCollection("Surface")->GetSlicePosition(pos);
-      int nVert = surf->GetVertexIndexAtTarget(pos, NULL);
+      int nVert = -1;
+      if (surf->GetFileName().contains("inflated", Qt::CaseInsensitive) && surf->GetSourceSurface()->IsSurfaceLoaded(FSSurface::SurfaceWhite))
+        nVert = surf->GetCurrentVertex();
+      else
+        nVert = surf->GetVertexIndexAtTarget(pos, NULL);
       if (nVert < 0)
         return;
 
@@ -180,4 +198,59 @@ void WindowTimeCourse::OnLayerCorrelationSurfaceChanged()
   {
     hide();
   }
+}
+
+void WindowTimeCourse::UpdateScaleInfo()
+{
+  double range[2];
+  ui->widgetPlot->GetPlotRange(range);
+  ui->lineEditScale->blockSignals(true);
+  ui->lineEditScale->setText(QString("%1, %2").arg(range[0]).arg(range[1]));
+  ui->lineEditScale->blockSignals(false);
+}
+
+void WindowTimeCourse::OnCheckAutoScale(bool bChecked)
+{
+  ui->widgetPlot->SetAutoScale(bChecked);
+  if (bChecked)
+  {
+    ui->checkBoxMaxScale->setChecked(false);
+    ui->lineEditScale->setEnabled(false);
+  }
+  else if (!ui->checkBoxMaxScale->isChecked())
+    ui->lineEditScale->setEnabled(true);
+}
+
+void WindowTimeCourse::OnCheckMaxScale(bool bChecked)
+{
+  if (bChecked)
+  {
+    ui->widgetPlot->ResetPlotRange();
+    ui->checkBoxAutoScale->setChecked(false);
+    ui->lineEditScale->setEnabled(false);
+  }
+  else if (!ui->checkBoxAutoScale->isChecked())
+    ui->lineEditScale->setEnabled(true);
+}
+
+void WindowTimeCourse::OnLineEditScaleReturnPressed()
+{
+  QStringList list = ui->lineEditScale->text().trimmed().split(",", QString::SkipEmptyParts);
+  if (list.size() != 2)
+    list = ui->lineEditScale->text().trimmed().split(" ", QString::SkipEmptyParts);
+  if (list.size() != 2)
+    return;
+
+  bool bOK;
+  double range[2];
+  range[0] = list[0].trimmed().toDouble(&bOK);
+  if (!bOK)
+    return;
+  range[1] = list[1].trimmed().toDouble(&bOK);
+  if (!bOK)
+    return;
+
+  if (range[1] <= range[0])
+    range[1] = range[0]+1;
+  ui->widgetPlot->SetPlotRange(range);
 }

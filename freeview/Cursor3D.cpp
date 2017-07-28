@@ -43,7 +43,7 @@
 
 
 Cursor3D::Cursor3D( RenderView3D* view ) : QObject( view ),
-  m_view( view ), m_nSize(5), m_dScale(1.0), m_nThickness(1)
+  m_view( view ), m_nSize(5), m_nThickness(1), m_dScale(1.0)
 {
   m_actorCursor = vtkSmartPointer<vtkActor>::New();
   m_actorCursor->GetProperty()->SetColor( 1, 0, 0 );

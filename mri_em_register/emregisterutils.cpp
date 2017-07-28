@@ -33,6 +33,8 @@
 
 #include "emregisterutils.h"
 
+extern int use_variance ;
+
 // ===========================================
 
 double local_GCAcomputeLogSampleProbability( GCA *gca,
@@ -75,8 +77,12 @@ double local_GCAcomputeLogSampleProbability( GCA *gca,
   }
   else
   {
-    result = GCAcomputeLogSampleProbability( gca, gcas, mri,
-             transform, nsamples, clamp );
+    if (use_variance)
+      result = GCAcomputeLabelIntensityVariance( gca, gcas, mri,
+						 transform, nsamples );
+    else
+      result = GCAcomputeLogSampleProbability( gca, gcas, mri,
+					       transform, nsamples, clamp );
   }
 
 

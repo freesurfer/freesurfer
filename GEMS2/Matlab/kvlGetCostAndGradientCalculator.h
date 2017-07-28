@@ -49,20 +49,20 @@ public:
 
     const int  N = mxGetN( prhs[ 1 ] );
     const int  M = mxGetM( prhs[ 1 ] );
-    int numberOfImages = 0;
+    int numberOfContrasts = 0;
     if ( N < M )
       {
-      numberOfImages = M;
+      numberOfContrasts = M;
       }
     else
       {
-      numberOfImages = N;
+      numberOfContrasts = N;
       }
 
-    mexPrintf( "numberOfImages = %d\n", numberOfImages );
+    mexPrintf( "numberOfContrasts = %d\n", numberOfContrasts );
     std::vector< ImageType::ConstPointer >  images;
     uint64_T *  imagesHandle =  static_cast< uint64_T * >( mxGetData( prhs[ 1 ] ) );
-    for ( int imageNummber = 0; imageNummber < numberOfImages; imageNummber++, imagesHandle++)
+    for ( int imageNummber = 0; imageNummber < numberOfContrasts; imageNummber++, imagesHandle++)
        {
        const int handle = *(imagesHandle);
        std::cout << "Image: " << handle << std::endl;
@@ -110,13 +110,13 @@ public:
         
       //
       const int  numberOfClasses = mxGetDimensions( prhs[ 4 ] )[ 0 ];
-      const int  numberOfImages  = mxGetDimensions( prhs[ 4 ] )[ 1 ];
-      mexPrintf("numberOfClasses = %d\n",numberOfClasses);
-      mexPrintf("numberOfImages = %d\n",numberOfImages);
+      const int  numberOfContrasts  = mxGetDimensions( prhs[ 4 ] )[ 1 ];
+      //mexPrintf("numberOfClasses = %d\n",numberOfClasses);
+      //mexPrintf("numberOfContrasts = %d\n",numberOfContrasts);
       for ( int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
         {
-        vnl_vector< float >  mean( numberOfImages, 0.0f );
-        for ( int imageNumber = 0; imageNumber < numberOfImages; imageNumber++ )
+        vnl_vector< float >  mean( numberOfContrasts, 0.0f );
+        for ( int imageNumber = 0; imageNumber < numberOfContrasts; imageNumber++ )
           {
           mean[ imageNumber ] = (mxGetPr( prhs[ 4 ] ))[ classNumber + numberOfClasses*imageNumber ];
           }
@@ -127,9 +127,9 @@ public:
       for (unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
         {
         vnl_vector<float> miini = means[classNumber];
-        for ( unsigned int nima = 0; nima < numberOfImages; nima++ )
+        for ( unsigned int nima = 0; nima < numberOfContrasts; nima++ )
           {
-          mexPrintf("means[%d][%d] = %f\n",nima, classNumber, miini[nima]);
+          //mexPrintf("means[%d][%d] = %f\n",nima, classNumber, miini[nima]);
           }
         }
 
@@ -149,20 +149,20 @@ public:
         
       //
       const int  numberOfClasses = mxGetDimensions( prhs[ 4 ] )[ 0 ];
-      const int  numberOfImages  = mxGetDimensions( prhs[ 4 ] )[ 1 ];
-      mexPrintf("numberOfClasses = %d\n",numberOfClasses);
-      mexPrintf("numberOfImages = %d\n",numberOfImages);
+      const int  numberOfContrasts  = mxGetDimensions( prhs[ 4 ] )[ 1 ];
+      //mexPrintf("numberOfClasses = %d\n",numberOfClasses);
+      //mexPrintf("numberOfContrasts = %d\n",numberOfContrasts);
       
       // Does not really matter which way you read these in, because the precisions are symmetric matrices
       //transpose wont do any harm. 
       for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
         {
-        vnl_matrix< float >  precision( numberOfImages, numberOfImages, 0.0f);
-        for ( unsigned int row = 0; row < numberOfImages; row++ )
+        vnl_matrix< float >  precision( numberOfContrasts, numberOfContrasts, 0.0f );
+        for ( unsigned int row = 0; row < numberOfContrasts; row++ )
           {
-          for ( unsigned int col = 0; col < numberOfImages; col++ )
+          for ( unsigned int col = 0; col < numberOfContrasts; col++ )
             {
-            precision[ row ][ col ] = mxGetPr( prhs[ 5 ] )[ row + numberOfImages*(col + numberOfImages*classNumber) ];
+            precision[ row ][ col ] = mxGetPr( prhs[ 5 ] )[ classNumber + row * numberOfClasses + col * numberOfClasses * numberOfContrasts ];
             }
           }
         precisions.push_back( precision );
@@ -172,11 +172,11 @@ public:
       for ( unsigned int classNumber = 0; classNumber < numberOfClasses; classNumber++ )
         {
         vnl_matrix<float> precMat = precisions[classNumber];
-        for ( unsigned int row = 0; row < numberOfImages; row++ )
+        for ( unsigned int row = 0; row < numberOfContrasts; row++ )
           {
-          for ( unsigned int col = 0; col < numberOfImages; col++ )
+          for ( unsigned int col = 0; col < numberOfContrasts; col++ )
             {
-              mexPrintf("precisions[%d][%d][%d] = %f\n",row,col,classNumber,precMat[row][col]);
+            //mexPrintf("precisions[%d][%d][%d] = %f\n",row,col,classNumber,precMat[row][col]);
             }
           }
         }
