@@ -69,6 +69,7 @@ mfiles_DATA=\
 	load_nifti.m \
 	load_segstats.m \
 	lta_read.m \
+	lta_write.m \
 	mksubfov.m \
 	mri_cdf2p.m \
 	mri_glmfit_pcc.m \

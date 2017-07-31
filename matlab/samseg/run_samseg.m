@@ -1,4 +1,4 @@
-function run_samseg(imageFileName1,savePath,nThreadsStr,UseGPUStr,imageFileName2,imageFileName3,imageFileName4,imageFileName5,imageFileName6)
+function run_samseg(imageFileName1,savePath,nThreadsStr,UseGPUStr,RegMatFile,imageFileName2,imageFileName3,imageFileName4,imageFileName5,imageFileName6)
 % This function is a wrapper for running the samseg matlab
 % scripts. This wrapper can be compiled (meaning that all the
 % inputs are strings).
@@ -24,6 +24,8 @@ if(strcmp(imageFileName4,'none')) imageFileName4 = ''; end
 if(strcmp(imageFileName5,'none')) imageFileName5 = ''; end
 if(strcmp(imageFileName6,'none')) imageFileName6 = ''; end
 
+if(strcmp(RegMatFile,'noregmat')) RegMatFile = ''; end
+
 imageFileName = imageFileName1;
 
 AvgDataDir = getenv('SAMSEG_DATA_DIR');
@@ -34,12 +36,21 @@ fprintf('entering kvlClear\n');
 kvlClear; % Clear all the wrapped C++ stuff
 close all;
 
-fprintf('entering registerAtlas\n');
-% Switch on if you want to initialize the registration by matching
-% (translation) the centers  of gravity 
-initializeUsingCenterOfGravityAlignment = false;
-showFigures = true;
-samseg_registerAtlas
+if(isempty(RegMatFile))
+  fprintf('entering registerAtlas\n');
+  % Switch on if you want to initialize the registration by matching
+  % (translation) the centers  of gravity 
+  initializeUsingCenterOfGravityAlignment = false;
+  showFigures = false;
+  samseg_registerAtlas
+else
+  fprintf('Not performing registration\n');
+  fprintf('  Loading reg %s\n',RegMatFile);
+  load(RegMatFile);
+  fname = sprintf('%s/SPM12_6classes_30x30x30_template_coregistrationMatrices.mat',savePath);
+  save(fname,'worldToWorldTransformMatrix','imageToImageTransformMatrix');
+end
+
 
 
 % set SAMSEG_DATA_DIR as an environment variable, eg,
