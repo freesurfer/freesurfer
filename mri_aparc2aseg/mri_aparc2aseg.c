@@ -329,8 +329,6 @@ int main(int argc, char **argv)
     filled = mritmp;
   }
 
-
-
   /* ------ Load ASeg ------ */
   sprintf(tmpstr,"%s/%s/mri/%s.mgz",SUBJECTS_DIR,subject,asegname);
   if (!fio_FileExistsReadable(tmpstr))
@@ -341,7 +339,7 @@ int main(int argc, char **argv)
       sprintf(tmpstr,"%s/%s/mri/aseg/COR-.info",SUBJECTS_DIR,subject);
       if (!fio_FileExistsReadable(tmpstr))
       {
-        printf("ERROR: cannot find aseg\n");
+        printf("ERROR: cannot find aseg %s\n",asegname);
         exit(1);
       }
       else
@@ -443,9 +441,9 @@ int main(int argc, char **argv)
 
   if (relabel_gca_name != NULL)    // reclassify voxels interior to white that are likely to be something else
   {
-    MRI    *mri_norm, *mri_rh_dist, *mri_lh_dist, *mri_dist ;
+    MRI    *mri_norm;
     FILE   *fp ;
-    int    *labels, nlines, i, mean, label, nscanned ;
+    int    *labels, nlines, i, mean, label;
     float  *intensities ;
     char   *cp, line[STRLEN], label_name[STRLEN] ;
 
@@ -455,6 +453,10 @@ int main(int argc, char **argv)
     if (mri_norm == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not load norm volume from %s\n", relabel_norm_name) ;
 
+#if 0
+    // BF included this in his relabel code, but not clear what it does
+    // variables don't seem to be used and shadow variables in the main code
+    MRI    *mri_rh_dist, *mri_lh_dist, *mri_dist;
     if(DoLH){
       mri_lh_dist = MRIcloneDifferentType(mri_norm, MRI_FLOAT) ;
       MRIScomputeDistanceToSurface(lhwhite, mri_lh_dist, mri_lh_dist->xsize) ; 
@@ -469,6 +471,7 @@ int main(int argc, char **argv)
       mri_dist = MRIcombineDistanceTransforms(mri_lh_dist, mri_rh_dist, NULL) ;
       MRIfree(&mri_lh_dist) ; MRIfree(&mri_rh_dist) ;
     }
+#endif
     
     xform = TransformRead(relabel_xform_name) ;
     if (xform == NULL)
@@ -496,7 +499,7 @@ int main(int argc, char **argv)
     cp = fgetl(line, 199, fp) ;
     for (i = 0 ; i < nlines ; i++)
     {
-      nscanned  = sscanf(cp, "%d %s %*f %*f %d", &label, label_name, &mean) ;
+      sscanf(cp, "%d %s %*f %*f %d", &label, label_name, &mean) ;
       labels[i] = label ;
       intensities[i] = mean ;
       if (labels[i] == Left_Cerebral_White_Matter)
@@ -510,7 +513,7 @@ int main(int argc, char **argv)
     free(intensities) ;
 
     TransformInvert(xform, mri_norm) ;
-// edit GCA to disallow cortical labels at points interior to white that we are relabeling
+    // edit GCA to disallow cortical labels at points interior to white that we are relabeling
     {
       int        x, y, z, n ;
       GCA_PRIOR *gcap ;
@@ -1176,6 +1179,12 @@ static int parse_commandline(int argc, char **argv)
       printf("relabeling unlikely voxels interior to white matter surface:\n\tnorm: %s\n\t XFORM: %s\n\tGCA: %s\n\tlabel intensities: %s\n",
 	     relabel_norm_name, relabel_xform_name, relabel_gca_name, relabel_label_intensities_name) ;
       nargsused = 4;
+    }
+    else if (!strcasecmp(option, "--no-relabel")){
+      relabel_norm_name = NULL;
+      relabel_xform_name =  NULL;
+      relabel_gca_name =  NULL;
+      relabel_label_intensities_name =  NULL;
     }
     else if (!strcasecmp(option, "--debug_voxel"))
     {
