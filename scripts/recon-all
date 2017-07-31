@@ -4719,9 +4719,11 @@ if($DoAParc2ASeg) then
     else
       set asegintensities = $longbasedir/mri/aseg.auto_noCCseg.label_intensities.txt
     endif
-    set cmd = (mri_aparc2aseg --s $subjid --volmask --aseg aseg.presurf.hypos  \
-        --relabel mri/norm.mgz mri/transforms/talairach.m3z \
-        ${GCADIR}/$GCA $asegintensities)
+    set cmd = (mri_aparc2aseg --s $subjid --volmask --aseg aseg.presurf.hypos)
+    if(-e mri/transforms/talairach.m3z) then
+      # These options will not work with samseg, which does not have a tal.m3z
+      set cmd = ($cmd --relabel mri/norm.mgz mri/transforms/talairach.m3z ${GCADIR}/$GCA $asegintensities)
+    endif
     if ($LHonly) set cmd = ($cmd --lh )
     if ($RHonly) set cmd = ($cmd --rh )
     if(${parc} != "aparc") then
