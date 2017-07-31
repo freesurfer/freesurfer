@@ -48,6 +48,7 @@
 #include <vtkTriangleFilter.h>
 #include <vtkSmartPointer.h>
 #include <vtkPointData.h>
+#include <QDebug>
 
 #define NUM_OF_SIDES  10  // must be even number!
 
@@ -94,8 +95,7 @@ LayerPointSet::LayerPointSet( LayerMRI* ref, int nType, QObject* parent ) : Laye
   connect(p, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()));
   connect(p, SIGNAL(RadiusChanged(double)), this, SLOT(RebuildActors()));
   connect(p, SIGNAL(SplineRadiusChanged(double)), this, SLOT(RebuildActors()));
-  connect(p, SIGNAL(ScalarLayerChanged(LayerMRI*)), this, SLOT(RebuildActors()));
-  connect(p, SIGNAL(ScalarSetChanged()), this, SLOT(RebuildActors()));
+  connect(p, SIGNAL(ScalarChanged()), this, SLOT(RebuildActors()));
   connect(p, SIGNAL(SnapToVoxelCenterChanged(bool)), this, SLOT(UpdateSnapToVoxelCenter()));
   connect(p, SIGNAL(SplineVisibilityChanged(bool)), this, SLOT(UpdateSplineVisibility()));
 }
@@ -128,6 +128,7 @@ bool LayerPointSet::LoadFromFile( const QString& filename )
     }
   }
 
+  GetProperty()->SetStatRange(m_pointSetSource->GetMinStat(), m_pointSetSource->GetMaxStat());
   m_points.clear();
   m_pointSetSource->LabelToPointSet( m_points, m_layerRef->GetSourceVolume() );
   SetFileName( filename );
@@ -339,6 +340,8 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     }
     if ( m_points.size() > 1 )
     {
+      polydata->Update();
+      UpdateScalars(polydata);
       spline->SetInput( polydata );
       vtkTubeFilter* tube = vtkTubeFilter::New();
       tube->SetNumberOfSides( NUM_OF_SIDES );
@@ -349,7 +352,6 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
       tube->Update();
       polydata_tube = tube->GetOutput();
       m_actorSpline->SetMapper( m_mapper );
-      UpdateScalars();
       tube->Delete();
     }
     polydata->Delete();
@@ -432,6 +434,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
       vtkSmartPointer<vtkPolyData> cutpoly = vtkSmartPointer<vtkPolyData>::New();
       cutpoly->SetPoints( stripper->GetOutput()->GetPoints() );
       cutpoly->SetPolys( stripper->GetOutput()->GetLines() );
+      cutpoly->GetPointData()->SetScalars(stripper->GetOutput()->GetPointData()->GetScalars());
 
       vtkSmartPointer<vtkTriangleFilter> triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();
       triangleFilter->SetInput( cutpoly );
@@ -443,48 +446,51 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     }
   }
 
+  UpdateColorMap();
+
   if ( !bRebuild3D )
   {
     blockSignals(false);
     return;
   }
 
-
-  UpdateColorMap();
   UpdateOpacity();
 
   blockSignals(false);
   emit ActorUpdated();
 }
 
-void LayerPointSet::UpdateScalars()
+void LayerPointSet::UpdateScalars(vtkPolyData* polydata)
 {
-  if ( 1 )
+  if ( true )
   {
     LayerMRI* layer = GetProperty()->GetScalarLayer();
-    vtkPolyData* polydata = m_mapper->GetInput();
     vtkPoints* pts = polydata->GetPoints();
     int nPts = pts->GetNumberOfPoints();
     vtkFloatArray* scalars = vtkFloatArray::New();
     scalars->SetNumberOfValues( nPts );
-    double pt[3] = { 0, 0, 0 };
+//    double pt[3] = { 0, 0, 0 };
     double val = 0;
     for ( int i = 0; i < nPts; i++ )
     {
-      if ( (i%NUM_OF_SIDES) == 0 )
+      if ( true ) // (i%NUM_OF_SIDES) == 0 )
       {
-        double* p1 = pts->GetPoint( i );
-        double* p2 = pts->GetPoint( i + NUM_OF_SIDES/2 );
-        pt[0] = ( p1[0] + p2[0] ) / 2;
-        pt[1] = ( p1[1] + p2[1] ) / 2;
-        pt[2] = ( p1[2] + p2[2] ) / 2;
+//        double* p1 = pts->GetPoint( i );
+//        double* p2 = pts->GetPoint( i + NUM_OF_SIDES/2 );
+//        pt[0] = ( p1[0] + p2[0] ) / 2;
+//        pt[1] = ( p1[1] + p2[1] ) / 2;
+//        pt[2] = ( p1[2] + p2[2] ) / 2;
         if ( layer && GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarLayer )
         {
-          val = layer->GetVoxelValue( pt );
+          val = layer->GetVoxelValue( pts->GetPoint(i) );
         }
         else if ( GetProperty()->GetScalarType() == LayerPropertyPointSet::ScalarSet )
         {
-          val = GetProperty()->GetActiveScalarSet().dValue[i/NUM_OF_SIDES];
+          val = GetProperty()->GetActiveScalarSet().dValue[i];
+        }
+        else
+        {
+          val = m_points[i].value;
         }
       }
       scalars->SetValue( i, val );
@@ -697,10 +703,20 @@ void LayerPointSet::UpdateColorMap()
   case LayerPropertyPointSet::SolidColor:
     m_mapper->ScalarVisibilityOff();
     m_actorSpline->GetProperty()->SetColor( GetProperty()->GetSplineColor() );
+    for (int i = 0; i < 3; i++)
+    {
+      m_actorSplineSlice[i]->GetMapper()->ScalarVisibilityOff();
+      m_actorSplineSlice[i]->GetProperty()->SetColor(GetProperty()->GetSplineColor());
+    }
     break;
   case LayerPropertyPointSet::HeatScale:
     m_mapper->ScalarVisibilityOn();
     m_mapper->SetLookupTable( GetProperty()->GetHeatScaleLUT() );
+    for (int i = 0; i < 3; i++)
+    {
+      m_actorSplineSlice[i]->GetMapper()->ScalarVisibilityOn();
+      m_actorSplineSlice[i]->GetMapper()->SetLookupTable( GetProperty()->GetHeatScaleLUT() );
+    }
     break;
   }
   emit ActorUpdated();

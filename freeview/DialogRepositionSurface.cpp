@@ -160,6 +160,7 @@ int DialogRepositionSurface::GetVertex()
   case 2:
     return ui->lineEditVertex3->text().toInt();
   }
+  return 0;
 }
 
 int DialogRepositionSurface::GetNeighborSize()
@@ -184,14 +185,6 @@ void DialogRepositionSurface::GetCoordinate( double* pos )
 {
   if (ui->tabWidget->currentIndex() == 0)
   {
-    /*
-    QStringList list = ui->lineEditTarget->text().split(",", QString::SkipEmptyParts);
-    if (list.size() < 3)
-      list = ui->lineEditTarget->text().split(" ", QString::SkipEmptyParts);
-
-    for ( int i = 0; i < 3; i++ )
-      pos[i] = list[i].toDouble();
-    */
     pos[0] = ui->lineEditTargetX->text().toDouble();
     pos[1] = ui->lineEditTargetY->text().toDouble();
     pos[2] = ui->lineEditTargetZ->text().toDouble();
@@ -247,19 +240,6 @@ bool DialogRepositionSurface::ValidateAll()
       name = "Intensity";
     if ( ui->comboBoxTarget->currentIndex() == 1 )
     {
-      /*
-      QStringList list = ui->lineEditTarget->text().split(",", QString::SkipEmptyParts);
-      if (list.size() < 3)
-        list = ui->lineEditTarget->text().split(" ", QString::SkipEmptyParts);
-      if ( list.size() < 3 )
-        name = "Coordinate";
-      for (int i = 0; i < 3; i++)
-      {
-        list[i].toDouble(&ok);
-        if (!ok)
-          name = "Coordinate";
-      }
-      */
       ui->lineEditTargetX->text().toDouble(&ok);
       if (!ok)
         name = "Coordinate";

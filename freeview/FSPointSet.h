@@ -68,9 +68,23 @@ public:
 
   bool GetCentroidRASPosition(double* pos, FSVolume* ref_vol);
 
+  double GetMinStat()
+  {
+    return m_dStatMin;
+  }
+
+  double GetMaxStat()
+  {
+    return m_dStatMax;
+  }
+
 protected:
+  void UpdateStatRange();
+
   // use label to save way points
   LABEL*   m_label;
+  double   m_dStatMin;
+  double   m_dStatMax;
 };
 
 #endif
