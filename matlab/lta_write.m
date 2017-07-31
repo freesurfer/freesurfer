@@ -48,7 +48,7 @@ for n = 1:2
     mri = lta.dstmri;
     mrifname = lta.dstfile;
   end
-  fprintf(fp,'valid 1\n');
+  fprintf(fp,'valid = 1\n');
   fprintf(fp,'filename = %s\n',mrifname);
   fprintf(fp,'volume = %d %d %d\n',mri.volsize(1),mri.volsize(2),mri.volsize(3));
   fprintf(fp,'voxelsize = %18.15f %18.15f %18.15f\n',mri.volres(1),mri.volres(2),mri.volres(3));
