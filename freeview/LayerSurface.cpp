@@ -1473,7 +1473,7 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
     {
       if ( mapper )
       {
-        int nCount = polydata->GetPoints()->GetNumberOfPoints();
+        vtkIdType nCount = polydata->GetPoints()->GetNumberOfPoints();
         vtkSmartPointer<vtkUnsignedCharArray> array = vtkUnsignedCharArray::SafeDownCast( polydata->GetPointData()->GetArray( "Overlay" ) );
         if ( array.GetPointer() == NULL )
         {
@@ -1497,13 +1497,13 @@ void LayerSurface::UpdateOverlay(bool bAskRedraw, bool pre_cached)
             {
               double* dColor = GetProperty()->GetBinaryColor();
               unsigned char rgba[4] = { (unsigned char)(dColor[0]*255), (unsigned char)(dColor[1]*255), (unsigned char)(dColor[2]*255), 255 };
-              for (size_t i = 0; i < nCount*4; i+=4)
+              for (vtkIdType i = 0; i < nCount*4; i+=4)
                 memcpy(data+i, rgba, 4);
             }
             else
             {
               QList<int>& rgb = m_rgbMaps[m_nActiveRGBMap].data;
-              for (size_t i = 0; i < nCount; i++)
+              for (vtkIdType i = 0; i < nCount; i++)
               {
                 data[i*4] = rgb[i*3];
                 data[i*4+1] = rgb[i*3+1];

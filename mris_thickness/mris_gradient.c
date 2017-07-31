@@ -59,6 +59,10 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int nbhd_size = 3 ;
+static int label_dilate = 0 ;
+static int label_erode = 0 ;
+
+static LABEL *mask_label = NULL ;
 
 int
 main(int argc, char *argv[]) {
@@ -96,8 +100,36 @@ main(int argc, char *argv[]) {
   MRISresetNeighborhoodSize(mris, nbhd_size) ;
 
   mri_grad = MRIScomputeGradient(mris, mri, FROBENIUS_NORM, NULL) ;
+  if (mask_label)
+  {
+    int    vno, f, l ;
+
+    MRISclearMarks(mris) ;
+    if (label_dilate > 0)
+      LabelDilate(mask_label, mris, label_dilate, mask_label->coords) ;
+    if (label_erode > 0)
+      LabelErode(mask_label, mris, label_erode) ;
+    MRISclearMarks(mris) ;
+    for (l = 0 ; l < mask_label->n_points ; l++)
+    {
+      if (mask_label->lv[l].deleted)
+	continue ;
+      vno = mask_label->lv[l].vno ; 
+      if ((vno >= 0) && (vno < mris->nvertices))
+	mris->vertices[vno].marked = 1 ;
+    }
+
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+      if (mris->vertices[vno].marked == 0)
+      {
+	for (f = 0 ; f < mri_grad->nframes ; f++)
+	  MRIsetVoxVal(mri_grad, vno, 0, 0, f, 0) ;
+      }
+  }
+
   printf("writing output gradient to %s\n", out_fname) ;
   MRIwrite(mri_grad, out_fname) ;
+
   MRIfree(&mri) ;
 
   exit(0) ;
@@ -119,6 +151,28 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "mask_label"))
+  {
+    nargs = 1 ;
+    printf("reading masking label from %s\n", argv[2]) ;
+    mask_label = LabelRead(NULL,argv[2]) ;
+    if (mask_label == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load label %s for masking\n", Progname, argv[2]) ;
+  }
+  else if (!stricmp(option, "dilate") || !stricmp(option, "label_dilate") ||
+	   !stricmp(option, "dilate_label"))
+  {
+    nargs = 1 ;
+    label_dilate = atoi(argv[2]) ;
+    printf("dilating label %d times\n", label_dilate) ;
+  }
+  else if (!stricmp(option, "erode") || !stricmp(option, "label_erode") ||
+	   !stricmp(option, "erode_label"))
+  {
+    nargs = 1 ;
+    label_erode = atoi(argv[2]) ;
+    printf("eroding label %d times\n", label_erode) ;
+  }
   else switch (toupper(*option)) {
     case 'N':
       nbhd_size = atoi(argv[2]) ;

@@ -370,17 +370,13 @@ FORMS    += MainWindow.ui \
 RESOURCES += \
     freeview.qrc
 
-LIBS += \
-    -lvtkverdict -lvtkGraphics -lvtkmetaio -lvtkpng -lvtkzlib \
-    -lvtksqlite -lvtkImaging -lvtkFiltering -lvtkCommon -lvtksys \
-    -lvtkGenericFiltering -lvtkexoIIc -lvtkNetCDF -lvtkVolumeRendering \
-    -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser
-
 #LIBS += \
 #    -lvtkhdf5_hl -lvtkhdf5 -lLSDyna  -lvtkNetCDF_cxx
 
-QMAKE_CXXFLAGS += -Wno-deprecated -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES \
-                                  -Wno-write-strings -DDEVELOPMENT -DHAVE_OPENMP
+QMAKE_CXXFLAGS += -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILES \
+                   -DDEVELOPMENT -DHAVE_OPENMP
+
+QMAKE_CXXFLAGS_WARN_ON += -Wno-deprecated -Wno-write-strings #-Wno-reorder
 
 # set this to your local dev directory
 FREESURFER_DEV_DIR = /homes/5/rpwang/freesurfer/dev
@@ -391,62 +387,69 @@ FREESURFER_BIN = /homes/5/rpwang/freesurfer/bin
 
 # for linux
 unix {
+!macx {
+  greaterThan(QT_MAJOR_VERSION, 4): QT += x11extras
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += x11extras
+  LIBS += \
+    -lvtkverdict -lvtkGraphics -lvtkmetaio -lvtkpng -lvtkzlib \
+    -lvtksqlite -lvtkImaging -lvtkFiltering -lvtkCommon -lvtksys \
+    -lvtkGenericFiltering -lvtkexoIIc -lvtkNetCDF -lvtkVolumeRendering \
+    -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser
 
-INCLUDEPATH += /usr/pubsw/packages/vtk/current/include/vtk-5.6 \
-               $$FREESURFER_DEV_DIR/include $$FREESURFER_DEV_DIR/vtkutils \
-               /usr/pubsw/packages/mni/current/include \
-               $$FREESURFER_DEV_DIR/lineprof
+  INCLUDEPATH += /usr/pubsw/packages/vtk/current/include/vtk-5.6 \
+                 $$FREESURFER_DEV_DIR/include $$FREESURFER_DEV_DIR/vtkutils \
+                 /usr/pubsw/packages/mni/current/include \
+                 $$FREESURFER_DEV_DIR/lineprof
 
-QMAKE_CXXFLAGS += -I/usr/pubsw/packages/itk/current/include/InsightToolkit \
-    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Algorithms \
-    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/BasicFilters \
-    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Common \
-    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/IO \
-    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Numerics \
-    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Numerics/Statistics \
-    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Review \
-    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Review/Statistics \
-    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/SpatialObject \
-    -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Utilities \
-    -I/usr/pubsw/packages/vxl/current/include/vxl/core \
-    -I/usr/pubsw/packages/vxl/current/include/vxl/vcl \
-    -I/usr/pubsw/packages/vxl/current/include/vxl/v3p/netlib \
-    -I/usr/pubsw/packages/vxl/current/include/vxl/v3p/netlib/opt \
-    -I/usr/pubsw/packages/petsc/current/include
+  QMAKE_CXXFLAGS += -I/usr/pubsw/packages/itk/current/include/InsightToolkit \
+      -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Algorithms \
+      -I/usr/pubsw/packages/itk/current/include/InsightToolkit/BasicFilters \
+      -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Common \
+      -I/usr/pubsw/packages/itk/current/include/InsightToolkit/IO \
+      -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Numerics \
+      -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Numerics/Statistics \
+      -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Review \
+      -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Review/Statistics \
+      -I/usr/pubsw/packages/itk/current/include/InsightToolkit/SpatialObject \
+      -I/usr/pubsw/packages/itk/current/include/InsightToolkit/Utilities \
+      -I/usr/pubsw/packages/vxl/current/include/vxl/core \
+      -I/usr/pubsw/packages/vxl/current/include/vxl/vcl \
+      -I/usr/pubsw/packages/vxl/current/include/vxl/v3p/netlib \
+      -I/usr/pubsw/packages/vxl/current/include/vxl/v3p/netlib/opt \
+      -I/usr/pubsw/packages/petsc/current/include
 
-CONFIG(debug, debug|release) {
-    QMAKE_CXXFLAGS += -g -O0
-}
+  CONFIG(debug, debug|release) {
+      QMAKE_CXXFLAGS += -g -O0
+  }
 
-LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
-    -lX11 -lXext -lXt -lSM -lICE -lGLU -lm -ldl \
-    -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \
-    $$FREESURFER_DEV_DIR/utils/libutils.a $$FREESURFER_DEV_DIR/fsgdf/libfsgdf.a \
-    $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
-    $$FREESURFER_DEV_DIR/lineprof/liblineprof.a \
-    $$FREESURFER_DEV_DIR/hipsstubs/libhipsstubs.a $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
-    $$FREESURFER_DEV_DIR/rgb/librgb.a $$FREESURFER_DEV_DIR/unix/libunix.a $$FREESURFER_DEV_DIR/dicom/libdicom.a \
-    $$FREESURFER_DEV_DIR/jpeg/libjpeg.a $$FREESURFER_DEV_DIR/tiff/libtiff.a $$FREESURFER_DEV_DIR/expat/libexpat.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKIO.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKAlgorithms.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKCommon.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKMetaIO.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKniftiio.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKNrrdIO.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkpng.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitksys.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitktiff.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkv3p_netlib.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkzlib.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkgdcm.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkopenjpeg.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg8.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg12.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg16.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKDICOMParser.a \
-    /usr/lib64/libuuid.a -lz -lcrypt -ldl -lpthread \
-    /usr/pubsw/packages/mni/1.4/lib/libvolume_io.a -L/usr/pubsw/packages/mni/1.4/lib /usr/pubsw/packages/mni/1.4/lib/libminc.a /usr/pubsw/packages/mni/1.4/lib/libnetcdf.a \
-    -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
-    -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
-    -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
-    /usr/lib64/liblapack.a /usr/lib64/libblas.a -lgfortran -fopenmp
+  LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
+      -lX11 -lXext -lXt -lSM -lICE -lGLU -lm -ldl \
+      -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \
+      $$FREESURFER_DEV_DIR/utils/libutils.a $$FREESURFER_DEV_DIR/fsgdf/libfsgdf.a \
+      $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
+      $$FREESURFER_DEV_DIR/lineprof/liblineprof.a \
+      $$FREESURFER_DEV_DIR/hipsstubs/libhipsstubs.a $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
+      $$FREESURFER_DEV_DIR/rgb/librgb.a $$FREESURFER_DEV_DIR/unix/libunix.a $$FREESURFER_DEV_DIR/dicom/libdicom.a \
+      $$FREESURFER_DEV_DIR/jpeg/libjpeg.a $$FREESURFER_DEV_DIR/tiff/libtiff.a $$FREESURFER_DEV_DIR/expat/libexpat.a \
+      /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKIO.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKAlgorithms.a \
+      /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKCommon.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKMetaIO.a \
+      /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKniftiio.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKNrrdIO.a \
+      /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkpng.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitksys.a \
+      /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitktiff.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkv3p_netlib.a \
+      /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkzlib.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkgdcm.a \
+      /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkopenjpeg.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg8.a \
+      /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg12.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg16.a \
+      /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKDICOMParser.a \
+      /usr/lib64/libuuid.a -lz -lcrypt -ldl -lpthread \
+      /usr/pubsw/packages/mni/1.4/lib/libvolume_io.a -L/usr/pubsw/packages/mni/1.4/lib /usr/pubsw/packages/mni/1.4/lib/libminc.a /usr/pubsw/packages/mni/1.4/lib/libnetcdf.a \
+      -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
+      -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
+      -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
+      /usr/lib64/liblapack.a /usr/lib64/libblas.a -lgfortran -fopenmp
 
-TARGET = freeview.bin
-DESTDIR = $$FREESURFER_BIN
+  TARGET = freeview.bin
+  DESTDIR = $$FREESURFER_BIN
+  }
 }
 
 # for mac
@@ -462,36 +465,6 @@ QMAKE_CXXFLAGS += -DVCL_CAN_STATIC_CONST_INIT_FLOAT=0
 QMAKE_CXXFLAGS -= -DHAVE_OPENMP
 
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.9
-
-LIBS -= -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
-    -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \
-    $$FREESURFER_DEV_DIR/utils/libutils.a $$FREESURFER_DEV_DIR/fsgdf/libfsgdf.a \
-    $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
-    $$FREESURFER_DEV_DIR/lineprof/liblineprof.a \
-    $$FREESURFER_DEV_DIR/hipsstubs/libhipsstubs.a $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
-    $$FREESURFER_DEV_DIR/rgb/librgb.a $$FREESURFER_DEV_DIR/unix/libunix.a $$FREESURFER_DEV_DIR/dicom/libdicom.a \
-    $$FREESURFER_DEV_DIR/jpeg/libjpeg.a $$FREESURFER_DEV_DIR/tiff/libtiff.a $$FREESURFER_DEV_DIR/expat/libexpat.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKIO.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKAlgorithms.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKCommon.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKMetaIO.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKniftiio.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKNrrdIO.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkpng.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitksys.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitktiff.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkv3p_netlib.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkzlib.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkgdcm.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkopenjpeg.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg8.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg12.a /usr/pubsw/packages/itk/current/lib/InsightToolkit/libitkjpeg16.a \
-    /usr/pubsw/packages/itk/current/lib/InsightToolkit/libITKDICOMParser.a \
-    /usr/lib64/libuuid.a -lz -lcrypt -ldl -lpthread \
-    /usr/pubsw/packages/mni/1.4/lib/libvolume_io.a -L/usr/pubsw/packages/mni/1.4/lib /usr/pubsw/packages/mni/1.4/lib/libminc.a /usr/pubsw/packages/mni/1.4/lib/libnetcdf.a \
-    -lvnl_algo -lvnl -lvcl -lnetlib -lv3p_netlib \
-    -L/usr/pubsw/packages/petsc/current/lib -lpetscts -lpetscsnes -lpetscksp \
-    -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lfmpich \
-    /usr/lib64/liblapack.a /usr/lib64/libblas.a -lgfortran
-
-LIBS -= \
-    -lvtkverdict -lvtkGraphics -lvtkmetaio -lvtkpng \ #-lvtkzlib \
-    -lvtksqlite -lvtkImaging -lvtkFiltering -lvtkCommon -lvtksys \
-    -lvtkGenericFiltering -lvtkexoIIc -lvtkNetCDF -lvtkVolumeRendering \
-    -lvtkRendering -lvtkftgl -lvtkWidgets -lvtkHybrid -lvtkIO -lvtkDICOMParser
 
 LIBS += -lvtkHybrid -lvtkVolumeRendering -lvtkRendering -lvtkIO \
           -lvtkGraphics -lvtkGenericFiltering  \
@@ -529,7 +502,7 @@ LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -framework OpenGL -lm -ldl
     -lpetscdm -lpetscmat -lpetscvec -lpetsc -lmpich -lpmpich \
     -framework Accelerate /usr/local/gfortran/lib/libgfortran.a
 
-LIBS -= -L/usr/X11R6/lib -lX11 -lXext -lXt -lSM -lICE -lGLU -lGL
+#LIBS -= -L/usr/X11R6/lib -lX11 -lXext -lXt -lSM -lICE -lGLU -lGL
 
 DESTDIR = ./
 }
