@@ -152,13 +152,28 @@ if($#subject != 0) then
   if($status) exit 1;
 
   pushd $SUBJECTS_DIR/$subject/mri/transforms
-  set cmd = (ln -s samseg.talairach.lta talairach.lta)
+  set cmd = (ln -sf $outdir/samseg.talairach.lta talairach.lta)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # Create a talairach.xfm (needed mris_anatomical stats) 
+  set cmd = (lta_convert --inlta talairach.lta --outmni talairach.xfm)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
 
   pushd $SUBJECTS_DIR/$subject/mri
-  set cmd = (ln -s $outdir/in_vol_biasCorrected.mgz norm.mgz)
+  set vbase = `fname2stem $input`
+  set vbase = `basename $vbase`
+  set cmd = (ln -sf $outdir/$vbase"_biasCorrected".mgz norm.mgz)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  # create a link from the orig.mgz to rawavg.mgz
+  # needed for pctsurfcon
+  set cmd = (ln -sf orig.mgz rawavg.mgz)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) exit 1;
@@ -177,7 +192,7 @@ if($#subject != 0) then
   if($status) exit 1;
 
   if($DoRecon) then
-    set cmd = (recon-all -s $subject -autorecon2-samseg -autorecon3)
+    set cmd = (recon-all -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -372,7 +387,7 @@ end
 if($#subject) then
   if(-e $SUBJECTS_DIR/$subject) then
     echo "ERROR: $subject already exists"
-    exit 1;
+    #exit 1;
   endif
   if($#outdir != 0) then
     echo "ERROR: cannot spec --o with --s"
