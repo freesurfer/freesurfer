@@ -4030,11 +4030,11 @@ void MainWindow::CommandSetPointSetRadius( const QStringList& cmd )
   LayerPointSet* wp = (LayerPointSet*)GetLayerCollection( "PointSet" )->GetActiveLayer();
   if ( wp )
   {
-    if ( cmd[1] != "0" )
+    if ( !cmd[1].isEmpty() )
     {
       bool bOK;
       double dvalue = cmd[1].toDouble(&bOK);
-      if ( bOK)
+      if ( bOK && dvalue >= 0)
       {
         wp->GetProperty()->SetRadius( dvalue );
       }
