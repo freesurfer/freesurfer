@@ -3879,7 +3879,7 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
   QString fn = options[0];
   QString color = "null";
   QString spline_color = "null";
-  QString radius = "0";
+  QString radius = "1";
   QString spline_radius = "0";
   QString spline_heatmap;
   for ( int i = 1; i < options.size(); i++ )
@@ -3930,7 +3930,7 @@ void MainWindow::CommandLoadWayPoints( const QStringList& cmd )
     m_scripts.insert( 0, QStringList("setpointsetcolor") << color << spline_color );
   }
 
-  if ( radius != "0" || spline_radius != "0" )
+  if ( radius != "1" || spline_radius != "0" )
   {
     m_scripts.insert( 0, QStringList("setpointsetradius") << radius << spline_radius );
   }
