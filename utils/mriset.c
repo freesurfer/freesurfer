@@ -4504,3 +4504,43 @@ MRIcountValInNbhd(MRI *mri, int wsize, int x, int y, int z, int val)
   }
   return(total) ;
 }
+int
+MRIkarcherMean(MRI *mri, float low_val, float hi_val, int *px, int *py, int *pz) 
+{
+  double   xc, yc, zc, dist, min_dist, val ;
+  int      x, y, z, num ;
+
+  xc = yc = zc = 0.0 ;
+  for (num = x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	if (val < low_val || val > hi_val)
+	  continue ;
+	num++ ;
+	xc += x ; yc += y ; zc += z ;
+      }
+  if (num == 0)
+    ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIkarcherMean: not voxels in range [%d %d]\n",
+				low_val, hi_val));
+  xc /= num ; yc /= num ; zc /= num ;
+  min_dist = mri->width+mri->height+mri->depth ; min_dist *= min_dist ;
+  for (num = x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+	val = MRIgetVoxVal(mri, x, y, z, 0) ;
+	if (val < low_val || val > hi_val)
+	  continue ;
+	dist = SQR(x-xc) + SQR(y-yc) + SQR(z-zc) ;
+	if (dist < min_dist)
+	{
+	  min_dist = dist ;
+	  *px = x ; *py = y ; *pz = z ;
+	}
+      }
+
+  return(NO_ERROR) ;
+}
+
