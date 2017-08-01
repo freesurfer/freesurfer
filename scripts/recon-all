@@ -3116,7 +3116,7 @@ if($DoFill) then
   endif
   if ($LHonly) set cmd = ($cmd -lhonly )
   if ($RHonly) set cmd = ($cmd -rhonly )
-  if($UseAseg) set cmd = ($cmd -segmentation aseg.auto_noCCseg.mgz);
+  if($UseAseg) set cmd = ($cmd -segmentation aseg.presurf.mgz);
   if(! $UseOldTopoFix && ! $NoNormMGZ) set cmd = ($cmd -topofix norm.mgz);
   set cmd = ($cmd $xopts wm.mgz filled.mgz)
   $PWD |& tee -a $LF
