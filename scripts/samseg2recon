@@ -14,6 +14,7 @@ set subject = ();
 set input = ();
 set tmpdir = ()
 set LF = ()
+set cleanup = 1
 
 set inputargs = ($argv);
 set PrintHelp = 0;
