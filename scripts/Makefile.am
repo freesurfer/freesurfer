@@ -216,6 +216,7 @@ reregister_subject_mixed \
 rmcr \
 rtview \
 run-qdec-glm \
+samseg2recon \
 segment_monkey \
 segment_subject \
 segment_subject_notal \
