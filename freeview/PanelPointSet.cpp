@@ -312,7 +312,7 @@ void PanelPointSet::OnLineEditRadius(const QString& text)
   {
     bool bOK;
     double dVal = text.toDouble( &bOK );
-    if ( layer && bOK && dVal > 0 && layer->GetProperty()->GetRadius() != dVal )
+    if ( layer && bOK && dVal >= 0 && layer->GetProperty()->GetRadius() != dVal )
     {
       layer->GetProperty()->SetRadius( dVal );
     }

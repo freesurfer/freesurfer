@@ -719,7 +719,8 @@ void LayerPropertyMRI::BuildGenericLUT( const int colors[256][3] )
   mColorMapTable->AddRGBAPoint( mMinGenericThreshold, 0, 0, 0, 0 );
   {
     double stepsize = ( mMaxGenericThreshold - mMinGenericThreshold ) / 256;
-    for ( int i = 0; i < 256; i++ )
+    // ignore the first black color (0, 0, 0)
+    for ( int i = 1; i < 256; i++ )
     {
       mColorMapTable->AddRGBAPoint( mMinGenericThreshold + stepsize*i,
                                     colors[i][0]/255.0,

@@ -297,24 +297,27 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
   double scale = qMin( voxel_size[0], qMin( voxel_size[1], voxel_size[2] ) );
   double radius = GetProperty()->GetRadius();
 
-  vtkAppendPolyData* append = vtkAppendPolyData::New();
+  vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
   vtkPoints* pts = vtkPoints::New();
   vtkCellArray* lines = vtkCellArray::New();
   lines->InsertNextCell( m_points.size() );
   for ( int i = 0; i < m_points.size(); i++ )
   {
-    vtkSphereSource* sphere = vtkSphereSource::New();
-    sphere->SetCenter( m_points[i].pt );
-    sphere->SetRadius( radius * scale );
-    sphere->SetThetaResolution( 10 );
-    sphere->SetPhiResolution( 20 );
-    append->AddInput( sphere->GetOutput() );
-    sphere->Delete();
+    if (radius > 0)
+    {
+      vtkSphereSource* sphere = vtkSphereSource::New();
+      sphere->SetCenter( m_points[i].pt );
+      sphere->SetRadius( radius * scale );
+      sphere->SetThetaResolution( 10 );
+      sphere->SetPhiResolution( 20 );
+      append->AddInput( sphere->GetOutput() );
+      sphere->Delete();
+    }
     pts->InsertNextPoint( m_points[i].pt );
     lines->InsertCellPoint( i );
   }
   vtkPolyDataMapper* mapper = vtkPolyDataMapper::New();
-  if ( m_points.size() > 0 )
+  if ( m_points.size() > 0 && radius > 0 )
   {
     mapper->SetInput( append->GetOutput() );
   }
@@ -322,7 +325,6 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
   {
     mapper->SetInput( vtkSmartPointer<vtkPolyData>::New() );
   }
-  append->Delete();
   m_actorBalls->SetMapper( mapper );
   mapper->Delete();
 
@@ -369,7 +371,7 @@ void LayerPointSet::RebuildActors( bool bRebuild3D )
     int n = 0;
     for ( int j = 0; j < m_points.size(); j++ )
     {
-      if ( fabs( m_dSlicePosition[i] - m_points[j].pt[i] ) < ( voxel_size[i] / 2 ) )
+      if ( radius > 0 && fabs( m_dSlicePosition[i] - m_points[j].pt[i] ) < ( voxel_size[i] / 2 ) )
       {
         vtkSphereSource* sphere = vtkSphereSource::New();
         double point[3] = { m_points[j].pt[0], m_points[j].pt[1], m_points[j].pt[2] };

@@ -96,6 +96,12 @@ values. binvalnot only applies when a merge volume is NOT specified.
 Replace every occurrence of (int) value V1 with value V2. Multiple 
 --replace args are possible.
 
+--replaceonly V1 V2
+
+Replace every occurrence of (int) value V1 with value V2. Multiple 
+--replace args are possible. Other locations in the source volume will be propagated 
+to the output (unlike --replace which masks those locations)
+
 --frame frameno
 
 Use give frame of the input. 0-based. Default is 0.
@@ -109,6 +115,10 @@ Sum the frames together before applying threshold.
 Treat the multi-frame volume as binary 'AND' the frames together. This
 takes an intersection of the individual frames. You do not need to 
 specify a --min (the min will be set to nframes-0.5).
+
+--copy copyvol
+
+copy values from copyvol into the output, except where replaceval is matched
 
 --merge mergevol
 
@@ -203,6 +213,7 @@ struct utsname uts;
 char *InVolFile=NULL;
 char *OutVolFile=NULL;
 char *MergeVolFile=NULL;
+char *CopyVolFile=NULL;
 char *MaskVolFile=NULL;
 double MinThresh, MaxThresh;
 int MinThreshSet=0, MaxThreshSet=0;
@@ -225,7 +236,7 @@ int nMatch = 0;
 int MatchValues[1000];
 int Matched = 0;
 
-MRI *InVol,*OutVol,*MergeVol,*MaskVol=NULL;
+MRI *InVol,*OutVol,*MergeVol,*MaskVol=NULL, *CopyVol;
 double MaskThresh = 0.5;
 
 int nErode2d = 0;
@@ -244,6 +255,7 @@ int FDRSign = 0;
 
 int nErodeNN=0, NNType=0;
 
+static int replace_only = 0 ;
 int nReplace = 0, SrcReplace[1000], TrgReplace[1000];
 char *SurfFile=NULL;
 int nsmoothsurf=0;
@@ -377,6 +389,23 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if (CopyVolFile) {
+    CopyVol = MRIread(CopyVolFile);
+    if (CopyVol==NULL) exit(1);
+    if (CopyVol->width != InVol->width) {
+      printf("ERROR: dimension mismatch between input and merge volumes\n");
+      exit(1);
+    }
+    if (CopyVol->height != InVol->height) {
+      printf("ERROR: dimension mismatch between input and merge volumes\n");
+      exit(1);
+    }
+    if (CopyVol->depth != InVol->depth) {
+      printf("ERROR: dimension mismatch between input and merge volumes\n");
+      exit(1);
+    }
+  }
+
   if(DoPercent) {
     printf("Computing threshold based on top %g percent\n",TopPercent);
     MinThresh = MRIpercentThresh(InVol, MaskVol, frame, TopPercent);
@@ -467,9 +496,22 @@ int main(int argc, char *argv[]) {
   } // if(nReplace == 0)
 
   if(nReplace != 0){
-    printf("Replacing %d\n",nReplace);
-    for(n=0; n < nReplace; n++) printf("%2d:  %4d %4d\n",n+1,SrcReplace[n],TrgReplace[n]);
-    OutVol = MRIreplaceList(InVol, SrcReplace, TrgReplace, nReplace, MaskVol, NULL);
+    if (replace_only)
+    {
+      printf("Replacing %d and propagating source list\n",nReplace);
+      OutVol = MRIcopy(InVol, NULL) ;
+      for(n=0; n < nReplace; n++) 
+      {
+	printf("%2d:  %4d %4d\n",n+1,SrcReplace[n],TrgReplace[n]);
+	MRIreplaceValues(OutVol, OutVol, SrcReplace[n], TrgReplace[n]);
+      }
+    }
+    else
+    {
+      printf("Replacing %d\n",nReplace);
+      for(n=0; n < nReplace; n++) printf("%2d:  %4d %4d\n",n+1,SrcReplace[n],TrgReplace[n]);
+      OutVol = MRIreplaceList(InVol, SrcReplace, TrgReplace, nReplace, MaskVol, NULL);
+    }
   }
 
   if (noverbose == 0) 
@@ -708,6 +750,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       MergeVolFile = pargv[0];
       nargsused = 1;
+    } else if (!strcasecmp(option, "--copy")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      CopyVolFile = pargv[0];
+      nargsused = 1;
     } else if (!strcasecmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
       MaskVolFile = pargv[0];
@@ -762,6 +808,14 @@ static int parse_commandline(int argc, char **argv) {
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%d",&SrcReplace[nReplace]);
       sscanf(pargv[1],"%d",&TrgReplace[nReplace]);
+      nReplace++;
+      nargsused = 2;
+    }    
+    else if (!strcasecmp(option, "--replaceonly")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      sscanf(pargv[0],"%d",&SrcReplace[nReplace]);
+      sscanf(pargv[1],"%d",&TrgReplace[nReplace]);
+      replace_only = 1 ;
       nReplace++;
       nargsused = 2;
     }    
@@ -893,6 +947,7 @@ static void print_usage(void) {
   printf("   --fdr fdrthresh : compute min based on FDR (assuming -log10(p) input)\n");
   printf("     --fdr-pos, --fdr-neg, --fdr-abs (use only pos, neg, or abs; abs is default)\n");
   printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
+  printf("   --replaceonly V1 V2 : replace voxels=V1 with V2 and propagate other src voxels instead of binarizing\n");
   printf("   --replace V1 V2 : replace voxels=V1 with V2\n");
   printf("   --ctx-wm : set match vals to 2, 41, 77, 251-255 (aseg for cerebral WM)\n");
   printf("   --all-wm : set match vals to 2, 41, 77, 251-255, 7, and 46, (aseg for all WM)\n");
