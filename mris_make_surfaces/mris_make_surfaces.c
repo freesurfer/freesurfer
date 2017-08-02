@@ -1416,6 +1416,9 @@ main(int argc, char *argv[])
     exit(0) ;
   }
 
+  MRISsetVal2(mris, 0) ;   // will be marked for vertices near lesions
+
+  MRISunrip(mris) ;
   if (mri_aseg) //update aseg using either generated or orig_white
     fix_midline(mris, mri_aseg, mri_T1, hemi, GRAY_CSF, fix_mtl) ;
   //////////////////////////////////////////////////////////////////
@@ -1957,7 +1960,10 @@ main(int argc, char *argv[])
           v = &mris->vertices[vno] ;
           v->val = pial_vals[ii] ;
           v->marked = 1 ;
-          v->val2 = current_sigma ;
+	  if (v->val2 > 0)
+	    v->val2 = 3*current_sigma ;
+	  else
+	    v->val2 = current_sigma ;
 
           vtotal = 0 ;
           switch (pial_nbrs)
@@ -3687,6 +3693,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     wm_label = Right_Cerebral_White_Matter ;
     gm_label = Right_Cerebral_Cortex ;
   }
+  MRISclearMark2s(mris) ;
   MRISclearMarks(mris) ;
 
 #if 0
@@ -3790,6 +3797,9 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           label == Left_VentralDC ||
           label == Right_VentralDC)
       {
+	// these are labels where the intensities aren't useful, so just freeze surface there
+	if (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label))
+	  v->marked2 = 1 ;
         if (label == Left_Putamen || label == Right_Putamen)
         {
           DiagBreak() ;
@@ -3842,6 +3852,10 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
 	  printf("vno %d: dist %2.2f - %s (%d)\n", vno, -d, cma_label_to_name(label), label) ;
 	  DiagBreak() ;
 	}
+	// these are labels where the intensities aren't useful, so just freeze surface there
+	if (d < 1 && (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label)))
+	  v->marked = v->marked2 = 1 ;
+
         if (IS_PUTAMEN(label) || IS_ACCUMBENS(label))
         {
           compute_label_normal(mri_aseg, xv, yv, zv, label, 3,
@@ -3891,6 +3905,9 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       {
         break ;  // found real white matter next to surface
       }
+
+      if ((which == GRAY_CSF) && (d < 1) && (label == Left_Lesion || label == Right_Lesion || IS_WMSA(label)))
+	v->val2 = 1 ;
 
       if ((label == contra_wm_label ||
            label == Left_vessel ||
@@ -4062,12 +4079,14 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     {
       double pct_unknown;
       int    i ;
+      VERTEX *v ;
       CTABannotationAtIndex(mris->ct, index, &annotation) ;
 
       for (pct_unknown = 0.0, i = 0 ; i < labels[n]->n_points ; i++)
       {
-        if (mris->vertices[labels[n]->lv[i].vno].annotation == annotation ||
-            mris->vertices[labels[n]->lv[i].vno].annotation == 0)
+	v = &mris->vertices[labels[n]->lv[i].vno] ;
+        if ((v->annotation == annotation || v->annotation == 0) &&
+	    (v->marked2 == 0))  // will be 1 if a lesion or WMSA (keep frozen if so)
         {
           pct_unknown = pct_unknown + 1 ;
         }
@@ -4079,12 +4098,16 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
                labels[n]->n_points,100*pct_unknown) ;
         for (i = 0 ; i < labels[n]->n_points ; i++)
         {
-          mris->vertices[labels[n]->lv[i].vno].marked = 0 ;
-          if (labels[n]->lv[i].vno  == Gdiag_no)
-          {
-            printf("removing ripflag from v %d due to non-unknown aparc\n",
-                   Gdiag_no) ;
-          }
+	  v = &mris->vertices[labels[n]->lv[i].vno] ;
+	  if (v->marked2 == 0)
+	  {
+	    mris->vertices[labels[n]->lv[i].vno].marked = 0 ;
+	    if (labels[n]->lv[i].vno  == Gdiag_no)
+	    {
+	      printf("removing ripflag from v %d due to non-unknown aparc\n",
+		     Gdiag_no) ;
+	    }
+	  }
         }
       }
     }
