@@ -271,6 +271,8 @@ if ($BothHemis) then
     if (!(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) || $CleanSurfReg) then
       # the spherical registration does not yet exist
       set cmd = (mris_register -1 -dist 1.0 -inflated $movingsurfdir/$hemi.sphere $templatesurfdir/$hemi.sphere $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg)
+      date |& tee -a $LF
+      pwd  |& tee -a $LF
       echo $cmd >> $LF
       echo $cmd >> $sLF
       $cmd |& tee -a $LF
@@ -281,6 +283,8 @@ else
   if (!(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) || $CleanSurfReg) then
     # the spherical registration does not yet exist
     set cmd = (mris_register -1 -dist 1.0 -inflated $movingsurfdir/$hemi.sphere $templatesurfdir/$hemi.sphere $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg)
+    date |& tee -a $LF
+    pwd  |& tee -a $LF
     echo $cmd >> $LF
     echo $cmd >> $sLF
     $cmd |& tee -a $LF
@@ -294,6 +298,8 @@ if ($BothHemis) then
     foreach surf (white pial)
       if (!(-e $outdir/$hemi.resample.$surf) || $CleanSurfReg) then 
         set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot_in $movinglabeldir/$hemi.$annotfile --annot_out $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
+        date |& tee -a $LF
+        pwd  |& tee -a $LF
         echo $cmd >> $LF
         echo $cmd >> $sLF
         $cmd |& tee -a $LF
@@ -305,6 +311,8 @@ else
   foreach surf (white pial)
     if (!(-e $outdir/$hemi.resample.$surf) || $CleanSurfReg) then 
       set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot_in $movinglabeldir/$hemi.$annotfile --annot_out $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
+      date |& tee -a $LF
+      pwd  |& tee -a $LF
       echo $cmd >> $LF
       echo $cmd >> $sLF
       $cmd |& tee -a $LF
@@ -744,9 +752,7 @@ endif
 
 set finaloutputfilename = final_CVSmorphed_to${templateid}_${voltype}.mgz
 if ((-e $outdir/${combined:r}.${morphsuffix}) && (!(-e  $outdir/$finaloutputfilename ) || $CleanElReg || $CleanVolReg)) then 
-  # set cmd = (mri_vol2vol --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
   set cmd = (mri_vol2vol --targ $regtarget --m3z $outdir/${combined:r}.${morphsuffix} --noDefM3zPath \
-  #                      --mov $mmri/${voltype}.mgz --o $outdir/$finaloutputfilename --no-save-reg)
 		       --mov $regmoving --o $outdir/$finaloutputfilename --no-save-reg)
   echo $cmd >> $LF
   echo $cmd >> $sLF
@@ -1045,16 +1051,15 @@ check_params:
     exit 1;
   endif
 
-
   if($templateid == $FStemplate) then
     set usingFStemplate = 1;
   endif
 
-  if($BothHemis==1 &&  $masktargethemi==1) then
+  if($BothHemis == 1 && $masktargethemi == 1) then
     echo "ERROR: both hemis are planned to be registered but target is also to be masked! Check your param flags!"
   endif
 
-  if($BothHemis==1 &&  $maskmovinghemi==1) then
+  if($BothHemis == 1 && $maskmovinghemi == 1) then
     echo "ERROR: both hemis are planned to be registered but moving subject is also to be masked! Check your param flags!"
   endif
 

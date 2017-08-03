@@ -1,0 +1,318 @@
+#!/bin/tcsh -f
+#
+# samseg2recon - create and populate a subjects dir in a way that
+# recon-all can be run on it.
+
+set VERSION = '$Id$'
+
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
+set samsegdir = ();
+set subject = ();
+set input = ();
+set tmpdir = ()
+set LF = ()
+set cleanup = 1
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set StartTime = `date`;
+set tSecStart = `date '+%s'`;
+set year  = `date +%Y`
+set month = `date +%m`
+set day   = `date +%d`
+set hour   = `date +%H`
+set min    = `date +%M`
+
+mkdir -p $SUBJECTS_DIR/$subject/scripts 
+mkdir -p $SUBJECTS_DIR/$subject/mri/transforms
+mkdir -p $SUBJECTS_DIR/$subject/mri/tmp
+
+if($#tmpdir == 0) then
+  if(-dw /scratch)   set tmpdir = /scratch/tmpdir.samseg2recon.$$
+  if(! -dw /scratch) set tmpdir = $SUBJECTS_DIR/$subject/mri/tmp/tmpdir.samseg2recon.$$
+endif
+mkdir -p $tmpdir
+
+# Set up log file
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/samseg2recon.log
+if($LF != /dev/null) rm -f $LF
+echo "Log file for samseg2recon" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+if($?PBS_JOBID) then
+  echo "pbsjob $PBS_JOBID"  >> $LF
+endif
+
+#========================================================
+
+set mdir = $SUBJECTS_DIR/$subject/mri
+
+# Copy the first input. As it is set up now, the input to samseg
+# as been the orig.mgz (ie, it has been conformed). Eventually will
+# probably want to have arbitrary inputs and will have to conform it.
+set cmd = (mri_convert $input $mdir/orig.mgz)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+# create a link from the orig.mgz to rawavg.mgz, needed for pctsurfcon
+pushd $mdir
+set cmd = (ln -sf orig.mgz rawavg.mgz)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+popd
+
+# Have to change seg to uchar or things break downstream
+set cmd = (mri_convert -odt uchar --no_scale 1 \
+  $samsegdir/segSubSpace.mgz $mdir/aseg.auto_noCCseg.mgz)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Link the samseg talairach to the talairach.lta
+pushd $mdir/transforms
+set cmd = (ln -sf $samsegdir/samseg.talairach.lta talairach.lta)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+# Create a talairach.xfm (needed mris_anatomical stats) 
+set cmd = (lta_convert --inlta talairach.lta --outmni talairach.xfm)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+popd
+
+# Get basename for bias corrected data. At some point samseg
+# should write out stereotypical file names
+set vbase = `fname2stem $input`
+set vbase = `basename $vbase`
+set bc = $samsegdir/$vbase"_biasCorrected".mgz
+
+# Need to rescale bias cor such that WM is 110
+# Get mask of WM, eroded
+set wm = $tmpdir/wm.mask.mgh
+set cmd = (mri_binarize --i $samsegdir/segSubSpace.mgz --match 2 41 --erode 2 --o $wm)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+# Compute mean in the mask
+set wmmeanfile = $tmpdir/wm.mask.mean.dat
+set cmd = (mri_segstats --id 1 --i $bc --seg $wm --avgwf $wmmeanfile)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+set wmmean = `cat $wmmeanfile`
+set scale = `echo 110/$wmmean | bc -l`
+echo wmmean $wmmean | tee -a $LF
+echo scale $scale | tee -a $LF
+# Now rescale the BC so that WM is 110, save as nu
+set nu = $mdir/nu.mgz
+set cmd = (mri_concat $bc --mul $scale --o $nu)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Create the norm by just masking nu with the aseg
+set cmd = (mri_mask $nu $mdir/aseg.auto_noCCseg.mgz $mdir/norm.mgz)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+# link norm to brainmask
+pushd $mdir
+set cmd = (ln -sf norm.mgz brainmask.mgz)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+popd
+
+# Create aseg.auto.mgz This needs to be run separately, outside of
+# recon-all, because in recon-all it is done as part of ca_label
+pushd $mdir
+set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta transforms/cc_up.lta $subject)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+popd
+
+# Cleanup
+if($cleanup) rm -rf $tmpdir
+
+# Done
+echo " " |& tee -a $LF
+set tSecEnd = `date '+%s'`;
+@ tSecRun = $tSecEnd - $tSecStart;
+set tRunHours = `echo $tSecRun/3600|bc -l`
+set tRunHours = `printf %5.2f $tRunHours`
+echo "Started at $StartTime " |& tee -a $LF
+echo "Ended   at `date`" |& tee -a $LF
+echo "Samseg2recon-Run-Time-Sec $tSecRun" |& tee -a $LF
+echo "Samseg2recon-Run-Time-Hours $tRunHours" |& tee -a $LF
+echo " " |& tee -a $LF
+echo "samseg2recon Done" |& tee -a $LF
+exit 0
+
+###############################################
+
+############--------------##################
+error_exit:
+echo "ERROR: $cmd"
+exit 1;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--samseg":
+      if($#argv < 1) goto arg1err;
+      set samsegdir = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--i":
+      if($#argv < 1) goto arg1err;
+      set input = $argv[1]; shift;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--dice":
+      if($#argv < 1) goto arg1err;
+      set diceseg = $argv[1]; shift;
+      set computedice = 1;
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#input == 0) then
+  echo "ERROR: must supply input, use the exact same -i file as when samseg was run"
+  # needed to create orig.mgz and to get file name. This will eventually be changed.
+  exit 1;
+endif
+if($#subject == 0) then
+  echo "ERROR: must supply subject"
+  exit 1;
+endif
+if($#samsegdir == 0) set samsegdir = $SUBJECTS_DIR/$subject/mri/samseg
+if(! -e $samsegdir) then
+  echo "ERROR: cannot find $samsegdir"
+  exit 1;
+endif
+# Get full path to samsegdir (good for links)
+pushd $samsegdir > /dev/null
+set samsegdir = `pwd`
+popd  > /dev/null
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "samseg2recon"
+  echo "  --s subject"
+  echo "  --i input : same as when samseg was run (hack: needed for name)"
+  echo "  --samseg samsegdir : ouput dir when running samseg"
+  echo "      if not supplied, then assumes subject/mri/samseg"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Create and populate a subjects dir in a way that recon-all can be run
+on it. It is a work in progress as it assumes that the input to samseg
+is T1 and has been conformed.
+
+

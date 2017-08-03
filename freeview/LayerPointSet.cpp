@@ -705,19 +705,25 @@ void LayerPointSet::UpdateColorMap()
   case LayerPropertyPointSet::SolidColor:
     m_mapper->ScalarVisibilityOff();
     m_actorSpline->GetProperty()->SetColor( GetProperty()->GetSplineColor() );
-    for (int i = 0; i < 3; i++)
+    if (m_actorSplineSlice[0]->GetMapper())
     {
-      m_actorSplineSlice[i]->GetMapper()->ScalarVisibilityOff();
-      m_actorSplineSlice[i]->GetProperty()->SetColor(GetProperty()->GetSplineColor());
+      for (int i = 0; i < 3; i++)
+      {
+        m_actorSplineSlice[i]->GetMapper()->ScalarVisibilityOff();
+        m_actorSplineSlice[i]->GetProperty()->SetColor(GetProperty()->GetSplineColor());
+      }
     }
     break;
   case LayerPropertyPointSet::HeatScale:
     m_mapper->ScalarVisibilityOn();
     m_mapper->SetLookupTable( GetProperty()->GetHeatScaleLUT() );
-    for (int i = 0; i < 3; i++)
+    if (m_actorSplineSlice[0]->GetMapper())
     {
-      m_actorSplineSlice[i]->GetMapper()->ScalarVisibilityOn();
-      m_actorSplineSlice[i]->GetMapper()->SetLookupTable( GetProperty()->GetHeatScaleLUT() );
+      for (int i = 0; i < 3; i++)
+      {
+        m_actorSplineSlice[i]->GetMapper()->ScalarVisibilityOn();
+        m_actorSplineSlice[i]->GetMapper()->SetLookupTable( GetProperty()->GetHeatScaleLUT() );
+      }
     }
     break;
   }
