@@ -192,14 +192,14 @@ def options_parse():
     # extensive error checks
     if options.subjects is not None:
         if len(options.subjects) < 1:
-            print 'ERROR: subjects are not specified (use --subjects SUBJECTS)'
+            print('ERROR: subjects are not specified (use --subjects SUBJECTS)')
             sys.exit(1)
         else:
             options.dodirect = False
     
     if options.inputs is not None:
         if len(options.inputs) < 1:
-            print 'ERROR: inputs are not specified'
+            print('ERROR: inputs are not specified')
             sys.exit(1)
         else:
             options.dodirect = True
@@ -208,8 +208,8 @@ def options_parse():
         options.dodirect = False
 
     if options.subjects is None and options.inputs is None and options.subjectsfile is None and options.qdec is None and options.qdeclong is None: 
-        print 'ERROR: Specify one of --subjects, --inputs, --subjectsfile --qdec or --qdec-long'
-        print '       or run with --help for help.'
+        print('ERROR: Specify one of --subjects, --inputs, --subjectsfile --qdec or --qdec-long')
+        print('       or run with --help for help.')
         sys.exit(1)
     
     count=0
@@ -224,27 +224,27 @@ def options_parse():
     if options.qdeclong is not None:
         count = count+1;
     if count >1:
-        print 'ERROR: Please specify just one of  --subjects, --inputs --subjectsfile --qdec or --qdec-long.'
+        print('ERROR: Please specify just one of  --subjects, --inputs --subjectsfile --qdec or --qdec-long.')
         sys.exit(1)
     
     if not options.outputfile:
-        print 'ERROR: output table name should be specified (use --tablefile FILE)'
+        print('ERROR: output table name should be specified (use --tablefile FILE)')
         sys.exit(1)
 
     if options.segidsfile is not None and options.segnos is not None:
-        print 'ERROR: cannot spec both --segids-from-file and --segnos. Spec just one'
+        print('ERROR: cannot spec both --segids-from-file and --segnos. Spec just one')
         sys.exit(1)
 
     if options.maxsegno and int(options.maxsegno) < 1:
-        print 'ERROR: maximum number of segs reported shouldnt be less than 1'
+        print('ERROR: maximum number of segs reported shouldnt be less than 1')
         sys.exit(1)
     
     if options.segnos is not None  and len(options.segnos) < 1 :
-        print 'ERROR: segmentation numbers should be specified with that option'
+        print('ERROR: segmentation numbers should be specified with that option')
         sys.exit(1)
     
     if options.no_segnos is not None and len(options.no_segnos) < 1:
-        print 'ERROR: to be excluded segmentation numbers should be specified with that option'
+        print('ERROR: to be excluded segmentation numbers should be specified with that option')
         sys.exit(1)
 
     # parse the segids file
@@ -253,7 +253,7 @@ def options_parse():
             f = open(options.segidsfile, 'r')
             options.segnos = [line.strip() for line in f]
         except IOError:
-            print 'ERROR: cannot read '+ options.segidsfile
+            print('ERROR: cannot read '+ options.segidsfile)
             sys.exit(1)
 
     if options.verboseflag:
@@ -287,7 +287,7 @@ def assemble_inputs(o):
     else:
         # check subjects dir
         subjdir = fsutils.check_subjdirs()
-        print 'SUBJECTS_DIR : %s' %subjdir
+        print('SUBJECTS_DIR : %s' %subjdir)
         if o.subdir is None:
             o.subdir = 'stats'
         if o.statsfname is None:
@@ -300,7 +300,7 @@ def assemble_inputs(o):
                 [o.subjects.append(subfromfile.strip()) for subfromfile in sf]
                 sf.close()
             except IOError:
-                print 'ERROR: the file %s doesnt exist'%o.subjectsfile
+                print('ERROR: the file %s doesnt exist'%o.subjectsfile)
                 sys.exit(1)
         if o.qdec is not None:
             o.subjects=[]
@@ -316,7 +316,7 @@ def assemble_inputs(o):
                         o.subjects.append(fsid)
                 f.close()
             except IOError:
-                print 'ERROR: the file %s doesnt exist'%o.qdec
+                print('ERROR: the file %s doesnt exist'%o.qdec)
                 sys.exit(1)
         if o.qdeclong is not None:
             o.subjects=[]
@@ -332,7 +332,7 @@ def assemble_inputs(o):
                         o.subjects.append(fsid+'.long.'+row['fsid-base'].strip())
                 f.close()
             except IOError:
-                print 'ERROR: the file %s doesnt exist'%o.qdeclong
+                print('ERROR: the file %s doesnt exist'%o.qdeclong)
                 sys.exit(1)
         
         for sub in o.subjects:
@@ -444,8 +444,8 @@ def sanitize_table(options, disorganized_table):
         # sanity check
         for plid, plname in  pl_ids.iteritems():
             if plname == 'Placeholder_Segmentation':
-                print 'ERROR: cannot find the corresponding segmentation for the id:' + plid + ' you provided'
-                print 'in any of the .stats files parsed' 
+                print('ERROR: cannot find the corresponding segmentation for the id:' + plid + ' you provided')
+                print('in any of the .stats files parsed')
                 sys.exit(1)
 
         # now go through the entire disorganized table and replace the ids with 'Placeholder_Segmentation' 
@@ -490,10 +490,10 @@ def sanitize_table(options, disorganized_table):
     elif union == intersection:
         row, column, table = make_table2d(_t, union)
     else:
-        print 'ERROR: All stat files should have the same segmentations'
-        print 'If one or more stats file have different segs from others,'
-        print 'use --common-segs or --all-segs flag depending on the need.'
-        print '(see help)'
+        print('ERROR: All stat files should have the same segmentations.')
+        print(('If one or more stats file have different segs from others, '
+               'use --common-segs or --all-segs flag depending on the need. '
+               '(see help)'))
         sys.exit(1)
 
     return row, column, table
@@ -528,7 +528,7 @@ if __name__=="__main__":
     pretable = []
 
     # Parse the stats files 
-    print 'Parsing the .stats files'
+    print('Parsing the .stats files')
     nth = 0;
     for specifier, filepath in subj_listoftuples:
         nth = nth + 1;
@@ -552,26 +552,26 @@ if __name__=="__main__":
             l.debug(measurelist)
         except BadFileError, e:
             if options.skipflag:
-                print 'Skipping ' + str(e)
+                print('Skipping ' + str(e))
                 continue
             else:
-                print "";
+                print("")
                 if(not os.path.exists(str(e))):
-                    print 'ERROR: Cannot find stats file '+str(e);
+                    print('ERROR: Cannot find stats file '+str(e))
                 else:
-                    print 'ERROR: The stats file '+str(e)+' is too small to be a valid statsfile'
-                print 'Use --skip flag to automatically skip bad or missing stats files'
-                print "";
+                    print('ERROR: The stats file '+str(e)+' is too small to be a valid statsfile')
+                print('Use --skip flag to automatically skip bad or missing stats files')
+                print("")
                 sys.exit(1)
         nmeasures = len(measurelist);
         if(nth == 1): nmeasures0 = nmeasures;
         if(nmeasures != nmeasures0 and not options.common_flag and not options.all_flag):
-            print "WARN: %s nmeasures = %d, expecting %d" % (specifier,nmeasures,nmeasures0);
+            print("WARN: %s nmeasures = %d, expecting %d" % (specifier,nmeasures,nmeasures0))
         pretable.append( (specifier, id_name_map, measurelist)) 
 
     # Make sure the table has the same number of cols for all stats files
     # and merge them up, clean them up etc. More in the documentation of the fn.
-    print 'Building the table..'
+    print('Building the table..')
     rows, columns, table = sanitize_table(options, pretable)
 
     if(options.etivflag):
@@ -588,12 +588,12 @@ if __name__=="__main__":
                     table[row][col] = 100*v/etiv;
 
         except:
-            print "ERROR: --etiv, cannot find EstimatedTotalIntraCranialVol in list"
+            print("ERROR: --etiv, cannot find EstimatedTotalIntraCranialVol in list")
             sys.exit(1)
     # end etiv scaling
 
     # Write this table ( in memory ) to disk.. function uses TableWriter class
-    print 'Writing the table to %s' %options.outputfile
+    print('Writing the table to %s' %options.outputfile)
     write_table(options, rows, columns, table)
 
     # always exit with 0 exit code
