@@ -4044,7 +4044,7 @@ LabelAddVoxel(LABEL *area, int xv, int yv, int zv, int coords, int *vertices, in
   if (area->mri_template)
   {
     if (area->mris)
-      MRISsurfaceRASToVoxel(area->mris, area->mri_template, x, y, z, &vx, &vy, &vz);
+      MRISsurfaceRASToVoxel(area->mris, area->mri_template, xv, yv, zv, &vx, &vy, &vz);
     else
       MRIvoxelToSurfaceRAS(area->mri_template, xv, yv, zv, &vx, &vy, &vz) ;
     lv->x = vx ;  lv->y = vy ;  lv->z = vz ;
