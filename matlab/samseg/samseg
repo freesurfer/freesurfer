@@ -3,6 +3,10 @@
 
 set VERSION = '$Id: samseg,v 1.1 2017/01/26 00:23:37 greve Exp $';
 
+if(-e $FREESURFER_HOME/sources.csh) then
+  source $FREESURFER_HOME/sources.csh
+endif
+
 set outdir = ();
 set subject = ();
 set usebin = 0;
@@ -30,7 +34,7 @@ endif
 # Matlab (must be 8.0)
 if($?SAMSEG_MCRROOT == 0) then
   # The mkbin script also uses this env var when compiling
-  setenv SAMSEG_MCRROOT /usr/pubsw/common/matlab/8.0
+  setenv SAMSEG_MCRROOT /usr/pubsw/common/matlab/8.4
 endif
 
 # This is for when running matlab 
@@ -108,7 +112,7 @@ endif
 
 #========================================================
 if($usebin) then
-  set cmd = (run_samseg $input $outdir $threads $usegpu $regmat $input2 $input3 $input4 $input5 $input6)
+  set cmd = (fs_time run_samseg $input $outdir $threads $usegpu $regmat $input2 $input3 $input4 $input5 $input6)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
   if($status) goto error_exit;
@@ -128,6 +132,8 @@ else
   if(! $monly) cat $MLF |& $matlab -display iconic $threads |& tee -a $LF
 endif
 
+date | tee -a $LF
+
 # ========================================================
 # Compute dice:
 if ($computedice) then
@@ -138,68 +144,23 @@ if ($computedice) then
 endif
 
 if($#subject != 0) then
-  # Copy the first input
-  set cmd = (mri_convert $input $SUBJECTS_DIR/$subject/mri/orig.mgz)
+  set cmd = (samseg2recon --i $input --s $subject)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
-  if($status) exit 1;
-
-  # Have to change to uchar or things break
-  set cmd = (mri_convert -odt uchar --no_scale 1 \
-    $outdir/segSubSpace.mgz $SUBJECTS_DIR/$subject/mri/aseg.auto_noCCseg.mgz)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-
-  pushd $SUBJECTS_DIR/$subject/mri/transforms
-  set cmd = (ln -sf $outdir/samseg.talairach.lta talairach.lta)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-
-  # Create a talairach.xfm (needed mris_anatomical stats) 
-  set cmd = (lta_convert --inlta talairach.lta --outmni talairach.xfm)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-
-  pushd $SUBJECTS_DIR/$subject/mri
-  set vbase = `fname2stem $input`
-  set vbase = `basename $vbase`
-  set cmd = (ln -sf $outdir/$vbase"_biasCorrected".mgz norm.mgz)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-
-  # create a link from the orig.mgz to rawavg.mgz
-  # needed for pctsurfcon
-  set cmd = (ln -sf orig.mgz rawavg.mgz)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-
-  # Create the brainmask by just masking with the aseg
-  set cmd = (mri_mask norm.mgz aseg.auto_noCCseg.mgz brainmask.mgz)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-
-  # Create aseg.auto.mgz This needs to be run separately, outside of
-  # recon-all, because in recon-all it is done as part of ca_label
-  set cmd = (mri_cc -aseg aseg.auto_noCCseg.mgz -o aseg.auto.mgz -lta transforms/cc_up.lta $subject)
-  echo $cmd | tee -a $LF
-  $cmd | tee -a $LF
-  if($status) exit 1;
-
+  if($status) goto error_exit;
   if($DoRecon) then
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
+    echo "Starting recon-all `date`" | tee -a $LF
     set cmd = (recon-all -s $subject -autorecon2-samseg -autorecon3 -threads $threads)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
-    if($status) exit 1;
+    if($status) goto error_exit;
+    echo "recon-all done `date`" | tee -a $LF
+    echo "" | tee -a $LF
+    echo "" | tee -a $LF
   endif
-
 endif
-
 
 # Cleanup
 if($cleanup) rm -rf $tmpdir
