@@ -6544,9 +6544,30 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
     for (y=0; y< height; y++)
       for (x=0; x < width; x++)
       {
+	int val ; 
+
 	if (x == Gx && y == Gy && z == Gz)
 	  DiagBreak() ;
-        if (MRIgetVoxVal(mri_img, x, y, z, 0) < WM_MIN_VAL)
+
+	val = MRIgetVoxVal(mri_img, x, y, z, 0) ;
+	if (val == WM_EDITED_OFF_VAL)
+	{
+	  MRIsetVoxVal(mri_fill_lh, x, y, z, 0, 0) ;
+	  MRIsetVoxVal(mri_fill_rh, x, y, z, 0, 0) ;
+	  MRIsetVoxVal(mri_fill, x, y, z, 0, 0) ;
+	  continue ;
+	}
+	else if (val == WM_EDITED_ON_VAL)
+	{
+	  int whalf = (int)ceil(5 / (mri_seg->xsize)) ;
+	  if (MRIlabelsInNbhd(mri_seg,  x,  y,  z, whalf, Left_Cerebral_White_Matter) >
+	      MRIlabelsInNbhd(mri_seg,  x,  y,  z, whalf, Right_Cerebral_White_Matter))
+	    MRIsetVoxVal(mri_fill_lh, x, y, z, 0, 1) ;
+	  else
+	    MRIsetVoxVal(mri_fill_rh, x, y, z, 0, 1) ;
+	  MRIsetVoxVal(mri_fill, x, y, z, 0, 1) ;
+	}
+        else if (val < WM_MIN_VAL)
         {
 	  label = MRIgetVoxVal(mri_seg,x, y,z, 0);
 	  if (label != Left_Lesion && label != Right_Lesion && !IS_WMH(label))
