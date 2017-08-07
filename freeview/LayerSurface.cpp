@@ -1796,9 +1796,8 @@ void LayerSurface::DeleteLabel(SurfaceLabel *label)
             SetActiveLabel(i);
         }
       }
-      delete label;
+      label->deleteLater();
       emit SurfaceLabelDeleted(label);
-
       UpdateOverlay(false);
       emit Modified();
       emit ActorChanged();

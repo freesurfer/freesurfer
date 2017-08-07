@@ -100,6 +100,11 @@ public:
 
   bool GetCentroid(double* x, double* y, double* z, int* nvo);
 
+  LABEL* GetLabelData()
+  {
+    return m_label;
+  }
+
 Q_SIGNALS:
   void SurfaceLabelChanged();
   void SurfaceLabelVisibilityChanged();

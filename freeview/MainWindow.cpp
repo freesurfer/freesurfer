@@ -7739,3 +7739,9 @@ void MainWindow::OnApplyVolumeTransform()
     }
   }
 }
+
+void MainWindow::OnLoadSurfaceLabelRequested(const QString &fn)
+{
+  AddScript(QStringList("loadsurfacelabel") << fn);
+  AddScript(QStringList("hidesurfacelabel"));
+}

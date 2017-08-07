@@ -35,6 +35,7 @@ class WindowConfigureOverlay;
 
 class Layer;
 class LayerSurface;
+class SurfaceLabel;
 class SurfaceOverlayProperty;
 class QAbstractButton;
 
@@ -50,6 +51,7 @@ public:
 
 signals:
   void ActiveFrameChanged();
+  void MaskLoadRequested(const QString& filename);
 
 public slots:
   void UpdateGraph();
@@ -75,6 +77,9 @@ protected slots:
   void OnCheckUsePercentile(bool bChecked);
   void OnCustomColorScale();
   void OnCheckApplyToAll(bool bChecked);
+  void OnComboMask(int n);
+  void OnCheckInverseMask(bool bChecked);
+  void OnSurfaceLabelAdded(SurfaceLabel* label);
 
 private:
   Ui::WindowConfigureOverlay *ui;
