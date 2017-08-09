@@ -2500,8 +2500,8 @@ if($DoGCAReg) then
       set cmd = (mri_em_register)
       if($UseCuda) set cmd = (mri_em_register_cuda)
       set cmd = ($cmd $nocerebellum )
-      if ($LHonly) set cmd = ($cmd -lh  -spacing 4 -s 9)
-      if ($RHonly) set cmd = ($cmd -rh  -spacing 4 -s 9)
+      if ($LHonly) set cmd = ($cmd -lh  -spacing 4 -s 7)
+      if ($RHonly) set cmd = ($cmd -rh  -spacing 4 -s 7)
       set cmd = ($cmd -rusage $touchdir/rusage.mri_em_register.dat) 
       if($DoCreateBaseSubj) then
         # base subj processing (norm_template instead of nu, and no mask needed):
@@ -4228,6 +4228,8 @@ if($DoT2pial || $DoFLAIRpial) then
       else
         # if t2flairraw.lta does not exist in cross, register T2raw to longspace
         set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
+	if ($LHonly) set xopts = ($xopts --lh-only )
+	if ($RHonly) set xopts = ($xopts --rh-only )
         set bbcmd = (bbregister \
             --s $subjid \
             --mov $t2flairraw \
@@ -4250,6 +4252,8 @@ if($DoT2pial || $DoFLAIRpial) then
 
       # first create a T2/FLAIR that is registered to the T1s
       set xopts = `fsr-getxopts bbregister $XOptsFile $GlobXOptsFile`;
+      if ($LHonly) set xopts = ($xopts --lh-only )
+      if ($RHonly) set xopts = ($xopts --rh-only )
       set bbcmd = (bbregister \
           --s $subjid \
           --mov $t2flairraw \
@@ -4287,11 +4291,14 @@ if($DoT2pial || $DoFLAIRpial) then
     # then give the T2/FLAIR a little normalizing
     # note: pre-normalized file remains for debug, with .prenorm in name
     # this creates ${t2flair}.norm.mgz
+    set surfaces = ()
+    foreach hemi ($hemilist)
+        set surfaces = ($surfaces -surface $sdir/$hemi.white identity.nofile)
+    end
     set normcmd = (mri_normalize \
         -sigma 0.5 -nonmax_suppress 0 -min_dist 1 \
         -aseg $mdir/aseg.presurf.mgz \
-        -surface $sdir/rh.white identity.nofile \
-        -surface $sdir/lh.white identity.nofile \
+	$surfaces  \
         $mdir/${t2flair}.prenorm.mgz \
         $mdir/${t2flair}.norm.mgz)
     echo "\n $normcmd \n"|& tee -a $LF |& tee -a $CF
