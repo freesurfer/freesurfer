@@ -108,7 +108,7 @@
 #include "DialogThresholdVolume.h"
 #include "DialogVolumeSegmentation.h"
 #include <QProcessEnvironment>
-#include "Json.h"
+#include <QJsonDocument>
 #include "DialogThresholdFilter.h"
 #include "DialogLoadTransform.h"
 #include "LayerPropertyTrack.h"
@@ -7430,12 +7430,11 @@ void MainWindow::OnToolSaveCamera()
   QString fn = QFileDialog::getSaveFileName(this, "Save Camera", m_strLastDir, "All files (*)");
   if (!fn.isEmpty())
   {
-    Json json;
     QVariantMap cam = ui->view3D->GetCamera();
     QFile file(fn);
     if (file.open(QIODevice::WriteOnly))
     {
-      file.write(json.encode(cam).toUtf8());
+      file.write(QJsonDocument::fromVariant(cam).toJson());
       file.close();
     }
   }
@@ -7451,8 +7450,7 @@ void MainWindow::OnToolLoadCamera(const QString& fn_in)
     QFile file(fn);
     if (file.open(QIODevice::ReadOnly))
     {
-      Json json;
-      QVariantMap cam = json.decode(file.readAll());
+      QVariantMap cam = QJsonDocument::fromJson(file.readAll()).toVariant().toMap();
       file.close();
       ui->view3D->SetCamera(cam);
     }

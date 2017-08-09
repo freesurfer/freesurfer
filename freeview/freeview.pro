@@ -161,7 +161,6 @@ SOURCES += \
     DialogThresholdVolume.cpp \
     DialogVolumeSegmentation.cpp \
     LabelTreeWidget.cpp \
-    Json.cpp \
     SplineTreeWidget.cpp \
     DialogLoadTransform.cpp \
     Interactor3DROIEdit.cpp
@@ -313,7 +312,6 @@ HEADERS  += \
     DialogThresholdVolume.h \
     DialogVolumeSegmentation.h \
     LabelTreeWidget.h \
-    Json.h \
     SplineTreeWidget.h \
     DialogLoadTransform.h \
     Interactor3DROIEdit.h
@@ -369,6 +367,8 @@ FORMS    += MainWindow.ui \
 
 RESOURCES += \
     freeview.qrc
+
+include ($$PWD/json/qjson.pri)
 
 #LIBS += \
 #    -lvtkhdf5_hl -lvtkhdf5 -lLSDyna  -lvtkNetCDF_cxx
