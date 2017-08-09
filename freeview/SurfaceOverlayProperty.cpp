@@ -35,6 +35,7 @@
 #include "vtkMath.h"
 #include "FSSurface.h"
 #include "SurfaceOverlay.h"
+#include "SurfaceLabel.h"
 #include <QDebug>
 
 SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
@@ -48,7 +49,10 @@ SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
   m_nSmoothSteps(1),
   m_overlay( overlay ),
   m_bUsePercentile(false),
-  m_dOffset(0)
+  m_dOffset(0),
+  m_mask(NULL),
+  m_maskData(NULL),
+  m_bInverseMask(false)
 {
   m_lut = vtkRGBAColorTransferFunction::New();
 
@@ -60,6 +64,9 @@ SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
 SurfaceOverlayProperty::~SurfaceOverlayProperty ()
 {
   m_lut->Delete();
+  if (m_maskData)
+    delete[] m_maskData;
+  m_maskData = NULL;
 }
 
 void SurfaceOverlayProperty::Copy(SurfaceOverlayProperty *p)
@@ -88,6 +95,14 @@ void SurfaceOverlayProperty::Copy(SurfaceOverlayProperty *p)
     m_colorMax[i] = p->m_colorMax[i];
   }
   SetColorScale(m_nColorScale);
+  m_bInverseMask = p->m_bInverseMask;
+  m_mask = p->m_mask;
+  if (p->m_maskData)
+  {
+    if (!m_maskData)
+      m_maskData = new unsigned char[m_overlay->GetDataSize()];
+    memcpy(m_maskData, p->m_maskData, m_overlay->GetDataSize());
+  }
 }
 
 void SurfaceOverlayProperty::Reset()
@@ -387,7 +402,10 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
     for ( int i = 0; i < nPoints; i++ )
     {
       // map positive values
-      if ( data[i] >= m_dMinPoint + m_dOffset && !( m_bColorInverse && m_bColorTruncate ) )
+      bool bInMask = true;
+      if (nPoints == m_overlay->GetDataSize())
+        bInMask = (!m_mask || ( (!m_bInverseMask && m_maskData[i]) || (m_bInverseMask && !m_maskData[i]) ));
+      if ( data[i] >= m_dMinPoint + m_dOffset && !( m_bColorInverse && m_bColorTruncate ) && bInMask )
       {
         double r = 0;
         if (m_dMaxPoint != dMidPoint)
@@ -420,7 +438,7 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
         colordata[i*4+2]  = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
       }
       // map negative values
-      else if ( data[i] <= -m_dMinPoint + m_dOffset && !( m_bColorTruncate && !m_bColorInverse ) )
+      else if ( data[i] <= -m_dMinPoint + m_dOffset && !( m_bColorTruncate && !m_bColorInverse ) && bInMask )
       {
         double r = 0;
         if (m_dMaxPoint != dMidPoint)
@@ -459,7 +477,10 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
     for ( int i = 0; i < nPoints; i++ )
     {
       // map positive values
-      if ( data[i] >= m_dMinPoint + m_dOffset && !( m_bColorInverse && m_bColorTruncate ) )
+      bool bInMask = true;
+      if (nPoints == m_overlay->GetDataSize())
+        bInMask = (!m_mask || ( (!m_bInverseMask && m_maskData[i]) || (m_bInverseMask && !m_maskData[i]) ));
+      if ( data[i] >= m_dMinPoint + m_dOffset && !( m_bColorInverse && m_bColorTruncate ) && bInMask )
       {
         if ( data[i] < dMidPoint + m_dOffset )
         {
@@ -537,7 +558,7 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
         colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
       }
       // map negative value
-      else if ( data[i] <= -m_dMinPoint + m_dOffset && !( m_bColorTruncate && !m_bColorInverse ) )
+      else if ( data[i] <= -m_dMinPoint + m_dOffset && !( m_bColorTruncate && !m_bColorInverse ) && bInMask )
       {
         if ( data[i] >= -dMidPoint + m_dOffset )
         {
@@ -622,6 +643,9 @@ void SurfaceOverlayProperty::MapOverlayColorFullScale( float* data, unsigned cha
 {
   if (!m_overlay)
   {
+    LABEL* label = NULL;
+    if (m_mask)
+      label = m_mask->GetLabelData();
     return;
   }
   double c[4];
@@ -644,7 +668,10 @@ void SurfaceOverlayProperty::MapOverlayColorFullScale( float* data, unsigned cha
   }
   for ( int i = 0; i < nPoints; i++ )
   {
-    if (data[i] >= dThLow && data[i] <= dThHigh)
+    bool bInMask = true;
+    if (nPoints == m_overlay->GetDataSize())
+      bInMask = (!m_mask || ( (!m_bInverseMask && m_maskData[i]) || (m_bInverseMask && !m_maskData[i]) ));
+    if (bInMask && data[i] >= dThLow && data[i] <= dThHigh)
     {
       m_lut->GetColor( data[i], c );
       colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0]*255 * m_dOpacity );
@@ -683,3 +710,42 @@ void SurfaceOverlayProperty::SetSmoothSteps(int n)
     emit SmoothChanged();
   }
 }
+
+void SurfaceOverlayProperty::SetMask(SurfaceLabel *label)
+{
+  if (label != m_mask)
+  {
+    m_mask = label;
+    if (!m_maskData)
+      m_maskData = new unsigned char[m_overlay->GetDataSize()];
+    memset(m_maskData, 0, m_overlay->GetDataSize());
+    if (label)
+    {
+      LABEL* l = label->GetLabelData();
+      for (int i = 0; i < l->n_points; i++)
+        m_maskData[l->lv[i].vno] = 1;
+      connect(label, SIGNAL(destroyed(QObject*)), SLOT(OnLabelMaskDestroyed(QObject*)), Qt::UniqueConnection);
+    }
+    emit MaskChanged();
+  }
+}
+
+void SurfaceOverlayProperty::SetMaskInverse(bool b)
+{
+  if (b != m_bInverseMask)
+  {
+    m_bInverseMask = b;
+    emit MaskChanged();
+  }
+}
+
+void SurfaceOverlayProperty::OnLabelMaskDestroyed(QObject* label)
+{
+  if (label == m_mask)
+  {
+    SetMask(NULL);
+    emit ColorMapChanged();
+  }
+}
+
+

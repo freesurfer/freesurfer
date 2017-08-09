@@ -1590,7 +1590,7 @@ void LayerMRI::UpdateVectorActor( int nPlane, vtkImageData* imagedata, vtkImageD
   char* ptr = (char*)imagedata->GetScalarPointer();
   int scalar_type = imagedata->GetScalarType();
   char* scale_ptr = NULL;
-  int scale_scalar_type = NULL;
+  int scale_scalar_type = 0;
   int* scale_dim = NULL;
   if (scaledata)
   {

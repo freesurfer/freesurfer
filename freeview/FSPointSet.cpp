@@ -284,4 +284,6 @@ void FSPointSet::UpdateStatRange()
     if (m_label->lv[i].stat < m_dStatMin)
       m_dStatMin = m_label->lv[i].stat;
   }
+  if (m_dStatMax <= m_dStatMin)
+    m_dStatMax = m_dStatMin+1;
 }

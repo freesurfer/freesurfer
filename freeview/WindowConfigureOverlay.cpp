@@ -26,10 +26,12 @@
 #include "LayerSurface.h"
 #include "SurfaceOverlayProperty.h"
 #include "SurfaceOverlay.h"
+#include "SurfaceLabel.h"
 #include "LayerPropertySurface.h"
 #include "MainWindow.h"
 #include "LayerCollection.h"
 #include "LayerMRI.h"
+#include <QFileDialog>
 #include <QMessageBox>
 #include <QDebug>
 #include <QSettings>
@@ -106,6 +108,10 @@ void WindowConfigureOverlay::OnActiveSurfaceChanged(Layer* layer)
             this, SLOT(UpdateUI()), Qt::UniqueConnection);
     connect(m_layerSurface, SIGNAL(ActiveOverlayChanged(int)),
             this, SLOT(UpdateGraph()), Qt::UniqueConnection);
+    connect(m_layerSurface, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
+            this, SLOT(OnSurfaceLabelAdded(SurfaceLabel*)), Qt::UniqueConnection);
+    connect(m_layerSurface, SIGNAL(SurfaceLabelDeleted(SurfaceLabel*)),
+            this, SLOT(UpdateUI()), Qt::UniqueConnection);
   }
 
   if (m_fDataCache)
@@ -208,6 +214,20 @@ void WindowConfigureOverlay::UpdateUI()
         }
       }
     }
+
+    ui->comboBoxMask->clear();
+    ui->comboBoxMask->addItem("None");
+    int nSel = 0;
+    for (int i = 0; i < m_layerSurface->GetNumberOfLabels(); i++)
+    {
+      SurfaceLabel* label = m_layerSurface->GetLabel(i);
+      ui->comboBoxMask->addItem(label->GetName(), QVariant::fromValue((QObject*)label));
+      if (label == overlay->GetProperty()->GetMask())
+        nSel = i+1;
+    }
+    ui->comboBoxMask->addItem("Load...");
+    ui->comboBoxMask->setCurrentIndex(nSel);
+    ui->checkBoxMaskInverse->setEnabled(nSel > 0);
 
     ui->checkBoxComputeCorrelation->setEnabled(ui->comboBoxVolumes->count() > 0);
     ui->groupBoxCorrelation->setVisible(nFrames > 1 && ui->comboBoxVolumes->count() > 0);
@@ -373,6 +393,9 @@ bool WindowConfigureOverlay::UpdateOverlayProperty( SurfaceOverlayProperty* p )
 
   p->SetSmooth(ui->checkBoxEnableSmooth->isChecked());
   p->SetSmoothSteps(ui->spinBoxSmoothSteps->value());
+
+  p->SetMask(qobject_cast<SurfaceLabel*>(ui->comboBoxMask->itemData(ui->comboBoxMask->currentIndex()).value<QObject*>()));
+  p->SetMaskInverse(ui->checkBoxMaskInverse->isChecked());
 
   return true;
 }
@@ -741,4 +764,49 @@ void WindowConfigureOverlay::OnCheckUsePercentile(bool bChecked)
 void WindowConfigureOverlay::OnCustomColorScale()
 {
   ui->lineEditOffset->setText("0");
+}
+
+void WindowConfigureOverlay::OnComboMask(int n)
+{
+  if (n == ui->comboBoxMask->count()-1)
+  {
+    QString filename = QFileDialog::getOpenFileName( this, "Select label file",
+                                                           MainWindow::GetMainWindow()->AutoSelectLastDir( "label" ),
+                                                           "Label files (*)");
+    if ( !filename.isEmpty())
+    {
+      setProperty("wait_for_label", true);
+      emit MaskLoadRequested(filename);
+    }
+    else
+    {
+      UpdateUI();
+    }
+  }
+  else
+  {
+    if (ui->checkBoxAutoApply->isChecked())
+      OnApply();
+    UpdateUI();
+  }
+}
+
+void WindowConfigureOverlay::OnCheckInverseMask(bool bChecked)
+{
+  Q_UNUSED(bChecked);
+
+  if (ui->checkBoxAutoApply->isChecked())
+    OnApply();
+}
+
+void WindowConfigureOverlay::OnSurfaceLabelAdded(SurfaceLabel* label)
+{
+  Q_UNUSED(label);
+
+  UpdateUI();
+  if (property("wait_for_label").toBool())
+  {
+    setProperty("wait_for_label", false);
+    ui->comboBoxMask->setCurrentIndex(1);
+  }
 }

@@ -517,6 +517,8 @@ protected slots:
 
   void ReorderLayers(const QList<Layer*>& layers);
 
+  void OnLoadSurfaceLabelRequested(const QString& fn);
+
 private:
   bool DoParseCommand(MyCmdLineParser* parser, bool bAutoQuit);
   void SaveSettings();
