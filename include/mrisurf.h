@@ -1093,6 +1093,10 @@ double       MRISParea(MRI_SP *mrisp) ;
 #define TARGET_VERTICES     10
 #define LAYERIV_VERTICES    11
 #define LAYER4_VERTICES     LAYERIV_VERTICES
+#define VERTEX_NORMALS      12
+#define PIAL_NORMALS        13
+#define WHITE_NORMALS       14
+
 
 int MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
 int MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
