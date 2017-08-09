@@ -136,13 +136,27 @@ date | tee -a $LF
 
 # ========================================================
 # Compute dice:
-if ($computedice) then
-  set cmd = (mri_compute_seg_overlap -log $outdir/dice.log $diceseg $outdir/segSubSpace.mgz)
+if($computedice) then
+  set logfile = $outdir/dice.log
+  set tablefile = $outdir/dice.table.dat
+  rm -f $logfile # need to rm because it just appends
+  set cmd = (mri_compute_seg_overlap -table $tablefile -log $logfile $diceseg $outdir/segSubSpace.mgz)
   echo $cmd | tee -a $LF
   $cmd | tee -a $LF
-  if($status) echo "error: could not compute seg overlap";
+  if($status) then
+    echo "error: could not compute seg overlap";
+    goto error_exit;
+  endif
 endif
 
+# Compute segstats
+set sumfile = $outdir/segSubSpace.stats 
+set cmd = (mri_segstats --ctab-default --seg $outdir/segSubSpace.mgz --sum $sumfile)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) goto error_exit;
+
+# Prep for recon
 if($#subject != 0) then
   set cmd = (samseg2recon --i $input --s $subject)
   echo $cmd | tee -a $LF
