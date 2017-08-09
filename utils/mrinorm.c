@@ -4061,7 +4061,8 @@ MRI3dWriteBias(char *t_bias_volume_fname)
 int
 MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
 {
-  int  i, nctrl, x, y, z, bad = 0 ;
+  int  i, nctrl, x, y, z ;
+  long bad = 0 ;
 
   /* read in control points from a file (if specified) */
   for (nctrl = i = 0 ; i < num_control_points ; i++)
@@ -4086,7 +4087,7 @@ MRInormAddFileControlPoints(MRI *mri_ctrl, int value)
   {
     ErrorPrintf(
       ERROR_BADFILE,
-      "!!!!! %d control points rejected for being out of bounds !!!!!!\n") ;
+      "!!!!! %ld control points rejected for being out of bounds !!!!!!\n") ;
   }
   return(nctrl) ;
 }
