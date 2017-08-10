@@ -881,6 +881,12 @@ MRIhistogramLabelRegion(MRI *mri,
   histo = HISTOalloc(nbins) ;
   HISTOinit(histo, nbins, fmin, fmax) ;
 
+  if (FEQUAL(fmin, fmax))
+  {
+    histo->bin_size = 1 ;
+    ErrorReturn(histo, (ERROR_BADPARM, 
+			 "MRIhistogramLabelRegion: constant image")) ;
+  }
   width = mri->width ; height = mri->height ; depth = mri->depth ;
 
   x0 = MAX(0, region->x) ;

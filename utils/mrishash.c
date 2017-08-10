@@ -1364,6 +1364,8 @@ int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht,
   bin = bucket->bins ;
   for (faceix = 0 ; faceix < bucket->nused ; faceix++, bin++)
   {
+    double   lambda[3] ;
+
     fno = bin->fno;
 
     face = &mris->faces[fno];
@@ -1375,7 +1377,7 @@ int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht,
                         &tryx, &tryy, &tryz);  // Added [2007-07-27 GW]
 
     if (project_into_face > 0 &&
-        face_barycentric_coords(mris, fno, mht->which_vertices, probex, probey, probez, NULL,NULL,NULL) <0)
+        face_barycentric_coords(mris, fno, mht->which_vertices, probex, probey, probez, &lambda[0],&lambda[1],&lambda[2]) <0)
       continue ;
     ADistSq = SQR(tryx - probex) 
             + SQR(tryy - probey)

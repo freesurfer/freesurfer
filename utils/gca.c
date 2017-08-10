@@ -16337,6 +16337,8 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     }
     {
       double mn, std, std_thresh = 10 ;
+      if (mri->xsize < .9)
+	std_thresh *= 2 ;
       HISTOrobustGaussianFit(h_smooth, .3, &mn, &std) ;
       printf("robust fit to distribution - %2.0f +- %2.1f\n", mn, std) ;
       std_thresh *= (mn / wm_means[r]) ;
@@ -30804,14 +30806,45 @@ GCAremoveHemi(GCA *gca, int lh)
     {
       for (z = 0 ; z < gca->prior_depth ; z++)
       {
+	int max_label ;
+	double max_prior ;
+
         gcap = &gca->priors[x][y][z] ;
+	max_prior = 0 ; max_label = 0 ;
         for (n = 0 ; n < gcap->nlabels ; n++)
         {
-          if ((lh && (IS_LH_CLASS(gcap->labels[n]))) ||
-              (!lh && (IS_RH_CLASS(gcap->labels[n]))))
+          if (gcap->priors[n] > max_prior)
           {
-            gcap->labels[n] = Unknown ;
+	    max_prior = gcap->priors[n] ;
+	    max_label = gcap->labels[n] ;
           }
+        }
+	// most likely class is in the hemi to be erased - erase everything
+	if ( (lh && (IS_LH_CLASS(max_label))) ||
+	     (!lh && (IS_RH_CLASS(max_label))))
+	{
+	  int xn, yn, zn, r ;
+
+	  GCApriorToNode( gca, x, y, z, &xn, &yn, &zn) ;
+	  gcan = &gca->nodes[xn][yn][zn] ;
+	  gcan->nlabels = 1 ;
+	  gcan->labels[0] = Unknown ;
+	  for (r = 0 ; r < gca->ninputs ; r++)
+	  {
+	    gcan->gcs[0].means[r] = 0 ;
+	  }
+	  gcap->nlabels = 1 ; gcap->labels[0] = Unknown ;
+	}
+	else
+	{
+	  for (n = 0 ; n < gcap->nlabels ; n++)
+	  {
+	    if ((lh && (IS_LH_CLASS(gcap->labels[n]))) ||
+		(!lh && (IS_RH_CLASS(gcap->labels[n]))))
+	    {
+	      gcap->labels[n] = Unknown ;
+	    }
+	  }
         }
       }
     }

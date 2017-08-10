@@ -30,6 +30,7 @@
 #include "vtkMatrix4x4.h"
 #include "CommonDataStruct.h"
 #include <QList>
+#include <QVariantMap>
 
 extern "C"
 {
@@ -43,6 +44,7 @@ struct WayPoint
 {
   double pt[3];
   double value;
+  QVariantMap info;
 };
 
 typedef QList<WayPoint> PointSet;

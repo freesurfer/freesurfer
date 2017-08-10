@@ -182,7 +182,30 @@ BUILT_SOURCES = \
   moc_DialogLoadTransform.cpp \
   qrc_freeview.cpp
 
-freeview_SOURCES = $(BUILT_SOURCES) \
+if USING_QT_5
+JSON_SOURCES =
+JSON_INCLUDE =
+else
+JSON_SOURCES = \
+  json/qjson.cpp \
+  json/qjsonarray.cpp \
+  json/qjsondocument.cpp \
+  json/qjsonobject.cpp \
+  json/qjsonparser.cpp \
+  json/qjsonvalue.cpp \
+  json/qjsonwriter.cpp \
+  json/qjson_p.h \
+  json/qjsonarray.h \
+  json/qjsondocument.h \
+  json/qjsonobject.h \
+  json/qjsonparser_p.h \
+  json/qjsonvalue.h \
+  json/qjsonwriter_p.h
+JSON_INCLUDE = \
+  -Ijson
+endif
+
+freeview_SOURCES = $(BUILT_SOURCES) $(JSON_SOURCES) \
 	Annotation2D.cpp \
 	CommandEdit.cpp \
 	Contour2D.cpp \
@@ -505,8 +528,6 @@ freeview_SOURCES = $(BUILT_SOURCES) \
   DialogVolumeSegmentation.h \
   DialogLoadTransform.cpp \
   DialogLoadTransform.h \
-  Json.cpp \
-  Json.h \
 	freeview.qrc
 
 qrc_freeview.cpp: freeview.qrc
@@ -532,7 +553,7 @@ AM_CXXFLAGS=\
 	-I$(top_srcdir)/lineprof \
 	-Wno-error 
 
-freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
+freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS) $(JSON_INCLUDE)
 freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
 freeview_LDFLAGS	= $(QT_LDFLAGS) $(OS_LDFLAGS) \
 	-framework Cocoa -framework IOKit -framework Accelerate
@@ -611,7 +632,7 @@ AM_CXXFLAGS=\
 	-DVCL_CAN_STATIC_CONST_INIT_FLOAT=0 \
 	-Wno-error 
 
-freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
+freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS) $(JSON_INCLUDE)
 freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
 freeview_LDFLAGS	= $(QT_LDFLAGS) $(OS_LDFLAGS) \
 	-Wl,--allow-multiple-definition 	

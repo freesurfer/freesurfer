@@ -1875,9 +1875,9 @@ MRIdilateUchar(MRI *mri_src, MRI *mri_dst)
 MRI *
 MRIdilate(MRI *mri_src, MRI *mri_dst)
 {
-  int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same,
+  int     width, height, depth, x, y, z, same,
   xmin, xmax, ymin, ymax, zmin, zmax, f;
-  double    val, max_val ;
+  double    val ;
 
   if (mri_src->type == MRI_UCHAR)
     return(MRIdilateUchar(mri_src, mri_dst)) ;
@@ -1951,8 +1951,13 @@ MRIdilate(MRI *mri_src, MRI *mri_dst)
 #endif
   for (f = 0 ; f < mri_src->nframes ; f++)
   {
+#ifdef HAVE_OPENMP
+#pragma omp parallel for
+#endif
     for (z = zmin ; z <= zmax ; z++)
     {
+      int       y, x, xi, yi, zi, z0, y0, x0 ;
+      double    val, max_val ;
       for (y = ymin ; y <= ymax ; y++)
       {
         for (x = xmin ; x <= xmax ; x++)
