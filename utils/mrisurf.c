@@ -86813,7 +86813,7 @@ MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_inte
     double points_per_frame ;
     int    num, frame, i, new_frame ;
     double xs, ys, zs, xv2, yv2, zv2, ival ;
-    MRI    *mri_surf_lap_grad ;
+    MRI    *mri_surf_lap_grad = NULL;
     char  *cp ;
 
     cp = getenv("USE_LAPLACE_GRAD") ;
@@ -86827,9 +86827,6 @@ MRISmeasureLaplaceStreamlines(MRI_SURFACE *mris, MRI *mri_laplace, MRI *mri_inte
 	  ErrorExit(ERROR_NOFILE, "could not read USE_LAPLACE_GRAD file %s",cp) ;
       }
     }
-    else
-      mri_surf_lap_grad = NULL ;
-
 
    v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
