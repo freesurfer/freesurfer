@@ -18,6 +18,7 @@ cmdargs.TI1 = 24; % ms, time to first acq after inversion
 cmdargs.InvDur = 12; %  ms, duration of inversion pulse, "Prefill"
 cmdargs.SaveYHat = 0;
 cmdargs.Slice1PreInv = 0; % Set to 1 to model slice 1 acqed before inv
+cmdargs.T1Range = [500 50 8000]; % min delta max
 
 %% Print useage if there are no arguments %%
 if(nargin == 0)
@@ -62,7 +63,7 @@ s0.Slice1PreInv = cmdargs.Slice1PreInv;
 s0 = irepitiming(s0);
 s0.nminexclude = cmdargs.nminexclude;
 s0.nexclude = cmdargs.nacqexclude;
-s0.T1 = [500:50:8000];
+s0.T1 = [cmdargs.T1Range(1):cmdargs.T1Range(2):cmdargs.T1Range(3)];
 nT1 = length(s0.T1);
 
 fprintf('Skip = %d\n',cmdargs.skip);
@@ -75,6 +76,7 @@ fprintf('TI1 = %f\n',cmdargs.TI1);
 fprintf('NAcqEx = %d\n',cmdargs.nacqexclude);
 fprintf('NMinEx = %d\n',cmdargs.nminexclude);
 fprintf('Slice1PreInv = %d\n',cmdargs.Slice1PreInv);
+fprintf('T1Range %g %g %g\n',cmdargs.T1Range);
 
 fname = sprintf('%s/info.mat',cmdargs.outdir);
 save(fname,'cmdargs','s0');
@@ -204,6 +206,13 @@ while(narg <= ninputargs)
     cmdargs.ROFlip = sscanf(inputargs{narg},'%f');
     narg = narg + 1;
     
+   case '--t1-range',
+    arg3check(flag,narg,ninputargs);
+    cmdargs.T1Range(1) = sscanf(inputargs{narg},'%f');
+    cmdargs.T1Range(2) = sscanf(inputargs{narg+1},'%f');
+    cmdargs.T1Range(3) = sscanf(inputargs{narg+2},'%f');
+    narg = narg + 3;
+   
    case '--tbi',
     arg1check(flag,narg,ninputargs);
     cmdargs.TBI = sscanf(inputargs{narg},'%f');
@@ -283,6 +292,14 @@ function arg2check(flag,nflag,nmax)
     error;
   end
 return;
+%--------------------------------------------------%
+%% Check that there are at least two more arguments %%
+function arg3check(flag,nflag,nmax)
+  if(nflag > nmax-2 ) 
+    fprintf(1,'ERROR: Flag %s needs three arguments',flag);
+    error;
+  end
+return;
 
 %------------- Print Usage ---------------------%
 function print_usage(cmdargs)
@@ -301,6 +318,7 @@ function print_usage(cmdargs)
   fprintf(' --invdur InvDur : duration of inv pulse (ms)\n');
   fprintf(' --ti1 TI1 : time from end of inv pulse to first readout (ms)\n');
   fprintf(' --slice1preinv : assume slice1 before inversion\n');
+  fprintf(' --t1-range t1min deltat1 t1max\n');
   fprintf(' Analysis parameters \n');
   fprintf(' --nacqex nacqex :  skip the first nacqex after inversion\n');
   fprintf(' --nminex nminex :  skip the nminex smallest time points\n');
