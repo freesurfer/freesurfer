@@ -33,8 +33,8 @@ else
   MCR_CACHE_ROOT=$( echo "/tmp/MCR_${RANDOMNUMBER}/" | tr -d ' ' ) ;
   export MCR_CACHE_ROOT;
   "${exe_dir}"/segmentSubjectT1T2_autoEstimateAlveusML.app/Contents/MacOS/segmentSubjectT1T2_autoEstimateAlveusML $args
+  returnVal=$?
   rm -rf $MCR_CACHE_ROOT
 
 fi
-exit
-
+exit $returnVal
