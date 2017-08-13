@@ -117,7 +117,7 @@ ORIG_RH=$(RH).orig
 INFLATED_LH=$(LH).inflated
 INFLATED_RH=$(RH).inflated
 WHITE_LH_PREAPARC=$(LH).white.preaparc
-WHITE_RH_PREAPARC=$(RH).white.preparc
+WHITE_RH_PREAPARC=$(RH).white.preaparc
 CURV_LH=$(LH).curv
 CURV_RH=$(RH).curv
 AREA_LH=$(LH).area
@@ -191,22 +191,22 @@ $(WHITE_LH_PREAPARC): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
 $(WHITE_RH_PREAPARC): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH)
 	recon-all -s $(subj) -hemi rh -white
 
-$(SMOOTHWM_LH): $(WHITE_LH_PREPARC)
+$(SMOOTHWM_LH): $(WHITE_LH_PREAPARC)
 	recon-all -s $(subj) -hemi lh -smooth2
 
-$(SMOOTHWM_RH): $(WHITE_RH_PREPARC)
+$(SMOOTHWM_RH): $(WHITE_RH_PREAPARC)
 	recon-all -s $(subj) -hemi rh -smooth2
 
-$(INFLATED_LH): $(SMOOTHWM_LH) $(WHITE_LH_PREPARC)
+$(INFLATED_LH): $(SMOOTHWM_LH) $(WHITE_LH_PREAPARC)
 	recon-all -s $(subj) -hemi lh -inflate2
 
-$(INFLATED_RH): $(SMOOTHWM_RH) $(WHITE_RH_PREPARC)
+$(INFLATED_RH): $(SMOOTHWM_RH) $(WHITE_RH_PREAPARC)
 	recon-all -s $(subj) -hemi rh -inflate2
 
-$(CURV_HK_LH): $(INFLATED_LH) $(WHITE_LH_PREPARC)
+$(CURV_HK_LH): $(INFLATED_LH) $(WHITE_LH_PREAPARC)
 	recon-all -s $(subj) -hemi lh -curvHK
 
-$(CURV_HK_RH): $(INFLATED_RH) $(WHITE_RH_PREPARC)
+$(CURV_HK_RH): $(INFLATED_RH) $(WHITE_RH_PREAPARC)
 	recon-all -s $(subj) -hemi rh -curvHK
 
 $(CURVSTATS_LH): $(SMOOTHWM_LH) $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
