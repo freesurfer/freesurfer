@@ -521,3 +521,16 @@ Geodesics *VtxVolPruneGeod(Geodesics *geod, int vtxno, MRI *volindex)
 }
 
 
+/*
+  \fn LABEL *LabelAddVoxel(MRIS *surf, MRI *volsurf, LTA *lta, MRI *vol, int col, int row, int slice, double dmax, LABEL *slabel)
+  surf is the surface, get geom from vg field
+  lta - registration between volsurf and vol (NULL to align based on scanner coords)
+  vol is the geometry of the voxel to add
+  col, row, slice are indices of the voxel to add
+  dmax - maximum allowable distance between voxel and surface to be added to label
+  slabel - surface-based label.
+ */
+
+//LABEL *LabelAddVoxelToSurfLabel(MRIS *surf, LTA *lta, MRI *vol, int col, int row, int slice, double dmax, LABEL *slabel) 
+//{
+//}
